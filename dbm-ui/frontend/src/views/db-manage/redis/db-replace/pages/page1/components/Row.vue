@@ -62,42 +62,42 @@
   import RenderRole from './RenderRole.vue';
 
   export interface IDataRow {
-    rowKey: string;
-    isLoading: boolean;
-    ip: string;
-    role: string;
-    clusterIds: number[];
     bkCloudId: number;
     cluster: {
       domain: string;
-      isStart: boolean;
       isGeneral: boolean;
+      isStart: boolean;
       rowSpan: number;
     };
+    clusterIds: number[];
+    ip: string;
+    isLoading: boolean;
+    role: string;
+    rowKey: string;
     spec?: SpecInfo;
   }
 
   // 创建表格数据
   export const createRowData = (data?: IDataRow): IDataRow => ({
-    rowKey: random(),
-    isLoading: false,
-    ip: data?.ip ?? '',
-    role: data?.role ?? '',
-    clusterIds: [],
     bkCloudId: 0,
     cluster: {
       domain: data?.cluster?.domain ?? '',
-      isStart: false,
       isGeneral: true,
+      isStart: false,
       rowSpan: 1,
     },
+    clusterIds: [],
+    ip: data?.ip ?? '',
+    isLoading: false,
+    role: data?.role ?? '',
+    rowKey: random(),
   });
 </script>
 <script setup lang="ts">
   interface Props {
     data: IDataRow;
-    removeable: boolean;
     inputedIps?: string[];
+    removeable: boolean;
   }
 
   interface Emits {
@@ -138,8 +138,8 @@
     Promise.allSettled([hostRef.value.getValue()]).then((rowData) => {
       emits('clone', {
         ...props.data,
-        rowKey: random(),
         isLoading: false,
+        rowKey: random(),
       });
     });
   };

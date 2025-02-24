@@ -68,14 +68,14 @@ export default class FixpointLog {
     return [...ipSet].join(' , ');
   }
 
+  get isDestoryEnable() {
+    return this.target_cluster.phase === 'online';
+  }
+
   get rollbackTypeText() {
     if (this.rollback_type === 'REMOTE_AND_TIME') {
       return `回档到指定时间（${this.rollback_time}）`;
     }
     return `备份记录（${this.backupinfo}）`;
-  }
-
-  get isDestoryEnable() {
-    return this.target_cluster.phase === 'online';
   }
 }

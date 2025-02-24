@@ -17,9 +17,9 @@ import type { IPagination } from '@hooks';
  * 版本文件类型
  */
 export type VersionFileType = {
+  children?: VersionFileType[];
   label: string;
   name: string;
-  children?: VersionFileType[];
 };
 
 /**
@@ -27,9 +27,6 @@ export type VersionFileType = {
  */
 export interface IState {
   active: string;
-  isAnomalies: boolean;
-  isLoading: boolean;
-  pagination: IPagination;
   data: {
     allow_biz_ids: number[];
     create_at: string;
@@ -47,6 +44,9 @@ export interface IState {
     updater: string;
     version: string;
   }[];
+  isAnomalies: boolean;
+  isLoading: boolean;
+  pagination: IPagination;
   search: string;
 }
 

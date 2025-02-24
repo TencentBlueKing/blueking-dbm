@@ -26,15 +26,15 @@
   import { debounce } from 'lodash';
 
   export interface Props {
-    model?: Record<string, any>;
     autoLabelWidth?: boolean;
     formType?: 'default' | 'vertical';
+    model?: Record<string, any>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    model: () => ({}),
     autoLabelWidth: false,
     formType: 'default',
+    model: () => ({}),
   });
 
   defineOptions({
@@ -98,8 +98,8 @@
       const observer = new MutationObserver(debounce(calcLableWidth, 40));
 
       observer.observe(dbFormRef.value.$el, {
-        subtree: true,
         childList: true,
+        subtree: true,
       });
 
       onBeforeMount(() => {
@@ -109,6 +109,7 @@
   });
 
   defineExpose({
+    clearValidate: () => dbFormRef.value.clearValidate(),
     validate: (fields?: string | Array<string>) =>
       dbFormRef.value.validate(fields).catch((error: Error) => {
         const errorItemEl = dbFormRef.value.$el.querySelector('.bk-form-item.is-error');
@@ -117,6 +118,5 @@
         }
         return Promise.reject(error);
       }),
-    clearValidate: () => dbFormRef.value.clearValidate(),
   });
 </script>

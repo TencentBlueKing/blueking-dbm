@@ -80,24 +80,24 @@
 <script setup lang="ts">
   interface Props {
     collapse?: boolean;
-    title?: string;
-    tableProps?: {
-      data: TablePropTypes['data'];
-      columns: TablePropTypes['columns'];
-    };
     operations?: CollapseTableOperation[];
     showIcon?: boolean;
+    tableProps?: {
+      columns: TablePropTypes['columns'];
+      data: TablePropTypes['data'];
+    };
+    title?: string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     collapse: true,
-    title: 'Title',
-    tableProps: () => ({
-      data: [] as TablePropTypes['data'],
-      columns: [] as TablePropTypes['columns'],
-    }),
     operations: () => [],
     showIcon: true,
+    tableProps: () => ({
+      columns: [] as TablePropTypes['columns'],
+      data: [] as TablePropTypes['data'],
+    }),
+    title: 'Title',
   });
 
   const state = reactive({

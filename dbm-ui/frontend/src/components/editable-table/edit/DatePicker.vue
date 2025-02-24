@@ -18,10 +18,10 @@
 <script lang="ts">
   /* eslint-disable vue/no-unused-properties */
   interface Props {
-    placeholder?: string;
+    disabledDate?: (date: Date | number) => boolean;
     format?: string;
     multiple?: boolean;
-    disabledDate?: (date: Date | number) => boolean;
+    placeholder?: string;
   }
 </script>
 <script setup lang="ts" generic="T extends [string, string] | [Date, Date] | string | Date">

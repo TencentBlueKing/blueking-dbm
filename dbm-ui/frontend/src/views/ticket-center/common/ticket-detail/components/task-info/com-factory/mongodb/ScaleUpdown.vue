@@ -25,7 +25,7 @@
   import { TicketTypes } from '@common/const';
 
   interface Props {
-    ticketDetails: TicketModel<Mongodb.ScaleUpdown>
+    ticketDetails: TicketModel<Mongodb.ScaleUpdown>;
   }
 
   const props = defineProps<Props>();
@@ -39,42 +39,38 @@
 
   const columns = [
     {
-      label: t('目标分片集群'),
       field: 'immute_domain',
+      label: t('目标分片集群'),
       showOverflowTooltip: true,
     },
     {
-      label: t('目标资源规格'),
       field: 'target_spec',
-      showOverflowTooltip: true,
+      label: t('目标资源规格'),
       render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
+      showOverflowTooltip: true,
     },
     {
-      label: t('目标Shard节点数'),
       field: 'shard_node_count',
+      label: t('目标Shard节点数'),
     },
     {
-      label: t('目标机器组数'),
       field: 'shard_machine_group',
+      label: t('目标机器组数'),
     },
     {
-      label: t('分片数'),
       field: 'shards_num',
-    }
+      label: t('分片数'),
+    },
   ];
 
   const dataList = computed(() => {
-    const {
-      clusters,
-      infos,
-      specs,
-    } = props.ticketDetails.details;
-    return infos.map(item => ({
+    const { clusters, infos, specs } = props.ticketDetails.details;
+    return infos.map((item) => ({
       immute_domain: clusters[item.cluster_id].immute_domain,
-      target_spec: specs[item.resource_spec.mongodb.spec_id].name,
-      shard_node_count: item.shard_node_count,
       shard_machine_group: item.shard_machine_group,
+      shard_node_count: item.shard_node_count,
       shards_num: item.shards_num,
+      target_spec: specs[item.resource_spec.mongodb.spec_id].name,
     }));
   });
 </script>

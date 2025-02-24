@@ -32,22 +32,20 @@
 <script setup lang="ts">
   interface Props {
     content?: string | number;
-    type?: '' | 'stroke' | 'filled';
-    theme?: 'info' | 'success' | 'warning' | 'danger';
-    iconType?: string;
     extCls?: string;
+    iconType?: string;
+    theme?: 'info' | 'success' | 'warning' | 'danger';
+    type?: '' | 'stroke' | 'filled';
   }
 
-  interface Emits {
-    (e: 'tag-click'): void;
-  }
+  type Emits = (e: 'tag-click') => void;
 
   withDefaults(defineProps<Props>(), {
     content: '',
-    type: '',
-    theme: undefined,
-    iconType: '',
     extCls: undefined,
+    iconType: '',
+    theme: undefined,
+    type: '',
   });
 
   const emits = defineEmits<Emits>();

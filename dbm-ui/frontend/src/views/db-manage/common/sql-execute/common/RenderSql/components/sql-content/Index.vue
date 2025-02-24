@@ -81,13 +81,13 @@
   const { t } = useI18n();
 
   const comMap = {
-    manual: ManualInput,
     file: LocalFile,
+    manual: ManualInput,
   };
 
   const isShow = defineModel<boolean>('isShow', {
-    required: false,
     default: false,
+    required: false,
   });
 
   const importMode = defineModel<'manual' | 'file'>('importMode', {

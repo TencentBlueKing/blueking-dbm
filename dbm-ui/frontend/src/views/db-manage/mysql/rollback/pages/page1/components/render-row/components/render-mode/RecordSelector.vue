@@ -151,11 +151,11 @@
   }
 
   interface Props {
-    clusterId: number;
     backupid?: string;
     backupSource?: string;
-    disabled?: boolean;
     clearable?: boolean;
+    clusterId: number;
+    disabled?: boolean;
   }
 
   interface Exposes {
@@ -165,9 +165,9 @@
   const props = withDefaults(defineProps<Props>(), {
     backupid: '',
     backupSource: '',
-    modelValue: '',
-    disabled: false,
     clearable: false,
+    disabled: false,
+    modelValue: '',
   });
 
   const { t } = useI18n();
@@ -186,9 +186,9 @@
       name: OperateType.MANUAL,
     },
     {
+      hoverText: t('自动匹配指定日期前的最新全库备份'),
       label: t('指定时间自动匹配'),
       name: OperateType.MATCH,
-      hoverText: t('自动匹配指定日期前的最新全库备份'),
     },
   ];
   let tippyIns: Instance;
@@ -214,10 +214,11 @@
 
   const rules: Rules = [
     {
-      validator: (value: string) => !!value,
       message: t('备份记录不能为空'),
+      validator: (value: string) => !!value,
     },
     {
+      message: t('暂无与指定时间最近的备份记录'),
       validator: (value: string) => {
         // 非日期输入无需调接口匹配最近记录，跳过该校验
         if (!isDateType(value)) {
@@ -237,7 +238,6 @@
           return true;
         });
       },
-      message: t('暂无与指定时间最近的备份记录'),
     },
   ];
 
@@ -350,24 +350,24 @@
 
   onMounted(() => {
     tippyIns = tippy(rootRef.value as SingleTarget, {
-      content: popRef.value,
-      placement: 'bottom',
       appendTo: () => document.body,
-      theme: 'rollback-mode-select light',
-      maxWidth: 'none',
-      trigger: 'click',
-      interactive: true,
       arrow: false,
+      content: popRef.value,
+      interactive: true,
+      maxWidth: 'none',
       offset: [0, 8],
-      onShow: () => {
-        isShowPop.value = true;
-        isError.value = false;
-      },
       onHide: () => {
         isShowPop.value = false;
         searchKey.value = '';
         validator(localValue.value);
       },
+      onShow: () => {
+        isShowPop.value = true;
+        isError.value = false;
+      },
+      placement: 'bottom',
+      theme: 'rollback-mode-select light',
+      trigger: 'click',
     });
   });
 

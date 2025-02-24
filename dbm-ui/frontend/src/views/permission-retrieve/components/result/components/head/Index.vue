@@ -82,15 +82,15 @@
   const privIpMap = computed(() => {
     const { data } = props;
     if (data) {
-      const { no_priv: noPriv, has_priv: hasPriv } = data.results;
+      const { has_priv: hasPriv, no_priv: noPriv } = data.results;
       return {
-        noPriv: noPriv || [],
         hasPriv: hasPriv || [],
+        noPriv: noPriv || [],
       };
     }
     return {
-      noPriv: [],
       hasPriv: [],
+      noPriv: [],
     };
   });
 

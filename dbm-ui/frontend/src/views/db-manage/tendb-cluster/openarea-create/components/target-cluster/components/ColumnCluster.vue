@@ -39,9 +39,7 @@
     modelValue?: IDataRow['clusterData'];
   }
 
-  interface Emits {
-    (e: 'clusterInputFinish', value: TendbClusterModel): void;
-  }
+  type Emits = (e: 'clusterInputFinish', value: TendbClusterModel) => void;
 
   interface Exposes {
     getValue: (isSubmit: boolean) => Promise<{
@@ -67,10 +65,11 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('目标集群不能为空'),
+      validator: (value: string) => Boolean(value),
     },
     {
+      message: t('目标集群不存在'),
       validator: (value: string) =>
         getTendbClusterList({ exact_domain: value }).then((data) => {
           if (data.results.length > 0) {
@@ -82,7 +81,6 @@
           }
           return false;
         }),
-      message: t('目标集群不存在'),
     },
     // {
     //   validator: () => {

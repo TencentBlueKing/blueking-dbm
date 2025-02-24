@@ -13,25 +13,26 @@
 export default class ClusterSpec {
   capacity: number;
   cluster_capacity: number;
+  cluster_qps: number;
   cluster_shard_num: number;
   cpu: {
-    min: number;
     max: number;
+    min: number;
   };
   creator: string;
-  cluster_qps: number;
   desc: string;
   device_class: string[];
   enable: boolean;
   instance_num: number;
   machine_pair: number;
   mem: {
-    min: number;
     max: number;
+    min: number;
   };
+  methed: string;
   qps: {
-    min: number;
     max: number;
+    min: number;
   };
   shard_choices: {
     shard_num: number;
@@ -48,7 +49,6 @@ export default class ClusterSpec {
     size: number;
     type: string;
   }[];
-  methed: string;
 
   constructor(payload = {} as ClusterSpec) {
     this.capacity = payload.capacity;

@@ -19,15 +19,15 @@ import type { ConfLevels } from '@common/const';
  * 树节点数据
  */
 export type TreeData = {
-  treeId: string;
-  id: number;
-  name: string;
-  levelType: ConfLevels;
-  isOpen?: boolean;
-  tag: string;
-  parentId: string;
-  data?: BizConfTopoTreeModel;
   children: TreeData[];
+  data?: BizConfTopoTreeModel;
+  id: number;
+  isOpen?: boolean;
+  levelType: ConfLevels;
+  name: string;
+  parentId: string;
+  tag: string;
+  treeId: string;
   version?: string;
 };
 
@@ -35,10 +35,10 @@ export type TreeData = {
  * 树 state
  */
 export type TreeState = {
+  activeNode?: TreeData;
+  data: TreeData[];
   isAnomalies: boolean;
   loading: boolean;
   search: string;
   selected?: TreeData;
-  activeNode?: TreeData;
-  data: TreeData[];
 };

@@ -50,9 +50,9 @@
 
   interface Props {
     instanceData?: {
-      instanceAddress: string;
       clusterId: number;
       clusterType: string;
+      instanceAddress: string;
     };
   }
 
@@ -76,9 +76,9 @@
       if (props.instanceData) {
         fetchInstDetails({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          type: props.instanceData.clusterType,
-          instance_address: props.instanceData.instanceAddress,
           cluster_id: props.instanceData.clusterId,
+          instance_address: props.instanceData.instanceAddress,
+          type: props.instanceData.clusterType,
         });
       }
     },

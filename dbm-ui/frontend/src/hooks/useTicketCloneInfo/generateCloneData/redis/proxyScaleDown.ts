@@ -47,40 +47,40 @@ export async function generateRedisProxyScaleDownCloneData(ticketData: TicketMod
   );
 
   const formatValue = (data: RedisInstanceModel) => ({
-    bk_host_id: data.bk_host_id,
-    instance_address: data.instance_address || '',
-    cluster_id: data.cluster_id,
     bk_cloud_id: data.bk_cloud_id,
-    ip: data.ip || '',
-    port: data.port,
-    cluster_type: data.cluster_type,
-    id: data.id,
-    master_domain: data.master_domain,
     bk_cloud_name: data.bk_cloud_name,
+    bk_host_id: data.bk_host_id,
+    cluster_id: data.cluster_id,
+    cluster_name: '',
+    cluster_type: data.cluster_type,
     db_module_id: data.db_module_id,
     db_module_name: '',
-    cluster_name: '',
+    id: data.id,
+    instance_address: data.instance_address || '',
+    ip: data.ip || '',
+    master_domain: data.master_domain,
+    port: data.port,
   });
 
   return {
+    remark: ticketData.remark,
     tableDataList: infos.map((item) => {
       const clusterId = item.cluster_id;
       return {
-        rowKey: random(),
-        isLoading: false,
-        cluster: clusters[clusterId].immute_domain,
-        clusterId,
         bkCloudId: clusterListMap[clusterId].bk_cloud_id,
-        nodeType: 'Proxy',
+        cluster: clusters[clusterId].immute_domain,
         cluster_type_name: clusterListMap[clusterId].cluster_type_name,
+        clusterId,
+        isLoading: false,
+        nodeType: 'Proxy',
         proxyList: clusterListMap[clusterId].proxy,
+        rowKey: random(),
         selectedNodeList: (item.proxy_reduced_hosts || []).map((proxyHost) =>
           formatValue(instanceListMap[proxyHost.ip]),
         ),
-        targetNum: item.proxy_reduced_hosts?.length || item.proxy_reduce_count,
         switchMode: item.online_switch_type,
+        targetNum: item.proxy_reduced_hosts?.length || item.proxy_reduce_count,
       };
     }),
-    remark: ticketData.remark,
   };
 }

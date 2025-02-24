@@ -33,9 +33,9 @@
 
   interface Props {
     queryInfos: {
+      clusterId: number;
       dbModuleId: number;
       version: string;
-      clusterId: number;
     };
   }
 
@@ -48,52 +48,52 @@
 
   const isLoading = ref(false);
   const data = shallowRef({
+    conf_items: [],
+    description: '',
     name: '',
     version: '',
-    description: '',
-    conf_items: [],
   } as ServiceReturnType<typeof getLevelConfig>);
 
   const columns = [
     {
-      label: t('参数项'),
       field: 'conf_name',
+      label: t('参数项'),
       render: ({ data }: { data: IRowData }) => data.conf_name,
     },
     {
-      label: t('参数值'),
       field: 'conf_value',
+      label: t('参数值'),
       render: ({ data }: { data: IRowData }) => data.conf_value,
     },
     {
-      label: t('描述'),
       field: 'description',
+      label: t('描述'),
       render: ({ data }: { data: IRowData }) => data.description || '--',
     },
     {
-      label: t('重启实例生效'),
       field: 'need_restart',
-      width: 200,
+      label: t('重启实例生效'),
       render: ({ cell }: { cell: number }) => (cell === 1 ? t('是') : t('否')),
+      width: 200,
     },
   ];
 
   watch(
     () => props.queryInfos,
     (infos) => {
-      const { dbModuleId, version, clusterId } = infos;
+      const { clusterId, dbModuleId, version } = infos;
       if (dbModuleId && version && clusterId) {
         isLoading.value = true;
         getLevelConfig({
           bk_biz_id: currentBizId,
-          level_value: props.queryInfos.clusterId,
-          meta_cluster_type: ClusterTypes.TENDBCLUSTER,
-          level_name: 'cluster',
           conf_type: 'dbconf',
-          version: props.queryInfos.version,
           level_info: {
             module: String(props.queryInfos.dbModuleId),
           },
+          level_name: 'cluster',
+          level_value: props.queryInfos.clusterId,
+          meta_cluster_type: ClusterTypes.TENDBCLUSTER,
+          version: props.queryInfos.version,
         })
           .then((res) => {
             data.value = res;
@@ -104,8 +104,8 @@
       }
     },
     {
-      immediate: true,
       deep: true,
+      immediate: true,
     },
   );
 </script>

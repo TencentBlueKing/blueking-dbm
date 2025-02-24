@@ -66,8 +66,8 @@
   defineProps<Props>();
 
   defineSlots<{
-    title: () => VNode;
     content: () => VNode;
+    title: () => VNode;
   }>();
 
   defineOptions({

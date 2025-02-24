@@ -81,22 +81,22 @@
   }
 
   interface RowData {
-    title: string;
-    clusterName: string;
     clusterId: string;
-    totalDisk: number;
-    targetDisk: number;
-    expectDisk: number;
-    shrinkDisk: number;
-    specName: string;
-    totalHost: number;
+    clusterName: string;
     count: number;
+    expectDisk: number;
     hostList: {
-      ip: string;
       alive: number;
       bk_disk: number;
       instance_num: number;
+      ip: string;
     }[];
+    shrinkDisk: number;
+    specName: string;
+    targetDisk: number;
+    title: string;
+    totalDisk: number;
+    totalHost: number;
   }
 
   const props = defineProps<Props>();
@@ -106,17 +106,17 @@
   const dataList = ref<RowData[]>([]);
 
   const nodeTypeText: Record<string, string> = {
-    hot: t('热节点'),
-    cold: t('冷节点'),
-    master: 'Master',
-    client: 'Client',
-    datanode: 'DataNode',
-    namenode: 'NameNode',
-    zookeeper: 'Zookeeper',
+    bookkeeper: 'Bookkeeper',
     broker: 'Broker',
+    client: 'Client',
+    cold: t('冷节点'),
+    datanode: 'DataNode',
+    hot: t('热节点'),
+    master: 'Master',
+    namenode: 'NameNode',
     proxy: 'Proxy',
     slave: 'Slave',
-    bookkeeper: 'Bookkeeper',
+    zookeeper: 'Zookeeper',
   };
   const isScaleUp = props.ticketDetails.ticket_type.includes('SCALE_UP');
   const isFromResourcePool = props.ticketDetails.details.ip_source === 'resource_pool';
@@ -127,9 +127,9 @@
   const { loading } = useRequest(getResourceSpecList, {
     defaultParams: [
       {
-        spec_cluster_type: props.ticketDetails.group,
-        offset: 0,
         limit: -1,
+        offset: 0,
+        spec_cluster_type: props.ticketDetails.group,
       },
     ],
     onSuccess: async (res) => {
@@ -146,16 +146,16 @@
       const generateDataRow = (key: string, id?: number, count = 0) =>
         ({
           clusterId,
-          count,
-          title: nodeTypeText[key],
           clusterName: clusterInfo?.immute_domain ?? '--',
-          totalDisk: extInfo[key].total_disk,
+          count,
           // targetDisk: extInfo[key].target_disk,
           expectDisk: extInfo[key].expansion_disk,
-          shrinkDisk: extInfo[key].shrink_disk,
-          totalHost: extInfo[key].total_hosts,
           hostList: extInfo[key].host_list,
+          shrinkDisk: extInfo[key].shrink_disk,
           specName: id ? specListMap[id] : '',
+          title: nodeTypeText[key],
+          totalDisk: extInfo[key].total_disk,
+          totalHost: extInfo[key].total_hosts,
         }) as unknown as RowData;
 
       if (isFromResourcePool) {

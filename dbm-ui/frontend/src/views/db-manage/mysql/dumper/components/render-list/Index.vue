@@ -63,8 +63,8 @@
   const activePanel = ref('instance');
 
   const panels = [
-    { name: 'instance', label: t('实例列表') },
-    { name: 'rule', label: t('订阅规则') },
+    { label: t('实例列表'), name: 'instance' },
+    { label: t('订阅规则'), name: 'rule' },
   ];
 
   watch(

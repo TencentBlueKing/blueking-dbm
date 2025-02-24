@@ -39,8 +39,8 @@
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
     });
 
-  const { value: datePickerValue, shortcutsRange } = useDatePicker();
-  const { value: searachSelectValue, searchSelectData } = useSearchSelect({
+  const { shortcutsRange, value: datePickerValue } = useDatePicker();
+  const { searchSelectData, value: searachSelectValue } = useSearchSelect({
     exclude: ['bk_biz_id'],
   });
 </script>

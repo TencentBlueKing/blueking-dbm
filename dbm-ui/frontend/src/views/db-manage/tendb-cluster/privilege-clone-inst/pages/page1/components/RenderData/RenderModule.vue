@@ -42,8 +42,8 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('源实例不能为空'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 

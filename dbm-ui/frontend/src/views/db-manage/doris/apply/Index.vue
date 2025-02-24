@@ -412,44 +412,44 @@
 
   const genDefaultFormData = () => ({
     bk_biz_id: '' as number | '',
-    remark: '',
-    ticket_type: TicketTypes.DORIS_APPLY,
     details: {
       bk_cloud_id: 0,
-      db_app_abbr: '',
-      cluster_name: '',
-      cluster_alias: '',
       city_code: '',
+      cluster_alias: '',
+      cluster_name: '',
+      db_app_abbr: '',
       db_version: '',
-      ip_source: 'resource_pool',
       disaster_tolerance_level: 'NONE', // 同 affinity
+      http_port: 8030,
+      ip_source: 'resource_pool',
       nodes: {
-        follower: [] as Array<HostInfo>,
-        observer: [] as Array<HostInfo>,
-        hot: [] as Array<HostInfo>,
         cold: [] as Array<HostInfo>,
-      },
-      resource_spec: {
-        follower: {
-          spec_id: '',
-          count: 3,
-        },
-        observer: {
-          spec_id: '',
-          count: 0,
-        },
-        hot: {
-          spec_id: '',
-          count: 0,
-        },
-        cold: {
-          spec_id: '',
-          count: 0,
-        },
+        follower: [] as Array<HostInfo>,
+        hot: [] as Array<HostInfo>,
+        observer: [] as Array<HostInfo>,
       },
       query_port: 9030,
-      http_port: 8030,
+      resource_spec: {
+        cold: {
+          count: 0,
+          spec_id: '',
+        },
+        follower: {
+          count: 3,
+          spec_id: '',
+        },
+        hot: {
+          count: 0,
+          spec_id: '',
+        },
+        observer: {
+          count: 0,
+          spec_id: '',
+        },
+      },
     },
+    remark: '',
+    ticket_type: TicketTypes.DORIS_APPLY,
   });
 
   const formRef = ref<InstanceType<typeof DbForm>>();
@@ -474,10 +474,10 @@
 
     let isPass = false;
     if (formData.details.ip_source === 'resource_pool') {
-      const { hot, cold } = formData.details.resource_spec;
+      const { cold, hot } = formData.details.resource_spec;
       isPass = Boolean(hot.spec_id && hot.count) || Boolean(cold.spec_id && cold.count);
     } else {
-      const { hot, cold } = formData.details.nodes;
+      const { cold, hot } = formData.details.nodes;
       isPass = hot.length > 0 || cold.length > 0;
     }
 
@@ -485,160 +485,160 @@
   });
 
   const rules = {
-    'details.nodes.follower': [
+    'details.http_port': [
       {
-        validator: (value: Array<HostInfo>) => value.length === 3,
-        message: t('固定为n台', [3]),
+        message: t('9010 和 9020 为服务内部占用端口'),
         trigger: 'change',
-      },
-    ],
-    'details.nodes.observer': [
-      {
-        validator: (value: Array<HostInfo>) => {
-          if (value.length === 0) {
-            return true;
-          }
-          return value.length >= 2;
-        },
-        message: t('若选择至少需要n台', [2]),
-        trigger: 'change',
-      },
-    ],
-    'details.nodes.hot': [
-      {
-        validator: () => formData.details.nodes.hot.length > 0 || formData.details.nodes.cold.length > 0,
-        message: t('请保证冷/热节点至少存在一种'),
-        trigger: 'change',
+        validator: (value: number) => value !== 9010 && value !== 9020,
       },
       {
-        validator: (value: Array<HostInfo>) => {
-          if (value.length === 0) {
-            return true;
-          }
-          return value.length >= 2;
-        },
-        message: t('若选择至少需要n台', [2]),
+        message: t('与查询端口互斥'),
         trigger: 'change',
+        validator: (value: number) => value !== formData.details.query_port,
       },
     ],
     'details.nodes.cold': [
       {
-        validator: () => formData.details.nodes.hot.length > 0 || formData.details.nodes.cold.length > 0,
         message: t('请保证冷/热节点至少存在一种'),
         trigger: 'change',
+        validator: () => formData.details.nodes.hot.length > 0 || formData.details.nodes.cold.length > 0,
       },
       {
+        message: t('若选择至少需要n台', [2]),
+        trigger: 'change',
         validator: (value: Array<HostInfo>) => {
           if (value.length === 0) {
             return true;
           }
           return value.length >= 2;
         },
-        message: t('若选择至少需要n台', [2]),
-        trigger: 'change',
       },
     ],
-    'details.resource_spec.follower.count': [
+    'details.nodes.follower': [
       {
-        validator: (value: number) => value === 3,
         message: t('固定为n台', [3]),
         trigger: 'change',
+        validator: (value: Array<HostInfo>) => value.length === 3,
       },
     ],
-    'details.resource_spec.observer.spec_id': [
+    'details.nodes.hot': [
       {
-        validator: (value: number | string) => {
-          if (formData.details.resource_spec.observer.count > 0) {
-            return !!value;
-          }
-          return true;
-        },
-        message: t('规格不能为空'),
+        message: t('请保证冷/热节点至少存在一种'),
         trigger: 'change',
+        validator: () => formData.details.nodes.hot.length > 0 || formData.details.nodes.cold.length > 0,
+      },
+      {
+        message: t('若选择至少需要n台', [2]),
+        trigger: 'change',
+        validator: (value: Array<HostInfo>) => {
+          if (value.length === 0) {
+            return true;
+          }
+          return value.length >= 2;
+        },
       },
     ],
-    'details.resource_spec.observer.count': [
+    'details.nodes.observer': [
       {
+        message: t('若选择至少需要n台', [2]),
+        trigger: 'change',
+        validator: (value: Array<HostInfo>) => {
+          if (value.length === 0) {
+            return true;
+          }
+          return value.length >= 2;
+        },
+      },
+    ],
+    'details.query_port': [
+      {
+        message: t('9010 和 9020 为服务内部占用端口'),
+        trigger: 'change',
+        validator: (value: number) => value !== 9010 && value !== 9020,
+      },
+      {
+        message: t('与http端口互斥'),
+        trigger: 'change',
+        validator: (value: number) => value !== formData.details.http_port,
+      },
+    ],
+    'details.resource_spec.cold.count': [
+      {
+        message: t('若选择至少需要n台', [2]),
+        trigger: 'change',
         validator: (value: number) => {
           if (value === 0) {
             return true;
           }
           return value >= 2;
         },
-        message: t('若选择至少需要n台', [2]),
-        trigger: 'change',
-      },
-    ],
-    'details.resource_spec.hot.spec_id': [
-      {
-        validator: (value: number | string) => {
-          if (formData.details.resource_spec.hot.count > 0) {
-            return !!value;
-          }
-          return true;
-        },
-        message: t('规格不能为空'),
-        trigger: 'change',
-      },
-    ],
-    'details.resource_spec.hot.count': [
-      {
-        validator: (value: number) => {
-          if (value === 0) {
-            return true;
-          }
-          return value >= 2;
-        },
-        message: t('若选择至少需要n台', [2]),
-        trigger: 'change',
       },
     ],
     'details.resource_spec.cold.spec_id': [
       {
+        message: t('规格不能为空'),
+        trigger: 'change',
         validator: (value: number | string) => {
           if (formData.details.resource_spec.cold.count > 0) {
             return !!value;
           }
           return true;
         },
-        message: t('规格不能为空'),
-        trigger: 'change',
       },
     ],
-    'details.resource_spec.cold.count': [
+    'details.resource_spec.follower.count': [
       {
+        message: t('固定为n台', [3]),
+        trigger: 'change',
+        validator: (value: number) => value === 3,
+      },
+    ],
+    'details.resource_spec.hot.count': [
+      {
+        message: t('若选择至少需要n台', [2]),
+        trigger: 'change',
         validator: (value: number) => {
           if (value === 0) {
             return true;
           }
           return value >= 2;
         },
+      },
+    ],
+    'details.resource_spec.hot.spec_id': [
+      {
+        message: t('规格不能为空'),
+        trigger: 'change',
+        validator: (value: number | string) => {
+          if (formData.details.resource_spec.hot.count > 0) {
+            return !!value;
+          }
+          return true;
+        },
+      },
+    ],
+    'details.resource_spec.observer.count': [
+      {
         message: t('若选择至少需要n台', [2]),
         trigger: 'change',
+        validator: (value: number) => {
+          if (value === 0) {
+            return true;
+          }
+          return value >= 2;
+        },
       },
     ],
-    'details.query_port': [
+    'details.resource_spec.observer.spec_id': [
       {
-        validator: (value: number) => value !== 9010 && value !== 9020,
-        message: t('9010 和 9020 为服务内部占用端口'),
+        message: t('规格不能为空'),
         trigger: 'change',
-      },
-      {
-        validator: (value: number) => value !== formData.details.http_port,
-        message: t('与http端口互斥'),
-        trigger: 'change',
-      },
-    ],
-    'details.http_port': [
-      {
-        validator: (value: number) => value !== 9010 && value !== 9020,
-        message: t('9010 和 9020 为服务内部占用端口'),
-        trigger: 'change',
-      },
-      {
-        validator: (value: number) => value !== formData.details.query_port,
-        message: t('与查询端口互斥'),
-        trigger: 'change',
+        validator: (value: number | string) => {
+          if (formData.details.resource_spec.observer.count > 0) {
+            return !!value;
+          }
+          return true;
+        },
       },
     ],
   };
@@ -656,12 +656,12 @@
         totalCapacity.value = hotDisk * hotCount + coldCount * coldDisk;
       }
     },
-    { flush: 'post', deep: true },
+    { deep: true, flush: 'post' },
   );
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
-  const { baseState, bizState, handleCreateAppAbbr, handleCreateTicket, handleCancel } = useApplyBase();
+  const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
 
   // 切换业务，需要重置 IP 相关的选择
   const handleChangeBiz = (info: BizItem) => {
@@ -689,10 +689,10 @@
   // 主机节点互斥
   const disableHostMethod = (data: HostInfo, mutexNodeTypes: NodeType[]) => {
     const tipMap = {
-      follower: t('主机已被Follower节点使用'),
-      observer: t('主机已被Observer节点使用'),
-      hot: t('主机已被热节点使用'),
       cold: t('主机已被冷节点使用'),
+      follower: t('主机已被Follower节点使用'),
+      hot: t('主机已被热节点使用'),
+      observer: t('主机已被Observer节点使用'),
     };
 
     for (const mutexNodeType of mutexNodeTypes) {
@@ -731,10 +731,10 @@
 
       const getNodeList = (ipList: Array<HostInfo>) =>
         ipList.map((item) => ({
+          bk_biz_id: item.biz.id,
+          bk_cloud_id: item.cloud_area.id,
           bk_host_id: item.host_id,
           ip: item.ip,
-          bk_cloud_id: item.cloud_area.id,
-          bk_biz_id: item.biz.id,
         }));
 
       const getDetails = () => {
@@ -804,10 +804,10 @@
         return {
           ...details,
           nodes: {
-            follower: getNodeList(formData.details.nodes.follower),
-            observer: getNodeList(formData.details.nodes.observer),
-            hot: getNodeList(formData.details.nodes.hot),
             cold: getNodeList(formData.details.nodes.cold),
+            follower: getNodeList(formData.details.nodes.follower),
+            hot: getNodeList(formData.details.nodes.hot),
+            observer: getNodeList(formData.details.nodes.observer),
           },
         };
       };
@@ -824,7 +824,6 @@
   // 重置表单
   const handleReset = () => {
     InfoBox({
-      title: t('确认重置表单内容'),
       content: t('重置后_将会清空当前填写的内容'),
       onConfirm: () => {
         isClickSubmit.value = false;
@@ -835,6 +834,7 @@
         });
         return true;
       },
+      title: t('确认重置表单内容'),
     });
   };
 

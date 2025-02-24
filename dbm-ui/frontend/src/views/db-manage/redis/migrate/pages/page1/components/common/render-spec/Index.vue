@@ -69,12 +69,12 @@
   // import SpecPanel from './SpecPanel.vue';
 
   interface Props {
+    currentSpecId?: number;
     data?: {
       cloudId: number;
     };
     isLoading?: boolean;
     selectedSpecId?: number;
-    currentSpecId?: number;
   }
 
   interface Exposes {
@@ -90,8 +90,8 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('规格不能为空'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 
@@ -104,22 +104,22 @@
     () => {
       if (props.data) {
         getResourceSpecList({
-          spec_cluster_type: ClusterTypes.REDIS,
-          spec_machine_type: specClusterMachineMap[ClusterTypes.REDIS_INSTANCE],
           limit: -1,
           offset: 0,
+          spec_cluster_type: ClusterTypes.REDIS,
+          spec_machine_type: specClusterMachineMap[ClusterTypes.REDIS_INSTANCE],
         }).then((specResult) => {
           const specList = specResult.results.map((item) => ({
-            value: item.spec_id,
             label: item.spec_name,
             specData: {
-              name: item.spec_name,
+              count: 0,
               cpu: item.cpu,
               id: item.spec_id,
               mem: item.mem,
-              count: 0,
+              name: item.spec_name,
               storage_spec: item.storage_spec,
             },
+            value: item.spec_id,
           }));
           selectList.value = specList;
           if (specList.length) {

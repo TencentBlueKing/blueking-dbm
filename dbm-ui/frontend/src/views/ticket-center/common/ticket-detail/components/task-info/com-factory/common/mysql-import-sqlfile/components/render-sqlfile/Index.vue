@@ -75,8 +75,8 @@
 
   interface Props {
     executeObject: Sqlserver.ImportSqlFile['execute_objects'][number];
-    selectFileName: string;
     path: string;
+    selectFileName: string;
     wholeFileList: string[];
   }
   const props = defineProps<Props>();

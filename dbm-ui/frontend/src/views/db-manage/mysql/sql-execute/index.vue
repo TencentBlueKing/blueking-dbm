@@ -27,8 +27,8 @@
   const comMap = {
     execute: Step1,
     log: Step2,
-    success: Step3,
     result: Step2,
+    success: Step3,
   };
 
   const step = ref('');

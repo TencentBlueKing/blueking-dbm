@@ -22,19 +22,19 @@ import { t } from '@locales/index';
 import ClusterBase from '../_clusterBase';
 
 export default class Mongodb extends ClusterBase {
-  static MongoShardedCluster = 'MongoShardedCluster'; // 分片集群
   static MongoReplicaSet = 'MongoReplicaSet'; // 副本集集群
+  static MongoShardedCluster = 'MongoShardedCluster'; // 分片集群
 
   static operationIconMap: Record<string, string> = {
-    [TicketTypes.MONGODB_ENABLE]: t('启用中'),
-    [TicketTypes.MONGODB_DISABLE]: t('禁用中'),
     [TicketTypes.MONGODB_DESTROY]: t('删除中'),
+    [TicketTypes.MONGODB_DISABLE]: t('禁用中'),
+    [TicketTypes.MONGODB_ENABLE]: t('启用中'),
   };
 
   static operationTextMap: Record<string, string> = {
-    [TicketTypes.MONGODB_ENABLE]: t('启用任务进行中'),
-    [TicketTypes.MONGODB_DISABLE]: t('禁用任务进行中'),
     [TicketTypes.MONGODB_DESTROY]: t('删除任务进行中'),
+    [TicketTypes.MONGODB_DISABLE]: t('禁用任务进行中'),
+    [TicketTypes.MONGODB_ENABLE]: t('启用任务进行中'),
   };
 
   bk_biz_id: number;
@@ -56,14 +56,14 @@ export default class Mongodb extends ClusterBase {
   db_module_name: string;
   disaster_tolerance_level: keyof typeof ClusterAffinityMap;
   id: number;
+  machine_instance_num: number;
+  machine_type: string;
   major_version: string;
   master_domain: string;
-  machine_type: string;
-  machine_instance_num: number;
-  mongodb_machine_num: number;
-  mongodb_machine_pair: number;
   mongo_config: ClusterListNode[];
   mongodb: ClusterListNode[];
+  mongodb_machine_num: number;
+  mongodb_machine_pair: number;
   mongos: ClusterListNode[];
   operations: {
     cluster_id: number;
@@ -85,10 +85,10 @@ export default class Mongodb extends ClusterBase {
   region: string;
   replicaset_machine_num: number;
   seg_range: Record<string, string[]>;
-  slave_domain: string;
   shard_node_count: number; // 分片节点数
   shard_num: number; // 分片数
   shard_spec: string;
+  slave_domain: string;
   status: string;
   temporary_info: {
     source_cluster?: string;
@@ -145,10 +145,6 @@ export default class Mongodb extends ClusterBase {
     this.updater = payload.updater;
   }
 
-  get isStarting() {
-    return Boolean(this.operations.find((item) => item.ticket_type === TicketTypes.MONGODB_ENABLE));
-  }
-
   get allInstanceList() {
     return [...this.mongo_config, ...this.mongodb, ...this.mongos];
   }
@@ -167,116 +163,12 @@ export default class Mongodb extends ClusterBase {
     );
   }
 
-  get runningOperation() {
-    const operateTicketTypes = Object.keys(Mongodb.operationTextMap);
-    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
-  }
-
-  // 操作中的状态
-  get operationRunningStatus() {
-    if (this.operations.length < 1) {
-      return '';
-    }
-    const operation = this.runningOperation;
-    if (!operation) {
-      return '';
-    }
-    return operation.ticket_type;
-  }
-
-  // 操作中的状态描述文本
-  get operationStatusText() {
-    return Mongodb.operationTextMap[this.operationRunningStatus];
-  }
-
-  get operationStatusIcon() {
-    return Mongodb.operationIconMap[this.operationRunningStatus];
-  }
-
-  // 操作中的单据 ID
-  get operationTicketId() {
-    if (this.operations.length < 1) {
-      return 0;
-    }
-    const operation = this.runningOperation;
-    if (!operation) {
-      return 0;
-    }
-    return operation.ticket_id;
-  }
-
-  get operationDisabled() {
-    // 集群异常不支持操作
-    if (this.status === 'abnormal') {
-      return true;
-    }
-    // 被禁用的集群不支持操作
-    if (this.phase !== 'online') {
-      return true;
-    }
-    // 各个操作互斥，有其他任务进行中禁用操作按钮
-    if (this.operationTicketId) {
-      return true;
-    }
-    return false;
-  }
-
-  get isNormal() {
-    return this.status === 'normal';
-  }
-
-  get masterDomainDisplayName() {
-    return `${this.master_domain}:${this.cluster_access_port}`;
-  }
-
-  get isOfflineOperationRunning() {
-    return ([TicketTypes.MONGODB_ENABLE, TicketTypes.MONGODB_DESTROY] as string[]).includes(
-      this.operationRunningStatus,
-    );
-  }
-
-  get isDisabled() {
-    return !this.isOnline && !this.isOfflineOperationRunning;
-  }
-
-  get operationTagTips() {
-    return this.operations.map((item) => ({
-      icon: Mongodb.operationIconMap[item.ticket_type],
-      tip: Mongodb.operationTextMap[item.ticket_type],
-      ticketId: item.ticket_id,
-    }));
-  }
-
-  get isStructCluster() {
-    return this.temporary_info?.source_cluster;
-  }
-
   get clusterTypeText() {
     return this.cluster_type === Mongodb.MongoShardedCluster ? t('分片') : t('副本集');
   }
 
-  get instanceCount() {
-    if (this.cluster_type === Mongodb.MongoShardedCluster) {
-      return this.mongo_config.length + this.mongos.length + this.mongodb.length;
-    }
-    return this.mongodb.length;
-  }
-
-  get isMongoReplicaSet() {
-    return this.cluster_type === 'MongoReplicaSet';
-  }
-
-  get entryDomain() {
-    if (this.isMongoReplicaSet) {
-      const domainList = this.cluster_entry.reduce<string[]>((prevDomainList, entryItem) => {
-        if (!entryItem.entry.includes('backup')) {
-          return prevDomainList.concat(`${entryItem.entry}:${this.cluster_access_port}`);
-        }
-        return prevDomainList;
-      }, []);
-      return domainList.join(',');
-    }
-    return `${this.master_domain}:${this.cluster_access_port}`;
+  get disasterToleranceLevelName() {
+    return ClusterAffinityMap[this.disaster_tolerance_level];
   }
 
   get entryAccess() {
@@ -296,30 +188,138 @@ export default class Mongodb extends ClusterBase {
     return '';
   }
 
-  get shardList() {
-    return Object.entries(this.seg_range).reduce<
-      {
-        shardName: string;
-        instanceList: string[];
-      }[]
-    >((prevList, [shardName, instanceList]) => {
-      if (!shardName.endsWith('conf')) {
-        return prevList.concat({
-          shardName,
-          instanceList,
-        });
-      }
-      return prevList;
-    }, []);
+  get entryDomain() {
+    if (this.isMongoReplicaSet) {
+      const domainList = this.cluster_entry.reduce<string[]>((prevDomainList, entryItem) => {
+        if (!entryItem.entry.includes('backup')) {
+          return prevDomainList.concat(`${entryItem.entry}:${this.cluster_access_port}`);
+        }
+        return prevDomainList;
+      }, []);
+      return domainList.join(',');
+    }
+    return `${this.master_domain}:${this.cluster_access_port}`;
   }
 
-  get disasterToleranceLevelName() {
-    return ClusterAffinityMap[this.disaster_tolerance_level];
+  get instanceCount() {
+    if (this.cluster_type === Mongodb.MongoShardedCluster) {
+      return this.mongo_config.length + this.mongos.length + this.mongodb.length;
+    }
+    return this.mongodb.length;
+  }
+
+  get isDisabled() {
+    return !this.isOnline && !this.isOfflineOperationRunning;
+  }
+
+  get isMongoReplicaSet() {
+    return this.cluster_type === 'MongoReplicaSet';
+  }
+
+  get isNormal() {
+    return this.status === 'normal';
+  }
+
+  get isOfflineOperationRunning() {
+    return ([TicketTypes.MONGODB_ENABLE, TicketTypes.MONGODB_DESTROY] as string[]).includes(
+      this.operationRunningStatus,
+    );
+  }
+
+  get isStarting() {
+    return Boolean(this.operations.find((item) => item.ticket_type === TicketTypes.MONGODB_ENABLE));
+  }
+
+  get isStructCluster() {
+    return this.temporary_info?.source_cluster;
+  }
+
+  get masterDomainDisplayName() {
+    return `${this.master_domain}:${this.cluster_access_port}`;
+  }
+
+  get operationDisabled() {
+    // 集群异常不支持操作
+    if (this.status === 'abnormal') {
+      return true;
+    }
+    // 被禁用的集群不支持操作
+    if (this.phase !== 'online') {
+      return true;
+    }
+    // 各个操作互斥，有其他任务进行中禁用操作按钮
+    if (this.operationTicketId) {
+      return true;
+    }
+    return false;
+  }
+
+  // 操作中的状态
+  get operationRunningStatus() {
+    if (this.operations.length < 1) {
+      return '';
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return '';
+    }
+    return operation.ticket_type;
+  }
+
+  get operationStatusIcon() {
+    return Mongodb.operationIconMap[this.operationRunningStatus];
+  }
+
+  // 操作中的状态描述文本
+  get operationStatusText() {
+    return Mongodb.operationTextMap[this.operationRunningStatus];
+  }
+
+  get operationTagTips() {
+    return this.operations.map((item) => ({
+      icon: Mongodb.operationIconMap[item.ticket_type],
+      ticketId: item.ticket_id,
+      tip: Mongodb.operationTextMap[item.ticket_type],
+    }));
+  }
+
+  // 操作中的单据 ID
+  get operationTicketId() {
+    if (this.operations.length < 1) {
+      return 0;
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return 0;
+    }
+    return operation.ticket_id;
   }
 
   get roleFailedInstanceInfo() {
     return {
       mongodb: ClusterBase.getRoleFaildInstanceList(this.mongodb),
     };
+  }
+
+  get runningOperation() {
+    const operateTicketTypes = Object.keys(Mongodb.operationTextMap);
+    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+  }
+
+  get shardList() {
+    return Object.entries(this.seg_range).reduce<
+      {
+        instanceList: string[];
+        shardName: string;
+      }[]
+    >((prevList, [shardName, instanceList]) => {
+      if (!shardName.endsWith('conf')) {
+        return prevList.concat({
+          instanceList,
+          shardName,
+        });
+      }
+      return prevList;
+    }, []);
   }
 }

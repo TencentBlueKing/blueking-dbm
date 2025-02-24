@@ -79,8 +79,8 @@
   }
 
   interface Exposes {
-    submit: () => Promise<any>;
     cancel: () => Promise<any>;
+    submit: () => Promise<any>;
   }
 
   const props = defineProps<Props>();
@@ -95,15 +95,15 @@
   const nodeInfoMap = reactive<Record<string, TNodeInfo>>({
     influxdb: {
       clusterId: 0,
-      role: 'influxdb',
-      nodeList: [],
       hostList: [],
+      nodeList: [],
+      resourceSpec: {
+        count: 3,
+        spec_id: 0,
+      },
+      role: 'influxdb',
       specClusterType: ClusterTypes.INFLUXDB,
       specMachineType: 'influxdb',
-      resourceSpec: {
-        spec_id: 0,
-        count: 3,
-      },
     },
   });
 
@@ -127,6 +127,9 @@
   };
 
   defineExpose<Exposes>({
+    cancel() {
+      return Promise.resolve();
+    },
     submit() {
       return new Promise((resolve, reject) => {
         if (isEmpty.value) {
@@ -134,7 +137,7 @@
           return reject();
         }
 
-        Promise.all([influxdbRef.value.getValue()]).then(
+        Promise.resolve(influxdbRef.value.getValue()).then(
           ([influxdbValue]) => {
             const isEmptyValue = () => {
               if (ipSource.value === 'manual_input') {
@@ -162,13 +165,11 @@
             };
 
             InfoBox({
-              title: t('确认替换n台节点IP', { n: getReplaceNodeNums() }),
-              subTitle: t('替换后原节点 IP 将不在可用，资源将会被释放'),
-              confirmText: t('确认'),
               cancelText: t('取消'),
-              headerAlign: 'center',
+              confirmText: t('确认'),
               contentAlign: 'center',
               footerAlign: 'center',
+              headerAlign: 'center',
               onCancel: () => reject(),
               onConfirm: () => {
                 const nodeData = {};
@@ -186,7 +187,6 @@
                   });
                 }
                 createTicket({
-                  ticket_type: 'INFLUXDB_REPLACE',
                   bk_biz_id: currentBizId,
                   details: {
                     ip_source: ipSource.value,
@@ -195,19 +195,19 @@
                     },
                     ...nodeData,
                   },
+                  ticket_type: 'INFLUXDB_REPLACE',
                 }).then(() => {
                   emits('change');
                   resolve('success');
                 });
               },
+              subTitle: t('替换后原节点 IP 将不在可用，资源将会被释放'),
+              title: t('确认替换n台节点IP', { n: getReplaceNodeNums() }),
             });
           },
           () => reject(),
         );
       });
-    },
-    cancel() {
-      return Promise.resolve();
     },
   });
 </script>

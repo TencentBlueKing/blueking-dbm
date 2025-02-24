@@ -21,36 +21,36 @@ import { useGlobalBizs } from '@stores';
  */
 export function useTableData<T>(role?: Ref<string | undefined>, clusterId?: Ref<number | undefined>) {
   const { currentBizId } = useGlobalBizs();
-  const currentInstance = getCurrentInstance() as ComponentInternalInstance & {
+  const currentInstance = getCurrentInstance() as {
     proxy: {
       getTableList: (params: any) => Promise<any>;
     };
-  };
+  } & ComponentInternalInstance;
 
   const tableData = shallowRef<T[]>([]);
   const isAnomalies = ref(false);
   const pagination = reactive({
+    align: 'right',
     count: 0,
     current: 1,
+    layout: ['total', 'limit', 'list'],
     limit: 10,
     limitList: [10, 20, 50, 100],
-    align: 'right',
-    layout: ['total', 'limit', 'list'],
     remote: true,
   });
   const searchValue = ref('');
 
-  const { run: getTableListRun, loading: isLoading } = useRequest(currentInstance.proxy.getTableList, {
+  const { loading: isLoading, run: getTableListRun } = useRequest(currentInstance.proxy.getTableList, {
     manual: true,
-    onSuccess(data) {
-      tableData.value = data.results;
-      pagination.count = data.count;
-      isAnomalies.value = false;
-    },
     onError() {
       tableData.value = [];
       pagination.count = 0;
       isAnomalies.value = true;
+    },
+    onSuccess(data) {
+      tableData.value = data.results;
+      pagination.count = data.count;
+      isAnomalies.value = false;
     },
   });
 
@@ -96,13 +96,13 @@ export function useTableData<T>(role?: Ref<string | undefined>, clusterId?: Ref<
   };
 
   return {
-    isLoading,
     data: tableData,
+    fetchResources,
+    generateParams,
+    handeChangeLimit,
+    handleChangePage,
+    isLoading,
     pagination,
     searchValue,
-    generateParams,
-    fetchResources,
-    handleChangePage,
-    handeChangeLimit,
   };
 }

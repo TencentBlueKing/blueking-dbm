@@ -84,8 +84,10 @@
 
   const isFilterMenuExit = computed(() => {
     const configList = filterMenusConfig.value;
+    // eslint-disable-next-line @typescript-eslint/prefer-for-of
     for (let i = 0; i < configList.length; i++) {
       const configItem = configList[i].menuList;
+      // eslint-disable-next-line @typescript-eslint/prefer-for-of
       for (let j = 0; j < configItem.length; j++) {
         if (configItem[j].children.length > 0) {
           return true;

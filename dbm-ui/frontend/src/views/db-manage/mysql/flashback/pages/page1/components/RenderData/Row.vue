@@ -70,16 +70,16 @@
   import { random } from '@utils';
 
   export interface IDataRow {
-    rowKey: string;
     clusterData?: {
-      id: number;
       domain: string;
+      id: number;
     };
-    startTime?: string;
-    endTime?: string;
     databases?: string[];
-    tables?: string[];
     databasesIgnore?: string[];
+    endTime?: string;
+    rowKey: string;
+    startTime?: string;
+    tables?: string[];
     tablesIgnore?: string[];
   }
 
@@ -87,13 +87,13 @@
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
-    rowKey: random(),
     clusterData: data.clusterData,
-    startTime: data.startTime,
-    endTime: data.endTime,
     databases: data.databases,
-    tables: data.tables,
     databasesIgnore: data.databasesIgnore,
+    endTime: data.endTime,
+    rowKey: random(),
+    startTime: data.startTime,
+    tables: data.tables,
     tablesIgnore: data.tablesIgnore,
   });
 </script>
@@ -188,13 +188,13 @@
       const rowInfo = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
       emits('clone', {
         ...props.data,
-        rowKey: random(),
         clusterData: props.data.clusterData,
-        startTime: rowInfo[1].start_time,
-        endTime: rowInfo[2].end_time,
         databases: rowInfo[3].databases,
-        tables: rowInfo[4].tables,
         databasesIgnore: rowInfo[5].databases_ignore,
+        endTime: rowInfo[2].end_time,
+        rowKey: random(),
+        startTime: rowInfo[1].start_time,
+        tables: rowInfo[4].tables,
         tablesIgnore: rowInfo[6].tables_ignore,
       });
     });

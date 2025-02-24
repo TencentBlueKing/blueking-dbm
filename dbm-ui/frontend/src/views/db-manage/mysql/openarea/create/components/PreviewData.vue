@@ -17,17 +17,17 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import RenderTagOverflow from '@components/render-tag-overflow/Index.vue'
+  import RenderTagOverflow from '@components/render-tag-overflow/Index.vue';
 
   import { messageError } from '@utils';
 
   interface Props {
-    data: ServiceReturnType<typeof getPreview>,
-    sourceClusterId: number
+    data: ServiceReturnType<typeof getPreview>;
+    sourceClusterId: number;
   }
 
-  interface Expose{
-    submit: () => Promise<any>
+  interface Expose {
+    submit: () => Promise<any>;
   }
 
   type RowData = UnwrapRef<typeof tableData>[0];
@@ -39,81 +39,90 @@
   const { currentBizId } = useGlobalBizs();
   const ticketMessage = useTicketMessage();
 
-  const tableData = shallowRef<Array<{
-    target_cluster_domain: string
-  } & Props['data']['config_data'][0]['execute_objects'][0]>>([]);
+  const tableData = shallowRef<
+    Array<
+      {
+        target_cluster_domain: string;
+      } & Props['data']['config_data'][0]['execute_objects'][0]
+    >
+  >([]);
 
   const columns = computed(() => [
     {
-      label: t('目标集群'),
       field: 'target_cluster_domain',
-      showOverflowTooltip: true,
-      width: 280,
+      label: t('目标集群'),
       rowspan: ({ row }: { row: RowData }) => {
-        const rowSpan = tableData.value.filter(item => item.target_cluster_domain === row.target_cluster_domain).length;
+        const rowSpan = tableData.value.filter(
+          (item) => item.target_cluster_domain === row.target_cluster_domain,
+        ).length;
         return rowSpan > 1 ? rowSpan : 1;
       },
+      showOverflowTooltip: true,
+      width: 280,
     },
     {
-      label: t('新 DB'),
       field: 'target_db',
+      label: t('新 DB'),
       showOverflowTooltip: true,
       width: 230,
     },
     {
       label: t('表结构'),
+      render: () => t('所有表'),
       showOverflowTooltip: true,
       width: 80,
-      render: () => t('所有表'),
     },
     {
       label: t('表数据'),
+      render: ({ data }: { data: RowData }) => <RenderTagOverflow data={_.flatMap(data.data_tblist)} />,
       width: 300,
-      render: ({ data }: {data: RowData}) => <RenderTagOverflow data={_.flatMap(data.data_tblist)} />,
     },
     {
       label: t('授权 IP'),
+      render: ({ data }: { data: RowData }) => data.authorize_ips.join(','),
       showOverflowTooltip: true,
-      render: ({ data }: {data: RowData}) => data.authorize_ips.join(','),
     },
   ]);
 
-  watch(() => props.data, () => {
-    if (!props.data) {
-      return;
-    }
-    tableData.value = props.data.config_data.reduce((result, item) => {
-      item.execute_objects.forEach(executeObjects => {
-        result.push({
-          target_cluster_domain: item.target_cluster_domain,
-          ...executeObjects,
+  watch(
+    () => props.data,
+    () => {
+      if (!props.data) {
+        return;
+      }
+      tableData.value = props.data.config_data.reduce((result, item) => {
+        item.execute_objects.forEach((executeObjects) => {
+          result.push({
+            target_cluster_domain: item.target_cluster_domain,
+            ...executeObjects,
+          });
         });
-      })
 
-      return result;
-    }, [] as RowData[]);
-  }, {
-    immediate: true,
-  });
-
+        return result;
+      }, [] as RowData[]);
+    },
+    {
+      immediate: true,
+    },
+  );
 
   defineExpose<Expose>({
     submit() {
-      const errorRow = tableData.value.find(item => item.error_msg);
+      const errorRow = tableData.value.find((item) => item.error_msg);
       if (errorRow) {
         messageError(errorRow.error_msg);
         return Promise.resolve(false);
       }
 
       return createTicket({
-        ticket_type: 'MYSQL_OPEN_AREA',
-        remark: '',
+        bk_biz_id: currentBizId,
         details: {
-          force: false,
           cluster_id: props.sourceClusterId,
+          force: false,
           ...props.data,
         },
-        bk_biz_id: currentBizId,
+        remark: '',
+        ticket_type: 'MYSQL_OPEN_AREA',
       }).then((data) => {
         ticketMessage(data.id);
         window.changeConfirm = false;

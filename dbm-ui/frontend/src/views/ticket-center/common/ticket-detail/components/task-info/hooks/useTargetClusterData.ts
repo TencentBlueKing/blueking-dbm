@@ -28,28 +28,28 @@ import { getSearchSelectorParams } from '@utils';
 export function useTargetClusterData(ticketDetails: TicketModel<Mysql.AuthorizeRules>) {
   const { t } = useI18n();
   const apiMap = {
-    [ClusterTypes.TENDBSINGLE]: getTendbsingleListByBizId,
-    [ClusterTypes.TENDBHA]: getTendbhaListByBizId,
     [ClusterTypes.TENDBCLUSTER]: getTendbclusterListByBizId,
+    [ClusterTypes.TENDBHA]: getTendbhaListByBizId,
+    [ClusterTypes.TENDBSINGLE]: getTendbsingleListByBizId,
   };
 
   const listState = reactive({
-    isAnomalies: false,
-    isLoading: false,
     data: [] as {
-      master_domain: string;
       cluster_name: string;
       db_module_name: string;
+      master_domain: string;
       status: string;
     }[],
-    pagination: useDefaultPagination(),
-    filters: {
-      search: [] as ISearchValue[],
-    },
     dbModuleList: [] as {
       id: number | string;
       name: string;
     }[],
+    filters: {
+      search: [] as ISearchValue[],
+    },
+    isAnomalies: false,
+    isLoading: false,
+    pagination: useDefaultPagination(),
   });
 
   /**
@@ -57,17 +57,17 @@ export function useTargetClusterData(ticketDetails: TicketModel<Mysql.AuthorizeR
    */
   const searchSelectData = computed(() => [
     {
-      name: t('域名'),
       id: 'domain',
+      name: t('域名'),
     },
     {
-      name: t('集群'),
       id: 'cluster_name',
+      name: t('集群'),
     },
     {
-      name: t('所属DB模块'),
-      id: 'db_module_id',
       children: listState.dbModuleList,
+      id: 'db_module_id',
+      name: t('所属DB模块'),
     },
   ]);
 
@@ -82,10 +82,10 @@ export function useTargetClusterData(ticketDetails: TicketModel<Mysql.AuthorizeR
     }
 
     const params = {
-      dbType: DBTypes.MYSQL,
       bk_biz_id: ticketDetails.bk_biz_id,
-      type,
       cluster_ids: ticketDetails.details.authorize_data?.cluster_ids,
+      dbType: DBTypes.MYSQL,
+      type,
       ...listState.pagination.getFetchParams(),
       ...getSearchSelectorParams(listState.filters.search),
     };
@@ -133,11 +133,11 @@ export function useTargetClusterData(ticketDetails: TicketModel<Mysql.AuthorizeR
   };
 
   return {
+    fetchCluster,
+    handeChangeLimit,
+    handleChangePage,
+    handleChangeValues,
     listState,
     searchSelectData,
-    fetchCluster,
-    handleChangePage,
-    handeChangeLimit,
-    handleChangeValues,
   };
 }

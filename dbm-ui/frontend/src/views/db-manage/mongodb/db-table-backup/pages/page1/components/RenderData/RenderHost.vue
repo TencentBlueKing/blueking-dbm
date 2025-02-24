@@ -97,8 +97,8 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('不能为空'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 
@@ -107,11 +107,11 @@
       ({
         mongoCluster: [
           {
-            topoConfig: {
-              filterClusterId: props.clusterData?.id,
-            },
             tableConfig: {
               multiple: false,
+            },
+            topoConfig: {
+              filterClusterId: props.clusterData?.id,
             },
           },
         ],

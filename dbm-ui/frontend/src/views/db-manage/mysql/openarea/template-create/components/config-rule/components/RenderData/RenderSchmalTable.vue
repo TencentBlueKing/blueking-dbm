@@ -53,15 +53,15 @@
 
   const editRef = ref<InstanceType<typeof TableEditSelect>>();
 
-  const dbNameList = shallowRef<{ value: string; label: string }[]>([]);
+  const dbNameList = shallowRef<{ label: string; value: string }[]>([]);
 
   const { loading: isLoading, run: fetchList } = useRequest(getClusterTablesNameList, {
     manual: true,
     onSuccess(data) {
       const [{ table_data: tableData }] = data;
       dbNameList.value = tableData[props.sourceDb as string].map((item) => ({
-        value: item,
         label: item,
+        value: item,
       }));
       // 默认全选
       modelValue.value = dbNameList.value.map((item) => item.value);
@@ -70,8 +70,8 @@
 
   const rules = [
     {
-      validator: (value: string[]) => value.length > 0,
       message: t('克隆表结构不能为空'),
+      validator: (value: string[]) => value.length > 0,
     },
   ];
 

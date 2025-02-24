@@ -51,6 +51,8 @@
   import _ from 'lodash';
   import { computed, shallowRef } from 'vue';
 
+  import AppSelect from '@blueking/app-select';
+
   import { getBizs } from '@services/source/cmdb';
 
   import { useUserProfile } from '@stores';
@@ -59,26 +61,22 @@
 
   import { encodeRegexp, makeMap } from '@utils';
 
-  import AppSelect from '@blueking/app-select';
+  import '@blueking/app-select/dist/style.css';
 
   import RenderItem from './RenderItem.vue';
-
-  import '@blueking/app-select/dist/style.css';
 
   type IAppItem = ServiceReturnType<typeof getBizs>[number];
 
   interface Props {
-    theme?: string;
-    permissionActionId?: string;
     list: IAppItem[];
+    permissionActionId?: string;
+    theme?: string;
   }
-  interface Emits {
-    (e: 'change', value: IAppItem): void;
-  }
+  type Emits = (e: 'change', value: IAppItem) => void;
 
   const props = withDefaults(defineProps<Props>(), {
-    theme: 'light',
     permissionActionId: 'db_manage',
+    theme: 'light',
   });
 
   const emits = defineEmits<Emits>();

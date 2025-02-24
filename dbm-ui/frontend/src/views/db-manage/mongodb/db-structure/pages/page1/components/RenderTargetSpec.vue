@@ -37,11 +37,11 @@
   import RenderTargetSpec from '@views/db-manage/common/apply-items/SpecSelector.vue';
 
   interface Props {
-    data: MongoDBModel;
+    clusterIds: number[];
     clusterType: string;
+    data: MongoDBModel;
     isShardCluster: boolean;
     shardNum: number;
-    clusterIds: number[];
   }
 
   interface Exposes {
@@ -58,9 +58,9 @@
 
   const rules = [
     {
-      validator: (value: number) => value >= 0,
       message: t('目标集群不能为空'),
       trigger: 'change',
+      validator: (value: number) => value >= 0,
     },
   ];
 
@@ -79,20 +79,20 @@
       const info = {
         resource_spec: {
           mongodb: {
-            spec_id: moduleValue.value,
             count: mongodbCount,
+            spec_id: moduleValue.value,
           },
         },
       };
       if (props.isShardCluster) {
         Object.assign(info.resource_spec, {
           mongo_config: {
-            spec_id: props.data.mongo_config[0].spec_config.id, // 这个与回档集群的mongo_config规格一致
             count: 1, // 固定为1
+            spec_id: props.data.mongo_config[0].spec_config.id, // 这个与回档集群的mongo_config规格一致
           },
           mongos: {
-            spec_id: props.data.mongos[0].spec_config.id, // 这个与回档集群的mongos规格一致
             count: 1, // 固定为1
+            spec_id: props.data.mongos[0].spec_config.id, // 这个与回档集群的mongos规格一致
           },
         });
       }

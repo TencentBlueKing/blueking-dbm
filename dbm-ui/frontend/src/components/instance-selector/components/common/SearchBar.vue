@@ -15,28 +15,26 @@
   import type { SearchAttrs } from '@hooks';
 
   export type SearchSelectList = {
-    id: string;
-    name: string;
     children?: {
       id: string | number;
       name: string;
     }[];
+    id: string;
+    name: string;
   }[];
 
   interface Props {
-    searchAttrs: SearchAttrs;
-    validateSearchValues: ValidateValuesFunc;
-    type?: string;
     isHost?: boolean;
+    searchAttrs: SearchAttrs;
+    type?: string;
+    validateSearchValues: ValidateValuesFunc;
   }
 
-  interface Emits {
-    (e: 'searchValueChange', value: ISearchValue[]): void;
-  }
+  type Emits = (e: 'searchValueChange', value: ISearchValue[]) => void;
 
   const props = withDefaults(defineProps<Props>(), {
-    type: '',
     isHost: false,
+    type: '',
   });
 
   const emits = defineEmits<Emits>();
@@ -52,14 +50,11 @@
   const searchSelectData = computed(() => {
     const basicSelct = [
       {
-        name: props.isHost ? 'IP' : t('IP 或 IP:Port'),
         id: props.isHost ? 'ip' : 'instance',
         multiple: true,
+        name: props.isHost ? 'IP' : t('IP 或 IP:Port'),
       },
       {
-        name: t('实例状态'),
-        id: 'status',
-        multiple: true,
         children: [
           {
             id: 'running',
@@ -74,12 +69,15 @@
             name: t('重建中'),
           },
         ],
+        id: 'status',
+        multiple: true,
+        name: t('实例状态'),
       },
       {
-        name: t('管控区域'),
+        children: props.searchAttrs.bk_cloud_id,
         id: 'bk_cloud_id',
         multiple: true,
-        children: props.searchAttrs.bk_cloud_id,
+        name: t('管控区域'),
       },
     ];
     if (isHideStatus.value) {

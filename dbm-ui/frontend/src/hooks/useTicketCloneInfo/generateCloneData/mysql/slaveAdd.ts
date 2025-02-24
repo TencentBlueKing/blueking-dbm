@@ -18,20 +18,20 @@ import { random } from '@utils';
 export function generateMysqlSlaveAddCloneData(ticketData: TicketModel<Mysql.AddSlave>) {
   const { clusters, infos } = ticketData.details;
   const tableDataList = infos.map((item) => ({
-    rowKey: random(),
+    checkedRelated: [],
     clusterData: {
-      id: item.cluster_ids[0],
-      domain: clusters[item.cluster_ids[0]].immute_domain,
       cloudId: clusters[item.cluster_ids[0]].bk_cloud_id,
+      domain: clusters[item.cluster_ids[0]].immute_domain,
+      id: item.cluster_ids[0],
     },
     clusterRelated: [],
-    checkedRelated: [],
     newSlaveIp: item.new_slave.ip,
+    rowKey: random(),
   }));
 
   return Promise.resolve({
-    tableDataList,
     backupSource: ticketData.details.backup_source,
     remark: ticketData.remark,
+    tableDataList,
   });
 }

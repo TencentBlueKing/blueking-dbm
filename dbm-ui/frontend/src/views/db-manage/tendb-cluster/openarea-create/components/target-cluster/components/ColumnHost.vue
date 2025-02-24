@@ -103,8 +103,8 @@
   // import useValidtor from './useValidtor';
 
   interface Props {
-    data?: IDataRow['authorizeIps'];
     clusterData?: IDataRow['clusterData'];
+    data?: IDataRow['authorizeIps'];
   }
 
   interface Exposes {
@@ -114,8 +114,8 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    data: () => [],
     clusterData: undefined,
+    data: () => [],
   });
 
   const { t } = useI18n();

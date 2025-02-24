@@ -164,9 +164,7 @@
     data: MonitorPolicyModel;
   }
 
-  interface Emits {
-    (e: 'success'): void;
-  }
+  type Emits = (e: 'success') => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -198,20 +196,20 @@
 
   const notifyTypes = [
     {
-      value: 'abnormal',
       label: t('告警时触发'),
+      value: 'abnormal',
     },
     {
-      value: 'recovered',
       label: t('告警恢复时'),
+      value: 'recovered',
     },
     {
-      value: 'closed',
       label: t('告警关闭时'),
+      value: 'closed',
     },
     {
-      value: 'ack',
       label: t('告警确认时'),
+      value: 'ack',
     },
   ];
 
@@ -254,11 +252,11 @@
       dangerRule.value ? dangerValueRef.value.getValue() : undefined,
     ];
     const reqParams = {
-      targets: props.data.targets,
       custom_conditions: props.data.custom_conditions,
-      test_rules: testRules.filter((item) => item && item.config.length !== 0),
-      notify_rules: formModel.notifyRules,
       notify_groups: props.data.notify_groups,
+      notify_rules: formModel.notifyRules,
+      targets: props.data.targets,
+      test_rules: testRules.filter((item) => item && item.config.length !== 0),
     };
     runUpdatePolicy(props.data.id, reqParams);
   };

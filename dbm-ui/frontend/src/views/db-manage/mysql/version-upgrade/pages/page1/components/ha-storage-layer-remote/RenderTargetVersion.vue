@@ -159,40 +159,38 @@
   import TableEditSelect, { type IListItem } from '@views/db-manage/mysql/common/edit/Select.vue';
 
   interface Props {
-    isLoading: boolean;
     data?: {
       clusterId: number;
       clusterType: string;
       currentVersion: string;
-      moduleName: string;
       moduleId: number;
+      moduleName: string;
     };
-    targetVersion?: string;
-    targetPackage?: number;
+    isLoading: boolean;
     targetModule?: number;
+    targetPackage?: number;
+    targetVersion?: string;
   }
 
-  interface Emits {
-    (e: 'module-change', value: string): void;
-  }
+  type Emits = (e: 'module-change', value: string) => void;
 
   interface Exposes {
     getValue: () => Promise<{
-      pkg_id: number;
-      new_db_module_id: number;
       display_info: {
-        target_version: string;
         target_module_name: string;
+        target_version: string;
       };
+      new_db_module_id: number;
+      pkg_id: number;
     }>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     data: undefined,
-    targetVersion: undefined,
-    targetPackage: undefined,
-    targetModule: undefined,
     isLocal: true,
+    targetModule: undefined,
+    targetPackage: undefined,
+    targetVersion: undefined,
   });
   const emits = defineEmits<Emits>();
 
@@ -217,22 +215,22 @@
 
   const versionRules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('数据库版本不能为空'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 
   const packageRules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('版本包文件不能为空'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 
   const moduleRules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('绑定模块不能为空'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 
@@ -415,8 +413,8 @@
     const url = router.resolve({
       name: 'SelfServiceCreateDbModule',
       params: {
-        type: TicketTypes.MYSQL_HA_APPLY,
         bk_biz_id: bizId,
+        type: TicketTypes.MYSQL_HA_APPLY,
       },
       query: {
         from: route.name as string,
@@ -432,13 +430,13 @@
   defineExpose<Exposes>({
     getValue() {
       return Promise.all([packageSelectRef.value!.getValue(), moduleSelectRef.value?.getValue()]).then(() => ({
-        pkg_id: localPackage.value as number,
-        new_db_module_id: localModule.value as number,
         display_info: {
-          target_version: localVersion.value,
-          target_package: packageSelectList.value.find((item) => item.id === localPackage.value)?.name || '',
           target_module_name: moduleSelectList.value.find((item) => item.id === localModule.value)?.name || '',
+          target_package: packageSelectList.value.find((item) => item.id === localPackage.value)?.name || '',
+          target_version: localVersion.value,
         },
+        new_db_module_id: localModule.value as number,
+        pkg_id: localPackage.value as number,
       }));
     },
   });

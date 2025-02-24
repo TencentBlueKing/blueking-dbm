@@ -12,11 +12,11 @@
  */
 
 export interface IPagination {
-  current: number;
   count: number;
+  current: number;
+  getFetchParams: () => { limit: number; offset: number };
   limit: number;
   'limit-list': number[];
-  getFetchParams: () => { limit: number; offset: number };
 }
 
 /**
@@ -24,15 +24,15 @@ export interface IPagination {
  */
 const limit = window.innerHeight > 750 ? 20 : 10;
 export const useDefaultPagination = () => ({
-  current: 1,
   count: 0,
-  limit,
-  'limit-list': [limit, 50, 100, 500],
-  remote: true,
+  current: 1,
   getFetchParams() {
     return {
       limit: this.limit,
       offset: this.limit * (this.current - 1),
     };
   },
+  limit,
+  'limit-list': [limit, 50, 100, 500],
+  remote: true,
 });

@@ -18,23 +18,23 @@ import { random } from '@utils';
 export function generateRedisClusterCutoffCloneData(ticketData: TicketModel<Redis.ClusterCutoff>) {
   const { clusters, infos, specs } = ticketData.details;
   return Promise.resolve({
+    remark: ticketData.remark,
     tableDataList: infos.flatMap((info) =>
       info.display_info.data.map((curr) => ({
-        rowKey: random(),
-        isLoading: false,
-        ip: curr.ip,
-        role: curr.role,
-        clusterIds: info.cluster_ids,
         bkCloudId: info.bk_cloud_id,
         cluster: {
           domain: info.cluster_ids.map((id) => clusters[id].immute_domain).join(','),
-          isStart: false,
           isGeneral: true,
+          isStart: false,
           rowSpan: 1,
         },
+        clusterIds: info.cluster_ids,
+        ip: curr.ip,
+        isLoading: false,
+        role: curr.role,
+        rowKey: random(),
         spec: specs[curr.spec_id],
       })),
     ),
-    remark: ticketData.remark,
   });
 }

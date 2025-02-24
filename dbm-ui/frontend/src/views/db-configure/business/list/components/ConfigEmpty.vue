@@ -47,7 +47,7 @@
       return;
     }
     let { id, name } = treeNode.value;
-    const { parentId, levelType } = treeNode.value;
+    const { levelType, parentId } = treeNode.value;
     if (parentId && levelType === 'cluster') {
       const parentInfo = (parentId as string).split('-');
       [name] = parentInfo;
@@ -56,12 +56,12 @@
     router.push({
       name: 'SelfServiceBindDbModule',
       params: {
+        bk_biz_id: globalBizsStore.currentBizId,
+        db_module_id: id,
         type:
           route.params.clusterType === ClusterTypes.TENDBSINGLE
             ? TicketTypes.MYSQL_SINGLE_APPLY
             : TicketTypes.MYSQL_HA_APPLY,
-        bk_biz_id: globalBizsStore.currentBizId,
-        db_module_id: id,
       },
       query: { alias_name: name },
     });

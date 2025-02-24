@@ -54,8 +54,8 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('从库主机不能为空'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 
@@ -64,8 +64,8 @@
     onSuccess(data) {
       const [machineInstancePair] = Object.values(data.machines);
       slaveHostData.value = {
-        bk_host_id: machineInstancePair.bk_host_id,
         bk_cloud_id: machineInstancePair.bk_cloud_id,
+        bk_host_id: machineInstancePair.bk_host_id,
         ip: machineInstancePair.ip,
       };
       setTimeout(() => {

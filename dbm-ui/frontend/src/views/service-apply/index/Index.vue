@@ -123,27 +123,27 @@
 
   import { makeMap } from '@utils';
 
-  import ApplyCollapse from './components/ApplyCollapse.vue';
-  import Copyright from './components/Copyright.vue';
-
   import haTipImg from '@/images/architecture-01.png';
   import singleTipImg from '@/images/architecture-02.png';
 
+  import ApplyCollapse from './components/ApplyCollapse.vue';
+  import Copyright from './components/Copyright.vue';
+
   interface IService {
-    id: ExtractedControllerDataKeys;
-    groupName?: string;
-    name: string;
     children: Array<{
-      id: TicketTypes;
-      routeName: string;
-      name: string;
-      icon: string;
       controllerId?: FunctionKeys;
+      icon: string;
+      id: TicketTypes;
+      name: string;
+      routeName: string;
       tipImgProps?: {
-        width: number;
         src: string;
+        width: number;
       };
     }>;
+    groupName?: string;
+    id: ExtractedControllerDataKeys;
+    name: string;
   }
 
   const route = useRoute();
@@ -156,166 +156,166 @@
   // 全部服务类型
   const services: Array<IService> = [
     {
-      id: 'mysql',
-      groupName: 'MySQL',
-      name: '关系型数据库',
       children: [
         {
           controllerId: 'tendbsingle',
-          routeName: 'SelfServiceApplySingle',
+          icon: 'mysql',
           id: mysqlType[TicketTypes.MYSQL_SINGLE_APPLY].id,
           name: mysqlType[TicketTypes.MYSQL_SINGLE_APPLY].name,
-          icon: 'mysql',
+          routeName: 'SelfServiceApplySingle',
           tipImgProps: {
-            width: 150,
             src: singleTipImg,
+            width: 150,
           },
         },
         {
           controllerId: 'tendbha',
-          routeName: 'SelfServiceApplyHa',
+          icon: 'mysql',
           id: mysqlType[TicketTypes.MYSQL_HA_APPLY].id,
           name: mysqlType[TicketTypes.MYSQL_HA_APPLY].name,
-          icon: 'mysql',
+          routeName: 'SelfServiceApplyHa',
           tipImgProps: {
-            width: 362,
             src: haTipImg,
+            width: 362,
           },
         },
         {
           controllerId: 'tendbcluster',
-          routeName: 'spiderApply',
+          icon: 'mysql',
           id: mysqlType[TicketTypes.TENDBCLUSTER_APPLY].id,
           name: mysqlType[TicketTypes.TENDBCLUSTER_APPLY].name,
-          icon: 'mysql',
+          routeName: 'spiderApply',
         },
       ],
+      groupName: 'MySQL',
+      id: 'mysql',
+      name: '关系型数据库',
     },
     {
-      id: 'sqlserver',
-      groupName: 'SQLServer',
-      name: '关系型数据库',
       children: [
         {
           controllerId: 'sqlserver_single',
-          routeName: 'SqlServiceSingleApply',
+          icon: 'sqlserver',
           id: sqlServerType[TicketTypes.SQLSERVER_SINGLE_APPLY].id,
           name: sqlServerType[TicketTypes.SQLSERVER_SINGLE_APPLY].name,
-          icon: 'sqlserver',
+          routeName: 'SqlServiceSingleApply',
         },
         {
           controllerId: 'sqlserver_ha',
-          routeName: 'SqlServiceHaApply',
+          icon: 'sqlserver',
           id: sqlServerType[TicketTypes.SQLSERVER_HA_APPLY].id,
           name: sqlServerType[TicketTypes.SQLSERVER_HA_APPLY].name,
-          icon: 'sqlserver',
+          routeName: 'SqlServiceHaApply',
         },
       ],
+      groupName: 'SQLServer',
+      id: 'sqlserver',
+      name: '关系型数据库',
     },
     {
-      id: 'redis',
-      groupName: 'Redis',
-      name: 'NoSQL数据库',
       children: [
         {
-          routeName: 'SelfServiceApplyRedis',
+          icon: 'redis',
           id: redisType[TicketTypes.REDIS_CLUSTER_APPLY].id,
           name: redisType[TicketTypes.REDIS_CLUSTER_APPLY].name,
-          icon: 'redis',
+          routeName: 'SelfServiceApplyRedis',
         },
         {
-          routeName: 'SelfServiceApplyRedisHa',
+          icon: 'redis',
           id: redisType[TicketTypes.REDIS_INS_APPLY].id,
           name: redisType[TicketTypes.REDIS_INS_APPLY].name,
-          icon: 'redis',
+          routeName: 'SelfServiceApplyRedisHa',
         },
       ],
+      groupName: 'Redis',
+      id: 'redis',
+      name: 'NoSQL数据库',
     },
     {
-      id: 'mongodb',
-      groupName: 'Mongodb',
-      name: 'NoSQL数据库',
       children: [
         {
-          routeName: 'MongoDBSharedClusterApply',
+          icon: 'mongo-db',
           id: mongoType[TicketTypes.MONGODB_SHARD_APPLY].id,
           name: mongoType[TicketTypes.MONGODB_SHARD_APPLY].name,
-          icon: 'mongo-db',
+          routeName: 'MongoDBSharedClusterApply',
         },
         {
-          routeName: 'MongoDBReplicaSetApply',
+          icon: 'mongo-db',
           id: mongoType[TicketTypes.MONGODB_REPLICASET_APPLY].id,
           name: mongoType[TicketTypes.MONGODB_REPLICASET_APPLY].name,
-          icon: 'mongo-db',
+          routeName: 'MongoDBReplicaSetApply',
         },
       ],
+      groupName: 'Mongodb',
+      id: 'mongodb',
+      name: 'NoSQL数据库',
     },
     {
-      id: 'bigdata',
-      name: '时序数据库',
       children: [
         {
           controllerId: 'influxdb',
-          routeName: 'SelfServiceApplyInfluxDB',
+          icon: 'influxdb',
           id: bigDataType[TicketTypes.INFLUXDB_APPLY].id,
           name: bigDataType[TicketTypes.INFLUXDB_APPLY].name,
-          icon: 'influxdb',
+          routeName: 'SelfServiceApplyInfluxDB',
         },
       ],
+      id: 'bigdata',
+      name: '时序数据库',
     },
     {
-      id: 'bigdata',
-      name: t('大数据'),
       children: [
         {
           controllerId: 'es',
-          routeName: 'EsApply',
+          icon: 'es',
           id: bigDataType[TicketTypes.ES_APPLY].id,
           name: bigDataType[TicketTypes.ES_APPLY].name,
-          icon: 'es',
+          routeName: 'EsApply',
         },
         {
           controllerId: 'hdfs',
-          routeName: 'HdfsApply',
+          icon: 'hdfs',
           id: bigDataType[TicketTypes.HDFS_APPLY].id,
           name: bigDataType[TicketTypes.HDFS_APPLY].name,
-          icon: 'hdfs',
+          routeName: 'HdfsApply',
         },
         {
           controllerId: 'doris',
-          routeName: 'DorisApply',
+          icon: 'doris',
           id: bigDataType[TicketTypes.DORIS_APPLY].id,
           name: bigDataType[TicketTypes.DORIS_APPLY].name,
-          icon: 'doris',
+          routeName: 'DorisApply',
         },
       ],
+      id: 'bigdata',
+      name: t('大数据'),
     },
     {
-      id: 'bigdata',
-      name: '消息队列',
       children: [
         {
           controllerId: 'pulsar',
-          routeName: 'PulsarApply',
+          icon: 'pulsar',
           id: bigDataType[TicketTypes.PULSAR_APPLY].id,
           name: bigDataType[TicketTypes.PULSAR_APPLY].name,
-          icon: 'pulsar',
+          routeName: 'PulsarApply',
         },
         {
           controllerId: 'kafka',
-          routeName: 'KafkaApply',
+          icon: 'kafka',
           id: bigDataType[TicketTypes.KAFKA_APPLY].id,
           name: bigDataType[TicketTypes.KAFKA_APPLY].name,
-          icon: 'kafka',
+          routeName: 'KafkaApply',
         },
         {
           controllerId: 'riak',
-          routeName: 'RiakApply',
+          icon: 'cluster',
           id: bigDataType[TicketTypes.RIAK_CLUSTER_APPLY].id,
           name: bigDataType[TicketTypes.RIAK_CLUSTER_APPLY].name,
-          icon: 'cluster',
+          routeName: 'RiakApply',
         },
       ],
+      id: 'bigdata',
+      name: '消息队列',
     },
   ];
 

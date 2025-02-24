@@ -39,14 +39,14 @@
   });
   const columns = [
     {
-      label: t('新节点IP'),
       field: 'newNode',
+      label: t('新节点IP'),
       render: ({ cell }: { cell: Props['ticketDetails']['details']['new_nodes']['influxdb'][number] }) =>
         cell?.ip || '--',
     },
     {
-      label: t('被替换的节点IP'),
       field: 'oldNode',
+      label: t('被替换的节点IP'),
       render: ({ cell }: { cell: Props['ticketDetails']['details']['old_nodes']['influxdb'][number] }) =>
         cell?.ip || '--',
     },

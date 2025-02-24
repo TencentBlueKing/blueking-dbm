@@ -41,14 +41,12 @@
   import { type IDataRow } from './Row.vue';
 
   interface Props {
-    rowData: IDataRow;
     clusterNodeCount: Record<number, Record<string, number[]>>;
     data?: string;
+    rowData: IDataRow;
   }
 
-  interface Emits {
-    (e: 'inputFinish', value: string): void;
-  }
+  type Emits = (e: 'inputFinish', value: string) => void;
 
   interface Exposes {
     getValue: () => Promise<string>;
@@ -67,14 +65,15 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('IP不能为空'),
+      validator: (value: string) => Boolean(value),
     },
     {
-      validator: (value: string) => ipv4.test(value),
       message: t('IP格式不正确'),
+      validator: (value: string) => ipv4.test(value),
     },
     {
+      message: t('目标主机不存在'),
       validator: async (value: string) => {
         const result = await checkMongoInstances({
           bizId: currentBizId,
@@ -82,9 +81,9 @@
         });
         return result.length > 0;
       },
-      message: t('目标主机不存在'),
     },
     {
+      message: t('目标主机重复'),
       validator: () => {
         const currentHostSelectMap = hostsMemo[instanceKey];
         const otheHostMemoMap = { ...hostsMemo };
@@ -98,6 +97,7 @@
           {} as Record<string, boolean>,
         );
         const currentSelectHostList = Object.keys(currentHostSelectMap);
+        // eslint-disable-next-line @typescript-eslint/prefer-for-of
         for (let i = 0; i < currentSelectHostList.length; i++) {
           if (otherHostMap[currentSelectHostList[i]]) {
             return false;
@@ -105,9 +105,9 @@
         }
         return true;
       },
-      message: t('目标主机重复'),
     },
     {
+      message: '',
       validator: () => {
         const { clusterNodeCount } = props;
         if (!props.data) {
@@ -127,7 +127,6 @@
         }
         return true;
       },
-      message: '',
     },
   ];
 

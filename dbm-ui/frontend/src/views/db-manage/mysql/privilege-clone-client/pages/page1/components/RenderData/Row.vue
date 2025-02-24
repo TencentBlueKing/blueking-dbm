@@ -49,20 +49,20 @@
   import RenderTarget from './RenderTarget.vue';
 
   export interface IDataRow {
+    module?: string;
     rowKey: string;
     source?: {
       bk_cloud_id: number;
       ip: string;
     };
-    module?: string;
     target: string[];
   }
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
+    module: data.module,
     rowKey: random(),
     source: data.source,
-    module: data.module,
     target: data.target || [],
   });
 </script>

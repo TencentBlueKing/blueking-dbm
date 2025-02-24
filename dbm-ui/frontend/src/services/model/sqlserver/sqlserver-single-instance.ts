@@ -30,8 +30,8 @@ export default class SqlServerSingleInstance {
     sqlserver_view: boolean;
   };
   port: number;
-  restart_at: string;
   related_clusters: InstanceRelatedCluster[];
+  restart_at: string;
   role: string;
   slave_domain: string;
   spec_config: InstanceListSpecConfig;

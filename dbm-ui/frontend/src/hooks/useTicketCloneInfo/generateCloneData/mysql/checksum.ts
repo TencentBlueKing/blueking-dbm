@@ -37,27 +37,27 @@ export async function generateMysqlChecksumCloneData(ticketData: TicketModel<Mys
   const tableDataList = details.infos.map((item) => {
     const masterInfo = clusters[item.cluster_id].masters[0];
     return {
-      rowKey: random(),
-      isLoading: false,
       clusterData: {
-        id: item.cluster_id,
         domain: clusters[item.cluster_id].master_domain,
+        id: item.cluster_id,
       },
       dbPatterns: item.db_patterns,
       ignoreDbs: item.ignore_dbs,
-      tablePatterns: item.table_patterns,
       ignoreTables: item.ignore_tables,
+      isLoading: false,
       master: masterInfo ? `${masterInfo.ip}:${masterInfo.port}` : '',
       masterInstance: masterInfo,
-      slaves: item.slaves.map((slave) => `${slave.ip}:${slave.port}`),
+      rowKey: random(),
       slaveList: clusters[item.cluster_id].slaves || [],
+      slaves: item.slaves.map((slave) => `${slave.ip}:${slave.port}`),
+      tablePatterns: item.table_patterns,
     };
   });
   return {
-    tableDataList,
-    timing: new Date(details.timing),
-    runtime_hour: details.runtime_hour,
     data_repair: details.data_repair,
     remark,
+    runtime_hour: details.runtime_hour,
+    tableDataList,
+    timing: new Date(details.timing),
   };
 }

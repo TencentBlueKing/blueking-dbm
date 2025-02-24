@@ -85,9 +85,7 @@
     selectedList?: T[];
   }
 
-  interface Emits {
-    (e: 'change', value: T[]): void;
-  }
+  type Emits = (e: 'change', value: T[]) => void;
 
   withDefaults(defineProps<Props>(), {
     selectedList: () => [],
@@ -95,20 +93,20 @@
   const emits = defineEmits<Emits>();
 
   const isShow = defineModel<boolean>('isShow', {
-    required: true,
     default: false,
+    required: true,
   });
 
   const { t } = useI18n();
 
   const filters = [
     {
-      name: t('账号名称'),
       id: 'user',
+      name: t('账号名称'),
     },
     {
-      name: t('访问DB'),
       id: 'access_db',
+      name: t('访问DB'),
     },
   ];
 

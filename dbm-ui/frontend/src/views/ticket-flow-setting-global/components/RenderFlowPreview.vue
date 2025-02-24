@@ -55,13 +55,11 @@
   import { messageSuccess } from '@utils';
 
   interface Props {
-    data: TicketFlowDescribeModel;
     configKey: keyof TicketFlowDescribeModel['configs'];
+    data: TicketFlowDescribeModel;
   }
 
-  interface Emits {
-    (e: 'success'): void;
-  }
+  type Emits = (e: 'success') => void;
 
   const props = defineProps<Props>();
 
@@ -107,12 +105,12 @@
     const params = {
       bk_biz_id: props.data.bk_biz_id,
       cluster_ids: props.data.cluster_ids,
-      ticket_types: [props.data.ticket_type],
+      config_ids: [props.data.id],
       configs: {
         ...props.data.configs,
         [props.configKey]: !modelValue.value,
       },
-      config_ids: [props.data.id],
+      ticket_types: [props.data.ticket_type],
     };
     updateTicketFlowConfigRun(params);
   };

@@ -19,7 +19,7 @@ import http from '../http';
 /**
  * 判断 Mysql 实例是否存在
  */
-export function checkMysqlInstances(params: Record<'instance_addresses', Array<string>> & { bizId: number }) {
+export function checkMysqlInstances(params: { bizId: number } & Record<'instance_addresses', Array<string>>) {
   return http.post<Array<InstanceInfos>>(`/apis/mysql/bizs/${params.bizId}/instance/check_instances/`, params);
 }
 
@@ -30,13 +30,13 @@ interface InstanceItem extends Omit<InstanceInfos, 'spec_config'> {
 /**
  * 判断 Redis 实例是否存在
  */
-export function checkRedisInstances(params: Record<'instance_addresses', Array<string>> & { bizId: number }) {
+export function checkRedisInstances(params: { bizId: number } & Record<'instance_addresses', Array<string>>) {
   return http.post<InstanceItem[]>(`/apis/redis/bizs/${params.bizId}/instance/check_instances/`, params);
 }
 
 /**
  * 判断 Mongo 实例是否存在
  */
-export function checkMongoInstances(params: { bizId: number; instance_addresses: string[]; cluster_ids?: number[] }) {
+export function checkMongoInstances(params: { bizId: number; cluster_ids?: number[]; instance_addresses: string[] }) {
   return http.post<InstanceItem[]>(`/apis/mongodb/bizs/${params.bizId}/instance/check_instances/`, params);
 }

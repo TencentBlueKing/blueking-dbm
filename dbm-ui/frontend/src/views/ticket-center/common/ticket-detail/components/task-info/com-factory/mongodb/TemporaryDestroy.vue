@@ -39,14 +39,14 @@
 
   const columns = [
     {
-      label: t('临时集群名称'),
       field: 'name',
+      label: t('临时集群名称'),
       showOverflowTooltip: false,
     },
   ];
 
   const dataList = computed(() => {
-    const { clusters, cluster_ids: clusterIds } = props.ticketDetails.details;
+    const { cluster_ids: clusterIds, clusters } = props.ticketDetails.details;
     return clusterIds.map((id) => ({
       name: clusters[id].name,
     }));

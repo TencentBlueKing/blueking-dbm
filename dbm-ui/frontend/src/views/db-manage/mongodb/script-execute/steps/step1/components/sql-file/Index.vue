@@ -43,11 +43,11 @@
 
   interface Exposes {
     getValue: () => {
-      scripts: {
-        name: string;
-        content: string;
-      }[];
       mode: string;
+      scripts: {
+        content: string;
+        name: string;
+      }[];
     };
   }
 
@@ -61,8 +61,8 @@
   const fileRef = ref();
 
   const comMap = {
-    manual: ManualInput,
     file: LocalFile,
+    manual: ManualInput,
   };
 
   const renderCom = computed(() => comMap[importMode.value as keyof typeof comMap]);
@@ -73,8 +73,8 @@
 
   defineExpose<Exposes>({
     getValue: () => ({
-      scripts: fileRef.value.getValue(),
       mode: importMode.value,
+      scripts: fileRef.value.getValue(),
     }),
   });
 </script>

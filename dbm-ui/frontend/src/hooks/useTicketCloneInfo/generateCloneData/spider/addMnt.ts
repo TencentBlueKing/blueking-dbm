@@ -30,19 +30,19 @@ export async function generateSpiderAddMntDataCloneData(ticketData: TicketModel<
     return obj;
   }, {});
   const tableDataList = infos.map((item) => ({
-    rowKey: random(),
+    bkCloudId: clusterListMap[item.cluster_id].bk_cloud_id,
     clusterData: {
-      id: clusterListMap[item.cluster_id].id,
-      domain: clusterListMap[item.cluster_id].master_domain,
       bkCloudId: clusterListMap[item.cluster_id].bk_cloud_id,
       bkCloudName: clusterListMap[item.cluster_id].bk_cloud_name,
+      domain: clusterListMap[item.cluster_id].master_domain,
+      id: clusterListMap[item.cluster_id].id,
     },
-    bkCloudId: clusterListMap[item.cluster_id].bk_cloud_id,
+    rowKey: random(),
     spiderIpList: item.spider_ip_list,
   }));
 
   return {
-    tableDataList,
     remark: ticketData.remark,
+    tableDataList,
   };
 }

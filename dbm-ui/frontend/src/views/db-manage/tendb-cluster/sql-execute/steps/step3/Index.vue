@@ -63,8 +63,8 @@
       name: t('SQL语义检查'),
     },
     {
-      name: t('单据审批'),
       current: true,
+      name: t('单据审批'),
     },
     {
       name: ticketMode === 'manual' ? t('人工确认执行') : t('定时执行'),

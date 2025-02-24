@@ -88,30 +88,28 @@
 
   export interface IListItem {
     id: number;
-    name: string;
     isCurrent: boolean;
+    name: string;
     specData: SpecInfo;
   }
 
   interface Props {
+    disabled?: boolean;
     list: Array<IListItem>;
     placeholder?: string;
     rules?: Rules;
-    disabled?: boolean;
   }
-  interface Emits {
-    (e: 'change', value: IKey): void;
-  }
+  type Emits = (e: 'change', value: IKey) => void;
 
   interface Exposes {
     getValue: () => Promise<IKey>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    placeholder: '请输入',
-    textarea: false,
-    rules: () => [],
     disabled: false,
+    placeholder: '请输入',
+    rules: () => [],
+    textarea: false,
   });
   const emits = defineEmits<Emits>();
 

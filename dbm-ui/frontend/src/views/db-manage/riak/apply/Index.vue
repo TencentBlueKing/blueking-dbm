@@ -211,28 +211,28 @@
 
   const genDefaultFormData = () => ({
     bk_biz_id: '' as number | '',
-    remark: '',
-    ticket_type: TicketTypes.RIAK_CLUSTER_APPLY,
-    spec_id: '' as number | '',
-    nodes_num: 3,
     details: {
       bk_cloud_id: 0,
-      db_app_abbr: '',
-      ip_source: 'resource_pool',
-      db_module_id: null as number | null,
-      cluster_name: '',
-      cluster_alias: '',
       city_code: '',
+      cluster_alias: '',
+      cluster_name: '',
+      db_app_abbr: '',
+      db_module_id: null as number | null,
       db_version: '2.2',
+      ip_source: 'resource_pool',
       nodes: [] as HostInfo[],
       // http_port: 8087,
     },
+    nodes_num: 3,
+    remark: '',
+    spec_id: '' as number | '',
+    ticket_type: TicketTypes.RIAK_CLUSTER_APPLY,
   });
 
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
-  const { baseState, bizState, handleCreateAppAbbr, handleCreateTicket, handleCancel } = useApplyBase();
+  const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
 
   const formRef = ref();
   const specRef = ref();
@@ -245,18 +245,18 @@
   const formData = reactive(genDefaultFormData());
 
   const formRules = {
-    nodes_num: [
-      {
-        validator: (value: number) => value >= 3,
-        message: t('节点数至少为n台', [3]),
-        trigger: 'change',
-      },
-    ],
     'details.nodes': [
       {
-        validator: (value: HostInfo[]) => value.length >= 3,
         message: t('节点数至少为n台', [3]),
         trigger: 'change',
+        validator: (value: HostInfo[]) => value.length >= 3,
+      },
+    ],
+    nodes_num: [
+      {
+        message: t('节点数至少为n台', [3]),
+        trigger: 'change',
+        validator: (value: number) => value >= 3,
       },
     ],
   };
@@ -311,9 +311,9 @@
         Object.assign(params.details, {
           nodes: {
             riak: formData.details.nodes.map((nodeItem) => ({
-              ip: nodeItem.ip,
-              bk_host_id: nodeItem.host_id,
               bk_cloud_id: nodeItem.cloud_id,
+              bk_host_id: nodeItem.host_id,
+              ip: nodeItem.ip,
             })),
           },
         });
@@ -326,9 +326,8 @@
 
   const handleReset = () => {
     InfoBox({
-      title: t('确认重置表单内容'),
-      content: t('重置后_将会清空当前填写的内容'),
       cancelText: t('取消'),
+      content: t('重置后_将会清空当前填写的内容'),
       onConfirm: () => {
         Object.assign(formData, genDefaultFormData());
         formRef.value.clearValidate();
@@ -337,6 +336,7 @@
         });
         return true;
       },
+      title: t('确认重置表单内容'),
     });
   };
 

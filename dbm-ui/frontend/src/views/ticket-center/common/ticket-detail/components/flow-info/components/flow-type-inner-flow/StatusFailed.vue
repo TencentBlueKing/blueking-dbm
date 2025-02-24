@@ -97,7 +97,7 @@
   });
 
   const { t } = useI18n();
-  const { username, isSuperuser } = useUserProfile();
+  const { isSuperuser, username } = useUserProfile();
 
   const isCanOperation = computed(
     () =>

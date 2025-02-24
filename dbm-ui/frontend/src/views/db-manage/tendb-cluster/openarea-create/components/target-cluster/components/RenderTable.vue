@@ -87,8 +87,8 @@
   import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
 
   interface Props {
-    variableList: string[];
     showIpCloumn: boolean;
+    variableList: string[];
   }
 
   interface Emits {

@@ -34,38 +34,36 @@
 
 <script setup lang="ts">
   interface Props {
-    title: string;
-    desc: string;
-    icon: string;
-    disabled?: boolean;
-    trueValue?: boolean | string;
-    falseValue?: boolean | string;
-    modelValue?: boolean | string;
     checked?: boolean;
+    desc: string;
+    disabled?: boolean;
     disabledTooltips?: string;
+    falseValue?: boolean | string;
+    icon: string;
+    modelValue?: boolean | string;
+    title: string;
+    trueValue?: boolean | string;
   }
 
-  interface Emits {
-    (e: 'update:modelValue', value: boolean | string): void;
-  }
+  type Emits = (e: 'update:modelValue', value: boolean | string) => void;
 
   const props = withDefaults(defineProps<Props>(), {
-    title: 'title',
-    desc: 'desc',
-    icon: 'rebuild',
-    disabled: false,
-    trueValue: true,
-    falseValue: false,
     checked: false,
-    modelValue: false,
+    desc: 'desc',
+    disabled: false,
     disabledTooltips: '',
+    falseValue: false,
+    icon: 'rebuild',
+    modelValue: false,
+    title: 'title',
+    trueValue: true,
   });
 
   const emits = defineEmits<Emits>();
 
   const statusClass = computed(() => ({
-    'card-checkbox--selected': props.modelValue === props.trueValue || props.checked,
     'card-checkbox--disabled': props.disabled,
+    'card-checkbox--selected': props.modelValue === props.trueValue || props.checked,
   }));
 
   function handleChange() {

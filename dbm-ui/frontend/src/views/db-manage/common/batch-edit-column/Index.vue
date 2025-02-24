@@ -78,27 +78,25 @@
   import { batchSplitRegex } from '@common/regex';
 
   interface Props {
-    title: string;
     dataList?: {
-      value: string | number;
       label: string;
+      value: string | number;
     }[];
-    type?: 'select' | 'textarea' | 'input' | 'taginput' | 'datetime' | 'number-input';
-    placeholder?: string;
     disableFn?: (date?: Date | number) => boolean;
+    placeholder?: string;
+    title: string;
     titlePrefixType?: 'edit' | 'entry';
+    type?: 'select' | 'textarea' | 'input' | 'taginput' | 'datetime' | 'number-input';
   }
 
-  interface Emits {
-    (e: 'change', value: UnwrapRef<typeof localValue>): void;
-  }
+  type Emits = (e: 'change', value: UnwrapRef<typeof localValue>) => void;
 
   const props = withDefaults(defineProps<Props>(), {
     dataList: () => [],
-    type: 'select',
-    placeholder: '',
     disableFn: () => false,
+    placeholder: '',
     titlePrefixType: 'edit',
+    type: 'select',
   });
 
   const emits = defineEmits<Emits>();

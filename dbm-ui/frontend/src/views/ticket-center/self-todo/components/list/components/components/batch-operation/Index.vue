@@ -115,10 +115,10 @@
       .then(() =>
         batchProcessTicket({
           action: formData.action,
-          ticket_ids: props.ticketList.map((item) => item.id),
           params: {
             remark: formData.remark,
           },
+          ticket_ids: props.ticketList.map((item) => item.id),
         }),
       )
       .then(() => {

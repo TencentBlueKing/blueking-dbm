@@ -28,11 +28,11 @@
   import TableEditInput from '@components/render-table/columns/input/index.vue';
 
   interface Props {
+    checkExist?: boolean;
+    checkNotExist?: boolean;
     clusterId: number;
     modelValue?: string;
     placeholder?: string;
-    checkExist?: boolean;
-    checkNotExist?: boolean;
   }
 
   interface Exposes {
@@ -40,10 +40,10 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    placeholder: '',
-    modelValue: '',
     checkExist: false,
     checkNotExist: false,
+    modelValue: '',
+    placeholder: '',
   });
 
   const { t } = useI18n();
@@ -53,22 +53,23 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('DB名不能为空'),
+      validator: (value: string) => Boolean(value),
     },
     {
-      validator: (value: string) => !/^stage_truncate/.test(value),
       message: t('不可以stage_truncate开头'),
+      validator: (value: string) => !value.startsWith('stage_truncate'),
     },
     {
-      validator: (value: string) => !/rollback$/.test(value),
       message: t('不可以rollback结尾'),
+      validator: (value: string) => !value.endsWith('rollback'),
     },
     {
-      validator: (value: string) => /^[a-zA-z][a-zA-Z0-9_-]{1,39}$/.test(value),
       message: t('由字母_数字_下划线_减号_字符组成以字母开头'),
+      validator: (value: string) => /^[a-zA-z][a-zA-Z0-9_-]{1,39}$/.test(value),
     },
     {
+      message: t('DB 不存在'),
       validator: (value: string) => {
         if (!props.checkExist) {
           return true;
@@ -86,9 +87,9 @@
           ],
         }).then((data) => (data.length > 0 ? data[0].check_info[value] : false));
       },
-      message: t('DB 不存在'),
     },
     {
+      message: t('新DB已存在'),
       validator: (value: string) => {
         if (!props.checkNotExist) {
           return true;
@@ -106,7 +107,6 @@
           ],
         }).then((data) => (data.length > 0 ? !data[0].check_info[value] : true));
       },
-      message: t('新DB已存在'),
     },
   ];
 

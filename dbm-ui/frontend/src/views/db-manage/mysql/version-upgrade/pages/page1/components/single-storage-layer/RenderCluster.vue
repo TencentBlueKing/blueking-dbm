@@ -27,14 +27,12 @@
 
   interface Props {
     modelValue?: {
-      id: number;
       domain: string;
+      id: number;
     };
   }
 
-  interface Emits {
-    (e: 'idChange', value: number): void;
-  }
+  type Emits = (e: 'idChange', value: number) => void;
 
   interface Exposes {
     getValue: (isSubmit?: boolean) => Array<number>;
@@ -73,24 +71,25 @@
 
   const rules = [
     {
+      message: '目标集群不能为空',
       validator: (value: string) => {
         if (value) {
           return true;
         }
         return false;
       },
-      message: '目标集群不能为空',
     },
     {
+      message: '目标集群不存在',
       validator: (value: string) =>
         queryClusters({
+          bk_biz_id: currentBizId,
           cluster_filters: [
             {
-              immute_domain: value,
               cluster_type: ClusterTypes.TENDBSINGLE,
+              immute_domain: value,
             },
           ],
-          bk_biz_id: currentBizId,
         }).then((data) => {
           if (data.length > 0) {
             if (!isSkipInputFinish) {
@@ -100,9 +99,9 @@
           }
           return false;
         }),
-      message: '目标集群不存在',
     },
     {
+      message: '目标集群重复',
       validator: () => {
         const currentClusterSelectMap = clusterIdMemo[instanceKey];
         const otherClusterMemoMap = { ...clusterIdMemo };
@@ -124,7 +123,6 @@
         }
         return true;
       },
-      message: '目标集群重复',
     },
   ];
 
@@ -132,7 +130,7 @@
   watch(
     () => props.modelValue,
     () => {
-      const { id = 0, domain = '' } = props.modelValue || {};
+      const { domain = '', id = 0 } = props.modelValue || {};
       localClusterId.value = id;
       localDomain.value = domain;
     },

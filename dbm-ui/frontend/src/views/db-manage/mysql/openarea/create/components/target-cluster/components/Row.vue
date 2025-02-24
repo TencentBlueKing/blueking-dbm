@@ -51,10 +51,10 @@
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
-    rowKey: random(),
-    clusterData: data.clusterData,
-    vars: data.vars ?? {},
     authorizeIps: data.authorizeIps,
+    clusterData: data.clusterData,
+    rowKey: random(),
+    vars: data.vars ?? {},
   });
 </script>
 <script setup lang="ts">
@@ -67,15 +67,15 @@
   import ColumnVariable from './ColumnVariable.vue';
 
   export interface IData {
+    authorizeIps?: string[];
     clusterData?: {
-      id: number;
-      master_domain: string;
       bk_biz_id: number;
       bk_cloud_id: number;
       bk_cloud_name: string;
+      id: number;
+      master_domain: string;
     };
     vars: Record<string, string>;
-    authorizeIps?: string[];
   }
 
   export interface IDataRow extends IData {
@@ -85,8 +85,8 @@
   interface Props {
     data: IDataRow;
     removeable: boolean;
-    variableList: string[];
     showIpCloumn: boolean;
+    variableList: string[];
   }
 
   interface Emits {
@@ -145,11 +145,11 @@
       emits(
         'clone',
         createRowData({
+          authorizeIps: props.showIpCloumn ? rowInfo[2].authorize_ips : [],
           clusterData: props.data.clusterData,
           vars: (rowInfo[1] as PromiseSettledResult<Record<string, string>>[])
             .map<Record<string, string>>((item) => (item.status === 'fulfilled' ? item.value : item.reason))
             .reduce<Record<string, string>>((result, item) => Object.assign(result, item), {}),
-          authorizeIps: props.showIpCloumn ? rowInfo[2].authorize_ips : [],
         }),
       );
     });
@@ -170,8 +170,8 @@
             }
           : {
               ...clusterData,
-              vars: variableData.reduce((result, item) => Object.assign(result, item), {} as Record<string, string>),
               authorize_ips: [],
+              vars: variableData.reduce((result, item) => Object.assign(result, item), {} as Record<string, string>),
             },
       );
     },

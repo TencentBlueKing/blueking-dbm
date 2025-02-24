@@ -61,10 +61,11 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('新实例不能为空'),
+      validator: (value: string) => Boolean(value),
     },
     {
+      message: t('新实例不存在'),
       validator: () =>
         checkMysqlInstances({
           bizId: currentBizId,
@@ -78,13 +79,13 @@
 
           return true;
         }),
-      message: t('新实例不存在'),
     },
     {
-      validator: () => !!props.source && props.source.bkCloudId === localInstanceData.bk_cloud_id,
       message: t('新实例和源实例的管控区域不一致'),
+      validator: () => !!props.source && props.source.bkCloudId === localInstanceData.bk_cloud_id,
     },
     {
+      message: t('新实例重复'),
       validator: () => {
         const currentClusterSelectMap = instanceAddreddMemo[instanceKey];
         const otherClusterMemoMap = { ...instanceAddreddMemo };
@@ -99,6 +100,7 @@
         );
 
         const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
+        // eslint-disable-next-line @typescript-eslint/prefer-for-of
         for (let i = 0; i < currentSelectClusterIdList.length; i++) {
           if (otherClusterIdMap[currentSelectClusterIdList[i]]) {
             return false;
@@ -106,7 +108,6 @@
         }
         return true;
       },
-      message: t('新实例重复'),
     },
   ];
 

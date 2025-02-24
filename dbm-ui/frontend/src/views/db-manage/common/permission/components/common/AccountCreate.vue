@@ -115,26 +115,24 @@
     accountType: AccountTypes;
   }
 
-  interface Emits {
-    (e: 'success'): void;
-  }
+  type Emits = (e: 'success') => void;
 
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
   const isShow = defineModel<boolean>({
-    required: true,
     default: false,
+    required: true,
   });
 
   const { t } = useI18n();
 
   const dbTypeMap = {
-    [AccountTypes.MYSQL]: DBTypes.MYSQL,
-    [AccountTypes.TENDBCLUSTER]: DBTypes.TENDBCLUSTER,
-    [AccountTypes.SQLSERVER]: DBTypes.SQLSERVER,
     [AccountTypes.MONGODB]: DBTypes.MONGODB,
+    [AccountTypes.MYSQL]: DBTypes.MYSQL,
+    [AccountTypes.SQLSERVER]: DBTypes.SQLSERVER,
+    [AccountTypes.TENDBCLUSTER]: DBTypes.TENDBCLUSTER,
   };
 
   const state = reactive({
@@ -160,49 +158,49 @@
   });
 
   const rules = computed(() => ({
-    user: [
+    password: [
       {
+        message: t('密码不能为空'),
         trigger: 'blur',
-        message: t('账户名不能为空'),
         validator: (value: string) => !!value,
       },
       {
+        message: t('密码不满足要求'),
         trigger: 'blur',
+        validator: () => passwordRef.value!.validate(),
+      },
+    ],
+    user: [
+      {
+        message: t('账户名不能为空'),
+        trigger: 'blur',
+        validator: (value: string) => !!value,
+      },
+      {
         message: defaultUserPlaceholder,
+        trigger: 'blur',
         validator: (value: string) => /^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,31}$/g.test(value),
       },
       props.accountType === AccountTypes.MONGODB
         ? {
-            trigger: 'blur',
             message: userPlaceholder.value,
+            trigger: 'blur',
             validator: (value: string) => /^([a-zA-Z0-9_]+)\.([a-zA-Z0-9_]+)$/g.test(value),
           }
         : {},
       {
+        message: () => t('不允许使用特殊账号名称n', { n: validValue }),
         trigger: 'blur',
         validator: (value: string) => {
           const specialAccountMap = {
-            [AccountTypes.MYSQL]: MysqlConfig[AccountTypes.MYSQL].special_account,
-            [AccountTypes.TENDBCLUSTER]: MysqlConfig[AccountTypes.TENDBCLUSTER].special_account,
             [AccountTypes.MONGODB]: MongoConfig.special_account,
+            [AccountTypes.MYSQL]: MysqlConfig[AccountTypes.MYSQL].special_account,
             [AccountTypes.SQLSERVER]: SqlserverConfig.special_account,
+            [AccountTypes.TENDBCLUSTER]: MysqlConfig[AccountTypes.TENDBCLUSTER].special_account,
           };
           validValue = props.accountType === AccountTypes.MONGODB ? value.split('.')[1] : value;
           return !specialAccountMap[props.accountType].includes(validValue);
         },
-        message: () => t('不允许使用特殊账号名称n', { n: validValue }),
-      },
-    ],
-    password: [
-      {
-        trigger: 'blur',
-        message: t('密码不能为空'),
-        validator: (value: string) => !!value,
-      },
-      {
-        trigger: 'blur',
-        message: t('密码不满足要求'),
-        validator: () => passwordRef.value!.validate(),
       },
     ],
   }));
@@ -227,15 +225,15 @@
 
     const password = passwordRef.value!.getEncyptPassword();
     const apiMap = {
-      [AccountTypes.MYSQL]: createMysqlAccount,
-      [AccountTypes.TENDBCLUSTER]: createMysqlAccount,
       [AccountTypes.MONGODB]: createMongodbAccount,
+      [AccountTypes.MYSQL]: createMysqlAccount,
       [AccountTypes.SQLSERVER]: createSqlserverAccount,
+      [AccountTypes.TENDBCLUSTER]: createMysqlAccount,
     };
     apiMap[props.accountType]({
       ...state.formdata,
-      password,
       account_type: props.accountType,
+      password,
     })
       .then(() => {
         Message({

@@ -125,14 +125,14 @@
     const infos = await receiverDataRef.value.getValue();
     const params = {
       bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.TBINLOGDUMPER_INSTALL,
-      remark: '',
       details: {
-        name: props.data.name,
         add_type: syncType.value,
-        repl_tables: props.data.repl_tables,
         infos,
+        name: props.data.name,
+        repl_tables: props.data.repl_tables,
       },
+      remark: '',
+      ticket_type: TicketTypes.TBINLOGDUMPER_INSTALL,
     };
     isSubmitting.value = true;
     try {

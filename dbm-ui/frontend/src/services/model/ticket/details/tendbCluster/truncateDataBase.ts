@@ -9,10 +9,10 @@ export interface TruncateDataBase extends DetailBase {
   infos: {
     cluster_id: number;
     db_patterns: [];
+    force: boolean;
     ignore_dbs: [];
     ignore_tables: [];
     table_patterns: [];
-    force: boolean;
     truncate_data_type: string;
   }[];
 }

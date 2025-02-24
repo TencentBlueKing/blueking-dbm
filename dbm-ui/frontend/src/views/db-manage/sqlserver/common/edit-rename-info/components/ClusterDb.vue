@@ -29,20 +29,18 @@
 
   interface Props {
     clusterId: number;
-    dbName: string[];
     dbIgnoreName: string[];
+    dbName: string[];
   }
 
-  interface Emits {
-    (
-      e: 'change',
-      value: {
-        dbName: Props['dbName'];
-        dbIgnoreName: Props['dbIgnoreName'];
-        renameInfoList: IValue[];
-      },
-    ): void;
-  }
+  type Emits = (
+    e: 'change',
+    value: {
+      dbIgnoreName: Props['dbIgnoreName'];
+      dbName: Props['dbName'];
+      renameInfoList: IValue[];
+    },
+  ) => void;
 
   interface Expose {
     refresh(): void;
@@ -72,12 +70,12 @@
     onSuccess(data) {
       const renameInfoList = data.map((item) => ({
         db_name: item,
-        target_db_name: item,
         rename_db_name: '',
+        target_db_name: item,
       }));
       emits('change', {
-        dbName: localDBName.value,
         dbIgnoreName: localDbIgnoreName.value,
+        dbName: localDBName.value,
         renameInfoList,
       });
     },
@@ -89,8 +87,8 @@
     }
     if (!localDbIgnoreName.value) {
       emits('change', {
-        dbName: localDBName.value,
         dbIgnoreName: localDbIgnoreName.value,
+        dbName: localDBName.value,
         renameInfoList: [],
       });
       return;

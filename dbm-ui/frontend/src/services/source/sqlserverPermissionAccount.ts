@@ -24,13 +24,13 @@ const getRootPath = () => `/apis/sqlserver/bizs/${window.PROJECT_CONFIG.BIZ_ID}/
  * 添加账号规则
  */
 export function addAccountRule(params: {
-  account_id: number;
   access_db: string;
+  account_id: number;
+  account_type: AccountTypesValues;
   privilege: {
     sqlserver_dml?: string[];
     sqlserver_owner?: string[];
   };
-  account_type: AccountTypesValues;
 }) {
   return http.post<null>(`${getRootPath()}/add_account_rule/`, params);
 }
@@ -38,7 +38,7 @@ export function addAccountRule(params: {
 /**
  * 创建账号
  */
-export function createAccount(params: { user: string; password: string; account_type?: AccountTypesValues }) {
+export function createAccount(params: { account_type?: AccountTypesValues; password: string; user: string }) {
   return http.post<null>(`${getRootPath()}/create_account/`, params);
 }
 
@@ -53,12 +53,12 @@ export function deleteAccount(params: { account_id: number; account_type?: Accou
  * 查询账号规则列表
  */
 export function getPermissionRules(params: {
+  access_dbs?: string;
+  account_type?: AccountTypesValues;
   limit?: number;
   offset?: number;
-  user?: string;
-  access_dbs?: string;
   privilege?: string;
-  account_type?: AccountTypesValues;
+  user?: string;
 }) {
   return http
     .get<ListBase<SqlserverPermissionAccountModel[]>>(`${getRootPath()}/list_account_rules/`, params)
@@ -71,7 +71,7 @@ export function getPermissionRules(params: {
 /**
  * 查询账号规则
  */
-export function queryAccountRules(params: { user: string; access_dbs: string[]; account_type?: AccountTypesValues }) {
+export function queryAccountRules(params: { access_dbs: string[]; account_type?: AccountTypesValues; user: string }) {
   return http
     .post<ListBase<SqlserverPermissionAccountModel[]>>(`${getRootPath()}/query_account_rules/`, params)
     .then((res) => ({

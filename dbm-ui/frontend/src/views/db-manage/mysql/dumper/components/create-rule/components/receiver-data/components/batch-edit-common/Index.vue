@@ -38,15 +38,13 @@
 
   interface Props {
     config: {
-      type: 'text' | 'number' | 'password' | 'textarea' | string;
-      title: string;
       placeholder: string;
+      title: string;
+      type: 'text' | 'number' | 'password' | 'textarea' | string;
     };
   }
 
-  interface Emits {
-    (e: 'data-change', value: string[], isBatch: boolean): void;
-  }
+  type Emits = (e: 'data-change', value: string[], isBatch: boolean) => void;
 
   const props = defineProps<Props>();
 
@@ -58,7 +56,7 @@
   const multipleInputRef = ref();
   const localValue = ref('');
 
-  const isShowInput = computed(() => ['text', 'number', 'password'].includes(props.config.type));
+  const isShowInput = computed(() => ['number', 'password', 'text'].includes(props.config.type));
 
   const handleConfirm = () => {
     if (props.config.type === 'textarea') {

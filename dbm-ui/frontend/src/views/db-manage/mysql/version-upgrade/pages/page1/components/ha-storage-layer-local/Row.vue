@@ -51,25 +51,25 @@
   import RenderTargetVersion from './RenderTargetVersion.vue';
 
   export interface IDataRow {
-    rowKey: string;
-    isLoading: boolean;
     clusterData?: {
-      domain: string;
       clusterId: number;
       clusterType: string;
       currentVersion: string;
-      packageVersion: string;
-      moduleName: string;
+      domain: string;
       moduleId: number;
+      moduleName: string;
+      packageVersion: string;
     };
+    isLoading: boolean;
+    rowKey: string;
     targetPackage?: number;
   }
 
   // 创建表格数据
   export const createRowData = (clusterData?: NonNullable<IDataRow['clusterData']>): IDataRow => ({
-    rowKey: random(),
-    isLoading: false,
     clusterData,
+    isLoading: false,
+    rowKey: random(),
   });
 
   interface Props {
@@ -100,8 +100,8 @@
   const clusterInfo = computed(() => {
     if (props.data.clusterData) {
       return {
-        id: props.data.clusterData.clusterId,
         domain: props.data.clusterData.domain,
+        id: props.data.clusterData.clusterId,
       };
     }
     return undefined;
@@ -132,11 +132,11 @@
         const [clusterData, targetVersionData] = data;
         const clusterInfo = props.data.clusterData!;
         Object.assign(targetVersionData.display_info, {
-          cluster_type: clusterInfo.clusterType,
-          current_version: clusterInfo.currentVersion,
-          current_package: clusterInfo.packageVersion,
           charset: localCharset.value,
+          cluster_type: clusterInfo.clusterType,
           current_module_name: clusterInfo.moduleName,
+          current_package: clusterInfo.packageVersion,
+          current_version: clusterInfo.currentVersion,
         });
         return {
           ...clusterData,

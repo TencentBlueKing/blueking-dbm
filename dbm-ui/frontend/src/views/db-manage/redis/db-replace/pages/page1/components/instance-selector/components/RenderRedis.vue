@@ -84,28 +84,26 @@
   import RenderRedisHost from './RenderRedisHost.vue';
 
   interface TopoTreeData {
+    children?: TopoTreeData[];
+    count: number;
     id: number;
     name: string;
     obj: 'biz' | 'cluster';
-    count: number;
-    children?: TopoTreeData[];
   }
 
-  interface Emits {
-    (e: 'change', value: InstanceSelectorValues): void;
-  }
+  type Emits = (e: 'change', value: InstanceSelectorValues) => void;
 
   interface Props {
-    lastValues: InstanceSelectorValues;
-    role?: string;
     activeTab?: PanelTypes;
     isRadioMode?: boolean;
+    lastValues: InstanceSelectorValues;
+    role?: string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    role: '',
     activeTab: 'idleHosts',
     isRadioMode: false,
+    role: '',
   });
   const emits = defineEmits<Emits>();
 
@@ -138,8 +136,8 @@
   const fetchClusterTopo = () => {
     isTreeDataLoading.value = true;
     getRedisList({
-      offset: 0,
       limit: -1,
+      offset: 0,
     })
       .then((data) => {
         let total = 0;
@@ -150,20 +148,20 @@
           return [
             ...acc,
             {
+              count: cluster.count,
               id: cluster.id,
               name: cluster.master_domain,
               obj: 'cluster',
-              count: cluster.count,
             },
           ];
         }, []);
         treeData.value = [
           {
-            name: currentBizInfo?.display_name || '--',
-            id: currentBizId,
-            obj: 'biz',
-            count: total,
             children,
+            count: total,
+            id: currentBizId,
+            name: currentBizInfo?.display_name || '--',
+            obj: 'biz',
           },
         ];
         fetchMasterSlavePairs(clusterIds);
@@ -194,9 +192,9 @@
       __is_open: isOpen,
       __is_selected: isSelected,
     }: {
+      __index: number;
       __is_open: boolean;
       __is_selected: boolean;
-      __index: number;
     },
   ) => {
     const rawNode = treeRef.value.getData().data.find((item: { id: number }) => item.id === node.id);

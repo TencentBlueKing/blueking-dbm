@@ -25,9 +25,9 @@ export function checkClusterDatabase(params: {
 }) {
   return http.post<
     {
+      check_info: Record<string, boolean>;
       cluster_id: number;
       db_names: string[];
-      check_info: Record<string, boolean>;
     }[]
   >(`${getRootPath()}/check_cluster_database/`, params);
 }

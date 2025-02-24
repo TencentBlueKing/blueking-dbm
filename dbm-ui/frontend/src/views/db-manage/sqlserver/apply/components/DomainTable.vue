@@ -18,9 +18,9 @@
   import BatchEdit from './BatchEdit.vue';
 
   interface Props {
-    moduleAliasName: string,
-    dbAppAbbr: string,
-    isSqlserverSingle: boolean,
+    dbAppAbbr: string;
+    isSqlserverSingle: boolean;
+    moduleAliasName: string;
   }
 
   const props = defineProps<Props>();
@@ -36,22 +36,19 @@
    * 没有 moduleAliasName 和 appName 则不展示 table 数据
    */
   const tableData = computed(() => {
-    const {
-      moduleAliasName,
-      dbAppAbbr,
-    } = props;
+    const { dbAppAbbr, moduleAliasName } = props;
     if (moduleAliasName && dbAppAbbr) {
       return domains.value;
     }
     return [];
   });
 
-  const domainKeyList = computed(() => tableData.value.map(item => item.key));
+  const domainKeyList = computed(() => tableData.value.map((item) => item.key));
 
   const domainRule = [
     {
-      required: true,
       message: t('必填项'),
+      required: true,
       trigger: 'change',
     },
     {
@@ -67,83 +64,71 @@
     {
       message: t('主访问入口重复'),
       trigger: 'blur',
-      validator: (val: string) => domainKeyList.value.filter(item => item === val).length < 2,
+      validator: (val: string) => domainKeyList.value.filter((item) => item === val).length < 2,
     },
   ];
 
   const columns = computed(() => {
     const columns: Column[] = [
       {
-        type: 'index',
         label: t('序号'),
+        type: 'index',
         width: 60,
       },
       {
+        field: 'mainDomain',
         label: () => (
           <span>
-            {
-              props.isSqlserverSingle ? t('域名') : t('主域名')
-            }
-            {
-              tableData.value.length !== 0 && (
-                <span v-bk-tooltips={t('快捷编辑_可通过换行分隔_快速编辑多个域名')}>
-                  <BatchEdit
-                    moduleAliasName={props.moduleAliasName}
-                    appName={props.dbAppAbbr}
-                    onChange={handleBatchEditDomains} />
-                </span>
-              )
-            }
+            {props.isSqlserverSingle ? t('域名') : t('主域名')}
+            {tableData.value.length !== 0 && (
+              <span v-bk-tooltips={t('快捷编辑_可通过换行分隔_快速编辑多个域名')}>
+                <BatchEdit
+                  appName={props.dbAppAbbr}
+                  moduleAliasName={props.moduleAliasName}
+                  onChange={handleBatchEditDomains}
+                />
+              </span>
+            )}
           </span>
         ),
-        field: 'mainDomain',
         minWidth: 500,
         render: ({ index }: { index: number }) => (
-          <div class="domain-address">
-            <span>
-              {props.moduleAliasName}db.
-            </span>
+          <div class='domain-address'>
+            <span>{props.moduleAliasName}db.</span>
             <bk-form-item
-              errorDisplayType="tooltips"
+              key={index}
+              errorDisplayType='tooltips'
+              label-width={0}
               property={`details.domains.${index}.key`}
-              key={index }
-              rules={domainRule}
-              label-width={0}>
-                <bk-input
-                  style="width:260px"
-                  model-value={domains.value[index]?.key}
-                  placeholder={t('请输入')}
-                  v-bk-tooltips={{
-                    trigger: 'click',
-                    placement: 'top',
-                    theme: 'light',
-                    content: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
-                  }}
-                  onChange={(value: string) => handleChangeDomain(value, index)}
-                />
+              rules={domainRule}>
+              <bk-input
+                v-bk-tooltips={{
+                  content: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
+                  placement: 'top',
+                  theme: 'light',
+                  trigger: 'click',
+                }}
+                model-value={domains.value[index]?.key}
+                placeholder={t('请输入')}
+                style='width:260px'
+                onChange={(value: string) => handleChangeDomain(value, index)}
+              />
             </bk-form-item>
-            <span>
-              {`.${props.dbAppAbbr}.db`}
-            </span>
+            <span>{`.${props.dbAppAbbr}.db`}</span>
           </div>
         ),
-      }];
+      },
+    ];
 
     if (!props.isSqlserverSingle) {
       columns.push({
-        label: t('从域名'),
         field: 'slaveDomain',
+        label: t('从域名'),
         render: ({ index }: { index: number }) => (
-          <div class="domain-address">
-            <span>
-              {props.moduleAliasName}dr.
-            </span>
-            <span >
-              {domains.value[index]?.key}
-            </span>
-            <span>
-              {`.${props.dbAppAbbr}.db`}
-            </span>
+          <div class='domain-address'>
+            <span>{props.moduleAliasName}dr.</span>
+            <span>{domains.value[index]?.key}</span>
+            <span>{`.${props.dbAppAbbr}.db`}</span>
           </div>
         ),
       });
@@ -156,7 +141,7 @@
    * 批量编辑域名
    */
   const handleBatchEditDomains = (newDomainList: string[]) => {
-    domains.value = newDomainList.map(newDomainItem => ({
+    domains.value = newDomainList.map((newDomainItem) => ({
       key: newDomainItem,
     }));
   };

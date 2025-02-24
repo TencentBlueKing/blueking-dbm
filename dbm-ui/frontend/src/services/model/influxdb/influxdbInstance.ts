@@ -18,20 +18,20 @@ import { isRecentDays, utcDisplayTime } from '@utils';
 import { t } from '@locales/index';
 
 export default class InfluxDBInstance {
+  static INFLUXDB_ENABLE = 'INFLUXDB_ENABLE';
   static INFLUXDB_REBOOT = 'INFLUXDB_REBOOT';
   static INFLUXDB_REPLACE = 'INFLUXDB_REPLACE';
-  static INFLUXDB_ENABLE = 'INFLUXDB_ENABLE';
 
   static operationIconMap = {
+    [InfluxDBInstance.INFLUXDB_ENABLE]: t('启用中'),
     [InfluxDBInstance.INFLUXDB_REBOOT]: t('重启中'),
     [InfluxDBInstance.INFLUXDB_REPLACE]: t('替换中'),
-    [InfluxDBInstance.INFLUXDB_ENABLE]: t('启用中'),
   };
 
   static operationTextMap = {
+    [InfluxDBInstance.INFLUXDB_ENABLE]: t('启用任务进行中'),
     [InfluxDBInstance.INFLUXDB_REBOOT]: t('重启任务进行中'),
     [InfluxDBInstance.INFLUXDB_REPLACE]: t('替换任务进行中'),
-    [InfluxDBInstance.INFLUXDB_ENABLE]: t('启用任务进行中'),
   };
 
   bk_cloud_id: number;
@@ -88,6 +88,10 @@ export default class InfluxDBInstance {
     this.version = payload.version;
   }
 
+  get createAtDisplay() {
+    return utcDisplayTime(this.create_at);
+  }
+
   get ip() {
     return this.instance_address.replace(/:.*/, '');
   }
@@ -96,43 +100,20 @@ export default class InfluxDBInstance {
     return isRecentDays(this.create_at, 24 * 3);
   }
 
-  get runningOperation() {
-    const operateTicketTypes = Object.keys(InfluxDBInstance.operationTextMap);
-    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+  get isOffline() {
+    return this.phase === 'offline';
   }
 
-  // 操作中的状态
-  get operationRunningStatus() {
-    if (this.operations.length < 1) {
-      return '';
-    }
-    const operation = this.runningOperation;
-    if (!operation) {
-      return '';
-    }
-    return operation.ticket_type;
+  get isOnline() {
+    return this.phase === 'online';
   }
 
-  // 操作中的状态描述文本
-  get operationStatusText() {
-    return InfluxDBInstance.operationTextMap[this.operationRunningStatus];
+  get isRebooting() {
+    return Boolean(this.operations.find((item) => item.ticket_type === InfluxDBInstance.INFLUXDB_REBOOT));
   }
 
-  // 操作中的状态 icon
-  get operationStatusIcon() {
-    return InfluxDBInstance.operationIconMap[this.operationRunningStatus];
-  }
-
-  // 操作中的单据 ID
-  get operationTicketId() {
-    if (this.operations.length < 1) {
-      return 0;
-    }
-    const operation = this.runningOperation;
-    if (!operation) {
-      return 0;
-    }
-    return operation.ticket_id;
+  get isStarting() {
+    return Boolean(this.operations.find((item) => item.ticket_type === InfluxDBInstance.INFLUXDB_ENABLE));
   }
 
   get operationDisabled() {
@@ -151,31 +132,50 @@ export default class InfluxDBInstance {
     return false;
   }
 
-  get isOnline() {
-    return this.phase === 'online';
+  // 操作中的状态
+  get operationRunningStatus() {
+    if (this.operations.length < 1) {
+      return '';
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return '';
+    }
+    return operation.ticket_type;
   }
 
-  get isOffline() {
-    return this.phase === 'offline';
+  // 操作中的状态 icon
+  get operationStatusIcon() {
+    return InfluxDBInstance.operationIconMap[this.operationRunningStatus];
   }
 
-  get isRebooting() {
-    return Boolean(this.operations.find((item) => item.ticket_type === InfluxDBInstance.INFLUXDB_REBOOT));
-  }
-
-  get isStarting() {
-    return Boolean(this.operations.find((item) => item.ticket_type === InfluxDBInstance.INFLUXDB_ENABLE));
-  }
-
-  get createAtDisplay() {
-    return utcDisplayTime(this.create_at);
+  // 操作中的状态描述文本
+  get operationStatusText() {
+    return InfluxDBInstance.operationTextMap[this.operationRunningStatus];
   }
 
   get operationTagTips() {
     return this.operations.map((item) => ({
       icon: InfluxDBInstance.operationIconMap[item.ticket_type],
-      tip: InfluxDBInstance.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,
+      tip: InfluxDBInstance.operationTextMap[item.ticket_type],
     }));
+  }
+
+  // 操作中的单据 ID
+  get operationTicketId() {
+    if (this.operations.length < 1) {
+      return 0;
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return 0;
+    }
+    return operation.ticket_id;
+  }
+
+  get runningOperation() {
+    const operateTicketTypes = Object.keys(InfluxDBInstance.operationTextMap);
+    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
   }
 }

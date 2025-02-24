@@ -126,8 +126,8 @@
   const renderStatusCom = computed(() => {
     const statusComMap = {
       failed: StatusFailed,
-      successed: StatusSuccess,
       pending: StatusPending,
+      successed: StatusSuccess,
     };
 
     return statusComMap[flowStatus.value as keyof typeof statusComMap];

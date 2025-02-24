@@ -59,37 +59,35 @@
   type IKey = string | number | string[];
 
   export interface IListItem {
-    value: IKey;
-    label: string;
     disabled?: boolean;
+    label: string;
+    value: IKey;
   }
 </script>
 <script setup lang="ts">
   import useValidtor, { type Rules } from '@views/db-manage/redis/common/edit/hooks/useValidtor';
 
   interface Props {
-    list: Array<IListItem>;
-    placeholder?: string;
-    rules?: Rules;
     disabled?: boolean;
+    list: Array<IListItem>;
     multiple?: boolean;
+    placeholder?: string;
     readonly?: boolean;
+    rules?: Rules;
   }
-  interface Emits {
-    (e: 'change', value: IKey): void;
-  }
+  type Emits = (e: 'change', value: IKey) => void;
 
   interface Exposes {
     getValue: () => Promise<IKey>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    placeholder: '请输入',
-    textarea: false,
-    rules: () => [],
     disabled: false,
     multiple: false,
+    placeholder: '请输入',
     readonly: false,
+    rules: () => [],
+    textarea: false,
   });
   const emits = defineEmits<Emits>();
 

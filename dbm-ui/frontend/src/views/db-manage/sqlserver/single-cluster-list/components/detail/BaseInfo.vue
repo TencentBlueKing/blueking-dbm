@@ -26,51 +26,51 @@
   const columns: InfoColumn[][] = [
     [
       {
-        label: t('集群名称'),
         key: 'cluster_name',
+        label: t('集群名称'),
       },
       {
-        label: t('主访问入口'),
         key: 'master_domain',
+        label: t('主访问入口'),
       },
       {
-        label: t('从访问入口'),
         key: 'slave_domain',
+        label: t('从访问入口'),
       },
       {
-        label: t('所属DB模块'),
         key: 'db_module_name',
+        label: t('所属DB模块'),
       },
       {
-        label: t('管控区域'),
         key: 'bk_cloud_name',
+        label: t('管控区域'),
       },
     ],
     [
       {
-        label: 'description',
         key: 'description',
+        label: 'description',
       },
       {
-        label: 'node_id',
         key: 'node_id',
+        label: 'node_id',
       },
       {
-        label: 'Proxy',
         key: 'proxies',
+        label: 'Proxy',
       },
       {
-        label: t('创建人'),
         key: 'creator',
+        label: t('创建人'),
       },
       {
-        label: t('创建时间'),
         key: 'create_at',
+        label: t('创建时间'),
       },
     ],
   ];
 
-  const { run: fetchInstDetails, data } = useRequest(getSingleClusterDetail, { manual: true });
+  const { data, run: fetchInstDetails } = useRequest(getSingleClusterDetail, { manual: true });
 
   watch(
     () => props.singleClusterData,

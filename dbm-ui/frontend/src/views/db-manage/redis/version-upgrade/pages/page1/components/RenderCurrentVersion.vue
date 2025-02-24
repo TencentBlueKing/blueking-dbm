@@ -47,9 +47,7 @@
     data: IDataRow;
   }
 
-  interface Emits {
-    (e: 'list-change', value: string[]): void;
-  }
+  type Emits = (e: 'list-change', value: string[]) => void;
 
   const props = defineProps<Props>();
 
@@ -74,9 +72,9 @@
     () => {
       if (props.data.clusterId) {
         fetchCurrentClusterVersions({
+          cluster_id: props.data.clusterId,
           node_type: props.data.nodeType,
           type: 'online',
-          cluster_id: props.data.clusterId,
         });
       }
     },

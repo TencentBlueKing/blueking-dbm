@@ -23,8 +23,8 @@ import { t } from '@locales/index';
 
 export const useShowBackup = () => {
   const state = reactive({
-    isShow: false,
     data: [] as RedisModel[],
+    isShow: false,
   });
 
   const handleShow = (data: RedisModel[]) => {
@@ -43,7 +43,7 @@ export const useShowBackup = () => {
   };
 
   return {
-    state,
     handleShow,
+    state,
   };
 };

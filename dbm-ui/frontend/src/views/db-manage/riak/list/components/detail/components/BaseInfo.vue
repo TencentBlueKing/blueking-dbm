@@ -36,39 +36,39 @@
   const columns: InfoColumn[][] = [
     [
       {
-        label: t('集群名称'),
         key: 'cluster_name',
+        label: t('集群名称'),
       },
       {
-        label: t('访问入口'),
         key: 'domain',
+        label: t('访问入口'),
       },
       {
-        label: t('地域'),
         key: 'region',
+        label: t('地域'),
       },
       {
-        label: t('管控区域'),
         key: 'bk_cloud_name',
+        label: t('管控区域'),
         render: () => (props.data.bk_cloud_name ? `${props.data.bk_cloud_name}[${props.data.bk_cloud_id}]` : '--'),
       },
     ],
     [
       {
-        label: t('创建人'),
         key: 'creator',
+        label: t('创建人'),
       },
       {
-        label: t('创建时间'),
         key: 'create_at',
+        label: t('创建时间'),
       },
       {
-        label: t('容灾要求'),
         key: 'disasterToleranceLevelName',
+        label: t('容灾要求'),
       },
       {
-        label: t('规格'),
         key: 'spec_name',
+        label: t('规格'),
         render: () => props.data.cluster_spec.spec_name || '--',
       },
     ],

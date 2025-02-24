@@ -1,37 +1,37 @@
 import type { DetailBase } from '../common';
 
 export interface DisableNodes extends DetailBase {
+  dumper_instance_ids: number[];
   dumpers: {
     [key: string]: {
-      id: number;
-      ip: string;
-      phase: string;
-      creator: string;
-      updater: string;
-      version: string;
       add_type: string;
       bk_biz_id: number;
-      dumper_id: string;
-      proc_type: string;
-      cluster_id: number;
       bk_cloud_id: number;
+      cluster_id: number;
+      creator: string;
+      dumper_id: string;
+      id: number;
+      ip: string;
       listen_port: number;
-      target_port: number;
       need_transfer: boolean;
+      phase: string;
+      proc_type: string;
       protocol_type: string;
       source_cluster: {
-        id: number;
-        name: string;
-        region: string;
-        master_ip: string;
         bk_cloud_id: number;
-        master_port: number;
         cluster_type: string;
+        id: number;
         immute_domain: string;
         major_version: string;
+        master_ip: string;
+        master_port: number;
+        name: string;
+        region: string;
       };
       target_address: string;
+      target_port: number;
+      updater: string;
+      version: string;
     };
   };
-  dumper_instance_ids: number[];
 }

@@ -62,13 +62,13 @@
   import RenderType from './RenderType.vue';
 
   interface Props {
-    index: number;
+    clusterType: string;
     counts: number;
     data: {
       cluster_name: string;
       id: number;
     };
-    clusterType: string;
+    index: number;
     isBackupRecordType: boolean;
   }
 

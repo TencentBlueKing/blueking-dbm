@@ -18,13 +18,13 @@ import './style.css';
 export default defineComponent({
   name: 'DbIcon',
   props: {
-    type: {
-      type: String,
-      required: true,
-    },
     svg: {
-      type: Boolean,
       default: false,
+      type: Boolean,
+    },
+    type: {
+      required: true,
+      type: String,
     },
   },
 
@@ -45,8 +45,8 @@ export default defineComponent({
       );
     }
     const classes = {
-      'bk-dbm': true,
       [`db-icon-${this.type}`]: true,
+      'bk-dbm': true,
     };
     return h('i', {
       class: classes,

@@ -17,13 +17,13 @@ import { AccountTypes, ClusterTypes } from '@common/const';
 
 export default {
   [AccountTypes.MYSQL]: {
-    hostSelectorTypes: ['TendbSingleHost', 'TendbHaHost'],
     clusterSelectorTypes: [ClusterTypes.TENDBHA, 'tendbhaSlave', ClusterTypes.TENDBSINGLE],
+    hostSelectorTypes: ['TendbSingleHost', 'TendbHaHost'],
     ruleApi: getAccountUsers,
   },
   [AccountTypes.TENDBCLUSTER]: {
-    hostSelectorTypes: ['TendbClusterHost'],
     clusterSelectorTypes: [ClusterTypes.TENDBCLUSTER],
+    hostSelectorTypes: ['TendbClusterHost'],
     ruleApi: getAccountUsers,
   },
 };

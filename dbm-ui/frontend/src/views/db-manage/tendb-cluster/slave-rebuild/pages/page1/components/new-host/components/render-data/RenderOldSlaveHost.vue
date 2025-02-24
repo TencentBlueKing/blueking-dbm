@@ -39,9 +39,7 @@
     ip?: string;
   }
 
-  interface Emits {
-    (e: 'inputFinish', value: string): void;
-  }
+  type Emits = (e: 'inputFinish', value: string) => void;
 
   interface Exposes {
     validate: () => Promise<string>;
@@ -62,18 +60,19 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(_.trim(value)),
       message: t('目标从库主机不能为空'),
+      validator: (value: string) => Boolean(_.trim(value)),
     },
     {
-      validator: (value: string) => ipv4.test(value),
       message: t('目标从库主机格式不正确'),
+      validator: (value: string) => ipv4.test(value),
     },
     {
+      message: t('目标从库主机不存在'),
       validator: (value: string) =>
         getTendbclusterMachineList({
-          ip: value,
           instance_role: 'remote_slave',
+          ip: value,
         }).then((data) => {
           const spiderMachineList = data.results;
           if (spiderMachineList.length < 1) {
@@ -81,9 +80,9 @@
           }
           return true;
         }),
-      message: t('目标从库主机不存在'),
     },
     {
+      message: t('目标主机重复'),
       validator: () => {
         const currentClusterSelectMap = hostsMemo[instanceKey];
         const otherClusterMemoMap = { ...hostsMemo };
@@ -98,6 +97,7 @@
         );
 
         const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
+        // eslint-disable-next-line @typescript-eslint/prefer-for-of
         for (let i = 0; i < currentSelectClusterIdList.length; i++) {
           if (otherClusterIdMap[currentSelectClusterIdList[i]]) {
             return false;
@@ -105,7 +105,6 @@
         }
         return true;
       },
-      message: t('目标主机重复'),
     },
   ];
 

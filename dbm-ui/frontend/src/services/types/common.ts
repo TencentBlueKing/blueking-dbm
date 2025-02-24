@@ -20,8 +20,8 @@ export interface BaseResponse<T> {
 }
 
 export enum OnlineSwitchType {
-  USER_CONFIRM = 'user_confirm',
   NO_CONFIRM = 'no_confirm',
+  USER_CONFIRM = 'user_confirm',
 }
 
 export enum ExecuteModes {

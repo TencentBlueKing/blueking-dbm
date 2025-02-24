@@ -36,47 +36,47 @@
   const columns: InfoColumn[][] = [
     [
       {
-        label: t('集群名称'),
         key: 'cluster_name',
+        label: t('集群名称'),
       },
       {
-        label: t('集群别名'),
         key: 'cluster_alias',
+        label: t('集群别名'),
       },
       {
-        label: t('域名'),
         key: 'master_domain',
+        label: t('域名'),
       },
       {
-        label: t('容灾要求'),
         key: 'disasterToleranceLevelName',
+        label: t('容灾要求'),
       },
       {
-        label: t('规格'),
         key: 'spec_name',
+        label: t('规格'),
         render: () => props.data.cluster_spec.spec_name || '--',
       },
     ],
     [
       {
-        label: t('架构版本'),
         key: 'cluster_type_name',
+        label: t('架构版本'),
       },
       {
-        label: t('数据库版本'),
         key: 'major_version',
+        label: t('数据库版本'),
       },
       {
-        label: t('地域'),
         key: 'region',
+        label: t('地域'),
       },
       {
-        label: t('创建人'),
         key: 'creator',
+        label: t('创建人'),
       },
       {
-        label: t('创建时间'),
         key: 'create_at',
+        label: t('创建时间'),
       },
     ],
   ];

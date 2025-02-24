@@ -75,8 +75,8 @@
     document.body.appendChild(script);
 
     Cookies.set('blueking_language', locale, {
-      expires: 3600,
       domain: BK_DOMAIN,
+      expires: 3600,
     });
     I18n.global.locale.value = locale as any;
     document.querySelector('html')?.setAttribute('lang', locale);

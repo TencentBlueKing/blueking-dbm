@@ -113,7 +113,6 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.MYSQL_HA_TRUNCATE_DATA,
     onSuccess(cloneData) {
       const { isSafeStatus, tableDataList } = cloneData;
       tableData.value = tableDataList;
@@ -121,17 +120,18 @@
       remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
+    type: TicketTypes.MYSQL_HA_TRUNCATE_DATA,
   });
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA,
     onSuccess(cloneData) {
       const { isSafeStatus, tableDataList } = cloneData;
       tableData.value = tableDataList;
       isSafe.value = isSafeStatus;
       window.changeConfirm = true;
     },
+    type: TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA,
   });
 
   const rowRefs = ref();
@@ -173,10 +173,10 @@
   async function handleBatchInput(list: Array<InputItem>) {
     const domains = list.map((item) => item.cluster);
     const clusterInfos = await queryClusters({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       cluster_filters: domains.map((domain) => ({
         immute_domain: domain,
       })),
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
     });
     const clusterInfoMap = clusterInfos.reduce<Record<string, TendbhaModel>>(
       (results, item) =>
@@ -191,14 +191,14 @@
       return {
         ...createRowData(),
         clusterData: {
-          id: currentCluster.id,
           domain: cluster,
+          id: currentCluster.id,
           type: currentCluster.cluster_type,
         },
         dbPatterns: item.dbs,
-        tablePatterns: item.tables,
         ignoreDbs: item.ignoreDbs,
         ignoreTables: item.ignoreTables,
+        tablePatterns: item.tables,
       };
     });
     if (checkListEmpty(tableData.value)) {
@@ -221,12 +221,12 @@
     }
 
     const resultList = await queryClusters({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       cluster_filters: [
         {
           id: clusterId,
         },
       ],
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
     });
     if (resultList.length < 1) {
       return;
@@ -235,8 +235,8 @@
     const domain = item.master_domain;
     const row = createRowData({
       clusterData: {
-        id: item.id,
         domain,
+        id: item.id,
         type: item.cluster_type,
       },
     });
@@ -254,8 +254,8 @@
       if (!domainMemo[domain]) {
         const row = createRowData({
           clusterData: {
-            id: item.id,
             domain: item.master_domain,
+            id: item.id,
             type: item.cluster_type,
           },
         });
@@ -320,11 +320,7 @@
       .then((data) => {
         const clusterTypes = _.uniq(tableData.value.map((item) => item.clusterData?.type));
         return createTicket({
-          ticket_type:
-            clusterTypes[0] === ClusterTypes.TENDBHA
-              ? TicketTypes.MYSQL_HA_TRUNCATE_DATA
-              : TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA,
-          remark: remark.value,
+          bk_biz_id: currentBizId,
           details: {
             infos: data.map((item) =>
               Object.assign(item, {
@@ -332,7 +328,11 @@
               }),
             ),
           },
-          bk_biz_id: currentBizId,
+          remark: remark.value,
+          ticket_type:
+            clusterTypes[0] === ClusterTypes.TENDBHA
+              ? TicketTypes.MYSQL_HA_TRUNCATE_DATA
+              : TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA,
         }).then((data) => {
           window.changeConfirm = false;
           router.push({

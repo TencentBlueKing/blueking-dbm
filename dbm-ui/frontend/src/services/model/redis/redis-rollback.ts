@@ -13,55 +13,55 @@
 import { utcDisplayTime } from '@utils';
 
 export default class RedisRollback {
+  static DESTROYED = 2;
+  static DESTROYING = 1;
   // 0:未销毁 1:已销毁 2: 销毁中
   static NOT_DESTROYED = 0;
-  static DESTROYING = 1;
-  static DESTROYED = 2;
 
   app: string;
   bk_biz_id: number;
   bk_cloud_id: number;
-  creator: string;
   create_at: string;
+  creator: string;
+  destroyed_status: number;
   host_count: number;
   id: number;
-  destroyed_status: number;
-  prod_instance_range: string[];
-  prod_temp_instance_pairs: string[][];
-  prod_cluster_type: string;
+  isShowInstancesTip: boolean;
   prod_cluster: string;
   prod_cluster_id: number;
-  related_rollback_bill_id: number;
+  prod_cluster_type: string;
+  prod_instance_range: string[];
+  prod_temp_instance_pairs: string[][];
   recovery_time_point: string;
+  related_rollback_bill_id: number;
   specification: {
-    id: number;
+    count: number;
     cpu: {
       max: number;
       min: number;
     };
+    device_class: string[];
+    id: number;
     mem: {
       max: number;
       min: number;
     };
+    name: string;
     qps: {
       max: number;
       min: number;
     };
-    name: string;
-    count: number;
-    device_class: string[];
     storage_spec: {
+      mount_point: string;
       size: number;
       type: string;
-      mount_point: string;
     }[];
   };
-  temp_instance_range: string[];
-  temp_cluster_type: string;
   temp_cluster_proxy: string;
-  updater: string;
+  temp_cluster_type: string;
+  temp_instance_range: string[];
   update_at: string;
-  isShowInstancesTip: boolean;
+  updater: string;
 
   constructor(payload = {} as RedisRollback) {
     this.app = payload.app;
@@ -88,16 +88,16 @@ export default class RedisRollback {
     this.isShowInstancesTip = false;
   }
 
-  get isNotDestroyed() {
-    return this.destroyed_status === RedisRollback.NOT_DESTROYED;
-  }
-
   get isDestroyed() {
     return this.destroyed_status === RedisRollback.DESTROYED;
   }
 
   get isDestroying() {
     return this.destroyed_status === RedisRollback.DESTROYING;
+  }
+
+  get isNotDestroyed() {
+    return this.destroyed_status === RedisRollback.NOT_DESTROYED;
   }
 
   get recoveryTimePointDisplay() {

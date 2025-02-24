@@ -78,14 +78,14 @@
 
   const { t } = useI18n();
 
-  const { list: statusList, defaultStatus: ticketStatus } = useStatusList();
+  const { defaultStatus: ticketStatus, list: statusList } = useStatusList();
 
   const { removeSearchParam } = useUrlSearch();
   const { splitScreen: stretchLayoutSplitScreen } = useStretchLayout();
 
-  const { value: datePickerValue, shortcutsRange } = useDatePicker();
+  const { shortcutsRange, value: datePickerValue } = useDatePicker();
 
-  const { value: searachSelectValue, searchSelectData } = useSearchSelect({
+  const { searchSelectData, value: searachSelectValue } = useSearchSelect({
     exclude: ['status'],
   });
 
@@ -94,9 +94,9 @@
   const dataSource = (params: ServiceParameters<typeof getTickets>) =>
     getTickets({
       ...params,
-      todo: 'running',
-      status: ticketStatus.value,
       is_assist: Boolean(Number(route.params.assist)),
+      status: ticketStatus.value,
+      todo: 'running',
     });
 
   const dataTableRef = useTemplateRef('dataTable');

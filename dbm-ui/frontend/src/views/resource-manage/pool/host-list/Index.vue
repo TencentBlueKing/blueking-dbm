@@ -88,15 +88,12 @@
 </template>
 <script setup lang="tsx">
   import BkButton from 'bkui-vue/lib/button';
-  import { ref  } from 'vue';
+  import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
   import DbResourceModel from '@services/model/db-resource/DbResource';
-  import {
-    fetchList,
-    removeResource,
-  } from '@services/source/dbresourceResource';
+  import { fetchList, removeResource } from '@services/source/dbresourceResource';
 
   import { useTableSettings } from '@hooks';
 
@@ -105,10 +102,7 @@
   import DiskPopInfo from '@components/disk-pop-info/DiskPopInfo.vue';
   import HostAgentStatus from '@components/host-agent-status/Index.vue';
 
-  import {
-    execCopy,
-    messageSuccess,
-  } from '@utils';
+  import { execCopy, messageSuccess } from '@utils';
 
   import BatchSetting from './components/batch-setting/Index.vue';
   import ImportHost from './components/import-host/Index.vue';
@@ -144,49 +138,49 @@
       label: t('Agent 状态'),
       field: 'agent_status',
       minWidth: 100,
-      render: ({ data }: {data: DbResourceModel}) => <HostAgentStatus data={data.agent_status} />,
+      render: ({ data }: { data: DbResourceModel }) => <HostAgentStatus data={data.agent_status} />,
     },
     {
       label: t('所属业务'),
       field: 'for_biz',
       minWidth: 170,
-      render: ({ data }: {data: DbResourceModel}) => data.forBizDisplay || '--',
+      render: ({ data }: { data: DbResourceModel }) => data.forBizDisplay || '--',
     },
     {
       label: t('所属DB类型'),
       field: 'resource_type',
       minWidth: 150,
-      render: ({ data }: {data: DbResourceModel}) => data.resourceTypeDisplay || '--',
+      render: ({ data }: { data: DbResourceModel }) => data.resourceTypeDisplay || '--',
     },
     {
       label: t('机架'),
       field: 'rack_id',
       minWidth: 100,
-      render: ({ data }: {data: DbResourceModel}) => data.rack_id || '--',
+      render: ({ data }: { data: DbResourceModel }) => data.rack_id || '--',
     },
     {
       label: t('机型'),
       field: 'device_class',
       minWidth: 100,
-      render: ({ data }: {data: DbResourceModel}) => data.device_class || '--',
+      render: ({ data }: { data: DbResourceModel }) => data.device_class || '--',
     },
     {
       label: t('操作系统类型'),
       field: 'os_type',
       minWidth: 180,
-      render: ({ data }: {data: DbResourceModel}) => data.os_type || '--',
+      render: ({ data }: { data: DbResourceModel }) => data.os_type || '--',
     },
     {
       label: t('地域'),
       field: 'city',
       minWidth: 100,
-      render: ({ data }: {data: DbResourceModel}) => data.city || '--',
+      render: ({ data }: { data: DbResourceModel }) => data.city || '--',
     },
     {
       label: t('园区'),
       field: 'sub_zone',
       minWidth: 100,
-      render: ({ data }: {data: DbResourceModel}) => data.sub_zone || '--',
+      render: ({ data }: { data: DbResourceModel }) => data.sub_zone || '--',
     },
     {
       label: t('CPU(核)'),
@@ -197,17 +191,15 @@
       label: t('内存'),
       field: 'bk_mem',
       minWidth: 100,
-      render: ({ data }: {data: DbResourceModel}) => data.bkMemText || '0 M',
+      render: ({ data }: { data: DbResourceModel }) => data.bkMemText || '0 M',
     },
     {
       label: t('磁盘容量(G)'),
       field: 'bk_disk',
       minWidth: 120,
-      render: ({ data }: {data: DbResourceModel}) => (
+      render: ({ data }: { data: DbResourceModel }) => (
         <DiskPopInfo data={data.storage_device}>
-          <span style="line-height: 40px; color: #3a84ff;">
-            {data.bk_disk}
-          </span>
+          <span style='line-height: 40px; color: #3a84ff;'>{data.bk_disk}</span>
         </DiskPopInfo>
       ),
     },
@@ -215,7 +207,7 @@
       label: t('操作'),
       fixed: 'right',
       width: 100,
-      render: ({ data }: {data: DbResourceModel}) => (
+      render: ({ data }: { data: DbResourceModel }) => (
         <db-popconfirm
           confirm-handler={() => handleRemove(data)}
           content={t('主机将被落到空闲机，如需要可再次导入')}
@@ -224,7 +216,7 @@
             actionId='resource_pool_manage'
             permission={data.permission.resource_pool_manage}
             text
-            theme="primary">
+            theme='primary'>
             {t('移除')}
           </auth-button>
         </db-popconfirm>
@@ -232,25 +224,27 @@
     },
   ];
 
-  const { settings: tableSetting, updateTableSettings } = useTableSettings(UserPersonalSettings.RESOURCE_POOL_HOST_LIST_SETTINGS, {
-    disabled: ['ip'],
-    checked: [
-      'ip',
-      'bk_cloud_name',
-      'agent_status',
-      'for_biz',
-      'resource_type',
-      'rack_id',
-      'device_class',
-      'city',
-      'sub_zone',
-      'bk_cpu',
-      'bk_mem',
-      'bk_disk',
-      'os_type',
-    ],
-  });
-
+  const { settings: tableSetting, updateTableSettings } = useTableSettings(
+    UserPersonalSettings.RESOURCE_POOL_HOST_LIST_SETTINGS,
+    {
+      disabled: ['ip'],
+      checked: [
+        'ip',
+        'bk_cloud_name',
+        'agent_status',
+        'for_biz',
+        'resource_type',
+        'rack_id',
+        'device_class',
+        'city',
+        'sub_zone',
+        'bk_cpu',
+        'bk_mem',
+        'bk_disk',
+        'os_type',
+      ],
+    },
+  );
 
   const fetchData = () => {
     tableRef.value.fetchData(searchParams);
@@ -278,25 +272,27 @@
   };
 
   // 移除主机
-  const handleRemove = (data: DbResourceModel) => removeResource({
-    bk_host_ids: [data.bk_host_id],
-  }).then(() => {
-    fetchData();
-    tableRef.value.removeSelectByKey(data.bk_host_id);
-    messageSuccess(t('移除成功'));
-  });
+  const handleRemove = (data: DbResourceModel) =>
+    removeResource({
+      bk_host_ids: [data.bk_host_id],
+    }).then(() => {
+      fetchData();
+      tableRef.value.removeSelectByKey(data.bk_host_id);
+      messageSuccess(t('移除成功'));
+    });
 
   // 批量移除
-  const handleBatchRemove = () => removeResource({
-    bk_host_ids: selectionHostIdList.value,
-  }).then(() => {
-    fetchData();
-    Object.values(selectionHostIdList.value).forEach((hostId) => {
-      tableRef.value.removeSelectByKey(hostId);
+  const handleBatchRemove = () =>
+    removeResource({
+      bk_host_ids: selectionHostIdList.value,
+    }).then(() => {
+      fetchData();
+      Object.values(selectionHostIdList.value).forEach((hostId) => {
+        tableRef.value.removeSelectByKey(hostId);
+      });
+      selectionHostIdList.value = [];
+      messageSuccess(t('移除成功'));
     });
-    selectionHostIdList.value = [];
-    messageSuccess(t('移除成功'));
-  });
 
   // 复制所有主机
   const handleCopyAllHost = () => {
@@ -305,14 +301,14 @@
       limit: -1,
       ...searchParams,
     }).then((data) => {
-      const ipList = data.results.map(item => item.ip);
+      const ipList = data.results.map((item) => item.ip);
       execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }));
     });
   };
 
   // 复制已选主机
   const handleCopySelectHost = () => {
-    const ipList = selectionListWholeDataMemo.map(item => item.ip);
+    const ipList = selectionListWholeDataMemo.map((item) => item.ip);
     execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }));
   };
 

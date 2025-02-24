@@ -22,6 +22,7 @@ export interface BackupLogRecord {
   backup_begin_time: string;
   backup_config_file: string;
   backup_consistent_time: string;
+  backup_dir: string;
   backup_end_time: string;
   backup_host: string;
   backup_id: string;
@@ -30,7 +31,6 @@ export interface BackupLogRecord {
   backup_status: string;
   backup_time: string;
   backup_type: string;
-  backup_dir: string;
   bill_id: string;
   binlog_info: {
     show_master_status: {
@@ -54,12 +54,12 @@ export interface BackupLogRecord {
   data_schema_grant: string;
   extra_fields: {
     backup_charset: string;
+    bk_cloud_id: number;
     encrypt_enable: boolean;
     storage_engine: string;
     time_zone: string;
     total_filesize: number;
     total_size_kb_uncompress: number;
-    bk_cloud_id: number;
   };
   file_list: {
     contain_files: null;
@@ -102,7 +102,7 @@ export function queryBackupLogFromLoacal(params: { cluster_id: number }) {
 /**
  * 获取集群列表
  */
-export function queryFixpointLog(params: { cluster_id: number; rollback_time: string; job_instance_id: number }) {
+export function queryFixpointLog(params: { cluster_id: number; job_instance_id: number; rollback_time: string }) {
   return http.get<ListBase<FixpointLogModel[]>>(`${path}/query_fixpoint_log/`, params).then((data) => ({
     ...data,
     results: data.results.map((item) => new FixpointLogModel(item)),
@@ -115,8 +115,8 @@ export function queryFixpointLog(params: { cluster_id: number; rollback_time: st
 export function queryLatesBackupLog(params: {
   bk_biz_id: number;
   cluster_id: number;
-  rollback_time: string;
   job_instance_id?: number;
+  rollback_time: string;
 }) {
   return http.get<BackupLogRecord>(`${path}/query_latest_backup_log/`, params);
 }

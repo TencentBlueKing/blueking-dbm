@@ -17,7 +17,7 @@ import http from '../http';
 /**
  * 授权规则前置检查
  */
-export const preCheckAuthorizeRules = (params: AuthorizePreCheckData & { bizId: number }) =>
+export const preCheckAuthorizeRules = (params: { bizId: number } & AuthorizePreCheckData) =>
   http.post<AuthorizePreCheckResult>(`/apis/mysql/bizs/${params.bizId}/permission/authorize/pre_check_rules/`, params);
 
 /**
@@ -25,9 +25,9 @@ export const preCheckAuthorizeRules = (params: AuthorizePreCheckData & { bizId: 
  */
 export const precheckPermissionClone = (params: {
   bizId: number;
-  clone_type: 'instance' | 'client';
-  clone_list: Array<{ source: string; target: string }>;
   clone_cluster_type: 'mysql' | 'tendbcluster';
+  clone_list: Array<{ source: string; target: string }>;
+  clone_type: 'instance' | 'client';
 }) =>
   http.post<{
     clone_data_list: Array<{

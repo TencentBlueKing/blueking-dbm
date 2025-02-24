@@ -112,7 +112,6 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.MYSQL_HA_RENAME_DATABASE,
     onSuccess(cloneData) {
       const { force, tableDataList } = cloneData;
       tableData.value = tableDataList;
@@ -120,17 +119,18 @@
       remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
+    type: TicketTypes.MYSQL_HA_RENAME_DATABASE,
   });
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.MYSQL_SINGLE_RENAME_DATABASE,
     onSuccess(cloneData) {
       const { force, tableDataList } = cloneData;
       tableData.value = tableDataList;
       isForce.value = force;
       window.changeConfirm = true;
     },
+    type: TicketTypes.MYSQL_SINGLE_RENAME_DATABASE,
   });
 
   const rowRefs = ref();
@@ -214,10 +214,10 @@
   async function handleBatchInput(list: Array<{ domain: string; origin: string; rename: string }>) {
     const domains = list.map((item) => item.domain);
     const clusterInfos = await queryClusters({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       cluster_filters: domains.map((domain) => ({
         immute_domain: domain,
       })),
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
     });
     const clusterInfoMap = clusterInfos.reduce<Record<string, TendbhaModel>>(
       (results, item) =>
@@ -232,8 +232,8 @@
       return {
         ...createRowData(),
         clusterData: {
-          id: currentCluster.id,
           domain,
+          id: currentCluster.id,
           type: currentCluster.cluster_type,
         },
         fromDatabase: item.origin,
@@ -255,12 +255,12 @@
     }
 
     const resultList = await queryClusters({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       cluster_filters: [
         {
           id: clusterId,
         },
       ],
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
     });
     if (resultList.length < 1) {
       return;
@@ -269,8 +269,8 @@
     const domain = item.master_domain;
     const row = createRowData({
       clusterData: {
-        id: item.id,
         domain,
+        id: item.id,
         type: item.cluster_type,
       },
     });
@@ -291,8 +291,8 @@
       if (!domainMemo[domain]) {
         const row = createRowData({
           clusterData: {
-            id: item.id,
             domain: item.master_domain,
+            id: item.id,
             type: item.cluster_type,
           },
         });
@@ -315,16 +315,16 @@
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
       .then((data) => {
         const params = {
-          ticket_type:
-            clusterTypes.value[0] === ClusterTypes.TENDBHA
-              ? TicketTypes.MYSQL_HA_RENAME_DATABASE
-              : TicketTypes.MYSQL_SINGLE_RENAME_DATABASE,
           bk_biz_id: globalBizsStore.currentBizId,
-          remark: remark.value,
           details: {
             force: isForce.value,
             infos: data,
           },
+          remark: remark.value,
+          ticket_type:
+            clusterTypes.value[0] === ClusterTypes.TENDBHA
+              ? TicketTypes.MYSQL_HA_RENAME_DATABASE
+              : TicketTypes.MYSQL_SINGLE_RENAME_DATABASE,
         };
 
         return createTicket(params).then((data) => {

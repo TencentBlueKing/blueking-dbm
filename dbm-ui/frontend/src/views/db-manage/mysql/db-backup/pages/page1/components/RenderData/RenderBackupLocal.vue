@@ -46,8 +46,8 @@
   const { t } = useI18n();
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('不能为空'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 
@@ -57,15 +57,15 @@
   const baseList = computed(() => {
     const list: Record<'label' | 'value', string>[] = [
       {
-        value: 'master',
         label: 'Master',
+        value: 'master',
       },
     ];
 
     if (props.clusterData?.type === ClusterTypes.TENDBHA) {
       list.push({
-        value: 'slave',
         label: 'Slave',
+        value: 'slave',
       });
     }
 

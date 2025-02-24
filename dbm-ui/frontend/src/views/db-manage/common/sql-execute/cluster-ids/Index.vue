@@ -58,85 +58,86 @@
   import ClusterSelector from '@components/cluster-selector/Index.vue';
   import RenderClusterStatus from '@components/cluster-status/Index.vue';
 
-
-
   interface IClusterData {
-    id: number;
     cluster_name: string;
-    status: string;
+    cluster_type: string;
+    id: number;
     major_version: string;
     master_domain: string;
-    cluster_type: string;
+    status: string;
   }
 
   interface Props {
-    clusterTypeList: ClusterTypes[]
+    clusterTypeList: ClusterTypes[];
   }
 
-  type SelectorRowDataType = TendbhaModel | TendbsingleModel | SqlServerHaClusterModel | SqlServerSingleClusterModel | TendbclusterModel;
+  type SelectorRowDataType =
+    | TendbhaModel
+    | TendbsingleModel
+    | SqlServerHaClusterModel
+    | SqlServerSingleClusterModel
+    | TendbclusterModel;
 
   defineProps<Props>();
 
   const { t } = useI18n();
 
   const modelValue = defineModel<number[]>({
+    default: () => [],
     required: true,
+  });
+  const clusterVersionList = defineModel<string[]>('clusterVersionList', {
     default: () => [],
-  })
-  const clusterVersionList = defineModel<string[]>('clusterVersionList',{
-    default: () => [],
-  })
+  });
 
   const colums = [
     {
-      label: t('集群'),
       field: 'master_domain',
+      label: t('集群'),
       minWidth: 250,
     },
     {
-      label: t('类型'),
       field: 'cluster_type',
-      render: ({ data }: {data: IClusterData}) => {
+      label: t('类型'),
+      render: ({ data }: { data: IClusterData }) => {
         const clusterNameMap = {
+          [ClusterTypes.SQLSERVER_HA]: t('主从集群'),
+          [ClusterTypes.SQLSERVER_SINGLE]: t('单节点集群'),
+          [ClusterTypes.TENDBCLUSTER]: t('Tendb Cluster'),
           [ClusterTypes.TENDBHA]: t('高可用'),
           [ClusterTypes.TENDBSINGLE]: t('单节点'),
-          [ClusterTypes.TENDBCLUSTER]: t('Tendb Cluster'),
-          [ClusterTypes.SQLSERVER_HA]: t('主从集群'),
-          [ClusterTypes. SQLSERVER_SINGLE]: t('单节点集群'),
-        }
-        return clusterNameMap[data.cluster_type as keyof typeof clusterNameMap]
+        };
+        return clusterNameMap[data.cluster_type as keyof typeof clusterNameMap];
       },
     },
     {
       label: t('版本'),
-      render: ({ data }: {data: IClusterData}) => data.major_version || '--',
+      render: ({ data }: { data: IClusterData }) => data.major_version || '--',
     },
     {
       label: t('状态'),
-      render: ({ data }: {data: IClusterData}) => (
-        <RenderClusterStatus data={data.status} />
-      ),
+      render: ({ data }: { data: IClusterData }) => <RenderClusterStatus data={data.status} />,
     },
     {
-      label: t('操作'),
-      width: '100',
       field: 'action',
-      render: ({ data }: {data: IClusterData}) => (
+      label: t('操作'),
+      render: ({ data }: { data: IClusterData }) => (
         <bk-button
-          theme="primary"
+          theme='primary'
           text
           onClick={() => handleRemove(data)}>
-          { t('删除') }
+          {t('删除')}
         </bk-button>
       ),
+      width: '100',
     },
   ];
 
   const rules = [
     {
-      validator: (value: number[]) => value.length > 0,
       message: t('目标集群不能为空'),
       trigger: 'change',
+      validator: (value: number[]) => value.length > 0,
     },
   ];
 
@@ -144,88 +145,98 @@
   const isShowClusterSelector = ref(false);
   const formItemRef = ref();
   const clusterSelectorValue = shallowRef<Record<string, SelectorRowDataType[]>>({
-    [ClusterTypes.TENDBHA]: [] as TendbhaModel[],
-    [ClusterTypes.TENDBSINGLE]: [] as TendbsingleModel[],
-    [ClusterTypes.TENDBCLUSTER]: [] as TendbclusterModel[],
     [ClusterTypes.SQLSERVER_HA]: [] as SqlServerHaClusterModel[],
     [ClusterTypes.SQLSERVER_SINGLE]: [] as SqlServerSingleClusterModel[],
+    [ClusterTypes.TENDBCLUSTER]: [] as TendbclusterModel[],
+    [ClusterTypes.TENDBHA]: [] as TendbhaModel[],
+    [ClusterTypes.TENDBSINGLE]: [] as TendbsingleModel[],
   });
   const targetClusterList = shallowRef<Array<IClusterData>>([]);
 
   let isInnerChange = false;
   const triggerChange = () => {
     isInnerChange = true;
-    modelValue.value = targetClusterList.value.map(item => item.id);
-    clusterVersionList.value = _.uniq(targetClusterList.value.map(item => item.major_version));
+    modelValue.value = targetClusterList.value.map((item) => item.id);
+    clusterVersionList.value = _.uniq(targetClusterList.value.map((item) => item.major_version));
   };
 
   const fetchClusterData = (clusterIds: number[]) => {
     isLoading.value = true;
     filterClusters<SelectorRowDataType>({
-      cluster_ids: clusterIds.join(','),
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      cluster_ids: clusterIds.join(','),
     })
       .then((data) => {
         targetClusterList.value = data;
-        clusterVersionList.value = _.uniq(data.map(item => item.major_version));
-        clusterSelectorValue.value = data.reduce((result, item) => {
-          if (item.cluster_type === ClusterTypes.TENDBHA) {
-            result[ClusterTypes.TENDBHA].push(item as TendbhaModel);
-          } else if (item.cluster_type === ClusterTypes.TENDBSINGLE) {
-            result[ClusterTypes.TENDBSINGLE].push(item as TendbsingleModel);
-          } else if (item.cluster_type === ClusterTypes.TENDBCLUSTER) {
-            result[ClusterTypes.TENDBCLUSTER].push(item as TendbclusterModel);
-          } else if (item.cluster_type === ClusterTypes.SQLSERVER_HA) {
-            result[ClusterTypes.SQLSERVER_HA].push(item as SqlServerHaClusterModel);
-          } else if (item.cluster_type === ClusterTypes.SQLSERVER_SINGLE) {
-            result[ClusterTypes.SQLSERVER_SINGLE].push(item as SqlServerSingleClusterModel);
-          }
-          return result;
-        }, {
-          [ClusterTypes.TENDBHA]: [] as TendbhaModel[],
-          [ClusterTypes.TENDBSINGLE]: [] as TendbsingleModel[],
-          [ClusterTypes.TENDBCLUSTER]: [] as TendbclusterModel[],
-          [ClusterTypes.SQLSERVER_HA]: [] as SqlServerHaClusterModel[],
-          [ClusterTypes.SQLSERVER_SINGLE]: [] as SqlServerSingleClusterModel[],
-        })
+        clusterVersionList.value = _.uniq(data.map((item) => item.major_version));
+        clusterSelectorValue.value = data.reduce(
+          (result, item) => {
+            if (item.cluster_type === ClusterTypes.TENDBHA) {
+              result[ClusterTypes.TENDBHA].push(item as TendbhaModel);
+            } else if (item.cluster_type === ClusterTypes.TENDBSINGLE) {
+              result[ClusterTypes.TENDBSINGLE].push(item as TendbsingleModel);
+            } else if (item.cluster_type === ClusterTypes.TENDBCLUSTER) {
+              result[ClusterTypes.TENDBCLUSTER].push(item as TendbclusterModel);
+            } else if (item.cluster_type === ClusterTypes.SQLSERVER_HA) {
+              result[ClusterTypes.SQLSERVER_HA].push(item as SqlServerHaClusterModel);
+            } else if (item.cluster_type === ClusterTypes.SQLSERVER_SINGLE) {
+              result[ClusterTypes.SQLSERVER_SINGLE].push(item as SqlServerSingleClusterModel);
+            }
+            return result;
+          },
+          {
+            [ClusterTypes.SQLSERVER_HA]: [] as SqlServerHaClusterModel[],
+            [ClusterTypes.SQLSERVER_SINGLE]: [] as SqlServerSingleClusterModel[],
+            [ClusterTypes.TENDBCLUSTER]: [] as TendbclusterModel[],
+            [ClusterTypes.TENDBHA]: [] as TendbhaModel[],
+            [ClusterTypes.TENDBSINGLE]: [] as TendbsingleModel[],
+          },
+        );
       })
       .finally(() => {
         isLoading.value = false;
       });
   };
 
-  watch(modelValue, () => {
-    if (isInnerChange) {
-      isInnerChange = false;
-      return;
-    }
-    if (modelValue.value.length < 1) {
-      targetClusterList.value = [];
-    } else {
-      fetchClusterData(modelValue.value);
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    modelValue,
+    () => {
+      if (isInnerChange) {
+        isInnerChange = false;
+        return;
+      }
+      if (modelValue.value.length < 1) {
+        targetClusterList.value = [];
+      } else {
+        fetchClusterData(modelValue.value);
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleShowClusterSelector = () => {
     isShowClusterSelector.value = true;
   };
 
   const handleRemove = (clusterData: IClusterData) => {
+    const lastestclusterSelectorValue = { ...clusterSelectorValue.value };
 
-    const lastestclusterSelectorValue = { ...clusterSelectorValue.value }
-
-    clusterSelectorValue.value = Object.keys(lastestclusterSelectorValue).reduce((result, clusterType) => Object.assign(result, {
-      [clusterType]: _.filter(lastestclusterSelectorValue[clusterType], item => item.id !== clusterData.id),
-    }), {});
-    targetClusterList.value = _.flatten(Object.values(clusterSelectorValue.value))
+    clusterSelectorValue.value = Object.keys(lastestclusterSelectorValue).reduce(
+      (result, clusterType) =>
+        Object.assign(result, {
+          [clusterType]: _.filter(lastestclusterSelectorValue[clusterType], (item) => item.id !== clusterData.id),
+        }),
+      {},
+    );
+    targetClusterList.value = _.flatten(Object.values(clusterSelectorValue.value));
 
     triggerChange();
   };
 
   const handelClusterChange = (selected: Record<string, SelectorRowDataType[]>) => {
-    targetClusterList.value = _.flatten(Object.values(selected))
+    targetClusterList.value = _.flatten(Object.values(selected));
     formItemRef.value.clearValidate();
     clusterSelectorValue.value = selected;
     triggerChange();

@@ -52,8 +52,8 @@
 
   defineSlots<
     Partial<{
-      prepend(): any;
       append(): any;
+      prepend(): any;
     }>
   >();
 

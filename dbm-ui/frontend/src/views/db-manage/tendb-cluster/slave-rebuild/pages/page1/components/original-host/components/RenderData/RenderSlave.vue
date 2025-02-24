@@ -41,9 +41,7 @@
     instance: string;
   }
 
-  interface Emits {
-    (e: 'inputFinish', value: string): void;
-  }
+  type Emits = (e: 'inputFinish', value: string) => void;
 
   interface Exposes {
     getValue: () => Promise<string>;
@@ -62,14 +60,15 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(_.trim(value)),
       message: t('目标从库实例不能为空'),
+      validator: (value: string) => Boolean(_.trim(value)),
     },
     {
-      validator: (value: string) => ipPort.test(value),
       message: t('目标从库实例格式不正确'),
+      validator: (value: string) => ipPort.test(value),
     },
     {
+      message: t('目标从库实例不存在'),
       validator: (value: string) =>
         checkMysqlInstances({
           bizId: currentBizId,
@@ -80,9 +79,9 @@
           }
           return true;
         }),
-      message: t('目标从库实例不存在'),
     },
     {
+      message: t('目标从库实例重复'),
       validator: () => {
         const currentClusterSelectMap = hostsMemo[instanceKey];
         const otherClusterMemoMap = { ...hostsMemo };
@@ -97,6 +96,7 @@
         );
 
         const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
+        // eslint-disable-next-line @typescript-eslint/prefer-for-of
         for (let i = 0; i < currentSelectClusterIdList.length; i++) {
           if (otherClusterIdMap[currentSelectClusterIdList[i]]) {
             return false;
@@ -104,7 +104,6 @@
         }
         return true;
       },
-      message: t('目标从库实例重复'),
     },
   ];
 

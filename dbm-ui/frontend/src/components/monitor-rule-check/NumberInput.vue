@@ -39,13 +39,13 @@
   import { useI18n } from 'vue-i18n';
 
   interface Props {
-    unit?: string;
     disabled?: boolean;
+    unit?: string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    unit: '%',
     disabled: false,
+    unit: '%',
   });
 
   const { t } = useI18n();

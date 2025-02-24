@@ -27,11 +27,11 @@
   import type { VNode } from 'vue';
 
   interface Slot {
-    icon?: () => VNode | VNode[];
-    title: () => VNode | VNode[];
+    action?: () => VNode | VNode[];
     content: () => VNode | VNode[];
     desc?: () => VNode | VNode[];
-    action?: () => VNode | VNode[];
+    icon?: () => VNode | VNode[];
+    title: () => VNode | VNode[];
   }
 
   const slots = defineSlots<Slot>();

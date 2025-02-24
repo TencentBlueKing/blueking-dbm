@@ -27,10 +27,7 @@
   import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
 
-  import type {
-    DutyCustomItem,
-    DutyCycleItem,
-  } from '@services/model/monitor/duty-rule';
+  import type { DutyCustomItem, DutyCycleItem } from '@services/model/monitor/duty-rule';
   import DutyRuleModel from '@services/model/monitor/duty-rule';
 
   import MiniTag from '@components/mini-tag/index.vue';
@@ -38,13 +35,13 @@
   import { getDiffDays } from '@utils';
 
   interface Props {
-    data: DutyRuleModel
+    data: DutyRuleModel;
   }
 
   interface RowData {
-    dateTime: string,
-    timeRange: string[],
-    peoples: string[],
+    dateTime: string;
+    peoples: string[];
+    timeRange: string[];
   }
 
   const props = defineProps<Props>();
@@ -56,10 +53,14 @@
   const tableData = computed(() => {
     if (props.data.category === 'regular') {
       // 自定义轮值
-      return (isShowAllData.value ? props.data.duty_arranges as DutyCustomItem[] : props.data.duty_arranges.slice(0, 8) as DutyCustomItem[]).map(item => ({
+      return (
+        isShowAllData.value
+          ? (props.data.duty_arranges as DutyCustomItem[])
+          : (props.data.duty_arranges.slice(0, 8) as DutyCustomItem[])
+      ).map((item) => ({
         dateTime: item.date,
-        timeRange: item.work_times.map(data => data.replace('--', '~')),
         peoples: item.members,
+        timeRange: item.work_times.map((data) => data.replace('--', '~')),
       }));
     }
     // 周期轮值
@@ -80,36 +81,52 @@
     }
     return dutyArranges.map((item, index) => ({
       dateTime: dateArr[index],
-      timeRange: item.work_times.map(data => data.replace('--', '~')),
       peoples: item.members.slice(0, item.duty_number),
+      timeRange: item.work_times.map((data) => data.replace('--', '~')),
     }));
   });
 
   const columns = [
     {
-      label: t('日期'),
       field: 'dateTime',
+      label: t('日期'),
       minWidth: 120,
-      render: ({ data }: {data: RowData}) => {
+      render: ({ data }: { data: RowData }) => {
         let tag = null;
         const today = dayjs(new Date()).format('YYYY-MM-DD');
         if (data.dateTime === today) {
-          tag = <MiniTag content={t('今日')} theme="info" />;
+          tag = (
+            <MiniTag
+              content={t('今日')}
+              theme='info'
+            />
+          );
         }
-        return <div class="date">{data.dateTime}{tag}</div>;
+        return (
+          <div class='date'>
+            {data.dateTime}
+            {tag}
+          </div>
+        );
       },
     },
     {
-      label: t('时段'),
       field: 'timeRange',
-      showOverflowTooltip: true,
+      label: t('时段'),
       minWidth: 200,
-      render: ({ data }: {data: RowData}) => data.timeRange.join(' , '),
+      render: ({ data }: { data: RowData }) => data.timeRange.join(' , '),
+      showOverflowTooltip: true,
     },
     {
-      label: t('轮值人员'),
       field: 'peoples',
-      render: ({ data }: {data: RowData}) => <div class="peoples">{data.peoples.map(item => <bk-tag>{item}</bk-tag>)}</div>,
+      label: t('轮值人员'),
+      render: ({ data }: { data: RowData }) => (
+        <div class='peoples'>
+          {data.peoples.map((item) => (
+            <bk-tag>{item}</bk-tag>
+          ))}
+        </div>
+      ),
     },
   ];
 

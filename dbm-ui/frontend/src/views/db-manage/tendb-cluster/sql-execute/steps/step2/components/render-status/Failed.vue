@@ -133,8 +133,8 @@
 
   const handleDeleteUserSemanticTasks = () => {
     runDeleteUserSemanticTasks({
-      task_ids: [rootId],
       cluster_type: DBTypes.TENDBCLUSTER,
+      task_ids: [rootId],
     });
   };
 

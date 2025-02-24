@@ -93,8 +93,8 @@
 
   interface PanelItem {
     label: string;
-    name: string;
     link: string;
+    name: string;
   }
 
   const route = useRoute();
@@ -104,8 +104,8 @@
 
   const isLoading = ref(false);
   const instInfo = reactive({
-    id: 0,
     address: '',
+    id: 0,
   });
 
   const activePanelKey = ref('event');
@@ -114,8 +114,8 @@
 
   const statusInfo = computed(() => {
     const info = {
-      theme: 'danger',
       text: t('异常'),
+      theme: 'danger',
     };
     if (!details.value) {
       return info;
@@ -144,32 +144,32 @@
   const baseColumns = [
     [
       {
-        label: 'ID',
         key: 'id',
+        label: 'ID',
       },
       {
-        label: t('实例'),
         key: 'instance_address',
+        label: t('实例'),
       },
     ],
     [
       {
-        label: t('所属分组'),
         key: 'group_name',
+        label: t('所属分组'),
       },
       {
-        label: t('管控区域'),
         key: 'bk_cloud_name',
+        label: t('管控区域'),
       },
     ],
     [
       {
-        label: t('创建人'),
         key: 'creator',
+        label: t('创建人'),
       },
       {
-        label: t('部署时间'),
         key: 'create_at',
+        label: t('部署时间'),
       },
     ],
   ];
@@ -180,8 +180,8 @@
       if (res.urls.length > 0) {
         monitorPanelList.value = res.urls.map((item) => ({
           label: item.view,
-          name: item.view,
           link: item.url,
+          name: item.view,
         }));
       }
     },

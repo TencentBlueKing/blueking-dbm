@@ -85,19 +85,17 @@
   import AdminPasswordModel from '@services/model/admin-password/admin-password';
   import { queryAdminPassword } from '@services/source/permission';
 
-  import {
-    useTableMaxHeight,
-  } from '@hooks';
+  import { useTableMaxHeight } from '@hooks';
 
-  import { DBTypes,OccupiedInnerHeight  } from '@common/const';
+  import { DBTypes, OccupiedInnerHeight } from '@common/const';
 
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
-  import { execCopy, getSearchSelectorParams } from '@utils'
+  import { execCopy, getSearchSelectorParams } from '@utils';
 
   const isShow = defineModel<boolean>({
-    required: true,
     default: false,
+    required: true,
   });
 
   const { t } = useI18n();
@@ -105,134 +103,129 @@
 
   const searchSelectData = [
     {
-      name: t('IP 或 IP:Port'),
       id: 'instances',
+      name: t('IP 或 IP:Port'),
     },
   ];
 
   const columns = [
     {
-      label: t('云区域'),
       field: 'bk_cloud_name',
+      label: t('云区域'),
       width: 100,
     },
     {
-      label: t('实例'),
       field: 'instance',
-      width: 150,
+      label: t('实例'),
       render: ({ row }: { row: AdminPasswordModel }) => {
         const instance = `${row.ip}:${row.port}`;
         return (
           <TextOverflowLayout>
             {{
-              default: () => instance,
               append: () => (
                 <bk-button
+                  theme='primary'
                   text
-                  theme="primary"
                   onClick={() => handleCopy(instance)}>
                   <db-icon
-                    type="copy"
-                    class="row-copy-icon ml-4"/>
+                    class='row-copy-icon ml-4'
+                    type='copy'
+                  />
                 </bk-button>
               ),
+              default: () => instance,
             }}
           </TextOverflowLayout>
         );
       },
+      width: 150,
     },
     {
+      field: 'password',
       label: () => (
         <>
-          <span>{ t('密码') }</span>
+          <span>{t('密码')}</span>
           <bk-button
             text
-            onClick={ () => handlePasswordShow() }>
-            <db-icon type="visible1 ml-4"/>
+            onClick={() => handlePasswordShow()}>
+            <db-icon type='visible1 ml-4' />
           </bk-button>
         </>
       ),
-      field: 'password',
-      width: 200,
-      showOverflowTooltip: true,
       render: ({ row }: { row: AdminPasswordModel }) => (
         <TextOverflowLayout key={Number(passwordShow.value)}>
           {{
-            default: () => (
-              <span>
-                {
-                  passwordShow.value
-                    ? row.password
-                    : '******'
-                }
-              </span>
-            ),
             append: () => (
               <bk-button
+                theme='primary'
                 text
-                theme="primary"
-                onClick={ () => handleCopy(row.password) }>
+                onClick={() => handleCopy(row.password)}>
                 <db-icon
-                  type="copy"
-                  class="row-copy-icon ml-4"/>
+                  class='row-copy-icon ml-4'
+                  type='copy'
+                />
               </bk-button>
             ),
+            default: () => <span>{passwordShow.value ? row.password : '******'}</span>,
           }}
         </TextOverflowLayout>
       ),
+      showOverflowTooltip: true,
+      width: 200,
     },
     {
-      label: t('DB类型'),
       field: 'component',
-      width: 100,
+      label: t('DB类型'),
       render: ({ row }: { row: AdminPasswordModel }) => (
         <>
-          <db-icon type="mysql row-type"/>
-          <span class='ml-4'>{ row.component }</span>
+          <db-icon type='mysql row-type' />
+          <span class='ml-4'>{row.component}</span>
         </>
       ),
+      width: 100,
     },
     {
-      label: t('过期时间'),
       field: 'lock_until',
+      label: t('过期时间'),
       minWidth: 240,
-      sort: true,
-      showOverflowTooltip: true,
       render: ({ row }: { row: AdminPasswordModel }) => {
         const { lock_until: lockUntil, lockUntilDisplay } = row;
         const lockUntilDate = dayjs(lockUntil).format('YYYY-MM-DD');
         const currentDate = dayjs().format('YYYY-MM-DD');
         const diffDay = dayjs(lockUntilDate).diff(currentDate, 'day');
 
-        return diffDay <= 7
-          ? <span
-              class='expired-time'>
-              { lockUntilDisplay }（{ t('n天后过期', [Math.ceil(diffDay)]) }）
-            </span>
-          : <span>{ lockUntilDisplay }</span>;
+        return diffDay <= 7 ? (
+          <span class='expired-time'>
+            {lockUntilDisplay}（{t('n天后过期', [Math.ceil(diffDay)])}）
+          </span>
+        ) : (
+          <span>{lockUntilDisplay}</span>
+        );
       },
+      showOverflowTooltip: true,
+      sort: true,
     },
     {
-      label: t('修改人'),
       field: 'operator',
+      label: t('修改人'),
       width: 150,
     },
     {
-      label: t('修改时间'),
       field: 'updateTimeDisplay',
-      width: 160,
+      label: t('修改时间'),
       sort: true,
+      width: 160,
     },
   ];
 
   const tableRef = ref();
-  const dbType = ref(DBTypes.MYSQL)
+  const dbType = ref(DBTypes.MYSQL);
   const passwordShow = ref(false);
   const selected = shallowRef<AdminPasswordModel[]>([]);
 
   const searchParams = reactive({
-    time: ['', ''] as [string, string],
     keys: [],
+    time: ['', ''] as [string, string],
   });
 
   const hasSelected = computed(() => selected.value.length > 0);
@@ -240,7 +233,7 @@
   const handleSearchValueChange = () => {
     tableRef.value!.clearSelected();
     getDataSource();
-  }
+  };
 
   const getDataSource = () => {
     const keys = getSearchSelectorParams(searchParams.keys);
@@ -272,7 +265,7 @@
   };
 
   const handleInstancesCopy = () => {
-    const instances = selected.value.map(row => `${row.ip}:${row.port}`);
+    const instances = selected.value.map((row) => `${row.ip}:${row.port}`);
     execCopy(instances.join('\n'), t('复制成功，共n条', { n: instances.length }));
   };
 
@@ -281,8 +274,8 @@
   };
 
   const handleDbTypeChange = () => {
-    getDataSource()
-  }
+    getDataSource();
+  };
 </script>
 
 <style lang="less" scoped>

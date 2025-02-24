@@ -39,24 +39,18 @@
   import { AccountTypes } from '@common/const';
 
   interface Props {
-    accountType: AccountTypes,
-    selectedList?: T[]
+    accountType: AccountTypes;
+    selectedList?: T[];
   }
 
-  interface Emits {
-    (e: 'delete', value: T[]): void
-  }
+  type Emits = (e: 'delete', value: T[]) => void;
 
   const props = withDefaults(defineProps<Props>(), {
     selectedList: () => [],
   });
   const emits = defineEmits<Emits>();
 
-  const renderList = (row: T) => (
-    expandMap.value[row.account.account_id]
-      ? row.rules.slice(0, 1)
-      : row.rules
-  );
+  const renderList = (row: T) => (expandMap.value[row.account.account_id] ? row.rules.slice(0, 1) : row.rules);
 
   const { t } = useI18n();
   const router = useRouter();
@@ -65,106 +59,89 @@
 
   const columns = [
     {
-      label: t('账号名称'),
       field: 'user',
-      showOverflowTooltip: false,
+      label: t('账号名称'),
       render: ({ data }: { data: T }) => (
         <div
-          class="mongo-permission-cell"
-          onClick={ () => handleToggleExpand(data) }>
-          {
-            data.rules.length > 1 && (
-              <db-icon
-                type="down-shape"
-                class={[
-                  'user-icon',
-                  { 'user-icon-expand': !expandMap.value[data.account.account_id] },
-                ]} />
-            )
-          }
-          <div class="user-name">
-            { data.account.user }
-          </div>
-          {
-            data.isNew && (
-              <bk-tag
-                size="small"
-                theme="success"
-                class="ml-4">
-                NEW
-              </bk-tag>
-            )
-          }
+          class='mongo-permission-cell'
+          onClick={() => handleToggleExpand(data)}>
+          {data.rules.length > 1 && (
+            <db-icon
+              class={['user-icon', { 'user-icon-expand': !expandMap.value[data.account.account_id] }]}
+              type='down-shape'
+            />
+          )}
+          <div class='user-name'>{data.account.user}</div>
+          {data.isNew && (
+            <bk-tag
+              class='ml-4'
+              size='small'
+              theme='success'>
+              NEW
+            </bk-tag>
+          )}
         </div>
       ),
+      showOverflowTooltip: false,
     },
     {
-      label: t('访问DB'),
       field: 'access_db',
-      showOverflowTooltip: true,
-      render: ({ data }: { data: T, index: number }) => {
+      label: t('访问DB'),
+      render: ({ data }: { data: T; index: number }) => {
         if (data.rules.length === 0) {
           return (
-            <div class="mongo-permission-cell access-db">
-              <span>{ t('暂无规则') }，</span>
+            <div class='mongo-permission-cell access-db'>
+              <span>{t('暂无规则')}，</span>
               <bk-button
-                theme="primary"
-                size="small"
+                size='small'
+                theme='primary'
                 text
-                onClick={ (event: Event) => handleShowCreateRule(data, event) }>
-                { t('立即新建') }
+                onClick={(event: Event) => handleShowCreateRule(data, event)}>
+                {t('立即新建')}
               </bk-button>
             </div>
           );
         }
 
-        return (
-          renderList(data).map((rule) => (
-            <div class="mongo-permission-cell access-db">
-              <bk-tag>{ rule.access_db }</bk-tag>
-            </div>
-          ))
-        );
+        return renderList(data).map((rule) => (
+          <div class='mongo-permission-cell access-db'>
+            <bk-tag>{rule.access_db}</bk-tag>
+          </div>
+        ));
       },
+      showOverflowTooltip: true,
     },
     {
-      label: t('权限'),
       field: 'privilege',
-      showOverflowTooltip: false,
-      render: ({ data }: { data: T, index: number }) => {
+      label: t('权限'),
+      render: ({ data }: { data: T; index: number }) => {
         if (data.rules.length > 0) {
           return renderList(data).map((rule) => {
             const { privilege } = rule;
 
-            return (
-              <div class="mongo-permission-cell">
-                {
-                  privilege ? privilege.replace(/,/g, '，') : '--'
-                }
-              </div>
-            );
+            return <div class='mongo-permission-cell'>{privilege ? privilege.replace(/,/g, '，') : '--'}</div>;
           });
         }
 
-        return <div class="mongo-permission-cell">--</div>;
+        return <div class='mongo-permission-cell'>--</div>;
       },
+      showOverflowTooltip: false,
     },
     {
       label: t('操作'),
-      width: 100,
-      render: ({ data, index }: { data: T, index: number }) => (
+      render: ({ data, index }: { data: T; index: number }) =>
         renderList(data).map((rule, ruleIndex) => (
-          <div class="mongo-permission-cell">
+          <div class='mongo-permission-cell'>
             <bk-button
-              theme="primary"
+              theme='primary'
               text
-              onClick={ () => handleDelete(index, ruleIndex) }>
-              { t('删除') }
+              onClick={() => handleDelete(index, ruleIndex)}>
+              {t('删除')}
             </bk-button>
           </div>
-        ))
-      ),
-    }
+        )),
+      width: 100,
+    },
   ];
 
   const tableList = computed(() => _.cloneDeep(props.selectedList));
@@ -181,8 +158,8 @@
     event.stopPropagation();
     const routeMap: Record<string, string> = {
       [AccountTypes.MONGODB]: 'MongodbPermission',
-      [AccountTypes.SQLSERVER]: 'SqlServerPermissionRules'
-    }
+      [AccountTypes.SQLSERVER]: 'SqlServerPermissionRules',
+    };
     const route = router.resolve({
       name: routeMap[props.accountType],
     });

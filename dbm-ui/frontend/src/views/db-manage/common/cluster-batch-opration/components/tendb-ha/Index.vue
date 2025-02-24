@@ -102,9 +102,7 @@
     selected: TendbHaModel[];
   }
 
-  interface Emits {
-    (e: 'success'): void;
-  }
+  type Emits = (e: 'success') => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -117,7 +115,7 @@
   });
 
   const { t } = useI18n();
-  const { handleDisableCluster, handleEnableCluster, handleDeleteCluster } = useOperateClusterBasic(
+  const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(
     ClusterTypes.TENDBHA,
     {
       onSuccess: () => handleSuccess(),

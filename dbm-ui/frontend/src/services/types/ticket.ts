@@ -16,29 +16,29 @@ import { type Mysql } from '@services/model/ticket/ticket';
  * 单据流程信息
  */
 export interface FlowItem {
-  cost_time: number;
   context: {
     expire_time?: number;
   };
+  cost_time: number;
+  details: {
+    operators?: string[]; // 系统单据处理人才会有这个
+    ticket_data: Mysql.ImportSqlFile;
+  };
+  end_time: string;
   err_code: number;
   err_msg: string;
-  end_time: string;
+  flow_expire_time?: number;
+  flow_obj_id: string;
   flow_type: string;
   flow_type_display: string;
-  flow_obj_id: string;
-  flow_expire_time?: number;
   id: number;
-  status: 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'SKIPPED' | 'REVOKED' | 'TERMINATED';
   start_time: string;
+  status: 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'SKIPPED' | 'REVOKED' | 'TERMINATED';
   summary: string;
   ticket: number;
   todos: FlowItemTodo[];
   update_at: string;
   url: string;
-  details: {
-    ticket_data: Mysql.ImportSqlFile;
-    operators?: string[]; // 系统单据处理人才会有这个
-  };
 }
 
 /**
@@ -46,23 +46,23 @@ export interface FlowItem {
  */
 export interface FlowItemTodo {
   context: {
-    flow_id: number;
-    ticket_id: number;
-    node_id: string;
     administrators?: string[];
+    flow_id: number;
+    node_id: string;
+    ticket_id: number;
     user?: string;
   };
-  flow_id: number;
-  ticket_id: number;
   cost_time: number;
   done_at: null | string;
   done_by: string;
   flow: number;
+  flow_id: number;
   id: number;
   name: string;
   operators: string[];
   status: 'TODO' | 'RUNNING' | 'DONE_SUCCESS' | 'DONE_FAILED';
   ticket: number;
+  ticket_id: number;
   type: 'APPROVE' | 'INNER_APPROVE' | 'RESOURCE_REPLENISH';
   url: string;
 }

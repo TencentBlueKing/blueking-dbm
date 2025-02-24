@@ -58,19 +58,19 @@
 
   export const backupTypeList = [
     {
-      value: BackupTypes.BACKUPID,
       label: t('备份记录'),
+      value: BackupTypes.BACKUPID,
     },
     {
-      value: BackupTypes.TIME,
       label: t('回档到指定时间'),
+      value: BackupTypes.TIME,
     },
   ];
 
   interface Props {
-    clusterId: number;
     backupid?: string;
     backupSource?: string;
+    clusterId: number;
     // backupType?: string;
     rollbackTime?: string;
   }
@@ -100,8 +100,8 @@
 
   const rules = [
     {
-      validator: (value: string) => !!value,
       message: t('不能为空'),
+      validator: (value: string) => !!value,
     },
   ];
 
@@ -165,13 +165,13 @@
     getValue() {
       if (localBackupType.value === BackupTypes.BACKUPID) {
         return localBackupFileRef.value!.getValue().then((data: BackupLogRecord) => ({
-          rollback_type: `${props.backupSource?.toLocaleUpperCase()}_AND_${localBackupType.value}`,
           backupinfo: data,
+          rollback_type: `${props.backupSource?.toLocaleUpperCase()}_AND_${localBackupType.value}`,
         }));
       }
       return localRollbackTimeRef.value!.getValue().then(() => ({
-        rollback_type: `${props.backupSource?.toLocaleUpperCase()}_AND_${localBackupType.value}`,
         rollback_time: formatDateToUTC(localRollbackTime.value),
+        rollback_type: `${props.backupSource?.toLocaleUpperCase()}_AND_${localBackupType.value}`,
       }));
     },
   });

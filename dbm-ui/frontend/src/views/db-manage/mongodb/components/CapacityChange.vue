@@ -57,15 +57,15 @@
 
   interface Props {
     data: {
-      id: number,
-      clusterName: string,
-      specId: number,
-      specName: string
-      bizId: number,
-      cloudId: number,
-      shardNum: number;
+      bizId: number;
+      cloudId: number;
+      clusterName: string;
+      id: number;
       shardNodeCount: number;
-    },
+      shardNum: number;
+      specId: number;
+      specName: string;
+    };
   }
 
   const props = defineProps<Props>();
@@ -82,49 +82,52 @@
 
   const originSpecId = computed(() => props.data.specId);
 
-  watch(() => specInfo.spec_id, (newSpecId) => {
-    isChange.value = newSpecId > 0;
-  });
+  watch(
+    () => specInfo.spec_id,
+    (newSpecId) => {
+      isChange.value = newSpecId > 0;
+    },
+  );
 
   const handleMongoConfigSpecChange = (value?: MongoConfigSpecRow) => {
     currentSpec.value = value;
   };
 
   defineExpose({
+    cancel() {
+      isChange.value = false;
+    },
     submit() {
       const currentSpecData = currentSpec.value;
       return new Promise((resolve, reject) => {
         InfoBox({
-          title: t('确认变更集群容量'),
-          subTitle: <p class="pb-8">{ props.data.clusterName }</p>,
-          confirmText: t('确认'),
           cancelText: t('取消'),
-          headerAlign: 'center',
+          confirmText: t('确认'),
           contentAlign: 'center',
           footerAlign: 'center',
+          headerAlign: 'center',
           onClose: () => reject(),
           onConfirm: () => {
             createTicket({
-              ticket_type: TicketTypes.MONGODB_SCALE_UPDOWN,
               bk_biz_id: props.data.bizId,
               details: {
-                ip_source: 'resource_pool',
                 infos: [
                   {
                     cluster_id: props.data.id,
+                    resource_spec: {
+                      mongodb: {
+                        count: currentSpecData!.machine_num,
+                        spec_id: specInfo.spec_id,
+                      },
+                    },
                     shard_machine_group: currentSpecData!.machine_pair,
                     shard_node_count: 3, // 固定值
                     shards_num: currentSpecData!.shard_num,
-                    resource_spec: {
-                      mongodb: {
-                        spec_id: specInfo.spec_id,
-                        count: currentSpecData!.machine_num,
-                      },
-                    },
-
                   },
                 ],
+                ip_source: 'resource_pool',
               },
+              ticket_type: TicketTypes.MONGODB_SCALE_UPDOWN,
             })
               .then((data) => {
                 ticketMessage(data.id);
@@ -132,14 +135,13 @@
                 resolve(true);
               })
               .catch(() => {
-                reject()
-              })
+                reject();
+              });
           },
+          subTitle: <p class='pb-8'>{props.data.clusterName}</p>,
+          title: t('确认变更集群容量'),
         });
       });
-    },
-    cancel() {
-      isChange.value = false;
     },
   });
 </script>

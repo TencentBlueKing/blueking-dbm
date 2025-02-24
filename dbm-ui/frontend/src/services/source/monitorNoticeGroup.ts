@@ -24,8 +24,8 @@ const path = '/apis/monitor/notice_group';
 export function getAlarmGroupList(
   params: {
     bk_biz_id: number;
-    name: string;
     limit: number;
+    name: string;
     offset: number;
   },
   payload = {} as IRequestPayload,
@@ -48,9 +48,9 @@ export function getAlarmGroupList(
  */
 export function insertAlarmGroup(params: {
   bk_biz_id: number;
+  details: NoticGroupModel['details'];
   name: string;
   receivers: NoticGroupModel['receivers'][];
-  details: NoticGroupModel['details'];
 }) {
   return http.post(`${path}/`, params);
 }
@@ -59,11 +59,11 @@ export function insertAlarmGroup(params: {
  * 编辑告警组(全量)
  */
 export function updateAlarmGroup(params: {
-  name: string;
   bk_biz_id: number;
-  receivers: NoticGroupModel['receivers'][];
   details: NoticGroupModel['details'];
   id: number;
+  name: string;
+  receivers: NoticGroupModel['receivers'][];
 }) {
   return http.put(`${path}/${params.id}/`, params);
 }
@@ -72,10 +72,10 @@ export function updateAlarmGroup(params: {
  * 编辑告警组(部分)
  */
 export function patchAlarmGroup(params: {
-  name: string;
-  receivers: NoticGroupModel['receivers'][];
   details: NoticGroupModel['details'];
   id: number;
+  name: string;
+  receivers: NoticGroupModel['receivers'][];
 }) {
   return http.patch(`${path}/${params.id}/`, params);
 }
@@ -90,13 +90,13 @@ export function deleteAlarmGroup(params: { id: number }) {
 /**
  * 获取告警组通知方式
  */
-export function getAlarmGroupNotifyList(params: { bk_biz_id: number; name?: string; limit?: number; offset?: number }) {
+export function getAlarmGroupNotifyList(params: { bk_biz_id: number; limit?: number; name?: string; offset?: number }) {
   return http.get<
     {
-      type: string;
-      label: string;
-      is_active: boolean;
       icon: string;
+      is_active: boolean;
+      label: string;
+      type: string;
     }[]
   >(`${path}/get_msg_type/`, params);
 }

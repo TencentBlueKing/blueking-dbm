@@ -45,23 +45,23 @@
   import FailSlaveInstance from './components/FailSlaveInstance.vue';
 
   interface Props {
-    searchParams?: Record<string, any>,
     isPlatform?: boolean;
+    searchParams?: Record<string, any>;
     serviceUrl: string;
   }
 
   interface Exposes {
     getExportExcelSheetData: () => Promise<{
-      headerList: string[];
       colWidthList: { wch: number }[];
-      fileName: string;
       dataList: string[][];
+      fileName: string;
+      headerList: string[];
     }>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    searchParams: undefined,
     isPlatform: false,
+    searchParams: undefined,
   });
 
   const { t } = useI18n();
@@ -78,43 +78,37 @@
   const isShowFailSlaveInstance = ref(false);
   const failSlaveInstanceReportId = ref(0);
 
-  const tableColumns = shallowRef<{label: string, render:(data: any) => any }[]>([]);
+  const tableColumns = shallowRef<{ label: string; render: (data: any) => any }[]>([]);
   const tableData = shallowRef<any[]>([]);
 
-  const bizsMap = computed(() => globalBizsStore.bizs.reduce<Record<number, string>>((results, item) => {
-    Object.assign(results, {
-      [item.bk_biz_id]: item.name,
-    })
-    return results;
-  }, {}));
+  const bizsMap = computed(() =>
+    globalBizsStore.bizs.reduce<Record<number, string>>((results, item) => {
+      Object.assign(results, {
+        [item.bk_biz_id]: item.name,
+      });
+      return results;
+    }, {}),
+  );
 
-  const {
-    loading,
-    run: fetchInspectionData,
-  } = useRequest(getReport, {
+  const { loading, run: fetchInspectionData } = useRequest(getReport, {
     manual: true,
     onSuccess(result) {
       pagination.count = result.count;
       tableName.value = result.name;
 
-      tableColumns.value = result.title.map(titleItem => ({
+      tableColumns.value = result.title.map((titleItem) => ({
         label: titleItem.display_name,
-        showOverflow: "tooltip",
-        render: ({ data: fieldData }: {data:any}) => {
+        render: ({ data: fieldData }: { data: any }) => {
           const fieldValue = fieldData[titleItem.name];
           if (titleItem.format === 'status') {
             const isSuccess = fieldValue === true;
-            return (
-              <DbStatus theme={isSuccess ? 'success' : 'danger'}>
-                { isSuccess ? t('成功') : t('失败') }
-              </DbStatus>
-            );
+            return <DbStatus theme={isSuccess ? 'success' : 'danger'}>{isSuccess ? t('成功') : t('失败')}</DbStatus>;
           }
           if (titleItem.format === 'fail_slave_instance') {
             return (
               <bk-button
+                theme='primary'
                 text
-                theme="primary"
                 onClick={() => handleShowFailSlaveInstance(fieldData)}>
                 {fieldData[titleItem.name]}
               </bk-button>
@@ -128,6 +122,7 @@
           }
           return fieldData[titleItem.name] || '--';
         },
+        showOverflow: 'tooltip',
       }));
 
       tableData.value = result.results;
@@ -135,21 +130,29 @@
   });
 
   const fetchData = () => {
-    fetchInspectionData(props.serviceUrl, {
-      offset: (pagination.current - 1) * pagination.limit,
-      limit: pagination.limit,
-      platform: props.isPlatform,
-      ...props.searchParams,
-    }, {
-      permission: 'page',
-    });
+    fetchInspectionData(
+      props.serviceUrl,
+      {
+        limit: pagination.limit,
+        offset: (pagination.current - 1) * pagination.limit,
+        platform: props.isPlatform,
+        ...props.searchParams,
+      },
+      {
+        permission: 'page',
+      },
+    );
   };
 
-  watch(() => props.searchParams, () => {
-    fetchData();
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.searchParams,
+    () => {
+      fetchData();
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleShowFailSlaveInstance = (data: any) => {
     isShowFailSlaveInstance.value = true;
@@ -157,8 +160,8 @@
   };
 
   const pageLimitChange = (pageLimit: number) => {
-    if (pagination.limit === pageLimit){
-      return
+    if (pagination.limit === pageLimit) {
+      return;
     }
 
     pagination.limit = pageLimit;
@@ -166,9 +169,9 @@
     fetchData();
   };
 
-  const pageValueChange = (pageValue:number) => {
+  const pageValueChange = (pageValue: number) => {
     if (pagination.current === pageValue) {
-      return
+      return;
     }
 
     pagination.current = pageValue;
@@ -177,37 +180,49 @@
 
   defineExpose<Exposes>({
     async getExportExcelSheetData() {
-      const { results, title, name: fileName } = await getReport(props.serviceUrl, {
-        offset: 0,
-        limit: -1,
-        platform: props.isPlatform,
-        ...props.searchParams,
-      }, {
-        permission: 'page',
-      });
+      const {
+        name: fileName,
+        results,
+        title,
+      } = await getReport(
+        props.serviceUrl,
+        {
+          limit: -1,
+          offset: 0,
+          platform: props.isPlatform,
+          ...props.searchParams,
+        },
+        {
+          permission: 'page',
+        },
+      );
       const headerList: string[] = [];
       const columnIds: string[] = [];
-      title.forEach(item => {
+      title.forEach((item) => {
         headerList.push(item.display_name);
         columnIds.push(item.name);
       });
-      const colWidthList = Array(headerList.length).fill(20).map(width => ({ wch: width }));
-      const dataList = results.map(item => columnIds.reduce<string[]>((results, columnId) => {
-        let value = item[columnId];
-        if (columnId === 'bk_biz_id') {
-          value = bizsMap.value[Number(value)];
-        }
-        results.push(value);
-        return results
-      }, []));
+      const colWidthList = Array(headerList.length)
+        .fill(20)
+        .map((width) => ({ wch: width }));
+      const dataList = results.map((item) =>
+        columnIds.reduce<string[]>((results, columnId) => {
+          let value = item[columnId];
+          if (columnId === 'bk_biz_id') {
+            value = bizsMap.value[Number(value)];
+          }
+          results.push(value);
+          return results;
+        }, []),
+      );
       return {
-        headerList,
         colWidthList,
         dataList,
         fileName,
+        headerList,
       };
-    }
-  })
+    },
+  });
 </script>
 <style lang="less">
   .render-dynamic-table {

@@ -155,9 +155,9 @@
   type NodeLog = ServiceReturnType<typeof getNodeLog>[number];
 
   interface Props {
+    failedNodes?: GraphNode[];
     isShow?: boolean;
     node?: GraphNode;
-    failedNodes?: GraphNode[];
   }
 
   interface Emits {
@@ -167,9 +167,9 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    failedNodes: () => [] as NonNullable<Props['failedNodes']>,
     isShow: false,
     node: () => ({}) as NonNullable<Props['node']>,
-    failedNodes: () => [] as NonNullable<Props['failedNodes']>,
   });
   const emits = defineEmits<Emits>();
 
@@ -203,12 +203,12 @@
   const nodeData = computed(() => props.node.data || {});
   const status = computed(() => {
     const themesMap = {
-      FINISHED: 'success',
-      RUNNING: 'info',
-      FAILED: 'danger',
-      SKIPPED: 'danger',
-      READY: '',
       CREATED: '',
+      FAILED: 'danger',
+      FINISHED: 'success',
+      READY: '',
+      RUNNING: 'info',
+      SKIPPED: 'danger',
     };
 
     const status = nodeData.value.status ? nodeData.value.status : 'READY';
@@ -243,7 +243,7 @@
     const regex = /^##\[[a-z]+]/;
 
     return data.map((item) => {
-      const { timestamp, message, levelname } = item;
+      const { levelname, message, timestamp } = item;
       const time = format(new Date(Number(timestamp)), 'yyyy-MM-dd HH:mm:ss');
       return {
         ...item,
@@ -261,8 +261,8 @@
     }
 
     const params = {
-      root_id: rootId,
       node_id: nodeData.value.id,
+      root_id: rootId,
       version_id: currentData.value.version,
     };
     getNodeLog(params)
@@ -317,8 +317,8 @@
    */
   const handleDownLoaderLog = () => {
     const params: any = {
-      root_id: rootId,
       node_id: nodeData.value.id,
+      root_id: rootId,
       version_id: currentData.value.version,
     };
     const url = `/apis/taskflow/${params.root_id}/node_log/?root_id=${params.root_id}&node_id=${params.node_id}&version_id=${params.version_id}&download=1`;
@@ -350,8 +350,8 @@
   const handleRefresh = () => {
     refreshShow.value = false;
     runRetryTaskflowNode({
-      root_id: rootId,
       node_id: props.node.id,
+      root_id: rootId,
     });
   };
 

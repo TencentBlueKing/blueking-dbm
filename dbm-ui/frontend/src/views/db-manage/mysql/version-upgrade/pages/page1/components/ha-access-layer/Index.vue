@@ -110,9 +110,9 @@
   import RenderDataRow, { createRowData, type IDataRow } from './Row.vue';
 
   interface Props {
-    tableList: IDataRow[];
     force: boolean;
     remark: string;
+    tableList: IDataRow[];
   }
 
   interface Exposes {
@@ -183,14 +183,14 @@
   };
 
   const generateTableRow = (item: TendbhaModel) => ({
-    rowKey: item.master_domain,
-    isLoading: false,
     clusterData: {
-      domain: item.master_domain,
       clusterId: item.id,
       clusterType: item.cluster_type,
       currentVersion: item.proxies[0].version,
+      domain: item.master_domain,
     },
+    isLoading: false,
+    rowKey: item.master_domain,
     targetVersion: '',
   });
 
@@ -200,8 +200,8 @@
     const list = selected[ClusterTypes.TENDBHA];
     const clusterIdList = list.map((listItem) => listItem.id);
     const relatedClusterResult = await findRelatedClustersByClusterIds({
-      cluster_ids: clusterIdList,
       bk_biz_id: currentBizId,
+      cluster_ids: clusterIdList,
     });
     const relatedClusterMap = relatedClusterResult.reduce(
       (prev, item) =>
@@ -264,13 +264,13 @@
       isSubmitting.value = true;
       const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
       await createTicket({
-        ticket_type: TicketTypes.MYSQL_PROXY_UPGRADE,
-        remark: localRemark.value,
-        details: {
-          infos,
-          force: isForce.value,
-        },
         bk_biz_id: currentBizId,
+        details: {
+          force: isForce.value,
+          infos,
+        },
+        remark: localRemark.value,
+        ticket_type: TicketTypes.MYSQL_PROXY_UPGRADE,
       }).then((data) => {
         window.changeConfirm = false;
 

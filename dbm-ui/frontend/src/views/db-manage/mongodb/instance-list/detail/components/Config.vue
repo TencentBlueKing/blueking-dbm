@@ -29,22 +29,22 @@
 
   const columns = [
     {
-      label: t('参数项'),
       field: 'conf_name',
+      label: t('参数项'),
     },
     {
-      label: t('参数值'),
       field: 'conf_value',
+      label: t('参数值'),
     },
     {
-      label: t('描述'),
       field: 'description',
+      label: t('描述'),
     },
     {
-      label: t('重启实例生效'),
       field: 'need_restart',
-      width: 200,
+      label: t('重启实例生效'),
       render: ({ cell }: { cell: number }) => (cell === 1 ? t('是') : t('否')),
+      width: 200,
     },
   ];
 
@@ -63,11 +63,11 @@
     () => props.data,
     () => {
       fetchClusterConfig({
-        level_name: 'cluster',
+        bk_biz_id: currentBizId,
         conf_type: 'dbconf',
+        level_name: 'cluster',
         level_value: props.data.cluster_id,
         meta_cluster_type: props.data.cluster_type,
-        bk_biz_id: currentBizId,
         version: props.data.version,
       });
     },

@@ -22,18 +22,18 @@
 <script setup lang="ts">
   interface Props {
     currentValue: number;
-    targetValue: number;
-    showRate?: boolean;
     numUnit?: string;
+    showRate?: boolean;
+    targetValue: number;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    showRate: true,
     numUnit: '',
+    showRate: true,
   });
 
   const diffInfo = computed(() => {
-    const { currentValue, targetValue, showRate } = props;
+    const { currentValue, showRate, targetValue } = props;
 
     const diff = targetValue - currentValue;
     let rate = '0';
@@ -42,15 +42,15 @@
     }
     if (diff < 0) {
       return {
-        rate,
-        num: diff,
         isPositive: false,
+        num: diff,
+        rate,
       };
     }
     return {
-      rate: `+${rate}`,
-      num: `+${diff}`,
       isPositive: true,
+      num: `+${diff}`,
+      rate: `+${rate}`,
     };
   });
 

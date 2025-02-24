@@ -51,8 +51,8 @@
   interface Props {
     data: {
       icon: string;
-      tip: string;
       ticketId: number;
+      tip: string;
     };
   }
 
@@ -61,41 +61,41 @@
   const { t } = useI18n();
 
   const iconMap: Record<string, Record<string, string>> = {
-    [t('销毁中')]: {
-      color: '#EA3536',
-      background: '#FEEBEA',
-    },
-    [t('迁移中')]: {
-      color: '#8E3AFF',
-      background: '#F2EDFF',
-    },
     [t('删除中')]: {
-      color: '#EA3536',
       background: '#FEEBEA',
+      color: '#EA3536',
     },
     [t('启用中')]: {
-      color: '#74BC09',
       background: '#EDFFD3',
-    },
-    [t('禁用中')]: {
-      color: '#FE9C00',
-      background: '#FFF1DB',
-    },
-    [t('替换中')]: {
-      color: '#29AAE8',
-      background: '#EDFBFF',
+      color: '#74BC09',
     },
     [t('扩容中')]: {
-      color: '#14A568',
       background: '#E4FAF0',
+      color: '#14A568',
     },
-    [t('重启中')]: {
-      color: '#3A84FF',
-      background: '#EDF4FF',
+    [t('替换中')]: {
+      background: '#EDFBFF',
+      color: '#29AAE8',
+    },
+    [t('禁用中')]: {
+      background: '#FFF1DB',
+      color: '#FE9C00',
     },
     [t('缩容中')]: {
-      color: '#8E3AFF',
       background: '#F2EDFF',
+      color: '#8E3AFF',
+    },
+    [t('迁移中')]: {
+      background: '#F2EDFF',
+      color: '#8E3AFF',
+    },
+    [t('重启中')]: {
+      background: '#EDF4FF',
+      color: '#3A84FF',
+    },
+    [t('销毁中')]: {
+      background: '#FEEBEA',
+      color: '#EA3536',
     },
   };
 
@@ -122,22 +122,22 @@
         destroyInst();
         nextTick(() => {
           tippyIns = tippy(rootRef.value as SingleTarget, {
-            content: popRef.value.$el,
-            placement: 'top',
             appendTo: () => document.body,
-            theme: 'light',
-            maxWidth: 'none',
-            interactive: true,
             arrow: true,
-            offset: [0, 8],
-            zIndex: 999999,
+            content: popRef.value.$el,
             hideOnClick: true,
-            onShow() {
-              isShown.value = true;
-            },
+            interactive: true,
+            maxWidth: 'none',
+            offset: [0, 8],
             onHide() {
               isShown.value = false;
             },
+            onShow() {
+              isShown.value = true;
+            },
+            placement: 'top',
+            theme: 'light',
+            zIndex: 999999,
           });
         });
       }

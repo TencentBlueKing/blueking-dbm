@@ -1,12 +1,12 @@
 type groupByDbTypeArray<T> = Array<{
-  dbType: string;
   dataList: T;
+  dbType: string;
 }>;
 
 export const groupByDbType = <
   T extends {
-    db_type: string;
     bk_biz_id: number;
+    db_type: string;
   },
 >(
   data: Array<T>,
@@ -15,7 +15,7 @@ export const groupByDbType = <
   const clusterMap: Record<string, Array<T>> = {};
 
   data.forEach((clusterItem) => {
-    const { db_type: dbType, bk_biz_id: bizId } = clusterItem;
+    const { bk_biz_id: bizId, db_type: dbType } = clusterItem;
 
     if (clusterMap[dbType]) {
       clusterMap[dbType].push(clusterItem);
@@ -31,16 +31,16 @@ export const groupByDbType = <
   });
 
   return {
+    bizMap,
     dataList: Object.keys(clusterMap).reduce(
       (prevArr, mapKey) => [
         ...prevArr,
         {
-          dbType: mapKey,
           dataList: clusterMap[mapKey],
+          dbType: mapKey,
         },
       ],
       [] as groupByDbTypeArray<Array<T>>,
     ),
-    bizMap,
   };
 };

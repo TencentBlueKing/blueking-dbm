@@ -108,20 +108,20 @@
   type IKey = string | number;
 
   export interface IListItem {
+    disabled?: boolean;
     id: IKey;
     name: string;
-    disabled?: boolean;
   }
 
   interface Props {
-    modelValue?: IKey;
-    list: Array<IListItem>;
-    placeholder?: string;
-    rules?: Rules;
-    disabled?: boolean;
     clearable?: boolean;
-    popWidth?: number;
+    disabled?: boolean;
     isPlain?: boolean;
+    list: Array<IListItem>;
+    modelValue?: IKey;
+    placeholder?: string;
+    popWidth?: number;
+    rules?: Rules;
   }
   interface Emits {
     (e: 'update:modelValue', value: IKey): void;
@@ -133,14 +133,14 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    clearable: false,
+    disabled: false,
+    isPlain: false,
     modelValue: '',
     placeholder: '请选择',
-    textarea: false,
-    rules: () => [],
-    disabled: false,
-    clearable: false,
     popWidth: 0,
-    isPlain: false,
+    rules: () => [],
+    textarea: false,
   });
   const emits = defineEmits<Emits>();
 
@@ -213,15 +213,17 @@
       theme.push('table-edit-select-footer');
     }
     tippyIns = tippy(rootRef.value as SingleTarget, {
-      content: popRef.value,
-      placement: 'bottom-start',
       appendTo: () => document.body,
-      theme: theme.join(' '),
-      maxWidth: 'none',
-      trigger: 'click',
-      interactive: true,
       arrow: false,
+      content: popRef.value,
+      interactive: true,
+      maxWidth: 'none',
       offset: [0, 8],
+      onHide: () => {
+        isShowPop.value = false;
+        searchKey.value = '';
+        validator(localValue.value);
+      },
       onShow: () => {
         const { width } = rootRef.value.getBoundingClientRect();
         Object.assign(popRef.value.style, {
@@ -230,11 +232,9 @@
         isShowPop.value = true;
         isError.value = false;
       },
-      onHide: () => {
-        isShowPop.value = false;
-        searchKey.value = '';
-        validator(localValue.value);
-      },
+      placement: 'bottom-start',
+      theme: theme.join(' '),
+      trigger: 'click',
     });
   });
 

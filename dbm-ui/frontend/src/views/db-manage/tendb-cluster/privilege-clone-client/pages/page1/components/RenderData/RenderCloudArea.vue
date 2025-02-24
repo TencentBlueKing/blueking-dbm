@@ -37,7 +37,7 @@
 
   const { t } = useI18n();
 
-  const { loading: isLoading, data: bkNetList } = useRequest(getCloudList);
+  const { data: bkNetList, loading: isLoading } = useRequest(getCloudList);
 
   const localValue = computed(() => {
     if (!bkNetList.value || bkNetList.value.length < 1 || !props.source) {

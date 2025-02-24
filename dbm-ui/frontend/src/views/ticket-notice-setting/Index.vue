@@ -76,112 +76,123 @@
   import { getBizSettingList, updateBizSetting } from '@services/source/bizSetting';
   import { getAlarmGroupNotifyList } from '@services/source/monitorNoticeGroup';
 
-  import { InputMessageTypes, MessageTipMap, MessageTypes } from '@common/const'
+  import { InputMessageTypes, MessageTipMap, MessageTypes } from '@common/const';
 
   import { messageSuccess } from '@utils';
 
-  type AlarmGroupNotify = ServiceReturnType<typeof getAlarmGroupNotifyList>
-  type TicketNoticeSetting = Record<string, Record<string, boolean | string[]>>
+  type AlarmGroupNotify = ServiceReturnType<typeof getAlarmGroupNotifyList>;
+  type TicketNoticeSetting = Record<string, Record<string, boolean | string[]>>;
 
   interface DataRow {
+    checkbox: Record<string, boolean>;
+    input: Record<string, string>;
+    noticeMember: string[];
     status: string;
     statusText: string;
-    noticeMember: string[];
-    checkbox: Record<string, boolean>,
-    input: Record<string, string>,
   }
 
   const { t } = useI18n();
 
   const dataList = ref<DataRow[]>([]);
 
-  const bizId = window.PROJECT_CONFIG.BIZ_ID
-  const DefaultMessageTypeList = [MessageTypes.MAIL, MessageTypes.RTX]
-  const NoticeTicketTypeList = Object.entries(TicketModel.statusTextMap).filter(([status]) => ![TicketModel.STATUS_RUNNING, TicketModel.STATUS_TIMER].includes(status))
+  const bizId = window.PROJECT_CONFIG.BIZ_ID;
+  const DefaultMessageTypeList = [MessageTypes.MAIL, MessageTypes.RTX];
+  const NoticeTicketTypeList = Object.entries(TicketModel.statusTextMap).filter(
+    ([status]) => ![TicketModel.STATUS_RUNNING, TicketModel.STATUS_TIMER].includes(status),
+  );
 
   const columns = computed(() => {
     const baseColumns = [
       {
-        label: t('单据状态'),
         field: 'statusText',
+        label: t('单据状态'),
         width: 100,
       },
       {
-        label: t('通知对象'),
         field: 'noticeMember',
+        label: t('通知对象'),
+        render: ({ data }: { data: DataRow }) => data.noticeMember.join('，'),
         width: 200,
-        render: ({ data } : { data: DataRow }) => data.noticeMember.join('，')
       },
     ];
 
     // input 类型的放最后
     const activeTypeMap = (alarmGroupNotifyList.value || []).reduce<{
-      checkbox: AlarmGroupNotify,
-      input: AlarmGroupNotify,
-    }>((prevMap, item) => {
-      if (item.is_active) {
-        if (InputMessageTypes.includes(item.type)) {
-          Object.assign(prevMap.input, prevMap.input.concat(item))
-        } else {
-          Object.assign(prevMap.checkbox, prevMap.checkbox.concat(item))
+      checkbox: AlarmGroupNotify;
+      input: AlarmGroupNotify;
+    }>(
+      (prevMap, item) => {
+        if (item.is_active) {
+          if (InputMessageTypes.includes(item.type)) {
+            Object.assign(prevMap.input, prevMap.input.concat(item));
+          } else {
+            Object.assign(prevMap.checkbox, prevMap.checkbox.concat(item));
+          }
         }
-      }
-      return prevMap;
-    }, {
-      checkbox: [],
-      input: []
-    })
+        return prevMap;
+      },
+      {
+        checkbox: [],
+        input: [],
+      },
+    );
 
-    const nofityColumns = [...activeTypeMap.checkbox, ...activeTypeMap.input].map(item => {
-      const isInputType = InputMessageTypes.includes(item.type)
-      const messageTip = MessageTipMap[item.type]
+    const nofityColumns = [...activeTypeMap.checkbox, ...activeTypeMap.input].map((item) => {
+      const isInputType = InputMessageTypes.includes(item.type);
+      const messageTip = MessageTipMap[item.type];
       return {
         field: item.type,
         minWidth: isInputType ? 320 : 120,
-        showOverflowTooltip: false,
-        renderHead: () => (
-          <div class="message-type-head">
-            <img
-              height="20"
-              src={`data:image/png;base64,${item.icon}`}
-              width="20" />
-            <span
-              class="ml-4">
-              { item.label }
-            </span>
-            {
-              messageTip && (
-                <db-icon
-                  class="message-type-head-tip ml-4"
-                  v-bk-tooltips={{
-                    content: messageTip
-                  }}
-                  type="attention" />
-              )
-            }
-          </div>
-        ),
-        render: ({ data } : { data: DataRow }) => {
+        render: ({ data }: { data: DataRow }) => {
           if (isInputType) {
             return (
               <bk-input
                 v-model={data.input[item.type]}
-                placeholder={t('请输入群ID')}/>
-            )
+                placeholder={t('请输入群ID')}
+              />
+            );
           }
-          return <bk-checkbox v-model={data.checkbox[item.type]}/>
-        }
-      }
+          return <bk-checkbox v-model={data.checkbox[item.type]} />;
+        },
+        renderHead: () => (
+          <div class='message-type-head'>
+            <img
+              height='20'
+              src={`data:image/png;base64,${item.icon}`}
+              width='20'
+            />
+            <span class='ml-4'>{item.label}</span>
+            {messageTip && (
+              <db-icon
+                v-bk-tooltips={{
+                  content: messageTip,
+                }}
+                class='message-type-head-tip ml-4'
+                type='attention'
+              />
+            )}
+          </div>
+        ),
+        showOverflowTooltip: false,
+      };
     });
 
     return [...baseColumns, ...nofityColumns];
   });
 
-  const { loading: getBizSettingLoading, data: bizSetting, run: runGetBizSettingList } = useRequest(getBizSettingList, {
+  const {
+    data: bizSetting,
+    loading: getBizSettingLoading,
+    run: runGetBizSettingList,
+  } = useRequest(getBizSettingList, {
     manual: true,
   });
 
-  const { loading: groupNotifyLoading, data: alarmGroupNotifyList, run: runGetAlarmGroupNotifyList } = useRequest(getAlarmGroupNotifyList, {
+  const {
+    data: alarmGroupNotifyList,
+    loading: groupNotifyLoading,
+    run: runGetAlarmGroupNotifyList,
+  } = useRequest(getAlarmGroupNotifyList, {
     manual: true,
   });
 
@@ -189,7 +200,7 @@
     manual: true,
     onSuccess: () => {
       messageSuccess(t('保存成功'));
-      getData()
+      getData();
     },
   });
 
@@ -197,67 +208,70 @@
     manual: true,
     onSuccess: () => {
       messageSuccess(t('重置成功'));
-      getData()
+      getData();
     },
   });
 
   watch([bizSetting, alarmGroupNotifyList], () => {
     if (bizSetting.value && alarmGroupNotifyList.value) {
       const activeTypeMap = alarmGroupNotifyList.value.reduce<{
-        checkbox: Record<string, boolean>,
-        input: Record<string, string>,
-      }>((prevMap, item) => {
-        if (item.is_active) {
-          if (InputMessageTypes.includes(item.type)) {
-            Object.assign(prevMap.input, {
-              [item.type]: ''
-            })
-          } else {
-            Object.assign(prevMap.checkbox, {
-              [item.type]: false
-            })
+        checkbox: Record<string, boolean>;
+        input: Record<string, string>;
+      }>(
+        (prevMap, item) => {
+          if (item.is_active) {
+            if (InputMessageTypes.includes(item.type)) {
+              Object.assign(prevMap.input, {
+                [item.type]: '',
+              });
+            } else {
+              Object.assign(prevMap.checkbox, {
+                [item.type]: false,
+              });
+            }
           }
-        }
-        return prevMap;
-      }, {
-        checkbox: {},
-        input: {}
-      })
+          return prevMap;
+        },
+        {
+          checkbox: {},
+          input: {},
+        },
+      );
 
-      const isBizSettingEmpty = _.isEmpty(bizSetting.value) ||  _.isEmpty(bizSetting.value.NOTIFY_CONFIG)
-      const list: DataRow[] = []
+      const isBizSettingEmpty = _.isEmpty(bizSetting.value) || _.isEmpty(bizSetting.value.NOTIFY_CONFIG);
+      const list: DataRow[] = [];
 
       NoticeTicketTypeList.forEach(([status, statusText]) => {
-        const initSetting = _.cloneDeep(activeTypeMap)
+        const initSetting = _.cloneDeep(activeTypeMap);
         if (isBizSettingEmpty) {
-          DefaultMessageTypeList.forEach(type => {
+          DefaultMessageTypeList.forEach((type) => {
             if (initSetting.checkbox[type] !== undefined) {
               initSetting.checkbox[type] = true;
             }
           });
         } else {
-          const statusBizSetting = bizSetting.value!.NOTIFY_CONFIG[status]
-          Object.keys(initSetting.checkbox).forEach(initSettingKey => {
-            initSetting.checkbox[initSettingKey] = statusBizSetting[initSettingKey] || false
-          })
-          Object.keys(initSetting.input).forEach(initSettingKey => {
-            initSetting.input[initSettingKey] = (statusBizSetting[initSettingKey] || []).join(',')
-          })
+          const statusBizSetting = bizSetting.value!.NOTIFY_CONFIG[status];
+          Object.keys(initSetting.checkbox).forEach((initSettingKey) => {
+            initSetting.checkbox[initSettingKey] = statusBizSetting[initSettingKey] || false;
+          });
+          Object.keys(initSetting.input).forEach((initSettingKey) => {
+            initSetting.input[initSettingKey] = (statusBizSetting[initSettingKey] || []).join(',');
+          });
         }
 
         list.push({
+          checkbox: initSetting.checkbox,
+          input: initSetting.input,
+          noticeMember: status === TicketModel.STATUS_APPROVE ? [t('审批人')] : [t('提单人'), t('协助人')],
           status,
           statusText,
-          noticeMember: status === TicketModel.STATUS_APPROVE ? [t('审批人')] : [t('提单人'), t('协助人')],
-          checkbox: initSetting.checkbox,
-          input: initSetting.input
-        })
-      })
-      dataList.value = list
+        });
+      });
+      dataList.value = list;
     }
-  })
+  });
 
-  const setHeadCellClassName = ({ columnIndex }: { columnIndex: number }) => columnIndex < 2 ? 'common-head' : ''
+  const setHeadCellClassName = ({ columnIndex }: { columnIndex: number }) => (columnIndex < 2 ? 'common-head' : '');
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
@@ -265,53 +279,64 @@
     runGetBizSettingList({
       bk_biz_id: bizId,
       key: 'NOTIFY_CONFIG',
-    })
+    });
     runGetAlarmGroupNotifyList({
-      bk_biz_id: bizId
-    })
-  }
+      bk_biz_id: bizId,
+    });
+  };
 
   const handleSave = () => {
     runUpdateBizSetting({
       bk_biz_id: bizId,
       key: 'NOTIFY_CONFIG',
       value: dataList.value.reduce<TicketNoticeSetting>((prevMap, dataItem) => {
-        const checkboxMap = Object.entries(dataItem.checkbox).reduce<Record<string, boolean>>((prevMap, [key, value])=> {
+        const checkboxMap = Object.entries(dataItem.checkbox).reduce<Record<string, boolean>>(
+          (prevMap, [key, value]) => {
+            if (value) {
+              return Object.assign({}, prevMap, { [key]: value });
+            }
+            return prevMap;
+          },
+          {},
+        );
+        const inputMap = Object.entries(dataItem.input).reduce<Record<string, string[]>>((prevMap, [key, value]) => {
           if (value) {
-            return Object.assign({}, prevMap, { [key]: value })
+            return Object.assign({}, prevMap, { [key]: value.split(',') });
           }
-          return prevMap
-        }, {})
-        const inputMap = Object.entries(dataItem.input).reduce<Record<string, string[]>>((prevMap, [key, value])=> {
-          if (value) {
-            return Object.assign({}, prevMap, { [key]: value.split(',') })
-          }
-          return prevMap
-        }, {})
+          return prevMap;
+        }, {});
         return Object.assign({}, prevMap, {
           [dataItem.status]: {
             ...checkboxMap,
-            ...inputMap
-          }
-        })
-      }, {})
-    })
+            ...inputMap,
+          },
+        });
+      }, {}),
+    });
   };
 
   const handleReset = () => {
     runResetBizSetting({
       bk_biz_id: bizId,
       key: 'NOTIFY_CONFIG',
-      value: NoticeTicketTypeList.reduce<TicketNoticeSetting>((prevSettingMap, [status]) => Object.assign({}, prevSettingMap, {
-        [status]: DefaultMessageTypeList.reduce<Record<string, boolean>>((prevValueMap, type) => Object.assign({}, prevValueMap, {
-          [type]: true
-        }), {})
-      }), {})
-    })
+      value: NoticeTicketTypeList.reduce<TicketNoticeSetting>(
+        (prevSettingMap, [status]) =>
+          Object.assign({}, prevSettingMap, {
+            [status]: DefaultMessageTypeList.reduce<Record<string, boolean>>(
+              (prevValueMap, type) =>
+                Object.assign({}, prevValueMap, {
+                  [type]: true,
+                }),
+              {},
+            ),
+          }),
+        {},
+      ),
+    });
   };
 
   // 初始化查询
-  getData()
+  getData();
 </script>
 
 <style lang="less" scoped>

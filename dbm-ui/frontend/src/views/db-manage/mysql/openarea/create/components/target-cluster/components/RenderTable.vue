@@ -81,8 +81,8 @@
   import BatchOperateIcon from '@views/db-manage/common/batch-operate-icon/Index.vue';
 
   interface Props {
-    variableList: string[];
     showIpCloumn: boolean;
+    variableList: string[];
   }
 
   interface Emits {

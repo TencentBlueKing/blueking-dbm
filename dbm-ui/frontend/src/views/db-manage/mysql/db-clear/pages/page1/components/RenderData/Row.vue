@@ -73,28 +73,28 @@
   import { random } from '@utils';
 
   export interface IDataRow {
-    rowKey: string;
     clusterData?: {
-      id: number;
       domain: string;
+      id: number;
       type: string;
     };
-    truncateDataType: string;
     dbPatterns?: string[];
-    tablePatterns?: string[];
     ignoreDbs?: string[];
     ignoreTables?: string[];
+    rowKey: string;
+    tablePatterns?: string[];
+    truncateDataType: string;
   }
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>): IDataRow => ({
-    rowKey: random(),
     clusterData: data.clusterData,
-    truncateDataType: data.truncateDataType || '',
     dbPatterns: data.dbPatterns,
-    tablePatterns: data.tablePatterns,
     ignoreDbs: data.ignoreDbs,
     ignoreTables: data.ignoreTables,
+    rowKey: random(),
+    tablePatterns: data.tablePatterns,
+    truncateDataType: data.truncateDataType || '',
   });
 
   export type IDataRowBatchKey = keyof Omit<IDataRow, 'rowKey' | 'clusterData'>;
@@ -109,9 +109,9 @@
   import RenderTruncateDataType from './RenderTruncateDataType.vue';
 
   interface Props {
+    clusterTypes?: string[];
     data: IDataRow;
     removeable: boolean;
-    clusterTypes?: string[];
   }
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
@@ -205,13 +205,13 @@
       emits(
         'clone',
         createRowData({
-          rowKey: random(),
           clusterData: props.data.clusterData,
-          truncateDataType: rowInfo[1].truncate_data_type,
           dbPatterns: rowInfo[2].db_patterns,
-          tablePatterns: rowInfo[3].table_patterns,
           ignoreDbs: rowInfo[4].ignore_dbs,
           ignoreTables: rowInfo[5].ignore_tables,
+          rowKey: random(),
+          tablePatterns: rowInfo[3].table_patterns,
+          truncateDataType: rowInfo[1].truncate_data_type,
         }),
       );
     });

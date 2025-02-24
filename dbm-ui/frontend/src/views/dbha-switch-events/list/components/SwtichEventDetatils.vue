@@ -39,7 +39,7 @@
     const regex = /^##\[[a-z]+]/;
 
     return data.map((item) => {
-      const { timestamp, message, levelname } = item;
+      const { levelname, message, timestamp } = item;
       const time = format(new Date(Number(timestamp)), 'yyyy-MM-dd HH:mm:ss');
       return {
         ...item,

@@ -19,25 +19,25 @@ export function generateRedisDataCopyCloneData(ticketData: TicketModel<Redis.Clu
   const { clusters, infos } = ticketData.details;
 
   const tableList = infos.map((item) => ({
-    rowKey: random(),
-    isLoading: false,
-    srcCluster: clusters[item.src_cluster].immute_domain,
-    srcClusterTypeName: clusters[item.src_cluster].cluster_type_name,
-    srcClusterId: item.src_cluster,
     clusterType: item.src_cluster_type,
+    excludeKey: item.key_black_regex ? item.key_black_regex.split('\n') : [],
+    includeKey: item.key_white_regex ? item.key_white_regex.split('\n') : [],
+    isLoading: false,
+    password: item.src_cluster_password,
+    rowKey: random(),
+    srcCluster: clusters[item.src_cluster].immute_domain,
+    srcClusterId: item.src_cluster,
+    srcClusterTypeName: clusters[item.src_cluster].cluster_type_name,
+    targetBusines: item.dst_bk_biz_id,
     targetCluster: clusters[item.dst_cluster].immute_domain,
     targetClusterId: item.dst_cluster,
-    includeKey: item.key_white_regex ? item.key_white_regex.split('\n') : [],
-    excludeKey: item.key_black_regex ? item.key_black_regex.split('\n') : [],
-    targetBusines: item.dst_bk_biz_id,
-    password: item.src_cluster_password,
   }));
 
   return Promise.resolve({
-    tableList,
     copyMode: ticketData.details.dts_copy_type,
-    writeMode: ticketData.details.write_mode,
     disconnectSetting: ticketData.details.sync_disconnect_setting,
     remark: ticketData.remark,
+    tableList,
+    writeMode: ticketData.details.write_mode,
   });
 }

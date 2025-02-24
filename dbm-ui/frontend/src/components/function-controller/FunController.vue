@@ -14,8 +14,8 @@
   import { useFunController } from '@stores';
 
   interface Props {
-    moduleId: ExtractedControllerDataKeys;
     controllerId?: T;
+    moduleId: ExtractedControllerDataKeys;
   }
 
   const props = defineProps<Props>();
@@ -23,7 +23,7 @@
   const funControllerStore = useFunController();
 
   const showFunction = computed(() => {
-    const { moduleId, controllerId } = props;
+    const { controllerId, moduleId } = props;
 
     const data = funControllerStore.funControllerData[moduleId];
 

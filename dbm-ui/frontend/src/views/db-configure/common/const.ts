@@ -21,31 +21,31 @@ import type { ExtraClusterConf, ExtraParamertesCluster } from './types';
  * 有多份配置的集群
  */
 export const extraParamertesCluster: ExtraParamertesCluster = {
-  [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: [
-    {
-      version: 'Twemproxy-latest',
-      conf_type: 'proxyconf',
-      title: t('Proxy_参数配置'),
-      loading: false,
-      data: null,
-    },
-  ],
   [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: [
     {
-      version: 'Predixy-latest',
       conf_type: 'proxyconf',
-      title: t('Proxy_参数配置'),
-      loading: false,
       data: null,
+      loading: false,
+      title: t('Proxy_参数配置'),
+      version: 'Predixy-latest',
+    },
+  ],
+  [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: [
+    {
+      conf_type: 'proxyconf',
+      data: null,
+      loading: false,
+      title: t('Proxy_参数配置'),
+      version: 'Twemproxy-latest',
     },
   ],
   [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: [
     {
-      version: 'Twemproxy-latest',
       conf_type: 'proxyconf',
-      title: t('Proxy_参数配置'),
-      loading: false,
       data: null,
+      loading: false,
+      title: t('Proxy_参数配置'),
+      version: 'Twemproxy-latest',
     },
   ],
 };
@@ -54,8 +54,8 @@ export const extraParamertesCluster: ExtraParamertesCluster = {
  * 默认配置 title 映射
  */
 export const defaultConfTitles: Partial<Record<ClusterTypes, string>> = {
-  [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: t('Redis_配置'),
   [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: t('Redis_配置'),
+  [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: t('Redis_配置'),
   [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: t('Redis_配置'),
 };
 
@@ -71,13 +71,13 @@ export const getDefaultConf = (type: ClusterTypes, name = t('参数配置')) => 
  * 集群额外配置集合
  */
 export const extraClusterConfs: ExtraClusterConf = {
-  [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: [
+  [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: [
     {
       confType: 'proxyconf',
       name: t('Proxy_配置'),
     },
   ],
-  [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: [
+  [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: [
     {
       confType: 'proxyconf',
       name: t('Proxy_配置'),

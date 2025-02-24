@@ -28,9 +28,7 @@
     unique?: boolean;
   }
 
-  interface Emits {
-    (e: 'change', data: IDataRow['clusterData']): void;
-  }
+  type Emits = (e: 'change', data: IDataRow['clusterData']) => void;
 
   interface Exposes {
     getValue: () => Promise<{
@@ -52,8 +50,8 @@
 
   const props = withDefaults(defineProps<Props>(), {
     modelValue: () => ({
-      id: 0,
       domain: '',
+      id: 0,
     }),
     placeholder: '',
     unique: false,
@@ -72,39 +70,40 @@
 
   const rules = [
     {
+      message: t('待回档集群不能为空'),
       validator: (domain: string) => {
         if (domain) {
           return true;
         }
         return false;
       },
-      message: t('待回档集群不能为空'),
     },
     {
+      message: t('待回档集群不存在'),
       validator: (domain: string) =>
         queryClusters({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           cluster_filters: [
             {
               immute_domain: domain,
             },
           ],
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         }).then((data) => {
           if (data.length > 0) {
             const {
-              id,
-              master_domain: domain,
               bk_cloud_id: cloudId,
               bk_cloud_name: cloudName,
               cluster_type: clusterType,
+              id,
+              master_domain: domain,
             } = data[0];
             localClusterId.value = id;
             emits('change', {
-              id,
-              domain,
               cloudId,
               cloudName,
               clusterType,
+              domain,
+              id,
             });
             clusterIdMemo[instanceKey] = {
               [id]: true,
@@ -112,17 +111,17 @@
             return true;
           }
           emits('change', {
-            id: 0,
-            domain: '',
             cloudId: undefined,
             cloudName: undefined,
             clusterType: '',
+            domain: '',
+            id: 0,
           });
           return false;
         }),
-      message: t('待回档集群不存在'),
     },
     {
+      message: t('待回档集群重复'),
       validator: () => {
         if (!props.unique) {
           return true;
@@ -138,7 +137,6 @@
         );
         return !otherClusterIdMap[localClusterId.value];
       },
-      message: t('待回档集群重复'),
     },
   ];
 
@@ -146,7 +144,7 @@
   watch(
     () => props.modelValue,
     () => {
-      const { id = 0, domain = '' } = props.modelValue || {};
+      const { domain = '', id = 0 } = props.modelValue || {};
       localClusterId.value = id;
       localDomain.value = domain;
       if (id) {

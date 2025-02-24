@@ -78,22 +78,18 @@
 
   import DbStatus from '@components/db-status/index.vue';
 
-  import {
-    getCostTimeDisplay,
-    utcDisplayTime,
-  } from '@utils';
+  import { getCostTimeDisplay, utcDisplayTime } from '@utils';
 
   import SwtichEventDetatils from './components/SwtichEventDetatils.vue';
 
-
-  type EventSwtichItem = ServiceReturnType<typeof getEventSwitchList>[number]
+  type EventSwtichItem = ServiceReturnType<typeof getEventSwitchList>[number];
 
   interface TableItem extends EventSwtichItem {
-    cost_time: string,
+    cost_time: string;
     result_info: {
-      text: string,
-      theme?: 'success' | 'warning' | 'danger' | 'info'
-    }
+      text: string;
+      theme?: 'success' | 'warning' | 'danger' | 'info';
+    };
   }
 
   const router = useRouter();
@@ -103,156 +99,151 @@
   const isAnomalies = ref(false);
   const isLoading = ref(false);
   const filterDateRang = ref<[string, string]>([
-    dayjs().day(-6)
-      .format('YYYY-MM-DD HH:mm:ss'),
+    dayjs().day(-6).format('YYYY-MM-DD HH:mm:ss'),
     dayjs().format('YYYY-MM-DD HH:mm:ss'),
   ]);
 
   const logState = reactive({
+    data: {} as TableItem,
     isShow: false,
     title: '',
-    data: {} as TableItem,
   });
   const tableData = shallowRef<TableItem[]>([]);
 
   const columns = [
     {
-      label: t('业务'),
       field: 'bk_biz_name',
-      minWidth: 100,
       fixed: 'left',
+      label: t('业务'),
+      minWidth: 100,
     },
     {
-      label: t('集群域名'),
       field: 'cluster',
-      minWidth: 300,
       fixed: 'left',
+      label: t('集群域名'),
+      minWidth: 300,
       render: ({ data }: { data: TableItem }) => (
         <bk-button
+          theme='primary'
           text
-          theme="primary"
           onClick={() => handleToCluster(data)}>
           {data.cluster}
-        </bk-button >
+        </bk-button>
       ),
     },
     {
-      label: t('实例类型'),
       field: 'db_type',
+      label: t('实例类型'),
       minWidth: 100,
     },
     {
-      label: t('实例角色'),
       field: 'db_role',
+      label: t('实例角色'),
       minWidth: 100,
       render: ({ cell }: { cell: string }) => cell || '--',
     },
     {
-      label: t('故障IP'),
       field: 'ip',
+      label: t('故障IP'),
       minWidth: 100,
     },
     {
-      label: t('故障Port'),
       field: 'port',
+      label: t('故障Port'),
       minWidth: 100,
     },
     {
-      label: t('新IP'),
       field: 'slave_ip',
+      label: t('新IP'),
       minWidth: 150,
       render: ({ cell }: { cell: string }) => cell || '--',
     },
     {
-      label: t('新Port'),
       field: 'slave_port',
+      label: t('新Port'),
       minWidth: 150,
     },
     {
-      label: t('开始时间'),
       field: 'switch_start_time',
-      width: 250,
+      label: t('开始时间'),
       render: ({ cell }: { cell: string }) => utcDisplayTime(cell) || '--',
+      width: 250,
     },
     {
-      label: t('结束时间'),
       field: 'switch_finished_time',
-      width: 250,
+      label: t('结束时间'),
       render: ({ cell }: { cell: string }) => utcDisplayTime(cell) || '--',
+      width: 250,
     },
     {
-      label: t('耗时'),
       field: 'cost_time',
+      label: t('耗时'),
       minWidth: 150,
     },
     {
-      label: t('切换结果'),
       field: 'switch_result',
+      label: t('切换结果'),
       minWidth: 150,
-      render: ({ cell, data }: { cell: string, data: TableItem }) => {
+      render: ({ cell, data }: { cell: string; data: TableItem }) => {
         if (['failed', 'success'].includes(cell)) {
-          return (
-            <DbStatus
-              theme={data.result_info.theme}>
-              {data.result_info.text}
-            </DbStatus>
-          );
+          return <DbStatus theme={data.result_info.theme}>{data.result_info.text}</DbStatus>;
         }
 
         return cell || '--';
       },
     },
     {
-      label: t('切换原因'),
       field: 'confirm_result',
+      label: t('切换原因'),
       minWidth: 200,
       showOverflowTooltip: {
         popoverOption: {
           maxWidth: 300,
-        }
+        },
       },
     },
     {
-      label: t('操作'),
       field: '',
-      width: 100,
       fixed: 'right',
+      label: t('操作'),
       render: ({ data }: { data: TableItem }) => (
         <bk-button
+          theme='primary'
           text
-          theme="primary"
           onClick={() => handleShowDetails(data)}>
-          { t('详情') }
+          {t('详情')}
         </bk-button>
       ),
+      width: 100,
     },
   ];
 
   // 设置用户个人表头信息
   const defaultSettings = {
-    fields: columns.filter(item => item.field).map(item => ({
-      label: item.label as string,
-      field: item.field as string,
-      disabled: ['bk_biz_name', 'cluster', 'ip', 'port', 'slave_ip', 'slave_port'].includes(item.field as string),
-    })),
-    checked: columns.map(item => item.field).filter(key => !!key) as string[],
+    checked: columns.map((item) => item.field).filter((key) => !!key) as string[],
+    fields: columns
+      .filter((item) => item.field)
+      .map((item) => ({
+        disabled: ['bk_biz_name', 'cluster', 'ip', 'port', 'slave_ip', 'slave_port'].includes(item.field as string),
+        field: item.field as string,
+        label: item.label as string,
+      })),
   };
-  const {
-    settings,
-    updateTableSettings,
-  } = useTableSettings(UserPersonalSettings.DBHA_SWITCH_EVENTS, defaultSettings);
-
+  const { settings, updateTableSettings } = useTableSettings(UserPersonalSettings.DBHA_SWITCH_EVENTS, defaultSettings);
 
   const fetchTableData = () => {
     isLoading.value = true;
     const timeArr = filterDateRang.value;
-    getEventSwitchList({
-      app: window.PROJECT_CONFIG.BIZ_ID,
-      switch_start_time: timeArr[0] ? dayjs(timeArr[0]).format('YYYY-MM-DD HH:mm:ss') : '',
-      switch_finished_time: timeArr[1] ? dayjs(timeArr[1]).format('YYYY-MM-DD HH:mm:ss') : '',
-    }, {
-      permission: 'page',
-    })
+    getEventSwitchList(
+      {
+        app: window.PROJECT_CONFIG.BIZ_ID,
+        switch_finished_time: timeArr[1] ? dayjs(timeArr[1]).format('YYYY-MM-DD HH:mm:ss') : '',
+        switch_start_time: timeArr[0] ? dayjs(timeArr[0]).format('YYYY-MM-DD HH:mm:ss') : '',
+      },
+      {
+        permission: 'page',
+      },
+    )
       .then((res) => {
         isAnomalies.value = false;
         tableData.value = res.map((item) => {
@@ -289,7 +280,6 @@
   };
   fetchTableData();
 
-
   const handleShowDetails = (data: TableItem) => {
     logState.isShow = true;
     logState.data = data;
@@ -303,7 +293,7 @@
       routeName = 'DatabaseTendbsingle';
     } else if (clusterType === 'tendbha') {
       routeName = 'DatabaseTendbha';
-    } else if (['TwemproxyRedisInstance', 'PredixyTendisplusCluster'].includes(clusterType)) {
+    } else if (['PredixyTendisplusCluster', 'TwemproxyRedisInstance'].includes(clusterType)) {
       routeName = 'RedisManage';
     } else if (clusterType === 'es') {
       routeName = 'EsManage';

@@ -29,28 +29,28 @@
 
   const rules = [
     {
-      trigger: 'change',
       message: t('请添加权限规则'),
+      trigger: 'change',
       validator: (value: PermissionRule['rules']) => value.length > 0,
     },
   ];
 
   const columns = [
     {
-      label: 'DB',
       field: 'access_db',
+      label: 'DB',
       showOverflowTooltip: true,
     },
     {
-      label: t('权限'),
       field: 'privilege',
-      showOverflowTooltip: true,
+      label: t('权限'),
       render: ({ cell }: { cell: string }) => {
         if (!cell) {
           return '--';
         }
         return cell.replace(/,/g, ', ');
       },
+      showOverflowTooltip: true,
     },
   ];
 </script>

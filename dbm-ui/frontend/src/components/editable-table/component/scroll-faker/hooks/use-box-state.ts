@@ -16,16 +16,16 @@ import { type ComponentInternalInstance, getCurrentInstance, reactive } from 'vu
 import type { IContext } from '../index.vue';
 
 export default function () {
-  const { proxy } = getCurrentInstance() as ComponentInternalInstance & { proxy: IContext };
+  const { proxy } = getCurrentInstance() as { proxy: IContext } & ComponentInternalInstance;
 
   const state = reactive({
     contentScrollHeight: 0,
     contentScrollWidth: 0,
-    isRenderVerticalScroll: false,
     isRenderHorizontalScrollbar: false,
+    isRenderVerticalScroll: false,
     styles: {
-      width: '',
       height: '',
+      width: '',
     },
   });
 
@@ -35,23 +35,23 @@ export default function () {
       state.contentScrollHeight = scrollHeight;
       state.contentScrollWidth = scrollWidth;
 
-      const { width: boxWidth, height: boxHeight } = proxy.$refs.scrollBox.getBoundingClientRect();
+      const { height: boxHeight, width: boxWidth } = proxy.$refs.scrollBox.getBoundingClientRect();
       // 内容区高度大于容器高度显示垂直滚动条
       state.isRenderVerticalScroll = Math.ceil(state.contentScrollHeight) > Math.ceil(boxHeight);
       // 内容区宽度大于容器宽度显示水平滚动条
       state.isRenderHorizontalScrollbar = Math.ceil(state.contentScrollWidth) > Math.ceil(boxWidth);
       const styles = {
-        width: '100%',
         height: '100%',
         maxHeight: '',
         maxWidth: '',
+        width: '100%',
       };
       // 计算滚动容器的展示宽高
       const {
         height: scrollBoxStyleHeight,
         maxHeight: scrollBoxStyleMaxHeight,
-        width: scrollBoxStyleWidth,
         maxWidth: scrollBoxStyleMaxWidth,
+        width: scrollBoxStyleWidth,
       } = proxy.$refs.scrollBox.style;
       if (state.isRenderVerticalScroll) {
         if (scrollBoxStyleHeight) {
@@ -73,7 +73,7 @@ export default function () {
   };
 
   return {
-    state,
     initState,
+    state,
   };
 }

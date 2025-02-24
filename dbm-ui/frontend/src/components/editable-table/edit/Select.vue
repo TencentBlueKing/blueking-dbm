@@ -26,12 +26,12 @@
 <script lang="ts">
   /* eslint-disable vue/no-unused-properties */
   interface Props {
-    placeholder?: string;
-    disabled?: boolean;
-    multiple?: boolean;
-    filterable?: boolean;
-    popoverOptions?: Record<string, any>;
     clearable?: boolean;
+    disabled?: boolean;
+    filterable?: boolean;
+    multiple?: boolean;
+    placeholder?: string;
+    popoverOptions?: Record<string, any>;
   }
 </script>
 <script setup lang="ts" generic="T extends string[] | number[] | string | number">
@@ -48,8 +48,8 @@
   }>();
 
   const slots = defineSlots<{
+    option?: (value: { index: number; item: Record<string, any> }) => VNode;
     trigger?: (value: { selected: any[] }) => VNode;
-    option?: (value: { item: Record<string, any>; index: number }) => VNode;
   }>();
 
   const attrs = useAttrs();

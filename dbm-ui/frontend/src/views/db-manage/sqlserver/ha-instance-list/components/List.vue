@@ -61,19 +61,11 @@
   import SqlServerHaInstanceModel from '@services/model/sqlserver/sqlserver-ha-instance';
   import { getSqlServerInstanceList } from '@services/source/sqlserveHaCluster';
 
-  import {
-    useLinkQueryColumnSerach,
-    useStretchLayout,
-    useTableSettings,
-  } from '@hooks';
+  import { useLinkQueryColumnSerach, useStretchLayout, useTableSettings } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
-  import {
-    ClusterTypes,
-    DBTypes,
-    UserPersonalSettings,
-  } from '@common/const';
+  import { ClusterTypes, DBTypes, UserPersonalSettings } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
   import DbTable from '@components/db-table/index.vue';
@@ -85,57 +77,51 @@
   import { execCopy, getSearchSelectorParams } from '@utils';
 
   const instanceData = defineModel<{
-    instanceAddress: string,
-    clusterId: number
+    clusterId: number;
+    instanceAddress: string;
   }>('instanceData');
 
   const router = useRouter();
   const globalBizsStore = useGlobalBizs();
   const { t } = useI18n();
+  const { isOpen: isStretchLayoutOpen, splitScreen: stretchLayoutSplitScreen } = useStretchLayout();
   const {
-    isOpen: isStretchLayoutOpen,
-    splitScreen: stretchLayoutSplitScreen,
-  } = useStretchLayout();
-  const {
+    clearSearchValue,
     columnAttrs,
-    searchAttrs,
-    searchValue,
-    sortValue,
     columnCheckedMap,
     columnFilterChange,
     columnSortChange,
-    clearSearchValue,
-    validateSearchValues,
     handleSearchValueChange,
+    searchAttrs,
+    searchValue,
+    sortValue,
+    validateSearchValues,
   } = useLinkQueryColumnSerach({
-    searchType: ClusterTypes.SQLSERVER_HA,
     attrs: ['role'],
-    isCluster: false,
-    fetchDataFn: () => fetchData(isInit),
     defaultSearchItem: {
-      name: t('访问入口'),
       id: 'domain',
-    }
+      name: t('访问入口'),
+    },
+    fetchDataFn: () => fetchData(isInit),
+    isCluster: false,
+    searchType: ClusterTypes.SQLSERVER_HA,
   });
 
   const searchSelectData = computed(() => [
     {
-      name: t('IP 或 IP:Port'),
       id: 'instance',
+      name: t('IP 或 IP:Port'),
     },
     {
-      name: t('访问入口'),
       id: 'domain',
       multiple: true,
+      name: t('访问入口'),
     },
     {
-      name: t('集群名称'),
       id: 'name',
+      name: t('集群名称'),
     },
     {
-      name: t('状态'),
-      id: 'status',
-      multiple: true,
       children: [
         {
           id: 'running',
@@ -146,16 +132,19 @@
           name: t('异常'),
         },
       ],
+      id: 'status',
+      multiple: true,
+      name: t('状态'),
     },
     {
-      name: t('部署角色'),
+      children: searchAttrs.value.role,
       id: 'role',
       multiple: true,
-      children: searchAttrs.value.role,
+      name: t('部署角色'),
     },
     {
-      name: t('端口'),
       id: 'port',
+      name: t('端口'),
     },
   ]);
 
@@ -163,171 +152,168 @@
   const selected = shallowRef<SqlServerHaInstanceModel[]>([]);
 
   const hasSelected = computed(() => selected.value.length > 0);
-  const selectedIds = computed(() => selected.value.map(item => item.id));
+  const selectedIds = computed(() => selected.value.map((item) => item.id));
 
   const columns = computed(() => {
     const list = [
       {
-        label: 'ID',
         field: 'id',
         fixed: 'left',
+        label: 'ID',
         width: 80,
       },
       {
-        label: t('实例'),
         field: 'instance_address',
         fixed: 'left',
+        label: t('实例'),
         minWidth: 200,
         render: ({ data }: { data: SqlServerHaInstanceModel }) => (
           <TextOverflowLayout>
             {{
+              append: () => (
+                <>
+                  {data.isNew && (
+                    <MiniTag
+                      class='new-tag'
+                      content='NEW'
+                      theme='success'></MiniTag>
+                  )}
+                </>
+              ),
               default: () => (
                 <bk-button
+                  theme='primary'
                   text
-                  theme="primary"
                   onClick={() => handleToDetails(data)}>
                   {data.instance_address}
                 </bk-button>
               ),
-              append: () => (
-                <>
-                  {
-                    data.isNew && (
-                      <MiniTag
-                        content='NEW'
-                        theme='success'
-                        class='new-tag'>
-                      </MiniTag>
-                    )
-                  }
-                </>
-              ),
             }}
           </TextOverflowLayout>
         ),
       },
       {
-        label: t('集群名称'),
         field: 'cluster_name',
+        label: t('集群名称'),
         minWidth: 200,
         render: ({ data }: { data: SqlServerHaInstanceModel }) => (
           <TextOverflowLayout>
             {{
+              append: () => (
+                <db-icon
+                  v-bk-tooltips={t('复制集群名称')}
+                  type='copy'
+                  onClick={() => execCopy(data.cluster_name, t('复制成功，共n条', { n: 1 }))}
+                />
+              ),
               default: () => (
                 <bk-button
+                  theme='primary'
                   text
-                  theme="primary"
                   onClick={() => handleToClusterDetails(data)}>
                   {data.cluster_name}
                 </bk-button>
               ),
-              append: () => (
-                <db-icon
-                  v-bk-tooltips={t('复制集群名称')}
-                  type="copy"
-                  onClick={() => execCopy(data.cluster_name, t('复制成功，共n条', { n: 1 }))} />
-              ),
             }}
           </TextOverflowLayout>
         ),
       },
       {
-        label: t('状态'),
         field: 'status',
-        width: 140,
         filter: {
+          checked: columnCheckedMap.value.status,
           list: [
             {
-              value: 'running',
               text: t('正常'),
+              value: 'running',
             },
             {
-              value: 'unavailable',
               text: t('异常'),
+              value: 'unavailable',
             },
           ],
-          checked: columnCheckedMap.value.status,
         },
+        label: t('状态'),
         render: ({ data }: { data: SqlServerHaInstanceModel }) => {
-          const {
-            theme,
-            text,
-          } = data.statusInfo;
+          const { text, theme } = data.statusInfo;
           return <DbStatus theme={theme}>{text}</DbStatus>;
         },
+        width: 140,
       },
       {
-        label: t('主访问入口'),
         field: 'master_domain',
+        label: t('主访问入口'),
         minWidth: 200,
-        showOverflowTooltip: false,
         render: ({ data }: { data: SqlServerHaInstanceModel }) => (
           <TextOverflowLayout>
             {{
-              default: () => <span>{data.master_domain}</span>,
               append: () => (
                 <db-icon
                   v-bk-tooltips={t('复制主访问入口')}
-                  type="copy"
-                  onClick={() => execCopy(data.master_domain, t('复制成功，共n条', { n: 1 }))} />
+                  type='copy'
+                  onClick={() => execCopy(data.master_domain, t('复制成功，共n条', { n: 1 }))}
+                />
               ),
+              default: () => <span>{data.master_domain}</span>,
             }}
           </TextOverflowLayout>
         ),
+        showOverflowTooltip: false,
       },
       {
-        label: t('从访问入口'),
         field: 'slave_domain',
+        label: t('从访问入口'),
         minWidth: 200,
-        showOverflowTooltip: false,
         render: ({ data }: { data: SqlServerHaInstanceModel }) => (
           <TextOverflowLayout>
             {{
-              default: () => <span>{data.slave_domain}</span>,
               append: () => (
                 <db-icon
                   v-bk-tooltips={t('复制从访问入口')}
-                  type="copy"
-                  onClick={() => execCopy(data.slave_domain, t('复制成功，共n条', { n: 1 }))} />
+                  type='copy'
+                  onClick={() => execCopy(data.slave_domain, t('复制成功，共n条', { n: 1 }))}
+                />
               ),
+              default: () => <span>{data.slave_domain}</span>,
             }}
           </TextOverflowLayout>
         ),
+        showOverflowTooltip: false,
       },
       {
-        label: t('部署角色'),
         field: 'role',
         filter: {
-          list: columnAttrs.value.role,
           checked: columnCheckedMap.value.role,
+          list: columnAttrs.value.role,
         },
+        label: t('部署角色'),
       },
       {
-        label: t('所在园区'),
         field: 'bk_sub_zone',
+        label: t('所在园区'),
+        render: ({ data }: { data: SqlServerHaInstanceModel }) => data.bk_sub_zone || '--',
         width: 140,
-        render:({ data }: { data: SqlServerHaInstanceModel }) => data.bk_sub_zone || '--',
       },
       {
-        label: t('部署时间'),
         field: 'create_at',
-        width: 240,
-        sort: true,
+        label: t('部署时间'),
         render: ({ data }: { data: SqlServerHaInstanceModel }) => <span>{data.createAtDisplay}</span>,
+        sort: true,
+        width: 240,
       },
       {
-        label: t('操作'),
         field: '',
         fixed: isStretchLayoutOpen.value ? false : 'right',
-        width: 80,
+        label: t('操作'),
         render: ({ data }: { data: SqlServerHaInstanceModel }) => (
           <bk-button
-            theme="primary"
+            theme='primary'
             text
             onClick={() => handleToDetails(data)}>
-            { t('查看详情') }
+            {t('查看详情')}
           </bk-button>
         ),
+        width: 80,
       },
     ];
 
@@ -342,42 +328,46 @@
   const setRowClass = (row: SqlServerHaInstanceModel) => {
     const classList = [row.isNew ? 'is-new-row' : ''];
 
-    if (row.cluster_id === instanceData.value?.clusterId
-      && row.instance_address === instanceData.value?.instanceAddress) {
+    if (
+      row.cluster_id === instanceData.value?.clusterId &&
+      row.instance_address === instanceData.value?.instanceAddress
+    ) {
       classList.push('is-selected-row');
     }
 
-    return classList.filter(cls => cls).join(' ');
+    return classList.filter((cls) => cls).join(' ');
   };
 
   // 设置用户个人表头信息
   const defaultSettings = {
-    fields: columns.value.filter(item => item.field).map(item => ({
-      label: item.label,
-      field: item.field,
-      disabled: ['instance_address', 'master_domain'].includes(item.field),
-    })),
-    checked: columns.value.map(item => item.field).filter(key => !!key) as string[],
+    checked: columns.value.map((item) => item.field).filter((key) => !!key) as string[],
+    fields: columns.value
+      .filter((item) => item.field)
+      .map((item) => ({
+        disabled: ['instance_address', 'master_domain'].includes(item.field),
+        field: item.field,
+        label: item.label,
+      })),
     showLineHeight: false,
     trigger: 'manual' as const,
   };
 
-  const {
-    settings,
-    updateTableSettings,
-  } = useTableSettings(UserPersonalSettings.SQLSERVER_HA_INSTANCE_SETTINGS, defaultSettings);
+  const { settings, updateTableSettings } = useTableSettings(
+    UserPersonalSettings.SQLSERVER_HA_INSTANCE_SETTINGS,
+    defaultSettings,
+  );
 
   let isInit = true;
   const fetchData = (loading?: boolean) => {
     tableRef.value!.fetchData(
       {
-        db_type: DBTypes.SQLSERVER,
         bk_biz_id: globalBizsStore.currentBizId,
+        db_type: DBTypes.SQLSERVER,
         type: ClusterTypes.SQLSERVER_HA,
         ...getSearchSelectorParams(searchValue.value),
       },
       sortValue,
-      loading
+      loading,
     );
     isInit = false;
   };
@@ -392,8 +382,8 @@
   const handleToDetails = (data: SqlServerHaInstanceModel) => {
     stretchLayoutSplitScreen();
     instanceData.value = {
-      instanceAddress: data.instance_address,
       clusterId: data.cluster_id,
+      instanceAddress: data.instance_address,
     };
   };
 

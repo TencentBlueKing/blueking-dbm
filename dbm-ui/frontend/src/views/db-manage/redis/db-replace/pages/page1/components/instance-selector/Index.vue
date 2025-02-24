@@ -86,13 +86,13 @@
   import RenderRedis from './components/RenderRedis.vue';
 
   interface Props {
+    activeTab?: PanelTypes;
+    dbType?: string;
+    isRadioMode?: boolean;
     isShow?: boolean;
     panelList?: Array<PanelTypes>;
     role?: string;
     selected?: InstanceSelectorValues;
-    dbType?: string;
-    activeTab?: PanelTypes;
-    isRadioMode?: boolean;
   }
 
   interface Emits {
@@ -101,13 +101,13 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    activeTab: 'idleHosts',
+    dbType: 'redis',
+    isRadioMode: false,
     isShow: false,
     panelList: () => [...defaultPanelList],
     role: '',
     selected: undefined,
-    dbType: 'redis',
-    activeTab: 'idleHosts',
-    isRadioMode: false,
   });
   const emits = defineEmits<Emits>();
 

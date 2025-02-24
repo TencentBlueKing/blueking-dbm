@@ -40,7 +40,7 @@
 
   import DbResourceModel from '@services/model/db-resource/DbResource';
 
-  import { useTableSettings } from '@hooks'
+  import { useTableSettings } from '@hooks';
 
   import { UserPersonalSettings } from '@common/const';
 
@@ -50,20 +50,18 @@
   import { useTableData } from './useTableData';
 
   interface DataRow {
-    data: DbResourceModel,
+    data: DbResourceModel;
   }
 
   interface Props {
-    lastValues: DbResourceModel[],
-    disableHostMethod?: (data: DbResourceModel, list: DbResourceModel[]) => boolean | string
+    disableHostMethod?: (data: DbResourceModel, list: DbResourceModel[]) => boolean | string;
+    lastValues: DbResourceModel[];
   }
 
-  interface Emits {
-    (e: 'change', value: Props['lastValues']): void;
-  }
+  type Emits = (e: 'change', value: Props['lastValues']) => void;
 
   const props = withDefaults(defineProps<Props>(), {
-    disableHostMethod: () => false
+    disableHostMethod: () => false,
   });
 
   const emits = defineEmits<Emits>();
@@ -73,23 +71,24 @@
   const checkedMap = shallowRef({} as Record<string, DbResourceModel>);
 
   const {
-    isLoading,
     data: tableData,
+    fetchResources,
+    handeChangeLimit,
+    handleChangePage,
+    isLoading,
     pagination,
     searchValue,
-    fetchResources,
-    handleChangePage,
-    handeChangeLimit,
   } = useTableData();
 
-  const isSelectedAll = computed(() => (
-    tableData.value.length > 0
-    && tableData.value.filter(tableItem => !disableHostMethodHandler(tableItem)).length === Object.values(checkedMap.value).length
-  ));
+  const isSelectedAll = computed(
+    () =>
+      tableData.value.length > 0 &&
+      tableData.value.filter((tableItem) => !disableHostMethodHandler(tableItem)).length ===
+        Object.values(checkedMap.value).length,
+  );
 
   const columns = [
     {
-      width: 60,
       fixed: 'left',
       label: () => (
         <bk-checkbox
@@ -99,133 +98,137 @@
         />
       ),
       render: ({ data }: DataRow) => {
-        const tip = disableHostMethodHandler(data)
-        const disableCheck = tip !== false
+        const tip = disableHostMethodHandler(data);
+        const disableCheck = tip !== false;
         return (
           <bk-popover
-            theme="dark"
-            placement="top"
+            disabled={!disableCheck}
+            placement='top'
             popoverDelay={0}
-            disabled={!disableCheck}>
+            theme='dark'>
             {{
+              content: () => <span>{tip}</span>,
               default: () => (
                 <bk-checkbox
+                  disabled={disableCheck}
                   label={true}
                   model-value={Boolean(checkedMap.value[data.bk_host_id])}
+                  style='vertical-align: middle;'
                   onChange={(value: boolean) => handleTableSelectOne(value, data)}
-                  style="vertical-align: middle;"
-                  disabled={disableCheck} />
+                />
               ),
-              content: () => <span>{tip}</span>,
             }}
           </bk-popover>
         );
-      }
+      },
+      width: 60,
     },
     {
-      label: 'IP',
       field: 'ip',
       fixed: 'left',
+      label: 'IP',
       with: 120,
     },
     {
-      label: t('管控区域'),
       field: 'bk_cloud_name',
+      label: t('管控区域'),
       with: 120,
     },
     {
-      label: t('Agent 状态'),
       field: 'agent_status',
+      label: t('Agent 状态'),
+      render: ({ data }: { data: DbResourceModel }) => <HostAgentStatus data={data.agent_status} />,
       with: 100,
-      render: ({ data }: {data: DbResourceModel}) => <HostAgentStatus data={data.agent_status} />,
     },
     {
-      label: t('所属业务'),
       field: 'for_biz',
+      label: t('所属业务'),
+      render: ({ data }: { data: DbResourceModel }) => data.for_biz.bk_biz_name || t('无限制'),
       width: 170,
-      render: ({ data }: {data: DbResourceModel}) => data.for_biz.bk_biz_name || t('无限制'),
     },
     {
-      label: t('所属DB类型'),
       field: 'resource_type',
+      label: t('所属DB类型'),
+      render: ({ data }: { data: DbResourceModel }) => data.resource_type || t('无限制'),
       width: 150,
-      render: ({ data }: {data: DbResourceModel}) => data.resource_type || t('无限制'),
     },
     {
-      label: t('机型'),
       field: 'device_class',
-      render: ({ data }: {data: DbResourceModel}) => data.device_class || '--',
+      label: t('机型'),
+      render: ({ data }: { data: DbResourceModel }) => data.device_class || '--',
     },
     {
-      label: t('操作系统类型'),
       field: 'os_type',
-      render: ({ data }: {data: DbResourceModel}) => data.os_type || '--',
+      label: t('操作系统类型'),
+      render: ({ data }: { data: DbResourceModel }) => data.os_type || '--',
     },
     {
-      label: t('地域'),
       field: 'city',
-      render: ({ data }: {data: DbResourceModel}) => data.city || '--',
+      label: t('地域'),
+      render: ({ data }: { data: DbResourceModel }) => data.city || '--',
     },
     {
-      label: t('园区'),
       field: 'sub_zone',
-      render: ({ data }: {data: DbResourceModel}) => data.sub_zone || '--',
+      label: t('园区'),
+      render: ({ data }: { data: DbResourceModel }) => data.sub_zone || '--',
     },
     {
-      label: t('CPU(核)'),
       field: 'bk_cpu',
+      label: t('CPU(核)'),
     },
     {
-      label: t('内存'),
       field: 'bkMemText',
-      render: ({ data }: {data: DbResourceModel}) => data.bkMemText || '0 M',
+      label: t('内存'),
+      render: ({ data }: { data: DbResourceModel }) => data.bkMemText || '0 M',
     },
     {
-      label: t('磁盘容量(G)'),
       field: 'bk_disk',
+      label: t('磁盘容量(G)'),
       minWidth: 120,
-      render: ({ data }: {data: DbResourceModel}) => (
+      render: ({ data }: { data: DbResourceModel }) => (
         <DiskPopInfo data={data.storage_device}>
-          <span style="line-height: 40px; color: #3a84ff;">
-            {data.bk_disk}
-          </span>
+          <span style='line-height: 40px; color: #3a84ff;'>{data.bk_disk}</span>
         </DiskPopInfo>
       ),
     },
   ];
 
   const defaultSettings = {
-    fields: columns.filter(item => item.field).map(item => ({
-      label: item.label,
-      field: item.field,
-      disabled: ['ip', 'for_biz', 'resource_type'].includes(item.field as string),
-    })),
-    checked: [
-      'ip',
-      'bk_cloud_name',
-      'agent_status',
-      'for_biz',
-      'resource_type',
-    ],
+    checked: ['ip', 'bk_cloud_name', 'agent_status', 'for_biz', 'resource_type'],
+    fields: columns
+      .filter((item) => item.field)
+      .map((item) => ({
+        disabled: ['for_biz', 'ip', 'resource_type'].includes(item.field as string),
+        field: item.field,
+        label: item.label,
+      })),
     size: 'small',
   };
 
-  const {
-    settings,
-    updateTableSettings,
-  } = useTableSettings(UserPersonalSettings.RESOURCE_POOL_SELECTOR_SETTINGS, defaultSettings);
+  const { settings, updateTableSettings } = useTableSettings(
+    UserPersonalSettings.RESOURCE_POOL_SELECTOR_SETTINGS,
+    defaultSettings,
+  );
 
   watch(searchValue, () => {
     checkedMap.value = {};
     emits('change', []);
-  })
+  });
 
-  watch(() => props.lastValues, () => {
-    // 切换 tab 回显选中状态 \ 预览结果操作选中状态
-    checkedMap.value = props.lastValues.reduce((prevCheckedMap, item) => Object.assign(prevCheckedMap, {
-      [item.bk_host_id]: item
-    }), {} as Record<string, DbResourceModel>)
-  }, { immediate: true, deep: true });
+  watch(
+    () => props.lastValues,
+    () => {
+      // 切换 tab 回显选中状态 \ 预览结果操作选中状态
+      checkedMap.value = props.lastValues.reduce(
+        (prevCheckedMap, item) =>
+          Object.assign(prevCheckedMap, {
+            [item.bk_host_id]: item,
+          }),
+        {} as Record<string, DbResourceModel>,
+      );
+    },
+    { deep: true, immediate: true },
+  );
 
   const disableHostMethodHandler = (data: DbResourceModel) => {
     if (data.isAbnormal) {
@@ -256,8 +259,8 @@
   };
 
   onMounted(() => {
-    fetchResources()
-  })
+    fetchResources();
+  });
 </script>
 
 <style lang="less">

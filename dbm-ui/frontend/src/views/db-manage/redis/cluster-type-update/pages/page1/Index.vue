@@ -152,15 +152,15 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.REDIS_CLUSTER_TYPE_UPDATE,
     onSuccess(cloneData) {
-      const { tableList, type, frequency } = cloneData;
+      const { frequency, tableList, type } = cloneData;
       tableData.value = tableList;
       repairAndVerifyType.value = type;
       repairAndVerifyFrequency.value = frequency;
       remark.value = '';
       window.changeConfirm = true;
     },
+    type: TicketTypes.REDIS_CLUSTER_TYPE_UPDATE,
   });
 
   // 检测列表是否为空
@@ -217,8 +217,8 @@
     manual: true,
     onSuccess(listResult) {
       versionList.value = listResult.map((value) => ({
-        value,
         label: value,
+        value,
       }));
     },
   });
@@ -240,36 +240,36 @@
   };
 
   const generateTableRow = (item: RedisModel) => ({
-    rowKey: item.master_domain,
-    isLoading: false,
-    srcCluster: item.master_domain,
-    clusterId: item.id,
     bkCloudId: item.bk_cloud_id,
-    switchMode: t('需人工确认'),
-    currentSepc: `${item.cluster_capacity}G_${item.cluster_spec.qps.max}/s${t('（n 分片）', { n: item.cluster_shard_num })}`,
-    currentCapacity: {
-      used: 1,
-      total: item.cluster_capacity,
-    },
-    clusterTypeName: item.cluster_type_name,
-    currentSpecId: item.cluster_spec.spec_id,
-    srcClusterType: item.cluster_type_name,
+    clusterId: item.id,
     clusterType: item.cluster_type,
-    machineType: item.cluster_spec.spec_machine_type,
+    clusterTypeName: item.cluster_type_name,
+    currentCapacity: {
+      total: item.cluster_capacity,
+      used: 1,
+    },
+    currentSepc: `${item.cluster_capacity}G_${item.cluster_spec.qps.max}/s${t('（n 分片）', { n: item.cluster_shard_num })}`,
     currentShardNum: item.cluster_shard_num,
+    currentSpecId: item.cluster_spec.spec_id,
+    dbVersion: item.major_version,
     disasterToleranceLevel: item.disaster_tolerance_level,
     groupNum: item.machine_pair_cnt,
-    dbVersion: item.major_version,
+    isLoading: false,
+    machineType: item.cluster_spec.spec_machine_type,
+    proxy: {
+      count: new Set(item.proxy.map((item) => item.ip)).size,
+      id: item.proxy[0].spec_config.id,
+    },
+    rowKey: item.master_domain,
     specConfig: {
       cpu: item.cluster_spec.cpu,
       id: item.cluster_spec.spec_id,
       mem: item.cluster_spec.mem,
       qps: item.cluster_spec.qps,
     },
-    proxy: {
-      id: item.proxy[0].spec_config.id,
-      count: new Set(item.proxy.map((item) => item.ip)).size,
-    },
+    srcCluster: item.master_domain,
+    srcClusterType: item.cluster_type_name,
+    switchMode: t('需人工确认'),
   });
 
   // 批量选择
@@ -345,19 +345,19 @@
       );
       const params = {
         bk_biz_id: currentBizId,
-        ticket_type: TicketTypes.REDIS_CLUSTER_TYPE_UPDATE,
-        remark: remark.value,
         details: {
-          ip_source: 'resource_pool',
           data_check_repair_setting: {
-            type: repairAndVerifyType.value,
             execution_frequency:
               repairAndVerifyType.value === RepairAndVerifyModes.NO_CHECK_NO_REPAIR
                 ? ''
                 : repairAndVerifyFrequency.value,
+            type: repairAndVerifyType.value,
           },
           infos,
+          ip_source: 'resource_pool',
         },
+        remark: remark.value,
+        ticket_type: TicketTypes.REDIS_CLUSTER_TYPE_UPDATE,
       };
 
       await createTicket(params).then((data) => {

@@ -57,8 +57,8 @@
 
   const rules = [
     {
-      validator: (value: string) => value !== '',
       message: t('请指定时间'),
+      validator: (value: string) => value !== '',
     },
   ];
 

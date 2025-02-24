@@ -33,44 +33,44 @@ interface RelatedCluster {
 }
 
 interface ClusterInfo {
-  id: number;
-  creator: string;
-  updater: string;
-  name: string;
   alias: string;
   bk_biz_id: number;
+  bk_cloud_id: number;
+  cluster_name: string;
   cluster_type: string;
+  creator: string;
   db_module_id: number;
+  disaster_tolerance_level: string;
+  id: number;
   immute_domain: string;
   major_version: string;
-  phase: string;
-  status: string;
-  bk_cloud_id: number;
-  region: string;
-  disaster_tolerance_level: string;
-  time_zone: string;
-  cluster_name: string;
   master_domain: string;
+  name: string;
+  phase: string;
+  region: string;
+  status: string;
+  time_zone: string;
+  updater: string;
 }
 
 /**
  * 获取Mongo集群
  */
 export function getMongoList(params: {
-  id?: number;
-  name?: string;
-  ip?: string;
-  domain?: string;
-  exact_domain?: string;
-  creator?: string;
-  cluster_type?: string;
-  version?: string;
-  region?: string;
-  db_module_id?: number;
   cluster_ids?: string[];
+  cluster_type?: string;
+  creator?: string;
+  db_module_id?: number;
+  domain?: string;
   domains?: string;
+  exact_domain?: string;
+  id?: number;
+  ip?: string;
   limit?: number;
+  name?: string;
   offset?: number;
+  region?: string;
+  version?: string;
 }) {
   return http.get<ListBase<MongodbModel[]>>(`${getRootPath()}/`, params).then((data) => ({
     ...data,
@@ -89,19 +89,19 @@ export function getMongoList(params: {
  * 获取Mongo拓扑
  */
 export function getMongoTopoList(params: {
-  id?: number;
-  name?: string;
-  ip?: string;
+  cluster_ids?: string;
+  cluster_type?: string;
+  creator?: string;
+  db_module_id?: number;
   domain?: string;
   exact_domain?: string;
-  creator?: string;
-  cluster_type?: string;
-  version?: string;
-  region?: string;
-  db_module_id?: number;
-  cluster_ids?: string;
+  id?: number;
+  ip?: string;
   limit?: number;
+  name?: string;
   offset?: number;
+  region?: string;
+  version?: string;
 }) {
   return http
     .get<ListBase<MongodbModel[]>>(`${getRootPath()}/`, params)
@@ -136,16 +136,16 @@ export function getMongoTableFields(params: { limit?: number; offset?: number })
  */
 export function getMongoInstancesList(params: {
   cluster_id?: number;
-  ip?: string;
   cluster_type?: string;
   domain?: string;
+  extra?: number;
   instance_address?: string;
-  port?: string;
-  status?: string;
-  role?: string;
+  ip?: string;
   limit?: number;
   offset?: number;
-  extra?: number;
+  port?: string;
+  role?: string;
+  status?: string;
 }) {
   return http.get<ListBase<MongodbInstanceModel[]>>(`${getRootPath()}/list_instances/`, params).then((data) => ({
     ...data,
@@ -157,12 +157,12 @@ export function getMongoInstancesList(params: {
  * 查询Mongo集群实例详情
  */
 export function retrieveMongoInstanceDetail(params: {
-  instance_address: string;
   cluster_id?: number;
+  instance_address: string;
   ip?: string;
-  port?: string;
   limit?: number;
   offset?: number;
+  port?: string;
 }) {
   return http
     .get<MongodbInstanceDetailModel>(`${getRootPath()}/retrieve_instance/`, params)
@@ -180,16 +180,16 @@ export function getMongoRoleList(params: { limit?: number; offset?: number }) {
  * 查询机器列表
  */
 export function getMongodbMachineList(params: {
-  bk_host_id?: number;
-  ip?: string;
-  machine_type?: string;
-  cluster_type?: string;
-  bk_os_name?: string;
-  bk_cloud_id?: number;
   bk_agent_id?: string;
-  instance_role?: string;
+  bk_cloud_id?: number;
+  bk_host_id?: number;
+  bk_os_name?: string;
+  cluster_type?: string;
   creator?: string;
+  instance_role?: string;
+  ip?: string;
   limit?: number;
+  machine_type?: string;
   offset?: number;
 }) {
   return http.get<string[]>(`${getRootPath()}/list_machines/`, params);

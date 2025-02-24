@@ -35,8 +35,8 @@
   import RenderTable from './components/RenderTable.vue';
 
   interface Props {
-    ticketDetails: TicketModel<Mysql.AuthorizeRules>;
     accountType?: AccountTypes.MYSQL | AccountTypes.TENDBCLUSTER;
+    ticketDetails: TicketModel<Mysql.AuthorizeRules>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -54,29 +54,29 @@
     // 导入授权
     if (authorizeDataList) {
       return authorizeDataList.map((item) => ({
-        ips: item.source_ips as string[],
-        user: item.user,
         accessDbs: item.access_dbs,
         clusterDomains: item.target_instances,
+        ips: item.source_ips as string[],
+        user: item.user,
       }));
     }
     // 插件授权
     if (authorizePluginInfos) {
       return authorizePluginInfos.map((item) => ({
-        ips: item.source_ips as string[],
-        user: item.user,
         accessDbs: item.access_dbs,
         clusterDomains: item.target_instances,
+        ips: item.source_ips as string[],
+        user: item.user,
       }));
     }
     if (authorizeData) {
       return [
         {
-          ips: (authorizeData.source_ips as { ip: string }[]).map((item) => item.ip),
-          user: authorizeData.user,
           accessDbs: authorizeData.access_dbs,
           clusterDomains: authorizeData.target_instances,
+          ips: (authorizeData.source_ips as { ip: string }[]).map((item) => item.ip),
           privileges: authorizeData.privileges,
+          user: authorizeData.user,
         },
       ];
     }

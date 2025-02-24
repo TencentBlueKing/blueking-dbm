@@ -53,16 +53,16 @@
 
   const tableColumns = [
     {
-      label: t('挂载点'),
       field: 'mount_point',
+      label: t('挂载点'),
     },
     {
-      label: t('最小容量（G）'),
       field: 'size',
+      label: t('最小容量（G）'),
     },
     {
-      label: t('磁盘类型'),
       field: 'type',
+      label: t('磁盘类型'),
     },
   ];
 </script>

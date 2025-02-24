@@ -131,6 +131,7 @@
   // 关闭弹层
   const handleOutClick = (event: MouseEvent) => {
     const eventPath = event.composedPath();
+    // eslint-disable-next-line @typescript-eslint/prefer-for-of
     for (let i = 0; i < eventPath.length; i++) {
       const target = eventPath[i] as HTMLElement;
       if (target.parentElement) {
@@ -153,7 +154,7 @@
   const handleSearch = () => {
     // 页面跳转参数处理
     const { formData, keyword } = searchResultRef.value!.getFilterOptions();
-    const getURLParams = (options: UnwrapRef<typeof formData> & { from: string; short_code?: string }) => {
+    const getURLParams = (options: { from: string; short_code?: string } & UnwrapRef<typeof formData>) => {
       const query = Object.keys(options).reduce((prevQuery, optionKey) => {
         const optionItem = options[optionKey as keyof typeof options];
 
@@ -177,8 +178,8 @@
       }).then((quickSearchResult) => {
         const options = {
           ...formData,
-          short_code: quickSearchResult.short_code,
           from: route.name as string,
+          short_code: quickSearchResult.short_code,
         };
         handleRedirect(getURLParams(options));
       });
@@ -208,17 +209,13 @@
 
   onMounted(() => {
     tippyIns = tippy(rootRef.value as SingleTarget, {
-      content: popRef.value,
-      placement: 'bottom-end',
       appendTo: () => document.body,
-      theme: 'light system-search-popover-theme',
-      maxWidth: 'none',
-      trigger: 'manual',
-      interactive: true,
       arrow: false,
-      offset: [0, 4],
-      zIndex: 999,
+      content: popRef.value,
       hideOnClick: false,
+      interactive: true,
+      maxWidth: 'none',
+      offset: [0, 4],
       onHidden() {
         isFocused.value = false;
         isPopMenuShow.value = false;
@@ -226,6 +223,10 @@
       onShow() {
         isPopMenuShow.value = true;
       },
+      placement: 'bottom-end',
+      theme: 'light system-search-popover-theme',
+      trigger: 'manual',
+      zIndex: 999,
     });
     document.body.addEventListener('click', handleOutClick);
     window.addEventListener('keyup', handleQuickKeyShow);

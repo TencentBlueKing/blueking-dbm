@@ -30,8 +30,8 @@
   });
 
   const {
-    loading,
     data: spiderMachineListResult,
+    loading,
     run: getSpiderMachineListRun,
   } = useRequest(getTendbclusterMachineList, {
     manual: true,
@@ -42,8 +42,8 @@
     (newIp) => {
       if (newIp) {
         getSpiderMachineListRun({
-          ip: newIp,
           instance_role: 'remote_slave',
+          ip: newIp,
         });
       }
     },

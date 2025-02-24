@@ -46,10 +46,7 @@
 <script setup lang="tsx">
   import type { Column } from 'bkui-vue/lib/table/props';
   import { useI18n } from 'vue-i18n';
-  import {
-    useRoute,
-    useRouter,
-  } from 'vue-router';
+  import { useRoute, useRouter } from 'vue-router';
 
   import { getPlatformConfigList } from '@services/source/configs';
 
@@ -58,22 +55,22 @@
   import { ClusterTypes } from '@common/const';
 
   import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
-  import ClusterTab from "@components/cluster-tab/Index.vue";
+  import ClusterTab from '@components/cluster-tab/Index.vue';
 
   import { extraClusterConfs, getDefaultConf } from '../common/const';
   import type { ConfType } from '../common/types';
 
-  type ConfigListItem = ServiceReturnType<typeof getPlatformConfigList>
+  type ConfigListItem = ServiceReturnType<typeof getPlatformConfigList>;
 
   const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
 
   const state = reactive({
-    confType: 'dbconf',
     clusterType: '',
-    loading: false,
+    confType: 'dbconf',
     data: [] as ConfigListItem,
+    loading: false,
     tabs: [] as ConfType[],
   });
   const isAnomalies = ref(false);
@@ -86,47 +83,47 @@
    */
   const columns: Column[] = [
     {
-      label: t('名称'),
       field: 'name',
-      render: ({ cell, data }: { cell: string, data: ConfigListItem[number] }) => (
+      label: t('名称'),
+      render: ({ cell, data }: { cell: string; data: ConfigListItem[number] }) => (
         <bk-button
+          theme='primary'
           text
-          theme="primary"
           onClick={() => handleToDetails(data)}>
           {cell}
         </bk-button>
       ),
     },
     {
-      label: t('数据库版本'),
       field: 'version',
+      label: t('数据库版本'),
     },
     {
-      label: t('更新时间'),
       field: 'updated_at',
+      label: t('更新时间'),
       width: 250,
     },
     {
-      label: t('更新人'),
       field: 'updated_by',
-      width: 120,
+      label: t('更新人'),
       render: ({ cell }: { cell: string }) => cell || '--',
+      width: 120,
     },
     {
-      label: t('操作'),
       field: 'operation',
-      width: 80,
+      label: t('操作'),
       render: ({ data }: { data: ConfigListItem[number] }) => (
-        <div class="operation">
+        <div class='operation'>
           <bk-button
+            class='mr-24'
+            theme='primary'
             text
-            theme="primary"
-            class="mr-24"
             onClick={() => handleUpdateDetails(data)}>
-            { t('编辑') }
+            {t('编辑')}
           </bk-button>
         </div>
       ),
+      width: 80,
     },
   ];
 
@@ -172,12 +169,15 @@
 
     state.loading = true;
 
-    getPlatformConfigList({
-      meta_cluster_type: state.clusterType,
-      conf_type: confType,
-    }, {
-      permission: 'catch',
-    })
+    getPlatformConfigList(
+      {
+        conf_type: confType,
+        meta_cluster_type: state.clusterType,
+      },
+      {
+        permission: 'catch',
+      },
+    )
       .then((res) => {
         state.data = res || [];
         isAnomalies.value = false;
@@ -194,25 +194,29 @@
   /**
    * 集群配置
    */
-  watch(() => state.clusterType, (type) => {
-    const clusterType = type as ClusterTypes;
-    const tabs = [getDefaultConf(clusterType)];
-    // 添加额外配置
-    const item = extraClusterConfs[clusterType];
-    if (item) {
-      tabs.push(...item);
-    }
-    state.tabs = tabs;
-    state.confType = 'dbconf';
-    router.replace({
-      params: {
-        clusterType,
-      },
-    });
-    fetchPlatformConfigList(state.confType);
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => state.clusterType,
+    (type) => {
+      const clusterType = type as ClusterTypes;
+      const tabs = [getDefaultConf(clusterType)];
+      // 添加额外配置
+      const item = extraClusterConfs[clusterType];
+      if (item) {
+        tabs.push(...item);
+      }
+      state.tabs = tabs;
+      state.confType = 'dbconf';
+      router.replace({
+        params: {
+          clusterType,
+        },
+      });
+      fetchPlatformConfigList(state.confType);
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 
 <style lang="less">

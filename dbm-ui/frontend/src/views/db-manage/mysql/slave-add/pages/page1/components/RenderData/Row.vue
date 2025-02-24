@@ -46,29 +46,29 @@
 
   export interface IHostData {
     bk_biz_id: number;
+    bk_cloud_id: number;
     bk_host_id: number;
     ip: string;
-    bk_cloud_id: number;
   }
   export interface IDataRow {
-    rowKey: string;
+    checkedRelated: TendbhaModel[];
     clusterData?: {
-      id: number;
-      domain: string;
       cloudId: number | null;
+      domain: string;
+      id: number;
     };
     clusterRelated: TendbhaModel[];
-    checkedRelated: TendbhaModel[];
     newSlaveIp: string;
+    rowKey: string;
   }
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
-    rowKey: random(),
+    checkedRelated: data.checkedRelated ?? [],
     clusterData: data.clusterData,
     clusterRelated: data.clusterRelated ?? [],
-    checkedRelated: data.checkedRelated ?? [],
     newSlaveIp: data.newSlaveIp ?? '',
+    rowKey: random(),
   });
 </script>
 <script setup lang="ts">
@@ -118,7 +118,7 @@
     },
   );
 
-  const handleClusterIdChange = (idData: { id: number; cloudId: number | null }) => {
+  const handleClusterIdChange = (idData: { cloudId: number | null; id: number }) => {
     localClusterId.value = idData.id;
     cloudId.value = idData.cloudId;
   };
@@ -140,9 +140,9 @@
       emits(
         'clone',
         createRowData({
-          rowKey: random(),
           clusterData: props.data.clusterData,
           newSlaveIp: rowInfo[1] ? rowInfo[1].new_slave.ip : '',
+          rowKey: random(),
         }),
       );
     });

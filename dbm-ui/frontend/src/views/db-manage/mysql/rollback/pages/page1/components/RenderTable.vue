@@ -212,9 +212,9 @@
 </template>
 <script lang="ts">
   const enum RollbackClusterTypes {
-    BUILD_INTO_NEW_CLUSTER = 'BUILD_INTO_NEW_CLUSTER',
     BUILD_INTO_EXIST_CLUSTER = 'BUILD_INTO_EXIST_CLUSTER',
     BUILD_INTO_METACLUSTER = 'BUILD_INTO_METACLUSTER',
+    BUILD_INTO_NEW_CLUSTER = 'BUILD_INTO_NEW_CLUSTER',
   }
 
   interface Props {
@@ -251,17 +251,17 @@
   const datePickerValue = ref('');
   const isShowBatchEdit = reactive({
     backupSource: false,
-    mode: false,
     databases: false,
     databasesIgnore: false,
+    mode: false,
     tables: false,
     tablesIgnore: false,
   });
 
   const configMap = {
-    [RollbackClusterTypes.BUILD_INTO_NEW_CLUSTER]: ['host', 'dbTableIgnore'],
     [RollbackClusterTypes.BUILD_INTO_EXIST_CLUSTER]: ['targetCluster', 'dbTableIgnore'],
     [RollbackClusterTypes.BUILD_INTO_METACLUSTER]: [] as string[],
+    [RollbackClusterTypes.BUILD_INTO_NEW_CLUSTER]: ['host', 'dbTableIgnore'],
   };
 
   const showColumn = (column: string) => computed(() => configMap[props.rollbackClusterType].includes(column));

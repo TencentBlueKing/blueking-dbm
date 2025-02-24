@@ -52,10 +52,10 @@
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
-    rowKey: random(),
-    name: data.name || '',
-    desc: data.desc || '',
     builtin: false,
+    desc: data.desc || '',
+    name: data.name || '',
+    rowKey: random(),
   });
 </script>
 <script setup lang="ts">

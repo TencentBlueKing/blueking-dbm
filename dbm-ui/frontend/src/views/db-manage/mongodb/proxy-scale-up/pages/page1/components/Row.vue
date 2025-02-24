@@ -56,44 +56,44 @@
   import RenderTargetNumber from './RenderTargetNumber.vue';
 
   export interface IDataRow {
-    rowKey: string;
-    isLoading: boolean;
-    clusterName: string;
     clusterId: number;
-    shardNum: number;
-    machineNum: number;
+    clusterName: string;
     // mongosNum: number;
     currentSpec?: SpecInfo;
+    isLoading: boolean;
+    machineNum: number;
+    rowKey: string;
+    shardNum: number;
     targetNum?: string;
   }
 
   export interface InfoItem {
     cluster_id: number;
-    role: string;
     resource_spec: {
       mongos: {
-        spec_id: number;
         count: number;
+        spec_id: number;
       };
     };
+    role: string;
   }
 
   // 创建表格数据
   export const createRowData = (): IDataRow => ({
-    rowKey: random(),
-    isLoading: false,
-    clusterName: '',
-    shardNum: 0,
-    machineNum: 0,
     clusterId: 0,
+    clusterName: '',
+    isLoading: false,
+    machineNum: 0,
+    rowKey: random(),
+    shardNum: 0,
     // mongosNum: 0,
   });
 </script>
 <script setup lang="ts">
   interface Props {
     data: IDataRow;
-    selectList: IListItem[];
     removeable: boolean;
+    selectList: IListItem[];
   }
 
   interface Emits {
@@ -136,13 +136,13 @@
         const [specId, targetNum] = data;
         return {
           cluster_id: props.data.clusterId,
-          role: 'mongos',
           resource_spec: {
             mongos: {
-              spec_id: specId,
               count: targetNum,
+              spec_id: specId,
             },
           },
+          role: 'mongos',
         };
       });
     },

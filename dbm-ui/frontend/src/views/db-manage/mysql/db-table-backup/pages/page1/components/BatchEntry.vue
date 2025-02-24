@@ -104,14 +104,14 @@
 <script lang="ts">
   export interface IValue {
     clusterData: {
-      id: number;
       domain: string;
+      id: number;
     };
     // backupOn: string,
     dbPatterns: string[];
-    tablePatterns: string[];
     ignoreDbs: string[];
     ignoreTables: string[];
+    tablePatterns: string[];
   }
 </script>
 <script setup lang="ts">
@@ -126,12 +126,12 @@
   import { execCopy } from '@utils';
 
   interface IInputParse {
-    domain: string;
     // backupOn: string,
     dbPatterns: string;
+    domain: string;
     ignoreDbs: string;
-    tablePatterns: string;
     ignoreTables: string;
+    tablePatterns: string;
   }
 
   interface Props {
@@ -186,12 +186,12 @@
 
       if (recordList.length !== 5) {
         errorList.push({
-          domain: recordItem,
           // backupOn: '',
           dbPatterns: '',
-          tablePatterns: '',
+          domain: recordItem,
           ignoreDbs: '',
           ignoreTables: '',
+          tablePatterns: '',
         });
         return;
       }
@@ -204,12 +204,12 @@
         ignoreTables,
       ] = recordList;
       const payload = {
-        domain,
         // backupOn,
         dbPatterns,
-        tablePatterns,
+        domain,
         ignoreDbs,
         ignoreTables,
+        tablePatterns,
       };
       // 集群、主机为空
       if (!domain || !dbPatterns || !ignoreDbs || !tablePatterns || !ignoreTables) {
@@ -227,12 +227,12 @@
 
     isChecking.value = true;
     queryClusters({
+      bk_biz_id: currentBizId,
       cluster_filters: validList.map((item) => ({
         immute_domain: item.domain,
       })),
-      bk_biz_id: currentBizId,
     })
-      .then((data: Array<{ master_domain: string; id: number }>) => {
+      .then((data: Array<{ id: number; master_domain: string }>) => {
         const realDataMap = data.reduce(
           (result, item) => ({
             ...result,
@@ -250,9 +250,9 @@
             const {
               // backupOn = '',
               dbPatterns,
-              tablePatterns,
               ignoreDbs,
               ignoreTables,
+              tablePatterns,
             } = item;
 
             const getListValue = (str: string) => {
@@ -263,14 +263,14 @@
             };
             resultList.push({
               clusterData: {
-                id: realDataMap[item.domain],
                 domain: item.domain,
+                id: realDataMap[item.domain],
               },
               // backupOn,
               dbPatterns: getListValue(dbPatterns),
-              tablePatterns: getListValue(tablePatterns),
               ignoreDbs: getListValue(ignoreDbs),
               ignoreTables: getListValue(ignoreTables),
+              tablePatterns: getListValue(tablePatterns),
             });
           }
         });

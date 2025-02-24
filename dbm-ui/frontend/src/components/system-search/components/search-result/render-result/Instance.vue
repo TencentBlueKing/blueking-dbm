@@ -30,18 +30,18 @@
   import HightLightText from './components/HightLightText.vue';
 
   interface Props {
-    keyWord: string;
+    bizIdNameMap: Record<number, string>;
     data: {
       bk_biz_id: number;
+      cluster_domain: string;
       cluster_id: number;
       cluster_type: string;
       id: number;
       ip: string;
       name: string;
       port: string;
-      cluster_domain: string;
     }[];
-    bizIdNameMap: Record<number, string>;
+    keyWord: string;
   }
 
   const props = defineProps<Props>();

@@ -58,19 +58,17 @@
   import { useClusterData } from './useClusterData';
 
   interface Props {
-    activeTab: ClusterTypes,
-    selected: any[],
-    getResourceList: NonNullable<TabItem['getResourceList']>,
-    disabledRowConfig: NonNullable<TabItem['disabledRowConfig']>,
-    columnStatusFilter?: TabItem['columnStatusFilter'],
-    customColums?: TabItem['customColums'],
-    searchSelectList?: TabItem['searchSelectList'],
-    multiple: boolean,
+    activeTab: ClusterTypes;
+    columnStatusFilter?: TabItem['columnStatusFilter'];
+    customColums?: TabItem['customColums'];
+    disabledRowConfig: NonNullable<TabItem['disabledRowConfig']>;
+    getResourceList: NonNullable<TabItem['getResourceList']>;
+    multiple: boolean;
+    searchSelectList?: TabItem['searchSelectList'];
+    selected: any[];
   }
 
-  interface Emits {
-    (e: 'change', value: ResourceItem[]): void,
-  }
+  type Emits = (e: 'change', value: ResourceItem[]) => void;
 
   type SelectedMap = Props['selected'];
 
@@ -80,7 +78,7 @@
   const emits = defineEmits<Emits>();
 
   const checkSelectedAll = () => {
-    if (tableData.value.filter(data => props.disabledRowConfig.find(item => item.handler(data))).length > 0) {
+    if (tableData.value.filter((data) => props.disabledRowConfig.find((item) => item.handler(data))).length > 0) {
       isSelectedAll.value = false;
       return;
     }
@@ -90,6 +88,7 @@
       return;
     }
 
+    // eslint-disable-next-line @typescript-eslint/prefer-for-of
     for (let i = 0; i < tableData.value.length; i++) {
       if (!selectedMap.value[tableData.value[i].id]) {
         isSelectedAll.value = false;
@@ -102,66 +101,62 @@
   const { t } = useI18n();
 
   const {
-    columnAttrs,
-    searchAttrs,
-    searchValue,
-    columnCheckedMap,
     clearSearchValue,
+    columnAttrs,
+    columnCheckedMap,
     columnFilterChange,
     handleSearchValueChange,
+    searchAttrs,
+    searchValue,
   } = useLinkQueryColumnSerach({
-    searchType: ClusterTypes.SQLSERVER_SINGLE,
-    attrs: [
-      'bk_cloud_id',
-      'db_module_id',
-      'major_version',
-    ],
+    attrs: ['bk_cloud_id', 'db_module_id', 'major_version'],
     defaultSearchItem: {
-      name: t('访问入口'),
       id: 'domain',
-    }
+      name: t('访问入口'),
+    },
+    searchType: ClusterTypes.SQLSERVER_SINGLE,
   });
 
-
   const {
+    data: tableData,
+    fetchResources,
+    handeChangeLimit,
+    handleChangePage,
+    isAnomalies,
     isLoading,
     pagination,
-    isAnomalies,
-    data: tableData,
     searchSelectValue,
-    fetchResources,
-    handleChangePage,
-    handeChangeLimit,
   } = useClusterData<ResourceItem>(searchValue);
 
   const activeTab = ref(props.activeTab);
   const selectedList = ref<ResourceItem[]>([]);
   const isSelectedAll = ref(false);
 
-  const selectedMap = computed(() => selectedList.value.reduce<Record<string, ResourceItem>>((results, item) => {
-    Object.assign(results, {
-      [item.id]: item,
-    })
-    return results;
-  }, {}))
+  const selectedMap = computed(() =>
+    selectedList.value.reduce<Record<string, ResourceItem>>((results, item) => {
+      Object.assign(results, {
+        [item.id]: item,
+      });
+      return results;
+    }, {}),
+  );
 
   const columns = computed(() => [
     {
-      width: 80,
-      minWidth: 80,
       fixed: 'left',
-      label: () => props.multiple ? (
-        <div style="display:flex;align-items:center">
-          <bk-checkbox
-            key={`${pagination.current}_${activeTab.value}`}
-            model-value={isSelectedAll.value}
-            indeterminate={isIndeterminate.value}
-            disabled={mainSelectDisable.value}
-            label={true}
-            onClick={(e: Event) => e.stopPropagation()}
-            onChange={handleWholeSelect}
-          />
-          {/* <bk-popover
+      label: () =>
+        props.multiple ? (
+          <div style='display:flex;align-items:center'>
+            <bk-checkbox
+              key={`${pagination.current}_${activeTab.value}`}
+              disabled={mainSelectDisable.value}
+              indeterminate={isIndeterminate.value}
+              label={true}
+              model-value={isSelectedAll.value}
+              onChange={handleWholeSelect}
+              onClick={(e: Event) => e.stopPropagation()}
+            />
+            {/* <bk-popover
             placement="bottom-start"
             theme="light db-table-select-menu"
             arrow={ false }
@@ -177,142 +172,163 @@
               ),
             }}>
           </bk-popover> */}
-        </div>
-      ) : '',
+          </div>
+        ) : (
+          ''
+        ),
+      minWidth: 80,
       render: ({ data }: { data: ResourceItem }) => {
-        const disabledRowConfig = props.disabledRowConfig.find(item => item.handler(data));
+        const disabledRowConfig = props.disabledRowConfig.find((item) => item.handler(data));
         if (disabledRowConfig) {
           return (
             <bk-popover
-              theme="dark"
-              placement="top"
-              popoverDelay={0}>
+              placement='top'
+              popoverDelay={0}
+              theme='dark'>
               {{
-                default: () => props.multiple ? <bk-checkbox style="vertical-align: middle;" disabled /> : <bk-radio disabled label={false}/>,
                 content: () => <span>{disabledRowConfig.tip}</span>,
+                default: () =>
+                  props.multiple ? (
+                    <bk-checkbox
+                      style='vertical-align: middle;'
+                      disabled
+                    />
+                  ) : (
+                    <bk-radio
+                      label={false}
+                      disabled
+                    />
+                  ),
               }}
             </bk-popover>
           );
         }
         return props.multiple ? (
           <bk-checkbox
-            style="vertical-align: middle;"
-            model-value={Boolean(selectedMap.value[data.id])}
             label={true}
+            model-value={Boolean(selectedMap.value[data.id])}
+            style='vertical-align: middle;'
             onChange={(value: boolean) => handleSelecteRow(data, value)}
           />
-          ) : (
+        ) : (
           <bk-radio
+            label={true}
             model-value={Boolean(selectedMap.value[data.id])}
             onChange={(value: boolean) => handleSelecteRow(data, value)}
-            label={true}/>
+          />
         );
       },
+      width: 80,
     },
     {
-      label: t('访问入口'),
       field: 'master_domain',
-      width: 280,
       fixed: 'left',
-      showOverflowTooltip: true,
+      label: t('访问入口'),
       render: ({ data }: { data: ResourceItem }) => (
-        <div class="cluster-name-box">
-            <div class="cluster-name">{data.master_domain}</div>
-            {
-              !data.isOnline && (
-                <bk-tag
-                  class="ml-8"
-                  size="small">
-                  {t('已禁用')}
-                </bk-tag>
-              )
-            }
-            {
-              data.operations && data.operations.length > 0 && (
-                <bk-popover
-                  theme="light"
-                  width="360">
-                  {{
-                    default: () => <bk-tag theme="info" class="tag-box">{data.operations.length}</bk-tag>,
-                    content: () => <ClusterRelatedTasks data={data.operations} />,
-                  }}
-                </bk-popover>
-              )
-            }
+        <div class='cluster-name-box'>
+          <div class='cluster-name'>{data.master_domain}</div>
+          {!data.isOnline && (
+            <bk-tag
+              class='ml-8'
+              size='small'>
+              {t('已禁用')}
+            </bk-tag>
+          )}
+          {data.operations && data.operations.length > 0 && (
+            <bk-popover
+              theme='light'
+              width='360'>
+              {{
+                content: () => <ClusterRelatedTasks data={data.operations} />,
+                default: () => (
+                  <bk-tag
+                    class='tag-box'
+                    theme='info'>
+                    {data.operations.length}
+                  </bk-tag>
+                ),
+              }}
+            </bk-popover>
+          )}
         </div>
       ),
+      showOverflowTooltip: true,
+      width: 280,
     },
     {
-      label: t('状态'),
       field: 'status',
-      width: 90,
       filter: {
+        checked: columnCheckedMap.value.status,
         list: [
           {
-            value: 'normal',
             text: t('正常'),
+            value: 'normal',
           },
           {
-            value: 'abnormal',
             text: t('异常'),
+            value: 'abnormal',
           },
         ],
-        checked: columnCheckedMap.value.status,
       },
+      label: t('状态'),
       render: ({ data }: { data: ResourceItem }) => {
         const isNormal = props.columnStatusFilter ? props.columnStatusFilter(data) : data.status === 'normal';
-        const info = isNormal ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
+        const info = isNormal ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
+      width: 90,
     },
     {
-      label: t('集群名称'),
       field: 'cluster_name',
-      width: 200,
+      label: t('集群名称'),
       showOverflowTooltip: true,
+      width: 200,
     },
     {
-      label: t('所属模块'),
       field: 'db_module_id',
-      width: 150,
-      showOverflowTooltip: true,
       filter: {
-        list: columnAttrs.value.db_module_id,
         checked: columnCheckedMap.value.db_module_id,
+        list: columnAttrs.value.db_module_id,
       },
+      label: t('所属模块'),
       render: ({ data }: { data: ResourceItem }) => <span>{data.db_module_name || '--'}</span>,
+      showOverflowTooltip: true,
+      width: 150,
     },
     {
-      label: t('管控区域'),
       field: 'bk_cloud_id',
-      width: 120,
-      showOverflowTooltip: true,
       filter: {
-        list: columnAttrs.value.bk_cloud_id,
         checked: columnCheckedMap.value.bk_cloud_id,
+        list: columnAttrs.value.bk_cloud_id,
       },
+      label: t('管控区域'),
       render: ({ data }: { data: ResourceItem }) => <span>{data.bk_cloud_name}</span>,
-    },
-    {
-      label: t('版本'),
-      field: 'major_version',
-      width: 200,
       showOverflowTooltip: true,
-      render: ({ data }: { data: ResourceItem }) => data.major_version || '--',
+      width: 120,
     },
     {
-      label: t('同步模式'),
+      field: 'major_version',
+      label: t('版本'),
+      render: ({ data }: { data: ResourceItem }) => data.major_version || '--',
+      showOverflowTooltip: true,
+      width: 200,
+    },
+    {
       field: 'sync_mode',
+      label: t('同步模式'),
       minWidth: 120,
-      width: 120,
       render: ({ data }: { data: ResourceItem }) => <span>{data.sync_mode || '--'}</span>,
+      width: 120,
     },
   ]);
 
   const isIndeterminate = computed(() => !isSelectedAll.value && selectedList.value.length > 0);
 
-  const mainSelectDisable = computed(() => tableData.value.filter(data => props.disabledRowConfig
-    .find(item => item.handler(data))).length === tableData.value.length);
+  const mainSelectDisable = computed(
+    () =>
+      tableData.value.filter((data) => props.disabledRowConfig.find((item) => item.handler(data))).length ===
+      tableData.value.length,
+  );
 
   const generatedColumns = computed(() => {
     if (props.customColums) {
@@ -321,22 +337,29 @@
     return columns.value;
   });
 
-  watch(() => [props.activeTab, props.selected], () => {
-    if (props.activeTab) {
-      activeTab.value = props.activeTab;
-      selectedList.value = props.selected;
-      checkSelectedAll();
-    }
-  }, {
-    immediate: true,
-    deep: true,
-  });
+  watch(
+    () => [props.activeTab, props.selected],
+    () => {
+      if (props.activeTab) {
+        activeTab.value = props.activeTab;
+        selectedList.value = props.selected;
+        checkSelectedAll();
+      }
+    },
+    {
+      deep: true,
+      immediate: true,
+    },
+  );
 
-  watch(() => activeTab.value, () => {
-    if (activeTab.value) {
-      searchSelectValue.value = [];
-    }
-  });
+  watch(
+    () => activeTab.value,
+    () => {
+      if (activeTab.value) {
+        searchSelectValue.value = [];
+      }
+    },
+  );
 
   watch(isLoading, (status) => {
     if (!status) {
@@ -345,7 +368,7 @@
   });
 
   watch(searchValue, () => {
-    selectedList.value = []
+    selectedList.value = [];
     emits('change', []);
   });
 
@@ -353,20 +376,23 @@
   const handleWholeSelect = (value: boolean) => {
     if (value) {
       isLoading.value = true;
-      props.getResourceList({
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        offset: 0,
-        limit: -1,
-        ...getSearchSelectorParams(searchValue.value),
-      }).then((data) => {
-        data.results.forEach((dataItem) => {
-          if (!props.disabledRowConfig.find(item => item.handler(dataItem))) {
-            handleSelecteRow(dataItem, true);
-          }
-        });
-      }).finally(() => isLoading.value = false);
+      props
+        .getResourceList({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          limit: -1,
+          offset: 0,
+          ...getSearchSelectorParams(searchValue.value),
+        })
+        .then((data) => {
+          data.results.forEach((dataItem) => {
+            if (!props.disabledRowConfig.find((item) => item.handler(dataItem))) {
+              handleSelecteRow(dataItem, true);
+            }
+          });
+        })
+        .finally(() => (isLoading.value = false));
     } else {
-      selectedList.value = []
+      selectedList.value = [];
       emits('change', []);
     }
   };
@@ -385,7 +411,7 @@
   /**
    * 选择当行数据
    */
-   const handleSelecteRow = (data: ResourceItem, value: boolean) => {
+  const handleSelecteRow = (data: ResourceItem, value: boolean) => {
     if (!props.multiple) {
       selectedList.value = [];
     }
@@ -399,7 +425,7 @@
   };
 
   const handleRowClick = (_: any, data: ResourceItem) => {
-    if (props.disabledRowConfig.find(item => item.handler(data))) {
+    if (props.disabledRowConfig.find((item) => item.handler(data))) {
       return;
     }
 
@@ -408,17 +434,15 @@
   };
 
   const handleTablePageChange = (value: number) => {
-    handleChangePage(value)
-      .then(() => {
-        checkSelectedAll();
-      });
+    handleChangePage(value).then(() => {
+      checkSelectedAll();
+    });
   };
 
   const handleTableLimitChange = (value: number) => {
-    handeChangeLimit(value)
-      .then(() => {
-        checkSelectedAll();
-      });
+    handeChangeLimit(value).then(() => {
+      checkSelectedAll();
+    });
   };
 </script>
 

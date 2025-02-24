@@ -21,15 +21,13 @@
 <script lang="ts">
   const instanceAddreddMemo: { [key: string]: Record<string, boolean> } = {};
 
-  interface Emits {
-    (
-      e: 'inputFinish',
-      data: {
-        originProxy: IDataRow['originProxy'];
-        relatedClusters: IDataRow['relatedClusters'];
-      },
-    ): void;
-  }
+  type Emits = (
+    e: 'inputFinish',
+    data: {
+      originProxy: IDataRow['originProxy'];
+      relatedClusters: IDataRow['relatedClusters'];
+    },
+  ) => void;
 
   interface Exposes {
     getValue: () => {
@@ -67,15 +65,16 @@
 
   const rules = [
     {
+      message: t('目标Proxy不能为空'),
       validator: (value: string) => {
         if (value) {
           return true;
         }
         return false;
       },
-      message: t('目标Proxy不能为空'),
     },
     {
+      message: t('目标Proxy不存在'),
       validator: (value: string) =>
         checkMysqlInstances({
           bizId: currentBizId,
@@ -87,12 +86,12 @@
           const [currentData] = data;
           instanceAddreddMemo[instanceKey][currentData.instance_address] = true;
           originProxy = {
-            ip: currentData.ip,
+            bk_biz_id: currentBizId,
             bk_cloud_id: currentData.bk_cloud_id,
             bk_host_id: currentData.bk_host_id,
-            bk_biz_id: currentBizId,
-            port: currentData.port,
             instance_address: currentData.instance_address,
+            ip: currentData.ip,
+            port: currentData.port,
           };
           emits('inputFinish', {
             originProxy,
@@ -105,9 +104,9 @@
           });
           return true;
         }),
-      message: t('目标Proxy不存在'),
     },
     {
+      message: t('目标Proxy重复'),
       validator: () => {
         const currentClusterSelectMap = instanceAddreddMemo[instanceKey];
         const otherClusterMemoMap = { ...instanceAddreddMemo };
@@ -122,6 +121,7 @@
         );
 
         const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
+        // eslint-disable-next-line @typescript-eslint/prefer-for-of
         for (let i = 0; i < currentSelectClusterIdList.length; i++) {
           if (otherClusterIdMap[currentSelectClusterIdList[i]]) {
             return false;
@@ -129,7 +129,6 @@
         }
         return true;
       },
-      message: t('目标Proxy重复'),
     },
   ];
 

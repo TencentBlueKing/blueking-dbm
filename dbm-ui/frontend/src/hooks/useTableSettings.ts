@@ -14,8 +14,8 @@
 import { useUserProfile } from '@stores';
 
 interface Settings {
-  disabled?: string[];
   checked?: string[];
+  disabled?: string[];
   size?: 'medium' | 'mini' | 'small';
 }
 

@@ -27,8 +27,8 @@
   import RuleDeleteTable from './components/RuleDeleteTable.vue';
 
   interface Props {
-    ticketDetails: TicketModel<Mysql.AccountRuleChange>;
     accountType?: AccountTypes.MYSQL | AccountTypes.TENDBCLUSTER;
+    ticketDetails: TicketModel<Mysql.AccountRuleChange>;
   }
 
   withDefaults(defineProps<Props>(), {

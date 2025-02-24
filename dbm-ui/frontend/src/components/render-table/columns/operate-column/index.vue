@@ -45,10 +45,10 @@
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
 
   interface Props {
-    showAdd?: boolean;
-    showRemove?: boolean;
     removeable?: boolean;
+    showAdd?: boolean;
     showClone?: boolean;
+    showRemove?: boolean;
   }
 
   interface Emits {
@@ -58,10 +58,10 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    showAdd: true,
-    showRemove: true,
     removeable: true,
+    showAdd: true,
     showClone: false,
+    showRemove: true,
   });
 
   const emits = defineEmits<Emits>();

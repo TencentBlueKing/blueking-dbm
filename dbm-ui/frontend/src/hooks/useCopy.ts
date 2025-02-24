@@ -36,7 +36,7 @@ function copy(value: string) {
       return;
     }
     throw new Error();
-  } catch (e) {
+  } catch {
     Message({
       message: t('复制失败'),
       theme: 'error',

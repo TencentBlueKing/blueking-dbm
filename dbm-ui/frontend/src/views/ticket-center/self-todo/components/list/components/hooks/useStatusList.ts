@@ -19,29 +19,29 @@ const create = () => {
     const countData = Number(route.params.assist) ? ticketCount.value.to_help : ticketCount.value.pending;
     return [
       {
+        count: countData.APPROVE,
         id: TicketModel.STATUS_APPROVE,
         name: `${t('待审批')}(${countData.APPROVE})`,
-        count: countData.APPROVE,
       },
       {
+        count: countData.TODO,
         id: TicketModel.STATUS_TODO,
         name: `${t('待执行')}(${countData.TODO})`,
-        count: countData.TODO,
       },
       {
+        count: countData.RESOURCE_REPLENISH,
         id: TicketModel.STATUS_RESOURCE_REPLENISH,
         name: `${t('待补货')}(${countData.RESOURCE_REPLENISH})`,
-        count: countData.RESOURCE_REPLENISH,
       },
       {
+        count: countData.FAILED,
         id: TicketModel.STATUS_FAILED,
         name: `${t('失败待处理')}(${countData.FAILED})`,
-        count: countData.FAILED,
       },
       {
+        count: countData.INNER_TODO,
         id: TicketModel.STATUS_INNER_TODO,
         name: `${t('待继续')}(${countData.INNER_TODO})`,
-        count: countData.INNER_TODO,
       },
     ];
   });
@@ -54,8 +54,8 @@ const create = () => {
   }
 
   return {
-    list,
     defaultStatus,
+    list,
   };
 };
 

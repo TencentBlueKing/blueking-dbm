@@ -32,9 +32,7 @@
     accountType: AccountTypes;
   }
 
-  interface Emits {
-    (e: 'change', data: PermissionRule['rules']): void;
-  }
+  type Emits = (e: 'change', data: PermissionRule['rules']) => void;
 
   const props = defineProps<Props>();
 
@@ -60,19 +58,19 @@
    */
   const fetchAccounts = async () => {
     const apiMap = {
-      [AccountTypes.MYSQL]: getMysqlPermissionRules,
-      [AccountTypes.TENDBCLUSTER]: getMysqlPermissionRules,
       [AccountTypes.MONGODB]: getMongodbPermissionRules,
+      [AccountTypes.MYSQL]: getMysqlPermissionRules,
       [AccountTypes.SQLSERVER]: getSqlserverPermissionRules,
+      [AccountTypes.TENDBCLUSTER]: getMysqlPermissionRules,
     };
 
     try {
       isLoading.value = true;
       const { results } = await apiMap[props.accountType]({
-        offset: 0,
-        limit: -1,
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         account_type: props.accountType,
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        limit: -1,
+        offset: 0,
       });
       accounts.value = results;
       updateAccoutRules();

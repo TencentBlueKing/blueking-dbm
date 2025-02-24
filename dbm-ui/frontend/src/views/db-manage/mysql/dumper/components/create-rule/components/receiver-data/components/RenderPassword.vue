@@ -40,13 +40,13 @@
 
   const rules = [
     {
+      message: t('不能为空'),
       validator: (value: string) => {
         if (value) {
           return true;
         }
         return false;
       },
-      message: t('不能为空'),
     },
   ];
 

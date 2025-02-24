@@ -141,24 +141,15 @@
   import { useRequest } from 'vue-request';
 
   import DumperInstanceModel from '@services/model/dumper/dumper';
-  import {
-    getRunningTaskList,
-    listDumperConfig,
-    listDumperInstance
-  } from '@services/source/dumper';
+  import { getRunningTaskList, listDumperConfig, listDumperInstance } from '@services/source/dumper';
   import { createTicket } from '@services/source/ticket';
 
-  import {
-    useTicketMessage,
-  } from '@hooks';
+  import { useTicketMessage } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
   import { TicketTypes } from '@common/const';
-  import {
-    ipPort,
-    ipv4,
-  } from '@common/regex';
+  import { ipPort, ipv4 } from '@common/regex';
 
   import MiniTag from '@components/mini-tag/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
@@ -172,41 +163,37 @@
   import ManualMigration from './manual-migration/Index.vue';
   import OperationBtnTip from './OperationBtnTip.vue';
 
-
-  export type DumperConfig = ServiceReturnType<typeof listDumperConfig>['results'][number]
+  export type DumperConfig = ServiceReturnType<typeof listDumperConfig>['results'][number];
 
   interface Props {
-    data: DumperConfig | null
+    data: DumperConfig | null;
   }
 
   const props = defineProps<Props>();
 
   const ticketMessage = useTicketMessage();
   const { currentBizId } = useGlobalBizs();
-  const { t, locale } = useI18n();
+  const { locale, t } = useI18n();
   const router = useRouter();
 
   const searchSelectData = [
     {
-      name: t('实例'),
       id: 'address',
+      name: t('实例'),
     },
     {
-      name: 'IP',
       id: 'ip',
+      name: 'IP',
     },
     {
-      name: t('实例ID'),
       id: 'dumper_id',
+      name: t('实例ID'),
     },
     {
-      name: t('数据源集群'),
       id: 'source_cluster',
+      name: t('数据源集群'),
     },
     {
-      name: t('接收端类型'),
-      id: 'protocol_type',
-      multiple: true,
       children: [
         {
           id: 'KAFKA',
@@ -221,15 +208,15 @@
           name: 'TCP/IP',
         },
       ],
-    },
-    {
-      name: t('接收端地址'),
-      id: 'target_address',
-    },
-    {
-      name: t('同步方式'),
-      id: 'add_type',
+      id: 'protocol_type',
       multiple: true,
+      name: t('接收端类型'),
+    },
+    {
+      id: 'target_address',
+      name: t('接收端地址'),
+    },
+    {
       children: [
         {
           id: 'full_sync',
@@ -240,6 +227,9 @@
           name: t('增量同步'),
         },
       ],
+      id: 'add_type',
+      multiple: true,
+      name: t('同步方式'),
     },
   ];
 
@@ -264,70 +254,84 @@
 
   const columns = [
     {
+      field: 'instance',
+      fixed: 'left',
       label: t('实例'),
       minWidth: 200,
-      width: 230,
-      fixed: 'left',
-      field: 'instance',
-      showOverflowTooltip: false,
-      render: ({ data }: {data: DumperInstanceModel}) => (
+      render: ({ data }: { data: DumperInstanceModel }) => (
         <TextOverflowLayout>
           {{
-            default: () => (
-              <span class="mr-4">
-                {`${data.ip}:${data.listen_port}`}
-              </span>
-            ),
             append: () => (
               <>
                 {data.need_transfer && (
                   <bk-popover
-                    placement="top"
-                    theme="light"
-                    popover-delay={[100, 200]}>
+                    placement='top'
+                    popover-delay={[100, 200]}
+                    theme='light'>
                     {{
-                      default: () => <db-icon class="migrate-fail-tip" type='exclamation-fill' />,
                       content: () => <div>{t('Dumper实例迁移失败')}</div>,
+                      default: () => (
+                        <db-icon
+                          class='migrate-fail-tip'
+                          type='exclamation-fill'
+                        />
+                      ),
                     }}
                   </bk-popover>
                 )}
                 <RenderOperationTagNew data={data.operationTagTip} />
-                {!data.isOnline && !data.isStarting && <MiniTag content={t('已禁用')} extCls='stoped-icon'/>}
-                {data.isNew && <MiniTag theme='success' content="NEW" extCls='success-icon' />}
+                {!data.isOnline && !data.isStarting && (
+                  <MiniTag
+                    content={t('已禁用')}
+                    extCls='stoped-icon'
+                  />
+                )}
+                {data.isNew && (
+                  <MiniTag
+                    content='NEW'
+                    extCls='success-icon'
+                    theme='success'
+                  />
+                )}
               </>
             ),
+            default: () => <span class='mr-4'>{`${data.ip}:${data.listen_port}`}</span>,
           }}
         </TextOverflowLayout>
       ),
+      showOverflowTooltip: false,
+      width: 230,
     },
     {
-      label: t('实例 ID'),
       field: 'dumper_id',
+      label: t('实例 ID'),
       width: 80,
     },
     {
-      label: t('数据源集群'),
       field: 'source_cluster',
+      label: t('数据源集群'),
       minWidth: 200,
+      render: ({ data }: { data: DumperInstanceModel }) =>
+        data.source_cluster ? (
+          <auth-router-link
+            to={{
+              name: 'DatabaseTendbha',
+              query: {
+                id: data.id,
+              },
+            }}
+            action-id='mysql_view'
+            permission={data.permission.mysql_view}
+            resource={data.source_cluster.id}
+            target='_blank'>
+            {data.source_cluster.immute_domain}:{data.source_cluster.master_port}
+          </auth-router-link>
+        ) : (
+          '--'
+        ),
       width: 250,
-      render: ({ data }: {data: DumperInstanceModel}) => (data.source_cluster ? (
-        <auth-router-link
-          action-id="mysql_view"
-          resource={data.source_cluster.id}
-          permission={data.permission.mysql_view}
-          to={{
-            name: 'DatabaseTendbha',
-            query: {
-              id: data.id,
-            },
-          }}
-          target="_blank">
-          {data.source_cluster.immute_domain}:{data.source_cluster.master_port}
-        </auth-router-link>) : '--'
-      ),
     },
     {
-      label: t('接收端类型'),
       field: 'protocol_type',
       filter: {
         list: [
@@ -336,14 +340,18 @@
           { text: 'TCP/IP', value: 'TCP/IP' },
         ],
       },
+      label: t('接收端类型'),
     },
     {
-      label: t('接收端地址'),
       field: 'receiver',
-      render: ({ data }: {data: DumperInstanceModel}) => <span>{data.target_address}:{data.target_port}</span>,
+      label: t('接收端地址'),
+      render: ({ data }: { data: DumperInstanceModel }) => (
+        <span>
+          {data.target_address}:{data.target_port}
+        </span>
+      ),
     },
     {
-      label: t('同步方式'),
       field: 'add_type',
       filter: {
         list: [
@@ -351,29 +359,29 @@
           { text: t('增量同步'), value: 'incr_sync' },
         ],
       },
-      render: ({ data }: {data: DumperInstanceModel}) => <span>{syncTypeMap[data.add_type]}</span>,
+      label: t('同步方式'),
+      render: ({ data }: { data: DumperInstanceModel }) => <span>{syncTypeMap[data.add_type]}</span>,
     },
     {
-      label: t('操作'),
       field: '',
       fixed: 'right',
-      width: isCN.value ? 160 : 220,
-      render: ({ data }: {data: DumperInstanceModel}) => (
+      label: t('操作'),
+      render: ({ data }: { data: DumperInstanceModel }) => (
         <>
           <OperationBtnTip
             data={data}
             disabled={!data.isOperating}>
             <span>
               <auth-button
-                action-id="tbinlogdumper_enable_disable"
-                resource={data.cluster_id}
-                permission={data.permission.tbinlogdumper_enable_disable}
-                text
-                disabled={data.isOperating}
+                action-id='tbinlogdumper_enable_disable'
                 class='mr-8'
-                theme="primary"
+                disabled={data.isOperating}
+                permission={data.permission.tbinlogdumper_enable_disable}
+                resource={data.cluster_id}
+                theme='primary'
+                text
                 onClick={() => handleOpenOrCloseInstance(data)}>
-                  { data.isOnline ? t('禁用') : t('启用') }
+                {data.isOnline ? t('禁用') : t('启用')}
               </auth-button>
             </span>
           </OperationBtnTip>
@@ -383,15 +391,15 @@
               disabled={!data.isOperating}>
               <span>
                 <auth-button
-                  action-id="tbinlogdumper_reduce_nodes"
-                  resource={data.cluster_id}
-                  permission={data.permission.tbinlogdumper_reduce_nodes}
-                  text
-                  disabled={data.isOperating}
+                  action-id='tbinlogdumper_reduce_nodes'
                   class='mr-8'
-                  theme="primary"
+                  disabled={data.isOperating}
+                  permission={data.permission.tbinlogdumper_reduce_nodes}
+                  resource={data.cluster_id}
+                  theme='primary'
+                  text
                   onClick={() => handleDeleteInstance(data)}>
-                    { t('删除') }
+                  {t('删除')}
                 </auth-button>
               </span>
             </OperationBtnTip>
@@ -402,60 +410,61 @@
               disabled={!data.isOperating}>
               <span>
                 <auth-button
-                  action-id="tbinlogdumper_switch_nodes"
-                  resource={data.cluster_id}
-                  permission={data.permission.tbinlogdumper_switch_nodes}
-                  text
+                  action-id='tbinlogdumper_switch_nodes'
                   disabled={data.isOperating}
-                  theme="primary"
+                  permission={data.permission.tbinlogdumper_switch_nodes}
+                  resource={data.cluster_id}
+                  theme='primary'
+                  text
                   onClick={() => handleOpenManualMigration(data)}>
-                    { t('手动迁移') }
+                  {t('手动迁移')}
                 </auth-button>
               </span>
             </OperationBtnTip>
           )}
         </>
       ),
+      width: isCN.value ? 160 : 220,
     },
   ];
 
   const settings = {
+    checked: ['instance', 'dumper_id', 'source_cluster', 'protocol_type', 'receiver', 'add_type'],
     fields: [
       {
-        label: t('实例'),
-        field: 'instance',
         disabled: true,
+        field: 'instance',
+        label: t('实例'),
       },
       {
-        label: t('实例 ID'),
         field: 'dumper_id',
+        label: t('实例 ID'),
       },
       {
-        label: t('数据源集群'),
         field: 'source_cluster',
+        label: t('数据源集群'),
       },
       {
-        label: t('接收端类型'),
         field: 'protocol_type',
+        label: t('接收端类型'),
       },
       {
-        label: t('接收端地址'),
         field: 'receiver',
+        label: t('接收端地址'),
       },
       {
-        label: t('同步方式'),
         field: 'add_type',
+        label: t('同步方式'),
       },
     ],
-    checked: ['instance', 'dumper_id', 'source_cluster', 'protocol_type', 'receiver', 'add_type'],
   };
 
-  const {run: fetchRunningTaskList} = useRequest(getRunningTaskList, {
+  const { run: fetchRunningTaskList } = useRequest(getRunningTaskList, {
     manual: true,
     onSuccess(result) {
-      runningTicketList.value = result
-    }
-  })
+      runningTicketList.value = result;
+    },
+  });
 
   const { run: runCreateTicket } = useRequest(createTicket, {
     manual: true,
@@ -474,33 +483,36 @@
     });
   };
 
-  watch(() => [props.data, search], () => {
-    fetchTableData();
-    tableRef.value?.clearSelected();
-    if (props.data){
-      fetchRunningTaskList({
-        dumper_config_id: props.data?.id
-      })
-    }
-
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => [props.data, search],
+    () => {
+      fetchTableData();
+      tableRef.value?.clearSelected();
+      if (props.data) {
+        fetchRunningTaskList({
+          dumper_config_id: props.data?.id,
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   // tip: async 去掉组件库会报错
-  const validateValues = async (item: {id: string}, values: ISearchValue['values']) => {
+  const validateValues = async (item: { id: string }, values: ISearchValue['values']) => {
     if (values) {
       const targetValue = values[0].id.replace(/^\s+|\s+$/g, '');
       if (item.id === 'address') {
         const list = targetValue.split(',');
-        if (list.some(item => !ipPort.test(item))) {
+        if (list.some((item) => !ipPort.test(item))) {
           return t('格式错误');
         }
       }
       if (item.id === 'ip' && !ipv4.test(targetValue)) {
         return t('格式错误');
       }
-      return  true;
+      return true;
     }
     return false;
   };
@@ -528,37 +540,40 @@
     }
     if (data.isOnline) {
       InfoBox({
-        infoType: 'warning',
-        title: t('确认禁用该实例？'),
         confirmText: t('禁用'),
-        content: <div>
-          <div>{t('实例')}：{data.ip}:{data.listen_port}</div>
-          <div style="margin-top: 8px;">{t('禁用后数据传输将会终止，请谨慎操作！')}</div>
-        </div>,
-        width: 400,
+        content: (
+          <div>
+            <div>
+              {t('实例')}：{data.ip}:{data.listen_port}
+            </div>
+            <div style='margin-top: 8px;'>{t('禁用后数据传输将会终止，请谨慎操作！')}</div>
+          </div>
+        ),
+        infoType: 'warning',
         onConfirm: () => {
           const params = {
             bk_biz_id: currentBizId,
-            ticket_type: TicketTypes.TBINLOGDUMPER_DISABLE_NODES,
-            remark: '',
             details: {
               dumper_instance_ids: [data.id],
             },
-
+            remark: '',
+            ticket_type: TicketTypes.TBINLOGDUMPER_DISABLE_NODES,
           };
           runCreateTicket(params);
-        } });
+        },
+        title: t('确认禁用该实例？'),
+        width: 400,
+      });
       return;
     }
     // 启用
     const params = {
       bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.TBINLOGDUMPER_ENABLE_NODES,
-      remark: '',
       details: {
         dumper_instance_ids: [data.id],
       },
-
+      remark: '',
+      ticket_type: TicketTypes.TBINLOGDUMPER_ENABLE_NODES,
     };
     runCreateTicket(params);
   };
@@ -566,24 +581,24 @@
   // 批量禁用
   const handleBatchStopInstance = () => {
     InfoBox({
+      confirmText: t('禁用'),
       extCls: 'dumper-instance-infobox',
       infoType: 'warning',
-      title: t('确认批量禁用n个实例？', { n: selectedList.value.length }),
-      confirmText: t('禁用'),
-      subTitle: t('禁用后数据传输将会终止，请谨慎操作！'),
-      width: 400,
       onConfirm: () => {
         const params = {
           bk_biz_id: currentBizId,
-          ticket_type: TicketTypes.TBINLOGDUMPER_DISABLE_NODES,
-          remark: '',
           details: {
-            dumper_instance_ids: selectedList.value.map(item => item.id),
+            dumper_instance_ids: selectedList.value.map((item) => item.id),
           },
-
+          remark: '',
+          ticket_type: TicketTypes.TBINLOGDUMPER_DISABLE_NODES,
         };
         runCreateTicket(params);
-      } });
+      },
+      subTitle: t('禁用后数据传输将会终止，请谨慎操作！'),
+      title: t('确认批量禁用n个实例？', { n: selectedList.value.length }),
+      width: 400,
+    });
   };
 
   // 删除
@@ -592,49 +607,53 @@
       return;
     }
     InfoBox({
-      type: 'warning',
-      confirmText: t('删除'),
       confirmButtonTheme: 'danger',
-      content: <div class="dumper-instance-infobox-subtitle">
-          <div>{t('实例')}：{data.ip}:{data.listen_port}</div>
-          <div style="margin-top: 8px;">{t('删除后数据传输将会终止，并删除实例，请谨慎操作！')}</div>
-        </div>,
-      width: 400,
+      confirmText: t('删除'),
+      content: (
+        <div class='dumper-instance-infobox-subtitle'>
+          <div>
+            {t('实例')}：{data.ip}:{data.listen_port}
+          </div>
+          <div style='margin-top: 8px;'>{t('删除后数据传输将会终止，并删除实例，请谨慎操作！')}</div>
+        </div>
+      ),
       onConfirm: () => {
         const params = {
           bk_biz_id: currentBizId,
-          ticket_type: TicketTypes.TBINLOGDUMPER_REDUCE_NODES,
-          remark: '',
           details: {
             dumper_instance_ids: [data.id],
           },
-
+          remark: '',
+          ticket_type: TicketTypes.TBINLOGDUMPER_REDUCE_NODES,
         };
         runCreateTicket(params);
-      } });
+      },
+      type: 'warning',
+      width: 400,
+    });
   };
 
   // 批量删除
   const handleBatchDeleteInstance = () => {
     InfoBox({
-      type: 'warning',
-      title: t('确认批量删除n个实例？', { n: selectedList.value.length }),
-      confirmText: t('删除'),
       confirmButtonTheme: 'danger',
+      confirmText: t('删除'),
       content: t('删除后数据传输将会终止，并删除实例，请谨慎操作！'),
-      width: 400,
       onConfirm: () => {
         const params = {
           bk_biz_id: currentBizId,
-          ticket_type: TicketTypes.TBINLOGDUMPER_REDUCE_NODES,
-          remark: '',
           details: {
-            dumper_instance_ids: selectedList.value.map(item => item.id),
+            dumper_instance_ids: selectedList.value.map((item) => item.id),
           },
-
+          remark: '',
+          ticket_type: TicketTypes.TBINLOGDUMPER_REDUCE_NODES,
         };
         runCreateTicket(params);
-      } });
+      },
+      title: t('确认批量删除n个实例？', { n: selectedList.value.length }),
+      type: 'warning',
+      width: 400,
+    });
   };
 
   const handleOpenManualMigration = (data: DumperInstanceModel) => {
@@ -667,18 +686,18 @@
   };
 
   const handleCopyAll = (isInstance = false) => {
-    const list = (tableRef.value.getData() as DumperInstanceModel[]).map(item => `${item.ip}:${item.listen_port}`);
+    const list = (tableRef.value.getData() as DumperInstanceModel[]).map((item) => `${item.ip}:${item.listen_port}`);
     if (!isInstance) {
-      copy(list.map(inst => inst.split(':')[0]));
+      copy(list.map((inst) => inst.split(':')[0]));
       return;
     }
     copy(list);
   };
 
   const handleCopySelected = (isInstance = false) => {
-    const list = selectedList.value.map(item => `${item.ip}:${item.listen_port}`);
+    const list = selectedList.value.map((item) => `${item.ip}:${item.listen_port}`);
     if (!isInstance) {
-      copy(list.map(inst => inst.split(':')[0]));
+      copy(list.map((inst) => inst.split(':')[0]));
       return;
     }
 
@@ -686,36 +705,37 @@
   };
 
   const copy = (value: string[]) => {
-    execCopy(value.join(','), t('复制成功，共n条', { n: value.length }))
-  }
+    execCopy(value.join(','), t('复制成功，共n条', { n: value.length }));
+  };
 
   // 选择单台
   const handleSelect = (_idList: string[], list: DumperInstanceModel[]) => {
-    selectedList.value = list
+    selectedList.value = list;
   };
 
-
   const handleColumnFilter = (data: {
-    checked: string[],
+    checked: string[];
     column: {
-      field: string,
-      label: string,
-    },
-    index: number,
+      field: string;
+      label: string;
+    };
+    index: number;
   }) => {
     if (data.checked.length === 0) {
-      search.value = search.value.filter(item => item.id !== data.column.field);
+      search.value = search.value.filter((item) => item.id !== data.column.field);
       return;
     }
     const isAddType = data.column.field === 'add_type';
-    search.value = [{
-      id: data.column.field,
-      name: data.column.label,
-      values: data.checked.map(item => ({
-        id: item,
-        name: isAddType ? syncTypeMap[item] : item,
-      })),
-    }];
+    search.value = [
+      {
+        id: data.column.field,
+        name: data.column.label,
+        values: data.checked.map((item) => ({
+          id: item,
+          name: isAddType ? syncTypeMap[item] : item,
+        })),
+      },
+    ];
   };
 </script>
 

@@ -14,213 +14,213 @@
 import { t } from '@locales/index';
 
 export interface MenuChild {
-  name: string;
-  id: string;
-  parentId: string;
   dbConsoleValue: string;
+  id: string;
+  name: string;
+  parentId: string;
 }
 
 export default [
   {
-    name: t('SQL任务'),
-    id: 'spider_sql',
-    icon: 'db-icon-mysql',
     children: [
       {
-        name: t('变更SQL执行'),
-        id: 'spiderSqlExecute',
-        parentId: 'spider_sql',
         dbConsoleValue: 'tendbCluster.toolbox.sqlExecute',
-      },
-      {
-        name: t('DB 重命名'),
-        id: 'spiderDbRename',
+        id: 'spiderSqlExecute',
+        name: t('变更SQL执行'),
         parentId: 'spider_sql',
+      },
+      {
         dbConsoleValue: 'tendbCluster.toolbox.dbRename',
+        id: 'spiderDbRename',
+        name: t('DB 重命名'),
+        parentId: 'spider_sql',
       },
     ],
+    icon: 'db-icon-mysql',
+    id: 'spider_sql',
+    name: t('SQL任务'),
   },
   {
-    name: t('集群维护'),
-    id: 'spider_cluster_maintain',
-    icon: 'db-icon-cluster',
     children: [
       {
-        name: t('主从互切'),
-        id: 'spiderMasterSlaveSwap',
-        parentId: 'spider_cluster_maintain',
         dbConsoleValue: 'tendbCluster.toolbox.masterSlaveSwap',
+        id: 'spiderMasterSlaveSwap',
+        name: t('主从互切'),
+        parentId: 'spider_cluster_maintain',
       },
       {
-        name: t('主库故障切换'),
-        id: 'spiderMasterFailover',
-        parentId: 'spider_cluster_maintain',
         dbConsoleValue: 'tendbCluster.toolbox.masterFailover',
+        id: 'spiderMasterFailover',
+        name: t('主库故障切换'),
+        parentId: 'spider_cluster_maintain',
       },
       {
-        name: t('集群容量变更'),
-        id: 'spiderCapacityChange',
-        parentId: 'spider_cluster_maintain',
         dbConsoleValue: 'tendbCluster.toolbox.capacityChange',
+        id: 'spiderCapacityChange',
+        name: t('集群容量变更'),
+        parentId: 'spider_cluster_maintain',
       },
       {
-        name: t('扩容接入层'),
-        id: 'SpiderProxyScaleUp',
-        parentId: 'spider_cluster_maintain',
         dbConsoleValue: 'tendbCluster.toolbox.proxyScaleUp',
+        id: 'SpiderProxyScaleUp',
+        name: t('扩容接入层'),
+        parentId: 'spider_cluster_maintain',
       },
       {
-        name: t('缩容接入层'),
-        id: 'SpiderProxyScaleDown',
-        parentId: 'spider_cluster_maintain',
         dbConsoleValue: 'tendbCluster.toolbox.proxyScaleDown',
+        id: 'SpiderProxyScaleDown',
+        name: t('缩容接入层'),
+        parentId: 'spider_cluster_maintain',
       },
       {
-        name: t('迁移主从'),
-        id: 'spiderMasterSlaveClone',
-        parentId: 'spider_cluster_maintain',
         dbConsoleValue: 'tendbCluster.toolbox.masterSlaveClone',
-      },
-      {
-        name: t('重建从库'),
-        id: 'spiderSlaveRebuild',
+        id: 'spiderMasterSlaveClone',
+        name: t('迁移主从'),
         parentId: 'spider_cluster_maintain',
+      },
+      {
         dbConsoleValue: 'tendbCluster.toolbox.slaveRebuild',
+        id: 'spiderSlaveRebuild',
+        name: t('重建从库'),
+        parentId: 'spider_cluster_maintain',
       },
     ],
+    icon: 'db-icon-cluster',
+    id: 'spider_cluster_maintain',
+    name: t('集群维护'),
   },
   {
-    name: t('访问入口'),
-    id: 'spider_entry',
-    icon: 'db-icon-entry',
     children: [
       {
-        name: t('部署只读接入层'),
-        id: 'SpiderProxySlaveApply',
-        parentId: 'spider_entry',
         dbConsoleValue: 'tendbCluster.toolbox.proxySlaveApply',
+        id: 'SpiderProxySlaveApply',
+        name: t('部署只读接入层'),
+        parentId: 'spider_entry',
       },
     ],
+    icon: 'db-icon-entry',
+    id: 'spider_entry',
+    name: t('访问入口'),
   },
   {
-    name: t('运维节点管理'),
-    id: 'spider_mnt',
-    icon: 'db-icon-jiankong',
     children: [
       {
-        name: t('添加运维节点'),
-        id: 'spiderAddMnt',
-        parentId: 'spider_mnt',
         dbConsoleValue: 'tendbCluster.toolbox.addMnt',
+        id: 'spiderAddMnt',
+        name: t('添加运维节点'),
+        parentId: 'spider_mnt',
       },
     ],
+    icon: 'db-icon-jiankong',
+    id: 'spider_mnt',
+    name: t('运维节点管理'),
   },
   {
-    name: t('备份'),
-    id: 'spider_copy',
-    icon: 'db-icon-copy',
     children: [
       {
-        name: t('库表备份'),
-        id: 'spiderDbTableBackup',
-        parentId: 'spider_copy',
         dbConsoleValue: 'tendbCluster.toolbox.dbTableBackup',
-      },
-      {
-        name: t('全库备份'),
-        id: 'spiderDbBackup',
+        id: 'spiderDbTableBackup',
+        name: t('库表备份'),
         parentId: 'spider_copy',
+      },
+      {
         dbConsoleValue: 'tendbCluster.toolbox.dbBackup',
+        id: 'spiderDbBackup',
+        name: t('全库备份'),
+        parentId: 'spider_copy',
       },
     ],
+    icon: 'db-icon-copy',
+    id: 'spider_copy',
+    name: t('备份'),
   },
   {
-    name: t('回档'),
-    id: 'spider_fileback',
-    icon: 'db-icon-rollback',
     children: [
       {
-        name: t('定点构造'),
-        id: 'spiderRollback',
-        parentId: 'spider_fileback',
         dbConsoleValue: 'tendbCluster.toolbox.rollback',
+        id: 'spiderRollback',
+        name: t('定点构造'),
+        parentId: 'spider_fileback',
       },
       {
-        name: t('构造实例'),
-        id: 'spiderRollbackRecord',
-        parentId: 'spider_fileback',
         dbConsoleValue: 'tendbCluster.toolbox.rollbackRecord',
-      },
-      {
-        name: t('闪回'),
-        id: 'spiderFlashback',
+        id: 'spiderRollbackRecord',
+        name: t('构造实例'),
         parentId: 'spider_fileback',
+      },
+      {
         dbConsoleValue: 'tendbCluster.toolbox.flashback',
+        id: 'spiderFlashback',
+        name: t('闪回'),
+        parentId: 'spider_fileback',
       },
     ],
+    icon: 'db-icon-rollback',
+    id: 'spider_fileback',
+    name: t('回档'),
   },
   {
-    name: t('数据处理'),
-    id: 'spider_data',
-    icon: 'db-icon-data',
     children: [
       {
-        name: t('清档'),
-        id: 'spiderDbClear',
-        parentId: 'spider_data',
         dbConsoleValue: 'tendbCluster.toolbox.dbClear',
-      },
-      {
-        name: t('数据校验修复'),
-        id: 'spiderChecksum',
+        id: 'spiderDbClear',
+        name: t('清档'),
         parentId: 'spider_data',
+      },
+      {
         dbConsoleValue: 'tendbCluster.toolbox.checksum',
+        id: 'spiderChecksum',
+        name: t('数据校验修复'),
+        parentId: 'spider_data',
       },
     ],
+    icon: 'db-icon-data',
+    id: 'spider_data',
+    name: t('数据处理'),
   },
   {
-    name: t('权限克隆'),
-    id: 'spider_privilege',
-    icon: 'db-icon-clone',
     children: [
       {
-        name: t('客户端权限克隆'),
-        id: 'spiderPrivilegeCloneClient',
-        parentId: 'spider_privilege',
         dbConsoleValue: 'tendbCluster.toolbox.clientPermissionClone',
-      },
-      {
-        name: t('DB实例权限克隆'),
-        id: 'spiderPrivilegeCloneInst',
+        id: 'spiderPrivilegeCloneClient',
+        name: t('客户端权限克隆'),
         parentId: 'spider_privilege',
+      },
+      {
         dbConsoleValue: 'tendbCluster.toolbox.dbInstancePermissionClone',
+        id: 'spiderPrivilegeCloneInst',
+        name: t('DB实例权限克隆'),
+        parentId: 'spider_privilege',
       },
     ],
+    icon: 'db-icon-clone',
+    id: 'spider_privilege',
+    name: t('权限克隆'),
   },
   {
-    name: t('克隆开区'),
-    id: 'spider_openarea',
-    icon: 'db-icon-template',
     children: [
       {
-        name: t('开区模版'),
-        id: 'spiderOpenareaTemplate',
-        parentId: 'spider_openarea',
         dbConsoleValue: 'tendbCluster.toolbox.openareaTemplate',
+        id: 'spiderOpenareaTemplate',
+        name: t('开区模版'),
+        parentId: 'spider_openarea',
       },
     ],
+    icon: 'db-icon-template',
+    id: 'spider_openarea',
+    name: t('克隆开区'),
   },
   {
-    name: t('数据查询'),
-    id: 'spider_data_query',
-    icon: 'db-icon-search',
     children: [
       {
-        name: 'Webconsole',
-        id: 'SpiderWebconsole',
-        parentId: 'spider_data_query',
         dbConsoleValue: 'tendbCluster.toolbox.webconsole',
+        id: 'SpiderWebconsole',
+        name: 'Webconsole',
+        parentId: 'spider_data_query',
       },
     ],
+    icon: 'db-icon-search',
+    id: 'spider_data_query',
+    name: t('数据查询'),
   },
 ];

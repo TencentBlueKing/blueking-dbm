@@ -1,5 +1,4 @@
 export default {
-  mongo_user: ['read', 'readWrite', 'readAnyDatabase', 'readWriteAnyDatabase'],
   mongo_manager: [
     'dbAdmin',
     'backup',
@@ -14,5 +13,6 @@ export default {
     'dbOwner',
     'root',
   ],
+  mongo_user: ['read', 'readWrite', 'readAnyDatabase', 'readWriteAnyDatabase'],
   special_account: ['dba', 'apppdba', 'monitor', 'appmonitor'],
 };

@@ -60,27 +60,15 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import {
-    ref,
-    shallowRef,
-  } from 'vue';
+  import { ref, shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type PartitionModel from '@services/model/partition/partition';
-  import {
-    batchRemove,
-    disablePartition,
-    dryRun,
-    enablePartition,
-    getList,
-  } from '@services/source/partitionManage';
+  import { batchRemove, disablePartition, dryRun, enablePartition, getList } from '@services/source/partitionManage';
 
   import { ClusterTypes } from '@common/const';
 
-  import {
-    getSearchSelectorParams,
-    messageSuccess,
-  } from '@utils';
+  import { getSearchSelectorParams, messageSuccess } from '@utils';
 
   import DryRun from './components/DryRun.vue';
   import ExecuteLog from './components/ExecuteLog.vue';
@@ -89,10 +77,7 @@
 
   const { t } = useI18n();
 
-  const {
-    setting: tableSetting,
-    handleChange: handleSettingChange,
-  } = useTableSetting();
+  const { handleChange: handleSettingChange, setting: tableSetting } = useTableSetting();
 
   const tableRef = ref();
   const searchValues = ref([]);
@@ -107,132 +92,128 @@
 
   const serachData = [
     {
-      name: t('域名'),
       id: 'immute_domains',
+      name: t('域名'),
     },
     {
-      name: t('DB 名'),
       id: 'dblikes',
+      name: t('DB 名'),
     },
     {
-      name: t('表名'),
       id: 'tblikes',
+      name: t('表名'),
     },
   ];
 
   const tableColumn = [
     {
-      label: t('策略 ID'),
       field: 'id',
       fixed: 'left',
-      width: 100,
-      render: ({ data }: {data: PartitionModel}) => (
-        <div class="id-container">
+      label: t('策略 ID'),
+      render: ({ data }: { data: PartitionModel }) => (
+        <div class='id-container'>
           <span>{data.id}</span>
-          {
-            data.isNew && (
-              <bk-tag
-                theme="success"
-                size="small"
-                class="ml-4">
-                NEW
-              </bk-tag>
-            )
-          }
-          {
-            data.isOffline && (
-              <bk-tag
-                class="ml-4"
-                size="small">
-                {t('已禁用')}
-              </bk-tag>
-            )
-          }
+          {data.isNew && (
+            <bk-tag
+              class='ml-4'
+              size='small'
+              theme='success'>
+              NEW
+            </bk-tag>
+          )}
+          {data.isOffline && (
+            <bk-tag
+              class='ml-4'
+              size='small'>
+              {t('已禁用')}
+            </bk-tag>
+          )}
         </div>
       ),
+      width: 100,
     },
     {
-      label: t('集群域名'),
       field: 'immute_domain',
+      label: t('集群域名'),
+      render: ({ data }: { data: PartitionModel }) => data.immute_domain || '--',
       width: 240,
-      render: ({ data }: {data: PartitionModel}) => data.immute_domain || '--',
     },
     {
-      label: t('DB 名'),
       field: 'dblike',
-      width: 150,
-      render: ({ data }: {data: PartitionModel}) => {
+      label: t('DB 名'),
+      render: ({ data }: { data: PartitionModel }) => {
         if (!data.dblike) {
           return '--';
         }
         return <bk-tag>{data.dblike}</bk-tag>;
       },
+      width: 150,
     },
     {
-      label: t('表名'),
       field: 'tblike',
-      width: 150,
-      render: ({ data }: {data: PartitionModel}) => {
+      label: t('表名'),
+      render: ({ data }: { data: PartitionModel }) => {
         if (!data.tblike) {
           return '--';
         }
         return <bk-tag>{data.tblike}</bk-tag>;
       },
+      width: 150,
     },
     {
-      label: t('分区字段'),
       field: 'partition_columns',
-      width: 100,
+      label: t('分区字段'),
       minWidth: 100,
-      render: ({ data }: {data: PartitionModel}) => data.partition_columns || '--',
+      render: ({ data }: { data: PartitionModel }) => data.partition_columns || '--',
+      width: 100,
     },
     {
-      label: t('分区字段类型'),
       field: 'partition_column_type',
-      width: 150,
+      label: t('分区字段类型'),
       minWidth: 150,
-      render: ({ data }: {data: PartitionModel}) => data.partition_column_type || '--',
+      render: ({ data }: { data: PartitionModel }) => data.partition_column_type || '--',
+      width: 150,
     },
     {
-      label: t('分区间隔（天）'),
       field: 'partition_time_interval',
-      width: 150,
+      label: t('分区间隔（天）'),
       minWidth: 150,
-      render: ({ data }: {data: PartitionModel}) => data.partition_time_interval || '--',
+      render: ({ data }: { data: PartitionModel }) => data.partition_time_interval || '--',
+      width: 150,
     },
     {
-      label: t('数据过期时间（天）'),
       field: 'expire_time',
-      width: 150,
+      label: t('数据过期时间（天）'),
       minWidth: 150,
-      render: ({ data }: {data: PartitionModel}) => data.expire_time || '--',
+      render: ({ data }: { data: PartitionModel }) => data.expire_time || '--',
+      width: 150,
     },
     {
-      label: t('最近一次执行状态'),
       field: 'status',
-      width: 150,
+      label: t('最近一次执行状态'),
       minWidth: 150,
-      render: ({ data }: {data: PartitionModel}) => (
+      render: ({ data }: { data: PartitionModel }) => (
         <div>
           <db-icon
             class={{ 'rotate-loading': data.isRunning }}
-            style="vertical-align: middle;"
+            style='vertical-align: middle;'
             type={data.statusIcon}
-            svg />
-          <span class="ml-4">{data.statusText}</span>
+            svg
+          />
+          <span class='ml-4'>{data.statusText}</span>
         </div>
       ),
+      width: 150,
     },
     {
-      label: t('最近一次执行时间'),
       field: 'execute_time',
+      label: t('最近一次执行时间'),
+      render: ({ data }: { data: PartitionModel }) => data.executeTimeDisplay || '--',
       width: 250,
-      render: ({ data }: {data: PartitionModel}) => data.executeTimeDisplay || '--',
     },
     {
-      label: t('操作'),
-      width: 180,
       fixed: 'right',
+      label: t('操作'),
       render: ({ data }: { data: PartitionModel }) => {
         const renderAction = () => {
           if (data.isRunning) {
@@ -244,7 +225,7 @@
                     ticketId: data.ticket_id,
                   },
                 }}
-                target="_blank">
+                target='_blank'>
                 {t('查看')}
               </router-link>
             );
@@ -252,11 +233,11 @@
           if (!data.isOnline) {
             return (
               <auth-button
-                theme="primary"
-                text
-                action-id="tendb_partition_enable_disable"
+                action-id='tendb_partition_enable_disable'
                 permission={data.permission.tendb_partition_enable_disable}
                 resource={data.cluster_id}
+                theme='primary'
+                text
                 onClick={() => handleEnable(data)}>
                 {t('启用')}
               </auth-button>
@@ -264,12 +245,12 @@
           }
           return (
             <auth-button
-              theme="primary"
-              text
-              action-id="tendbcluster_partition"
+              action-id='tendbcluster_partition'
+              loading={executeLoadingMap.value[data.id]}
               permission={data.permission.tendbcluster_partition}
               resource={data.cluster_id}
-              loading={executeLoadingMap.value[data.id]}
+              theme='primary'
+              text
               onClick={() => handleExecute(data)}>
               {t('执行')}
             </auth-button>
@@ -283,24 +264,24 @@
                 content: t('正在执行中，无法编辑'),
                 disabled: !data.isRunning,
               }}
-              class="ml-8">
+              class='ml-8'>
               <auth-button
-                theme="primary"
-                text
-                action-id="tendbcluster_partition_update"
+                action-id='tendbcluster_partition_update'
+                disabled={data.isRunning}
                 permission={data.permission.tendbcluster_partition_update}
                 resource={data.cluster_id}
-                disabled={data.isRunning}
+                theme='primary'
+                text
                 onClick={() => handleEdit(data)}>
                 {t('编辑')}
               </auth-button>
             </span>
             <auth-button
-              action-id="tendbcluster_partition"
+              action-id='tendbcluster_partition'
+              class='ml-8 mr-8'
               permission={data.permission.tendbcluster_partition}
               resource={data.cluster_id}
-              class="ml-8 mr-8"
-              theme="primary"
+              theme='primary'
               text
               onClick={() => handleShowExecuteLog(data)}>
               {t('执行记录')}
@@ -309,38 +290,36 @@
               {{
                 default: () => (
                   <>
-                    {
-                      data.isOnline && (
-                        <bk-dropdown-item>
-                          <auth-template
-                            text
-                            action-id="tendb_partition_enable_disable"
-                            permission={data.permission.tendb_partition_enable_disable}
-                            resource={data.cluster_id}>
-                            <div onClick={() => handleDisable(data)}>{ t('禁用') }</div>
-                          </auth-template>
-                        </bk-dropdown-item>
-                      )
-                    }
+                    {data.isOnline && (
+                      <bk-dropdown-item>
+                        <auth-template
+                          action-id='tendb_partition_enable_disable'
+                          permission={data.permission.tendb_partition_enable_disable}
+                          resource={data.cluster_id}
+                          text>
+                          <div onClick={() => handleDisable(data)}>{t('禁用')}</div>
+                        </auth-template>
+                      </bk-dropdown-item>
+                    )}
                     <bk-dropdown-item>
                       <auth-template
-                        text
-                        action-id="tendbcluster_partition_create"
+                        action-id='tendbcluster_partition_create'
                         permission={data.permission.tendbcluster_partition_create}
-                        resource={data.cluster_id}>
-                        <div onClick={() => handleClone(data)}>{ t('克隆') }</div>
+                        resource={data.cluster_id}
+                        text>
+                        <div onClick={() => handleClone(data)}>{t('克隆')}</div>
                       </auth-template>
                     </bk-dropdown-item>
                     <bk-dropdown-item>
                       <auth-template
-                        action-id="tendbcluster_partition_delete"
+                        action-id='tendbcluster_partition_delete'
                         permission={data.permission.tendbcluster_partition_delete}
                         resource={data.cluster_id}>
                         <db-popconfirm
                           confirm-handler={() => handleRemove(data)}
                           content={t('删除操作无法撤回，请谨慎操作！')}
                           title={t('确认删除该分区策略？')}>
-                          <div>{ t('删除') }</div>
+                          <div>{t('删除')}</div>
                         </db-popconfirm>
                       </auth-template>
                     </bk-dropdown-item>
@@ -351,6 +330,7 @@
           </>
         );
       },
+      width: 180,
     },
   ];
 
@@ -382,7 +362,6 @@
     isShowOperation.value = true;
   };
 
-
   // 批量删除
   const handleBatchRemove = () => {
     operationData.value = undefined;
@@ -405,7 +384,7 @@
   };
 
   const handleTableSelection = (payload: string[]) => {
-    selectionList.value = payload.map(item => Number(item));
+    selectionList.value = payload.map((item) => Number(item));
   };
 
   // 清空搜索
@@ -421,7 +400,7 @@
     operationDryRunData.value = undefined;
   };
   // 编辑
-  const handleEdit  = (payload: PartitionModel) => {
+  const handleEdit = (payload: PartitionModel) => {
     isShowOperation.value = true;
     operationData.value = payload;
   };
@@ -445,7 +424,7 @@
     isShowDryRun.value = true;
   };
 
-  const handleDisable  =  (payload: PartitionModel) => {
+  const handleDisable = (payload: PartitionModel) => {
     disablePartition({
       cluster_type: ClusterTypes.TENDBCLUSTER,
       ids: [payload.id],
@@ -471,13 +450,14 @@
     isShowOperation.value = true;
   };
 
-  const handleRemove = (payload: PartitionModel) => batchRemove({
-    cluster_type: ClusterTypes.TENDBCLUSTER,
-    ids: [payload.id],
-  }).then(() => {
-    fetchData();
-    messageSuccess(t('移除成功'));
-  });
+  const handleRemove = (payload: PartitionModel) =>
+    batchRemove({
+      cluster_type: ClusterTypes.TENDBCLUSTER,
+      ids: [payload.id],
+    }).then(() => {
+      fetchData();
+      messageSuccess(t('移除成功'));
+    });
 </script>
 <style lang="less">
   .spider-manage-paritition-page {

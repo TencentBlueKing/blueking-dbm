@@ -70,12 +70,10 @@
 
   import RenderFileList, { createFileData, type IFileData } from './components/FileList.vue';
 
-  interface Emits {
-    (e: 'change', value: string[]): void;
-  }
+  type Emits = (e: 'change', value: string[]) => void;
 
   interface Exposes {
-    getValue: () => { name: string; content: string }[];
+    getValue: () => { content: string; name: string }[];
   }
 
   const emits = defineEmits<Emits>();
@@ -95,8 +93,8 @@
   // 文件结果
   const getResultValue = () =>
     uploadFileNameList.value.map((localFileName) => ({
-      name: localFileName,
       content: uploadFileDataMap.value[localFileName].content,
+      name: localFileName,
     }));
 
   watch(

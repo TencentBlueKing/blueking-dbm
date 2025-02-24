@@ -34,9 +34,7 @@
     lineHeight: string;
   }
 
-  interface Emits {
-    (e: 'change', value: FontSetting): void;
-  }
+  type Emits = (e: 'change', value: FontSetting) => void;
 
   const emits = defineEmits<Emits>();
 

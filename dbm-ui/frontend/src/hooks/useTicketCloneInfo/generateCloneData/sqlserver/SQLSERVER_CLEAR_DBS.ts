@@ -7,7 +7,7 @@ export default async (ticketDetail: TicketModel<Sqlserver.ClearDbs>) =>
     clean_ignore_dbs_patterns: item.clean_ignore_dbs_patterns,
     clean_mode: item.clean_mode,
     clean_tables: item.clean_tables,
-    cluster_id: item.cluster_id,
     cluster: ticketDetail.details.clusters[item.cluster_id],
+    cluster_id: item.cluster_id,
     ignore_clean_tables: item.ignore_clean_tables,
   }));

@@ -62,9 +62,7 @@
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
-  interface Emits {
-    (e: 'showIpSelector'): void;
-  }
+  type Emits = (e: 'showIpSelector') => void;
 
   const emits = defineEmits<Emits>();
 

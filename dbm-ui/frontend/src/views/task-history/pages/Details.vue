@@ -351,7 +351,7 @@
 <script setup lang="tsx">
   import _ from 'lodash';
   import type { Instance } from 'tippy.js';
-  import type { Ref } from 'vue'
+  import type { Ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -363,44 +363,32 @@
     revokePipeline,
     skipTaskflowNode,
   } from '@services/source/taskflow';
-  import { ticketBatchProcessTodo } from '@services/source/ticket'
+  import { ticketBatchProcessTodo } from '@services/source/ticket';
 
   import { dbTippy } from '@common/tippy';
 
   import CostTimer from '@components/cost-timer/CostTimer.vue';
   import DbStatus from '@components/db-status/index.vue';
-  import EditInfo, {
-    type InfoColumn,
-  } from '@components/editable-info/index.vue';
+  import EditInfo, { type InfoColumn } from '@components/editable-info/index.vue';
 
-  import {
-    generateId,
-    getCostTimeDisplay,
-    messageSuccess,
-    utcTimeToSeconds,
-  } from '@utils';
+  import { generateId, getCostTimeDisplay, messageSuccess, utcTimeToSeconds } from '@utils';
 
+  import { TicketTypes, type TicketTypesStrings } from '@/common/const';
   import { useFullscreen, useTimeoutPoll } from '@vueuse/core';
 
   import GraphCanvas from '../common/graphCanvas';
-  import {
-    formatGraphData,
-    type GraphLine,
-    type GraphNode,
-  } from '../common/utils';
+  import { formatGraphData, type GraphLine, type GraphNode } from '../common/utils';
   import Minimap from '../components/Minimap.vue';
   import NodeLog from '../components/NodeLog.vue';
   import HostPreview from '../components/PreviewHost.vue';
   import PreviewNodeTree from '../components/PreviewNodeTree.vue';
   import RedisResultFiles from '../components/RedisResultFiles.vue';
 
-  import { TicketTypes, type TicketTypesStrings } from '@/common/const';
-
   type TaskflowDetails = ServiceReturnType<typeof getTaskflowDetails>;
-  type TaskflowList = (TaskflowDetails['activities'][string] & {
+  type TaskflowList = ({
     failedChildren?: TaskflowDetails['activities'][string][];
-    todoChildren?:TaskflowDetails['activities'][string][];
-  })[];
+    todoChildren?: TaskflowDetails['activities'][string][];
+  } & TaskflowDetails['activities'][string])[];
 
   const { t } = useI18n();
   const route = useRoute();
@@ -426,14 +414,14 @@
   const tippyInstances = ref<Instance[]>([]);
   const skippInstances = ref<Instance[]>([]);
   const forceFailInstances = ref<Instance[]>([]);
-  const todoInstances = ref<Instance[]>([])
+  const todoInstances = ref<Instance[]>([]);
   const todoNodesTreeData = ref<TaskflowList>([]);
   const failNodesTreeData = ref<TaskflowList>([]);
   const failNodesCount = ref(0);
-  const todoTopPreviewNodeTreeRef = ref<InstanceType<typeof PreviewNodeTree>>()
-  const failedTopPreviewNodeTreeRef = ref<InstanceType<typeof PreviewNodeTree>>()
-  const todoToolPreviewNodeTreeRef = ref<InstanceType<typeof PreviewNodeTree>>()
-  const failedToolPreviewNodeTreeRef = ref<InstanceType<typeof PreviewNodeTree>>()
+  const todoTopPreviewNodeTreeRef = ref<InstanceType<typeof PreviewNodeTree>>();
+  const failedTopPreviewNodeTreeRef = ref<InstanceType<typeof PreviewNodeTree>>();
+  const todoToolPreviewNodeTreeRef = ref<InstanceType<typeof PreviewNodeTree>>();
+  const failedToolPreviewNodeTreeRef = ref<InstanceType<typeof PreviewNodeTree>>();
   // const failNodeTreeRef = ref();
   // const topFailNodeTreeRef = ref();
   // const isShowFailNodePanel = ref(false);
@@ -442,63 +430,63 @@
   const failLeafNodes = shallowRef<GraphNode[]>([]);
 
   const flowState = reactive({
-    flowSelectorId: generateId('mission_flow_'),
     details: {} as TaskflowDetails,
     flowData: {
-      locations: [] as GraphNode[],
       lines: [] as GraphLine[],
+      locations: [] as GraphNode[],
     },
-    loading: false,
+    flowSelectorId: generateId('mission_flow_'),
     instance: null as any,
+    loading: false,
     minimap: {
-      width: 380,
       height: 160,
-      windowWidth: 0,
-      windowHeight: 0,
-      viewportWidth: 210,
-      viewportHeight: 110,
       isShow: false,
+      viewportHeight: 110,
+      viewportWidth: 210,
+      width: 380,
+      windowHeight: 0,
+      windowWidth: 0,
     },
   });
 
   const skippState = reactive<{
-    instance: Instance | null,
-    node: GraphNode | null,
-    isShow: boolean,
+    instance: Instance | null;
+    isShow: boolean;
+    node: GraphNode | null;
   }>({
     instance: null,
-    node: null,
     isShow: false,
+    node: null,
   });
 
   const refreshState = reactive<{
-    instance: Instance | null,
-    node: GraphNode | null,
-    isShow: boolean,
+    instance: Instance | null;
+    isShow: boolean;
+    node: GraphNode | null;
   }>({
     instance: null,
-    node: null,
     isShow: false,
+    node: null,
   });
 
   const forceFailState = reactive<{
-    instance: Instance | null,
-    node: GraphNode | null,
-    isShow: boolean,
+    instance: Instance | null;
+    isShow: boolean;
+    node: GraphNode | null;
   }>({
     instance: null,
-    node: null,
     isShow: false,
+    node: null,
   });
 
   const todoState = reactive<{
-    instance: Instance | null,
-    node: GraphNode | null,
-    isShow: boolean,
+    instance: Instance | null;
+    isShow: boolean;
+    node: GraphNode | null;
   }>({
     instance: null,
-    node: null,
     isShow: false,
+    node: null,
   });
 
   /**
@@ -516,27 +504,31 @@
 
   const todoNodesCount = computed(() => {
     if (flowState.details.flow_info) {
-      const { status } = flowState.details.flow_info
-      return (flowState.details.todos || []).filter(todoItem => (status === 'RUNNING' || status === 'FAILED') && todoItem.status === 'TODO').length
+      const { status } = flowState.details.flow_info;
+      return (flowState.details.todos || []).filter(
+        (todoItem) => (status === 'RUNNING' || status === 'FAILED') && todoItem.status === 'TODO',
+      ).length;
     }
-    return 0
-  })
+    return 0;
+  });
 
-  const isShowRevokePipelineButton = computed(() => !['REVOKED', 'FINISHED'].includes(flowState.details?.flow_info?.status));
+  const isShowRevokePipelineButton = computed(
+    () => !['FINISHED', 'REVOKED'].includes(flowState.details?.flow_info?.status),
+  );
   const isShowFailedPipelineButton = computed(() => flowState.details?.flow_info?.status === 'FAILED');
 
   const baseInfo = computed(() => flowState.details.flow_info || {});
 
   const statusText = computed(() => {
     const statusMap = {
+      BLOCKED: '执行中',
       CREATED: '等待执行',
+      FAILED: '执行失败',
+      FINISHED: '执行成功',
       READY: '等待执行',
+      REVOKED: '已终止',
       RUNNING: '执行中',
       SUSPENDED: '执行中',
-      BLOCKED: '执行中',
-      FINISHED: '执行成功',
-      FAILED: '执行失败',
-      REVOKED: '已终止',
     };
     const value = baseInfo.value.status as keyof typeof statusMap;
     return value && statusMap[value] ? t(statusMap[value]) : '';
@@ -553,70 +545,87 @@
     const columns: InfoColumn[][] = [
       [
         {
-          label: t('任务ID'),
-          key: 'root_id',
           isCopy: true,
+          key: 'root_id',
+          label: t('任务ID'),
         },
         {
-          label: t('任务类型'),
           key: 'ticket_type_display',
-        }
+          label: t('任务类型'),
+        },
       ],
       [
         {
-          label: t('开始时间'),
           key: 'created_at',
+          label: t('开始时间'),
         },
         {
-          label: t('结束时间'),
           key: 'updated_at',
-        }
+          label: t('结束时间'),
+        },
       ],
       [
         {
+          key: '',
           label: t('状态'),
-          key: '',
-          render: () => <DbStatus style="vertical-align: top;" type="linear" theme={getStatusTheme()}>
-            <span>{statusText.value || '--'}</span>
-          </DbStatus>,
+          render: () => (
+            <DbStatus
+              style='vertical-align: top;'
+              theme={getStatusTheme()}
+              type='linear'>
+              <span>{statusText.value || '--'}</span>
+            </DbStatus>
+          ),
         },
         {
-          label: t('耗时'),
           key: '',
+          label: t('耗时'),
           render: () => getCostTimeDisplay(baseInfo.value.cost_time) as string,
-        }
+        },
       ],
       [
         {
-          label: t('执行人'),
           key: 'created_by',
+          label: t('执行人'),
         },
         {
-          label: t('关联单据'),
           key: 'uid',
-          render: () => (baseInfo.value.uid ? (
-            <router-link
-              target="_blank"
-              to={{
-                name: 'bizTicketManage',
-                params: {
-                  ticketId: baseInfo.value.uid,
-                },
-              }}>
-              {baseInfo.value.uid}
-            </router-link>
-            ) : '--'),
-        }
+          label: t('关联单据'),
+          render: () =>
+            baseInfo.value.uid ? (
+              <router-link
+                to={{
+                  name: 'bizTicketManage',
+                  params: {
+                    ticketId: baseInfo.value.uid,
+                  },
+                }}
+                target='_blank'>
+                {baseInfo.value.uid}
+              </router-link>
+            ) : (
+              '--'
+            ),
+        },
       ],
     ];
 
     // 结果文件
-    if (showResultFileTypes.includes(baseInfo.value.ticket_type as TicketTypesStrings)
-      && baseInfo.value.status === 'FINISHED') {
+    if (
+      showResultFileTypes.includes(baseInfo.value.ticket_type as TicketTypesStrings) &&
+      baseInfo.value.status === 'FINISHED'
+    ) {
       columns[0].push({
-        label: t('结果文件'),
         key: '',
-        render: () => <bk-button text theme="primary" onClick={handleShowResultFile}>{t('查看结果文件')}</bk-button>,
+        label: t('结果文件'),
+        render: () => (
+          <bk-button
+            theme='primary'
+            text
+            onClick={handleShowResultFile}>
+            {t('查看结果文件')}
+          </bk-button>
+        ),
       });
     }
 
@@ -624,10 +633,16 @@
     const hostNums = baseInfo.value.bk_host_ids?.length ?? 0;
     if (hostNums > 0) {
       columns[0].push({
-        label: t('涉及主机'),
         key: 'hosts',
+        label: t('涉及主机'),
         render: () => (
-          <bk-button class="pl-4 pr-4" theme="primary" text onClick={handleShowHostPreview}>{hostNums}</bk-button>
+          <bk-button
+            class='pl-4 pr-4'
+            theme='primary'
+            text
+            onClick={handleShowHostPreview}>
+            {hostNums}
+          </bk-button>
         ),
       });
     }
@@ -644,99 +659,103 @@
   const expandNodes: string[] = [];
   const showResultFileTypes: TicketTypesStrings[] = [TicketTypes.REDIS_KEYS_EXTRACT, TicketTypes.REDIS_KEYS_DELETE];
 
-  watch(() => flowState.details, () => {
-    // if (failNodesTreeData.value.length > 0 || todoNodesTreeData.value.length > 0) {
-    //   return
-    // };
-    // failNodesCount.value = 0;
+  watch(
+    () => flowState.details,
+    () => {
+      // if (failNodesTreeData.value.length > 0 || todoNodesTreeData.value.length > 0) {
+      //   return
+      // };
+      // failNodesCount.value = 0;
 
-    // if (flowState.details.activities) {
-    //   failNodesTreeData.value = flowState.details.flow_info?.status === 'FAILED' ? generateFailNodesTree(flowState.details.activities) : [];
+      // if (flowState.details.activities) {
+      //   failNodesTreeData.value = flowState.details.flow_info?.status === 'FAILED' ? generateFailNodesTree(flowState.details.activities) : [];
 
-    //   const todoNodeIdList = flowState.details.todos.map(todoItem => todoItem.context.node_id)
-    //   todoNodesTreeData.value = todoNodeIdList.length ? generateTodoNodesTree(flowState.details.activities, todoNodeIdList) : [];
-    // }
+      //   const todoNodeIdList = flowState.details.todos.map(todoItem => todoItem.context.node_id)
+      //   todoNodesTreeData.value = todoNodeIdList.length ? generateTodoNodesTree(flowState.details.activities, todoNodeIdList) : [];
+      // }
 
-    // 只计算数量，当 待确认节点数 或 失败节点数 变化时，才刷新树结构
-    if (flowState.details.activities) {
-      let failNodesNum = 0
+      // 只计算数量，当 待确认节点数 或 失败节点数 变化时，才刷新树结构
+      if (flowState.details.activities) {
+        let failNodesNum = 0;
 
-      const getFailNodesNum = (activities: TaskflowDetails['activities']) => {
-        const flowList: TaskflowList = []
-        Object.values(activities).forEach(item  => {
-          if (item.status === 'FAILED') {
-            if (item.pipeline) {
-              getFailNodesNum(item.pipeline.activities)
-            } else {
-              failNodesNum = failNodesNum + 1;
+        const getFailNodesNum = (activities: TaskflowDetails['activities']) => {
+          const flowList: TaskflowList = [];
+          Object.values(activities).forEach((item) => {
+            if (item.status === 'FAILED') {
+              if (item.pipeline) {
+                getFailNodesNum(item.pipeline.activities);
+              } else {
+                failNodesNum = failNodesNum + 1;
+              }
             }
-          }
-        })
-        return flowList;
-      }
-      getFailNodesNum(flowState.details.activities)
+          });
+          return flowList;
+        };
+        getFailNodesNum(flowState.details.activities);
 
-      failNodesCount.value = failNodesNum
-    }
-  })
+        failNodesCount.value = failNodesNum;
+      }
+    },
+  );
 
   watch(failNodesCount, () => {
     // isFindFirstLeafFailNode = false;
-    failLeafNodes.value = []
-    expandFailedNodeObjects = []
-    failNodesTreeData.value = flowState.details.flow_info?.status === 'FAILED' ? generateFailNodesTree(flowState.details.activities) : [];
+    failLeafNodes.value = [];
+    expandFailedNodeObjects = [];
+    failNodesTreeData.value =
+      flowState.details.flow_info?.status === 'FAILED' ? generateFailNodesTree(flowState.details.activities) : [];
 
-    setTreeOpen([
-      failedTopPreviewNodeTreeRef,
-      failedToolPreviewNodeTreeRef
-    ])
-  })
+    setTreeOpen([failedTopPreviewNodeTreeRef, failedToolPreviewNodeTreeRef]);
+  });
 
   watch(todoNodesCount, () => {
     // isFindFirstLeafTodoNode = false
-    expandTodoNodeObjects = []
+    expandTodoNodeObjects = [];
     const todoNodeIdList = getTodoNodeIdList(flowState.details);
-    todoNodesTreeData.value = todoNodeIdList.length ? generateTodoNodesTree(flowState.details.activities, todoNodeIdList) : [];
+    todoNodesTreeData.value = todoNodeIdList.length
+      ? generateTodoNodesTree(flowState.details.activities, todoNodeIdList)
+      : [];
 
-    setTreeOpen([
-      todoTopPreviewNodeTreeRef,
-      todoToolPreviewNodeTreeRef,
-    ], false)
-  })
-
-  watch(() => baseInfo.value.status, (status) => {
-    if (status && flowState.instance === null) {
-      setTimeout(() => {
-        flowState.instance = new GraphCanvas(`#${flowState.flowSelectorId}`, baseInfo.value);
-        flowState.instance
-          .on('nodeClick', handleNodeClick)
-          .on('nodeMouseEnter', handleNodeMouseEnter)
-          .on('nodeMouseLeave', handleNodeMouseLeave);
-        retryRenderFailedTips();
-      });
-    }
-  }, {
-    immediate: true,
+    setTreeOpen([todoTopPreviewNodeTreeRef, todoToolPreviewNodeTreeRef], false);
   });
+
+  watch(
+    () => baseInfo.value.status,
+    (status) => {
+      if (status && flowState.instance === null) {
+        setTimeout(() => {
+          flowState.instance = new GraphCanvas(`#${flowState.flowSelectorId}`, baseInfo.value);
+          flowState.instance
+            .on('nodeClick', handleNodeClick)
+            .on('nodeMouseEnter', handleNodeMouseEnter)
+            .on('nodeMouseLeave', handleNodeMouseLeave);
+          retryRenderFailedTips();
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const getTodoNodeIdList = (details: TaskflowDetails) => {
     const { status } = details.flow_info;
     return (details.todos || []).reduce<string[]>((prevList, todoItem) => {
       if ((status === 'RUNNING' || status === 'FAILED') && todoItem.status === 'TODO') {
-        prevList.push(todoItem.context.node_id)
+        prevList.push(todoItem.context.node_id);
       }
-      return prevList
-    }, [])
-  }
+      return prevList;
+    }, []);
+  };
 
   const generateFailNodesTree = (activities: TaskflowDetails['activities']) => {
-    const flowList: TaskflowList = []
-    Object.values(activities).forEach(item  => {
+    const flowList: TaskflowList = [];
+    Object.values(activities).forEach((item) => {
       if (item.status === 'FAILED') {
         flowList.push(item);
         // if (!isFindFirstLeafFailNode) {
-          expandNodes.push(item.id);
-          expandFailedNodeObjects.push(item);
+        expandNodes.push(item.id);
+        expandFailedNodeObjects.push(item);
         // }
         if (item.pipeline) {
           Object.assign(item, {
@@ -745,27 +764,27 @@
         } else {
           // isFindFirstLeafFailNode = true;
           // failNodesCount.value = failNodesCount.value + 1;
-          failLeafNodes.value.push({ data: _.cloneDeep(item) } as GraphNode)
+          failLeafNodes.value.push({ data: _.cloneDeep(item) } as GraphNode);
         }
       }
-    })
+    });
     return flowList;
-  }
+  };
 
   const generateTodoNodesTree = (activities: TaskflowDetails['activities'], nodeList: string[]) => {
-    const flowList: TaskflowList = []
+    const flowList: TaskflowList = [];
     Object.values(activities).forEach((activityItem) => {
       if (activityItem.pipeline) {
-        const activityChildren = generateTodoNodesTree(activityItem.pipeline.activities, nodeList)
+        const activityChildren = generateTodoNodesTree(activityItem.pipeline.activities, nodeList);
         Object.assign(activityItem, {
           todoChildren: activityChildren,
         });
         if (activityChildren.length > 0) {
-          flowList.push(activityItem)
+          flowList.push(activityItem);
           // if (!isFindFirstLeafTodoNode) {
           //   isFindFirstLeafTodoNode = true
-            expandNodes.push(activityItem.id);
-            expandTodoNodeObjects.push(activityItem);
+          expandNodes.push(activityItem.id);
+          expandTodoNodeObjects.push(activityItem);
           // }
         }
       } else {
@@ -773,48 +792,48 @@
           flowList.push(activityItem);
         }
       }
-    })
+    });
     return flowList;
-  }
+  };
 
   const setTreeOpen = (refList: Array<typeof failedTopPreviewNodeTreeRef>, isFailed = true) => {
     refList.forEach((refItem) => {
       if (refItem.value?.isOpen()) {
-        handleNodeTreeAfterShow(refItem.value.getTreeRef(), isFailed)
+        handleNodeTreeAfterShow(refItem.value.getTreeRef(), isFailed);
       }
-    })
-  }
+    });
+  };
 
   const handleToolNodeTreeAfterShow = (treeRef: Ref, isFailed = true) => {
     if (isFailed) {
-      todoToolPreviewNodeTreeRef.value?.close()
+      todoToolPreviewNodeTreeRef.value?.close();
     } else {
-      failedToolPreviewNodeTreeRef.value?.close()
+      failedToolPreviewNodeTreeRef.value?.close();
     }
-    handleNodeTreeAfterShow(treeRef, isFailed)
-  }
+    handleNodeTreeAfterShow(treeRef, isFailed);
+  };
 
   const handleNodeTreeAfterShow = (treeRef: Ref, isFailed = true) => {
     setTimeout(() => {
-      const expandNodeObjects = isFailed ? expandFailedNodeObjects : expandTodoNodeObjects
+      const expandNodeObjects = isFailed ? expandFailedNodeObjects : expandTodoNodeObjects;
       // expandNodeObjects.forEach(node => {
       //   treeRef.value.setOpen(node);
       // });
 
       const leafNode = expandNodeObjects[expandNodeObjects.length - 1];
       treeRef.value.setSelect(leafNode);
-    })
-  }
+    });
+  };
 
   const handleQuickGotoFailNodeLog = (index: number, isNext: boolean) => {
     fetchTaskflowDetails();
     const targetIndex = isNext ? index + 1 : index - 1;
     const targetNode = failLeafNodes.value[targetIndex];
     handleShowLog(targetNode);
-  }
+  };
 
   const expandRetractNodes = (node: TaskflowList[number], treeRef: Ref, showLog: boolean) => {
-    const children = showLog ? node.failedChildren : node.todoChildren
+    const children = showLog ? node.failedChildren : node.todoChildren;
     // 有子节点则展开
     if (children && children.length > 0) {
       if (!expandNodes.includes(node.id)) {
@@ -822,19 +841,24 @@
         renderNodes();
       }
     }
-    const parentNode = treeRef.value.getParentNode(node)
+    const parentNode = treeRef.value.getParentNode(node);
     if (parentNode) {
-      expandRetractNodes(parentNode, treeRef, showLog)
+      expandRetractNodes(parentNode, treeRef, showLog);
     }
-  }
+  };
 
   // 点击父节点展开，点击叶子节点定位
-  const handleTreeNodeClick = (node: TaskflowList[number], treeRef: Ref, showLog = true, theme: 'error' | 'warning') => {
+  const handleTreeNodeClick = (
+    node: TaskflowList[number],
+    treeRef: Ref,
+    showLog = true,
+    theme: 'error' | 'warning',
+  ) => {
     // eslint-disable-next-line no-underscore-dangle
     const { scale } = flowState.instance.flowInstance._diagramInstance._canvasTransform;
     const isErrorTree = theme === 'error';
 
-    expandRetractNodes(node, treeRef, showLog)
+    expandRetractNodes(node, treeRef, showLog);
 
     setTimeout(() => {
       const graphNode = flowState.instance.graphData.locations.find((item: GraphNode) => item.data.id === node.id);
@@ -844,36 +868,36 @@
 
       const children = isErrorTree ? node.failedChildren : node.todoChildren;
       if (!children) {
-        const x = ((flowRef.value!.clientWidth / 2) - graphNode.x) * scale;
-        const y = ((flowRef.value!.clientHeight / 2) - graphNode.y - 128) * scale;
+        const x = (flowRef.value!.clientWidth / 2 - graphNode.x) * scale;
+        const y = (flowRef.value!.clientHeight / 2 - graphNode.y - 128) * scale;
         flowState.instance?.translate(x, y);
       }
-    })
+    });
   };
 
   const getStatusTheme = (isTag = false) => {
     const value = baseInfo.value.status;
     if (isTag && value === 'RUNNING') {
-      return 'info'
-    };
+      return 'info';
+    }
     const themes = {
-      RUNNING: 'loading',
       CREATED: 'default',
       FINISHED: 'success',
+      RUNNING: 'loading',
     };
-    return themes[value as keyof typeof themes] || 'danger' as any;
+    return themes[value as keyof typeof themes] || ('danger' as any);
   };
 
   const updateMinimap = () => {
     const el = flowRef.value?.querySelector('.canvas-wrapper');
     if (el) {
-      const { windowWidth, windowHeight } = flowState.minimap;
+      const { windowHeight, windowWidth } = flowState.minimap;
       minimapRef.value.updateCanvas(el, {
-        width: windowWidth,
         height: windowHeight,
         style: {
           transform: 'translate(60px, 100px) scale(1) rotate(0deg)',
         },
+        width: windowWidth,
       });
     }
   };
@@ -890,17 +914,17 @@
    * 渲染画布节点
    */
   const renderNodes = (updateLogData = false) => {
-    const todoNodeIdList = getTodoNodeIdList(flowState.details)
-    const { locations, lines } = formatGraphData(flowState.details, expandNodes, todoNodeIdList);
+    const todoNodeIdList = getTodoNodeIdList(flowState.details);
+    const { lines, locations } = formatGraphData(flowState.details, expandNodes, todoNodeIdList);
     flowState.instance.update({
-      locations,
       lines,
+      locations,
     });
-    flowState.minimap.windowWidth = Math.max(...locations.map(item => item.x || 0)) + 400;
-    flowState.minimap.windowHeight = Math.max(...locations.map(item => item.y || 0)) + 400;
+    flowState.minimap.windowWidth = Math.max(...locations.map((item) => item.x || 0)) + 400;
+    flowState.minimap.windowHeight = Math.max(...locations.map((item) => item.y || 0)) + 400;
     // 如果打开侧栏需要更新侧栏的节点状态
     if (updateLogData && logState.isShow) {
-      const node = locations.find(item => item.id === logState.node.id);
+      const node = locations.find((item) => item.id === logState.node.id);
       if (node) {
         logState.node = node;
       }
@@ -917,19 +941,19 @@
         return;
       }
       setTimeout(() => {
-        tippyInstances.value?.forEach?.(t => t.destroy());
+        tippyInstances.value?.forEach?.((t) => t.destroy());
         tippyInstances.value = dbTippy(document.querySelectorAll('.operation-icon.db-icon-refresh-2'), {
           content: t('失败重试'),
         });
-        skippInstances.value?.forEach?.(t => t.destroy());
+        skippInstances.value?.forEach?.((t) => t.destroy());
         skippInstances.value = dbTippy(document.querySelectorAll('.operation-icon.db-icon-stop'), {
           content: t('跳过'),
         });
-        forceFailInstances.value?.forEach?.(t => t.destroy());
+        forceFailInstances.value?.forEach?.((t) => t.destroy());
         forceFailInstances.value = dbTippy(document.querySelectorAll('.operation-icon.db-icon-qiangzhizhongzhi'), {
           content: t('强制失败'),
         });
-        todoInstances.value?.forEach?.(t => t.destroy());
+        todoInstances.value?.forEach?.((t) => t.destroy());
         todoInstances.value = dbTippy(document.querySelectorAll('.operation-icon.db-icon-check'), {
           content: t('确认继续'),
         });
@@ -944,9 +968,12 @@
    */
   const fetchTaskflowDetails = (loading = false) => {
     flowState.loading = loading;
-    getTaskflowDetails({ rootId: rootId.value }, {
-      permission: 'page'
-    })
+    getTaskflowDetails(
+      { rootId: rootId.value },
+      {
+        permission: 'page',
+      },
+    )
       .then((res) => {
         flowState.details = res;
         retryRenderFailedTips();
@@ -969,8 +996,8 @@
    */
   const handleRefresh = () => {
     retryTaskflowNode({
-      root_id: rootId.value,
       node_id: logState.node.id,
+      root_id: rootId.value,
     }).then(() => {
       renderNodes();
       fetchTaskflowDetails();
@@ -981,21 +1008,21 @@
    * 继续节点
    */
   const handleTodo = (node: GraphNode) => {
-    const todoItem = flowState.details.todos!.find(todoItem => todoItem.context.node_id === node.id)
+    const todoItem = flowState.details.todos!.find((todoItem) => todoItem.context.node_id === node.id);
     if (todoItem) {
       ticketBatchProcessTodo({
-        action: "APPROVE",
+        action: 'APPROVE',
         operations: [
           {
+            params: {},
             todo_id: todoItem.id,
-            params: {}
-          }
-        ]})
-        .then(() => {
-          renderNodes();
-          fetchTaskflowDetails();
-          messageSuccess(t('继续任务成功'));
-        })
+          },
+        ],
+      }).then(() => {
+        renderNodes();
+        fetchTaskflowDetails();
+        messageSuccess(t('继续任务成功'));
+      });
     }
   };
 
@@ -1004,8 +1031,8 @@
    */
   const handleSkipp = (node: GraphNode) => {
     skipTaskflowNode({
-      root_id: rootId.value,
       node_id: node.data.id,
+      root_id: rootId.value,
     }).then(() => {
       // eslint-disable-next-line no-param-reassign
       node.data.status = 'SKIPPED';
@@ -1018,26 +1045,26 @@
    * 强制失败节点
    */
   const handleForceFail = (node: GraphNode) => {
-    const todoItem = flowState.details.todos!.find(todoItem => todoItem.context.node_id === node.id)
+    const todoItem = flowState.details.todos!.find((todoItem) => todoItem.context.node_id === node.id);
     if (todoItem) {
       ticketBatchProcessTodo({
-        action: "TERMINATE",
+        action: 'TERMINATE',
         operations: [
           {
+            params: {},
             todo_id: todoItem.id,
-            params: {}
-          }
-        ]})
-        .then(() => {
-          renderNodes();
-          fetchTaskflowDetails();
-          messageSuccess(t('强制失败节点成功'));
-        });
-      return
+          },
+        ],
+      }).then(() => {
+        renderNodes();
+        fetchTaskflowDetails();
+        messageSuccess(t('强制失败节点成功'));
+      });
+      return;
     }
     forceFailflowNode({
-      root_id: rootId.value,
       node_id: node.data.id,
+      root_id: rootId.value,
     }).then(() => {
       renderNodes();
       fetchTaskflowDetails();
@@ -1046,16 +1073,15 @@
 
   const handleTodoAllPipeline = () => {
     ticketBatchProcessTodo({
-      action: "APPROVE",
-      operations: flowState.details.todos!.map(todoItem => ({
+      action: 'APPROVE',
+      operations: flowState.details.todos!.map((todoItem) => ({
+        params: {},
         todo_id: todoItem.id,
-        params: {}
-      }))
-    })
-      .then(() => {
-        fetchTaskflowDetails();
-        messageSuccess(t('继续任务成功'));
-      })
+      })),
+    }).then(() => {
+      fetchTaskflowDetails();
+      messageSuccess(t('继续任务成功'));
+    });
   };
 
   const handleRetryAllPipeline = () => {
@@ -1104,16 +1130,16 @@
       if (eventType === 'refresh') {
         refreshState.instance && refreshState.instance.destroy();
         refreshState.instance = dbTippy(event.target as HTMLElement, {
-          trigger: 'click',
-          theme: 'light',
-          content: refreshTemplateRef.value,
-          arrow: true,
-          placement: 'top',
-          appendTo: () => document.body,
-          interactive: true,
           allowHTML: true,
+          appendTo: () => document.body,
+          arrow: true,
+          content: refreshTemplateRef.value,
           hideOnClick: true,
+          interactive: true,
           maxWidth: 400,
+          placement: 'top',
+          theme: 'light',
+          trigger: 'click',
           zIndex: 9999,
         });
         refreshState.instance.show();
@@ -1125,16 +1151,16 @@
       if (eventType === 'skipp') {
         skippState.instance && skippState.instance.destroy();
         skippState.instance = dbTippy(event.target as HTMLElement, {
-          trigger: 'click',
-          theme: 'light',
-          content: skippTipsRef.value,
-          arrow: true,
-          placement: 'top',
-          appendTo: () => document.body,
-          interactive: true,
           allowHTML: true,
+          appendTo: () => document.body,
+          arrow: true,
+          content: skippTipsRef.value,
           hideOnClick: true,
+          interactive: true,
           maxWidth: 400,
+          placement: 'top',
+          theme: 'light',
+          trigger: 'click',
           zIndex: 9999,
         });
         skippState.instance.show();
@@ -1146,16 +1172,16 @@
       if (eventType === 'force-fail') {
         forceFailState.instance && forceFailState.instance.destroy();
         forceFailState.instance = dbTippy(event.target as HTMLElement, {
-          trigger: 'click',
-          theme: 'light',
-          content: forceFailTipsRef.value,
-          arrow: true,
-          placement: 'top',
-          appendTo: () => document.body,
-          interactive: true,
           allowHTML: true,
+          appendTo: () => document.body,
+          arrow: true,
+          content: forceFailTipsRef.value,
           hideOnClick: true,
+          interactive: true,
           maxWidth: 400,
+          placement: 'top',
+          theme: 'light',
+          trigger: 'click',
           zIndex: 9999,
         });
         forceFailState.instance.show();
@@ -1167,16 +1193,16 @@
       if (eventType === 'todo') {
         todoState.instance && todoState.instance.destroy();
         todoState.instance = dbTippy(event.target as HTMLElement, {
-          trigger: 'click',
-          theme: 'light',
-          content: todoTemplateRef.value,
-          arrow: true,
-          placement: 'top',
-          appendTo: () => document.body,
-          interactive: true,
           allowHTML: true,
+          appendTo: () => document.body,
+          arrow: true,
+          content: todoTemplateRef.value,
           hideOnClick: true,
+          interactive: true,
           maxWidth: 400,
+          placement: 'top',
+          theme: 'light',
+          trigger: 'click',
           zIndex: 9999,
         });
         todoState.instance.show();
@@ -1193,7 +1219,7 @@
       }
       /** 展开收起节点 */
       if ((event.target as HTMLElement).className.includes('node-ractangle-collapse-open') || node.children) {
-        const expandNodeIndex = expandNodes.findIndex(id => id === node.id);
+        const expandNodeIndex = expandNodes.findIndex((id) => id === node.id);
         if (expandNodeIndex === -1) {
           expandNodes.push(node.id);
         } else {
@@ -1298,17 +1324,17 @@
     handleSkippCancel();
   };
 
-  const handleTranslate = ({ left, top }: { left: number, top: number }) => {
+  const handleTranslate = ({ left, top }: { left: number; top: number }) => {
     if (flowState.instance) {
       const { flowInstance } = flowState.instance;
       const { x, y } = flowInstance._options.canvasPadding; // eslint-disable-line no-underscore-dangle
       const { scale } = flowInstance._diagramInstance._canvasTransform; // eslint-disable-line no-underscore-dangle
-      const { viewportWidth, viewportHeight } = flowState.minimap;
+      const { viewportHeight, viewportWidth } = flowState.minimap;
       const windowWidth = flowState.minimap.windowWidth * scale;
       const windowHeight = flowState.minimap.windowHeight * scale;
       flowState.instance?.translate(
-        -(windowWidth * left / viewportWidth) + x,
-        -(windowHeight * top / viewportHeight) + y,
+        -((windowWidth * left) / viewportWidth) + x,
+        -((windowHeight * top) / viewportHeight) + y,
       );
     }
   };

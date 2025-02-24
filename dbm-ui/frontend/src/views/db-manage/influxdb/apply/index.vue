@@ -204,7 +204,7 @@
   });
   const groupName = ref('');
 
-  const { baseState, bizState, handleCreateAppAbbr, handleCreateTicket, handleCancel } = useApplyBase();
+  const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
 
   const formdata = reactive(getInitFormdata());
   const formRef = ref();
@@ -216,17 +216,17 @@
   const rules = {
     'details.nodes.influxdb': [
       {
-        required: true,
-        validator: (value: Array<any>) => value.length >= 1,
         message: t('请添加服务器'),
+        required: true,
         trigger: 'change',
+        validator: (value: Array<any>) => value.length >= 1,
       },
     ],
     'details.port': [
       {
-        validator: (value: number) => value !== 8088,
         message: t('8088为服务内部占用端口'),
         trigger: 'blur',
+        validator: (value: number) => value !== 8088,
       },
     ],
   };
@@ -279,8 +279,8 @@
               influxdb: {
                 ...details.resource_spec.influxdb,
                 ...specRef.value.getData(),
-                count: Number(details.resource_spec.influxdb.count),
                 affinity: details.disaster_tolerance_level,
+                count: Number(details.resource_spec.influxdb.count),
                 location_spec: {
                   city: cityCode,
                   sub_zone_ids: [],
@@ -295,10 +295,10 @@
           ...details,
           nodes: {
             influxdb: formdata.details.nodes.influxdb.map((item) => ({
+              bk_biz_id: item.biz.id,
+              bk_cloud_id: item.cloud_area.id,
               bk_host_id: item.host_id,
               ip: item.ip,
-              bk_cloud_id: item.cloud_area.id,
-              bk_biz_id: item.biz.id,
             })),
           },
         };
@@ -319,9 +319,8 @@
    */
   const handleReset = () => {
     InfoBox({
-      title: t('确认重置表单内容'),
-      content: t('重置后_将会清空当前填写的内容'),
       cancelText: t('取消'),
+      content: t('重置后_将会清空当前填写的内容'),
       onConfirm: () => {
         Object.assign(formdata, getInitFormdata());
         formRef.value.clearValidate();
@@ -330,6 +329,7 @@
         });
         return true;
       },
+      title: t('确认重置表单内容'),
     });
   };
 

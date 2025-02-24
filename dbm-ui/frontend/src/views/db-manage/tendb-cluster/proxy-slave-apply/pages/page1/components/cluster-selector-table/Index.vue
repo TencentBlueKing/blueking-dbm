@@ -44,9 +44,7 @@
   import { useI18n } from 'vue-i18n';
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
-  import type {
-    ListBase,
-  } from '@services/types';
+  import type { ListBase } from '@services/types';
 
   import DbStatus from '@components/db-status/index.vue';
 
@@ -56,17 +54,15 @@
   import { useClusterData } from './useSpiderClusterData';
 
   interface Props {
-    activeTab: string,
-    selected: Record<string, TendbClusterModel[]>,
+    activeTab: string;
     // eslint-disable-next-line vue/no-unused-properties
-    getResourceList: (params: Record<string, any>) => Promise<ListBase<TendbClusterModel[]>>
+    getResourceList: (params: Record<string, any>) => Promise<ListBase<TendbClusterModel[]>>;
+    selected: Record<string, TendbClusterModel[]>;
   }
 
-  interface Emits {
-    (e: 'change', value: Record<string, Record<string, ValueOf<Props['selected']>[0]>>): void,
-  }
+  type Emits = (e: 'change', value: Record<string, Record<string, ValueOf<Props['selected']>[0]>>) => void;
 
-  type ValueOf<T> = T[keyof T]
+  type ValueOf<T> = T[keyof T];
 
   const props = defineProps<Props>();
 
@@ -80,113 +76,142 @@
   const isSelectedAll = ref(false);
 
   const {
-    isLoading,
-    pagination,
-    isAnomalies,
-    dbModuleList,
     data: tableData,
+    dbModuleList,
     fetchModules,
     fetchResources,
-    handleChangePage,
     handeChangeLimit,
+    handleChangePage,
+    isAnomalies,
+    isLoading,
+    pagination,
   } = useClusterData<ValueOf<Props['selected']>[0]>(activeTab, searchSelectValue);
 
-
-  const searchSelectData = computed(() => [{
-    name: t('主访问入口'),
-    id: 'domain',
-  }, {
-    name: t('模块'),
-    id: 'db_module_id',
-    children: dbModuleList.value,
-  }]);
+  const searchSelectData = computed(() => [
+    {
+      id: 'domain',
+      name: t('主访问入口'),
+    },
+    {
+      children: dbModuleList.value,
+      id: 'db_module_id',
+      name: t('模块'),
+    },
+  ]);
   // 选中域名列表
-  const selectedDomainMap = computed(() => Object.values(selectedMap.value)
-    .reduce((result, selectItem) => {
-      const masterDomainMap  = makeMap(Object.keys(selectItem));
-      return Object.assign({}, result, masterDomainMap);
-    }, {} as Record<string, boolean>));
+  const selectedDomainMap = computed(() =>
+    Object.values(selectedMap.value).reduce(
+      (result, selectItem) => {
+        const masterDomainMap = makeMap(Object.keys(selectItem));
+        return Object.assign({}, result, masterDomainMap);
+      },
+      {} as Record<string, boolean>,
+    ),
+  );
 
-  const isIndeterminate = computed(() => !isSelectedAll.value
-    && Boolean(selectedMap.value[activeTab.value]) && Object.keys(selectedMap.value[activeTab.value]).length > 0);
+  const isIndeterminate = computed(
+    () =>
+      !isSelectedAll.value &&
+      Boolean(selectedMap.value[activeTab.value]) &&
+      Object.keys(selectedMap.value[activeTab.value]).length > 0,
+  );
 
-  // eslint-disable-next-line max-len
-  const mainSelectDisable = computed(() => tableData.value.filter(data => data.spider_slave.length > 0).length === tableData.value.length);
+  const mainSelectDisable = computed(
+    () => tableData.value.filter((data) => data.spider_slave.length > 0).length === tableData.value.length,
+  );
 
   const columns = [
     {
-      width: 60,
       label: () => (
         <bk-checkbox
           key={`${pagination.current}_${activeTab.value}`}
           v-model={isSelectedAll.value}
-          indeterminate={isIndeterminate.value}
           disabled={mainSelectDisable.value}
+          indeterminate={isIndeterminate.value}
           label={true}
-          onClick={(e: Event) => e.stopPropagation()}
           onChange={handleSelecteAll}
+          onClick={(e: Event) => e.stopPropagation()}
         />
       ),
       render: ({ data }: { data: ValueOf<Props['selected']>[0] }) => {
         if (data.spider_slave.length > 0) {
           return (
-            <bk-popover theme="dark" placement="top" popoverDelay={0}>
+            <bk-popover
+              placement='top'
+              popoverDelay={0}
+              theme='dark'>
               {{
-                default: () => <bk-checkbox style="vertical-align: middle;" disabled />,
                 content: () => <span>{t('该集群已有只读集群')}</span>,
+                default: () => (
+                  <bk-checkbox
+                    style='vertical-align: middle;'
+                    disabled
+                  />
+                ),
               }}
             </bk-popover>
           );
         }
         return (
           <bk-checkbox
-            style="vertical-align: middle;"
-            model-value={Boolean(selectedDomainMap.value[data.id])}
             label={true}
-            onClick={(e: Event) => e.stopPropagation()}
+            model-value={Boolean(selectedDomainMap.value[data.id])}
+            style='vertical-align: middle;'
             onChange={(value: boolean) => handleSelecteRow(data, value)}
+            onClick={(e: Event) => e.stopPropagation()}
           />
         );
       },
+      width: 60,
     },
     {
-      label: t('集群'),
       field: 'cluster_name',
-      showOverflowTooltip: true,
+      label: t('集群'),
       render: ({ data }: { data: TendbClusterModel }) => (
-      <div class="cluster-name-box">
-          <div class="cluster-name">{data.master_domain}</div>
-          {data.operations && data.operations.length > 0 && <bk-popover
-            theme="light"
-            width="360">
-            {{
-              default: () => <bk-tag theme="info" class="tag-box">{data.operations.length}</bk-tag>,
-              content: () => <ClusterRelatedTasks data={data.operations} />,
-            }}
-          </bk-popover>}
-      </div>),
+        <div class='cluster-name-box'>
+          <div class='cluster-name'>{data.master_domain}</div>
+          {data.operations && data.operations.length > 0 && (
+            <bk-popover
+              theme='light'
+              width='360'>
+              {{
+                content: () => <ClusterRelatedTasks data={data.operations} />,
+                default: () => (
+                  <bk-tag
+                    class='tag-box'
+                    theme='info'>
+                    {data.operations.length}
+                  </bk-tag>
+                ),
+              }}
+            </bk-popover>
+          )}
+        </div>
+      ),
+      showOverflowTooltip: true,
     },
     {
-      label: t('域名'),
       field: 'master_domain',
+      label: t('域名'),
       showOverflowTooltip: true,
     },
     {
-      label: t('管控区域'),
       field: 'bk_cloud_name',
+      label: t('管控区域'),
       showOverflowTooltip: true,
     },
     {
-      label: t('所属模块'),
       field: 'db_module_name',
+      label: t('所属模块'),
       showOverflowTooltip: true,
     },
     {
-      label: t('状态'),
       field: 'status',
+      label: t('状态'),
       minWidth: 100,
       render: ({ data }: { data: TendbClusterModel }) => {
-        const info = data.status === 'normal' ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
+        const info =
+          data.status === 'normal' ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
     },
@@ -194,30 +219,40 @@
 
   let isSelectedAllReal = false;
 
-  watch(() => activeTab.value, () => {
-    searchSelectValue.value = [];
-    fetchModules();
-    handleTablePageChange(1);
-  });
+  watch(
+    () => activeTab.value,
+    () => {
+      searchSelectValue.value = [];
+      fetchModules();
+      handleTablePageChange(1);
+    },
+  );
 
-  watch(() => [props.activeTab, props.selected] as [string, Record<string, T[]>], ([tabKey, selected]) => {
-    if (tabKey) {
-      activeTab.value = tabKey;
-      if (!selected[tabKey] || !props.selected) {
-        return;
+  watch(
+    () => [props.activeTab, props.selected] as [string, Record<string, T[]>],
+    ([tabKey, selected]) => {
+      if (tabKey) {
+        activeTab.value = tabKey;
+        if (!selected[tabKey] || !props.selected) {
+          return;
+        }
+        const tabSelectMap = selected[tabKey].reduce(
+          (selectResult, selectItem) => ({
+            ...selectResult,
+            [selectItem.id]: selectItem,
+          }),
+          {} as Record<string, ValueOf<Record<string, T[]>>[0]>,
+        );
+        selectedMap.value = {
+          [tabKey]: tabSelectMap,
+        };
       }
-      const tabSelectMap = selected[tabKey].reduce((selectResult, selectItem) => ({
-        ...selectResult,
-        [selectItem.id]: selectItem,
-      }), {} as Record<string, ValueOf<Record<string, T[]>>[0]>);
-      selectedMap.value = {
-        [tabKey]: tabSelectMap,
-      };
-    }
-  }, {
-    immediate: true,
-    deep: true,
-  });
+    },
+    {
+      deep: true,
+      immediate: true,
+    },
+  );
 
   /**
    * 过滤列表
@@ -240,7 +275,7 @@
     }
   };
   const checkSelectedAll = () => {
-    if (tableData.value.filter(data => data.spider_slave.length > 0).length > 0) {
+    if (tableData.value.filter((data) => data.spider_slave.length > 0).length > 0) {
       nextTick(() => {
         isSelectedAll.value = false;
       });
@@ -251,6 +286,7 @@
       isSelectedAll.value = false;
       return;
     }
+    // eslint-disable-next-line @typescript-eslint/prefer-for-of
     for (let i = 0; i < tableData.value.length; i++) {
       if (!currentSelected[tableData.value[i].id]) {
         isSelectedAll.value = false;
@@ -280,7 +316,7 @@
     checkSelectedAll();
   };
 
-  const handleRowClick = (row:any, data: ValueOf<Props['selected']>[0]) => {
+  const handleRowClick = (row: any, data: ValueOf<Props['selected']>[0]) => {
     if (data.spider_slave.length > 0) {
       return;
     }
@@ -290,17 +326,15 @@
   };
 
   function handleTablePageChange(value: number) {
-    handleChangePage(value)
-      .then(() => {
-        checkSelectedAll();
-      });
+    handleChangePage(value).then(() => {
+      checkSelectedAll();
+    });
   }
 
   function handleTableLimitChange(value: number) {
-    handeChangeLimit(value)
-      .then(() => {
-        checkSelectedAll();
-      });
+    handeChangeLimit(value).then(() => {
+      checkSelectedAll();
+    });
   }
 </script>
 

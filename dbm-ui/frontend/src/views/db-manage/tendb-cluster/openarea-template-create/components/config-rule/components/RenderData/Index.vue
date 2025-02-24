@@ -78,9 +78,7 @@
 
   import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
 
-  interface Emits {
-    (e: 'batchEdit', value: string[]): void;
-  }
+  type Emits = (e: 'batchEdit', value: string[]) => void;
 
   const emits = defineEmits<Emits>();
 

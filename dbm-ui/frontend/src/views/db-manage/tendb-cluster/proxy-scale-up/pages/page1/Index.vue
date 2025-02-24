@@ -95,12 +95,12 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES,
     onSuccess(cloneData) {
       tableData.value = cloneData.tableDataList;
       remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
+    type: TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES,
   });
 
   const rowRefs = ref();
@@ -160,24 +160,24 @@
     const masterCount = item.spider_master.length;
     const slaveCount = item.spider_slave.length;
     return {
-      rowKey: random(),
-      isLoading: false,
+      bkCloudId: item.bk_cloud_id,
       cluster: item.master_domain,
       clusterId: item.id,
-      bkCloudId: item.bk_cloud_id,
       clusterType: item.cluster_type,
-      nodeType: '',
+      isLoading: false,
       masterCount,
-      slaveCount,
       mntCount: item.spider_mnt.length,
+      nodeType: '',
+      rowKey: random(),
+      slaveCount,
       // spec: {
       // ...item.spider_master[0].spec_config,
       // count: 0,
       // },
       specId: item.spider_master[0].spec_config.id,
-      targetNum: '',
       spiderMasterList: item.spider_master,
       spiderSlaveList: item.spider_slave,
+      targetNum: '',
     };
   };
 
@@ -261,14 +261,14 @@
       index + 1,
       0,
       Object.assign(sourceData, {
-        clusterId: rowData.clusterId,
         bkCloudId: rowData.bkCloudId,
+        clusterId: rowData.clusterId,
+        clusterType: rowData.clusterType,
         masterCount: rowData.masterCount,
-        slaveCount: rowData.slaveCount,
         mntCount: rowData.mntCount,
+        slaveCount: rowData.slaveCount,
         spiderMasterList: rowData.spiderMasterList,
         spiderSlaveList: rowData.spiderSlaveList,
-        clusterType: rowData.clusterType,
       }),
     );
     tableData.value = dataList;
@@ -285,13 +285,13 @@
         rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
       );
       const params = {
-        remark: remark.value,
         bk_biz_id: currentBizId,
-        ticket_type: TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES,
         details: {
-          ip_source: 'resource_pool',
           infos,
+          ip_source: 'resource_pool',
         },
+        remark: remark.value,
+        ticket_type: TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES,
       };
       await createTicket(params).then((data) => {
         window.changeConfirm = false;

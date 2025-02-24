@@ -23,9 +23,9 @@ export async function generateRedisClusterAddSlaveCloneData(ticketData: TicketMo
   const IpInfoMap: Record<
     string,
     {
-      cluster_ids: number[];
       bk_cloud_id: number;
       bk_host_id: number;
+      cluster_ids: number[];
     }
   > = {};
   infos.forEach((item) => {
@@ -34,15 +34,15 @@ export async function generateRedisClusterAddSlaveCloneData(ticketData: TicketMo
       masterSlaveIpMap[masterIp] = pair.redis_slave.old_slave_ip;
       masterIps.push(masterIp);
       IpInfoMap[masterIp] = {
-        cluster_ids: item.cluster_ids,
         bk_cloud_id: pair.redis_master.bk_cloud_id,
         bk_host_id: pair.redis_master.bk_host_id,
+        cluster_ids: item.cluster_ids,
       };
     });
   });
   const listResult = await getRedisMachineList({
-    ip: masterIps.join(','),
     add_role_count: true,
+    ip: masterIps.join(','),
   });
   const machineIpMap = listResult.results.reduce(
     (results, item) => {
@@ -55,24 +55,24 @@ export async function generateRedisClusterAddSlaveCloneData(ticketData: TicketMo
   );
 
   return {
+    remark: ticketData.remark,
     tableDataList: masterIps.map((ip) => ({
-      rowKey: random(),
-      isLoading: false,
-      slaveIp: masterSlaveIpMap[ip],
-      masterIp: ip,
-      ip,
-      clusterIds: IpInfoMap[ip].cluster_ids,
       bkCloudId: IpInfoMap[ip].bk_cloud_id,
       bkHostId: IpInfoMap[ip].bk_host_id,
       cluster: {
         domain: machineIpMap[ip].related_clusters.map((item) => item.immute_domain).join(','),
-        isStart: false,
         isGeneral: true,
+        isStart: false,
         rowSpan: 1,
       },
+      clusterIds: IpInfoMap[ip].cluster_ids,
+      ip,
+      isLoading: false,
+      masterIp: ip,
+      rowKey: random(),
+      slaveIp: masterSlaveIpMap[ip],
       spec: machineIpMap[ip].spec_config,
       targetNum: 1,
     })),
-    remark: ticketData.remark,
   };
 }

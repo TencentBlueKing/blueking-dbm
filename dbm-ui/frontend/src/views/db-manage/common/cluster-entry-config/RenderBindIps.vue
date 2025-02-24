@@ -54,15 +54,13 @@
   import type { ClusterEntryInfo } from './Index.vue';
 
   interface Props {
-    id: number;
     data: ClusterEntryInfo;
-    resource: DBTypes;
+    id: number;
     permission: boolean;
+    resource: DBTypes;
   }
 
-  interface Emits {
-    (e: 'success'): void;
-  }
+  type Emits = (e: 'success') => void;
 
   interface ErrorItem {
     isChecked: boolean;
@@ -94,13 +92,13 @@
 
   const { run: runUpdateClusterEntryConfig } = useRequest(updateClusterEntryConfig, {
     manual: true,
-    onSuccess: () => {
-      messageSuccess(t('修改成功'));
-      emits('success');
-    },
     onError: () => {
       localValue.value = props.data.ips;
       localIps.value = props.data.ips.split('\n');
+    },
+    onSuccess: () => {
+      messageSuccess(t('修改成功'));
+      emits('success');
     },
   });
 
@@ -124,7 +122,6 @@
 
   const executeUpdate = () => {
     const params = {
-      cluster_id: props.id,
       cluster_entry_details: [
         {
           cluster_entry_type: props.data.cluster_entry_type,
@@ -132,6 +129,7 @@
           target_instances: localValue.value.split('\n').map((row) => `${row}#${props.data.port}`),
         },
       ],
+      cluster_id: props.id,
     };
     runUpdateClusterEntryConfig(params);
   };

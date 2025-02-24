@@ -58,9 +58,9 @@
 
   const rules = [
     {
-      validator: () => Promise.all(rowRef.value.map((item: { getValue: () => Promise<string[]> }) => item.getValue())),
       message: t('备份设置不能为空'),
       trigger: 'change',
+      validator: () => Promise.all(rowRef.value.map((item: { getValue: () => Promise<string[]> }) => item.getValue())),
     },
   ];
 

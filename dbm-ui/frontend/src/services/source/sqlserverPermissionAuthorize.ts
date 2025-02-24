@@ -19,27 +19,27 @@ const getRootPath = () => `/apis/sqlserver/bizs/${window.PROJECT_CONFIG.BIZ_ID}/
  * Sqlserver 授权规则前置检查
  */
 export function preCheckAuthorizeRules(params: {
+  cluster_ids?: number[];
+  cluster_type: string;
   sqlserver_users: {
-    user: string;
     access_dbs: string[];
+    user: string;
   }[];
   target_instances: string[];
-  cluster_type: string;
-  cluster_ids?: number[];
 }) {
   return http.post<{
     authorize_data: {
-      bk_biz_id: number;
-      operator: string;
-      user: string;
       access_dbs: string[];
       account_rules: {
         bk_biz_id: number;
         dbname: string;
       }[];
+      bk_biz_id: number;
+      cluster_type: string;
+      operator: string;
       source_ips: string[];
       target_instances: string[];
-      cluster_type: string;
+      user: string;
     }[];
     authorize_uid: string;
     message: string;

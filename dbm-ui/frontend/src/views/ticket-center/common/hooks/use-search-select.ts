@@ -22,32 +22,29 @@ const create = (options = {} as { exclude: string[] }) => {
   const searchSelectData = computed(() => {
     const serachList = [
       {
-        name: t('单号'),
         id: 'ids',
         multiple: true,
+        name: t('单号'),
       },
       {
-        name: t('单据类型'),
+        children: ticketTypeList.value,
         id: 'ticket_type__in',
         multiple: true,
-        children: ticketTypeList.value,
+        name: t('单据类型'),
       },
       {
-        name: t('集群'),
         id: 'cluster',
+        name: t('集群'),
       },
       {
-        name: t('业务'),
-        id: 'bk_biz_id',
         children: globalBizsStore.bizs.map((item) => ({
           id: `${item.bk_biz_id}`,
           name: item.name,
         })),
+        id: 'bk_biz_id',
+        name: t('业务'),
       },
       {
-        name: t('单据状态'),
-        id: 'status',
-        multiple: true,
         children: Object.keys(TicketModel.statusTextMap).reduce<Record<'id' | 'name', string>[]>((acc, key) => {
           acc.push({
             id: key,
@@ -55,14 +52,17 @@ const create = (options = {} as { exclude: string[] }) => {
           });
           return acc;
         }, []),
+        id: 'status',
+        multiple: true,
+        name: t('单据状态'),
       },
       {
-        name: t('备注'),
         id: 'remark',
+        name: t('备注'),
       },
       {
-        name: t('提单人'),
         id: 'creator',
+        name: t('提单人'),
       },
     ];
 
@@ -92,21 +92,21 @@ const create = (options = {} as { exclude: string[] }) => {
 
   useRequest(getTicketTypes, {
     cacheKey: 'ticketTypes',
-    staleTime: 24 * 60 * 60 * 1000,
     onSuccess(data) {
       ticketTypeList.value = data.map((item) => ({
         id: item.key,
         name: item.value,
       }));
     },
+    staleTime: 24 * 60 * 60 * 1000,
   });
 
   return {
-    ticketTypeList,
-    value,
-    searchSelectData,
     formatSearchValue,
     searchFieldMap,
+    searchSelectData,
+    ticketTypeList,
+    value,
   };
 };
 

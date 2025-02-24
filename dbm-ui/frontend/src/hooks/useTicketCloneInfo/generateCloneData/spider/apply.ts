@@ -18,20 +18,20 @@ export async function generateSpiderApplyCloneData(ticketData: TicketModel<Tendb
   const { details } = ticketData;
 
   return Promise.resolve({
-    bizId: ticketData.bk_biz_id,
     affinity: details.disaster_tolerance_level,
-    cloudId: details.bk_cloud_id,
-    cityCode: details.city_code,
-    dbModuleId: details.db_module_id,
-    remark: ticketData.remark,
-    clusterName: details.cluster_name,
-    clusterAlias: details.cluster_alias,
-    spiderPort: details.spider_port,
-    spiderSpecId: details.resource_spec.spider.spec_id,
-    spiderSpecCount: details.resource_spec.spider.count,
-    backendSpecId: details.resource_spec.backend_group.spec_id,
     backendSpecCount: details.resource_spec.backend_group.spec_id,
+    backendSpecId: details.resource_spec.backend_group.spec_id,
+    bizId: ticketData.bk_biz_id,
     capacity: details.resource_spec.backend_group.capacity,
+    cityCode: details.city_code,
+    cloudId: details.bk_cloud_id,
+    clusterAlias: details.cluster_alias,
+    clusterName: details.cluster_name,
+    dbModuleId: details.db_module_id,
     futureCapacity: details.resource_spec.backend_group.future_capacity,
+    remark: ticketData.remark,
+    spiderPort: details.spider_port,
+    spiderSpecCount: details.resource_spec.spider.count,
+    spiderSpecId: details.resource_spec.spider.spec_id,
   });
 }

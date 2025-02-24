@@ -117,16 +117,9 @@
     updateResourceSpecEnableStatus,
   } from '@services/source/dbresourceSpec';
 
-  import {
-    useBeforeClose,
-    useDebouncedRef,
-    useTableSettings,
-  } from '@hooks';
+  import { useBeforeClose, useDebouncedRef, useTableSettings } from '@hooks';
 
-  import {
-    DBTypes,
-    UserPersonalSettings,
-  } from '@common/const';
+  import { DBTypes, UserPersonalSettings } from '@common/const';
 
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
@@ -136,13 +129,13 @@
 
   import SpecCreate from './SpecCreate.vue';
 
-  type SpecOperationType = 'create' | 'edit' | 'clone'
+  type SpecOperationType = 'create' | 'edit' | 'clone';
 
   interface Props {
-    dbType: DBTypes,
-    dbTypeLabel: string,
-    machineType: string,
-    machineTypeLabel: string,
+    dbType: DBTypes;
+    dbTypeLabel: string;
+    machineType: string;
+    machineTypeLabel: string;
   }
 
   const props = defineProps<Props>();
@@ -178,20 +171,22 @@
             {{
               default: () => (
                 <auth-button
-                  action-id="spec_update"
+                  action-id='spec_update'
                   resource={props.dbType}
                   permission={data.permission.spec_update}
                   text
-                  theme="primary"
+                  theme='primary'
                   onClick={() => handleShowUpdate(data)}>
                   {data.spec_name}
                 </auth-button>
               ),
-              append: () => data.isRecentSeconds && (
-                <span
-                  class="glob-new-tag ml-4"
-                  data-text="NEW" />
-              ),
+              append: () =>
+                data.isRecentSeconds && (
+                  <span
+                    class='glob-new-tag ml-4'
+                    data-text='NEW'
+                  />
+                ),
             }}
           </TextOverflowLayout>
         ),
@@ -203,77 +198,93 @@
         minWidth: 400,
         render: ({ data }: { data: ResourceSpecModel }) => (
           <bk-popover
-            theme="light"
-            placement="top"
+            theme='light'
+            placement='top'
             popover-delay={[300, 0]}
             disable-outside-click>
             {{
               default: () => (
-                <div class="machine-info text-overflow">
-                  {data.cpu.min > 0 && data.device_class.length === 0 && <>
-                    <bk-tag class="machine-info-cpu">
-                      CPU = {`${data.cpu.min} ~ ${data.cpu.max}`} {t('核')}
-                    </bk-tag>
-                    <bk-tag class="machine-info-condition" theme="info">
-                      AND
-                    </bk-tag>
-                    <bk-tag class="machine-info-mem">
-                      {t('内存')} = {`${data.mem.min} ~ ${data.mem.max}`} G
-                    </bk-tag>
-                    <bk-tag class="machine-info-condition" theme="info">
-                      AND
-                    </bk-tag>
-                  </>}
-                  {data.device_class.length > 0 && <>
-                    <bk-tag class="machine-info-device">
-                      {t('机型')} = {data.device_class.join(',')}
-                    </bk-tag>
-                    <bk-tag class="machine-info-condition" theme="info">
-                      AND
-                    </bk-tag>
-                  </>}
-                  <bk-tag class="machine-info-storage">
-                    {t('磁盘')} = {
-                      data.storage_spec.length > 0
-                        ? data.storage_spec.map(item => `(${t('挂载点')}: ${item.mount_point}, ${t('最小容量')}: ${item.size} G, ${item.type})`)
-                        : '--'
-                    }
+                <div class='machine-info text-overflow'>
+                  {data.cpu.min > 0 && data.device_class.length === 0 && (
+                    <>
+                      <bk-tag class='machine-info-cpu'>
+                        CPU = {`${data.cpu.min} ~ ${data.cpu.max}`} {t('核')}
+                      </bk-tag>
+                      <bk-tag
+                        class='machine-info-condition'
+                        theme='info'>
+                        AND
+                      </bk-tag>
+                      <bk-tag class='machine-info-mem'>
+                        {t('内存')} = {`${data.mem.min} ~ ${data.mem.max}`} G
+                      </bk-tag>
+                      <bk-tag
+                        class='machine-info-condition'
+                        theme='info'>
+                        AND
+                      </bk-tag>
+                    </>
+                  )}
+                  {data.device_class.length > 0 && (
+                    <>
+                      <bk-tag class='machine-info-device'>
+                        {t('机型')} = {data.device_class.join(',')}
+                      </bk-tag>
+                      <bk-tag
+                        class='machine-info-condition'
+                        theme='info'>
+                        AND
+                      </bk-tag>
+                    </>
+                  )}
+                  <bk-tag class='machine-info-storage'>
+                    {t('磁盘')} ={' '}
+                    {data.storage_spec.length > 0
+                      ? data.storage_spec.map(
+                          (item) =>
+                            `(${t('挂载点')}: ${item.mount_point}, ${t('最小容量')}: ${item.size} G, ${item.type})`,
+                        )
+                      : '--'}
                   </bk-tag>
                 </div>
               ),
               content: () => (
-                <div class="resource-machine-info-tips">
-                  {data.cpu.min > 0 && data.device_class.length === 0 && <>
-                    <strong>CPU: </strong>
-                    <div class="resource-machine-info__values mb-10">
-                      <bk-tag>{`${data.cpu.min} ~ ${data.cpu.max}`} {t('核')}</bk-tag>
-                    </div>
-                    <strong>{t('内存')}: </strong>
-                    <div class="resource-machine-info__values mb-10">
-                      <bk-tag>{`${data.mem.min} ~ ${data.mem.max}`} G</bk-tag>
-                    </div>
-                  </>}
-                  {data.device_class.length > 0 && <>
-                    <strong>{t('机型')}: </strong>
-                    <div class="resource-machine-info__values mb-10">
-                      {
-                        data.device_class.map(item => <bk-tag>{item}</bk-tag>)
-                      }
-                    </div>
-                  </>}
+                <div class='resource-machine-info-tips'>
+                  {data.cpu.min > 0 && data.device_class.length === 0 && (
+                    <>
+                      <strong>CPU: </strong>
+                      <div class='resource-machine-info__values mb-10'>
+                        <bk-tag>
+                          {`${data.cpu.min} ~ ${data.cpu.max}`} {t('核')}
+                        </bk-tag>
+                      </div>
+                      <strong>{t('内存')}: </strong>
+                      <div class='resource-machine-info__values mb-10'>
+                        <bk-tag>{`${data.mem.min} ~ ${data.mem.max}`} G</bk-tag>
+                      </div>
+                    </>
+                  )}
+                  {data.device_class.length > 0 && (
+                    <>
+                      <strong>{t('机型')}: </strong>
+                      <div class='resource-machine-info__values mb-10'>
+                        {data.device_class.map((item) => (
+                          <bk-tag>{item}</bk-tag>
+                        ))}
+                      </div>
+                    </>
+                  )}
                   <strong>{t('磁盘')}: </strong>
-                  <div class="resource-machine-info__values">
-                    {
-                      data.storage_spec.length > 0
-                        ? data.storage_spec.map(item => (
+                  <div class='resource-machine-info__values'>
+                    {data.storage_spec.length > 0
+                      ? data.storage_spec.map((item) => (
                           <p>
                             <bk-tag>
                               {`(${t('挂载点')}: ${item.mount_point}, ${t('最小容量')}: ${item.size} G, ${item.type})`}
                             </bk-tag>
                           </p>
                         ))
-                        : '--'
-                    }
+                      : '--'}
                   </div>
                 </div>
               ),
@@ -292,20 +303,23 @@
         render: ({ data }: { data: ResourceSpecModel }) => (
           <bk-pop-confirm
             title={data.enable ? t('确认停用该规格？') : t('确认启用该规格？')}
-            content={data.enable ? t('停用后，在资源规格选择时，将不可见，且不可使用') : t('启用后，在资源规格选择时，将开放选择')}
-            width="308"
-            trigger="click"
-            placement="bottom"
+            content={
+              data.enable
+                ? t('停用后，在资源规格选择时，将不可见，且不可使用')
+                : t('启用后，在资源规格选择时，将开放选择')
+            }
+            width='308'
+            trigger='click'
+            placement='bottom'
             confirm-text={data.enable ? t('停用') : t('启用')}
-            onConfirm={() => handleConfirmSwitch(data)}
-          >
+            onConfirm={() => handleConfirmSwitch(data)}>
             <auth-switcher
-              size="small"
-              action-id="spec_update"
+              size='small'
+              action-id='spec_update'
               permission={data.permission.spec_update}
               resource={props.dbType}
               model-value={data.enable}
-              theme="primary"
+              theme='primary'
             />
           </bk-pop-confirm>
         ),
@@ -331,32 +345,34 @@
         render: ({ data }: { data: ResourceSpecModel }) => (
           <>
             <auth-button
-              action-id="spec_update"
+              action-id='spec_update'
               resource={props.dbType}
               permission={data.permission.spec_update}
-              class="mr-8"
-              theme="primary"
+              class='mr-8'
+              theme='primary'
               text
               onClick={handleShowUpdate.bind(null, data)}>
               {t('编辑')}
             </auth-button>
             <auth-button
-              action-id="spec_create"
+              action-id='spec_create'
               resource={props.dbType}
               permission={data.permission.spec_create}
-              class="mr-8"
-              theme="primary"
+              class='mr-8'
+              theme='primary'
               text
               onClick={handleShowClone.bind(null, data)}>
               {t('克隆')}
             </auth-button>
             {data.is_refer ? (
-              <span class="inline-block;" v-bk-tooltips={t('该规格已被使用_无法删除')}>
+              <span
+                class='inline-block;'
+                v-bk-tooltips={t('该规格已被使用_无法删除')}>
                 <auth-button
-                  action-id="spec_delete"
+                  action-id='spec_delete'
                   resource={props.dbType}
                   permission={data.permission.spec_delete}
-                  theme="primary"
+                  theme='primary'
                   text
                   disabled>
                   {t('删除')}
@@ -364,10 +380,10 @@
               </span>
             ) : (
               <auth-button
-                action-id="spec_delete"
+                action-id='spec_delete'
                 resource={props.dbType}
                 permission={data.permission.spec_delete}
-                theme="primary"
+                theme='primary'
                 text
                 onClick={() => handleDelete([data], false)}>
                 {t('删除')}
@@ -396,19 +412,21 @@
 
   // 设置用户个人表头信息
   const defaultSettings = {
-    fields: columns.value.filter(item => item.field).map(item => ({
-      label: item.label as string,
-      field: item.field as string,
-      disabled: ['spec_name', 'model'].includes(item.field as string),
-    })),
-    checked: columns.value.map(item => item.field).filter(key => !!key) as string[],
+    fields: columns.value
+      .filter((item) => item.field)
+      .map((item) => ({
+        label: item.label as string,
+        field: item.field as string,
+        disabled: ['spec_name', 'model'].includes(item.field as string),
+      })),
+    checked: columns.value.map((item) => item.field).filter((key) => !!key) as string[],
     trigger: 'manual' as const,
   };
 
-  const {
-    settings,
-    updateTableSettings,
-  } = useTableSettings(UserPersonalSettings.SPECIFICATION_TABLE_SETTINGS, defaultSettings);
+  const { settings, updateTableSettings } = useTableSettings(
+    UserPersonalSettings.SPECIFICATION_TABLE_SETTINGS,
+    defaultSettings,
+  );
 
   const { run: runUpdateResourceSpec } = useRequest(updateResourceSpecEnableStatus, {
     manual: true,
@@ -418,15 +436,13 @@
     },
   });
 
-  watch(() => [
-    props.dbType,
-    props.machineType,
-    searchKey.value,
-  ], () => {
-    tableRef.value!.clearSelected();
-    fetchData();
-  });
-
+  watch(
+    () => [props.dbType, props.machineType, searchKey.value],
+    () => {
+      tableRef.value!.clearSelected();
+      fetchData();
+    },
+  );
 
   const handleConfirmSwitch = (row: ResourceSpecModel) => {
     runUpdateResourceSpec({
@@ -436,12 +452,15 @@
   };
 
   const fetchData = () => {
-    tableRef.value.fetchData({
-      spec_name: searchKey.value,
-    }, {
-      spec_cluster_type: props.dbType,
-      spec_machine_type: props.machineType,
-    });
+    tableRef.value.fetchData(
+      {
+        spec_name: searchKey.value,
+      },
+      {
+        spec_cluster_type: props.dbType,
+        spec_machine_type: props.machineType,
+      },
+    );
   };
 
   const handleSelectionChange = (idList: number[], list: ResourceSpecModel[]) => {
@@ -488,7 +507,7 @@
 
   const handleBacthEnable = () => {
     runUpdateResourceSpec({
-      spec_ids: selectedList.value.map(item => item.spec_id),
+      spec_ids: selectedList.value.map((item) => item.spec_id),
       enable: true,
     });
   };
@@ -499,13 +518,15 @@
       title: t('确认删除以下规格'),
       content: () => (
         <>
-          {list.map(item => <p>{item.spec_name}</p>)}
+          {list.map((item) => (
+            <p>{item.spec_name}</p>
+          ))}
         </>
       ),
       onConfirm: async () => {
         try {
           await batchDeleteResourceSpec({
-            spec_ids: isBatch ? selectedList.value.map(item => item.spec_id) : list.map(item => item.spec_id),
+            spec_ids: isBatch ? selectedList.value.map((item) => item.spec_id) : list.map((item) => item.spec_id),
           });
           messageSuccess(t('删除成功'));
           fetchData();

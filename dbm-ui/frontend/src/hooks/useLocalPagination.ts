@@ -19,10 +19,10 @@ import { useDebouncedRef } from './useDebouncedRef';
 
 export function useLocalPagination<T>(originalData: Ref<Array<T>>, callback: (rule: RegExp, data: T) => boolean) {
   const pagination = reactive({
+    align: 'right',
     count: 0,
     current: 1,
     limit: 10,
-    align: 'right',
   });
 
   const searchKey = useDebouncedRef('');
@@ -70,11 +70,11 @@ export function useLocalPagination<T>(originalData: Ref<Array<T>>, callback: (ru
 
   return {
     data,
-    searchKey,
-    serachList,
-    isShowPagination,
-    pagination,
     handlePaginationCurrentChange,
     handlePaginationLimitChange,
+    isShowPagination,
+    pagination,
+    searchKey,
+    serachList,
   };
 }

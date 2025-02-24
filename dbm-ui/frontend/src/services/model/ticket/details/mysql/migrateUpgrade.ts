@@ -31,17 +31,17 @@ export interface MigrateUpgrade extends DetailBase {
     };
     pkg_id: number;
     read_only_slaves: {
-      old_slave: {
-        bk_biz_id: number;
-        bk_host_id: number;
-        ip: string;
-        bk_cloud_id: number;
-      };
       new_slave: {
         bk_biz_id: number;
+        bk_cloud_id: number;
         bk_host_id: number;
         ip: string;
+      };
+      old_slave: {
+        bk_biz_id: number;
         bk_cloud_id: number;
+        bk_host_id: number;
+        ip: string;
       };
     }[];
     resource_spec: {

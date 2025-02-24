@@ -19,10 +19,10 @@ import { random } from '@utils';
 
 // spider 迁移主从
 export async function generateSpiderMasterSlaveCloneCloneData(ticketData: TicketModel<TendbCluster.MigrateCluster>) {
-  const { infos, backup_source: backupSource } = ticketData.details;
+  const { backup_source: backupSource, infos } = ticketData.details;
   const masterMachineResult = await getTendbclusterMachineList({
-    ip: infos.map((item) => item.old_master.ip).join(','),
     instance_role: 'remote_master',
+    ip: infos.map((item) => item.old_master.ip).join(','),
   });
   const masterMachineMap = masterMachineResult.results.reduce<Record<string, TendbclusterMachineModel>>((obj, item) => {
     Object.assign(obj, {
@@ -34,24 +34,24 @@ export async function generateSpiderMasterSlaveCloneCloneData(ticketData: Ticket
   const tableDataList = infos.map((item) => {
     const masterItem = masterMachineMap[item.old_master.ip];
     return {
-      rowKey: random(),
-      isLoading: false,
       clusterData: {
-        ip: item.old_master.ip,
-        clusterId: item.cluster_id,
-        domain: masterItem.related_clusters[0].immute_domain,
         cloudId: masterItem.bk_cloud_id,
         cloudName: masterItem.bk_cloud_name,
+        clusterId: item.cluster_id,
+        domain: masterItem.related_clusters[0].immute_domain,
         hostId: item.old_master.bk_host_id,
+        ip: item.old_master.ip,
       },
+      isLoading: false,
       masterInstanceList: masterItem.related_instances,
       newHostList: [item.new_master.ip, item.new_slave.ip],
+      rowKey: random(),
     };
   });
 
   return Promise.resolve({
-    tableDataList,
     backupSource,
     remark: ticketData.remark,
+    tableDataList,
   });
 }

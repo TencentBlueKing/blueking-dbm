@@ -40,17 +40,17 @@
   import FileContent from './components/FileContent.vue';
 
   interface TabItem {
+    children: {
+      controllerId?: FunctionKeys;
+      label: string;
+      name: string;
+    }[];
     controller: {
-      moduleId: ExtractedControllerDataKeys;
       id?: FunctionKeys;
+      moduleId: ExtractedControllerDataKeys;
     };
     label: string;
     name: string;
-    children: {
-      label: string;
-      name: string;
-      controllerId?: FunctionKeys;
-    }[];
   }
 
   const { t } = useI18n();
@@ -58,11 +58,6 @@
 
   const tabs: TabItem[] = [
     {
-      controller: {
-        moduleId: 'mysql',
-      },
-      label: 'MySQL',
-      name: DBTypes.MYSQL,
       children: [
         {
           label: 'MySQL',
@@ -117,45 +112,45 @@
           name: 'tbinlogdumper',
         },
       ],
-    },
-    {
       controller: {
         moduleId: 'mysql',
       },
-      label: 'TenDBCluster',
-      name: DBTypes.TENDBCLUSTER,
+      label: 'MySQL',
+      name: DBTypes.MYSQL,
+    },
+    {
       children: [
         {
           label: 'TenDBCluster',
           name: DBTypes.TENDBCLUSTER,
         },
       ],
+      controller: {
+        moduleId: 'mysql',
+      },
+      label: 'TenDBCluster',
+      name: DBTypes.TENDBCLUSTER,
     },
     {
-      controller: {
-        moduleId: 'redis',
-      },
-      label: 'Redis',
-      name: DBTypes.REDIS,
       children: [
         {
           label: 'Redis',
           name: DBTypes.REDIS,
         },
         {
+          controllerId: 'TwemproxyRedisInstance',
           label: 'TwemProxy',
           name: 'twemproxy',
-          controllerId: 'TwemproxyRedisInstance',
         },
         {
+          controllerId: 'PredixyTendisplusCluster',
           label: 'Tendisplus',
           name: 'tendisplus',
-          controllerId: 'PredixyTendisplusCluster',
         },
         {
+          controllerId: 'TwemproxyTendisSSDInstance',
           label: 'TendisSSD',
           name: 'tendisssd',
-          controllerId: 'TwemproxyTendisSSDInstance',
         },
         {
           label: 'Predixy',
@@ -182,14 +177,13 @@
           name: 'redis-modules',
         },
       ],
+      controller: {
+        moduleId: 'redis',
+      },
+      label: 'Redis',
+      name: DBTypes.REDIS,
     },
     {
-      controller: {
-        moduleId: 'bigdata',
-        id: 'es',
-      },
-      label: 'ES',
-      name: DBTypes.ES,
       children: [
         {
           label: 'ES',
@@ -200,14 +194,14 @@
           name: 'actuator',
         },
       ],
+      controller: {
+        id: 'es',
+        moduleId: 'bigdata',
+      },
+      label: 'ES',
+      name: DBTypes.ES,
     },
     {
-      controller: {
-        moduleId: 'bigdata',
-        id: 'kafka',
-      },
-      label: 'Kafka',
-      name: DBTypes.KAFKA,
       children: [
         {
           label: 'Kafka',
@@ -218,14 +212,14 @@
           name: 'actuator',
         },
       ],
+      controller: {
+        id: 'kafka',
+        moduleId: 'bigdata',
+      },
+      label: 'Kafka',
+      name: DBTypes.KAFKA,
     },
     {
-      controller: {
-        moduleId: 'bigdata',
-        id: 'hdfs',
-      },
-      label: 'HDFS',
-      name: DBTypes.HDFS,
       children: [
         {
           label: 'HDFS',
@@ -236,14 +230,14 @@
           name: 'actuator',
         },
       ],
+      controller: {
+        id: 'hdfs',
+        moduleId: 'bigdata',
+      },
+      label: 'HDFS',
+      name: DBTypes.HDFS,
     },
     {
-      controller: {
-        moduleId: 'bigdata',
-        id: 'pulsar',
-      },
-      label: 'Pulsar',
-      name: DBTypes.PULSAR,
       children: [
         {
           label: 'Plusar',
@@ -254,14 +248,14 @@
           name: 'actuator',
         },
       ],
+      controller: {
+        id: 'pulsar',
+        moduleId: 'bigdata',
+      },
+      label: 'Pulsar',
+      name: DBTypes.PULSAR,
     },
     {
-      controller: {
-        moduleId: 'bigdata',
-        id: 'influxdb',
-      },
-      label: 'InfluxDB',
-      name: DBTypes.INFLUXDB,
       children: [
         {
           label: 'InfluxDB',
@@ -272,14 +266,14 @@
           name: 'actuator',
         },
       ],
+      controller: {
+        id: 'influxdb',
+        moduleId: 'bigdata',
+      },
+      label: 'InfluxDB',
+      name: DBTypes.INFLUXDB,
     },
     {
-      controller: {
-        moduleId: 'bigdata',
-        id: 'riak',
-      },
-      label: 'Riak',
-      name: DBTypes.RIAK,
       children: [
         {
           label: 'Riak',
@@ -294,13 +288,14 @@
           name: 'riak-monitor',
         },
       ],
+      controller: {
+        id: 'riak',
+        moduleId: 'bigdata',
+      },
+      label: 'Riak',
+      name: DBTypes.RIAK,
     },
     {
-      controller: {
-        moduleId: 'mongodb',
-      },
-      label: 'MongoDB',
-      name: DBTypes.MONGODB,
       children: [
         {
           label: 'MongoDB',
@@ -323,13 +318,13 @@
           name: 'mongo-toolkit',
         },
       ],
+      controller: {
+        moduleId: 'mongodb',
+      },
+      label: 'MongoDB',
+      name: DBTypes.MONGODB,
     },
     {
-      controller: {
-        moduleId: 'sqlserver',
-      },
-      label: 'SQLServer',
-      name: DBTypes.SQLSERVER,
       children: [
         {
           label: 'SQLServer',
@@ -340,14 +335,13 @@
           name: 'actuator',
         },
       ],
+      controller: {
+        moduleId: 'sqlserver',
+      },
+      label: 'SQLServer',
+      name: DBTypes.SQLSERVER,
     },
     {
-      controller: {
-        moduleId: 'bigdata',
-        id: 'doris',
-      },
-      label: 'Doris',
-      name: DBTypes.DORIS,
       children: [
         {
           label: 'Doris',
@@ -358,11 +352,17 @@
           name: 'actuator',
         },
       ],
+      controller: {
+        id: 'doris',
+        moduleId: 'bigdata',
+      },
+      label: 'Doris',
+      name: DBTypes.DORIS,
     },
   ];
 
   const renderTabs = tabs.filter((item) => {
-    const { moduleId, id } = item.controller;
+    const { id, moduleId } = item.controller;
     const data = funControllerStore.funControllerData[moduleId];
     // 整个模块没有开启
     if (!data || data.is_enabled !== true) {
@@ -407,8 +407,8 @@
   useRequest(listPackageTypes, {
     defaultParams: [
       {
-        offset: 0,
         limit: -1,
+        offset: 0,
       },
     ],
     onSuccess(data) {

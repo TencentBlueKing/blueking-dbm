@@ -113,7 +113,6 @@
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
 
   useTicketCloneInfo({
-    type: TicketTypes.SQLSERVER_MASTER_FAIL_OVER,
     onSuccess(cloneData) {
       tableData.value = cloneData.map((item) =>
         createRowData({
@@ -121,6 +120,7 @@
         }),
       );
     },
+    type: TicketTypes.SQLSERVER_MASTER_FAIL_OVER,
   });
 
   // Master 批量选择
@@ -132,13 +132,13 @@
     instanceSelectValue.value = data;
     const newList = [] as IDataRow[];
     data[ClusterTypes.SQLSERVER_HA].forEach((proxyData) => {
-      const { bk_host_id, bk_cloud_id, instance_address: instanceAddress } = proxyData;
+      const { bk_cloud_id, bk_host_id, instance_address: instanceAddress } = proxyData;
       const [ip] = instanceAddress.split(':');
       newList.push(
         createRowData({
           masterData: {
-            bk_host_id,
             bk_cloud_id,
+            bk_host_id,
             ip,
           },
         }),
@@ -169,12 +169,12 @@
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
       .then((data) =>
         createTicket({
-          ticket_type: TicketTypes.SQLSERVER_MASTER_FAIL_OVER,
-          remark: '',
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           details: {
             infos: data,
           },
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          remark: '',
+          ticket_type: TicketTypes.SQLSERVER_MASTER_FAIL_OVER,
         }).then((data) => {
           window.changeConfirm = false;
 

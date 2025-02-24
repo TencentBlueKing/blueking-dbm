@@ -63,17 +63,15 @@
   import { nameRegx } from '@common/regex';
 
   interface Props {
-    moduleAliasName: string;
     appName: string;
+    moduleAliasName: string;
   }
 
-  interface Emits {
-    (e: 'change', value: string[]): void;
-  }
+  type Emits = (e: 'change', value: string[]) => void;
 
   withDefaults(defineProps<Props>(), {
-    moduleAliasName: '',
     appName: '',
+    moduleAliasName: '',
   });
   const emits = defineEmits<Emits>();
 

@@ -40,11 +40,11 @@
 </template>
 <script setup lang="ts">
   interface Props {
-    disabled: boolean;
     data: {
       operationBtnTipStatusText: string;
       operationTicketId: number;
     };
+    disabled: boolean;
   }
 
   defineProps<Props>();

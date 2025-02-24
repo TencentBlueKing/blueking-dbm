@@ -6,12 +6,12 @@ export default defineComponent({
   name: 'RenderColumnHead',
   props: {
     column: {
-      type: Object as () => IColumnContext,
       required: true,
+      type: Object as () => IColumnContext,
     },
     columnSizeConfig: {
-      type: Object as () => Record<string, { renderWidth: number }>,
       required: true,
+      type: Object as () => Record<string, { renderWidth: number }>,
     },
   },
   setup(props) {

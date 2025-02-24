@@ -52,8 +52,8 @@ export default class RedisMachine {
     this.spec_id = payload.spec_id;
   }
 
-  get isSlaveFailover() {
-    return this.instance_role === 'redis_slave' && this.related_instances.some((item) => item.status === 'unavailable');
+  get isMaster() {
+    return this.instance_role === 'redis_master';
   }
 
   get isMasterFailover() {
@@ -62,8 +62,8 @@ export default class RedisMachine {
     );
   }
 
-  get isMaster() {
-    return this.instance_role === 'redis_master';
+  get isSlaveFailover() {
+    return this.instance_role === 'redis_slave' && this.related_instances.some((item) => item.status === 'unavailable');
   }
 
   get isUnvailable() {

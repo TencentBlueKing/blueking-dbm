@@ -65,8 +65,8 @@
             action: 'APPROVE',
             operations: [
               {
-                todo_id: props.todoData.id,
                 params: approveFormMode,
+                todo_id: props.todoData.id,
               },
             ],
           });

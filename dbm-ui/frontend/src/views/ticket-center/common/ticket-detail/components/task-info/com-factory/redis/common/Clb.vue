@@ -32,13 +32,13 @@
 
   const columns = [
     {
-      label: t('集群'),
       field: 'clusterName',
+      label: t('集群'),
       showOverflowTooltip: true,
     },
     {
-      label: t('架构版本'),
       field: 'clusterTypeName',
+      label: t('架构版本'),
       showOverflowTooltip: true,
     },
   ];

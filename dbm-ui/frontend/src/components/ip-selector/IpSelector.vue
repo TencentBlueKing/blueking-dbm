@@ -133,10 +133,10 @@
 
   /** IP 选择器返回结果 */
   export type IPSelectorResult = {
+    dbm_whitelist: any[];
     dynamic_group_list: any[];
     host_list: Array<HostInfo>;
     node_list: any[];
-    dbm_whitelist: any[];
   };
 
   type IPSelectorResultKey = keyof IPSelectorResult;
@@ -144,22 +144,22 @@
   interface Props {
     bizId: number | string;
     buttonText?: string;
-    searchPlaceholder?: string;
-    tableProps?: TablePropTypes;
-    data?: HostInfo[];
-    title?: string;
-    showView?: boolean;
-    required?: boolean;
-    isCloudAreaRestrictions?: boolean;
     cloudInfo?: { id?: number | string; name?: string };
+    data?: HostInfo[];
     disableDialogSubmitMethod?: (hostList: Array<any>) => string | boolean;
     disableHostMethod?: (...args: any) => string | boolean;
-    onlyAliveHost?: boolean;
-    serviceMode?: 'all' | 'idle_only';
-    panelList?: Array<'staticTopo' | 'manualInput' | 'dbmWhitelist'>;
     disableTips?: string;
-    singleHostSelect?: boolean;
+    isCloudAreaRestrictions?: boolean;
+    onlyAliveHost?: boolean;
     osTypes?: OSTypes[];
+    panelList?: Array<'staticTopo' | 'manualInput' | 'dbmWhitelist'>;
+    required?: boolean;
+    searchPlaceholder?: string;
+    serviceMode?: 'all' | 'idle_only';
+    showView?: boolean;
+    singleHostSelect?: boolean;
+    tableProps?: TablePropTypes;
+    title?: string;
   }
 
   interface Emits {
@@ -171,22 +171,22 @@
 <script setup lang="tsx">
   const props = withDefaults(defineProps<Props>(), {
     buttonText: t('添加服务器'),
-    searchPlaceholder: '',
-    tableProps: () => ({} as TablePropTypes),
-    data: () => [],
-    title: t('静态拓扑'),
-    showView: true,
-    required: false,
-    isCloudAreaRestrictions: true,
     cloudInfo: () => ({}),
+    data: () => [],
     disableDialogSubmitMethod: () => false,
     disableHostMethod: () => false,
-    onlyAliveHost: true,
-    serviceMode: 'idle_only',
-    panelList: () => ['staticTopo', 'manualInput'],
     disableTips: '',
+    isCloudAreaRestrictions: true,
+    onlyAliveHost: true,
+    osTypes: () => [],
+    panelList: () => ['staticTopo', 'manualInput'],
+    required: false,
+    searchPlaceholder: '',
+    serviceMode: 'idle_only',
+    showView: true,
     singleHostSelect: false,
-    osTypes: () => []
+    tableProps: () => ({}) as TablePropTypes,
+    title: t('静态拓扑'),
   });
   const emits = defineEmits<Emits>();
 
@@ -202,21 +202,21 @@
     return t('已过滤出管控区域xx可选的主机', { name: props.cloudInfo.name });
   });
   const selectorState = reactive({
-    selected: {
-      dynamic_group_list: [],
-      host_list: [],
-      node_list: [],
-      dbm_whitelist: [],
-    } as IPSelectorResult,
     cacheSelected: {
+      dbm_whitelist: [],
       dynamic_group_list: [],
       host_list: [],
       node_list: [],
-      dbm_whitelist: [],
     } as IPSelectorResult,
     isLoading: false,
-    tableData: [] as any[],
     search: '',
+    selected: {
+      dbm_whitelist: [],
+      dynamic_group_list: [],
+      host_list: [],
+      node_list: [],
+    } as IPSelectorResult,
+    tableData: [] as any[],
   });
   // ip 选择器预览表格 props
   const previewTableProps = computed(() => {
@@ -229,17 +229,19 @@
 
   const dbCollapseTableTableData = computed(() => ({
     ...previewTableProps.value,
-    pagination: previewTableProps.value.pagination ? {
-      ...previewTableProps.value.pagination as Exclude<TablePropTypes['pagination'], boolean>,
-      count: renderData.value.length,
-    } : previewTableProps.value.pagination,
     data: renderData.value,
+    pagination: previewTableProps.value.pagination
+      ? {
+          ...(previewTableProps.value.pagination as Exclude<TablePropTypes['pagination'], boolean>),
+          count: renderData.value.length,
+        }
+      : previewTableProps.value.pagination,
   })) as unknown as TablePropTypes;
 
   const buttonTips = computed(() => {
     const tips = {
-      disabled: true,
       content: '',
+      disabled: true,
     };
 
     if (props.disableTips) {
@@ -268,8 +270,8 @@
     const info = {
       disabled: false,
       tooltips: {
-        disabled: true,
         content: '',
+        disabled: true,
       },
     };
 
@@ -294,13 +296,13 @@
       return t('Agent异常无法使用');
     }
     if (props.osTypes.length > 0 && !props.osTypes.includes(Number(data.os_type))) {
-      return t('xx机器无法使用', [OSTypes[Number(data.os_type)]])
+      return t('xx机器无法使用', [OSTypes[Number(data.os_type)]]);
     }
     return props.disableHostMethod(data, selected);
   };
 
   // ip 选择器 scope 参数
-  const scope = computed<{ scope_id: number, scope_type: string, bk_cloud_id?: number}>(() => {
+  const scope = computed<{ bk_cloud_id?: number; scope_id: number; scope_type: string }>(() => {
     const params = {
       scope_id: props.bizId as number,
       scope_type: 'biz',
@@ -314,11 +316,14 @@
   });
   // 设置 ip 选择器接口参数
   const services = {
-    fetchTopologyHostCount: (node: any) => getHostTopo({
-      mode: props.serviceMode,
-      all_scope: true,
-      scope_list: [scope.value],
-    }),
+    fetchDBMWhitelist: (params: any) => getWhitelist({ bk_biz_id: props.bizId, ...params }).then((res) => res.results),
+    fetchHostCheck: (params: any) =>
+      checkHost({
+        bk_cloud_id: props.cloudInfo?.id,
+        mode: props.serviceMode,
+        scope_list: [scope.value],
+        ...params,
+      }),
     fetchHostsDetails: (params: any) => {
       const firstHost = params.host_list[0];
       return getHostDetails({
@@ -327,30 +332,31 @@
         ...params,
       });
     },
-    fetchHostCheck: (params: any) => checkHost({
-      mode: props.serviceMode,
-      scope_list: [scope.value],
-      bk_cloud_id: props.cloudInfo?.id,
-      ...params,
-    }),
-    fetchTopologyHostsNodes: (params: any) => getHosts({
-      mode: props.serviceMode,
-      bk_cloud_id: props.cloudInfo?.id,
-      ...params,
-    }),
-    fetchDBMWhitelist: (params: any) => getWhitelist({ bk_biz_id: props.bizId, ...params }).then(res => res.results),
+    fetchTopologyHostCount: (node: any) =>
+      getHostTopo({
+        all_scope: true,
+        mode: props.serviceMode,
+        scope_list: [scope.value],
+      }),
+    fetchTopologyHostsNodes: (params: any) =>
+      getHosts({
+        bk_cloud_id: props.cloudInfo?.id,
+        mode: props.serviceMode,
+        ...params,
+      }),
   };
   // 显示自定义预览选中数据
-  const showPreview = computed(() => (
-    props.showView
-    && (selectorState.selected.host_list.length > 0 || selectorState.selected?.dbm_whitelist?.length > 0)
-  ));
+  const showPreview = computed(
+    () =>
+      props.showView &&
+      (selectorState.selected.host_list.length > 0 || selectorState.selected?.dbm_whitelist?.length > 0),
+  );
   // 过滤表格数据
   const renderData = computed(() => {
     if (selectorState.search) {
-      return selectorState.tableData.filter((item: any) => (
-        item.ip.includes(selectorState.search) || item.ipv6.includes(selectorState.search)
-      ));
+      return selectorState.tableData.filter(
+        (item: any) => item.ip.includes(selectorState.search) || item.ipv6.includes(selectorState.search),
+      );
     }
     return selectorState.tableData;
   });
@@ -384,22 +390,27 @@
         const abnormalIps = abnormalHosts.map((item: any) => item.ip);
         copy(abnormalIps);
       },
-    }];
+    },
+  ];
 
   // 处理选中列表中添加额外的数据操作
-  watch(() => props.data, (data) => {
-    const cloneData = _.cloneDeep(data);
-    selectorState.selected.host_list = [...cloneData];
-    selectorState.cacheSelected.host_list = [...cloneData];
-    selectorState.tableData = [...cloneData];
-  }, {
-    immediate: true,
-    deep: true,
-  });
+  watch(
+    () => props.data,
+    (data) => {
+      const cloneData = _.cloneDeep(data);
+      selectorState.selected.host_list = [...cloneData];
+      selectorState.cacheSelected.host_list = [...cloneData];
+      selectorState.tableData = [...cloneData];
+    },
+    {
+      deep: true,
+      immediate: true,
+    },
+  );
 
   const copy = (list: string[]) => {
-    execCopy(list.join('\n'), t('复制成功，共n条', { n: list.length }))
-  }
+    execCopy(list.join('\n'), t('复制成功，共n条', { n: list.length }));
+  };
 
   /**
    * ip 选择器预览表默认配置
@@ -407,91 +418,91 @@
   function initTableProps() {
     const columns = [
       {
-        label: 'IP',
         field: 'ip',
+        label: 'IP',
       },
       {
-        label: t('管控区域'),
         field: 'cloud_area',
-        render: ({data}: {data: HostInfo}) => data.cloud_area.name || '--',
+        label: t('管控区域'),
+        render: ({ data }: { data: HostInfo }) => data.cloud_area.name || '--',
       },
       {
-        label: t('Agent状态'),
         field: 'alive',
-        render: ({data}: {data: HostInfo}) => {
-          const info = data.alive === 1 ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
+        label: t('Agent状态'),
+        render: ({ data }: { data: HostInfo }) => {
+          const info = data.alive === 1 ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };
           return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
         },
       },
       {
-        label: t('主机名称'),
         field: 'host_name',
-        render: ({data}: {data: HostInfo}) => data.host_name || '--',
+        label: t('主机名称'),
+        render: ({ data }: { data: HostInfo }) => data.host_name || '--',
       },
       {
-        label: t('OS名称'),
         field: 'os_name',
-        render: ({data}: {data: HostInfo}) => data.os_name || '--',
+        label: t('OS名称'),
+        render: ({ data }: { data: HostInfo }) => data.os_name || '--',
       },
       {
-        label: t('所属云厂商'),
         field: 'cloud_vendor',
-        render: ({data}: {data: HostInfo}) => data.cloud_vendor || '--',
+        label: t('所属云厂商'),
+        render: ({ data }: { data: HostInfo }) => data.cloud_vendor || '--',
       },
       {
-        label: t('OS类型'),
         field: 'os_type',
-        render: ({data}: {data: HostInfo}) => data.os_type || '--',
+        label: t('OS类型'),
+        render: ({ data }: { data: HostInfo }) => data.os_type || '--',
       },
       {
-        label: t('主机ID'),
         field: 'host_id',
-        render: ({data}: {data: HostInfo}) => data.host_id || '--',
+        label: t('主机ID'),
+        render: ({ data }: { data: HostInfo }) => data.host_id || '--',
       },
       {
-        label: 'Agent ID',
         field: 'agent_id',
-        render: ({data}: {data: HostInfo}) => data.agent_id || '--',
+        label: 'Agent ID',
+        render: ({ data }: { data: HostInfo }) => data.agent_id || '--',
       },
       {
-        label: 'IPv6',
         field: 'ipv6',
-        render: ({data}: {data: HostInfo}) => data.ipv6 || '--',
+        label: 'IPv6',
+        render: ({ data }: { data: HostInfo }) => data.ipv6 || '--',
       },
       {
-        label: t('操作'),
         field: 'operation',
-        width: 100,
-        render: ({ index }: {index: number}) => (
+        label: t('操作'),
+        render: ({ index }: { index: number }) => (
           <bk-button
+            theme='primary'
             text
-            theme="primary"
             onClick={() => handleRemoveSelected(index)}>
-            { t('删除') }
+            {t('删除')}
           </bk-button>
         ),
+        width: 100,
       },
     ];
     const checked = ['ip', 'host_name', 'alive', 'operation'];
     const disabledKeys = ['ip', 'operation'];
     return {
-      maxHeight: 474,
       columns,
-      settings: {
-        fields: columns.map(item => ({
-          label: item.label,
-          field: item.field,
-          disabled: disabledKeys.includes(item.field),
-        })),
-        checked,
-      },
+      maxHeight: 474,
       pagination: {
+        align: 'right',
         count: 0,
         current: 1,
+        layout: ['total', 'limit', 'list'],
         limit: 10,
         limitList: [10, 20, 50, 100],
-        align: 'right',
-        layout: ['total', 'limit', 'list'],
+      },
+      settings: {
+        checked,
+        fields: columns.map((item) => ({
+          disabled: disabledKeys.includes(item.field),
+          field: item.field,
+          label: item.label,
+        })),
       },
     };
   }
@@ -529,8 +540,7 @@
     const firstHost = selectorState.selected.host_list[0];
 
     const params = {
-      mode: props.serviceMode,
-      host_list: selectorState.selected.host_list.map(item => ({
+      host_list: selectorState.selected.host_list.map((item) => ({
         host_id: item.host_id,
         meta: {
           bk_biz_id: props.bizId as number,
@@ -538,6 +548,7 @@
           scope_type: 'biz',
         },
       })),
+      mode: props.serviceMode,
       scope_list: firstHost.meta ? [firstHost.meta] : [],
     };
     selectorState.isLoading = true;

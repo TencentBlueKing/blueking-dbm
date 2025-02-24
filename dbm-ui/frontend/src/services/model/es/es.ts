@@ -24,32 +24,32 @@ import ClusterBase from '../_clusterBase';
 const STATUS_ABNORMAL = 'abnormal';
 
 export default class Es extends ClusterBase {
+  static ES_DESTROY = 'ES_DESTROY';
+  static ES_DISABLE = 'ES_DISABLE';
+  static ES_ENABLE = 'ES_ENABLE';
+  static ES_REBOOT = 'ES_REBOOT';
+  static ES_REPLACE = 'ES_REPLACE';
   static ES_SCALE_UP = 'ES_SCALE_UP';
   static ES_SHRINK = 'ES_SHRINK';
-  static ES_REPLACE = 'ES_REPLACE';
-  static ES_ENABLE = 'ES_ENABLE';
-  static ES_DISABLE = 'ES_DISABLE';
-  static ES_DESTROY = 'ES_DESTROY';
-  static ES_REBOOT = 'ES_REBOOT';
 
   static operationIconMap = {
+    [Es.ES_DESTROY]: t('删除中'),
+    [Es.ES_DISABLE]: t('禁用中'),
+    [Es.ES_ENABLE]: t('启用中'),
+    [Es.ES_REBOOT]: t('重启中'),
+    [Es.ES_REPLACE]: t('替换中'),
     [Es.ES_SCALE_UP]: t('扩容中'),
     [Es.ES_SHRINK]: t('缩容中'),
-    [Es.ES_REPLACE]: t('替换中'),
-    [Es.ES_ENABLE]: t('启用中'),
-    [Es.ES_DISABLE]: t('禁用中'),
-    [Es.ES_DESTROY]: t('删除中'),
-    [Es.ES_REBOOT]: t('重启中'),
   };
 
   static operationTextMap = {
+    [Es.ES_DESTROY]: t('删除任务进行中'),
+    [Es.ES_DISABLE]: t('禁用任务进行中'),
+    [Es.ES_ENABLE]: t('启用任务进行中'),
+    [Es.ES_REBOOT]: t('实例重启任务进行中'),
+    [Es.ES_REPLACE]: t('替换任务进行中'),
     [Es.ES_SCALE_UP]: t('扩容任务进行中'),
     [Es.ES_SHRINK]: t('缩容任务进行中'),
-    [Es.ES_REPLACE]: t('替换任务进行中'),
-    [Es.ES_ENABLE]: t('启用任务进行中'),
-    [Es.ES_DISABLE]: t('禁用任务进行中'),
-    [Es.ES_DESTROY]: t('删除任务进行中'),
-    [Es.ES_REBOOT]: t('实例重启任务进行中'),
   };
 
   access_url: string;
@@ -157,42 +157,18 @@ export default class Es extends ClusterBase {
     );
   }
 
-  get runningOperation() {
-    const operateTicketTypes = Object.keys(Es.operationTextMap);
-    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+  get disasterToleranceLevelName() {
+    return ClusterAffinityMap[this.disaster_tolerance_level];
   }
 
-  // 操作中的状态
-  get operationRunningStatus() {
-    if (this.operations.length < 1) {
-      return '';
-    }
-    const operation = this.runningOperation;
-    if (!operation) {
-      return '';
-    }
-    return operation.ticket_type;
+  get isStarting() {
+    return Boolean(this.operations.find((item) => item.ticket_type === Es.ES_ENABLE));
   }
-  // 操作中的状态描述文本
-  get operationStatusText() {
-    return Es.operationTextMap[this.operationRunningStatus];
+  get masterDomainDisplayName() {
+    const { port } = this.es_master[0];
+    const displayName = port ? `${this.domain}:${port}` : this.domain;
+    return displayName;
   }
-  // 操作中的状态 icon
-  get operationStatusIcon() {
-    return Es.operationIconMap[this.operationRunningStatus];
-  }
-  // 操作中的单据 ID
-  get operationTicketId() {
-    if (this.operations.length < 1) {
-      return 0;
-    }
-    const operation = this.runningOperation;
-    if (!operation) {
-      return 0;
-    }
-    return operation.ticket_id;
-  }
-
   get operationDisabled() {
     // 集群异常不支持操作
     if (this.status === STATUS_ABNORMAL) {
@@ -208,35 +184,59 @@ export default class Es extends ClusterBase {
     }
     return false;
   }
-
-  get isStarting() {
-    return Boolean(this.operations.find((item) => item.ticket_type === Es.ES_ENABLE));
+  // 操作中的状态
+  get operationRunningStatus() {
+    if (this.operations.length < 1) {
+      return '';
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return '';
+    }
+    return operation.ticket_type;
   }
 
-  get masterDomainDisplayName() {
-    const { port } = this.es_master[0];
-    const displayName = port ? `${this.domain}:${port}` : this.domain;
-    return displayName;
+  // 操作中的状态 icon
+  get operationStatusIcon() {
+    return Es.operationIconMap[this.operationRunningStatus];
+  }
+
+  // 操作中的状态描述文本
+  get operationStatusText() {
+    return Es.operationTextMap[this.operationRunningStatus];
   }
 
   get operationTagTips() {
     return this.operations.map((item) => ({
       icon: Es.operationIconMap[item.ticket_type],
-      tip: Es.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,
+      tip: Es.operationTextMap[item.ticket_type],
     }));
   }
 
-  get disasterToleranceLevelName() {
-    return ClusterAffinityMap[this.disaster_tolerance_level];
+  // 操作中的单据 ID
+  get operationTicketId() {
+    if (this.operations.length < 1) {
+      return 0;
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return 0;
+    }
+    return operation.ticket_id;
   }
 
   get roleFailedInstanceInfo() {
     return {
-      Master: ClusterBase.getRoleFaildInstanceList(this.es_master),
       Client: ClusterBase.getRoleFaildInstanceList(this.es_client),
-      [t('热节点')]: ClusterBase.getRoleFaildInstanceList(this.es_datanode_hot),
+      Master: ClusterBase.getRoleFaildInstanceList(this.es_master),
       [t('冷节点')]: ClusterBase.getRoleFaildInstanceList(this.es_datanode_cold),
+      [t('热节点')]: ClusterBase.getRoleFaildInstanceList(this.es_datanode_hot),
     };
+  }
+
+  get runningOperation() {
+    const operateTicketTypes = Object.keys(Es.operationTextMap);
+    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
   }
 }

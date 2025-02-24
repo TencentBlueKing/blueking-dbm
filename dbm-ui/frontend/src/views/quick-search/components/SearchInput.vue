@@ -75,9 +75,7 @@
   import SearchHistory from '@components/system-search/components/SearchHistory.vue';
   import useKeyboard from '@components/system-search/hooks/useKeyboard';
 
-  interface Emits {
-    (e: 'search', value: string): void;
-  }
+  type Emits = (e: 'search', value: string) => void;
 
   const emits = defineEmits<Emits>();
   const modelValue = defineModel<string>({
@@ -167,6 +165,7 @@
   // 关闭弹层
   const handleOutClick = (event: MouseEvent) => {
     const eventPath = event.composedPath();
+    // esline-disable-next-lines @typescript-eslint/prefer-for-of
     for (let i = 0; i < eventPath.length; i++) {
       const target = eventPath[i] as HTMLElement;
       if (target.parentElement) {
@@ -183,23 +182,23 @@
 
   onMounted(() => {
     tippyIns = tippy(rootRef.value as SingleTarget, {
-      content: popRef.value,
-      placement: 'bottom-start',
       appendTo: () => document.body,
-      theme: 'light system-search-popover-theme',
-      maxWidth: 'none',
-      trigger: 'manual',
-      interactive: true,
       arrow: false,
-      offset: [0, 8],
-      zIndex: 999,
+      content: popRef.value,
       hideOnClick: false,
+      interactive: true,
+      maxWidth: 'none',
+      offset: [0, 8],
       onHidden() {
         isPopMenuShow.value = false;
       },
       onShow() {
         isPopMenuShow.value = true;
       },
+      placement: 'bottom-start',
+      theme: 'light system-search-popover-theme',
+      trigger: 'manual',
+      zIndex: 999,
     });
     document.body.addEventListener('click', handleOutClick);
   });

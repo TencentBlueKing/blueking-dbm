@@ -27,9 +27,9 @@
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
   export interface SourceIp {
-    ip: string;
-    bk_host_id?: number;
     bk_biz_id?: number;
+    bk_host_id?: number;
+    ip: string;
   }
 
   interface Exposes {
@@ -46,8 +46,8 @@
   const bizId = window.PROJECT_CONFIG.BIZ_ID;
   const rules = [
     {
-      trigger: 'change',
       message: t('请添加访问源'),
+      trigger: 'change',
       validator: (value: string[]) => value.length > 0,
     },
   ];
@@ -55,9 +55,9 @@
   const handleChangeIP = (data: HostInfo[]) => {
     selected.value = data;
     sourceIps.value = data.map((item) => ({
-      ip: item.ip,
-      bk_host_id: item.host_id,
       bk_biz_id: item.biz.id,
+      bk_host_id: item.host_id,
+      ip: item.ip,
     }));
   };
 

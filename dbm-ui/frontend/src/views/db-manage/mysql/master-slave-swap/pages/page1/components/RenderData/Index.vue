@@ -53,9 +53,7 @@
 
   import BatchOperateIcon from '@views/db-manage/common/batch-operate-icon/Index.vue';
 
-  interface Emits {
-    (e: 'showMasterBatchSelector'): void;
-  }
+  type Emits = (e: 'showMasterBatchSelector') => void;
 
   const emits = defineEmits<Emits>();
 

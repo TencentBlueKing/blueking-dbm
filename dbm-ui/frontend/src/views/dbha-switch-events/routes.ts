@@ -18,25 +18,25 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
-    name: 'DBHASwitchEvents',
-    path: 'dbha-switch-events',
-    meta: {
-      navName: t('DBHA切换事件'),
-    },
-    redirect: {
-      name: 'DBMASwitchEventsList',
-    },
-    component: () => import('@views/dbha-switch-events/Index.vue'),
     children: [
       {
-        name: 'DBMASwitchEventsList',
-        path: 'list',
+        component: () => import('@views/dbha-switch-events/list/Index.vue'),
         meta: {
           navName: t('DBHA切换事件'),
         },
-        component: () => import('@views/dbha-switch-events/list/Index.vue'),
+        name: 'DBMASwitchEventsList',
+        path: 'list',
       },
     ],
+    component: () => import('@views/dbha-switch-events/Index.vue'),
+    meta: {
+      navName: t('DBHA切换事件'),
+    },
+    name: 'DBHASwitchEvents',
+    path: 'dbha-switch-events',
+    redirect: {
+      name: 'DBMASwitchEventsList',
+    },
   },
 ];
 

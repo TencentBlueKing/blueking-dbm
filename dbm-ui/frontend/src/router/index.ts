@@ -13,6 +13,8 @@
 import _ from 'lodash';
 import { createRouter, createWebHistory, type Router, type RouteRecordRaw } from 'vue-router';
 
+import { connectToMain, rootPath } from '@blueking/sub-saas';
+
 import { useGlobalBizs } from '@stores';
 
 import BizPermission from '@views/BizPermission.vue';
@@ -41,8 +43,6 @@ import getVersionFilesRoutes from '@views/version-files/routes';
 import getWhitelistRoutes from '@views/whitelist/routes';
 
 import { checkDbConsole } from '@utils';
-
-import { connectToMain, rootPath } from '@blueking/sub-saas';
 
 let appRouter: Router;
 
@@ -95,7 +95,7 @@ export default () => {
 
   let bizPermission = false;
   const bizInfo = _.find(bizList, (item) => item.bk_biz_id === Number(currentBiz));
-  if (bizInfo && bizInfo.permission.db_manage) {
+  if (bizInfo?.permission.db_manage) {
     bizPermission = true;
   }
 
@@ -105,11 +105,6 @@ export default () => {
 
   const routes = [
     {
-      path: rootPath,
-      name: 'index',
-      redirect: {
-        name: checkDbConsole('personalWorkbench.serviceApply') ? 'MyTodos' : 'DatabaseTendbha',
-      },
       children: [
         ...getResourceManageRoutes(),
         ...getVersionFilesRoutes(),
@@ -120,9 +115,13 @@ export default () => {
         ...getDutyRuleManageRoutes(),
         ...moduleList,
       ],
+      name: 'index',
+      path: rootPath,
+      redirect: {
+        name: checkDbConsole('personalWorkbench.serviceApply') ? 'MyTodos' : 'DatabaseTendbha',
+      },
     },
     {
-      path: `${rootPath}${currentBiz}`,
       children: [
         ...getDbManageRoutes(),
         ...getDbConfRoutes(),
@@ -140,11 +139,12 @@ export default () => {
         ...businessModuleList,
         ...getTicketNoticeRoutes(),
       ],
+      path: `${rootPath}${currentBiz}`,
     },
     {
-      path: '/:pathMatch(.*)*',
-      name: '404',
       component: () => import('@views/404.vue'),
+      name: '404',
+      path: '/:pathMatch(.*)*',
     },
   ];
 

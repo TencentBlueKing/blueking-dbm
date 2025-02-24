@@ -74,19 +74,31 @@
   import RenderDeployPlan, { type ExposeValue } from './RenderDeployPlan.vue';
 
   export interface IDataRow {
-    rowKey: string;
-    isLoading: boolean;
-    srcCluster: string;
-    clusterId: number;
     bkCloudId: number;
-    switchMode: string;
+    clusterId: number;
     clusterType: string;
-    currentShardNum: number;
-    groupNum: number;
-    currentSpecId: number;
     clusterTypeName: string;
+    currentCapacity?: {
+      total: number;
+      used: number;
+    };
+    currentSepc?: string;
+    currentShardNum: number;
+    currentSpecId: number;
     dbVersion: string;
+    deployPlan?: {
+      capacity: number;
+      qps: number;
+      shardNum: number;
+    };
     disasterToleranceLevel: string;
+    groupNum: number;
+    isLoading: boolean;
+    proxy: {
+      count: number;
+      id: number;
+    };
+    rowKey: string;
     specConfig: {
       cpu: {
         max: number;
@@ -102,63 +114,53 @@
         min: number;
       };
     };
-    proxy: {
-      id: number;
-      count: number;
-    };
-    currentSepc?: string;
-    currentCapacity?: {
-      used: number;
-      total: number;
-    };
-    deployPlan?: {
-      capacity: number;
-      qps: number;
-      shardNum: number;
-    };
+    srcCluster: string;
+    switchMode: string;
     targetShardNum?: number;
   }
 
   export type IDataRowBatchKey = keyof Pick<IDataRow, 'dbVersion' | 'switchMode'>;
 
   export interface InfoItem {
-    src_cluster: number;
+    capacity: number;
+    cluster_shard_num: number;
     current_shard_num: number;
     current_spec_id: number;
-    cluster_shard_num: number;
     db_version: string;
-    online_switch_type: 'user_confirm';
-    capacity: number;
     future_capacity: number;
+    online_switch_type: 'user_confirm';
     resource_spec: {
-      proxy: {
-        spec_id: number;
-        count: number;
-        affinity: AffinityType;
-      };
       backend_group: {
-        spec_id: number;
-        count: number; // 机器组数
         affinity: AffinityType;
+        count: number; // 机器组数
+        spec_id: number;
+      };
+      proxy: {
+        affinity: AffinityType;
+        count: number;
+        spec_id: number;
       };
     };
+    src_cluster: number;
   }
 
   // 创建表格数据
   export const createRowData = (): IDataRow => ({
-    rowKey: random(),
-    isLoading: false,
-    srcCluster: '',
-    clusterId: 0,
     bkCloudId: 0,
-    switchMode: '',
+    clusterId: 0,
     clusterType: '',
     clusterTypeName: '',
     currentShardNum: 0,
-    groupNum: 0,
     currentSpecId: 0,
     dbVersion: '',
     disasterToleranceLevel: '',
+    groupNum: 0,
+    isLoading: false,
+    proxy: {
+      count: 0,
+      id: 0,
+    },
+    rowKey: random(),
     specConfig: {
       cpu: {
         max: 0,
@@ -174,16 +176,14 @@
         min: 0,
       },
     },
-    proxy: {
-      id: 0,
-      count: 0,
-    },
+    srcCluster: '',
+    switchMode: '',
   });
 
   interface Props {
     data: IDataRow;
-    removeable: boolean;
     inputedClusters?: string[];
+    removeable: boolean;
   }
 
   interface Emits {
@@ -230,9 +230,9 @@
       const [version] = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
       emits('clone', {
         ...props.data,
-        rowKey: random(),
-        isLoading: false,
         dbVersion: version,
+        isLoading: false,
+        rowKey: random(),
       });
     });
   };
@@ -244,26 +244,26 @@
         (data: [string, ExposeValue]) => {
           const [version, deployData] = data;
           return {
-            src_cluster: props.data.clusterId,
+            capacity: deployData.capacity,
+            cluster_shard_num: deployData.target_shard_num,
             current_shard_num: props.data.currentShardNum,
             current_spec_id: props.data.currentSpecId,
-            cluster_shard_num: deployData.target_shard_num,
             db_version: version,
-            online_switch_type: 'user_confirm',
-            capacity: deployData.capacity,
             future_capacity: deployData.future_capacity,
+            online_switch_type: 'user_confirm',
             resource_spec: {
-              proxy: {
-                spec_id: props.data.proxy.id,
-                count: props.data.proxy.count,
-                affinity: props.data.disasterToleranceLevel || AffinityType.CROS_SUBZONE,
-              },
               backend_group: {
-                spec_id: deployData.spec_id,
-                count: deployData.count, // 机器组数
                 affinity: props.data.disasterToleranceLevel || AffinityType.CROS_SUBZONE, // 暂时固定 'CROS_SUBZONE',
+                count: deployData.count, // 机器组数
+                spec_id: deployData.spec_id,
+              },
+              proxy: {
+                affinity: props.data.disasterToleranceLevel || AffinityType.CROS_SUBZONE,
+                count: props.data.proxy.count,
+                spec_id: props.data.proxy.id,
               },
             },
+            src_cluster: props.data.clusterId,
           };
         },
       );

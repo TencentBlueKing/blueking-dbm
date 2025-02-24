@@ -107,8 +107,8 @@
 
   interface Props {
     ticketCloneData?: {
-      tableDataList: IDataRow[];
       formData: UnwrapRef<typeof formData>;
+      tableDataList: IDataRow[];
     };
   }
 
@@ -124,8 +124,8 @@
         name: t('目标从库'),
         tableConfig: {
           firsrColumn: {
-            label: t('Slave 实例'),
             field: 'instance_address',
+            label: t('Slave 实例'),
             role: 'remote_slave',
           },
         },
@@ -170,16 +170,16 @@
   };
 
   const generateRowDateFromRequest = (item: IValue) => ({
-    rowKey: random(),
     isLoading: false,
+    rowKey: random(),
     slave: {
       bkCloudId: item.bk_cloud_id,
       bkHostId: item.bk_host_id,
-      ip: item.ip,
-      port: item.port,
-      instanceAddress: item.instance_address,
       clusterId: item.cluster_id,
       domain: item.master_domain || '',
+      instanceAddress: item.instance_address,
+      ip: item.ip,
+      port: item.port,
     },
   });
 
@@ -224,11 +224,11 @@
     Object.assign(tableData.value[index].slave, {
       bkCloudId: instaneItem.bk_cloud_id,
       bkHostId: instaneItem.bk_host_id,
-      ip: instaneItem.ip,
-      port: instaneItem.port,
-      instanceAddress: instaneItem.instance_address,
       clusterId: instaneItem.cluster_id,
       domain: instaneItem.master_domain,
+      instanceAddress: instaneItem.instance_address,
+      ip: instaneItem.ip,
+      port: instaneItem.port,
     });
     instanceMemo[value] = true;
   };
@@ -270,8 +270,7 @@
       isSubmitting.value = true;
       await Promise.all(rowRefs.value.map((item) => item.getValue()));
       await createTicket({
-        ticket_type: TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE,
-        remark: formData.remark,
+        bk_biz_id: currentBizId,
         details: {
           backup_source: formData.backup_source,
           infos: tableData.value.map((tableItem) => {
@@ -288,7 +287,8 @@
             };
           }),
         },
-        bk_biz_id: currentBizId,
+        remark: formData.remark,
+        ticket_type: TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE,
       }).then((data) => {
         window.changeConfirm = false;
 

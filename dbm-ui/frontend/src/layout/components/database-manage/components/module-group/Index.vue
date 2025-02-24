@@ -24,18 +24,18 @@
   const props = defineProps<Props>();
 
   const comMap = {
+    doris: Doris,
     es: Es,
     hdfs: Hdfs,
     influxdb: Influxdb,
     kafka: Kafka,
+    mongodb: MongoDB,
     mysql: Mysql,
     pulsar: Pulsar,
     redis: Redis,
-    tendbCluster: TendbCluster,
     riak: Riak,
-    mongodb: MongoDB,
     sqlserver: SqlServer,
-    doris: Doris,
+    tendbCluster: TendbCluster,
   };
 
   const renderCom = computed(() => comMap[props.name as keyof typeof comMap]);

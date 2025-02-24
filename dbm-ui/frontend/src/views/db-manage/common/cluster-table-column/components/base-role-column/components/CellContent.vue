@@ -95,22 +95,22 @@
   import { execCopy, messageWarn } from '@utils';
 
   interface Props {
-    label: string;
-    data: ClusterListNode[];
-    hightlightKey?: string[];
-    title?: string;
     clusterData: {
       masterDomain: string;
     };
+    data: ClusterListNode[];
+    hightlightKey?: string[];
+    label: string;
+    title?: string;
   }
 
   const props = defineProps<Props>();
 
   defineSlots<{
     default: (params: { data: { ip: string; port: number; status: string } }) => VNode;
-    nodeTag: (params: { data: { ip: string; port: number; status: string } }) => VNode;
-    instanceListTitle: () => VNode;
     instanceList: () => VNode;
+    instanceListTitle: () => VNode;
+    nodeTag: (params: { data: { ip: string; port: number; status: string } }) => VNode;
   }>();
 
   const { t } = useI18n();

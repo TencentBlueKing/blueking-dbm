@@ -33,7 +33,7 @@
   import List from './components/List.vue';
 
   const instanceData = ref<{
-    instanceAddress: string;
     clusterId: number;
+    instanceAddress: string;
   }>();
 </script>

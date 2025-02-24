@@ -71,36 +71,36 @@
   import { random } from '@utils';
 
   export interface IDataRow {
-    rowKey: string;
-    isLoading: boolean;
-    srcCluster: string;
-    srcClusterTypeName: string;
-    srcClusterId: number;
-    targetClusterId: number;
-    includeKey: string[];
     excludeKey: string[];
+    includeKey: string[];
+    isLoading: boolean;
+    rowKey: string;
+    srcCluster: string;
+    srcClusterId: number;
+    srcClusterTypeName: string;
+    targetClusterId: number;
   }
 
   export type IDataRowBatchKey = keyof Pick<IDataRow, 'includeKey' | 'excludeKey'>;
 
   // 创建表格数据
   export const createRowData = (): IDataRow => ({
-    rowKey: random(),
-    isLoading: false,
-    srcCluster: '',
-    srcClusterTypeName: '',
-    srcClusterId: 0,
-    targetClusterId: 0,
-    includeKey: ['*'],
     excludeKey: [],
+    includeKey: ['*'],
+    isLoading: false,
+    rowKey: random(),
+    srcCluster: '',
+    srcClusterId: 0,
+    srcClusterTypeName: '',
+    targetClusterId: 0,
   });
 </script>
 <script setup lang="ts">
   interface Props {
-    data: IDataRow;
-    removeable: boolean;
     clusterList: SelectItem[];
+    data: IDataRow;
     inputedClusters?: string[];
+    removeable: boolean;
   }
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
@@ -168,11 +168,11 @@
       );
       emits('clone', {
         ...props.data,
-        rowKey: random(),
-        isLoading: false,
-        targetClusterId,
-        includeKey,
         excludeKey,
+        includeKey,
+        isLoading: false,
+        rowKey: random(),
+        targetClusterId,
       });
     });
   };
@@ -183,10 +183,10 @@
       return await Promise.all(getRowData()).then((data) => {
         const [srcClusterId, targetClusterId, includeKey, excludeKey] = data;
         return {
-          src_cluster: srcClusterId,
           dst_cluster: targetClusterId,
-          key_white_regex: includeKey.join('\n'), // 包含key
           key_black_regex: excludeKey.join('\n'), // 排除key
+          key_white_regex: includeKey.join('\n'), // 包含key
+          src_cluster: srcClusterId,
         };
       });
     },

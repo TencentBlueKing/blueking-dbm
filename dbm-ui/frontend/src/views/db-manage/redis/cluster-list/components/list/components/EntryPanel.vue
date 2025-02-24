@@ -59,8 +59,8 @@
   import { execCopy } from '@utils';
 
   interface Props {
-    entryType: 'clb' | 'polaris';
     clusterId: number;
+    entryType: 'clb' | 'polaris';
     panelWidth?: number;
   }
 
@@ -73,34 +73,34 @@
 
   const dataObj = reactive({
     clb: {
-      panelTitle: t('腾讯云负载均衡（CLB）'),
       list: [
         {
+          shareLink: '',
           title: 'IP',
           value: '',
-          shareLink: '',
         },
         {
+          shareLink: '',
           title: t('CLB域名'),
           value: '',
-          shareLink: '',
         },
       ],
+      panelTitle: t('腾讯云负载均衡（CLB）'),
     },
     polaris: {
-      panelTitle: t('CL5与北极星'),
       list: [
         {
+          shareLink: '',
           title: 'CL5',
           value: '',
-          shareLink: '',
         },
         {
+          shareLink: '',
           title: t('北极星服务名称'),
           value: '',
-          shareLink: '',
         },
       ],
+      panelTitle: t('CL5与北极星'),
     },
   });
 
@@ -125,8 +125,8 @@
 
   const handlePanelAfterShow = () => {
     runGetClusterEntries({
-      cluster_id: props.clusterId,
       bk_biz_id: currentBizId,
+      cluster_id: props.clusterId,
       entry_type: props.entryType,
     });
   };

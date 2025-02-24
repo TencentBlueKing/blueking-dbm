@@ -70,14 +70,14 @@
   import RenderSwitchMode, { OnlineSwitchType } from './RenderSwitchMode.vue';
 
   export interface IDataRow {
-    rowKey: string;
-    isLoading: boolean;
-    ip: string;
     clusterIds: number[];
+    clusters?: string[];
+    ip: string;
+    isLoading: boolean;
+    masters?: string[];
+    rowKey: string;
     slave: string;
     switchMode?: string;
-    clusters?: string[];
-    masters?: string[];
   }
 
   export interface InfoItem {
@@ -90,12 +90,12 @@
   }
   // 创建表格数据
   export const createRowData = (data?: IDataRow): IDataRow => ({
-    rowKey: random(),
-    isLoading: false,
-    ip: data?.ip ?? '',
     clusterIds: [],
     clusters: data?.clusters ?? [],
+    ip: data?.ip ?? '',
+    isLoading: false,
     masters: data?.masters ?? [],
+    rowKey: random(),
     slave: data?.slave ?? '',
     switchMode: data?.switchMode ?? '',
   });
@@ -103,8 +103,8 @@
 <script setup lang="ts">
   interface Props {
     data: IDataRow;
-    removeable: boolean;
     inputedIps?: string[];
+    removeable: boolean;
   }
 
   interface Emits {
@@ -133,8 +133,8 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('不能为空'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 
@@ -166,8 +166,8 @@
       const rowInfo = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
       emits('clone', {
         ...props.data,
-        rowKey: random(),
         isLoading: false,
+        rowKey: random(),
         switchMode: rowInfo[3],
       });
     });

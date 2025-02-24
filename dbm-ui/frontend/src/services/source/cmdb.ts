@@ -30,7 +30,7 @@ export function getBizs(params = {} as { action: string }) {
       const names = [];
       const heads = [];
       for (const word of parseName) {
-        const { type, target } = word;
+        const { target, type } = word;
         names.push(target);
         heads.push(type === 2 ? target[0] : target);
       }
@@ -46,21 +46,21 @@ export function getBizs(params = {} as { action: string }) {
  * 创建数据库模块
  */
 export function createModules(params: {
-  db_module_name: string;
   alias_name: string;
-  cluster_type: string;
   biz_id: number;
+  cluster_type: string;
+  db_module_name: string;
 }) {
   return http.post<{
+    bk_biz_id: number;
+    bk_modules: {
+      bk_module_id: string;
+      bk_module_name: string;
+    }[];
+    bk_set_id: number;
+    cluster_type: string;
     db_module_id: number;
     db_module_name: string;
-    cluster_type: string;
-    bk_biz_id: number;
-    bk_set_id: number;
-    bk_modules: {
-      bk_module_name: string;
-      bk_module_id: string;
-    }[];
     name: string;
   }>(`${path}/${params.biz_id}/create_module/`, params);
 }
@@ -71,12 +71,12 @@ export function createModules(params: {
 export function getUserGroupList(params: { bk_biz_id: number }) {
   return http.get<
     {
-      id: string;
-      display_name: string;
-      logo: string;
-      type: string;
-      members: string[];
       disabled?: boolean;
+      display_name: string;
+      id: string;
+      logo: string;
+      members: string[];
+      type: string;
     }[]
   >(`${path}/${params.bk_biz_id}/list_cc_obj_user/`);
 }
@@ -90,28 +90,28 @@ export function getModules(params: { bk_biz_id: number; cluster_type: string }) 
       alias_name: string;
       bk_biz_id: number;
       db_module_id: number;
-      name: string;
       db_module_info: {
-        version: string;
-        name: string;
-        description: string;
-        updated_at: string;
-        updated_by: string;
         conf_items: {
           conf_name: string;
           conf_value: string;
           description: string;
           flag_disable: number;
           flag_locked: number;
-          stage: number;
           level_name: string;
           level_value: string;
-          op_type: string;
-          value_allowed: string;
           need_restart: number;
+          op_type: string;
+          stage: number;
+          value_allowed: string;
           value_type_sub: string;
         }[];
+        description: string;
+        name: string;
+        updated_at: string;
+        updated_by: string;
+        version: string;
       };
+      name: string;
       permission: {
         dbconfig_view: boolean;
       };

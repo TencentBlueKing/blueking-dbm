@@ -101,15 +101,15 @@
   const router = useRouter();
 
   const collapseActive = reactive({
-    targetCluster: true,
     cloneRule: true,
     permissonRule: true,
+    targetCluster: true,
   });
 
   const {
-    run: getTemplateDetail,
-    loading: isLoading,
     data: templateDetail,
+    loading: isLoading,
+    run: getTemplateDetail,
   } = useRequest(getDetail, {
     manual: true,
   });

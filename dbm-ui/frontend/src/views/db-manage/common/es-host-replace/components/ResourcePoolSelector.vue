@@ -58,12 +58,12 @@
   import type { TReplaceNode } from '../Index.vue';
 
   interface Props {
-    data: TReplaceNode;
-    error: boolean;
     cloudInfo: {
       id: number;
       name: string;
     };
+    data: TReplaceNode;
+    error: boolean;
   }
 
   const props = defineProps<Props>();
@@ -83,12 +83,12 @@
     },
   });
 
-  const { loading: isResourceSpecLoading, data: resourceSpecList } = useRequest(getResourceSpecList, {
+  const { data: resourceSpecList, loading: isResourceSpecLoading } = useRequest(getResourceSpecList, {
     defaultParams: [
       {
+        limit: -1,
         spec_cluster_type: props.data.specClusterType,
         spec_machine_type: props.data.specMachineType,
-        limit: -1,
       },
     ],
     onSuccess(data) {
@@ -111,9 +111,9 @@
       if (recommendSpecList.length > 0) {
         const [currentSpec] = recommendSpecList;
         modelValue.value = {
-          spec_id: currentSpec.spec_id,
           count: props.data.nodeList.length,
           instance_num: currentSpec.instance_num,
+          spec_id: currentSpec.spec_id,
         };
       }
     },
@@ -121,9 +121,9 @@
 
   const handleChange = (value: number) => {
     modelValue.value = {
-      spec_id: value,
       count: props.data.nodeList.length,
       instance_num: resourceSpecList.value?.results.find((item) => item.spec_id === value)?.instance_num ?? 1,
+      spec_id: value,
     };
   };
 </script>

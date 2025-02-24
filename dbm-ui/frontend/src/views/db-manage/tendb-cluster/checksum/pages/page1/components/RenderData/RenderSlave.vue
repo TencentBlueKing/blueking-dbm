@@ -60,12 +60,10 @@
 
   interface Props {
     clusterId: number;
-    scope: string;
     modelValue: string[];
+    scope: string;
   }
-  interface Emits {
-    (e: 'change', value: string[]): void;
-  }
+  type Emits = (e: 'change', value: string[]) => void;
   interface Exposes {
     getValue: () => Promise<string[]>;
   }
@@ -83,15 +81,15 @@
     [ClusterTypes.TENDBCLUSTER]: [
       {
         name: t('主库故障主机'),
-        topoConfig: {
-          filterClusterId: props.clusterId,
-        },
         tableConfig: {
           firsrColumn: {
-            label: 'slave',
             field: 'instance_address',
+            label: 'slave',
             role: 'remote_slave',
           },
+        },
+        topoConfig: {
+          filterClusterId: props.clusterId,
         },
       },
     ],

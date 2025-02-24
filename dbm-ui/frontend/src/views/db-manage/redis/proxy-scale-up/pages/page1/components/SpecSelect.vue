@@ -68,11 +68,11 @@
   type IKey = string | number;
 
   export interface IListItem {
-    value: IKey;
+    count?: number;
+    isCurrent: boolean;
     label: string;
     specData: SpecInfo;
-    isCurrent: boolean;
-    count?: number;
+    value: IKey;
   }
 </script>
 <script setup lang="ts">
@@ -84,11 +84,11 @@
   import SpecPanel from './SpecPanel.vue';
 
   interface Props {
+    disabled?: boolean;
     list: Array<IListItem>;
     modelValue?: IKey;
     placeholder?: string;
     rules?: Rules;
-    disabled?: boolean;
   }
   interface Emits {
     (e: 'update:modelValue', value: IKey): void;
@@ -100,11 +100,11 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    disabled: false,
     modelValue: '',
     placeholder: '请输入',
-    textarea: false,
     rules: () => [],
-    disabled: false,
+    textarea: false,
   });
   const emits = defineEmits<Emits>();
 

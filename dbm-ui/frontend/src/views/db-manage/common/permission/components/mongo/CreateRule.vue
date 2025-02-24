@@ -161,15 +161,13 @@
     accountId: number;
   }
 
-  interface Emits {
-    (e: 'success'): void;
-  }
+  type Emits = (e: 'success') => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
   const isShow = defineModel<boolean>({
-    required: true,
     default: false,
+    required: true,
   });
 
   const { t } = useI18n();
@@ -183,54 +181,44 @@
   const replaceReg = /[,;\r\n]/g;
 
   const initFormData = () => ({
-    account_id: -1,
     access_db: 'admin',
+    account_id: -1,
     privilege: {
-      mongo_user: [] as string[],
       mongo_manager: [] as string[],
+      mongo_user: [] as string[],
     },
   });
 
   const rules = {
-    privilege: [
-      {
-        trigger: 'change',
-        message: t('请设置权限'),
-        validator: () => {
-          const { mongo_user: mongoUser, mongo_manager: mongoManager } = formData.privilege;
-          return mongoUser.length !== 0 || mongoManager.length !== 0;
-        },
-      },
-    ],
     access_db: [
       {
+        message: t('访问 DB 不能为空'),
         required: true,
         trigger: 'blur',
-        message: t('访问 DB 不能为空'),
         validator: (value: string) => {
           const dbs = value.split(/[\n;,]/);
           return _.every(dbs, (item) => !!item.trim());
         },
       },
       {
+        message: t('访问 DB 名不允许为 admin'),
         required: true,
         trigger: 'blur',
-        message: t('访问 DB 名不允许为 admin'),
         validator: (value: string) => /^(?!admin$).*/.test(value),
       },
       {
+        message: t('请输入访问DB名_以字母开头_支持字母_数字_下划线_多个使用英文逗号_分号或换行分隔'),
         required: true,
         trigger: 'blur',
-        message: t('请输入访问DB名_以字母开头_支持字母_数字_下划线_多个使用英文逗号_分号或换行分隔'),
         validator: (value: string) => {
           const dbs = value.split(/[\n;,]/);
           return _.every(dbs, (item) => (!item ? true : /^[A-Za-z][A-Za-z0-9_]*$/.test(item)));
         },
       },
       {
+        message: () => t('该账号下已存在xx规则', [existDBs.value.join(',')]),
         required: true,
         trigger: 'blur',
-        message: () => t('该账号下已存在xx规则', [existDBs.value.join(',')]),
         validator: () => {
           existDBs.value = [];
           const user = accounts.value.find((item) => item.account_id === formData.account_id)?.user;
@@ -242,14 +230,24 @@
             return false;
           }
           return queryAccountRules({
-            user,
             access_dbs: dbs,
             account_type: AccountTypes.MONGODB,
+            user,
           }).then((res) => {
             const rules = res.results[0]?.rules || [];
             existDBs.value = rules.map((item) => item.access_db);
             return rules.length === 0;
           });
+        },
+      },
+    ],
+    privilege: [
+      {
+        message: t('请设置权限'),
+        trigger: 'change',
+        validator: () => {
+          const { mongo_manager: mongoManager, mongo_user: mongoUser } = formData.privilege;
+          return mongoUser.length !== 0 || mongoManager.length !== 0;
         },
       },
     ],
@@ -261,14 +259,14 @@
     accessDBType.value === 'not_admin' ? ['read', 'readWrite'] : dbOperations.mongo_user,
   );
 
-  const { run: getPermissionRulesRun, loading: getPermissionRulesLoading } = useRequest(getPermissionRules, {
+  const { loading: getPermissionRulesLoading, run: getPermissionRulesRun } = useRequest(getPermissionRules, {
     manual: true,
     onSuccess(permissionRules) {
       accounts.value = permissionRules.results.map((item) => item.account);
     },
   });
 
-  const { run: addMongodbAccountRuleRun, loading: isSubmitting } = useRequest(addAccountRule, {
+  const { loading: isSubmitting, run: addMongodbAccountRuleRun } = useRequest(addAccountRule, {
     manual: true,
     onSuccess() {
       messageSuccess(t('成功添加授权规则'));
@@ -282,9 +280,9 @@
     if (show) {
       formData.account_id = props.accountId ?? -1;
       getPermissionRulesRun({
-        offset: 0,
-        limit: -1,
         account_type: AccountTypes.MONGODB,
+        limit: -1,
+        offset: 0,
       });
     }
   });

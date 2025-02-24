@@ -54,12 +54,12 @@ export default class DorisMachine {
     this.spec_id = payload.spec_id;
   }
 
-  get isHot() {
-    return this.instance_role.includes('hot');
-  }
-
   get isCold() {
     return this.instance_role.includes('cold');
+  }
+
+  get isHot() {
+    return this.instance_role.includes('hot');
   }
 
   get isObserver() {

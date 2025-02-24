@@ -48,9 +48,7 @@
     modelValue: IDataRow;
   }
 
-  interface Emits {
-    (e: 'idChange', value: { id: number; cloudId: number | null }): void;
-  }
+  type Emits = (e: 'idChange', value: { cloudId: number | null; id: number }) => void;
 
   interface Exposes {
     getValue: () => Record<'cluster_ids', Array<number>>;
@@ -69,10 +67,10 @@
   const isShowEdit = ref(true);
 
   const relatedClusterDisplayInfo = reactive<ClusterRelatedInputProps['data']>({
-    cluster_id: 0,
-    cluster_domain: '',
-    cluster_related: [],
     checked_related: [],
+    cluster_domain: '',
+    cluster_id: 0,
+    cluster_related: [],
   });
 
   const { run: fetchRelatedClustersByClusterIds } = useRequest(findRelatedClustersByClusterIds, {
@@ -87,15 +85,16 @@
 
   const rules = [
     {
+      message: t('目标集群不能为空'),
       validator: (value: string) => {
         if (value) {
           return true;
         }
         return false;
       },
-      message: t('目标集群不能为空'),
     },
     {
+      message: t('目标集群不存在'),
       validator: (value: string) =>
         filterClusters({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -105,16 +104,16 @@
             relatedClusterDisplayInfo.cluster_domain = data[0].master_domain;
             relatedClusterDisplayInfo.cluster_id = data[0].id;
             emits('idChange', {
-              id: data[0].id,
               cloudId: data[0].bk_cloud_id,
+              id: data[0].id,
             });
             return true;
           }
           return false;
         }),
-      message: t('目标集群不存在'),
     },
     {
+      message: t('目标集群重复'),
       validator: () => {
         const currentClusterSelectMap = clusterIdMemo[instanceKey];
         const otherClusterMemoMap = { ...clusterIdMemo };
@@ -136,7 +135,6 @@
         }
         return true;
       },
-      message: t('目标集群重复'),
     },
   ];
 

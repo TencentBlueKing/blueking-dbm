@@ -20,11 +20,11 @@ const STATUS_FINISHED = 'FINISHED';
 const STATUS_SUCCEEDED = 'SUCCEEDED';
 
 export default class Partition {
+  static STATUS_FAILED = STATUS_FAILED;
+  static STATUS_FINISHED = STATUS_FINISHED;
   static STATUS_PENDING = STATUS_PENDING;
   static STATUS_READY = STATUS_READY;
   static STATUS_RUNNING = STATUS_RUNNING;
-  static STATUS_FAILED = STATUS_FAILED;
-  static STATUS_FINISHED = STATUS_FINISHED;
   static STATUS_SUCCEEDED = STATUS_SUCCEEDED;
 
   bk_biz_id: number;
@@ -49,8 +49,8 @@ export default class Partition {
     mysql_partition_delete: boolean;
     mysql_partition_enable_disable: boolean;
     mysql_partition_update: boolean;
-    tendbcluster_partition: boolean;
     tendb_partition_enable_disable: boolean;
+    tendbcluster_partition: boolean;
     tendbcluster_partition_create: boolean;
     tendbcluster_partition_delete: boolean;
     tendbcluster_partition_update: boolean;
@@ -94,56 +94,56 @@ export default class Partition {
     this.updator = payload.updator;
   }
 
-  get statusText() {
-    const statusMap = {
-      [Partition.STATUS_PENDING]: '等待执行',
-      [Partition.STATUS_READY]: '执行中',
-      [Partition.STATUS_RUNNING]: '执行中',
-      [Partition.STATUS_FAILED]: '执行失败',
-      [Partition.STATUS_FINISHED]: '执行成功',
-      [Partition.STATUS_SUCCEEDED]: '执行成功',
-    };
-    return statusMap[this.status] || '等待执行';
-  }
-
-  get statusIcon() {
-    const iconMap = {
-      [Partition.STATUS_PENDING]: 'sync-default',
-      [Partition.STATUS_READY]: 'sync-pending',
-      [Partition.STATUS_RUNNING]: 'sync-pending',
-      [Partition.STATUS_FINISHED]: 'sync-success',
-      [Partition.STATUS_SUCCEEDED]: 'sync-success',
-      [Partition.STATUS_FAILED]: 'sync-failed',
-    };
-
-    return iconMap[this.status] || 'sync-default';
-  }
-
-  get isNew() {
-    return isRecentDays(this.create_time, 24 * 3);
-  }
-
-  get isFinished() {
-    return [Partition.STATUS_FINISHED, Partition.STATUS_SUCCEEDED].includes(this.status);
-  }
-
-  get isRunning() {
-    return [Partition.STATUS_READY, Partition.STATUS_RUNNING].includes(this.status);
+  get executeTimeDisplay() {
+    return utcDisplayTime(this.execute_time);
   }
 
   get isFailed() {
     return this.status === Partition.STATUS_FAILED;
   }
 
-  get isOnline() {
-    return this.phase === 'online';
+  get isFinished() {
+    return [Partition.STATUS_FINISHED, Partition.STATUS_SUCCEEDED].includes(this.status);
+  }
+
+  get isNew() {
+    return isRecentDays(this.create_time, 24 * 3);
   }
 
   get isOffline() {
     return this.phase === 'offline';
   }
 
-  get executeTimeDisplay() {
-    return utcDisplayTime(this.execute_time);
+  get isOnline() {
+    return this.phase === 'online';
+  }
+
+  get isRunning() {
+    return [Partition.STATUS_READY, Partition.STATUS_RUNNING].includes(this.status);
+  }
+
+  get statusIcon() {
+    const iconMap = {
+      [Partition.STATUS_FAILED]: 'sync-failed',
+      [Partition.STATUS_FINISHED]: 'sync-success',
+      [Partition.STATUS_PENDING]: 'sync-default',
+      [Partition.STATUS_READY]: 'sync-pending',
+      [Partition.STATUS_RUNNING]: 'sync-pending',
+      [Partition.STATUS_SUCCEEDED]: 'sync-success',
+    };
+
+    return iconMap[this.status] || 'sync-default';
+  }
+
+  get statusText() {
+    const statusMap = {
+      [Partition.STATUS_FAILED]: '执行失败',
+      [Partition.STATUS_FINISHED]: '执行成功',
+      [Partition.STATUS_PENDING]: '等待执行',
+      [Partition.STATUS_READY]: '执行中',
+      [Partition.STATUS_RUNNING]: '执行中',
+      [Partition.STATUS_SUCCEEDED]: '执行成功',
+    };
+    return statusMap[this.status] || '等待执行';
   }
 }

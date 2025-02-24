@@ -44,15 +44,15 @@
   import RenderDataRow, { createRowData, type IDataRow } from './RenderData/Row.vue';
 
   interface Props {
+    clusterVersionList: string[];
     dbType: DBTypes;
     uploadFilePath: string;
-    clusterVersionList: string[];
   }
 
   const props = defineProps<Props>();
 
   const { t } = useI18n();
-  const { updateUploadFilePath, updateDbType } = useSqlImport();
+  const { updateDbType, updateUploadFilePath } = useSqlImport();
 
   const modelValue = defineModel<Array<IDataRow>>({
     default: () => [],
@@ -63,9 +63,9 @@
 
   const rules = [
     {
-      validator: () => Promise.all(rowRef.value!.map((item) => item.getValue())),
       message: t('目标DB设置不正确'),
       trigger: 'change',
+      validator: () => Promise.all(rowRef.value!.map((item) => item.getValue())),
     },
   ];
 

@@ -48,52 +48,50 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import TicketModel, {type Dumper} from '@services/model/ticket/ticket';
+  import TicketModel, { type Dumper } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
 
-
   interface Props {
-    ticketDetails: TicketModel<Dumper.Install>
+    ticketDetails: TicketModel<Dumper.Install>;
   }
 
-  type RowData = Props['ticketDetails']['details']['infos'][number]
+  type RowData = Props['ticketDetails']['details']['infos'][number];
 
   const props = defineProps<Props>();
 
   defineOptions({
     name: TicketTypes.TBINLOGDUMPER_INSTALL,
-    inheritAttrs: false
-  })
+    inheritAttrs: false,
+  });
 
   const { t } = useI18n();
 
-  const {
-    infos,
-    clusters,
-    name,
-    add_type: addType,
-  } = props.ticketDetails.details;
+  const { add_type: addType, clusters, infos, name } = props.ticketDetails.details;
 
   const protocolType = infos[0].protocol_type;
 
   const subscribeColumns = [
     {
-      label: t('DB 名'),
       field: 'db_name',
+      label: t('DB 名'),
       width: 300,
     },
     {
-      label: t('表名'),
       field: 'table_names',
+      label: t('表名'),
       minWidth: 100,
-      render: ({ data }: {data: { table_names: string[] }}) => (
-        <div class="table-names-box">
-          {
-            data.table_names.map((item, index) => <div key={index} class="name-item">{ item }</div>)
-          }
+      render: ({ data }: { data: { table_names: string[] } }) => (
+        <div class='table-names-box'>
+          {data.table_names.map((item, index) => (
+            <div
+              key={index}
+              class='name-item'>
+              {item}
+            </div>
+          ))}
         </div>
       ),
     },
@@ -101,60 +99,65 @@
   const receiverColumns = computed(() => {
     const basicColumns = [
       {
-        label: t('数据源集群'),
         field: 'source_cluster_domain',
+        label: t('数据源集群'),
         showOverflowTooltip: true,
       },
       {
-        label: t('部署dumper实例ID'),
         field: 'dumper_id',
+        label: t('部署dumper实例ID'),
         showOverflowTooltip: true,
       },
       {
-        label: t('接收端类型'),
         field: 'protocol_type',
+        label: t('接收端类型'),
         showOverflowTooltip: true,
       },
     ] as {
-      label: string,
-      field: string,
-      showOverflowTooltip?: boolean,
-      render?: any
+      field: string;
+      label: string;
+      render?: any;
+      showOverflowTooltip?: boolean;
     }[];
     if (protocolType === 'L5_AGENT') {
       const l5Columns = [
         {
-          label: 'l5_modid',
           field: 'l5_modid',
+          label: 'l5_modid',
         },
         {
-          label: 'l5_cmdid',
           field: 'l5_modid',
+          label: 'l5_cmdid',
         },
       ];
       return [...basicColumns, ...l5Columns];
     }
     basicColumns.push({
-      label: t('接收端集群与端口'),
       field: 'target_address',
+      label: t('接收端集群与端口'),
+      render: ({ data }: { data: RowData }) => (
+        <span>
+          {data.target_address}:{data.target_port}
+        </span>
+      ),
       showOverflowTooltip: true,
-      render: ({ data }: {data: RowData}) => <span>{data.target_address}:{data.target_port}</span>,
     });
     if (protocolType === 'KAFKA') {
       const kafkaColumns = [
         {
-          label: t('账号'),
           field: 'kafka_user',
+          label: t('账号'),
           showOverflowTooltip: true,
         },
         {
-          label: t('密码'),
           field: 'kafka_pwd',
-          render: ({ data }: {data: RowData}) => (
+          label: t('密码'),
+          render: ({ data }: { data: RowData }) => (
             <bk-input
               model-value={data.kafka_pwd}
+              type='password'
               disabled
-              type="password" />
+            />
           ),
         },
       ];
@@ -163,18 +166,21 @@
     return basicColumns;
   });
 
-  const subscribeTableMap = props.ticketDetails.details.repl_tables.reduce((results, item) => {
-    const [db, table] = item.split('.');
-    if (results[db]) {
-      results[db].push(table);
-    } else {
-      // eslint-disable-next-line no-param-reassign
-      results[db] = [table];
-    }
-    return results;
-  }, {} as Record<string, string[]>);
+  const subscribeTableMap = props.ticketDetails.details.repl_tables.reduce(
+    (results, item) => {
+      const [db, table] = item.split('.');
+      if (results[db]) {
+        results[db].push(table);
+      } else {
+        // eslint-disable-next-line no-param-reassign
+        results[db] = [table];
+      }
+      return results;
+    },
+    {} as Record<string, string[]>,
+  );
 
-  const subscribeTableData = Object.keys(subscribeTableMap).map(item => ({
+  const subscribeTableData = Object.keys(subscribeTableMap).map((item) => ({
     db_name: item,
     table_names: subscribeTableMap[item],
   }));

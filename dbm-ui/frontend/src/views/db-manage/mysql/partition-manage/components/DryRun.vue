@@ -44,45 +44,33 @@
 </template>
 <script setup lang="tsx">
   import _ from 'lodash';
-  import {
-    shallowRef,
-    type UnwrapRef,
-    watch,
-  } from 'vue';
+  import { shallowRef, type UnwrapRef, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import type PartitionModel from '@services/model/partition/partition';
-  import {
-    dryRun,
-    execute,
-  } from '@services/source/partitionManage';
+  import { dryRun, execute } from '@services/source/partitionManage';
 
   import { useTicketMessage } from '@hooks';
 
   import { ClusterTypes } from '@common/const';
 
-  import {
-    downloadText,
-    encodeRegexp,
-    execCopy,
-    getSearchSelectorParams,
-  } from '@utils';
+  import { downloadText, encodeRegexp, execCopy, getSearchSelectorParams } from '@utils';
 
   interface Props {
-    clusterId: number,
-    // 分区策略详情
-    partitionData?: PartitionModel,
+    clusterId: number;
     // 新建、编辑时返回的 operationData
-    operationDryRunData?: ServiceReturnType<typeof dryRun>,
+    operationDryRunData?: ServiceReturnType<typeof dryRun>;
+    // 分区策略详情
+    partitionData?: PartitionModel;
   }
 
   interface ITableData {
-    dblike: string,
-    tblike: string,
-    action: string[],
-    message: string,
-    sql: string[],
+    action: string[];
+    dblike: string;
+    message: string;
+    sql: string[];
+    tblike: string;
   }
 
   const props = defineProps<Props>();
@@ -106,78 +94,83 @@
     }
     const serachParams = getSearchSelectorParams(searchValues.value);
 
-    const serachRegMap = Object.keys(serachParams).reduce((result, key) => Object.assign({}, result, {
-      [key]: new RegExp(`${encodeRegexp(serachParams[key])}`, 'i'),
-    }), {} as Record<string, RegExp>);
+    const serachRegMap = Object.keys(serachParams).reduce(
+      (result, key) =>
+        Object.assign({}, result, {
+          [key]: new RegExp(`${encodeRegexp(serachParams[key])}`, 'i'),
+        }),
+      {} as Record<string, RegExp>,
+    );
 
-    return tableData.value.filter(tableDataItem => Object.keys(serachParams)
-      .every((searchParamKey) => {
+    return tableData.value.filter((tableDataItem) =>
+      Object.keys(serachParams).every((searchParamKey) => {
         const tableColumnData = tableDataItem[searchParamKey as keyof ITableData];
         const tableColumnValue = Array.isArray(tableColumnData) ? tableColumnData : [tableColumnData];
 
-        return tableColumnValue.every(value => serachRegMap[searchParamKey].test(value));
-      }));
+        return tableColumnValue.every((value) => serachRegMap[searchParamKey].test(value));
+      }),
+    );
   });
 
   const serachData = [
     {
-      name: t('DB 名'),
       id: 'dblike',
+      name: t('DB 名'),
     },
     {
-      name: t('表名'),
       id: 'tblike',
+      name: t('表名'),
     },
   ];
 
   const tableColumns = [
     {
-      label: t('DB 名'),
       field: 'dblike',
-      render: ({ data }: {data: ITableData}) => data.dblike || '--',
+      label: t('DB 名'),
+      render: ({ data }: { data: ITableData }) => data.dblike || '--',
     },
     {
-      label: t('表名'),
       field: 'tblike',
+      label: t('表名'),
     },
     {
-      label: t('检查状态'),
       field: 'status',
-      render: ({ data }: {data: ITableData}) => {
+      label: t('检查状态'),
+      render: ({ data }: { data: ITableData }) => {
         if (data.message) {
           return (
             <div>
               <db-icon
-                style="vertical-align: middle;"
+                style='vertical-align: middle;'
                 type='sync-failed'
-                svg />
-              <span class="ml-4">{t('失败')}</span>
+                svg
+              />
+              <span class='ml-4'>{t('失败')}</span>
             </div>
           );
         }
         return (
-            <div>
-              <db-icon
-                style="vertical-align: middle;"
-                type='sync-success'
-                svg />
-              <span class="ml-4">{t('成功')}</span>
-            </div>
+          <div>
+            <db-icon
+              style='vertical-align: middle;'
+              type='sync-success'
+              svg
+            />
+            <span class='ml-4'>{t('成功')}</span>
+          </div>
         );
       },
     },
     {
-      label: t('结果说明'),
       field: 'message',
+      label: t('结果说明'),
+      render: ({ data }: { data: ITableData }) => <span>{data.message || '--'}</span>,
       showOverflowTooltip: true,
-      render: ({ data }: {data: ITableData}) => <span>{data.message || '--'}</span>,
     },
     {
-      label: t('分区动作'),
       field: 'action',
-      width: 138,
-      showOverflowTooltip: false,
-      render: ({ data }: {data: ITableData}) => {
+      label: t('分区动作'),
+      render: ({ data }: { data: ITableData }) => {
         if (data.action.length < 1) {
           return '--';
         }
@@ -185,39 +178,45 @@
         const showTag = len > 1;
         // data.action 最多两个值，最少一个值
         return (
-          <div class="action-box">
-            <bk-tag style="margin-right:0;">{ data.action[0] }</bk-tag>
-            {showTag && <bk-popover placement="top" theme="dark">
+          <div class='action-box'>
+            <bk-tag style='margin-right:0;'>{data.action[0]}</bk-tag>
+            {showTag && (
+              <bk-popover
+                placement='top'
+                theme='dark'>
                 {{
-                  default: () => <bk-tag class="tag-box">{`+${len - 1}`}</bk-tag>,
                   content: () => <div>{data.action[1]}</div>,
+                  default: () => <bk-tag class='tag-box'>{`+${len - 1}`}</bk-tag>,
                 }}
-            </bk-popover>}
+              </bk-popover>
+            )}
           </div>
         );
       },
+      showOverflowTooltip: false,
+      width: 138,
     },
     {
+      fixed: 'right',
       label: t('分区 SQL'),
       minWidth: 140,
-      fixed: 'right',
-      render: ({ data }: {data: ITableData}) => (
-        <div class="sql-box">
+      render: ({ data }: { data: ITableData }) => (
+        <div class='sql-box'>
           <db-icon type='sql' />
-          <span class="ml-4">testsql</span>
+          <span class='ml-4'>testsql</span>
           <bk-button
             v-bk-tooltips={t('复制 SQL')}
-            class="copy-btn ml-4"
+            class='copy-btn ml-4'
+            theme='primary'
             text
-            theme="primary"
             onClick={() => handleCopySql(data.sql)}>
             <db-icon type='copy' />
           </bk-button>
           <bk-button
             v-bk-tooltips={t('下载 SQL 文件')}
-            class="download-btn ml-4"
+            class='download-btn ml-4'
+            theme='primary'
             text
-            theme="primary"
             onClick={() => handleDownloadSql(data.sql)}>
             <db-icon type='import' />
           </bk-button>
@@ -226,37 +225,35 @@
     },
   ];
 
-  const formatTableData = (data: ValueOf<ServiceReturnType<typeof dryRun>>) => data.reduce((result, recordItem) => {
-    const { message } = recordItem;
-    recordItem.execute_objects.forEach((executeItem) => {
-      const dataObj = {
-        dblike: executeItem.dblike,
-        tblike: executeItem.tblike,
-        message,
-        action: [] as string[],
-        sql: [] as string[],
-      };
-      if (executeItem.init_partition && executeItem.init_partition.length > 0) {
-        dataObj.action.push(t('初始化分区'));
-        dataObj.sql.push(...executeItem.init_partition.map(sqlItem => sqlItem.sql));
-      }
-      if (executeItem.add_partition && executeItem.add_partition.length > 0) {
-        dataObj.action.push(t('增加分区'));
-        dataObj.sql.push(...executeItem.add_partition);
-      }
-      if (executeItem.drop_partition && executeItem.drop_partition.length > 0) {
-        dataObj.action.push(t('删除分区'));
-        dataObj.sql.push(...executeItem.drop_partition);
-      }
-      result.push(dataObj);
-    });
-    return result;
-  }, [] as ITableData[]);
+  const formatTableData = (data: ValueOf<ServiceReturnType<typeof dryRun>>) =>
+    data.reduce((result, recordItem) => {
+      const { message } = recordItem;
+      recordItem.execute_objects.forEach((executeItem) => {
+        const dataObj = {
+          action: [] as string[],
+          dblike: executeItem.dblike,
+          message,
+          sql: [] as string[],
+          tblike: executeItem.tblike,
+        };
+        if (executeItem.init_partition && executeItem.init_partition.length > 0) {
+          dataObj.action.push(t('初始化分区'));
+          dataObj.sql.push(...executeItem.init_partition.map((sqlItem) => sqlItem.sql));
+        }
+        if (executeItem.add_partition && executeItem.add_partition.length > 0) {
+          dataObj.action.push(t('增加分区'));
+          dataObj.sql.push(...executeItem.add_partition);
+        }
+        if (executeItem.drop_partition && executeItem.drop_partition.length > 0) {
+          dataObj.action.push(t('删除分区'));
+          dataObj.sql.push(...executeItem.drop_partition);
+        }
+        result.push(dataObj);
+      });
+      return result;
+    }, [] as ITableData[]);
 
-  const {
-    loading: isLoading,
-    run: fetchDryRun,
-  } = useRequest(dryRun, {
+  const { loading: isLoading, run: fetchDryRun } = useRequest(dryRun, {
     manual: true,
     onSuccess(data) {
       if (Object.values(data).length < 1) {
@@ -265,12 +262,18 @@
         return;
       }
 
-      dryRunData.value = Object.keys(data).reduce((result, configId) => Object.assign(result, {
-        [configId]: _.filter(data[Number(configId)], item => !item.message),
-      }), {} as UnwrapRef<typeof dryRunData>);
+      dryRunData.value = Object.keys(data).reduce(
+        (result, configId) =>
+          Object.assign(result, {
+            [configId]: _.filter(data[Number(configId)], (item) => !item.message),
+          }),
+        {} as UnwrapRef<typeof dryRunData>,
+      );
 
-      tableData.value = Object.values(data)
-        .reduce((result, item) => result.concat(formatTableData(item)), [] as ITableData[]);
+      tableData.value = Object.values(data).reduce(
+        (result, item) => result.concat(formatTableData(item)),
+        [] as ITableData[],
+      );
     },
   });
 
@@ -281,19 +284,25 @@
     // 用户主动执行通过分区数据获取最新的 dryData
     if (props.partitionData) {
       fetchDryRun({
-        config_id: props.partitionData.id,
         cluster_id: props.partitionData.cluster_id,
         cluster_type: ClusterTypes.TENDBCLUSTER,
+        config_id: props.partitionData.id,
       });
     } else if (props.operationDryRunData) {
       // 用户新建分区时新建成功后端会返回 dryData
       const createConfigRunData = props.operationDryRunData;
-      dryRunData.value = Object.keys(createConfigRunData).reduce((result, configId) => Object.assign(result, {
-        [configId]: _.filter(createConfigRunData[Number(configId)], item => !item.message),
-      }), {} as UnwrapRef<typeof dryRunData>);
+      dryRunData.value = Object.keys(createConfigRunData).reduce(
+        (result, configId) =>
+          Object.assign(result, {
+            [configId]: _.filter(createConfigRunData[Number(configId)], (item) => !item.message),
+          }),
+        {} as UnwrapRef<typeof dryRunData>,
+      );
 
-      tableData.value = Object.values(createConfigRunData)
-        .reduce((result, item) => result.concat(formatTableData(item)), [] as ITableData[]);
+      tableData.value = Object.values(createConfigRunData).reduce(
+        (result, item) => result.concat(formatTableData(item)),
+        [] as ITableData[],
+      );
     }
   });
 
@@ -312,7 +321,7 @@
       partition_objects: dryRunData.value,
     })
       .then((result) => {
-        ticketMessage(result.map(item => item.id).join(','));
+        ticketMessage(result.map((item) => item.id).join(','));
         modelValue.value = false;
       })
       .finally(() => {

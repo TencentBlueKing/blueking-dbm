@@ -16,12 +16,12 @@
  */
 export interface BizItem {
   bk_biz_id: number;
-  english_name: string;
   display_name: string;
-  pinyin_name: string;
-  pinyin_head: string;
+  english_name: string;
   name: string;
   permission: {
     db_manage: boolean;
   };
+  pinyin_head: string;
+  pinyin_name: string;
 }

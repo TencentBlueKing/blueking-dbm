@@ -88,39 +88,37 @@
   import TableEditSelect, { type IListItem } from '@views/db-manage/mysql/common/edit/Select.vue';
 
   interface Props {
-    isLoading: boolean;
     data?: {
       clusterId: number;
       clusterType: string;
       currentVersion: string;
-      moduleName: string;
       moduleId: number;
+      moduleName: string;
     };
-    targetVersion?: string;
-    targetPackage?: number;
+    isLoading: boolean;
     targetModule?: number;
+    targetPackage?: number;
+    targetVersion?: string;
   }
 
-  interface Emits {
-    (e: 'module-change', value: string): void;
-  }
+  type Emits = (e: 'module-change', value: string) => void;
 
   interface Exposes {
     getValue: () => Promise<{
-      pkg_id: number;
       display_info: {
-        target_version: string;
         target_package: string;
+        target_version: string;
       };
+      pkg_id: number;
     }>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     data: undefined,
-    targetVersion: undefined,
-    targetPackage: undefined,
-    targetModule: undefined,
     isLocal: true,
+    targetModule: undefined,
+    targetPackage: undefined,
+    targetVersion: undefined,
   });
   const emits = defineEmits<Emits>();
 
@@ -137,8 +135,8 @@
 
   const packageRules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('版本包文件不能为空'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 
@@ -270,11 +268,11 @@
   defineExpose<Exposes>({
     getValue() {
       return packageSelectRef.value!.getValue().then(() => ({
-        pkg_id: localPackage.value as number,
         display_info: {
-          target_version: localVersion.value,
           target_package: packageSelectList.value.find((item) => item.id === localPackage.value)?.name || '',
+          target_version: localVersion.value,
         },
+        pkg_id: localPackage.value as number,
       }));
     },
   });

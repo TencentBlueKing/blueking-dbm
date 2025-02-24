@@ -88,7 +88,7 @@
   const verticalScroll = ref();
   const horizontalScrollbar = ref();
 
-  const { state: boxState, initState } = useBoxState();
+  const { initState, state: boxState } = useBoxState();
 
   const { isContentScroll, mouseenter: handleContentMouseenter, mouseleave: handleContentMouseleave } = useContent();
 
@@ -104,7 +104,7 @@
   const handleCalcScroller = _.throttle(initState, 100);
   // 内容区滚动
   const handleContentScroll = _.throttle((event) => {
-    const { scrollTop, scrollLeft } = event.target;
+    const { scrollLeft, scrollTop } = event.target;
     if (isContentScroll.value && verticalScroll.value) {
       verticalScroll.value.scrollTo(0, scrollTop);
     }
@@ -131,6 +131,7 @@
   });
 
   defineExpose({
+    boxState,
     getScroll: () => {
       const { scrollLeft, scrollTop } = scrollContent.value;
       return {
@@ -143,7 +144,6 @@
       verticalScroll.value?.scrollTo(0, scrollTop);
       horizontalScrollbar.value?.scrollTo(scrollLeft, 0);
     },
-    boxState,
   });
 </script>
 <style lang="less">

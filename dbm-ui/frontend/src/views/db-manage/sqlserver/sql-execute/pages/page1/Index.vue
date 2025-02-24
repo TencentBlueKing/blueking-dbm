@@ -88,10 +88,10 @@
   const { rootId } = route.query as { rootId: string | undefined };
 
   const createDefaultData = () => ({
+    backup: [],
     charset: 'GBK',
     cluster_ids: [],
     execute_objects: [],
-    backup: [],
     ticket_mode: {
       mode: 'manual',
       trigger_time: '',
@@ -108,18 +108,18 @@
   const formData = reactive(createDefaultData());
 
   useTicketCloneInfo({
-    type: TicketTypes.SQLSERVER_IMPORT_SQLFILE,
     onSuccess(cloneData) {
       Object.assign(formData, {
+        backup: cloneData.backup,
         charset: cloneData.charset,
         cluster_ids: cloneData.cluster_ids,
         execute_objects: cloneData.execute_objects,
-        backup: cloneData.backup,
         ticket_mode: cloneData.ticket_mode,
       });
       remark.value = cloneData.remark;
       uploadFilePath.value = cloneData.path;
     },
+    type: TicketTypes.SQLSERVER_IMPORT_SQLFILE,
   });
 
   // 模拟执行日志重新修改
@@ -132,10 +132,10 @@
     manual: !rootId,
     onSuccess(semanticData) {
       Object.assign(formData, {
+        backup: semanticData.backup,
         charset: semanticData.charset,
         cluster_ids: semanticData.cluster_ids,
         execute_objects: semanticData.execute_objects,
-        backup: semanticData.backup,
         ticket_mode: semanticData.ticket_mode,
       });
       uploadFilePath.value = semanticData.path;
@@ -151,11 +151,11 @@
       .then(() =>
         createTicket({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          ticket_type: TicketTypes.SQLSERVER_IMPORT_SQLFILE,
-          remark: remark.value,
           details: {
             ...formData,
           },
+          remark: remark.value,
+          ticket_type: TicketTypes.SQLSERVER_IMPORT_SQLFILE,
         }).then(() => {
           window.changeConfirm = false;
           router.push({

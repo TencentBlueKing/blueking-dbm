@@ -30,24 +30,22 @@
 
   import TextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
 
-  import DemandInfo, {
-    type DemandInfoConfig,
-  } from '../components/DemandInfo.vue';
+  import DemandInfo, { type DemandInfoConfig } from '../components/DemandInfo.vue';
 
   import TargetClusterPreview from './components/TargetClusterPreview.vue';
 
   interface Props {
-    ticketDetails: TicketModel<Mongodb.AuthorizeRules>
+    ticketDetails: TicketModel<Mongodb.AuthorizeRules>;
   }
 
   type dataItem = {
-    username: string,
+    isExpand: boolean;
     rule_sets: {
-      db: string
-      privileges: string[]
-    }[],
-    isExpand: boolean
-  }
+      db: string;
+      privileges: string[];
+    }[];
+    username: string;
+  };
 
   const props = defineProps<Props>();
 
@@ -60,65 +58,61 @@
 
   // 是否是添加授权
   const isAddAuth = props.ticketDetails.ticket_type === TicketTypes.MONGODB_AUTHORIZE_RULES;
-  const ruleList = (props.ticketDetails.details?.authorize_data || [])
-    .reduce((prevRuleList, authorizeItem) => [...prevRuleList, {
-      username: authorizeItem.username,
-      rule_sets: authorizeItem.rule_sets,
-      isExpand: true,
-    }], [] as dataItem[]);
+  const ruleList = (props.ticketDetails.details?.authorize_data || []).reduce(
+    (prevRuleList, authorizeItem) => [
+      ...prevRuleList,
+      {
+        isExpand: true,
+        rule_sets: authorizeItem.rule_sets,
+        username: authorizeItem.username,
+      },
+    ],
+    [] as dataItem[],
+  );
   const clusterIds = props.ticketDetails.details.authorize_data?.[0].cluster_ids || [];
   const excelUrl = props.ticketDetails.details?.excel_url;
 
   let config: DemandInfoConfig[] = [];
   const columns = [
     {
-      label: t('账号名称'),
       field: 'user',
+      label: t('账号名称'),
       render: ({ data }: { data: dataItem }) => (
-          <div
-            class="mongo-permission-cell"
-            onClick={ () => handleToggleExpand(data) }>
-            {
-              data.rule_sets.length > 1 && (
-                <db-icon
-                  type="down-shape"
-                  class={[
-                  'user-icon',
-                  { 'user-icon-expand': data.isExpand },
-                  ]} />
-              )
-            }
-            {
-              <div class="user-name">
-                { data.username }
-              </div>
-            }
-          </div>
-        ),
-    },
-    {
-      label: t('访问DB'),
-      field: 'access_db',
-      render: ({ data }: { data: dataItem }) => (
-        getRenderList(data).map(rule => (
-          <div class="mongo-permission-cell">
-            <bk-tag>{ rule.db }</bk-tag>
-          </div>
-        ))
+        <div
+          class='mongo-permission-cell'
+          onClick={() => handleToggleExpand(data)}>
+          {data.rule_sets.length > 1 && (
+            <db-icon
+              class={['user-icon', { 'user-icon-expand': data.isExpand }]}
+              type='down-shape'
+            />
+          )}
+          {<div class='user-name'>{data.username}</div>}
+        </div>
       ),
     },
     {
-      label: t('权限'),
+      field: 'access_db',
+      label: t('访问DB'),
+      render: ({ data }: { data: dataItem }) =>
+        getRenderList(data).map((rule) => (
+          <div class='mongo-permission-cell'>
+            <bk-tag>{rule.db}</bk-tag>
+          </div>
+        )),
+    },
+    {
       field: 'privilege',
-      render: ({ data }: { data: dataItem }) => (
-        getRenderList(data).map(rule => (
-          <div class="mongo-permission-cell">
+      label: t('权限'),
+      render: ({ data }: { data: dataItem }) =>
+        getRenderList(data).map((rule) => (
+          <div class='mongo-permission-cell'>
             <TextEllipsisOneLine
               text={rule.privileges.join('，')}
-              textStyle={{ color: '#63656e' }}/>
+              textStyle={{ color: '#63656e' }}
+            />
           </div>
-        ))
-      ),
+        )),
     },
   ];
 
@@ -132,23 +126,24 @@
               render: () => (
                 <>
                   <bk-button
+                    theme='primary'
                     text
-                    theme="primary"
                     onClick={handleTargetCluster}>
                     <strong>{clusterIds.length}</strong>
                   </bk-button>
-                  <span>{ t('个') }</span>
+                  <span>{t('个')}</span>
                 </>
               ),
             },
             {
-              label: t('权限明细'),
               isTable: true,
+              label: t('权限明细'),
               render: () => (
                 <db-original-table
-                  class="mongo-permission-table"
+                  class='mongo-permission-table'
                   columns={columns}
-                  data={ruleList} />
+                  data={ruleList}
+                />
               ),
             },
           ],
@@ -162,18 +157,20 @@
           {
             label: t('Excel文件'),
             render: () => (
-              <div class="excel-link">
+              <div class='excel-link'>
                 <db-icon
-                  color="#2dcb56"
+                  class='mr-6'
+                  color='#2dcb56'
+                  type='excel'
                   svg
-                  type="excel"
-                  class="mr-6"/>
+                />
                 <a href={excelUrl}>
-                  { t('批量授权文件') }
+                  {t('批量授权文件')}
                   <db-icon
-                    class="ml-6"
+                    class='ml-6'
+                    type='import'
                     svg
-                    type="import" />
+                  />
                 </a>
               </div>
             ),

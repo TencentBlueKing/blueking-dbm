@@ -56,26 +56,26 @@
   import RenderIgnoreDbName from './RenderIgnoreDbName.vue';
 
   export interface IDataRow {
-    rowKey: string;
     dbnames: string[];
     ignore_dbnames: string[];
-    sql_files: string[];
     import_mode: ComponentProps<typeof RenderSql>['importMode'];
+    rowKey: string;
+    sql_files: string[];
   }
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
-    rowKey: random(),
     dbnames: data.dbnames || [],
     ignore_dbnames: data.ignore_dbnames || [],
-    sql_files: data.sql_files || [],
     import_mode: data.import_mode || 'manual',
+    rowKey: random(),
+    sql_files: data.sql_files || [],
   });
 
   interface Props {
+    clusterVersionList: string[];
     data: IDataRow;
     removeable: boolean;
-    clusterVersionList: string[];
   }
   interface Emits {
     (e: 'add' | 'change', params: IDataRow): void;
@@ -114,10 +114,10 @@
 
   watch([localDbnames, localIgnoreDbnames, localSqlFiles], () => {
     emits('change', {
-      rowKey: props.data.rowKey,
       dbnames: localDbnames.value,
       ignore_dbnames: localIgnoreDbnames.value,
       import_mode: localImportMode.value,
+      rowKey: props.data.rowKey,
       sql_files: localSqlFiles.value,
     });
   });

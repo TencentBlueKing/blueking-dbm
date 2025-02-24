@@ -18,176 +18,176 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
-    name: 'serviceApply',
-    path: 'service-apply',
-    meta: {
-      navName: t('服务申请'),
-    },
-    redirect: {
-      name: 'serviceApplyIndex',
-    },
     children: [
       {
-        name: 'serviceApplyIndex',
-        path: 'index',
         component: () => import('@views/service-apply/index/Index.vue'),
         meta: {
           navName: t('服务申请'),
         },
+        name: 'serviceApplyIndex',
+        path: 'index',
       },
       {
-        name: 'SelfServiceApplySingle',
-        path: 'single',
+        component: () => import('@views/db-manage/mysql/apply/ApplyMySQL.vue'),
         meta: {
           navName: t('申请MySQL单节点部署'),
         },
-        component: () => import('@views/db-manage/mysql/apply/ApplyMySQL.vue'),
+        name: 'SelfServiceApplySingle',
+        path: 'single',
       },
       {
-        name: 'SelfServiceApplyHa',
-        path: 'ha',
+        component: () => import('@views/db-manage/mysql/apply/ApplyMySQL.vue'),
         meta: {
           navName: t('申请MySQL主从部署'),
         },
-        component: () => import('@views/db-manage/mysql/apply/ApplyMySQL.vue'),
+        name: 'SelfServiceApplyHa',
+        path: 'ha',
       },
       {
-        name: 'spiderApply',
-        path: 'tendbcluster',
+        component: () => import('@views/db-manage/tendb-cluster/apply/Index.vue'),
         meta: {
           navName: t('申请TendbCluster分布式集群部署'),
         },
-        component: () => import('@views/db-manage/tendb-cluster/apply/Index.vue'),
+        name: 'spiderApply',
+        path: 'tendbcluster',
       },
       {
-        name: 'SelfServiceApplyRedis',
-        path: 'redis',
+        component: () => import('@views/db-manage/redis/apply/ApplyRedis.vue'),
         meta: {
           navName: t('申请Redis集群部署'),
         },
-        component: () => import('@views/db-manage/redis/apply/ApplyRedis.vue'),
+        name: 'SelfServiceApplyRedis',
+        path: 'redis',
       },
       {
-        name: 'SelfServiceApplyRedisHa',
-        path: 'redis-ha',
+        component: () => import('@views/db-manage/redis/apply-ha/Index.vue'),
         meta: {
           navName: t('申请 Redis 主从部署'),
         },
-        component: () => import('@views/db-manage/redis/apply-ha/Index.vue'),
+        name: 'SelfServiceApplyRedisHa',
+        path: 'redis-ha',
       },
       {
-        name: 'EsApply',
-        path: 'es',
+        component: () => import('@views/db-manage/elastic-search/apply/Index.vue'),
         meta: {
           navName: t('申请ES集群部署'),
         },
-        component: () => import('@views/db-manage/elastic-search/apply/Index.vue'),
+        name: 'EsApply',
+        path: 'es',
       },
       {
-        name: 'KafkaApply',
-        path: 'kafka',
+        component: () => import('@views/db-manage/kafka/apply/Index.vue'),
         meta: {
           navName: t('申请Kafka集群部署'),
         },
-        component: () => import('@views/db-manage/kafka/apply/Index.vue'),
+        name: 'KafkaApply',
+        path: 'kafka',
       },
       {
-        name: 'HdfsApply',
-        path: 'hdfs',
+        component: () => import('@views/db-manage/hdfs/apply/Index.vue'),
         meta: {
           navName: t('申请HDFS集群部署'),
         },
-        component: () => import('@views/db-manage/hdfs/apply/Index.vue'),
+        name: 'HdfsApply',
+        path: 'hdfs',
       },
       {
-        name: 'PulsarApply',
-        path: 'pulsar',
+        component: () => import('@views/db-manage/pulsar/apply/index.vue'),
         meta: {
           navName: t('申请Pulsar集群部署'),
         },
-        component: () => import('@views/db-manage/pulsar/apply/index.vue'),
+        name: 'PulsarApply',
+        path: 'pulsar',
       },
       {
-        name: 'SelfServiceApplyInfluxDB',
-        path: 'influxdb',
+        component: () => import('@views/db-manage/influxdb/apply/index.vue'),
         meta: {
           navName: t('申请InfluxDB集群部署'),
         },
-        component: () => import('@views/db-manage/influxdb/apply/index.vue'),
+        name: 'SelfServiceApplyInfluxDB',
+        path: 'influxdb',
       },
       {
-        name: 'RiakApply',
-        path: 'riak',
+        component: () => import('@views/db-manage/riak/apply/Index.vue'),
         meta: {
           navName: t('申请Riak集群部署'),
         },
-        component: () => import('@views/db-manage/riak/apply/Index.vue'),
+        name: 'RiakApply',
+        path: 'riak',
       },
       {
-        name: 'MongoDBSharedClusterApply',
-        path: 'mongodb-shared-cluster-apply',
+        component: () => import('@views/db-manage/mongodb/shared-cluster-apply/Index.vue'),
         meta: {
           navName: t('申请MongoDB分片集群部署'),
         },
-        component: () => import('@views/db-manage/mongodb/shared-cluster-apply/Index.vue'),
+        name: 'MongoDBSharedClusterApply',
+        path: 'mongodb-shared-cluster-apply',
       },
       {
-        name: 'MongoDBReplicaSetApply',
-        path: 'mongodb-replica-set-apply',
+        component: () => import('@views/db-manage/mongodb/replica-set-apply/Index.vue'),
         meta: {
           navName: t('申请MongoDB副本集部署'),
         },
-        component: () => import('@views/db-manage/mongodb/replica-set-apply/Index.vue'),
+        name: 'MongoDBReplicaSetApply',
+        path: 'mongodb-replica-set-apply',
       },
       {
-        name: 'DorisApply',
-        path: 'doris',
+        component: () => import('@views/db-manage/doris/apply/Index.vue'),
         meta: {
           navName: t('申请Doris集群部署'),
         },
-        component: () => import('@views/db-manage/doris/apply/Index.vue'),
+        name: 'DorisApply',
+        path: 'doris',
       },
       {
-        name: 'SelfServiceCreateDbModule',
-        path: 'create-db-module/:type/:bk_biz_id/',
+        component: () => import('@views/service-apply/create-db-module/Index.vue'),
         meta: {
           navName: t('新建模块'),
         },
-        component: () => import('@views/service-apply/create-db-module/Index.vue'),
+        name: 'SelfServiceCreateDbModule',
+        path: 'create-db-module/:type/:bk_biz_id/',
       },
       {
-        name: 'SelfServiceBindDbModule',
-        path: 'bind-db-module/:type/:bk_biz_id/:db_module_id',
+        component: () => import('@views/service-apply/create-db-module/Index.vue'),
         meta: {
           navName: t('绑定配置'),
         },
-        component: () => import('@views/service-apply/create-db-module/Index.vue'),
+        name: 'SelfServiceBindDbModule',
+        path: 'bind-db-module/:type/:bk_biz_id/:db_module_id',
       },
       {
-        name: 'SqlServiceSingleApply',
-        path: 'sqlserver-single',
+        component: () => import('@views/db-manage/sqlserver/apply/SqlServer.vue'),
         meta: {
           navName: t('申请SQLServer单节点部署'),
         },
-        component: () => import('@views/db-manage/sqlserver/apply/SqlServer.vue'),
+        name: 'SqlServiceSingleApply',
+        path: 'sqlserver-single',
       },
       {
-        name: 'SqlServiceHaApply',
-        path: 'sqlserver-ha',
+        component: () => import('@views/db-manage//sqlserver/apply/SqlServer.vue'),
         meta: {
           navName: t('申请SQLServer主从部署'),
         },
-        component: () => import('@views/db-manage//sqlserver/apply/SqlServer.vue'),
+        name: 'SqlServiceHaApply',
+        path: 'sqlserver-ha',
       },
       {
-        name: 'SqlServerCreateDbModule',
-        path: 'sqlserver-create-db-module/:ticketType/:bizId/',
+        component: () => import('@views/service-apply/create-db-module/SqlServerCreateDbModule.vue'),
         meta: {
           navName: t('新建模块'),
         },
-        component: () => import('@views/service-apply/create-db-module/SqlServerCreateDbModule.vue'),
+        name: 'SqlServerCreateDbModule',
+        path: 'sqlserver-create-db-module/:ticketType/:bizId/',
       },
     ],
+    meta: {
+      navName: t('服务申请'),
+    },
+    name: 'serviceApply',
+    path: 'service-apply',
+    redirect: {
+      name: 'serviceApplyIndex',
+    },
   },
 ];
 
