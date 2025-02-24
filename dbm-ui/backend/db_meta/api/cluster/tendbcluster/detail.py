@@ -12,7 +12,8 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext as _
 
 from backend.db_meta.api.cluster.base.graph import Graphic, Group, LineLabel, Node
-from backend.db_meta.enums import InstanceRole, TenDBClusterSpiderRole
+from backend.db_meta.api.cluster.tendbcluster.handler import TenDBClusterClusterHandler
+from backend.db_meta.enums import TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
 
 
@@ -36,16 +37,29 @@ def scan_cluster(cluster: Cluster) -> Graphic:
 
         return spider_insts, spider_group
 
-    def build_spider_remote_relations(role, spider_group, remote_group_name):
+    def _get_or_create_group(instances, group_name):
+        """辅助函数：创建或获取组"""
+        if not instances:
+            raise ValueError(f"No instances provided for group {group_name}.")
+        return graph.get_or_create_group(group_id=Node.generate_node_type(instances[0]), group_name=group_name)
+
+    def _add_nodes_to_group(instances, group):
+        """辅助函数：将实例添加到组中"""
+        for inst in instances:
+            graph.add_node(inst, group)
+
+    def add_remote_nodes(cluster):
         """获取remote节点，并跟相应的spider建立关系"""
+        remote_db, remote_dr = TenDBClusterClusterHandler.get_remote_infos(cluster.storages)
+        # 创建或获取 RemoteDB 和 RemoteDR 组
+        db_group = _get_or_create_group(remote_db, "RemoteDB")
+        dr_group = _get_or_create_group(remote_dr, "RemoteDR")
 
-        remote_insts, remote_group = graph.add_instance_nodes(
-            cluster=cluster, roles=role, group_name=remote_group_name
-        )
-        if spider_group:
-            graph.add_line(source=spider_group, target=remote_group, label=LineLabel.Access)
+        # 将实例添加到相应的组中
+        _add_nodes_to_group(remote_db, db_group)
+        _add_nodes_to_group(remote_dr, dr_group)
 
-        return remote_insts, remote_group
+        return db_group, dr_group
 
     graph = Graphic(node_id=Graphic.generate_graphic_id(cluster))
 
@@ -68,14 +82,16 @@ def scan_cluster(cluster: Cluster) -> Graphic:
     if spider_master_group and spider_slave_group:
         graph.add_line(source=spider_master_group, target=spider_slave_group, label=LineLabel.Access)
 
-    # 建立spider master与remote db的关系
-    __, remote_db_group = build_spider_remote_relations(
-        InstanceRole.REMOTE_MASTER, spider_group=spider_master_group, remote_group_name=_("RemoteDB")
-    )
-    # 建立spider slave与remote dr的关系
-    __, remote_dr_group = build_spider_remote_relations(
-        InstanceRole.REMOTE_SLAVE, spider_group=spider_slave_group, remote_group_name=_("RemoteDR")
-    )
+    # 按master/slave组分片数排序
+    remote_db_group, remote_dr_group = add_remote_nodes(cluster)
+
+    # 建立spider_master和remote db的关系
+    if spider_master_group:
+        graph.add_line(source=spider_master_group, target=remote_db_group, label=LineLabel.Access)
+
+    # 建立spider_master和remote dr的关系
+    if spider_slave_group:
+        graph.add_line(source=spider_master_group, target=remote_dr_group, label=LineLabel.Access)
 
     # 建立remote dr与remote db的数据同步关系
     graph.add_line(source=remote_db_group, target=remote_dr_group, label=LineLabel.Rep)

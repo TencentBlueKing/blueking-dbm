@@ -7,6 +7,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from collections import defaultdict
 from typing import List, Optional
 
 from django.db import transaction
@@ -26,7 +27,7 @@ from backend.db_meta.enums import (
     TenDBClusterSpiderRole,
 )
 from backend.db_meta.exceptions import InstanceNotExistException
-from backend.db_meta.models import Cluster, ClusterEntry, ProxyInstance, StorageInstanceTuple
+from backend.db_meta.models import Cluster, ClusterEntry, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum, TenDBBackUpLocation
 from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version, get_spider_real_version
@@ -324,3 +325,23 @@ class TenDBClusterClusterHandler(ClusterHandler):
         ).all()
         for ce in clusterentry:
             ce.delete(keep_parents=True)
+
+    @staticmethod
+    def get_remote_infos(insts: List[StorageInstance]):
+        """获取remote信息，并补充分片信息"""
+        remote_infos = defaultdict(list)
+        for inst in insts:
+            try:
+                related = "as_ejector" if inst.instance_inner_role == InstanceInnerRole.MASTER else "as_receiver"
+                shard_id = getattr(inst, related).all()[0].tendbclusterstorageset.shard_id
+            except Exception:
+                # 如果无法找到shard_id，则默认为-1。有可能实例处于restoring状态(比如集群容量变更时)
+                shard_id = -1
+
+            setattr(inst, "shard_id", shard_id)
+            remote_infos[inst.instance_role].append(inst)
+
+        master_infos = sorted(remote_infos[InstanceRole.REMOTE_MASTER.value], key=lambda x: getattr(x, "shard_id", -1))
+        slave_infos = sorted(remote_infos[InstanceRole.REMOTE_SLAVE.value], key=lambda x: getattr(x, "shard_id", -1))
+
+        return master_infos, slave_infos
