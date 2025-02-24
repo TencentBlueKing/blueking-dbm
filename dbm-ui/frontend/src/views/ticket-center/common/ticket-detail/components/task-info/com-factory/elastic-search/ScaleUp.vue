@@ -25,10 +25,10 @@
     ticketDetails: TicketModel<Doris.ScaleUp>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.DORIS_SCALE_UP,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

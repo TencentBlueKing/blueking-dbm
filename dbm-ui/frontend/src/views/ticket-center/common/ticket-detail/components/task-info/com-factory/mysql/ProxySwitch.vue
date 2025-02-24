@@ -72,12 +72,12 @@
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.MYSQL_PROXY_SWITCH,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 

@@ -10,9 +10,9 @@
     data: FlowMode<unknown>['todos'][number];
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: FlowMode.TODO_STATUS_DONE_SUCCESS,
   });
+
+  defineProps<Props>();
 </script>

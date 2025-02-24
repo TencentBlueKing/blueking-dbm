@@ -12,10 +12,10 @@
     ticketDetails: TicketModel<Mysql.OpenArea>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.MYSQL_OPEN_AREA,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

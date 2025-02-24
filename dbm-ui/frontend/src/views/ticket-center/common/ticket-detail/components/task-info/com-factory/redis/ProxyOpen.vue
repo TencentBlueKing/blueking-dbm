@@ -25,10 +25,10 @@
     ticketDetails: TicketModel<Redis.ProxyOpen>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.REDIS_PROXY_OPEN,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

@@ -38,12 +38,12 @@
     ticketDetails: TicketModel<Redis.DataStructureTaskDelete>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.REDIS_DATA_STRUCTURE_TASK_DELETE,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 
   const { t } = useI18n();
 </script>

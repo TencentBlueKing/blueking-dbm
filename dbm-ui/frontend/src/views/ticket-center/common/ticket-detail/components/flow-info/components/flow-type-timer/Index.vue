@@ -16,12 +16,12 @@
     }>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: FlowMode.TYPE_TIMER,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const statusModule = Object.assign({}, FlowTypeCommon, {
     [FlowMode.STATUS_RUNNING]: StatusRunning,

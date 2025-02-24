@@ -25,10 +25,10 @@
     ticketDetails: TicketModel<Pulsar.ScaleUp>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.PULSAR_SCALE_UP,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

@@ -25,10 +25,10 @@
     ticketDetails: TicketModel<Kafka.Destroy>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.KAFKA_DESTROY,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

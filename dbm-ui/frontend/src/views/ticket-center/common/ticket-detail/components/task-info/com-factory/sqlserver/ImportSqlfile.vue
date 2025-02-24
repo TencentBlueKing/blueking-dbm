@@ -26,10 +26,10 @@
     ticketDetails: TicketModel<Sqlserver.ImportSqlFile>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.SQLSERVER_IMPORT_SQLFILE,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

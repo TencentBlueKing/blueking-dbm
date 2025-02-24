@@ -21,6 +21,15 @@ import { useUserProfile } from '@stores';
 import { UserPersonalSettings } from '@common/const';
 
 export const useGlobalBizs = defineStore('GlobalBizs', {
+  state: () => ({
+    bizs: [] as BizItem[],
+    currentBizId: 0,
+    isError: false,
+    loading: false,
+  }),
+  getters: {
+    currentBizInfo: (state): BizItem | undefined => state.bizs.find((item) => item.bk_biz_id === state.currentBizId),
+  },
   actions: {
     changeBizId(id: number) {
       this.currentBizId = id;
@@ -92,13 +101,4 @@ export const useGlobalBizs = defineStore('GlobalBizs', {
       this.bizs = payload;
     },
   },
-  getters: {
-    currentBizInfo: (state): BizItem | undefined => state.bizs.find((item) => item.bk_biz_id === state.currentBizId),
-  },
-  state: () => ({
-    bizs: [] as BizItem[],
-    currentBizId: 0,
-    isError: false,
-    loading: false,
-  }),
 });

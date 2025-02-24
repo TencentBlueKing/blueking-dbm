@@ -28,12 +28,12 @@
     ticketDetails: TicketModel<Redis.VersionUpdateOnline>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.REDIS_VERSION_UPDATE_ONLINE,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 

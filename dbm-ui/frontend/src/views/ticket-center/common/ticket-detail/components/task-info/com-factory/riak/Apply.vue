@@ -127,12 +127,11 @@
     ticketDetails: TicketModel<Riak.Apply>;
   }
 
-  const props = defineProps<Props>();
   defineOptions({
     name: TicketTypes.RIAK_CLUSTER_APPLY,
     inheritAttrs: false,
   });
-
+  const props = defineProps<Props>();
   const { t } = useI18n();
 
   const isFromResourcePool = props.ticketDetails.details.ip_source === 'resource_pool';

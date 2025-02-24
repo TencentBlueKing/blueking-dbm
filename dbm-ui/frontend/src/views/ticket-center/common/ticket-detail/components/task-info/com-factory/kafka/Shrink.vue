@@ -25,10 +25,10 @@
     ticketDetails: TicketModel<Kafka.Shrink>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.KAFKA_SHRINK,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

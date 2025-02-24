@@ -28,12 +28,12 @@
     ticketDetails: TicketModel<Dumper.SwitchNodes>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.TBINLOGDUMPER_SWITCH_NODES,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 

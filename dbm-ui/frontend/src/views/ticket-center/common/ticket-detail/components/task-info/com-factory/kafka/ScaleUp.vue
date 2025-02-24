@@ -25,10 +25,10 @@
     ticketDetails: TicketModel<Kafka.ScaleUp>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.KAFKA_SCALE_UP,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

@@ -28,12 +28,12 @@
     ticketDetails: TicketModel<Mongodb.TemporaryDestroy>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.MONGODB_TEMPORARY_DESTROY,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 

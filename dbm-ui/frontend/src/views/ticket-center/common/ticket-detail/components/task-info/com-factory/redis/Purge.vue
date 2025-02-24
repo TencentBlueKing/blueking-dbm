@@ -31,12 +31,12 @@
     ticketDetails: TicketModel<Redis.Purge>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.REDIS_PURGE,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 

@@ -28,12 +28,12 @@
     ticketDetail: TicketModel<unknown>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: FlowMode.TYPE_BK_ITSM,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const statusModule = Object.assign({}, FlowTypeCommon, {
     [FlowMode.STATUS_FAILED]: StatusFailed,

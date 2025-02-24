@@ -48,11 +48,11 @@
     ticketDetail: TicketModel<unknown>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: FlowMode.STATUS_RUNNING,
   });
+
+  defineProps<Props>();
 
   const { t } = useI18n();
 </script>

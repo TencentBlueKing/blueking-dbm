@@ -21,12 +21,12 @@
     ticketDetails: TicketModel<Mysql.HaRenameDatabase>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.MYSQL_HA_RENAME_DATABASE,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 
   const { t } = useI18n();
 </script>

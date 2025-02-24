@@ -44,11 +44,11 @@
     ticketDetails: TicketModel<Doris.Apply>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.DORIS_APPLY,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
   const { AFFINITY: affinityList } = useSystemEnviron().urls;

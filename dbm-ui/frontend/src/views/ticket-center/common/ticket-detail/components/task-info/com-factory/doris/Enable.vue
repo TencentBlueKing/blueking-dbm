@@ -25,10 +25,10 @@
     ticketDetails: TicketModel<Doris.Enable>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.DORIS_ENABLE,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

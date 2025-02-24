@@ -41,11 +41,11 @@
     ticketDetail: TicketModel;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: FlowMode.STATUS_FAILED,
   });
+
+  defineProps<Props>();
 
   const { t } = useI18n({
     useScope: 'global',

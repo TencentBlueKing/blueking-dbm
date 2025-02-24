@@ -25,10 +25,10 @@
     ticketDetails: TicketModel<Riak.ScaleIn>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.RIAK_CLUSTER_SCALE_IN,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

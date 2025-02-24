@@ -62,12 +62,12 @@
     ticketDetails: TicketModel<Redis.KeysExtract>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.REDIS_KEYS_EXTRACT,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 
   type IRowData = Props['ticketDetails']['details']['rules'][number];
 

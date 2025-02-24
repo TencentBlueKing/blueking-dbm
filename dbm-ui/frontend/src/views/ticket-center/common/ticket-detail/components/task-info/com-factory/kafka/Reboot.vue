@@ -31,12 +31,12 @@
     ticketDetails: TicketModel<Kafka.Reboot>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.KAFKA_REBOOT,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 

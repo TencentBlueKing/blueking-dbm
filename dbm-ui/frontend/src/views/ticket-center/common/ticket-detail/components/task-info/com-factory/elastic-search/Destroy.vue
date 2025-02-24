@@ -25,10 +25,10 @@
     ticketDetails: TicketModel<Es.Destroy>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.ES_DESTROY,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

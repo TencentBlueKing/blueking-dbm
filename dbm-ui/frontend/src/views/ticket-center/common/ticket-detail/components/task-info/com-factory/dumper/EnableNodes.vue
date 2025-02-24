@@ -25,10 +25,10 @@
     ticketDetails: TicketModel<Dumper.EnableNodes>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.TBINLOGDUMPER_ENABLE_NODES,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

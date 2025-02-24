@@ -12,10 +12,10 @@
     ticketDetails: TicketModel<TendbCluster.DumpData>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.TENDBCLUSTER_DUMP_DATA,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

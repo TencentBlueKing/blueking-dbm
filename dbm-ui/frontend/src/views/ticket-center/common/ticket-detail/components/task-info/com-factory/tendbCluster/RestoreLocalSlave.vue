@@ -47,12 +47,12 @@
     ticketDetails: TicketModel<TendbCluster.RestoreLocalSlave>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 
   const { t } = useI18n();
 

@@ -70,12 +70,12 @@
 
   type RowData = Props['ticketDetails']['details']['infos'][0];
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.REDIS_DATACOPY_CHECK_REPAIR,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 
   const { t } = useI18n();
 

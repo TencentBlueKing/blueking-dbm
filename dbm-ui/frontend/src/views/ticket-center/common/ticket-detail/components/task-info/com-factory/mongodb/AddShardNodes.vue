@@ -37,12 +37,12 @@
     ticketDetails: TicketModel<Mongodb.AddShardNodes>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.MONGODB_ADD_SHARD_NODES,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 

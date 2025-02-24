@@ -34,12 +34,12 @@
     ticketDetails: TicketModel<Redis.InsApply>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.REDIS_INS_APPLY,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
   const { affinity } = useAffinity(props.ticketDetails);

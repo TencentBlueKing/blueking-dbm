@@ -28,12 +28,12 @@
     ticketDetails: TicketModel<Mongodb.Cutoff>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.MONGODB_CUTOFF,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 

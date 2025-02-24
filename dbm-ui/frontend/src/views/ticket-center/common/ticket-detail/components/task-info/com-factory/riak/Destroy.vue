@@ -25,10 +25,10 @@
     ticketDetails: TicketModel<Riak.Destroy>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.RIAK_CLUSTER_DESTROY,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

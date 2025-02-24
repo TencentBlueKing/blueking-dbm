@@ -30,12 +30,12 @@
     ticketDetails: TicketModel<Pulsar.Replace>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.PULSAR_REPLACE,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 

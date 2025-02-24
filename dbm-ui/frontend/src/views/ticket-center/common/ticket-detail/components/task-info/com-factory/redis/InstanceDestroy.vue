@@ -25,10 +25,10 @@
     ticketDetails: TicketModel<Redis.InstanceDestroy>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.REDIS_INSTANCE_DESTROY,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

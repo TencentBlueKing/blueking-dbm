@@ -63,16 +63,16 @@
     data: FlowMode<unknown, any>;
   }
 
+  defineOptions({
+    name: FlowMode.STATUS_RUNNING,
+  });
+
   defineProps<Props>();
 
   defineSlots<{
     content: () => VNode;
     title: () => VNode;
   }>();
-
-  defineOptions({
-    name: FlowMode.STATUS_RUNNING,
-  });
 
   const { t } = useI18n();
 </script>

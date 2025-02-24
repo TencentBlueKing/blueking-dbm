@@ -46,11 +46,11 @@
     flowData: FlowMode<unknown>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: FlowMode.TODO_STATUS_DONE_FAILED,
   });
+
+  defineProps<Props>();
 
   const { t } = useI18n();
 </script>

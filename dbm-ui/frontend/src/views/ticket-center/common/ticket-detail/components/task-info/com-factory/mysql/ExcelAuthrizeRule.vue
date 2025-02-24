@@ -12,10 +12,10 @@
     ticketDetails: TicketModel<Mysql.AuthorizeRules>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.MYSQL_EXCEL_AUTHORIZE_RULES,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

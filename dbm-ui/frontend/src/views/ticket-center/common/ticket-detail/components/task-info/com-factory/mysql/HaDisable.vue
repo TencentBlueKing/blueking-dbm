@@ -13,10 +13,10 @@
     ticketDetails: TicketModel<Mysql.HaDisable>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.MYSQL_HA_DISABLE,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

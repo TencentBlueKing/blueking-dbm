@@ -35,12 +35,12 @@
     ticketDetails: TicketModel<TendbCluster.SpiderSlaveDestroy>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_DESTROY,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 

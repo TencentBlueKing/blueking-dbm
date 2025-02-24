@@ -26,10 +26,10 @@
     ticketDetails: TicketModel<TendbCluster.Disable>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.TENDBCLUSTER_DISABLE,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

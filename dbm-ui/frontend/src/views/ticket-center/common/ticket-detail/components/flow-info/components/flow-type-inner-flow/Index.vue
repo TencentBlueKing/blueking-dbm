@@ -20,12 +20,12 @@
     ticketDetail: TicketModel;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: FlowMode.TYPE_INNER_FLOW,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const statusModule = Object.assign({}, FlowTypeCommon, {
     [FlowMode.STATUS_FAILED]: StatusFailed,

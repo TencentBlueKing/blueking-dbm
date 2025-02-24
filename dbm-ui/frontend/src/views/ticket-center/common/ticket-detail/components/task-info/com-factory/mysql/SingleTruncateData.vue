@@ -12,10 +12,10 @@
     ticketDetails: TicketModel<Mysql.TruncateData>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

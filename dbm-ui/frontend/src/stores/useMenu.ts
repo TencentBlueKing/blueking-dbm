@@ -16,6 +16,20 @@ import { defineStore } from 'pinia';
 import { getTicketsCount } from '@services/source/ticket';
 
 export const useMenu = defineStore('useMenu', {
+  state: () => ({
+    hoverCollapsed: true,
+    menuCountMap: {
+      tickets: 0,
+      todos: 0,
+    },
+    toggleCollapsed: false,
+  }),
+  getters: {
+    // 切换展开/收起
+    collapsed: (state) => state.toggleCollapsed && state.hoverCollapsed,
+    // 处于 hover 展开
+    isHover: (state) => state.toggleCollapsed && state.hoverCollapsed === false,
+  },
   actions: {
     fetchTicketsCount() {
       getTicketsCount({ count_type: 'MY_APPROVE' }).then((count = 0) => {
@@ -44,18 +58,4 @@ export const useMenu = defineStore('useMenu', {
       this.fetchTodosCount();
     },
   },
-  getters: {
-    // 切换展开/收起
-    collapsed: (state) => state.toggleCollapsed && state.hoverCollapsed,
-    // 处于 hover 展开
-    isHover: (state) => state.toggleCollapsed && state.hoverCollapsed === false,
-  },
-  state: () => ({
-    hoverCollapsed: true,
-    menuCountMap: {
-      tickets: 0,
-      todos: 0,
-    },
-    toggleCollapsed: false,
-  }),
 });

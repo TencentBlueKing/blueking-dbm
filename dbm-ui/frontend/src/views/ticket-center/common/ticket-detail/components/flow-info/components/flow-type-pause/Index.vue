@@ -25,12 +25,12 @@
     data: FlowMode<unknown>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: FlowMode.TYPE_PAUSE,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const statusModule = Object.assign({}, FlowTypeCommon, {
     [FlowMode.STATUS_FAILED]: StatusFailed,

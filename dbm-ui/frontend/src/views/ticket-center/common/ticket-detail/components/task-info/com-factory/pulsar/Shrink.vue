@@ -25,10 +25,10 @@
     ticketDetails: TicketModel<Pulsar.Shrink>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.PULSAR_SHRINK,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

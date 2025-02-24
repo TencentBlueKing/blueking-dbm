@@ -113,12 +113,12 @@
     ticketDetails: TicketModel<TendbCluster.RollbackCluster>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 
   const { t } = useI18n();
 

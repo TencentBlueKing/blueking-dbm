@@ -23,12 +23,12 @@
     ticketDetail: TicketModel;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: FlowMode.TYPE_DESCRIBE_TASK,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const statusModule = Object.assign({}, FlowTypeCommon, {
     [FlowMode.STATUS_SUCCEEDED]: StatusSucceeded,

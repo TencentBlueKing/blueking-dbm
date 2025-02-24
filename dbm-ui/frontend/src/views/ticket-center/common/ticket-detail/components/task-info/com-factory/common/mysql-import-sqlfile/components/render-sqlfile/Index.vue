@@ -80,11 +80,12 @@
     wholeFileList: string[];
   }
   const props = defineProps<Props>();
-  const { t } = useI18n();
-
   const isShow = defineModel<boolean>('isShow', {
     default: false,
   });
+
+  const { t } = useI18n();
+
   const localSelectFileName = ref('');
   const fileContentMap = shallowRef<Record<string, string>>({});
 

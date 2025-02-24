@@ -188,8 +188,9 @@ export default defineConfigWithVueTs(
         },
       ],
     },
-    ignores: ['**/**/routes.ts'],
+    ignores: ['**/**/routes.ts', 'src/stores/*'],
   },
+  // 格式化 vue router 的配置顺序
   {
     plugins: {
       perfectionist,
@@ -220,6 +221,35 @@ export default defineConfigWithVueTs(
             {
               groupName: 'children',
               elementNamePattern: 'children',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  // 格式化 vue store 的配置顺序
+  {
+    plugins: {
+      perfectionist,
+    },
+    files: ['src/stores/*'],
+    rules: {
+      'perfectionist/sort-objects': [
+        'error',
+        {
+          groups: ['state', 'getters', 'actions', 'unknown'],
+          customGroups: [
+            {
+              groupName: 'state',
+              elementNamePattern: 'state',
+            },
+            {
+              groupName: 'getters',
+              elementNamePattern: 'getters',
+            },
+            {
+              groupName: 'actions',
+              elementNamePattern: 'actions',
             },
           ],
         },

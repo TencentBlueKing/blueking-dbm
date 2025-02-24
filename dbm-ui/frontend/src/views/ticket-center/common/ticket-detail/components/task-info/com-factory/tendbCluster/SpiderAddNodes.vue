@@ -54,12 +54,12 @@
     ticketDetails: TicketModel<TendbCluster.SpiderAddNodes>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 
   const { t } = useI18n();
 

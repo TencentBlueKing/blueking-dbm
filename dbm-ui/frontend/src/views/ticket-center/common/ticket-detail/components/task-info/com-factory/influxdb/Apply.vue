@@ -54,7 +54,7 @@
           <span
             v-if="getServiceNums() > 0"
             class="host-nums"
-            @click="handleShowPreview()">
+            @click="handleShowPreview">
             <a href="javascript:">{{ getServiceNums() }}</a>
             {{ $t('台') }}
           </span>
@@ -114,12 +114,11 @@
     ticketDetails: TicketModel<Influxdb.Apply>;
   }
 
-  const props = defineProps<Props>();
   defineOptions({
     name: TicketTypes.INFLUXDB_APPLY,
     inheritAttrs: false,
   });
-
+  const props = defineProps<Props>();
   const { t } = useI18n();
   const { AFFINITY: affinityList } = useSystemEnviron().urls;
 

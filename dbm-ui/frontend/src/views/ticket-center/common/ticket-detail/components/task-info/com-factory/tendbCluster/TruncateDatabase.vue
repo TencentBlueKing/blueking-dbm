@@ -12,10 +12,10 @@
     ticketDetails: TicketModel<TendbCluster.TruncateData>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

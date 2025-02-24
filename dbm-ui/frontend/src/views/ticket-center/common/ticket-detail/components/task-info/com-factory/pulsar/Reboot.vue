@@ -31,12 +31,12 @@
     ticketDetails: TicketModel<Pulsar.Reboot>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.PULSAR_REBOOT,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 

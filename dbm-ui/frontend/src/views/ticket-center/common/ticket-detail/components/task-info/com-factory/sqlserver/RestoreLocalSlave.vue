@@ -39,14 +39,14 @@
     ticketDetails: TicketModel<Sqlserver.RestoreLocalSlave>;
   }
 
-  defineProps<Props>();
-
-  type RowData = Props['ticketDetails']['details']['infos'][number];
-
   defineOptions({
     name: TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
+
+  type RowData = Props['ticketDetails']['details']['infos'][number];
 
   const { t } = useI18n();
 </script>

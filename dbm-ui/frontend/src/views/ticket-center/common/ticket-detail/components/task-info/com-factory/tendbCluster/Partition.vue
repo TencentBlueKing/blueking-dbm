@@ -12,10 +12,10 @@
     ticketDetails: TicketModel<Mysql.Partition>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.TENDBCLUSTER_PARTITION,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

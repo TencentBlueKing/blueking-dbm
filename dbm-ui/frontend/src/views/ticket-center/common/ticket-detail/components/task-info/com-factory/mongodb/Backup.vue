@@ -41,12 +41,12 @@
     ticketDetails: TicketModel<Mongodb.Backup>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.MONGODB_BACKUP,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 

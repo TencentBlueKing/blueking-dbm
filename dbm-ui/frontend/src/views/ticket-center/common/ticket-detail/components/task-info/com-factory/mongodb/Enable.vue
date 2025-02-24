@@ -12,10 +12,10 @@
     ticketDetails: TicketModel<Mongodb.Enable>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.MONGODB_ENABLE,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>
