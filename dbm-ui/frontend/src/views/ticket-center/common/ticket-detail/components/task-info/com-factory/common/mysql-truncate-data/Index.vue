@@ -13,12 +13,17 @@
 
 <template>
   <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn :label="t('集群')">
+    <BkTableColumn
+      fixed="left"
+      :label="t('集群')"
+      :min-width="250">
       <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('清档类型')">
+    <BkTableColumn
+      :label="t('清档类型')"
+      :width="220">
       <template #default="{ data }: { data: RowData }">
         {{ truncateDataTypes[data.truncate_data_type as keyof typeof truncateDataTypes] }}
       </template>
@@ -47,6 +52,13 @@
   <InfoList>
     <InfoItem :label="t('安全模式:')">
       {{ !ticketDetails.details.infos[0].force ? t('是') : t('否') }}
+    </InfoItem>
+    <InfoItem :label="t('删除备份库时间:')">
+      {{
+        ticketDetails.details.clear_mode?.mode === 'timer'
+          ? `${ticketDetails.details.clear_mode.days}${t('天')}`
+          : t('手动')
+      }}
     </InfoItem>
   </InfoList>
 </template>

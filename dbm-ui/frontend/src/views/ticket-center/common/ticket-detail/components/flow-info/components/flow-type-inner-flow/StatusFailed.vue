@@ -90,11 +90,11 @@
     ticketDetail: TicketModel<unknown>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: FlowMode.STATUS_FAILED,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
   const { isSuperuser, username } = useUserProfile();

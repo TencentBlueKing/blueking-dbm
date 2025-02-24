@@ -50,11 +50,11 @@
     >;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: FlowMode.STATUS_SUCCEEDED,
   });
+
+  defineProps<Props>();
 
   const { t } = useI18n();
 </script>
