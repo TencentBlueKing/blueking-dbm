@@ -16,6 +16,7 @@ from backend.flow.engine.bamboo.scene.common.download_dbactor import DownloadDba
 from backend.flow.engine.bamboo.scene.common.download_file import DownloadFileFlow
 from backend.flow.engine.bamboo.scene.common.transfer_cluster_to_other_biz import TransferMySQLClusterToOtherBizFlow
 from backend.flow.engine.bamboo.scene.mysql.dbconsole import DbConsoleDumpSqlFlow
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.flow import MySQLStandardizeFlow
 from backend.flow.engine.bamboo.scene.mysql.import_sqlfile_flow import ImportSQLFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_authorize_rules import MySQLAuthorizeRulesFlows
 from backend.flow.engine.bamboo.scene.mysql.mysql_checksum import MysqlChecksumFlow
@@ -45,7 +46,6 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_cluster_add import MySQL
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_cluster_reduce import MySQLProxyClusterReduceFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_cluster_switch import MySQLProxyClusterSwitchFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_upgrade import MySQLProxyLocalUpgradeFlow
-from backend.flow.engine.bamboo.scene.mysql.mysql_push_peripheral_config import MySQLPushPeripheralConfigFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_random_password import MySQLRandomizePassword
 from backend.flow.engine.bamboo.scene.mysql.mysql_rename_database_flow import MySQLRenameDatabaseFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_restore_slave_remote_flow import MySQLRestoreSlaveRemoteFlow
@@ -660,14 +660,6 @@ class MySQLController(BaseController):
         flow = TransferMySQLClusterToOtherBizFlow(root_id=self.root_id, data=self.ticket_data)
         flow.transfer_to_other_biz_flow()
 
-    def push_peripheral_config_scene(self):
-        """
-        下发周边配置
-        """
-
-        flow = MySQLPushPeripheralConfigFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.push_config()
-
     def non_standby_slaves_upgrade_scene(self):
         """
         非Standby从库升级
@@ -702,3 +694,7 @@ class MySQLController(BaseController):
         """
         flow = MySQLProxyClusterReduceFlow(root_id=self.root_id, data=self.ticket_data)
         flow.reduce_mysql_proxy_flow()
+
+    def cluster_standardize(self):
+        flow = MySQLStandardizeFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.doit()

@@ -13,6 +13,7 @@ package mysqlcmd
 
 import (
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd"
+	v2 "dbm-services/mysql/db-tools/dbactuator/internal/subcmd/mysqlcmd/v2"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/templates"
 
 	"github.com/spf13/cobra"
@@ -77,14 +78,19 @@ func NewMysqlCommand() *cobra.Command {
 				NewRenameDBsInUsingCommand(),
 				NewRenamePreDropToOnRemoteCommand(),
 				//NewPushBackupClientConfigCommand(),
-				NewPushChecksumConfigCommand(),
-				NewPushMySQLMonitorConfigCommand(),
-				NewPushNewDbBackupConfigCommand(),
-				NewPushMySQLRotateBinlogConfigCommand(),
-				NewPushMySQLCrondConfigCommand(),
+
+				//NewPushMySQLCrondConfigCommand(),
 				ChangeServerIdCommand(),
 				GoFlashbackBinlogCommand(),
 				NewFastExecuteSqlActCommand(),
+				// v2
+				v2.NewPreparePeripheralToolsBinaryCommand(),
+				v2.NewPushMySQLCrondConfigCommand(),
+				v2.NewPushMySQLMonitorConfigCommand(),
+				v2.NewPushNewDbBackupConfigCommand(),
+				v2.NewPushMySQLRotateBinlogConfigCommand(),
+				v2.NewPushChecksumConfigCommand(),
+				v2.NewPushExporterCnfCommand(),
 			},
 		},
 		{

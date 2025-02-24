@@ -1,32 +1,32 @@
-package mysqlcmd
+package proxycmd
 
 import (
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/checksum"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql_proxy"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"fmt"
 
 	"github.com/spf13/cobra"
 )
 
-type PushChecksumConfigAct struct {
+type StandardizeProxyAct struct {
 	*subcmd.BaseOptions
-	Service checksum.MySQLChecksumComp
+	Service mysql_proxy.StandardizeProxyComp
 }
 
-const PushChecksumConfig = `push-checksum-config`
+const StandardizeProxy = `standardize-proxy`
 
-func NewPushChecksumConfigCommand() *cobra.Command {
-	act := PushChecksumConfigAct{
+func NewStandardizeProxyCommand() *cobra.Command {
+	act := StandardizeProxyAct{
 		BaseOptions: subcmd.GBaseOptions,
 	}
 	cmd := &cobra.Command{
-		Use:   PushChecksumConfig,
-		Short: "推送mysql校验配置",
+		Use:   StandardizeProxy,
+		Short: "standard proxy commands",
 		Example: fmt.Sprintf(
-			`dbactuator mysql %s %s %s`,
-			PushChecksumConfig,
+			`dbactuator proxy %s %s %s`,
+			StandardizeProxy,
 			subcmd.CmdBaseExampleStr,
 			subcmd.ToPrettyJson(act.Service.Example()),
 		),
@@ -39,11 +39,11 @@ func NewPushChecksumConfigCommand() *cobra.Command {
 	return cmd
 }
 
-func (c *PushChecksumConfigAct) Validate() (err error) {
+func (c *StandardizeProxyAct) Validate() (err error) {
 	return c.BaseOptions.Validate()
 }
 
-func (c *PushChecksumConfigAct) Init() (err error) {
+func (c *StandardizeProxyAct) Init() (err error) {
 	if err = c.Deserialize(&c.Service.Params); err != nil {
 		logger.Error("DeserializeAndValidate err %s", err.Error())
 		return err
@@ -53,24 +53,20 @@ func (c *PushChecksumConfigAct) Init() (err error) {
 	return nil
 }
 
-func (c *PushChecksumConfigAct) Run() (err error) {
+func (c *StandardizeProxyAct) Run() (err error) {
 	steps := subcmd.Steps{
 		{
-			FunName: "初始化",
-			Func:    c.Service.Init,
+			FunName: "清理旧 crontab",
+			Func:    c.Service.ClearOldCrontab,
 		},
 		{
-			FunName: "生成二进制程序配置",
-			Func:    c.Service.GenerateRuntimeConfig,
-		},
-		{
-			FunName: "重载配置",
-			Func:    c.Service.AddToCrond,
+			FunName: "标准化白名单",
+			Func:    c.Service.AddUser,
 		},
 	}
 	if err := steps.Run(); err != nil {
 		return err
 	}
-	logger.Info("推送mysql校验配置完成")
+	logger.Info("标准化 proxy 完成")
 	return nil
 }

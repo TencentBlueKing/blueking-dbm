@@ -1,7 +1,7 @@
 package mysqlcmd
 
 import (
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/crond"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/v2/crond"
 	"fmt"
 
 	"dbm-services/common/go-pubpkg/logger"

@@ -25,6 +25,7 @@ type InstallNewDbBackupAct struct {
 // @Accept       json
 // @Param        body body      mysql.InstallNewDbBackupComp  true  "short description"
 // @Router       /mysql/deploy-dbbackup [post]
+// Deprecated: 老版本
 func NewInstallNewDbBackupCommand() *cobra.Command {
 	act := InstallNewDbBackupAct{
 		BaseOptions: subcmd.GBaseOptions,

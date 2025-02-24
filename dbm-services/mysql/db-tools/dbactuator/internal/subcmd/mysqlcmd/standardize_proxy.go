@@ -18,6 +18,7 @@ const (
 	StandardizeProxy = "standardize-proxy"
 )
 
+// Deprecated: 新版本在 proxycmd 下
 func NewStandardizeProxyCommand() *cobra.Command {
 	act := StandardizeProxyAct{
 		BaseOptions: subcmd.GBaseOptions,

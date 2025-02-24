@@ -1,7 +1,7 @@
 package mysqlcmd
 
 import (
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/rotatebinlog"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/v2/dbbackup"
 	"fmt"
 
 	"dbm-services/common/go-pubpkg/logger"
@@ -11,23 +11,23 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type PushMySQLRotateBinlogConfigAct struct {
+type PushNewDbBackupConfigAct struct {
 	*subcmd.BaseOptions
-	Service rotatebinlog.MySQLRotateBinlogComp
+	Service dbbackup.NewDbBackupComp
 }
 
-const PushMySQLRotatebinlogConfig = "push-mysql-rotatebinlog-config"
+const PushNewDbBackupConfig = `push-new-db-backup-config`
 
-func NewPushMySQLRotateBinlogConfigCommand() *cobra.Command {
-	act := PushMySQLRotateBinlogConfigAct{
+func NewPushNewDbBackupConfigCommand() *cobra.Command {
+	act := PushNewDbBackupConfigAct{
 		BaseOptions: subcmd.GBaseOptions,
 	}
 	cmd := &cobra.Command{
-		Use:   PushMySQLRotatebinlogConfig,
-		Short: "推送 mysql rotate binlog 配置",
+		Use:   PushNewDbBackupConfig,
+		Short: "推送GO版本备份配置",
 		Example: fmt.Sprintf(
 			`dbactuator mysql %s %s %s`,
-			PushMySQLRotatebinlogConfig,
+			PushNewDbBackupConfig,
 			subcmd.CmdBaseExampleStr,
 			subcmd.ToPrettyJson(act.Service.Example()),
 		),
@@ -40,7 +40,7 @@ func NewPushMySQLRotateBinlogConfigCommand() *cobra.Command {
 	return cmd
 }
 
-func (d *PushMySQLRotateBinlogConfigAct) Init() (err error) {
+func (d *PushNewDbBackupConfigAct) Init() (err error) {
 	if err = d.Deserialize(&d.Service.Params); err != nil {
 		logger.Error("DeserializeAndValidate err %s", err.Error())
 		return err
@@ -49,29 +49,30 @@ func (d *PushMySQLRotateBinlogConfigAct) Init() (err error) {
 	return nil
 }
 
-func (d *PushMySQLRotateBinlogConfigAct) Run() (err error) {
+func (d *PushNewDbBackupConfigAct) Run() (err error) {
 	steps := subcmd.Steps{
 		{
 			FunName: "init",
 			Func:    d.Service.Init,
 		},
 		{
-			FunName: "预检查",
-			Func:    d.Service.PreCheck,
+			FunName: "初始化待渲染配置",
+			Func:    d.Service.InitRenderData,
 		},
+
 		{
-			FunName: "渲染 config.yaml",
+			FunName: "生成配置",
 			Func:    d.Service.GenerateRuntimeConfig,
 		},
 		{
 			FunName: "重载配置",
-			Func:    d.Service.AddCrond,
+			Func:    d.Service.AddCrontab,
 		},
 	}
 
 	if err := steps.Run(); err != nil {
 		return err
 	}
-	logger.Info("push new rotate_binlog config successfully")
+	logger.Info("push new dbbackup config successfully")
 	return nil
 }

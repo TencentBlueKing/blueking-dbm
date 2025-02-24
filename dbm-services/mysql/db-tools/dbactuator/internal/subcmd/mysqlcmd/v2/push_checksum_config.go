@@ -1,33 +1,32 @@
 package mysqlcmd
 
 import (
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/monitor"
-	"fmt"
-
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/v2/checksum"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
+	"fmt"
 
 	"github.com/spf13/cobra"
 )
 
-type PushMySQLMonitorConfigAct struct {
+type PushChecksumConfigAct struct {
 	*subcmd.BaseOptions
-	Service monitor.MySQLMonitorComp
+	Service checksum.MySQLChecksumComp
 }
 
-const PushMySQLMonitorConfig = "push-mysql-monitor-config"
+const PushChecksumConfig = `push-checksum-config`
 
-func NewPushMySQLMonitorConfigCommand() *cobra.Command {
-	act := PushMySQLMonitorConfigAct{
+func NewPushChecksumConfigCommand() *cobra.Command {
+	act := PushChecksumConfigAct{
 		BaseOptions: subcmd.GBaseOptions,
 	}
 	cmd := &cobra.Command{
-		Use:   PushMySQLMonitorConfig,
-		Short: "推送mysql监控配置",
+		Use:   PushChecksumConfig,
+		Short: "推送mysql校验配置",
 		Example: fmt.Sprintf(
 			`dbactuator mysql %s %s %s`,
-			PushMySQLMonitorConfig,
+			PushChecksumConfig,
 			subcmd.CmdBaseExampleStr,
 			subcmd.ToPrettyJson(act.Service.Example()),
 		),
@@ -40,11 +39,11 @@ func NewPushMySQLMonitorConfigCommand() *cobra.Command {
 	return cmd
 }
 
-func (c *PushMySQLMonitorConfigAct) Validate() (err error) {
+func (c *PushChecksumConfigAct) Validate() (err error) {
 	return c.BaseOptions.Validate()
 }
 
-func (c *PushMySQLMonitorConfigAct) Init() (err error) {
+func (c *PushChecksumConfigAct) Init() (err error) {
 	if err = c.Deserialize(&c.Service.Params); err != nil {
 		logger.Error("DeserializeAndValidate err %s", err.Error())
 		return err
@@ -54,7 +53,7 @@ func (c *PushMySQLMonitorConfigAct) Init() (err error) {
 	return nil
 }
 
-func (c *PushMySQLMonitorConfigAct) Run() (err error) {
+func (c *PushChecksumConfigAct) Run() (err error) {
 	steps := subcmd.Steps{
 		{
 			FunName: "初始化",
@@ -65,14 +64,6 @@ func (c *PushMySQLMonitorConfigAct) Run() (err error) {
 			Func:    c.Service.GenerateRuntimeConfig,
 		},
 		{
-			FunName: "生成监控项配置",
-			Func:    c.Service.GenerateItemsConfig,
-		},
-		{
-			FunName: "生成exporter配置文件",
-			Func:    c.Service.GenerateExporterConfig,
-		},
-		{
 			FunName: "重载配置",
 			Func:    c.Service.AddToCrond,
 		},
@@ -80,6 +71,6 @@ func (c *PushMySQLMonitorConfigAct) Run() (err error) {
 	if err := steps.Run(); err != nil {
 		return err
 	}
-	logger.Info("推送mysql监控配置完成")
+	logger.Info("推送mysql校验配置完成")
 	return nil
 }

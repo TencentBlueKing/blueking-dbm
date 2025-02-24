@@ -29,6 +29,10 @@ from backend.flow.plugins.components.collections.mysql.clone_proxy_user_in_clust
 )
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.mysql.generate_mysql_cluster_standardize_flow import (
+    GenerateMySQLClusterStandardizeFlowComponent,
+    GenerateMySQLClusterStandardizeFlowService,
+)
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import (
@@ -118,6 +122,8 @@ class MySQLProxyClusterAddFlow(object):
         mysql_proxy_cluster_add_pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_pipelines = []
 
+        cluster_ids = []
+
         # 多集群操作时循环加入集群proxy下架子流程
         for info in self.data["infos"]:
 
@@ -161,13 +167,6 @@ class MySQLProxyClusterAddFlow(object):
                 ),
             )
 
-            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_deploy_mysql_crond_payload.__name__
-            sub_pipeline.add_act(
-                act_name=_("部署mysql-crond"),
-                act_component_code=ExecuteDBActuatorScriptComponent.code,
-                kwargs=asdict(exec_act_kwargs),
-            )
-
             exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_proxy_payload.__name__
             sub_pipeline.add_act(
                 act_name=_("部署proxy实例"),
@@ -178,6 +177,8 @@ class MySQLProxyClusterAddFlow(object):
             # 阶段2 根据需要添加的proxy的集群，依次添加
             add_proxy_sub_list = []
             for cluster_id in info["cluster_ids"]:
+                if cluster_id not in cluster_ids:
+                    cluster_ids.append(cluster_id)
 
                 # 拼接子流程需要全局参数
                 sub_sub_flow_context = copy.deepcopy(self.data)
@@ -263,16 +264,22 @@ class MySQLProxyClusterAddFlow(object):
             )
 
             exec_act_kwargs.exec_ip = info["proxy_ip"]["ip"]
-            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_deploy_mysql_monitor_payload.__name__
-            sub_pipeline.add_act(
-                act_name=_("Proxy安装mysql-monitor"),
-                act_component_code=ExecuteDBActuatorScriptComponent.code,
-                kwargs=asdict(exec_act_kwargs),
-            )
 
             sub_pipelines.append(
                 sub_pipeline.build_sub_process(sub_name=_("添加proxy子流程[{}]".format(info["proxy_ip"]["ip"])))
             )
 
         mysql_proxy_cluster_add_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+
+        gp = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+        gp.add_act(
+            act_name=_("生成标准化单据"),
+            act_component_code=GenerateMySQLClusterStandardizeFlowComponent.code,
+            kwargs={
+                "trans_func": GenerateMySQLClusterStandardizeFlowService.generate_from_cluster_ids.__name__,
+                "cluster_ids": cluster_ids,
+            },
+        )
+        mysql_proxy_cluster_add_pipeline.add_sub_pipeline(sub_flow=gp.build_sub_process(sub_name=_("生成标准化单据")))
+
         mysql_proxy_cluster_add_pipeline.run_pipeline()

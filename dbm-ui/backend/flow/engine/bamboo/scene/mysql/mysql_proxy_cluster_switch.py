@@ -35,6 +35,10 @@ from backend.flow.plugins.components.collections.mysql.drop_proxy_client_in_back
     DropProxyUsersInBackendComponent,
 )
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.mysql.generate_mysql_cluster_standardize_flow import (
+    GenerateMySQLClusterStandardizeFlowComponent,
+    GenerateMySQLClusterStandardizeFlowService,
+)
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import (
@@ -164,14 +168,6 @@ class MySQLProxyClusterSwitchFlow(object):
                 ),
             )
 
-            # 阶段2 部署mysql-crond
-            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_deploy_mysql_crond_payload.__name__
-            sub_pipeline.add_act(
-                act_name=_("部署mysql-crond"),
-                act_component_code=ExecuteDBActuatorScriptComponent.code,
-                kwargs=asdict(exec_act_kwargs),
-            )
-
             exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_proxy_payload.__name__
             sub_pipeline.add_act(
                 act_name=_("部署proxy实例"),
@@ -284,12 +280,15 @@ class MySQLProxyClusterSwitchFlow(object):
                 ),
             )
 
-            # 阶段3 新的proxy添加事件监控
-            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_deploy_mysql_monitor_payload.__name__
+            # 不能放在最后
+            # 不然一直不点确认就不会安装监控, 有危险
             sub_pipeline.add_act(
-                act_name=_("Proxy安装mysql-monitor"),
-                act_component_code=ExecuteDBActuatorScriptComponent.code,
-                kwargs=asdict(exec_act_kwargs),
+                act_name=_("生成标准化单据"),
+                act_component_code=GenerateMySQLClusterStandardizeFlowComponent.code,
+                kwargs={
+                    "trans_func": GenerateMySQLClusterStandardizeFlowService.generate_from_cluster_ids.__name__,
+                    "cluster_ids": list(set(info["cluster_ids"])),
+                },
             )
 
             # 阶段4 后续流程需要在这里加一个暂停节点，让用户在合适的时间执行下架旧实例操作
@@ -339,6 +338,18 @@ class MySQLProxyClusterSwitchFlow(object):
             )
 
         mysql_proxy_cluster_add_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+
+        # gp = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+        # gp.add_act(
+        #     act_name=_("生成标准化单据"),
+        #     act_component_code=GenerateMySQLClusterStandardizeFlowComponent.code,
+        #     kwargs={
+        #         "trans_func": GenerateMySQLClusterStandardizeFlowService.generate_from_cluster_ids.__name__,
+        #         "cluster_ids": cluster_ids,
+        #     },
+        # )
+        # mysql_proxy_cluster_add_pipeline.add_sub_pipeline(sub_flow=gp.build_sub_process(sub_name=_("生成标准化单据")))
+
         mysql_proxy_cluster_add_pipeline.run_pipeline()
 
     def proxy_reduce_sub_flow(self, cluster_id: int, bk_cloud_id: int, origin_proxy_ip: str, origin_proxy_port: int):

@@ -21,6 +21,7 @@ type InstallMysqlRotateBinlogAct struct {
 const CommandDeployMysqlRotatebinlog = "deploy-mysql-rotatebinlog"
 
 // NewInstallRotateBinlogCommand TODO
+// Deprecated: 老版本
 func NewInstallRotateBinlogCommand() *cobra.Command {
 	act := InstallMysqlRotateBinlogAct{
 		BaseOptions: subcmd.GBaseOptions,
