@@ -58,9 +58,7 @@
     <InfoItem
       :label="t('集群设置：')"
       style="width: 100%">
-      <BkTable
-        :data="ticketDetails.details.domains"
-        :show-overflow="false">
+      <BkTable :data="ticketDetails.details.domains">
         <BkTableColumn
           field="master"
           fixed="left"
@@ -89,12 +87,8 @@
           field="backend"
           :label="t('服务器')"
           :min-width="180">
-          <template
-            v-for="host in ticketDetails.details.nodes.backend"
-            :key="host.bk_host_id">
-            <div>
-              {{ host.ip }}
-            </div>
+          <template #default="{ rowIndex }">
+            {{ ticketDetails.details.nodes.backend[rowIndex].ip }}
           </template>
         </BkTableColumn>
       </BkTable>
@@ -116,12 +110,12 @@
     ticketDetails: TicketModel<Mysql.SingleApply>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.MYSQL_SINGLE_APPLY,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 
   const { t } = useI18n();
 </script>
