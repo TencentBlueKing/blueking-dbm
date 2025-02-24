@@ -357,7 +357,7 @@
     const limitTypes = ['mysql', 'mysql-proxy'];
     if (limitTypes.includes(state.active)) {
       return {
-        accept: '.tar.gz',
+        accept: '.tar.gz,.tar.xz',
         tips: t('支持上传tar_gz压缩格式文件_文件大小不超过1GB'),
       };
     }
@@ -420,7 +420,7 @@
     const filename = fileObj.name;
     const limitTypes = ['mysql', 'mysql-proxy'];
     if (limitTypes.includes(state.active)) {
-      if (!filename.endsWith('tar.gz')) {
+      if (!filename.endsWith('tar.gz') && !filename.endsWith('tar.xz')) {
         return;
       }
     }
