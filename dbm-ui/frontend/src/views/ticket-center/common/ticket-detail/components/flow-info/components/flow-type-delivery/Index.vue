@@ -34,12 +34,12 @@
 
   type MySQLImportSQLFileTicekt = TicketModel<Mysql.ImportSqlFile>;
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: FlowMode.TYPE_DELIVERY,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const renderCom = FlowTypeCommon[props.data.status] || '';
 </script>

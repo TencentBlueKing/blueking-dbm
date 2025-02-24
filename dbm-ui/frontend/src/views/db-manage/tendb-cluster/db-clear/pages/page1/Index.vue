@@ -44,6 +44,19 @@
           </BkCheckbox>
         </div>
       </div>
+      <BkForm
+        class="mt-24"
+        form-type="vertical">
+        <BkFormItem
+          :label="t('删除备份库时间')"
+          required>
+          <BkRadioGroup v-model="clearMode">
+            <BkRadio :label="7">{{ t('7天后') }}</BkRadio>
+            <BkRadio :label="15">{{ t('15天后') }}</BkRadio>
+            <BkRadio label="manual">{{ t('手动') }}</BkRadio>
+          </BkRadioGroup>
+        </BkFormItem>
+      </BkForm>
       <TicketRemark v-model="remark" />
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
@@ -112,6 +125,7 @@
   const isSafe = ref(false);
   const isSubmitting = ref(false);
   const tableData = ref<Array<IDataRow>>([createRowData({})]);
+  const clearMode = ref<7 | 15 | 'manual'>(7);
   const remark = ref('');
 
   const selectedClusters = shallowRef<{ [key: string]: Array<TendbclusterModel> }>({ [ClusterTypes.TENDBCLUSTER]: [] });
@@ -220,10 +234,22 @@
     try {
       isSubmitting.value = true;
       const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
+      const clearModelParams = {};
+      if (clearMode.value === 'manual') {
+        Object.assign(clearModelParams, {
+          model: 'manual',
+        });
+      } else {
+        Object.assign(clearModelParams, {
+          days: clearMode.value,
+          model: 'timer',
+        });
+      }
 
       await createTicket({
         bk_biz_id: currentBizId,
         details: {
+          clear_mode: clearModelParams,
           infos: infos.map((item) =>
             Object.assign(item, {
               force: !isSafe.value,
@@ -271,6 +297,12 @@
         padding-bottom: 2px;
         border-bottom: 1px dashed #979ba5;
       }
+    }
+
+    .bk-form-label {
+      font-size: 12px;
+      font-weight: bold;
+      color: #313238;
     }
   }
 </style>

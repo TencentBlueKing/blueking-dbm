@@ -67,12 +67,12 @@
     ticketDetail: TicketModel<unknown>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: FlowMode.STATUS_SUCCEEDED,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 
   const { t } = useI18n();
 </script>

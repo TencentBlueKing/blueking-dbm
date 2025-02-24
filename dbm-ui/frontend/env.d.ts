@@ -11,7 +11,6 @@
  * the specific language governing permissions and limitations under the License.
  */
 
- 
 /// <reference types="vite/client" />
 interface ImportMetaEnv {
   readonly MODE: string;
@@ -86,18 +85,18 @@ type KeyExpand<T> = {
 type LeftIsExtendsRightReturnValue<L, R, V> = L extends R ? never : V;
 
 declare interface Window {
+  BKApp: App<Element>;
   changeConfirm: boolean | 'popover';
   clipboardData: {
     getData: (params: string) => string;
-  };
-  PROJECT_ENV: {
-    VITE_PUBLIC_PATH: string;
-    VITE_AJAX_URL_PREFIX: string;
-    VITE_ROUTER_PERFIX: string;
   };
   PROJECT_CONFIG: {
     BIZ_ID: number;
     TICKET_DETAIL_REQUEST_CONTROLLER: AbortController;
   };
-  BKApp: App<Element>;
+  PROJECT_ENV: {
+    VITE_AJAX_URL_PREFIX: string;
+    VITE_PUBLIC_PATH: string;
+    VITE_ROUTER_PERFIX: string;
+  };
 }

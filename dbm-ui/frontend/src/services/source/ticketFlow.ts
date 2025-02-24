@@ -20,10 +20,8 @@ const path = '/apis/tickets';
 /**
  * 获取单据流程
  */
-export function getTicketFlows(params: { id: number }) {
-  return http
-    .get<FlowMode<unknown>[]>(`${path}/${params.id}/flows/`)
-    .then((data) => data.map((item) => new FlowMode(item)));
+export function getTicketFlows<D = unknown>(params: { id: number }) {
+  return http.get<FlowMode<D>[]>(`${path}/${params.id}/flows/`).then((data) => data.map((item) => new FlowMode(item)));
 }
 
 // 单据终止

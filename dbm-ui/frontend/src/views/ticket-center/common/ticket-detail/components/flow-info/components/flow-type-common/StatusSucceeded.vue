@@ -47,6 +47,7 @@
   </DbTimeLineItem>
 </template>
 <script setup lang="ts">
+  import { type VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import FlowMode from '@services/model/ticket/flow';
@@ -59,8 +60,13 @@
   import TodoList from '../todo-list/Index.vue';
 
   interface Props {
-    data: FlowMode<unknown, any>;
+    data: FlowMode;
   }
+
+  defineOptions({
+    name: FlowMode.STATUS_SUCCEEDED,
+    inheritAttrs: false,
+  });
 
   defineProps<Props>();
 
@@ -69,10 +75,6 @@
     contentPreppend: () => VNode;
     title: () => VNode;
   }>();
-
-  defineOptions({
-    name: FlowMode.STATUS_SUCCEEDED,
-  });
 
   const { t } = useI18n({
     useScope: 'global',
