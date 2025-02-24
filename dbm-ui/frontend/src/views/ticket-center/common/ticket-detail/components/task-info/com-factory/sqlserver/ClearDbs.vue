@@ -67,12 +67,12 @@
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.SQLSERVER_CLEAR_DBS,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 
   const { t } = useI18n();
 

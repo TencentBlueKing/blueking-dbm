@@ -154,12 +154,11 @@
     ticketDetails: TicketModel<Kafka.Apply>;
   }
 
-  const props = defineProps<Props>();
   defineOptions({
     name: TicketTypes.KAFKA_APPLY,
     inheritAttrs: false,
   });
-
+  const props = defineProps<Props>();
   const { t } = useI18n();
   const { AFFINITY: affinityList } = useSystemEnviron().urls;
 

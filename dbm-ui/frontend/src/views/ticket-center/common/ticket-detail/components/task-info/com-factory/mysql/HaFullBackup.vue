@@ -54,12 +54,12 @@
     file_tag: Mysql.HaFullBackup['file_tag'];
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.MYSQL_HA_FULL_BACKUP,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 

@@ -54,12 +54,12 @@
 
   type RowData = Props['ticketDetails']['details']['rules'][number];
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.REDIS_BACKUP,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 
   const { t } = useI18n();
 

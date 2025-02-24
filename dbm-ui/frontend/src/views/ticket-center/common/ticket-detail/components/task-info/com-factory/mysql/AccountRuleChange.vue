@@ -12,10 +12,10 @@
     ticketDetails: TicketModel<Mysql.AccountRuleChange>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.MYSQL_ACCOUNT_RULE_CHANGE,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

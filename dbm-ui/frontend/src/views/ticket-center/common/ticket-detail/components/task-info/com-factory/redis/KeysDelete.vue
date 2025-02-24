@@ -60,12 +60,12 @@
     ticketDetails: TicketModel<Redis.KeysDelete>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.REDIS_KEYS_DELETE,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 
   type IRowData = Props['ticketDetails']['details']['rules'][number];
 

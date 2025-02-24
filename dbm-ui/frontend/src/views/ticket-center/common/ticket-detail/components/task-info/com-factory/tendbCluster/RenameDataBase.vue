@@ -56,12 +56,12 @@
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.TENDBCLUSTER_RENAME_DATABASE,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 
   const { t } = useI18n();
 </script>

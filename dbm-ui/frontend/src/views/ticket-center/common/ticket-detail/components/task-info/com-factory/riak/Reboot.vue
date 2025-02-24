@@ -30,12 +30,12 @@
     ticketDetails: TicketModel<Riak.Reboot>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.RIAK_CLUSTER_REBOOT,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 

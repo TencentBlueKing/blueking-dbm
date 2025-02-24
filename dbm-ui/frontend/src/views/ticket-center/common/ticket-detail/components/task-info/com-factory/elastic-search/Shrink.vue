@@ -25,10 +25,10 @@
     ticketDetails: TicketModel<Es.Shrink>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.ES_SHRINK,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

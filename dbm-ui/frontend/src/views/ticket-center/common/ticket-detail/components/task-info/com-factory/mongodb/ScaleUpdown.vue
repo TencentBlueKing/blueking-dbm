@@ -28,12 +28,12 @@
     ticketDetails: TicketModel<Mongodb.ScaleUpdown>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.MONGODB_SCALE_UPDOWN,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 

@@ -30,12 +30,12 @@
     ticketDetails: TicketModel<Hdfs.Replace>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.HDFS_REPLACE,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 

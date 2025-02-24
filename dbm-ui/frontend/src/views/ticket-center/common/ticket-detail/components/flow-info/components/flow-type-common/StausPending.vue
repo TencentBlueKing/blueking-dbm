@@ -16,13 +16,13 @@
     data: FlowMode<unknown>;
   }
 
+  defineOptions({
+    name: FlowMode.STATUS_PENDING,
+  });
+
   defineProps<Props>();
 
   defineSlots<{
     title: () => VNode;
   }>();
-
-  defineOptions({
-    name: FlowMode.STATUS_PENDING,
-  });
 </script>

@@ -84,16 +84,16 @@
     ticketDetail: TicketModel<unknown>;
   }
 
+  defineOptions({
+    name: FlowMode.STATUS_FAILED,
+  });
+
   const props = defineProps<Props>();
 
   defineSlots<{
     content: () => VNode;
     title: () => VNode;
   }>();
-
-  defineOptions({
-    name: FlowMode.STATUS_FAILED,
-  });
 
   const { t } = useI18n();
   const { isSuperuser, username } = useUserProfile();

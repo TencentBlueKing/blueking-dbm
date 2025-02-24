@@ -79,12 +79,12 @@
     ticketDetails: TicketModel<TendbCluster.NodeRebalance>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.TENDBCLUSTER_NODE_REBALANCE,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 

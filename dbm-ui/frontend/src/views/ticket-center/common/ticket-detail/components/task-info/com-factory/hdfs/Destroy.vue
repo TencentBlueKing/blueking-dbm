@@ -25,10 +25,10 @@
     ticketDetails: TicketModel<Hdfs.Destroy>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.HDFS_DESTROY,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

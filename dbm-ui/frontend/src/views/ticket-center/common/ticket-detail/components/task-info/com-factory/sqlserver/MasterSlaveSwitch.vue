@@ -49,14 +49,14 @@
     ticketDetails: TicketModel<Sqlserver.MasterSlaveSwitch>;
   }
 
-  defineProps<Props>();
-
-  type RowData = Props['ticketDetails']['details']['infos'][number];
-
   defineOptions({
     name: TicketTypes.SQLSERVER_MASTER_SLAVE_SWITCH,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
+
+  type RowData = Props['ticketDetails']['details']['infos'][number];
 
   const { t } = useI18n();
 </script>

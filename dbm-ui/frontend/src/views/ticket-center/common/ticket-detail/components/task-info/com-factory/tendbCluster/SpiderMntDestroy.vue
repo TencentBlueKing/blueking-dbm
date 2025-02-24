@@ -45,12 +45,12 @@
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.TENDBCLUSTER_SPIDER_MNT_DESTROY,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 
   const { t } = useI18n();
 </script>

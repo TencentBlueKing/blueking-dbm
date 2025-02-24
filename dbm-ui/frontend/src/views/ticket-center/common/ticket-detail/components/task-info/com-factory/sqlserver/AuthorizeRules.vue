@@ -38,12 +38,11 @@
     username: string;
   };
 
-  const props = defineProps<Props>();
   defineOptions({
     name: TicketTypes.SQLSERVER_AUTHORIZE_RULES,
     inheritAttrs: false,
   });
-
+  const props = defineProps<Props>();
   const { t } = useI18n();
 
   // 是否是添加授权

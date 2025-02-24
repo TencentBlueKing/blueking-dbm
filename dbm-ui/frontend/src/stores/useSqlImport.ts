@@ -19,14 +19,10 @@ import { grammarCheck as sqlserverGrammarCheck } from '@services/source/sqlserve
 import { DBTypes } from '@common/const';
 
 export const useSqlImport = defineStore('useSqlImport', {
-  actions: {
-    updateDbType(dbType: string) {
-      this.dbType = dbType;
-    },
-    updateUploadFilePath(uploadFilePath: string) {
-      this.uploadFilePath = uploadFilePath;
-    },
-  },
+  state: () => ({
+    dbType: '',
+    uploadFilePath: '',
+  }),
   getters: {
     grammarCheckHandle: (state) => {
       const grammarCheckMap = {
@@ -37,8 +33,12 @@ export const useSqlImport = defineStore('useSqlImport', {
       return grammarCheckMap[state.dbType as keyof typeof grammarCheckMap];
     },
   },
-  state: () => ({
-    dbType: '',
-    uploadFilePath: '',
-  }),
+  actions: {
+    updateDbType(dbType: string) {
+      this.dbType = dbType;
+    },
+    updateUploadFilePath(uploadFilePath: string) {
+      this.uploadFilePath = uploadFilePath;
+    },
+  },
 });

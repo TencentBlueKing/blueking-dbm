@@ -31,12 +31,12 @@
     ticketDetails: TicketModel<Es.Reboot>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.ES_REBOOT,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 

@@ -26,10 +26,10 @@
     ticketDetails: TicketModel<Influxdb.Reboot>;
   }
 
-  defineProps<Details>();
-
   defineOptions({
     name: TicketTypes.INFLUXDB_REBOOT,
     inheritAttrs: false,
   });
+
+  defineProps<Details>();
 </script>

@@ -25,10 +25,10 @@
     ticketDetails: TicketModel<Pulsar.Enable>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.PULSAR_ENABLE,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

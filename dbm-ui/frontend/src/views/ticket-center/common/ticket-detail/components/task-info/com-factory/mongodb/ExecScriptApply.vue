@@ -93,12 +93,12 @@
     ticketDetails: TicketModel<Mongodb.ExecScriptApply>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.MONGODB_EXEC_SCRIPT_APPLY,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   type IRowData = { id: number };
 

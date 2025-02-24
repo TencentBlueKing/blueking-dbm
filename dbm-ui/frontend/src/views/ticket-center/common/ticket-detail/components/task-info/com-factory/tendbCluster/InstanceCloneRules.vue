@@ -43,12 +43,12 @@
 
   type RowData = Props['ticketDetails']['details']['clone_data'][number];
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.TENDBCLUSTER_INSTANCE_CLONE_RULES,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 
   const { t } = useI18n();
 </script>

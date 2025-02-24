@@ -12,10 +12,10 @@
     ticketDetails: TicketModel<TendbCluster.AuthorizeRules>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.TENDBCLUSTER_EXCEL_AUTHORIZE_RULES,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

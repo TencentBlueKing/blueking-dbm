@@ -30,12 +30,12 @@
     ticketDetails: TicketModel<Kafka.Replace>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.KAFKA_REPLACE,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 

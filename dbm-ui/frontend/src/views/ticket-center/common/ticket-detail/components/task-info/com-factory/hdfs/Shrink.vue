@@ -25,10 +25,10 @@
     ticketDetails: TicketModel<Hdfs.Shrink>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.HDFS_SHRINK,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

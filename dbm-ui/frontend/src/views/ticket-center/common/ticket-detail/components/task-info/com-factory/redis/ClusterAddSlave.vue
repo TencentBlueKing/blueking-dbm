@@ -39,12 +39,12 @@
     targetNum: number;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.REDIS_CLUSTER_ADD_SLAVE,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 

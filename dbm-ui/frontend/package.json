@@ -12,7 +12,7 @@
     "type-check": "vue-tsc --build",
     "lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore",
     "lint:lint-staged": "lint-staged",
-    "lint:script": "eslint ./src/**/routes.ts --fix",
+    "lint:script": "eslint ./src/views/ticket-center/common/ticket-detail --fix",
     "lint:style": "stylelint --fix ./src/**/*.{vue,css,less} --custom-syntax",
     "lint": "run-s lint:*",
     "prettier": "prettier --write ./src"

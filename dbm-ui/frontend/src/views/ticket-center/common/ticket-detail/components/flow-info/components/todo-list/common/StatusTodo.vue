@@ -69,11 +69,11 @@
     ticketData: TicketModel;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: FlowMode.TODO_STATUS_TODO,
   });
+
+  defineProps<Props>();
 
   const { t } = useI18n();
   const { username } = useUserProfile();

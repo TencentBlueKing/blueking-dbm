@@ -44,12 +44,11 @@
     time: string;
   }
 
-  const props = defineProps<Props>();
   defineOptions({
     name: TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY,
     inheritAttrs: false,
   });
-
+  const props = defineProps<Props>();
   const { t } = useI18n();
 
   const writeTypesMap = writeTypeList.reduce(

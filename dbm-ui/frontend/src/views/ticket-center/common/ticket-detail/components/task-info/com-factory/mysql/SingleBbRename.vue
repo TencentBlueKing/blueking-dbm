@@ -12,10 +12,10 @@
     ticketDetails: TicketModel<Mysql.HaRenameDatabase>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.MYSQL_SINGLE_RENAME_DATABASE,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

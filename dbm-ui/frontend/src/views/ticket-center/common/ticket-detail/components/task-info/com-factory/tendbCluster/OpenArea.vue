@@ -12,10 +12,10 @@
     ticketDetails: TicketModel<TendbCluster.OpenArea>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.TENDBCLUSTER_OPEN_AREA,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

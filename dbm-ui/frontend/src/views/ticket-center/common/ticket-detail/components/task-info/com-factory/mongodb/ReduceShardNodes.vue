@@ -44,12 +44,12 @@
     reduce_shard_nodes: number;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.MONGODB_REDUCE_SHARD_NODES,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 

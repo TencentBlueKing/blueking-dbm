@@ -34,12 +34,12 @@
     ticketDetails: TicketModel<Mongodb.ShardApply>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.MONGODB_SHARD_APPLY,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
   const { affinity } = useAffinity(props.ticketDetails);

@@ -111,12 +111,12 @@
     ticketDetails: TicketModel<TendbCluster.CheckSum>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.TENDBCLUSTER_CHECKSUM,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 

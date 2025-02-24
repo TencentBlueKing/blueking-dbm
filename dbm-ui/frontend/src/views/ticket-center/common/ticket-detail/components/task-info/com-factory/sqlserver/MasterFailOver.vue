@@ -49,14 +49,14 @@
     ticketDetails: TicketModel<Sqlserver.MasterFailOver>;
   }
 
-  defineProps<Props>();
-
-  type RowData = Props['ticketDetails']['details']['infos'][number];
-
   defineOptions({
     name: TicketTypes.SQLSERVER_MASTER_FAIL_OVER,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
+
+  type RowData = Props['ticketDetails']['details']['infos'][number];
 
   const { t } = useI18n();
 </script>

@@ -21,6 +21,9 @@ type Urls = ServiceReturnType<typeof getSystemEnviron>;
  * 获取关联系统 url
  */
 export const useSystemEnviron = defineStore('SystemEnviron', {
+  state: (): { urls: Urls } => ({
+    urls: {} as Urls,
+  }),
   actions: {
     /**
      * 查询环境变量信息
@@ -34,7 +37,4 @@ export const useSystemEnviron = defineStore('SystemEnviron', {
       this.urls = payload;
     },
   },
-  state: (): { urls: Urls } => ({
-    urls: {} as Urls,
-  }),
 });

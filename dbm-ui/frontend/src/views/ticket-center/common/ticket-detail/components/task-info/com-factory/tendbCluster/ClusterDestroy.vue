@@ -26,10 +26,10 @@
     ticketDetails: TicketModel<TendbCluster.Destroy>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.TENDBCLUSTER_DESTROY,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

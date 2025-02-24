@@ -12,10 +12,10 @@
     ticketDetails: TicketModel<Mysql.Partition>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.MYSQL_PARTITION,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

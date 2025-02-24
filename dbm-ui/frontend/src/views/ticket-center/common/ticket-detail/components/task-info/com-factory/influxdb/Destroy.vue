@@ -26,10 +26,10 @@
     ticketDetails: TicketModel<Influxdb.Destroy>;
   }
 
-  defineProps<Details>();
-
   defineOptions({
     name: TicketTypes.INFLUXDB_DESTROY,
     inheritAttrs: false,
   });
+
+  defineProps<Details>();
 </script>

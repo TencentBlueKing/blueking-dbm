@@ -47,12 +47,12 @@
     username: string;
   };
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.MONGODB_AUTHORIZE_RULES,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 

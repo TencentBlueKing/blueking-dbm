@@ -45,12 +45,12 @@
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.SQLSERVER_ADD_SLAVE,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 
   const { t } = useI18n();
 </script>

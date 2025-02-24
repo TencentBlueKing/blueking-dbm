@@ -30,12 +30,12 @@
     ticketDetails: TicketModel<Es.Replace>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.ES_REPLACE,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 
