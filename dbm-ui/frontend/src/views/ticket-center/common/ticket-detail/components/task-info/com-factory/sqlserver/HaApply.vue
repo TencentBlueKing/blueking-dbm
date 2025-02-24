@@ -92,13 +92,24 @@
         <BkTableColumn
           v-if="ticketDetails.details.nodes?.sqlserver_ha"
           field="sqlserver_ha"
-          :label="t('服务器')"
+          label="Master / Slave IP"
           :min-width="180">
-          <template
-            v-for="host in ticketDetails.details.nodes.sqlserver_ha"
-            :key="host.bk_host_id">
+          <template #default="{ rowIndex }">
             <div>
-              {{ host.ip }}
+              <BkTag
+                size="small"
+                theme="info">
+                M
+              </BkTag>
+              {{ ticketDetails.details.nodes.sqlserver_ha[rowIndex * 2].ip }}
+            </div>
+            <div>
+              <BkTag
+                size="small"
+                theme="success">
+                S
+              </BkTag>
+              {{ ticketDetails.details.nodes.sqlserver_ha[rowIndex * 2 + 1].ip }}
             </div>
           </template>
         </BkTableColumn>
@@ -121,12 +132,12 @@
     ticketDetails: TicketModel<Sqlserver.HaApply>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.SQLSERVER_HA_APPLY,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 

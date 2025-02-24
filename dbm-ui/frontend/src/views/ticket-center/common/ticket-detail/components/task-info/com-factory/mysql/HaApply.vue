@@ -85,7 +85,9 @@
     <InfoItem
       :label="t('集群设置：')"
       style="width: 100%">
-      <BkTable :data="ticketDetails.details.domains">
+      <BkTable
+        :data="ticketDetails.details.domains"
+        :show-overflow="false">
         <BkTableColumn
           field="master"
           fixed="left"
@@ -118,17 +120,13 @@
           field="proxy"
           label="Proxy IP"
           :min-width="180">
-          <template
-            v-for="host in ticketDetails.details.nodes.proxy"
-            :key="host.bk_host_id">
-            <div>
-              <BkTag
-                size="small"
-                theme="info">
-                P
-              </BkTag>
-              {{ host.ip }}
-            </div>
+          <template #default="{ rowIndex }">
+            <BkTag
+              size="small"
+              theme="info">
+              P
+            </BkTag>
+            {{ ticketDetails.details.nodes.proxy[rowIndex].ip }}
           </template>
         </BkTableColumn>
         <BkTableColumn
@@ -136,22 +134,24 @@
           field="backend"
           label="Master / Slave IP"
           :min-width="180">
-          <div>
-            <BkTag
-              size="small"
-              theme="info">
-              M
-            </BkTag>
-            {{ ticketDetails.details.nodes.backend[0].ip }}
-          </div>
-          <div>
-            <BkTag
-              size="small"
-              theme="success">
-              S
-            </BkTag>
-            {{ ticketDetails.details.nodes.backend[1].ip }}
-          </div>
+          <template #default="{ rowIndex }">
+            <div>
+              <BkTag
+                size="small"
+                theme="info">
+                M
+              </BkTag>
+              {{ ticketDetails.details.nodes.backend[rowIndex * 2].ip }}
+            </div>
+            <div>
+              <BkTag
+                size="small"
+                theme="success">
+                S
+              </BkTag>
+              {{ ticketDetails.details.nodes.backend[rowIndex * 2 + 1].ip }}
+            </div>
+          </template>
         </BkTableColumn>
       </BkTable>
     </InfoItem>
@@ -173,12 +173,12 @@
     ticketDetails: TicketModel<Mysql.HaApply>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.MYSQL_HA_APPLY,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 

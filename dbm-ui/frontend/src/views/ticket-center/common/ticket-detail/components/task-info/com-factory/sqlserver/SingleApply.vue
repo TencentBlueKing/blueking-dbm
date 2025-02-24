@@ -89,12 +89,8 @@
           field="sqlserver_single"
           :label="t('服务器')"
           :min-width="180">
-          <template
-            v-for="host in ticketDetails.details.nodes.sqlserver_single"
-            :key="host.bk_host_id">
-            <div>
-              {{ host.ip }}
-            </div>
+          <template #default="{ rowIndex }">
+            {{ ticketDetails.details.nodes.sqlserver_single[rowIndex].ip }}
           </template>
         </BkTableColumn>
       </BkTable>
@@ -117,12 +113,12 @@
     ticketDetails: TicketModel<Sqlserver.SingleApply>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.SQLSERVER_SINGLE_APPLY,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 
