@@ -141,7 +141,7 @@
   "工具包": "Tools",
   "必填": "Required",
   "操作": "Actions",
-  "支持上传tar_gz压缩格式文件_文件大小不超过1GB": "Support uploading tar.gz compressed format files, the file size does not exceed 1 GB",
+  "支持上传tar_gz压缩格式文件_文件大小不超过1GB": "Support uploading tar.gz or tar.xz compressed format files, the file size does not exceed 1 GB",
   "文件不能为空": "File cannot be empty",
   "文件名称": "File name",
   "文件大小不超过1GB": "The file size must not exceed 1 GB",
