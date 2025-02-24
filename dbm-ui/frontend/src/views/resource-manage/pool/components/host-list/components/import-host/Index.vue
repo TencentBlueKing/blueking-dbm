@@ -64,7 +64,7 @@
   import { importResource } from '@services/source/dbresourceResource';
   import type { HostInfo } from '@services/types';
 
-  import { useImportResourcePoolMessage } from '../../../hooks/useImportResourcePoolMessage';
+  import { useImportResourcePoolTooltip } from '../../../hooks/useImportResourcePoolTip';
 
   import FormPanel from './components/FormPanel.vue';
   import SelectHostPanel from './components/select-host-panel/Index.vue';
@@ -78,43 +78,18 @@
   });
 
   const { t } = useI18n();
-  const router = useRouter();
-  const importSuccessMessage = useImportResourcePoolMessage();
 
   const formRef = ref();
   const isSubmitting = ref(false);
   const hostSelectList = shallowRef<HostInfo[]>([]);
-  const width = Math.ceil(window.innerWidth * 0.8);
 
+  const { successMessage, tooltip } = useImportResourcePoolTooltip(hostSelectList);
+
+  const width = Math.ceil(window.innerWidth * 0.8);
   const contentHeight = Math.ceil(window.innerHeight * 0.8 - 48);
   const layoutStyle = {
     height: `${contentHeight}px`,
   };
-
-  const tooltip = computed(() => {
-    const path = router.resolve({
-      name: 'taskHistory',
-    });
-    return !hostSelectList.value.length
-      ? {
-          content: t('请选择主机'),
-          disabled: !!hostSelectList.value.length,
-        }
-      : {
-          content: () => (
-            <div>
-              {t('提交后，将会进行主机初始化任务，具体的导入结果，可以通过“')}
-              <a
-                href={path.href}
-                target='_blank'>
-                {t('任务历史')}
-              </a>
-              {t('”查看')}
-            </div>
-          ),
-          theme: 'light',
-        };
-  });
 
   const handleSubmit = () => {
     isSubmitting.value = true;
@@ -132,7 +107,7 @@
           resource_type: data.resource_type,
         }).then(() => {
           window.changeConfirm = false;
-          importSuccessMessage();
+          successMessage();
           handleCancel();
           emits('change');
         }),
