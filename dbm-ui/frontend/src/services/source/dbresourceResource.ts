@@ -72,6 +72,7 @@ export function importResource(params: {
   }>;
   labels: number[];
   resource_type: string;
+  return_resource?: boolean; // 是否 故障池，待回收池 转入资源池
 }) {
   return http.post(`${path}/import/`, params);
 }

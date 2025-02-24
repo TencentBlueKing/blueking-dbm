@@ -51,7 +51,7 @@
   import FaultOrRecycleMachineModel from '@services/model/db-resource/FaultOrRecycleMachine';
   import { importResource } from '@services/source/dbresourceResource';
 
-  import { useImportResourcePoolMessage } from '../../../hooks/useImportResourcePoolMessage';
+  import { useImportResourcePoolTooltip } from '../../../hooks/useImportResourcePoolTip';
 
   import FormPanel from './components/FormPanel.vue';
   import ListPanel from './components/ListPanel.vue';
@@ -69,33 +69,7 @@
 
   const { t } = useI18n();
   const formPanelRef = useTemplateRef('formPanelRef');
-  const router = useRouter();
-  const importSuccessMessage = useImportResourcePoolMessage();
-
-  const tooltip = computed(() => {
-    const path = router.resolve({
-      name: 'taskHistory',
-    });
-    return !hostList.value.length
-      ? {
-          content: t('请选择主机'),
-          disabled: !!hostList.value.length,
-        }
-      : {
-          content: () => (
-            <div>
-              {t('提交后，将会进行主机初始化任务，具体的导入结果，可以通过“')}
-              <a
-                href={path.href}
-                target='_blank'>
-                {t('任务历史')}
-              </a>
-              {t('”查看')}
-            </div>
-          ),
-          theme: 'light',
-        };
-  });
+  const { successMessage, tooltip } = useImportResourcePoolTooltip(hostList);
 
   const width = Math.ceil(window.innerWidth * 0.8);
   const contentHeight = Math.ceil(window.innerHeight * 0.8 - 48);
@@ -107,7 +81,7 @@
     manual: true,
     onSuccess() {
       handleCancel();
-      importSuccessMessage();
+      successMessage();
     },
   });
 
@@ -126,6 +100,7 @@
       })),
       labels: data.labels,
       resource_type: data.resource_type as string,
+      return_resource: true,
     });
   };
 
