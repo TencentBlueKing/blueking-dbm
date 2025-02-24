@@ -420,7 +420,7 @@
     const filename = fileObj.name;
     const limitTypes = ['mysql', 'mysql-proxy'];
     if (limitTypes.includes(state.active)) {
-      if (!filename.endsWith('tar.gz') || !filename.endsWith('tar.xz')) {
+      if (!filename.endsWith('tar.gz') && !filename.endsWith('tar.xz')) {
         return;
       }
     }
