@@ -4,7 +4,7 @@ export interface Cutoff extends DetailBase {
   clusters: DetailClusters;
   infos: {
     cluster_id: number;
-    mongos: {
+    mongo_config: {
       ip: string;
       spec_id: number;
     }[];
@@ -12,7 +12,7 @@ export interface Cutoff extends DetailBase {
       ip: string;
       spec_id: number;
     }[];
-    mongo_config: {
+    mongos: {
       ip: string;
       spec_id: number;
     }[];

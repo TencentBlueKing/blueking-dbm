@@ -99,21 +99,22 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('目标集群不能为空'),
+      validator: (value: string) => Boolean(value),
     },
     {
-      validator: (value: string) => domainRegex.test(value),
       message: t('目标集群输入格式有误'),
+      validator: (value: string) => domainRegex.test(value),
     },
     {
+      message: t('目标集群不存在'),
       validator: async (value: string) => {
         const list = value.split(batchSplitRegex);
         return await queryClusters({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           cluster_filters: list.map((item) => ({
             immute_domain: item,
           })),
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         }).then((data) => {
           if (data.length === list.length) {
             localClusterId.value = data[0].id;
@@ -125,9 +126,9 @@
           return false;
         });
       },
-      message: t('目标集群不存在'),
     },
     {
+      message: t('目标集群重复'),
       validator: () => {
         const otherClusterMemoMap = { ...clusterIdMemo };
         delete otherClusterMemoMap[instanceKey];
@@ -140,18 +141,17 @@
         );
         return !otherClusterIdMap[localClusterId.value];
       },
-      message: t('目标集群重复'),
     },
   ];
 
   const queryClustersById = (id: number) => {
     queryClusters({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       cluster_filters: [
         {
           id,
         },
       ],
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
     }).then((data) => {
       if (data) {
         localClusterId.value = data[0].id;

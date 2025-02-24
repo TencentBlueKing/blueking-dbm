@@ -24,36 +24,36 @@ const STATUS_NORMAL = 'normal';
 const STATUS_ABNORMAL = 'abnormal';
 
 export default class Hdfs extends ClusterBase {
-  static STATUS_NORMAL = STATUS_NORMAL;
-  static STATUS_ABNORMAL = STATUS_ABNORMAL;
+  static HDFS_DESTROY = 'HDFS_DESTROY';
+  static HDFS_DISABLE = 'HDFS_DISABLE';
 
+  static HDFS_ENABLE = 'HDFS_ENABLE';
+  static HDFS_REBOOT = 'HDFS_REBOOT';
+  static HDFS_REPLACE = 'HDFS_REPLACE';
   static HDFS_SCALE_UP = 'HDFS_SCALE_UP';
   static HDFS_SHRINK = 'HDFS_SHRINK';
-  static HDFS_REPLACE = 'HDFS_REPLACE';
-  static HDFS_ENABLE = 'HDFS_ENABLE';
-  static HDFS_DISABLE = 'HDFS_DISABLE';
-  static HDFS_DESTROY = 'HDFS_DESTROY';
-  static HDFS_REBOOT = 'HDFS_REBOOT';
-
   static operationIconMap = {
+    [Hdfs.HDFS_DESTROY]: t('删除中'),
+    [Hdfs.HDFS_DISABLE]: t('禁用中'),
+    [Hdfs.HDFS_ENABLE]: t('启用中'),
+    [Hdfs.HDFS_REBOOT]: t('重启中'),
+    [Hdfs.HDFS_REPLACE]: t('替换中'),
     [Hdfs.HDFS_SCALE_UP]: t('扩容中'),
     [Hdfs.HDFS_SHRINK]: t('缩容中'),
-    [Hdfs.HDFS_REPLACE]: t('替换中'),
-    [Hdfs.HDFS_ENABLE]: t('启用中'),
-    [Hdfs.HDFS_DISABLE]: t('禁用中'),
-    [Hdfs.HDFS_DESTROY]: t('删除中'),
-    [Hdfs.HDFS_REBOOT]: t('重启中'),
   };
-
   static operationTextMap = {
+    [Hdfs.HDFS_DESTROY]: t('删除任务进行中'),
+    [Hdfs.HDFS_DISABLE]: t('禁用任务进行中'),
+    [Hdfs.HDFS_ENABLE]: t('启用任务进行中'),
+    [Hdfs.HDFS_REBOOT]: t('实例重启任务进行中'),
+    [Hdfs.HDFS_REPLACE]: t('替换任务进行中'),
     [Hdfs.HDFS_SCALE_UP]: t('扩容任务进行中'),
     [Hdfs.HDFS_SHRINK]: t('缩容任务进行中'),
-    [Hdfs.HDFS_REPLACE]: t('替换任务进行中'),
-    [Hdfs.HDFS_ENABLE]: t('启用任务进行中'),
-    [Hdfs.HDFS_DISABLE]: t('禁用任务进行中'),
-    [Hdfs.HDFS_DESTROY]: t('删除任务进行中'),
-    [Hdfs.HDFS_REBOOT]: t('实例重启任务进行中'),
   };
+
+  static STATUS_ABNORMAL = STATUS_ABNORMAL;
+
+  static STATUS_NORMAL = STATUS_NORMAL;
 
   access_url: string;
   bk_biz_id: number;
@@ -86,13 +86,13 @@ export default class Hdfs extends ClusterBase {
   permission: {
     access_entry_edit: boolean;
     hdfs_access_entry_view: boolean;
-    hdfs_view: boolean;
-    hdfs_enable_disable: boolean;
     hdfs_destroy: boolean;
+    hdfs_enable_disable: boolean;
+    hdfs_reboot: boolean;
+    hdfs_replace: boolean;
     hdfs_scale_up: boolean;
     hdfs_shrink: boolean;
-    hdfs_replace: boolean;
-    hdfs_reboot: boolean;
+    hdfs_view: boolean;
   };
   phase: string;
   region: string;
@@ -158,42 +158,18 @@ export default class Hdfs extends ClusterBase {
     );
   }
 
-  get runningOperation() {
-    const operateTicketTypes = Object.keys(Hdfs.operationTextMap);
-    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+  get disasterToleranceLevelName() {
+    return ClusterAffinityMap[this.disaster_tolerance_level];
   }
 
-  // 操作中的状态
-  get operationRunningStatus() {
-    if (this.operations.length < 1) {
-      return '';
-    }
-    const operation = this.runningOperation;
-    if (!operation) {
-      return '';
-    }
-    return operation.ticket_type;
+  get isStarting() {
+    return Boolean(this.operations.find((item) => item.ticket_type === Hdfs.HDFS_ENABLE));
   }
-  // 操作中的状态描述文本
-  get operationStatusText() {
-    return Hdfs.operationTextMap[this.operationRunningStatus];
+  get masterDomainDisplayName() {
+    const port = this.hdfs_namenode[0]?.port;
+    const displayName = port ? `${this.domain}:${port}` : this.domain;
+    return displayName;
   }
-  // 操作中的状态 icon
-  get operationStatusIcon() {
-    return Hdfs.operationIconMap[this.operationRunningStatus];
-  }
-  // 操作中的单据 ID
-  get operationTicketId() {
-    if (this.operations.length < 1) {
-      return 0;
-    }
-    const operation = this.runningOperation;
-    if (!operation) {
-      return 0;
-    }
-    return operation.ticket_id;
-  }
-
   get operationDisabled() {
     // 集群异常不支持操作
     if (this.status === STATUS_ABNORMAL) {
@@ -209,35 +185,59 @@ export default class Hdfs extends ClusterBase {
     }
     return false;
   }
+  // 操作中的状态
+  get operationRunningStatus() {
+    if (this.operations.length < 1) {
+      return '';
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return '';
+    }
+    return operation.ticket_type;
+  }
 
-  get masterDomainDisplayName() {
-    const port = this.hdfs_namenode[0]?.port;
-    const displayName = port ? `${this.domain}:${port}` : this.domain;
-    return displayName;
+  // 操作中的状态 icon
+  get operationStatusIcon() {
+    return Hdfs.operationIconMap[this.operationRunningStatus];
+  }
+
+  // 操作中的状态描述文本
+  get operationStatusText() {
+    return Hdfs.operationTextMap[this.operationRunningStatus];
   }
 
   get operationTagTips() {
     return this.operations.map((item) => ({
       icon: Hdfs.operationIconMap[item.ticket_type],
-      tip: Hdfs.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,
+      tip: Hdfs.operationTextMap[item.ticket_type],
     }));
   }
 
-  get isStarting() {
-    return Boolean(this.operations.find((item) => item.ticket_type === Hdfs.HDFS_ENABLE));
-  }
-
-  get disasterToleranceLevelName() {
-    return ClusterAffinityMap[this.disaster_tolerance_level];
+  // 操作中的单据 ID
+  get operationTicketId() {
+    if (this.operations.length < 1) {
+      return 0;
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return 0;
+    }
+    return operation.ticket_id;
   }
 
   get roleFailedInstanceInfo() {
     return {
+      DataNode: ClusterBase.getRoleFaildInstanceList(this.hdfs_datanode),
+      Journalnode: ClusterBase.getRoleFaildInstanceList(this.hdfs_journalnode),
       NameNode: ClusterBase.getRoleFaildInstanceList(this.hdfs_namenode),
       Zookeeper: ClusterBase.getRoleFaildInstanceList(this.hdfs_zookeeper),
-      Journalnode: ClusterBase.getRoleFaildInstanceList(this.hdfs_journalnode),
-      DataNode: ClusterBase.getRoleFaildInstanceList(this.hdfs_datanode),
     };
+  }
+
+  get runningOperation() {
+    const operateTicketTypes = Object.keys(Hdfs.operationTextMap);
+    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
   }
 }

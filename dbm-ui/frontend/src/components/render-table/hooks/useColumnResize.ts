@@ -63,9 +63,9 @@ export default function (tableRef: Ref<Element>, tableColumnResizeRef: Ref<HTMLE
     const minLeft = columnRect.left - tableLeft + 30;
     const scrollLetf = tableRef.value.scrollLeft;
     dragState.value = {
-      startMouseLeft: event.clientX,
-      startLeft: columnRect.right - tableLeft + scrollLetf,
       startColumnLeft: columnRect.left - tableLeft,
+      startLeft: columnRect.right - tableLeft + scrollLetf,
+      startMouseLeft: event.clientX,
       tableLeft,
     };
     const resizeProxy = tableColumnResizeRef.value;
@@ -160,8 +160,8 @@ export default function (tableRef: Ref<Element>, tableColumnResizeRef: Ref<HTMLE
   });
 
   return {
-    initColumnWidth,
     handleMouseDown,
     handleMouseMove,
+    initColumnWidth,
   };
 }

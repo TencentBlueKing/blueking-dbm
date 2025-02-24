@@ -53,7 +53,7 @@ export function getEventSwitchList(params: Record<string, any>, payload = {} as 
 /**
  * DBHA切换事件详情（日志）
  */
-export function getEventSwitchLog(params: Record<string, any> & { sw_id: number }) {
+export function getEventSwitchLog(params: { sw_id: number } & Record<string, any>) {
   return http.get<
     {
       levelname: string;

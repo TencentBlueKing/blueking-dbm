@@ -35,8 +35,8 @@
 
   interface Props {
     ticketDetails: TicketModel<{
-      clusters: DetailClusters;
       cluster_id: number;
+      clusters: DetailClusters;
     }>;
   }
 

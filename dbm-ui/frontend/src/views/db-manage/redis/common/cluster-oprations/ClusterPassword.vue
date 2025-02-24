@@ -138,7 +138,6 @@
   import { execCopy } from '@utils';
 
   interface Props {
-    title?: string;
     fetchParams: {
       bk_biz_id: number;
       cluster_id: number;
@@ -146,11 +145,12 @@
       type: string;
     };
     showClb?: boolean;
+    title?: string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    title: '',
     showClb: true,
+    title: '',
   });
   const isShow = defineModel<boolean>('isShow', {
     default: false,
@@ -158,44 +158,44 @@
 
   const initDataObj = () => ({
     clb: {
-      title: t('腾讯云负载均衡（CLB）'),
       list: [
         {
+          shareLink: '',
           title: 'IP',
           value: '',
-          shareLink: '',
         },
         {
+          shareLink: '',
           title: t('CLB域名'),
           value: '',
-          shareLink: '',
         },
       ],
-    },
-    polary: {
-      title: t('CL5与北极星'),
-      list: [
-        {
-          title: 'CL5',
-          value: '',
-          shareLink: '',
-        },
-        {
-          title: t('北极星服务名称'),
-          value: '',
-          shareLink: '',
-        },
-      ],
+      title: t('腾讯云负载均衡（CLB）'),
     },
     nodes: {
-      title: t('存储层（Nodes）'),
       list: [
         {
+          shareLink: '',
           title: t('域名'),
           value: '',
-          shareLink: '',
         },
       ],
+      title: t('存储层（Nodes）'),
+    },
+    polary: {
+      list: [
+        {
+          shareLink: '',
+          title: 'CL5',
+          value: '',
+        },
+        {
+          shareLink: '',
+          title: t('北极星服务名称'),
+          value: '',
+        },
+      ],
+      title: t('CL5与北极星'),
     },
   });
 
@@ -212,8 +212,8 @@
   const dataObj = ref(initDataObj());
 
   const state = reactive({
-    isLoading: false,
     data: initData(),
+    isLoading: false,
   });
 
   const passwordText = computed(() => (isShowPassword.value ? state.data.password : '******'));
@@ -258,8 +258,8 @@
       if (props.showClb) {
         dataObj.value = initDataObj();
         runGetClusterEntries({
-          cluster_id: props.fetchParams.cluster_id,
           bk_biz_id: currentBizId,
+          cluster_id: props.fetchParams.cluster_id,
         });
       }
     }

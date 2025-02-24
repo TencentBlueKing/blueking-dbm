@@ -33,10 +33,10 @@
   });
 
   const statusModule = Object.assign({}, FlowTypeCommon, {
-    [FlowMode.STATUS_SUCCEEDED]: StatusSucceeded,
-    [FlowMode.STATUS_RUNNING]: StatusRunning,
-    [FlowMode.STATUS_TERMINATED]: StatusTerminated,
     [FlowMode.STATUS_FAILED]: StatusFailed,
+    [FlowMode.STATUS_RUNNING]: StatusRunning,
+    [FlowMode.STATUS_SUCCEEDED]: StatusSucceeded,
+    [FlowMode.STATUS_TERMINATED]: StatusTerminated,
   });
 
   const renderCom = statusModule[props.data.status] || 'div';

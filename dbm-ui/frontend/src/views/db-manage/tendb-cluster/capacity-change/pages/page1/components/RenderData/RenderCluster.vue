@@ -40,8 +40,8 @@
 
   interface Exposes {
     getValue: () => Promise<{
-      cluster_id: number;
       bk_cloud_id: number;
+      cluster_id: number;
       cluster_shard_num: number;
       db_module_id: number;
     }>;
@@ -60,14 +60,15 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('目标集群不能为空'),
+      validator: (value: string) => Boolean(value),
     },
     {
+      message: t('目标集群不存在'),
       validator: (value: string) =>
         filterClusters<TendbClusterModel>({
-          exact_domain: value,
           bk_biz_id: currentBizId,
+          exact_domain: value,
         }).then((data) => {
           if (data.length > 0) {
             const [clusterData] = data;
@@ -87,9 +88,9 @@
           modelValue.value = undefined;
           return false;
         }),
-      message: t('目标集群不存在'),
     },
     {
+      message: t('目标集群重复'),
       validator: () => {
         const currentClusterSelectMap = clusterIdMemo[instanceKey];
         const otherClusterMemoMap = { ...clusterIdMemo };
@@ -104,6 +105,7 @@
         );
 
         const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
+        // eslint-disable-next-line @typescript-eslint/prefer-for-of
         for (let i = 0; i < currentSelectClusterIdList.length; i++) {
           if (otherClusterIdMap[currentSelectClusterIdList[i]]) {
             return false;
@@ -111,7 +113,6 @@
         }
         return true;
       },
-      message: t('目标集群重复'),
     },
   ];
 
@@ -139,15 +140,15 @@
       return editRef
         .value!.getValue()
         .then(() => ({
-          cluster_id: modelValue.value!.id,
           bk_cloud_id: modelValue.value!.bkCloudId,
+          cluster_id: modelValue.value!.id,
           cluster_shard_num: modelValue.value!.clusterShardNum,
           db_module_id: modelValue.value!.dbModuleId,
         }))
         .catch(() =>
           Promise.reject({
-            cluster_id: modelValue.value?.id,
             bk_cloud_id: modelValue.value?.bkCloudId,
+            cluster_id: modelValue.value?.id,
             cluster_shard_num: modelValue.value?.clusterShardNum,
             db_module_id: modelValue.value?.dbModuleId,
           }),

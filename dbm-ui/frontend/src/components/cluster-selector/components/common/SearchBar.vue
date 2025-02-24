@@ -16,12 +16,12 @@
   import { ClusterTypes } from '@common/const';
 
   export type SearchSelectList = {
-    id: string;
-    name: string;
     children?: {
       id: string | number;
       name: string;
     }[];
+    id: string;
+    name: string;
   }[];
 
   interface Props {
@@ -30,9 +30,7 @@
     searchSelectList?: SearchSelectList;
   }
 
-  interface Emits {
-    (e: 'searchValueChange', value: ISearchValue[]): void;
-  }
+  type Emits = (e: 'searchValueChange', value: ISearchValue[]) => void;
 
   const props = withDefaults(defineProps<Props>(), {
     searchSelectList: undefined,
@@ -47,7 +45,7 @@
   const { t } = useI18n();
 
   const showDbModuleSelect = computed(() =>
-    [ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE, ClusterTypes.SQLSERVER_SINGLE, ClusterTypes.SQLSERVER_HA].includes(
+    [ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE, ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE].includes(
       props.clusterType,
     ),
   );
@@ -57,19 +55,16 @@
   const searchSelectData = computed(() => {
     const baseSelectList = [
       {
-        name: t('访问入口'),
         id: 'domain',
         multiple: true,
+        name: t('访问入口'),
       },
       {
-        name: t('IP 或 IP:Port'),
         id: 'instance',
         multiple: true,
+        name: t('IP 或 IP:Port'),
       },
       {
-        name: t('状态'),
-        id: 'status',
-        multiple: true,
         children: [
           {
             id: 'normal',
@@ -80,35 +75,38 @@
             name: t('异常'),
           },
         ],
+        id: 'status',
+        multiple: true,
+        name: t('状态'),
       },
       {
-        name: t('集群名称'),
         id: 'name',
         multiple: true,
+        name: t('集群名称'),
       },
       {
-        name: t('管控区域'),
+        children: props.searchAttrs?.bk_cloud_id,
         id: 'bk_cloud_id',
         multiple: true,
-        children: props.searchAttrs?.bk_cloud_id,
+        name: t('管控区域'),
       },
     ];
     if (showDbModuleSelect.value) {
       const dbModuleSelect = {
-        name: t('所属模块'),
+        children: props.searchAttrs?.db_module_id,
         id: 'db_module_id',
         multiple: true,
-        children: props.searchAttrs?.db_module_id,
+        name: t('所属模块'),
       };
       baseSelectList.splice(3, 0, dbModuleSelect);
     }
 
     if (showClusterTypeSelect.value) {
       const clusterTypeSelect = {
-        name: t('架构版本'),
+        children: props.searchAttrs?.cluster_type,
         id: 'cluster_type',
         multiple: true,
-        children: props.searchAttrs?.cluster_type,
+        name: t('架构版本'),
       };
       baseSelectList.splice(3, 0, clusterTypeSelect);
     }

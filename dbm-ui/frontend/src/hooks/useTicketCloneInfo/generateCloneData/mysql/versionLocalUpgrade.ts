@@ -23,11 +23,11 @@ import { random } from '@utils';
 
 // MySQL 原地升级
 export async function generateMysqlVersionLocalUpgradeCloneData(ticketData: TicketModel<Mysql.LocalUpgrade>) {
-  const { clusters, infos, force } = ticketData.details;
+  const { clusters, force, infos } = ticketData.details;
   const clusterType = infos[0].display_info.cluster_type;
   const apiMap = {
-    [ClusterTypes.TENDBSINGLE]: getTendbsingleList,
     [ClusterTypes.TENDBHA]: getTendbhaList,
+    [ClusterTypes.TENDBSINGLE]: getTendbsingleList,
   };
   const clusterListResult = await apiMap[clusterType as keyof typeof apiMap]({
     cluster_ids: infos.map((item) => item.cluster_ids[0]),
@@ -45,23 +45,23 @@ export async function generateMysqlVersionLocalUpgradeCloneData(ticketData: Tick
   const tableList = infos.map((item) => {
     const clusterId = item.cluster_ids[0];
     return {
-      rowKey: random(),
-      isLoading: false,
       clusterData: {
-        domain: clusters[clusterId].immute_domain,
+        cloudId: clusters[clusterId].bk_cloud_id,
         clusterId,
         clusterType: clusters[clusterId].cluster_type,
         currentVersion: clusters[clusterId].major_version,
-        packageVersion: clusterListMap[clusterId].masters[0].version,
-        moduleName: item.display_info.current_module_name,
+        domain: clusters[clusterId].immute_domain,
         moduleId: clusters[clusterId].db_module_id,
-        cloudId: clusters[clusterId].bk_cloud_id,
+        moduleName: item.display_info.current_module_name,
+        packageVersion: clusterListMap[clusterId].masters[0].version,
       },
-      targetVersion: item.display_info.target_version,
-      targetPackage: item.pkg_id,
+      isLoading: false,
+      rowKey: random(),
       targetModule: item.new_db_module_id,
+      targetPackage: item.pkg_id,
+      targetVersion: item.display_info.target_version,
     };
   });
 
-  return Promise.resolve({ tableList, remark: ticketData.remark, force });
+  return Promise.resolve({ force, remark: ticketData.remark, tableList });
 }

@@ -39,17 +39,17 @@
   type HostTopoInfo = ServiceReturnType<typeof getHostTopoInfos>['hosts_topo_info'][number];
 
   interface Props {
-    domain?: string;
     cloudId?: number;
-    slaveList?: IHostData[];
+    domain?: string;
     ipList?: IHostData[];
+    slaveList?: IHostData[];
   }
 
   interface Exposes {
     getValue: () => Promise<{
       read_only_slaves: {
-        old_slave: IHostData;
         new_slave: IHostData;
+        old_slave: IHostData;
       }[];
     }>;
   }
@@ -74,35 +74,36 @@
 
   const rules = [
     {
+      message: t('请输入n台IP', { n: props.slaveList?.length || 0 }),
       validator: (value: string) => {
         const ipList = value.split(splitReg);
         return ipList.length === (props.slaveList?.length || 0);
       },
-      message: t('请输入n台IP', { n: props.slaveList?.length || 0 }),
     },
     {
+      message: t('IP格式不正确'),
       validator: (value: string) => {
         const ipList = value.split(splitReg);
         return _.every(ipList, (item) => ipv4.test(_.trim(item)));
       },
-      message: t('IP格式不正确'),
     },
     {
+      message: t('输入的主从IP重复'),
       validator: (value: string) => {
         const [fisrt, last] = value.split(splitReg);
         return _.trim(fisrt) !== _.trim(last);
       },
-      message: t('输入的主从IP重复'),
     },
     {
+      message: () => errorMessage,
       validator: (value: string) => {
         const ipList = value.split(splitReg);
         return getHostTopoInfos({
+          bk_biz_id: currentBizId,
           filter_conditions: {
             bk_host_innerip: ipList,
             mode: 'idle_only',
           },
-          bk_biz_id: currentBizId,
         }).then((data) => {
           if (data.hosts_topo_info.length < (props.slaveList?.length || 0)) {
             const existIps = data.hosts_topo_info.map((item) => item.ip);
@@ -115,8 +116,8 @@
           if (qualifiedHosts.length !== (props.slaveList?.length || 0)) {
             const qualifiedIps = qualifiedHosts.map((item) => item.ip);
             errorMessage = t('新主机xx跟目标集群xx须在同一个管控区域', {
-              ip: ipList.filter((ip) => !qualifiedIps.includes(ip)).join(', '),
               cluster: props.domain,
+              ip: ipList.filter((ip) => !qualifiedIps.includes(ip)).join(', '),
             });
             return false;
           }
@@ -139,7 +140,6 @@
           return true;
         });
       },
-      message: () => errorMessage,
     },
   ];
 
@@ -160,8 +160,8 @@
     getValue() {
       const formatHost = (item: HostTopoInfo) => ({
         bk_biz_id: currentBizId,
-        bk_host_id: item.bk_host_id,
         bk_cloud_id: item.bk_cloud_id,
+        bk_host_id: item.bk_host_id,
         ip: item.ip,
       });
 
@@ -170,8 +170,8 @@
           const oldSlaveList = props.slaveList!;
           const newSlaveList = slaveHostMemo.map((slaveItem) => formatHost(slaveItem));
           const result = oldSlaveList.map((slaveItem, index) => ({
-            old_slave: slaveItem,
             new_slave: newSlaveList[index],
+            old_slave: slaveItem,
           }));
 
           return Promise.resolve({

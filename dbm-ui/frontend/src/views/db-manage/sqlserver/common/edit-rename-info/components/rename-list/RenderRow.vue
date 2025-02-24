@@ -42,14 +42,12 @@
   import type { IValue } from '../../Index.vue';
 
   interface Props {
+    index: number;
     targetClusterId: number;
     wholeDbList: IValue[];
-    index: number;
   }
 
-  interface Emits {
-    (e: 'change', value: IValue): void;
-  }
+  type Emits = (e: 'change', value: IValue) => void;
 
   interface Expose {
     getValue: () => Promise<IValue>;
@@ -73,10 +71,11 @@
 
   const targetDbNamerules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('构造后 DB 名称不能为空'),
+      validator: (value: string) => Boolean(value),
     },
     {
+      message: t('跟已存在的 DB 名冲突，请修改其一'),
       validator: (value: string) => {
         if (isNotNeedValidateTargetDb.value) {
           return true;
@@ -88,9 +87,9 @@
           return item.target_db_name !== value;
         });
       },
-      message: t('跟已存在的 DB 名冲突，请修改其一'),
     },
     {
+      message: t('跟已存在的 DB 名冲突，请修改其一'),
       validator: (value: string) => {
         if (isNotNeedValidateTargetDb.value) {
           return true;
@@ -101,12 +100,12 @@
           db_list: [value],
         }).then((data) => !Object.values(data)[0]);
       },
-      message: t('跟已存在的 DB 名冲突，请修改其一'),
     },
   ];
 
   const renameDbNamerules = [
     {
+      message: t('和其它已填写数据重复'),
       validator: (value: string) => {
         if (!value) {
           return true;
@@ -118,9 +117,9 @@
           return item.target_db_name !== value && item.rename_db_name !== value;
         });
       },
-      message: t('和其它已填写数据重复'),
     },
     {
+      message: t('跟已存在的 DB 名冲突，请修改其一'),
       validator: (value: string) => {
         if (!value) {
           return true;
@@ -131,7 +130,6 @@
           db_list: [value],
         }).then((data) => !Object.values(data)[0]);
       },
-      message: t('跟已存在的 DB 名冲突，请修改其一'),
     },
   ];
 

@@ -72,22 +72,16 @@
   import { useI18n } from 'vue-i18n';
 
   import IpWhiteModel from '@services/model/ip-white/ip-white';
-  import {
-    batchDeleteWhitelist,
-    getWhitelist,
-  } from '@services/source/whitelist';
+  import { batchDeleteWhitelist, getWhitelist } from '@services/source/whitelist';
 
   import RenderRow from '@components/render-row/index.vue';
 
-  import {
-    execCopy,
-    messageSuccess,
-  } from '@utils';
+  import { execCopy, messageSuccess } from '@utils';
 
   import WhitelistOperation from './components/WhitelistOperation.vue';
 
   interface TableRenderData {
-    data: IpWhiteModel
+    data: IpWhiteModel;
   }
 
   const route = useRoute();
@@ -102,64 +96,62 @@
   const selectedIdList = shallowRef<number[]>([]);
 
   const operationState = reactive({
+    data: {} as IpWhiteModel,
+    isEdit: false,
     isShow: false,
     title: t('新建白名单'),
-    isEdit: false,
-    data: {} as IpWhiteModel,
   });
 
-  const disableSelectMethod = (row: IpWhiteModel) => ((row.is_global && !isPlatformManage)
-    ? t('全局白名单如需编辑请联系平台管理员')
-    : false);
+  const disableSelectMethod = (row: IpWhiteModel) =>
+    row.is_global && !isPlatformManage ? t('全局白名单如需编辑请联系平台管理员') : false;
 
   const columns = [
     {
-      label: t('IP或IP%'),
       field: 'ips',
-      showOverflowTooltip: false,
+      label: t('IP或IP%'),
       render: ({ data }: TableRenderData) => {
         const isRenderTag = data.is_global && !isPlatformManage;
         return (
           <>
-            <RenderRow style={`max-width: calc(100% - ${isRenderTag ? '80px' : '20px'});`} data={data.ips} />
-            { isRenderTag && (
-              <bk-tag class="ml-4">
-                {t('全局')}
-              </bk-tag>
-            )}
+            <RenderRow
+              data={data.ips}
+              style={`max-width: calc(100% - ${isRenderTag ? '80px' : '20px'});`}
+            />
+            {isRenderTag && <bk-tag class='ml-4'>{t('全局')}</bk-tag>}
             <db-icon
               v-bk-tooltips={t('复制')}
-              type="copy"
-              class="copy-btn"
-              onClick={() => execCopy(data.ips.join('\n'), t('复制成功，共n条', { n: data.ips.length }))} />
+              class='copy-btn'
+              type='copy'
+              onClick={() => execCopy(data.ips.join('\n'), t('复制成功，共n条', { n: data.ips.length }))}
+            />
           </>
         );
       },
+      showOverflowTooltip: false,
     },
     {
-      label: t('备注'),
       field: 'remark',
+      label: t('备注'),
     },
     {
-      label: t('更新人'),
       field: 'updater',
+      label: t('更新人'),
       width: 120,
     },
     {
-      label: t('更新时间'),
       field: 'update_at',
-      width: 250,
+      label: t('更新时间'),
       render: ({ data }: TableRenderData) => data.updateAtDisplay || '--',
+      width: 250,
     },
     {
-      label: t('操作'),
       field: 'operations',
-      width: 140,
+      label: t('操作'),
       render: ({ data }: TableRenderData) => {
         const isDisabled = data.is_global && !isPlatformManage;
         const tips = {
-          disabled: !isDisabled,
           content: t('全局白名单如需编辑请联系平台管理员'),
+          disabled: !isDisabled,
         };
 
         return (
@@ -167,11 +159,11 @@
             <span v-bk-tooltips={tips}>
               <auth-button
                 action-id={managePermissionActionId}
-                permission={data.permission[managePermissionActionId]}
-                class="mr-8"
-                text
-                theme="primary"
+                class='mr-8'
                 disabled={isDisabled}
+                permission={data.permission[managePermissionActionId]}
+                theme='primary'
+                text
                 onClick={() => handleEdit(data)}>
                 {t('编辑')}
               </auth-button>
@@ -179,10 +171,10 @@
             <span v-bk-tooltips={tips}>
               <auth-button
                 action-id={managePermissionActionId}
-                permission={data.permission[managePermissionActionId]}
-                text
-                theme="primary"
                 disabled={isDisabled}
+                permission={data.permission[managePermissionActionId]}
+                theme='primary'
+                text
                 onClick={() => handleDelete([data.id])}>
                 {t('删除')}
               </auth-button>
@@ -190,20 +182,24 @@
           </>
         );
       },
+      width: 140,
     },
   ];
 
   const handleKeyWordChange = () => {
     tableRef.value!.clearSelected();
     fetchTableData();
-  }
+  };
 
   const fetchTableData = () => {
-    tableRef.value.fetchData({
-      ip: keyword.value,
-    }, {
-      bk_biz_id: bizId,
-    });
+    tableRef.value.fetchData(
+      {
+        ip: keyword.value,
+      },
+      {
+        bk_biz_id: bizId,
+      },
+    );
   };
 
   const handleCreate = () => {
@@ -230,8 +226,6 @@
   const handleDelete = (ids: number[]) => {
     const isSingle = ids.length === 1;
     InfoBox({
-      type: 'warning',
-      title: isSingle ? t('确认删除该组白名单') : t('确认删除该组白名单', [ids.length]),
       content: t('白名单删除后_不会影响现已授权实例_新增授权时将无法再选择_请谨慎操作'),
       onConfirm: async () => {
         try {
@@ -239,10 +233,12 @@
           messageSuccess(t('删除成功'));
           fetchTableData();
           return true;
-        } catch (_) {
+        } catch {
           return false;
         }
       },
+      title: isSingle ? t('确认删除该组白名单') : t('确认删除该组白名单', [ids.length]),
+      type: 'warning',
     });
   };
 

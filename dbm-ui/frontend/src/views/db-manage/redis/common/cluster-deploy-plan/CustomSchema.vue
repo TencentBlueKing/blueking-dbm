@@ -77,28 +77,28 @@
 
   interface Props {
     clusterInfo: {
-      clusterType: string;
-      machineType: string;
       bizId: number | string;
       cloudId: number | string;
+      clusterType: string;
+      machineType: string;
     };
     shardNumDisabled?: boolean;
   }
 
   interface ModelValue {
-    specId: number | string;
+    clusterShardNum: number;
     count: number;
     shardNum: number;
-    clusterShardNum: number;
+    specId: number | string;
     totalCapcity: number;
   }
 
   interface Expose {
-    getInfo(): ReturnType<ComponentExposed<typeof SpecSelector>['getData']> & {
-      machine_pair: number;
-      cluster_shard_num: number;
+    getInfo(): {
       cluster_capacity: number;
-    };
+      cluster_shard_num: number;
+      machine_pair: number;
+    } & ReturnType<ComponentExposed<typeof SpecSelector>['getData']>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -185,13 +185,13 @@
     getInfo() {
       const specData = specSelectorRef.value!.getData();
       return {
-        spec_name: specData?.spec_name || '',
-        machine_pair: modelValue.value.count,
-        cluster_shard_num: modelValue.value.shardNum,
         cluster_capacity: modelValue.value.totalCapcity || 0,
+        cluster_shard_num: modelValue.value.shardNum,
         cpu: specData.cpu,
+        machine_pair: modelValue.value.count,
         mem: specData.mem,
         qps: specData.qps,
+        spec_name: specData?.spec_name || '',
         storage_spec: specData.storage_spec,
       };
     },

@@ -103,14 +103,14 @@
 <script lang="ts">
   export interface IValue {
     clusterData: {
-      id: number;
       domain: string;
+      id: number;
     };
-    startTime: string;
-    endTime: string;
     databases: string[];
-    tables: string[];
     databasesIgnore: string[];
+    endTime: string;
+    startTime: string;
+    tables: string[];
     tablesIgnore: string[];
   }
 </script>
@@ -127,11 +127,11 @@
   import { execCopy } from '@utils';
 
   interface IInputParse {
+    databases: string;
+    databasesIgnore: string;
     domain: string;
     startTime: string;
-    databases: string;
     tables: string;
-    databasesIgnore: string;
     tablesIgnore: string;
   }
 
@@ -191,10 +191,10 @@
       const match = recordItem.match(matchReg);
       if (!match) {
         errorList.push({
-          domain: recordItem,
-          startTime: '',
           databases: '',
           databasesIgnore: '',
+          domain: recordItem,
+          startTime: '',
           tables: '',
           tablesIgnore: '',
         });
@@ -203,11 +203,11 @@
       const [inputText, domain, startTime, databases, tables, databasesIgnore, tablesIgnore] = match;
 
       const payload = {
+        databases,
+        databasesIgnore,
         domain,
         startTime,
-        databases,
         tables,
-        databasesIgnore,
         tablesIgnore,
       };
 
@@ -225,10 +225,10 @@
     }));
 
     queryClusters({
-      cluster_filters: clusterFilters,
       bk_biz_id: currentBizId,
+      cluster_filters: clusterFilters,
     })
-      .then((data: Array<{ master_domain: string; id: number }>) => {
+      .then((data: Array<{ id: number; master_domain: string }>) => {
         const realDataMap = data.reduce(
           (result, item) => ({
             ...result,
@@ -244,7 +244,7 @@
           if (!realDataMap[item.domain]) {
             clusterErrorList.push(item);
           } else {
-            const { startTime, databases, tables, databasesIgnore, tablesIgnore } = item;
+            const { databases, databasesIgnore, startTime, tables, tablesIgnore } = item;
 
             const getListValue = (str: string) => {
               if (str === 'null') {
@@ -257,14 +257,14 @@
 
             resultList.push({
               clusterData: {
-                id: realDataMap[item.domain],
                 domain: item.domain,
+                id: realDataMap[item.domain],
               },
-              startTime: roolbackTime,
-              endTime,
               databases: getListValue(databases),
-              tables: getListValue(tables),
               databasesIgnore: getListValue(databasesIgnore),
+              endTime,
+              startTime: roolbackTime,
+              tables: getListValue(tables),
               tablesIgnore: getListValue(tablesIgnore),
             });
           }

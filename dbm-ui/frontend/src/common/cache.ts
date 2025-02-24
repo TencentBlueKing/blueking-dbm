@@ -14,25 +14,6 @@
 import _ from 'lodash';
 
 export const routerCache = {
-  key: 'router_history',
-  setItem(key: string, value: any) {
-    const cacheMap = JSON.parse(localStorage.getItem(routerCache.key) || '{}');
-    cacheMap[key] = value;
-    localStorage.setItem(routerCache.key, JSON.stringify(cacheMap));
-  },
-  getItem(key: string) {
-    const cache = localStorage.getItem(routerCache.key);
-    if (cache === null) {
-      return '';
-    }
-
-    const cacheMap = JSON.parse(cache);
-    if (_.isPlainObject(cacheMap)) {
-      return !key ? cacheMap : cacheMap[key];
-    }
-
-    return '';
-  },
   clearItem(key: string) {
     if (!key) {
       return false;
@@ -52,13 +33,28 @@ export const routerCache = {
     localStorage.setItem(routerCache.key, JSON.stringify(cacheMap));
     return true;
   },
+  getItem(key: string) {
+    const cache = localStorage.getItem(routerCache.key);
+    if (cache === null) {
+      return '';
+    }
+
+    const cacheMap = JSON.parse(cache);
+    if (_.isPlainObject(cacheMap)) {
+      return !key ? cacheMap : cacheMap[key];
+    }
+
+    return '';
+  },
+  key: 'router_history',
+  setItem(key: string, value: any) {
+    const cacheMap = JSON.parse(localStorage.getItem(routerCache.key) || '{}');
+    cacheMap[key] = value;
+    localStorage.setItem(routerCache.key, JSON.stringify(cacheMap));
+  },
 };
 
 export const systemSearchCache = {
-  key: 'SYSTEM_SEARCH_HISTORY_KEY_WORD',
-  setItem(value: string[]) {
-    localStorage.setItem(systemSearchCache.key, JSON.stringify(value));
-  },
   appendItem(value: string) {
     const histroyList = systemSearchCache.getItem();
     histroyList.unshift(value);
@@ -67,5 +63,9 @@ export const systemSearchCache = {
   getItem(): string[] {
     const value = JSON.parse(localStorage.getItem(systemSearchCache.key) || '[]');
     return _.isArray(value) ? _.filter(_.uniq(value), (item) => _.trim(item)) : [];
+  },
+  key: 'SYSTEM_SEARCH_HISTORY_KEY_WORD',
+  setItem(value: string[]) {
+    localStorage.setItem(systemSearchCache.key, JSON.stringify(value));
   },
 };

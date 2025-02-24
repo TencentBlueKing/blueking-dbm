@@ -124,13 +124,13 @@
   const props = defineProps<Props>();
 
   const initFormData = () => ({
-    domain: '',
     databases: [],
+    domain: '',
+    exportType: 'DATA_TABLE',
+    remark: '',
     tables: [],
     tablesIgnore: [],
     where: '',
-    exportType: 'DATA_TABLE',
-    remark: '',
   });
 
   const { t } = useI18n();
@@ -161,9 +161,9 @@
     if (databaseList && databaseList.length > 0) {
       const [{ databases }] = databaseList;
       return databases.map((item) => ({
-        value: item,
-        label: item,
         disabled: length >= 5,
+        label: item,
+        value: item,
       }));
     }
     return [];
@@ -192,9 +192,9 @@
     submit() {
       return formRef.value!.validate().then(() => {
         const details = {
-          cluster_id: props.data.id,
           // charset: 'utf8',
           charset: 'default',
+          cluster_id: props.data.id,
           databases: formData.databases,
           tables: formData.tables,
           tables_ignore: formData.tablesIgnore,
@@ -219,11 +219,11 @@
         }
 
         return createTicket({
-          ignore_duplication: true,
-          ticket_type: props.ticketType,
           bk_biz_id: props.data.bk_biz_id,
-          remark: formData.remark,
           details,
+          ignore_duplication: true,
+          remark: formData.remark,
+          ticket_type: props.ticketType,
         }).then((res) => {
           ticketMessage(res.id);
           Object.assign(formData, {

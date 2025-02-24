@@ -34,9 +34,9 @@
   import { encodeRegexp } from '@utils';
 
   interface Props {
+    highLightColor?: string;
     keyWord: string;
     text: string;
-    highLightColor?: string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -45,17 +45,18 @@
 
   const keywordMatch = computed(() => {
     const keyWordList = props.keyWord.split(batchSplitRegex);
+    // eslint-disable-next-line @typescript-eslint/prefer-for-of
     for (let i = 0; i < keyWordList.length; i++) {
       const keyWordItem = keyWordList[i];
       if (keyWordItem === props.text) {
-        return [{ text: props.text, isHighlight: true }];
+        return [{ isHighlight: true, text: props.text }];
       }
       if (props.text.includes(':')) {
         const substringList = keyWordItem.split(':');
         const regex = new RegExp(`(${keyWordItem.split(':').join('|')})`);
         const matchResult = props.text.split(regex).map((part) => ({
-          text: part,
           isHighlight: substringList.includes(part),
+          text: part,
         }));
         if (matchResult.some((matchItem) => matchItem.isHighlight)) {
           return matchResult;
@@ -64,9 +65,9 @@
       const matchResult = props.text.match(new RegExp(`^(.*?)(${encodeRegexp(keyWordItem)})(.*)$`));
       if (matchResult) {
         return [
-          { text: matchResult[1], isHighlight: false },
-          { text: matchResult[2], isHighlight: true },
-          { text: matchResult[3], isHighlight: false },
+          { isHighlight: false, text: matchResult[1] },
+          { isHighlight: true, text: matchResult[2] },
+          { isHighlight: false, text: matchResult[3] },
         ];
       }
     }

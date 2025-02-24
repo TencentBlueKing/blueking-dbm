@@ -74,14 +74,14 @@
   import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
 
   import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue';
-  import ValueDiff from '@views/db-manage/common/value-diff/Index.vue'
+  import ValueDiff from '@views/db-manage/common/value-diff/Index.vue';
 
   import { convertStorageUnits } from '@utils';
 
-  import TableGroupContent from '../components/TableGroupContent.vue'
+  import TableGroupContent from '../components/TableGroupContent.vue';
 
   interface Props {
-    ticketDetails: TicketModel<Redis.ScaleUpdown>
+    ticketDetails: TicketModel<Redis.ScaleUpdown>;
   }
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
@@ -97,107 +97,110 @@
 
   const getCurrentColunms = (data: RowData) => [
     {
-      title: t('当前容量'),
       render: () => {
         if (_.isEmpty(data.display_info?.cluster_stats)) {
-          return '--'
+          return '--';
         }
-        return <ClusterCapacityUsageRate clusterStats={data.display_info.cluster_stats} />
-      }
+        return <ClusterCapacityUsageRate clusterStats={data.display_info.cluster_stats} />;
+      },
+      title: t('当前容量'),
     },
     {
-      title: t('资源规格'),
       render: () => {
         if (_.isEmpty(data.display_info?.cluster_spec)) {
-          return '--'
+          return '--';
         }
         const currentSpec = {
           ...data.display_info.cluster_spec,
           id: data.display_info.cluster_spec.spec_id,
           name: data.display_info.cluster_spec.spec_name,
-        }
+        };
         return (
           <RenderSpec
             data={currentSpec}
             hide-qps={!currentSpec.qps.max}
-            is-ignore-counts />
-        )
-      }
+            is-ignore-counts
+          />
+        );
+      },
+      title: t('资源规格'),
     },
     {
+      render: () => data.display_info?.machine_pair_cnt || '--',
       title: t('机器组数'),
-      render: () => data.display_info?.machine_pair_cnt || '--'
     },
     {
+      render: () => (data.display_info?.machine_pair_cnt ? data.display_info.machine_pair_cnt * 2 : '--'),
       title: t('机器数量'),
-      render: () => data.display_info?.machine_pair_cnt ? data.display_info.machine_pair_cnt * 2 : '--'
     },
     {
+      render: () => data.display_info?.cluster_shard_num || '--',
       title: t('分片数'),
-      render: () => data.display_info?.cluster_shard_num || '--'
     },
-  ]
+  ];
 
   const getTargetColunms = (data: RowData) => [
     {
-      title: t('目标容量'),
       render: () => {
         if (_.isEmpty(data.display_info?.cluster_stats)) {
-          return '--'
+          return '--';
         }
-        const { used = 0, total = 0 } = data.display_info.cluster_stats;
-        const targetTotal = convertStorageUnits(data.future_capacity, 'GB', 'B')
-        const currentValue = data.display_info.cluster_capacity || convertStorageUnits(total, 'B', 'GB')
+        const { total = 0, used = 0 } = data.display_info.cluster_stats;
+        const targetTotal = convertStorageUnits(data.future_capacity, 'GB', 'B');
+        const currentValue = data.display_info.cluster_capacity || convertStorageUnits(total, 'B', 'GB');
         const stats = {
-          used,
+          in_use: Number(((used / targetTotal) * 100).toFixed(2)),
           total: targetTotal,
-          in_use: Number((used / targetTotal * 100).toFixed(2))
-        }
+          used,
+        };
         return (
           <>
             <ClusterCapacityUsageRate clusterStats={stats} />
             <ValueDiff
               currentValue={currentValue}
-              num-unit="G"
-              targetValue={data.future_capacity} />
+              num-unit='G'
+              targetValue={data.future_capacity}
+            />
           </>
-        )
-      }
+        );
+      },
+      title: t('目标容量'),
     },
     {
-      title: t('资源规格'),
       render: () => {
-        const targetSpec = props.ticketDetails.details.specs[data.resource_spec.backend_group.spec_id]
+        const targetSpec = props.ticketDetails.details.specs[data.resource_spec.backend_group.spec_id];
         return (
           <RenderSpec
             data={targetSpec}
             hide-qps={!targetSpec.qps.max}
-            is-ignore-counts />
-        )
-      }
+            is-ignore-counts
+          />
+        );
+      },
+      title: t('资源规格'),
     },
     {
+      render: () => data.group_num,
       title: t('机器组数'),
-      render: () => data.group_num
     },
     {
+      render: () => data.group_num * 2,
       title: t('机器数量'),
-      render: () => data.group_num * 2
     },
     {
+      render: () => data.shard_num,
       title: t('分片数'),
-      render: () => data.shard_num
     },
     {
-      title: t('变更方式'),
       render: () => {
         if (data.update_mode) {
-          return data.update_mode === 'keep_current_machines' ? t('原地变更') : t('替换变更')
+          return data.update_mode === 'keep_current_machines' ? t('原地变更') : t('替换变更');
         }
-        return '--'
-      }
-    }
-  ]
+        return '--';
+      },
+      title: t('变更方式'),
+    },
+  ];
 </script>
 
 <style lang="less" scoped>

@@ -159,9 +159,9 @@
    */
   const getFormData = () => ({
     alias_name: (route.query.alias_name ?? '') as string,
+    character_set: '',
     mysql_type: ticketType,
     version: '',
-    character_set: '',
   });
 
   const isBindSuccessfully = ref(false);
@@ -183,28 +183,28 @@
 
   const formData = reactive(getFormData());
   const listState = reactive({
-    versions: [] as string[],
     characterSets: ['utf8', 'utf8mb4', 'gbk', 'latin1', 'gb2312'],
+    versions: [] as string[],
   });
   const loadingState = reactive({
-    versions: false,
     submit: false,
+    versions: false,
   });
   const rules = {
     alias_name: [
       {
-        required: true,
         message: t('模块名称不能为空'),
+        required: true,
         trigger: 'blur',
       },
       {
-        pattern: /^[A-Za-z]/,
         message: t('只能英文字母开头'),
+        pattern: /^[A-Za-z]/,
         trigger: 'blur',
       },
       {
-        pattern: /^[0-9a-zA-Z-]+$/,
         message: t('由英文字母_数字_连字符_组成'),
+        pattern: /^[0-9a-zA-Z-]+$/,
         trigger: 'blur',
       },
     ],
@@ -214,23 +214,23 @@
   const parameterTableRef = ref();
 
   const configState = reactive({
-    loading: false,
-    isAnomalies: false,
     data: {
+      conf_items: [],
+      description: '',
       name: '',
       version: '',
-      description: '',
-      conf_items: [],
     } as ServiceReturnType<typeof getLevelConfig>,
-    parameters: [] as ParameterConfigItem[],
+    isAnomalies: false,
+    loading: false,
     originConfItems: [] as ParameterConfigItem[],
+    parameters: [] as ParameterConfigItem[],
   });
   const fetchParams = computed(() => ({
     bk_biz_id: bizId,
+    conf_type: 'dbconf',
     level_name: isReadonly.value ? 'module' : 'app',
     level_value: isReadonly.value ? moduleId.value : bizId,
     meta_cluster_type: ticketInfo.type,
-    conf_type: 'dbconf',
     version: formData.version,
   }));
 
@@ -253,10 +253,10 @@
       })
       .catch(() => {
         configState.data = {
+          conf_items: [],
+          description: '',
           name: '',
           version: '',
-          description: '',
-          conf_items: [],
         };
         configState.isAnomalies = true;
       })
@@ -270,8 +270,8 @@
    */
   const fetchConfigNames = () => {
     getConfigNames({
-      meta_cluster_type: ticketInfo.type,
       conf_type: 'dbconf',
+      meta_cluster_type: ticketInfo.type,
       version: formData.version,
     }).then((res) => {
       configState.parameters = res;
@@ -298,11 +298,11 @@
       flag_disable: 0,
       flag_locked: 0,
       need_restart: 0,
+      op_type: 'add',
       value_allowed: '',
       value_default: '',
       value_type: '',
       value_type_sub: '',
-      op_type: 'add',
     });
   };
 
@@ -370,36 +370,36 @@
         // aliasname-version-charset
         const dbModuleName = `${formData.alias_name}-${formData.version}-${formData.character_set}`;
         const createResult = await createModules({
-          biz_id: bizId,
           alias_name: formData.alias_name,
-          db_module_name: dbModuleName,
+          biz_id: bizId,
           cluster_type: ticketInfo.type,
+          db_module_name: dbModuleName,
         });
         moduleId.value = createResult.db_module_id;
       }
 
       // 绑定模块数据库配置
       await saveModulesDeployInfo({
-        level_name: 'module',
-        version: 'deploy_info',
-        conf_type: 'deploy',
         bk_biz_id: bizId,
-        level_value: moduleId.value,
-        meta_cluster_type: ticketInfo.type,
         conf_items: [
           {
             conf_name: 'charset',
             conf_value: formData.character_set,
-            op_type: 'update',
             description: t('字符集'),
+            op_type: 'update',
           },
           {
             conf_name: 'db_version',
             conf_value: formData.version,
-            op_type: 'update',
             description: t('数据库版本'),
+            op_type: 'update',
           },
         ],
+        conf_type: 'deploy',
+        level_name: 'module',
+        level_value: moduleId.value,
+        meta_cluster_type: ticketInfo.type,
+        version: 'deploy_info',
       });
       isBindSuccessfully.value = true;
 
@@ -412,11 +412,11 @@
       });
 
       await updateBusinessConfig({
-        name: formData.alias_name,
         conf_items: confItems,
-        description: '',
-        publish_description: '',
         confirm: 0,
+        description: '',
+        name: formData.alias_name,
+        publish_description: '',
         ...fetchParams.value,
       });
 
@@ -427,8 +427,8 @@
           clusterType: ticketInfo.type,
         },
         query: {
-          treeId: moduleId.value ? `module-${moduleId.value}` : '',
           parentId: `app-${bizId}`,
+          treeId: moduleId.value ? `module-${moduleId.value}` : '',
         },
       });
     } catch (e) {
@@ -439,17 +439,16 @@
 
   const handleReset = () => {
     InfoBox({
-      title: t('确认重置表单内容'),
-      content: t('重置后_将会清空当前填写的内容'),
       cancelText: t('取消'),
+      content: t('重置后_将会清空当前填写的内容'),
       onConfirm: () => {
-        const resetData = isNewModule ? getFormData() : { version: '', character_set: '' };
+        const resetData = isNewModule ? getFormData() : { character_set: '', version: '' };
         _.merge(formData, resetData);
         configState.data = {
+          conf_items: [],
+          description: '',
           name: '',
           version: '',
-          description: '',
-          conf_items: [],
         };
         configState.parameters = [];
         configState.originConfItems = [];
@@ -458,6 +457,7 @@
         });
         return true;
       },
+      title: t('确认重置表单内容'),
     });
   };
 

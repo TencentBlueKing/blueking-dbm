@@ -89,10 +89,10 @@
   import { useResizeObserver } from '@vueuse/core';
 
   interface Props {
-    placeholder?: string;
-    rules?: Rules;
     disabled?: boolean;
+    placeholder?: string;
     readonly?: boolean;
+    rules?: Rules;
   }
 
   interface Emits {
@@ -102,16 +102,16 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<string>;
     focus: () => void;
+    getValue: () => Promise<string>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    placeholder: '请输入',
-    rules: undefined,
-    multiInput: true,
     disabled: false,
+    multiInput: true,
+    placeholder: '请输入',
     readonly: false,
+    rules: undefined,
   });
 
   const emits = defineEmits<Emits>();
@@ -237,7 +237,7 @@
 
     const selection = window.getSelection();
 
-    if (!selection || !selection.rangeCount) {
+    if (!selection?.rangeCount) {
       return false;
     }
     selection.deleteFromDocument();
@@ -249,10 +249,6 @@
   };
 
   defineExpose<Exposes>({
-    // 获取值
-    getValue() {
-      return validator(localValue.value).then(() => localValue.value);
-    },
     // 编辑框获取焦点
     focus() {
       inputRef.value.focus();
@@ -260,6 +256,10 @@
         inputRef.value.selectionStart = localValue.value.length;
         inputRef.value.selectionEnd = localValue.value.length;
       });
+    },
+    // 获取值
+    getValue() {
+      return validator(localValue.value).then(() => localValue.value);
     },
   });
 </script>

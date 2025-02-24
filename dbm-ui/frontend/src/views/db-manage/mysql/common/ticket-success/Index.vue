@@ -49,7 +49,7 @@
   import { computed } from 'vue';
 
   interface Props {
-    steps: Array<{ name: string; current?: boolean }>;
+    steps: Array<{ current?: boolean; name: string }>;
   }
 
   const props = defineProps<Props>();

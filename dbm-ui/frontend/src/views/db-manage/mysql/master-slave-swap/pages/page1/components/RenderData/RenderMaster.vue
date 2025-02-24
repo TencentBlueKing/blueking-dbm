@@ -45,15 +45,13 @@
     modelValue?: IHostData;
   }
 
-  interface Emits {
-    (e: 'change', value: IHostData): void;
-  }
+  type Emits = (e: 'change', value: IHostData) => void;
 
   interface IValue {
     bk_biz_id: number;
+    bk_cloud_id: number;
     bk_host_id: number;
     ip: string;
-    bk_cloud_id: number;
   }
 
   interface Exposes {
@@ -78,14 +76,15 @@
 
   const rules = [
     {
-      validator: (value: string) => !!value,
       message: t('不能为空'),
+      validator: (value: string) => !!value,
     },
     {
-      validator: (value: string) => ipv4.test(_.trim(value)),
       message: t('IP格式不正确'),
+      validator: (value: string) => ipv4.test(_.trim(value)),
     },
     {
+      message: t('目标主库不存在'),
       validator: () =>
         checkMysqlInstances({
           bizId: currentBizId,
@@ -99,9 +98,9 @@
           }
           return false;
         }),
-      message: t('目标主库不存在'),
     },
     {
+      message: t('目标主库重复'),
       validator: () => {
         const otherHostSelectMemo = { ...singleHostSelectMemo };
         delete otherHostSelectMemo[instanceKey];
@@ -118,7 +117,6 @@
         emits('change', localProxyData);
         return true;
       },
-      message: t('目标主库重复'),
     },
   ];
 
@@ -145,9 +143,9 @@
     getValue() {
       const formatHost = (item: InstanceInfos) => ({
         bk_biz_id: currentBizId,
+        bk_cloud_id: item.bk_cloud_id,
         bk_host_id: item.bk_host_id,
         ip: item.ip,
-        bk_cloud_id: item.bk_cloud_id,
       });
       return editRef.value
         .getValue()

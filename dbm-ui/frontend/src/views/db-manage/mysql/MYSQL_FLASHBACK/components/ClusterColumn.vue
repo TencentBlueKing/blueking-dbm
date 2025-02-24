@@ -56,9 +56,7 @@
     selectedIds: number[];
   }
 
-  interface Emits {
-    (e: 'batch-edit', list: TendbhaModel[]): void;
-  }
+  type Emits = (e: 'batch-edit', list: TendbhaModel[]) => void;
 
   const props = defineProps<Props>();
 
@@ -91,18 +89,18 @@
 
   const rules = [
     {
-      validator: (value: string) => value.split(batchSplitRegex).every((item) => domainRegex.test(item)),
       message: t('集群域名格式不正确'),
       trigger: 'change',
+      validator: (value: string) => value.split(batchSplitRegex).every((item) => domainRegex.test(item)),
     },
     {
-      validator: () => !!modelValue.value.id,
       message: '目标集群不存在',
       trigger: 'blur',
+      validator: () => !!modelValue.value.id,
     },
   ];
 
-  const { run: queryCluster, loading } = useRequest(filterClusters, {
+  const { loading, run: queryCluster } = useRequest(filterClusters, {
     manual: true,
     onSuccess: (data) => {
       if (data.length > 0) {
@@ -111,8 +109,8 @@
           [currentCluster.master_domain]: currentCluster.id,
         });
         modelValue.value = {
-          master_domain: currentCluster.master_domain,
           id: currentCluster.id,
+          master_domain: currentCluster.master_domain,
         };
       }
     },

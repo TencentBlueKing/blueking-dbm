@@ -20,15 +20,6 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
-    name: 'EsManage',
-    path: 'elastic-search',
-    meta: {
-      navName: t('ES_集群管理'),
-    },
-    redirect: {
-      name: 'EsList',
-    },
-    component: () => import('@views/db-manage/elastic-search/Index.vue'),
     children: [
       // {
       //   name: 'EsApply',
@@ -39,15 +30,24 @@ const routes: RouteRecordRaw[] = [
       //   component: () => import('@views/db-manage/elastic-search/apply/Index.vue'),
       // },
       {
+        component: () => import('@views/db-manage/elastic-search/list/Index.vue'),
+        meta: {
+          fullscreen: true,
+          navName: t('ES_集群管理'),
+        },
         name: 'EsList',
         path: 'list',
-        meta: {
-          navName: t('ES_集群管理'),
-          fullscreen: true,
-        },
-        component: () => import('@views/db-manage/elastic-search/list/Index.vue'),
       },
     ],
+    component: () => import('@views/db-manage/elastic-search/Index.vue'),
+    meta: {
+      navName: t('ES_集群管理'),
+    },
+    name: 'EsManage',
+    path: 'elastic-search',
+    redirect: {
+      name: 'EsList',
+    },
   },
 ];
 

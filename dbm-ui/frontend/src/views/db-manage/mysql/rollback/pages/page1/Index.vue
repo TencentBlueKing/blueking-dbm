@@ -50,27 +50,27 @@
   import RenderData from './components/RenderData.vue';
 
   const enum RollbackClusterTypes {
-    BUILD_INTO_NEW_CLUSTER = 'BUILD_INTO_NEW_CLUSTER',
     BUILD_INTO_EXIST_CLUSTER = 'BUILD_INTO_EXIST_CLUSTER',
     BUILD_INTO_METACLUSTER = 'BUILD_INTO_METACLUSTER',
+    BUILD_INTO_NEW_CLUSTER = 'BUILD_INTO_NEW_CLUSTER',
   }
 
   const { t } = useI18n();
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.MYSQL_ROLLBACK_CLUSTER,
     onSuccess(cloneData) {
       rollbackClusterType.value = cloneData.rollback_cluster_type;
       tableData.value = cloneData.tableDataList;
       window.changeConfirm = true;
     },
+    type: TicketTypes.MYSQL_ROLLBACK_CLUSTER,
   });
 
   const rollbackTypeLabel = {
-    [RollbackClusterTypes.BUILD_INTO_NEW_CLUSTER]: t('构造到新集群'),
     [RollbackClusterTypes.BUILD_INTO_EXIST_CLUSTER]: t('构造到已有集群'),
     [RollbackClusterTypes.BUILD_INTO_METACLUSTER]: t('构造到原集群'),
+    [RollbackClusterTypes.BUILD_INTO_NEW_CLUSTER]: t('构造到新集群'),
   };
 
   const renderDataRef = ref<InstanceType<typeof RenderData>>();

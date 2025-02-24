@@ -13,105 +13,105 @@
 import { t } from '@locales/index';
 
 export interface MenuChild {
-  name: string;
   id: string;
+  name: string;
   parentId: string;
 }
 
 export default [
   {
-    name: t('脚本任务'),
-    id: 'mongo_script',
-    icon: 'db-icon-mysql',
     children: [
       {
-        name: t('变更脚本执行'),
         id: 'MongoScriptExecute',
+        name: t('变更脚本执行'),
         parentId: 'mongo_script',
       },
     ],
+    icon: 'db-icon-mysql',
+    id: 'mongo_script',
+    name: t('脚本任务'),
   },
   {
-    name: t('集群维护'),
-    id: 'mongo_manage',
-    icon: 'db-icon-cluster',
     children: [
       {
-        name: t('扩容Shard节点数'),
         id: 'MongoShardScaleUp',
+        name: t('扩容Shard节点数'),
         parentId: 'mongo_manage',
       },
       {
-        name: t('缩容Shard节点数'),
         id: 'MongoShardScaleDown',
+        name: t('缩容Shard节点数'),
         parentId: 'mongo_manage',
       },
       {
-        name: t('集群容量变更'),
         id: 'MongoCapacityChange',
+        name: t('集群容量变更'),
         parentId: 'mongo_manage',
       },
       {
-        name: t('扩容接入层'),
         id: 'MongoProxyScaleUp',
+        name: t('扩容接入层'),
         parentId: 'mongo_manage',
       },
       {
-        name: t('缩容接入层'),
         id: 'MongoProxyScaleDown',
+        name: t('缩容接入层'),
         parentId: 'mongo_manage',
       },
       {
-        name: t('整机替换'),
         id: 'MongoDBReplace',
+        name: t('整机替换'),
         parentId: 'mongo_manage',
       },
     ],
+    icon: 'db-icon-cluster',
+    id: 'mongo_manage',
+    name: t('集群维护'),
   },
   {
-    name: t('回档'),
-    id: 'mongo_rollback',
-    icon: 'db-icon-copy',
     children: [
       {
-        name: t('定点构造'),
         id: 'MongoDBStructure',
+        name: t('定点构造'),
         parentId: 'mongo_rollback',
       },
       {
-        name: t('构造实例'),
         id: 'MongoStructureInstance',
+        name: t('构造实例'),
         parentId: 'mongo_rollback',
       },
     ],
+    icon: 'db-icon-copy',
+    id: 'mongo_rollback',
+    name: t('回档'),
   },
   {
-    name: t('备份'),
-    id: 'mongo_backup',
-    icon: 'db-icon-copy',
     children: [
       {
-        name: t('库表备份'),
         id: 'MongoDbTableBackup',
+        name: t('库表备份'),
         parentId: 'mongo_backup',
       },
       {
-        name: t('全库备份'),
         id: 'MongoDbBackup',
+        name: t('全库备份'),
         parentId: 'mongo_backup',
       },
     ],
+    icon: 'db-icon-copy',
+    id: 'mongo_backup',
+    name: t('备份'),
   },
   {
-    name: t('数据处理'),
-    id: 'mongo_data',
-    icon: 'db-icon-data',
     children: [
       {
-        name: t('清档'),
         id: 'MongoDbClear',
+        name: t('清档'),
         parentId: 'mongo_data',
       },
     ],
+    icon: 'db-icon-data',
+    id: 'mongo_data',
+    name: t('数据处理'),
   },
 ];

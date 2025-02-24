@@ -389,7 +389,7 @@
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
-  const { baseState, bizState, handleCreateAppAbbr, handleCreateTicket, handleCancel } = useApplyBase();
+  const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
 
   const cloudInfo = reactive({
     id: '' as number | string,
@@ -414,39 +414,39 @@
   // const isDefaultCity = computed(() => formdata.details.city_code === 'default');
 
   const rules = {
-    'details.nodes.bookkeeper': [
+    'details.ack_quorum': [
       {
-        validator: (value: Array<any>) => value.length >= 2,
-        message: t('Bookkeeper节点数至少为2台'),
+        message: t('写入成功副本数量小于等于副本数量'),
         trigger: 'change',
+        validator: (value: number) => value <= formdata.details.replication_num,
       },
     ],
-    'details.nodes.zookeeper': [
+    'details.nodes.bookkeeper': [
       {
-        validator: (value: Array<any>) => value.length === 3,
-        message: t('Zookeeper节点数需3台'),
+        message: t('Bookkeeper节点数至少为2台'),
         trigger: 'change',
+        validator: (value: Array<any>) => value.length >= 2,
       },
     ],
     'details.nodes.broker': [
       {
-        validator: (value: Array<any>) => value.length >= 1,
         message: t('Broker节点数至少为1台'),
         trigger: 'change',
+        validator: (value: Array<any>) => value.length >= 1,
+      },
+    ],
+    'details.nodes.zookeeper': [
+      {
+        message: t('Zookeeper节点数需3台'),
+        trigger: 'change',
+        validator: (value: Array<any>) => value.length === 3,
       },
     ],
     'details.replication_num': [
       {
-        validator: (value: number) => value <= ackQuorumMax.value,
         message: t('至少2_不能超过Bookkeeper数量'),
         trigger: 'change',
-      },
-    ],
-    'details.ack_quorum': [
-      {
-        validator: (value: number) => value <= formdata.details.replication_num,
-        message: t('写入成功副本数量小于等于副本数量'),
-        trigger: 'change',
+        validator: (value: number) => value <= ackQuorumMax.value,
       },
     ],
   };
@@ -461,7 +461,7 @@
         totalCapacity.value = disk * count;
       }
     },
-    { flush: 'post', deep: true },
+    { deep: true, flush: 'post' },
   );
 
   /**
@@ -562,10 +562,10 @@
       baseState.isSubmitting = true;
       const mapIpField = (ipList: HostInfo[]) =>
         ipList.map((item) => ({
+          bk_biz_id: item.biz.id,
+          bk_cloud_id: item.cloud_area.id,
           bk_host_id: item.host_id,
           ip: item.ip,
-          bk_cloud_id: item.cloud_area.id,
-          bk_biz_id: item.biz.id,
         }));
 
       const getDetails = () => {
@@ -584,11 +584,11 @@
           return {
             ...details,
             resource_spec: {
-              zookeeper: {
-                ...details.resource_spec.zookeeper,
-                ...specZookeeperRef.value.getData(),
+              bookkeeper: {
+                ...details.resource_spec.bookkeeper,
+                ...specBookkeeperRef.value.getData(),
                 ...regionAndDisasterParams,
-                count: Number(details.resource_spec.zookeeper.count),
+                count: Number(details.resource_spec.bookkeeper.count),
               },
               broker: {
                 ...details.resource_spec.broker,
@@ -596,11 +596,11 @@
                 ...regionAndDisasterParams,
                 count: Number(details.resource_spec.broker.count),
               },
-              bookkeeper: {
-                ...details.resource_spec.bookkeeper,
-                ...specBookkeeperRef.value.getData(),
+              zookeeper: {
+                ...details.resource_spec.zookeeper,
+                ...specZookeeperRef.value.getData(),
                 ...regionAndDisasterParams,
-                count: Number(details.resource_spec.bookkeeper.count),
+                count: Number(details.resource_spec.zookeeper.count),
               },
             },
           };
@@ -610,9 +610,9 @@
         return {
           ...details,
           nodes: {
-            zookeeper: mapIpField(formdata.details.nodes.zookeeper),
             bookkeeper: mapIpField(formdata.details.nodes.bookkeeper),
             broker: mapIpField(formdata.details.nodes.broker),
+            zookeeper: mapIpField(formdata.details.nodes.zookeeper),
           },
         };
       };
@@ -631,9 +631,8 @@
    */
   const handleReset = () => {
     InfoBox({
-      title: t('确认重置表单内容'),
-      content: t('重置后_将会清空当前填写的内容'),
       cancelText: t('取消'),
+      content: t('重置后_将会清空当前填写的内容'),
       onConfirm: () => {
         Object.assign(formdata, getInitFormdata());
         formRef.value.clearValidate();
@@ -642,6 +641,7 @@
         });
         return true;
       },
+      title: t('确认重置表单内容'),
     });
   };
 

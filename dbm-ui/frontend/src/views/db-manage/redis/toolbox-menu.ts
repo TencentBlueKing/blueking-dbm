@@ -14,169 +14,169 @@
 import { t } from '@locales/index';
 
 export interface MenuItem {
-  name: string;
-  id: string;
-  icon: string;
   children: MenuChild[];
+  icon: string;
+  id: string;
+  name: string;
 }
 
 export interface MenuChild {
-  name: string;
-  id: string;
-  parentId: string;
   dbConsoleValue: string;
+  id: string;
+  name: string;
+  parentId: string;
 }
 
 export default [
   {
     id: 'common-menu',
-    title: t('通用'),
-    titleTooltip: t('支持所有架构类型'),
     menuList: [
       {
-        name: t('通用维护'),
-        id: 'common-manage',
-        icon: 'db-icon-cluster',
         children: [
           {
-            name: t('重建从库'),
-            id: 'RedisDBCreateSlave',
-            parentId: 'common-manage',
             dbConsoleValue: 'redis.toolbox.slaveRebuild',
+            id: 'RedisDBCreateSlave',
+            name: t('重建从库'),
+            parentId: 'common-manage',
           },
           {
-            name: t('主从切换'),
-            id: 'RedisMasterFailover',
-            parentId: 'common-manage',
             dbConsoleValue: 'redis.toolbox.masterSlaveSwap',
+            id: 'RedisMasterFailover',
+            name: t('主从切换'),
+            parentId: 'common-manage',
           },
           {
-            name: t('整机替换'),
-            id: 'RedisDBReplace',
-            parentId: 'common-manage',
             dbConsoleValue: 'redis.toolbox.dbReplace',
+            id: 'RedisDBReplace',
+            name: t('整机替换'),
+            parentId: 'common-manage',
           },
           {
-            name: t('迁移'),
-            id: 'RedisMigrate',
-            parentId: 'common-manage',
             dbConsoleValue: 'redis.toolbox.migrate',
-          },
-          {
-            name: t('版本升级'),
-            id: 'RedisVersionUpgrade',
+            id: 'RedisMigrate',
+            name: t('迁移'),
             parentId: 'common-manage',
+          },
+          {
             dbConsoleValue: 'redis.toolbox.versionUpgrade',
+            id: 'RedisVersionUpgrade',
+            name: t('版本升级'),
+            parentId: 'common-manage',
           },
           {
-            name: t('安装 Module'),
-            id: 'RedisInstallModule',
-            parentId: 'cluster-manage',
             dbConsoleValue: 'redis.toolbox.installModule',
+            id: 'RedisInstallModule',
+            name: t('安装 Module'),
+            parentId: 'cluster-manage',
           },
         ],
+        icon: 'db-icon-cluster',
+        id: 'common-manage',
+        name: t('通用维护'),
       },
       {
-        name: t('数据构造'),
-        id: 'common-struct',
-        icon: 'db-icon-copy',
         children: [
           {
-            name: t('定点构造'),
-            id: 'RedisDBStructure',
-            parentId: 'common-struct',
             dbConsoleValue: 'redis.toolbox.rollback',
+            id: 'RedisDBStructure',
+            name: t('定点构造'),
+            parentId: 'common-struct',
           },
           {
-            name: t('构造实例'),
-            id: 'RedisStructureInstance',
-            parentId: 'common-struct',
             dbConsoleValue: 'redis.toolbox.rollbackRecord',
-          },
-          {
-            name: t('以构造实例恢复'),
-            id: 'RedisRecoverFromInstance',
+            id: 'RedisStructureInstance',
+            name: t('构造实例'),
             parentId: 'common-struct',
+          },
+          {
             dbConsoleValue: 'redis.toolbox.recoverFromInstance',
+            id: 'RedisRecoverFromInstance',
+            name: t('以构造实例恢复'),
+            parentId: 'common-struct',
           },
         ],
+        icon: 'db-icon-copy',
+        id: 'common-struct',
+        name: t('数据构造'),
       },
       {
-        name: t('数据传输（DTS）'),
-        id: 'common-dts',
-        icon: 'db-icon-data',
         children: [
           {
-            name: t('数据复制'),
-            id: 'RedisDBDataCopy',
-            parentId: 'common-dts',
             dbConsoleValue: 'redis.toolbox.dataCopy',
+            id: 'RedisDBDataCopy',
+            name: t('数据复制'),
+            parentId: 'common-dts',
           },
           {
-            name: t('数据复制记录'),
-            id: 'RedisDBDataCopyRecord',
-            parentId: 'common-dts',
             dbConsoleValue: 'redis.toolbox.dataCopyRecord',
+            id: 'RedisDBDataCopyRecord',
+            name: t('数据复制记录'),
+            parentId: 'common-dts',
           },
         ],
+        icon: 'db-icon-data',
+        id: 'common-dts',
+        name: t('数据传输（DTS）'),
       },
       {
-        name: t('数据查询'),
-        id: 'redis_data_query',
-        icon: 'db-icon-search',
         children: [
           {
-            name: 'Webconsole',
-            id: 'RedisWebconsole',
-            parentId: 'redis_data_query',
             dbConsoleValue: 'redis.toolbox.webconsole',
+            id: 'RedisWebconsole',
+            name: 'Webconsole',
+            parentId: 'redis_data_query',
           },
         ],
+        icon: 'db-icon-search',
+        id: 'redis_data_query',
+        name: t('数据查询'),
       },
     ],
+    title: t('通用'),
+    titleTooltip: t('支持所有架构类型'),
   },
   {
     id: 'cluster-menu',
-    title: t('集群'),
-    titleTooltip: t('仅支持 TendisCache，TendisSSD，Tendisplus，RedisCluster 类型'),
     menuList: [
       {
-        name: t('集群维护'),
-        id: 'cluster-manage',
-        icon: 'db-icon-cluster',
         children: [
           {
-            name: t('扩容接入层'),
-            id: 'RedisProxyScaleUp',
-            parentId: 'cluster-manage',
             dbConsoleValue: 'redis.toolbox.proxyScaleUp',
+            id: 'RedisProxyScaleUp',
+            name: t('扩容接入层'),
+            parentId: 'cluster-manage',
           },
           {
-            name: t('缩容接入层'),
-            id: 'RedisProxyScaleDown',
-            parentId: 'cluster-manage',
             dbConsoleValue: 'redis.toolbox.proxyScaleDown',
+            id: 'RedisProxyScaleDown',
+            name: t('缩容接入层'),
+            parentId: 'cluster-manage',
           },
           {
-            name: t('集群容量变更'),
-            id: 'RedisCapacityChange',
-            parentId: 'cluster-manage',
             dbConsoleValue: 'redis.toolbox.capacityChange',
+            id: 'RedisCapacityChange',
+            name: t('集群容量变更'),
+            parentId: 'cluster-manage',
           },
           {
-            name: t('集群分片变更'),
-            id: 'RedisClusterShardUpdate',
-            parentId: 'cluster-manage',
             dbConsoleValue: 'redis.toolbox.clusterShardChange',
+            id: 'RedisClusterShardUpdate',
+            name: t('集群分片变更'),
+            parentId: 'cluster-manage',
           },
           {
-            name: t('集群类型变更'),
-            id: 'RedisClusterTypeUpdate',
-            parentId: 'cluster-manage',
             dbConsoleValue: 'redis.toolbox.clusterTypeChange',
+            id: 'RedisClusterTypeUpdate',
+            name: t('集群类型变更'),
+            parentId: 'cluster-manage',
           },
         ],
+        icon: 'db-icon-cluster',
+        id: 'cluster-manage',
+        name: t('集群维护'),
       },
     ],
+    title: t('集群'),
+    titleTooltip: t('仅支持 TendisCache，TendisSSD，Tendisplus，RedisCluster 类型'),
   },
 ];

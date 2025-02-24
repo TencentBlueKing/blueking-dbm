@@ -181,11 +181,11 @@
 
   const startTime = ref('');
   const batchEditShow = reactive({
-    startTime: false,
-    endTime: false,
     databases: false,
-    tables: false,
     databasesIgnore: false,
+    endTime: false,
+    startTime: false,
+    tables: false,
     tablesIgnore: false,
   });
 

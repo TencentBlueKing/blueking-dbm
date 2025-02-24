@@ -26,11 +26,11 @@
 
   /* eslint-disable vue/no-unused-properties */
   interface Props {
+    maxlength?: number;
+    minlength?: number;
     placeholder?: string;
     prefix?: string;
     suffix?: string;
-    maxlength?: number;
-    minlength?: number;
   }
 
   interface Emits {
@@ -46,9 +46,9 @@
   const modelValue = defineModel<string>();
 
   const slots = defineSlots<{
-    prepend?: () => VNode;
-    default?: () => VNode;
     append?: () => VNode;
+    default?: () => VNode;
+    prepend?: () => VNode;
   }>();
 
   const attrs = useAttrs();

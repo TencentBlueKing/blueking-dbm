@@ -126,11 +126,11 @@
   import { execCopy } from '@utils';
 
   interface IDataRow {
-    ips: string[];
-    user: string;
     accessDbs: string[];
     clusterDomains: string[];
+    ips: string[];
     privileges?: AuthorizePreCheckData['privileges'];
+    user: string;
   }
 
   interface Props {
@@ -163,13 +163,15 @@
         userDbPrivilegeMap.value = props.data.reduce<Record<string, AccountRulePrivilege>>((acc, cur) => {
           const { privileges } = cur;
           privileges?.forEach((item) => {
-            const { user, access_db: accessDbs, priv } = item;
+            const { access_db: accessDbs, priv, user } = item;
             const privileageMap = new Set(priv.split(','));
-            acc[`${user}#${accessDbs}`] = {
-              ddl: ddl.filter((item) => privileageMap.has(item)),
-              dml: dml.filter((item) => privileageMap.has(item)),
-              glob: glob.filter((item) => privileageMap.has(item)),
-            };
+            Object.assign(acc, {
+              [`${user}#${accessDbs}`]: {
+                ddl: ddl.filter((item) => privileageMap.has(item)),
+                dml: dml.filter((item) => privileageMap.has(item)),
+                glob: glob.filter((item) => privileageMap.has(item)),
+              },
+            });
           });
           return acc;
         }, {});
@@ -182,12 +184,12 @@
        */
       Promise.all(
         props.data.map(
-          ({ user, accessDbs }) =>
+          ({ accessDbs, user }) =>
             new Promise<Record<string, AccountRulePrivilege>>((resolve, reject) => {
               queryAccountRules({
-                user,
                 access_dbs: accessDbs,
                 account_type: props.accountType,
+                user,
               }).then(({ results }) => {
                 if (results.length === 0) {
                   reject(new Error('未查询到权限信息'));

@@ -52,10 +52,10 @@
         if (props.data) {
           return batchProcessTicket({
             action: 'APPROVE',
-            ticket_ids: [props.data.id],
             params: {
               remark: '确认补货',
             },
+            ticket_ids: [props.data.id],
           });
         }
         if (props.todoData) {
@@ -63,10 +63,10 @@
             action: 'APPROVE',
             operations: [
               {
-                todo_id: props.todoData.id,
                 params: {
                   remark: '确认补货',
                 },
+                todo_id: props.todoData.id,
               },
             ],
           });

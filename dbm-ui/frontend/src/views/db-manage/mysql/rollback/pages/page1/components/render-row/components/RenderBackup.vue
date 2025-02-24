@@ -25,32 +25,30 @@
   import { t } from '@locales/index';
 
   export enum BackupSources {
-    REMOTE = 'remote',
     LOCAL = 'local',
+    REMOTE = 'remote',
   }
 
   export const backupSourceList = [
     {
-      value: BackupSources.REMOTE,
       label: t('远程备份'),
+      value: BackupSources.REMOTE,
     },
     {
-      value: BackupSources.LOCAL,
       label: t('本地备份'),
+      value: BackupSources.LOCAL,
     },
   ];
 
   interface Props {
-    modelValue: BackupSources;
     list?: {
-      value: string;
       label: string;
+      value: string;
     }[];
+    modelValue: BackupSources;
   }
 
-  interface Emits {
-    (e: 'change', value: BackupSources): void;
-  }
+  type Emits = (e: 'change', value: BackupSources) => void;
 
   interface Exposes {
     getValue: () => Promise<Record<string, string>>;
@@ -67,8 +65,8 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('备份源不能为空'),
+      validator: (value: string) => Boolean(value),
     },
   ];
   const targetList = props.list || backupSourceList;

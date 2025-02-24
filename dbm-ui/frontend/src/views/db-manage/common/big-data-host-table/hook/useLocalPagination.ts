@@ -21,10 +21,10 @@ import { encodeRegexp } from '@utils';
 
 export default function (originalData: Ref<HostInfo[]>) {
   const pagination = reactive({
+    align: 'right',
     count: 0,
     current: 1,
     limit: 10,
-    align: 'right',
   });
 
   const searchKey = useDebouncedRef('');
@@ -74,11 +74,11 @@ export default function (originalData: Ref<HostInfo[]>) {
 
   return {
     data,
-    searchKey,
-    serachList,
-    isShowPagination,
-    pagination,
     handlePaginationCurrentChange,
     handlePaginationLimitChange,
+    isShowPagination,
+    pagination,
+    searchKey,
+    serachList,
   };
 }

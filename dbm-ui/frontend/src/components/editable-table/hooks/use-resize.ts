@@ -14,19 +14,19 @@ export default function (
     Record<
       string,
       {
-        width?: number;
-        minWidth?: number;
         maxWidth?: number;
+        minWidth?: number;
         renderWidth: number;
+        width?: number;
       }
     >
   >({});
 
   const dragging = ref(false);
   const dragState = ref({
-    startMouseLeft: 0,
-    startLeft: 0,
     startColumnLeft: 0,
+    startLeft: 0,
+    startMouseLeft: 0,
     tableLeft: 0,
   });
 
@@ -64,8 +64,8 @@ export default function (
           return;
         }
         columnSizeConfigCache[column.key] = {
-          width: column.props.width,
           renderWidth: Number(column.props.width),
+          width: column.props.width,
         };
         totalWidth += Number(column.props.width);
       });
@@ -154,9 +154,9 @@ export default function (
     const minLeft = columnRect.left - tableLeft + 30;
 
     dragState.value = {
-      startMouseLeft: event.clientX,
-      startLeft: columnRect.right - tableLeft,
       startColumnLeft: columnRect.left - tableLeft,
+      startLeft: columnRect.right - tableLeft,
+      startMouseLeft: event.clientX,
       tableLeft,
     };
     const resizeProxy = tableColumnResizeRef.value as HTMLElement;
@@ -235,7 +235,7 @@ export default function (
     const columnKey = target.dataset.name as string;
 
     const targetColumn = _.find(columnList.value, (column) => column.key === columnKey);
-    if (!targetColumn || !targetColumn.props.resizeable) {
+    if (!targetColumn?.props.resizeable) {
       return;
     }
 
@@ -257,7 +257,7 @@ export default function (
     let i = event.composedPath().length - 1;
     while (i >= 0) {
       const target = event.composedPath()[i] as HTMLElement;
-      if (target.classList && target.classList.contains('bk-editable-table')) {
+      if (target.classList?.contains('bk-editable-table')) {
         return;
       }
       i = i - 1;

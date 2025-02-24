@@ -66,14 +66,14 @@
   const { t } = useI18n();
 
   const PASSWORD_POLICY = {
-    lowercase: t('包含小写字母'),
-    uppercase: t('包含大写字母'),
-    numbers: t('包含数字'),
-    symbols: t('包含特殊字符_除空格外'),
     follow_keyboards: t('键盘序'),
     follow_letters: t('字母序'),
     follow_numbers: t('数字序'),
     follow_symbols: t('特殊符号序'),
+    lowercase: t('包含小写字母'),
+    numbers: t('包含数字'),
+    symbols: t('包含特殊字符_除空格外'),
+    uppercase: t('包含大写字母'),
   };
 
   let tippyInstance: Instance | null;
@@ -106,8 +106,8 @@
 
   const rules = [
     {
-      trigger: 'blur',
       message: t('密码不满足要求'),
+      trigger: 'blur',
       validator: () =>
         verifyPasswordStrength({
           password: encypt.encrypt(modelValue.value) || '',
@@ -134,10 +134,10 @@
   const { loading: isPasswordPolicyLoading } = useRequest(getPasswordPolicy, {
     onSuccess(result) {
       const {
-        min_length: minLength,
-        max_length: maxLength,
-        include_rule: includeRule,
         exclude_continuous_rule: excludeContinuousRule,
+        include_rule: includeRule,
+        max_length: maxLength,
+        min_length: minLength,
       } = result.rule;
 
       passwordRuleTipList.value = [
@@ -237,16 +237,16 @@
 
   onMounted(() => {
     tippyInstance = tippy(passwordInputRef.value.$el as SingleTarget, {
-      content: passwordRuleTipsRef.value,
-      trigger: 'manual',
-      theme: 'light',
-      arrow: true,
-      placement: 'top-end',
-      interactive: true,
       allowHTML: true,
-      hideOnClick: false,
-      zIndex: 9999,
       appendTo: () => document.body,
+      arrow: true,
+      content: passwordRuleTipsRef.value,
+      hideOnClick: false,
+      interactive: true,
+      placement: 'top-end',
+      theme: 'light',
+      trigger: 'manual',
+      zIndex: 9999,
     });
   });
 

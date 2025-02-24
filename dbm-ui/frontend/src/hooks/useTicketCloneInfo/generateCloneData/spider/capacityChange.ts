@@ -20,11 +20,11 @@ import { random } from '@utils';
 // Spider 集群remote节点扩缩容
 export async function generateSpiderCapacityChangeCloneData(ticketData: TicketModel<TendbCluster.NodeRebalance>) {
   const {
+    backup_source: backupSource,
     infos,
     need_checksum: needChecksum,
-    trigger_checksum_type: triggerChecksumType,
     trigger_checksum_time: triggerChecksumTime,
-    backup_source: backupSource,
+    trigger_checksum_type: triggerChecksumType,
   } = ticketData.details;
   const clusterListResult = await getTendbClusterList({
     cluster_ids: infos.map((item) => item.cluster_id),
@@ -40,7 +40,6 @@ export async function generateSpiderCapacityChangeCloneData(ticketData: TicketMo
     const clusterItem = clusterListMap[item.cluster_id];
     const specItem = clusterItem.spider_master[0].spec_config;
     return {
-      rowKey: random(),
       clusterData: {
         bkCloudId: clusterItem.bk_cloud_id,
         clusterCapacity: clusterItem.cluster_capacity,
@@ -53,23 +52,24 @@ export async function generateSpiderCapacityChangeCloneData(ticketData: TicketMo
         machinePairCnt: clusterItem.machine_pair_cnt,
         masterDomain: clusterItem.master_domain,
       },
-      resourceSpec: {
-        id: specItem.id,
-        name: specItem.name,
-      },
       resource_spec: {
         ...item.resource_spec,
         remote_shard_num: item.remote_shard_num,
       },
+      resourceSpec: {
+        id: specItem.id,
+        name: specItem.name,
+      },
+      rowKey: random(),
     };
   });
 
   return {
     backupSource,
     needChecksum,
-    triggerChecksumType,
-    triggerChecksumTime,
-    tableDataList,
     remark: ticketData.remark,
+    tableDataList,
+    triggerChecksumTime,
+    triggerChecksumType,
   };
 }

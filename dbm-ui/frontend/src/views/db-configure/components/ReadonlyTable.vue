@@ -40,34 +40,28 @@
 
   import { getLevelConfig } from '@services/source/configs';
 
-  import {
-    confLevelInfos,
-    ConfLevels,
-    type ConfLevelValues,
-  } from '@common/const';
+  import { confLevelInfos, ConfLevels, type ConfLevelValues } from '@common/const';
 
-  type ParameterConfigItem = ServiceReturnType<typeof getLevelConfig>['conf_items'][number]
+  type ParameterConfigItem = ServiceReturnType<typeof getLevelConfig>['conf_items'][number];
 
   interface Props {
-    data?: ParameterConfigItem[]
-    level?: string,
+    data?: ParameterConfigItem[];
+    isAnomalies?: boolean;
     // 是否为发布记录
-    isRecord?: boolean,
-    stickyTop?: number,
-    isAnomalies?: boolean
+    isRecord?: boolean;
+    level?: string;
+    stickyTop?: number;
   }
 
-  interface Emits {
-    (e: 'refresh'): void
-  }
+  type Emits = (e: 'refresh') => void;
 
   const props = withDefaults(defineProps<Props>(), {
     data: () => [],
-    level: ConfLevels.PLAT,
+    isAnomalies: false,
     // 是否为发布记录
     isRecord: false,
+    level: ConfLevels.PLAT,
     stickyTop: 0,
-    isAnomalies: false,
   });
 
   const emits = defineEmits<Emits>();
@@ -77,59 +71,65 @@
   const search = ref('');
   const renderTableData = computed(() => {
     if (search.value === '') return props.data;
-    return props.data.filter(item => item.conf_name.includes(search.value));
+    return props.data.filter((item) => item.conf_name.includes(search.value));
   });
 
   const columns = [
     {
-      label: t('参数项'),
       field: 'conf_name',
+      label: t('参数项'),
       minWidth: 300,
-      render: ({ data }: {data: ParameterConfigItem}) => (
+      render: ({ data }: { data: ParameterConfigItem }) => (
         <>
           <div
             v-overflow-tips
-            class="text-overflow config-name-box">
+            class='text-overflow config-name-box'>
             {data.conf_name}
           </div>
           <db-icon
             v-show={Boolean(data.description)}
             v-bk-tooltips={data.description}
-            class="ml-4"
-            type="attention" />
+            class='ml-4'
+            type='attention'
+          />
         </>
       ),
     },
     {
-      label: t('参数值'),
       field: isPlat.value && !props.isRecord ? 'value_default' : 'conf_value',
-      render: ({ data }: {data: ParameterConfigItem}) => (
+      label: t('参数值'),
+      render: ({ data }: { data: ParameterConfigItem }) => (
         <div
-          class="text-overflow"
-          v-overflow-tips>
+          v-overflow-tips
+          class='text-overflow'>
           {isPlat.value && !props.isRecord ? data.value_default : data.conf_value}
         </div>
       ),
     },
     {
-      label: t('允许值设定'),
       field: 'value_allowed',
-      render: ({ data }: {data: ParameterConfigItem}) => {
+      label: t('允许值设定'),
+      render: ({ data }: { data: ParameterConfigItem }) => {
         const enumType = ['ENUM', 'ENUMS'];
         // 将 | 转为逗号(,) 增加可读性
-        const displayValue = enumType.includes(data.value_type_sub as string) ? data.value_allowed.replace(/\|/g, ', ') : data.value_allowed;
-        return <div class="text-overflow" v-overflow-tips>{displayValue}</div>;
+        const displayValue = enumType.includes(data.value_type_sub as string)
+          ? data.value_allowed.replace(/\|/g, ', ')
+          : data.value_allowed;
+        return (
+          <div
+            v-overflow-tips
+            class='text-overflow'>
+            {displayValue}
+          </div>
+        );
       },
     },
     {
-      label: t('锁定'),
       field: 'flag_locked',
-      width: 130,
-      render: ({ cell, data }: { cell: number, data: ParameterConfigItem }) => {
+      label: t('锁定'),
+      render: ({ cell, data }: { cell: number; data: ParameterConfigItem }) => {
         if (cell === 0) {
-          return (
-            <db-icon type="unlock" />
-          );
+          return <db-icon type='unlock' />;
         }
 
         const text = isPlat.value ? t('平台锁定') : confLevelInfos[data.level_name as ConfLevelValues]?.lockText;
@@ -137,17 +137,18 @@
           <bk-tag class={['locked-tag', `locked-tag--${data.level_name}`]}>
             {{
               default: () => text,
-              icon: () => <db-icon type="lock-fill" />,
+              icon: () => <db-icon type='lock-fill' />,
             }}
           </bk-tag>
         );
       },
+      width: 130,
     },
     {
-      label: t('重启实例生效'),
       field: 'need_restart',
+      label: t('重启实例生效'),
+      render: ({ cell }: { cell: number }) => (cell === 1 ? t('是') : t('否')),
       width: 200,
-      render: ({ cell }: {cell: number}) => (cell === 1 ? t('是') : t('否')),
     },
   ];
 

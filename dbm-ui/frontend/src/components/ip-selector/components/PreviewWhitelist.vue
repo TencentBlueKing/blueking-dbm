@@ -43,16 +43,16 @@
 
   import { execCopy } from '@utils';
 
-  type WhitelistItem = ServiceReturnType<typeof getWhitelist>['results'][number]
+  type WhitelistItem = ServiceReturnType<typeof getWhitelist>['results'][number];
 
   interface Props {
-    data: WhitelistItem[],
-    search: string
+    data: WhitelistItem[];
+    search: string;
   }
 
   interface Emits {
-    (e: 'clearSelected'): void,
-    (e: 'removeSelected', index: number): void,
+    (e: 'clearSelected'): void;
+    (e: 'removeSelected', index: number): void;
   }
 
   const props = defineProps<Props>();
@@ -63,59 +63,73 @@
   const totals = computed(() => {
     const ips = props.data.reduce((result, item) => result.concat(item.ips || []), [] as string[]);
     const uniqueIps = [...new Set(ips)];
-    const symbolNums = uniqueIps.filter(ip => ip.endsWith('%')).length;
+    const symbolNums = uniqueIps.filter((ip) => ip.endsWith('%')).length;
 
     return {
-      symbolNums,
       ipNums: uniqueIps.length - symbolNums,
+      symbolNums,
     };
   });
 
   const renderData = computed(() => {
     if (!props.search) return props.data;
-    return props.data.filter(item => item.ips.some(ip => ip.includes(props.search)));
+    return props.data.filter((item) => item.ips.some((ip) => ip.includes(props.search)));
   });
 
-  const columns = [{
-    label: 'IP',
-    field: 'ips',
-    showOverflowTooltip: false,
-    render: ({ data }: { data: WhitelistItem }) => <RenderRow  data={data.ips} />,
-  }, {
-    label: t('备注'),
-    field: 'remark',
-  }, {
-    label: t('操作'),
-    field: 'operation',
-    width: 100,
-    render: ({ index }: { index: number }) => <bk-button text theme="primary" onClick={() => handleRemoveSelected(index)}>{ t('删除') }</bk-button>,
-  }];
+  const columns = [
+    {
+      field: 'ips',
+      label: 'IP',
+      render: ({ data }: { data: WhitelistItem }) => <RenderRow data={data.ips} />,
+      showOverflowTooltip: false,
+    },
+    {
+      field: 'remark',
+      label: t('备注'),
+    },
+    {
+      field: 'operation',
+      label: t('操作'),
+      render: ({ index }: { index: number }) => (
+        <bk-button
+          theme='primary'
+          text
+          onClick={() => handleRemoveSelected(index)}>
+          {t('删除')}
+        </bk-button>
+      ),
+      width: 100,
+    },
+  ];
 
   const tableData = computed(() => ({
-    maxHeight: 474,
     columns,
+    data: renderData.value,
+    maxHeight: 474,
     pagination: {
+      align: 'right',
       count: 0,
       current: 1,
+      layout: ['total', 'limit', 'list'],
       limit: 10,
       limitList: [10, 20, 50, 100],
-      align: 'right',
-      layout: ['total', 'limit', 'list'],
     },
-    data: renderData.value,
   })) as unknown as TablePropTypes;
 
   // IP 操作
-  const operations = [{
-    label: t('清除所有'),
-    onClick: handleClearSelected,
-  }, {
-    label: t('复制'),
-    onClick: () => {
-      const ips = props.data.reduce((result: string[], item: WhitelistItem) => result.concat(item.ips), []);
-      execCopy(ips.join('\n'), t('复制成功，共n条', { n: ips.length }));
+  const operations = [
+    {
+      label: t('清除所有'),
+      onClick: handleClearSelected,
     },
-  }];
+    {
+      label: t('复制'),
+      onClick: () => {
+        const ips = props.data.reduce((result: string[], item: WhitelistItem) => result.concat(item.ips), []);
+        execCopy(ips.join('\n'), t('复制成功，共n条', { n: ips.length }));
+      },
+    },
+  ];
 
   function handleRemoveSelected(index: number) {
     emits('removeSelected', index);

@@ -21,17 +21,17 @@ export function generateMysqlProxyAddCloneData(ticketData: TicketModel<Mysql.Pro
   const tableDataList = infos.map((item) => {
     const clusterId = item.cluster_ids[0];
     return {
-      rowKey: random(),
       clusterData: {
-        id: clusterId,
-        domain: clusters[clusterId].immute_domain,
         cloudId: clusters[clusterId].bk_cloud_id,
+        domain: clusters[clusterId].immute_domain,
+        id: clusterId,
       },
       proxyIp: item.new_proxy,
+      rowKey: random(),
     };
   });
   return Promise.resolve({
-    tableDataList,
     remark: ticketData.remark,
+    tableDataList,
   });
 }

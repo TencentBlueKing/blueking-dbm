@@ -23,8 +23,8 @@ import { t } from '@locales/index';
 
 export const useShowDeleteKeys = () => {
   const state = reactive({
-    isShow: false,
     data: [] as RedisModel[],
+    isShow: false,
   });
 
   const handleShow = (data: RedisModel[]) => {
@@ -47,7 +47,7 @@ export const useShowDeleteKeys = () => {
   };
 
   return {
-    state,
     handleShow,
+    state,
   };
 };

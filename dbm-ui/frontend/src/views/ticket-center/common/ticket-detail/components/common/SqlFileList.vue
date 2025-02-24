@@ -43,13 +43,11 @@
   import { getSQLFilename } from '@utils';
 
   interface Props {
-    modelValue: string;
     data: Array<string>;
+    modelValue: string;
   }
 
-  interface Emits {
-    (e: 'update:modelValue', value: string): void;
-  }
+  type Emits = (e: 'update:modelValue', value: string) => void;
 
   const props = defineProps<Props>();
 

@@ -87,47 +87,45 @@
   import { useTopoData } from './useTopoData';
 
   interface TopoTreeData {
+    children: Array<TopoTreeData>;
+    count: number;
     id: number;
     name: string;
     obj: 'biz' | 'cluster';
-    count: number;
-    children: Array<TopoTreeData>;
   }
 
   type TableConfigType = Required<PanelListType[number]>['tableConfig'];
   type TopoConfigType = Required<PanelListType[number]>['topoConfig'];
 
   interface Props {
-    lastValues: InstanceSelectorValues<IValue>;
-    tableSetting: TableSetting;
-    firsrColumn?: TableConfigType['firsrColumn'];
-    roleFilterList?: TableConfigType['roleFilterList'];
-    isRemotePagination?: TableConfigType['isRemotePagination'];
-    disabledRowConfig?: TableConfigType['disabledRowConfig'];
-    topoAlertContent?: TopoConfigType['topoAlertContent'];
-    filterClusterId?: TopoConfigType['filterClusterId']; // 过滤的集群ID，单集群模式
-    // eslint-disable-next-line vue/no-unused-properties
-    getTopoList: NonNullable<TopoConfigType['getTopoList']>;
-    // eslint-disable-next-line vue/no-unused-properties
-    getTableList: NonNullable<TableConfigType['getTableList']>;
-    statusFilter?: TableConfigType['statusFilter'];
     // eslint-disable-next-line vue/no-unused-properties
     countFunc?: TopoConfigType['countFunc'];
+    disabledRowConfig?: TableConfigType['disabledRowConfig'];
+    filterClusterId?: TopoConfigType['filterClusterId']; // 过滤的集群ID，单集群模式
+    firsrColumn?: TableConfigType['firsrColumn'];
+
+    getTableList: NonNullable<TableConfigType['getTableList']>;
+    // eslint-disable-next-line vue/no-unused-properties
+    getTopoList: NonNullable<TopoConfigType['getTopoList']>;
+    isRemotePagination?: TableConfigType['isRemotePagination'];
+    lastValues: InstanceSelectorValues<IValue>;
+    roleFilterList?: TableConfigType['roleFilterList'];
+    statusFilter?: TableConfigType['statusFilter'];
+    tableSetting: TableSetting;
+    topoAlertContent?: TopoConfigType['topoAlertContent'];
   }
 
-  interface Emits {
-    (e: 'change', value: Props['lastValues']): void;
-  }
+  type Emits = (e: 'change', value: Props['lastValues']) => void;
 
   const props = withDefaults(defineProps<Props>(), {
-    firsrColumn: undefined,
-    statusFilter: undefined,
-    isRemotePagination: true,
     countFunc: undefined,
     disabledRowConfig: undefined,
-    topoAlertContent: undefined,
-    roleFilterList: undefined,
     filterClusterId: undefined,
+    firsrColumn: undefined,
+    isRemotePagination: true,
+    roleFilterList: undefined,
+    statusFilter: undefined,
+    topoAlertContent: undefined,
   });
   const emits = defineEmits<Emits>();
 
@@ -137,7 +135,7 @@
   const TopoAlertContent = computed(() => (props.topoAlertContent ? props.topoAlertContent : 'div'));
   const filterClusterId = computed(() => props.filterClusterId);
 
-  const { treeRef, isLoading, treeData, selectClusterId, fetchResources } =
+  const { fetchResources, isLoading, selectClusterId, treeData, treeRef } =
     useTopoData<Record<string, any>>(filterClusterId);
 
   fetchResources();

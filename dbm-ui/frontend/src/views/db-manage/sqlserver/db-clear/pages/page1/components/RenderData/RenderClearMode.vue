@@ -39,23 +39,23 @@
   const { t } = useI18n();
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('清档类型不能为空'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 
   const list = [
     {
-      value: 'clean_tables',
       label: t('清理表数据'),
+      value: 'clean_tables',
     },
     {
-      value: 'drop_tables',
       label: t('删除表'),
+      value: 'drop_tables',
     },
     {
-      value: 'drop_dbs',
       label: t('删除整库'),
+      value: 'drop_dbs',
     },
   ];
 

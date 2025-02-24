@@ -104,8 +104,8 @@
   const modelValue = defineModel<{
     bk_biz_ids: number[];
     db_types: string[];
-    resource_types: string[];
     filter_type: string;
+    resource_types: string[];
   }>({
     required: true,
   });

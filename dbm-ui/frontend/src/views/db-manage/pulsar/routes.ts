@@ -20,15 +20,6 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
-    name: 'PulsarManage',
-    path: 'pulsar',
-    meta: {
-      navName: t('Pulsar集群管理'),
-    },
-    redirect: {
-      name: 'PulsarList',
-    },
-    component: () => import('@views/db-manage/pulsar/Index.vue'),
     children: [
       // {
       //   name: 'PulsarApply',
@@ -39,15 +30,24 @@ const routes: RouteRecordRaw[] = [
       //   component: () => import('@views/db-manage/pulsar/apply/index.vue'),
       // },
       {
+        component: () => import('@views/db-manage/pulsar/list/Index.vue'),
+        meta: {
+          fullscreen: true,
+          navName: t('Pulsar集群管理'),
+        },
         name: 'PulsarList',
         path: 'list',
-        meta: {
-          navName: t('Pulsar集群管理'),
-          fullscreen: true,
-        },
-        component: () => import('@views/db-manage/pulsar/list/Index.vue'),
       },
     ],
+    component: () => import('@views/db-manage/pulsar/Index.vue'),
+    meta: {
+      navName: t('Pulsar集群管理'),
+    },
+    name: 'PulsarManage',
+    path: 'pulsar',
+    redirect: {
+      name: 'PulsarList',
+    },
   },
 ];
 

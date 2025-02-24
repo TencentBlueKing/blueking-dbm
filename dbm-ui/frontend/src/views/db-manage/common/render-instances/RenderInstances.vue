@@ -85,8 +85,8 @@
   type IData = {
     ip: string;
     port: number;
-    status: string;
     shard_id?: string;
+    status: string;
   };
 </script>
 <script setup lang="ts">
@@ -100,10 +100,10 @@
   import RenderInstanceList from './Instacelist.vue';
 
   interface Props {
-    title: string;
-    role: string;
     data: IData[];
     highlightIps?: string[];
+    role: string;
+    title: string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -160,23 +160,23 @@
     nextTick(() => {
       if (copyRootRef.value) {
         tippyIns = tippy(copyRootRef.value[0].$el as SingleTarget, {
-          content: popRef.value,
-          placement: 'top',
-          appendTo: () => document.body,
-          theme: 'light',
-          maxWidth: 'none',
-          trigger: 'mouseenter click',
-          interactive: true,
-          arrow: false,
           allowHTML: true,
-          zIndex: 999999,
+          appendTo: () => document.body,
+          arrow: false,
+          content: popRef.value,
           hideOnClick: true,
-          onShow() {
-            isCopyIconClicked.value = true;
-          },
+          interactive: true,
+          maxWidth: 'none',
           onHide() {
             isCopyIconClicked.value = false;
           },
+          onShow() {
+            isCopyIconClicked.value = true;
+          },
+          placement: 'top',
+          theme: 'light',
+          trigger: 'mouseenter click',
+          zIndex: 999999,
         });
       }
     });

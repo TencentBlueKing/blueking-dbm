@@ -49,32 +49,32 @@
   const { clusters, infos } = props.ticketDetails.details;
   const columns = [
     {
-      label: t('目标集群'),
       field: 'immute_domain',
+      label: t('目标集群'),
       showOverflowTooltip: true,
     },
     {
-      label: t('集群类型'),
       field: 'cluster_type',
+      label: t('集群类型'),
       showOverflowTooltip: true,
     },
     {
-      label: t('当前Shard的节点数'),
       field: 'current_nodes',
+      label: t('当前Shard的节点数'),
       showOverflowTooltip: true,
     },
     {
-      label: t('扩容至（节点数）'),
       field: 'add_shard_nodes_num',
+      label: t('扩容至（节点数）'),
       showOverflowTooltip: true,
     },
   ];
 
   const tableData = infos.map((item) => ({
-    immute_domain: clusters[item.cluster_ids[0]].immute_domain,
+    add_shard_nodes_num: item.current_shard_nodes_num + item.add_shard_nodes_num,
     cluster_type: clusters[item.cluster_ids[0]].cluster_type_name,
     current_nodes: item.current_shard_nodes_num,
-    add_shard_nodes_num: item.current_shard_nodes_num + item.add_shard_nodes_num,
+    immute_domain: clusters[item.cluster_ids[0]].immute_domain,
   }));
 </script>
 <style lang="less" scoped>

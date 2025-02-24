@@ -36,8 +36,8 @@
   };
 
   defineExpose({
-    isInputed: (clusterId: number) => consoleInputRef.value!.isInputed(clusterId),
     clearCurrentScreen: (clusterId: number) => consoleInputRef.value!.clearCurrentScreen(clusterId),
     export: () => consoleInputRef.value!.export(),
+    isInputed: (clusterId: number) => consoleInputRef.value!.isInputed(clusterId),
   });
 </script>

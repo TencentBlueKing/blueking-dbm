@@ -17,12 +17,12 @@ export function generateMysqlHaApplyCloneData(ticketData: TicketModel<Mysql.HaAp
   const { details } = ticketData;
   return Promise.resolve({
     affinity: details.disaster_tolerance_level,
-    bizId: ticketData.bk_biz_id,
-    cloudId: details.bk_cloud_id,
     backendSpecId: details.resource_spec?.backend.spec_id,
-    dbAppAbbr: ticketData.db_app_abbr,
+    bizId: ticketData.bk_biz_id,
     cityCode: details.city_code,
+    cloudId: details.bk_cloud_id,
     clusterCount: details.cluster_count,
+    dbAppAbbr: ticketData.db_app_abbr,
     dbModuleId: details.db_module_id,
     domains: details.domains,
     instNum: details.inst_num,

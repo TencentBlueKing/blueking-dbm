@@ -41,29 +41,29 @@
 
   export interface IHostData {
     bk_biz_id: number;
+    bk_cloud_id: number;
     bk_host_id: number;
     ip: string;
-    bk_cloud_id: number;
   }
   export interface IDataRow {
-    rowKey: string;
+    backup_source: string;
     clusterData?: {
-      id: number;
-      domain: string;
       cloudId: number | null;
+      domain: string;
+      id: number;
     };
     masterHostData?: IHostData;
+    rowKey: string;
     slaveHostData?: IHostData;
-    backup_source: string;
   }
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
-    rowKey: random(),
+    backup_source: 'local',
     clusterData: data.clusterData,
     masterHostData: data.masterHostData,
+    rowKey: random(),
     slaveHostData: data.slaveHostData,
-    backup_source: 'local',
   });
 </script>
 <script setup lang="ts">
@@ -112,7 +112,7 @@
       immediate: true,
     },
   );
-  const handleClusterIdChange = (idData: { id: number; cloudId: number | null }) => {
+  const handleClusterIdChange = (idData: { cloudId: number | null; id: number }) => {
     localClusterId.value = idData.id;
     cloudId.value = idData.cloudId;
   };

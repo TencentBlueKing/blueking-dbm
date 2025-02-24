@@ -68,8 +68,8 @@
 
   interface Props {
     clusterData: IDataRow['clusterData'];
-    single?: boolean;
     hostData: RollbackHost[];
+    single?: boolean;
   }
 
   interface Exposes {
@@ -87,14 +87,15 @@
 
   const rules = [
     {
-      validator: (value: string) => !!value,
       message: t('IP 不能为空'),
+      validator: (value: string) => !!value,
     },
     {
-      validator: (value: string) => value.split(',').every((ip) => ipv4.test(ip)),
       message: t('IP 格式不符合IPv4标准'),
+      validator: (value: string) => value.split(',').every((ip) => ipv4.test(ip)),
     },
     {
+      message: t('主机不存在'),
       validator: async (value: string) => {
         const ips = value.split(batchSplitRegex);
         return await checkHost({
@@ -107,7 +108,6 @@
           return false;
         });
       },
-      message: t('主机不存在'),
     },
   ];
 
@@ -155,10 +155,10 @@
     getValue() {
       const formatHost = (hostList: HostInfo[]) =>
         hostList.map((item) => ({
+          bk_biz_id: item.biz?.id,
+          bk_cloud_id: item.cloud_area?.id,
           bk_host_id: item.host_id,
           ip: item.ip,
-          bk_cloud_id: item.cloud_area?.id,
-          bk_biz_id: item.biz?.id,
         }));
 
       return Promise.resolve({

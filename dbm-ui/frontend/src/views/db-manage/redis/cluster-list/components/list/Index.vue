@@ -453,11 +453,11 @@
   const globalBizsStore = useGlobalBizs();
   const ticketMessage = useTicketMessage();
 
-  const { state: extractState, handleShow: handleShowExtract } = useShowExtractKeys();
-  const { state: deleteKeyState, handleShow: handlShowDeleteKeys } = useShowDeleteKeys();
-  const { state: backupState, handleShow: handleShowBackup } = useShowBackup();
-  const { state: purgeState, handleShow: handleShowPurge } = useShowPurge();
-  const { handleDisableCluster, handleEnableCluster, handleDeleteCluster } = useOperateClusterBasic(
+  const { handleShow: handleShowExtract, state: extractState } = useShowExtractKeys();
+  const { handleShow: handlShowDeleteKeys, state: deleteKeyState } = useShowDeleteKeys();
+  const { handleShow: handleShowBackup, state: backupState } = useShowBackup();
+  const { handleShow: handleShowPurge, state: purgeState } = useShowPurge();
+  const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(
     ClusterTypes.REDIS,
     {
       onSuccess: () => fetchData(),
@@ -466,64 +466,64 @@
   const { isOpen: isStretchLayoutOpen, splitScreen: stretchLayoutSplitScreen } = useStretchLayout();
 
   const {
+    batchSearchIpInatanceList,
+    clearSearchValue,
+    columnFilterChange,
+    columnSortChange,
+    handleSearchValueChange,
+    isFilter,
     searchAttrs,
     searchValue,
     sortValue,
-    batchSearchIpInatanceList,
-    isFilter,
-    columnFilterChange,
-    columnSortChange,
-    clearSearchValue,
     validateSearchValues,
-    handleSearchValueChange,
   } = useLinkQueryColumnSerach({
-    searchType: ClusterTypes.REDIS,
     attrs: ['bk_cloud_id', 'major_version', 'region', 'time_zone', 'cluster_type'],
-    fetchDataFn: () => fetchData(isInit),
     defaultSearchItem: {
-      name: t('访问入口'),
       id: 'domain',
+      name: t('访问入口'),
     },
+    fetchDataFn: () => fetchData(isInit),
+    searchType: ClusterTypes.REDIS,
   });
 
   // 提取Key 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.REDIS_KEYS_EXTRACT,
     onSuccess(cloneData) {
       extractState.isShow = true;
       extractState.data = cloneData;
       window.changeConfirm = true;
     },
+    type: TicketTypes.REDIS_KEYS_EXTRACT,
   });
 
   // 删除Key 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.REDIS_KEYS_DELETE,
     onSuccess(cloneData) {
       deleteKeyState.isShow = true;
       deleteKeyState.data = cloneData;
       window.changeConfirm = true;
     },
+    type: TicketTypes.REDIS_KEYS_DELETE,
   });
 
   // 集群备份单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.REDIS_BACKUP,
     onSuccess(cloneData) {
       backupState.isShow = true;
       backupState.data = cloneData;
       window.changeConfirm = true;
     },
+    type: TicketTypes.REDIS_BACKUP,
   });
 
   // 清档单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.REDIS_PURGE,
     onSuccess(cloneData) {
       purgeState.isShow = true;
       purgeState.data = cloneData;
       window.changeConfirm = true;
     },
+    type: TicketTypes.REDIS_PURGE,
   });
 
   // const disabledOperations: string[] = [TicketTypes.REDIS_DESTROY, TicketTypes.REDIS_PROXY_CLOSE];
@@ -535,46 +535,43 @@
 
   /** 查看密码 */
   const passwordState = reactive({
-    isShow: false,
     fetchParams: {
-      cluster_id: -1,
       bk_biz_id: globalBizsStore.currentBizId,
+      cluster_id: -1,
       db_type: DBTypes.REDIS,
       type: DBTypes.REDIS,
     },
+    isShow: false,
   });
 
   const searchSelectData = computed(() => [
     {
-      name: t('访问入口'),
+      async: false,
       id: 'domain',
       multiple: true,
-      async: false,
+      name: t('访问入口'),
     },
     {
-      name: t('IP 或 IP:Port'),
+      async: false,
       id: 'instance',
       multiple: true,
-      async: false,
+      name: t('IP 或 IP:Port'),
     },
     {
-      name: 'ID',
       id: 'id',
+      name: 'ID',
     },
     {
-      name: t('集群名称'),
       id: 'name',
+      name: t('集群名称'),
     },
     {
-      name: t('管控区域'),
+      children: searchAttrs.value.bk_cloud_id,
       id: 'bk_cloud_id',
       multiple: true,
-      children: searchAttrs.value.bk_cloud_id,
+      name: t('管控区域'),
     },
     {
-      name: t('状态'),
-      id: 'status',
-      multiple: true,
       children: [
         {
           id: 'normal',
@@ -585,34 +582,37 @@
           name: t('异常'),
         },
       ],
+      id: 'status',
+      multiple: true,
+      name: t('状态'),
     },
     {
-      name: t('架构版本'),
+      children: searchAttrs.value.cluster_type,
       id: 'cluster_type',
       multiple: true,
-      children: searchAttrs.value.cluster_type,
+      name: t('架构版本'),
     },
     {
-      name: t('版本'),
+      children: searchAttrs.value.major_version,
       id: 'major_version',
       multiple: true,
-      children: searchAttrs.value.major_version,
+      name: t('版本'),
     },
     {
-      name: t('地域'),
+      children: searchAttrs.value.region,
       id: 'region',
       multiple: true,
-      children: searchAttrs.value.region,
+      name: t('地域'),
     },
     {
-      name: t('创建人'),
       id: 'creator',
+      name: t('创建人'),
     },
     {
-      name: t('时区'),
+      children: searchAttrs.value.time_zone,
       id: 'time_zone',
       multiple: true,
-      children: searchAttrs.value.time_zone,
+      name: t('时区'),
     },
   ]);
 
@@ -622,9 +622,9 @@
     }
 
     return {
-      small: true,
       align: 'left',
       layout: ['total', 'limit', 'list'],
+      small: true,
     };
   });
   const selectedIds = computed(() => selected.value.map((item) => item.id));
@@ -752,21 +752,21 @@
     const title = ticketType === TicketTypes.REDIS_PLUGIN_CREATE_CLB ? t('确定启用CLB？') : t('确定禁用CLB？');
 
     InfoBox({
-      title,
       content: t('启用 CLB 之后，该集群可以通过 CLB 来访问'),
-      width: 400,
       onConfirm: async () => {
         const params = {
           bk_biz_id: globalBizsStore.currentBizId,
-          ticket_type: ticketType,
           details: {
             cluster_id: data.id,
           },
+          ticket_type: ticketType,
         };
         await createTicket(params).then((res) => {
           ticketMessage(res.id);
         });
       },
+      title,
+      width: 400,
     });
   };
 
@@ -779,21 +779,21 @@
     const content = isBind ? t('DNS 域名恢复指向 Proxy') : t('业务不需要更换原域名也可实现负载均衡');
     const type = isBind ? TicketTypes.REDIS_PLUGIN_DNS_UNBIND_CLB : TicketTypes.REDIS_PLUGIN_DNS_BIND_CLB;
     InfoBox({
-      title,
       content,
-      width: 400,
       onConfirm: async () => {
         const params = {
           bk_biz_id: globalBizsStore.currentBizId,
-          ticket_type: type,
           details: {
             cluster_id: data.id,
           },
+          ticket_type: type,
         };
         await createTicket(params).then((res) => {
           ticketMessage(res.id);
         });
       },
+      title,
+      width: 400,
     });
   };
 
@@ -807,20 +807,20 @@
 
     const title = ticketType === TicketTypes.REDIS_PLUGIN_CREATE_POLARIS ? t('确定启用北极星') : t('确定禁用北极星');
     InfoBox({
-      type: 'warning',
-      title,
       onConfirm: async () => {
         const params = {
           bk_biz_id: globalBizsStore.currentBizId,
-          ticket_type: ticketType,
           details: {
             cluster_id: data.id,
           },
+          ticket_type: ticketType,
         };
         await createTicket(params).then((res) => {
           ticketMessage(res.id);
         });
       },
+      title,
+      type: 'warning',
     });
   };
 

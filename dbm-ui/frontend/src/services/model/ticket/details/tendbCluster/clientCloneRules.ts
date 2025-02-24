@@ -5,13 +5,13 @@ import type { DetailBase } from '../common';
  */
 
 export interface ClientCloneRules extends DetailBase {
-  clone_type: string;
-  clone_uid: string;
   clone_cluster_type: string;
   clone_data: {
     bk_cloud_id: number;
+    module: string;
     source: string;
     target: string[];
-    module: string;
   }[];
+  clone_type: string;
+  clone_uid: string;
 }

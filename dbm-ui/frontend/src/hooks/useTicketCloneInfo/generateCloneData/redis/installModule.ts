@@ -19,20 +19,20 @@ import { random } from '@utils';
 export function generateRedisInstallModule(ticketData: TicketModel<RedisInstallModuleDetails>) {
   const { clusters, infos } = ticketData.details;
   return Promise.resolve({
+    remark: ticketData.remark,
     tableDataList: infos.map((info) => {
       const cluster = clusters[info.cluster_id];
       return {
-        rowKey: random(),
-        isLoading: false,
-        srcCluster: cluster.immute_domain,
-        clusterId: info.cluster_id,
         bkCloudId: cluster.bk_cloud_id,
+        clusterId: info.cluster_id,
         clusterType: cluster.cluster_type,
         clusterTypeName: cluster.cluster_type_name,
         dbVersion: info.db_version,
+        isLoading: false,
         loadModules: info.load_modules,
+        rowKey: random(),
+        srcCluster: cluster.immute_domain,
       };
     }),
-    remark: ticketData.remark,
   });
 }

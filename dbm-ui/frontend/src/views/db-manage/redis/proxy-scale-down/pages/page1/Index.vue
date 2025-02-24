@@ -100,11 +100,11 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.REDIS_PROXY_SCALE_DOWN,
     onSuccess(cloneData) {
       tableData.value = cloneData.tableDataList;
       window.changeConfirm = true;
     },
+    type: TicketTypes.REDIS_PROXY_SCALE_DOWN,
   });
 
   const rowRefs = ref();
@@ -119,6 +119,12 @@
   const inputedClusters = computed(() => tableData.value.map((item) => item.cluster));
   const tabListConfig = {
     [ClusterTypes.REDIS]: {
+      disabledRowConfig: [
+        {
+          handler: (data: RedisModel) => data.proxy.length <= 2,
+          tip: t('数量不足，Proxy至少保留 2 台'),
+        },
+      ],
       getResourceList: (params: ServiceParameters<typeof getRedisList>) =>
         getRedisList({
           cluster_type: [
@@ -129,12 +135,6 @@
           ].join(','),
           ...params,
         }),
-      disabledRowConfig: [
-        {
-          handler: (data: RedisModel) => data.proxy.length <= 2,
-          tip: t('数量不足，Proxy至少保留 2 台'),
-        },
-      ],
     },
   };
   // 集群域名是否已存在表格的映射表
@@ -147,14 +147,14 @@
 
   // 根据集群选择返回的数据加工成table所需的数据
   const generateRowDateFromRequest = (item: RedisModel) => ({
-    rowKey: item.master_domain,
-    isLoading: false,
-    cluster: item.master_domain,
-    clusterId: item.id,
     bkCloudId: item.bk_cloud_id,
-    nodeType: 'Proxy',
+    cluster: item.master_domain,
     cluster_type_name: item.cluster_type_name,
+    clusterId: item.id,
+    isLoading: false,
+    nodeType: 'Proxy',
     proxyList: item.proxy,
+    rowKey: item.master_domain,
     // targetNum: `${item.proxy.length}`,
     targetNum: '1',
   });
@@ -231,12 +231,12 @@
       );
       const params = {
         bk_biz_id: currentBizId,
-        ticket_type: TicketTypes.REDIS_PROXY_SCALE_DOWN,
-        remark: remark.value,
         details: {
-          ip_source: 'resource_pool',
           infos,
+          ip_source: 'resource_pool',
         },
+        remark: remark.value,
+        ticket_type: TicketTypes.REDIS_PROXY_SCALE_DOWN,
       };
 
       const ticketResult = await createTicket(params);

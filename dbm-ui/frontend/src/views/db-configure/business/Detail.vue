@@ -66,16 +66,16 @@
   const { t } = useI18n();
 
   const state = reactive({
-    loading: false,
     activeTab: 'base',
     data: {} as ServiceReturnType<typeof getLevelConfig>,
+    loading: false,
   });
 
   // 获取业务层级相关参数
   const levelParams = useLevelParams(false);
   const fetchParams = computed(() => ({
-    meta_cluster_type: props.clusterType,
     conf_type: props.confType,
+    meta_cluster_type: props.clusterType,
     version: props.version,
     ...levelParams.value,
   }));

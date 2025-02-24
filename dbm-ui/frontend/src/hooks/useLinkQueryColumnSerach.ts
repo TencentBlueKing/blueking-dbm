@@ -34,27 +34,27 @@ export type SearchAttrs = Record<
 type ColumnCheckedMap = Record<string, string[]>;
 
 export const useLinkQueryColumnSerach = (config: {
-  searchType: string;
   attrs: string[];
-  fetchDataFn?: () => void;
-  isCluster?: boolean;
-  isQueryAttrs?: boolean;
   defaultSearchItem?: {
     id: string;
     name: string;
   };
-  isDiscardNondefault?: boolean;
+  fetchDataFn?: () => void;
   initAutoFetch?: boolean;
+  isCluster?: boolean;
+  isDiscardNondefault?: boolean;
+  isQueryAttrs?: boolean;
+  searchType: string;
 }) => {
   const {
-    searchType,
     attrs,
-    fetchDataFn = () => {},
-    isCluster = true,
-    isQueryAttrs = true,
     defaultSearchItem,
-    isDiscardNondefault = false,
+    fetchDataFn = () => {},
     initAutoFetch = true,
+    isCluster = true,
+    isDiscardNondefault = false,
+    isQueryAttrs = true,
+    searchType,
   } = config;
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
@@ -66,7 +66,7 @@ export const useLinkQueryColumnSerach = (config: {
   const columnCheckedMap = ref<ColumnCheckedMap>({});
 
   const batchSearchIpInatanceList = computed(() => {
-    const batchObjList = searchValue.value.filter((item) => ['ip', 'instance'].includes(item.id));
+    const batchObjList = searchValue.value.filter((item) => ['instance', 'ip'].includes(item.id));
     if (batchObjList.length > 0) {
       return _.flatMap(batchObjList.map((item) => item.values!.map((value) => value.id)));
     }
@@ -129,14 +129,14 @@ export const useLinkQueryColumnSerach = (config: {
     checked: string[];
     column: {
       field: string;
-      label: string;
       filter: {
         checked: string[];
         list: {
-          value: string;
           text: string;
+          value: string;
         }[];
       };
+      label: string;
     };
     index: number;
   }) => {
@@ -338,17 +338,17 @@ export const useLinkQueryColumnSerach = (config: {
   };
 
   return {
+    batchSearchIpInatanceList,
+    clearSearchValue,
     columnAttrs,
+    columnCheckedMap,
+    columnFilterChange,
+    columnSortChange,
+    handleSearchValueChange,
+    isFilter,
     searchAttrs,
     searchValue,
     sortValue,
-    columnCheckedMap,
-    batchSearchIpInatanceList,
-    isFilter,
-    columnFilterChange,
-    columnSortChange,
-    clearSearchValue,
     validateSearchValues,
-    handleSearchValueChange,
   };
 };

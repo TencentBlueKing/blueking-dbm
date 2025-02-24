@@ -67,34 +67,34 @@
   import RenderOldSlaveHost from './RenderOldSlaveHost.vue';
 
   export interface IDataRow {
-    rowKey: string;
     isLoading: boolean;
     oldSlave: {
       bkCloudId: number;
       bkCloudName: string;
       bkHostId: number;
-      ip: string;
-      domian: string;
       clusterId: number;
-      specConfig: TendbclusterMachineModel['spec_config'];
+      domian: string;
+      ip: string;
       slaveInstanceList: NonNullable<IValue['related_instances']>;
+      specConfig: TendbclusterMachineModel['spec_config'];
     };
+    rowKey: string;
   }
 
   // 创建表格数据
   export const createRowData = (): IDataRow => ({
-    rowKey: random(),
     isLoading: false,
     oldSlave: {
       bkCloudId: 0,
       bkCloudName: '',
       bkHostId: 0,
-      ip: '',
-      domian: '',
       clusterId: 0,
-      specConfig: {} as IDataRow['oldSlave']['specConfig'],
+      domian: '',
+      ip: '',
       slaveInstanceList: [] as IDataRow['oldSlave']['slaveInstanceList'],
+      specConfig: {} as IDataRow['oldSlave']['specConfig'],
     },
+    rowKey: random(),
   });
 
   interface Props {
@@ -146,9 +146,9 @@
   const handleClone = () => {
     Promise.allSettled(getRowData()).then(() => {
       emits('clone', {
-        rowKey: random(),
         isLoading: false,
         oldSlave: _.cloneDeep(props.data.oldSlave),
+        rowKey: random(),
       });
     });
   };

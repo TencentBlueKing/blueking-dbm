@@ -14,16 +14,8 @@
 import _ from 'lodash';
 
 export const listColumnsCache = {
-  key: 'list_column_display',
-  setItem(key: string, value: { columns: Array<string>; size: string }) {
-    const lastValue = listColumnsCache.getItem() || {};
-    localStorage.setItem(
-      listColumnsCache.key,
-      JSON.stringify({
-        ...lastValue,
-        [key]: value,
-      }),
-    );
+  clearItem() {
+    localStorage.removeItem(listColumnsCache.key);
   },
   getItem(key?: string) {
     try {
@@ -45,7 +37,15 @@ export const listColumnsCache = {
       return false;
     }
   },
-  clearItem() {
-    localStorage.removeItem(listColumnsCache.key);
+  key: 'list_column_display',
+  setItem(key: string, value: { columns: Array<string>; size: string }) {
+    const lastValue = listColumnsCache.getItem() || {};
+    localStorage.setItem(
+      listColumnsCache.key,
+      JSON.stringify({
+        ...lastValue,
+        [key]: value,
+      }),
+    );
   },
 };

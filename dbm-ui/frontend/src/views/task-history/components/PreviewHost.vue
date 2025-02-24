@@ -61,7 +61,7 @@
   import { execCopy } from '@utils';
 
   interface Props {
-    hostIds: number[],
+    hostIds: number[];
     // bizId: number,
   }
 
@@ -75,58 +75,69 @@
   /**
    * 预览表格配置
    */
-  const columns = [{
-    label: 'IP',
-    field: 'ip',
-  }, {
-    label: 'IPv6',
-    field: 'ipv6',
-    render: ({ data }: {data: HostInfo}) => data.ipv6 || '--',
-  }, {
-    label: t('管控区域'),
-    field: 'bk_cloud_name',
-    render: ({ data }: {data: HostInfo}) => data.cloud_area.name || '--',
-  }, {
-    label: t('Agent状态'),
-    field: 'alive',
-    render: ({ data }: {data: HostInfo}) => {
-      if (typeof data.alive !== 'number') return '--';
-
-      const text = [t('异常'), t('正常')];
-      return <DbStatus theme={data.alive === 1 ? 'success' : 'danger'}>{text[data.alive]}</DbStatus>;
+  const columns = [
+    {
+      field: 'ip',
+      label: 'IP',
     },
-  }, {
-    label: t('主机名称'),
-    field: 'host_name',
-    render: ({ data }: {data: HostInfo}) => data.host_name || '--',
-  }, {
-    label: t('OS名称'),
-    field: 'os_name',
-    render: ({ data }: {data: HostInfo}) => data.os_name || '--',
-  }, {
-    label: t('所属云厂商'),
-    field: 'cloud_vendor',
-    render: ({ data }: {data: HostInfo}) => data.cloud_vendor || '--',
-  }, {
-    label: t('OS类型'),
-    field: 'os_type',
-    render: ({ data }: {data: HostInfo}) => data.os_type || '--',
-  }, {
-    label: t('主机ID'),
-    field: 'host_id',
-    render: ({ data }: {data: HostInfo}) => data.host_id || '--',
-  }, {
-    label: 'Agent ID',
-    field: 'agent_id',
-    render: ({ data }: {data: HostInfo}) => data.agent_id || '--',
-  }];
+    {
+      field: 'ipv6',
+      label: 'IPv6',
+      render: ({ data }: { data: HostInfo }) => data.ipv6 || '--',
+    },
+    {
+      field: 'bk_cloud_name',
+      label: t('管控区域'),
+      render: ({ data }: { data: HostInfo }) => data.cloud_area.name || '--',
+    },
+    {
+      field: 'alive',
+      label: t('Agent状态'),
+      render: ({ data }: { data: HostInfo }) => {
+        if (typeof data.alive !== 'number') return '--';
+
+        const text = [t('异常'), t('正常')];
+        return <DbStatus theme={data.alive === 1 ? 'success' : 'danger'}>{text[data.alive]}</DbStatus>;
+      },
+    },
+    {
+      field: 'host_name',
+      label: t('主机名称'),
+      render: ({ data }: { data: HostInfo }) => data.host_name || '--',
+    },
+    {
+      field: 'os_name',
+      label: t('OS名称'),
+      render: ({ data }: { data: HostInfo }) => data.os_name || '--',
+    },
+    {
+      field: 'cloud_vendor',
+      label: t('所属云厂商'),
+      render: ({ data }: { data: HostInfo }) => data.cloud_vendor || '--',
+    },
+    {
+      field: 'os_type',
+      label: t('OS类型'),
+      render: ({ data }: { data: HostInfo }) => data.os_type || '--',
+    },
+    {
+      field: 'host_id',
+      label: t('主机ID'),
+      render: ({ data }: { data: HostInfo }) => data.host_id || '--',
+    },
+    {
+      field: 'agent_id',
+      label: 'Agent ID',
+      render: ({ data }: { data: HostInfo }) => data.agent_id || '--',
+    },
+  ];
   const settings = {
-    fields: columns.map(item => ({
-      label: item.label,
-      field: item.field,
-      disabled: ['ip'].includes(item.field),
-    })),
     checked: ['ip', 'bk_host_name', 'alive'],
+    fields: columns.map((item) => ({
+      disabled: ['ip'].includes(item.field),
+      field: item.field,
+      label: item.label,
+    })),
   };
 
   const {
@@ -149,22 +160,22 @@
 
   const fetchHosts = () => {
     fetchData({
-      mode: 'all',
-      host_list: props.hostIds.map(hostId => ({
+      host_list: props.hostIds.map((hostId) => ({
         host_id: hostId,
       })),
+      mode: 'all',
       scope_list: [],
     });
   };
 
   function handleCopyAbnormalIps() {
-    const abnormalIps = (data.value || []).filter(item => item.alive === 0).map(item => item.ip);
+    const abnormalIps = (data.value || []).filter((item) => item.alive === 0).map((item) => item.ip);
     if (abnormalIps.length === 0) return;
     execCopy(abnormalIps.join('\n'), t('复制成功，共n条', { n: abnormalIps.length }));
   }
 
   function handleCopyIps() {
-    const ips = (data.value || []).map(item => item.ip);
+    const ips = (data.value || []).map((item) => item.ip);
     if (ips.length === 0) return;
     execCopy(ips.join('\n'), t('复制成功，共n条', { n: ips.length }));
   }

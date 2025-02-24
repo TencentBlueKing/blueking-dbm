@@ -111,14 +111,12 @@
   }
 
   interface Props {
-    validTab: Exclude<PanelTypes, 'manualInput'>;
     lastValues: InstanceSelectorValues;
     role?: string;
+    validTab: Exclude<PanelTypes, 'manualInput'>;
   }
 
-  interface Emits {
-    (e: 'change', value: InstanceSelectorValues): void;
-  }
+  type Emits = (e: 'change', value: InstanceSelectorValues) => void;
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
@@ -127,23 +125,23 @@
   const inputRef = ref();
 
   const inputState = reactive({
-    values: '',
-    placeholder: t('请输入IP如_1_1_1_1多个可使用换行_空格或_分隔'),
     isLoading: false,
+    placeholder: t('请输入IP如_1_1_1_1多个可使用换行_空格或_分隔'),
     tableData: [] as InstanceItem[],
+    values: '',
   });
   const errorState = reactive({
     format: {
-      show: false,
-      selectionStart: 0,
-      selectionEnd: 0,
       count: 0,
+      selectionEnd: 0,
+      selectionStart: 0,
+      show: false,
     },
     instance: {
-      show: false,
-      selectionStart: 0,
-      selectionEnd: 0,
       count: 0,
+      selectionEnd: 0,
+      selectionStart: 0,
+      show: false,
     },
   });
 
@@ -160,7 +158,7 @@
    * 标记错误
    */
   const handleSelectionError = (key: 'format' | 'instance') => {
-    const { selectionStart, selectionEnd } = errorState[key];
+    const { selectionEnd, selectionStart } = errorState[key];
     const textarea = inputRef.value?.$el?.getElementsByTagName?.('textarea')?.[0];
     if (textarea) {
       (textarea as HTMLInputElement).focus();
@@ -217,8 +215,8 @@
           // 格式化实例角色
           const roleMap = {
             master: 'redis_master',
-            slave: 'redis_slave',
             proxy: 'proxy',
+            slave: 'redis_slave',
           };
           acc.push({
             ...cur,

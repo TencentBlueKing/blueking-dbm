@@ -186,22 +186,21 @@
     data: IDataRow;
   }
 
-  export type ClusterSpec = ServiceReturnType<typeof getFilterClusterSpec>[0] & {
-    shard_node_count: number,
-    shard_num: number,
-    available_machines: number,
-    machine_need_num: number,
-    id: number,
-    name: string,
-  };
+  export type ClusterSpec = {
+    available_machines: number;
+    id: number;
+    machine_need_num: number;
+    name: string;
+    shard_node_count: number;
+    shard_num: number;
+  } & ServiceReturnType<typeof getFilterClusterSpec>[0];
 
   interface Emits {
-    (e: 'confirm', obj: ClusterSpec): void
-    (e: 'cancel'): void
+    (e: 'confirm', obj: ClusterSpec): void;
+    (e: 'cancel'): void;
   }
 
-
-  const props  = defineProps<Props>();
+  const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
@@ -213,8 +212,8 @@
 
   const capacityNeed = ref();
   // const capacityFutureNeed = ref();
-  const radioValue  = ref(-1);
-  const radioChoosedId  = ref(''); // 标记，sort重新定位index用
+  const radioValue = ref(-1);
+  const radioChoosedId = ref(''); // 标记，sort重新定位index用
   const isTableLoading = ref(false);
   const isConfirmLoading = ref(false);
   const tableData = ref<ClusterSpec[]>([]);
@@ -271,89 +270,103 @@
 
   const columns = [
     {
-      label: t('资源规格'),
       field: 'spec',
-      showOverflowTooltip: true,
-      width: 150,
-      renderHead: () => (
-        <bk-popover theme="light">
-          {{
-            default: () => <span style="text-decoration-style: dashed;text-decoration-line: underline;">{t('资源规格')}</span>,
-            content: () => <img src={SpecTip} width={200}></img>,
-          }}
-        </bk-popover>
-      ),
-      render: ({ index, data }: { index: number, data: ClusterSpec }) => (
+      label: t('资源规格'),
+      render: ({ data, index }: { data: ClusterSpec; index: number }) => (
         <TextOverflowLayout>
           {{
-            prepend: () => <bk-radio label={index} v-model={radioValue.value}></bk-radio>,
-            default: () => <span style="margin-left:8px;">{data.spec_name}</span>,
             append: () => {
               if (props.data.spec?.id === data.spec_id) {
                 return (
                   <bk-tag
-                    size="small"
                     class='ml-2'
-                    theme="info">
-                    { t('当前方案') }
+                    size='small'
+                    theme='info'>
+                    {t('当前方案')}
                   </bk-tag>
                 );
               }
               if (data.machine_need_num > data.available_machines) {
                 return (
                   <bk-tag
-                    size="small"
                     class='ml-2'
-                    theme="danger">
-                    { t('资源不足') }
+                    size='small'
+                    theme='danger'>
+                    {t('资源不足')}
                   </bk-tag>
                 );
               }
 
-              return null
-            }
+              return null;
+            },
+            default: () => <span style='margin-left:8px;'>{data.spec_name}</span>,
+            prepend: () => (
+              <bk-radio
+                v-model={radioValue.value}
+                label={index}></bk-radio>
+            ),
           }}
         </TextOverflowLayout>
-      )
+      ),
+      renderHead: () => (
+        <bk-popover theme='light'>
+          {{
+            content: () => (
+              <img
+                src={SpecTip}
+                width={200}></img>
+            ),
+            default: () => (
+              <span style='text-decoration-style: dashed;text-decoration-line: underline;'>{t('资源规格')}</span>
+            ),
+          }}
+        </bk-popover>
+      ),
+      showOverflowTooltip: true,
+      width: 150,
     },
     {
-      label: t('每个Shard节点数'),
       field: 'shard_node_count',
+      label: t('每个Shard节点数'),
     },
     {
-      label: t('Shard数量'),
       field: '',
+      label: t('Shard数量'),
       render: ({ data }: { data: ClusterSpec }) => <span>{data.shard_choices[0].shard_num}</span>,
     },
     {
-      label: t('Shard节点规格'),
       field: 'cluster_shard_num',
+      label: t('Shard节点规格'),
       render: ({ data }: { data: ClusterSpec }) => <span>{data.shard_choices[0].shard_spec}</span>,
     },
     {
-      label: t('所需机组数'),
       field: 'machine_pair',
+      label: t('所需机组数'),
     },
     {
-      label: t('所需机器数'),
       field: 'machine_need_num',
+      label: t('所需机器数'),
       render: ({ data }: { data: ClusterSpec }) => <span>{data.machine_pair * data.shard_node_count}</span>,
     },
     {
-      label: t('可用机器数'),
       field: 'available_machines',
+      label: t('可用机器数'),
     },
   ];
 
   let rawTableData: ClusterSpec[] = [];
 
-  watch(() => props.data, (data) => {
-    if (data) {
-      targetCapacity.value.current = data.currentCapacity.total;
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    (data) => {
+      if (data) {
+        targetCapacity.value.current = data.currentCapacity.total;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   watch(radioValue, (index) => {
     if (index === -1) return;
@@ -369,29 +382,29 @@
     if (capacityNeed.value > 0) {
       isTableLoading.value = true;
       const params = {
+        capacity: capacityNeed.value,
+        shard_num: props.data.shardNum,
         // spec_cluster_type: props.data.clusterType,
         spec_cluster_type: 'mongodb',
         spec_machine_type: 'mongodb',
-        capacity: capacityNeed.value,
-        shard_num: props.data.shardNum,
       };
       const retArr = await getFilterClusterSpec(params).finally(() => {
         isTableLoading.value = false;
       });
-      const ids = retArr.map(item => item.spec_id);
+      const ids = retArr.map((item) => item.spec_id);
       const specCountMap = await getSpecResourceCount({
         bk_biz_id: currentBizId,
         bk_cloud_id: props.data.bkCloudId,
         spec_ids: ids,
       });
-      const list = retArr.map(item => ({
+      const list = retArr.map((item) => ({
         ...item,
-        shard_num: props.data.shardNum,
-        shard_node_count: props.data.shardNodeCount,
-        machine_need_num: item.machine_pair * props.data.shardNodeCount,
         available_machines: specCountMap[item.spec_id],
         id: item.spec_id,
+        machine_need_num: item.machine_pair * props.data.shardNodeCount,
         name: item.spec_name,
+        shard_node_count: props.data.shardNodeCount,
+        shard_num: props.data.shardNum,
       }));
       tableData.value = list;
       rawTableData = _.cloneDeep(list);
@@ -403,17 +416,17 @@
     radioChoosedId.value = row.spec_name;
   };
 
-  const handleColumnSort = (data: { column: { field: string }, index: number, type: string }) => {
+  const handleColumnSort = (data: { column: { field: string }; index: number; type: string }) => {
     const { column, type } = data;
     const filed = column.field as keyof ClusterSpec;
     if (type === 'asc') {
-      tableData.value.sort((prevItem, nextItem) => prevItem[filed] as number - (nextItem[filed] as number));
+      tableData.value.sort((prevItem, nextItem) => (prevItem[filed] as number) - (nextItem[filed] as number));
     } else if (type === 'desc') {
-      tableData.value.sort((prevItem, nextItem) => nextItem[filed] as number - (prevItem[filed] as number));
+      tableData.value.sort((prevItem, nextItem) => (nextItem[filed] as number) - (prevItem[filed] as number));
     } else {
       tableData.value = rawTableData;
     }
-    const index = tableData.value.findIndex(item => item.spec_name === radioChoosedId.value);
+    const index = tableData.value.findIndex((item) => item.spec_name === radioChoosedId.value);
     radioValue.value = index;
   };
 

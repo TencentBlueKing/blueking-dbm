@@ -46,8 +46,8 @@
 
   interface Props {
     copyItems: {
-      value: string;
       label: string;
+      value: string;
     }[];
   }
 
@@ -64,23 +64,23 @@
   onMounted(() => {
     nextTick(() => {
       tippyIns = tippy(copyRootRef.value.$el as SingleTarget, {
-        content: popRef.value,
-        placement: 'top',
-        appendTo: () => document.body,
-        theme: 'light',
-        maxWidth: 'none',
-        trigger: 'mouseenter click',
-        interactive: true,
-        arrow: false,
         allowHTML: true,
-        zIndex: 999999,
+        appendTo: () => document.body,
+        arrow: false,
+        content: popRef.value,
         hideOnClick: true,
-        onShow() {
-          isCopyIconClicked.value = true;
-        },
+        interactive: true,
+        maxWidth: 'none',
         onHide() {
           isCopyIconClicked.value = false;
         },
+        onShow() {
+          isCopyIconClicked.value = true;
+        },
+        placement: 'top',
+        theme: 'light',
+        trigger: 'mouseenter click',
+        zIndex: 999999,
       });
     });
   });

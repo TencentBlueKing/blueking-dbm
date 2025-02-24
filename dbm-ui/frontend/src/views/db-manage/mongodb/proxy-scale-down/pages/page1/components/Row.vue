@@ -65,38 +65,38 @@
   import RenderTargetNumber from './RenderTargetNumber.vue';
 
   export interface IDataRow {
-    rowKey: string;
-    isLoading: boolean;
-    clusterName: string;
+    affinity: string;
     clusterId: number;
-    shardNum: number;
+    clusterName: string;
+    currentSpec?: SpecInfo;
+    isLoading: boolean;
     machineNum: number;
     reduceIpList: IListItem[];
-    affinity: string;
-    currentSpec?: SpecInfo;
+    rowKey: string;
+    shardNum: number;
     targetNum?: string;
   }
 
   export interface InfoItem {
     cluster_id: number;
-    role: string;
     reduce_nodes: {
-      ip: string;
       bk_cloud_id: number;
       bk_host_id: number;
+      ip: string;
     }[];
+    role: string;
   }
 
   // 创建表格数据
   export const createRowData = (): IDataRow => ({
-    rowKey: random(),
-    isLoading: false,
-    clusterName: '',
+    affinity: '',
     clusterId: 0,
-    shardNum: 0,
+    clusterName: '',
+    isLoading: false,
     machineNum: 0,
     reduceIpList: [],
-    affinity: '',
+    rowKey: random(),
+    shardNum: 0,
   });
 </script>
 <script setup lang="ts">

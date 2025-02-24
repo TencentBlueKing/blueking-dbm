@@ -69,9 +69,7 @@
     level?: ConfLevelValues;
   }
 
-  interface Emits {
-    (e: 'change', value: { data: ConfigBaseDetails; changed: boolean }): void;
-  }
+  type Emits = (e: 'change', value: { changed: boolean; data: ConfigBaseDetails }) => void;
 
   const props = withDefaults(defineProps<Props>(), {
     level: ConfLevels.PLAT,
@@ -85,18 +83,18 @@
   const route = useRoute();
 
   const state = reactive({
-    loading: false,
-    loadingParameter: false,
-    isAnomalies: false,
+    cloneDataStringify: '',
     data: {
+      conf_items: [],
+      description: '',
       name: '',
       version: '',
-      description: '',
-      conf_items: [],
     } as ConfigBaseDetails,
-    parameters: [] as ConfigBaseDetails['conf_items'],
+    isAnomalies: false,
+    loading: false,
+    loadingParameter: false,
     originConfItems: [] as ConfigBaseDetails['conf_items'],
-    cloneDataStringify: '',
+    parameters: [] as ConfigBaseDetails['conf_items'],
   });
   // 是否为平台级别配置
   const isPlat = computed(() => props.level === ConfLevels.PLAT);
@@ -105,8 +103,8 @@
   const baseParams = computed(() => {
     const { clusterType, confType, version } = route.params;
     return {
-      meta_cluster_type: clusterType as string,
       conf_type: confType as string,
+      meta_cluster_type: clusterType as string,
       version: version as string,
     };
   });
@@ -138,10 +136,10 @@
       })
       .catch(() => {
         state.data = {
+          conf_items: [],
+          description: '',
           name: '',
           version: '',
-          description: '',
-          conf_items: [],
         };
         state.isAnomalies = true;
       })
@@ -184,8 +182,8 @@
     (value) => {
       const isChange = state.cloneDataStringify !== JSON.stringify(value);
       emit('change', {
-        data: value,
         changed: isChange,
+        data: value,
       });
     },
     { deep: true },
@@ -199,7 +197,7 @@
     origin: state.originConfItems,
   });
 
-  defineExpose({ validate, getData });
+  defineExpose({ getData, validate });
 
   // 添加配置项
   const handleAddConfItem = (index: number) => {
@@ -210,11 +208,11 @@
       flag_disable: 0,
       flag_locked: 0,
       need_restart: 0,
+      op_type: 'add',
       value_allowed: '',
       value_default: '',
       value_type: '',
       value_type_sub: '',
-      op_type: 'add',
     });
   };
 

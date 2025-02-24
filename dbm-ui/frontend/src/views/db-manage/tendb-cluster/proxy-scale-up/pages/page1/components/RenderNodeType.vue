@@ -36,18 +36,16 @@
   import TableEditSelect from '@components/render-table/columns/select/index.vue';
 
   interface Props {
-    data?: string;
     choosed?: string[];
-    isLoading?: boolean;
     counts?: {
       master: number;
       slave: number;
     };
+    data?: string;
+    isLoading?: boolean;
   }
 
-  interface Emits {
-    (e: 'change', value: string): void;
-  }
+  type Emits = (e: 'change', value: string) => void;
 
   interface Exposes {
     getValue: () => Promise<{
@@ -56,12 +54,12 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    data: '',
     choosed: () => [],
     counts: () => ({
       master: 0,
       slave: 0,
     }),
+    data: '',
   });
   const emits = defineEmits<Emits>();
 
@@ -72,20 +70,20 @@
 
   let selectListRaw = [
     {
-      value: NodeType.MASTER,
       label: 'Master',
+      value: NodeType.MASTER,
     },
     {
-      value: NodeType.SLAVE,
       label: 'Slave',
+      value: NodeType.SLAVE,
     },
   ];
-  const selectList = ref<{ value: NodeType; label: string }[]>([]);
+  const selectList = ref<{ label: string; value: NodeType }[]>([]);
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('请选择节点类型'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 
@@ -138,8 +136,8 @@
       }
     },
     {
-      immediate: true,
       deep: true,
+      immediate: true,
     },
   );
 

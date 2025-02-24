@@ -31,21 +31,21 @@ const path = '/apis/tickets';
  * 单据列表
  */
 export function getTickets(params: {
-  id?: number;
   bk_biz_id?: number;
-  ticket_type?: string;
-  status?: string;
+  cluster?: string;
+  create_at__gte?: string;
+  create_at__lte?: string;
+  creator?: string;
+  id?: number;
+  is_assist?: boolean;
   limit?: number;
   offset?: number;
-  create_at__lte?: string;
-  create_at__gte?: string;
-  remark?: string;
-  creator?: string;
-  cluster?: string;
-  todo?: string;
-  self_manage?: number;
   ordering?: string;
-  is_assist?: boolean;
+  remark?: string;
+  self_manage?: number;
+  status?: string;
+  ticket_type?: string;
+  todo?: string;
 }) {
   return http.get<ListBase<TicketModel[]>>(`${path}/`, params).then((data) => ({
     ...data,
@@ -77,7 +77,8 @@ export function createTicket(formData: Record<string, any>) {
         });
         return new Promise<{ id: number }>((resolve, reject) => {
           InfoBox({
-            title: t('是否继续提交单据'),
+            cancelText: t('取消提单'),
+            confirmText: t('继续提单'),
             content: () => {
               if (locale.value === 'en') {
                 return (
@@ -106,8 +107,9 @@ export function createTicket(formData: Record<string, any>) {
                 </span>
               );
             },
-            confirmText: t('继续提单'),
-            cancelText: t('取消提单'),
+            onCancel: () => {
+              reject(e);
+            },
             onConfirm: async () => {
               try {
                 const res = await createTicket({
@@ -120,9 +122,7 @@ export function createTicket(formData: Record<string, any>) {
                 return reject(e);
               }
             },
-            onCancel: () => {
-              reject(e);
-            },
+            title: t('是否继续提交单据'),
           });
         });
       }
@@ -148,14 +148,14 @@ export function getTicketTypes(params?: { is_apply: 0 | 1 }) {
 /**
  * 查询集群变更单据事件
  */
-export function getClusterOperateRecords(params: Record<string, unknown> & { cluster_id: number }) {
+export function getClusterOperateRecords(params: { cluster_id: number } & Record<string, unknown>) {
   return http.get<
     ListBase<
       {
         create_at: string;
-        ticket_id: number;
-        op_type: string;
         op_status: 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'REVOKED';
+        op_type: string;
+        ticket_id: number;
       }[]
     >
   >(`${path}/get_cluster_operate_records/`, params);
@@ -164,14 +164,14 @@ export function getClusterOperateRecords(params: Record<string, unknown> & { clu
 /**
  * 查询集群实例变更单据事件
  */
-export function getInstanceOperateRecords(params: Record<string, unknown> & { instance_id: number }) {
+export function getInstanceOperateRecords(params: { instance_id: number } & Record<string, unknown>) {
   return http.get<
     ListBase<
       {
         create_at: string;
-        ticket_id: number;
-        op_type: string;
         op_status: 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'REVOKED';
+        op_type: string;
+        ticket_id: number;
       }[]
     >
   >(`${path}/get_instance_operate_records/`, params);
@@ -190,17 +190,17 @@ export function getTicketsCount(params: { count_type: 'MY_TODO' | 'MY_APPROVE' }
 export function getTodoTickets(
   params: {
     bk_biz_id?: number;
-    ticket_type?: string;
-    status?: string;
+    cluster?: string;
+    create_at__gte?: string;
+    create_at__lte?: string;
+    creator?: string;
     limit?: number;
     offset?: number;
-    create_at__lte?: string;
-    create_at__gte?: string;
     remark?: string;
-    creator?: string;
-    cluster?: string;
-    todo_status?: string;
+    status?: string;
     status__in?: string;
+    ticket_type?: string;
+    todo_status?: string;
   } = {},
 ) {
   return http.get<ListBase<TicketModel<unknown>[]>>(`${path}/get_todo_tickets/`, params).then((data) => ({
@@ -232,7 +232,7 @@ export function getTicketFlows(params: { id: number }) {
 /**
  * 节点列表
  */
-export function getTicketHostNodes(params: { bk_biz_id: number; id: number; role: string; keyword?: string }) {
+export function getTicketHostNodes(params: { bk_biz_id: number; id: number; keyword?: string; role: string }) {
   return http.get<HostNode[]>(`${path}/${params.id}/get_nodes/`, params);
 }
 
@@ -241,9 +241,9 @@ export function getTicketHostNodes(params: { bk_biz_id: number; id: number; role
  */
 export function processTicketTodo(params: {
   action: string;
-  todo_id: number;
-  ticket_id: number;
   params: Record<string, any>;
+  ticket_id: number;
+  todo_id: number;
 }) {
   return http.post<FlowItemTodo>(`${path}/${params.ticket_id}/process_todo/`, params);
 }
@@ -251,7 +251,7 @@ export function processTicketTodo(params: {
 /**
  * 单据流程重试
  */
-export function retryTicketFlow(params: { ticketId: number; flow_id: number }) {
+export function retryTicketFlow(params: { flow_id: number; ticketId: number }) {
   return http.post(`${path}/${params.ticketId}/retry_flow/`, params);
 }
 
@@ -259,11 +259,11 @@ export function retryTicketFlow(params: { ticketId: number; flow_id: number }) {
  * 查询可编辑单据流程描述
  */
 export function queryTicketFlowDescribe(params: {
+  bk_biz_id?: number;
   db_type: string;
-  ticket_types?: string;
   limit?: number;
   offset?: number;
-  bk_biz_id?: number;
+  ticket_types?: string;
 }) {
   return http.get<TicketFlowDescribeModel[]>(`${path}/query_ticket_flow_describe/`, params).then((data) => ({
     count: data.length || 0,
@@ -275,10 +275,10 @@ export function queryTicketFlowDescribe(params: {
  * 创建单据流程规则
  */
 export function createTicketFlowConfig(params: {
-  ticket_types: string[];
-  configs: Record<string, boolean>;
   bk_biz_id: number;
   cluster_ids?: number[];
+  configs: Record<string, boolean>;
+  ticket_types: string[];
 }) {
   return http.post<{
     ticket_types: string[];
@@ -289,11 +289,11 @@ export function createTicketFlowConfig(params: {
  * 修改可编辑的单据流程规则
  */
 export function updateTicketFlowConfig(params: {
-  ticket_types: string[];
-  configs: Record<string, boolean>;
-  bk_biz_id: number;
+  bk_biz_id?: number;
   cluster_ids?: number[];
   config_ids?: number[];
+  configs: Record<string, boolean>;
+  ticket_types: string[];
 }) {
   return http.post<{
     ticket_types: string[];
@@ -345,41 +345,41 @@ export const getInfrasHostSpecs = () =>
  * redis 容量列表
  */
 export const getCapSpecs = (params: {
+  cityCode: string;
+  cluster_type: string;
+  ip_source: string;
   nodes: {
     master: Array<{
-      ip: string;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      bk_cpu?: number;
-      bk_mem?: number;
-      bk_disk?: number;
       bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_cpu?: number;
+      bk_disk?: number;
+      bk_host_id: number;
+      bk_mem?: number;
+      ip: string;
     }>;
     slave: Array<{
-      ip: string;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      bk_cpu?: number;
-      bk_mem?: number;
-      bk_disk?: number;
       bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_cpu?: number;
+      bk_disk?: number;
+      bk_host_id: number;
+      bk_mem?: number;
+      ip: string;
     }>;
   };
-  ip_source: string;
-  cluster_type: string;
-  cityCode: string;
 }) =>
   http.post<
     {
+      cap_key: string;
       group_num: number;
+      max_disk: number;
       maxmemory: number;
+      selected: boolean;
       shard_num: number;
       spec: string;
-      total_memory: number;
-      cap_key: string;
-      selected: boolean;
-      max_disk: number;
       total_disk: string;
+      total_memory: number;
     }[]
   >('/apis/infras/cities/cap_specs/', params);
 
@@ -415,11 +415,11 @@ export const saveModulesDeployInfo = (params: {
     conf_value: string;
     op_type: string;
   }[];
-  version: string;
-  meta_cluster_type: string;
+  conf_type: string;
   level_name: string;
   level_value: number;
-  conf_type: string;
+  meta_cluster_type: string;
+  version: string;
 }) =>
   http.post<{
     bk_biz_id: number;
@@ -428,11 +428,11 @@ export const saveModulesDeployInfo = (params: {
       conf_value: string;
       op_type: string;
     }[];
-    version: string;
-    meta_cluster_type: string;
+    conf_type: string;
     level_name: string;
     level_value: number;
-    conf_type: string;
+    meta_cluster_type: string;
+    version: string;
   }>('/apis/configs/save_module_deploy_info/', params);
 
 /**
@@ -440,10 +440,10 @@ export const saveModulesDeployInfo = (params: {
  */
 export const getHostInAuthorize = (params: {
   bk_biz_id: string;
-  ticket_id: number;
+  keyword?: string;
   limit?: number;
   offset?: number;
-  keyword?: string;
+  ticket_id: number;
 }) =>
   http
     .get<{
@@ -465,7 +465,7 @@ export const getHostInAuthorize = (params: {
 /**
  * 单据流程终止
  */
-export function revokeTicketFlow(params: { ticketId: number; flow_id: number }) {
+export function revokeTicketFlow(params: { flow_id: number; ticketId: number }) {
   return http.post(`${path}/${params.ticketId}/revoke_flow/`, params);
 }
 
@@ -475,8 +475,8 @@ export function revokeTicketFlow(params: { ticketId: number; flow_id: number }) 
 export function ticketBatchProcessTodo(params: {
   action: 'APPROVE' | 'TERMINATE';
   operations: {
-    todo_id: number;
     params: Record<string, never>; // 暂时为空对象
+    todo_id: number;
   }[];
 }) {
   return http.post(`${path}/batch_process_todo/`, params);

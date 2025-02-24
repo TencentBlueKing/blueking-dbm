@@ -55,9 +55,7 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import {
-    shallowRef,
-  } from 'vue';
+  import { shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type { HostInfo } from '@services/types';
@@ -73,23 +71,20 @@
 
   interface Props {
     cloudInfo: {
-      id: number,
-      name: string
-    },
-    data: TExpansionNode,
-    disableHostMethod?: (params: TExpansionNode['hostList'][0]) => string | boolean
+      id: number;
+      name: string;
+    };
+    data: TExpansionNode;
+    disableHostMethod?: (params: TExpansionNode['hostList'][0]) => string | boolean;
   }
 
-  interface Emits {
-    (e: 'change', value: TExpansionNode['hostList'], expansionDisk: TExpansionNode['expansionDisk']): void,
-  }
+  type Emits = (e: 'change', value: TExpansionNode['hostList'], expansionDisk: TExpansionNode['expansionDisk']) => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const calcSelectHostDisk = (hostList: TExpansionNode['hostList']) => hostList
-    .reduce((result, hostItem) => result + ~~Number(hostItem.bk_disk), 0);
-
+  const calcSelectHostDisk = (hostList: TExpansionNode['hostList']) =>
+    hostList.reduce((result, hostItem) => result + ~~Number(hostItem.bk_disk), 0);
 
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
@@ -100,31 +95,31 @@
 
   const tableColumns = [
     {
-      label: t('节点 IP'),
       field: 'ip',
-      render: ({ data }: {data: HostInfo}) => data.ip || '--',
+      label: t('节点 IP'),
+      render: ({ data }: { data: HostInfo }) => data.ip || '--',
     },
     {
-      label: t('Agent状态'),
       field: 'alive',
+      label: t('Agent状态'),
       render: ({ data }: { data: HostInfo }) => <HostAgentStatus data={data.alive} />,
     },
     {
-      label: t('磁盘_GB'),
       field: 'bk_disk',
-      render: ({ data }: {data: HostInfo}) => data.bk_disk || '--',
+      label: t('磁盘_GB'),
+      render: ({ data }: { data: HostInfo }) => data.bk_disk || '--',
     },
     {
       label: t('操作'),
-      width: 100,
-      render: ({ data }: {data: HostInfo}) => (
+      render: ({ data }: { data: HostInfo }) => (
         <bk-button
+          theme='primary'
           text
-          theme="primary"
           onClick={() => handleRemoveHost(data)}>
           {t('删除')}
         </bk-button>
       ),
+      width: 100,
     },
   ];
 
@@ -134,12 +129,15 @@
   };
 
   const handleRemoveHost = (data: TExpansionNode['hostList'][0]) => {
-    const hostList = hostTableData.value.reduce((result, item) => {
-      if (item.host_id !== data.host_id) {
-        result.push(item);
-      }
-      return result;
-    }, [] as TExpansionNode['hostList']);
+    const hostList = hostTableData.value.reduce(
+      (result, item) => {
+        if (item.host_id !== data.host_id) {
+          result.push(item);
+        }
+        return result;
+      },
+      [] as TExpansionNode['hostList'],
+    );
     hostTableData.value = hostList;
     emits('change', hostList, calcSelectHostDisk(hostList));
   };

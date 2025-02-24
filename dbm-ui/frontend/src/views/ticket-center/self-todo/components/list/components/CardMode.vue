@@ -59,10 +59,10 @@
   const router = useRouter();
   const route = useRoute();
 
-  const { list: statusList, defaultStatus: ticketStatus } = useStatusList();
+  const { defaultStatus: ticketStatus, list: statusList } = useStatusList();
 
-  const { value: datePickerValue, shortcutsRange } = useDatePicker();
-  const { value: searachSelectValue, searchSelectData } = useSearchSelect({
+  const { shortcutsRange, value: datePickerValue } = useDatePicker();
+  const { searchSelectData, value: searachSelectValue } = useSearchSelect({
     exclude: ['status'],
   });
 
@@ -73,10 +73,10 @@
   const dataSource = (params: ServiceParameters<typeof getTickets>) =>
     getTickets({
       ...params,
-      todo: 'running',
+      is_assist: Boolean(Number(route.params.assist)),
       self_manage: 1,
       status: ticketStatus.value,
-      is_assist: Boolean(Number(route.params.assist)),
+      todo: 'running',
     });
 
   const { pause: pauseTicketStatus, resume: resumeTicketStatus } = watch(ticketStatus, () => {

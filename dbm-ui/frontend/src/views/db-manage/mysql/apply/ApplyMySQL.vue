@@ -338,16 +338,15 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.MYSQL_HA_APPLY,
     onSuccess(cloneData) {
       const {
         affinity,
-        bizId,
-        cloudId,
         backendSpecId,
-        dbAppAbbr,
+        bizId,
         cityCode,
+        cloudId,
         clusterCount,
+        dbAppAbbr,
         dbModuleId,
         domains,
         instNum,
@@ -380,27 +379,27 @@
       // TODO: 需要提供接口补全每台主机的信息，不然会缺少字段导致数据处理报错
       // formdata.details.nodes = nodes;
     },
+    type: TicketTypes.MYSQL_HA_APPLY,
   });
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.MYSQL_SINGLE_APPLY,
     onSuccess(cloneData) {
       const {
         affinity,
         bizId,
-        cloudId,
         cityCode,
+        cloudId,
         clusterCount,
-        dbModuleId,
         dbAppAbbr,
+        dbModuleId,
         domains,
         instNum,
         ipSource,
         // nodes,
         remark,
-        startMysqlPort,
         singleSpecId,
+        startMysqlPort,
       } = cloneData;
 
       formdata.details.resource_spec.backend.affinity = affinity;
@@ -420,6 +419,7 @@
 
       bizState.hasEnglishName = !!dbAppAbbr;
     },
+    type: TicketTypes.MYSQL_SINGLE_APPLY,
   });
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
@@ -454,16 +454,6 @@
         validator: (val: string) => nameRegx.test(val),
       },
     ],
-    'details.nodes.proxy': [
-      {
-        message: t('请添加服务器'),
-        trigger: 'change',
-        validator: () => {
-          const counts = formdata.details.nodes.proxy.length;
-          return counts !== 0;
-        },
-      },
-    ],
     'details.nodes.backend': [
       {
         message: t('请添加服务器'),
@@ -474,11 +464,21 @@
         },
       },
     ],
+    'details.nodes.proxy': [
+      {
+        message: t('请添加服务器'),
+        trigger: 'change',
+        validator: () => {
+          const counts = formdata.details.nodes.proxy.length;
+          return counts !== 0;
+        },
+      },
+    ],
   }));
   const formItemLabels = computed(() => {
     const labels = {
-      clusterCount: t('集群数量'),
       backend: 'Master / Slave',
+      clusterCount: t('集群数量'),
       instNums: t('每组主机部署集群数量'),
     };
     if (isSingleType) {
@@ -509,7 +509,7 @@
   // const isDefaultCity = computed(() => formdata.details.city_code === 'default');
 
   // 获取基础数据信息
-  const { formdata, fetchState, handleResetFormdata } = useMysqlData(dbType);
+  const { fetchState, formdata, handleResetFormdata } = useMysqlData(dbType);
 
   function handleChangeClusterCount(value: number) {
     if (value && formdata.details.inst_num > value) {
@@ -554,18 +554,18 @@
   }
 
   const disableHostSubmitMethods = {
-    proxy: (hostList: Array<any>) =>
-      hostList.length !== hostNums.value
-        ? t('xx共需n台', {
-            title: 'Proxy',
-            n: hostNums.value,
-          })
-        : false,
     backend: (hostList: Array<any>) =>
       hostList.length !== hostNums.value
         ? t('xx共需n台', {
-            title: 'Master / Slave',
             n: hostNums.value,
+            title: 'Master / Slave',
+          })
+        : false,
+    proxy: (hostList: Array<any>) =>
+      hostList.length !== hostNums.value
+        ? t('xx共需n台', {
+            n: hostNums.value,
+            title: 'Proxy',
           })
         : false,
   };
@@ -645,19 +645,19 @@
    * 预览功能
    */
   const previewNodes = computed(() => ({
-    proxy: formatNodes(formdata.details.nodes.proxy),
     backend: formatNodes(formdata.details.nodes.backend),
+    proxy: formatNodes(formdata.details.nodes.proxy),
   }));
   const previewData = computed(() => {
-    const { dbVersion, charset } = moduleLevelConfig.value;
+    const { charset, dbVersion } = moduleLevelConfig.value;
     return tableData.value.map(({ key }: { key: string }) => ({
+      charset,
+      deployStructure: typeInfo.value.name,
+      disasterDefence: t('同城跨园区'),
       domain: `${moduleAliasName.value}db.${key}.${formdata.details.db_app_abbr}.db`,
       slaveDomain: `${moduleAliasName.value}db.${key}.${formdata.details.db_app_abbr}.db`,
-      disasterDefence: t('同城跨园区'),
-      deployStructure: typeInfo.value.name,
-      version: dbVersion,
-      charset,
       spec: hostSpecInfo.value ? `${hostSpecInfo.value.cpu}/${hostSpecInfo.value.mem}` : '',
+      version: dbVersion,
     }));
   });
   const isShowPreview = ref(false);
@@ -670,10 +670,10 @@
    */
   function formatNodes(hosts: HostInfo[]) {
     return hosts.map((host) => ({
-      ip: host.ip,
-      bk_host_id: host.host_id,
-      bk_cloud_id: host.cloud_id,
       bk_biz_id: host.biz.id,
+      bk_cloud_id: host.cloud_id,
+      bk_host_id: host.host_id,
+      ip: host.ip,
     }));
   }
 
@@ -723,13 +723,8 @@
 
           return {
             ...details,
+            disaster_tolerance_level: affinity,
             resource_spec: {
-              proxy: {
-                ...details.resource_spec.proxy,
-                ...specProxyRef.value.getData(),
-                ...regionAndDisasterParams,
-                count: hostNums.value,
-              },
               backend_group: {
                 ...details.resource_spec.backend,
                 ...specBackendRef.value.getData(),
@@ -739,19 +734,24 @@
                   sub_zone_ids: [],
                 },
               },
+              proxy: {
+                ...details.resource_spec.proxy,
+                ...specProxyRef.value.getData(),
+                ...regionAndDisasterParams,
+                count: hostNums.value,
+              },
             },
-            disaster_tolerance_level: affinity,
           };
         }
 
         delete details.resource_spec;
         return {
           ...details,
-          nodes: {
-            proxy: formatNodes(formdata.details.nodes.proxy),
-            backend: formatNodes(formdata.details.nodes.backend),
-          },
           disaster_tolerance_level: affinity,
+          nodes: {
+            backend: formatNodes(formdata.details.nodes.backend),
+            proxy: formatNodes(formdata.details.nodes.proxy),
+          },
         };
       };
 

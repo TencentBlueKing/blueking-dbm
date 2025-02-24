@@ -33,16 +33,16 @@
 
   const batchIconsInfoMap = {
     edit: {
-      tooltip: t('统一设置：将该列统一设置为相同的值'),
       icon: 'bulk-edit',
+      tooltip: t('统一设置：将该列统一设置为相同的值'),
     },
     entry: {
-      tooltip: t('批量录入：按行录入，快速批量输入多个单元格的值'),
       icon: 'piliangluru',
+      tooltip: t('批量录入：按行录入，快速批量输入多个单元格的值'),
     },
     select: {
-      tooltip: t('批量选择'),
       icon: 'batch-host-select',
+      tooltip: t('批量选择'),
     },
   };
 </script>

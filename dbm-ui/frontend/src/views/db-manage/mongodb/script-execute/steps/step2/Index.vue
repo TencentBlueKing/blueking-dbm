@@ -60,8 +60,8 @@
 
   const steps = [
     {
-      name: t('单据审批'),
       current: true,
+      name: t('单据审批'),
     },
     {
       name: t('执行确认'),

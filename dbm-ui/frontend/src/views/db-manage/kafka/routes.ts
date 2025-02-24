@@ -20,15 +20,6 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
-    name: 'KafkaManage',
-    path: 'kafka',
-    meta: {
-      navName: t('Kafka_集群管理'),
-    },
-    redirect: {
-      name: 'KafkaList',
-    },
-    component: () => import('@views/db-manage/kafka/Index.vue'),
     children: [
       // {
       //   name: 'KafkaApply',
@@ -39,15 +30,24 @@ const routes: RouteRecordRaw[] = [
       //   component: () => import('@views/db-manage/kafka/apply/Index.vue'),
       // },
       {
+        component: () => import('@views/db-manage/kafka/list/Index.vue'),
+        meta: {
+          fullscreen: true,
+          navName: t('Kafka_集群管理'),
+        },
         name: 'KafkaList',
         path: 'list',
-        meta: {
-          navName: t('Kafka_集群管理'),
-          fullscreen: true,
-        },
-        component: () => import('@views/db-manage/kafka/list/Index.vue'),
       },
     ],
+    component: () => import('@views/db-manage/kafka/Index.vue'),
+    meta: {
+      navName: t('Kafka_集群管理'),
+    },
+    name: 'KafkaManage',
+    path: 'kafka',
+    redirect: {
+      name: 'KafkaList',
+    },
   },
 ];
 

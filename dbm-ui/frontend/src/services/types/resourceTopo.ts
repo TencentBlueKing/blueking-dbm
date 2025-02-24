@@ -15,30 +15,30 @@
  * 集群详情拓扑图数据
  */
 export interface ResourceTopo {
-  node_id: string;
-  nodes: {
-    node_id: string;
-    node_type: string;
-    url: string;
-    status?: string;
-  }[];
+  foreign_relations: {
+    access_from: [];
+    access_to: [];
+    rep_from: [];
+    rep_to: [];
+  };
   groups: {
-    node_id: string;
-    group_name: string;
     children_id: string[];
+    group_name: string;
+    node_id: string;
   }[];
   lines: {
+    label: string;
+    label_name: string;
     source: string;
     source_type: string;
     target: string;
     target_type: string;
-    label: string;
-    label_name: string;
   }[];
-  foreign_relations: {
-    rep_to: [];
-    rep_from: [];
-    access_to: [];
-    access_from: [];
-  };
+  node_id: string;
+  nodes: {
+    node_id: string;
+    node_type: string;
+    status?: string;
+    url: string;
+  }[];
 }

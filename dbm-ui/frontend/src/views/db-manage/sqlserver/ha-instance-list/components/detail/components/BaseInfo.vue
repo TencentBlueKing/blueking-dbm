@@ -24,13 +24,11 @@
   import SqlServerHaInstanceModel from '@services/model/sqlserver/sqlserver-ha-instance';
 
   import DbStatus from '@components/db-status/index.vue';
-  import EditInfo, {
-    type InfoColumn,
-  } from '@components/editable-info/index.vue';
+  import EditInfo, { type InfoColumn } from '@components/editable-info/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   interface Props {
-    data: SqlServerHaInstanceModel
+    data: SqlServerHaInstanceModel;
   }
 
   const props = defineProps<Props>();
@@ -41,84 +39,82 @@
   const columns: InfoColumn[][] = [
     [
       {
-        label: t('实例'),
         key: 'instance_address',
+        label: t('实例'),
       },
       {
-        label: t('主机IP'),
         key: 'bk_host_innerip',
+        label: t('主机IP'),
       },
       {
-        label: t('状态'),
         key: 'status',
+        label: t('状态'),
         render: () => {
-          const {
-            theme,
-            text,
-          } = props.data.statusInfo;
+          const { text, theme } = props.data.statusInfo;
           return <DbStatus theme={theme}>{text}</DbStatus>;
         },
       },
       {
-        label: t('主访问入口'),
         key: 'master_domain',
+        label: t('主访问入口'),
         render: () => (
           <TextOverflowLayout>
             {{
+              append: () => (
+                <db-icon
+                  class='ml-4'
+                  type='link'
+                />
+              ),
               default: () => (
                 <bk-button
+                  theme='primary'
                   text
-                  theme="primary"
                   onClick={handleToClusterDetails}>
                   {props.data.master_domain}
                 </bk-button>
-              ),
-              append: () => (
-                <db-icon
-                type="link"
-                class="ml-4" />
               ),
             }}
           </TextOverflowLayout>
         ),
       },
       {
-        label: t('从访问入口'),
         key: 'slave_domain',
+        label: t('从访问入口'),
       },
       {
-        label: t('管控区域'),
         key: 'bk_cloud_name',
+        label: t('管控区域'),
       },
       {
-        label: t('地域'),
         key: 'bk_idc_city_name',
+        label: t('地域'),
       },
       {
-        label: t('所在园区'),
         key: 'bk_sub_zone',
+        label: t('所在园区'),
       },
     ],
     [
       {
-        label: t('版本'),
         key: 'version',
+        label: t('版本'),
       },
       {
-        label: t('部署架构'),
         key: 'cluster_type_name',
+        label: t('部署架构'),
       },
       {
-        label: t('部署角色'),
         key: 'role',
+        label: t('部署角色'),
       },
       {
-        label: t('部署时间'),
         key: 'create_at',
+        label: t('部署时间'),
       },
       {
-        label: 'CPU',
         key: 'bk_cpu',
+        label: 'CPU',
         render: () => {
           if (!Number.isFinite(props.data.bk_cpu)) {
             return '--';
@@ -127,8 +123,8 @@
         },
       },
       {
-        label: t('内存'),
         key: 'bk_mem',
+        label: t('内存'),
         render: () => {
           if (!Number.isFinite(props.data.bk_mem)) {
             return '--';
@@ -137,8 +133,8 @@
         },
       },
       {
-        label: t('磁盘'),
         key: 'bk_disk',
+        label: t('磁盘'),
         render: () => {
           if (!Number.isFinite(props.data.bk_disk)) {
             return '--';

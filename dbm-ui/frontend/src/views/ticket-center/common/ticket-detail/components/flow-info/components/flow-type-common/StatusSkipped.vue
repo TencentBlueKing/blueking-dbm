@@ -74,9 +74,9 @@
   defineProps<Props>();
 
   defineSlots<{
-    title: () => VNode;
-    contentPreppend: () => VNode;
     content: () => VNode;
+    contentPreppend: () => VNode;
+    title: () => VNode;
   }>();
 
   defineOptions({

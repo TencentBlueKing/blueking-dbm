@@ -42,10 +42,10 @@
   type HostTopoInfo = ServiceReturnType<typeof getHostTopoInfos>['hosts_topo_info'][number];
 
   interface Props {
-    modelValue?: string;
-    domain?: string;
-    disabled: boolean;
     cloudId: null | number;
+    disabled: boolean;
+    domain?: string;
+    modelValue?: string;
   }
 
   interface Exposes {
@@ -68,21 +68,22 @@
 
   const rules = [
     {
-      validator: (value: string) => !!value,
       message: t('不能为空'),
+      validator: (value: string) => !!value,
     },
     {
-      validator: (value: string) => ipv4.test(_.trim(value)),
       message: t('IP格式不正确'),
+      validator: (value: string) => ipv4.test(_.trim(value)),
     },
     {
+      message: () => errorMessage,
       validator: (value: string) =>
         getHostTopoInfos({
+          bk_biz_id: currentBizId,
           filter_conditions: {
             bk_host_innerip: [value],
             mode: 'idle_only',
           },
-          bk_biz_id: currentBizId,
         }).then((data) => {
           const [newHost] = data.hosts_topo_info;
           if (!newHost) {
@@ -92,8 +93,8 @@
 
           if (newHost.bk_cloud_id !== props.cloudId) {
             errorMessage = t('新主机xx跟目标集群xx须在同一个管控区域', {
-              ip: value,
               cluster: props.domain,
+              ip: value,
             });
             return false;
           }
@@ -105,9 +106,9 @@
 
           return true;
         }),
-      message: () => errorMessage,
     },
     {
+      message: t('IP重复'),
       validator: () => {
         const otherHostSelectMemo = { ...singleHostSelectMemo };
         delete otherHostSelectMemo[instanceKey];
@@ -125,7 +126,6 @@
 
         return true;
       },
-      message: t('IP重复'),
     },
   ];
 
@@ -148,8 +148,8 @@
     getValue() {
       const formatHost = (item: HostTopoInfo) => ({
         bk_biz_id: currentBizId,
-        bk_host_id: item.bk_host_id,
         bk_cloud_id: item.bk_cloud_id,
+        bk_host_id: item.bk_host_id,
         ip: item.ip,
       });
 

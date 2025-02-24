@@ -34,9 +34,7 @@
     modelValue?: IDataRow['ip'];
   }
 
-  interface Emits {
-    (e: 'onInputFinish', value: string): void;
-  }
+  type Emits = (e: 'onInputFinish', value: string) => void;
 
   const props = withDefaults(defineProps<Props>(), {
     modelValue: '',
@@ -49,12 +47,12 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('IP不能为空'),
+      validator: (value: string) => Boolean(value),
     },
     {
-      validator: (value: string) => ipv4.test(value),
       message: t('IP格式不正确'),
+      validator: (value: string) => ipv4.test(value),
     },
   ];
 

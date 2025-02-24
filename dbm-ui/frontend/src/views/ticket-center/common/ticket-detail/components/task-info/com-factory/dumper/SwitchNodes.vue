@@ -25,15 +25,15 @@
   import { TicketTypes } from '@common/const';
 
   interface Props {
-    ticketDetails: TicketModel<Dumper.SwitchNodes>
+    ticketDetails: TicketModel<Dumper.SwitchNodes>;
   }
 
   const props = defineProps<Props>();
 
   defineOptions({
     name: TicketTypes.TBINLOGDUMPER_SWITCH_NODES,
-    inheritAttrs: false
-  })
+    inheritAttrs: false,
+  });
 
   const { t } = useI18n();
 
@@ -42,21 +42,25 @@
 
   const columns = [
     {
-      label: t('源实例'),
       field: 'host',
-      render: ({ data }: {data: { host: string, port: number }}) => <span>{data.host}:{data.port}</span>,
+      label: t('源实例'),
+      render: ({ data }: { data: { host: string; port: number } }) => (
+        <span>
+          {data.host}:{data.port}
+        </span>
+      ),
     },
     {
-      label: t('迁移目标位置'),
       field: 'target_pos',
+      label: t('迁移目标位置'),
     },
     {
-      label: 'binlog file',
       field: 'repl_binlog_file',
+      label: 'binlog file',
     },
     {
-      label: 'binlog pos',
       field: 'repl_binlog_pos',
+      label: 'binlog pos',
     },
   ];
 </script>

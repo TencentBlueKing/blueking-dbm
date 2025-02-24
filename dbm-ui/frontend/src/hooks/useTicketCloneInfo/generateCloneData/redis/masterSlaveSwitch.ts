@@ -18,7 +18,7 @@ import { random } from '@utils';
 
 // Redis 主从切换
 export async function generateRedisMasterSlaveSwitchCloneData(ticketData: TicketModel<Redis.MasterSlaveSwitch>) {
-  const { infos, force } = ticketData.details;
+  const { force, infos } = ticketData.details;
   const masterIps: string[] = [];
   const ipSwitchMode: Record<string, string> = {};
   infos.forEach((item) => {
@@ -41,19 +41,19 @@ export async function generateRedisMasterSlaveSwitchCloneData(ticketData: Ticket
   const tableList = ipInfo.map((key) => {
     const ip = key.split(':')[1];
     return {
-      rowKey: random(),
-      isLoading: false,
-      ip,
       clusterIds: masterIpMap[key].related_clusters.map((item) => item.id),
       clusters: masterIpMap[key].related_clusters.map((item) => item.immute_domain),
+      ip,
+      isLoading: false,
       masters: masterIpMap[key].related_pair_instances.map((item) => item.instance),
+      rowKey: random(),
       slave: masterIpMap[key].ip,
       switchMode: ipSwitchMode[ip],
     };
   });
   return {
-    tableList,
     force,
     remark: ticketData.remark,
+    tableList,
   };
 }

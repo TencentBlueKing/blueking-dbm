@@ -42,8 +42,8 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('管控区域不能为空'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 

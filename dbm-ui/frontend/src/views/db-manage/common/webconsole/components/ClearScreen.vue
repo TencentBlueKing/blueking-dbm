@@ -13,9 +13,7 @@
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
 
-  interface Emits {
-    (e: 'change'): void;
-  }
+  type Emits = (e: 'change') => void;
 
   const emits = defineEmits<Emits>();
 

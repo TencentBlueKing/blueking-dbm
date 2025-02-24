@@ -67,12 +67,12 @@
   import RenderTargetVersion from './RenderTargetVersion.vue';
 
   export interface IDataRow {
-    rowKey: string;
-    isLoading: boolean;
     cluster: string;
     clusterId: number;
-    nodeType: string;
     clusterType?: string;
+    isLoading: boolean;
+    nodeType: string;
+    rowKey: string;
     targetVersion?: string;
   }
 
@@ -80,18 +80,18 @@
 
   export interface InfoItem {
     cluster_ids: number[];
-    node_type: string;
     current_versions: string[];
+    node_type: string;
     target_version: string;
   }
 
   // 创建表格数据
   export const createRowData = (): IDataRow => ({
-    rowKey: random(),
-    isLoading: false,
     cluster: '',
     clusterId: 0,
+    isLoading: false,
     nodeType: 'Proxy',
+    rowKey: random(),
   });
 </script>
 <script setup lang="ts">
@@ -155,9 +155,9 @@
       const rowInfo = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
       emits('clone', {
         ...props.data,
-        rowKey: random(),
         isLoading: false,
         nodeType: rowInfo[1],
+        rowKey: random(),
         targetVersion: rowInfo[2],
       });
     });
@@ -168,8 +168,8 @@
       return Promise.all([clusterRef.value!.getValue(true), targetVersionRef.value!.getValue()]).then(
         ([clusterIds, targetVersion]) => ({
           cluster_ids: clusterIds,
-          node_type: props.data.nodeType,
           current_versions: currentVersionList.value,
+          node_type: props.data.nodeType,
           target_version: targetVersion,
         }),
       );

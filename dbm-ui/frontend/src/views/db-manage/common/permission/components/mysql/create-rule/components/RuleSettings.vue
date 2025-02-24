@@ -159,22 +159,22 @@
   import type { AccountTypes } from '@common/const';
 
   interface Props {
-    isEdit: boolean;
     accountType: AccountTypes;
+    isEdit: boolean;
     ruleSettingsConfig: {
       dbOperations: AccountRulePrivilege;
       ddlSensitiveWords: string[];
     };
     rulesFormData: {
-      beforeChange: AccountRule;
       afterChange: AccountRule;
+      beforeChange: AccountRule;
     };
   }
 
   interface Exposes {
     getValue: () => Promise<{
-      userName: string;
       accountRule: AccountRule;
+      userName: string;
     }>;
   }
 
@@ -184,8 +184,8 @@
 
   const formRef = ref();
   const formData = reactive<AccountRule>({
-    account_id: null,
     access_db: '',
+    account_id: null,
     privilege: {
       ddl: [],
       dml: [],
@@ -196,30 +196,20 @@
   const existDBs = ref<string[]>([]);
 
   const rules = {
-    privilege: [
-      {
-        trigger: 'change',
-        message: t('请设置权限'),
-        validator: () => {
-          const { ddl, dml, glob } = formData.privilege;
-          return ddl.length !== 0 || dml.length !== 0 || glob.length !== 0;
-        },
-      },
-    ],
     access_db: [
       {
+        message: t('访问 DB 不能为空'),
         required: true,
         trigger: 'blur',
-        message: t('访问 DB 不能为空'),
         validator: (value: string) => {
           const dbs = value.split(/[\n;,]/);
           return _.every(dbs, (item) => !!item.trim());
         },
       },
       {
+        message: t('编辑时只能单个，且不能有分隔符'),
         required: true,
         trigger: 'blur',
-        message: t('编辑时只能单个，且不能有分隔符'),
         validator: (value: string) => {
           if (props.isEdit) {
             return !new RegExp(/\n|;/g).test(value);
@@ -228,27 +218,27 @@
         },
       },
       {
+        message: t('不允许为 *'),
         required: true,
         trigger: 'blur',
-        message: t('不允许为 *'),
         validator: (value: string) => {
           const dbs = value.split(/[\n;,]/);
           return _.every(dbs, (item) => (!item ? true : !/^\*$/.test(item)));
         },
       },
       {
+        message: t('% 不能单独使用'),
         required: true,
         trigger: 'blur',
-        message: t('% 不能单独使用'),
         validator: (value: string) => {
           const dbs = value.split(/[\n;,]/);
           return _.every(dbs, (item) => (!item ? true : /^(?!%$).+$/.test(item)));
         },
       },
       {
+        message: t('访问 DB 名必须合法'),
         required: true,
         trigger: 'blur',
-        message: t('访问 DB 名必须合法'),
         validator: (value: string) => {
           const dbs = value.split(/[\n;,]/);
           return _.every(dbs, (item) =>
@@ -259,9 +249,9 @@
         },
       },
       {
+        message: () => t('该账号下已存在xx规则', [existDBs.value.join(',')]),
         required: true,
         trigger: 'blur',
-        message: () => t('该账号下已存在xx规则', [existDBs.value.join(',')]),
         validator: async () => {
           existDBs.value = [];
           const user = accounts.value.find((item) => item.account_id === formData.account_id)?.user;
@@ -278,9 +268,9 @@
           }
 
           const { results } = await queryAccountRules({
-            user,
             access_dbs: dbs,
             account_type: props.accountType,
+            user,
           });
           const intersection =
             results
@@ -288,6 +278,16 @@
               ?.rules.filter((ruleItem) => dbs.includes(ruleItem.access_db)) || [];
           existDBs.value = intersection.map((item) => item.access_db);
           return !intersection.length;
+        },
+      },
+    ],
+    privilege: [
+      {
+        message: t('请设置权限'),
+        trigger: 'change',
+        validator: () => {
+          const { ddl, dml, glob } = formData.privilege;
+          return ddl.length !== 0 || dml.length !== 0 || glob.length !== 0;
         },
       },
     ],
@@ -308,7 +308,7 @@
     (['ddl', 'dml', 'glob'] as AccountRulePrivilegeKey[]).some(getAllCheckedboxIndeterminate),
   );
 
-  const { run: getPermissionRulesRun, loading: isLoading } = useRequest(getPermissionRules, {
+  const { loading: isLoading, run: getPermissionRulesRun } = useRequest(getPermissionRules, {
     manual: true,
     onSuccess({ results }) {
       accounts.value = results.map((item) => item.account);
@@ -335,17 +335,17 @@
   };
 
   getPermissionRulesRun({
-    offset: 0,
-    limit: -1,
-    bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
     account_type: props.accountType,
+    bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+    limit: -1,
+    offset: 0,
   });
 
   defineExpose<Exposes>({
     getValue: () =>
       formRef.value.validate().then(() => ({
-        userName: accounts.value.find((item) => item.account_id === formData.account_id)?.user || '',
         accountRule: formData,
+        userName: accounts.value.find((item) => item.account_id === formData.account_id)?.user || '',
       })),
   });
 </script>

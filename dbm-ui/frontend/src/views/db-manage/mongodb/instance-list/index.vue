@@ -20,7 +20,7 @@
   import List from './list/index.vue';
 
   const instanceData = ref<{
-    instanceAddress: string;
     clusterId: number;
+    instanceAddress: string;
   }>();
 </script>

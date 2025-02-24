@@ -27,9 +27,9 @@ export default class SqlServerHaCluster extends ClusterBase {
   static SQLSERVER_ENABLE = 'SQLSERVER_ENABLE';
 
   static operationIconMap = {
-    [SqlServerHaCluster.SQLSERVER_ENABLE]: t('启用中'),
-    [SqlServerHaCluster.SQLSERVER_DISABLE]: t('禁用中'),
     [SqlServerHaCluster.SQLSERVER_DESTROY]: t('删除中'),
+    [SqlServerHaCluster.SQLSERVER_DISABLE]: t('禁用中'),
+    [SqlServerHaCluster.SQLSERVER_ENABLE]: t('启用中'),
   };
 
   static operationTextMap = {
@@ -120,31 +120,6 @@ export default class SqlServerHaCluster extends ClusterBase {
     this.updater = payload.updater;
   }
 
-  get dbStatusConfigureObj() {
-    const text = SqlServerHaCluster.statusMap[this.status] || '--';
-    const theme = SqlServerHaCluster.themes[this.status] || 'danger';
-    return {
-      text,
-      theme,
-    };
-  }
-
-  get masterDomainDisplayName() {
-    const port = this.masters[0]?.port;
-    const displayName = port ? `${this.master_domain}:${port}` : this.master_domain;
-    return displayName;
-  }
-
-  get slaveEntryList() {
-    const port = this.slaves[0]?.port;
-    return this.cluster_entry
-      .filter((item) => item.role === 'slave_entry')
-      .map((item) => ({
-        ...item,
-        port,
-      }));
-  }
-
   get allInstanceList() {
     return [...this.masters, ...this.slaves];
   }
@@ -163,42 +138,31 @@ export default class SqlServerHaCluster extends ClusterBase {
     );
   }
 
-  get runningOperation() {
-    const operateTicketTypes = Object.keys(SqlServerHaCluster.operationTextMap);
-    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+  get dbStatusConfigureObj() {
+    const text = SqlServerHaCluster.statusMap[this.status] || '--';
+    const theme = SqlServerHaCluster.themes[this.status] || 'danger';
+    return {
+      text,
+      theme,
+    };
   }
 
-  // 操作中的状态
-  get operationRunningStatus() {
-    if (this.operations.length < 1) {
-      return '';
-    }
-    const operation = this.runningOperation;
-    if (!operation) {
-      return '';
-    }
-    return operation.ticket_type;
+  get disasterToleranceLevelName() {
+    return ClusterAffinityMap[this.disaster_tolerance_level];
   }
 
-  // 操作中的状态描述文本
-  get operationStatusText() {
-    return SqlServerHaCluster.operationTextMap[this.operationRunningStatus];
+  get isAbnormal() {
+    return this.status === 'abnormal';
   }
 
-  get operationStatusIcon() {
-    return SqlServerHaCluster.operationIconMap[this.operationRunningStatus];
+  get isStarting() {
+    return Boolean(this.operations.find((item) => item.ticket_type === SqlServerHaCluster.SQLSERVER_ENABLE));
   }
 
-  // 操作中的单据 ID
-  get operationTicketId() {
-    if (this.operations.length < 1) {
-      return 0;
-    }
-    const operation = this.runningOperation;
-    if (!operation) {
-      return 0;
-    }
-    return operation.ticket_id;
+  get masterDomainDisplayName() {
+    const port = this.masters[0]?.port;
+    const displayName = port ? `${this.master_domain}:${port}` : this.master_domain;
+    return displayName;
   }
 
   get operationDisabled() {
@@ -217,24 +181,45 @@ export default class SqlServerHaCluster extends ClusterBase {
     return false;
   }
 
+  // 操作中的状态
+  get operationRunningStatus() {
+    if (this.operations.length < 1) {
+      return '';
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return '';
+    }
+    return operation.ticket_type;
+  }
+
+  get operationStatusIcon() {
+    return SqlServerHaCluster.operationIconMap[this.operationRunningStatus];
+  }
+
+  // 操作中的状态描述文本
+  get operationStatusText() {
+    return SqlServerHaCluster.operationTextMap[this.operationRunningStatus];
+  }
+
   get operationTagTips() {
     return this.operations.map((item) => ({
       icon: SqlServerHaCluster.operationIconMap[item.ticket_type],
-      tip: SqlServerHaCluster.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,
+      tip: SqlServerHaCluster.operationTextMap[item.ticket_type],
     }));
   }
 
-  get isAbnormal() {
-    return this.status === 'abnormal';
-  }
-
-  get isStarting() {
-    return Boolean(this.operations.find((item) => item.ticket_type === SqlServerHaCluster.SQLSERVER_ENABLE));
-  }
-
-  get disasterToleranceLevelName() {
-    return ClusterAffinityMap[this.disaster_tolerance_level];
+  // 操作中的单据 ID
+  get operationTicketId() {
+    if (this.operations.length < 1) {
+      return 0;
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return 0;
+    }
+    return operation.ticket_id;
   }
 
   get roleFailedInstanceInfo() {
@@ -242,6 +227,21 @@ export default class SqlServerHaCluster extends ClusterBase {
       Master: ClusterBase.getRoleFaildInstanceList(this.masters),
       Slave: ClusterBase.getRoleFaildInstanceList(this.slaves),
     };
+  }
+
+  get runningOperation() {
+    const operateTicketTypes = Object.keys(SqlServerHaCluster.operationTextMap);
+    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+  }
+
+  get slaveEntryList() {
+    const port = this.slaves[0]?.port;
+    return this.cluster_entry
+      .filter((item) => item.role === 'slave_entry')
+      .map((item) => ({
+        ...item,
+        port,
+      }));
   }
 
   get slaveList() {

@@ -39,14 +39,12 @@
   type PanelListItem = PanelListType[number];
 
   interface Props {
-    panelList: PanelListItem[];
     disabled: boolean;
     hideManualInput: boolean;
+    panelList: PanelListItem[];
     unqiuePanelTips: string;
   }
-  interface Emits {
-    (e: 'change', value: PanelListItem): void;
-  }
+  type Emits = (e: 'change', value: PanelListItem) => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();

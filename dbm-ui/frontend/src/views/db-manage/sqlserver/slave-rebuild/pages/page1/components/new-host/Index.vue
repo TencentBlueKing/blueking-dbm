@@ -112,28 +112,28 @@
   };
 
   useTicketCloneInfo({
-    type: TicketTypes.SQLSERVER_RESTORE_SLAVE,
     onSuccess(cloneData) {
       tableData.value = cloneData.map((item) =>
         createRowData({
-          oldSlave: {
-            bkCloudId: item.old_slave_host.bk_cloud_id,
-            bkCloudName: item.clusters[0].bk_cloud_name,
-            bkHostId: item.old_slave_host.bk_host_id,
-            ip: item.old_slave_host.ip,
-            port: item.old_slave_host.port,
-            clusterId: item.clusters[0].id,
-            dbModuleId: item.clusters[0].db_module_id,
-          },
           newSlave: {
             bkCloudId: item.new_slave_host.bk_cloud_id,
             bkHostId: item.new_slave_host.bk_host_id,
             ip: item.new_slave_host.ip,
             port: item.new_slave_host.port,
           },
+          oldSlave: {
+            bkCloudId: item.old_slave_host.bk_cloud_id,
+            bkCloudName: item.clusters[0].bk_cloud_name,
+            bkHostId: item.old_slave_host.bk_host_id,
+            clusterId: item.clusters[0].id,
+            dbModuleId: item.clusters[0].db_module_id,
+            ip: item.old_slave_host.ip,
+            port: item.old_slave_host.port,
+          },
         }),
       );
     },
+    type: TicketTypes.SQLSERVER_RESTORE_SLAVE,
   });
 
   // Master 批量选择
@@ -154,11 +154,11 @@
             bkCloudId: instanceData.bk_cloud_id,
             bkCloudName: instanceData.bk_cloud_name,
             bkHostId: instanceData.bk_host_id,
-            ip: instanceData.ip,
-            port: instanceData.port,
-            instanceAddress: instanceData.instance_address,
             clusterId: instanceData.cluster_id,
             dbModuleId: instanceData.db_module_id,
+            instanceAddress: instanceData.instance_address,
+            ip: instanceData.ip,
+            port: instanceData.port,
           },
         }),
       );
@@ -185,13 +185,13 @@
     Promise.all(rowRefs.value.map((item) => item.getValue()))
       .then((data) =>
         createTicket({
-          ticket_type: TicketTypes.SQLSERVER_RESTORE_SLAVE,
-          remark: '',
-          details: {
-            ip_source: 'manual_input',
-            infos: data,
-          },
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          details: {
+            infos: data,
+            ip_source: 'manual_input',
+          },
+          remark: '',
+          ticket_type: TicketTypes.SQLSERVER_RESTORE_SLAVE,
         }).then((data) => {
           window.changeConfirm = false;
 

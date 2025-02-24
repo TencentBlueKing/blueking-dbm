@@ -17,7 +17,6 @@
   import type { ClusterModel, ISupportClusterType } from './types';
 
   export interface Props {
-    // eslint-disable-next-line vue/no-unused-properties
     clusterType: ISupportClusterType;
   }
 

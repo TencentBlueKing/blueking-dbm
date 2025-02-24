@@ -54,11 +54,11 @@
   const { t } = useI18n();
   const rules = [
     {
+      message: t('一格仅支持单个_对象'),
       validator: (value: string[]) => {
-        const hasAllMatch = _.find(value, (item) => /%$/.test(item));
+        const hasAllMatch = _.find(value, (item) => item.endsWith('%'));
         return !(value.length > 1 && hasAllMatch);
       },
-      message: t('一格仅支持单个_对象'),
     },
   ];
 
@@ -76,17 +76,17 @@
 
   onMounted(() => {
     tippyIns = tippy(rootRef.value as SingleTarget, {
-      content: popRef.value,
-      placement: 'top',
       appendTo: () => document.body,
-      theme: 'light',
-      maxWidth: 'none',
-      trigger: 'manual',
-      interactive: true,
       arrow: true,
-      offset: [0, 8],
-      zIndex: 999999,
+      content: popRef.value,
       hideOnClick: true,
+      interactive: true,
+      maxWidth: 'none',
+      offset: [0, 8],
+      placement: 'top',
+      theme: 'light',
+      trigger: 'manual',
+      zIndex: 999999,
     });
   });
 

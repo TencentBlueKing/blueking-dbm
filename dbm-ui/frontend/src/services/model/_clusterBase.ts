@@ -17,27 +17,27 @@ export default class ClusterBase {
     this.update_at = payload.update_at;
   }
 
-  get isOnline() {
-    return this.phase === 'online';
-  }
-
-  get isOffline() {
-    return this.phase === 'offline';
+  get createAtDisplay() {
+    return utcDisplayTime(this.create_at);
   }
 
   get isNew() {
     return isRecentDays(this.create_at, 24);
   }
 
-  get createAtDisplay() {
-    return utcDisplayTime(this.create_at);
+  get isOffline() {
+    return this.phase === 'offline';
   }
 
-  get updateAtDisplay() {
-    return utcDisplayTime(this.update_at);
+  get isOnline() {
+    return this.phase === 'online';
   }
 
   get masterDomain() {
     return this.master_domain || this.domain;
+  }
+
+  get updateAtDisplay() {
+    return utcDisplayTime(this.update_at);
   }
 }

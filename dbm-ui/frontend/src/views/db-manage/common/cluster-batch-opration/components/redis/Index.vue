@@ -101,9 +101,7 @@
     selected: RedisModel[];
   }
 
-  interface Emits {
-    (e: 'success'): void;
-  }
+  type Emits = (e: 'success') => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -116,10 +114,10 @@
   });
 
   const { t } = useI18n();
-  const { state: extractState, handleShow: handleShowExtract } = useShowExtractKeys();
-  const { state: deleteKeyState, handleShow: handlShowDeleteKeys } = useShowDeleteKeys();
-  const { state: backupState, handleShow: handleShowBackup } = useShowBackup();
-  const { state: purgeState, handleShow: handleShowPurge } = useShowPurge();
+  const { handleShow: handleShowExtract, state: extractState } = useShowExtractKeys();
+  const { handleShow: handlShowDeleteKeys, state: deleteKeyState } = useShowDeleteKeys();
+  const { handleShow: handleShowBackup, state: backupState } = useShowBackup();
+  const { handleShow: handleShowPurge, state: purgeState } = useShowPurge();
 
   const batchOperationDisabled = computed(() =>
     props.selected.some((data) => {

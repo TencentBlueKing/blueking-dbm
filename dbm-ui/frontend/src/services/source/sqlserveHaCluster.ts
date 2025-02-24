@@ -86,10 +86,10 @@ export function exportSqlServerHaInstanceToExcel(params: { bk_host_ids?: number[
  * 获取集群实例列表
  */
 export function getSqlServerInstanceList(params: {
-  offset?: number;
-  limit?: number;
   bk_biz_id?: number;
   cluster_id?: number;
+  limit?: number;
+  offset?: number;
   role?: string;
 }) {
   return http.get<ListBase<SqlServerHaInstanceModel[]>>(`${path}/list_instances/`, params).then((data) => ({
@@ -103,10 +103,10 @@ export function getSqlServerInstanceList(params: {
  */
 export function retrieveSqlserverHaInstance(params: {
   bk_biz_id: number;
-  type: string;
-  instance_address: string;
   cluster_id?: number;
   dbType: string;
+  instance_address: string;
+  type: string;
 }) {
   return http
     .get<SqlServerHaInstanceModel>(`${path}/retrieve_instance/`, params)

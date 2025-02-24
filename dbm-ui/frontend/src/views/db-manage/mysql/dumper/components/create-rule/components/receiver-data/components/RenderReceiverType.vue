@@ -33,9 +33,7 @@
     getValue: () => Promise<string>;
   }
 
-  interface Emits {
-    (e: 'type-change', value: string): void;
-  }
+  type Emits = (e: 'type-change', value: string) => void;
 
   const props = defineProps<Props>();
 
@@ -48,23 +46,23 @@
 
   const selectList = [
     {
-      value: 'KAFKA',
       label: 'KAFKA',
+      value: 'KAFKA',
     },
     {
-      value: 'L5_AGENT',
       label: 'L5_AGENT',
+      value: 'L5_AGENT',
     },
     {
-      value: 'TCP/IP',
       label: 'TCP/IP',
+      value: 'TCP/IP',
     },
   ];
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('请选择接收端类型'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 

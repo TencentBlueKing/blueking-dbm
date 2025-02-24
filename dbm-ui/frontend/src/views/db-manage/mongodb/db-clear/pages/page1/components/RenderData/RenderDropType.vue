@@ -32,12 +32,12 @@
 
   const list = [
     {
-      value: 'drop_collection',
       label: t('直接删除表'),
+      value: 'drop_collection',
     },
     {
-      value: 'rename_collection',
       label: t('将表暂时重命名，用于需要快速恢复的情况'),
+      value: 'rename_collection',
     },
   ];
 

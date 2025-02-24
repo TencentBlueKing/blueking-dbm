@@ -7,31 +7,31 @@ import { isRecentDays, utcDisplayTime } from '@utils';
 import { t } from '@locales/index';
 
 export default class MongodbInstance {
-  static MONGODB_DISABLE = 'MONGODB_DISABLE';
-  static MONGODB_INSTANCE_RELOAD = 'MONGODB_INSTANCE_RELOAD';
-  static MONGODB_ENABLE = 'MONGODB_ENABLE';
   static MONGODB_DESTROY = 'MONGODB_DESTROY';
+  static MONGODB_DISABLE = 'MONGODB_DISABLE';
+  static MONGODB_ENABLE = 'MONGODB_ENABLE';
+  static MONGODB_INSTANCE_RELOAD = 'MONGODB_INSTANCE_RELOAD';
 
   static operationIconMap = {
-    [MongodbInstance.MONGODB_DISABLE]: t('禁用中'),
-    [MongodbInstance.MONGODB_INSTANCE_RELOAD]: t('重启中'),
-    [MongodbInstance.MONGODB_ENABLE]: t('启用中'),
     [MongodbInstance.MONGODB_DESTROY]: t('删除中'),
+    [MongodbInstance.MONGODB_DISABLE]: t('禁用中'),
+    [MongodbInstance.MONGODB_ENABLE]: t('启用中'),
+    [MongodbInstance.MONGODB_INSTANCE_RELOAD]: t('重启中'),
   };
 
   static operationTextMap = {
-    [MongodbInstance.MONGODB_DISABLE]: t('禁用任务执行中'),
-    [MongodbInstance.MONGODB_INSTANCE_RELOAD]: t('实例重启任务进行中'),
-    [MongodbInstance.MONGODB_ENABLE]: t('启用任务执行中'),
     [MongodbInstance.MONGODB_DESTROY]: t('删除任务执行中'),
+    [MongodbInstance.MONGODB_DISABLE]: t('禁用任务执行中'),
+    [MongodbInstance.MONGODB_ENABLE]: t('启用任务执行中'),
+    [MongodbInstance.MONGODB_INSTANCE_RELOAD]: t('实例重启任务进行中'),
   };
 
-  static themes: Record<string, string> = {
-    running: 'success',
-  };
   static statusMap: Record<string, string> = {
     running: t('正常'),
     unavailable: t('异常'),
+  };
+  static themes: Record<string, string> = {
+    running: 'success',
   };
 
   bk_cloud_id: number;
@@ -96,8 +96,12 @@ export default class MongodbInstance {
     this.version = payload.version;
   }
 
-  get isNew() {
-    return isRecentDays(this.create_at, 24 * 3);
+  get clusterTypeText() {
+    return this.cluster_type === 'MongoReplicaSet' ? t('副本集') : t('分片集群');
+  }
+
+  get createAtDisplay() {
+    return utcDisplayTime(this.create_at);
   }
 
   get dbStatusConfigureObj() {
@@ -106,17 +110,20 @@ export default class MongodbInstance {
     return { text, theme };
   }
 
-  get clusterTypeText() {
-    return this.cluster_type === 'MongoReplicaSet' ? t('副本集') : t('分片集群');
+  get isNew() {
+    return isRecentDays(this.create_at, 24 * 3);
   }
 
   get isRebooting() {
     return Boolean(this.operations.find((item) => item.ticket_type === MongodbInstance.MONGODB_INSTANCE_RELOAD));
   }
 
-  get runningOperation() {
-    const operateTicketTypes = Object.keys(MongodbInstance.operationTextMap);
-    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+  get operationDisabled() {
+    // 各个操作互斥，有其他任务进行中禁用操作按钮
+    if (this.operationTicketId) {
+      return true;
+    }
+    return false;
   }
 
   // 操作中的状态
@@ -131,14 +138,22 @@ export default class MongodbInstance {
     return operation.ticket_type;
   }
 
+  // 操作中的状态 icon
+  get operationStatusIcon() {
+    return MongodbInstance.operationIconMap[this.operationRunningStatus];
+  }
+
   // 操作中的状态描述文本
   get operationStatusText() {
     return MongodbInstance.operationTextMap[this.operationRunningStatus];
   }
 
-  // 操作中的状态 icon
-  get operationStatusIcon() {
-    return MongodbInstance.operationIconMap[this.operationRunningStatus];
+  get operationTagTips() {
+    return this.operations.map((item) => ({
+      icon: MongodbInstance.operationIconMap[item.ticket_type],
+      ticketId: item.ticket_id,
+      tip: MongodbInstance.operationTextMap[item.ticket_type],
+    }));
   }
 
   // 操作中的单据 ID
@@ -153,23 +168,8 @@ export default class MongodbInstance {
     return operation.ticket_id;
   }
 
-  get operationDisabled() {
-    // 各个操作互斥，有其他任务进行中禁用操作按钮
-    if (this.operationTicketId) {
-      return true;
-    }
-    return false;
-  }
-
-  get operationTagTips() {
-    return this.operations.map((item) => ({
-      icon: MongodbInstance.operationIconMap[item.ticket_type],
-      tip: MongodbInstance.operationTextMap[item.ticket_type],
-      ticketId: item.ticket_id,
-    }));
-  }
-
-  get createAtDisplay() {
-    return utcDisplayTime(this.create_at);
+  get runningOperation() {
+    const operateTicketTypes = Object.keys(MongodbInstance.operationTextMap);
+    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
   }
 }

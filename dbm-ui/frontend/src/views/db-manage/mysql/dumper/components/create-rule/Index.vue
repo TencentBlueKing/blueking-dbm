@@ -145,16 +145,10 @@
   import { useRequest } from 'vue-request';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
-  import {
-    listDumperConfig,
-    verifyDuplicateName,
-  } from '@services/source/dumper';
+  import { listDumperConfig, verifyDuplicateName } from '@services/source/dumper';
   import { createTicket } from '@services/source/ticket';
 
-  import {
-    useBeforeClose,
-    useTicketMessage,
-  } from '@hooks';
+  import { useBeforeClose, useTicketMessage } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -164,22 +158,22 @@
   import SubscribeDbTable from './components/subscribe-db-table/Index.vue';
 
   interface Props {
-    showTabPanel?: boolean,
-    pageStatus?: string,
-    selectedClusters?: TendbhaModel[],
+    pageStatus?: string;
+    selectedClusters?: TendbhaModel[];
+    showTabPanel?: boolean;
   }
 
   interface Emits {
-    (e: 'success'): void,
-    (e: 'cancel'): void,
+    (e: 'success'): void;
+    (e: 'cancel'): void;
   }
 
-  type DumperConfig = ServiceReturnType<typeof listDumperConfig>['results'][number]
+  type DumperConfig = ServiceReturnType<typeof listDumperConfig>['results'][number];
 
   const props = withDefaults(defineProps<Props>(), {
-    showTabPanel: false,
     pageStatus: 'edit',
-    selectedClusters: () => ([]),
+    selectedClusters: () => [],
+    showTabPanel: false,
   });
   const emits = defineEmits<Emits>();
   const isShow = defineModel<boolean>();
@@ -201,11 +195,11 @@
   const subscribeTableData = ref<DumperConfig['repl_tables']>([]);
 
   const formModel = reactive<{
-    name: string | number,
-    clusterList: string[],
+    clusterList: string[];
+    name: string | number;
   }>({
-    name: '',
     clusterList: [''],
+    name: '',
   });
 
   const isUseExistedSubscribe = computed(() => createType.value === 'old');
@@ -213,53 +207,69 @@
 
   const createTypeList = [
     {
-      value: 'new',
       label: t('新建订阅'),
+      value: 'new',
     },
     {
-      value: 'old',
       label: t('使用已有订阅'),
+      value: 'old',
     },
   ];
 
   const subscribeColumns = [
     {
-      label: t('DB 名'),
       field: 'db_name',
+      label: t('DB 名'),
       width: 300,
     },
     {
-      label: t('表名'),
       field: 'table_names',
+      label: t('表名'),
       minWidth: 100,
-      render: ({ data }: {data: { table_names: string[] }}) => (
-        <div class="table-names-box">
-          {
-            data.table_names.map((item, index) => <div key={index} class="name-item">{ item }</div>)
-          }
+      render: ({ data }: { data: { table_names: string[] } }) => (
+        <div class='table-names-box'>
+          {data.table_names.map((item, index) => (
+            <div
+              key={index}
+              class='name-item'>
+              {item}
+            </div>
+          ))}
         </div>
       ),
     },
   ];
 
   const formRules = {
+    clusterList: [
+      {
+        message: t('不能为空'),
+        trigger: 'change',
+        validator: () => {
+          const list = receiverDataRef.value.getTableValue();
+          return list.length;
+        },
+      },
+    ],
     name: [
       {
-        validator: (value: string) => Boolean(value),
         message: t('订阅名称不能为空'),
         trigger: 'blur',
+        validator: (value: string) => Boolean(value),
       },
       {
+        message: t('不能超过n个字符', { n: 128 }),
+        trigger: 'blur',
         validator: (value: string) => {
           if (value.length > 128) {
             return false;
           }
           return true;
         },
-        message: t('不能超过n个字符', { n: 128 }),
-        trigger: 'blur',
       },
       {
+        message: t('订阅名称重复'),
+        trigger: 'blur',
         validator: async (name: string) => {
           if (isUseExistedSubscribe.value) {
             return true;
@@ -267,38 +277,29 @@
           const isDuplicate = await verifyDuplicateName({ name });
           return !isDuplicate;
         },
-        message: t('订阅名称重复'),
-        trigger: 'blur',
-      },
-    ],
-    clusterList: [
-      {
-        validator: () => {
-          const list = receiverDataRef.value.getTableValue();
-          return list.length;
-        },
-        message: t('不能为空'),
-        trigger: 'change',
       },
     ],
   };
 
   const replTableMap: Record<string, DumperConfig['repl_tables']> = {};
 
-  watch(() => formModel.name, (name) => {
-    if (name) {
-      window.changeConfirm = true;
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => formModel.name,
+    (name) => {
+      if (name) {
+        window.changeConfirm = true;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   useRequest(listDumperConfig, {
-
     defaultParams: [
       {
-        offset: 0,
         limit: -1,
+        offset: 0,
       },
     ],
     onSuccess: (data) => {
@@ -338,19 +339,21 @@
     try {
       await formRef.value.validate();
       const replTables = isUseExistedSubscribe.value
-        ? replTableMap[formModel.name] : await subscribeDbTableRef.value.getValue();
+        ? replTableMap[formModel.name]
+        : await subscribeDbTableRef.value.getValue();
       const infos = await receiverDataRef.value.getValue();
       const params = {
         bk_biz_id: currentBizId,
-        ticket_type: TicketTypes.TBINLOGDUMPER_INSTALL,
-        remark: '',
         details: {
-          name: isUseExistedSubscribe.value
-            ? subscribeNameList.value.find(item => item.value === formModel.name)?.label : formModel.name,
           add_type: syncType.value,
-          repl_tables: replTables,
           infos,
+          name: isUseExistedSubscribe.value
+            ? subscribeNameList.value.find((item) => item.value === formModel.name)?.label
+            : formModel.name,
+          repl_tables: replTables,
         },
+        remark: '',
+        ticket_type: TicketTypes.TBINLOGDUMPER_INSTALL,
       };
 
       const data = await createTicket(params);

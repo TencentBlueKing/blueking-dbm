@@ -142,15 +142,15 @@
 
   import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
 
-  import ModuleParameterTable from './components/ModuleParameterTable.vue';
-
   import { messageError } from '@/utils';
+
+  import ModuleParameterTable from './components/ModuleParameterTable.vue';
 
   const getFormData = () => ({
     alias_name: (route.query.alias_name ?? '') as string,
-    version: '',
-    spider_version: '',
     character_set: '',
+    spider_version: '',
+    version: '',
   });
 
   const { t } = useI18n();
@@ -205,18 +205,18 @@
   const rules = {
     alias_name: [
       {
-        required: true,
         message: t('模块名称不能为空'),
+        required: true,
         trigger: 'blur',
       },
       {
-        pattern: /^[A-Za-z]/,
         message: t('只能英文字母开头'),
+        pattern: /^[A-Za-z]/,
         trigger: 'blur',
       },
       {
-        pattern: /^[0-9a-zA-Z-]+$/,
         message: t('由英文字母_数字_连字符_组成'),
+        pattern: /^[0-9a-zA-Z-]+$/,
         trigger: 'blur',
       },
     ],
@@ -229,10 +229,10 @@
     // aliasname-spiderversion-mysqlversion-charset
     const dbModuleName = `${formdata.alias_name}-${formdata.spider_version}-${formdata.version}-${formdata.character_set}`;
     const params = {
-      biz_id: bizId.value,
       alias_name: formdata.alias_name,
-      db_module_name: dbModuleName,
+      biz_id: bizId.value,
       cluster_type: 'tendbcluster',
+      db_module_name: dbModuleName,
     };
 
     return createModules(params).then((res) => {
@@ -243,32 +243,32 @@
   // 绑定数据库配置
   const bindModulesDeployInfo = () => {
     const params = {
-      level_name: 'module',
-      version: 'deploy_info',
-      conf_type: 'deploy',
       bk_biz_id: bizId.value,
-      level_value: moduleId.value,
-      meta_cluster_type: 'tendbcluster',
       conf_items: [
         {
           conf_name: 'charset',
           conf_value: formdata.character_set,
-          op_type: 'update',
           description: t('字符集'),
+          op_type: 'update',
         },
         {
           conf_name: 'db_version',
           conf_value: formdata.version,
-          op_type: 'update',
           description: t('数据库版本'),
+          op_type: 'update',
         },
         {
           conf_name: 'spider_version',
           conf_value: formdata.spider_version,
-          op_type: 'update',
           description: t('Spider版本'),
+          op_type: 'update',
         },
       ],
+      conf_type: 'deploy',
+      level_name: 'module',
+      level_value: moduleId.value,
+      meta_cluster_type: 'tendbcluster',
+      version: 'deploy_info',
     };
     return saveModulesDeployInfo(params).then(() => {
       isBindSuccessfully.value = true;
@@ -323,8 +323,8 @@
           clusterType: 'tendbcluster',
         },
         query: {
-          treeId: moduleId.value ? `module-${moduleId.value}` : '',
           parentId: `app-${bizId.value}`,
+          treeId: moduleId.value ? `module-${moduleId.value}` : '',
         },
       });
     } catch (e) {
@@ -336,11 +336,10 @@
 
   function handleReset() {
     InfoBox({
-      title: t('确认重置表单内容'),
-      content: t('重置后_将会清空当前填写的内容'),
       cancelText: t('取消'),
+      content: t('重置后_将会清空当前填写的内容'),
       onConfirm: () => {
-        const resetData = isNewModule.value ? getFormData() : { version: '', character_set: '' };
+        const resetData = isNewModule.value ? getFormData() : { character_set: '', version: '' };
         _.merge(formdata, resetData);
         mysqlTableRef.value.handleReset();
         spiderTableRef.value.handleReset();
@@ -350,6 +349,7 @@
         });
         return true;
       },
+      title: t('确认重置表单内容'),
     });
   }
 

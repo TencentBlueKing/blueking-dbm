@@ -20,10 +20,6 @@ import { getFunController } from '@services/source/functionController';
  * 配置功能开关
  */
 export const useFunController = defineStore('useFunController', {
-  state: () => ({
-    funControllerData: {} as FunctionControllModel,
-    isFetched: false,
-  }),
   actions: {
     /**
      * 获取功能开关配置
@@ -40,4 +36,8 @@ export const useFunController = defineStore('useFunController', {
       this.isFetched = true;
     },
   },
+  state: () => ({
+    funControllerData: {} as FunctionControllModel,
+    isFetched: false,
+  }),
 });

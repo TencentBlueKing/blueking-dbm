@@ -73,36 +73,34 @@
   import { nameRegx } from '@common/regex';
 
   interface Props {
-    moduleAliasName?: string;
     appName?: string;
+    moduleAliasName?: string;
   }
 
-  interface Emits {
-    (e: 'change', value: string[]): void;
-  }
+  type Emits = (e: 'change', value: string[]) => void;
 
   withDefaults(defineProps<Props>(), {
-    moduleAliasName: '',
     appName: '',
+    moduleAliasName: '',
   });
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
   const errorTxt = {
-    rule: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
-    repeat: t('输入域名重复'),
     maxlength: t('最大长度为m', { m: 63 }),
+    repeat: t('输入域名重复'),
+    rule: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
   };
 
   const state = reactive({
     isShow: false,
-    value: '',
     offsetWidth: 0,
+    value: '',
   });
   const validateState = reactive({
-    isShow: false,
     errorTxt: '',
+    isShow: false,
   });
   const { body } = document;
   const textareaRows = computed(() => {

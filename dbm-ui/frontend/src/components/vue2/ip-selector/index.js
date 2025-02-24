@@ -46,13 +46,11 @@ export default function (options) {
               }),
               {},
             );
-            // eslint-disable-next-line no-underscore-dangle
+
             app.$refs.componentRef._props[propName] = Object.freeze(v);
           } else if (Object.prototype.toString.call(newValue) === '[object Array]') {
-            // eslint-disable-next-line no-underscore-dangle
             app.$refs.componentRef._props[propName] = [...newValue];
           } else {
-            // eslint-disable-next-line no-underscore-dangle
             app.$refs.componentRef._props[propName] = newValue;
           }
         });

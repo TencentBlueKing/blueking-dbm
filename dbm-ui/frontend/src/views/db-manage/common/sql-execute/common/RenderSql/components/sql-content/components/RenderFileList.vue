@@ -104,29 +104,29 @@
   import type GrammarCheckModel from '@services/model/sql-import/grammar-check';
 
   export interface IFileData {
-    isSuccess: boolean;
-    isCheckFailded: boolean;
-    isUploading: boolean;
-    isUploadFailed: boolean;
-    uploadErrorMessage: string;
-    file: File | null;
     content: string;
-    messageList: GrammarCheckModel['messageList'];
+    file: File | null;
     grammarCheck?: GrammarCheckModel;
+    isCheckFailded: boolean;
+    isSuccess: boolean;
+    isUploadFailed: boolean;
+    isUploading: boolean;
+    messageList: GrammarCheckModel['messageList'];
     realFilePath: string;
+    uploadErrorMessage: string;
   }
 
   export const createFileData = (data = {} as Partial<IFileData>) => ({
-    isSuccess: data.isSuccess || false,
-    isCheckFailded: data.isCheckFailded || false,
-    isUploading: data.isUploading || false,
-    isUploadFailed: data.isUploadFailed || false,
-    uploadErrorMessage: data.uploadErrorMessage || '',
-    file: data.file || null,
     content: data.content || '',
-    messageList: data.messageList || [],
+    file: data.file || null,
     grammarCheck: data.grammarCheck,
+    isCheckFailded: data.isCheckFailded || false,
+    isSuccess: data.isSuccess || false,
+    isUploadFailed: data.isUploadFailed || false,
+    isUploading: data.isUploading || false,
+    messageList: data.messageList || [],
     realFilePath: data.realFilePath || '',
+    uploadErrorMessage: data.uploadErrorMessage || '',
   });
 </script>
 <script setup lang="ts">
@@ -138,9 +138,7 @@
     fileData: Record<string, IFileData>;
   }
 
-  interface Emits {
-    (e: 'remove', filename: string): void;
-  }
+  type Emits = (e: 'remove', filename: string) => void;
 
   defineProps<Props>();
   const emits = defineEmits<Emits>();

@@ -41,8 +41,8 @@
   import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
   interface Props {
-    offsetTarget?: () => Element | null;
     fill?: number;
+    offsetTarget?: () => Element | null;
     showActionArea?: boolean;
   }
 
@@ -68,8 +68,8 @@
     'padding-left': isFixed.value ? `${paddingLeft.value}px` : '0',
   }));
   const actionContentstyles = computed(() => ({
-    'padding-left': `${offsetLeft.value + props.fill}px`,
     flex: 1,
+    'padding-left': `${offsetLeft.value + props.fill}px`,
   }));
 
   /**
@@ -93,7 +93,7 @@
     if (!placeholderRef.value) {
       return;
     }
-    const { height, top, left } = placeholderRef.value.getBoundingClientRect();
+    const { height, left, top } = placeholderRef.value.getBoundingClientRect();
     isFixed.value = height + top + 25 > window.innerHeight;
     paddingLeft.value = left;
     setTimeout(() => {
@@ -108,10 +108,10 @@
       smartPosition();
     });
     observer.observe(document.querySelector('body') as Node, {
-      subtree: true,
-      childList: true,
-      characterData: true,
       attributes: true,
+      characterData: true,
+      childList: true,
+      subtree: true,
     });
     calcOffsetLeft();
     smartPosition();

@@ -112,20 +112,18 @@
   import BatchEditKeys from '../RedisBatchEditKeys.vue';
 
   interface ExtractItem extends RedisModel {
-    white_regex: string,
-    black_regex: string
+    black_regex: string;
+    white_regex: string;
   }
 
   interface Props {
-    data?: RedisModel[]
+    data?: RedisModel[];
   }
 
-  interface Emits {
-    (e: 'success'): void
-  }
+  type Emits = (e: 'success') => void;
 
   const props = withDefaults(defineProps<Props>(), {
-    data: () => ([]),
+    data: () => [],
   });
   const emits = defineEmits<Emits>();
   const isShow = defineModel<boolean>('isShow', {
@@ -142,117 +140,127 @@
   const isBatch = computed(() => props.data.length > 1);
   // 第一个集群的数据
   const firstData = computed(() => props.data[0]);
-  const keyRegexRules = [{
-    trigger: 'blur',
-    message: t('请输入正则表达式'),
-    validator: (value: string) => !!value,
-  }];
+  const keyRegexRules = [
+    {
+      message: t('请输入正则表达式'),
+      trigger: 'blur',
+      validator: (value: string) => !!value,
+    },
+  ];
   const columns = [
     {
-    label: t('集群'),
-    field: 'name',
-    minWidth: 280,
-    showOverflow: false,
-    render: ({ data }: { data: ExtractItem }) => (
-      <div
-        class="cluster-name text-overflow"
-        v-overflow-tips={{
-          content: `
+      field: 'name',
+      label: t('集群'),
+      minWidth: 280,
+      render: ({ data }: { data: ExtractItem }) => (
+        <div
+          v-overflow-tips={{
+            allowHTML: true,
+            content: `
             <p>${t('域名')}：${data.master_domain}</p>
-            ${data.cluster_alias ? `<p>${('集群别名')}：${data.cluster_alias}</p>` : null}
+            ${data.cluster_alias ? `<p>${'集群别名'}：${data.cluster_alias}</p>` : null}
           `,
-          allowHTML: true,
-      }}>
-        <span>{data.master_domain}</span><br />
-        <span class="cluster-name__alias">{data.cluster_alias}</span>
-      </div>
-    ),
-  },
-  {
-    label: () => (
-      <span class="key-table-header">
-        { t('包含Key') }
-        <span style="color: #ea3636;" class="pl-4">*</span>
-        {
-          isBatch.value
-            ? (
-              <BatchEditKeys
-                title={t('批量设置包含Key')}
-                onChange={(value: string) => handleBatchChange(value, 'white_regex')} />
-            ) : ''
-        }
-      </span>
-    ),
-    field: 'white_regex',
-    minWidth: 280,
-    render: ({ data, index }: { data: ExtractItem, index: number }) => (
-      <bk-form-item
-        error-display-type="tooltips"
-        ref={setFormItemRefs.bind(null, 'white')}
-        property={`${index}.white_regex`}
-        rules={keyRegexRules}
-        label-width={0}>
-        <db-textarea
-          ref={setRegexRefs.bind(null, 'white')}
-          class="regex-input"
-          placeholder={t('请输入正则表达式_多个换行分割')}
-          display-height="auto"
-          v-model={data.white_regex}
-          max-height={400}
-          teleport-to-body={false} />
-      </bk-form-item>
-    ),
-  },
-  {
-    label: () => (
-      <span class="key-table-header">
-        { t('排除Key') }
-        {
-          isBatch.value
-            ? (
-              <BatchEditKeys
-                title={t('批量设置排除Key')}
-                onChange={(value: string) => handleBatchChange(value, 'black_regex')} />
-            ) : ''
-        }
-      </span>
-    ),
-    field: 'black_regex',
-    minWidth: 280,
-    render: ({ data, index }: { data: ExtractItem, index: number }) => (
-      <bk-form-item
-        error-display-type="tooltips"
-        ref={setFormItemRefs.bind(null, 'black')}
-        property={`${index}.black_regex`}
-        label-width={0}>
-        <db-textarea
-          ref={setRegexRefs.bind(null, 'black')}
-          class="regex-input"
-          placeholder={t('请输入正则表达式_多个换行分割')}
-          display-height="auto"
-          v-model={data.black_regex}
-          max-height={400}
-          teleport-to-body={false} />
-      </bk-form-item>
-    ),
-  }];
+          }}
+          class='cluster-name text-overflow'>
+          <span>{data.master_domain}</span>
+          <br />
+          <span class='cluster-name__alias'>{data.cluster_alias}</span>
+        </div>
+      ),
+      showOverflow: false,
+    },
+    {
+      field: 'white_regex',
+      label: () => (
+        <span class='key-table-header'>
+          {t('包含Key')}
+          <span
+            class='pl-4'
+            style='color: #ea3636;'>
+            *
+          </span>
+          {isBatch.value ? (
+            <BatchEditKeys
+              title={t('批量设置包含Key')}
+              onChange={(value: string) => handleBatchChange(value, 'white_regex')}
+            />
+          ) : (
+            ''
+          )}
+        </span>
+      ),
+      minWidth: 280,
+      render: ({ data, index }: { data: ExtractItem; index: number }) => (
+        <bk-form-item
+          ref={setFormItemRefs.bind(null, 'white')}
+          error-display-type='tooltips'
+          label-width={0}
+          property={`${index}.white_regex`}
+          rules={keyRegexRules}>
+          <db-textarea
+            ref={setRegexRefs.bind(null, 'white')}
+            v-model={data.white_regex}
+            class='regex-input'
+            display-height='auto'
+            max-height={400}
+            placeholder={t('请输入正则表达式_多个换行分割')}
+            teleport-to-body={false}
+          />
+        </bk-form-item>
+      ),
+    },
+    {
+      field: 'black_regex',
+      label: () => (
+        <span class='key-table-header'>
+          {t('排除Key')}
+          {isBatch.value ? (
+            <BatchEditKeys
+              title={t('批量设置排除Key')}
+              onChange={(value: string) => handleBatchChange(value, 'black_regex')}
+            />
+          ) : (
+            ''
+          )}
+        </span>
+      ),
+      minWidth: 280,
+      render: ({ data, index }: { data: ExtractItem; index: number }) => (
+        <bk-form-item
+          ref={setFormItemRefs.bind(null, 'black')}
+          error-display-type='tooltips'
+          label-width={0}
+          property={`${index}.black_regex`}>
+          <db-textarea
+            ref={setRegexRefs.bind(null, 'black')}
+            v-model={data.black_regex}
+            class='regex-input'
+            display-height='auto'
+            max-height={400}
+            placeholder={t('请输入正则表达式_多个换行分割')}
+            teleport-to-body={false}
+          />
+        </bk-form-item>
+      ),
+    },
+  ];
   // 实际渲染表头配置
   const rederColumns = computed(() => {
     if (isBatch.value) {
       const opertaionColumn = {
-        label: t('操作'),
         field: 'operation',
-        width: 88,
+        label: t('操作'),
         render: ({ index }: { index: number }) => (
           <bk-button
-            theme="primary"
-            text
             v-bk-tooltips={t('移除')}
             disabled={state.formdata.length === 1}
+            theme='primary'
+            text
             onClick={() => handleRemoveItem(index)}>
-            { t('删除') }
+            {t('删除')}
           </bk-button>
         ),
+        width: 88,
       };
       return [...columns, opertaionColumn];
     }
@@ -260,19 +268,19 @@
     return columns;
   });
   const state = reactive({
-    isLoading: false,
     formdata: [] as ExtractItem[],
+    isLoading: false,
     renderKey: generateId('EXTRACT_FORM_'),
   });
   // 设置正则 refs
   const regexRefs = reactive({
-    white: [] as any[],
     black: [] as any[],
+    white: [] as any[],
   });
   // 正则 form item refs
   const formItemRefs = reactive({
-    white: [] as any[],
     black: [] as any[],
+    white: [] as any[],
   });
 
   /**
@@ -293,16 +301,22 @@
     }
   }
 
-  watch(() => props.data, (data) => {
-    state.formdata = data.map(item => Object.assign({}, item, {
-      white_regex: '',
-      black_regex: '',
-    }));
-    state.renderKey = generateId('EXTRACT_FORM_');
-  }, {
-    immediate: true,
-    deep: true
-  });
+  watch(
+    () => props.data,
+    (data) => {
+      state.formdata = data.map((item) =>
+        Object.assign({}, item, {
+          black_regex: '',
+          white_regex: '',
+        }),
+      );
+      state.renderKey = generateId('EXTRACT_FORM_');
+    },
+    {
+      deep: true,
+      immediate: true,
+    },
+  );
 
   function handleRemoveItem(index: number) {
     state.formdata.splice(index, 1);
@@ -333,17 +347,17 @@
       await formRef.value?.validate?.();
       const params = {
         bk_biz_id: globalBizsStore.currentBizId,
-        ticket_type: TicketTypes.REDIS_KEYS_EXTRACT,
         details: {
-          rules: state.formdata.map(item => ({
+          rules: state.formdata.map((item) => ({
+            black_regex: item.black_regex,
             cluster_id: item.id,
             domain: item.master_domain,
             white_regex: item.white_regex,
-            black_regex: item.black_regex,
           })),
         },
+        ticket_type: TicketTypes.REDIS_KEYS_EXTRACT,
       };
-      const res = await createTicket(params)
+      const res = await createTicket(params);
       ticketMessage(res.id);
       emits('success');
       window.changeConfirm = false;
@@ -351,7 +365,6 @@
     } finally {
       state.isLoading = false;
     }
-
   }
 
   async function handleClose() {

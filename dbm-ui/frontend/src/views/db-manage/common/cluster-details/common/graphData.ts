@@ -18,14 +18,14 @@ import type { ResourceTopo } from '@services/types';
 import { ClusterTypes, DBTypes } from '@common/const';
 
 const defaultNodeConfig = {
-  width: 296,
+  groupTitle: 44,
   itemHeight: 28,
   minHeight: 54,
   offsetX: 140,
   offsetY: 62,
   startX: 100,
   startY: 100,
-  groupTitle: 44,
+  width: 296,
 };
 export type NodeConfig = Partial<typeof defaultNodeConfig>;
 
@@ -47,16 +47,16 @@ type GroupTypesStrings = `${GroupTypes}`;
 
 // 节点返回数据结构
 export interface GraphNode {
+  belong: string; // 节点所属组 ID
+  children: GraphNode[];
+  data: ResourceTopo['nodes'][number] | ResourceTopo['groups'][number];
+  height: number;
   id: string;
   label: string;
-  data: ResourceTopo['nodes'][number] | ResourceTopo['groups'][number];
-  children: GraphNode[];
+  type: GroupTypesStrings; // 节点类型 group | node
   width: number;
-  height: number;
   x: number;
   y: number;
-  type: GroupTypesStrings; // 节点类型 group | node
-  belong: string; // 节点所属组 ID
 }
 
 export interface GraphInstance {
@@ -67,35 +67,35 @@ export interface GraphInstance {
 
 // 节点类型
 export const nodeTypes = {
+  ES_DATANODE_COLD: 'es_datanode::es_datanode_cold',
+  ES_DATANODE_HOT: 'es_datanode::es_datanode_hot',
+  ES_MASTER: 'es_master::es_master',
+  HDFS_DATANODE: 'hdfs_datanode::hdfs_datanode',
+  HDFS_MASTER_HOURNALNODE: 'hdfs_master::hdfs_journalnode',
+  HDFS_MASTER_NAMENODE: 'hdfs_master::hdfs_namenode',
+  HDFS_MASTER_ZOOKEEPER: 'hdfs_master::hdfs_zookeeper',
   MASTER: 'backend::backend_master',
+  MONGODB_BACKUP: 'mongodb::backup',
+  MONGODB_CONFIG: 'mongo_config::m1',
+  MONGODB_M1: 'mongodb::m1',
+  MONGODB_M2: 'mongodb::m2',
+  MONGODB_MONGOS: 'mongos',
+  PULSAR_BOOKKEEPER: 'pulsar_bookkeeper::pulsar_bookkeeper',
+  PULSAR_BROKER: 'pulsar_broker::pulsar_broker',
+  PULSAR_ZOOKEEPER: 'pulsar_zookeeper::pulsar_zookeeper',
   SLAVE: 'backend::backend_slave',
+  TENDBCLUSTER_CONTROLLER: 'controller_group',
+  TENDBCLUSTER_MASTER: 'spider_master',
+  TENDBCLUSTER_MNT: 'spider_mnt',
+  TENDBCLUSTER_REMOTE_MASTER: 'remote::remote_master',
+  TENDBCLUSTER_REMOTE_SLAVE: 'remote::remote_slave',
+  TENDBCLUSTER_SLAVE: 'spider_slave',
   TENDISCACHE_MASTER: 'tendiscache::redis_master',
   TENDISCACHE_SLAVE: 'tendiscache::redis_slave',
   TENDISPLUS_MASTER: 'tendisplus::redis_master',
   TENDISPLUS_SLAVE: 'tendisplus::redis_slave',
   TENDISSSD_MASTER: 'tendisssd::redis_master',
   TENDISSSD_SLAVE: 'tendisssd::redis_slave',
-  HDFS_MASTER_NAMENODE: 'hdfs_master::hdfs_namenode',
-  HDFS_MASTER_HOURNALNODE: 'hdfs_master::hdfs_journalnode',
-  HDFS_MASTER_ZOOKEEPER: 'hdfs_master::hdfs_zookeeper',
-  HDFS_DATANODE: 'hdfs_datanode::hdfs_datanode',
-  ES_MASTER: 'es_master::es_master',
-  ES_DATANODE_HOT: 'es_datanode::es_datanode_hot',
-  ES_DATANODE_COLD: 'es_datanode::es_datanode_cold',
-  PULSAR_BROKER: 'pulsar_broker::pulsar_broker',
-  PULSAR_BOOKKEEPER: 'pulsar_bookkeeper::pulsar_bookkeeper',
-  PULSAR_ZOOKEEPER: 'pulsar_zookeeper::pulsar_zookeeper',
-  TENDBCLUSTER_REMOTE_MASTER: 'remote::remote_master',
-  TENDBCLUSTER_REMOTE_SLAVE: 'remote::remote_slave',
-  TENDBCLUSTER_MASTER: 'spider_master',
-  TENDBCLUSTER_SLAVE: 'spider_slave',
-  TENDBCLUSTER_CONTROLLER: 'controller_group',
-  TENDBCLUSTER_MNT: 'spider_mnt',
-  MONGODB_M1: 'mongodb::m1',
-  MONGODB_M2: 'mongodb::m2',
-  MONGODB_BACKUP: 'mongodb::backup',
-  MONGODB_MONGOS: 'mongos',
-  MONGODB_CONFIG: 'mongo_config::m1',
 };
 
 // 特殊逻辑：控制节点水平对齐
@@ -123,12 +123,12 @@ const sameTargets = [
 ];
 
 export class GraphData {
-  nodeConfig: typeof defaultNodeConfig = { ...defaultNodeConfig };
   clusterType: string;
   graphData: {
-    locations: GraphNode[];
     lines: GraphLine[];
-  } = { locations: [], lines: [] };
+    locations: GraphNode[];
+  } = { lines: [], locations: [] };
+  nodeConfig: typeof defaultNodeConfig = { ...defaultNodeConfig };
 
   constructor(clusterType: string, nodeConfig: NodeConfig = {}) {
     this.nodeConfig = Object.assign(this.nodeConfig, nodeConfig);
@@ -136,339 +136,47 @@ export class GraphData {
   }
 
   /**
-   * 获取 graph 数据
-   * @param data 集群拓扑数据
-   * @param type 集群类型
-   * @returns graph data
+   * 设置 children locations
    */
-  formatGraphData(data: ResourceTopo, dbType: string) {
-    let locations: GraphNode[] = [];
-    let lines: GraphLine[] = [];
-
-    if (dbType === DBTypes.RIAK) {
-      locations = data.nodes.map((item, index) => ({
-        id: item.node_id,
-        label: item.node_id,
-        data: item,
-        children: [],
-        width: 192,
-        height: 44,
-        x: 100 + (index % 4) * 208,
-        y: 100 + Math.floor(index / 4) * 56,
-        type: 'node', // 节点类型 group | node
-        belong: '', // 节点所属组 ID
-      }));
-    } else {
-      const rootGroups = this.getRootGroups(data, dbType);
-      const groups = this.getGroups(data, rootGroups);
-      const groupLines = this.getGroupLines(data);
-      this.calcRootLocations(rootGroups);
-      const [firstRoot] = rootGroups;
-      this.calcNodeLocations(firstRoot, groups, groupLines);
-
-      // es hdfs mongo 集群特殊逻辑
-      if (([ClusterTypes.ES, ClusterTypes.HDFS, ClusterTypes.MONGODB] as string[]).includes(this.clusterType)) {
-        this.calcHorizontalAlignLocations(groups);
-      } else if (this.clusterType === ClusterTypes.TENDBCLUSTER) {
-        this.calcSpiderNodeLocations(rootGroups, groups);
-      }
-
-      lines = this.getLines(data);
-      locations = [...rootGroups, ...groups].reduce(
-        (nodes: GraphNode[], node) => nodes.concat([node], node.children),
-        [],
-      );
-      this.calcLines(lines, locations);
-    }
-    this.graphData = {
-      locations,
-      lines,
-    };
-
-    return this.graphData;
+  calcChildrenNodeLocations(targetNode: GraphNode) {
+    const { groupTitle, itemHeight } = this.nodeConfig;
+    targetNode.children.forEach((childNode, index) => {
+      const offet = (targetNode.height - childNode.height) / 2;
+      // eslint-disable-next-line no-param-reassign
+      childNode.x = targetNode.x;
+      // eslint-disable-next-line no-param-reassign
+      childNode.y = index === 0 ? targetNode.y + groupTitle - offet : targetNode.children[index - 1].y + itemHeight;
+    });
   }
 
   /**
-   * 获取访问入口 groups
-   * @param data 集群拓扑数据
-   * @returns 访问入口 groups
-   */
-  getRootGroups(data: ResourceTopo, dbType: string): GraphNode[] {
-    const { node_id: nodeId, nodes, groups, lines } = data;
-    const rootLines = lines.filter(
-      (line) =>
-        !lines.some((l) => {
-          if (line.source_type === 'node') {
-            // return nodes.find(node => node.node_id === line.source)!.node_type === l.target;
-            return true;
-          }
-          return l.target === line.source;
-        }),
-    );
-    let roots = rootLines
-      .map((line) => {
-        const group = groups.find((group) => group.node_id === line.source);
-
-        if (!group) {
-          return null;
-        }
-        // 子节点列表
-        // 子节点列表
-        const children = group.children_id
-          .map((id) => {
-            const node = nodes.find((node) => id === node.node_id);
-
-            if (!node) {
-              return null;
-            }
-            return {
-              id: node.node_id,
-              data: node,
-              width: this.nodeConfig.width,
-              height: this.nodeConfig.itemHeight,
-              belong: group.node_id,
-              type: GroupTypes.NODE,
-              label: '',
-              x: 0,
-              y: 0,
-              children: [],
-            };
-          })
-          .filter((item) => item !== null);
-
-        return {
-          id: group.node_id,
-          label: group.group_name,
-          data: group,
-          children,
-          width: this.nodeConfig.width,
-          height: this.getNodeHeight(children as GraphNode[]),
-          type: GroupTypes.GROUP,
-          belong: '',
-          x: 0,
-          y: 0,
-        };
-      })
-      .filter((item) => item !== null) as GraphNode[];
-
-    if (dbType === DBTypes.MONGODB) {
-      return [roots[0]];
-    }
-    if (dbType === DBTypes.REDIS) {
-      const rootMap = roots.reduce<Record<string, GraphNode>>((prevMap, rootItem) => {
-        if (prevMap[rootItem.id]) {
-          return prevMap;
-        }
-
-        return Object.assign({}, prevMap, { [rootItem.id]: rootItem });
-      }, {});
-      roots = Object.values(rootMap);
-    }
-    // 排序根节点
-    roots.sort((a) => (a.children.find((node) => node.id === nodeId) ? -1 : 0));
-    return roots;
-  }
-
-  /**
-   * 获取非入口 groups
-   * @param data 集群拓扑数据
-   * @returns 非入口 groups
-   */
-  getGroups(data: ResourceTopo, roots: GraphNode[]): GraphNode[] {
-    const { groups, nodes } = data;
-    const rootIds = roots.map((node) => node.id);
-    const results = [];
-    for (const group of groups) {
-      const { node_id: nodeId, children_id: childrenId, group_name: groupName } = group;
-      if (!rootIds.includes(nodeId)) {
-        // 子节点列表
-        const children = childrenId
-          .map((id) => {
-            const node = nodes.find((node) => id === node.node_id);
-
-            if (!node) {
-              return null;
-            }
-            return {
-              id: node.node_id,
-              data: node,
-              width: this.nodeConfig.width,
-              height: this.nodeConfig.itemHeight,
-              belong: group.node_id,
-              type: GroupTypes.NODE,
-              label: '',
-              x: 0,
-              y: 0,
-              children: [],
-            };
-          })
-          .filter((item) => item !== null) as GraphNode[];
-
-        results.push({
-          id: nodeId,
-          label: groupName || nodeId,
-          data: group,
-          children,
-          width: this.nodeConfig.width,
-          height: this.getNodeHeight(children),
-          type: GroupTypes.GROUP,
-          x: 0,
-          y: 0,
-          belong: '',
-        });
-      }
-    }
-    return results;
-  }
-
-  /**
-   * group lines
-   * @param data 集群拓扑数据
-   * @returns 获取 group 间连线
-   */
-  getGroupLines(data: ResourceTopo): GraphLine[] {
-    const { lines, groups } = data;
-    const results: GraphLine[] = [];
-
-    for (const line of lines) {
-      const { source, source_type: sourceType, target, target_type: targetType, label_name: labelName } = line;
-      let sourceId = source;
-      let targetId = target;
-
-      // 如果 source 和 taget 均为 node 类型
-      if (sourceType === 'node' && targetType === 'node') {
-        for (const group of groups) {
-          if (group.children_id.includes(source)) {
-            sourceId = group.node_id;
-            continue;
-          }
-          if (group.children_id.includes(target)) {
-            targetId = group.node_id;
-            continue;
-          }
-        }
-      } else if (sourceType === 'node') {
-        // 处理 source 为 node 的情况
-        const sourceGroup = groups.find((group) => group.children_id.includes(source));
-        sourceGroup && (sourceId = sourceGroup.node_id);
-      } else if (targetType === 'node') {
-        // 处理 target 为 node 的情况
-        const targetGroup = groups.find((group) => group.children_id.includes(target));
-        targetGroup && (targetId = targetGroup.node_id);
-      }
-      results.push({
-        id: `${sourceId}__${targetId}`,
-        label: labelName,
-        // source 为 master 且 target 为 slave 则 y 值相等
-        isSameY: sameSources.includes(sourceId) && sameTargets.includes(targetId), // TODO: 这里是节点并列特殊逻辑
-        source: { id: sourceId, x: 0, y: 0 },
-        target: { id: targetId, x: 0, y: 0 },
-      });
-    }
-    return results;
-  }
-
-  /**
-   * 获取实际画图连线
-   * @param data 集群拓扑数据
-   * @returns GraphLines
-   */
-  getLines(data: ResourceTopo): GraphLine[] {
-    const { lines } = data;
-    const results = [];
-
-    for (const line of lines) {
-      const { source, target, label_name: labelName } = line;
-      const sourceId = source;
-      const targetId = target;
-
-      results.push({
-        id: `${sourceId}__${targetId}`,
-        label: labelName,
-        // source为master且target为slave 则 y 值相等
-        isSameY: sameSources.includes(sourceId) && sameTargets.includes(targetId), // TODO: 这里是节点并列特殊逻辑
-        source: { id: sourceId, x: 0, y: 0 },
-        target: { id: targetId, x: 0, y: 0 },
-      });
-    }
-    return _.uniqBy(results, 'id');
-  }
-
-  /**
-   * 获取节点高度
-   * @param data 节点 data
-   * @returns 节点高度
-   */
-  getNodeHeight(data: GraphNode[]) {
-    const nums = data.length;
-    const { minHeight, itemHeight } = this.nodeConfig;
-
-    return minHeight + itemHeight * nums;
-  }
-
-  /**
-   * 计算根节点坐标
-   * @param nodes 根节点
-   */
-  calcRootLocations(nodes: GraphNode[]) {
-    const { offsetX, startX, startY, groupTitle, itemHeight } = this.nodeConfig;
-    for (let i = 0; i < nodes.length; i++) {
-      const node = nodes[i];
-      node.x = (node.width + offsetX) * i + startX;
-      node.y = startY;
-
-      // 计算 children nodes 坐标
-      node.children.forEach((childNode, index) => {
-        const offet = (node.height - childNode.height) / 2;
-        // eslint-disable-next-line no-param-reassign
-        childNode.x = node.x;
-        // eslint-disable-next-line no-param-reassign
-        childNode.y = index === 0 ? node.y + groupTitle - offet : node.children[index - 1].y + itemHeight;
-      });
-    }
-  }
-
-  /**
-   * 计算节点坐标
-   * @param startNode 开始节点
+   * 单独处理 es master、cold、hot || hdfs hournal、zookeeper、datanode || mongo分片 节点水平排列
    * @param nodes 节点列表
-   * @param lines 连线列表
-   * @param calculatedNodes 存储已经计算过的节点
    */
-  calcNodeLocations(
-    startNode: GraphNode,
-    nodes: GraphNode[],
-    lines: GraphLine[],
-    calculatedNodes = new Map<string, GraphNode>(),
-  ) {
-    if (!startNode) {
-      return;
+  calcHorizontalAlignLocations(nodes: GraphNode[] = []) {
+    const targetNodeIds = [
+      nodeTypes.ES_MASTER,
+      nodeTypes.ES_DATANODE_HOT,
+      nodeTypes.ES_DATANODE_COLD,
+      nodeTypes.HDFS_DATANODE,
+      nodeTypes.HDFS_MASTER_HOURNALNODE,
+      nodeTypes.HDFS_MASTER_ZOOKEEPER,
+    ];
+    const targetNodes = nodes.filter((node) => targetNodeIds.includes(node.id) || node.id.includes('分片'));
+
+    const [referenceNode] = targetNodes;
+    const moveNodes = targetNodes.slice(1);
+    // 水平排列
+    for (let i = 0; i < moveNodes.length; i++) {
+      const node = moveNodes[i];
+      const { width, x } = referenceNode;
+      node.x = x + (width + this.nodeConfig.offsetX) * (i + 1);
     }
-    const startLines = lines.filter((line) => line.source.id === startNode.id);
-    calculatedNodes.set(startNode.id, startNode);
-
-    for (const startLine of startLines) {
-      const { target, isSameY } = startLine;
-      const targetNode = nodes.find((node) => node.id === target.id);
-
-      if (targetNode && !calculatedNodes.get(targetNode.id)) {
-        const { x, y, height, width } = startNode;
-        const { offsetX, offsetY, groupTitle, itemHeight } = this.nodeConfig;
-        const heightDifference = (targetNode.height - height) / 2; // 渲染节点是以y值为中心，所以需要计算两个节点高度差的一半
-        targetNode.x = isSameY ? x + width + offsetX : x;
-        targetNode.y = isSameY ? y : y + height + offsetY + heightDifference;
-
-        // 计算 children nodes 坐标
-        targetNode.children.forEach((childNode, index) => {
-          const offet = (targetNode.height - childNode.height) / 2;
-          // eslint-disable-next-line no-param-reassign
-          childNode.x = targetNode.x;
-          // eslint-disable-next-line no-param-reassign
-          childNode.y = index === 0 ? targetNode.y + groupTitle - offet : targetNode.children[index - 1].y + itemHeight;
-        });
-
-        calculatedNodes.set(targetNode.id, targetNode);
-        this.calcNodeLocations(targetNode, nodes, lines, calculatedNodes);
+    // 整体向左偏移，让中间节点垂直对齐
+    for (const node of targetNodes) {
+      node.x = node.x - node.width - this.nodeConfig.offsetX;
+      for (const childNode of node.children) {
+        childNode.x = node.x;
       }
     }
   }
@@ -499,49 +207,70 @@ export class GraphData {
   }
 
   /**
-   * 单独处理 es master、cold、hot || hdfs hournal、zookeeper、datanode || mongo分片 节点水平排列
+   * 计算节点坐标
+   * @param startNode 开始节点
    * @param nodes 节点列表
+   * @param lines 连线列表
+   * @param calculatedNodes 存储已经计算过的节点
    */
-  calcHorizontalAlignLocations(nodes: GraphNode[] = []) {
-    const targetNodeIds = [
-      nodeTypes.ES_MASTER,
-      nodeTypes.ES_DATANODE_HOT,
-      nodeTypes.ES_DATANODE_COLD,
-      nodeTypes.HDFS_DATANODE,
-      nodeTypes.HDFS_MASTER_HOURNALNODE,
-      nodeTypes.HDFS_MASTER_ZOOKEEPER,
-    ];
-    const targetNodes = nodes.filter((node) => targetNodeIds.includes(node.id) || node.id.includes('分片'));
-
-    const [referenceNode] = targetNodes;
-    const moveNodes = targetNodes.slice(1);
-    // 水平排列
-    for (let i = 0; i < moveNodes.length; i++) {
-      const node = moveNodes[i];
-      const { x, width } = referenceNode;
-      node.x = x + (width + this.nodeConfig.offsetX) * (i + 1);
+  calcNodeLocations(
+    startNode: GraphNode,
+    nodes: GraphNode[],
+    lines: GraphLine[],
+    calculatedNodes = new Map<string, GraphNode>(),
+  ) {
+    if (!startNode) {
+      return;
     }
-    // 整体向左偏移，让中间节点垂直对齐
-    for (const node of targetNodes) {
-      node.x = node.x - node.width - this.nodeConfig.offsetX;
-      for (const childNode of node.children) {
-        childNode.x = node.x;
+    const startLines = lines.filter((line) => line.source.id === startNode.id);
+    calculatedNodes.set(startNode.id, startNode);
+
+    for (const startLine of startLines) {
+      const { isSameY, target } = startLine;
+      const targetNode = nodes.find((node) => node.id === target.id);
+
+      if (targetNode && !calculatedNodes.get(targetNode.id)) {
+        const { height, width, x, y } = startNode;
+        const { groupTitle, itemHeight, offsetX, offsetY } = this.nodeConfig;
+        const heightDifference = (targetNode.height - height) / 2; // 渲染节点是以y值为中心，所以需要计算两个节点高度差的一半
+        targetNode.x = isSameY ? x + width + offsetX : x;
+        targetNode.y = isSameY ? y : y + height + offsetY + heightDifference;
+
+        // 计算 children nodes 坐标
+        targetNode.children.forEach((childNode, index) => {
+          const offet = (targetNode.height - childNode.height) / 2;
+          // eslint-disable-next-line no-param-reassign
+          childNode.x = targetNode.x;
+          // eslint-disable-next-line no-param-reassign
+          childNode.y = index === 0 ? targetNode.y + groupTitle - offet : targetNode.children[index - 1].y + itemHeight;
+        });
+
+        calculatedNodes.set(targetNode.id, targetNode);
+        this.calcNodeLocations(targetNode, nodes, lines, calculatedNodes);
       }
     }
   }
 
   /**
-   * 设置 children locations
+   * 计算根节点坐标
+   * @param nodes 根节点
    */
-  calcChildrenNodeLocations(targetNode: GraphNode) {
-    const { itemHeight, groupTitle } = this.nodeConfig;
-    targetNode.children.forEach((childNode, index) => {
-      const offet = (targetNode.height - childNode.height) / 2;
-      // eslint-disable-next-line no-param-reassign
-      childNode.x = targetNode.x;
-      // eslint-disable-next-line no-param-reassign
-      childNode.y = index === 0 ? targetNode.y + groupTitle - offet : targetNode.children[index - 1].y + itemHeight;
-    });
+  calcRootLocations(nodes: GraphNode[]) {
+    const { groupTitle, itemHeight, offsetX, startX, startY } = this.nodeConfig;
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+      node.x = (node.width + offsetX) * i + startX;
+      node.y = startY;
+
+      // 计算 children nodes 坐标
+      node.children.forEach((childNode, index) => {
+        const offet = (node.height - childNode.height) / 2;
+        // eslint-disable-next-line no-param-reassign
+        childNode.x = node.x;
+        // eslint-disable-next-line no-param-reassign
+        childNode.y = index === 0 ? node.y + groupTitle - offet : node.children[index - 1].y + itemHeight;
+      });
+    }
   }
 
   /**
@@ -571,5 +300,276 @@ export class GraphData {
       mntNode.x = referenceNode.x;
       this.calcChildrenNodeLocations(mntNode);
     }
+  }
+
+  /**
+   * 获取 graph 数据
+   * @param data 集群拓扑数据
+   * @param type 集群类型
+   * @returns graph data
+   */
+  formatGraphData(data: ResourceTopo, dbType: string) {
+    let locations: GraphNode[] = [];
+    let lines: GraphLine[] = [];
+
+    if (dbType === DBTypes.RIAK) {
+      locations = data.nodes.map((item, index) => ({
+        belong: '', // 节点所属组 ID
+        children: [],
+        data: item,
+        height: 44,
+        id: item.node_id,
+        label: item.node_id,
+        type: 'node', // 节点类型 group | node
+        width: 192,
+        x: 100 + (index % 4) * 208,
+        y: 100 + Math.floor(index / 4) * 56,
+      }));
+    } else {
+      const rootGroups = this.getRootGroups(data, dbType);
+      const groups = this.getGroups(data, rootGroups);
+      const groupLines = this.getGroupLines(data);
+      this.calcRootLocations(rootGroups);
+      const [firstRoot] = rootGroups;
+      this.calcNodeLocations(firstRoot, groups, groupLines);
+
+      // es hdfs mongo 集群特殊逻辑
+      if (([ClusterTypes.ES, ClusterTypes.HDFS, ClusterTypes.MONGODB] as string[]).includes(this.clusterType)) {
+        this.calcHorizontalAlignLocations(groups);
+      } else if (this.clusterType === ClusterTypes.TENDBCLUSTER) {
+        this.calcSpiderNodeLocations(rootGroups, groups);
+      }
+
+      lines = this.getLines(data);
+      locations = [...rootGroups, ...groups].reduce(
+        (nodes: GraphNode[], node) => nodes.concat([node], node.children),
+        [],
+      );
+      this.calcLines(lines, locations);
+    }
+    this.graphData = {
+      lines,
+      locations,
+    };
+
+    return this.graphData;
+  }
+
+  /**
+   * group lines
+   * @param data 集群拓扑数据
+   * @returns 获取 group 间连线
+   */
+  getGroupLines(data: ResourceTopo): GraphLine[] {
+    const { groups, lines } = data;
+    const results: GraphLine[] = [];
+
+    for (const line of lines) {
+      const { label_name: labelName, source, source_type: sourceType, target, target_type: targetType } = line;
+      let sourceId = source;
+      let targetId = target;
+
+      // 如果 source 和 taget 均为 node 类型
+      if (sourceType === 'node' && targetType === 'node') {
+        for (const group of groups) {
+          if (group.children_id.includes(source)) {
+            sourceId = group.node_id;
+            continue;
+          }
+          if (group.children_id.includes(target)) {
+            targetId = group.node_id;
+            continue;
+          }
+        }
+      } else if (sourceType === 'node') {
+        // 处理 source 为 node 的情况
+        const sourceGroup = groups.find((group) => group.children_id.includes(source));
+        sourceGroup && (sourceId = sourceGroup.node_id);
+      } else if (targetType === 'node') {
+        // 处理 target 为 node 的情况
+        const targetGroup = groups.find((group) => group.children_id.includes(target));
+        targetGroup && (targetId = targetGroup.node_id);
+      }
+      results.push({
+        id: `${sourceId}__${targetId}`,
+        // source 为 master 且 target 为 slave 则 y 值相等
+        isSameY: sameSources.includes(sourceId) && sameTargets.includes(targetId), // TODO: 这里是节点并列特殊逻辑
+        label: labelName,
+        source: { id: sourceId, x: 0, y: 0 },
+        target: { id: targetId, x: 0, y: 0 },
+      });
+    }
+    return results;
+  }
+
+  /**
+   * 获取非入口 groups
+   * @param data 集群拓扑数据
+   * @returns 非入口 groups
+   */
+  getGroups(data: ResourceTopo, roots: GraphNode[]): GraphNode[] {
+    const { groups, nodes } = data;
+    const rootIds = roots.map((node) => node.id);
+    const results = [];
+    for (const group of groups) {
+      const { children_id: childrenId, group_name: groupName, node_id: nodeId } = group;
+      if (!rootIds.includes(nodeId)) {
+        // 子节点列表
+        const children = childrenId
+          .map((id) => {
+            const node = nodes.find((node) => id === node.node_id);
+
+            if (!node) {
+              return null;
+            }
+            return {
+              belong: group.node_id,
+              children: [],
+              data: node,
+              height: this.nodeConfig.itemHeight,
+              id: node.node_id,
+              label: '',
+              type: GroupTypes.NODE,
+              width: this.nodeConfig.width,
+              x: 0,
+              y: 0,
+            };
+          })
+          .filter((item) => item !== null) as GraphNode[];
+
+        results.push({
+          belong: '',
+          children,
+          data: group,
+          height: this.getNodeHeight(children),
+          id: nodeId,
+          label: groupName || nodeId,
+          type: GroupTypes.GROUP,
+          width: this.nodeConfig.width,
+          x: 0,
+          y: 0,
+        });
+      }
+    }
+    return results;
+  }
+
+  /**
+   * 获取实际画图连线
+   * @param data 集群拓扑数据
+   * @returns GraphLines
+   */
+  getLines(data: ResourceTopo): GraphLine[] {
+    const { lines } = data;
+    const results = [];
+
+    for (const line of lines) {
+      const { label_name: labelName, source, target } = line;
+      const sourceId = source;
+      const targetId = target;
+
+      results.push({
+        id: `${sourceId}__${targetId}`,
+        // source为master且target为slave 则 y 值相等
+        isSameY: sameSources.includes(sourceId) && sameTargets.includes(targetId), // TODO: 这里是节点并列特殊逻辑
+        label: labelName,
+        source: { id: sourceId, x: 0, y: 0 },
+        target: { id: targetId, x: 0, y: 0 },
+      });
+    }
+    return _.uniqBy(results, 'id');
+  }
+
+  /**
+   * 获取节点高度
+   * @param data 节点 data
+   * @returns 节点高度
+   */
+  getNodeHeight(data: GraphNode[]) {
+    const nums = data.length;
+    const { itemHeight, minHeight } = this.nodeConfig;
+
+    return minHeight + itemHeight * nums;
+  }
+
+  /**
+   * 获取访问入口 groups
+   * @param data 集群拓扑数据
+   * @returns 访问入口 groups
+   */
+  getRootGroups(data: ResourceTopo, dbType: string): GraphNode[] {
+    const { groups, lines, node_id: nodeId, nodes } = data;
+    const rootLines = lines.filter(
+      (line) =>
+        !lines.some((l) => {
+          if (line.source_type === 'node') {
+            // return nodes.find(node => node.node_id === line.source)!.node_type === l.target;
+            return true;
+          }
+          return l.target === line.source;
+        }),
+    );
+    let roots = rootLines
+      .map((line) => {
+        const group = groups.find((group) => group.node_id === line.source);
+
+        if (!group) {
+          return null;
+        }
+        // 子节点列表
+        // 子节点列表
+        const children = group.children_id
+          .map((id) => {
+            const node = nodes.find((node) => id === node.node_id);
+
+            if (!node) {
+              return null;
+            }
+            return {
+              belong: group.node_id,
+              children: [],
+              data: node,
+              height: this.nodeConfig.itemHeight,
+              id: node.node_id,
+              label: '',
+              type: GroupTypes.NODE,
+              width: this.nodeConfig.width,
+              x: 0,
+              y: 0,
+            };
+          })
+          .filter((item) => item !== null);
+
+        return {
+          belong: '',
+          children,
+          data: group,
+          height: this.getNodeHeight(children as GraphNode[]),
+          id: group.node_id,
+          label: group.group_name,
+          type: GroupTypes.GROUP,
+          width: this.nodeConfig.width,
+          x: 0,
+          y: 0,
+        };
+      })
+      .filter((item) => item !== null) as GraphNode[];
+
+    if (dbType === DBTypes.MONGODB) {
+      return [roots[0]];
+    }
+    if (dbType === DBTypes.REDIS) {
+      const rootMap = roots.reduce<Record<string, GraphNode>>((prevMap, rootItem) => {
+        if (prevMap[rootItem.id]) {
+          return prevMap;
+        }
+
+        return Object.assign({}, prevMap, { [rootItem.id]: rootItem });
+      }, {});
+      roots = Object.values(rootMap);
+    }
+    // 排序根节点
+    roots.sort((a) => (a.children.find((node) => node.id === nodeId) ? -1 : 0));
+    return roots;
   }
 }

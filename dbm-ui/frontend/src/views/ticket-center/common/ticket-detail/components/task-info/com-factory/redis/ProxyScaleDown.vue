@@ -67,7 +67,7 @@
   const { t } = useI18n();
 
   const switchModeMap = {
-    user_confirm: t('人工确认'),
     no_confirm: t('无需确认'),
+    user_confirm: t('人工确认'),
   };
 </script>

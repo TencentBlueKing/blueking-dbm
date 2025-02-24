@@ -17,16 +17,16 @@ import type { TicketTypesStrings } from '@common/const';
  * 任务列表项
  */
 export interface TaskflowItem {
-  root_id: string;
-  ticket_type_display: string;
-  ticket_type: TicketTypesStrings;
-  status: string;
-  uid: string;
-  created_by: string;
-  created_at: string;
-  cost_time: number;
   bk_biz_id: number;
   bk_host_ids?: number[];
+  cost_time: number;
+  created_at: string;
+  created_by: string;
+  root_id: string;
+  status: string;
+  ticket_type: TicketTypesStrings;
+  ticket_type_display: string;
+  uid: string;
 }
 
 /**
@@ -39,12 +39,12 @@ export interface TaskflowItem {
  * EmptyEndEvent 结束节点
  */
 export enum FlowTypes {
+  ConvergeGateway = 'ConvergeGateway',
+  EmptyEndEvent = 'EmptyEndEvent',
+  EmptyStartEvent = 'EmptyStartEvent',
+  ParallelGateway = 'ParallelGateway',
   ServiceActivity = 'ServiceActivity',
   SubProcess = 'SubProcess',
-  ConvergeGateway = 'ConvergeGateway',
-  ParallelGateway = 'ParallelGateway',
-  EmptyStartEvent = 'EmptyStartEvent',
-  EmptyEndEvent = 'EmptyEndEvent',
 }
 export type FlowType = keyof typeof FlowTypes;
 
@@ -57,24 +57,24 @@ export type FlowStatus = 'FINISHED' | 'RUNNING' | 'FAILED' | 'READY' | 'CREATED'
  * 任务流程节点数据
  */
 export interface FlowItem {
-  id: string;
-  name: string | null;
-  incoming: string | string[];
-  outgoing: string | string[];
-  type: FlowType;
-  started_at: number;
-  updated_at: number;
-  error_ignorable?: boolean;
-  optional?: boolean;
-  retryable?: boolean;
-  skippable?: boolean;
-  status?: FlowStatus;
-  timeout?: number;
-  created_at?: number;
   component?: {
     code: string;
   };
+  created_at?: number;
+  error_ignorable?: boolean;
+  id: string;
+  incoming: string | string[];
+  name: string | null;
+  optional?: boolean;
+  outgoing: string | string[];
   pipeline?: FlowsData;
+  retryable?: boolean;
+  skippable?: boolean;
+  started_at: number;
+  status?: FlowStatus;
+  timeout?: number;
+  type: FlowType;
+  updated_at: number;
 }
 
 /**
@@ -82,21 +82,21 @@ export interface FlowItem {
  */
 export interface FlowLine {
   id: string;
+  is_default: boolean;
   source: string;
   target: string;
-  is_default: boolean;
 }
 
 /**
  * 任务流程数据
  */
 export interface FlowsData {
-  id: string;
+  activities: { [key: string]: FlowItem };
   data: any;
   end_event: FlowItem;
-  start_event: FlowItem;
+  flow_info: TaskflowItem;
   flows: { [key: string]: FlowLine };
   gateways: { [key: string]: FlowItem };
-  activities: { [key: string]: FlowItem };
-  flow_info: TaskflowItem;
+  id: string;
+  start_event: FlowItem;
 }

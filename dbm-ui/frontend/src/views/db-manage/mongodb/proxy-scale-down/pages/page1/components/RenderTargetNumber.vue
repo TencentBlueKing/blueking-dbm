@@ -32,10 +32,10 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    data: IDataRow['targetNum'];
-    isLoading?: boolean;
     count: number;
+    data: IDataRow['targetNum'];
     disabled?: boolean;
+    isLoading?: boolean;
   }
 
   interface Exposes {
@@ -44,8 +44,8 @@
 
   const props = withDefaults(defineProps<Props>(), {
     data: '',
-    isLoading: false,
     disabled: false,
+    isLoading: false,
   });
 
   const { t } = useI18n();
@@ -57,16 +57,16 @@
 
   const rules = [
     {
-      validator: (value: string) => !!value,
       message: t('目标台数不能为空'),
+      validator: (value: string) => !!value,
     },
     {
-      validator: (value: string) => !nonInterger.test(value),
       message: t('格式有误，请输入数字'),
+      validator: (value: string) => !nonInterger.test(value),
     },
     {
-      validator: (value: number) => props.count - value >= 2,
       message: t('缩容后不能少于2台'),
+      validator: (value: number) => props.count - value >= 2,
     },
   ];
 

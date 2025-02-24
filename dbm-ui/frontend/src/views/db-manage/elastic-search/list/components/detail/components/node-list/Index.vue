@@ -182,9 +182,7 @@
   import EsNodeModel from '@services/model/es/es-node';
   import { getEsDetail, getEsNodeList } from '@services/source/es';
 
-  import {
-    useLinkQueryColumnSerach,
-  } from '@hooks';
+  import { useLinkQueryColumnSerach } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -199,12 +197,7 @@
   import ClusterReplace from '@views/db-manage/elastic-search/common/replace/Index.vue';
   import ClusterShrink from '@views/db-manage/elastic-search/common/shrink/Index.vue';
 
-  import {
-    execCopy,
-    getSearchSelectorParams,
-    isRecentDays,
-    messageWarn,
-  } from '@utils';
+  import { execCopy, getSearchSelectorParams, isRecentDays, messageWarn } from '@utils';
 
   import { useTimeoutPoll } from '@vueuse/core';
 
@@ -220,8 +213,8 @@
     const options = {
       disabled: false,
       tooltips: {
-        disabled: true,
         content: '',
+        disabled: true,
       },
     };
 
@@ -264,25 +257,25 @@
   };
 
   const globalBizsStore = useGlobalBizs();
-  const { t, locale } = useI18n();
+  const { locale, t } = useI18n();
 
   const {
-    searchValue,
-    sortValue,
+    clearSearchValue,
     columnCheckedMap,
     columnFilterChange,
     columnSortChange,
-    clearSearchValue,
-    validateSearchValues,
     handleSearchValueChange,
+    searchValue,
+    sortValue,
+    validateSearchValues,
   } = useLinkQueryColumnSerach({
-    searchType: ClusterTypes.ES,
     attrs: ['bk_cloud_id'],
-    fetchDataFn: () => fetchNodeList(),
     defaultSearchItem: {
       id: 'ip',
       name: 'IP',
-    }
+    },
+    fetchDataFn: () => fetchNodeList(),
+    searchType: ClusterTypes.ES,
   });
 
   let totalTableData: EsNodeModel[] = [];
@@ -304,8 +297,9 @@
   const isCN = computed(() => locale.value === 'zh-cn');
   const isBatchReplaceDisabeld = computed(() => Object.keys(checkedNodeMap.value).length < 1);
 
-  const isSelectedAll = computed(() => tableData.value.length > 0
-    && Object.keys(checkedNodeMap.value).length >= tableData.value.length);
+  const isSelectedAll = computed(
+    () => tableData.value.length > 0 && Object.keys(checkedNodeMap.value).length >= tableData.value.length,
+  );
 
   const batchShrinkDisabledInfo = computed(() => {
     // 缩容限制
@@ -315,8 +309,8 @@
     const options = {
       disabled: false,
       tooltips: {
-        disabled: true,
         content: '',
+        disabled: true,
       },
     };
     const selectList = Object.values(checkedNodeMap.value);
@@ -326,12 +320,7 @@
       options.tooltips.content = t('请先选中节点');
       return options;
     }
-    if (
-      _.find(
-        Object.values(checkedNodeMap.value),
-        item => !(item.isClient || item.isHot || item.isCold),
-      )
-    ) {
+    if (_.find(Object.values(checkedNodeMap.value), (item) => !(item.isClient || item.isHot || item.isCold))) {
       options.disabled = true;
       options.tooltips.disabled = false;
       options.tooltips.content = t('Master节点不支持缩容');
@@ -369,7 +358,6 @@
 
   const columns = computed(() => [
     {
-      width: 60,
       fixed: 'left',
       label: () => (
         <bk-checkbox
@@ -378,148 +366,149 @@
           onChange={handleSelectAll}
         />
       ),
-      render: ({ data }: {data: EsNodeModel}) => (
+      render: ({ data }: { data: EsNodeModel }) => (
         <bk-checkbox
           label={true}
           model-value={Boolean(checkedNodeMap.value[data.bk_host_id])}
           onChange={(value: boolean) => handleSelect(value, data)}
         />
-        ),
+      ),
+      width: 60,
     },
     {
-      label: t('节点IP'),
       field: 'ip',
-      showOverflowTooltip: false,
+      label: t('节点IP'),
       render: ({ data }: { data: EsNodeModel }) => (
-      <div style="display: flex; align-items: center;">
-        <div class="text-overflow" v-overflow-tips>
-          {data.ip}
+        <div style='display: flex; align-items: center;'>
+          <div
+            v-overflow-tips
+            class='text-overflow'>
+            {data.ip}
+          </div>
+          {isRecentDays(data.create_at, 24 * 3) ? (
+            <span
+              class='glob-new-tag ml-4'
+              data-text='NEW'
+            />
+          ) : null}
         </div>
-        {isRecentDays(data.create_at, 24 * 3) ? (
-          <span class="glob-new-tag ml-4" data-text="NEW" />
-        ) : null}
-      </div>
-    ),
+      ),
+      showOverflowTooltip: false,
     },
     {
-      label: t('实例数量'),
       field: 'node_count',
+      label: t('实例数量'),
       sort: true,
       width: 120,
     },
     {
-      label: t('类型'),
       field: 'node_type',
       filter: {
+        checked: columnCheckedMap.value.node_type,
         filterFn: () => true,
         list: [
           {
-            value: 'es_datanode_hot',
             text: t('热节点'),
+            value: 'es_datanode_hot',
           },
           {
-            value: 'es_datanode_cold',
             text: t('冷节点'),
+            value: 'es_datanode_cold',
           },
           {
-            value: 'es_master',
             text: 'Master',
+            value: 'es_master',
           },
           {
-            value: 'es_client',
             text: 'Client',
+            value: 'es_client',
           },
         ],
-        checked: columnCheckedMap.value.node_type,
       },
+      label: t('类型'),
+      render: ({ data }: { data: EsNodeModel }) => <RenderClusterRole data={[data.role]} />,
       width: 200,
-      render: ({ data }: {data: EsNodeModel}) => (
-        <RenderClusterRole data={[data.role]} />
-      ),
     },
     {
-      label: t('Agent状态'),
       field: 'status',
+      label: t('Agent状态'),
+      render: ({ data }: { data: EsNodeModel }) => <RenderHostStatus data={data.status} />,
       width: 120,
-      render: ({ data }: {data: EsNodeModel}) => <RenderHostStatus data={data.status} />,
     },
     {
-      label: t('部署时间'),
       field: 'create_at',
+      label: t('部署时间'),
+      render: ({ data }: { data: EsNodeModel }) => <span>{data.createAtDisplay}</span>,
       sort: true,
       width: 250,
-      render: ({ data }: {data: EsNodeModel}) => <span>{data.createAtDisplay}</span>,
     },
     {
-      label: t('操作'),
-      width: isCN.value ? 200 : 260,
       fixed: 'right',
+      label: t('操作'),
       render: ({ data }: { data: EsNodeModel }) => {
         const shrinkDisableTooltips = checkNodeShrinkDisable(data);
         return (
           <>
             <OperationBtnStatusTips
-              v-db-console="es.nodeList.scaleDown"
+              v-db-console='es.nodeList.scaleDown'
               data={operationData.value}>
               <span v-bk-tooltips={shrinkDisableTooltips.tooltips}>
                 <auth-button
-                  text
-                  theme="primary"
-                  action-id="es_shrink"
+                  action-id='es_shrink'
+                  disabled={shrinkDisableTooltips.disabled || operationData.value?.operationDisabled}
                   permission={data.permission.es_shrink}
                   resource={props.clusterId}
-                  disabled={shrinkDisableTooltips.disabled || operationData.value?.operationDisabled}
+                  theme='primary'
+                  text
                   onClick={() => handleShrinkOne(data)}>
-                  { t('缩容') }
+                  {t('缩容')}
                 </auth-button>
               </span>
             </OperationBtnStatusTips>
             <OperationBtnStatusTips
-              v-db-console="es.nodeList.replace"
+              v-db-console='es.nodeList.replace'
               data={operationData.value}>
               <auth-button
-                text
-                theme="primary"
-                class="ml8"
-                action-id="es_replace"
+                action-id='es_replace'
+                class='ml8'
+                disabled={operationData.value?.operationDisabled}
                 permission={data.permission.es_replace}
                 resource={props.clusterId}
-                disabled={operationData.value?.operationDisabled}
+                theme='primary'
+                text
                 onClick={() => handleReplaceOne(data)}>
-                { t('替换') }
+                {t('替换')}
               </auth-button>
             </OperationBtnStatusTips>
             <OperationBtnStatusTips
-              v-db-console="es.nodeList.restartInstance"
+              v-db-console='es.nodeList.restartInstance'
               data={operationData.value}>
               <auth-button
-                text
-                theme="primary"
-                action-id="es_reboot"
+                action-id='es_reboot'
+                class='ml8'
+                disabled={operationData.value?.operationDisabled}
                 permission={data.permission.es_reboot}
                 resource={props.clusterId}
-                class="ml8"
-                disabled={operationData.value?.operationDisabled}
+                theme='primary'
+                text
                 onClick={() => handleShowDetail(data)}>
-                { t('重启实例') }
+                {t('重启实例')}
               </auth-button>
             </OperationBtnStatusTips>
           </>
         );
       },
+      width: isCN.value ? 200 : 260,
     },
   ]);
 
   const searchSelectData = [
     {
-      name: 'IP',
       id: 'ip',
       multiple: true,
+      name: 'IP',
     },
     {
-      name: t('类型'),
-      id: 'node_type',
-      multiple: true,
       children: [
         {
           id: 'es_datanode_hot',
@@ -538,9 +527,11 @@
           name: 'Client',
         },
       ],
+      id: 'node_type',
+      multiple: true,
+      name: t('类型'),
     },
   ];
-
 
   const setRowClass = (data: EsNodeModel) => (isRecentDays(data.create_at, 24 * 3) ? 'is-new-row' : '');
 
@@ -564,13 +555,14 @@
       cluster_id: props.clusterId,
       no_limit: 1,
       ...extraParams,
-    }).then((data) => {
-      tableData.value = data.results;
-      isAnomalies.value = false;
-      if (searchValue.value.length === 0) {
-        totalTableData = _.cloneDeep(tableData.value);
-      }
     })
+      .then((data) => {
+        tableData.value = data.results;
+        isAnomalies.value = false;
+        if (searchValue.value.length === 0) {
+          totalTableData = _.cloneDeep(tableData.value);
+        }
+      })
       .catch(() => {
         tableData.value = [];
         isAnomalies.value = true;
@@ -580,12 +572,13 @@
       });
   };
 
-  const {
-    pause: pauseFetchClusterDetail,
-    resume: resumeFetchClusterDetail,
-  } =  useTimeoutPoll(fetchClusterDetail, 2000, {
-    immediate: true,
-  });
+  const { pause: pauseFetchClusterDetail, resume: resumeFetchClusterDetail } = useTimeoutPoll(
+    fetchClusterDetail,
+    2000,
+    {
+      immediate: true,
+    },
+  );
 
   watch(
     () => props.clusterId,
@@ -600,8 +593,8 @@
   );
 
   watch(searchValue, () => {
-    checkedNodeMap.value = {}
-  })
+    checkedNodeMap.value = {};
+  });
 
   const handleOperationChange = () => {
     fetchNodeList();
@@ -615,7 +608,7 @@
 
   // 复制所有 IP
   const handleCopyAll = () => {
-    const ipList = tableData.value.map(item => item.ip);
+    const ipList = tableData.value.map((item) => item.ip);
     if (ipList.length < 1) {
       messageWarn(t('没有可复制IP'));
       return;
@@ -640,7 +633,7 @@
 
   // 复制已选 IP
   const handleCopeActive = () => {
-    const list = Object.values(checkedNodeMap.value).map(item => item.ip);
+    const list = Object.values(checkedNodeMap.value).map((item) => item.ip);
     if (list.length < 1) {
       messageWarn(t('没有可复制IP'));
       return;
@@ -649,8 +642,8 @@
   };
 
   const copy = (list: string[]) => {
-    execCopy(list.join('\n'), t('复制成功，共n条', { n: list.length }))
-  }
+    execCopy(list.join('\n'), t('复制成功，共n条', { n: list.length }));
+  };
 
   const handleSelect = (checked: boolean, data: EsNodeModel) => {
     const checkedMap = { ...checkedNodeMap.value };

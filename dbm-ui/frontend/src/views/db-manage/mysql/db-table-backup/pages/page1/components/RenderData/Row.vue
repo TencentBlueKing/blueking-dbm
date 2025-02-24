@@ -74,31 +74,31 @@
   }
 
   export interface IDataRow {
-    rowKey: string;
-    clusterData?: {
-      id: number;
-      domain: string;
-    };
     // backupOn: string,
     backupLocal?: string;
+    clusterData?: {
+      domain: string;
+      id: number;
+    };
     dbPatterns?: string[];
-    tablePatterns?: string[];
     ignoreDbs?: string[];
     ignoreTables?: string[];
+    rowKey: string;
+    tablePatterns?: string[];
   }
 
   export type IDataRowBatchKey = keyof Omit<IDataRow, 'rowKey' | 'clusterData' | 'backupLocal'>;
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>): IDataRow => ({
-    rowKey: random(),
-    clusterData: data.clusterData,
     // backupOn: data.backupOn || '',
     backupLocal: data.backupLocal,
+    clusterData: data.clusterData,
     dbPatterns: data.dbPatterns,
-    tablePatterns: data.tablePatterns,
     ignoreDbs: data.ignoreDbs,
     ignoreTables: data.ignoreTables,
+    rowKey: random(),
+    tablePatterns: data.tablePatterns,
   });
 </script>
 <script setup lang="ts">
@@ -180,13 +180,13 @@
       emits(
         'clone',
         createRowData({
-          rowKey: random(),
-          clusterData: props.data.clusterData,
           backupLocal: props.data.backupLocal,
+          clusterData: props.data.clusterData,
           dbPatterns: rowInfo[1].db_patterns,
-          tablePatterns: rowInfo[2].table_patterns,
           ignoreDbs: rowInfo[3].ignore_dbs,
           ignoreTables: rowInfo[4].ignore_tables,
+          rowKey: random(),
+          tablePatterns: rowInfo[2].table_patterns,
         }),
       );
     });

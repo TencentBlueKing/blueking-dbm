@@ -18,10 +18,10 @@ import { getTicketDetails } from '@services/source/ticket';
 import { allTicketMap, type CloneDataHandlerMapKeys, generateCloneData } from './generateCloneData';
 
 export function useTicketCloneInfo<T extends CloneDataHandlerMapKeys>(params: {
-  type: T;
   onSuccess?: (data: ServiceReturnType<(typeof allTicketMap)[T]>, ticketType: T) => void;
+  type: T;
 }) {
-  const { type, onSuccess } = params;
+  const { onSuccess, type } = params;
   const route = useRoute();
   const { ticketId } = route.query;
 

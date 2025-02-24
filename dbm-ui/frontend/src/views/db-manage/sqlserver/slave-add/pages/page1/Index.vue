@@ -93,13 +93,13 @@
 
   const clusterSelectorTabConfig = {
     [ClusterTypes.SQLSERVER_HA]: {
-      id: ClusterTypes.SQLSERVER_HA,
-      name: t('SqlServer 主从'),
       getResourceList: (params: ServiceParameters<typeof getHaClusterList>) =>
         getHaClusterList({
           ...params,
           sys_mode: 'always_on',
         }),
+      id: ClusterTypes.SQLSERVER_HA,
+      name: t('SqlServer 主从'),
     },
   };
 
@@ -114,19 +114,19 @@
   });
 
   useTicketCloneInfo({
-    type: TicketTypes.SQLSERVER_ADD_SLAVE,
     onSuccess(cloneData) {
       tableData.value = cloneData.map((item) =>
         createRowData({
           clusterData: {
-            id: item.clusters[0].id,
-            domain: item.clusters[0].immute_domain,
             cloudId: item.clusters[0].bk_cloud_id,
+            domain: item.clusters[0].immute_domain,
+            id: item.clusters[0].id,
           },
           newSlaveHost: item.new_slave_host,
         }),
       );
     },
+    type: TicketTypes.SQLSERVER_ADD_SLAVE,
   });
 
   // 批量选择
@@ -140,9 +140,9 @@
     const newList = list.reduce((result, item) => {
       const row = createRowData({
         clusterData: {
-          id: item.id,
-          domain: item.master_domain,
           cloudId: item.bk_cloud_id,
+          domain: item.master_domain,
+          id: item.id,
         },
       });
       result.push(row);
@@ -174,13 +174,13 @@
     Promise.all(rowRefs.value!.map((item) => item.getValue()))
       .then((data) =>
         createTicket({
-          ticket_type: TicketTypes.SQLSERVER_ADD_SLAVE,
-          remark: '',
-          details: {
-            ip_source: 'manual_input',
-            infos: data,
-          },
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          details: {
+            infos: data,
+            ip_source: 'manual_input',
+          },
+          remark: '',
+          ticket_type: TicketTypes.SQLSERVER_ADD_SLAVE,
         }).then((data) => {
           window.changeConfirm = false;
 

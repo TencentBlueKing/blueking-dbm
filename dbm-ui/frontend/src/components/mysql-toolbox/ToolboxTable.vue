@@ -31,14 +31,14 @@
   import type { TableProps } from '@/types/bkui-vue';
 
   interface Emits {
-    (e: 'add', value: number): void,
-    (e: 'remove', value: number): void,
-    (e: 'clone', value: number): void,
+    (e: 'add', value: number): void;
+    (e: 'remove', value: number): void;
+    (e: 'clone', value: number): void;
   }
 
   interface Props {
-    columns: TableProps['columns'],
-    data: TableProps['data']
+    columns: TableProps['columns'];
+    data: TableProps['data'];
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -54,30 +54,30 @@
   const renderColumns = computed(() => [
     ...props.columns,
     {
-      label: t('操作'),
-      width: 120,
       field: 'operations',
+      label: t('操作'),
       render: ({ index }: { index: number }) => (
-        <div class="opertaions">
+        <div class='opertaions'>
           <bk-button
             text
             onClick={() => emits('add', index)}>
-            <db-icon type="plus-fill" />
+            <db-icon type='plus-fill' />
           </bk-button>
           <bk-button
-            text
             disabled={props.data.length === 1}
+            text
             onClick={() => emits('remove', index)}>
-            <db-icon type="minus-fill" />
+            <db-icon type='minus-fill' />
           </bk-button>
           <bk-button
-            text
             v-bk-tooltips={t('克隆')}
+            text
             onClick={() => emits('clone', index)}>
-            <db-icon type="copy-2" />
+            <db-icon type='copy-2' />
           </bk-button>
         </div>
       ),
+      width: 120,
     },
   ]);
 

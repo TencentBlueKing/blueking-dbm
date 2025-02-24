@@ -20,15 +20,6 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
-    name: 'HdfsManage',
-    path: 'hdfs',
-    meta: {
-      navName: t('HDFS_集群管理'),
-    },
-    redirect: {
-      name: 'HdfsList',
-    },
-    component: () => import('@views/db-manage/hdfs/Index.vue'),
     children: [
       // {
       //   name: 'HdfsApply',
@@ -39,15 +30,24 @@ const routes: RouteRecordRaw[] = [
       //   component: () => import('@views/db-manage/hdfs/apply/Index.vue'),
       // },
       {
+        component: () => import('@views/db-manage/hdfs/list/Index.vue'),
+        meta: {
+          fullscreen: true,
+          navName: t('HDFS_集群管理'),
+        },
         name: 'HdfsList',
         path: 'list',
-        meta: {
-          navName: t('HDFS_集群管理'),
-          fullscreen: true,
-        },
-        component: () => import('@views/db-manage/hdfs/list/Index.vue'),
       },
     ],
+    component: () => import('@views/db-manage/hdfs/Index.vue'),
+    meta: {
+      navName: t('HDFS_集群管理'),
+    },
+    name: 'HdfsManage',
+    path: 'hdfs',
+    redirect: {
+      name: 'HdfsList',
+    },
   },
 ];
 

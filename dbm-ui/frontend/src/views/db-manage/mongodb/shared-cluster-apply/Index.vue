@@ -223,36 +223,36 @@
 
   const initData = () => ({
     bk_biz_id: '' as number | '',
-    ticket_type: TicketTypes.MONGODB_SHARD_APPLY,
-    remark: '',
     details: {
-      cluster_type: ClusterTypes.MONGO_SHARED_CLUSTER,
       bk_cloud_id: 0,
-      db_app_abbr: '',
-      cluster_name: '',
-      cluster_alias: '',
       city_code: '',
+      cluster_alias: '',
+      cluster_name: '',
+      cluster_type: ClusterTypes.MONGO_SHARED_CLUSTER,
+      db_app_abbr: '',
       db_version: '',
-      start_port: 27021,
-      oplog_percent: 10,
-      ip_source: 'resource_pool',
       disaster_tolerance_level: 'NONE',
+      ip_source: 'resource_pool',
+      oplog_percent: 10,
       resource_spec: {
         mongo_config: {
-          spec_id: '',
           count: 3,
-        },
-        mongos: {
           spec_id: '',
-          count: 2,
         },
         mongodb: {
-          spec_id: '',
-          count: 0,
           capacity: 0,
+          count: 0,
+          spec_id: '',
+        },
+        mongos: {
+          count: 2,
+          spec_id: '',
         },
       },
+      start_port: 27021,
     },
+    remark: '',
+    ticket_type: TicketTypes.MONGODB_SHARD_APPLY,
   });
 
   const { t } = useI18n();
@@ -317,9 +317,8 @@
 
   const handleResetformData = () => {
     InfoBox({
-      title: t('确认重置表单内容'),
-      content: t('重置后_将会清空当前填写的内容'),
       cancelText: t('取消'),
+      content: t('重置后_将会清空当前填写的内容'),
       onConfirm: () => {
         Object.assign(formData, initData());
         nextTick(() => {
@@ -327,6 +326,7 @@
         });
         return true;
       },
+      title: t('确认重置表单内容'),
     });
   };
 
@@ -345,18 +345,30 @@
       ...formData,
       details: {
         ...details,
-        shard_machine_group: mongoConfigSpecData.machine_pair,
-        shard_num: mongoConfigSpecData.shard_num,
         resource_spec: {
           mongo_config: {
-            spec_id: mongoConfig.spec_id,
-            count: mongoConfig.count,
             affinity: disasterTolerenceLevel,
+            count: mongoConfig.count,
             location_spec: {
               city: cityCode,
               sub_zone_ids: [],
             },
+            spec_id: mongoConfig.spec_id,
             ...mongoCofigSpecRef.value!.getData(),
+          },
+          mongodb: {
+            ...mongodb,
+            affinity: disasterTolerenceLevel,
+            count: mongoConfigSpecData.machine_pair * 3, // shard_machine_group * 3(固定值)
+            cpu: mongoConfigSpecData.cpu,
+            instance_num: mongoConfigSpecData.instance_num,
+            location_spec: {
+              city: cityCode,
+              sub_zone_ids: [],
+            },
+            mem: mongoConfigSpecData.mem,
+            spec_name: mongoConfigSpecData.spec_name,
+            storage_spec: mongoConfigSpecData.storage_spec,
           },
           mongos: {
             ...mongos,
@@ -367,21 +379,9 @@
             },
             ...mongosSpecRef.value!.getData(),
           },
-          mongodb: {
-            ...mongodb,
-            affinity: disasterTolerenceLevel,
-            location_spec: {
-              city: cityCode,
-              sub_zone_ids: [],
-            },
-            count: mongoConfigSpecData.machine_pair * 3, // shard_machine_group * 3(固定值)
-            spec_name: mongoConfigSpecData.spec_name,
-            cpu: mongoConfigSpecData.cpu,
-            mem: mongoConfigSpecData.mem,
-            storage_spec: mongoConfigSpecData.storage_spec,
-            instance_num: mongoConfigSpecData.instance_num,
-          },
         },
+        shard_machine_group: mongoConfigSpecData.machine_pair,
+        shard_num: mongoConfigSpecData.shard_num,
       },
     };
 

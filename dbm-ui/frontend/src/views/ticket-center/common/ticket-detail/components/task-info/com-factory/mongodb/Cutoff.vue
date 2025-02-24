@@ -41,22 +41,22 @@
 
   const columns = [
     {
-      label: t('待替换的主机'),
       field: 'ip',
+      label: t('待替换的主机'),
       showOverflowTooltip: true,
     },
     {
-      label: t('角色类型'),
       field: 'role',
+      label: t('角色类型'),
     },
     {
-      label: t('所属集群'),
       field: 'cluster',
+      label: t('所属集群'),
       showOverflowTooltip: true,
     },
     {
-      label: t('新机规格'),
       field: 'spec',
+      label: t('新机规格'),
       showOverflowTooltip: true,
     },
   ];
@@ -67,9 +67,9 @@
       types.forEach((type) => {
         if (item[type].length) {
           const list = item[type].map((obj) => ({
+            cluster: clusters[item.cluster_id].immute_domain,
             ip: obj.ip,
             role: type,
-            cluster: clusters[item.cluster_id].immute_domain,
             spec: specs[obj.spec_id].name,
           }));
           results.push(...list);
@@ -78,9 +78,9 @@
       return results;
     },
     [] as {
+      cluster: string;
       ip: string;
       role: string;
-      cluster: string;
       spec: string;
     }[],
   );

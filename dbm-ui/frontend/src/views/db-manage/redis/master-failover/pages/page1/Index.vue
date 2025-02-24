@@ -109,9 +109,8 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.REDIS_MASTER_SLAVE_SWITCH,
     onSuccess(cloneData) {
-      const { tableList, force } = cloneData;
+      const { force, tableList } = cloneData;
 
       tableData.value = tableList;
       isForceSwitch.value = force;
@@ -120,6 +119,7 @@
 
       console.log('asdasd = ', tableData.value);
     },
+    type: TicketTypes.REDIS_MASTER_SLAVE_SWITCH,
   });
 
   const rowRefs = ref();
@@ -182,12 +182,12 @@
       const key = `${proxyData.bk_cloud_id}:${ip}`;
       if (!ipMemo[ip]) {
         newList.push({
-          rowKey: ip,
-          isLoading: false,
-          ip,
           clusterIds: masterIpMap[key].related_clusters.map((item) => item.id),
           clusters: masterIpMap[key].related_clusters.map((item) => item.immute_domain),
+          ip,
+          isLoading: false,
           masters: masterIpMap[key].related_pair_instances.map((item) => item.instance),
+          rowKey: ip,
           slave: masterIpMap[key].ip,
         });
         ipMemo[ip] = true;
@@ -227,12 +227,12 @@
     const data = masterIpMap[ipInfo];
     // if (data.instances.filter(item => item.status !== 'running').length > 0) {
     const obj = {
-      rowKey: tableData.value[index].rowKey,
-      isLoading: false,
-      ip,
       clusterIds: data.related_clusters.map((item) => item.id),
       clusters: data.related_clusters.map((item) => item.immute_domain),
+      ip,
+      isLoading: false,
       masters: data.related_pair_instances.map((item) => item.instance),
+      rowKey: tableData.value[index].rowKey,
       slave: data.ip,
     };
     tableData.value[index] = obj;
@@ -282,12 +282,12 @@
       );
       const params = {
         bk_biz_id: currentBizId,
-        ticket_type: TicketTypes.REDIS_MASTER_SLAVE_SWITCH,
-        remark: remark.value,
         details: {
           force: isForceSwitch.value,
           infos,
         },
+        remark: remark.value,
+        ticket_type: TicketTypes.REDIS_MASTER_SLAVE_SWITCH,
       };
       await createTicket(params).then((data) => {
         window.changeConfirm = false;

@@ -3,14 +3,14 @@ import type { AccountRule, AccountRulePrivilege } from '@services/types/permissi
 import type { DetailBase } from '../common';
 
 export interface AccountRuleChange extends DetailBase {
-  last_account_rules: AccountRule & {
-    userName: string;
-  };
-  action: 'change' | 'delete';
-  account_id: number;
   access_db: string;
-  privilege: AccountRulePrivilege;
-  bk_biz_id: number;
+  account_id: number;
   account_type: string;
+  action: 'change' | 'delete';
+  bk_biz_id: number;
+  last_account_rules: {
+    userName: string;
+  } & AccountRule;
+  privilege: AccountRulePrivilege;
   rule_id: number;
 }

@@ -31,18 +31,16 @@
   import { random } from '@utils';
 
   interface Props {
+    clusterTypes?: string[];
     modelValue?: {
-      id: number;
       domain: string;
+      id: number;
       type?: string;
     };
     onlyOneType?: boolean;
-    clusterTypes?: string[];
   }
 
-  interface Emits {
-    (e: 'idChange', value: number): void;
-  }
+  type Emits = (e: 'idChange', value: number) => void;
 
   interface Exposes {
     getValue: () => Promise<{
@@ -51,9 +49,9 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    clusterTypes: () => [],
     modelValue: undefined,
     onlyOneType: false,
-    clusterTypes: () => [],
   });
   const emits = defineEmits<Emits>();
 
@@ -71,23 +69,24 @@
 
   const rules = [
     {
+      message: t('目标集群不能为空'),
       validator: (value: string) => {
         if (value) {
           return true;
         }
         return false;
       },
-      message: t('目标集群不能为空'),
     },
     {
+      message: t('目标集群不存在'),
       validator: (value: string) =>
         queryClusters({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           cluster_filters: [
             {
               immute_domain: value,
             },
           ],
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         }).then((data) => {
           if (data.length > 0) {
             localClusterId.value = data[0].id;
@@ -98,9 +97,9 @@
           }
           return false;
         }),
-      message: t('目标集群不存在'),
     },
     {
+      message: t('只允许提交一种集群类型'),
       validator: () => {
         if (!props.onlyOneType) {
           return true;
@@ -108,9 +107,9 @@
         const types = new Set(props.clusterTypes.filter((item) => !!item));
         return types.size === 1;
       },
-      message: t('只允许提交一种集群类型'),
     },
     {
+      message: t('目标集群重复'),
       validator: () => {
         const currentClusterSelectMap = clusterIdMemo[instanceKey];
         const otherClusterMemoMap = { ...clusterIdMemo };
@@ -125,6 +124,7 @@
         );
 
         const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
+        // eslint-disable-next-line @typescript-eslint/prefer-for-of
         for (let i = 0; i < currentSelectClusterIdList.length; i++) {
           if (otherClusterIdMap[currentSelectClusterIdList[i]]) {
             return false;
@@ -132,7 +132,6 @@
         }
         return true;
       },
-      message: t('目标集群重复'),
     },
   ];
 
@@ -146,8 +145,8 @@
       }
     },
     {
-      immediate: true,
       deep: true,
+      immediate: true,
     },
   );
 

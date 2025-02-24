@@ -76,8 +76,8 @@
 
   interface Props {
     data: {
-      id: string;
       displayName: string;
+      id: string;
     }[];
   }
 

@@ -109,8 +109,8 @@
 
   const isSubmitting = ref(false);
   const formData = reactive({
-    version: '',
     character_set: '',
+    version: '',
   });
   const characterList = ['utf8', 'utf8mb4', 'gbk', 'latin1', 'gb2312'];
   const versionState = reactive({
@@ -124,8 +124,8 @@
   versionState.loading = true;
   getVersions(
     {
-      query_key: type.value,
       db_type: 'mysql',
+      query_key: type.value,
     },
     {
       permission: 'page',
@@ -156,25 +156,25 @@
 
     const params = {
       bk_biz_id: globalBizsStore.currentBizId,
+      conf_items: [
+        {
+          conf_name: 'charset',
+          conf_value: formData.character_set,
+          description: '字符集',
+          op_type: 'add',
+        },
+        {
+          conf_name: 'db_version',
+          conf_value: formData.version,
+          description: '数据库版本',
+          op_type: 'add',
+        },
+      ],
+      conf_type: 'deploy',
       level_name: 'module',
       level_value: Number(route.params.moduleId),
       meta_cluster_type: type.value,
       version: 'deploy_info',
-      conf_type: 'deploy',
-      conf_items: [
-        {
-          description: '字符集',
-          conf_name: 'charset',
-          conf_value: formData.character_set,
-          op_type: 'add',
-        },
-        {
-          description: '数据库版本',
-          conf_name: 'db_version',
-          conf_value: formData.version,
-          op_type: 'add',
-        },
-      ],
     };
     isSubmitting.value = true;
     saveModulesDeployInfo(params)

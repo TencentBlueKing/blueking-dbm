@@ -23,13 +23,13 @@
   import type { ClusterModel, ISupportClusterType } from './types';
 
   export interface Props<clusterType extends ISupportClusterType, F extends keyof ClusterModel<clusterType>> {
+    clusterType: clusterType;
     field: F;
+    getTableInstance: () => InstanceType<typeof DbTable> | undefined;
+    isFilter: boolean;
     label: string;
     searchIp?: string[];
-    clusterType: clusterType;
     selectedList: ClusterModel<clusterType>[];
-    isFilter: boolean;
-    getTableInstance: () => InstanceType<typeof DbTable> | undefined;
   }
 
   export type ReturnArrayElement<T> = T extends (infer U)[] ? U : T;

@@ -52,6 +52,7 @@
 
   const rules = [
     {
+      message: t('目标集群不能为空'),
       validator: (value: string) => {
         if (value) {
           return true;
@@ -59,29 +60,29 @@
         modelValue.value = undefined;
         return false;
       },
-      message: t('目标集群不能为空'),
     },
     {
+      message: t('目标集群不存在'),
       validator: (value: string) =>
         filterClusters<TendbClusterModel>({
-          exact_domain: value,
           bk_biz_id: currentBizId,
+          exact_domain: value,
         }).then((data) => {
           if (data.length > 0) {
             const [clusterData] = data;
             modelValue.value = {
-              id: clusterData.id,
-              domain: clusterData.master_domain,
               bkCloudId: clusterData.bk_cloud_id,
               bkCloudName: clusterData.bk_cloud_name,
+              domain: clusterData.master_domain,
+              id: clusterData.id,
             };
             return true;
           }
           return false;
         }),
-      message: t('目标集群不存在'),
     },
     {
+      message: t('目标集群重复'),
       validator: () => {
         const currentClusterSelectMap = clusterIdMemo[instanceKey];
         const otherClusterMemoMap = { ...clusterIdMemo };
@@ -96,6 +97,7 @@
         );
 
         const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
+        // eslint-disable-next-line @typescript-eslint/prefer-for-of
         for (let i = 0; i < currentSelectClusterIdList.length; i++) {
           if (otherClusterIdMap[currentSelectClusterIdList[i]]) {
             return false;
@@ -103,7 +105,6 @@
         }
         return true;
       },
-      message: t('目标集群重复'),
     },
   ];
 

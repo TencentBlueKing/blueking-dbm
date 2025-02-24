@@ -107,15 +107,14 @@
   import { detailColumns, useRenderGraph } from './common/useRenderGraph';
 
   interface TopoState {
+    lines: GraphLine[];
     loading: boolean;
     locations: GraphNode[];
-    lines: GraphLine[];
   }
 
   interface Props {
-    // eslint-disable-next-line vue/no-unused-properties
-    dbType: string;
     clusterType: string;
+    dbType: string;
     id: number;
     nodeCofig?: NodeConfig;
   }
@@ -126,29 +125,29 @@
   const showMore = computed(() => props.clusterType === ClusterTypes.TENDBHA);
 
   const apiMap: Record<string, (params: { cluster_id: number }) => Promise<any>> = {
+    doris: getDorisTopoGraph,
     es: getEsTopoGraph,
     hdfs: getHdfsTopoGraph,
     kafka: getKafkaTopoGraph,
+    mongodb: getMongoClustersTopoGraph,
     pulsar: getPulsarTopoGraph,
     redis: getRedisTopoGraph,
-    tendbsingle: getTendbsingleTopoGraph,
-    tendbha: getTendbhaTopoGraph,
-    tendbcluster: getTendbclusterTopoGraph,
     riak: getRiakTopoGraph,
-    mongodb: getMongoClustersTopoGraph,
     sqlserver_ha: getHaClusterTopoGraph,
     sqlserver_single: getSingleClusterTopoGraph,
-    doris: getDorisTopoGraph,
+    tendbcluster: getTendbclusterTopoGraph,
+    tendbha: getTendbhaTopoGraph,
+    tendbsingle: getTendbsingleTopoGraph,
   };
 
   /** 拓扑功能 */
   const topoState = reactive<TopoState>({
+    lines: [],
     loading: false,
     locations: [],
-    lines: [],
   });
   const graphDataInst = new GraphData(props.clusterType, props.nodeCofig);
-  const { graphState, instState, instDetails, renderDraph, handleZoomIn, handleZoomOut, handleZoomReset } =
+  const { graphState, handleZoomIn, handleZoomOut, handleZoomReset, instDetails, instState, renderDraph } =
     useRenderGraph(props, graphDataInst.nodeConfig);
 
   /**
@@ -185,10 +184,10 @@
     return apiMap[props.clusterType]({ cluster_id: id })
       .then((res) => {
         try {
-          const { locations, lines } = graphDataInst.formatGraphData(res, props.dbType);
+          const { lines, locations } = graphDataInst.formatGraphData(res, props.dbType);
           topoState.locations = locations;
           topoState.lines = lines;
-        } catch (e) {
+        } catch {
           topoState.locations = [];
           topoState.lines = [];
         }

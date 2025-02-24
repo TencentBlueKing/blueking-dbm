@@ -16,23 +16,16 @@ import { defineStore } from 'pinia';
 import { getTicketsCount } from '@services/source/ticket';
 
 export const useMenu = defineStore('useMenu', {
-  state: () => ({
-    toggleCollapsed: false,
-    hoverCollapsed: true,
-    menuCountMap: {
-      todos: 0,
-      tickets: 0,
-    },
-  }),
-  getters: {
-    // 切换展开/收起
-    collapsed: (state) => state.toggleCollapsed && state.hoverCollapsed,
-    // 处于 hover 展开
-    isHover: (state) => state.toggleCollapsed && state.hoverCollapsed === false,
-  },
   actions: {
-    toggle() {
-      this.toggleCollapsed = !this.toggleCollapsed;
+    fetchTicketsCount() {
+      getTicketsCount({ count_type: 'MY_APPROVE' }).then((count = 0) => {
+        this.menuCountMap.tickets = count;
+      });
+    },
+    fetchTodosCount() {
+      getTicketsCount({ count_type: 'MY_TODO' }).then((count = 0) => {
+        this.menuCountMap.todos = count;
+      });
     },
     mouseenter() {
       this.hoverCollapsed = false;
@@ -40,19 +33,26 @@ export const useMenu = defineStore('useMenu', {
     mouseleave() {
       this.hoverCollapsed = true;
     },
-    fetchTodosCount() {
-      getTicketsCount({ count_type: 'MY_TODO' }).then((count = 0) => {
-        this.menuCountMap.todos = count;
-      });
-    },
-    fetchTicketsCount() {
-      getTicketsCount({ count_type: 'MY_APPROVE' }).then((count = 0) => {
-        this.menuCountMap.tickets = count;
-      });
+    toggle() {
+      this.toggleCollapsed = !this.toggleCollapsed;
     },
     updateMenuCount() {
       this.fetchTicketsCount();
       this.fetchTodosCount();
     },
   },
+  getters: {
+    // 切换展开/收起
+    collapsed: (state) => state.toggleCollapsed && state.hoverCollapsed,
+    // 处于 hover 展开
+    isHover: (state) => state.toggleCollapsed && state.hoverCollapsed === false,
+  },
+  state: () => ({
+    hoverCollapsed: true,
+    menuCountMap: {
+      tickets: 0,
+      todos: 0,
+    },
+    toggleCollapsed: false,
+  }),
 });

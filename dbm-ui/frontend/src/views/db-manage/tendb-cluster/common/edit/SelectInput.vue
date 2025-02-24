@@ -116,9 +116,9 @@
 
   import { encodeMult, encodeRegexp } from '@utils';
 
-  import useValidtor, { type Rules } from './hooks/useValidtor';
-
   import { t } from '@/locales';
+
+  import useValidtor, { type Rules } from './hooks/useValidtor';
 
   interface IListItem {
     id: string;
@@ -127,15 +127,15 @@
   }
 
   interface Props {
+    disabled?: boolean;
+    inputSearch?: boolean;
     list: Array<IListItem>;
     placeholder?: string;
-    textarea?: boolean;
-    rules?: Rules;
-    disabled?: boolean;
-    selectDisabled?: boolean;
     readonly?: boolean;
-    inputSearch?: boolean;
+    rules?: Rules;
+    selectDisabled?: boolean;
     selectDisplayFun?: (value: string, item?: IListItem) => string;
+    textarea?: boolean;
   }
 
   interface Emits {
@@ -146,9 +146,9 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<string>;
-    getCurrentItem: () => IListItem | undefined;
     focus: () => void;
+    getCurrentItem: () => IListItem | undefined;
+    getValue: () => Promise<string>;
   }
 
   interface Slots {
@@ -156,14 +156,14 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    placeholder: t('请输入'),
-    textarea: false,
-    rules: undefined,
     disabled: false,
-    selectDisabled: false,
-    readonly: false,
     inputSearch: true,
+    placeholder: t('请输入'),
+    readonly: false,
+    rules: undefined,
+    selectDisabled: false,
     selectDisplayFun: (value: string, item?: IListItem) => item?.name || '',
+    textarea: false,
   });
 
   const emits = defineEmits<Emits>();
@@ -329,7 +329,7 @@
 
     const selection = window.getSelection();
 
-    if (!selection || !selection.rangeCount) {
+    if (!selection?.rangeCount) {
       return false;
     }
     selection.deleteFromDocument();
@@ -372,15 +372,17 @@
     }
 
     selectorInstance = tippy(rootRef.value as SingleTarget, {
-      content: popRef.value,
-      placement: 'bottom',
       appendTo: () => document.body,
-      theme: 'table-edit-select-input light',
-      maxWidth: 'none',
-      trigger: 'manual',
-      interactive: true,
       arrow: false,
+      content: popRef.value,
+      interactive: true,
+      maxWidth: 'none',
       offset: [0, 8],
+      onHide: () => {
+        isShowPop.value = false;
+        searchKey.value = '';
+        validator(localValue.value);
+      },
       onShow: () => {
         const { width } = rootRef.value!.getBoundingClientRect();
         Object.assign(popRef.value!.style, {
@@ -389,11 +391,9 @@
         isShowPop.value = true;
         isError.value = false;
       },
-      onHide: () => {
-        isShowPop.value = false;
-        searchKey.value = '';
-        validator(localValue.value);
-      },
+      placement: 'bottom',
+      theme: 'table-edit-select-input light',
+      trigger: 'manual',
     });
   });
 
@@ -406,16 +406,16 @@
   });
 
   defineExpose<Exposes>({
-    // 获取值
-    getValue() {
-      return validator(localValue.value).then(() => localValue.value);
+    // 编辑框获取焦点
+    focus() {
+      inputRef.value!.focus();
     },
     getCurrentItem() {
       return currentSelectItem.value;
     },
-    // 编辑框获取焦点
-    focus() {
-      inputRef.value!.focus();
+    // 获取值
+    getValue() {
+      return validator(localValue.value).then(() => localValue.value);
     },
   });
 </script>

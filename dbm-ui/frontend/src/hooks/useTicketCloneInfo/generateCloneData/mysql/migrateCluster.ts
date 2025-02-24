@@ -20,20 +20,20 @@ export function generateMysqlMigrateClusterCloneData(ticketData: TicketModel<Mys
   const tableDataList = infos.map((item) => {
     const clusterId = item.cluster_ids[0];
     return {
-      rowKey: random(),
+      backup_source: ticketData.details.backup_source,
       clusterData: {
-        id: clusterId,
-        domain: clusters[clusterId].immute_domain,
         cloudId: clusters[clusterId].bk_cloud_id,
+        domain: clusters[clusterId].immute_domain,
+        id: clusterId,
       },
       masterHostData: item.new_master,
+      rowKey: random(),
       slaveHostData: item.new_slave,
-      backup_source: ticketData.details.backup_source,
     };
   });
 
   return Promise.resolve({
-    tableDataList,
     remark: ticketData.remark,
+    tableDataList,
   });
 }

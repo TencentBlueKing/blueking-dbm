@@ -46,25 +46,25 @@
 
   export interface IHostData {
     bk_biz_id: number;
+    bk_cloud_id: number;
     bk_host_id: number;
     ip: string;
-    bk_cloud_id: number;
   }
   export interface IDataRow {
-    rowKey: string;
     clusterData?: {
-      id: number;
-      domain: string;
       cloudId: number;
+      domain: string;
+      id: number;
     };
     newSlaveHost?: IHostData;
+    rowKey: string;
   }
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
-    rowKey: random(),
     clusterData: data.clusterData,
     newSlaveHost: data.newSlaveHost,
+    rowKey: random(),
   });
 </script>
 <script setup lang="ts">

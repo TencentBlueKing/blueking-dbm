@@ -34,8 +34,8 @@
 
   interface Props {
     queryInfos: {
-      version: string;
       clusterId: number;
+      version: string;
     };
   }
 
@@ -48,25 +48,25 @@
 
   const isLoading = ref(false);
   const data = shallowRef({
+    conf_items: [],
+    description: '',
     name: '',
     version: '',
-    description: '',
-    conf_items: [],
   } as ServiceReturnType<typeof getLevelConfig>);
   const columns = [
     {
-      label: t('参数项'),
       field: 'conf_name',
+      label: t('参数项'),
       render: ({ data }: { data: IRowData }) => data.conf_name,
     },
     {
-      label: t('参数值'),
       field: 'conf_value',
+      label: t('参数值'),
       render: ({ data }: { data: IRowData }) => data.conf_value,
     },
     {
-      label: t('描述'),
       field: 'description',
+      label: t('描述'),
       render: ({ data }: { data: IRowData }) => data.description || '--',
     },
   ];
@@ -74,15 +74,15 @@
   watch(
     () => props.queryInfos,
     (infos) => {
-      const { version, clusterId } = infos;
+      const { clusterId, version } = infos;
       if (version && clusterId) {
         isLoading.value = true;
         getLevelConfig({
           bk_biz_id: currentBizId,
+          conf_type: 'dbconf',
+          level_name: 'cluster',
           level_value: props.queryInfos.clusterId,
           meta_cluster_type: ClusterTypes.REDIS,
-          level_name: 'cluster',
-          conf_type: 'dbconf',
           version: props.queryInfos.version,
         })
           .then((res) => {
@@ -94,8 +94,8 @@
       }
     },
     {
-      immediate: true,
       deep: true,
+      immediate: true,
     },
   );
 </script>

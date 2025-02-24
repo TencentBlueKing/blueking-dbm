@@ -55,13 +55,13 @@
   import { random } from '@utils';
 
   export interface IDataRow {
-    rowKey: string;
     clusterData?: {
-      id: number;
-      domain: string;
       cloudId: number;
+      domain: string;
+      id: number;
     };
     fromDatabase: string;
+    rowKey: string;
     toDatabase: string;
   }
 
@@ -80,9 +80,9 @@
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>): IDataRow => ({
-    rowKey: random(),
     clusterData: data.clusterData,
     fromDatabase: data.fromDatabase || '',
+    rowKey: random(),
     toDatabase: data.toDatabase || '',
   });
 </script>

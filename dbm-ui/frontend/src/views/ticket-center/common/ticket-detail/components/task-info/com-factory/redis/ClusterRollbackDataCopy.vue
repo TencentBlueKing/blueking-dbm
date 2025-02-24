@@ -33,88 +33,100 @@
   import { writeTypeList } from '@views/db-manage/redis/common/const';
 
   interface Props {
-    ticketDetails: TicketModel<Redis.ClusterRollbackDataCopy>
+    ticketDetails: TicketModel<Redis.ClusterRollbackDataCopy>;
   }
 
   interface RowData {
-    entry: string,
-    taregtClusterName: string,
-    time: string,
-    includeKeys: string[],
-    excludeKeys: string[],
+    entry: string;
+    excludeKeys: string[];
+    includeKeys: string[];
+    taregtClusterName: string;
+    time: string;
   }
 
   const props = defineProps<Props>();
   defineOptions({
     name: TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY,
-    inheritAttrs: false
-  })
+    inheritAttrs: false,
+  });
 
   const { t } = useI18n();
 
-  const writeTypesMap = writeTypeList.reduce((obj, item) => {
-    Object.assign(obj, { [item.value]: item.label });
-    return obj;
-  }, {} as Record<string, string>);
+  const writeTypesMap = writeTypeList.reduce(
+    (obj, item) => {
+      Object.assign(obj, { [item.value]: item.label });
+      return obj;
+    },
+    {} as Record<string, string>,
+  );
 
   const columns = [
     {
-      label: t('构造产物访问入口'),
       field: 'entry',
+      label: t('构造产物访问入口'),
       showOverflowTooltip: true,
     },
     {
-      label: t('目标集群'),
       field: 'taregtClusterName',
+      label: t('目标集群'),
       showOverflowTooltip: true,
     },
     {
-      label: t('架构版本'),
       field: 'clusterTypeName',
+      label: t('架构版本'),
       showOverflowTooltip: true,
     },
     {
-      label: t('构造到指定时间'),
       field: 'time',
+      label: t('构造到指定时间'),
       showOverflowTooltip: true,
     },
     {
-      label: t('包含 Key'),
       field: 'includeKeys',
-      showOverflowTooltip: true,
-      render: ({ data }: {data: RowData}) => {
+      label: t('包含 Key'),
+      render: ({ data }: { data: RowData }) => {
         if (data.includeKeys.length > 0) {
-          return data.includeKeys.map((key, index) => <bk-tag key={index} type="stroke">{key}</bk-tag>);
+          return data.includeKeys.map((key, index) => (
+            <bk-tag
+              key={index}
+              type='stroke'>
+              {key}
+            </bk-tag>
+          ));
         }
         return <span>--</span>;
       },
+      showOverflowTooltip: true,
     },
     {
-      label: t('排除 Key'),
       field: 'excludeKeys',
-      showOverflowTooltip: true,
-      render: ({ data }: {data: RowData}) => {
+      label: t('排除 Key'),
+      render: ({ data }: { data: RowData }) => {
         if (data.excludeKeys.length > 0) {
-          return data.excludeKeys.map((key, index) => <bk-tag key={index} type="stroke">{key}</bk-tag>);
+          return data.excludeKeys.map((key, index) => (
+            <bk-tag
+              key={index}
+              type='stroke'>
+              {key}
+            </bk-tag>
+          ));
         }
         return <span>--</span>;
       },
+      showOverflowTooltip: true,
     },
   ];
 
   const tableData = computed(() => {
-    const {
-      clusters,
-      infos,
-    } = props.ticketDetails.details;
+    const { clusters, infos } = props.ticketDetails.details;
 
-    return infos.map(item => ({
-      entry: item.src_cluster,
-      taregtClusterName: clusters[item.dst_cluster].immute_domain,
+    return infos.map((item) => ({
       clusterTypeName: clusters[item.dst_cluster].cluster_type_name,
-      time: item.recovery_time_point,
-      includeKeys: item.key_white_regex === '' ? [] : item.key_white_regex.split('\n'),
+      entry: item.src_cluster,
       excludeKeys: item.key_black_regex === '' ? [] : item.key_black_regex.split('\n'),
-    }))
+      includeKeys: item.key_white_regex === '' ? [] : item.key_white_regex.split('\n'),
+      taregtClusterName: clusters[item.dst_cluster].immute_domain,
+      time: item.recovery_time_point,
+    }));
   });
 </script>

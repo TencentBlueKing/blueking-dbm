@@ -46,47 +46,45 @@
 </script>
 
 <script setup lang="tsx">
-
   interface Props {
-    parameters?: ParameterConfigItem[]
-    data?: ParameterConfigItem[]
+    data?: ParameterConfigItem[];
+    isAnomalies?: boolean;
+    level?: ConfLevelValues;
     // 没有任何变更的数据
-    originData?: ParameterConfigItem[],
-    level?: ConfLevelValues
-    stickyTop?: number,
-    isAnomalies?: boolean
+    originData?: ParameterConfigItem[];
+    parameters?: ParameterConfigItem[];
+    stickyTop?: number;
   }
 
   interface Emits {
-    (e: 'refresh'): void
-    (e: 'addItem', index: number): void
-    (e: 'removeItem', index: number): void
-    (e: 'onChangeParameterItem', index: number, selected: ParameterConfigItem): void
-    (e: 'onChangeEnums', index: number, value: string[]): void
-    (e: 'onChangeMultipleEnums', index: number, key: string, value: string[]): void
-    (e: 'onChangeRange', index: number,  range: { max: number, min: number }): void
-    (e: 'onChangeNumberInput', index: number,  key: 'value_default' | 'conf_value', value: number): void // ChangeLock(index: number, value: boolean)
-    (e: 'onChangeLock', index: number, value: boolean): void
+    (e: 'refresh'): void;
+    (e: 'addItem', index: number): void;
+    (e: 'removeItem', index: number): void;
+    (e: 'onChangeParameterItem', index: number, selected: ParameterConfigItem): void;
+    (e: 'onChangeEnums', index: number, value: string[]): void;
+    (e: 'onChangeMultipleEnums', index: number, key: string, value: string[]): void;
+    (e: 'onChangeRange', index: number, range: { max: number; min: number }): void;
+    (e: 'onChangeNumberInput', index: number, key: 'value_default' | 'conf_value', value: number): void; // ChangeLock(index: number, value: boolean)
+    (e: 'onChangeLock', index: number, value: boolean): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    parameters: () => [],
     data: () => [],
-    originData: () => [],
-    level: ConfLevels.PLAT,
-    stickyTop: 0,
     isAnomalies: false,
+    level: ConfLevels.PLAT,
+    originData: () => [],
+    parameters: () => [],
+    stickyTop: 0,
   });
 
-  // eslint-disable-next-line func-call-spacing
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
   const isPlat = computed(() => props.level === ConfLevels.PLAT);
   // 参数项映射
-  const parameterMap = computed<any>(() => (
-    props.originData.reduce((map: any, item) => Object.assign(map, { [item.conf_name]: item }), {})
-  ));
+  const parameterMap = computed<any>(() =>
+    props.originData.reduce((map: any, item) => Object.assign(map, { [item.conf_name]: item }), {}),
+  );
 
   // 锁定提示变量
   const tipsAgain = ref(true); // 是否再一次显示
@@ -95,330 +93,409 @@
   // 配合 controlShow 控制当前行显示隐藏
   const lockTipsList = computed(() => Array.from({ length: props.data.length }, () => false));
 
-  const columns = [{
-    label: t('参数项'),
-    field: 'conf_name',
-    minWidth: 300,
-    render: ({ cell, data, index }: TableColumn) => {
-      if (data.op_type === 'add') {
-        return (
-          <bk-select
-            model-value={cell}
-            filterable
-            popover-min-width={420}
-            clearable={false}
-            onChange={handleSelected.bind(this, index)}>
-            {
-              getSelectableParameters(data).map((item: ParameterConfigItem) => (
-                <bk-option value={item.conf_name} label={item.conf_name} />
-              ))
-            }
-          </bk-select>
-        );
-      }
-      return <div class="text-overflow pl-10 pr-10" v-overflow-tips>{cell}</div>;
-    },
-  }, {
-    label: t('参数值'),
-    field: isPlat.value ? 'value_default' : 'conf_value',
-    showOverflowTooltip: false,
-    render: ({ cell, data, index }: TableColumn) => {
-      // 被上层配置锁定无法编辑
-      if (!isPlat.value && props.level !== data.level_name && data.flag_locked === 1) {
-        return <div class="text-overflow pl-10 pr-10" v-overflow-tips>{cell}</div>;
-      }
-
-      const key = isPlat.value ? 'value_default' : 'conf_value';
-      const property = data.value_allowed === '' ? '' : `${index}.${key}`;
-
-      if (data.value_type_sub === 'ENUM') {
-        if (data.value_allowed === '') return <bk-input v-model={props.data[index][key]} />;
-
-        const tags = data.value_allowed.split('|').map(value => value.trim());
-        // 确保参数值在枚举范围内
-        // if (!tags.includes(cell)) {
-        //   const [id] = tags;
-        //   props.data[index][key] = id;
-        // }
-        const rules = [{
-          trigger: 'blur',
-          message: t('请输入允许值范围内的值'),
-          validator: (validateValue: string) => tags.includes(validateValue),
-        }];
-        return (
-          <bk-form-item key={index} label-width="0" rules={rules} property={property} error-display-type="tooltips">
-            <bk-select v-model={props.data[index][key]} filterable clearable={false}>
-              {
-                tags.map((id: string) => <bk-option label={id} value={id} />)
-              }
-            </bk-select>
-          </bk-form-item>
-        );
-      }
-
-      if (data.value_type_sub === 'ENUMS') {
-        if (data.value_allowed === '') return <bk-input v-model={props.data[index][key]} />;
-
-        const tags = data.value_allowed.split('|').map(value => value.trim());
-        // const isEvery = (values: string[]) => values.every(item => tags.includes(item));
-        // 确保参数值在枚举范围内
-        // if (!isEvery(cell.split(','))) {
-        //   const [id] = tags;
-        //   props.data[index][key] = id;
-        // }
-        const rules = [{
-          trigger: 'blur',
-          message: t('请输入允许值范围内的值'),
-          validator: (validateValue: string) => {
-            const values = validateValue.split(',');
-            return values.every(item => tags.includes(item));
-          },
-        }];
-        const modelValue = (props.data[index][key] as string).split(',');
-        return (
-          <bk-form-item key={index} label-width="0" rules={rules} property={property} error-display-type="tooltips">
+  const columns = [
+    {
+      field: 'conf_name',
+      label: t('参数项'),
+      minWidth: 300,
+      render: ({ cell, data, index }: TableColumn) => {
+        if (data.op_type === 'add') {
+          return (
             <bk-select
-              model-value={modelValue}
               clearable={false}
-              multiple
+              model-value={cell}
+              popover-min-width={420}
               filterable
-              onChange={handleChangeMultipleEnums.bind(null, index, key)}>
-              {
-                tags.map((id: string) => <bk-option label={id} value={id} />)
-              }
+              onChange={handleSelected.bind(this, index)}>
+              {getSelectableParameters(data).map((item: ParameterConfigItem) => (
+                <bk-option
+                  label={item.conf_name}
+                  value={item.conf_name}
+                />
+              ))}
             </bk-select>
-          </bk-form-item>
+          );
+        }
+        return (
+          <div
+            v-overflow-tips
+            class='text-overflow pl-10 pr-10'>
+            {cell}
+          </div>
         );
-      }
+      },
+    },
+    {
+      field: isPlat.value ? 'value_default' : 'conf_value',
+      label: t('参数值'),
+      render: ({ cell, data, index }: TableColumn) => {
+        // 被上层配置锁定无法编辑
+        if (!isPlat.value && props.level !== data.level_name && data.flag_locked === 1) {
+          return (
+            <div
+              v-overflow-tips
+              class='text-overflow pl-10 pr-10'>
+              {cell}
+            </div>
+          );
+        }
 
-      if (data.value_type_sub === 'RANGE') {
-        const values = data.value_allowed.match(/[-]?\d+/g);
-        if (values === null) return (
-          <bk-input model-value={props.data[index][key]} type="number" onChange={handleChangeNumberInput.bind(this, index, key)} />
-        );
+        const key = isPlat.value ? 'value_default' : 'conf_value';
+        const property = data.value_allowed === '' ? '' : `${index}.${key}`;
 
-        const [min, max] = values;
-        const rules = [{
-          trigger: 'blur',
-          message: t('请输入允许值范围内的值'),
-          validator: (validateValue: string) => {
-            if (validateValue === '') return false;
+        if (data.value_type_sub === 'ENUM') {
+          if (data.value_allowed === '') return <bk-input v-model={props.data[index][key]} />;
 
-            const toNumberValue = Number(validateValue);
+          const tags = data.value_allowed.split('|').map((value) => value.trim());
+          // 确保参数值在枚举范围内
+          // if (!tags.includes(cell)) {
+          //   const [id] = tags;
+          //   props.data[index][key] = id;
+          // }
+          const rules = [
+            {
+              message: t('请输入允许值范围内的值'),
+              trigger: 'blur',
+              validator: (validateValue: string) => tags.includes(validateValue),
+            },
+          ];
+          return (
+            <bk-form-item
+              key={index}
+              error-display-type='tooltips'
+              label-width='0'
+              property={property}
+              rules={rules}>
+              <bk-select
+                v-model={props.data[index][key]}
+                clearable={false}
+                filterable>
+                {tags.map((id: string) => (
+                  <bk-option
+                    label={id}
+                    value={id}
+                  />
+                ))}
+              </bk-select>
+            </bk-form-item>
+          );
+        }
+
+        if (data.value_type_sub === 'ENUMS') {
+          if (data.value_allowed === '') return <bk-input v-model={props.data[index][key]} />;
+
+          const tags = data.value_allowed.split('|').map((value) => value.trim());
+          // const isEvery = (values: string[]) => values.every(item => tags.includes(item));
+          // 确保参数值在枚举范围内
+          // if (!isEvery(cell.split(','))) {
+          //   const [id] = tags;
+          //   props.data[index][key] = id;
+          // }
+          const rules = [
+            {
+              message: t('请输入允许值范围内的值'),
+              trigger: 'blur',
+              validator: (validateValue: string) => {
+                const values = validateValue.split(',');
+                return values.every((item) => tags.includes(item));
+              },
+            },
+          ];
+          const modelValue = (props.data[index][key] as string).split(',');
+          return (
+            <bk-form-item
+              key={index}
+              error-display-type='tooltips'
+              label-width='0'
+              property={property}
+              rules={rules}>
+              <bk-select
+                clearable={false}
+                model-value={modelValue}
+                filterable
+                multiple
+                onChange={handleChangeMultipleEnums.bind(null, index, key)}>
+                {tags.map((id: string) => (
+                  <bk-option
+                    label={id}
+                    value={id}
+                  />
+                ))}
+              </bk-select>
+            </bk-form-item>
+          );
+        }
+
+        if (data.value_type_sub === 'RANGE') {
+          const values = data.value_allowed.match(/[-]?\d+/g);
+          if (values === null)
             return (
-              Number.isFinite(toNumberValue)
-              && toNumberValue <= Number(max)
-              && toNumberValue >= Number(min)
+              <bk-input
+                model-value={props.data[index][key]}
+                type='number'
+                onChange={handleChangeNumberInput.bind(this, index, key)}
+              />
             );
-          },
-        }];
-        return (
-          <bk-form-item key={index} label-width="0" rules={rules} property={property} error-display-type="tooltips">
-            <bk-input model-value={props.data[index][key]} type="number"  onChange={handleChangeNumberInput.bind(this, index, key)} />
-          </bk-form-item>
-        );
-      }
 
-      return <bk-input v-model={props.data[index][key]} />;
-    },
-  }, {
-    label: () => (
-      <span
-        class="table-header-custom"
-        v-bk-tooltips={{
-          content: t('参数值的可填写的范围'),
-          theme: 'light',
-        }}>
-        {t('允许值设定')}
-      </span>
-    ),
-    field: 'value_allowed',
-    showOverflowTooltip: false,
-    render: ({ cell, data, index }: TableColumn) => {
-      const enumType = ['ENUM', 'ENUMS'];
-      if (isPlat.value === false) {
-        // 将 | 转为逗号(,) 增加可读性
-        const displayValue = enumType.includes(data.value_type_sub as string) ? cell.replace(/\|/g, ', ') : cell;
-        return <div class="text-overflow" v-overflow-tips>{displayValue}</div>;
-      }
+          const [min, max] = values;
+          const rules = [
+            {
+              message: t('请输入允许值范围内的值'),
+              trigger: 'blur',
+              validator: (validateValue: string) => {
+                if (validateValue === '') return false;
 
-      if (enumType.includes(data.value_type_sub as string)) {
-        const tags = cell === '' ? [] : cell.split('|').map(value => value.trim());
-        return (
-          <bk-tag-input
-            key={index}
-            model-value={tags}
-            list={[]}
-            clearable={false}
-            placeholder={t('请输入枚举值Enter结束')}
-            allow-create
-            has-delete-icon
-            onChange={handleChangeEnums.bind(this, index)} />
-        );
-      }
-      if (data.value_type_sub === 'RANGE') {
-        const [min, max] = cell.match(/[-]?\d+/g) || [0, 0];
-        return (
-          <RangeInput
-            key={index}
-            min={Number(min)}
-            max={Number(max)}
-            onChange={handleChangeRange.bind(this, index)} />
-        );
-      }
-      return <bk-input v-model={props.data[index].value_allowed} key={index} />;
+                const toNumberValue = Number(validateValue);
+                return Number.isFinite(toNumberValue) && toNumberValue <= Number(max) && toNumberValue >= Number(min);
+              },
+            },
+          ];
+          return (
+            <bk-form-item
+              key={index}
+              error-display-type='tooltips'
+              label-width='0'
+              property={property}
+              rules={rules}>
+              <bk-input
+                model-value={props.data[index][key]}
+                type='number'
+                onChange={handleChangeNumberInput.bind(this, index, key)}
+              />
+            </bk-form-item>
+          );
+        }
+
+        return <bk-input v-model={props.data[index][key]} />;
+      },
+      showOverflowTooltip: false,
     },
-  }, {
-    label: () => {
-      const isApp = props.level === ConfLevels.APP;
-      const isModuel = props.level === ConfLevels.MODULE;
-      return (
+    {
+      field: 'value_allowed',
+      label: () => (
+        <span
+          v-bk-tooltips={{
+            content: t('参数值的可填写的范围'),
+            theme: 'light',
+          }}
+          class='table-header-custom'>
+          {t('允许值设定')}
+        </span>
+      ),
+      render: ({ cell, data, index }: TableColumn) => {
+        const enumType = ['ENUM', 'ENUMS'];
+        if (isPlat.value === false) {
+          // 将 | 转为逗号(,) 增加可读性
+          const displayValue = enumType.includes(data.value_type_sub as string) ? cell.replace(/\|/g, ', ') : cell;
+          return (
+            <div
+              v-overflow-tips
+              class='text-overflow'>
+              {displayValue}
+            </div>
+          );
+        }
+
+        if (enumType.includes(data.value_type_sub as string)) {
+          const tags = cell === '' ? [] : cell.split('|').map((value) => value.trim());
+          return (
+            <bk-tag-input
+              key={index}
+              clearable={false}
+              list={[]}
+              model-value={tags}
+              placeholder={t('请输入枚举值Enter结束')}
+              allow-create
+              has-delete-icon
+              onChange={handleChangeEnums.bind(this, index)}
+            />
+          );
+        }
+        if (data.value_type_sub === 'RANGE') {
+          const [min, max] = cell.match(/[-]?\d+/g) || [0, 0];
+          return (
+            <RangeInput
+              key={index}
+              max={Number(max)}
+              min={Number(min)}
+              onChange={handleChangeRange.bind(this, index)}
+            />
+          );
+        }
+        return (
+          <bk-input
+            key={index}
+            v-model={props.data[index].value_allowed}
+          />
+        );
+      },
+      showOverflowTooltip: false,
+    },
+    {
+      field: 'flag_locked',
+      label: () => {
+        const isApp = props.level === ConfLevels.APP;
+        const isModuel = props.level === ConfLevels.MODULE;
+        return (
+          <bk-popover
+            boundary={document.body}
+            fixOnBoundary={true}
+            placement='top'
+            theme='light'
+            width={270}>
+            {{
+              content: () => (
+                <span>
+                  {t('如勾选_在配置发布后_新增实例将自动使用该配置_存量实例不受影响_且在')}
+                  {isPlat.value ? (
+                    <span>
+                      <a href='javascript:'>{t('业务配置')}</a>，
+                    </span>
+                  ) : null}
+                  {isPlat.value || isApp ? (
+                    <span>
+                      <a href='javascript:'>{t('模块配置')}</a>，
+                    </span>
+                  ) : null}
+                  {isPlat.value || isApp || isModuel ? (
+                    <span>
+                      <a href='javascript:'>{t('集群配置')}</a>
+                    </span>
+                  ) : null}
+                  {t('中不可修改')}
+                </span>
+              ),
+              default: () => <span class='table-header-custom'>{t('锁定')}</span>,
+            }}
+          </bk-popover>
+        );
+      },
+      render: ({ cell, data, index }: { cell: number } & Omit<TableColumn, 'cell'>) => {
+        const { level_name: levelName } = data;
+        // 集群没有锁定功能
+        if (props.level === ConfLevels.CLUSTER && cell === 0) {
+          return <i class='db-icon-unlock' />;
+        }
+
+        // 被上层配置锁定
+        if (!isPlat.value && props.level !== levelName && cell === 1) {
+          return (
+            <bk-tag class={['locked-tag', `locked-tag--${levelName}`]}>
+              {{
+                default: () => confLevelInfos[levelName as ConfLevelValues]?.lockText,
+                icon: () => <i class='db-icon-lock-fill' />,
+              }}
+            </bk-tag>
+          );
+        }
+
+        const isShow = props.data[index].flag_locked === 1 && lockTipsList.value[index] && needShow.value;
+        return (
+          <bk-popover
+            key={index}
+            boundary={document.body}
+            fixOnBoundary={true}
+            isShow={isShow}
+            placement='right'
+            theme='light'
+            trigger='manual'
+            width={270}>
+            {{
+              content: () => (
+                <div class='lock-tips'>
+                  <strong>{t('锁定提醒')}</strong>
+                  <p>{t('锁定后_已经运行的集群不受影响_新增的集群实例将自动使用该配置_且不能修改')}</p>
+                  <div class='buttons'>
+                    <bk-button
+                      size='small'
+                      theme='primary'
+                      onClick={hanldeCloseLockTips}>
+                      {t('知道了')}
+                    </bk-button>
+                  </div>
+                </div>
+              ),
+              default: () => (
+                <bk-checkbox
+                  model-value={props.data[index].flag_locked === 1}
+                  onChange={handleChangeLock.bind(this, index)}
+                />
+              ),
+            }}
+          </bk-popover>
+        );
+      },
+      width: 140,
+    },
+    {
+      field: 'description',
+      label: t('描述'),
+      render: ({ cell }: { cell: string }) => (
+        <div
+          v-overflow-tips
+          class='text-overflow'>
+          {cell}
+        </div>
+      ),
+      showOverflowTooltip: false,
+    },
+    {
+      field: 'need_restart',
+      label: t('重启实例生效'),
+      render: ({ cell }: { cell: number }) => (cell === 1 ? <span style='color: #ff9c01;'>{t('是')}</span> : t('否')),
+      width: 200,
+    },
+    {
+      field: 'operation',
+      label: () => (
         <bk-popover
-          width={270}
-          theme="light"
-          placement="top"
           boundary={document.body}
-          fixOnBoundary={true}>
+          fixOnBoundary={true}
+          placement='top'
+          theme='light'>
           {{
-            default: () => <span class="table-header-custom">{t('锁定')}</span>,
             content: () => (
-              <span>
-                {t('如勾选_在配置发布后_新增实例将自动使用该配置_存量实例不受影响_且在')}
-                {
-                  isPlat.value ? <span><a href="javascript:">{t('业务配置')}</a>，</span> : null
-                }
-                {
-                  isPlat.value || isApp ? <span><a href="javascript:">{t('模块配置')}</a>，</span> : null
-                }
-                {
-                  isPlat.value || isApp || isModuel ? <span><a href="javascript:">{t('集群配置')}</a></span> : null
-                }
-                {t('中不可修改')}
+              <span style='color: #63656e;'>
+                <p>+ {t('增加1个当前层级关注的参数项')}</p>
+                <p>— {t('即解除纳管_表示不再关心该参数值')}</p>
               </span>
             ),
+            default: () => <span class='table-header-custom'>{t('操作')}</span>,
           }}
         </bk-popover>
-      );
-    },
-    field: 'flag_locked',
-    width: 140,
-    render: ({ cell, data, index }: Omit<TableColumn, 'cell'> & { cell: number }) => {
-      const { level_name: levelName } = data;
-      // 集群没有锁定功能
-      if (props.level === ConfLevels.CLUSTER && cell === 0) {
-        return <i class="db-icon-unlock" />;
-      }
-
-      // 被上层配置锁定
-      if (!isPlat.value && props.level !== levelName && cell === 1) {
+      ),
+      render: ({ data, index }: TableColumn) => {
+        // 被上层配置锁定无法删除
+        const isPrevLevelLocked = !isPlat.value && props.level !== data.level_name && data.flag_locked === 1;
         return (
-          <bk-tag class={['locked-tag', `locked-tag--${levelName}`]}>
-            {{
-              default: () => confLevelInfos[levelName as ConfLevelValues]?.lockText,
-              icon: () => <i class="db-icon-lock-fill" />,
-            }}
-          </bk-tag>
+          <div class='operation'>
+            {props.data.length >= props.parameters.length ? null : (
+              <bk-button
+                class='operation__icon mr-12'
+                text
+                onClick={handleAdd.bind(this, index)}>
+                <i class='db-icon-plus-fill' />
+              </bk-button>
+            )}
+            {props.data.length > 1 && !isPrevLevelLocked ? (
+              <bk-button
+                class='operation__icon'
+                text
+                onClick={handleRemove.bind(this, index)}>
+                <i class='db-icon-minus-fill' />
+              </bk-button>
+            ) : null}
+          </div>
         );
-      }
-
-      const isShow = props.data[index].flag_locked === 1 && lockTipsList.value[index] && needShow.value;
-      return (
-        <bk-popover
-          isShow={isShow}
-          key={index}
-          width={270}
-          theme="light"
-          placement="right"
-          trigger="manual"
-          boundary={document.body}
-          fixOnBoundary={true}>
-          {{
-            default: () => (
-              <bk-checkbox
-                model-value={props.data[index].flag_locked === 1}
-                onChange={handleChangeLock.bind(this, index)} />
-            ),
-            content: () => (
-              <div class="lock-tips">
-                <strong>{t('锁定提醒')}</strong>
-                <p>{t('锁定后_已经运行的集群不受影响_新增的集群实例将自动使用该配置_且不能修改')}</p>
-                <div class="buttons">
-                  <bk-button size="small" theme="primary" onClick={hanldeCloseLockTips}>{t('知道了')}</bk-button>
-                </div>
-              </div>
-            ),
-          }}
-        </bk-popover>
-      );
+      },
+      width: 120,
     },
-  }, {
-    label: t('描述'),
-    field: 'description',
-    showOverflowTooltip: false,
-    render: ({ cell }: { cell: string }) => <div class="text-overflow" v-overflow-tips>{cell}</div>,
-  }, {
-    label: t('重启实例生效'),
-    field: 'need_restart',
-    width: 200,
-    render: ({ cell }: { cell: number }) => (cell === 1 ? <span style="color: #ff9c01;">{t('是')}</span> : t('否')),
-  }, {
-    label: () => (
-      <bk-popover
-        theme="light"
-        placement="top"
-        boundary={document.body}
-        fixOnBoundary={true}>
-        {{
-          default: () => <span class="table-header-custom">{t('操作')}</span>,
-          content: () => (
-            <span style="color: #63656e;">
-              <p>+ {t('增加1个当前层级关注的参数项')}</p>
-              <p>— {t('即解除纳管_表示不再关心该参数值')}</p>
-            </span>
-          ),
-        }}
-      </bk-popover>
-    ),
-    field: 'operation',
-    width: 120,
-    render: ({ index, data }: TableColumn) => {
-      // 被上层配置锁定无法删除
-      const isPrevLevelLocked = !isPlat.value && props.level !== data.level_name && data.flag_locked === 1;
-      return (
-        <div class="operation">
-          {
-            props.data.length >= props.parameters.length
-              ? null
-              : (
-                <bk-button
-                  class="operation__icon mr-12"
-                  text
-                  onClick={handleAdd.bind(this, index)}>
-                  <i class="db-icon-plus-fill" />
-                </bk-button>
-              )
-          }
-          {
-            props.data.length > 1 && !isPrevLevelLocked
-              ? (
-                <bk-button
-                  class="operation__icon"
-                  text
-                  onClick={handleRemove.bind(this, index)}>
-                  <i class="db-icon-minus-fill" />
-                </bk-button>
-              )
-              : null
-          }
-        </div>
-      );
-    },
-  }];
+  ];
 
   /**
    * 不再显示
    */
-  function hanldeCloseLockTips()  {
+  function hanldeCloseLockTips() {
     tipsAgain.value = false;
   }
 
@@ -436,7 +513,7 @@
    * 选择参数项
    */
   function handleSelected(index: number, value: string) {
-    const selected = props.parameters.find(item => item.conf_name === value);
+    const selected = props.parameters.find((item) => item.conf_name === value);
     if (selected) {
       emits('onChangeParameterItem', index, selected);
     }
@@ -460,7 +537,7 @@
   /**
    * range change
    */
-  function handleChangeRange(index: number, { min, max }: { max: number, min: number }) {
+  function handleChangeRange(index: number, { max, min }: { max: number; min: number }) {
     emits('onChangeRange', index, { max, min });
     // props.data[index].value_allowed = (min || max) ? `[${min || 0},${max || 0}]` : '';
   }
@@ -546,7 +623,7 @@
         if (tableBody) {
           const item = tableBody.getElementsByTagName('tr')[index + 1] as HTMLElement;
           if (item) {
-            const { scrollTop, clientHeight } = tableBody;
+            const { clientHeight, scrollTop } = tableBody;
 
             if (item.offsetTop - scrollTop > clientHeight) {
               tableBody.scrollTo({
@@ -576,15 +653,17 @@
    * 校验参数配置
    */
   const parameterFormRef = ref();
-  const validate = () => parameterFormRef.value?.validate()
-    .then(() => Promise.resolve(true))
-    .catch((res: any) => {
-      // 定位到报错列表
-      const form = parameterFormRef.value.$el as HTMLElement;
-      const [firstErrorElement] = Array.from(form.getElementsByClassName('bk-form-item is-error'));
-      firstErrorElement?.scrollIntoView({ block: 'center' });
-      return Promise.reject(res);
-    });
+  const validate = () =>
+    parameterFormRef.value
+      ?.validate()
+      .then(() => Promise.resolve(true))
+      .catch((res: any) => {
+        // 定位到报错列表
+        const form = parameterFormRef.value.$el as HTMLElement;
+        const [firstErrorElement] = Array.from(form.getElementsByClassName('bk-form-item is-error'));
+        firstErrorElement?.scrollIntoView({ block: 'center' });
+        return Promise.reject(res);
+      });
 
   defineExpose({ validate });
 </script>

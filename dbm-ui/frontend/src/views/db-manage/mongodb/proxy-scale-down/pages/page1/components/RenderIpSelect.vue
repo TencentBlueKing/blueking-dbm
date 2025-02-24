@@ -63,35 +63,33 @@
   type IKey = string | number;
 
   export interface IListItem {
-    value: IKey;
-    label: string;
-    status: string;
-    disabled: boolean;
+    bk_city: string;
     bk_cloud_id: number;
     bk_host_id: number;
-    bk_city: string;
     bk_sub_zone_id: number;
+    disabled: boolean;
+    label: string;
+    status: string;
     tip?: string;
+    value: IKey;
   }
 
   interface Props {
-    selectList: IListItem[];
-    isLoading: boolean;
+    count: number;
     disabled: boolean;
     isCheckAffinity: boolean;
-    count: number;
+    isLoading: boolean;
+    selectList: IListItem[];
   }
 
-  interface Emits {
-    (e: 'change', value: number): void;
-  }
+  type Emits = (e: 'change', value: number) => void;
 
   interface Exposes {
     getValue: () => Promise<{
       reduce_nodes: {
-        ip: string;
         bk_cloud_id: number;
         bk_host_id: number;
+        ip: string;
       }[];
     }>;
   }
@@ -123,10 +121,11 @@
 
   const rules = [
     {
-      validator: (list: string[]) => list.length > 0,
       message: t('IP不能为空'),
+      validator: (list: string[]) => list.length > 0,
     },
     {
+      message: t('当前集群容灾要求跨机房'),
       validator: (list: string[]) => {
         if (!props.isCheckAffinity) {
           return true;
@@ -140,7 +139,6 @@
         });
         return zoneIdSet.size > 1;
       },
-      message: t('当前集群容灾要求跨机房'),
     },
   ];
 
@@ -179,9 +177,9 @@
         );
         return {
           reduce_nodes: localValue.value.map((ip) => ({
-            ip,
             bk_cloud_id: hostMap[ip].bk_cloud_id,
             bk_host_id: hostMap[ip].bk_host_id,
+            ip,
           })),
         };
       });

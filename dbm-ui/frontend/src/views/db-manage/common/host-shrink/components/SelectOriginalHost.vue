@@ -61,14 +61,10 @@
   setup
   lang="tsx"
   generic="T extends EsNodeModel | HdfsNodeModel | KafkaNodeModel | PulsarNodeModel | DorisNodeModel">
-  import  {
-    computed,
-    shallowRef,
-    watch,
-  } from 'vue';
+  import { computed, shallowRef, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import DorisNodeModel from '@services/model/doris/doris-node'
+  import DorisNodeModel from '@services/model/doris/doris-node';
   import EsNodeModel from '@services/model/es/es-node';
   import HdfsNodeModel from '@services/model/hdfs/hdfs-node';
   import KafkaNodeModel from '@services/model/kafka/kafka-node';
@@ -81,15 +77,15 @@
   import type { TShrinkNode } from '../Index.vue';
 
   interface Props {
-    modelValue: TShrinkNode<T>['nodeList'],
-    isShow: boolean,
-    originalNodeList: TShrinkNode<T>['nodeList'],
-    minHost: number
+    isShow: boolean;
+    minHost: number;
+    modelValue: TShrinkNode<T>['nodeList'];
+    originalNodeList: TShrinkNode<T>['nodeList'];
   }
 
   interface Emits {
     (e: 'change', value: Props['modelValue']): void;
-    (e: 'update:isShow', value: boolean): void
+    (e: 'update:isShow', value: boolean): void;
   }
 
   const props = defineProps<Props>();
@@ -98,15 +94,16 @@
   const { t } = useI18n();
 
   const checkedNodeMap = shallowRef<Record<number, Props['modelValue'][0]>>({});
-  const selectNodeDiskTotal = computed(() => Object.values(checkedNodeMap.value)
-    .reduce((result, item) => result + item.disk, 0));
+  const selectNodeDiskTotal = computed(() =>
+    Object.values(checkedNodeMap.value).reduce((result, item) => result + item.disk, 0),
+  );
 
   const checkNodeDisable = (node: Props['modelValue'][0]) => {
     const options = {
       disabled: false,
       tooltips: {
-        disabled: true,
         content: '',
+        disabled: true,
       },
     };
     if (checkedNodeMap.value[node.bk_host_id]) {
@@ -125,82 +122,85 @@
 
   const tableColumns = [
     {
-      width: 60,
       label: () => (
         <bk-checkbox
+          model-value={
+            Object.values(checkedNodeMap.value).length === props.originalNodeList.length &&
+            props.originalNodeList.length > 0
+          }
           label={true}
-          model-value={Object.values(checkedNodeMap.value).length === props.originalNodeList.length
-          && props.originalNodeList.length > 0}
           onChange={handleSelectAll}
         />
       ),
-      render: ({ data }: {data: Props['modelValue'][0]}) => {
+      render: ({ data }: { data: Props['modelValue'][0] }) => {
         const disabledInfo = checkNodeDisable(data);
         return (
           <span v-bk-tooltips={disabledInfo.tooltips}>
             <bk-checkbox
               disabled={disabledInfo.disabled}
-              style="vertical-align: middle; pointer-events: none;"
               label={true}
               model-value={Boolean(checkedNodeMap.value[data.bk_host_id])}
+              style='vertical-align: middle; pointer-events: none;'
             />
           </span>
         );
       },
+      width: 60,
     },
     {
-      label: t('节点IP'),
       field: 'ip',
+      label: t('节点IP'),
     },
     {
-      label: t('实例数量'),
       field: 'node_count',
+      label: t('实例数量'),
     },
     {
       label: t('类型'),
-      width: 300,
-      render: ({ data }: {data: Props['modelValue'][0]}) => {
+      render: ({ data }: { data: Props['modelValue'][0] }) => {
         if (data instanceof HdfsNodeModel) {
-          return (
-            <RenderClusterRole data={data.role_set} />
-          );
+          return <RenderClusterRole data={data.role_set} />;
         }
-        return (
-          <RenderClusterRole data={[data.role]} />
-        );
+        return <RenderClusterRole data={[data.role]} />;
       },
+      width: 300,
     },
     {
       label: t('Agent状态'),
-      render: ({ data }: {data: Props['modelValue'][0]}) => (
-        <RenderHostStatus data={data.status} />
-      ),
+      render: ({ data }: { data: Props['modelValue'][0] }) => <RenderHostStatus data={data.status} />,
     },
     {
-      label: 'CPU',
       field: 'cpu',
-      render: ({ data }: {data:Props['modelValue'][0]}) => (data.cpu ? `${data.cpu} ${t('核')}` : '--'),
+      label: 'CPU',
+      render: ({ data }: { data: Props['modelValue'][0] }) => (data.cpu ? `${data.cpu} ${t('核')}` : '--'),
     },
     {
-      label: t('内存_MB'),
       field: 'mem',
-      render: ({ data }: {data:Props['modelValue'][0]}) => data.mem || '--',
+      label: t('内存_MB'),
+      render: ({ data }: { data: Props['modelValue'][0] }) => data.mem || '--',
     },
     {
-      label: t('磁盘_GB'),
       field: 'disk',
-      render: ({ data }: {data:Props['modelValue'][0]}) => data.disk || '--',
+      label: t('磁盘_GB'),
+      render: ({ data }: { data: Props['modelValue'][0] }) => data.disk || '--',
     },
   ];
 
-  watch(() => props.modelValue, () => {
-    checkedNodeMap.value = props.modelValue.reduce((result, item) => ({
-      ...result,
-      [item.bk_host_id]: item,
-    }), {});
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.modelValue,
+    () => {
+      checkedNodeMap.value = props.modelValue.reduce(
+        (result, item) => ({
+          ...result,
+          [item.bk_host_id]: item,
+        }),
+        {},
+      );
+    },
+    {
+      immediate: true,
+    },
+  );
 
   // 全选（不能全部选中，留最小数量）
   const handleSelectAll = (checked: boolean) => {

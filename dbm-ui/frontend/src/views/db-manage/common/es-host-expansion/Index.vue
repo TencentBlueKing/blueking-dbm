@@ -46,36 +46,36 @@
   import ResourcePoolSelector from './components/ResourcePoolSelector.vue';
 
   export interface TExpansionNode {
-    // 集群节点展示名
-    label: string;
     // 集群id
     clusterId: number;
-    // 集群的节点类型
-    role: string;
-    // 初始主机
-    originalHostList: EsMachineModel[];
-    // 服务器来源
-    ipSource: 'resource_pool' | 'manual_input';
-    // 扩容主机
-    hostList: Array<HostInfo & { instance_num: number }>;
-    // 当前主机的总容量
-    totalDisk: number;
     // 扩容目标容量
     // targetDisk: number;
     // 实际选中的扩容主机容量
     expansionDisk: number;
+    // 扩容主机
+    hostList: Array<{ instance_num: number } & HostInfo>;
+    // 服务器来源
+    ipSource: 'resource_pool' | 'manual_input';
+    // 集群节点展示名
+    label: string;
+    // 初始主机
+    originalHostList: EsMachineModel[];
+    // 扩容资源池
+    resourceSpec: {
+      count: number;
+      instance_num: number;
+      spec_id: number;
+    };
+    // 集群的节点类型
+    role: string;
     // 资源池规格集群类型
     specClusterType: string;
     // 资源池规格集群类型
     specMachineType: string;
-    // 扩容资源池
-    resourceSpec: {
-      spec_id: number;
-      count: number;
-      instance_num: number;
-    };
     // 节点类型 tag 文本
     tagText: string;
+    // 当前主机的总容量
+    totalDisk: number;
   }
 
   interface Props {
@@ -84,8 +84,8 @@
       name: string;
     };
     data: TExpansionNode;
-    ipSource: string;
     disableHostMethod?: (params: HostInfo) => string | boolean;
+    ipSource: string;
   }
 
   defineProps<Props>();

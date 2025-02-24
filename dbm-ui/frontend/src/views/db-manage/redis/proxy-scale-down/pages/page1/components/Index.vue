@@ -115,12 +115,12 @@
 
   const selectList = [
     {
-      value: OnlineSwitchType.USER_CONFIRM,
       label: t('需人工确认'),
+      value: OnlineSwitchType.USER_CONFIRM,
     },
     {
-      value: OnlineSwitchType.NO_CONFIRM,
       label: t('无需确认'),
+      value: OnlineSwitchType.NO_CONFIRM,
     },
   ];
 

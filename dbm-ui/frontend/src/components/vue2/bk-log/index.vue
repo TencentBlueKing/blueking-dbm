@@ -38,8 +38,8 @@
   const vueInstance = ref();
   const bkLogInstance = ref();
   const state = reactive({
-    isBefore: false,
     data: [] as any[],
+    isBefore: false,
   });
 
   /**
@@ -72,33 +72,33 @@
   });
 
   defineExpose({
-    handleLogClear,
     handleLogAdd,
+    handleLogClear,
   });
 
   onMounted(async () => {
     const { VITE_PUBLIC_PATH } = window.PROJECT_ENV;
     await loadInstance({
-      url: `${window.location.origin}${VITE_PUBLIC_PATH ? VITE_PUBLIC_PATH : '/'}vue2-components/bk-log/index.js`,
-      mode: 'js',
-      id: props.appKey,
       container: wrapperRef.value,
-      showSourceCode: true,
+      id: props.appKey,
+      mode: 'js',
       scopeCss: true,
       scopeJs: true,
+      showSourceCode: true,
+      url: `${window.location.origin}${VITE_PUBLIC_PATH ? VITE_PUBLIC_PATH : '/'}vue2-components/bk-log/index.js`,
     });
 
-    mount(props.appKey, wrapperRef.value, (instance, { Vue2, Log }: any) => {
+    mount(props.appKey, wrapperRef.value, (instance, { Log, Vue2 }: any) => {
       const div = document.createElement('div');
       wrapperRef.value?.appendChild(div);
       vueInstance.value = new Vue2({
-        el: div,
         components: {
           BkLog: Log.bkLog,
         },
         data() {
           return {};
         },
+        el: div,
         render(h: any) {
           return h('BkLog', {
             props: {

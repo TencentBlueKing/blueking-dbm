@@ -84,10 +84,10 @@
     const { spec } = props.data;
     if (spec) {
       return {
-        name: spec.spec_name,
         cpu: spec.cpu,
         id: spec.spec_id,
         mem: spec.mem,
+        name: spec.spec_name,
         qps: spec.qps,
         storage_spec: spec.storage_spec,
       };

@@ -44,19 +44,19 @@
   interface Props {
     data?: Partial<DetailData>;
     deployInfo?: Partial<DetailData>;
-    loading?: boolean;
     fetchParams?: PlatConfDetailsParams | ServiceParameters<typeof getLevelConfig>;
+    loading?: boolean;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     data: () => ({
       conf_items: [] as DetailData['conf_items'],
     }),
-    loading: false,
-    fetchParams: () => ({}) as PlatConfDetailsParams,
     deployInfo: () => ({
       conf_items: [] as DetailData['conf_items'],
     }),
+    fetchParams: () => ({}) as PlatConfDetailsParams,
+    loading: false,
   });
 
   const route = useRoute();
@@ -65,9 +65,9 @@
   const routeParams = computed(() => ({
     clusterType: props.fetchParams.meta_cluster_type,
     confType: props.fetchParams.conf_type,
-    version: props.fetchParams.version,
-    treeId: route.query.treeId as string,
     parentId: route.query.parentId as string,
+    treeId: route.query.treeId as string,
+    version: props.fetchParams.version,
   }));
 
   // 更新基础信息

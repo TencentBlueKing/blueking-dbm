@@ -68,14 +68,14 @@
   import { execCopy, messageWarn } from '@utils';
 
   interface Props {
-    title: string;
     data: {
       ip: string;
       port: number;
-      status: string;
       shard_id?: string;
+      status: string;
     }[];
     role: string;
+    title: string;
   }
 
   const props = defineProps<Props>();

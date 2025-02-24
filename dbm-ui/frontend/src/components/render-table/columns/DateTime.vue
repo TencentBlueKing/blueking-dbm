@@ -49,11 +49,11 @@
   import useValidtor, { type Rules } from '../hooks/useValidtor';
 
   interface Props {
+    disabled?: boolean;
     modelValue?: [string, string] | string;
     placeholder?: string;
     rules?: Rules;
     type?: any;
-    disabled?: boolean;
   }
 
   interface Emits {
@@ -69,11 +69,11 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    disabled: false,
     modelValue: undefined,
     placeholder: '请选择',
     rules: undefined,
     type: undefined,
-    disabled: false,
   });
 
   const emits = defineEmits<Emits>();

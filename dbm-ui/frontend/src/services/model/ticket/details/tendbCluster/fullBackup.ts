@@ -8,7 +8,7 @@ export interface FullBackup extends DetailBase {
   clusters: DetailClusters;
   file_tag: string;
   infos: {
-    cluster_id: number;
     backup_local: string;
+    cluster_id: number;
   }[];
 }

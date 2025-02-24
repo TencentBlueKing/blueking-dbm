@@ -55,7 +55,7 @@ export const useStickyFooter = (
         });
       }
     },
-    { immediate: true, flush: 'post' },
+    { flush: 'post', immediate: true },
   );
 
   if (getCurrentScope()) {

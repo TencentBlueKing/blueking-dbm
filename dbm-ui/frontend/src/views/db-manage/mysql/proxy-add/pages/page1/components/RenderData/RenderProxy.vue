@@ -36,18 +36,18 @@
   type HostTopoInfo = ServiceReturnType<typeof getHostTopoInfos>['hosts_topo_info'][number];
 
   interface Props {
-    modelValue: IDataRow['proxyIp'];
     cloudId: null | number;
     disabled: boolean;
     domain?: string;
+    modelValue: IDataRow['proxyIp'];
   }
 
   interface Exposes {
     getValue: () => Promise<{
       new_proxy: {
         bk_biz_id: number;
-        bk_host_id: number;
         bk_cloud_id: number;
+        bk_host_id: number;
         ip: string;
       };
     }>;
@@ -55,7 +55,7 @@
 
   const props = defineProps<Props>();
 
-  const { t, locale } = useI18n();
+  const { locale, t } = useI18n();
   const { currentBizId, currentBizInfo } = useGlobalBizs();
 
   const inputRef = ref();
@@ -68,17 +68,18 @@
 
   const rules = [
     {
-      validator: (value: string) => ipv4.test(value),
       message: t('IP格式不正确'),
+      validator: (value: string) => ipv4.test(value),
     },
     {
+      message: () => errorMessage,
       validator: (value: string) =>
         getHostTopoInfos({
+          bk_biz_id: currentBizId,
           filter_conditions: {
             bk_host_innerip: [value],
             mode: 'idle_only',
           },
-          bk_biz_id: currentBizId,
         }).then((data) => {
           if (data.hosts_topo_info.length < 1) {
             const bizName = isCN.value ? currentBizInfo?.name || '--' : currentBizInfo?.english_name || '--';
@@ -88,15 +89,14 @@
           const hostData = data.hosts_topo_info.find((item) => item.bk_cloud_id === props.cloudId);
           if (!hostData) {
             errorMessage = t('新主机xx跟目标集群xx须在同一个管控区域', {
-              ip: value,
               cluster: props.domain,
+              ip: value,
             });
             return false;
           }
           localHostData = hostData;
           return true;
         }),
-      message: () => errorMessage,
     },
   ];
 
@@ -116,9 +116,9 @@
     getValue() {
       const formatHost = (item: HostTopoInfo) => ({
         bk_biz_id: currentBizId,
+        bk_cloud_id: item.bk_cloud_id,
         bk_host_id: item.bk_host_id,
         ip: item.ip,
-        bk_cloud_id: item.bk_cloud_id,
       });
       return inputRef.value
         .getValue()

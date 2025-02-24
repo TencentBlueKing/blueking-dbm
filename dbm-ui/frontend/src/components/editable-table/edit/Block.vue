@@ -46,9 +46,9 @@
   });
 
   const slots = defineSlots<{
-    prepend?: () => VNode;
-    default?: () => VNode;
     append?: () => VNode;
+    default?: () => VNode;
+    prepend?: () => VNode;
   }>();
 
   const columnContext = useColumn();

@@ -265,7 +265,7 @@
   const route = useRoute();
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
-  const { handleDisableCluster, handleEnableCluster, handleDeleteCluster } = useOperateClusterBasic(
+  const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(
     ClusterTypes.MONGODB,
     {
       onSuccess: () => fetchData(),
@@ -273,59 +273,56 @@
   );
   const { isOpen: isStretchLayoutOpen, splitScreen: stretchLayoutSplitScreen } = useStretchLayout();
   const {
+    batchSearchIpInatanceList,
+    clearSearchValue,
+    columnFilterChange,
+    columnSortChange,
+    handleSearchValueChange,
+    isFilter,
     searchAttrs,
     searchValue,
     sortValue,
-    batchSearchIpInatanceList,
-    isFilter,
-    columnFilterChange,
-    columnSortChange,
-    clearSearchValue,
     validateSearchValues,
-    handleSearchValueChange,
   } = useLinkQueryColumnSerach({
-    searchType: ClusterTypes.MONGO_SHARED_CLUSTER,
     attrs: ['bk_cloud_id', 'major_version', 'region', 'time_zone'],
-    fetchDataFn: () => fetchData(isInit),
     defaultSearchItem: {
-      name: t('访问入口'),
       id: 'domain',
+      name: t('访问入口'),
     },
+    fetchDataFn: () => fetchData(isInit),
+    searchType: ClusterTypes.MONGO_SHARED_CLUSTER,
   });
 
   const searchSelectData = computed(() => [
     {
-      name: t('访问入口'),
+      async: false,
       id: 'domain',
       multiple: true,
-      async: false,
+      name: t('访问入口'),
     },
     {
-      name: t('IP 或 IP:Port'),
+      async: false,
       id: 'instance',
       multiple: true,
-      async: false,
+      name: t('IP 或 IP:Port'),
     },
     {
-      name: 'ID',
       id: 'id',
+      name: 'ID',
     },
     {
-      name: t('集群名称'),
+      async: false,
       id: 'name',
       multiple: true,
-      async: false,
+      name: t('集群名称'),
     },
     {
-      name: t('管控区域'),
+      children: searchAttrs.value.bk_cloud_id,
       id: 'bk_cloud_id',
       multiple: true,
-      children: searchAttrs.value.bk_cloud_id,
+      name: t('管控区域'),
     },
     {
-      name: t('状态'),
-      id: 'status',
-      multiple: true,
       children: [
         {
           id: 'normal',
@@ -336,28 +333,31 @@
           name: t('异常'),
         },
       ],
+      id: 'status',
+      multiple: true,
+      name: t('状态'),
     },
     {
-      name: t('版本'),
+      children: searchAttrs.value.major_version,
       id: 'major_version',
       multiple: true,
-      children: searchAttrs.value.major_version,
+      name: t('版本'),
     },
     {
-      name: t('地域'),
+      children: searchAttrs.value.region,
       id: 'region',
       multiple: true,
-      children: searchAttrs.value.region,
+      name: t('地域'),
     },
     {
-      name: t('创建人'),
       id: 'creator',
+      name: t('创建人'),
     },
     {
-      name: t('时区'),
+      children: searchAttrs.value.time_zone,
       id: 'time_zone',
       multiple: true,
-      children: searchAttrs.value.time_zone,
+      name: t('时区'),
     },
   ]);
 
@@ -365,14 +365,14 @@
   const capacityChangeShow = ref(false);
   const isCapacityChange = ref(false);
   const detailData = ref<{
-    id: number;
-    clusterName: string;
-    specId: number;
-    specName: string;
     bizId: number;
     cloudId: number;
-    shardNum: number;
+    clusterName: string;
+    id: number;
     shardNodeCount: number;
+    shardNum: number;
+    specId: number;
+    specName: string;
   }>();
   const clusterAuthorizeShow = ref(false);
   const excelAuthorizeShow = ref(false);
@@ -489,25 +489,25 @@
 
   const handleCapacityChange = (row: MongodbModel) => {
     const {
-      id,
-      cluster_name: clusterName,
       bk_biz_id: bizId,
       bk_cloud_id: cloudId,
-      shard_num: shardNum,
-      shard_node_count: shardNodeCount,
+      cluster_name: clusterName,
+      id,
       mongodb,
+      shard_node_count: shardNodeCount,
+      shard_num: shardNum,
     } = row;
     const { id: specId, name } = mongodb[0].spec_config;
 
     detailData.value = {
-      id,
-      clusterName,
-      specId,
-      specName: name,
       bizId,
       cloudId,
-      shardNum,
+      clusterName,
+      id,
       shardNodeCount,
+      shardNum,
+      specId,
+      specName: name,
     };
     capacityChangeShow.value = true;
   };

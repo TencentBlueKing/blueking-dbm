@@ -73,8 +73,8 @@
 
   const domainRule = [
     {
-      required: true,
       message: t('必填项'),
+      required: true,
       trigger: 'change',
     },
     {
@@ -128,10 +128,10 @@
 
     createTicket({
       bk_biz_id: props.data.bk_biz_id,
-      ticket_type: TicketTypes.SQLSERVER_RESET,
       details: {
         infos: [infoItem],
       },
+      ticket_type: TicketTypes.SQLSERVER_RESET,
     }).then((createTicketResult) => {
       ticketMessage(createTicketResult.id);
       isShow.value = false;

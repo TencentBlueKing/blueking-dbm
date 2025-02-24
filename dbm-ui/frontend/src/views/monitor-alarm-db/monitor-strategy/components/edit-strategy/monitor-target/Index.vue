@@ -166,13 +166,13 @@
     isSelect: boolean;
     method: string;
     selectList: {
-      value: string;
       label: string;
+      value: string;
     }[];
     title: string;
     titleList: {
-      value: string;
       label: string;
+      value: string;
     }[];
     value: string[];
     valueList: string[];
@@ -184,13 +184,13 @@
   }
 
   interface Props {
-    dbType: string;
-    targets: TargetItem[];
-    customs: CustomItem[];
     bizsMap: Record<string, string>;
-    moduleList: SelectItem<string>[];
     clusterList: SelectItem<string>[];
+    customs: CustomItem[];
+    dbType: string;
     disabled?: boolean;
+    moduleList: SelectItem<string>[];
+    targets: TargetItem[];
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -235,16 +235,16 @@
           // 集群
           titleList = [
             {
-              value: '1',
               label: t('集群'),
+              value: '1',
             },
           ];
           selectList = props.clusterList;
         } else {
           titleList = [
             {
-              value: '0',
               label: t('模块'),
+              value: '0',
             },
           ];
           selectList = props.moduleList;
@@ -252,46 +252,46 @@
       }
 
       return {
-        id: item.level,
-        title,
-        isCustom,
-        isSelect: !isCustom,
-        value: item.rule.value as string | string[],
-        titleList,
-        selectList,
         activeAdd: isMySql.value ? selectCounts < 2 : false,
         activeMinus: !isCustom,
+        id: item.level,
+        isCustom,
+        isSelect: !isCustom,
         method: '',
+        selectList,
+        title,
+        titleList,
+        value: item.rule.value as string | string[],
         valueList: [],
       };
     });
 
     const customeList = props.customs.map((item) => ({
+      activeAdd: false,
+      activeMinus: false,
       id: item.key,
-      title: item.dimension_name,
       isCustom: true,
       isSelect: false,
       method: item.method,
-      titleList: [],
-      valueList: item.value,
       selectList: [],
+      title: item.dimension_name,
+      titleList: [],
       value: '',
-      activeAdd: false,
-      activeMinus: false,
+      valueList: item.value,
     }));
     return [...targetList, ...customeList] as FlowListType;
   };
 
   const generateFlowSelectItem = () => {
     const item = {
-      id: TargetType.MODULE,
-      title: '0',
-      titleList: _.cloneDeep(titleListRaw),
-      selectList: [],
-      isCustom: false,
-      isSelect: true,
       activeAdd: true,
       activeMinus: true,
+      id: TargetType.MODULE,
+      isCustom: false,
+      isSelect: true,
+      selectList: [],
+      title: '0',
+      titleList: _.cloneDeep(titleListRaw),
       value: [],
     } as unknown as FlowListType[number];
 
@@ -305,26 +305,26 @@
       if (flowList.value[0].id === TargetType.MODULE) {
         // 已经有 模块栏
         Object.assign(item, {
+          activeAdd: false,
+          activeMinus: true,
           id: TargetType.CLUSTER,
+          selectList: props.clusterList,
           title: '1',
           titleList: [
             {
-              value: '1',
               label: t('集群'),
+              value: '1',
             },
           ],
-          selectList: props.clusterList,
-          activeAdd: false,
-          activeMinus: true,
         });
         return item;
       }
     }
     Object.assign(item, {
-      selectList: isMySql.value ? props.moduleList : props.clusterList,
-      titleList: _.cloneDeep(titleListRaw),
       activeAdd: isMySql.value,
       activeMinus: true,
+      selectList: isMySql.value ? props.moduleList : props.clusterList,
+      titleList: _.cloneDeep(titleListRaw),
     });
     return item;
   };
@@ -350,21 +350,21 @@
   const bizObj = computed(() => {
     const selectCount = flowList.value.filter((item) => item.isSelect).length;
     return {
+      activeAdd: isMySql.value ? selectCount < 2 : selectCount === 0,
+      selectList: [
+        {
+          label: props.bizsMap[bizId.value],
+          value: '0',
+        },
+      ],
       title: '0',
       titleList: [
         {
-          value: '0',
           label: t('业务'),
-        },
-      ],
-      selectList: [
-        {
           value: '0',
-          label: props.bizsMap[bizId.value],
         },
       ],
       value: ['0'],
-      activeAdd: isMySql.value ? selectCount < 2 : selectCount === 0,
     };
   });
 
@@ -376,20 +376,20 @@
       if (!status) {
         titleListRaw = [
           {
-            value: '1',
             label: t('集群'),
+            value: '1',
           },
         ];
         return;
       }
       titleListRaw = [
         {
-          value: '0',
           label: t('模块'),
+          value: '0',
         },
         {
-          value: '1',
           label: t('集群'),
+          value: '1',
         },
       ];
     },
@@ -474,20 +474,20 @@
   defineExpose<Exposes>({
     getValue() {
       const defalutObj = {
+        level: TargetType.BIZ,
         rule: {
           key: TargetType.BIZ,
           value: [bizId.value],
         },
-        level: TargetType.BIZ,
       };
       const targetList = flowList.value
         .filter((item) => !item.isCustom)
         .map((row) => ({
+          level: row.id,
           rule: {
             key: row.id,
             value: row.value,
           },
-          level: row.id,
         }));
       const targets = [defalutObj, ...targetList];
       const customs = flowList.value
@@ -500,8 +500,8 @@
           value: item.valueList,
         }));
       return {
-        targets,
         custom_conditions: customs,
+        targets,
       };
     },
     resetValue() {

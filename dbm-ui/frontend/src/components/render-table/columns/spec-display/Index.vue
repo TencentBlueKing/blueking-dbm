@@ -43,7 +43,7 @@
 
   interface Props {
     data?: {
-      name: string;
+      count?: number;
       cpu: {
         max: number;
         min: number;
@@ -53,6 +53,7 @@
         max: number;
         min: number;
       };
+      name: string;
       qps: {
         max: number;
         min: number;
@@ -62,20 +63,19 @@
         size: number;
         type: string;
       }[];
-      count?: number;
     };
-    isLoading?: boolean;
-    isIgnoreCounts?: boolean;
-    placeholder?: string;
     hideQps?: boolean;
+    isIgnoreCounts?: boolean;
+    isLoading?: boolean;
+    placeholder?: string;
   }
 
   withDefaults(defineProps<Props>(), {
     data: undefined,
-    placeholder: undefined,
-    isLoading: false,
-    isIgnoreCounts: false,
     hideQps: true,
+    isIgnoreCounts: false,
+    isLoading: false,
+    placeholder: undefined,
   });
 
   const { t } = useI18n();

@@ -153,11 +153,11 @@
   };
 
   const generateRowDateFromRequest = (item: MongodbModel) => ({
-    rowKey: item.master_domain,
-    isLoading: false,
-    clusterName: item.master_domain,
     clusterId: item.id,
+    clusterName: item.master_domain,
     clusterType: item.cluster_type,
+    isLoading: false,
+    rowKey: item.master_domain,
   });
 
   // 批量选择
@@ -226,12 +226,12 @@
       const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
       const params = {
         bk_biz_id: currentBizId,
-        ticket_type: TicketTypes.MONGODB_REMOVE_NS,
-        remark: '',
         details: {
-          is_safe: !isIgnoreBusinessAccess.value,
           infos,
+          is_safe: !isIgnoreBusinessAccess.value,
         },
+        remark: '',
+        ticket_type: TicketTypes.MONGODB_REMOVE_NS,
       };
       await createTicket(params).then((data) => {
         window.changeConfirm = false;

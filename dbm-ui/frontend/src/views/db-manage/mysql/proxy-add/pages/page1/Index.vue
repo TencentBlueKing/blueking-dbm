@@ -104,12 +104,12 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.MYSQL_PROXY_ADD,
     onSuccess(cloneData) {
       tableData.value = cloneData.tableDataList;
       remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
+    type: TicketTypes.MYSQL_PROXY_ADD,
   });
 
   const rowRefs = ref();
@@ -150,9 +150,9 @@
       if (!domainMemo[domain]) {
         const row = createRowData({
           clusterData: {
-            id: clusterData.id,
-            domain,
             cloudId: clusterData.bk_cloud_id,
+            domain,
+            id: clusterData.id,
           },
         });
         results.push(row);
@@ -204,12 +204,12 @@
       isSubmitting.value = true;
       const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
       await createTicket({
-        ticket_type: 'MYSQL_PROXY_ADD',
-        remark: remark.value,
+        bk_biz_id: currentBizId,
         details: {
           infos,
         },
-        bk_biz_id: currentBizId,
+        remark: remark.value,
+        ticket_type: 'MYSQL_PROXY_ADD',
       }).then((data) => {
         window.changeConfirm = false;
         router.push({

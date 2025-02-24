@@ -117,9 +117,7 @@
 
   import GroupCreate from './components/Create.vue';
 
-  interface Emits {
-    (e: 'change', value: DumperConfig | null): void;
-  }
+  type Emits = (e: 'change', value: DumperConfig | null) => void;
 
   type DumperConfig = ServiceReturnType<typeof listDumperConfig>['results'][number];
 
@@ -145,8 +143,8 @@
     isLoading.value = true;
     listDumperConfig(
       {
-        offset: 0,
         limit: -1,
+        offset: 0,
       },
       {
         permission: 'page',

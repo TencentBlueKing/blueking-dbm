@@ -78,48 +78,48 @@
   import RenderHost from './HostName.vue';
 
   export interface IDataRow {
-    rowKey: string;
-    isLoading: boolean;
-    ip: string;
-    clusterId: number;
-    clusterType: string;
-    role: string;
-    machineType: string;
-    shard: string;
+    bkCloudId?: number;
     cluster: {
       domain: string;
-      isStart: boolean;
       isGeneral: boolean;
+      isStart: boolean;
       rowSpan: number;
     };
-    relatedClusters: string[];
+    clusterId: number;
+    clusterType: string;
     currentSpec?: SpecInfo;
-    bkCloudId?: number;
+    ip: string;
+    isLoading: boolean;
+    machineType: string;
+    relatedClusters: string[];
+    role: string;
+    rowKey: string;
+    shard: string;
   }
 
   // 创建表格数据
   export const createRowData = (): IDataRow => ({
-    rowKey: random(),
-    isLoading: false,
-    ip: '',
-    clusterId: 0,
-    clusterType: '',
-    machineType: '',
-    shard: '',
-    role: '',
-    relatedClusters: [],
     cluster: {
       domain: '',
-      isStart: false,
       isGeneral: true,
+      isStart: false,
       rowSpan: 1,
     },
+    clusterId: 0,
+    clusterType: '',
+    ip: '',
+    isLoading: false,
+    machineType: '',
+    relatedClusters: [],
+    role: '',
+    rowKey: random(),
+    shard: '',
   });
 
   interface Props {
+    clusterNodeCount: Record<number, Record<string, number[]>>;
     data: IDataRow;
     removeable: boolean;
-    clusterNodeCount: Record<number, Record<string, number[]>>;
   }
 
   interface Emits {
@@ -167,16 +167,16 @@
     manual: true,
     onSuccess(data) {
       specList.value = data.results.map((item) => ({
-        value: item.spec_id,
         label: item.spec_name,
         specData: {
-          name: item.spec_name,
+          count: 0,
           cpu: item.cpu,
           id: item.spec_id,
           mem: item.mem,
-          count: 0,
+          name: item.spec_name,
           storage_spec: item.storage_spec,
         },
+        value: item.spec_id,
       }));
       fetchSpecResourceCount({
         bk_biz_id: currentBizId,
@@ -191,10 +191,10 @@
     ([clusterType, machineType]) => {
       if (clusterType && machineType) {
         fetchResourceSpecList({
-          spec_cluster_type: 'mongodb',
-          spec_machine_type: machineType,
           limit: -1,
           offset: 0,
+          spec_cluster_type: 'mongodb',
+          spec_machine_type: machineType,
         });
       }
     },

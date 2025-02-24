@@ -49,13 +49,15 @@ export const useApplyBase = () => {
   function handleCreateAppAbbr(formdata: any) {
     const appAbbr = formdata.details.db_app_abbr;
     InfoBox({
-      title: t('确认创建业务Code'),
       content: t('业务Codexx将被保存到业务xx且保存后不允许修改', [appAbbr, bizState.info.display_name]),
+      onCancel: () => {
+        baseState.isSubmitting = false;
+      },
       onConfirm: () => {
         baseState.isSubmitting = true;
         createAppAbbr({
-          id: formdata.bk_biz_id as number,
           db_app_abbr: appAbbr,
+          id: formdata.bk_biz_id as number,
         })
           .then(() => {
             bizState.hasEnglishName = true;
@@ -67,9 +69,7 @@ export const useApplyBase = () => {
           });
         return true;
       },
-      onCancel: () => {
-        baseState.isSubmitting = false;
-      },
+      title: t('确认创建业务Code'),
     });
   }
 

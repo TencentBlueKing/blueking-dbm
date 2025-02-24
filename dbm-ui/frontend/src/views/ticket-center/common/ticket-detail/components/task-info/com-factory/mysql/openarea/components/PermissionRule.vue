@@ -33,7 +33,6 @@
 
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
-
   interface Props {
     clusterType: ClusterTypes.TENDBHA | ClusterTypes.TENDBSINGLE | ClusterTypes.TENDBCLUSTER;
     ruleIds?: number[];
@@ -41,7 +40,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     clusterType: ClusterTypes.TENDBHA,
-    ruleIds: () => [] as number[]
+    ruleIds: () => [] as number[],
   });
 
   const { currentBizId } = useGlobalBizs();
@@ -52,63 +51,59 @@
 
   const columns = computed(() => [
     {
-      label: t('账号名称'),
       field: 'user',
-      width: 220,
-      showOverflowTooltip: false,
+      label: t('账号名称'),
       render: ({ data }: { data: MysqlPermissonAccountModel }) => (
-        <div class="account-box">
-          {
-            data.rules.length > 1
-            && (
+        <div class='account-box'>
+          {data.rules.length > 1 && (
             <db-icon
-              type="down-shape"
               class={{
                 'flod-flag': true,
                 'is-flod': rowFlodMap.value[data.account.user],
               }}
-              onClick={() => handleToogleExpand(data.account.user)}/>
-            )
-          }
-          { data.account.user }
+              type='down-shape'
+              onClick={() => handleToogleExpand(data.account.user)}
+            />
+          )}
+          {data.account.user}
         </div>
       ),
+      showOverflowTooltip: false,
+      width: 220,
     },
     {
-      label: t('访问的DB名'),
-      width: 300,
       field: 'access_db',
-      showOverflowTooltip: true,
+      label: t('访问的DB名'),
       render: ({ data }: { data: MysqlPermissonAccountModel }) => {
         const renderRules = rowFlodMap.value[data.account.user] ? data.rules.slice(0, 1) : data.rules;
-        return renderRules.map(item => (
-          <div class="inner-row">
-            <bk-tag>
-              { item.access_db }
-            </bk-tag>
+        return renderRules.map((item) => (
+          <div class='inner-row'>
+            <bk-tag>{item.access_db}</bk-tag>
           </div>
         ));
       },
+      showOverflowTooltip: true,
+      width: 300,
     },
     {
-      label: t('权限'),
       field: 'privilege',
-      showOverflowTooltip: false,
+      label: t('权限'),
       render: ({ data }: { data: MysqlPermissonAccountModel }) => {
         if (data.rules.length === 0) {
-          return <div class="inner-row">--</div>;
+          return <div class='inner-row'>--</div>;
         }
         const renderRules = rowFlodMap.value[data.account.user] ? data.rules.slice(0, 1) : data.rules;
-        return renderRules.map(item => (
-          <div class="inner-row cell-privilege">
+        return renderRules.map((item) => (
+          <div class='inner-row cell-privilege'>
             <TextOverflowLayout>
               {{
-                default: () => item.privilege
+                default: () => item.privilege,
               }}
             </TextOverflowLayout>
           </div>
         ));
       },
+      showOverflowTooltip: false,
     },
   ]);
 
@@ -118,17 +113,17 @@
       if (props.ruleIds.length > 0) {
         const accountType = props.clusterType === ClusterTypes.TENDBCLUSTER ? 'tendbcluster' : 'mysql';
         getPermissionRulesRun({
-          bk_biz_id: currentBizId,
-          rule_ids: props.ruleIds.join(','),
           account_type: accountType,
-          offset: 0,
+          bk_biz_id: currentBizId,
           limit: -1,
+          offset: 0,
+          rule_ids: props.ruleIds.join(','),
         });
       }
     },
   );
 
-  const { run: getPermissionRulesRun, loading: isLoading } = useRequest(getPermissionRules, {
+  const { loading: isLoading, run: getPermissionRulesRun } = useRequest(getPermissionRules, {
     manual: true,
     onSuccess({ results: permissionRulesResults }) {
       tableData.value = permissionRulesResults;

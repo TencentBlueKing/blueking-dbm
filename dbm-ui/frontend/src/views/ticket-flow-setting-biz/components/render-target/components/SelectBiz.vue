@@ -69,8 +69,8 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('必须选择业务'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 

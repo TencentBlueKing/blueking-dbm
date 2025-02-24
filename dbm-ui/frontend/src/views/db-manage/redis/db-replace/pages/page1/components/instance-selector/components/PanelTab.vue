@@ -41,9 +41,7 @@
     modelValue: string;
     panelList?: Array<PanelTypes>;
   }
-  interface Emits {
-    (e: 'update:modelValue', value: string): void;
-  }
+  type Emits = (e: 'update:modelValue', value: string) => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();

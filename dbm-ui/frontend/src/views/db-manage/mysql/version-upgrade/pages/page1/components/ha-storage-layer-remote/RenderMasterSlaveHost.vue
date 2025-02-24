@@ -40,11 +40,11 @@
   type HostTopoInfo = ServiceReturnType<typeof getHostTopoInfos>['hosts_topo_info'][number];
 
   interface Props {
+    cloudId?: number;
     disabled: boolean;
+    domain?: string;
     masterHost?: IHostData;
     slaveHost?: IHostData;
-    domain?: string;
-    cloudId?: number;
   }
 
   interface Exposes {
@@ -72,35 +72,36 @@
 
   const rules = [
     {
+      message: t('请输入2台IP'),
       validator: (value: string) => {
         const ipList = value.split(splitReg);
         return ipList.length === 2;
       },
-      message: t('请输入2台IP'),
     },
     {
+      message: t('IP格式不正确'),
       validator: (value: string) => {
         const ipList = value.split(splitReg);
         return _.every(ipList, (item) => ipv4.test(_.trim(item)));
       },
-      message: t('IP格式不正确'),
     },
     {
+      message: t('输入的主从IP重复'),
       validator: (value: string) => {
         const [fisrt, last] = value.split(splitReg);
         return _.trim(fisrt) !== _.trim(last);
       },
-      message: t('输入的主从IP重复'),
     },
     {
+      message: () => errorMessage,
       validator: (value: string) => {
         const [masterIp, slaveIp] = value.split(splitReg);
         return getHostTopoInfos({
+          bk_biz_id: currentBizId,
           filter_conditions: {
             bk_host_innerip: [masterIp, slaveIp],
             mode: 'idle_only',
           },
-          bk_biz_id: currentBizId,
         }).then((data) => {
           if (data.hosts_topo_info.length < 2) {
             const existIps = data.hosts_topo_info.map((item) => item.ip);
@@ -113,8 +114,8 @@
           if (qualifiedHosts.length !== 2) {
             const qualifiedIps = qualifiedHosts.map((item) => item.ip);
             errorMessage = t('新主机xx跟目标集群xx须在同一个管控区域', {
-              ip: [masterIp, slaveIp].filter((ip) => !qualifiedIps.includes(ip)).join(', '),
               cluster: props.domain,
+              ip: [masterIp, slaveIp].filter((ip) => !qualifiedIps.includes(ip)).join(', '),
             });
             return false;
           }
@@ -133,9 +134,9 @@
           return true;
         });
       },
-      message: () => errorMessage,
     },
     {
+      message: t('IP重复'),
       validator: () => {
         const otherHostSelectMemo = { ...singleHostSelectMemo };
         delete otherHostSelectMemo[instanceKey];
@@ -153,7 +154,6 @@
 
         return true;
       },
-      message: t('IP重复'),
     },
   ];
 
@@ -181,8 +181,8 @@
     getValue() {
       const formatHost = (item: HostTopoInfo) => ({
         bk_biz_id: currentBizId,
-        bk_host_id: item.bk_host_id,
         bk_cloud_id: item.bk_cloud_id,
+        bk_host_id: item.bk_host_id,
         ip: item.ip,
       });
       return inputRef.value.getValue().then(() =>

@@ -23,15 +23,15 @@
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
   interface Props {
-    ticketDetails: TicketModel<Mysql.Partition>
+    ticketDetails: TicketModel<Mysql.Partition>;
   }
 
   interface RowData {
-    clusterName: string,
-    ip: string,
-    dbName: string,
-    tbName: string,
-    action: string[],
+    action: string[];
+    clusterName: string;
+    dbName: string;
+    ip: string;
+    tbName: string;
   }
 
   const props = defineProps<Props>();
@@ -40,32 +40,30 @@
 
   const columns = [
     {
-      label: t('集群'),
       field: 'clusterName',
+      label: t('集群'),
       showOverflowTooltip: true,
     },
     {
-      label: 'IP',
       field: 'ip',
+      label: 'IP',
       showOverflowTooltip: true,
     },
     {
-      label: t('DB 名'),
       field: 'dbName',
+      label: t('DB 名'),
       showOverflowTooltip: true,
     },
     {
-      label: t('表名'),
       field: 'tbName',
+      label: t('表名'),
       showOverflowTooltip: true,
     },
     {
-      label: t('分区动作'),
       field: 'action',
+      label: t('分区动作'),
+      render: ({ data }: { data: RowData }) => data.action.map((item) => <bk-tag>{item}</bk-tag>),
       showOverflowTooltip: true,
-      render: ({ data }: {data: RowData}) => data.action.map(item => (
-        <bk-tag>{ item }</bk-tag>
-      )),
     },
   ];
 
@@ -86,11 +84,11 @@
               action.push(t('删除分区'));
             }
             const obj = {
-              clusterName: item.immute_domain,
-              ip: partion.ip,
-              dbName: exeObject.dblike,
-              tbName: exeObject.tblike,
               action,
+              clusterName: item.immute_domain,
+              dbName: exeObject.dblike,
+              ip: partion.ip,
+              tbName: exeObject.tblike,
             };
             results.push(obj);
           });

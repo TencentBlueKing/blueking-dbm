@@ -179,8 +179,8 @@
           qywx_id: '',
           send_at: {
             freq: 'w',
-            time: '00:00:00',
             freq_values: [] as number[],
+            time: '00:00:00',
           },
           send_day: 7,
         },
@@ -212,54 +212,54 @@
 
   const dateList = [
     {
-      value: 'w',
       label: t('按周'),
+      value: 'w',
     },
     {
-      value: 'm',
       label: t('按月'),
+      value: 'm',
     },
   ];
 
   const weekdayList = [
     {
-      value: 1,
       label: t('周一'),
+      value: 1,
     },
     {
-      value: 2,
       label: t('周二'),
+      value: 2,
     },
     {
-      value: 3,
       label: t('周三'),
+      value: 3,
     },
     {
-      value: 4,
       label: t('周四'),
+      value: 4,
     },
     {
-      value: 5,
       label: t('周五'),
+      value: 5,
     },
     {
-      value: 6,
       label: t('周六'),
+      value: 6,
     },
     {
-      value: 0,
       label: t('周日'),
+      value: 0,
     },
   ];
 
   const periodList = [
     {
-      value: 'h',
       label: t('时'),
+      value: 'h',
     },
     {
-      value: 'd',
       label: t('天'),
+      value: 'd',
     },
   ];
 

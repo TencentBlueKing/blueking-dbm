@@ -52,19 +52,19 @@
   import { onBeforeUnmount, onMounted, ref } from 'vue';
 
   interface Props {
-    title: string;
+    cancelHandler?: () => Promise<any> | void;
+    confirmHandler: () => Promise<any> | void;
     content?: string;
     placement?: Placement;
+    title: string;
     width?: number;
-    confirmHandler: () => Promise<any> | void;
-    cancelHandler?: () => Promise<any> | void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    placement: 'top',
-    content: '',
-    width: 280,
     cancelHandler: () => Promise.resolve(),
+    content: '',
+    placement: 'top',
+    width: 280,
   });
 
   defineOptions({
@@ -78,8 +78,8 @@
   const isConfirmLoading = ref(false);
 
   const contentStyle = computed(() => ({
-    width: `${props.width}px`,
     padding: '15px 10px',
+    width: `${props.width}px`,
   }));
 
   const handleConfirm = () => {
@@ -107,29 +107,29 @@
 
     if (tippyTarget) {
       tippyIns = tippy(tippyTarget as SingleTarget, {
-        content: popRef.value,
-        placement: props.placement,
         appendTo: () => document.body,
-        theme: 'light db-popconfirm-theme',
-        maxWidth: 'none',
-        trigger: 'click',
-        interactive: true,
         arrow: true,
-        offset: [0, 12],
-        zIndex: 999999,
+        content: popRef.value,
         hideOnClick: true,
+        interactive: true,
+        maxWidth: 'none',
+        offset: [0, 12],
+        placement: props.placement,
         popperOptions: {
-          strategy: 'fixed',
           modifiers: [
             {
               name: 'flip',
               options: {
-                fallbackPlacements: ['top', 'bottom'],
                 allowedAutoPlacements: ['top-start', 'top-end'],
+                fallbackPlacements: ['top', 'bottom'],
               },
             },
           ],
+          strategy: 'fixed',
         },
+        theme: 'light db-popconfirm-theme',
+        trigger: 'click',
+        zIndex: 999999,
       });
     }
   });

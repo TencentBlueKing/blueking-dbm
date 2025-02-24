@@ -29,9 +29,7 @@
   interface Props {
     modelValue: string;
   }
-  interface Emits {
-    (e: 'change', value: string): void;
-  }
+  type Emits = (e: 'change', value: string) => void;
 
   interface Exposes {
     getValue: () => Promise<Record<string, string>>;
@@ -43,8 +41,8 @@
   const { t } = useI18n();
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('校验范围不能为空'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 

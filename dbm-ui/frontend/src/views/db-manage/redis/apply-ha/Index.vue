@@ -242,27 +242,27 @@
 
   const initData = () => ({
     bk_biz_id: '' as number | '',
-    ticket_type: TicketTypes.REDIS_INS_APPLY,
-    remark: '',
     details: {
-      db_app_abbr: '',
+      appendApply: 'new', // 是否是追加部署
       bk_cloud_id: 0,
+      city_code: '', // 追加就非必填
+      cluster_count: 1,
       cluster_type: ClusterTypes.REDIS_INSTANCE,
+      db_app_abbr: '',
       db_version: '', // 追加就非必填
+      disaster_tolerance_level: 'SAME_SUBZONE_CROSS_SWTICH',
+      group_count: 1,
       infos: [] as Domain[],
+      ip_source: 'resource_pool',
       port: 30000, // 追加就非必填
       redis_pwd: '',
-      cluster_count: 1,
-      group_count: 1,
-      city_code: '', // 追加就非必填
-      disaster_tolerance_level: 'SAME_SUBZONE_CROSS_SWTICH',
-      appendApply: 'new', // 是否是追加部署
-      ip_source: 'resource_pool',
       resource_spec: {
-        spec_id: '',
         count: 2,
+        spec_id: '',
       },
     },
+    remark: '',
+    ticket_type: TicketTypes.REDIS_INS_APPLY,
   });
 
   const { t } = useI18n();
@@ -373,14 +373,14 @@
             cluster_name: '',
             databases: 2,
             masterHost: {
-              ip: '',
               bk_cloud_id: 0,
               bk_host_id: 0,
+              ip: '',
             },
             slaveHost: {
-              ip: '',
               bk_cloud_id: 0,
               bk_host_id: 0,
+              ip: '',
             },
           }));
           formData.details.infos.push(...appends);
@@ -415,20 +415,20 @@
   const handleHostChange = async (filedName: string, value: string, index: number) => {
     await formRef.value!.validate(filedName);
     getRedisMachineList({
-      ip: value,
-      instance_role: 'redis_master',
-      bk_cloud_id: formData.details.bk_cloud_id,
       bk_city_name: cityInfo.value.cityName,
+      bk_cloud_id: formData.details.bk_cloud_id,
       cluster_type: ClusterTypes.REDIS_INSTANCE,
+      instance_role: 'redis_master',
+      ip: value,
     }).then((data) => {
       const redisMachineList = data.results;
       if (redisMachineList.length) {
         const [redisMachineItem] = redisMachineList;
         Object.assign(formData.details.infos[index], {
           masterHost: {
-            ip: value,
             bk_cloud_id: redisMachineItem.bk_cloud_id,
             bk_host_id: redisMachineItem.bk_host_id,
+            ip: value,
           },
         });
 
@@ -438,9 +438,9 @@
           if (ipMap[ipInfo]) {
             Object.assign(formData.details.infos[index], {
               slaveHost: {
-                ip: ipMap[ipInfo].ip,
                 bk_cloud_id: ipMap[ipInfo].bk_cloud_id,
                 bk_host_id: ipMap[ipInfo].bk_host_id,
+                ip: ipMap[ipInfo].ip,
               },
             });
           }
@@ -451,9 +451,8 @@
 
   const handleResetFormdata = () => {
     InfoBox({
-      title: t('确认重置表单内容'),
-      content: t('重置后_将会清空当前填写的内容'),
       cancelText: t('取消'),
+      content: t('重置后_将会清空当前填写的内容'),
       onConfirm: () => {
         Object.assign(formData, initData());
         nextTick(() => {
@@ -461,6 +460,7 @@
         });
         return true;
       },
+      title: t('确认重置表单内容'),
     });
   };
 
@@ -474,6 +474,10 @@
 
       if (details.appendApply === 'new') {
         Object.assign(details, {
+          infos: details.infos!.map((infoItem) => ({
+            cluster_name: infoItem.cluster_name,
+            databases: infoItem.databases,
+          })),
           resource_spec: {
             backend_group: {
               count: Math.ceil(machineCount.value),
@@ -486,10 +490,6 @@
               },
             },
           },
-          infos: details.infos!.map((infoItem) => ({
-            cluster_name: infoItem.cluster_name,
-            databases: infoItem.databases,
-          })),
         });
       } else {
         delete details.port;
@@ -499,12 +499,12 @@
 
         Object.assign(details, {
           infos: details.infos!.map((infoItem) => ({
-            cluster_name: infoItem.cluster_name,
-            databases: infoItem.databases,
             backend_group: {
               master: infoItem.masterHost,
               slave: infoItem.slaveHost,
             },
+            cluster_name: infoItem.cluster_name,
+            databases: infoItem.databases,
           })),
         });
       }

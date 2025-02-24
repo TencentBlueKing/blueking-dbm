@@ -153,9 +153,9 @@
 
     return Object.entries(nodeCount).reduce<Record<number, Record<string, number[]>>>((prev, [clusterId, countMap]) => {
       const typeCountMap: Record<string, number[]> = {
-        mongos: [],
-        mongodb: [],
         mongo_config: [],
+        mongodb: [],
+        mongos: [],
       };
       Object.entries(countMap).forEach(([type, count]) => {
         if (type in typeCountMap) {
@@ -176,13 +176,6 @@
         mongoCluster: [
           {
             name: t('待替换的主机'),
-            topoConfig: {
-              getTopoList: (params: ServiceParameters<typeof getMongoTopoList>) =>
-                getMongoTopoList({
-                  ...params,
-                  cluster_type: formData.clusterType,
-                }),
-            },
             tableConfig: {
               getTableList: (params: ServiceParameters<typeof getMongoInstancesList>) =>
                 getMongoInstancesList({
@@ -191,8 +184,6 @@
                 }),
               multiple: true,
             },
-          },
-          {
             topoConfig: {
               getTopoList: (params: ServiceParameters<typeof getMongoTopoList>) =>
                 getMongoTopoList({
@@ -200,9 +191,18 @@
                   cluster_type: formData.clusterType,
                 }),
             },
+          },
+          {
             tableConfig: {
               getTableList: (params: ServiceParameters<typeof getMongoInstancesList>) =>
                 getMongoInstancesList({
+                  ...params,
+                  cluster_type: formData.clusterType,
+                }),
+            },
+            topoConfig: {
+              getTopoList: (params: ServiceParameters<typeof getMongoTopoList>) =>
+                getMongoTopoList({
                   ...params,
                   cluster_type: formData.clusterType,
                 }),
@@ -243,22 +243,22 @@
   };
 
   const generateRowDateFromRequest = (item: MongodbInstanceModel) => ({
-    rowKey: item.ip,
-    isLoading: false,
-    ip: item.ip,
-    role: item.role,
-    relatedClusters: item.related_clusters.map((obj) => obj.master_domain),
     bkCloudId: item.bk_cloud_id,
-    clusterId: item.cluster_id,
-    clusterType: item.cluster_type,
     cluster: {
       domain: item.master_domain,
-      isStart: false,
       isGeneral: true,
+      isStart: false,
       rowSpan: 1,
     },
+    clusterId: item.cluster_id,
+    clusterType: item.cluster_type,
     currentSpec: item.spec_config,
+    ip: item.ip,
+    isLoading: false,
     machineType: item.machine_type,
+    relatedClusters: item.related_clusters.map((obj) => obj.master_domain),
+    role: item.role,
+    rowKey: item.ip,
     shard: item.shard,
   });
 
@@ -293,8 +293,8 @@
     tableData.value[index].isLoading = true;
     tableData.value[index].ip = ip;
     const ret = await getMongoInstancesList({
-      instance_address: ip,
       extra: 1,
+      instance_address: ip,
     }).finally(() => {
       tableData.value[index].isLoading = false;
     });
@@ -343,15 +343,15 @@
       const sameArr = clusterMap[domain];
       const infoItem = {
         cluster_id: sameArr[0].clusterId,
-        mongos: [],
-        mongodb: [],
         mongo_config: [],
+        mongodb: [],
+        mongos: [],
       } as Record<string, any>;
       sameArr.forEach((item) => {
         const specObj = {
+          bk_cloud_id: item.bkCloudId,
           ip: item.ip,
           spec_id: ipSpecMap[item.ip],
-          bk_cloud_id: item.bkCloudId,
         };
         infoItem[item.machineType].push(specObj);
       });
@@ -371,11 +371,11 @@
       const infos = generateRequestParam(ipSpecMap);
       const params = {
         bk_biz_id: currentBizId,
-        ticket_type: TicketTypes.MONGODB_CUTOFF,
         details: {
-          ip_source: 'resource_pool',
           infos,
+          ip_source: 'resource_pool',
         },
+        ticket_type: TicketTypes.MONGODB_CUTOFF,
       };
       await createTicket(params).then((data) => {
         window.changeConfirm = false;

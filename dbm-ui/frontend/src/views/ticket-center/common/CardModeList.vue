@@ -115,8 +115,8 @@
       const activeItem = rootRef.value!.querySelector('.is-active');
       if (activeItem) {
         activeItem.scrollIntoView({
-          block: 'start',
           behavior: 'smooth',
+          block: 'start',
         });
       } else {
         scrollFakerRef.value?.scrollTo(0, 0);
@@ -125,10 +125,10 @@
   };
 
   const {
+    dataList,
+    fetchTicketList,
     loading: isLoading,
     pagination,
-    fetchTicketList,
-    dataList,
   } = usefetchData(props.dataSource, {
     onSuccess() {
       currentTicketScrollToTop();

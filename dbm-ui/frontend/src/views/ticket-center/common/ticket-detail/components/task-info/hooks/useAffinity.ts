@@ -17,8 +17,8 @@ import { useSystemEnviron } from '@stores';
 
 export function useAffinity(props: {
   details: {
-    disaster_tolerance_level: string;
     city_code?: string;
+    disaster_tolerance_level: string;
   };
 }) {
   const { t } = useI18n();

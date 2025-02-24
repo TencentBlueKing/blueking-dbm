@@ -21,10 +21,10 @@ import type { PasswordPolicy, PasswordStrength } from '../types/permission';
 // 密码随机化周期
 interface RamdomCycle {
   crontab: {
-    minute: string;
-    hour: string;
-    day_of_week: string;
     day_of_month: string;
+    day_of_week: string;
+    hour: string;
+    minute: string;
   };
 }
 
@@ -32,11 +32,11 @@ interface AdminPasswordResultItem {
   bk_cloud_id: number;
   cluster_type: ClusterTypes;
   instances: {
-    role: string;
     addresses: {
       ip: string;
       port: number;
     }[];
+    role: string;
   }[];
 }
 
@@ -51,7 +51,7 @@ export const getPasswordPolicy = (params: { name: string }) =>
 /**
  * 更新密码安全策略
  */
-export const updatePasswordPolicy = (params: PasswordPolicy & { reset: boolean }) =>
+export const updatePasswordPolicy = (params: { reset: boolean } & PasswordPolicy) =>
   http.post(`${path}/update_password_policy/`, params);
 
 /**
@@ -77,29 +77,29 @@ export const getRandomPassword = (params?: { security_type: string }) =>
  * 修改实例密码(admin)
  */
 export const modifyAdminPassword = (params: {
-  lock_hour: number;
-  password: string;
   instance_list: {
-    ip: string;
-    port: number;
     bk_cloud_id: number;
     cluster_type: ClusterTypes;
+    ip: string;
+    port: number;
     role: string;
   }[];
   // 是否异步
   is_async?: boolean;
+  lock_hour: number;
+  password: string;
 }) => http.post<string>(`${path}/modify_admin_password/`, params);
 
 /**
  * 查询生效实例密码(admin)
  */
 export const queryAdminPassword = (params: {
-  limit?: number;
-  offset?: number;
   begin_time?: string;
+  db_type?: DBTypes;
   end_time?: string;
   instances?: string;
-  db_type?: DBTypes;
+  limit?: number;
+  offset?: number;
 }) =>
   http.post<ListBase<AdminPasswordModel[]>>(`${path}/query_admin_password/`, params).then((res) => ({
     ...res,
@@ -111,11 +111,11 @@ export const queryAdminPassword = (params: {
  */
 export const queryAsyncModifyResult = (params: { root_id: string }) =>
   http.post<{
-    status: string;
     error?: string;
-    success?: AdminPasswordResultItem[];
     fail?: AdminPasswordResultItem[];
     result?: boolean;
+    status: string;
+    success?: AdminPasswordResultItem[];
   }>(`${path}/query_async_modify_result/`, params);
 
 /**
@@ -133,5 +133,5 @@ export const getRSAPublicKeys = (params: { names: string[] }) =>
 /**
  * 校验密码强度
  */
-export const verifyPasswordStrength = (params: { security_type: string; password: string }) =>
+export const verifyPasswordStrength = (params: { password: string; security_type: string }) =>
   http.post<PasswordStrength>(`${path}/verify_password_strength/`, params);

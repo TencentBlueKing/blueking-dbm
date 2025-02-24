@@ -63,18 +63,16 @@
   import RenderMessageList, { type IMessageList } from './MessageList.vue';
 
   interface Props {
-    title: string;
-    readonly?: boolean;
     messageList: IMessageList;
+    readonly?: boolean;
+    title: string;
   }
 
-  interface Emits {
-    (e: 'change', value: string): void;
-  }
+  type Emits = (e: 'change', value: string) => void;
 
   const props = withDefaults(defineProps<Props>(), {
-    readonly: false,
     messageList: () => [],
+    readonly: false,
     syntaxChecking: false,
   });
 
@@ -142,17 +140,17 @@
 
   onMounted(() => {
     editor = monaco.editor.create(editorRef.value, {
+      automaticLayout: true,
       language: 'javascript',
-      theme: 'vs-dark',
-      readOnly: props.readonly,
       minimap: {
         enabled: false,
       },
-      wordWrap: 'bounded',
+      readOnly: props.readonly,
       scrollbar: {
         alwaysConsumeMouseWheel: false,
       },
-      automaticLayout: true,
+      theme: 'vs-dark',
+      wordWrap: 'bounded',
     });
     editor.onDidChangeModelContent(() => {
       const value = editor.getValue();

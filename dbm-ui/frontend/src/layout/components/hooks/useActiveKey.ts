@@ -68,8 +68,8 @@ export const useActiveKey = (menuRef: Ref<InstanceType<typeof Menu>>, defaultKey
   );
 
   return {
-    parentKey,
     key: currentRouteName,
+    parentKey,
     routeLocation: handleMenuKeyChange,
   };
 };

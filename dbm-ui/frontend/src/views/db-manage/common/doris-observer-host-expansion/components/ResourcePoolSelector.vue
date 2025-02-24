@@ -83,16 +83,18 @@
   import SpecDetail from '@views/db-manage/common/SpecDetailForPopover.vue';
 
   interface Props {
-    data: TExpansionNode;
     cloudInfo: {
       id: number;
       name: string;
     };
+    data: TExpansionNode;
   }
 
-  interface Emits {
-    (e: 'change', value: TExpansionNode['resourceSpec'], expansionDisk: TExpansionNode['expansionDisk']): void;
-  }
+  type Emits = (
+    e: 'change',
+    value: TExpansionNode['resourceSpec'],
+    expansionDisk: TExpansionNode['expansionDisk'],
+  ) => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -125,7 +127,7 @@
     },
   });
 
-  const { loading: isResourceSpecLoading, data: resourceSpecList } = useRequest(getResourceSpecList, {
+  const { data: resourceSpecList, loading: isResourceSpecLoading } = useRequest(getResourceSpecList, {
     defaultParams: [
       {
         spec_cluster_type: props.data.specClusterType,
@@ -155,8 +157,8 @@
     emits(
       'change',
       {
-        spec_id: specId.value,
         count: Math.max(machinePairCnt.value - originalHostNums.value, 0),
+        spec_id: specId.value,
       },
       estimateCapacity.value,
     );

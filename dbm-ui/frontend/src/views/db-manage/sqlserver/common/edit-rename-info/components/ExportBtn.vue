@@ -17,7 +17,7 @@
 
   interface Props {
     clusterId: number;
-    data: { db_name: string; target_db_name: string; rename_db_name: string }[];
+    data: { db_name: string; rename_db_name: string; target_db_name: string }[];
   }
 
   const props = defineProps<Props>();
@@ -26,9 +26,9 @@
   // 导出文件
   const handleExport = () => {
     const formatData = props.data.map((item) => ({
+      [t('已存在的 DB')]: item.rename_db_name,
       [t('构造 DB 名称')]: item.db_name,
       [t('构造后 DB 名称')]: item.target_db_name,
-      [t('已存在的 DB')]: item.rename_db_name,
     }));
     const colsWidths = [{ width: 40 }, { width: 40 }, { width: 40 }];
 

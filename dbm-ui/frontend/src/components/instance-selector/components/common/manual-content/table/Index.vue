@@ -30,43 +30,37 @@
 
   import DbStatus from '@components/db-status/index.vue';
 
-  import {
-    type InstanceSelectorValues,
-    type IValue,
-    type PanelListType,
-  } from '../../../../Index.vue';
+  import { type InstanceSelectorValues, type IValue, type PanelListType } from '../../../../Index.vue';
 
   type TableConfigType = Required<PanelListType[number]>['tableConfig'];
   type ManualConfigType = Required<PanelListType[number]>['manualConfig'];
 
   interface DataRow {
-    data: IValue,
+    data: IValue;
   }
 
   interface Props {
-    lastValues: InstanceSelectorValues<IValue>,
-    activePanelId?: string,
-    manualTableData?: IValue[];
-    firsrColumn?: TableConfigType['firsrColumn'],
-    roleFilterList?: TableConfigType['roleFilterList'],
-    disabledRowConfig?: TableConfigType['disabledRowConfig'],
+    activePanelId?: string;
+    disabledRowConfig?: TableConfigType['disabledRowConfig'];
     fieldFormat?: ManualConfigType['fieldFormat'];
-    statusFilter?: TableConfigType['statusFilter'],
+    firsrColumn?: TableConfigType['firsrColumn'];
+    lastValues: InstanceSelectorValues<IValue>;
+    manualTableData?: IValue[];
+    roleFilterList?: TableConfigType['roleFilterList'];
+    statusFilter?: TableConfigType['statusFilter'];
   }
 
-  interface Emits {
-    (e: 'change', value: Props['lastValues']): void;
-  }
+  type Emits = (e: 'change', value: Props['lastValues']) => void;
 
   const props = withDefaults(defineProps<Props>(), {
-    manualTableData: () => ([]),
-    firsrColumn: undefined,
-    statusFilter: undefined,
     activePanelId: 'tendbcluster',
     disabledRowConfig: undefined,
     fieldFormat: undefined,
-    roleFilterList: undefined,
+    firsrColumn: undefined,
     getTableList: undefined,
+    manualTableData: () => [],
+    roleFilterList: undefined,
+    statusFilter: undefined,
   });
 
   const emits = defineEmits<Emits>();
@@ -75,12 +69,12 @@
 
   const searchValue = ref('');
   const pagination = ref({
+    align: 'right',
     count: 0,
     current: 1,
+    layout: ['total', 'limit', 'list'],
     limit: 10,
     limitList: [10, 20, 50, 100],
-    align: 'right',
-    layout: ['total', 'limit', 'list'],
     remote: false,
   });
 
@@ -91,170 +85,194 @@
     if (searchValue.value === '') {
       return props.manualTableData;
     }
-    return props.manualTableData.filter(item => (
-      (item[firstColumnFieldId.value] as string).includes(searchValue.value)
-    ));
+    return props.manualTableData.filter((item) =>
+      (item[firstColumnFieldId.value] as string).includes(searchValue.value),
+    );
   });
-  const mainSelectDisable = computed(() => (props.disabledRowConfig
-    // eslint-disable-next-line max-len
-    ? renderManualData.value.filter(data => props.disabledRowConfig?.handler(data)).length === renderManualData.value.length : false));
+  const mainSelectDisable = computed(() =>
+    props.disabledRowConfig
+      ? renderManualData.value.filter((data) => props.disabledRowConfig?.handler(data)).length ===
+        renderManualData.value.length
+      : false,
+  );
 
-  const isSelectedAll = computed(() => (renderManualData.value.length > 0
-    // eslint-disable-next-line max-len
-    && renderManualData.value.length === renderManualData.value.filter(item => checkedMap.value[item[firstColumnFieldId.value]]).length
-  ));
+  const isSelectedAll = computed(
+    () =>
+      renderManualData.value.length > 0 &&
+      renderManualData.value.length ===
+        renderManualData.value.filter((item) => checkedMap.value[item[firstColumnFieldId.value]]).length,
+  );
 
   let isSelectedAllReal = false;
 
   const columns = [
     {
-      width: 60,
       fixed: 'left',
       label: () => (
         <bk-checkbox
+          disabled={mainSelectDisable.value}
           label={true}
           model-value={isSelectedAll.value}
-          disabled={mainSelectDisable.value}
-          onClick={(e: Event) => e.stopPropagation()}
           onChange={handleSelectPageAll}
+          onClick={(e: Event) => e.stopPropagation()}
         />
       ),
       render: ({ data }: DataRow) => {
         if (props.disabledRowConfig && props.disabledRowConfig.handler(data)) {
           return (
-            <bk-popover theme="dark" placement="top" popoverDelay={0}>
+            <bk-popover
+              placement='top'
+              popoverDelay={0}
+              theme='dark'>
               {{
-                default: () => <bk-checkbox style="vertical-align: middle;" disabled />,
                 content: () => <span>{props.disabledRowConfig?.tip}</span>,
+                default: () => (
+                  <bk-checkbox
+                    style='vertical-align: middle;'
+                    disabled
+                  />
+                ),
               }}
             </bk-popover>
           );
         }
         return (
           <bk-checkbox
-            style="vertical-align: middle;"
             label={true}
             model-value={Boolean(checkedMap.value[data[firstColumnFieldId.value]])}
-            onClick={(e: Event) => e.stopPropagation()}
+            style='vertical-align: middle;'
             onChange={(value: boolean) => handleTableSelectOne(value, data)}
+            onClick={(e: Event) => e.stopPropagation()}
           />
         );
       },
+      width: 60,
     },
     {
-      fixed: 'left',
-      minWidth: 160,
-      label: props.firsrColumn?.label ? props.firsrColumn.label : t('实例'),
       field: props.firsrColumn?.field ? props.firsrColumn.field : 'instance_address',
+      fixed: 'left',
+      label: props.firsrColumn?.label ? props.firsrColumn.label : t('实例'),
+      minWidth: 160,
     },
     {
-      label: t('角色'),
       field: 'role',
-      showOverflow: true,
       filter: props.roleFilterList,
-      render: ({ data }: DataRow) => <span>{props.fieldFormat?.role ? props.fieldFormat.role[data.role] : data.role}</span>
+      label: t('角色'),
+      render: ({ data }: DataRow) => (
+        <span>{props.fieldFormat?.role ? props.fieldFormat.role[data.role] : data.role}</span>
+      ),
+      showOverflow: true,
     },
     {
-      label: t('实例状态'),
       field: 'status',
+      label: t('实例状态'),
       render: ({ data }: DataRow) => {
         const isNormal = props.statusFilter ? props.statusFilter(data) : data.status === 'running';
-        const info = isNormal ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
+        const info = isNormal ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
     },
     {
-      label: t('园区'),
       field: 'bk_sub_zone',
+      label: t('园区'),
       minWidth: 120,
-      showOverflow: true,
       render: ({ data }: DataRow) => data.bk_sub_zone || '--',
+      showOverflow: true,
     },
     {
-      label: t('机架ID'),
       field: 'bk_rack_id',
+      label: t('机架ID'),
       minWidth: 80,
-      showOverflow: true,
       render: ({ data }: DataRow) => data.bk_rack_id || '--',
+      showOverflow: true,
     },
     {
-      label: t('机型'),
       field: 'bk_svr_device_cls_name',
+      label: t('机型'),
       minWidth: 120,
-      showOverflow: true,
       render: ({ data }: DataRow) => data.bk_svr_device_cls_name || '--',
-    },
-    {
-      minWidth: 100,
-      label: t('管控区域'),
-      field: 'cloud_area',
       showOverflow: true,
-      render: ({ data }: DataRow) => data.host_info?.cloud_area?.name || '--',
     },
     {
+      field: 'cloud_area',
+      label: t('管控区域'),
       minWidth: 100,
-      label: t('Agent状态'),
+      render: ({ data }: DataRow) => data.host_info?.cloud_area?.name || '--',
+      showOverflow: true,
+    },
+    {
       field: 'alive',
+      label: t('Agent状态'),
+      minWidth: 100,
       render: ({ data }: DataRow) => {
-        const info = data.host_info?.alive === 1 ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
+        const info =
+          data.host_info?.alive === 1 ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
     },
     {
-      label: t('主机名称'),
       field: 'host_name',
-      showOverflow: true,
+      label: t('主机名称'),
       render: ({ data }: DataRow) => data.host_info?.host_name || '--',
+      showOverflow: true,
     },
     {
-      label: t('OS名称'),
       field: 'os_name',
-      showOverflow: true,
+      label: t('OS名称'),
       render: ({ data }: DataRow) => data.host_info?.os_name || '--',
+      showOverflow: true,
     },
     {
-      label: t('所属云厂商'),
       field: 'cloud_vendor',
-      showOverflow: true,
+      label: t('所属云厂商'),
       render: ({ data }: DataRow) => data.host_info?.cloud_vendor || '--',
+      showOverflow: true,
     },
     {
-      label: t('OS类型'),
       field: 'os_type',
-      showOverflow: true,
+      label: t('OS类型'),
       render: ({ data }: DataRow) => data.host_info.os_type || '--',
+      showOverflow: true,
     },
     {
-      label: t('主机ID'),
       field: 'host_id',
-      showOverflow: true,
+      label: t('主机ID'),
       render: ({ data }: DataRow) => data.host_info?.host_id || '--',
+      showOverflow: true,
     },
     {
-      label: 'Agent ID',
       field: 'agent_id',
-      showOverflow: true,
+      label: 'Agent ID',
       render: ({ data }: DataRow) => data.host_info?.agent_id || '--',
+      showOverflow: true,
     },
   ];
 
-  watch(() => props.lastValues, () => {
-    checkedMap.value = {};
-    if (props.lastValues[props.activePanelId]) {
-      for (const item of Object.values(props.lastValues[props.activePanelId])) {
-        checkedMap.value[item[firstColumnFieldId.value]] = item;
+  watch(
+    () => props.lastValues,
+    () => {
+      checkedMap.value = {};
+      if (props.lastValues[props.activePanelId]) {
+        for (const item of Object.values(props.lastValues[props.activePanelId])) {
+          checkedMap.value[item[firstColumnFieldId.value]] = item;
+        }
       }
-    }
-  }, {
-    immediate: true,
-    deep: true,
-  });
+    },
+    {
+      deep: true,
+      immediate: true,
+    },
+  );
 
-  watch(() => props.manualTableData, () => {
-    pagination.value.count = props.manualTableData.length;
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.manualTableData,
+    () => {
+      pagination.value.count = props.manualTableData.length;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const triggerChange = () => {
     const lastValues: InstanceSelectorValues<IValue> = {
@@ -270,9 +288,9 @@
   };
 
   watch(searchValue, () => {
-    checkedMap.value = {}
-    triggerChange()
-  })
+    checkedMap.value = {};
+    triggerChange();
+  });
 
   const handleSelectPageAll = (checked: boolean) => {
     if (checked) {

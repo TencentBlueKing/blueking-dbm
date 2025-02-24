@@ -58,11 +58,11 @@
   import useValidtor, { type Rules } from '../../hooks/useValidtor';
 
   interface Props {
-    placeholder?: string;
-    modelValue?: string[];
-    single?: boolean;
-    rules?: Rules;
     disabled?: boolean;
+    modelValue?: string[];
+    placeholder?: string;
+    rules?: Rules;
+    single?: boolean;
   }
 
   interface Emits {
@@ -77,11 +77,11 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    placeholder: '',
-    modelValue: undefined,
-    single: false,
-    rules: undefined,
     disabled: false,
+    modelValue: undefined,
+    placeholder: '',
+    rules: undefined,
+    single: false,
   });
 
   const emits = defineEmits<Emits>();
@@ -143,17 +143,17 @@
   onMounted(() => {
     if (slots.tip) {
       tippyIns = tippy(rootRef.value as SingleTarget, {
-        content: popRef.value,
-        placement: 'top',
         appendTo: () => document.body,
-        theme: 'light',
-        maxWidth: 'none',
-        trigger: 'manual',
-        interactive: true,
         arrow: true,
-        offset: [0, 18],
-        zIndex: 9998,
+        content: popRef.value,
         hideOnClick: true,
+        interactive: true,
+        maxWidth: 'none',
+        offset: [0, 18],
+        placement: 'top',
+        theme: 'light',
+        trigger: 'manual',
+        zIndex: 9998,
       });
     }
   });

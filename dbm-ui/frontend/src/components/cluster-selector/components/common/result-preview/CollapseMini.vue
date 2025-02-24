@@ -49,16 +49,16 @@
 <script setup lang="ts">
   const props = defineProps({
     collapse: {
-      type: Boolean,
       default: true,
-    },
-    title: {
-      type: String,
-      default: 'Title',
+      type: Boolean,
     },
     count: {
-      type: Number,
       default: 0,
+      type: Number,
+    },
+    title: {
+      default: 'Title',
+      type: String,
     },
   });
 

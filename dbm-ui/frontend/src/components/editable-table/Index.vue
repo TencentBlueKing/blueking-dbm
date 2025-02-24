@@ -91,23 +91,23 @@
 
   export interface Expose {
     validate: () => Promise<boolean>;
-    validateByRowIndex: (row: number | number[]) => Promise<boolean>;
     validateByColumnIndex: (row: number | number[]) => Promise<boolean>;
     validateByField: (row: string | string[]) => Promise<boolean>;
+    validateByRowIndex: (row: number | number[]) => Promise<boolean>;
   }
 
   export const tableInjectKey: InjectionKey<
     {
-      props: Props;
-      emits: Emits;
-      fixedRight: Ref<boolean>;
-      fixedLeft: Ref<boolean>;
       columnSizeConfig: Ref<Record<string, { renderWidth: number }>>;
-      registerRow: (rowColumnList: IColumnContext[]) => void;
-      updateRow: () => void;
-      unregisterRow: (rowColumnList: IColumnContext[]) => void;
+      emits: Emits;
+      fixedLeft: Ref<boolean>;
+      fixedRight: Ref<boolean>;
       getAllColumnList: () => IColumnContext[][];
       getColumnRelateRowIndexByInstance: (columnInstance: ComponentInternalInstance) => number;
+      props: Props;
+      registerRow: (rowColumnList: IColumnContext[]) => void;
+      unregisterRow: (rowColumnList: IColumnContext[]) => void;
+      updateRow: () => void;
     } & Expose
   > = Symbol.for('bk-editable-table');
 
@@ -134,8 +134,8 @@
 
   const isShowScrollX = ref(true);
 
-  const { handleMouseDown, handleMouseMove, columnSizeConfig } = useResize(tableRef, resizePlaceholderRef, columnList);
-  const { leftFixedStyles, rightFixedStyles, initalScroll, fixedLeft, fixedRight } = useScroll(tableRef);
+  const { columnSizeConfig, handleMouseDown, handleMouseMove } = useResize(tableRef, resizePlaceholderRef, columnList);
+  const { fixedLeft, fixedRight, initalScroll, leftFixedStyles, rightFixedStyles } = useScroll(tableRef);
 
   watch(
     columnSizeConfig,
@@ -155,8 +155,8 @@
       });
     },
     {
-      immediate: true,
       deep: true,
+      immediate: true,
     },
   );
 
@@ -230,27 +230,27 @@
   };
 
   provide(tableInjectKey, {
-    props,
+    columnSizeConfig,
     emits,
     fixedLeft,
     fixedRight,
-    columnSizeConfig,
-    registerRow,
-    updateRow,
-    unregisterRow,
     getAllColumnList: () => rowList.value,
     getColumnRelateRowIndexByInstance,
+    props,
+    registerRow,
+    unregisterRow,
+    updateRow,
     validate,
-    validateByRowIndex,
     validateByColumnIndex,
     validateByField,
+    validateByRowIndex,
   });
 
   defineExpose<Expose>({
     validate,
-    validateByRowIndex,
     validateByColumnIndex,
     validateByField,
+    validateByRowIndex,
   });
 </script>
 <style lang="less">

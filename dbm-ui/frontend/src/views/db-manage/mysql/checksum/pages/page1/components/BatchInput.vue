@@ -119,17 +119,15 @@
 
   export interface InputItem {
     cluster: string;
-    master: string;
-    slaves: string[];
     dbs: string[];
     ignoreDbs: string[];
-    tables: string[];
     ignoreTables: string[];
+    master: string;
+    slaves: string[];
+    tables: string[];
   }
 
-  interface Emits {
-    (e: 'change', value: Array<InputItem>): void;
-  }
+  type Emits = (e: 'change', value: Array<InputItem>) => void;
 
   const emits = defineEmits<Emits>();
 
@@ -145,19 +143,19 @@
   const placeholder = t('请分别输入目标集群_校验主库_校验从库_校验DB_校验表名_忽略DB名_忽略表名_多个对象_换行分隔');
 
   const state = reactive({
-    values: '',
     formatError: {
-      show: false,
-      selectionStart: 0,
-      selectionEnd: 0,
       count: 0,
+      selectionEnd: 0,
+      selectionStart: 0,
+      show: false,
     },
     instError: {
-      show: false,
-      selectionStart: 0,
-      selectionEnd: 0,
       count: 0,
+      selectionEnd: 0,
+      selectionStart: 0,
+      show: false,
     },
+    values: '',
   });
 
   /**
@@ -171,7 +169,7 @@
    * 标记错误信息
    */
   function handleSelectionError(key: 'formatError' | 'instError') {
-    const { selectionStart, selectionEnd } = state[key];
+    const { selectionEnd, selectionStart } = state[key];
     const textarea = inputRef.value?.$el?.getElementsByTagName?.('textarea')?.[0];
     if (textarea) {
       (textarea as HTMLInputElement).focus();
@@ -185,10 +183,10 @@
 
   function handleClose() {
     const init = {
-      show: false,
-      selectionStart: 0,
-      selectionEnd: 0,
       count: 0,
+      selectionEnd: 0,
+      selectionStart: 0,
+      show: false,
     };
     state.formatError = { ...init };
     state.values = '';
@@ -252,12 +250,12 @@
       const [cluster, master, slaves, dbs, ignoreDBs, tables, ignoreTables] = getContents(item);
       return {
         cluster,
-        master,
-        slaves: slaves.split(',').filter((inst) => ipPort.test(inst)),
         dbs: getValue(dbs),
         ignoreDbs: ignoreDBs === 'null' ? [] : getValue(ignoreDBs),
-        tables: getValue(tables),
         ignoreTables: ignoreTables === 'null' ? [] : getValue(ignoreTables),
+        master,
+        slaves: slaves.split(',').filter((inst) => ipPort.test(inst)),
+        tables: getValue(tables),
       };
     });
     emits('change', res);

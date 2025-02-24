@@ -78,37 +78,37 @@
   import RenderTargetCluster from './RenderTargetCluster.vue';
 
   export interface IDataRow {
-    rowKey: string;
-    isLoading: boolean;
-    srcCluster: string;
-    srcClusterTypeName: string;
-    srcClusterId: number;
-    targetCluster: string;
-    password: string;
-    includeKey: string[];
     excludeKey: string[];
+    includeKey: string[];
+    isLoading: boolean;
+    password: string;
+    rowKey: string;
+    srcCluster: string;
+    srcClusterId: number;
+    srcClusterTypeName: string;
+    targetCluster: string;
   }
 
   export type IDataRowBatchKey = keyof Pick<IDataRow, 'includeKey' | 'excludeKey'>;
 
   // 创建表格数据
   export const createRowData = (): IDataRow => ({
-    rowKey: random(),
-    isLoading: false,
-    srcCluster: '',
-    srcClusterTypeName: '',
-    srcClusterId: 0,
-    targetCluster: '',
-    password: '',
-    includeKey: ['*'],
     excludeKey: [],
+    includeKey: ['*'],
+    isLoading: false,
+    password: '',
+    rowKey: random(),
+    srcCluster: '',
+    srcClusterId: 0,
+    srcClusterTypeName: '',
+    targetCluster: '',
   });
 </script>
 <script setup lang="ts">
   interface Props {
     data: IDataRow;
-    removeable: boolean;
     inputedClusters?: string[];
+    removeable: boolean;
   }
 
   interface Emits {
@@ -170,12 +170,12 @@
       );
       emits('clone', {
         ...props.data,
-        rowKey: random(),
-        isLoading: false,
-        targetCluster,
-        password,
-        includeKey,
         excludeKey,
+        includeKey,
+        isLoading: false,
+        password,
+        rowKey: random(),
+        targetCluster,
       });
     });
   };
@@ -186,11 +186,11 @@
       return await Promise.all(getRowData()).then((data) => {
         const [srcClusterId, targetCluster, password, includeKey, excludeKey] = data;
         return {
-          src_cluster: srcClusterId,
           dst_cluster: targetCluster,
           dst_cluster_password: password,
-          key_white_regex: includeKey.join('\n'),
           key_black_regex: excludeKey.join('\n'),
+          key_white_regex: includeKey.join('\n'),
+          src_cluster: srcClusterId,
         };
       });
     },

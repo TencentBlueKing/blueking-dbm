@@ -74,9 +74,7 @@
 
   import { useGlobalBizs } from '@/stores';
 
-  interface Emits {
-    (e: 'change', value: { id: number; instance: string }): void;
-  }
+  type Emits = (e: 'change', value: { id: number; instance: string }) => void;
 
   const emits = defineEmits<Emits>();
 
@@ -91,9 +89,9 @@
   const activeInstId = ref(0);
   const listData = ref<InfluxdbInstanceModel[]>([]);
   const pagination = reactive({
-    limit: 50,
-    current: 1,
     count: 0,
+    current: 1,
+    limit: 50,
   });
 
   /**
@@ -101,9 +99,9 @@
    */
   const getItemStatus = (data: InfluxdbInstanceModel) => {
     const statusMap = {
+      restoring: 'loading',
       running: 'success',
       unavailable: 'danger',
-      restoring: 'loading',
     };
     return statusMap[data.status as keyof typeof statusMap] || 'danger';
   };
@@ -112,9 +110,9 @@
     isLoading.value = true;
     getInfluxdbInstanceList({
       bk_biz_id: currentBizId,
+      instance_address: searchKey.value,
       limit: pagination.limit,
       offset: pagination.limit * (pagination.current - 1),
-      instance_address: searchKey.value,
     })
       .then((data) => {
         listData.value = data.results;

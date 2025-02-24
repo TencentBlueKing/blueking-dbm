@@ -34,12 +34,12 @@
 
   const list = [
     {
-      value: 'keep',
       label: t('保留索引'),
+      value: 'keep',
     },
     {
-      value: 'delete',
       label: t('删除索引'),
+      value: 'delete',
     },
   ];
 

@@ -91,9 +91,9 @@
 
   const rules = [
     {
-      validator: (value: string[]) => value.length > 0,
-      trigger: 'blur',
       message: t('必填项'),
+      trigger: 'blur',
+      validator: (value: string[]) => value.length > 0,
     },
   ];
 
@@ -145,13 +145,13 @@
 
   const handleReset = () => {
     InfoBox({
-      title: t('确认重置'),
-      content: t('重置将会恢复上次保存的内容'),
       cancelText: t('取消'),
+      content: t('重置将会恢复上次保存的内容'),
       onConfirm: () => {
         adminList.value = _.cloneDeep(adminListMemo);
         return true;
       },
+      title: t('确认重置'),
     });
   };
 </script>

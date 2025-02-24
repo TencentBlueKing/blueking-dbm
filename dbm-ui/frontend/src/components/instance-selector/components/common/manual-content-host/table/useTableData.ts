@@ -20,22 +20,22 @@ import { useGlobalBizs } from '@stores';
  */
 export function useTableData<T>(role?: Ref<string | undefined>) {
   const { currentBizId } = useGlobalBizs();
-  const currentInstance = getCurrentInstance() as ComponentInternalInstance & {
+  const currentInstance = getCurrentInstance() as {
     proxy: {
       getTableList: (params: any) => Promise<any>;
     };
-  };
+  } & ComponentInternalInstance;
 
   const isLoading = ref(false);
   const tableData = shallowRef<T[]>([]);
   const isAnomalies = ref(false);
   const pagination = reactive({
+    align: 'right',
     count: 0,
     current: 1,
+    layout: ['total', 'limit', 'list'],
     limit: 10,
     limitList: [10, 20, 50, 100],
-    align: 'right',
-    layout: ['total', 'limit', 'list'],
     remote: false,
   });
   const searchValue = ref('');
@@ -88,12 +88,12 @@ export function useTableData<T>(role?: Ref<string | undefined>) {
   };
 
   return {
-    isLoading,
     data: tableData,
+    fetchResources,
+    handeChangeLimit,
+    handleChangePage,
+    isLoading,
     pagination,
     searchValue,
-    fetchResources,
-    handleChangePage,
-    handeChangeLimit,
   };
 }

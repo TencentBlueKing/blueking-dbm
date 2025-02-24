@@ -118,33 +118,33 @@
 
   const rules = [
     {
-      validator: (value: string) => value.split(splitReg).length >= 2,
       message: t('请输入2台IP'),
+      validator: (value: string) => value.split(splitReg).length >= 2,
     },
     {
+      message: t('IP格式不正确'),
       validator: (value: string) => {
         const ipList = _.filter(value.split(splitReg), (item) => item) as Array<string>;
         return _.every(ipList, (item) => ipv4.test(_.trim(item)));
       },
-      message: t('IP格式不正确'),
     },
     {
+      message: t('输入的主从IP重复'),
       validator: (value: string) => {
         const [fisrt, last] = value.split(splitReg);
         return _.trim(fisrt) !== _.trim(last);
       },
-      message: t('输入的主从IP重复'),
     },
     {
+      message: t('IP不存在'),
       validator: (value: string) => {
         const [masterIp, slaveIp] = value.split(splitReg);
         return getHostTopoInfos({
+          bk_biz_id: currentBizId,
           filter_conditions: {
             bk_host_innerip: [masterIp, slaveIp],
           },
-          bk_biz_id: currentBizId,
         }).then((data) => {
-          // eslint-disable-next-line no-param-reassign
           // data.hosts_topo_info = [
           //   ...data.hosts_topo_info,
           //   ...data.hosts_topo_info.map(item => ({
@@ -185,9 +185,9 @@
           return false;
         });
       },
-      message: t('IP不存在'),
     },
     {
+      message: t('IP重复'),
       validator: () => {
         const otherHostSelectMemo = { ...singleHostSelectMemo };
         delete otherHostSelectMemo[instanceKey];
@@ -204,7 +204,6 @@
 
         return true;
       },
-      message: t('IP重复'),
     },
   ];
 
@@ -223,19 +222,19 @@
           return;
         }
         tippyIns = tippy(handlerRef.value as SingleTarget, {
-          content: popRef.value,
-          placement: 'top',
           appendTo: () => document.body,
-          theme: 'light',
-          maxWidth: 'none',
-          trigger: 'click',
-          interactive: true,
           arrow: true,
+          content: popRef.value,
+          interactive: true,
+          maxWidth: 'none',
           offset: [0, 8],
-          zIndex: 999999,
           onHide() {
             // selectRelateClusterList.value = Object.values(realateCheckedMap.value);
           },
+          placement: 'top',
+          theme: 'light',
+          trigger: 'click',
+          zIndex: 999999,
         });
       }
     });
@@ -263,9 +262,9 @@
   defineExpose<Exposes>({
     getValue() {
       const formatHost = (item: HostTopoInfo) => ({
-        ip: item.ip,
         bk_cloud_id: item.bk_cloud_id,
         bk_host_id: item.bk_host_id,
+        ip: item.ip,
       });
       return inputRef.value.getValue().then(() =>
         Promise.resolve({

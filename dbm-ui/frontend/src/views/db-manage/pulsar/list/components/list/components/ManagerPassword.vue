@@ -116,9 +116,9 @@
   const result = ref({
     cluster_name: '',
     domain: '',
-    username: '',
     password: '',
     token: '',
+    username: '',
   });
 
   getPulsarPassword({ cluster_id: props.clusterId })
@@ -143,10 +143,10 @@
   });
 
   const handleCopy = (type: string) => {
-    const { cluster_name, domain, username, password, token } = result.value;
+    const { cluster_name: clusterName, domain, password, token, username } = result.value;
     switch (type) {
       case 'cluster_name':
-        copy(cluster_name);
+        copy(clusterName);
         break;
       case 'domain':
         copy(domain);
@@ -162,8 +162,8 @@
         break;
       default:
         // 复制所有
-        // eslint-disable-next-line no-case-declarations, camelcase
-        const content = `${t('集群名称')}: ${cluster_name}\n${t('域名')}: ${domain}\n${t('Manager 账号')}: ${username}\n${t('Manager 密码')}: ${password}\nToken: ${token}`;
+
+        const content = `${t('集群名称')}: ${clusterName}\n${t('域名')}: ${domain}\n${t('Manager 账号')}: ${username}\n${t('Manager 密码')}: ${password}\nToken: ${token}`;
         copy(content);
         break;
     }

@@ -143,8 +143,8 @@
   const batchEditShow = reactive({
     dbPatterns: false,
     ignoreDbs: false,
-    tablePatterns: false,
     ignoreTables: false,
+    tablePatterns: false,
   });
 
   const handleBatchEditShow = (key: IDataRowBatchKey) => {

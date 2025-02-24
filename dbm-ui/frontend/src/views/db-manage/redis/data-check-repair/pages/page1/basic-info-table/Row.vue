@@ -53,21 +53,21 @@
 
   export interface IDataRow {
     billId: number;
+    excludeKey: string[];
+    includeKey: string[];
+    instances: string;
     relateTicket: number;
     srcCluster: string;
-    instances: string;
     targetCluster: string;
-    includeKey: string[];
-    excludeKey: string[];
   }
 
   export interface InfoItem {
     bill_id: number; // 关联的(数据复制)单据ID
+    dst_cluster: string; // 目的集群,来自于数据复制记录
+    key_black_regex: string; // 排除key
+    key_white_regex: string; // 包含key
     src_cluster: string; // 源集群,来自于数据复制记录
     src_instances: string[]; // 源实例列表
-    dst_cluster: string; // 目的集群,来自于数据复制记录
-    key_white_regex: string; // 包含key
-    key_black_regex: string; // 排除key
   }
 </script>
 <script setup lang="ts">
@@ -131,11 +131,11 @@
         const [instances, includeKey, excludeKey] = data;
         return {
           bill_id: props.data.billId,
+          dst_cluster: props.data.targetCluster,
+          key_black_regex: excludeKey.join('\n'),
+          key_white_regex: includeKey.join('\n'),
           src_cluster: props.data.srcCluster,
           src_instances: instances,
-          dst_cluster: props.data.targetCluster,
-          key_white_regex: includeKey.join('\n'),
-          key_black_regex: excludeKey.join('\n'),
         };
       });
     },

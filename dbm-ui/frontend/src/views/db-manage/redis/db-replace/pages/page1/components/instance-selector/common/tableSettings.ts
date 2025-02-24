@@ -14,54 +14,54 @@
 import { t } from '@locales/index';
 
 const getSettings = (role?: string) => ({
+  checked: ['instance_address', 'role', 'cloud_area', 'alive', 'host_name'],
   fields: [
     {
-      label: role ? role.charAt(0).toUpperCase() + role.slice(1) : t('实例'),
-      field: 'instance_address',
       disabled: true,
+      field: 'instance_address',
+      label: role ? role.charAt(0).toUpperCase() + role.slice(1) : t('实例'),
     },
     {
-      label: t('角色'),
       field: 'role',
+      label: t('角色'),
     },
     {
-      label: t('实例状态'),
       field: 'status',
+      label: t('实例状态'),
     },
     {
-      label: t('管控区域'),
       field: 'cloud_area',
+      label: t('管控区域'),
     },
     {
-      label: t('Agent状态'),
       field: 'alive',
+      label: t('Agent状态'),
     },
     {
-      label: t('主机名称'),
       field: 'host_name',
+      label: t('主机名称'),
     },
     {
-      label: t('OS名称'),
       field: 'os_name',
+      label: t('OS名称'),
     },
     {
-      label: t('所属云厂商'),
       field: 'cloud_vendor',
+      label: t('所属云厂商'),
     },
     {
-      label: t('OS类型'),
       field: 'os_type',
+      label: t('OS类型'),
     },
     {
-      label: t('主机ID'),
       field: 'host_id',
+      label: t('主机ID'),
     },
     {
-      label: 'Agent ID',
       field: 'agent_id',
+      label: 'Agent ID',
     },
   ],
-  checked: ['instance_address', 'role', 'cloud_area', 'alive', 'host_name'],
 });
 
 export default getSettings;

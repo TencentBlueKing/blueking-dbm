@@ -106,8 +106,8 @@
 
   interface Props {
     ticketCloneData?: {
-      tableDataList: IDataRow[];
       formData: UnwrapRef<typeof formData>;
+      tableDataList: IDataRow[];
     };
   }
 
@@ -132,8 +132,8 @@
         name: t('目标从库'),
         tableConfig: {
           firsrColumn: {
-            label: t('Slave 主机'),
             field: 'ip',
+            label: t('Slave 主机'),
             role: 'remote_slave',
           },
         },
@@ -141,8 +141,8 @@
       {
         tableConfig: {
           firsrColumn: {
-            label: t('Slave 主机'),
             field: 'ip',
+            label: t('Slave 主机'),
             role: 'remote_slave',
           },
         },
@@ -178,18 +178,18 @@
   };
 
   const generateRowDateFromRequest = (item: IValue) => ({
-    rowKey: random(),
     isLoading: false,
     oldSlave: {
       bkCloudId: item.bk_cloud_id,
       bkCloudName: item.bk_cloud_name || '',
       bkHostId: item.bk_host_id,
-      ip: item.ip,
-      domian: item.master_domain || '',
       clusterId: item.cluster_id,
-      specConfig: item.spec_config || ({} as IDataRow['oldSlave']['specConfig']),
+      domian: item.master_domain || '',
+      ip: item.ip,
       slaveInstanceList: item.related_instances || ([] as IDataRow['oldSlave']['slaveInstanceList']),
+      specConfig: item.spec_config || ({} as IDataRow['oldSlave']['specConfig']),
     },
+    rowKey: random(),
   });
 
   const handleInstancesChange = (selectedValues: InstanceSelectorValues<IValue>) => {
@@ -221,8 +221,8 @@
     }
     tableData.value[index].isLoading = true;
     const spiderMachineResult = await getTendbclusterMachineList({
-      ip,
       instance_role: 'remote_slave',
+      ip,
     }).finally(() => {
       tableData.value[index].isLoading = false;
     });
@@ -234,14 +234,14 @@
       bkCloudId: spiderMachineItem.bk_cloud_id,
       bkCloudName: spiderMachineItem.bk_cloud_name,
       bkHostId: spiderMachineItem.bk_host_id,
-      ip: spiderMachineItem.ip,
       clusterId: spiderMachineItem.related_clusters[0].id,
       domian: spiderMachineItem.related_clusters[0].immute_domain,
-      specConfig: spiderMachineItem.spec_config,
+      ip: spiderMachineItem.ip,
       slaveInstanceList: spiderMachineItem.related_instances.map((instanceItem) => ({
-        status: instanceItem.status,
         instance: instanceItem.instance,
+        status: instanceItem.status,
       })),
+      specConfig: spiderMachineItem.spec_config,
     });
     ipMemo[ip] = true;
   };
@@ -281,14 +281,14 @@
       isSubmitting.value = true;
       const infos = await Promise.all(rowRefs.value.map((item) => item.getValue()));
       await createTicket({
-        ticket_type: TicketTypes.TENDBCLUSTER_RESTORE_SLAVE,
-        remark: '',
+        bk_biz_id: currentBizId,
         details: {
-          ip_source: 'resource_pool',
           backup_source: formData.backup_source,
           infos,
+          ip_source: 'resource_pool',
         },
-        bk_biz_id: currentBizId,
+        remark: '',
+        ticket_type: TicketTypes.TENDBCLUSTER_RESTORE_SLAVE,
       }).then((data) => {
         window.changeConfirm = false;
 

@@ -65,33 +65,33 @@
   const { t } = useI18n();
 
   const disabledTagMap = {
-    monitor: true,
     model: true,
+    monitor: true,
     msdb: true,
     tempdb: true,
   };
 
   const rules = [
     {
-      validator: (value: string[]) => _.every(value, (item) => item !== '*'),
       message: t('不允许为 *'),
+      validator: (value: string[]) => _.every(value, (item) => item !== '*'),
     },
     {
-      validator: (value: string[]) => _.every(value, (item) => !disabledTagMap[item as keyof typeof disabledTagMap]),
       message: t(`DB名不能支持 n`, { n: Object.keys(disabledTagMap).join(',') }),
+      validator: (value: string[]) => _.every(value, (item) => !disabledTagMap[item as keyof typeof disabledTagMap]),
     },
     {
-      validator: (value: string[]) => _.every(value, (item) => !/^%$/.test(item)),
       message: t('% 不允许单独使用'),
+      validator: (value: string[]) => _.every(value, (item) => !/^%$/.test(item)),
     },
     {
+      message: t('含通配符的单元格仅支持输入单个对象'),
       validator: (value: string[]) => {
         if (_.some(value, (item) => /[*%?]/.test(item))) {
           return value.length < 2;
         }
         return true;
       },
-      message: t('含通配符的单元格仅支持输入单个对象'),
     },
   ];
 
@@ -131,17 +131,17 @@
 
   onMounted(() => {
     tippyIns = tippy(rootRef.value as SingleTarget, {
-      content: popRef.value,
-      placement: 'top',
       appendTo: () => document.body,
-      theme: 'light',
-      maxWidth: 'none',
-      trigger: 'manual',
-      interactive: true,
       arrow: true,
-      offset: [0, 8],
-      zIndex: 999999,
+      content: popRef.value,
       hideOnClick: true,
+      interactive: true,
+      maxWidth: 'none',
+      offset: [0, 8],
+      placement: 'top',
+      theme: 'light',
+      trigger: 'manual',
+      zIndex: 999999,
     });
   });
 

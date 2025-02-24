@@ -78,35 +78,35 @@
   type ResourceItemInstInfo = TendbhaModel['masters'][number];
 
   export interface IDataRow {
-    rowKey: string;
-    isLoading: boolean;
     clusterData?: {
-      id: number;
       domain: string;
+      id: number;
     };
     dbPatterns: string[];
     ignoreDbs: string[];
-    tablePatterns: string[];
     ignoreTables: string[];
+    isLoading: boolean;
     master: string;
     masterInstance: ResourceItemInstInfo;
-    slaves: string[];
+    rowKey: string;
     slaveList: ResourceItemInstInfo[];
+    slaves: string[];
+    tablePatterns: string[];
   }
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>): IDataRow => ({
-    rowKey: random(),
-    isLoading: false,
     clusterData: data.clusterData,
     dbPatterns: data.dbPatterns ?? [],
     ignoreDbs: data.ignoreDbs ?? [],
-    tablePatterns: data.tablePatterns ?? [],
     ignoreTables: data.ignoreTables ?? [],
+    isLoading: false,
     master: data.master ?? '',
     masterInstance: data.masterInstance ?? createInstanceData(),
-    slaves: data.slaves ?? [],
+    rowKey: random(),
     slaveList: data.slaveList ?? [],
+    slaves: data.slaves ?? [],
+    tablePatterns: data.tablePatterns ?? [],
   });
 
   export const createInstanceData = (): ResourceItemInstInfo => ({
@@ -114,15 +114,15 @@
     bk_cloud_id: 0,
     bk_host_id: 0,
     bk_instance_id: 0,
+    instance: '',
     ip: '',
     name: '',
-    instance: '',
-    port: 0,
-    status: 'running',
     phase: '',
+    port: 0,
     spec_config: {
       id: 0,
     },
+    status: 'running',
     version: '',
   });
 

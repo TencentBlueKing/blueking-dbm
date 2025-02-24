@@ -16,8 +16,8 @@ import { utcDisplayTime } from '@utils';
 
 export default class MonitorPolicy {
   bk_biz_id: number; // 所属业务，等于0则属于平台策略
-  creator: string;
   create_at: string;
+  creator: string;
   custom_conditions: {
     condition: string;
     dimension_name: string;
@@ -25,20 +25,19 @@ export default class MonitorPolicy {
     method: string;
     value: string[];
   }[];
-  dispatch_group_id: number;
   db_type: string; // 所属db组件
+  dispatch_group_id: number;
   event_count: number; // 事件数量，-1代表未知，实际数量应为>=0
   event_url: string;
   id: number;
+  is_checked: boolean;
   is_enabled: boolean; // 是否启用
   is_synced: boolean;
-  is_checked: boolean;
-  monitor_policy_id: number;
   monitor_indicator: string;
+  monitor_policy_id: number;
   name: string; // 策略名
-  notify_rules: string[];
   notify_groups: number[]; // 告警组ID列表
-  policy_status: string; // 策略状态：valid(正常)|invalid（异常）
+  notify_rules: string[];
   parent_id: number;
   permission: {
     global_monitor_policy_clone: boolean;
@@ -50,30 +49,31 @@ export default class MonitorPolicy {
     monitor_policy_edit: boolean;
     monitor_policy_start_stop: boolean;
   };
+  policy_status: string; // 策略状态：valid(正常)|invalid（异常）
   sync_at: string;
+  target_keyword: string;
+  target_level: string;
+  target_priority: number;
   targets: {
+    level: string; // 业务级
     rule: {
       key: string; // 业务
       value: string[]; // 业务列表
     };
-    level: string; // 业务级
   }[];
-  target_level: string;
-  target_priority: number;
-  target_keyword: string;
   // 检测规则
   test_rules: {
-    type: string; // 暂时只存在这一种（阈值类）
-    level: number; // level: 1（致命）、2（预警）、3(提醒)
     // 列表与列表之间是OR的关系, 列表内的元素间是AND的关系
     config: {
       method: string; // gt(大于)|gte(大于等于)|lt|lte|eq(等于)|neq(不等于)
       threshold: number;
     }[][];
+    level: number; // level: 1（致命）、2（预警）、3(提醒)
+    type: string; // 暂时只存在这一种（阈值类）
     unit_prefix: string; // 单位，比如%，原样返回即可
   }[];
-  updater: string;
   update_at: string;
+  updater: string;
 
   constructor(payload = {} as MonitorPolicy) {
     this.bk_biz_id = payload.bk_biz_id;
@@ -106,15 +106,15 @@ export default class MonitorPolicy {
     this.update_at = payload.update_at;
   }
 
+  get isInner() {
+    return this.bk_biz_id === 0;
+  }
+
   get isNewCreated() {
     return dayjs().isBefore(dayjs(this.create_at).add(24, 'hour'));
   }
 
   get updateAtDisplay() {
     return utcDisplayTime(this.update_at);
-  }
-
-  get isInner() {
-    return this.bk_biz_id === 0;
   }
 }

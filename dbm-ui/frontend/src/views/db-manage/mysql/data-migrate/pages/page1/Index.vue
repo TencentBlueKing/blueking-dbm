@@ -86,13 +86,13 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.MYSQL_DATA_MIGRATE,
     onSuccess(cloneData) {
       const { tableDataList } = cloneData;
       tableData.value = tableDataList;
 
       window.changeConfirm = true;
     },
+    type: TicketTypes.MYSQL_DATA_MIGRATE,
   });
 
   const rowRefs = ref();
@@ -131,8 +131,8 @@
       const domain = item.master_domain;
       if (!domainMemo[domain]) {
         const row = createRowData({
-          id: item.id,
           domain: item.master_domain,
+          id: item.id,
           type: item.cluster_type,
         });
         result.push(row);
@@ -155,12 +155,12 @@
     }
 
     const resultList = await queryClusters({
+      bk_biz_id: currentBizId,
       cluster_filters: [
         {
           id: clusterId,
         },
       ],
-      bk_biz_id: currentBizId,
     });
     if (resultList.length < 1) {
       return;
@@ -168,8 +168,8 @@
     const item = resultList[0];
     const domain = item.master_domain;
     const row = createRowData({
-      id: item.id,
       domain,
+      id: item.id,
       type: item.cluster_type,
     });
     tableData.value[index] = row;
@@ -215,11 +215,11 @@
       );
       const params = {
         bk_biz_id: currentBizId,
-        ticket_type: TicketTypes.MYSQL_DATA_MIGRATE,
-        remark: remark.value,
         details: {
           infos,
         },
+        remark: remark.value,
+        ticket_type: TicketTypes.MYSQL_DATA_MIGRATE,
       };
       await createTicket(params).then((data) => {
         window.changeConfirm = false;

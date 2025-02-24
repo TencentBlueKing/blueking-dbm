@@ -18,17 +18,17 @@ export function generateMysqlSingleApplyCloneData(ticketData: TicketModel<Mysql.
   return Promise.resolve({
     affinity: details.disaster_tolerance_level,
     bizId: ticketData.bk_biz_id,
-    cloudId: details.bk_cloud_id,
     cityCode: details.city_code,
+    cloudId: details.bk_cloud_id,
     clusterCount: details.cluster_count,
-    dbModuleId: details.db_module_id,
     dbAppAbbr: ticketData.db_app_abbr,
+    dbModuleId: details.db_module_id,
     domains: details.domains,
     instNum: details.inst_num,
     ipSource: details.ip_source,
     nodes: details.nodes,
-    singleSpecId: details.resource_spec?.backend.spec_id,
     remark: ticketData.remark,
+    singleSpecId: details.resource_spec?.backend.spec_id,
     startMysqlPort: details.start_mysql_port,
   });
 }

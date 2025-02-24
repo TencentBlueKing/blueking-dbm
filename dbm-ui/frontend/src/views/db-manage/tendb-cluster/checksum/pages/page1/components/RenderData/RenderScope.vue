@@ -30,12 +30,10 @@
   import TableEditSelect from '@components/render-table/columns/select/index.vue';
 
   interface Props {
-    modelValue: string;
     clusterId?: number;
+    modelValue: string;
   }
-  interface Emits {
-    (e: 'change', value: string): void;
-  }
+  type Emits = (e: 'change', value: string) => void;
 
   interface Exposes {
     getValue: () => Promise<Record<string, string>>;
@@ -47,19 +45,19 @@
   const { t } = useI18n();
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('校验范围不能为空'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 
   const list = [
     {
-      value: 'all',
       label: t('整个集群'),
+      value: 'all',
     },
     {
-      value: 'partial',
       label: t('部分实例'),
+      value: 'partial',
     },
   ];
 

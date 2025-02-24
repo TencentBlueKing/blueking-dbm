@@ -44,19 +44,19 @@
   const props = defineProps<Props>();
 
   const modelValue = defineModel<string>({
-    required: false,
     default: '',
+    required: false,
   });
 
   const { t } = useI18n();
 
   const editRef = ref<InstanceType<typeof TableEditSelect>>();
-  const dbNameList = shallowRef<{ value: string; label: string }[]>([]);
+  const dbNameList = shallowRef<{ label: string; value: string }[]>([]);
 
   const rules = [
     {
-      validator: (value: string[]) => value.length > 0,
       message: t('克隆 DB 不能为空'),
+      validator: (value: string[]) => value.length > 0,
     },
   ];
 
@@ -66,8 +66,8 @@
       const [{ databases }] = data;
 
       dbNameList.value = databases.map((item) => ({
-        value: item,
         label: item,
+        value: item,
       }));
     },
   });

@@ -39,9 +39,7 @@
     data: IDataRow['srcCluster'];
   }
 
-  interface Emits {
-    (e: 'cluster-input-finish', value: IDataRow['srcCluster']): void;
-  }
+  type Emits = (e: 'cluster-input-finish', value: IDataRow['srcCluster']) => void;
 
   interface Exposes {
     getValue: () => Promise<{
@@ -64,14 +62,15 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('不能为空'),
+      validator: (value: string) => Boolean(value),
     },
     {
-      validator: (value: string) => domainRegex.test(value),
       message: t('目标集群输入格式有误'),
+      validator: (value: string) => domainRegex.test(value),
     },
     {
+      message: t('目标集群不存在'),
       validator: async (value: string) => {
         const ret = await getTendbhaList({ domain: value });
         const { results } = ret;
@@ -79,17 +78,17 @@
           const [item] = results;
           localClusterId.value = item.id;
           const obj = {
-            clusterName: value,
             clusterId: item.id,
+            clusterName: value,
             moduleId: item.db_module_id,
           };
           emits('cluster-input-finish', obj);
         }
         return results.length > 0;
       },
-      message: t('目标集群不存在'),
     },
     {
+      message: t('集群重复'),
       validator: () => {
         const currentClusterSelectMap = clusterIdMemo[instanceKey];
         const otherClusterMemoMap = { ...clusterIdMemo };
@@ -104,6 +103,7 @@
         );
 
         const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
+        // eslint-disable-next-line @typescript-eslint/prefer-for-of
         for (let i = 0; i < currentSelectClusterIdList.length; i++) {
           if (otherClusterIdMap[currentSelectClusterIdList[i]]) {
             return false;
@@ -111,7 +111,6 @@
         }
         return true;
       },
-      message: t('集群重复'),
     },
   ];
 

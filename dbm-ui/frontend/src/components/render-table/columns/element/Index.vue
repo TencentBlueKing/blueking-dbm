@@ -66,32 +66,30 @@
   import useValidtor, { type Rules } from '../../hooks/useValidtor';
 
   interface Props {
+    disabled?: boolean;
+    placeholder?: string;
     rules?: Rules;
     value?: any;
-    placeholder?: string;
-    disabled?: boolean;
   }
 
-  interface Emits {
-    (e: 'clear'): void;
-  }
+  type Emits = (e: 'clear') => void;
 
   interface Exposes {
     getValue: () => Promise<boolean>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    placeholder: '请设置值',
     rules: undefined,
     value: '',
-    placeholder: '请设置值',
   });
 
   const emits = defineEmits<Emits>();
 
   const slots = defineSlots<{
-    prepend?: () => VNode | VNode[];
-    default: () => VNode | VNode[];
     append?: () => VNode | VNode[];
+    default: () => VNode | VNode[];
+    prepend?: () => VNode | VNode[];
   }>();
 
   const { message: errorMessage, validator } = useValidtor(props.rules);

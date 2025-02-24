@@ -34,9 +34,7 @@
   </BkDialog>
 </template>
 <script setup lang="tsx">
-  import {
-    ref,
-  } from 'vue';
+  import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -46,13 +44,10 @@
 
   import DbStatus from '@components/db-status/index.vue';
 
-  import {
-    execCopy,
-    messageWarn,
-  } from '@utils';
+  import { execCopy, messageWarn } from '@utils';
 
   interface Props {
-    data: OperationModel
+    data: OperationModel;
   }
 
   const props = defineProps<Props>();
@@ -71,7 +66,7 @@
     {
       label: 'IPV6',
       field: 'ipv6',
-      render: ({ data }: { data: HostInfo}) => data.ipv6 || '--',
+      render: ({ data }: { data: HostInfo }) => data.ipv6 || '--',
     },
     {
       label: '管控区域',
@@ -80,13 +75,9 @@
     {
       label: 'Agent 状态',
       field: 'agent',
-      render: ({ data }: { data: HostInfo}) => {
+      render: ({ data }: { data: HostInfo }) => {
         const info = data.alive === 1 ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
-        return (
-          <DbStatus theme={info.theme}>
-            {info.text}
-          </DbStatus>
-        );
+        return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
     },
     {
@@ -136,7 +127,7 @@
   };
 
   const handleCopyAllIp = () => {
-    const ipList = (hostList.value || []).map(hostItem => hostItem.ip);
+    const ipList = (hostList.value || []).map((hostItem) => hostItem.ip);
     if (ipList.length < 1) {
       messageWarn(t('暂无可复制 IP'));
       return;

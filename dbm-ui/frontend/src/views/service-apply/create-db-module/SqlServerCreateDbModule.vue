@@ -192,12 +192,12 @@
 
   const haModeList = [
     {
-      value: 'mirroring',
       label: t('镜像'),
+      value: 'mirroring',
     },
     {
-      value: 'always_on',
       label: 'always on',
+      value: 'always_on',
     },
   ];
 
@@ -211,13 +211,13 @@
   const rules = {
     alias_name: [
       {
-        required: true,
         message: t('模块名称不能为空'),
+        required: true,
         trigger: 'blur',
       },
       {
-        pattern: /^[0-9a-zA-Z-]+$/,
         message: t('由英文字母_数字_连字符_组成'),
+        pattern: /^[0-9a-zA-Z-]+$/,
         trigger: 'blur',
       },
     ],
@@ -228,13 +228,13 @@
    */
   const getFormData = () => ({
     alias_name: '',
-    version: '',
     camelCase: '', // 数据库配置
     character_set: 'Chinese_PRC_CI_AS', // 字符集
-    memoryAllocationRatio: 80, // 内存分配比
-    maxSystemReservedMemory: 32, // 最大系统保留内存
-    operatingSystemVersion: [] as string[], // 操作系统版本
     haMode: 'mirroring', // 主从方式
+    maxSystemReservedMemory: 32, // 最大系统保留内存
+    memoryAllocationRatio: 80, // 内存分配比
+    operatingSystemVersion: [] as string[], // 操作系统版本
+    version: '',
   });
 
   const formRef = ref();
@@ -257,8 +257,8 @@
           clusterType: ticketInfo.type,
         },
         query: {
-          treeId: lastestModuleId ? `module-${lastestModuleId}` : '',
           parentId: `app-${data.bk_biz_id}`,
+          treeId: lastestModuleId ? `module-${lastestModuleId}` : '',
         },
       });
     },
@@ -271,52 +271,52 @@
         lastestModuleId = res.db_module_id;
         // 绑定数据库配置
         runSaveModuleDeploy({
-          level_name: 'module',
-          version: 'deploy_info',
-          conf_type: 'deploy',
           bk_biz_id: bizId,
-          level_value: res.db_module_id, // 创建模块后的 db_module_id
-          meta_cluster_type: ticketInfo.type,
           conf_items: [
             {
               conf_name: 'charset',
               conf_value: formData.character_set,
-              op_type: 'update',
               description: t('字符集'),
+              op_type: 'update',
             },
             {
               conf_name: 'db_version',
               conf_value: formData.version,
-              op_type: 'update',
               description: t('数据库版本'),
+              op_type: 'update',
             },
             {
               conf_name: 'buffer_percent',
               conf_value: `${formData.memoryAllocationRatio}`,
-              op_type: 'update',
               description: t('实际内存分配比率'),
+              op_type: 'update',
             },
             {
               conf_name: 'max_remain_mem_gb',
               conf_value: String(formData.maxSystemReservedMemory),
-              op_type: 'update',
               description: t('最大系统保留内存'),
+              op_type: 'update',
             },
             {
               conf_name: 'sync_type',
               conf_value: formData.haMode,
-              op_type: 'update',
               description: t('主从方式'),
+              op_type: 'update',
             },
             {
               conf_name: 'system_version',
               conf_value: formData.operatingSystemVersion
                 .map((versionItem) => versionItem.replace(/\s*/g, ''))
                 .join(','),
-              op_type: 'update',
               description: t('操作系统版本'),
+              op_type: 'update',
             },
           ],
+          conf_type: 'deploy',
+          level_name: 'module',
+          level_value: res.db_module_id, // 创建模块后的 db_module_id
+          meta_cluster_type: ticketInfo.type,
+          version: 'deploy_info',
         });
       }
     },
@@ -356,9 +356,9 @@
       // 创建模块
       await runCreateModules({
         alias_name: formData.alias_name,
-        db_module_name: formData.alias_name,
-        cluster_type: ticketInfo.type,
         biz_id: bizId,
+        cluster_type: ticketInfo.type,
+        db_module_name: formData.alias_name,
       });
     } finally {
       isSubmiting.value = false;

@@ -35,12 +35,12 @@ export async function generateRedisRedisVersionUpgradeCloneData(ticketData: Tick
   const tableDataList = infos.map((infoItem) => {
     const clusterItem = clusterListMap[infoItem.cluster_ids[0]];
     return {
-      rowKey: random(),
-      isLoading: false,
       cluster: clusterItem.master_domain,
       clusterId: infoItem.cluster_ids[0],
-      nodeType: infoItem.node_type,
       clusterType: clusterItem.cluster_type_name,
+      isLoading: false,
+      nodeType: infoItem.node_type,
+      rowKey: random(),
       targetVersion: infoItem.target_version,
     };
   });

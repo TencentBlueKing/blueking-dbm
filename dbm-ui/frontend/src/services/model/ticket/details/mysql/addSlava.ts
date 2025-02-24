@@ -5,6 +5,7 @@ import type { DetailBase, DetailClusters } from '../common';
  */
 
 export interface AddSlave extends DetailBase {
+  backup_source: string;
   clusters: DetailClusters;
   infos: {
     cluster_ids: number[];
@@ -15,5 +16,4 @@ export interface AddSlave extends DetailBase {
       ip: string;
     };
   }[];
-  backup_source: string;
 }

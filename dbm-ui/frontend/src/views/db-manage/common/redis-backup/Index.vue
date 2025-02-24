@@ -91,20 +91,18 @@
   import BatchEdit from './components/BatchEdit.vue';
 
   interface DataItem extends RedisModel {
-    target: string,
-    backup_type: string
+    backup_type: string;
+    target: string;
   }
 
   interface Props {
-    data?: RedisModel[]
+    data?: RedisModel[];
   }
 
-  interface Emits {
-    (e: 'success'): void
-  }
+  type Emits = (e: 'success') => void;
 
   const props = withDefaults(defineProps<Props>(), {
-    data: () => ([]),
+    data: () => [],
   });
   const emits = defineEmits<Emits>();
   const isShow = defineModel<boolean>('isShow', {
@@ -114,121 +112,160 @@
   const { t } = useI18n();
   const ticketMessage = useTicketMessage();
 
-
-
   const globalBizsStore = useGlobalBizs();
   const handleBeforeClose = useBeforeClose();
 
-  const backupList = [{
-    id: 'normal_backup',
-    label: t('常规备份'),
-  }, {
-    id: 'forever_backup',
-    label: t('长期备份'),
-  }];
-  const rules = [{
-    trigger: 'blur',
-    message: t('请选择'),
-    validator: (value: string) => !!value,
-  }];
-  const columns = [{
-    label: t('域名'),
-    field: 'name',
-    showOverflowTooltip: false,
-    render: ({ data }: { data: DataItem }) => (
-      <div
-        class="cluster-name text-overflow"
-        v-overflow-tips={{
-          content: `
+  const backupList = [
+    {
+      id: 'normal_backup',
+      label: t('常规备份'),
+    },
+    {
+      id: 'forever_backup',
+      label: t('长期备份'),
+    },
+  ];
+  const rules = [
+    {
+      message: t('请选择'),
+      trigger: 'blur',
+      validator: (value: string) => !!value,
+    },
+  ];
+  const columns = [
+    {
+      field: 'name',
+      label: t('域名'),
+      render: ({ data }: { data: DataItem }) => (
+        <div
+          v-overflow-tips={{
+            allowHTML: true,
+            content: `
             <p>${t('域名')}：${data.master_domain}</p>
-            ${data.cluster_alias ? `<p>${('集群别名')}：${data.cluster_alias}</p>` : null}
+            ${data.cluster_alias ? `<p>${'集群别名'}：${data.cluster_alias}</p>` : null}
           `,
-          allowHTML: true,
-      }}>
-        <span>{data.master_domain}</span><br />
-        <span class="cluster-name__alias">{data.cluster_alias}</span>
-      </div>
-    ),
-  }, {
-    label: t('架构版本'),
-    field: 'cluster_type_name',
-    render: ({ data }: { data: DataItem }) => data.cluster_type_name || '--',
-  }, {
-    label: () => (
-      <span class="key-table-header">
-        {t('备份目标')}
-        {
-          isBatch.value
-            ? (
-              <BatchEdit
-                title={t('批量选择备份目标')}
-                width={420}
-                validator={validatorBatchSelect.bind(null, t('请选择备份目标'))}
-                onChange={handleBatchChange.bind(null, 'target')}>
-                {{
-                  default: ({ state }: any) => (
-                    <bk-select
-                      v-model={state.value}
-                      clearable={false}
-                      popover-options={{ boundary: 'parent', disableTeleport: true }}>
-                      { ['master', 'slave'].map(item => <bk-option value={item} label={item} />) }
-                    </bk-select>
-                  ),
-                }}
-              </BatchEdit>
-            ) : ''
-        }
-      </span>
-    ),
-    field: 'target',
-    render: ({ data, index }: { data: DataItem, index: number }) => (
-      <bk-form-item error-display-type="tooltips" property={`${index}.target`} rules={rules} label-width={0}>
-        <bk-select v-model={data.target} clearable={false}>
-          { ['master', 'slave'].map(item => <bk-option value={item} label={item} />) }
-        </bk-select>
-      </bk-form-item>
-    ),
-  }, {
-    label: () => (
-      <span class="key-table-header">
-        {t('备份类型')}
-        {
-          isBatch.value
-            ? (
-              <BatchEdit
-                title={t('批量选择备份类型')}
-                width={420}
-                validator={validatorBatchSelect.bind(null, t('请选择备份类型'))}
-                onChange={handleBatchChange.bind(null, 'backup_type')}>
-                {{
-                  default: ({ state }: any) => (
-                    <bk-select
-                      v-model={state.value}
-                      clearable={false}
-                      popover-options={{ boundary: 'parent', disableTeleport: true }}>
-                      { backupList.map(item => <bk-option value={item.id} label={item.label} />) }
-                    </bk-select>
-                  ),
-                }}
-              </BatchEdit>
-            ) : ''
-        }
-      </span>
-    ),
-    field: 'backup_type',
-    render: ({ data, index }: { data: DataItem, index: number }) => (
-      <bk-form-item error-display-type="tooltips" property={`${index}.backup_type`} rules={rules} label-width={0}>
-        <bk-select v-model={data.backup_type} clearable={false}>
-          { backupList.map(item => <bk-option value={item.id} label={item.label} />) }
-        </bk-select>
-      </bk-form-item>
-    ),
-  }];
+          }}
+          class='cluster-name text-overflow'>
+          <span>{data.master_domain}</span>
+          <br />
+          <span class='cluster-name__alias'>{data.cluster_alias}</span>
+        </div>
+      ),
+      showOverflowTooltip: false,
+    },
+    {
+      field: 'cluster_type_name',
+      label: t('架构版本'),
+      render: ({ data }: { data: DataItem }) => data.cluster_type_name || '--',
+    },
+    {
+      field: 'target',
+      label: () => (
+        <span class='key-table-header'>
+          {t('备份目标')}
+          {isBatch.value ? (
+            <BatchEdit
+              title={t('批量选择备份目标')}
+              validator={validatorBatchSelect.bind(null, t('请选择备份目标'))}
+              width={420}
+              onChange={handleBatchChange.bind(null, 'target')}>
+              {{
+                default: ({ state }: any) => (
+                  <bk-select
+                    v-model={state.value}
+                    clearable={false}
+                    popover-options={{ boundary: 'parent', disableTeleport: true }}>
+                    {['master', 'slave'].map((item) => (
+                      <bk-option
+                        label={item}
+                        value={item}
+                      />
+                    ))}
+                  </bk-select>
+                ),
+              }}
+            </BatchEdit>
+          ) : (
+            ''
+          )}
+        </span>
+      ),
+      render: ({ data, index }: { data: DataItem; index: number }) => (
+        <bk-form-item
+          error-display-type='tooltips'
+          label-width={0}
+          property={`${index}.target`}
+          rules={rules}>
+          <bk-select
+            v-model={data.target}
+            clearable={false}>
+            {['master', 'slave'].map((item) => (
+              <bk-option
+                label={item}
+                value={item}
+              />
+            ))}
+          </bk-select>
+        </bk-form-item>
+      ),
+    },
+    {
+      field: 'backup_type',
+      label: () => (
+        <span class='key-table-header'>
+          {t('备份类型')}
+          {isBatch.value ? (
+            <BatchEdit
+              title={t('批量选择备份类型')}
+              validator={validatorBatchSelect.bind(null, t('请选择备份类型'))}
+              width={420}
+              onChange={handleBatchChange.bind(null, 'backup_type')}>
+              {{
+                default: ({ state }: any) => (
+                  <bk-select
+                    v-model={state.value}
+                    clearable={false}
+                    popover-options={{ boundary: 'parent', disableTeleport: true }}>
+                    {backupList.map((item) => (
+                      <bk-option
+                        label={item.label}
+                        value={item.id}
+                      />
+                    ))}
+                  </bk-select>
+                ),
+              }}
+            </BatchEdit>
+          ) : (
+            ''
+          )}
+        </span>
+      ),
+      render: ({ data, index }: { data: DataItem; index: number }) => (
+        <bk-form-item
+          error-display-type='tooltips'
+          label-width={0}
+          property={`${index}.backup_type`}
+          rules={rules}>
+          <bk-select
+            v-model={data.backup_type}
+            clearable={false}>
+            {backupList.map((item) => (
+              <bk-option
+                label={item.label}
+                value={item.id}
+              />
+            ))}
+          </bk-select>
+        </bk-form-item>
+      ),
+    },
+  ];
 
   const formRef = ref();
 
-   // 判断是否为批量操作
-   const isBatch = computed(() => props.data.length > 1);
+  // 判断是否为批量操作
+  const isBatch = computed(() => props.data.length > 1);
   // 第一个集群的数据
   const firstData = computed(() => props.data[0]);
 
@@ -236,19 +273,19 @@
   const rederColumns = computed(() => {
     if (isBatch.value) {
       const opertaionColumn = {
-        label: t('操作'),
         field: 'operation',
-        width: 88,
+        label: t('操作'),
         render: ({ index }: { index: number }) => (
           <bk-button
-            theme="primary"
-            text
             v-bk-tooltips={t('移除')}
             disabled={state.formdata.length === 1}
+            theme='primary'
+            text
             onClick={() => handleRemoveItem(index)}>
             {t('删除')}
           </bk-button>
         ),
+        width: 88,
       };
       return [...columns, opertaionColumn];
     }
@@ -256,18 +293,28 @@
     return columns;
   });
   const state = reactive({
-    isLoading: false,
     formdata: [] as DataItem[],
+    isLoading: false,
     renderKey: generateId('BACKUP_FORM_'),
   });
 
-  watch(() => props.data, (data) => {
-    state.formdata = data.map(item => Object.assign({}, {
-      backup_type: '',
-      target: '',
-    }, item))
-    state.renderKey = generateId('BACKUP_FORM_');
-  }, { immediate: true, deep: true });
+  watch(
+    () => props.data,
+    (data) => {
+      state.formdata = data.map((item) =>
+        Object.assign(
+          {},
+          {
+            backup_type: '',
+            target: '',
+          },
+          item,
+        ),
+      );
+      state.renderKey = generateId('BACKUP_FORM_');
+    },
+    { deep: true, immediate: true },
+  );
 
   function handleRemoveItem(index: number) {
     state.formdata.splice(index, 1);
@@ -275,8 +322,8 @@
 
   function validatorBatchSelect(errorText: string, value?: string) {
     return {
-      isPass: !!value,
       errorText,
+      isPass: !!value,
     };
   }
 
@@ -293,15 +340,15 @@
     state.isLoading = true;
     const params = {
       bk_biz_id: globalBizsStore.currentBizId,
-      ticket_type: TicketTypes.REDIS_BACKUP,
       details: {
-        rules: state.formdata.map(item => ({
+        rules: state.formdata.map((item) => ({
+          backup_type: item.backup_type,
           cluster_id: item.id,
           domain: item.master_domain,
           target: item.target,
-          backup_type: item.backup_type,
         })),
       },
+      ticket_type: TicketTypes.REDIS_BACKUP,
     };
     return createTicket(params)
       .then((res) => {

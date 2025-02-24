@@ -75,15 +75,15 @@
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
   interface Props {
+    clusterType: ClusterTypes | 'TendbClusterHost' | 'mongoCluster';
+    count?: number;
     data?: {
       clusterId: number;
       hostSelectType?: string;
     };
-    clusterType: ClusterTypes | 'TendbClusterHost' | 'mongoCluster';
-    tabListConfig: ComponentProps<typeof InstanceSelector>['tabListConfig'];
-    selectedNodeList?: IValue[];
-    count?: number;
     instanceIpList: string[];
+    selectedNodeList?: IValue[];
+    tabListConfig: ComponentProps<typeof InstanceSelector>['tabListConfig'];
   }
 
   interface Emits {
@@ -92,24 +92,24 @@
   }
 
   interface Exposes {
-    resetValue: () => void;
     getValue: (fieldName: string) => Promise<
       | {
           fieldName: {
-            ip: string;
-            bk_host_id: number;
-            bk_cloud_id: number;
             bk_biz_id: number;
+            bk_cloud_id: number;
+            bk_host_id: number;
+            ip: string;
           };
         }
       | undefined
     >;
+    resetValue: () => void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    count: 0,
     data: undefined,
     selectedNodeList: () => [],
-    count: 0,
   });
   const emits = defineEmits<Emits>();
 
@@ -136,8 +136,8 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('请选择节点类型'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 
@@ -203,16 +203,12 @@
   };
 
   defineExpose<Exposes>({
-    resetValue() {
-      localValue.value = HostSelectType.AUTO;
-      selected.value[props.clusterType] = [];
-    },
     getValue(fieldName: string) {
       const formatHost = (host: IValue) => ({
-        ip: host.ip,
-        bk_host_id: host.bk_host_id,
-        bk_cloud_id: host.bk_cloud_id,
         bk_biz_id: currentBizId,
+        bk_cloud_id: host.bk_cloud_id,
+        bk_host_id: host.bk_host_id,
+        ip: host.ip,
       });
       if (localValue.value === HostSelectType.MANUAL) {
         return textRef.value.getValue().then(() => ({
@@ -220,6 +216,10 @@
         }));
       }
       return Promise.resolve();
+    },
+    resetValue() {
+      localValue.value = HostSelectType.AUTO;
+      selected.value[props.clusterType] = [];
     },
   });
 </script>

@@ -27,21 +27,21 @@ import http from '../http';
 export function quickSearch(params: {
   bk_biz_ids: number[];
   db_types: string[];
-  resource_types: string[];
   filter_type: string;
   keyword?: string;
-  short_code?: string;
   limit?: number;
+  resource_types: string[];
+  short_code?: string;
 }) {
   return http
     .post<{
       entry: QuickSearchEntryModel[];
       instance: QuickSearchInstanceModel[];
+      keyword: string;
       resource_pool: DbResourceModel[];
+      short_code: string;
       task: TaskFlowModel[];
       ticket: TicketModel<unknown>[];
-      keyword: string;
-      short_code: string;
     }>('/apis/quick_search/search/', params)
     .then((res) => ({
       ...res,

@@ -25,25 +25,22 @@
 
   import { getLevelConfig } from '@services/source/configs';
 
-  import {
-    ConfLevels,
-    type ConfLevelValues,
-  } from '@common/const';
+  import { ConfLevels, type ConfLevelValues } from '@common/const';
 
   import { useDiff } from '@views/db-configure/hooks/useDiff';
 
   import ValueDiff from './components/ValueDiff.vue';
 
   interface Props {
-    data?: ServiceReturnType<typeof getLevelConfig>['conf_items']
-    origin?: ServiceReturnType<typeof getLevelConfig>['conf_items']
-    level?: ConfLevelValues
+    data?: ServiceReturnType<typeof getLevelConfig>['conf_items'];
+    level?: ConfLevelValues;
+    origin?: ServiceReturnType<typeof getLevelConfig>['conf_items'];
   }
 
   const props = withDefaults(defineProps<Props>(), {
     data: () => [],
-    origin: () => [],
     level: ConfLevels.PLAT,
+    origin: () => [],
   });
 
   const { t } = useI18n();
@@ -53,67 +50,81 @@
   const diff = useDiff(diffData, diffOrigin);
 
   const getUnmanagedNode = () => (
-    <span class="diff-compare__unmanaged" v-bk-tooltips={t('解除纳管表示不再关心该配置项的值')}>{ t('解除纳管') }</span>
+    <span
+      v-bk-tooltips={t('解除纳管表示不再关心该配置项的值')}
+      class='diff-compare__unmanaged'>
+      {t('解除纳管')}
+    </span>
   );
 
-  const labels = [{
-    label: `${t('参数值')}:`,
-    key: valueKey.value,
-    render: (row: any, columnKey: string) => {
-      if (row.status === 'create' && columnKey === 'before') {
-        return '--';
-      }
+  const labels = [
+    {
+      key: valueKey.value,
+      label: `${t('参数值')}:`,
+      render: (row: any, columnKey: string) => {
+        if (row.status === 'create' && columnKey === 'before') {
+          return '--';
+        }
 
-      if (row.status === 'delete' && columnKey === 'after') {
-        return getUnmanagedNode();
-      }
+        if (row.status === 'delete' && columnKey === 'after') {
+          return getUnmanagedNode();
+        }
 
-      return row[columnKey][valueKey.value];
+        return row[columnKey][valueKey.value];
+      },
     },
-  }, {
-    label: `${t('允许值范围')}: `,
-    key: 'value_allowed',
-    showOverflowTooltip: false,
-    render: (row: any, columnKey: string) => {
-      if (row.status === 'create' && columnKey === 'before') {
-        return '--';
-      }
+    {
+      key: 'value_allowed',
+      label: `${t('允许值范围')}: `,
+      render: (row: any, columnKey: string) => {
+        if (row.status === 'create' && columnKey === 'before') {
+          return '--';
+        }
 
-      if (row.status === 'delete' && columnKey === 'after') {
-        return getUnmanagedNode();
-      }
+        if (row.status === 'delete' && columnKey === 'after') {
+          return getUnmanagedNode();
+        }
 
-      const value = row[columnKey].value_allowed;
+        const value = row[columnKey].value_allowed;
 
-      if (!value) return '--';
+        if (!value) return '--';
 
-      if (row[columnKey].value_type_sub === 'RANGE') {
-        const [min, max] = value.match(/\d+/g);
-        return `${min}～${max}`;
-      }
+        if (row[columnKey].value_type_sub === 'RANGE') {
+          const [min, max] = value.match(/\d+/g);
+          return `${min}～${max}`;
+        }
 
-      // 将 | 转为逗号(,) 增加可读性
-      if (['ENUM', 'ENUMS'].includes(row[columnKey].value_type_sub as string)) {
-        return <div class="text-overflow" v-overflow-tips>{value.replace(/\|/g, ', ')}</div>;
-      }
+        // 将 | 转为逗号(,) 增加可读性
+        if (['ENUM', 'ENUMS'].includes(row[columnKey].value_type_sub as string)) {
+          return (
+            <div
+              v-overflow-tips
+              class='text-overflow'>
+              {value.replace(/\|/g, ', ')}
+            </div>
+          );
+        }
 
-      return value;
+        return value;
+      },
+      showOverflowTooltip: false,
     },
-  }, {
-    label: `${t('是否锁定')}: `,
-    key: 'flag_locked',
-    render: (row: any, columnKey: string) => {
-      if (row.status === 'create' && columnKey === 'before') {
-        return '--';
-      }
+    {
+      key: 'flag_locked',
+      label: `${t('是否锁定')}: `,
+      render: (row: any, columnKey: string) => {
+        if (row.status === 'create' && columnKey === 'before') {
+          return '--';
+        }
 
-      if (row.status === 'delete' && columnKey === 'after') {
-        return getUnmanagedNode();
-      }
+        if (row.status === 'delete' && columnKey === 'after') {
+          return getUnmanagedNode();
+        }
 
-      return <i class={ row[columnKey].flag_locked === 0 ? 'db-icon-unlock' : 'db-icon-lock-fill'} />;
+        return <i class={row[columnKey].flag_locked === 0 ? 'db-icon-unlock' : 'db-icon-lock-fill'} />;
+      },
     },
-  }];
+  ];
 </script>
 
 <style lang="less">

@@ -16,35 +16,35 @@ import { isRecentDays, utcDisplayTime } from '@utils';
 import { t } from '@locales/index';
 
 export default class RiakNode {
-  static NORMAL = 'normal';
   static ABNORMAL = 'abnormal';
   static DELETING = 'DELETING';
   static REBOOTING = 'REBOOTING';
+  static keyPathMap: Record<string, string> = {
+    [RiakNode.DELETING]: '删除任务正在进行中，跳转xx查看进度',
+    [RiakNode.REBOOTING]: '重启任务正在进行中，跳转xx查看进度',
+  };
 
   static labelMap: Record<string, string> = {
     [RiakNode.DELETING]: t('删除中'),
     [RiakNode.REBOOTING]: t('重启中'),
   };
 
-  static keyPathMap: Record<string, string> = {
-    [RiakNode.DELETING]: '删除任务正在进行中，跳转xx查看进度',
-    [RiakNode.REBOOTING]: '重启任务正在进行中，跳转xx查看进度',
-  };
+  static NORMAL = 'normal';
 
   static stautsInfo: Record<
     string,
     {
-      theme: string;
       text: string;
+      theme: string;
     }
   > = {
-    [RiakNode.NORMAL]: {
-      theme: 'success',
-      text: t('正常'),
-    },
     [RiakNode.ABNORMAL]: {
-      theme: 'danger',
       text: t('异常'),
+      theme: 'danger',
+    },
+    [RiakNode.NORMAL]: {
+      text: t('正常'),
+      theme: 'success',
     },
   };
 
@@ -80,16 +80,16 @@ export default class RiakNode {
     this.status = payload.status;
   }
 
+  get createAtDisplay() {
+    return utcDisplayTime(this.create_at);
+  }
+
   get isNew() {
     return isRecentDays(this.create_at, 24);
   }
 
   get isNodeNormal() {
     return this.status !== 0;
-  }
-
-  get createAtDisplay() {
-    return utcDisplayTime(this.create_at);
   }
 
   // get getCpuInfo() {

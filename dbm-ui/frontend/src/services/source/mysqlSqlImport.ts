@@ -8,7 +8,7 @@ import http from '../http';
 /**
  * 删除用户语义检查任务列表
  */
-export function deleteUserSemanticTasks(params: { task_ids: string[]; cluster_type: string }) {
+export function deleteUserSemanticTasks(params: { cluster_type: string; task_ids: string[] }) {
   return http.delete<number>(
     `/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/sql_import/delete_user_semantic_tasks/`,
     params,
@@ -70,14 +70,14 @@ export function semanticCheck(params: { cluster_type: string }) {
 /**
  * 获取语义执行的结果日志
  */
-export function semanticCheckResultLogs(params: { cluster_type: string; root_id: string; node_id: string }) {
+export function semanticCheckResultLogs(params: { cluster_type: string; node_id: string; root_id: string }) {
   return http.post<
     {
       filename: string;
       match_logs: {
-        timestamp: string;
         levelname: string;
         message: string;
+        timestamp: string;
       }[];
       status: string;
     }[]
@@ -89,17 +89,17 @@ export function getSemanticExecuteResult(params: { root_id: string }) {
   return http.post<
     {
       bill_task_id: string;
-      task_id: string;
-      line_id: 0;
-      mysql_version: string;
-      file_name_hash: string;
-      file_name: string;
-      status: 'Failed' | 'Success';
-      err_msg: string;
-      update_time: string;
       create_time: string;
       dbnames: string[];
+      err_msg: string;
+      file_name: string;
+      file_name_hash: string;
       ignore_dbnames: string[];
+      line_id: 0;
+      mysql_version: string;
+      status: 'Failed' | 'Success';
+      task_id: string;
+      update_time: string;
     }[]
   >(`/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/sql_import/get_semantic_execute_result/`, params);
 }

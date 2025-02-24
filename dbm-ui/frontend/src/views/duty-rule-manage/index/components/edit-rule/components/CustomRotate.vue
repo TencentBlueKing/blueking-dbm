@@ -58,24 +58,24 @@
   }
 
   interface RowData {
-    dateTime: string,
+    dateTime: string;
+    members: string[];
     timeRange: {
-      id: string,
+      id: string;
       value: string[];
-    }[],
-    members: string[],
+    }[];
   }
 
   interface Exposes {
     getValue: () => Promise<{
-      effective_time: string,
-      end_time: string,
-      duty_arranges:{
-        date: string,
-        work_times: string[],
-        members: string[],
-      }[],
-    }>
+      duty_arranges: {
+        date: string;
+        members: string[];
+        work_times: string[];
+      }[];
+      effective_time: string;
+      end_time: string;
+    }>;
   }
 
   const props = defineProps<Props>();
@@ -91,91 +91,104 @@
 
   const columns = [
     {
-      label: t('轮值日期'),
       field: 'dateTime',
+      label: t('轮值日期'),
       width: 120,
     },
     {
-      label: t('轮值时间'),
       field: 'timeRange',
-      showOverflowTooltip: true,
-      width: 250,
-      render: ({ data, index }: {data: RowData, index: number}) => (
+      label: t('轮值时间'),
+      render: ({ data, index }: { data: RowData; index: number }) => (
         <div class={{ 'time-group-box': true, 'time-group-mutiple': data.timeRange.length > 1 }}>
-          {
-            data.timeRange.map((item, innerIndex) => (
-              <div class="time-item" key={item.id}>
-                <bk-time-picker
-                  v-model={item.value}
-                  style="width: 200px"
-                  clearable={false}
-                  type="timerange"
-                  format="HH:mm"
-                  append-to-body />
-                  {innerIndex === 0 && <db-icon
-                    class="ml-10 icon"
-                    type="plus-circle"
-                    onClick={() => handleAddTime(index)}/>}
-                  {innerIndex !== 0 && <db-icon
-                    class="ml-10 icon"
-                    type="minus-circle"
-                    onClick={() => handleDeleteTime(index, innerIndex)}/>}
-              </div>
-            ))
-          }
+          {data.timeRange.map((item, innerIndex) => (
+            <div
+              key={item.id}
+              class='time-item'>
+              <bk-time-picker
+                v-model={item.value}
+                clearable={false}
+                format='HH:mm'
+                style='width: 200px'
+                type='timerange'
+                append-to-body
+              />
+              {innerIndex === 0 && (
+                <db-icon
+                  class='ml-10 icon'
+                  type='plus-circle'
+                  onClick={() => handleAddTime(index)}
+                />
+              )}
+              {innerIndex !== 0 && (
+                <db-icon
+                  class='ml-10 icon'
+                  type='minus-circle'
+                  onClick={() => handleDeleteTime(index, innerIndex)}
+                />
+              )}
+            </div>
+          ))}
         </div>
       ),
+      showOverflowTooltip: true,
+      width: 250,
     },
     {
-      label: t('轮值人员'),
       field: 'members',
-      width: 510,
-      render: ({data, index}: {data: RowData, index: number}) =>(
+      label: t('轮值人员'),
+      render: ({ data, index }: { data: RowData; index: number }) => (
         <MemberSelector
           modelValue={data.members}
-          onChange={(value: string[]) => handelPeopleChange(value, index)} />
+          onChange={(value: string[]) => handelPeopleChange(value, index)}
+        />
       ),
+      width: 510,
     },
   ];
 
-  watch(() => props.data, (data) => {
-    if (data && data.category === 'regular') {
-      formModel.dateTimeRange = [data.effective_time, data.end_time];
-      formModel.tableData = (data.duty_arranges as DutyCustomItem[]).map(item => ({
-        dateTime: item.date,
-        timeRange: item.work_times.map(i => ({
-          id: random(),
-          value: i.split('--'),
-        })),
-        members: item.members,
-      }));
-    } else {
-      formModel.tableData = []
-    }
-  }, {
-    immediate: true,
-  });
-
+  watch(
+    () => props.data,
+    (data) => {
+      if (data && data.category === 'regular') {
+        formModel.dateTimeRange = [data.effective_time, data.end_time];
+        formModel.tableData = (data.duty_arranges as DutyCustomItem[]).map((item) => ({
+          dateTime: item.date,
+          members: item.members,
+          timeRange: item.work_times.map((i) => ({
+            id: random(),
+            value: i.split('--'),
+          })),
+        }));
+      } else {
+        formModel.tableData = [];
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleDatetimeRangeChange = (value: [string, string]) => {
     formModel.dateTimeRange = value;
     const dateArr = getDiffDays(value[0], value[1]);
-    formModel.tableData = dateArr.map(item => ({
+    formModel.tableData = dateArr.map((item) => ({
       dateTime: item,
-      timeRange: [{
-        id: random(),
-        value: ['00:00', '23:59'],
-      }],
       members: [],
+      timeRange: [
+        {
+          id: random(),
+          value: ['00:00', '23:59'],
+        },
+      ],
     }));
     nextTick(() => {
       formRef.value.validate('tableData');
-    })
-  }
+    });
+  };
 
   const handelPeopleChange = (value: string[], index: number) => {
-    formModel.tableData[index].members = value
-  }
+    formModel.tableData[index].members = value;
+  };
 
   const handleAddTime = (index: number) => {
     formModel.tableData[index].timeRange.push({
@@ -188,18 +201,17 @@
     formModel.tableData[outerIndex].timeRange.splice(innerIndex, 1);
   };
 
-
   defineExpose<Exposes>({
     async getValue() {
       await formRef.value.validate();
       return {
+        duty_arranges: formModel.tableData.map((item) => ({
+          date: item.dateTime,
+          members: item.members,
+          work_times: item.timeRange.map((data) => data.value.join('--')),
+        })),
         effective_time: dayjs(formModel.dateTimeRange![0]).startOf('day').format('YYYY-MM-DD HH:mm:ss'),
         end_time: dayjs(formModel.dateTimeRange![1]).endOf('day').format('YYYY-MM-DD HH:mm:ss'),
-        duty_arranges: formModel.tableData.map(item => ({
-          date: item.dateTime,
-          work_times: item.timeRange.map(data => data.value.join('--')),
-          members: item.members,
-        })),
       };
     },
   });

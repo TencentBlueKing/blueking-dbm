@@ -14,8 +14,8 @@ export interface CheckSum extends DetailBase {
   infos: {
     backup_infos: {
       db_patterns: string[];
-      ignore_tables: string[];
       ignore_dbs: string[];
+      ignore_tables: string[];
       master: string;
       slave: string;
       table_patterns: string[];

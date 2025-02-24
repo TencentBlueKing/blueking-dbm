@@ -97,7 +97,7 @@
   generic="T extends EsNodeModel | HdfsNodeModel | KafkaNodeModel | PulsarNodeModel | DorisNodeModel">
   import { useI18n } from 'vue-i18n';
 
-  import DorisNodeModel from '@services/model/doris/doris-node'
+  import DorisNodeModel from '@services/model/doris/doris-node';
   import EsNodeModel from '@services/model/es/es-node';
   import HdfsNodeModel from '@services/model/hdfs/hdfs-node';
   import KafkaNodeModel from '@services/model/kafka/kafka-node';
@@ -109,30 +109,30 @@
 
   export interface TShrinkNode<N> {
     // 节点显示名称
-    label: string,
-    // 原始节点列表
-    originalNodeList: N[],
+    label: string;
+    // 改节点所需的最少主机数
+    minHost: number;
     // 缩容后的节点列表
-    nodeList: N[],
-    // 原始磁盘大小
-    totalDisk: number,
+    nodeList: N[];
+    // 原始节点列表
+    originalNodeList: N[];
     // 缩容目标磁盘大小
     // targetDisk: number,
     // 选择节点后实际的缩容磁盘大小
-    shrinkDisk: number,
-    // 改节点所需的最少主机数
-    minHost: number,
+    shrinkDisk: number;
     // 节点类型 tag 文本
     tagText: string;
+    // 原始磁盘大小
+    totalDisk: number;
   }
 
   interface Props {
-    data: TShrinkNode<T>,
+    data: TShrinkNode<T>;
   }
 
   interface Emits {
-    (e: 'change', value: Props['data']['nodeList']): void,
-    (e: 'target-disk-change', value: Props['data']['totalDisk']): void,
+    (e: 'change', value: Props['data']['nodeList']): void;
+    (e: 'target-disk-change', value: Props['data']['totalDisk']): void;
   }
 
   const props = defineProps<Props>();
@@ -148,40 +148,38 @@
 
   const tableColumns = [
     {
-      label: t('节点 IP'),
       field: 'ip',
-      render: ({ data }: {data:Props['data']['nodeList'][0]}) => data.ip || '--',
+      label: t('节点 IP'),
+      render: ({ data }: { data: Props['data']['nodeList'][0] }) => data.ip || '--',
     },
     {
-      label: t('Agent状态'),
       field: 'alive',
-      render: ({ data }: { data:Props['data']['nodeList'][0] }) => (
-        <RenderHostStatus data={data.status} />
-      ),
+      label: t('Agent状态'),
+      render: ({ data }: { data: Props['data']['nodeList'][0] }) => <RenderHostStatus data={data.status} />,
     },
     {
-      label: t('磁盘_GB'),
       field: 'disk',
-      render: ({ data }: {data:Props['data']['nodeList'][0]}) => data.disk || '--',
+      label: t('磁盘_GB'),
+      render: ({ data }: { data: Props['data']['nodeList'][0] }) => data.disk || '--',
     },
     {
       label: t('操作'),
-      width: 100,
-      render: ({ data }: {data:Props['data']['nodeList'][0]}) => (
+      render: ({ data }: { data: Props['data']['nodeList'][0] }) => (
         <bk-button
+          theme='primary'
           text
-          theme="primary"
           onClick={() => handleRemoveHost(data)}>
           {t('删除')}
         </bk-button>
       ),
+      width: 100,
     },
   ];
 
   // 资源池预估容量
   const estimateCapacity = computed(() => {
-    const { totalDisk, shrinkDisk } = props.data
-    return totalDisk - shrinkDisk
+    const { shrinkDisk, totalDisk } = props.data;
+    return totalDisk - shrinkDisk;
   });
 
   const handleShowHostSelect = () => {
@@ -197,12 +195,15 @@
 
   // 删除选择的节点
   const handleRemoveHost = (data: Props['data']['nodeList'][0]) => {
-    const nodeList = nodeTableData.value.reduce((result, item) => {
-      if (item.bk_host_id !== data.bk_host_id) {
-        result.push(item);
-      }
-      return result;
-    }, [] as Props['data']['nodeList']);
+    const nodeList = nodeTableData.value.reduce(
+      (result, item) => {
+        if (item.bk_host_id !== data.bk_host_id) {
+          result.push(item);
+        }
+        return result;
+      },
+      [] as Props['data']['nodeList'],
+    );
 
     nodeTableData.value = nodeList;
     window.changeConfirm = true;

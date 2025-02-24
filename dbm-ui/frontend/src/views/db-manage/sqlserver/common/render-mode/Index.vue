@@ -75,18 +75,18 @@
 
   const timerRules = [
     {
-      validator: (value: string) => !!value,
       message: t('回档时间不能为空'),
+      validator: (value: string) => !!value,
     },
   ];
   const targetList = [
     {
-      value: 'record',
       label: t('备份记录'),
+      value: 'record',
     },
     {
-      value: 'time',
       label: t('回档到指定时间'),
+      value: 'time',
     },
   ];
 

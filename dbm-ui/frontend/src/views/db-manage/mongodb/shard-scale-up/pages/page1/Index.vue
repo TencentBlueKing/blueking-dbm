@@ -111,16 +111,16 @@
   const tableData = ref([createRowData()]);
   const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.clusterName)).length);
   const selectedClusters = shallowRef<{ [key: string]: Array<MongodbModel> }>({
-    [ClusterTypes.MONGO_SHARED_CLUSTER]: [],
     [ClusterTypes.MONGO_REPLICA_SET]: [],
+    [ClusterTypes.MONGO_SHARED_CLUSTER]: [],
   });
 
   const tabListConfig = {
     [ClusterTypes.MONGO_REPLICA_SET]: {
-      name: t('副本集集群'),
-      showPreviewResultTitle: true,
       checkboxHoverTip: (data: MongodbModel) =>
         data.isMongoReplicaSet ? t('该集群关联了多个同机集群，将一同勾选') : '',
+      name: t('副本集集群'),
+      showPreviewResultTitle: true,
     },
     [ClusterTypes.MONGO_SHARED_CLUSTER]: {
       name: t('分片集群'),
@@ -138,17 +138,17 @@
 
   // 根据集群选择返回的数据加工成table所需的数据
   const generateRowDateFromRequest = (item: MongodbModel) => ({
-    rowKey: item.master_domain,
-    isLoading: false,
-    clusterName: item.master_domain,
     clusterId: item.id,
+    clusterName: item.master_domain,
     clusterType: item.cluster_type,
     clusterTypeText: item.clusterTypeText,
     currentNodeNum: item.shard_node_count,
-    machineInstanceNum: item.machine_instance_num,
+    isLoading: false,
     isMongoReplicaSet: item.isMongoReplicaSet,
-    shardNum: item.shard_num,
+    machineInstanceNum: item.machine_instance_num,
+    rowKey: item.master_domain,
     sepcId: item.mongodb[0].spec_config.id,
+    shardNum: item.shard_num,
   });
 
   // 批量选择
@@ -227,11 +227,11 @@
       );
       const params = {
         bk_biz_id: currentBizId,
-        ticket_type: TicketTypes.MONGODB_ADD_SHARD_NODES,
         details: {
-          is_safe: !isIgnoreBusinessAccess.value,
           infos,
+          is_safe: !isIgnoreBusinessAccess.value,
         },
+        ticket_type: TicketTypes.MONGODB_ADD_SHARD_NODES,
       };
       await createTicket(params).then((data) => {
         window.changeConfirm = false;

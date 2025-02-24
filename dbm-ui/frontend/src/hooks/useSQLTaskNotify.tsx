@@ -40,7 +40,6 @@ export const useSQLTaskNotify = () => {
   };
 
   const { cancel: cancelRequest } = useRequest(getUserSemanticTasks, {
-    pollingInterval: 10000000,
     debounceInterval: 10000000,
     onSuccess(data) {
       const isAlterItem = _.find(data, (item) => item.is_alter);
@@ -48,13 +47,10 @@ export const useSQLTaskNotify = () => {
       if (isAlterItem && !isAlterItem.isPending) {
         const text = isAlterItem.isSucceeded ? t('成功') : t('失败');
         Notify({
-          position: 'top-right',
-          theme: isAlterItem.isSucceeded ? 'success' : 'error',
-          title: t('SQL变更执行'),
           delay: 10000,
           message: () => (
             <>
-              <p class='mb-16'>{t('xx的模拟任务执行_Text', { text, name: isAlterItem.created_at })}</p>
+              <p class='mb-16'>{t('xx的模拟任务执行_Text', { name: isAlterItem.created_at, text })}</p>
               <a
                 href='javascript:void(0);'
                 onClick={() => handleGoTaskLog(isAlterItem)}>
@@ -62,9 +58,13 @@ export const useSQLTaskNotify = () => {
               </a>
             </>
           ),
+          position: 'top-right',
+          theme: isAlterItem.isSucceeded ? 'success' : 'error',
+          title: t('SQL变更执行'),
         });
       }
     },
+    pollingInterval: 10000000,
   });
 
   onBeforeUnmount(() => {

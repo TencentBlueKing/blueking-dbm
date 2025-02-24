@@ -58,8 +58,8 @@
   const showDefault = computed(() => !currentVersionList.value?.length);
 
   const {
-    loading: versionLoading,
     data: currentVersionList,
+    loading: versionLoading,
     run: fetchCurrentClusterVersions,
   } = useRequest(getClusterVersions, {
     manual: true,
@@ -73,9 +73,9 @@
     () => {
       if (props.data?.clusterId) {
         fetchCurrentClusterVersions({
+          cluster_id: props.data.clusterId,
           node_type: 'Backend',
           type: 'online',
-          cluster_id: props.data.clusterId,
         });
       }
     },

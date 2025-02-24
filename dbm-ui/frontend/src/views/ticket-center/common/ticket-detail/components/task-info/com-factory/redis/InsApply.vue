@@ -30,37 +30,37 @@
   import DemandInfo from '../components/DemandInfo.vue';
   import SpecInfos from '../components/SpecInfos.vue';
 
-  interface Props{
-    ticketDetails: TicketModel<Redis.InsApply>
+  interface Props {
+    ticketDetails: TicketModel<Redis.InsApply>;
   }
 
   const props = defineProps<Props>();
 
   defineOptions({
     name: TicketTypes.REDIS_INS_APPLY,
-    inheritAttrs: false
-  })
+    inheritAttrs: false,
+  });
 
   const { t } = useI18n();
   const { affinity } = useAffinity(props.ticketDetails);
 
-  const { db_app_abbr: appAbbr, details } = props.ticketDetails
-  const { resource_spec: resourceSpec, infos, port = 0, append_apply: isAppend } = details;
+  const { db_app_abbr: appAbbr, details } = props.ticketDetails;
+  const { append_apply: isAppend, infos, port = 0, resource_spec: resourceSpec } = details;
   const tableData = infos.map((infoItem, index) => {
-    const { cluster_name: clusterName } = infoItem
+    const { cluster_name: clusterName } = infoItem;
     return {
-      mainDomain: `ins.${clusterName}.${appAbbr}.db${isAppend ? '' : `#${port+index}`}`,
-      slaveDomain: `ins.${clusterName}.${appAbbr}.dr#${isAppend ? '' : `#${port+index}`}`,
       databases: infoItem.databases,
+      mainDomain: `ins.${clusterName}.${appAbbr}.db${isAppend ? '' : `#${port + index}`}`,
       masterIp: infoItem.backend_group?.master.ip,
-      slaveIp: infoItem.backend_group?.slave.ip
-    }
-  })
+      slaveDomain: `ins.${clusterName}.${appAbbr}.dr#${isAppend ? '' : `#${port + index}`}`,
+      slaveIp: infoItem.backend_group?.slave.ip,
+    };
+  });
 
   const columns = [
     {
-      label: t('主域名'),
       field: 'mainDomain',
+      label: t('主域名'),
       showOverflowTooltip: true,
     },
     // {
@@ -69,116 +69,119 @@
     //   showOverflowTooltip: true,
     // },
     {
-      label: 'Databases',
       field: 'databases',
+      label: 'Databases',
       showOverflowTooltip: true,
     },
   ];
 
   if (isAppend) {
-    columns.push(...[
-      {
-        label: t('待部署主库主机'),
-        field: 'masterIp',
-        showOverflowTooltip: true,
-      },
-      {
-        label: t('待部署从库主机'),
-        field: 'slaveIp',
-        showOverflowTooltip: true,
-      },
-    ])
+    columns.push(
+      ...[
+        {
+          field: 'masterIp',
+          label: t('待部署主库主机'),
+          showOverflowTooltip: true,
+        },
+        {
+          field: 'slaveIp',
+          label: t('待部署从库主机'),
+          showOverflowTooltip: true,
+        },
+      ],
+    );
   }
 
   const config = [
     {
-      title: t('部署模块'),
       list: [
         {
-          label: t('所属业务'),
           key: 'bk_biz_name',
+          label: t('所属业务'),
         },
         {
-          label: t('业务英文名'),
           key: 'bk_biz_name',
+          label: t('业务英文名'),
         },
         // {
         //   label: t('管控区域'),
         //   key: 'details.bk_cloud_name',
         // },
       ],
+      title: t('部署模块'),
     },
     {
-      title: t('地域要求'),
       list: [
         {
           label: t('数据库部署地域'),
           render: () => cityName.value || '--',
         },
       ],
+      title: t('地域要求'),
     },
     {
-      title: t('数据库部署信息'),
       list: [
         {
-          label: t('部署方式'),
           key: 'details.append_apply',
-          render: () => props.ticketDetails.details.append_apply ? t('已有主从所在主机追加部署') : t('全新主机部署')
+          label: t('部署方式'),
+          render: () => (props.ticketDetails.details.append_apply ? t('已有主从所在主机追加部署') : t('全新主机部署')),
         },
         {
+          isHidden: isAppend,
           label: t('容灾要求'),
           render: () => affinity.value || '--',
-          isHidden: isAppend,
         },
       ],
+      title: t('数据库部署信息'),
     },
     {
-      title: t('需求信息'),
       list: [
         {
-          label: t('Redis 起始端口'),
-          key: 'details.port',
           isHidden: isAppend,
+          key: 'details.port',
+          label: t('Redis 起始端口'),
         },
         {
           label: t('服务器选择'),
           render: () => t('自动从资源池匹配'),
         },
         {
-          label: t('后端存储规格'),
           isHidden: isAppend,
+          label: t('后端存储规格'),
           render: () => {
             const backendSpec = resourceSpec.backend_group;
             return (
               <bk-popover
-                placement="top"
-                theme="light">
+                placement='top'
+                theme='light'>
                 {{
+                  content: () => <SpecInfos data={backendSpec} />,
                   default: () => (
                     <span
-                      class="pb-2"
-                      style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
-                      {backendSpec.spec_name }（{ `${backendSpec.count} ${t('台')}`}）
+                      class='pb-2'
+                      style='cursor: pointer;border-bottom: 1px dashed #979ba5;'>
+                      {backendSpec.spec_name}（{`${backendSpec.count} ${t('台')}`}）
                     </span>
                   ),
-                  content: () => <SpecInfos data={backendSpec} />,
                 }}
               </bk-popover>
-            )
+            );
           },
         },
         {
-          label: t('域名设置'),
           isTable: true,
+          label: t('域名设置'),
           render: () => (
             <db-original-table
               columns={columns}
               data={tableData}
               max-height={240}
-              min-height={0} />
+              min-height={0}
+            />
           ),
         },
       ],
+      title: t('需求信息'),
     },
   ];
 
@@ -195,7 +198,7 @@
   useRequest(getInfrasCities, {
     onSuccess: (cityList) => {
       const cityCode = props.ticketDetails.details.city_code;
-      const name = cityList.find(item => item.city_code === cityCode)?.city_name;
+      const name = cityList.find((item) => item.city_code === cityCode)?.city_name;
       cityName.value = name ?? '--';
     },
   });

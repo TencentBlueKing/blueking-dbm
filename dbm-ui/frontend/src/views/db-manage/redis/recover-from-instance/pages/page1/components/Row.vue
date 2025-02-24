@@ -62,41 +62,41 @@
   import RenderSourceCluster from './RenderSourceCluster.vue';
 
   export interface IDataRow {
-    rowKey: string;
+    excludeKey: string[];
+    includeKey: string[];
     isLoading: boolean;
+    rowKey: string;
     srcCluster: string;
     targetCluster: string;
     targetClusterId: number;
     targetTime: string;
-    includeKey: string[];
-    excludeKey: string[];
   }
 
   // 创建表格数据
   export const createRowData = (): IDataRow => ({
-    rowKey: random(),
+    excludeKey: [],
+    includeKey: ['*'],
     isLoading: false,
+    rowKey: random(),
     srcCluster: '',
-    targetTime: '',
     targetCluster: '',
     targetClusterId: 0,
-    includeKey: ['*'],
-    excludeKey: [],
+    targetTime: '',
   });
 
   export interface InfoItem {
-    src_cluster: string;
     dst_cluster: number;
-    key_white_regex: string;
     key_black_regex: string;
+    key_white_regex: string;
     recovery_time_point: string;
+    src_cluster: string;
   }
 </script>
 <script setup lang="ts">
   interface Props {
     data: IDataRow;
-    removeable: boolean;
     inputedClusters?: string[];
+    removeable: boolean;
   }
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
@@ -145,11 +145,11 @@
       );
       emits('clone', {
         ...props.data,
-        rowKey: random(),
-        isLoading: false,
-        srcCluster,
-        includeKey,
         excludeKey,
+        includeKey,
+        isLoading: false,
+        rowKey: random(),
+        srcCluster,
       });
     });
   };
@@ -160,11 +160,11 @@
       return await Promise.all([includeKeyRef.value.getValue(), excludeKeyRef.value.getValue()]).then((data) => {
         const [includeKey, excludeKey] = data;
         return {
-          src_cluster: props.data.srcCluster,
           dst_cluster: props.data.targetClusterId,
-          key_white_regex: includeKey.join('\n'),
           key_black_regex: excludeKey.join('\n'),
+          key_white_regex: includeKey.join('\n'),
           recovery_time_point: props.data.targetTime,
+          src_cluster: props.data.srcCluster,
         };
       });
     },

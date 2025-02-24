@@ -47,9 +47,9 @@
 <script setup lang="ts">
   interface Props {
     collapse: boolean;
-    title: string;
     count: number;
     showTitle: boolean;
+    title: string;
   }
 
   const props = defineProps<Props>();

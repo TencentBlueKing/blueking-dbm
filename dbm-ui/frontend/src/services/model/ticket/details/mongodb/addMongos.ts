@@ -12,7 +12,7 @@ export interface AddMongos extends DetailBase {
     };
     role: string;
   }[];
-  is_safe: boolean;
   ip_source: string;
+  is_safe: boolean;
   specs: DetailSpecs;
 }

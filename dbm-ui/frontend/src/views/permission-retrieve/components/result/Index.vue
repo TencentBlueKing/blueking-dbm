@@ -49,19 +49,17 @@
 
   interface Props {
     options?: {
-      ips: string;
-      immute_domains: string;
-      users: string;
-      cluster_type: ClusterTypes;
       account_type: AccountTypes;
+      cluster_type: ClusterTypes;
       dbs?: string;
+      immute_domains: string;
+      ips: string;
       is_master?: boolean;
+      users: string;
     };
   }
 
-  interface Emits {
-    (e: 'loading-change', value: boolean): void;
-  }
+  type Emits = (e: 'loading-change', value: boolean) => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -71,8 +69,8 @@
   const formatType = ref('ip');
 
   const pagination = reactive({
-    current: 1,
     count: 0,
+    current: 1,
     limit: 10,
     limitList: [10, 20, 50, 100, 500],
   });
@@ -81,16 +79,16 @@
 
   watch(formatType, () => {
     Object.assign(pagination, {
-      current: 1,
       count: 0,
+      current: 1,
     });
   });
 
   const {
-    run: runGetAccountPrivs,
     data,
-    mutate,
     loading,
+    mutate,
+    run: runGetAccountPrivs,
   } = useRequest(getAccountPrivs, {
     manual: true,
   });
@@ -104,10 +102,10 @@
         mutate({
           match_ips_count: 0,
           results: {
-            privs_for_ip: null,
-            privs_for_cluster: null,
             has_priv: null,
             no_priv: null,
+            privs_for_cluster: null,
+            privs_for_ip: null,
           },
         });
         formatType.value = 'ip';

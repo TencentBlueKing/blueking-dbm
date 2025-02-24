@@ -25,7 +25,7 @@ const path = `/apis/bigdata/bizs/${currentBizId}/influxdb/influxdb_resources`;
 /**
  * 获取实例列表
  */
-export function getInfluxdbInstanceList(params: Record<string, any> & { bk_biz_id: number }) {
+export function getInfluxdbInstanceList(params: { bk_biz_id: number } & Record<string, any>) {
   return http.get<ListBase<InfluxdbInstanceModel[]>>(`${path}/list_instances/`, params).then((res) => ({
     ...res,
     results: res.results.map((item: InfluxdbInstanceModel) => new InfluxdbInstanceModel(item)),

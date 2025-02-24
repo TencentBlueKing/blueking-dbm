@@ -62,9 +62,9 @@
   import { utcDisplayTime, utcTimeToSeconds } from '@utils';
 
   interface Props {
-    ticketData: TicketModel;
     data: FlowMode<unknown>['todos'][number];
     flowData: FlowMode<unknown>;
+    ticketData: TicketModel;
   }
 
   defineProps<Props>();

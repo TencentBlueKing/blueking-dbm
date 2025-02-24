@@ -372,43 +372,43 @@
 
   const genDefaultFormData = () => ({
     bk_biz_id: '' as number | '',
-    remark: '',
-    ticket_type: 'ES_APPLY',
     details: {
       bk_cloud_id: 0,
-      db_app_abbr: '',
-      cluster_name: '',
-      cluster_alias: '',
       city_code: '',
+      cluster_alias: '',
+      cluster_name: '',
+      db_app_abbr: '',
       db_version: '',
-      ip_source: 'resource_pool',
       disaster_tolerance_level: 'NONE', // 同 affinity
+      http_port: 9200,
+      ip_source: 'resource_pool',
       nodes: {
-        master: [] as Array<HostInfo>,
         client: [] as Array<HostInfo>,
-        hot: [] as Array<IHostTableDataWithInstance>,
         cold: [] as Array<IHostTableDataWithInstance>,
+        hot: [] as Array<IHostTableDataWithInstance>,
+        master: [] as Array<HostInfo>,
       },
       resource_spec: {
-        master: {
-          spec_id: '',
-          count: 3,
-        },
         client: {
-          spec_id: '',
           count: 0,
-        },
-        hot: {
           spec_id: '',
-          count: 0,
         },
         cold: {
-          spec_id: '',
           count: 0,
+          spec_id: '',
+        },
+        hot: {
+          count: 0,
+          spec_id: '',
+        },
+        master: {
+          count: 3,
+          spec_id: '',
         },
       },
-      http_port: 9200,
     },
+    remark: '',
+    ticket_type: 'ES_APPLY',
   });
 
   const formatIpDataWidthInstance = (data: HostInfo[]) =>
@@ -439,9 +439,9 @@
       return 'info';
     }
 
-    const { hot, cold } = formData.details.resource_spec;
+    const { cold, hot } = formData.details.resource_spec;
 
-    const { hot: hotNodes, cold: coldNodes } = formData.details.nodes;
+    const { cold: coldNodes, hot: hotNodes } = formData.details.nodes;
     const isPass =
       Boolean(hot.spec_id && hot.count) ||
       Boolean(cold.spec_id && cold.count) ||
@@ -453,32 +453,32 @@
   // const isDefaultCity = computed(() => formData.details.city_code === 'default');
 
   const rules = {
-    'details.nodes.master': [
+    'details.nodes.cold': [
       {
-        validator: (value: Array<any>) => value.length >= 3 && value.length % 2 === 1,
-        message: t('Master节点数至少为3台_且为奇数'),
+        message: t('请保证冷/热节点至少存在一台'),
         trigger: 'change',
+        validator: () => formData.details.nodes.hot.length > 0 || formData.details.nodes.cold.length > 0,
       },
     ],
     'details.nodes.hot': [
       {
-        validator: () => formData.details.nodes.hot.length > 0 || formData.details.nodes.cold.length > 0,
         message: t('请保证冷/热节点至少存在一台'),
         trigger: 'change',
+        validator: () => formData.details.nodes.hot.length > 0 || formData.details.nodes.cold.length > 0,
       },
     ],
-    'details.nodes.cold': [
+    'details.nodes.master': [
       {
-        validator: () => formData.details.nodes.hot.length > 0 || formData.details.nodes.cold.length > 0,
-        message: t('请保证冷/热节点至少存在一台'),
+        message: t('Master节点数至少为3台_且为奇数'),
         trigger: 'change',
+        validator: (value: Array<any>) => value.length >= 3 && value.length % 2 === 1,
       },
     ],
     'details.resource_spec.master.count': [
       {
-        validator: (value: number) => value >= 3 && value % 2 === 1,
         message: t('至少3台_且为奇数'),
         trigger: 'change',
+        validator: (value: number) => value >= 3 && value % 2 === 1,
       },
     ],
   };
@@ -502,12 +502,12 @@
         totalCapacity.value = hotDisk * hotCount + coldCount * coldDisk;
       }
     },
-    { flush: 'post', deep: true },
+    { deep: true, flush: 'post' },
   );
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
-  const { baseState, bizState, handleCreateAppAbbr, handleCreateTicket, handleCancel } = useApplyBase();
+  const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
 
   // 切换业务，需要重置 IP 相关的选择
   function handleChangeBiz(info: BizItem) {
@@ -635,18 +635,18 @@
 
       const mapIpField = (ipList: Array<HostInfo>) =>
         ipList.map((item) => ({
+          bk_biz_id: item.biz.id,
+          bk_cloud_id: item.cloud_area.id,
           bk_host_id: item.host_id,
           ip: item.ip,
-          bk_cloud_id: item.cloud_area.id,
-          bk_biz_id: item.biz.id,
         }));
       const mapIpFieldWithInstance = (ipList: Array<IHostTableDataWithInstance>) =>
         ipList.map((item) => ({
-          bk_host_id: item.host_id,
-          ip: item.ip,
-          bk_cloud_id: item.cloud_area.id,
-          instance_num: item.instance_num,
           bk_biz_id: item.biz.id,
+          bk_cloud_id: item.cloud_area.id,
+          bk_host_id: item.host_id,
+          instance_num: item.instance_num,
+          ip: item.ip,
         }));
 
       const getDetails = () => {
@@ -710,10 +710,10 @@
         return {
           ...details,
           nodes: {
-            master: mapIpField(formData.details.nodes.master),
             client: mapIpField(formData.details.nodes.client),
-            hot: mapIpFieldWithInstance(formData.details.nodes.hot),
             cold: mapIpFieldWithInstance(formData.details.nodes.cold),
+            hot: mapIpFieldWithInstance(formData.details.nodes.hot),
+            master: mapIpField(formData.details.nodes.master),
           },
         };
       };
@@ -730,7 +730,6 @@
   // 重置表单
   const handleReset = () => {
     InfoBox({
-      title: t('确认重置表单内容'),
       content: t('重置后_将会清空当前填写的内容'),
       onConfirm: () => {
         isClickSubmit.value = false;
@@ -741,6 +740,7 @@
         });
         return true;
       },
+      title: t('确认重置表单内容'),
     });
   };
 

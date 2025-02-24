@@ -7,15 +7,15 @@ import { DBTypes } from './dbTypes';
 import { MachineTypes } from './machineTypes';
 
 export interface ClusterTypeInfoItem {
-  id: ClusterTypes;
-  name: string;
-  specClusterName: string; // 规格对应的集群名，磨平集群类型差异
   dbType: DBTypes;
-  moduleId: ExtractedControllerDataKeys;
+  id: ClusterTypes;
   machineList: {
     id: MachineTypes;
     name: string;
   }[];
+  moduleId: ExtractedControllerDataKeys;
+  name: string;
+  specClusterName: string; // 规格对应的集群名，磨平集群类型差异
 }
 type InfoType = {
   [x in ClusterTypes]?: ClusterTypeInfoItem;
@@ -25,12 +25,9 @@ type RequiredInfoType = {
 };
 
 const mysql: InfoType = {
-  [ClusterTypes.TENDBSINGLE]: {
-    id: ClusterTypes.TENDBSINGLE,
-    name: t('MySQL单节点'),
-    specClusterName: 'MySQL',
+  [ClusterTypes.TENDBHA]: {
     dbType: DBTypes.MYSQL,
-    moduleId: 'mysql',
+    id: ClusterTypes.TENDBHA,
     machineList: [
       {
         id: MachineTypes.MYSQL_PROXY,
@@ -41,13 +38,13 @@ const mysql: InfoType = {
         name: t('后端存储'),
       },
     ],
-  },
-  [ClusterTypes.TENDBHA]: {
-    id: ClusterTypes.TENDBHA,
+    moduleId: 'mysql',
     name: t('MySQL主从'),
     specClusterName: 'MySQL',
+  },
+  [ClusterTypes.TENDBSINGLE]: {
     dbType: DBTypes.MYSQL,
-    moduleId: 'mysql',
+    id: ClusterTypes.TENDBSINGLE,
     machineList: [
       {
         id: MachineTypes.MYSQL_PROXY,
@@ -58,16 +55,16 @@ const mysql: InfoType = {
         name: t('后端存储'),
       },
     ],
+    moduleId: 'mysql',
+    name: t('MySQL单节点'),
+    specClusterName: 'MySQL',
   },
 };
 
 const spider: InfoType = {
   [ClusterTypes.TENDBCLUSTER]: {
-    id: ClusterTypes.TENDBCLUSTER,
-    name: 'TenDBCluster',
-    specClusterName: 'TenDBCluster',
     dbType: DBTypes.TENDBCLUSTER,
-    moduleId: 'mysql',
+    id: ClusterTypes.TENDBCLUSTER,
     machineList: [
       {
         id: MachineTypes.TENDBCLUSTER_PROXY,
@@ -78,16 +75,16 @@ const spider: InfoType = {
         name: t('后端存储'),
       },
     ],
+    moduleId: 'mysql',
+    name: 'TenDBCluster',
+    specClusterName: 'TenDBCluster',
   },
 };
 
 const redis: InfoType = {
-  [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: {
-    id: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-    name: 'TendisCache',
-    specClusterName: 'Redis',
+  [ClusterTypes.PREDIXY_REDIS_CLUSTER]: {
     dbType: DBTypes.REDIS,
-    moduleId: 'redis',
+    id: ClusterTypes.PREDIXY_REDIS_CLUSTER,
     machineList: [
       {
         id: MachineTypes.REDIS_TENDIS_CACHE,
@@ -98,30 +95,13 @@ const redis: InfoType = {
         name: 'Proxy',
       },
     ],
-  },
-  [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: {
-    id: ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-    name: 'TendisSSD',
-    specClusterName: 'Redis',
-    dbType: DBTypes.REDIS,
     moduleId: 'redis',
-    machineList: [
-      {
-        id: MachineTypes.REDIS_TENDIS_CACHE,
-        name: t('TendisCache/RedisCluster/Redis主从 后端存储'),
-      },
-      {
-        id: MachineTypes.REDIS_PROXY,
-        name: 'Proxy',
-      },
-    ],
+    name: 'RedisCluster',
+    specClusterName: 'Redis',
   },
   [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: {
-    id: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-    name: 'Tendisplus',
-    specClusterName: 'Redis',
     dbType: DBTypes.REDIS,
-    moduleId: 'redis',
+    id: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
     machineList: [
       {
         id: MachineTypes.REDIS_TENDIS_PLUS,
@@ -132,13 +112,26 @@ const redis: InfoType = {
         name: 'Proxy',
       },
     ],
-  },
-  [ClusterTypes.PREDIXY_REDIS_CLUSTER]: {
-    id: ClusterTypes.PREDIXY_REDIS_CLUSTER,
-    name: 'RedisCluster',
-    specClusterName: 'Redis',
-    dbType: DBTypes.REDIS,
     moduleId: 'redis',
+    name: 'Tendisplus',
+    specClusterName: 'Redis',
+  },
+  [ClusterTypes.REDIS_INSTANCE]: {
+    dbType: DBTypes.REDIS,
+    id: ClusterTypes.REDIS_INSTANCE,
+    machineList: [
+      {
+        id: MachineTypes.REDIS_TENDIS_CACHE,
+        name: t('TendisCache/RedisCluster/Redis主从 后端存储'),
+      },
+    ],
+    moduleId: 'redis',
+    name: t('Redis主从'),
+    specClusterName: 'Redis',
+  },
+  [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: {
+    dbType: DBTypes.REDIS,
+    id: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
     machineList: [
       {
         id: MachineTypes.REDIS_TENDIS_CACHE,
@@ -149,118 +142,33 @@ const redis: InfoType = {
         name: 'Proxy',
       },
     ],
-  },
-  [ClusterTypes.REDIS_INSTANCE]: {
-    id: ClusterTypes.REDIS_INSTANCE,
-    name: t('Redis主从'),
-    specClusterName: 'Redis',
-    dbType: DBTypes.REDIS,
     moduleId: 'redis',
+    name: 'TendisCache',
+    specClusterName: 'Redis',
+  },
+  [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: {
+    dbType: DBTypes.REDIS,
+    id: ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
     machineList: [
       {
         id: MachineTypes.REDIS_TENDIS_CACHE,
         name: t('TendisCache/RedisCluster/Redis主从 后端存储'),
       },
+      {
+        id: MachineTypes.REDIS_PROXY,
+        name: 'Proxy',
+      },
     ],
+    moduleId: 'redis',
+    name: 'TendisSSD',
+    specClusterName: 'Redis',
   },
 };
 
 const bigdata: InfoType = {
-  [ClusterTypes.ES]: {
-    id: ClusterTypes.ES,
-    name: 'ElasticSearch',
-    specClusterName: 'ElasticSearch',
-    dbType: DBTypes.ES,
-    moduleId: 'bigdata',
-    machineList: [
-      {
-        id: MachineTypes.ES_MASTER,
-        name: t('Master节点'),
-      },
-      {
-        id: MachineTypes.ES_CLIENT,
-        name: t('Client节点'),
-      },
-      {
-        id: MachineTypes.ES_DATANODE,
-        name: t('冷_热节点'),
-      },
-    ],
-  },
-  [ClusterTypes.KAFKA]: {
-    id: ClusterTypes.KAFKA,
-    name: 'Kafka',
-    specClusterName: 'Kafka',
-    dbType: DBTypes.KAFKA,
-    moduleId: 'bigdata',
-    machineList: [
-      {
-        id: MachineTypes.KAFKA_ZOOKEEPER,
-        name: t('Zookeeper节点'),
-      },
-      {
-        id: MachineTypes.KAFKA_BROKER,
-        name: t('Broker节点'),
-      },
-    ],
-  },
-  [ClusterTypes.HDFS]: {
-    id: ClusterTypes.HDFS,
-    name: 'HDFS',
-    specClusterName: 'HDFS',
-    dbType: DBTypes.HDFS,
-    moduleId: 'bigdata',
-    machineList: [
-      {
-        id: MachineTypes.HDFS_DATANODE,
-        name: t('DataNode节点'),
-      },
-      {
-        id: MachineTypes.HDFS_MASTER,
-        name: t('NameNode_Zookeeper_JournalNode节点'),
-      },
-    ],
-  },
-  [ClusterTypes.INFLUXDB]: {
-    id: ClusterTypes.INFLUXDB,
-    name: 'InfuxDB',
-    specClusterName: 'InfuxDB',
-    dbType: DBTypes.INFLUXDB,
-    moduleId: 'bigdata',
-    machineList: [
-      {
-        id: MachineTypes.INFLUXDB,
-        name: t('后端存储机型'),
-      },
-    ],
-  },
-  [ClusterTypes.PULSAR]: {
-    id: ClusterTypes.PULSAR,
-    name: 'Pulsar',
-    specClusterName: 'Pulsar',
-    dbType: DBTypes.PULSAR,
-    moduleId: 'bigdata',
-    machineList: [
-      {
-        id: MachineTypes.PULSAR_BOOKKEEPER,
-        name: t('Bookkeeper节点'),
-      },
-      {
-        id: MachineTypes.PULSAR_ZOOKEEPER,
-        name: t('Zookeeper节点'),
-      },
-      {
-        id: MachineTypes.PULSAR_BROKER,
-        name: t('Broker节点'),
-      },
-    ],
-  },
   [ClusterTypes.DORIS]: {
-    id: ClusterTypes.DORIS,
-    name: 'Doris',
-    specClusterName: 'Doris',
     dbType: DBTypes.DORIS,
-    moduleId: 'bigdata',
+    id: ClusterTypes.DORIS,
     machineList: [
       {
         id: MachineTypes.DORIS_FOLLOWER,
@@ -275,42 +183,131 @@ const bigdata: InfoType = {
         name: t('冷_热节点规格'),
       },
     ],
+    moduleId: 'bigdata',
+    name: 'Doris',
+    specClusterName: 'Doris',
+  },
+  [ClusterTypes.ES]: {
+    dbType: DBTypes.ES,
+    id: ClusterTypes.ES,
+    machineList: [
+      {
+        id: MachineTypes.ES_MASTER,
+        name: t('Master节点'),
+      },
+      {
+        id: MachineTypes.ES_CLIENT,
+        name: t('Client节点'),
+      },
+      {
+        id: MachineTypes.ES_DATANODE,
+        name: t('冷_热节点'),
+      },
+    ],
+    moduleId: 'bigdata',
+    name: 'ElasticSearch',
+    specClusterName: 'ElasticSearch',
+  },
+  [ClusterTypes.HDFS]: {
+    dbType: DBTypes.HDFS,
+    id: ClusterTypes.HDFS,
+    machineList: [
+      {
+        id: MachineTypes.HDFS_DATANODE,
+        name: t('DataNode节点'),
+      },
+      {
+        id: MachineTypes.HDFS_MASTER,
+        name: t('NameNode_Zookeeper_JournalNode节点'),
+      },
+    ],
+    moduleId: 'bigdata',
+    name: 'HDFS',
+    specClusterName: 'HDFS',
+  },
+  [ClusterTypes.INFLUXDB]: {
+    dbType: DBTypes.INFLUXDB,
+    id: ClusterTypes.INFLUXDB,
+    machineList: [
+      {
+        id: MachineTypes.INFLUXDB,
+        name: t('后端存储机型'),
+      },
+    ],
+    moduleId: 'bigdata',
+    name: 'InfuxDB',
+    specClusterName: 'InfuxDB',
+  },
+  [ClusterTypes.KAFKA]: {
+    dbType: DBTypes.KAFKA,
+    id: ClusterTypes.KAFKA,
+    machineList: [
+      {
+        id: MachineTypes.KAFKA_ZOOKEEPER,
+        name: t('Zookeeper节点'),
+      },
+      {
+        id: MachineTypes.KAFKA_BROKER,
+        name: t('Broker节点'),
+      },
+    ],
+    moduleId: 'bigdata',
+    name: 'Kafka',
+    specClusterName: 'Kafka',
+  },
+  [ClusterTypes.PULSAR]: {
+    dbType: DBTypes.PULSAR,
+    id: ClusterTypes.PULSAR,
+    machineList: [
+      {
+        id: MachineTypes.PULSAR_BOOKKEEPER,
+        name: t('Bookkeeper节点'),
+      },
+      {
+        id: MachineTypes.PULSAR_ZOOKEEPER,
+        name: t('Zookeeper节点'),
+      },
+      {
+        id: MachineTypes.PULSAR_BROKER,
+        name: t('Broker节点'),
+      },
+    ],
+    moduleId: 'bigdata',
+    name: 'Pulsar',
+    specClusterName: 'Pulsar',
   },
   [ClusterTypes.RIAK]: {
-    id: ClusterTypes.RIAK,
-    name: 'Riak',
-    specClusterName: 'Riak',
     dbType: DBTypes.RIAK,
-    moduleId: 'bigdata',
+    id: ClusterTypes.RIAK,
     machineList: [
       {
         id: MachineTypes.RIAK,
         name: t('后端存储'),
       },
     ],
+    moduleId: 'bigdata',
+    name: 'Riak',
+    specClusterName: 'Riak',
   },
 };
 
 const mongodb: InfoType = {
   [ClusterTypes.MONGO_REPLICA_SET]: {
-    id: ClusterTypes.MONGO_REPLICA_SET,
-    name: t('Mongo副本集'),
-    specClusterName: 'MongoDB',
     dbType: DBTypes.MONGODB,
-    moduleId: 'mongodb',
+    id: ClusterTypes.MONGO_REPLICA_SET,
     machineList: [
       {
         id: MachineTypes.MONGODB,
         name: '副本集/ShardSvr',
       },
     ],
+    moduleId: 'mongodb',
+    name: t('Mongo副本集'),
+    specClusterName: 'MongoDB',
   },
   [ClusterTypes.MONGO_SHARED_CLUSTER]: {
-    id: ClusterTypes.MONGO_SHARED_CLUSTER,
-    name: t('Mongo分片集群'),
-    specClusterName: 'MongoDB',
     dbType: DBTypes.MONGODB,
-    moduleId: 'mongodb',
+    id: ClusterTypes.MONGO_SHARED_CLUSTER,
     machineList: [
       {
         id: MachineTypes.MONGOS,
@@ -325,35 +322,38 @@ const mongodb: InfoType = {
         name: 'ConfigSvr',
       },
     ],
+    moduleId: 'mongodb',
+    name: t('Mongo分片集群'),
+    specClusterName: 'MongoDB',
   },
 };
 
 const sqlserver: InfoType = {
-  [ClusterTypes.SQLSERVER_SINGLE]: {
-    id: ClusterTypes.SQLSERVER_SINGLE,
-    name: t('SQLServer单节点'),
-    specClusterName: 'SQLServer',
+  [ClusterTypes.SQLSERVER_HA]: {
     dbType: DBTypes.SQLSERVER,
-    moduleId: 'sqlserver',
+    id: ClusterTypes.SQLSERVER_HA,
     machineList: [
       {
         id: MachineTypes.SQLSERVER,
         name: t('后端存储'),
       },
     ],
-  },
-  [ClusterTypes.SQLSERVER_HA]: {
-    id: ClusterTypes.SQLSERVER_HA,
+    moduleId: 'sqlserver',
     name: t('SQLServer主从'),
     specClusterName: 'SQLServer',
+  },
+  [ClusterTypes.SQLSERVER_SINGLE]: {
     dbType: DBTypes.SQLSERVER,
-    moduleId: 'sqlserver',
+    id: ClusterTypes.SQLSERVER_SINGLE,
     machineList: [
       {
         id: MachineTypes.SQLSERVER,
         name: t('后端存储'),
       },
     ],
+    moduleId: 'sqlserver',
+    name: t('SQLServer单节点'),
+    specClusterName: 'SQLServer',
   },
 };
 

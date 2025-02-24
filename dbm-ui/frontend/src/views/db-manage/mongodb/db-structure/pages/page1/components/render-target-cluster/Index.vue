@@ -64,11 +64,11 @@
   import RenderDataRow from './render-table/Row.vue';
 
   export interface IClusterData {
-    id: number;
     cluster_name: string;
-    status: string;
-    master_domain: string;
     cluster_type: string;
+    id: number;
+    master_domain: string;
+    status: string;
   }
 
   interface Props {
@@ -102,23 +102,23 @@
       (props.clusterType === ClusterTypes.MONGO_REPLICA_SET
         ? {
             [ClusterTypes.MONGO_REPLICA_SET]: {
-              name: t('副本集集群'),
               multiple: true,
+              name: t('副本集集群'),
             },
           }
         : {
             [ClusterTypes.MONGO_SHARED_CLUSTER]: {
-              name: t('分片集群'),
               multiple: false,
+              name: t('分片集群'),
             },
           }) as unknown as Record<ClusterTypes, TabItem>,
   );
 
   const rules = [
     {
-      validator: (value: number[]) => value.length > 0,
       message: t('目标集群不能为空'),
       trigger: 'change',
+      validator: (value: number[]) => value.length > 0,
     },
   ];
 

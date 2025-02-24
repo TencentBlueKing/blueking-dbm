@@ -15,8 +15,8 @@
 <script setup lang="ts">
   interface Props {
     columns: {
-      title: string;
       render: () => VNode | string | number | null;
+      title: string;
     }[];
   }
 

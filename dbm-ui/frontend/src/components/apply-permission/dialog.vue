@@ -69,9 +69,7 @@
     applyData?: ApplyDataModel;
     checkParams?: ServiceParameters<typeof simpleGetApplyData>;
   }
-  interface Emits {
-    (e: 'cancel'): void;
-  }
+  type Emits = (e: 'cancel') => void;
   const props = defineProps<Props>();
   const emit = defineEmits<Emits>();
 
@@ -115,7 +113,7 @@
 
   onMounted(() => {
     isShow.value = true;
-    if (props.checkParams && props.checkParams.action_id) {
+    if (props.checkParams?.action_id) {
       run({
         ...props.checkParams,
       });

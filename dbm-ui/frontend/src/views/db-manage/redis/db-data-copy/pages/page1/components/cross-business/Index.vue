@@ -150,11 +150,11 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.REDIS_CLUSTER_DATA_COPY,
     onSuccess(cloneData) {
       tableData.value = cloneData.tableList;
       window.changeConfirm = true;
     },
+    type: TicketTypes.REDIS_CLUSTER_DATA_COPY,
   });
 
   const tableData = ref([createRowData()]);
@@ -162,8 +162,8 @@
   const rowRefs = ref();
 
   const batchEditShow = reactive({
-    includeKey: false,
     excludeKey: false,
+    includeKey: false,
   });
 
   const selectedClusters = shallowRef<{ [key: string]: Array<RedisModel> }>({ [ClusterTypes.REDIS]: [] });
@@ -173,14 +173,14 @@
 
   const tabListConfig = {
     [ClusterTypes.REDIS]: {
+      columnStatusFilter: (data: RedisModel) =>
+        data.redis_slave.filter((item) => item.status !== 'running').length === 0,
       disabledRowConfig: [
         {
           handler: (data: RedisModel) => data.redis_slave.filter((item) => item.status !== 'running').length > 0,
           tip: t('slave 状态异常，无法选择'),
         },
       ],
-      columnStatusFilter: (data: RedisModel) =>
-        data.redis_slave.filter((item) => item.status !== 'running').length === 0,
     },
   };
 
@@ -203,15 +203,15 @@
     const item = JSON.parse(r) as RedisDSTHistoryJobModel;
     tableData.value = [
       {
-        rowKey: item.src_cluster,
+        excludeKey: item.key_black_regex === '' ? [] : item.key_black_regex.split('\n'),
+        includeKey: item.key_white_regex === '' ? [] : item.key_white_regex.split('\n'),
         isLoading: false,
+        rowKey: item.src_cluster,
         srcCluster: item.src_cluster,
-        srcClusterTypeName: '',
         srcClusterId: item.src_cluster_id,
+        srcClusterTypeName: '',
         targetBusines: Number(item.dst_bk_biz_id),
         targetClusterId: item.dst_cluster_id,
-        includeKey: item.key_white_regex === '' ? [] : item.key_white_regex.split('\n'),
-        excludeKey: item.key_black_regex === '' ? [] : item.key_black_regex.split('\n'),
       },
     ];
     destroyLocalStorage();
@@ -255,15 +255,15 @@
   };
 
   const generateTableRow = (item: RedisModel) => ({
-    rowKey: item.master_domain,
-    isLoading: false,
-    srcCluster: item.master_domain,
-    srcClusterTypeName: item.cluster_type_name,
-    srcClusterId: item.id,
-    targetClusterId: 0,
-    targetCluster: '',
-    includeKey: ['*'],
     excludeKey: [],
+    includeKey: ['*'],
+    isLoading: false,
+    rowKey: item.master_domain,
+    srcCluster: item.master_domain,
+    srcClusterId: item.id,
+    srcClusterTypeName: item.cluster_type_name,
+    targetCluster: '',
+    targetClusterId: 0,
   });
 
   const handleBatchEditShow = (key: IDataRowBatchKey) => {

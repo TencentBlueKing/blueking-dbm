@@ -181,11 +181,11 @@
   import { groupByDbType } from '../common/utils';
 
   interface Props {
-    keyword: string;
-    data: QuickSearchEntryModel[];
     bizIdNameMap: Record<number, string>;
+    data: QuickSearchEntryModel[];
     isAnomalies: boolean;
     isSearching: boolean;
+    keyword: string;
   }
 
   interface Emits {
@@ -228,8 +228,8 @@
       console.log('renderData = ', renderData);
       pagination.value = newRenderData.dataList.map((dataItem) => ({
         count: dataItem.dataList.length,
-        limit: 10,
         current: 1,
+        limit: 10,
         remote: false,
       }));
     },
@@ -240,16 +240,16 @@
 
   const handleExport = (clusterType: string, dataList: QuickSearchEntryModel[]) => {
     const formatData = dataList.map((dataItem) => ({
-      [t('集群ID')]: String(dataItem.id),
-      [t('访问入口（域名、CLB、北极星）')]: dataItem.entry,
+      [t('业务名称')]: props.bizIdNameMap[dataItem.bk_biz_id],
+      [t('主 DBA')]: dataItem.dba,
+      [t('地域')]: dataItem.region,
+      [t('容灾要求')]: dataItem.disaster_tolerance_level,
+      [t('所属业务')]: String(dataItem.bk_biz_id),
       [t('所属集群')]: dataItem.immute_domain,
       [t('架构类型')]: dataItem.cluster_type,
       [t('版本')]: dataItem.major_version,
-      [t('地域')]: dataItem.region,
-      [t('所属业务')]: String(dataItem.bk_biz_id),
-      [t('业务名称')]: props.bizIdNameMap[dataItem.bk_biz_id],
-      [t('容灾要求')]: dataItem.disaster_tolerance_level,
-      [t('主 DBA')]: dataItem.dba,
+      [t('访问入口（域名、CLB、北极星）')]: dataItem.entry,
+      [t('集群ID')]: String(dataItem.id),
     }));
     const colsWidths = [{ width: 10 }, { width: 16 }, { width: 16 }, { width: 24 }, { width: 24 }, { width: 16 }];
 

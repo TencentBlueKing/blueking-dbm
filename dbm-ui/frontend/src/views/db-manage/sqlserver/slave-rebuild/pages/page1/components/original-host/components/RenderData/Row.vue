@@ -41,22 +41,22 @@
   import RenderSlave from './RenderSlave.vue';
 
   export interface IDataRow {
+    clusterId?: number;
     rowKey: string;
     slave?: {
       bkCloudId: number;
       bkHostId: number;
+      instanceAddress: string;
       ip: string;
       port: number;
-      instanceAddress: string;
     };
-    clusterId?: number;
   }
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
+    clusterId: data.clusterId,
     rowKey: random(),
     slave: data.slave,
-    clusterId: data.clusterId,
   });
 </script>
 <script setup lang="ts">

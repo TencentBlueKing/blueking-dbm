@@ -5,8 +5,8 @@ export interface AddShardNodes extends DetailBase {
   infos: {
     add_shard_nodes_num: number;
     cluster_ids: number[];
-    node_replica_count: number;
     current_shard_nodes_num: number;
+    node_replica_count: number;
     resource_spec: {
       shard_nodes: {
         count: number;
@@ -14,6 +14,6 @@ export interface AddShardNodes extends DetailBase {
       };
     };
   }[];
-  is_safe: boolean;
   ip_source: string;
+  is_safe: boolean;
 }

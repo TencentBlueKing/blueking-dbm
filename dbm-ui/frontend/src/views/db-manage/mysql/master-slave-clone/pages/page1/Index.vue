@@ -124,7 +124,6 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.MYSQL_MIGRATE_CLUSTER,
     onSuccess(cloneData) {
       const { tableDataList } = cloneData;
       tableData.value = tableDataList;
@@ -132,6 +131,7 @@
       remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
+    type: TicketTypes.MYSQL_MIGRATE_CLUSTER,
   });
 
   const rowRefs = ref();
@@ -173,9 +173,9 @@
       if (!domainMemo[domain]) {
         const row = createRowData({
           clusterData: {
-            id: clusterData.id,
-            domain,
             cloudId: clusterData.bk_cloud_id,
+            domain,
+            id: clusterData.id,
           },
         });
         results.push(row);
@@ -227,13 +227,13 @@
       isSubmitting.value = true;
       const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
       await createTicket({
-        ticket_type: 'MYSQL_MIGRATE_CLUSTER',
-        remark: remark.value,
-        details: {
-          infos,
-          backup_source: backupSource.value,
-        },
         bk_biz_id: currentBizId,
+        details: {
+          backup_source: backupSource.value,
+          infos,
+        },
+        remark: remark.value,
+        ticket_type: 'MYSQL_MIGRATE_CLUSTER',
       }).then((data) => {
         window.changeConfirm = false;
 

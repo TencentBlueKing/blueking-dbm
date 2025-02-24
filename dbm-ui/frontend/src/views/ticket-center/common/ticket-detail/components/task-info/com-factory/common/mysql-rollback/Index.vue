@@ -42,10 +42,6 @@
   const { t } = useI18n();
 
   const rollbackInfo = {
-    BUILD_INTO_NEW_CLUSTER: {
-      label: t('构造到新集群'),
-      tableCom: RollbackNewCluster,
-    },
     BUILD_INTO_EXIST_CLUSTER: {
       label: t('构造到已有集群'),
       tableCom: RollbackExistCluster,
@@ -53,6 +49,10 @@
     BUILD_INTO_METACLUSTER: {
       label: t('构造到原集群'),
       tableCom: RollbackOriginCluster,
+    },
+    BUILD_INTO_NEW_CLUSTER: {
+      label: t('构造到新集群'),
+      tableCom: RollbackNewCluster,
     },
   };
 

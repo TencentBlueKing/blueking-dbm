@@ -58,10 +58,10 @@
 
   interface Exposes {
     getValue: () => Promise<{
-      pkg_id: string;
       display_info: {
         target_package: string;
       };
+      pkg_id: string;
     }>;
   }
 
@@ -75,8 +75,8 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('目标版本不能为空'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 
@@ -88,8 +88,8 @@
         const version = versionItem.name.match(versionRegex);
         if (version && compareVersions(version[0], currentVersion) === 1) {
           prevList.push({
-            value: versionItem.id,
             label: versionItem.name,
+            value: versionItem.id,
           });
           return prevList;
         }
@@ -107,8 +107,8 @@
     (value) => {
       if (value) {
         fetchClusterVersions({
-          pkg_type: 'mysql-proxy',
           db_type: 'mysql',
+          pkg_type: 'mysql-proxy',
         });
       }
     },
@@ -130,10 +130,10 @@
   defineExpose<Exposes>({
     getValue() {
       return selectRef.value!.getValue().then(() => ({
-        pkg_id: localValue.value,
         display_info: {
           target_package: versionList.value.find((item) => item.value === localValue.value)?.label || '',
         },
+        pkg_id: localValue.value,
       }));
     },
   });

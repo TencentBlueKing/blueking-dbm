@@ -110,18 +110,16 @@
   type ManualConfigType = Required<PanelListType[number]>['manualConfig'];
 
   interface Props {
+    firsrColumn?: TableConfigType['firsrColumn'];
+    getTableList: NonNullable<TableConfigType['getTableList']>;
     lastValues: InstanceSelectorValues<IValue>;
     manualConfig: Required<ManualConfigType>;
+    statusFilter?: TableConfigType['statusFilter'];
     // clusterId?: number,
     tableSetting: TableSetting;
-    firsrColumn?: TableConfigType['firsrColumn'];
-    statusFilter?: TableConfigType['statusFilter'];
-    getTableList: NonNullable<TableConfigType['getTableList']>;
   }
 
-  interface Emits {
-    (e: 'change', value: InstanceSelectorValues<IValue>): void;
-  }
+  type Emits = (e: 'change', value: InstanceSelectorValues<IValue>) => void;
   const props = withDefaults(defineProps<Props>(), {
     firsrColumn: undefined,
     statusFilter: undefined,
@@ -134,23 +132,23 @@
   const inputRef = ref();
 
   const inputState = reactive({
-    values: '',
-    placeholder: t('请输入IP_如_1_1_1_1多个可使用换行_空格或_分隔'),
     isLoading: false,
+    placeholder: t('请输入IP_如_1_1_1_1多个可使用换行_空格或_分隔'),
     tableData: [] as IValue[],
+    values: '',
   });
   const errorState = reactive({
     format: {
-      show: false,
-      selectionStart: 0,
-      selectionEnd: 0,
       count: 0,
+      selectionEnd: 0,
+      selectionStart: 0,
+      show: false,
     },
     ip: {
-      show: false,
-      selectionStart: 0,
-      selectionEnd: 0,
       count: 0,
+      selectionEnd: 0,
+      selectionStart: 0,
+      show: false,
     },
   });
 
@@ -167,7 +165,7 @@
    * 标记错误
    */
   const handleSelectionError = (key: 'format' | 'ip') => {
-    const { selectionStart, selectionEnd } = errorState[key];
+    const { selectionEnd, selectionStart } = errorState[key];
     const textarea = inputRef.value?.$el?.getElementsByTagName?.('textarea')?.[0];
     if (textarea) {
       (textarea as HTMLInputElement).focus();
@@ -253,15 +251,15 @@
           );
         if (!isExisted) {
           lastValues[type].push({
-            bk_host_id: item.bk_host_id,
             bk_cloud_id: item.bk_cloud_id,
-            ip: item.ip,
-            cluster_id: item.related_clusters[0].id,
-            port: 0,
-            instance_address: '',
-            cluster_type: '',
-            master_domain: item.related_clusters[0].immute_domain,
             bk_cloud_name: item.bk_cloud_name,
+            bk_host_id: item.bk_host_id,
+            cluster_id: item.related_clusters[0].id,
+            cluster_type: '',
+            instance_address: '',
+            ip: item.ip,
+            master_domain: item.related_clusters[0].immute_domain,
+            port: 0,
             related_instances: (item.related_instances || []).map((instanceItem) => ({
               instance: instanceItem.instance,
               status: instanceItem.status,

@@ -161,9 +161,9 @@
   import { messageWarn } from '@utils';
 
   interface Props {
-    type: 'add' | 'edit' | 'copy' | '';
     details: AlarmGroupDetail;
     disabled: boolean;
+    type: 'add' | 'edit' | 'copy' | '';
   }
 
   interface Exposes {
@@ -177,8 +177,8 @@
 
   interface LevelMapItem {
     label: string;
-    type: 'default' | 'warning' | 'error';
     level: 3 | 2 | 1;
+    type: 'default' | 'warning' | 'error';
   }
 
   interface PanelCheckbox extends AlarmGroupNotifyDisplay {
@@ -190,11 +190,11 @@
   }
 
   interface TableHead {
-    type: string;
-    label: string;
     bold?: boolean;
     icon?: string;
     input?: boolean;
+    label: string;
+    type: string;
   }
 
   const props = defineProps<Props>();
@@ -205,8 +205,8 @@
     const [endHour, endMinute] = end.split(':');
 
     return {
-      start: Number(startHour) * 60 + Number(startMinute),
       end: Number(endHour) * 60 + Number(endMinute),
+      start: Number(startHour) * 60 + Number(startMinute),
     };
   };
 
@@ -222,33 +222,33 @@
   };
 
   const InputMessageTypeMap: Record<string, string> = {
-    'wxwork-bot': MessageTypes.WECOM_ROBOT,
     [MessageTypes.WECOM_ROBOT]: 'wxwork-bot',
+    'wxwork-bot': MessageTypes.WECOM_ROBOT,
   };
 
   let head: TableHead[] = [
     {
-      label: t('告警级别'),
       bold: true,
+      label: t('告警级别'),
       type: '',
     },
   ];
 
   const levelMap: Record<number, LevelMapItem> = {
-    3: {
-      label: t('提醒'),
-      type: 'default',
-      level: 3,
+    1: {
+      label: t('致命'),
+      level: 1,
+      type: 'error',
     },
     2: {
       label: t('预警'),
-      type: 'warning',
       level: 2,
+      type: 'warning',
     },
-    1: {
-      label: t('致命'),
-      type: 'error',
-      level: 1,
+    3: {
+      label: t('提醒'),
+      level: 3,
+      type: 'default',
     },
   };
 
@@ -262,8 +262,8 @@
 
   const methodRules = [
     {
-      required: true,
       message: t('每个告警级别至少选择一种通知方式'),
+      required: true,
       validator: () =>
         panelList.value.every((item) =>
           item.dataList.every(
@@ -282,13 +282,13 @@
   const active = ref('');
   const panelList = ref<
     {
-      name: string;
-      open: boolean;
-      timeRange: [string, string];
       dataList: ({
         checkboxArr: PanelCheckbox[];
         inputArr: PanelInput[];
       } & LevelMapItem)[];
+      name: string;
+      open: boolean;
+      timeRange: [string, string];
     }[]
   >([]);
 
@@ -306,35 +306,35 @@
       const inputHead: TableHead[] = [];
 
       notifyList.forEach((item) => {
-        const { type, label, is_active: isActive, icon } = item;
+        const { icon, is_active: isActive, label, type } = item;
 
         if (isActive) {
           if (InputMessageTypes.includes(type)) {
             panelInitData.inputArr.push({
-              type,
-              label,
               icon,
+              label,
+              type,
               value: '',
             });
 
             inputHead.push({
-              type,
-              label,
               icon,
               input: true,
+              label,
+              type,
             });
           } else {
             panelInitData.checkboxArr.push({
-              type,
-              label,
-              icon,
               checked: false,
+              icon,
+              label,
+              type,
             });
 
             checkboxHead.push({
-              type,
-              label,
               icon,
+              label,
+              type,
             });
           }
         }
@@ -352,8 +352,8 @@
 
   const isIntervalsFullDay = (
     minutesIntervals: {
-      start: number;
       end: number;
+      start: number;
     }[],
   ) => {
     if (minutesIntervals.length === 0) {
@@ -402,7 +402,7 @@
 
     // 根据给定的时间段将已占用的分钟设置为 false
     for (const timeRangeItem of timeRanges) {
-      const { start, end } = timeRangeFormatter(timeRangeItem);
+      const { end, start } = timeRangeFormatter(timeRangeItem);
 
       for (let i = start; i <= end; i++) {
         availableMinutes[i] = false;
@@ -435,9 +435,6 @@
     const name = Math.random().toString(16).substring(4, 10);
 
     panelList.value.push({
-      name,
-      open: false,
-      timeRange: findFirstAvailableTimeSlot(),
       dataList: [
         {
           ...levelMap[3],
@@ -455,6 +452,9 @@
           inputArr: _.cloneDeep(panelInitData.inputArr),
         },
       ],
+      name,
+      open: false,
+      timeRange: findFirstAvailableTimeSlot(),
     });
 
     setTimeout(() => {
@@ -463,7 +463,7 @@
   };
 
   const setInitPanelList = () => {
-    const { type, details } = props;
+    const { details, type } = props;
 
     if (type === 'add') {
       addPanel();
@@ -502,10 +502,10 @@
           });
 
           return {
+            dataList,
             name,
             open: false,
             timeRange: item.time_range.split('--') as [string, string],
-            dataList,
           };
         });
 
@@ -521,7 +521,7 @@
     const timeRanges = panelList.value.map((item) => item.timeRange);
 
     for (const timeRangeItem of timeRanges) {
-      const { start, end } = timeRangeFormatter(timeRangeItem);
+      const { end, start } = timeRangeFormatter(timeRangeItem);
 
       // 检查时间段是否和已占用的时间冲突
       for (let i = start; i < end; i++) {
@@ -606,10 +606,9 @@
   defineExpose<Exposes>({
     getSubmitData() {
       const submitData = panelList.value.map((item) => {
-        const { timeRange, dataList } = item;
+        const { dataList, timeRange } = item;
 
         return {
-          time_range: timeRange.join('--'),
           notify_config: dataList.map((dataItem) => {
             const { checkboxArr, inputArr, level } = dataItem;
 
@@ -650,6 +649,7 @@
               notice_ways: [...noticeWaysCheck, ...noticeWaysInput],
             };
           }),
+          time_range: timeRange.join('--'),
         };
       });
 

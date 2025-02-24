@@ -40,9 +40,9 @@
 
   export const renderTablekey: InjectionKey<{
     isOverflow: Ref<boolean>;
-    rowWidth: Ref<number>;
     isScrollToLeft: Ref<boolean>;
     isScrollToRight: Ref<boolean>;
+    rowWidth: Ref<number>;
   }> = Symbol('renderTable');
 </script>
 
@@ -52,8 +52,8 @@
   import useColumnResize from './hooks/useColumnResize';
 
   const slots = defineSlots<{
-    default(): any;
     data(): any;
+    default(): any;
     empty?(): any;
   }>();
 
@@ -76,9 +76,9 @@
 
   provide(renderTablekey, {
     isOverflow,
-    rowWidth,
     isScrollToLeft,
     isScrollToRight,
+    rowWidth,
   });
 
   const handleScroll = _.throttle(() => {

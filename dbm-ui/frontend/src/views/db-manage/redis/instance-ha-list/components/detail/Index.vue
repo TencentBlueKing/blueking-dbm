@@ -52,9 +52,9 @@
 
   interface Props {
     instanceData?: {
-      instanceAddress: string;
       clusterId: number;
       clusterType: string;
+      instanceAddress: string;
     };
   }
 
@@ -83,11 +83,11 @@
     () => {
       if (props.instanceData) {
         fetchInstDetails({
-          dbType: DBTypes.REDIS,
           bk_biz_id: globalBizsStore.currentBizId,
-          type: props.instanceData.clusterType,
-          instance_address: props.instanceData.instanceAddress,
           cluster_id: props.instanceData.clusterId,
+          dbType: DBTypes.REDIS,
+          instance_address: props.instanceData.instanceAddress,
+          type: props.instanceData.clusterType,
         });
       }
     },

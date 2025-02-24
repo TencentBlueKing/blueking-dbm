@@ -144,17 +144,23 @@ function formatModifiers(modifiers: Record<string, boolean>) {
 }
 
 const defaultProps = {
-  arrow: true,
-  interactive: true,
-  delay: 150,
   allowHTML: false,
+  appendTo: () => document.body,
+  arrow: true,
+  delay: 150,
+  interactive: true,
   maxWidth: 600,
   // boundary: 'window',
   placement: 'top',
-  appendTo: () => document.body,
 };
 
 const overflowTips = {
+  beforeUnmount(el: Element) {
+    // eslint-disable-next-line no-underscore-dangle
+    el._tippy?.destroy();
+    // eslint-disable-next-line no-underscore-dangle,no-param-reassign
+    delete el._bk_overflow_tips_;
+  },
   mounted(el: Element, binding: DirectiveBinding) {
     const customProps = typeof binding.value === 'object' ? binding.value : formatModifiers(binding.modifiers);
     const props = Object.assign({ ...defaultProps }, customProps);
@@ -162,24 +168,18 @@ const overflowTips = {
     setupTheme(props, customProps);
     // eslint-disable-next-line no-underscore-dangle,no-param-reassign
     el._bk_overflow_tips_ = {
-      props, // 指令配置的props单独存储方便后续做判断
       instance: dbTippy(el, props),
+      props, // 指令配置的props单独存储方便后续做判断
     };
   },
   updated(el: Element, binding: DirectiveBinding) {
     // eslint-disable-next-line no-underscore-dangle
-    const { props, instance } = el._bk_overflow_tips_;
+    const { instance, props } = el._bk_overflow_tips_;
     const customProps = typeof binding.value === 'object' ? binding.value : formatModifiers(binding.modifiers);
     Object.assign(props, customProps);
     setupOnShow(props, customProps);
     setupTheme(props, customProps);
     instance.setProps(props);
-  },
-  beforeUnmount(el: Element) {
-    // eslint-disable-next-line no-underscore-dangle
-    el._tippy && el._tippy.destroy();
-    // eslint-disable-next-line no-underscore-dangle,no-param-reassign
-    delete el._bk_overflow_tips_;
   },
 };
 

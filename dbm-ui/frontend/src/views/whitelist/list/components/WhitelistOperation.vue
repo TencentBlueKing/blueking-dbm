@@ -117,11 +117,11 @@
   }
 
   interface Props {
+    bizId: number;
+    data: WhitelistItem;
+    isEdit: boolean;
     isShow: boolean;
     title: string;
-    bizId: number;
-    isEdit: boolean;
-    data: WhitelistItem;
   }
 
   const props = defineProps<Props>();
@@ -140,13 +140,15 @@
   const isSubmitting = ref(false);
   let mergeInst: Instance | undefined = undefined;
   const ipMergeState = reactive({
-    renderValues: [] as string[],
-    mergeValues: [] as string[],
     ignoreValues: [] as string[],
+    mergeValues: [] as string[],
+    renderValues: [] as string[],
   });
 
   const ipRules = [
     {
+      message: t('ip中存在格式错误'),
+      trigger: 'blur',
       validator: (value: string) =>
         _.every(value.split(batchSplitRegex), (item) => {
           const text = _.trim(item);
@@ -160,8 +162,6 @@
             /^(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)){0,2}(\.%)$/.test(text)
           );
         }),
-      message: t('ip中存在格式错误'),
-      trigger: 'blur',
     },
   ];
 
@@ -181,17 +181,17 @@
 
     if (mergeTipsRef.value && ipRef.value.$el) {
       mergeInst = tippy(ipRef.value.$el as SingleTarget, {
-        content: mergeTipsRef.value,
-        placement: 'left',
         appendTo: 'parent',
-        theme: 'light',
-        maxWidth: 'none',
-        trigger: 'manual',
-        interactive: true,
         arrow: true,
-        offset: [0, 8],
-        zIndex: 999999,
+        content: mergeTipsRef.value,
         hideOnClick: false,
+        interactive: true,
+        maxWidth: 'none',
+        offset: [0, 8],
+        placement: 'left',
+        theme: 'light',
+        trigger: 'manual',
+        zIndex: 999999,
       });
 
       mergeInst.show();
@@ -300,10 +300,10 @@
       const api = props.isEdit ? updateWhitelist : createWhitelist;
 
       api({
-        ips: formdata.ips.split(batchSplitRegex),
-        remark: formdata.remark,
         bk_biz_id: props.bizId,
         id: props.data?.id || 0,
+        ips: formdata.ips.split(batchSplitRegex),
+        remark: formdata.remark,
       })
         .then(() => {
           messageSuccess(t('创建成功'));

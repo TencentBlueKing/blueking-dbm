@@ -3,33 +3,33 @@ import type { DetailBase, DetailClusters, DetailSpecs } from '../common';
 export interface ClusterTypeUpdate extends DetailBase {
   clusters: DetailClusters;
   data_check_repair_setting: {
-    type: string;
     execution_frequency: string;
+    type: string;
   };
-  ip_source: 'resource_pool';
   infos: {
+    capacity: number;
+    cluster_shard_num: number;
     current_cluster_type: string;
-    target_cluster_type: string;
-    src_cluster: number;
     current_shard_num: number;
     current_spec_id: string;
-    cluster_shard_num: number;
     db_version: string;
-    online_switch_type: 'user_confirm';
-    capacity: number;
     future_capacity: number;
+    online_switch_type: 'user_confirm';
     resource_spec: {
-      proxy: {
-        spec_id: number;
-        count: number;
-        affinity: 'CROS_SUBZONE';
-      };
       backend_group: {
-        spec_id: number;
-        count: number; // 机器组数
         affinity: 'CROS_SUBZONE';
+        count: number; // 机器组数
+        spec_id: number;
+      };
+      proxy: {
+        affinity: 'CROS_SUBZONE';
+        count: number;
+        spec_id: number;
       };
     };
+    src_cluster: number;
+    target_cluster_type: string;
   }[];
+  ip_source: 'resource_pool';
   specs: DetailSpecs;
 }

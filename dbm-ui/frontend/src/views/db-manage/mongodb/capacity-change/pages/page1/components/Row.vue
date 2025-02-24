@@ -51,68 +51,68 @@
   import RenderTargetCapacity from './RenderTargetCapacity.vue';
 
   export interface IDataRow {
-    rowKey: string;
-    isLoading: boolean;
     bkCloudId: number;
-    clusterName: string;
     clusterId: number;
-    targetShardNum: number;
-    targetGroupNum: number;
+    clusterName: string;
     clusterType: string;
-    machineType: string;
-    machinePair: number;
-    machineNum: number;
-    shardNum: number;
-    shardNodeCount: number;
-    currentSepc: string;
-    shardSpecName: string;
     currentCapacity: {
-      used: number;
       total: number;
+      used: number;
     };
+    currentSepc: string;
     groupNum?: number;
+    isLoading: boolean;
+    machineNum: number;
+    machinePair: number;
+    machineType: string;
+    rowKey: string;
+    shardNodeCount: number;
+    shardNum: number;
+    shardSpecName: string;
+    spec?: MongoDBModel['mongodb'][number]['spec_config'];
     targetCapacity?: {
       current: number;
-      used: number;
       total: number;
+      used: number;
     };
-    spec?: MongoDBModel['mongodb'][number]['spec_config'];
+    targetGroupNum: number;
+    targetShardNum: number;
   }
 
   export interface InfoItem {
     cluster_id: number;
+    resource_spec: {
+      mongodb: {
+        count: number;
+        spec_id: number;
+      };
+    };
     shard_machine_group: number;
     shard_node_count: number;
     shards_num: number;
-    resource_spec: {
-      mongodb: {
-        spec_id: number;
-        count: number;
-      };
-    };
   }
 
   // 创建表格数据
   export const createRowData = (): IDataRow => ({
-    rowKey: random(),
-    isLoading: false,
     bkCloudId: 0,
+    clusterId: 0,
     clusterName: '',
     clusterType: '',
-    machineType: '',
-    machinePair: 0,
-    machineNum: 0,
-    clusterId: 0,
-    shardNum: 0,
-    shardNodeCount: 0,
-    shardSpecName: '',
-    targetShardNum: 0,
-    targetGroupNum: 0,
-    currentSepc: '',
     currentCapacity: {
-      used: 0,
       total: 0,
+      used: 0,
     },
+    currentSepc: '',
+    isLoading: false,
+    machineNum: 0,
+    machinePair: 0,
+    machineType: '',
+    rowKey: random(),
+    shardNodeCount: 0,
+    shardNum: 0,
+    shardSpecName: '',
+    targetGroupNum: 0,
+    targetShardNum: 0,
   });
 </script>
 <script setup lang="ts">

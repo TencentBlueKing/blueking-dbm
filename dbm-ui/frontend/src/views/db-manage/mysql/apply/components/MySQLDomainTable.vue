@@ -32,39 +32,37 @@
   import BatchEdit from './BatchEdit.vue';
 
   interface IFormdata {
-    bk_biz_id: '' | number,
-    remark: string,
-    ticket_type: string,
+    bk_biz_id: '' | number;
     details: {
-      city_code: string,
-      db_app_abbr: string,
-      spec: string,
-      db_module_id: null | number,
-      cluster_count: number,
-      inst_num: number,
-      charset: string,
-      start_mysql_port: number,
-      start_proxy_port: number,
-      domains: Array<Domain>,
-      disaster_tolerance_level: string,
-      ip_source: string,
+      charset: string;
+      city_code: string;
+      cluster_count: number;
+      db_app_abbr: string;
+      db_module_id: null | number;
+      disaster_tolerance_level: string;
+      domains: Array<Domain>;
+      inst_num: number;
+      ip_source: string;
       nodes: {
-        backend: HostInfo[],
-        proxy: HostInfo[],
-      }
-    },
+        backend: HostInfo[];
+        proxy: HostInfo[];
+      };
+      spec: string;
+      start_mysql_port: number;
+      start_proxy_port: number;
+    };
+    remark: string;
+    ticket_type: string;
   }
   interface Domain {
-    key: string
+    key: string;
   }
   interface Props {
-    moduleAliasName: string,
-    formdata: IFormdata,
-    ticketType: string
+    formdata: IFormdata;
+    moduleAliasName: string;
+    ticketType: string;
   }
-  interface Emits {
-    (e: 'update:domains', value: Array<Domain>): void,
-  }
+  type Emits = (e: 'update:domains', value: Array<Domain>) => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -77,17 +75,17 @@
    * 没有 moduleAliasName 和 appName 则不展示 table 数据
    */
   const tableData = computed(() => {
-    const { moduleAliasName, formdata } = props;
-    if (moduleAliasName && (formdata.details.db_app_abbr)) {
+    const { formdata, moduleAliasName } = props;
+    if (moduleAliasName && formdata.details.db_app_abbr) {
       return formdata.details.domains;
     }
     return [];
   });
-  const domainKeys = computed(() => tableData.value.map(item => item.key));
+  const domainKeys = computed(() => tableData.value.map((item) => item.key));
   const domainRule = [
     {
-      required: true,
       message: t('必填项'),
+      required: true,
       trigger: 'change',
     },
     {
@@ -103,7 +101,7 @@
     {
       message: t('主访问入口重复'),
       trigger: 'blur',
-      validator: (val: string) => domainKeys.value.filter(item => item === val).length < 2,
+      validator: (val: string) => domainKeys.value.filter((item) => item === val).length < 2,
     },
   ];
   // 设置域名 form-item refs
@@ -113,37 +111,42 @@
       domainRefs.push(el);
     }
   };
-  watch(() => props.formdata.details.cluster_count, () => {
-    domainRefs.splice(0, domainRefs.length - 1);
-  });
+  watch(
+    () => props.formdata.details.cluster_count,
+    () => {
+      domainRefs.splice(0, domainRefs.length - 1);
+    },
+  );
   const columns = computed(() => {
-    const columns: Column[] = [{
-      type: 'index',
-      label: t('序号'),
-      width: 60,
-    }, {
-      label: () => (
-        <span>
-          { t('主访问入口') }
-          {
-            tableData.value.length === 0
-              ? null
-              : <BatchEdit
-                  v-bk-tooltips={t('快捷编辑_可通过换行分隔_快速编辑多个域名')}
-                  moduleAliasName={props.moduleAliasName}
-                  appName={props.formdata.details.db_app_abbr}
-                  onChange={handleBatchEditDomains} />
-          }
-        </span>
-      ),
-      field: 'mainDomain',
-      minWidth: 500,
-      render: ({ index }: { index: number }) => renderDomain(index, true),
-    }];
+    const columns: Column[] = [
+      {
+        label: t('序号'),
+        type: 'index',
+        width: 60,
+      },
+      {
+        field: 'mainDomain',
+        label: () => (
+          <span>
+            {t('主访问入口')}
+            {tableData.value.length === 0 ? null : (
+              <BatchEdit
+                v-bk-tooltips={t('快捷编辑_可通过换行分隔_快速编辑多个域名')}
+                appName={props.formdata.details.db_app_abbr}
+                moduleAliasName={props.moduleAliasName}
+                onChange={handleBatchEditDomains}
+              />
+            )}
+          </span>
+        ),
+        minWidth: 500,
+        render: ({ index }: { index: number }) => renderDomain(index, true),
+      },
+    ];
     if (!isMysqlSingle.value) {
       columns.push({
-        label: t('从访问入口'),
         field: 'slaveDomain',
+        label: t('从访问入口'),
         render: ({ index }: { index: number }) => renderDomain(index),
       });
     }
@@ -185,35 +188,36 @@
    */
   function renderDomain(rowIndex: number, isMain = false) {
     return (
-      <div class="domain-address">
-        <span>{props.moduleAliasName}{isMain ? 'db.' : 'dr.'}</span>
-        {
-          isMain
-            ? (
-              <bk-form-item
-                ref={setDomainRef}
-                class="domain-address__item"
-                errorDisplayType="tooltips"
-                property={`details.domains.${rowIndex}.key`}
-                key={rowIndex}
-                rules={domainRule}
-                label-width={0}>
-                <bk-input
-                  style="width:260px"
-                  model-value={props.formdata.details.domains[rowIndex]?.key}
-                  placeholder={t('请输入')}
-                  v-bk-tooltips={{
-                    trigger: 'click',
-                    placement: 'top',
-                    theme: 'light',
-                    content: t('以小写英文字母或数字开头_且只能包含英文字母_数字_连字符'),
-                  }}
-                  onInput={(value: string) => handleChangeDomain(value, rowIndex)}
-                />
-              </bk-form-item>
-            )
-            : <span class="domain-address__placeholder">{props.formdata.details.domains[rowIndex]?.key}</span>
-        }
+      <div class='domain-address'>
+        <span>
+          {props.moduleAliasName}
+          {isMain ? 'db.' : 'dr.'}
+        </span>
+        {isMain ? (
+          <bk-form-item
+            key={rowIndex}
+            ref={setDomainRef}
+            class='domain-address__item'
+            errorDisplayType='tooltips'
+            label-width={0}
+            property={`details.domains.${rowIndex}.key`}
+            rules={domainRule}>
+            <bk-input
+              v-bk-tooltips={{
+                content: t('以小写英文字母或数字开头_且只能包含英文字母_数字_连字符'),
+                placement: 'top',
+                theme: 'light',
+                trigger: 'click',
+              }}
+              model-value={props.formdata.details.domains[rowIndex]?.key}
+              placeholder={t('请输入')}
+              style='width:260px'
+              onInput={(value: string) => handleChangeDomain(value, rowIndex)}
+            />
+          </bk-form-item>
+        ) : (
+          <span class='domain-address__placeholder'>{props.formdata.details.domains[rowIndex]?.key}</span>
+        )}
         <span>{`.${props.formdata.details.db_app_abbr}.db`}</span>
       </div>
     );

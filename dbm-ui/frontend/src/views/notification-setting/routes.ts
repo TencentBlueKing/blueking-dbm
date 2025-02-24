@@ -18,13 +18,13 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
+    component: () => import('@views/notification-setting/Index.vue'),
+    meta: {
+      isMenu: true,
+      navName: t('通知设置'),
+    },
     name: 'PlatformNotificationSetting',
     path: 'notification-setting',
-    meta: {
-      navName: t('通知设置'),
-      isMenu: true,
-    },
-    component: () => import('@views/notification-setting/Index.vue'),
   },
 ];
 

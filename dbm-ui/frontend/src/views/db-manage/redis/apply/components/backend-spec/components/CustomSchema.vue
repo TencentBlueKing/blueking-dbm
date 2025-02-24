@@ -72,24 +72,24 @@
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
 
   interface Props {
-    clusterType: string;
-    machineType: string;
     bizId: number | string;
     cloudId: number | string;
+    clusterType: string;
+    machineType: string;
     shardNumDisabled?: boolean;
   }
 
   interface ModelValue {
-    spec_id: number | string;
     count: number;
+    spec_id: number | string;
   }
 
   interface Expose {
     getInfo(): {
-      spec_name: string;
-      machine_pair: number;
-      cluster_shard_num: number;
       cluster_capacity: number;
+      cluster_shard_num: number;
+      machine_pair: number;
+      spec_name: string;
     };
   }
 
@@ -105,7 +105,7 @@
 
   const countMin = computed(() => {
     if (
-      [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER, ClusterTypes.PREDIXY_REDIS_CLUSTER].includes(
+      [ClusterTypes.PREDIXY_REDIS_CLUSTER, ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER].includes(
         props.clusterType as ClusterTypes,
       )
     ) {
@@ -142,10 +142,10 @@
     getInfo() {
       const specData = specSelectorRef.value!.getData();
       return {
-        spec_name: specData?.spec_name || '',
-        machine_pair: modelValue.value.count,
-        cluster_shard_num: Number(clusterShardNum.value),
         cluster_capacity: totalCapcity.value || 0,
+        cluster_shard_num: Number(clusterShardNum.value),
+        machine_pair: modelValue.value.count,
+        spec_name: specData?.spec_name || '',
       };
     },
   });

@@ -74,10 +74,10 @@ export default (modelValue: Ref<string[]>) => {
       (result, localFileName) => ({
         ...result,
         [localFileName]: createFileData({
-          isSuccess: true,
-          isCheckFailded: false,
-          realFilePath: filePathMap[localFileName],
           grammarCheck: new GrammarCheckModel(),
+          isCheckFailded: false,
+          isSuccess: true,
+          realFilePath: filePathMap[localFileName],
         }),
       }),
       {} as Record<string, IFileData>,
@@ -85,12 +85,12 @@ export default (modelValue: Ref<string[]>) => {
   };
 
   return {
-    isContentLoading,
-    selectFileName,
-    selectFileData,
-    fileNameList,
-    fileDataMap,
-    initEditableFile,
     fetchFileContentByFileName,
+    fileDataMap,
+    fileNameList,
+    initEditableFile,
+    isContentLoading,
+    selectFileData,
+    selectFileName,
   };
 };

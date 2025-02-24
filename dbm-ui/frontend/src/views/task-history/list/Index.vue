@@ -197,13 +197,13 @@
       bk_biz_id: isPlatformManage ? undefined : window.PROJECT_CONFIG.BIZ_ID,
     });
 
-  const { searchValue, columnCheckedMap, columnFilterChange, clearSearchValue, handleSearchValueChange } =
+  const { clearSearchValue, columnCheckedMap, columnFilterChange, handleSearchValueChange, searchValue } =
     useLinkQueryColumnSerach({
-      searchType: ClusterTypes.TENDBHA,
       attrs: [],
       fetchDataFn: () => fetchTableData(),
       isCluster: false,
       isQueryAttrs: false,
+      searchType: ClusterTypes.TENDBHA,
     });
 
   /**
@@ -222,10 +222,10 @@
   const tableRef = ref();
   const state = reactive<ListState>({
     data: [],
-    ticketTypes: [],
     filter: {
       daterange: initDate(),
     },
+    ticketTypes: [],
   });
   /** 查看结果文件功能 */
   const resultFileState = reactive({
@@ -235,31 +235,31 @@
 
   const searchData = computed(() => [
     {
-      name: 'ID',
       id: 'root_ids',
+      name: 'ID',
     },
     {
-      name: t('任务类型'),
+      children: state.ticketTypes,
       id: 'ticket_type__in',
       multiple: true,
-      children: state.ticketTypes,
+      name: t('任务类型'),
     },
     {
-      name: t('状态'),
-      id: 'status',
-      multiple: true,
       children: Object.keys(TaskFlowModel.STATUS_TEXT_MAP).map((id: string) => ({
         id,
         name: t(TaskFlowModel.STATUS_TEXT_MAP[id]),
       })),
+      id: 'status',
+      multiple: true,
+      name: t('状态'),
     },
     {
-      name: t('关联单据'),
       id: 'uid',
+      name: t('关联单据'),
     },
     {
-      name: t('执行人'),
       id: 'created_by',
+      name: t('执行人'),
     },
   ]);
 

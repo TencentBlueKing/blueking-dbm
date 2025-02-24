@@ -29,9 +29,7 @@
     textStyle?: Record<string, string>;
   }
 
-  interface Emits {
-    (e: 'click'): void;
-  }
+  type Emits = (e: 'click') => void;
 
   const props = withDefaults(defineProps<Props>(), {
     text: '',
@@ -43,7 +41,6 @@
   function checkOveflow() {
     clearTimeout(timer);
     timer = setTimeout(() => {
-      // eslint-disable-next-line max-len
       isOverflow.value =
         rowRef.value.scrollWidth > rowRef.value.clientWidth || mainRef.value.scrollWidth > mainRef.value.clientWidth;
     });

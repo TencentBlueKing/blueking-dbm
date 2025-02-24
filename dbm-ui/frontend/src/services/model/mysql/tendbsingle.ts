@@ -29,12 +29,12 @@ export default class Tendbsingle extends ClusterBase {
   static MYSQL_SINGLE_ENABLE = 'MYSQL_SINGLE_ENABLE';
 
   static operationIconMap = {
-    [Tendbsingle.MYSQL_HA_ENABLE]: t('启用中'),
-    [Tendbsingle.MYSQL_HA_DISABLE]: t('禁用中'),
     [Tendbsingle.MYSQL_HA_DESTROY]: t('删除中'),
-    [Tendbsingle.MYSQL_SINGLE_ENABLE]: t('启用中'),
-    [Tendbsingle.MYSQL_SINGLE_DISABLE]: t('禁用中'),
+    [Tendbsingle.MYSQL_HA_DISABLE]: t('禁用中'),
+    [Tendbsingle.MYSQL_HA_ENABLE]: t('启用中'),
     [Tendbsingle.MYSQL_SINGLE_DESTROY]: t('删除中'),
+    [Tendbsingle.MYSQL_SINGLE_DISABLE]: t('禁用中'),
+    [Tendbsingle.MYSQL_SINGLE_ENABLE]: t('启用中'),
   };
 
   static operationTextMap = {
@@ -67,14 +67,14 @@ export default class Tendbsingle extends ClusterBase {
   id: number;
   major_version: string;
   master_domain: string;
-  masters: (ClusterListNode & { is_stand_by: boolean })[];
+  masters: ({ is_stand_by: boolean } & ClusterListNode)[];
   operations: ClusterListOperation[];
   permission: {
+    access_entry_edit: boolean;
     mysql_destroy: boolean;
     mysql_dump_data: boolean;
     mysql_enable_disable: boolean;
     mysql_view: boolean;
-    access_entry_edit: boolean;
     mysql_webconsole: boolean;
   };
   phase: string;
@@ -120,16 +120,6 @@ export default class Tendbsingle extends ClusterBase {
     this.updater = payload.updater;
   }
 
-  get isStarting() {
-    return Boolean(this.operations.find((item) => item.ticket_type === Tendbsingle.MYSQL_SINGLE_ENABLE));
-  }
-
-  get masterDomainDisplayName() {
-    const port = this.masters[0]?.port;
-    const displayName = port ? `${this.master_domain}:${port}` : this.master_domain;
-    return displayName;
-  }
-
   get allInstanceList() {
     return [...this.masters];
   }
@@ -148,9 +138,34 @@ export default class Tendbsingle extends ClusterBase {
     );
   }
 
-  get runningOperation() {
-    const operateTicketTypes = Object.keys(Tendbsingle.operationTextMap);
-    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+  get disasterToleranceLevelName() {
+    return ClusterAffinityMap[this.disaster_tolerance_level];
+  }
+
+  get isStarting() {
+    return Boolean(this.operations.find((item) => item.ticket_type === Tendbsingle.MYSQL_SINGLE_ENABLE));
+  }
+
+  get masterDomainDisplayName() {
+    const port = this.masters[0]?.port;
+    const displayName = port ? `${this.master_domain}:${port}` : this.master_domain;
+    return displayName;
+  }
+
+  get operationDisabled() {
+    // 集群异常不支持操作
+    if (this.status === 'abnormal') {
+      return true;
+    }
+    // 被禁用的集群不支持操作
+    if (this.phase !== 'online') {
+      return true;
+    }
+    // 各个操作互斥，有其他任务进行中禁用操作按钮
+    if (this.operationTicketId) {
+      return true;
+    }
+    return false;
   }
 
   // 操作中的状态
@@ -170,6 +185,14 @@ export default class Tendbsingle extends ClusterBase {
     return Tendbsingle.operationTextMap[this.operationRunningStatus];
   }
 
+  get operationTagTips() {
+    return this.operations.map((item) => ({
+      icon: Tendbsingle.operationIconMap[item.ticket_type],
+      ticketId: item.ticket_id,
+      tip: Tendbsingle.operationTextMap[item.ticket_type],
+    }));
+  }
+
   // 操作中的单据 ID
   get operationTicketId() {
     if (this.operations.length < 1) {
@@ -182,37 +205,14 @@ export default class Tendbsingle extends ClusterBase {
     return operation.ticket_id;
   }
 
-  get operationDisabled() {
-    // 集群异常不支持操作
-    if (this.status === 'abnormal') {
-      return true;
-    }
-    // 被禁用的集群不支持操作
-    if (this.phase !== 'online') {
-      return true;
-    }
-    // 各个操作互斥，有其他任务进行中禁用操作按钮
-    if (this.operationTicketId) {
-      return true;
-    }
-    return false;
-  }
-
-  get operationTagTips() {
-    return this.operations.map((item) => ({
-      icon: Tendbsingle.operationIconMap[item.ticket_type],
-      tip: Tendbsingle.operationTextMap[item.ticket_type],
-      ticketId: item.ticket_id,
-    }));
-  }
-
-  get disasterToleranceLevelName() {
-    return ClusterAffinityMap[this.disaster_tolerance_level];
-  }
-
   get roleFailedInstanceInfo() {
     return {
       Master: ClusterBase.getRoleFaildInstanceList(this.masters),
     };
+  }
+
+  get runningOperation() {
+    const operateTicketTypes = Object.keys(Tendbsingle.operationTextMap);
+    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
   }
 }

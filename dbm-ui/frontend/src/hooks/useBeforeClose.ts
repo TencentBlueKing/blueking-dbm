@@ -24,10 +24,9 @@ export const useBeforeClose = () =>
     if (closable) {
       return new Promise<boolean>((resolve) => {
         InfoBox({
-          title: t('确认离开当前页'),
-          content: t('离开将会导致未保存信息丢失'),
-          confirmText: t('离开'),
           cancelText: t('取消'),
+          confirmText: t('离开'),
+          content: t('离开将会导致未保存信息丢失'),
           onConfirm: () => {
             const hasFlag = typeof flag === 'boolean';
             if (hasFlag === false) {
@@ -36,6 +35,7 @@ export const useBeforeClose = () =>
             resolve(true);
             return true;
           },
+          title: t('确认离开当前页'),
         });
       });
     }

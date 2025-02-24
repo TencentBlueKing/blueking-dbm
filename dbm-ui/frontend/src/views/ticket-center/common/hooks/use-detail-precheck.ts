@@ -21,8 +21,8 @@ export default (params: ServiceParameters<typeof getTickets>) => {
         }
         messageWarn(
           t('单据t不在n单据中', {
-            t: params.id,
             n: route.meta.navName,
+            t: params.id,
           }),
           5000,
         );

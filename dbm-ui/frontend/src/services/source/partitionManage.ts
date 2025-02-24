@@ -25,11 +25,11 @@ export const getList = function (params: Record<string, any>) {
 export const create = function (params: {
   cluster_id: number;
   dblikes: string[];
-  tblikes: string[];
+  expire_time: number;
   partition_column: string;
   partition_column_type: string;
-  expire_time: number;
   partition_time_interval: number;
+  tblikes: string[];
 }) {
   const { currentBizId } = useGlobalBizs();
   return http.post<Record<number, IDryRunData[]>>('/apis/partition/', {
@@ -83,7 +83,7 @@ interface IDryRunData {
   shard_name: string;
 }
 // 分区策略前置执行
-export const dryRun = function (params: { config_id: number; cluster_id: number; cluster_type: string }) {
+export const dryRun = function (params: { cluster_id: number; cluster_type: string; config_id: number }) {
   const { currentBizId } = useGlobalBizs();
   return http.post<Record<number, IDryRunData[]>>('/apis/partition/dry_run/', {
     bk_biz_id: currentBizId,
@@ -112,23 +112,23 @@ export const queryLog = function (params: { cluster_type: string; config_id: num
 export const verifyPartitionField = function (params: {
   cluster_id: number;
   dblikes: string[];
-  tblikes: string[];
   partition_column: string;
   partition_column_type: string;
+  tblikes: string[];
 }) {
   return http.post<string | null>('/apis/partition/verify_partition_field/', params);
 };
 
 // 修改分区策略
 export const edit = function (params: {
-  id: number;
   cluster_id: number;
   dblikes: string[];
-  tblikes: string[];
+  expire_time: number;
+  id: number;
   partition_column: string;
   partition_column_type: string;
-  expire_time: number;
   partition_time_interval: number;
+  tblikes: string[];
 }) {
   const realParams = { ...params } as { id?: number };
   delete realParams.id;

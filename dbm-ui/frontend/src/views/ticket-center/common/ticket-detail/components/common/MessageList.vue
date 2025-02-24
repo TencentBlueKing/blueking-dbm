@@ -75,16 +75,14 @@
 <script setup lang="ts">
   import { computed, ref } from 'vue';
 
-  export type IMessageList = Array<{ type: 'warning' | 'error'; line: number; message: string }>;
+  export type IMessageList = Array<{ line: number; message: string; type: 'warning' | 'error' }>;
 
   interface Props {
-    modelValue: boolean;
     data: IMessageList;
+    modelValue: boolean;
   }
 
-  interface Emits {
-    (e: 'update:modelValue', value: boolean): void;
-  }
+  type Emits = (e: 'update:modelValue', value: boolean) => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();

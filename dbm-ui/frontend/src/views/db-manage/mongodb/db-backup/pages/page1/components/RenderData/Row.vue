@@ -39,22 +39,22 @@
   import { random } from '@utils';
 
   export interface IDataRow {
-    rowKey: string;
-    isLoading: boolean;
-    clusterName: string;
     clusterId: number;
-    clusterTypeText: string;
+    clusterName: string;
     clusterType: string;
+    clusterTypeText: string;
+    isLoading: boolean;
+    rowKey: string;
   }
 
   // 创建表格数据
   export const createRowData = () => ({
-    rowKey: random(),
-    isLoading: false,
-    clusterName: '',
     clusterId: 0,
-    clusterTypeText: '',
+    clusterName: '',
     clusterType: '',
+    clusterTypeText: '',
+    isLoading: false,
+    rowKey: random(),
   });
 </script>
 <script setup lang="ts">

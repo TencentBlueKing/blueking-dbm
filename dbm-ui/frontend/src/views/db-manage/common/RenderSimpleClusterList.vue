@@ -68,8 +68,8 @@
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
   interface Props {
-    modelValue: number;
     dataSource: (params: any) => Promise<any>;
+    modelValue: number;
   }
 
   interface Emits {
@@ -98,7 +98,7 @@
         bk_biz_id: globalBizsStore.currentBizId,
         name: searchKey.value,
       })
-      .then((data: { count: number; results: Array<{ id: number; cluster_type: string }> }) => {
+      .then((data: { count: number; results: Array<{ cluster_type: string; id: number }> }) => {
         current.value = data.count;
         tableData.value = data.results;
         if (data.results.length < 1) {

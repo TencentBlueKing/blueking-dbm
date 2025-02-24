@@ -100,20 +100,20 @@
   import { random } from '@utils';
 
   export interface IDataRow {
-    rowKey: string;
-    clusterData?: {
-      id: number;
-      domain: string;
-    };
-    scope: string;
     backupInfos: {
-      slave: string;
-      master: string;
       dbPatterns?: string[];
       ignoreDbs?: string[];
-      tablePatterns?: string[];
       ignoreTables?: string[];
+      master: string;
+      slave: string;
+      tablePatterns?: string[];
     }[];
+    clusterData?: {
+      domain: string;
+      id: number;
+    };
+    rowKey: string;
+    scope: string;
   }
 
   type BackupInfoKeys = keyof Omit<IDataRow['backupInfos'][number], 'slave' | 'master'>;
@@ -121,22 +121,22 @@
   export type IDataRowBatchKey = RowKeys | BackupInfoKeys;
 
   const createBackupInfo = (data = {} as Partial<IDataRow['backupInfos'][0]>) => ({
-    master: data.master || '',
-    slave: data.slave || '',
     dbPatterns: data.dbPatterns,
-    tablePatterns: data.tablePatterns,
     ignoreDbs: data.ignoreDbs,
     ignoreTables: data.ignoreTables,
+    master: data.master || '',
+    slave: data.slave || '',
+    tablePatterns: data.tablePatterns,
   });
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>): IDataRow => {
     const backupInfos = data.backupInfos ? data.backupInfos[0] : ({} as IDataRow['backupInfos'][0]);
     return {
-      rowKey: random(),
-      clusterData: data.clusterData,
-      scope: data.scope || '',
       backupInfos: [createBackupInfo(backupInfos)],
+      clusterData: data.clusterData,
+      rowKey: random(),
+      scope: data.scope || '',
     };
   };
 </script>
@@ -160,8 +160,8 @@
   }
 
   interface Exposes {
-    setLocalBackupInfos: (value: string[], field: BackupInfoKeys) => void;
     getValue: () => Promise<any>;
+    setLocalBackupInfos: (value: string[], field: BackupInfoKeys) => void;
   }
 
   const props = defineProps<Props>();
@@ -258,13 +258,6 @@
   };
 
   defineExpose<Exposes>({
-    setLocalBackupInfos(value, field) {
-      localBackupInfos.value.forEach((backInfo) => {
-        Object.assign(backInfo, {
-          [field]: value,
-        });
-      });
-    },
     getValue() {
       return Promise.all([
         Promise.all(clusterRefs.value.map((item: any) => item.getValue())),
@@ -305,6 +298,13 @@
           };
         },
       );
+    },
+    setLocalBackupInfos(value, field) {
+      localBackupInfos.value.forEach((backInfo) => {
+        Object.assign(backInfo, {
+          [field]: value,
+        });
+      });
     },
   });
 </script>

@@ -18,16 +18,16 @@
   import StatusTodo from './StatusTodo.vue';
 
   interface Props {
-    ticketData: TicketModel;
     data: FlowMode['todos'][number];
     flowData: FlowMode;
+    ticketData: TicketModel;
   }
 
   const props = defineProps<Props>();
 
   const renderCom = Object.assign({}, StatusCommon, {
-    [FlowMode.TODO_STATUS_TODO]: StatusTodo,
     [FlowMode.TODO_STATUS_DONE_FAILED]: StatusDoneFailed,
     [FlowMode.TODO_STATUS_DONE_SUCCESS]: StatusSuccess,
+    [FlowMode.TODO_STATUS_TODO]: StatusTodo,
   })[props.data.status];
 </script>

@@ -65,13 +65,13 @@
   const editRef = ref();
   const localValue = ref('');
   const isLoading = ref(false);
-  const slaveHostSelectList = shallowRef([] as Array<{ value: string; label: string }>);
+  const slaveHostSelectList = shallowRef([] as Array<{ label: string; value: string }>);
   let allSlaveHostList: ISlaveHost[] = [];
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('目标从库不能为空'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 
@@ -89,8 +89,8 @@
         })
           .then((data) => {
             slaveHostSelectList.value = data.map((hostData) => ({
-              value: genHostKey(hostData),
               label: hostData.ip,
+              value: genHostKey(hostData),
             }));
             allSlaveHostList = data;
           })

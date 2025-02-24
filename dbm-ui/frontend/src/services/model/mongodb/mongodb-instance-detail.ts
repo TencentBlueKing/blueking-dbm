@@ -10,10 +10,10 @@ export default class MongodbInstanceDetail {
   bk_disk: number;
   bk_host_id: number;
   bk_host_innerip: string;
-  bk_idc_id: number;
-  bk_idc_name: string;
   bk_idc_city_id: string;
   bk_idc_city_name: string;
+  bk_idc_id: number;
+  bk_idc_name: string;
   bk_mem: number;
   bk_os_name: string;
   bk_sub_zone: string;

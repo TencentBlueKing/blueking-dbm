@@ -49,8 +49,8 @@
     return Promise.resolve()
       .then(() =>
         retryFlow({
-          id: props.data.id,
           flow_id: props.flowData.id,
+          id: props.data.id,
         }),
       )
       .then(() => {

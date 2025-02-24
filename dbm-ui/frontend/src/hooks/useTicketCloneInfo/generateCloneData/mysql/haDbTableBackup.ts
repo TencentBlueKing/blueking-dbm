@@ -20,19 +20,19 @@ import { random } from '@utils';
 export function generateMysqlDbTableBackupCloneData(ticketData: TicketModel<Mysql.HaDBTableBackup>) {
   const { clusters, infos } = ticketData.details;
   const tableDataList = infos.map((item) => ({
-    rowKey: random(),
-    clusterData: {
-      id: item.cluster_id,
-      domain: clusters[item.cluster_id].immute_domain,
-    },
     backupLocal: item.backup_on || clusters[item.cluster_id].cluster_type === ClusterTypes.TENDBHA ? 'Slave' : 'Master',
+    clusterData: {
+      domain: clusters[item.cluster_id].immute_domain,
+      id: item.cluster_id,
+    },
     dbPatterns: item.db_patterns,
-    tablePatterns: item.table_patterns,
     ignoreDbs: item.ignore_dbs,
     ignoreTables: item.ignore_tables,
+    rowKey: random(),
+    tablePatterns: item.table_patterns,
   }));
   return Promise.resolve({
-    tableDataList,
     remark: ticketData.remark,
+    tableDataList,
   });
 }

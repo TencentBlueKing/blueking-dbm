@@ -43,31 +43,31 @@
   import RenderSlave from './RenderSlave.vue';
 
   export interface IDataRow {
-    rowKey: string;
     isLoading: boolean;
+    rowKey: string;
     slave: {
       bkCloudId: number;
       bkHostId: number;
-      ip: string;
-      port: number;
-      instanceAddress: string;
       clusterId: number;
       domain: string;
+      instanceAddress: string;
+      ip: string;
+      port: number;
     };
   }
 
   // 创建表格数据
   export const createRowData = () => ({
-    rowKey: random(),
     isLoading: false,
+    rowKey: random(),
     slave: {
       bkCloudId: 0,
       bkHostId: 0,
-      ip: '',
-      port: 0,
-      instanceAddress: '',
       clusterId: 0,
       domain: '',
+      instanceAddress: '',
+      ip: '',
+      port: 0,
     },
   });
 </script>
@@ -139,16 +139,16 @@
       const [slaveData] = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
       const [ip, port] = slaveData.split(':');
       emits('clone', {
-        rowKey: random(),
         isLoading: false,
+        rowKey: random(),
         slave: {
           bkCloudId: 0,
           bkHostId: 0,
-          ip,
-          port: Number(port),
-          instanceAddress: '',
           clusterId: 0,
           domain: props.data.slave.domain,
+          instanceAddress: '',
+          ip,
+          port: Number(port),
         },
       });
     });
@@ -156,7 +156,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all([slaveRef.value!.getValue()]).then(([slaveData]) => Promise.resolve(slaveData));
+      return Promise.resolve(slaveRef.value!.getValue()).then(([slaveData]) => Promise.resolve(slaveData));
     },
   });
 </script>

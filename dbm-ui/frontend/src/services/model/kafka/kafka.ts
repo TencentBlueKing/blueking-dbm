@@ -24,36 +24,36 @@ const STATUS_NORMAL = 'normal';
 const STATUS_ABNORMAL = 'abnormal';
 
 export default class Kafka extends ClusterBase {
-  static STATUS_NORMAL = STATUS_NORMAL;
-  static STATUS_ABNORMAL = STATUS_ABNORMAL;
+  static KAFKA_DESTROY = 'KAFKA_DESTROY';
+  static KAFKA_DISABLE = 'KAFKA_DISABLE';
 
+  static KAFKA_ENABLE = 'KAFKA_ENABLE';
+  static KAFKA_REBOOT = 'KAFKA_REBOOT';
+  static KAFKA_REPLACE = 'KAFKA_REPLACE';
   static KAFKA_SCALE_UP = 'KAFKA_SCALE_UP';
   static KAFKA_SHRINK = 'KAFKA_SHRINK';
-  static KAFKA_REPLACE = 'KAFKA_REPLACE';
-  static KAFKA_ENABLE = 'KAFKA_ENABLE';
-  static KAFKA_DISABLE = 'KAFKA_DISABLE';
-  static KAFKA_DESTROY = 'KAFKA_DESTROY';
-  static KAFKA_REBOOT = 'KAFKA_REBOOT';
-
   static operationIconMap = {
+    [Kafka.KAFKA_DESTROY]: t('删除中'),
+    [Kafka.KAFKA_DISABLE]: t('禁用中'),
+    [Kafka.KAFKA_ENABLE]: t('启用中'),
+    [Kafka.KAFKA_REBOOT]: t('重启中'),
+    [Kafka.KAFKA_REPLACE]: t('替换中'),
     [Kafka.KAFKA_SCALE_UP]: t('扩容中'),
     [Kafka.KAFKA_SHRINK]: t('缩容中'),
-    [Kafka.KAFKA_REPLACE]: t('替换中'),
-    [Kafka.KAFKA_ENABLE]: t('启用中'),
-    [Kafka.KAFKA_DISABLE]: t('禁用中'),
-    [Kafka.KAFKA_DESTROY]: t('删除中'),
-    [Kafka.KAFKA_REBOOT]: t('重启中'),
   };
-
   static operationTextMap = {
+    [Kafka.KAFKA_DESTROY]: t('删除任务进行中'),
+    [Kafka.KAFKA_DISABLE]: t('禁用任务进行中'),
+    [Kafka.KAFKA_ENABLE]: t('启用任务进行中'),
+    [Kafka.KAFKA_REBOOT]: t('实例重启任务进行中'),
+    [Kafka.KAFKA_REPLACE]: t('替换任务进行中'),
     [Kafka.KAFKA_SCALE_UP]: t('扩容任务进行中'),
     [Kafka.KAFKA_SHRINK]: t('缩容任务进行中'),
-    [Kafka.KAFKA_REPLACE]: t('替换任务进行中'),
-    [Kafka.KAFKA_ENABLE]: t('启用任务进行中'),
-    [Kafka.KAFKA_DISABLE]: t('禁用任务进行中'),
-    [Kafka.KAFKA_DESTROY]: t('删除任务进行中'),
-    [Kafka.KAFKA_REBOOT]: t('实例重启任务进行中'),
   };
+
+  static STATUS_ABNORMAL = STATUS_ABNORMAL;
+
+  static STATUS_NORMAL = STATUS_NORMAL;
 
   access_url: string;
   bk_biz_id: number;
@@ -81,15 +81,15 @@ export default class Kafka extends ClusterBase {
   master_domain: string;
   operations: ClusterListOperation[];
   permission: {
+    access_entry_edit: boolean;
     kafka_access_entry_view: boolean;
-    kafka_view: boolean;
-    kafka_enable_disable: boolean;
     kafka_destroy: boolean;
+    kafka_enable_disable: boolean;
+    kafka_reboot: boolean;
+    kafka_replace: boolean;
     kafka_scale_up: boolean;
     kafka_shrink: boolean;
-    kafka_replace: boolean;
-    kafka_reboot: boolean;
-    access_entry_edit: boolean;
+    kafka_view: boolean;
   };
   phase: 'online' | 'offline';
   phase_name: string;
@@ -156,42 +156,18 @@ export default class Kafka extends ClusterBase {
     );
   }
 
-  get runningOperation() {
-    const operateTicketTypes = Object.keys(Kafka.operationTextMap);
-    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+  get disasterToleranceLevelName() {
+    return ClusterAffinityMap[this.disaster_tolerance_level];
   }
 
-  // 操作中的状态
-  get operationRunningStatus() {
-    if (this.operations.length < 1) {
-      return '';
-    }
-    const operation = this.runningOperation;
-    if (!operation) {
-      return '';
-    }
-    return operation.ticket_type;
+  get isStarting() {
+    return Boolean(this.operations.find((item) => item.ticket_type === Kafka.KAFKA_ENABLE));
   }
-  // 操作中的状态描述文本
-  get operationStatusText() {
-    return Kafka.operationTextMap[this.operationRunningStatus];
+  get masterDomainDisplayName() {
+    const port = this.broker[0]?.port;
+    const displayName = port ? `${this.domain}:${port}` : this.domain;
+    return displayName;
   }
-  // 操作中的状态 icon
-  get operationStatusIcon() {
-    return Kafka.operationIconMap[this.operationRunningStatus];
-  }
-  // 操作中的单据 ID
-  get operationTicketId() {
-    if (this.operations.length < 1) {
-      return 0;
-    }
-    const operation = this.runningOperation;
-    if (!operation) {
-      return 0;
-    }
-    return operation.ticket_id;
-  }
-
   get operationDisabled() {
     // 集群异常不支持操作
     if (this.status === STATUS_ABNORMAL) {
@@ -207,33 +183,57 @@ export default class Kafka extends ClusterBase {
     }
     return false;
   }
-
-  get isStarting() {
-    return Boolean(this.operations.find((item) => item.ticket_type === Kafka.KAFKA_ENABLE));
+  // 操作中的状态
+  get operationRunningStatus() {
+    if (this.operations.length < 1) {
+      return '';
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return '';
+    }
+    return operation.ticket_type;
   }
 
-  get masterDomainDisplayName() {
-    const port = this.broker[0]?.port;
-    const displayName = port ? `${this.domain}:${port}` : this.domain;
-    return displayName;
+  // 操作中的状态 icon
+  get operationStatusIcon() {
+    return Kafka.operationIconMap[this.operationRunningStatus];
+  }
+
+  // 操作中的状态描述文本
+  get operationStatusText() {
+    return Kafka.operationTextMap[this.operationRunningStatus];
   }
 
   get operationTagTips() {
     return this.operations.map((item) => ({
       icon: Kafka.operationIconMap[item.ticket_type],
-      tip: Kafka.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,
+      tip: Kafka.operationTextMap[item.ticket_type],
     }));
   }
 
-  get disasterToleranceLevelName() {
-    return ClusterAffinityMap[this.disaster_tolerance_level];
+  // 操作中的单据 ID
+  get operationTicketId() {
+    if (this.operations.length < 1) {
+      return 0;
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return 0;
+    }
+    return operation.ticket_id;
   }
 
   get roleFailedInstanceInfo() {
     return {
-      Zookeeper: ClusterBase.getRoleFaildInstanceList(this.zookeeper),
       Broker: ClusterBase.getRoleFaildInstanceList(this.broker),
+      Zookeeper: ClusterBase.getRoleFaildInstanceList(this.zookeeper),
     };
+  }
+
+  get runningOperation() {
+    const operateTicketTypes = Object.keys(Kafka.operationTextMap);
+    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
   }
 }

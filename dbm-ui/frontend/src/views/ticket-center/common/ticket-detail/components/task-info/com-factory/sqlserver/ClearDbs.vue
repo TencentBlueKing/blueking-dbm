@@ -78,7 +78,7 @@
 
   const clearModeMap = {
     clean_tables: t('清理表数据'),
-    drop_tables: t('删除表'),
     drop_dbs: t('删除整库'),
+    drop_tables: t('删除表'),
   } as Record<string, string>;
 </script>

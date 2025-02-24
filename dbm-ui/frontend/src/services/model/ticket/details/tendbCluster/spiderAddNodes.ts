@@ -7,8 +7,8 @@ import type { DetailBase, DetailClusters, SpecInfo } from '../common';
 export interface SpiderAddNodes extends DetailBase {
   clusters: DetailClusters;
   infos: {
-    cluster_id: number;
     add_spider_role: string;
+    cluster_id: number;
     resource_spec: {
       spider_ip_list: {
         count: number;

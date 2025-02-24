@@ -33,9 +33,9 @@
 
   const slots = defineSlots<
     Partial<{
-      prepend(): any;
-      default(): any;
       append(): any;
+      default(): any;
+      prepend(): any;
     }>
   >();
 

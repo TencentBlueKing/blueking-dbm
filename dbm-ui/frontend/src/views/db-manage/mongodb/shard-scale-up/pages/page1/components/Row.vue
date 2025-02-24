@@ -64,47 +64,47 @@
   import RenderTargetNumber from './RenderTargetNumber.vue';
 
   export interface IDataRow {
-    rowKey: string;
-    isLoading: boolean;
-    clusterName: string;
     clusterId: number;
+    clusterName: string;
     clusterType: string;
     clusterTypeText: string;
     currentNodeNum: number;
-    machineInstanceNum: number;
-    shardNum: number;
-    sepcId: number;
+    isLoading: boolean;
     isMongoReplicaSet: boolean;
+    machineInstanceNum: number;
+    rowKey: string;
+    sepcId: number;
+    shardNum: number;
     targetNum?: string;
   }
 
   export interface InfoItem {
-    cluster_ids: number[];
     add_shard_nodes_num: number;
+    cluster_ids: number[];
     current_shard_nodes_num: number;
     node_replica_count: number;
-    shards_num: number;
     resource_spec: {
       shard_nodes: {
-        spec_id: number;
         count: number;
+        spec_id: number;
       };
     };
+    shards_num: number;
   }
 
   // 创建表格数据
   export const createRowData = (): IDataRow => ({
-    rowKey: random(),
-    isLoading: false,
-    clusterName: '',
     clusterId: 0,
+    clusterName: '',
     clusterType: '',
     clusterTypeText: '',
     currentNodeNum: 0,
-    shardNum: 0,
-    sepcId: 0,
+    isLoading: false,
     isMongoReplicaSet: false,
     machineInstanceNum: 0,
+    rowKey: random(),
+    sepcId: 0,
+    shardNum: 0,
   });
 </script>
 <script setup lang="ts">
@@ -195,19 +195,19 @@
     async getValue() {
       await clusterRef.value!.getValue();
       return targetNumRef.value!.getValue().then((nodeNum) => ({
+        add_shard_nodes_num: nodeNum - props.data.currentNodeNum, // 增加shard节点数
         cluster_ids: props.data.isMongoReplicaSet
           ? [props.data.clusterId, ...relatedClusterIds]
           : [props.data.clusterId],
-        add_shard_nodes_num: nodeNum - props.data.currentNodeNum, // 增加shard节点数
         current_shard_nodes_num: props.data.currentNodeNum, // 当前shard节点数
         node_replica_count: props.data.machineInstanceNum, // 单机部署实例
-        shards_num: props.data.shardNum, // 分片数
         resource_spec: {
           shard_nodes: {
-            spec_id: props.data.sepcId,
             count: (props.data.shardNum / props.data.machineInstanceNum) * (nodeNum - props.data.currentNodeNum), // 分片数 / 每台机器的实例数 * 增加的节点数
+            spec_id: props.data.sepcId,
           },
         },
+        shards_num: props.data.shardNum, // 分片数
       }));
     },
   });

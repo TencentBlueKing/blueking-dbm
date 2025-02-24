@@ -45,9 +45,7 @@
     data?: string;
   }
 
-  interface Emits {
-    (e: 'change', value: MongoDBModel[]): void;
-  }
+  type Emits = (e: 'change', value: MongoDBModel[]) => void;
 
   interface Exposes {
     getValue: () => Promise<number[]>;
@@ -77,28 +75,29 @@
       (props.clusterType === ClusterTypes.MONGO_REPLICA_SET
         ? {
             [ClusterTypes.MONGO_REPLICA_SET]: {
-              name: t('副本集集群'),
               multiple: true,
+              name: t('副本集集群'),
             },
           }
         : {
             [ClusterTypes.MONGO_SHARED_CLUSTER]: {
-              name: t('分片集群'),
               multiple: false,
+              name: t('分片集群'),
             },
           }) as unknown as Record<ClusterTypes, TabItem>,
   );
 
   const rules = [
     {
-      validator: (value: string) => value.split(',').every((domain) => Boolean(domain)),
       message: t('目标集群不能为空'),
+      validator: (value: string) => value.split(',').every((domain) => Boolean(domain)),
     },
     {
-      validator: (value: string) => value.split(',').every((domain) => domainRegex.test(domain)),
       message: t('目标集群输入格式有误'),
+      validator: (value: string) => value.split(',').every((domain) => domainRegex.test(domain)),
     },
     {
+      message: t('目标集群不存在'),
       validator: (value: string) =>
         getMongoList({
           domains: value,
@@ -109,7 +108,6 @@
           }
           return false;
         }),
-      message: t('目标集群不存在'),
     },
   ];
 

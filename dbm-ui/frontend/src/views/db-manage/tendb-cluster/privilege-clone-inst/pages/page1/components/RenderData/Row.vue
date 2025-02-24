@@ -48,12 +48,12 @@
   import { random } from '@utils';
 
   export interface IProxyData {
-    cluster_id: number;
-    bk_host_id: number;
     bk_cloud_id: number;
-    port: number;
-    ip: string;
+    bk_host_id: number;
+    cluster_id: number;
     instance_address: string;
+    ip: string;
+    port: number;
   }
 
   export interface IDataRow {

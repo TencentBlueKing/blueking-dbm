@@ -43,25 +43,25 @@
   import { searchDeviceClass } from '@services/source/ipchooser';
 
   interface StorageSpecItem {
-    mount_point: string,
-    size: string | number,
-    type: string,
-    isSystemDrive?: boolean
+    mount_point: string;
+    size: string | number;
+    type: string;
+    isSystemDrive?: boolean;
   }
 
   interface TableColumnData {
-    data: StorageSpecItem,
-    index: number
+    data: StorageSpecItem;
+    index: number;
   }
 
   interface Props {
-    modelValue: StorageSpecItem[],
-    isEdit: boolean,
-    isRequired: boolean,
+    modelValue: StorageSpecItem[];
+    isEdit: boolean;
+    isRequired: boolean;
   }
 
   interface Emits {
-    (e: 'update:modelValue', value: StorageSpecItem[]): void
+    (e: 'update:modelValue', value: StorageSpecItem[]): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -79,7 +79,7 @@
   const { t } = useI18n();
 
   const tableData = ref(props.modelValue);
-  const deviceClass = ref<{label: string, value: string}[]>([]);
+  const deviceClass = ref<{ label: string; value: string }[]>([]);
   const isLoadDeviceClass = ref(true);
 
   const handleAddFirstRow = () => {
@@ -104,7 +104,7 @@
         trigger: 'blur',
       },
       {
-        validator: (value: string) => tableData.value.filter(item => item.mount_point === value).length < 2,
+        validator: (value: string) => tableData.value.filter((item) => item.mount_point === value).length < 2,
         message: () => t('挂载点name重复', { name: data.mount_point }),
         trigger: 'blur',
       },
@@ -148,7 +148,7 @@
       render: ({ data, index }: TableColumnData) => (
         <bk-form-item
           property={`storage_spec.${index}.mount_point`}
-          error-display-type="tooltips"
+          error-display-type='tooltips'
           required={props.isRequired}
           rules={mountPointRules(data)}>
           <div
@@ -157,10 +157,11 @@
               disabled: !props.isEdit && !data.isSystemDrive,
             }}>
             <bk-input
-              class="large-size"
+              class='large-size'
               v-model={data.mount_point}
-              placeholder="/data123"
-              disabled={props.isEdit || data.isSystemDrive} />
+              placeholder='/data123'
+              disabled={props.isEdit || data.isSystemDrive}
+            />
           </div>
         </bk-form-item>
       ),
@@ -171,7 +172,7 @@
       render: ({ data, index }: TableColumnData) => (
         <bk-form-item
           property={`storage_spec.${index}.size`}
-          error-display-type="tooltips"
+          error-display-type='tooltips'
           required={props.isRequired}
           rules={sizeRules(data)}>
           <div
@@ -180,13 +181,14 @@
               disabled: !props.isEdit,
             }}>
             <bk-input
-              class="large-size"
+              class='large-size'
               v-model={data.size}
-              type="number"
+              type='number'
               show-control={false}
               min={10}
               max={20000}
-              disabled={props.isEdit} />
+              disabled={props.isEdit}
+            />
           </div>
         </bk-form-item>
       ),
@@ -198,7 +200,7 @@
       render: ({ data, index }: TableColumnData) => (
         <bk-form-item
           property={`storage_spec.${index}.type`}
-          error-display-type="tooltips"
+          error-display-type='tooltips'
           required={props.isRequired}
           rules={typeRules(data)}>
           <div
@@ -207,14 +209,17 @@
               disabled: !props.isEdit,
             }}>
             <bk-select
-              class="large-size"
+              class='large-size'
               v-model={data.type}
               clearable={false}
               disabled={props.isEdit}
               loading={isLoadDeviceClass.value}>
-              {
-                deviceClass.value.map(item => <bk-option label={item.label} value={item.value} />)
-              }
+              {deviceClass.value.map((item) => (
+                <bk-option
+                  label={item.label}
+                  value={item.value}
+                />
+              ))}
             </bk-select>
           </div>
         </bk-form-item>
@@ -225,12 +230,12 @@
       label: t('操作'),
       width: 80,
       render: ({ data, index }: TableColumnData) => (
-        <div class="opertaions">
+        <div class='opertaions'>
           <bk-button
             text
             disabled={props.isEdit}
             onClick={() => handleAdd(index)}>
-            <db-icon type="plus-fill" />
+            <db-icon type='plus-fill' />
           </bk-button>
           <span
             v-bk-tooltips={{
@@ -241,7 +246,7 @@
               text
               disabled={props.isEdit || data.isSystemDrive}
               onClick={() => handleRemove(index)}>
-              <db-icon type="minus-fill" />
+              <db-icon type='minus-fill' />
             </bk-button>
           </span>
         </div>
@@ -257,16 +262,23 @@
     tableData.value.splice(index, 1);
   };
 
-  watch(tableData, () => {
-    emits('update:modelValue', tableData.value.map(item => ({
-      ...item,
-      size: Number(item.size),
-    })));
-  }, { deep: true });
+  watch(
+    tableData,
+    () => {
+      emits(
+        'update:modelValue',
+        tableData.value.map((item) => ({
+          ...item,
+          size: Number(item.size),
+        })),
+      );
+    },
+    { deep: true },
+  );
 
   searchDeviceClass()
     .then((res) => {
-      deviceClass.value = res.map(item => ({
+      deviceClass.value = res.map((item) => ({
         label: item === 'ALL' ? t('无限制') : item,
         value: item,
       }));

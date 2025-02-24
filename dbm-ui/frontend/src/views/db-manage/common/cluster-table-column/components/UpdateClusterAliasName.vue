@@ -60,17 +60,15 @@
 
   interface Props {
     data: {
-      id: number;
-      cluster_name: string;
       cluster_alias: string;
+      cluster_name: string;
+      id: number;
     };
   }
 
   const props = defineProps<Props>();
 
-  const emits = defineEmits<{
-    (e: 'success'): void;
-  }>();
+  const emits = defineEmits<(e: 'success') => void>();
 
   const { t } = useI18n();
   const fromRef = useTemplateRef('bkform');

@@ -35,10 +35,10 @@ interface ClusterInfo {
 }
 
 export default class MongodbRollbackRecord {
-  static MongoShardedCluster = 'MongoShardedCluster'; // 分片集群
+  static MONGODB_TEMPORARY_DESTROY = 'MONGODB_TEMPORARY_DESTROY';
   static MongoReplicaSet = 'MongoReplicaSet'; // 副本集集群
 
-  static MONGODB_TEMPORARY_DESTROY = 'MONGODB_TEMPORARY_DESTROY';
+  static MongoShardedCluster = 'MongoShardedCluster'; // 分片集群
 
   static operationIconMap = {
     [MongodbRollbackRecord.MONGODB_TEMPORARY_DESTROY]: t('销毁中'),
@@ -86,8 +86,8 @@ export default class MongodbRollbackRecord {
   ns_filter: {
     db_patterns: string[];
     ignore_dbs: string[];
-    table_patterns: string[];
     ignore_tables: string[];
+    table_patterns: string[];
   };
   record_id: number;
   rollback_time: string;
@@ -110,8 +110,12 @@ export default class MongodbRollbackRecord {
     this.ticket_id = payload.ticket_id;
   }
 
-  get runningOperation() {
-    return this.target_cluster.operations.find((item) => item.ticket_type in MongodbRollbackRecord.operationTextMap);
+  get operationDisabled() {
+    // 各个操作互斥，有其他任务进行中禁用操作按钮
+    if (this.operationTicketId) {
+      return true;
+    }
+    return false;
   }
 
   // 操作中的状态
@@ -126,14 +130,22 @@ export default class MongodbRollbackRecord {
     return operation.ticket_type;
   }
 
+  // 操作中的状态 icon
+  get operationStatusIcon() {
+    return MongodbRollbackRecord.operationIconMap[this.operationRunningStatus];
+  }
+
   // 操作中的状态描述文本
   get operationStatusText() {
     return MongodbRollbackRecord.operationTextMap[this.operationRunningStatus];
   }
 
-  // 操作中的状态 icon
-  get operationStatusIcon() {
-    return MongodbRollbackRecord.operationIconMap[this.operationRunningStatus];
+  get operationTagTips() {
+    return this.target_cluster.operations.map((item) => ({
+      icon: MongodbRollbackRecord.operationIconMap[item.ticket_type],
+      ticketId: item.ticket_id,
+      tip: MongodbRollbackRecord.operationTextMap[item.ticket_type],
+    }));
   }
 
   // 操作中的单据 ID
@@ -148,34 +160,22 @@ export default class MongodbRollbackRecord {
     return operation.ticket_id;
   }
 
-  get operationDisabled() {
-    // 各个操作互斥，有其他任务进行中禁用操作按钮
-    if (this.operationTicketId) {
-      return true;
+  get rollbackTypeText() {
+    if (this.rollback_time) {
+      return `${t('回档到指定时间')}（${utcDisplayTime(this.rollback_time)}）`;
     }
-    return false;
+    return `${t('备份记录')}（${this.backupinfo.role_type}${utcDisplayTime(this.backupinfo.end_time)}）`;
   }
 
-  get operationTagTips() {
-    return this.target_cluster.operations.map((item) => ({
-      icon: MongodbRollbackRecord.operationIconMap[item.ticket_type],
-      tip: MongodbRollbackRecord.operationTextMap[item.ticket_type],
-      ticketId: item.ticket_id,
-    }));
-  }
-
-  get sourceClusteText() {
-    return `${this.source_cluster.immute_domain}:${this.source_cluster.access_port}`;
+  get runningOperation() {
+    return this.target_cluster.operations.find((item) => item.ticket_type in MongodbRollbackRecord.operationTextMap);
   }
 
   get sourceClusterTypeText() {
     return this.source_cluster.cluster_type === MongodbRollbackRecord.MongoShardedCluster ? t('分片') : t('副本集');
   }
 
-  get rollbackTypeText() {
-    if (this.rollback_time) {
-      return `${t('回档到指定时间')}（${utcDisplayTime(this.rollback_time)}）`;
-    }
-    return `${t('备份记录')}（${this.backupinfo.role_type}${utcDisplayTime(this.backupinfo.end_time)}）`;
+  get sourceClusteText() {
+    return `${this.source_cluster.immute_domain}:${this.source_cluster.access_port}`;
   }
 }

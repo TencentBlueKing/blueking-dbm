@@ -14,6 +14,8 @@
 import type { App } from 'vue';
 import { VxeTooltip } from 'vxe-pc-ui';
 
+import { Table, TableColumn } from '@blueking/table';
+
 import AuthButton from '@components/auth-component/button.vue';
 import AuthTemplate from '@components/auth-component/component.vue';
 import AuthOption from '@components/auth-component/option.vue';
@@ -37,7 +39,6 @@ import SkeletonLoading from '@components/skeleton-loading/Index.vue';
 import SmartAction from '@components/smart-action/Index.vue';
 import { ipSelector } from '@components/vue2/ip-selector';
 
-import { Table, TableColumn } from '@blueking/table';
 import UserSelector from '@patch/user-selector/selector.vue';
 
 import('@blueking/table/vue3/vue3.css');

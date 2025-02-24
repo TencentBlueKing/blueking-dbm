@@ -10,9 +10,9 @@ export interface ProxySwitch extends DetailBase {
   infos: {
     cluster_ids: number[];
     display_info: {
-      type: 'INSTANCE_REPLACE' | 'HOST_REPLACE';
       related_clusters: string[];
       related_instances: string[];
+      type: 'INSTANCE_REPLACE' | 'HOST_REPLACE';
     };
     origin_proxy: {
       bk_biz_id: number;

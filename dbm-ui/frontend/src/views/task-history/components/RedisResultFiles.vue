@@ -66,7 +66,7 @@
   import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
-  import { batchDownloadDirs,createBkrepoAccessToken } from '@services/source/storage';
+  import { batchDownloadDirs, createBkrepoAccessToken } from '@services/source/storage';
   import { getKeyFiles } from '@services/source/taskflow';
   import { createTicket } from '@services/source/ticket';
 
@@ -78,11 +78,11 @@
 
   import { downloadUrl, execCopy, generateBkRepoDownloadUrl, messageWarn } from '@utils';
 
-  type KeyFileItem = ServiceReturnType<typeof getKeyFiles>[number]
+  type KeyFileItem = ServiceReturnType<typeof getKeyFiles>[number];
 
   interface Props {
-    id: string,
-    showDelete?: boolean
+    id: string;
+    showDelete?: boolean;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -90,8 +90,8 @@
   });
 
   const isShow = defineModel<boolean>({
-    required: true,
     default: false,
+    required: true,
   });
 
   const { t } = useI18n();
@@ -101,12 +101,12 @@
   const isAnomalies = ref(false);
 
   const state = reactive({
-    isLoading: false,
     data: [] as KeyFileItem[],
-    selected: [] as KeyFileItem[],
     downloadLoadings: [] as boolean[],
     fileLoadings: [] as boolean[],
     isBatchDownloading: false,
+    isLoading: false,
+    selected: [] as KeyFileItem[],
   });
 
   const columns = [
@@ -115,63 +115,64 @@
       width: 52,
     },
     {
-      label: t('目录'),
       field: 'name',
+      label: t('目录'),
       showOverflowTooltip: true,
     },
     {
-      label: t('大小'),
       field: 'size_display',
+      label: t('大小'),
       width: 100,
     },
     {
-      label: t('集群'),
       field: 'files',
-      showOverflowTooltip: false,
+      label: t('集群'),
       render: ({ data }: { data: KeyFileItem }) => (
         <div
-          class="cluster-name text-overflow"
           v-overflow-tips={{
+            allowHTML: true,
             content: `
               <p>${t('域名')}：${data.domain}</p>
-              ${data.cluster_alias ? `<p>${('集群别名')}：${data.cluster_alias}</p>` : null}
+              ${data.cluster_alias ? `<p>${'集群别名'}：${data.cluster_alias}</p>` : null}
             `,
-            allowHTML: true,
-        }}>
-          <span>{data.domain}</span><br />
-          <span class="cluster-name__alias">{data.cluster_alias}</span>
+          }}
+          class='cluster-name text-overflow'>
+          <span>{data.domain}</span>
+          <br />
+          <span class='cluster-name__alias'>{data.cluster_alias}</span>
         </div>
       ),
+      showOverflowTooltip: false,
     },
     {
-      label: t('提取时间'),
       field: 'created_time',
+      label: t('提取时间'),
       width: 150,
     },
     {
-      label: t('操作'),
       field: 'operations',
-      width: 200,
-      render: ({ index, data }: { index: number, data: KeyFileItem }) => (
+      label: t('操作'),
+      render: ({ data, index }: { data: KeyFileItem; index: number }) => (
         <div>
           <bk-button
-            class="mr-8"
-            text
-            theme="primary"
+            class='mr-8'
             loading={state.downloadLoadings[index]}
+            theme='primary'
+            text
             onClick={() => handleDownloadFile(data, index)}>
-            { t('下载') }
+            {t('下载')}
           </bk-button>
           <bk-button
-            text
-            theme="primary"
             loading={state.fileLoadings[index]}
+            theme='primary'
+            text
             onClick={() => getDownloadUrl(data, index)}>
-            { t('复制文件地址') }
+            {t('复制文件地址')}
           </bk-button>
         </div>
       ),
-    }
+      width: 200,
+    },
   ];
 
   const hasSelected = computed(() => state.selected.length > 0);
@@ -219,34 +220,39 @@
   /**
    * 表格选中
    */
-  function handleTableSelected({ isAll, checked, data, row }: {
+  function handleTableSelected({
+    checked,
+    data,
+    isAll,
+    row,
+  }: {
     checked: boolean;
     data: KeyFileItem[];
     index: number;
     isAll: boolean;
-    row: KeyFileItem
+    row: KeyFileItem;
   }) {
-      // 全选 checkbox 切换
-      if (isAll) {
-        state.selected = checked ? [...data] : [];
-        return;
-      }
-
-      // 单选 checkbox 选中
-      if (checked) {
-        const toggleIndex = state.selected.findIndex(item => item.domain === row.domain);
-        if (toggleIndex === -1) {
-          state.selected.push(row);
-        }
-        return;
-      }
-
-      // 单选 checkbox 取消选中
-      const toggleIndex = state.selected.findIndex(item => item.domain === row.domain);
-      if (toggleIndex > -1) {
-        state.selected.splice(toggleIndex, 1);
-      }
+    // 全选 checkbox 切换
+    if (isAll) {
+      state.selected = checked ? [...data] : [];
+      return;
     }
+
+    // 单选 checkbox 选中
+    if (checked) {
+      const toggleIndex = state.selected.findIndex((item) => item.domain === row.domain);
+      if (toggleIndex === -1) {
+        state.selected.push(row);
+      }
+      return;
+    }
+
+    // 单选 checkbox 取消选中
+    const toggleIndex = state.selected.findIndex((item) => item.domain === row.domain);
+    if (toggleIndex > -1) {
+      state.selected.splice(toggleIndex, 1);
+    }
+  }
 
   /**
    * 打包下载文件
@@ -256,7 +262,7 @@
       return;
     }
     state.isBatchDownloading = true;
-    const paths = state.selected.map(item => item.path);
+    const paths = state.selected.map((item) => item.path);
     batchDownloadDirs({ file_path_list: paths })
       .then((result) => {
         const values = Object.values(result);
@@ -303,70 +309,57 @@
     if (data.length === 0) return;
 
     // size 为 0 无法操作删除 key
-    if (data.filter(item => item.size === 0).length > 0) {
+    if (data.filter((item) => item.size === 0).length > 0) {
       messageWarn(t('批量操作中存在size为0的集群无法删除keys'));
       return;
     }
 
     const firstData = data[0];
     InfoBox({
-      type: 'warning',
-      title: t('确认从数据库中删除Key'),
-      width: 500,
-      extCls: 'redis-delete-keys-confirm',
       content: () => (
-        <div class="delete-confirm">
-          {
-            data.length > 1
-              ? (
-                data.map((item, index) => (
-                  <p class="delete-confirm__item">
-                    {index + 1}.{item.domain}
-                    {
-                      item.cluster_alias
-                        ? <span class="delete-confirm__desc">（{item.cluster_alias}）</span>
-                        : null
-                    }
-                  </p>
-                ))
-              )
-              : (
-                  <p class="delete-confirm__item">
-                    {t('集群')}：{firstData.domain}
-                    {
-                      firstData.cluster_alias
-                        ? <span class="delete-confirm__desc">（{firstData.cluster_alias}）</span>
-                        : null
-                    }
-                  </p>
-                )
-          }
-          <p class="delete-confirm__item">{ t('删除Key_会将Key提取的对应内容进行删除_请谨慎操作') }</p>
+        <div class='delete-confirm'>
+          {data.length > 1 ? (
+            data.map((item, index) => (
+              <p class='delete-confirm__item'>
+                {index + 1}.{item.domain}
+                {item.cluster_alias ? <span class='delete-confirm__desc'>（{item.cluster_alias}）</span> : null}
+              </p>
+            ))
+          ) : (
+            <p class='delete-confirm__item'>
+              {t('集群')}：{firstData.domain}
+              {firstData.cluster_alias ? <span class='delete-confirm__desc'>（{firstData.cluster_alias}）</span> : null}
+            </p>
+          )}
+          <p class='delete-confirm__item'>{t('删除Key_会将Key提取的对应内容进行删除_请谨慎操作')}</p>
         </div>
       ),
+      extCls: 'redis-delete-keys-confirm',
       onConfirm: async () => {
         try {
           const params = {
             bk_biz_id: globalBizsStore.currentBizId,
-            ticket_type: TicketTypes.REDIS_KEYS_DELETE,
             details: {
               delete_type: 'files',
-              rules: data.map(item => ({
+              rules: data.map((item) => ({
                 cluster_id: item.cluster_id,
                 domain: item.domain,
                 path: item.name,
               })),
             },
+            ticket_type: TicketTypes.REDIS_KEYS_DELETE,
           };
-          await createTicket(params)
-            .then((res) => {
-              ticketMessage(res.id);
-            });
+          await createTicket(params).then((res) => {
+            ticketMessage(res.id);
+          });
           return true;
-        } catch (_) {
+        } catch {
           return false;
         }
       },
+      title: t('确认从数据库中删除Key'),
+      type: 'warning',
+      width: 500,
     });
   }
 

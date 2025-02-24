@@ -7,7 +7,6 @@ import type { DetailBase, DetailClusters } from '../common';
 export interface OpenArea extends DetailBase {
   cluster_id: number;
   clusters: DetailClusters;
-  config_id: number;
   config_data: {
     cluster_id: number;
     execute_objects: {
@@ -17,6 +16,7 @@ export interface OpenArea extends DetailBase {
       target_db: string;
     }[];
   }[];
+  config_id: number;
   force: boolean;
   rules_set: {
     account_rules: {

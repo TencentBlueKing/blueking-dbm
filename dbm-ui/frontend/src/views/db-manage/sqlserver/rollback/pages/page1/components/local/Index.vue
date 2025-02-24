@@ -46,8 +46,8 @@
   import RenderDataRow, { createRowData, type IDataRow } from './components/Row.vue';
 
   interface Expose {
-    submit: () => Promise<any>;
     reset: () => void;
+    submit: () => Promise<any>;
   }
 
   // 检测列表是否为空
@@ -72,22 +72,22 @@
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
 
   useTicketCloneInfo({
-    type: TicketTypes.SQLSERVER_ROLLBACK,
     onSuccess(cloneData) {
       tableData.value = cloneData.infos.map((item) =>
         createRowData({
           clusterData: {
-            id: item.src_cluster.id,
-            domain: item.src_cluster.immute_domain,
             cloudId: item.src_cluster.bk_cloud_id,
+            domain: item.src_cluster.immute_domain,
+            id: item.src_cluster.id,
           },
-          restoreBackupFile: item.restore_backup_file,
-          dbName: item.db_list,
           dbIgnoreName: item.ignore_db_list,
+          dbName: item.db_list,
           renameDbName: item.rename_infos,
+          restoreBackupFile: item.restore_backup_file,
         }),
       );
     },
+    type: TicketTypes.SQLSERVER_ROLLBACK,
   });
 
   // 批量选择
@@ -101,9 +101,9 @@
     const newList = list.reduce((result, item) => {
       const row = createRowData({
         clusterData: {
-          id: item.id,
-          domain: item.master_domain,
           cloudId: item.bk_cloud_id,
+          domain: item.master_domain,
+          id: item.id,
         },
       });
       result.push(row);
@@ -131,9 +131,6 @@
   };
 
   defineExpose<Expose>({
-    submit() {
-      return Promise.all(rowRefs.value!.map((item) => item.getValue()));
-    },
     reset() {
       tableData.value = [createRowData()];
       selectedClusters.value = {
@@ -141,6 +138,9 @@
         [ClusterTypes.SQLSERVER_SINGLE]: [],
       };
       window.changeConfirm = false;
+    },
+    submit() {
+      return Promise.all(rowRefs.value!.map((item) => item.getValue()));
     },
   });
 </script>

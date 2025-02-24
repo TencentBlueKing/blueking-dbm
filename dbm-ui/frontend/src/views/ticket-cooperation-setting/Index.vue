@@ -64,31 +64,31 @@
 
   // 是否开启单据协助
   useRequest(getBizSettingList, {
-    onSuccess: (data) => {
-      isCooperationOpen.value = data.BIZ_ASSISTANCE_SWITCH;
-    },
     defaultParams: [
       {
         bk_biz_id: globalBizsStore.currentBizId,
         key: 'BIZ_ASSISTANCE_SWITCH',
       },
     ],
+    onSuccess: (data) => {
+      isCooperationOpen.value = data.BIZ_ASSISTANCE_SWITCH;
+    },
   });
 
   // 获取默认协作人
   useRequest(getBizSettingList, {
-    onSuccess: (data) => {
-      formModel.members = data.BIZ_ASSISTANCE_VARS || [];
-    },
     defaultParams: [
       {
         bk_biz_id: globalBizsStore.currentBizId,
         key: 'BIZ_ASSISTANCE_VARS',
       },
     ],
+    onSuccess: (data) => {
+      formModel.members = data.BIZ_ASSISTANCE_VARS || [];
+    },
   });
 
-  const { run: runUpdate, loading: isUpdating } = useRequest(batchUpdateBizSetting, {
+  const { loading: isUpdating, run: runUpdate } = useRequest(batchUpdateBizSetting, {
     manual: true,
     onSuccess: () => {
       messageSuccess(t('保存成功'));

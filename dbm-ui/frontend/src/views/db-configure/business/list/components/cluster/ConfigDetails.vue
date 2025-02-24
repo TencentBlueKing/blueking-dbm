@@ -50,8 +50,8 @@
 
   interface Props {
     data?: ServiceReturnType<typeof getLevelConfig>;
-    loading?: boolean;
     fetchParams?: GetLevelConfigParams;
+    loading?: boolean;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -59,8 +59,8 @@
       ({
         conf_items: [] as NonNullable<Props['data']>['conf_items'],
       }) as NonNullable<Props['data']>,
-    loading: false,
     fetchParams: () => ({}) as GetLevelConfigParams,
+    loading: false,
   });
 
   const { t } = useI18n();
@@ -77,9 +77,9 @@
   const routeParams = computed(() => ({
     clusterType: props.fetchParams.meta_cluster_type,
     confType: props.fetchParams.conf_type,
-    version: props.fetchParams.version,
-    treeId: route.query.treeId as string,
     parentId: route.query.parentId as string,
+    treeId: route.query.treeId as string,
+    version: props.fetchParams.version,
   }));
 
   /**

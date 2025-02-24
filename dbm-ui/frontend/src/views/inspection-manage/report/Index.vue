@@ -65,7 +65,7 @@
   const isPlatform = computed(() => route.name === 'inspectionReportGlobal');
 
   const serviceList = computed(() => {
-    if (!dbOverviewConfig.value || !dbOverviewConfig.value[tabType.value]) {
+    if (!dbOverviewConfig.value?.[tabType.value]) {
       return [];
     }
 
@@ -156,7 +156,7 @@
       const sheetDataList = await Promise.all(dynamicTablesRef.value.map((item) => item.getExportExcelSheetData()));
       const workbook = XLSX.utils.book_new();
       sheetDataList.forEach((item) => {
-        const { headerList, colWidthList, fileName, dataList } = item;
+        const { colWidthList, dataList, fileName, headerList } = item;
         const worksheet = XLSX.utils.aoa_to_sheet([headerList, ...dataList]);
         XLSX.utils.book_append_sheet(workbook, worksheet, `${tabType.value}-${fileName}`);
         worksheet['!cols'] = colWidthList;

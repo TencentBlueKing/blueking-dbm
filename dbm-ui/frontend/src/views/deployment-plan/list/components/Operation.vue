@@ -85,13 +85,11 @@
 
   interface Props {
     clusterType: string;
-    machineType: string;
     data?: DeployPlanModel;
+    machineType: string;
   }
 
-  interface Emits {
-    (e: 'change'): void;
-  }
+  type Emits = (e: 'change') => void;
 
   interface Expose {
     submit: () => void;
@@ -101,13 +99,13 @@
   const emits = defineEmits<Emits>();
 
   const genDefaultData = () => ({
-    id: 0,
-    name: '',
-    shard_cnt: 0,
     capacity: 0,
-    machine_pair_cnt: 0,
     cluster_type: props.clusterType,
     desc: '',
+    id: 0,
+    machine_pair_cnt: 0,
+    name: '',
+    shard_cnt: 0,
     spec: undefined,
   });
   const { t } = useI18n();
@@ -115,12 +113,12 @@
   const formData = reactive(genDefaultData());
   const isEditing = computed(() => props.data && props.data.id > 0);
 
-  const { loading: isResourceSpecLoading, data: resourceSpecList } = useRequest(getResourceSpecList, {
+  const { data: resourceSpecList, loading: isResourceSpecLoading } = useRequest(getResourceSpecList, {
     defaultParams: [
       {
+        limit: -1,
         spec_cluster_type: props.clusterType,
         spec_machine_type: props.machineType,
-        limit: -1,
       },
     ],
   });
@@ -135,7 +133,7 @@
     }
     // tendiscache 计算内存
     if (props.machineType === 'tendiscache') {
-      const { min, max } = spec.mem;
+      const { max, min } = spec.mem;
       return `${min * formData.machine_pair_cnt} - ${max * formData.machine_pair_cnt}`;
     }
     const storage = spec.storage_spec.reduce((result, item) => result + item.size, 0);

@@ -55,8 +55,8 @@
       <td style="padding: 0">
         <RenderClearDbName
           ref="cleanDbsRef"
-          v-model:cleanDbsPatterns="localCleanDbsPatterns"
-          v-model:cleanIgnoreDbsPatterns="localCleanIgnoreDbsPatterns"
+          v-model:clean-dbs-patterns="localCleanDbsPatterns"
+          v-model:clean-ignore-dbs-patterns="localCleanIgnoreDbsPatterns"
           :cluster-data="localClusterData" />
       </td>
       <OperateColumn
@@ -80,30 +80,30 @@
   import RenderCluster from './RenderCluster.vue';
 
   export interface IDataRow {
-    rowKey: string;
-    clusterData?: {
-      id: number;
-      domain: string;
-      cloudId: number;
-    };
-    cleanMode: string;
+    cleanDbs: string[];
     cleanDbsPatterns: string[];
     cleanIgnoreDbsPatterns: string[];
+    cleanMode: string;
     cleanTables: string[];
+    clusterData?: {
+      cloudId: number;
+      domain: string;
+      id: number;
+    };
     ignoreCleanTables: string[];
-    cleanDbs: string[];
+    rowKey: string;
   }
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>): IDataRow => ({
-    rowKey: random(),
-    clusterData: data.clusterData,
-    cleanMode: data.cleanMode || '',
+    cleanDbs: data.cleanDbs || [],
     cleanDbsPatterns: data.cleanDbsPatterns || [],
     cleanIgnoreDbsPatterns: data.cleanIgnoreDbsPatterns || [],
+    cleanMode: data.cleanMode || '',
     cleanTables: data.cleanTables || ['*'],
+    clusterData: data.clusterData,
     ignoreCleanTables: data.ignoreCleanTables || [],
-    cleanDbs: data.cleanDbs || [],
+    rowKey: random(),
   });
 </script>
 <script setup lang="ts">

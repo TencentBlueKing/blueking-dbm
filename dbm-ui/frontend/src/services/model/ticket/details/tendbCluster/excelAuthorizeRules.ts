@@ -5,11 +5,10 @@ import type { DetailBase } from '../common';
  */
 
 export interface ExcelAuthorizeRules extends DetailBase {
-  authorize_uid: string;
   authorize_data: {
     access_dbs: string[];
-    cluster_type: string;
     cluster_ids?: number[];
+    cluster_type: string;
     source_ips?: {
       bk_host_id?: number;
       ip: string;
@@ -17,12 +16,11 @@ export interface ExcelAuthorizeRules extends DetailBase {
     target_instances: string[];
     user: string;
   };
-  excel_url: string;
   authorize_plugin_infos: {
     access_dbs: string[];
     bk_biz_id: number;
-    cluster_type: string;
     cluster_ids?: number[];
+    cluster_type: string;
     source_ips?: {
       bk_host_id?: number;
       ip: string;
@@ -30,4 +28,6 @@ export interface ExcelAuthorizeRules extends DetailBase {
     target_instances: string[];
     user: string;
   }[];
+  authorize_uid: string;
+  excel_url: string;
 }

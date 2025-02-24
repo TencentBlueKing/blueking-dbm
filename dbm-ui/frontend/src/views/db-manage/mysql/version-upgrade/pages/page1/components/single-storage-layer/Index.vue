@@ -105,9 +105,9 @@
   import RenderDataRow, { createRowData, type IDataRow } from './Row.vue';
 
   interface Props {
-    tableList: IDataRow[];
     force: boolean;
     remark: string;
+    tableList: IDataRow[];
   }
 
   interface Exposes {
@@ -178,18 +178,18 @@
   };
 
   const generateTableRow = (item: TendbSingleModel) => ({
-    rowKey: item.master_domain,
-    isLoading: false,
     clusterData: {
-      domain: item.master_domain,
+      cloudId: item.bk_cloud_id,
       clusterId: item.id,
       clusterType: item.cluster_type,
       currentVersion: item.major_version,
-      packageVersion: item.masters[0].version,
-      moduleName: item.db_module_name,
+      domain: item.master_domain,
       moduleId: item.db_module_id,
-      cloudId: item.bk_cloud_id,
+      moduleName: item.db_module_name,
+      packageVersion: item.masters[0].version,
     },
+    isLoading: false,
+    rowKey: item.master_domain,
   });
 
   // 批量选择
@@ -242,13 +242,13 @@
       isSubmitting.value = true;
       const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
       await createTicket({
-        ticket_type: TicketTypes.MYSQL_LOCAL_UPGRADE,
-        remark: localRemark.value,
-        details: {
-          infos,
-          force: isForce.value,
-        },
         bk_biz_id: currentBizId,
+        details: {
+          force: isForce.value,
+          infos,
+        },
+        remark: localRemark.value,
+        ticket_type: TicketTypes.MYSQL_LOCAL_UPGRADE,
       }).then((data) => {
         window.changeConfirm = false;
 

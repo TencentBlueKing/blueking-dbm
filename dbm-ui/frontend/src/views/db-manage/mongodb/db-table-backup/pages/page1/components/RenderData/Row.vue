@@ -69,16 +69,16 @@
   import { random } from '@utils';
 
   export interface IDataRow {
-    rowKey: string;
     clusterData?: {
-      id: number;
       domain: string;
+      id: number;
     };
     dbPatterns?: string[];
-    tablePatterns?: string[];
     ignoreDbs?: string[];
     ignoreTables?: string[];
     rowData?: MongoDBModel;
+    rowKey: string;
+    tablePatterns?: string[];
   }
 
   export interface InfoItem {
@@ -88,8 +88,8 @@
     ns_filter: {
       db_patterns: string[];
       ignore_dbs: string[];
-      table_patterns: string[];
       ignore_tables: string[];
+      table_patterns: string[];
     };
   }
 
@@ -111,11 +111,11 @@
   import RenderHost from './RenderHost.vue';
 
   interface Props {
-    data: IDataRow;
-    removeable: boolean;
-    clusterType: ClusterTypes;
     backupType: string;
+    clusterType: ClusterTypes;
+    data: IDataRow;
     isShardCluster: boolean;
+    removeable: boolean;
   }
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;

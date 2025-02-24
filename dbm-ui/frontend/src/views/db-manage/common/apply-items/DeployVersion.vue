@@ -31,9 +31,9 @@
   import { listPackages } from '@services/source/package';
 
   interface Props {
-    queryKey: string;
     dbType: string;
     placeholder?: string;
+    queryKey: string;
   }
 
   const props = defineProps<Props>();
@@ -62,8 +62,8 @@
     () => [props.queryKey, props.dbType],
     () => {
       fetchData({
-        query_key: props.queryKey,
         db_type: props.dbType,
+        query_key: props.queryKey,
       });
     },
     {

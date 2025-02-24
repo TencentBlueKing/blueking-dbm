@@ -24,51 +24,53 @@
 
   import { TicketTypes } from '@common/const';
 
-   import { execCopy } from '@utils';
+  import { execCopy } from '@utils';
 
   interface Props {
-    ticketDetails: TicketModel<Riak.Reboot>
+    ticketDetails: TicketModel<Riak.Reboot>;
   }
 
   const props = defineProps<Props>();
 
   defineOptions({
     name: TicketTypes.RIAK_CLUSTER_REBOOT,
-    inheritAttrs: false
-  })
+    inheritAttrs: false,
+  });
 
   const { t } = useI18n();
 
   const columns = [
     {
-      label: t('集群ID'),
       field: 'cluster_id',
+      label: t('集群ID'),
       render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
     },
     {
-      label: t('集群名称'),
       field: 'immute_domain',
-      showOverflowTooltip: false,
+      label: t('集群名称'),
       render: ({ data }: { data: any }) => (
-      <div>
-        <span>{data.immute_domain}</span>
-      </div>
-    ),
+        <div>
+          <span>{data.immute_domain}</span>
+        </div>
+      ),
+      showOverflowTooltip: false,
     },
     {
-      label: t('集群类型'),
       field: 'cluster_type_name',
+      label: t('集群类型'),
       render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
     },
     {
-      label: t('节点IP'),
       field: 'node_ip',
+      label: t('节点IP'),
       render: ({ cell }: { cell: string }) => (
-        <p class="pt-2 pb-2">{cell}
+        <p class='pt-2 pb-2'>
+          {cell}
           <db-icon
             v-bk-tooltips={t('复制IP')}
-            type="copy"
-            onClick={() => execCopy(cell, t('复制成功，共n条', { n: 1 }))} />
+            type='copy'
+            onClick={() => execCopy(cell, t('复制成功，共n条', { n: 1 }))}
+          />
         </p>
       ),
     },
@@ -78,12 +80,14 @@
     const clusterId = props.ticketDetails?.details?.cluster_id;
     const clusters = props.ticketDetails?.details?.clusters?.[clusterId] || {};
 
-    return [{
-      cluster_id: clusterId,
-      immute_domain: clusters.immute_domain,
-      cluster_type_name: clusters.cluster_type_name,
-      name: clusters.name,
-      node_ip: props.ticketDetails?.details?.ip,
-    }];
+    return [
+      {
+        cluster_id: clusterId,
+        cluster_type_name: clusters.cluster_type_name,
+        immute_domain: clusters.immute_domain,
+        name: clusters.name,
+        node_ip: props.ticketDetails?.details?.ip,
+      },
+    ];
   });
 </script>

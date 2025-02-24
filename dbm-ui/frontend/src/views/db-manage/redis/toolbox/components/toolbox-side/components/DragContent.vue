@@ -30,8 +30,8 @@
   import RenderMenuGroup from './MenuGroup.vue';
 
   interface Props {
-    list: MenuItem[];
     activeViewName: string;
+    list: MenuItem[];
     serachKey: string;
   }
 

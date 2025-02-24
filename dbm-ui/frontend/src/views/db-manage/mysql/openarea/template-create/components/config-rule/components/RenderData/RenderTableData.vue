@@ -51,15 +51,15 @@
 
   const editRef = ref<InstanceType<typeof TableEditSelect>>();
 
-  const dbNameList = shallowRef<{ value: string; label: string }[]>([]);
+  const dbNameList = shallowRef<{ label: string; value: string }[]>([]);
 
   const { loading: isLoading, run: fetchList } = useRequest(getClusterTablesNameList, {
     manual: true,
     onSuccess(data) {
       const [{ table_data: tableData }] = data;
       dbNameList.value = tableData[props.sourceDb as string].map((item) => ({
-        value: item,
         label: item,
+        value: item,
       }));
     },
   });

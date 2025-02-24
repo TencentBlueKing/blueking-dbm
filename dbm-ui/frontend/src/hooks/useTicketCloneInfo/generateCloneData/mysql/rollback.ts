@@ -16,28 +16,28 @@ import { random } from '@utils';
 
 // MySQL 定点构造
 export function generateMysqlRollbackCloneData(ticketData: TicketModel<Mysql.RollbackCluster>) {
-  const { clusters, infos, rollback_cluster_type } = ticketData.details;
+  const { clusters, infos } = ticketData.details;
   const tableDataList = infos.map((item) => ({
-    rowKey: random(),
-    clusterData: {
-      id: item.cluster_id,
-      domain: clusters[item.cluster_id].immute_domain,
-      cloudId: clusters[item.cluster_id].bk_cloud_id,
-    },
-    targetClusterId: item.target_cluster_id,
-    rollbackHost: item.rollback_host,
-    backupSource: item.backup_source,
-    rollbackType: `${item.backup_source?.toLocaleUpperCase()}_AND_${item.backupinfo.backup_id ? 'BACKUPID' : 'TIME'}`,
     backupid: item.backupinfo.backup_id,
-    rollbackTime: item.rollback_time,
+    backupSource: item.backup_source,
+    clusterData: {
+      cloudId: clusters[item.cluster_id].bk_cloud_id,
+      domain: clusters[item.cluster_id].immute_domain,
+      id: item.cluster_id,
+    },
     databases: item.databases,
     databasesIgnore: item.databases_ignore,
+    rollbackHost: item.rollback_host,
+    rollbackTime: item.rollback_time,
+    rollbackType: `${item.backup_source?.toLocaleUpperCase()}_AND_${item.backupinfo.backup_id ? 'BACKUPID' : 'TIME'}`,
+    rowKey: random(),
     tables: item.tables,
     tablesIgnore: item.tables_ignore,
+    targetClusterId: item.target_cluster_id,
   }));
   return Promise.resolve({
-    tableDataList,
-    rollback_cluster_type,
     remark: ticketData.remark,
+    rollback_cluster_type: ticketData.details.rollback_cluster_type,
+    tableDataList,
   });
 }

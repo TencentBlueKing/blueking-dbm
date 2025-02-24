@@ -25,19 +25,19 @@ import { getSearchSelectorParams } from '@utils';
  */
 export function useClusterData<T>(activeTab: Ref<string>, searchParams: Ref<ISearchValue[]>) {
   const globalBizsStore = useGlobalBizs();
-  const currentInstance = getCurrentInstance() as ComponentInternalInstance & {
+  const currentInstance = getCurrentInstance() as {
     proxy: {
       getResourceList: (params: any) => Promise<any>;
     };
-  };
+  } & ComponentInternalInstance;
 
   const isLoading = ref(false);
   const tableData = shallowRef<T[]>([]);
   const dbModuleList = shallowRef<{ id: number; name: string }[]>([]);
   const isAnomalies = ref(false);
   const pagination = reactive({
-    current: 1,
     count: 0,
+    current: 1,
     limit: 10,
     small: true,
   });
@@ -49,10 +49,10 @@ export function useClusterData<T>(activeTab: Ref<string>, searchParams: Ref<ISea
     isLoading.value = true;
     return currentInstance.proxy
       .getResourceList({
-        type: activeTab.value,
         bk_biz_id: globalBizsStore.currentBizId,
         limit: pagination.limit,
         offset: pagination.limit * (pagination.current - 1),
+        type: activeTab.value,
         ...getSearchSelectorParams(searchParams.value),
       })
       .then((res) => {
@@ -103,14 +103,14 @@ export function useClusterData<T>(activeTab: Ref<string>, searchParams: Ref<ISea
   };
 
   return {
-    isLoading,
     data: tableData,
-    pagination,
     dbModuleList,
-    isAnomalies,
-    fetchResources,
     fetchModules,
-    handleChangePage,
+    fetchResources,
     handeChangeLimit,
+    handleChangePage,
+    isAnomalies,
+    isLoading,
+    pagination,
   };
 }

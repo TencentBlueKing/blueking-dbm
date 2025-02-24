@@ -40,19 +40,19 @@
   import { random } from '@utils';
 
   export interface IDataRow {
-    rowKey: string;
-    clusterData?: {
-      id: number;
-      domain: string;
-    };
     backupLocal: string;
+    clusterData?: {
+      domain: string;
+      id: number;
+    };
+    rowKey: string;
   }
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>): IDataRow => ({
-    rowKey: random(),
-    clusterData: data.clusterData,
     backupLocal: data.backupLocal || '',
+    clusterData: data.clusterData,
+    rowKey: random(),
   });
 </script>
 <script setup lang="ts">
@@ -87,8 +87,8 @@
       list.map((domain) =>
         createRowData({
           clusterData: {
-            id: 0,
             domain,
+            id: 0,
           },
         }),
       ),
@@ -100,8 +100,8 @@
       'inputClusterFinish',
       createRowData({
         clusterData: {
-          id: 0,
           domain,
+          id: 0,
         },
       }),
     );
@@ -126,11 +126,11 @@
       emits(
         'clone',
         createRowData({
-          clusterData: {
-            id: clusterData.cluster_id,
-            domain: '',
-          },
           backupLocal: backupLocalData.backup_local,
+          clusterData: {
+            domain: '',
+            id: clusterData.cluster_id,
+          },
         }),
       );
     });

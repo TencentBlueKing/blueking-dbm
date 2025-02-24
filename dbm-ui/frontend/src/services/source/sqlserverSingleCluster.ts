@@ -59,10 +59,10 @@ export function exportSqlServerSingleClusterToExcel(params: { bk_host_ids?: numb
  * 获取集群实例列表
  */
 export function getSqlServerInstanceList(params: {
-  offset?: number;
-  limit?: number;
   bk_biz_id?: number;
   cluster_id?: number;
+  limit?: number;
+  offset?: number;
   role?: string;
 }) {
   return http.get<ListBase<SqlServerInstanceModel[]>>(`${getPath()}/list_instances/`, params).then((data) => ({

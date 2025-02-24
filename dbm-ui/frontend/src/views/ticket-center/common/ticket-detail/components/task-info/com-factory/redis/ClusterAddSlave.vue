@@ -25,58 +25,58 @@
   import { TicketTypes } from '@common/const';
 
   interface Props {
-    ticketDetails: TicketModel<Redis.ClusterAddSlave>
+    ticketDetails: TicketModel<Redis.ClusterAddSlave>;
   }
 
   interface RowData {
-    hostIp: string,
-    clusterName: string,
-    clusterType: string,
+    clusterName: string;
+    clusterType: string;
+    hostIp: string;
     sepc: {
-      id: number,
-      name: string,
-    },
-    targetNum: number,
+      id: number;
+      name: string;
+    };
+    targetNum: number;
   }
 
   const props = defineProps<Props>();
 
   defineOptions({
     name: TicketTypes.REDIS_CLUSTER_ADD_SLAVE,
-    inheritAttrs: false
-  })
+    inheritAttrs: false,
+  });
 
   const { t } = useI18n();
 
   const tableData = ref<RowData[]>([]);
 
-  const { infos, clusters, specs } = props.ticketDetails.details;
+  const { clusters, infos, specs } = props.ticketDetails.details;
 
   const columns = [
     {
-      label: t('待重建从库主机'),
       field: 'slaveIp',
+      label: t('待重建从库主机'),
       showOverflowTooltip: true,
     },
     {
-      label: t('目标主库主机'),
       field: 'hostIp',
+      label: t('目标主库主机'),
       showOverflowTooltip: true,
     },
     {
-      label: t('所属集群'),
       field: 'clusterName',
+      label: t('所属集群'),
       showOverflowTooltip: true,
     },
     {
-      label: t('规格需求'),
       field: 'sepc',
+      label: t('规格需求'),
+      render: ({ data }: { data: RowData }) => <span>{data.sepc.name}</span>,
       showOverflowTooltip: true,
-      render: ({ data }: {data: RowData}) => <span>{data.sepc.name}</span>,
     },
     {
-      label: t('新增从库主机数量'),
       field: 'targetNum',
+      label: t('新增从库主机数量'),
     },
   ];
 
@@ -84,16 +84,16 @@
     item.pairs.forEach((pair) => {
       const specInfo = specs[pair.redis_slave.spec_id];
       const obj = {
-        slaveIp: pair.redis_slave.old_slave_ip,
-        hostIp: pair.redis_master.ip,
         clusterName: item.cluster_id
           ? clusters[item.cluster_id].immute_domain // 兼容旧单据
-          : item.cluster_ids.map(id => clusters[id].immute_domain).join(','),
+          : item.cluster_ids.map((id) => clusters[id].immute_domain).join(','),
         clusterType: clusters[item.cluster_ids[0]].cluster_type,
+        hostIp: pair.redis_master.ip,
         sepc: {
           id: pair.redis_slave.spec_id,
           name: specInfo ? specInfo.name : '',
         },
+        slaveIp: pair.redis_slave.old_slave_ip,
         targetNum: pair.redis_slave.count,
       };
       results.push(obj);
