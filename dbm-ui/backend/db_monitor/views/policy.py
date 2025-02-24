@@ -236,11 +236,12 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
     )
     @action(methods=["POST"], detail=False, serializer_class=serializers.BatchUpdateMonitorPolicyNotifySerializer)
     def batch_update_notify_group(self, request, *args, **kwargs):
-        policy_list = MonitorPolicy.objects.filter(id__in=self.validated_data["policy_ids"])
+        notify_groups = self.validated_data["notify_groups"]
         # 更新较慢考虑采用多线程方案
+        policy_list = MonitorPolicy.objects.filter(id__in=self.validated_data["policy_ids"])
         for policy in policy_list:
-            policy.notify_groups = self.validated_data["notify_groups"]
-            policy.save()
+            params = {"notify_groups": notify_groups}
+            policy.update(params, username=request.user.username)
         return Response()
 
     # @common_swagger_auto_schema(

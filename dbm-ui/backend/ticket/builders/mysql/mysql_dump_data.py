@@ -22,7 +22,8 @@ from backend.ticket.builders.mysql.base import (
     DBTableField,
     MySQLBaseOperateDetailSerializer,
 )
-from backend.ticket.constants import TicketFlowStatus, TicketType
+from backend.ticket.constants import FlowType, TicketFlowStatus, TicketType
+from backend.ticket.models import Flow
 
 
 class MySQLDumpDataDetailSerializer(MySQLBaseOperateDetailSerializer):
@@ -42,10 +43,16 @@ class MySQLDumpDataDetailSerializer(MySQLBaseOperateDetailSerializer):
         return data
 
 
-class MySQLDumpDataItsmFlowParamsBuilder(builders.ItsmParamBuilder):
+class MySQLDumpDataItsmMaintainerFlowParamsBuilder(builders.ItsmParamBuilder):
     def get_approvers(self):
-        bk_biz_maintainer = AppCache.get_app_attr_from_cc(self.ticket.bk_biz_id, attr_name="bk_biz_maintainer")
-        return bk_biz_maintainer or super().get_approvers()
+        approvers = AppCache.get_app_attr_from_cc(self.ticket.bk_biz_id, attr_name="bk_biz_maintainer")
+        return approvers or "admin"
+
+
+class MySQLDumpDataItsmProductorFlowParamsBuilder(builders.ItsmParamBuilder):
+    def get_approvers(self):
+        approvers = AppCache.get_app_attr_from_cc(self.ticket.bk_biz_id, attr_name="bk_biz_productor")
+        return approvers or "admin"
 
 
 class MySQLDumpDataFlowParamBuilder(builders.FlowParamBuilder):
@@ -75,11 +82,61 @@ class MySQLDumpDataFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MySQLDumpDataDetailSerializer
     inner_flow_builder = MySQLDumpDataFlowParamBuilder
     inner_flow_name = _("数据导出执行")
-    itsm_flow_builder = MySQLDumpDataItsmFlowParamsBuilder
+    itsm_flow_maintainer_builder = MySQLDumpDataItsmMaintainerFlowParamsBuilder
+    itsm_flow_productor_builder = MySQLDumpDataItsmProductorFlowParamsBuilder
+    editable = False
+
+    def init_ticket_flows(self):
+        flows = []
+        # 二级审批
+        if self.need_itsm:
+            flows.append(
+                Flow(
+                    ticket=self.ticket,
+                    flow_type=FlowType.BK_ITSM.value,
+                    details=self.itsm_flow_maintainer_builder(self.ticket).get_params(),
+                    flow_alias=_("运维人员审批"),
+                )
+            )
+            flows.append(
+                Flow(
+                    ticket=self.ticket,
+                    flow_type=FlowType.BK_ITSM.value,
+                    details=self.itsm_flow_productor_builder(self.ticket).get_params(),
+                    flow_alias=_("产品人员审批"),
+                )
+            )
+        # 人工确认
+        flows.append(
+            Flow(
+                ticket=self.ticket,
+                flow_type=FlowType.PAUSE.value,
+                details=self.pause_node_builder(self.ticket).get_params(),
+                flow_alias=_("人工确认"),
+            ),
+        )
+        # 数据导出
+        flows.append(
+            Flow(
+                ticket=self.ticket,
+                flow_type=FlowType.INNER_FLOW.value,
+                details=self.inner_flow_builder(self.ticket).get_params(),
+                flow_alias=self.inner_flow_name,
+                retry_type=self.retry_type,
+            )
+        )
+
+        Flow.objects.bulk_create(flows)
+        return list(Flow.objects.filter(ticket=self.ticket))
 
     @property
     def need_itsm(self):
-        # 1. 导出数据和表结构 ：运维人员审批
-        # 2.导出数据 ：运维人员审批
-        # 3.导出表结构 ：正常情况 - 不需要审批，PO环境 - 运维人员审批
+        # 1. 导出数据和表结构 ：运维人员 + 产品人员 审批
+        # 2. 导出数据 ：运维人员 + 产品人员 审批
+        # 3. 导出表结构 ：正常情况 - 不需要审批，PO环境 - 运维人员 + 产品人员 审批
         return self.ticket.details["dump_data"] or self.ticket.details["is_external"]
+
+    @classmethod
+    def describe_ticket_flows(cls, flow_config_map):
+        flow_desc = [_("运维人员审批"), _("产品人员审批"), _("人工确认"), _("数据导出执行")]
+        return flow_desc

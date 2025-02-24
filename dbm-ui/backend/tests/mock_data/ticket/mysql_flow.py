@@ -185,3 +185,16 @@ SQL_IMPORT_FLOW_NODE_DATA = {
     "version_id": SQL_IMPORT_VERSION_ID,
     "status": StateType.FINISHED.value,
 }
+
+MYSQL_DUMP_DATA = {
+    "ticket_type": "MYSQL_DUMP_DATA",
+    "bk_biz_id": constant.BK_BIZ_ID,
+    "details": {
+        "cluster_id": 1,
+        "charset": "utf8",
+        "databases": ["mytest"],
+        "tables": ["*"],
+        "dump_data": True,
+        "dump_schema": True,
+    },
+}

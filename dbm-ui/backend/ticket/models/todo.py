@@ -18,7 +18,6 @@ from backend import env
 from backend.bk_web.constants import LEN_MIDDLE, LEN_SHORT
 from backend.bk_web.models import AuditedModel
 from backend.configuration.models import BizSettings, DBAdministrator
-from backend.ticket.builders import BuilderFactory
 from backend.ticket.constants import TODO_RUNNING_STATUS, TicketFlowStatus, TodoStatus, TodoType
 
 logger = logging.getLogger("root")
@@ -28,12 +27,17 @@ class TodoManager(models.Manager):
     def exist_unfinished(self):
         return self.filter(status__in=TODO_RUNNING_STATUS).exists()
 
-    def get_operators(self, todo_type, ticket, operators):
-        # 获得提单人，dba，业务协助人. TODO: 后续还会细分主、备、二线DBA，以及明确区分协助人角色
+    def get_operators(self, todo_type, flow, ticket, operators):
+        # 获得提单人，dba，业务协助人.
         creator = [ticket.creator]
-        # dba = DBAdministrator.get_biz_db_type_admins(ticket.bk_biz_id, ticket.group)
         dba, second_dba, other_dba = DBAdministrator.get_dba_for_db_type(ticket.bk_biz_id, ticket.group)
         biz_helpers = BizSettings.get_assistance(ticket.bk_biz_id)
+        # 从flow中获取单据审批人
+        if todo_type == TodoType.ITSM:
+            itsm_fields = {field["key"]: field["value"] for field in flow.details["fields"]}
+            itsm_operators = itsm_fields["approver"].split(",")
+        else:
+            itsm_operators = []
 
         # 构造单据状态与处理人之间的对应关系
         # - 审批中：提单人可撤销，dba可处理，
@@ -42,8 +46,6 @@ class TodoManager(models.Manager):
         # - 待继续：operators[提单人 + dba] + helpers[单据协助人 + second_dba + other_dba]
         # - 待补货：operators[提单人 + dba] + helpers[单据协助人 + second_dba + other_dba]
         # - 已失败：operators[提单人 + dba] + helpers[单据协助人 + second_dba + other_dba]
-        itsm_builder = BuilderFactory.get_builder_cls(ticket.ticket_type).itsm_flow_builder(ticket)
-        itsm_operators = itsm_builder.get_approvers().split(",")
         todo_operators_map = {
             TodoType.ITSM: itsm_operators[:1],
             TodoType.APPROVE: creator,
@@ -65,7 +67,7 @@ class TodoManager(models.Manager):
 
     def create(self, **kwargs):
         creator, biz_helpers, helpers, operators = self.get_operators(
-            kwargs["type"], kwargs["ticket"], kwargs.get("operators", [])
+            kwargs["type"], kwargs["flow"], kwargs["ticket"], kwargs.get("operators", [])
         )
         kwargs["operators"] = operators
         kwargs["helpers"] = helpers

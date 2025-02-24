@@ -35,6 +35,8 @@ class _BKBaseApi(BaseApi):
             {
                 "bkdata_authentication_method": "token",
                 "bkdata_data_token": env.BKDATA_DATA_TOKEN,
+                "bk_app_code": env.APP_CODE,
+                "bk_app_secret": env.SECRET_KEY,
                 "data": {"inputs": [{"target_content": text}]},
                 "config": {
                     # 心跳超时时间
@@ -45,6 +47,9 @@ class _BKBaseApi(BaseApi):
                         # 填入可选参数，也可不填入，保持为空即按默认配置检测
                         "input_config": "1,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22",
                         "is_masked": "yes",
+                        # 必填参数
+                        "bk_app_code": env.APP_CODE,
+                        "bk_app_secret": env.SECRET_KEY,
                     },
                 },
             }

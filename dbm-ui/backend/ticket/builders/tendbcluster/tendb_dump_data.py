@@ -16,7 +16,6 @@ from backend.ticket.builders.mysql.mysql_dump_data import (
     MySQLDumpDataDetailSerializer,
     MySQLDumpDataFlowBuilder,
     MySQLDumpDataFlowParamBuilder,
-    MySQLDumpDataItsmFlowParamsBuilder,
 )
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
@@ -30,13 +29,8 @@ class TendbClusterDumpDataFlowParamBuilder(MySQLDumpDataFlowParamBuilder):
     pass
 
 
-class TendbClusterDumpDataItsmFlowParamsBuilder(MySQLDumpDataItsmFlowParamsBuilder):
-    pass
-
-
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_DUMP_DATA)
 class TendbClusterDumpDataFlowBuilder(BaseTendbTicketFlowBuilder, MySQLDumpDataFlowBuilder):
     serializer = TendbClusterDumpDataDetailSerializer
-    itsm_flow_builder = TendbClusterDumpDataItsmFlowParamsBuilder
     inner_flow_builder = TendbClusterDumpDataFlowParamBuilder
     inner_flow_name = _("Tendb Cluster 数据导出执行")

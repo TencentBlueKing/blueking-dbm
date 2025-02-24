@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import os
 from typing import Any, Optional
 
 from django.utils.translation import ugettext_lazy as _
@@ -17,6 +18,7 @@ from backend.db_meta.exceptions import ClusterExclusiveOperateException
 from backend.flow.consts import StateType
 from backend.ticket.exceptions import TicketBaseException
 from blue_krill.data_types.enum import EnumField, StructuredEnum
+from config import BASE_DIR
 
 
 class InstanceType(str, StructuredEnum):
@@ -150,7 +152,7 @@ INNER_FLOW_TODO_STATUS_MAP = {
     TicketFlowStatus.RUNNING: TodoStatus.DONE_SUCCESS,
 }
 
-EXCLUSIVE_TICKET_EXCEL_PATH = "backend/ticket/exclusive_ticket.xlsx"
+EXCLUSIVE_TICKET_EXCEL_PATH = os.path.join(BASE_DIR, "backend/ticket/exclusive_ticket.xlsx")
 
 
 class TicketEnumField(EnumField):

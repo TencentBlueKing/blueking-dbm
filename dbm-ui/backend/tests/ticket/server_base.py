@@ -1,5 +1,15 @@
+# -*- coding: utf-8 -*-
+"""
+TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+You may obtain a copy of the License at https://opensource.org/licenses/MIT
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+"""
+
 import copy
-from unittest import TestCase
 from unittest.mock import PropertyMock, patch
 
 import pytest
@@ -25,8 +35,7 @@ from backend.ticket.views import TicketViewSet
 pytestmark = pytest.mark.django_db
 
 
-@pytest.mark.django_db
-class BaseTicketTest(TestCase):
+class BaseTicketTest:
     """
     测试流程的基类。
     """
@@ -60,35 +69,32 @@ class BaseTicketTest(TestCase):
     def stop_patches(cls):
         [patcher.stop() for patcher in cls.patches]
 
-    @classmethod
-    def setUpClass(cls) -> None:
+    @pytest.fixture(scope="class", autouse=True)
+    def setup_class(self, django_db_setup, django_db_blocker):
         """
-        测试类的初始化
+        测试类的初始化(替换原 setUpClass 的类级别初始化)
         """
-        # 初始化单据配置
-        TicketHandler.ticket_flow_config_init()
-        cls.ticket_config_map = {config.ticket_type: config.configs for config in TicketFlowsConfig.objects.all()}
-        # 初始化客户端，用admin登录
-        cls.client.login(username="admin")
-        # 初始化mock
-        cls.apply_patches()
+        with django_db_blocker.unblock():
+            # 初始化单据配置
+            TicketHandler.ticket_flow_config_init()
+            self.ticket_config_map = {config.ticket_type: config.configs for config in TicketFlowsConfig.objects.all()}
 
-    @classmethod
-    def tearDownClass(cls) -> None:
-        # 停止mock
-        cls.stop_patches()
+            # 启动所有 Mock
+            self.apply_patches()
 
-    def setUp(self):
-        """
-        测试方法的初始设置。
-        """
-        pass
+            # 初始化客户端并登录
+            self.client = APIClient()
+            self.client.login(username="admin")
 
-    def tearDown(self):
-        """
-        测试方法完成后的清理工作。
-        """
-        pass
+            yield
+
+            # 停止 Mock
+            self.stop_patches()
+
+    @pytest.fixture(autouse=True)
+    def setup_test(self):
+        """测试方法的初始设置(替换原 setUp/tearDown)"""
+        yield
 
     def flow_test(self, ticket_data):
         """
