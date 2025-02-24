@@ -37,7 +37,9 @@
       :label="t('目标集群:')"
       style="flex: 1 0 100%">
       <BkTable :data="targetClusterData">
-        <BkTableColumn :label="t('集群')">
+        <BkTableColumn
+          :label="t('集群')"
+          :min-width="250">
           <template #default="{ data }: { data: TargerCluster }">
             {{ ticketDetails.details.clusters[data.id].immute_domain }}
           </template>
@@ -108,7 +110,7 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import TicketModel, { type Sqlserver } from '@services/model/ticket/ticket';
+  import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
   import RenderClusterStatus from '@components/cluster-status/Index.vue';
   import TagBlock from '@components/tag-block/Index.vue';
@@ -120,7 +122,7 @@
   import RenderSqlfile from './components/render-sqlfile/Index.vue';
 
   interface Props {
-    ticketDetails: TicketModel<Sqlserver.ImportSqlFile>;
+    ticketDetails: TicketModel<Mysql.ImportSqlFile>;
   }
 
   type TargerCluster = Record<'id', number>;

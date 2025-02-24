@@ -5,6 +5,7 @@ export * from './checkSum';
 export * from './clientCloneRules';
 export * from './dataRepair';
 export * from './dbTableBackup';
+export * from './deleteClearDb';
 export * from './destroy';
 export * from './destroy';
 export * from './disable';
