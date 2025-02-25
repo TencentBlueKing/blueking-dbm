@@ -6,7 +6,7 @@ import type { DetailBase, DetailClusters } from '../common';
 
 export interface TruncateData extends DetailBase {
   clear_mode: {
-    days: number;
+    days: 7 | 15;
     mode: 'timer' | 'manual';
   };
   clusters: DetailClusters;

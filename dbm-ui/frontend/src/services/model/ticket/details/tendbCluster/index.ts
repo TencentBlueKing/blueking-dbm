@@ -34,4 +34,3 @@ export * from './spiderSlaveApply';
 export * from './spiderSlaveDestroy';
 export * from './temporaryDestroy';
 export * from './truncateData';
-export * from './truncateDataBase';

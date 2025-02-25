@@ -132,6 +132,11 @@
       isSafe.value = isSafeStatus;
       remark.value = cloneData.remark;
       window.changeConfirm = true;
+      if (cloneData.clear_mode) {
+        clearMode.value = cloneData.clear_mode.mode === 'manual' ? 'manual' : cloneData.clear_mode.days;
+      } else {
+        clearMode.value = 'manual';
+      }
     },
     type: TicketTypes.MYSQL_HA_TRUNCATE_DATA,
   });
@@ -143,6 +148,11 @@
       tableData.value = tableDataList;
       isSafe.value = isSafeStatus;
       window.changeConfirm = true;
+      if (cloneData.clear_mode) {
+        clearMode.value = cloneData.clear_mode.mode === 'manual' ? 'manual' : cloneData.clear_mode.days;
+      } else {
+        clearMode.value = 'manual';
+      }
     },
     type: TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA,
   });
