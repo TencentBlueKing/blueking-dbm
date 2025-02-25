@@ -115,7 +115,13 @@
       const { remark: ticketRemark, tableDataList } = cloneData;
       tableData.value = tableDataList;
       remark.value = ticketRemark;
+      isSafe.value = cloneData.isSafe;
       window.changeConfirm = true;
+      if (cloneData.clear_mode) {
+        clearMode.value = cloneData.clear_mode.mode === 'manual' ? 'manual' : cloneData.clear_mode.days;
+      } else {
+        clearMode.value = 'manual';
+      }
     },
     type: TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE,
   });
