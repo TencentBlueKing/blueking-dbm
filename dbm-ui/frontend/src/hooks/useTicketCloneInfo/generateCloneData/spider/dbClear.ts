@@ -16,7 +16,7 @@ import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
 import { random } from '@utils';
 
 // Spider tendbcluster 清档
-export function generateSpiderDbClearCloneData(ticketData: TicketModel<TendbCluster.TruncateDataBase>) {
+export function generateSpiderDbClearCloneData(ticketData: TicketModel<TendbCluster.TruncateData>) {
   const { clusters, infos } = ticketData.details;
   const tableDataList = infos.map((item) => {
     const clusterItem = clusters[item.cluster_id];
@@ -35,6 +35,8 @@ export function generateSpiderDbClearCloneData(ticketData: TicketModel<TendbClus
   });
 
   return Promise.resolve({
+    clear_mode: ticketData.details.clear_mode,
+    isSafe: !infos[0].force,
     remark: ticketData.remark,
     tableDataList,
   });
