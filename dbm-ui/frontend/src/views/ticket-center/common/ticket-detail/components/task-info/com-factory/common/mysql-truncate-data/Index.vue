@@ -56,7 +56,9 @@
     <InfoItem :label="t('删除备份库时间:')">
       {{
         ticketDetails.details.clear_mode?.mode === 'timer'
-          ? `${ticketDetails.details.clear_mode.days}${t('天')}`
+          ? t('n天后', {
+              n: ticketDetails.details.clear_mode.days,
+            })
           : t('手动')
       }}
     </InfoItem>
