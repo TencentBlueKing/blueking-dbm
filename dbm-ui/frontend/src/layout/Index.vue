@@ -173,7 +173,7 @@
       'ticketSelfManage',
       'InspectionTodos',
     ],
-    [menuEnum.platformManage]: ['platformTaskManage', 'ticketPlatformManage', 'inspectionReportGlobal'],
+    [menuEnum.platformManage]: ['platformTaskManage', 'ticketPlatformManage', 'inspectionReportGlobal', 'DbaManage'],
     [menuEnum.resourceManage]: ['ResourceSpec', 'resourceManage', 'resourcePoolDirtyMachines'],
   } as Record<string, string[]>;
 
