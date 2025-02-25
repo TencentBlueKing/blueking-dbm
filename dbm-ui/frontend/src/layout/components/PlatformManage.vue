@@ -18,6 +18,14 @@
         {{ t('任务') }}
       </BkMenuItem>
     </BkMenuGroup>
+    <BkMenuGroup :name="t('DBA 工具箱')">
+      <BkMenuItem key="DbaManageMysqlWebQuery">
+        <template #icon>
+          <DbIcon type="ticket" />
+        </template>
+        MySql
+      </BkMenuItem>
+    </BkMenuGroup>
     <BkMenuGroup
       v-db-console="'platformManage.healthReport'"
       :name="t('巡检')">
