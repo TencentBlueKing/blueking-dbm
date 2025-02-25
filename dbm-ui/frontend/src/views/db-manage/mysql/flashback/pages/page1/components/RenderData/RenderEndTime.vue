@@ -78,7 +78,7 @@
   watch(
     () => props.startTime,
     () => {
-      modelValue.value = '';
+      modelValue.value = props.startTime;
     },
   );
 
