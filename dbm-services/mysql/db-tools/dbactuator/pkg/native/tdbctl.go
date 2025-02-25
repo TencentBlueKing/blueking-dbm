@@ -90,11 +90,15 @@ func (s *Server) GetEndPoint() string {
 // GetAlterNodeSql TODO
 //
 //	"tdbctl create node wrapper 'mysql_slave' options(user '%s', password '%s', host '%s', port %d, number %d);",
-func (s *Server) GetAlterNodeSql(serverName string) (sqlStr string) {
-	return fmt.Sprintf("TDBCTL ALTER NODE %s options(user '%s', password '%s', host '%s', port %d);",
+func (s *Server) GetAlterNodeSql(serverName string, withSync bool) string {
+	sqlStr := fmt.Sprintf("TDBCTL ALTER NODE %s options(user '%s', password '%s', host '%s', port %d)",
 		serverName,
 		s.Username,
 		s.Password, s.Host, s.Port)
+	if withSync {
+		sqlStr += " WITH SYNC"
+	}
+	return sqlStr + " ;"
 }
 
 // SHARDPREFIX TODO
