@@ -19,7 +19,7 @@ import { useGlobalBizs } from '@stores';
 
 import BizPermission from '@views/BizPermission.vue';
 import getDbConfRoutes from '@views/db-configure/routes';
-import getDbManageRoutes from '@views/db-manage/routes';
+import getDbManageRoutes, { getDbaManageRoutes } from '@views/db-manage/routes';
 import getDbhaSwitchEventsRouters from '@views/dbha-switch-events/routes';
 import getDutyRuleManageRoutes from '@views/duty-rule-manage/routes';
 import getInspectionRoutes from '@views/inspection-manage/routes';
@@ -102,6 +102,7 @@ export default () => {
   getTicketRoutes();
   getTaskHistoryRoutes();
   getInspectionRoutes();
+  getDbaManageRoutes();
 
   const routes = [
     {

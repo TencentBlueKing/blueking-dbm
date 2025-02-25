@@ -15,6 +15,8 @@ import type { RouteRecordRaw } from 'vue-router';
 
 import FunctionControllModel from '@services/model/function-controller/functionController';
 
+import { registerModule } from '@router';
+
 import { useFunController } from '@stores';
 
 import { t } from '@locales/index';
@@ -22,6 +24,13 @@ import { t } from '@locales/index';
 const modules = import.meta.glob<{ default: (params: FunctionControllModel) => RouteRecordRaw[] }>('./*/routes.ts', {
   eager: true,
 });
+
+const dbaModules = import.meta.glob<{ default: (params: FunctionControllModel) => RouteRecordRaw[] }>(
+  './*/dba-manage/routes.ts',
+  {
+    eager: true,
+  },
+);
 
 export default function getRoutes() {
   const { funControllerData } = useFunController();
@@ -47,4 +56,29 @@ export default function getRoutes() {
   ];
 
   return routes;
+}
+
+export function getDbaManageRoutes() {
+  const { funControllerData } = useFunController();
+
+  const children = Object.values(dbaModules).reduce((result, item) => {
+    const routes = item.default(funControllerData);
+    if (Array.isArray(routes) && routes.length > 0) {
+      result.push(routes[0]);
+    }
+    return result;
+  }, [] as RouteRecordRaw[]);
+
+  registerModule([
+    {
+      path: 'dba-manage',
+      name: 'DbaManage',
+      meta: {
+        fullscreen: true,
+        navName: t('DBA 工具箱'),
+      },
+      component: () => import('@views/db-manage/Index.vue'),
+      children,
+    },
+  ]);
 }
