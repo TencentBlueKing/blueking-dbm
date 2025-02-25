@@ -237,12 +237,12 @@
       const clearModelParams = {};
       if (clearMode.value === 'manual') {
         Object.assign(clearModelParams, {
-          model: 'manual',
+          mode: 'manual',
         });
       } else {
         Object.assign(clearModelParams, {
           days: clearMode.value,
-          model: 'timer',
+          mode: 'timer',
         });
       }
 
