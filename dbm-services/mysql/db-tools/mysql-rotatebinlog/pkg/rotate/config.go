@@ -69,8 +69,15 @@ type ScheduleCfg struct {
 	Command  string `json:"command" mapstructure:"command"`
 }
 
+func initConfigDefault() {
+	viper.SetDefault("public.max_binlog_total_size", "2000g")
+	viper.SetDefault("public.backup_enable", "auto")
+	viper.SetDefault("public.max_old_days_to_upload", 7)
+}
+
 // InitConfig 读取 config.yaml 配置
 func InitConfig(confFile string) (*Config, error) {
+	initConfigDefault()
 	viper.SetConfigType("yaml")
 	if confFile != "" {
 		viper.SetConfigFile(confFile)

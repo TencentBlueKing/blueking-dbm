@@ -1,12 +1,13 @@
 package rotatebinlog
 
 import (
+	"encoding/json"
+	"path/filepath"
+
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/common"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/rotate"
-	"encoding/json"
-	"path/filepath"
 )
 
 func (c *MySQLRotateBinlogComp) Example() interface{} {
@@ -37,6 +38,7 @@ func (c *MySQLRotateBinlogComp) Example() interface{} {
 					PurgeInterval:      "4h",
 					RotateInterval:     "10m",
 					BackupEnable:       "false",
+					MaxOldDaysToUpload: 7,
 				},
 				Crond: rotate.ScheduleCfg{
 					Schedule: "*/10 * * * *",

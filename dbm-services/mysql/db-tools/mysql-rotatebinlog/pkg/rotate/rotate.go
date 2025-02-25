@@ -248,7 +248,7 @@ func (i *ServerObj) RegisterBinlog(lastFileBefore *models.BinlogFileModel) error
 		}
 		var backupStatus int
 		if i.backupEnable {
-			if fileObj.Mtime.Before(time.Now().Add(-time.Hour * time.Duration(i.publicCfg.MaxOldDaysToUpload))) {
+			if fileObj.Mtime.Before(time.Now().Add(-time.Hour * 24 * time.Duration(i.publicCfg.MaxOldDaysToUpload))) {
 				backupStatus = models.FileStatusTooOldToRegister
 			} else {
 				backupStatus = models.IBStatusNew

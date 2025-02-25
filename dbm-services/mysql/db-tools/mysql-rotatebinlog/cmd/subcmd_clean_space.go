@@ -11,8 +11,11 @@
 package cmd
 
 import (
+	"time"
+
 	"github.com/pkg/errors"
 
+	"dbm-services/common/go-pubpkg/filecontext"
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/rotate"
 
 	"github.com/spf13/cobra"
@@ -27,7 +30,16 @@ var cleanSpaceCmd = &cobra.Command{
 	Long:         `clean-space will run rotate, that may flush logs`,
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var err error
+		// 一次只能运行一个 clean-space
+		lockFile, err := filecontext.NewIncrFile("/tmp/mysql-rotatebinlog.lock", 1, 2*time.Second)
+		if err != nil {
+			return err
+		}
+		if err := lockFile.Incr(1); err != nil {
+			return err
+		}
+		defer lockFile.Incr(-1)
+
 		configFile := viper.GetString("config")
 		comp := rotate.RotateBinlogComp{Config: configFile}
 		if err = log.InitLogger(); err != nil {
