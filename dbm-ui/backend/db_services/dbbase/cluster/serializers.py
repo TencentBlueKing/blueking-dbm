@@ -22,6 +22,7 @@ from backend.db_services.mysql.cluster.mock_data import (
 
 class FindRelatedClustersByClusterIdRequestSerializer(serializers.Serializer):
     cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
+    role = serializers.CharField(help_text=_("查询角色"), required=False)
 
     class Meta:
         swagger_schema_fields = {"example": FIND_RELATED_CLUSTERS_BY_ID_REQUEST_DATA}

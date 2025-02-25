@@ -54,6 +54,7 @@ from backend.db_services.dbresource.serializers import (
     ResourceSummaryResponseSerializer,
     ResourceSummarySerializer,
     ResourceUpdateSerializer,
+    SpecCostEstimateSerializer,
     SpecCountResourceResponseSerializer,
     SpecCountResourceSerializer,
     UworkIpsSerializer,
@@ -455,6 +456,16 @@ class DBResourceViewSet(viewsets.SystemViewSet):
     def spec_resource_count(self, request):
         apply_params = self.params_validate(self.get_serializer_class())
         return Response(ResourceHandler.spec_resource_count(**apply_params))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("规格成本预估"),
+        request_body=SpecCostEstimateSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(detail=False, methods=["POST"], serializer_class=SpecCostEstimateSerializer, pagination_class=None)
+    def spec_cost_estimate(self, request):
+        data = self.params_validate(self.get_serializer_class())
+        return Response(ResourceHandler.spec_cost_estimate(**data))
 
     @common_swagger_auto_schema(
         operation_summary=_("查询故障主机信息"),

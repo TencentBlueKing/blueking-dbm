@@ -15,7 +15,7 @@ from backend.configuration.constants import DBType
 
 
 class CheckInstancesSLZ(serializers.Serializer):
-    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False, default=0)
     instance_addresses = serializers.ListField(
         help_text=_("实例地址列表"), child=serializers.CharField(help_text=_("实例地址(ip:port)"), required=True)
     )

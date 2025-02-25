@@ -18,11 +18,13 @@ from backend import env
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components import BKBaseApi
+from backend.configuration.common_sqls import DB_TYPE__COMMON_SQL_MAP
 from backend.configuration.constants import DISK_CLASSES, SystemSettingsEnum
 from backend.configuration.models.system import BizSettings, SystemSettings
 from backend.configuration.serializers import (
     BatchUpdateBizSettingsSerializer,
     BizSettingsSerializer,
+    GetCommonSQLSerializer,
     ListBizSettingsResponseSerializer,
     ListBizSettingsSerializer,
     UpdateBizSettingsSerializer,
@@ -55,6 +57,14 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
     @action(methods=["GET"], detail=False)
     def disk_classes(self, request, *args, **kwargs):
         return Response(DISK_CLASSES)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询平台常用SQL语句"), tags=tags, query_serializer=GetCommonSQLSerializer()
+    )
+    @action(methods=["GET"], detail=False, serializer_class=GetCommonSQLSerializer)
+    def common_sqls(self, request, *args, **kwargs):
+        db_type = self.validated_data["db_type"]
+        return Response(DB_TYPE__COMMON_SQL_MAP.get(db_type, []))
 
     @common_swagger_auto_schema(
         operation_summary=_("查询机型类型"),

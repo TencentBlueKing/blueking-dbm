@@ -24,6 +24,10 @@ MYSQL_USUAL_JOB_TIME = 7200
 MYSQL8_VER_PARSE_NUM = 8000000
 
 
+class ProfileLabel(str, StructuredEnum):
+    SQL = EnumField("SQL", _("个人收藏SQL"))
+
+
 class MySQLMonitorPauseTime(int, StructuredEnum):
     RESTORE_DATA = EnumField(1440, _("数据同步时监控屏蔽"))
     SLAVE_DELAY = EnumField(240, _("数据同步时监控屏蔽"))
@@ -124,6 +128,8 @@ class SystemSettingsEnum(str, StructuredEnum):
     ITSM_REMARK_KEY = EnumField("ITSM_REMARK_KEY", _("ITSM备注key"))
     # SYNC_META 同步元数据
     SYNC_TENDBHA_CLUSTERS = EnumField("SYNC_TENDBHA_CLUSTERS", _("同步TenDBHA集群列表"))
+    # 成本预估配置
+    COST_ESTIMATE = EnumField("COST_ESTIMATE", _("COST_ESTIMATE"))
 
 
 class BizSettingsEnum(str, StructuredEnum):
@@ -178,6 +184,16 @@ DBM_REPORT_INITIAL_VALUE = {
 
 # 默认的规格参数偏移量，磁盘为0，内存偏移1G
 SPEC_OFFSET_VALUE = {"mem": 1024, "disk": 0}
+
+# 默认的规格预估成本模板
+COST_ESTIMATE_TEMPLATE = {
+    # cpu核数价格
+    "cpu": 0,
+    # 内存/G
+    "mem": 0,
+    # 磁盘/G
+    "storage": {"SSD": 0, "HDD": 0, "ALL": 0},
+}
 
 # 磁盘类型，目前固定写死
 DISK_CLASSES = ["SSD", "HDD", "ALL"]

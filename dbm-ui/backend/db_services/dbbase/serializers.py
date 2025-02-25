@@ -190,6 +190,16 @@ class WebConsoleSerializer(serializers.Serializer):
     raw = serializers.BooleanField(help_text=_("源编码(redis 额外参数)"), required=False)
 
 
+class DBConsoleSerializer(serializers.Serializer):
+    class DBInstanceSerializer(serializers.Serializer):
+        bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
+        instance = serializers.CharField(help_text=_("实例"))
+
+    instances = serializers.ListSerializer(help_text=_("实例列表信息"), child=DBInstanceSerializer())
+    cmd = serializers.CharField(help_text=_("sql语句"))
+    db_type = serializers.ChoiceField(help_text=_("组件类型"), choices=DBType.get_choices())
+
+
 class WebConsoleResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": [{"title1": "xxx", "title2": "xxx"}]}

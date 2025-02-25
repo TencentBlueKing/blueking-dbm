@@ -60,7 +60,9 @@ class InstanceHandler:
                         cluster__bk_cloud_id=spilt_addr[0], machine__ip=spilt_addr[1], inst_port=spilt_addr[2]
                     )
 
-            query_filter &= Q(bk_biz_id=self.bk_biz_id)
+            # 补充业务和集群过滤
+            if self.bk_biz_id:
+                query_filter &= Q(bk_biz_id=self.bk_biz_id)
             if cluster_ids:
                 query_filter &= Q(cluster__id__in=cluster_ids)
 

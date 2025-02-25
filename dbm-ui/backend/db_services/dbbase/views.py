@@ -39,6 +39,7 @@ from backend.db_services.dbbase.serializers import (
     ClusterFilterSerializer,
     CommonQueryClusterResponseSerializer,
     CommonQueryClusterSerializer,
+    DBConsoleSerializer,
     IsClusterDuplicatedResponseSerializer,
     IsClusterDuplicatedSerializer,
     QueryAllTypeClusterResponseSerializer,
@@ -57,7 +58,11 @@ from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
 from backend.db_services.redis.toolbox.handlers import ToolboxHandler
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
-from backend.iam_app.handlers.drf_perm.cluster import ClusterWebconsolePermission
+from backend.iam_app.handlers.drf_perm.cluster import (
+    ClusterDBConsolePermission,
+    ClusterListPermission,
+    ClusterWebconsolePermission,
+)
 
 SWAGGER_TAG = _("集群通用接口")
 
@@ -76,6 +81,8 @@ class DBBaseViewSet(viewsets.SystemViewSet):
             "common_query_cluster",
         ): [DBManagePermission()],
         ("webconsole",): [ClusterWebconsolePermission()],
+        ("dbconsole",): [ClusterDBConsolePermission()],
+        ("check_instances",): [ClusterListPermission()],
     }
     default_permission_class = [DBManagePermission()]
 
@@ -287,6 +294,7 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         # mysql / tendbcluster
         if db_type in [DBType.MySQL, DBType.TenDBCluster]:
             data = RemoteServiceHandler(bk_biz_id=cluster.bk_biz_id).webconsole_rpc(**data)
+        # redis
         elif db_type in ClusterType.redis_cluster_types():
             data = ToolboxHandler.webconsole_rpc(**data)
 
@@ -296,6 +304,19 @@ class DBBaseViewSet(viewsets.SystemViewSet):
             data = json.loads(data)
 
         return Response(data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("dbconsole查询"),
+        request_body=DBConsoleSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=DBConsoleSerializer)
+    def dbconsole(self, request):
+        data = self.params_validate(self.get_serializer_class())
+        db_type = data.pop("db_type")
+        # mysql / tendbcluster
+        if db_type in [DBType.MySQL, DBType.TenDBCluster]:
+            return Response(RemoteServiceHandler.dbconsole_rpc(**data))
 
     @common_swagger_auto_schema(
         operation_summary=_("根据db类型查询ip列表"),
