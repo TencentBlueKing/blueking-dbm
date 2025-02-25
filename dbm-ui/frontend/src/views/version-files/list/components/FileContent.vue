@@ -358,12 +358,12 @@
     if (limitTypes.includes(state.active)) {
       return {
         accept: '.tar.gz,.tar.xz',
-        tips: t('支持上传tar_gz压缩格式文件_文件大小不超过1GB'),
+        tips: t('支持上传tar_gz_xz压缩格式文件_文件大小不超过10GB'),
       };
     }
     return {
       accept: '',
-      tips: t('文件大小不超过1GB'),
+      tips: t('文件大小不超过10GB'),
     };
   });
 
