@@ -75,6 +75,7 @@
       clusterId: number;
       domian: string;
       ip: string;
+      region: string;
       slaveInstanceList: NonNullable<IValue['related_instances']>;
       specConfig: TendbclusterMachineModel['spec_config'];
     };
@@ -91,6 +92,7 @@
       clusterId: 0,
       domian: '',
       ip: '',
+      region: '',
       slaveInstanceList: [] as IDataRow['oldSlave']['slaveInstanceList'],
       specConfig: {} as IDataRow['oldSlave']['specConfig'],
     },
