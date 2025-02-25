@@ -59,7 +59,7 @@ func DeleteOldBackup(cnf *config.Public, expireDays int) error {
 				fileName := filepath.Join(cnf.BackupDir, fi.Name())
 				if fi.Size() > 4*1024*1024*1024 {
 					// remove 速度适度放大一点
-					removeLimit := cnf.IOLimitMBPerSec
+					removeLimit := cnf.IOLimitMBPerSec + 300
 					logger.Log.Infof("remove old backup file %s limit %dMB/s ", fileName, removeLimit)
 					if err2 := cmutil.TruncateFile(fileName, removeLimit); err2 != nil {
 						// 尽可能清理，记录最后一个错误

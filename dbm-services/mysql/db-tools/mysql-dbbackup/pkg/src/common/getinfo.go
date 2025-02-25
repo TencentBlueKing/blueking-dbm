@@ -18,7 +18,7 @@ func GetDataHomeDir(port int) (string, error) {
 	if err := cnfFile.Load(); err != nil {
 		return "", errors.WithMessage(err, "get data dir")
 	}
-	return cnfFile.GetMySQLDataHomeDir()
+	return cnfFile.GetMySQLDataRootDir()
 }
 
 // GetTableNum get table number of mysql server

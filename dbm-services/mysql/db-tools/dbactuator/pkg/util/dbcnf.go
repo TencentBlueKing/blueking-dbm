@@ -195,11 +195,11 @@ func (m *CnfFile) GetMySQLDataDir() (string, error) {
 	return datadir, nil
 }
 
-// GetMySQLDataHomeDir 获取实例的数据目录
+// GetMySQLDataRootDir 获取实例的数据目录
 //
 // e.g: datadir=/data1/mysqldata/20000/data 返回 /data1/mysqldata/20000
 // datadir=/data/mysqldata/data 返回 /data/mysqldata/
-func (m *CnfFile) GetMySQLDataHomeDir() (string, error) {
+func (m *CnfFile) GetMySQLDataRootDir() (string, error) {
 	datadir, err := m.GetMySQLDataDir()
 	if err != nil {
 		return "", err

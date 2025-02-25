@@ -234,6 +234,16 @@ func (c *FileContext) GetInt(key string) (int, error) {
 	}
 }
 
+// GetBool gets the value of the given key from the FileContext and returns it as a boolean.
+func (c *FileContext) GetBool(key string) (bool, error) {
+	val, err := c.Get(key, false)
+	if err != nil {
+		return false, err
+	} else {
+		return cast.ToBoolE(val)
+	}
+}
+
 // GetValue decode value of key to v
 // try to get value from memory
 func (c *FileContext) GetValue(key string, v interface{}) error {
@@ -242,6 +252,39 @@ func (c *FileContext) GetValue(key string, v interface{}) error {
 		return err
 	} else {
 		return mapstructure.Decode(val, v)
+	}
+}
+
+// GetStringPersistent gets the value of the given key from the FileContext and returns it as a string.
+// get value from disk file
+func (c *FileContext) GetStringPersistent(key string) (string, error) {
+	val, err := c.Get(key, true)
+	if err != nil {
+		return "", err
+	} else {
+		return cast.ToStringE(val)
+	}
+}
+
+// GetIntPersistent gets the value of the given key from the FileContext and returns it as an integer.
+// get value from disk file
+func (c *FileContext) GetIntPersistent(key string) (int, error) {
+	val, err := c.Get(key, true)
+	if err != nil {
+		return 0, err
+	} else {
+		return cast.ToIntE(val)
+	}
+}
+
+// GetBoolPersistent gets the value of the given key from the FileContext and returns it as a boolean.
+// get value from disk file
+func (c *FileContext) GetBoolPersistent(key string) (bool, error) {
+	val, err := c.Get(key, true)
+	if err != nil {
+		return false, err
+	} else {
+		return cast.ToBoolE(val)
 	}
 }
 

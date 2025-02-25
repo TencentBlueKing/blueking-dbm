@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/filecontext"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
@@ -31,15 +32,16 @@ type BackupIndexFile struct {
 	indexFilePath string
 	// backupFiles {data: {file1: obj, file2: obj}, priv: {}}
 	backupFiles map[string][]dbareport.TarFileItem
-	// 备份文件解压后的目录名，相对目录
+	// backupIndexBasename .index 文件名的前缀，还比如 xxx2.index 的 xxx2
 	backupIndexBasename string
+	// tarfileBasename 备份文件名前缀，比如 xxx1.tar 的 xxx1
+	tarfileBasename string
 	// 备份文件的所在根目录，比如 /data/dbbak
 	backupDir string
 	// targetDir 备份解压后的目录，比如 /data/dbbak/xxx/20000/<backupIndexBasename>/
-	targetDir       string
-	tarfileBasename string
-	splitParts      []string
-	tarParts        []string
+	targetDir  string
+	splitParts []string
+	tarParts   []string
 }
 
 // ParseBackupIndexFile read index file: fileDir/fileName
@@ -104,6 +106,7 @@ func (f *BackupIndexFile) ValidateFiles() error {
 			tarPartsWithoutSuffix = append(tarPartsWithoutSuffix, strings.TrimSuffix(tarFile.FileName, ".tar"))
 			f.tarParts = append(f.tarParts, tarFile.FileName)
 		}
+		// 同一批备份文件，应该有相同的前缀
 		tarfileBasename := backupexe.ParseTarFilename(tarFile.FileName)
 		if tarfileBasename != "" && f.tarfileBasename == "" {
 			f.tarfileBasename = tarfileBasename
@@ -115,7 +118,7 @@ func (f *BackupIndexFile) ValidateFiles() error {
 		return errors.Errorf("files not found in %s: %v", f.backupDir, errFiles)
 	}
 	if f.tarfileBasename != f.backupIndexBasename {
-		// logger index baseName nad tarfile baseName does not match
+		logger.Warn("tar file has different prefix %s with index", f.tarfileBasename, f.backupIndexBasename)
 	}
 	sort.Strings(f.splitParts)
 	f.splitParts = util.SortSplitPartFiles(f.splitParts, "_")
@@ -139,7 +142,7 @@ func (f *BackupIndexFile) ValidateFiles() error {
 
 // UntarFiles merge and untar
 // set targetDir
-func (f *BackupIndexFile) UntarFiles(untarDir string, removeOriginal bool) error {
+func (f *BackupIndexFile) UntarFiles(untarDir string, shareContext *filecontext.FileContext) error {
 	if untarDir == "" {
 		return errors.Errorf("untar target dir should not be emtpy")
 	}
@@ -149,15 +152,15 @@ func (f *BackupIndexFile) UntarFiles(untarDir string, removeOriginal bool) error
 	}
 
 	// 物理备份, merge parts
-	if len(f.splitParts) > 0 && len(f.splitParts) <= 20 {
+	if len(f.splitParts) > 0 && len(f.splitParts) <= 10 {
 		// TODO 考虑使用 pv 限速
 		cmd := fmt.Sprintf(`cd %s && cat %s | tar -xf - -C %s/`,
 			f.backupDir, strings.Join(f.splitParts, " "), untarDir)
 		if _, err := osutil.ExecShellCommand(false, cmd); err != nil {
 			return errors.Wrap(err, cmd)
 		}
-	} else if len(f.splitParts) > 20 {
-		if err := MergeAndUntarFiles(f.splitParts, f.backupDir, untarDir, true); err != nil {
+	} else if len(f.splitParts) > 10 {
+		if err := MergeAndUntarFiles(f.splitParts, f.backupDir, untarDir, shareContext); err != nil {
 			return err
 		}
 	}
@@ -173,9 +176,12 @@ func (f *BackupIndexFile) UntarFiles(untarDir string, removeOriginal bool) error
 			if _, err := osutil.ExecShellCommand(false, cmd); err != nil {
 				return errors.Wrap(err, cmd)
 			}
-			if removeOriginal {
-				logger.Info("remove original file %s", p)
-				os.Remove(p)
+			if shareContext != nil {
+				removeOriginal, _ := shareContext.GetBoolPersistent("untar_remove_original")
+				if removeOriginal {
+					logger.Info("remove original file %s", p)
+					os.Remove(p)
+				}
 			}
 		}
 	}
@@ -189,7 +195,7 @@ func (f *BackupIndexFile) UntarFiles(untarDir string, removeOriginal bool) error
 // MergeAndUntarFiles 当文件数非常多时，避免超过命令行长度
 // 单个文件解压
 // removeOriginal 为 true 时，会清理原文件
-func MergeAndUntarFiles(splitParts []string, srcDir, untarDir string, removeOriginal bool) error {
+func MergeAndUntarFiles(splitParts []string, srcDir, untarDir string, shareContext *filecontext.FileContext) error {
 	pipeReader, pipeWriter := io.Pipe()
 	untarCmd := exec.Command("tar", "-xf", "-", "-C", untarDir)
 	if strings.Contains(splitParts[0], ".gz") {
@@ -223,15 +229,20 @@ func MergeAndUntarFiles(splitParts []string, srcDir, untarDir string, removeOrig
 				// 任何错误，都传输给 pipeWriter，以便管道下游命令能够捕获 error
 				break
 			}
-			if _, err = io.Copy(pipeWriter, tarf); err != nil {
+			bufTmp := make([]byte, 128*1024)
+			if _, err = io.CopyBuffer(pipeWriter, tarf, bufTmp); err != nil {
 				readErr = errors.WithMessage(err, "copy file to stdout")
 				errChan <- readErr
 				break
 			}
 			tarf.Close()
-			if removeOriginal {
-				logger.Info("remove backup file %s", tarFile)
-				os.Remove(tarFile)
+
+			if shareContext != nil {
+				removeOriginal, _ := shareContext.GetBoolPersistent("untar_remove_original")
+				if removeOriginal {
+					logger.Info("remove backup file %s", tarFile)
+					os.Remove(tarFile)
+				}
 			}
 		}
 		pipeWriter.CloseWithError(readErr)
@@ -249,20 +260,19 @@ func MergeAndUntarFiles(splitParts []string, srcDir, untarDir string, removeOrig
 	return nil
 }
 
-// GetTargetDir 返回解压后的目录
-// 考虑到某些情况 backupIndexBasename.index 跟 tar file name 可能不同
+// GetBackupFileBasename 返回解压后的目录
+// 考虑到某些情况 backupIndexBasename.index 跟 tar file name 可能不同，优先以 tar 文件为准
 // 需在调用 ValidateFiles() 之后才有效
-func (f *BackupIndexFile) GetTargetDir(untarDir string) string {
+func (f *BackupIndexFile) GetBackupFileBasename() string {
 	if f.tarfileBasename != "" {
 		// logger index baseName nad tarfile baseName does not match
-		f.targetDir = filepath.Join(untarDir, f.tarfileBasename)
+		return f.tarfileBasename
 	} else {
-		f.targetDir = filepath.Join(untarDir, f.backupIndexBasename)
+		return f.backupIndexBasename
 	}
-	return f.targetDir
 }
 
-func (f *BackupIndexFile) GetMetafileBasename() string {
+func (f *BackupIndexFile) GetMetaFileBasename() string {
 	return f.backupIndexBasename
 }
 

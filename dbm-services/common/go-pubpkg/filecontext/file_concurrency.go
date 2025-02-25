@@ -57,6 +57,18 @@ func NewIncrFile(contextFile string, max int, retryInterval time.Duration) (*Inc
 	return &incrLockFile, nil
 }
 
+// Add increments the value of the given key in the FileContext.
+// Blocking if incr full
+func (c *IncrFileContext) Add(incr int) error {
+	return c.IncrWithRetries(incr, 0)
+}
+
+// Done increments -1 given key in the FileContext.
+// Blocking if incr full
+func (c *IncrFileContext) Done() error {
+	return c.IncrWithRetries(-1, -1)
+}
+
 // TryIncr increments the value of the given key in the FileContext.
 // None blocking if incr full
 func (c *IncrFileContext) TryIncr(incr int) error {

@@ -152,7 +152,7 @@ func (r *GoApplyBinlog) ParseBinlogFiles() error {
 		default:
 			// 默认不阻塞
 		}
-		lockErr := fileLock.Incr(1)
+		lockErr := fileLock.Add(1)
 
 		if lockErr != nil {
 			// 这里全局并发控制失效，但不让任务失败
@@ -161,7 +161,7 @@ func (r *GoApplyBinlog) ParseBinlogFiles() error {
 		g.Go(func() error {
 			defer func() {
 				if lockErr == nil {
-					_ = fileLock.Incr(-1)
+					_ = fileLock.Done()
 				}
 			}()
 			logger.Info("parse %s", f)
@@ -716,8 +716,8 @@ func (r *GoApplyBinlog) Start() error {
 		cmd := fmt.Sprintf(`%s | %s >>%s 2>%s`, parseCmd, r.mysqlCli, outFile, errFile)
 		logger.Info(mysqlcomm.ClearSensitiveInformation(mysqlcomm.RemovePassword(cmd)))
 
-		if err := fileLock.Incr(1); err == nil {
-			defer fileLock.Incr(-1)
+		if err := fileLock.Add(1); err == nil {
+			defer fileLock.Done()
 			// 标准输出，错误输出到打印到 errFile 了
 			retContent, err := mysqlutil.ExecCommandMySQLShell(cmd)
 			if err != nil {

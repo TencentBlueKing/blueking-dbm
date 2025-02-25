@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"dbm-services/common/go-pubpkg/filecontext"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql"
@@ -46,6 +47,8 @@ type RestoreParam struct {
 	// 恢复选项，比如恢复库表、是否导入binlog等。目前只对逻辑恢复有效
 	// 重建 slave时，这里可不传
 	RestoreOpt *RestoreOpt `json:"restore_opts"`
+
+	ShareContext *filecontext.FileContext `json:"-"`
 }
 
 // RestoreOpt TODO
@@ -63,6 +66,8 @@ type RestoreOpt struct {
 	// EnableBinlog 导入数据时是否写binlog，默认不启用
 	EnableBinlog bool   `json:"enable_binlog"`
 	InitCommand  string `json:"init_command"`
+	// CopyBack physical recover use copy-back or move-back, default false means use move-back
+	CopyBack bool `json:"copy_back"`
 	// 在库表级定点回档时有用，如果是 statement/mixed 格式，导入数据时需要全部导入；
 	// 如果是 row，可只导入指定库表数据, 在 recover-binlog 时可指定 quick_mode=true 也恢复指定库表 binlog
 	SourceBinlogFormat string `json:"source_binlog_format" enums:",ROW,STATEMENT,MIXED"`
