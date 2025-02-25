@@ -127,6 +127,7 @@
       immute_domain: string;
       master_domain: string;
       name: string;
+      region: string;
     }[];
     related_instances: {
       admin_port: number;
@@ -328,6 +329,10 @@
     (e: 'cancel'): void;
   };
 
+  defineOptions({
+    name: 'InstanceSelector',
+  });
+
   const props = withDefaults(defineProps<Props>(), {
     disableDialogSubmitMethod: () => false,
     hideManualInput: false,
@@ -340,17 +345,13 @@
 
   const emits = defineEmits<Emits>();
 
-  defineOptions({
-    name: 'InstanceSelector',
-  });
+  const slots = defineSlots<{
+    submitTips?: () => VNode;
+  }>();
 
   const isShow = defineModel<boolean>('isShow', {
     default: false,
   });
-
-  const slots = defineSlots<{
-    submitTips?: () => VNode;
-  }>();
 
   const tabListMap: Record<string, PanelListType> = {
     [ClusterTypes.REDIS]: [

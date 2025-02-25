@@ -186,6 +186,7 @@
       clusterId: item.cluster_id,
       domian: item.master_domain || '',
       ip: item.ip,
+      region: item.related_clusters[0].region,
       slaveInstanceList: item.related_instances || ([] as IDataRow['oldSlave']['slaveInstanceList']),
       specConfig: item.spec_config || ({} as IDataRow['oldSlave']['specConfig']),
     },
@@ -237,6 +238,7 @@
       clusterId: spiderMachineItem.related_clusters[0].id,
       domian: spiderMachineItem.related_clusters[0].immute_domain,
       ip: spiderMachineItem.ip,
+      region: spiderMachineItem.related_clusters[0].region,
       slaveInstanceList: spiderMachineItem.related_instances.map((instanceItem) => ({
         instance: instanceItem.instance,
         status: instanceItem.status,
