@@ -65,7 +65,7 @@
       </BkPopover>
     </InfoItem>
     <InfoItem
-      v-if="ticketDetails.details.resource_spec?.backend"
+      v-if="ticketDetails.details.resource_spec?.backend_group"
       :label="t('后端存储资源规格：')">
       <BkPopover
         placement="top"
@@ -73,12 +73,12 @@
         <span
           class="pb-2"
           style="cursor: pointer; border-bottom: 1px dashed #979ba5">
-          {{ ticketDetails.details.resource_spec.backend.spec_name }}（{{
-            `${ticketDetails.details.resource_spec.backend.count} ${t('台')}`
+          {{ ticketDetails.details.resource_spec.backend_group.spec_name }}（{{
+            `${ticketDetails.details.resource_spec.backend_group.count} ${t('组')}`
           }}）
         </span>
         <template #content>
-          <SpecInfos :data="ticketDetails.details.resource_spec.backend" />
+          <SpecInfos :data="ticketDetails.details.resource_spec.backend_group" />
         </template>
       </BkPopover>
     </InfoItem>
