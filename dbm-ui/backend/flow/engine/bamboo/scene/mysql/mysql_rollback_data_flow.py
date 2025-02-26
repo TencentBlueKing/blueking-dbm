@@ -47,6 +47,7 @@ from backend.flow.plugins.components.collections.mysql.mysql_rds_execute import 
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
 from backend.flow.utils.mysql.mysql_act_dataclass import (
+    CheckSlaveStatusKwargs,
     CrondMonitorKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
@@ -381,11 +382,10 @@ class MySQLRollbackDataFlow(object):
                         act_name=_("检查主从延迟 {}").format(rollback_storage.ip_port),
                         act_component_code=MySQLCheckSlaveDelayComponent.code,
                         kwargs=asdict(
-                            ExecuteRdsKwargs(
+                            CheckSlaveStatusKwargs(
                                 bk_cloud_id=cluster_class.bk_cloud_id,
                                 instance_ip=rollback_storage.machine.ip,
                                 instance_port=rollback_storage.port,
-                                sqls=["show slave status"],
                             )
                         ),
                     )

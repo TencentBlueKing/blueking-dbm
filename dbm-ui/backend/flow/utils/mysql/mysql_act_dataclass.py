@@ -393,7 +393,13 @@ class ExecuteRdsKwargs:
     bk_cloud_id: int
     instance_ip: str
     instance_port: int
-    sqls: list
+    sqls: list = field(default_factory=list)
+
+
+@dataclass()
+class CheckSlaveStatusKwargs(ExecuteRdsKwargs):
+    master_ip: str = ""
+    master_port: int = 0
 
 
 @dataclass()

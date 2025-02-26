@@ -35,6 +35,7 @@ from backend.flow.plugins.components.collections.common.download_backup_client i
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.mysql.mysql_check_slave_delay import MySQLCheckSlaveDelayComponent
 from backend.flow.plugins.components.collections.mysql.mysql_crond_control import MysqlCrondMonitorControlComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
@@ -44,6 +45,7 @@ from backend.flow.plugins.components.collections.spider.switch_remote_slave_rout
 from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
 from backend.flow.utils.mysql.mysql_act_dataclass import (
+    CheckSlaveStatusKwargs,
     ClearMachineKwargs,
     CrondMonitorKwargs,
     DBMetaOPKwargs,
@@ -253,6 +255,7 @@ class TenDBRemoteSlaveRecoverFlow(object):
                     )
                 )
             # 阶段4 切换
+            switch_check_sub_pipeline_list = []
             switch_sub_pipeline_list = []
             # 切换后写入元数据
             switch_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
@@ -261,6 +264,24 @@ class TenDBRemoteSlaveRecoverFlow(object):
                 cluster_id=cluster_class.id, switch_remote_instance_pairs=[]
             )
             for shard_id, node in cluster_info["my_shards"].items():
+                # 检查slave状态,todo 是否克隆权限？
+                switch_check_sub_pipeline_list.append(
+                    {
+                        "act_name": _("检查show slave status {}".format(node["new_slave"]["instance"])),
+                        "act_component_code": MySQLCheckSlaveDelayComponent.code,
+                        "kwargs": asdict(
+                            CheckSlaveStatusKwargs(
+                                bk_cloud_id=cluster_class.bk_cloud_id,
+                                instance_ip=node["new_slave"]["ip"],
+                                instance_port=node["new_slave"]["port"],
+                                master_ip=node["master"]["ip"],
+                                master_port=node["master"]["port"],
+                                sqls=["show slave status"],
+                            )
+                        ),
+                    }
+                )
+
                 inst_pairs = InstancePairs(
                     old_ip=node["slave"]["ip"],
                     old_port=node["slave"]["port"],
@@ -271,6 +292,7 @@ class TenDBRemoteSlaveRecoverFlow(object):
                 )
                 switch_slave_class.switch_remote_instance_pairs.append(inst_pairs)
 
+            switch_sub_pipeline.add_parallel_acts(acts_list=switch_check_sub_pipeline_list)
             switch_sub_pipeline.add_act(
                 act_name=_("切换到新SLAVE机器"),
                 act_component_code=SwitchRemoteSlaveRoutingComponent.code,

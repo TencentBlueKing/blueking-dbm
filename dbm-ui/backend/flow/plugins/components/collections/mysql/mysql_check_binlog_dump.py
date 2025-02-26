@@ -20,9 +20,9 @@ from backend.flow.plugins.components.collections.common.base_service import Base
 logger = logging.getLogger("flow")
 
 
-class MySQLCheckSlaveDelayService(BaseService):
+class MySQLCheckBinlogDumpService(BaseService):
     """
-    执行 show slave status 语句
+    检查 binlog dump 进程
     """
 
     def _execute(self, data, parent_data) -> bool:
@@ -32,7 +32,7 @@ class MySQLCheckSlaveDelayService(BaseService):
         res = DRSApi.rpc(
             {
                 "addresses": ["{}{}{}".format(kwargs["instance_ip"], IP_PORT_DIVIDER, kwargs["instance_port"])],
-                "cmds": ["show slave status"],
+                "cmds": ["select ID,USER,HOST from information_schema.PROCESSLIST where COMMAND like 'Binlog Dump%'"],
                 "force": False,
                 "bk_cloud_id": kwargs["bk_cloud_id"],
             }
@@ -42,38 +42,19 @@ class MySQLCheckSlaveDelayService(BaseService):
             return False
         else:
             if len(res[0]["cmd_results"][0]["table_data"]) == 0:
-                self.log_info("show slave status is empty")
-                return False
+                return True
             else:
-                slave_info = res[0]["cmd_results"][0]["table_data"][0]
-                slave_delay = 0
-
-                if kwargs["master_ip"] != "" or int(kwargs["master_port"]) != 0:
-                    if slave_info["Master_Host"] != kwargs["master_ip"] or int(slave_info["Master_Port"]) != int(
-                        kwargs["master_port"]
-                    ):
-                        self.log_info(_("请确定实例对应的主节点是否正确"))
-                        return False
-
-                if slave_info["Seconds_Behind_Master"] is not None:
-                    slave_delay = int(slave_info["Seconds_Behind_Master"])
-                if (
-                    slave_info["Slave_IO_Running"] == "Yes"
-                    and slave_info["Slave_SQL_Running"] == "Yes"
-                    and slave_delay <= 300
-                ):
-                    return True
-                else:
-                    self.log_info(
-                        _(
-                            "Slave_IO_Running!=Yes or Slave_SQL_Running=!Yes or Seconds_Behind_Master>300,"
-                            "请确定slave复制链路正常且延迟不能超过300s。"
+                self.log_error(
+                    _(
+                        "实例存在Binlog Dump进程: {},原地slave重建会对其从库有影响,请谨慎确认".format(
+                            res[0]["cmd_results"][0]["table_data"]["HOST"]
                         )
                     )
-                    return False
+                )
+                return False
 
 
-class MySQLCheckSlaveDelayComponent(Component):
+class MySQLCheckBinlogDumpComponent(Component):
     name = __name__
-    code = "mysql_check_slave_delay"
-    bound_service = MySQLCheckSlaveDelayService
+    code = "mysql_check_binlog_dump"
+    bound_service = MySQLCheckBinlogDumpService

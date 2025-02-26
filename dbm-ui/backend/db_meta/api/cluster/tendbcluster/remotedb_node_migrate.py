@@ -146,6 +146,7 @@ class TenDBClusterMigrateRemoteDb:
         target_slave_obj.phase = InstancePhase.ONLINE
         # ip_port不相同实例表示裁撤替换。需要把源状态设置为UNAVAILABLE
         if source_master_obj.ip_port != target_master_obj.ip_port:
+            cluster.storageinstance_set.remove(source_master_obj)
             source_master_obj.status = InstanceStatus.UNAVAILABLE
             source_master_obj.phase = InstancePhase.OFFLINE
             source_master_obj.is_stand_by = False
@@ -154,6 +155,7 @@ class TenDBClusterMigrateRemoteDb:
             # 移出集群
             cluster.storageinstance_set.remove(source_master_obj)
         if source_slave_obj.ip_port != target_slave_obj.ip_port:
+            cluster.storageinstance_set.remove(source_slave_obj)
             source_slave_obj.status = InstanceStatus.UNAVAILABLE
             source_slave_obj.phase = InstancePhase.OFFLINE
             source_slave_obj.is_stand_by = False
