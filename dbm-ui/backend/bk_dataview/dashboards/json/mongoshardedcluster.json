@@ -8160,7 +8160,7 @@
   "refresh": "10s",
   "schemaVersion": 39,
   "tags": [
-    "MongoDB"
+    "MongoShardedCluster"
   ],
   "templating": {
     "list": [
