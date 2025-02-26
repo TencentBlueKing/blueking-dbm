@@ -18,7 +18,9 @@
         {{ t('任务') }}
       </BkMenuItem>
     </BkMenuGroup>
-    <BkMenuGroup :name="t('DBA 工具箱')">
+    <BkMenuGroup
+      v-if="isDev"
+      :name="t('DBA 工具箱')">
       <BkMenuItem key="DbaManageMysqlWebQuery">
         <template #icon>
           <DbIcon type="ticket" />
@@ -57,4 +59,6 @@
     parentKey,
     routeLocation: handleMenuChange,
   } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, 'ticketPlatformManage');
+
+  const isDev = process.env.NODE_ENV !== 'production';
 </script>
