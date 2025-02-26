@@ -103,42 +103,42 @@
   const migrateType = ref(MigrateTypes.CLUSTER_MIGRATE);
 
   const defaultData = () => ({
-    tableData: [],
     backupSource: BackupSourceType.REMOTE,
+    tableData: [],
     ...createTickePayload(),
   });
 
   const formData = reactive(defaultData());
 
-  const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
-    ip_source: 'resource_pool';
+  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     backup_source: string;
     infos: {
       cluster_ids: number[];
-      resource_spec: {
-        new_master: {
-          spec_id: 0;
-          hosts: {
-            bk_biz_id: number;
-            bk_cloud_id: number;
-            bk_host_id: number;
-            ip: string;
-          }[];
-        };
-        new_slave: {
-          spec_id: 0;
-          hosts: {
-            bk_biz_id: number;
-            bk_cloud_id: number;
-            bk_host_id: number;
-            ip: string;
-          }[];
-        };
-      };
       display_info: {
         type: MigrateTypes;
       };
+      resource_spec: {
+        new_master: {
+          hosts: {
+            bk_biz_id: number;
+            bk_cloud_id: number;
+            bk_host_id: number;
+            ip: string;
+          }[];
+          spec_id: 0;
+        };
+        new_slave: {
+          hosts: {
+            bk_biz_id: number;
+            bk_cloud_id: number;
+            bk_host_id: number;
+            ip: string;
+          }[];
+          spec_id: 0;
+        };
+      };
     }[];
+    ip_source: 'resource_pool';
   }>(TicketTypes.MYSQL_MIGRATE_CLUSTER);
 
   const handleSubmit = async () => {
@@ -146,9 +146,9 @@
     if (infos.length) {
       createTicketRun({
         details: {
-          ip_source: 'resource_pool',
           backup_source: formData.backupSource,
           infos,
+          ip_source: 'resource_pool',
         },
         remark: formData.remark,
       });

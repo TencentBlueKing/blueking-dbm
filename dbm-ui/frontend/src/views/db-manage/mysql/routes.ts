@@ -136,14 +136,7 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/mysql/webconsole/Index.vue'),
   },
-  {
-    path: 'version-upgrade/:page?',
-    name: 'MySQLVersionUpgrade',
-    meta: {
-      navName: t('版本升级'),
-    },
-    component: () => import('@views/db-manage/mysql/version-upgrade/Index.vue'),
-  },
+  createRouteItem(TicketTypes.MYSQL_PROXY_UPGRADE, t('版本升级')),
   {
     path: 'MYSQL_FLASHBACK/:page?',
     name: 'MYSQL_FLASHBACK',

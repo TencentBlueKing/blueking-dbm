@@ -61,9 +61,7 @@
     }[];
   }
 
-  interface Emits {
-    (e: 'batch-edit', list: TendbClusterModel[]): void;
-  }
+  type Emits = (e: 'batch-edit', list: TendbClusterModel[]) => void;
 
   const props = defineProps<Props>();
 
@@ -71,16 +69,16 @@
 
   const modelValue = defineModel<{
     id?: number;
+    master_count: number;
     master_domain: string;
     role: string;
-    master_count: number;
     slave_count: number;
   }>({
     default: () => ({
       id: undefined,
+      master_count: 0,
       master_domain: '',
       role: '',
-      master_count: 0,
       slave_count: 0,
     }),
   });
@@ -111,37 +109,37 @@
 
   const rules = [
     {
-      validator: (value: string) => domainRegex.test(value),
       message: t('集群域名格式不正确'),
       trigger: 'change',
+      validator: (value: string) => domainRegex.test(value),
     },
     {
-      validator: (value: string) => props.selected.filter((item) => item.master_domain === value).length < 2,
       message: t('目标集群重复'),
       trigger: 'blur',
+      validator: (value: string) => props.selected.filter((item) => item.master_domain === value).length < 2,
     },
     {
+      message: t('目标集群不存在'),
+      trigger: 'blur',
       validator: () => {
         if (!modelValue.value.master_domain) {
           return true;
         }
         return Boolean(modelValue.value.id);
       },
-      message: t('目标集群不存在'),
-      trigger: 'blur',
     },
   ];
 
-  const { run: queryCluster, loading } = useRequest(filterClusters<TendbClusterModel>, {
+  const { loading, run: queryCluster } = useRequest(filterClusters<TendbClusterModel>, {
     manual: true,
     onSuccess: (data) => {
       if (data.length) {
         const [currentCluster] = data;
         modelValue.value = {
           id: currentCluster.id,
+          master_count: currentCluster.spider_master.length,
           master_domain: currentCluster.master_domain,
           role: '',
-          master_count: currentCluster.spider_master.length,
           slave_count: currentCluster.spider_slave.length,
         };
       }
@@ -155,9 +153,9 @@
   const handleInputChange = (value: string) => {
     modelValue.value = {
       id: undefined,
+      master_count: 0,
       master_domain: value,
       role: '',
-      master_count: 0,
       slave_count: 0,
     };
     if (value) {

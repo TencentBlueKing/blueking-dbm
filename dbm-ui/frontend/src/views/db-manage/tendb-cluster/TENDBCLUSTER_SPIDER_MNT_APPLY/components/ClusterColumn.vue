@@ -58,25 +58,23 @@
     }[];
   }
 
-  interface Emits {
-    (e: 'batch-edit', list: TendbClusterModel[]): void;
-  }
+  type Emits = (e: 'batch-edit', list: TendbClusterModel[]) => void;
 
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
-    id?: number;
-    master_domain: string;
     bk_cloud_id: number;
     bk_cloud_name: string;
+    id?: number;
+    master_domain: string;
   }>({
     default: () => ({
-      id: undefined,
-      master_domain: '',
       bk_cloud_id: 0,
       bk_cloud_name: '',
+      id: undefined,
+      master_domain: '',
     }),
   });
 
@@ -95,37 +93,37 @@
 
   const rules = [
     {
-      validator: (value: string) => domainRegex.test(value),
       message: t('集群域名格式不正确'),
       trigger: 'change',
+      validator: (value: string) => domainRegex.test(value),
     },
     {
-      validator: (value: string) => props.selected.filter((item) => item.master_domain === value).length < 2,
       message: t('目标集群重复'),
       trigger: 'blur',
+      validator: (value: string) => props.selected.filter((item) => item.master_domain === value).length < 2,
     },
     {
+      message: t('目标集群不存在'),
+      trigger: 'blur',
       validator: () => {
         if (!modelValue.value.master_domain) {
           return true;
         }
         return Boolean(modelValue.value.id);
       },
-      message: t('目标集群不存在'),
-      trigger: 'blur',
     },
   ];
 
-  const { run: queryCluster, loading } = useRequest(filterClusters<TendbClusterModel>, {
+  const { loading, run: queryCluster } = useRequest(filterClusters<TendbClusterModel>, {
     manual: true,
     onSuccess: (data) => {
       if (data.length) {
         const [currentCluster] = data;
         modelValue.value = {
-          id: currentCluster.id,
-          master_domain: currentCluster.master_domain,
           bk_cloud_id: currentCluster.bk_cloud_id,
           bk_cloud_name: currentCluster.bk_cloud_name,
+          id: currentCluster.id,
+          master_domain: currentCluster.master_domain,
         };
       }
     },
@@ -137,10 +135,10 @@
 
   const handleInputChange = (value: string) => {
     modelValue.value = {
-      id: undefined,
-      master_domain: value,
       bk_cloud_id: 0,
       bk_cloud_name: '',
+      id: undefined,
+      master_domain: value,
     };
     if (value) {
       queryCluster({

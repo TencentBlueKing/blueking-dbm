@@ -103,12 +103,12 @@
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 
@@ -117,13 +117,13 @@
   const { loading: isRelateClusterLoading } = useRequest(checkInstance, {
     defaultParams: [
       {
+        bk_biz_id: props.ticketDetails.bk_biz_id,
         instance_addresses: _.flatten(
           props.ticketDetails.details.infos.map((item) => [
             item.old_nodes.old_master[0].ip,
             item.old_nodes.old_slave[0].ip,
           ]),
         ),
-        bk_biz_id: props.ticketDetails.bk_biz_id,
       },
     ],
     onSuccess(data) {
