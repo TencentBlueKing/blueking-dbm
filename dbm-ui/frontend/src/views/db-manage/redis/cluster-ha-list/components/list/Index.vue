@@ -104,6 +104,14 @@
         label="Slave"
         :search-ip="batchSearchIpInatanceList"
         :selected-list="selected" />
+      <BkTableColumn
+        field="module_names"
+        label="Modules"
+        :width="150">
+        <template #default="{ data }: { data: RedisModel }">
+          <TagBlock :data="data.module_names" />
+        </template>
+      </BkTableColumn>
       <CommonColumn :cluster-type="ClusterTypes.REDIS_INSTANCE" />
       <BkTableColumn
         :fixed="isStretchLayoutOpen ? false : 'right'"
@@ -306,6 +314,7 @@
 
   import DbTable from '@components/db-table/index.vue';
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
+  import TagBlock from '@components/tag-block/Index.vue';
 
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
@@ -336,13 +345,13 @@
     // messageWarn,
   } from '@utils';
 
+  const clusterId = defineModel<number>('clusterId');
+
   enum ClusterNodeKeys {
     PROXY = 'proxy',
     REDIS_MASTER = 'redis_master',
     REDIS_SLAVE = 'redis_slave',
   }
-
-  const clusterId = defineModel<number>('clusterId');
 
   const { t } = useI18n();
   const route = useRoute();
