@@ -66,12 +66,12 @@
     ticketDetails: TicketModel<TendbCluster.ResourcePool.SpiderReduceNodes>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 
   const { t } = useI18n();
 

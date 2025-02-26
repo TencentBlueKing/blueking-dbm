@@ -6,8 +6,9 @@
       <slot name="prepend" />
     </div>
     <BkInput
-      v-model="modelValue"
       v-bind="{ ...attrs, ...props }"
+      ref="input"
+      v-model="modelValue"
       clearable
       @blur="handleBlur"
       @change="handleChange"
@@ -38,11 +39,13 @@
     (e: 'change', params: string): void;
   }
 
+  interface Exposes {
+    getInstance(): any;
+  }
+
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
-
-  const modelValue = defineModel<string>();
 
   const slots = defineSlots<{
     append?: () => VNode;
@@ -50,8 +53,11 @@
     prepend?: () => VNode;
   }>();
 
+  const modelValue = defineModel<string>();
+
   const attrs = useAttrs();
   const columnContext = useColumn();
+  const inputRef = useTemplateRef('input');
 
   watch(modelValue, () => {
     columnContext?.validate('change');
@@ -71,6 +77,12 @@
     columnContext?.focus();
     emits('focus');
   };
+
+  defineExpose<Exposes>({
+    getInstance() {
+      return inputRef.value;
+    },
+  });
 </script>
 <style lang="less">
   .bk-editable-input {
