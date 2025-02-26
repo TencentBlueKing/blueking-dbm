@@ -19,10 +19,10 @@
 
   import { BackupSourceType } from '@services/types';
 
-  const { t } = useI18n();
-
   const modelValue = defineModel<BackupSourceType>({
-    required: true,
     default: BackupSourceType.LOCAL,
+    required: true,
   });
+
+  const { t } = useI18n();
 </script>
