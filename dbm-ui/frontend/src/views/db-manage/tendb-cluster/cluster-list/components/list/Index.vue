@@ -126,6 +126,7 @@
           :cluster-type="ClusterTypes.TENDBCLUSTER"
           field="spider_slave"
           :get-table-instance="getTableInstance"
+          :is-filter="isFilter"
           label="Spider Slave"
           :search-ip="searchIp"
           :selected-list="selected" />
@@ -133,6 +134,7 @@
           :cluster-type="ClusterTypes.TENDBCLUSTER"
           field="spider_mnt"
           :get-table-instance="getTableInstance"
+          :is-filter="isFilter"
           :label="t('运维节点')"
           :search-ip="searchIp"
           :selected-list="selected" />
@@ -140,6 +142,7 @@
           :cluster-type="ClusterTypes.TENDBCLUSTER"
           field="remote_db"
           :get-table-instance="getTableInstance"
+          :is-filter="isFilter"
           label="RemoteDB"
           :search-ip="searchIp"
           :selected-list="selected" />
@@ -147,6 +150,7 @@
           :cluster-type="ClusterTypes.TENDBCLUSTER"
           field="remote_dr"
           :get-table-instance="getTableInstance"
+          :is-filter="isFilter"
           label="RemoteDR"
           :search-ip="searchIp"
           :selected-list="selected" />
@@ -347,6 +351,7 @@
     data: TendbClusterModel;
   }
 
+  const clusterId = defineModel<number>('clusterId');
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
@@ -379,8 +384,6 @@
     fetchDataFn: () => fetchTableData(),
     searchType: ClusterTypes.TENDBCLUSTER,
   });
-
-  const clusterId = defineModel<number>('clusterId');
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const removeMNTInstanceIds = ref<number[]>([]);
@@ -485,7 +488,9 @@
         clusterPrimaryMap.value = data.reduce<Record<string, boolean>>((acc, cur) => {
           const ip = cur.primary.split(':')[0];
           if (ip) {
-            acc[ip] = true;
+            Object.assign(acc, {
+              [ip]: true,
+            });
           }
           return acc;
         }, {});

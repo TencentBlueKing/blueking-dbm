@@ -131,6 +131,14 @@
             {{ data.cluster_type_name || '--' }}
           </template>
         </BkTableColumn>
+        <BkTableColumn
+          field="module_names"
+          label="Modules"
+          :width="150">
+          <template #default="{ data }: { data: RedisModel }">
+            <TagBlock :data="data.module_names" />
+          </template>
+        </BkTableColumn>
         <CommonColumn :cluster-type="ClusterTypes.REDIS" />
         <BkTableColumn
           :fixed="isStretchLayoutOpen ? false : 'right'"
@@ -400,6 +408,7 @@
 
   import DbTable from '@components/db-table/index.vue';
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
+  import TagBlock from '@components/tag-block/Index.vue';
 
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterEntryPanel from '@views/db-manage/common/cluster-entry-panel/Index.vue';
