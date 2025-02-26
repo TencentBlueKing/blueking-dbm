@@ -252,5 +252,8 @@ export enum TicketTypes {
   DORIS_SCALE_UP = 'DORIS_SCALE_UP', // doris 扩容
   DORIS_SHRINK = 'DORIS_SHRINK', // doris 缩容
 }
+export enum TicketTypes {
+  RECYCLE_OLD_HOST = 'RECYCLE_OLD_HOST', // 已下架主机再利用
+}
 
 export type TicketTypesStrings = keyof typeof TicketTypes;

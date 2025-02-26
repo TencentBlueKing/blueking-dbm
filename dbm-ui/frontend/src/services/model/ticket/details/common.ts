@@ -102,14 +102,15 @@ export interface NodeInfo {
   sub_zone_id: string;
 }
 
-export interface ResourcePoolDetailBase {
-  clusters: DetailClusters;
-  ip_recycle?: {
+/**
+ * 已下架主机再利用
+ */
+export interface ResourcePoolRecycleOldHost {
+  ip_recycle: {
     for_biz: number;
     ip_dest: 'resource';
   };
-  ip_source?: 'resource_pool';
-  recycle_hosts?: {
+  recycle_hosts: {
     bk_agent_id: string;
     bk_biz_id: number;
     bk_cloud_id: number;
@@ -136,5 +137,10 @@ export interface ResourcePoolDetailBase {
     os_type: string;
     status: number;
   }[];
+}
+
+export interface ResourcePoolDetailBase extends ResourcePoolRecycleOldHost {
+  clusters: DetailClusters;
+  ip_source: 'resource_pool';
   spec: DetailSpecs;
 }

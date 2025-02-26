@@ -18,8 +18,9 @@
     fixed="left"
     :label="t('目标集群')"
     :loading="loading"
-    :min-width="300"
-    required>
+    :min-width="200"
+    required
+    :validate-delay="300">
     <template #headAppend>
       <span
         v-bk-tooltips="t('批量选择')"
@@ -29,14 +30,27 @@
       </span>
     </template>
     <EditableInput
+      v-if="!modelValue.id || isInput"
+      ref="input"
       v-model="modelValue.master_domain"
       :placeholder="t('请输入集群域名')"
+      @blur="isInput = false"
       @change="handleInputChange" />
+    <EditableBlock
+      v-else
+      @click="handleClick">
+      <p>{{ modelValue.master_domain }}</p>
+      <p
+        v-for="item in modelValue.related_clusters"
+        :key="item.id">
+        {{ item.master_domain }}
+      </p>
+    </EditableBlock>
   </EditableColumn>
   <ClusterSelector
     v-model:is-show="showSelector"
     :cluster-types="[ClusterTypes.TENDBHA]"
-    :selected="selected"
+    :selected="selectedClusters"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
@@ -45,14 +59,18 @@
 
   import TendbhaModel from '@services/model/mysql/tendbha';
   import { filterClusters } from '@services/source/dbbase';
+  import { findRelatedClustersByClusterIds } from '@services/source/mysqlCluster';
 
   import { ClusterTypes } from '@common/const';
-  import { batchSplitRegex, domainRegex } from '@common/regex';
+  import { domainRegex } from '@common/regex';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
 
   interface Props {
-    selectedIds: number[];
+    selected: {
+      id: number;
+      master_domain: string;
+    }[];
   }
 
   type Emits = (e: 'batch-edit', list: TendbhaModel[]) => void;
@@ -63,76 +81,117 @@
 
   const modelValue = defineModel<{
     id?: number;
-    master_domain?: string;
+    master_domain: string;
+    related_clusters: {
+      id: number;
+      master_domain: string;
+    }[];
   }>({
     default: () => ({
       id: undefined,
       master_domain: '',
+      related_clusters: [],
     }),
   });
 
   const { t } = useI18n();
+  const inputRef = useTemplateRef('input');
 
-  const domainIdMap: Record<string, number> = {};
-
+  const isInput = ref(false);
   const showSelector = ref(false);
-  const selected = computed<Record<string, TendbhaModel[]>>(() => ({
-    [ClusterTypes.TENDBHA]: props.selectedIds.map(
-      (id) =>
-        ({
-          id,
-          master_domain: domainIdMap[id],
-        }) as unknown as TendbhaModel,
-    ),
+  const selectedClusters = computed<Record<string, TendbhaModel[]>>(() => ({
+    [ClusterTypes.TENDBHA]: props.selected as TendbhaModel[],
   }));
 
   const rules = [
     {
       message: t('集群域名格式不正确'),
       trigger: 'change',
-      validator: (value: string) => value.split(batchSplitRegex).every((item) => domainRegex.test(item)),
+      validator: (value: string) => domainRegex.test(value),
     },
     {
-      message: '目标集群不存在',
+      message: t('目标集群重复'),
       trigger: 'blur',
-      validator: () => !!modelValue.value.id,
+      validator: (value: string) => props.selected.filter((item) => item.master_domain === value).length < 2,
+    },
+    {
+      message: t('目标集群不存在'),
+      trigger: 'blur',
+      validator: () => {
+        if (!modelValue.value.master_domain) {
+          return true;
+        }
+        return Boolean(modelValue.value.id);
+      },
     },
   ];
 
-  const { loading, run: queryCluster } = useRequest(filterClusters, {
+  const { run: queryRelatedClusters } = useRequest(findRelatedClustersByClusterIds, {
     manual: true,
     onSuccess: (data) => {
-      if (data.length > 0) {
+      modelValue.value.related_clusters = data[0].related_clusters.map((item) => ({
+        id: item.id,
+        master_domain: item.master_domain,
+      }));
+    },
+  });
+
+  const { loading, run: queryCluster } = useRequest(filterClusters<TendbhaModel>, {
+    manual: true,
+    onSuccess: (data) => {
+      if (data.length) {
         const [currentCluster] = data;
-        Object.assign(domainIdMap, {
-          [currentCluster.master_domain]: currentCluster.id,
-        });
         modelValue.value = {
           id: currentCluster.id,
           master_domain: currentCluster.master_domain,
+          related_clusters: [],
         };
       }
     },
   });
+
+  watch(
+    modelValue,
+    () => {
+      if (modelValue.value.id) {
+        queryRelatedClusters({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_ids: [modelValue.value.id],
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleShowSelector = () => {
     showSelector.value = true;
   };
 
   const handleInputChange = (value: string) => {
-    modelValue.value.id = undefined;
+    modelValue.value = {
+      id: undefined,
+      master_domain: value,
+      related_clusters: [],
+    };
     if (value) {
       queryCluster({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        exact_domain: value.split(batchSplitRegex).join(','),
+        exact_domain: value,
       });
     }
   };
 
   const handleSelectorChange = (selected: Record<string, TendbhaModel[]>) => {
-    const dataList = selected[ClusterTypes.TENDBHA];
-    Object.assign(domainIdMap, Object.fromEntries(dataList.map((cur) => [cur.master_domain, cur.id])));
-    emits('batch-edit', dataList);
+    emits('batch-edit', selected[ClusterTypes.TENDBHA]);
+  };
+
+  const handleClick = () => {
+    isInput.value = true;
+    nextTick(() => {
+      inputRef.value?.getInstance().focus();
+    });
   };
 </script>
 <style lang="less" scoped>

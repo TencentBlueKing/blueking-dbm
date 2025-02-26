@@ -145,7 +145,7 @@ export default [
       },
       {
         dbConsoleValue: 'mysql.toolbox.versionUpgrade',
-        id: 'MySQLVersionUpgrade',
+        id: TicketTypes.MYSQL_PROXY_UPGRADE,
         name: t('版本升级'),
         parentId: 'migrate',
       },
