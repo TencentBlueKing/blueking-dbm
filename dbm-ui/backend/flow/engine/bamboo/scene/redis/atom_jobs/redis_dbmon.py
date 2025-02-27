@@ -16,7 +16,7 @@ from typing import Dict
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import InstanceStatus
+from backend.db_meta.enums import InstanceStatus, MachineType
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -40,12 +40,15 @@ def ClusterDbmonInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, para
             "is_stop": True/False
         }
     """
-    cluster_ips_set = set()
+    cluster_ips_set = {}
     cluster = Cluster.objects.get(immute_domain=param["cluster_domain"])
     for proxy in cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
-        cluster_ips_set.add(proxy.machine.ip)
+        cluster_ips_set[proxy.machine.ip] = {"role": proxy.machine_type, "ports": [proxy.port]}
     for redis in cluster.storageinstance_set.filter(status=InstanceStatus.RUNNING):
-        cluster_ips_set.add(redis.machine.ip)
+        if not cluster_ips_set.get(redis.machine.ip):
+            cluster_ips_set[redis.machine.ip] = {"role": redis.instance_role, "ports": [redis.port]}
+        else:
+            cluster_ips_set[redis.machine.ip]["ports"].append(redis.port)
 
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
     act_kwargs = deepcopy(sub_kwargs)
@@ -58,7 +61,7 @@ def ClusterDbmonInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, para
     )
 
     acts_list = []
-    for ip in cluster_ips_set:
+    for ip in cluster_ips_set.keys():
         # 下发介质
         act_kwargs.exec_ip = ip
         acts_list.append(
@@ -71,8 +74,9 @@ def ClusterDbmonInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, para
     if acts_list:
         sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
+    # 重启 dbmon
     acts_list = []
-    for ip in cluster_ips_set:
+    for ip in cluster_ips_set.keys():
         act_kwargs.exec_ip = ip
         act_kwargs.cluster = {
             "cluster_domain": param["cluster_domain"],
@@ -89,7 +93,33 @@ def ClusterDbmonInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, para
         )
     if acts_list:
         sub_pipeline.add_parallel_acts(acts_list=acts_list)
-    return sub_pipeline.build_sub_process(sub_name=_("{}-集群机器安装bkdbmon").format(param["cluster_domain"]))
+
+    # 重启 exporter
+    acts_list = []
+    for ip, meta in cluster_ips_set.items():
+        act_kwargs.exec_ip = ip
+        act_kwargs.cluster = {
+            "cluster_domain": param["cluster_domain"],
+            "ip": ip,
+            "role": meta["role"],
+            "ports": meta["ports"],
+        }
+        if meta["role"] in [MachineType.TWEMPROXY.value, MachineType.PREDIXY.value]:
+            act_kwargs.cluster["password"] = param["proxy_password"]
+        else:
+            act_kwargs.cluster["password"] = param["redis_password"]
+        act_kwargs.get_redis_payload_func = RedisActPayload.bk_restart_exporter.__name__
+        acts_list.append(
+            {
+                "act_name": _("{}-重启Exporter").format(ip),
+                "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                "kwargs": asdict(act_kwargs),
+            }
+        )
+    if acts_list and param.get("restart_exporter"):
+        sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+    return sub_pipeline.build_sub_process(sub_name=_("REDIS标准化-{}").format(param["cluster_domain"]))
 
 
 def ClusterIPsDbmonInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, param: Dict) -> SubBuilder:

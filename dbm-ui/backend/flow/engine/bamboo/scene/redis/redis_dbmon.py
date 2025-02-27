@@ -17,11 +17,13 @@ from backend.db_meta.models import Cluster, Machine
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.redis.atom_jobs import ClusterDbmonInstallAtomJob, ClusterIPsDbmonInstallAtomJob
+from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 
 logger = logging.getLogger("flow")
 
 
+# Redis 机器标准化流程 dbmon，介质重新下发，exporter 重写
 class RedisDbmonSceneFlow(object):
     def __init__(self, root_id: str, data: Optional[Dict]):
         """
@@ -118,9 +120,13 @@ class RedisDbmonSceneFlow(object):
 
         sub_pipelines = []
         for cluster in clusters:
+            passwd_ret = PayloadHandler.redis_get_password_by_domain(cluster.immute_domain)
             params = {
                 "cluster_domain": cluster.immute_domain,
+                "redis_password": passwd_ret.get("redis_password", "NO_REDIS_PAS_CONFIED"),
+                "proxy_password": passwd_ret.get("redis_proxy_password", "NO_PROXY_PAS_CONFIED"),
                 "is_stop": self.data.get("is_stop", False),
+                "restart_exporter": self.data.get("restart_exporter", False),
             }
             sub_builder = ClusterDbmonInstallAtomJob(self.root_id, self.data, act_kwargs, params)
             sub_pipelines.append(sub_builder)
