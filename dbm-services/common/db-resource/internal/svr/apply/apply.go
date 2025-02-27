@@ -249,10 +249,13 @@ func CycleApply(param RequestInputParam) (pickers []*PickerObject, err error) {
 		if v.Affinity == "" || v.Count <= 1 {
 			v.Affinity = NONE
 		}
-		idcCitys, err := getLogicIdcCitys(v)
-		if err != nil {
-			logger.Error("get logic citys failed %s", err.Error())
-			return pickers, err
+		idcCitys := []string{}
+		if lo.IsNotEmpty(&v.LocationSpec.City) {
+			idcCitys, err = getLogicIdcCitys(v)
+			if err != nil {
+				logger.Error("get logic citys failed %s", err.Error())
+				return pickers, err
+			}
 		}
 		s := &SearchContext{
 			IntetionBkBizId: param.ForbizId,
@@ -332,9 +335,111 @@ func (o *SearchContext) PickCheck() (err error) {
 	}
 
 	if int(count) < o.Count {
-		return fmt.Errorf("申请需求:%s\n\r资源池符合条件的资源总数:%d 小于申请的数量", o.GetMessage(), count)
+		reason := o.predictResourceNoMatchReason()
+		err = fmt.Errorf("申请需求:%s\n\r资源池符合条件的资源总数:%d 小于申请的数量\n\r: 推测的原因可能是以下:%s", o.GetMessage(), count, reason)
+		logger.Error("%s", err.Error())
+		return err
 	}
 	return nil
+}
+
+func (o *SearchContext) predictResourceNoMatchReason() (reason string) {
+	var count int64
+	db := model.DB.Self.Table(model.TbRpDetailName()).Select("count(*)")
+	db.Where("bk_cloud_id = ? and status = ? and gse_agent_status_code = ? ", o.BkCloudId, model.Unused, bk.GSE_AGENT_OK)
+	if err := db.Scan(&count).Error; err != nil {
+		return
+	}
+	if count < int64(o.Count) {
+		reason += fmt.Sprintf("在匹配云区域%d,gse_agent 状态为ok的资源的时候没有匹配到资源\n\r", o.BkCloudId)
+		return reason
+	}
+	o.MatchIntetionBkBiz(db)
+	if err := db.Scan(&count).Error; err != nil {
+		return
+	}
+	if count < int64(o.Count) {
+		reason += "在匹配专用业务和公共业务的时候没有匹配到资源\n\r"
+		return reason
+	}
+	o.MatchRsType(db)
+	if err := db.Scan(&count).Error; err != nil {
+		return
+	}
+	if count < int64(o.Count) {
+		reason += "在匹配资源类型的时候没有匹配到资源\n\r"
+		return reason
+	}
+	o.MatchOsType(db)
+	if err := db.Scan(&count).Error; err != nil {
+		return
+	}
+	if count < int64(o.Count) {
+		reason += "在匹配操作系统时候没有匹配到资源\n\r"
+		return reason
+	}
+	o.MatchOsName(db)
+	if err := db.Scan(&count).Error; err != nil {
+		return
+	}
+	if count < int64(o.Count) {
+		reason += "在匹配OsName时候没有匹配到资源\n\r"
+		return reason
+	}
+	o.MatchLabels(db)
+	if err := db.Scan(&count).Error; err != nil {
+		return
+	}
+	if count < int64(o.Count) {
+		reason += "在匹配标签的时候没有匹配到资源\n\r"
+		return reason
+	}
+	o.MatchLocationSpec(db)
+	if err := db.Scan(&count).Error; err != nil {
+		return
+	}
+	if count < int64(o.Count) {
+		reason += "在匹配地域信息的时候没有匹配到资源\n\r"
+		return reason
+	}
+	o.MatchStorage(db)
+	if err := db.Scan(&count).Error; err != nil {
+		return
+	}
+	if count < int64(o.Count) {
+		reason += "在匹配磁盘信息的时候没有匹配到资源\n\r"
+		return reason
+	}
+	o.MatchSpec(db)
+	if err := db.Scan(&count).Error; err != nil {
+		return
+	}
+	if count < int64(o.Count) {
+		reason += "在匹配规格信息[cpu/mem或机型]的时候没有匹配到资源\n\r"
+		return reason
+	}
+	switch o.Affinity {
+	// 如果需要存在跨园区检查则需要判断是否存在网卡id,机架id等
+	case SAME_SUBZONE_CROSS_SWTICH:
+		o.UseNetDeviceIsNotEmpty(db)
+		if err := db.Scan(&count).Error; err != nil {
+			return
+		}
+		if count < int64(o.Count) {
+			reason += "亲和性是同园区跨交换机,在排除网卡id为空的时候没有匹配到资源\n\r"
+			return reason
+		}
+	case CROSS_RACK:
+		o.RackIdIsNotEmpty(db)
+		if err := db.Scan(&count).Error; err != nil {
+			return
+		}
+		if count < int64(o.Count) {
+			reason += "亲和性是跨机架,在排除机架id为空的时候没有匹配到资源\n\r"
+			return reason
+		}
+	}
+	return
 }
 
 // PickCheckSpecialBkhostIds 根据bkhostids取资源
@@ -514,12 +619,13 @@ func (o *SearchContext) MatchOsName(db *gorm.DB) {
 
 // MatchLabels match labels
 func (o *SearchContext) MatchLabels(db *gorm.DB) {
-	if len(o.Labels) > 0 {
-		db.Where(model.JSONQuery("labels").JointOrContains(o.Labels))
-	} else {
-		// 如果请求没有标签, 只能匹配没有标签的资源
-		db.Where(" JSON_TYPE(labels) = 'NULL' or JSON_TYPE(labels) is null OR JSON_LENGTH(labels) < 1 ")
-	}
+	// ignore labels tmp
+	// if len(o.Labels) > 0 {
+	// 	db.Where(model.JSONQuery("labels").JointOrContains(o.Labels))
+	// } else {
+	// 	// 如果请求没有标签, 只能匹配没有标签的资源
+	// 	db.Where(" JSON_TYPE(labels) = 'NULL' or JSON_TYPE(labels) is null OR JSON_LENGTH(labels) < 1 ")
+	// }
 }
 
 // MatchLocationSpec match location parameter
