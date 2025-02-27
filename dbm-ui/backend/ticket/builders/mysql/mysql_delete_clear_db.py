@@ -20,8 +20,7 @@ from backend.ticket.builders.mysql.mysql_force_import_sqlfile import (
     MysqlForceSqlImportFlowBuilder,
     MysqlForceSqlImportFlowParamBuilder,
 )
-from backend.ticket.constants import FlowRetryType, FlowType, TicketType
-from backend.ticket.models import Flow
+from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("root")
 
@@ -42,42 +41,18 @@ class MysqlDeleteClearDBFlowParamBuilder(MysqlForceSqlImportFlowParamBuilder):
 class MysqlDeleteClearDBFlowBuilder(MysqlForceSqlImportFlowBuilder):
     serializer = MysqlDeleteClearDBDetailSerializer
     inner_flow_builder = MysqlDeleteClearDBFlowParamBuilder
-    editable = False
 
     @property
-    def need_itsm(self):
-        return False
+    def need_manual_confirm(self):
+        if self.ticket.details["ticket_mode"]["mode"] != SQLExecuteTicketMode.MANUAL.value:
+            return False
+        return super().need_manual_confirm
 
-    def init_ticket_flows(self):
-        """
-        sql导入根据执行模式可分为三种执行流程：
-        手动：手动确认-->(备份)--->sql导入
-        自动：(备份)--->sql导入
-        定时：定时触发-->(备份)--->sql导入
-        """
-        flows = []
-        mode = self.ticket.details["ticket_mode"]["mode"]
-
-        if mode == SQLExecuteTicketMode.MANUAL.value:
-            flows.append(Flow(ticket=self.ticket, flow_type=FlowType.PAUSE.value, flow_alias=_("人工确认执行")))
-
-        if mode == SQLExecuteTicketMode.TIMER.value:
-            flows.append(Flow(ticket=self.ticket, flow_type=FlowType.TIMER.value, flow_alias=_("定时执行")))
-
-        flows.append(
-            Flow(
-                ticket=self.ticket,
-                flow_type=FlowType.INNER_FLOW.value,
-                details=self.inner_flow_builder(self.ticket).get_params(),
-                retry_type=FlowRetryType.MANUAL_RETRY.value,
-                flow_alias=_("删除清档备份库"),
-            )
-        )
-
-        Flow.objects.bulk_create(flows)
-        return list(Flow.objects.filter(ticket=self.ticket))
+    @property
+    def need_timer(self):
+        return self.ticket.details["ticket_mode"]["mode"] == SQLExecuteTicketMode.TIMER
 
     @classmethod
     def describe_ticket_flows(cls, flow_config_map):
-        flow_desc = [_("定时执行/人工执行"), _("变更SQL执行")]
+        flow_desc = [_("定时执行/人工执行"), _("删除清档备份库")]
         return flow_desc

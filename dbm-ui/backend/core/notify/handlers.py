@@ -28,7 +28,6 @@ from backend.core.notify.template import FAILED_TEMPLATE, FINISHED_TEMPLATE, TER
 from backend.db_meta.models import AppCache
 from backend.env import DEFAULT_USERNAME
 from backend.exceptions import ApiResultError
-from backend.ticket.builders import BuilderFactory
 from backend.ticket.constants import TicketStatus, TicketType, TodoStatus
 from backend.ticket.models import Flow, Ticket
 from backend.ticket.todos import TodoActionType
@@ -282,8 +281,9 @@ class NotifyAdapter:
         if self.phase in [TicketStatus.PENDING]:
             receivers = creator
         elif self.phase in [TicketStatus.APPROVE]:
-            itsm_builder = BuilderFactory.get_builder_cls(self.ticket.ticket_type).itsm_flow_builder(self.ticket)
-            receivers = itsm_builder.get_approvers().split(",")
+            from backend.ticket.handler import TicketHandler
+
+            receivers = TicketHandler.get_itsm_approvers(self.ticket.current_flow())
         else:
             receivers = creator + biz_helpers
         # 去重后返回

@@ -33,11 +33,9 @@ class TodoManager(models.Manager):
         dba, second_dba, other_dba = DBAdministrator.get_dba_for_db_type(ticket.bk_biz_id, ticket.group)
         biz_helpers = BizSettings.get_assistance(ticket.bk_biz_id)
         # 从flow中获取单据审批人
-        if todo_type == TodoType.ITSM:
-            itsm_fields = {field["key"]: field["value"] for field in flow.details["fields"]}
-            itsm_operators = itsm_fields["approver"].split(",")
-        else:
-            itsm_operators = []
+        from backend.ticket.handler import TicketHandler
+
+        itsm_operators = TicketHandler.get_itsm_approvers(flow)
 
         # 构造单据状态与处理人之间的对应关系
         # - 审批中：提单人可撤销，dba可处理，

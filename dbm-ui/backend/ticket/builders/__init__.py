@@ -330,6 +330,11 @@ class TicketFlowBuilder:
         return need_manual_confirm
 
     @property
+    def need_timer(self):
+        """是否需要定时节点，默认为False，只有在特殊单据下需要这个节点"""
+        return False
+
+    @property
     def need_resource_pool(self):
         """是否存在资源池接入"""
         return self.ticket.details.get("ip_source") == IpSource.RESOURCE_POOL
@@ -353,6 +358,16 @@ class TicketFlowBuilder:
                     ticket=self.ticket,
                     flow_type=FlowType.BK_ITSM.value,
                     details=self.itsm_flow_builder(self.ticket).get_params(),
+                    flow_alias=_("单据审批"),
+                )
+            )
+
+        # 判断并添加定时节点
+        if self.need_timer:
+            flows.append(
+                Flow(
+                    ticket=self.ticket,
+                    flow_type=FlowType.BK_ITSM.value,
                     flow_alias=_("单据审批"),
                 )
             )

@@ -226,9 +226,18 @@ class TicketHandler:
         return approval_key[approve_mode], remark_key[approve_mode]
 
     @classmethod
+    def get_itsm_approvers(cls, flow):
+        """获取flow审批节点的审批人"""
+        if flow.flow_type != FlowType.BK_ITSM:
+            return []
+        itsm_fields = {field["key"]: field["value"] for field in flow.details["fields"]}
+        itsm_operators = itsm_fields["approver"].split(",")
+        return itsm_operators
+
+    @classmethod
     def operate_itsm_ticket(cls, ticket_id, action, operator, **kwargs):
         """操作itsm中的单据"""
-        flow = Flow.objects.get(ticket_id=ticket_id, flow_type="BK_ITSM")
+        flow = Flow.objects.get(ticket_id=ticket_id, flow_type="BK_ITSM", status=TicketFlowStatus.RUNNING)
         sn = flow.flow_obj_id
         itsm_info = ItsmApi.get_ticket_info(params={"sn": sn})
 

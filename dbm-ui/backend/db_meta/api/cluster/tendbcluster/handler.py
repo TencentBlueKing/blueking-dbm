@@ -341,7 +341,9 @@ class TenDBClusterClusterHandler(ClusterHandler):
             setattr(inst, "shard_id", shard_id)
             remote_infos[inst.instance_role].append(inst)
 
-        master_infos = sorted(remote_infos[InstanceRole.REMOTE_MASTER.value], key=lambda x: getattr(x, "shard_id", -1))
-        slave_infos = sorted(remote_infos[InstanceRole.REMOTE_SLAVE.value], key=lambda x: getattr(x, "shard_id", -1))
+        # 将-1分片放在最后，优先展示合法分片
+        sort_func = lambda x: x.shard_id if x.shard_id >= 0 else float("inf")  # noqa: E731
+        master_infos = sorted(remote_infos[InstanceRole.REMOTE_MASTER.value], key=sort_func)
+        slave_infos = sorted(remote_infos[InstanceRole.REMOTE_SLAVE.value], key=sort_func)
 
         return master_infos, slave_infos
