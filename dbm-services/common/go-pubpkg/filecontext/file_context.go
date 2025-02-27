@@ -321,6 +321,22 @@ func (c *FileContext) Set(key string, val interface{}, persist bool) error {
 	return nil
 }
 
+// SetValueGob sets the value of the given key in the FileContext.
+// if persistent is true, it will be encoded to the disk file.
+func (c *FileContext) SetValueGob(key string, val interface{}, valStruct interface{}, persist bool) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.data == nil {
+		c.data = make(map[string]interface{})
+	}
+	gob.Register(valStruct)
+	c.data[key] = val
+	if persist {
+		return c.encodeData()
+	}
+	return nil
+}
+
 // Delete deletes the value of the given key from the FileContext.
 // if persistent is true, it will be encoded to the disk file.
 func (c *FileContext) Delete(key string, persistent bool) error {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -74,11 +75,13 @@ func (p *PhysicalLoader) Execute() error {
 // decompress todo use qpress command instead
 func (p *PhysicalLoader) decompress() error {
 	binPath := filepath.Join(p.dbbackupHome, p.innodbCmd.innobackupexBin)
-
+	decompressThreads := p.cnf.PhysicalLoad.Threads
+	if runtime.NumCPU() >= 16 {
+		decompressThreads = 8
+	}
 	args := []string{
 		"--decompress",
-		//fmt.Sprintf("--qpress=%s", filepath.Join(p.dbbackupHome, "/bin", "qpress")),
-		fmt.Sprintf("--parallel=%d", p.cnf.PhysicalLoad.Threads),
+		fmt.Sprintf("--parallel=%d --compress-threads=%d", decompressThreads, decompressThreads),
 	}
 	if strings.Compare(p.mysqlVersion, "005007000") < 0 {
 		// xtrabackup <=5.6 没有 removal original 选项

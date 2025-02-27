@@ -143,6 +143,7 @@ func (f *BackupIndexFile) ValidateFiles() error {
 // UntarFiles merge and untar
 // set targetDir
 func (f *BackupIndexFile) UntarFiles(untarDir string, shareContext *filecontext.FileContext) error {
+	f.targetDir = filepath.Join(untarDir, f.GetBackupFileBasename())
 	if untarDir == "" {
 		return errors.Errorf("untar target dir should not be emtpy")
 	}
@@ -167,7 +168,6 @@ func (f *BackupIndexFile) UntarFiles(untarDir string, shareContext *filecontext.
 
 	if len(f.tarParts) > 0 {
 		for _, p := range f.tarParts {
-			backupexe.ParseTarFilename(p)
 			cmd := fmt.Sprintf(`cd %s && tar -xf %s -C %s/`, f.backupDir, p, untarDir)
 			if strings.Contains(p, ".gz") {
 				cmd = fmt.Sprintf(`cd %s && cat %s | tar -zxf - -C %s/`,
@@ -187,7 +187,7 @@ func (f *BackupIndexFile) UntarFiles(untarDir string, shareContext *filecontext.
 	}
 
 	if !cmutil.FileExists(f.targetDir) {
-		return errors.Errorf("targetDir %s is not ready", f.targetDir)
+		return errors.Errorf("targetDir '%s' is not ready", f.targetDir)
 	}
 	return nil
 }

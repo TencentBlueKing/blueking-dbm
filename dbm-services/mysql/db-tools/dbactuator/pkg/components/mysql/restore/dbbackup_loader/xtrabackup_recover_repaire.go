@@ -14,10 +14,9 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
-	"regexp"
-	"runtime/debug"
 	"strings"
 	"sync"
 
@@ -27,7 +26,6 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
@@ -108,18 +106,21 @@ func (x *Xtrabackup) RepairUserAdmin(userAdmin, password string, version string)
 	// flush privileges;
 }
 
-// RepairMyisamTables 离线修复 myisam
-// myisamchk 重要
-func (x *Xtrabackup) RepairMyisamTables() error {
+// RepairMyisamTablesForMysqldb 离线修复 mysql 系统库 myisam 表
+func (x *Xtrabackup) RepairMyisamTablesForMysqldb() error {
 	dataDir, err := x.myCnf.GetMySQLDataDir()
 	if err != nil {
 		return errors.WithMessage(err, "RepairMyisamTables")
 	}
 	// find . -name '*.MYI' -exec /usr/local/mysql/bin/myisamchk -r -v -f {} \; > /tmp/repair_myisam_3306.log
+	sysMysqldbDir := filepath.Join(dataDir, "mysql")
 	repairArgs := []string{
-		"find", ".", "-name", "'*MYI'",
-		"-exec", "/usr/local/mysql/bin/myisamchk", "-r", "-v", "-f", "{}", `\;`,
-		">", fmt.Sprintf("/tmp/repire_myisam_%d.log", x.TgtInstance.Port), "2>&1",
+		"find", sysMysqldbDir, "-name", "'*.MYI'",
+		"-exec", "/usr/local/mysql/bin/myisamchk", "-c", "-r", "-f", "-v",
+		fmt.Sprintf("--tmpdir=%s", filepath.Join(dataDir, "tmp")),
+		"--sort_buffer_size=256M", "--key_buffer_size=256M", "--read_buffer_size=2M", "--write_buffer_size=2M",
+		"{}", `\;`,
+		">>", fmt.Sprintf("/tmp/repire_myisam_%d.log", x.TgtInstance.Port), "2>&1",
 	}
 	logger.Info("myisamchk cmd:", strings.Join(repairArgs, " "))
 	_, errStr, err := cmutil.ExecCommand(true, dataDir, repairArgs[0], repairArgs[1:]...)
@@ -129,65 +130,65 @@ func (x *Xtrabackup) RepairMyisamTables() error {
 	return nil
 }
 
-// RepairAndTruncateMyIsamTables 修复 myisam
-// repair 命令只修复系统库
-func (x *Xtrabackup) RepairAndTruncateMyIsamTables(sysDB bool) error {
+// RepairNonSysMyIsamTables 修复业务的 myisam 表
+func (x *Xtrabackup) RepairNonSysMyIsamTables() error {
 	systemDbs := cmutil.StringsRemove(native.DBSys, native.TEST_DB)
-	var sqlStr string
-	if sysDB {
-		sqlStr = fmt.Sprintf(
-			`SELECT table_schema, table_name FROM information_schema.tables `+
-				`WHERE table_schema in (%s) AND engine = 'MyISAM' AND TABLE_TYPE ='BASE TABLE'`,
-			mysqlcomm.UnsafeIn(systemDbs, "'"),
-		)
-	} else {
-		sqlStr = fmt.Sprintf(
-			`SELECT table_schema, table_name FROM information_schema.tables `+
-				`WHERE table_schema not in (%s) AND engine = 'MyISAM' AND TABLE_TYPE ='BASE TABLE'`,
-			mysqlcomm.UnsafeIn(systemDbs, "'"),
-		)
-	}
+	sqlStr := fmt.Sprintf(
+		`SELECT table_schema, table_name FROM information_schema.tables `+
+			`WHERE table_schema not in (%s) AND engine = 'MyISAM' AND TABLE_TYPE ='BASE TABLE'`,
+		mysqlcomm.UnsafeIn(systemDbs, "'"),
+	)
 
-	rows, err := x.dbWorker.Db.Query(sqlStr)
-	if err != nil {
-		return fmt.Errorf("query myisam tables error,detail:%w,sql:%s", err, sqlStr)
+	rows, dbErr := x.dbWorker.Db.Query(sqlStr)
+	if dbErr != nil {
+		return fmt.Errorf("query myisam tables error,detail:%w,sql:%s", dbErr, sqlStr)
 	}
 	defer rows.Close()
 
-	//g, ctx := errgroup.WithContext(context.Background())
 	wg := sync.WaitGroup{}
-	errorChan := make(chan error, 1)
-	finishChan := make(chan bool, 1)
-	ch := make(chan struct{}, 4) // 控制并发
+	limitChan := make(chan struct{}, 4) // 控制并发
+	errChan := make(chan error, 4)
+	stopChan := make(chan error, 1) // close 或者往里面丢 error，都会退出
+	var stopErr error
 	for rows.Next() {
+		select {
+		case stopErr = <-errChan:
+			stopErr = errors.WithMessage(stopErr, "stop repair myisam tables")
+			stopChan <- stopErr
+			//close(stopChan)
+			break
+		default:
+		}
+
 		var db string
 		var table string
 		if err := rows.Scan(&db, &table); err != nil {
-			return err
+			return errors.WithMessage(err, "query myisam tables error")
 		}
-		ch <- struct{}{}
+		limitChan <- struct{}{}
 		wg.Add(1)
-
 		go func(worker *native.DbWorker, db, table string) {
-			<-ch
+			<-limitChan
 			defer wg.Done()
+			/* 如果用 close(errChan) 的写法，这里要判断 panic recover
 			defer func() {
-				if r := recover(); r != nil {
-					logger.Info("panic goroutine inner error!%v;%s", r, string(debug.Stack()))
-					errorChan <- fmt.Errorf("panic goroutine inner error!%v", r)
-					return
+				if err := recover(); err != nil {
+					stopErr = fmt.Errorf("repair myisam table panic:%s", err)
 				}
 			}()
+			*/
 
-			sql := ""
+			repairSql := ""
 			if db == native.TEST_DB || db == native.INFODBA_SCHEMA {
+				// test.conn_log, check_heartbeat, backup_report
 				// sql = fmt.Sprintf("truncate table %s.%s", db, table)
 			} else {
-				sql = fmt.Sprintf("repair table %s.%s", db, table)
+				repairSql = fmt.Sprintf("repair table %s.%s", db, table)
 			}
-			_, err := worker.Exec(sql)
-			if err != nil {
-				errorChan <- fmt.Errorf("repair myisam table error,sql:%s,error:%w", sql, err)
+			if repairSql == "" {
+				return
+			} else if _, err := worker.Exec(repairSql); err != nil {
+				errChan <- fmt.Errorf("repair myisam table error,sql:%s,error:%w", repairSql, err)
 				return
 			}
 			return
@@ -195,13 +196,13 @@ func (x *Xtrabackup) RepairAndTruncateMyIsamTables(sysDB bool) error {
 	}
 	go func() {
 		wg.Wait()
-		close(finishChan)
+		close(stopChan)
 	}()
 
-	select {
-	case <-finishChan:
-	case err := <-errorChan:
+	if err, ok := <-stopChan; err != nil {
 		return err
+	} else if !ok {
+		logger.Info("repair myisam tables success")
 	}
 	return nil
 }
@@ -256,14 +257,29 @@ func (x *Xtrabackup) RepairPrivileges() error {
 	return nil
 }
 
-// CleanEnv 为物理备份清理本机数据目录
-func (x *Xtrabackup) CleanEnv(dirs []string) error {
-	// 进程应该已关闭，端口关闭
+// cleanDirectory 为物理备份清理本机数据目录
+// 如果输入的是文件，则直接删除
+// 如果输入的是目录，则根据 backup 选项是否备份
+func (x *Xtrabackup) cleanDirectory(backup bool) error {
+	dirs := []string{
+		"datadir",
+		"innodb_log_group_home_dir",
+		"innodb_data_home_dir",
+		"relay-log",
+		"log_bin",
+		"tmpdir",
+	}
+	if x.StorageType == "tokudb" {
+		dirs = []string{"tokudb_log_dir", "tokudb_data_dir", "tmpdir", "relay-log",
+			"innodb_log_group_home_dir", "innodb_data_home_dir"} // replace ibdata1
+	}
+	// rocksdb 在自己的恢复程序里清理了
+
+	// 进程应该已关闭，端口未关闭则报错
 	if osutil.IsPortUp(x.TgtInstance.Host, x.TgtInstance.Port) {
 		return fmt.Errorf("port %d is still opened", x.TgtInstance.Port)
 	}
-
-	var pathsToReset []string
+	var dirsToReset []string
 	for _, v := range dirs {
 		if strings.TrimSpace(x.myCnf.GetMyCnfByKeyWithDefault(util.MysqldSec, v, "")) == "" {
 			logger.Warn(fmt.Sprintf("my.cnf %s is Emtpty!!", v))
@@ -271,38 +287,34 @@ func (x *Xtrabackup) CleanEnv(dirs []string) error {
 		}
 		switch v {
 		case "relay-log", "relay_log":
-			val, err := x.myCnf.GetRelayLogDir()
+			relayDir, err := x.myCnf.GetRelayLogDir()
 			if err != nil {
 				return err
 			}
-			reg := regexp.MustCompile(cst.RelayLogFileMatch)
-			if result := reg.FindStringSubmatch(val); len(result) == 2 {
-				relayLogDir := result[1]
-				pathsToReset = append(pathsToReset, relayLogDir)
-			}
+			dirsToReset = append(dirsToReset, relayDir)
 		case "log_bin", "log-bin":
-			val, err := x.myCnf.GetMySQLLogDir()
+			binlogDir, _, err := x.myCnf.GetBinLogDir()
 			if err != nil {
 				return err
 			}
-			reg := regexp.MustCompile(cst.BinLogFileMatch)
-			if result := reg.FindStringSubmatch(val); len(result) == 2 {
-				binlogDir := result[1]
-				// TODO 所有 rm -rf 的地方都应该要检查是否可能 rm -rf / binlog.xxx 这种误删可能
-				pathsToReset = append(pathsToReset, binlogDir)
-			}
+			dirsToReset = append(dirsToReset, binlogDir)
 		case "slow_query_log_file", "slow-query-log-file":
 			if val := x.myCnf.GetMyCnfByKeyWithDefault(util.MysqldSec, "slow_query_log_file", ""); val != "" {
-				pathsToReset = append(pathsToReset, val)
+				os.Truncate(val, 0)
 			}
 		default:
 			val := x.myCnf.GetMyCnfByKeyWithDefault(util.MysqldSec, v, "")
-			if strings.TrimSpace(val) != "" && strings.TrimSpace(val) != "/" {
-				pathsToReset = append(pathsToReset, val)
+			if cmutil.FileExists(val) && !cmutil.IsDirectory(val) {
+				logger.Info("Remove file %s", val)
+				os.Remove(val)
+			} else {
+				if strings.TrimSpace(val) != "" && strings.TrimSpace(val) != "/" && strings.TrimSpace(val) != "./" {
+					dirsToReset = append(dirsToReset, val)
+				}
 			}
 		}
 	}
-	return ResetPath(pathsToReset)
+	return ResetPath(dirsToReset, x.myCnf, backup)
 }
 
 // ReplaceMycnf godoc
@@ -371,26 +383,61 @@ func (x *Xtrabackup) getSocketName() string {
 // if filepath is dir, clean all files in it (file permission and owner is NOT preserved)
 // if filepath is file, remove it
 // this function is used to avoid "/bin/rm: Argument list too long" when using rm -rf /xxx/path/*
-func ResetPath(paths []string) error {
-	for _, pa := range paths {
-		if strings.TrimSpace(pa) == "/" {
-			return errors.Errorf("path %s is not allowed to clean", pa)
-		}
-		if cmutil.IsDirectory(pa) {
-			logger.Info("Clean Dir: %s", pa)
-			if err := os.RemoveAll(pa); err != nil {
-				return errors.WithMessage(err, "clean dir")
-			} else { // recreate dir
-				if err = os.MkdirAll(pa, 0755); err != nil {
-					return errors.WithMessage(err, "recreate dir")
+func ResetPath(paths []string, cnf *util.CnfFile, backup bool) error {
+	if backup {
+		if dataRootDir, err := cnf.GetMySQLDataRootDir(); err != nil {
+			return errors.WithMessage(err, "get data root dir to reset")
+		} else {
+			logRootDir, err := cnf.GetMySQLLogRootDir()
+			if err != nil {
+				return errors.WithMessage(err, "get log root dir to reset")
+			}
+			if relayLogDir, _ := cnf.GetRelayLogDir(); relayLogDir != "" {
+				// 一般来说 relay log 在 data root dir 下，如果不在则需要单独清理
+				if !strings.Contains(dataRootDir, filepath.Base(relayLogDir)) {
+					logger.Info("clean relay logDir: %s", relayLogDir)
+					os.RemoveAll(relayLogDir)
+					os.MkdirAll(relayLogDir, 0755)
+					exec.Command("chown", "-R", "mysql:mysql", relayLogDir).Run()
 				}
 			}
-		} else {
-			logger.Info("Remove File: %s", pa)
-			if err := os.RemoveAll(pa); err != nil {
-				return errors.WithMessage(err, "remove file")
+
+			logger.Info("Directories to rename: [%s, %s]", dataRootDir, logRootDir)
+			ts := cmutil.NewTimestampString()
+			os.Rename(dataRootDir, dataRootDir+".bak"+ts)
+			os.Mkdir(dataRootDir, 0755)
+			os.Rename(logRootDir, logRootDir+".bak"+ts)
+			os.Mkdir(logRootDir, 0755)
+			logger.Info("Directories to reCreate: %v", paths)
+			for _, dir := range paths {
+				os.MkdirAll(dir, 0755)
+			}
+			exec.Command("chown", "-R", "mysql:mysql", dataRootDir).Run()
+			exec.Command("chown", "-R", "mysql:mysql", logRootDir).Run()
+		}
+		return nil
+	} else {
+		logger.Info("Directories to reset: %+v", paths)
+		for _, pa := range paths {
+			if strings.TrimSpace(pa) == "." || strings.TrimSpace(pa) == "./" {
+				return errors.Errorf("path %s is not allowed to clean", pa)
+			}
+			if cmutil.IsDirectory(pa) {
+				logger.Info("Clean Dir: %s", pa)
+				if err := cmutil.SafeRmDir(pa); err != nil {
+					return errors.WithMessage(err, "clean dir")
+				} else { // recreate dir
+					if err = os.MkdirAll(pa, 0755); err != nil {
+						return errors.WithMessage(err, "recreate dir")
+					}
+				}
+			} else {
+				logger.Info("Remove File: %s", pa)
+				if err := os.RemoveAll(pa); err != nil {
+					return errors.WithMessage(err, "remove file")
+				}
 			}
 		}
+		return nil
 	}
-	return nil
 }

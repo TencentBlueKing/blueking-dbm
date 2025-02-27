@@ -477,7 +477,7 @@ func (r *RecoverBinlog) buildFilterOpts() error {
 
 func (r *RecoverBinlog) initDirs() error {
 	if r.WorkID == "" {
-		r.WorkID = newTimestampString()
+		r.WorkID = cmutil.NewTimestampString()
 	}
 	r.taskDir = fmt.Sprintf("%s/recover_binlog_%s/%d", r.WorkDir, r.WorkID, r.TgtInstance.Port)
 	if err := osutil.CheckAndMkdir("", r.taskDir); err != nil {

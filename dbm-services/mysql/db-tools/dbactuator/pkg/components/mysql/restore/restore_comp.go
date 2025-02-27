@@ -66,8 +66,12 @@ type RestoreOpt struct {
 	// EnableBinlog 导入数据时是否写binlog，默认不启用
 	EnableBinlog bool   `json:"enable_binlog"`
 	InitCommand  string `json:"init_command"`
-	// CopyBack physical recover use copy-back or move-back, default false means use move-back
-	CopyBack bool `json:"copy_back"`
+	// PhysicalCopyBack physical recover use copy-back or move-back, default false means use move-back
+	// if true, tar files will be untar-ed to /data/dbbak, not consider datadir
+	PhysicalCopyBack bool `json:"physical_copy_back"`
+	// PhysicalRenameOriginalDir physical recover will remove target instance's data,log dir
+	// this option control rename original dir or remove directory, default false means remove
+	PhysicalRenameOriginalDir bool `json:"physical_rename_original_dir"`
 	// 在库表级定点回档时有用，如果是 statement/mixed 格式，导入数据时需要全部导入；
 	// 如果是 row，可只导入指定库表数据, 在 recover-binlog 时可指定 quick_mode=true 也恢复指定库表 binlog
 	SourceBinlogFormat string `json:"source_binlog_format" enums:",ROW,STATEMENT,MIXED"`

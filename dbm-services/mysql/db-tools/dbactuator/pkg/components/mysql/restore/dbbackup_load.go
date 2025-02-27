@@ -29,11 +29,10 @@ import (
 type DBLoader struct {
 	*RestoreParam
 
-	taskDir             string // 依赖 BackupInfo.WorkDir ${work_dir}/doDr_${id}/${port}/
-	untarDir            string
-	targetDir           string // 备份解压后的目录，${taskDir}/<backupBaseName>/
-	instanceDataRootDir string
-	LogDir              string `json:"-"`
+	taskDir   string // 依赖 BackupInfo.WorkDir ${work_dir}/doDr_${id}/${port}/
+	untarDir  string
+	targetDir string // 备份解压后的目录，${taskDir}/<backupBaseName>/
+	LogDir    string `json:"-"`
 	// dbLoaderUtil logical and physical 通用参数，会传给 PhysicalLoader / LogicalLoader
 	dbLoaderUtil *dbbackup_loader.LoaderUtil
 	// dbLoader is interface
@@ -42,10 +41,27 @@ type DBLoader struct {
 	myCnf *util.CnfFile
 }
 
-var SContext = filecontext.NewFileContext("")
+var SContext = filecontext.NewFileContext("/tmp/test.json")
 
 // Init load index file
 func (m *DBLoader) Init() error {
+	// validateBackupInfo before run import
+	// 重建模式，不需要 restore_opt 选项，但要校验位点信息
+	// 回档模式，如果是备份记录回档则不需要位点，如果是需要基于 binlog 回档，则要检验位点信息
+	if m.RestoreParam.RestoreOpt == nil {
+		m.RestoreParam.RestoreOpt = &RestoreOpt{
+			EnableBinlog:      false,
+			WillRecoverBinlog: true,
+			InitCommand:       "",
+		}
+	}
+
+	SContext.Set("untar_remove_original", false, false)
+	SContext.Set("untar_dir", "", false)
+	//SContext.Set("physical_rename_original_dir", m.RestoreOpt.PhysicalRenameOriginalDir, false)
+	SContext.Set("change_master", nil, false)
+	SContext.Save()
+
 	var err error
 	cnfFileName := util.GetMyCnfFileName(m.TgtInstance.Port)
 	cnfFile := &util.CnfFile{FileName: cnfFileName}
@@ -75,19 +91,13 @@ func (m *DBLoader) PreCheck() error {
 	if err := m.Tools.Merge(toolset); err != nil {
 		return err
 	}
-	// validateBackupInfo before run import
-	// 重建模式，不需要 restore_opt 选项，但要校验位点信息
-	// 回档模式，如果是备份记录回档则不需要位点，如果是需要基于 binlog 回档，则要检验位点信息
-	if m.RestoreParam.RestoreOpt == nil {
-		m.RestoreParam.RestoreOpt = &RestoreOpt{
-			EnableBinlog:      false,
-			WillRecoverBinlog: true,
-			InitCommand:       "",
-		}
-	}
+
 	if m.RestoreParam.RestoreOpt.WillRecoverBinlog {
-		if _, err := m.getChangeMasterPos(m.SrcInstance); err != nil {
+		if info, err := m.getChangeMasterPos(m.SrcInstance); err != nil {
 			return err
+		} else {
+			SContext.Set("change_master", info, false)
+			SContext.Save()
 		}
 	}
 	// 工具可执行权限
@@ -98,6 +108,12 @@ func (m *DBLoader) PreCheck() error {
 // chooseDBBackupLoader 选择是 dbbackup-go 恢复是 logical or physical
 func (m *DBLoader) chooseDBBackupLoader() error {
 	dbloaderPath := m.Tools.MustGet(tools.ToolDbbackupGo)
+	if m.RestoreOpt == nil {
+		m.RestoreOpt = &RestoreOpt{
+			EnableBinlog: false,
+			InitCommand:  "",
+		}
+	}
 	m.dbLoaderUtil = &dbbackup_loader.LoaderUtil{
 		Client:        dbloaderPath,
 		TgtInstance:   m.TgtInstance,
@@ -108,12 +124,6 @@ func (m *DBLoader) chooseDBBackupLoader() error {
 		LogDir:        m.LogDir,
 		EnableBinlog:  m.RestoreOpt.EnableBinlog,
 		InitCommand:   m.RestoreOpt.InitCommand,
-	}
-	if m.RestoreOpt == nil {
-		m.RestoreOpt = &RestoreOpt{
-			EnableBinlog: false,
-			InitCommand:  "",
-		}
 	}
 	// logger.Warn("validate dbLoaderUtil: %+v", m.dbLoaderUtil)
 	if err := validate.GoValidateStruct(m.dbLoaderUtil, false); err != nil {
@@ -140,6 +150,8 @@ func (m *DBLoader) chooseDBBackupLoader() error {
 				StorageType:   strings.ToLower(m.indexObj.StorageEngine),
 				MySQLVersion:  m.BackupInfo.indexObj.MysqlVersion,
 			},
+			CopyBack:          m.RestoreOpt.PhysicalCopyBack,
+			RenameOriginalDir: m.RestoreOpt.PhysicalRenameOriginalDir,
 		}
 	} else {
 		return errors.Errorf("unknown backupType: %s", m.backupType)
@@ -168,8 +180,8 @@ func (m *DBLoader) Start() error {
 		cmutil.ExecCommand(false, "", "chown", "-R", "mysql.mysql", m.taskDir)
 	}()
 
-	logger.Info("开始解压 taskDir=%s", m.taskDir)
-	if err := m.BackupInfo.indexObj.UntarFiles(m.taskDir, SContext); err != nil {
+	logger.Info("开始解压 untarDir=%s", m.untarDir)
+	if err := m.BackupInfo.indexObj.UntarFiles(m.untarDir, SContext); err != nil {
 		return err
 	} else if baseName := filepath.Base(m.targetDir); m.untarDir != m.taskDir {
 		// 创建软连接到 taskDir 下，方便查看
@@ -178,6 +190,11 @@ func (m *DBLoader) Start() error {
 	logger.Info("开始数据恢复 targetDir=%s", m.targetDir)
 	if err := m.dbLoader.Load(); err != nil {
 		return errors.WithMessage(err, "dbactuator dbloaderData failed")
+	}
+	// 进度存档
+	SContext.Set("recover_data_success", true, true)
+	if err := m.dbLoader.PostLoad(); err != nil {
+		return err
 	}
 	return nil
 }
@@ -240,40 +257,43 @@ func (m *DBLoader) initDirs(removeOld bool) error {
 		return errors.Errorf("work_dir %s should not be empty", m.WorkDir)
 	}
 	if m.WorkID == "" {
-		m.WorkID = newTimestampString()
+		m.WorkID = cmutil.NewTimestampString()
 		//SContext.Set("work_id", m.WorkID, true)
 	}
-	if removeOld { // 删除旧目录
-		timeNow := time.Now()
-		oldDirs, _ := filepath.Glob(fmt.Sprintf("%s/doDr_*", m.WorkDir))
-		for _, oldDir := range oldDirs {
-			if dirInfo, err := os.Stat(oldDir); err == nil && dirInfo.IsDir() {
-				if timeNow.Sub(dirInfo.ModTime()) > 1*time.Minute {
-					logger.Warn("remove old recover work directory: ", oldDirs)
-					cmutil.SafeRmDir(oldDir)
-				}
-			}
-		}
-	}
+
 	untarDirSuffix := fmt.Sprintf("doDr_%s/%d", m.WorkID, m.TgtInstance.Port)
 	m.taskDir = filepath.Join(m.WorkDir, untarDirSuffix)
-
 	// 物理备份 targetDir 直接放在数据目录所在分区
 	if untarDir2, _ := SContext.GetString("untar_dir"); untarDir2 != "" {
 		m.untarDir = filepath.Join(untarDir2, untarDirSuffix)
 		logger.Info("use untar dir from file context %s: %s", SContext.GetContextFilePath(), untarDir2)
-	} else if m.BackupInfo.backupType == cst.BackupTypePhysical && !m.RestoreOpt.CopyBack {
+	} else if m.BackupInfo.backupType == cst.BackupTypePhysical && !m.RestoreOpt.PhysicalCopyBack {
 		if instanceDataRootDir, err := m.myCnf.GetMySQLDataRootDir(); err != nil {
 			logger.Warn("fail to get mysqld datadir: %s", m.myCnf.FileName)
 		} else {
-			m.untarDir = filepath.Join(instanceDataRootDir, untarDirSuffix)
-			logger.Info("use untar dir under datadir: %s", m.instanceDataRootDir)
+			m.untarDir = filepath.Join(filepath.Dir(instanceDataRootDir), untarDirSuffix)
+			logger.Info("use untar dir under datadir: %s", instanceDataRootDir)
 		}
 	}
 	if m.untarDir == "" {
 		m.untarDir = m.taskDir
 		logger.Info("use untar dir under workDir %s: %s", m.WorkDir)
 	}
+	if removeOld { // 删除旧目录
+		timeNow := time.Now()
+		// 只匹配 doDr_ 开头的目录，避免删
+		untarDirBase := fmt.Sprintf("%s/doDr_*", filepath.Dir(filepath.Dir(m.untarDir)))
+		oldDirs, _ := filepath.Glob(untarDirBase)
+		for _, oldDir := range oldDirs {
+			if dirInfo, err := os.Stat(oldDir); err == nil && dirInfo.IsDir() {
+				if timeNow.Sub(dirInfo.ModTime()) > 1*time.Minute {
+					logger.Warn("remove old recover work directory: %s", oldDir)
+					cmutil.SafeRmDir(oldDir)
+				}
+			}
+		}
+	}
+
 	if err := osutil.CheckAndMkdir("", m.taskDir); err != nil {
 		return err
 	}

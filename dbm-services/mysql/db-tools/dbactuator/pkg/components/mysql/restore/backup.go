@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/pkg/errors"
 
@@ -118,8 +117,4 @@ func (b *BackupInfo) GetBackupMetaFile(fileType string) error {
 	}
 	logger.Info("backupType=%s, backupHost=%s, backupPort=%d", b.backupType, b.backupHost, b.backupPort)
 	return nil
-}
-
-func newTimestampString() string {
-	return time.Now().Format("20060102150405")
 }

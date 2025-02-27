@@ -178,10 +178,10 @@ func (p *PhysicalRocksdbLoader) initConfig(indexContent *dbareport.IndexContent)
 		return errors.WithMessagef(err, "fail to parse %s", p.cfg.PhysicalLoad.DefaultsFile)
 	}
 	p.dataDir, err = cnfFile.GetMySQLDataDir()
-	p.innodbLogGroupHomeDir, err = cnfFile.GetMysqldKeyVaule("innodb_log_group_home_dir")
-	p.innodbDataHomeDir, err = cnfFile.GetMysqldKeyVaule("innodb_data_home_dir")
 	p.relaylogDir, err = cnfFile.GetRelayLogDir()
 	p.logbinDir, _, err = cnfFile.GetBinLogDir()
+	p.innodbLogGroupHomeDir, err = cnfFile.GetMysqldKeyVaule("innodb_log_group_home_dir")
+	p.innodbDataHomeDir, err = cnfFile.GetMysqldKeyVaule("innodb_data_home_dir")
 	p.tmpDir, err = cnfFile.GetMysqldKeyVaule("tmpdir")
 	p.slowQueryLogFile, err = cnfFile.GetMysqldKeyVaule("slow_query_log_file")
 

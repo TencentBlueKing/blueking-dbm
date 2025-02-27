@@ -12,6 +12,7 @@ import (
 	"github.com/mohae/deepcopy"
 	"github.com/pkg/errors"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/computil"
@@ -38,7 +39,7 @@ func (x *XLoad) initDirs() error {
 		return errors.Errorf("work_dir %s should not be empty", x.WorkDir)
 	}
 	if x.WorkID == "" {
-		x.WorkID = newTimestampString()
+		x.WorkID = cmutil.NewTimestampString()
 	}
 	x.taskDir = fmt.Sprintf("%s/doDr_%s/%d", x.WorkDir, x.WorkID, x.TgtInstance.Port)
 	if err := osutil.CheckAndMkdir("", x.taskDir); err != nil {

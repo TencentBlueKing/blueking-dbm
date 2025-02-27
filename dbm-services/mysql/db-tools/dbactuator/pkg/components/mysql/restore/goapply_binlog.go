@@ -402,7 +402,7 @@ func (r *GoApplyBinlog) buildBinlogOptions() error {
 
 func (r *GoApplyBinlog) initDirs() error {
 	if r.WorkID == "" {
-		r.WorkID = newTimestampString()
+		r.WorkID = cmutil.NewTimestampString()
 	}
 	r.taskDir = fmt.Sprintf("%s/apply_binlog_%s/%d", r.WorkDir, r.WorkID, r.TgtInstance.Port)
 	if err := osutil.CheckAndMkdir("", r.taskDir); err != nil {

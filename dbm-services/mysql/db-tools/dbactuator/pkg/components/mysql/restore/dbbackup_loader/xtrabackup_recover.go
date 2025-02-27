@@ -34,10 +34,11 @@ type Xtrabackup struct {
 	MySQLVersion string `json:"-"`
 }
 
-// PreRun 以下所有步骤必须可重试
+// stopAndClean 以下所有步骤必须可重试
 // shutdown mysqld
+// clean data,log,relay dir, if backup enabled, rename them
 // replace my.cnf
-func (x *Xtrabackup) PreRun() error {
+func (x *Xtrabackup) stopAndClean(backup bool) error {
 	logger.Info("run xtrabackup preRun")
 	// 关闭本地mysql
 	inst := x.TgtInstance
@@ -56,7 +57,7 @@ func (x *Xtrabackup) PreRun() error {
 
 	logger.Info("start to clean local mysqld data dirs")
 	// 清理本地目录
-	if err := x.cleanXtraEnv(); err != nil {
+	if err := x.cleanDirectory(backup); err != nil {
 		return err
 	}
 
@@ -68,8 +69,8 @@ func (x *Xtrabackup) PreRun() error {
 	return nil
 }
 
-// PostRun 以下所有步骤必须可重试
-func (x *Xtrabackup) PostRun() (err error) {
+// repairAndStart 以下所有步骤必须可重试
+func (x *Xtrabackup) repairAndStart() (err error) {
 	logger.Info("decompress xtrabackup meta files again")
 	if err := x.DecompressMetaFile(); err != nil {
 		return err
@@ -161,39 +162,16 @@ func (x *Xtrabackup) PostRun() (err error) {
 			logger.Warn("fail to reset user %s", x.TgtInstance.User)
 		}
 	}
-	logger.Info("repair myisam tables with repair")
+	logger.Info("repair myisam tables for sys mysql db")
 	// 修复MyIsam表，系统库表优先修复
-	if err := x.RepairAndTruncateMyIsamTables(true); err != nil {
+	if err := x.RepairMyisamTablesForMysqldb(); err != nil {
 		return err
 	}
-	if err := x.RepairAndTruncateMyIsamTables(false); err != nil {
+	logger.Info("repair myisam tables for non-system")
+	if err := x.RepairNonSysMyIsamTables(); err != nil {
 		return err
 	}
-
-	/*
-		logger.Info("repair myisam tables with myisamchk")
-		if err = x.RepairMyisamTables(); err != nil {
-			return err
-		}
-	*/
 	return nil
-}
-
-// cleanXtraEnv 清理物理备份环境
-func (x *Xtrabackup) cleanXtraEnv() error {
-	dirs := []string{
-		"datadir",
-		"innodb_log_group_home_dir",
-		"innodb_data_home_dir",
-		"relay-log",
-		"log_bin",
-		"tmpdir",
-	}
-	if x.StorageType == "tokudb" {
-		dirs = []string{"tokudb_log_dir", "tokudb_data_dir", "tmpdir", "relay-log",
-			"innodb_log_group_home_dir", "innodb_data_home_dir"} // replace ibdata1
-	}
-	return x.CleanEnv(dirs)
 }
 
 // doReplaceCnf godoc

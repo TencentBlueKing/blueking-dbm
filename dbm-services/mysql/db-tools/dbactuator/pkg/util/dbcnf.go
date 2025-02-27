@@ -213,25 +213,30 @@ func (m *CnfFile) GetMySQLDataRootDir() (string, error) {
 	}
 }
 
-// GetMySQLLogDir 从配置中获取mysql logdir
-//
-//	@receiver m
-//	@return logdir
-//	@return err
-func (m *CnfFile) GetMySQLLogDir() (logdir string, err error) {
-	// 先从 log_bin 配置项获取logdir
-	// 但是可能存在历史的实例并没有开始binlog
-	// log_bin = ON
-	// log_bin_basename = /data/mysqllog/20000/binlog/binlog20000
-	// log_bin_index    = /data/mysqllog/20000/binlog/binlog20000.index
-	// 或者 log_bin      = /data/mysqllog/20000/binlog/binlog20000.bin
-	// 或者 slow_query_log_file = /data/mysqllog/20000/slow-query.log
+// GetMySQLLogRootDir 从配置中获取mysql 日志相关的根目录
+// e.g: binlog 目录是 /data/mysqllog/20000/binlog/binlog20000.xxx，返回 /data/mysqllog/20000
+// binlog 目录是 /data/mysqllog/binlog/binlog20000.xxx，返回 /data/mysqllog
+// 如果找到 binlog，则从 slow_query_log_file 获取
+// 先从 log_bin 配置项获取logdir
+// 但是可能存在历史的实例并没有开始binlog
+// log_bin = ON
+// log_bin_basename = /data/mysqllog/20000/binlog/binlog20000
+// log_bin_index    = /data/mysqllog/20000/binlog/binlog20000.index
+// 或者 log_bin      = /data/mysqllog/20000/binlog/binlog20000.bin
+// 或者 slow_query_log_file = /data/mysqllog/20000/slow-query.log
+func (m *CnfFile) GetMySQLLogRootDir() (logdir string, err error) {
 	keys := []string{"log_bin", "log_bin_basename", "slow_query_log_file"}
-
 	for _, k := range keys {
 		if val, err := m.GetMySQLCnfByKey(MysqldSec, k); err == nil {
 			if filepath.IsAbs(val) {
-				return val, nil
+				if idx := strings.Index(val, "/binlog/"); idx >= 0 {
+					logDir := val[:idx] //filepath.Dir()
+					return logDir, nil
+				}
+				if idx := strings.Index(val, "/slow-query"); idx >= 0 {
+					logDir := val[:idx] //filepath.Dir(val[:idx])
+					return logDir, nil
+				}
 			}
 		}
 	}
@@ -259,10 +264,33 @@ func (m *CnfFile) GetBinLogDir() (binlogDir, namePrefix string, err error) {
 	return "", "", fmt.Errorf("binlog dir not found or parse failed")
 }
 
-// ParseLogBinBasename TODO
+// GetRelayLogDir 解析 relay-log 目录
+// 从 /data1/mysqldata/20000/relay-log/relay-bin 中解析出 /data1/mysqldata/20000/relay-log
+// 不要求 relay log 目录存在
+func (m *CnfFile) GetRelayLogDir() (string, error) {
+	// relay-log = /data1/mysqldata/20000/relay-log/relay-log.bin
+	// 或者 relay_log_basename = /data1/mysqldata/20000/relay-log/relay-bin
+	keys := []string{"relay_log", "relay_log_basename"}
+	for _, k := range keys {
+		if val, err := m.GetMySQLCnfByKey(MysqldSec, k); err == nil {
+			if filepath.IsAbs(val) { // 必须是绝对路径
+				relayDir, _ := path.Split(val)
+				if idx := strings.Index(relayDir, "/relay-log"); idx >= 0 {
+					return relayDir, nil
+				}
+				//return relayDir, nil
+			}
+		}
+	}
+	return "", fmt.Errorf("在配置中没找到 relay 的配置项")
+}
+
+// ParseLogBinBasename 解析 binlog目录
+// 从 /data/mysqllog/20000/binlog/binlog20000.bin 解析出 /data/mysqllog/20000/binlog/binlog20000.bin 解析出 和 binlog20000
+// 不要求 binlog 目录存在
 func (m *CnfFile) ParseLogBinBasename(val string) (binlogDir, namePrefix string, err error) {
 	binlogDir, namePrefix = path.Split(val)
-	if cmutil.IsDirectory(binlogDir) && !cmutil.IsDirectory(val) {
+	if !cmutil.IsDirectory(val) {
 		if strings.Contains(namePrefix, ".") {
 			binlogFilename := strings.Split(namePrefix, ".")
 			namePrefix = binlogFilename[0]
@@ -274,21 +302,6 @@ func (m *CnfFile) ParseLogBinBasename(val string) (binlogDir, namePrefix string,
 	errStr := fmt.Sprintf("%s is not a valid log_bin_basename", val)
 	logger.Warn(errStr)
 	return "", "", errors.New(errStr)
-}
-
-// GetRelayLogDir TODO
-func (m *CnfFile) GetRelayLogDir() (string, error) {
-	// relay-log = /data1/mysqldata/20000/relay-log/relay-log.bin
-	// 或者 relay_log_basename = /data1/mysqldata/20000/relay-log/relay-bin
-	keys := []string{"relay_log", "relay_log_basename"}
-	for _, k := range keys {
-		if val, err := m.GetMySQLCnfByKey(MysqldSec, k); err == nil {
-			if filepath.IsAbs(val) { // 必须是绝对路径
-				return val, nil
-			}
-		}
-	}
-	return "", fmt.Errorf("在配置中没找到 relay 的配置项")
 }
 
 // GetMySQLSocket 从my.cnf中获取socket value

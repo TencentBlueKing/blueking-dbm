@@ -48,6 +48,7 @@ func FileExistsErr(path string) error {
 }
 
 // IsDirectory 检查本机路径是否是目录
+// 如果目录不存在，则返回 false
 func IsDirectory(path string) bool {
 	fileInfo, err := os.Stat(path)
 	if err != nil {
@@ -112,6 +113,9 @@ func OSCopyFile(srcFile, dstFile string) error {
 func SafeRmDir(dir string) (err error) {
 	if strings.TrimSpace(dir) == "/" {
 		return fmt.Errorf("禁止删除系统根目录")
+	}
+	if strings.Contains(dir, "..") {
+		return fmt.Errorf("禁止删除父级目录")
 	}
 	return os.RemoveAll(dir)
 }

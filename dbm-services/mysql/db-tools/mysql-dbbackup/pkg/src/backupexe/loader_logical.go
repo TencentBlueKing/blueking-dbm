@@ -152,11 +152,11 @@ func (l *LogicalLoader) Execute() (err error) {
 
 	binPath := filepath.Join(l.dbbackupHome, "bin/myloader")
 	args := []string{
+		"-v", strconv.Itoa(3),
 		"-h", l.cnf.LogicalLoad.MysqlHost,
 		"-P", strconv.Itoa(l.cnf.LogicalLoad.MysqlPort),
 		"-u", l.cnf.LogicalLoad.MysqlUser,
-		// "-p", l.cnf.LogicalLoad.MysqlPasswd,
-		fmt.Sprintf(`-p '%s'`, l.cnf.LogicalLoad.MysqlPasswd),
+		fmt.Sprintf(`-p '%s'`, l.cnf.LogicalLoad.MysqlPasswd), // 密码里可能有特殊字符
 		"-d", l.cnf.LogicalLoad.MysqlLoadDir,
 		fmt.Sprintf("--set-names=%s", l.cnf.LogicalLoad.MysqlCharset),
 	}
@@ -205,7 +205,8 @@ func (l *LogicalLoader) Execute() (err error) {
 	}
 	// ToDo extraOpt
 	// myloader 日志输出到当前目录的 logs/myloader_xx.log
-	logfile := filepath.Join(pwd, "logs", fmt.Sprintf("myloader_%d.log", int(time.Now().Weekday())))
+	logfile := filepath.Join(pwd, "logs", fmt.Sprintf("myloader_%d_%d.log",
+		l.cnf.LogicalLoad.MysqlPort, int(time.Now().Weekday())))
 	_ = os.MkdirAll(filepath.Dir(logfile), 0755)
 
 	args = append(args, ">>", logfile, "2>&1")

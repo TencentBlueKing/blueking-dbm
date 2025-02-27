@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"gopkg.in/ini.v1"
 
+	"dbm-services/common/go-pubpkg/filecontext"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
@@ -17,6 +18,9 @@ import (
 type PhysicalLoader struct {
 	*LoaderUtil
 	*Xtrabackup
+	CopyBack          bool
+	RenameOriginalDir bool
+	ctx               *filecontext.FileContext
 }
 
 // CreateConfigFile TODO
@@ -41,7 +45,7 @@ func (l *PhysicalLoader) CreateConfigFile() error {
 		DefaultsFile:  cnfFileName, // l.Xtrabackup.myCnf.FileName
 		MysqlLoadDir:  p.LoaderDir,
 		IndexFilePath: p.IndexFilePath,
-		CopyBack:      false,
+		CopyBack:      l.CopyBack,
 		Threads:       4,
 	}
 	// logger.Info("dbloader config file, %+v", loaderConfig) // 有密码打印
@@ -68,6 +72,14 @@ func (l *PhysicalLoader) PreLoad() error {
 	return nil
 }
 
+// PostLoad TODO
+func (l *PhysicalLoader) PostLoad() error {
+	if err := l.Xtrabackup.repairAndStart(); err != nil {
+		return err
+	}
+	return nil
+}
+
 // Load 恢复数据
 // 1. create config
 // 2. stop mysqld / clean old dirs
@@ -77,14 +89,10 @@ func (l *PhysicalLoader) Load() error {
 	if err := l.CreateConfigFile(); err != nil {
 		return err
 	}
-	if err := l.Xtrabackup.PreRun(); err != nil {
+	if err := l.Xtrabackup.stopAndClean(l.RenameOriginalDir); err != nil {
 		return err
 	}
 	if err := l.loadBackup(); err != nil {
-		return err
-	}
-	// TODO 考虑把这个地方封装成独立的节点，可以单独重试
-	if err := l.Xtrabackup.PostRun(); err != nil {
 		return err
 	}
 	return nil

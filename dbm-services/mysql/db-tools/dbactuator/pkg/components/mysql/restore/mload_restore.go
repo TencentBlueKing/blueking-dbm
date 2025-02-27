@@ -145,7 +145,7 @@ func (m *MLoad) initDirs() error {
 		return errors.Errorf("work_dir %s should not be empty", m.WorkDir)
 	}
 	if m.WorkID == "" {
-		m.WorkID = newTimestampString()
+		m.WorkID = cmutil.NewTimestampString()
 	}
 	m.taskDir = fmt.Sprintf("%s/doDr_%s/%d", m.WorkDir, m.WorkID, m.TgtInstance.Port)
 	if err := osutil.CheckAndMkdir("", m.taskDir); err != nil {
