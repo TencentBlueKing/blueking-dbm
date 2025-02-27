@@ -10,11 +10,12 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.db_services.mysql.sql_import.constants import SQLExecuteTicketMode
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
+from backend.ticket.builders import TicketFlowBuilder
 from backend.ticket.builders.mysql.mysql_force_import_sqlfile import (
     MysqlForceSqlImportDetailSerializer,
     MysqlForceSqlImportFlowBuilder,
@@ -41,6 +42,8 @@ class MysqlDeleteClearDBFlowParamBuilder(MysqlForceSqlImportFlowParamBuilder):
 class MysqlDeleteClearDBFlowBuilder(MysqlForceSqlImportFlowBuilder):
     serializer = MysqlDeleteClearDBDetailSerializer
     inner_flow_builder = MysqlDeleteClearDBFlowParamBuilder
+    inner_flow_name = _("删除清档备份库执行")
+    editable = True
 
     @property
     def need_manual_confirm(self):
@@ -51,6 +54,9 @@ class MysqlDeleteClearDBFlowBuilder(MysqlForceSqlImportFlowBuilder):
     @property
     def need_timer(self):
         return self.ticket.details["ticket_mode"]["mode"] == SQLExecuteTicketMode.TIMER
+
+    def init_ticket_flows(self):
+        TicketFlowBuilder.init_ticket_flows(self)
 
     @classmethod
     def describe_ticket_flows(cls, flow_config_map):

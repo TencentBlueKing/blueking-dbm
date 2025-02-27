@@ -565,18 +565,38 @@ def operate_collector(db_type: str, machine_type: str, bk_instance_ids: list, ac
                 db_type=db_type, machine_type=machine_type, bk_instance_ids=bk_instance_ids, action=action
             )
         )
+
+    # 在多个集群同时部署的时候，可能存在不同管控业务在一个滑动窗口下发采集器
+    # 因此聚合管控业务和实例，后续按照管控业务维度下发采集器
+    fields = ("bk_biz_id", "cluster_type", "bk_instance_id")
+    instance_infos = (
+        StorageInstance.objects.filter(bk_instance_id__in=bk_instance_ids)
+        .values(*fields)
+        .union(ProxyInstance.objects.filter(bk_instance_id__in=bk_instance_ids).values(*fields))
+    )
+    hosting_biz__instance_ids_map = defaultdict(list)
+    for inst in instance_infos:
+        hosting_biz = BizSettings.get_exact_hosting_biz(inst["bk_biz_id"], inst["cluster_type"])
+        hosting_biz__instance_ids_map[hosting_biz].append(inst["bk_instance_id"])
+
     plugin_id = INSTANCE_MONITOR_PLUGINS[db_type][machine_type]["plugin_id"]
     collect_instances = CollectInstance.objects.filter(db_type=db_type, plugin_id=plugin_id)
     for collect_ins in collect_instances:
-        if machine_type in collect_ins.machine_types or not collect_ins.machine_types:
+        # 当前采集绑定机器类型，且下发的实例不属于绑定范围，则跳过
+        if collect_ins.machine_types and machine_type not in collect_ins.machine_types:
+            continue
+        # 根据管控业务分组，对实例下发采集器
+        for hosting_biz, instance_ids in hosting_biz__instance_ids_map.items():
             try:
                 BKMonitorV3Api.run_collect_config(
                     {
                         "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
                         "id": collect_ins.collect_id,
                         "scope": {
+                            "bk_biz_id": hosting_biz,
+                            "object_type": "SERVICE",
                             "node_type": "INSTANCE",
-                            "nodes": [{"id": bk_instance_id} for bk_instance_id in bk_instance_ids],
+                            "nodes": [{"id": bk_instance_id} for bk_instance_id in instance_ids],
                         },
                         "action": action,
                     }

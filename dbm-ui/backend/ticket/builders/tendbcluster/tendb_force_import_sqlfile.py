@@ -37,7 +37,7 @@ class TenDBClusterSqlImportFlowParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_FORCE_IMPORT_SQLFILE, is_sensitive=True)
-class TenDBClusterForceSqlImportFlowBuilder(MysqlForceSqlImportFlowBuilder, BaseTendbTicketFlowBuilder):
+class TenDBClusterForceSqlImportFlowBuilder(BaseTendbTicketFlowBuilder, MysqlForceSqlImportFlowBuilder):
     group = DBType.TenDBCluster.value
     serializer = TenDBClusterForceSqlImportDetailSerializer
     backup_builder = TenDBClusterSqlImportBackUpFlowParamBuilder

@@ -10,6 +10,8 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
+from django.utils.translation import gettext as _
+
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
 from backend.ticket.builders.mysql.mysql_delete_clear_db import (
@@ -35,4 +37,5 @@ class TendbClusterDeleteClearDBFlowParamBuilder(MysqlDeleteClearDBFlowParamBuild
 class TendbClusterDeleteClearDBFlowBuilder(BaseTendbTicketFlowBuilder, MysqlDeleteClearDBFlowBuilder):
     serializer = TendbClusterDeleteClearDBDetailSerializer
     inner_flow_builder = TendbClusterDeleteClearDBFlowParamBuilder
-    editable = False
+    inner_flow_name = _("删除清档备份库执行")
+    editable = True
