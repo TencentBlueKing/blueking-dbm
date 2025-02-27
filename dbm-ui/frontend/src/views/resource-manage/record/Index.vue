@@ -22,13 +22,81 @@
     </div>
     <DbTable
       ref="tableRef"
-      :columns="tableColumn"
       :data-source="dataSource"
       releate-url-query
       :show-settings="false"
       @clear-search="handleClearSearch"
       @column-filter="columnFilterChange"
-      @column-sort="columnSortChange" />
+      @column-sort="columnSortChange">
+      <BkTableColumn
+        field="ip"
+        fixed="left"
+        label="IP"
+        :width="200">
+      </BkTableColumn>
+      <BkTableColumn
+        field="events"
+        :filters="operationTypeFilters"
+        :label="t('操作类型')"
+        :width="130">
+        <template #default="{ data }: { data: MachineEvent }">
+          {{ data.eventDisplay }}
+        </template>
+      </BkTableColumn>
+      <BkTableColumn
+        field="updater"
+        :label="t('操作人')"
+        :width="200">
+      </BkTableColumn>
+      <BkTableColumn
+        field="updateAtDisplay"
+        :label="t('操作时间')"
+        :width="200">
+      </BkTableColumn>
+      <BkTableColumn
+        field="bizDisplay"
+        :label="t('所属业务')"
+        :width="250">
+        <template #default="{ data }: { data: MachineEvent }">
+          {{ data.ticket ? data.bizDisplay : '--' }}
+        </template>
+      </BkTableColumn>
+      <BkTableColumn
+        field="ticket"
+        :label="t('关联单据')"
+        :width="200">
+        <template #default="{ data }: { data: MachineEvent }">
+          <RouterLink
+            v-if="data.ticket"
+            target="_blank"
+            :to="{
+              name: 'bizTicketManage',
+              params: {
+                ticketId: data.ticket,
+              },
+            }">
+            {{ data.ticket_type_display }}
+          </RouterLink>
+          <span v-else>--</span>
+        </template>
+      </BkTableColumn>
+      <BkTableColumn
+        field="clusters"
+        :label="t('集群')"
+        show-overflow="tooltip"
+        :width="450">
+        <template #default="{ data }: { data: MachineEvent }">
+          {{ data.clusters.length ? data.clusters.map((item) => item.immute_domain).join(', ') : '--' }}
+        </template>
+      </BkTableColumn>
+      <BkTableColumn
+        field="operationDetail"
+        fixed="right"
+        :label="t('操作明细')"
+        show-overflow="tooltip"
+        :width="320">
+      </BkTableColumn>
+    </DbTable>
   </div>
 </template>
 <script setup lang="tsx">
@@ -45,7 +113,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { MachineEvents, machineEventsDisplayMap } from '@common/const/machineEvents';
+  import { machineEventsDisplayMap } from '@common/const/machineEvents';
 
   import { getMenuListSearch, getSearchSelectorParams } from '@utils';
 
@@ -119,108 +187,10 @@
       ] as ISearchItem[],
   );
 
-  const tableColumn = computed(() => [
-    {
-      field: 'ip',
-      fixed: 'left',
-      label: 'IP',
-      render: ({ data }: { data: MachineEvent }) => data.ip,
-      width: 200,
-    },
-    {
-      field: 'event',
-      filter: {
-        list: Object.entries(machineEventsDisplayMap).map(([key, value]) => ({ text: value, value: key })),
-        // checked: columnCheckedMap.value.operation_type,
-      },
-      label: t('操作类型'),
-      render: ({ data }: { data: MachineEvent }) => data.eventDisplay,
-    },
-    {
-      field: 'updater',
-      label: t('操作人'),
-    },
-    {
-      field: 'update_at',
-      label: t('操作时间'),
-      // sort: true,
-      render: ({ data }: { data: MachineEvent }) => data.updateAtDisplay,
-      width: 200,
-    },
-    {
-      field: 'bizDisplay',
-      label: t('所属业务'),
-    },
-    {
-      field: 'ticket',
-      label: t('关联单据'),
-      render: ({ data }: { data: MachineEvent }) =>
-        data.ticket ? (
-          <router-link
-            to={{
-              name: 'bizTicketManage',
-              params: {
-                ticketId: data.ticket,
-              },
-            }}
-            target='_blank'>
-            {data.ticket}
-          </router-link>
-        ) : (
-          '--'
-        ),
-      width: 170,
-    },
-    {
-      field: 'ticket_type_display',
-      label: t('单据类型'),
-      // filter: {
-      //   list: ticketTypes.value.map(item => ({
-      //     value: item.id,
-      //     text: item.name,
-      //   })),
-      //   checked: columnCheckedMap.value.ticket_types,
-      // },
-      render: ({ data }: { data: MachineEvent }) => data.ticket_type_display || '--',
-    },
-
-    {
-      field: 'clusters',
-      label: t('集群'),
-      render: ({ data }: { data: MachineEvent }) => (data.clusters.length ? data.clusters.join(', ') : '--'),
-    },
-
-    {
-      field: 'operationDetail',
-      label: t('操作明细'),
-      render: ({ data }: { data: MachineEvent }) => {
-        if (
-          [MachineEvents.APPLY_RESOURCE, MachineEvents.RETURN_RESOURCE].includes(data.event) ||
-          (data.event === MachineEvents.TO_FAULT && data.ticket)
-        ) {
-          return (
-            <span>
-              {data.operationDetail}（{t('关联单据')}：
-              <router-link
-                to={{
-                  name: 'bizTicketManage',
-                  params: {
-                    ticketId: data.ticket,
-                  },
-                }}
-                target='_blank'>
-                {data.ticket}
-              </router-link>
-              ）
-            </span>
-          );
-        }
-
-        return <span>{data.operationDetail}</span>;
-      },
-      width: 430,
-    },
-  ]);
+  const operationTypeFilters = Object.entries(machineEventsDisplayMap).map(([key, value]) => ({
+    label: value,
+    value: key,
+  }));
 
   useRequest(getTicketTypes, {
     defaultParams: [
