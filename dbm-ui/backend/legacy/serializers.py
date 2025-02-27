@@ -40,7 +40,7 @@ class CreateDNSSerializer(serializers.Serializer):
 class DeleteDNSSerializer(CreateDNSSerializer):
     class DeleteDomainSerializer(CreateDNSSerializer.CreateDomainSerializer):
         instances = serializers.ListField(
-            help_text=_("实例列表"), child=serializers.IntegerField(), allow_empty=True, required=False, default=[]
+            help_text=_("实例列表"), child=serializers.CharField(), allow_empty=True, required=False, default=[]
         )
 
     domains = serializers.ListField(help_text=_("域名列表"), child=DeleteDomainSerializer(), allow_empty=False)
