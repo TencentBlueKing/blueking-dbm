@@ -20,13 +20,9 @@ from backend.flow.consts import (
     SqlserverRestoreDBStatus,
     SqlserverRestoreMode,
 )
+from backend.flow.utils.base.validate_handler import ValidateHandler
 from backend.flow.utils.sqlserver.sqlserver_host import Host
-from backend.flow.utils.sqlserver.validate import (
-    ValidateHandler,
-    validate_get_dbmeta_func,
-    validate_get_payload_func,
-    validate_hosts,
-)
+from backend.flow.utils.sqlserver.validate import validate_get_dbmeta_func, validate_get_payload_func, validate_hosts
 
 """
 定义sqlserver每个活动节点的私用变量kwargs的dataclass类型

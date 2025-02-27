@@ -54,18 +54,6 @@ class SqlserverCluster:
             setattr(self, field, kwargs.get(field))
 
 
-@dataclass
-class ValidateHandler:
-    def __init__(self):
-        self.__dataclass_fields__ = None
-
-    def __post_init__(self):
-        for key, value in self.__dataclass_fields__.items():
-            validate_func = value.metadata.get("validate")
-            if validate_func:
-                validate_func(getattr(self, key))
-
-
 def validate_get_payload_func(value: str) -> None:
     """
     判断get_payload_func变量

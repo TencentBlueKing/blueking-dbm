@@ -11,6 +11,9 @@ import logging
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
+from backend.db_meta.enums import InstanceInnerRole, InstanceStatus
+from backend.db_meta.exceptions import MasterInstanceNotExistException
+from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_package.models import Package
 from backend.flow.consts import ConfigTypeEnum, DBActuatorActionEnum, DBActuatorTypeEnum, MediumEnum, NameSpaceEnum
 
@@ -115,6 +118,36 @@ class ProxyActPayload(object):
                     "port": self.cluster["proxy_port"],
                     "backend_host": set_backend_ip,
                     "backend_port": self.cluster["mysql_port"],
+                },
+            },
+        }
+
+    def get_set_proxy_backends_in_cluster(self, **kwargs) -> dict:
+        """
+        拼接proxy配置后端实例的payload参数
+        这个根据集群元信息实时计算它的master
+        应用在proxy替换、添加单据上
+        """
+        master = ""
+        cluster = Cluster.objects.get(id=self.cluster["id"])
+        proxy_port = cluster.proxyinstance_set.first().port
+        try:
+            master = cluster.storageinstance_set.get(
+                instance_inner_role=InstanceInnerRole.MASTER, status=InstanceStatus.RUNNING
+            )
+        except StorageInstance.DoesNotExist:
+            MasterInstanceNotExistException(cluster_type=cluster.cluster_type, cluster_id=cluster.id)
+
+        return {
+            "db_type": DBActuatorTypeEnum.Proxy.value,
+            "action": DBActuatorActionEnum.SetBackend.value,
+            "payload": {
+                "general": {"runtime_account": self.proxy_account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "port": proxy_port,
+                    "backend_host": master.machine.ip,
+                    "backend_port": master.port,
                 },
             },
         }

@@ -46,11 +46,13 @@ class PauseService(BaseService):
         return True
 
     def _schedule(self, data, parent_data, callback_data=None):
+        check_result = True
         if callback_data is not None:
             self.log_info("callback_data: {}".format(callback_data))
             data.outputs.callback_data = callback_data
+
             self.finish_schedule()
-        return True
+        return check_result
 
     def inputs_format(self):
         return [

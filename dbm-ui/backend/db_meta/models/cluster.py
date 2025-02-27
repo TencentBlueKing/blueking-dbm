@@ -109,7 +109,7 @@ class Cluster(AuditedModel):
         if not ticket_type:
             return None
 
-        return ClusterOperateRecord.objects.has_exclusive_operations(ticket_type, cluster_id, **kwargs)
+        return ClusterOperateRecord.objects.has_exclusive_operations_with_lock(ticket_type, cluster_id, **kwargs)
 
     @classmethod
     def handle_exclusive_operations(cls, cluster_ids: List[int], ticket_type: str, **kwargs):

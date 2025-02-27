@@ -92,7 +92,7 @@ class MySQLProxyClusterAddFlow(object):
             "proxy_port": template_proxy.port,
             "target_proxy_ip": proxy_ip,
             # 新的proxy配置后端ip
-            "set_backend_ip": master.machine.ip,
+            # "set_backend_ip": master.machine.ip,
             "add_domain_list": [i.entry for i in dns_list],
             "is_drop": False,
         }
@@ -203,7 +203,7 @@ class MySQLProxyClusterAddFlow(object):
                             bk_cloud_id=cluster["bk_cloud_id"],
                             cluster=cluster,
                             exec_ip=info["proxy_ip"]["ip"],
-                            get_mysql_payload_func=ProxyActPayload.get_set_proxy_backends.__name__,
+                            get_mysql_payload_func=ProxyActPayload.get_set_proxy_backends_in_cluster.__name__,
                         )
                     ),
                 )

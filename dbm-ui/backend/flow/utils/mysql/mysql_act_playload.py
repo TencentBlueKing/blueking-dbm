@@ -1028,9 +1028,11 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         切换主从act的调用参数，act 逻辑包括：克隆权限、切换角色、设置proxy配置
         下发到slave（新的master机器）执行
         """
+        cluster = Cluster.objects.get(id=self.cluster["id"])
+        proxys = cluster.proxyinstance_set.all()
         proxy_instances = []
-        for proxy_ip in self.cluster["proxy_ip_list"]:
-            proxy_instances.append({"host": proxy_ip, "port": self.cluster["proxy_port"]})
+        for proxy in proxys:
+            proxy_instances.append({"host": proxy.machine.ip, "port": proxy.port})
 
         slave_instances = []
         for slave_ip in self.cluster["other_slave_info"]:

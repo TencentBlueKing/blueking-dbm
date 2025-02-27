@@ -41,13 +41,20 @@ from backend.flow.engine.bamboo.scene.mysql.common.recover_slave_instance import
 from backend.flow.engine.bamboo.scene.mysql.common.uninstall_instance import uninstall_instance_sub_flow
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetBackupInfoFailedException
 from backend.flow.engine.bamboo.scene.spider.spider_remote_node_migrate import remote_instance_migrate_sub_flow
+from backend.flow.plugins.components.collections.common.add_unlock_ticket_type_config import (
+    AddUnlockTicketTypeConfigComponent,
+)
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
+from backend.flow.plugins.components.collections.common.pause_with_ticket_lock_check import (
+    PauseWithTicketLockCheckComponent,
+)
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_crond_control import MysqlCrondMonitorControlComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
+from backend.flow.utils.base.base_dataclass import AddUnLockTicketTypeKwargs, ReleaseUnLockTicketTypeKwargs
 from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_ports, get_version_and_charset
 from backend.flow.utils.mysql.mysql_act_dataclass import (
@@ -61,6 +68,7 @@ from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import ClusterInfoContext
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
 from backend.ticket.builders.common.constants import MySQLBackupSource
+from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
 
@@ -159,6 +167,18 @@ class MySQLMigrateClusterRemoteFlow(object):
                 bk_host_ids.append(self.data["bk_new_master"]["bk_host_id"])
 
             tendb_migrate_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+
+            # 解除对proxy替换的单据互斥锁，这个阶段到下一个暂停节点，允许proxy替换单据进入执行
+            tendb_migrate_pipeline.add_act(
+                act_name=_("解锁部分单据互斥锁"),
+                act_component_code=AddUnlockTicketTypeConfigComponent.code,
+                kwargs=asdict(
+                    AddUnLockTicketTypeKwargs(
+                        cluster_ids=self.data["cluster_ids"], unlock_ticket_type_list=[TicketType.MYSQL_PROXY_SWITCH]
+                    )
+                ),
+            )
+
             # 整机安装数据库
             master = cluster_class.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
             # db_config example {3306:{"key":val},3307:{"key":val}}
@@ -479,8 +499,17 @@ class MySQLMigrateClusterRemoteFlow(object):
                 ),
             )
 
-            # 人工确认切换迁移实例
-            tendb_migrate_pipeline.add_act(act_name=_("人工确认切换"), act_component_code=PauseComponent.code, kwargs={})
+            # 人工确认切换迁移实例, 释放解除之前的prox替换单据互斥
+            tendb_migrate_pipeline.add_act(
+                act_name=_("人工确认切换,判断互斥单据"),
+                act_component_code=PauseWithTicketLockCheckComponent.code,
+                kwargs=asdict(
+                    ReleaseUnLockTicketTypeKwargs(
+                        cluster_ids=self.data["cluster_ids"],
+                        release_unlock_ticket_type_list=[TicketType.MYSQL_PROXY_SWITCH],
+                    )
+                ),
+            )
             # 切换迁移实例
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=switch_sub_pipeline_list)
             tendb_migrate_pipeline.add_sub_pipeline(
@@ -537,6 +566,18 @@ class MySQLMigrateClusterRemoteFlow(object):
                     ),
                 )
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=uninstall_surrounding_sub_pipeline_list)
+
+            # 解除对proxy替换的单据互斥锁，最后卸载旧实例阶段，能允许proxy替换单据进入执行
+            tendb_migrate_pipeline.add_act(
+                act_name=_("解锁部分单据互斥锁"),
+                act_component_code=AddUnlockTicketTypeConfigComponent.code,
+                kwargs=asdict(
+                    AddUnLockTicketTypeKwargs(
+                        cluster_ids=self.data["cluster_ids"], unlock_ticket_type_list=[TicketType.MYSQL_PROXY_SWITCH]
+                    )
+                ),
+            )
+
             # 卸载流程人工确认
             tendb_migrate_pipeline.add_act(act_name=_("人工确认卸载实例"), act_component_code=PauseComponent.code, kwargs={})
             # 卸载remote节点

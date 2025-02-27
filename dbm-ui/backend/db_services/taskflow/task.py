@@ -32,18 +32,12 @@ from pipeline.eri.models import (
 )
 from pipeline.eri.signals import post_set_state
 
-from backend.db_meta.exceptions import ClusterExclusiveOperateException
-from backend.db_meta.models import Cluster
-from backend.db_meta.models.sqlserver_dts import SqlserverDtsInfo
-from backend.db_services.taskflow.constants import MAX_AUTO_RETRY_TIMES, RETRY_INTERVAL
+from backend.db_services.taskflow.constants import MAX_AUTO_RETRY_TIMES
 from backend.db_services.taskflow.exceptions import RetryNodeException
 from backend.flow.consts import StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.models import FlowNode, FlowTree
 from backend.flow.plugins.components.collections.common.base_service import BaseService
-from backend.ticket.builders.common.base import fetch_cluster_ids
-from backend.ticket.constants import FlowRetryType, TicketType
-from backend.ticket.models import Flow, Ticket
 
 logger = logging.getLogger("flow")
 
@@ -73,35 +67,6 @@ def retry_node(root_id: str, flow_node: FlowNode, retry_times: int) -> Union[Eng
         service.log_error(error_msg)
         send_flow_state(StateType.FAILED, root_id, flow_node.node_id, flow_node.version_id)
         return EngineAPIResult(result=False, message=error_msg)
-
-    # 判断重试任务关联单据是否存在执行互斥
-    try:
-        ticket = Ticket.objects.get(id=flow_node.uid)
-        ticket_type = ticket.ticket_type
-        if ticket_type == TicketType.SQLSERVER_DISABLE.value or ticket_type in [
-            TicketType.SQLSERVER_INCR_MIGRATE,
-            TicketType.SQLSERVER_FULL_MIGRATE,
-        ]:
-            # 判断sqlserver禁用、迁移集群跟迁移记录是否互斥
-            SqlserverDtsInfo.dts_info_clusive(ticket_id=ticket.id, ticket_type=ticket_type, details=ticket.details)
-        cluster_ids = fetch_cluster_ids(ticket.details)
-        Cluster.handle_exclusive_operations(cluster_ids, ticket.ticket_type, exclude_ticket_ids=[ticket.id])
-    except ClusterExclusiveOperateException as e:
-        # 互斥下: 手动重试直接报错，自动重试则延迟一定时间后重新执行该任务
-        service.log_info(_("存在执行互斥，正在进行重试，当前重试次数为{}").format(retry_times))
-        flow = Flow.objects.get(flow_obj_id=flow_node.root_id)
-        if flow.retry_type == FlowRetryType.MANUAL_RETRY:
-            raise RetryNodeException(_("执行互斥错误信息: {}").format(e))
-        else:
-            # 认为重试中也是RUNNING状态
-            if retry_times == 1:
-                send_flow_state(StateType.RUNNING, root_id, flow_node.node_id, flow_node.version_id)
-
-            retry_node.apply_async((root_id, flow_node, retry_times + 1), countdown=RETRY_INTERVAL)
-            return EngineAPIResult(result=False, message=_("存在执行互斥将自动进行重试..."))
-    except (Ticket.DoesNotExist, ValueError):
-        # 如果单据不存在，则忽略校验
-        pass
 
     # 进行重试操作
     result = BambooEngine(root_id=root_id).retry_node(node_id=flow_node.node_id)

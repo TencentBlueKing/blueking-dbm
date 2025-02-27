@@ -383,7 +383,7 @@ def master_and_slave_switch_v2(
     )
 
     # 代理层、账号等等。
-    mysql_proxy = cluster.proxyinstance_set.all()
+    # mysql_proxy = cluster.proxyinstance_set.all()
     mysql_storage_slave = cluster.storageinstance_set.filter(
         instance_inner_role=InstanceInnerRole.SLAVE.value, status=InstanceStatus.RUNNING.value
     )
@@ -398,8 +398,9 @@ def master_and_slave_switch_v2(
     domain_map = get_tendb_ha_entry(cluster.id)
     cluster_info["master_domain"] = domain_map["master_domain"]
     cluster_info["slave_domain"] = domain_map["slave_domain"]
-    cluster_info["proxy_ip_list"] = [x.machine.ip for x in mysql_proxy]
-    cluster_info["proxy_port"] = mysql_proxy[0].port
+    # cluster_info["proxy_ip_list"] = [x.machine.ip for x in mysql_proxy]
+    # cluster_info["proxy_port"] = mysql_proxy[0].port
+    cluster_info["id"] = cluster.id
 
     cluster_sw_kwargs = ExecActuatorKwargs(cluster=cluster_info, bk_cloud_id=cluster.bk_cloud_id)
     cluster_sw_kwargs.exec_ip = cluster_info["new_master_ip"]

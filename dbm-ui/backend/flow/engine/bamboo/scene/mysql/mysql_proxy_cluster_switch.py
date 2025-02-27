@@ -23,8 +23,13 @@ from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import init_machine_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import DeployPeripheralToolsDepart
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
+from backend.flow.plugins.components.collections.common.add_unlock_ticket_type_config import (
+    AddUnlockTicketTypeConfigComponent,
+)
 from backend.flow.plugins.components.collections.common.delete_cc_service_instance import DelCCServiceInstComponent
-from backend.flow.plugins.components.collections.common.pause import PauseComponent
+from backend.flow.plugins.components.collections.common.pause_with_ticket_lock_check import (
+    PauseWithTicketLockCheckComponent,
+)
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.clone_proxy_client_in_backend import (
     CloneProxyUsersInBackendComponent,
@@ -39,6 +44,7 @@ from backend.flow.plugins.components.collections.mysql.drop_proxy_client_in_back
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
+from backend.flow.utils.base.base_dataclass import AddUnLockTicketTypeKwargs, ReleaseUnLockTicketTypeKwargs
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CloneProxyClientInBackendKwargs,
     CloneProxyUsersKwargs,
@@ -54,6 +60,7 @@ from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import SystemInfoContext
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
 from backend.flow.utils.mysql.proxy_act_payload import ProxyActPayload
+from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
 
@@ -100,8 +107,6 @@ class MySQLProxyClusterSwitchFlow(object):
             "proxy_admin_port": origin_proxy.admin_port,
             "origin_proxy_ip": origin_proxy_ip,
             "target_proxy_ip": target_proxy_ip,
-            # 新的proxy配置后端ip
-            "set_backend_ip": master.machine.ip,
             "add_domain_list": [i.entry for i in dns_list],
         }
 
@@ -142,6 +147,17 @@ class MySQLProxyClusterSwitchFlow(object):
                 bk_cloud_id=info["target_proxy_ip"]["bk_cloud_id"],
             )
 
+            # 解除对主从迁移的单据互斥锁，这个阶段到下一个暂停节点，允许主从迁移单据进入执行
+            sub_pipeline.add_act(
+                act_name=_("解锁部分单据互斥锁"),
+                act_component_code=AddUnlockTicketTypeConfigComponent.code,
+                kwargs=asdict(
+                    AddUnLockTicketTypeKwargs(
+                        cluster_ids=info["cluster_ids"], unlock_ticket_type_list=[TicketType.MYSQL_MIGRATE_CLUSTER]
+                    )
+                ),
+            )
+
             # 初始新机器
             sub_pipeline.add_sub_pipeline(
                 sub_flow=init_machine_sub_flow(
@@ -175,7 +191,17 @@ class MySQLProxyClusterSwitchFlow(object):
                 kwargs=asdict(exec_act_kwargs),
             )
             # 后续流程需要在这里加一个暂停节点，让用户在合适的时间执行切换
-            sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
+            # 这里会释放前一阶段解除对主从迁移的单据互斥锁，这个阶段不允许主从迁移单据进入执行
+            sub_pipeline.add_act(
+                act_name=_("人工确认，判断互斥条件"),
+                act_component_code=PauseWithTicketLockCheckComponent.code,
+                kwargs=asdict(
+                    ReleaseUnLockTicketTypeKwargs(
+                        cluster_ids=info["cluster_ids"],
+                        release_unlock_ticket_type_list=[TicketType.MYSQL_MIGRATE_CLUSTER],
+                    )
+                ),
+            )
 
             # 阶段2 根据需要替换的proxy的集群，依次添加
             switch_proxy_sub_list = []
@@ -203,7 +229,7 @@ class MySQLProxyClusterSwitchFlow(object):
                             bk_cloud_id=cluster["bk_cloud_id"],
                             cluster=cluster,
                             exec_ip=info["target_proxy_ip"]["ip"],
-                            get_mysql_payload_func=ProxyActPayload.get_set_proxy_backends.__name__,
+                            get_mysql_payload_func=ProxyActPayload.get_set_proxy_backends_in_cluster.__name__,
                         )
                     ),
                 )
@@ -315,7 +341,16 @@ class MySQLProxyClusterSwitchFlow(object):
             )
 
             # 阶段4 后续流程需要在这里加一个暂停节点，让用户在合适的时间执行下架旧实例操作
-            sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
+            sub_pipeline.add_act(
+                act_name=_("人工确认，判断互斥条件"),
+                act_component_code=PauseWithTicketLockCheckComponent.code,
+                kwargs=asdict(
+                    ReleaseUnLockTicketTypeKwargs(
+                        cluster_ids=info["cluster_ids"],
+                        release_unlock_ticket_type_list=[],
+                    )
+                ),
+            )
 
             # 阶段5 机器维度，下架旧机器节点
             reduce_proxy_sub_list = []

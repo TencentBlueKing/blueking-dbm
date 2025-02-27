@@ -197,7 +197,7 @@ class BaseService(Service, ServiceLogMixin, metaclass=ABCMeta):
 
         kwargs = data.get_one_of_inputs("kwargs") or {}
         try:
-            result = self._schedule(data, parent_data)
+            result = self._schedule(data, parent_data, callback_data)
             return result
         except Exception as e:  # pylint: disable=broad-except
             self.log_exception(f"[{kwargs.get('node_name', self.__class__.__name__)}] failed: {e}")

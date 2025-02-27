@@ -398,11 +398,36 @@ class ClusterOperateRecordManager(models.Manager):
         return self.filter(cluster_id=cluster_id, ticket__status=TicketStatus.RUNNING, *args, **kwargs)
 
     def filter_inner_actives(self, cluster_id, *args, **kwargs):
-        """获取集群正在 运行/失败 的inner flow的单据记录。此时认为集群会在互斥阶段"""
+        """
+        获取集群正在 运行/失败 的inner flow的单据记录。此时认为集群会在互斥阶段
+        todo 下版本废弃
+        """
         # 排除特定的单据，如自身单据重试排除自身
         exclude_ticket_ids = kwargs.pop("exclude_ticket_ids", [])
         return (
             self.select_related("ticket")
+            .filter(
+                cluster_id=cluster_id,
+                flow__flow_type=FlowType.INNER_FLOW,
+                flow__status__in=[TicketFlowStatus.RUNNING, TicketFlowStatus.FAILED],
+                *args,
+                **kwargs,
+            )
+            .exclude(flow__ticket_id__in=exclude_ticket_ids)
+        )
+
+    @transaction.atomic()
+    def filter_inner_actives_with_lock(self, cluster_id, *args, **kwargs):
+        """
+        获取集群正在 运行/失败 的inner flow的单据记录。此时认为集群会在互斥阶段
+        这里读取加锁，避免并发产生异常
+        """
+
+        # 排除特定的单据，如自身单据重试排除自身
+        exclude_ticket_ids = kwargs.pop("exclude_ticket_ids", [])
+        return (
+            self.select_related("ticket")
+            .select_for_update()
             .filter(
                 cluster_id=cluster_id,
                 flow__flow_type=FlowType.INNER_FLOW,
@@ -418,11 +443,37 @@ class ClusterOperateRecordManager(models.Manager):
         return [r.summary for r in self.filter_actives(cluster_id, **kwargs)]
 
     def has_exclusive_operations(self, ticket_type, cluster_id, **kwargs):
-        """判断当前单据类型与集群正在进行中的单据是否互斥"""
+        """
+        判断当前单据类型与集群正在进行中的单据是否互斥
+        todo 目前没有调用，下版本废弃，全面用has_exclusive_operations_with_lock方法
+        """
         active_records = self.filter_inner_actives(cluster_id, **kwargs)
         exclusive_ticket_map = self.get_exclusive_ticket_map()
         exclusive_infos = []
         for record in active_records:
+            # 优化判断活跃record的解锁信息，如果能命中，就改记录不产生互斥行为
+            if "*" in record.unlock_ticket_type_condition or ticket_type in record.unlock_ticket_type_condition:
+                # *号表示全解锁, 或者此时单据类型在解锁范围，跳过
+                continue
+            active_ticket_type = record.ticket.ticket_type
+            # 记录互斥信息。不存在互斥表默认为互斥
+            if exclusive_ticket_map.get(ticket_type, {}).get(active_ticket_type, True):
+                exclusive_infos.append({"exclusive_ticket": record.ticket, "root_id": record.flow.flow_obj_id})
+        return exclusive_infos
+
+    def has_exclusive_operations_with_lock(self, ticket_type, cluster_id, **kwargs):
+        """
+        判断当前单据类型与集群正在进行中的单据是否互斥
+        这里检查是加锁处理
+        """
+        active_records = self.filter_inner_actives_with_lock(cluster_id, **kwargs)
+        exclusive_ticket_map = self.get_exclusive_ticket_map()
+        exclusive_infos = []
+        for record in active_records:
+            # 优化判断活跃record的解锁信息，如果能命中，就改记录不产生互斥行为
+            if "*" in record.unlock_ticket_type_condition or ticket_type in record.unlock_ticket_type_condition:
+                # *号表示全解锁, 或者此时单据类型在解锁范围，跳过
+                continue
             active_ticket_type = record.ticket.ticket_type
             # 记录互斥信息。不存在互斥表默认为互斥
             if exclusive_ticket_map.get(ticket_type, {}).get(active_ticket_type, True):
@@ -457,7 +508,10 @@ class ClusterOperateRecord(AuditedModel):
     cluster_id = models.IntegerField(_("集群ID"))
     flow = models.ForeignKey("Flow", help_text=_("关联流程任务"), on_delete=models.CASCADE)
     ticket = models.ForeignKey("Ticket", help_text=_("关联工单"), on_delete=models.CASCADE)
-
+    unlock_ticket_type_condition = models.JSONField(
+        default=list, help_text=_("流程运行中解锁的单据类型，默认空list，运行中保持互斥条件，如果使用'*', 表示全解锁，每个元素应该是平台定义好的ticket_type")
+    )
+    is_pause = models.BooleanField(default=False, help_text=_("代表记录是否处于暂停待执行的节点中"))
     objects = ClusterOperateRecordManager()
 
     class Meta:
@@ -486,6 +540,78 @@ class ClusterOperateRecord(AuditedModel):
         for record in records:
             cluster_operate_records_map[record.cluster_id].append(record.summary)
         return cluster_operate_records_map
+
+    def unlock_ticket_type_operations(self, unlock_ticket_type_list: list = None):
+        """
+        给运行的单据中对某些单据类型解锁
+        @param unlock_ticket_type_list: 解锁列表
+        """
+        if unlock_ticket_type_list is None:
+            # 如果不传默认，全解锁
+            unlock_ticket_type_list = ["*"]
+
+        if not isinstance(unlock_ticket_type_list, list):
+            raise TypeError(_("参数必须是列表类型"))
+
+        if "*" in unlock_ticket_type_list:
+            self.unlock_ticket_type_condition = ["*"]
+            self.save()
+            return
+        old_list = self.unlock_ticket_type_condition
+        # 去重合并保存
+        self.unlock_ticket_type_condition = list(set(old_list + unlock_ticket_type_list))
+        self.save()
+        return
+
+    def remove_unlock_ticket_type_config_operations(self, remove_ticket_type_list: list = None):
+        """
+        给运行的单据中对某些单据类型解锁
+        @param remove_ticket_type_list: 移除解锁列表
+        """
+        if remove_ticket_type_list is None:
+            # 如果不传默认，全解锁
+            remove_ticket_type_list = []
+
+        if not isinstance(remove_ticket_type_list, list):
+            raise TypeError(_("参数必须是列表类型"))
+
+        if "*" in remove_ticket_type_list:
+            # *号代表全部移除
+            self.unlock_ticket_type_condition = []
+            self.save()
+            return
+        old_list = self.unlock_ticket_type_condition
+        # 去重合并保存
+        self.unlock_ticket_type_condition = list(set(old_list) - set(remove_ticket_type_list))
+        self.save()
+        return
+
+    @transaction.atomic()
+    def has_exclusive_operations_pause(self):
+        """
+        在暂停节点中，
+        判断当前单据类型与集群正在进行中的单据是否互斥
+        这里判断流程是否在暂停节点的状态
+        如果没有产生互斥，则暂停节点可以运行，同时记录的is_pause=False
+        """
+        exclusive_infos = self.__class__.objects.has_exclusive_operations_with_lock(
+            self.ticket.ticket_type, self.cluster_id, is_pause=False
+        )
+        if not exclusive_infos:
+            # 表示当前没有互斥单据, 可以运行
+            self.is_pause = False
+            self.save()
+            return True, []
+        # 表示存在互斥单据，且不在pause状态的
+        return False, exclusive_infos
+
+    @transaction.atomic()
+    def update_is_pause_with_pause(self):
+        """
+        流程暂停时，相关的记录设置is_pause=True
+        """
+        self.is_pause = True
+        self.save()
 
 
 class InstanceOperateRecordManager(models.Manager):
