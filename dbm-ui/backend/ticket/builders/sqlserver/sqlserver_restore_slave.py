@@ -73,7 +73,7 @@ class SQLServerRestoreSlaveFlowParamBuilder(builders.FlowParamBuilder):
 
 class SQLServerRestoreSlaveResourceParamBuilder(SQLServerBaseOperateResourceParamBuilder):
     def format(self):
-        slave_hosts = get_target_items_from_details(self.ticket.details, match_keys=["bk_host_id"])
+        slave_hosts = get_target_items_from_details(self.ticket_data, match_keys=["bk_host_id"])
         # 根据从库host_id获取对应主库的host_id
         slave_master_mapping = (
             Machine.objects.prefetch_related(
@@ -96,9 +96,11 @@ class SQLServerRestoreSlaveResourceParamBuilder(SQLServerBaseOperateResourcePara
 
         id__machine = {
             machine.bk_host_id: machine
-            for machine in Machine.objects.prefetch_related("bk_city__logical_city").filter(bk_host_id__in=master_hosts)
+            for machine in Machine.objects.prefetch_related("bk_city__logical_city").filter(
+                bk_host_id__in=master_hosts
+            )
         }
-        cluster_ids = list(itertools.chain(*[infos["cluster_ids"] for infos in self.ticket.details["infos"]]))
+        cluster_ids = list(itertools.chain(*[infos["cluster_ids"] for infos in self.ticket_data["infos"]]))
         id__cluster = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
 
         for info in self.ticket_data["infos"]:
@@ -113,7 +115,7 @@ class SQLServerRestoreSlaveResourceParamBuilder(SQLServerBaseOperateResourcePara
             info["resource_params"] = {"os_type": BkOsType.WINDOWS.value}
             info["resource_spec"]["sqlserver_ha"].update(
                 affinity=cluster.disaster_tolerance_level,
-                location_spec={"city": master_machine.bk_city.logical_city.name, "sub_zone_ids": []}
+                location_spec={"city": master_machine.bk_city.logical_city.name, "sub_zone_ids": []},
             )
 
             # 根据亲和性补充园区信息
@@ -121,12 +123,13 @@ class SQLServerRestoreSlaveResourceParamBuilder(SQLServerBaseOperateResourcePara
                 info["resource_spec"]["sqlserver_ha"]["location_spec"].update(
                     sub_zone_ids=[master_machine.bk_sub_zone_id], include_or_exclue=False
                 )
-            elif cluster.disaster_tolerance_level in [AffinityEnum.SAME_SUBZONE, AffinityEnum.SAME_SUBZONE_CROSS_SWTICH]:
+            elif cluster.disaster_tolerance_level in [
+                AffinityEnum.SAME_SUBZONE,
+                AffinityEnum.SAME_SUBZONE_CROSS_SWTICH,
+            ]:
                 info["resource_spec"]["sqlserver_ha"]["location_spec"].update(
                     sub_zone_ids=[master_machine.bk_sub_zone_id], include_or_exclue=True
                 )
-
-        self.ticket.save(update_fields=["details"])
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()
