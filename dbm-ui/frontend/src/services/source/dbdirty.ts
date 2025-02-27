@@ -45,15 +45,15 @@ export function getDirtyMachines(params: { limit: number; offset: number }) {
  * 机器事件列表
  */
 export function getMachineEvents(params: {
-  operator?: string;
   bk_biz_id?: number;
+  create_at__gte?: string;
+  create_at__lte?: string;
+  domain?: string;
   events?: string;
   ips?: string;
-  create_at__lte?: string;
-  create_at__gte?: string;
-  domain?: string;
   limit?: number;
   offset?: number;
+  operator?: string;
 }) {
   return http.get<ListBase<MachineEventModel[]>>(`${path}/list_machine_events/`, params).then((data) => ({
     ...data,
@@ -79,11 +79,11 @@ export function deleteDirtyRecords(params: { bk_host_ids: number[] }) {
  * 故障池、待回收池列表
  */
 export function getMachinePool(params: {
+  bk_biz_id?: number;
+  ips?: string;
   limit?: number;
   offset?: number;
-  ips?: string;
   pool: 'fault' | 'recycle';
-  bk_biz_id?: number;
 }) {
   return http.get<ListBase<FaultOrRecycleMachineModel[]>>(`${path}/query_machine_pool/`, params).then((res) => ({
     ...res,
