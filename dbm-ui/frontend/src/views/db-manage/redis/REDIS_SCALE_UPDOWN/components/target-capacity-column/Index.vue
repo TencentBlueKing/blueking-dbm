@@ -128,36 +128,37 @@
 
   interface Props {
     rowData: {
-      cluster: Pick<RedisModel, 'id' | 'master_domain' | 'cluster_type' | 'cluster_type_name' | 'bk_cloud_id'> & {
-        cluster_stats?: RedisModel['cluster_stats'];
+      cluster: {
         cluster_spec?: RedisModel['cluster_spec'];
+        cluster_stats?: RedisModel['cluster_stats'];
         group_num: RedisModel['machine_pair_cnt'];
         shard_num: RedisModel['cluster_shard_num'];
+      } & Pick<RedisModel, 'id' | 'master_domain' | 'cluster_type' | 'cluster_type_name' | 'bk_cloud_id'>;
+      currentCapacity: {
+        total: number;
+        used: number;
       };
       version: string;
-      currentCapacity: {
-        used: number;
-        total: number;
-      };
     };
   }
 
   const props = defineProps<Props>();
 
   const modelValue = defineModel<{
-    spec_id: number;
-    count: number;
     affinity: string;
-    group_num: number;
-    shard_num: number;
     capacity: number;
+    count: number;
     future_capacity: number;
+    group_num: number;
     old_machine_info: {
       bk_biz_id: number;
       bk_cloud_id: number;
       bk_host_id: number;
       ip: string;
     }[];
+    shard_num: number;
+    spec_id: number;
+    update_mode: string;
   }>({
     default: () => ({}),
   });
@@ -165,13 +166,13 @@
   const { t } = useI18n();
 
   const localValue = reactive({
-    cluster_capacity: 0,
-    max: 0,
-    cluster_shard_num: 0,
-    spec_id: 0,
-    machine_pair: 0,
     capacity: 1,
+    cluster_capacity: 0,
+    cluster_shard_num: 0,
     future_capacity: 1,
+    machine_pair: 0,
+    max: 0,
+    spec_id: 0,
   });
   const showClusterTargetPlan = ref(false);
   const activeRowData = ref<TargetPlanProps['data']>();
@@ -187,8 +188,8 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('请选择目标容量'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 
@@ -209,29 +210,29 @@
 
   const handleShowSideslider = () => {
     const {
-      master_domain: domain,
+      bk_cloud_id: bkCloudId,
       cluster_spec: spec,
       cluster_type: clusterType,
-      bk_cloud_id: bkCloudId,
+      master_domain: domain,
       shard_num: shardNum,
     } = props.rowData.cluster;
     if (spec) {
       activeRowData.value = {
-        targetCluster: domain,
+        bkCloudId,
+        capacity: props.rowData.currentCapacity,
+        cloudId: bkCloudId,
+        clusterType: clusterType ?? ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
         currentSepc: {
-          name: spec.spec_name || '',
           cpu: spec.cpu,
           id: spec.spec_id,
           mem: spec.mem,
+          name: spec.spec_name || '',
           qps: spec.qps,
           storage_spec: spec.storage_spec,
         },
-        capacity: props.rowData.currentCapacity,
-        clusterType: clusterType ?? ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-        cloudId: bkCloudId,
         groupNum: localValue.machine_pair,
         shardNum,
-        bkCloudId,
+        targetCluster: domain,
       };
       showClusterTargetPlan.value = true;
     }
@@ -243,14 +244,15 @@
     futureCapacity.value = capacity;
     targetObj.value = targetInfo;
     modelValue.value = {
-      spec_id: localValue.spec_id,
-      count: targetObj.value!.requireMachineGroupNum,
       affinity: modelValue.value.affinity,
-      shard_num: localValue.cluster_shard_num,
-      group_num: localValue.machine_pair,
       capacity: capacity || 1,
+      count: targetObj.value.requireMachineGroupNum,
       future_capacity: capacity || 1,
+      group_num: localValue.machine_pair,
       old_machine_info: targetInfo.oldMachineInfo,
+      shard_num: localValue.cluster_shard_num,
+      spec_id: localValue.spec_id,
+      update_mode: targetObj.value.updateMode,
     };
     showClusterTargetPlan.value = false;
   };
