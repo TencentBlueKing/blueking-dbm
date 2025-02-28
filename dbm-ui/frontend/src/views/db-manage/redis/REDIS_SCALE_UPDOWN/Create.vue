@@ -106,7 +106,28 @@
   import TargetCapacityColumn from './components/target-capacity-column/Index.vue';
 
   interface RowData {
-    cluster: Pick<
+    backendGroup: {
+      affinity: string;
+      capacity: number;
+      count: number;
+      future_capacity: number;
+      group_num: number;
+      old_machine_info: {
+        bk_biz_id: number;
+        bk_cloud_id: number;
+        bk_host_id: number;
+        ip: string;
+      }[];
+      shard_num: number;
+      spec_id: number;
+      update_mode: string;
+    };
+    cluster: {
+      cluster_spec?: RedisModel['cluster_spec'];
+      cluster_stats?: RedisModel['cluster_stats'];
+      group_num: RedisModel['machine_pair_cnt'];
+      shard_num: RedisModel['cluster_shard_num'];
+    } & Pick<
       RedisModel,
       | 'id'
       | 'master_domain'
@@ -116,67 +137,48 @@
       | 'major_version'
       | 'cluster_capacity'
       | 'disaster_tolerance_level'
-    > & {
-      cluster_stats?: RedisModel['cluster_stats'];
-      cluster_spec?: RedisModel['cluster_spec'];
-      group_num: RedisModel['machine_pair_cnt'];
-      shard_num: RedisModel['cluster_shard_num'];
-    };
-    version: string;
+    >;
     currentCapacity: {
-      used: number;
       total: number;
-    };
-    backendGroup: {
-      spec_id: number;
-      count: number;
-      affinity: string;
-      group_num: number;
-      shard_num: number;
-      capacity: number;
-      future_capacity: number;
-      old_machine_info: {
-        bk_biz_id: number;
-        bk_cloud_id: number;
-        bk_host_id: number;
-        ip: string;
-      }[];
+      used: number;
     };
     switchMode: string;
+    version: string;
   }
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
-    cluster: data.cluster || {
-      id: 0,
-      master_domain: '',
-      cluster_type: ClusterTypes.REDIS_CLUSTER,
-      cluster_type_name: '',
-      major_version: '',
-      shard_num: 0,
+    backendGroup: data.backendGroup || {
+      affinity: AffinityType.CROS_SUBZONE,
+      capacity: 1,
+      count: 0,
+      future_capacity: 1,
       group_num: 0,
+      old_machine_info: [],
+      shard_num: 0,
+      spec_id: 0,
+      update_mode: '',
+    },
+    cluster: data.cluster || {
       bk_cloud_id: 0,
       cluster_capacity: 0,
+      cluster_type: ClusterTypes.REDIS_CLUSTER,
+      cluster_type_name: '',
       disaster_tolerance_level: 'CROS_SUBZONE',
-    },
-    version: data.version || '',
-    currentCapacity: data.currentCapacity || {
-      used: 0,
-      total: 1,
-    },
-    backendGroup: data.backendGroup || {
-      spec_id: 0,
-      count: 0,
-      affinity: AffinityType.CROS_SUBZONE,
-      shard_num: 0,
       group_num: 0,
-      capacity: 1,
-      future_capacity: 1,
-      old_machine_info: [],
+      id: 0,
+      major_version: '',
+      master_domain: '',
+      shard_num: 0,
+    },
+    currentCapacity: data.currentCapacity || {
+      total: 1,
+      used: 0,
     },
     switchMode: data.switchMode || '',
+    version: data.version || '',
   });
 
   const defaultData = () => ({
@@ -191,34 +193,27 @@
 
   const switchModeOptions = [
     {
-      value: 'user_confirm',
       label: t('需人工确认'),
+      value: 'user_confirm',
     },
     {
-      value: 'no_confirm',
       label: t('无需确认'),
+      value: 'no_confirm',
     },
   ];
 
-  const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
-    ip_source: 'resource_pool';
+  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     infos: {
-      update_mode: 'all_machines_replace';
-      cluster_id: number;
       bk_cloud_id: number;
-      db_version: string;
-      shard_num: number;
-      group_num: number;
       capacity: number;
+      cluster_id: number;
+      db_version: string;
+      display_info: {
+        cluster_spec?: RedisModel['cluster_spec'];
+        cluster_stats?: RedisModel['cluster_stats'];
+      } & Pick<RedisModel, 'cluster_shard_num' | 'cluster_capacity' | 'machine_pair_cnt'>;
       future_capacity: number;
-      online_switch_type: string;
-      resource_spec: {
-        backend_group: {
-          spec_id: number;
-          count: number; // 机器组数
-          affinity: AffinityType;
-        };
-      };
+      group_num: number;
       old_nodes: {
         backend_hosts: {
           bk_cloud_id: number;
@@ -226,11 +221,18 @@
           ip: string;
         }[];
       };
-      display_info: Pick<RedisModel, 'cluster_shard_num' | 'cluster_capacity' | 'machine_pair_cnt'> & {
-        cluster_stats?: RedisModel['cluster_stats'];
-        cluster_spec?: RedisModel['cluster_spec'];
+      online_switch_type: string;
+      resource_spec: {
+        backend_group: {
+          affinity: AffinityType;
+          count: number; // 机器组数
+          spec_id: number;
+        };
       };
+      shard_num: number;
+      update_mode: string;
     }[];
+    ip_source: 'resource_pool';
   }>(TicketTypes.REDIS_SCALE_UPDOWN);
 
   const handleSubmit = async () => {
@@ -240,27 +242,11 @@
     }
     createTicketRun({
       details: {
-        ip_source: 'resource_pool',
         infos: formData.tableData.map((item) => ({
-          update_mode: 'all_machines_replace',
           bk_cloud_id: item.cluster.bk_cloud_id,
+          capacity: item.backendGroup.capacity,
           cluster_id: item.cluster.id,
           db_version: item.version,
-          shard_num: item.backendGroup.shard_num,
-          group_num: item.backendGroup.group_num,
-          capacity: item.backendGroup.capacity,
-          future_capacity: item.backendGroup.future_capacity,
-          resource_spec: {
-            backend_group: {
-              spec_id: item.backendGroup.spec_id,
-              count: item.backendGroup.count,
-              affinity: item.backendGroup.affinity as AffinityType,
-            },
-          },
-          online_switch_type: item.switchMode,
-          old_nodes: {
-            backend_hosts: item.backendGroup.old_machine_info,
-          },
           display_info: {
             cluster_capacity: item.currentCapacity.total,
             cluster_shard_num: item.cluster.shard_num,
@@ -268,7 +254,23 @@
             cluster_stats: item.cluster?.cluster_stats,
             machine_pair_cnt: item.cluster.group_num,
           },
+          future_capacity: item.backendGroup.future_capacity,
+          group_num: item.backendGroup.group_num,
+          old_nodes: {
+            backend_hosts: item.backendGroup.old_machine_info,
+          },
+          online_switch_type: item.switchMode,
+          resource_spec: {
+            backend_group: {
+              affinity: item.backendGroup.affinity as AffinityType,
+              count: item.backendGroup.count,
+              spec_id: item.backendGroup.spec_id,
+            },
+          },
+          shard_num: item.backendGroup.shard_num,
+          update_mode: item.backendGroup.update_mode,
         })),
+        ip_source: 'resource_pool',
       },
       remark: formData.remark,
     });
@@ -284,18 +286,18 @@
         acc.push(
           createTableRow({
             cluster: {
-              id: item.id,
-              master_domain: item.master_domain,
+              bk_cloud_id: item.bk_cloud_id,
+              cluster_capacity: item.cluster_capacity,
+              cluster_spec: item.cluster_spec,
+              cluster_stats: item.cluster_stats,
               cluster_type: item.cluster_type,
               cluster_type_name: item.cluster_type_name,
-              cluster_stats: item.cluster_stats,
-              cluster_spec: item.cluster_spec,
-              cluster_capacity: item.cluster_capacity,
-              group_num: item.machine_pair_cnt,
-              shard_num: item.cluster_shard_num,
-              bk_cloud_id: item.bk_cloud_id,
-              major_version: item.major_version,
               disaster_tolerance_level: item.disaster_tolerance_level,
+              group_num: item.machine_pair_cnt,
+              id: item.id,
+              major_version: item.major_version,
+              master_domain: item.master_domain,
+              shard_num: item.cluster_shard_num,
             },
             switchMode: 'user_confirm',
           }),
