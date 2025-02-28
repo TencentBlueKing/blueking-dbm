@@ -468,7 +468,10 @@ class MySQLDBMeta(object):
             "operator": self.ticket_data["created_by"],
             "cluster_ids": [cluster.id],
         }
-        DBPartitionApi.disable_partition_cluster(params=disable_partition_params)
+        try:
+            DBPartitionApi.disable_partition_cluster(params=disable_partition_params)
+        except Exception as e:  # noqa
+            logger.error(e)
 
     def mysql_cluster_online(self):
         """

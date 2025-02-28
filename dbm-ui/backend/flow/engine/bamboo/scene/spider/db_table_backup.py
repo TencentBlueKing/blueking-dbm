@@ -308,12 +308,16 @@ class TenDBClusterDBTableBackupFlow(object):
                 },
             )
             if job["backup_local"] == "remote":
-                job_flow.add_parallel_sub_pipeline(
-                    sub_flow_list=self.backup_on_remote(
+                flist = [self.backup_on_spider_ctl(backup_id, job, cluster_obj)]
+                flist.extend(
+                    self.backup_on_remote(
                         backup_id=backup_id,
                         job=job,
                         cluster_obj=cluster_obj,
                     )
+                )
+                job_flow.add_parallel_sub_pipeline(
+                    sub_flow_list=flist,
                 )
             elif job["backup_local"] == "spider_mnt":
                 job_flow.add_sub_pipeline(

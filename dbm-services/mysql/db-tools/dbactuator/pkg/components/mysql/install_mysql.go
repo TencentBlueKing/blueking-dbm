@@ -569,6 +569,11 @@ func (i *InstallMySQLComp) generateMycnfOnePort(port Port, tmplFileName string) 
 		return err
 	}
 
+	if port == Port(3306) {
+		_ = os.Remove(cst.DefaultMyCnfName)
+		_ = os.Symlink(cnf, cst.DefaultMyCnfName)
+	}
+
 	return nil
 }
 

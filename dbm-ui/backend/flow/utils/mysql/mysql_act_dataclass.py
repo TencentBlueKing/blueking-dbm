@@ -615,3 +615,9 @@ class DropProxyUsersInBackendKwargs:
 
     cluster_id: int
     origin_proxy_host: str
+
+
+@dataclass
+class ResetSlaveViaDRSKwargs:
+    address: str
+    bk_cloud_id: int

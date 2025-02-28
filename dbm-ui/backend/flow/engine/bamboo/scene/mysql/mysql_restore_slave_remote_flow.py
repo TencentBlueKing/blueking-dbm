@@ -48,6 +48,7 @@ from backend.flow.plugins.components.collections.mysql.mysql_check_binlog_dump i
 from backend.flow.plugins.components.collections.mysql.mysql_crond_control import MysqlCrondMonitorControlComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.mysql_rds_execute import MySQLExecuteRdsComponent
+from backend.flow.plugins.components.collections.mysql.reset_slave_via_drs import ResetSlaveViaDRSComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_ports, get_version_and_charset
@@ -59,6 +60,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     ExecActuatorKwargs,
     ExecuteRdsKwargs,
     InstanceUserCloneKwargs,
+    ResetSlaveViaDRSKwargs,
     UpdateDnsRecordKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
@@ -480,6 +482,17 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 cluster_type=self.data["cluster_type"],
             )
             tendb_migrate_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+
+            tendb_migrate_pipeline.add_act(
+                act_name=_("当前 master reset slave {}".format(master.ip_port)),
+                act_component_code=ResetSlaveViaDRSComponent.code,
+                kwargs=asdict(
+                    ResetSlaveViaDRSKwargs(
+                        address=master.ip_port,
+                        bk_cloud_id=cluster_model.bk_cloud_id,
+                    )
+                ),
+            )
 
             tendb_migrate_pipeline.add_act(
                 act_name=_("下发db-actor到节点{}".format(target_slave.machine.ip)),

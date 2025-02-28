@@ -117,6 +117,7 @@ func (c *PrivTaskPara) AddPriv(jsonPara, ticket string) (err error) {
 				// TenDBHA 如果申请的是 slave 权限, 也是一样的
 				// TenDBHA 如果申请的是 master 权限, 并且有 padding Proxy, 有一部分是一样的
 				clientIps, workingMySQLInstances := c.prepareMySQLPayload(tii)
+
 				slog.Info(
 					"add priv",
 					slog.String("clientIps", strings.Join(clientIps, ",")),
