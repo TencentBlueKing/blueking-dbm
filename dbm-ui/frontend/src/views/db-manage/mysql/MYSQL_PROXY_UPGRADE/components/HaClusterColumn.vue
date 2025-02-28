@@ -190,7 +190,7 @@
   const handleClick = () => {
     isInput.value = true;
     nextTick(() => {
-      inputRef.value?.getInstance().focus();
+      inputRef.value?.focus();
     });
   };
 </script>
