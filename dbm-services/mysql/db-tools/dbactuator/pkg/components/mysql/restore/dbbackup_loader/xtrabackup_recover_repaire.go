@@ -112,20 +112,25 @@ func (x *Xtrabackup) RepairMyisamTablesForMysqldb() error {
 	if err != nil {
 		return errors.WithMessage(err, "RepairMyisamTables")
 	}
-	// find . -name '*.MYI' -exec /usr/local/mysql/bin/myisamchk -r -v -f {} \; > /tmp/repair_myisam_3306.log
+	// find . -name '*.MYI' -exec /usr/local/mysql/bin/myisamchk -c -r -f -v {} \; > /tmp/repair_myisam_3306.log
+	// --tmpdir=/data/dbbak --sort_buffer_size=256M --key_buffer_size=256M --read_buffer_size=2M --write_buffer_size=2M
 	sysMysqldbDir := filepath.Join(dataDir, "mysql")
-	repairArgs := []string{
-		"find", sysMysqldbDir, "-name", "'*.MYI'",
-		"-exec", "/usr/local/mysql/bin/myisamchk", "-c", "-r", "-f", "-v",
+	repairCmdArgs := []string{
+		"/usr/local/mysql/bin/myisamchk", "-c", "-r", "-f", "-v",
 		fmt.Sprintf("--tmpdir=%s", filepath.Join(dataDir, "tmp")),
 		"--sort_buffer_size=256M", "--key_buffer_size=256M", "--read_buffer_size=2M", "--write_buffer_size=2M",
-		"{}", `\;`,
-		">>", fmt.Sprintf("/tmp/repire_myisam_%d.log", x.TgtInstance.Port), "2>&1",
 	}
-	logger.Info("myisamchk cmd:", strings.Join(repairArgs, " "))
-	_, errStr, err := cmutil.ExecCommand(true, dataDir, repairArgs[0], repairArgs[1:]...)
-	if err != nil {
-		logger.Warn("myisamchk failed: %s(%s)", errStr, err.Error())
+	myiFiles, _ := filepath.Glob(filepath.Join(sysMysqldbDir, "*.MYI"))
+	for _, myi := range myiFiles {
+		repairCmd := append(repairCmdArgs, strings.TrimSuffix(myi, ".MYI"))
+		logFile := fmt.Sprintf("/tmp/repair_myisam_%d.log", x.TgtInstance.Port)
+		//echoLog := fmt.Sprintf("echo '%s';", strings.Join(repairCmd, " "))
+		logger.Info("myisamchk cmd: %s", strings.Join(repairCmd, " "))
+		repairCmd = append(repairCmd, ">>", logFile, "2>&1")
+		_, errStr, err := cmutil.ExecCommand(true, dataDir, repairCmd[0], repairCmd[1:]...)
+		if err != nil {
+			logger.Warn("myisamchk failed: %s(%s)", errStr, err.Error())
+		}
 	}
 	return nil
 }

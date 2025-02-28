@@ -1,27 +1,26 @@
 {
   "bk_biz_id": 0,
-  "name": "TendbCluster 主机磁盘空间使用率",
-  "db_type": "mysql",
+  "name": "TendbCluster 从库同步异常",
+  "db_type": "tendbcluster",
   "details": {
     "bk_biz_id": "",
-    "name": "TendbCluster 主机磁盘空间使用率",
+    "name": "TendbCluster 从库同步异常",
     "source": "dbm",
-    "scenario": "os",
+    "scenario": "component",
     "type": "monitor",
     "items": [
       {
-        "name": "AVG(磁盘空间使用率)",
+        "name": "AVG(mysql_slave_status_slave_io_running) + AVG(mysql_slave_status_slave_sql_running)",
         "no_data_config": {
           "level": 2,
           "continuous": 10,
           "is_enabled": false,
           "agg_dimension": [
-            "bk_target_ip",
-            "bk_target_cloud_id"
+            "bk_target_service_instance_id"
           ]
         },
         "target": [],
-        "expression": "a",
+        "expression": "a + b",
         "functions": [],
         "origin_sql": "",
         "query_configs": [
@@ -29,21 +28,29 @@
             "data_source_label": "bk_monitor",
             "data_type_label": "time_series",
             "alias": "a",
-            "metric_id": "bk_monitor.dbm_system.disk.in_use",
+            "metric_id": "bk_monitor.exporter_dbm_mysqld_exporter.__default__.mysql_slave_status_slave_io_running",
             "functions": [],
-            "result_table_id": "dbm_system.disk",
+            "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+            "data_label": "exporter_dbm_mysqld_exporter",
             "agg_method": "AVG",
-            "agg_interval": 300,
+            "agg_interval": 60,
             "agg_dimension": [
-              "appid",
+              "bk_target_service_instance_id",
               "app",
-              "instance_role",
               "cluster_domain",
-              "bk_target_ip",
-              "bk_target_cloud_id",
-              "mount_point"
+              "instance",
+              "appid"
             ],
             "agg_condition": [
+              {
+                "key": "instance_role",
+                "value": [
+                  "backend_slave"
+                ],
+                "method": "eq",
+                "condition": "and",
+                "dimension_name": "instance_role"
+              },
               {
                 "key": "cluster_type",
                 "value": [
@@ -54,41 +61,56 @@
                 "dimension_name": "dbm cluster type"
               }
             ],
-            "metric_field": "in_use",
-            "unit": "percent",
-            "name": "磁盘空间使用率"
+            "metric_field": "mysql_slave_status_slave_io_running",
+            "unit": "",
+            "name": "mysql_slave_status_slave_io_running"
+          },
+          {
+            "data_source_label": "bk_monitor",
+            "data_type_label": "time_series",
+            "alias": "b",
+            "metric_id": "bk_monitor.exporter_dbm_mysqld_exporter.__default__.mysql_slave_status_slave_sql_running",
+            "functions": [],
+            "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+            "data_label": "exporter_dbm_mysqld_exporter",
+            "agg_method": "AVG",
+            "agg_interval": 60,
+            "agg_dimension": [
+              "bk_target_service_instance_id",
+              "app",
+              "cluster_domain",
+              "instance",
+              "appid"
+            ],
+            "agg_condition": [
+              {
+                "key": "instance_role",
+                "value": [
+                  "backend_slave"
+                ],
+                "method": "eq",
+                "condition": "and",
+                "dimension_name": "instance_role"
+              }
+            ],
+            "metric_field": "mysql_slave_status_slave_sql_running",
+            "unit": "",
+            "name": "mysql_slave_status_slave_sql_running"
           }
         ],
         "algorithms": [
-          {
-            "type": "Threshold",
-            "level": 1,
-            "config": [
-              [
-                {
-                  "method": "gte",
-                  "threshold": 95
-                },
-                {
-                  "method": "lt",
-                  "threshold": 98
-                }
-              ]
-            ],
-            "unit_prefix": "%"
-          },
           {
             "type": "Threshold",
             "level": 2,
             "config": [
               [
                 {
-                  "method": "gte",
-                  "threshold": 85
+                  "method": "lt",
+                  "threshold": 2
                 }
               ]
             ],
-            "unit_prefix": "%"
+            "unit_prefix": ""
           }
         ],
         "metric_type": "time_series"
@@ -96,45 +118,27 @@
     ],
     "detects": [
       {
-        "level": 1,
-        "expression": "",
-        "trigger_config": {
-          "count": 2,
-          "uptime": {
-            "calendars": [],
-            "time_ranges": [
-              {
-                "end": "23:59",
-                "start": "00:00"
-              }
-            ]
-          },
-          "check_window": 3
-        },
-        "recovery_config": {
-          "check_window": 2,
-          "status_setter": "recovery"
-        },
-        "connector": "and"
-      },
-      {
         "level": 2,
         "expression": "",
         "trigger_config": {
-          "count": 2,
+          "count": 1,
           "uptime": {
             "calendars": [],
             "time_ranges": [
               {
                 "end": "23:59",
+                "start": "06:00"
+              },
+              {
+                "end": "02:59",
                 "start": "00:00"
               }
             ]
           },
-          "check_window": 3
+          "check_window": 5
         },
         "recovery_config": {
-          "check_window": 2,
+          "check_window": 5,
           "status_setter": "recovery"
         },
         "connector": "and"
@@ -142,12 +146,12 @@
     ],
     "actions": [],
     "notice": {
-      "config_id": 40811,
+      "config_id": 40791,
       "user_groups": [],
       "user_type": "main",
       "signal": [
-        "no_data",
-        "abnormal"
+        "abnormal",
+        "no_data"
       ],
       "options": {
         "end_time": "23:59:59",
@@ -221,14 +225,19 @@
           "unit": "percent",
           "count": 10,
           "timedelta": 5,
-          "dimensions": [],
+          "dimensions": [
+            "app",
+            "cluster_domain",
+            "instance",
+            "bk_target_service_instance_id"
+          ],
           "is_enabled": false
         }
       },
       "relate_type": "NOTICE",
       "config": {
         "need_poll": true,
-        "notify_interval": 21600,
+        "notify_interval": 14400,
         "interval_notify_mode": "standard",
         "template": [
           {
@@ -251,7 +260,7 @@
     },
     "labels": [
       "DBM",
-      "DBM_MYSQL",
+      "DBM_TENDBCLUSTER",
       "MySQL"
     ],
     "app": "",
@@ -264,9 +273,9 @@
     "is_enabled": true
   },
   "is_enabled": true,
-  "monitor_indicator": "AVG(磁盘空间使用率)",
+  "monitor_indicator": "AVG(mysql_slave_status_slave_io_running) + AVG(mysql_slave_status_slave_sql_running)",
   "version": 26,
   "alert_source": "time_series",
   "custom_conditions": [],
-  "export_at": "2024-12-06T15:52:08+08:00"
+  "export_at": "2024-11-26T16:26:58+08:00"
 }

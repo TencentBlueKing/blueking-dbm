@@ -1,23 +1,22 @@
 {
   "bk_biz_id": 0,
-  "name": "TendbCluster 主机磁盘IO利用率",
-  "db_type": "mysql",
+  "name": "TendbCluster 长空闲事务未关闭",
+  "db_type": "tendbcluster",
   "details": {
     "bk_biz_id": "",
-    "name": "TendbCluster 主机磁盘IO利用率",
+    "name": "TendbCluster 长空闲事务未关闭",
     "source": "dbm",
-    "scenario": "os",
+    "scenario": "component",
     "type": "monitor",
     "items": [
       {
-        "name": "AVG(I/O使用率)",
+        "name": "AVG(mysql_engine_innodb_trx_idle_time_max)",
         "no_data_config": {
           "level": 2,
           "continuous": 10,
           "is_enabled": false,
           "agg_dimension": [
-            "bk_target_ip",
-            "bk_target_cloud_id"
+            "bk_target_service_instance_id"
           ]
         },
         "target": [],
@@ -29,34 +28,43 @@
             "data_source_label": "bk_monitor",
             "data_type_label": "time_series",
             "alias": "a",
-            "metric_id": "bk_monitor.dbm_system.io.util",
+            "metric_id": "bk_monitor.exporter_dbm_mysqld_exporter.__default__.mysql_engine_innodb_trx_idle_time_max",
             "functions": [],
-            "result_table_id": "dbm_system.io",
+            "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
             "agg_method": "AVG",
-            "agg_interval": 300,
+            "agg_interval": 60,
             "agg_dimension": [
-              "appid",
+              "bk_target_service_instance_id",
               "app",
-              "instance_role",
               "cluster_domain",
-              "bk_target_ip",
-              "bk_target_cloud_id",
-              "device_name"
+              "instance",
+              "instance_role",
+              "appid"
             ],
             "agg_condition": [
               {
-                "key": "cluster_type",
-                "value": [
-                  "tendbcluster"
-                ],
-                "method": "eq",
-                "condition": "and",
-                "dimension_name": "dbm cluster type"
+                  "key": "cluster_type",
+                  "value": [
+                      "tendbcluster"
+                  ],
+                  "method": "eq",
+                  "condition": "and",
+                  "dimension_name": "cluster_type"
+              },
+              {
+                  "key": "user",
+                  "value": [
+                      "system user",
+                      "dba_bak_all_sel"
+                  ],
+                  "method": "neq",
+                  "condition": "and",
+                  "dimension_name": "\u7528\u6237"
               }
             ],
-            "metric_field": "util",
-            "unit": "percentunit",
-            "name": "I/O使用率"
+            "metric_field": "mysql_engine_innodb_trx_idle_time_max",
+            "unit": "",
+            "name": "mysql_engine_innodb_trx_idle_time_max"
           }
         ],
         "algorithms": [
@@ -67,11 +75,11 @@
               [
                 {
                   "method": "gte",
-                  "threshold": 90
+                  "threshold": 3600
                 }
               ]
             ],
-            "unit_prefix": "%"
+            "unit_prefix": ""
           }
         ],
         "metric_type": "time_series"
@@ -88,18 +96,14 @@
             "time_ranges": [
               {
                 "end": "23:59",
-                "start": "09:00"
-              },
-              {
-                "end": "02:00",
-                "start": "00:00"
+                "start": "08:00"
               }
             ]
           },
-          "check_window": 2
+          "check_window": 5
         },
         "recovery_config": {
-          "check_window": 2,
+          "check_window": 5,
           "status_setter": "recovery"
         },
         "connector": "and"
@@ -107,12 +111,11 @@
     ],
     "actions": [],
     "notice": {
-      "config_id": 40779,
+      "config_id": 40758,
       "user_groups": [],
-      "user_type": "main",
       "signal": [
-        "abnormal",
-        "no_data"
+        "no_data",
+        "abnormal"
       ],
       "options": {
         "end_time": "23:59:59",
@@ -174,11 +177,47 @@
           "timedelta": 60,
           "is_enabled": true,
           "converge_func": "collect",
-          "need_biz_converge": false
+          "need_biz_converge": false,
+          "sub_converge_config": {
+            "timedelta": 60,
+            "count": 2,
+            "condition": [
+              {
+                "dimension": "bk_biz_id",
+                "value": [
+                  "self"
+                ]
+              },
+              {
+                "dimension": "notice_receiver",
+                "value": [
+                  "self"
+                ]
+              },
+              {
+                "dimension": "notice_way",
+                "value": [
+                  "self"
+                ]
+              },
+              {
+                "dimension": "alert_level",
+                "value": [
+                  "self"
+                ]
+              },
+              {
+                "dimension": "signal",
+                "value": [
+                  "self"
+                ]
+              }
+            ],
+            "converge_func": "collect_alarm"
+          }
         },
         "chart_image_enabled": true,
         "exclude_notice_ways": {
-          "ack": [],
           "closed": [],
           "recovered": []
         },
@@ -216,22 +255,20 @@
     },
     "labels": [
       "DBM",
-      "DBM_MYSQL",
+      "DBM_TENDBCLUSTER",
       "MySQL"
     ],
     "app": "",
     "path": "",
     "priority": 0,
-    "priority_group_key": "",
-    "edit_allowed": true,
+    "priority_group_key": "db7db508ab414df5",
     "metric_type": "time_series",
     "data_source_type": "监控采集指标",
     "is_enabled": true
   },
   "is_enabled": true,
-  "monitor_indicator": "AVG(I/O使用率)",
+  "monitor_indicator": "AVG(mysql_engine_innodb_trx_idle_time_max)",
   "version": 26,
   "alert_source": "time_series",
-  "custom_conditions": [],
-  "export_at": "2024-11-26T16:26:58+08:00"
+  "custom_conditions": []
 }
