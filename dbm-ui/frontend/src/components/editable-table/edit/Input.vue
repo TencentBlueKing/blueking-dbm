@@ -7,7 +7,7 @@
     </div>
     <BkInput
       v-bind="{ ...attrs, ...props }"
-      ref="input"
+      ref="inputRef"
       v-model="modelValue"
       clearable
       @blur="handleBlur"
@@ -40,7 +40,7 @@
   }
 
   interface Exposes {
-    getInstance(): any;
+    focus(): void;
   }
 
   const props = defineProps<Props>();
@@ -57,7 +57,7 @@
 
   const attrs = useAttrs();
   const columnContext = useColumn();
-  const inputRef = useTemplateRef('input');
+  const inputRef = ref();
 
   watch(modelValue, () => {
     columnContext?.validate('change');
@@ -79,8 +79,8 @@
   };
 
   defineExpose<Exposes>({
-    getInstance() {
-      return inputRef.value;
+    focus() {
+      return inputRef.value?.focus();
     },
   });
 </script>
