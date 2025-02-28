@@ -28,14 +28,22 @@
           class="placehold">
           {{ t('请选择屏蔽的时间范围') }}
         </span>
-        <span v-else>{{ displayValue }}</span>
+        <div
+          v-else
+          class="display-input"
+          :contenteditable="!disabled"
+          @blur="handleDisplayValueChange">
+          {{ displayValue }}
+        </div>
       </div>
     </template>
   </BkDatePicker>
 </template>
 <script setup lang="ts">
-  import dayjs from 'dayjs';
+  import dayjs, { type ManipulateType } from 'dayjs';
   import { useI18n } from 'vue-i18n';
+
+  import { isValidDateTime } from '@utils';
 
   interface Props {
     disabled?: boolean;
@@ -55,105 +63,74 @@
 
   const updateShortcutText = (data: { text: string }) => (shortcutText.value = data.text);
 
+  const getShortcutValue = (num: number, unit: ManipulateType) => {
+    const end = new Date();
+    const start = new Date();
+    end.setTime(dayjs().add(num, unit).valueOf());
+    return [start, end];
+  };
+
   const { t } = useI18n();
 
   const showPanel = ref(false);
   const isShortcut = ref(false);
   const shortcutText = ref('');
-
-  const displayValue = computed(() => {
-    if (isShortcut.value) {
-      return `${shortcutText.value} (${modelValue.value.join('-')})`;
-    }
-
-    return modelValue.value.join('-');
-  });
+  const displayValue = ref('');
 
   const isEmpty = computed(() => modelValue.value.every((item) => !item));
 
-  // TODO: 优化
   const dateShortCut = [
     {
       onClick: updateShortcutText,
-      text: t('30分钟'),
-      value() {
-        const end = new Date();
-        const start = new Date();
-        end.setTime(start.getTime() + 1800 * 1000);
-        return [start, end];
-      },
+      text: t('n分钟', { n: 30 }),
+      value: getShortcutValue(30, 'minute'),
     },
     {
       onClick: updateShortcutText,
-      text: t('1小时'),
-      value() {
-        const end = new Date();
-        const start = new Date();
-        end.setTime(start.getTime() + 3600 * 1000);
-        return [start, end];
-      },
+      text: t('n小时', { n: 1 }),
+      value: getShortcutValue(60, 'minute'),
     },
     {
       onClick: updateShortcutText,
-      text: t('12小时'),
-      value() {
-        const end = new Date();
-        const start = new Date();
-        end.setTime(start.getTime() + 3600 * 1000 * 12);
-        return [start, end];
-      },
+      text: t('n小时', { n: 12 }),
+      value: getShortcutValue(12, 'hour'),
     },
     {
       onClick: updateShortcutText,
-      text: t('1天'),
-      value() {
-        const end = new Date();
-        const start = new Date();
-        end.setTime(start.getTime() + 3600 * 1000 * 24);
-        return [start, end];
-      },
+      text: t('n天', { n: 1 }),
+      value: getShortcutValue(1, 'day'),
     },
     {
       onClick: updateShortcutText,
-      text: t('7天'),
-      value() {
-        const end = new Date();
-        const start = new Date();
-        end.setTime(start.getTime() + 3600 * 1000 * 24 * 7);
-        return [start, end];
-      },
+      text: t('n天', { n: 7 }),
+      value: getShortcutValue(7, 'day'),
     },
     {
       onClick: updateShortcutText,
-      text: t('1个月'),
-      value() {
-        const end = new Date();
-        const start = new Date();
-        end.setTime(dayjs().add(1, 'month').valueOf());
-        return [start, end];
-      },
+      text: t('n个月', { n: 1 }),
+      value: getShortcutValue(1, 'month'),
     },
     {
       onClick: updateShortcutText,
-      text: t('3个月'),
-      value() {
-        const end = new Date();
-        const start = new Date();
-        end.setTime(dayjs().add(3, 'month').valueOf());
-        return [start, end];
-      },
+      text: t('n个月', { n: 3 }),
+      value: getShortcutValue(3, 'month'),
     },
     {
       onClick: updateShortcutText,
-      text: t('6个月'),
-      value() {
-        const end = new Date();
-        const start = new Date();
-        end.setTime(dayjs().add(6, 'month').valueOf());
-        return [start, end];
-      },
+      text: t('n个月', { n: 6 }),
+      value: getShortcutValue(6, 'month'),
     },
   ];
+
+  watch(
+    modelValue,
+    () => {
+      displayValue.value = modelValue.value.join('~');
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleOpenPanel = () => {
     if (props.disabled) {
@@ -172,6 +149,22 @@
     if (!isOpen) {
       emits('finish', modelValue.value);
     }
+  };
+
+  const handleDisplayValueChange = (event: any) => {
+    const inputValue = event.target.innerText as string;
+    displayValue.value = inputValue;
+    nextTick(() => {
+      if (inputValue.includes('~')) {
+        const dates = inputValue.split('~') as [string, string];
+        if (dates.every((date) => isValidDateTime(date))) {
+          modelValue.value = dates;
+          return;
+        }
+      }
+
+      displayValue.value = modelValue.value.join('~');
+    });
   };
 
   const handleDatePickerChange = (value: [string, string]) => {
@@ -212,6 +205,13 @@
 
     .placehold {
       color: #c4c6cc;
+    }
+
+    .display-input {
+      display: flex;
+      height: 32px;
+      outline: none;
+      align-items: center;
     }
   }
 

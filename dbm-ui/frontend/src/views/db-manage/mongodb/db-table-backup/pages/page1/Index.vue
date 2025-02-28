@@ -72,16 +72,16 @@
             v-model="formData.file_tag"
             size="small">
             <BkRadio label="normal_backup">
-              {{ t('25天') }}
+              {{ t('n天', { n: 25 }) }}
             </BkRadio>
             <BkRadio label="half_year_backup">
-              {{ t('6个月') }}
+              {{ t('n个月', { n: 6 }) }}
             </BkRadio>
             <BkRadio label="a_year_backup">
-              {{ t('1年') }}
+              {{ t('n年', { n: 1 }) }}
             </BkRadio>
             <BkRadio label="forever_backup">
-              {{ t('3年') }}
+              {{ t('n年', { n: 3 }) }}
             </BkRadio>
           </BkRadioGroup>
         </BkFormItem>

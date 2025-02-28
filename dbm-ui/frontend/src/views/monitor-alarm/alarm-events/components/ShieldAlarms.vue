@@ -18,7 +18,7 @@
     :model="formModel"
     :rules="rules">
     <BkFormItem
-      :label="t('告警范围')"
+      :label="t('屏蔽范围')"
       required>
       <BkRadioGroup
         v-model="formModel.range"
@@ -55,9 +55,6 @@
           <div class="item-title">{{ t('策略名称') }}:</div>
           <div class="item-content">
             <span>{{ data?.alert_name }}</span>
-            <DbIcon
-              class="link-icon"
-              type="link" />
           </div>
         </div>
         <div
@@ -126,6 +123,8 @@
     data?: RowData;
   }
 
+  type Emits = (e: 'success') => void;
+
   interface Exposes {
     checkValueChange: () => boolean;
     reset: () => void;
@@ -133,6 +132,7 @@
   }
 
   const props = defineProps<Props>();
+  const emits = defineEmits<Emits>();
 
   const initFormModel = () => ({
     datetime: ['', ''] as [string, string],
@@ -144,7 +144,6 @@
   const { bizs } = useGlobalBizs();
 
   const formRef = ref();
-
   const formModel = ref(initFormModel());
 
   const isCurrentEvent = computed(() => formModel.value.range === 'alert');
@@ -234,6 +233,10 @@
 
   defineExpose<Exposes>({
     checkValueChange() {
+      if (isDisabled.value) {
+        return false;
+      }
+
       return !_.isEqual(formModel.value, initFormModel());
     },
     reset() {
@@ -288,6 +291,7 @@
               ];
             }
             return createAlarmShield(params).then(() => {
+              emits('success');
               messageSuccess(t('新建告警屏蔽成功'));
               resolve(1);
             });

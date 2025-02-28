@@ -30,6 +30,16 @@ export default class AlarmShield {
   };
   description: string;
   dimension_config: {
+    _alert_id?: string;
+    _alert_message?: string;
+    _dimensions?: string;
+    _severity?: number;
+    bk_cloud_id?: number;
+    bk_target_ip?: {
+      bk_host_id: number;
+      bk_target_cloud_id: number;
+      bk_target_ip: string;
+    }[];
     dimension_conditions: {
       condition: string;
       key: string;
@@ -37,8 +47,13 @@ export default class AlarmShield {
       name: string;
       value: string[];
     }[];
+    ip?: string;
     level: number[];
-    strategy_id: number[];
+    strategy_id: number[] | number;
+    'tags.app'?: string;
+    'tags.appid'?: string;
+    'tags.cluster_domain'?: string;
+    'tags.instance_role'?: string;
   };
   end_time: string;
   failure_time: string;
@@ -82,5 +97,13 @@ export default class AlarmShield {
       return `${days}${t('天')} ( ${utcDisplayTime(this.begin_time)} ~ ${utcDisplayTime(this.end_time)} )`;
     }
     return '--';
+  }
+
+  get statusDisplay() {
+    if (this.status === 2) {
+      return t('已过期');
+    }
+
+    return t('被解除');
   }
 }

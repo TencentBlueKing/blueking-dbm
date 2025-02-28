@@ -57,16 +57,16 @@
           required>
           <BkRadioGroup v-model="formData.file_tag">
             <BkRadio label="DBFILE1M">
-              {{ t('1个月') }}
+              {{ t('n个月', { n: 1 }) }}
             </BkRadio>
             <BkRadio label="DBFILE6M">
-              {{ t('6个月') }}
+              {{ t('n个月', { n: 6 }) }}
             </BkRadio>
             <BkRadio label="DBFILE1Y">
-              {{ t('1年') }}
+              {{ t('n年', { n: 1 }) }}
             </BkRadio>
             <BkRadio label="DBFILE3Y">
-              {{ t('3年') }}
+              {{ t('n年', { n: 3 }) }}
             </BkRadio>
           </BkRadioGroup>
         </BkFormItem>

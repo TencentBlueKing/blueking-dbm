@@ -54,12 +54,12 @@
     file_tag: Mysql.HaFullBackup['file_tag'];
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.MYSQL_HA_FULL_BACKUP,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 
@@ -75,10 +75,10 @@
 
   // 备份保存时间
   const fileTagMap = {
-    DBFILE1M: t('1个月'),
-    DBFILE1Y: t('1年'),
-    DBFILE3Y: t('3年'),
-    DBFILE6M: t('6个月'),
+    DBFILE1M: t('n个月', { n: 1 }),
+    DBFILE1Y: t('n年', { n: 1 }),
+    DBFILE3Y: t('n年', { n: 3 }),
+    DBFILE6M: t('n个月', { n: 6 }),
   };
 
   watchEffect(() => {

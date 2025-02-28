@@ -18,13 +18,14 @@
     :model="formModel"
     :rules="rules">
     <BkFormItem
-      :label="t('告警范围')"
+      :label="t('屏蔽类型')"
       property="type"
       required>
       <BkRadioGroup
-        v-model="formModel.type"
-        :disabled="props.editMode !== 'create'"
-        type="card">
+        :before-change="handleTypeBeforeChange"
+        :model-value="formModel.type"
+        type="card"
+        @change="handleTypeChange">
         <BkRadioButton
           v-for="item in shieldTypeList"
           :key="item.label"
@@ -45,6 +46,7 @@
       <div class="shield-date-subtitle">({{ t('最长不超过6个月') }})</div>
       <ShieldDateTimePicker
         v-model="formModel.datetime"
+        :disabled="isDisabled"
         @finish="handleChoosedShieldDate" />
     </BkFormItem>
     <BkFormItem
@@ -53,6 +55,7 @@
       <BkInput
         v-model="formModel.reason"
         autosize
+        :disabled="isDisabled"
         :maxlength="100"
         :over-max-length-limit="false"
         :resize="false"
@@ -70,8 +73,8 @@
 
   import { createAlarmShield, EditAlarmShield } from '@/services/source/monitor';
 
+  import AlertShield from './components/AlertShield.vue';
   import DimensionShield from './components/dimension-shield/Index.vue';
-  import HostShield from './components/HostShield.vue';
   import StrategyShield from './components/StrategyShield.vue';
 
   interface Props {
@@ -110,27 +113,36 @@
   const formModel = ref(initFormModel());
 
   const isEditMode = computed(() => props.editMode === 'edit');
+  const isDisabled = computed(() => !!props.data?.category && ['alert', 'scope'].includes(props.data.category));
+
+  const shieldTypeList = computed(() => {
+    const baseList = [
+      {
+        label: t('基于策略屏蔽'),
+        value: 'strategy',
+      },
+      {
+        label: t('基于维度屏蔽'),
+        value: 'dimension',
+      },
+    ];
+    const alertItem = {
+      label: t('基于事件屏蔽'),
+      value: 'alert',
+    };
+    if (props.data?.category === 'alert') {
+      return [alertItem, ...baseList];
+    }
+
+    return baseList;
+  });
 
   const renderRangeScopeMap: Record<string, any> = {
+    alert: AlertShield,
     dimension: DimensionShield,
-    host: HostShield,
+    scope: DimensionShield,
     strategy: StrategyShield,
   };
-
-  const shieldTypeList = [
-    // {
-    //   label: t('基于主机屏蔽'),
-    //   value: 'host',
-    // },
-    {
-      label: t('基于策略屏蔽'),
-      value: 'strategy',
-    },
-    {
-      label: t('基于维度屏蔽'),
-      value: 'dimension',
-    },
-  ];
 
   const rules = {
     datetime: [
@@ -189,7 +201,7 @@
 
   watchEffect(() => {
     if (props.data) {
-      formModel.value.type = props.data.category;
+      formModel.value.type = props.data.category === 'scope' ? 'dimension' : props.data.category;
       formModel.value.datetime = [props.data.begin_time, props.data.end_time];
       formModel.value.level = props.data.dimension_config.level;
       formModel.value.reason = props.data.description;
@@ -209,6 +221,22 @@
     },
   );
 
+  const handleTypeBeforeChange = () => {
+    if (props.editMode !== 'create') {
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleTypeChange = (type: string) => {
+    if (props.editMode !== 'create') {
+      return;
+    }
+
+    formModel.value.type = type;
+  };
+
   const handleChoosedShieldDate = () => {
     formRef.value.validate('datetime');
   };
@@ -216,7 +244,6 @@
   defineExpose<Exposes>({
     cancel() {
       return new Promise((resolve) => {
-        console.log('cancel');
         resolve(1);
       });
     },

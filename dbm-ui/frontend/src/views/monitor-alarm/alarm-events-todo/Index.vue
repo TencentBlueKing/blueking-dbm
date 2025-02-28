@@ -17,7 +17,7 @@
             class="control-icon"
             type="wodedaiban" />
           <span>{{ t('待我处理') }}</span>
-          <span> （{{ alarmEventsTodoCountStore.todoCount }}）</span>
+          <span> （{{ todoCount }}）</span>
         </div>
         <div
           class="tab-item tab-item-assist"
@@ -27,7 +27,7 @@
             class="control-icon"
             type="yonghu-2" />
           <span>{{ t('待我协助') }}</span>
-          <span>（{{ alarmEventsTodoCountStore.assitCount }}）</span>
+          <span>（{{ assitCount }}）</span>
         </div>
       </div>
     </Teleport>
@@ -35,45 +35,20 @@
   </div>
 </template>
 <script setup lang="ts">
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import { getAlarmEventsList } from '@services/source/monitor';
-
-  import { alarmEventsTodoCount } from '@stores';
+  import { useAlarmEventsCount } from '@hooks';
 
   import AlarmEventsPage from '../alarm-events/Index.vue';
 
   const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
-  const alarmEventsTodoCountStore = alarmEventsTodoCount();
+  const { assitCount, todoCount } = useAlarmEventsCount();
 
   const currentActiveTab = ref(route.query.manage || 'todo');
 
   const titleTooltip = `${t('待我处理')}：${t('展示我作为主DBA 的业务，所产生的告警事件')}\n${t('待我协助')}：${t('展示我作为备 DBA、二线 DBA 的业务，所产生的告警事件')}`;
-
-  watch(
-    () => route.query,
-    () => {
-      const query = _.cloneDeep(route.query) as unknown as ServiceParameters<typeof getAlarmEventsList>;
-      if (currentActiveTab.value === 'assist') {
-        Object.assign(query, { self_manage: true });
-      } else {
-        Object.assign(query, { self_assist: true });
-      }
-      getAlarmEventsList(query).then((data) => {
-        if (currentActiveTab.value === 'assist') {
-          alarmEventsTodoCountStore.todoCount = data.overview.count;
-        } else {
-          alarmEventsTodoCountStore.assitCount = data.overview.count;
-        }
-      });
-    },
-    {
-      deep: true,
-    },
-  );
 
   const handleClickTab = (tab: string) => {
     currentActiveTab.value = tab;

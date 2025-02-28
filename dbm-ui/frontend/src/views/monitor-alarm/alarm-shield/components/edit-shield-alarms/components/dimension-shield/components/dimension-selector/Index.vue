@@ -67,10 +67,24 @@
 
   watchEffect(() => {
     if (props.data) {
-      dimensionList.value = props.data.dimension_conditions;
-      return;
-    }
+      if (props.data.dimension_conditions) {
+        dimensionList.value = props.data.dimension_conditions;
+        return;
+      }
 
+      if (props.data.bk_target_ip) {
+        dimensionList.value = [
+          {
+            condition: 'and',
+            key: 'instance_host',
+            method: 'eq',
+            name: 'instance_host',
+            value: props.data.bk_target_ip.map((item) => item.bk_target_ip),
+          },
+        ];
+        return;
+      }
+    }
     dimensionList.value = [createEmptyItem()];
   });
 
