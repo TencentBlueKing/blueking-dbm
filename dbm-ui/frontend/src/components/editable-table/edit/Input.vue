@@ -80,7 +80,7 @@
 
   defineExpose<Exposes>({
     focus() {
-      return inputRef.value?.focus();
+      inputRef.value?.focus();
     },
   });
 </script>
