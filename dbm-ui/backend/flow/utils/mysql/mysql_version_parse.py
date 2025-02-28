@@ -29,6 +29,15 @@ def get_sub_version_by_pkg_name(pkg_name: str) -> str:
     return "{}.{}.{}".format(billion, thousand, single)
 
 
+def get_spider_sub_version_by_pkg_name(pkg_name: str) -> str:
+    re_pattern = r"tspider-([\d]+).?([\d]+)?.?([\d]+)?"
+    result = re.findall(re_pattern, pkg_name)
+    if len(result) == 0:
+        return ""
+    billion, thousand, single = result[0]
+    return "{}.{}.{}".format(billion, thousand, single)
+
+
 def mysql_version_parse(mysql_version: str) -> int:
     re_pattern = r"([\d]+).?([\d]+)?.?([\d]+)?"
     result = re.findall(re_pattern, mysql_version)
@@ -77,6 +86,29 @@ def major_version_parse(mysql_version: str):
 # 解析 tmysql-2.1.5 成数字 2.1.5  => 2 * 1000000 + 1 * 1000 + 5
 def tmysql_version_parse(mysql_version: str) -> int:
     re_pattern = r"tmysql-([\d]+).?([\d]+)?.?([\d]+)?"
+    result = re.findall(re_pattern, mysql_version)
+
+    if len(result) == 0:
+        return 0
+
+    billion, thousand, single = result[0]
+
+    total = 0
+
+    if billion != "":
+        total += int(billion) * 1000000
+
+    if thousand != "":
+        total += int(thousand) * 1000
+
+    if single != "":
+        total += int(single)
+
+    return total
+
+
+def tspider_version_parse(mysql_version: str) -> int:
+    re_pattern = r"tspider-([\d]+).?([\d]+)?.?([\d]+)?"
     result = re.findall(re_pattern, mysql_version)
 
     if len(result) == 0:

@@ -124,19 +124,33 @@ def add_spider_slaves_sub_flow(
     )
 
     # 阶段1 下发spider安装介质包
-    sub_pipeline.add_act(
-        act_name=_("下发spider安装介质"),
-        act_component_code=TransFileComponent.code,
-        kwargs=asdict(
-            DownloadMediaKwargs(
-                bk_cloud_id=cluster.bk_cloud_id,
-                exec_ip=[ip_info["ip"] for ip_info in add_spider_slaves],
-                file_list=GetFileList(db_type=DBType.MySQL).spider_slave_install_package(
-                    spider_version=parent_global_data["spider_version"]
-                ),
-            )
-        ),
-    )
+    if parent_global_data.get("pkg_id"):
+        pkg_id = parent_global_data["pkg_id"]
+        sub_pipeline.add_act(
+            act_name=_("下发spider安装介质"),
+            act_component_code=TransFileComponent.code,
+            kwargs=asdict(
+                DownloadMediaKwargs(
+                    bk_cloud_id=cluster.bk_cloud_id,
+                    exec_ip=[ip_info["ip"] for ip_info in add_spider_slaves],
+                    file_list=GetFileList(db_type=DBType.MySQL).spider_upgrade_package(pkg_id=pkg_id),
+                )
+            ),
+        )
+    else:
+        sub_pipeline.add_act(
+            act_name=_("下发spider安装介质"),
+            act_component_code=TransFileComponent.code,
+            kwargs=asdict(
+                DownloadMediaKwargs(
+                    bk_cloud_id=cluster.bk_cloud_id,
+                    exec_ip=[ip_info["ip"] for ip_info in add_spider_slaves],
+                    file_list=GetFileList(db_type=DBType.MySQL).spider_slave_install_package(
+                        spider_version=parent_global_data["spider_version"]
+                    ),
+                )
+            ),
+        )
 
     # 阶段2 安装mysql-crond组件
     exec_act_kwargs.exec_ip = [ip_info["ip"] for ip_info in add_spider_slaves]
@@ -272,19 +286,33 @@ def add_spider_masters_sub_flow(
         )
     )
     # 阶段1 下发spider安装介质包
-    sub_pipeline.add_act(
-        act_name=_("下发spider安装介质"),
-        act_component_code=TransFileComponent.code,
-        kwargs=asdict(
-            DownloadMediaKwargs(
-                bk_cloud_id=cluster.bk_cloud_id,
-                exec_ip=[ip_info["ip"] for ip_info in add_spider_masters],
-                file_list=GetFileList(db_type=DBType.MySQL).spider_master_install_package(
-                    spider_version=parent_global_data["spider_version"]
-                ),
-            )
-        ),
-    )
+    if parent_global_data.get("pkg_id"):
+        pkg_id = parent_global_data["pkg_id"]
+        sub_pipeline.add_act(
+            act_name=_("下发spider安装介质"),
+            act_component_code=TransFileComponent.code,
+            kwargs=asdict(
+                DownloadMediaKwargs(
+                    bk_cloud_id=cluster.bk_cloud_id,
+                    exec_ip=[ip_info["ip"] for ip_info in add_spider_masters],
+                    file_list=GetFileList(db_type=DBType.MySQL).spider_upgrade_package(pkg_id=pkg_id),
+                )
+            ),
+        )
+    else:
+        sub_pipeline.add_act(
+            act_name=_("下发spider安装介质"),
+            act_component_code=TransFileComponent.code,
+            kwargs=asdict(
+                DownloadMediaKwargs(
+                    bk_cloud_id=cluster.bk_cloud_id,
+                    exec_ip=[ip_info["ip"] for ip_info in add_spider_masters],
+                    file_list=GetFileList(db_type=DBType.MySQL).spider_master_install_package(
+                        spider_version=parent_global_data["spider_version"]
+                    ),
+                )
+            ),
+        )
 
     # 阶段3 安装mysql-crond组件
     exec_act_kwargs.exec_ip = [ip_info["ip"] for ip_info in add_spider_masters]
@@ -299,10 +327,17 @@ def add_spider_masters_sub_flow(
     acts_list = []
     for spider in get_spider_master_incr(cluster, add_spider_masters):
         exec_act_kwargs.exec_ip = spider["ip"]
-        exec_act_kwargs.cluster = {
-            "immutable_domain": cluster.immute_domain,
-            "auto_incr_value": spider["incr_number"],
-        }
+        if parent_global_data.get("pkg_id"):
+            exec_act_kwargs.cluster = {
+                "immutable_domain": cluster.immute_domain,
+                "auto_incr_value": spider["incr_number"],
+                "pkg_id": parent_global_data["pkg_id"],
+            }
+        else:
+            exec_act_kwargs.cluster = {
+                "immutable_domain": cluster.immute_domain,
+                "auto_incr_value": spider["incr_number"],
+            }
         exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_spider_payload.__name__
         acts_list.append(
             {

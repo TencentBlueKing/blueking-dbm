@@ -1089,7 +1089,12 @@ class MySQLDBMeta(object):
         major_version = self.cluster.get("major_version")
         with atomic():
             for cluster_id in self.cluster["cluster_ids"]:
-                Cluster.objects.filter(id=cluster_id).update(db_module_id=new_module_id, major_version=major_version)
+                if major_version:
+                    Cluster.objects.filter(id=cluster_id).update(
+                        db_module_id=new_module_id, major_version=major_version
+                    )
+                else:
+                    Cluster.objects.filter(id=cluster_id).update(db_module_id=new_module_id)
 
     def clear_machines(self):
         """

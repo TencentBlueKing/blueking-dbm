@@ -39,6 +39,8 @@ from backend.flow.engine.bamboo.scene.spider.spider_remotedb_rebalance_flow impo
 from backend.flow.engine.bamboo.scene.spider.spider_rename_database_flow import SpiderRenameDatabaseFlow
 from backend.flow.engine.bamboo.scene.spider.spider_slave_cluster_deploy import TenDBSlaveClusterApplyFlow
 from backend.flow.engine.bamboo.scene.spider.spider_slave_cluster_destroy import TenDBSlaveClusterDestroyFlow
+from backend.flow.engine.bamboo.scene.spider.upgrade_remote import UpgradeRemoteFlow
+from backend.flow.engine.bamboo.scene.spider.upgrade_spider_node import UpgradeSpiderFlow
 from backend.flow.engine.controller.base import BaseController
 
 
@@ -249,3 +251,17 @@ class SpiderController(BaseController):
         """
         flow = ClearMysqlMachineFlow(root_id=self.root_id, data=self.ticket_data)
         flow.run_flow()
+
+    def tendbcluster_spider_upgrade(self):
+        """
+        tendbcluster spider 节点升级
+        """
+        flow = UpgradeSpiderFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.run()
+
+    def tendbcluster_remote_upgrade(self):
+        """
+        tendbcluster backend 节点升级
+        """
+        flow = UpgradeRemoteFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.migrate_upgrade()

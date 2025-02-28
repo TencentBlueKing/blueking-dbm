@@ -317,8 +317,12 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
 
         spider_charset = self.ticket_data["spider_charset"]
         spider_version = self.ticket_data["spider_version"]
-
-        spider_pkg = Package.get_latest_package(version=spider_version, pkg_type=MediumEnum.Spider)
+        # 如果指定安装包
+        if self.cluster.get("pkg_id"):
+            pkg_id = self.cluster["pkg_id"]
+            spider_pkg = Package.objects.get(id=pkg_id, pkg_type=MediumEnum.Spider)
+        else:
+            spider_pkg = Package.get_latest_package(version=spider_version, pkg_type=MediumEnum.Spider)
         version_no = get_spider_real_version(spider_pkg.name)
 
         install_spider_ports = self.ticket_data.get("spider_ports")
@@ -3256,5 +3260,25 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             "payload": {
                 "general": {"runtime_account": self.proxy_account},
                 "extend": ext,
+            },
+        }
+
+    def get_spider_upgrade_payload(self, **kwargs) -> dict:
+        """
+        local upgrade mysql proxy
+        """
+        pkg = Package.objects.get(id=self.cluster["pkg_id"], pkg_type=MediumEnum.Spider)
+        return {
+            "db_type": DBActuatorTypeEnum.Spider.value,
+            "action": DBActuatorActionEnum.Upgrade.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "ports": self.cluster["proxy_ports"],
+                    "force": self.cluster["force_upgrade"],
+                    "pkg": pkg.name,
+                    "pkg_md5": pkg.md5,
+                },
             },
         }

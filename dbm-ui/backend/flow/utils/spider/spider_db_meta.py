@@ -143,6 +143,18 @@ class SpiderDBMeta(object):
         )
         return True
 
+    def del_spider_nodes_meta(self):
+        """
+        删除spider db meta
+        """
+        cluster_id = self.cluster["cluster_id"]
+        replace_spiders = self.cluster["spiders"]
+        TenDBClusterClusterHandler.reduce_spider(
+            cluster_id=cluster_id,
+            spiders=replace_spiders,
+        )
+        return True
+
     def add_spider_mnt(self):
         """
         对已有的TenDB cluster集群 （spider集群）扩容spider-mnt节点

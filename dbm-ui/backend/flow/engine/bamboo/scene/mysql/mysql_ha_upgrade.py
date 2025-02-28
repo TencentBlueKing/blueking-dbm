@@ -382,7 +382,7 @@ def tendbha_cluster_upgrade_subflow(
             old_ro_slave_ip = old_ro_slave["ip"]
             old_ro_slave_ips.append(old_ro_slave_ip)
             origin_config = get_instance_config(cluster_cls.bk_cloud_id, old_ro_slave_ip, ports=ports)
-            db_config = deal_mycnf(pkg.name, db_version, origin_config)
+            db_config = adapt_mycnf_for_upgrade(pkg.name, db_version, origin_config)
             install_ro_slave_sub_pipeline = build_install_slave_sub_pipeline(
                 uid,
                 root_id,
@@ -430,7 +430,7 @@ def tendbha_cluster_upgrade_subflow(
     bk_host_ids = [new_master["bk_host_id"], new_slave["bk_host_id"]]
     master = cluster_cls.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
     origin_config = get_instance_config(cluster_cls.bk_cloud_id, master.machine.ip, ports)
-    db_config = deal_mycnf(pkg.name, db_version, origin_config)
+    db_config = adapt_mycnf_for_upgrade(pkg.name, db_version, origin_config)
     install_ms_pair_subflow = build_install_ms_pair_sub_pipeline(
         uid=uid,
         root_id=root_id,
@@ -546,7 +546,7 @@ def tendbha_cluster_upgrade_subflow(
     return sub_pipeline.build_sub_process(sub_name=_("{}:整体迁移升级").format(cluster_cls.immute_domain))
 
 
-def deal_mycnf(pkg_name, db_version: str, db_config: dict):
+def adapt_mycnf_for_upgrade(pkg_name, db_version: str, db_config: dict):
     if mysql_version_parse(db_version) >= mysql_version_parse("5.7.0"):
         will_del_keys = ["slave_parallel_type", "replica_parallel_type"]
         # 如果不是tmysql的话，需要删除一些配置

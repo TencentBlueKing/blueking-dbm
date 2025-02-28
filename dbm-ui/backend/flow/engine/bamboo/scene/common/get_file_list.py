@@ -169,6 +169,24 @@ class GetFileList(object):
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{proxy_pkg.path}",
         ]
 
+    def spider_upgrade_package(self, pkg_id: str) -> list:
+        """
+        spider 升级需要的安装包列表
+        """
+        spider_pkg = Package.objects.get(id=pkg_id, pkg_type=MediumEnum.Spider)
+        tdbctl_pkg = Package.get_latest_package(
+            version=MediumEnum.Latest, pkg_type=MediumEnum.tdbCtl, db_type=DBType.MySQL
+        )
+        mysql_crond_pkg = Package.get_latest_package(
+            version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLCrond, db_type=DBType.MySQL
+        )
+        return [
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{spider_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{tdbctl_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mysql_crond_pkg.path}",
+        ]
+
     def mysql_upgrade_package(self, pkg_id: int, db_version: str) -> list:
         """
         mysql 升级需要的安装包列表

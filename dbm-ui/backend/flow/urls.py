@@ -267,6 +267,10 @@ from backend.flow.views.tendb_cluster_remote_slave_recover import RemoteSlaveRec
 from backend.flow.views.tendb_cluster_remote_switch import RemoteSwitchSceneApiView
 from backend.flow.views.tendb_cluster_rollback_data import TendbClusterRollbackDataSceneApiView
 from backend.flow.views.tendb_ha_standardize import TenDBHAStandardizeView
+from backend.flow.views.tendbcluster_upgrade import (
+    UpgradeTendbClusterRemoteSceneApiView,
+    UpgradeTendbClusterSpiderSceneApiView,
+)
 from backend.flow.views.vm_apply import InstallVmSceneApiView
 from backend.flow.views.vm_destroy import DestroyVmSceneApiView
 from backend.flow.views.vm_disable import DisableVmSceneApiView
@@ -360,6 +364,9 @@ urlpatterns = [
     url(r"^scene/migrate_upgrade_tendbha_cluster$", TendbHaMigrateUpgradeSceneApiView.as_view()),
     url(r"^scene/non_stanby_slave_upgrade_mysql$", NonStanbySlavesUpgradeMySQLSceneApiView.as_view()),
     url(r"^scene/uninstall_non_standby_slave$", NonStanbySlavesDestorySceneApiView.as_view()),
+    # tendbcluster upgrade
+    url(r"^scene/tendbcluster/upgrade_spider$", UpgradeTendbClusterSpiderSceneApiView.as_view()),
+    url(r"^scene/tendbcluster/upgrade_remote$", UpgradeTendbClusterRemoteSceneApiView.as_view()),
     # mysql
     url(r"^scene/dbconsole_dump$", DbConsoleDumpApiView.as_view()),
     url(r"^scene/install_mysql_apply$", InstallMySQLSingleSceneApiView.as_view()),
