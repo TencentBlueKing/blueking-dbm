@@ -127,6 +127,7 @@ class MysqlFixPointRollbackResourceParamBuilder(BaseOperateResourceParamBuilder)
         for info in next_flow.details["ticket_data"]["infos"]:
             info["rollback_ip"] = info["rollback_host"][0]["ip"]
             info["bk_rollback"] = info.pop("rollback_host")[0]
+            info["resource_spec"]["single"] = info["resource_spec"].pop["rollback_host"]
         next_flow.save(update_fields=["details"])
 
 
