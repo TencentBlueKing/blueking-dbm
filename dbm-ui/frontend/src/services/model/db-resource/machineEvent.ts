@@ -42,10 +42,6 @@ export default class MachineEvent {
     this.update_at = payload.update_at;
   }
 
-  get bizDisplay() {
-    return this.bk_biz_id ? `${this.bk_biz_name}(#${this.bk_biz_id}，${this.db_app_abbr})` : '--';
-  }
-
   get eventDisplay() {
     return machineEventsDisplayMap[this.event];
   }
