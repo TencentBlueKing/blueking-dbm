@@ -850,7 +850,7 @@ func compareDbVariables(referVars, compareVars map[string]string, checkVars []st
 		}
 
 		if strings.Compare(referV, compareV) != 0 {
-			errs = append(errs, fmt.Errorf("存在差异： 变量名:%s Master:%s,Slave:%s", varName, referV, compareV))
+			errs = append(errs, fmt.Errorf("存在差异： 变量名:%s Master:%s,Slave:%s", varName, compareV, referV))
 		}
 	}
 	return errors.Join(errs...)

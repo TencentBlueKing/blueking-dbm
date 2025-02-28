@@ -75,7 +75,7 @@ func (u *RestartMySQLProxyComp) RestartProxy() (err error) {
 		ProxyAdminUser: u.GeneralParam.RuntimeAccountParam.ProxyAdminUser,
 		ProxyAdminPwd:  u.GeneralParam.RuntimeAccountParam.ProxyAdminPwd,
 	}
-	if err := p.Restart(); err != nil {
+	if err := p.Restart(u.Params.Port); err != nil {
 		logger.Error("重启 proxy(%d) 失败,err:%s", u.Params.Port, err.Error())
 		return err
 	}

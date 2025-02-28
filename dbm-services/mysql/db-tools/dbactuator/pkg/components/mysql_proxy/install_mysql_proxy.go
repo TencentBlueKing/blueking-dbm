@@ -333,7 +333,7 @@ func (i *InstallMySQLProxyComp) Start() error {
 			ProxyAdminUser: i.ProxyAdminUser,
 			ProxyAdminPwd:  i.ProxyAdminPwd,
 		}
-		if err := p.Start(); err != nil {
+		if err := p.Start(port); err != nil {
 			logger.Error("start proxy(%d) failed,err:%s", port, err.Error())
 			return err
 		}
