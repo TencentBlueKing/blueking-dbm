@@ -196,7 +196,7 @@ func (r *SpiderClusterBackendSwitchComp) PreCheck() (err error) {
 	if err = r.consistencySwitchCheck(); err != nil {
 		if r.Params.Force {
 			logger.Warn(err.Error())
-			return nil
+			return r.getSwitchSqls()
 		}
 		return err
 	}
