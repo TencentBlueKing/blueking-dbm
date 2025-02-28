@@ -70,10 +70,6 @@ func (d *ClusterBackendSwitchAct) Run() (err error) {
 			Func:    d.Service.PersistenceRollbackFile,
 		},
 		{
-			FunName: "[未切换]: 生成切换路由的SQL",
-			Func:    d.Service.GenerateSwitchSqls,
-		},
-		{
 			FunName: "[主分片切换中]: 开始切换主分片",
 			Func:    d.Service.CutOver,
 		},

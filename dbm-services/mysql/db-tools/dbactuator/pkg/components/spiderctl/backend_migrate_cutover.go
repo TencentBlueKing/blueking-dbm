@@ -371,10 +371,10 @@ func (s *SpiderClusterBackendMigrateCutoverComp) PersistenceRollbackFile() (err 
 	}
 	for _, pair := range s.cutOverPairs {
 		masterSvrName := pair.MasterSvr.ServerName
-		s.primaryShardrollbackSqls = append(s.primaryShardrollbackSqls, pair.MasterSvr.GetAlterNodeSql(masterSvrName, true))
+		s.primaryShardrollbackSqls = append(s.primaryShardrollbackSqls, pair.MasterSvr.GetAlterNodeSql(masterSvrName))
 		if s.existRemoteSlave {
 			slaveSvrName := pair.SlaveSvr.ServerName
-			s.slaveShardrollbackSqls = append(s.slaveShardrollbackSqls, pair.SlaveSvr.GetAlterNodeSql(slaveSvrName, true))
+			s.slaveShardrollbackSqls = append(s.slaveShardrollbackSqls, pair.SlaveSvr.GetAlterNodeSql(slaveSvrName))
 		}
 	}
 	rollbackSqls := slices.Concat(s.primaryShardrollbackSqls, s.slaveShardrollbackSqls)

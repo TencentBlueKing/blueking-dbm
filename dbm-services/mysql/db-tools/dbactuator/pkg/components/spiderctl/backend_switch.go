@@ -46,8 +46,6 @@ type runtimeCtx struct {
 type SpiderRemotedbSwitchParam struct {
 	Host string `json:"host" validate:"required,ip"`
 	Port int    `json:"port" validate:"required,lt=65536,gte=3306"`
-	// 主从延迟检查
-	SlaveDelayCheck bool `json:"slave_delay_check"`
 	// 客户端连接检查
 	ClientConnCheck bool `json:"client_conn_check"`
 	// 数据校验结果检查
@@ -195,68 +193,37 @@ func (r *SpiderClusterBackendSwitchComp) PreCheck() (err error) {
 	if err = r.validateServers(); err != nil {
 		return err
 	}
-	// 强制切换,忽略检查
-	if r.Params.Force {
-		return nil
+	if err = r.consistencySwitchCheck(); err != nil {
+		if r.Params.Force {
+			logger.Warn(err.Error())
+			return nil
+		}
+		return err
 	}
+	return r.getSwitchSqls()
+}
+
+func (r *SpiderClusterBackendSwitchComp) consistencySwitchCheck() (err error) {
 	// 检查复制关系
 	if err = r.checkReplicationRelation(); err != nil {
 		return err
 	}
 	// 主从延迟检查
-	if r.Params.SlaveDelayCheck {
-		for addr, conn := range r.slavesConn {
-			if err = conn.ReplicateDelayCheck(1, 1024); err != nil {
-				logger.Error("%s replicate delay abnormal %s", addr, err.Error())
-				return err
-			}
+	for addr, conn := range r.slavesConn {
+		if err = conn.ReplicateDelayCheck(1, 1024); err != nil {
+			logger.Error("%s replicate delay abnormal %s", addr, err.Error())
+			return err
 		}
 	}
 	if r.Params.ClientConnCheck {
-		if err = r.CheckSpiderAppProcesslist(); err != nil {
+		if err := r.CheckSpiderAppProcesslist(); err != nil {
 			return err
 		}
 	}
 	if r.Params.VerifyChecksum {
 		return validateChecksum(r.slavesConn)
 	}
-	return err
-}
-
-// GenerateSwitchSqls 生成切换sql
-func (r *SpiderClusterBackendSwitchComp) GenerateSwitchSqls() (err error) {
-	for _, ms := range r.Params.SwitchPairs {
-		var mastersvr, slavesvr native.Server
-		var exist bool
-		mh := ms.Master.IpPort()
-		if mastersvr, exist = r.ipPortServersMap[mh]; !exist {
-			return fmt.Errorf("master %s: not found in mysql.servers", mh)
-		}
-		sh := ms.Slave.IpPort()
-		if slavesvr, exist = r.ipPortServersMap[sh]; !exist {
-			return fmt.Errorf("slave %s: not found in mysql.servers", sh)
-		}
-		r.realSwitchSvrPairs = append(r.realSwitchSvrPairs, SvrPairs{
-			MptName: mastersvr.ServerName,
-			SptName: slavesvr.ServerName,
-			Master:  &mastersvr,
-			Slave:   &slavesvr,
-		})
-	}
-	if len(r.realSwitchSvrPairs) == 0 {
-		return fmt.Errorf("no switch instance")
-	}
-	for _, ins_pair := range r.realSwitchSvrPairs {
-		primarySwitchSql := ins_pair.Slave.GetAlterNodeSql(ins_pair.MptName, true)
-		logger.Info("primary spt switch sql:%s", mysqlcomm.CleanSvrPassword(primarySwitchSql))
-		r.primaryShardSwitchSqls = append(r.primaryShardSwitchSqls, primarySwitchSql)
-		if !r.Params.Force {
-			slaveSwitchSql := ins_pair.Master.GetAlterNodeSql(ins_pair.SptName, true)
-			logger.Info("slave spt switch sql:%s", mysqlcomm.CleanSvrPassword(slaveSwitchSql))
-			r.slaveShardSwitchSqls = append(r.slaveShardSwitchSqls, slaveSwitchSql)
-		}
-	}
-	return err
+	return nil
 }
 
 // connSpiders TODO
@@ -399,6 +366,12 @@ func (r *SpiderClusterBackendSwitchComp) validateServers() (err error) {
 				masterShardNum,
 				slaveShardNum)
 		}
+		r.realSwitchSvrPairs = append(r.realSwitchSvrPairs, SvrPairs{
+			MptName: mastersvr.ServerName,
+			SptName: slavesvr.ServerName,
+			Master:  &mastersvr,
+			Slave:   &slavesvr,
+		})
 	}
 	return nil
 }
@@ -419,6 +392,8 @@ func (r *SpiderClusterBackendSwitchComp) connTdbctl() (err error) {
 func (r *SpiderClusterBackendSwitchComp) CutOver() (err error) {
 	var tdbctlFlushed bool
 	logger.Info("the switching operation will be performed")
+	// 更改中控路由
+	logger.Info("refresh the tdbctl route,but spider hasn t taken effect yet")
 	defer func() {
 		if err != nil && len(r.primaryShardrollbackSqls) > 0 {
 			logger.Info("start execute rollback router sql ... ")
@@ -469,6 +444,20 @@ func (r *SpiderClusterBackendSwitchComp) CutOver() (err error) {
 	return r.flushrouting()
 }
 
+func (r *SpiderClusterBackendSwitchComp) getSwitchSqls() (err error) {
+	for _, ins_pair := range r.realSwitchSvrPairs {
+		primarySwitchSql := ins_pair.Slave.GetAlterNodeSql(ins_pair.MptName)
+		logger.Info("primary spt switch sql:%s", mysqlcomm.CleanSvrPassword(primarySwitchSql))
+		r.primaryShardSwitchSqls = append(r.primaryShardSwitchSqls, primarySwitchSql)
+		if !r.Params.Force {
+			slaveSwitchSql := ins_pair.Master.GetAlterNodeSql(ins_pair.SptName)
+			logger.Info("slave spt switch sql:%s", mysqlcomm.CleanSvrPassword(slaveSwitchSql))
+			r.slaveShardSwitchSqls = append(r.slaveShardSwitchSqls, slaveSwitchSql)
+		}
+	}
+	return
+}
+
 // CutOverSlave TODO
 func (r *SpiderClusterBackendSwitchComp) CutOverSlave() (err error) {
 	var tdbctlFlushed bool
@@ -503,8 +492,8 @@ func (r *SpiderClusterBackendSwitchComp) CutOverSlave() (err error) {
 func (r *SpiderClusterBackendSwitchComp) PersistenceRollbackFile() (err error) {
 	var masterRbSqls, slaveRbSqls, w []string
 	for _, ins_pair := range r.realSwitchSvrPairs {
-		masterRbSqls = append(masterRbSqls, ins_pair.Master.GetAlterNodeSql(ins_pair.MptName, false))
-		slaveRbSqls = append(slaveRbSqls, ins_pair.Slave.GetAlterNodeSql(ins_pair.SptName, false))
+		masterRbSqls = append(masterRbSqls, ins_pair.Master.GetAlterNodeSql(ins_pair.MptName))
+		slaveRbSqls = append(slaveRbSqls, ins_pair.Slave.GetAlterNodeSql(ins_pair.SptName))
 	}
 	if err = r.initRollbackRouteFile(); err != nil {
 		return err
@@ -753,7 +742,7 @@ func (c *CutOverCtx) Unlock() (err error) {
 
 func (c *CutOverCtx) flushrouting() (err error) {
 	if err = cmutil.Retry(cmutil.RetryConfig{Times: 3, DelayTime: 1 * time.Second}, func() error {
-		_, ferr := c.tdbCtlConn.Exec("TDBCTL FLUSH ROUTING CACHE;")
+		_, ferr := c.tdbCtlConn.Exec("tdbctl flush routing force")
 		return ferr
 	}); err != nil {
 		return err
