@@ -45,14 +45,14 @@
             ],
             "agg_condition": [
               {
-                "key": "db_type",
+                "key": "cluster_type",
                 "value": [
-                  "mysql",
-                  "tendbcluster"
+                  "tendbsingle",
+                  "tendbha"
                 ],
                 "method": "eq",
                 "condition": "and",
-                "dimension_name": "dbm db type"
+                "dimension_name": "dbm cluster type"
               }
             ],
             "metric_field": "in_use",

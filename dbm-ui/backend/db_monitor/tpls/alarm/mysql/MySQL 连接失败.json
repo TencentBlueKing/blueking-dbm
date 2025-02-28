@@ -41,7 +41,18 @@
               "instance_role",
               "appid"
             ],
-            "agg_condition": [],
+            "agg_condition": [
+              {
+                "key": "machine_type",
+                "value": [
+                  "proxy",
+                  "backend"
+                ],
+                "method": "eq",
+                "condition": "and",
+                "dimension_name": "dbm machine type"
+              }
+            ],
             "custom_event_name": "db-up",
             "name": "db-up"
           }

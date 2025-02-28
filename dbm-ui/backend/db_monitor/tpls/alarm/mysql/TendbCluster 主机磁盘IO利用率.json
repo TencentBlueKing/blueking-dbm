@@ -1,10 +1,10 @@
 {
   "bk_biz_id": 0,
-  "name": "MySQL 主机磁盘IO利用率",
+  "name": "TendbCluster 主机磁盘IO利用率",
   "db_type": "mysql",
   "details": {
     "bk_biz_id": "",
-    "name": "MySQL 主机磁盘IO利用率",
+    "name": "TendbCluster 主机磁盘IO利用率",
     "source": "dbm",
     "scenario": "os",
     "type": "monitor",
@@ -47,8 +47,7 @@
               {
                 "key": "cluster_type",
                 "value": [
-                  "tendbsingle",
-                  "tendbha"
+                  "tendbcluster"
                 ],
                 "method": "eq",
                 "condition": "and",

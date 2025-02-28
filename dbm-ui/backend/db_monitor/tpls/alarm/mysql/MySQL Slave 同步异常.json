@@ -41,7 +41,18 @@
               "instance_host",
               "bk_target_service_instance_id"
             ],
-            "agg_condition": [],
+            "agg_condition": [
+               {
+                "key": "machine_type",
+                "value": [
+                  "proxy",
+                  "backend"
+                ],
+                "method": "eq",
+                "condition": "and",
+                "dimension_name": "dbm machine type"
+              }
+            ],
             "custom_event_name": "slave-status",
             "name": "slave-status"
           }

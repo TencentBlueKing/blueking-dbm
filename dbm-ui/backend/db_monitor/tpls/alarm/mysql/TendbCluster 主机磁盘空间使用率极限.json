@@ -1,16 +1,16 @@
 {
   "bk_biz_id": 0,
-  "name": "MySQL 主机磁盘IO利用率",
+  "name": "TendbCluster 主机磁盘空间使用率极限",
   "db_type": "mysql",
   "details": {
     "bk_biz_id": "",
-    "name": "MySQL 主机磁盘IO利用率",
+    "name": "TendbCluster 主机磁盘空间使用率极限",
     "source": "dbm",
     "scenario": "os",
     "type": "monitor",
     "items": [
       {
-        "name": "AVG(I/O使用率)",
+        "name": "MAX(磁盘空间使用率)",
         "no_data_config": {
           "level": 2,
           "continuous": 10,
@@ -29,11 +29,11 @@
             "data_source_label": "bk_monitor",
             "data_type_label": "time_series",
             "alias": "a",
-            "metric_id": "bk_monitor.dbm_system.io.util",
+            "metric_id": "bk_monitor.dbm_system.disk.in_use",
             "functions": [],
-            "result_table_id": "dbm_system.io",
-            "agg_method": "AVG",
-            "agg_interval": 300,
+            "result_table_id": "dbm_system.disk",
+            "agg_method": "MAX",
+            "agg_interval": 60,
             "agg_dimension": [
               "appid",
               "app",
@@ -41,34 +41,33 @@
               "cluster_domain",
               "bk_target_ip",
               "bk_target_cloud_id",
-              "device_name"
+              "mount_point"
             ],
             "agg_condition": [
               {
                 "key": "cluster_type",
                 "value": [
-                  "tendbsingle",
-                  "tendbha"
+                  "tendbcluster"
                 ],
                 "method": "eq",
                 "condition": "and",
                 "dimension_name": "dbm cluster type"
               }
             ],
-            "metric_field": "util",
-            "unit": "percentunit",
-            "name": "I/O使用率"
+            "metric_field": "in_use",
+            "unit": "percent",
+            "name": "磁盘空间使用率"
           }
         ],
         "algorithms": [
           {
             "type": "Threshold",
-            "level": 2,
+            "level": 1,
             "config": [
               [
                 {
                   "method": "gte",
-                  "threshold": 90
+                  "threshold": 98
                 }
               ]
             ],
@@ -80,7 +79,7 @@
     ],
     "detects": [
       {
-        "level": 2,
+        "level": 1,
         "expression": "",
         "trigger_config": {
           "count": 1,
@@ -89,18 +88,14 @@
             "time_ranges": [
               {
                 "end": "23:59",
-                "start": "09:00"
-              },
-              {
-                "end": "02:00",
                 "start": "00:00"
               }
             ]
           },
-          "check_window": 2
+          "check_window": 5
         },
         "recovery_config": {
-          "check_window": 2,
+          "check_window": 5,
           "status_setter": "recovery"
         },
         "connector": "and"
@@ -108,7 +103,7 @@
     ],
     "actions": [],
     "notice": {
-      "config_id": 40779,
+      "config_id": 48116,
       "user_groups": [],
       "user_type": "main",
       "signal": [
@@ -230,9 +225,9 @@
     "is_enabled": true
   },
   "is_enabled": true,
-  "monitor_indicator": "AVG(I/O使用率)",
+  "monitor_indicator": "MAX(磁盘空间使用率)",
   "version": 26,
   "alert_source": "time_series",
   "custom_conditions": [],
-  "export_at": "2024-11-26T16:26:58+08:00"
+  "export_at": "2024-12-06T15:52:08+08:00"
 }

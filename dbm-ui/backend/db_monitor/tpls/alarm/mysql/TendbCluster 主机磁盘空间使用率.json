@@ -1,16 +1,16 @@
 {
   "bk_biz_id": 0,
-  "name": "MySQL 主机磁盘IO利用率",
+  "name": "TendbCluster 主机磁盘空间使用率",
   "db_type": "mysql",
   "details": {
     "bk_biz_id": "",
-    "name": "MySQL 主机磁盘IO利用率",
+    "name": "TendbCluster 主机磁盘空间使用率",
     "source": "dbm",
     "scenario": "os",
     "type": "monitor",
     "items": [
       {
-        "name": "AVG(I/O使用率)",
+        "name": "AVG(磁盘空间使用率)",
         "no_data_config": {
           "level": 2,
           "continuous": 10,
@@ -29,9 +29,9 @@
             "data_source_label": "bk_monitor",
             "data_type_label": "time_series",
             "alias": "a",
-            "metric_id": "bk_monitor.dbm_system.io.util",
+            "metric_id": "bk_monitor.dbm_system.disk.in_use",
             "functions": [],
-            "result_table_id": "dbm_system.io",
+            "result_table_id": "dbm_system.disk",
             "agg_method": "AVG",
             "agg_interval": 300,
             "agg_dimension": [
@@ -41,26 +41,42 @@
               "cluster_domain",
               "bk_target_ip",
               "bk_target_cloud_id",
-              "device_name"
+              "mount_point"
             ],
             "agg_condition": [
               {
                 "key": "cluster_type",
                 "value": [
-                  "tendbsingle",
-                  "tendbha"
+                  "tendbcluster"
                 ],
                 "method": "eq",
                 "condition": "and",
                 "dimension_name": "dbm cluster type"
               }
             ],
-            "metric_field": "util",
-            "unit": "percentunit",
-            "name": "I/O使用率"
+            "metric_field": "in_use",
+            "unit": "percent",
+            "name": "磁盘空间使用率"
           }
         ],
         "algorithms": [
+          {
+            "type": "Threshold",
+            "level": 1,
+            "config": [
+              [
+                {
+                  "method": "gte",
+                  "threshold": 95
+                },
+                {
+                  "method": "lt",
+                  "threshold": 98
+                }
+              ]
+            ],
+            "unit_prefix": "%"
+          },
           {
             "type": "Threshold",
             "level": 2,
@@ -68,7 +84,7 @@
               [
                 {
                   "method": "gte",
-                  "threshold": 90
+                  "threshold": 85
                 }
               ]
             ],
@@ -80,24 +96,42 @@
     ],
     "detects": [
       {
-        "level": 2,
+        "level": 1,
         "expression": "",
         "trigger_config": {
-          "count": 1,
+          "count": 2,
           "uptime": {
             "calendars": [],
             "time_ranges": [
               {
                 "end": "23:59",
-                "start": "09:00"
-              },
-              {
-                "end": "02:00",
                 "start": "00:00"
               }
             ]
           },
-          "check_window": 2
+          "check_window": 3
+        },
+        "recovery_config": {
+          "check_window": 2,
+          "status_setter": "recovery"
+        },
+        "connector": "and"
+      },
+      {
+        "level": 2,
+        "expression": "",
+        "trigger_config": {
+          "count": 2,
+          "uptime": {
+            "calendars": [],
+            "time_ranges": [
+              {
+                "end": "23:59",
+                "start": "00:00"
+              }
+            ]
+          },
+          "check_window": 3
         },
         "recovery_config": {
           "check_window": 2,
@@ -108,12 +142,12 @@
     ],
     "actions": [],
     "notice": {
-      "config_id": 40779,
+      "config_id": 40811,
       "user_groups": [],
       "user_type": "main",
       "signal": [
-        "abnormal",
-        "no_data"
+        "no_data",
+        "abnormal"
       ],
       "options": {
         "end_time": "23:59:59",
@@ -194,7 +228,7 @@
       "relate_type": "NOTICE",
       "config": {
         "need_poll": true,
-        "notify_interval": 7200,
+        "notify_interval": 21600,
         "interval_notify_mode": "standard",
         "template": [
           {
@@ -230,9 +264,9 @@
     "is_enabled": true
   },
   "is_enabled": true,
-  "monitor_indicator": "AVG(I/O使用率)",
+  "monitor_indicator": "AVG(磁盘空间使用率)",
   "version": 26,
   "alert_source": "time_series",
   "custom_conditions": [],
-  "export_at": "2024-11-26T16:26:58+08:00"
+  "export_at": "2024-12-06T15:52:08+08:00"
 }

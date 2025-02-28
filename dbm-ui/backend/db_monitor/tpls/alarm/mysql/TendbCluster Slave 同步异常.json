@@ -1,24 +1,21 @@
 {
   "bk_biz_id": 0,
-  "name": "MySQL 主机磁盘IO利用率",
+  "name": "TendbCluster Slave 同步异常",
   "db_type": "mysql",
   "details": {
     "bk_biz_id": "",
-    "name": "MySQL 主机磁盘IO利用率",
+    "name": "TendbCluster Slave 同步异常",
     "source": "dbm",
-    "scenario": "os",
+    "scenario": "component",
     "type": "monitor",
     "items": [
       {
-        "name": "AVG(I/O使用率)",
+        "name": "COUNT(slave-status-dbm_report_channel)",
         "no_data_config": {
           "level": 2,
           "continuous": 10,
           "is_enabled": false,
-          "agg_dimension": [
-            "bk_target_ip",
-            "bk_target_cloud_id"
-          ]
+          "agg_dimension": []
         },
         "target": [],
         "expression": "a",
@@ -26,61 +23,61 @@
         "origin_sql": "",
         "query_configs": [
           {
-            "data_source_label": "bk_monitor",
-            "data_type_label": "time_series",
+            "data_source_label": "custom",
+            "data_type_label": "event",
             "alias": "a",
-            "metric_id": "bk_monitor.dbm_system.io.util",
+            "metric_id": "custom.event.bkmonitor_event_{event_data_id}.slave-status",
             "functions": [],
-            "result_table_id": "dbm_system.io",
-            "agg_method": "AVG",
-            "agg_interval": 300,
+            "result_table_id": "bkmonitor_event_{event_data_id}",
+            "agg_method": "COUNT",
+            "agg_interval": 60,
             "agg_dimension": [
               "appid",
-              "app",
-              "instance_role",
+              "bk_cloud_id",
               "cluster_domain",
-              "bk_target_ip",
-              "bk_target_cloud_id",
-              "device_name"
+              "machine_type",
+              "instance_port",
+              "instance_role",
+              "instance_host",
+              "bk_target_service_instance_id"
             ],
             "agg_condition": [
-              {
-                "key": "cluster_type",
+               {
+                "key": "machine_type",
                 "value": [
-                  "tendbsingle",
-                  "tendbha"
+                  "spider",
+                  "remote"
                 ],
                 "method": "eq",
                 "condition": "and",
-                "dimension_name": "dbm cluster type"
+                "dimension_name": "dbm machine type"
               }
             ],
-            "metric_field": "util",
-            "unit": "percentunit",
-            "name": "I/O使用率"
+            "custom_event_name": "slave-status",
+            "name": "slave-status"
           }
         ],
         "algorithms": [
           {
             "type": "Threshold",
-            "level": 2,
+            "level": 1,
             "config": [
               [
                 {
                   "method": "gte",
-                  "threshold": 90
+                  "threshold": 1
                 }
               ]
             ],
-            "unit_prefix": "%"
+            "unit_prefix": ""
           }
         ],
-        "metric_type": "time_series"
+        "metric_type": "event"
       }
     ],
     "detects": [
       {
-        "level": 2,
+        "level": 1,
         "expression": "",
         "trigger_config": {
           "count": 1,
@@ -89,18 +86,18 @@
             "time_ranges": [
               {
                 "end": "23:59",
-                "start": "09:00"
+                "start": "08:00"
               },
               {
-                "end": "02:00",
+                "end": "01:00",
                 "start": "00:00"
               }
             ]
           },
-          "check_window": 2
+          "check_window": 5
         },
         "recovery_config": {
-          "check_window": 2,
+          "check_window": 5,
           "status_setter": "recovery"
         },
         "connector": "and"
@@ -108,12 +105,12 @@
     ],
     "actions": [],
     "notice": {
-      "config_id": 40779,
+      "config_id": 40812,
       "user_groups": [],
       "user_type": "main",
       "signal": [
-        "abnormal",
-        "no_data"
+        "no_data",
+        "abnormal"
       ],
       "options": {
         "end_time": "23:59:59",
@@ -194,7 +191,7 @@
       "relate_type": "NOTICE",
       "config": {
         "need_poll": true,
-        "notify_interval": 7200,
+        "notify_interval": 14400,
         "interval_notify_mode": "standard",
         "template": [
           {
@@ -217,22 +214,21 @@
     },
     "labels": [
       "DBM",
-      "DBM_MYSQL",
-      "MySQL"
+      "DBM_MYSQL"
     ],
     "app": "",
     "path": "",
     "priority": 0,
-    "priority_group_key": "",
+    "priority_group_key": "894a024869ba958d",
     "edit_allowed": true,
-    "metric_type": "time_series",
-    "data_source_type": "监控采集指标",
+    "metric_type": "event",
+    "data_source_type": "自定义事件",
     "is_enabled": true
   },
   "is_enabled": true,
-  "monitor_indicator": "AVG(I/O使用率)",
+  "monitor_indicator": "COUNT(slave-status-dbm_report_channel)",
   "version": 26,
-  "alert_source": "time_series",
+  "alert_source": "event",
   "custom_conditions": [],
-  "export_at": "2024-11-26T16:26:58+08:00"
+  "export_at": "2024-12-06T15:52:08+08:00"
 }

@@ -50,6 +50,15 @@
                 "method": "eq",
                 "condition": "and",
                 "dimension_name": "instance_role"
+              },
+              {
+                "key": "cluster_type",
+                "value": [
+                  "tendbha"
+                ],
+                "method": "eq",
+                "condition": "and",
+                "dimension_name": "dbm cluster type"
               }
             ],
             "metric_field": "mysql_slave_status_slave_io_running",

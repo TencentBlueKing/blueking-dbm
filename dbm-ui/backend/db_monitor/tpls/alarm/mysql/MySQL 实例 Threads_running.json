@@ -41,7 +41,18 @@
               "instance",
               "appid"
             ],
-            "agg_condition": [],
+            "agg_condition": [
+              {
+                "key": "cluster_type",
+                "value": [
+                  "tendbsingle",
+                  "tendbha"
+                ],
+                "method": "eq",
+                "condition": "and",
+                "dimension_name": "dbm cluster type"
+              }
+            ],
             "metric_field": "mysql_global_status_threads_running",
             "unit": "",
             "name": "mysql_global_status_threads_running"
