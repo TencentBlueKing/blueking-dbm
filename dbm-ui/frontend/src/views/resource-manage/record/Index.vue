@@ -46,7 +46,8 @@
       <BkTableColumn
         field="updater"
         :label="t('操作人')"
-        :width="200">
+        show-overflow="tooltip"
+        :width="120">
       </BkTableColumn>
       <BkTableColumn
         field="updateAtDisplay"
@@ -54,17 +55,14 @@
         :width="200">
       </BkTableColumn>
       <BkTableColumn
-        field="bizDisplay"
+        field="bk_biz_name"
         :label="t('所属业务')"
-        :width="250">
-        <template #default="{ data }: { data: MachineEvent }">
-          {{ data.ticket ? data.bizDisplay : '--' }}
-        </template>
+        :min-width="180">
       </BkTableColumn>
       <BkTableColumn
         field="ticket"
         :label="t('关联单据')"
-        :width="200">
+        :min-width="200">
         <template #default="{ data }: { data: MachineEvent }">
           <RouterLink
             v-if="data.ticket"
@@ -83,18 +81,17 @@
       <BkTableColumn
         field="clusters"
         :label="t('集群')"
-        show-overflow="tooltip"
-        :width="450">
+        :min-width="300"
+        show-overflow="tooltip">
         <template #default="{ data }: { data: MachineEvent }">
           {{ data.clusters.length ? data.clusters.map((item) => item.immute_domain).join(', ') : '--' }}
         </template>
       </BkTableColumn>
       <BkTableColumn
         field="operationDetail"
-        fixed="right"
         :label="t('操作明细')"
         show-overflow="tooltip"
-        :width="320">
+        :width="300">
       </BkTableColumn>
     </DbTable>
   </div>
