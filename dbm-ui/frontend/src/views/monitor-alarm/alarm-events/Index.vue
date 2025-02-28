@@ -70,10 +70,52 @@
         </template>
       </BkTableColumn>
       <BkTableColumn
+        field="bk_biz_id"
+        :label="t('所属业务')"
+        :min-width="160"
+        show-overflow="tooltip">
+        <template #default="{ data }: { data: RowData }">
+          <span>{{ bizsMap[data.bk_biz_id] || '--' }}</span>
+        </template>
+      </BkTableColumn>
+      <BkTableColumn
+        field="cluster"
+        :label="t('所属集群')"
+        show-overflow="tooltip"
+        :width="220">
+      </BkTableColumn>
+      <BkTableColumn
+        field="instance"
+        :label="t('告警主机/实例')"
+        :min-width="130"
+        show-overflow="tooltip">
+      </BkTableColumn>
+      <BkTableColumn
         field="description"
         :label="t('告警内容')"
         show-overflow="tooltip"
         :width="380">
+      </BkTableColumn>
+      <BkTableColumn
+        field="firstAnomalyTimeDisplay"
+        :label="t('首次异常时间')"
+        :min-width="200"
+        :show-overflow="false">
+      </BkTableColumn>
+      <BkTableColumn
+        field="beginTimeDisplay"
+        :label="t('告警产生时间')"
+        :min-width="200"
+        :show-overflow="false">
+      </BkTableColumn>
+      <BkTableColumn
+        field="appointee"
+        :label="t('负责人')"
+        show-overflow="tooltip"
+        :width="160">
+        <template #default="{ data }: { data: RowData }">
+          <span>{{ data.appointee?.join(',') }}</span>
+        </template>
       </BkTableColumn>
       <BkTableColumn
         field="status"
@@ -131,82 +173,33 @@
         </template>
       </BkTableColumn>
       <BkTableColumn
-        field="cluster"
-        :label="t('所属集群')"
-        show-overflow="tooltip"
-        :width="220">
-      </BkTableColumn>
-      <BkTableColumn
-        field="instance"
-        :label="t('告警主机/实例')"
-        :min-width="130"
-        show-overflow="tooltip">
-      </BkTableColumn>
-      <BkTableColumn
-        field="strategy_name"
-        :label="t('关联策略')"
-        show-overflow="tooltip"
-        :width="220">
-      </BkTableColumn>
-      <BkTableColumn
-        field="firstAnomalyTimeDisplay"
-        :label="t('首次异常时间')"
-        :min-width="200"
-        :show-overflow="false">
-      </BkTableColumn>
-      <BkTableColumn
-        field="beginTimeDisplay"
-        :label="t('告警产生时间')"
-        :min-width="200"
-        :show-overflow="false">
-      </BkTableColumn>
-      <BkTableColumn
-        field="bk_biz_id"
-        :label="t('所属业务')"
-        :min-width="160"
-        :show-overflow="false">
-        <template #default="{ data }: { data: RowData }">
-          <span>{{ bizsMap[data.bk_biz_id] || '--' }}</span>
-        </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="appointee"
-        :label="t('负责人')"
-        show-overflow="tooltip"
-        :width="160">
-        <template #default="{ data }: { data: RowData }">
-          <span>{{ data.appointee?.join(',') }}</span>
-        </template>
-      </BkTableColumn>
-      <BkTableColumn
         fixed="right"
         :label="t('操作')"
         :min-width="150"
         :show-overflow="false">
         <template #default="{ data }: { data: RowData }">
-          <BkPopover
-            :disabled="!data.is_shielded"
-            placement="top"
-            theme="light">
-            <BkButton
-              :disabled="data.is_shielded"
-              text
-              theme="primary"
-              @click="() => handleOpenShieldAlarms(true, data)">
-              {{ t('屏蔽告警') }}
-            </BkButton>
-            <template #content>
-              <span>
-                {{ t('已屏蔽，无需再操作') }}，
-                <BkButton
-                  text
-                  theme="primary"
-                  @click="() => handleOpenShieldAlarms(false, data)">
-                  {{ t('查看') }}
-                </BkButton>
-              </span>
-            </template>
-          </BkPopover>
+          <BkButton
+            v-if="data.is_shielded"
+            text
+            theme="primary"
+            @click="() => handleOpenShieldAlarms(false, data)">
+            {{ t('查看屏蔽') }}
+          </BkButton>
+          <BkButton
+            v-else
+            text
+            theme="primary"
+            @click="() => handleOpenShieldAlarms(true, data)">
+            {{ t('屏蔽告警') }}
+          </BkButton>
+          <BkButton
+            class="ml-8"
+            disabled
+            text
+            theme="primary"
+            @click="handleOpenDetailPage">
+            {{ t('更多信息') }}
+          </BkButton>
         </template>
       </BkTableColumn>
     </DbTable>
@@ -223,7 +216,8 @@
     </template>
     <ShieldAlarms
       ref="createShieldAlarmsRef"
-      :data="currentEvent" />
+      :data="currentEvent"
+      @success="handleShieldSuccess" />
   </DbSideslider>
 </template>
 <script setup lang="tsx">
@@ -235,7 +229,7 @@
 
   import { useBeforeClose } from '@hooks';
 
-  import { alarmEventsTodoCount, useGlobalBizs } from '@stores';
+  import { useGlobalBizs } from '@stores';
 
   import DbTable from '@components/db-table/index.vue';
 
@@ -250,7 +244,6 @@
   const globalBizStore = useGlobalBizs();
   const router = useRouter();
   const route = useRoute();
-  const alarmEventsTodoCountStore = alarmEventsTodoCount();
 
   const isEditable = ref(true);
   const showShieldAlarm = ref(false);
@@ -368,41 +361,45 @@
   watch(
     () => route.query,
     () => {
-      console.log('watch query = ', route.query);
-      const params = route.query;
-      if (!isTodoPage.value) {
-        Object.assign(params, {
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        });
-      }
-      if (route.query.self_assist) {
-        Object.assign(params, {
-          self_assist: true,
-        });
-      }
-      if (route.query.self_manage || (!route.query.self_manage && !route.query.self_assist && isTodoPage.value)) {
-        Object.assign(params, {
-          self_manage: true,
-        });
-      }
-      setTimeout(() => {
-        tableRef.value?.fetchData({
-          bk_biz_id: undefined,
-          ...params,
-        });
-      });
+      updateTableData();
     },
     {
       deep: true,
     },
   );
 
-  const handleRequestSuccess = (data: ServiceReturnType<typeof getAlarmEventsList>) => {
-    if (route.query.self_manage) {
-      alarmEventsTodoCountStore.todoCount = data.overview.count;
-    } else {
-      alarmEventsTodoCountStore.assitCount = data.overview.count;
+  const updateTableData = () => {
+    const params = route.query;
+    if (!isTodoPage.value) {
+      Object.assign(params, {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      });
     }
+    if (route.query.self_assist) {
+      Object.assign(params, {
+        self_assist: true,
+      });
+    }
+    if (route.query.self_manage || (!route.query.self_manage && !route.query.self_assist && isTodoPage.value)) {
+      Object.assign(params, {
+        self_manage: true,
+      });
+    }
+    if (!route.query.status) {
+      // 未选，默认设置未恢复状态
+      Object.assign(params, {
+        status: 'ABNORMAL',
+      });
+    }
+    setTimeout(() => {
+      tableRef.value?.fetchData({
+        bk_biz_id: undefined,
+        ...params,
+      });
+    });
+  };
+
+  const handleRequestSuccess = (data: ServiceReturnType<typeof getAlarmEventsList>) => {
     const severityInfo = data.aggs.find((item) => item.id === 'severity')!;
     const severityMap = severityInfo.children.reduce<Record<string, number>>((result, item) => {
       Object.assign(result, {
@@ -440,6 +437,10 @@
     showShieldAlarm.value = true;
   };
 
+  const handleOpenDetailPage = () => {
+    console.log('handleOpenDetailPage');
+  };
+
   const handleClearSearchValue = () => {
     searchOperationRef.value!.reset();
   };
@@ -449,13 +450,11 @@
   };
 
   const handleColumnFilterChange = (data: { checked: string[]; field: string }) => {
-    console.log('column filter = ', data);
     if (data.checked.length) {
       columnFilterParams[data.field] = data.checked.join(',');
     } else {
       delete columnFilterParams[data.field];
     }
-    console.log('column filter params = ', columnFilterParams);
     tableRef.value?.fetchData({
       bk_biz_id: undefined,
       ...route.query,
@@ -468,7 +467,6 @@
   };
 
   const handleSearchChange = (data: Record<string, string>) => {
-    console.log('search = ', data);
     const searchData = _.cloneDeep(data);
     const query = _.cloneDeep(route.query);
     Object.keys(route.query).forEach((key) => {
@@ -481,7 +479,6 @@
       }
     });
     Object.assign(query, searchData);
-    console.log('!!!query = ', query);
     router.push({
       name: route.name,
       query,
@@ -494,11 +491,12 @@
 
   const handleExport = () => {
     const formatData = selectionList.value.map((item) => ({
-      [t('关联策略')]: item.strategy_name,
+      [t('告警 ID')]: item.id,
       [t('告警主机/实例')]: item.instance,
       [t('告警产生时间')]: item.beginTimeDisplay,
       [t('告警内容')]: item.description,
       [t('告警名称')]: item.alert_name,
+      [t('告警等级')]: item.severityDisplayName,
       [t('处理阶段')]: item.stage_display,
       [t('所属业务')]: bizsMap.value[item.bk_biz_id],
       [t('所属集群')]: item.cluster,
@@ -515,8 +513,11 @@
   const handleBeforeClose = () => {
     const beforeClose = useBeforeClose();
     const isValueChange = createShieldAlarmsRef.value!.checkValueChange();
-    console.log('isValueChange = ', isValueChange);
     return beforeClose(isValueChange);
+  };
+
+  const handleShieldSuccess = () => {
+    updateTableData();
   };
 </script>
 <style lang="less" scoped>

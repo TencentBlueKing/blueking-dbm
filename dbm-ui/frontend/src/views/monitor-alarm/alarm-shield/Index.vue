@@ -40,6 +40,7 @@
       :show-prepend="false"
       @clear-search="handleClearSearchValue"
       @column-filter="handleColumnFilterChange"
+      @request-finished="handleRequestFinished"
       @selection="handleSelection">
       <BkTableColumn
         field="id"
@@ -91,7 +92,9 @@
         :min-width="400"
         :show-overflow="false">
         <template #default="{ data }: { data: RowData }">
-          <span>{{ data.content }}</span>
+          <ShieldContent
+            :data="data.dimension_config"
+            :strategy-map="policyMap" />
         </template>
       </BkTableColumn>
       <BkTableColumn
@@ -99,6 +102,15 @@
         :label="t('屏蔽原因')"
         :min-width="160"
         show-overflow="tooltip">
+      </BkTableColumn>
+      <BkTableColumn
+        v-if="isExpired"
+        field="status"
+        :label="t('状态')"
+        :width="100">
+        <template #default="{ data }: { data: RowData }">
+          <span :style="{ color: data.status === 2 ? '#c4c6cc' : '#ff9c01' }">{{ data.statusDisplay }}</span>
+        </template>
       </BkTableColumn>
       <BkTableColumn
         field="update_user"
@@ -123,10 +135,10 @@
         <template #default="{ data }: { data: RowData }">
           <BkButton
             v-bk-tooltips="{
-              disabled: data.isEdiatable,
+              disabled: isExpired || data.isEdiatable,
               content: t('暂不支持'),
             }"
-            :disabled="!data.isEdiatable"
+            :disabled="isExpired || !data.isEdiatable"
             text
             theme="primary"
             @click="() => handleOpenShieldAlarms('edit', data)">
@@ -134,11 +146,11 @@
           </BkButton>
           <BkButton
             v-bk-tooltips="{
-              disabled: data.isEdiatable,
+              disabled: isExpired || data.isEdiatable,
               content: t('暂不支持'),
             }"
             class="ml-8 mr-8"
-            :disabled="!data.isEdiatable"
+            :disabled="isExpired || !data.isEdiatable"
             text
             theme="primary"
             @click="() => handleOpenShieldAlarms('clone', data)">
@@ -151,6 +163,7 @@
             :width="280"
             @confirm="() => unlockAlarmShield({ id: data.id })">
             <BkButton
+              :disabled="isExpired"
               text
               theme="primary">
               {{ t('解除') }}
@@ -169,6 +182,7 @@
     :before-close="handleBeforeClose"
     class="shiled-alarm-page"
     :confirm-text="t('确定')"
+    :disabled-confirm="isDisabled"
     width="960"
     @closed="handleClosed">
     <template #header>
@@ -191,7 +205,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { disabledAlarmShield, getAlarmShieldList } from '@services/source/monitor';
+  import { disabledAlarmShield, getAlarmShieldList, getPolicyList } from '@services/source/monitor';
 
   import { useBeforeClose } from '@hooks';
 
@@ -201,6 +215,7 @@
 
   import EditShieldAlarms from './components/edit-shield-alarms/Index.vue';
   import SearchOperation from './components/SearchOperation.vue';
+  import ShieldContent from './components/ShieldContent.vue';
 
   type RowData = ServiceReturnType<typeof getAlarmShieldList>['results'][number];
 
@@ -211,15 +226,19 @@
 
   const editMode = ref('edit');
   const showShieldAlarm = ref(false);
-  const filterValue = ref(1);
+  const filterValue = ref(route.query.is_active ? Number(route.query.is_active) : 1);
   const shieldingCount = ref(0);
   const expiredCount = ref(0);
   const currentAlarmShield = ref<RowData>();
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const searchOperationRef = ref<InstanceType<typeof SearchOperation>>();
+  const policyMap = ref<Record<number, string>>({});
 
   const selectionList = shallowRef<RowData[]>([]);
 
+  const isDisabled = computed(
+    () => !!currentAlarmShield.value?.category && ['alert', 'scope'].includes(currentAlarmShield.value.category),
+  );
   const filterList = computed(() => [
     {
       name: t('屏蔽中(n)', { n: shieldingCount.value }),
@@ -230,6 +249,8 @@
       value: 0,
     },
   ]);
+
+  const isExpired = computed(() => filterValue.value === 0);
 
   const editModeTitleMap: Record<string, string> = {
     clone: t('克隆'),
@@ -269,6 +290,17 @@
     },
   });
 
+  const { run: fetchPolicyList } = useRequest(getPolicyList, {
+    manual: true,
+    onSuccess(data) {
+      data.results.forEach((item) => {
+        Object.assign(policyMap.value, {
+          [item.id]: item.name,
+        });
+      });
+    },
+  });
+
   watch(showShieldAlarm, () => {
     if (showShieldAlarm.value) {
       setTimeout(() => {
@@ -294,6 +326,15 @@
       immediate: true,
     },
   );
+
+  const handleRequestFinished = (data: RowData[]) => {
+    const list = _.flatMap(data.map((item) => item.dimension_config.strategy_id || [])).filter((item) => !!item);
+    const strategyList = _.uniq(list);
+    fetchPolicyList({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      monitor_policy_ids: strategyList.join(','),
+    });
+  };
 
   const handleOpenShieldAlarms = (mode: string, data?: RowData) => {
     editMode.value = mode;

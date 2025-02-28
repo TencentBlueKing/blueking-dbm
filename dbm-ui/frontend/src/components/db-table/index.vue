@@ -56,6 +56,7 @@
                   @change="handleWholeSelect" />
               </template>
               <BkPopover
+                v-if="showSelectAllPage"
                 :arrow="false"
                 placement="bottom-start"
                 theme="light db-table-select-menu"
@@ -73,7 +74,6 @@
                       {{ t('本页全选') }}
                     </div>
                     <div
-                      v-if="showSelectAllPage"
                       class="item"
                       @click="handleWholeSelect">
                       {{ t('跨页全选') }}
@@ -509,6 +509,12 @@
 
   // 跨页全选
   const handleWholeSelect = () => {
+    if (!props.showSelectAllPage) {
+      // 屏蔽跨页全选
+      handleTogglePageSelect(true);
+      return;
+    }
+
     props
       .dataSource({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,

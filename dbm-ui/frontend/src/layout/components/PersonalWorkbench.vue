@@ -27,7 +27,7 @@
         <span>
           {{ t('告警事件待办') }}
         </span>
-        <span class="ticket-count">{{ alarmEventsTodoCountStore.todoCount }}</span>
+        <span class="ticket-count">{{ alarmEventsTodoCount }}</span>
       </BkMenuItem>
       <BkMenuItem
         v-if="userProfileStore.isDba"
@@ -102,9 +102,9 @@
   import { Menu } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
-  import { useReportCount, useTicketCount } from '@hooks';
+  import { useAlarmEventsCount, useReportCount, useTicketCount } from '@hooks';
 
-  import { alarmEventsTodoCount, useUserProfile } from '@stores';
+  import { useUserProfile } from '@stores';
 
   import { useActiveKey } from './hooks/useActiveKey';
 
@@ -120,8 +120,8 @@
 
   const { data: ticketCount } = useTicketCount();
   const { manageCount } = useReportCount();
+  const { todoCount: alarmEventsTodoCount } = useAlarmEventsCount();
   const userProfileStore = useUserProfile();
-  const alarmEventsTodoCountStore = alarmEventsTodoCount();
 
   const todoCount = computed(() => {
     if (!ticketCount.value) {
@@ -136,10 +136,6 @@
       ticketCount.value.pending.TODO
     );
   });
-
-  if (alarmEventsTodoCountStore.todoCount === 0) {
-    alarmEventsTodoCountStore.initCount();
-  }
 </script>
 <style lang="less">
   .bk-menu-item {

@@ -41,12 +41,12 @@
     ticketDetails: TicketModel<Mongodb.Backup>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.MONGODB_BACKUP,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 
@@ -138,10 +138,10 @@
   }));
 
   const fileTagMap: Record<string, string> = {
-    a_year_backup: t('1 年'),
-    forever_backup: t('3 年'),
-    half_year_backup: t('6 个月'),
-    normal_backup: t('25天'),
+    a_year_backup: t('n年', { n: 1 }),
+    forever_backup: t('n年', { n: 3 }),
+    half_year_backup: t('n个月', { n: 6 }),
+    normal_backup: t('n天', { n: 25 }),
   };
 
   const fileTagText = fileTagMap[fileTag];

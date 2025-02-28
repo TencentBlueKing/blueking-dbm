@@ -357,7 +357,9 @@ export const getAlarmEventsList = (params: {
         name: string;
       };
       total: number;
-    }>(`${path}/event/search/`, params)
+    }>(`${path}/event/search/`, params, {
+      cache: 1000,
+    })
     .then((data) => ({
       aggs: data.aggs,
       count: data.total,

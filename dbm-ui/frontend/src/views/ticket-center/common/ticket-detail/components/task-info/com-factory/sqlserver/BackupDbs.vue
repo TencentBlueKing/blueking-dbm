@@ -75,19 +75,18 @@
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
-  defineProps<Props>();
   defineOptions({
     name: TicketTypes.SQLSERVER_BACKUP_DBS,
     inheritAttrs: false,
   });
-
+  defineProps<Props>();
   const { t } = useI18n();
 
   const fileTagMap = {
-    DBFILE1M: t('1 个月'),
-    DBFILE1Y: t('1 年'),
-    DBFILE3Y: t('3 年'),
-    DBFILE6M: t('6 个月'),
-    INCREMENT_BACKUP: t('15天'),
+    DBFILE1M: t('n个月', { n: 1 }),
+    DBFILE1Y: t('n年', { n: 1 }),
+    DBFILE3Y: t('n年', { n: 3 }),
+    DBFILE6M: t('n个月', { n: 6 }),
+    INCREMENT_BACKUP: t('n天', { n: 15 }),
   } as Record<string, string>;
 </script>
