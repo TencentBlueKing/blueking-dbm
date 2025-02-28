@@ -43,6 +43,7 @@ type RedisInsKeyPatternJobParam struct {
 	DeleteRate           int                 `json:"delete_rate"`            // cache Redis删除速率,避免del 命令执行过快
 	TendisplusDeleteRate int                 `json:"tendisplus_delete_rate"` // tendisplus删除速率,避免del 命令执行过快
 	SsdDeleteRate        int                 `json:"ssd_delete_rate"`        // ssd删除速率,避免del 命令执行过快
+	DbList               []int               `json:"db_list"`                // 单实例多DB支持
 }
 
 // TendisKeysPattern key提取&删除
@@ -140,7 +141,8 @@ func (job *TendisKeysPattern) Run() (err error) {
 			password, saveDir, job.runtime, job.params.FileServer.URL, job.params.FileServer.Bucket,
 			job.params.FileServer.Password, job.params.FileServer.Username, job.params.FileServer.Project,
 			job.params.Path, job.params.KeyWhiteRegex, job.params.KeyBlackRegex,
-			job.params.IsKeysToBeDel, job.params.DeleteRate, job.params.TendisplusDeleteRate, job.params.SsdDeleteRate, 0, 0)
+			job.params.IsKeysToBeDel, job.params.DeleteRate, job.params.TendisplusDeleteRate, job.params.SsdDeleteRate,
+			0, 0, job.params.DbList)
 		if err != nil {
 			return err
 		}
@@ -217,6 +219,7 @@ type RedisInsKeyPatternTask struct {
 	MasterAuth           string              `json:"masterAuth"`
 	SegStart             int                 `json:"segStart"` // 源实例所属segment start
 	SegEnd               int                 `json:"segEnd"`   // 源实例所属segment end
+	DbList               []int               `json:"dbList"`   // 单实例后续可能会支持多db提取key操作, 默认只支持db0
 
 }
 
@@ -225,7 +228,7 @@ func NewRedisInsKeyPatternTask(
 	bkBizID, domain, iP string, port int, insPassword, saveDir string,
 	runtime *jobruntime.JobGenericRuntime, url, bucket, password, username, project string, path string,
 	keyWhite, keyBlack string, iskeysToBeDel bool, deleteRate, tendisplusDeleteRate, ssdDeleteRate int,
-	segStart, segEnd int) (task *RedisInsKeyPatternTask, err error) {
+	segStart, segEnd int, dbList []int) (task *RedisInsKeyPatternTask, err error) {
 	task = &RedisInsKeyPatternTask{}
 	t1, err := NewRedisInsTask(bkBizID, domain, iP, port, insPassword, saveDir, runtime)
 	if err != nil {
@@ -247,6 +250,7 @@ func NewRedisInsKeyPatternTask(
 	task.WithExpiredKeys = false
 	task.SegStart = segStart
 	task.SegEnd = segEnd
+	task.DbList = dbList
 	return task, nil
 }
 
@@ -876,7 +880,7 @@ type = "simple"
 [filter]
 allow_key_regex = ["{{KEY_WHITE_REGEX}}"]
 block_key_regex = ["{{KEY_BLACK_REGEX}}"]
-allow_db = []
+allow_db = [{{DB_LIST}}]
 block_db = []
 
 [advanced]
@@ -911,6 +915,15 @@ target_mbbloom_version = 20603
 	if blackPattern == ".*" {
 		blackPattern = "*"
 	}
+	dbListStr := ""
+	if task.DbList == nil || len(task.DbList) == 0 {
+		dbListStr = "0"
+	} else {
+		for _, db := range task.DbList {
+			dbListStr = dbListStr + "," + strconv.Itoa(db)
+		}
+		strings.Trim(dbListStr, ",")
+	}
 	task.setResultFile()
 	if task.Err != nil {
 		return
@@ -926,6 +939,7 @@ target_mbbloom_version = 20603
 	value = strings.ReplaceAll(value, "{{LOG_FILE}}", logFile)
 	value = strings.ReplaceAll(value, "{{HTTP_PROFILE}}", strconv.Itoa(httpProfile))
 	value = strings.ReplaceAll(value, "{{SYSTEM_PROFILE}}", strconv.Itoa(systemProfile))
+	value = strings.ReplaceAll(value, "{{DB_LIST}}", dbListStr)
 
 	err := ioutil.WriteFile(templateFile, []byte(value), 0755)
 	if err != nil {
@@ -993,7 +1007,7 @@ source.rdb.start_segment={{START_SEGMENT}}
 source.rdb.end_segment={{END_SEGMENT}}
 filter.key.whitelist = {{KEY_WHITELIST}}
 filter.key.blacklist = {{KEY_BLACKLIST}}
-filter.db.whitelist = 0
+filter.db.whitelist = {{DB_LIST}}
 filter.db.blacklist =
 decode_only_print_keyname = true
 decode_without_expired_keys = true
@@ -1019,6 +1033,15 @@ target.rdb.output = {{RESULT_FULL_PATH}}`
 	if blackPattern == ".*" {
 		blackPattern = ""
 	}
+	dbListStr := ""
+	if task.DbList == nil || len(task.DbList) == 0 {
+		dbListStr = "0"
+	} else {
+		for _, db := range task.DbList {
+			dbListStr = dbListStr + ";" + strconv.Itoa(db)
+		}
+		strings.Trim(dbListStr, ";")
+	}
 	task.setResultFile()
 	if task.Err != nil {
 		return
@@ -1034,6 +1057,8 @@ target.rdb.output = {{RESULT_FULL_PATH}}`
 	value = strings.ReplaceAll(value, "{{KEY_WHITELIST}}", whitePattern)
 	value = strings.ReplaceAll(value, "{{KEY_BLACKLIST}}", blackPattern)
 	value = strings.ReplaceAll(value, "{{RESULT_FULL_PATH}}", task.ResultFile)
+	value = strings.ReplaceAll(value, "{{DB_LIST}}", dbListStr)
+
 	pidFile := filepath.Join(pidPath, shakeID+".pid")
 	if _, err := os.Stat(pidFile); err == nil {
 		task.clearPidFile(pidFile)
@@ -1542,14 +1567,15 @@ func (task *RedisInsKeyPatternTask) DelKeysRateLimitV2() {
 	threadCnt := 30
 	subScanCount := 100 // hscan 中count 个数
 
+	// password需要用""包含，否则在遇到特殊字符，如<|>时会被截断报错
 	delCmd := fmt.Sprintf(
 		// NOCC:tosa/linelength(设计如此)
-		`%s bykeysfile --dbtype=standalone --redis-addr=%s --redis-password=%s --keys-file=%s --big-key-threashold=%d --del-rate-limit=%d --thread-cnt=%d --sub-scan-count=%d --without-config-cmd`,
+		`%s bykeysfile --dbtype=standalone --redis-addr=%s --redis-password="%s" --keys-file=%s --big-key-threashold=%d --del-rate-limit=%d --thread-cnt=%d --sub-scan-count=%d --without-config-cmd`,
 		task.SafeDelTool, task.MasterAddr, task.MasterAuth, task.ResultFile, bigKeyThread, delRateLimit, threadCnt,
 		subScanCount)
 	logCmd := fmt.Sprintf(
 		// NOCC:tosa/linelength(设计如此)
-		`%s bykeysfile --dbtype=standalone --redis-addr=%s --redis-password=xxxxx --keys-file=%s --big-key-threashold=%d --del-rate-limit=%d --thread-cnt=%d --sub-scan-count=%d --without-config-cmd`,
+		`%s bykeysfile --dbtype=standalone --redis-addr=%s --redis-password="xxxxx" --keys-file=%s --big-key-threashold=%d --del-rate-limit=%d --thread-cnt=%d --sub-scan-count=%d --without-config-cmd`,
 		task.SafeDelTool, task.MasterAddr, task.ResultFile, bigKeyThread, delRateLimit, threadCnt, subScanCount)
 	task.runtime.Logger.Info(logCmd)
 

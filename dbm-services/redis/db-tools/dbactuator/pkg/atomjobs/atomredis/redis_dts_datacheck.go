@@ -299,8 +299,7 @@ func NewRedisInsDtsDataCheckAndRepairTask(ip string, portAndSeg PortAndSegment, 
 		"", "", "", "", "", "", // FileServer相关参数不需要
 		job.params.KeyWhiteRegex, job.params.KeyBlackRegex,
 		false, 0, 0, 0, // key删除相关参数不需要
-		portAndSeg.SegmentStart, portAndSeg.SegmentEnd,
-	)
+		portAndSeg.SegmentStart, portAndSeg.SegmentEnd, nil)
 	return
 }
 
