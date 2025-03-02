@@ -95,7 +95,7 @@ class CheckBackupInfo(object):
         SqlserverFullBackupInfoReport.objects.create(
             bk_cloud_id=cluster.bk_cloud_id,
             bk_biz_id=cluster.bk_biz_id,
-            cluster=cluster.name,
+            cluster=cluster.immute_domain,
             cluster_type=cluster.cluster_type,
             status=is_normal,
             msg=check_result,
@@ -116,7 +116,7 @@ class CheckBackupInfo(object):
         SqlserverLogBackupInfoReport.objects.create(
             bk_cloud_id=cluster.bk_cloud_id,
             bk_biz_id=cluster.bk_biz_id,
-            cluster=cluster.name,
+            cluster=cluster.immute_domain,
             cluster_type=cluster.cluster_type,
             status=is_normal,
             msg=check_result,

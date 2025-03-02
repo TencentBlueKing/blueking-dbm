@@ -77,7 +77,7 @@ class CheckAppSettingData(object):
         SqlserverCheckAppSettingReport.objects.create(
             bk_cloud_id=cluster.bk_cloud_id,
             bk_biz_id=cluster.bk_biz_id,
-            cluster=cluster.name,
+            cluster=cluster.immute_domain,
             cluster_type=cluster.cluster_type,
             instance_host=instance.machine.ip,
             instance_port=instance.port,
@@ -136,7 +136,7 @@ class CheckAppSettingData(object):
         SqlserverCheckAppSettingReport.objects.create(
             bk_cloud_id=cluster.bk_cloud_id,
             bk_biz_id=cluster.bk_biz_id,
-            cluster=cluster.name,
+            cluster=cluster.immute_domain,
             cluster_type=cluster.cluster_type,
             instance_host=instance.machine.ip,
             instance_port=instance.port,
@@ -162,7 +162,7 @@ class CheckAppSettingData(object):
                 SqlserverCheckAppSettingReport.objects.create(
                     bk_cloud_id=cluster.bk_cloud_id,
                     bk_biz_id=cluster.bk_biz_id,
-                    cluster=cluster.name,
+                    cluster=cluster.immute_domain,
                     cluster_type=cluster.cluster_type,
                     instance_host=instance.machine.ip,
                     instance_port=instance.port,
@@ -209,7 +209,7 @@ class CheckAppSettingData(object):
             SqlserverCheckUserSyncReport.objects.create(
                 bk_cloud_id=cluster.bk_cloud_id,
                 bk_biz_id=cluster.bk_biz_id,
-                cluster=cluster.name,
+                cluster=cluster.immute_domain,
                 cluster_type=cluster.cluster_type,
                 instance_host=slave_instance.machine.ip,
                 instance_port=slave_instance.port,
@@ -234,7 +234,7 @@ class CheckAppSettingData(object):
             SqlserverCheckJobSyncReport.objects.create(
                 bk_cloud_id=cluster.bk_cloud_id,
                 bk_biz_id=cluster.bk_biz_id,
-                cluster=cluster.name,
+                cluster=cluster.immute_domain,
                 cluster_type=cluster.cluster_type,
                 instance_host=slave_instance.machine.ip,
                 instance_port=slave_instance.port,
@@ -259,7 +259,7 @@ class CheckAppSettingData(object):
             SqlserverCheckLinkServerReport.objects.create(
                 bk_cloud_id=cluster.bk_cloud_id,
                 bk_biz_id=cluster.bk_biz_id,
-                cluster=cluster.name,
+                cluster=cluster.immute_domain,
                 cluster_type=cluster.cluster_type,
                 instance_host=slave_instance.machine.ip,
                 instance_port=slave_instance.port,
@@ -279,7 +279,7 @@ class CheckAppSettingData(object):
                 SqlserverCheckSysJobStatuReport.objects.create(
                     bk_cloud_id=cluster.bk_cloud_id,
                     bk_biz_id=cluster.bk_biz_id,
-                    cluster=cluster.name,
+                    cluster=cluster.immute_domain,
                     cluster_type=cluster.cluster_type,
                     instance_host=instance.machine.ip,
                     instance_port=instance.port,

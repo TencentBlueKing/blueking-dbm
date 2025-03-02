@@ -215,6 +215,20 @@ func (h *DbWorker) GetDefaultPath() (getpath []DefaultPathInfo, err error) {
 	return
 }
 
+// GetDefaultPath 获取实例默例行全量备份的路径
+func (h *DbWorker) GetFullBackupPath() (getpath sql.NullString, err error) {
+	cmd := "select [FULL_BACKUP_PATH] from [Monitor].[dbo].[APP_SETTING]"
+	err = h.Queryxs(&getpath, cmd)
+	return
+}
+
+// GetDefaultPath 获取实例默例行全量备份的路径
+func (h *DbWorker) GetLogBackupPath() (getpath sql.NullString, err error) {
+	cmd := "select [LOG_BACKUP_PATH] from [Monitor].[dbo].[APP_SETTING]"
+	err = h.Queryxs(&getpath, cmd)
+	return
+}
+
 // CheckDBProcessExist 判断db是否存在相关请求
 // 这里会顺便kill掉ssms的连接
 func (h *DbWorker) CheckDBProcessExist(dbName string) bool {
