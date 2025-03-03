@@ -127,10 +127,10 @@
       return undefined;
     }
     const data = props.ticketDetails.details.resource_spec;
-    // data.sqlserver_single 历史数据兼容问题, 类型不需要定义
+    // data.sqlserver_single / data.backend_group 历史数据兼容问题, 类型不需要定义
     // eslint-disable-next-line
     // @ts-ignore
-    return data.sqlserver_single || data.backend_group;
+    return data.sqlserver_single || data.backend_group || data.backend;
   });
 </script>
 <style lang="less" scoped>
