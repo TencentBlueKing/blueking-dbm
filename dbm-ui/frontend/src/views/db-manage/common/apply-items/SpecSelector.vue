@@ -3,6 +3,7 @@
     <BkSelect
       class="spec-selector"
       :clearable="clearable"
+      filterable
       :loading="loading"
       :model-value="modelValue"
       @change="handleChange">
@@ -234,7 +235,21 @@
     },
   });
 </script>
+<style lang="less">
+  .bk-select-option {
+    > span {
+      display: block;
+      width: 100%;
+    }
 
+    &.is-selected {
+      .spec-display-count {
+        color: white;
+        background-color: #a3c5fd;
+      }
+    }
+  }
+</style>
 <style lang="less" scoped>
   .spec-selector-wrapper {
     position: relative;
@@ -266,15 +281,6 @@
       text-align: center;
       background-color: #f0f1f5;
       border-radius: 2px;
-    }
-  }
-
-  .bk-select-option {
-    &.is-selected {
-      .spec-display-count {
-        color: white;
-        background-color: #a3c5fd;
-      }
     }
   }
 
