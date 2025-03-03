@@ -16,7 +16,6 @@ import (
 	"path"
 	"regexp"
 	"strconv"
-	"strings"
 	"sync"
 
 	"dbm-services/common/go-pubpkg/cmutil"
@@ -161,42 +160,49 @@ func (t *EnableTokudbEngineComp) ReWriteMyCnf() (err error) {
 			logger.Error("convert string to int err:%v", err)
 			return err
 		}
-		tokudb_cache_size := fmt.Sprintf("%d%s", size/2, result[2])
-		datadir, err := cfg.GetMySQLDataRootDir()
-		if err != nil {
-			logger.Error("get mysql datadir from my.cnf err:%v", err)
+		if err = replaceTokudbCfg(cfg, size); err != nil {
+			logger.Error("replace tokudb cfg err:%v", err)
 			return err
 		}
-		tokuBasedir := path.Join(datadir, "tokudb")
-		tokuDatadir := path.Join(tokuBasedir, "data")
-		tokuLogdir := path.Join(tokuBasedir, "log")
-		tokuTmpdir := path.Join(tokuBasedir, "tmp")
-		// init tokudb dir
-		logger.Info("init tokudb dir:%s", tokuBasedir)
-		stderr, err := osutil.StandardShellCommand(false, fmt.Sprintf("mkdir -p %s &&  chown -R mysql %s ",
-			strings.Join([]string{tokuDatadir,
-				tokuLogdir, tokuTmpdir}, " "),
+	}
+	return err
+}
+
+func replaceTokudbCfg(cfg *util.CnfFile, size int) (err error) {
+	tokudb_cache_size := fmt.Sprintf("%dM", size/2)
+	datadir, err := cfg.GetMySQLDataRootDir()
+	if err != nil {
+		logger.Error("get mysql datadir from my.cnf err:%v", err)
+		return err
+	}
+	tokuBasedir := path.Join(datadir, "tokudb")
+	tokuDatadir := path.Join(tokuBasedir, "data")
+	tokuLogdir := path.Join(tokuBasedir, "log")
+	tokuTmpdir := path.Join(tokuBasedir, "tmp")
+	// init tokudb dir
+	logger.Info("init tokudb dir:%s", tokuBasedir)
+	for _, dir := range []string{tokuDatadir, tokuLogdir, tokuTmpdir} {
+		if cmutil.FileExists(dir) {
+			continue
+		}
+		var stderr string
+		stderr, err = osutil.StandardShellCommand(false, fmt.Sprintf("mkdir -p %s &&  chown -R mysql %s ", dir,
 			tokuBasedir))
 		if err != nil {
 			logger.Error("create dir err:%v,std err:%s", err, stderr)
 			return err
 		}
-		cfg.Cfg.Section("mysqld").Key("tokudb_cache_size").SetValue(tokudb_cache_size)
-		cfg.Cfg.Section("mysqld").Key("tokudb_data_dir").SetValue(tokuDatadir)
-		cfg.Cfg.Section("mysqld").Key("tokudb_log_dir").SetValue(tokuLogdir)
-		cfg.Cfg.Section("mysqld").Key("tokudb_tmp_dir").SetValue(tokuTmpdir)
-		cfg.Cfg.Section("mysqld").Key("tokudb_commit_sync").SetValue("0")
-		cfg.Cfg.Section("mysqld").Key("tokudb_fsync_log_period").SetValue("1000")
-		cfg.Cfg.Section("mysqld").Key("tokudb_lock_timeout").SetValue("50000")
-		cfg.Cfg.Section("mysqld").Key("tokudb_fs_reserve_percent").SetValue("0")
-		cfg.ReplaceValue("mysqld", "innodb_buffer_pool_size", false, "200M")
-		cfg.ReplaceValue("mysqld", "default_storage_engine", false, "Tokudb")
-		// save configuration file
-		if err = cfg.SafeSaveFile(false); err != nil {
-			logger.Error("save mysql config err:%v", err)
-			return err
-		}
 	}
+	cfg.Cfg.Section("mysqld").Key("tokudb_cache_size").SetValue(tokudb_cache_size)
+	cfg.Cfg.Section("mysqld").Key("tokudb_data_dir").SetValue(tokuDatadir)
+	cfg.Cfg.Section("mysqld").Key("tokudb_log_dir").SetValue(tokuLogdir)
+	cfg.Cfg.Section("mysqld").Key("tokudb_tmp_dir").SetValue(tokuTmpdir)
+	cfg.Cfg.Section("mysqld").Key("tokudb_commit_sync").SetValue("0")
+	cfg.Cfg.Section("mysqld").Key("tokudb_fsync_log_period").SetValue("1000")
+	cfg.Cfg.Section("mysqld").Key("tokudb_lock_timeout").SetValue("50000")
+	cfg.Cfg.Section("mysqld").Key("tokudb_fs_reserve_percent").SetValue("0")
+	cfg.ReplaceValue("mysqld", "innodb_buffer_pool_size", false, "200M")
+	cfg.ReplaceValue("mysqld", "default_storage_engine", false, "Tokudb")
 	return err
 }
 

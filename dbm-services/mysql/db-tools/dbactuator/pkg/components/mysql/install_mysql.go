@@ -133,6 +133,9 @@ type Mysqld struct {
 	TokudbTmpDir    string `json:"tokudb_tmp_dir"`
 }
 
+// nolint
+const tokudbPlugin = `TokuDB=ha_tokudb.so;TokuDB_trx=ha_tokudb.so;TokuDB_locks=ha_tokudb.so;TokuDB_lock_waits=ha_tokudb.so;TokuDB_file_map=ha_tokudb.so;TokuDB_fractal_tree_info=ha_tokudb.so;TokuDB_fractal_tree_block_map=ha_tokudb.so`
+
 // Example subcommand example input
 func (i *InstallMySQLComp) Example() interface{} {
 	comp := InstallMySQLComp{
@@ -240,6 +243,20 @@ func (i *InstallMySQLComp) InitDefaultParam() (err error) {
 		if ierr != nil {
 			logger.Error("初始化mycnf ini 模版:%s", ierr.Error())
 			return ierr
+		}
+		if isTokudb(i.Params.Engine) {
+			if !cnftpl.Cfg.Section("mysqld").HasKey("plugin-load") {
+				_, err = cnftpl.Cfg.Section("mysqld").NewKey("plugin-load", tokudbPlugin)
+				if err != nil {
+					logger.Error("增加tokudb插件失败:%s", err.Error())
+					return err
+				}
+				if err = replaceTokudbCfg(cnftpl, int(i.Params.InstMem)); err != nil {
+					// 重新渲染my.cnf
+					logger.Error("重新渲染tokudb my.cnf失败:%s", err.Error())
+					return err
+				}
+			}
 		}
 		i.MyCnfTpls[port] = cnftpl
 	}
@@ -759,6 +776,9 @@ func (i *InstallMySQLComp) RegisterOtherEngine() (err error) {
 			},
 		}
 		if err = comp.Init(); err != nil {
+			return err
+		}
+		if err = comp.ReWriteMyCnf(); err != nil {
 			return err
 		}
 		if err = comp.Install(); err != nil {
