@@ -453,12 +453,13 @@
     const getDetails = () => {
       const { details } = formData;
       const { cityCode } = regionItemRef.value!.getValue();
+      const resourceSpecKey = isSingleType ? 'backend' : 'backend_group';
       if (details.ip_source === 'resource_pool') {
         return {
           ...details,
           nodes: undefined,
           resource_spec: {
-            backend_group: {
+            [resourceSpecKey]: {
               spec_id: details.resource_spec.backend_group.spec_id,
               ...specBackendRef.value!.getData(),
               affinity: details.disaster_tolerance_level,

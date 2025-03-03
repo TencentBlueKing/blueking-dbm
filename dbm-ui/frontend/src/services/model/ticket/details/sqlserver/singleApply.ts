@@ -26,6 +26,7 @@ export interface SingleApply extends DetailBase {
     }[];
   };
   resource_spec?: {
+    backend: SpecInfo;
     backend_group: SpecInfo;
   };
   spec: string;
