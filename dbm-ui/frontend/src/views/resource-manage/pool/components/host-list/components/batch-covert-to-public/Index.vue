@@ -36,9 +36,7 @@
     selected: DbResourceModel[];
   }
 
-  interface Emits {
-    (e: 'refresh'): void;
-  }
+  type Emits = (e: 'refresh') => void;
 
   const props = defineProps<Props>();
 
@@ -57,7 +55,7 @@
     onSuccess() {
       isShow.value = false;
       emits('refresh');
-      messageSuccess(t('设置成功'));
+      messageSuccess(t('操作成功'));
     },
   });
 
@@ -65,9 +63,9 @@
     runUpdate({
       bk_host_ids: props.selected.map((item) => item.bk_host_id),
       for_biz: 0,
+      labels: [],
       rack_id: '',
       storage_device: {},
-      labels: [],
     });
   };
 

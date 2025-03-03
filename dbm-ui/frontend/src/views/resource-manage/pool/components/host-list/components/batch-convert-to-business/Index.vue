@@ -33,13 +33,11 @@
   import ReviewDataDialog from '../review-data-dialog/Index.vue';
 
   interface Props {
-    selected: DbResourceModel[];
     bizId: number;
+    selected: DbResourceModel[];
   }
 
-  interface Emits {
-    (e: 'refresh'): void;
-  }
+  type Emits = (e: 'refresh') => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -56,7 +54,7 @@
     onSuccess() {
       emits('refresh');
       isShow.value = false;
-      messageSuccess(t('设置成功'));
+      messageSuccess(t('操作成功'));
     },
   });
 
@@ -64,9 +62,9 @@
     runUpdate({
       bk_host_ids: props.selected.map((item) => item.bk_host_id),
       for_biz: props.bizId,
+      labels: [],
       rack_id: props.selected[0].rack_id,
       storage_device: props.selected[0].storage_device,
-      labels: [],
     });
   };
 

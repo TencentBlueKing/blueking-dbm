@@ -1,18 +1,19 @@
 <template>
   <div class="fault-pool-container">
     <div class="operation-wrapper">
-      <BkButton
-        :disabled="!selected.length"
-        @click="handleBatchImport">
-        {{ t('批量导入资源池') }}
-      </BkButton>
-      <BkButton
-        v-if="isFaultPool"
-        class="ml-8"
-        :disabled="!selected.length"
-        @click="handleBatchConvertToRecyclePool">
-        {{ t('批量转入回收池') }}
-      </BkButton>
+      <template v-if="isFaultPool">
+        <BkButton
+          :disabled="!selected.length"
+          @click="handleBatchImport">
+          {{ t('批量导入资源池') }}
+        </BkButton>
+        <BkButton
+          class="ml-8"
+          :disabled="!selected.length"
+          @click="handleBatchConvertToRecyclePool">
+          {{ t('批量转入回收池') }}
+        </BkButton>
+      </template>
       <BkButton
         v-else
         class="ml-8"
@@ -86,7 +87,7 @@
   import FaultOrRecycleMachineModel from '@services/model/db-resource/FaultOrRecycleMachine';
   import { getMachinePool, transferMachinePool } from '@services/source/dbdirty';
 
-  import DbPopconfirm from '@components/db-popconfirm/index.vue';
+  // import DbPopconfirm from '@components/db-popconfirm/index.vue';
   import DbStatus from '@components/db-status/index.vue';
 
   import { execCopy, getSearchSelectorParams, messageSuccess } from '@utils';
@@ -183,79 +184,79 @@
       label: t('磁盘总容量(G)'),
       render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.bk_disk || '--',
     },
-    {
-      field: 'ticket',
-      label: t('关联单据'),
-      render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.ticket || '--',
-    },
-    {
-      field: 'operation',
-      fixed: 'right',
-      label: t('操作'),
-      render: ({ data }: { data: FaultOrRecycleMachineModel }) => (
-        <div>
-          <BkButton
-            theme='primary'
-            text
-            onClick={() => handleImport(data)}>
-            {t('导入资源池')}
-          </BkButton>
-          {isFaultPool.value ? (
-            <DbPopconfirm
-              confirmHandler={() => handleConfirmConvert(data)}
-              title={t('确认转入待回收池？')}
-              width={360}>
-              {{
-                content: () => (
-                  <div class='pool-recycle-pop-confirm-content'>
-                    <div>
-                      <span>{t('主机')}：</span>
-                      <span class='ip'>{data.ip}</span>
-                    </div>
-                    <div class='tip'>{t('确认后，主机将标记为待回收，等待处理')}</div>
-                  </div>
-                ),
-                default: () => (
-                  <BkButton
-                    class='ml-16'
-                    theme='primary'
-                    text>
-                    {t('转入回收池')}
-                  </BkButton>
-                ),
-              }}
-            </DbPopconfirm>
-          ) : (
-            <DbPopconfirm
-              confirmHandler={() => handleConfirmRecycle(data)}
-              theme='danger'
-              title={t('确认回收该机器？')}
-              width={360}>
-              {{
-                content: () => (
-                  <div class='pool-recycle-pop-confirm-content'>
-                    <div>
-                      <span>{t('主机')}：</span>
-                      <span class='ip'>{data.ip}</span>
-                    </div>
-                    <div class='tip'>{t('确认后，主机将从系统中删除，请谨慎操作！')}</div>
-                  </div>
-                ),
-                default: () => (
-                  <BkButton
-                    class='ml-16'
-                    theme='primary'
-                    text>
-                    {t('回收')}
-                  </BkButton>
-                ),
-              }}
-            </DbPopconfirm>
-          )}
-        </div>
-      ),
-      width: 200,
-    },
+    // {
+    //   field: 'ticket',
+    //   label: t('关联单据'),
+    //   render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.ticket || '--',
+    // },
+    // {
+    //   field: 'operation',
+    //   fixed: 'right',
+    //   label: t('操作'),
+    //   render: ({ data }: { data: FaultOrRecycleMachineModel }) => (
+    //     <div>
+    //       <BkButton
+    //         theme='primary'
+    //         text
+    //         onClick={() => handleImport(data)}>
+    //         {t('导入资源池')}
+    //       </BkButton>
+    //       {isFaultPool.value ? (
+    //         <DbPopconfirm
+    //           confirmHandler={() => handleConfirmConvert(data)}
+    //           title={t('确认转入待回收池？')}
+    //           width={360}>
+    //           {{
+    //             content: () => (
+    //               <div class='pool-recycle-pop-confirm-content'>
+    //                 <div>
+    //                   <span>{t('主机')}：</span>
+    //                   <span class='ip'>{data.ip}</span>
+    //                 </div>
+    //                 <div class='tip'>{t('确认后，主机将标记为待回收，等待处理')}</div>
+    //               </div>
+    //             ),
+    //             default: () => (
+    //               <BkButton
+    //                 class='ml-16'
+    //                 theme='primary'
+    //                 text>
+    //                 {t('转入回收池')}
+    //               </BkButton>
+    //             ),
+    //           }}
+    //         </DbPopconfirm>
+    //       ) : (
+    //         <DbPopconfirm
+    //           confirmHandler={() => handleConfirmRecycle(data)}
+    //           theme='danger'
+    //           title={t('确认回收该机器？')}
+    //           width={360}>
+    //           {{
+    //             content: () => (
+    //               <div class='pool-recycle-pop-confirm-content'>
+    //                 <div>
+    //                   <span>{t('主机')}：</span>
+    //                   <span class='ip'>{data.ip}</span>
+    //                 </div>
+    //                 <div class='tip'>{t('确认后，主机将从系统中删除，请谨慎操作！')}</div>
+    //               </div>
+    //             ),
+    //             default: () => (
+    //               <BkButton
+    //                 class='ml-16'
+    //                 theme='primary'
+    //                 text>
+    //                 {t('回收')}
+    //               </BkButton>
+    //             ),
+    //           }}
+    //         </DbPopconfirm>
+    //       )}
+    //     </div>
+    //   ),
+    //   width: 200,
+    // },
   ];
 
   const { loading: isRecycling, run: runTransfer } = useRequest(transferMachinePool, {
@@ -291,26 +292,26 @@
     tableRef.value?.fetchData(searchParams);
   };
 
-  const handleConfirmConvert = (data: FaultOrRecycleMachineModel) => {
-    runTransfer({
-      bk_host_ids: [data.bk_host_id],
-      source: 'fault',
-      target: 'recycle',
-    });
-  };
+  // const handleConfirmConvert = (data: FaultOrRecycleMachineModel) => {
+  //   runTransfer({
+  //     bk_host_ids: [data.bk_host_id],
+  //     source: 'fault',
+  //     target: 'recycle',
+  //   });
+  // };
 
-  const handleConfirmRecycle = (data: FaultOrRecycleMachineModel) => {
-    runTransfer({
-      bk_host_ids: [data.bk_host_id],
-      source: 'recycle',
-      target: 'recycled',
-    });
-  };
+  // const handleConfirmRecycle = (data: FaultOrRecycleMachineModel) => {
+  //   runTransfer({
+  //     bk_host_ids: [data.bk_host_id],
+  //     source: 'recycle',
+  //     target: 'recycled',
+  //   });
+  // };
 
-  const handleImport = (data: FaultOrRecycleMachineModel) => {
-    isImportResourcePoolShow.value = true;
-    curImportData.value = data;
-  };
+  // const handleImport = (data: FaultOrRecycleMachineModel) => {
+  //   isImportResourcePoolShow.value = true;
+  //   curImportData.value = data;
+  // };
 
   const handleSelection = (_data: FaultOrRecycleMachineModel, list: FaultOrRecycleMachineModel[]) => {
     selected.value = list;
