@@ -24,9 +24,7 @@
     selected: DbResourceModel[];
   }
 
-  interface Emits {
-    (e: 'refresh'): void;
-  }
+  type Emits = (e: 'refresh') => void;
 
   const props = defineProps<Props>();
 
@@ -45,7 +43,7 @@
     onSuccess() {
       emits('refresh');
       isShow.value = false;
-      messageSuccess(t('设置成功'));
+      messageSuccess(t('操作成功'));
     },
   });
 

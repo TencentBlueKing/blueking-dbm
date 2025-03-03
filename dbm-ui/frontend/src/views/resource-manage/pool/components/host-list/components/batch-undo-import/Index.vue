@@ -1,5 +1,6 @@
 <template>
   <ReviewDataDialog
+    :alert="t('仅新导入且无被申请、转移等使用事件的主机，可执行撤销导入')"
     :is-show="isShow"
     :loading="isRemoving"
     :selected="selectedIpList"
@@ -24,9 +25,7 @@
     selected: DbResourceModel[];
   }
 
-  interface Emits {
-    (e: 'refresh'): void;
-  }
+  type Emits = (e: 'refresh') => void;
 
   const props = defineProps<Props>();
 
@@ -45,7 +44,7 @@
     onSuccess() {
       emits('refresh');
       isShow.value = false;
-      messageSuccess(t('设置成功'));
+      messageSuccess(t('操作成功'));
     },
   });
 
