@@ -28,18 +28,7 @@
         {{ ticketDetails.details.cluster_alias || '--' }}
       </InfoItem>
     </InfoList>
-    <div class="ticket-details-info-title mt-20">{{ t('地域要求') }}</div>
-    <InfoList>
-      <InfoItem :label="t('数据库部署地域')">
-        {{ ticketDetails?.details.city_code || '--' }}
-      </InfoItem>
-    </InfoList>
-    <div class="ticket-details-info-title mt-20">{{ t('数据库部署信息') }}</div>
-    <InfoList>
-      <InfoItem :label="t('容灾要求')">
-        {{ affinity }}
-      </InfoItem>
-    </InfoList>
+    <RegionRequirements :details="ticketDetails.details" />
     <div class="ticket-details-info-title mt-20">{{ t('部署需求') }}</div>
     <InfoList>
       <InfoItem :label="t('部署架构')">
@@ -68,7 +57,7 @@
           </span>
           <template v-else>--</template>
         </InfoItem>
-        <InfoItem label="Master：">
+        <InfoItem label="Master">
           <span
             v-if="getServiceNums('master') > 0"
             class="host-nums"
@@ -78,7 +67,7 @@
           </span>
           <template v-else>--</template>
         </InfoItem>
-        <InfoItem label="Slave：">
+        <InfoItem label="Slave">
           <span
             v-if="getServiceNums('slave') > 0"
             class="host-nums"
@@ -125,6 +114,12 @@
           </BkTable>
         </InfoItem>
       </template>
+      <EstimatedCost
+        v-if="ticketDetails.details.resource_spec"
+        :params="{
+          db_type: DBTypes.REDIS,
+          resource_spec: ticketDetails.details.resource_spec,
+        }" />
     </InfoList>
     <HostPreview
       v-model:is-show="previewState.isShow"
@@ -143,7 +138,7 @@
   import TicketModel, { type Redis } from '@services/model/ticket/ticket';
   import { getTicketHostNodes } from '@services/source/ticket';
 
-  import { TicketTypes } from '@common/const';
+  import { DBTypes, TicketTypes } from '@common/const';
 
   import HostPreview from '@components/host-preview/HostPreview.vue';
 
@@ -156,8 +151,9 @@
 
   import { firstLetterToUpper } from '@utils';
 
-  import { useAffinity } from '../../hooks/useAffinity';
+  import EstimatedCost from '../components/EstimatedCost.vue';
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  import RegionRequirements from '../components/RegionRequirements.vue';
   import SpecInfos from '../components/SpecInfos.vue';
 
   interface Props {
@@ -170,7 +166,6 @@
   });
   const props = defineProps<Props>();
   const { t } = useI18n();
-  const { affinity } = useAffinity(props.ticketDetails);
 
   const previewState = reactive({
     isShow: false,

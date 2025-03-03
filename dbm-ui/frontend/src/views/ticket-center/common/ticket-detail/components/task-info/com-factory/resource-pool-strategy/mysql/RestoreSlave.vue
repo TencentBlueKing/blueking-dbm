@@ -13,7 +13,7 @@
 
 <template>
   <InfoList>
-    <InfoItem :label="t('备份源:')">
+    <InfoItem :label="t('备份源')">
       {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}
     </InfoItem>
   </InfoList>

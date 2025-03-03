@@ -40,7 +40,7 @@
     </BkTableColumn>
   </BkTable>
   <InfoList>
-    <InfoItem :label="t('DB 名处理：')">
+    <InfoItem :label="t('DB 名处理')">
       {{
         ticketDetails.details.need_auto_rename ? t('迁移后源DB不再使用，自动重命名') : t('迁移后源DB继续使用，DB名不变')
       }}

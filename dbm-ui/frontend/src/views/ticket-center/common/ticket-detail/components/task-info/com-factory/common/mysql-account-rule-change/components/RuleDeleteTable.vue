@@ -13,7 +13,7 @@
 
 <template>
   <InfoList>
-    <InfoItem :label="t('变更类型:')">
+    <InfoItem :label="t('变更类型')">
       {{ t('删除规则') }}
     </InfoItem>
   </InfoList>

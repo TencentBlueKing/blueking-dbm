@@ -16,7 +16,7 @@
     v-bind="props"
     :data="data" />
   <InfoList v-if="ticketDetails.details.excel_url">
-    <InfoItem :label="t('Excel文件：')">
+    <InfoItem :label="t('Excel文件')">
       <i class="db-icon-excel" />
       <a :href="ticketDetails.details.excel_url">{{ t('批量授权文件') }} <i class="db-icon-import" /></a>
     </InfoItem>

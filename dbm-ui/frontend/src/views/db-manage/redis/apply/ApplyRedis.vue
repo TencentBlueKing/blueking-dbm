@@ -35,14 +35,9 @@
             v-model="state.formdata.details.bk_cloud_id"
             @change="handleChangeCloud" />
         </DbCard>
-        <RegionItem
-          ref="regionItemRef"
-          v-model="state.formdata.details.city_code" />
-        <DbCard :title="t('数据库部署信息')">
-          <AffinityItem
-            v-model="state.formdata.details.resource_spec.backend_group.affinity"
-            :city-code="state.formdata.details.city_code" />
-        </DbCard>
+        <RegionRequirements
+          ref="regionRequirements"
+          v-model="state.formdata.details" />
         <DbCard :title="t('部署需求')">
           <BkFormItem
             :label="t('部署架构')"
@@ -323,6 +318,11 @@
               </BkFormItem>
             </div>
           </Transition>
+          <EstimatedCost
+            :params="{
+              db_type: DBTypes.REDIS,
+              resource_spec: resourceSepc,
+            }" />
           <BkFormItem :label="t('备注')">
             <BkInput
               v-model="state.formdata.remark"
@@ -374,6 +374,7 @@
 <script setup lang="ts">
   import InfoBox from 'bkui-vue/lib/info-box';
   import _ from 'lodash';
+  import { type ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
 
@@ -390,13 +391,13 @@
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
-  import AffinityItem from '@views/db-manage/common/apply-items/AffinityItem.vue';
   import BusinessItems from '@views/db-manage/common/apply-items/BusinessItems.vue';
   import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
   import ClusterAlias from '@views/db-manage/common/apply-items/ClusterAlias.vue';
   import ClusterName from '@views/db-manage/common/apply-items/ClusterName.vue';
   import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
-  import RegionItem from '@views/db-manage/common/apply-items/RegionItem.vue';
+  import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
+  import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/Common.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
   import { APPLY_SCHEME } from '@views/db-manage/common/apply-schema/Index.vue';
   import PasswordInput from '@views/db-manage/common/password-input/Index.vue';
@@ -451,7 +452,7 @@
       cluster_type: renderRedisClusterTypes.value[0].id,
       db_app_abbr: '',
       db_version: '',
-      disaster_tolerance_level: 'NONE',
+      disaster_tolerance_level: '',
       ip_source: redisIpSources.resource_pool.id,
       nodes: {
         master: [] as HostInfo[],
@@ -462,7 +463,7 @@
       proxy_pwd: '',
       resource_spec: {
         backend_group: {
-          affinity: 'NONE',
+          affinity: '',
           capacity: '' as number | string,
           count: 1,
           future_capacity: '' as number | string,
@@ -477,17 +478,19 @@
           spec_id: '' as number | '',
         },
       },
+      sub_zone_ids: [] as number[],
     },
     remark: '',
     ticket_type: TicketTypes.REDIS_CLUSTER_APPLY,
   });
+
+  const regionRequirementsRef = useTemplateRef('regionRequirements');
 
   const formRef = ref();
   const masterRef = ref();
   const slaveRef = ref();
   const specProxyRef = ref();
   const specBackendRef = ref();
-  const regionItemRef = ref();
   const passwordRef = ref<InstanceType<typeof PasswordInput>>();
   const capSpecsKey = ref(generateId('CLUSTER_APPLAY_CAP_'));
   const isShowRecommendArchitectrue = ref(false);
@@ -597,7 +600,20 @@
       ? ClusterTypes.PREDIXY_REDIS_CLUSTER
       : specClusterMachineMap[typeInfos.value.cluster_type],
   );
-  // const isDefaultCity = computed(() => state.formdata.details.city_code === 'default');
+
+  const resourceSepc = computed(() => {
+    const specInfo = specBackendRef.value?.getData();
+    return {
+      backend_group: {
+        count: specInfo?.machine_pair || 0,
+        spec_id: state.formdata.details.resource_spec.backend_group.spec_id,
+      },
+      proxy: {
+        count: state.formdata.details.resource_spec.proxy.count,
+        spec_id: state.formdata.details.resource_spec.proxy.spec_id,
+      },
+    } as ComponentProps<typeof EstimatedCost>['params']['resource_spec'];
+  });
 
   const verifyResult = (isPass: boolean) => {
     passwordIsPass.value = isPass;
@@ -820,16 +836,7 @@
 
     const getDetails = () => {
       const details: Record<string, any> = _.cloneDeep(state.formdata.details);
-      const { cityCode } = regionItemRef.value.getValue();
-      const { affinity } = details.resource_spec.backend_group;
-
-      const regionAndDisasterParams = {
-        affinity,
-        location_spec: {
-          city: cityCode,
-          sub_zone_ids: [],
-        },
-      };
+      const regionAndDisasterParams = regionRequirementsRef.value!.getValue();
 
       if (state.formdata.details.ip_source === 'resource_pool') {
         delete details.nodes;
@@ -841,15 +848,12 @@
         return {
           ...details,
           cluster_shard_num: Number(specInfo.cluster_shard_num),
-          disaster_tolerance_level: affinity,
+          // disaster_tolerance_level: affinity,
           resource_spec: {
             backend_group: {
               ...details.resource_spec.backend_group,
+              ...regionAndDisasterParams,
               count: specInfo.machine_pair,
-              location_spec: {
-                city: cityCode,
-                sub_zone_ids: [],
-              },
               spec_info: specInfo,
             },
             proxy: {
@@ -867,7 +871,7 @@
       delete details.resource_spec;
       return {
         ...details,
-        disaster_tolerance_level: affinity,
+        // disaster_tolerance_level: affinity,
         nodes: {
           master: formatNodes(state.formdata.details.nodes.master),
           proxy: formatNodes(state.formdata.details.nodes.proxy),

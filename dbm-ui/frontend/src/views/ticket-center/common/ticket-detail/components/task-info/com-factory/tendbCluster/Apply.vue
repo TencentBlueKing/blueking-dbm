@@ -14,58 +14,39 @@
 <template>
   <div class="ticket-details-info-title">{{ t('业务信息') }}</div>
   <InfoList>
-    <InfoItem :label="t('所属业务：')">
+    <InfoItem :label="t('所属业务')">
       {{ ticketDetails?.bk_biz_name || '--' }}
     </InfoItem>
-    <InfoItem :label="t('业务英文名：')">
+    <InfoItem :label="t('业务英文名')">
       {{ ticketDetails?.db_app_abbr || '--' }}
     </InfoItem>
-    <InfoItem :label="t('集群名称：')">
+    <InfoItem :label="t('集群名称')">
       {{ ticketDetails.details.cluster_name || '--' }}
     </InfoItem>
-    <InfoItem :label="t('集群别名：')">
+    <InfoItem :label="t('集群别名')">
       {{ ticketDetails.details.cluster_alias || '--' }}
     </InfoItem>
   </InfoList>
-  <div
-    class="ticket-details-info-title"
-    style="margin-top: 20px">
-    {{ $t('地域要求') }}
-  </div>
-  <InfoList>
-    <InfoItem :label="t('数据库部署地域：')">
-      {{ ticketDetails.details.city_name }}
-    </InfoItem>
-  </InfoList>
-  <div
-    class="ticket-details-info-title"
-    style="margin-top: 20px">
-    {{ $t('数据库部署信息') }}
-  </div>
-  <InfoList>
-    <InfoItem :label="t('容灾要求：')">
-      {{ affinity || '--' }}
-    </InfoItem>
-  </InfoList>
+  <RegionRequirements :details="ticketDetails.details" />
   <div
     class="ticket-details-info-title"
     style="margin-top: 20px">
     {{ t('部署需求') }}
   </div>
   <InfoList>
-    <InfoItem :label="t('DB模块：')">
+    <InfoItem :label="t('DB模块')">
       {{ ticketDetails.details.db_module_name || '--' }}
     </InfoItem>
-    <InfoItem :label="t('MySQL版本：')">
+    <InfoItem :label="t('MySQL版本')">
       {{ ticketDetails.details.version.db_version || '--' }}
     </InfoItem>
-    <InfoItem :label="t('Spider版本：')">
+    <InfoItem :label="t('Spider版本')">
       {{ ticketDetails.details.version.spider_version || '--' }}
     </InfoItem>
-    <InfoItem :label="t('访问端口：')">
+    <InfoItem :label="t('访问端口')">
       {{ ticketDetails.details.spider_port || '--' }}
     </InfoItem>
-    <InfoItem :label="t('接入层Master：')">
+    <InfoItem :label="t('接入层Master')">
       <BkPopover
         disable-outside-click
         :offset="16"
@@ -83,6 +64,12 @@
         </template>
       </BkPopover>
     </InfoItem>
+    <EstimatedCost
+      v-if="ticketDetails.details.resource_spec"
+      :params="{
+        db_type: DBTypes.TENDBCLUSTER,
+        resource_spec: ticketDetails.details.resource_spec,
+      }" />
     <InfoItem
       :label="t('集群部署方案：')"
       style="width: 100%">
@@ -113,16 +100,15 @@
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
   import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
   import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
-  import { getInfrasCities } from '@services/source/infras';
 
-  import { TicketTypes } from '@common/const';
+  import { DBTypes, TicketTypes } from '@common/const';
 
-  import { useAffinity } from '../../hooks/useAffinity';
+  import EstimatedCost from '../components/EstimatedCost.vue';
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  import RegionRequirements from '../components/RegionRequirements.vue';
   import SpecInfos from '../components/SpecInfos.vue';
 
   interface Props {
@@ -134,20 +120,9 @@
     inheritAttrs: false,
   });
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
 
   const { t } = useI18n();
-  const { affinity } = useAffinity(props.ticketDetails);
-
-  const cityName = ref('--');
-
-  useRequest(getInfrasCities, {
-    onSuccess: (cityList) => {
-      const cityCode = props.ticketDetails.details.city_code;
-      const name = cityList.find((item) => item.city_code === cityCode)?.city_name;
-      cityName.value = name ?? '--';
-    },
-  });
 </script>
 <style lang="less">
   .ticket-details-info-title {

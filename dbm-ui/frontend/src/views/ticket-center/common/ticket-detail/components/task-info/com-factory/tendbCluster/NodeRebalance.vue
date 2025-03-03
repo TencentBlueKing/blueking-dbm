@@ -13,10 +13,10 @@
 
 <template>
   <InfoList>
-    <InfoItem :label="t('数据校验:')">
+    <InfoItem :label="t('数据校验')">
       {{ ticketDetails.details.need_checksum ? t('是') : t('否') }}
     </InfoItem>
-    <InfoItem :label="t('校验时间:')">
+    <InfoItem :label="t('校验时间')">
       {{ isTimer ? t('定时执行') : t('立即执行') }}
     </InfoItem>
     <InfoItem
