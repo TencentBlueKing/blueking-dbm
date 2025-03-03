@@ -40,8 +40,8 @@ export default class DbResource {
   };
   ip: string;
   labels: {
-    name: string;
     id: number;
+    name: string;
   }[];
   net_device_id: string;
   os_bit: string;
@@ -121,6 +121,9 @@ export default class DbResource {
   get resourceTypeDisplay() {
     if (!this.resource_type || this.resource_type === 'PUBLIC') {
       return t('通用');
+    }
+    if (this.resource_type === 'vm') {
+      return 'Vm';
     }
     return DBTypeInfos[this.resource_type as DBTypes]?.name;
   }

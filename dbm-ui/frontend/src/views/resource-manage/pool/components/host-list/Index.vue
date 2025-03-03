@@ -158,6 +158,7 @@
   import DiskPopInfo from '@components/disk-pop-info/DiskPopInfo.vue';
   import HostAgentStatus from '@components/host-agent-status/Index.vue';
 
+  // import MoreActionExtend from '@components/more-action-extend/Index.vue';
   import { execCopy } from '@utils';
 
   import { ResourcePool } from '../../type';
@@ -170,6 +171,7 @@
   import BatchMoveToRecyclePool from './components/batch-move-to-recycle-pool/Index.vue';
   import BatchSetting from './components/batch-setting/Index.vue';
   import BatchUndoImport from './components/batch-undo-import/Index.vue';
+  // import HostOperationTip from './components/HostOperationTip.vue';
   import RenderTable from './components/RenderTable.vue';
   import SearchBox from './components/search-box/Index.vue';
   import UpdateAssign from './components/update-assign/Index.vue';
@@ -307,29 +309,6 @@
       width: 320,
     },
     {
-      field: 'bk_cpu',
-      label: t('CPU(核)'),
-      minWidth: 100,
-    },
-    {
-      field: 'bkMemText',
-      label: t('内存'),
-      minWidth: 100,
-      render: ({ data }: { data: DbResourceModel }) => data.bkMemText || '0 M',
-    },
-    {
-      field: 'bk_disk',
-      label: t('磁盘容量(G)'),
-      minWidth: 100,
-      render: ({ data }: { data: DbResourceModel }) => (
-        <DiskPopInfo
-          data={data.storage_device}
-          trigger='click'>
-          <span style='line-height: 40px; color: #3a84ff;cursor: pointer'>{data.bk_disk}</span>
-        </DiskPopInfo>
-      ),
-    },
-    {
       field: 'rack_id',
       label: t('机架'),
       render: ({ data }: { data: DbResourceModel }) => data.rack_id || '--',
@@ -338,6 +317,12 @@
       field: 'device_class',
       label: t('机型'),
       render: ({ data }: { data: DbResourceModel }) => data.device_class || '--',
+    },
+    {
+      field: 'os_type',
+      label: t('操作系统类型'),
+      render: ({ data }: { data: DbResourceModel }) => data.os_type || '--',
+      width: 120,
     },
     {
       field: 'city',
@@ -350,10 +335,154 @@
       render: ({ data }: { data: DbResourceModel }) => data.sub_zone || '--',
     },
     {
+      field: 'rack_id',
+      label: t('机架'),
+      render: ({ data }: { data: DbResourceModel }) => data.rack_id || '--',
+    },
+    {
       field: 'os_type',
       label: t('操作系统类型'),
       render: ({ data }: { data: DbResourceModel }) => data.os_type || '--',
+      width: 120,
     },
+    {
+      field: 'device_class',
+      label: t('机型'),
+      render: ({ data }: { data: DbResourceModel }) => data.device_class || '--',
+    },
+    {
+      field: 'bk_cpu',
+      label: t('CPU(核)'),
+    },
+    {
+      field: 'bkMemText',
+      label: t('内存'),
+      render: ({ data }: { data: DbResourceModel }) => data.bkMemText || '0 M',
+    },
+    {
+      field: 'bk_disk',
+      label: t('磁盘容量(G)'),
+      minWidth: 120,
+      render: ({ data }: { data: DbResourceModel }) => (
+        <DiskPopInfo
+          data={data.storage_device}
+          trigger='click'>
+          <span style='line-height: 40px; color: #3a84ff;cursor: pointer'>{data.bk_disk}</span>
+        </DiskPopInfo>
+      ),
+    },
+    // {
+    //   field: 'id',
+    //   fixed: 'right',
+    //   label: t('操作'),
+    //   render: ({ data }: { data: DbResourceModel }) => (
+    //     <>
+    //       {props.type === ResourcePool.public && (
+    //         <HostOperationTip
+    //           data={data}
+    //           tip={t('确认后，主机将标记为业务专属')}
+    //           title={t('确认转入业务资源池？')}
+    //           type='to_biz'
+    //           onRefresh={fetchData}>
+    //           <bk-button
+    //             theme='primary'
+    //             text>
+    //             {t('转入业务资源池')}
+    //           </bk-button>
+    //         </HostOperationTip>
+    //       )}
+    //       {[ResourcePool.business, ResourcePool.global].includes(props.type) && (
+    //         <>
+    //           <bk-button
+    //             theme='primary'
+    //             text
+    //             onClick={() => handleShowBatchAssign(data)}>
+    //             {t('重新设置资源归属')}
+    //           </bk-button>
+    //           <bk-button
+    //             class='ml-16'
+    //             theme='primary'
+    //             text
+    //             onClick={() => handleShowBatchAddTags(data)}>
+    //             {t('添加资源标签')}
+    //           </bk-button>
+    //           {props.type === ResourcePool.business ? (
+    //             <HostOperationTip
+    //               data={data}
+    //               tip={t('确认后，主机不再归属当前业务')}
+    //               title={t('确认退回公共资源池？')}
+    //               type='to_public'
+    //               onRefresh={fetchData}>
+    //               <bk-button
+    //                 class='ml-16'
+    //                 theme='primary'
+    //                 text>
+    //                 {t('退回公共资源池')}
+    //               </bk-button>
+    //             </HostOperationTip>
+    //           ) : (
+    //             <bk-button
+    //               class='ml-16'
+    //               theme='primary'
+    //               text
+    //               onClick={() => handleShowBatchSetting(data)}>
+    //               {t('设置主机属性')}
+    //             </bk-button>
+    //           )}
+    //           <MoreActionExtend class='ml-16'>
+    //             {props.type === ResourcePool.business && (
+    //               <Bk-Dropdown-Item onClick={() => handleShowBatchSetting(data)}>
+    //                 <bk-button
+    //                   theme='primary'
+    //                   text>
+    //                   {t('设置主机属性')}
+    //                 </bk-button>
+    //               </Bk-Dropdown-Item>
+    //             )}
+    //             <Bk-Dropdown-Item onClick={() => handleShowBatchMoveToFaultPool(data)}>
+    //               <bk-button
+    //                 theme='primary'
+    //                 text>
+    //                 {t('转入故障池')}
+    //               </bk-button>
+    //             </Bk-Dropdown-Item>
+    //             {props.type !== ResourcePool.business && (
+    //               <Bk-Dropdown-Item>
+    //                 <HostOperationTip
+    //                   data={data}
+    //                   tip={t('确认后，主机将标记为待回收，等待处理')}
+    //                   title={t('确认转入待回收池？')}
+    //                   type='to_recycle'
+    //                   onRefresh={fetchData}>
+    //                   <bk-button
+    //                     theme='primary'
+    //                     text>
+    //                     {t('转入待回收池')}
+    //                   </bk-button>
+    //                 </HostOperationTip>
+    //               </Bk-Dropdown-Item>
+    //             )}
+    //             <Bk-Dropdown-Item>
+    //               <HostOperationTip
+    //                 data={data}
+    //                 tip={t('确认后，主机将从资源池移回原有模块')}
+    //                 title={t('确认撤销导入？')}
+    //                 type='undo_import'
+    //                 onRefresh={fetchData}>
+    //                 <bk-button
+    //                   theme='primary'
+    //                   text>
+    //                   {t('撤销导入')}
+    //                 </bk-button>
+    //               </HostOperationTip>
+    //             </Bk-Dropdown-Item>
+    //           </MoreActionExtend>
+    //         </>
+    //       )}
+    //     </>
+    //   ),
+    //   width: props.type === ResourcePool.public ? 120 : 380,
+    // },
   ]);
 
   const fetchData = () => {
