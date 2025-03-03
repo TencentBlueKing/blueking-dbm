@@ -30,7 +30,7 @@
     </BkTableColumn>
   </BkTable>
   <InfoList>
-    <InfoItem :label="t('不一致时间范围:')">
+    <InfoItem :label="t('不一致时间范围')">
       {{ `${ticketDetails.details.start_time} - ${ticketDetails.details.end_time}` }}
     </InfoItem>
   </InfoList>

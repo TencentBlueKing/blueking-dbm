@@ -13,7 +13,7 @@
 
 <template>
   <InfoList>
-    <InfoItem :label="t('替换类型：')">
+    <InfoItem :label="t('替换类型')">
       {{ displayInfoTypeMap[ticketDetails.details.infos[0].display_info.type] }}
     </InfoItem>
   </InfoList>
@@ -52,7 +52,7 @@
     </BkTableColumn>
   </BkTable>
   <InfoList>
-    <InfoItem :label="t('忽略业务连接：')">
+    <InfoItem :label="t('忽略业务连接')">
       {{ ticketDetails.details.force ? t('是') : t('否') }}
     </InfoItem>
   </InfoList>

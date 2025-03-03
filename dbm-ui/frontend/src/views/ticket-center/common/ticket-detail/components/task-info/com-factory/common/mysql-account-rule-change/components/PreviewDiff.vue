@@ -13,10 +13,10 @@
 
 <template>
   <InfoList>
-    <InfoItem :label="t('变更类型:')">
+    <InfoItem :label="t('变更类型')">
       {{ t('变更规则') }}
     </InfoItem>
-    <InfoItem :label="t('账户名称:')">
+    <InfoItem :label="t('账户名称')">
       {{ ticketDetails.details.last_account_rules.userName }}
     </InfoItem>
   </InfoList>

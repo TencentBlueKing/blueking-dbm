@@ -12,9 +12,151 @@
 -->
 
 <template>
-  <DemandInfo
-    :config="config"
-    :data="ticketDetails" />
+  <div class="info-title">{{ t('部署模块') }}</div>
+  <InfoList>
+    <InfoItem :label="t('所属业务')">
+      {{ ticketDetails.bk_biz_name || '--' }}
+    </InfoItem>
+    <InfoItem :label="t('业务英文名')">
+      {{ ticketDetails.db_app_abbr || '--' }}
+    </InfoItem>
+    <InfoItem :label="t('集群名称')">
+      {{ ticketDetails.details.cluster_name || '--' }}
+    </InfoItem>
+    <InfoItem :label="t('集群别名')">
+      {{ ticketDetails.details.cluster_alias || '--' }}
+    </InfoItem>
+  </InfoList>
+  <RegionRequirements :details="ticketDetails.details" />
+  <div class="info-title mt-20">{{ t('数据库部署信息') }}</div>
+  <InfoList>
+    <InfoItem :label="t('Doris版本')">
+      {{ ticketDetails.details.db_version || '--' }}
+    </InfoItem>
+    <InfoItem :label="t('服务器选择方式')">
+      {{ isFromResourcePool ? t('从资源池匹配') : t('手动选择') }}
+    </InfoItem>
+    <InfoItem :label="t('查询端口')">
+      {{ ticketDetails.details.query_port || '--' }}
+    </InfoItem>
+    <InfoItem :label="t('http端口')">
+      {{ ticketDetails.details.http_port || '--' }}
+    </InfoItem>
+    <template v-if="isFromResourcePool">
+      <InfoItem :label="t('Follower节点')">
+        <BkPopover
+          v-if="followerSpec"
+          placement="top"
+          theme="light">
+          <span
+            class="pb-2"
+            style="cursor: pointer; border-bottom: 1px dashed #979ba5">
+            {{ followerSpec.spec_name }}（{{ `${followerSpec.count} ${t('台')}` }}）
+          </span>
+          <template #content>
+            <SpecInfos :data="followerSpec" />
+          </template>
+        </BkPopover>
+        <span v-else>--</span>
+      </InfoItem>
+      <InfoItem :label="t('Observer节点')">
+        <BkPopover
+          v-if="observerSpec"
+          placement="top"
+          theme="light">
+          <span
+            class="pb-2"
+            style="cursor: pointer; border-bottom: 1px dashed #979ba5">
+            {{ observerSpec.spec_name }}（{{ `${observerSpec.count} ${t('台')}` }}）
+          </span>
+          <template #content>
+            <SpecInfos :data="observerSpec" />
+          </template>
+        </BkPopover>
+        <span v-else>--</span>
+      </InfoItem>
+      <InfoItem :label="t('热节点')">
+        <BkPopover
+          v-if="hotSpec"
+          placement="top"
+          theme="light">
+          <span
+            class="pb-2"
+            style="cursor: pointer; border-bottom: 1px dashed #979ba5">
+            {{ hotSpec.spec_name }}（{{ `${hotSpec.count} ${t('台')}` }}）
+          </span>
+          <template #content>
+            <SpecInfos :data="hotSpec" />
+          </template>
+        </BkPopover>
+        <span v-else>--</span>
+      </InfoItem>
+      <InfoItem :label="t('冷节点')">
+        <BkPopover
+          v-if="coldSpec"
+          placement="top"
+          theme="light">
+          <span
+            class="pb-2"
+            style="cursor: pointer; border-bottom: 1px dashed #979ba5">
+            {{ coldSpec.spec_name }}（{{ `${coldSpec.count} ${t('台')}` }}）
+          </span>
+          <template #content>
+            <SpecInfos :data="coldSpec" />
+          </template>
+        </BkPopover>
+        <span v-else>--</span>
+      </InfoItem>
+    </template>
+    <template v-else>
+      <InfoItem :label="t('Follower节点IP')">
+        <BkButton
+          v-if="getServiceNums('follower') > 0"
+          text
+          theme="primary"
+          @click="handleShowPreview('follower')">
+          {{ t('台') }}
+        </BkButton>
+        <span v-else>--</span>
+      </InfoItem>
+      <InfoItem :label="t('Observer节点IP')">
+        <BkButton
+          v-if="getServiceNums('observer') > 0"
+          text
+          theme="primary"
+          @click="handleShowPreview('observer')">
+          {{ t('台') }}
+        </BkButton>
+        <span v-else>--</span>
+      </InfoItem>
+      <InfoItem :label="t('热节点IP')">
+        <BkButton
+          v-if="getServiceNums('hot') > 0"
+          text
+          theme="primary"
+          @click="handleShowPreview('hot')">
+          {{ t('台') }}
+        </BkButton>
+        <span v-else>--</span>
+      </InfoItem>
+      <InfoItem :label="t('冷节点IP')">
+        <BkButton
+          v-if="getServiceNums('cold') > 0"
+          text
+          theme="primary"
+          @click="handleShowPreview('cold')">
+          {{ t('台') }}
+        </BkButton>
+        <span v-else>--</span>
+      </InfoItem>
+    </template>
+    <EstimatedCost
+      v-if="ticketDetails.details.resource_spec"
+      :params="{
+        db_type: DBTypes.DORIS,
+        resource_spec: ticketDetails.details.resource_spec,
+      }" />
+  </InfoList>
   <HostPreview
     v-model:is-show="isPreviewShow"
     :fetch-nodes="getTicketHostNodes"
@@ -24,20 +166,19 @@
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
   import TicketModel, { type Doris } from '@services/model/ticket/ticket';
-  import { getInfrasCities, getTicketHostNodes } from '@services/source/ticket';
+  import { getTicketHostNodes } from '@services/source/ticket';
 
-  import { useSystemEnviron } from '@stores';
-
-  import { TicketTypes } from '@common/const';
+  import { DBTypes, TicketTypes } from '@common/const';
 
   import HostPreview from '@components/host-preview/HostPreview.vue';
 
   import { firstLetterToUpper } from '@utils';
 
-  import DemandInfo, { type DemandInfoConfig } from '../components/DemandInfo.vue';
+  import EstimatedCost from '../components/EstimatedCost.vue';
+  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  import RegionRequirements from '../components/RegionRequirements.vue';
   import SpecInfos from '../components/SpecInfos.vue';
 
   interface Props {
@@ -49,9 +190,7 @@
   });
 
   const props = defineProps<Props>();
-
   const { t } = useI18n();
-  const { AFFINITY: affinityList } = useSystemEnviron().urls;
 
   const isFromResourcePool = props.ticketDetails.details.ip_source === 'resource_pool';
 
@@ -61,242 +200,15 @@
   const hotSpec = resourceSpec?.hot;
   const coldSpec = resourceSpec?.cold;
 
-  const config: DemandInfoConfig[] = [
-    {
-      list: [
-        {
-          key: 'bk_biz_name',
-          label: t('所属业务'),
-        },
-        {
-          key: 'db_app_abbr',
-          label: t('业务英文名'),
-        },
-        {
-          key: 'details.cluster_name',
-          label: t('集群名称'),
-        },
-        {
-          key: 'details.cluster_alias',
-          label: t('集群别名'),
-        },
-      ],
-      title: t('部署模块'),
-    },
-    {
-      list: [
-        {
-          label: t('数据库部署地域'),
-          render: () => cityName.value || '--',
-        },
-      ],
-      title: t('地域要求'),
-    },
-    {
-      list: [
-        {
-          label: t('容灾要求'),
-          render: () => affinity.value || '--',
-        },
-        {
-          key: 'details.db_version',
-          label: t('Doris版本'),
-        },
-        {
-          label: t('服务器选择方式'),
-          render: () => (isFromResourcePool ? t('从资源池匹配') : t('手动选择')),
-        },
-        {
-          key: 'details.query_port',
-          label: t('查询端口'),
-        },
-        {
-          key: 'details.http_port',
-          label: t('http端口'),
-        },
-      ],
-      title: t('部署需求'),
-    },
-  ];
-
-  if (isFromResourcePool) {
-    config[2].list.push(
-      {
-        label: t('Follower节点'),
-        render: () =>
-          followerSpec ? (
-            <bk-popover
-              placement='top'
-              theme='light'>
-              {{
-                content: () => <SpecInfos data={followerSpec} />,
-                default: () => (
-                  <span
-                    class='pb-2'
-                    style='cursor: pointer;border-bottom: 1px dashed #979ba5;'>
-                    {followerSpec.spec_name}（{`${followerSpec.count} ${t('台')}`}）
-                  </span>
-                ),
-              }}
-            </bk-popover>
-          ) : (
-            '--'
-          ),
-      },
-      {
-        label: t('Observer节点'),
-        render: () =>
-          observerSpec ? (
-            <bk-popover
-              placement='top'
-              theme='light'>
-              {{
-                content: () => <SpecInfos data={observerSpec} />,
-                default: () => (
-                  <span
-                    class='pb-2'
-                    style='cursor: pointer;border-bottom: 1px dashed #979ba5;'>
-                    {observerSpec.spec_name}（{`${observerSpec.count} ${t('台')}`}）
-                  </span>
-                ),
-              }}
-            </bk-popover>
-          ) : (
-            '--'
-          ),
-      },
-      {
-        label: t('热节点'),
-        render: () =>
-          hotSpec ? (
-            <bk-popover
-              placement='top'
-              theme='light'>
-              {{
-                content: () => <SpecInfos data={hotSpec} />,
-                default: () => (
-                  <span
-                    class='pb-2'
-                    style='cursor: pointer;border-bottom: 1px dashed #979ba5;'>
-                    {hotSpec.spec_name}（{`${hotSpec.count} ${t('台')}`}）
-                  </span>
-                ),
-              }}
-            </bk-popover>
-          ) : (
-            '--'
-          ),
-      },
-      {
-        label: t('冷节点'),
-        render: () =>
-          coldSpec ? (
-            <bk-popover
-              placement='top'
-              theme='light'>
-              {{
-                content: () => <SpecInfos data={coldSpec} />,
-                default: () => (
-                  <span
-                    class='pb-2'
-                    style='cursor: pointer;border-bottom: 1px dashed #979ba5;'>
-                    {coldSpec.spec_name}（{`${coldSpec.count} ${t('台')}`}）
-                  </span>
-                ),
-              }}
-            </bk-popover>
-          ) : (
-            '--'
-          ),
-      },
-    );
-  } else {
-    config[2].list.push(
-      {
-        label: t('Follower节点IP'),
-        render: () =>
-          getServiceNums('follower') > 0 ? (
-            <bk-button
-              theme='primary'
-              text
-              onClick={() => handleShowPreview('follower')}>
-              {t('台')}
-            </bk-button>
-          ) : (
-            '--'
-          ),
-      },
-      {
-        label: t('Observer节点IP'),
-        render: () =>
-          getServiceNums('observer') > 0 ? (
-            <bk-button
-              theme='primary'
-              text
-              onClick={() => handleShowPreview('observer')}>
-              {t('台')}
-            </bk-button>
-          ) : (
-            '--'
-          ),
-      },
-      {
-        label: t('热节点IP'),
-        render: () =>
-          getServiceNums('hot') > 0 ? (
-            <bk-button
-              theme='primary'
-              text
-              onClick={() => handleShowPreview('hot')}>
-              {t('台')}
-            </bk-button>
-          ) : (
-            '--'
-          ),
-      },
-      {
-        label: t('冷节点IP'),
-        render: () =>
-          getServiceNums('cold') > 0 ? (
-            <bk-button
-              theme='primary'
-              text
-              onClick={() => handleShowPreview('cold')}>
-              {t('台')}
-            </bk-button>
-          ) : (
-            '--'
-          ),
-      },
-    );
-  }
-
-  const cityName = ref('--');
   const isPreviewShow = ref(false);
   const previewRole = ref('');
   const previewTitle = ref('');
-
-  const affinity = computed(() => {
-    const level = props.ticketDetails.details.disaster_tolerance_level;
-    if (level && affinityList) {
-      return affinityList.find((item) => item.value === level)?.label;
-    }
-    return '--';
-  });
 
   const fetchNodesParams = computed(() => ({
     bk_biz_id: props.ticketDetails.bk_biz_id,
     id: props.ticketDetails.id,
     role: previewRole.value,
   }));
-
-  useRequest(getInfrasCities, {
-    onSuccess: (cityList) => {
-      const cityCode = props.ticketDetails.details.city_code;
-      const name = cityList.find((item) => item.city_code === cityCode)?.city_name;
-      cityName.value = name ?? '--';
-    },
-  });
 
   const getServiceNums = (key: 'follower' | 'observer' | 'hot' | 'cold') => {
     const nodes = props.ticketDetails.details?.nodes;
@@ -309,3 +221,10 @@
     previewTitle.value = `【${firstLetterToUpper(role)}】${t('主机预览')}`;
   };
 </script>
+
+<style lang="less" scoped>
+  .info-title {
+    font-weight: bold;
+    color: #313238;
+  }
+</style>

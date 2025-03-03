@@ -13,7 +13,7 @@
 
 <template>
   <InfoList>
-    <InfoItem :label="t('构造类型:')">
+    <InfoItem :label="t('构造类型')">
       {{ renderData.label }}
     </InfoItem>
   </InfoList>

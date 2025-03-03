@@ -14,7 +14,7 @@
 import ClusterEntryDetailModel from '@services/model/cluster-entry/cluster-entry-details';
 import type { ClusterListEntry, ClusterListSpec } from '@services/types';
 
-import { ClusterAffinityMap, TicketTypes } from '@common/const';
+import { Affinity, affinityMap, TicketTypes } from '@common/const';
 
 import { utcDisplayTime } from '@utils';
 
@@ -86,7 +86,7 @@ export default class MongodbDetail {
   creator: string;
   db_module_id: number;
   db_module_name: string;
-  disaster_tolerance_level: keyof typeof ClusterAffinityMap;
+  disaster_tolerance_level: Affinity;
   id: number;
   instances: {
     bk_cloud_id: number;
@@ -238,7 +238,7 @@ export default class MongodbDetail {
   }
 
   get disasterToleranceLevelName() {
-    return ClusterAffinityMap[this.disaster_tolerance_level];
+    return affinityMap[this.disaster_tolerance_level];
   }
 
   get entryAccess() {
