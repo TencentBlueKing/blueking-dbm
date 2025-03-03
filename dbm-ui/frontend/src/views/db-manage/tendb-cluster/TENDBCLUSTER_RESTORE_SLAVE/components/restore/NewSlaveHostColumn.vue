@@ -45,8 +45,8 @@
 
   interface Props {
     slave: {
-      spec_id: number;
       bk_cloud_id: number;
+      spec_id: number;
     };
   }
 
