@@ -94,43 +94,43 @@
   import SlaveHostColumnGroup, { type SelectorHost } from './SlaveHostColumnGroup.vue';
 
   interface RowData {
+    newSlave: string;
     slave: {
       bk_biz_id: number;
       bk_cloud_id: number;
       bk_host_id: number;
-      ip: string;
-      related_instances: string[];
       cluster_id: number;
+      count: number;
+      ip: string;
       master_domain: string;
+      related_instances: string[];
       spec_id: number;
       spec_name: string;
-      count: number;
     };
-    newSlave: string;
   }
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
+    newSlave: 'resource_pool',
     slave: data.slave || {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: 0,
-      ip: '',
-      related_instances: [],
       cluster_id: 0,
+      count: 0,
+      ip: '',
       master_domain: '',
+      related_instances: [],
       spec_id: 0,
       spec_name: '',
-      count: 0,
     },
-    newSlave: 'resource_pool',
   });
 
   const defaultData = () => ({
-    tableData: [createTableRow()],
     backupSource: BackupSourceType.REMOTE,
+    tableData: [createTableRow()],
     ...createTickePayload(),
   });
 
@@ -138,16 +138,15 @@
   const selected = computed(() => formData.tableData.filter((item) => item.slave.bk_host_id).map((item) => item.slave));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
 
-  const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
-    ip_source: 'resource_pool';
+  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     backup_source: BackupSourceType;
     infos: {
       cluster_id: number;
       old_nodes: {
         old_slave: {
           bk_biz_id: number;
-          bk_host_id: number;
           bk_cloud_id: number;
+          bk_host_id: number;
           ip: string;
         }[];
       };
@@ -158,6 +157,7 @@
         };
       };
     }[];
+    ip_source: 'resource_pool';
   }>(TicketTypes.TENDBCLUSTER_RESTORE_SLAVE);
 
   const handleSubmit = async () => {
@@ -165,7 +165,6 @@
     if (valid) {
       createTicketRun({
         details: {
-          ip_source: 'resource_pool',
           backup_source: formData.backupSource,
           infos: formData.tableData.map((item) => ({
             cluster_id: item.slave.cluster_id,
@@ -173,8 +172,8 @@
               old_slave: [
                 {
                   bk_biz_id: item.slave.bk_biz_id,
-                  bk_host_id: item.slave.bk_host_id,
                   bk_cloud_id: item.slave.bk_cloud_id,
+                  bk_host_id: item.slave.bk_host_id,
                   ip: item.slave.ip,
                 },
               ],
@@ -186,6 +185,7 @@
               },
             },
           })),
+          ip_source: 'resource_pool',
         },
         remark: formData.remark,
       });
@@ -205,13 +205,13 @@
               bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
               bk_cloud_id: item.bk_cloud_id,
               bk_host_id: item.bk_host_id,
-              ip: item.ip,
-              related_instances: item.related_instances.map((item) => item.instance),
               cluster_id: item.cluster_id,
+              count: item.spec_config?.count ?? 0,
+              ip: item.ip,
               master_domain: item.master_domain,
+              related_instances: item.related_instances.map((item) => item.instance),
               spec_id: item.spec_config?.id ?? 0,
               spec_name: item.spec_config?.name ?? '',
-              count: item.spec_config?.count ?? 0,
             },
           }),
         );

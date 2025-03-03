@@ -14,12 +14,16 @@
 <template>
   <EditableColumn
     :append-rules="rules"
-    :field="field"
-    :label="label"
+    field="new_readonly_host.ip"
+    :label="t('新只读主机')"
     :loading="loading"
-    :min-width="minWidth"
-    required>
+    :min-width="200">
+    <template #headAppend> <span class="required-icon" /> </template>
+    <EditableBlock
+      v-if="cluster.id && !cluster.readonly_host"
+      :placeholder="t('无只读主机')" />
     <EditableInput
+      v-else
       v-model="modelValue.ip"
       :placeholder="t('请输入n个主机IP', { n: limit })"
       @change="handleInputChange">
@@ -36,31 +40,36 @@
     v-model="selected"
     v-model:is-show="showSelector"
     :limit="limit"
-    :params="params"
+    :params="{
+      for_bizs: [currentBizId, 0],
+      resource_types: [DBTypes.MYSQL, 'PUBLIC'],
+    }"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
-  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import { fetchList } from '@services/source/dbresourceResource';
 
+  import { DBTypes } from '@common/const';
   import { batchSplitRegex, ipv4 } from '@common/regex';
 
   import ResourceHostSelector, { type IValue } from '@components/resource-host-selector/Index.vue';
 
   interface Props {
-    field: string;
-    label: string;
-    minWidth?: number;
-    params?: ComponentProps<typeof ResourceHostSelector>['params'];
+    cluster: {
+      id: number;
+      readonly_host: {
+        bk_biz_id: number;
+        bk_cloud_id: number;
+        bk_host_id: number;
+        ip: string;
+      };
+    };
   }
 
-  withDefaults(defineProps<Props>(), {
-    minWidth: 300,
-    params: () => ({}),
-  });
+  const props = defineProps<Props>();
 
   /**
    * 绑定的modelValue须包含ip
@@ -81,25 +90,32 @@
 
   const { t } = useI18n();
 
+  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
+
   const limit = 1;
   const showSelector = ref(false);
   const selected = computed(() => (modelValue.value.bk_host_id ? ([modelValue.value] as IValue[]) : ([] as IValue[])));
 
   const rules = [
     {
+      message: t('新只读主机不能为空'),
+      trigger: 'change',
+      validator: (value: string) => !props.cluster.readonly_host || !!value,
+    },
+    {
       message: t('IP 格式不符合IPv4标准'),
       trigger: 'change',
-      validator: (value: string) => ipv4.test(value),
+      validator: (value: string) => !props.cluster.readonly_host || ipv4.test(value),
     },
     {
       message: t('最多输入n个主机IP', { n: limit }),
       trigger: 'blur',
-      validator: (value: string) => value.split(batchSplitRegex).length <= limit,
+      validator: (value: string) => !props.cluster.readonly_host || value.split(batchSplitRegex).length <= limit,
     },
     {
       message: t('目标主机不存在'),
       trigger: 'blur',
-      validator: () => Boolean(modelValue.value.bk_host_id),
+      validator: () => !props.cluster.readonly_host || Boolean(modelValue.value.bk_host_id),
     },
   ];
 
@@ -161,5 +177,11 @@
     &:hover {
       color: #3a84ff;
     }
+  }
+
+  .required-icon::after {
+    line-height: 20px;
+    color: #ea3636;
+    content: '*';
   }
 </style>

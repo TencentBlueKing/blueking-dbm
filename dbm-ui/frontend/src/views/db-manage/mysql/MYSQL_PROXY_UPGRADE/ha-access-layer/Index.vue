@@ -130,11 +130,9 @@
     formData.tableData
       .filter((item) => item.cluster.id)
       .reduce<Record<string, true>>((acc, cur) => {
-        // eslint-disable-next-line no-param-reassign
-        acc[cur.cluster.master_domain] = true;
+        Object.assign(acc[cur.cluster.master_domain], true);
         cur.cluster.related_clusters.forEach((item) => {
-          // eslint-disable-next-line no-param-reassign
-          acc[item.master_domain] = true;
+          Object.assign(acc[item.master_domain], true);
         });
         return acc;
       }, {}),
