@@ -50,7 +50,7 @@
     </BkTableColumn>
   </BkTable>
   <InfoList>
-    <InfoItem :label="t('安全模式:')">
+    <InfoItem :label="t('安全模式')">
       {{ !ticketDetails.details.infos[0].force ? t('是') : t('否') }}
     </InfoItem>
     <InfoItem :label="t('删除备份库时间:')">

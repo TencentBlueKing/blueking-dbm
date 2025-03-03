@@ -30,9 +30,13 @@
             v-model="formData.details.bk_cloud_id"
             @change="handleChangeCloud" />
         </DbCard>
-        <RegionItem
-          ref="regionItemRef"
-          v-model="formData.details.city_code" />
+        <RegionRequirementsOnlyCity
+          v-if="isAppend"
+          v-model="formData.details" />
+        <RegionRequirementsCommon
+          v-else
+          ref="regionRequirements"
+          v-model="formData.details" />
         <DbCard :title="t('数据库部署信息')">
           <BkFormItem
             :label="t('部署方式')"
@@ -51,10 +55,6 @@
               </BkRadio>
             </BkRadioGroup>
           </BkFormItem>
-          <AffinityItem
-            v-if="!isAppend"
-            v-model="formData.details.disaster_tolerance_level"
-            :city-code="formData.details.city_code" />
         </DbCard>
         <DbCard :title="t('部署需求')">
           <BkFormItem
@@ -165,7 +165,7 @@
               v-model:domains="formData.details.infos"
               :app-abbr="formData.details.db_app_abbr"
               :biz-id="formData.bk_biz_id"
-              :city-info="cityInfo"
+              :city-info="formData.details"
               :cloud-id="cloudInfo.id"
               :is-append="isAppend"
               :max-memory="maxMemory"
@@ -173,6 +173,11 @@
               :port-type="portType"
               @host-change="handleHostChange" />
           </BkFormItem>
+          <EstimatedCost
+            :params="{
+              db_type: DBTypes.REDIS,
+              resource_spec: resourceSepc,
+            }" />
           <BkFormItem :label="t('备注')">
             <BkInput
               v-model="formData.remark"
@@ -218,6 +223,7 @@
   import InfoBox from 'bkui-vue/lib/info-box';
   import _ from 'lodash';
   import type { UnwrapRef } from 'vue';
+  import { type ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import { getRedisMachineList } from '@services/source/redis';
@@ -226,15 +232,16 @@
 
   import { useApplyBase } from '@hooks';
 
-  import { ClusterTypes, DBTypes, MachineTypes, TicketTypes } from '@common/const';
+  import { Affinity, ClusterTypes, DBTypes, MachineTypes, TicketTypes } from '@common/const';
 
   import DbForm from '@components/db-form/index.vue';
 
-  import AffinityItem from '@views/db-manage/common/apply-items/AffinityItem.vue';
   import BusinessItems from '@views/db-manage/common/apply-items/BusinessItems.vue';
   import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
   import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
-  import RegionItem from '@views/db-manage/common/apply-items/RegionItem.vue';
+  import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
+  import RegionRequirementsCommon from '@views/db-manage/common/apply-items/region-requirements/Common.vue';
+  import RegionRequirementsOnlyCity from '@views/db-manage/common/apply-items/region-requirements/OnlyCity.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
   import PasswordInput from '@views/db-manage/common/password-input/Index.vue';
 
@@ -246,11 +253,12 @@
       appendApply: 'new', // 是否是追加部署
       bk_cloud_id: 0,
       city_code: '', // 追加就非必填
+      city_name: '', // 非协议
       cluster_count: 1,
       cluster_type: ClusterTypes.REDIS_INSTANCE,
       db_app_abbr: '',
       db_version: '', // 追加就非必填
-      disaster_tolerance_level: 'SAME_SUBZONE_CROSS_SWTICH',
+      disaster_tolerance_level: Affinity.SAME_SUBZONE_CROSS_SWTICH,
       group_count: 1,
       infos: [] as Domain[],
       ip_source: 'resource_pool',
@@ -260,6 +268,7 @@
         count: 2,
         spec_id: '',
       },
+      sub_zone_ids: [] as number[],
     },
     remark: '',
     ticket_type: TicketTypes.REDIS_INS_APPLY,
@@ -270,8 +279,9 @@
   const router = useRouter();
   const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
 
+  const regionRequirementsRef = useTemplateRef('regionRequirements');
+
   const formRef = ref<InstanceType<typeof DbForm>>();
-  const regionItemRef = ref<InstanceType<typeof RegionItem>>();
   const specRef = ref<InstanceType<typeof SpecSelector>>();
   const clusterCountRef = ref<InstanceType<typeof Form.FormItem>>();
   const groupCountRef = ref<InstanceType<typeof Form.FormItem>>();
@@ -280,10 +290,6 @@
     name: '',
   });
   const maxMemory = ref('0G');
-  const cityInfo = ref({
-    cityCode: '',
-    cityName: '',
-  });
   const passwordIsPass = ref(false);
 
   const formData = reactive(initData());
@@ -337,11 +343,14 @@
     );
   });
 
-  watch(
-    () => formData.details.city_code,
-    () => {
-      cityInfo.value = regionItemRef.value!.getValue();
-    },
+  const resourceSepc = computed(
+    () =>
+      ({
+        backend_group: {
+          count: machineCount.value,
+          spec_id: formData.details.resource_spec.spec_id,
+        },
+      }) as ComponentProps<typeof EstimatedCost>['params']['resource_spec'],
   );
 
   watch(
@@ -415,7 +424,7 @@
   const handleHostChange = async (filedName: string, value: string, index: number) => {
     await formRef.value!.validate(filedName);
     getRedisMachineList({
-      bk_city_name: cityInfo.value.cityName,
+      bk_city_name: formData.details.city_name,
       bk_cloud_id: formData.details.bk_cloud_id,
       cluster_type: ClusterTypes.REDIS_INSTANCE,
       instance_role: 'redis_master',
@@ -483,11 +492,7 @@
               count: Math.ceil(machineCount.value),
               spec_id: details.resource_spec!.spec_id,
               ...specRef.value!.getData(),
-              affinity: details.disaster_tolerance_level,
-              location_spec: {
-                city: details.city_code,
-                sub_zone_ids: [],
-              },
+              ...regionRequirementsRef.value!.getValue(),
             },
           },
         });
@@ -512,6 +517,7 @@
       delete details.cluster_count;
       delete details.group_count;
       delete details.appendApply;
+      delete details.city_name;
 
       return {
         ...details,

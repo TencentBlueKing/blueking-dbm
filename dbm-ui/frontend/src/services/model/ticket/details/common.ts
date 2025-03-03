@@ -67,10 +67,16 @@ export interface DetailSpecs {
 }
 
 export interface SpecInfo {
+  affinity: string;
   count: number;
   cpu: {
     max: number;
     min: number;
+  };
+  location_spec: {
+    city: string;
+    include_or_exclue?: boolean;
+    sub_zone_ids?: number[];
   };
   mem: {
     max: number;

@@ -13,7 +13,7 @@
 
 <template>
   <InfoList>
-    <InfoItem :label="t('构造类型：')">
+    <InfoItem :label="t('构造类型')">
       {{ ticketDetails.details.is_local ? t('原地定点构造') : t('定点构造到其他集群') }}
     </InfoItem>
   </InfoList>

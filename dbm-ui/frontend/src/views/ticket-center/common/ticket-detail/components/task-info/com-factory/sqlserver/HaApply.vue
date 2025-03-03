@@ -14,39 +14,31 @@
 <template>
   <div class="info-title">{{ t('部署模块') }}</div>
   <InfoList>
-    <InfoItem :label="t('所属业务：')">
+    <InfoItem :label="t('所属业务')">
       {{ ticketDetails.bk_biz_name || '--' }}
     </InfoItem>
-    <InfoItem :label="t('业务英文名：')">
+    <InfoItem :label="t('业务英文名')">
       {{ ticketDetails.db_app_abbr || '--' }}
     </InfoItem>
-    <InfoItem :label="t('DB模块名：')">
+    <InfoItem :label="t('DB模块名')">
       {{ ticketDetails.details.db_module_name || '--' }}
     </InfoItem>
   </InfoList>
-  <div class="info-title mt-20">{{ t('数据库部署信息') }}</div>
-  <InfoList>
-    <InfoItem :label="t('数据库部署地域：')">
-      {{ ticketDetails.details.city_name }}
-    </InfoItem>
-    <InfoItem :label="t('SQLServer起始端口：')">
-      {{ ticketDetails.details.start_mssql_port }}
-    </InfoItem>
-  </InfoList>
+  <RegionRequirements :details="ticketDetails.details" />
   <div class="info-title mt-20">{{ t('需求信息') }}</div>
   <InfoList>
-    <InfoItem :label="t('集群数量：')">
+    <InfoItem :label="t('集群数量')">
       {{ ticketDetails.details.cluster_count }}
     </InfoItem>
-    <InfoItem :label="t('每组主机部署集群：')">
+    <InfoItem :label="t('每组主机部署集群')">
       {{ ticketDetails.details.inst_num }}
     </InfoItem>
-    <InfoItem :label="t('服务器选择：')">
+    <InfoItem :label="t('服务器选择')">
       {{ ticketDetails.details.ip_source === 'resource_pool' ? t('自动从资源池匹配') : t('业务空闲机') }}
     </InfoItem>
     <InfoItem
       v-if="resourceSpecs"
-      :label="t('后端存储规格：')">
+      :label="t('后端存储规格')">
       <BkPopover
         placement="top"
         theme="light">
@@ -60,6 +52,12 @@
         </template>
       </BkPopover>
     </InfoItem>
+    <EstimatedCost
+      v-if="ticketDetails.details.resource_spec"
+      :params="{
+        db_type: DBTypes.SQLSERVER,
+        resource_spec: ticketDetails.details.resource_spec,
+      }" />
     <InfoItem
       :label="t('集群设置：')"
       style="width: 100%">
@@ -123,9 +121,11 @@
 
   import TicketModel, { type Sqlserver } from '@services/model/ticket/ticket';
 
-  import { TicketTypes } from '@common/const';
+  import { DBTypes, TicketTypes } from '@common/const';
 
+  import EstimatedCost from '../components/EstimatedCost.vue';
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  import RegionRequirements from '../components/RegionRequirements.vue';
   import SpecInfos from '../components/SpecInfos.vue';
 
   interface Props {

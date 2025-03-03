@@ -62,12 +62,13 @@
 <script lang="ts">
   import RedisModel from '@services/model/redis/redis';
 
+  import { Affinity } from '@common/const';
+
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
   import RenderTargetCluster from '@views/db-manage/redis/common/edit-field/ClusterName.vue';
   import RenderTargetClusterVersion from '@views/db-manage/redis/common/edit-field/VersionSelect.vue';
-  import { AffinityType } from '@views/db-manage/redis/common/types';
 
   import { random } from '@utils';
 
@@ -131,12 +132,12 @@
     online_switch_type: 'user_confirm';
     resource_spec: {
       backend_group: {
-        affinity: AffinityType;
+        affinity: Affinity;
         count: number; // 机器组数
         spec_id: number;
       };
       proxy: {
-        affinity: AffinityType;
+        affinity: Affinity;
         count: number;
         spec_id: number;
       };
@@ -253,12 +254,12 @@
             online_switch_type: 'user_confirm',
             resource_spec: {
               backend_group: {
-                affinity: props.data.disasterToleranceLevel || AffinityType.CROS_SUBZONE, // 暂时固定 'CROS_SUBZONE',
+                affinity: props.data.disasterToleranceLevel || Affinity.CROS_SUBZONE, // 暂时固定 'CROS_SUBZONE',
                 count: deployData.count, // 机器组数
                 spec_id: deployData.spec_id,
               },
               proxy: {
-                affinity: props.data.disasterToleranceLevel || AffinityType.CROS_SUBZONE,
+                affinity: props.data.disasterToleranceLevel || Affinity.CROS_SUBZONE,
                 count: props.data.proxy.count,
                 spec_id: props.data.proxy.id,
               },

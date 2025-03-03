@@ -35,13 +35,10 @@
             v-model="formData.details.bk_cloud_id"
             @change="handleChangeCloud" />
         </DbCard>
-        <RegionItem
-          ref="regionItemRef"
-          v-model="formData.details.city_code" />
+        <RegionRequirements
+          ref="regionRequirements"
+          v-model="formData.details" />
         <DbCard :title="t('数据库部署信息')">
-          <AffinityItem
-            v-model="formData.details.disaster_tolerance_level"
-            :city-code="formData.details.city_code" />
           <BkFormItem
             :label="t('MongoDB版本')"
             property="details.db_version"
@@ -162,6 +159,11 @@
               type="number" />
             <span class="input-desc">{{ t('预计容量nG', [estimatedCapacity]) }}</span>
           </BkFormItem>
+          <EstimatedCost
+            :params="{
+              db_type: DBTypes.MONGODB,
+              resource_spec: resourceSepc,
+            }" />
           <BkFormItem :label="t('备注')">
             <BkInput
               v-model="formData.remark"
@@ -199,6 +201,7 @@
 
 <script setup lang="ts">
   import InfoBox from 'bkui-vue/lib/info-box';
+  import { type ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -212,12 +215,12 @@
 
   import DbForm from '@components/db-form/index.vue';
 
-  import AffinityItem from '@views/db-manage/common/apply-items/AffinityItem.vue';
   import BusinessItems from '@views/db-manage/common/apply-items/BusinessItems.vue';
   import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
   import ClusterAlias from '@views/db-manage/common/apply-items/ClusterAlias.vue';
   import ClusterName from '@views/db-manage/common/apply-items/ClusterName.vue';
-  import RegionItem from '@views/db-manage/common/apply-items/RegionItem.vue';
+  import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
+  import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/Common.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
   import MongoConfigSpec, { type MongoConfigSpecRow } from '@views/db-manage/mongodb/components/MongoConfigSpec.vue';
 
@@ -231,7 +234,7 @@
       cluster_type: ClusterTypes.MONGO_SHARED_CLUSTER,
       db_app_abbr: '',
       db_version: '',
-      disaster_tolerance_level: 'NONE',
+      disaster_tolerance_level: '',
       ip_source: 'resource_pool',
       oplog_percent: 10,
       resource_spec: {
@@ -250,6 +253,7 @@
         },
       },
       start_port: 27021,
+      sub_zone_ids: [] as number[],
     },
     remark: '',
     ticket_type: TicketTypes.MONGODB_SHARD_APPLY,
@@ -260,8 +264,9 @@
   const router = useRouter();
   const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
 
+  const regionRequirementsRef = useTemplateRef('regionRequirements');
+
   const formRef = ref<InstanceType<typeof DbForm>>();
-  const regionItemRef = ref<InstanceType<typeof RegionItem>>();
   const mongoCofigSpecRef = ref<InstanceType<typeof SpecSelector>>();
   const mongosSpecRef = ref<InstanceType<typeof SpecSelector>>();
   const mongoConfigSpecRef = ref<InstanceType<typeof MongoConfigSpec>>();
@@ -297,6 +302,24 @@
 
     return Math.round(capacity * (capacityPercentage / 100));
   });
+
+  const resourceSepc = computed(
+    () =>
+      ({
+        mongo_config: {
+          count: formData.details.resource_spec.mongo_config.count,
+          spec_id: formData.details.resource_spec.mongo_config.spec_id,
+        },
+        mongodb: {
+          count: (mongoConfigSpec.value?.machine_pair || 0) * 3, // shard_machine_group * 3(固定值)
+          spec_id: formData.details.resource_spec.mongodb.spec_id,
+        },
+        mongos: {
+          count: formData.details.resource_spec.mongos.count,
+          spec_id: formData.details.resource_spec.mongos.spec_id,
+        },
+      }) as ComponentProps<typeof EstimatedCost>['params']['resource_spec'],
+  );
 
   const { data: versionList, loading: getVersionsLoading } = useRequest(getVersions, {
     defaultParams: [{ query_key: DBTypes.MONGODB }],
@@ -336,10 +359,10 @@
     baseState.isSubmitting = true;
 
     const { details } = formData;
-    const { disaster_tolerance_level: disasterTolerenceLevel, resource_spec: resourceSpec } = details;
+    const { resource_spec: resourceSpec } = details;
     const { mongo_config: mongoConfig, mongodb, mongos } = resourceSpec;
-    const { cityCode } = regionItemRef.value!.getValue();
     const mongoConfigSpecData = mongoConfigSpec.value as NonNullable<typeof mongoConfigSpec.value>;
+    const regionAndDisasterParams = regionRequirementsRef.value!.getValue();
 
     const params = {
       ...formData,
@@ -347,37 +370,25 @@
         ...details,
         resource_spec: {
           mongo_config: {
-            affinity: disasterTolerenceLevel,
             count: mongoConfig.count,
-            location_spec: {
-              city: cityCode,
-              sub_zone_ids: [],
-            },
             spec_id: mongoConfig.spec_id,
             ...mongoCofigSpecRef.value!.getData(),
+            ...regionAndDisasterParams,
           },
           mongodb: {
             ...mongodb,
-            affinity: disasterTolerenceLevel,
+            ...regionAndDisasterParams,
             count: mongoConfigSpecData.machine_pair * 3, // shard_machine_group * 3(固定值)
             cpu: mongoConfigSpecData.cpu,
             instance_num: mongoConfigSpecData.instance_num,
-            location_spec: {
-              city: cityCode,
-              sub_zone_ids: [],
-            },
             mem: mongoConfigSpecData.mem,
             spec_name: mongoConfigSpecData.spec_name,
             storage_spec: mongoConfigSpecData.storage_spec,
           },
           mongos: {
             ...mongos,
-            affinity: disasterTolerenceLevel,
-            location_spec: {
-              city: cityCode,
-              sub_zone_ids: [],
-            },
             ...mongosSpecRef.value!.getData(),
+            ...regionAndDisasterParams,
           },
         },
         shard_machine_group: mongoConfigSpecData.machine_pair,

@@ -12,160 +12,131 @@
 -->
 
 <template>
-  <strong class="ticket-details-info-title">{{ $t('业务信息') }}</strong>
-  <div class="ticket-details-list">
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ $t('所属业务') }}：</span>
-      <span class="ticket-details-item-value">{{ ticketDetails?.bk_biz_name || '--' }}</span>
-    </div>
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ $t('业务英文名') }}：</span>
-      <span class="ticket-details-item-value">{{ ticketDetails?.db_app_abbr || '--' }}</span>
-    </div>
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ $t('集群名称') }}：</span>
-      <span class="ticket-details-item-value">{{ ticketDetails?.details?.cluster_name || '--' }}</span>
-    </div>
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ $t('集群别名') }}：</span>
-      <span class="ticket-details-item-value">{{ ticketDetails?.details?.cluster_alias || '--' }}</span>
-    </div>
-  </div>
-  <strong class="ticket-details-info-title">{{ $t('地域要求') }}</strong>
-  <div class="ticket-details-list">
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ $t('数据库部署地域') }}：</span>
-      <span class="ticket-details-item-value">{{ cityName }}</span>
-    </div>
-  </div>
-  <strong class="ticket-details-info-title">{{ $t('数据库部署信息') }}</strong>
-  <div class="ticket-details-list">
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ $t('容灾要求') }}：</span>
-      <span class="ticket-details-item-value">{{ affinity }}</span>
-    </div>
-  </div>
-  <strong class="ticket-details-info-title">{{ $t('部署需求') }}</strong>
-  <div class="ticket-details-list">
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ $t('版本') }}：</span>
-      <span class="ticket-details-item-value">{{ ticketDetails?.details?.db_version || '--' }}</span>
-    </div>
-    <template v-if="ticketDetails?.details?.ip_source === redisIpSources.manual_input.id">
-      <div class="ticket-details-item">
-        <span class="ticket-details-item-label">{{ $t('Bookkeeper节点') }}：</span>
-        <span class="ticket-details-item-value">
+  <div class="info-title">{{ t('部署模块') }}</div>
+  <InfoList>
+    <InfoItem :label="t('所属业务')">
+      {{ ticketDetails.bk_biz_name || '--' }}
+    </InfoItem>
+    <InfoItem :label="t('业务英文名')">
+      {{ ticketDetails.db_app_abbr || '--' }}
+    </InfoItem>
+    <InfoItem :label="t('集群名称')">
+      {{ ticketDetails.details.cluster_name || '--' }}
+    </InfoItem>
+    <InfoItem :label="t('集群别名')">
+      {{ ticketDetails.details.cluster_alias || '--' }}
+    </InfoItem>
+  </InfoList>
+  <RegionRequirements :details="ticketDetails.details" />
+  <div class="info-title mt-20">{{ t('部署需求') }}</div>
+  <InfoList>
+    <InfoItem :label="t('版本')">
+      {{ ticketDetails.details.db_version || '--' }}
+    </InfoItem>
+    <template v-if="isFromResourcePool">
+      <InfoItem :label="t('Bookkeeper节点规格')">
+        <BkPopover
+          v-if="bookkeeperSpec"
+          placement="top"
+          theme="light">
           <span
-            v-if="getServiceNums('bookkeeper') > 0"
-            class="host-nums"
-            @click="handleShowPreview('bookkeeper')">
-            <a href="javascript:">{{ getServiceNums('bookkeeper') }}</a>
-            {{ $t('台') }}
+            class="pb-2"
+            style="cursor: pointer; border-bottom: 1px dashed #979ba5">
+            {{ bookkeeperSpec.spec_name }}（{{ `${bookkeeperSpec.count} ${t('台')}` }}）
           </span>
-          <template v-else>--</template>
-        </span>
-      </div>
-      <div class="ticket-details-item">
-        <span class="ticket-details-item-label">{{ $t('Zookeeper节点') }}：</span>
-        <span class="ticket-details-item-value">
+          <template #content>
+            <SpecInfos :data="bookkeeperSpec" />
+          </template>
+        </BkPopover>
+        <span v-else>--</span>
+      </InfoItem>
+      <InfoItem :label="t('Zookeeper节点规格')">
+        <BkPopover
+          v-if="zookeeperSpec"
+          placement="top"
+          theme="light">
           <span
-            v-if="getServiceNums('zookeeper') > 0"
-            class="host-nums"
-            @click="handleShowPreview('zookeeper')">
-            <a href="javascript:">{{ getServiceNums('zookeeper') }}</a>
-            {{ $t('台') }}
+            class="pb-2"
+            style="cursor: pointer; border-bottom: 1px dashed #979ba5">
+            {{ zookeeperSpec.spec_name }}（{{ `${zookeeperSpec.count} ${t('台')}` }}）
           </span>
-          <template v-else>--</template>
-        </span>
-      </div>
-      <div class="ticket-details-item">
-        <span class="ticket-details-item-label">{{ $t('Broker节点') }}：</span>
-        <span class="ticket-details-item-value">
+          <template #content>
+            <SpecInfos :data="zookeeperSpec" />
+          </template>
+        </BkPopover>
+        <span v-else>--</span>
+      </InfoItem>
+      <InfoItem :label="t('Broker节点规格')">
+        <BkPopover
+          v-if="brokerSpec"
+          placement="top"
+          theme="light">
           <span
-            v-if="getServiceNums('broker') > 0"
-            class="host-nums"
-            @click="handleShowPreview('broker')">
-            <a href="javascript:">{{ getServiceNums('broker') }}</a>
-            {{ $t('台') }}
+            class="pb-2"
+            style="cursor: pointer; border-bottom: 1px dashed #979ba5">
+            {{ brokerSpec.spec_name }}（{{ `${brokerSpec.count} ${t('台')}` }}）
           </span>
-          <template v-else>--</template>
-        </span>
-      </div>
+          <template #content>
+            <SpecInfos :data="brokerSpec" />
+          </template>
+        </BkPopover>
+        <span v-else>--</span>
+      </InfoItem>
     </template>
-    <template v-if="ticketDetails?.details?.ip_source === 'resource_pool'">
-      <div class="ticket-details-item">
-        <span class="ticket-details-item-label">{{ $t('Bookkeeper节点规格') }}：</span>
-        <span class="ticket-details-item-value">
-          <BkPopover
-            placement="top"
-            theme="light">
-            <span
-              class="pb-2"
-              style="cursor: pointer; border-bottom: 1px dashed #979ba5">
-              {{ bookkeeperSpec?.spec_name }}（{{ `${bookkeeperSpec?.count} ${$t('台')}` }}）
-            </span>
-            <template #content>
-              <SpecInfos :data="bookkeeperSpec" />
-            </template>
-          </BkPopover>
-        </span>
-      </div>
-      <div class="ticket-details-item">
-        <span class="ticket-details-item-label">{{ $t('Zookeeper节点规格') }}：</span>
-        <span class="ticket-details-item-value">
-          <BkPopover
-            placement="top"
-            theme="light">
-            <span
-              class="pb-2"
-              style="cursor: pointer; border-bottom: 1px dashed #979ba5">
-              {{ zookeeperSpec?.spec_name }}（{{ `${zookeeperSpec?.count} ${$t('台')}` }}）
-            </span>
-            <template #content>
-              <SpecInfos :data="zookeeperSpec" />
-            </template>
-          </BkPopover>
-        </span>
-      </div>
-      <div class="ticket-details-item">
-        <span class="ticket-details-item-label">{{ $t('Broker节点规格') }}：</span>
-        <span class="ticket-details-item-value">
-          <BkPopover
-            placement="top"
-            theme="light">
-            <span
-              class="pb-2"
-              style="cursor: pointer; border-bottom: 1px dashed #979ba5">
-              {{ brokerSpec?.spec_name }}（{{ `${brokerSpec?.count} ${$t('台')}` }}）
-            </span>
-            <template #content>
-              <SpecInfos :data="brokerSpec" />
-            </template>
-          </BkPopover>
-        </span>
-      </div>
+    <template v-else>
+      <InfoItem :label="t('Bookkeeper节点')">
+        <BkButton
+          v-if="getServiceNums('bookkeeper') > 0"
+          text
+          theme="primary"
+          @click="handleShowPreview('bookkeeper')">
+          {{ t('台') }}
+        </BkButton>
+        <span v-else>--</span>
+      </InfoItem>
+      <InfoItem :label="t('Zookeeper节点')">
+        <BkButton
+          v-if="getServiceNums('zookeeper') > 0"
+          text
+          theme="primary"
+          @click="handleShowPreview('zookeeper')">
+          {{ t('台') }}
+        </BkButton>
+        <span v-else>--</span>
+      </InfoItem>
+      <InfoItem :label="t('Broker节点')">
+        <BkButton
+          v-if="getServiceNums('broker') > 0"
+          text
+          theme="primary"
+          @click="handleShowPreview('broker')">
+          {{ t('台') }}
+        </BkButton>
+        <span v-else>--</span>
+      </InfoItem>
     </template>
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ $t('Partition数量') }}：</span>
-      <span class="ticket-details-item-value">{{ ticketDetails?.details?.partition_num || '--' }}</span>
-    </div>
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ $t('消息保留') }}：</span>
-      <span class="ticket-details-item-value">{{ ticketDetails?.details?.retention_hours || '--' }}</span>
-    </div>
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ $t('副本数量') }}：</span>
-      <span class="ticket-details-item-value">{{ ticketDetails?.details?.replication_num || '--' }}</span>
-    </div>
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ $t('至少写入成功副本数量') }}：</span>
-      <span class="ticket-details-item-value">{{ ticketDetails?.details?.ack_quorum || '--' }}</span>
-    </div>
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ $t('访问端口') }}：</span>
-      <span class="ticket-details-item-value">{{ ticketDetails?.details?.port || '--' }}</span>
-    </div>
-  </div>
+    <InfoItem :label="t('Partition数量')">
+      {{ ticketDetails.details.partition_num || '--' }}
+    </InfoItem>
+    <InfoItem :label="t('消息保留')">
+      {{ ticketDetails.details.retention_hours || '--' }}
+    </InfoItem>
+    <InfoItem :label="t('副本数量')">
+      {{ ticketDetails.details.replication_num || '--' }}
+    </InfoItem>
+    <InfoItem :label="t('至少写入成功副本数量')">
+      {{ ticketDetails.details.ack_quorum || '--' }}
+    </InfoItem>
+    <InfoItem :label="t('访问端口')">
+      {{ ticketDetails.details.port || '--' }}
+    </InfoItem>
+    <EstimatedCost
+      v-if="ticketDetails.details.resource_spec"
+      :params="{
+        db_type: DBTypes.PULSAR,
+        resource_spec: ticketDetails.details.resource_spec,
+      }" />
+  </InfoList>
   <HostPreview
     v-model:is-show="previewState.isShow"
     :fetch-nodes="getTicketHostNodes"
@@ -175,19 +146,17 @@
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
   import TicketModel, { type Pulsar } from '@services/model/ticket/ticket';
-  import { getInfrasCities, getTicketHostNodes } from '@services/source/ticket';
+  import { getTicketHostNodes } from '@services/source/ticket';
 
-  import { useSystemEnviron } from '@stores';
-
-  import { TicketTypes } from '@common/const';
+  import { DBTypes, TicketTypes } from '@common/const';
 
   import HostPreview from '@components/host-preview/HostPreview.vue';
 
-  import { redisIpSources } from '@views/db-manage/redis/apply/common/const';
-
+  import EstimatedCost from '../components/EstimatedCost.vue';
+  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  import RegionRequirements from '../components/RegionRequirements.vue';
   import SpecInfos from '../components/SpecInfos.vue';
 
   type ServiceKeys = 'bookkeeper' | 'zookeeper' | 'broker';
@@ -202,29 +171,12 @@
   });
   const props = defineProps<Props>();
   const { t } = useI18n();
-  const { AFFINITY: affinityList } = useSystemEnviron().urls;
 
-  const cityName = ref('--');
+  const isFromResourcePool = props.ticketDetails.details.ip_source === 'resource_pool';
 
   const zookeeperSpec = computed(() => props.ticketDetails?.details?.resource_spec.zookeeper || {});
   const bookkeeperSpec = computed(() => props.ticketDetails?.details?.resource_spec.bookkeeper || {});
   const brokerSpec = computed(() => props.ticketDetails?.details?.resource_spec.broker || {});
-
-  const affinity = computed(() => {
-    const level = props.ticketDetails?.details?.disaster_tolerance_level;
-    if (level && affinityList) {
-      return affinityList.find((item) => item.value === level)?.label;
-    }
-    return '--';
-  });
-
-  useRequest(getInfrasCities, {
-    onSuccess: (cityList) => {
-      const cityCode = props.ticketDetails.details.city_code;
-      const name = cityList.find((item) => item.city_code === cityCode)?.city_name;
-      cityName.value = name ?? '--';
-    },
-  });
 
   /**
    * 获取服务器数量
@@ -255,3 +207,10 @@
     previewState.title = `【${title}】${t('主机预览')}`;
   }
 </script>
+
+<style lang="less" scoped>
+  .info-title {
+    font-weight: bold;
+    color: #313238;
+  }
+</style>
