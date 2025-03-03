@@ -41,7 +41,18 @@
               "appid",
               "bk_target_service_instance_id"
             ],
-            "agg_condition": [],
+            "agg_condition": [
+              {
+                "key": "machine_type",
+                "value": [
+                  "backend",
+                  "single"
+                ],
+                "method": "eq",
+                "condition": "and",
+                "dimension_name": "dbm machine type"
+              }
+            ],
             "custom_event_name": "mysql-inject",
             "name": "mysql-inject"
           }
@@ -230,7 +241,8 @@
     },
     "labels": [
       "DBM",
-      "DBM_MYSQL"
+      "DBM_MYSQL",
+      "MYSQL"
     ],
     "app": "",
     "path": "",
@@ -242,7 +254,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "COUNT(mysql-inject)",
-  "version": 26,
+  "version": 27,
   "alert_source": "event",
   "custom_conditions": []
 }

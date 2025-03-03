@@ -1,23 +1,21 @@
 {
   "bk_biz_id": 0,
-  "name": "MySQL  进程down",
-  "db_type": "mysql",
+  "name": "TendbCluster 日志监控-预警",
+  "db_type": "tendbcluster",
   "details": {
     "bk_biz_id": "",
-    "name": "MySQL  进程down",
+    "name": "TendbCluster 日志监控-预警",
     "source": "dbm",
     "scenario": "component",
     "type": "monitor",
     "items": [
       {
-        "name": "AVG(mysql_up)",
+        "name": "COUNT(mysql-err-notice)",
         "no_data_config": {
           "level": 2,
           "continuous": 10,
           "is_enabled": false,
-          "agg_dimension": [
-            "bk_target_service_instance_id"
-          ]
+          "agg_dimension": []
         },
         "target": [],
         "expression": "a",
@@ -25,26 +23,38 @@
         "origin_sql": "",
         "query_configs": [
           {
-            "data_source_label": "bk_monitor",
-            "data_type_label": "time_series",
+            "data_source_label": "custom",
+            "data_type_label": "event",
             "alias": "a",
-            "metric_id": "bk_monitor.exporter_dbm_mysqld_exporter.__default__.mysql_up",
+            "metric_id": "custom.event.bkmonitor_event_{event_data_id}.mysql-err-notice",
             "functions": [],
-            "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
-            "agg_method": "AVG",
+            "result_table_id": "bkmonitor_event_{event_data_id}",
+            "agg_method": "COUNT",
             "agg_interval": 60,
             "agg_dimension": [
-              "bk_target_service_instance_id",
-              "app",
-              "cluster_domain",
+              "bk_cloud_id",
+              "instance_host",
               "instance_role",
-              "instance",
-              "appid"
+              "machine_type",
+              "cluster_domain",
+              "appid",
+              "instance_port",
+              "bk_target_service_instance_id"
             ],
-            "agg_condition": [],
-            "metric_field": "mysql_up",
-            "unit": "",
-            "name": "mysql_up"
+            "agg_condition": [
+              {
+                "key": "machine_type",
+                "value": [
+                  "spider",
+                  "remote"
+                ],
+                "method": "eq",
+                "condition": "and",
+                "dimension_name": "dbm machine type"
+              }
+            ],
+            "custom_event_name": "mysql-err-notice",
+            "name": "mysql-err-notice"
           }
         ],
         "algorithms": [
@@ -54,15 +64,15 @@
             "config": [
               [
                 {
-                  "method": "eq",
-                  "threshold": 0
+                  "method": "gte",
+                  "threshold": 1
                 }
               ]
             ],
             "unit_prefix": ""
           }
         ],
-        "metric_type": "time_series"
+        "metric_type": "event"
       }
     ],
     "detects": [
@@ -91,12 +101,11 @@
     ],
     "actions": [],
     "notice": {
-      "config_id": 47310,
+      "config_id": 40755,
       "user_groups": [],
-      "user_type": "main",
       "signal": [
-        "no_data",
-        "abnormal"
+        "abnormal",
+        "no_data"
       ],
       "options": {
         "end_time": "23:59:59",
@@ -104,11 +113,7 @@
         "assign_mode": [
           "by_rule"
         ],
-        "upgrade_config": {
-          "is_enabled": false,
-          "user_groups": [],
-          "upgrade_interval": 1440
-        },
+        "upgrade_config": {},
         "converge_config": {
           "count": 1,
           "condition": [
@@ -158,7 +163,7 @@
           "timedelta": 60,
           "is_enabled": true,
           "converge_func": "collect",
-          "need_biz_converge": true,
+          "need_biz_converge": false,
           "sub_converge_config": {
             "timedelta": 60,
             "count": 2,
@@ -218,17 +223,17 @@
         "template": [
           {
             "signal": "abnormal",
-            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n通知人:{{alarm.receivers}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n通知人:{{alarm.receivers}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n{{content.related_info}}",
             "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
           },
           {
             "signal": "recovered",
-            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n通知人:{{alarm.receivers}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n通知人:{{alarm.receivers}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n{{content.related_info}}",
             "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
           },
           {
             "signal": "closed",
-            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n通知人:{{alarm.receivers}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n通知人:{{alarm.receivers}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n{{content.related_info}}",
             "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
           }
         ]
@@ -236,22 +241,20 @@
     },
     "labels": [
       "DBM",
-      "DBM_MYSQL",
-      "MySQL"
+      "MYSQL",
+      "DBM_TENDBCLUSTER"
     ],
     "app": "",
     "path": "",
     "priority": 0,
-    "priority_group_key": "b9f7e66ab31d0905",
-    "edit_allowed": true,
-    "metric_type": "time_series",
-    "data_source_type": "监控采集指标",
+    "priority_group_key": "406107539c6bdce5",
+    "metric_type": "event",
+    "data_source_type": "自定义事件",
     "is_enabled": true
   },
   "is_enabled": true,
-  "monitor_indicator": "AVG(mysql_up)",
-  "version": 26,
-  "alert_source": "time_series",
-  "custom_conditions": [],
-  "export_at": "2024-04-24T18:10:45+08:00"
+  "monitor_indicator": "COUNT(mysql-err-notice)",
+  "version": 27,
+  "alert_source": "event",
+  "custom_conditions": []
 }

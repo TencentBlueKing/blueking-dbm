@@ -107,13 +107,16 @@ func (x *Xtrabackup) RepairUserAdmin(userAdmin, password string, version string)
 }
 
 // RepairMyisamTablesForMysqldb 离线修复 mysql 系统库 myisam 表
+//
+// myisamchk='/usr/local/mysql/bin/myisamchk -r -f -c --tmpdir=/data1/dbbak/ \
+// --sort_buffer_size=256M --key_buffer_size=256M --read_buffer_size=2M --write_buffer_size=2M'
+// find . -name "*.MYI" -print |sed 's/.MYI//' |awk -v myisamchk="$myisamchk" '{print myisamchk" "$1}' |bash
 func (x *Xtrabackup) RepairMyisamTablesForMysqldb() error {
 	dataDir, err := x.myCnf.GetMySQLDataDir()
 	if err != nil {
 		return errors.WithMessage(err, "RepairMyisamTables")
 	}
 	// find . -name '*.MYI' -exec /usr/local/mysql/bin/myisamchk -c -r -f -v {} \; > /tmp/repair_myisam_3306.log
-	// --tmpdir=/data/dbbak --sort_buffer_size=256M --key_buffer_size=256M --read_buffer_size=2M --write_buffer_size=2M
 	sysMysqldbDir := filepath.Join(dataDir, "mysql")
 	repairCmdArgs := []string{
 		"/usr/local/mysql/bin/myisamchk", "-c", "-r", "-f", "-v",

@@ -1,23 +1,21 @@
 {
   "bk_biz_id": 0,
-  "name": "TendbCluster 实例 Threads_running",
+  "name": "TendbCluster 日志监控-致命",
   "db_type": "tendbcluster",
   "details": {
     "bk_biz_id": "",
-    "name": "TendbCluster 实例 Threads_running",
+    "name": "TendbCluster 日志监控-致命",
     "source": "dbm",
     "scenario": "component",
     "type": "monitor",
     "items": [
       {
-        "name": "AVG(mysql_global_status_threads_running)",
+        "name": "COUNT(mysql-err-critical)",
         "no_data_config": {
           "level": 2,
           "continuous": 10,
           "is_enabled": false,
-          "agg_dimension": [
-            "bk_target_service_instance_id"
-          ]
+          "agg_dimension": []
         },
         "target": [],
         "expression": "a",
@@ -25,52 +23,41 @@
         "origin_sql": "",
         "query_configs": [
           {
-            "data_source_label": "bk_monitor",
-            "data_type_label": "time_series",
+            "data_source_label": "custom",
+            "data_type_label": "event",
             "alias": "a",
-            "metric_id": "bk_monitor.exporter_dbm_mysqld_exporter.__default__.mysql_global_status_threads_running",
+            "metric_id": "custom.event.bkmonitor_event_{event_data_id}.mysql-err-critical",
             "functions": [],
-            "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
-            "agg_method": "AVG",
+            "result_table_id": "bkmonitor_event_{event_data_id}",
+            "agg_method": "COUNT",
             "agg_interval": 60,
             "agg_dimension": [
-              "bk_target_service_instance_id",
-              "app",
-              "cluster_domain",
+              "bk_cloud_id",
+              "instance_host",
               "instance_role",
-              "instance",
-              "appid"
+              "machine_type",
+              "cluster_domain",
+              "appid",
+              "instance_port",
+              "bk_target_service_instance_id"
             ],
             "agg_condition": [
               {
-                "key": "cluster_type",
+                "key": "machine_type",
                 "value": [
-                  "tendbcluster"
+                  "spider",
+                  "remote"
                 ],
                 "method": "eq",
                 "condition": "and",
-                "dimension_name": "dbm cluster type"
+                "dimension_name": "dbm machine type"
               }
             ],
-            "metric_field": "mysql_global_status_threads_running",
-            "unit": "",
-            "name": "mysql_global_status_threads_running"
+            "custom_event_name": "mysql-err-critical",
+            "name": "mysql-err-critical"
           }
         ],
         "algorithms": [
-          {
-            "type": "Threshold",
-            "level": 2,
-            "config": [
-              [
-                {
-                  "method": "gte",
-                  "threshold": 50
-                }
-              ]
-            ],
-            "unit_prefix": ""
-          },
           {
             "type": "Threshold",
             "level": 1,
@@ -78,39 +65,17 @@
               [
                 {
                   "method": "gte",
-                  "threshold": 500
+                  "threshold": 1
                 }
               ]
             ],
             "unit_prefix": ""
           }
         ],
-        "metric_type": "time_series"
+        "metric_type": "event"
       }
     ],
     "detects": [
-      {
-        "level": 2,
-        "expression": "",
-        "trigger_config": {
-          "count": 1,
-          "uptime": {
-            "calendars": [],
-            "time_ranges": [
-              {
-                "end": "23:59",
-                "start": "00:00"
-              }
-            ]
-          },
-          "check_window": 5
-        },
-        "recovery_config": {
-          "check_window": 5,
-          "status_setter": "recovery"
-        },
-        "connector": "and"
-      },
       {
         "level": 1,
         "expression": "",
@@ -136,11 +101,11 @@
     ],
     "actions": [],
     "notice": {
-      "config_id": 40745,
+      "config_id": 40793,
       "user_groups": [],
       "signal": [
-        "abnormal",
-        "no_data"
+        "no_data",
+        "abnormal"
       ],
       "options": {
         "end_time": "23:59:59",
@@ -148,11 +113,7 @@
         "assign_mode": [
           "by_rule"
         ],
-        "upgrade_config": {
-          "is_enabled": false,
-          "user_groups": [],
-          "upgrade_interval": 1440
-        },
+        "upgrade_config": {},
         "converge_config": {
           "count": 1,
           "condition": [
@@ -250,13 +211,7 @@
           "unit": "percent",
           "count": 10,
           "timedelta": 5,
-          "dimensions": [
-            "app",
-            "cluster_domain",
-            "instance",
-            "instance_role",
-            "bk_target_service_instance_id"
-          ],
+          "dimensions": [],
           "is_enabled": false
         }
       },
@@ -286,20 +241,20 @@
     },
     "labels": [
       "DBM",
-      "DBM_TENDBCLUSTER",
-      "MySQL"
+      "MYSQL",
+      "DBM_TENDBCLUSTER"
     ],
     "app": "",
     "path": "",
     "priority": 0,
-    "priority_group_key": "4f0cfe85611a08e6",
-    "metric_type": "time_series",
-    "data_source_type": "监控采集指标",
+    "priority_group_key": "889e2e5d48ab0aab",
+    "metric_type": "event",
+    "data_source_type": "自定义事件",
     "is_enabled": true
   },
   "is_enabled": true,
-  "monitor_indicator": "AVG(mysql_global_status_threads_running)",
+  "monitor_indicator": "COUNT(mysql-err-critical)",
   "version": 27,
-  "alert_source": "time_series",
+  "alert_source": "event",
   "custom_conditions": []
 }

@@ -1,16 +1,16 @@
 {
   "bk_biz_id": 0,
-  "name": "TendbCluster 实例 Threads_running",
+  "name": "MySQL 进程发生重启",
   "db_type": "tendbcluster",
   "details": {
     "bk_biz_id": "",
-    "name": "TendbCluster 实例 Threads_running",
+    "name": "MySQL 进程发生重启",
     "source": "dbm",
     "scenario": "component",
     "type": "monitor",
     "items": [
       {
-        "name": "AVG(mysql_global_status_threads_running)",
+        "name": "AVG(mysql_global_status_uptime)",
         "no_data_config": {
           "level": 2,
           "continuous": 10,
@@ -28,9 +28,10 @@
             "data_source_label": "bk_monitor",
             "data_type_label": "time_series",
             "alias": "a",
-            "metric_id": "bk_monitor.exporter_dbm_mysqld_exporter.__default__.mysql_global_status_threads_running",
+            "metric_id": "bk_monitor.exporter_dbm_mysqld_exporter.__default__.mysql_global_status_uptime",
             "functions": [],
             "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+            "data_label": "exporter_dbm_mysqld_exporter",
             "agg_method": "AVG",
             "agg_interval": 60,
             "agg_dimension": [
@@ -52,9 +53,9 @@
                 "dimension_name": "dbm cluster type"
               }
             ],
-            "metric_field": "mysql_global_status_threads_running",
+            "metric_field": "mysql_global_status_uptime",
             "unit": "",
-            "name": "mysql_global_status_threads_running"
+            "name": "mysql_global_status_uptime"
           }
         ],
         "algorithms": [
@@ -64,21 +65,8 @@
             "config": [
               [
                 {
-                  "method": "gte",
-                  "threshold": 50
-                }
-              ]
-            ],
-            "unit_prefix": ""
-          },
-          {
-            "type": "Threshold",
-            "level": 1,
-            "config": [
-              [
-                {
-                  "method": "gte",
-                  "threshold": 500
+                  "method": "lt",
+                  "threshold": 60
                 }
               ]
             ],
@@ -110,37 +98,16 @@
           "status_setter": "recovery"
         },
         "connector": "and"
-      },
-      {
-        "level": 1,
-        "expression": "",
-        "trigger_config": {
-          "count": 1,
-          "uptime": {
-            "calendars": [],
-            "time_ranges": [
-              {
-                "end": "23:59",
-                "start": "00:00"
-              }
-            ]
-          },
-          "check_window": 5
-        },
-        "recovery_config": {
-          "check_window": 5,
-          "status_setter": "recovery"
-        },
-        "connector": "and"
       }
     ],
     "actions": [],
     "notice": {
-      "config_id": 40745,
+      "config_id": 40762,
       "user_groups": [],
+      "user_type": "main",
       "signal": [
-        "abnormal",
-        "no_data"
+        "no_data",
+        "abnormal"
       ],
       "options": {
         "end_time": "23:59:59",
@@ -202,47 +169,11 @@
           "timedelta": 60,
           "is_enabled": true,
           "converge_func": "collect",
-          "need_biz_converge": false,
-          "sub_converge_config": {
-            "timedelta": 60,
-            "count": 2,
-            "condition": [
-              {
-                "dimension": "bk_biz_id",
-                "value": [
-                  "self"
-                ]
-              },
-              {
-                "dimension": "notice_receiver",
-                "value": [
-                  "self"
-                ]
-              },
-              {
-                "dimension": "notice_way",
-                "value": [
-                  "self"
-                ]
-              },
-              {
-                "dimension": "alert_level",
-                "value": [
-                  "self"
-                ]
-              },
-              {
-                "dimension": "signal",
-                "value": [
-                  "self"
-                ]
-              }
-            ],
-            "converge_func": "collect_alarm"
-          }
+          "need_biz_converge": false
         },
         "chart_image_enabled": true,
         "exclude_notice_ways": {
+          "ack": [],
           "closed": [],
           "recovered": []
         },
@@ -250,13 +181,7 @@
           "unit": "percent",
           "count": 10,
           "timedelta": 5,
-          "dimensions": [
-            "app",
-            "cluster_domain",
-            "instance",
-            "instance_role",
-            "bk_target_service_instance_id"
-          ],
+          "dimensions": [],
           "is_enabled": false
         }
       },
@@ -286,20 +211,22 @@
     },
     "labels": [
       "DBM",
-      "DBM_TENDBCLUSTER",
-      "MySQL"
+      "MYSQL",
+      "DBM_TENDBCLUSTER"
     ],
     "app": "",
     "path": "",
     "priority": 0,
-    "priority_group_key": "4f0cfe85611a08e6",
+    "priority_group_key": "",
+    "edit_allowed": true,
     "metric_type": "time_series",
     "data_source_type": "监控采集指标",
     "is_enabled": true
   },
   "is_enabled": true,
-  "monitor_indicator": "AVG(mysql_global_status_threads_running)",
+  "monitor_indicator": "AVG(mysql_global_status_uptime)",
   "version": 27,
   "alert_source": "time_series",
-  "custom_conditions": []
+  "custom_conditions": [],
+  "export_at": "2024-12-06T15:52:08+08:00"
 }

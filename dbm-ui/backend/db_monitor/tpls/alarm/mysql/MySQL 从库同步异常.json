@@ -91,6 +91,15 @@
                 "method": "eq",
                 "condition": "and",
                 "dimension_name": "instance_role"
+              },
+              {
+                "key": "cluster_type",
+                "value": [
+                  "tendbha"
+                ],
+                "method": "eq",
+                "condition": "and",
+                "dimension_name": "dbm cluster type"
               }
             ],
             "metric_field": "mysql_slave_status_slave_sql_running",
@@ -274,7 +283,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "AVG(mysql_slave_status_slave_io_running) + AVG(mysql_slave_status_slave_sql_running)",
-  "version": 26,
+  "version": 27,
   "alert_source": "time_series",
   "custom_conditions": [],
   "export_at": "2024-11-26T16:26:58+08:00"

@@ -55,13 +55,13 @@
             ],
             "agg_condition": [
               {
-                "key": "db_type",
+                "key": "cluster_type",
                 "value": [
-                  "mysql", "tendbcluster"
+                  "tendbsingle", "tendbha"
                 ],
                 "method": "eq",
                 "condition": "and",
-                "dimension_name": "db_type"
+                "dimension_name": "dbm cluster type"
               }
             ],
             "metric_field": "speed_sent",
@@ -270,7 +270,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "AVG(网卡出流量)",
-  "version": 26,
+  "version": 27,
   "alert_source": "time_series",
   "custom_conditions": []
 }
