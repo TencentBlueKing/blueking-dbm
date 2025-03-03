@@ -18,15 +18,15 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.bk_web.viewsets import SystemViewSet
 from backend.components import BKMonitorV3Api
 from backend.configuration.models import DBAdministrator
-from backend.db_meta.enums import ClusterType
 from backend.db_monitor import serializers
 from backend.db_monitor.constants import SWAGGER_TAG
-from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+from backend.iam_app.dataclass import ActionEnum, ResourceEnum
+from backend.iam_app.handlers.drf_perm.monitor import ListAlertEventPermission
+from backend.iam_app.handlers.permission import Permission
 
 
 class AlertView(SystemViewSet):
-    def _get_custom_permissions(self):
-        return [DBManagePermission()]
+    action_permission_map = {("search",): [ListAlertEventPermission()]}
 
     @common_swagger_auto_schema(
         operation_summary=_("告警事件列表"),
@@ -34,6 +34,12 @@ class AlertView(SystemViewSet):
         tags=[SWAGGER_TAG],
     )
     @action(detail=False, methods=["POST"], serializer_class=serializers.ListAlertSerializer)
+    @Permission.decorator_permission_field(
+        id_field=lambda alerts: int({a["key"]: a["value"] for a in alerts["tags"]}.get("appid", 0)),
+        data_field=lambda d: d["alerts"],
+        actions=[ActionEnum.ALERT_SHIELD_MANAGE, ActionEnum.ALERT_SHIELD_CREATE],
+        resource_meta=ResourceEnum.BUSINESS,
+    )
     def search(self, request):
         params = self.validated_data
 
@@ -60,10 +66,16 @@ class AlertView(SystemViewSet):
             "stage": "stage",
             "status": "status",
         }
+        multi_filter_fields = ["cluster_domain", "instance", "ip"]
         conditions = []
         for key, target_key in filter_key_map.items():
             if key in params:
-                conditions.append(f'{target_key}: "{params[key]}"')
+                # 支持批量查询字段，都是以逗号分割
+                if key in multi_filter_fields:
+                    filter_conditions = " OR ".join([f'{target_key}: "{val}"' for val in params[key].split(",")])
+                    conditions.append(f"({filter_conditions})")
+                else:
+                    conditions.append(f'{target_key}: "{params[key]}"')
                 del params[key]
 
         # 查询用户管理的告警事件，查出用户管理的业务，添加到查询条件中
@@ -85,15 +97,24 @@ class AlertView(SystemViewSet):
         if biz_cluster_type_query_string:
             conditions.append(f"({biz_cluster_type_query_string})")
 
+        # 如果过滤待我负责/协助，但自身不负责任何业务，则直接返回空
+        if (self_manage or self_assist) and not biz_cluster_type_query_string:
+            return Response({"alerts": [], "total": 0, "overview": {}, "aggs": []})
+
         # 拼接集群类型查询条件
         cluster_type_conditions = []
         for db_type in params.pop("db_types", []):
-            for cluster_type in ClusterType.db_type_to_cluster_types(db_type):
-                cluster_type_conditions.append(f'tags.cluster_type : "{cluster_type}"')
+            cluster_type_conditions.append(f'labels : "DBM_{db_type.upper()}"')
+
         if cluster_type_conditions:
             conditions.append(f'({" OR ".join(cluster_type_conditions)})')
 
         params["query_string"] = " AND ".join(conditions)
 
         data = BKMonitorV3Api.search_alert(params)
+        # 对于维度不包含appid的，暂时标记，无法做到鉴权和屏蔽
+        for alert in data["alerts"]:
+            tags = [tag["key"] for tag in alert["tags"]]
+            alert.update(dbm_event=("appid" in tags))
+
         return Response(data)

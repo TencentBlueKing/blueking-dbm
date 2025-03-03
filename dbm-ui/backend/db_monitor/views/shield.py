@@ -19,18 +19,23 @@ from backend.components import BKMonitorV3Api
 from backend.db_monitor import serializers
 from backend.db_monitor.constants import SWAGGER_TAG
 from backend.db_monitor.utils import deformat_shield_description, format_shield_description
-from backend.iam_app.handlers.drf_perm.base import DBManagePermission, RejectPermission
+from backend.iam_app.dataclass import ActionEnum, ResourceEnum
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+from backend.iam_app.handlers.drf_perm.monitor import AlertShieldPermission
+from backend.iam_app.handlers.permission import Permission
 
 
 class AlarmShieldView(SystemViewSet):
-    def _get_custom_permissions(self):
-        if self.action == "list":
-            return [DBManagePermission()]
-        elif self.action == "create":
-            return [DBManagePermission()]
-        elif self.action in ["disable", "update"]:
-            return [DBManagePermission()]
-        return [RejectPermission()]
+
+    action_permission_map = {
+        ("list",): [DBManagePermission()],
+        (
+            "disable",
+            "update",
+            "create",
+            "retrieve",
+        ): [AlertShieldPermission()],
+    }
 
     def get_serializer_class(self):
         action_slz_map = {
@@ -46,6 +51,11 @@ class AlarmShieldView(SystemViewSet):
         query_serializer=serializers.ListAlarmShieldSerializer(),
         tags=[SWAGGER_TAG],
     )
+    @Permission.decorator_external_permission_field(
+        param_field=lambda d: d["bk_biz_id"],
+        actions=[ActionEnum.ALERT_SHIELD_CREATE, ActionEnum.ALERT_SHIELD_MANAGE],
+        resource_meta=ResourceEnum.BUSINESS,
+    )
     def list(self, request):
         params = self.validated_data
         page_size = int(request.query_params.get("limit", 10))
@@ -53,9 +63,10 @@ class AlarmShieldView(SystemViewSet):
         if params.get("category"):
             params["categories"] = [params["category"]]
         conditions = params.get("conditions", [])
-        conditions.append({"key": "query", "value": format_shield_description(params["bk_biz_id"])})
+        conditions.append({"key": "description", "value": format_shield_description(params["bk_biz_id"])})
         params.update(
             {
+                "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
                 "bk_biz_ids": [env.DBA_APP_BK_BIZ_ID],
                 "page": page,
                 "page_size": page_size,

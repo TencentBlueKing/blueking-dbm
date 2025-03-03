@@ -23,6 +23,7 @@ from backend import env
 from backend.iam_app.dataclass.actions import ActionEnum, ActionMeta
 from backend.iam_app.dataclass.resources import ResourceEnum, ResourceMeta
 from backend.iam_app.handlers.permission import Permission
+from backend.utils.string import str2bool
 
 logger = logging.getLogger("root")
 
@@ -259,6 +260,28 @@ class DBManagePermission(ResourceActionPermission):
 
     def instance_biz_id_getter(self, request, view):
         return self.get_key_id(request, view, self.resource_meta.id, many=True)
+
+
+class BizOrGlobalResourceActionPermission(ResourceActionPermission):
+    global_action = biz_action = None
+
+    def __init__(self, actions: List[ActionMeta] = None, resource_meta: ResourceMeta = None):
+        super().__init__(actions, resource_meta, self.instance_ids_getter)
+
+    def instance_ids_getter(self, request, view):
+        platform = str2bool(get_request_key_id(request, key="platform", default=False))
+        bk_biz_id = int(get_request_key_id(request, key="bk_biz_id", default=0))
+
+        # 非平台查询，有业务ID过滤巡检，则用业务鉴权
+        if not platform and bk_biz_id:
+            self.actions = [self.biz_action]
+            self.resource_meta = ResourceEnum.BUSINESS
+            return [bk_biz_id]
+
+        # 其他情况则是查看全局，则用平台管理鉴权
+        self.actions = [self.global_action]
+        self.resource_meta = None
+        return []
 
 
 class BizDBTypeResourceActionPermission(MoreResourceActionPermission):

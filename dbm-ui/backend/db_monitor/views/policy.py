@@ -145,11 +145,7 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
                     instance_ids_getter=self.instance_getter("db_type"),
                 )
             else:
-                permission = BizDBTypeResourceActionPermission(
-                    [ActionEnum.MONITOR_POLICY_LIST],
-                    instance_biz_getter=self.instance_getter("bk_biz_id"),
-                    instance_dbtype_getter=self.instance_getter("db_type"),
-                )
+                permission = DBManagePermission()
             return [permission]
         elif self.action == "clone_strategy":
             policy = MonitorPolicy.objects.get(id=self.request.data["parent_id"])

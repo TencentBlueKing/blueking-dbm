@@ -10,39 +10,28 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging
-from typing import List
 
-from backend.iam_app.dataclass.actions import ActionEnum, ActionMeta
-from backend.iam_app.dataclass.resources import ResourceEnum, ResourceMeta
-from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission
-from backend.utils.string import str2bool
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.drf_perm.base import BizOrGlobalResourceActionPermission
 
 logger = logging.getLogger("root")
 
 
-class DBReportPermission(ResourceActionPermission):
+class DBReportPermission(BizOrGlobalResourceActionPermission):
     """
     巡检报告相关动作鉴权
     """
 
-    def __init__(self, actions: List[ActionMeta] = None, resource_meta: ResourceMeta = None):
-        super().__init__(actions, resource_meta, self.instance_ids_getter)
+    def __init__(self, actions=None, resource_meta=None):
+        super().__init__(actions, resource_meta)
+        self.biz_action = ActionEnum.HEALTHY_REPORT_VIEW
+        self.global_action = ActionEnum.PLATFORM_HEALTHY_REPORT_VIEW
 
     def instance_ids_getter(self, request, view):
-        platform = str2bool(request.query_params.get("platform", "false"))
 
         # 如果是个人视角查看管理巡检，则不鉴权
         if "manage" in request.query_params:
             self.actions = self.resource_meta = None
             return []
 
-        # 非平台查询，有业务ID过滤巡检，则用业务鉴权
-        if not platform and "bk_biz_id" in request.query_params:
-            self.actions = [ActionEnum.HEALTHY_REPORT_VIEW]
-            self.resource_meta = ResourceEnum.BUSINESS
-            return [request.query_params["bk_biz_id"]]
-
-        # 其他情况则是查看全局巡检，则用平台管理鉴权
-        self.actions = [ActionEnum.PLATFORM_HEALTHY_REPORT_VIEW]
-        self.resource_meta = None
-        return []
+        return super().instance_ids_getter(request, view)
