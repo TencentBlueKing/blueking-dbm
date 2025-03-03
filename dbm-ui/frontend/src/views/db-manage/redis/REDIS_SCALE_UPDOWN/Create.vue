@@ -93,12 +93,11 @@
 
   import { useCreateTicket } from '@hooks';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { Affinity, ClusterTypes, TicketTypes } from '@common/const';
 
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
-  import { AffinityType } from '@views/db-manage/redis/common/types';
 
   import ClusterColumn from './components/ClusterColumn.vue';
   import CurrentCapacityColumn from './components/CurrentCapacityColumn.vue';
@@ -151,7 +150,7 @@
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
     backendGroup: data.backendGroup || {
-      affinity: AffinityType.CROS_SUBZONE,
+      affinity: Affinity.CROS_SUBZONE,
       capacity: 1,
       count: 0,
       future_capacity: 1,
@@ -224,7 +223,7 @@
       online_switch_type: string;
       resource_spec: {
         backend_group: {
-          affinity: AffinityType;
+          affinity: Affinity;
           count: number; // 机器组数
           spec_id: number;
         };
@@ -262,7 +261,7 @@
           online_switch_type: item.switchMode,
           resource_spec: {
             backend_group: {
-              affinity: item.backendGroup.affinity as AffinityType,
+              affinity: item.backendGroup.affinity as Affinity,
               count: item.backendGroup.count,
               spec_id: item.backendGroup.spec_id,
             },

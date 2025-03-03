@@ -14,27 +14,27 @@
 <template>
   <BkLoading :loading="isLoading">
     <InfoList>
-      <InfoItem :label="t('集群：')">
+      <InfoItem :label="t('集群')">
         {{ rowData?.clusterName || '--' }}
       </InfoItem>
-      <InfoItem :label="t('集群ID：')">
+      <InfoItem :label="t('集群ID')">
         {{ rowData?.clusterId || '--' }}
       </InfoItem>
       <template v-if="isScaleUp">
-        <InfoItem :label="t('服务器选择方式：')">
+        <InfoItem :label="t('服务器选择方式')">
           {{ isFromResourcePool ? t('从资源池匹配') : t('手动选择') }}
         </InfoItem>
         <template v-if="isFromResourcePool">
-          <InfoItem :label="t('扩容规格：')">
+          <InfoItem :label="t('扩容规格')">
             {{ rowData?.specName || '--' }}
           </InfoItem>
-          <InfoItem :label="t('扩容数量：')">
+          <InfoItem :label="t('扩容数量')">
             {{ t('n台', [rowData?.count]) || '--' }}
           </InfoItem>
         </template>
         <template v-else>
           <InfoItem
-            :label="t('已选IP：')"
+            :label="t('已选IP')"
             style="width: 100%">
             <BkTable
               :columns="tableColumns"

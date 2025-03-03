@@ -13,7 +13,7 @@
 
 <template>
   <InfoList>
-    <InfoItem :label="t('构造类型:')">
+    <InfoItem :label="t('构造类型')">
       {{ rollbackTypeLabel[ticketDetails.details.rollback_cluster_type] }}
     </InfoItem>
   </InfoList>

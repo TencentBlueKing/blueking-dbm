@@ -13,28 +13,28 @@
 
 <template>
   <InfoList>
-    <InfoItem :label="t('所属业务:')">
+    <InfoItem :label="t('所属业务')">
       {{ ticketDetails.bk_biz_name }}
     </InfoItem>
-    <InfoItem :label="t('业务英文名:')">
+    <InfoItem :label="t('业务英文名')">
       {{ ticketDetails.db_app_abbr }}
     </InfoItem>
-    <InfoItem :label="t('字符集:')">
+    <InfoItem :label="t('字符集')">
       {{ ticketDetails.details.charset }}
     </InfoItem>
     <InfoItem
       v-if="ticketModeData"
-      :label="t('执行模式:')">
+      :label="t('执行模式')">
       <DbIcon :type="ticketModeData.icon" />
       <span v-bk-tooltips="ticketModeData.tips">{{ ticketModeData.text }}</span>
     </InfoItem>
     <InfoItem
       v-if="ticketDetails.details.ticket_mode.mode === 'timer'"
-      :label="t('执行时间:')">
+      :label="t('执行时间')">
       {{ ticketDetails.details.ticket_mode.trigger_time }}
     </InfoItem>
     <InfoItem
-      :label="t('目标集群:')"
+      :label="t('目标集群')"
       style="flex: 1 0 100%">
       <BkTable :data="targetClusterData">
         <BkTableColumn
@@ -62,7 +62,7 @@
       </BkTable>
     </InfoItem>
     <InfoItem
-      :label="t('目标DB:')"
+      :label="t('目标DB')"
       style="flex: 1 0 100%; margin-top: 10px">
       <BkTable :data="ticketDetails.details.execute_objects">
         <BkTableColumn :label="t('变更的 DB')">

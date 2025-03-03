@@ -27,11 +27,12 @@
       list: columnAttrs.region,
       checked: columnCheckedMap.region,
     }"
-    :label="t('地域')"
+    :label="t('地域园区')"
     :min-width="100"
     show-overflow>
     <template #default="{ data }: { data: IRowData }">
-      {{ data.region || '--' }}
+      <div>{{ data.region || '--' }}</div>
+      <div>{{ data.cluster_subzons.join('，') || '--' }}</div>
     </template>
   </BkTableColumn>
   <BkTableColumn

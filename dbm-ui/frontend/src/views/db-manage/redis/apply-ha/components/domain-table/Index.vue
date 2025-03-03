@@ -68,8 +68,8 @@
   interface Props {
     appAbbr: string;
     cityInfo: {
-      cityCode: string;
-      cityName: string;
+      city_code: string;
+      city_name: string;
     };
     cloudId: string | number;
     isAppend: boolean;
@@ -129,7 +129,7 @@
         message: t('目标主库主机不存在'),
         validator: (value: string) =>
           getRedisMachineList({
-            bk_city_name: props.cityInfo.cityName,
+            bk_city_name: props.cityInfo.city_name,
             bk_cloud_id: props.cloudId as number,
             cluster_type: ClusterTypes.REDIS_INSTANCE,
             instance_role: 'redis_master',
@@ -265,7 +265,7 @@
             {tableData.value.length !== 0 && (
               <span v-bk-tooltips={t('批量编辑')}>
                 <HostBatchEdit
-                  cityName={props.cityInfo.cityName}
+                  cityName={props.cityInfo.city_name}
                   cloudId={props.cloudId}
                   onChange={handleBatchHost}
                 />
@@ -348,7 +348,7 @@
               getTableList: (params: Record<string, any>) =>
                 getRedisMachineList({
                   ...params,
-                  bk_city_name: props.cityInfo.cityName,
+                  bk_city_name: props.cityInfo.city_name,
                   bk_cloud_id: props.cloudId as number,
                   cluster_type: ClusterTypes.REDIS_INSTANCE,
                 }),
@@ -357,7 +357,7 @@
               getTopoList: (params: ServiceParameters<typeof getRedisClusterList>) =>
                 getRedisClusterList({
                   ...params,
-                  region: props.cityInfo.cityCode,
+                  region: props.cityInfo.city_code,
                 }),
               totalCountFunc: (dataList: RedisModel[]) => {
                 const ipSet = new Set<string>();
@@ -371,7 +371,7 @@
               checkInstances: (params: Record<string, any>) =>
                 getRedisMachineList({
                   ...params,
-                  bk_city_name: props.cityInfo.cityName,
+                  bk_city_name: props.cityInfo.city_name,
                   bk_cloud_id: props.cloudId as number,
                   cluster_type: ClusterTypes.REDIS_INSTANCE,
                 }),
@@ -384,7 +384,7 @@
               getTableList: (params: Record<string, any>) =>
                 getRedisMachineList({
                   ...params,
-                  bk_city_name: props.cityInfo.cityName,
+                  bk_city_name: props.cityInfo.city_name,
                   bk_cloud_id: props.cloudId as number,
                   cluster_type: ClusterTypes.REDIS_INSTANCE,
                 }),
@@ -405,7 +405,7 @@
   const clusterNameList = computed(() => tableData.value.map((item) => item.cluster_name));
   // const masterHostIpList = computed(() => tableData.value.map(item => item.masterHost.ip));
 
-  const instanceSelectorKey = computed(() => `${props.cloudId}-${props.cityInfo.cityName}`);
+  const instanceSelectorKey = computed(() => `${props.cloudId}-${props.cityInfo.city_name}`);
 
   const handleBatchClusterName = (values: string[]) => {
     if (values.length !== 0) {

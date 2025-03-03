@@ -106,14 +106,13 @@
 
   import RedisModel from '@services/model/redis/redis';
 
-  import { ClusterTypes } from '@common/const';
+  import { Affinity, ClusterTypes } from '@common/const';
 
   import DisableSelect from '@components/render-table/columns/select-disable/index.vue';
   import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
 
   import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue';
   import ValueDiff from '@views/db-manage/common/value-diff/Index.vue';
-  import { AffinityType } from '@views/db-manage/redis/common/types';
 
   import { convertStorageUnits } from '@utils';
 
@@ -138,7 +137,7 @@
       group_num: number;
       resource_spec: {
         backend_group: {
-          affinity: AffinityType;
+          affinity: Affinity;
           count: number;
           spec_id: number;
         };
@@ -246,7 +245,7 @@
         group_num: localValue.machine_pair, // targetObj.value!.requireMachineGroupNum,
         resource_spec: {
           backend_group: {
-            affinity: props.rowData?.disasterToleranceLevel || AffinityType.CROS_SUBZONE, // 暂时固定 'CROS_SUBZONE',
+            affinity: props.rowData?.disasterToleranceLevel || Affinity.CROS_SUBZONE, // 暂时固定 'CROS_SUBZONE',
             count: targetObj.value!.requireMachineGroupNum, // 机器实际需要申请的组数
             spec_id: localValue.spec_id,
           },

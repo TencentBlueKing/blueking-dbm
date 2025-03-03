@@ -32,14 +32,9 @@
             cluster-type="tendbcluster" />
           <CloudItem v-model="formdata.details.bk_cloud_id" />
         </DbCard>
-        <RegionItem
-          ref="regionItemRef"
-          v-model="formdata.details.city_code" />
-        <DbCard :title="t('数据库部署信息')">
-          <AffinityItem
-            v-model="formdata.details.resource_spec.backend_group.affinity"
-            :city-code="formdata.details.city_code" />
-        </DbCard>
+        <RegionRequirements
+          ref="regionRequirements"
+          v-model="formdata.details" />
         <DbCard :title="t('部署需求')">
           <ModuleItem
             v-model="formdata.details.db_module_id"
@@ -100,6 +95,11 @@
               {{ t('范围n_min_max', { n: 3306, min: 25000, max: 65535 }) }}
             </span>
           </BkFormItem>
+          <EstimatedCost
+            :params="{
+              db_type: DBTypes.TENDBCLUSTER,
+              resource_spec: resourceSepc,
+            }" />
           <BkFormItem :label="t('备注')">
             <BkInput
               v-model="formdata.remark"
@@ -138,6 +138,7 @@
 <script setup lang="ts">
   import InfoBox from 'bkui-vue/lib/info-box';
   import _ from 'lodash';
+  import { type ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
 
@@ -145,17 +146,17 @@
 
   import { useApplyBase, useTicketCloneInfo } from '@hooks';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
   import { nameRegx } from '@common/regex';
 
-  import AffinityItem from '@views/db-manage/common/apply-items/AffinityItem.vue';
   import BackendQPSSpec from '@views/db-manage/common/apply-items/BackendQPSSpec.vue';
   import BusinessItems from '@views/db-manage/common/apply-items/BusinessItems.vue';
   import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
   import ClusterAlias from '@views/db-manage/common/apply-items/ClusterAlias.vue';
   import ClusterName from '@views/db-manage/common/apply-items/ClusterName.vue';
+  import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
   import ModuleItem from '@views/db-manage/common/apply-items/ModuleItem.vue';
-  import RegionItem from '@views/db-manage/common/apply-items/RegionItem.vue';
+  import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/Common.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
 
   const route = useRoute();
@@ -217,11 +218,11 @@
       cluster_shard_num: 0,
       db_app_abbr: '',
       db_module_id: null as null | number,
-      disaster_tolerance_level: 'NONE',
+      disaster_tolerance_level: '',
       remote_shard_num: 0,
       resource_spec: {
         backend_group: {
-          affinity: 'NONE',
+          affinity: '',
           capacity: '',
           count: 0,
           future_capacity: '',
@@ -237,6 +238,7 @@
         },
       },
       spider_port: 25000,
+      sub_zone_ids: [] as number[],
     },
     remark: '',
     ticket_type: TicketTypes.TENDBCLUSTER_APPLY,
@@ -245,14 +247,13 @@
   // 基础设置
   const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
 
+  const regionRequirementsRef = useTemplateRef('regionRequirements');
+
   const formRef = ref();
   const specProxyRef = ref();
   const specBackendRef = ref<InstanceType<typeof BackendQPSSpec>>();
-  const regionItemRef = ref();
 
   const formdata = reactive(initData());
-
-  // const isDefaultCity = computed(() => formdata.value.details.city_code === 'default');
 
   const rules = {
     'details.cluster_name': [
@@ -276,6 +277,20 @@
       },
     ],
   };
+
+  const resourceSepc = computed(() => {
+    const specInfo = specBackendRef.value?.getData();
+    return {
+      backend_group: {
+        count: specInfo?.machine_pair || 0,
+        spec_id: formdata.details.resource_spec.backend_group.spec_id,
+      },
+      spider: {
+        count: formdata.details.resource_spec.spider.count,
+        spec_id: formdata.details.resource_spec.spider.spec_id,
+      },
+    } as ComponentProps<typeof EstimatedCost>['params']['resource_spec'];
+  });
 
   /**
    * 变更业务
@@ -308,33 +323,23 @@
 
     const getDetails = () => {
       const details: Record<string, any> = _.cloneDeep(formdata.details);
-      const { cityCode } = regionItemRef.value.getValue();
       // 集群容量需求不需要提交
       // delete details.resource_spec.backend_group.capacity;
       // delete details.resource_spec.backend_group.future_capacity;
 
-      const regionAndDisasterParams = {
-        affinity: details.resource_spec.backend_group.affinity,
-        location_spec: {
-          city: cityCode,
-          sub_zone_ids: [],
-        },
-      };
-
+      const regionAndDisasterParams = regionRequirementsRef.value!.getValue();
       const specInfo = specBackendRef.value!.getData();
+
       return {
         ...details,
         cluster_shard_num: Number(specInfo.cluster_shard_num),
-        disaster_tolerance_level: details.resource_spec.backend_group.affinity,
+        // disaster_tolerance_level: details.resource_spec.backend_group.affinity,
         remote_shard_num: Number(specInfo.cluster_shard_num) / specInfo.machine_pair,
         resource_spec: {
           backend_group: {
             ...details.resource_spec.backend_group,
+            ...regionAndDisasterParams,
             count: specInfo.machine_pair,
-            location_spec: {
-              city: cityCode,
-              sub_zone_ids: [],
-            },
             spec_info: specInfo,
           },
           spider: {
