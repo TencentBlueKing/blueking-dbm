@@ -114,7 +114,8 @@ class MysqlMigrateUpgradeResourceParamBuilder(BaseOperateResourceParamBuilder):
             for slave in info.pop("read_only_slaves", [])
         ]
         # 弹出read_only_new_slave，这个key仅作资源池申请
-        info.pop("read_only_new_slave")
+        if info.get("read_only_new_slave"):
+            info.pop("read_only_new_slave")
 
     def post_callback(self):
         # 通过资源池获取到的节点
@@ -180,7 +181,8 @@ class MysqlMigrateUpgradeFlowBuilder(MysqlMasterSlaveSwitchFlowBuilder):
             read_only_new_slave = [slave["new_slave"] for slave in info["read_only_slaves"]]
             read_only_old_slave = [slave["old_slave"] for slave in info["read_only_slaves"]]
             info["old_nodes"]["old_slave"].extend(read_only_old_slave)
-            info["resource_spec"]["read_only_new_slave"] = {"spec_id": 0, "hosts": read_only_new_slave}
+            if read_only_new_slave:
+                info["resource_spec"]["read_only_new_slave"] = {"spec_id": 0, "hosts": read_only_new_slave}
 
     def patch_ticket_detail(self):
         """mysql_master -> backend_group"""
