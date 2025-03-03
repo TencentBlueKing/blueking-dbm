@@ -32,7 +32,8 @@
         <BkRadioGroup
           v-model="formData.roleType"
           style="width: 450px"
-          type="card">
+          type="card"
+          @change="handleChange">
           <BkRadioButton label="haAccessLayer">
             {{ t('主从 - 接入层') }}
           </BkRadioButton>
@@ -101,6 +102,10 @@
     }
     return HaStorageLayerRemote;
   });
+
+  const handleChange = () => {
+    formData.updateType = 'local';
+  };
 </script>
 
 <style lang="less" scoped>
