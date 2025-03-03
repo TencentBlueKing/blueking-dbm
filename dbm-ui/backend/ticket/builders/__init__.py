@@ -367,8 +367,8 @@ class TicketFlowBuilder:
             flows.append(
                 Flow(
                     ticket=self.ticket,
-                    flow_type=FlowType.BK_ITSM.value,
-                    flow_alias=_("单据审批"),
+                    flow_type=FlowType.TIMER.value,
+                    flow_alias=_("定时执行"),
                 )
             )
 
