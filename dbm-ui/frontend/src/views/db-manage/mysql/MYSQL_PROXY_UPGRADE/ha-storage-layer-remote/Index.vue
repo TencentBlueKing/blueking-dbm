@@ -48,7 +48,7 @@
             v-if="!item.cluster.id"
             :placeholder="t('自动生成')" />
           <EditableBlock
-            v-else-if="item.cluster.id && !item.cluster.readonly_host.bk_host_id"
+            v-else-if="item.cluster.id && !item.cluster.readonly_host"
             :placeholder="t('无只读主机')" />
           <EditableBlock
             v-else
@@ -57,7 +57,8 @@
         <CurrentVersionColumn :cluster="item.cluster" />
         <TargetVersionColumn
           v-model="item.target_version"
-          :cluster="item.cluster" />
+          :cluster="item.cluster"
+          higher-major-version />
         <MultipleResourceHostColumn
           v-model="item.new_master_slave_host"
           field="new_master_slave_host"
@@ -68,15 +69,9 @@
             for_bizs: [currentBizId, 0],
             resource_types: [DBTypes.MYSQL, 'PUBLIC'],
           }" />
-        <SingleResourceHostColumn
+        <NewReadonlyHostColumn
           v-model="item.new_readonly_host"
-          field="new_readonly_host.ip"
-          :label="t('新只读主机')"
-          :min-width="200"
-          :params="{
-            for_bizs: [currentBizId, 0],
-            resource_types: [DBTypes.MYSQL, 'PUBLIC'],
-          }" />
+          :cluster="item.cluster" />
         <OperationColumn
           v-model:table-data="formData.tableData"
           :create-row-method="createTableRow" />
@@ -120,7 +115,6 @@
   import { DBTypes, TicketTypes } from '@common/const';
 
   import MultipleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/multiple-resource-host-column/Index.vue';
-  import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
   import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
   import IgnoreBiz from '@views/db-manage/common/toolbox-field/form-item/ignore-biz/Index.vue';
   import TicketPayload, {
@@ -130,6 +124,8 @@
   import CurrentVersionColumn from '../components/CurrentVersionColumn.vue';
   import HaClusterColumn from '../components/HaClusterColumn.vue';
   import TargetVersionColumn from '../components/TargetVersionColumn.vue';
+
+  import NewReadonlyHostColumn from './components/NewReadonlyHostColumn.vue';
 
   interface IHostData {
     bk_biz_id: number;
@@ -223,11 +219,9 @@
     formData.tableData
       .filter((item) => item.cluster.id)
       .reduce<Record<string, true>>((acc, cur) => {
-        // eslint-disable-next-line no-param-reassign
-        acc[cur.cluster.master_domain] = true;
+        Object.assign(acc[cur.cluster.master_domain], true);
         cur.cluster.related_clusters.forEach((item) => {
-          // eslint-disable-next-line no-param-reassign
-          acc[item.master_domain] = true;
+          Object.assign(acc[item.master_domain], true);
         });
         return acc;
       }, {}),
@@ -330,12 +324,14 @@
             },
             new_db_module_id: item.target_version.new_db_module_id,
             pkg_id: item.target_version.pkg_id,
-            read_only_slaves: [
-              {
-                new_slave: item.new_readonly_host,
-                old_slave: item.cluster.readonly_host,
-              },
-            ],
+            read_only_slaves: item.cluster.readonly_host
+              ? [
+                  {
+                    new_slave: item.new_readonly_host,
+                    old_slave: item.cluster.readonly_host,
+                  },
+                ]
+              : [],
             resource_spec: {
               new_master: {
                 hosts: [item.new_master_slave_host[0]],

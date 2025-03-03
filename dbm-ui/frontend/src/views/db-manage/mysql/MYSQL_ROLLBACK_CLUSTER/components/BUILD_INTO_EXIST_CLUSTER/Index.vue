@@ -197,8 +197,7 @@
 
   const handleBatchEdit = (value: any, field: string) => {
     tableData.value.forEach((item) => {
-      // eslint-disable-next-line no-param-reassign
-      item[field as keyof RowData] = value;
+      Object.assign(item[field as keyof RowData], value);
     });
   };
 

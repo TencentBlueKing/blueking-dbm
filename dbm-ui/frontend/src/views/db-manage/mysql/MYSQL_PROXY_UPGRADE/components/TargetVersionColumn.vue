@@ -80,7 +80,7 @@
               ref="moduleSelectRef"
               is-plain
               :list="moduleSelectList"
-              :model-value="modelValue.target_package"
+              :model-value="modelValue.new_db_module_id"
               :placeholder="t('请选择')"
               :pop-width="240"
               :rules="moduleRules"
@@ -163,9 +163,15 @@
         master_domain: string;
       }[];
     };
+    /**
+     * 代表是否跨版本升级, 默认false
+     */
+    higherMajorVersion?: boolean;
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    higherMajorVersion: false,
+  });
 
   const modelValue = defineModel<{
     charset: string;
@@ -236,6 +242,8 @@
           target_package: lastestVersion.pkg_name,
           target_version: lastestVersion.version,
         };
+
+        fetchModuleList();
       }
     },
   });
@@ -245,22 +253,28 @@
     onSuccess(modules) {
       const currentModule = modules.find((moduleItem) => moduleItem.db_module_id === props.cluster.db_module_id);
       if (currentModule) {
-        const currentCharset = currentModule.db_module_info.conf_items.find(
-          (confItem) => confItem.conf_name === 'charset',
-        )!.conf_value;
-        modelValue.value.charset = currentCharset;
+        modelValue.value.charset = currentModule.db_module_info.conf_items[0]?.conf_value;
+
+        moduleSelectList.value = modules
+          .filter((item) => item.db_module_info.conf_items[1].conf_value === modelValue.value.target_version)
+          .map((item) => ({
+            ...item,
+            id: item.db_module_id,
+          }));
+        modelValue.value.new_db_module_id = moduleSelectList.value[0]?.id;
+        modelValue.value.target_module_name = moduleSelectList.value[0]?.name;
       }
     },
   });
 
-  const fetchModuleList = () => {
+  function fetchModuleList() {
     if (props.cluster) {
       fetchModules({
         bk_biz_id: bizId,
         cluster_type: props.cluster.cluster_type,
       });
     }
-  };
+  }
 
   watch(
     () => props.cluster,
@@ -268,11 +282,8 @@
       if (props.cluster.id) {
         queryMysqlHigherVersionPkgListRun({
           cluster_id: props.cluster.id,
-          higher_major_version: false,
+          higher_major_version: props.higherMajorVersion,
         });
-      }
-      if (props.cluster.cluster_type) {
-        fetchModuleList();
       }
     },
     {
@@ -282,7 +293,6 @@
 
   const handleVersionChange = (value: string) => {
     modelValue.value.target_version = value;
-    modelValue.value.new_db_module_id = '';
     fetchModuleList();
   };
 
@@ -299,6 +309,7 @@
 
   const handleModuleChange = (value: number) => {
     modelValue.value.new_db_module_id = value;
+    modelValue.value.target_module_name = moduleSelectList.value.find((item) => item.id === value)?.name || '';
   };
 
   const handleCreateModule = () => {
