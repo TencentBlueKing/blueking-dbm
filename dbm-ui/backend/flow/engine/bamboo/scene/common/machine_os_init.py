@@ -120,6 +120,7 @@ class ImportResourceInitStepFlow(object):
                 "bk_biz_id": self.data["bk_biz_id"],
                 "recycle_hosts": self.data["hosts"],
                 "operator": self.data["operator"],
+                "ips": self.data["sa_check_ips"],
                 "event": MachineEventType.ToFault.value,
                 "ticket_id": self.data["uid"],
             },

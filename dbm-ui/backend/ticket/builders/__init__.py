@@ -366,6 +366,7 @@ class ImportFaultPoolParamBuilder(FlowParamBuilder):
                 "ticket_id": self.ticket.id,
                 "bk_biz_id": self.ticket_data["ip_recycle"]["for_biz"],
                 "hosts": self.ticket_data["recycle_hosts"],
+                "sa_check_ips": [recycle["ip"] for recycle in self.ticket_data["recycle_hosts"]],
                 "operator": self.ticket.creator,
             }
         )
