@@ -12,7 +12,7 @@ from typing import Union
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import MachineType
-from backend.db_meta.models import ProxyInstance, StorageInstance
+from backend.db_meta.models import ProxyInstance, StorageInstance, Cluster
 from backend.flow.utils.base.cc_topo_operate import CCTopoOperator
 from backend.ticket.constants import TicketType
 
@@ -20,7 +20,7 @@ from backend.ticket.constants import TicketType
 class KafkaCCTopoOperator(CCTopoOperator):
     db_type = DBType.Kafka.value
 
-    def generate_custom_labels(self, ins: Union[StorageInstance, ProxyInstance]) -> dict:
+    def generate_custom_labels(self, ins: Union[StorageInstance, ProxyInstance], cluster: Cluster) -> dict:
         # 用于采集Kafka消费延迟的标签
         brokers = ""
         broker_port = str(self.ticket_data["port"])

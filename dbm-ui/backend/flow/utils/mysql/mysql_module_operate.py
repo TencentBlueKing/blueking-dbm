@@ -12,14 +12,14 @@ from typing import Union
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import AccessLayer, MachineType
-from backend.db_meta.models import ProxyInstance, StorageInstance
+from backend.db_meta.models import ProxyInstance, StorageInstance, Cluster
 from backend.flow.utils.base.cc_topo_operate import CCTopoOperator
 
 
 class MysqlCCTopoOperator(CCTopoOperator):
     db_type = DBType.MySQL.value
 
-    def generate_custom_labels(self, inst: Union[StorageInstance, ProxyInstance]) -> dict:
+    def generate_custom_labels(self, inst: Union[StorageInstance, ProxyInstance], cluster: Cluster) -> dict:
         # 定义注册mysql/proxy/spider服务实例需要的labels标签结构
         return {"exporter_conf_path": f"exporter_{inst.port}.cnf"}
 

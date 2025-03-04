@@ -123,3 +123,8 @@ class ClusterType(str, StructuredEnum):
             cls.TendisRedisCluster,
             cls.TendisTendisplusCluster,
         ]
+
+    @classmethod
+    def is_mongodb(cls, cluster_type: str):
+        """is_mongodb 判断是否为Mongo集群类型"""
+        return cluster_type in [cls.MongoShardedCluster.value, cls.MongoReplicaSet.value]

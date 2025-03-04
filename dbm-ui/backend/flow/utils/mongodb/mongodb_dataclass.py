@@ -952,6 +952,9 @@ class ActKwargs:
         bk_cloud_id: int = None
         for cluster_id in self.payload["cluster_ids"]:
             cluster_info = MongoRepository().fetch_one_cluster(withDomain=False, id=cluster_id)
+            if not cluster_info:
+                raise ValueError("cluster_id:{} not found".format(cluster_id))
+
             if cluster_info.cluster_type == ClusterType.MongoReplicaSet.value:
                 shard = cluster_info.get_shards()[0]
                 bk_cloud_id = shard.members[0].bk_cloud_id
@@ -969,6 +972,8 @@ class ActKwargs:
                 for shard in shards:
                     for member in shard.members:
                         hosts.add(member.ip)
+            else:
+                raise ValueError("cluster_type:{} not supported".format(cluster_info.cluster_type))
         list_hosts = []
         for host in hosts:
             list_hosts.append({"ip": host, "bk_cloud_id": bk_cloud_id})

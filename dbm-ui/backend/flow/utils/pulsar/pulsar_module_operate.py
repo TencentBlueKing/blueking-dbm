@@ -14,7 +14,7 @@ from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName, ReqType
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceRole
-from backend.db_meta.models import ProxyInstance, StorageInstance
+from backend.db_meta.models import ProxyInstance, StorageInstance, Cluster
 from backend.flow.consts import ConfigTypeEnum, NameSpaceEnum, PulsarRoleEnum
 from backend.flow.utils.base.cc_topo_operate import CCTopoOperator
 from backend.flow.utils.pulsar.consts import (
@@ -27,7 +27,7 @@ from backend.flow.utils.pulsar.consts import (
 class PulsarCCTopoOperator(CCTopoOperator):
     db_type = DBType.Pulsar.value
 
-    def generate_custom_labels(self, ins: Union[StorageInstance, ProxyInstance]) -> dict:
+    def generate_custom_labels(self, ins: Union[StorageInstance, ProxyInstance], cluster: Cluster) -> dict:
         """
         生成自定义标签，即CommonInstanceLabels 不满足的标签
         Pulsar监控端口写入标签

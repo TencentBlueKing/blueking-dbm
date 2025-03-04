@@ -12,7 +12,7 @@ from typing import Union
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceRole, MachineType
-from backend.db_meta.models import ProxyInstance, StorageInstance
+from backend.db_meta.models import ProxyInstance, StorageInstance, Cluster
 from backend.flow.utils.base.cc_topo_operate import CCTopoOperator
 from backend.flow.utils.hdfs.consts import (
     DATANODE_DEFAULT_HTTP_PORT,
@@ -25,7 +25,7 @@ from backend.flow.utils.hdfs.consts import (
 class HdfsCCTopoOperator(CCTopoOperator):
     db_type = DBType.Hdfs.value
 
-    def generate_custom_labels(self, ins: Union[StorageInstance, ProxyInstance]) -> dict:
+    def generate_custom_labels(self, ins: Union[StorageInstance, ProxyInstance], cluster: Cluster) -> dict:
         # 定义注册HDFS服务监控实例需要的labels标签结构
 
         rpc_port = DATANODE_DEFAULT_RPC_PORT

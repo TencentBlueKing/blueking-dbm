@@ -9,14 +9,14 @@ specific language governing permissions and limitations under the License.
 """
 
 from backend.configuration.constants import DBType
-from backend.db_meta.models import StorageInstance
+from backend.db_meta.models import StorageInstance, Cluster
 from backend.flow.utils.base.cc_topo_operate import CCTopoOperator
 
 
 class SqlserverCCTopoOperator(CCTopoOperator):
     db_type = DBType.Sqlserver.value
 
-    def generate_custom_labels(self, inst: StorageInstance) -> dict:
+    def generate_custom_labels(self, inst: StorageInstance, cluster: Cluster) -> dict:
         # 服务实例需要的labels标签结构
         return {"exporter_conf_path": f"exporter_{inst.port}.cnf"}
 

@@ -15,7 +15,7 @@ from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName, ReqType
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceRole
-from backend.db_meta.models import ProxyInstance, StorageInstance
+from backend.db_meta.models import ProxyInstance, StorageInstance, Cluster
 from backend.flow.consts import ConfigTypeEnum, NameSpaceEnum
 from backend.flow.utils.base.cc_topo_operate import CCTopoOperator
 from backend.flow.utils.doris.consts import DEFAULT_BE_WEB_PORT, DEFAULT_FE_WEB_PORT, DorisConfigEnum
@@ -26,7 +26,7 @@ logger = logging.getLogger("flow")
 class DorisCCTopoOperator(CCTopoOperator):
     db_type = DBType.Doris.value
 
-    def generate_custom_labels(self, ins: Union[StorageInstance, ProxyInstance]) -> dict:
+    def generate_custom_labels(self, ins: Union[StorageInstance, ProxyInstance], cluster: Cluster) -> dict:
         # 定义注册Doris服务监控实例需要的labels标签结构
         metrics_port = "0"
         data = DBConfigApi.query_conf_item(
