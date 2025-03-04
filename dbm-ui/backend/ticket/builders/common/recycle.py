@@ -19,9 +19,9 @@ from backend.db_services.dbbase.constants import IpDest
 from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.ticket import builders
 from backend.ticket.builders import (
-    ImportFaultPoolParamBuilder,
+    ImportPoolParamBuilder,
+    ImportResourceParamBuilder,
     RecycleParamBuilder,
-    ReImportResourceParamBuilder,
     TicketFlowBuilder,
 )
 from backend.ticket.builders.common.base import HostRecycleSerializer
@@ -37,7 +37,7 @@ class RecycleHostDetailSerializer(serializers.Serializer):
     ip_recycle = HostRecycleSerializer(help_text=_("主机回收流向"))
 
 
-class RecycleHostResourceParamBuilder(ReImportResourceParamBuilder):
+class RecycleHostResourceParamBuilder(ImportResourceParamBuilder):
     def format_ticket_data(self):
         # 导入资源的类型设置为预设的group
         group = self.ticket_data["group"]
@@ -55,7 +55,7 @@ class RecycleHostParamBuilder(RecycleParamBuilder):
 class RecycleHostFlowBuilder(TicketFlowBuilder):
     serializer = RecycleHostDetailSerializer
     import_resource_flow_builder = RecycleHostResourceParamBuilder
-    import_fault_pool_builder = ImportFaultPoolParamBuilder
+    import_pool_builder = ImportPoolParamBuilder
     recycle_flow_builder = RecycleHostParamBuilder
     # 此单据不属于任何db，暂定为common
     group = "common"
@@ -79,8 +79,9 @@ class RecycleHostFlowBuilder(TicketFlowBuilder):
             ),
         )
 
+        ip_dest = self.ticket.details["ip_recycle"]["ip_dest"]
         # 导入资源池
-        if self.ticket.details["ip_recycle"]["ip_dest"] == IpDest.Resource:
+        if ip_dest == IpDest.Resource:
             flows.append(
                 Flow(
                     ticket=self.ticket,
@@ -90,14 +91,14 @@ class RecycleHostFlowBuilder(TicketFlowBuilder):
                 ),
             )
 
-        # 导入故障池
-        if self.ticket.details["ip_recycle"]["ip_dest"] == IpDest.Fault:
+        # 导入故障池、待回收池
+        if ip_dest in [IpDest.Fault, IpDest.Recycle]:
             flows.append(
                 Flow(
                     ticket=self.ticket,
                     flow_type=FlowType.HOST_RECYCLE.value,
-                    details=self.import_fault_pool_builder(self.ticket).get_params(),
-                    flow_alias=_("主机转入故障池"),
+                    details=self.import_pool_builder(self.ticket).get_params(),
+                    flow_alias=_("主机转入{}".format(IpDest.get_choice_label(ip_dest))),
                 ),
             )
 

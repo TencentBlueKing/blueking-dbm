@@ -227,7 +227,7 @@ class MongoDBRestoreHandler(object):
             .filter(
                 bk_biz_id=bk_biz_id,
                 cluster_type__in=[ClusterType.MongoShardedCluster, ClusterType.MongoReplicaSet],
-                tag__name=SystemTagEnum.TEMPORARY,
+                tags__key=SystemTagEnum.TEMPORARY,
             )
             .filter(filters)
         )

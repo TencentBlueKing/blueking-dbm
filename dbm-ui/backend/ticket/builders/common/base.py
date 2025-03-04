@@ -161,7 +161,7 @@ class CommonValidate(object):
 
     @classmethod
     def validate_destroy_temporary_cluster_ids(cls, cluster_ids):
-        clusters = Cluster.objects.filter(id__in=cluster_ids, tag__name=SystemTagEnum.TEMPORARY.value)
+        clusters = Cluster.objects.filter(id__in=cluster_ids, tags__key=SystemTagEnum.TEMPORARY.value)
         if clusters.count() != len(cluster_ids):
             raise serializers.ValidationError(_("此单据只用于临时集群的销毁，请不要用于其他正常集群"))
 

@@ -46,6 +46,10 @@ class TagViewSet(AuditedModelViewSet):
     filter_class = TagListFilter
     ordering_fields = ["create_at", "creator"]
 
+    action_permission_map = {("related_resources",): []}
+    # TODO：需要约定标签的权限
+    default_permission_class = []
+
     @common_swagger_auto_schema(
         operation_summary=_("查询标签关联资源"), request_body=serializers.QueryRelatedResourceSerializer(), tags=[SWAGGER_TAG]
     )

@@ -20,6 +20,7 @@ from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
 from backend.db_dirty.constants import MachineEventType
 from backend.db_dirty.models import MachineEvent
+from backend.db_services.dbbase.constants import IpDest
 from backend.db_services.ipchooser.constants import BkOsType
 from backend.flow.consts import LINUX_ADMIN_USER_FOR_CHECK, WINDOW_ADMIN_USER_FOR_CHECK
 from backend.flow.engine.bamboo.scene.common.builder import Builder
@@ -28,7 +29,7 @@ from backend.flow.plugins.components.collections.common.sa_idle_check import Che
 from backend.flow.plugins.components.collections.common.sa_init import SaInitComponent
 from backend.flow.plugins.components.collections.common.transfer_host_service import TransferHostServiceComponent
 from backend.flow.plugins.components.collections.common.transfer_host_to_pool import TransferHostToPoolComponent
-from backend.flow.utils.mysql.mysql_act_dataclass import InitCheckForResourceKwargs
+from backend.flow.utils.mysql.mysql_act_dataclass import ImportMachinePollKwargs, InitCheckForResourceKwargs
 from backend.ticket.models import Ticket
 
 
@@ -111,20 +112,30 @@ class ImportResourceInitStepFlow(object):
 
         p.run_pipeline()
 
-    def machine_import_fault_pool_flow(self):
+    def machine_import_pool_flow(self):
         p = Builder(root_id=self.root_id, data=self.data)
-
-        p.add_act(
-            act_name=_("主机导入故障池"),
-            act_component_code=TransferHostToPoolComponent.code,
-            kwargs={
-                "bk_biz_id": self.data["bk_biz_id"],
-                "recycle_hosts": self.data["hosts"],
-                "operator": self.data["operator"],
-                "ips": self.data["sa_check_ips"],
-                "event": MachineEventType.ToFault.value,
-                "ticket_id": self.data["uid"],
-            },
+        # 构造主机导入池基本参数
+        kwargs = ImportMachinePollKwargs(
+            bk_biz_id=self.data["bk_biz_id"],
+            recycle_hosts=self.data["hosts"],
+            operator=self.data["operator"],
+            ips=self.data["sa_check_ips"],
+            ip_dest=self.data["ip_dest"],
+            ticket_id=self.data["uid"],
         )
+
+        if kwargs.ip_dest == IpDest.Fault:
+            p.add_act(
+                act_name=_("主机导入故障池"),
+                act_component_code=TransferHostToPoolComponent.code,
+                kwargs={**asdict(kwargs), "event": MachineEventType.ToFault.value},
+            )
+
+        if kwargs.ip_dest == IpDest.Recycle:
+            p.add_act(
+                act_name=_("主机导入待回收"),
+                act_component_code=TransferHostToPoolComponent.code,
+                kwargs={**asdict(kwargs), "event": MachineEventType.ToRecycle.value},
+            )
 
         p.run_pipeline()

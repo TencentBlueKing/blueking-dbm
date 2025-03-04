@@ -255,7 +255,7 @@ class Ticket(AuditedModel):
 
         # 暂定sqlserver机器回收到故障池，其他组件回收到公共资源池
         # TODO: 后续改造需要根据uwork，裁撤列表等决定是回到故障池还是资源池
-        ip_dest = IpDest.Fault if revoke_ticket.group == DBType.Sqlserver else IpDest.Resource
+        ip_dest = IpDest.Recycle if revoke_ticket.group == DBType.Sqlserver else IpDest.Resource
         ip_recycle = {"ip_dest": ip_dest, "for_biz": revoke_ticket.bk_biz_id}
 
         if not recycle_hosts:
@@ -286,7 +286,7 @@ class Ticket(AuditedModel):
         Flow.objects.create(
             ticket=revoke_ticket,
             flow_type=FlowType.DELIVERY.value,
-            details={"recycle_ticket": recycle_ticket.id},
+            details={"related_ticket": recycle_ticket.id},
             flow_alias=TicketType.get_choice_label(ticket_type),
         )
 

@@ -310,7 +310,7 @@ class RecycleParamBuilder(FlowParamBuilder):
         )
 
 
-class ReImportResourceParamBuilder(FlowParamBuilder):
+class ImportResourceParamBuilder(FlowParamBuilder):
     """
     资源重导入流程 参数构造器 - 此流程目前仅用于回收后使用
     职责：获取单据中下架的机器，并走资源池导入流程
@@ -349,13 +349,13 @@ class ReImportResourceParamBuilder(FlowParamBuilder):
         DBResourceApi.import_operation_create(params=import_record)
 
 
-class ImportFaultPoolParamBuilder(FlowParamBuilder):
+class ImportPoolParamBuilder(FlowParamBuilder):
     """
-    主机导入故障池 参数构造器 - 此流程目前仅用于回收后使用
+    主机导入故障池/待回收池 参数构造器 - 此流程目前仅用于回收后使用
     职责：获取单据中下架的机器，并走故障池导入
     """
 
-    controller = BaseController.import_machine_fault_pool
+    controller = BaseController.import_machine_pool
 
     def __init__(self, ticket: Ticket):
         super().__init__(ticket)
@@ -368,6 +368,7 @@ class ImportFaultPoolParamBuilder(FlowParamBuilder):
                 "hosts": self.ticket_data["recycle_hosts"],
                 "sa_check_ips": [recycle["ip"] for recycle in self.ticket_data["recycle_hosts"]],
                 "operator": self.ticket.creator,
+                "ip_dest": self.ticket_data["ip_recycle"]["ip_dest"],
             }
         )
 

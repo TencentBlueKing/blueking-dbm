@@ -106,7 +106,7 @@ class MachineEvent(AuditedModel):
         # 如果最近一次的机器事件非导入，则无法退回
         for host_id, events in grouped_events.items():
             if events and events[-1].event != MachineEventType.ImportResource:
-                return False, _("主机经历过流转事件: {}".format(MachineEventType.get_choice_label(events[-1].event)))
+                return False, _("仅新导入且无被申请、转移等使用事件的主机，可执行撤销导入")
 
         return True, ""
 

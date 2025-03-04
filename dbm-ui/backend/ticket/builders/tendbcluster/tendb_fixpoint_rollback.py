@@ -130,6 +130,14 @@ class TendbFixPointRollbackResourceParamBuilder(BaseOperateResourceParamBuilder)
         self.ticket_data = {"resource_spec": self.ticket_data["infos"][0]["resource_spec"]}
         self.ticket_data.update(bk_cloud_id=cluster.bk_cloud_id)
 
+    def post_callback(self):
+        next_flow = self.ticket.next_flow()
+        # 更新规格信息
+        resource_spec = next_flow.details["ticket_data"]["resource_spec"]
+        resource_spec["remote"] = resource_spec.pop("remote_hosts")
+        resource_spec["spider"] = resource_spec.pop("spider_host")
+        next_flow.save(update_fields=["details"])
+
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_ROLLBACK_CLUSTER, is_apply=True)
 class TendbFixPointRollbackFlowBuilder(BaseTendbTicketFlowBuilder):
