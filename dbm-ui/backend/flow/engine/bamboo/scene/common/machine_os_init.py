@@ -27,6 +27,7 @@ from backend.flow.plugins.components.collections.common.external_service import 
 from backend.flow.plugins.components.collections.common.sa_idle_check import CheckMachineIdleComponent
 from backend.flow.plugins.components.collections.common.sa_init import SaInitComponent
 from backend.flow.plugins.components.collections.common.transfer_host_service import TransferHostServiceComponent
+from backend.flow.plugins.components.collections.common.transfer_host_to_pool import TransferHostToPoolComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import InitCheckForResourceKwargs
 from backend.ticket.models import Ticket
 
@@ -115,7 +116,7 @@ class ImportResourceInitStepFlow(object):
 
         p.add_act(
             act_name=_("主机导入故障池"),
-            act_component_code=CheckMachineIdleComponent.code,
+            act_component_code=TransferHostToPoolComponent.code,
             kwargs={
                 "bk_biz_id": self.data["bk_biz_id"],
                 "recycle_hosts": self.data["hosts"],
