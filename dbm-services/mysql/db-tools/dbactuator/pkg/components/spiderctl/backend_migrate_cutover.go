@@ -103,11 +103,15 @@ type CutoverUnit struct {
 	Password string `json:"password"`
 }
 
-func (c *CutoverUnit) getSwitchRouterSql(svrName string) string {
-	return fmt.Sprintf("TDBCTL ALTER NODE %s options(user '%s', password '%s', host '%s', port %d);",
+func (c *CutoverUnit) getSwitchRouterSql(svrName string, withSync bool) string {
+	sqlStr := fmt.Sprintf("TDBCTL ALTER NODE %s options(user '%s', password '%s', host '%s', port %d) ",
 		svrName,
 		c.User,
 		c.Password, c.Host, c.Port)
+	if withSync {
+		sqlStr += " WITH SYNC"
+	}
+	return sqlStr + " ;"
 }
 
 // GetHostPort TODO
@@ -219,6 +223,22 @@ func (s *SpiderClusterBackendMigrateCutoverComp) PreCheck() (err error) {
 	if err = s.cutOverPairsParamCheck(); err != nil {
 		return err
 	}
+	// check whether the origin master and the target master replication status is normal
+	for addr, conn := range s.destMasterConn {
+		var slaveStatus native.ShowSlaveStatusResp
+		slaveStatus, err = conn.ShowSlaveStatus()
+		if err != nil {
+			return err
+		}
+		logger.Info("the new master %s replication status is %v", addr, slaveStatus)
+		if !slaveStatus.ReplSyncIsOk() {
+			return fmt.Errorf("%s replication status is abnormal ,IO Thread: %s,SQL Thread:%s", addr,
+				slaveStatus.SlaveIORunning,
+				slaveStatus.SlaveSQLRunning)
+		}
+		logger.Info("check the new master:%s synchronization status to be switched is normal", addr)
+	}
+
 	// check dest master with dest slave replicate status
 	if s.existRemoteSlave {
 		logger.Info("check whether the master slave synchronization status to be switched is normal")
@@ -228,11 +248,13 @@ func (s *SpiderClusterBackendMigrateCutoverComp) PreCheck() (err error) {
 			if err != nil {
 				return err
 			}
+			logger.Info("the slave %s replication status is %v", addr, slaveStatus)
 			if !slaveStatus.ReplSyncIsOk() {
 				return fmt.Errorf("%s replication status is abnormal ,IO Thread: %s,SQL Thread:%s", addr,
 					slaveStatus.SlaveIORunning,
 					slaveStatus.SlaveSQLRunning)
 			}
+			logger.Info("check the slave:%s synchronization status to be switched is normal", addr)
 		}
 	}
 	// compare origin master with dest master variables
@@ -323,7 +345,7 @@ func (s *SpiderClusterBackendMigrateCutoverComp) connDest() (err error) {
 		}
 		s.destMasterConn[destMasterAddr] = masterConn
 		if !ins.destSlaveIsEmpty() {
-			slaveConn, err := ins.DestMaster.Conn()
+			slaveConn, err := ins.DestSlave.Conn()
 			if err != nil {
 				return err
 			}
@@ -411,6 +433,10 @@ func (s *SpiderClusterBackendMigrateCutoverComp) CutOver() (err error) {
 		}
 	}()
 
+	if err = s.flushTablesAtEverySpiderNode(); err != nil {
+		return fmt.Errorf("[未切换]: flush tables failed:%w", err)
+	}
+
 	logger.Info("start refreshing the primary spt route")
 	if err = s.switchSpt(); err != nil {
 		tdbctlFlushed = true
@@ -435,7 +461,7 @@ func (s *SpiderClusterBackendMigrateCutoverComp) CutOver() (err error) {
 	if err = s.RecordBinlogPos(); err != nil {
 		return err
 	}
-	logger.Info("doing tdbctl flush routing force ... ")
+	logger.Info("doing tdbctl flush routing cache ... ")
 	return s.flushrouting()
 }
 
@@ -471,12 +497,12 @@ func (s *SpiderClusterBackendMigrateCutoverComp) switchSpt() (err error) {
 	var alterSqls []string
 	for _, pair := range s.cutOverPairs {
 		masterSvrName := pair.MasterSvr.ServerName
-		alterSql := pair.DestMaster.getSwitchRouterSql(masterSvrName)
+		alterSql := pair.DestMaster.getSwitchRouterSql(masterSvrName, true)
 		logger.Info("will execute  master spt switch sql:%s", mysqlcomm.CleanSvrPassword(alterSql))
 		alterSqls = append(alterSqls, alterSql)
 		if s.existRemoteSlave {
 			slaveSvrName := pair.SlaveSvr.ServerName
-			alterSql := pair.DestSlave.getSwitchRouterSql(slaveSvrName)
+			alterSql := pair.DestSlave.getSwitchRouterSql(slaveSvrName, true)
 			logger.Info("will execute slave spt switch sql:%s", mysqlcomm.CleanSvrPassword(alterSql))
 			alterSqls = append(alterSqls, alterSql)
 		}

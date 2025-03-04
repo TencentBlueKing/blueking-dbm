@@ -437,7 +437,7 @@ func (r *SpiderClusterBackendSwitchComp) CutOver() (err error) {
 		}
 	}()
 	if !r.Params.Force {
-		if err = r.fushTablesAtEverySpiderNode(); err != nil {
+		if err = r.flushTablesAtEverySpiderNode(); err != nil {
 			return fmt.Errorf("[未切换]: flush tables failed:%w", err)
 		}
 	}
@@ -712,8 +712,8 @@ func (c *CutOverCtx) lockaAllSpidersWrite() (err error) {
 	return
 }
 
-// fushTablesAtEverySpiderNode flush tables at every spider node
-func (c *CutOverCtx) fushTablesAtEverySpiderNode() (err error) {
+// flushTablesAtEverySpiderNode flush tables at every spider node
+func (c *CutOverCtx) flushTablesAtEverySpiderNode() (err error) {
 	for addr, lockConn := range c.spidersLockConn {
 		fn := func() (e error) {
 			_, e = lockConn.ExecContext(context.Background(), "FLUSH TABLES")
