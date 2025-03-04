@@ -929,6 +929,17 @@ func (db *RedisClient) ConfigSet(confName string, val string) (string, error) {
 	return data, nil
 }
 
+// GetTendisVersion 获取redis版本:redis_version
+func (db *RedisClient) GetTendisVersion() (version string, err error) {
+	var infoRet map[string]string
+	infoRet, err = db.Info("server")
+	if err != nil {
+		return
+	}
+	version = infoRet["redis_version"]
+	return
+}
+
 // ConfigGet tendis执行config get or confxx get
 func (db *RedisClient) ConfigGet(confName string) (ret map[string]string, err error) {
 	var confInfos []interface{}

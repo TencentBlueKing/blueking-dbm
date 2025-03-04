@@ -409,6 +409,17 @@ func (job *RedisSwitch) doTendisStorageSwitch4Cluster(storagePair InstanceSwitch
 				break
 			}
 		}
+
+		confFile, _ := myredis.GetRedisLoccalConfFile(storagePair.SlaveInfo.Port)
+		sedCmd := fmt.Sprintf("sed -i -e '/^slaveof/d' %s", confFile)
+		job.runtime.Logger.Info(sedCmd)
+		if _, err2 := util.RunBashCmd(sedCmd, "", nil, 10*time.Second); err2 != nil {
+			job.runtime.Logger.Warn("[%s] exec ConfigRewrite for failed:%+v", newMasterAddr, err2)
+		}
+
+		if _, err2 := newMasterConn.ConfigRewrite(); err2 != nil {
+			job.runtime.Logger.Warn("[%s] exec ConfigRewrite for failed:%+v", newMasterAddr, err2)
+		}
 	}
 	if err != nil {
 		return err
