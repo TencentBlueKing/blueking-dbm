@@ -16,11 +16,13 @@ import type { RouteRecordRaw } from 'vue-router';
 import type { MySQLFunctions } from '@services/model/function-controller/functionController';
 import FunctionControllModel from '@services/model/function-controller/functionController';
 
-import { AccountTypes } from '@common/const';
+import { AccountTypes, DBTypes, TicketTypes } from '@common/const';
 
-import { checkDbConsole } from '@utils';
+import { checkDbConsole, createToolboxRoute } from '@utils';
 
 import { t } from '@locales/index';
+
+const { createRouteItem } = createToolboxRoute(DBTypes.MYSQL);
 
 export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   {
@@ -95,14 +97,7 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/mysql/proxy-replace/index.vue'),
   },
-  {
-    path: 'proxy-add/:page?',
-    name: 'MySQLProxyAdd',
-    meta: {
-      navName: t('添加Proxy'),
-    },
-    component: () => import('@views/db-manage/mysql/proxy-add/index.vue'),
-  },
+  createRouteItem(TicketTypes.MYSQL_PROXY_ADD, t('添加Proxy')),
   {
     path: 'master-failover/:page?',
     name: 'MySQLMasterFailover',
@@ -183,14 +178,7 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/mysql/webconsole/Index.vue'),
   },
-  {
-    path: 'version-upgrade/:page?',
-    name: 'MySQLVersionUpgrade',
-    meta: {
-      navName: t('版本升级'),
-    },
-    component: () => import('@views/db-manage/mysql/version-upgrade/Index.vue'),
-  },
+  createRouteItem(TicketTypes.MYSQL_PROXY_UPGRADE, t('版本升级')),
   {
     path: 'MYSQL_FLASHBACK/:page?',
     name: 'MYSQL_FLASHBACK',

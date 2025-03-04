@@ -16,8 +16,19 @@ declare module 'vue' {
     DbSideslider: typeof import('@components/db-sideslider/index.vue').default;
     DbStatus: typeof import('@components/db-status/index.vue').default;
     DbTable: typeof import('@components/db-table/Index.vue');
+    EditableBlock: typeof import('@components/editable-table/Index.vue').Block;
+    EditableColumn: typeof import('@components/editable-table/Index.vue').Column;
+    EditableDatePicker: typeof import('@components/editable-table/Index.vue').DatePicker;
+    EditableInput: typeof import('@components/editable-table/Index.vue').Input;
+    EditableRow: typeof import('@components/editable-table/Index.vue').Row;
+    EditableSelect: typeof import('@components/editable-table/Index.vue').Select;
+    EditableTable: typeof import('@components/editable-table/Index.vue').default;
+    EditableTagInput: typeof import('@components/editable-table/Index.vue').TagInput;
+    EditableTextarea: typeof import('@components/editable-table/Index.vue').Textarea;
+    EditableTimePicker: typeof import('@components/editable-table/Index.vue').TimePicker;
     FunController: typeof import('@components/function-controller/FunController.vue').default;
     MoreActionExtend: typeof import('@components/more-action-extend/Index.vue').default;
+    OperationColumn: typeof import('@views/db-manage/common/toolbox-field/column/operation-column/Index.vue').default;
     ScrollFaker: typeof import('@components/scroll-faker/Index.vue').default;
     SmartAction: typeof import('@components/smart-action/Index.vue').default;
   }
