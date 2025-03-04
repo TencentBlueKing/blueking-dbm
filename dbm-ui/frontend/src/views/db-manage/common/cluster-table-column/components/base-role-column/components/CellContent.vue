@@ -85,6 +85,7 @@
   </div>
 </template>
 <script setup lang="ts">
+  import type { VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type { ClusterListNode } from '@services/types';
@@ -126,7 +127,7 @@
   const handleToolsShow = () => {
     setTimeout(() => {
       isToolsShow.value = true;
-    }, 1000);
+    }, 300);
   };
 
   const handleCopyIps = () => {
@@ -154,6 +155,12 @@
 
 <style lang="less">
   .cluster-list-role-instances-list-box {
+    &:hover {
+      .db-icon-copy {
+        display: inline;
+      }
+    }
+
     .db-icon-copy {
       display: none;
       margin-top: 1px;
