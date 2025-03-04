@@ -156,7 +156,7 @@ func (r *GoApplyBinlog) ParseBinlogFiles() error {
 
 		if lockErr != nil {
 			// 这里全局并发控制失效，但不让任务失败
-			logger.Error("failed to get file lock:%s. ignore error and concurrency not work", err.Error())
+			logger.Error("failed to get file lock:%s. ignore error and concurrency not work", lockErr.Error())
 		}
 		g.Go(func() error {
 			defer func() {
@@ -268,7 +268,7 @@ exit $retcode
 			"dbPort":          r.TgtInstance.Port,
 			"dbUser":          r.TgtInstance.User,
 			"dbPass":          r.TgtInstance.Pwd,
-			"mysqlOpt":        "--max-allowed-packet=1073741824 --binary-mode",
+			"mysqlOpt":        "--max-allowed-packet=1073741824",
 			"mysqlCmd":        r.ToolSet.MustGet(tools.ToolMysqlclient),
 			"dirBinlogParsed": dirBinlogParsed,
 			"sqlFiles":        strings.Join(r.BinlogFiles, " "),
@@ -383,7 +383,7 @@ func (r *GoApplyBinlog) buildMysqlCliOptions() error {
 		r.TgtInstance.Options += fmt.Sprintf(" --init-command='%s'", strings.Join(initCommands, ";"))
 	}
 	if mysqlOpt.BinaryMode {
-		r.TgtInstance.Options += " --binary-mode"
+		//r.TgtInstance.Options += " --binary-mode"
 	}
 	if mysqlOpt.MaxAllowedPacket > 0 {
 		r.TgtInstance.Options += fmt.Sprintf(" --max-allowed-packet=%d", mysqlOpt.MaxAllowedPacket)

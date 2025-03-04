@@ -26,7 +26,7 @@ func (f *GoFlashback) checkVersionAndVars() error {
 	}
 	// binlog_row_image
 	flashbackAtLeastVer, _ := version.NewVersion("5.5.24")
-	flashbackVer90, _ := version.NewVersion("9.0.0")
+	//flashbackVer90, _ := version.NewVersion("9.0.0")
 	fullrowAtLeastVer, _ := version.NewVersion("5.6.24") // 该版本之后才有 binlog_row_image
 	if val, err := f.dbWorker.SelectVersion(); err != nil {
 		return err
@@ -35,8 +35,8 @@ func (f *GoFlashback) checkVersionAndVars() error {
 		if err != nil {
 			return errors.Wrapf(err, "invalid version %s", val)
 		}
-		if curInstVersion.LessThan(flashbackAtLeastVer) || curInstVersion.GreaterThan(flashbackVer90) {
-			return errors.Errorf("mysql version %s does not support flashback", curInstVersion)
+		if curInstVersion.LessThan(flashbackAtLeastVer) {
+			return nil
 		} else if curInstVersion.GreaterThan(fullrowAtLeastVer) {
 			if val, err := f.dbWorker.GetSingleGlobalVar("binlog_row_image"); err != nil {
 				return err

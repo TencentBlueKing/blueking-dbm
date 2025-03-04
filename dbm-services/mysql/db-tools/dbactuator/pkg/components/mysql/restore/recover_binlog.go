@@ -243,7 +243,7 @@ exit $retcode
 			"dbPort":          r.TgtInstance.Port,
 			"dbUser":          r.TgtInstance.User,
 			"dbPass":          r.TgtInstance.Pwd,
-			"mysqlOpt":        "--max-allowed-packet=1073741824 --binary-mode",
+			"mysqlOpt":        "--max-allowed-packet=1073741824",
 			"mysqlCmd":        r.ToolSet.MustGet(tools.ToolMysqlclient),
 			"dirBinlogParsed": dirBinlogParsed,
 			"sqlFiles":        strings.Join(r.BinlogFiles, " "),
@@ -348,7 +348,7 @@ func (r *RecoverBinlog) buildMysqlOptions() error {
 		r.TgtInstance.Options += fmt.Sprintf(" --init-command='%s'", strings.Join(initCommands, ";"))
 	}
 	if mysqlOpt.BinaryMode {
-		r.TgtInstance.Options += " --binary-mode"
+		//r.TgtInstance.Options += " --binary-mode"
 	}
 	if mysqlOpt.MaxAllowedPacket > 0 {
 		r.TgtInstance.Options += fmt.Sprintf(" --max-allowed-packet=%d", mysqlOpt.MaxAllowedPacket)
