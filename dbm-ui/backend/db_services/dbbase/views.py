@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import json
 from collections import defaultdict
 from typing import Dict, List, Set, Union
 
@@ -17,9 +18,11 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from backend import env
 from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import ResponseSwaggerAutoSchema, common_swagger_auto_schema
+from backend.components import BKBaseApi
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster, DBModule, ProxyInstance, StorageInstance
@@ -51,6 +54,8 @@ from backend.db_services.dbbase.serializers import (
     WebConsoleSerializer,
 )
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
+from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
+from backend.db_services.redis.toolbox.handlers import ToolboxHandler
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 from backend.iam_app.handlers.drf_perm.cluster import ClusterWebconsolePermission
 
@@ -278,15 +283,19 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         data = self.params_validate(self.get_serializer_class())
         cluster = Cluster.objects.get(id=data["cluster_id"])
         db_type = ClusterType.cluster_type_to_db_type(cluster.cluster_type)
+
         # mysql / tendbcluster
         if db_type in [DBType.MySQL, DBType.TenDBCluster]:
-            from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
-
-            return Response(RemoteServiceHandler(bk_biz_id=cluster.bk_biz_id).webconsole_rpc(**data))
+            data = RemoteServiceHandler(bk_biz_id=cluster.bk_biz_id).webconsole_rpc(**data)
         elif db_type in ClusterType.redis_cluster_types():
-            from backend.db_services.redis.toolbox.handlers import ToolboxHandler
+            data = ToolboxHandler.webconsole_rpc(**data)
 
-            return Response(ToolboxHandler.webconsole_rpc(**data))
+        # 对外部查询进行数据脱敏
+        if getattr(request, "is_external", False) and env.BKDATA_DATA_TOKEN:
+            data = BKBaseApi.data_desensitization(text=json.dumps(data), bk_biz_id=cluster.bk_biz_id)
+            data = json.loads(data)
+
+        return Response(data)
 
     @common_swagger_auto_schema(
         operation_summary=_("根据db类型查询ip列表"),

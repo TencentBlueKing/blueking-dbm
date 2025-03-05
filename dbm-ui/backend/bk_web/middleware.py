@@ -31,7 +31,6 @@ from backend.bk_web.constants import (
 )
 from backend.bk_web.exceptions import ExternalProxyBaseException, ExternalRouteInvalidException
 from backend.bk_web.handlers import _error
-from backend.components import BKBaseApi
 from backend.ticket.views import TicketViewSet
 from backend.utils.local import local
 from backend.utils.string import str2bool
@@ -232,12 +231,6 @@ class ExternalProxyMiddleware(MiddlewareMixin):
             # 解析来自外部转发的header
             request.is_external = str2bool(request.headers.get("IS-EXTERNAL", ""), strict=False)
         response = self.get_response(request)
-
-        # 如果是来自外部转发的请求，进行脱敏
-        if getattr(request, "is_external", False) and "webconsole" in request.path and env.BKDATA_DATA_TOKEN:
-            data = BKBaseApi.data_desensitization(response.content.decode("utf-8"))
-            return JsonResponse(json.loads(data))
-
         return response
 
 

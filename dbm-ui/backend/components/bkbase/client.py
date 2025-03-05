@@ -27,10 +27,14 @@ class _BKBaseApi(BaseApi):
             description=_("敏感信息识别"),
         )
 
-    def data_desensitization(self, text):
+    def data_desensitization(self, text, bk_biz_id=env.DBA_APP_BK_BIZ_ID):
         """
         敏感信息识别，并把敏感信息转为*
         """
+        from ...db_meta.models import AppCache
+
+        app = AppCache.get_appcache("appcache_dict")[str(bk_biz_id)]
+
         detect_texts = self.sensitive_text_classification_normal(
             {
                 "bkdata_authentication_method": "token",
@@ -50,6 +54,7 @@ class _BKBaseApi(BaseApi):
                         # 必填参数
                         "bk_app_code": env.APP_CODE,
                         "bk_app_secret": env.SECRET_KEY,
+                        "biz_name": f"{app['bk_biz_name']}(#{app['bk_biz_id']})",
                     },
                 },
             }

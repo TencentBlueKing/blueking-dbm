@@ -36,7 +36,7 @@ def update_cluster_status(sender, instance: Union[StorageInstance, ProxyInstance
                 ClusterType.cluster_type_to_db_type(cluster.cluster_type),
                 instance.machine_type,
                 bk_instance_ids=[instance.bk_instance_id],
-                action=OperateCollectorActionEnum.INSTALL.value,
+                action=OperateCollectorActionEnum.UNINSTALL.value,
             )
             if sender == StorageInstance:
                 cluster.storageinstance_set.remove(instance)
