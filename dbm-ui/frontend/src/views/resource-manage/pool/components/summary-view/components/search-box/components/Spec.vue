@@ -53,16 +53,14 @@
     model: Record<string, string>;
   }
 
-  interface Emits {
-    (
-      e: 'change',
-      value: {
-        cluster_type: string;
-        machine_type: string;
-        spec_id_list: string;
-      },
-    ): void;
-  }
+  type Emits = (
+    e: 'change',
+    value: {
+      cluster_type: string;
+      machine_type: string;
+      spec_id_list: string;
+    },
+  ) => void;
 
   const props = defineProps<Props>();
 
@@ -76,8 +74,8 @@
   const isDbTypeDisabled = computed(() => !!props.model.db_type && props.model.db_type !== 'PUBLIC');
 
   const {
-    loading: isLoading,
     data: resourceSpecList,
+    loading: isLoading,
     run: fetchResourceSpecList,
   } = useRequest(getResourceSpecList, {
     manual: true,
@@ -103,9 +101,9 @@
       if (props.model.machine_type) {
         machineType.value = props.model.machine_type;
         fetchResourceSpecList({
+          limit: -1,
           spec_cluster_type: dbType.value,
           spec_machine_type: props.model.machine_type,
-          limit: -1,
         });
       }
 
@@ -130,9 +128,9 @@
   const handleChangeMachine = (value: string) => {
     machineType.value = value;
     fetchResourceSpecList({
+      limit: -1,
       spec_cluster_type: dbType.value,
       spec_machine_type: value,
-      limit: -1,
     });
     handleChange([]);
   };

@@ -29,9 +29,7 @@
     defaultValue: string;
   }
 
-  interface Emits {
-    (e: 'change', value: string): void;
-  }
+  type Emits = (e: 'change', value: string) => void;
 
   const props = withDefaults(defineProps<Props>(), {
     defaultValue: '',
@@ -43,12 +41,12 @@
   const tagList = ref<ServiceReturnType<typeof listTag>['results']>([]);
   const selected = ref<DbResource['labels'][number]['id'][]>([]);
   const pagination = reactive({
-    offset: 0,
-    limit: 10,
     count: 0,
+    limit: 10,
+    offset: 0,
   });
 
-  const { run: runList, loading: isLoading } = useRequest(listTag, {
+  const { loading: isLoading, run: runList } = useRequest(listTag, {
     manual: true,
     onSuccess(data) {
       pagination.count = data.count;
@@ -67,11 +65,13 @@
           ids: props.defaultValue,
         });
         tagList.value = uniqBy([...tagList.value, ...results], 'value');
+      } else {
+        selected.value = [];
       }
     },
     {
-      immediate: true,
       deep: true,
+      immediate: true,
     },
   );
 

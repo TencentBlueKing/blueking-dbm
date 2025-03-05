@@ -217,7 +217,9 @@
 
   const handleBatchEdit = (value: any, field: string) => {
     tableData.value.forEach((item) => {
-      Object.assign(item[field as keyof RowData], value);
+      Object.assign(item, {
+        [field as keyof RowData]: value,
+      });
     });
   };
 

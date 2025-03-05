@@ -15,11 +15,12 @@
   <EditableTable
     ref="table"
     class="mb-20"
-    :model="tableData">
+    :model="tableData"
+    :rules="rules">
     <EditableRow
       v-for="(item, index) in tableData"
       :key="index">
-      <HostColumnGroup
+      <InstanceColumnGroup
         v-model="item.originProxy"
         :selected="selected"
         @batch-edit="handleBatchEdit" />
@@ -45,19 +46,17 @@
 
   import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
 
-  import { ProxyReplaceTypes } from '../types';
-
-  import HostColumnGroup, { type SelectorItem } from './HostColumnGroup.vue';
+  import InstanceColumnGroup, { type SelectorItem } from './components/InstanceColumnGroup.vue';
 
   interface RowData {
     originProxy: {
       bk_cloud_id: number;
       bk_host_id: number;
+      cluster_id: number;
+      instance_address: string;
       ip: string;
+      master_domain: string;
       port: number;
-      cluster_ids: number[];
-      related_instances: string[];
-      related_clusters: string[];
     };
     targetProxy: {
       bk_biz_id: number;
@@ -75,14 +74,18 @@
     getValue: () => Promise<
       {
         cluster_ids: number[];
+        display_info: {
+          related_clusters: string[];
+          type: 'INSTANCE_REPLACE';
+        };
         old_nodes: {
           origin_proxy: {
             bk_biz_id: number;
             bk_cloud_id: number;
             bk_host_id: number;
+            instance_address?: string;
             ip: string;
             port?: number;
-            instance_address?: string;
           }[];
         };
         resource_spec: {
@@ -94,10 +97,6 @@
               ip: string;
             }[];
           };
-        };
-        display_info: {
-          type: ProxyReplaceTypes;
-          related_clusters: string[];
         };
       }[]
     >;
@@ -114,11 +113,11 @@
     originProxy: data.originProxy || {
       bk_cloud_id: 0,
       bk_host_id: 0,
+      cluster_id: 0,
+      instance_address: '',
       ip: '',
+      master_domain: '',
       port: 0,
-      cluster_ids: [],
-      related_instances: [],
-      related_clusters: [],
     },
     targetProxy: data.targetProxy || {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -134,10 +133,43 @@
     tableData.value
       .filter((item) => item.originProxy.bk_host_id)
       .map((item) => ({
-        ip: item.originProxy.ip,
+        instance_address: item.originProxy.instance_address,
       })),
   );
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
+  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.instance_address, true])));
+  /**
+   * proxy实例替换，只有在目标proxy实例的主机相同时，新proxy主机才允许重复
+   */
+  const targetProxyRepeatMap = computed(() => {
+    return tableData.value.reduce(
+      (result, item) => {
+        Object.assign(result, {
+          [item.targetProxy.ip]: result[item.targetProxy.ip] || item.originProxy.ip,
+        });
+        return result;
+      },
+      {} as Record<string, string>,
+    );
+  });
+
+  const rules = {
+    'targetProxy.ip': [
+      {
+        message: t('IP 重复'),
+        trigger: 'blur',
+        validator: (value: string, rowData: RowData) => {
+          return targetProxyRepeatMap.value[rowData.targetProxy.ip] === rowData.originProxy.ip;
+        },
+      },
+      {
+        message: t('IP 重复'),
+        trigger: 'change',
+        validator: (value: string, rowData: RowData) => {
+          return targetProxyRepeatMap.value[rowData.targetProxy.ip] === rowData.originProxy.ip;
+        },
+      },
+    ],
+  };
 
   watch(
     () => props.data,
@@ -152,28 +184,17 @@
 
   const handleBatchEdit = (list: SelectorItem[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!selectedMap.value[item.ip]) {
-        const clusterIds: number[] = [];
-        const relatedClusters: string[] = [];
-        const relatedInstances: string[] = [];
-        const adminPort = item.related_instances[0].admin_port;
-        item.related_clusters.forEach((item) => {
-          clusterIds.push(item.id);
-          relatedClusters.push(item.immute_domain);
-        });
-        item.related_instances.forEach((item) => {
-          relatedInstances.push(item.instance);
-        });
+      if (!selectedMap.value[item.instance_address]) {
         acc.push(
           createTableRow({
             originProxy: {
               bk_cloud_id: item.bk_cloud_id,
               bk_host_id: item.bk_host_id,
+              cluster_id: item.cluster_id,
+              instance_address: item.instance_address,
               ip: item.ip,
-              port: adminPort,
-              cluster_ids: clusterIds,
-              related_instances: relatedInstances,
-              related_clusters: relatedClusters,
+              master_domain: item.master_domain,
+              port: item.port,
             },
           }),
         );
@@ -191,13 +212,18 @@
       }
 
       return tableData.value.map(({ originProxy, targetProxy }) => ({
-        cluster_ids: originProxy.cluster_ids,
+        cluster_ids: [originProxy.cluster_id],
+        display_info: {
+          related_clusters: [originProxy.master_domain],
+          type: 'INSTANCE_REPLACE',
+        },
         old_nodes: {
           origin_proxy: [
             {
               bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
               bk_cloud_id: originProxy.bk_cloud_id,
               bk_host_id: originProxy.bk_host_id,
+              instance_address: originProxy.instance_address,
               ip: originProxy.ip,
               port: originProxy.port,
             },
@@ -214,11 +240,6 @@
               },
             ],
           },
-        },
-        display_info: {
-          type: ProxyReplaceTypes.HOST_REPLACE,
-          related_instances: originProxy.related_instances,
-          related_clusters: originProxy.related_clusters,
         },
       }));
     },
