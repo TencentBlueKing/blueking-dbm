@@ -288,6 +288,7 @@ class Ticket(AuditedModel):
             flow_type=FlowType.DELIVERY.value,
             details={"related_ticket": recycle_ticket.id},
             flow_alias=TicketType.get_choice_label(ticket_type),
+            status=TicketFlowStatus.SUCCEEDED.value,
         )
 
     @classmethod

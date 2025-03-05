@@ -175,8 +175,10 @@ class DBResourceViewSet(viewsets.SystemViewSet):
             os_hosts[host["bk_os_type"]].append(host)
 
         # 按照集群类型分别导入
+        task_ids = []
         for os_type, hosts in os_hosts.items():
             root_id = generate_root_id()
+            task_ids.append(root_id)
 
             # 补充必要的单据参数
             validated_data.update(
@@ -208,7 +210,7 @@ class DBResourceViewSet(viewsets.SystemViewSet):
             if expired_tasks:
                 RedisConn.zrem(cache_key, *expired_tasks)
 
-        return Response()
+        return Response({"task_ids": task_ids})
 
     @common_swagger_auto_schema(
         operation_summary=_("查询资源导入任务"),

@@ -50,11 +50,14 @@ class ResourceImportSerializer(serializers.Serializer):
     return_resource = serializers.BooleanField(help_text=_("是否为退回资源"), required=False)
 
     def validate(self, attrs):
-        # 如果主机存在源数据，则拒绝导入
         host_ids = [host["host_id"] for host in attrs["hosts"]]
+
+        # 如果主机存在元数据，则拒绝导入
         exist_hosts = list(Machine.objects.filter(bk_host_id__in=host_ids).values_list("ip", flat=True))
         if exist_hosts:
             raise serializers.ValidationError(_("导入主机{}存在元数据，请检查后重新导入").format(exist_hosts))
+
+        # TODO：如果主机存在裁撤单 / uwork单，则不允许导入
 
         return attrs
 
