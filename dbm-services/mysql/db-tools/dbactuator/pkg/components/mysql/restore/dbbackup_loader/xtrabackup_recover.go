@@ -80,7 +80,11 @@ func (x *Xtrabackup) repairAndStart() (err error) {
 	if err = x.changeDirOwner(); err != nil {
 		return err
 	}
-
+	logger.Info("repair myisam tables for sys mysql db (offline)")
+	// 修复MyIsam表，系统库表优先修复
+	if err := x.RepairMyisamTablesForMysqldb(); err != nil {
+		return err
+	}
 	logger.Info("start local mysqld with --skip-grant-tables --skip-slave-start")
 	// 启动mysql-修复权限
 	startParam := computil.StartMySQLParam{
@@ -162,11 +166,7 @@ func (x *Xtrabackup) repairAndStart() (err error) {
 			logger.Warn("fail to reset user %s", x.TgtInstance.User)
 		}
 	}
-	logger.Info("repair myisam tables for sys mysql db")
-	// 修复MyIsam表，系统库表优先修复
-	if err := x.RepairMyisamTablesForMysqldb(); err != nil {
-		return err
-	}
+
 	logger.Info("repair myisam tables for non-system")
 	if err := x.RepairNonSysMyIsamTables(); err != nil {
 		return err
