@@ -13,24 +13,27 @@
 
 <template>
   <div class="instance-selector-render-topo-host">
-    <BkInput
+    <SerachBar
       v-model="searchValue"
-      clearable
-      :placeholder="t('请输入实例')" />
+      :placeholder="t('请输入或选择条件搜索')"
+      :search-attrs="searchAttrs"
+      :validate-search-values="validateSearchValues"
+      @search-value-change="handleSearchValueChange" />
     <BkLoading
       :loading="isLoading"
       :z-index="2">
       <DbOriginalTable
         :columns="columns"
-        :data="isManul ? renderManualData : tableData"
-        :max-height="530"
+        :data="tableData"
+        :max-height="520"
         :pagination="pagination.count < 10 ? false : pagination"
         :settings="tableSetting"
         :show-overflow="false"
         style="margin-top: 12px"
+        @clear-search="clearSearchValue"
+        @column-filter="columnFilterChange"
         @page-limit-change="handeChangeLimit"
         @page-value-change="handleChangePage"
-        @refresh="fetchResources"
         @row-click.stop.prevent="handleRowClick" />
     </BkLoading>
   </div>
@@ -38,6 +41,8 @@
 <script setup lang="tsx">
   import type { Ref } from 'vue';
   import { useI18n } from 'vue-i18n';
+
+  import { useLinkQueryColumnSerach } from '@hooks';
 
   import { ClusterTypes } from '@common/const';
 
@@ -49,6 +54,8 @@
     TableSetting,
   } from '@components/instance-selector/Index.vue';
   import { activePanelInjectionKey } from '@components/instance-selector/Index.vue';
+
+  import SerachBar from '../../common/SearchBar.vue';
 
   import { useTableData } from './useTableData';
 
@@ -65,7 +72,6 @@
     getTableList: NonNullable<TableConfigType['getTableList']>;
     isManul?: boolean;
     lastValues: InstanceSelectorValues<IValue>;
-    manualTableData?: DataRow[];
     multiple: boolean;
     statusFilter?: TableConfigType['statusFilter'];
     tableSetting: TableSetting;
@@ -89,6 +95,27 @@
 
   const { t } = useI18n();
 
+  const {
+    clearSearchValue,
+    columnAttrs,
+    columnCheckedMap,
+    columnFilterChange,
+    handleSearchValueChange,
+    searchAttrs,
+    searchValue,
+    validateSearchValues,
+  } = useLinkQueryColumnSerach({
+    attrs: ['bk_cloud_id'],
+    defaultSearchItem: {
+      id: 'instance',
+      name: t('IP 或 IP:Port'),
+    },
+    fetchDataFn: () => fetchResources(),
+    initAutoFetch: false,
+    isDiscardNondefault: true,
+    searchType: [ClusterTypes.MONGO_SHARED_CLUSTER, ClusterTypes.MONGO_REPLICA_SET].join(','),
+  });
+
   const activePanel = inject(activePanelInjectionKey) as Ref<string> | undefined;
 
   const checkedMap = shallowRef({} as DataRow);
@@ -110,17 +137,7 @@
     handleChangePage,
     isLoading,
     pagination,
-    searchValue,
-  } = useTableData<DataRow>(selectClusterId, initRole);
-
-  const renderManualData = computed(() => {
-    if (searchValue.value === '') {
-      return props.manualTableData;
-    }
-    return props.manualTableData.filter((item) =>
-      (item[firstColumnFieldId.value] as string).includes(searchValue.value),
-    );
-  });
+  } = useTableData<DataRow>(searchValue, selectClusterId, initRole);
 
   const isSelectedAll = computed(
     () =>
@@ -239,8 +256,25 @@
     },
     {
       field: 'status',
+      filter: {
+        checked: columnCheckedMap.value.status,
+        list: [
+          {
+            text: t('正常'),
+            value: 'running',
+          },
+          {
+            text: t('异常'),
+            value: 'unavailable',
+          },
+          {
+            text: t('重建中'),
+            value: 'loading',
+          },
+        ],
+      },
       label: t('实例状态'),
-      render: ({ data }: { data: DataRow }) => {
+      render: ({ data }: DataRow) => {
         const isNormal = props.statusFilter ? props.statusFilter(data) : data.status === 'running';
         const info = isNormal ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
@@ -268,9 +302,14 @@
       showOverflow: true,
     },
     {
-      field: 'bk_cloud_name',
+      field: 'bk_cloud_id',
+      filter: {
+        checked: columnCheckedMap.value.bk_cloud_id,
+        list: columnAttrs.value.bk_cloud_id,
+      },
       label: t('管控区域'),
       minWidth: 100,
+      render: ({ data }: DataRow) => <span>{data.bk_cloud_name ?? '--'}</span>,
       showOverflow: true,
     },
     {
@@ -412,7 +451,7 @@
   };
 
   const handleSelectPageAll = (checked: boolean) => {
-    const list = props.isManul ? renderManualData.value : tableData.value;
+    const list = tableData.value;
     if (props.disabledRowConfig) {
       isSelectedAllReal = !isSelectedAllReal;
       for (const data of list) {

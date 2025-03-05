@@ -13,23 +13,27 @@
 
 <template>
   <div class="instance-selector-render-topo-host">
-    <BkInput
+    <SerachBar
       v-model="searchValue"
-      clearable
-      :placeholder="t('请输入主机')" />
+      is-host
+      :placeholder="t('请输入或选择条件搜索')"
+      :search-attrs="searchAttrs"
+      :validate-search-values="validateSearchValues"
+      @search-value-change="handleSearchValueChange" />
     <BkLoading
       :loading="isLoading"
       :z-index="2">
       <DbOriginalTable
         :columns="columns"
         :data="tableData"
-        :max-height="530"
+        :max-height="520"
         :pagination="pagination.count < 10 ? false : pagination"
         :show-overflow="false"
         style="margin-top: 12px"
+        @clear-search="clearSearchValue"
+        @column-filter="columnFilterChange"
         @page-limit-change="handeChangeLimit"
         @page-value-change="handleChangePage"
-        @refresh="fetchResources"
         @row-click.stop.prevent="handleRowClick" />
     </BkLoading>
   </div>
@@ -37,6 +41,10 @@
 <script setup lang="tsx">
   import type { Ref } from 'vue';
   import { useI18n } from 'vue-i18n';
+
+  import { useLinkQueryColumnSerach } from '@hooks';
+
+  import { ClusterTypes } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
 
@@ -46,6 +54,7 @@
     type IValue,
     type PanelListType,
   } from '../../../Index.vue';
+  import SerachBar from '../../common/SearchBar.vue';
 
   import { useTableData } from './useTableData';
 
@@ -73,6 +82,26 @@
 
   const { t } = useI18n();
 
+  const {
+    clearSearchValue,
+    columnAttrs,
+    columnCheckedMap,
+    columnFilterChange,
+    handleSearchValueChange,
+    searchAttrs,
+    searchValue,
+    validateSearchValues,
+  } = useLinkQueryColumnSerach({
+    attrs: ['bk_cloud_id'],
+    defaultSearchItem: {
+      id: 'ip',
+      name: 'IP',
+    },
+    fetchDataFn: () => fetchResources(),
+    isDiscardNondefault: true,
+    searchType: ClusterTypes.TENDBSINGLE,
+  });
+
   const activePanel = inject(activePanelInjectionKey) as Ref<string> | undefined;
 
   const checkedMap = shallowRef({} as DataRow);
@@ -94,8 +123,7 @@
     handleChangePage,
     isLoading,
     pagination,
-    searchValue,
-  } = useTableData<IValue>(initRole, selectClusterId);
+  } = useTableData<IValue>(searchValue, initRole, selectClusterId);
 
   const isSelectedAll = computed(
     () =>
@@ -172,6 +200,17 @@
       minWidth: 160,
     },
     {
+      field: 'alive',
+      label: t('Agent状态'),
+      minWidth: 100,
+      render: ({ data }: DataRow) => {
+        const info =
+          data.host_info?.alive === 1 ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };
+        return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
+      },
+      showOverflow: true,
+    },
+    {
       field: 'bk_sub_zone',
       label: t('园区'),
       minWidth: 120,
@@ -193,20 +232,15 @@
       showOverflow: true,
     },
     {
-      field: 'bk_cloud_name',
+      field: 'bk_cloud_id',
+      filter: {
+        checked: columnCheckedMap.value.bk_cloud_id,
+        list: columnAttrs.value.bk_cloud_id,
+      },
       label: t('管控区域'),
       minWidth: 100,
+      render: ({ data }: DataRow) => <span>{data.bk_cloud_name ?? '--'}</span>,
       showOverflow: true,
-    },
-    {
-      field: 'alive',
-      label: t('Agent状态'),
-      minWidth: 100,
-      render: ({ data }: DataRow) => {
-        const info =
-          data.host_info?.alive === 1 ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };
-        return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
-      },
     },
     {
       field: 'host_name',
