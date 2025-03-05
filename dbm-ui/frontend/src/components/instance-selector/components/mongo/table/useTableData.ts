@@ -11,15 +11,22 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
 import type { ComponentInternalInstance, Ref } from 'vue';
 import { useRequest } from 'vue-request';
 
 import { useGlobalBizs } from '@stores';
 
+import { getSearchSelectorParams } from '@utils';
+
 /**
  * 处理集群列表数据
  */
-export function useTableData<T>(clusterId?: Ref<number | undefined>, role?: Ref<string | undefined>) {
+export function useTableData<T>(
+  searchSelectValue: Ref<ISearchValue[]>,
+  clusterId?: Ref<number | undefined>,
+  role?: Ref<string | undefined>,
+) {
   const { currentBizId } = useGlobalBizs();
   const currentInstance = getCurrentInstance() as {
     proxy: {
@@ -38,7 +45,6 @@ export function useTableData<T>(clusterId?: Ref<number | undefined>, role?: Ref<
     limitList: [10, 20, 50, 100],
     remote: true,
   });
-  const searchValue = ref('');
 
   const { loading: isLoading, run: getTableListRun } = useRequest(currentInstance.proxy.getTableList, {
     manual: true,
@@ -54,7 +60,7 @@ export function useTableData<T>(clusterId?: Ref<number | undefined>, role?: Ref<
     },
   });
 
-  watch(searchValue, () => {
+  watch(searchSelectValue, () => {
     setTimeout(() => {
       handleChangePage(1);
     });
@@ -64,7 +70,8 @@ export function useTableData<T>(clusterId?: Ref<number | undefined>, role?: Ref<
     const params = {
       bk_biz_id: currentBizId,
       extra: 1,
-      instance_address: searchValue.value,
+      // instance_address: searchSelectValue.value,
+      ...getSearchSelectorParams(searchSelectValue.value),
       limit: pagination.limit,
       offset: (pagination.current - 1) * pagination.limit,
     };
@@ -104,6 +111,5 @@ export function useTableData<T>(clusterId?: Ref<number | undefined>, role?: Ref<
     handleChangePage,
     isLoading,
     pagination,
-    searchValue,
   };
 }
