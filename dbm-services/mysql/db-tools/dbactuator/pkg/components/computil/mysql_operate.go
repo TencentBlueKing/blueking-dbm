@@ -280,18 +280,26 @@ func JudgeMysqldShutDown(prefix string) (err error) {
 			shellCMD := fmt.Sprintf("ps -efwww | grep %s|grep -E 'mysqld |mysqld_safe'| grep -v grep", prefix)
 			out, err := osutil.ExecShellCommand(false, shellCMD)
 			if err != nil {
-				logger.Info("execute %s get an error:%s", shellCMD, err.Error())
+				if strings.TrimSpace(out) == "" {
+					// grep no process found
+					logger.Info("mysqld exit success:%s", prefix)
+					time.Sleep(2 * time.Second)
+					// 遇见过进程停掉之后，还往 data/xxx.err 写了条 mysqld_safe mysqld from pid file ....pid ended
+					return nil
+				}
+				logger.Error("execute %s get an error:%s", shellCMD, err.Error())
 				return err
 			}
 			logger.Info("stop mysqld output: %s", out)
 			// 提示: len(strings.Split("", "\n")) = 1
-			if len(cmutil.SplitAnyRuneTrim(strings.TrimSpace(out), "\n")) > 1 {
+			processCnt := len(cmutil.SplitAnyRuneTrim(strings.TrimSpace(out), "\n"))
+			if processCnt == 0 {
 				logger.Info("mysqld exit success:%s", prefix)
 				time.Sleep(2 * time.Second)
 				// 遇见过进程停掉之后，还往 data/xxx.err 写了条 mysqld_safe mysqld from pid file ....pid ended
 				return nil
 			}
-			logger.Warn("mysqld process %s is running still...", prefix)
+			logger.Warn("mysqld process is still running:%s, count:%d", prefix, processCnt)
 		}
 	}
 }

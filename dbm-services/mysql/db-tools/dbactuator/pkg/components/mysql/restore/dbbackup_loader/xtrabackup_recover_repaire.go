@@ -119,7 +119,7 @@ func (x *Xtrabackup) RepairMyisamTablesForMysqldb() error {
 	// find . -name '*.MYI' -exec /usr/local/mysql/bin/myisamchk -c -r -f -v {} \; > /tmp/repair_myisam_3306.log
 	sysMysqldbDir := filepath.Join(dataDir, "mysql")
 	repairCmdArgs := []string{
-		"/usr/local/mysql/bin/myisamchk", "-c", "-r", "-f", "-v",
+		"/usr/local/mysql/bin/myisamchk", "-r", "-f", "-v",
 		fmt.Sprintf("--tmpdir=%s", filepath.Join(dataDir, "tmp")),
 		"--sort_buffer_size=256M", "--key_buffer_size=256M", "--read_buffer_size=2M", "--write_buffer_size=2M",
 	}

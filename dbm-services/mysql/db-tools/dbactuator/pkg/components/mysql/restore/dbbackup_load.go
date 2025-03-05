@@ -15,6 +15,7 @@ import (
 	"dbm-services/common/go-pubpkg/filecontext"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/go-pubpkg/validate"
+	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/restore/dbbackup_loader"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
@@ -187,6 +188,9 @@ func (m *DBLoader) Start() error {
 		// 创建软连接到 taskDir 下，方便查看
 		os.Symlink(m.targetDir, filepath.Join(m.taskDir, baseName))
 	}
+
+	// TODO 解压完，这里存档，避免重试时从头来过
+
 	logger.Info("开始数据恢复 targetDir=%s", m.targetDir)
 	if err := m.dbLoader.Load(); err != nil {
 		return errors.WithMessage(err, "dbactuator dbloaderData failed")
@@ -261,7 +265,7 @@ func (m *DBLoader) initDirs(removeOld bool) error {
 		//SContext.Set("work_id", m.WorkID, true)
 	}
 
-	untarDirSuffix := fmt.Sprintf("doDr_%s/%d", m.WorkID, m.TgtInstance.Port)
+	untarDirSuffix := fmt.Sprintf("doDr_%d_%s", m.TgtInstance.Port, m.WorkID)
 	m.taskDir = filepath.Join(m.WorkDir, untarDirSuffix)
 	// 物理备份 targetDir 直接放在数据目录所在分区
 	if untarDir2, _ := SContext.GetString("untar_dir"); untarDir2 != "" {
@@ -271,19 +275,25 @@ func (m *DBLoader) initDirs(removeOld bool) error {
 		if instanceDataRootDir, err := m.myCnf.GetMySQLDataRootDir(); err != nil {
 			logger.Warn("fail to get mysqld datadir: %s", m.myCnf.FileName)
 		} else {
+			if subcmd.GBaseOptions.RootId == "" {
+				subcmd.GBaseOptions.RootId = cast.ToString(m.TgtInstance.Port)
+			}
+			// untarDir = /data1/mysqldata/[xyzrootid/doDr_20000_1234567]
+			untarDirSuffix = fmt.Sprintf("%s/%s", subcmd.GBaseOptions.RootId, untarDirSuffix)
 			m.untarDir = filepath.Join(filepath.Dir(instanceDataRootDir), untarDirSuffix)
 			logger.Info("use untar dir under datadir: %s", instanceDataRootDir)
 		}
 	}
 	if m.untarDir == "" {
+		// untarDir = /data/dbbak/xyzrootid/[20000/doDr_20000_1234567]
 		m.untarDir = m.taskDir
 		logger.Info("use untar dir under workDir %s: %s", m.WorkDir)
 	}
 	if removeOld { // 删除旧目录
 		timeNow := time.Now()
 		// 只匹配 doDr_ 开头的目录，避免删
-		untarDirBase := fmt.Sprintf("%s/doDr_*", filepath.Dir(filepath.Dir(m.untarDir)))
-		oldDirs, _ := filepath.Glob(untarDirBase)
+		searchUntarDir := fmt.Sprintf("%s/doDr_%d_*", filepath.Dir(m.untarDir), m.TgtInstance.Port)
+		oldDirs, _ := filepath.Glob(searchUntarDir)
 		for _, oldDir := range oldDirs {
 			if dirInfo, err := os.Stat(oldDir); err == nil && dirInfo.IsDir() {
 				if timeNow.Sub(dirInfo.ModTime()) > 1*time.Minute {
