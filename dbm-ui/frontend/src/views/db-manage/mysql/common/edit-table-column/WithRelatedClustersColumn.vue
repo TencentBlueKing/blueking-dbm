@@ -67,17 +67,21 @@
   import ClusterSelector from '@components/cluster-selector/Index.vue';
 
   interface Props {
+    /**
+     * 在添加proxy，proxy升级的场景，多加一个请求参数role: proxy  表示以proxy维度查询关联集群
+     */
+    role?: 'proxy';
     selected: {
       id: number;
       master_domain: string;
     }[];
   }
 
-  interface Emits {
-    (e: 'batch-edit', list: TendbhaModel[]): void;
-  }
+  type Emits = (e: 'batch-edit', list: TendbhaModel[]) => void;
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    role: undefined,
+  });
 
   const emits = defineEmits<Emits>();
 
@@ -111,37 +115,37 @@
 
   const rules = [
     {
+      message: '',
+      trigger: 'change',
       // 监听输入项变化时关联集群重置
       validator: () => {
         modelValue.value.related_clusters = [];
         return true;
       },
-      message: '',
-      trigger: 'change',
     },
     {
-      validator: (value: string) => domainRegex.test(value),
       message: t('集群域名格式不正确'),
       trigger: 'change',
+      validator: (value: string) => domainRegex.test(value),
     },
     {
-      validator: (value: string) => props.selected.filter((item) => item.master_domain === value).length < 2,
       message: t('目标集群重复'),
       trigger: 'blur',
+      validator: (value: string) => props.selected.filter((item) => item.master_domain === value).length < 2,
     },
     {
+      message: t('目标集群不存在'),
+      trigger: 'blur',
       validator: () => {
         if (!modelValue.value.master_domain) {
           return true;
         }
         return Boolean(modelValue.value.id);
       },
-      message: t('目标集群不存在'),
-      trigger: 'blur',
     },
   ];
 
-  const { run: queryRelatedClusters, loading: relatedClusterLoading } = useRequest(findRelatedClustersByClusterIds, {
+  const { loading: relatedClusterLoading, run: queryRelatedClusters } = useRequest(findRelatedClustersByClusterIds, {
     manual: true,
     onSuccess: (data) => {
       if (data.length) {
@@ -153,7 +157,7 @@
     },
   });
 
-  const { run: queryCluster, loading } = useRequest(filterClusters, {
+  const { loading, run: queryCluster } = useRequest(filterClusters, {
     manual: true,
     onSuccess: (data) => {
       if (data.length) {
@@ -167,8 +171,9 @@
     () => {
       if (modelValue.value.id) {
         queryRelatedClusters({
-          cluster_ids: [modelValue.value.id],
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_ids: [modelValue.value.id],
+          role: props.role,
         });
       }
     },

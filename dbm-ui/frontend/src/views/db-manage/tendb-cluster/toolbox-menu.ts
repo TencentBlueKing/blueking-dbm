@@ -85,12 +85,6 @@ export default [
         name: t('重建从库'),
         parentId: 'spider_cluster_maintain',
       },
-      {
-        dbConsoleValue: 'tendbCluster.toolbox.slaveRebuild',
-        id: 'spiderSlaveRebuild',
-        name: t('重建从库'),
-        parentId: 'spider_cluster_maintain',
-      },
     ],
     icon: 'db-icon-cluster',
     id: 'spider_cluster_maintain',

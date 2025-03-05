@@ -31,11 +31,12 @@
           :key="index">
           <WithRelatedClustersColumn
             v-model="item.cluster"
+            role="proxy"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
           <SingleResourceHostColumn
-            v-model="item.proxy"
-            field="proxy.ip"
+            v-model="item.new_proxy"
+            field="new_proxy.ip"
             :label="t('新Proxy主机')"
             :params="{
               for_bizs: [currentBizId, 0],
@@ -94,7 +95,7 @@
         master_domain: string;
       }[];
     };
-    proxy: {
+    new_proxy: {
       bk_biz_id: number;
       bk_cloud_id: number;
       bk_host_id: number;
@@ -113,7 +114,7 @@
       master_domain: '',
       related_clusters: [],
     },
-    proxy: data.proxy || {
+    new_proxy: data.new_proxy || {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: 0,
@@ -131,47 +132,76 @@
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   // 集群域名到自身及其下集群id、域名映射
   const clusterMap = computed(() => {
-    const result = selected.value.reduce<Record<string, { ids: number[]; domains: string[] }>>((acc, cur) => {
-      acc[cur.master_domain] = {
-        ids: [cur.id, ...cur.related_clusters.map((item) => item.id)],
-        domains: [cur.master_domain, ...cur.related_clusters.map((item) => item.master_domain)],
-      };
+    const result = selected.value.reduce<Record<string, { domains: string[]; ids: number[] }>>((acc, cur) => {
+      Object.assign(acc, {
+        [cur.master_domain]: {
+          domains: [cur.master_domain, ...cur.related_clusters.map((item) => item.master_domain)],
+          ids: [cur.id, ...cur.related_clusters.map((item) => item.id)],
+        },
+      });
       return acc;
     }, {});
     return result;
+  });
+  const newProxyCounter = computed(() => {
+    return formData.tableData.reduce(
+      (result, item) => {
+        Object.assign(result, {
+          [item.new_proxy.ip]: (result[item.new_proxy.ip] || 0) + 1,
+        });
+        return result;
+      },
+      {} as Record<string, number>,
+    );
   });
 
   const rules = {
     'cluster.master_domain': [
       {
+        message: '',
+        trigger: 'blur',
         validator: (value: string) => {
           const repeatTarget = Object.keys(clusterMap.value).find(
             (domain) => clusterMap.value[domain].domains.includes(value) && domain !== value,
           );
           return repeatTarget ? t('目标集群是集群target的关联集群_请勿重复添加', { target: repeatTarget }) : true;
         },
-        message: '',
+      },
+    ],
+    'new_proxy.ip': [
+      {
+        message: t('IP 重复'),
         trigger: 'blur',
+        validator: (value: string, rowData: RowData) => {
+          return newProxyCounter.value[rowData.new_proxy.ip] <= 1;
+        },
+      },
+      {
+        message: t('IP 重复'),
+        trigger: 'change',
+        validator: (value: string, rowData: RowData) => {
+          return newProxyCounter.value[rowData.new_proxy.ip] <= 1;
+        },
       },
     ],
   };
 
-  const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
-    ip_source: 'resource_pool';
+  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     infos: {
       cluster_ids: number[];
       resource_spec: {
         new_proxy: {
-          spec_id: number;
           hosts: {
             bk_biz_id: number;
             bk_cloud_id: number;
             bk_host_id: number;
             ip: string;
           }[];
+          spec_id: number;
         };
       };
     }[];
+    ip_source: 'resource_pool';
   }>(TicketTypes.MYSQL_PROXY_ADD);
 
   const handleSubmit = async () => {
@@ -181,16 +211,16 @@
     }
     createTicketRun({
       details: {
-        ip_source: 'resource_pool',
         infos: formData.tableData.map((item) => ({
           cluster_ids: clusterMap.value[item.cluster.master_domain].ids,
           resource_spec: {
             new_proxy: {
+              hosts: [item.new_proxy],
               spec_id: 0,
-              hosts: [item.proxy],
             },
           },
         })),
+        ip_source: 'resource_pool',
       },
       remark: formData.remark,
     });

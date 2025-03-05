@@ -136,7 +136,9 @@
   const newSlaveCounter = computed(() => {
     return formData.tableData.reduce(
       (result, item) => {
-        Object.assign(result[item.newSlave.ip], (result[item.newSlave.ip] || 0) + 1);
+        Object.assign(result, {
+          [item.newSlave.ip]: (result[item.newSlave.ip] || 0) + 1,
+        });
         return result;
       },
       {} as Record<string, number>,
@@ -148,6 +150,13 @@
       {
         message: t('IP 重复'),
         trigger: 'change',
+        validator: (value: string, rowData: RowData) => {
+          return newSlaveCounter.value[rowData.newSlave.ip] <= 1;
+        },
+      },
+      {
+        message: t('IP 重复'),
+        trigger: 'blur',
         validator: (value: string, rowData: RowData) => {
           return newSlaveCounter.value[rowData.newSlave.ip] <= 1;
         },

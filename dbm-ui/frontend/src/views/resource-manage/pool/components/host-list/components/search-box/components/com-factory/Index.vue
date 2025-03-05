@@ -60,12 +60,10 @@
   import SpecId from './components/SpecId.vue';
 
   interface Props {
-    name: string;
     model: Record<string, any>;
+    name: string;
   }
-  interface Emits {
-    (e: 'change', name: string, value: any): void;
-  }
+  type Emits = (e: 'change', name: string, value: any) => void;
   interface Expose {
     getValue: () => Promise<boolean>;
     reset: () => void;
@@ -81,20 +79,20 @@
   const errorMessage = ref('');
 
   const comMap = {
-    for_biz: ForBiz,
-    resource_type: ResourceType,
-    hosts: Hosts,
     agent_status: AgentStatus,
-    device_class: DeviceClass,
-    os_type: OSType,
-    mount_point: MountPoint,
+    bk_cloud_ids: BkCloudIds,
+    city: CitySubzones,
     cpu: Cpu,
-    mem: Mem,
-    labels: Label,
+    device_class: DeviceClass,
     disk: Disk,
     disk_type: DiskType,
-    city: CitySubzones,
-    bk_cloud_ids: BkCloudIds,
+    for_biz: ForBiz,
+    hosts: Hosts,
+    labels: Label,
+    mem: Mem,
+    mount_point: MountPoint,
+    os_type: OSType,
+    resource_type: ResourceType,
     spec_id: SpecId,
   };
 
@@ -144,7 +142,7 @@
 
     .wrapper {
       position: relative;
-      padding: 0 20px;
+      padding: 0 6px;
     }
 
     .search-item-label {

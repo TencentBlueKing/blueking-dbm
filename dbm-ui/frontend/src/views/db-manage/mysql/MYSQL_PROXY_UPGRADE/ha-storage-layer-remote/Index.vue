@@ -20,7 +20,7 @@
       <EditableRow
         v-for="(item, index) in formData.tableData"
         :key="index">
-        <HaClusterColumn
+        <WithRelatedClustersColumn
           v-model="item.cluster"
           :selected="selected"
           @batch-edit="handleBatchEdit" />
@@ -120,9 +120,9 @@
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+  import WithRelatedClustersColumn from '@views/db-manage/mysql/common/edit-table-column/WithRelatedClustersColumn.vue';
 
   import CurrentVersionColumn from '../components/CurrentVersionColumn.vue';
-  import HaClusterColumn from '../components/HaClusterColumn.vue';
   import TargetVersionColumn from '../components/TargetVersionColumn.vue';
 
   import NewReadonlyHostColumn from './components/NewReadonlyHostColumn.vue';
@@ -219,9 +219,13 @@
     formData.tableData
       .filter((item) => item.cluster.id)
       .reduce<Record<string, true>>((acc, cur) => {
-        Object.assign(acc[cur.cluster.master_domain], true);
+        Object.assign(acc, {
+          [cur.cluster.master_domain]: true,
+        });
         cur.cluster.related_clusters.forEach((item) => {
-          Object.assign(acc[item.master_domain], true);
+          Object.assign(acc, {
+            [item.master_domain]: true,
+          });
         });
         return acc;
       }, {}),

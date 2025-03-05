@@ -61,20 +61,20 @@
 
   const panels = [
     {
-      name: 'host-list',
       label: t('主机列表'),
+      name: 'host-list',
     },
     {
-      name: 'summary-view',
       label: t('统计视图'),
+      name: 'summary-view',
     },
   ];
 
   const activeTab = useDebouncedRef(route.params.page as string);
 
   const renderComponentMap = {
-    'summary-view': SummaryView,
     'host-list': HostList,
+    'summary-view': SummaryView,
   };
 
   const renderComponent = computed(() => renderComponentMap[activeTab.value as keyof typeof renderComponentMap]);
