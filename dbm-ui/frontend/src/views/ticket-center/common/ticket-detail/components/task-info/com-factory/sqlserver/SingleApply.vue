@@ -85,12 +85,12 @@
           {{ ticketDetails.details.charset }}
         </BkTableColumn>
         <BkTableColumn
-          v-if="ticketDetails.details.nodes?.sqlserver_single"
-          field="sqlserver_single"
+          v-if="ticketDetails.details.nodes?.backend"
+          field="backend"
           :label="t('服务器')"
           :min-width="180">
           <template #default="{ rowIndex }">
-            {{ ticketDetails.details.nodes.sqlserver_single[rowIndex].ip }}
+            {{ ticketDetails.details.nodes.backend[rowIndex].ip }}
           </template>
         </BkTableColumn>
       </BkTable>

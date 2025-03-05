@@ -478,7 +478,7 @@
       return {
         ...details,
         nodes: {
-          [clusterType]: formatNodes(details.nodes.backend),
+          backend: formatNodes(details.nodes.backend),
         },
         resource_spec: undefined,
       };

@@ -90,7 +90,7 @@
           {{ ticketDetails.details.charset }}
         </BkTableColumn>
         <BkTableColumn
-          v-if="ticketDetails.details.nodes?.sqlserver_ha"
+          v-if="ticketDetails.details.nodes?.backend"
           field="sqlserver_ha"
           label="Master / Slave IP"
           :min-width="180">
@@ -101,7 +101,7 @@
                 theme="info">
                 M
               </BkTag>
-              {{ ticketDetails.details.nodes.sqlserver_ha[rowIndex * 2].ip }}
+              {{ ticketDetails.details.nodes.backend[rowIndex * 2].ip }}
             </div>
             <div>
               <BkTag
@@ -109,7 +109,7 @@
                 theme="success">
                 S
               </BkTag>
-              {{ ticketDetails.details.nodes.sqlserver_ha[rowIndex * 2 + 1].ip }}
+              {{ ticketDetails.details.nodes.backend[rowIndex * 2 + 1].ip }}
             </div>
           </template>
         </BkTableColumn>
