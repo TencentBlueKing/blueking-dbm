@@ -233,7 +233,8 @@
 
   // multipleEnums 变更
   const handleChangeMultipleEnums = (index: number, _: string, value: string[]) => {
-    state.data.conf_items[index].value_default = value.join(',');
+    const key = isPlat.value ? 'value_default' : 'conf_value';
+    state.data.conf_items[index][key] = value.join(',');
   };
 
   // enums 变更
