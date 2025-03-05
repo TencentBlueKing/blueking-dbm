@@ -34,9 +34,7 @@
   import FieldTag from './components/field-tag/Index.vue';
   import { isValueEmpty } from './components/utils';
 
-  interface Emits {
-    (e: 'change', value: Record<string, any>): void;
-  }
+  type Emits = (e: 'change', value: Record<string, any>) => void;
   interface Expose {
     clearValue: () => void;
   }
@@ -80,8 +78,8 @@
 
       const typeHandlers = {
         array: () => value.split(','),
-        rang: () => value.split('-'),
         number: () => Number(value),
+        rang: () => value.split('-'),
         string: () => value,
       };
 
@@ -99,11 +97,17 @@
       }
 
       if (config.type === 'array' && value.length > 0) {
-        acc[fieldName] = value.join(',');
+        Object.assign(acc, {
+          [fieldName]: value.join(','),
+        });
       } else if (config.type === 'rang' && value.length > 0) {
-        acc[fieldName] = `${value[0]}-${value[1]}`;
+        Object.assign(acc, {
+          [fieldName]: `${value[0]}-${value[1]}`,
+        });
       } else {
-        acc[fieldName] = value;
+        Object.assign(acc, {
+          [fieldName]: value,
+        });
       }
 
       return acc;
@@ -148,7 +152,7 @@
 <style lang="less">
   .resource-pool-search-box {
     position: relative;
-    padding: 20px 0;
+    padding: 20px 10px;
     font-size: 12px;
     color: #63656e;
     background: #fff;

@@ -27,14 +27,14 @@
           :desc="t('只替换目标实例')"
           icon="rebuild"
           :title="t('实例替换')"
-          :true-value="ProxyReplaceTypes.INSTANCE_REPLACE" />
+          true-value="INSTANCE_REPLACE" />
         <CardCheckbox
           v-model="replaceType"
           class="ml-8"
           :desc="t('主机关联的所有实例一并替换')"
           icon="host"
           :title="t('整机替换')"
-          :true-value="ProxyReplaceTypes.HOST_REPLACE" />
+          true-value="HOST_REPLACE" />
       </div>
     </div>
     <BkForm
@@ -86,40 +86,42 @@
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
-  import HostTable from './components/HostTable.vue';
-  import InstanceTable from './components/InstanceTable.vue';
-  import { ProxyReplaceTypes } from './types';
+  import HOST_REPLACE from './components/HOST_REPLACE/Index.vue';
+  import INSTANCE_REPLACE from './components/INSTANCE_REPLACE/Index.vue';
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
 
   const defaultData = () => ({
-    tableData: [],
     force: false,
+    tableData: [],
     ...createTickePayload(),
   });
 
   const tableComponentMap = {
-    [ProxyReplaceTypes.INSTANCE_REPLACE]: InstanceTable,
-    [ProxyReplaceTypes.HOST_REPLACE]: HostTable,
+    HOST_REPLACE,
+    INSTANCE_REPLACE,
   };
 
-  const replaceType = ref(ProxyReplaceTypes.INSTANCE_REPLACE);
+  const replaceType = ref<'INSTANCE_REPLACE' | 'HOST_REPLACE'>('INSTANCE_REPLACE');
   const formData = reactive(defaultData());
 
-  const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
+  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     force: boolean;
-    ip_source: 'resource_pool';
     infos: {
       cluster_ids: number[];
+      display_info: {
+        related_clusters: string[];
+        type: typeof replaceType.value;
+      };
       old_nodes: {
         origin_proxy: {
           bk_biz_id: number;
           bk_cloud_id: number;
           bk_host_id: number;
+          instance_address?: string;
           ip: string;
           port?: number;
-          instance_address?: string;
         }[];
       };
       resource_spec: {
@@ -132,11 +134,8 @@
           }[];
         };
       };
-      display_info: {
-        type: ProxyReplaceTypes;
-        related_clusters: string[];
-      };
     }[];
+    ip_source: 'resource_pool';
   }>(TicketTypes.MYSQL_PROXY_SWITCH);
 
   const handleSubmit = async () => {
@@ -145,8 +144,8 @@
       createTicketRun({
         details: {
           force: formData.force,
-          ip_source: 'resource_pool',
           infos,
+          ip_source: 'resource_pool',
         },
         remark: formData.remark,
       });

@@ -123,79 +123,79 @@
   let selectionListWholeDataMemo: DbResourceModel[] = [];
   const tableColumn = [
     {
-      label: 'IP',
       field: 'ip',
       fixed: 'left',
+      label: 'IP',
       minWidth: 150,
       with: 150,
     },
     {
-      label: t('管控区域'),
       field: 'bk_cloud_name',
+      label: t('管控区域'),
       minWidth: 120,
     },
     {
-      label: t('Agent 状态'),
       field: 'agent_status',
+      label: t('Agent 状态'),
       minWidth: 100,
       render: ({ data }: { data: DbResourceModel }) => <HostAgentStatus data={data.agent_status} />,
     },
     {
-      label: t('所属业务'),
       field: 'for_biz',
+      label: t('所属业务'),
       minWidth: 170,
       render: ({ data }: { data: DbResourceModel }) => data.forBizDisplay || '--',
     },
     {
-      label: t('所属DB类型'),
       field: 'resource_type',
+      label: t('所属DB类型'),
       minWidth: 150,
       render: ({ data }: { data: DbResourceModel }) => data.resourceTypeDisplay || '--',
     },
     {
-      label: t('机架'),
       field: 'rack_id',
+      label: t('机架'),
       minWidth: 100,
       render: ({ data }: { data: DbResourceModel }) => data.rack_id || '--',
     },
     {
-      label: t('机型'),
       field: 'device_class',
+      label: t('机型'),
       minWidth: 100,
       render: ({ data }: { data: DbResourceModel }) => data.device_class || '--',
     },
     {
-      label: t('操作系统类型'),
       field: 'os_type',
+      label: t('操作系统类型'),
       minWidth: 180,
       render: ({ data }: { data: DbResourceModel }) => data.os_type || '--',
     },
     {
-      label: t('地域'),
       field: 'city',
+      label: t('地域'),
       minWidth: 100,
       render: ({ data }: { data: DbResourceModel }) => data.city || '--',
     },
     {
-      label: t('园区'),
       field: 'sub_zone',
+      label: t('园区'),
       minWidth: 100,
       render: ({ data }: { data: DbResourceModel }) => data.sub_zone || '--',
     },
     {
-      label: t('CPU(核)'),
       field: 'bk_cpu',
+      label: t('CPU(核)'),
       minWidth: 100,
     },
     {
-      label: t('内存'),
       field: 'bk_mem',
+      label: t('内存'),
       minWidth: 100,
       render: ({ data }: { data: DbResourceModel }) => data.bkMemText || '0 M',
     },
     {
-      label: t('磁盘容量(G)'),
       field: 'bk_disk',
+      label: t('磁盘容量(G)'),
       minWidth: 120,
       render: ({ data }: { data: DbResourceModel }) => (
         <DiskPopInfo data={data.storage_device}>
@@ -204,9 +204,8 @@
       ),
     },
     {
-      label: t('操作'),
       fixed: 'right',
-      width: 100,
+      label: t('操作'),
       render: ({ data }: { data: DbResourceModel }) => (
         <db-popconfirm
           confirm-handler={() => handleRemove(data)}
@@ -215,19 +214,19 @@
           <auth-button
             actionId='resource_pool_manage'
             permission={data.permission.resource_pool_manage}
-            text
-            theme='primary'>
+            theme='primary'
+            text>
             {t('移除')}
           </auth-button>
         </db-popconfirm>
       ),
+      width: 100,
     },
   ];
 
   const { settings: tableSetting, updateTableSettings } = useTableSettings(
     UserPersonalSettings.RESOURCE_POOL_HOST_LIST_SETTINGS,
     {
-      disabled: ['ip'],
       checked: [
         'ip',
         'bk_cloud_name',
@@ -243,6 +242,7 @@
         'bk_disk',
         'os_type',
       ],
+      disabled: ['ip'],
     },
   );
 
@@ -297,8 +297,8 @@
   // 复制所有主机
   const handleCopyAllHost = () => {
     fetchList({
-      offset: 0,
       limit: -1,
+      offset: 0,
       ...searchParams,
     }).then((data) => {
       const ipList = data.results.map((item) => item.ip);
@@ -315,8 +315,8 @@
   // 复制所有异常主机
   const handleCopyAllAbnormalHost = () => {
     fetchList({
-      offset: 0,
       limit: -1,
+      offset: 0,
     }).then((data) => {
       const ipList = data.results.reduce((result, item) => {
         if (!item.agent_status) {

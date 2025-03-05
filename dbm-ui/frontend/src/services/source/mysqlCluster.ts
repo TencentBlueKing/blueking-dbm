@@ -21,7 +21,7 @@ const getRootPath = () => `/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/clus
 /**
  * 通过集群查询同机关联集群
  */
-export function findRelatedClustersByClusterIds(params: { bk_biz_id: number; cluster_ids: number[] }) {
+export function findRelatedClustersByClusterIds(params: { bk_biz_id: number; cluster_ids: number[]; role?: string }) {
   return http.post<
     Array<{
       cluster_id: number;

@@ -6,16 +6,16 @@ export function createToolboxRoute(dbType: DBTypes) {
   const createRouteItem = (
     ticketType: TicketTypes,
     navName: string,
-    meta: { navName?: string; fullscreen?: boolean; dbConsole?: string } = {},
+    meta: { dbConsole?: string; fullscreen?: boolean; navName?: string } = {},
   ) => ({
-    name: ticketType,
-    path: `${ticketType}/:page?`,
+    component: () => import(`@views/db-manage/${dbToolbox}/${ticketType}/Index.vue`),
     meta: {
-      navName,
       fullscreen: true,
+      navName,
       ...meta,
     },
-    component: () => import(`@views/db-manage/${dbToolbox}/${ticketType}/Index.vue`),
+    name: ticketType,
+    path: `${ticketType}/:page?`,
   });
 
   return {

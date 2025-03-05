@@ -89,12 +89,10 @@
   import HostEmpty from './components/HostEmpty.vue';
 
   interface Props {
-    modelValue: HostInfo[];
     contentHeight: number;
+    modelValue: HostInfo[];
   }
-  interface Emits {
-    (e: 'update:modelValue', value: Props['modelValue']): void;
-  }
+  type Emits = (e: 'update:modelValue', value: Props['modelValue']) => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -112,35 +110,35 @@
 
   const tableColumn = [
     {
-      label: 'IP',
       field: 'ip',
       fixed: 'left',
+      label: 'IP',
       width: 150,
     },
     {
-      label: 'IPV6',
       field: 'ipv6',
+      label: 'IPV6',
       render: ({ data }: { data: HostInfo }) => data.ipv6 || '--',
     },
     {
-      label: t('管控区域'),
       field: 'cloud_area.name',
+      label: t('管控区域'),
     },
     {
-      label: t('Agent 状态'),
       field: 'agent',
+      label: t('Agent 状态'),
       render: ({ data }: { data: HostInfo }) => {
-        const info = data.alive === 1 ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
+        const info = data.alive === 1 ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
     },
     {
-      label: t('主机名称'),
       field: 'host_name',
+      label: t('主机名称'),
     },
     {
-      label: 'OS 名称',
       field: 'os_name',
+      label: 'OS 名称',
     },
   ];
 
@@ -172,8 +170,8 @@
 
   const fetchData = () => {
     tableRef.value.fetchData({
-      search_content: searchContent.value,
       bk_biz_id: bizId.value,
+      search_content: searchContent.value,
     });
   };
 

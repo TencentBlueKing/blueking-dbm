@@ -71,9 +71,7 @@
     }[];
   }
 
-  interface Emits {
-    (e: 'batch-edit', list: IValue[]): void;
-  }
+  type Emits = (e: 'batch-edit', list: IValue[]) => void;
 
   const props = defineProps<Props>();
 
@@ -82,20 +80,20 @@
   const modelValue = defineModel<{
     bk_cloud_id: number;
     bk_host_id?: number;
-    ip: string;
-    port: number;
     cluster_id: number;
     instance_address: string;
+    ip: string;
     master_domain: string;
+    port: number;
   }>({
     default: () => ({
       bk_cloud_id: 0,
       bk_host_id: undefined,
-      ip: '',
-      port: 0,
       cluster_id: 0,
       instance_address: '',
+      ip: '',
       master_domain: '',
+      port: 0,
     }),
   });
 
@@ -108,8 +106,8 @@
         name: t('目标实例'),
         tableConfig: {
           firsrColumn: {
-            label: t('Proxy 实例'),
             field: 'instance_address',
+            label: t('Proxy 实例'),
             role: 'proxy',
           },
         },
@@ -119,8 +117,8 @@
         name: t('手动输入'),
         tableConfig: {
           firsrColumn: {
-            label: t('Proxy 实例'),
             field: 'instance_address',
+            label: t('Proxy 实例'),
             role: 'proxy',
           },
         },
@@ -138,23 +136,23 @@
 
   const rules = [
     {
-      validator: (value: string) => ipPort.test(value),
       message: t('格式不符合要求'),
       trigger: 'change',
+      validator: (value: string) => ipPort.test(value),
     },
     {
-      validator: (value: string) => props.selected.filter((item) => item.instance_address === value).length < 2,
       message: t('目标实例重复'),
       trigger: 'blur',
+      validator: (value: string) => props.selected.filter((item) => item.instance_address === value).length < 2,
     },
     {
-      validator: () => Boolean(modelValue.value.bk_host_id),
       message: t('目标实例不存在'),
       trigger: 'blur',
+      validator: () => Boolean(modelValue.value.bk_host_id),
     },
   ];
 
-  const { run: queryInstance, loading } = useRequest(checkInstance, {
+  const { loading, run: queryInstance } = useRequest(checkInstance, {
     manual: true,
     onSuccess: (data) => {
       if (data.length) {
@@ -162,11 +160,11 @@
         modelValue.value = {
           bk_cloud_id: hostInfo.bk_cloud_id,
           bk_host_id: hostInfo.bk_host_id,
-          ip: hostInfo.ip,
-          port: hostInfo.port,
           cluster_id: hostInfo.cluster_id,
           instance_address: hostInfo.instance_address,
+          ip: hostInfo.ip,
           master_domain: hostInfo.master_domain,
+          port: hostInfo.port,
         };
       }
     },
@@ -180,11 +178,11 @@
     modelValue.value = {
       bk_cloud_id: 0,
       bk_host_id: undefined,
-      ip: '',
-      port: 0,
       cluster_id: 0,
       instance_address: value,
+      ip: '',
       master_domain: '',
+      port: 0,
     };
     if (value) {
       queryInstance({
