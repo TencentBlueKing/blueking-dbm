@@ -11,6 +11,8 @@
 package spiderctl
 
 import (
+	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"os"
@@ -338,12 +340,24 @@ func (c *ImportSchemaFromBackendComp) migrateUseMysqlDump() (err error) {
 	wg := sync.WaitGroup{}
 	ctrChan := make(chan struct{}, c.maxThreads)
 	for _, db := range c.dumpDbs {
+		conn, err := c.tdbctlConn.Db.Conn(context.Background())
+		if err != nil {
+			logger.Error("从连接池获取连接失败:%s", err.Error())
+			return err
+		}
 		wg.Add(1)
 		ctrChan <- struct{}{}
 		dumpfile := dumpfileInfo[buildBackendDb(db)]
-		go func(db string, dumpfile string) {
+		go func(conn *sql.Conn, db string, dumpfile string) {
 			defer func() { wg.Done(); <-ctrChan }()
-			_, err := c.tdbctlConn.Exec(fmt.Sprintf("CREATE DATABASE %s /*!40100 DEFAULT CHARACTER SET %s */;", db, c.charset))
+			_, err = conn.ExecContext(context.Background(), fmt.Sprintf("set tc_admin=0;"))
+			if err != nil {
+				logger.Error("set session tc_admin=0 failed:%s", err.Error())
+				errChan <- err
+			}
+			defer conn.Close()
+			_, err := conn.ExecContext(context.Background(), fmt.Sprintf(
+				"CREATE DATABASE %s /*!40100 DEFAULT CHARACTER SET %s */;", db, c.charset))
 			if err != nil {
 				logger.Error("创建数据库:%s 失败:%s", db, err.Error())
 				errChan <- err
@@ -354,7 +368,7 @@ func (c *ImportSchemaFromBackendComp) migrateUseMysqlDump() (err error) {
 				logger.Error("执行导入schema文件:%s 失败:%s", dumpfile, err.Error())
 				errChan <- err
 			}
-		}(db, dumpfile)
+		}(conn, db, dumpfile)
 	}
 	go func() {
 		wg.Wait()
