@@ -23,15 +23,15 @@
   const { t } = useI18n();
 
   const configMap = {
-    spec: {
-      header: [t('所属业务'), t('地域'), t('规格类型'), t('规格'), t('园区分布（台）'), t('总数（台）')],
-      colWidth: [15, 15, 30, 30, 50, 10],
-      fileName: t('资源分布统计(地域 + 规格)'),
-    },
     device_class: {
-      header: [t('所属业务'), t('地域'), t('机型（硬盘）'), t('CPU 内存'), t('园区分布（台）'), t('总数（台）')],
       colWidth: [15, 15, 30, 20, 50, 10],
       fileName: t('资源分布统计(地域 + 机型)'),
+      header: [t('所属业务'), t('地域'), t('机型（硬盘）'), t('CPU 内存'), t('园区分布（台）'), t('总数（台）')],
+    },
+    spec: {
+      colWidth: [15, 15, 30, 30, 50, 10],
+      fileName: t('资源分布统计(地域 + 规格)'),
+      header: [t('所属业务'), t('地域'), t('规格类型'), t('规格'), t('园区分布（台）'), t('总数（台）')],
     },
   };
 
@@ -62,7 +62,7 @@
 
   const handleClick = () => {
     const workbook = XLSX.utils.book_new();
-    const { header, colWidth, fileName } = configMap[props.dimension as keyof typeof configMap];
+    const { colWidth, fileName, header } = configMap[props.dimension as keyof typeof configMap];
     const data = generateData();
     const worksheet = XLSX.utils.aoa_to_sheet([header, ...data]);
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');

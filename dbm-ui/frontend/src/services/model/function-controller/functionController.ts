@@ -159,10 +159,14 @@ export default class FunctionController {
   'redis.toolbox.rollbackRecord': ControllerItem<string>;
   'redis.toolbox.slaveRebuild': ControllerItem<string>;
   'redis.toolbox.versionUpgrade': ControllerItem<string>;
+  'resourceManage.allHost': ControllerItem<string>;
   'resourceManage.dirtyHostManage': ControllerItem<string>;
+  'resourceManage.faultPool': ControllerItem<string>;
   'resourceManage.resourceOperationRecord': ControllerItem<string>;
   'resourceManage.resourcePool': ControllerItem<string>;
   'resourceManage.resourceSpec': ControllerItem<string>;
+  'resourceManage.resourceTagsManagement': ControllerItem<string>;
+  'resourceManage.toRecyclePool': ControllerItem<string>;
   'riak.clusterManage.baseInfo': ControllerItem<string>;
   'riak.clusterManage.changeLog': ControllerItem<string>;
   'riak.clusterManage.clusterTopo': ControllerItem<string>;

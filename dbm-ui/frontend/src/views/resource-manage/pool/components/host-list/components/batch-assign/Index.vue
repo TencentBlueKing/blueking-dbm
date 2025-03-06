@@ -16,7 +16,8 @@
       <template #main>
         <FormPanel
           ref="formPanelRef"
-          :biz-id="curBizId" />
+          :biz-id="curBizId"
+          :current-data="currentData" />
       </template>
       <template #aside>
         <ListPanel
@@ -89,6 +90,17 @@
   const hostList = shallowRef<DbResourceModel[]>([]);
 
   const curBizId = computed(() => hostList.value[0]?.for_biz.bk_biz_id || 0);
+
+  const currentData = computed(() => {
+    if (props.selected.length === 1) {
+      const { labels, resource_type: resourceType } = props.selected[0];
+      return {
+        labels: labels,
+        resourceType,
+      };
+    }
+    return undefined;
+  });
 
   const { loading: isUpdating, run: runUpdate } = useRequest(updateResource, {
     manual: true,

@@ -39,7 +39,7 @@
         :filters="operationTypeFilters"
         :label="t('操作类型')"
         :width="130">
-        <template #default="{ data }: { data: MachineEvent }">
+        <template #default="{ data }: { data: MachineEventModel }">
           {{ data.eventDisplay }}
         </template>
       </BkTableColumn>
@@ -63,7 +63,7 @@
         field="ticket"
         :label="t('关联单据')"
         :min-width="200">
-        <template #default="{ data }: { data: MachineEvent }">
+        <template #default="{ data }: { data: MachineEventModel }">
           <RouterLink
             v-if="data.ticket"
             target="_blank"
@@ -83,15 +83,18 @@
         :label="t('集群')"
         :min-width="300"
         show-overflow="tooltip">
-        <template #default="{ data }: { data: MachineEvent }">
+        <template #default="{ data }: { data: MachineEventModel }">
           {{ data.clusters.length ? data.clusters.map((item) => item.immute_domain).join(', ') : '--' }}
         </template>
       </BkTableColumn>
       <BkTableColumn
-        field="operationDetail"
+        field="event"
         :label="t('操作明细')"
         show-overflow="tooltip"
         :width="300">
+        <template #default="{ data }: { data: MachineEventModel }">
+          <OperationDetail :data="data" />
+        </template>
       </BkTableColumn>
     </DbTable>
   </div>
@@ -102,6 +105,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import MachineEventModel from '@services/model/db-resource/machineEvent';
   import { getMachineEvents } from '@services/source/dbdirty';
   import { getTicketTypes } from '@services/source/ticket';
   import { getUserList } from '@services/source/user';
@@ -112,9 +116,9 @@
 
   import { machineEventsDisplayMap } from '@common/const/machineEvents';
 
-  import { getMenuListSearch, getSearchSelectorParams } from '@utils';
+  import OperationDetail from '@views/resource-manage/common/components/operation-detail/Index.vue';
 
-  type MachineEvent = ServiceReturnType<typeof getMachineEvents>['results'][number];
+  import { getMenuListSearch, getSearchSelectorParams } from '@utils';
 
   const { t } = useI18n();
   const globalBizStore = useGlobalBizs();

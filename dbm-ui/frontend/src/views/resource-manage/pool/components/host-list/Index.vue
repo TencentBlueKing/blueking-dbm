@@ -89,8 +89,9 @@
       <AuthButton
         action-id="resource_operation_view"
         class="quick-search-btn"
-        @click="handleGoOperationRecord">
+        @click="handleGoTaskHistory">
         <DbIcon type="history-2" />
+        <span class="ml-4">{{ t('导入记录') }}</span>
       </AuthButton>
     </div>
     <RenderTable
@@ -147,7 +148,6 @@
 <script setup lang="tsx">
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { useRouter } from 'vue-router';
 
   import DbResourceModel from '@services/model/db-resource/DbResource';
   import { fetchList } from '@services/source/dbresourceResource';
@@ -162,6 +162,8 @@
   import { execCopy } from '@utils';
 
   import { ResourcePool } from '../../type';
+  // import HostOperationTip from './components/HostOperationTip.vue';
+  import { useImportResourcePoolTooltip } from '../hooks/useImportResourcePoolTip';
 
   import BatchAddTags from './components/batch-add-tags/Index.vue';
   import BatchAssign from './components/batch-assign/Index.vue';
@@ -171,7 +173,6 @@
   import BatchMoveToRecyclePool from './components/batch-move-to-recycle-pool/Index.vue';
   import BatchSetting from './components/batch-setting/Index.vue';
   import BatchUndoImport from './components/batch-undo-import/Index.vue';
-  // import HostOperationTip from './components/HostOperationTip.vue';
   import RenderTable from './components/RenderTable.vue';
   import SearchBox from './components/search-box/Index.vue';
   import UpdateAssign from './components/update-assign/Index.vue';
@@ -186,10 +187,10 @@
   });
 
   const { t } = useI18n();
-  const router = useRouter();
   const { currentBizId } = useGlobalBizs();
 
   const { handleChange: handleSettingChange, setting: tableSetting } = useTableSetting();
+  const { taskHistoryListHref } = useImportResourcePoolTooltip();
 
   const searchBoxRef = ref();
   const tableRef = ref();
@@ -309,22 +310,6 @@
       width: 320,
     },
     {
-      field: 'rack_id',
-      label: t('机架'),
-      render: ({ data }: { data: DbResourceModel }) => data.rack_id || '--',
-    },
-    {
-      field: 'device_class',
-      label: t('机型'),
-      render: ({ data }: { data: DbResourceModel }) => data.device_class || '--',
-    },
-    {
-      field: 'os_type',
-      label: t('操作系统类型'),
-      render: ({ data }: { data: DbResourceModel }) => data.os_type || '--',
-      width: 120,
-    },
-    {
       field: 'city',
       label: t('地域'),
       render: ({ data }: { data: DbResourceModel }) => data.city || '--',
@@ -343,6 +328,12 @@
       field: 'os_type',
       label: t('操作系统类型'),
       render: ({ data }: { data: DbResourceModel }) => data.os_type || '--',
+      width: 120,
+    },
+    {
+      field: 'os_name',
+      label: t('操作系统名称'),
+      render: ({ data }: { data: DbResourceModel }) => data.os_name || '--',
       width: 120,
     },
     {
@@ -370,6 +361,16 @@
           <span style='line-height: 40px; color: #3a84ff;cursor: pointer'>{data.bk_disk}</span>
         </DiskPopInfo>
       ),
+    },
+    {
+      field: 'updateAtDisplay',
+      label: t('转入时间'),
+    },
+    {
+      field: 'updater',
+      label: t('转入人'),
+      render: ({ data }: { data: DbResourceModel }) => data.updater || '--',
+      width: 180,
     },
     // {
     //   field: 'id',
@@ -542,11 +543,9 @@
     selectionHostIdList.value = [];
   };
 
-  // 跳转操作记录
-  const handleGoOperationRecord = () => {
-    router.push({
-      name: 'resourcePoolOperationRecord',
-    });
+  // 跳转历史任务
+  const handleGoTaskHistory = () => {
+    window.open(taskHistoryListHref);
   };
 
   const handleSelection = (list: number[], selectionListWholeData: DbResourceModel[]) => {
@@ -616,7 +615,6 @@
       align-items: center;
 
       .quick-search-btn {
-        width: 32px;
         margin-left: auto;
       }
 

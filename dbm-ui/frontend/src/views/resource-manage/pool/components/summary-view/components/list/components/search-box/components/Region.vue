@@ -40,15 +40,13 @@
     model: Record<string, string>;
   }
 
-  interface Emits {
-    (
-      e: 'change',
-      value: {
-        city: string;
-        subzone_ids: string;
-      },
-    ): void;
-  }
+  type Emits = (
+    e: 'change',
+    value: {
+      city: string;
+      subzone_ids: string;
+    },
+  ) => void;
 
   const props = defineProps<Props>();
 

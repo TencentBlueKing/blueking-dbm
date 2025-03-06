@@ -25,11 +25,19 @@ export const useImportResourcePoolTooltip = (hostList?: Ref<(FaultOrRecycleMachi
   const router = useRouter();
   const systemEnvironStore = useSystemEnviron();
 
-  const route = router.resolve({
-    name: 'taskHistory',
+  const formatHref = (originHref: string) => {
+    const bizId = systemEnvironStore.urls.DBA_APP_BK_BIZ_ID;
+    const href = originHref.replace(/\/(\d+)\//, `/${bizId}/`);
+    return href;
+  };
+
+  const taskHistoryListRoute = router.resolve({
+    name: 'taskHistoryList',
+    query: {
+      ticket_type__in: 'RESOURCE_IMPORT',
+    },
   });
-  const bizId = systemEnvironStore.urls.DBA_APP_BK_BIZ_ID;
-  const href = route.href.replace(/\/(\d+)\//, `/${bizId}/`);
+  const taskHistoryListHref = formatHref(taskHistoryListRoute.href);
 
   const tooltip = computed(() => {
     const content = {
@@ -37,7 +45,7 @@ export const useImportResourcePoolTooltip = (hostList?: Ref<(FaultOrRecycleMachi
         <div>
           {t('提交后，将会进行主机初始化任务，具体的导入结果，可以通过“')}
           <a
-            href={href}
+            href={taskHistoryListHref}
             target='_blank'>
             {t('任务历史')}
           </a>
@@ -59,7 +67,27 @@ export const useImportResourcePoolTooltip = (hostList?: Ref<(FaultOrRecycleMachi
         };
   });
 
-  const successMessage = () => {
+  const successMessage = (taskIds: string[]) => {
+    const getRouteInfo = () => {
+      if (taskIds.length === 1) {
+        return router.resolve({
+          name: 'taskHistoryDetail',
+          params: {
+            root_id: taskIds[0],
+          },
+        });
+      }
+      return router.resolve({
+        name: 'taskHistoryList',
+        query: {
+          ticket_type__in: 'RESOURCE_IMPORT',
+        },
+      });
+    };
+
+    const routeInfo = getRouteInfo();
+    const routeInfoHref = formatHref(routeInfo.href);
+
     Message({
       delay: 6000,
       dismissable: false,
@@ -68,7 +96,7 @@ export const useImportResourcePoolTooltip = (hostList?: Ref<(FaultOrRecycleMachi
         h(
           'a',
           {
-            href,
+            href: routeInfoHref,
             target: '_blank',
           },
           ` "${t('任务')}" `,
@@ -81,6 +109,7 @@ export const useImportResourcePoolTooltip = (hostList?: Ref<(FaultOrRecycleMachi
 
   return {
     successMessage,
+    taskHistoryListHref,
     tooltip,
   };
 };

@@ -17,7 +17,7 @@ declare module 'vue' {
     DbSearchSelect: typeof import('@components/db-search-select/index.vue').default;
     DbSideslider: typeof import('@components/db-sideslider/index.vue').default;
     DbStatus: typeof import('@components/db-status/index.vue').default;
-    DbTable: typeof import('@components/db-table/Index.vue');
+    DbTable: typeof import('@components/db-table/Index.vue').default;
     EditableBlock: typeof import('@components/editable-table/Index.vue').Block;
     EditableColumn: typeof import('@components/editable-table/Index.vue').Column;
     EditableDatePicker: typeof import('@components/editable-table/Index.vue').DatePicker;

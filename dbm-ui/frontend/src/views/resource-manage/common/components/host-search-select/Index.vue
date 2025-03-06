@@ -15,47 +15,46 @@
 
   import { fetchDeviceClass } from '@services/source/dbresourceResource';
 
-  interface Emits {
-    (e: 'search'): void;
-  }
+  type Emits = (e: 'search') => void;
 
   const emits = defineEmits<Emits>();
-
-  const { t } = useI18n();
 
   const modelValue = defineModel<ISearchValue[]>({
     default: () => [],
   });
+
+  const { t } = useI18n();
+
   const deviceClassList = ref<ServiceReturnType<typeof fetchDeviceClass>['results']>([]);
 
   const searchSelectData = computed(() => [
     {
-      name: 'IP',
       id: 'ips',
+      name: 'IP',
     },
     {
-      name: t('地域'),
       id: 'city',
+      name: t('地域'),
     },
     {
-      name: t('园区'),
       id: 'sub_zone',
+      name: t('园区'),
     },
     {
-      name: t('机架'),
       id: 'rack_id',
+      name: t('机架'),
     },
     {
-      name: t('操作系统'),
       id: 'os_name',
+      name: t('操作系统'),
     },
     {
-      name: t('机型'),
-      id: 'device_class',
       children: deviceClassList.value?.map((item) => ({
         id: item,
         name: item,
       })),
+      id: 'device_class',
+      name: t('机型'),
     },
   ]);
 

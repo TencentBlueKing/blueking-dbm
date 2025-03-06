@@ -9,14 +9,14 @@ const path = '/apis/tag/';
  * 查询资源标签
  */
 export function listTag(params: {
-  value?: string;
   bind_ips?: string[];
-  creator?: string;
   bk_biz_id?: number;
+  creator?: string;
+  ids?: string;
   limit?: number;
   offset?: number;
   ordering?: string;
-  ids?: string;
+  value?: string;
 }) {
   return http.get<ListBase<ResourceTagModel[]>>(`${path}`, params).then((res) => ({
     ...res,

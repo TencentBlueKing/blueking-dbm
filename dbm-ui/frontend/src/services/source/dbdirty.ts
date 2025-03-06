@@ -83,7 +83,10 @@ export function getMachinePool(params: {
   ips?: string;
   limit?: number;
   offset?: number;
-  pool: 'fault' | 'recycle';
+  /**
+   * 不传则为所有主机
+   */
+  pool?: 'fault' | 'recycle';
 }) {
   return http.get<ListBase<FaultOrRecycleMachineModel[]>>(`${path}/query_machine_pool/`, params).then((res) => ({
     ...res,

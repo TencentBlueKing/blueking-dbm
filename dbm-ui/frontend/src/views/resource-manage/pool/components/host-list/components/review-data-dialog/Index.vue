@@ -42,6 +42,21 @@
           </div>
         </div>
       </div>
+      <BkForm
+        v-if="showRemark"
+        ref="formRef"
+        class="mt-16"
+        form-type="vertical"
+        :model="formData">
+        <BkFormItem
+          :label="t('备注')"
+          property="remark"
+          required>
+          <BkInput
+            v-model="formData.remark"
+            class="mt-6" />
+        </BkFormItem>
+      </BkForm>
     </div>
     <template #footer>
       <div class="dialog-footer">
@@ -72,13 +87,14 @@
     alert?: string;
     loading: boolean;
     selected: string[];
+    showRemark?: boolean;
     theme?: 'primary' | 'danger';
     tip: string;
     title: string;
   }
 
   interface Emits {
-    (e: 'confirm'): void;
+    (e: 'confirm', remark: string): void;
     (e: 'cancel'): void;
   }
 
@@ -93,14 +109,24 @@
 
   const { t } = useI18n();
 
+  const formRef = useTemplateRef('formRef');
+
+  const formData = reactive({
+    remark: '',
+  });
+
   const handleConfirm = () => {
-    emits('confirm');
-    isShow.value = false;
+    formRef.value!.validate().then(() => {
+      emits('confirm', formData.remark);
+      isShow.value = false;
+      formData.remark = '';
+    });
   };
 
   const handleClose = () => {
     emits('cancel');
     isShow.value = false;
+    formData.remark = '';
   };
 </script>
 
@@ -153,6 +179,11 @@
           }
         }
       }
+    }
+
+    .remark-label {
+      font-size: 12px;
+      color: #63656e;
     }
   }
 

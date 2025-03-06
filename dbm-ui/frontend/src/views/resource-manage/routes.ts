@@ -44,6 +44,15 @@ const toRecyclePoolRoute = {
   component: () => import('@views/resource-manage/pool/components/fault-or-recycle-list/Index.vue'),
 };
 
+const allHostRoute = {
+  path: 'all-host',
+  name: 'allHost',
+  meta: {
+    navName: t('所有主机'),
+  },
+  component: () => import('@views/resource-manage/pool/all-host/Index.vue'),
+};
+
 const resourcePoolOperationRecordRoute = {
   path: 'record',
   name: 'resourcePoolOperationRecord',
@@ -102,6 +111,10 @@ export default function getRoutes() {
 
   if (checkDbConsole('resourceManage.toRecyclePool')) {
     mainRoute[0].children.push(toRecyclePoolRoute);
+  }
+
+  if (checkDbConsole('resourceManage.allHost')) {
+    mainRoute[0].children.push(allHostRoute);
   }
 
   if (checkDbConsole('resourceManage.resourceTagsManagement')) {

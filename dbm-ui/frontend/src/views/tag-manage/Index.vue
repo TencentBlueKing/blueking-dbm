@@ -40,14 +40,14 @@
         <BkButton
           class="operation-btn"
           theme="primary"
-          @click="handleCreate"
-          >{{ t('新建') }}
+          @click="handleCreate">
+          {{ t('新建') }}
         </BkButton>
         <BkButton
           class="operation-btn"
           :disabled="!hasSelected"
-          @click="handleBatchDelete"
-          >{{ t('批量删除') }}
+          @click="handleBatchDelete">
+          {{ t('批量删除') }}
         </BkButton>
         <BkSearchSelect
           v-model="searchValue"
@@ -86,7 +86,7 @@
   import { useRequest } from 'vue-request';
 
   import ResourceTagModel from '@services/model/db-resource/ResourceTag';
-  import { deleteTag, getTagRelatedResource, listTag, updateTag } from '@services/source/tag';
+  import { deleteTag, getTagRelatedResource, listTag, updateTag, validateTag } from '@services/source/tag';
 
   import { useGlobalBizs } from '@stores';
 
@@ -107,27 +107,10 @@
   const curBiz = ref(currentBizInfo!);
   const curEditId = ref(-1);
   const searchValue = ref([]);
-  const bindIpMap = ref<Map<number, number>>(new Map()); // 标签ID与当前标签绑定的IP数的映射
 
-  const hasSelected = computed(() => selected.value.length > 0);
-  const selectedIds = computed(() => selected.value.map((item) => item.id));
+  const bindIpMap = shallowRef<Map<number, number>>(new Map()); // 标签ID与当前标签绑定的IP数的映射
+
   const isBusiness = route.name === 'BizResourceTag';
-
-  const { run: runDelete } = useRequest(deleteTag, {
-    manual: true,
-    onSuccess() {
-      fetchData();
-      messageSuccess(t('删除成功'));
-    },
-  });
-  const { run: runUpdate } = useRequest(updateTag, {
-    manual: true,
-    onSuccess() {
-      curEditId.value = -1;
-      fetchData();
-      messageSuccess(t('更新成功'));
-    },
-  });
 
   const searchSelectData = [
     {
@@ -139,6 +122,17 @@
       name: t('创建人'),
     },
   ];
+
+  const hasSelected = computed(() => selected.value.length > 0);
+  const selectedIds = computed(() => selected.value.map((item) => item.id));
+
+  const { run: runDelete } = useRequest(deleteTag, {
+    manual: true,
+    onSuccess() {
+      fetchData();
+      messageSuccess(t('删除成功'));
+    },
+  });
 
   const tableColumn = computed(() => [
     {
@@ -237,6 +231,15 @@
     },
   });
 
+  const { run: runUpdate } = useRequest(updateTag, {
+    manual: true,
+    onSuccess() {
+      curEditId.value = -1;
+      fetchData();
+      messageSuccess(t('更新成功'));
+    },
+  });
+
   watch(searchValue, () => {
     fetchData();
   });
@@ -285,11 +288,24 @@
   };
 
   const handleBlur = (data: ResourceTagModel, val: string) => {
-    runUpdate({
-      bk_biz_id: curBiz.value.bk_biz_id,
-      id: data.id,
-      value: val,
-    });
+    if (val && data.value !== val) {
+      validateTag({
+        bk_biz_id: curBiz.value.bk_biz_id,
+        tags: [{ key: 'dbresource', value: val }],
+      }).then((existData) => {
+        if (existData.length === 0) {
+          runUpdate({
+            bk_biz_id: curBiz.value.bk_biz_id,
+            id: data.id,
+            value: val,
+          });
+        } else {
+          curEditId.value = -1;
+        }
+      });
+    } else {
+      curEditId.value = -1;
+    }
   };
 
   const handleEdit = (data: ResourceTagModel) => {
@@ -336,9 +352,9 @@
 
 <style lang="less" scoped>
   .title-divider {
-    color: #dcdee5;
     margin-right: 16px;
     margin-left: 7px;
+    color: #dcdee5;
   }
 
   :deep(.table-row) {
@@ -352,9 +368,9 @@
       }
 
       .operation-icon {
+        margin-left: 7.5px;
         color: #3a84ff;
         cursor: pointer;
-        margin-left: 7.5px;
         visibility: hidden;
       }
     }
@@ -374,9 +390,9 @@
       }
 
       .search-selector {
-        margin-left: auto;
         width: 560px;
         height: 32px;
+        margin-left: auto;
       }
     }
   }
@@ -399,21 +415,21 @@
       }
 
       .content {
-        flex: 1;
+        margin-left: 14px;
         color: #313238;
         text-align: left;
-        margin-left: 14px;
         word-break: break-all;
+        flex: 1;
       }
     }
 
     .tips {
-      background: #f5f6fa;
-      border-radius: 2px;
       padding: 12px 16px;
       margin-top: 16px;
-      text-align: left;
       font-size: 14px;
+      text-align: left;
+      background: #f5f6fa;
+      border-radius: 2px;
     }
   }
 

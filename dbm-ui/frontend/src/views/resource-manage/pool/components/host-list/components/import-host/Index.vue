@@ -105,9 +105,9 @@
           })),
           labels: data.labels,
           resource_type: data.resource_type,
-        }).then(() => {
+        }).then(({ task_ids: taskIds }) => {
           window.changeConfirm = false;
-          successMessage();
+          successMessage(taskIds);
           handleCancel();
           emits('change');
         }),
