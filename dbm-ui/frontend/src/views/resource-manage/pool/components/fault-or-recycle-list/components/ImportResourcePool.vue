@@ -137,10 +137,10 @@
 
   const { loading: isImporting, run: runImport } = useRequest(importResource, {
     manual: true,
-    onSuccess() {
+    onSuccess({ task_ids: taskIds }) {
       emits('refresh');
       isShow.value = false;
-      successMessage();
+      successMessage(taskIds);
     },
   });
 

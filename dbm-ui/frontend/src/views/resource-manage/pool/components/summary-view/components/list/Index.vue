@@ -13,6 +13,10 @@
         :dimension="dimension" />
     </div>
     <BkLoading :loading="loading">
+      <NoSpecIpList
+        v-if="isSpec && noSpecIpList.length"
+        class="mb-12"
+        :ip-list="noSpecIpList" />
       <BkTable
         ref="tableRef"
         class="summary-view-table"
@@ -53,18 +57,21 @@
           field="sub_zone_detail"
           :label="t('园区分布（台）')"
           :width="400">
-          <template #default="{ row }">
-            <span
-              v-for="(item, subzoneId, index) in row.sub_zone_detail"
-              :key="subzoneId">
-              <span v-if="item.name">{{ item.name }} : </span>
+          <template #default="{ row }: { row: SummaryModel }">
+            <template v-if="Object.keys(row.sub_zone_detail).length > 0">
               <span
-                class="cell-num"
-                @click="handleClick(row, subzoneId)">
-                {{ item.count }}
+                v-for="(item, subzoneId, index) in row.sub_zone_detail"
+                :key="subzoneId">
+                <span v-if="item.name">{{ item.name }} : </span>
+                <span
+                  class="cell-num"
+                  @click="handleClick(row, subzoneId)">
+                  {{ item.count }}
+                </span>
+                <span>{{ index === Object.keys(row.sub_zone_detail).length - 1 ? '' : ' , ' }}</span>
               </span>
-              <span>{{ index === Object.keys(row.sub_zone_detail).length - 1 ? '' : ' , ' }}</span>
-            </span>
+            </template>
+            <span v-else>--</span>
           </template>
         </BkTableColumn>
         <BkTableColumn
@@ -75,12 +82,15 @@
           :width="100">
           <template #default="{ row }">
             <span
+              v-if="row.count > 0"
               class="cell-num"
-              :class="{
-                'cell-num--zero': row.count === 0,
-              }"
               @click="handleClick(row)">
               {{ row.count }}
+            </span>
+            <span
+              v-else
+              class="cell-num--zero">
+              0
             </span>
           </template>
         </BkTableColumn>
@@ -94,14 +104,15 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import type SummaryModel from '@services/model/db-resource/summary';
+  import SummaryModel from '@services/model/db-resource/summary';
   import { getSummaryList } from '@services/source/dbresourceResource';
 
   import { useDefaultPagination, useUrlSearch } from '@hooks';
 
-  import DimensionSelect from './DimensionSelect.vue';
-  import Export from './Export.vue';
-  import SearchBox from './search-box/Index.vue';
+  import DimensionSelect from './components/DimensionSelect.vue';
+  import Export from './components/Export.vue';
+  import NoSpecIpList from './components/no-spec-ip-list/Index.vue';
+  import SearchBox from './components/search-box/Index.vue';
 
   const { t } = useI18n();
   const router = useRouter();
@@ -113,7 +124,9 @@
   const isSpecEnable = ref(true);
   const pagination = ref(useDefaultPagination());
   const isAnomalies = ref(false);
+
   const allTableData = shallowRef<SummaryModel[]>([]);
+  const noSpecIpList = shallowRef<string[]>([]);
 
   const isSpec = computed(() => dimension.value === 'spec');
   const tableData = computed(() => {
@@ -127,11 +140,13 @@
     manual: true,
     onError() {
       allTableData.value = [];
+      noSpecIpList.value = [];
       pagination.value.count = 0;
       isAnomalies.value = true;
     },
     onSuccess(data) {
-      allTableData.value = data.results;
+      allTableData.value = data.results.summary_data;
+      noSpecIpList.value = data.results.no_spec_ip_list;
       pagination.value.count = data.count;
       isAnomalies.value = false;
     },
@@ -210,6 +225,7 @@
       }
 
       .cell-num--zero {
+        font-weight: bold;
         color: #000;
       }
     }

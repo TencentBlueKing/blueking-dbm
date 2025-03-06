@@ -16,7 +16,6 @@
       </template>
       <BkButton
         v-else
-        class="ml-8"
         :disabled="!selected.length"
         @click="handleBatchRecycle">
         {{ t('批量回收') }}
@@ -35,7 +34,7 @@
           </BkDropdownMenu>
         </template>
       </BkDropdown>
-      <Search
+      <HostSearchSelect
         v-model="searchValue"
         class="pool-search-selector"
         @search="fetchData" />
@@ -90,13 +89,15 @@
   // import DbPopconfirm from '@components/db-popconfirm/index.vue';
   import DbStatus from '@components/db-status/index.vue';
 
+  import HostSearchSelect from '@views/resource-manage/common/components/host-search-select/Index.vue';
+  import OperationDetail from '@views/resource-manage/common/components/operation-detail/Index.vue';
+
   import { execCopy, getSearchSelectorParams, messageSuccess } from '@utils';
 
   import ReviewDataDialog from '../host-list/components/review-data-dialog/Index.vue';
 
   import BatchImportResourcePool from './components/BatchImportResourcePool/Index.vue';
   import ImportResourcePool from './components/ImportResourcePool.vue';
-  import Search from './components/search.vue';
 
   const { t } = useI18n();
   const route = useRoute();
@@ -127,32 +128,6 @@
       width: 180,
     },
     {
-      field: 'city',
-      label: t('地域'),
-      render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.city || '--',
-    },
-    {
-      field: 'sub_zone',
-      label: t('园区'),
-      render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.sub_zone || '--',
-    },
-    {
-      field: 'rack_id',
-      label: t('机架'),
-      render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.rack_id || '--',
-    },
-    {
-      field: 'os_name',
-      label: t('操作系统'),
-      render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.os_name || '--',
-      width: 180,
-    },
-    {
-      field: 'device_class',
-      label: t('机型'),
-      render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.device_class || '--',
-    },
-    {
       field: 'agent_status',
       label: t('Agent状态'),
       render: ({ data }: { data: FaultOrRecycleMachineModel }) => {
@@ -170,6 +145,32 @@
       },
     },
     {
+      field: 'city',
+      label: t('地域'),
+      render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.city || '--',
+    },
+    {
+      field: 'sub_zone',
+      label: t('园区'),
+      render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.sub_zone || '--',
+    },
+    {
+      field: 'rack_id',
+      label: t('机架'),
+      render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.rack_id || '--',
+    },
+    {
+      field: 'os_name',
+      label: t('操作系统名称'),
+      render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.os_name || '--',
+      width: 180,
+    },
+    {
+      field: 'device_class',
+      label: t('机型'),
+      render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.device_class || '--',
+    },
+    {
       field: 'bk_cpu',
       label: t('CPU(核)'),
       render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.bk_cpu || '--',
@@ -183,6 +184,22 @@
       field: 'bk_disk',
       label: t('磁盘总容量(G)'),
       render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.bk_disk || '--',
+    },
+    {
+      field: 'updateAtDisplay',
+      label: t('转入时间'),
+    },
+    {
+      field: 'updater',
+      label: t('转入人'),
+      render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.updater || '--',
+      width: 180,
+    },
+    {
+      field: 'latest_event',
+      label: t('转入原因'),
+      render: ({ data }: { data: FaultOrRecycleMachineModel }) => <OperationDetail data={data.latest_event} />,
+      width: 300,
     },
     // {
     //   field: 'ticket',

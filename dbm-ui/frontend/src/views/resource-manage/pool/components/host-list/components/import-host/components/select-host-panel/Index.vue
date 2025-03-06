@@ -15,7 +15,16 @@
   <div class="export-host-select-panel">
     <div class="title">
       {{ t('导入主机') }}
-      <BusinessSelector
+      <span style="font-size: 12px; color: #979ba5">
+        （
+        <I18nT
+          keypath="从n业务CMDB空闲机模块导入"
+          tag="span">
+          {{ globalBizsStore.bizIdMap.get(bizId)?.name }}
+        </I18nT>
+        ）
+      </span>
+      <!-- <BusinessSelector
         v-if="!isBusiness"
         v-model="bizId">
         <template #trigger>
@@ -41,7 +50,7 @@
           {{ globalBizsStore.bizIdMap.get(bizId)?.name }}
         </I18nT>
         ）
-      </span>
+      </span> -->
     </div>
     <BkInput
       v-model="searchContent"
@@ -84,8 +93,7 @@
 
   import DbStatus from '@components/db-status/index.vue';
 
-  import BusinessSelector from '@views/tag-manage/components/BusinessSelector.vue';
-
+  // import BusinessSelector from '@views/tag-manage/components/BusinessSelector.vue';
   import HostEmpty from './components/HostEmpty.vue';
 
   interface Props {
@@ -96,17 +104,17 @@
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
-  const route = useRoute();
+  // const route = useRoute();
   const globalBizsStore = useGlobalBizs();
   const systemEnvironStore = useSystemEnviron();
 
-  const isBusiness = route.name === 'BizResourcePool';
+  // const isBusiness = route.name === 'BizResourcePool';
 
   const { t } = useI18n();
 
   const tableRef = ref();
   const searchContent = ref('');
-  const bizId = ref(isBusiness ? globalBizsStore.currentBizId : systemEnvironStore.urls.DBA_APP_BK_BIZ_ID);
+  const bizId = ref(systemEnvironStore.urls.DBA_APP_BK_BIZ_ID);
 
   const tableColumn = [
     {
@@ -164,9 +172,9 @@
     },
   );
 
-  watch(bizId, () => {
-    fetchData();
-  });
+  // watch(bizId, () => {
+  //   fetchData();
+  // });
 
   const fetchData = () => {
     tableRef.value.fetchData({

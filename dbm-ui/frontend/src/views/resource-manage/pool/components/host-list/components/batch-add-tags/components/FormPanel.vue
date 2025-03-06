@@ -47,7 +47,8 @@
         property="labels">
         <TagSelector
           v-model="formData.labels"
-          :bk-biz-id="formData.for_biz" />
+          :bk-biz-id="formData.for_biz"
+          :default-list="currentData" />
       </BkFormItem>
     </BkForm>
   </div>
@@ -57,6 +58,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import DbResourceModel from '@services/model/db-resource/DbResource';
   import { listTag } from '@services/source/tag';
   import type { BizItem } from '@services/types';
 
@@ -66,12 +68,13 @@
 
   interface Props {
     bizId: number;
+    currentData?: DbResourceModel['labels'];
   }
 
   interface Expose {
     getValue: () => Promise<{
-      labels: number[];
       for_biz: number;
+      labels: number[];
     }>;
   }
 
@@ -83,7 +86,7 @@
 
   const formData = reactive({
     for_biz: 0,
-    labels: [] as number[],
+    labels: (props.currentData || []).map((labelItem) => labelItem.id),
   });
 
   const tagList = shallowRef<ServiceReturnType<typeof listTag>['results']>([]);

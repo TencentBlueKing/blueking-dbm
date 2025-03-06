@@ -13,27 +13,40 @@
       :label="item.value"
       :value="item.id" />
     <template #extension>
-      <div
+      <BkForm
         v-if="isEdit"
-        class="editor-wrapper">
-        <BkInput
-          v-model="tagValue"
-          class="editor" />
-        <div
-          class="operator-wrapper"
-          @click.stop="handleCreate">
-          <DbIcon
-            class="check-line"
-            type="check-line" />
+        ref="formRef"
+        class="edit-form"
+        :model="formData"
+        :rules="rules">
+        <div class="editor-wrapper">
+          <BkFormItem
+            error-display-type="tooltips"
+            label=""
+            property="tag"
+            required>
+            <BkInput
+              v-model="formData.tag"
+              :readonly="inputLoading" />
+          </BkFormItem>
+          <BkButton
+            :loading="inputLoading"
+            text
+            @click="handleCreate">
+            <DbIcon
+              class="check-line-button"
+              type="check-line" />
+          </BkButton>
+          <BkButton
+            :disabled="inputLoading"
+            text
+            @click="handleClose">
+            <DbIcon
+              class="close-button"
+              type="close" />
+          </BkButton>
         </div>
-        <div
-          class="operator-wrapper"
-          @click.stop="handleClose">
-          <DbIcon
-            class="close"
-            type="close" />
-        </div>
-      </div>
+      </BkForm>
       <div
         v-else
         class="operation-wrapper">
@@ -66,15 +79,15 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import type DbResourceModel from '@services/model/db-resource/DbResource';
-  import { createTag, listTag } from '@services/source/tag';
+  import DbResourceModel from '@services/model/db-resource/DbResource';
+  import { createTag, listTag, validateTag } from '@services/source/tag';
 
   import { messageSuccess } from '@utils';
 
   interface Props {
     bkBizId: number;
-    disabled?: boolean;
     defaultList?: DbResourceModel['labels'];
+    disabled?: boolean;
   }
 
   const props = defineProps<Props>();
@@ -86,19 +99,55 @@
   const router = useRouter();
   const route = useRoute();
 
+  const formRef = useTemplateRef('formRef');
+
   const isEdit = ref(false);
-  const tagValue = ref('');
   const searchVal = ref('');
-  const tagList = ref<ServiceReturnType<typeof listTag>['results']>([]);
-  const pagination = reactive({
-    offset: 0,
-    limit: 10,
-    count: 0,
+  const validateLoading = ref(false);
+
+  const tagList = shallowRef<ServiceReturnType<typeof listTag>['results']>([]);
+
+  const formData = reactive({
+    tag: '',
   });
+
+  const pagination = reactive({
+    count: 0,
+    limit: 10,
+    offset: 0,
+  });
+
+  const rules = {
+    tag: [
+      {
+        message: t('不能为空'),
+        required: true,
+        trigger: 'blur',
+      },
+      {
+        trigger: 'blur',
+        validator: (value: string) => {
+          validateLoading.value = true;
+          return validateTag({
+            bk_biz_id: props.bkBizId,
+            tags: [{ key: 'dbresource', value }],
+          })
+            .then((existData) => {
+              return existData.length > 0 ? t('标签已存在') : true;
+            })
+            .finally(() => {
+              validateLoading.value = false;
+            });
+        },
+      },
+    ],
+  };
 
   const isBusiness = route.name === 'BizResourcePool';
 
-  const { run: runListTag, loading: listTagLoading } = useRequest(listTag, {
+  const inputLoading = computed(() => createLoading.value || validateLoading.value);
+
+  const { loading: listTagLoading, run: runListTag } = useRequest(listTag, {
     manual: true,
     onSuccess(data) {
       pagination.count = data.count;
@@ -106,13 +155,13 @@
     },
   });
 
-  const { run: runCreate } = useRequest(createTag, {
+  const { loading: createLoading, run: runCreate } = useRequest(createTag, {
     manual: true,
     async onSuccess() {
       const data = await listTag({
         bk_biz_id: props.bkBizId,
-        offset: pagination.count,
         limit: 1,
+        offset: pagination.count,
         ordering: 'create_at',
       });
       tagList.value = uniqBy([...tagList.value, ...data.results], 'value');
@@ -122,19 +171,6 @@
       messageSuccess(t('新建成功'));
     },
   });
-
-  const loadMore = () => {
-    if (listTagLoading.value || pagination.offset >= pagination.count) {
-      return;
-    }
-    pagination.offset = Math.min(pagination.count, pagination.offset + pagination.limit);
-    runListTag({
-      bk_biz_id: props.bkBizId,
-      offset: pagination.offset,
-      limit: pagination.limit,
-      value: searchVal.value,
-    });
-  };
 
   watch(
     () => props.bkBizId,
@@ -154,31 +190,46 @@
     initTagList();
     runListTag({
       bk_biz_id: props.bkBizId,
-      offset: pagination.offset,
       limit: pagination.limit,
-      value: searchVal.value,
+      offset: pagination.offset,
       ordering: 'create_at',
+      value: searchVal.value,
     });
   });
+
+  const loadMore = () => {
+    if (listTagLoading.value || pagination.offset >= pagination.count) {
+      return;
+    }
+    pagination.offset = Math.min(pagination.count, pagination.offset + pagination.limit);
+    runListTag({
+      bk_biz_id: props.bkBizId,
+      limit: pagination.limit,
+      offset: pagination.offset,
+      value: searchVal.value,
+    });
+  };
 
   const handleEdit = () => {
     isEdit.value = true;
   };
 
   const handleClose = () => {
-    tagValue.value = '';
+    formData.tag = '';
     isEdit.value = false;
   };
 
   const handleCreate = () => {
-    runCreate({
-      bk_biz_id: props.bkBizId,
-      tags: [
-        {
-          key: 'dbresource',
-          value: tagValue.value,
-        },
-      ],
+    formRef.value!.validate().then(() => {
+      runCreate({
+        bk_biz_id: props.bkBizId,
+        tags: [
+          {
+            key: 'dbresource',
+            value: formData.tag,
+          },
+        ],
+      });
     });
   };
 
@@ -208,8 +259,8 @@
     initTagList();
     runListTag({
       bk_biz_id: props.bkBizId,
-      offset: 0,
       limit: pagination.limit,
+      offset: 0,
       ordering: 'create_time',
     });
   });
@@ -237,40 +288,30 @@
     }
   }
 
-  .editor-wrapper {
-    display: flex;
-    align-items: center;
+  .edit-form {
     width: 100%;
-    padding: 8px;
 
-    .editor {
-      flex: 1;
-    }
-
-    .operator-wrapper {
+    .editor-wrapper {
       display: flex;
-      width: 32px;
-      height: 32px;
       align-items: center;
-      border-radius: 16px;
-      justify-content: center;
+      width: 100%;
+      padding: 8px;
 
-      &:hover {
-        cursor: pointer;
+      :deep(.bk-form-item) {
+        margin: 0;
+        flex: 1;
       }
 
-      .check-line {
-        width: 13px;
-        height: 9.31px;
+      .check-line-button {
         margin-right: 12.5px;
         margin-left: 12.5px;
+        font-size: 14px;
         color: #2dcb56;
         cursor: pointer;
       }
 
-      .close {
-        width: 10px;
-        height: 10px;
+      .close-button {
+        font-size: 18px;
         color: #979ba5;
         cursor: pointer;
       }

@@ -30,14 +30,34 @@
   let chartInstance: echarts.ECharts;
 
   const option = ref({
-    tooltip: {
-      trigger: 'item',
-      borderColor: 'transparent',
-      backgroundColor: 'rgba(255, 255, 255, 0.96)',
-      textStyle: {
-        color: '#63656E',
-        fontSize: 12,
+    grid: {
+      bottom: 40,
+      containLabel: true,
+      left: 0,
+      right: 0,
+    },
+    legend: {
+      bottom: 0,
+      show: true,
+    },
+    series: [
+      {
+        barWidth: '32px',
+        data: [] as number[],
+        itemStyle: {
+          color: '#3A84FF',
+        },
+        label: {
+          position: 'top',
+          show: true,
+        },
+        name: t('主机数量'),
+        type: 'bar',
       },
+    ],
+    tooltip: {
+      backgroundColor: 'rgba(255, 255, 255, 0.96)',
+      borderColor: 'transparent',
       formatter: `
         <p style="margin-bottom: 4px;">{a}</p>
         <p class="var-row">{b} : <span style="font-weight:bold;">{c} 台</span></p>
@@ -58,45 +78,25 @@
           }
         </style>
       `,
-    },
-    legend: {
-      show: true,
-      bottom: 0,
-    },
-    grid: {
-      left: 0,
-      right: 0,
-      bottom: 40,
-      containLabel: true,
+      textStyle: {
+        color: '#63656E',
+        fontSize: 12,
+      },
+      trigger: 'item',
     },
     xAxis: [
       {
-        type: 'category',
-        data: [] as string[],
         axisTick: {
           alignWithLabel: true,
         },
+        data: [] as string[],
+        type: 'category',
       },
     ],
     yAxis: [
       {
-        type: 'value',
         nameGap: 20,
-      },
-    ],
-    series: [
-      {
-        name: t('主机数量'),
-        type: 'bar',
-        barWidth: '32px',
-        data: [] as number[],
-        label: {
-          show: true,
-          position: 'top',
-        },
-        itemStyle: {
-          color: '#3A84FF',
-        },
+        type: 'value',
       },
     ],
   });

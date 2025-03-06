@@ -21,9 +21,7 @@
     model: Record<string, string>;
   }
 
-  interface Emits {
-    (e: 'change', value: { for_biz: number }): void;
-  }
+  type Emits = (e: 'change', value: { for_biz: number }) => void;
 
   const props = defineProps<Props>();
 
