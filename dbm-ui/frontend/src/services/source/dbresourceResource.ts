@@ -25,7 +25,11 @@ const path = '/apis/dbresource/resource';
 /**
  * 资源删除
  */
-export function removeResource(params: { bk_host_ids: number[]; event: 'to_recycle' | 'to_fault' | 'undo_import' }) {
+export function removeResource(params: {
+  bk_host_ids: number[];
+  event: 'to_recycle' | 'to_fault' | 'undo_import';
+  remark?: string;
+}) {
   return http.post<{ bk_host_ids: number[] }>(`${path}/delete/`, params);
 }
 
@@ -74,7 +78,9 @@ export function importResource(params: {
   resource_type: string;
   return_resource?: boolean; // 是否 故障池，待回收池 转入资源池
 }) {
-  return http.post(`${path}/import/`, params);
+  return http.post<{
+    task_ids: string[];
+  }>(`${path}/import/`, params);
 }
 
 /**
@@ -215,10 +221,18 @@ export function getSummaryList(params: {
   spec_id_list?: number[];
   sub_zones?: string[];
 }) {
-  return http.get<SummaryModel[]>(`${path}/resource_summary/`, params).then((data) => ({
-    count: data.length || 0,
-    results: data.map((item) => new SummaryModel(item)),
-  }));
+  return http
+    .get<{
+      no_spec_ip_list: string[];
+      summary_data: SummaryModel[];
+    }>(`${path}/resource_summary/`, params)
+    .then((data) => ({
+      count: data.summary_data.length || 0,
+      results: {
+        no_spec_ip_list: data.no_spec_ip_list || [],
+        summary_data: data.summary_data.map((item) => new SummaryModel(item)),
+      },
+    }));
 }
 
 /**

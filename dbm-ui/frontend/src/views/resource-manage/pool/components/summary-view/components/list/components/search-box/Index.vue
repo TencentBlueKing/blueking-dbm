@@ -40,9 +40,7 @@
   import Region from './components/Region.vue';
   import Spec from './components/Spec.vue';
 
-  interface Emits {
-    (e: 'search'): void;
-  }
+  type Emits = (e: 'search') => void;
 
   const emits = defineEmits<Emits>();
 

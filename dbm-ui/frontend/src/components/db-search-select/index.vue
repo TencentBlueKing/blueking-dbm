@@ -44,6 +44,10 @@
 
   const emits = defineEmits<Emits>();
 
+  const modelValues = defineModel<NonNullable<SearchSelectProps['modelValue']>>({
+    default: () => [],
+  });
+
   const { getSearchParams } = useUrlSearch();
 
   const getDefaultValue = () => {
@@ -61,17 +65,13 @@
           ...item,
           values: item.multiple
             ? searchValue.split(',').map((item) => ({ id: item, name: childNameMap[item] ?? item }))
-            : [{ id: searchValue, name: searchValue }],
+            : [{ id: searchValue, name: childNameMap[searchValue] ?? searchValue }],
         });
       }
     });
     // 保留初始化时传入的 modelValues
     return defaultValue.length > 0 ? defaultValue : [];
   };
-
-  const modelValues = defineModel<NonNullable<SearchSelectProps['modelValue']>>({
-    default: () => [],
-  });
 
   watch(
     modelValues,

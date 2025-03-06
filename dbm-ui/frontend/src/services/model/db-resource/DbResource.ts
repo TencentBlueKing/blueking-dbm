@@ -13,7 +13,7 @@
 
 import { DBTypeInfos, DBTypes } from '@common/const';
 
-import { bytePretty } from '@utils';
+import { bytePretty, utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
 
@@ -45,6 +45,7 @@ export default class DbResource {
   }[];
   net_device_id: string;
   os_bit: string;
+  os_name: string;
   os_type: string;
   os_version: string;
   permission: {
@@ -66,6 +67,7 @@ export default class DbResource {
   sub_zone_id: string;
   svr_type_name: string;
   update_time: string;
+  updater: string;
 
   constructor(payload = {} as DbResource) {
     this.agent_status = payload.agent_status;
@@ -89,6 +91,7 @@ export default class DbResource {
     this.labels = payload.labels;
     this.net_device_id = payload.net_device_id;
     this.os_bit = payload.os_bit;
+    this.os_name = payload.os_name;
     this.os_type = payload.os_type;
     this.os_version = payload.os_version;
     this.permission = payload.permission;
@@ -100,6 +103,7 @@ export default class DbResource {
     this.sub_zone = payload.sub_zone;
     this.sub_zone_id = payload.sub_zone_id;
     this.svr_type_name = payload.svr_type_name;
+    this.updater = payload.updater;
     this.update_time = payload.update_time;
   }
 
@@ -126,5 +130,9 @@ export default class DbResource {
       return 'Vm';
     }
     return DBTypeInfos[this.resource_type as DBTypes]?.name;
+  }
+
+  get updateAtDisplay() {
+    return utcDisplayTime(this.update_time) || '--';
   }
 }

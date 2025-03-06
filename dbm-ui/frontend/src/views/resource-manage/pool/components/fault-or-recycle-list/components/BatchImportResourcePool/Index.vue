@@ -79,9 +79,9 @@
 
   const { loading: isUpdating, run: runImport } = useRequest(importResource, {
     manual: true,
-    onSuccess() {
+    onSuccess({ task_ids: taskIds }) {
       handleCancel();
-      successMessage();
+      successMessage(taskIds);
     },
   });
 

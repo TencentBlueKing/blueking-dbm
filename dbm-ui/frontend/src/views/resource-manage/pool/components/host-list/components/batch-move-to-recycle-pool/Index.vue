@@ -3,6 +3,7 @@
     :is-show="isShow"
     :loading="isRemoving"
     :selected="selectedIpList"
+    show-remark
     :tip="t('确认后，主机将标记为待回收，等待处理')"
     :title="t('确认批量将 {n} 台主机转入回收池？', { n: props.selected.length })"
     @cancel="handleCancel"
@@ -47,10 +48,11 @@
     },
   });
 
-  const handleConfirm = () => {
+  const handleConfirm = (remark: string) => {
     runDelete({
       bk_host_ids: props.selected.map((item) => item.bk_host_id),
       event: 'to_recycle',
+      remark,
     });
   };
 

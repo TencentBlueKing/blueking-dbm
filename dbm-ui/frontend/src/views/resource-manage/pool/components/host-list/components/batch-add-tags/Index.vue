@@ -16,7 +16,8 @@
       <template #main>
         <FormPanel
           ref="formPanelRef"
-          :biz-id="curBizId" />
+          :biz-id="curBizId"
+          :current-data="labels" />
       </template>
       <template #aside>
         <ListPanel
@@ -89,6 +90,7 @@
   const hostList = shallowRef<DbResourceModel[]>([]);
 
   const curBizId = computed(() => hostList.value[0]?.for_biz.bk_biz_id || 0);
+  const labels = computed(() => (props.selected.length === 1 ? props.selected[0].labels : undefined));
 
   const { loading: isUpdating, run: runAppend } = useRequest(appendHostLabel, {
     manual: true,

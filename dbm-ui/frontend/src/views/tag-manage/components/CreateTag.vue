@@ -74,9 +74,7 @@
     biz: BizItem;
   }
 
-  interface Emits {
-    (e: 'create'): void;
-  }
+  type Emits = (e: 'create') => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -99,8 +97,8 @@
     return {
       tag: [
         {
-          validator: () => existedArr.length === 0,
           message: t('n 已存在', { n: existedArr.join(',') }),
+          validator: () => existedArr.length === 0,
         },
       ],
     };
@@ -115,6 +113,7 @@
       });
     },
   });
+
   const { loading: createLoading, run: runCreate } = useRequest(createTag, {
     manual: true,
     onSuccess() {

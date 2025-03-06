@@ -23,9 +23,7 @@
     model: Record<string, string>;
   }
 
-  interface Emits {
-    (e: 'change', value: { db_type: string }): void;
-  }
+  type Emits = (e: 'change', value: { db_type: string }) => void;
 
   const props = defineProps<Props>();
 
