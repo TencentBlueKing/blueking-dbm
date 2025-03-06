@@ -155,7 +155,7 @@
               <OperationBtnStatusTips :data="data">
                 <AuthButton
                   action-id="pulsar_enable_disable"
-                  :disabled="data.isStarting"
+                  :disabled="data.isStarting || !data.isOffline"
                   :permission="data.permission.pulsar_enable_disable"
                   :resource="data.id"
                   text
