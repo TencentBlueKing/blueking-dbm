@@ -585,10 +585,6 @@
   };
 
   const disableSelectMethod = (data: RedisModel) => {
-    if (!data.isOnline) {
-      return true;
-    }
-
     if (data.operations?.length > 0) {
       const operationData = data.operations[0];
       return ([TicketTypes.REDIS_INSTANCE_DESTROY, TicketTypes.REDIS_INSTANCE_CLOSE] as string[]).includes(
