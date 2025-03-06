@@ -35,9 +35,8 @@ func CacheGetConfigFile(fd api.BaseConfFileDef) (*ConfigFileDefModel, error) {
 	if cacheVal, err := CacheLocal.Get(cacheKey); err != nil {
 		if errors.Is(err, freecache.ErrNotFound) {
 			return CacheSetAndGetConfigFile(fd)
-			// return CacheGetConfigFile(namespace, confType, confFile)
 		}
-		return nil, err
+		return nil, errors.WithMessage(err, "get from cache")
 	} else {
 		cacheValStr := string(cacheVal)
 		if cacheValStr == NotFoundInDB || cacheVal == nil {
@@ -63,7 +62,8 @@ func CacheSetAndGetConfigFile(fd api.BaseConfFileDef) (*ConfigFileDefModel, erro
 			CacheLocal.Set(cacheKey, []byte(NotFoundInDB), 60)
 			return nil, nil
 		}
-		return nil, err
+		logger.Error("QueryConfigFileDetail err=%s", err.Error())
+		return nil, errors.WithMessage(err, "read db to cache")
 	}
 	f := confFiles[0]
 	// logger.Info("CacheSetAndGetConfigFile to cache: %+v", f)

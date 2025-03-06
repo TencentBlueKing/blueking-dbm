@@ -93,7 +93,6 @@ func QueryConfigFileDetail(namespace, confType, confFile string) ([]*ConfigFileD
 	}
 	for _, obj := range confFiles {
 		obj.LevelNameList = util.SplitAnyRuneTrim(obj.LevelNames, ",")
-
 	}
 	return confFiles, nil
 }

@@ -154,12 +154,12 @@ func QueryConfigTypeInfo(r *api.QueryConfigTypeReq) (*api.QueryConfigTypeResp, e
 func CheckValidConfType(namespace, confType, confFiles2, levelName string, needVersioned int8) error {
 	confFiles := util.SplitAnyRuneTrim(confFiles2, ",")
 	for _, confFile := range confFiles {
-		errStr := fmt.Sprintf("namespace=%s, conf_type=%s, conf_file=%s", namespace, confType, confFile)
+		msg := fmt.Sprintf("namespace=%s, conf_type=%s, conf_file=%s", namespace, confType, confFile)
 		fd := api.BaseConfFileDef{Namespace: namespace, ConfType: confType, ConfFile: confFile}
 		if f, e := model.CacheGetConfigFile(fd); e != nil {
-			return errors.Wrapf(errno.ErrConfFile, "NotFound: %s", errStr)
+			return errors.Wrapf(errno.ErrConfFile, "ErrFound:%s for %s", e.Error(), msg)
 		} else if f == nil {
-			return errors.Wrapf(errno.ErrNamespaceType, errStr)
+			return errors.Wrapf(errno.ErrNamespaceType, msg)
 		} else {
 			if levelName != "" {
 				if !util.StringsHas(f.LevelNameList, levelName) {
@@ -168,9 +168,9 @@ func CheckValidConfType(namespace, confType, confFiles2, levelName string, needV
 			}
 			if needVersioned < 2 {
 				if needVersioned == 1 && f.LevelVersioned == "" {
-					return errors.Errorf("conf_file is un-versionable for %s", errStr)
+					return errors.Errorf("conf_file is un-versionable for %s", msg)
 				} else if needVersioned == 0 && f.LevelVersioned != "" {
-					return errors.Errorf("conf_file is versionable for %s", errStr)
+					return errors.Errorf("conf_file is versionable for %s", msg)
 				}
 			}
 		}
