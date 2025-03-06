@@ -30,23 +30,25 @@ import (
 // MachineResourceGetterInputParam TODO
 type MachineResourceGetterInputParam struct {
 	// 专用业务Ids
-	ForBiz       *int              `json:"for_biz"`       // 后续删除
-	RsType       *string           `json:"resource_type"` // 后续删除
-	ForBizs      []int             `json:"for_bizs"`
-	RsTypes      []string          `json:"resource_types"`
-	City         []string          `json:"city"`
-	SubZoneIds   []string          `json:"subzone_ids"`
-	DeviceClass  []string          `json:"device_class"`
-	Labels       []string          `json:"labels"`
-	Hosts        []string          `json:"hosts"`
-	BkCloudIds   []int             `json:"bk_cloud_ids"`
-	MountPoint   string            `json:"mount_point"`
-	Cpu          meta.MeasureRange `json:"cpu"`
-	Mem          meta.MeasureRange `json:"mem"`
-	Disk         meta.MeasureRange `json:"disk"`
-	DiskType     string            `json:"disk_type"`
-	OsType       string            `json:"os_type"`
-	StorageSpecs []meta.DiskSpec   `json:"storage_spec"`
+	ForBiz        *int              `json:"for_biz"`       // 后续删除
+	RsType        *string           `json:"resource_type"` // 后续删除
+	ForBizs       []int             `json:"for_bizs"`
+	RsTypes       []string          `json:"resource_types"`
+	City          []string          `json:"city"`
+	SubZoneIds    []string          `json:"subzone_ids"`
+	DeviceClass   []string          `json:"device_class"`
+	Labels        []string          `json:"labels"`
+	Hosts         []string          `json:"hosts"`
+	BkCloudIds    []int             `json:"bk_cloud_ids"`
+	MountPoint    string            `json:"mount_point"`
+	Cpu           meta.MeasureRange `json:"cpu"`
+	Mem           meta.MeasureRange `json:"mem"`
+	Disk          meta.MeasureRange `json:"disk"`
+	DiskType      string            `json:"disk_type"`
+	OsType        string            `json:"os_type"`
+	OsNames       []string          `json:"os_names"`
+	ExcludeOsName bool              `json:"exclude_os_name"`
+	StorageSpecs  []meta.DiskSpec   `json:"storage_spec"`
 	// true,false,""
 	GseAgentAlive string `json:"gse_agent_alive"`
 	Limit         int    `json:"limit"`
@@ -202,6 +204,13 @@ func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) (err error) {
 	}
 	if cmutil.IsNotEmpty(c.OsType) {
 		db.Where("os_type = ?", c.OsType)
+	}
+	if len(c.OsNames) > 0 {
+		if c.ExcludeOsName {
+			db.Where("os_name not in (?)", c.OsNames)
+		} else {
+			db.Where("os_name in (?)", c.OsNames)
+		}
 	}
 	db.Order("create_time desc")
 	return nil

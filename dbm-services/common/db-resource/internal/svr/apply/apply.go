@@ -329,7 +329,7 @@ func (o *SearchContext) PickCheck() (err error) {
 	}
 	db := model.DB.Self.Table(model.TbRpDetailName()).Select("count(*)")
 	o.pickBase(db)
-	if err := db.Scan(&count).Error; err != nil {
+	if err = db.Scan(&count).Error; err != nil {
 		logger.Error("query pre check count failed %s", err.Error())
 		return errno.ErrDBQuery.AddErr(err)
 	}
@@ -344,101 +344,92 @@ func (o *SearchContext) PickCheck() (err error) {
 }
 
 func (o *SearchContext) predictResourceNoMatchReason() (reason string) {
-	var count int64
+	type checkFunc struct {
+		name string
+		fn   func(db *gorm.DB)
+		desc string
+	}
+
+	checks := []checkFunc{
+		{
+			name: "base",
+			fn: func(db *gorm.DB) {
+				db.Where("bk_cloud_id = ? and status = ? and gse_agent_status_code = ? ",
+					o.BkCloudId, model.Unused, bk.GSE_AGENT_OK)
+			},
+			desc: fmt.Sprintf("在匹配云区域%d,gse_agent 状态为ok的资源的时候没有匹配到资源", o.BkCloudId),
+		},
+		{
+			name: "biz",
+			fn:   o.MatchIntetionBkBiz,
+			desc: "在匹配专用业务和公共业务的时候没有匹配到资源",
+		},
+		{
+			name: "rsType",
+			fn:   o.MatchRsType,
+			desc: "在匹配资源类型的时候没有匹配到资源",
+		},
+		{
+			name: "osType",
+			fn:   o.MatchOsType,
+			desc: "在匹配操作系统时候没有匹配到资源",
+		},
+		{
+			name: "osName",
+			fn:   o.MatchOsName,
+			desc: "在匹配OsName时候没有匹配到资源",
+		},
+		{
+			name: "labels",
+			fn:   o.MatchLabels,
+			desc: "在匹配标签的时候没有匹配到资源",
+		},
+		{
+			name: "location",
+			fn:   o.MatchLocationSpec,
+			desc: "在匹配地域信息的时候没有匹配到资源",
+		},
+		{
+			name: "storage",
+			fn:   o.MatchStorage,
+			desc: "在匹配磁盘信息的时候没有匹配到资源",
+		},
+		{
+			name: "spec",
+			fn:   o.MatchSpec,
+			desc: "在匹配规格信息[cpu/mem或机型]的时候没有匹配到资源",
+		},
+	}
+
+	// 根据亲和性添加额外检查
+	if o.Affinity == SAME_SUBZONE_CROSS_SWTICH {
+		checks = append(checks, checkFunc{
+			name: "netDevice",
+			fn:   o.UseNetDeviceIsNotEmpty,
+			desc: "亲和性是同园区跨交换机,在排除网卡id为空的时候没有匹配到资源",
+		})
+	} else if o.Affinity == CROSS_RACK {
+		checks = append(checks, checkFunc{
+			name: "rackId",
+			fn:   o.RackIdIsNotEmpty,
+			desc: "亲和性是跨机架,在排除机架id为空的时候没有匹配到资源",
+		})
+	}
+
+	// 执行所有检查
 	db := model.DB.Self.Table(model.TbRpDetailName()).Select("count(*)")
-	db.Where("bk_cloud_id = ? and status = ? and gse_agent_status_code = ? ", o.BkCloudId, model.Unused, bk.GSE_AGENT_OK)
-	if err := db.Scan(&count).Error; err != nil {
-		return
-	}
-	if count < int64(o.Count) {
-		reason += fmt.Sprintf("在匹配云区域%d,gse_agent 状态为ok的资源的时候没有匹配到资源\n\r", o.BkCloudId)
-		return reason
-	}
-	o.MatchIntetionBkBiz(db)
-	if err := db.Scan(&count).Error; err != nil {
-		return
-	}
-	if count < int64(o.Count) {
-		reason += "在匹配专用业务和公共业务的时候没有匹配到资源\n\r"
-		return reason
-	}
-	o.MatchRsType(db)
-	if err := db.Scan(&count).Error; err != nil {
-		return
-	}
-	if count < int64(o.Count) {
-		reason += "在匹配资源类型的时候没有匹配到资源\n\r"
-		return reason
-	}
-	o.MatchOsType(db)
-	if err := db.Scan(&count).Error; err != nil {
-		return
-	}
-	if count < int64(o.Count) {
-		reason += "在匹配操作系统时候没有匹配到资源\n\r"
-		return reason
-	}
-	o.MatchOsName(db)
-	if err := db.Scan(&count).Error; err != nil {
-		return
-	}
-	if count < int64(o.Count) {
-		reason += "在匹配OsName时候没有匹配到资源\n\r"
-		return reason
-	}
-	o.MatchLabels(db)
-	if err := db.Scan(&count).Error; err != nil {
-		return
-	}
-	if count < int64(o.Count) {
-		reason += "在匹配标签的时候没有匹配到资源\n\r"
-		return reason
-	}
-	o.MatchLocationSpec(db)
-	if err := db.Scan(&count).Error; err != nil {
-		return
-	}
-	if count < int64(o.Count) {
-		reason += "在匹配地域信息的时候没有匹配到资源\n\r"
-		return reason
-	}
-	o.MatchStorage(db)
-	if err := db.Scan(&count).Error; err != nil {
-		return
-	}
-	if count < int64(o.Count) {
-		reason += "在匹配磁盘信息的时候没有匹配到资源\n\r"
-		return reason
-	}
-	o.MatchSpec(db)
-	if err := db.Scan(&count).Error; err != nil {
-		return
-	}
-	if count < int64(o.Count) {
-		reason += "在匹配规格信息[cpu/mem或机型]的时候没有匹配到资源\n\r"
-		return reason
-	}
-	switch o.Affinity {
-	// 如果需要存在跨园区检查则需要判断是否存在网卡id,机架id等
-	case SAME_SUBZONE_CROSS_SWTICH:
-		o.UseNetDeviceIsNotEmpty(db)
+	for _, check := range checks {
+		check.fn(db)
+		var count int64
 		if err := db.Scan(&count).Error; err != nil {
 			return
 		}
 		if count < int64(o.Count) {
-			reason += "亲和性是同园区跨交换机,在排除网卡id为空的时候没有匹配到资源\n\r"
-			return reason
-		}
-	case CROSS_RACK:
-		o.RackIdIsNotEmpty(db)
-		if err := db.Scan(&count).Error; err != nil {
-			return
-		}
-		if count < int64(o.Count) {
-			reason += "亲和性是跨机架,在排除机架id为空的时候没有匹配到资源\n\r"
+			reason += check.desc + "\n\r"
 			return reason
 		}
 	}
+
 	return
 }
 
