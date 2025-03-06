@@ -141,7 +141,7 @@ func (c *MySQLMonitorComp) authByMachineType() (ac *config.AuthCollect, err erro
 			},
 			ProxyAdmin: &config.ConnectAuth{
 				User:     c.GeneralParam.RuntimeAccountParam.ProxyAdminUser,
-				Password: c.GeneralParam.RuntimeAccountParam.ProxyAdminUser,
+				Password: c.GeneralParam.RuntimeAccountParam.ProxyAdminPwd,
 			},
 		}
 	case "backend", "single", "remote", "spider":
