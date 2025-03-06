@@ -215,7 +215,6 @@ class ResourceApplyFlow(BaseTicketFlow):
             event=MachineEventType.ApplyResource,
             operator=self.ticket.creator,
             ticket=self.ticket,
-            standard=True,
         )
 
         return resource_request_id, node_infos

@@ -21,7 +21,7 @@ class PoolType(str, StructuredEnum):
     Dirty = EnumField("dirty", _("污点池"))
     Fault = EnumField("fault", _("故障池"))
     Recycle = EnumField("recycle", _("待回收池"))
-    # 资源池不由saas维护，单独由资源池服务维护
+    # 资源池本身不由saas维护，单独由资源池服务维护
     Resource = EnumField("resource", _("资源池"))
     # 回收池表示已经挪到cc待回收，不在dbm流转
     Recycled = EnumField("recycled", _("已回收"))

@@ -23,6 +23,7 @@ class TransferDirtyMachineSerializer(serializers.Serializer):
     bk_host_ids = serializers.ListField(child=serializers.IntegerField(), help_text=_("待转移的主机ID列表"))
     source = serializers.ChoiceField(help_text=_("主机来源"), choices=PoolType.get_choices())
     target = serializers.ChoiceField(help_text=_("主机去向"), choices=PoolType.get_choices())
+    remark = serializers.CharField(help_text=_("备注"), required=False)
 
 
 class ListMachineEventSerializer(serializers.ModelSerializer):

@@ -369,6 +369,7 @@ class ImportPoolParamBuilder(FlowParamBuilder):
                 "sa_check_ips": [recycle["ip"] for recycle in self.ticket_data["recycle_hosts"]],
                 "operator": self.ticket.creator,
                 "ip_dest": self.ticket_data["ip_recycle"]["ip_dest"],
+                "remark": self.ticket_data.get("remark", ""),
             }
         )
 

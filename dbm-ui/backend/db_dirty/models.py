@@ -12,9 +12,12 @@ from collections import defaultdict
 from typing import Tuple
 
 from django.db import models
+from django.db.models import F, Window
+from django.db.models.functions import RowNumber
+from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
-from backend.bk_web.constants import LEN_MIDDLE
+from backend.bk_web.constants import LEN_LONG, LEN_MIDDLE
 from backend.bk_web.models import AuditedModel
 from backend.db_dirty.constants import MACHINE_EVENT__POOL_MAP, MachineEventType, PoolType
 from backend.db_services.dbresource.handlers import ResourceHandler
@@ -55,26 +58,36 @@ class DirtyMachine(AuditedModel):
     @classmethod
     def hosts_pool_transfer(cls, bk_biz_id, hosts, pool, operator="", ticket=None):
         """将机器转入主机池"""
-        hosts = [{field: host.get(field) for field in cls.host_fields()} for host in hosts]
         host_ids = [host["bk_host_id"] for host in hosts]
+        handle_hosts = cls.objects.filter(bk_host_id__in=host_ids)
 
-        # 主机转入污点/故障池，说明第一次被纳管到池
-        # 待回收会从故障池、资源池转移
+        # 如果主机不存在，则证明第一次导入主机池，需要进行标准化
+        if not handle_hosts.exists():
+            hosts = ResourceHandler.standardized_resource_host(hosts)
+            hosts = [{field: host.get(field) for field in cls.host_fields()} for host in hosts]
+        else:
+            hosts = [model_to_dict(host) for host in handle_hosts]
+
+        # 主机转入主机池池
+        # 资源池来源：旧主机下架，导入，故障池转移
+        # 故障池来源：旧主机下架，资源池转移
+        # 待回收来源：旧主机下架，故障池转移、资源池转移
+        # 污点池来源：任务失败时，主机转入污点池
         # 因此这里判断主机不存在就创建，否则更新
-        if pool in [PoolType.Fault, PoolType.Dirty, PoolType.Recycle]:
-            handle_hosts = cls.objects.filter(bk_host_id__in=host_ids)
-            if handle_hosts.count() == len(host_ids):
-                handle_hosts.update(pool=pool, ticket=ticket)
-            else:
-                handle_hosts = [
-                    cls(bk_biz_id=bk_biz_id, pool=pool, ticket=ticket, creator=operator, updater=operator, **host)
-                    for host in hosts
-                ]
-                cls.objects.bulk_create(handle_hosts)
-        # 回收机器只能从待回收转移，删除池纳管记录
-        # 重导入回资源池，删除池纳管记录
-        elif pool in [PoolType.Recycled, PoolType.Resource]:
-            cls.objects.filter(bk_host_id__in=host_ids).delete()
+
+        # 新机导入，录入主机池
+        if pool == PoolType.Resource and not handle_hosts.exists():
+            fields = {"bk_biz_id": bk_biz_id, "pool": pool, "ticket": ticket, "creator": operator, "updater": operator}
+            handle_hosts = [cls(**fields, **host) for host in hosts]
+            cls.objects.bulk_create(handle_hosts)
+        # 主机回收，删除主机记录
+        elif pool == PoolType.Recycled:
+            handle_hosts.delete()
+        # 其他情况仅更新主机归属
+        elif pool in [PoolType.Resource, PoolType.Recycle, PoolType.Dirty, PoolType.Fault]:
+            handle_hosts.update(pool=pool, ticket=ticket)
+
+        return hosts
 
 
 class MachineEvent(AuditedModel):
@@ -90,6 +103,7 @@ class MachineEvent(AuditedModel):
         help_text=_("资源流向"), max_length=LEN_MIDDLE, choices=PoolType.get_choices(), null=True, blank=True
     )
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, help_text=_("关联单据"), null=True, blank=True)
+    remark = models.CharField(help_text=_("备注"), default="", max_length=LEN_LONG)
 
     class Meta:
         verbose_name = verbose_name_plural = _("机器事件记录")
@@ -111,15 +125,11 @@ class MachineEvent(AuditedModel):
         return True, ""
 
     @classmethod
-    def host_event_trigger(cls, bk_biz_id, hosts, event, operator="", ticket=None, standard=False):
+    def host_event_trigger(cls, bk_biz_id, hosts, event, operator="", ticket=None, remark=""):
         """主机事件触发"""
         pool = MACHINE_EVENT__POOL_MAP.get(event)
-        # 如果主机非标准话，则查询cc
-        if not standard:
-            hosts = ResourceHandler.standardized_resource_host(hosts)
         # 主机池流转
-        if pool:
-            DirtyMachine.hosts_pool_transfer(bk_biz_id, hosts, pool, operator, ticket)
+        hosts = DirtyMachine.hosts_pool_transfer(bk_biz_id, hosts, pool, operator, ticket)
         # 流转污点池不记录主机事件
         if event == MachineEventType.ToDirty:
             return
@@ -134,7 +144,26 @@ class MachineEvent(AuditedModel):
                 ticket=ticket,
                 creator=operator,
                 updater=operator,
+                remark=remark,
             )
             for host in hosts
         ]
         MachineEvent.objects.bulk_create(events)
+
+    @classmethod
+    def fill_hosts_latest_event(cls, hosts: list):
+        """获取主机最近一次主机事件"""
+        bk_host_ids = [host["bk_host_id"] for host in hosts]
+
+        # 使用窗口函数将最近的时间进行聚合。
+        # TODO：当前版本不支持窗口函数过滤，Django 4.2+ 后貌似会支持
+        host_events = MachineEvent.objects.filter(bk_host_id__in=bk_host_ids).annotate(
+            row=Window(expression=RowNumber(), partition_by=[F("bk_host_id")], order_by=[F("update_at")])
+        )
+        host_latest_event_map = {event.bk_host_id: model_to_dict(event) for event in host_events if event.row == 1}
+
+        # 补充主机事件
+        for host in hosts:
+            host.update(latest_event=host_latest_event_map.get(host["bk_host_id"], {}))
+
+        return host_latest_event_map

@@ -32,13 +32,16 @@ class DBDirtyMachineHandler(object):
     """
 
     @classmethod
-    def transfer_hosts_to_pool(cls, operator: str, bk_host_ids: List[int], source: PoolType, target: PoolType):
+    def transfer_hosts_to_pool(
+        cls, operator: str, bk_host_ids: List[int], source: PoolType, target: PoolType, remark: str = ""
+    ):
         """
         将主机转移待回收/故障池模块
         @param bk_host_ids: 主机列表
         @param operator: 操作者
         @param source: 主机来源
         @param target: 主机去向
+        @param remark: 备注
         """
         # 将主机按照业务分组
         recycle_hosts = DirtyMachine.objects.filter(bk_host_id__in=bk_host_ids)
@@ -46,13 +49,13 @@ class DBDirtyMachineHandler(object):
 
         for bk_biz_id, hosts in biz_grouped_recycle_hosts:
             hosts = [{"bk_host_id": host.bk_host_id} for host in hosts]
-            # 故障池 ---> 待回收
+            # 待回收 ---> 回收
             if source == PoolType.Recycle and target == PoolType.Recycled:
                 CcManage(bk_biz_id, "").recycle_host([h["bk_host_id"] for h in hosts])
-                MachineEvent.host_event_trigger(bk_biz_id, hosts, event=MachineEventType.Recycled, operator=operator)
-            # 待回收 ---> 回收
+                MachineEvent.host_event_trigger(bk_biz_id, hosts, MachineEventType.Recycled, operator, remark=remark)
+            # 故障池 ---> 待回收
             elif source == PoolType.Fault and target == PoolType.Recycle:
-                MachineEvent.host_event_trigger(bk_biz_id, hosts, event=MachineEventType.ToRecycle, operator=operator)
+                MachineEvent.host_event_trigger(bk_biz_id, hosts, MachineEventType.ToRecycle, operator, remark=remark)
             else:
                 raise PoolTransferException(_("{}--->{}转移不合法").format(source, target))
 

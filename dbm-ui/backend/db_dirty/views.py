@@ -84,4 +84,6 @@ class DBDirtyMachineViewSet(viewsets.SystemViewSet):
         machine_data = ListMachinePoolSerializer(machine_qs, many=True).data
         # 补充主机agent状态
         ResourceQueryHelper.fill_agent_status(machine_data, fill_key="agent_status")
+        # 补充主机最新主机事件
+        MachineEvent.fill_hosts_latest_event(machine_data)
         return self.paginator.get_paginated_response(data=machine_data)

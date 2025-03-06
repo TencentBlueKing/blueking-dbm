@@ -97,6 +97,7 @@ class ResourceListSerializer(serializers.Serializer):
     subzone_ids = serializers.CharField(help_text=_("园区ID"), required=False)
 
     os_type = serializers.CharField(help_text=_("操作系统类型"), required=False)
+    os_names = serializers.ListField(help_text=_("操作系统版本"), child=serializers.CharField(), required=False)
     cpu = serializers.CharField(help_text=_("cpu资源限制"), required=False)
     mem = serializers.CharField(help_text=_("内存资源限制"), required=False)
     disk = serializers.CharField(help_text=_("磁盘资源限制"), required=False)
@@ -201,6 +202,7 @@ class ResourceDeleteSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("资源专用业务"), default=env.DBA_APP_BK_BIZ_ID, required=False)
     bk_host_ids = serializers.ListField(help_text=_("主机ID列表"), child=serializers.IntegerField())
     event = serializers.ChoiceField(help_text=_("删除事件(移入故障池/撤销导入)"), choices=MachineEventType.get_choices())
+    remark = serializers.CharField(help_text=_("备注"), required=False, default="")
 
 
 class ResourceUpdateSerializer(serializers.Serializer):

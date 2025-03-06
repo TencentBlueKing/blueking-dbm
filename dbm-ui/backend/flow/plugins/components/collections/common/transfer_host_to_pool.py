@@ -29,8 +29,9 @@ class TransferHostToPoolService(BaseService):
         recycle_hosts = kwargs["recycle_hosts"]
         operator = kwargs["operator"]
         event = kwargs["event"]
+        remark = kwargs.get("remark", "")
         ticket = Ticket.objects.get(id=kwargs["ticket_id"])
-        MachineEvent.host_event_trigger(bk_biz_id, recycle_hosts, event, operator, ticket, standard=True)
+        MachineEvent.host_event_trigger(bk_biz_id, recycle_hosts, event, operator, ticket, remark=remark)
 
 
 class TransferHostToPoolComponent(Component):

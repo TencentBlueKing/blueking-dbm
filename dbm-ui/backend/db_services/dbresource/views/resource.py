@@ -345,7 +345,7 @@ class DBResourceViewSet(viewsets.SystemViewSet):
         resp = DBResourceApi.resource_delete(params={"bk_host_ids": bk_host_ids})
         # 记录撤销事件
         hosts = [{"bk_host_id": host} for host in bk_host_ids]
-        MachineEvent.host_event_trigger(bk_biz_id, hosts, event=params["event"], operator=operator)
+        MachineEvent.host_event_trigger(bk_biz_id, hosts, params["event"], operator, remark=params["remark"])
         return Response(resp)
 
     @common_swagger_auto_schema(
@@ -375,12 +375,13 @@ class DBResourceViewSet(viewsets.SystemViewSet):
     @action(methods=["GET"], detail=False, serializer_class=ResourceSummarySerializer)
     def resource_summary(self, request):
         group_params = self.params_validate(self.get_serializer_class())
-        summary_data = DBResourceApi.resource_summary(params=group_params)
+        data = DBResourceApi.resource_summary(params=group_params)
+        no_spec_ip_list, summary_data = data["no_spec_ip_list"], data["summary_data"]
         # 补充业务名
         for_biz_ids = [data["dedicated_biz"] for data in summary_data]
         for_biz_infos = AppCache.batch_get_app_attr(bk_biz_ids=for_biz_ids, attr_name="bk_biz_name")
         summary_data = [{"for_biz_name": for_biz_infos.get(data["dedicated_biz"]), **data} for data in summary_data]
-        return Response(summary_data)
+        return Response({"no_spec_ip_list": no_spec_ip_list, "summary_data": summary_data})
 
     @common_swagger_auto_schema(
         operation_summary=_("获取资源导入相关链接"),

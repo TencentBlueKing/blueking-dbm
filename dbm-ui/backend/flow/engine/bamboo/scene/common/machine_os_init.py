@@ -35,11 +35,12 @@ from backend.ticket.models import Ticket
 
 def insert_host_event(params, data, kwargs, global_data):
     """导入资源池成功后，记录主机事件"""
-    bk_biz_id, hosts, operator = global_data["bk_biz_id"], global_data["hosts"], global_data["operator"]
+    hosts, operator = global_data["hosts"], global_data["operator"]
     ticket = Ticket.objects.filter(id=global_data.get("ticket_id", 0)).first()
+    bk_biz_id = ticket.bk_biz_id if ticket else env.DBA_APP_BK_BIZ_ID
     event = MachineEventType.ReturnResource if global_data.get("return_resource") else MachineEventType.ImportResource
     hosts = [{"bk_host_id": host["host_id"], **host} for host in hosts]
-    MachineEvent.host_event_trigger(bk_biz_id, hosts, event=event, operator=operator, ticket=ticket, standard=True)
+    MachineEvent.host_event_trigger(bk_biz_id, hosts, event=event, operator=operator, ticket=ticket)
 
 
 class ImportResourceInitStepFlow(object):
@@ -122,6 +123,7 @@ class ImportResourceInitStepFlow(object):
             ips=self.data["sa_check_ips"],
             ip_dest=self.data["ip_dest"],
             ticket_id=self.data["uid"],
+            remark=self.data.get("remark", ""),
         )
 
         if kwargs.ip_dest == IpDest.Fault:

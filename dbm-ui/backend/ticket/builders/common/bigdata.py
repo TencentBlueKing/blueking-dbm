@@ -204,7 +204,7 @@ class BigDataReplaceDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
                 new_role_num = len(new_nodes[role])
             else:
                 # 兼容资源池自动匹配和手动输入的场景
-                new_role_num = new_nodes[role].get("count") or len(new_nodes[role]["hosts"])
+                new_role_num = new_nodes[role].get("count") or len(new_nodes[role].get("hosts", []))
             if old_role_num != new_role_num:
                 raise serializers.ValidationError(_("角色{}替换前后数量不一致").format(role))
 

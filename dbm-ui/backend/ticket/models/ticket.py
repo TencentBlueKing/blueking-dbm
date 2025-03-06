@@ -251,15 +251,17 @@ class Ticket(AuditedModel):
         :param recycle_hosts: 回收机器列表
         :param ticket_type: 回收单据类型
         """
+        if not recycle_hosts:
+            return
+
         revoke_ticket = cls.objects.get(id=revoke_ticket_id)
 
         # 暂定sqlserver机器回收到故障池，其他组件回收到公共资源池
         # TODO: 后续改造需要根据uwork，裁撤列表等决定是回到故障池还是资源池
-        ip_dest = IpDest.Recycle if revoke_ticket.group == DBType.Sqlserver else IpDest.Resource
-        ip_recycle = {"ip_dest": ip_dest, "for_biz": revoke_ticket.bk_biz_id}
-
-        if not recycle_hosts:
-            return
+        ip_dest, remark = IpDest.Resource, ""
+        if revoke_ticket.group == DBType.Sqlserver:
+            ip_dest = IpDest.Recycle
+            remark = _("检测到主机为Windows主机")
 
         # 获取回收机器
         # 判定是否允许回收：主机的实例的phase不能是online。
@@ -273,13 +275,17 @@ class Ticket(AuditedModel):
             return
 
         # 创建回收单据流程
-        details = {"recycle_hosts": recycle_hosts, "ip_recycle": ip_recycle, "group": revoke_ticket.group}
         recycle_ticket = cls.create_ticket(
             ticket_type=ticket_type,
             creator=revoke_ticket.creator,
             bk_biz_id=revoke_ticket.bk_biz_id,
             remark=_("单据{}结束后自动发起{}单据").format(revoke_ticket.id, TicketType.get_choice_label(ticket_type)),
-            details=details,
+            details={
+                "recycle_hosts": recycle_hosts,
+                "ip_recycle": {"ip_dest": ip_dest, "for_biz": revoke_ticket.bk_biz_id},
+                "group": revoke_ticket.group,
+                "remark": remark,
+            },
         )
 
         # 对原单据动态插入一个描述flow，关联这个回收单
