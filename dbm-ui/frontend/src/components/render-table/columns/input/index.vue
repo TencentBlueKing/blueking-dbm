@@ -216,6 +216,7 @@
     let paste = (event.clipboardData || window.clipboardData).getData('text');
     paste = encodeMult(paste);
     paste = paste.replace(/^\s+|\s+$/g, '');
+    paste = props.type === 'number' ? Number(paste) : paste;
     modelValue.value = props.pasteFn ? props.pasteFn(paste) : paste;
     window.changeConfirm = true;
   };
