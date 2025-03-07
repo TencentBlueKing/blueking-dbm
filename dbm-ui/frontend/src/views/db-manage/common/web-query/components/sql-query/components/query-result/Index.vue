@@ -1,0 +1,105 @@
+<!--
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License athttps://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+-->
+
+<template>
+  <div class="result-panel-main">
+    <BkTab
+      v-model:active="currentPanel"
+      type="unborder-card">
+      <BkTabPanel
+        v-for="item in resultPanels"
+        :key="item.name"
+        :label="item.label"
+        :name="item.name"
+        :num="item.num"
+        num-display-type="elliptic">
+        <Tips
+          v-if="currentPanel === 'tip'"
+          :data="tipList" />
+        <Result
+          v-else
+          :data="data"
+          :db-type="dbType"
+          :query-seconds="querySeconds" />
+      </BkTabPanel>
+    </BkTab>
+  </div>
+</template>
+<script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
+  import { DBTypes } from '@common/const';
+
+  import type { DbConsoleResults } from '../../Index.vue';
+
+  import Result from './components/result/Index.vue';
+  import Tips from './components/tips/Index.vue';
+
+  interface Props {
+    data?: DbConsoleResults;
+    dbType?: DBTypes;
+    querySeconds?: number;
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    data: () => [],
+    dbType: DBTypes.MYSQL,
+    querySeconds: 0,
+  });
+
+  const { t } = useI18n();
+
+  const currentPanel = ref('tip');
+  const tipList = ref<string[]>([]);
+
+  const resultPanels = ref([
+    {
+      label: t('查询提示'),
+      name: 'tip',
+      num: 0,
+    },
+    {
+      label: t('查询结果'),
+      name: 'result',
+    },
+  ]);
+
+  watch(
+    () => props.data,
+    () => {
+      if (props.data) {
+        tipList.value = props.data.filter((item) => !!item.error_msg).map((item) => item.error_msg);
+        resultPanels.value[0].num = tipList.value.length;
+      }
+    },
+  );
+</script>
+<style lang="less" scoped>
+  .result-panel-main {
+    height: 100%;
+    background: #fff;
+
+    :deep(.bk-tab--top) {
+      height: 100%;
+
+      .bk-tab-content {
+        overflow-y: auto;
+      }
+    }
+
+    :deep(.bk-tab-header--has-num-elliptic) {
+      color: #fff;
+      background: #3a84ff;
+    }
+  }
+</style>
