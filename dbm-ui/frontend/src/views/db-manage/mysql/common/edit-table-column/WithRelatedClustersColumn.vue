@@ -29,22 +29,26 @@
         <DbIcon type="batch-host-select" />
       </span>
     </template>
-    <div style="flex: 1">
+    <div
+      :class="[
+        {
+          'has-related-clusters': modelValue.related_clusters.length > 0,
+        },
+      ]"
+      style="flex: 1">
       <EditableInput
         v-model="modelValue.master_domain"
-        :placeholder="t('请输入集群域名')"
-        @change="handleInputChange" />
-      <BkLoading
-        v-if="modelValue.related_clusters.length"
-        class="related-clusters"
-        :loading="relatedClusterLoading">
+        :placeholder="t('请输入集群域名')" />
+      <div
+        v-if="modelValue.related_clusters.length > 0"
+        class="related-clusters">
         {{ t('含n个同机关联集群', { n: modelValue.related_clusters.length }) }}
         <p
           v-for="item in modelValue.related_clusters"
           :key="item.id">
           -- {{ item.master_domain }}
         </p>
-      </BkLoading>
+      </div>
     </div>
   </EditableColumn>
   <ClusterSelector
@@ -79,9 +83,7 @@
 
   type Emits = (e: 'batch-edit', list: TendbhaModel[]) => void;
 
-  const props = withDefaults(defineProps<Props>(), {
-    role: undefined,
-  });
+  const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
@@ -104,25 +106,10 @@
 
   const showSelector = ref(false);
   const selectedClusters = computed<Record<string, TendbhaModel[]>>(() => ({
-    [ClusterTypes.TENDBHA]: props.selected.map(
-      (item) =>
-        ({
-          id: item.id,
-          master_domain: item.master_domain,
-        }) as TendbhaModel,
-    ),
+    [ClusterTypes.TENDBHA]: props.selected as TendbhaModel[],
   }));
 
   const rules = [
-    {
-      message: '',
-      trigger: 'change',
-      // 监听输入项变化时关联集群重置
-      validator: () => {
-        modelValue.value.related_clusters = [];
-        return true;
-      },
-    },
     {
       message: t('集群域名格式不正确'),
       trigger: 'change',
@@ -136,44 +123,48 @@
     {
       message: t('目标集群不存在'),
       trigger: 'blur',
-      validator: () => {
-        if (!modelValue.value.master_domain) {
-          return true;
-        }
-        return Boolean(modelValue.value.id);
-      },
+      validator: () => Boolean(modelValue.value.id),
     },
   ];
 
-  const { loading: relatedClusterLoading, run: queryRelatedClusters } = useRequest(findRelatedClustersByClusterIds, {
+  const { loading, run: queryRelatedClusters } = useRequest(findRelatedClustersByClusterIds, {
     manual: true,
     onSuccess: (data) => {
-      if (data.length) {
-        modelValue.value.related_clusters = data[0].related_clusters.map((item) => ({
-          id: item.id,
-          master_domain: item.master_domain,
-        }));
-      }
+      const [currentCluster] = data;
+      modelValue.value.related_clusters = currentCluster.related_clusters.map((item) => ({
+        id: item.id,
+        master_domain: item.master_domain,
+      }));
     },
   });
 
-  const { loading, run: queryCluster } = useRequest(filterClusters, {
+  const { run: queryCluster } = useRequest(filterClusters, {
     manual: true,
     onSuccess: (data) => {
-      if (data.length) {
-        modelValue.value.id = data[0].id;
+      const [currentCluster] = data;
+      if (currentCluster?.id) {
+        modelValue.value.id = currentCluster.id;
+        queryRelatedClusters({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_ids: [currentCluster.id],
+          role: props.role,
+        });
       }
     },
   });
 
   watch(
-    modelValue,
-    () => {
-      if (modelValue.value.id) {
-        queryRelatedClusters({
+    () => modelValue.value.master_domain,
+    (value) => {
+      modelValue.value = {
+        id: undefined,
+        master_domain: value,
+        related_clusters: [],
+      };
+      if (value) {
+        queryCluster({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_ids: [modelValue.value.id],
-          role: props.role,
+          exact_domain: value,
         });
       }
     },
@@ -184,20 +175,6 @@
 
   const handleShowSelector = () => {
     showSelector.value = true;
-  };
-
-  const handleInputChange = (value: string) => {
-    modelValue.value = {
-      id: undefined,
-      master_domain: value,
-      related_clusters: [],
-    };
-    if (value) {
-      queryCluster({
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        exact_domain: value,
-      });
-    }
   };
 
   const handleSelectorChange = (selected: Record<string, TendbhaModel[]>) => {
@@ -219,7 +196,7 @@
     background: #fafbfd;
   }
 
-  :deep(.bk-editable-table-column-error) {
+  :deep(.has-related-clusters .bk-editable-table-column-error) {
     top: 21.5%;
   }
 </style>

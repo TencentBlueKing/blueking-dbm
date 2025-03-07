@@ -125,58 +125,61 @@
   });
 
   const defaultData = () => ({
-    tableData: [createTableRow()],
     backupSource: BackupSourceType.REMOTE,
+    tableData: [createTableRow()],
     ...createTickePayload(),
   });
 
   const formData = reactive(defaultData());
-  // 表格行内已通过校验的集群为所选集群
+
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
-  // 集群域名到自身及其下集群id、域名映射
   const clusterMap = computed(() => {
-    const result = selected.value.reduce<Record<string, { ids: number[]; domains: string[] }>>((acc, cur) => {
-      acc[cur.master_domain] = {
-        ids: [cur.id, ...cur.related_clusters.map((item) => item.id)],
-        domains: [cur.master_domain, ...cur.related_clusters.map((item) => item.master_domain)],
-      };
+    return formData.tableData.reduce<Record<string, string>>((acc, cur) => {
+      Object.assign(acc, {
+        [cur.cluster.master_domain]: cur.cluster.master_domain,
+      });
+      cur.cluster.related_clusters.forEach((item) => {
+        Object.assign(acc, {
+          [item.master_domain]: cur.cluster.master_domain, // 关联集群映射到所属集群
+        });
+      });
       return acc;
     }, {});
-    return result;
   });
 
   const rules = {
     'cluster.master_domain': [
       {
-        validator: (value: string) => {
-          const repeatTarget = Object.keys(clusterMap.value).find(
-            (domain) => clusterMap.value[domain].domains.includes(value) && domain !== value,
-          );
-          return repeatTarget ? t('目标集群是集群target的关联集群_请勿重复添加', { target: repeatTarget }) : true;
-        },
         message: '',
         trigger: 'blur',
+        validator: (value: string) => {
+          const target = clusterMap.value[value];
+          if (target && target !== value) {
+            return t('目标集群是集群target的关联集群_请勿重复添加', { target });
+          }
+          return true;
+        },
       },
     ],
   };
 
-  const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
+  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     backup_source: BackupSourceType;
-    ip_source: 'resource_pool';
     infos: {
       cluster_ids: number[];
       resource_spec: {
         new_slave: {
-          spec_id: number;
           hosts: {
             bk_biz_id: number;
             bk_cloud_id: number;
             bk_host_id: number;
             ip: string;
           }[];
+          spec_id: number;
         };
       };
     }[];
+    ip_source: 'resource_pool';
   }>(TicketTypes.MYSQL_ADD_SLAVE);
 
   const handleSubmit = async () => {
@@ -187,16 +190,16 @@
     createTicketRun({
       details: {
         backup_source: formData.backupSource,
-        ip_source: 'resource_pool',
         infos: formData.tableData.map((item) => ({
           cluster_ids: [item.cluster.id, ...item.cluster.related_clusters.map((item) => item.id)],
           resource_spec: {
             new_slave: {
-              spec_id: 0,
               hosts: [item.slave],
+              spec_id: 0,
             },
           },
         })),
+        ip_source: 'resource_pool',
       },
       remark: formData.remark,
     });
@@ -221,7 +224,7 @@
       }
       return acc;
     }, []);
-    formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
   };
 </script>
 <style lang="less" scoped>
