@@ -93,6 +93,11 @@
 
   const serachData = [
     {
+      id: 'ids',
+      multiple: true,
+      name: t('策略 ID'),
+    },
+    {
       id: 'immute_domains',
       multiple: true,
       name: t('域名'),
