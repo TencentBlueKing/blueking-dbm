@@ -74,7 +74,7 @@
         :min-width="160"
         show-overflow="tooltip">
         <template #default="{ data }: { data: RowData }">
-          <span>{{ bizsMap[data.alarmBizId] || '--' }}</span>
+          <span>{{ data.alarmBizId !== undefined ? bizsMap[data.alarmBizId] || '--' : '--' }}</span>
         </template>
       </BkTableColumn>
       <BkTableColumn

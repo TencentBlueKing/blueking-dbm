@@ -141,7 +141,12 @@ export default class AlarmEvent {
   }
 
   get alarmBizId() {
-    return Number(this.tags.find((item) => item.key === 'appid')!.value);
+    const bizTag = this.tags.find((item) => item.key === 'appid');
+    if (bizTag) {
+      return Number(bizTag.value);
+    }
+
+    return undefined;
   }
 
   get beginTimeDisplay() {
