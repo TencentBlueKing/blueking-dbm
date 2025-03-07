@@ -16,7 +16,8 @@
     <EditableTable
       ref="table"
       class="mb-20"
-      :model="formData.tableData">
+      :model="formData.tableData"
+      :rules="rules">
       <EditableRow
         v-for="(item, index) in formData.tableData"
         :key="index">
@@ -134,25 +135,39 @@
   const formData = reactive(defaultData());
 
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
-  const selectedMap = computed(() =>
-    formData.tableData
-      .filter((item) => item.cluster.id)
-      .reduce<Record<string, true>>((acc, cur) => {
+  const clusterMap = computed(() => {
+    return formData.tableData.reduce<Record<string, string>>((acc, cur) => {
+      Object.assign(acc, {
+        [cur.cluster.master_domain]: cur.cluster.master_domain,
+      });
+      cur.cluster.related_clusters.forEach((item) => {
         Object.assign(acc, {
-          [cur.cluster.master_domain]: true,
+          [item.master_domain]: cur.cluster.master_domain, // 关联集群映射到所属集群
         });
-        cur.cluster.related_clusters.forEach((item) => {
-          Object.assign(acc, {
-            [item.master_domain]: true,
-          });
-        });
-        return acc;
-      }, {}),
-  );
+      });
+      return acc;
+    }, {});
+  });
+
+  const rules = {
+    'cluster.master_domain': [
+      {
+        message: '',
+        trigger: 'blur',
+        validator: (value: string) => {
+          const target = clusterMap.value[value];
+          if (target && target !== value) {
+            return t('目标集群是集群target的关联集群_请勿重复添加', { target });
+          }
+          return true;
+        },
+      },
+    ],
+  };
 
   const handleBatchEdit = (list: TendbhaModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!selectedMap.value[item.master_domain]) {
+      if (!clusterMap.value[item.master_domain]) {
         acc.push(
           createTableRow({
             cluster: {
@@ -163,7 +178,7 @@
               db_module_name: item.db_module_name,
               id: item.id,
               master_domain: item.master_domain,
-              package_version: item.masters[0].version || '',
+              package_version: item.masters[0]?.version || '',
               related_clusters: [],
             },
           }),
@@ -210,7 +225,7 @@
         details: {
           force: formData.force,
           infos: formData.tableData.map((item) => ({
-            cluster_ids: [item.cluster.id],
+            cluster_ids: [item.cluster.id, ...item.cluster.related_clusters.map((item) => item.id)],
             display_info: {
               charset: item.target_version.charset,
               cluster_type: item.cluster.cluster_type,

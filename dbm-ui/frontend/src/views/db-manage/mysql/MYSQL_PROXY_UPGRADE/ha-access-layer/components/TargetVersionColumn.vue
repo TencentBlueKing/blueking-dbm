@@ -84,7 +84,7 @@
   const { loading, run: fetchClusterVersions } = useRequest(getPackages, {
     manual: true,
     onSuccess(versions) {
-      const currentVersion = props.cluster!.current_version.match(versionRegex)![0];
+      const currentVersion = props.cluster.current_version?.match(versionRegex)![0] || '';
       versionList.value = versions.results
         .reduce(
           (prevList, versionItem) => {
