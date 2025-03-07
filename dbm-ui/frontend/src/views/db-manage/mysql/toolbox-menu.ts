@@ -11,8 +11,6 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import { TicketTypes } from '@common/const';
-
 import { t } from '@locales/index';
 
 export interface MenuChild {
@@ -133,7 +131,7 @@ export default [
       },
       {
         dbConsoleValue: 'mysql.toolbox.proxyAdd',
-        id: TicketTypes.MYSQL_PROXY_ADD,
+        id: 'MySQLProxyAdd',
         name: t('添加Proxy'),
         parentId: 'migrate',
       },
@@ -145,7 +143,7 @@ export default [
       },
       {
         dbConsoleValue: 'mysql.toolbox.versionUpgrade',
-        id: TicketTypes.MYSQL_PROXY_UPGRADE,
+        id: 'MySQLVersionUpgrade',
         name: t('版本升级'),
         parentId: 'migrate',
       },

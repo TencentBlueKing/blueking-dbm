@@ -18,6 +18,7 @@
         ref="clusterRef"
         :model-value="data.clusterData"
         :relate-cluster-tips="t('同主机关联的其他集群，勾选后一并添加')"
+        role="proxy"
         @id-change="handleClusterIdChange" />
     </FixedColumn>
     <td style="padding: 0">
