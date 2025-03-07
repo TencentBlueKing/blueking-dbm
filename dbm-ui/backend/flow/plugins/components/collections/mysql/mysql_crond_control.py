@@ -50,11 +50,11 @@ class MysqlCrondMonitorControlService(BkJobService):
         else:
             cmd_str += " pause-job -r {}m".format(kwargs["minutes"])
         if kwargs["port"] == 0:
-            cmd_str += " --name-match mysql-monitor-.*"
+            cmd_str += " --name-match {}-.*".format(kwargs["name"])
         else:
-            cmd_str += " --name-match mysql-monitor-{}-.*".format(kwargs["port"])
-        if kwargs["name"] != "":
-            cmd_str += " --name {}".format(kwargs["name"])
+            cmd_str += " --name-match {}-{}.*".format(kwargs["name"], kwargs["port"])
+        # if kwargs["name"] != "":
+        #     cmd_str += " --name {}".format(kwargs["name"])
         if kwargs["rewrite"] and not kwargs["enable"]:
             cmd_str += " --rewrite "
         self.log_info(cmd_str)

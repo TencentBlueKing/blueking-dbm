@@ -302,6 +302,18 @@ class MySQLRestoreSlaveRemoteFlow(object):
                             )
                         ),
                     )
+                    switch_sub_pipeline.add_act(
+                        act_name=_("切换后屏蔽旧实例备份 {}").format(self.data["old_slave_ip"]),
+                        act_component_code=MysqlCrondMonitorControlComponent.code,
+                        kwargs=asdict(
+                            CrondMonitorKwargs(
+                                bk_cloud_id=cluster_class.bk_cloud_id,
+                                exec_ips=[self.data["old_slave_ip"]],
+                                name="dbbackup",
+                                port=master.port,
+                            )
+                        ),
+                    )
                     switch_sub_pipeline_list.append(switch_sub_pipeline.build_sub_process(sub_name=_("切换到新从节点")))
 
                 uninstall_svr_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))

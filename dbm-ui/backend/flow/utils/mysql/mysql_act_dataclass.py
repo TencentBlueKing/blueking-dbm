@@ -410,7 +410,8 @@ class CrondMonitorKwargs:
 
     bk_cloud_id: int
     exec_ips: list
-    name: str = ""
+    #  默认是操作监控屏蔽与解屏蔽
+    name: str = "mysql-monitor"
     port: int = 0
     minutes: int = 1440
     enable: bool = False
