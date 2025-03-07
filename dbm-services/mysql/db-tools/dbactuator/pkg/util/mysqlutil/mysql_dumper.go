@@ -106,9 +106,9 @@ func (m MySQLDumper) Dump() (err error) {
 		dumper := m
 		dumper.DbNames = []string{db}
 		outputFile := path.Join(m.DumpDir, outputFileName)
-		concurrencyControl <- struct{}{}
 		wg.Add(1)
 		go func(dump MySQLDumper, db string, outputFile string) {
+			concurrencyControl <- struct{}{}
 			defer func() {
 				wg.Done()
 				<-concurrencyControl

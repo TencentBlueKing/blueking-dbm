@@ -88,19 +88,20 @@ func (t *TmysqlParse) doParseInchan(alreadExecutedSqlfileCh chan string,
 
 	for sqlfile := range alreadExecutedSqlfileCh {
 		wg.Add(1)
-		c <- struct{}{}
 		go func(fileName string) {
+			c <- struct{}{}
+			defer func() { <-c; wg.Done() }()
 			cdbs, dbs, commands, dumpAllDbs, err := t.analyzeRelationDbs(fileName, mysqlVersion)
 			logger.Info("createDbs:%v,dbs:%v,dumpAllDbs:%v,err:%v", cdbs, dbs, dumpAllDbs, err)
 			if err != nil {
 				logger.Error("analyzeRelationDbs failed %s", err.Error())
 				errChan <- err
-				wg.Done()
 				return
 			}
 			// 如果有dumpall 则直接返回退出,不在继续分析
 			if dumpAllDbs {
 				dumpAll = true
+				// stop chan 可能会直接主协程退出
 				<-c
 				wg.Done()
 				stopChan <- struct{}{}
@@ -110,8 +111,6 @@ func (t *TmysqlParse) doParseInchan(alreadExecutedSqlfileCh chan string,
 			createDbs = append(createDbs, cdbs...)
 			allCommands = append(allCommands, commands...)
 			t.mu.Unlock()
-			<-c
-			wg.Done()
 		}(sqlfile)
 	}
 

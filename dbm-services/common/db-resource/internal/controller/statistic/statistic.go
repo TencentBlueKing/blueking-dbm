@@ -465,15 +465,17 @@ func rsMatchSpecs(rsList []model.TbRpDetail, specList []dbmapi.DbmSpec) map[int]
 	for _, rs := range rsList {
 		for _, spec := range specList {
 			wg.Add(1)
-			ctrlChan <- struct{}{}
 			go func(xrs model.TbRpDetail, xspec dbmapi.DbmSpec) {
+				ctrlChan <- struct{}{}
+				defer func() {
+					<-ctrlChan
+					wg.Done()
+				}()
 				if xrs.MatchDbmSpec(xspec) {
 					lc.Lock()
 					relationMap[xrs.BkHostID] = append(relationMap[xrs.BkHostID], xspec.SpecId)
 					lc.Unlock()
 				}
-				wg.Done()
-				<-ctrlChan
 			}(rs, spec)
 		}
 	}

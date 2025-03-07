@@ -341,11 +341,9 @@ func (tf *TmysqlParseFile) Execute(alreadExecutedSqlfileCh chan string, version 
 	// Iterate through all SQL files
 	for _, fileName := range tf.Param.FileNames {
 		wg.Add(1)
-		c <- struct{}{} // Acquire semaphore
 		go func(sqlfile, ver string) {
-			defer wg.Done()
-			defer func() { <-c }() // Release semaphore
-
+			c <- struct{}{}
+			defer func() { <-c; wg.Done() }()
 			//nolint
 			command := exec.Command("/bin/bash", "-c", tf.getCommand(sqlfile, ver))
 			logger.Info("command is %s", command)
@@ -389,8 +387,8 @@ func (t *TmysqlParse) AnalyzeParseResult(alreadExecutedSqlfileCh chan string, my
 
 	for sqlfile := range alreadExecutedSqlfileCh {
 		wg.Add(1)
-		c <- struct{}{}
 		go func(fileName string) {
+			c <- struct{}{}
 			defer wg.Done()
 			err = t.AnalyzeOne(fileName, mysqlVersion, dbtype)
 			if err != nil {
