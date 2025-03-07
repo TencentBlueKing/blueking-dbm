@@ -16,7 +16,8 @@
     <EditableTable
       ref="table"
       class="mb-20"
-      :model="formData.tableData">
+      :model="formData.tableData"
+      :rules="rules">
       <EditableRow
         v-for="(item, index) in formData.tableData"
         :key="index">
@@ -27,7 +28,7 @@
         <EditableColumn
           :label="t('主从主机')"
           :min-width="200">
-          <EditableBlock v-if="item.cluster.master_host.bk_host_id">
+          <EditableBlock v-if="item.cluster.master_host?.bk_host_id">
             <div class="host-item">
               <div class="host-tag host-tag-master">M</div>
               {{ item.cluster.master_host.ip }}
@@ -215,25 +216,39 @@
   const formData = reactive(defaultData());
 
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
-  const selectedMap = computed(() =>
-    formData.tableData
-      .filter((item) => item.cluster.id)
-      .reduce<Record<string, true>>((acc, cur) => {
+  const clusterMap = computed(() => {
+    return formData.tableData.reduce<Record<string, string>>((acc, cur) => {
+      Object.assign(acc, {
+        [cur.cluster.master_domain]: cur.cluster.master_domain,
+      });
+      cur.cluster.related_clusters.forEach((item) => {
         Object.assign(acc, {
-          [cur.cluster.master_domain]: true,
+          [item.master_domain]: cur.cluster.master_domain, // 关联集群映射到所属集群
         });
-        cur.cluster.related_clusters.forEach((item) => {
-          Object.assign(acc, {
-            [item.master_domain]: true,
-          });
-        });
-        return acc;
-      }, {}),
-  );
+      });
+      return acc;
+    }, {});
+  });
+
+  const rules = {
+    'cluster.master_domain': [
+      {
+        message: '',
+        trigger: 'blur',
+        validator: (value: string) => {
+          const target = clusterMap.value[value];
+          if (target && target !== value) {
+            return t('目标集群是集群target的关联集群_请勿重复添加', { target });
+          }
+          return true;
+        },
+      },
+    ],
+  };
 
   const handleBatchEdit = (list: TendbhaModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!selectedMap.value[item.master_domain]) {
+      if (!clusterMap.value[item.master_domain]) {
         acc.push(
           createTableRow({
             cluster: {
@@ -314,7 +329,7 @@
           backup_source: formData.backup_source,
           force: formData.force,
           infos: formData.tableData.map((item) => ({
-            cluster_ids: [item.cluster.id],
+            cluster_ids: [item.cluster.id, ...item.cluster.related_clusters.map((item) => item.id)],
             display_info: {
               charset: item.target_version.charset,
               cluster_type: item.cluster.cluster_type,
