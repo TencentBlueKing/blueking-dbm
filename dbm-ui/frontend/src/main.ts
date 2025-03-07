@@ -24,6 +24,7 @@ import { useFunController, useGlobalBizs, useSystemEnviron } from '@stores';
 import { setGlobalComps } from '@common/importComps';
 
 import i18n from '@locales/index';
+import BkTrace from '@blueking/bk-trace-core';
 
 import App from './App.vue';
 import getRouter from './router';
@@ -59,10 +60,22 @@ window.BKApp = app;
 
 const { fetchFunController } = useFunController();
 const { fetchBizs } = useGlobalBizs();
-const { fetchSystemEnviron } = useSystemEnviron();
+const systemEnvironStore = useSystemEnviron();
 
-Promise.all([fetchFunController(), fetchBizs(), fetchSystemEnviron()]).then(() => {
+Promise.all([fetchFunController(), fetchBizs(), systemEnvironStore.fetchSystemEnviron()]).then(() => {
   app.use(getRouter());
+  const { urls } = systemEnvironStore;
+  const reportUrl = urls.BKDATA_FRONTEND_REPORT_URL;
+  if (reportUrl) {
+    // 监控数据上报
+    app.use(BkTrace, {
+      appCode: urls.APP_CODE, // APP名称
+      appVersion: urls.APP_VERSION, // APP版本
+      spaceID: 'dbm', // 当前空间
+      spaceType: 'project', // 当前空间类型
+      url: reportUrl, // 上报地址
+    });
+  }
 
   app.mount('#app');
 });

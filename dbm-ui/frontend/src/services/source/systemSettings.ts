@@ -24,6 +24,8 @@ export function getSystemEnviron() {
       label: string;
       value: string;
     }[];
+    APP_CODE: string;
+    APP_VERSION: string;
     BK_CMDB_URL: string;
     BK_COMPONENT_API_URL: string;
     BK_DBM_URL: string;
@@ -31,6 +33,7 @@ export function getSystemEnviron() {
     BK_HELPER_URL: string;
     BK_NODEMAN_URL: string;
     BK_SCR_URL: string;
+    BKDATA_FRONTEND_REPORT_URL: string;
     CC_IDLE_MODULE_ID: string;
     CC_MANAGE_TOPO: {
       dirty_module_id: number;
