@@ -357,9 +357,11 @@
         remark,
         startMysqlPort,
         startProxyPort,
+        subZoneIds,
       } = cloneData;
 
-      formdata.details.resource_spec.backend.affinity = affinity;
+      formdata.details.disaster_tolerance_level = affinity;
+      formdata.details.sub_zone_ids = subZoneIds;
       formdata.bk_biz_id = bizId;
       formdata.details.bk_cloud_id = cloudId;
       formdata.details.resource_spec.backend.spec_id = backendSpecId as number;
@@ -401,9 +403,11 @@
         remark,
         singleSpecId,
         startMysqlPort,
+        subZoneIds,
       } = cloneData;
 
-      formdata.details.resource_spec.backend.affinity = affinity;
+      formdata.details.disaster_tolerance_level = affinity;
+      formdata.details.sub_zone_ids = subZoneIds;
       formdata.bk_biz_id = bizId;
       formdata.details.bk_cloud_id = cloudId;
       formdata.details.city_code = cityCode;

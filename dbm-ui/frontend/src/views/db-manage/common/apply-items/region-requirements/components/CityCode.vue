@@ -22,7 +22,7 @@
         v-model="modelValue.city_code"
         class="region-group">
         <div
-          v-for="info of cityList"
+          v-for="info of radioList"
           :key="info.city_code"
           class="region-group-item">
           <BkRadioButton :label="info.city_code">
@@ -36,21 +36,43 @@
 </template>
 
 <script setup lang="ts">
+  import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import { getInfrasCities } from '@services/source/infras';
 
+  import { Affinity } from '@common/const';
+
   const modelValue = defineModel<{
     city_code: string;
     city_name?: string;
+    disaster_tolerance_level: string;
   }>({
     required: true,
   });
 
   const { t } = useI18n();
 
+  const radioList = shallowRef<UnwrapRef<typeof cityList>>();
+
   const { data: cityList, loading } = useRequest(getInfrasCities);
+
+  watch([cityList, () => modelValue.value.disaster_tolerance_level], () => {
+    if (cityList.value) {
+      const showCityDefault = [Affinity.CROSS_RACK, Affinity.NONE].includes(
+        modelValue.value.disaster_tolerance_level as Affinity,
+      );
+      if (showCityDefault) {
+        radioList.value = cityList.value;
+      } else {
+        radioList.value = cityList.value.filter((cityItem) => cityItem.city_code !== 'default');
+        if (modelValue.value.city_code === 'default') {
+          modelValue.value.city_code = '';
+        }
+      }
+    }
+  });
 
   watch(
     () => modelValue.value.city_code,

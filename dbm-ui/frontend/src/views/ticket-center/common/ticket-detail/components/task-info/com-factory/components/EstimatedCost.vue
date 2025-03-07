@@ -26,6 +26,8 @@
 
   import { specCostEstimate } from '@services/source/dbresourceResource';
 
+  import { checkDbConsole } from '@/utils';
+
   import { Item as InfoItem } from './info-list/Index.vue';
 
   interface Props {
@@ -44,25 +46,27 @@
 
   const { t } = useI18n();
 
-  const resouceSpec = Object.entries(props.params.resource_spec).reduce<
-    ServiceParameters<typeof specCostEstimate>['resource_spec']
-  >((prev, [key, specInfo]) => {
-    return Object.assign(prev, {
-      [key]: {
-        count: specInfo.count,
-        spec_id: specInfo.spec_id,
-      },
-    });
-  }, {});
-
-  const { data: estimatedCost } = useRequest(specCostEstimate, {
-    defaultParams: [
-      {
-        db_type: props.params.db_type,
-        resource_spec: resouceSpec,
-      },
-    ],
+  const { data: estimatedCost, run: runSpecCostEstimate } = useRequest(specCostEstimate, {
+    manual: true,
   });
+
+  if (checkDbConsole('common.specCostEstimate')) {
+    const resouceSpec = Object.entries(props.params.resource_spec).reduce<
+      ServiceParameters<typeof specCostEstimate>['resource_spec']
+    >((prev, [key, specInfo]) => {
+      return Object.assign(prev, {
+        [key]: {
+          count: specInfo.count,
+          spec_id: specInfo.spec_id,
+        },
+      });
+    }, {});
+
+    runSpecCostEstimate({
+      db_type: props.params.db_type,
+      resource_spec: resouceSpec,
+    });
+  }
 </script>
 
 <style lang="less" scoped>

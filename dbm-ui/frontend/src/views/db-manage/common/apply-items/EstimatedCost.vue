@@ -37,6 +37,8 @@
 
   import { specCostEstimate } from '@services/source/dbresourceResource';
 
+  import { checkDbConsole } from '@/utils';
+
   interface Props {
     params: {
       db_type: string;
@@ -65,6 +67,9 @@
   watch(
     () => props.params.resource_spec,
     () => {
+      if (!checkDbConsole('common.specCostEstimate')) {
+        return;
+      }
       const resouceSpec = Object.entries(props.params.resource_spec).reduce<
         ServiceParameters<typeof specCostEstimate>['resource_spec']
       >((prev, [key, specInfo]) => {
