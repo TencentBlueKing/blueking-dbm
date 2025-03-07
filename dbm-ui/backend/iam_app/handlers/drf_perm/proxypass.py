@@ -19,6 +19,7 @@ from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.exceptions import RSADecryptException
 from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_proxy.constants import DB_CLOUD_TOKEN_EXPIRE_TIME
+from backend.utils.local import local
 from backend.utils.redis import RedisConn
 
 
@@ -40,9 +41,7 @@ class ProxyPassPermission(permissions.BasePermission):
 
         token_cloud_id = int(token.split("_")[0])
         if token_cloud_id != int(bk_cloud_id):
-            raise PermissionDenied(
-                _("解析的云区域(ID:{})与请求参数的云区域(ID:{})不相同，请检查token是否合法").format(token_cloud_id, bk_cloud_id)
-            )
+            raise PermissionDenied(_("解析云区域(ID:{})与参数云区域(ID:{})不同，请检查token是否合法").format(token_cloud_id, bk_cloud_id))
 
     def has_permission(self, request, view):
 
@@ -63,5 +62,14 @@ class ProxyPassPermission(permissions.BasePermission):
                 RedisConn.expire(cache_key, DB_CLOUD_TOKEN_EXPIRE_TIME)
             else:
                 RedisConn.sadd(cache_key, db_cloud_token)
+
         request.data.pop("db_cloud_token")
+
+        # 通过鉴权后，修改调用方式为内部调用
+        try:
+            local_request = local.request or request
+            local_request.internal_call = True
+        except Exception:  # pylint: disable=broad-except
+            pass
+
         return True

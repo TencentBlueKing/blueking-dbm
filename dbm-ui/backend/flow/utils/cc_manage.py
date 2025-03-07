@@ -441,7 +441,8 @@ class CcManage(object):
                             ],
                         }
                     ],
-                }
+                },
+                use_admin=True,
             )
         )
         self.add_label_for_service_instance(bk_instance_ids, labels_dict)

@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from urllib.parse import urljoin
 
 from django.utils.translation import ugettext_lazy as _
 
@@ -25,6 +26,11 @@ class _BKBaseApi(BaseApi):
             method="POST",
             url="v3/aiops/serving/processing/sensitive_text_classification_normal/execute/",
             description=_("敏感信息识别"),
+        )
+        self.report_data = self.generate_data_api(
+            method="POST",
+            url="v4/report_data/",
+            description=_("数据上报"),
         )
 
     def data_desensitization(self, text, bk_biz_id=env.DBA_APP_BK_BIZ_ID):
@@ -64,6 +70,11 @@ class _BKBaseApi(BaseApi):
             # 当 masked_text 为 0 时，表示接口出问题了，直接返回原文本
             return text
         return masked_text
+
+    def get_bkdata_frontend_report_url(self):
+        if not env.BKDATA_FRONTEND_DATA_ID:
+            return ""
+        return urljoin(self.report_data.url, f"{env.BKDATA_FRONTEND_DATA_ID}/")
 
 
 BKBaseApi = _BKBaseApi()

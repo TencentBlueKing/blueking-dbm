@@ -17,6 +17,7 @@ from rest_framework.response import Response
 from backend import env
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.components import BKBaseApi
 from backend.configuration.constants import DISK_CLASSES, SystemSettingsEnum
 from backend.configuration.models.system import BizSettings, SystemSettings
 from backend.configuration.serializers import (
@@ -87,6 +88,8 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
     def environ(self, request):
         """按需提供非敏感环境变量"""
         envs = {
+            "APP_CODE": env.APP_CODE,
+            "APP_VERSION": env.APP_VERSION,
             "BK_DOMAIN": env.BK_DOMAIN,
             "BK_HELPER_URL": env.BK_HELPER_URL,
             "BK_DBM_URL": env.BK_SAAS_HOST,
@@ -107,6 +110,7 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
                     "BK_CMDB_URL": env.BK_CMDB_URL,
                     "BK_NODEMAN_URL": env.BK_NODEMAN_URL,
                     "BK_SCR_URL": env.BK_SCR_URL,
+                    "BKDATA_FRONTEND_REPORT_URL": BKBaseApi.get_bkdata_frontend_report_url(),
                 }
             )
         return Response(envs)
