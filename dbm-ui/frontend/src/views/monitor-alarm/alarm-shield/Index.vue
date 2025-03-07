@@ -40,7 +40,7 @@
       :show-prepend="false"
       @clear-search="handleClearSearchValue"
       @column-filter="handleColumnFilterChange"
-      @request-finished="handleRequestFinished"
+      @request-success="handleRequestFinished"
       @selection="handleSelection">
       <BkTableColumn
         field="id"
@@ -146,11 +146,11 @@
           </BkButton>
           <BkButton
             v-bk-tooltips="{
-              disabled: isExpired || data.isEdiatable,
+              disabled: data.isEdiatable,
               content: t('暂不支持'),
             }"
             class="ml-8 mr-8"
-            :disabled="isExpired || !data.isEdiatable"
+            :disabled="!data.isEdiatable"
             text
             theme="primary"
             @click="() => handleOpenShieldAlarms('clone', data)">
@@ -327,8 +327,15 @@
     },
   );
 
-  const handleRequestFinished = (data: RowData[]) => {
-    const list = _.flatMap(data.map((item) => item.dimension_config.strategy_id || [])).filter((item) => !!item);
+  const handleRequestFinished = (data: { count: number; results: RowData[] }) => {
+    if (filterValue.value) {
+      shieldingCount.value = data.count;
+    } else {
+      expiredCount.value = data.count;
+    }
+    const list = _.flatMap(data.results.map((item) => item.dimension_config.strategy_id || [])).filter(
+      (item) => !!item,
+    );
     const strategyList = _.uniq(list);
     fetchPolicyList({
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,

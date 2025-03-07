@@ -42,9 +42,7 @@
           <span>{{ strategyInfo?.name || '--' }}</span>
         </div>
       </div>
-      <div
-        v-if="isCurrentEvent"
-        class="alarm-item">
+      <div class="alarm-item">
         <div class="item-title">{{ t('告警级别') }}:</div>
         <div class="item-content">
           {{ data?._severity ? severityMap[data._severity] : '--' }}
@@ -58,9 +56,7 @@
         <div class="item-title">{{ t('所属集群') }}:</div>
         <div class="item-content">{{ clusterDisplay }}</div>
       </div>
-      <div
-        v-if="isCurrentEvent"
-        class="alarm-item">
+      <div class="alarm-item">
         <div class="item-title">{{ t('触发条件') }}:</div>
         <div class="item-content">{{ data?._alert_message || '--' }}</div>
       </div>

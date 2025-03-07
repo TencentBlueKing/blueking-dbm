@@ -47,7 +47,6 @@
       show-settings
       @clear-search="handleClearSearchValue"
       @column-filter="handleColumnFilterChange"
-      @column-sort="handleColumnSortChange"
       @request-success="handleRequestSuccess"
       @selection="handleSelection">
       <BkTableColumn
@@ -75,7 +74,7 @@
         :min-width="160"
         show-overflow="tooltip">
         <template #default="{ data }: { data: RowData }">
-          <span>{{ bizsMap[data.bk_biz_id] || '--' }}</span>
+          <span>{{ bizsMap[data.alarmBizId] || '--' }}</span>
         </template>
       </BkTableColumn>
       <BkTableColumn
@@ -460,10 +459,6 @@
       ...route.query,
       ...columnFilterParams,
     });
-  };
-
-  const handleColumnSortChange = (data: { checked: boolean; field: string }) => {
-    console.log('column sort = ', data);
   };
 
   const handleSearchChange = (data: Record<string, string>) => {
