@@ -1,5 +1,5 @@
 <template>
-  <WebQuery :db-type="DBTypes.MYSQL" />
+  <WebQuery :db-type="DBTypes.TENDBCLUSTER" />
 </template>
 <script setup lang="ts">
   import { DBTypes } from '@common/const';

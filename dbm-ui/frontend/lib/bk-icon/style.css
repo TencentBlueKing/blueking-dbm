@@ -695,3 +695,15 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-liaotianchuang:before {
 	content: "\e20d";
 }
+.db-icon-dingzhu:before {
+	content: "\e210";
+}
+.db-icon-pinned:before {
+	content: "\e211";
+}
+.db-icon-code-2:before {
+	content: "\e212";
+}
+.db-icon-dingwei:before {
+	content: "\e213";
+}

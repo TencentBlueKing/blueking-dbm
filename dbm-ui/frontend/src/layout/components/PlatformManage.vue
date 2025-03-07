@@ -21,9 +21,21 @@
     <BkMenuGroup :name="t('DBA 工具箱')">
       <BkMenuItem key="DbaManageMysqlWebQuery">
         <template #icon>
-          <DbIcon type="ticket" />
+          <DbIcon type="mysql" />
         </template>
-        MySql
+        MySQL
+      </BkMenuItem>
+      <BkMenuItem key="DbaManageTendbClusterWebQuery">
+        <template #icon>
+          <DbIcon type="mysql" />
+        </template>
+        Tendb Cluster
+      </BkMenuItem>
+      <BkMenuItem key="DbaManageSQLServerWebQuery">
+        <template #icon>
+          <DbIcon type="sqlserver" />
+        </template>
+        SQLServer
       </BkMenuItem>
     </BkMenuGroup>
     <BkMenuGroup
