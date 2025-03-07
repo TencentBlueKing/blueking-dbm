@@ -116,6 +116,7 @@
       id: number;
     };
     relateClusterTips?: string;
+    role?: string;
   }
 
   type Emits = (e: 'idChange', value: { cloudId: number | null; id: number }) => void;
@@ -134,6 +135,7 @@
   const props = withDefaults(defineProps<Props>(), {
     modelValue: undefined,
     relateClusterTips: '同主机关联的其他集群，勾选后一同克隆',
+    role: undefined,
   });
   const emits = defineEmits<Emits>();
 
@@ -242,6 +244,7 @@
     findRelatedClustersByClusterIds({
       bk_biz_id: currentBizId,
       cluster_ids: [localClusterId.value],
+      role: props.role,
     })
       .then((data) => {
         if (data.length < 1) {
