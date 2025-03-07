@@ -26,3 +26,8 @@ func (c DefinerBase) Checker(mysqlVersion string) (r *CheckerResult) {
 	r.Parse(R.CreateTableRule.DefinerRule, fmt.Sprintf("%s@%s", c.Definer.User, c.Definer.Host), "")
 	return
 }
+
+// SpiderChecker definer rule checker
+func (c DefinerBase) SpiderChecker(mysqlVersion string) (r *CheckerResult) {
+	return c.Checker(mysqlVersion)
+}

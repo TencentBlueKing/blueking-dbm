@@ -23,3 +23,17 @@ func (c UpdateResult) Checker(mysqlVersion string) (r *CheckerResult) {
 	r.Parse(R.DmlRule.DmlNotHasWhere, c.HasWhere || c.Limit > 0, "")
 	return
 }
+
+// SpiderChecker whether the delete statement has a where condition
+func (c DeleteResult) SpiderChecker(mysqlVersion string) (r *CheckerResult) {
+	r = &CheckerResult{}
+	r.Parse(SR.DmlRule.DmlNotHasWhere, c.HasWhere || c.Limit > 0, "")
+	return
+}
+
+// SpiderChecker  whether the update statement has a where condition
+func (c UpdateResult) SpiderChecker(mysqlVersion string) (r *CheckerResult) {
+	r = &CheckerResult{}
+	r.Parse(SR.DmlRule.DmlNotHasWhere, c.HasWhere || c.Limit > 0, "")
+	return
+}

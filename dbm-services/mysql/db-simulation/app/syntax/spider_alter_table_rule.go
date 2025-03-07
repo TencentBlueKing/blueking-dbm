@@ -24,7 +24,7 @@ func (c AlterTableResult) SpiderChecker(mysqlVersion string) (r *CheckerResult) 
 		}
 	}
 	r.ParseBultinBan(c.NotAllowedDefaulValCol)
-	return
+	return c.Checker(mysqlVersion)
 }
 
 // NotAllowedDefaulValCol 不允许存在默认值的字段
