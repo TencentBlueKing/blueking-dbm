@@ -33,5 +33,6 @@ export async function generateSpiderApplyCloneData(ticketData: TicketModel<Tendb
     spiderPort: details.spider_port,
     spiderSpecCount: details.resource_spec.spider.count,
     spiderSpecId: details.resource_spec.spider.spec_id,
+    subZoneIds: details.resource_spec?.backend_group.location_spec.sub_zone_ids || [],
   });
 }

@@ -120,6 +120,17 @@
   });
 
   watch(
+    () => props.disasterToleranceLevel,
+    () => {
+      if ([Affinity.CROSS_RACK, Affinity.NONE].includes(props.disasterToleranceLevel as Affinity)) {
+        modelValue.value = [];
+        subZone.value = 0;
+        subZones.value = [];
+      }
+    },
+  );
+
+  watch(
     () => props.cityCode,
     () => {
       if (props.cityCode) {

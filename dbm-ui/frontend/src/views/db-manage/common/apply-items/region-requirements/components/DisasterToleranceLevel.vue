@@ -18,7 +18,7 @@
     required>
     <BkRadioGroup v-model="modelValue">
       <BkRadio
-        v-for="item in affinityList"
+        v-for="item in radioDataList"
         :key="item.value"
         :label="item.value">
         {{ item.label }}
@@ -30,28 +30,28 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { Affinity, affinityMap } from '@common/const';
+  import { useSystemEnviron } from '@stores';
 
-  import { checkDbConsole } from '@utils';
+  import { Affinity, affinityMap } from '@common/const';
 
   const modelValue = defineModel<string>({
     required: true,
   });
 
+  const { AFFINITY: systemAffinityList } = useSystemEnviron().urls;
+
   const { t } = useI18n();
 
-  const getAffinityItem = (key: Affinity) => {
+  const getAffinityItem = (key: string) => {
     return {
-      label: affinityMap[key],
+      label: affinityMap[key as Affinity],
       value: key,
     };
   };
 
-  const affinityList = [Affinity.CROS_SUBZONE, Affinity.SAME_SUBZONE_CROSS_SWTICH, Affinity.CROSS_RACK].map((key) =>
-    getAffinityItem(key),
-  );
-
-  if (checkDbConsole('common.affinityNone')) {
-    affinityList.push(getAffinityItem(Affinity.NONE));
-  }
+  const defaultAffinityList = [Affinity.CROS_SUBZONE, Affinity.SAME_SUBZONE_CROSS_SWTICH, Affinity.CROSS_RACK];
+  const radioAffinityList = systemAffinityList.length
+    ? systemAffinityList.map((item) => item.value)
+    : defaultAffinityList;
+  const radioDataList = radioAffinityList.map((key) => getAffinityItem(key));
 </script>

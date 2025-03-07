@@ -16,7 +16,7 @@ import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 export function generateMysqlSingleApplyCloneData(ticketData: TicketModel<Mysql.SingleApply>) {
   const { details } = ticketData;
   return Promise.resolve({
-    affinity: details.disaster_tolerance_level,
+    affinity: details.resource_spec?.backend.affinity,
     bizId: ticketData.bk_biz_id,
     cityCode: details.city_code,
     cloudId: details.bk_cloud_id,
@@ -30,5 +30,6 @@ export function generateMysqlSingleApplyCloneData(ticketData: TicketModel<Mysql.
     remark: ticketData.remark,
     singleSpecId: details.resource_spec?.backend.spec_id,
     startMysqlPort: details.start_mysql_port,
+    subZoneIds: details.resource_spec?.backend.location_spec.sub_zone_ids || [],
   });
 }

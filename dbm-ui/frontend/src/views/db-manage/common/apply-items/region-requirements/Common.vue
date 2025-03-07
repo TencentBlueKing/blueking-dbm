@@ -66,20 +66,26 @@
   defineExpose<Expose>({
     getValue() {
       const { city_code: city, disaster_tolerance_level: affinity, sub_zone_ids: subZoneIds } = modelValue.value;
-      if (affinity === Affinity.CROS_SUBZONE && subZoneIds.length === 0) {
+      // 跨园区-指定多个园区 / 指定园区
+      if (
+        (affinity === Affinity.CROS_SUBZONE && subZoneIds.length > 0) ||
+        affinity === Affinity.SAME_SUBZONE_CROSS_SWTICH
+      ) {
         return {
           affinity,
           location_spec: {
             city,
+            include_or_exclue: true,
+            sub_zone_ids: subZoneIds,
           },
         };
       }
+
+      // 跨园区-随机可用区 / 不限园区 / 无容灾要求
       return {
         affinity,
         location_spec: {
           city,
-          include_or_exclue: true,
-          sub_zone_ids: subZoneIds,
         },
       };
     },

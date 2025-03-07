@@ -19,11 +19,9 @@ export interface Apply extends DetailBase {
   resource_spec: {
     backend_group: {
       capacity: string;
-      count: number;
       future_capacity: string;
-      spec_id: number;
       spec_info: SpecInfo;
-    };
+    } & SpecInfo;
     spider: SpecInfo;
   };
   spider_port: number;
