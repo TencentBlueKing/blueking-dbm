@@ -53,6 +53,7 @@
       domain: string;
       id: number;
     };
+    role?: string;
   }
 
   type Emits = (e: 'idChange', value: number) => void;
@@ -165,6 +166,7 @@
     findRelatedClustersByClusterIds({
       bk_biz_id: currentBizId,
       cluster_ids: [localClusterId.value],
+      role: props.role,
     })
       .then((data) => {
         if (data.length < 1) {

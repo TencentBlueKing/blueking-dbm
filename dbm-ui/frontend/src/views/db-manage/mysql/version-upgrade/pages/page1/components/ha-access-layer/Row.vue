@@ -17,6 +17,7 @@
       <RenderCluster
         ref="clusterRef"
         :model-value="clusterInfo"
+        role="proxy"
         @id-change="handleClusterIdChange" />
     </FixedColumn>
     <td style="padding: 0">
