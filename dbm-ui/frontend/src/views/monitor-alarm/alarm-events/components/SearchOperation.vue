@@ -40,6 +40,7 @@
   import { useGlobalBizs } from '@stores';
 
   import { DBTypeInfos } from '@common/const';
+  import { batchSplitRegex } from '@common/regex';
 
   type Emits = (e: 'search', value: Record<string, string>) => void;
 
@@ -63,13 +64,24 @@
   const startTime = dayjs().subtract(6, 'day').format('YYYY-MM-DD HH:mm:ss');
   const endTime = dayjs().format('YYYY-MM-DD HH:mm:ss');
 
+  const defaultStatus = {
+    id: 'status',
+    name: t('状态'),
+    values: [
+      {
+        id: 'ABNORMAL',
+        name: t('未恢复'),
+      },
+    ],
+  };
+
   const filterData = ref<Record<string, any>>({
     end_time: endTime,
     start_time: startTime,
   });
   const dbValue = ref<string[]>([]);
   const filterDateRange = ref<[string, string]>([startTime, endTime]);
-  const searchValue = ref<ISearchValue[]>([]);
+  const searchValue = ref<ISearchValue[]>([defaultStatus]);
 
   const searchSelectData = computed(() => {
     const baseList = [
@@ -191,7 +203,38 @@
   };
 
   const handleSearchValueChange = (valueList: ISearchValue[]) => {
-    if (!valueList.length) {
+    // 防止方法由于searchValue的值改变而被循环触发
+    if (JSON.stringify(valueList) === JSON.stringify(searchValue.value)) {
+      return;
+    }
+
+    // 批量参数统一用,分隔符，展示的分隔符统一成 |
+    const handledValueList: ISearchValue[] = [];
+    valueList.forEach((item) => {
+      if (!['cluster_domain', 'ip'].includes(item.id)) {
+        // 原样返回
+        handledValueList.push(item);
+        return;
+      }
+      const values = item.values
+        ? [
+            {
+              id: item.values[0].id.split(batchSplitRegex).join(','),
+              name: item.values[0].name.split(batchSplitRegex).join(' | '),
+            },
+          ]
+        : [];
+
+      const searchObj = {
+        ...item,
+        values,
+      };
+      handledValueList.push(searchObj);
+    });
+
+    searchValue.value = handledValueList;
+
+    if (!handledValueList.length) {
       filterData.value = {
         db_types: filterData.value.db,
         end_time: endTime,
@@ -199,8 +242,7 @@
       };
       return;
     }
-
-    valueList.forEach((item) => {
+    handledValueList.forEach((item) => {
       if (!item.values?.length) {
         delete filterData.value[item.id];
       } else {
@@ -214,10 +256,11 @@
   defineExpose<Exposes>({
     reset() {
       dbValue.value = [];
-      searchValue.value = [];
+      searchValue.value = [defaultStatus];
       filterData.value = {
         end_time: endTime,
         start_time: startTime,
+        status: 'ABNORMAL',
       };
     },
   });

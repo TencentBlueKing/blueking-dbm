@@ -140,6 +140,10 @@ export default class AlarmEvent {
     this.update_time = payload.update_time;
   }
 
+  get alarmBizId() {
+    return Number(this.tags.find((item) => item.key === 'appid')!.value);
+  }
+
   get beginTimeDisplay() {
     return utcDisplayTime(dayjs(this.begin_time * 1000).format('YYYY-MM-DD HH:mm:ss'));
   }
