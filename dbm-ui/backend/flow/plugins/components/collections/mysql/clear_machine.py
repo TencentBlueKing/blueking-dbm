@@ -42,10 +42,13 @@ class MySQLClearMachineService(ExecuteDBActuatorScriptService):
         # 检测机器列表是否还有实例注册
         target_ip_list = copy.deepcopy(exec_ips)
         for ip in exec_ips:
-            machines = Machine.objects.filter(ip=ip, bk_cloud_id=kwargs["bk_cloud_id"]).prefetch_related(
-                "proxyinstance_set", "storageinstance_set"
+            # 先转换成list模式，避免后面的惰性查询
+            machines = list(
+                Machine.objects.filter(ip=ip, bk_cloud_id=kwargs["bk_cloud_id"]).prefetch_related(
+                    "proxyinstance_set", "storageinstance_set"
+                )
             )
-            if not machines.exists():
+            if not len(machines):
                 continue
 
             # ip+bk_cloud_id是唯一值，如果存在只有一行数据
