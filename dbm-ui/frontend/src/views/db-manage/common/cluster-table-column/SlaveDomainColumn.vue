@@ -188,12 +188,12 @@
 <style lang="less">
   .cluster-table-slave-domain-column {
     &:hover {
-      [class*=' db-icon'] {
+      [class*='db-icon'] {
         display: inline !important;
       }
     }
 
-    [class*=' db-icon'] {
+    [class*='db-icon'] {
       display: none;
       margin-top: 1px;
       margin-left: 4px;

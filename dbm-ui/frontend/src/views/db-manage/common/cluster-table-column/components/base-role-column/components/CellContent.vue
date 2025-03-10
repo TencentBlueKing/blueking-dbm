@@ -155,20 +155,6 @@
 
 <style lang="less">
   .cluster-list-role-instances-list-box {
-    &:hover {
-      .db-icon-copy {
-        display: inline;
-      }
-    }
-
-    .db-icon-copy {
-      display: none;
-      margin-top: 1px;
-      color: @primary-color;
-      vertical-align: text-top;
-      cursor: pointer;
-    }
-
     .is-active {
       display: inline-block !important;
     }
@@ -182,30 +168,5 @@
         line-height: 20px;
       }
     }
-  }
-
-  .cluster-role-instance-copy-btn {
-    display: inline-block;
-    padding: 0 4px;
-    line-height: 24px;
-    vertical-align: middle;
-    border-radius: 2px;
-
-    * {
-      font-size: 12px !important;
-    }
-
-    &:hover {
-      background-color: #f0f1f5;
-    }
-  }
-
-  .cluster-role-instance-copy-btn-split {
-    display: inline-block;
-    width: 1px;
-    height: 18px;
-    margin: 0 4px;
-    vertical-align: middle;
-    background-color: #f0f1f5;
   }
 </style>

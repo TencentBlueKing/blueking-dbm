@@ -150,3 +150,18 @@
       });
   };
 </script>
+<style lang="less">
+  .cluster-table-role-column {
+    &:hover {
+      [class*='db-icon'] {
+        display: inline !important;
+      }
+    }
+
+    [class*='db-icon'] {
+      display: none;
+      color: @primary-color;
+      cursor: pointer;
+    }
+  }
+</style>
