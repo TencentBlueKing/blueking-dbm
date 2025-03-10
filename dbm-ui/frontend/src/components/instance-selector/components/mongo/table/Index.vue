@@ -15,6 +15,7 @@
   <div class="instance-selector-render-topo-host">
     <SerachBar
       v-model="searchValue"
+      is-host
       :placeholder="t('请输入或选择条件搜索')"
       :search-attrs="searchAttrs"
       :validate-search-values="validateSearchValues"
@@ -107,8 +108,8 @@
   } = useLinkQueryColumnSerach({
     attrs: ['bk_cloud_id'],
     defaultSearchItem: {
-      id: 'instance',
-      name: t('IP 或 IP:Port'),
+      id: 'ip',
+      name: 'IP',
     },
     fetchDataFn: () => fetchResources(),
     initAutoFetch: false,
@@ -273,7 +274,7 @@
           },
         ],
       },
-      label: t('实例状态'),
+      label: t('状态'),
       render: ({ data }: DataRow) => {
         const isNormal = props.statusFilter ? props.statusFilter(data) : data.status === 'running';
         const info = isNormal ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };

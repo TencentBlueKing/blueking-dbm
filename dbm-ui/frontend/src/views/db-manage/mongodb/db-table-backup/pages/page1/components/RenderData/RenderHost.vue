@@ -184,6 +184,7 @@
 
       .edit-btn {
         position: absolute;
+        top: 0;
         right: 5px;
         z-index: 999;
         display: flex;

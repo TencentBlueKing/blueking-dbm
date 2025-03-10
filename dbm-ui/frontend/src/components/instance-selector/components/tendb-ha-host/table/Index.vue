@@ -214,7 +214,6 @@
       render: ({ data }: DataRow) => <RenderInstance data={data.related_instances || []}></RenderInstance>,
       width: 200,
     },
-
     {
       field: 'alive',
       label: t('Agent状态'),
