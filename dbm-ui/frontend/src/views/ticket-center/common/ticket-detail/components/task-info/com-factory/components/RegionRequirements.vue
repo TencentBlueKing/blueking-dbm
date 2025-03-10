@@ -1,9 +1,7 @@
 <template>
   <div class="ticket-details-info-title mt-20">{{ t('地域要求') }}</div>
   <InfoList>
-    <InfoItem
-      v-if="!isBigData"
-      :label="t('容灾要求')">
+    <InfoItem :label="t('容灾要求')">
       {{ affinityText }}
     </InfoItem>
     <InfoItem :label="t('地域')">
@@ -49,8 +47,7 @@
 
   const { affinity, location_spec: locationSpec } = Object.values(props.details.resource_spec)[0];
   const { sub_zone_ids: subZoneIds } = locationSpec;
-  const isBigData = affinity === Affinity.MAX_EACH_ZONE_EQUAL;
-  const showSubZone = !isBigData && subZoneIds && subZoneIds.length > 0;
+  const showSubZone = subZoneIds && subZoneIds.length > 0;
 
   const affinityText = affinityMap[affinity as Affinity];
 

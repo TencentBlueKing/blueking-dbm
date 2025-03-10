@@ -186,7 +186,7 @@
   import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
   import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
   import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
-  import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/OnlyCity.vue';
+  import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/BigData.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
 
   import { getInitFormdata } from './common/base';
