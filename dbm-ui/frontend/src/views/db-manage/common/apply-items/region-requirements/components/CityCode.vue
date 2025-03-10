@@ -60,7 +60,7 @@
 
   watch([cityList, () => modelValue.value.disaster_tolerance_level], () => {
     if (cityList.value) {
-      const showCityDefault = [Affinity.CROSS_RACK, Affinity.NONE].includes(
+      const showCityDefault = [Affinity.CROSS_RACK, Affinity.MAX_EACH_ZONE_EQUAL, Affinity.NONE].includes(
         modelValue.value.disaster_tolerance_level as Affinity,
       );
       if (showCityDefault) {
