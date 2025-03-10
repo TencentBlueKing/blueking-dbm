@@ -12,13 +12,13 @@
 -->
 
 <template>
-  <span class="render-head-copy">
+  <div class="render-head-copy">
     <slot />
     <DbIcon
       ref="copyRootRef"
       :class="{ 'is-active': isCopyIconClicked }"
       type="copy" />
-  </span>
+  </div>
   <div style="display: none">
     <div
       ref="popRef"
@@ -122,7 +122,17 @@
 
 <style lang="less">
   .render-head-copy {
-    .db-icon-copy {
+    width: 100%;
+
+    &:hover {
+      [class*='db-icon'] {
+        display: inline !important;
+      }
+    }
+
+    [class*='db-icon'] {
+      display: none;
+      margin-top: 1px;
       margin-left: 4px;
       color: @primary-color;
       cursor: pointer;
