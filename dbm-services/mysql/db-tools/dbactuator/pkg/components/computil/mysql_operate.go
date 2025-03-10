@@ -251,6 +251,7 @@ func (param ShutdownMySQLParam) ForceShutDownMySQL() (err error) {
 		return errors.Errorf("no socket file givien")
 	}
 	// shellCMD := fmt.Sprintf("mysqladmin -u%s -p%s -S%s shutdown", param.MySQLUser, param.MySQLPwd, param.Socket)
+	mysqladminCmd = append(mysqladminCmd, "shutdown")
 	output, err := mysqlutil.ExecCommandMySQLShell(strings.Join(mysqladminCmd, " "))
 	if err != nil {
 		logger.Warn("使用mysqladmin shutdown 失败:%s output:%s", err.Error(), string(output))

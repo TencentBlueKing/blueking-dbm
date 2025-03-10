@@ -248,21 +248,23 @@ class MysqlOpenAreaFlow(object):
         if source_cluster_schema["is_upload_bkrepo"]:
             # 目标集群下发库表文件，源集群不用下发
             exec_ip_list.remove(source_cluster_schema["ip"])
-            pipeline.add_act(
-                act_name=_("下发开区库表文件"),
-                act_component_code=TransFileComponent.code,
-                kwargs=asdict(
-                    DownloadMediaKwargs(
-                        bk_cloud_id=source_cluster_schema["bk_cloud_id"],
-                        exec_ip=exec_ip_list,
-                        file_target_path=self.work_dir,
-                        file_list=GetFileList(db_type=DBType.MySQL).mysql_import_sqlfile(
-                            path=BKREPO_SQLFILE_PATH.format(biz=self.data["bk_biz_id"]),
-                            filelist=[self.schema_tar_file_name, self.schema_md5sum_file_name],
-                        ),
-                    )
-                ),
-            )
+            # 对于单机多实例之间的开区，移除源ip后，ip执行列表没有元素，为空列表，此时下发文件报错
+            if len(exec_ip_list) > 0:
+                pipeline.add_act(
+                    act_name=_("下发开区库表文件"),
+                    act_component_code=TransFileComponent.code,
+                    kwargs=asdict(
+                        DownloadMediaKwargs(
+                            bk_cloud_id=source_cluster_schema["bk_cloud_id"],
+                            exec_ip=exec_ip_list,
+                            file_target_path=self.work_dir,
+                            file_list=GetFileList(db_type=DBType.MySQL).mysql_import_sqlfile(
+                                path=BKREPO_SQLFILE_PATH.format(biz=self.data["bk_biz_id"]),
+                                filelist=[self.schema_tar_file_name, self.schema_md5sum_file_name],
+                            ),
+                        )
+                    ),
+                )
 
         sub_pipelines = []
         for target_cluster in target_clusters_schema:
