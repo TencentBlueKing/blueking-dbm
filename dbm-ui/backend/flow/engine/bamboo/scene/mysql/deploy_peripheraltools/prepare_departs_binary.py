@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 from copy import deepcopy
 from dataclasses import asdict
 from typing import Dict, List
@@ -28,6 +29,8 @@ from backend.flow.plugins.components.collections.mysql.exec_actuator_script impo
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
+
+logger = logging.getLogger("flow")
 
 
 def prepare_departs_binary(
@@ -78,11 +81,10 @@ def prepare_departs_binary(
     if cluster_type != ClusterType.TenDBSingle:
         departs_on_proxy = deepcopy(departs)
         remove_depart(DeployPeripheralToolsDepart.MySQLTableChecksum, departs_on_proxy)
+        remove_depart(DeployPeripheralToolsDepart.MySQLRotateBinlog, departs_on_proxy)
+        remove_depart(DeployPeripheralToolsDepart.MySQLDBBackup, departs_on_proxy)
 
-        if cluster_type == ClusterType.TenDBHA:
-            remove_depart(DeployPeripheralToolsDepart.MySQLRotateBinlog, departs_on_proxy)
-            remove_depart(DeployPeripheralToolsDepart.MySQLDBBackup, departs_on_proxy)
-
+        logger.info("{} proxy push departs binary {}".format(cluster_type, departs_on_proxy))
         acts.extend(
             make_prepare_departs_binary_acts(
                 machine_type=ClusterMachineAccessTypeDefine[cluster_type][AccessLayer.PROXY],

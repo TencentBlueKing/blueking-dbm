@@ -19,6 +19,7 @@ from backend import env
 from backend.components.mysql_priv_manager.client import DBPrivManagerApi
 from backend.db_services.mysql.permission.clone.models import MySQLPermissionCloneRecord
 from backend.db_services.mysql.permission.constants import CloneType
+from backend.flow.consts import UserName
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
 logger = logging.getLogger("flow")
@@ -27,14 +28,18 @@ logger = logging.getLogger("flow")
 class CloneRules(BaseService):
     """根据克隆表单数据进行权限克隆"""
 
-    @staticmethod
-    def _clone_rule(bk_biz_id, clone_cluster_type, clone_type, operator, clone_data, inst_machine_type_map):
+    # @staticmethod
+    def _clone_rule(self, bk_biz_id, clone_cluster_type, clone_type, operator, clone_data, inst_machine_type_map):
         # 权限克隆全局参数准备
         params = {
             "bk_biz_id": bk_biz_id,
             "operator": operator,
             "bk_cloud_id": clone_data["bk_cloud_id"],
             "cluster_type": clone_cluster_type,
+            "system_users": [
+                *UserName.get_values(),
+                "gcs_dba",
+            ],
         }
         try:
             # 调用客户端克隆/实例克隆
@@ -44,6 +49,7 @@ class CloneRules(BaseService):
                     params.update({"user": clone_data["user"], "target_instances": clone_data["target_instances"]})
                 resp = DBPrivManagerApi.clone_client(params=params, raw=True, timeout=DBPrivManagerApi.TIMEOUT)
             else:
+
                 params.update(
                     {
                         "source": {
@@ -56,7 +62,7 @@ class CloneRules(BaseService):
                         },
                     }
                 )
-                resp = DBPrivManagerApi.clone_instance(params=params, raw=True, timeout=DBPrivManagerApi.TIMEOUT)
+                resp = DBPrivManagerApi.clone_instance_v2(params=params, raw=True, timeout=DBPrivManagerApi.TIMEOUT)
             clone_result = {"code": resp["code"], "message": resp["message"]}
         except Exception as e:  # pylint: disable=broad-except
             error_message = _("权限克隆异常: {}").format(getattr(e, "message", e))

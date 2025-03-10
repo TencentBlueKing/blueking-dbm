@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 from copy import deepcopy
 from dataclasses import asdict
 from typing import Dict, List
@@ -15,8 +16,14 @@ from typing import Dict, List
 from bamboo_engine.builder import SubProcess
 from django.utils.translation import ugettext as _
 
-from backend.db_meta.enums import AccessLayer, ClusterMachineAccessTypeDefine, ClusterType, MachineType
-from backend.db_meta.models import Cluster
+from backend.db_meta.enums import (
+    AccessLayer,
+    ClusterMachineAccessTypeDefine,
+    ClusterType,
+    MachineType,
+    TenDBClusterSpiderRole,
+)
+from backend.db_meta.models import Cluster, ProxyInstance
 from backend.flow.consts import DBA_ROOT_USER
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import (
@@ -27,6 +34,8 @@ from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.group_ips imp
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
+
+logger = logging.getLogger("flow")
 
 
 def push_mysql_crond_config(
@@ -119,11 +128,13 @@ def push_departs_config_for_cluster(
         departs_on_proxy = deepcopy(departs)
         # 接入层不跑校验, 强制删除
         remove_depart(DeployPeripheralToolsDepart.MySQLTableChecksum, departs_on_proxy)
+        remove_depart(DeployPeripheralToolsDepart.MySQLRotateBinlog, departs_on_proxy)
+
         if cluster_obj.cluster_type == ClusterType.TenDBHA:
             # proxy 不 rotate 和 备份
-            # spider 要, 所以不会进入这里
-            remove_depart(DeployPeripheralToolsDepart.MySQLRotateBinlog, departs_on_proxy)
             remove_depart(DeployPeripheralToolsDepart.MySQLDBBackup, departs_on_proxy)
+
+        logger.info("{} proxy push departs config {}".format(cluster_obj.cluster_type, departs_on_proxy))
 
         # 接入层组件配置推送
         if {
@@ -181,8 +192,18 @@ def make_push_departs_config_for_ip(
     """
     这肯定是同一个集群的, 所以配置只会有端口差异
     """
+    # 运维节点部署监控
+    is_spider_mnt = False
+    if machine_type == MachineType.SPIDER and ProxyInstance.objects.filter(
+        machine__ip=ip
+    ).first().tendbclusterspiderext.spider_role in [
+        TenDBClusterSpiderRole.SPIDER_MNT,
+        TenDBClusterSpiderRole.SPIDER_SLAVE_MNT,
+    ]:
+        is_spider_mnt = True
+
     acts = []
-    if DeployPeripheralToolsDepart.MySQLMonitor in departs:
+    if DeployPeripheralToolsDepart.MySQLMonitor in departs and not is_spider_mnt:
         acts.append(
             make_push_mysql_monitor_config_act(
                 cluster_obj=cluster_obj, ip=ip, port_list=port_list, machine_type=machine_type

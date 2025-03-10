@@ -36,10 +36,10 @@ func (c *Checker) Run() (msg string, err error) {
 		return "", err
 	}
 
-	err = c.backupToBackend(usersFromMem)
-	if err != nil {
-		return "", err
-	}
+	//err = c.backupToBackend(usersFromMem)
+	//if err != nil {
+	//	return "", err
+	//}
 
 	usersFromFile, err := c.loadUsersFromFile()
 	if err != nil {
