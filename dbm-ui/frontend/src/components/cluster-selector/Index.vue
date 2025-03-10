@@ -226,13 +226,14 @@
 
   const emits = defineEmits<Emits<T>>();
 
+  const slots = defineSlots<{
+    submitTips?: (params: { clusterList: string[] }) => VNode;
+  }>();
+
   const isShow = defineModel<boolean>('isShow', {
     default: false,
   });
 
-  const slots = defineSlots<{
-    submitTips?: (params: { clusterList: string[] }) => VNode;
-  }>();
   const { dialogWidth } = useSelectorDialogWidth();
   const { t } = useI18n();
 
@@ -244,7 +245,11 @@
           tip: t('集群已禁用'),
         },
       ],
-      getResourceList: getMongoList,
+      getResourceList: (params) =>
+        getMongoList({
+          ...params,
+          cluster_type: ClusterTypes.MONGO_REPLICA_SET,
+        }),
       id: ClusterTypes.MONGO_REPLICA_SET,
       multiple: true,
       name: t('副本集'),
@@ -258,7 +263,11 @@
           tip: t('集群已禁用'),
         },
       ],
-      getResourceList: getMongoList,
+      getResourceList: (params) =>
+        getMongoList({
+          ...params,
+          cluster_type: ClusterTypes.MONGO_SHARED_CLUSTER,
+        }),
       id: ClusterTypes.MONGO_SHARED_CLUSTER,
       multiple: true,
       name: t('分片集群'),

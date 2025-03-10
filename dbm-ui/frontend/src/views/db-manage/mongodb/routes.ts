@@ -3,7 +3,13 @@ import type { RouteRecordRaw } from 'vue-router';
 import type { MongoFunctions } from '@services/model/function-controller/functionController';
 import FunctionControllModel from '@services/model/function-controller/functionController';
 
+import { DBTypes, TicketTypes } from '@common/const';
+
+import { createToolboxRoute } from '@utils';
+
 import { t } from '@locales/index';
+
+const { createRouteItem } = createToolboxRoute(DBTypes.MONGODB);
 
 export const mongoToolboxChildrenRoutes: RouteRecordRaw[] = [
   {
@@ -63,14 +69,7 @@ export const mongoToolboxChildrenRoutes: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/mongodb/db-replace/Index.vue'),
   },
-  {
-    path: 'db-structure/:page?',
-    name: 'MongoDBStructure',
-    meta: {
-      navName: t('定点构造'),
-    },
-    component: () => import('@views/db-manage/mongodb/db-structure/Index.vue'),
-  },
+  createRouteItem(TicketTypes.MONGODB_PITR_RESTORE, t('定点构造')),
   {
     path: 'structure-instance/:page?',
     name: 'MongoStructureInstance',
