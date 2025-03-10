@@ -34,6 +34,12 @@
 
   import { Affinity, affinityMap } from '@common/const';
 
+  interface Props {
+    isBigdata?: boolean;
+  }
+
+  const props = defineProps<Props>();
+
   const modelValue = defineModel<string>({
     required: true,
   });
@@ -49,9 +55,11 @@
     };
   };
 
-  const defaultAffinityList = [Affinity.CROS_SUBZONE, Affinity.SAME_SUBZONE_CROSS_SWTICH, Affinity.CROSS_RACK];
-  const radioAffinityList = systemAffinityList.length
-    ? systemAffinityList.map((item) => item.value)
+  const defaultAffinityList = props.isBigdata
+    ? [Affinity.MAX_EACH_ZONE_EQUAL]
+    : [Affinity.CROS_SUBZONE, Affinity.SAME_SUBZONE_CROSS_SWTICH, Affinity.CROSS_RACK];
+  const radioAffinityList = systemAffinityList.some((systemAffinityItem) => systemAffinityItem.value === Affinity.NONE)
+    ? [...defaultAffinityList, Affinity.NONE]
     : defaultAffinityList;
   const radioDataList = radioAffinityList.map((key) => getAffinityItem(key));
 </script>

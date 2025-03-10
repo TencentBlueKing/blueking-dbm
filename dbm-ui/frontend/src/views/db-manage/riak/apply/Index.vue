@@ -210,7 +210,7 @@
   import ClusterName from '@views/db-manage/common/apply-items/ClusterName.vue';
   import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
   import ModuleItem from '@views/db-manage/common/apply-items/ModuleItem.vue';
-  import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/OnlyCity.vue';
+  import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/BigData.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
 
   // 目前固定为此版本
