@@ -156,9 +156,6 @@
   .cluster-list-role-instances-list-box {
     .db-icon-copy {
       display: none;
-      margin-top: 1px;
-      color: @primary-color;
-      vertical-align: text-top;
       cursor: pointer;
     }
 
