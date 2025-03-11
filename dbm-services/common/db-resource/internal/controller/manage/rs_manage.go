@@ -14,6 +14,7 @@ package manage
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"dbm-services/common/db-resource/internal/controller"
 	"dbm-services/common/db-resource/internal/middleware"
@@ -49,6 +50,7 @@ func (c *MachineResourceHandler) RegisterRouter(engine *rf.Engine) {
 		r.POST("/append/labels", c.AddLabels)
 		r.POST("/delete", c.Delete)
 		r.POST("/import", c.Import)
+		r.POST("/reimport", c.ImportMachineWithDiffInfo)
 		r.POST("/mountpoints", c.GetMountPoints)
 		r.POST("/disktypes", c.GetDiskTypes)
 		r.POST("/subzones", c.GetSubZones)
@@ -116,9 +118,7 @@ func (c *MachineResourceHandler) BatchUpdate(r *rf.Context) {
 		updateMap["rack_id"] = input.RackId
 	}
 	// do update
-	err = model.DB.Self.Table(model.TbRpDetailName()).Select("dedicated_biz", "rs_type", "storage_device", "rack_id",
-		"labels").
-		Where("bk_host_id in (?)", input.BkHostIds).Updates(updateMap).Error
+	err = model.DB.Self.Table(model.TbRpDetailName()).Where("bk_host_id in (?)", input.BkHostIds).Updates(updateMap).Error
 	if err != nil {
 		c.SendResponse(r, err, err.Error())
 		return
@@ -143,7 +143,23 @@ type UpdateRsMeta struct {
 	Labels        *[]string                `json:"labels,omitempty"`
 	ForBiz        *int                     `json:"for_biz,omitempty"`
 	RsType        *string                  `json:"resource_type,omitempty"`
+	DeviceClass   *string                  `json:"device_class,omitempty"`
+	RackId        *string                  `json:"rack_id,omitempty"`
+	CityMeta      CityMeta                 `json:"city_meta,omitempty"`
+	SubZoneMeta   SubZoneMeta              `json:"sub_zone_meta,omitempty"`
 	StorageDevice map[string]bk.DiskDetail `json:"storage_device"`
+}
+
+// CityMeta 城市信息
+type CityMeta struct {
+	City   string `json:"city"`
+	CityId string `json:"city_id"`
+}
+
+// SubZoneMeta subzones信息
+type SubZoneMeta struct {
+	SubZoneId string `json:"sub_zone_id"`
+	SubZone   string `json:"sub_zone"`
 }
 
 func (v UpdateRsMeta) getUpdateMap() (updateMap map[string]interface{}, err error) {
@@ -157,11 +173,23 @@ func (v UpdateRsMeta) getUpdateMap() (updateMap map[string]interface{}, err erro
 		}
 		updateMap["labels"] = lableJson
 	}
+	updateMap["update_time"] = time.Now()
 	if v.ForBiz != nil {
 		updateMap["dedicated_biz"] = v.ForBiz
 	}
 	if v.RsType != nil {
 		updateMap["rs_type"] = v.RsType
+	}
+	if v.DeviceClass != nil {
+		updateMap["device_class"] = v.DeviceClass
+	}
+	if v.CityMeta.City != "" {
+		updateMap["city"] = v.CityMeta.City
+		updateMap["city_id"] = v.CityMeta.CityId
+	}
+	if v.SubZoneMeta.SubZoneId != "" {
+		updateMap["sub_zone_id"] = v.SubZoneMeta.SubZoneId
+		updateMap["sub_zone"] = v.SubZoneMeta.SubZone
 	}
 	if len(v.StorageDevice) > 0 {
 		storageJson, err = json.Marshal(v.StorageDevice)
@@ -190,8 +218,8 @@ func (c *MachineResourceHandler) Update(r *rf.Context) {
 			c.SendResponse(r, err, err.Error())
 			return
 		}
-		err = tx.Model(&model.TbRpDetail{}).Table(model.TbRpDetailName()).Select("dedicated_biz", "rs_type",
-			"labels").Where("bk_host_id=?", v.BkHostID).Updates(updateMap).Error
+		err = tx.Model(&model.TbRpDetail{}).Table(model.TbRpDetailName()).Where("bk_host_id=?", v.BkHostID).
+			Updates(updateMap).Error
 		if err != nil {
 			tx.Rollback()
 			logger.Error(fmt.Sprintf("conver resource types Failed,Error:%s", err.Error()))

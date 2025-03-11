@@ -40,8 +40,6 @@ type ImportMachParam struct {
 	BkBizId int        `json:"bk_biz_id"  binding:"number"`
 	Hosts   []HostBase `json:"hosts" binding:"gt=0,dive,required"`
 	Labels  []string   `json:"labels"`
-	// return_resource 如果为ture，则资源导入的时候 检查主机是否存在，存在的话  就把预占用标记改成空闲。 如果主机不存在  则正常导入
-	ReturnResource bool `json:"return_resource"`
 	apply.ActionInfo
 }
 
@@ -90,21 +88,6 @@ func (p *ImportMachParam) existCheck() (err error) {
 	return nil
 }
 
-func (p *ImportMachParam) queryInDb(status string) (rs []model.TbRpDetail, err error) {
-	ipmap := p.getIpsByCloudId()
-	for cloudId, ips := range ipmap {
-		var tmpList []model.TbRpDetail
-		err = model.DB.Self.Table(model.TbRpDetailName()).Where("bk_cloud_id = ? and ip in (?) and status = ?  ", cloudId,
-			ips, status).
-			Scan(&tmpList).Error
-		if err != nil {
-			return nil, err
-		}
-		rs = append(rs, tmpList...)
-	}
-	return
-}
-
 // Import 导入主机资源
 func (c *MachineResourceHandler) Import(r *rf.Context) {
 	var input ImportMachParam
@@ -112,11 +95,9 @@ func (c *MachineResourceHandler) Import(r *rf.Context) {
 		logger.Error(fmt.Sprintf("Preare Error %s", err.Error()))
 		return
 	}
-	if !input.ReturnResource {
-		if err := input.existCheck(); err != nil {
-			c.SendResponse(r, errno.RepeatedIpExistSystem.Add(err.Error()), err.Error())
-			return
-		}
+	if err := input.existCheck(); err != nil {
+		c.SendResponse(r, errno.RepeatedIpExistSystem.Add(err.Error()), err.Error())
+		return
 	}
 	resp, err := Doimport(input, c.RequestId)
 	if err != nil {
@@ -139,15 +120,20 @@ type ImportHostResp struct {
 }
 
 func (p ImportMachParam) transParamToBytes() (lableJson json.RawMessage, err error) {
-	if len(p.Labels) == 0 {
+	return marshalLables(p.Labels)
+}
+
+// marshalLables TODO
+func marshalLables(labels []string) (json.RawMessage, error) {
+	if len(labels) == 0 {
 		return []byte("[]"), nil
 	}
-	lableJson, err = json.Marshal(p.Labels)
+	lableJson, err := json.Marshal(labels)
 	if err != nil {
 		logger.Error(fmt.Sprintf("ConverLableToJsonStr Failed,Error:%s", err.Error()))
-		return
+		return []byte("[]"), err
 	}
-	return
+	return lableJson, err
 }
 
 func (p ImportMachParam) getJobIpList() (ipList []bk.IPList) {
@@ -159,73 +145,6 @@ func (p ImportMachParam) getJobIpList() (ipList []bk.IPList) {
 	})
 }
 
-// resetPrepoccupiedResource 重置选中确认的资源改成unused
-func resetPrepoccupiedResource(param ImportMachParam, requestId string) (resetIpList []string, err error) {
-	var allprepoccupiedRsList []model.TbRpDetail
-	allprepoccupiedRsList, err = param.queryInDb(model.Prepoccupied)
-	if len(allprepoccupiedRsList) == 0 {
-		logger.Info("resources without preoccupied status need to be processed")
-		return
-	}
-	defer func() {
-		var desc string
-		status := model.StatusSuccess
-		if err != nil {
-			status = model.StatusFailed
-			desc = fmt.Sprintf("failed to reset prepoccupied status, error:%s", err.Error())
-		}
-		ipListBytes, errx := json.Marshal(resetIpList)
-		if errx != nil {
-			desc += "failed to serialize ipList"
-			logger.Error("json marshal failed  %s", errx.Error())
-		}
-		// insert operation log
-		model.DB.Self.Table(model.TbRpOperationInfoTableName()).Create(&model.TbRpOperationInfo{
-			RequestID:     requestId,
-			TotalCount:    len(allprepoccupiedRsList),
-			IpList:        ipListBytes,
-			OperationType: "RESET_PREPOCUPED_TO_UNUSED",
-			Operator:      param.ActionInfo.Operator,
-			BillId:        param.ActionInfo.BillId,
-			Description:   desc,
-			Status:        status,
-			CreateTime:    time.Now(),
-			UpdateTime:    time.Now(),
-		})
-	}()
-	// get all primary key
-	ids := lo.Map(allprepoccupiedRsList, func(item model.TbRpDetail, _ int) int {
-		return item.ID
-	})
-	resetIpList = lo.Map(allprepoccupiedRsList, func(item model.TbRpDetail, _ int) string {
-		return item.IP
-	})
-	db := model.DB.Self.Table(model.TbRpDetailName()).Where("id in (?) and status = ? ", ids, model.Prepoccupied).
-		Update("status", model.Unused)
-	if err = db.Error; err != nil {
-		logger.Error("reset prepoccupied status failed %s", err.Error())
-		return
-	}
-	if db.RowsAffected != int64(len(allprepoccupiedRsList)) {
-		logger.Error("reset prepoccupied status failed %d rows affected", db.RowsAffected)
-		return
-	}
-	return
-}
-
-func filerUnusedRs(param ImportMachParam) (ret []string, err error) {
-	rsList, err := param.queryInDb(model.Unused)
-	if err != nil {
-		return nil, err
-	}
-	okRsIplist := lo.Map(rsList, func(item model.TbRpDetail, _ int) string {
-		return item.IP
-	})
-	ips := param.getIps()
-	ret, _ = lo.Difference(ips, okRsIplist)
-	return
-}
-
 // Doimport do import
 func Doimport(param ImportMachParam, requestId string) (resp *ImportHostResp, err error) {
 	var ccHostsInfo []*cc.Host
@@ -235,18 +154,6 @@ func Doimport(param ImportMachParam, requestId string) (resp *ImportHostResp, er
 	var elems []model.TbRpDetail
 	resp = &ImportHostResp{}
 	targetHosts := lo.Uniq(param.getIps())
-	if param.ReturnResource {
-		targetHosts, err = filerUnusedRs(param)
-		if err != nil {
-			return resp, err
-		}
-		resetIpList, errx := resetPrepoccupiedResource(param, requestId)
-		if errx != nil {
-			return resp, errx
-		}
-		subtargetHosts, _ := lo.Difference(targetHosts, resetIpList)
-		targetHosts = subtargetHosts
-	}
 	if len(targetHosts) == 0 {
 		return resp, nil
 	}
@@ -350,15 +257,20 @@ func getCvmMachList(hosts []*cc.Host) []string {
 
 // transHostInfoToDbModule 获取的到的主机信息赋值给db model
 func (p ImportMachParam) transHostInfoToDbModule(h *cc.Host, bkCloudId int, label []byte) model.TbRpDetail {
+	return buildTbRpItem(h, p.ForBiz, p.BkBizId, bkCloudId, p.RsType, label, p.Operator)
+}
+
+func buildTbRpItem(h *cc.Host, forBizId, bkbizId, bkCloudId int, rsType string, label []byte,
+	operator string) model.TbRpDetail {
 	osType := h.BkOsType
 	if lo.IsEmpty(osType) {
 		osType = bk.OsLinux
 	}
 	return model.TbRpDetail{
-		DedicatedBiz:    p.ForBiz,
-		RsType:          dealEmptyRs(p.RsType),
+		DedicatedBiz:    forBizId,
+		RsType:          dealEmptyRs(rsType),
 		BkCloudID:       bkCloudId,
-		BkBizId:         p.BkBizId,
+		BkBizId:         bkbizId,
 		AssetID:         h.AssetID,
 		BkHostID:        h.BKHostId,
 		IP:              h.InnerIP,
@@ -382,6 +294,7 @@ func (p ImportMachParam) transHostInfoToDbModule(h *cc.Host, bkCloudId int, labe
 		OsBit:           h.BkOsBit,
 		OsVerion:        h.BkOsVersion,
 		OsName:          util.CleanOsName(h.OSName),
+		Operator:        operator,
 		UpdateTime:      time.Now(),
 		CreateTime:      time.Now(),
 	}
@@ -396,4 +309,126 @@ func dealEmptyRs(rsType string) string {
 
 func cleanStr(v string) string {
 	return strings.ReplaceAll(strings.TrimSpace(v), "\"", "")
+}
+
+// ImportMachineWithDiffInfoParam 导入主机信息
+type ImportMachineWithDiffInfoParam struct {
+	Hosts []HostInfo `json:"hosts" binding:"required,dive,required"`
+	apply.ActionInfo
+}
+
+// HostInfo 主机信息
+type HostInfo struct {
+	Ip        string `json:"ip"  binding:"required,ip"`
+	HostId    int    `json:"host_id" binding:"required"`
+	BkBizId   int    `json:"bk_biz_id"  binding:"required,number"`
+	BkCloudId int    `json:"bk_cloud_id"`
+	// 机器导入的专属业务id
+	ForBiz int    `json:"for_biz"`
+	RsType string `json:"resource_type"`
+	// 机器所在业务的 bk_biz_id
+	Labels []string `json:"labels"`
+}
+
+// ImportMachineWithDiffInfo 导入主机信息
+// nolint
+func (c *MachineResourceHandler) ImportMachineWithDiffInfo(r *rf.Context) {
+	var input ImportMachineWithDiffInfoParam
+	if err := c.Prepare(r, &input); err != nil {
+		logger.Error(fmt.Sprintf("Preare Error %s", err.Error()))
+		return
+	}
+	hostMap := make(map[int]HostInfo)
+	hostsGroupbyBkBizId := make(map[int][]HostInfo)
+	for _, v := range input.Hosts {
+		hostMap[v.HostId] = v
+		hostsGroupbyBkBizId[v.BkBizId] = append(hostsGroupbyBkBizId[v.BkBizId], v)
+	}
+	var elems []model.TbRpDetail
+	var gseAgentIds []string
+	for bkBizId, hostList := range hostsGroupbyBkBizId {
+		var ccHostsInfo []*cc.Host
+		var diskResp bk.GetDiskResp
+		var notFoundHosts []string
+		var err error
+		targetHosts := getIpList(hostList)
+		ccHostsInfo, notFoundHosts, err = bk.BatchQueryHostsInfo(bkBizId, targetHosts)
+		if err != nil {
+			logger.Error("query cc info from cmdb failed %s", err.Error())
+			c.SendResponse(r, err, err)
+			return
+		}
+		hostOsMap := lo.SliceToMap(ccHostsInfo, func(item *cc.Host) (string, string) {
+			return item.InnerIP, model.ConvertOsTypeToHuman(item.BkOsType)
+		})
+
+		diskResp, err = bk.GetDiskInfo(buildJobIpList(hostList), bkBizId, hostOsMap)
+		if err != nil {
+			logger.Error("get disk info failed %s", err.Error())
+			c.SendResponse(r, err, err)
+			return
+		}
+		hostsMap := lo.SliceToMap(targetHosts, func(item string) (string, struct{}) { return item, struct{}{} })
+		for _, emptyhost := range notFoundHosts {
+			delete(hostsMap, emptyhost)
+		}
+		var cvmInfoMap map[string]yunti.InstanceDetail
+		if config.AppConfig.Yunti.IsNotEmpty() {
+			logger.Info("try to get machine info from yunti")
+			var verr error
+			cvmInfoMap, verr = getCvmMachDetailInfo(getCvmMachList(ccHostsInfo))
+			if verr != nil {
+				logger.Warn("query cvm info failed %s", verr.Error())
+			}
+		}
+		for _, h := range ccHostsInfo {
+			delete(hostsMap, h.InnerIP)
+			hostInfo, ok := hostMap[h.BKHostId]
+			if !ok {
+				logger.Error("host not found in input hosts %s", h.InnerIP)
+				continue
+			}
+			jsonRaw, err := marshalLables(hostInfo.Labels)
+			if err != nil {
+				logger.Error("marshal labels failed %s", err.Error())
+				c.SendResponse(r, err, err)
+				return
+			}
+			el := buildTbRpItem(h, hostInfo.ForBiz, hostInfo.BkBizId, hostInfo.BkCloudId, hostInfo.RsType, jsonRaw,
+				input.Operator)
+			el.SetMore(h.InnerIP, diskResp.IpLogContentMap)
+			// gse agent 1.0的 agent 是用 cloudid:ip
+			gseAgentId := h.BkAgentId
+			if lo.IsEmpty(gseAgentId) {
+				gseAgentId = fmt.Sprintf("%d:%s", h.BkCloudId, h.InnerIP)
+			}
+			gseAgentIds = append(gseAgentIds, gseAgentId)
+			el.BkAgentId = gseAgentId
+			if v, ok := cvmInfoMap[h.InnerIP]; ok {
+				el.DramCap = v.Memory * 1000
+			}
+			elems = append(elems, el)
+		}
+	}
+	if err := model.DB.Self.Table(model.TbRpDetailName()).Create(elems).Error; err != nil {
+		c.SendResponse(r, err, err)
+	}
+	task.SyncRsGseAgentStatusChan <- gseAgentIds
+	c.SendResponse(r, nil, "success")
+}
+
+func getIpList(ss []HostInfo) (ips []string) {
+	for _, v := range ss {
+		ips = append(ips, v.Ip)
+	}
+	return
+}
+func buildJobIpList(ss []HostInfo) (ipList []bk.IPList) {
+	for _, v := range ss {
+		ipList = append(ipList, bk.IPList{
+			IP:        v.Ip,
+			BkCloudID: v.BkCloudId,
+		})
+	}
+	return
 }

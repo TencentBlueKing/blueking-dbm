@@ -30,8 +30,8 @@ func GetDbmSpecListMock() (dbmSpecList []dbmapi.DbmSpec) {
 				Max: 4,
 			},
 			Mem: meta.FloatMeasureRange{
-				Min: 2000,
-				Max: 8000,
+				Min: 2,
+				Max: 8,
 			},
 			StorageSpecs: []dbmapi.RealDiskSpec{
 				{
@@ -52,8 +52,8 @@ func GetDbmSpecListMock() (dbmSpecList []dbmapi.DbmSpec) {
 				Max: 8,
 			},
 			Mem: meta.FloatMeasureRange{
-				Min: 6000,
-				Max: 16000,
+				Min: 6,
+				Max: 16,
 			},
 
 			StorageSpecs: []dbmapi.RealDiskSpec{
@@ -75,8 +75,8 @@ func GetDbmSpecListMock() (dbmSpecList []dbmapi.DbmSpec) {
 				Max: 16,
 			},
 			Mem: meta.FloatMeasureRange{
-				Min: 60000,
-				Max: 64000,
+				Min: 60,
+				Max: 64,
 			},
 			StorageSpecs: []dbmapi.RealDiskSpec{
 				{

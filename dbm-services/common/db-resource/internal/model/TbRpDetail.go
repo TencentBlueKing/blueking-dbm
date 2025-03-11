@@ -99,6 +99,8 @@ type TbRpDetail struct {
 	AgentStatusCode int `gorm:"column:gse_agent_status_code;type:int(11);not null" json:"gse_agent_status_code"`
 	// agent status 最后一次更新时间
 	AgentStatusUpdateTime time.Time `gorm:"column:agent_status_update_time;type:timestamp;default:1970-01-01 08:00:01" json:"agent_status_update_time"`
+	// 资源导入者
+	Operator string `gorm:"column:operator;type:char(64);not null" json:"operator"`
 	// 消费时间
 	ConsumeTime time.Time `gorm:"column:consume_time;type:timestamp;default:1970-01-01 08:00:01" json:"consume_time"`
 	// 最后修改时间

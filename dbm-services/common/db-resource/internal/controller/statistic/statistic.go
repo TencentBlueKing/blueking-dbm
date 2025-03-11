@@ -123,7 +123,10 @@ func (s *Handler) ResourceDistribution(c *gin.Context) {
 		s.SendResponse(c, err, "Failed to parse parameters")
 		return
 	}
-
+	if param.ForBiz == nil {
+		s.SendResponse(c, fmt.Errorf("must specify biz"), "must specify biz")
+		return
+	}
 	dbmClient := dbmapi.NewDbmClient()
 	specList, err := dbmClient.GetDbmSpec(param.SpecParam.getQueryParam(param.EnableSpec))
 	if err != nil {
@@ -138,8 +141,10 @@ func (s *Handler) ResourceDistribution(c *gin.Context) {
 		return
 	}
 	cityMap := make(map[string]string)
+	var allLogicCitys []string
 	for _, cityInfo := range allLogicCityInfos {
 		cityMap[cityInfo.BkIdcCityName] = cityInfo.LogicalCityName
+		allLogicCitys = append(allLogicCitys, cityInfo.LogicalCityName)
 	}
 	db := model.DB.Self.Table(model.TbRpDetailName())
 	if err := param.dbFilter(db); err != nil {
@@ -161,12 +166,12 @@ func (s *Handler) ResourceDistribution(c *gin.Context) {
 	}
 	var result interface{}
 	var processErr error
-
+	noSpecIpList := make([]string, 0)
 	switch param.GroupBy {
 	case "device_class":
 		result = s.processDeviceClassGroup(rsList, specList, param.SpecParam.ClusterType)
 	case "spec":
-		result, processErr = groupByDbmSpec(rsList, specList)
+		result, noSpecIpList, processErr = groupByDbmSpec(*param.ForBiz, rsList, specList, allLogicCitys)
 	default:
 		err := errors.New("unknown aggregation type")
 		msg := fmt.Sprintf("Unknown aggregation type: %s", param.GroupBy)
@@ -178,8 +183,10 @@ func (s *Handler) ResourceDistribution(c *gin.Context) {
 		s.SendResponse(c, processErr, "Failed to process data")
 		return
 	}
-
-	s.SendResponse(c, nil, result)
+	s.SendResponse(c, nil, map[string]interface{}{
+		"summary_data":    result,
+		"no_spec_ip_list": lo.Uniq(noSpecIpList),
+	})
 }
 
 func (s *Handler) processDeviceClassGroup(
@@ -199,7 +206,6 @@ func (s *Handler) processDeviceClassGroup(
 				filteredList = append(filteredList, rs)
 				break
 			}
-
 		}
 	}
 	return groupByDeviceClass(filteredList)
@@ -318,7 +324,7 @@ func groupByDeviceClass(rpList []model.TbRpDetail) []GroupByDeviceClassResult {
 	}
 
 	sort.SliceStable(citysGroupKey, func(i, j int) bool {
-		return citysGroupKey[i].Count > citysGroupKey[j].Count
+		return citysGroupKey[i].Count < citysGroupKey[j].Count
 	})
 
 	result := make([]GroupByDeviceClassResult, 0, len(groupMap))
@@ -330,7 +336,7 @@ func groupByDeviceClass(rpList []model.TbRpDetail) []GroupByDeviceClassResult {
 			}
 		}
 		sort.SliceStable(cityResults, func(i, j int) bool {
-			return cityResults[i].Count > cityResults[j].Count
+			return cityResults[i].Count < cityResults[j].Count
 		})
 		result = append(result, cityResults...)
 	}
@@ -371,13 +377,19 @@ func transferSubZoneDetail(subZonegroupMap map[string]int, subZoneMap map[string
 	return s
 }
 
-func groupByDbmSpec(rpList []model.TbRpDetail, specList []dbmapi.DbmSpec) (result []GroupBySpecResult, err error) {
+// groupByDbmSpec 按照规格聚合
+// nolint
+func groupByDbmSpec(bizId int, rpList []model.TbRpDetail, specList []dbmapi.DbmSpec, allLogicCitys []string) (
+	result []GroupBySpecResult,
+	noSpecIpList []string, err error) {
 	result = []GroupBySpecResult{}
 	specMap := make(map[int]dbmapi.DbmSpec)
+	noUsedspecMap := make(map[int]dbmapi.DbmSpec)
 	for _, spec := range specList {
 		specMap[spec.SpecId] = spec
+		noUsedspecMap[spec.SpecId] = spec
 	}
-	specMatchrelationMap := rsMatchSpecs(rpList, specList)
+	specMatchrelationMap, noSpecIpList := rsMatchSpecs(rpList, specList)
 	groupMap := make(map[string][]model.TbRpDetail)
 	subZonegroupMap := make(map[string]map[string]int)
 	subzoneNameMap := make(map[string]string)
@@ -401,6 +413,9 @@ func groupByDbmSpec(rpList []model.TbRpDetail, specList []dbmapi.DbmSpec) (resul
 	}
 	cityMap := make(map[string][]GroupBySpecResult)
 	cityCountMap := make(map[string]int)
+	for _, city := range allLogicCitys {
+		cityCountMap[city] = 0
+	}
 	for groupKey, grs := range groupMap {
 		dedicatedBiz, city, specId, err := parseSpecGroupKey(groupKey)
 		if err != nil {
@@ -411,7 +426,7 @@ func groupByDbmSpec(rpList []model.TbRpDetail, specList []dbmapi.DbmSpec) (resul
 		if !ok {
 			spec = dbmapi.DbmSpec{}
 		}
-
+		delete(noUsedspecMap, specId)
 		cityCountMap[city] += len(grs)
 		cityMap[city] = append(cityMap[city], GroupBySpecResult{
 			DedicatedBiz:    dedicatedBiz,
@@ -424,23 +439,37 @@ func groupByDbmSpec(rpList []model.TbRpDetail, specList []dbmapi.DbmSpec) (resul
 			SubZoneDetail:   transferSubZoneDetail(subZonegroupMap[groupKey], subzoneNameMap),
 		})
 	}
+	// 处理没有匹配到规格的
+	for _, spec := range noUsedspecMap {
+		for _, city := range allLogicCitys {
+			cityMap[city] = append(cityMap[city], GroupBySpecResult{
+				DedicatedBiz:    bizId,
+				SpecId:          spec.SpecId,
+				SpecName:        spec.SpecName,
+				SpecMachineType: spec.SpecMachineType,
+				SpecClusterType: spec.SpecClusterType,
+				City:            city,
+				Count:           0,
+			})
+		}
+	}
 	var citysGroupKey []CityGroupCount
 	for city, count := range cityCountMap {
 		citysGroupKey = append(citysGroupKey, CityGroupCount{City: city, Count: count})
 	}
 	// 对城市整体数量进行排序
 	sort.SliceStable(citysGroupKey, func(i, j int) bool {
-		return citysGroupKey[i].Count > citysGroupKey[j].Count
+		return citysGroupKey[i].Count < citysGroupKey[j].Count
 	})
 	// 按照subZone数量排序
 	for _, city := range citysGroupKey {
 		part := cityMap[city.City]
 		sort.SliceStable(part, func(i, j int) bool {
-			return part[i].Count > part[j].Count
+			return part[i].Count < part[j].Count
 		})
 		result = append(result, part...)
 	}
-	return result, nil
+	return result, noSpecIpList, nil
 }
 
 func parseSpecGroupKey(groupKey string) (dedicatedBiz int, city string, specId int, err error) {
@@ -457,9 +486,10 @@ func parseSpecGroupKey(groupKey string) (dedicatedBiz int, city string, specId i
 	return dedicatedBiz, city, specId, err
 }
 
-func rsMatchSpecs(rsList []model.TbRpDetail, specList []dbmapi.DbmSpec) map[int][]int {
-	relationMap := make(map[int][]int)
+func rsMatchSpecs(rsList []model.TbRpDetail, specList []dbmapi.DbmSpec) (relationMap map[int][]int,
+	noSpecIpList []string) {
 	ctrlChan := make(chan struct{}, 10)
+	relationMap = make(map[int][]int)
 	wg := sync.WaitGroup{}
 	lc := sync.Mutex{}
 	for _, rs := range rsList {
@@ -480,5 +510,10 @@ func rsMatchSpecs(rsList []model.TbRpDetail, specList []dbmapi.DbmSpec) map[int]
 		}
 	}
 	wg.Wait()
-	return relationMap
+	for _, rs := range rsList {
+		if _, exist := relationMap[rs.BkHostID]; !exist {
+			noSpecIpList = append(noSpecIpList, rs.IP)
+		}
+	}
+	return relationMap, noSpecIpList
 }
