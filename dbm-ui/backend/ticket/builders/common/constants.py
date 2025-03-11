@@ -142,6 +142,16 @@ class DumperProtocolType(str, StructuredEnum):
     TCP_IP = EnumField("TCP/IP", _("TCP/IP"))
 
 
+class OperaObjType(str, StructuredEnum):
+    """
+    操作对象类型
+    """
+
+    INSTANCE = EnumField("instance", _("实例类型"))
+    CLUSTER = EnumField("cluster", _("集群类型"))
+    MACHINE = EnumField("machine", _("整机类型"))
+
+
 class MongoDBScriptImportMode(str, StructuredEnum):
     """
     MongoDB导入的模式

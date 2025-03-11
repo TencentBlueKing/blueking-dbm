@@ -24,7 +24,7 @@ from backend.ticket.builders.common.base import (
     HostRecycleSerializer,
     fetch_cluster_ids,
 )
-from backend.ticket.builders.common.constants import MySQLBackupSource
+from backend.ticket.builders.common.constants import MySQLBackupSource, OperaObjType
 from backend.ticket.builders.mysql.base import MySQLBaseOperateDetailSerializer
 from backend.ticket.builders.mysql.mysql_master_slave_switch import (
     MysqlMasterSlaveSwitchFlowBuilder,
@@ -49,6 +49,7 @@ class MysqlMigrateClusterDetailSerializer(MySQLBaseOperateDetailSerializer):
         help_text=_("备份源"), choices=MySQLBackupSource.get_choices(), default=MySQLBackupSource.REMOTE
     )
     is_safe = serializers.BooleanField(help_text=_("安全模式"), default=True)
+    opera_object = serializers.ChoiceField(help_text=_("操作对象类型"), choices=OperaObjType.get_choices(), required=False)
 
     def validate(self, attrs):
         cluster_ids = fetch_cluster_ids(attrs)

@@ -23,6 +23,7 @@ from backend.ticket.builders.common.base import (
     HostRecycleSerializer,
     InstanceInfoSerializer,
 )
+from backend.ticket.builders.common.constants import OperaObjType
 from backend.ticket.builders.mysql.base import (
     BaseMySQLHATicketFlowBuilder,
     MySQLBaseOperateDetailSerializer,
@@ -46,6 +47,7 @@ class MysqlProxySwitchDetailSerializer(MySQLBaseOperateDetailSerializer):
     ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
     force = serializers.BooleanField(help_text=_("是否强制替换"), required=False, default=False)
     infos = serializers.ListField(help_text=_("替换信息"), child=SwitchInfoSerializer())
+    opera_object = serializers.ChoiceField(help_text=_("操作对象类型"), choices=OperaObjType.get_choices(), required=False)
 
     def validate(self, attrs):
         # 校验集群是否可用，集群类型为高可用
