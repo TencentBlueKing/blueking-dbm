@@ -14,18 +14,16 @@ from collections import defaultdict
 from typing import Any, Dict, List, Union
 
 from django.db import models, transaction
-from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from backend import env
 from backend.bk_web.constants import LEN_L_LONG, LEN_LONG, LEN_NORMAL, LEN_SHORT
 from backend.bk_web.models import AuditedModel
+from backend.components.hcm.client import HCMApi
 from backend.configuration.constants import PLAT_BIZ_ID, DBType, SystemSettingsEnum
-from backend.configuration.models import SystemSettings
-from backend.db_meta.enums import InstancePhase
+from backend.configuration.models import BizSettings, SystemSettings
 from backend.db_monitor.exceptions import AutofixException
-from backend.db_services.dbbase.constants import IpDest
 from backend.ticket.constants import (
     EXCLUSIVE_TICKET_EXCEL_PATH,
     TICKET_RUNNING_STATUS_SET,
@@ -251,28 +249,39 @@ class Ticket(AuditedModel):
         :param recycle_hosts: 回收机器列表
         :param ticket_type: 回收单据类型
         """
+        from backend.db_meta.models import Machine
+
+        # 校验元数据，主机存在元数据的情况跳过回收
+        host_ids = [host["bk_host_id"] for host in recycle_hosts]
+        exist_hosts = Machine.objects.filter(bk_host_id__in=host_ids).values_list("bk_host_id", flat=True)
+        recycle_hosts = [host for host in recycle_hosts if host["bk_host_id"] not in exist_hosts]
+
         if not recycle_hosts:
             return
 
         revoke_ticket = cls.objects.get(id=revoke_ticket_id)
 
-        # 暂定sqlserver机器回收到故障池，其他组件回收到公共资源池
-        # TODO: 后续改造需要根据uwork，裁撤列表等决定是回到故障池还是资源池
-        ip_dest, remark = IpDest.Resource, ""
-        if revoke_ticket.group == DBType.Sqlserver:
-            ip_dest = IpDest.Recycle
-            remark = _("检测到主机为Windows主机")
-
-        # 获取回收机器
-        # 判定是否允许回收：主机的实例的phase不能是online。
-        # TODO: 后续改造为回收流程进行空闲检查，不通过则不进行清理
-        from backend.db_meta.models import Machine
-
-        host_ids = [host["bk_host_id"] for host in recycle_hosts]
-        online_filter = Q(storageinstance__phase=InstancePhase.ONLINE) | Q(proxyinstance__phase=InstancePhase.ONLINE)
-        if Machine.objects.filter(online_filter, bk_host_id__in=host_ids).count():
-            logger.error(_("机器存在正在运行的实例，不允许清理"))
+        # TODO: 如果是独立业务的下架，则直接转移到待回收
+        if BizSettings.get_exact_hosting_biz(revoke_ticket.bk_biz_id, revoke_ticket.group):
             return
+
+        fault_hosts: List = []
+        recovered_hosts: List = []
+        resource_hosts: List = []
+
+        # sqlserver机器直接转移到待回收
+        if revoke_ticket.group == DBType.Sqlserver:
+            recovered_hosts.append(recycle_hosts)
+            recycle_hosts = []
+
+        # 存在uwork的主机需要回到故障池，存在裁撤单的主机需要回到待回收池，否则退回资源池
+        for host in recycle_hosts:
+            if HCMApi.check_host_has_uwork(host):
+                fault_hosts.append(host)
+            elif HCMApi.check_host_is_dissolved(host):
+                recovered_hosts.append(host)
+            else:
+                resource_hosts.append(host)
 
         # 创建回收单据流程
         recycle_ticket = cls.create_ticket(
@@ -281,10 +290,11 @@ class Ticket(AuditedModel):
             bk_biz_id=revoke_ticket.bk_biz_id,
             remark=_("单据{}结束后自动发起{}单据").format(revoke_ticket.id, TicketType.get_choice_label(ticket_type)),
             details={
-                "recycle_hosts": recycle_hosts,
-                "ip_recycle": {"ip_dest": ip_dest, "for_biz": revoke_ticket.bk_biz_id},
+                "parent_ticket": revoke_ticket_id,
+                "fault_hosts": fault_hosts,
+                "recovered_hosts": recovered_hosts,
+                "resource_hosts": resource_hosts,
                 "group": revoke_ticket.group,
-                "remark": remark,
             },
         )
 

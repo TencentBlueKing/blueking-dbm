@@ -143,6 +143,7 @@ class BizSettingsEnum(str, StructuredEnum):
     BIZ_ASSISTANCE_VARS = EnumField("BIZ_ASSISTANCE_VARS", _("业务协助人员变量"))
     BIZ_ASSISTANCE_SWITCH = EnumField("BIZ_ASSISTANCE_SWITCH", _("业务协助开关"))
     NOTIFY_CONFIG = EnumField("NOTIFY_CONFIG", _("业务通知渠道配置"))
+    MANAGE_TOPO = EnumField("MANAGE_TOPO", _("DBM系统的管理集群拓扑"))
 
 
 DEFAULT_DB_ADMINISTRATORS = ["admin"]

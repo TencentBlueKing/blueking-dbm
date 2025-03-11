@@ -19,7 +19,7 @@ from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components import BKBaseApi
 from backend.configuration.common_sqls import DB_TYPE__COMMON_SQL_MAP
-from backend.configuration.constants import DISK_CLASSES, SystemSettingsEnum
+from backend.configuration.constants import DISK_CLASSES, BizSettingsEnum, SystemSettingsEnum
 from backend.configuration.models.system import BizSettings, SystemSettings
 from backend.configuration.serializers import (
     BatchUpdateBizSettingsSerializer,
@@ -105,7 +105,7 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
             "BK_DBM_URL": env.BK_SAAS_HOST,
             "DBA_APP_BK_BIZ_ID": env.DBA_APP_BK_BIZ_ID,
             "DBA_APP_BK_BIZ_NAME": AppCache.get_biz_name(env.DBA_APP_BK_BIZ_ID),
-            "CC_MANAGE_TOPO": SystemSettings.get_setting_value(key=SystemSettingsEnum.MANAGE_TOPO.value),
+            "CC_MANAGE_TOPO": BizSettings.get_setting_value(env.DBA_APP_BK_BIZ_ID, key=BizSettingsEnum.MANAGE_TOPO),
             "AFFINITY": SystemSettings.get_setting_value(key=SystemSettingsEnum.AFFINITY.value),
             "ENABLE_EXTERNAL_PROXY": env.ENABLE_EXTERNAL_PROXY,
         }

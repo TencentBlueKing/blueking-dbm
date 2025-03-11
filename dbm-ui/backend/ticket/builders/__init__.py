@@ -26,6 +26,7 @@ from backend.db_meta.models import AppCache, Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.base import BaseController
 from backend.iam_app.dataclass.actions import ActionEnum
+from backend.ticket.builders.common.base import fetch_apply_hosts
 from backend.ticket.constants import TICKET_EXPIRE_DEFAULT_CONFIG, FlowRetryType, FlowType, TicketType
 from backend.ticket.models import Flow, Ticket, TicketFlowsConfig
 from backend.utils.register import re_import_modules
@@ -305,7 +306,7 @@ class RecycleParamBuilder(FlowParamBuilder):
                 # 一批机器的操作系统类型一致，任取一个即可
                 "os_name": self.ticket_data["recycle_hosts"][0]["os_name"],
                 "os_type": self.ticket_data["recycle_hosts"][0]["os_type"],
-                "db_type": self.ticket.group,
+                "db_type": self.ticket_data["group"],
             }
         )
 
@@ -328,7 +329,7 @@ class ImportResourceParamBuilder(FlowParamBuilder):
             {
                 "ticket_id": self.ticket.id,
                 "for_biz": self.ticket_data["ip_recycle"]["for_biz"],
-                "resource_type": self.ticket.group,
+                "resource_type": self.ticket_data["group"],
                 "os_type": recycle_hosts[0]["bk_os_type"],
                 "hosts": recycle_hosts,
                 "operator": self.ticket.creator,
@@ -336,8 +337,16 @@ class ImportResourceParamBuilder(FlowParamBuilder):
                 "return_resource": True,
                 # 要查询主机实际的业务管控
                 "bk_biz_id": recycle_hosts[0]["bk_biz_id"],
+                # 是否资源重导入
+                "reimport": self.ticket.ticket_type == TicketType.RECYCLE_APPLY_HOST,
             }
         )
+        # 如果单据类型是，新主机退回，则需要拿到申请的主机信息
+        if self.ticket_data["reimport"]:
+            parent_ticket = Ticket.objects.get(id=self.ticket_data["parent_ticket"])
+            apply_hosts = fetch_apply_hosts(parent_ticket.details["ticket_data"])
+            host_ids = [host["bk_host_id"] for host in self.ticket_data["hosts"]]
+            self.ticket_data["hosts"] = [host for host in apply_hosts if host["bk_host_id"] in host_ids]
 
     def pre_callback(self):
         # 在run的时候才会生成task id，此时要更新到资源池参数里面

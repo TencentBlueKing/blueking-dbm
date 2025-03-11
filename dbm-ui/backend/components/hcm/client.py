@@ -25,6 +25,24 @@ class _HCMApi(BaseApi):
             url="/api/v1/woa/config/findmany/config/cvm/device/detail/",
             description=_("获取可用的CVM机型"),
         )
+        self.dissolve_check = self.generate_data_api(
+            method="POST",
+            url="/api/v1/woa/bizs/{bk_biz_id}/dissolve/hosts/status/check",
+            description=_("查询主机是否为待裁撤阶段"),
+        )
+        self.uwork_check = self.generate_data_api(
+            method="POST",
+            url=" /api/v1/woa/bizs/{bk_biz_id}/task/hosts/uwork_tickets/status/check",
+            description=_("检查主机是否有未完结的uwork单据"),
+        )
+
+    def check_host_is_dissolved(self, host):
+        # TODO: 待实现
+        return False
+
+    def check_host_has_uwork(self, host):
+        # TODO: 待实现
+        return False
 
 
 HCMApi = _HCMApi()

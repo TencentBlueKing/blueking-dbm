@@ -16,10 +16,9 @@ from django.utils.translation import ugettext as _
 
 from backend import env
 from backend.components.dbresource.client import DBResourceApi
-from backend.configuration.constants import SystemSettingsEnum
-from backend.configuration.models import SystemSettings
 from backend.db_dirty.constants import MachineEventType
 from backend.db_dirty.models import MachineEvent
+from backend.db_services.cmdb.biz import get_or_create_resource_module
 from backend.db_services.dbbase.constants import IpDest
 from backend.db_services.ipchooser.constants import BkOsType
 from backend.flow.consts import LINUX_ADMIN_USER_FOR_CHECK, WINDOW_ADMIN_USER_FOR_CHECK
@@ -85,31 +84,42 @@ class ImportResourceInitStepFlow(object):
             )
 
         # 调用资源导入接口
-        p.add_act(
-            act_name=_("资源池导入"),
-            act_component_code=ExternalServiceComponent.code,
-            kwargs={
-                "params": self.data,
-                "api_import_path": DBResourceApi.__module__,
-                "api_import_module": "DBResourceApi",
-                "api_call_func": "resource_import",
-                "success_callback_path": f"{insert_host_event.__module__}.{insert_host_event.__name__}",
-            },
-        )
+        if self.data.get("reimport"):
+            p.add_act(
+                act_name=_("主机资源重导入"),
+                act_component_code=ExternalServiceComponent.code,
+                kwargs={
+                    "params": {"hosts": self.data["hosts"]},
+                    "api_import_path": DBResourceApi.__module__,
+                    "api_import_module": "DBResourceApi",
+                    "api_call_func": "resource_reimport",
+                    "success_callback_path": f"{insert_host_event.__module__}.{insert_host_event.__name__}",
+                },
+            )
+        else:
+            p.add_act(
+                act_name=_("资源池导入"),
+                act_component_code=ExternalServiceComponent.code,
+                kwargs={
+                    "params": self.data,
+                    "api_import_path": DBResourceApi.__module__,
+                    "api_import_module": "DBResourceApi",
+                    "api_call_func": "resource_import",
+                    "success_callback_path": f"{insert_host_event.__module__}.{insert_host_event.__name__}",
+                },
+            )
 
-        # 转移模块到资源池空闲机
-        p.add_act(
-            act_name=_("主机转移至资源池空闲模块"),
-            act_component_code=TransferHostServiceComponent.code,
-            kwargs={
-                "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
-                "bk_module_ids": [
-                    SystemSettings.get_setting_value(key=SystemSettingsEnum.MANAGE_TOPO.value)["resource_module_id"]
-                ],
-                "bk_host_ids": [host["host_id"] for host in ip_list],
-                "update_host_properties": {"dbm_meta": [], "need_monitor": False, "update_operator": False},
-            },
-        )
+            # 转移模块到对应业务的资源池
+            p.add_act(
+                act_name=_("主机转移至资源池空闲模块"),
+                act_component_code=TransferHostServiceComponent.code,
+                kwargs={
+                    "bk_biz_id": bk_biz_id,
+                    "bk_module_ids": [get_or_create_resource_module(bk_biz_id)],
+                    "bk_host_ids": [host["host_id"] for host in ip_list],
+                    "update_host_properties": {"dbm_meta": [], "need_monitor": False, "update_operator": False},
+                },
+            )
 
         p.run_pipeline()
 
