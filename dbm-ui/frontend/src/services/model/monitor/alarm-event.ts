@@ -149,13 +149,13 @@ export default class AlarmEvent {
     return undefined;
   }
 
-  get beginTimeDisplay() {
-    return utcDisplayTime(dayjs(this.begin_time * 1000).format('YYYY-MM-DD HH:mm:ss'));
-  }
-
   get cluster() {
     const clusterInfo = this.dimensions.find((item) => item.key === 'tags.cluster_domain');
     return clusterInfo?.value || '';
+  }
+
+  get createTimeDisplay() {
+    return utcDisplayTime(dayjs(this.create_time * 1000).format('YYYY-MM-DD HH:mm:ss'));
   }
 
   get firstAnomalyTimeDisplay() {

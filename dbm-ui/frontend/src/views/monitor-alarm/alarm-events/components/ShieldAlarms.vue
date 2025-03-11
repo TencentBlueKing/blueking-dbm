@@ -111,6 +111,8 @@
 
   import { createAlarmShield, getAlarmShieldDetails } from '@services/source/monitor';
 
+  import { useBeforeClose } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
   import ShieldDateTimePicker from '@views/monitor-alarm/common/ShieldDateTimePicker.vue';
@@ -126,6 +128,7 @@
   type Emits = (e: 'success') => void;
 
   interface Exposes {
+    cancel: () => void;
     checkValueChange: () => boolean;
     reset: () => void;
     submit: () => Promise<number>;
@@ -231,13 +234,22 @@
     formModel.value.reason = reason;
   };
 
-  defineExpose<Exposes>({
-    checkValueChange() {
-      if (isDisabled.value) {
-        return false;
-      }
+  const checkValueChange = () => {
+    if (isDisabled.value) {
+      return false;
+    }
 
-      return !_.isEqual(formModel.value, initFormModel());
+    return !_.isEqual(formModel.value, initFormModel());
+  };
+
+  defineExpose<Exposes>({
+    cancel() {
+      const beforeClose = useBeforeClose();
+      const isValueChange = checkValueChange();
+      return beforeClose(isValueChange);
+    },
+    checkValueChange() {
+      return checkValueChange();
     },
     reset() {
       formModel.value = initFormModel();

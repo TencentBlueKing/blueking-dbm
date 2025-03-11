@@ -27,6 +27,15 @@ export default function getRoutes() {
       },
       component: () => import('@views/monitor-alarm/alarm-events-todo/Index.vue'),
     },
+    {
+      path: 'alarm-events-global',
+      name: 'AlarmEventsGlobal',
+      meta: {
+        fullscreen: true,
+        navName: t('告警事件'),
+      },
+      component: () => import('@views/monitor-alarm/alarm-events/Index.vue'),
+    },
   ]);
   registerBusinessModule([
     {

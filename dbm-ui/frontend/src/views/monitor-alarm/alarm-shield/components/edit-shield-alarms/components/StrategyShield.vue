@@ -173,11 +173,12 @@
     () => props.data,
     () => {
       if (props.data) {
-        if (props.data.strategy_id?.length) {
-          strategyValue.value = props.data.strategy_id;
+        const strategyIdList = props.data.strategy_id as number[];
+        if (strategyIdList.length) {
+          strategyValue.value = strategyIdList;
           fetchExistPolicyList({
             bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-            monitor_policy_ids: props.data.strategy_id.join(','),
+            monitor_policy_ids: strategyIdList.join(','),
           });
         }
 
@@ -228,7 +229,7 @@
     display: flex;
 
     .db-select {
-      width: 90px;
+      width: 120px;
 
       :deep(.bk-input) {
         // border-right: transparent;

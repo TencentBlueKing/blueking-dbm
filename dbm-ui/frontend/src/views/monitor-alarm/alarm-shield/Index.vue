@@ -74,11 +74,11 @@
             theme="danger">
             {{ t('基于维度屏蔽') }}
           </BkTag>
-          <BkTag
+          <!-- <BkTag
             v-else-if="data.category === 'scope'"
             theme="warning">
             {{ t('基于主机屏蔽') }}
-          </BkTag>
+          </BkTag> -->
           <BkTag
             v-else
             theme="success">
@@ -266,10 +266,10 @@
       label: t('基于维度屏蔽'),
       value: 'dimension',
     },
-    {
-      label: t('基于主机屏蔽'),
-      value: 'scope',
-    },
+    // {
+    //   label: t('基于主机屏蔽'),
+    //   value: 'scope',
+    // },
     {
       label: t('基于策略屏蔽'),
       value: 'strategy',

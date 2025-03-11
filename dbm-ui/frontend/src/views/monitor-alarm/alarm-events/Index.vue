@@ -26,8 +26,9 @@
       </div>
       <div class="right-operation">
         <SearchOperation
+          :key="route.name"
           ref="searchOperationRef"
-          :show-bizs="isTodoPage"
+          :show-bizs="isTodoPage || isGlobalPage"
           @search="handleSearchChange" />
       </div>
     </div>
@@ -96,53 +97,6 @@
         :width="380">
       </BkTableColumn>
       <BkTableColumn
-        field="firstAnomalyTimeDisplay"
-        :label="t('首次异常时间')"
-        :min-width="200"
-        :show-overflow="false">
-      </BkTableColumn>
-      <BkTableColumn
-        field="beginTimeDisplay"
-        :label="t('告警产生时间')"
-        :min-width="200"
-        :show-overflow="false">
-      </BkTableColumn>
-      <BkTableColumn
-        field="appointee"
-        :label="t('负责人')"
-        show-overflow="tooltip"
-        :width="160">
-        <template #default="{ data }: { data: RowData }">
-          <span>{{ data.appointee?.join(',') }}</span>
-        </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="status"
-        :filters="statusFilterList"
-        :label="t('状态')"
-        :show-overflow="false"
-        :width="100">
-        <template #default="{ data }: { data: RowData }">
-          <BkTag
-            v-if="data.status === 'RECOVERED'"
-            theme="success"
-            type="filled">
-            {{ t('已恢复') }}
-          </BkTag>
-          <BkTag
-            v-else-if="data.status === 'ABNORMAL'"
-            theme="danger"
-            type="filled">
-            {{ t('未恢复') }}
-          </BkTag>
-          <BkTag
-            v-else
-            type="filled">
-            {{ t('已失效') }}
-          </BkTag>
-        </template>
-      </BkTableColumn>
-      <BkTableColumn
         field="stage"
         :filters="phaseFilterList"
         :label="t('处理阶段')"
@@ -172,9 +126,56 @@
         </template>
       </BkTableColumn>
       <BkTableColumn
+        field="appointee"
+        :label="t('负责人')"
+        show-overflow="tooltip"
+        :width="160">
+        <template #default="{ data }: { data: RowData }">
+          <span>{{ data.appointee?.join(',') }}</span>
+        </template>
+      </BkTableColumn>
+      <BkTableColumn
+        field="createTimeDisplay"
+        :label="t('告警产生时间')"
+        :min-width="200"
+        :show-overflow="false">
+      </BkTableColumn>
+      <BkTableColumn
+        field="firstAnomalyTimeDisplay"
+        :label="t('首次异常时间')"
+        :min-width="200"
+        :show-overflow="false">
+      </BkTableColumn>
+      <BkTableColumn
+        field="status"
+        :filters="statusFilterList"
+        :label="t('状态')"
+        :show-overflow="false"
+        :width="100">
+        <template #default="{ data }: { data: RowData }">
+          <BkTag
+            v-if="data.status === 'RECOVERED'"
+            theme="success"
+            type="filled">
+            {{ t('已恢复') }}
+          </BkTag>
+          <BkTag
+            v-else-if="data.status === 'ABNORMAL'"
+            theme="danger"
+            type="filled">
+            {{ t('未恢复') }}
+          </BkTag>
+          <BkTag
+            v-else
+            type="filled">
+            {{ t('已失效') }}
+          </BkTag>
+        </template>
+      </BkTableColumn>
+      <BkTableColumn
         fixed="right"
         :label="t('操作')"
-        :min-width="150"
+        :min-width="120"
         :show-overflow="false">
         <template #default="{ data }: { data: RowData }">
           <BkButton
@@ -192,11 +193,11 @@
             {{ t('屏蔽告警') }}
           </BkButton>
           <BkButton
-            class="ml-8"
-            disabled
+            class="ml-16"
+            :disabled="!urls.BKMONITOR_URL"
             text
             theme="primary"
-            @click="handleOpenDetailPage">
+            @click="() => handleOpenDetailPage(data)">
             {{ t('更多信息') }}
           </BkButton>
         </template>
@@ -208,6 +209,7 @@
     :before-close="handleBeforeClose"
     class="shiled-alarm-page"
     :disabled-confirm="currentEvent?.is_shielded"
+    :show-leave-confirm="false"
     width="960"
     @closed="handleClosed">
     <template #header>
@@ -228,7 +230,7 @@
 
   import { useBeforeClose } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
+  import { useGlobalBizs, useSystemEnviron } from '@stores';
 
   import DbTable from '@components/db-table/index.vue';
 
@@ -240,9 +242,10 @@
   export type RowData = ServiceReturnType<typeof getAlarmEventsList>['results'][number];
 
   const { t } = useI18n();
-  const globalBizStore = useGlobalBizs();
   const router = useRouter();
   const route = useRoute();
+  const globalBizStore = useGlobalBizs();
+  const { urls } = useSystemEnviron();
 
   const isEditable = ref(true);
   const showShieldAlarm = ref(false);
@@ -264,6 +267,7 @@
   );
 
   const isTodoPage = computed(() => route.name === 'AlarmEventsTodo');
+  const isGlobalPage = computed(() => route.name === 'AlarmEventsGlobal');
 
   const statusFilterList = [
     {
@@ -336,7 +340,7 @@
       'instance',
       'strategy_name',
       'firstAnomalyTimeDisplay',
-      'beginTimeDisplay',
+      'createTimeDisplay',
       'bk_biz_id',
       'appointee',
     ],
@@ -369,9 +373,15 @@
 
   const updateTableData = () => {
     const params = route.query;
-    if (!isTodoPage.value) {
+    if (!isTodoPage.value && !isGlobalPage.value) {
       Object.assign(params, {
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      });
+    }
+    // 平台管理页鉴权标记
+    if (isGlobalPage.value) {
+      Object.assign(params, {
+        platform: true,
       });
     }
     if (route.query.self_assist) {
@@ -390,6 +400,11 @@
         status: 'ABNORMAL',
       });
     }
+    if (route.query.bk_biz_id) {
+      Object.assign(params, {
+        bk_biz_id: Number(route.query.bk_biz_id),
+      });
+    }
     setTimeout(() => {
       tableRef.value?.fetchData({
         bk_biz_id: undefined,
@@ -399,7 +414,11 @@
   };
 
   const handleRequestSuccess = (data: ServiceReturnType<typeof getAlarmEventsList>) => {
-    const severityInfo = data.aggs.find((item) => item.id === 'severity')!;
+    const severityInfo = data.aggs.find((item) => item.id === 'severity');
+    if (!severityInfo) {
+      return;
+    }
+
     const severityMap = severityInfo.children.reduce<Record<string, number>>((result, item) => {
       Object.assign(result, {
         [item.id]: item.count,
@@ -436,8 +455,9 @@
     showShieldAlarm.value = true;
   };
 
-  const handleOpenDetailPage = () => {
-    console.log('handleOpenDetailPage');
+  const handleOpenDetailPage = (data: RowData) => {
+    const url = `${urls.BKMONITOR_URL}/?bizId=${urls.DBA_APP_BK_BIZ_ID}#/event-center/detail/${data.id}`;
+    window.open(url);
   };
 
   const handleClearSearchValue = () => {
@@ -488,15 +508,18 @@
     const formatData = selectionList.value.map((item) => ({
       [t('告警 ID')]: item.id,
       [t('告警主机/实例')]: item.instance,
-      [t('告警产生时间')]: item.beginTimeDisplay,
+      [t('告警产生时间')]: item.createTimeDisplay,
       [t('告警内容')]: item.description,
       [t('告警名称')]: item.alert_name,
       [t('告警等级')]: item.severityDisplayName,
+      [t('处理阶段')]: item.stage_display,
       [t('处理阶段')]: item.stage_display,
       [t('所属业务')]: bizsMap.value[item.bk_biz_id],
       [t('所属集群')]: item.cluster,
       [t('状态')]: item.statusDisplay,
       [t('负责人')]: item.appointee?.join(','),
+      [t('负责人')]: item.appointee?.join(','),
+      [t('首次异常时间')]: item.firstAnomalyTimeDisplay,
       [t('首次异常时间')]: item.firstAnomalyTimeDisplay,
     }));
     const colsWidths = Array(11)
@@ -512,7 +535,8 @@
   };
 
   const handleShieldSuccess = () => {
-    updateTableData();
+    currentEvent.value!.is_shielded = true;
+    // updateTableData();
   };
 </script>
 <style lang="less" scoped>

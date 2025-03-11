@@ -1,6 +1,6 @@
 <template>
   <BkPopover
-    :disabled="!showTip"
+    disabled
     :popover-delay="[100, 0]"
     width="430">
     <div class="shield-content-main">
@@ -14,7 +14,11 @@
             <span>{{ item.title }}</span>
             <span class="ml-4 mr-4">:</span>
           </div>
-          <div class="content">{{ item.content }}</div>
+          <div
+            v-overflow-tips
+            class="content">
+            {{ item.content }}
+          </div>
         </div>
       </div>
     </div>
@@ -102,7 +106,7 @@
     },
   ]);
 
-  const showTip = computed(() => renderList.value.filter((item) => item.content !== '').length > 2);
+  // const showTip = computed(() => renderList.value.filter((item) => item.content !== '').length > 2);
   const bizsMap = computed(() =>
     bizs.reduce<Record<number, string>>((results, item) => {
       Object.assign(results, {
@@ -159,7 +163,7 @@
       const condition = props.data._alert_message || '';
       renderList.value[6].content = condition;
       // 告警策略
-      const strategyIdList = props.data.strategy_id || [];
+      const strategyIdList = (props.data.strategy_id as number[]) || [];
       renderList.value[7].content = strategyIdList.length
         ? strategyIdList.map((id) => props.strategyMap[id]).join(' , ')
         : '';
@@ -175,7 +179,7 @@
     display: flex;
     width: 100%;
     flex-direction: column;
-    max-height: 45px;
+    // max-height: 45px;
     overflow: hidden;
     cursor: pointer;
 

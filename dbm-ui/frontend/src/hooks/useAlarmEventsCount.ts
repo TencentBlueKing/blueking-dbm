@@ -38,8 +38,8 @@ export const useAlarmEventsCount = () => {
         status: 'ABNORMAL',
       }),
     ]).then(([todoData, assistData]) => {
-      todoCount.value = todoData.overview.count;
-      assitCount.value = assistData.overview.count;
+      todoCount.value = todoData.overview.count ?? 0;
+      assitCount.value = assistData.overview.count ?? 0;
     });
   };
   initCount();

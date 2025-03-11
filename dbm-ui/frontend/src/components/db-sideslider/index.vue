@@ -62,6 +62,7 @@
     isShow: boolean;
     renderDirective?: 'if' | 'show';
     showFooter?: boolean;
+    showLeaveConfirm?: boolean;
   }
 
   type Emits = (e: 'update:isShow', isShow: boolean) => void;
@@ -77,6 +78,7 @@
     isShow: false,
     renderDirective: 'if',
     showFooter: true,
+    showLeaveConfirm: true,
   });
 
   const emit = defineEmits<Emits>();
@@ -128,7 +130,11 @@
   // 取消
   const handleCancle = () => {
     const { cancel } = getModelProvier();
-    leaveConfirm()
+    if (!props.showLeaveConfirm) {
+      return Promise.resolve(cancel()).then(() => close());
+    }
+
+    return leaveConfirm()
       .then(() => cancel())
       .then(() => close());
   };

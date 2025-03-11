@@ -19,6 +19,7 @@
         <span class="ticket-count">{{ todoCount }}</span>
       </BkMenuItem>
       <BkMenuItem
+        v-if="userProfileStore.isDba"
         key="AlarmEventsTodo"
         v-db-console="'personalWorkbench.AlarmEventsTodo'">
         <template #icon>
