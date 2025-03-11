@@ -166,7 +166,11 @@
         trigger: 'blur',
         validator: () => {
           const dataInfo = dynamicRef.value.getValue('dimension');
-          return dataInfo.dimension_config.dimension_conditions.length > 1;
+          if (formModel.value.type === 'dimension') {
+            return dataInfo.dimension_config.dimension_conditions.length > 1;
+          }
+
+          return true;
         },
       },
       {

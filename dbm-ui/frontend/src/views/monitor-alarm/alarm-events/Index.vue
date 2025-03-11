@@ -364,6 +364,10 @@
   watch(
     () => route.query,
     () => {
+      if (!Object.keys(route.query).length) {
+        return;
+      }
+
       updateTableData();
     },
     {
