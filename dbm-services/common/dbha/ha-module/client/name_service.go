@@ -194,6 +194,35 @@ func (c *NameServiceClient) CreateDomain(domainName string, app string, ip strin
 	return nil
 }
 
+// UpdateDomain update address from domain for dns
+func (c *NameServiceClient) UpdateDomain(domainName string, app string, oldInstance string, newInstance string) error {
+	var data DomainRes
+	req := map[string]interface{}{
+		"db_cloud_token": c.Conf.BKConf.BkToken,
+		"bk_cloud_id":    c.CloudId,
+		"app":            app,
+		"domain_name":    domainName,
+		"instance":       oldInstance,
+		"set":            map[string]interface{}{"instance": newInstance},
+	}
+
+	log.Logger.Debugf("UpdateDomain param:%v", req)
+
+	response, err := c.DoNew(http.MethodPost,
+		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.UpdateDomainUrl, ""), req, nil)
+	if err != nil {
+		return err
+	}
+	if response.Code != 0 {
+		return fmt.Errorf("%s failed, return code:%d, msg:%s", util.AtWhere(), response.Code, response.Msg)
+	}
+	err = json.Unmarshal(response.Data, &data)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // PolarisClbGWResp the response format for polaris and clb
 type PolarisClbGWResp struct {
 	Ips []string `json:"ips,omitempty"`

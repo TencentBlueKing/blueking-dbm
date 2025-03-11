@@ -216,6 +216,8 @@ const (
 	DeleteDomainUrl = "dns/domain/delete/"
 	// UpdateDomainUrl TODO
 	CreateDomainUrl = "dns/domain/put/"
+	// UpdateDomainUrl TODO
+	UpdateDomainUrl = "dns/domain/post/"
 	// CmDBRedisSwapUrl TODO
 	CmDBRedisSwapUrl = "dbmeta/dbha/tendis_cluster_swap/"
 	// CmDBEntryDetailUrl TODO

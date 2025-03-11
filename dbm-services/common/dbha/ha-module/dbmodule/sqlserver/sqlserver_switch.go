@@ -111,8 +111,11 @@ func (ins *SqlserverSwitch) DoSwitch() error {
 	newMasterDB, err := NewDbWorker(switchUser, switchPass, ins.StandBySlave.Ip, ins.StandBySlave.Port, execTimeout)
 	if err != nil {
 		ins.ReportLogs(constvar.FailResult, fmt.Sprintf("connect new master db failed:%s", err.Error()))
+		// 新master连接异常则退出
+		return err
 	}
 	// loss_over sql
+	// 执行切换失败出现异常，则退出
 	if err = ExecSwitchSP(newMasterDB, "Sys_AutoSwitch_LossOver", ""); err != nil {
 		logger.Error(
 			"exec Sys_AutoSwitch_LossOver in instance [%s:%d] failed: %s",
@@ -122,59 +125,37 @@ func (ins *SqlserverSwitch) DoSwitch() error {
 		)
 		return err
 	}
-
+	// insert switch log
 	ins.ReportLogs(constvar.InfoResult,
 		fmt.Sprintf("exec Sys_AutoSwitch_LossOver instance [%s:%d] successfully",
 			ins.StandBySlave.Ip,
 			ins.StandBySlave.Port,
 		),
 	)
-	// delete dns for old_master
-	if err := ins.DeleteNameService(ins.Entry); err != nil {
-		return err
-	}
 
 	// create dns in new master
+	oldInstance := fmt.Sprintf("%s#%d", ins.Ip, ins.Port)
+	newInstance := fmt.Sprintf("%s#%d", ins.StandBySlave.Ip, ins.StandBySlave.Port)
 	conf := ins.Config
 	ins.ReportLogs(
 		constvar.InfoResult,
-		fmt.Sprintf("try to create dns entry [%s:%d]", ins.StandBySlave.Ip, ins.StandBySlave.Port),
+		fmt.Sprintf("try to update all domains [%s] -> [%s]", oldInstance, newInstance),
 	)
 	dnsClient := client.NewNameServiceClient(&conf.NameServices.DnsConf, conf.GetCloudId())
+
 	for _, dns := range ins.Entry.Dns {
-		isExist := false
-		var details []client.DomainInfo
-		if details, err = dnsClient.GetDomainInfoByDomain(dns.DomainName); err != nil {
-			ins.ReportLogs(constvar.FailResult, fmt.Sprintf("check domain[%s] in dns_service failed:%s",
-				dns.DomainName, err.Error()))
+		if err := dnsClient.UpdateDomain(dns.DomainName, ins.GetApp(), oldInstance, newInstance); err != nil {
+			ins.ReportLogs(constvar.FailResult, fmt.Sprintf("update domain[%s] [%s] -> [%s] to  failed:%s",
+				dns.DomainName, oldInstance, newInstance, err.Error()))
 			return err
 		}
-
-		for _, info := range details {
-			log.Logger.Debug(info)
-			if info.Ip == ins.StandBySlave.Ip {
-				// exist in dns
-				ins.ReportLogs(
-					constvar.FailResult, fmt.Sprintf(" ip[%s] to domain[%s] exist", info.Ip, dns.DomainName),
-				)
-				isExist = true
-				break
-			}
-		}
-		if !isExist {
-			// create dns-new_master_ip
-			if err := dnsClient.CreateDomain(
-				dns.DomainName, ins.GetApp(), ins.StandBySlave.Ip, ins.StandBySlave.Port,
-			); err != nil {
-
-				ins.ReportLogs(constvar.FailResult, fmt.Sprintf("create ip[%s] to domain[%s] failed:%s",
-					ins.StandBySlave.Ip, dns.DomainName, err.Error()))
-				return err
-
-			}
-		}
+		ins.ReportLogs(
+			constvar.InfoResult,
+			fmt.Sprintf("update domain[%s] [%s] -> [%s] to successfully", dns.DomainName, oldInstance, newInstance),
+		)
 
 	}
+
 	return nil
 }
 
