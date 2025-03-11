@@ -91,6 +91,7 @@
           required>
           <BkInput
             v-model="formData.partition_time_interval"
+            :disabled="Boolean(data?.id)"
             :min="1"
             :suffix="t('天')"
             type="number" />
