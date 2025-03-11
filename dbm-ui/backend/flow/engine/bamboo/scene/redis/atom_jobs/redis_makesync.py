@@ -247,9 +247,9 @@ def backup_and_restore(
     act_kwargs.cluster["backup_host"] = params[data_from]
     act_kwargs.cluster["backup_instances"] = []
     act_kwargs.cluster["ssd_log_count"] = {
-        "log-count": 16789000,  # 让master 多保留点日志 2k/s 的写入保留2.5个小时 （备份+传输）
-        "log-keep-count": 20000000,
-        "slave-log-keep-count": 20000000,
+        "log-count": 76789000,  # 让master 多保留点日志 2k/s 的写入保留10.6个小时 （备份+传输）
+        "log-keep-count": 90000000,
+        "slave-log-keep-count": 76789000,
     }
     act_kwargs.cluster["domain_name"] = act_kwargs.cluster["immute_domain"]
     for sync_direct in params["ins_link"]:

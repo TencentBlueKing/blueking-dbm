@@ -134,6 +134,7 @@ const (
 	NetCatBin                = "/home/mysql/dbtools/netcat"
 	TendisKeyLifecycleBin    = "/home/mysql/dbtools/tendis-key-lifecycle"
 	ZkWatchBin               = "/home/mysql/dbtools/zkwatch"
+	TarBin                   = "/home/mysql/dbtools/tar"
 	ZstdBin                  = "/home/mysql/dbtools/zstd"
 	LzopBin                  = "/home/mysql/dbtools/lzop"
 	LdbWithV38Bin            = "/home/mysql/dbtools/ldb_with_len.3.8"
