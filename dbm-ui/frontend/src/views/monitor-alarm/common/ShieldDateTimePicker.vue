@@ -23,11 +23,11 @@
         <DbIcon
           class="date-icon"
           type="date-line" />
-        <span
+        <div
           v-if="isEmpty"
           class="placehold">
-          {{ t('请选择屏蔽的时间范围') }}
-        </span>
+          {{ placeholder || t('请选择屏蔽的时间范围') }}
+        </div>
         <div
           v-else
           class="display-input"
@@ -35,6 +35,11 @@
           @blur="handleDisplayValueChange">
           {{ displayValue }}
         </div>
+        <DbIcon
+          v-if="clearable && !isEmpty"
+          class="close-icon"
+          type="close-circle-shape"
+          @click.stop="handleClearInput" />
       </div>
     </template>
   </BkDatePicker>
@@ -46,13 +51,20 @@
   import { isValidDateTime } from '@utils';
 
   interface Props {
+    clearable?: boolean;
     disabled?: boolean;
+    placeholder?: string;
   }
 
-  type Emits = (e: 'finish', value: [string, string]) => void;
+  interface Emits {
+    (e: 'finish', value: [string, string]): void;
+    (e: 'change', value: [string, string]): void;
+  }
 
   const props = withDefaults(defineProps<Props>(), {
+    clearable: false,
     disabled: false,
+    placeholder: '',
   });
 
   const emits = defineEmits<Emits>();
@@ -132,6 +144,11 @@
     },
   );
 
+  const handleClearInput = () => {
+    modelValue.value = ['', ''];
+    emits('change', modelValue.value);
+  };
+
   const handleOpenPanel = () => {
     if (props.disabled) {
       return;
@@ -169,6 +186,7 @@
 
   const handleDatePickerChange = (value: [string, string]) => {
     modelValue.value = value;
+    emits('change', modelValue.value);
   };
 </script>
 <style lang="less">
@@ -205,6 +223,7 @@
 
     .placehold {
       color: #c4c6cc;
+      flex: 1;
     }
 
     .display-input {
@@ -212,6 +231,17 @@
       height: 32px;
       outline: none;
       align-items: center;
+    }
+
+    .close-icon {
+      margin-left: 5px;
+      font-size: 12px;
+      color: #c4c6cc;
+      cursor: pointer;
+
+      &:hover {
+        color: #979ba5;
+      }
     }
   }
 

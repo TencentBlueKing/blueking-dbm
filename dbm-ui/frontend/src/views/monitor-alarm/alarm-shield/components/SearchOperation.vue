@@ -1,14 +1,12 @@
 <template>
   <div class="search-operation-main">
-    <BkDatePicker
-      v-model="filterDateRange"
-      append-to-body
-      class="date-picker"
+    <ShieldDateTimePicker
+      class="shield-date-picker"
       clearable
+      :model-value="filterDateRange"
       :placeholder="t('搜索屏蔽开始时间')"
-      type="datetimerange"
       @change="handleDateTimeChange"
-      @pick-success="handleDateTimePick" />
+      @finish="handleDateTimePick" />
     <DbSearchSelect
       v-model="searchValue"
       class="search-select"
@@ -24,6 +22,8 @@
   import { useI18n } from 'vue-i18n';
 
   import { getUserList } from '@services/source/user';
+
+  import ShieldDateTimePicker from '@views/monitor-alarm/common/ShieldDateTimePicker.vue';
 
   import { getMenuListSearch } from '@utils';
 
@@ -45,7 +45,6 @@
     () =>
       [
         {
-          // multiple: true,
           children: [
             {
               id: 'alert',
@@ -55,26 +54,20 @@
               id: 'dimension',
               name: t('基于维度屏蔽'),
             },
-            {
-              id: 'scope',
-              name: t('基于主机屏蔽'),
-            },
+            // {
+            //   id: 'scope',
+            //   name: t('基于主机屏蔽'),
+            // },
             {
               id: 'strategy',
               name: t('基于策略屏蔽'),
             },
           ],
           id: 'category',
+          id: 'category',
+          name: t('屏蔽类型'),
           name: t('屏蔽类型'),
         },
-        // {
-        //   name: t('屏蔽内容'),
-        //   id: 'content',
-        // },
-        // {
-        //   name: t('更新人'),
-        //   id: 'updator',
-        // },
       ] as ISearchItem[],
   );
 
@@ -167,8 +160,9 @@
       width: 290px;
     }
 
-    .date-picker {
-      width: 308px;
+    .shield-date-picker {
+      width: 308px !important;
+      background: #fff;
     }
 
     .search-select {

@@ -15,18 +15,16 @@
         :key="index"
         :name="item.name" />
     </BkSelect>
-    <BkDatePicker
-      append-to-body
-      class="date-picker"
-      :clearable="false"
+    <ShieldDateTimePicker
+      class="shield-date-picker"
       :model-value="filterDateRange"
-      type="datetimerange"
       @change="handleDateTimeChange"
-      @pick-success="handleDateTimePick" />
+      @finish="handleDateTimePick" />
     <DbSearchSelect
-      v-model="searchValue"
       class="search-select"
       :data="searchSelectData"
+      :model-value="searchValue"
+      :parse-url="false"
       :placeholder="t('搜索告警级别，告警名称，告警内容，告警实例，所属集群…')"
       unique-select
       @change="handleSearchValueChange" />
@@ -41,6 +39,8 @@
 
   import { DBTypeInfos } from '@common/const';
   import { batchSplitRegex } from '@common/regex';
+
+  import ShieldDateTimePicker from '@views/monitor-alarm/common/ShieldDateTimePicker.vue';
 
   type Emits = (e: 'search', value: Record<string, string>) => void;
 
@@ -204,7 +204,7 @@
 
   const handleSearchValueChange = (valueList: ISearchValue[]) => {
     // 防止方法由于searchValue的值改变而被循环触发
-    if (JSON.stringify(valueList) === JSON.stringify(searchValue.value)) {
+    if (!valueList.length || JSON.stringify(valueList) === JSON.stringify(searchValue.value)) {
       return;
     }
 
@@ -242,12 +242,20 @@
       };
       return;
     }
-    handledValueList.forEach((item) => {
-      if (!item.values?.length) {
+    const handledValueMap = handledValueList.reduce<Record<string, ISearchValue>>((results, item) => {
+      Object.assign(results, {
+        [item.id]: item,
+      });
+      return results;
+    }, {});
+    searchSelectData.value.forEach((item) => {
+      const targetItem = handledValueMap[item.id];
+      if (!targetItem) {
         delete filterData.value[item.id];
       } else {
         Object.assign(filterData.value, {
-          [item.id]: item.values.length > 1 ? item.values!.map((value) => value.id) : item.values![0].id,
+          [item.id]:
+            targetItem.values!.length > 1 ? targetItem.values!.map((value) => value.id) : targetItem.values![0].id,
         });
       }
     });
@@ -281,6 +289,11 @@
 
     .search-select {
       width: 450px;
+    }
+
+    .shield-date-picker {
+      width: 310px !important;
+      background: #fff;
     }
   }
 </style>

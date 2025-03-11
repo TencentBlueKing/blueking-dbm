@@ -347,14 +347,14 @@ export const getAlarmEventsList = (params: {
       }[];
       alerts: AlarmEventModel[];
       overview: {
-        children: {
+        children?: {
           count: number;
           id: number;
           name: string;
         }[];
-        count: number;
-        id: number;
-        name: string;
+        count?: number;
+        id?: number;
+        name?: string;
       };
       total: number;
     }>(`${path}/event/search/`, params, {

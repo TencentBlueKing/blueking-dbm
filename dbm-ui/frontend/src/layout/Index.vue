@@ -175,7 +175,13 @@
       'InspectionTodos',
       'AlarmEventsTodo',
     ],
-    [menuEnum.platformManage]: ['platformTaskManage', 'ticketPlatformManage', 'inspectionReportGlobal', 'DbaManage'],
+    [menuEnum.platformManage]: [
+      'platformTaskManage',
+      'ticketPlatformManage',
+      'inspectionReportGlobal',
+      'DbaManage',
+      'AlarmEventsGlobal',
+    ],
     [menuEnum.resourceManage]: ['ResourceSpec', 'resourceManage', 'resourcePoolDirtyMachines'],
   } as Record<string, string[]>;
 
