@@ -8,8 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from typing import List
 
-from .alarm import *
-from .collect import *
-from .dashboard import *
-from .mysql_autofix_todo import *
+
+def autofix(check_ids: List[int]):
+    pass

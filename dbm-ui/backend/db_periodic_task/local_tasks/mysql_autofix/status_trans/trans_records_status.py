@@ -8,8 +8,16 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from .inplace_status import trans_to_replace, update_inplace_status
+from .replace_status import skip_replace, update_replace_status
 
-from .alarm import *
-from .collect import *
-from .dashboard import *
-from .mysql_autofix_todo import *
+
+def trans_records_status():
+    # 更新原地自愈记录的状态
+    update_inplace_status()
+    # 原地自愈失败的, 流转到替换自愈
+    trans_to_replace()
+    # 原地自愈成功的, 结束自愈, 跳过替换自愈步骤
+    skip_replace()
+    # 更新替换自愈状态
+    update_replace_status()

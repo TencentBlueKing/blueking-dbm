@@ -14,7 +14,7 @@ from typing import List, Tuple
 from backend.db_meta.models import Cluster
 
 
-def group_ips(cluster_objects: List[Cluster]) -> Tuple:
+def group_ips(cluster_objects: List[Cluster], instances: List[str]) -> Tuple:
     """
     聚合集群 ip
     proxy_group: {
@@ -32,14 +32,25 @@ def group_ips(cluster_objects: List[Cluster]) -> Tuple:
     proxy_group = defaultdict(lambda: defaultdict(list))
     storage_group = defaultdict(lambda: defaultdict(list))
 
+    # 如果没有指定实例, 或者指定了并且是指定的
     for cluster in cluster_objects:
         for i in cluster.proxyinstance_set.all():
-            ip = i.machine.ip
-            bk_cloud_id = i.machine.bk_cloud_id
-            proxy_group[bk_cloud_id][ip].append(i.port)
+            if (instances and i.ip_port in instances) or not instances:
+                ip = i.machine.ip
+                bk_cloud_id = i.machine.bk_cloud_id
+                proxy_group[bk_cloud_id][ip].append(i.port)
         for i in cluster.storageinstance_set.all():
-            ip = i.machine.ip
-            bk_cloud_id = i.machine.bk_cloud_id
-            storage_group[bk_cloud_id][ip].append(i.port)
+            if (instances and i.ip_port in instances) or not instances:
+                ip = i.machine.ip
+                bk_cloud_id = i.machine.bk_cloud_id
+                storage_group[bk_cloud_id][ip].append(i.port)
 
     return proxy_group, storage_group
+
+
+def has_ip_group(g) -> bool:
+    for k, v in g.items():
+        for ip, ports in v.items():
+            if ports:
+                return True
+    return False

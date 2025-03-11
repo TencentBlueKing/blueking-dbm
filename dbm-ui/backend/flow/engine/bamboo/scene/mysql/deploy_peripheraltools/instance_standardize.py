@@ -17,6 +17,7 @@ from django.utils.translation import ugettext as _
 from backend.db_meta.enums import AccessLayer, ClusterMachineAccessTypeDefine, ClusterType, MachineType
 from backend.flow.consts import DBA_ROOT_USER
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.group_ips import has_ip_group
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
@@ -25,14 +26,18 @@ from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 def instance_standardize(
     root_id: str, data: Dict, cluster_type: ClusterType, proxy_group, storage_group
 ) -> SubProcess:
-    acts = make_mysql_standardize_acts(
-        storage_group, machine_type=ClusterMachineAccessTypeDefine[cluster_type][AccessLayer.STORAGE]
-    )
+    acts = []
 
-    if cluster_type == ClusterType.TenDBCluster:
-        acts.extend(make_mysql_standardize_acts(ip_group=proxy_group, machine_type=MachineType.SPIDER))
-    elif cluster_type == ClusterType.TenDBHA:
-        acts.extend(make_proxy_standardize_acts(proxy_group))
+    if has_ip_group(storage_group):
+        acts = make_mysql_standardize_acts(
+            storage_group, machine_type=ClusterMachineAccessTypeDefine[cluster_type][AccessLayer.STORAGE]
+        )
+
+    if has_ip_group(proxy_group):
+        if cluster_type == ClusterType.TenDBCluster:
+            acts.extend(make_mysql_standardize_acts(ip_group=proxy_group, machine_type=MachineType.SPIDER))
+        elif cluster_type == ClusterType.TenDBHA:
+            acts.extend(make_proxy_standardize_acts(proxy_group))
 
     sp = SubBuilder(root_id=root_id, data=data)
     sp.add_parallel_acts(acts_list=acts)

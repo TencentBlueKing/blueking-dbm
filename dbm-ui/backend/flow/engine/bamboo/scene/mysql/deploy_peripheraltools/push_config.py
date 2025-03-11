@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from collections import defaultdict
 from copy import deepcopy
 from dataclasses import asdict
 from typing import Dict, List
@@ -24,6 +23,7 @@ from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs impor
     DeployPeripheralToolsDepart,
     remove_depart,
 )
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.group_ips import group_ips, has_ip_group
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
@@ -67,6 +67,7 @@ def push_departs_config(
     data: Dict,
     cluster_objects: List[Cluster],
     departs: List[DeployPeripheralToolsDepart],
+    instances: List[str],
 ) -> SubProcess:
     """
     按集群推送配置
@@ -74,7 +75,9 @@ def push_departs_config(
     pipes = []
     for cluster_obj in cluster_objects:
         pipes.append(
-            push_departs_config_for_cluster(root_id=root_id, data=data, cluster_obj=cluster_obj, departs=departs)
+            push_departs_config_for_cluster(
+                root_id=root_id, data=data, cluster_obj=cluster_obj, departs=departs, instances=instances
+            )
         )
 
     sp = SubBuilder(root_id=root_id, data=data)
@@ -87,33 +90,32 @@ def push_departs_config_for_cluster(
     data: Dict,
     cluster_obj: Cluster,
     departs: List[DeployPeripheralToolsDepart],
+    instances: List[str],
 ) -> SubProcess:
     """
     集群内同机器上的多实例按机器推送
     """
     # 聚合机器端口
-    proxy_ip_ports = defaultdict(list)
-    storage_ip_ports = defaultdict(list)
-    for i in cluster_obj.proxyinstance_set.all():
-        proxy_ip_ports[i.machine.ip].append(i.port)
-    for i in cluster_obj.storageinstance_set.all():
-        storage_ip_ports[i.machine.ip].append(i.port)
+    pg, sg = group_ips(cluster_objects=[cluster_obj], instances=instances)
 
-    pipes = [
-        # 存储机器推送所有组件配置
-        push_departs_config_for_cluster_ips(
-            root_id=root_id,
-            data=data,
-            cluster_obj=cluster_obj,
-            ip_ports=storage_ip_ports,
-            departs=departs,
-            machine_type=ClusterMachineAccessTypeDefine[cluster_obj.cluster_type][AccessLayer.STORAGE],
-        )
-    ]
+    pipes = []
+
+    if has_ip_group(sg):
+        pipes = [
+            # 存储机器推送所有组件配置
+            push_departs_config_for_cluster_ips(
+                root_id=root_id,
+                data=data,
+                cluster_obj=cluster_obj,
+                ip_ports=sg[0],
+                departs=departs,
+                machine_type=ClusterMachineAccessTypeDefine[cluster_obj.cluster_type][AccessLayer.STORAGE],
+            )
+        ]
 
     # TenDBSingle 没有 proxy, 不用跑这个分支
     # 但是有人提过想要有 proxy 的 TenDBSingle
-    if cluster_obj.cluster_type != ClusterType.TenDBSingle:
+    if cluster_obj.cluster_type != ClusterType.TenDBSingle and has_ip_group(pg):
         departs_on_proxy = deepcopy(departs)
         # 接入层不跑校验, 强制删除
         remove_depart(DeployPeripheralToolsDepart.MySQLTableChecksum, departs_on_proxy)
@@ -134,7 +136,7 @@ def push_departs_config_for_cluster(
                     root_id=root_id,
                     data=data,
                     cluster_obj=cluster_obj,
-                    ip_ports=proxy_ip_ports,
+                    ip_ports=pg[0],
                     departs=departs_on_proxy,
                     machine_type=ClusterMachineAccessTypeDefine[cluster_obj.cluster_type][AccessLayer.PROXY],
                 )
@@ -162,7 +164,7 @@ def push_departs_config_for_cluster_ips(
         ):
             pipe.add_act(**act)
 
-        pipes.append(pipe.build_sub_process(sub_name=_(f"{ip}")))
+        pipes.append(pipe.build_sub_process(sub_name=_(f"{ip}:{port_list}")))
 
     sp = SubBuilder(root_id=root_id, data=data)
     sp.add_parallel_sub_pipeline(sub_flow_list=pipes)

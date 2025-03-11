@@ -15,6 +15,10 @@ from backend.flow.engine.bamboo.scene.common.account_rule_manage import AccountR
 from backend.flow.engine.bamboo.scene.common.download_dbactor import DownloadDbactorFlow
 from backend.flow.engine.bamboo.scene.common.download_file import DownloadFileFlow
 from backend.flow.engine.bamboo.scene.common.transfer_cluster_to_other_biz import TransferMySQLClusterToOtherBizFlow
+from backend.flow.engine.bamboo.scene.mysql.autofix.mysql_autofix_todo_register_flow import (
+    MySQLAutofixTodoRegisterFlow,
+)
+from backend.flow.engine.bamboo.scene.mysql.autofix.mysql_proxy_inplace_autofix_flow import ProxyInplaceAutofixFlow
 from backend.flow.engine.bamboo.scene.mysql.dbconsole import DbConsoleDumpSqlFlow
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.flow import MySQLStandardizeFlow
 from backend.flow.engine.bamboo.scene.mysql.import_sqlfile_flow import ImportSQLFlow
@@ -698,3 +702,19 @@ class MySQLController(BaseController):
     def cluster_standardize(self):
         flow = MySQLStandardizeFlow(root_id=self.root_id, data=self.ticket_data)
         flow.doit()
+
+    def dbha_autofix_register_scene(self):
+        """
+        mysql 自愈
+        只是把自愈信息入库
+        """
+        flow = MySQLAutofixTodoRegisterFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.autofix_register()
+
+    def proxy_inplace_autofix_scene(self):
+        """
+        mysql 自愈
+        原地启动 proxy
+        """
+        flow = ProxyInplaceAutofixFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.autofix()

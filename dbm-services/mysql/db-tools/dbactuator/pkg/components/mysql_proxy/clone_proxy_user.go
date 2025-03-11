@@ -14,7 +14,7 @@ import (
 type CloneProxyUserComp struct {
 	GeneralParam         *components.GeneralParam
 	Params               *CloneProxyUserParam
-	SoueceProxyAdminConn *native.ProxyAdminDbWork
+	SourceProxyAdminConn *native.ProxyAdminDbWork
 	TargetProxyAdminConn *native.ProxyAdminDbWork
 }
 
@@ -29,7 +29,7 @@ type CloneProxyUserParam struct {
 
 // Init TODO
 func (p *CloneProxyUserComp) Init() (err error) {
-	p.SoueceProxyAdminConn, err = native.InsObject{
+	p.SourceProxyAdminConn, err = native.InsObject{
 		Host: p.Params.SourceProxyHost,
 		Port: p.Params.SourceProxyPort,
 		User: p.GeneralParam.RuntimeAccountParam.ProxyAdminUser,
@@ -54,7 +54,7 @@ func (p *CloneProxyUserComp) Init() (err error) {
 
 // CloneProxyUser 在源proxy克隆user白名单给目标proxy
 func (p *CloneProxyUserComp) CloneProxyUser() (err error) {
-	err = p.SoueceProxyAdminConn.CloneProxyUser(p.TargetProxyAdminConn)
+	err = p.SourceProxyAdminConn.CloneProxyUser(p.TargetProxyAdminConn)
 	if err != nil {
 		logger.Error(
 			"clone proxy users to instance(%s#%s) failed,%s", p.Params.TargetProxyHost, p.Params.TargetProxyPort,

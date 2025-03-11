@@ -18,6 +18,7 @@ from backend.db_meta.enums import AccessLayer, ClusterMachineAccessTypeDefine, C
 from backend.db_meta.models import Cluster
 from backend.flow.consts import DBA_ROOT_USER
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.group_ips import has_ip_group
 from backend.flow.plugins.components.collections.mysql.cluster_standardize_trans_module import (
     ClusterStandardizeTransModuleComponent,
 )
@@ -34,16 +35,19 @@ def cc_trans_module(
     2. cc 模块移动
     """
     sp = SubBuilder(root_id=root_id, data=data)
+    sub_flow_list = []
 
-    sub_flow_list = [
-        push_exporter_cnf(
-            root_id=root_id,
-            data=data,
-            cloud_ip_group=storage_group,
-            machine_type=ClusterMachineAccessTypeDefine[cluster_type][AccessLayer.STORAGE],
-        )
-    ]
-    if cluster_type != ClusterType.TenDBSingle:
+    if has_ip_group(storage_group):
+        sub_flow_list = [
+            push_exporter_cnf(
+                root_id=root_id,
+                data=data,
+                cloud_ip_group=storage_group,
+                machine_type=ClusterMachineAccessTypeDefine[cluster_type][AccessLayer.STORAGE],
+            )
+        ]
+
+    if cluster_type != ClusterType.TenDBSingle and has_ip_group(proxy_group):
         sub_flow_list.append(
             push_exporter_cnf(
                 root_id=root_id,
@@ -53,7 +57,8 @@ def cc_trans_module(
             )
         )
 
-    sp.add_parallel_sub_pipeline(sub_flow_list=sub_flow_list)
+    if sub_flow_list:
+        sp.add_parallel_sub_pipeline(sub_flow_list=sub_flow_list)
 
     acts = []
     for cluster_obj in cluster_objects:

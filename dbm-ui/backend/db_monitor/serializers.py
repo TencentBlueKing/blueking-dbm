@@ -274,7 +274,7 @@ class AlarmCallBackDataSerializer(serializers.Serializer):
 
         # 取关联的的故障自愈处理单据
         for label in data["callback_message"].get("labels") or []:
-            if label.startswith("NEED_AUTOFIX"):
+            if label.upper().startswith("NEED_AUTOFIX"):
                 ticket_type = label.split("/")[1]
                 if ticket_type in TicketType.get_values():
                     ticket_types.append(ticket_type)

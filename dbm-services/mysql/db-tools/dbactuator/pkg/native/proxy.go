@@ -83,8 +83,12 @@ func (h *ProxyAdminDbWork) CloneProxyUser(target_db *ProxyAdminDbWork) (err erro
 		return err
 	}
 
+	logger.Info("all proxy users: %v", users)
+
 	userStr := strings.Join(users, ",")
 	refreshSQL := fmt.Sprintf("refresh_users('%s','+');", userStr)
+
+	logger.Info(refreshSQL)
 
 	_, err = target_db.Exec(refreshSQL)
 	if err != nil {
@@ -96,7 +100,7 @@ func (h *ProxyAdminDbWork) CloneProxyUser(target_db *ProxyAdminDbWork) (err erro
 // GetAllProxyUsers 定义查询proxy 所有user 功能
 func (h *ProxyAdminDbWork) GetAllProxyUsers() (users []string, err error) {
 	var sql = "select * from users;"
-
+	logger.Info(sql)
 	rows, err := h.Query(sql)
 	if err != nil {
 		return nil, err

@@ -37,6 +37,7 @@ class MySQLStandardizeFlow(object):
         with_bk_plugin = self.data.get("with_bk_plugin")
         with_cc_standardize = self.data.get("with_cc_standardize")
         with_instance_standardize = self.data.get("with_instance_standardize")
+        instances = self.data.get("instances", None)
 
         pipe = Builder(
             root_id=self.root_id,
@@ -58,6 +59,7 @@ class MySQLStandardizeFlow(object):
                 with_bk_plugin=with_bk_plugin,
                 with_cc_standardize=with_cc_standardize,
                 with_instance_standardize=with_instance_standardize,
+                instances=instances,
             )
         )
 

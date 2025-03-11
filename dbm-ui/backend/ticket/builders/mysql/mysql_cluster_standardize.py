@@ -32,6 +32,13 @@ class MySQLClusterStandardizeDetailSerializer(MySQLBaseOperateDetailSerializer):
     with_bk_plugin = serializers.BooleanField()
     with_cc_standardize = serializers.BooleanField()
     with_instance_standardize = serializers.BooleanField()
+    instances = serializers.ListField(child=serializers.CharField())
+
+    def validate(self, attrs):
+        cluster_ids = attrs.get("cluster_ids")
+        instances = attrs.get("instances")
+        if instances and len(instances) > 0 and len(cluster_ids) > 1:
+            raise serializers.ValidationError(_("指定标准化部分实例后, 只能输入一个集群"))
 
 
 class MySQLClusterStandardizeFlowParamBuilder(builders.FlowParamBuilder):

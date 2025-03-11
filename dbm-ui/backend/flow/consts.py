@@ -471,6 +471,7 @@ class DBActuatorActionEnum(str, StructuredEnum):
     PushChecksumConfig = EnumField("push-checksum-config", _("推送mysql-table-checksum配置"))
     PushMySQLRotatebinlogConfig = EnumField("push-mysql-rotatebinlog-config", _("推送rotatebinlog配置"))
     PushExporterCnf = EnumField("push-exporter-cnf", _("push-exporter-cnf"))
+    ProxyInplaceAutofix = EnumField("proxy-inplace-autofix", _("原地启动 proxy"))
 
 
 class RedisActuatorActionEnum(str, StructuredEnum):

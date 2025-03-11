@@ -65,12 +65,7 @@ func (c *ClearInstanceConfigComp) DoClear() (err error) {
 }
 
 func (c *ClearInstanceConfigComp) clearBackend() (err error) {
-	err = c.clearMySQLMonitor()
-	if err != nil {
-		logger.Error("clear backend monitor failed: %s", err.Error())
-		return err
-	}
-	logger.Info("clear backed monitor success")
+	c.clearMySQLMonitor()
 
 	err = c.clearChecksum()
 	if err != nil {
@@ -97,12 +92,7 @@ func (c *ClearInstanceConfigComp) clearBackend() (err error) {
 }
 
 func (c *ClearInstanceConfigComp) clearSingle() (err error) {
-	err = c.clearMySQLMonitor()
-	if err != nil {
-		logger.Error("clear backend monitor failed: %s", err.Error())
-		return err
-	}
-	logger.Info("clear backed monitor success")
+	c.clearMySQLMonitor()
 
 	err = c.clearRotateBinlog()
 	if err != nil {
@@ -122,13 +112,7 @@ func (c *ClearInstanceConfigComp) clearSingle() (err error) {
 }
 
 func (c *ClearInstanceConfigComp) clearProxy() (err error) {
-	err = c.clearMySQLMonitor()
-	if err != nil {
-		logger.Error("clear proxy monitor failed: %s", err.Error())
-		return err
-	}
-	logger.Info("clear proxy monitor success")
-
+	c.clearMySQLMonitor()
 	return nil
 }
 
@@ -210,11 +194,11 @@ func (c *ClearInstanceConfigComp) clearRotateBinlog() (err error) {
 	return nil
 }
 
-func (c *ClearInstanceConfigComp) clearMySQLMonitor() (err error) {
+func (c *ClearInstanceConfigComp) clearMySQLMonitor() {
 	mysqlMonitor, err := c.tools.Get(tools.ToolMySQLMonitor)
 	if err != nil {
 		logger.Error("get %s failed: %s", tools.ToolMySQLMonitor, err.Error())
-		return err
+		return
 	}
 
 	for _, port := range c.Params.ClearPorts {
@@ -236,9 +220,11 @@ func (c *ClearInstanceConfigComp) clearMySQLMonitor() (err error) {
 				"run %s failed: %s, %s",
 				unInstallMySQLMonitorCmd, err.Error(), stderr.String(),
 			)
-			return err
+			return
 		}
 		logger.Info("run %s success: %s", unInstallMySQLMonitorCmd, stdout.String())
 	}
-	return nil
+
+	logger.Info("remove mysql monitor config finish")
+	return
 }

@@ -30,32 +30,10 @@ class GenerateMySQLClusterStandardizeFlowService(BaseService):
     def generate_from_immute_domains(global_data, kwargs):
         immute_domains = kwargs.get("immute_domains")
         cluster_objects = Cluster.objects.filter(immute_domain__in=immute_domains)
+        cluster_ids = list(cluster_objects.values_list("id", flat=True))
+        kwargs["cluster_ids"] = cluster_ids
 
-        ticket_remark = ""
-        if "uid" in global_data:
-            ticket = Ticket.objects.get(id=global_data["uid"])
-            ticket_remark = _("集群标准化, 关联单据: {}".format(ticket.url))
-
-        bk_biz_id = global_data["bk_biz_id"]
-
-        Ticket.create_ticket(
-            ticket_type=TicketType.MYSQL_CLUSTER_STANDARDIZE,
-            creator=global_data["created_by"],
-            bk_biz_id=bk_biz_id,
-            remark=ticket_remark,
-            details={
-                "bk_biz_id": bk_biz_id,
-                "cluster_type": cluster_objects.first().cluster_type,
-                "cluster_ids": list(cluster_objects.values_list("id", flat=True)),
-                "departs": kwargs.get("departs", ALLDEPARTS),
-                "with_deploy_binary": kwargs.get("with_deploy_binary", True),
-                "with_push_config": kwargs.get("with_push_config", True),
-                "with_collect_sysinfo": kwargs.get("with_collect_sysinfo", True),
-                "with_bk_plugin": kwargs.get("with_bk_plugin", True),
-                "with_cc_standardize": kwargs.get("with_cc_standardize", True),
-                "with_instance_standardize": kwargs.get("with_instance_standardize", True),
-            },
-        )
+        return GenerateMySQLClusterStandardizeFlowService.generate_from_cluster_ids(global_data, kwargs)
 
     @staticmethod
     def generate_from_cluster_ids(global_data, kwargs):
@@ -85,6 +63,7 @@ class GenerateMySQLClusterStandardizeFlowService(BaseService):
                 "with_bk_plugin": kwargs.get("with_bk_plugin", True),
                 "with_cc_standardize": kwargs.get("with_cc_standardize", True),
                 "with_instance_standardize": kwargs.get("with_instance_standardize", True),
+                "instances": kwargs.get("instances", None),
             },
         )
 

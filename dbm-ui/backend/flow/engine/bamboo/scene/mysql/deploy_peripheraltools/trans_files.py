@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from dataclasses import asdict
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from bamboo_engine.builder import SubProcess
 from django.utils.translation import ugettext as _
@@ -36,7 +36,7 @@ def trans_common_files(
     with_backup_client: bool,
     with_actuator: bool,
     with_bk_plugin: bool,
-) -> SubProcess:
+) -> Optional[SubProcess | None]:
     """
     下发公共文件
     1. actuator, 某些复用场景不需要下发
@@ -92,10 +92,14 @@ def trans_common_files(
                     }
                 )
 
-        subpipe = SubBuilder(root_id=root_id, data=data)
-        subpipe.add_parallel_acts(acts_list=acts)
-        pipes.append(subpipe.build_sub_process(sub_name=_("cloud_{}".format(bk_cloud_id))))
+        if acts:
+            subpipe = SubBuilder(root_id=root_id, data=data)
+            subpipe.add_parallel_acts(acts_list=acts)
+            pipes.append(subpipe.build_sub_process(sub_name=_("cloud_{}".format(bk_cloud_id))))
 
-    sp = SubBuilder(root_id=root_id, data=data)
-    sp.add_parallel_sub_pipeline(sub_flow_list=pipes)
-    return sp.build_sub_process(sub_name=_("下发公共文件"))
+    if pipes:
+        sp = SubBuilder(root_id=root_id, data=data)
+        sp.add_parallel_sub_pipeline(sub_flow_list=pipes)
+        return sp.build_sub_process(sub_name=_("下发公共文件"))
+
+    return None

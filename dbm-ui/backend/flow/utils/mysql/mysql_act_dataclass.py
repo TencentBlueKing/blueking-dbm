@@ -132,6 +132,15 @@ class DownloadMediaKwargs(DownloadMediaBaseKwargs):
 
 
 @dataclass()
+class DownloadMediaWithRetryKwargs(DownloadMediaKwargs):
+    """
+    带重试的传文件
+    """
+
+    retry_seconds: int = None
+
+
+@dataclass()
 class DownloadMediaKwargsForPool(DownloadMediaBaseKwargs):
     """
     针对资源池获取IP的场景
