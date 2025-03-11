@@ -262,15 +262,14 @@ func (tf *TmysqlParseFile) Downloadfile() (err error) {
 	c := make(chan struct{}, 5)
 	for _, fileName := range tf.Param.FileNames {
 		wg.Add(1)
-		c <- struct{}{}
 		go func(fileName string) {
-			defer wg.Done()
+			c <- struct{}{}
+			defer func() { wg.Done(); <-c }()
 			err = tf.bkRepoClient.Download(tf.Param.BkRepoBasePath, fileName, tf.tmpWorkdir)
 			if err != nil {
 				logger.Error("download %s from bkrepo failed :%s", fileName, err.Error())
 				errCh <- err
 			}
-			<-c
 		}(fileName)
 	}
 	go func() {
