@@ -67,6 +67,7 @@
   import { batchRemove, disablePartition, dryRun, enablePartition, getList } from '@services/source/partitionManage';
 
   import { ClusterTypes } from '@common/const';
+  import { batchSplitRegex } from '@common/regex';
 
   import { getSearchSelectorParams, messageSuccess } from '@utils';
 
@@ -92,15 +93,23 @@
 
   const serachData = [
     {
+      id: 'ids',
+      multiple: true,
+      name: t('策略 ID'),
+    },
+    {
       id: 'immute_domains',
+      multiple: true,
       name: t('域名'),
     },
     {
       id: 'dblikes',
+      multiple: true,
       name: t('DB 名'),
     },
     {
       id: 'tblikes',
+      multiple: true,
       name: t('表名'),
     },
   ];
@@ -351,6 +360,13 @@
 
   const fetchData = () => {
     const searchParams = getSearchSelectorParams(searchValues.value);
+    /**
+     * 多域名精确查询、单域名模糊查询，用domain_name字段
+     */
+    if (searchParams.immute_domains?.split(batchSplitRegex).length <= 1) {
+      searchParams.domain_name = searchParams.immute_domains;
+      delete searchParams.immute_domains;
+    }
     tableRef.value?.fetchData(searchParams, {
       cluster_type: ClusterTypes.TENDBCLUSTER,
     });
