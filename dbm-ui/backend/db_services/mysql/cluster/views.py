@@ -24,10 +24,7 @@ from backend.db_services.mysql.cluster.serializers import (
     GetMachineInstancePairSerializer,
     GetTendbRemotePairsResponseSerializer,
     GetTendbRemotePairsSerializer,
-    QueryClustersRequestSerializer,
-    QueryClustersResponseSerializer,
 )
-from backend.db_services.mysql.dataclass import ClusterFilter
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 SWAGGER_TAG = "db_services/mysql/cluster"
@@ -36,19 +33,6 @@ SWAGGER_TAG = "db_services/mysql/cluster"
 class ClusterViewSet(BaseClusterViewSet):
     action_permission_map = {}
     default_permission_class = [DBManagePermission()]
-
-    @common_swagger_auto_schema(
-        operation_summary=_("通过过滤条件批量查询集群"),
-        request_body=QueryClustersRequestSerializer(),
-        tags=[SWAGGER_TAG],
-        responses={status.HTTP_200_OK: QueryClustersResponseSerializer()},
-    )
-    @action(methods=["POST"], detail=False, serializer_class=QueryClustersRequestSerializer)
-    def query_clusters(self, request, bk_biz_id):
-        # TODO: Deprecated, 这个视图方法将被移除，请不要调用
-        validated_data = self.params_validate(self.get_serializer_class())
-        cluster_filters = [ClusterFilter.from_dict(filter_dict) for filter_dict in validated_data["cluster_filters"]]
-        return Response(ClusterServiceHandler(bk_biz_id).query_clusters(cluster_filters=cluster_filters))
 
     @common_swagger_auto_schema(
         operation_summary=_("查询tendbcluster集群的remote_db/remote_dr"),

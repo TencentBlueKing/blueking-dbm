@@ -19,29 +19,7 @@ from backend.db_services.mysql.cluster.mock_data import (
     GET_TENDB_MACHINE_INSTANCE_PAIR_RESPONSE_DATA,
     GET_TENDB_RELATED_MACHINES_RESPONSE_DATA,
     GET_TENDB_REMOTE_PAIRS_RESPONSE_DATA,
-    QUERY_CLUSTERS_REQUEST_DATA,
-    QUERY_CLUSTERS_RESPONSE_DATA,
 )
-
-
-class QueryClustersRequestSerializer(serializers.Serializer):
-    class FilterSerializer(serializers.Serializer):
-        """集群过滤条件，后续有补充可以在这里添加"""
-
-        bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
-        id = serializers.IntegerField(help_text=_("集群ID"), required=False)
-        immute_domain = serializers.CharField(help_text=_("集群域名"), required=False)
-        cluster_type = serializers.CharField(help_text=_("集群类型"), required=False)
-
-    cluster_filters = serializers.ListSerializer(help_text=_("集群过滤条件列表"), child=FilterSerializer())
-
-    class Meta:
-        swagger_schema_fields = {"example": QUERY_CLUSTERS_REQUEST_DATA}
-
-
-class QueryClustersResponseSerializer(serializers.Serializer):
-    class Meta:
-        swagger_schema_fields = {"example": QUERY_CLUSTERS_RESPONSE_DATA}
 
 
 class GetTendbRemoteMachinesSerializer(serializers.Serializer):
