@@ -14,10 +14,14 @@ import dayjs from 'dayjs';
 
 import { getAlarmEventsList } from '@services/source/monitor';
 
+import { useUserProfile } from '@stores';
+
 /**
  * 告警事件统计数据
  */
 export const useAlarmEventsCount = () => {
+  const { isDba } = useUserProfile();
+
   const todoCount = ref(0);
   const assitCount = ref(0);
 
@@ -42,7 +46,9 @@ export const useAlarmEventsCount = () => {
       assitCount.value = assistData.overview.count ?? 0;
     });
   };
-  initCount();
+  if (isDba) {
+    initCount();
+  }
 
   return {
     assitCount,
