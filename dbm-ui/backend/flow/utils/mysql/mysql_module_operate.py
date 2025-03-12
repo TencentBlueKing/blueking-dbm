@@ -12,7 +12,7 @@ from typing import Union
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import AccessLayer, MachineType
-from backend.db_meta.models import ProxyInstance, StorageInstance, Cluster
+from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.flow.utils.base.cc_topo_operate import CCTopoOperator
 
 

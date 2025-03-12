@@ -9,7 +9,7 @@ specific language governing permissions and limitations under the License.
 """
 
 from backend.configuration.constants import DBType
-from backend.db_meta.models import StorageInstance, Cluster
+from backend.db_meta.models import Cluster, StorageInstance
 from backend.flow.utils.base.cc_topo_operate import CCTopoOperator
 
 

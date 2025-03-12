@@ -9,11 +9,12 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from backend.configuration.constants import DBType
-from backend.db_meta.enums import ClusterType, AccessLayer
-from backend.db_meta.models import StorageInstance, ProxyInstance, Cluster
-from backend.flow.utils.base.cc_topo_operate import CCTopoOperator
 from typing import Union
+
+from backend.configuration.constants import DBType
+from backend.db_meta.enums import AccessLayer, ClusterType
+from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
+from backend.flow.utils.base.cc_topo_operate import CCTopoOperator
 
 
 class MongoDBCCTopoOperator(CCTopoOperator):
