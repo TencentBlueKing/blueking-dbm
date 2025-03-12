@@ -51,23 +51,28 @@
   import FaultOrRecycleMachineModel from '@services/model/db-resource/FaultOrRecycleMachine';
   import { importResource } from '@services/source/dbresourceResource';
 
+  import { useSystemEnviron } from '@stores';
+
   import { useImportResourcePoolTooltip } from '../../../hooks/useImportResourcePoolTip';
 
   import FormPanel from './components/FormPanel.vue';
   import ListPanel from './components/ListPanel.vue';
-
-  type Emits = (e: 'refresh') => void;
 
   const emits = defineEmits<Emits>();
 
   const isShow = defineModel<boolean>('isShow', {
     default: false,
   });
+
   const hostList = defineModel<FaultOrRecycleMachineModel[]>('hostList', {
     default: () => [],
   });
 
+  type Emits = (e: 'refresh') => void;
+
   const { t } = useI18n();
+  const systemEnvironStore = useSystemEnviron();
+
   const formPanelRef = useTemplateRef('formPanelRef');
   const { successMessage, tooltip } = useImportResourcePoolTooltip(hostList);
 
@@ -92,6 +97,7 @@
   const handleSubmit = async () => {
     const data = await formPanelRef.value!.getValue();
     runImport({
+      bk_biz_id: systemEnvironStore.urls.DBA_APP_BK_BIZ_ID,
       for_biz: data.for_biz as number,
       hosts: hostList.value.map((item) => ({
         bk_cloud_id: item.bk_cloud_id,

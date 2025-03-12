@@ -61,7 +61,7 @@
     <template #footer>
       <div class="dialog-footer">
         <BkButton
-          :loading="loading"
+          :loading="isLoading"
           style="width: 88px"
           :theme="theme"
           @click="handleConfirm">
@@ -69,7 +69,7 @@
         </BkButton>
         <BkButton
           class="ml-9 operation-btn"
-          :loading="loading"
+          :disabled="isLoading"
           style="width: 88px"
           @click="handleClose">
           {{ t('取消') }}
@@ -80,12 +80,15 @@
 </template>
 
 <script setup lang="tsx">
+  import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import { messageSuccess } from '@utils';
+
   interface Props {
-    // eslint-disable-next-line vue/require-default-prop
     alert?: string;
-    loading: boolean;
+    cancelHandler?: () => Promise<any> | void;
+    confirmHandler: (value: UnwrapRef<typeof formData>) => Promise<any> | void;
     selected: string[];
     showRemark?: boolean;
     theme?: 'primary' | 'danger';
@@ -93,12 +96,11 @@
     title: string;
   }
 
-  interface Emits {
-    (e: 'confirm', remark: string): void;
-    (e: 'cancel'): void;
-  }
+  type Emits = (e: 'success') => void;
 
-  withDefaults(defineProps<Props>(), {
+  const props = withDefaults(defineProps<Props>(), {
+    alert: undefined,
+    cancelHandler: () => Promise.resolve(),
     theme: 'primary',
   });
 
@@ -111,22 +113,34 @@
 
   const formRef = useTemplateRef('formRef');
 
+  const isLoading = ref(false);
+
   const formData = reactive({
     remark: '',
   });
 
   const handleConfirm = () => {
-    formRef.value!.validate().then(() => {
-      emits('confirm', formData.remark);
-      isShow.value = false;
-      formData.remark = '';
-    });
+    isLoading.value = true;
+    Promise.resolve()
+      .then(() => formRef.value?.validate())
+      .then(() => props.confirmHandler(formData))
+      .then(() => {
+        messageSuccess(t('操作成功'));
+        emits('success');
+        isShow.value = false;
+        formData.remark = '';
+      })
+      .finally(() => {
+        isLoading.value = false;
+      });
   };
 
   const handleClose = () => {
-    emits('cancel');
-    isShow.value = false;
-    formData.remark = '';
+    Promise.resolve()
+      .then(() => props.cancelHandler())
+      .then(() => {
+        isShow.value = false;
+      });
   };
 </script>
 

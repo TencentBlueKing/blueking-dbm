@@ -13,7 +13,7 @@
 
 import { MachineEvents } from '@common/const/machineEvents';
 
-import { utcDisplayTime } from '@utils';
+import { bytePretty, utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
 
@@ -79,6 +79,10 @@ export default class FaultOrRecycleMachine {
     this.ticket = payload.ticket;
     this.update_at = payload.update_at;
     this.updater = payload.updater;
+  }
+
+  get bkMemText() {
+    return bytePretty(this.bk_mem * 1024 * 1024);
   }
 
   get poolDispaly() {

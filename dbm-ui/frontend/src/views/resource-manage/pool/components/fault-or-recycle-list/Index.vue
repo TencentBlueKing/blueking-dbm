@@ -51,22 +51,21 @@
       sort-type="ordering"
       @selection="handleSelection" />
     <ReviewDataDialog
-      :is-show="isReviewDataDialogShow"
-      :loading="isRecycling"
+      v-model:is-show="isReviewDataDialogShow"
+      :confirm-handler="handleRecycleSubmit"
       :selected="selected.map((item) => item.ip)"
       theme="danger"
       :tip="t('确认后，主机将从系统中删除，请谨慎操作！')"
       :title="t('确认批量回收 {n} 台主机？', { n: selected.length })"
-      @cancel="handleRecycleCancel"
-      @confirm="handleRecycleSubmit" />
+      @success="handleRefresh" />
     <ReviewDataDialog
-      :is-show="isBatchConvertToRecyclePool"
-      :loading="isRecycling"
+      v-model:is-show="isBatchConvertToRecyclePool"
+      :confirm-handler="handleConvertSubmit"
       :selected="selected.map((item) => item.ip)"
+      show-remark
       :tip="t('确认后，主机将标记为待回收，等待处理')"
       :title="t('确认批量将 {n} 台主机转入待回收池？', { n: selected.length })"
-      @cancel="handleConvertCancel"
-      @confirm="handleConvertSubmit" />
+      @success="handleRefresh" />
     <ImportResourcePool
       v-model:is-show="isImportResourcePoolShow"
       :data="curImportData!"
@@ -81,18 +80,16 @@
 <script setup lang="tsx">
   import BkButton from 'bkui-vue/lib/button';
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
   import FaultOrRecycleMachineModel from '@services/model/db-resource/FaultOrRecycleMachine';
   import { getMachinePool, transferMachinePool } from '@services/source/dbdirty';
 
-  // import DbPopconfirm from '@components/db-popconfirm/index.vue';
   import DbStatus from '@components/db-status/index.vue';
 
   import HostSearchSelect from '@views/resource-manage/common/components/host-search-select/Index.vue';
   import OperationDetail from '@views/resource-manage/common/components/operation-detail/Index.vue';
 
-  import { execCopy, getSearchSelectorParams, messageSuccess } from '@utils';
+  import { execCopy, getSearchSelectorParams } from '@utils';
 
   import ReviewDataDialog from '../host-list/components/review-data-dialog/Index.vue';
 
@@ -163,7 +160,7 @@
       field: 'os_name',
       label: t('操作系统名称'),
       render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.os_name || '--',
-      width: 180,
+      width: 150,
     },
     {
       field: 'device_class',
@@ -176,9 +173,9 @@
       render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.bk_cpu || '--',
     },
     {
-      field: 'bk_mem',
+      field: 'bkMemText',
       label: t('内存(G)'),
-      render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.bk_mem || '--',
+      width: 80,
     },
     {
       field: 'bk_disk',
@@ -193,7 +190,7 @@
       field: 'updater',
       label: t('转入人'),
       render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.updater || '--',
-      width: 180,
+      width: 100,
     },
     {
       field: 'latest_event',
@@ -201,90 +198,7 @@
       render: ({ data }: { data: FaultOrRecycleMachineModel }) => <OperationDetail data={data.latest_event} />,
       width: 300,
     },
-    // {
-    //   field: 'ticket',
-    //   label: t('关联单据'),
-    //   render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.ticket || '--',
-    // },
-    // {
-    //   field: 'operation',
-    //   fixed: 'right',
-    //   label: t('操作'),
-    //   render: ({ data }: { data: FaultOrRecycleMachineModel }) => (
-    //     <div>
-    //       <BkButton
-    //         theme='primary'
-    //         text
-    //         onClick={() => handleImport(data)}>
-    //         {t('导入资源池')}
-    //       </BkButton>
-    //       {isFaultPool.value ? (
-    //         <DbPopconfirm
-    //           confirmHandler={() => handleConfirmConvert(data)}
-    //           title={t('确认转入待回收池？')}
-    //           width={360}>
-    //           {{
-    //             content: () => (
-    //               <div class='pool-recycle-pop-confirm-content'>
-    //                 <div>
-    //                   <span>{t('主机')}：</span>
-    //                   <span class='ip'>{data.ip}</span>
-    //                 </div>
-    //                 <div class='tip'>{t('确认后，主机将标记为待回收，等待处理')}</div>
-    //               </div>
-    //             ),
-    //             default: () => (
-    //               <BkButton
-    //                 class='ml-16'
-    //                 theme='primary'
-    //                 text>
-    //                 {t('转入回收池')}
-    //               </BkButton>
-    //             ),
-    //           }}
-    //         </DbPopconfirm>
-    //       ) : (
-    //         <DbPopconfirm
-    //           confirmHandler={() => handleConfirmRecycle(data)}
-    //           theme='danger'
-    //           title={t('确认回收该机器？')}
-    //           width={360}>
-    //           {{
-    //             content: () => (
-    //               <div class='pool-recycle-pop-confirm-content'>
-    //                 <div>
-    //                   <span>{t('主机')}：</span>
-    //                   <span class='ip'>{data.ip}</span>
-    //                 </div>
-    //                 <div class='tip'>{t('确认后，主机将从系统中删除，请谨慎操作！')}</div>
-    //               </div>
-    //             ),
-    //             default: () => (
-    //               <BkButton
-    //                 class='ml-16'
-    //                 theme='primary'
-    //                 text>
-    //                 {t('回收')}
-    //               </BkButton>
-    //             ),
-    //           }}
-    //         </DbPopconfirm>
-    //       )}
-    //     </div>
-    //   ),
-    //   width: 200,
-    // },
   ];
-
-  const { loading: isRecycling, run: runTransfer } = useRequest(transferMachinePool, {
-    manual: true,
-    onSuccess() {
-      messageSuccess(t('操作成功'));
-      handleRefresh();
-      isReviewDataDialogShow.value = false;
-      isBatchConvertToRecyclePool.value = false;
-    },
-  });
 
   watch(searchValue, () => {
     fetchData();
@@ -309,27 +223,6 @@
     tableRef.value?.fetchData(searchParams);
   };
 
-  // const handleConfirmConvert = (data: FaultOrRecycleMachineModel) => {
-  //   runTransfer({
-  //     bk_host_ids: [data.bk_host_id],
-  //     source: 'fault',
-  //     target: 'recycle',
-  //   });
-  // };
-
-  // const handleConfirmRecycle = (data: FaultOrRecycleMachineModel) => {
-  //   runTransfer({
-  //     bk_host_ids: [data.bk_host_id],
-  //     source: 'recycle',
-  //     target: 'recycled',
-  //   });
-  // };
-
-  // const handleImport = (data: FaultOrRecycleMachineModel) => {
-  //   isImportResourcePoolShow.value = true;
-  //   curImportData.value = data;
-  // };
-
   const handleSelection = (_data: FaultOrRecycleMachineModel, list: FaultOrRecycleMachineModel[]) => {
     selected.value = list;
   };
@@ -352,24 +245,17 @@
   };
 
   const handleRecycleSubmit = () => {
-    runTransfer({
+    return transferMachinePool({
       bk_host_ids: selected.value.map((item) => item.bk_host_id),
       source: 'recycle',
       target: 'recycled',
     });
   };
 
-  const handleRecycleCancel = () => {
-    isReviewDataDialogShow.value = false;
-  };
-
-  const handleConvertCancel = () => {
-    isBatchConvertToRecyclePool.value = false;
-  };
-
-  const handleConvertSubmit = () => {
-    runTransfer({
+  const handleConvertSubmit = ({ remark }: { remark: string }) => {
+    return transferMachinePool({
       bk_host_ids: selected.value.map((item) => item.bk_host_id),
+      remark,
       source: 'fault',
       target: 'recycle',
     });
@@ -392,8 +278,8 @@
   };
 
   const handleRefresh = () => {
-    fetchData();
     clearSelection();
+    fetchData();
   };
 
   onMounted(() => {

@@ -82,7 +82,7 @@
   import { fetchDbTypeList } from '@services/source/infras';
   import type { BizItem } from '@services/types';
 
-  import { useGlobalBizs } from '@stores';
+  import { useGlobalBizs, useSystemEnviron } from '@stores';
 
   import TagSelector from '@views/resource-manage/pool/components/tag-selector/Index.vue';
 
@@ -104,6 +104,7 @@
 
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
+  const systemEnvironStore = useSystemEnviron();
   const { successMessage, tooltip } = useImportResourcePoolTooltip();
 
   const formRef = useTemplateRef('formRef');
@@ -147,6 +148,7 @@
   const handleSubmit = async () => {
     await formRef.value!.validate();
     runImport({
+      bk_biz_id: systemEnvironStore.urls.DBA_APP_BK_BIZ_ID,
       for_biz: Number(formData.for_biz),
       hosts: [
         {

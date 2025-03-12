@@ -26,8 +26,13 @@ const path = '/apis/dbresource/resource';
  * 资源删除
  */
 export function removeResource(params: {
-  bk_host_ids: number[];
   event: 'to_recycle' | 'to_fault' | 'undo_import';
+  hosts: {
+    bk_biz_id: number;
+    bk_cloud_id: number;
+    bk_host_id: number;
+    ip: string;
+  }[];
   remark?: string;
 }) {
   return http.post<{ bk_host_ids: number[] }>(`${path}/delete/`, params);
@@ -68,6 +73,7 @@ export function fetchMountPoints() {
  * 资源池导入
  */
 export function importResource(params: {
+  bk_biz_id: number;
   for_biz: number;
   hosts: Array<{
     bk_cloud_id: number;

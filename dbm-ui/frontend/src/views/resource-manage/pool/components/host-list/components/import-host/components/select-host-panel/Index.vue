@@ -15,15 +15,6 @@
   <div class="export-host-select-panel">
     <div class="title">
       {{ t('导入主机') }}
-      <span style="font-size: 12px; color: #979ba5">
-        （
-        <I18nT
-          keypath="从n业务CMDB空闲机模块导入"
-          tag="span">
-          {{ globalBizsStore.bizIdMap.get(bizId)?.name }}
-        </I18nT>
-        ）
-      </span>
       <!-- <BusinessSelector
         v-if="!isBusiness"
         v-model="bizId">
@@ -39,18 +30,21 @@
             <DbIcon type="down-big" />
           </span>
         </template>
-      </BusinessSelector>
-      <span
-        v-else
-        style="font-size: 12px; color: #979ba5">
+      </BusinessSelector> -->
+      <span style="font-size: 12px; color: #979ba5">
         （
         <I18nT
-          keypath="从n业务CMDB空闲机模块导入"
+          keypath="从「source」业务 CMDB 空闲机模块导入，导入完成后 CMDB 位置将转移至「defalut」业务"
           tag="span">
-          {{ globalBizsStore.bizIdMap.get(bizId)?.name }}
+          <template #source>
+            {{ globalBizsStore.bizIdMap.get(bizId)?.name }}
+          </template>
+          <template #defalut>
+            {{ globalBizsStore.bizIdMap.get(defaultBizId)?.name }}
+          </template>
         </I18nT>
         ）
-      </span> -->
+      </span>
     </div>
     <BkInput
       v-model="searchContent"
@@ -100,21 +94,27 @@
     contentHeight: number;
     modelValue: HostInfo[];
   }
+
   type Emits = (e: 'update:modelValue', value: Props['modelValue']) => void;
+
+  interface Expose {
+    getValue: () => Promise<{ bk_biz_id: number }>;
+  }
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
-  // const route = useRoute();
+  const route = useRoute();
   const globalBizsStore = useGlobalBizs();
   const systemEnvironStore = useSystemEnviron();
 
-  // const isBusiness = route.name === 'BizResourcePool';
+  const isBusiness = route.name === 'BizResourcePool';
+  const defaultBizId = systemEnvironStore.urls.DBA_APP_BK_BIZ_ID;
 
   const { t } = useI18n();
 
   const tableRef = ref();
   const searchContent = ref('');
-  const bizId = ref(systemEnvironStore.urls.DBA_APP_BK_BIZ_ID);
+  const bizId = ref(isBusiness ? globalBizsStore.currentBizId : defaultBizId);
 
   const tableColumn = [
     {
@@ -208,6 +208,14 @@
 
   onMounted(() => {
     fetchData();
+  });
+
+  defineExpose<Expose>({
+    getValue() {
+      return Promise.resolve({
+        bk_biz_id: bizId.value,
+      });
+    },
   });
 </script>
 <style lang="less">

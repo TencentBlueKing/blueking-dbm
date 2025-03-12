@@ -99,6 +99,7 @@ export function getMachinePool(params: {
  */
 export function transferMachinePool(params: {
   bk_host_ids: number[];
+  remark?: string;
   source: 'fault' | 'recycle';
   target: 'fault' | 'recycle' | 'recycled';
 }) {

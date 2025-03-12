@@ -1,7 +1,7 @@
 <template>
   <BkSideslider
     v-model:is-show="moduleValue"
-    width="1100">
+    width="1300">
     <template #header>
       <div>【{{ ip }}】{{ t('操作记录') }}</div>
     </template>
@@ -12,7 +12,7 @@
         <BkTable
           ref="tableRef"
           :data="machineEventList?.results"
-          :show-settings="false">
+          :show-overflow="false">
           <BkTableColumn
             field="events"
             :label="t('操作类型')"
@@ -68,7 +68,6 @@
           <BkTableColumn
             field="event"
             :label="t('操作明细')"
-            show-overflow="tooltip"
             :width="300">
             <template #default="{ data }: { data: MachineEventModel }">
               <OperationDetail :data="data" />

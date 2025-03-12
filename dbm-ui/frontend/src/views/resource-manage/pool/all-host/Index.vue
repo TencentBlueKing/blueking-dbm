@@ -58,6 +58,7 @@
       <BkTableColumn
         field="os_name"
         :label="t('操作系统')"
+        show-overflow="tooltip"
         :width="180">
       </BkTableColumn>
       <BkTableColumn
@@ -70,7 +71,11 @@
       </BkTableColumn>
       <BkTableColumn
         field="bk_mem"
-        :label="t('内存')">
+        :label="t('内存')"
+        :width="80">
+        <template #default="{ data }: { data: FaultOrRecycleMachineModel }">
+          {{ data.bkMemText || '0 M' }}
+        </template>
       </BkTableColumn>
       <BkTableColumn
         field="bk_disk"
