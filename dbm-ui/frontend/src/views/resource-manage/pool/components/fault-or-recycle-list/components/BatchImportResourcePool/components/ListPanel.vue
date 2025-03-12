@@ -91,8 +91,8 @@
   interface Expose {
     getValue: () => Promise<{
       for_biz: number;
-      resource_type: string;
       labels: number[];
+      resource_type: string;
     }>;
   }
 
@@ -107,8 +107,8 @@
   const isShowHostActionPop = ref(false);
   const formData = reactive({
     for_biz: '',
-    resource_type: '',
     labels: '',
+    resource_type: '',
   });
 
   const toggleHostActionShow = () => {
@@ -148,8 +148,8 @@
     getValue() {
       return formRef.value.validate().then(() => ({
         for_biz: Number(formData.for_biz),
-        resource_type: formData.resource_type,
         labels: formData.labels,
+        resource_type: formData.resource_type,
       }));
     },
   });

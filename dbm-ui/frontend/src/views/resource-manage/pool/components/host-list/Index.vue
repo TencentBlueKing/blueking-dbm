@@ -108,36 +108,36 @@
       @setting-change="handleSettingChange" />
     <BatchSetting
       v-model:is-show="isShowBatchSetting"
-      :data="operatHostList"
-      @change="handleBatchSettingChange" />
+      :data="selectionHostIdList"
+      @success="handleRefresh" />
     <BatchCovertToPublic
       v-model:is-show="isShowBatchCovertToPublic"
-      :selected="selectionListWholeDataMemo"
+      :selected="selectionList"
       @refresh="handleRefresh" />
     <BatchAddTags
       v-model:is-show="isShowBatchAddTags"
-      :selected="operatHostList"
+      :selected="selectionList"
       @refresh="handleRefresh" />
     <BatchMoveToRecyclePool
       v-model:is-show="isShowBatchMoveToRecyclePool"
-      :selected="selectionListWholeDataMemo"
+      :selected="selectionList"
       @refresh="handleRefresh" />
     <BatchMoveToFaultPool
       v-model:is-show="isShowBatchMoveToFaultPool"
-      :selected="operatHostList"
+      :selected="selectionList"
       @refresh="handleRefresh" />
     <BatchUndoImport
       v-model:is-show="isShowBatchUndoImport"
-      :selected="selectionListWholeDataMemo"
+      :selected="selectionList"
       @refresh="handleRefresh" />
     <BatchConvertToBusiness
       v-model:is-show="isShowBatchConvertToBusiness"
       :biz-id="(currentBizId as number)"
-      :selected="selectionListWholeDataMemo"
+      :selected="selectionList"
       @refresh="handleRefresh" />
     <BatchAssign
       v-model:is-show="isShowBatchAssign"
-      :selected="operatHostList"
+      :selected="selectionList"
       @refresh="handleRefresh" />
     <UpdateAssign
       v-model:is-show="isShowUpdateAssign"
@@ -158,11 +158,9 @@
   import DiskPopInfo from '@components/disk-pop-info/DiskPopInfo.vue';
   import HostAgentStatus from '@components/host-agent-status/Index.vue';
 
-  // import MoreActionExtend from '@components/more-action-extend/Index.vue';
   import { execCopy } from '@utils';
 
   import { ResourcePool } from '../../type';
-  // import HostOperationTip from './components/HostOperationTip.vue';
   import { useImportResourcePoolTooltip } from '../hooks/useImportResourcePoolTip';
 
   import BatchAddTags from './components/batch-add-tags/Index.vue';
@@ -192,9 +190,9 @@
   const { handleChange: handleSettingChange, setting: tableSetting } = useTableSetting();
   const { taskHistoryListHref } = useImportResourcePoolTooltip();
 
-  const searchBoxRef = ref();
-  const tableRef = ref();
-  const selectionHostIdList = ref<number[]>([]);
+  const searchBoxRef = useTemplateRef('searchBoxRef');
+  const tableRef = useTemplateRef('tableRef');
+
   const isShowBatchSetting = ref(false);
   const isShowBatchCovertToPublic = ref(false);
   const isShowBatchMoveToRecyclePool = ref(false);
@@ -204,8 +202,12 @@
   const isShowBatchAssign = ref(false);
   const isShowUpdateAssign = ref(false);
   const isShowBatchAddTags = ref(false);
-  const curEditData = ref<DbResourceModel>({} as DbResourceModel);
   const isSelectedSameBiz = ref(false);
+
+  const selectionList = shallowRef<DbResourceModel[]>([]);
+  const curEditData = shallowRef<DbResourceModel>({} as DbResourceModel);
+
+  const selectionHostIdList = computed(() => selectionList.value.map((selectionItem) => selectionItem.bk_host_id));
 
   const curBizId = computed(() => {
     let bizId = undefined;
@@ -227,8 +229,6 @@
     });
 
   let searchParams: Record<string, any> = {};
-  let selectionListWholeDataMemo: DbResourceModel[] = [];
-  let operatHostList: DbResourceModel[] = [];
 
   const tableColumn = computed(() => [
     {
@@ -334,7 +334,7 @@
       field: 'os_name',
       label: t('操作系统名称'),
       render: ({ data }: { data: DbResourceModel }) => data.os_name || '--',
-      width: 120,
+      width: 150,
     },
     {
       field: 'device_class',
@@ -349,6 +349,7 @@
       field: 'bkMemText',
       label: t('内存'),
       render: ({ data }: { data: DbResourceModel }) => data.bkMemText || '0 M',
+      width: 80,
     },
     {
       field: 'bk_disk',
@@ -370,134 +371,21 @@
       field: 'updater',
       label: t('转入人'),
       render: ({ data }: { data: DbResourceModel }) => data.updater || '--',
-      width: 180,
+      width: 100,
     },
-    // {
-    //   field: 'id',
-    //   fixed: 'right',
-    //   label: t('操作'),
-    //   render: ({ data }: { data: DbResourceModel }) => (
-    //     <>
-    //       {props.type === ResourcePool.public && (
-    //         <HostOperationTip
-    //           data={data}
-    //           tip={t('确认后，主机将标记为业务专属')}
-    //           title={t('确认转入业务资源池？')}
-    //           type='to_biz'
-    //           onRefresh={fetchData}>
-    //           <bk-button
-    //             theme='primary'
-    //             text>
-    //             {t('转入业务资源池')}
-    //           </bk-button>
-    //         </HostOperationTip>
-    //       )}
-    //       {[ResourcePool.business, ResourcePool.global].includes(props.type) && (
-    //         <>
-    //           <bk-button
-    //             theme='primary'
-    //             text
-    //             onClick={() => handleShowBatchAssign(data)}>
-    //             {t('重新设置资源归属')}
-    //           </bk-button>
-    //           <bk-button
-    //             class='ml-16'
-    //             theme='primary'
-    //             text
-    //             onClick={() => handleShowBatchAddTags(data)}>
-    //             {t('添加资源标签')}
-    //           </bk-button>
-    //           {props.type === ResourcePool.business ? (
-    //             <HostOperationTip
-    //               data={data}
-    //               tip={t('确认后，主机不再归属当前业务')}
-    //               title={t('确认退回公共资源池？')}
-    //               type='to_public'
-    //               onRefresh={fetchData}>
-    //               <bk-button
-    //                 class='ml-16'
-    //                 theme='primary'
-    //                 text>
-    //                 {t('退回公共资源池')}
-    //               </bk-button>
-    //             </HostOperationTip>
-    //           ) : (
-    //             <bk-button
-    //               class='ml-16'
-    //               theme='primary'
-    //               text
-    //               onClick={() => handleShowBatchSetting(data)}>
-    //               {t('设置主机属性')}
-    //             </bk-button>
-    //           )}
-    //           <MoreActionExtend class='ml-16'>
-    //             {props.type === ResourcePool.business && (
-    //               <Bk-Dropdown-Item onClick={() => handleShowBatchSetting(data)}>
-    //                 <bk-button
-    //                   theme='primary'
-    //                   text>
-    //                   {t('设置主机属性')}
-    //                 </bk-button>
-    //               </Bk-Dropdown-Item>
-    //             )}
-    //             <Bk-Dropdown-Item onClick={() => handleShowBatchMoveToFaultPool(data)}>
-    //               <bk-button
-    //                 theme='primary'
-    //                 text>
-    //                 {t('转入故障池')}
-    //               </bk-button>
-    //             </Bk-Dropdown-Item>
-    //             {props.type !== ResourcePool.business && (
-    //               <Bk-Dropdown-Item>
-    //                 <HostOperationTip
-    //                   data={data}
-    //                   tip={t('确认后，主机将标记为待回收，等待处理')}
-    //                   title={t('确认转入待回收池？')}
-    //                   type='to_recycle'
-    //                   onRefresh={fetchData}>
-    //                   <bk-button
-    //                     theme='primary'
-    //                     text>
-    //                     {t('转入待回收池')}
-    //                   </bk-button>
-    //                 </HostOperationTip>
-    //               </Bk-Dropdown-Item>
-    //             )}
-    //             <Bk-Dropdown-Item>
-    //               <HostOperationTip
-    //                 data={data}
-    //                 tip={t('确认后，主机将从资源池移回原有模块')}
-    //                 title={t('确认撤销导入？')}
-    //                 type='undo_import'
-    //                 onRefresh={fetchData}>
-    //                 <bk-button
-    //                   theme='primary'
-    //                   text>
-    //                   {t('撤销导入')}
-    //                 </bk-button>
-    //               </HostOperationTip>
-    //             </Bk-Dropdown-Item>
-    //           </MoreActionExtend>
-    //         </>
-    //       )}
-    //     </>
-    //   ),
-    //   width: props.type === ResourcePool.public ? 120 : 380,
-    // },
   ]);
 
   const fetchData = () => {
-    tableRef.value.fetchData(searchParams);
+    tableRef.value!.fetchData(searchParams, {});
   };
 
   const handleSearch = (params: Record<string, any>) => {
     searchParams = params;
-    tableRef.value.fetchData(params);
+    fetchData();
   };
 
   // 批量设置
-  const handleShowBatchSetting = (data?: DbResourceModel) => {
-    operatHostList = data ? [data] : selectionListWholeDataMemo;
+  const handleShowBatchSetting = () => {
     isShowBatchSetting.value = true;
   };
 
@@ -514,7 +402,7 @@
 
   // 复制已选主机
   const handleCopySelectHost = () => {
-    const ipList = selectionListWholeDataMemo.map((item) => item.ip);
+    const ipList = selectionList.value.map((item) => item.ip);
     execCopy(ipList.join('\n'), `${t('复制成功n个IP', { n: ipList.length })}\n`);
   };
 
@@ -534,28 +422,18 @@
     });
   };
 
-  // 批量编辑后刷新列表
-  const handleBatchSettingChange = () => {
-    fetchData();
-    Object.values(selectionHostIdList.value).forEach((hostId) => {
-      tableRef.value.removeSelectByKey(hostId);
-    });
-    selectionHostIdList.value = [];
-  };
-
   // 跳转历史任务
   const handleGoTaskHistory = () => {
     window.open(taskHistoryListHref);
   };
 
   const handleSelection = (list: number[], selectionListWholeData: DbResourceModel[]) => {
-    selectionHostIdList.value = list;
-    selectionListWholeDataMemo = selectionListWholeData;
+    selectionList.value = selectionListWholeData;
     isSelectedSameBiz.value = new Set(selectionListWholeData.map((item) => item.for_biz.bk_biz_id)).size === 1;
   };
 
   const handleClearSearch = () => {
-    searchBoxRef.value.clearValue();
+    searchBoxRef.value!.clearValue();
   };
 
   const handleShowBatchCovertToPublic = () => {
@@ -566,8 +444,7 @@
     isShowBatchMoveToRecyclePool.value = true;
   };
 
-  const handleShowBatchMoveToFaultPool = (data?: DbResourceModel) => {
-    operatHostList = data ? [data] : selectionListWholeDataMemo;
+  const handleShowBatchMoveToFaultPool = () => {
     isShowBatchMoveToFaultPool.value = true;
   };
 
@@ -579,13 +456,11 @@
     isShowBatchConvertToBusiness.value = true;
   };
 
-  const handleShowBatchAddTags = (data?: DbResourceModel) => {
-    operatHostList = data ? [data] : selectionListWholeDataMemo;
+  const handleShowBatchAddTags = () => {
     isShowBatchAddTags.value = true;
   };
 
-  const handleShowBatchAssign = (data?: DbResourceModel) => {
-    operatHostList = data ? [data] : selectionListWholeDataMemo;
+  const handleShowBatchAssign = () => {
     isShowBatchAssign.value = true;
   };
 
@@ -595,13 +470,8 @@
   };
 
   const handleRefresh = () => {
+    tableRef.value!.clearSelected();
     fetchData();
-    Object.values(selectionHostIdList.value).forEach((hostId) => {
-      tableRef.value.removeSelectByKey(hostId);
-    });
-    selectionListWholeDataMemo = [];
-    operatHostList = [];
-    selectionHostIdList.value = [];
   };
 
   onMounted(() => {

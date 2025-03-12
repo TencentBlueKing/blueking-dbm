@@ -28,6 +28,7 @@
       <template #main>
         <SelectHostPanel
           v-if="modelValue"
+          ref="selectHostPanelRef"
           v-model="hostSelectList"
           :content-height="contentHeight" />
       </template>
@@ -79,7 +80,9 @@
 
   const { t } = useI18n();
 
-  const formRef = ref();
+  const formRef = useTemplateRef('formRef');
+  const selectHostPanelRef = useTemplateRef('selectHostPanelRef');
+
   const isSubmitting = ref(false);
   const hostSelectList = shallowRef<HostInfo[]>([]);
 
@@ -93,25 +96,23 @@
 
   const handleSubmit = () => {
     isSubmitting.value = true;
-    formRef.value
-      .getValue()
-      .then((data: any) =>
+    Promise.all([selectHostPanelRef.value!.getValue(), formRef.value!.getValue()])
+      .then(([selectHostPanelData, fromData]) => {
         importResource({
-          for_biz: data.for_biz,
+          ...selectHostPanelData,
+          ...fromData,
           hosts: hostSelectList.value.map((item) => ({
             bk_cloud_id: item.cloud_id,
             host_id: item.host_id,
             ip: item.ip,
           })),
-          labels: data.labels,
-          resource_type: data.resource_type,
         }).then(({ task_ids: taskIds }) => {
           window.changeConfirm = false;
           successMessage(taskIds);
           handleCancel();
           emits('change');
-        }),
-      )
+        });
+      })
       .finally(() => {
         isSubmitting.value = false;
       });
