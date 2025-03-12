@@ -115,7 +115,7 @@ class _ExecBkJobService(BkJobService):
 
         self.log_info("[{}] ready start task with body {} {}".format(node_name, "", body))
         resp = JobApi.fast_execute_script(
-            {**(make_script_common_kwargs(timeout=3600, exec_account="root")), **body}, raw=True
+            {**(make_script_common_kwargs(timeout=259200, exec_account="root")), **body}, raw=True
         )
 
         # 传入调用结果，并单调监听任务状态
