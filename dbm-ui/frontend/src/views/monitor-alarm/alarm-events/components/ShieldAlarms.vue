@@ -65,7 +65,7 @@
         </div>
         <div class="alarm-item">
           <div class="item-title">{{ t('所属业务') }}:</div>
-          <div class="item-content">{{ data?.bk_biz_id ? bizsMap[data?.bk_biz_id] : '--' }}</div>
+          <div class="item-content">{{ bizDisplay }}</div>
         </div>
         <div class="alarm-item">
           <div class="item-title">{{ t('所属集群') }}:</div>
@@ -159,6 +159,18 @@
       return results;
     }, {}),
   );
+  const bizDisplay = computed(() => {
+    if (!props.data) {
+      return '--';
+    }
+
+    const bizObj = props.data.dimensions.find((item) => item.key === 'tags.appid');
+    if (!bizObj) {
+      return '--';
+    }
+
+    return bizsMap.value[Number(bizObj.value)] ?? '--';
+  });
 
   const { run: fetchAlarmShieldDetails } = useRequest(getAlarmShieldDetails, {
     manual: true,

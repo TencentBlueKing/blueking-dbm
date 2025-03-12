@@ -191,7 +191,6 @@
     remotePagination: true,
     remoteSort: false,
     selectable: false,
-    showPrepend: true,
     showSelectAllPage: true,
     showSettings: false,
   });
@@ -385,14 +384,11 @@
           permission: 'page',
         });
       }
-
       isAnomalies.value = false;
-
       props
         .dataSource(params, payload)
         .then((data) => {
           tableData.value = data;
-          console.log('tabledata = ', data);
           pagination.count = data.count;
           isSearching.value = getSearchingStatus();
           isAnomalies.value = false;

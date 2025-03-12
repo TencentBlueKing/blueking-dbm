@@ -35,15 +35,14 @@
     <DbTable
       ref="tableRef"
       :data-source="getAlarmEventsList"
-      :line-height="56"
+      releate-url-query
       :row-config="{
         useKey: true,
         keyField: 'id',
       }"
+      :scroll-y="{ enabled: true, gt: 0 }"
       selectable
       :settings="tableSetting"
-      :show-overflow="false"
-      :show-prepend="false"
       :show-select-all-page="false"
       show-settings
       @clear-search="handleClearSearchValue"
@@ -55,7 +54,7 @@
         fixed="left"
         :label="t('告警名称')"
         :min-width="220"
-        show-overflow="tooltip">
+        visiable>
         <template #default="{ data }: { data: RowData }">
           <div class="alert-name-main">
             <div
@@ -100,7 +99,6 @@
         field="stage"
         :filters="phaseFilterList"
         :label="t('处理阶段')"
-        :show-overflow="false"
         :width="100">
         <template #default="{ data }: { data: RowData }">
           <BkTag
@@ -137,20 +135,17 @@
       <BkTableColumn
         field="createTimeDisplay"
         :label="t('告警产生时间')"
-        :min-width="200"
-        :show-overflow="false">
+        :min-width="200">
       </BkTableColumn>
       <BkTableColumn
         field="firstAnomalyTimeDisplay"
         :label="t('首次异常时间')"
-        :min-width="200"
-        :show-overflow="false">
+        :min-width="200">
       </BkTableColumn>
       <BkTableColumn
         field="status"
         :filters="statusFilterList"
         :label="t('状态')"
-        :show-overflow="false"
         :width="100">
         <template #default="{ data }: { data: RowData }">
           <BkTag
@@ -175,8 +170,7 @@
       <BkTableColumn
         fixed="right"
         :label="t('操作')"
-        :min-width="120"
-        :show-overflow="false">
+        :min-width="120">
         <template #default="{ data }: { data: RowData }">
           <BkButton
             v-if="data.is_shielded"
@@ -207,13 +201,15 @@
   <DbSideslider
     v-model:is-show="showShieldAlarm"
     :before-close="handleBeforeClose"
+    :cancel-text="isCurrentEventShielded ? t('关闭') : t('取消')"
     class="shiled-alarm-page"
-    :disabled-confirm="currentEvent?.is_shielded"
+    :disabled-confirm="isCurrentEventShielded"
+    :show-confirm="!isCurrentEventShielded"
     :show-leave-confirm="false"
     width="960"
     @closed="handleClosed">
     <template #header>
-      <span>{{ t('屏蔽告警') }}</span>
+      <span>{{ isCurrentEventShielded ? t('查看屏蔽') : t('屏蔽告警') }}</span>
     </template>
     <ShieldAlarms
       ref="createShieldAlarmsRef"
@@ -265,6 +261,8 @@
       return results;
     }, {}),
   );
+
+  const isCurrentEventShielded = computed(() => currentEvent.value?.is_shielded);
 
   const isTodoPage = computed(() => route.name === 'AlarmEventsTodo');
   const isGlobalPage = computed(() => route.name === 'AlarmEventsGlobal');
@@ -398,12 +396,12 @@
         self_manage: true,
       });
     }
-    if (!route.query.status) {
-      // 未选，默认设置未恢复状态
-      Object.assign(params, {
-        status: 'ABNORMAL',
-      });
-    }
+    // if (!route.query.status) {
+    //   // 未选，默认设置未恢复状态
+    //   Object.assign(params, {
+    //     status: 'ABNORMAL',
+    //   });
+    // }
     if (route.query.bk_biz_id) {
       Object.assign(params, {
         bk_biz_id: Number(route.query.bk_biz_id),
@@ -517,13 +515,10 @@
       [t('告警名称')]: item.alert_name,
       [t('告警等级')]: item.severityDisplayName,
       [t('处理阶段')]: item.stage_display,
-      [t('处理阶段')]: item.stage_display,
       [t('所属业务')]: bizsMap.value[item.bk_biz_id],
       [t('所属集群')]: item.cluster,
       [t('状态')]: item.statusDisplay,
       [t('负责人')]: item.appointee?.join(','),
-      [t('负责人')]: item.appointee?.join(','),
-      [t('首次异常时间')]: item.firstAnomalyTimeDisplay,
       [t('首次异常时间')]: item.firstAnomalyTimeDisplay,
     }));
     const colsWidths = Array(11)

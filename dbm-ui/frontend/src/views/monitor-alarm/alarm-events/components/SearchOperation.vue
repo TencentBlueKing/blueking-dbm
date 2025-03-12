@@ -33,6 +33,7 @@
 <script setup lang="tsx">
   import type { ISearchItem, ISearchValue } from 'bkui-vue/lib/search-select/utils';
   import dayjs from 'dayjs';
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import { useGlobalBizs } from '@stores';
@@ -60,9 +61,96 @@
 
   const { t } = useI18n();
   const { bizs } = useGlobalBizs();
+  const route = useRoute();
 
-  const startTime = dayjs().subtract(6, 'day').format('YYYY-MM-DD HH:mm:ss');
-  const endTime = dayjs().format('YYYY-MM-DD HH:mm:ss');
+  const baseSelectList = [
+    {
+      children: bizs.map((biz) => ({
+        id: biz.bk_biz_id,
+        name: biz.name,
+      })),
+      id: 'bk_biz_id',
+      name: t('所属业务'),
+    },
+    {
+      children: [
+        {
+          id: 3,
+          name: t('提醒'),
+        },
+        {
+          id: 2,
+          name: t('预警'),
+        },
+        {
+          id: 1,
+          name: t('致命'),
+        },
+      ],
+      id: 'severity',
+      name: t('告警级别'),
+    },
+    {
+      id: 'alert_name',
+      name: t('告警名称'),
+    },
+    {
+      id: 'description',
+      name: t('告警内容'),
+    },
+    {
+      id: 'instance',
+      name: t('告警实例'),
+    },
+    {
+      id: 'ip',
+      name: t('告警IP'),
+    },
+    {
+      id: 'cluster_domain',
+      name: t('所属集群'),
+    },
+    {
+      children: [
+        {
+          id: 'is_handled',
+          name: t('已通知'),
+        },
+        {
+          id: 'is_shielded',
+          name: t('已屏蔽'),
+        },
+        {
+          id: 'is_blocked',
+          name: t('已流控'),
+        },
+        {
+          id: 'is_ack',
+          name: t('已确认'),
+        },
+      ],
+      id: 'stage',
+      name: t('处理阶段'),
+    },
+    {
+      children: [
+        {
+          id: 'RECOVERED',
+          name: t('已恢复'),
+        },
+        {
+          id: 'ABNORMAL',
+          name: t('未恢复'),
+        },
+        {
+          id: 'CLOSED',
+          name: t('已失效'),
+        },
+      ],
+      id: 'status',
+      name: t('状态'),
+    },
+  ];
 
   const defaultStatus = {
     id: 'status',
@@ -75,106 +163,54 @@
     ],
   };
 
+  let isInit = true;
+
+  const initSearchValue = () => {
+    const baseValue = baseSelectList.reduce<ISearchValue[]>((results, item) => {
+      const id = route.query[item.id] as string;
+      if (id) {
+        let name = id;
+        if (item.children) {
+          const targetName = item.children.find((child) => child.id === id)?.name;
+          if (targetName) {
+            name = targetName;
+          }
+        }
+        results.push({
+          ...item,
+          values: [
+            {
+              id,
+              name,
+            },
+          ],
+        });
+      }
+      return results;
+    }, []);
+    if (!route.query.status) {
+      baseValue.push(defaultStatus);
+    }
+    return baseValue;
+  };
+
+  const startTime = dayjs().subtract(6, 'day').format('YYYY-MM-DD HH:mm:ss');
+  const endTime = dayjs().format('YYYY-MM-DD HH:mm:ss');
+
   const filterData = ref<Record<string, any>>({
     end_time: endTime,
     start_time: startTime,
   });
   const dbValue = ref<string[]>([]);
   const filterDateRange = ref<[string, string]>([startTime, endTime]);
-  const searchValue = ref<ISearchValue[]>([defaultStatus]);
+  const searchValue = ref<ISearchValue[]>(initSearchValue());
 
   const searchSelectData = computed(() => {
-    const baseList = [
-      {
-        children: [
-          {
-            id: 3,
-            name: t('提醒'),
-          },
-          {
-            id: 2,
-            name: t('预警'),
-          },
-          {
-            id: 1,
-            name: t('致命'),
-          },
-        ],
-        id: 'severity',
-        name: t('告警级别'),
-      },
-      {
-        id: 'alert_name',
-        name: t('告警名称'),
-      },
-      {
-        id: 'description',
-        name: t('告警内容'),
-      },
-      {
-        id: 'instance',
-        name: t('告警实例'),
-      },
-      {
-        id: 'ip',
-        name: t('告警IP'),
-      },
-      {
-        id: 'cluster_domain',
-        name: t('所属集群'),
-      },
-      {
-        children: [
-          {
-            id: 'is_handled',
-            name: t('已通知'),
-          },
-          {
-            id: 'is_shielded',
-            name: t('已屏蔽'),
-          },
-          {
-            id: 'is_blocked',
-            name: t('已流控'),
-          },
-          {
-            id: 'is_ack',
-            name: t('已确认'),
-          },
-        ],
-        id: 'stage',
-        name: t('处理阶段'),
-      },
-      {
-        children: [
-          {
-            id: 'RECOVERED',
-            name: t('已恢复'),
-          },
-          {
-            id: 'ABNORMAL',
-            name: t('未恢复'),
-          },
-          {
-            id: 'CLOSED',
-            name: t('已失效'),
-          },
-        ],
-        id: 'status',
-        name: t('状态'),
-      },
-    ];
-    if (props.showBizs) {
-      baseList.unshift({
-        children: bizs.map((biz) => ({
-          id: biz.bk_biz_id,
-          name: biz.name,
-        })),
-        id: 'bk_biz_id',
-        name: t('所属业务'),
-      });
+    const baseSelect = _.cloneDeep(baseSelectList);
+    if (!props.showBizs) {
+      baseSelect.shift();
     }
-    return baseList as ISearchItem[];
+    return baseSelect as ISearchItem[];
   });
 
   const dbList = Object.values(DBTypeInfos);
@@ -204,10 +240,10 @@
 
   const handleSearchValueChange = (valueList: ISearchValue[]) => {
     // 防止方法由于searchValue的值改变而被循环触发
-    if (!valueList.length || JSON.stringify(valueList) === JSON.stringify(searchValue.value)) {
+    if (!isInit && JSON.stringify(valueList) === JSON.stringify(searchValue.value)) {
       return;
     }
-
+    isInit = false;
     // 批量参数统一用,分隔符，展示的分隔符统一成 |
     const handledValueList: ISearchValue[] = [];
     valueList.forEach((item) => {
@@ -240,6 +276,7 @@
         end_time: endTime,
         start_time: startTime,
       };
+      console.log('filterData.value == ', filterData.value);
       return;
     }
     const handledValueMap = handledValueList.reduce<Record<string, ISearchValue>>((results, item) => {

@@ -104,6 +104,7 @@ export default () => {
   getInspectionRoutes();
   getMonitorAlarmRoutes();
   getDbaManageRoutes();
+  getMonitorAlarmRoutes();
 
   const routes = [
     {

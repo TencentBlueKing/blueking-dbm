@@ -64,8 +64,6 @@
             },
           ],
           id: 'category',
-          id: 'category',
-          name: t('屏蔽类型'),
           name: t('屏蔽类型'),
         },
       ] as ISearchItem[],
