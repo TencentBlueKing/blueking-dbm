@@ -373,11 +373,11 @@
   // };
 
   // 清空选择
-  // const handleClearWholeSelect = () => {
-  //   rowSelectMemo.value = {};
-  //   isWholeChecked.value = false;
-  //   triggerSelection();
-  // };
+  const handleClearWholeSelect = () => {
+    rowSelectMemo.value = {};
+    isWholeChecked.value = false;
+    triggerSelection();
+  };
 
   // 跨页全选
   const handleWholeSelect = (value: boolean) => {
@@ -511,7 +511,8 @@
     bkTableRef,
     // 清空选择
     clearSelected() {
-      bkTableRef.value?.clearSelection();
+      // bkTableRef.value?.clearSelection();
+      handleClearWholeSelect();
     },
     // 获取远程数据
     fetchData(params = {} as Record<string, any>, baseParams = {} as Record<string, any>, loading = true) {

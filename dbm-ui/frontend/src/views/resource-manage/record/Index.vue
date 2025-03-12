@@ -32,7 +32,7 @@
         field="ip"
         fixed="left"
         label="IP"
-        :width="200">
+        :width="150">
       </BkTableColumn>
       <BkTableColumn
         field="events"
@@ -90,8 +90,8 @@
       <BkTableColumn
         field="event"
         :label="t('操作明细')"
-        show-overflow="tooltip"
-        :width="300">
+        :min-width="300"
+        show-overflow="tooltip">
         <template #default="{ data }: { data: MachineEventModel }">
           <OperationDetail :data="data" />
         </template>

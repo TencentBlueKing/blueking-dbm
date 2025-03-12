@@ -86,9 +86,9 @@
 
   import { leaveConfirm } from '@utils';
 
-  import ResourceSpecStorage, { type IStorageSpecItem } from './components/ResourceSpecStorage.vue';
-
   import type { BizItem } from '@/services/types';
+
+  import ResourceSpecStorage, { type IStorageSpecItem } from './components/ResourceSpecStorage.vue';
 
   interface Props {
     data: number[];
@@ -97,7 +97,7 @@
 
   interface Emits {
     (e: 'update:isShow', value: boolean): void;
-    (e: 'change'): void;
+    (e: 'success'): void;
   }
 
   const props = defineProps<Props>();
@@ -170,12 +170,12 @@
     formRef.value
       .validate()
       .then(() => {
-        const storageDevice = formData.storage_spec.reduce<Record<string, { size: number; disk_type: string }>>(
+        const storageDevice = formData.storage_spec.reduce<Record<string, { disk_type: string; size: number }>>(
           (result, item) => ({
             ...result,
             [item.mount_point]: {
-              size: item.size,
               disk_type: item.type,
+              size: item.size,
             },
           }),
           {},
@@ -188,7 +188,7 @@
 
         return updateResource(params).then(() => {
           window.changeConfirm = false;
-          emits('change');
+          emits('success');
           handleCancel();
         });
       })

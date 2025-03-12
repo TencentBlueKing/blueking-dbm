@@ -12,23 +12,19 @@
 -->
 <template>
   <ReviewDataDialog
-    :is-show="isShow"
-    :loading="isUpdating"
+    v-model:is-show="isShow"
+    :confirm-handler="handleConfirm"
     :selected="selectedIpList"
     :tip="t('确认后，将主机将清空已存在的资源归属设置，并设置为公共资源')"
     :title="t('确认将 {n} 台主机转为公共资源?', { n: props.selected.length })"
-    @cancel="handleCancel"
-    @confirm="handleConfirm" />
+    @success="handleSuccess" />
 </template>
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
   import DbResourceModel from '@services/model/db-resource/DbResource';
   import { updateResource } from '@services/source/dbresourceResource';
-
-  import { messageSuccess } from '@utils';
 
   import ReviewDataDialog from '../review-data-dialog/Index.vue';
 
@@ -50,17 +46,8 @@
 
   const selectedIpList = computed(() => props.selected.map((item) => item.ip));
 
-  const { loading: isUpdating, run: runUpdate } = useRequest(updateResource, {
-    manual: true,
-    onSuccess() {
-      isShow.value = false;
-      emits('refresh');
-      messageSuccess(t('操作成功'));
-    },
-  });
-
   const handleConfirm = () => {
-    runUpdate({
+    return updateResource({
       bk_host_ids: props.selected.map((item) => item.bk_host_id),
       for_biz: 0,
       labels: [],
@@ -69,7 +56,7 @@
     });
   };
 
-  const handleCancel = () => {
-    isShow.value = false;
+  const handleSuccess = () => {
+    emits('refresh');
   };
 </script>
