@@ -16,18 +16,24 @@
   </BkFormItem>
 </template>
 <script lang="ts">
-  export const createCheckPayload = () => ({
-    is_check_process: false,
-    is_check_delay: false,
-    is_verify_checksum: false,
+  interface CheckItem {
+    is_check_delay: boolean;
+    is_check_process: boolean;
+    is_verify_checksum: boolean;
+  }
+
+  export const createCheckPayload = (data = {} as CheckItem) => ({
+    is_check_delay: data.is_check_delay || false,
+    is_check_process: data.is_check_process || false,
+    is_verify_checksum: data.is_verify_checksum || false,
   });
 </script>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  const { t } = useI18n();
-
-  const modelValue = defineModel<ReturnType<typeof createCheckPayload>>({
+  const modelValue = defineModel<CheckItem>({
     required: true,
   });
+
+  const { t } = useI18n();
 </script>

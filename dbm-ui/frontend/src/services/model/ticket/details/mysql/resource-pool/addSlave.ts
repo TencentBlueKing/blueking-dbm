@@ -1,3 +1,5 @@
+import { BackupSourceType } from '@services/types';
+
 import type { ResourcePoolDetailBase } from '../../common';
 
 /**
@@ -5,7 +7,7 @@ import type { ResourcePoolDetailBase } from '../../common';
  */
 
 export interface AddSlave extends ResourcePoolDetailBase {
-  backup_source: string;
+  backup_source: BackupSourceType;
   infos: {
     cluster_ids: number[];
     resource_spec: {

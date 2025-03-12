@@ -59,77 +59,25 @@
             </template>
           </BkTableColumn>
           <BkTableColumn
-            field="rack_id"
-            :label="t('机架')"
-            :min-width="120">
-            <template #default="{ data }">
-              {{ data.rack_id || '--' }}
-            </template>
-          </BkTableColumn>
-          <BkTableColumn
-            field="device_class"
-            :label="t('机型')"
-            :min-width="120">
-            <template #default="{ data }">
-              {{ data.device_class || '--' }}
-            </template>
-          </BkTableColumn>
-          <BkTableColumn
-            field="os_type"
-            :label="t('操作系统类型')"
-            :min-width="120">
-            <template #default="{ data }">
-              {{ data.os_type || '--' }}
-            </template>
-          </BkTableColumn>
-          <BkTableColumn
             field="city"
             :label="t('地域')"
-            :min-width="120">
-            <template #default="{ data }">
-              {{ data.city || '--' }}
-            </template>
-          </BkTableColumn>
+            :min-width="120" />
           <BkTableColumn
             field="sub_zone"
             :label="t('园区')"
-            :min-width="120">
-            <template #default="{ data }">
-              {{ data.sub_zone || '--' }}
-            </template>
-          </BkTableColumn>
+            :min-width="120" />
           <BkTableColumn
-            field="bk_cpu"
-            :label="t('CPU(核)')"
-            :min-width="120">
-            <template #default="{ data }">
-              {{ data.bk_cpu || '--' }}
-            </template>
-          </BkTableColumn>
+            field="rack_id"
+            :label="t('机架')"
+            :min-width="120" />
           <BkTableColumn
-            field="bkMemText"
-            :label="t('内存')"
-            :min-width="120">
-            <template #default="{ data }">
-              {{ data.bkMemText || '--' }}
-            </template>
-          </BkTableColumn>
+            field="os_name"
+            :label="t('操作系统名称')"
+            :min-width="180" />
           <BkTableColumn
-            field="bk_disk"
-            :label="t('磁盘容量(G)')"
-            :min-width="100">
-            <template #default="{ data }">
-              <DiskPopInfo
-                :data="data.storage_device"
-                trigger="click">
-                <BkButton
-                  text
-                  theme="primary">
-                  {{ data.bk_disk }}
-                </BkButton>
-              </DiskPopInfo>
-            </template>
-          </BkTableColumn>
+            field="device_class"
+            :label="t('机型')"
+            :min-width="120" />
         </DbTable>
       </div>
     </div>
@@ -169,7 +117,6 @@
   import { fetchList } from '@services/source/dbresourceResource';
   import type { HostInfo } from '@services/types';
 
-  import DiskPopInfo from '@components/disk-pop-info/DiskPopInfo.vue';
   import HostAgentStatus from '@components/host-agent-status/Index.vue';
   import ResourceHostOwner from '@components/resource-host-owner/Index.vue';
 
@@ -181,19 +128,18 @@
   interface Props {
     limit?: number;
     params?: {
+      bk_cloud_ids?: string;
       for_biz?: number;
       for_bizs?: number[];
+      hosts?: HostInfo[];
+      os_names?: string[];
+      os_type?: string;
       resource_type?: string;
       resource_types?: string[];
-      hosts?: HostInfo[];
-      bk_cloud_ids?: string;
-      os_type?: string;
     };
   }
 
-  interface Emits {
-    (e: 'change', value: DbResourceModel[]): void;
-  }
+  type Emits = (e: 'change', value: DbResourceModel[]) => void;
 
   const props = withDefaults(defineProps<Props>(), {
     limit: -1,
@@ -202,19 +148,17 @@
 
   const emits = defineEmits<Emits>();
 
+  const isShow = defineModel<boolean>('isShow', {
+    default: false,
+  });
+  const modelValue = defineModel<IValue[]>({
+    default: () => [],
+  });
   const dialogWidth = Math.max(window.innerWidth * 0.8, 800);
   const contentHeight = window.innerHeight * 0.8 - 100;
 
   const { t } = useI18n();
-  const { searchSelectData, value: searchSelectValue, formatSearchValue } = useSearchSelectData(props);
-  const isShow = defineModel<boolean>('isShow', {
-    default: false,
-  });
-
-  const modelValue = defineModel<IValue[]>({
-    default: () => [],
-  });
-
+  const { formatSearchValue, searchSelectData, value: searchSelectValue } = useSearchSelectData(props);
   const dbTableRef = useTemplateRef('table');
   const currentPanelTab = ref('host');
   const rowSelectMemo = shallowRef<Record<number, DbResourceModel>>({});

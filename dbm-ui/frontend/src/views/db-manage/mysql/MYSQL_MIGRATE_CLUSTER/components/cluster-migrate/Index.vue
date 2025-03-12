@@ -51,18 +51,16 @@
   import { useI18n } from 'vue-i18n';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
+  import type { Mysql } from '@services/model/ticket/ticket';
 
   import { DBTypes } from '@common/const';
 
   import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
 
-  import { MigrateTypes } from '../types';
-
-  import ClusterColumn from './ClusterColumn.vue';
+  import ClusterColumn from './components/ClusterColumn.vue';
 
   interface RowData {
     batchCluster: {
-      renderText: string;
       clusters: Record<
         string,
         {
@@ -70,6 +68,7 @@
           master_domain: string;
         }
       >;
+      renderText: string;
     };
     newMaster: {
       bk_biz_id: number;
@@ -86,38 +85,36 @@
   }
 
   interface Props {
-    data: RowData[];
+    ticketDetails?: Mysql.ResourcePool.MigrateCluster;
   }
 
   interface Exposes {
-    getValue: () => Promise<
+    getValue(): Promise<
       {
         cluster_ids: number[];
         resource_spec: {
           new_master: {
-            spec_id: 0;
             hosts: {
               bk_biz_id: number;
               bk_cloud_id: number;
               bk_host_id: number;
               ip: string;
             }[];
+            spec_id: 0;
           };
           new_slave: {
-            spec_id: 0;
             hosts: {
               bk_biz_id: number;
               bk_cloud_id: number;
               bk_host_id: number;
               ip: string;
             }[];
+            spec_id: 0;
           };
-        };
-        display_info: {
-          type: MigrateTypes;
         };
       }[]
     >;
+    reset(): void;
   }
 
   const props = defineProps<Props>();
@@ -129,8 +126,8 @@
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
     batchCluster: data.batchCluster || {
-      renderText: '',
       clusters: {},
+      renderText: '',
     },
     newMaster: data.newMaster || {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -156,12 +153,32 @@
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
   watch(
-    () => props.data,
+    () => props.ticketDetails,
     () => {
-      if (props.data.length) {
-        tableData.value = [...props.data];
-      } else {
-        tableData.value = [createTableRow()];
+      if (props.ticketDetails) {
+        const { clusters, infos } = props.ticketDetails;
+        if (infos.length > 0) {
+          tableData.value = infos.map((item) => {
+            const batchCluster = {
+              clusters: {},
+              renderText: '',
+            } as RowData['batchCluster'];
+            item.cluster_ids.forEach((clusterId) => {
+              batchCluster.renderText += batchCluster.renderText ? '\n' : '' + clusters[clusterId].immute_domain;
+              batchCluster.clusters = Object.assign(batchCluster.clusters, {
+                [clusters[clusterId].immute_domain]: {
+                  id: clusters[clusterId].id,
+                  master_domain: clusters[clusterId].immute_domain,
+                },
+              });
+            });
+            return createTableRow({
+              batchCluster,
+              newMaster: item.resource_spec.new_master.hosts[0],
+              newSlave: item.resource_spec.new_slave.hosts[0],
+            });
+          });
+        }
       }
     },
   );
@@ -172,13 +189,13 @@
         acc.push(
           createTableRow({
             batchCluster: {
-              renderText: item.master_domain,
               clusters: {
                 [item.master_domain]: {
                   id: item.id,
                   master_domain: item.master_domain,
                 },
               },
+              renderText: item.master_domain,
             },
           }),
         );
@@ -199,18 +216,18 @@
         cluster_ids: Object.values(batchCluster.clusters).map((item) => item.id),
         resource_spec: {
           new_master: {
-            spec_id: 0,
             hosts: [newMaster],
+            spec_id: 0,
           },
           new_slave: {
-            spec_id: 0,
             hosts: [newSlave],
+            spec_id: 0,
           },
         },
-        display_info: {
-          type: MigrateTypes.CLUSTER_MIGRATE,
-        },
       }));
+    },
+    reset() {
+      tableData.value = [createTableRow()];
     },
   });
 </script>

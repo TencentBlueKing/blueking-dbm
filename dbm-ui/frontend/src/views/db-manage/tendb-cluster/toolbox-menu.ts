@@ -81,7 +81,7 @@ export default [
         parentId: 'spider_cluster_maintain',
       },
       {
-        id: TicketTypes.TENDBCLUSTER_RESTORE_SLAVE,
+        id: TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE,
         name: t('重建从库'),
         parentId: 'spider_cluster_maintain',
       },

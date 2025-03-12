@@ -20,39 +20,29 @@
       <EditableTable
         ref="table"
         class="mb-20"
-        :model="formData.tableData">
+        :model="formData.tableData"
+        :rules="rules">
         <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
-          <SlaveInstanceColumn
+          <SlaveHostColumnGroup
             v-model="item.slave"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
-          <EditableColumn
-            :label="t('所属集群')"
-            :min-width="150">
-            <EditableBlock
-              v-model="item.slave.master_domain"
-              :placeholder="t('自动生成')" />
-          </EditableColumn>
+          <SingleResourceHostColumn
+            v-model="item.newSlave"
+            field="newSlave.ip"
+            :label="t('新从库主机')"
+            :params="{
+              for_bizs: [currentBizId, 0],
+              resource_types: [DBTypes.MYSQL, 'PUBLIC'],
+            }" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
         </EditableRow>
       </EditableTable>
-      <BkFormItem
-        :label="t('备份源')"
-        property="backupSource"
-        required>
-        <BkRadioGroup v-model="formData.backupSource">
-          <BkRadio :label="BackupSourceType.LOCAL">
-            {{ `${t('本地备份')}(master)` }}
-          </BkRadio>
-          <BkRadio :label="BackupSourceType.REMOTE">
-            {{ t('远程备份') }}
-          </BkRadio>
-        </BkRadioGroup>
-      </BkFormItem>
+      <BackupSource v-model="formData.backupSource" />
       <TicketPayload v-model="formData" />
     </BkForm>
     <template #action>
@@ -84,24 +74,32 @@
 
   import { useCreateTicket } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
+  import { DBTypes, TicketTypes } from '@common/const';
 
+  import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
+  import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
-  import SlaveInstanceColumn, { type SelectorHost } from './SlaveInstanceColumn.vue';
+  import SlaveHostColumnGroup, { type SelectorHost } from './SlaveHostColumnGroup.vue';
 
   interface RowData {
+    newSlave: {
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_host_id: number;
+      ip: string;
+    };
     slave: {
       bk_biz_id: number;
       bk_cloud_id: number;
       bk_host_id: number;
       ip: string;
-      port: number;
-      instance_address: string;
-      cluster_id: number;
-      master_domain: string;
+      related_clusters: {
+        id: number;
+        master_domain: string;
+      }[];
     };
   }
 
@@ -109,45 +107,93 @@
   const router = useRouter();
   const tableRef = useTemplateRef('table');
 
+  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
+
   const createTableRow = (data = {} as Partial<RowData>) => ({
+    newSlave: data.newSlave || {
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      bk_cloud_id: 0,
+      bk_host_id: 0,
+      ip: '',
+    },
     slave: data.slave || {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: 0,
       ip: '',
-      port: 0,
-      instance_address: '',
-      cluster_id: 0,
-      master_domain: '',
+      related_clusters: [],
     },
   });
 
   const defaultData = () => ({
-    tableData: [createTableRow()],
     backupSource: BackupSourceType.REMOTE,
+    tableData: [createTableRow()],
     ...createTickePayload(),
   });
 
   const formData = reactive(defaultData());
   const selected = computed(() => formData.tableData.filter((item) => item.slave.bk_host_id).map((item) => item.slave));
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.instance_address, true])));
+  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
+  const newSlaveCounter = computed(() => {
+    return formData.tableData.reduce(
+      (result, item) => {
+        Object.assign(result, {
+          [item.newSlave.ip]: (result[item.newSlave.ip] || 0) + 1,
+        });
+        return result;
+      },
+      {} as Record<string, number>,
+    );
+  });
 
-  const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
+  const rules = {
+    'newSlave.ip': [
+      {
+        message: t('IP 重复'),
+        trigger: 'change',
+        validator: (value: string, rowData: RowData) => {
+          return newSlaveCounter.value[rowData.newSlave.ip] <= 1;
+        },
+      },
+      {
+        message: t('IP 重复'),
+        trigger: 'blur',
+        validator: (value: string, rowData: RowData) => {
+          return newSlaveCounter.value[rowData.newSlave.ip] <= 1;
+        },
+      },
+    ],
+  };
+
+  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     backup_source: BackupSourceType;
     infos: {
-      cluster_id: number;
-      slave: {
-        bk_biz_id: number;
-        bk_host_id: number;
-        bk_cloud_id: number;
-        ip: string;
-        port: number;
+      cluster_ids: number[];
+      old_nodes: {
+        old_slave: {
+          bk_biz_id: number;
+          bk_cloud_id: number;
+          bk_host_id: number;
+          ip: string;
+        }[];
+      };
+      resource_spec: {
+        new_slave: {
+          hosts: {
+            bk_biz_id: number;
+            bk_cloud_id: number;
+            bk_host_id: number;
+            ip: string;
+          }[];
+          spec_id: number;
+        };
       };
     }[];
-  }>(TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE, {
+    ip_source: 'resource_pool';
+  }>(TicketTypes.MYSQL_RESTORE_SLAVE, {
     onSuccess(ticketId) {
       router.push({
-        name: TicketTypes.MYSQL_RESTORE_SLAVE, // 以新机重建单据为主路由
+        name: TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE,
         params: {
           page: 'success',
         },
@@ -165,15 +211,25 @@
         details: {
           backup_source: formData.backupSource,
           infos: formData.tableData.map((item) => ({
-            cluster_id: item.slave.cluster_id,
-            slave: {
-              bk_biz_id: item.slave.bk_biz_id,
-              bk_host_id: item.slave.bk_host_id,
-              bk_cloud_id: item.slave.bk_cloud_id,
-              ip: item.slave.ip,
-              port: item.slave.port,
+            cluster_ids: item.slave.related_clusters.map((item) => item.id),
+            old_nodes: {
+              old_slave: [
+                {
+                  bk_biz_id: item.slave.bk_biz_id,
+                  bk_cloud_id: item.slave.bk_cloud_id,
+                  bk_host_id: item.slave.bk_host_id,
+                  ip: item.slave.ip,
+                },
+              ],
+            },
+            resource_spec: {
+              new_slave: {
+                hosts: [item.newSlave],
+                spec_id: 0,
+              },
             },
           })),
+          ip_source: 'resource_pool',
         },
         remark: formData.remark,
       });
@@ -186,7 +242,7 @@
 
   const handleBatchEdit = (list: SelectorHost[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!selectedMap.value[item.instance_address]) {
+      if (!selectedMap.value[item.ip]) {
         acc.push(
           createTableRow({
             slave: {
@@ -194,10 +250,10 @@
               bk_cloud_id: item.bk_cloud_id,
               bk_host_id: item.bk_host_id,
               ip: item.ip,
-              port: item.port,
-              instance_address: item.instance_address,
-              cluster_id: item.cluster_id,
-              master_domain: item.master_domain,
+              related_clusters: item.related_clusters.map((item) => ({
+                id: item.id,
+                master_domain: item.immute_domain,
+              })),
             },
           }),
         );

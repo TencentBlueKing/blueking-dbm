@@ -60,16 +60,13 @@
     selectedMap: Record<string, boolean>;
   }
 
-  interface Emits {
-    (e: 'batch-edit', list: TendbhaModel[]): void;
-  }
+  type Emits = (e: 'batch-edit', list: TendbhaModel[]) => void;
 
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
-    renderText: string;
     clusters: Record<
       string,
       {
@@ -77,10 +74,11 @@
         master_domain: string;
       }
     >;
+    renderText: string;
   }>({
     default: () => ({
-      renderText: '',
       clusters: {},
+      renderText: '',
     }),
   });
 
@@ -94,11 +92,13 @@
 
   const rules = [
     {
-      validator: (value: string) => value.split(batchSplitRegex).every((item) => domainRegex.test(item)),
       message: t('集群域名格式不正确'),
       trigger: 'change',
+      validator: (value: string) => value.split(batchSplitRegex).every((item) => domainRegex.test(item)),
     },
     {
+      message: '',
+      trigger: 'blur',
       validator: (value: string) => {
         const repeats: string[] = [];
         const list = value.split(batchSplitRegex);
@@ -111,10 +111,10 @@
         });
         return repeats.length ? t('目标集群xx重复', [repeats.join(',')]) : true;
       },
-      message: '',
-      trigger: 'blur',
     },
     {
+      message: '',
+      trigger: 'blur',
       validator: (value: string) => {
         const notFounds: string[] = [];
         value.split(batchSplitRegex).forEach((item) => {
@@ -124,12 +124,10 @@
         });
         return notFounds.length ? t('目标集群xx不存在', [notFounds.join(',')]) : true;
       },
-      message: '',
-      trigger: 'blur',
     },
   ];
 
-  const { run: queryCluster, loading } = useRequest(filterClusters, {
+  const { loading, run: queryCluster } = useRequest(filterClusters, {
     manual: true,
     onSuccess: (data) => {
       if (data.length) {

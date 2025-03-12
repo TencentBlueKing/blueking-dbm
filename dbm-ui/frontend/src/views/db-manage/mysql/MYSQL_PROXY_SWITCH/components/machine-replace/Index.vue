@@ -15,28 +15,19 @@
   <EditableTable
     ref="table"
     class="mb-20"
-    :model="tableData">
+    :model="tableData"
+    :rules="rules">
     <EditableRow
       v-for="(item, index) in tableData"
       :key="index">
       <HostColumnGroup
-        v-model="item.master"
+        v-model="item.originProxy"
         :selected="selected"
         @batch-edit="handleBatchEdit" />
       <SingleResourceHostColumn
-        v-model="item.newMaster"
-        field="newMaster.ip"
-        :label="t('新Master主机')"
-        :min-width="150"
-        :params="{
-          for_bizs: [currentBizId, 0],
-          resource_types: [DBTypes.MYSQL, 'PUBLIC'],
-        }" />
-      <SingleResourceHostColumn
-        v-model="item.newSlave"
-        field="newSlave.ip"
-        :label="t('新Slave主机')"
-        :min-width="150"
+        v-model="item.targetProxy"
+        field="targetProxy.ip"
+        :label="t('新Proxy主机')"
         :params="{
           for_bizs: [currentBizId, 0],
           resource_types: [DBTypes.MYSQL, 'PUBLIC'],
@@ -51,31 +42,25 @@
   import { useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import type { Mysql } from '@services/model/ticket/ticket';
+
   import { DBTypes } from '@common/const';
 
   import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
 
-  import { MigrateTypes } from '../types';
-
-  import HostColumnGroup, { type SelectorItem } from './HostColumnGroup.vue';
+  import HostColumnGroup, { type SelectorItem } from './components/HostColumnGroup.vue';
 
   interface RowData {
-    master: {
+    originProxy: {
       bk_cloud_id: number;
       bk_host_id: number;
+      cluster_ids: number[];
       ip: string;
       port: number;
-      cluster_ids: number[];
-      related_instances: string[];
       related_clusters: string[];
+      related_instances: string[];
     };
-    newMaster: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      ip: string;
-    };
-    newSlave: {
+    targetProxy: {
       bk_biz_id: number;
       bk_cloud_id: number;
       bk_host_id: number;
@@ -84,38 +69,36 @@
   }
 
   interface Props {
-    data: RowData[];
+    ticketDetails?: Mysql.ResourcePool.ProxySwitch;
   }
 
   interface Exposes {
     getValue: () => Promise<
       {
         cluster_ids: number[];
-        resource_spec: {
-          new_master: {
-            spec_id: 0;
-            hosts: {
-              bk_biz_id: number;
-              bk_cloud_id: number;
-              bk_host_id: number;
-              ip: string;
-            }[];
-          };
-          new_slave: {
-            spec_id: 0;
-            hosts: {
-              bk_biz_id: number;
-              bk_cloud_id: number;
-              bk_host_id: number;
-              ip: string;
-            }[];
-          };
+        old_nodes: {
+          origin_proxy: {
+            bk_biz_id: number;
+            bk_cloud_id: number;
+            bk_host_id: number;
+            instance_address?: string;
+            ip: string;
+            port?: number;
+          }[];
         };
-        display_info: {
-          type: MigrateTypes;
+        resource_spec: {
+          target_proxy: {
+            hosts: {
+              bk_biz_id: number;
+              bk_cloud_id: number;
+              bk_host_id: number;
+              ip: string;
+            }[];
+          };
         };
       }[]
     >;
+    reset(): void;
   }
 
   const props = defineProps<Props>();
@@ -126,22 +109,16 @@
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
-    master: data.master || {
+    originProxy: data.originProxy || {
       bk_cloud_id: 0,
       bk_host_id: 0,
+      cluster_ids: [],
       ip: '',
       port: 0,
-      cluster_ids: [],
-      related_instances: [],
       related_clusters: [],
+      related_instances: [],
     },
-    newMaster: data.newMaster || {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      ip: '',
-    },
-    newSlave: data.newSlave || {
+    targetProxy: data.targetProxy || {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: 0,
@@ -151,16 +128,64 @@
 
   const tableData = ref<RowData[]>([createTableRow()]);
 
-  const selected = computed(() => tableData.value.filter((item) => item.master.bk_host_id).map((item) => item.master));
+  const selected = computed(() =>
+    tableData.value
+      .filter((item) => item.originProxy.bk_host_id)
+      .map((item) => ({
+        ip: item.originProxy.ip,
+      })),
+  );
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
+  const targetProxyCounter = computed(() => {
+    return tableData.value.reduce(
+      (result, item) => {
+        Object.assign(result, {
+          [item.targetProxy.ip]: (result[item.targetProxy.ip] || 0) + 1,
+        });
+        return result;
+      },
+      {} as Record<string, number>,
+    );
+  });
+
+  const rules = {
+    'targetProxy.ip': [
+      {
+        message: t('IP 重复'),
+        trigger: 'blur',
+        validator: (value: string, rowData: RowData) => {
+          return targetProxyCounter.value[rowData.targetProxy.ip] <= 1;
+        },
+      },
+      {
+        message: t('IP 重复'),
+        trigger: 'change',
+        validator: (value: string, rowData: RowData) => {
+          return targetProxyCounter.value[rowData.targetProxy.ip] <= 1;
+        },
+      },
+    ],
+  };
 
   watch(
-    () => props.data,
+    () => props.ticketDetails,
     () => {
-      if (props.data.length) {
-        tableData.value = [...props.data];
-      } else {
-        tableData.value = [createTableRow()];
+      if (props.ticketDetails) {
+        const { infos } = props.ticketDetails;
+        if (infos.length > 0) {
+          tableData.value = infos.map((item) => {
+            const originProxy = item.old_nodes.origin_proxy[0];
+            return createTableRow({
+              originProxy: {
+                ...originProxy,
+                cluster_ids: [],
+                related_clusters: [],
+                related_instances: [],
+              },
+              targetProxy: item.resource_spec.target_proxy.hosts[0],
+            });
+          });
+        }
       }
     },
   );
@@ -181,14 +206,14 @@
         });
         acc.push(
           createTableRow({
-            master: {
+            originProxy: {
               bk_cloud_id: item.bk_cloud_id,
               bk_host_id: item.bk_host_id,
+              cluster_ids: clusterIds,
               ip: item.ip,
               port: adminPort,
-              cluster_ids: clusterIds,
-              related_instances: relatedInstances,
               related_clusters: relatedClusters,
+              related_instances: relatedInstances,
             },
           }),
         );
@@ -205,22 +230,35 @@
         return [];
       }
 
-      return tableData.value.map(({ master, newMaster, newSlave }) => ({
-        cluster_ids: master.cluster_ids,
-        resource_spec: {
-          new_master: {
-            spec_id: 0,
-            hosts: [newMaster],
-          },
-          new_slave: {
-            spec_id: 0,
-            hosts: [newSlave],
-          },
+      return tableData.value.map(({ originProxy, targetProxy }) => ({
+        cluster_ids: originProxy.cluster_ids,
+        old_nodes: {
+          origin_proxy: [
+            {
+              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+              bk_cloud_id: originProxy.bk_cloud_id,
+              bk_host_id: originProxy.bk_host_id,
+              ip: originProxy.ip,
+              port: originProxy.port,
+            },
+          ],
         },
-        display_info: {
-          type: MigrateTypes.HOST_MIGRATE,
+        resource_spec: {
+          target_proxy: {
+            hosts: [
+              {
+                bk_biz_id: targetProxy.bk_biz_id,
+                bk_cloud_id: targetProxy.bk_cloud_id,
+                bk_host_id: targetProxy.bk_host_id,
+                ip: targetProxy.ip,
+              },
+            ],
+          },
         },
       }));
+    },
+    reset() {
+      tableData.value = [createTableRow()];
     },
   });
 </script>

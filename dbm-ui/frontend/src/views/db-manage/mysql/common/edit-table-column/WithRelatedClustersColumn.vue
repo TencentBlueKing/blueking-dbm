@@ -30,11 +30,9 @@
       </span>
     </template>
     <div
-      :class="[
-        {
-          'has-related-clusters': modelValue.related_clusters.length > 0,
-        },
-      ]"
+      :class="{
+        'has-related-clusters': modelValue.related_clusters.length > 0,
+      }"
       style="flex: 1">
       <EditableInput
         v-model="modelValue.master_domain"

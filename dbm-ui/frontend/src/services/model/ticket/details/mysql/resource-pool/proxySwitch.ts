@@ -1,3 +1,5 @@
+import type { OperaObejctType } from '@services/types';
+
 import type { ResourcePoolDetailBase } from '../../common';
 
 /**
@@ -8,11 +10,6 @@ export interface ProxySwitch extends ResourcePoolDetailBase {
   force: boolean;
   infos: {
     cluster_ids: number[];
-    display_info: {
-      related_clusters: string[];
-      related_instances: string[];
-      type: 'INSTANCE_REPLACE' | 'HOST_REPLACE';
-    };
     old_nodes: {
       origin_proxy: {
         bk_biz_id: number;
@@ -34,4 +31,5 @@ export interface ProxySwitch extends ResourcePoolDetailBase {
       };
     };
   }[];
+  opera_object: OperaObejctType.INSTANCE | OperaObejctType.MACHINE;
 }
