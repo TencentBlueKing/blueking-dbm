@@ -347,9 +347,9 @@ func (c *ImportSchemaFromBackendComp) migrateUseMysqlDump() (err error) {
 			return err
 		}
 		wg.Add(1)
-		ctrChan <- struct{}{}
 		dumpfile := dumpfileInfo[buildBackendDb(db)]
 		go func(conn *sql.Conn, db string, dumpfile string) {
+			ctrChan <- struct{}{}
 			defer func() { wg.Done(); <-ctrChan }()
 			_, err = conn.ExecContext(context.Background(), fmt.Sprintf("set tc_admin=0;"))
 			if err != nil {
