@@ -83,7 +83,10 @@
   import { reactive, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { useCreateTicket } from '@hooks';
+  import type { Mysql } from '@services/model/ticket/ticket';
+  import { findRelatedClustersByClusterIds } from '@services/source/mysqlCluster';
+
+  import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { TicketTypes } from '@common/const';
 
@@ -148,7 +151,35 @@
   );
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
 
-  const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
+  useTicketDetail<Mysql.MasterFailOver>(TicketTypes.MYSQL_MASTER_FAIL_OVER, {
+    async onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+      const { clusters, infos } = details;
+      const resultList = await Promise.all(
+        infos.map((item) =>
+          findRelatedClustersByClusterIds({
+            bk_biz_id: clusters[item.cluster_ids[0]].bk_biz_id,
+            cluster_ids: item.cluster_ids,
+          }),
+        ),
+      );
+      Object.assign(formData, {
+        ...createCheckPayload(details),
+        ...createTickePayload(ticketDetail),
+        tableData: infos.map((item, index) =>
+          createTableRow({
+            master: {
+              ...item.master_ip,
+              related_clusters: [resultList[index][0].cluster_info, ...resultList[index][0].related_clusters],
+            },
+            slave: item.slave_ip,
+          }),
+        ),
+      });
+    },
+  });
+
+  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     infos: {
       cluster_ids: number[];
       master_ip: {

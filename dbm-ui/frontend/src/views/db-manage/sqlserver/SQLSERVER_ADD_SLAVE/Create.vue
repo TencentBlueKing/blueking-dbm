@@ -39,6 +39,7 @@
             :params="{
               for_bizs: [currentBizId, 0],
               resource_types: [DBTypes.SQLSERVER, 'PUBLIC'],
+              os_names: item.cluster.system_version.split(','),
             }" />
           <OperationColumn
             v-model:table-data="formData.tableData"
@@ -90,8 +91,10 @@
 
   interface RowData {
     cluster: {
+      db_module_id: number;
       id: number;
       master_domain: string;
+      system_version: string;
     };
     slave: {
       bk_biz_id: number;
@@ -108,8 +111,10 @@
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
     cluster: data.cluster || {
+      db_module_id: 0,
       id: 0,
       master_domain: '',
+      system_version: '',
     },
     slave: data.slave || {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -120,22 +125,23 @@
   });
 
   const defaultData = () => ({
-    tableData: [createTableRow()],
     backupSource: BackupSourceType.REMOTE,
+    tableData: [createTableRow()],
     ...createTickePayload(),
   });
 
   const formData = reactive(defaultData());
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
+  const selectedMap = computed(() =>
+    Object.fromEntries(formData.tableData.map((cur) => [cur.cluster.master_domain, true])),
+  );
 
-  const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
+  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     backup_source: BackupSourceType;
     infos: {
       cluster_ids: number[];
       resource_spec: {
         new_slave: {
-          spec_id: number;
           count: number;
           hosts: {
             bk_biz_id: number;
@@ -143,6 +149,7 @@
             bk_host_id: number;
             ip: string;
           }[];
+          spec_id: number;
         };
       };
     }[];
@@ -160,9 +167,9 @@
           cluster_ids: [item.cluster.id],
           resource_spec: {
             new_slave: {
-              spec_id: 0,
               count: 1,
               hosts: [item.slave],
+              spec_id: 0,
             },
           },
         })),
@@ -181,14 +188,16 @@
         acc.push(
           createTableRow({
             cluster: {
+              db_module_id: item.db_module_id,
               id: item.id,
               master_domain: item.master_domain,
+              system_version: '',
             },
           }),
         );
       }
       return acc;
     }, []);
-    formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
   };
 </script>

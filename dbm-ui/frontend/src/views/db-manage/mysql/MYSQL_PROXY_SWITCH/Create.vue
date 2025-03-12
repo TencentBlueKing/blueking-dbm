@@ -18,23 +18,21 @@
       closable
       :title="t('对集群的Proxy实例进行替换')" />
     <div>
-      <strong class="proxy-switch-types-title">
-        {{ t('替换类型') }}
-      </strong>
+      <div class="title-spot mt-12 mb-10">{{ t('替换类型') }}<span class="required" /></div>
       <div class="mt-8 mb-20">
         <CardCheckbox
-          v-model="replaceType"
+          v-model="operaObjectType"
           :desc="t('只替换目标实例')"
           icon="rebuild"
           :title="t('实例替换')"
-          true-value="INSTANCE_REPLACE" />
+          :true-value="OperaObejctType.INSTANCE" />
         <CardCheckbox
-          v-model="replaceType"
+          v-model="operaObjectType"
           class="ml-8"
           :desc="t('主机关联的所有实例一并替换')"
           icon="host"
           :title="t('整机替换')"
-          true-value="HOST_REPLACE" />
+          :true-value="OperaObejctType.MACHINE" />
       </div>
     </div>
     <BkForm
@@ -42,9 +40,10 @@
       form-type="vertical"
       :model="formData">
       <Component
-        :is="tableComponentMap[replaceType]"
+        :is="comMap[operaObjectType]"
+        :key="operaObjectType"
         ref="table"
-        :data="formData.tableData" />
+        :ticket-details="ticketDetails" />
       <IgnoreBiz
         v-model="formData.force"
         v-bk-tooltips="t('如忽略_在有连接的情况下Proxy也会执行替换')" />
@@ -75,7 +74,10 @@
   import { reactive, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { useCreateTicket } from '@hooks';
+  import type { Mysql } from '@services/model/ticket/ticket';
+  import { OperaObejctType } from '@services/types';
+
+  import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { TicketTypes } from '@common/const';
 
@@ -86,8 +88,8 @@
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
-  import HOST_REPLACE from './components/HOST_REPLACE/Index.vue';
-  import INSTANCE_REPLACE from './components/INSTANCE_REPLACE/Index.vue';
+  import InstanceReplace from './components/instance-replace/Index.vue';
+  import MachineReplace from './components/machine-replace/Index.vue';
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
@@ -98,22 +100,34 @@
     ...createTickePayload(),
   });
 
-  const tableComponentMap = {
-    HOST_REPLACE,
-    INSTANCE_REPLACE,
+  const comMap = {
+    [OperaObejctType.INSTANCE]: InstanceReplace,
+    [OperaObejctType.MACHINE]: MachineReplace,
   };
 
-  const replaceType = ref<'INSTANCE_REPLACE' | 'HOST_REPLACE'>('INSTANCE_REPLACE');
+  const operaObjectType = ref<keyof typeof comMap>(OperaObejctType.INSTANCE);
   const formData = reactive(defaultData());
+  const ticketDetails = ref<Mysql.ResourcePool.ProxySwitch>();
+
+  useTicketDetail<Mysql.ResourcePool.ProxySwitch>(TicketTypes.MYSQL_PROXY_SWITCH, {
+    onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+      const { force, opera_object: operaObject } = details;
+      Object.assign(formData, {
+        force,
+        ...createTickePayload(ticketDetail),
+      });
+      operaObjectType.value = operaObject;
+      nextTick(() => {
+        ticketDetails.value = details;
+      });
+    },
+  });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     force: boolean;
     infos: {
       cluster_ids: number[];
-      display_info: {
-        related_clusters: string[];
-        type: typeof replaceType.value;
-      };
       old_nodes: {
         origin_proxy: {
           bk_biz_id: number;
@@ -136,6 +150,7 @@
       };
     }[];
     ip_source: 'resource_pool';
+    opera_object: OperaObejctType;
   }>(TicketTypes.MYSQL_PROXY_SWITCH);
 
   const handleSubmit = async () => {
@@ -146,6 +161,7 @@
           force: formData.force,
           infos,
           ip_source: 'resource_pool',
+          opera_object: operaObjectType.value,
         },
         remark: formData.remark,
       });
@@ -154,26 +170,6 @@
 
   const handleReset = () => {
     Object.assign(formData, defaultData());
+    tableRef.value!.reset();
   };
 </script>
-
-<style lang="less" scoped>
-  .proxy-switch-types-title {
-    position: relative;
-    font-size: @font-size-mini;
-    color: @title-color;
-
-    &::after {
-      position: absolute;
-      top: 2px;
-      right: -8px;
-      color: @danger-color;
-      content: '*';
-    }
-  }
-
-  .safe-action-text {
-    padding-bottom: 2px;
-    border-bottom: 1px dashed #979ba5;
-  }
-</style>

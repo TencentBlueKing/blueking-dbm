@@ -20,23 +20,21 @@
         t('迁移主从：集群主从实例将成对迁移至新机器。默认迁移同机所有关联集群，也可迁移部分集群，迁移会下架旧实例')
       " />
     <div>
-      <strong class="mirgate-types-title">
-        {{ t('迁移类型') }}
-      </strong>
+      <div class="title-spot mt-12 mb-10">{{ t('迁移类型') }}<span class="required" /></div>
       <div class="mt-8 mb-20">
         <CardCheckbox
-          v-model="migrateType"
+          v-model="operaObjectType"
           :desc="t('只迁移目标集群')"
           icon="rebuild"
           :title="t('集群迁移')"
-          :true-value="MigrateTypes.CLUSTER_MIGRATE" />
+          :true-value="OperaObejctType.CLUSTER" />
         <CardCheckbox
-          v-model="migrateType"
+          v-model="operaObjectType"
           class="ml-8"
           :desc="t('主机关联的所有集群一并迁移')"
           icon="host"
           :title="t('整机迁移')"
-          :true-value="MigrateTypes.HOST_MIGRATE" />
+          :true-value="OperaObejctType.MACHINE" />
       </div>
     </div>
     <BkForm
@@ -44,9 +42,10 @@
       form-type="vertical"
       :model="formData">
       <Component
-        :is="tableComponentMap[migrateType]"
+        :is="comMap[operaObjectType]"
+        :key="operaObjectType"
         ref="table"
-        :data="formData.tableData" />
+        :ticket-details="ticketDetails" />
       <BackupSource v-model="formData.backupSource" />
       <TicketPayload v-model="formData" />
     </BkForm>
@@ -75,9 +74,10 @@
   import { reactive } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { BackupSourceType } from '@services/types';
+  import type { Mysql } from '@services/model/ticket/ticket';
+  import { BackupSourceType, OperaObejctType } from '@services/types';
 
-  import { useCreateTicket } from '@hooks';
+  import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { TicketTypes } from '@common/const';
 
@@ -88,35 +88,45 @@
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
-  import ClusterMigrateTable from './components/ClusterMigrateTable.vue';
-  import HostMigrateTable from './components/HostMigrateTable.vue';
-  import { MigrateTypes } from './types';
+  import ClusterMigrate from './components/cluster-migrate/Index.vue';
+  import MachineMigrate from './components/machine-migrate/Index.vue';
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
 
-  const tableComponentMap = {
-    [MigrateTypes.CLUSTER_MIGRATE]: ClusterMigrateTable,
-    [MigrateTypes.HOST_MIGRATE]: HostMigrateTable,
+  const comMap = {
+    [OperaObejctType.CLUSTER]: ClusterMigrate,
+    [OperaObejctType.MACHINE]: MachineMigrate,
   };
-
-  const migrateType = ref(MigrateTypes.CLUSTER_MIGRATE);
 
   const defaultData = () => ({
     backupSource: BackupSourceType.REMOTE,
-    tableData: [],
     ...createTickePayload(),
   });
 
   const formData = reactive(defaultData());
+  const operaObjectType = ref<keyof typeof comMap>(OperaObejctType.CLUSTER);
+  const ticketDetails = ref<Mysql.ResourcePool.MigrateCluster>();
+
+  useTicketDetail<Mysql.ResourcePool.MigrateCluster>(TicketTypes.MYSQL_MIGRATE_CLUSTER, {
+    onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+      const { backup_source: backupSource, opera_object: operaObject } = details;
+      Object.assign(formData, {
+        backupSource,
+        ...createTickePayload(ticketDetail),
+      });
+      operaObjectType.value = operaObject;
+      nextTick(() => {
+        ticketDetails.value = details;
+      });
+    },
+  });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     backup_source: string;
     infos: {
       cluster_ids: number[];
-      display_info: {
-        type: MigrateTypes;
-      };
       resource_spec: {
         new_master: {
           hosts: {
@@ -139,6 +149,7 @@
       };
     }[];
     ip_source: 'resource_pool';
+    opera_object: OperaObejctType;
   }>(TicketTypes.MYSQL_MIGRATE_CLUSTER);
 
   const handleSubmit = async () => {
@@ -149,6 +160,7 @@
           backup_source: formData.backupSource,
           infos,
           ip_source: 'resource_pool',
+          opera_object: operaObjectType.value,
         },
         remark: formData.remark,
       });
@@ -157,21 +169,6 @@
 
   const handleReset = () => {
     Object.assign(formData, defaultData());
+    tableRef.value!.reset();
   };
 </script>
-
-<style lang="less" scoped>
-  .mirgate-types-title {
-    position: relative;
-    font-size: @font-size-mini;
-    color: @title-color;
-
-    &::after {
-      position: absolute;
-      top: 2px;
-      right: -8px;
-      color: @danger-color;
-      content: '*';
-    }
-  }
-</style>

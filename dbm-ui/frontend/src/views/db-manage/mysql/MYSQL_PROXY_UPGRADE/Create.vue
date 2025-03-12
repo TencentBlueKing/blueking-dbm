@@ -68,12 +68,19 @@
       </BkFormItem>
       <Component
         :is="renderCom"
-        :data="formData.tableData" />
+        :key="`${formData.roleType}-${formData.updateType}`"
+        :ticket-details="ticketDetails" />
     </BkForm>
   </div>
 </template>
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
+
+  import type { Mysql } from '@services/model/ticket/ticket';
+
+  import { useTicketDetail } from '@hooks';
+
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
 
@@ -88,6 +95,44 @@
     roleType: 'haAccessLayer',
     tableData: [],
     updateType: 'local',
+  });
+  const ticketDetails = ref<Mysql.ProxyUpgrade | Mysql.LocalUpgrade | Mysql.MigrateUpgrade>();
+
+  useTicketDetail<Mysql.ProxyUpgrade>(TicketTypes.MYSQL_PROXY_UPGRADE, {
+    onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+      formData.roleType = 'haAccessLayer';
+      window.changeConfirm = true;
+      nextTick(() => {
+        ticketDetails.value = details;
+      });
+    },
+  });
+
+  useTicketDetail<Mysql.LocalUpgrade>(TicketTypes.MYSQL_LOCAL_UPGRADE, {
+    onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+      const { clusters, infos } = details;
+      const isSingle = clusters[infos[0].cluster_ids[0]].cluster_type === (ClusterTypes.TENDBSINGLE as string);
+      formData.roleType = isSingle ? 'singleStorageLayer' : 'haStorageLayer';
+      formData.updateType = 'local';
+      window.changeConfirm = true;
+      nextTick(() => {
+        ticketDetails.value = details;
+      });
+    },
+  });
+
+  useTicketDetail<Mysql.MigrateUpgrade>(TicketTypes.MYSQL_MIGRATE_UPGRADE, {
+    onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+      formData.roleType = 'haStorageLayer';
+      formData.updateType = 'remote';
+      window.changeConfirm = true;
+      nextTick(() => {
+        ticketDetails.value = details;
+      });
+    },
   });
 
   const renderCom = computed(() => {

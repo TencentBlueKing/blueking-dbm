@@ -75,9 +75,10 @@
   import { useI18n } from 'vue-i18n';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
+  import type { Mysql } from '@services/model/ticket/ticket';
   import { BackupSourceType } from '@services/types';
 
-  import { useCreateTicket } from '@hooks';
+  import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { DBTypes, TicketTypes } from '@common/const';
 
@@ -162,6 +163,28 @@
       },
     ],
   };
+
+  useTicketDetail<Mysql.ResourcePool.AddSlave>(TicketTypes.MYSQL_ADD_SLAVE, {
+    onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+      const { backup_source: backupSource, clusters, infos } = details;
+      Object.assign(formData, {
+        backupSource,
+        ...createTickePayload(ticketDetail),
+        tableData: infos.map((item) => {
+          const clusterInfo = clusters[item.cluster_ids[0]];
+          return createTableRow({
+            cluster: {
+              id: clusterInfo.id,
+              master_domain: clusterInfo.immute_domain,
+              related_clusters: [],
+            },
+            slave: item.resource_spec.new_slave.hosts[0],
+          });
+        }),
+      });
+    },
+  });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     backup_source: BackupSourceType;

@@ -63,9 +63,7 @@
     }[];
   }
 
-  interface Emits {
-    (e: 'batch-edit', list: IValue[]): void;
-  }
+  type Emits = (e: 'batch-edit', list: IValue[]) => void;
 
   const props = defineProps<Props>();
 
@@ -99,8 +97,8 @@
         name: t('故障主库主机'),
         tableConfig: {
           firsrColumn: {
-            label: t('Master 主机'),
             field: 'ip',
+            label: t('Master 主机'),
             role: 'backend_master',
           },
         },
@@ -110,8 +108,8 @@
         name: t('手动输入'),
         tableConfig: {
           firsrColumn: {
-            label: t('Master 主机'),
             field: 'ip',
+            label: t('Master 主机'),
             role: 'backend_master',
           },
         },
@@ -131,23 +129,23 @@
 
   const rules = [
     {
-      validator: (value: string) => ipv4.test(value),
       message: t('IP 格式不符合IPv4标准'),
       trigger: 'change',
+      validator: (value: string) => ipv4.test(value),
     },
     {
-      validator: (value: string) => props.selected.filter((item) => item.ip === value).length < 2,
       message: t('目标主机重复'),
       trigger: 'blur',
+      validator: (value: string) => props.selected.filter((item) => item.ip === value).length < 2,
     },
     {
-      validator: () => Boolean(modelValue.value.bk_host_id),
       message: t('目标主机不存在'),
       trigger: 'blur',
+      validator: () => Boolean(modelValue.value.bk_host_id),
     },
   ];
 
-  const { run: queryHost, loading } = useRequest(checkInstance, {
+  const { loading, run: queryHost } = useRequest(checkInstance, {
     manual: true,
     onSuccess: (data) => {
       if (data.length) {

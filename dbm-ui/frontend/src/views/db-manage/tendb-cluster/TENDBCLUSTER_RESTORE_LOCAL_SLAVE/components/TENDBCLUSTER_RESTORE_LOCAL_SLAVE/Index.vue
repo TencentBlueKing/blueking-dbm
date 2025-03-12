@@ -86,16 +86,15 @@
       bk_biz_id: number;
       bk_cloud_id: number;
       bk_host_id: number;
-      ip: string;
-      port: number;
-      instance_address: string;
       cluster_id: number;
+      instance_address: string;
+      ip: string;
       master_domain: string;
+      port: number;
     };
   }
 
   const { t } = useI18n();
-  const router = useRouter();
   const tableRef = useTemplateRef('table');
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
@@ -103,17 +102,17 @@
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: 0,
-      ip: '',
-      port: 0,
-      instance_address: '',
       cluster_id: 0,
+      instance_address: '',
+      ip: '',
       master_domain: '',
+      port: 0,
     },
   });
 
   const defaultData = () => ({
-    tableData: [createTableRow()],
     backupSource: BackupSourceType.REMOTE,
+    tableData: [createTableRow()],
     ...createTickePayload(),
   });
 
@@ -121,31 +120,19 @@
   const selected = computed(() => formData.tableData.filter((item) => item.slave.bk_host_id).map((item) => item.slave));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.instance_address, true])));
 
-  const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
+  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     backup_source: BackupSourceType;
     infos: {
       cluster_id: number;
       slave: {
         bk_biz_id: number;
-        bk_host_id: number;
         bk_cloud_id: number;
+        bk_host_id: number;
         ip: string;
         port: number;
       };
     }[];
-  }>(TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE, {
-    onSuccess(ticketId) {
-      router.push({
-        name: TicketTypes.TENDBCLUSTER_RESTORE_SLAVE, // 以新机重建单据为主路由
-        params: {
-          page: 'success',
-        },
-        query: {
-          ticketId,
-        },
-      });
-    },
-  });
+  }>(TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE);
 
   const handleSubmit = async () => {
     const valid = await tableRef.value!.validate();
@@ -157,8 +144,8 @@
             cluster_id: item.slave.cluster_id,
             slave: {
               bk_biz_id: item.slave.bk_biz_id,
-              bk_host_id: item.slave.bk_host_id,
               bk_cloud_id: item.slave.bk_cloud_id,
+              bk_host_id: item.slave.bk_host_id,
               ip: item.slave.ip,
               port: item.slave.port,
             },
@@ -182,11 +169,11 @@
               bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
               bk_cloud_id: item.bk_cloud_id,
               bk_host_id: item.bk_host_id,
-              ip: item.ip,
-              port: item.port,
-              instance_address: item.instance_address,
               cluster_id: item.cluster_id,
+              instance_address: item.instance_address,
+              ip: item.ip,
               master_domain: item.master_domain,
+              port: item.port,
             },
           }),
         );

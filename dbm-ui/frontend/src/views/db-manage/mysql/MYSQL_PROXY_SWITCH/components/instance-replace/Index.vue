@@ -42,6 +42,8 @@
   import { useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import type { Mysql } from '@services/model/ticket/ticket';
+
   import { DBTypes } from '@common/const';
 
   import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
@@ -67,17 +69,13 @@
   }
 
   interface Props {
-    data: RowData[];
+    ticketDetails?: Mysql.ResourcePool.ProxySwitch;
   }
 
   interface Exposes {
     getValue: () => Promise<
       {
         cluster_ids: number[];
-        display_info: {
-          related_clusters: string[];
-          type: 'INSTANCE_REPLACE';
-        };
         old_nodes: {
           origin_proxy: {
             bk_biz_id: number;
@@ -100,6 +98,7 @@
         };
       }[]
     >;
+    reset(): void;
   }
 
   const props = defineProps<Props>();
@@ -172,12 +171,25 @@
   };
 
   watch(
-    () => props.data,
+    () => props.ticketDetails,
     () => {
-      if (props.data.length) {
-        tableData.value = [...props.data];
-      } else {
-        tableData.value = [createTableRow()];
+      if (props.ticketDetails) {
+        const { clusters, infos } = props.ticketDetails;
+        if (infos.length > 0) {
+          tableData.value = infos.map((item) => {
+            const originProxy = item.old_nodes.origin_proxy[0];
+            const clusterInfo = clusters[item.cluster_ids[0]];
+            return createTableRow({
+              originProxy: {
+                ...originProxy,
+                cluster_id: clusterInfo.id,
+                instance_address: `${originProxy.ip}:${originProxy.port}`,
+                master_domain: clusterInfo.immute_domain,
+              },
+              targetProxy: item.resource_spec.target_proxy.hosts[0],
+            });
+          });
+        }
       }
     },
   );
@@ -213,10 +225,6 @@
 
       return tableData.value.map(({ originProxy, targetProxy }) => ({
         cluster_ids: [originProxy.cluster_id],
-        display_info: {
-          related_clusters: [originProxy.master_domain],
-          type: 'INSTANCE_REPLACE',
-        },
         old_nodes: {
           origin_proxy: [
             {
@@ -242,6 +250,9 @@
           },
         },
       }));
+    },
+    reset() {
+      tableData.value = [createTableRow()];
     },
   });
 </script>

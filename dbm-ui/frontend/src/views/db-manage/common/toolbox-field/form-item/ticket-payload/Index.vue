@@ -9,14 +9,17 @@
   </BkFormItem>
 </template>
 <script lang="ts">
-  export const createTickePayload = () => ({
-    remark: '',
+  interface TicketItem {
+    remark: string;
+  }
+  export const createTickePayload = (data = {} as TicketItem) => ({
+    remark: data.remark || '',
   });
 </script>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  const modelValue = defineModel<ReturnType<typeof createTickePayload>>({
+  const modelValue = defineModel<TicketItem>({
     required: true,
   });
 

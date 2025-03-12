@@ -110,6 +110,7 @@
   }
 
   const { t } = useI18n();
+  const router = useRouter();
   const tableRef = useTemplateRef('table');
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
@@ -158,7 +159,19 @@
       };
     }[];
     ip_source: 'resource_pool';
-  }>(TicketTypes.TENDBCLUSTER_RESTORE_SLAVE);
+  }>(TicketTypes.TENDBCLUSTER_RESTORE_SLAVE, {
+    onSuccess(ticketId) {
+      router.push({
+        name: TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE,
+        params: {
+          page: 'success',
+        },
+        query: {
+          ticketId,
+        },
+      });
+    },
+  });
 
   const handleSubmit = async () => {
     const valid = await tableRef.value!.validate();

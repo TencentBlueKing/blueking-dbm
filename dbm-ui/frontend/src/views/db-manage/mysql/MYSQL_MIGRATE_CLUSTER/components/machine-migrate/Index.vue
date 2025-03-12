@@ -15,19 +15,28 @@
   <EditableTable
     ref="table"
     class="mb-20"
-    :model="tableData"
-    :rules="rules">
+    :model="tableData">
     <EditableRow
       v-for="(item, index) in tableData"
       :key="index">
       <HostColumnGroup
-        v-model="item.originProxy"
+        v-model="item.master"
         :selected="selected"
         @batch-edit="handleBatchEdit" />
       <SingleResourceHostColumn
-        v-model="item.targetProxy"
-        field="targetProxy.ip"
-        :label="t('新Proxy主机')"
+        v-model="item.newMaster"
+        field="newMaster.ip"
+        :label="t('新Master主机')"
+        :min-width="150"
+        :params="{
+          for_bizs: [currentBizId, 0],
+          resource_types: [DBTypes.MYSQL, 'PUBLIC'],
+        }" />
+      <SingleResourceHostColumn
+        v-model="item.newSlave"
+        field="newSlave.ip"
+        :label="t('新Slave主机')"
+        :min-width="150"
         :params="{
           for_bizs: [currentBizId, 0],
           resource_types: [DBTypes.MYSQL, 'PUBLIC'],
@@ -42,6 +51,8 @@
   import { useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import type { Mysql } from '@services/model/ticket/ticket';
+
   import { DBTypes } from '@common/const';
 
   import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
@@ -49,7 +60,8 @@
   import HostColumnGroup, { type SelectorItem } from './components/HostColumnGroup.vue';
 
   interface RowData {
-    originProxy: {
+    master: {
+      bk_biz_id: number;
       bk_cloud_id: number;
       bk_host_id: number;
       cluster_ids: number[];
@@ -58,7 +70,13 @@
       related_clusters: string[];
       related_instances: string[];
     };
-    targetProxy: {
+    newMaster: {
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_host_id: number;
+      ip: string;
+    };
+    newSlave: {
       bk_biz_id: number;
       bk_cloud_id: number;
       bk_host_id: number;
@@ -67,39 +85,36 @@
   }
 
   interface Props {
-    data: RowData[];
+    ticketDetails?: Mysql.ResourcePool.MigrateCluster;
   }
 
   interface Exposes {
-    getValue: () => Promise<
+    getValue(): Promise<
       {
         cluster_ids: number[];
-        display_info: {
-          related_clusters: string[];
-          type: 'HOST_REPLACE';
-        };
-        old_nodes: {
-          origin_proxy: {
-            bk_biz_id: number;
-            bk_cloud_id: number;
-            bk_host_id: number;
-            instance_address?: string;
-            ip: string;
-            port?: number;
-          }[];
-        };
         resource_spec: {
-          target_proxy: {
+          new_master: {
             hosts: {
               bk_biz_id: number;
               bk_cloud_id: number;
               bk_host_id: number;
               ip: string;
             }[];
+            spec_id: 0;
+          };
+          new_slave: {
+            hosts: {
+              bk_biz_id: number;
+              bk_cloud_id: number;
+              bk_host_id: number;
+              ip: string;
+            }[];
+            spec_id: 0;
           };
         };
       }[]
     >;
+    reset(): void;
   }
 
   const props = defineProps<Props>();
@@ -110,7 +125,8 @@
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
-    originProxy: data.originProxy || {
+    master: data.master || {
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: 0,
       cluster_ids: [],
@@ -119,7 +135,13 @@
       related_clusters: [],
       related_instances: [],
     },
-    targetProxy: data.targetProxy || {
+    newMaster: data.newMaster || {
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      bk_cloud_id: 0,
+      bk_host_id: 0,
+      ip: '',
+    },
+    newSlave: data.newSlave || {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: 0,
@@ -129,52 +151,30 @@
 
   const tableData = ref<RowData[]>([createTableRow()]);
 
-  const selected = computed(() =>
-    tableData.value
-      .filter((item) => item.originProxy.bk_host_id)
-      .map((item) => ({
-        ip: item.originProxy.ip,
-      })),
-  );
+  const selected = computed(() => tableData.value.filter((item) => item.master.bk_host_id).map((item) => item.master));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
-  const targetProxyCounter = computed(() => {
-    return tableData.value.reduce(
-      (result, item) => {
-        Object.assign(result, {
-          [item.targetProxy.ip]: (result[item.targetProxy.ip] || 0) + 1,
-        });
-        return result;
-      },
-      {} as Record<string, number>,
-    );
-  });
-
-  const rules = {
-    'targetProxy.ip': [
-      {
-        message: t('IP 重复'),
-        trigger: 'blur',
-        validator: (value: string, rowData: RowData) => {
-          return targetProxyCounter.value[rowData.targetProxy.ip] <= 1;
-        },
-      },
-      {
-        message: t('IP 重复'),
-        trigger: 'change',
-        validator: (value: string, rowData: RowData) => {
-          return targetProxyCounter.value[rowData.targetProxy.ip] <= 1;
-        },
-      },
-    ],
-  };
 
   watch(
-    () => props.data,
+    () => props.ticketDetails,
     () => {
-      if (props.data.length) {
-        tableData.value = [...props.data];
-      } else {
-        tableData.value = [createTableRow()];
+      if (props.ticketDetails) {
+        const { infos } = props.ticketDetails;
+        if (infos.length > 0) {
+          tableData.value = infos.map((item) => {
+            const oldMaster = item.old_nodes.old_master[0];
+            return createTableRow({
+              master: {
+                ...oldMaster,
+                cluster_ids: [],
+                port: 0,
+                related_clusters: [],
+                related_instances: [],
+              },
+              newMaster: item.resource_spec.new_master.hosts[0],
+              newSlave: item.resource_spec.new_slave.hosts[0],
+            });
+          });
+        }
       }
     },
   );
@@ -195,7 +195,8 @@
         });
         acc.push(
           createTableRow({
-            originProxy: {
+            master: {
+              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
               bk_cloud_id: item.bk_cloud_id,
               bk_host_id: item.bk_host_id,
               cluster_ids: clusterIds,
@@ -219,37 +220,22 @@
         return [];
       }
 
-      return tableData.value.map(({ originProxy, targetProxy }) => ({
-        cluster_ids: originProxy.cluster_ids,
-        display_info: {
-          related_clusters: originProxy.related_clusters,
-          related_instances: originProxy.related_instances,
-          type: 'HOST_REPLACE',
-        },
-        old_nodes: {
-          origin_proxy: [
-            {
-              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-              bk_cloud_id: originProxy.bk_cloud_id,
-              bk_host_id: originProxy.bk_host_id,
-              ip: originProxy.ip,
-              port: originProxy.port,
-            },
-          ],
-        },
+      return tableData.value.map(({ master, newMaster, newSlave }) => ({
+        cluster_ids: master.cluster_ids,
         resource_spec: {
-          target_proxy: {
-            hosts: [
-              {
-                bk_biz_id: targetProxy.bk_biz_id,
-                bk_cloud_id: targetProxy.bk_cloud_id,
-                bk_host_id: targetProxy.bk_host_id,
-                ip: targetProxy.ip,
-              },
-            ],
+          new_master: {
+            hosts: [newMaster],
+            spec_id: 0,
+          },
+          new_slave: {
+            hosts: [newSlave],
+            spec_id: 0,
           },
         },
       }));
+    },
+    reset() {
+      tableData.value = [createTableRow()];
     },
   });
 </script>

@@ -14,9 +14,9 @@
 <template>
   <EditableColumn
     :append-rules="rules"
-    field="slave.ip"
+    field="originProxy.ip"
     fixed="left"
-    :label="t('目标从库主机')"
+    :label="t('目标Proxy主机')"
     :loading="loading"
     :min-width="300"
     required>
@@ -34,14 +34,29 @@
       @change="handleInputChange" />
   </EditableColumn>
   <EditableColumn
+    :label="t('同机关联实例')"
+    :loading="loading"
+    :min-width="300">
+    <EditableBlock v-if="modelValue.related_instances.length">
+      <p
+        v-for="item in modelValue.related_instances"
+        :key="item">
+        {{ item }}
+      </p>
+    </EditableBlock>
+    <EditableBlock
+      v-else
+      :placeholder="t('自动生成')" />
+  </EditableColumn>
+  <EditableColumn
     :label="t('同机关联集群')"
     :loading="loading"
     :min-width="300">
     <EditableBlock v-if="modelValue.related_clusters.length">
       <p
         v-for="item in modelValue.related_clusters"
-        :key="item.id">
-        {{ item.master_domain }}
+        :key="item">
+        {{ item }}
       </p>
     </EditableBlock>
     <EditableBlock
@@ -70,7 +85,7 @@
     type PanelListType,
   } from '@components/instance-selector/Index.vue';
 
-  export type SelectorHost = IValue;
+  export type SelectorItem = IValue;
 
   interface Props {
     selected: {
@@ -78,30 +93,29 @@
     }[];
   }
 
-  interface Emits {
-    (e: 'batch-edit', list: IValue[]): void;
-  }
+  type Emits = (e: 'batch-edit', list: IValue[]) => void;
 
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
-    bk_biz_id: number;
     bk_cloud_id: number;
     bk_host_id?: number;
+    cluster_ids: number[];
     ip: string;
-    related_clusters: {
-      id: number;
-      master_domain: string;
-    }[];
+    port: number;
+    related_clusters: string[];
+    related_instances: string[];
   }>({
     default: () => ({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: undefined,
+      cluster_ids: [],
       ip: '',
+      port: 0,
       related_clusters: [],
+      related_instances: [],
     }),
   });
 
@@ -111,12 +125,12 @@
     TendbhaHost: [
       {
         id: 'TendbhaHost',
-        name: t('目标从库主机'),
+        name: t('目标Proxy主机'),
         tableConfig: {
           firsrColumn: {
-            label: t('Slave 主机'),
             field: 'ip',
-            role: 'backend_slave',
+            label: t('Proxy 主机'),
+            role: 'proxy',
           },
         },
       },
@@ -125,57 +139,62 @@
         name: t('手动输入'),
         tableConfig: {
           firsrColumn: {
-            label: t('Slave 主机'),
             field: 'ip',
-            role: 'backend_slave',
+            label: t('Proxy 主机'),
+            role: 'proxy',
           },
         },
       },
     ],
-  } as unknown as Record<ClusterTypes, PanelListType>;
-
-  const showSelector = ref(false);
-  const selectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
-    [ClusterTypes.TENDBHA]: props.selected.map(
-      (item) =>
-        ({
-          ip: item.ip,
-        }) as IValue,
-    ),
-  }));
+  } as Record<string, PanelListType>;
 
   const rules = [
     {
-      validator: (value: string) => ipv4.test(value),
       message: t('IP 格式不符合IPv4标准'),
       trigger: 'change',
+      validator: (value: string) => ipv4.test(value),
     },
     {
-      validator: (value: string) => props.selected.filter((item) => item.ip === value).length < 2,
       message: t('目标主机重复'),
       trigger: 'blur',
+      validator: (value: string) => props.selected.filter((item) => item.ip === value).length < 2,
     },
     {
-      validator: () => Boolean(modelValue.value.bk_host_id),
       message: t('目标主机不存在'),
       trigger: 'blur',
+      validator: () => Boolean(modelValue.value.bk_host_id),
     },
   ];
 
-  const { run: queryHost, loading } = useRequest(checkInstance, {
+  const showSelector = ref(false);
+  const selectedInstances = computed(
+    () =>
+      ({
+        [ClusterTypes.TENDBHA]: props.selected,
+      }) as unknown as InstanceSelectorValues<IValue>,
+  );
+
+  const { loading, run: queryInstance } = useRequest(checkInstance, {
     manual: true,
     onSuccess: (data) => {
       if (data.length) {
-        const [currentHost] = data;
+        const [hostInfo] = data;
+        const clusterIds: number[] = [];
+        const relatedInstances: string[] = [];
+        const relatedClusters: string[] = [];
+        data.forEach((item) => {
+          clusterIds.push(item.cluster_id);
+          relatedInstances.push(item.instance_address);
+          relatedClusters.push(item.master_domain);
+        });
         modelValue.value = {
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          bk_host_id: currentHost.bk_host_id,
-          bk_cloud_id: currentHost.bk_cloud_id,
-          ip: currentHost.ip,
-          related_clusters: currentHost.related_clusters.map((item) => ({
-            id: item.id,
-            master_domain: item.master_domain,
-          })),
+          bk_cloud_id: hostInfo.bk_cloud_id,
+          bk_host_id: hostInfo.bk_host_id,
+          cluster_ids: clusterIds,
+          ip: hostInfo.ip,
+          port: hostInfo.port,
+          related_clusters: relatedClusters,
+          related_instances: relatedInstances,
         };
       }
     },
@@ -187,14 +206,16 @@
 
   const handleInputChange = (value: string) => {
     modelValue.value = {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: undefined,
+      cluster_ids: [],
       ip: value,
+      port: 0,
       related_clusters: [],
+      related_instances: [],
     };
     if (value) {
-      queryHost({
+      queryInstance({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         instance_addresses: [value],
       });
@@ -204,7 +225,18 @@
   const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
     emits('batch-edit', selected.TendbhaHost);
   };
+
+  watch(
+    () => modelValue.value.ip,
+    () => {
+      handleInputChange(modelValue.value.ip);
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
+
 <style lang="less" scoped>
   .batch-host-select {
     font-size: 14px;

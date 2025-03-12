@@ -27,17 +27,17 @@
           :selected="selected"
           @batch-edit="handleBatchEdit" />
         <EditableColumn
-          field="cluster.current_version"
+          field="current_version"
           :label="t('当前版本')"
           :min-width="200"
           required>
           <EditableBlock
-            v-model="item.cluster.current_version"
+            v-model="item.current_version"
             :placeholder="t('自动生成')" />
         </EditableColumn>
         <TargetVersionColumn
           v-model="item.target_version"
-          :cluster="item.cluster" />
+          :row-data="item" />
         <OperationColumn
           v-model:table-data="formData.tableData"
           :create-row-method="createTableRow" />
@@ -88,7 +88,6 @@
 
   interface RowData {
     cluster: {
-      current_version: string;
       id: number;
       master_domain: string;
       related_clusters: {
@@ -96,6 +95,7 @@
         master_domain: string;
       }[];
     };
+    current_version: string;
     target_version: {
       pkg_id: number;
       target_package: string;
@@ -107,11 +107,11 @@
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
     cluster: data.cluster || {
-      current_version: '',
       id: 0,
       master_domain: '',
       related_clusters: [],
     },
+    current_version: data.current_version || '',
     target_version: data.target_version || {
       pkg_id: 0,
       target_package: '',
@@ -163,11 +163,11 @@
         acc.push(
           createTableRow({
             cluster: {
-              current_version: item.proxies[0]?.version || '',
               id: item.id,
               master_domain: item.master_domain,
               related_clusters: [],
             },
+            current_version: item.proxies[0]?.version,
           }),
         );
       }
@@ -197,7 +197,7 @@
           infos: formData.tableData.map((item) => ({
             cluster_ids: [item.cluster.id, ...item.cluster.related_clusters.map((item) => item.id)],
             display_info: {
-              current_version: item.cluster.current_version,
+              current_version: item.current_version,
               target_package: item.target_version.target_package,
             },
             pkg_id: item.target_version.pkg_id,
