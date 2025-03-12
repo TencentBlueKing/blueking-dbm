@@ -31,12 +31,13 @@ from backend.db_services.dbresource.mock import (
 )
 from backend.db_services.ipchooser.constants import BkOsTypeCode
 from backend.db_services.ipchooser.serializers.base import QueryHostsBaseSer
+from backend.ticket.builders.common.base import HostInfoSerializer
 from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.constants import TicketStatus
 
 
 class ResourceImportSerializer(serializers.Serializer):
-    class HostInfoSerializer(serializers.Serializer):
+    class ResourceHostSerializer(serializers.Serializer):
         ip = serializers.CharField()
         host_id = serializers.IntegerField()
         bk_cloud_id = serializers.IntegerField()
@@ -45,7 +46,7 @@ class ResourceImportSerializer(serializers.Serializer):
     for_biz = serializers.IntegerField(help_text=_("专属业务"))
     resource_type = serializers.CharField(help_text=_("专属DB"), allow_blank=True, allow_null=True)
     bk_biz_id = serializers.IntegerField(help_text=_("机器当前所属的业务id	"), default=env.DBA_APP_BK_BIZ_ID)
-    hosts = serializers.ListSerializer(help_text=_("主机"), child=HostInfoSerializer())
+    hosts = serializers.ListSerializer(help_text=_("资源主机"), child=ResourceHostSerializer())
     labels = serializers.ListField(help_text=_("标签"), child=serializers.CharField(), required=False)
     return_resource = serializers.BooleanField(help_text=_("是否为退回资源"), required=False)
 
@@ -199,8 +200,7 @@ class ResourceConfirmSerializer(serializers.Serializer):
 
 
 class ResourceDeleteSerializer(serializers.Serializer):
-    bk_biz_id = serializers.IntegerField(help_text=_("资源专用业务"), default=env.DBA_APP_BK_BIZ_ID, required=False)
-    bk_host_ids = serializers.ListField(help_text=_("主机ID列表"), child=serializers.IntegerField())
+    hosts = serializers.ListSerializer(help_text=_("主机列表"), child=HostInfoSerializer())
     event = serializers.ChoiceField(help_text=_("删除事件(移入故障池/撤销导入)"), choices=MachineEventType.get_choices())
     remark = serializers.CharField(help_text=_("备注"), required=False, default="")
 

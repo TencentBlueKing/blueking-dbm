@@ -242,44 +242,46 @@ class Ticket(AuditedModel):
         return ticket
 
     @classmethod
-    def create_recycle_ticket(cls, revoke_ticket_id: int, recycle_hosts: list, ticket_type: TicketType):
+    def create_recycle_ticket(cls, revoke_ticket_id: int, hosts: list, ticket_type: TicketType):
         """
         从一个终止单据派生产生另一个清理单据
         :param revoke_ticket_id: 终止单据ID
-        :param recycle_hosts: 回收机器列表
+        :param hosts: 回收机器列表
         :param ticket_type: 回收单据类型
         """
         from backend.db_meta.models import Machine
 
         # 校验元数据，主机存在元数据的情况跳过回收
-        host_ids = [host["bk_host_id"] for host in recycle_hosts]
+        host_ids = [host["bk_host_id"] for host in hosts]
         exist_hosts = Machine.objects.filter(bk_host_id__in=host_ids).values_list("bk_host_id", flat=True)
-        recycle_hosts = [host for host in recycle_hosts if host["bk_host_id"] not in exist_hosts]
+        hosts = [host for host in hosts if host["bk_host_id"] not in exist_hosts]
 
-        if not recycle_hosts:
+        if not hosts:
             return
 
         revoke_ticket = cls.objects.get(id=revoke_ticket_id)
 
-        # TODO: 如果是独立业务的下架，则直接转移到待回收
-        if BizSettings.get_exact_hosting_biz(revoke_ticket.bk_biz_id, revoke_ticket.group):
-            return
-
         fault_hosts: List = []
-        recovered_hosts: List = []
+        recycle_hosts: List = []
         resource_hosts: List = []
+        recycled_hosts: List = []
+
+        # 如果是独立业务的下架，则直接转移到待回收
+        if BizSettings.get_exact_hosting_biz(revoke_ticket.bk_biz_id, revoke_ticket.group) != env.DBA_APP_BK_BIZ_ID:
+            recycled_hosts.extend(hosts)
+            hosts = []
 
         # sqlserver机器直接转移到待回收
         if revoke_ticket.group == DBType.Sqlserver:
-            recovered_hosts.append(recycle_hosts)
-            recycle_hosts = []
+            recycle_hosts.extend(hosts)
+            hosts = []
 
         # 存在uwork的主机需要回到故障池，存在裁撤单的主机需要回到待回收池，否则退回资源池
-        for host in recycle_hosts:
+        for host in hosts:
             if HCMApi.check_host_has_uwork(host):
                 fault_hosts.append(host)
             elif HCMApi.check_host_is_dissolved(host):
-                recovered_hosts.append(host)
+                recycle_hosts.append(host)
             else:
                 resource_hosts.append(host)
 
@@ -291,10 +293,11 @@ class Ticket(AuditedModel):
             remark=_("单据{}结束后自动发起{}单据").format(revoke_ticket.id, TicketType.get_choice_label(ticket_type)),
             details={
                 "parent_ticket": revoke_ticket_id,
-                "fault_hosts": fault_hosts,
-                "recovered_hosts": recovered_hosts,
-                "resource_hosts": resource_hosts,
                 "group": revoke_ticket.group,
+                "fault_hosts": fault_hosts,
+                "recycle_hosts": recycle_hosts,
+                "resource_hosts": resource_hosts,
+                "recycled_hosts": recycled_hosts,
             },
         )
 

@@ -12,10 +12,11 @@ import collections
 import logging
 from typing import Dict, List
 
+from backend import env
 from backend.components import CCApi
 from backend.components.dbconfig.constants import DEPLOY_FILE_NAME, ConfType, LevelName
-from backend.configuration.constants import BizSettingsEnum
-from backend.configuration.models import BizSettings
+from backend.configuration.constants import SystemSettingsEnum
+from backend.configuration.models import SystemSettings
 from backend.db_meta.models import AppCache, DBModule
 from backend.db_services.cmdb.exceptions import BkAppAttrAlreadyExistException
 from backend.db_services.dbconfig.dataclass import DBBaseConfig, DBConfigLevelData
@@ -227,17 +228,16 @@ def get_or_create_set_with_name(bk_biz_id: int, bk_set_name: str) -> int:
             return bk_set_id
 
 
-def get_or_create_resource_module(bk_biz_id: int):
+def get_or_create_resource_module():
     """
-    获取/创建业务资源池模块
-    @param bk_biz_id: 业务ID
+    获取/创建资源池模块
     """
-    topo = BizSettings.get_setting_value(bk_biz_id, key=BizSettingsEnum.MANAGE_TOPO)
+    topo = SystemSettings.get_setting_value(key=SystemSettingsEnum.MANAGE_TOPO.value)
     if topo:
         return topo["resource_module_id"]
 
-    manage_set_id = get_or_create_set_with_name(bk_biz_id, DB_MANAGE_SET)
-    module_id = get_or_create_cmdb_module_with_name(bk_biz_id, manage_set_id, RESOURCE_MODULE)
+    manage_set_id = get_or_create_set_with_name(env.DBA_APP_BK_BIZ_ID, DB_MANAGE_SET)
+    module_id = get_or_create_cmdb_module_with_name(env.DBA_APP_BK_BIZ_ID, manage_set_id, RESOURCE_MODULE)
     topo = {"set_id": manage_set_id, "resource_module_id": module_id}
-    BizSettings.insert_setting_value(bk_biz_id, key=BizSettingsEnum.MANAGE_TOPO, value=topo, value_type=dict)
+    SystemSettings.insert_setting_value(key=SystemSettingsEnum.MANAGE_TOPO.value, value=topo, value_type="dict")
     return module_id

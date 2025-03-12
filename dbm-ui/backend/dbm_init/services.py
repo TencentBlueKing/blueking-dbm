@@ -178,7 +178,7 @@ class Services:
         AppMonitorTopo.init_topo()
 
         # 初始化db的管理集群和相关模块
-        get_or_create_resource_module(env.DBA_APP_BK_BIZ_ID)
+        get_or_create_resource_module()
 
         # 初始化主机自定义属性，用于system数据拷贝
         Services.init_cc_dbm_meta()

@@ -30,7 +30,7 @@ class DorisDestroyFlowParamBuilder(builders.FlowParamBuilder):
     controller = DorisController.doris_destroy_scene
 
 
-@builders.BuilderFactory.register(TicketType.DORIS_DESTROY, phase=ClusterPhase.DESTROY)
+@builders.BuilderFactory.register(TicketType.DORIS_DESTROY, phase=ClusterPhase.DESTROY, is_recycle=True)
 class DorisDestroyFlowBuilder(BaseDorisTicketFlowBuilder):
     serializer = DorisDestroyDetailSerializer
     inner_flow_builder = DorisDestroyFlowParamBuilder

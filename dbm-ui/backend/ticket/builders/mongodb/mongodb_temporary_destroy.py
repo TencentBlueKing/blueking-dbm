@@ -41,7 +41,7 @@ class MongoDBTemporaryDestroyFlowParamBuilder(builders.FlowParamBuilder):
         self.ticket_data["bk_app_abbr"] = AppCache.objects.get(bk_biz_id=bk_biz_id).db_app_abbr
 
 
-@builders.BuilderFactory.register(TicketType.MONGODB_TEMPORARY_DESTROY)
+@builders.BuilderFactory.register(TicketType.MONGODB_TEMPORARY_DESTROY, is_recycle=True)
 class MongoDBDestroyFlowBuilder(BaseMongoDBTicketFlowBuilder):
     serializer = MongoDBTemporaryDestroyDetailSerializer
 

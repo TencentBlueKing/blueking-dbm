@@ -30,8 +30,9 @@ class VmDestroyFlowParamBuilder(builders.FlowParamBuilder):
     controller = VmController.vm_destroy_scene
 
 
-@builders.BuilderFactory.register(TicketType.VM_DESTROY, phase=ClusterPhase.DESTROY)
+@builders.BuilderFactory.register(TicketType.VM_DESTROY, phase=ClusterPhase.DESTROY, is_recycle=True)
 class VmDestroyFlowBuilder(BaseVmTicketFlowBuilder):
     serializer = VmDestroyDetailSerializer
     inner_flow_builder = VmDestroyFlowParamBuilder
     inner_flow_name = _("VictoriaMetrics 集群下架")
+    need_patch_recycle_cluster_details = True

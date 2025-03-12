@@ -86,6 +86,9 @@ class DirtyMachine(AuditedModel):
         # 其他情况仅更新主机归属
         elif pool in [PoolType.Resource, PoolType.Recycle, PoolType.Dirty, PoolType.Fault]:
             handle_hosts.update(pool=pool, ticket=ticket)
+        # 主机被使用，则pool为空(或者叫占用中...)
+        elif not pool:
+            handle_hosts.update(pool="", ticket=ticket)
 
         return hosts
 
@@ -158,7 +161,7 @@ class MachineEvent(AuditedModel):
         # 使用窗口函数将最近的时间进行聚合。
         # TODO：当前版本不支持窗口函数过滤，Django 4.2+ 后貌似会支持
         host_events = MachineEvent.objects.filter(bk_host_id__in=bk_host_ids).annotate(
-            row=Window(expression=RowNumber(), partition_by=[F("bk_host_id")], order_by=[F("update_at")])
+            row=Window(expression=RowNumber(), partition_by=[F("bk_host_id")], order_by=[F("-update_at")])
         )
         host_latest_event_map = {event.bk_host_id: model_to_dict(event) for event in host_events if event.row == 1}
 

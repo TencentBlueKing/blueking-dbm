@@ -13,7 +13,6 @@ import logging
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 
-from backend.db_dirty.handlers import DBDirtyMachineHandler
 from backend.flow.consts import StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.models import FlowNode, FlowTree
@@ -67,7 +66,6 @@ def post_set_state_signal_handler(sender, node_id, to_state, version, root_id, *
             # 更新flow tree和inner flow的状态
             tree.updated_at, tree.status = now, target_tree_status
             tree.save()
-            DBDirtyMachineHandler.handle_dirty_machine(tree.uid, root_id, origin_tree_status, target_tree_status)
             callback_ticket(tree.uid, root_id)
         except Exception as e:  # pylint: disable=broad-except
             logger.debug(_("【状态信号捕获】污点池处理/回调单据 发生错误，错误信息{}").format(e))

@@ -14,14 +14,11 @@ from typing import List
 
 from django.utils.translation import ugettext as _
 
+from backend import env
 from backend.db_dirty.constants import MachineEventType, PoolType
 from backend.db_dirty.exceptions import PoolTransferException
 from backend.db_dirty.models import DirtyMachine, MachineEvent
-from backend.flow.consts import FAILED_STATES
 from backend.flow.utils.cc_manage import CcManage
-from backend.ticket.builders import BuilderFactory
-from backend.ticket.builders.common.base import fetch_apply_hosts
-from backend.ticket.models import Flow, Ticket
 
 logger = logging.getLogger("root")
 
@@ -51,48 +48,10 @@ class DBDirtyMachineHandler(object):
             hosts = [{"bk_host_id": host.bk_host_id} for host in hosts]
             # 待回收 ---> 回收
             if source == PoolType.Recycle and target == PoolType.Recycled:
-                CcManage(bk_biz_id, "").recycle_host([h["bk_host_id"] for h in hosts])
                 MachineEvent.host_event_trigger(bk_biz_id, hosts, MachineEventType.Recycled, operator, remark=remark)
+                CcManage(env.DBA_APP_BK_BIZ_ID, "").recycle_host(bk_host_ids)
             # 故障池 ---> 待回收
             elif source == PoolType.Fault and target == PoolType.Recycle:
                 MachineEvent.host_event_trigger(bk_biz_id, hosts, MachineEventType.ToRecycle, operator, remark=remark)
             else:
                 raise PoolTransferException(_("{}--->{}转移不合法").format(source, target))
-
-    @classmethod
-    def handle_dirty_machine(cls, ticket_id, root_id, origin_tree_status, target_tree_status):
-        """
-        处理执行失败/重试成功涉及的污点池机器
-        @param ticket_id: 单据ID
-        @param root_id: 流程ID
-        @param origin_tree_status: 流程源状态
-        @param target_tree_status: 流程目标状态
-        """
-        if (origin_tree_status not in FAILED_STATES) and (target_tree_status not in FAILED_STATES):
-            return
-
-        try:
-            ticket = Ticket.objects.get(id=ticket_id)
-            # 如果不是部署类单据，则无需处理
-            if ticket.ticket_type not in BuilderFactory.apply_ticket_type:
-                return
-        except (Ticket.DoesNotExist, Flow.DoesNotExist, ValueError):
-            return
-
-        # 如果初始状态是失败，则证明是重试，将机器从污点池中移除
-        hosts = fetch_apply_hosts(ticket.details)
-        bk_host_ids = [h["bk_host_id"] for h in hosts]
-
-        if not bk_host_ids:
-            return
-
-        # 如果是原状态失败，则证明是重试，这里只用删除记录
-        if origin_tree_status in FAILED_STATES:
-            logger.info(_("【污点池】主机列表:{} 将从污点池挪出").format(bk_host_ids))
-            DirtyMachine.objects.filter(bk_host_id__in=bk_host_ids).delete()
-
-        # 如果是目标状态失败，则证明是执行失败，将机器加入污点池
-        if target_tree_status in FAILED_STATES:
-            logger.info(_("【污点池】主机列表:{} 移入污点池").format(bk_host_ids))
-            hosts = fetch_apply_hosts(ticket.details)
-            MachineEvent.host_event_trigger(ticket.bk_biz_id, hosts, MachineEventType.ToDirty, ticket.creator, ticket)

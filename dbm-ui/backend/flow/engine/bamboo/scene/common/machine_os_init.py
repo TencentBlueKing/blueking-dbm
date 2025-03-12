@@ -109,17 +109,17 @@ class ImportResourceInitStepFlow(object):
                 },
             )
 
-            # 转移模块到对应业务的资源池
-            p.add_act(
-                act_name=_("主机转移至资源池空闲模块"),
-                act_component_code=TransferHostServiceComponent.code,
-                kwargs={
-                    "bk_biz_id": bk_biz_id,
-                    "bk_module_ids": [get_or_create_resource_module(bk_biz_id)],
-                    "bk_host_ids": [host["host_id"] for host in ip_list],
-                    "update_host_properties": {"dbm_meta": [], "need_monitor": False, "update_operator": False},
-                },
-            )
+        # 转移模块到对应业务的资源池
+        p.add_act(
+            act_name=_("主机转移至资源池空闲模块"),
+            act_component_code=TransferHostServiceComponent.code,
+            kwargs={
+                "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+                "bk_module_ids": [get_or_create_resource_module()],
+                "bk_host_ids": [host["host_id"] for host in ip_list],
+                "update_host_properties": {"dbm_meta": [], "need_monitor": False, "update_operator": False},
+            },
+        )
 
         p.run_pipeline()
 
@@ -128,6 +128,7 @@ class ImportResourceInitStepFlow(object):
         # 构造主机导入池基本参数
         kwargs = ImportMachinePollKwargs(
             bk_biz_id=self.data["bk_biz_id"],
+            db_type=self.data["db_type"],
             recycle_hosts=self.data["hosts"],
             operator=self.data["operator"],
             ips=self.data["sa_check_ips"],
@@ -148,6 +149,13 @@ class ImportResourceInitStepFlow(object):
                 act_name=_("主机导入待回收"),
                 act_component_code=TransferHostToPoolComponent.code,
                 kwargs={**asdict(kwargs), "event": MachineEventType.ToRecycle.value},
+            )
+
+        if kwargs.ip_dest == IpDest.Recycled:
+            p.add_act(
+                act_name=_("主机转移到CC待回收池"),
+                act_component_code=TransferHostToPoolComponent.code,
+                kwargs={**asdict(kwargs), "event": MachineEventType.Recycled.value},
             )
 
         p.run_pipeline()

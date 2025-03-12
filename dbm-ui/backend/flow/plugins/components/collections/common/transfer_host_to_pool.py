@@ -13,8 +13,10 @@ import logging
 
 from pipeline.component_framework.component import Component
 
+from backend.db_dirty.constants import MachineEventType
 from backend.db_dirty.models import MachineEvent
 from backend.flow.plugins.components.collections.common.base_service import BaseService
+from backend.flow.utils.cc_manage import CcManage
 from backend.ticket.models import Ticket
 
 logger = logging.getLogger("flow")
@@ -31,7 +33,12 @@ class TransferHostToPoolService(BaseService):
         event = kwargs["event"]
         remark = kwargs.get("remark", "")
         ticket = Ticket.objects.get(id=kwargs["ticket_id"])
+        # 记录主机事件
         MachineEvent.host_event_trigger(bk_biz_id, recycle_hosts, event, operator, ticket, remark=remark)
+        # 如果主机事件是回收，则转移CC模块
+        if event == MachineEventType.Recycled:
+            host_ids = [host["bk_host_id"] for host in recycle_hosts]
+            CcManage(bk_biz_id=bk_biz_id, cluster_type=kwargs["db_type"]).recycle_host(host_ids)
 
 
 class TransferHostToPoolComponent(Component):

@@ -505,6 +505,7 @@ class ImportMachinePollKwargs:
     """
 
     bk_biz_id: int
+    db_type: str
     recycle_hosts: list
     operator: str
     ips: list
