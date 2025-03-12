@@ -93,31 +93,31 @@
     }[];
   }
 
-  interface Emits {
-    (e: 'batch-edit', list: IValue[]): void;
-  }
+  type Emits = (e: 'batch-edit', list: IValue[]) => void;
 
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
+    bk_biz_id: number;
     bk_cloud_id: number;
     bk_host_id?: number;
+    cluster_ids: number[];
     ip: string;
     port: number;
-    cluster_ids: number[];
-    related_instances: string[];
     related_clusters: string[];
+    related_instances: string[];
   }>({
     default: () => ({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: undefined,
+      cluster_ids: [],
       ip: '',
       port: 0,
-      cluster_ids: [],
-      related_instances: [],
       related_clusters: [],
+      related_instances: [],
     }),
   });
 
@@ -130,8 +130,8 @@
         name: t('目标主库主机'),
         tableConfig: {
           firsrColumn: {
-            label: t('Master 主机'),
             field: 'ip',
+            label: t('Master 主机'),
             role: 'backend_master',
           },
         },
@@ -141,8 +141,8 @@
         name: t('手动输入'),
         tableConfig: {
           firsrColumn: {
-            label: t('Master 主机'),
             field: 'ip',
+            label: t('Master 主机'),
             role: 'backend_master',
           },
         },
@@ -152,14 +152,14 @@
 
   const rules = [
     {
-      validator: (value: string) => ipv4.test(value),
       message: t('IP 格式不符合IPv4标准'),
       trigger: 'change',
+      validator: (value: string) => ipv4.test(value),
     },
     {
-      validator: () => Boolean(modelValue.value.bk_host_id),
       message: t('目标主机不存在'),
       trigger: 'blur',
+      validator: () => Boolean(modelValue.value.bk_host_id),
     },
   ];
 
@@ -173,7 +173,7 @@
     ),
   }));
 
-  const { run: queryInstance, loading } = useRequest(checkInstance, {
+  const { loading, run: queryInstance } = useRequest(checkInstance, {
     manual: true,
     onSuccess: (data) => {
       if (data.length) {
@@ -187,13 +187,14 @@
           relatedClusters.push(item.master_domain);
         });
         modelValue.value = {
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           bk_cloud_id: hostInfo.bk_cloud_id,
           bk_host_id: hostInfo.bk_host_id,
+          cluster_ids: clusterIds,
           ip: hostInfo.ip,
           port: hostInfo.port,
-          cluster_ids: clusterIds,
-          related_instances: relatedInstances,
           related_clusters: relatedClusters,
+          related_instances: relatedInstances,
         };
       }
     },
@@ -205,13 +206,14 @@
 
   const handleInputChange = (value: string) => {
     modelValue.value = {
-      bk_host_id: undefined,
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
+      bk_host_id: undefined,
+      cluster_ids: [],
       ip: value,
       port: 0,
-      cluster_ids: [],
-      related_instances: [],
       related_clusters: [],
+      related_instances: [],
     };
     if (value) {
       queryInstance({
@@ -224,6 +226,16 @@
   const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
     emits('batch-edit', selected.TendbhaHost);
   };
+
+  watch(
+    () => modelValue.value.ip,
+    () => {
+      handleInputChange(modelValue.value.ip);
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 
 <style lang="less" scoped>

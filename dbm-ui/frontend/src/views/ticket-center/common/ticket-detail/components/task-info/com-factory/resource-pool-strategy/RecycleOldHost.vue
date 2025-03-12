@@ -82,7 +82,7 @@
   import HostAgentStatus from '@components/host-agent-status/Index.vue';
 
   interface Props {
-    ticketDetails: TicketModel<Common.ResourcePoolRecycleOldHost>;
+    ticketDetails: TicketModel<Common.ResourcePoolRecycle>;
   }
 
   defineOptions({

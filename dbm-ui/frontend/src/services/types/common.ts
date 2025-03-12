@@ -38,3 +38,9 @@ export enum BackupSourceType {
   LOCAL = 'local',
   REMOTE = 'remote',
 }
+
+export enum OperaObejctType {
+  CLUSTER = 'cluster',
+  INSTANCE = 'instance',
+  MACHINE = 'machine',
+}

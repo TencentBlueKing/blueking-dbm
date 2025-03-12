@@ -53,9 +53,11 @@
   import { compareVersions } from '@utils';
 
   interface Props {
-    cluster: {
+    rowData: {
+      cluster: {
+        id: number;
+      };
       current_version: string;
-      id: number;
     };
   }
 
@@ -84,7 +86,7 @@
   const { loading, run: fetchClusterVersions } = useRequest(getPackages, {
     manual: true,
     onSuccess(versions) {
-      const currentVersion = props.cluster.current_version?.match(versionRegex)![0] || '';
+      const currentVersion = props.rowData.current_version?.match(versionRegex)![0] || '';
       versionList.value = versions.results
         .reduce(
           (prevList, versionItem) => {
@@ -119,7 +121,7 @@
   });
 
   watch(
-    () => props.cluster.id,
+    () => props.rowData.cluster.id,
     (value) => {
       if (value) {
         fetchClusterVersions({

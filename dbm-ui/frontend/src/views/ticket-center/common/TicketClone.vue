@@ -15,10 +15,10 @@
   <span
     v-bk-tooltips="{
       content: t('暂不支持'),
-      disabled: isSupported,
+      disabled: isResourcePool || isSupported,
     }">
     <BkButton
-      :disabled="!isSupported"
+      :disabled="!isResourcePool || !isSupported"
       text
       theme="primary"
       v-bind="attrs"
@@ -49,7 +49,7 @@
   const router = useRouter();
 
   const ticketTypeRouteNameMap: Record<string, string> = {
-    [TicketTypes.MYSQL_ADD_SLAVE]: 'MySQLSlaveAdd', // Mysql 添加从库
+    [TicketTypes.MYSQL_ADD_SLAVE]: TicketTypes.MYSQL_ADD_SLAVE, // Mysql 添加从库
     [TicketTypes.MYSQL_AUTHORIZE_RULES]: 'PermissionRules', // Mysql 授权
     [TicketTypes.MYSQL_CHECKSUM]: 'MySQLChecksum', // Mysql 数据校验修复
     [TicketTypes.MYSQL_CLIENT_CLONE_RULES]: 'MySQLPrivilegeCloneClient', // Mysql 客户端权限克隆
@@ -67,14 +67,14 @@
     [TicketTypes.MYSQL_IMPORT_SQLFILE]: 'MySQLExecute', // Mysql 变更SQL执行
     [TicketTypes.MYSQL_INSTANCE_CLONE_RULES]: 'MySQLPrivilegeCloneInst', // Mysql DB实例权限克隆
     [TicketTypes.MYSQL_LOCAL_UPGRADE]: 'MySQLVersionUpgrade', // MySQL 原地升级
-    [TicketTypes.MYSQL_MASTER_FAIL_OVER]: 'MySQLMasterFailover', // Mysql 主库故障切换
+    [TicketTypes.MYSQL_MASTER_FAIL_OVER]: TicketTypes.MYSQL_MASTER_FAIL_OVER, // Mysql 主库故障切换
     [TicketTypes.MYSQL_MASTER_SLAVE_SWITCH]: 'MySQLMasterSlaveSwap', // Mysql 主从互切
-    [TicketTypes.MYSQL_MIGRATE_CLUSTER]: 'MySQLMasterSlaveClone', // Mysql 迁移主从
+    [TicketTypes.MYSQL_MIGRATE_CLUSTER]: TicketTypes.MYSQL_MIGRATE_CLUSTER, // Mysql 迁移主从
     [TicketTypes.MYSQL_MIGRATE_UPGRADE]: 'MySQLVersionUpgrade', // MySQL 迁移升级
     [TicketTypes.MYSQL_OPEN_AREA]: 'MySQLOpenareaTemplate', // Mysql 新建开区
     [TicketTypes.MYSQL_PROXY_ADD]: 'MySQLProxyAdd', // Mysql 添加Proxy
-    [TicketTypes.MYSQL_PROXY_SWITCH]: 'MySQLProxyReplace', // Mysql 替换Proxy
-    [TicketTypes.MYSQL_PROXY_UPGRADE]: 'MySQLVersionUpgrade', // MySQL Proxy 升级
+    [TicketTypes.MYSQL_PROXY_SWITCH]: TicketTypes.MYSQL_PROXY_SWITCH, // Mysql 替换Proxy
+    [TicketTypes.MYSQL_PROXY_UPGRADE]: TicketTypes.MYSQL_PROXY_UPGRADE, // MySQL Proxy 升级
     [TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE]: 'MySQLSlaveRebuild', // Mysql 重建从库
     [TicketTypes.MYSQL_RESTORE_SLAVE]: 'MySQLSlaveRebuild', // Mysql 重建从库
     [TicketTypes.MYSQL_ROLLBACK_CLUSTER]: 'MySQLDBRollback', // Mysql 定点构造
@@ -153,6 +153,16 @@
   };
 
   const isSupported = computed(() => !!ticketTypeRouteNameMap[props.data.ticket_type]);
+
+  const isResourcePool = computed(() => {
+    const resourcePoolDetails = (props.data as TicketModel<{ ip_recycle?: { ip_dest: string }; ip_source?: string }>)
+      .details;
+
+    const isResourcePoolDetails =
+      resourcePoolDetails.ip_recycle?.ip_dest === 'resource' || resourcePoolDetails.ip_source === 'resource_pool';
+
+    return ticketTypeRouteNameMap[props.data.ticket_type] === props.data.ticket_type && isResourcePoolDetails;
+  });
 
   const handleResubmitTicket = async () => {
     let name = '';
