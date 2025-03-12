@@ -320,19 +320,22 @@ export const disabledAlarmShield = (params: { id: number }) =>
 /**
  * 获取告警事件列表
  */
-export const getAlarmEventsList = (params: {
-  bk_biz_id?: number;
-  db_type?: string;
-  end_time: string;
-  limit?: number;
-  offset?: number;
-  self_assist?: boolean;
-  self_manage?: boolean;
-  severity?: number; // 1 | 2 | 3
-  stage?: string; // is_handled | is_ack | is_shielded | is_blocked
-  start_time: string;
-  status?: string; // ABNORMAL | RECOVERED |  CLOSE
-}) =>
+export const getAlarmEventsList = (
+  params: {
+    bk_biz_id?: number;
+    db_type?: string;
+    end_time: string;
+    limit?: number;
+    offset?: number;
+    self_assist?: boolean;
+    self_manage?: boolean;
+    severity?: number; // 1 | 2 | 3
+    stage?: string; // is_handled | is_ack | is_shielded | is_blocked
+    start_time: string;
+    status?: string; // ABNORMAL | RECOVERED |  CLOSE
+  },
+  payload = {} as IRequestPayload,
+) =>
   http
     .post<{
       aggs: {
@@ -357,9 +360,7 @@ export const getAlarmEventsList = (params: {
         name?: string;
       };
       total: number;
-    }>(`${path}/event/search/`, params, {
-      cache: 1000,
-    })
+    }>(`${path}/event/search/`, params, payload)
     .then((data) => ({
       aggs: data.aggs,
       count: data.total,

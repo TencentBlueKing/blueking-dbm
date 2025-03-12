@@ -31,6 +31,7 @@
       #footer>
       <slot name="footer">
         <BkButton
+          v-if="showConfirm"
           class="mr-8"
           :disabled="disabledConfirm"
           :loading="isLoading"
@@ -61,6 +62,7 @@
     disabledConfirm?: boolean;
     isShow: boolean;
     renderDirective?: 'if' | 'show';
+    showConfirm?: boolean;
     showFooter?: boolean;
     showLeaveConfirm?: boolean;
   }
@@ -77,6 +79,7 @@
     disabledConfirm: false,
     isShow: false,
     renderDirective: 'if',
+    showConfirm: true,
     showFooter: true,
     showLeaveConfirm: true,
   });

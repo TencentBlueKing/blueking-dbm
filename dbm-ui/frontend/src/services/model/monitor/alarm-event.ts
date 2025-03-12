@@ -151,7 +151,7 @@ export default class AlarmEvent {
 
   get cluster() {
     const clusterInfo = this.dimensions.find((item) => item.key === 'tags.cluster_domain');
-    return clusterInfo?.value || '';
+    return clusterInfo?.value || '--';
   }
 
   get createTimeDisplay() {

@@ -130,6 +130,7 @@
       'DbConfigure',
       'DBMonitorStrategy',
       'DBMonitorAlarmGroup',
+      'AlarmShield',
       'StaffManage',
       'TicketFlowSetting',
       'TicketCooperationSetting',

@@ -263,7 +263,6 @@
               begin_time: formModel.value.datetime[0],
               bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
               category: formModel.value.type,
-              category: formModel.value.type,
               cycle_config: { begin_time: '', day_list: [], end_time: '', type: 1, week_list: [] },
               description: formModel.value.reason,
               end_time: formModel.value.datetime[1],
