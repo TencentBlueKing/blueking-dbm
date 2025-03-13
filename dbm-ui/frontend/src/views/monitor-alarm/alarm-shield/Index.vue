@@ -2,12 +2,13 @@
   <div class="alarm-events-page">
     <div class="operation-main">
       <div class="left-operation">
-        <BkButton
+        <AuthButton
+          action-id="alert_shield_create"
           class="w-64 mr-8"
           theme="primary"
           @click="() => handleOpenShieldAlarms('create')">
           {{ t('新建') }}
-        </BkButton>
+        </AuthButton>
         <BkRadioGroup
           v-model="filterValue"
           style="background: #eaebf0"
@@ -133,41 +134,50 @@
         :show-overflow="false"
         :width="130">
         <template #default="{ data }: { data: RowData }">
-          <BkButton
+          <AuthButton
             v-bk-tooltips="{
               disabled: isExpired || data.isEdiatable,
               content: t('暂不支持'),
             }"
+            action-id="alert_shield_manage"
+            :biz-id="data.bk_biz_id"
             :disabled="isExpired || !data.isEdiatable"
+            :permission="data.permission.alert_shield_manage"
             text
             theme="primary"
             @click="() => handleOpenShieldAlarms('edit', data)">
             {{ t('编辑') }}
-          </BkButton>
-          <BkButton
+          </AuthButton>
+          <AuthButton
             v-bk-tooltips="{
               disabled: data.isEdiatable,
               content: t('暂不支持'),
             }"
+            action-id="alert_shield_create"
+            :biz-id="data.bk_biz_id"
             class="ml-8 mr-8"
             :disabled="!data.isEdiatable"
+            :permission="data.permission.alert_shield_create"
             text
             theme="primary"
             @click="() => handleOpenShieldAlarms('clone', data)">
             {{ t('克隆') }}
-          </BkButton>
+          </AuthButton>
           <BkPopConfirm
             :confirm-text="t('解除')"
             :title="t('确认解除该告警屏蔽？')"
             trigger="click"
             :width="280"
             @confirm="() => unlockAlarmShield({ id: data.id })">
-            <BkButton
+            <AuthButton
+              action-id="alert_shield_manage"
+              :biz-id="data.bk_biz_id"
               :disabled="isExpired"
+              :permission="data.permission.alert_shield_manage"
               text
               theme="primary">
               {{ t('解除') }}
-            </BkButton>
+            </AuthButton>
             <template #content>
               <div>{{ t('屏蔽 ID') }}：{{ data.id }}</div>
               <div class="mb-16 mt-5">{{ t('解除后，所有的屏蔽内容将同步失效') }}</div>

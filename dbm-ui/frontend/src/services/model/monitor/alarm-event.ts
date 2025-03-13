@@ -34,6 +34,7 @@ export default class AlarmEvent {
   converage_id: string;
   create_time: number;
   data_type: string;
+  dbm_event: boolean;
   dedupe_keys: string[];
   dedupe_md5: string;
   description: string;
@@ -63,6 +64,9 @@ export default class AlarmEvent {
     id: string;
     name: string;
   }[];
+  permission: {
+    alert_shield_create: boolean;
+  };
   plugin_display_name: string;
   plugin_id: string;
   seq_id: number;
@@ -101,6 +105,7 @@ export default class AlarmEvent {
     this.converage_id = payload.converage_id;
     this.create_time = payload.create_time;
     this.data_type = payload.data_type;
+    this.dbm_event = payload.dbm_event;
     this.dedupe_keys = payload.dedupe_keys;
     this.dedupe_md5 = payload.dedupe_md5;
     this.description = payload.description;
@@ -122,6 +127,7 @@ export default class AlarmEvent {
     this.latest_time = payload.latest_time;
     this.metric = payload.metric;
     this.metric_display = payload.metric_display;
+    this.permission = payload.permission;
     this.plugin_display_name = payload.plugin_display_name;
     this.plugin_id = payload.plugin_id;
     this.stage_display = payload.stage_display;

@@ -231,6 +231,7 @@
       height: 32px;
       outline: none;
       align-items: center;
+      flex: 1;
     }
 
     .close-icon {
