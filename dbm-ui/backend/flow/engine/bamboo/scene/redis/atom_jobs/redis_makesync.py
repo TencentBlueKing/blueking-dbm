@@ -217,13 +217,13 @@ def RedisSSDMakeSyncAtomJob(sub_pipeline: SubBuilder, act_kwargs: ActKwargs, par
     # 创建同步关系
     data_from = "origin_1"
     data_to = "sync_dst1"
-    backup_and_restore(sub_pipeline, act_kwargs, params, data_from, data_to)
+    backup_and_restore_serial(sub_pipeline, act_kwargs, params, data_from, data_to)
 
     if params["sync_type"] in [SyncType.SYNC_MMS, SyncType.SYNC_SMS]:
         sub_kwargs = deepcopy(act_kwargs)
         data_from = "sync_dst1"
         data_to = "sync_dst2"
-        backup_and_restore(sub_pipeline, sub_kwargs, params, data_from, data_to)
+        backup_and_restore_serial(sub_pipeline, sub_kwargs, params, data_from, data_to)
 
     return sub_pipeline
 
@@ -283,6 +283,67 @@ def backup_and_restore(
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(act_kwargs),
     )
+
+    return sub_pipeline
+
+
+# 串行-备份、远程传输文件、恢复实例
+def backup_and_restore_serial(
+    sub_pipeline: SubBuilder, act_kwargs: ActKwargs, params: Dict, data_from: str, data_to: str
+) -> SubBuilder:
+    #     params (Dict): {
+    #     "sync_type": (ms,mms,sms)
+    #     "origin_1": "x.12.1.2",   # old_master
+    #     "origin_2": "x.12.1.2", # old_slave
+    #     "sync_dst1":"1.1.1.x",    # new_master
+    #     "sync_dst2":"2.2.x.1",    # new_slave
+    #     "ins_link":[{"origin_1":"port","origin_2":"port","sync_dst1":"port","sync_dst2":"port"}],
+    # }
+    logger.info("need do make sync for ssd type from {} 2 {} serial".format(params[data_from], params[data_to]))
+
+    # 发起备份
+    act_kwargs.cluster["backup_host"] = params[data_from]
+    act_kwargs.cluster["backup_instances"] = []
+    act_kwargs.cluster["ssd_log_count"] = {
+        "log-count": 76789000,  # 让master 多保留点日志 2k/s 的写入保留10.6个小时 （备份+传输）
+        "log-keep-count": 90000000,
+        "slave-log-keep-count": 76789000,
+    }
+    act_kwargs.cluster["domain_name"] = act_kwargs.cluster["immute_domain"]
+
+    for sync_direct in params["ins_link"]:
+        act_kwargs.exec_ip = params[data_from]
+        act_kwargs.cluster["backup_instances"] = [int(sync_direct[data_from])]
+
+        act_kwargs.get_redis_payload_func = RedisActPayload.redis_cluster_backup_4_scene.__name__
+        sub_pipeline.add_act(
+            act_name=_("发起备份-{}-{}").format(params[data_from], sync_direct[data_from]),
+            act_component_code=ExecuteDBActuatorScriptComponent.code,
+            kwargs=asdict(act_kwargs),
+            write_payload_var="tendis_backup_info",
+        )
+
+        # 远程传输文件
+        act_kwargs.cluster["soruce_ip"] = params[data_from]
+        act_kwargs.cluster["target_ip"] = params[data_to]
+        act_kwargs.exec_ip = params[data_to]
+        sub_pipeline.add_act(
+            act_name=_("发送备份文件-{}==>>{}").format(params[data_from], params[data_to]),
+            act_component_code=RedisBackupFileTransComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
+
+        # 恢复备份
+        act_kwargs.cluster["master_ip"] = params[data_from]
+        act_kwargs.cluster["slave_ip"] = params[data_to]
+        act_kwargs.cluster["slave_ports"] = [int(sync_direct[data_to])]
+        act_kwargs.cluster["master_ports"] = [int(sync_direct[data_from])]
+        act_kwargs.get_redis_payload_func = RedisActPayload.redis_tendisssd_dr_restore_4_scene.__name__
+        sub_pipeline.add_act(
+            act_name=_("恢复备份-{}-{}").format(params[data_to], act_kwargs.cluster["slave_ports"]),
+            act_component_code=ExecuteDBActuatorScriptComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
 
     return sub_pipeline
 
