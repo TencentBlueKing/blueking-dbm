@@ -17,6 +17,7 @@ import bkuiVue from 'bkui-vue';
 import dayjs from 'dayjs';
 import tz from 'dayjs/plugin/timezone';
 import utc from 'dayjs/plugin/utc';
+import duration from 'dayjs/plugin/duration';
 import { createPinia } from 'pinia';
 
 import { useFunController, useGlobalBizs, useSystemEnviron } from '@stores';
@@ -42,6 +43,7 @@ import('tippy.js/themes/light.css');
 
 dayjs.extend(utc);
 dayjs.extend(tz);
+dayjs.extend(duration);
 
 window.changeConfirm = false;
 

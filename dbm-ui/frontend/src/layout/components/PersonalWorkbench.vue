@@ -20,6 +20,18 @@
       </BkMenuItem>
       <BkMenuItem
         v-if="userProfileStore.isDba"
+        key="AlarmEventsTodo"
+        v-db-console="'personalWorkbench.AlarmEventsTodo'">
+        <template #icon>
+          <DbIcon type="warning" />
+        </template>
+        <span>
+          {{ t('告警事件待办') }}
+        </span>
+        <span class="ticket-count">{{ alarmEventsTodoCount }}</span>
+      </BkMenuItem>
+      <BkMenuItem
+        v-if="userProfileStore.isDba"
         key="InspectionTodos"
         v-db-console="'personalWorkbench.InspectionTodos'">
         <template #icon>
@@ -91,7 +103,7 @@
   import { Menu } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
-  import { useReportCount, useTicketCount } from '@hooks';
+  import { useAlarmEventsCount, useReportCount, useTicketCount } from '@hooks';
 
   import { useUserProfile } from '@stores';
 
@@ -109,6 +121,7 @@
 
   const { data: ticketCount } = useTicketCount();
   const { manageCount } = useReportCount();
+  const { todoCount: alarmEventsTodoCount } = useAlarmEventsCount();
   const userProfileStore = useUserProfile();
 
   const todoCount = computed(() => {

@@ -11,6 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+export * from './useAlarmEventsCount';
 export * from './useApplyBase';
 export * from './useBeforeClose';
 export * from './useCopy';

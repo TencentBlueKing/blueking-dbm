@@ -34,6 +34,7 @@ export function getSystemEnviron() {
     BK_NODEMAN_URL: string;
     BK_SCR_URL: string;
     BKDATA_FRONTEND_REPORT_URL: string;
+    BKMONITOR_URL: string;
     CC_IDLE_MODULE_ID: string;
     CC_MANAGE_TOPO: {
       dirty_module_id: number;

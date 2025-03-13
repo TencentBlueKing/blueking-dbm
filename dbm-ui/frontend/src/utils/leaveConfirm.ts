@@ -16,7 +16,6 @@ import InfoBox from 'bkui-vue/lib/info-box';
 import { t } from '@locales/index';
 
 export const leaveConfirm = (): Promise<boolean> => {
-  console.log('leaveConfirm window.changeConfirm = ', window.changeConfirm);
   if (!window.changeConfirm || window.changeConfirm === 'popover') {
     return Promise.resolve(true);
   }

@@ -42,6 +42,20 @@
         </span>
       </BkMenuItem>
     </BkMenuGroup>
+    <BkMenuGroup
+      v-db-console="'platformManage.AlarmEvents'"
+      :name="t('告警')">
+      <BkMenuItem key="AlarmEventsGlobal">
+        <template #icon>
+          <DbIcon type="db-config" />
+        </template>
+        <span
+          v-overflow-tips.right
+          class="text-overflow">
+          {{ t('告警事件') }}
+        </span>
+      </BkMenuItem>
+    </BkMenuGroup>
   </BkMenu>
 </template>
 <script setup lang="ts">

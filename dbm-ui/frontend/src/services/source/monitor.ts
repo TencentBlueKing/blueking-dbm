@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 import http, { type IRequestPayload } from '@services/http';
+import AlarmEventModel from '@services/model/monitor/alarm-event';
+import AlarmShieldModel from '@services/model/monitor/alarm-shield';
 import DutyRuleModel from '@services/model/monitor/duty-rule';
 import MonitorPolicyModel from '@services/model/monitor/monitor-policy';
 import type { ListBase } from '@services/types';
@@ -119,6 +121,8 @@ interface AlarmGroupItem {
   updater: string;
 }
 
+const path = '/apis/monitor';
+
 // 获取策略列表
 export const queryMonitorPolicyList = (
   params: {
@@ -133,7 +137,7 @@ export const queryMonitorPolicyList = (
   },
   payload = {} as IRequestPayload,
 ) =>
-  http.get<ListBase<MonitorPolicyModel[]>>('/apis/monitor/policy/', params, payload).then((data) => ({
+  http.get<ListBase<MonitorPolicyModel[]>>(`${path}/policy/`, params, payload).then((data) => ({
     ...data,
     results: data.results.map(
       (item) =>
@@ -150,7 +154,7 @@ export const updatePolicy = (id: number, params: UpdatePolicyParams) =>
   http.post<{
     bkm_id: number;
     local_id: number;
-  }>(`/apis/monitor/policy/${id}/update_strategy/`, params);
+  }>(`${path}/policy/${id}/update_strategy/`, params);
 
 // 克隆策略
 export const clonePolicy = (
@@ -163,58 +167,69 @@ export const clonePolicy = (
   http.post<{
     bkm_id: number;
     local_id: number;
-  }>('/apis/monitor/policy/clone_strategy/', params);
+  }>(`${path}/policy/clone_strategy/`, params);
 
 // 启用策略
-export const enablePolicy = (params: { id: number }) => http.post<boolean>(`/apis/monitor/policy/${params.id}/enable/`);
+export const enablePolicy = (params: { id: number }) => http.post<boolean>(`${path}/policy/${params.id}/enable/`);
 
 // 停用策略
-export const disablePolicy = (params: { id: number }) =>
-  http.post<boolean>(`/apis/monitor/policy/${params.id}/disable/`);
+export const disablePolicy = (params: { id: number }) => http.post<boolean>(`${path}/policy/${params.id}/disable/`);
 
 // 恢复默认策略
-export const resetPolicy = (params: { id: number }) => http.post<void>(`/apis/monitor/policy/${params.id}/reset`);
+export const resetPolicy = (params: { id: number }) => http.post<void>(`${path}/policy/${params.id}/reset`);
 
 // 删除策略
 export const deletePolicy = (params: { id: number }) =>
-  http.delete<null | Record<string, any>>(`/apis/monitor/policy/${params.id}/`);
+  http.delete<null | Record<string, any>>(`${path}/policy/${params.id}/`);
 
 // 根据db类型查询集群列表
-export const getClusterList = (params: { bk_biz_id: number; dbtype: string }) =>
-  http.get<string[]>('/apis/monitor/policy/cluster_list/', params);
+export const getClusterList = (params: { bk_biz_id: number; dbtype?: string }) =>
+  http.get<string[]>(`${path}/policy/cluster_list/`, params);
 
 // 根据db类型查询模块列表
-export const getDbModuleList = (params: { bk_biz_id: number; dbtype: string }) =>
+export const getDbModuleList = (params: { bk_biz_id: number; dbtype?: string }) =>
   http.get<
     {
       db_module_id: number;
       db_module_name: string;
     }[]
-  >('/apis/monitor/policy/db_module_list/', params);
+  >(`${path}/policy/db_module_list/`, params);
+
+// 根据db类型查询实例列表
+export const getInstanceList = (params: { bk_biz_id: number; dbtype?: string }) =>
+  http.get<string[]>(`${path}/policy/instance_list/`, params);
+
+// 根据db类型查询ip列表
+export const getIpList = (params: { bk_biz_id: number; dbtype?: string }) =>
+  http.get<string[]>(`${path}/policy/ip_list/`, params);
+
+// 根据db类型查询角色列表
+export const getRoleList = (params: { bk_biz_id: number; dbtype?: string }) =>
+  http.get<string[]>(`${path}/policy/instance_role_list/`, params);
 
 /**
  * 获取告警组列表
  */
 export const getAlarmGroupList = (params: { bk_biz_id: number; db_type?: string; limit?: number; offset?: number }) =>
-  http.get<ListBase<AlarmGroupItem[]>>('/apis/monitor/notice_group/', params);
+  http.get<ListBase<AlarmGroupItem[]>>(`${path}/notice_group/`, params);
 
 // 查询轮值规则列表
 export const queryDutyRuleList = (
   params: { db_type: string; limit: number; offset: number },
   payload = {} as IRequestPayload,
 ) =>
-  http.get<ListBase<DutyRuleModel[]>>('/apis/monitor/duty_rule/', params, payload).then((data) => ({
+  http.get<ListBase<DutyRuleModel[]>>(`${path}/duty_rule/`, params, payload).then((data) => ({
     ...data,
     results: data.results.map((item) => new DutyRuleModel(item)),
   }));
 
 // 新建轮值规则
 export const createDutyRule = (params: CreateCustomDutyRuleParams | CreateCycleDutyRuleParams) =>
-  http.post<DutyRuleModel>('/apis/monitor/duty_rule/', params);
+  http.post<DutyRuleModel>(`${path}/duty_rule/`, params);
 
 // 更新轮值规则
 export const updateDutyRule = (id: number, params: CreateCustomDutyRuleParams | CreateCycleDutyRuleParams) =>
-  http.put<DutyRuleModel>(`/apis/monitor/duty_rule/${id}/`, params);
+  http.put<DutyRuleModel>(`${path}/duty_rule/${id}/`, params);
 
 // 部分更新轮值规则
 export const updatePartialDutyRule = (
@@ -223,10 +238,10 @@ export const updatePartialDutyRule = (
     is_enabled?: boolean;
     priority?: number;
   },
-) => http.patch<DutyRuleModel>(`/apis/monitor/duty_rule/${id}/`, params);
+) => http.patch<DutyRuleModel>(`${path}/duty_rule/${id}/`, params);
 
 // 删除轮值规则
-export const deleteDutyRule = (params: { id: number }) => http.delete<void>(`/apis/monitor/duty_rule/${params.id}/`);
+export const deleteDutyRule = (params: { id: number }) => http.delete<void>(`${path}/duty_rule/${params.id}/`);
 
 // 查询轮值通知配置
 export const getDutyNoticeConfig = () => http.get<DutyNoticeConfig>('/apis/conf/system_settings/duty_notice_config/');
@@ -236,4 +251,154 @@ export const updateDutyNoticeConfig = (params: DutyNoticeConfig) =>
   http.post<DutyNoticeConfig>('/apis/conf/system_settings/update_duty_notice_config/', params);
 
 // 查询轮值优先级列表
-export const getPriorityDistinct = () => http.get<number[]>('/apis/monitor/duty_rule/priority_distinct/');
+export const getPriorityDistinct = () => http.get<number[]>(`${path}/duty_rule/priority_distinct/`);
+
+// 新增告警屏蔽
+export const createAlarmShield = (params: {
+  begin_time: string;
+  bk_biz_id: number;
+  category: string;
+  description: string;
+  dimension_config: {
+    dimension_conditions: {
+      condition: string;
+      key: string;
+      method: string;
+      name: string;
+      value: string[];
+    }[];
+    id?: number[];
+    level?: number[];
+  };
+  end_time: string;
+}) => http.post<{ id: number }>(`${path}/alarm_shield/`, params);
+
+// 编辑告警屏蔽
+export const EditAlarmShield = (params: {
+  begin_time: string;
+  bk_biz_id: number;
+  category: string;
+  description: string;
+  dimension_config: {
+    dimension_conditions: {
+      condition: string;
+      key: string;
+      method: string;
+      name: string;
+      value: string[];
+    }[];
+    id?: number[];
+    level?: number[];
+  };
+  end_time: string;
+  id: number;
+}) => http.put<{ id: number }>(`${path}/alarm_shield/${params.id}/`, params);
+
+// 获取告警屏蔽列表
+export const getAlarmShieldList = (params: {
+  bk_biz_id: number;
+  category?: string;
+  conditions?: string;
+  is_active?: boolean;
+  limit?: number;
+  offset?: number;
+  time_range?: string;
+}) =>
+  http
+    .get<{
+      count: number;
+      permission: {
+        alert_shield_create: boolean;
+        alert_shield_manage: boolean;
+      };
+      shield_list: AlarmShieldModel[];
+    }>(`${path}/alarm_shield/`, params)
+    .then((data) => ({
+      count: data.count,
+      results: data.shield_list.map(
+        (item) =>
+          new AlarmShieldModel(
+            Object.assign(item, {
+              permission: data.permission,
+            }),
+          ),
+      ),
+    }));
+
+// 获取告警屏蔽列表
+export const getAlarmShieldDetails = (params: { id: number }) =>
+  http.get<AlarmShieldModel>(`${path}/alarm_shield/${params.id}/`);
+
+// 解除告警屏蔽
+export const disabledAlarmShield = (params: { id: number }) =>
+  http.post<null>(`${path}/alarm_shield/${params.id}/disable/`);
+
+/**
+ * 获取告警事件列表
+ */
+export const getAlarmEventsList = (
+  params: {
+    bk_biz_id?: number;
+    db_type?: string;
+    end_time: string;
+    limit?: number;
+    offset?: number;
+    self_assist?: boolean;
+    self_manage?: boolean;
+    severity?: number; // 1 | 2 | 3
+    stage?: string; // is_handled | is_ack | is_shielded | is_blocked
+    start_time: string;
+    status?: string; // ABNORMAL | RECOVERED |  CLOSE
+  },
+  payload = {} as IRequestPayload,
+) =>
+  http
+    .post<{
+      aggs: {
+        children: {
+          count: number;
+          id: number;
+          name: string;
+        }[];
+        count: number;
+        id: string;
+        name: string;
+      }[];
+      alerts: AlarmEventModel[];
+      overview: {
+        children?: {
+          count: number;
+          id: number;
+          name: string;
+        }[];
+        count?: number;
+        id?: number;
+        name?: string;
+      };
+      total: number;
+    }>(`${path}/event/search/`, params, payload)
+    .then((data) => ({
+      aggs: data.aggs,
+      count: data.total,
+      overview: data.overview,
+      results: data.alerts.map((item) => new AlarmEventModel(item)),
+    }));
+
+// 获取策略列表
+export const getPolicyList = (params: {
+  bk_biz_id?: number;
+  db_type?: string;
+  limit?: number;
+  monitor_policy_ids?: string;
+  name?: string;
+  offset?: number;
+}) =>
+  http.get<
+    ListBase<
+      {
+        db_type: string;
+        monitor_policy_id: number;
+        name: string;
+      }[]
+    >
+  >(`${path}/policy/`, params);
