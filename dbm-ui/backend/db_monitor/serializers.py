@@ -202,8 +202,11 @@ class MonitorPolicyUpdateSerializer(AuditedSerializer, serializers.ModelSerializ
 
 
 class BatchUpdateMonitorPolicyNotifySerializer(serializers.Serializer):
-    policy_ids = serializers.ListField(help_text=_("策略ID列表"), child=serializers.IntegerField())
-    notify_groups = serializers.ListField(help_text=_("告警组ID列表"), child=serializers.IntegerField())
+    class NoticeGroupInfoSerializer(serializers.Serializer):
+        policy_id = serializers.IntegerField(help_text=_("策略ID"))
+        groups = serializers.ListField(help_text=_("告警组ID列表"), child=serializers.IntegerField())
+
+    notify_groups = serializers.ListSerializer(help_text=_("告警组ID列表"), child=NoticeGroupInfoSerializer())
 
 
 class MonitorPolicyCloneSerializer(MonitorPolicyUpdateSerializer):

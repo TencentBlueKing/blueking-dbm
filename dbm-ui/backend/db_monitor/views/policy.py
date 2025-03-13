@@ -241,9 +241,10 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
     def batch_update_notify_group(self, request, *args, **kwargs):
         notify_groups = self.validated_data["notify_groups"]
         # 更新较慢考虑采用多线程方案
-        policy_list = MonitorPolicy.objects.filter(id__in=self.validated_data["policy_ids"])
-        for policy in policy_list:
-            params = {"notify_groups": notify_groups}
+        policy_map = MonitorPolicy.objects.in_bulk(id_list=[info["policy_id"] for info in notify_groups])
+        for info in notify_groups:
+            policy = policy_map[info["policy_id"]]
+            params = {"notify_groups": info["groups"]}
             policy.update(params, username=request.user.username)
         return Response()
 
