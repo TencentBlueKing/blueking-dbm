@@ -193,6 +193,7 @@
             </AuthButton>
             <BkButton
               v-else
+              v-bk-tooltips="t('暂不支持，请去监控平台操作')"
               disabled
               text
               theme="primary">
@@ -205,7 +206,7 @@
             text
             theme="primary"
             @click="() => handleOpenDetailPage(data)">
-            {{ t('更多信息') }}
+            {{ t('跳转监控') }}
           </BkButton>
         </template>
       </BkTableColumn>
