@@ -86,7 +86,7 @@
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
 
-  import { useCreateTicket } from '@hooks';
+  import { useCreateTicket, useTimeZoneFormat } from '@hooks';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
@@ -97,11 +97,10 @@
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
-  import { utcDisplayTime } from '@utils';
-
   import TargetCluster, { type RowData } from './components/TargetCluster.vue';
 
   const { t } = useI18n();
+  const { format: formatDateToUTC } = useTimeZoneFormat();
 
   const bizId = window.PROJECT_CONFIG.BIZ_ID;
 
@@ -174,7 +173,7 @@
         resource_spec: resourceSpec,
         rollback_time: formData.tableData.reduce<Record<string, string>>((acc, item) => {
           Object.assign(acc, {
-            [item.cluster.id]: utcDisplayTime(item.rollback_time),
+            [item.cluster.id]: formatDateToUTC(item.rollback_time),
           });
           return acc;
         }, {}),
