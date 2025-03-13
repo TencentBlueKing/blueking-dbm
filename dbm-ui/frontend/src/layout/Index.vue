@@ -130,6 +130,7 @@
       'DbConfigure',
       'DBMonitorStrategy',
       'DBMonitorAlarmGroup',
+      'AlarmShield',
       'StaffManage',
       'TicketFlowSetting',
       'TicketCooperationSetting',
@@ -164,7 +165,7 @@
       'PlatformTicketFlowSetting',
       'PlatformStaffManage',
     ],
-    [menuEnum.observableManage]: ['DBHASwitchEvents', 'inspectionManage'],
+    [menuEnum.observableManage]: ['DBHASwitchEvents', 'inspectionManage', 'AlarmEvents'],
     [menuEnum.personalWorkbench]: [
       'serviceApply',
       'SelfServiceMyTickets',
@@ -172,8 +173,15 @@
       'ticketSelfDone',
       'ticketSelfManage',
       'InspectionTodos',
+      'AlarmEventsTodo',
     ],
-    [menuEnum.platformManage]: ['platformTaskManage', 'ticketPlatformManage', 'inspectionReportGlobal', 'DbaManage'],
+    [menuEnum.platformManage]: [
+      'platformTaskManage',
+      'ticketPlatformManage',
+      'inspectionReportGlobal',
+      'DbaManage',
+      'AlarmEventsGlobal',
+    ],
     [menuEnum.resourceManage]: ['ResourceSpec', 'resourceManage', 'resourcePoolDirtyMachines'],
   } as Record<string, string[]>;
 

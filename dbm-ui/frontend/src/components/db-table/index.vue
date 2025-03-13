@@ -56,6 +56,7 @@
                   @change="handleWholeSelect" />
               </template>
               <BkPopover
+                v-if="showSelectAllPage"
                 :arrow="false"
                 placement="bottom-start"
                 theme="light db-table-select-menu"
@@ -153,6 +154,8 @@
     remotePagination?: boolean;
     remoteSort?: boolean;
     selectable?: boolean;
+    // 是否开启跨页全选
+    showSelectAllPage?: boolean;
     showSettings?: boolean;
   }
 
@@ -188,6 +191,7 @@
     remotePagination: true,
     remoteSort: false,
     selectable: false,
+    showSelectAllPage: true,
     showSettings: false,
   });
 
@@ -380,14 +384,11 @@
           permission: 'page',
         });
       }
-
       isAnomalies.value = false;
-
       props
         .dataSource(params, payload)
         .then((data) => {
           tableData.value = data;
-          console.log('tabledata = ', data);
           pagination.count = data.count;
           isSearching.value = getSearchingStatus();
           isAnomalies.value = false;
@@ -504,6 +505,12 @@
 
   // 跨页全选
   const handleWholeSelect = () => {
+    if (!props.showSelectAllPage) {
+      // 屏蔽跨页全选
+      handleTogglePageSelect(true);
+      return;
+    }
+
     props
       .dataSource({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,

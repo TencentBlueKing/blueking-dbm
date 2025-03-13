@@ -40,3 +40,48 @@ export function utcTimeToSeconds(time?: string) {
   }
   return Math.floor(dayjs(time).valueOf() / 1000);
 }
+
+/**
+ * 判断 YYYY-MM-DD HH:MM:SS 格式的时间是否合法
+ * @param datetimeStr
+ * @returns
+ */
+export function isValidDateTime(datetimeStr: string) {
+  const isLeapYear = (year: number) => (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+
+  const datetimeRegex = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/;
+  const match = datetimeStr.match(datetimeRegex);
+
+  if (!match) {
+    return false;
+  }
+
+  const year = parseInt(match[1], 10);
+  const month = parseInt(match[2], 10);
+  const day = parseInt(match[3], 10);
+  const hour = parseInt(match[4], 10);
+  const minute = parseInt(match[5], 10);
+  const second = parseInt(match[6], 10);
+
+  if (
+    month < 1 ||
+    month > 12 ||
+    day < 1 ||
+    day > 31 ||
+    hour < 0 ||
+    hour > 23 ||
+    minute < 0 ||
+    minute > 59 ||
+    second < 0 ||
+    second > 59
+  ) {
+    return false;
+  }
+
+  const monthDays = [31, isLeapYear(year) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  if (day > monthDays[month - 1]) {
+    return false;
+  }
+
+  return true;
+}

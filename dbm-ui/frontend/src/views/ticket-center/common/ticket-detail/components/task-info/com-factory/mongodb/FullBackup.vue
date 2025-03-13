@@ -51,9 +51,9 @@
   const { clusters, file_tag: fileTag, infos, oplog } = props.ticketDetails.details;
 
   const fileTagMap: Record<string, string> = {
-    a_year_backup: t('1 年'),
-    forever_backup: t('3 年'),
-    half_year_backup: t('6 个月'),
+    a_year_backup: t('1年'),
+    forever_backup: t('3年'),
+    half_year_backup: t('6个月'),
     normal_backup: t('25天'),
   };
 

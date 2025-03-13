@@ -66,10 +66,10 @@
             v-model="formData.file_tag"
             size="small">
             <template v-if="isBackupTypeFull">
-              <BkRadio label="DBFILE1M"> {{ t('1 个月') }} </BkRadio>
-              <BkRadio label="DBFILE6M"> {{ t('6 个月') }} </BkRadio>
-              <BkRadio label="DBFILE1Y"> {{ t('1 年') }} </BkRadio>
-              <BkRadio label="DBFILE3Y"> {{ t('3 年') }} </BkRadio>
+              <BkRadio label="DBFILE1M"> {{ t('1个月') }} </BkRadio>
+              <BkRadio label="DBFILE6M"> {{ t('6个月') }} </BkRadio>
+              <BkRadio label="DBFILE1Y"> {{ t('1年') }} </BkRadio>
+              <BkRadio label="DBFILE3Y"> {{ t('3年') }} </BkRadio>
             </template>
             <template v-else>
               <BkRadio label="INCREMENT_BACKUP"> 15 {{ t('天') }} </BkRadio>
