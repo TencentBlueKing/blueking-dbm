@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Union
 
 from django.db import models, transaction
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext as _
 
 from backend import env
 from backend.bk_web.constants import LEN_L_LONG, LEN_LONG, LEN_NORMAL, LEN_SHORT
@@ -266,27 +266,39 @@ class Ticket(AuditedModel):
         resource_hosts: List = []
         recycled_hosts: List = []
 
-        # 如果是独立业务的下架，则直接转移到待回收
-        if BizSettings.get_exact_hosting_biz(revoke_ticket.bk_biz_id, revoke_ticket.group) != env.DBA_APP_BK_BIZ_ID:
+        def add_host_remark(add_hosts, remark):
+            for h in add_hosts:
+                h.update(remark=remark)
+            return add_hosts
+
+        # 如果是独立业务下架，则直接转移到待回收
+        hosting_biz = BizSettings.get_exact_hosting_biz(revoke_ticket.bk_biz_id, revoke_ticket.group)
+        if ticket_type == TicketType.RECYCLE_OLD_HOST and hosting_biz != env.DBA_APP_BK_BIZ_ID:
             recycled_hosts.extend(hosts)
             hosts = []
+        add_host_remark(recycled_hosts, _("检测该业务为独立管控业务"))
 
         # sqlserver机器直接转移到待回收
-        if revoke_ticket.group == DBType.Sqlserver:
+        if ticket_type == TicketType.RECYCLE_OLD_HOST and revoke_ticket.group == DBType.Sqlserver:
             recycle_hosts.extend(hosts)
             hosts = []
+        add_host_remark(recycle_hosts, _("检测主机为Windows机器"))
 
         # 存在uwork的主机需要回到故障池，存在裁撤单的主机需要回到待回收池，否则退回资源池
+        dissolved_hosts = HCMApi.check_host_is_dissolved(host_ids)
+        uwork_hosts = HCMApi.check_host_has_uwork(host_ids)
         for host in hosts:
-            if HCMApi.check_host_has_uwork(host):
+            if host["bk_host_id"] in uwork_hosts.keys():
+                host.update(remark=_("检测主机有关联的uwork单据"))
                 fault_hosts.append(host)
-            elif HCMApi.check_host_is_dissolved(host):
+            elif host["bk_host_id"] in dissolved_hosts:
+                host.update(remark=_("检测主机为待裁撤主机"))
                 recycle_hosts.append(host)
             else:
                 resource_hosts.append(host)
 
         # 创建回收单据流程
-        recycle_ticket = cls.create_ticket(
+        recycle_ticket = Ticket.create_ticket(
             ticket_type=ticket_type,
             creator=revoke_ticket.creator,
             bk_biz_id=revoke_ticket.bk_biz_id,

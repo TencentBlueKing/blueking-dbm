@@ -31,8 +31,9 @@ class TransferHostToPoolService(BaseService):
         recycle_hosts = kwargs["recycle_hosts"]
         operator = kwargs["operator"]
         event = kwargs["event"]
-        remark = kwargs.get("remark", "")
         ticket = Ticket.objects.get(id=kwargs["ticket_id"])
+        # 如果备注为空，则取转移主机备注。TODO：目前考虑支持批量插入，因此暂定所有主机备注一致
+        remark = kwargs.get("remark") or recycle_hosts[0].get("remark") or ""
         # 记录主机事件
         MachineEvent.host_event_trigger(bk_biz_id, recycle_hosts, event, operator, ticket, remark=remark)
         # 如果主机事件是回收，则转移CC模块

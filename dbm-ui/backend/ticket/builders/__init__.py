@@ -377,11 +377,11 @@ class ImportPoolParamBuilder(FlowParamBuilder):
         self.ticket_data.update(
             {
                 "ticket_id": self.ticket.id,
-                "bk_biz_id": self.ticket_data["ip_recycle"]["for_biz"],
+                "bk_biz_id": self.ip_recycle["for_biz"],
                 "hosts": self.ticket_data[self.host_key],
                 "sa_check_ips": [recycle["ip"] for recycle in self.ticket_data["recycle_hosts"]],
                 "operator": self.ticket.creator,
-                "ip_dest": self.ticket_data["ip_recycle"]["ip_dest"],
+                "ip_dest": self.ip_recycle["ip_dest"],
                 "remark": self.ticket_data.get("remark", ""),
                 "db_type": self.ticket_data["group"],
             }

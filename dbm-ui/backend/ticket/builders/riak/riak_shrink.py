@@ -30,7 +30,7 @@ class RiakShrinkDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
         riak = serializers.ListSerializer(help_text=_("缩容节点"), child=HostInfoSerializer())
 
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-    nodes = RiakNodeSerializer(help_text=_("缩容信息"))
+    old_nodes = RiakNodeSerializer(help_text=_("缩容信息"))
     ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
     def validate(self, attrs):
