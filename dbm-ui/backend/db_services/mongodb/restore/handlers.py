@@ -237,7 +237,7 @@ class MongoDBRestoreHandler(object):
 
         # 查询定点回档记录
         records = ClusterOperateRecord.objects.select_related("ticket").filter(
-            cluster_id__in=id__temp_cluster.keys(), ticket__ticket_type=TicketType.MONGODB_RESTORE
+            cluster_id__in=id__temp_cluster.keys(), ticket__ticket_type=TicketType.MONGODB_PITR_RESTORE
         )
         # 查询源集群的信息
         source_cluster_names = [cluster.name.rsplit("-", 2)[0] for cluster in temp_clusters]

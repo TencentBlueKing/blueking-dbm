@@ -228,7 +228,7 @@ class CommonQueryResourceMixin(abc.ABC):
             return {}
         record = ClusterOperateRecord.objects.filter(cluster_id=cluster.id, ticket__ticket_type=ticket_type).first()
         # 临时集群名称的构造规则是: {cluster_name}_{20201212}_{ticket_id}
-        source_cluster_name = cluster.name.rsplit("-", 2)[0]
+        source_cluster_name = cluster.alias.rsplit("-", 2)[0]
         # 获取回档源集群信息，如果源集群已被卸载，则忽略
         try:
             source_cluster = Cluster.objects.get(
@@ -238,7 +238,7 @@ class CommonQueryResourceMixin(abc.ABC):
         except Cluster.DoesNotExist:
             domain = ""
 
-        temporary_info = {"source_cluster": domain, "ticket_id": record.ticket.id}
+        temporary_info = {"source_cluster": domain, "ticket_id": record.ticket_id}
         return temporary_info
 
 

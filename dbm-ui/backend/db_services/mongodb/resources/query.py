@@ -199,7 +199,7 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource):
             "mongo_config": mongo_config,
             "shard_num": shard_num,
             "shard_node_count": shard_node_count,
-            "temporary_info": cls.get_temporary_cluster_info(cluster, TicketType.MONGODB_RESTORE),
+            "temporary_info": cls.get_temporary_cluster_info(cluster, TicketType.MONGODB_PITR_RESTORE),
             "disaster_tolerance_level": cluster.disaster_tolerance_level,
         }
         cluster_info = super()._to_cluster_representation(
