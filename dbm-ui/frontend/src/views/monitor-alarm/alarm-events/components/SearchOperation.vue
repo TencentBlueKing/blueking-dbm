@@ -329,7 +329,7 @@
     }
 
     .shield-date-picker {
-      width: 310px !important;
+      width: 320px !important;
       background: #fff;
     }
   }

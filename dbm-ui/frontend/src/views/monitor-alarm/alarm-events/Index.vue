@@ -179,13 +179,27 @@
             @click="() => handleOpenShieldAlarms(false, data)">
             {{ t('查看屏蔽') }}
           </BkButton>
-          <BkButton
-            v-else
-            text
-            theme="primary"
-            @click="() => handleOpenShieldAlarms(true, data)">
-            {{ t('屏蔽告警') }}
-          </BkButton>
+          <template v-else>
+            <AuthButton
+              v-if="data.dbm_event"
+              action-id="alert_shield_create"
+              :biz-id="data.alarmBizId"
+              :disabled="!data.dbm_event"
+              :permission="data.permission.alert_shield_create"
+              text
+              theme="primary"
+              @click="() => handleOpenShieldAlarms(true, data)">
+              {{ t('屏蔽告警') }}
+            </AuthButton>
+            <BkButton
+              v-else
+              disabled
+              text
+              theme="primary">
+              {{ t('屏蔽告警') }}
+            </BkButton>
+          </template>
+
           <BkButton
             class="ml-16"
             :disabled="!urls.BKMONITOR_URL"
@@ -427,17 +441,20 @@
       });
       return result;
     }, {});
-    severityList.value.forEach((item) => {
-      if (!item.value) {
-        Object.assign(item, {
-          count: severityInfo.count,
-        });
-      } else {
-        Object.assign(item, {
-          count: severityMap[item.value],
-        });
-      }
-    });
+    if (!severityList.value[0].count) {
+      severityList.value.forEach((item) => {
+        // 全部
+        if (!item.value) {
+          Object.assign(item, {
+            count: severityInfo.count,
+          });
+        } else {
+          Object.assign(item, {
+            count: severityMap[item.value],
+          });
+        }
+      });
+    }
   };
 
   const handleSelectLevel = (level: number) => {

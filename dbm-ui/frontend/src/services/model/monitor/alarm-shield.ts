@@ -60,6 +60,10 @@ export default class AlarmShield {
   id: number;
   is_enabled: boolean;
   notice_config: string;
+  permission: {
+    alert_shield_create: boolean;
+    alert_shield_manage: boolean;
+  };
   shield_notice: boolean;
   source: string;
   status: number;
@@ -78,6 +82,7 @@ export default class AlarmShield {
     this.id = payload.id;
     this.is_enabled = payload.is_enabled;
     this.notice_config = payload.notice_config;
+    this.permission = payload.permission;
     this.shield_notice = payload.shield_notice;
     this.source = payload.source;
     this.status = payload.status;

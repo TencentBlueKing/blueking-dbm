@@ -304,10 +304,26 @@ export const getAlarmShieldList = (params: {
   offset?: number;
   time_range?: string;
 }) =>
-  http.get<{ count: number; shield_list: AlarmShieldModel[] }>(`${path}/alarm_shield/`, params).then((data) => ({
-    count: data.count,
-    results: data.shield_list.map((item) => new AlarmShieldModel(item)),
-  }));
+  http
+    .get<{
+      count: number;
+      permission: {
+        alert_shield_create: boolean;
+        alert_shield_manage: boolean;
+      };
+      shield_list: AlarmShieldModel[];
+    }>(`${path}/alarm_shield/`, params)
+    .then((data) => ({
+      count: data.count,
+      results: data.shield_list.map(
+        (item) =>
+          new AlarmShieldModel(
+            Object.assign(item, {
+              permission: data.permission,
+            }),
+          ),
+      ),
+    }));
 
 // 获取告警屏蔽列表
 export const getAlarmShieldDetails = (params: { id: number }) =>
