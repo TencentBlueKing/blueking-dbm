@@ -401,22 +401,12 @@ export const getPolicyList = (params: {
   name?: string;
   offset?: number;
 }) =>
-  http
-    .get<
-      ListBase<
-        {
-          db_type: string;
-          id: number;
-          monitor_policy_id: number;
-          name: string;
-        }[]
-      >
-    >(`${path}/policy/`, params)
-    .then((data) => ({
-      count: data.count,
-      results: data.results.map((item) => ({
-        db_type: item.db_type,
-        id: item.monitor_policy_id,
-        name: item.name,
-      })),
-    }));
+  http.get<
+    ListBase<
+      {
+        db_type: string;
+        monitor_policy_id: number;
+        name: string;
+      }[]
+    >
+  >(`${path}/policy/`, params);

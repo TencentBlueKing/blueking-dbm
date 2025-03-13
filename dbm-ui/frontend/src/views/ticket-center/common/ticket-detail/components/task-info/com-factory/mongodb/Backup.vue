@@ -138,10 +138,10 @@
   }));
 
   const fileTagMap: Record<string, string> = {
-    a_year_backup: t('n年', { n: 1 }),
-    forever_backup: t('n年', { n: 3 }),
-    half_year_backup: t('n个月', { n: 6 }),
-    normal_backup: t('n天', { n: 25 }),
+    a_year_backup: t('1年'),
+    forever_backup: t('3年'),
+    half_year_backup: t('6个月'),
+    normal_backup: t('25天'),
   };
 
   const fileTagText = fileTagMap[fileTag];

@@ -179,27 +179,21 @@
             @click="() => handleOpenShieldAlarms(false, data)">
             {{ t('查看屏蔽') }}
           </BkButton>
-          <template v-else>
-            <AuthButton
-              v-if="data.dbm_event"
-              action-id="alert_shield_create"
-              :biz-id="data.alarmBizId"
-              :disabled="!data.dbm_event"
-              :permission="data.permission.alert_shield_create"
-              text
-              theme="primary"
-              @click="() => handleOpenShieldAlarms(true, data)">
-              {{ t('屏蔽告警') }}
-            </AuthButton>
-            <BkButton
-              v-else
-              v-bk-tooltips="t('暂不支持，请去监控平台操作')"
-              disabled
-              text
-              theme="primary">
-              {{ t('屏蔽告警') }}
-            </BkButton>
-          </template>
+          <AuthButton
+            v-else
+            v-bk-tooltips="{
+              disabled: data.dbm_event,
+              content: t('暂不支持，请去监控平台操作'),
+            }"
+            action-id="alert_shield_create"
+            :biz-id="data.alarmBizId"
+            :disabled="!data.dbm_event"
+            :permission="data.dbm_event ? data.permission.alert_shield_create : true"
+            text
+            theme="primary"
+            @click="() => handleOpenShieldAlarms(true, data)">
+            {{ t('屏蔽告警') }}
+          </AuthButton>
           <BkButton
             class="ml-16"
             :disabled="!urls.BKMONITOR_URL"

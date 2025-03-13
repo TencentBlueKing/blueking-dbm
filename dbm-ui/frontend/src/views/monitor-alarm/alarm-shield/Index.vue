@@ -124,60 +124,38 @@
         :label="t('操作')"
         :width="130">
         <template #default="{ data }: { data: RowData }">
-          <BkButton
-            v-if="isExpired || !data.isEdiatable"
+          <AuthButton
             v-bk-tooltips="{
-              disabled: isExpired || data.isEdiatable,
+              disabled: !isExpired && data.isEdiatable,
               content: t('暂不支持'),
             }"
-            disabled
-            text
-            theme="primary">
-            {{ t('编辑') }}
-          </BkButton>
-          <AuthButton
-            v-else
             action-id="alert_shield_manage"
             :biz-id="data.bk_biz_id"
             :disabled="isExpired || !data.isEdiatable"
-            :permission="data.permission.alert_shield_manage"
+            :permission="isExpired || !data.isEdiatable ? true : data.permission.alert_shield_manage"
             text
             theme="primary"
             @click="() => handleOpenShieldAlarms('edit', data)">
             {{ t('编辑') }}
           </AuthButton>
-          <BkButton
-            v-if="!data.isEdiatable"
+          <AuthButton
             v-bk-tooltips="{
               disabled: data.isEdiatable,
               content: t('暂不支持'),
             }"
-            class="ml-8 mr-8"
-            disabled
-            text
-            theme="primary">
-            {{ t('克隆') }}
-          </BkButton>
-          <AuthButton
-            v-else
             action-id="alert_shield_create"
             :biz-id="data.bk_biz_id"
             class="ml-8 mr-8"
-            :permission="data.permission.alert_shield_create"
+            :disabled="!data.isEdiatable"
+            :permission="!data.isEdiatable ? true : data.permission.alert_shield_create"
             text
             theme="primary"
             @click="() => handleOpenShieldAlarms('clone', data)">
             {{ t('克隆') }}
           </AuthButton>
-          <BkButton
-            v-if="isExpired"
-            disabled
-            text
-            theme="primary">
-            {{ t('解除') }}
-          </BkButton>
+          <!-- 临时方案，PopConfirm需要支持手动控制弹窗 -->
           <BkPopConfirm
-            v-else
+            v-if="!isExpired && data.permission.alert_shield_manage"
             :confirm-text="t('解除')"
             :title="t('确认解除该告警屏蔽？')"
             trigger="click"
@@ -196,6 +174,16 @@
               <div class="mb-16 mt-5">{{ t('解除后，所有的屏蔽内容将同步失效') }}</div>
             </template>
           </BkPopConfirm>
+          <AuthButton
+            v-else
+            action-id="alert_shield_manage"
+            :biz-id="data.bk_biz_id"
+            :disabled="isExpired"
+            :permission="isExpired ? true : data.permission.alert_shield_manage"
+            text
+            theme="primary">
+            {{ t('解除') }}
+          </AuthButton>
         </template>
       </BkTableColumn>
     </DbTable>
@@ -316,7 +304,7 @@
     onSuccess(data) {
       data.results.forEach((item) => {
         Object.assign(policyMap.value, {
-          [item.id]: item.name,
+          [item.monitor_policy_id]: item.name,
         });
       });
     },

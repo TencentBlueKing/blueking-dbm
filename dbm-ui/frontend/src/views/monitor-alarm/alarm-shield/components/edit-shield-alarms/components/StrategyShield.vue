@@ -136,7 +136,17 @@
 
   let isAppend = false;
 
-  const { run: fetchPolicyList } = useRequest(getPolicyList, {
+  const handleGetPolicyList = (params: ServiceParameters<typeof getPolicyList>) =>
+    getPolicyList(params).then((data) => ({
+      count: data.count,
+      results: data.results.map((item) => ({
+        db_type: item.db_type,
+        id: item.monitor_policy_id,
+        name: item.name,
+      })),
+    }));
+
+  const { run: fetchPolicyList } = useRequest(handleGetPolicyList, {
     manual: true,
     onSuccess(data) {
       scrollLoading.value = false;
@@ -150,7 +160,7 @@
     },
   });
 
-  const { run: fetchExistPolicyList } = useRequest(getPolicyList, {
+  const { run: fetchExistPolicyList } = useRequest(handleGetPolicyList, {
     manual: true,
     onSuccess(data) {
       dbValue.value = data.results[0].db_type;
