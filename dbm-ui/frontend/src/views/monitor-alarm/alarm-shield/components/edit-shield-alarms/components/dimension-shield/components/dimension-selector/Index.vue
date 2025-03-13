@@ -37,13 +37,21 @@
 
   import DimensionItem from './components/DimensionItem.vue';
 
+  export interface Exposes {
+    getValue: () => {
+      dimension_conditions: {
+        condition: string;
+        key: string;
+        method: string;
+        name: string;
+        value: (number | string)[];
+      }[];
+    };
+  }
+
   interface Props {
     data?: AlarmShieldModel['dimension_config'];
     disabled?: boolean;
-  }
-
-  interface Exposes {
-    getValue: () => any;
   }
 
   const props = withDefaults(defineProps<Props>(), {

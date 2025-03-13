@@ -14,7 +14,9 @@
 
   import AlarmShieldModel from '@services/model/monitor/alarm-shield';
 
-  import DimensionSelector from './components/dimension-selector/Index.vue';
+  import DimensionSelector, {
+    type Exposes as DimensionSelectorExpose,
+  } from './components/dimension-selector/Index.vue';
 
   interface Props {
     data?: AlarmShieldModel['dimension_config'];
@@ -23,7 +25,7 @@
 
   interface Exposes {
     getValue: () => {
-      dimension_config: any;
+      dimension_config: ReturnType<DimensionSelectorExpose['getValue']>;
     };
   }
 

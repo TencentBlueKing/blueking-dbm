@@ -95,7 +95,6 @@
       return results;
     }, {}),
   );
-
   const bizDisplayName = computed(() => {
     if (props.data) {
       if (!props.data['tags.appid']) {
@@ -107,7 +106,6 @@
 
     return '--';
   });
-
   const clusterDisplay = computed(() => {
     if (props.data?.['tags.cluster_domain']) {
       return props.data['tags.cluster_domain'];

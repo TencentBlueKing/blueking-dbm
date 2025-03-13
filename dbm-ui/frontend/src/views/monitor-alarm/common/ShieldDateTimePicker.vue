@@ -132,7 +132,7 @@
       text: t('n个月', { n: 6 }),
       value: getShortcutValue(6, 'month'),
     },
-  ];
+  ] as any;
 
   watch(
     modelValue,

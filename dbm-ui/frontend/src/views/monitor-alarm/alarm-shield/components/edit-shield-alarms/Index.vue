@@ -85,9 +85,8 @@
   type Emits = (e: 'success') => void;
 
   interface Exposes {
-    cancel: () => Promise<any>;
-    reset: () => void;
-    submit: () => Promise<any>;
+    cancel: () => Promise<void>;
+    submit: () => Promise<number>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -247,11 +246,8 @@
 
   defineExpose<Exposes>({
     cancel() {
-      return new Promise((resolve) => {
-        resolve(1);
-      });
+      return Promise.resolve();
     },
-    reset() {},
     submit() {
       return new Promise((resolve, reject) => {
         formRef.value
