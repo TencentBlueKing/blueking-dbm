@@ -40,7 +40,7 @@ def add_spiders(
     for shard_info in cluster.tendbclusterstorageset_set.exclude(
         storage_instance_tuple__ejector__instance_inner_role=InstanceInnerRole.REPEATER
     ):
-        if spider_role == TenDBClusterSpiderRole.SPIDER_MASTER:
+        if spider_role in [TenDBClusterSpiderRole.SPIDER_MASTER, TenDBClusterSpiderRole.SPIDER_MNT]:
             # ejector是代表master实例对象
             shard_info.storage_instance_tuple.ejector.proxyinstance_set.add(*spiders_objs)
 

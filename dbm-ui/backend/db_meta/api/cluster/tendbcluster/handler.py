@@ -23,6 +23,7 @@ from backend.db_meta.enums import (
     ClusterType,
     InstanceInnerRole,
     InstanceRole,
+    InstanceStatus,
     MachineType,
     TenDBClusterSpiderRole,
 )
@@ -275,9 +276,12 @@ class TenDBClusterClusterHandler(ClusterHandler):
 
     @classmethod
     @transaction.atomic
-    def remote_switch(cls, cluster_id: int, switch_tuples: list):
+    def remote_switch(cls, cluster_id: int, switch_tuples: list, force: bool):
         """
         对已有集群的remote存储对进行切换记录
+        @param cluster_id:集群id
+        @param switch_tuples: 待替换的主从对list
+        @param force: 表示这次是互切还是强切
         """
         cluster = Cluster.objects.get(id=cluster_id)
         for switch_tuple in switch_tuples:
@@ -289,9 +293,31 @@ class TenDBClusterClusterHandler(ClusterHandler):
             slave_objs.update(instance_role=InstanceRole.REMOTE_MASTER, instance_inner_role=InstanceInnerRole.MASTER)
             master_objs.update(instance_role=InstanceRole.REMOTE_SLAVE, instance_inner_role=InstanceInnerRole.SLAVE)
 
+            # 如果是主故障切换(强切)，旧master的状态主动设置为UNAVAILABLE
+            if force:
+                master_objs.update(status=InstanceStatus.UNAVAILABLE)
+
             # 修改主从的映射关系
             for obj in master_objs:
                 StorageInstanceTuple.objects.filter(ejector=obj).update(ejector=F("receiver"), receiver=obj)
+
+            # 更改所有spider和remote节点的映射关系
+            for spider in cluster.proxyinstance_set.filter(
+                tendbclusterspiderext__spider_role__in=[
+                    TenDBClusterSpiderRole.SPIDER_MASTER,
+                    TenDBClusterSpiderRole.SPIDER_MNT,
+                ]
+            ):
+                # proxy 和 storage 在model设计是many_to_many模型，所以数据不存在或者重复都会静默忽略，不需要做防御性编程
+                spider.storageinstance.remove(*master_objs)
+                spider.storageinstance.add(*slave_objs)
+
+            for spider in cluster.proxyinstance_set.filter(
+                tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE
+            ):
+                # proxy 和 storage 在model设计是many_to_many模型，所以数据不存在或者重复都会静默忽略，不需要做防御性编程
+                spider.storageinstance.remove(*slave_objs)
+                spider.storageinstance.add(*master_objs)
 
             cc_topo_operator = MysqlCCTopoOperator(cluster)
             cc_topo_operator.is_bk_module_created = True
