@@ -28,6 +28,16 @@ def _cluster_spider_access_remote(c: Cluster) -> List[CheckResponse]:
     mnt slave spider 只能访问 remote slave
     """
     bad = []
+
+    # 集群的主备实例数
+    should_remote_master_cnt = 0
+    should_remote_slave_cnt = 0
+    for si in c.storageinstance_set.all():
+        if si.instance_inner_role == InstanceInnerRole.MASTER:
+            should_remote_master_cnt += 1
+        elif si.instance_inner_role == InstanceInnerRole.SLAVE:
+            should_remote_slave_cnt += 1
+
     for pi in c.proxyinstance_set.all():
         if pi.tendbclusterspiderext.spider_role in [
             TenDBClusterSpiderRole.SPIDER_MASTER,
@@ -42,6 +52,7 @@ def _cluster_spider_access_remote(c: Cluster) -> List[CheckResponse]:
         else:
             continue
 
+        right = []  # bind 关系正确的实例数
         for si in pi.storageinstance.all():
             if si.instance_inner_role != can_access_remote_role:
                 bad.append(
@@ -55,5 +66,40 @@ def _cluster_spider_access_remote(c: Cluster) -> List[CheckResponse]:
                         instance=pi,
                     )
                 )
+            else:
+                right.append(si)
+
+        # spider_master bind remote_master 数量和集群 remote_master 数量不一致
+        if (
+            pi.tendbclusterspiderext.spider_role == TenDBClusterSpiderRole.SPIDER_MASTER
+            and len(right) != should_remote_master_cnt
+        ):
+            bad.append(
+                CheckResponse(
+                    msg=_(
+                        "绑定的 REMOTE_MASTER 数量和集群 REMOTE_MASTER 数量不一致: {} != {}".format(
+                            len(right), should_remote_master_cnt
+                        )
+                    ),
+                    check_subtype=MetaCheckSubType.ClusterTopo,
+                    instance=pi,
+                )
+            )
+        # spider_slave bind remote_slave 数量和集群 remote_slave 数量不一致
+        elif (
+            pi.tendbclusterspiderext.spider_role == TenDBClusterSpiderRole.SPIDER_SLAVE
+            and len(right) != should_remote_slave_cnt
+        ):
+            bad.append(
+                CheckResponse(
+                    msg=_(
+                        "绑定的 REMOTE_SLAVE 数量和集群 REMOTE_SLAVE 数量不一致: {} != {}".format(
+                            len(right), should_remote_slave_cnt
+                        )
+                    ),
+                    check_subtype=MetaCheckSubType.ClusterTopo,
+                    instance=pi,
+                )
+            )
 
     return bad
