@@ -179,6 +179,7 @@ func (c *ImportSchemaFromBackendComp) streamMigrate() (err error) {
 	logger.Info("will create mydumper.cnf ...")
 	mydumperCnf := path.Join(c.tmpDumpDir, "mydumper.cnf")
 	if !cmutil.FileExists(mydumperCnf) {
+		// nolint
 		if err = os.WriteFile(mydumperCnf, []byte("[myloader_session_variables]\n	tc_admin=0\n"), 0644); err != nil {
 			logger.Error("create mydumper.cnf failed %s", err.Error())
 			return err
@@ -231,6 +232,7 @@ func (c *ImportSchemaFromBackendComp) migrateUseMydumper() (err error) {
 	logger.Info("will create mydumper.cnf ...")
 	mydumperCnf := path.Join(c.tmpDumpDir, "mydumper.cnf")
 	if !cmutil.FileExists(mydumperCnf) {
+		// nolint
 		if err = os.WriteFile(mydumperCnf, []byte("[myloader_session_variables]\n	tc_admin=0\n"), 0644); err != nil {
 			logger.Error("create mydumper.cnf failed %s", err.Error())
 			return err
@@ -320,9 +322,10 @@ func (c *ImportSchemaFromBackendComp) migrateUseMysqlDump() (err error) {
 		return err
 	}
 	defer func() {
-		_, err = c.tdbctlConn.Exec("set global tc_admin=1;")
-		if err != nil {
-			logger.Error("set global tc_admin=1 failed %s,请手动配置成tc_admin = 1", err.Error())
+		_, errx := c.tdbctlConn.Exec("set global tc_admin=1;")
+		if errx != nil {
+			logger.Error("set global tc_admin=1 failed %s,请手动配置成tc_admin = 1", errx.Error())
+			err = errx
 		}
 	}()
 	dumpfileInfo := dumper.GetDumpFileInfo()

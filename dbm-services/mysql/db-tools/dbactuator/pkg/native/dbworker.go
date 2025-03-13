@@ -207,8 +207,9 @@ func (h *DbWorker) QueryWithArgs(query string, args ...interface{}) ([]map[strin
 		return nil, err
 	}
 	defer func() {
-		if err = rows.Close(); err != nil {
-			logger.Warn("close row failed, err:%s", err.Error())
+		if errx := rows.Close(); errx != nil {
+			logger.Warn("close row failed, err:%s", errx.Error())
+			err = errx
 		}
 	}()
 	// get all columns name
