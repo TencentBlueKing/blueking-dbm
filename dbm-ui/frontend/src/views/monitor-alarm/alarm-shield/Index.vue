@@ -4,6 +4,7 @@
       <div class="left-operation">
         <AuthButton
           action-id="alert_shield_create"
+          :biz-id="currentBizId"
           class="w-64 mr-8"
           theme="primary"
           @click="() => handleOpenShieldAlarms('create')">
@@ -47,8 +48,7 @@
         field="id"
         fixed="left"
         label="ID"
-        :min-width="160"
-        :show-overflow="false">
+        :min-width="160">
         <template #default="{ data }: { data: RowData }">
           <BkButton
             text
@@ -62,8 +62,7 @@
         field="category"
         :filters="phaseFilterList"
         :label="t('屏蔽类型')"
-        :min-width="160"
-        :show-overflow="false">
+        :min-width="160">
         <template #default="{ data }: { data: RowData }">
           <BkTag
             v-if="data.category === 'alert'"
@@ -75,11 +74,6 @@
             theme="danger">
             {{ t('基于维度屏蔽') }}
           </BkTag>
-          <!-- <BkTag
-            v-else-if="data.category === 'scope'"
-            theme="warning">
-            {{ t('基于主机屏蔽') }}
-          </BkTag> -->
           <BkTag
             v-else
             theme="success">
@@ -90,8 +84,7 @@
       <BkTableColumn
         field="content"
         :label="t('屏蔽内容')"
-        :min-width="400"
-        :show-overflow="false">
+        :min-width="400">
         <template #default="{ data }: { data: RowData }">
           <ShieldContent
             :data="data.dimension_config"
@@ -116,8 +109,7 @@
       <BkTableColumn
         field="update_user"
         :label="t('更新人')"
-        :min-width="160"
-        :show-overflow="false">
+        :min-width="160">
         <template #default="{ data }: { data: RowData }">
           <span>{{ data.update_user }}</span>
         </template>
@@ -125,20 +117,26 @@
       <BkTableColumn
         field="shieldTimeDisplay"
         :label="t('屏蔽时间')"
-        :min-width="420"
-        :show-overflow="false">
+        :min-width="420">
       </BkTableColumn>
       <BkTableColumn
         fixed="right"
         :label="t('操作')"
-        :show-overflow="false"
         :width="130">
         <template #default="{ data }: { data: RowData }">
-          <AuthButton
+          <BkButton
+            v-if="isExpired || !data.isEdiatable"
             v-bk-tooltips="{
               disabled: isExpired || data.isEdiatable,
               content: t('暂不支持'),
             }"
+            disabled
+            text
+            theme="primary">
+            {{ t('编辑') }}
+          </BkButton>
+          <AuthButton
+            v-else
             action-id="alert_shield_manage"
             :biz-id="data.bk_biz_id"
             :disabled="isExpired || !data.isEdiatable"
@@ -148,22 +146,38 @@
             @click="() => handleOpenShieldAlarms('edit', data)">
             {{ t('编辑') }}
           </AuthButton>
-          <AuthButton
+          <BkButton
+            v-if="!data.isEdiatable"
             v-bk-tooltips="{
               disabled: data.isEdiatable,
               content: t('暂不支持'),
             }"
+            class="ml-8 mr-8"
+            disabled
+            text
+            theme="primary">
+            {{ t('克隆') }}
+          </BkButton>
+          <AuthButton
+            v-else
             action-id="alert_shield_create"
             :biz-id="data.bk_biz_id"
             class="ml-8 mr-8"
-            :disabled="!data.isEdiatable"
             :permission="data.permission.alert_shield_create"
             text
             theme="primary"
             @click="() => handleOpenShieldAlarms('clone', data)">
             {{ t('克隆') }}
           </AuthButton>
+          <BkButton
+            v-if="isExpired"
+            disabled
+            text
+            theme="primary">
+            {{ t('解除') }}
+          </BkButton>
           <BkPopConfirm
+            v-else
             :confirm-text="t('解除')"
             :title="t('确认解除该告警屏蔽？')"
             trigger="click"
@@ -172,7 +186,6 @@
             <AuthButton
               action-id="alert_shield_manage"
               :biz-id="data.bk_biz_id"
-              :disabled="isExpired"
               :permission="data.permission.alert_shield_manage"
               text
               theme="primary">
@@ -234,14 +247,14 @@
   const route = useRoute();
   const handleBeforeClose = useBeforeClose();
 
+  const tableRef = ref<InstanceType<typeof DbTable>>();
+  const searchOperationRef = ref<InstanceType<typeof SearchOperation>>();
   const editMode = ref('edit');
   const showShieldAlarm = ref(false);
   const filterValue = ref(route.query.is_active ? Number(route.query.is_active) : 1);
   const shieldingCount = ref(0);
   const expiredCount = ref(0);
   const currentAlarmShield = ref<RowData>();
-  const tableRef = ref<InstanceType<typeof DbTable>>();
-  const searchOperationRef = ref<InstanceType<typeof SearchOperation>>();
   const policyMap = ref<Record<number, string>>({});
 
   const selectionList = shallowRef<RowData[]>([]);
@@ -262,6 +275,8 @@
 
   const isExpired = computed(() => filterValue.value === 0);
 
+  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
+
   const editModeTitleMap: Record<string, string> = {
     clone: t('克隆'),
     create: t('新建'),
@@ -276,17 +291,13 @@
       label: t('基于维度屏蔽'),
       value: 'dimension',
     },
-    // {
-    //   label: t('基于主机屏蔽'),
-    //   value: 'scope',
-    // },
     {
       label: t('基于策略屏蔽'),
       value: 'strategy',
     },
   ];
   const searchDataKeys = ['category', 'content', 'updator', 'time_range'];
-  const columnFilterParams: Record<string, any> = {};
+  const columnFilterParams: Record<string, string> = {};
 
   const { run: unlockAlarmShield } = useRequest(disabledAlarmShield, {
     manual: true,

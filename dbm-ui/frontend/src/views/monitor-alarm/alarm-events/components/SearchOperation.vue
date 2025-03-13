@@ -194,8 +194,10 @@
     return baseValue;
   };
 
-  const startTime = dayjs().subtract(6, 'day').format('YYYY-MM-DD HH:mm:ss');
-  const endTime = dayjs().format('YYYY-MM-DD HH:mm:ss');
+  const dbList = Object.values(DBTypeInfos);
+  const dateFormatStr = 'YYYY-MM-DD HH:mm:ss';
+  const startTime = dayjs().subtract(6, 'day').format(dateFormatStr);
+  const endTime = dayjs().format(dateFormatStr);
 
   const filterData = ref<Record<string, any>>({
     end_time: endTime,
@@ -212,8 +214,6 @@
     }
     return baseSelect as ISearchItem[];
   });
-
-  const dbList = Object.values(DBTypeInfos);
 
   watch(
     filterData,
@@ -244,11 +244,9 @@
       return;
     }
     isInit = false;
-    // 批量参数统一用,分隔符，展示的分隔符统一成 |
     const handledValueList: ISearchValue[] = [];
     valueList.forEach((item) => {
       if (!['cluster_domain', 'ip'].includes(item.id)) {
-        // 原样返回
         handledValueList.push(item);
         return;
       }
@@ -276,7 +274,6 @@
         end_time: endTime,
         start_time: startTime,
       };
-      console.log('filterData.value == ', filterData.value);
       return;
     }
     const handledValueMap = handledValueList.reduce<Record<string, ISearchValue>>((results, item) => {

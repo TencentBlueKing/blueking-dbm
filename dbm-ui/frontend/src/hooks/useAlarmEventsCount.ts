@@ -26,8 +26,9 @@ export const useAlarmEventsCount = () => {
   const assitCount = ref(0);
 
   const initCount = () => {
-    const startTime = dayjs().subtract(7, 'day').format('YYYY-MM-DD HH:mm:ss');
-    const endTime = dayjs().format('YYYY-MM-DD HH:mm:ss');
+    const dateFormatStr = 'YYYY-MM-DD HH:mm:ss';
+    const startTime = dayjs().subtract(7, 'day').format(dateFormatStr);
+    const endTime = dayjs().format(dateFormatStr);
     Promise.all([
       getAlarmEventsList({
         end_time: endTime,

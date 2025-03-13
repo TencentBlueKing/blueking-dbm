@@ -199,7 +199,6 @@
               {{ t('屏蔽告警') }}
             </BkButton>
           </template>
-
           <BkButton
             class="ml-16"
             :disabled="!urls.BKMONITOR_URL"
@@ -275,9 +274,7 @@
       return results;
     }, {}),
   );
-
   const isCurrentEventShielded = computed(() => currentEvent.value?.is_shielded);
-
   const isTodoPage = computed(() => route.name === 'AlarmEventsTodo');
   const isGlobalPage = computed(() => route.name === 'AlarmEventsGlobal');
 
@@ -371,7 +368,7 @@
     'severity',
   ];
 
-  const columnFilterParams: Record<string, any> = {};
+  const columnFilterParams: Record<string, string> = {};
 
   watch(
     () => route.query,
@@ -410,12 +407,6 @@
         self_manage: true,
       });
     }
-    // if (!route.query.status) {
-    //   // 未选，默认设置未恢复状态
-    //   Object.assign(params, {
-    //     status: 'ABNORMAL',
-    //   });
-    // }
     if (route.query.bk_biz_id) {
       Object.assign(params, {
         bk_biz_id: Number(route.query.bk_biz_id),

@@ -16,6 +16,8 @@ import { utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
 
+type DimensionInfo = AlarmEvent['dimensions'][number] | undefined;
+
 export default class AlarmEvent {
   ack_duration: number;
   ack_operator: string;
@@ -169,9 +171,9 @@ export default class AlarmEvent {
   }
 
   get instance() {
-    let ipInfo: AlarmEvent['dimensions'][number] | undefined;
-    let hostInfo: AlarmEvent['dimensions'][number] | undefined;
-    let portInfo: AlarmEvent['dimensions'][number] | undefined;
+    let ipInfo: DimensionInfo;
+    let hostInfo: DimensionInfo;
+    let portInfo: DimensionInfo;
     this.dimensions.forEach((item) => {
       if (item.key === 'ip') {
         ipInfo = item;

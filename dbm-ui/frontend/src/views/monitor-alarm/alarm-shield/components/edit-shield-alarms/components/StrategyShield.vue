@@ -232,7 +232,6 @@
       width: 120px;
 
       :deep(.bk-input) {
-        // border-right: transparent;
         border-top-right-radius: 0;
         border-bottom-right-radius: 0;
       }
