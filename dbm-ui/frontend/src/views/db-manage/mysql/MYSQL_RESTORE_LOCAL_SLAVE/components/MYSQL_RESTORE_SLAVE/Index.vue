@@ -157,14 +157,14 @@
       {
         message: t('IP 重复'),
         trigger: 'change',
-        validator: (value: string, rowData: RowData) => {
+        validator: (value: string, { rowData }: { rowData: RowData }) => {
           return newSlaveCounter.value[rowData.newSlave.ip] <= 1;
         },
       },
       {
         message: t('IP 重复'),
         trigger: 'blur',
-        validator: (value: string, rowData: RowData) => {
+        validator: (value: string, { rowData }: { rowData: RowData }) => {
           return newSlaveCounter.value[rowData.newSlave.ip] <= 1;
         },
       },

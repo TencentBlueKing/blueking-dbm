@@ -68,6 +68,12 @@
 
   const props = defineProps<Props>();
 
+  const restoreBackupFile = defineModel<ServiceReturnType<typeof queryBackupLogs>[number]>('restoreBackupFile');
+
+  const resotreTime = defineModel<string>('restoreTime', {
+    default: '',
+  });
+
   const disableDate = (date: Date) => date && date.valueOf() > Date.now();
 
   const { t } = useI18n();
@@ -89,11 +95,6 @@
       value: 'time',
     },
   ];
-
-  const restoreBackupFile = defineModel<ServiceReturnType<typeof queryBackupLogs>[number]>('restoreBackupFile');
-  const resotreTime = defineModel<string>('restoreTime', {
-    default: '',
-  });
 
   const localRollbackTimeRef = ref<InstanceType<typeof TableEditDateTime>>();
   const localBackupFileRef = ref<InstanceType<typeof RecordSelector>>();

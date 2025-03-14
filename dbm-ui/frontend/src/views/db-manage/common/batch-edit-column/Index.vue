@@ -52,6 +52,7 @@
               allow-create
               :disabled="disabled"
               has-delete-icon
+              :max-data="single ? 1 : -1"
               :model-value="localValue"
               :paste-fn="tagInputPasteFn"
               @change="handleChange" />
@@ -61,6 +62,7 @@
               :disabled="disabled"
               :disabled-date="disableFn"
               :model-value="localValue"
+              style="width: 100%"
               type="datetime"
               @change="handleChange">
             </BkDatePicker>
@@ -84,6 +86,7 @@
     }[];
     disableFn?: (date?: Date | number) => boolean;
     placeholder?: string;
+    single?: boolean;
     title: string;
     titlePrefixType?: 'edit' | 'entry';
     type?: 'select' | 'textarea' | 'input' | 'taginput' | 'datetime' | 'number-input';
@@ -95,6 +98,7 @@
     dataList: () => [],
     disableFn: () => false,
     placeholder: '',
+    single: false,
     titlePrefixType: 'edit',
     type: 'select',
   });

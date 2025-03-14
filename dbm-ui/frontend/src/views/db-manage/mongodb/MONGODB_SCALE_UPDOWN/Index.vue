@@ -162,12 +162,10 @@
 
   useTicketDetail<Mongodb.ScaleUpdown>(TicketTypes.MONGODB_SCALE_UPDOWN, {
     onSuccess(ticketDetail) {
-      const { details, remark } = ticketDetail;
+      const { details } = ticketDetail;
       const { clusters, infos } = details;
       Object.assign(formData, {
-        payload: {
-          remark: remark,
-        },
+        payload: createTickePayload(ticketDetail),
         tableData: infos.map((item) => {
           const clusterItem = clusters[item.cluster_id];
           return createRowData({

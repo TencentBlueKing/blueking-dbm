@@ -30,7 +30,7 @@ export default [
         parentId: 'sql',
       },
       {
-        id: 'sqlServerDBRename',
+        id: TicketTypes.SQLSERVER_DBRENAME,
         name: t('DB重命名'),
         parentId: 'sql',
       },
@@ -42,7 +42,7 @@ export default [
   {
     children: [
       {
-        id: 'SqlServerDbBackup',
+        id: TicketTypes.SQLSERVER_BACKUP_DBS,
         name: t('库表备份'),
         parentId: 'copy',
       },
@@ -54,7 +54,8 @@ export default [
   {
     children: [
       {
-        id: 'sqlServerDBRollback',
+        id: TicketTypes.SQLSERVER_ROLLBACK,
+        // id: 'sqlServerDBRollback',
         name: t('定点构造'),
         parentId: 'fileback',
       },
@@ -103,7 +104,7 @@ export default [
         parentId: 'data',
       },
       {
-        id: 'sqlServerDBClear',
+        id: TicketTypes.SQLSERVER_CLEAR_DBS,
         name: t('清档'),
         parentId: 'data',
       },

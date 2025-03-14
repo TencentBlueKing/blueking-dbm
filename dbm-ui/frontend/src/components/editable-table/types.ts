@@ -7,5 +7,11 @@ export interface IRule {
   pattern?: RegExp;
   required?: boolean;
   trigger: string;
-  validator?: (value: any, rowData?: Record<string, any>) => Promise<boolean | string> | boolean | string;
+  validator?: (
+    value: any,
+    rowDataValue: {
+      rowData: Record<string, any>;
+      rowIndex: number;
+    },
+  ) => Promise<boolean | string> | boolean | string;
 }

@@ -9,9 +9,11 @@
     clearable
     has-delete-icon
     @blur="handleBlur"
+    @change="handleChange"
     @focus="handleFocus" />
 </template>
 <script setup lang="ts" generic="T extends string[] | number[] | string | number">
+  import _ from 'lodash';
   import { watch } from 'vue';
 
   import useColumn from '../useColumn';
@@ -30,14 +32,17 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits<T>>();
 
+  const modelValue = defineModel<T>();
+
   const attrs = useAttrs();
 
   const columnContext = useColumn();
 
-  const modelValue = defineModel<T>();
-
-  watch(modelValue, () => {
-    columnContext?.validate('change');
+  watch(modelValue, (newValue, oldValue) => {
+    // 对于引用类型，实际值变化才校验
+    if (!_.isEqual(newValue, oldValue)) {
+      columnContext?.validate('change');
+    }
   });
 
   const handleBlur = () => {
@@ -49,6 +54,10 @@
   const handleFocus = () => {
     columnContext?.focus();
     emits('focus');
+  };
+
+  const handleChange = () => {
+    emits('change', modelValue.value as T);
   };
 </script>
 <style lang="less">

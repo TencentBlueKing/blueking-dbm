@@ -144,10 +144,10 @@
     [TicketTypes.REDIS_SINGLE_INS_MIGRATE]: 'RedisMigrate', // Redis 主从迁移
     [TicketTypes.REDIS_VERSION_UPDATE_ONLINE]: 'RedisVersionUpgrade', // redis 版本升级
     [TicketTypes.SQLSERVER_ADD_SLAVE]: TicketTypes.SQLSERVER_ADD_SLAVE, // sqlserver 添加从库
-    [TicketTypes.SQLSERVER_BACKUP_DBS]: 'SqlServerDbBackup', // sqlserver 库备份
-    [TicketTypes.SQLSERVER_CLEAR_DBS]: 'sqlServerDBClear', // sqlserver 清档
+    [TicketTypes.SQLSERVER_BACKUP_DBS]: TicketTypes.SQLSERVER_BACKUP_DBS, // sqlserver 库备份
+    [TicketTypes.SQLSERVER_CLEAR_DBS]: TicketTypes.SQLSERVER_CLEAR_DBS, // sqlserver 清档
     [TicketTypes.SQLSERVER_DATA_MIGRATE]: 'sqlServerDataMigrate', // sqlserver 数据迁移
-    [TicketTypes.SQLSERVER_DBRENAME]: 'sqlServerDBRename', // sqlserver DB重命名
+    [TicketTypes.SQLSERVER_DBRENAME]: TicketTypes.SQLSERVER_DBRENAME, // sqlserver DB重命名
     [TicketTypes.SQLSERVER_FULL_MIGRATE]: 'sqlServerDataMigrate', // sqlserver 全库迁移
     [TicketTypes.SQLSERVER_IMPORT_SQLFILE]: 'sqlServerExecute', // sqlserver 变更SQL执行
     [TicketTypes.SQLSERVER_INCR_MIGRATE]: 'sqlServerDataMigrate', // sqlserver 增量迁移
@@ -155,7 +155,7 @@
     [TicketTypes.SQLSERVER_MASTER_SLAVE_SWITCH]: 'sqlServerMasterSlaveSwap', // sqlserver 主从互切
     [TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE]: TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE, // sqlserver 重建从库_原地重建
     [TicketTypes.SQLSERVER_RESTORE_SLAVE]: TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE, // sqlserver 重建从库_新机重建
-    [TicketTypes.SQLSERVER_ROLLBACK]: 'sqlServerDBRollback', // sqlserver 定点构造
+    [TicketTypes.SQLSERVER_ROLLBACK]: TicketTypes.SQLSERVER_ROLLBACK, // sqlserver 定点构造
     [TicketTypes.TENDBCLUSTER_APPLY]: 'spiderApply', // spider 集群部署
     [TicketTypes.TENDBCLUSTER_AUTHORIZE_RULES]: 'spiderPermission',
     [TicketTypes.TENDBCLUSTER_CHECKSUM]: 'spiderChecksum', // Spider checksum

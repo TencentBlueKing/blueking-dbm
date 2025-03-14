@@ -100,14 +100,7 @@ const toolboxRouters: RouteRecordRaw[] = [
         },
         component: () => import('@views/db-manage/sqlserver/sql-execute/index.vue'),
       },
-      {
-        path: 'db-rename/:page?',
-        name: 'sqlServerDBRename',
-        meta: {
-          navName: t('DB重命名'),
-        },
-        component: () => import('@views/db-manage/sqlserver/db-rename/Index.vue'),
-      },
+      createRouteItem(TicketTypes.SQLSERVER_DBRENAME, t('DB重命名')),
       createRouteItem(TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE, t('重建从库')),
       createRouteItem(TicketTypes.SQLSERVER_ADD_SLAVE, t('添加从库')),
       {
@@ -126,30 +119,17 @@ const toolboxRouters: RouteRecordRaw[] = [
         },
         component: () => import('@views/db-manage/sqlserver/master-failover/index.vue'),
       },
-      {
-        path: 'db-clear/:page?',
-        name: 'sqlServerDBClear',
-        meta: {
-          navName: t('清档'),
-        },
-        component: () => import('@views/db-manage/sqlserver/db-clear/Index.vue'),
-      },
-      {
-        path: 'rollback/:page?',
-        name: 'sqlServerDBRollback',
-        meta: {
-          navName: t('定点回档'),
-        },
-        component: () => import('@views/db-manage/sqlserver/rollback/Index.vue'),
-      },
-      {
-        path: 'db-backup/:page?',
-        name: 'SqlServerDbBackup',
-        meta: {
-          navName: t('数据库备份'),
-        },
-        component: () => import('@views/db-manage/sqlserver/db-backup/Index.vue'),
-      },
+      createRouteItem(TicketTypes.SQLSERVER_CLEAR_DBS, t('清档')),
+      // {
+      //   path: 'rollback/:page?',
+      //   name: 'sqlServerDBRollback',
+      //   meta: {
+      //     navName: t('定点回档'),
+      //   },
+      //   component: () => import('@views/db-manage/sqlserver/rollback/Index.vue'),
+      // },
+      createRouteItem(TicketTypes.SQLSERVER_ROLLBACK, t('定点回档')),
+      createRouteItem(TicketTypes.SQLSERVER_BACKUP_DBS, t('数据库备份')),
       {
         path: 'data-migrate/:page?',
         name: 'sqlServerDataMigrate',
