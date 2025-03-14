@@ -246,7 +246,6 @@
   export type RowData = ServiceReturnType<typeof getAlarmEventsList>['results'][number];
 
   const { t } = useI18n();
-  const router = useRouter();
   const route = useRoute();
   const globalBizStore = useGlobalBizs();
   const { urls } = useSystemEnviron();
@@ -257,6 +256,32 @@
   const activeLevel = ref(0);
   const searchOperationRef = ref<InstanceType<typeof SearchOperation>>();
   const createShieldAlarmsRef = ref<InstanceType<typeof ShieldAlarms>>();
+  const severityList = ref([
+    {
+      count: 0,
+      iconColor: '',
+      name: t('全部'),
+      value: 0,
+    },
+    {
+      count: 0,
+      iconColor: '#3A84FF',
+      name: t('提醒'),
+      value: 3,
+    },
+    {
+      count: 0,
+      iconColor: '#F59500',
+      name: t('预警'),
+      value: 2,
+    },
+    {
+      count: 0,
+      iconColor: '#EA3636',
+      name: t('致命'),
+      value: 1,
+    },
+  ]);
 
   const selectionList = shallowRef<RowData[]>([]);
   const currentEvent = shallowRef<RowData>();
@@ -307,33 +332,6 @@
     },
   ];
 
-  const severityList = ref([
-    {
-      count: 0,
-      iconColor: '',
-      name: t('全部'),
-      value: 0,
-    },
-    {
-      count: 0,
-      iconColor: '#3A84FF',
-      name: t('提醒'),
-      value: 3,
-    },
-    {
-      count: 0,
-      iconColor: '#F59500',
-      name: t('预警'),
-      value: 2,
-    },
-    {
-      count: 0,
-      iconColor: '#EA3636',
-      name: t('致命'),
-      value: 1,
-    },
-  ]);
-
   const tableSetting = {
     checked: [
       'alert_name',
@@ -363,57 +361,46 @@
     'severity',
   ];
 
+  const searchValue: Record<string, string> = {};
   const columnFilterParams: Record<string, string> = {};
 
-  watch(
-    () => route.query,
-    () => {
-      if (!Object.keys(route.query).length) {
-        return;
-      }
+  const triggerSearch = () => {
+    tableRef.value?.fetchData({
+      bk_biz_id: undefined,
+      ...searchValue,
+    });
+  };
 
-      updateTableData();
-    },
-    {
-      deep: true,
-    },
-  );
-
-  const updateTableData = () => {
-    const params = route.query;
+  const initURLParmasToSearchValue = () => {
     if (!isTodoPage.value && !isGlobalPage.value) {
-      Object.assign(params, {
+      Object.assign(searchValue, {
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       });
     }
     // 平台管理页鉴权标记
     if (isGlobalPage.value) {
-      Object.assign(params, {
+      Object.assign(searchValue, {
         platform: true,
       });
     }
     if (route.query.self_assist) {
-      Object.assign(params, {
+      Object.assign(searchValue, {
         self_assist: true,
       });
     }
     if (route.query.self_manage || (!route.query.self_manage && !route.query.self_assist && isTodoPage.value)) {
-      Object.assign(params, {
+      Object.assign(searchValue, {
         self_manage: true,
       });
     }
     if (route.query.bk_biz_id) {
-      Object.assign(params, {
+      Object.assign(searchValue, {
         bk_biz_id: Number(route.query.bk_biz_id),
       });
     }
-    setTimeout(() => {
-      tableRef.value?.fetchData({
-        bk_biz_id: undefined,
-        ...params,
-      });
-    });
   };
+
+  initURLParmasToSearchValue();
 
   const handleRequestSuccess = (data: ServiceReturnType<typeof getAlarmEventsList>) => {
     const severityInfo = data.aggs.find((item) => item.id === 'severity');
@@ -445,13 +432,11 @@
 
   const handleSelectLevel = (level: number) => {
     activeLevel.value = level;
-    router.push({
-      name: route.name,
-      query: {
-        ...route.query,
-        severity: level ? level : undefined,
-      },
+    Object.assign(searchValue, {
+      severity: level ? level : undefined,
     });
+
+    triggerSearch();
   };
 
   const handleOpenShieldAlarms = (isEnable = true, data: RowData) => {
@@ -479,30 +464,32 @@
     } else {
       delete columnFilterParams[data.field];
     }
-    tableRef.value?.fetchData({
-      bk_biz_id: undefined,
-      ...route.query,
-      ...columnFilterParams,
+    const filterKeys = ['stage', 'status'];
+    filterKeys.forEach((key) => {
+      if (!columnFilterParams[key]) {
+        delete searchValue[key];
+        return;
+      }
+
+      searchValue[key] = columnFilterParams[key];
     });
+
+    triggerSearch();
   };
 
   const handleSearchChange = (data: Record<string, string>) => {
     const searchData = _.cloneDeep(data);
-    const query = _.cloneDeep(route.query);
-    Object.keys(route.query).forEach((key) => {
+    Object.keys(searchValue).forEach((key) => {
       if (!searchData[key] && searchDataKeys.includes(key)) {
         // searchselect 删除的项
-        delete query[key];
+        delete searchValue[key];
       } else if (searchData[key]) {
-        query[key] = searchData[key];
+        searchValue[key] = searchData[key];
         delete searchData[key];
       }
     });
-    Object.assign(query, searchData);
-    router.push({
-      name: route.name,
-      query,
-    });
+    Object.assign(searchValue, searchData);
+    triggerSearch();
   };
 
   const handleClosed = () => {
@@ -538,7 +525,6 @@
 
   const handleShieldSuccess = () => {
     currentEvent.value!.is_shielded = true;
-    // updateTableData();
   };
 </script>
 <style lang="less" scoped>

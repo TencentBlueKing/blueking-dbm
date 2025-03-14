@@ -3,6 +3,7 @@
     <ShieldDateTimePicker
       class="shield-date-picker"
       clearable
+      mode="previous"
       :model-value="filterDateRange"
       :placeholder="t('搜索屏蔽开始时间')"
       @change="handleDateTimeChange"
@@ -11,7 +12,6 @@
       v-model="searchValue"
       class="search-select"
       :data="searchSelectData"
-      :get-menu-list="getMenuList"
       :placeholder="t('搜索屏蔽类型')"
       unique-select
       @change="handleSearchValueChange" />
@@ -21,11 +21,7 @@
   import type { ISearchItem, ISearchValue } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
 
-  import { getUserList } from '@services/source/user';
-
   import ShieldDateTimePicker from '@views/monitor-alarm/common/ShieldDateTimePicker.vue';
-
-  import { getMenuListSearch } from '@utils';
 
   type Emits = (e: 'search', value: Record<string, string>) => void;
 
@@ -36,38 +32,78 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+  const route = useRoute();
 
-  const filterData = ref<Record<string, string>>({});
-  const filterDateRange = ref<[string, string]>(['', '']);
-  const searchValue = ref<ISearchValue[]>([]);
-
-  const searchSelectData = computed(
-    () =>
-      [
+  const searchSelectData = [
+    {
+      children: [
         {
-          children: [
+          id: 'alert',
+          name: t('基于事件屏蔽'),
+        },
+        {
+          id: 'dimension',
+          name: t('基于维度屏蔽'),
+        },
+        {
+          id: 'strategy',
+          name: t('基于策略屏蔽'),
+        },
+      ],
+      id: 'category',
+      name: t('屏蔽类型'),
+    },
+  ] as ISearchItem[];
+
+  const initSearchValue = () =>
+    searchSelectData.reduce<ISearchValue[]>((results, item) => {
+      const id = route.query[item.id] as string;
+      if (id) {
+        let name = id;
+        if (item.children) {
+          const targetName = item.children.find((child) => child.id === id)?.name;
+          if (targetName) {
+            name = targetName;
+          }
+        }
+        results.push({
+          ...item,
+          values: [
             {
-              id: 'alert',
-              name: t('基于事件屏蔽'),
-            },
-            {
-              id: 'dimension',
-              name: t('基于维度屏蔽'),
-            },
-            // {
-            //   id: 'scope',
-            //   name: t('基于主机屏蔽'),
-            // },
-            {
-              id: 'strategy',
-              name: t('基于策略屏蔽'),
+              id,
+              name,
             },
           ],
-          id: 'category',
-          name: t('屏蔽类型'),
-        },
-      ] as ISearchItem[],
-  );
+        });
+      }
+      return results;
+    }, []);
+
+  const initDatetime = () => {
+    const timeStr = route.query.time_range as string;
+    if (timeStr) {
+      const [start, end] = timeStr.split('--');
+      return [start, end] as [string, string];
+    }
+
+    return ['', ''];
+  };
+
+  const initDateRange = initDatetime();
+
+  const initFilterData = (): Record<string, string> => {
+    if (initDateRange.every((item) => !!item)) {
+      return {
+        time_range: `${initDateRange[0]}--${initDateRange[1]}`,
+      };
+    }
+
+    return {};
+  };
+
+  const filterData = ref<Record<string, string>>(initFilterData());
+  const filterDateRange = ref<[string, string]>([initDateRange[0], initDateRange[1]]);
+  const searchValue = ref<ISearchValue[]>(initSearchValue());
 
   watch(
     filterData,
@@ -79,37 +115,6 @@
       immediate: true,
     },
   );
-
-  const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
-    if (item?.id !== 'updator' && keyword) {
-      return getMenuListSearch(item, keyword, searchSelectData.value, searchValue.value);
-    }
-
-    // 没有选中过滤标签
-    if (!item) {
-      // 过滤掉已经选过的标签
-      const selected = (searchValue.value || []).map((value) => value.id);
-      return searchSelectData.value.filter((item) => !selected.includes(item.id));
-    }
-
-    // 远程加载执行人
-    if (item.id === 'updator') {
-      if (!keyword) {
-        return [];
-      }
-      return getUserList({
-        fuzzy_lookups: keyword,
-      }).then((res) =>
-        res.results.map((item) => ({
-          id: item.username,
-          name: item.username,
-        })),
-      );
-    }
-
-    // 不需要远层加载
-    return searchSelectData.value.find((set) => set.id === item.id)?.children || [];
-  };
 
   const handleDateTimeChange = (value: [string, string]) => {
     filterDateRange.value = value;
@@ -125,9 +130,7 @@
 
   const handleSearchValueChange = (valueList: ISearchValue[]) => {
     if (!valueList.length) {
-      filterData.value = {
-        time_range: filterData.value.time_range,
-      };
+      filterData.value = initFilterData();
       return;
     }
 
