@@ -86,13 +86,13 @@
       }
       const domainCounter: Record<string, number> = {};
       infos.forEach((item) => {
-        Object.entries(item.old_nodes).forEach(([key, value], index) => {
+        Object.entries(item.old_nodes).forEach(([role, hosts], index) => {
           const domain = clusters[item.cluster_ids[0]]?.immute_domain;
           tableData.value.push({
             cluster_domain: clusters[item.cluster_ids[0]]?.immute_domain || '--',
-            ip: value[0].ip,
-            role: key,
-            spec: specs[value[0].spec_id] || {},
+            ip: hosts[0].ip,
+            role,
+            spec: specs[hosts[0].spec_id] || {},
           });
           domainCounter[domain] = (domainCounter[domain] || 0) + 1;
           if (domainCounter[domain] > 1) {

@@ -133,7 +133,7 @@
         if (params.nodes.length) {
           InfoBox({
             cancelText: t('取消'),
-            confirmText: t('禁用'),
+            confirmText: t('确认'),
             contentAlign: 'left',
             footerAlign: 'center',
             headerAlign: 'center',
@@ -144,7 +144,7 @@
                 details: {
                   bk_cloud_id: props.data.bk_cloud_id,
                   cluster_id: props.data.id,
-                  nodes: selectedList.map((nodeItem: RiakNodeModel) => ({
+                  old_nodes: selectedList.map((nodeItem: RiakNodeModel) => ({
                     bk_biz_id: currentBizId,
                     bk_cloud_id: nodeItem.bk_cloud_id,
                     bk_host_id: nodeItem.bk_host_id,
