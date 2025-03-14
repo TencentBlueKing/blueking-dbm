@@ -122,12 +122,12 @@
       update_mode: string;
     };
     cluster: {
-      cluster_spec?: RedisModel['cluster_spec'];
-      cluster_stats?: RedisModel['cluster_stats'];
       group_num: RedisModel['machine_pair_cnt'];
       shard_num: RedisModel['cluster_shard_num'];
     } & Pick<
       RedisModel,
+      | 'cluster_stats'
+      | 'cluster_spec'
       | 'id'
       | 'master_domain'
       | 'cluster_type'
@@ -163,9 +163,11 @@
     cluster: data.cluster || {
       bk_cloud_id: 0,
       cluster_capacity: 0,
+      cluster_spec: {} as RedisModel['cluster_spec'],
+      cluster_stats: {} as RedisModel['cluster_stats'],
       cluster_type: ClusterTypes.REDIS_CLUSTER,
       cluster_type_name: '',
-      disaster_tolerance_level: 'CROS_SUBZONE',
+      disaster_tolerance_level: Affinity.CROS_SUBZONE,
       group_num: 0,
       id: 0,
       major_version: '',
@@ -249,8 +251,8 @@
           display_info: {
             cluster_capacity: item.currentCapacity.total,
             cluster_shard_num: item.cluster.shard_num,
-            cluster_spec: item.cluster?.cluster_spec,
-            cluster_stats: item.cluster?.cluster_stats,
+            cluster_spec: item.cluster.cluster_spec,
+            cluster_stats: item.cluster.cluster_stats,
             machine_pair_cnt: item.cluster.group_num,
           },
           future_capacity: item.backendGroup.future_capacity,
