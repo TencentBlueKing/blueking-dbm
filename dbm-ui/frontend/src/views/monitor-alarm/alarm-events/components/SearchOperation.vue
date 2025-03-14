@@ -17,6 +17,7 @@
     </BkSelect>
     <ShieldDateTimePicker
       class="shield-date-picker"
+      mode="previous"
       :model-value="filterDateRange"
       @change="handleDateTimeChange"
       @finish="handleDateTimePick" />
@@ -196,7 +197,7 @@
 
   const dbList = Object.values(DBTypeInfos);
   const dateFormatStr = 'YYYY-MM-DD HH:mm:ss';
-  const startTime = dayjs().subtract(6, 'day').format(dateFormatStr);
+  const startTime = dayjs().subtract(7, 'day').format(dateFormatStr);
   const endTime = dayjs().format(dateFormatStr);
 
   const filterData = ref<Record<string, any>>({
