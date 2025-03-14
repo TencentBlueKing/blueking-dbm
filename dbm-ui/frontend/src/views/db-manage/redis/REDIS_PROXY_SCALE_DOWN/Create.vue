@@ -53,7 +53,7 @@
             v-model:host-list="item.host.host_list"
             v-model:select-method="item.host.select_method"
             :cluster-type="ClusterTypes.REDIS"
-            :count="item.cluster.proxy_count"
+            :count="item.cluster.proxyCount"
             field="host.select_method"
             :tab-list-config="tabListConfig" />
           <EditableColumn
@@ -74,11 +74,11 @@
             </div>
           </EditableColumn>
           <EditableColumn
-            field="switch_mode"
+            field="online_switch_type"
             :label="t('切换模式')"
             :min-width="150">
             <EditableSelect
-              v-model="item.switch_mode"
+              v-model="item.online_switch_type"
               :disabled="item.host.select_method === SELECT_METHODS.MANUAL"
               :input-search="false"
               :list="switchModeOptions" />
@@ -116,8 +116,9 @@
   import { useI18n } from 'vue-i18n';
 
   import RedisModel from '@services/model/redis/redis';
+  import type { Redis } from '@services/model/ticket/ticket';
 
-  import { useCreateTicket } from '@hooks';
+  import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
@@ -136,7 +137,7 @@
       cluster_type_name: string;
       id: number;
       master_domain: string;
-      proxy_count: number;
+      proxyCount: number;
       role: string;
     };
     count: string;
@@ -149,7 +150,7 @@
       }[];
       select_method: string;
     };
-    switch_mode: string;
+    online_switch_type: string;
   }
 
   const { t } = useI18n();
@@ -187,7 +188,7 @@
       cluster_type_name: '',
       id: 0,
       master_domain: '',
-      proxy_count: 0,
+      proxyCount: 0,
       role: '',
     },
     count: data.count || '',
@@ -195,7 +196,7 @@
       host_list: [],
       select_method: '',
     },
-    switch_mode: data.switch_mode || '',
+    online_switch_type: data.online_switch_type || '',
   });
 
   const defaultData = () => ({
@@ -205,7 +206,9 @@
 
   const formData = reactive(defaultData());
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
+  const selectedMap = computed(() =>
+    Object.fromEntries(formData.tableData.map((cur) => [cur.cluster.master_domain, true])),
+  );
 
   const switchModeOptions = [
     {
@@ -217,6 +220,35 @@
       value: 'no_confirm',
     },
   ];
+
+  useTicketDetail<Redis.ResourcePool.ProxyScaleDown>(TicketTypes.REDIS_PROXY_SCALE_DOWN, {
+    onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+      const { clusters, infos } = details;
+      Object.assign(formData, {
+        ...createTickePayload(ticketDetail),
+        tableData: infos.map((item) => {
+          const clusterInfo = clusters[item.cluster_id];
+          return createTableRow({
+            cluster: {
+              cluster_type_name: clusterInfo.cluster_type_name,
+              id: clusterInfo.id,
+              master_domain: clusterInfo.immute_domain,
+              proxyCount: 0,
+              role: 'Proxy',
+            },
+            count: `${item.target_proxy_count}`,
+            host: {
+              host_list: item.old_nodes.proxy_reduced_hosts,
+              select_method:
+                item.old_nodes.proxy_reduced_hosts.length > 0 ? SELECT_METHODS.MANUAL : SELECT_METHODS.AUTO,
+            },
+            online_switch_type: item.online_switch_type,
+          });
+        }),
+      });
+    },
+  });
 
   interface TicketDetail {
     infos: {
@@ -249,13 +281,13 @@
         infos: formData.tableData.map((item) => {
           const info: TicketDetail['infos'][0] = {
             cluster_id: item.cluster.id,
-            online_switch_type: item.switch_mode,
+            online_switch_type: item.online_switch_type,
           };
 
           if (item.host.host_list.length) {
             info.old_nodes = { proxy_reduced_hosts: item.host.host_list };
           } else if (item.count) {
-            info.target_proxy_count = item.cluster.proxy_count - Number(item.count);
+            info.target_proxy_count = item.cluster.proxyCount - Number(item.count);
           }
 
           return info;
@@ -279,19 +311,19 @@
               cluster_type_name: item.cluster_type_name,
               id: item.id,
               master_domain: item.master_domain,
-              proxy_count: item.proxy.length,
+              proxyCount: item.proxyCount,
               role: 'Proxy',
             },
             host: {
               host_list: [],
               select_method: SELECT_METHODS.AUTO,
             },
-            switch_mode: 'user_confirm',
+            online_switch_type: 'user_confirm',
           }),
         );
       }
       return acc;
     }, []);
-    formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
   };
 </script>

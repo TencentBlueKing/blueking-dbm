@@ -48,8 +48,6 @@
 
   import { useTicketMessage } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
-
   import { TicketTypes } from '@common/const';
 
   import HostShrink, { type TShrinkNode } from '@views/db-manage/common/host-shrink/Index.vue';
@@ -85,10 +83,7 @@
   });
 
   const { t } = useI18n();
-  const globalBizsStore = useGlobalBizs();
   const ticketMessage = useTicketMessage();
-
-  const bizId = globalBizsStore.currentBizId;
 
   const nodeStatusList = [
     {
@@ -135,7 +130,7 @@
 
     isLoading.value = true;
     getDorisNodeList({
-      bk_biz_id: globalBizsStore.currentBizId,
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       cluster_id: props.data.id,
       no_limit: 1,
     })
@@ -307,12 +302,6 @@
               Object.entries(nodeInfoMap).reduce(
                 (results, [key, item]) => {
                   const obj = {
-                    host_list: item.nodeList.map((item) => ({
-                      alive: item.status,
-                      bk_disk: item.disk,
-                      ip: item.ip,
-                    })),
-                    // target_disk: item.targetDisk,
                     shrink_disk: item.shrinkDisk,
                     total_disk: item.totalDisk,
                     total_hosts: item.originalNodeList.length,
@@ -326,7 +315,7 @@
               );
 
             createTicket({
-              bk_biz_id: bizId,
+              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
               details: {
                 cluster_id: props.data.id,
                 ext_info: generateExtInfo(),

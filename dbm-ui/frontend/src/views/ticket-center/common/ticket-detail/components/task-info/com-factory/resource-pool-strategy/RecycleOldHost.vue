@@ -12,65 +12,35 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.recycle_hosts">
-    <BkTableColumn
-      field="ip"
-      fixed="left"
-      label="IP"
-      :min-width="150" />
-    <BkTableColumn
-      field="bk_cloud_name"
-      :label="t('管控区域')"
-      :min-width="120" />
-    <BkTableColumn
-      field="status"
-      :label="t('Agent 状态')"
-      :min-width="120">
-      <template #default="{ data }">
-        <HostAgentStatus :data="data.status" />
-      </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="city"
-      :label="t('地域')"
-      :min-width="120">
-      <template #default="{ data }">
-        {{ data.city || '--' }}
-      </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="sub_zone"
-      :label="t('园区')"
-      :min-width="120">
-      <template #default="{ data }">
-        {{ data.sub_zone || '--' }}
-      </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="rack_id"
-      :label="t('机架')"
-      :min-width="120">
-      <template #default="{ data }">
-        {{ data.rack_id || '--' }}
-      </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="bk_os_name"
-      :label="t('操作系统')"
-      :min-width="120">
-      <template #default="{ data }">
-        {{ data.bk_os_name || '--' }}
-      </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="device_class"
-      :label="t('机型')"
-      :min-width="120">
-      <template #default="{ data }">
-        {{ data.device_class || '--' }}
-      </template>
-    </BkTableColumn>
-  </BkTable>
+  <InfoList>
+    <InfoItem :label="t('DB类型')">
+      {{ ticketDetails.details.group }}
+    </InfoItem>
+    <InfoItem :label="t('前置单据')">
+      <RouterLink
+        target="_blank"
+        :to="{
+          name: 'bizTicketManage',
+          params: {
+            ticketId: `${ticketDetails.details.parent_ticket}`,
+          },
+        }">
+        {{ ticketDetails.details.parent_ticket }}
+      </RouterLink>
+    </InfoItem>
+  </InfoList>
+  <RecycleHostCard
+    :data="ticketDetails.details.fault_hosts"
+    :title="t('转入故障池')" />
+  <RecycleHostCard
+    :data="ticketDetails.details.recycle_hosts"
+    :title="t('转入待回收池')" />
+  <RecycleHostCard
+    :data="ticketDetails.details.resource_hosts"
+    :title="t('退回资源池')" />
+  <RecycleHostCard
+    :data="ticketDetails.details.recycled_hosts"
+    :title="t('回收')" />
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -79,7 +49,9 @@
 
   import { TicketTypes } from '@common/const';
 
-  import HostAgentStatus from '@components/host-agent-status/Index.vue';
+  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+
+  import RecycleHostCard from './RecycleHostCard.vue';
 
   interface Props {
     ticketDetails: TicketModel<Common.ResourcePoolRecycle>;

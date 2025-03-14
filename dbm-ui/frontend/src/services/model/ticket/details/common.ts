@@ -135,22 +135,29 @@ export interface ResourcePoolRecycleHost {
   operator: string;
   os_name: string;
   os_type: string;
+  rack_id: string;
   status: number;
+  sub_zone: string;
 }
 
 /**
  * 已下架主机再利用
  */
 export interface ResourcePoolRecycle extends DetailBase {
+  fault_hosts: ResourcePoolRecycleHost[]; // 转移到故障池机器
+  group: string; // 回收机器的组件类型
+  parent_ticket: number; // 关联的父单
+  recycle_hosts: ResourcePoolRecycleHost[]; // 转移到待回收的机器
+  recycled_hosts: ResourcePoolRecycleHost[]; // 转移到CC待回收的机器
+  resource_hosts: ResourcePoolRecycleHost[]; // 退回到资源池的机器
+}
+
+export interface ResourcePoolDetailBase extends DetailBase, Omit<ResourcePoolRecycle, 'group' | 'parent_ticket'> {
+  clusters: DetailClusters;
   ip_recycle: {
     for_biz: number;
     ip_dest: 'resource';
   };
-  recycle_hosts: ResourcePoolRecycleHost[];
-}
-
-export interface ResourcePoolDetailBase extends ResourcePoolRecycle {
-  clusters: DetailClusters;
   ip_source: 'resource_pool';
   specs: DetailSpecs;
 }

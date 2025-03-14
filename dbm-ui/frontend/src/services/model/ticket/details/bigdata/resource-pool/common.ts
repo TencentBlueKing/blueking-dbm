@@ -41,25 +41,3 @@ export interface ResourceSpec {
   slave: ResourceSpecItem;
   zookeeper: ResourceSpecItem;
 }
-
-interface ExtInfoItem {
-  expansion_disk: number;
-  host_list: HostInfo[];
-  shrink_disk: number;
-  target_disk: number;
-  total_disk: number;
-  total_hosts: number;
-}
-
-export interface ExtInfo {
-  broker: ExtInfoItem;
-  client: ExtInfoItem;
-  cold: ExtInfoItem;
-  datanode: ExtInfoItem;
-  hot: ExtInfoItem;
-  master: ExtInfoItem;
-  namenode: ExtInfoItem;
-  proxy: ExtInfoItem;
-  slave: ExtInfoItem;
-  zookeeper: ExtInfoItem;
-}

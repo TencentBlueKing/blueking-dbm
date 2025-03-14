@@ -71,14 +71,14 @@
     cluster_type_name: string;
     id?: number;
     master_domain: string;
-    proxy_count: number;
+    proxyCount: number;
     role: string;
   }>({
     default: () => ({
       cluster_type_name: '',
       id: undefined,
       master_domain: '',
-      proxy_count: 0,
+      proxyCount: 0,
       role: '',
     }),
   });
@@ -87,23 +87,17 @@
 
   const showSelector = ref(false);
   const selectedClusters = computed<Record<string, RedisModel[]>>(() => ({
-    [ClusterTypes.REDIS]: props.selected.map(
-      (item) =>
-        ({
-          id: item.id,
-          master_domain: item.master_domain,
-        }) as RedisModel,
-    ),
+    [ClusterTypes.REDIS]: props.selected as RedisModel[],
   }));
 
   const tabListConfig = {
     [ClusterTypes.REDIS]: {
-      disabledRowConfig: [
-        {
-          handler: (data: RedisModel) => data.proxy.length <= 2,
-          tip: t('数量不足，Proxy至少保留 2 台'),
-        },
-      ],
+      // disabledRowConfig: [
+      //   {
+      //     handler: (data: RedisModel) => data.proxy.length <= 2,
+      //     tip: t('数量不足，Proxy至少保留 2 台'),
+      //   },
+      // ],
       getResourceList: (params: ServiceParameters<typeof getRedisList>) =>
         getRedisList({
           cluster_type: [
@@ -149,7 +143,7 @@
           cluster_type_name: currentCluster.cluster_type_name,
           id: currentCluster.id,
           master_domain: currentCluster.master_domain,
-          proxy_count: currentCluster.proxy.length,
+          proxyCount: currentCluster.proxyCount,
           role: 'Proxy',
         };
       }
@@ -164,8 +158,8 @@
     modelValue.value = {
       cluster_type_name: '',
       id: undefined,
-      master_domain: '',
-      proxy_count: 0,
+      master_domain: value,
+      proxyCount: 0,
       role: '',
     };
     if (value) {
@@ -179,6 +173,16 @@
   const handleSelectorChange = (selected: Record<string, RedisModel[]>) => {
     emits('batch-edit', selected[ClusterTypes.REDIS]);
   };
+
+  watch(
+    () => modelValue.value.master_domain,
+    (value) => {
+      handleInputChange(value);
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 <style lang="less" scoped>
   .batch-host-select {

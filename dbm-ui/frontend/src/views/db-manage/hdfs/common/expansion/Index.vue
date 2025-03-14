@@ -63,8 +63,6 @@
 
   import { useTicketMessage } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
-
   import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import HostExpansion, { type TExpansionNode } from '@views/db-manage/common/host-expansion/Index.vue';
@@ -86,10 +84,7 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-  const globalBizsStore = useGlobalBizs();
   const ticketMessage = useTicketMessage();
-
-  const bizId = globalBizsStore.currentBizId;
 
   const nodeStatusList = [
     {
@@ -196,9 +191,7 @@
               Object.entries(nodeInfoMap).reduce(
                 (results, [key, item]) => {
                   const obj = {
-                    // target_disk: item.targetDisk,
                     expansion_disk: item.expansionDisk,
-                    host_list: item.hostList,
                     total_disk: item.totalDisk,
                     total_hosts: item.originalHostList.length,
                   };
@@ -215,6 +208,7 @@
                 hostList.map((hostItem) => ({
                   bk_biz_id: hostItem.dedicated_biz,
                   bk_cloud_id: hostItem.bk_cloud_id,
+                  bk_disk: hostItem.bk_disk,
                   bk_host_id: hostItem.bk_host_id,
                   ip: hostItem.ip,
                 }));
@@ -236,7 +230,7 @@
             }
 
             createTicket({
-              bk_biz_id: bizId,
+              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
               details: {
                 cluster_id: props.data.id,
                 ext_info: generateExtInfo(),

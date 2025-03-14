@@ -32,17 +32,17 @@
     </BkTableColumn>
     <BkTableColumn :label="t('角色类型')">
       <template #default="{ data }: { data: RowData }">
-        {{ nodeTypeText[getCurrentNode(data.old_nodes)] }}
-      </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('新节点IP')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.resource_spec[getCurrentNode(data.old_nodes) as keyof RowData['old_nodes']].hosts[0].ip }}
+        {{ nodeTypeText[getCurrentNode(data.old_nodes)] || '--' }}
       </template>
     </BkTableColumn>
     <BkTableColumn :label="t('被替换的节点IP')">
       <template #default="{ data }: { data: RowData }">
-        {{ data.old_nodes[getCurrentNode(data.old_nodes) as keyof RowData['old_nodes']][0].ip }}
+        {{ data.old_nodes[getCurrentNode(data.old_nodes) as keyof RowData['old_nodes']]?.[0]?.ip  || '--' }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('新节点IP')">
+      <template #default="{ data }: { data: RowData }">
+        {{ data.resource_spec[getCurrentNode(data.old_nodes) as keyof RowData['old_nodes']].hosts?.[0]?.ip || '--' }}
       </template>
     </BkTableColumn>
   </BkTable>
@@ -79,9 +79,9 @@
 
   const getCurrentNode = (nodes: RowData['old_nodes']) => {
     let currentNode = '';
-    Object.entries(nodes).forEach(([key, item]) => {
-      if (item.length) {
-        currentNode = key;
+    Object.entries(nodes).forEach(([node, hosts]) => {
+      if (hosts.length) {
+        currentNode = node;
       }
     });
     return currentNode;
