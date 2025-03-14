@@ -55,7 +55,9 @@
     <template #content-header>
       <RouterBack />
     </template>
-    <DbRouterView style="height: 100%" />
+    <DbRouterView
+      :key="route.name"
+      style="height: 100%" />
   </Layout>
   <SystemVersionLog v-model:is-show="isShowSystemVersionLog" />
 </template>
@@ -88,6 +90,7 @@
   const userProfileStore = useUserProfile();
   const { locale, t } = useI18n();
   const systemEnvironStore = useSystemEnviron();
+  const route = useRoute();
 
   const documentTitles: Record<string, string> = {
     en: 'DBM | Tencent BlueKing',

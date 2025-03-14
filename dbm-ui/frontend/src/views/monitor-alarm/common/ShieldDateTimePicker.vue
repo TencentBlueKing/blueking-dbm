@@ -53,6 +53,7 @@
   interface Props {
     clearable?: boolean;
     disabled?: boolean;
+    mode?: 'later' | 'previous';
     placeholder?: string;
   }
 
@@ -64,6 +65,7 @@
   const props = withDefaults(defineProps<Props>(), {
     clearable: false,
     disabled: false,
+    mode: 'later',
     placeholder: '',
   });
 
@@ -75,10 +77,14 @@
 
   const updateShortcutText = (data: { text: string }) => (shortcutText.value = data.text);
 
-  const getShortcutValue = (num: number, unit: ManipulateType) => {
+  const getShortcutValue = (num: number, unit: ManipulateType, isLater: boolean) => {
     const end = new Date();
     const start = new Date();
-    end.setTime(dayjs().add(num, unit).valueOf());
+    if (isLater) {
+      end.setTime(dayjs().add(num, unit).valueOf());
+    } else {
+      start.setTime(dayjs().subtract(num, unit).valueOf());
+    }
     return [start, end];
   };
 
@@ -90,49 +96,53 @@
   const displayValue = ref('');
 
   const isEmpty = computed(() => modelValue.value.every((item) => !item));
+  const isLaterMode = computed(() => props.mode === 'later');
 
-  const dateShortCut = [
-    {
-      onClick: updateShortcutText,
-      text: t('n分钟', { n: 30 }),
-      value: getShortcutValue(30, 'minute'),
-    },
-    {
-      onClick: updateShortcutText,
-      text: t('n小时', { n: 1 }),
-      value: getShortcutValue(60, 'minute'),
-    },
-    {
-      onClick: updateShortcutText,
-      text: t('n小时', { n: 12 }),
-      value: getShortcutValue(12, 'hour'),
-    },
-    {
-      onClick: updateShortcutText,
-      text: t('n天', { n: 1 }),
-      value: getShortcutValue(1, 'day'),
-    },
-    {
-      onClick: updateShortcutText,
-      text: t('n天', { n: 7 }),
-      value: getShortcutValue(7, 'day'),
-    },
-    {
-      onClick: updateShortcutText,
-      text: t('n个月', { n: 1 }),
-      value: getShortcutValue(1, 'month'),
-    },
-    {
-      onClick: updateShortcutText,
-      text: t('n个月', { n: 3 }),
-      value: getShortcutValue(3, 'month'),
-    },
-    {
-      onClick: updateShortcutText,
-      text: t('n个月', { n: 6 }),
-      value: getShortcutValue(6, 'month'),
-    },
-  ] as any;
+  const dateShortCut = computed(
+    () =>
+      [
+        {
+          onClick: updateShortcutText,
+          text: isLaterMode.value ? t('n分钟', { n: 30 }) : t('近n分钟', { n: 30 }),
+          value: getShortcutValue(30, 'minute', isLaterMode.value),
+        },
+        {
+          onClick: updateShortcutText,
+          text: isLaterMode.value ? t('1小时') : t('近1小时'),
+          value: getShortcutValue(60, 'minute', isLaterMode.value),
+        },
+        {
+          onClick: updateShortcutText,
+          text: isLaterMode.value ? t('n小时', { n: 12 }) : t('近n小时', { n: 12 }),
+          value: getShortcutValue(12, 'hour', isLaterMode.value),
+        },
+        {
+          onClick: updateShortcutText,
+          text: isLaterMode.value ? t('1天') : t('近1天'),
+          value: getShortcutValue(1, 'day', isLaterMode.value),
+        },
+        {
+          onClick: updateShortcutText,
+          text: isLaterMode.value ? t('n天', { n: 7 }) : t('近n天', { n: 7 }),
+          value: getShortcutValue(7, 'day', isLaterMode.value),
+        },
+        {
+          onClick: updateShortcutText,
+          text: isLaterMode.value ? t('1个月') : t('近1个月'),
+          value: getShortcutValue(1, 'month', isLaterMode.value),
+        },
+        {
+          onClick: updateShortcutText,
+          text: isLaterMode.value ? t('n个月', { n: 3 }) : t('近n个月', { n: 3 }),
+          value: getShortcutValue(3, 'month', isLaterMode.value),
+        },
+        {
+          onClick: updateShortcutText,
+          text: isLaterMode.value ? t('n个月', { n: 6 }) : t('近n个月', { n: 6 }),
+          value: getShortcutValue(6, 'month', isLaterMode.value),
+        },
+      ] as any,
+  );
 
   watch(
     modelValue,
