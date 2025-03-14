@@ -14,7 +14,7 @@
 <template>
   <EditableColumn
     :disabled-method="disabledMethod"
-    field="version"
+    field="db_version"
     :label="t('Redis版本')"
     :min-width="150"
     required>
@@ -68,8 +68,8 @@
 
   const versionList = ref<
     {
-      value: string;
       label: string;
+      value: string;
     }[]
   >([]);
 
@@ -93,9 +93,9 @@
     () => {
       if (props.cluster.id) {
         fetchVersions({
+          cluster_id: props.cluster.id,
           node_type: 'Backend',
           type: 'update',
-          cluster_id: props.cluster.id,
         });
       }
     },
@@ -105,7 +105,7 @@
   );
 
   const disabledMethod = (rowData?: any, field?: string) => {
-    if (field === 'version' && !rowData.cluster.id) {
+    if (field === 'db_version' && !rowData.cluster.id) {
       return t('请先选择集群');
     }
     return '';

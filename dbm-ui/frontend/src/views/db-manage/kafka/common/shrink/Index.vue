@@ -44,7 +44,7 @@
 
   import { useTicketMessage } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
+  import { TicketTypes } from '@common/const';
 
   import HostShrink, { type TShrinkNode } from '@views/db-manage/common/host-shrink/Index.vue';
   import NodeStatusList from '@views/db-manage/common/host-shrink/NodeStatusList.vue';
@@ -70,10 +70,7 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-  const globalBizsStore = useGlobalBizs();
   const ticketMessage = useTicketMessage();
-
-  const bizId = globalBizsStore.currentBizId;
 
   const nodeStatusList = [
     {
@@ -203,15 +200,33 @@
                 ip: hostItem.ip,
               }));
 
+            const generateExtInfo = () =>
+              Object.entries(nodeInfoMap).reduce(
+                (results, [key, item]) => {
+                  const obj = {
+                    shrink_disk: item.shrinkDisk,
+                    total_disk: item.totalDisk,
+                    total_hosts: item.originalNodeList.length,
+                  };
+                  Object.assign(results, {
+                    [key]: obj,
+                  });
+                  return results;
+                },
+                {} as Record<string, TNodeInfo>,
+              );
+
             createTicket({
-              bk_biz_id: bizId,
+              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
               details: {
                 cluster_id: props.data.id,
+                ext_info: generateExtInfo(),
+                ip_source: 'resource_pool',
                 old_nodes: {
                   broker: fomatHost(nodeInfoMap.broker.nodeList),
                 },
               },
-              ticket_type: 'KAFKA_SHRINK',
+              ticket_type: TicketTypes.KAFKA_SHRINK,
             }).then((data) => {
               ticketMessage(data.id);
               resolve('success');

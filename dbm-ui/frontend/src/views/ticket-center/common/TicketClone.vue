@@ -132,10 +132,10 @@
     [TicketTypes.REDIS_PLUGIN_DNS_UNBIND_CLB]: 'DatabaseRedisList', // Redis 解绑CLB
     [TicketTypes.REDIS_PROXY_CLOSE]: 'DatabaseRedisList', // Redis 集群禁用
     [TicketTypes.REDIS_PROXY_OPEN]: 'DatabaseRedisList', // Redis 集群启用
-    [TicketTypes.REDIS_PROXY_SCALE_DOWN]: 'RedisProxyScaleDown', // Redis 缩容接入层
+    [TicketTypes.REDIS_PROXY_SCALE_DOWN]: TicketTypes.REDIS_PROXY_SCALE_DOWN, // Redis 缩容接入层
     [TicketTypes.REDIS_PROXY_SCALE_UP]: 'RedisProxyScaleUp', // Redis 扩容接入层
     [TicketTypes.REDIS_PURGE]: 'DatabaseRedisList', // Redis 集群清档
-    [TicketTypes.REDIS_SCALE_UPDOWN]: 'RedisCapacityChange', // Redis 集群容量变更
+    [TicketTypes.REDIS_SCALE_UPDOWN]: TicketTypes.REDIS_SCALE_UPDOWN, // Redis 集群容量变更
     [TicketTypes.REDIS_SINGLE_INS_MIGRATE]: 'RedisMigrate', // Redis 主从迁移
     [TicketTypes.REDIS_VERSION_UPDATE_ONLINE]: 'RedisVersionUpgrade', // redis 版本升级
     [TicketTypes.SQLSERVER_ADD_SLAVE]: TicketTypes.SQLSERVER_ADD_SLAVE, // sqlserver 添加从库

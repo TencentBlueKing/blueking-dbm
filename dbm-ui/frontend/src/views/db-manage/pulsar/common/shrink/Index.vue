@@ -47,8 +47,6 @@
 
   import { useTicketMessage } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
-
   import { TicketTypes } from '@common/const';
 
   import HostShrink, { type TShrinkNode } from '@views/db-manage/common/host-shrink/Index.vue';
@@ -75,10 +73,7 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-  const globalBizsStore = useGlobalBizs();
   const ticketMessage = useTicketMessage();
-
-  const bizId = globalBizsStore.currentBizId;
 
   const nodeStatusList = [
     {
@@ -238,16 +233,33 @@
           onConfirm: () => {
             const fomatHost = (nodeList: TNodeInfo['nodeList'] = []) =>
               nodeList.map((hostItem) => ({
-                bk_biz_id: bizId,
                 bk_cloud_id: hostItem.bk_cloud_id,
                 bk_host_id: hostItem.bk_host_id,
                 ip: hostItem.ip,
               }));
 
+            const generateExtInfo = () =>
+              Object.entries(nodeInfoMap).reduce(
+                (results, [key, item]) => {
+                  const obj = {
+                    shrink_disk: item.shrinkDisk,
+                    total_disk: item.totalDisk,
+                    total_hosts: item.originalNodeList.length,
+                  };
+                  Object.assign(results, {
+                    [key]: obj,
+                  });
+                  return results;
+                },
+                {} as Record<string, TNodeInfo>,
+              );
+
             createTicket({
-              bk_biz_id: bizId,
+              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
               details: {
                 cluster_id: props.data.id,
+                ext_info: generateExtInfo(),
+                ip_source: 'resource_pool',
                 old_nodes: {
                   bookkeeper: fomatHost(nodeInfoMap.bookkeeper.nodeList),
                   broker: fomatHost(nodeInfoMap.broker.nodeList),

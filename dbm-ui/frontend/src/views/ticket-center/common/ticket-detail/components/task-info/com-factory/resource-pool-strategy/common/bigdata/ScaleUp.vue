@@ -35,7 +35,14 @@
         }})
       </InfoItem>
       <InfoItem :label="t('已选IP：')">
-        <SelectIpTable :data="item.hostList" />
+        <BkTable :data="item.hostList">
+          <BkTableColumn
+            field="ip"
+            :label="t('节点 IP')" />
+          <BkTableColumn
+            field="bk_disk"
+            :label="t('磁盘_GB')" />
+        </BkTable>
       </InfoItem>
     </InfoList>
   </div>
@@ -45,10 +52,9 @@
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Bigdata } from '@services/model/ticket/ticket';
+  import type { HostInfo } from '@services/types';
 
   import InfoList, { Item as InfoItem } from '../../../components/info-list/Index.vue';
-
-  import SelectIpTable from './SelectIpTable.vue';
 
   interface Props {
     ticketDetails: TicketModel<Bigdata.ResourcePool.ScaleUp>;
@@ -59,13 +65,7 @@
     clusterName: string;
     count: number;
     expectDisk: number;
-    hostList: {
-      alive: number;
-      bk_disk: number;
-      instance_num?: number;
-      ip: string;
-    }[];
-    shrinkDisk: number;
+    hostList: HostInfo[];
     title: string;
     totalDisk: number;
     totalHost: number;
@@ -92,27 +92,21 @@
   const dataList = computed(() => {
     const list: RowData[] = [];
     const { cluster_id: clusterId, clusters, ext_info: extInfo } = props.ticketDetails.details;
-    const clusterInfo = clusters?.[clusterId] || {};
-    for (const [key, item] of Object.entries(props.ticketDetails.details.resource_spec)) {
+    Object.entries(props.ticketDetails.details.resource_spec).forEach(([node, item]) => {
       if (item.hosts.length) {
-        const extInfoData = extInfo[key as keyof Bigdata.ResourcePool.ScaleUp['ext_info']];
+        const extInfoData = extInfo[node as keyof Bigdata.ResourcePool.ScaleUp['ext_info']];
         list.push({
           clusterId,
-          clusterName: clusterInfo?.immute_domain ?? '--',
+          clusterName: clusters[clusterId]?.immute_domain || '--',
           count: item.count,
           expectDisk: extInfoData.expansion_disk,
-          hostList: extInfoData.host_list.map((item) => ({
-            alive: item.agent_status,
-            bk_disk: item.bk_disk,
-            ip: item.ip,
-          })),
-          shrinkDisk: extInfoData.shrink_disk,
-          title: nodeTypeText[key],
+          hostList: item.hosts,
+          title: nodeTypeText[node] || '--',
           totalDisk: extInfoData.total_disk,
           totalHost: extInfoData.total_hosts,
         });
       }
-    }
+    });
     return list;
   });
 </script>

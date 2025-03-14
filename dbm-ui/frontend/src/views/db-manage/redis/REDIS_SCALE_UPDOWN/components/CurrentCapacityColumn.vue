@@ -13,7 +13,7 @@
 
 <template>
   <EditableColumn
-    field="currentCapacity"
+    field="cluster_capacity"
     :label="t('当前容量')"
     :min-width="150">
     <div class="capacity-box">
@@ -71,8 +71,8 @@
 
   interface Props {
     cluster: {
-      cluster_stats?: RedisModel['cluster_stats'];
-      cluster_spec?: RedisModel['cluster_spec'];
+      cluster_spec: RedisModel['cluster_spec'];
+      cluster_stats: RedisModel['cluster_stats'];
       group_num: number;
       shard_num: number;
     };

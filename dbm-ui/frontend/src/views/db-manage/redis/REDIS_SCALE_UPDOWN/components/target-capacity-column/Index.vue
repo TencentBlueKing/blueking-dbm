@@ -14,14 +14,14 @@
 <template>
   <EditableColumn
     :disabled-method="disabledMethod"
-    field="backendGroup.spec_id"
+    field="backend_group.spec_id"
     :label="t('目标容量')"
     :min-width="150"
     required
     :rule="rules">
     <div class="capacity-box">
       <EditableInput
-        v-if="!localValue || !activeRowData || !targetObj"
+        v-if="!modelValue.spec_id || !activeRowData || !targetObj"
         :placeholder="t('请选择')"
         @focus="handleShowSideslider">
         <template #append>
@@ -99,7 +99,7 @@
     hide-shard-column
     :is-show="showClusterTargetPlan"
     :target-object="targetObj"
-    :target-verison="rowData.version"
+    :target-verison="rowData.db_version"
     :title="t('选择集群容量变更部署方案')"
     @click-cancel="() => (showClusterTargetPlan = false)"
     @click-confirm="handleChoosedTargetCapacity"
@@ -129,16 +129,17 @@
   interface Props {
     rowData: {
       cluster: {
-        cluster_spec?: RedisModel['cluster_spec'];
-        cluster_stats?: RedisModel['cluster_stats'];
         group_num: RedisModel['machine_pair_cnt'];
         shard_num: RedisModel['cluster_shard_num'];
-      } & Pick<RedisModel, 'id' | 'master_domain' | 'cluster_type' | 'cluster_type_name' | 'bk_cloud_id'>;
-      currentCapacity: {
+      } & Pick<
+        RedisModel,
+        'id' | 'master_domain' | 'cluster_type' | 'cluster_type_name' | 'bk_cloud_id' | 'cluster_spec' | 'cluster_stats'
+      >;
+      cluster_capacity: {
         total: number;
         used: number;
       };
-      version: string;
+      db_version: string;
     };
   }
 
@@ -165,15 +166,6 @@
 
   const { t } = useI18n();
 
-  const localValue = reactive({
-    capacity: 1,
-    cluster_capacity: 0,
-    cluster_shard_num: 0,
-    future_capacity: 1,
-    machine_pair: 0,
-    max: 0,
-    spec_id: 0,
-  });
   const showClusterTargetPlan = ref(false);
   const activeRowData = ref<TargetPlanProps['data']>();
   const futureCapacity = ref(1);
@@ -181,7 +173,7 @@
   const targetClusterStats = ref<RedisModel['cluster_stats']>();
   const currentCapacity = computed(() => {
     if (_.isEmpty(props.rowData.cluster?.cluster_stats)) {
-      return props.rowData.currentCapacity?.total ?? 0;
+      return props.rowData.cluster_capacity?.total ?? 0;
     }
     return convertStorageUnits(props.rowData.cluster.cluster_stats.total, 'B', 'GB');
   });
@@ -193,16 +185,8 @@
     },
   ];
 
-  watch(
-    () => props.rowData.cluster,
-    () => {
-      localValue.cluster_shard_num = props.rowData.cluster.shard_num;
-      localValue.machine_pair = props.rowData.cluster.group_num;
-    },
-  );
-
   const disabledMethod = (rowData?: any, field?: string) => {
-    if (field === 'backendGroup.spec_id' && !rowData.version) {
+    if (field === 'backend_group.spec_id' && !rowData.db_version) {
       return t('请先选择版本');
     }
     return '';
@@ -219,7 +203,7 @@
     if (spec) {
       activeRowData.value = {
         bkCloudId,
-        capacity: props.rowData.currentCapacity,
+        capacity: props.rowData.cluster_capacity,
         cloudId: bkCloudId,
         clusterType: clusterType ?? ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
         currentSepc: {
@@ -230,7 +214,7 @@
           qps: spec.qps,
           storage_spec: spec.storage_spec,
         },
-        groupNum: localValue.machine_pair,
+        groupNum: props.rowData.cluster.group_num,
         shardNum,
         targetCluster: domain,
       };
@@ -239,8 +223,7 @@
   };
 
   // 从侧边窗点击确认后触发
-  const handleChoosedTargetCapacity = (obj: SpecResultInfo, capacity: number, targetInfo: TargetInfo) => {
-    Object.assign(localValue, obj);
+  const handleChoosedTargetCapacity = (specResultInfo: SpecResultInfo, capacity: number, targetInfo: TargetInfo) => {
     futureCapacity.value = capacity;
     targetObj.value = targetInfo;
     modelValue.value = {
@@ -248,10 +231,10 @@
       capacity: capacity || 1,
       count: targetObj.value.requireMachineGroupNum,
       future_capacity: capacity || 1,
-      group_num: localValue.machine_pair,
+      group_num: specResultInfo.machine_pair,
       old_machine_info: targetInfo.oldMachineInfo,
-      shard_num: localValue.cluster_shard_num,
-      spec_id: localValue.spec_id,
+      shard_num: specResultInfo.cluster_shard_num,
+      spec_id: specResultInfo.spec_id,
       update_mode: targetObj.value.updateMode,
     };
     showClusterTargetPlan.value = false;
