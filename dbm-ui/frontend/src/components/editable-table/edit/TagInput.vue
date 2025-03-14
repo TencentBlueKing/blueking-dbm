@@ -9,6 +9,7 @@
     clearable
     has-delete-icon
     @blur="handleBlur"
+    @change="handleChange"
     @focus="handleFocus" />
 </template>
 <script setup lang="ts" generic="T extends string[] | number[] | string | number">
@@ -30,11 +31,11 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits<T>>();
 
+  const modelValue = defineModel<T>();
+
   const attrs = useAttrs();
 
   const columnContext = useColumn();
-
-  const modelValue = defineModel<T>();
 
   watch(modelValue, () => {
     columnContext?.validate('change');
@@ -49,6 +50,10 @@
   const handleFocus = () => {
     columnContext?.focus();
     emits('focus');
+  };
+
+  const handleChange = () => {
+    emits('change', modelValue.value as T);
   };
 </script>
 <style lang="less">

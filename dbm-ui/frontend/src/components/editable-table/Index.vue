@@ -14,6 +14,11 @@
           <slot />
         </tbody>
       </table>
+      <div
+        v-if="slots.empty"
+        class="bk-editable-table-empty">
+        <slot name="empty" />
+      </div>
     </div>
     <div class="bk-editable-table-fixed-wrapper">
       <div
@@ -87,6 +92,7 @@
 
   export interface Slots {
     default: () => VNode;
+    empty?(): VNode;
   }
 
   export interface Expose {
@@ -114,15 +120,15 @@
   export { Block, Column, DatePicker, Input, Row, Select, TagInput, Textarea, TimePicker, useColumn, useTable };
 </script>
 <script setup lang="ts">
+  defineOptions({
+    name: 'EditableTable',
+  });
+
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
-  defineSlots<Slots>();
-
-  defineOptions({
-    name: 'EditableTable',
-  });
+  const slots = defineSlots<Slots>();
 
   const tableRef = ref<HTMLElement>();
   const scrollXRef = ref<HTMLElement>();
@@ -279,6 +285,12 @@
       &::-webkit-scrollbar {
         width: 0;
         height: 0;
+      }
+
+      .bk-editable-table-empty {
+        display: flex;
+        justify-content: center;
+        align-items: center;
       }
     }
 
