@@ -249,7 +249,6 @@ class MongoDBRestoreApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
         cluster_type = self.ticket.details["cluster_type"]
         flow_infix = "_" if cluster_type == ClusterType.MongoShardedCluster else "_BATCH_"
         resource_apply_flow_type = getattr(FlowType, f"RESOURCE{flow_infix}APPLY")
-        resource_deliver_flow_type = getattr(FlowType, "RESOURCE_DELIVERY")
 
         flows = [
             Flow(
@@ -272,16 +271,11 @@ class MongoDBRestoreApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
                 flow_alias=_("MongoDB 回档执行"),
                 retry_type=FlowRetryType.MANUAL_RETRY.value,
             ),
-            Flow(
-                ticket=self.ticket,
-                flow_type=resource_deliver_flow_type,
-                flow_alias=_("资源确认"),
-            ),
         ]
         return flows
 
     @classmethod
     def describe_ticket_flows(cls, flow_config_map):
         flow_desc = cls._add_itsm_pause_describe(flow_desc=[], flow_config_map=flow_config_map)
-        flow_desc.extend([_("资源申请"), _("回档临时集群部署"), _("MongoDB 回档执行"), _("资源确认")])
+        flow_desc.extend([_("资源申请"), _("回档临时集群部署"), _("MongoDB 回档执行")])
         return flow_desc

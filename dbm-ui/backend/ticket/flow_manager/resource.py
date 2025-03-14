@@ -130,10 +130,11 @@ class ResourceApplyFlow(BaseTicketFlow):
         """格式化申请的主机参数"""
         return [
             {
-                # 没有业务ID，认为是公共资源
+                # 主机来源业务
                 "bk_biz_id": host.get("bk_biz_id", 0),
                 "ip": host["ip"],
                 "bk_cloud_id": host["bk_cloud_id"],
+                "host_id": host["bk_host_id"],
                 "bk_host_id": host["bk_host_id"],
                 # 补充机器的内存，cpu，磁盘和操作系统信息。(bk_disk的单位是GB, bk_mem的单位是MB)
                 "bk_cpu": host["cpu_num"],
@@ -149,6 +150,10 @@ class ResourceApplyFlow(BaseTicketFlow):
                 "sub_zone_id": host.get("sub_zone_id"),
                 "rack_id": host.get("rack_id"),
                 "device_class": host.get("device_class"),
+                # 补充主机资源池原信息，可能用于重导入
+                "for_biz": host["dedicated_biz"],
+                "labels": host["labels"],
+                "resource_type": host["rs_type"],
             }
             for host in hosts
         ]
@@ -177,7 +182,7 @@ class ResourceApplyFlow(BaseTicketFlow):
             apply_params.update(groups_in_same_location=True)
 
         # 向资源池申请机器
-        resp = DBResourceApi.resource_pre_apply(params=apply_params, raw=True)
+        resp = DBResourceApi.resource_apply(params=apply_params, raw=True)
         if resp["code"] == ResourceApplyErrCode.RESOURCE_LAKE:
             # 如果是资源不足，则创建补货单，用户手动处理后可以重试资源申请
             self.create_replenish_todo()
@@ -399,6 +404,7 @@ class ResourceBatchApplyFlow(ResourceApplyFlow):
 class ResourceDeliveryFlow(DeliveryFlow):
     """
     内置资源申请交付流程，主要是通知资源池机器使用成功
+    # TODO: 暂时废弃，无需资源确认了。
     """
 
     def confirm_resource(self, ticket_data):

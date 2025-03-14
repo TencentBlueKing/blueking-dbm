@@ -332,7 +332,7 @@ class ImportResourceParamBuilder(FlowParamBuilder):
                 "for_biz": 0,
                 "bk_biz_id": hosts[0]["bk_biz_id"],
                 "resource_type": self.ticket_data["group"],
-                "os_type": hosts[0]["bk_os_type"],
+                "os_type": hosts[0]["os_type"],
                 "hosts": hosts,
                 "operator": self.ticket.creator,
                 # 标记为退回
@@ -346,7 +346,7 @@ class ImportResourceParamBuilder(FlowParamBuilder):
             from backend.ticket.builders.common.base import fetch_apply_hosts
 
             parent_ticket = Ticket.objects.get(id=self.ticket_data["parent_ticket"])
-            apply_hosts = fetch_apply_hosts(parent_ticket.details["ticket_data"])
+            apply_hosts = fetch_apply_hosts(parent_ticket.details)
             host_ids = [host["bk_host_id"] for host in self.ticket_data["hosts"]]
             self.ticket_data["hosts"] = [host for host in apply_hosts if host["bk_host_id"] in host_ids]
 
@@ -478,7 +478,7 @@ class TicketFlowBuilder:
     def init_ticket_flows(self):
         """
         自定义流程，默认流程是：
-        单据审批(可选, 默认有) --> 人工确认(可选, 默认无) --> 资源申请(由单据参数判断) ---> inner节点 --> 资源交付(由单据参数判断)
+        单据审批(可选, 默认有) --> 人工确认(可选, 默认无) --> 资源申请(由单据参数判断) ---> inner节点
         如果有特殊的flow需求，可在custom_ticket_flows中定制，会替换掉inner节点为custom流程
         对于复杂流程，可以直接覆写init_ticket_flows
         """
@@ -546,10 +546,6 @@ class TicketFlowBuilder:
                 )
             )
 
-        # 如果使用资源池，则在最后需要进行资源交付
-        if self.need_resource_pool:
-            flows.append(Flow(ticket=self.ticket, flow_type=FlowType.RESOURCE_DELIVERY, flow_alias=_("资源交付")))
-
         Flow.objects.bulk_create(flows)
         return list(Flow.objects.filter(ticket=self.ticket))
 
@@ -578,7 +574,7 @@ class TicketFlowBuilder:
         """
         @param flow_config_map: 单据类型与配置的映射
         单据构造类的默认流程描述，固定为：
-        单据审批(可选, 默认有) --> 人工确认(可选, 默认有) --> 资源申请(由单据参数判断) ---> inner节点 --> 资源交付(由单据参数判断)
+        单据审批(可选, 默认有) --> 人工确认(可选, 默认有) --> 资源申请(由单据参数判断) ---> inner节点
         如果子类覆写了custom_ticket_flows/init_ticket_flows，则同时需要覆写该方法
         """
         need_resource = (cls.resource_apply_builder or cls.resource_batch_apply_builder) is not None
@@ -587,8 +583,6 @@ class TicketFlowBuilder:
             flow_desc.append(FlowType.get_choice_label(FlowType.RESOURCE_APPLY))
         if cls.inner_flow_name:
             flow_desc.append(cls.inner_flow_name)
-        if need_resource:
-            flow_desc.append(FlowType.get_choice_label(FlowType.RESOURCE_DELIVERY))
 
         return flow_desc
 

@@ -85,6 +85,9 @@ class ImportResourceInitStepFlow(object):
 
         # 调用资源导入接口
         if self.data.get("reimport"):
+            # 对于重导入的机器，此时新机器仍然在DBA业务下，所以要更新bk_biz_id
+            for host in self.data["hosts"]:
+                host["bk_biz_id"] = env.DBA_APP_BK_BIZ_ID
             p.add_act(
                 act_name=_("主机资源重导入"),
                 act_component_code=ExternalServiceComponent.code,
