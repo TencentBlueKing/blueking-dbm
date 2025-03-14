@@ -87,6 +87,7 @@
                   class="table-row-item table-row-head-item"
                   :class="{
                     'table-row-type': !headItem.type,
+                    'table-row-checkbox': headItem.type && !headItem.input,
                     'table-row-input': headItem.input,
                   }">
                   <img
@@ -120,7 +121,7 @@
                 <div
                   v-for="(checkboxItem, checkboxIndex) in dataItem.checkboxArr"
                   :key="checkboxIndex"
-                  class="table-row-item">
+                  class="table-row-item table-row-checkbox">
                   <BkCheckbox
                     v-model="checkboxItem.checked"
                     :disabled="disabled" />
@@ -704,7 +705,7 @@
 
         .table-row-item {
           display: flex;
-          width: 110px;
+          // width: 110px;
           padding: 0 12px;
           border-bottom: 1px solid #dcdee5;
           align-items: center;
@@ -743,8 +744,13 @@
           }
         }
 
-        .table-row-input {
+        .table-row-checkbox {
+          min-width: 120px;
           flex: 1;
+        }
+
+        .table-row-input {
+          flex: 5;
         }
 
         .table-row-icon {

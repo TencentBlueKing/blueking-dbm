@@ -156,6 +156,14 @@ export const updatePolicy = (id: number, params: UpdatePolicyParams) =>
     local_id: number;
   }>(`${path}/policy/${id}/update_strategy/`, params);
 
+// 批量更新策略告警组
+export const batchUpdateNotifyGroup = (params: {
+  notify_groups: {
+    groups: number[];
+    policy_id: number;
+  }[];
+}) => http.post(`/apis/monitor/policy/batch_update_notify_group/`, params);
+
 // 克隆策略
 export const clonePolicy = (
   params: {
