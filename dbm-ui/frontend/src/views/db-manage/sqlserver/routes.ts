@@ -126,30 +126,17 @@ const toolboxRouters: RouteRecordRaw[] = [
         },
         component: () => import('@views/db-manage/sqlserver/master-failover/index.vue'),
       },
-      {
-        path: 'db-clear/:page?',
-        name: 'sqlServerDBClear',
-        meta: {
-          navName: t('清档'),
-        },
-        component: () => import('@views/db-manage/sqlserver/db-clear/Index.vue'),
-      },
-      {
-        path: 'rollback/:page?',
-        name: 'sqlServerDBRollback',
-        meta: {
-          navName: t('定点回档'),
-        },
-        component: () => import('@views/db-manage/sqlserver/rollback/Index.vue'),
-      },
-      {
-        path: 'db-backup/:page?',
-        name: 'SqlServerDbBackup',
-        meta: {
-          navName: t('数据库备份'),
-        },
-        component: () => import('@views/db-manage/sqlserver/db-backup/Index.vue'),
-      },
+      createRouteItem(TicketTypes.SQLSERVER_CLEAR_DBS, t('清档')),
+      // {
+      //   path: 'rollback/:page?',
+      //   name: 'sqlServerDBRollback',
+      //   meta: {
+      //     navName: t('定点回档'),
+      //   },
+      //   component: () => import('@views/db-manage/sqlserver/rollback/Index.vue'),
+      // },
+      createRouteItem(TicketTypes.SQLSERVER_ROLLBACK, t('定点回档')),
+      createRouteItem(TicketTypes.SQLSERVER_BACKUP_DBS, t('数据库备份')),
       createRouteItem(TicketTypes.SQLSERVER_FULL_MIGRATE, t('数据迁移')),
       {
         path: 'data-migrate-record',
