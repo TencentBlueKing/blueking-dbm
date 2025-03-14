@@ -12,23 +12,43 @@
 -->
 
 <template>
-  <div class="render-mode">
+  <EditableColumn
+    ref="editableColumn"
+    :append-rules="rules"
+    field="restore_time"
+    :label="t('回档类型')"
+    :min-width="400"
+    required>
+    <template #headAppend>
+      <BatchEditColumn
+        v-model="isShowBatchEdit"
+        :disable-fn="disableDate"
+        :title="t('回档到指定时间')"
+        type="datetime"
+        @change="handleBatchEditChange">
+        <span
+          v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
+          class="batch-select-button"
+          @click="handleBatchEditShow">
+          <DbIcon type="bulk-edit" />
+        </span>
+      </BatchEditColumn>
+    </template>
     <div style="width: 140px">
-      <TableEditSelect
+      <EditableSelect
         v-model="localBackupType"
         :disabled="editDisabled"
         :list="targetList"
         @change="hanldeBackupTypeChange" />
     </div>
     <div style="flex: 1">
-      <TableEditDateTime
+      <EditableDatePicker
         v-if="localBackupType === 'time'"
-        ref="localRollbackTimeRef"
-        v-model="resotreTime"
+        v-model="restoreTime"
         :disabled="editDisabled"
         :disabled-date="disableDate"
-        :rules="timerRules"
-        type="datetime" />
+        type="datetime"
+        @change="handleRestoreTimeChange" />
 
       <div
         v-else
@@ -37,10 +57,11 @@
           ref="localBackupFileRef"
           v-model="restoreBackupFile"
           :cluster-id="clusterId"
-          :disabled="editDisabled" />
+          :disabled="editDisabled"
+          @datetime-confirm="handleDatetimeConfirm" />
       </div>
     </div>
-  </div>
+  </EditableColumn>
 </template>
 <script setup lang="tsx">
   import { computed, ref, watch } from 'vue';
@@ -48,10 +69,7 @@
 
   import { queryBackupLogs } from '@services/source/sqlserver';
 
-  import { useTimeZoneFormat } from '@hooks';
-
-  import TableEditDateTime from '@components/render-table/columns//DateTime.vue';
-  import TableEditSelect from '@components/render-table/columns/select/index.vue';
+  import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
 
   import RecordSelector from './RecordSelector.vue';
 
@@ -59,32 +77,47 @@
     clusterId?: number;
   }
 
-  interface Exposes {
-    getValue: () => Promise<{
-      restore_backup_file?: any;
-      restore_time?: string;
-    }>;
-  }
+  type Emits = (e: 'batch-edit', value: string, field: string) => void;
 
   const props = defineProps<Props>();
+  const emits = defineEmits<Emits>();
 
   const restoreBackupFile = defineModel<ServiceReturnType<typeof queryBackupLogs>[number]>('restoreBackupFile');
-
-  const resotreTime = defineModel<string>('restoreTime', {
+  const restoreTime = defineModel<string>('restoreTime', {
     default: '',
   });
 
-  const disableDate = (date: Date) => date && date.valueOf() > Date.now();
-
   const { t } = useI18n();
-  const { format: formatDateToUTC } = useTimeZoneFormat();
 
-  const timerRules = [
+  const editableColumnRef = useTemplateRef('editableColumn');
+  const localBackupFileRef = useTemplateRef('localBackupFileRef');
+
+  let isInit = true;
+
+  const rules = [
     {
-      message: t('回档时间不能为空'),
-      validator: (value: string) => !!value,
+      message: '',
+      required: true,
+      trigger: 'change',
+      validator: () => {
+        if (localBackupType.value === 'time') {
+          return restoreTime.value ? true : t('回档时间不能为空');
+        }
+        return localBackupFileRef.value!.validateManual() ? true : t('备份记录不能为空');
+      },
+    },
+    {
+      message: t('暂无与指定时间最近的备份记录'),
+      trigger: 'change',
+      validator: () => {
+        if (localBackupType.value === 'time') {
+          return true;
+        }
+        return localBackupFileRef.value!.validateMatchLog();
+      },
     },
   ];
+
   const targetList = [
     {
       label: t('备份记录'),
@@ -96,53 +129,57 @@
     },
   ];
 
-  const localRollbackTimeRef = ref<InstanceType<typeof TableEditDateTime>>();
-  const localBackupFileRef = ref<InstanceType<typeof RecordSelector>>();
+  const isShowBatchEdit = ref(false);
   const localBackupType = ref('record');
 
   const editDisabled = computed(() => !props.clusterId);
 
+  watch(
+    () => props.clusterId,
+    () => {
+      if (!isInit) {
+        restoreBackupFile.value = undefined;
+        restoreTime.value = '';
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  watch(
+    [restoreTime, restoreBackupFile],
+    () => {
+      localBackupType.value = restoreTime.value ? 'time' : 'record';
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  const disableDate = (date?: Date | number) => Boolean(date && date.valueOf() > Date.now());
+
   const hanldeBackupTypeChange = () => {
-    resotreTime.value = '';
+    restoreTime.value = '';
   };
 
-  watch(
-    () => props.clusterId,
-    () => {},
-  );
-  watch(
-    () => props.clusterId,
-    () => {
-      restoreBackupFile.value = undefined;
-      resotreTime.value = '';
-    },
-    {
-      immediate: true,
-    },
-  );
+  const handleRestoreTimeChange = () => {
+    isInit = false;
+  };
 
-  watch(
-    [resotreTime, restoreBackupFile],
-    () => {
-      localBackupType.value = resotreTime.value ? 'time' : 'record';
-    },
-    {
-      immediate: true,
-    },
-  );
+  const handleDatetimeConfirm = () => {
+    editableColumnRef.value!.validate();
+    isInit = false;
+  };
 
-  defineExpose<Exposes>({
-    getValue() {
-      if (localBackupType.value === 'record') {
-        return localBackupFileRef.value!.getValue().then((data) => ({
-          restore_backup_file: data,
-        }));
-      }
-      return localRollbackTimeRef.value!.getValue().then(() => ({
-        restore_time: formatDateToUTC(resotreTime.value),
-      }));
-    },
-  });
+  const handleBatchEditShow = () => {
+    isShowBatchEdit.value = true;
+  };
+
+  const handleBatchEditChange = (value: string | string[]) => {
+    isInit = false;
+    emits('batch-edit', value as string, 'restore_time');
+  };
 </script>
 <style lang="less" scoped>
   .render-mode {
@@ -159,6 +196,12 @@
         flex: 2;
       }
     }
+  }
+
+  .batch-select-button {
+    font-size: 14px;
+    color: #3a84ff;
+    cursor: pointer;
   }
 
   .local-backup-select {
