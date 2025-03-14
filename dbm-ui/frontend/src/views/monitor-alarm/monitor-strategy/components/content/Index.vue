@@ -14,23 +14,34 @@
 <template>
   <ApplyPermissionCatch>
     <div class="monitor-strategy-type-content">
-      <BkSearchSelect
-        v-model="searchValue"
-        class="input-box"
-        :data="searchSelectList"
-        :placeholder="t('请选择条件搜索')"
-        unique-select
-        value-split-code="+"
-        @search="fetchData" />
+      <div class="content-head mb-16">
+        <BkButton
+          :disabled="!selected.length"
+          theme="primary"
+          @click="batchEditNoticeGroup">
+          {{ t('批量设置告警组') }}
+        </BkButton>
+        <BkSearchSelect
+          v-model="searchValue"
+          class="input-box"
+          :data="searchSelectList"
+          :placeholder="t('请选择条件搜索')"
+          unique-select
+          value-split-code="+"
+          @search="fetchData" />
+      </div>
       <DbTable
-        ref="tableRef"
+        ref="table"
         class="table-box"
         :columns="columns"
         :data-source="dataSource"
+        :disable-select-method="disableSelectMethod"
         :row-class="updateRowClass"
+        selectable
         :show-overflow="false"
         :show-settings="false"
-        @clear-search="handleClearSearch" />
+        @clear-search="handleClearSearch"
+        @selection="handleSelection" />
     </div>
     <EditStrategy
       v-model="isShowEditStrrategySideSilder"
@@ -40,11 +51,16 @@
       :cluster-list="clusterList"
       :data="currentChoosedRow"
       :db-type="activeDbType"
-      :default-notify-id="defaultNotifyId"
       :existed-names="existedNames"
       :module-list="moduleList"
       :page-status="sliderPageType"
       @success="handleUpdatePolicySuccess" />
+    <BatchEditNoticeGroupDialog
+      v-model="batchEditNoticeGroupDialogShow"
+      :alarm-group-list="alarmGroupList"
+      :alarm-group-name-map="alarmGroupNameMap"
+      :selected="selected"
+      @suceess="handleBatchEditNoticeGroupSuceess" />
   </ApplyPermissionCatch>
 </template>
 <script setup lang="tsx">
@@ -75,8 +91,9 @@
 
   import EditStrategy from '../edit-strategy/Index.vue';
 
-  import RenderNotifyGroup from './RenderNotifyGroup.vue';
-  import RenderTargetItem from './RenderTargetItem.vue';
+  import BatchEditNoticeGroupDialog from './components/BatchEditNoticeGroupDialog.vue';
+  import RenderNotifyGroup from './components/RenderNotifyGroup.vue';
+  import RenderTargetItem from './components/RenderTargetItem.vue';
 
   export type RowData = ServiceReturnType<typeof queryMonitorPolicyList>['results'][0];
 
@@ -94,6 +111,7 @@
   const { t } = useI18n();
   const { bizs, currentBizId } = useGlobalBizs();
   const { notifyGroupId } = useRoute().query as { notifyGroupId: string };
+  const tableRef = useTemplateRef('table');
 
   const dataSource = (params: ServiceParameters<typeof queryMonitorPolicyList>) =>
     queryMonitorPolicyList(
@@ -105,7 +123,6 @@
       },
     );
 
-  const tableRef = ref();
   const isShowEditStrrategySideSilder = ref(false);
   const currentChoosedRow = ref({} as MonitorPolicyModel);
   const searchValue = ref<Array<{ values: SearchSelectItem[] } & SearchSelectItem>>([]);
@@ -116,12 +133,14 @@
   const isTableLoading = ref(false);
   const existedNames = ref<string[]>([]);
   const showTipMap = ref<Record<string, boolean>>({});
-  const defaultNotifyId = ref(0);
+  const batchEditNoticeGroupDialogShow = ref(false);
+
+  const selected = shallowRef<MonitorPolicyModel[]>([]);
 
   async function fetchData() {
     isTableLoading.value = true;
     try {
-      await tableRef.value.fetchData(
+      await tableRef.value!.fetchData(
         { ...reqParams.value },
         {
           bk_biz_id: currentBizId,
@@ -420,7 +439,7 @@
         </div>
       ),
       showOverflow: false,
-      width: 200,
+      width: 220,
     },
   ];
 
@@ -546,6 +565,16 @@
     },
   );
 
+  const disableSelectMethod = (data: MonitorPolicyModel) => data.isInner;
+
+  const handleSelection = (key: number[], list: MonitorPolicyModel[]) => {
+    selected.value = list;
+  };
+
+  const batchEditNoticeGroup = () => {
+    batchEditNoticeGroupDialogShow.value = true;
+  };
+
   const handleClearSearch = () => {
     searchValue.value = [];
   };
@@ -590,7 +619,7 @@
   };
 
   const handleOpenSlider = (row: MonitorPolicyModel, type: string) => {
-    existedNames.value = tableRef.value.getData().map((item: { name: string }) => item.name);
+    existedNames.value = tableRef.value!.getData<MonitorPolicyModel>().map((item) => item.name);
     sliderPageType.value = type;
     currentChoosedRow.value = row;
     isShowEditStrrategySideSilder.value = true;
@@ -603,23 +632,32 @@
   const handleUpdatePolicySuccess = () => {
     fetchData();
   };
+
+  const handleBatchEditNoticeGroupSuceess = () => {
+    tableRef.value!.clearSelected();
+    fetchData();
+  };
 </script>
 <style lang="less" scoped>
   .monitor-strategy-type-content {
     display: flex;
     flex-direction: column;
 
-    .input-box {
-      width: 600px;
-      height: 32px;
-      margin-bottom: 16px;
+    .content-head {
+      display: flex;
+
+      .input-box {
+        width: 600px;
+        height: 32px;
+        margin-left: auto;
+      }
     }
 
     :deep(.table-box) {
       .operate-box {
         display: flex;
         gap: 15px;
-        justify-content: flex-end;
+        // justify-content: flex-end;
         align-items: center;
         padding-right: 15px;
 
