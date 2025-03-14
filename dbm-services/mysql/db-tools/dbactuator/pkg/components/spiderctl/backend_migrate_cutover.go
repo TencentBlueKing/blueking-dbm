@@ -296,8 +296,10 @@ func (s *SpiderClusterBackendMigrateCutoverComp) checkPairsVariables() (err erro
 		if !ok {
 			return fmt.Errorf("get %s conn from destMasterConn map failed", pair.DestMaster.GetHostPort())
 		}
+		logger.Info("check %s with %s variables", pair.MasterSvr.ServerName, pair.DestMaster.GetHostPort())
 		if err = s.tdbCtlConn.MySQLVarsCompare(svrName, destMasterConn, s.checkVars); err != nil {
-			return err
+			return fmt.Errorf("check %s with %s variables failed %s", pair.MasterSvr.ServerName,
+				pair.DestMaster.GetHostPort(), err.Error())
 		}
 	}
 	return
