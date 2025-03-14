@@ -413,6 +413,16 @@
         bk_biz_id: Number(route.query.bk_biz_id),
       });
     }
+    if (route.query.limit) {
+      Object.assign(params, {
+        limit: Number(route.query.limit),
+      });
+    }
+    if (route.query.offset) {
+      Object.assign(params, {
+        offset: Number(route.query.offset),
+      });
+    }
     setTimeout(() => {
       tableRef.value?.fetchData({
         bk_biz_id: undefined,

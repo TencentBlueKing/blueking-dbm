@@ -189,7 +189,7 @@
       }
       return results;
     }, []);
-    if (!route.query.status) {
+    if (!route.query.limit && !route.query.status) {
       baseValue.push(defaultStatus);
     }
     return baseValue;
