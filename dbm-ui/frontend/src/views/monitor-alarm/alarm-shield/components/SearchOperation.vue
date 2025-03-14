@@ -3,6 +3,7 @@
     <ShieldDateTimePicker
       class="shield-date-picker"
       clearable
+      mode="previous"
       :model-value="filterDateRange"
       :placeholder="t('搜索屏蔽开始时间')"
       @change="handleDateTimeChange"
@@ -54,10 +55,6 @@
               id: 'dimension',
               name: t('基于维度屏蔽'),
             },
-            // {
-            //   id: 'scope',
-            //   name: t('基于主机屏蔽'),
-            // },
             {
               id: 'strategy',
               name: t('基于策略屏蔽'),
