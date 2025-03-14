@@ -69,6 +69,7 @@ const ShieldEndTimeFormat = "2006-01-02 15:04:05"
 func GetAllClusterConfigRows() []ClusterConfigItem {
 	return []ClusterConfigItem{
 		{Segment: "backup", Key: "enable", Value: "true"},                   // 是否开启备份
+		{Segment: "backup", Key: "zip", Value: "true"},                      // 是否开启压缩，默认开启
 		{Segment: "backup", Key: "full-tag", Value: "MONGO_FULL_BACKUP"},    // full_tag
 		{Segment: "backup", Key: "full-freq", Value: "86400"},               // full_tag 全备时间间隔,默认是1天
 		{Segment: "backup", Key: "incr-enable", Value: "true"},              // 是否开启增量备份

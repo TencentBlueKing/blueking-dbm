@@ -1,6 +1,6 @@
 const mi = db.isMaster();
 db = db.getSiblingDB('admin');
-let mongo_type = '';
+var mongo_type = '';
 if (typeof mi['setName'] != 'undefined') {
     if (mi.arbiterOnly) {
         mongo_type = 'arbiter';

@@ -85,7 +85,9 @@ func (job *BackupJob) Run() {
 				continue
 			}
 
-			job.runOneServer(&svrItem)
+			zipEnable, _ := config.ClusterConfig.GetOne(&svrItem, "backup", "zip")
+			job.Logger.Debug(fmt.Sprintf("get backup.zip : %s", zipEnable))
+			job.runOneServer(&svrItem, zipEnable == "true")
 		} else {
 			job.Logger.Info(fmt.Sprintf("skip backup for %s", svrItem.MetaRole),
 				zap.String("instance", svrItem.Addr()))
@@ -95,7 +97,7 @@ func (job *BackupJob) Run() {
 }
 
 // runOneServer 执行单个实例的备份
-func (job *BackupJob) runOneServer(svrItem *config.ConfServerItem) {
+func (job *BackupJob) runOneServer(svrItem *config.ConfServerItem, zipEnable bool) {
 	// 1，检查实例是否可用
 	// 2，检查实例是否需要备份
 	// 3，执行备份
@@ -117,6 +119,7 @@ func (job *BackupJob) runOneServer(svrItem *config.ConfServerItem) {
 		FullFreq:           3600 * 24,
 		IncrFreq:           3600,
 		Labels:             getBkSvrLabels(svrItem),
+		Zip:                zipEnable,
 	}
 	backupTask := NewBackupTask()
 	backupTask.Do(option, logger)
