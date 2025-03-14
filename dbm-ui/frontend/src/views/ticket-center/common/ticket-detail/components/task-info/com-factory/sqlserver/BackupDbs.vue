@@ -12,39 +12,30 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn :label="t('目标集群')">
+  <BkTable
+    :data="ticketDetails.details.infos"
+    :show-overflow="false">
+    <BkTableColumn
+      fixed="left"
+      :label="t('目标集群')"
+      :width="240">
       <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
     </BkTableColumn>
     <BkTableColumn :label="t('备份 DB 名')">
       <template #default="{ data }: { data: RowData }">
-        <BkTag
-          v-for="dbName in data.db_list"
-          :key="dbName">
-          {{ dbName }}
-        </BkTag>
-        <span v-if="data.db_list.length < 1">--</span>
+        <TagBlock :data="data.db_list" />
       </template>
     </BkTableColumn>
     <BkTableColumn :label="t('忽略 DB 名')">
       <template #default="{ data }: { data: RowData }">
-        <BkTag
-          v-for="dbName in data.ignore_db_list"
-          :key="dbName">
-          {{ dbName }}
-        </BkTag>
-        <span v-if="data.ignore_db_list.length < 1">--</span>
+        <TagBlock :data="data.ignore_db_list" />
       </template>
     </BkTableColumn>
     <BkTableColumn :label="t('最终 DB')">
       <template #default="{ data }: { data: RowData }">
-        <BkTag
-          v-for="item in data.backup_dbs"
-          :key="item">
-          {{ item }}
-        </BkTag>
+        <TagBlock :data="data.backup_dbs" />
       </template>
     </BkTableColumn>
   </BkTable>
@@ -66,6 +57,8 @@
   import TicketModel, { type Sqlserver } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
+
+  import TagBlock from '@components/tag-block/Index.vue';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
 
