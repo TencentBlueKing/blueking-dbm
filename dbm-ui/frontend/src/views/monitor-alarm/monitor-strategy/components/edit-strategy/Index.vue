@@ -192,7 +192,6 @@
     clusterList: SelectItem<string>[];
     data: MonitorPolicyModel;
     dbType: string;
-    defaultNotifyId: number;
     existedNames?: string[];
     moduleList: SelectItem<string>[];
     pageStatus?: string;
@@ -352,12 +351,7 @@
       if (data.id) {
         formModel.strategyName = getStrategyName();
         formModel.notifyRules = _.cloneDeep(data.notify_rules);
-        if (isReadonlyPage.value) {
-          // 内置策略，展示默认的告警组
-          formModel.notifyTarget = [props.defaultNotifyId];
-        } else {
-          formModel.notifyTarget = data.notify_groups.filter((id) => id in props.alarmGroupNameMap);
-        }
+        formModel.notifyTarget = data.notify_groups.filter((id) => id in props.alarmGroupNameMap);
       }
     },
   );
