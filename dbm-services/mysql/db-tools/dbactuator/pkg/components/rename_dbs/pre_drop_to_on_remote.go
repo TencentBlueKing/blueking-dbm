@@ -4,7 +4,6 @@ import (
 	"context"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"fmt"
-	"time"
 
 	_ "github.com/go-sql-driver/mysql" // mysql 驱动
 
@@ -83,11 +82,8 @@ func (c *PreDropToOnRemoteComponent) instanceDropToDBs(port int) error {
 }
 
 func (c *PreDropToOnRemoteComponent) instanceDropToDB(port int, dbName string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
 	_, err := c.dbConn.ExecContext(
-		ctx,
+		context.Background(),
 		fmt.Sprintf("DROP DATABASE IF EXISTS `%s`", dbName),
 	)
 	return err

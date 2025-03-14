@@ -38,19 +38,21 @@ func TransDBTables(conn *sqlx.Conn, from, to string, tables []string) ([]string,
 }
 
 func flushTable(conn *sqlx.Conn, from, to, tableName string) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+	ctx1, cancel1 := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel1()
 
 	_, err := conn.ExecContext(
-		ctx,
+		ctx1,
 		fmt.Sprintf("FLUSH TABLE `%s`.`%s`", from, tableName),
 	)
 	if err != nil {
 		logger.Error("flushing table `%s`.`%s` failed: %s", from, tableName, err.Error())
 	}
 
+	ctx2, cancel2 := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel2()
 	_, err = conn.ExecContext(
-		ctx,
+		ctx2,
 		fmt.Sprintf("FLUSH TABLE `%s`.`%s`", to, tableName),
 	)
 	if err != nil {
@@ -63,7 +65,10 @@ func transDBTable(conn *sqlx.Conn, from, to, tableName string) ([]string, error)
 		flushTable(conn, from, to, tableName)
 	}()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	// 这个 ctx 只负责
+	// set foreign key
+	// select information_schema
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	_, err := conn.ExecContext(
@@ -76,7 +81,7 @@ func transDBTable(conn *sqlx.Conn, from, to, tableName string) ([]string, error)
 
 	// 这里的表是 backup others 新建出来的
 	_, err = conn.ExecContext(
-		ctx,
+		context.Background(),
 		fmt.Sprintf("DROP TABLE IF EXISTS `%s`.`%s`;", to, tableName),
 	)
 	if err != nil {
@@ -99,25 +104,16 @@ func transDBTable(conn *sqlx.Conn, from, to, tableName string) ([]string, error)
 
 	var createTriggers []string
 	for _, trigger := range triggers {
-		createTrigger := createTriggerRow{}
-		err = conn.GetContext(ctx, &createTrigger, fmt.Sprintf("SHOW CREATE TRIGGER `%s`.`%s`", from, trigger))
+		createTrigger, err := transTableTrigger(conn, from, trigger)
 		if err != nil {
-			logger.Error("show create trigger for %s.%s failed: %s", from, trigger, err)
 			return nil, err
 		}
-		createTriggers = append(createTriggers, createTrigger.Sql)
-		logger.Info("stage create trigger for %s.%s: %s", from, trigger, createTrigger.Sql)
 
-		_, err = conn.ExecContext(ctx, fmt.Sprintf("DROP TRIGGER `%s`.`%s`", from, trigger))
-		if err != nil {
-			logger.Error("drop trigger for %s.%s failed: %s", from, trigger, err)
-			return nil, err
-		}
-		logger.Info("drop trigger for %s.%s succeeded", from, trigger)
+		createTriggers = append(createTriggers, createTrigger.Sql)
 	}
 
 	_, err = conn.ExecContext(
-		ctx,
+		context.Background(),
 		fmt.Sprintf(
 			"RENAME TABLE `%s`.`%s` TO `%s`.`%s`",
 			from, tableName, to, tableName,
@@ -129,4 +125,26 @@ func transDBTable(conn *sqlx.Conn, from, to, tableName string) ([]string, error)
 	}
 	logger.Info("rename %s from %s to %s success", tableName, from, to)
 	return createTriggers, nil
+}
+
+func transTableTrigger(conn *sqlx.Conn, from, trigger string) (*createTriggerRow, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	createTrigger := createTriggerRow{}
+	err := conn.GetContext(ctx, &createTrigger, fmt.Sprintf("SHOW CREATE TRIGGER `%s`.`%s`", from, trigger))
+	if err != nil {
+		logger.Error("show create trigger for %s.%s failed: %s", from, trigger, err)
+		return nil, err
+	}
+	logger.Info("stage create trigger for %s.%s: %s", from, trigger, createTrigger.Sql)
+
+	_, err = conn.ExecContext(ctx, fmt.Sprintf("DROP TRIGGER `%s`.`%s`", from, trigger))
+	if err != nil {
+		logger.Error("drop trigger for %s.%s failed: %s", from, trigger, err)
+		return nil, err
+	}
+	logger.Info("drop trigger for %s.%s succeeded", from, trigger)
+
+	return &createTrigger, nil
 }

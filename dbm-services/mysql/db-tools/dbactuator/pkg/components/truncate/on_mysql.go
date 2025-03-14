@@ -336,23 +336,12 @@ func (c *OnMySQLComponent) instanceRecreateSourceTables(port int) error {
 }
 
 func (c *OnMySQLComponent) instanceRecreateSourceTable(port int, dbName, stageDBName, tableName string) error {
-	//yes, err := rpkg.IsTableExistsIn(c.dbConn, tableName, stageDBName)
-	//if err != nil {
-	//	logger.Error("check table %s exists in %s failed: %s", tableName, stageDBName, err.Error())
-	//	return err
-	//}
-	//
-	//if !yes {
-	//	err := fmt.Errorf("%s.%s not found", stageDBName, tableName)
-	//	logger.Error("re create source table on instance %d failed: ", port, err.Error())
-	//	return err
-	//}
-	//logger.Info("source table found in stage db on instance %d, try to truncate", port)
 	defer func() {
 		c.flushTable(dbName, tableName)
 		c.flushTable(stageDBName, tableName)
 	}()
 
+	// 这个超时 5s 应该没问题
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	_, err := c.dbConn.ExecContext(
@@ -374,7 +363,8 @@ func (c *OnMySQLComponent) instanceRecreateSourceTable(port int, dbName, stageDB
 }
 
 func (c *OnMySQLComponent) flushTable(dbName, tableName string) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// 这里必须要有超时, 因为可能会拿不到锁
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 
 	_, err := c.dbConn.ExecContext(

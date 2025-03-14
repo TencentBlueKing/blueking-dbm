@@ -5,7 +5,6 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/rename_dbs/pkg"
 	"fmt"
-	"time"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -30,9 +29,6 @@ func safeDropSourceTable(conn *sqlx.Conn, dbName, stageDBName, tableName string)
 	if !ok {
 		return fmt.Errorf("table `%s` does not exist in `%s`", tableName, stageDBName)
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-	defer cancel()
 
 	// 留着这里, drop table 不需要预处理触发器
 	//var triggers []string
@@ -65,8 +61,9 @@ func safeDropSourceTable(conn *sqlx.Conn, dbName, stageDBName, tableName string)
 	//	logger.Info("drop trigger for %s.%s succeeded", dbName, trigger)
 	//}
 
+	// 表很大的话可能要很久, 所以不要做超时
 	_, err = conn.ExecContext(
-		ctx,
+		context.Background(),
 		fmt.Sprintf(
 			"DROP TABLE IF EXISTS `%s`.`%s`",
 			dbName, tableName,

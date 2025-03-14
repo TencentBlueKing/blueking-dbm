@@ -22,7 +22,8 @@ func CreateTablesLike(conn *sqlx.Conn, sourceDBName, destDBName string, tables [
 }
 
 func CreateTableLike(conn *sqlx.Conn, sourceDBName, destDBName, tableName string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	// 这个 ctx 用来做多个事情, 稍微长一些
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 
 	var _tb, createTableStr string

@@ -8,7 +8,7 @@ import (
 )
 
 func ListDBTables(conn *sqlx.Conn, dbName string) ([]string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	var tables []string

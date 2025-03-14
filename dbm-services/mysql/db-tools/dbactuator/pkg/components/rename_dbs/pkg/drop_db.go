@@ -19,11 +19,8 @@ func DropDB(conn *sqlx.Conn, dbName, to string, onlyStageTable bool) error {
 		return fmt.Errorf(`db "%s" is not trans clean`, dbName)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
-	defer cancel()
-
 	_, err = conn.ExecContext(
-		ctx,
+		context.Background(),
 		fmt.Sprintf("DROP DATABASE IF EXISTS `%s`", dbName),
 	)
 
@@ -93,7 +90,7 @@ func isDBTransClean(conn *sqlx.Conn, from, to string, onlyStageTable bool) (bool
 func isDBEmpty(conn *sqlx.Conn, dbName string) (bool, error) {
 	var tableCount int
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	err := conn.QueryRowxContext(
@@ -110,7 +107,7 @@ func isDBEmpty(conn *sqlx.Conn, dbName string) (bool, error) {
 }
 
 func isTableTransClean(conn *sqlx.Conn, from, to string) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	var tables []string
@@ -143,7 +140,7 @@ func isTableTransClean(conn *sqlx.Conn, from, to string) (bool, error) {
 }
 
 func isTriggerTransClean(conn *sqlx.Conn, from, to string) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	var triggers []string
@@ -170,7 +167,7 @@ func isTriggerTransClean(conn *sqlx.Conn, from, to string) (bool, error) {
 }
 
 func isEventTransClean(conn *sqlx.Conn, from, to string) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	var events []string
@@ -197,7 +194,7 @@ func isEventTransClean(conn *sqlx.Conn, from, to string) (bool, error) {
 }
 
 func isRoutineTransClean(conn *sqlx.Conn, from, to string) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	var routines []string
@@ -225,7 +222,7 @@ func isRoutineTransClean(conn *sqlx.Conn, from, to string) (bool, error) {
 }
 
 func isViewTransClean(conn *sqlx.Conn, from, to string) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	var views []string

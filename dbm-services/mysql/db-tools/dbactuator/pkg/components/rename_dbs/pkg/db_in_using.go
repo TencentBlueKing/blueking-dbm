@@ -16,7 +16,7 @@ type showOpenTablesRow struct {
 }
 
 func IsDBsInUsing(conn *sqlx.Conn, dbs []string) ([]string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 
 	_, err := conn.ExecContext(
@@ -43,7 +43,7 @@ func IsDBsInUsing(conn *sqlx.Conn, dbs []string) ([]string, error) {
 }
 
 func queryReOpenDBs(conn *sqlx.Conn, dbs []string) ([]string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	var resOpenTables []showOpenTablesRow
