@@ -103,7 +103,7 @@ const toolboxRouters: RouteRecordRaw[] = [
         },
         component: () => import('@views/db-manage/sqlserver/db-rename/Index.vue'),
       },
-      createRouteItem(TicketTypes.SQLSERVER_RESTORE_SLAVE, t('重建从库')),
+      createRouteItem(TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE, t('重建从库')),
       createRouteItem(TicketTypes.SQLSERVER_ADD_SLAVE, t('添加从库')),
       {
         path: 'master-slave-swap/:page?',

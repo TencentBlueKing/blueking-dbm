@@ -40,7 +40,6 @@
             :create-row-method="createTableRow" />
         </EditableRow>
       </EditableTable>
-      <BackupSource v-model="formData.backupSource" />
       <TicketPayload v-model="formData" />
     </BkForm>
     <template #action>
@@ -68,34 +67,38 @@
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
 
-  import { BackupSourceType } from '@services/types';
+  import TicketModel, { type Sqlserver } from '@services/model/ticket/ticket';
 
   import { useCreateTicket } from '@hooks';
 
   import { TicketTypes } from '@common/const';
 
-  import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
-  import SlaveInstanceColumn, { type SelectorHost } from './SlaveInstanceColumn.vue';
+  import SlaveInstanceColumn, { type SelectorHost } from './components/SlaveInstanceColumn.vue';
 
   interface RowData {
     slave: {
       bk_biz_id: number;
       bk_cloud_id: number;
       bk_host_id: number;
-      ip: string;
-      port: number;
-      instance_address: string;
       cluster_id: number;
+      instance_address: string;
+      ip: string;
       master_domain: string;
+      port: number;
     };
   }
 
+  interface Props {
+    ticketDetails?: TicketModel<Sqlserver.RestoreLocalSlave>;
+  }
+
+  const props = defineProps<Props>();
+
   const { t } = useI18n();
-  const router = useRouter();
   const tableRef = useTemplateRef('table');
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
@@ -103,17 +106,16 @@
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: 0,
-      ip: '',
-      port: 0,
-      instance_address: '',
       cluster_id: 0,
+      instance_address: '',
+      ip: '',
       master_domain: '',
+      port: 0,
     },
   });
 
   const defaultData = () => ({
     tableData: [createTableRow()],
-    backupSource: BackupSourceType.REMOTE,
     ...createTickePayload(),
   });
 
@@ -121,44 +123,55 @@
   const selected = computed(() => formData.tableData.filter((item) => item.slave.bk_host_id).map((item) => item.slave));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.instance_address, true])));
 
-  const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
-    backup_source: BackupSourceType;
+  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     infos: {
       cluster_id: number;
       slave: {
         bk_biz_id: number;
-        bk_host_id: number;
         bk_cloud_id: number;
+        bk_host_id: number;
         ip: string;
         port: number;
       };
     }[];
-  }>(TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE, {
-    onSuccess(ticketId) {
-      router.push({
-        name: TicketTypes.SQLSERVER_RESTORE_SLAVE, // 以新机重建单据为主路由
-        params: {
-          page: 'success',
-        },
-        query: {
-          ticketId,
-        },
-      });
+  }>(TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE);
+
+  watch(
+    () => props.ticketDetails,
+    () => {
+      if (props.ticketDetails) {
+        const { clusters, infos } = props.ticketDetails.details;
+        Object.assign(formData, {
+          ...createTickePayload(props.ticketDetails),
+        });
+        if (infos.length > 0) {
+          formData.tableData = infos.map((item) =>
+            createTableRow({
+              slave: {
+                ...item.slave,
+                cluster_id: item.cluster_id,
+                instance_address: `${item.slave.ip}:${item.slave.port}`,
+                master_domain: clusters[item.cluster_id].immute_domain,
+                port: item.slave.port,
+              },
+            }),
+          );
+        }
+      }
     },
-  });
+  );
 
   const handleSubmit = async () => {
     const valid = await tableRef.value!.validate();
     if (valid) {
       createTicketRun({
         details: {
-          backup_source: formData.backupSource,
           infos: formData.tableData.map((item) => ({
             cluster_id: item.slave.cluster_id,
             slave: {
               bk_biz_id: item.slave.bk_biz_id,
-              bk_host_id: item.slave.bk_host_id,
               bk_cloud_id: item.slave.bk_cloud_id,
+              bk_host_id: item.slave.bk_host_id,
               ip: item.slave.ip,
               port: item.slave.port,
             },
@@ -182,11 +195,11 @@
               bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
               bk_cloud_id: item.bk_cloud_id,
               bk_host_id: item.bk_host_id,
-              ip: item.ip,
-              port: item.port,
-              instance_address: item.instance_address,
               cluster_id: item.cluster_id,
+              instance_address: item.instance_address,
+              ip: item.ip,
               master_domain: item.master_domain,
+              port: item.port,
             },
           }),
         );

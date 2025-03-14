@@ -123,7 +123,7 @@
     },
   });
 
-  useTicketDetail<Mysql.MigrateUpgrade>(TicketTypes.MYSQL_MIGRATE_UPGRADE, {
+  useTicketDetail<Mysql.ResourcePool.MigrateUpgrade>(TicketTypes.MYSQL_MIGRATE_UPGRADE, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       formData.roleType = 'haStorageLayer';

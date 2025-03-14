@@ -96,7 +96,6 @@
 
   const defaultData = () => ({
     force: false,
-    tableData: [],
     ...createTickePayload(),
   });
 

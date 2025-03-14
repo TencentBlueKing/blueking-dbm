@@ -41,7 +41,6 @@
     </EditableSelect>
   </EditableColumn>
 </template>
-
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';

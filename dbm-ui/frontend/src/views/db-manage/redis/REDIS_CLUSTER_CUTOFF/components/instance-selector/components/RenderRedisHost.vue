@@ -446,7 +446,7 @@
     bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
     bk_cloud_id: data?.host_info?.cloud_id || 0,
     bk_host_id: data?.bk_host_id || 0,
-    cluster_domain: data.related_clusters[0].immute_domain ?? '',
+    cluster_domain: data.related_clusters[0]?.immute_domain ?? '',
     cluster_ids: data.related_clusters.map((item) => item.id) || [],
     ip: data?.ip || '',
     role: data?.instance_role || '',
@@ -472,12 +472,14 @@
       lastCheckMap[data.ip] = formatValue(data);
       // master 与 slave 关联选择
       if (Object.keys(props.masterSlaveMap).length > 0 && data.instance_role === 'redis_master') {
-        const { slave_ip: slaveIp, slaves } = props.masterSlaveMap[data.ip];
-        lastCheckMap[slaveIp] = _.merge(formatValue(data), {
-          bk_host_id: slaves.bk_host_id,
-          ip: slaves.ip,
-          role: 'redis_slave',
-        });
+        if (props.masterSlaveMap[data.ip]) {
+          const { slave_ip: slaveIp, slaves } = props.masterSlaveMap[data.ip];
+          lastCheckMap[slaveIp] = _.merge(formatValue(data), {
+            bk_host_id: slaves.bk_host_id,
+            ip: slaves.ip,
+            role: 'redis_slave',
+          });
+        }
       }
       if (isSingleSelect.value) {
         // 单选

@@ -64,6 +64,7 @@
   import { useI18n } from 'vue-i18n';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
+  import type { Mysql } from '@services/model/ticket/ticket';
 
   import { useCreateTicket } from '@hooks';
 
@@ -101,6 +102,12 @@
       target_version: string;
     };
   }
+
+  interface Props {
+    ticketDetails?: Mysql.LocalUpgrade;
+  }
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
@@ -165,30 +172,6 @@
     ],
   };
 
-  const handleBatchEdit = (list: TendbhaModel[]) => {
-    const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!clusterMap.value[item.master_domain]) {
-        acc.push(
-          createTableRow({
-            cluster: {
-              bk_cloud_id: item.bk_cloud_id,
-              cluster_type: item.cluster_type,
-              current_version: item.major_version,
-              db_module_id: item.db_module_id,
-              db_module_name: item.db_module_name,
-              id: item.id,
-              master_domain: item.master_domain,
-              package_version: item.masters[0]?.version || '',
-              related_clusters: [],
-            },
-          }),
-        );
-      }
-      return acc;
-    }, []);
-    formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
-  };
-
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     force: boolean;
     infos: {
@@ -217,6 +200,63 @@
       });
     },
   });
+
+  watch(
+    () => props.ticketDetails,
+    () => {
+      if (props.ticketDetails) {
+        const { clusters, infos } = props.ticketDetails;
+        if (infos.length > 0) {
+          formData.tableData = infos.map((item) => {
+            const clusterInfo = clusters[item.cluster_ids[0]];
+            return createTableRow({
+              cluster: {
+                bk_cloud_id: clusterInfo.bk_cloud_id,
+                cluster_type: clusterInfo.cluster_type,
+                current_version: item.display_info.current_version,
+                db_module_id: clusterInfo.db_module_id,
+                db_module_name: item.display_info.current_module_name,
+                id: clusterInfo.id,
+                master_domain: clusterInfo.immute_domain,
+                package_version: item.display_info.current_package,
+                related_clusters: [],
+              },
+              target_version: {
+                charset: item.display_info.charset,
+                pkg_id: item.pkg_id,
+                target_package: item.display_info.target_package,
+                target_version: item.display_info.target_version as string,
+              },
+            });
+          });
+        }
+      }
+    },
+  );
+
+  const handleBatchEdit = (list: TendbhaModel[]) => {
+    const dataList = list.reduce<RowData[]>((acc, item) => {
+      if (!clusterMap.value[item.master_domain]) {
+        acc.push(
+          createTableRow({
+            cluster: {
+              bk_cloud_id: item.bk_cloud_id,
+              cluster_type: item.cluster_type,
+              current_version: item.major_version,
+              db_module_id: item.db_module_id,
+              db_module_name: item.db_module_name,
+              id: item.id,
+              master_domain: item.master_domain,
+              package_version: item.masters[0]?.version || '',
+              related_clusters: [],
+            },
+          }),
+        );
+      }
+      return acc;
+    }, []);
+    formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
+  };
 
   const handleSubmit = async () => {
     const result = await tableRef.value?.validate();

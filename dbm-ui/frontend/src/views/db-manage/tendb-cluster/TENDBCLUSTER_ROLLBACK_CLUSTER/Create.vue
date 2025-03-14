@@ -74,9 +74,10 @@
   import { reactive, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import { type TendbCluster } from '@services/model/ticket/ticket';
   import type { BackupLogRecord } from '@services/source/fixpointRollback';
 
-  import { useCreateTicket } from '@hooks';
+  import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { TicketTypes } from '@common/const';
 
@@ -94,30 +95,42 @@
   const tableRef = useTemplateRef('table');
 
   const tableMap = {
-    BUILD_INTO_NEW_CLUSTER,
     BUILD_INTO_EXIST_CLUSTER,
     BUILD_INTO_METACLUSTER,
+    BUILD_INTO_NEW_CLUSTER,
   };
   const defaultData = () => ({
     tableData: [],
     ...createTickePayload(),
   });
 
-  const rollbackClusterType = ref<'BUILD_INTO_NEW_CLUSTER' | 'BUILD_INTO_EXIST_CLUSTER' | 'BUILD_INTO_METACLUSTER'>(
-    'BUILD_INTO_NEW_CLUSTER',
-  );
+  const rollbackClusterType =
+    ref<TendbCluster.ResourcePool.RollbackCluster['rollback_cluster_type']>('BUILD_INTO_NEW_CLUSTER');
   const formData = reactive(defaultData());
+  const ticketDetails = ref<TendbCluster.ResourcePool.RollbackCluster>();
 
-  const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
-    rollback_cluster_type: string;
-    ip_source?: 'resource_pool'; // 只有在回档新集群选项，才传递此参数
+  useTicketDetail<TendbCluster.ResourcePool.RollbackCluster>(TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER, {
+    onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+      rollbackClusterType.value = ticketDetail.details.rollback_cluster_type;
+      Object.assign(formData, {
+        ...createTickePayload(ticketDetail),
+      });
+      nextTick(() => {
+        ticketDetails.value = details;
+      });
+    },
+  });
+
+  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     infos: {
+      backupinfo?: BackupLogRecord; // 如果备份类型为REMOTE_AND_BACKUPID提供集群备份信息
       cluster_id: number;
-      target_cluster_id?: number; // 如果是回档到原集群 or 已有集群，需要填此参数
+      databases?: string[];
+      databases_ignore?: string[];
       // 回档到新主机，指定机器需要填这个
       resource_spec?: {
         remote_hosts: {
-          spec_id: number;
           count: number;
           hosts: {
             bk_biz_id: number;
@@ -125,9 +138,9 @@
             bk_host_id: number;
             ip: string;
           }[];
+          spec_id: number;
         };
         spider_host: {
-          spec_id: number;
           count: number;
           hosts: {
             bk_biz_id: number;
@@ -135,16 +148,17 @@
             bk_host_id: number;
             ip: string;
           }[];
+          spec_id: number;
         };
       };
-      rollback_type: string; // "REMOTE_AND_BACKUPID/REMOTE_AND_TIME"
       rollback_time?: string;
-      backupinfo?: BackupLogRecord; // 如果备份类型为REMOTE_AND_BACKUPID提供集群备份信息
-      databases?: string[];
-      databases_ignore?: string[];
+      rollback_type: string; // "REMOTE_AND_BACKUPID/REMOTE_AND_TIME"
       tables?: string[];
       tables_ignore?: string[];
+      target_cluster_id?: number; // 如果是回档到原集群 or 已有集群，需要填此参数
     }[];
+    ip_source?: 'resource_pool'; // 只有在回档新集群选项，才传递此参数
+    rollback_cluster_type: string;
   }>(TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER);
 
   const handleSubmit = async () => {

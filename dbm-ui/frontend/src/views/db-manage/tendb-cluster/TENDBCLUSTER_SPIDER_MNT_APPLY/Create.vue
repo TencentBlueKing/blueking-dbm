@@ -81,8 +81,9 @@
   import { useI18n } from 'vue-i18n';
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
+  import type { TendbCluster } from '@services/model/ticket/ticket';
 
-  import { useCreateTicket } from '@hooks';
+  import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { DBTypes, TicketTypes } from '@common/const';
 
@@ -95,10 +96,10 @@
 
   interface RowData {
     cluster: {
-      id: number;
-      master_domain: string;
       bk_cloud_id: number;
       bk_cloud_name: string;
+      id: number;
+      master_domain: string;
     };
     host: {
       bk_biz_id: number;
@@ -115,10 +116,10 @@
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
     cluster: data.cluster || {
-      id: 0,
-      master_domain: '',
       bk_cloud_id: 0,
       bk_cloud_name: '',
+      id: 0,
+      master_domain: '',
     },
     host: data.host || {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -138,22 +139,44 @@
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
-  const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
-    ip_source: 'resource_pool';
+  useTicketDetail<TendbCluster.ResourcePool.SpiderMntApply>(TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY, {
+    onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+      const { clusters, infos } = details;
+      Object.assign(formData, {
+        ...createTickePayload(ticketDetail),
+        tableData: infos.map((item) => {
+          const clusterInfo = clusters[item.cluster_id];
+          return createTableRow({
+            cluster: {
+              bk_cloud_id: clusterInfo.bk_cloud_id,
+              bk_cloud_name: clusterInfo.bk_cloud_name,
+              id: clusterInfo.id,
+              master_domain: clusterInfo.immute_domain,
+            },
+            host: item.resource_spec.spider_ip_list.hosts[0],
+          });
+        }),
+      });
+    },
+  });
+
+  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     infos: {
       bk_cloud_id: number;
       cluster_id: number;
       resource_spec: {
         spider_ip_list: {
-          spec_id: number;
           hosts: {
             bk_cloud_id: number;
             bk_host_id: number;
             ip: string;
           }[];
+          spec_id: number;
         };
       };
     }[];
+    ip_source: 'resource_pool';
   }>(TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY);
 
   const handleSubmit = async () => {
@@ -163,17 +186,17 @@
     }
     createTicketRun({
       details: {
-        ip_source: 'resource_pool',
         infos: formData.tableData.map((item) => ({
           bk_cloud_id: item.cluster.bk_cloud_id,
           cluster_id: item.cluster.id,
           resource_spec: {
             spider_ip_list: {
-              spec_id: 0,
               hosts: [item.host],
+              spec_id: 0,
             },
           },
         })),
+        ip_source: 'resource_pool',
       },
       remark: formData.remark,
     });
@@ -189,10 +212,10 @@
         acc.push(
           createTableRow({
             cluster: {
-              id: item.id,
-              master_domain: item.master_domain,
               bk_cloud_id: item.bk_cloud_id,
               bk_cloud_name: item.bk_cloud_name,
+              id: item.id,
+              master_domain: item.master_domain,
             },
           }),
         );

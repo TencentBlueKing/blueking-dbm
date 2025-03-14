@@ -66,7 +66,7 @@
 
   const { t } = useI18n();
 
-  const { run: queryMachineInstancePair, loading } = useRequest(getRemoteMachineInstancePair, {
+  const { loading, run: queryMachineInstancePair } = useRequest(getRemoteMachineInstancePair, {
     manual: true,
     onSuccess: (data) => {
       const [machineInstancePair] = Object.values(data.machines);
@@ -90,6 +90,9 @@
           machines: [`${props.masterHost.bk_cloud_id}:${props.masterHost.ip}`],
         });
       }
+    },
+    {
+      immediate: true,
     },
   );
 </script>

@@ -103,9 +103,10 @@
   import { useI18n } from 'vue-i18n';
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
+  import type { TendbCluster } from '@services/model/ticket/ticket';
   import { getTendbclusterMachineList } from '@services/source/tendbcluster';
 
-  import { useCreateTicket } from '@hooks';
+  import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
@@ -117,28 +118,28 @@
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
-  import ClusterColumn from './components/ClusterColumn.vue';
-
   import type { PanelListType } from '@/components/instance-selector/Index.vue';
+
+  import ClusterColumn from './components/ClusterColumn.vue';
 
   interface RowData {
     cluster: {
       id: number;
+      master_count: number;
       master_domain: string;
       role: string;
-      master_count: number;
       slave_count: number;
     };
+    count: string;
     host: {
-      select_method: string;
       host_list: {
         bk_biz_id: number;
         bk_cloud_id: number;
         bk_host_id: number;
         ip: string;
       }[];
+      select_method: string;
     };
-    count: string;
   }
 
   const { t } = useI18n();
@@ -147,45 +148,73 @@
   const createTableRow = (data = {} as Partial<RowData>) => ({
     cluster: data.cluster || {
       id: 0,
+      master_count: 0,
       master_domain: '',
       role: '',
-      master_count: 0,
       slave_count: 0,
     },
-    host: data.host || {
-      select_method: '',
-      host_list: [],
-    },
     count: data.count || '',
+    host: data.host || {
+      host_list: [],
+      select_method: '',
+    },
   });
 
   const defaultData = () => ({
-    tableData: [createTableRow()],
     isSafe: false,
+    tableData: [createTableRow()],
     ...createTickePayload(),
   });
 
   const formData = reactive(defaultData());
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
+  const selectedMap = computed(() =>
+    Object.fromEntries(formData.tableData.map((cur) => [cur.cluster.master_domain, true])),
+  );
 
   const nodeTypeOptions = [
     {
-      value: 'spider_master',
       label: 'Spider Master',
+      value: 'spider_master',
     },
     {
-      value: 'spider_slave',
       label: 'Spider Slave',
+      value: 'spider_slave',
     },
   ];
 
+  useTicketDetail<TendbCluster.ResourcePool.SpiderReduceNodes>(TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES, {
+    onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+      const { clusters, infos, is_safe: isSafe } = details;
+      Object.assign(formData, {
+        isSafe,
+        ...createTickePayload(ticketDetail),
+        tableData: infos.map((item) => {
+          const clusterInfo = clusters[item.cluster_id];
+          return createTableRow({
+            cluster: {
+              id: clusterInfo.id,
+              master_count: 0,
+              master_domain: clusterInfo.immute_domain,
+              role: item.reduce_spider_role,
+              slave_count: 0,
+            },
+            count: `${item.spider_reduced_to_count}`,
+            host: {
+              host_list: item.old_nodes.spider_reduced_hosts,
+              select_method:
+                item.old_nodes.spider_reduced_hosts.length > 0 ? SELECT_METHODS.MANUAL : SELECT_METHODS.AUTO,
+            },
+          });
+        }),
+      });
+    },
+  });
+
   interface TicketDetail {
-    is_safe: boolean;
     infos: {
       cluster_id: number;
-      reduce_spider_role: string;
-      spider_reduced_to_count?: number;
       old_nodes?: {
         spider_reduced_hosts: {
           bk_biz_id: number;
@@ -194,10 +223,13 @@
           ip: string;
         }[];
       };
+      reduce_spider_role: string;
+      spider_reduced_to_count?: number;
     }[];
+    is_safe: boolean;
   }
 
-  const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<TicketDetail>(
+  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<TicketDetail>(
     TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES,
   );
 
@@ -208,7 +240,6 @@
     }
     createTicketRun({
       details: {
-        is_safe: formData.isSafe,
         infos: formData.tableData.map((item) => {
           const info: TicketDetail['infos'][0] = {
             cluster_id: item.cluster.id,
@@ -223,6 +254,7 @@
 
           return info;
         }),
+        is_safe: formData.isSafe,
       },
       remark: formData.remark,
     });
@@ -239,9 +271,9 @@
           createTableRow({
             cluster: {
               id: item.id,
+              master_count: item.spider_master.length,
               master_domain: item.master_domain,
               role: '',
-              master_count: item.spider_master.length,
               slave_count: item.spider_slave.length,
             },
           }),
@@ -249,11 +281,16 @@
       }
       return acc;
     }, []);
-    formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
   };
 
   const handleChangeRole = (row: RowData) => {
-    row.host.select_method = SELECT_METHODS.AUTO;
+    Object.assign(row, {
+      host: {
+        host_list: [],
+        select_method: SELECT_METHODS.AUTO,
+      },
+    });
   };
 
   const machineCount = (row: RowData) => {
@@ -272,39 +309,39 @@
       TendbClusterHost: [
         {
           name: t('主机选择'),
+          tableConfig: {
+            firsrColumn: {
+              field: 'ip',
+              label: isMater ? t('Master 主机') : t('Slave 主机'),
+              role: '',
+            },
+            getTableList: (params: ServiceReturnType<typeof getTendbclusterMachineList>) =>
+              getTendbclusterMachineList({
+                ...params,
+                spider_role: isMater ? 'spider_master' : 'spider_slave',
+              }),
+          },
           topoConfig: {
-            filterClusterId: row.cluster.id,
             countFunc: (clusterItem: TendbClusterModel) => {
               const hostList = isMater ? clusterItem.spider_master : clusterItem.spider_slave;
               const ipList = hostList.map((hostItem) => hostItem.ip);
               return new Set(ipList).size;
             },
-          },
-          tableConfig: {
-            getTableList: (params: ServiceReturnType<typeof getTendbclusterMachineList>) =>
-              getTendbclusterMachineList({
-                ...params,
-                spider_role: isMater ? 'spider_master' : 'spider_slave',
-              }),
-            firsrColumn: {
-              label: isMater ? t('Master 主机') : t('Slave 主机'),
-              field: 'ip',
-              role: '',
-            },
+            filterClusterId: row.cluster.id,
           },
         },
         {
           tableConfig: {
+            firsrColumn: {
+              field: 'ip',
+              label: isMater ? t('Master 主机') : t('Slave 主机'),
+              role: '',
+            },
             getTableList: (params: ServiceReturnType<typeof getTendbclusterMachineList>) =>
               getTendbclusterMachineList({
                 ...params,
                 spider_role: isMater ? 'spider_master' : 'spider_slave',
               }),
-            firsrColumn: {
-              label: isMater ? t('Master 主机') : t('Slave 主机'),
-              field: 'ip',
-              role: '',
-            },
           },
         },
       ],

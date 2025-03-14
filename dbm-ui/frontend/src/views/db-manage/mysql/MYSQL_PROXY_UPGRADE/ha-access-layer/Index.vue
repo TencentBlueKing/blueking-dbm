@@ -73,6 +73,7 @@
   import { useI18n } from 'vue-i18n';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
+  import type { Mysql } from '@services/model/ticket/ticket';
 
   import { useCreateTicket } from '@hooks';
 
@@ -101,6 +102,12 @@
       target_package: string;
     };
   }
+
+  interface Props {
+    ticketDetails?: Mysql.ProxyUpgrade;
+  }
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
@@ -157,6 +164,44 @@
     ],
   };
 
+  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
+    force: boolean;
+    infos: {
+      cluster_ids: number[];
+      display_info: {
+        current_version: string;
+        target_package: string;
+      };
+      pkg_id: number;
+    }[];
+  }>(TicketTypes.MYSQL_PROXY_UPGRADE);
+
+  watch(
+    () => props.ticketDetails,
+    () => {
+      if (props.ticketDetails) {
+        const { clusters, infos } = props.ticketDetails;
+        if (infos.length > 0) {
+          formData.tableData = infos.map((item) => {
+            const clusterInfo = clusters[item.cluster_ids[0]];
+            return createTableRow({
+              cluster: {
+                id: clusterInfo.id,
+                master_domain: clusterInfo.immute_domain,
+                related_clusters: [],
+              },
+              current_version: item.display_info.current_version,
+              target_version: {
+                pkg_id: item.pkg_id,
+                target_package: item.display_info.target_package,
+              },
+            });
+          });
+        }
+      }
+    },
+  );
+
   const handleBatchEdit = (list: TendbhaModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
       if (!clusterMap.value[item.master_domain]) {
@@ -175,18 +220,6 @@
     }, []);
     formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
   };
-
-  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
-    force: boolean;
-    infos: {
-      cluster_ids: number[];
-      display_info: {
-        current_version: string;
-        target_package: string;
-      };
-      pkg_id: number;
-    }[];
-  }>(TicketTypes.MYSQL_PROXY_UPGRADE);
 
   const handleSubmit = async () => {
     const result = await tableRef.value?.validate();

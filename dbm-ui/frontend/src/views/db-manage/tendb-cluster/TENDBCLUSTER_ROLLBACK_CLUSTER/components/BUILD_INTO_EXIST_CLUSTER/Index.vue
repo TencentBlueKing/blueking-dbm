@@ -73,6 +73,7 @@
   import { useI18n } from 'vue-i18n';
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
+  import { type TendbCluster } from '@services/model/ticket/ticket';
   import type { BackupLogRecord } from '@services/source/fixpointRollback';
 
   import TagDbNameColumn from '@views/db-manage/common/toolbox-field/column/tag-db-name-column/Index.vue';
@@ -87,41 +88,41 @@
       id: number;
       master_domain: string;
     };
+    databases: string[];
+    databases_ignore: string[];
+    rollback: {
+      backupid?: string;
+      backupinfo?: BackupLogRecord;
+      rollback_time?: string;
+      rollback_type: string;
+    };
+    tables: string[];
+    tables_ignore: string[];
     target_cluster: {
       id: number;
       master_domain: string;
     };
-    rollback: {
-      rollback_type: string;
-      backupid?: string;
-      backupinfo?: BackupLogRecord;
-      rollback_time?: string;
-    };
-    databases: string[];
-    databases_ignore: string[];
-    tables: string[];
-    tables_ignore: string[];
   }
 
   interface Props {
-    data: RowData[];
+    ticketDetails?: TendbCluster.ResourcePool.RollbackCluster;
   }
 
   interface Exposes {
     getValue: () => Promise<{
-      rollback_cluster_type: 'BUILD_INTO_EXIST_CLUSTER';
       infos: {
-        cluster_id: number;
-        target_cluster_id: number;
         backup_source: 'remote';
-        rollback_type: string; // "REMOTE_AND_BACKUPID/REMOTE_AND_TIME"
-        rollback_time?: string;
         backupinfo?: BackupLogRecord; // 如果备份类型为REMOTE_AND_BACKUPID提供集群备份信息
+        cluster_id: number;
         databases: string[];
         databases_ignore: string[];
+        rollback_time?: string;
+        rollback_type: string; // "REMOTE_AND_BACKUPID/REMOTE_AND_TIME"
         tables: string[];
         tables_ignore: string[];
+        target_cluster_id: number;
       }[];
+      rollback_cluster_type: 'BUILD_INTO_EXIST_CLUSTER';
     }>;
   }
 
@@ -135,18 +136,18 @@
       id: 0,
       master_domain: '',
     },
+    databases: data.databases || ['*'],
+    databases_ignore: data.databases_ignore || [],
+    rollback: data.rollback || {
+      backupid: '',
+      rollback_type: ROLLBACK_TYPE.REMOTE_AND_BACKUPID,
+    },
+    tables: data.tables || ['*'],
+    tables_ignore: data.tables_ignore || [],
     target_cluster: data.target_cluster || {
       id: 0,
       master_domain: '',
     },
-    rollback: data.rollback || {
-      rollback_type: ROLLBACK_TYPE.REMOTE_AND_BACKUPID,
-      backupid: '',
-    },
-    databases: data.databases || ['*'],
-    databases_ignore: data.databases_ignore || [],
-    tables: data.tables || ['*'],
-    tables_ignore: data.tables_ignore || [],
   });
 
   const tableData = ref<RowData[]>([createTableRow()]);
@@ -155,12 +156,36 @@
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
   watch(
-    () => props.data,
+    () => props.ticketDetails,
     () => {
-      if (props.data.length) {
-        tableData.value = [...props.data];
-      } else {
-        tableData.value = [createTableRow()];
+      if (props.ticketDetails) {
+        const { clusters, infos } = props.ticketDetails;
+        if (infos.length > 0) {
+          tableData.value = infos.map((item) => {
+            const clusterInfo = clusters[item.cluster_id];
+            const targetCluster = clusters[item.target_cluster_id];
+            return createTableRow({
+              cluster: {
+                id: item.cluster_id,
+                master_domain: clusterInfo.immute_domain,
+              },
+              databases: item.databases,
+              databases_ignore: item.databases_ignore,
+              rollback: {
+                backupid: item.backupinfo.backup_id,
+                backupinfo: item.backupinfo,
+                rollback_time: item.rollback_time,
+                rollback_type: item.rollback_time ? ROLLBACK_TYPE.REMOTE_AND_TIME : ROLLBACK_TYPE.REMOTE_AND_BACKUPID,
+              },
+              tables: item.tables,
+              tables_ignore: item.tables_ignore,
+              target_cluster: {
+                id: item.target_cluster_id,
+                master_domain: targetCluster.immute_domain,
+              },
+            });
+          });
+        }
       }
     },
   );
@@ -184,7 +209,9 @@
 
   const handleBatchEdit = (value: any, field: string) => {
     tableData.value.forEach((item) => {
-      item[field as keyof RowData] = value;
+      Object.assign(item, {
+        [field]: value,
+      });
     });
   };
 
@@ -193,25 +220,25 @@
       const validateResult = await tableRef.value?.validate();
       if (!validateResult) {
         return {
-          rollback_cluster_type: 'BUILD_INTO_EXIST_CLUSTER',
           infos: [],
+          rollback_cluster_type: 'BUILD_INTO_EXIST_CLUSTER',
         };
       }
 
       return {
-        rollback_cluster_type: 'BUILD_INTO_EXIST_CLUSTER',
         infos: tableData.value.map((item) => ({
-          cluster_id: item.cluster.id,
-          target_cluster_id: item.target_cluster.id,
           backup_source: 'remote',
-          rollback_type: item.rollback.rollback_type,
-          rollback_time: item.rollback.rollback_time,
           backupinfo: item.rollback.backupinfo,
+          cluster_id: item.cluster.id,
           databases: item.databases,
           databases_ignore: item.databases_ignore,
+          rollback_time: item.rollback.rollback_time,
+          rollback_type: item.rollback.rollback_type,
           tables: item.tables,
           tables_ignore: item.tables_ignore,
+          target_cluster_id: item.target_cluster.id,
         })),
+        rollback_cluster_type: 'BUILD_INTO_EXIST_CLUSTER',
       };
     },
   });

@@ -82,9 +82,10 @@
   import { reactive, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import type { Redis } from '@services/model/ticket/ticket';
   import { queryMasterSlavePairs } from '@services/source/redisToolbox';
 
-  import { useCreateTicket } from '@hooks';
+  import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { TicketTypes } from '@common/const';
 
@@ -99,12 +100,12 @@
   interface RowData {
     host: {
       bk_biz_id: number;
-      bk_host_id: number;
       bk_cloud_id: number;
-      ip: string;
-      role: string;
+      bk_host_id: number;
       cluster_domain: string;
       cluster_ids: number[];
+      ip: string;
+      role: string;
       spec_config: SpecInfo;
     };
   }
@@ -117,10 +118,10 @@
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: 0,
-      ip: '',
-      role: '',
       cluster_domain: '',
       cluster_ids: [],
+      ip: '',
+      role: '',
       spec_config: {} as SpecInfo,
     },
   });
@@ -137,37 +138,66 @@
   const rowSpan = computed(() =>
     formData.tableData.reduce<Record<string, number>>((acc, item) => {
       if (item.host.cluster_domain) {
-        acc[item.host.cluster_domain] = (acc[item.host.cluster_domain] || 0) + 1;
+        Object.assign(acc, {
+          [item.host.cluster_domain]: (acc[item.host.cluster_domain] || 0) + 1,
+        });
       }
       return acc;
     }, {}),
   );
 
+  useTicketDetail<Redis.ResourcePool.ClusterCutoff>(TicketTypes.REDIS_CLUSTER_CUTOFF, {
+    onSuccess(ticketDetail) {
+      const { bk_biz_id: bizId, details } = ticketDetail;
+      const { clusters, infos, specs } = details;
+      Object.assign(formData, {
+        ...createTickePayload(ticketDetail),
+      });
+      if (infos.length > 0) {
+        const dataList: RowData[] = [];
+        infos.forEach((item) => {
+          Object.entries(item.old_nodes).forEach(([role, hosts]) => {
+            const clusterInfo = clusters[item.cluster_ids[0]];
+            const [currentHost] = hosts;
+            if (currentHost) {
+              dataList.push(
+                createTableRow({
+                  host: {
+                    bk_biz_id: bizId,
+                    bk_cloud_id: currentHost.bk_cloud_id,
+                    bk_host_id: currentHost.bk_host_id,
+                    cluster_domain: clusterInfo.immute_domain,
+                    cluster_ids: item.cluster_ids,
+                    ip: currentHost.ip,
+                    role,
+                    spec_config: specs[currentHost.spec_id],
+                  },
+                }),
+              );
+            }
+          });
+        });
+        formData.tableData = [...dataList];
+      }
+    },
+  });
+
   interface TicketDetail {
-    ip_source: 'resource_pool';
     infos: {
       bk_cloud_id: number;
       cluster_ids: number[];
+      proxy: TicketDetail['infos'][0]['redis_master'];
       redis_master: {
+        bk_host_id: number;
         ip: string;
         spec_id: number;
-        bk_host_id: number;
       }[];
       redis_slave: TicketDetail['infos'][0]['redis_master'];
-      proxy: TicketDetail['infos'][0]['redis_master'];
-      display_info: {
-        data: {
-          ip: string;
-          role: string;
-          cluster_domain: string;
-          spec_id: number;
-          spec_name: string;
-        }[];
-      };
     }[];
+    ip_source: 'resource_pool';
   }
 
-  const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<TicketDetail>(
+  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<TicketDetail>(
     TicketTypes.REDIS_CLUSTER_CUTOFF,
   );
 
@@ -194,20 +224,19 @@
     const results = await Promise.all(taskList);
     // 主从映射关系
     const slaveMasterMap = _.flatten(results).reduce<Record<string, string>>((acc, item) => {
-      acc[item.master_ip] = item.slave_ip;
+      Object.assign(acc, {
+        [item.master_ip]: item.slave_ip,
+      });
       return acc;
     }, {});
 
     const infos = Object.values(sameClusters).map((sameRows) => {
       const info = {
-        cluster_ids: sameRows[0].host.cluster_ids,
         bk_cloud_id: sameRows[0].host.bk_cloud_id,
+        cluster_ids: sameRows[0].host.cluster_ids,
         proxy: [],
         redis_master: [],
         redis_slave: [],
-        display_info: {
-          data: [],
-        },
       } as unknown as TicketDetail['infos'][0];
       const needDeleteSlaves: string[] = [];
       sameRows.forEach((item) => {
@@ -216,13 +245,6 @@
           ip: item.host.ip,
           spec_id: item.host.spec_config.id,
         };
-        info.display_info.data.push({
-          ip: item.host.ip,
-          role: item.host.role,
-          cluster_domain: item.host.cluster_domain,
-          spec_id: item.host.spec_config.id,
-          spec_name: item.host.spec_config.name,
-        });
         const list = info[
           item.host.role as 'redis_slave' | 'redis_master' | 'proxy'
         ] as TicketDetail['infos'][0]['redis_master'];
@@ -243,8 +265,8 @@
 
     createTicketRun({
       details: {
-        ip_source: 'resource_pool',
         infos,
+        ip_source: 'resource_pool',
       },
       remark: formData.remark,
     });
@@ -263,10 +285,10 @@
               bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
               bk_cloud_id: item.bk_cloud_id,
               bk_host_id: item.bk_host_id,
-              ip: item.ip,
-              role: item.role,
               cluster_domain: item.cluster_domain,
               cluster_ids: item.cluster_ids,
+              ip: item.ip,
+              role: item.role,
               spec_config: item.spec_config,
             },
           }),
@@ -291,10 +313,10 @@
           bk_biz_id: slaves.bk_biz_id,
           bk_cloud_id: slaves.bk_cloud_id,
           bk_host_id: slaves.bk_host_id,
-          ip: slaves.ip,
-          role: 'redis_slave',
           cluster_domain: host.cluster_domain,
           cluster_ids: host.cluster_ids,
+          ip: slaves.ip,
+          role: 'redis_slave',
           spec_config: host.spec_config,
         },
       });

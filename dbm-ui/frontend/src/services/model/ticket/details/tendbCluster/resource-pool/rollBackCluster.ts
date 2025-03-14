@@ -1,3 +1,5 @@
+import type { BackupLogRecord } from '@services/source/fixpointRollback';
+
 import type { ResourcePoolDetailBase } from '../../common';
 
 /**
@@ -32,22 +34,7 @@ export interface RollbackCluster extends ResourcePoolDetailBase {
   };
   ignore_check_db: boolean;
   infos: {
-    backupinfo: {
-      backup_begin_time: string;
-      backup_end_time: string;
-      backup_host: string;
-      backup_id: string;
-      backup_time: string;
-      bill_id: string;
-      bk_biz_id: string;
-      bk_cloud_id: string;
-      cluster_address: string;
-      cluster_id: number;
-      remote_node: Record<string, any>;
-      spider_node: Record<string, any>;
-      spider_slave: Record<string, any>;
-      time_zone: string;
-    };
+    backupinfo: BackupLogRecord;
     cluster_id: number;
     databases: string[];
     databases_ignore: string[];
@@ -79,5 +66,5 @@ export interface RollbackCluster extends ResourcePoolDetailBase {
     tables_ignore: string[];
     target_cluster_id: number;
   }[];
-  rollback_cluster_type: string;
+  rollback_cluster_type: 'BUILD_INTO_NEW_CLUSTER' | 'BUILD_INTO_EXIST_CLUSTER' | 'BUILD_INTO_METACLUSTER';
 }

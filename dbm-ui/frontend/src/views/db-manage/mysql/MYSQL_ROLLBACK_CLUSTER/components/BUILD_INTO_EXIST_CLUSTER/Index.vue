@@ -76,6 +76,7 @@
   import { useI18n } from 'vue-i18n';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
+  import { type Mysql } from '@services/model/ticket/ticket';
   import type { BackupLogRecord } from '@services/source/fixpointRollback';
 
   import { ClusterTypes } from '@common/const';
@@ -113,7 +114,7 @@
   }
 
   interface Props {
-    data: RowData[];
+    ticketDetails?: Mysql.ResourcePool.RollbackCluster;
   }
 
   interface Exposes {
@@ -167,12 +168,39 @@
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
   watch(
-    () => props.data,
+    () => props.ticketDetails,
     () => {
-      if (props.data.length) {
-        tableData.value = [...props.data];
-      } else {
-        tableData.value = [createTableRow()];
+      if (props.ticketDetails) {
+        const { clusters, infos } = props.ticketDetails;
+        if (infos.length > 0) {
+          tableData.value = infos.map((item) => {
+            const clusterInfo = clusters[item.cluster_id];
+            const targetCluster = clusters[item.target_cluster_id];
+            return createTableRow({
+              backup_source: item.backup_source,
+              cluster: {
+                cluster_type: clusterInfo.cluster_type,
+                id: item.cluster_id,
+                master_domain: clusterInfo.immute_domain,
+              },
+              databases: item.databases,
+              databases_ignore: item.databases_ignore,
+              rollback: {
+                backupid: item.backupinfo.backup_id,
+                backupinfo: item.backupinfo,
+                rollback_time: item.rollback_time,
+                rollback_type: item.rollback_time ? ROLLBACK_TYPE.TIME : ROLLBACK_TYPE.BACKUPID,
+              },
+              tables: item.tables,
+              tables_ignore: item.tables_ignore,
+              target_cluster: {
+                cluster_type: targetCluster.cluster_type,
+                id: item.target_cluster_id,
+                master_domain: targetCluster.immute_domain,
+              },
+            });
+          });
+        }
       }
     },
   );

@@ -73,22 +73,22 @@
 
   const modelValue = defineModel<{
     bk_biz_id: number;
-    bk_host_id?: number;
     bk_cloud_id: number;
-    ip: string;
-    role: string;
+    bk_host_id?: number;
     cluster_domain: string;
     cluster_ids: number[];
+    ip: string;
+    role: string;
     spec_config: SpecInfo;
   }>({
     default: () => ({
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_host_id: undefined,
       bk_cloud_id: 0,
-      ip: '',
-      role: '',
+      bk_host_id: undefined,
       cluster_domain: '',
       cluster_ids: [],
+      ip: '',
+      role: '',
       spec_config: {} as SpecInfo,
     }),
   });
@@ -107,40 +107,40 @@
 
   const rules = [
     {
-      validator: (value: string) => ipv4.test(value),
       message: t('IP 格式不符合IPv4标准'),
       trigger: 'change',
+      validator: (value: string) => ipv4.test(value),
     },
     {
-      validator: (value: string) => props.selected.filter((item) => item.ip === value).length < 2,
       message: t('目标主机重复'),
       trigger: 'blur',
+      validator: (value: string) => props.selected.filter((item) => item.ip === value).length < 2,
     },
     {
-      validator: () => Boolean(modelValue.value.bk_host_id),
       message: t('目标主机不存在'),
       trigger: 'blur',
+      validator: () => Boolean(modelValue.value.bk_host_id),
     },
   ];
 
-  const { run: queryHost, loading } = useRequest(checkInstance, {
+  const { loading, run: queryHost } = useRequest(checkInstance, {
     manual: true,
     onSuccess: (data) => {
       if (data.length) {
         const currentHost = data[0];
         const roleMap = {
           master: 'redis_master',
-          slave: 'redis_slave',
           proxy: 'proxy',
+          slave: 'redis_slave',
         } as Record<string, string>;
         modelValue.value = {
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          bk_host_id: currentHost.bk_host_id,
           bk_cloud_id: currentHost.bk_cloud_id,
-          ip: currentHost.ip,
-          role: roleMap[currentHost.role] || '',
+          bk_host_id: currentHost.bk_host_id,
           cluster_domain: currentHost.master_domain,
           cluster_ids: currentHost.related_clusters.map((item) => item.id),
+          ip: currentHost.ip,
+          role: roleMap[currentHost.role] || '',
           spec_config: currentHost.spec_config,
         };
         // 输入的主机为master主机带出slave主机
@@ -158,12 +158,12 @@
   const handleInputChange = (value: string) => {
     modelValue.value = {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_host_id: undefined,
       bk_cloud_id: 0,
-      ip: value,
-      role: '',
+      bk_host_id: undefined,
       cluster_domain: '',
       cluster_ids: [],
+      ip: value,
+      role: '',
       spec_config: {} as SpecInfo,
     };
     if (value) {

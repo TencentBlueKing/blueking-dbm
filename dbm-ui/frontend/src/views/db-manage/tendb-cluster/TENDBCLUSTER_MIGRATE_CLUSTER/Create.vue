@@ -75,9 +75,10 @@
   import { reactive, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import type { TendbCluster } from '@services/model/ticket/ticket';
   import { BackupSourceType } from '@services/types';
 
-  import { useCreateTicket } from '@hooks';
+  import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { TicketTypes } from '@common/const';
 
@@ -94,10 +95,10 @@
       bk_biz_id: number;
       bk_cloud_id: number;
       bk_host_id: number;
-      ip: string;
-      related_instances: string[];
       cluster_id: number;
+      ip: string;
       master_domain: string;
+      related_instances: string[];
       spec_id: number;
     };
     oldSlave: {
@@ -122,9 +123,9 @@
     return {
       oldMaster: data.oldMaster || {
         ...initHost(),
-        related_instances: [],
         cluster_id: 0,
         master_domain: '',
+        related_instances: [],
         spec_id: 0,
       },
       oldSlave: data.oldSlave || {
@@ -135,8 +136,8 @@
   };
 
   const defaultData = () => ({
-    tableData: [createTableRow()],
     backupSource: BackupSourceType.REMOTE,
+    tableData: [createTableRow()],
     ...createTickePayload(),
   });
 
@@ -148,18 +149,43 @@
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
 
   interface ResourceHost {
-    spec_id: number;
     hosts: {
       bk_biz_id: number;
       bk_cloud_id: number;
       bk_host_id: number;
       ip: string;
     }[];
+    spec_id: number;
   }
 
-  const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
+  useTicketDetail<TendbCluster.ResourcePool.MigrateCluster>(TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER, {
+    onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+      const { backup_source: backupSource, infos } = details;
+      Object.assign(formData, {
+        backupSource,
+        tableData: infos.map((item) =>
+          createTableRow({
+            oldMaster: {
+              ...item.old_nodes.old_master[0],
+              cluster_id: 0,
+              master_domain: '',
+              related_instances: [],
+              spec_id: 0,
+            },
+            oldSlave: {
+              ...item.old_nodes.old_slave[0],
+              related_instances: [],
+            },
+          }),
+        ),
+        ...createTickePayload(ticketDetail),
+      });
+    },
+  });
+
+  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     backup_resource: BackupSourceType;
-    ip_source: 'resource_pool';
     infos: {
       cluster_id: number;
       old_nodes: {
@@ -173,6 +199,7 @@
         };
       };
     }[];
+    ip_source: 'resource_pool';
   }>(TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER);
 
   const handleSubmit = async () => {
@@ -183,7 +210,6 @@
     createTicketRun({
       details: {
         backup_resource: formData.backupSource,
-        ip_source: 'resource_pool',
         infos: formData.tableData.map((item) => ({
           cluster_id: item.oldMaster.cluster_id,
           old_nodes: {
@@ -197,6 +223,7 @@
             },
           },
         })),
+        ip_source: 'resource_pool',
       },
       remark: formData.remark,
     });
@@ -209,18 +236,16 @@
   const handleBatchEdit = (list: SelectorHost[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
       if (!selectedMap.value[item.ip]) {
-        console.log(item, 'item.spec_id');
-
         acc.push(
           createTableRow({
             oldMaster: {
               bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
               bk_cloud_id: item.bk_cloud_id,
               bk_host_id: item.bk_host_id,
-              ip: item.ip,
-              related_instances: item.related_instances.map((item) => item.instance),
               cluster_id: item.cluster_id,
+              ip: item.ip,
               master_domain: item.master_domain,
+              related_instances: item.related_instances.map((item) => item.instance),
               spec_id: item.spec_id,
             },
           }),

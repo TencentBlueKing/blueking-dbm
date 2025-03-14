@@ -75,10 +75,10 @@
     </template>
   </SmartAction>
 </template>
-
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
 
+  import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
   import { BackupSourceType } from '@services/types';
 
   import { useCreateTicket } from '@hooks';
@@ -90,8 +90,8 @@
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
-  import NewSlaveHostColumn from './NewSlaveHostColumn.vue';
-  import SlaveHostColumnGroup, { type SelectorHost } from './SlaveHostColumnGroup.vue';
+  import NewSlaveHostColumn from './components/NewSlaveHostColumn.vue';
+  import SlaveHostColumnGroup, { type SelectorHost } from './components/SlaveHostColumnGroup.vue';
 
   interface RowData {
     newSlave: string;
@@ -108,6 +108,12 @@
       spec_name: string;
     };
   }
+
+  interface Props {
+    ticketDetails?: TicketModel<TendbCluster.ResourcePool.RestoreSlave>;
+  }
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
   const router = useRouter();
@@ -172,6 +178,34 @@
       });
     },
   });
+
+  watch(
+    () => props.ticketDetails,
+    () => {
+      if (props.ticketDetails) {
+        const { backup_source: backupSource, infos } = props.ticketDetails.details;
+        Object.assign(formData, {
+          backupSource,
+          ...createTickePayload(props.ticketDetails),
+        });
+        if (infos.length > 0) {
+          formData.tableData = infos.map((item) =>
+            createTableRow({
+              slave: {
+                ...item.old_nodes.old_slave[0],
+                cluster_id: 0,
+                count: 0,
+                master_domain: '',
+                related_instances: [],
+                spec_id: 0,
+                spec_name: '',
+              },
+            }),
+          );
+        }
+      }
+    },
+  );
 
   const handleSubmit = async () => {
     const valid = await tableRef.value!.validate();
