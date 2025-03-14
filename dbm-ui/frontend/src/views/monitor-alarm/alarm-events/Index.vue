@@ -235,6 +235,7 @@
   import BkButton from 'bkui-vue/lib/button';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
+  import type { LocationQuery } from 'vue-router';
 
   import { getAlarmEventsList } from '@services/source/monitor';
 
@@ -263,6 +264,32 @@
   const activeLevel = ref(0);
   const searchOperationRef = ref<InstanceType<typeof SearchOperation>>();
   const createShieldAlarmsRef = ref<InstanceType<typeof ShieldAlarms>>();
+  const severityList = ref([
+    {
+      count: 0,
+      iconColor: '',
+      name: t('全部'),
+      value: 0,
+    },
+    {
+      count: 0,
+      iconColor: '#3A84FF',
+      name: t('提醒'),
+      value: 3,
+    },
+    {
+      count: 0,
+      iconColor: '#F59500',
+      name: t('预警'),
+      value: 2,
+    },
+    {
+      count: 0,
+      iconColor: '#EA3636',
+      name: t('致命'),
+      value: 1,
+    },
+  ]);
 
   const selectionList = shallowRef<RowData[]>([]);
   const currentEvent = shallowRef<RowData>();
@@ -313,33 +340,6 @@
     },
   ];
 
-  const severityList = ref([
-    {
-      count: 0,
-      iconColor: '',
-      name: t('全部'),
-      value: 0,
-    },
-    {
-      count: 0,
-      iconColor: '#3A84FF',
-      name: t('提醒'),
-      value: 3,
-    },
-    {
-      count: 0,
-      iconColor: '#F59500',
-      name: t('预警'),
-      value: 2,
-    },
-    {
-      count: 0,
-      iconColor: '#EA3636',
-      name: t('致命'),
-      value: 1,
-    },
-  ]);
-
   const tableSetting = {
     checked: [
       'alert_name',
@@ -370,6 +370,7 @@
   ];
 
   const columnFilterParams: Record<string, string> = {};
+  let currentQuery: LocationQuery = {};
 
   watch(
     () => route.query,
@@ -464,7 +465,7 @@
     router.push({
       name: route.name,
       query: {
-        ...route.query,
+        ...currentQuery,
         severity: level ? level : undefined,
       },
     });
@@ -505,6 +506,7 @@
   const handleSearchChange = (data: Record<string, string>) => {
     const searchData = _.cloneDeep(data);
     const query = _.cloneDeep(route.query);
+    currentQuery = query;
     Object.keys(route.query).forEach((key) => {
       if (!searchData[key] && searchDataKeys.includes(key)) {
         // searchselect 删除的项

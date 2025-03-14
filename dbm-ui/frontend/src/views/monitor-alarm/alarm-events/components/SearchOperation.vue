@@ -153,6 +153,11 @@
     },
   ];
 
+  const dbList = Object.values(DBTypeInfos);
+  const dateFormatStr = 'YYYY-MM-DD HH:mm:ss';
+  const startTime = dayjs().subtract(7, 'day').format(dateFormatStr);
+  const endTime = dayjs().format(dateFormatStr);
+
   const defaultStatus = {
     id: 'status',
     name: t('状态'),
@@ -195,17 +200,27 @@
     return baseValue;
   };
 
-  const dbList = Object.values(DBTypeInfos);
-  const dateFormatStr = 'YYYY-MM-DD HH:mm:ss';
-  const startTime = dayjs().subtract(7, 'day').format(dateFormatStr);
-  const endTime = dayjs().format(dateFormatStr);
+  const initDatetime = () => {
+    const start = route.query.start_time as string;
+    const end = route.query.end_time as string;
+    if (start && end) {
+      return {
+        end_time: dayjs(end).format(dateFormatStr),
+        start_time: dayjs(start).format(dateFormatStr),
+      };
+    }
 
-  const filterData = ref<Record<string, any>>({
-    end_time: endTime,
-    start_time: startTime,
-  });
+    return {
+      end_time: endTime,
+      start_time: startTime,
+    };
+  };
+
+  const initDateRange = initDatetime();
+
+  const filterData = ref<Record<string, any>>(initDateRange);
   const dbValue = ref<string[]>([]);
-  const filterDateRange = ref<[string, string]>([startTime, endTime]);
+  const filterDateRange = ref<[string, string]>([initDateRange.start_time, initDateRange.end_time]);
   const searchValue = ref<ISearchValue[]>(initSearchValue());
 
   const searchSelectData = computed(() => {
@@ -272,8 +287,7 @@
     if (!handledValueList.length) {
       filterData.value = {
         db_types: filterData.value.db,
-        end_time: endTime,
-        start_time: startTime,
+        ...initDatetime(),
       };
       return;
     }
