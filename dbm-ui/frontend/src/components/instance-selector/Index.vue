@@ -123,6 +123,7 @@
     port: number;
     related_clusters: {
       cluster_type: string;
+      db_module_id: number;
       id: number;
       immute_domain: string;
       master_domain: string;

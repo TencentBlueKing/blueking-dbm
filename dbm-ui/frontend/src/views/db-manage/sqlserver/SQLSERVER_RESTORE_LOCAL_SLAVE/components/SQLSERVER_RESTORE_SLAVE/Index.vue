@@ -34,6 +34,7 @@
             :label="t('新从库主机')"
             :params="{
               for_bizs: [currentBizId, 0],
+              os_names: item.slave.system_version.split(','),
               resource_types: [DBTypes.SQLSERVER, 'PUBLIC'],
             }" />
           <OperationColumn
@@ -41,7 +42,6 @@
             :create-row-method="createTableRow" />
         </EditableRow>
       </EditableTable>
-      <BackupSource v-model="formData.backupSource" />
       <TicketPayload v-model="formData" />
     </BkForm>
     <template #action>
@@ -69,19 +69,18 @@
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
 
-  import { BackupSourceType } from '@services/types';
+  import TicketModel, { type Sqlserver } from '@services/model/ticket/ticket';
 
   import { useCreateTicket } from '@hooks';
 
   import { DBTypes, TicketTypes } from '@common/const';
 
   import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
-  import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
-  import SlaveHostColumnGroup, { type SelectorHost } from './SlaveHostColumnGroup.vue';
+  import SlaveHostColumnGroup, { type SelectorHost } from './components/SlaveHostColumnGroup.vue';
 
   interface RowData {
     newSlave: {
@@ -92,15 +91,24 @@
     slave: {
       bk_cloud_id: number;
       bk_host_id: number;
+      db_module_id: number;
       ip: string;
       related_clusters: {
         id: number;
         master_domain: string;
       }[];
+      system_version: string;
     };
   }
 
+  interface Props {
+    ticketDetails?: TicketModel<Sqlserver.ResourcePool.RestoreSlave>;
+  }
+
+  const props = defineProps<Props>();
+
   const { t } = useI18n();
+  const router = useRouter();
   const tableRef = useTemplateRef('table');
 
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
@@ -114,13 +122,14 @@
     slave: data.slave || {
       bk_cloud_id: 0,
       bk_host_id: 0,
+      db_module_id: 0,
       ip: '',
       related_clusters: [],
+      system_version: '',
     },
   });
 
   const defaultData = () => ({
-    backupSource: BackupSourceType.REMOTE,
     tableData: [createTableRow()],
     ...createTickePayload(),
   });
@@ -130,7 +139,6 @@
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
-    backup_source: BackupSourceType;
     infos: {
       cluster_ids: number[];
       old_nodes: {
@@ -152,14 +160,53 @@
       };
     }[];
     ip_source: 'resource_pool';
-  }>(TicketTypes.SQLSERVER_RESTORE_SLAVE);
+  }>(TicketTypes.SQLSERVER_RESTORE_SLAVE, {
+    onSuccess(ticketId) {
+      router.push({
+        name: TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE,
+        params: {
+          page: 'success',
+        },
+        query: {
+          ticketId,
+        },
+      });
+    },
+  });
+
+  watch(
+    () => props.ticketDetails,
+    () => {
+      if (props.ticketDetails) {
+        const { clusters, infos } = props.ticketDetails.details;
+        Object.assign(formData, {
+          ...createTickePayload(props.ticketDetails),
+        });
+        if (infos.length > 0) {
+          formData.tableData = infos.map((item) =>
+            createTableRow({
+              newSlave: item.resource_spec.sqlserver_ha.hosts[0],
+              slave: {
+                ...item.old_nodes.old_slave_host[0],
+                db_module_id: clusters[item.cluster_ids[0]].db_module_id,
+                related_clusters: item.cluster_ids.map((id) => ({
+                  id: id,
+                  master_domain: clusters[id].immute_domain,
+                })),
+                system_version: '',
+              },
+            }),
+          );
+        }
+      }
+    },
+  );
 
   const handleSubmit = async () => {
     const valid = await tableRef.value!.validate();
     if (valid) {
       createTicketRun({
         details: {
-          backup_source: formData.backupSource,
           infos: formData.tableData.map((item) => ({
             cluster_ids: item.slave.related_clusters.map((item) => item.id),
             old_nodes: {
@@ -197,11 +244,13 @@
             slave: {
               bk_cloud_id: item.bk_cloud_id,
               bk_host_id: item.bk_host_id,
+              db_module_id: item.db_module_id,
               ip: item.ip,
-              related_clusters: item.related_clusters.map((item) => ({
-                id: item.id,
-                master_domain: item.master_domain,
+              related_clusters: item.related_clusters.map((cluster) => ({
+                id: cluster.id,
+                master_domain: cluster.master_domain,
               })),
+              system_version: '',
             },
           }),
         );

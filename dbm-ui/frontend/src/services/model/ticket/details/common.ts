@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import type { ClusterTypes } from '@common/const';
+
 export interface DetailBase {
   __ticket_detail__: string;
 }
@@ -21,7 +23,7 @@ export interface DetailClusters {
     bk_biz_id: number;
     bk_cloud_id: number;
     bk_cloud_name: string;
-    cluster_type: string;
+    cluster_type: ClusterTypes;
     cluster_type_name: string;
     creator: string;
     db_module_id: number;
@@ -150,5 +152,5 @@ export interface ResourcePoolRecycle extends DetailBase {
 export interface ResourcePoolDetailBase extends ResourcePoolRecycle {
   clusters: DetailClusters;
   ip_source: 'resource_pool';
-  spec: DetailSpecs;
+  specs: DetailSpecs;
 }

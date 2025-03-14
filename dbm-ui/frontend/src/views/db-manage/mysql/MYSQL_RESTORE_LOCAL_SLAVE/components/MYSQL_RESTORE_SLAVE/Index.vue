@@ -70,6 +70,7 @@
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
 
+  import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
   import { BackupSourceType } from '@services/types';
 
   import { useCreateTicket } from '@hooks';
@@ -82,7 +83,7 @@
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
-  import SlaveHostColumnGroup, { type SelectorHost } from './SlaveHostColumnGroup.vue';
+  import SlaveHostColumnGroup, { type SelectorHost } from './components/SlaveHostColumnGroup.vue';
 
   interface RowData {
     newSlave: {
@@ -102,6 +103,12 @@
       }[];
     };
   }
+
+  interface Props {
+    ticketDetails?: TicketModel<Mysql.ResourcePool.RestoreSlave>;
+  }
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
   const router = useRouter();
@@ -203,6 +210,33 @@
       });
     },
   });
+
+  watch(
+    () => props.ticketDetails,
+    () => {
+      if (props.ticketDetails) {
+        const { backup_source: backupSource, clusters, infos } = props.ticketDetails.details;
+        Object.assign(formData, {
+          backupSource,
+          ...createTickePayload(props.ticketDetails),
+        });
+        if (infos.length > 0) {
+          formData.tableData = infos.map((item) =>
+            createTableRow({
+              newSlave: item.resource_spec.new_slave.hosts[0],
+              slave: {
+                ...item.old_nodes.old_slave[0],
+                related_clusters: item.cluster_ids.map((id) => ({
+                  id,
+                  master_domain: clusters[id].immute_domain,
+                })),
+              },
+            }),
+          );
+        }
+      }
+    },
+  );
 
   const handleSubmit = async () => {
     const valid = await tableRef.value!.validate();

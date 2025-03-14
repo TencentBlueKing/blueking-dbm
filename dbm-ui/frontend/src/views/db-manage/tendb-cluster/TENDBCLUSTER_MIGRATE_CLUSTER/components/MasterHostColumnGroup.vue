@@ -75,9 +75,7 @@
     }[];
   }
 
-  interface Emits {
-    (e: 'batch-edit', list: IValue[]): void;
-  }
+  type Emits = (e: 'batch-edit', list: IValue[]) => void;
 
   const props = defineProps<Props>();
 
@@ -87,20 +85,20 @@
     bk_biz_id: number;
     bk_cloud_id: number;
     bk_host_id?: number;
-    ip: string;
-    related_instances: string[];
     cluster_id: number;
+    ip: string;
     master_domain: string;
+    related_instances: string[];
     spec_id: number;
   }>({
     default: () => ({
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: undefined,
-      ip: '',
-      related_instances: [],
       cluster_id: 0,
+      ip: '',
       master_domain: '',
+      related_instances: [],
       spec_id: 0,
     }),
   });
@@ -119,23 +117,23 @@
 
   const rules = [
     {
-      validator: (value: string) => ipv4.test(value),
       message: t('IP 格式不符合IPv4标准'),
       trigger: 'change',
+      validator: (value: string) => ipv4.test(value),
     },
     {
-      validator: (value: string) => props.selected.filter((item) => item.ip === value).length < 2,
       message: t('目标主机重复'),
       trigger: 'change',
+      validator: (value: string) => props.selected.filter((item) => item.ip === value).length < 2,
     },
     {
-      validator: () => Boolean(modelValue.value.bk_host_id),
       message: t('目标主机不存在'),
       trigger: 'blur',
+      validator: () => Boolean(modelValue.value.bk_host_id),
     },
   ];
 
-  const { run: queryHost, loading } = useRequest(checkInstance, {
+  const { loading, run: queryHost } = useRequest(checkInstance, {
     manual: true,
     onSuccess: (data) => {
       if (data.length) {
@@ -148,10 +146,10 @@
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           bk_cloud_id: currentHost.bk_cloud_id,
           bk_host_id: currentHost.bk_host_id,
-          ip: currentHost.ip,
-          related_instances: relatedInstances,
           cluster_id: currentHost.cluster_id,
+          ip: currentHost.ip,
           master_domain: currentHost.master_domain,
+          related_instances: relatedInstances,
           spec_id: currentHost.spec_config.id,
         };
       }
@@ -167,10 +165,10 @@
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: undefined,
-      ip: value,
-      related_instances: [],
       cluster_id: 0,
+      ip: value,
       master_domain: '',
+      related_instances: [],
       spec_id: 0,
     };
     if (value) {
@@ -184,6 +182,16 @@
   const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
     emits('batch-edit', selected.TendbClusterHost);
   };
+
+  watch(
+    () => modelValue.value.ip,
+    () => {
+      handleInputChange(modelValue.value.ip);
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 <style lang="less" scoped>
   .batch-host-select {

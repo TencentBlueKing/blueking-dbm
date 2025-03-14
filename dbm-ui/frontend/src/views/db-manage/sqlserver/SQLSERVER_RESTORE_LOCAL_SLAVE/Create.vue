@@ -26,43 +26,66 @@
         :desc="t('在原主机上进行故障从库实例重建')"
         icon="rebuild"
         :title="t('原地重建')"
-        :true-value="RestoreTypes.LOCAL_RESTORE" />
+        :true-value="TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE" />
       <CardCheckbox
         v-model="restoreType"
         class="ml-8"
         :desc="t('将从库主机的全部实例重建到新主机')"
         icon="host"
         :title="t('新机重建')"
-        :true-value="RestoreTypes.RESTORE" />
+        :true-value="TicketTypes.SQLSERVER_RESTORE_SLAVE" />
     </div>
   </div>
-  <Component :is="comMap[restoreType]" />
+  <Component
+    :is="comMap[restoreType]"
+    :key="restoreType"
+    :ticket-details="ticketDetails" />
 </template>
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
 
+  import TicketModel, { type Sqlserver } from '@services/model/ticket/ticket';
+
+  import { useTicketDetail } from '@hooks';
+
+  import { TicketTypes } from '@common/const';
+
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
 
-  import LocalRestore from './components/local-restore/Index.vue';
-  import Restore from './components/restore/Index.vue';
-
-  /**
-   * INSTANCE_REPLACE: 原地重建
-   * HOST_REPLACE: 新机重建
-   */
-  enum RestoreTypes {
-    LOCAL_RESTORE = 'LOCAL_RESTORE',
-    RESTORE = 'RESTORE',
-  }
+  import SQLSERVER_RESTORE_LOCAL_SLAVE from './components/SQLSERVER_RESTORE_LOCAL_SLAVE/Index.vue';
+  import SQLSERVER_RESTORE_SLAVE from './components/SQLSERVER_RESTORE_SLAVE/Index.vue';
 
   const { t } = useI18n();
 
   const comMap = {
-    [RestoreTypes.LOCAL_RESTORE]: LocalRestore,
-    [RestoreTypes.RESTORE]: Restore,
+    SQLSERVER_RESTORE_LOCAL_SLAVE,
+    SQLSERVER_RESTORE_SLAVE,
   };
 
-  const restoreType = ref(RestoreTypes.LOCAL_RESTORE);
+  const restoreType = ref<TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE | TicketTypes.SQLSERVER_RESTORE_SLAVE>(
+    TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE,
+  );
+  const ticketDetails = ref<
+    TicketModel<Sqlserver.RestoreLocalSlave> | TicketModel<Sqlserver.ResourcePool.RestoreSlave>
+  >();
+
+  useTicketDetail<Sqlserver.RestoreLocalSlave>(TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE, {
+    onSuccess(ticketDetail) {
+      restoreType.value = TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE;
+      nextTick(() => {
+        ticketDetails.value = ticketDetail;
+      });
+    },
+  });
+
+  useTicketDetail<Sqlserver.ResourcePool.RestoreSlave>(TicketTypes.SQLSERVER_RESTORE_SLAVE, {
+    onSuccess(ticketDetail) {
+      restoreType.value = TicketTypes.SQLSERVER_RESTORE_SLAVE;
+      nextTick(() => {
+        ticketDetails.value = ticketDetail;
+      });
+    },
+  });
 </script>
 
 <style lang="less" scoped>

@@ -84,13 +84,13 @@
   export type PanelListType = InstanceSelectorPanelListType;
 
   interface Props {
+    clusterType: ClusterTypes | 'TendbClusterHost' | 'mongoCluster';
+    count: number;
     field: string;
     label?: string;
     minWidth?: number;
     placeholder?: string;
-    clusterType: ClusterTypes | 'TendbClusterHost' | 'mongoCluster';
     tabListConfig?: ComponentProps<typeof InstanceSelector>['tabListConfig'];
-    count: number;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -99,8 +99,6 @@
     placeholder: '请选择',
     tabListConfig: () => ({}),
   });
-
-  const { t } = useI18n();
 
   const selectMethod = defineModel<string>('selectMethod', {
     required: true,
@@ -111,12 +109,14 @@
       bk_biz_id: number;
       bk_cloud_id: number;
       bk_host_id: number;
-      ip: string;
       instance_address?: string;
+      ip: string;
     }[]
   >('hostList', {
     required: true,
   });
+
+  const { t } = useI18n();
 
   const isShowSelector = ref(false);
   const selected = shallowRef<InstanceSelectorValues<IValue>>({});
@@ -136,9 +136,9 @@
 
   const rules = [
     {
-      validator: () => hostList.value.length > 0,
       message: t('请选择主机'),
       trigger: 'blur',
+      validator: () => hostList.value.length > 0,
     },
   ];
 

@@ -36,10 +36,17 @@
         :true-value="TicketTypes.MYSQL_RESTORE_SLAVE" />
     </div>
   </div>
-  <Component :is="comMap[restoreType]" />
+  <Component
+    :is="comMap[restoreType]"
+    :key="restoreType"
+    :ticket-details="ticketDetails" />
 </template>
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
+
+  import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
+
+  import { useTicketDetail } from '@hooks';
 
   import { TicketTypes } from '@common/const';
 
@@ -58,6 +65,25 @@
   const restoreType = ref<TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE | TicketTypes.MYSQL_RESTORE_SLAVE>(
     TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE,
   );
+  const ticketDetails = ref<TicketModel<Mysql.RestoreLocalSlave> | TicketModel<Mysql.ResourcePool.RestoreSlave>>();
+
+  useTicketDetail<Mysql.RestoreLocalSlave>(TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE, {
+    onSuccess(ticketDetail) {
+      restoreType.value = TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE;
+      nextTick(() => {
+        ticketDetails.value = ticketDetail;
+      });
+    },
+  });
+
+  useTicketDetail<Mysql.ResourcePool.RestoreSlave>(TicketTypes.MYSQL_RESTORE_SLAVE, {
+    onSuccess(ticketDetail) {
+      restoreType.value = TicketTypes.MYSQL_RESTORE_SLAVE;
+      nextTick(() => {
+        ticketDetails.value = ticketDetail;
+      });
+    },
+  });
 </script>
 
 <style lang="less" scoped>

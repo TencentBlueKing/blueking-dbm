@@ -14,30 +14,20 @@
 <template>
   <BkTable
     :data="ticketDetails.details.infos"
-    show-overflow>
-    <BkTableColumn
-      :label="t('目标集群')"
-      :min-width="220">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
-      </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('所属管控区域')"
-      :min-width="150">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].bk_cloud_name }}
-      </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('运维节点 IP')"
-      :min-width="180">
+    :show-overflow="false">
+    <BkTableColumn :label="t('集群')">
       <template #default="{ data }: { data: RowData }">
         <div
-          v-for="item in data.resource_spec.spider_ip_list.hosts"
-          :key="item.bk_host_id">
-          {{ item.ip }}
+          v-for="clusterId in data.cluster_ids"
+          :key="clusterId"
+          style="line-height: 20px">
+          {{ ticketDetails.details.clusters[clusterId].immute_domain }}
         </div>
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('新从库主机')">
+      <template #default="{ data }: { data: RowData }">
+        {{ data.resource_spec.new_slave.hosts[0].ip }}
       </template>
     </BkTableColumn>
   </BkTable>
@@ -45,18 +35,18 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
+  import TicketModel, { type Sqlserver } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
 
   interface Props {
-    ticketDetails: TicketModel<TendbCluster.ResourcePool.SpiderMntApply>;
+    ticketDetails: TicketModel<Sqlserver.ResourcePool.AddSlave>;
   }
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
   defineOptions({
-    name: TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY,
+    name: TicketTypes.SQLSERVER_ADD_SLAVE,
     inheritAttrs: false,
   });
 

@@ -18,7 +18,7 @@
     fixed="left"
     :label="t('目标从库主机')"
     :loading="loading"
-    :min-width="300"
+    :min-width="150"
     required>
     <template #headAppend>
       <span
@@ -34,14 +34,14 @@
       @change="handleInputChange" />
   </EditableColumn>
   <EditableColumn
-    :label="t('同机关联集群')"
+    :label="t('从库主机关联实例')"
     :loading="loading"
-    :min-width="300">
-    <EditableBlock v-if="modelValue.related_clusters.length">
+    :min-width="150">
+    <EditableBlock v-if="modelValue.related_instances.length">
       <p
-        v-for="item in modelValue.related_clusters"
-        :key="item.id">
-        {{ item.master_domain }}
+        v-for="item in modelValue.related_instances"
+        :key="item">
+        {{ item }}
       </p>
     </EditableBlock>
     <EditableBlock
@@ -50,7 +50,7 @@
   </EditableColumn>
   <InstanceSelector
     v-model:is-show="showSelector"
-    :cluster-types="[ClusterTypes.SQLSERVER_HA]"
+    :cluster-types="['TendbClusterHost']"
     :selected="selectedInstances"
     :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
@@ -60,9 +60,8 @@
   import { useRequest } from 'vue-request';
 
   import { checkInstance } from '@services/source/dbbase';
-  import { getSqlServerInstanceList } from '@services/source/sqlserveHaCluster';
 
-  import { ClusterTypes } from '@common/const';
+  import type { ClusterTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
   import InstanceSelector, {
@@ -86,42 +85,60 @@
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
+    bk_biz_id: number;
     bk_cloud_id: number;
     bk_host_id?: number;
+    cluster_id: number;
+    count: number;
     ip: string;
-    related_clusters: {
-      id: number;
-      master_domain: string;
-    }[];
+    master_domain: string;
+    related_instances: string[];
+    spec_id: number;
+    spec_name: string;
   }>({
     default: () => ({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: undefined,
+      cluster_id: 0,
+      count: 0,
       ip: '',
-      related_clusters: [],
+      master_domain: '',
+      related_instances: [],
+      spec_id: 0,
+      spec_name: '',
     }),
   });
 
   const { t } = useI18n();
 
   const tabListConfig = {
-    [ClusterTypes.SQLSERVER_HA]: [
+    TendbClusterHost: [
       {
-        name: t('从库主机'),
+        name: t('目标从库'),
         tableConfig: {
-          getTableList: (params: ServiceParameters<typeof getSqlServerInstanceList>) =>
-            getSqlServerInstanceList({
-              ...params,
-              role: 'backend_slave',
-            }),
+          firsrColumn: {
+            field: 'ip',
+            label: t('Slave 主机'),
+            role: 'remote_slave',
+          },
+        },
+      },
+      {
+        tableConfig: {
+          firsrColumn: {
+            field: 'ip',
+            label: t('Slave 主机'),
+            role: 'remote_slave',
+          },
         },
       },
     ],
-  } as Record<ClusterTypes, PanelListType>;
+  } as unknown as Record<ClusterTypes, PanelListType>;
 
   const showSelector = ref(false);
   const selectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
-    [ClusterTypes.SQLSERVER_HA]: props.selected.map(
+    TendbClusterHost: props.selected.map(
       (item) =>
         ({
           ip: item.ip,
@@ -152,14 +169,21 @@
     onSuccess: (data) => {
       if (data.length) {
         const [currentHost] = data;
+        const relatedInstances: string[] = [];
+        data.forEach((item) => {
+          relatedInstances.push(item.instance_address);
+        });
         modelValue.value = {
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           bk_cloud_id: currentHost.bk_cloud_id,
           bk_host_id: currentHost.bk_host_id,
+          cluster_id: currentHost.cluster_id,
+          count: currentHost.spec_config.count,
           ip: currentHost.ip,
-          related_clusters: currentHost.related_clusters.map((item) => ({
-            id: item.id,
-            master_domain: item.master_domain,
-          })),
+          master_domain: currentHost.master_domain,
+          related_instances: relatedInstances,
+          spec_id: currentHost.spec_config.id,
+          spec_name: currentHost.spec_config.name,
         };
       }
     },
@@ -171,10 +195,16 @@
 
   const handleInputChange = (value: string) => {
     modelValue.value = {
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: undefined,
+      cluster_id: 0,
+      count: 0,
       ip: value,
-      related_clusters: [],
+      master_domain: '',
+      related_instances: [],
+      spec_id: 0,
+      spec_name: '',
     };
     if (value) {
       queryHost({
@@ -185,8 +215,18 @@
   };
 
   const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
-    emits('batch-edit', selected[ClusterTypes.SQLSERVER_HA]);
+    emits('batch-edit', selected.TendbClusterHost);
   };
+
+  watch(
+    () => modelValue.value.ip,
+    () => {
+      handleInputChange(modelValue.value.ip);
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 <style lang="less" scoped>
   .batch-host-select {

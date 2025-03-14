@@ -66,7 +66,7 @@ export default [
   {
     children: [
       {
-        id: TicketTypes.SQLSERVER_RESTORE_SLAVE,
+        id: TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE,
         name: t('重建从库'),
         parentId: 'migrate',
       },

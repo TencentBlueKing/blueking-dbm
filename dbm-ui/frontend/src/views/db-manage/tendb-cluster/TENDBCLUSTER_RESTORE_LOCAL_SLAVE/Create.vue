@@ -36,10 +36,17 @@
         :true-value="TicketTypes.TENDBCLUSTER_RESTORE_SLAVE" />
     </div>
   </div>
-  <Component :is="comMap[restoreType]" />
+  <Component
+    :is="comMap[restoreType]"
+    :key="restoreType"
+    :ticket-details="ticketDetails" />
 </template>
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
+
+  import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
+
+  import { useTicketDetail } from '@hooks';
 
   import { TicketTypes } from '@common/const';
 
@@ -58,6 +65,27 @@
   const restoreType = ref<TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE | TicketTypes.TENDBCLUSTER_RESTORE_SLAVE>(
     TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE,
   );
+  const ticketDetails = ref<
+    TicketModel<TendbCluster.RestoreLocalSlave> | TicketModel<TendbCluster.ResourcePool.RestoreSlave>
+  >();
+
+  useTicketDetail<TendbCluster.RestoreLocalSlave>(TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE, {
+    onSuccess(ticketDetail) {
+      restoreType.value = TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE;
+      nextTick(() => {
+        ticketDetails.value = ticketDetail;
+      });
+    },
+  });
+
+  useTicketDetail<TendbCluster.ResourcePool.RestoreSlave>(TicketTypes.TENDBCLUSTER_RESTORE_SLAVE, {
+    onSuccess(ticketDetail) {
+      restoreType.value = TicketTypes.TENDBCLUSTER_RESTORE_SLAVE;
+      nextTick(() => {
+        ticketDetails.value = ticketDetail;
+      });
+    },
+  });
 </script>
 
 <style lang="less" scoped>

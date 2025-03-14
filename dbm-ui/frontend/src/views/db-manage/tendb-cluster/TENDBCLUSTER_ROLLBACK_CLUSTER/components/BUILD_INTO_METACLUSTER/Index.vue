@@ -37,6 +37,7 @@
   import { useTemplateRef } from 'vue';
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
+  import { type TendbCluster } from '@services/model/ticket/ticket';
   import type { BackupLogRecord } from '@services/source/fixpointRollback';
 
   import BackupModeColumn, { ROLLBACK_TYPE } from '../backup-mode-column/Index.vue';
@@ -48,28 +49,28 @@
       master_domain: string;
     };
     rollback: {
-      rollback_type: string;
       backupid?: string;
       backupinfo?: BackupLogRecord;
       rollback_time?: string;
+      rollback_type: string;
     };
   }
 
   interface Props {
-    data: RowData[];
+    ticketDetails?: TendbCluster.ResourcePool.RollbackCluster;
   }
 
   interface Exposes {
     getValue: () => Promise<{
-      rollback_cluster_type: 'BUILD_INTO_METACLUSTER';
       infos: {
-        cluster_id: number;
-        target_cluster_id: number;
         backup_source: 'remote';
-        rollback_type: string; // "REMOTE_AND_BACKUPID/REMOTE_AND_TIME"
-        rollback_time?: string;
         backupinfo?: BackupLogRecord; // 如果备份类型为REMOTE_AND_BACKUPID提供集群备份信息
+        cluster_id: number;
+        rollback_time?: string;
+        rollback_type: string; // "REMOTE_AND_BACKUPID/REMOTE_AND_TIME"
+        target_cluster_id: number;
       }[];
+      rollback_cluster_type: 'BUILD_INTO_METACLUSTER';
     }>;
   }
 
@@ -83,8 +84,8 @@
       master_domain: '',
     },
     rollback: data.rollback || {
-      rollback_type: ROLLBACK_TYPE.REMOTE_AND_BACKUPID,
       backupid: '',
+      rollback_type: ROLLBACK_TYPE.REMOTE_AND_BACKUPID,
     },
   });
 
@@ -94,12 +95,27 @@
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
   watch(
-    () => props.data,
+    () => props.ticketDetails,
     () => {
-      if (props.data.length) {
-        tableData.value = [...props.data];
-      } else {
-        tableData.value = [createTableRow()];
+      if (props.ticketDetails) {
+        const { clusters, infos } = props.ticketDetails;
+        if (infos.length > 0) {
+          tableData.value = infos.map((item) => {
+            const clusterInfo = clusters[item.cluster_id];
+            return createTableRow({
+              cluster: {
+                id: item.cluster_id,
+                master_domain: clusterInfo.immute_domain,
+              },
+              rollback: {
+                backupid: item.backupinfo.backup_id,
+                backupinfo: item.backupinfo,
+                rollback_time: item.rollback_time,
+                rollback_type: item.rollback_time ? ROLLBACK_TYPE.REMOTE_AND_TIME : ROLLBACK_TYPE.REMOTE_AND_BACKUPID,
+              },
+            });
+          });
+        }
       }
     },
   );
@@ -123,7 +139,9 @@
 
   const handleBatchEdit = (value: any, field: string) => {
     tableData.value.forEach((item) => {
-      item[field as keyof RowData] = value;
+      Object.assign(item, {
+        [field]: value,
+      });
     });
   };
 
@@ -132,21 +150,21 @@
       const validateResult = await tableRef.value?.validate();
       if (!validateResult) {
         return {
-          rollback_cluster_type: 'BUILD_INTO_METACLUSTER',
           infos: [],
+          rollback_cluster_type: 'BUILD_INTO_METACLUSTER',
         };
       }
 
       return {
-        rollback_cluster_type: 'BUILD_INTO_METACLUSTER',
         infos: tableData.value.map((item) => ({
-          cluster_id: item.cluster.id,
-          target_cluster_id: item.cluster.id,
           backup_source: 'remote',
-          rollback_type: item.rollback.rollback_type,
-          rollback_time: item.rollback.rollback_time,
           backupinfo: item.rollback.backupinfo,
+          cluster_id: item.cluster.id,
+          rollback_time: item.rollback.rollback_time,
+          rollback_type: item.rollback.rollback_type,
+          target_cluster_id: item.cluster.id,
         })),
+        rollback_cluster_type: 'BUILD_INTO_METACLUSTER',
       };
     },
   });

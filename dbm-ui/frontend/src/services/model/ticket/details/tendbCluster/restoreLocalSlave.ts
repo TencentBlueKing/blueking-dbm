@@ -7,7 +7,6 @@ import type { DetailBase, DetailClusters } from '../common';
 export interface RestoreLocalSlave extends DetailBase {
   backup_source: string;
   clusters: DetailClusters;
-  force: boolean;
   infos: {
     cluster_id: number;
     slave: {

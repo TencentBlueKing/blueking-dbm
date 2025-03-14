@@ -1,15 +1,10 @@
 import type { ResourcePoolDetailBase } from '../../common';
 
-/**
- *  TenDB Cluster 添加运维节点
- */
-
-export interface SpiderMntApply extends ResourcePoolDetailBase {
+export interface AddSlave extends ResourcePoolDetailBase {
   infos: {
-    bk_cloud_id: string;
-    cluster_id: number;
+    cluster_ids: number[];
     resource_spec: {
-      spider_ip_list: {
+      new_slave: {
         count: number;
         hosts: {
           bk_biz_id: number;
@@ -21,5 +16,4 @@ export interface SpiderMntApply extends ResourcePoolDetailBase {
       };
     };
   }[];
-  ip_source: 'resource_pool';
 }

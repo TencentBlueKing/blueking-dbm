@@ -46,7 +46,6 @@
             :create-row-method="createTableRow" />
         </EditableRow>
       </EditableTable>
-      <BackupSource v-model="formData.backupSource" />
       <TicketPayload v-model="formData" />
     </BkForm>
     <template #action>
@@ -75,14 +74,13 @@
   import { useI18n } from 'vue-i18n';
 
   import SqlServerHaModel from '@services/model/sqlserver/sqlserver-ha';
-  import { BackupSourceType } from '@services/types';
+  import type { Sqlserver } from '@services/model/ticket/ticket';
 
-  import { useCreateTicket } from '@hooks';
+  import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { DBTypes, TicketTypes } from '@common/const';
 
   import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
-  import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
@@ -125,7 +123,6 @@
   });
 
   const defaultData = () => ({
-    backupSource: BackupSourceType.REMOTE,
     tableData: [createTableRow()],
     ...createTickePayload(),
   });
@@ -136,8 +133,29 @@
     Object.fromEntries(formData.tableData.map((cur) => [cur.cluster.master_domain, true])),
   );
 
+  useTicketDetail<Sqlserver.ResourcePool.AddSlave>(TicketTypes.SQLSERVER_ADD_SLAVE, {
+    onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+      const { clusters, infos } = details;
+      Object.assign(formData, {
+        ...createTickePayload(ticketDetail),
+        tableData: infos.map((item) => {
+          const clusterInfo = clusters[item.cluster_ids[0]];
+          return createTableRow({
+            cluster: {
+              db_module_id: clusterInfo.db_module_id,
+              id: clusterInfo.id,
+              master_domain: clusterInfo.immute_domain,
+              system_version: '',
+            },
+            slave: item.resource_spec.new_slave.hosts[0],
+          });
+        }),
+      });
+    },
+  });
+
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
-    backup_source: BackupSourceType;
     infos: {
       cluster_ids: number[];
       resource_spec: {
@@ -153,6 +171,7 @@
         };
       };
     }[];
+    ip_source: 'resource_pool';
   }>(TicketTypes.SQLSERVER_ADD_SLAVE);
 
   const handleSubmit = async () => {
@@ -162,7 +181,6 @@
     }
     createTicketRun({
       details: {
-        backup_source: formData.backupSource,
         infos: formData.tableData.map((item) => ({
           cluster_ids: [item.cluster.id],
           resource_spec: {
@@ -173,6 +191,7 @@
             },
           },
         })),
+        ip_source: 'resource_pool',
       },
       remark: formData.remark,
     });

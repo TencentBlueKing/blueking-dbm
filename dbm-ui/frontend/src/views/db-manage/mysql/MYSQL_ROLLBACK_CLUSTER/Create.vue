@@ -46,7 +46,7 @@
       <Component
         :is="tableMap[rollbackClusterType]"
         ref="table"
-        :data="formData.tableData" />
+        :ticket-details="ticketDetails" />
       <TicketPayload v-model="formData" />
     </BkForm>
     <template #action>
@@ -74,9 +74,10 @@
   import { reactive, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import { type Mysql } from '@services/model/ticket/ticket';
   import type { BackupLogRecord } from '@services/source/fixpointRollback';
 
-  import { useCreateTicket } from '@hooks';
+  import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { TicketTypes } from '@common/const';
 
@@ -99,14 +100,26 @@
     BUILD_INTO_NEW_CLUSTER,
   };
   const defaultData = () => ({
-    tableData: [],
     ...createTickePayload(),
   });
 
-  const rollbackClusterType = ref<'BUILD_INTO_NEW_CLUSTER' | 'BUILD_INTO_EXIST_CLUSTER' | 'BUILD_INTO_METACLUSTER'>(
-    'BUILD_INTO_NEW_CLUSTER',
-  );
+  const rollbackClusterType =
+    ref<Mysql.ResourcePool.RollbackCluster['rollback_cluster_type']>('BUILD_INTO_NEW_CLUSTER');
   const formData = reactive(defaultData());
+  const ticketDetails = ref<Mysql.ResourcePool.RollbackCluster>();
+
+  useTicketDetail<Mysql.ResourcePool.RollbackCluster>(TicketTypes.MYSQL_ROLLBACK_CLUSTER, {
+    onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+      rollbackClusterType.value = ticketDetail.details.rollback_cluster_type;
+      Object.assign(formData, {
+        ...createTickePayload(ticketDetail),
+      });
+      nextTick(() => {
+        ticketDetails.value = details;
+      });
+    },
+  });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     infos: {
@@ -152,6 +165,6 @@
   };
 
   const handleChange = () => {
-    formData.tableData = [];
+    // formData.tableData = [];
   };
 </script>

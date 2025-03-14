@@ -87,13 +87,7 @@
 
   const showSelector = ref(false);
   const selectedClusters = computed<Record<string, TendbClusterModel[]>>(() => ({
-    [ClusterTypes.TENDBCLUSTER]: props.selected.map(
-      (item) =>
-        ({
-          id: item.id,
-          master_domain: item.master_domain,
-        }) as TendbClusterModel,
-    ),
+    [ClusterTypes.TENDBCLUSTER]: props.selected as TendbClusterModel[],
   }));
 
   const tabListConfig = {
@@ -169,6 +163,16 @@
   const handleSelectorChange = (selected: Record<string, TendbClusterModel[]>) => {
     emits('batch-edit', selected[ClusterTypes.TENDBCLUSTER]);
   };
+
+  watch(
+    () => modelValue.value.master_domain,
+    (value) => {
+      handleInputChange(value);
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 <style lang="less" scoped>
   .batch-host-select {

@@ -18,7 +18,7 @@
     fixed="left"
     :label="t('目标从库主机')"
     :loading="loading"
-    :min-width="150"
+    :min-width="300"
     required>
     <template #headAppend>
       <span
@@ -34,14 +34,14 @@
       @change="handleInputChange" />
   </EditableColumn>
   <EditableColumn
-    :label="t('从库主机关联实例')"
+    :label="t('同机关联集群')"
     :loading="loading"
-    :min-width="150">
-    <EditableBlock v-if="modelValue.related_instances.length">
+    :min-width="300">
+    <EditableBlock v-if="modelValue.related_clusters.length">
       <p
-        v-for="item in modelValue.related_instances"
-        :key="item">
-        {{ item }}
+        v-for="item in modelValue.related_clusters"
+        :key="item.id">
+        {{ item.master_domain }}
       </p>
     </EditableBlock>
     <EditableBlock
@@ -50,7 +50,7 @@
   </EditableColumn>
   <InstanceSelector
     v-model:is-show="showSelector"
-    :cluster-types="['TendbClusterHost']"
+    :cluster-types="[ClusterTypes.SQLSERVER_HA]"
     :selected="selectedInstances"
     :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
@@ -59,9 +59,11 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import { getLevelConfig } from '@services/source/configs';
   import { checkInstance } from '@services/source/dbbase';
+  import { getSqlServerInstanceList } from '@services/source/sqlserveHaCluster';
 
-  import type { ClusterTypes } from '@common/const';
+  import { ClusterTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
   import InstanceSelector, {
@@ -85,60 +87,46 @@
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
-    bk_biz_id: number;
     bk_cloud_id: number;
     bk_host_id?: number;
-    cluster_id: number;
-    count: number;
+    db_module_id: number;
     ip: string;
-    master_domain: string;
-    related_instances: string[];
-    spec_id: number;
-    spec_name: string;
+    related_clusters: {
+      id: number;
+      master_domain: string;
+    }[];
+    system_version: string;
   }>({
     default: () => ({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: undefined,
-      cluster_id: 0,
-      count: 0,
+      db_module_id: 0,
       ip: '',
-      master_domain: '',
-      related_instances: [],
-      spec_id: 0,
-      spec_name: '',
+      related_clusters: [],
+      system_version: '',
     }),
   });
 
   const { t } = useI18n();
 
   const tabListConfig = {
-    TendbClusterHost: [
+    [ClusterTypes.SQLSERVER_HA]: [
       {
-        name: t('目标从库'),
+        name: t('从库主机'),
         tableConfig: {
-          firsrColumn: {
-            field: 'ip',
-            label: t('Slave 主机'),
-            role: 'remote_slave',
-          },
-        },
-      },
-      {
-        tableConfig: {
-          firsrColumn: {
-            field: 'ip',
-            label: t('Slave 主机'),
-            role: 'remote_slave',
-          },
+          getTableList: (params: ServiceParameters<typeof getSqlServerInstanceList>) =>
+            getSqlServerInstanceList({
+              ...params,
+              role: 'backend_slave',
+            }),
         },
       },
     ],
-  } as unknown as Record<ClusterTypes, PanelListType>;
+  } as Record<ClusterTypes, PanelListType>;
 
   const showSelector = ref(false);
   const selectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
-    TendbClusterHost: props.selected.map(
+    [ClusterTypes.SQLSERVER_HA]: props.selected.map(
       (item) =>
         ({
           ip: item.ip,
@@ -169,25 +157,47 @@
     onSuccess: (data) => {
       if (data.length) {
         const [currentHost] = data;
-        const relatedInstances: string[] = [];
-        data.forEach((item) => {
-          relatedInstances.push(item.instance_address);
-        });
         modelValue.value = {
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           bk_cloud_id: currentHost.bk_cloud_id,
           bk_host_id: currentHost.bk_host_id,
-          cluster_id: currentHost.cluster_id,
-          count: currentHost.spec_config.count,
+          db_module_id: currentHost.db_module_id,
           ip: currentHost.ip,
-          master_domain: currentHost.master_domain,
-          related_instances: relatedInstances,
-          spec_id: currentHost.spec_config.id,
-          spec_name: currentHost.spec_config.name,
+          related_clusters: currentHost.related_clusters.map((item) => ({
+            id: item.id,
+            master_domain: item.master_domain,
+          })),
+          system_version: '',
         };
       }
     },
   });
+
+  const { run: getOsTypes } = useRequest(getLevelConfig, {
+    manual: true,
+    onSuccess: (data) => {
+      modelValue.value.system_version =
+        data.conf_items.find((item) => item.conf_name === 'system_version')?.conf_value || '';
+    },
+  });
+
+  watch(
+    modelValue,
+    () => {
+      if (modelValue.value.db_module_id) {
+        getOsTypes({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          conf_type: 'deploy',
+          level_name: 'module',
+          level_value: modelValue.value.db_module_id,
+          meta_cluster_type: ClusterTypes.SQLSERVER_HA,
+          version: 'deploy_info',
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleShowSelector = () => {
     showSelector.value = true;
@@ -195,16 +205,12 @@
 
   const handleInputChange = (value: string) => {
     modelValue.value = {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: undefined,
-      cluster_id: 0,
-      count: 0,
+      db_module_id: 0,
       ip: value,
-      master_domain: '',
-      related_instances: [],
-      spec_id: 0,
-      spec_name: '',
+      related_clusters: [],
+      system_version: '',
     };
     if (value) {
       queryHost({
@@ -215,7 +221,7 @@
   };
 
   const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
-    emits('batch-edit', selected.TendbClusterHost);
+    emits('batch-edit', selected[ClusterTypes.SQLSERVER_HA]);
   };
 </script>
 <style lang="less" scoped>

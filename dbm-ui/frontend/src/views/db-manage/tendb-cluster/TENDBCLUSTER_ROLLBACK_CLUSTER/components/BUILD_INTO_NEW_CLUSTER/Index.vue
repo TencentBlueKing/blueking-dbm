@@ -88,6 +88,7 @@
   import { useI18n } from 'vue-i18n';
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
+  import { type TendbCluster } from '@services/model/ticket/ticket';
   import type { BackupLogRecord } from '@services/source/fixpointRollback';
 
   import { DBTypes } from '@common/const';
@@ -104,6 +105,8 @@
       id: number;
       master_domain: string;
     };
+    databases: string[];
+    databases_ignore: string[];
     // 存储层
     remote_hosts: {
       bk_biz_id: number;
@@ -111,6 +114,12 @@
       bk_host_id: number;
       ip: string;
     }[];
+    rollback: {
+      backupid?: string;
+      backupinfo?: BackupLogRecord;
+      rollback_time?: string;
+      rollback_type: string;
+    };
     // 接入层
     spider_host: {
       bk_biz_id: number;
@@ -118,59 +127,51 @@
       bk_host_id: number;
       ip: string;
     };
-    rollback: {
-      rollback_type: string;
-      backupid?: string;
-      backupinfo?: BackupLogRecord;
-      rollback_time?: string;
-    };
-    databases: string[];
-    databases_ignore: string[];
     tables: string[];
     tables_ignore: string[];
   }
 
   interface Props {
-    data: RowData[];
+    ticketDetails?: TendbCluster.ResourcePool.RollbackCluster;
   }
 
   interface Exposes {
     getValue: () => Promise<{
-      rollback_cluster_type: 'BUILD_INTO_NEW_CLUSTER';
-      ip_source: 'resource_pool'; // 只有在回档新集群选项，才传递此参数
       infos: {
-        cluster_id: number;
-        resource_spec: {
-          remote_hosts: {
-            spec_id: number;
-            count: number;
-            hosts: {
-              bk_biz_id: number;
-              bk_cloud_id: number;
-              bk_host_id: number;
-              ip: string;
-            }[];
-          };
-          spider_host: {
-            spec_id: number;
-            count: number;
-            hosts: {
-              bk_biz_id: number;
-              bk_cloud_id: number;
-              bk_host_id: number;
-              ip: string;
-            }[];
-          };
-        };
         backup_source: 'remote';
-        rollback_type: string; // "REMOTE_AND_BACKUPID/REMOTE_AND_TIME"
-        rollback_time?: string;
         backupinfo?: BackupLogRecord; // 如果备份类型为REMOTE_AND_BACKUPID提供集群备份信息
+        cluster_id: number;
         databases: string[];
         databases_ignore: string[];
+        resource_spec: {
+          remote_hosts: {
+            count: number;
+            hosts: {
+              bk_biz_id: number;
+              bk_cloud_id: number;
+              bk_host_id: number;
+              ip: string;
+            }[];
+            spec_id: number;
+          };
+          spider_host: {
+            count: number;
+            hosts: {
+              bk_biz_id: number;
+              bk_cloud_id: number;
+              bk_host_id: number;
+              ip: string;
+            }[];
+            spec_id: number;
+          };
+        };
+        rollback_time?: string;
+        rollback_type: string; // "REMOTE_AND_BACKUPID/REMOTE_AND_TIME"
         tables: string[];
         tables_ignore: string[];
       }[];
+      ip_source: 'resource_pool'; // 只有在回档新集群选项，才传递此参数
+      rollback_cluster_type: 'BUILD_INTO_NEW_CLUSTER';
     }>;
   }
 
@@ -186,18 +187,18 @@
       id: 0,
       master_domain: '',
     },
+    databases: data.databases || ['*'],
+    databases_ignore: data.databases_ignore || [],
     remote_hosts: data.remote_hosts || [],
+    rollback: data.rollback || {
+      rollback_type: ROLLBACK_TYPE.REMOTE_AND_BACKUPID,
+    },
     spider_host: data.spider_host || {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: 0,
       ip: '',
     },
-    rollback: data.rollback || {
-      rollback_type: ROLLBACK_TYPE.REMOTE_AND_BACKUPID,
-    },
-    databases: data.databases || ['*'],
-    databases_ignore: data.databases_ignore || [],
     tables: data.tables || ['*'],
     tables_ignore: data.tables_ignore || [],
   });
@@ -208,12 +209,33 @@
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
   watch(
-    () => props.data,
+    () => props.ticketDetails,
     () => {
-      if (props.data.length) {
-        tableData.value = [...props.data];
-      } else {
-        tableData.value = [createTableRow()];
+      if (props.ticketDetails) {
+        const { clusters, infos } = props.ticketDetails;
+        if (infos.length > 0) {
+          tableData.value = infos.map((item) => {
+            const clusterInfo = clusters[item.cluster_id];
+            return createTableRow({
+              cluster: {
+                id: item.cluster_id,
+                master_domain: clusterInfo.immute_domain,
+              },
+              databases: item.databases,
+              databases_ignore: item.databases_ignore,
+              remote_hosts: item.resource_spec.remote_hosts.hosts,
+              rollback: {
+                backupid: item.backupinfo.backup_id,
+                backupinfo: item.backupinfo,
+                rollback_time: item.rollback_time,
+                rollback_type: item.rollback_time ? ROLLBACK_TYPE.REMOTE_AND_TIME : ROLLBACK_TYPE.REMOTE_AND_BACKUPID,
+              },
+              spider_host: item.resource_spec.spider_host.hosts[0],
+              tables: item.tables,
+              tables_ignore: item.tables_ignore,
+            });
+          });
+        }
       }
     },
   );
@@ -237,7 +259,9 @@
 
   const handleBatchEdit = (value: any, field: string) => {
     tableData.value.forEach((item) => {
-      item[field as keyof RowData] = value;
+      Object.assign(item, {
+        [field]: value,
+      });
     });
   };
 
@@ -246,38 +270,38 @@
       const validateResult = await tableRef.value?.validate();
       if (!validateResult) {
         return {
-          rollback_cluster_type: 'BUILD_INTO_NEW_CLUSTER',
-          ip_source: 'resource_pool',
           infos: [],
+          ip_source: 'resource_pool',
+          rollback_cluster_type: 'BUILD_INTO_NEW_CLUSTER',
         };
       }
 
       return {
-        rollback_cluster_type: 'BUILD_INTO_NEW_CLUSTER',
-        ip_source: 'resource_pool',
         infos: tableData.value.map((item) => ({
-          cluster_id: item.cluster.id,
-          resource_spec: {
-            remote_hosts: {
-              spec_id: 0,
-              count: item.remote_hosts.length,
-              hosts: item.remote_hosts,
-            },
-            spider_host: {
-              spec_id: 0,
-              count: 1,
-              hosts: [item.spider_host],
-            },
-          },
           backup_source: 'remote',
-          rollback_type: item.rollback.rollback_type,
-          rollback_time: item.rollback.rollback_time,
           backupinfo: item.rollback.backupinfo,
+          cluster_id: item.cluster.id,
           databases: item.databases,
           databases_ignore: item.databases_ignore,
+          resource_spec: {
+            remote_hosts: {
+              count: item.remote_hosts.length,
+              hosts: item.remote_hosts,
+              spec_id: 0,
+            },
+            spider_host: {
+              count: 1,
+              hosts: [item.spider_host],
+              spec_id: 0,
+            },
+          },
+          rollback_time: item.rollback.rollback_time,
+          rollback_type: item.rollback.rollback_type,
           tables: item.tables,
           tables_ignore: item.tables_ignore,
         })),
+        ip_source: 'resource_pool',
+        rollback_cluster_type: 'BUILD_INTO_NEW_CLUSTER',
       };
     },
   });
