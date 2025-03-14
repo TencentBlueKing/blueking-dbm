@@ -18,7 +18,9 @@
       v-if="flowStatus !== 'pending'"
       class="mt-16"
       style="padding: 0 45px">
-      <BkTable :data="semanticExecuteResult">
+      <BkTable
+        :data="semanticExecuteResult"
+        :show-overflow="false">
         <BkTableColumn
           field="dbnames"
           :label="t('变更的 DB')"
