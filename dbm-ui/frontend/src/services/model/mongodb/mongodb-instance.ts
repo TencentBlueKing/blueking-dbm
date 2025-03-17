@@ -61,7 +61,7 @@ export default class MongodbInstance {
   shard: string;
   slave_domain: string;
   spec_config: InstanceListSpecConfig;
-  status: string;
+  status: 'unavailable' | 'running';
   version: string;
 
   constructor(payload = {} as MongodbInstance) {
