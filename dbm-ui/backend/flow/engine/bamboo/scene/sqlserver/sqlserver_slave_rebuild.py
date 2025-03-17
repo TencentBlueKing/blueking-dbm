@@ -420,6 +420,19 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                     )
                 )
 
+                if (
+                    SqlserverClusterSyncMode.objects.get(cluster_id=cluster.id).sync_mode
+                    == SqlserverSyncMode.ALWAYS_ON
+                ):
+                    # 这里做场景优化
+                    # 假如是Alwayson模式，串人工确认，保证切换前认为检查同步状态，确认之前 发生故障切换则切换到旧slave
+                    # 假如是mirroring模式，一直往下执行，确认之前 发生故障切换， 尽量切换到新slave
+                    cluster_sub_pipeline.add_act(
+                        act_name=_("人工确认切换域名"),
+                        act_component_code=PauseComponent.code,
+                        kwargs={},
+                    )
+
                 # 并发替换从域名映射
                 entry_list = old_slave.bind_entry.filter(cluster_entry_type=ClusterEntryType.DNS.value).all()
                 if len(entry_list) > 0:

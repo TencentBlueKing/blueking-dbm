@@ -158,7 +158,7 @@ class SqlserverSwitchFlow(BaseFlow):
                         )
                     )
 
-                    # 先做克隆周边配置，保证这块内容切换前是同步的
+                    # 先做克隆user和link_server，保证这块内容切换前是同步的
                     cluster_pipeline.add_sub_pipeline(
                         sub_flow=clone_configs_sub_flow(
                             uid=self.data["uid"],
@@ -167,6 +167,10 @@ class SqlserverSwitchFlow(BaseFlow):
                             source_port=old_master.port,
                             target_host=Host(ip=new_master.machine.ip, bk_cloud_id=cluster.bk_cloud_id),
                             target_port=new_master.port,
+                            is_clone_user=True,
+                            is_clone_jobs=False,
+                            is_clone_linkserver=True,
+                            sub_flow_name=_("克隆user和Link_server配置"),
                         )
                     )
 
@@ -181,6 +185,23 @@ class SqlserverSwitchFlow(BaseFlow):
                         )
                     ),
                 )
+
+                if not self.data["force"]:
+                    # 再克隆job
+                    cluster_pipeline.add_sub_pipeline(
+                        sub_flow=clone_configs_sub_flow(
+                            uid=self.data["uid"],
+                            root_id=self.root_id,
+                            source_host=Host(ip=old_master.machine.ip, bk_cloud_id=cluster.bk_cloud_id),
+                            source_port=old_master.port,
+                            target_host=Host(ip=new_master.machine.ip, bk_cloud_id=cluster.bk_cloud_id),
+                            target_port=new_master.port,
+                            is_clone_user=False,
+                            is_clone_jobs=True,
+                            is_clone_linkserver=False,
+                            sub_flow_name=_("克隆job配置"),
+                        )
+                    )
 
                 # 变更集群域名映射
                 cluster_pipeline.add_sub_pipeline(
