@@ -21,9 +21,11 @@ import (
 	"dbm-services/mysql/db-simulation/pkg/util"
 )
 
-// SpiderChecker TODO
+// SpiderChecker create table checker
 func (c CreateTableResult) SpiderChecker(spiderVersion string) (r *CheckerResult) {
-	r = &CheckerResult{}
+	r = &CheckerResult{
+		ObjName: c.TableName,
+	}
 	if R.BuiltInRule.TableNameSpecification.KeyWord {
 		r.ParseBultinRisk(func() (bool, string) {
 			return KeyWordValidator(spiderVersion, c.TableName)

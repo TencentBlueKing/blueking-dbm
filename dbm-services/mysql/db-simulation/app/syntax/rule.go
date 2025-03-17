@@ -35,8 +35,10 @@ type Checker interface {
 	Checker(mysqlVersion string) *CheckerResult
 }
 
-// CheckerResult TODO
+// CheckerResult 语法检查结果
 type CheckerResult struct {
+	ObjName   string
+	IsSpFunc  bool
 	BanWarns  []string
 	RiskWarns []string
 }
@@ -93,39 +95,47 @@ func (c *CheckerResult) Parse(rule *RuleItem, val interface{}, additionalMsg str
 	matched, err := rule.CheckItem(val)
 	if matched {
 		if rule.Ban {
-			c.BanWarns = append(c.BanWarns, fmt.Sprintf("%s\n%s", err.Error(), additionalMsg))
+			c.BanWarns = append(c.BanWarns, fmt.Sprintf("%s %s\n%s", c.buildObjName(), err.Error(), additionalMsg))
 		} else {
-			c.RiskWarns = append(c.RiskWarns, fmt.Sprintf("%s\n%s", err.Error(), additionalMsg))
+			c.RiskWarns = append(c.RiskWarns, fmt.Sprintf("%s %s\n%s", c.buildObjName(), err.Error(), additionalMsg))
 		}
 	}
 }
 
-// Trigger TODO
+// Trigger trigger
 func (c *CheckerResult) Trigger(rule *BoolRuleItem, additionalMsg string) {
 	// 表示检查开关关闭，跳过检查
 	if !rule.TurnOn {
 		return
 	}
 	if rule.Ban {
-		c.BanWarns = append(c.BanWarns, fmt.Sprintf("%s:%s\n%s", rule.Desc, additionalMsg, rule.Suggestion))
+		c.BanWarns = append(c.BanWarns, fmt.Sprintf("%s %s:%s\n%s", c.buildObjName(), rule.Desc, additionalMsg,
+			rule.Suggestion))
 	} else {
-		c.RiskWarns = append(c.RiskWarns, fmt.Sprintf("%s:%s\n%s", rule.Desc, additionalMsg, rule.Suggestion))
+		c.RiskWarns = append(c.RiskWarns, fmt.Sprintf("%s %s:%s\n%s", c.buildObjName(), rule.Desc, additionalMsg,
+			rule.Suggestion))
 	}
 }
+func (c *CheckerResult) buildObjName() string {
+	if c.IsSpFunc {
+		return fmt.Sprintf("sp_name: %s ", c.ObjName)
+	}
+	return fmt.Sprintf("table_name: %s ", c.ObjName)
+}
 
-// ParseBultinBan TODO
+// ParseBultinBan parse builtin ban
 func (c *CheckerResult) ParseBultinBan(f func() (bool, string)) {
 	matched, msg := f()
 	if matched {
-		c.BanWarns = append(c.BanWarns, msg)
+		c.BanWarns = append(c.BanWarns, fmt.Sprintf("%s  %s", c.buildObjName(), msg))
 	}
 }
 
-// ParseBultinRisk TODO
+// ParseBultinRisk parse builtin risk
 func (c *CheckerResult) ParseBultinRisk(f func() (bool, string)) {
 	matched, msg := f()
 	if matched {
-		c.RiskWarns = append(c.RiskWarns, msg)
+		c.RiskWarns = append(c.RiskWarns, fmt.Sprintf("%s %s", c.buildObjName(), msg))
 	}
 }
 

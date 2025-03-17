@@ -14,7 +14,9 @@ import "fmt"
 
 // SpiderChecker syntax checker
 func (c AlterTableResult) SpiderChecker(mysqlVersion string) (r *CheckerResult) {
-	r = &CheckerResult{}
+	r = &CheckerResult{
+		ObjName: c.TableName,
+	}
 	for _, altercmd := range c.AlterCommands {
 		// 如果是增加字段，需要判断增加的字段名称是否是关键字
 		if altercmd.Type == AlterTypeAddColumn {

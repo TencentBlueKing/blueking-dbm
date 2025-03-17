@@ -12,28 +12,30 @@ package syntax
 
 // Checker  whether the delete statement has a where condition
 func (c DeleteResult) Checker(mysqlVersion string) (r *CheckerResult) {
-	r = &CheckerResult{}
+	r = &CheckerResult{
+		ObjName: c.TableName,
+	}
 	r.Parse(R.DmlRule.DmlNotHasWhere, c.HasWhere || c.Limit > 0, "")
 	return
 }
 
 // Checker  whether the update statement has a where condition
 func (c UpdateResult) Checker(mysqlVersion string) (r *CheckerResult) {
-	r = &CheckerResult{}
+	r = &CheckerResult{ObjName: c.TableName}
 	r.Parse(R.DmlRule.DmlNotHasWhere, c.HasWhere || c.Limit > 0, "")
 	return
 }
 
 // SpiderChecker whether the delete statement has a where condition
 func (c DeleteResult) SpiderChecker(mysqlVersion string) (r *CheckerResult) {
-	r = &CheckerResult{}
+	r = &CheckerResult{ObjName: c.TableName}
 	r.Parse(SR.DmlRule.DmlNotHasWhere, c.HasWhere || c.Limit > 0, "")
 	return
 }
 
 // SpiderChecker  whether the update statement has a where condition
 func (c UpdateResult) SpiderChecker(mysqlVersion string) (r *CheckerResult) {
-	r = &CheckerResult{}
+	r = &CheckerResult{ObjName: c.TableName}
 	r.Parse(SR.DmlRule.DmlNotHasWhere, c.HasWhere || c.Limit > 0, "")
 	return
 }

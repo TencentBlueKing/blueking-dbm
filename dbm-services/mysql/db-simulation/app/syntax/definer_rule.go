@@ -17,12 +17,17 @@ import (
 // DefinerBase definer base
 type DefinerBase struct {
 	ParseBase
-	Definer UserHost `json:"definer,omitempty"`
+	SpName      string   `json:"sp_name,omitempty"`
+	Definer     UserHost `json:"definer,omitempty"`
+	DataAccess  string   `json:"data_access,omitempty"`
+	SQLSecurity string   `json:"sql_security,omitempty"`
 }
 
 // Checker definer rule checker
 func (c DefinerBase) Checker(mysqlVersion string) (r *CheckerResult) {
-	r = &CheckerResult{}
+	r = &CheckerResult{
+		ObjName: c.SpName,
+	}
 	r.Parse(R.CreateTableRule.DefinerRule, fmt.Sprintf("%s@%s", c.Definer.User, c.Definer.Host), "")
 	return
 }
