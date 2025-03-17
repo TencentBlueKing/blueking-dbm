@@ -62,6 +62,15 @@ export function getMachineEvents(params: {
 }
 
 /**
+ * 获取主机当前周期的事件
+ */
+export function getHostCurrentEvent(params: { bk_host_id: number }) {
+  return http
+    .get<MachineEventModel[]>(`${path}/get_host_current_events/`, params)
+    .then((res) => res.map((item: MachineEventModel) => new MachineEventModel(item)));
+}
+
+/**
  * 将污点池主机转移至待回收模块
  */
 export function transferDirtyMachines(params: { bk_host_ids: number[] }) {

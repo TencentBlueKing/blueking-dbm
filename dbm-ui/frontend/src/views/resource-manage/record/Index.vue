@@ -24,6 +24,7 @@
       ref="tableRef"
       :data-source="dataSource"
       releate-url-query
+      :show-overflow="false"
       :show-settings="false"
       @clear-search="handleClearSearch"
       @column-filter="columnFilterChange"
@@ -90,8 +91,7 @@
       <BkTableColumn
         field="event"
         :label="t('操作明细')"
-        :min-width="300"
-        show-overflow="tooltip">
+        :min-width="300">
         <template #default="{ data }: { data: MachineEventModel }">
           <OperationDetail :data="data" />
         </template>
@@ -217,21 +217,6 @@
       // 过滤掉已经选过的标签
       const selected = (searchValue.value || []).map((value) => value.id);
       return searchSelectData.value.filter((item) => !selected.includes(item.id));
-    }
-
-    // 远程加载执行人
-    if (item.id === 'operator') {
-      if (!keyword) {
-        return [];
-      }
-      return getUserList({
-        fuzzy_lookups: keyword,
-      }).then((res) =>
-        res.results.map((item) => ({
-          id: item.username,
-          name: item.username,
-        })),
-      );
     }
 
     // 不需要远层加载

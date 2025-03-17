@@ -464,20 +464,20 @@
     emits('clearSearch');
   };
 
-  const calcPageLimit = () => {
-    const windowInnerHeight = window.innerHeight;
-    const tableHeaderHeight = 42;
-    const tableRowHeight = 42;
-    const pageOffsetTop = 260;
-    const tableFooterHeight = 60;
+  // const calcPageLimit = () => {
+  //   const windowInnerHeight = window.innerHeight;
+  //   const tableHeaderHeight = 42;
+  //   const tableRowHeight = 42;
+  //   const pageOffsetTop = 260;
+  //   const tableFooterHeight = 60;
 
-    const tableRowTotalHeight = windowInnerHeight - pageOffsetTop - tableHeaderHeight - tableFooterHeight;
+  //   const tableRowTotalHeight = windowInnerHeight - pageOffsetTop - tableHeaderHeight - tableFooterHeight;
 
-    const rowNum = Math.floor(tableRowTotalHeight / tableRowHeight);
-    const pageLimit = new Set([...pagination.limitList, rowNum]);
-    pagination.limit = rowNum;
-    pagination.limitList = [...pageLimit].sort((a, b) => a - b);
-  };
+  //   const rowNum = Math.floor(tableRowTotalHeight / tableRowHeight);
+  //   const pageLimit = new Set([...pagination.limitList, rowNum]);
+  //   pagination.limit = rowNum;
+  //   pagination.limitList = [...pageLimit].sort((a, b) => a - b);
+  // };
 
   const calcTableHeight = _.throttle(() => {
     if (rootRef.value) {
@@ -489,7 +489,7 @@
 
   onMounted(() => {
     parseURL();
-    calcPageLimit();
+    // calcPageLimit();
     calcTableHeight();
     window.addEventListener('resize', calcTableHeight);
     const observer = new MutationObserver(() => {

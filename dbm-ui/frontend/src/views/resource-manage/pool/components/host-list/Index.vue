@@ -74,11 +74,11 @@
         </BkButton>
         <template #content>
           <BkDropdownMenu>
-            <BkDropdownItem @click="handleCopyAllHost">
-              {{ t('所有主机') }}
-            </BkDropdownItem>
             <BkDropdownItem @click="handleCopySelectHost">
               {{ t('已选主机') }}
+            </BkDropdownItem>
+            <BkDropdownItem @click="handleCopyAllHost">
+              {{ copyAllHostText }}
             </BkDropdownItem>
             <BkDropdownItem @click="handleCopyAllAbnormalHost">
               {{ t('所有异常主机') }}
@@ -158,7 +158,7 @@
   import DiskPopInfo from '@components/disk-pop-info/DiskPopInfo.vue';
   import HostAgentStatus from '@components/host-agent-status/Index.vue';
 
-  import { execCopy } from '@utils';
+  import { execCopy, messageWarn } from '@utils';
 
   import { ResourcePool } from '../../type';
   import { useImportResourcePoolTooltip } from '../hooks/useImportResourcePoolTip';
@@ -206,6 +206,7 @@
 
   const selectionList = shallowRef<DbResourceModel[]>([]);
   const curEditData = shallowRef<DbResourceModel>({} as DbResourceModel);
+  const searchParams = shallowRef<Record<string, any>>({});
 
   const selectionHostIdList = computed(() => selectionList.value.map((selectionItem) => selectionItem.bk_host_id));
 
@@ -222,13 +223,16 @@
     return bizId;
   });
 
+  const copyAllHostText = computed(() => {
+    const isFilter = Object.keys(searchParams.value).length > 0;
+    return `${t('所有主机')}（${isFilter ? t('筛选后') : t('全量')}）`;
+  });
+
   const dataSource = (params: ServiceParameters<typeof fetchList>) =>
     fetchList({
       for_biz: curBizId.value,
       ...params,
     });
-
-  let searchParams: Record<string, any> = {};
 
   const tableColumn = computed(() => [
     {
@@ -376,11 +380,11 @@
   ]);
 
   const fetchData = () => {
-    tableRef.value!.fetchData(searchParams, {});
+    tableRef.value!.fetchData(searchParams.value, {});
   };
 
   const handleSearch = (params: Record<string, any>) => {
-    searchParams = params;
+    searchParams.value = params;
     fetchData();
   };
 
@@ -394,16 +398,21 @@
     fetchList({
       limit: -1,
       offset: 0,
+      ...searchParams.value,
     }).then((data) => {
+      if (!data.results.length) {
+        messageWarn(t('暂无可复制 IP'));
+        return;
+      }
       const ipList = data.results.map((item) => item.ip);
-      execCopy(ipList.join('\n'), `${t('复制成功n个IP', { n: ipList.length })}\n`);
+      execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }));
     });
   };
 
   // 复制已选主机
   const handleCopySelectHost = () => {
     const ipList = selectionList.value.map((item) => item.ip);
-    execCopy(ipList.join('\n'), `${t('复制成功n个IP', { n: ipList.length })}\n`);
+    execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }));
   };
 
   // 复制所有异常主机
@@ -411,14 +420,19 @@
     fetchList({
       limit: -1,
       offset: 0,
+      ...searchParams.value,
     }).then((data) => {
+      if (!data.results.length) {
+        messageWarn(t('暂无可复制 IP'));
+        return;
+      }
       const ipList = data.results.reduce<string[]>((result, item) => {
         if (!item.agent_status) {
           result.push(item.ip);
         }
         return result;
       }, []);
-      execCopy(ipList.join('\n'), `${t('复制成功n个IP', { n: ipList.length })}\n`);
+      execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }));
     });
   };
 

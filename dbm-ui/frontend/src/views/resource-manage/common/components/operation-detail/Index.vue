@@ -61,7 +61,7 @@
   const machineEventsMap = computed(() => ({
     [MachineEvents.APPLY_RESOURCE]: machineEventsDisplayMap[props.data.event],
     [MachineEvents.IMPORT_RESOURCE]: t('从「n」业务 CMDB空闲机模块导入', { n: bizName.value }),
-    [MachineEvents.RECYCLED]: t('退回「n」业务 CMDB 待回收模块', { n: bizName.value }),
+    [MachineEvents.RECYCLED]: t('回收到「n」业务 CMDB 待回收模块', { n: bizName.value }),
     [MachineEvents.RETURN_RESOURCE]: props.data.ticket ? t('已下架主机退回资源池再利用') : t('故障池主机转回资源池'),
     [MachineEvents.TO_DIRTY]: machineEventsDisplayMap[props.data.event],
     [MachineEvents.TO_FAULT]: t('从资源池手动转入'),
