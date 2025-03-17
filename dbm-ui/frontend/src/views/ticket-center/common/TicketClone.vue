@@ -52,6 +52,8 @@
    * 资源池协议的单据
    */
   const resourcePoolTickets = {
+    [TicketTypes.MONGODB_CUTOFF]: TicketTypes.MONGODB_CUTOFF, // mongo 整机替换
+    [TicketTypes.MONGODB_REDUCE_MONGOS]: TicketTypes.MONGODB_REDUCE_MONGOS, // mongo 缩容接入层
     [TicketTypes.MYSQL_ADD_SLAVE]: TicketTypes.MYSQL_ADD_SLAVE, // Mysql 添加从库
     [TicketTypes.MYSQL_MIGRATE_CLUSTER]: TicketTypes.MYSQL_MIGRATE_CLUSTER, // Mysql 迁移主从
     [TicketTypes.MYSQL_MIGRATE_UPGRADE]: TicketTypes.MYSQL_PROXY_UPGRADE, // MySQL 迁移升级
@@ -73,6 +75,7 @@
    */
   const ticketTypeRouteNameMap: Record<string, string> = {
     ...resourcePoolTickets,
+    [TicketTypes.MONGODB_PITR_RESTORE]: TicketTypes.MONGODB_PITR_RESTORE, // mongo 定点构造
     [TicketTypes.MYSQL_ADD_SLAVE]: TicketTypes.MYSQL_ADD_SLAVE, // Mysql 添加从库
     [TicketTypes.MYSQL_AUTHORIZE_RULES]: 'PermissionRules', // Mysql 授权
     [TicketTypes.MYSQL_CHECKSUM]: 'MySQLChecksum', // Mysql 数据校验修复
