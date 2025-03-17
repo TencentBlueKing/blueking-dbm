@@ -58,4 +58,4 @@ class DirtyMachinePoolFilter(filters.FilterSet):
 
     class Meta:
         model = DirtyMachine
-        fields = {"bk_biz_id": ["exact"], "creator": ["exact"], "pool": ["exact"]}
+        fields = {"creator": ["exact"], "pool": ["exact"]}

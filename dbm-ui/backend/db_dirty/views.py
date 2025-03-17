@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import status
 from rest_framework.decorators import action
@@ -17,11 +16,12 @@ from rest_framework.response import Response
 from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.db_dirty.constants import SWAGGER_TAG
+from backend.db_dirty.constants import SWAGGER_TAG, MachineEventType
 from backend.db_dirty.filters import DirtyMachinePoolFilter, MachineEventFilter
 from backend.db_dirty.handlers import DBDirtyMachineHandler
 from backend.db_dirty.models import DirtyMachine, MachineEvent
 from backend.db_dirty.serializers import (
+    GetHostCurrentEvents,
     ListMachineEventResponseSerializer,
     ListMachineEventSerializer,
     ListMachinePoolResponseSerializer,
@@ -66,6 +66,21 @@ class DBDirtyMachineViewSet(viewsets.SystemViewSet):
         events_qs = self.paginate_queryset(self.filter_queryset(self.get_queryset()))
         events_data = ListMachineEventSerializer(events_qs, many=True).data
         return self.paginator.get_paginated_response(data=events_data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取主机当前周期的事件"),
+        query_serializer=GetHostCurrentEvents(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        detail=False, methods=["GET"], serializer_class=GetHostCurrentEvents, filter_class=None, pagination_class=None
+    )
+    def get_host_current_events(self, request):
+        host_id = self.params_validate(self.get_serializer_class())["bk_host_id"]
+        event_qs = MachineEvent.objects.filter(bk_host_id=host_id).order_by("-create_at")
+        st = next((i for i, d in enumerate(event_qs) if d.event == MachineEventType.ImportResource), event_qs.count())
+        events = ListMachineEventSerializer(event_qs[: st + 1], many=True).data
+        return Response(events)
 
     @common_swagger_auto_schema(
         operation_summary=_("主机池查询"),

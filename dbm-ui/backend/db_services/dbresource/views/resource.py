@@ -334,8 +334,8 @@ class DBResourceViewSet(viewsets.SystemViewSet):
 
         bk_host_ids = [host["bk_host_id"] for host in data["hosts"]]
 
-        # 撤销导入需要判断机器是否可退回
         if data["event"] == MachineEventType.UndoImport:
+            # 撤销导入需要判断机器是否可退回
             ok, message = MachineEvent.hosts_can_return(bk_host_ids)
             if not ok:
                 raise ResourceReturnException(message)
@@ -343,13 +343,17 @@ class DBResourceViewSet(viewsets.SystemViewSet):
             # 从资源池删除机器，并退回各个业务的空闲机。这里主机的业务ID就是导入时的来源业务
             biz_hosts_groups = itertools.groupby(data["hosts"], key=lambda x: x["bk_biz_id"])
             for bk_biz_id, hosts in biz_hosts_groups:
+                hosts = list(hosts)
+                MachineEvent.host_event_trigger(bk_biz_id, hosts, data["event"], operator, remark=data["remark"])
                 CcManage.transfer_host_to_idlemodule_across_biz(bk_biz_id, [host["bk_host_id"] for host in hosts])
+        else:
+            # 转移故障池/待回收池则仅记录主机事件
+            MachineEvent.host_event_trigger(
+                env.DBA_APP_BK_BIZ_ID, data["hosts"], data["event"], operator, remark=data["remark"]
+            )
 
         # 删除资源
         resp = DBResourceApi.resource_delete(params={"bk_host_ids": bk_host_ids})
-        # 记录撤销事件
-        hosts = [{"bk_host_id": host} for host in bk_host_ids]
-        MachineEvent.host_event_trigger(env.DBA_APP_BK_BIZ_ID, hosts, data["event"], operator, remark=data["remark"])
         return Response(resp)
 
     @common_swagger_auto_schema(

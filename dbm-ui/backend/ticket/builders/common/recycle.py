@@ -84,7 +84,7 @@ class RecycleHostFlowBuilder(TicketFlowBuilder):
                     ticket=self.ticket,
                     flow_type=FlowType.HOST_RECYCLE.value,
                     details=ImportPoolParamBuilder(self.ticket, "fault_hosts", PoolType.Fault).get_params(),
-                    flow_alias=_("故障主机退回故障池"),
+                    flow_alias=_("主机转入故障池"),
                 ),
             )
 
@@ -95,7 +95,7 @@ class RecycleHostFlowBuilder(TicketFlowBuilder):
                     ticket=self.ticket,
                     flow_type=FlowType.HOST_RECYCLE.value,
                     details=ImportPoolParamBuilder(self.ticket, "recycle_hosts", PoolType.Recycle).get_params(),
-                    flow_alias=_("待回收主机退回待回收池"),
+                    flow_alias=_("主机转入待回收池"),
                 ),
             )
 
@@ -106,7 +106,7 @@ class RecycleHostFlowBuilder(TicketFlowBuilder):
                     ticket=self.ticket,
                     flow_type=FlowType.HOST_RECYCLE.value,
                     details=ImportPoolParamBuilder(self.ticket, "recycled_hosts", PoolType.Recycled).get_params(),
-                    flow_alias=_("主机回收到CC待回收池"),
+                    flow_alias=_("主机回收到CMDB待回收"),
                 ),
             )
 

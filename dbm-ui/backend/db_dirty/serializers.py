@@ -80,3 +80,7 @@ class ListMachinePoolSerializer(serializers.ModelSerializer):
 class ListMachinePoolResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": {}}
+
+
+class GetHostCurrentEvents(serializers.Serializer):
+    bk_host_id = serializers.IntegerField(help_text=_("主机ID"))

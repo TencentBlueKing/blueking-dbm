@@ -525,7 +525,7 @@ class TicketType(str, StructuredEnum):
     RESOURCE_IMPORT = EnumField("RESOURCE_IMPORT", _("资源池导入"))
     ADMIN_PASSWORD_MODIFY = EnumField("ADMIN_PASSWORD_MODIFY", _("临时密码修改"))
     RECYCLE_APPLY_HOST = EnumField("RECYCLE_APPLY_HOST", _("新分配主机退回"))
-    RECYCLE_OLD_HOST = EnumField("RECYCLE_OLD_HOST", _("已下架主机再利用"))
+    RECYCLE_OLD_HOST = EnumField("RECYCLE_OLD_HOST", _("已下架主机处理"))
     # fmt: on
 
     # VM

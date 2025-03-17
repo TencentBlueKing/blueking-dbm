@@ -33,7 +33,7 @@ class _HCMApi(BaseApi):
         )
         self.uwork_check = self.generate_data_api(
             method="POST",
-            url=" /api/v1/woa/bizs/{bk_biz_id}/task/hosts/uwork_tickets/status/check/",
+            url="/api/v1/woa/bizs/{bk_biz_id}/task/hosts/uwork_tickets/status/check/",
             description=_("检查主机是否有未完结的uwork单据"),
         )
 

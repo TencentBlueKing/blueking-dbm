@@ -9,12 +9,14 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from collections import defaultdict
+from datetime import datetime
 from typing import Tuple
 
 from django.db import models
 from django.db.models import F, Window
 from django.db.models.functions import RowNumber
 from django.forms import model_to_dict
+from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.constants import LEN_LONG, LEN_MIDDLE
@@ -22,14 +24,14 @@ from backend.bk_web.models import AuditedModel
 from backend.db_dirty.constants import MACHINE_EVENT__POOL_MAP, MachineEventType, PoolType
 from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.ticket.models import Ticket
+from backend.utils.time import datetime2str
 
 
 class DirtyMachine(AuditedModel):
     """
-    机器池：污点池，故障池，待回收池
+    DBM主机池，包含：资源池，故障池，待回收池
     """
 
-    bk_biz_id = models.IntegerField(default=0, help_text=_("业务ID"))
     bk_host_id = models.PositiveBigIntegerField(primary_key=True, default=0, help_text=_("主机ID"))
     bk_cloud_id = models.IntegerField(default=0, help_text=_("主机云区域"))
     ip = models.CharField(max_length=LEN_MIDDLE, help_text=_("主机IP"))
@@ -51,16 +53,16 @@ class DirtyMachine(AuditedModel):
 
     @classmethod
     def host_fields(cls):
-        non_host_fields = ["bk_biz_id", "pool", "ticket", *AuditedModel.AUDITED_FIELDS]
+        non_host_fields = ["pool", "ticket", *AuditedModel.AUDITED_FIELDS]
         fields = [field.name for field in cls._meta.fields if field.name not in non_host_fields]
         return fields
 
     @classmethod
-    def hosts_pool_transfer(cls, bk_biz_id, hosts, pool, operator="", ticket=None):
+    def hosts_pool_transfer(cls, hosts, pool, operator="", ticket=None):
         """将机器转入主机池"""
         host_ids = [host["bk_host_id"] for host in hosts]
         handle_hosts = cls.objects.filter(bk_host_id__in=host_ids)
-
+        now = datetime2str(datetime.now(timezone.utc))
         # 如果主机不存在，则证明第一次导入主机池，需要进行标准化
         if not handle_hosts.exists():
             hosts = ResourceHandler.standardized_resource_host(hosts)
@@ -77,18 +79,18 @@ class DirtyMachine(AuditedModel):
 
         # 新机导入，录入主机池
         if pool == PoolType.Resource and not handle_hosts.exists():
-            fields = {"bk_biz_id": bk_biz_id, "pool": pool, "ticket": ticket, "creator": operator, "updater": operator}
+            fields = {"pool": pool, "ticket": ticket, "creator": operator, "updater": operator}
             handle_hosts = [cls(**fields, **host) for host in hosts]
             cls.objects.bulk_create(handle_hosts)
         # 主机回收，删除主机记录
         elif pool == PoolType.Recycled:
             handle_hosts.delete()
         # 其他情况仅更新主机归属
-        elif pool in [PoolType.Resource, PoolType.Recycle, PoolType.Dirty, PoolType.Fault]:
-            handle_hosts.update(pool=pool, ticket=ticket)
+        elif pool in [PoolType.Resource, PoolType.Recycle, PoolType.Fault]:
+            handle_hosts.update(pool=pool, ticket=ticket, updater=operator, update_at=now)
         # 主机被使用，则pool为空(或者叫占用中...)
         elif not pool:
-            handle_hosts.update(pool="", ticket=ticket)
+            handle_hosts.update(pool="", ticket=ticket, updater=operator, update_at=now)
 
         return hosts
 
@@ -132,10 +134,7 @@ class MachineEvent(AuditedModel):
         """主机事件触发"""
         pool = MACHINE_EVENT__POOL_MAP.get(event)
         # 主机池流转
-        hosts = DirtyMachine.hosts_pool_transfer(bk_biz_id, hosts, pool, operator, ticket)
-        # 流转污点池不记录主机事件
-        if event == MachineEventType.ToDirty:
-            return
+        hosts = DirtyMachine.hosts_pool_transfer(hosts, pool, operator, ticket)
         # 事件记录
         events = [
             MachineEvent(

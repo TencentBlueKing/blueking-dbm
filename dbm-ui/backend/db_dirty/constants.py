@@ -17,8 +17,7 @@ SWAGGER_TAG = _("主机池")
 
 
 class PoolType(str, StructuredEnum):
-    # 池管理：污点池，故障池，待回收池
-    Dirty = EnumField("dirty", _("污点池"))
+    # 池管理：资源池，故障池，待回收池
     Fault = EnumField("fault", _("故障池"))
     Recycle = EnumField("recycle", _("待回收池"))
     # 资源池本身不由saas维护，单独由资源池服务维护
@@ -31,7 +30,6 @@ class MachineEventType(str, StructuredEnum):
     ImportResource = EnumField("import_resource", _("导入资源池"))
     ApplyResource = EnumField("apply_resource", _("申请资源"))
     ReturnResource = EnumField("return_resource", _("退回资源"))
-    ToDirty = EnumField("to_dirty", _("转入污点池"))
     ToRecycle = EnumField("to_recycle", _("转入待回收池"))
     ToFault = EnumField("to_fault", _("转入故障池"))
     UndoImport = EnumField("undo_import", _("撤销导入"))
@@ -39,7 +37,6 @@ class MachineEventType(str, StructuredEnum):
 
 
 MACHINE_EVENT__POOL_MAP = {
-    MachineEventType.ToDirty: PoolType.Dirty,
     MachineEventType.ToRecycle: PoolType.Recycle,
     MachineEventType.ToFault: PoolType.Fault,
     MachineEventType.ImportResource: PoolType.Resource,
