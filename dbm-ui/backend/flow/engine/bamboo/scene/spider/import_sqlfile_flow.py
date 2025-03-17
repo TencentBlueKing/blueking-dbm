@@ -278,16 +278,14 @@ class ImportSQLFlow(object):
         if not proxy_list:
             raise Exception(_("查询spider version 失败"))
         logger.info(f"get spider list: {proxy_list}")
-        version = set()
-        major_version_set = set()
+        current_major_version = 0
+        version = ""
         for spider in proxy_list:
             major_version, sub_version = major_version_parse(spider.version)
-            # 只判断spider1.x 和 spider 3.x 这样的差异性
-            major_version_set.add(int(major_version / 1000000))
-            version.add(spider.version)
-        if len(major_version_set) > 1:
-            raise Exception(_("spider中存在多个大版本不一致的情况:{},请找DBA处理下").format(version))
-        return version.pop()
+            if major_version > current_major_version:
+                current_major_version = major_version
+                version = spider.version
+        return version
 
     def __get_sql_file_name_list(self) -> list:
         file_list = []
