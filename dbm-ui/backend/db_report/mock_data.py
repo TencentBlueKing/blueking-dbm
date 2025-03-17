@@ -164,3 +164,73 @@ REPORT_COUNT_DATA = {
         "full_backup_check": {"manage_count": 0, "assist_count": 26},
     },
 }
+
+
+# SQLSERVER 备份报告
+SQLSERVER_BACKUP_CHECK_DATA = {
+    "count": 1,
+    "next": None,
+    "previous": None,
+    "results": [{"bk_biz_id": 3, "cluster": "aa.bb.cc", "cluster_type": "sqlserver_ha", "msg": ""}],
+    "name": "sqlserver备份检查",
+    "title": [
+        {"name": "bk_biz_id", "display_name": "业务", "format": "text"},
+        {"name": "cluster", "display_name": "集群域名", "format": "text"},
+        {"name": "cluster_type", "display_name": "集群类型", "format": "text"},
+        {"name": "msg", "display_name": "详情", "format": "text"},
+    ],
+}
+
+# SQLSERVER 备份报告
+SQLSERVER_SYNC_CHECK_DATA = {
+    "count": 1,
+    "next": None,
+    "previous": None,
+    "results": [
+        {
+            "bk_biz_id": 3,
+            "cluster": "aa.bb.cc",
+            "cluster_type": "sqlserver_ha",
+            "instance_host": "1.1.1.1",
+            "instance_port": 48322,
+            "msg": "",
+        }
+    ],
+    "name": "sqlserver同步检查",
+    "title": [
+        {"name": "bk_biz_id", "display_name": "业务", "format": "text"},
+        {"name": "cluster", "display_name": "集群域名", "format": "text"},
+        {"name": "cluster_type", "display_name": "集群类型", "format": "text"},
+        {"name": "instance_host", "display_name": "实例IP", "format": "text"},
+        {"name": "instance_port", "display_name": "实例端口", "format": "text"},
+        {"name": "msg", "display_name": "详情", "format": "text"},
+    ],
+}
+
+# SQLSERVER app_setting报告
+SQLSERVER_APP_SETTING_CHECK_DATA = {
+    "count": 1,
+    "next": None,
+    "previous": None,
+    "results": [
+        {
+            "bk_biz_id": 3,
+            "cluster": "aa.bb.cc",
+            "cluster_type": "sqlserver_ha",
+            "instance_host": "1.1.1.1",
+            "instance_port": 48322,
+            "msg": "",
+            "is_fix": True,
+        }
+    ],
+    "name": "sqlserver app_setting数据检查",
+    "title": [
+        {"name": "bk_biz_id", "display_name": "业务", "format": "text"},
+        {"name": "cluster", "display_name": "集群域名", "format": "text"},
+        {"name": "cluster_type", "display_name": "集群类型", "format": "text"},
+        {"name": "instance_host", "display_name": "实例IP", "format": "text"},
+        {"name": "instance_port", "display_name": "实例端口", "format": "text"},
+        {"name": "msg", "display_name": "详情", "format": "text"},
+        {"name": "is_fix", "display_name": "是否自动修复", "format": "text"},
+    ],
+}

@@ -40,3 +40,12 @@ class ReportType(str, StructuredEnum):
     ALONE_INSTANCE_CHECK = EnumField("alone_instance_check", _("孤立实例检查"))
     STATUS_ABNORMAL_CHECK = EnumField("status_abnormal_check", _("实例异常状态检查"))
     REDIS_DBMON_HEARTBEAT_CHECK = EnumField("dbmon_heartbeat_check", _("dbmon心跳超时检查"))
+
+    # SQLSERVER
+    SQLSERVER_FULL_BACKUP_CHECK = EnumField("sqlserver_full_backup_check", _("全量备份文件异常报告"))
+    SQLSERVER_LOG_BACKUP_CHECK = EnumField("sqlserver_log_backup_check", _("增量备份文件异常报告"))
+    SQLSERVER_APP_SETTING_CHECK = EnumField("sqlserver_app_setting_check", _("AppSetting表数据巡检检查"))
+    SQLSERVER_SYS_JOB_CHECK = EnumField("sqlserver_sys_job_check", _("系统作业的状态巡检"))
+    SQLSERVER_JOB_SYNC_CHECK = EnumField("sqlserver_job_sync_check", _("业务Job的同步巡检"))
+    SQLSERVER_LINK_SERVER_SYNC_CHECK = EnumField("sqlserver_link_server_sync_check", _("业务Linkserver的同步巡检"))
+    SQLSERVER_USER_SYNC_CHECK = EnumField("sqlserver_user_sync_check", _("业务账号同步巡检"))
