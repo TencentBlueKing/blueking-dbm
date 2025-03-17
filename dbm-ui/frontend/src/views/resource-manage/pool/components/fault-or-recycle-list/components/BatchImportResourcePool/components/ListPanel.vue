@@ -84,9 +84,7 @@
 
   import FaultOrRecycleMachineModel from '@services/model/db-resource/FaultOrRecycleMachine';
 
-  import { useCopy } from '@hooks';
-
-  import { messageWarn } from '@utils';
+  import { execCopy, messageWarn } from '@utils';
 
   interface Expose {
     getValue: () => Promise<{
@@ -100,7 +98,6 @@
     default: () => [],
   });
 
-  const copy = useCopy();
   const { t } = useI18n();
 
   const formRef = ref();
@@ -124,12 +121,12 @@
       return;
     }
 
-    copy(ipList.join('\n'));
+    execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }));
   };
 
   // 复制单个指定主机 IP
   const handleCopy = (hostItem: FaultOrRecycleMachineModel) => {
-    copy(hostItem.ip);
+    execCopy(hostItem.ip, t('复制成功，共n条', { n: 1 }));
   };
 
   // 删除单个主机

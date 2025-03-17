@@ -286,6 +286,11 @@
   }
 }
 
+/** BkSideslider 嵌套 BkTable，表格的 z-index 过低导致页面无效果，先暂时全局设置 */
+.vxe-table--tooltip-wrapper {
+  z-index: 999999 !important;
+}
+
 .bk-tab {
   .bk-tab-header {
     line-height: 42px !important;

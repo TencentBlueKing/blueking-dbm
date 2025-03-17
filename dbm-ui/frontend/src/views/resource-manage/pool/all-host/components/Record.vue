@@ -1,9 +1,9 @@
 <template>
   <BkSideslider
     v-model:is-show="moduleValue"
-    width="1300">
+    width="1400">
     <template #header>
-      <div>【{{ ip }}】{{ t('操作记录') }}</div>
+      <div>【{{ data.ip }}】{{ t('操作记录') }}</div>
     </template>
     <div class="all-host-record">
       <BkLoading
@@ -11,7 +11,7 @@
         :z-index="2">
         <BkTable
           ref="tableRef"
-          :data="machineEventList?.results"
+          :data="machineEventList"
           :show-overflow="false">
           <BkTableColumn
             field="events"
@@ -24,7 +24,7 @@
           <BkTableColumn
             field="updater"
             :label="t('操作人')"
-            show-overflow="tooltip"
+            show-overflow
             :width="120">
           </BkTableColumn>
           <BkTableColumn
@@ -59,8 +59,8 @@
           <BkTableColumn
             field="clusters"
             :label="t('集群')"
-            :min-width="200"
-            show-overflow="tooltip">
+            :min-width="300"
+            show-overflow>
             <template #default="{ data }: { data: MachineEventModel }">
               {{ data.clusters.length ? data.clusters.map((item) => item.immute_domain).join(', ') : '--' }}
             </template>
@@ -83,12 +83,15 @@
   import { useRequest } from 'vue-request';
 
   import MachineEventModel from '@services/model/db-resource/machineEvent';
-  import { getMachineEvents } from '@services/source/dbdirty';
+  import { getHostCurrentEvent } from '@services/source/dbdirty';
 
   import OperationDetail from '@views/resource-manage/common/components/operation-detail/Index.vue';
 
   interface Props {
-    ip: string;
+    data: {
+      bk_host_id: number;
+      ip: string;
+    };
   }
 
   const props = defineProps<Props>();
@@ -102,16 +105,16 @@
   const {
     data: machineEventList,
     loading: tableLoading,
-    run: runGetMachineEvents,
-  } = useRequest(getMachineEvents, {
+    run: runGetHostCurrentEvent,
+  } = useRequest(getHostCurrentEvent, {
     manual: true,
   });
 
   watch(
-    () => props.ip,
+    () => props.data.bk_host_id,
     () => {
-      runGetMachineEvents({
-        ips: props.ip,
+      runGetHostCurrentEvent({
+        bk_host_id: props.data.bk_host_id,
       });
     },
     {

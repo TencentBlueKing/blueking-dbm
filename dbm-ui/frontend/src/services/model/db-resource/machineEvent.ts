@@ -48,29 +48,6 @@ export default class MachineEvent {
     return machineEventsDisplayMap[this.event];
   }
 
-  // get operationDetail() {
-  //   switch (this.event) {
-  //     case MachineEvents.IMPORT_RESOURCE:
-  //       return t('从「n」业务 CMDB空闲机模块导入', { n: this.bk_biz_name });
-  //     case MachineEvents.APPLY_RESOURCE:
-  //       return this.eventDisplay;
-  //     case MachineEvents.RETURN_RESOURCE:
-  //       return this.ticket ? t('已下架主机退回资源池再利用') : t('故障池主机转回资源池');
-  //     case MachineEvents.TO_DIRTY:
-  //       return this.eventDisplay;
-  //     case MachineEvents.TO_RECYCLE:
-  //       return t('其他池转入待回收池');
-  //     case MachineEvents.TO_FAULT:
-  //       return this.ticket ? t('下架主机') : t('其他池转入故障池');
-  //     case MachineEvents.UNDO_IMPORT:
-  //       return t('退回「n」业务 CMDB 空闲机模块', { n: this.bk_biz_name });
-  //     case MachineEvents.RECYCLED:
-  //       return t('退回「n」业务 CMDB 待回收模块', { n: this.bk_biz_name });
-  //     default:
-  //       return this.event;
-  //   }
-  // }
-
   get updateAtDisplay() {
     return utcDisplayTime(this.update_at);
   }

@@ -80,9 +80,7 @@
 
   import DbResourceModel from '@services/model/db-resource/DbResource';
 
-  import { useCopy } from '@hooks';
-
-  import { messageWarn } from '@utils';
+  import { execCopy, messageWarn } from '@utils';
 
   interface Expose {
     getValue: () => Promise<any>;
@@ -92,15 +90,14 @@
     default: () => [],
   });
 
-  const copy = useCopy();
   const { t } = useI18n();
 
   const formRef = ref();
   const isShowHostActionPop = ref(false);
   const formData = reactive({
     for_biz: '',
-    resource_type: '',
     labels: '',
+    resource_type: '',
   });
 
   const handleShowHostAction = () => {
@@ -120,20 +117,20 @@
       return;
     }
 
-    copy(ipList.join('\n'));
+    execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }));
   };
 
   // 复制单个指定主机 IP
   const handleCopy = (hostItem: DbResourceModel) => {
-    copy(hostItem.ip);
+    execCopy(hostItem.ip, t('复制成功，共n条', { n: 1 }));
   };
 
   defineExpose<Expose>({
     getValue() {
       return formRef.value.validate().then(() => ({
         for_biz: Number(formData.for_biz),
-        resource_type: formData.resource_type,
         labels: formData.labels,
+        resource_type: formData.resource_type,
       }));
     },
   });

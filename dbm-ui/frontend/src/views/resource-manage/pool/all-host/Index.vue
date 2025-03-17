@@ -14,15 +14,23 @@
         </BkButton>
         <template #content>
           <BkDropdownMenu>
-            <BkDropdownItem @click="handleCopyAllHost">{{ t('所有 IP') }}</BkDropdownItem>
             <BkDropdownItem @click="handleCopySelectHost">{{ t('已选 IP') }}</BkDropdownItem>
+            <BkDropdownItem @click="handleCopyAllHost">
+              {{ `${t('所有 IP')}（${isFilter ? t('筛选后') : t('全量')}）` }}
+            </BkDropdownItem>
           </BkDropdownMenu>
         </template>
       </BkDropdown>
-      <HostSearchSelect
-        v-model="searchValue"
-        class="pool-search-selector"
-        @search="fetchData" />
+      <DbSearchSelect
+        :data="searchSelectData"
+        :get-menu-list="getMenuList"
+        :model-value="searchValue"
+        :placeholder="t('请输入或选择条件搜索')"
+        style="width: 500px; margin-left: auto"
+        unique-select
+        :validate-values="validateSearchValues"
+        value-behavior="need-key"
+        @change="handleSearchValueChange" />
     </div>
     <DbTable
       ref="tableRef"
@@ -31,6 +39,9 @@
       releate-url-query
       selectable
       :show-settings="false"
+      @clear-search="handleClearSearch"
+      @column-filter="columnFilterChange"
+      @column-sort="columnSortChange"
       @selection="handleSelection">
       <BkTableColumn
         field="ip"
@@ -70,8 +81,9 @@
         :label="t('CPU (核)')">
       </BkTableColumn>
       <BkTableColumn
-        field="bk_mem"
+        field="bkMemText"
         :label="t('内存')"
+        show-overflow
         :width="80">
         <template #default="{ data }: { data: FaultOrRecycleMachineModel }">
           {{ data.bkMemText || '0 M' }}
@@ -98,42 +110,117 @@
     <Record
       v-if="currentRow"
       v-model="isRecordShow"
-      :ip="currentRow.ip" />
+      :data="currentRow" />
   </div>
 </template>
 
 <script setup lang="tsx">
   import BkButton from 'bkui-vue/lib/button';
+  import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import FaultOrRecycleMachineModel from '@services/model/db-resource/FaultOrRecycleMachine';
   import { getMachinePool } from '@services/source/dbdirty';
+  import { fetchDeviceClass } from '@services/source/dbresourceResource';
+  import { getUserList } from '@services/source/user';
 
-  import HostSearchSelect from '@views/resource-manage/common/components/host-search-select/Index.vue';
+  import { useLinkQueryColumnSerach } from '@hooks';
 
-  import { execCopy, getSearchSelectorParams } from '@utils';
+  import { execCopy, getMenuListSearch, getSearchSelectorParams, messageWarn } from '@utils';
 
   import Record from './components/Record.vue';
 
   const { t } = useI18n();
 
+  const {
+    clearSearchValue,
+    // columnCheckedMap,
+    columnFilterChange,
+    columnSortChange,
+    handleSearchValueChange,
+    searchValue,
+    // sortValue,
+    validateSearchValues,
+  } = useLinkQueryColumnSerach({
+    attrs: [],
+    fetchDataFn: () => fetchData(),
+    searchType: 'resource_record',
+  });
+
   const tableRef = useTemplateRef('tableRef');
 
-  const searchValue = ref([]);
   const isRecordShow = ref(false);
 
   const selected = shallowRef<FaultOrRecycleMachineModel[]>([]);
   const currentRow = shallowRef<FaultOrRecycleMachineModel>();
+
+  const isFilter = computed(() => searchValue.value.length > 0);
+
+  const searchSelectData = computed(() => [
+    {
+      id: 'ips',
+      multiple: true,
+      name: 'IP',
+    },
+    {
+      id: 'city',
+      name: t('地域'),
+    },
+    {
+      id: 'sub_zone',
+      name: t('园区'),
+    },
+    {
+      id: 'rack_id',
+      name: t('机架'),
+    },
+    {
+      id: 'os_name',
+      name: t('操作系统'),
+    },
+    {
+      children: deviceClassList.value?.results.map((item) => ({
+        id: String(item.id),
+        name: item.device_type,
+      })),
+      id: 'device_class',
+      name: t('机型'),
+    },
+  ]);
+
+  const { data: deviceClassList } = useRequest(fetchDeviceClass);
+
+  watch(searchValue, () => {
+    fetchData();
+  });
+
+  const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
+    if (item?.id !== 'operator' && keyword) {
+      return getMenuListSearch(item, keyword, searchSelectData.value, searchValue.value);
+    }
+
+    // 没有选中过滤标签
+    if (!item) {
+      // 过滤掉已经选过的标签
+      const selected = (searchValue.value || []).map((value) => value.id);
+      return searchSelectData.value.filter((item) => !selected.includes(item.id));
+    }
+
+    // 不需要远层加载
+    return searchSelectData.value.find((set) => set.id === item.id)?.children || [];
+  };
+
+  // 清空搜索条件
+  const handleClearSearch = () => {
+    clearSearchValue();
+  };
 
   const dataSource = (params: ServiceParameters<typeof getMachinePool>) =>
     getMachinePool({
       ...params,
       bk_biz_id: undefined,
     });
-
-  watch(searchValue, () => {
-    fetchData();
-  });
 
   const fetchData = () => {
     const searchParams = getSearchSelectorParams(searchValue.value);
@@ -145,18 +232,19 @@
   };
 
   const handleCopyAllHost = () => {
-    getMachinePool({
-      limit: -1,
-      offset: 0,
-    }).then((data) => {
-      const ipList = data.results.map((item) => item.ip);
-      execCopy(ipList.join('\n'), `${t('复制成功n个IP', { n: ipList.length })}\n`);
+    tableRef.value!.getAllData<FaultOrRecycleMachineModel>().then((data) => {
+      if (data.length < 1) {
+        messageWarn(t('暂无数据可复制'));
+        return;
+      }
+      const ipList = data.map((item) => item.ip);
+      execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }));
     });
   };
 
   const handleCopySelectHost = () => {
     const ipList = selected.value.map((item) => item.ip);
-    execCopy(ipList.join('\n'), `${t('复制成功n个IP', { n: ipList.length })}\n`);
+    execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }));
   };
 
   const handleRecord = (data: FaultOrRecycleMachineModel) => {

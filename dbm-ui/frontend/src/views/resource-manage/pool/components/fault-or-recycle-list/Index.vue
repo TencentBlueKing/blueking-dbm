@@ -29,15 +29,23 @@
         </BkButton>
         <template #content>
           <BkDropdownMenu>
-            <BkDropdownItem @click="handleCopyAllHost">{{ t('所有 IP') }}</BkDropdownItem>
             <BkDropdownItem @click="handleCopySelectHost">{{ t('已选 IP') }}</BkDropdownItem>
+            <BkDropdownItem @click="handleCopyAllHost">
+              {{ `${t('所有 IP')}（${isFilter ? t('筛选后') : t('全量')}）` }}
+            </BkDropdownItem>
           </BkDropdownMenu>
         </template>
       </BkDropdown>
-      <HostSearchSelect
-        v-model="searchValue"
-        class="pool-search-selector"
-        @search="fetchData" />
+      <DbSearchSelect
+        :data="searchSelectData"
+        :get-menu-list="getMenuList"
+        :model-value="searchValue"
+        :placeholder="t('请输入或选择条件搜索')"
+        style="width: 500px; margin-left: auto"
+        unique-select
+        :validate-values="validateSearchValues"
+        value-behavior="need-key"
+        @change="handleSearchValueChange" />
     </div>
     <DbTable
       ref="tableRef"
@@ -48,7 +56,11 @@
       remote-sort
       row-class="table-row"
       selectable
+      :show-overflow="false"
       sort-type="ordering"
+      @clear-search="handleClearSearch"
+      @column-filter="columnFilterChange"
+      @column-sort="columnSortChange"
       @selection="handleSelection" />
     <ReviewDataDialog
       v-model:is-show="isReviewDataDialogShow"
@@ -83,19 +95,24 @@
 
 <script setup lang="tsx">
   import BkButton from 'bkui-vue/lib/button';
+  import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import FaultOrRecycleMachineModel from '@services/model/db-resource/FaultOrRecycleMachine';
   import { getMachinePool, transferMachinePool } from '@services/source/dbdirty';
+  import { fetchDeviceClass } from '@services/source/dbresourceResource';
+  import { getUserList } from '@services/source/user';
+
+  import { useLinkQueryColumnSerach } from '@hooks';
 
   import { useGlobalBizs, useSystemEnviron } from '@stores';
 
   import DbStatus from '@components/db-status/index.vue';
 
-  import HostSearchSelect from '@views/resource-manage/common/components/host-search-select/Index.vue';
   import OperationDetail from '@views/resource-manage/common/components/operation-detail/Index.vue';
 
-  import { execCopy, getSearchSelectorParams } from '@utils';
+  import { execCopy, getMenuListSearch, getSearchSelectorParams, messageWarn } from '@utils';
 
   import ReviewDataDialog from '../host-list/components/review-data-dialog/Index.vue';
 
@@ -107,6 +124,21 @@
   const systemEnvironStore = useSystemEnviron();
   const globalBizsStore = useGlobalBizs();
 
+  const {
+    clearSearchValue,
+    // columnCheckedMap,
+    columnFilterChange,
+    columnSortChange,
+    handleSearchValueChange,
+    searchValue,
+    // sortValue,
+    validateSearchValues,
+  } = useLinkQueryColumnSerach({
+    attrs: [],
+    fetchDataFn: () => fetchData(),
+    searchType: 'resource_record',
+  });
+
   const tableRef = useTemplateRef('tableRef');
 
   const selected = ref<FaultOrRecycleMachineModel[]>([]);
@@ -115,24 +147,15 @@
   const isBatchImportResourcePoolShow = ref(false);
   const isBatchConvertToRecyclePool = ref(false);
   const curImportData = ref<FaultOrRecycleMachineModel>();
-  const searchValue = ref([]);
 
   const defaultBizId = systemEnvironStore.urls.DBA_APP_BK_BIZ_ID;
 
-  const isFaultPool = computed(() => route.name === 'faultPool');
-
-  const dataSource = (params: FaultOrRecycleMachineModel) =>
-    getMachinePool({
-      ...params,
-      bk_biz_id: undefined,
-      pool: isFaultPool.value ? 'fault' : 'recycle',
-    });
   const tableColumn = [
     {
       field: 'ip',
       label: 'IP',
       render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.ip || '--',
-      width: 180,
+      width: 160,
     },
     {
       field: 'agent_status',
@@ -185,6 +208,7 @@
     {
       field: 'bkMemText',
       label: t('内存(G)'),
+      showOverflow: true,
       width: 80,
     },
     {
@@ -200,6 +224,7 @@
       field: 'updater',
       label: t('转入人'),
       render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.updater || '--',
+      showOverflow: true,
       width: 100,
     },
     {
@@ -209,6 +234,43 @@
       width: 300,
     },
   ];
+
+  const isFaultPool = computed(() => route.name === 'faultPool');
+  const isFilter = computed(() => searchValue.value.length > 0);
+
+  const searchSelectData = computed(() => [
+    {
+      id: 'ips',
+      multiple: true,
+      name: 'IP',
+    },
+    {
+      id: 'city',
+      name: t('地域'),
+    },
+    {
+      id: 'sub_zone',
+      name: t('园区'),
+    },
+    {
+      id: 'rack_id',
+      name: t('机架'),
+    },
+    {
+      id: 'os_name',
+      name: t('操作系统'),
+    },
+    {
+      children: deviceClassList.value?.results.map((item) => ({
+        id: String(item.id),
+        name: item.device_type,
+      })),
+      id: 'device_class',
+      name: t('机型'),
+    },
+  ]);
+
+  const { data: deviceClassList } = useRequest(fetchDeviceClass);
 
   watch(searchValue, () => {
     fetchData();
@@ -227,6 +289,34 @@
       immediate: true,
     },
   );
+
+  const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
+    if (item?.id !== 'operator' && keyword) {
+      return getMenuListSearch(item, keyword, searchSelectData.value, searchValue.value);
+    }
+
+    // 没有选中过滤标签
+    if (!item) {
+      // 过滤掉已经选过的标签
+      const selected = (searchValue.value || []).map((value) => value.id);
+      return searchSelectData.value.filter((item) => !selected.includes(item.id));
+    }
+
+    // 不需要远层加载
+    return searchSelectData.value.find((set) => set.id === item.id)?.children || [];
+  };
+
+  // 清空搜索条件
+  const handleClearSearch = () => {
+    clearSearchValue();
+  };
+
+  const dataSource = (params: FaultOrRecycleMachineModel) =>
+    getMachinePool({
+      ...params,
+      bk_biz_id: undefined,
+      pool: isFaultPool.value ? 'fault' : 'recycle',
+    });
 
   const fetchData = () => {
     const searchParams = getSearchSelectorParams(searchValue.value);
@@ -272,19 +362,19 @@
   };
 
   const handleCopyAllHost = () => {
-    getMachinePool({
-      limit: -1,
-      offset: 0,
-      pool: isFaultPool.value ? 'fault' : 'recycle',
-    }).then((data) => {
-      const ipList = data.results.map((item) => item.ip);
-      execCopy(ipList.join('\n'), `${t('复制成功n个IP', { n: ipList.length })}\n`);
+    tableRef.value!.getAllData<FaultOrRecycleMachineModel>().then((data) => {
+      if (data.length < 1) {
+        messageWarn(t('暂无数据可复制'));
+        return;
+      }
+      const ipList = data.map((item) => item.ip);
+      execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }));
     });
   };
 
   const handleCopySelectHost = () => {
     const ipList = selected.value.map((item) => item.ip);
-    execCopy(ipList.join('\n'), `${t('复制成功n个IP', { n: ipList.length })}\n`);
+    execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }));
   };
 
   const handleRefresh = () => {
