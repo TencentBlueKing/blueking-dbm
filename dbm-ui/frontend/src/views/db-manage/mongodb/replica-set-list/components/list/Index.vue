@@ -105,33 +105,9 @@
       <BkTableColumn
         :fixed="isStretchLayoutOpen ? false : 'right'"
         :label="t('操作')"
-        :min-width="240"
+        :min-width="140"
         :show-overflow="false">
         <template #default="{data}: {data: MongodbModel}">
-          <OperationBtnStatusTips
-            v-db-console="'mongodb.replicaSetList.capacityChange'"
-            :data="data">
-            <BkButton
-              class="mr-8"
-              :disabled="Boolean(data.isStructCluster) || data.operationDisabled"
-              text
-              theme="primary"
-              @click="handleCapacityChange(data)">
-              {{ t('集群容量变更') }}
-            </BkButton>
-          </OperationBtnStatusTips>
-          <OperationBtnStatusTips
-            v-db-console="'mongodb.replicaSetList.enable'"
-            :data="data">
-            <BkButton
-              class="mr-8"
-              :disabled="data.isStarting || data.isOffline"
-              text
-              theme="primary"
-              @click="handleEnableCluster([data])">
-              {{ t('启用') }}
-            </BkButton>
-          </OperationBtnStatusTips>
           <BkButton
             v-db-console="'mongodb.replicaSetList.getAccess'"
             class="mr-8"
@@ -142,7 +118,34 @@
             {{ t('获取访问方式') }}
           </BkButton>
           <MoreActionExtend>
-            <BkDropdownItem v-db-console="'mongodb.replicaSetList.disable'">
+            <BkDropdownItem v-db-console="'mongodb.replicaSetList.capacityChange'">
+              <OperationBtnStatusTips :data="data">
+                <BkButton
+                  :disabled="Boolean(data.isStructCluster) || data.operationDisabled"
+                  text
+                  theme="primary"
+                  @click="handleCapacityChange(data)">
+                  {{ t('集群容量变更') }}
+                </BkButton>
+              </OperationBtnStatusTips>
+            </BkDropdownItem>
+            <BkDropdownItem
+              v-if="data.isOffline"
+              v-db-console="'mongodb.replicaSetList.enable'">
+              <OperationBtnStatusTips :data="data">
+                <BkButton
+                  class="mr-8"
+                  :disabled="data.isStarting || data.isOnline"
+                  text
+                  theme="primary"
+                  @click="handleEnableCluster([data])">
+                  {{ t('启用') }}
+                </BkButton>
+              </OperationBtnStatusTips>
+            </BkDropdownItem>
+            <BkDropdownItem
+              v-if="data.isOnline"
+              v-db-console="'mongodb.replicaSetList.disable'">
               <OperationBtnStatusTips :data="data">
                 <BkButton
                   :disabled="Boolean(data.operationTicketId)"

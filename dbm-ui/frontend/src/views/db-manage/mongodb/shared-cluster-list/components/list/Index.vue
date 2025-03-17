@@ -128,34 +128,9 @@
       <BkTableColumn
         :fixed="isStretchLayoutOpen ? false : 'right'"
         :label="t('操作')"
-        :min-width="240"
+        :min-width="140"
         :show-overflow="false">
         <template #default="{data}: {data: MongodbModel}">
-          <!-- 集群容量变更 -->
-          <OperationBtnStatusTips
-            v-db-console="'mongodb.sharedClusterList.capacityChange'"
-            :data="data">
-            <BkButton
-              class="ml-8"
-              :disabled="data.isOffline || data.operationDisabled"
-              text
-              theme="primary"
-              @click="handleCapacityChange(data)">
-              {{ t('集群容量变更') }}
-            </BkButton>
-          </OperationBtnStatusTips>
-          <OperationBtnStatusTips
-            v-db-console="'mongodb.sharedClusterList.enable'"
-            :data="data">
-            <BkButton
-              class="ml-8"
-              :disabled="data.isStarting || data.isOnline"
-              text
-              theme="primary"
-              @click="handleEnableCluster([data])">
-              {{ t('启用') }}
-            </BkButton>
-          </OperationBtnStatusTips>
           <BkButton
             v-db-console="'mongodb.sharedClusterList.getAccess'"
             class="ml-8 mr-8"
@@ -166,6 +141,17 @@
             {{ t('获取访问方式') }}
           </BkButton>
           <MoreActionExtend>
+            <BkDropdownItem v-db-console="'mongodb.sharedClusterList.capacityChange'">
+              <OperationBtnStatusTips :data="data">
+                <BkButton
+                  :disabled="data.isOffline || data.operationDisabled"
+                  text
+                  theme="primary"
+                  @click="handleCapacityChange(data)">
+                  {{ t('集群容量变更') }}
+                </BkButton>
+              </OperationBtnStatusTips>
+            </BkDropdownItem>
             <BkDropdownItem v-db-console="'mongodb.sharedClusterList.enableCLB'">
               <OperationBtnStatusTips
                 :data="data"
@@ -182,7 +168,23 @@
                 </AuthButton>
               </OperationBtnStatusTips>
             </BkDropdownItem>
-            <BkDropdownItem v-db-console="'mongodb.sharedClusterList.disable'">
+            <BkDropdownItem
+              v-if="data.isOffline"
+              v-db-console="'mongodb.sharedClusterList.enable'">
+              <OperationBtnStatusTips :data="data">
+                <BkButton
+                  class="ml-8"
+                  :disabled="data.isStarting || data.isOnline"
+                  text
+                  theme="primary"
+                  @click="handleEnableCluster([data])">
+                  {{ t('启用') }}
+                </BkButton>
+              </OperationBtnStatusTips>
+            </BkDropdownItem>
+            <BkDropdownItem
+              v-if="data.isOnline"
+              v-db-console="'mongodb.sharedClusterList.disable'">
               <OperationBtnStatusTips :data="data">
                 <BkButton
                   :disabled="data.isOffline || Boolean(data.operationTicketId)"
