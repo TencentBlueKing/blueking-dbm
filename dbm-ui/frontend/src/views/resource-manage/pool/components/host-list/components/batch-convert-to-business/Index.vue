@@ -15,7 +15,7 @@
     v-model:is-show="isShow"
     :confirm-handler="handleConfirm"
     :selected="selectedIpList"
-    :tip="t('确认后，主机将标记为业务专属')"
+    :tip="t('确认后，主机所属业务将标记为「n」，不再属于公共资源', { n: globalBizsStore.bizIdMap.get(bizId)?.name })"
     :title="t('确认批量将 {n} 台主机转入业务资源池？', { n: props.selected.length })"
     @success="handleSuccess" />
 </template>
@@ -25,6 +25,8 @@
 
   import DbResourceModel from '@services/model/db-resource/DbResource';
   import { updateResource } from '@services/source/dbresourceResource';
+
+  import { useGlobalBizs } from '@stores';
 
   import ReviewDataDialog from '../review-data-dialog/Index.vue';
 
@@ -42,6 +44,7 @@
   });
 
   const { t } = useI18n();
+  const globalBizsStore = useGlobalBizs();
 
   const selectedIpList = computed(() => props.selected.map((item) => item.ip));
 
