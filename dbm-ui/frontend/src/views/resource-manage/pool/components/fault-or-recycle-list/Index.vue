@@ -55,7 +55,11 @@
       :confirm-handler="handleRecycleSubmit"
       :selected="selected.map((item) => item.ip)"
       theme="danger"
-      :tip="t('确认后，主机将从系统中删除，请谨慎操作！')"
+      :tip="
+        t('确认后，主机将从系统中删除，同时 CMDB 转移至「n」业务待回收，请谨慎操作！', {
+          n: globalBizsStore.bizIdMap.get(defaultBizId)?.name,
+        })
+      "
       :title="t('确认批量回收 {n} 台主机？', { n: selected.length })"
       @success="handleRefresh" />
     <ReviewDataDialog
@@ -84,6 +88,8 @@
   import FaultOrRecycleMachineModel from '@services/model/db-resource/FaultOrRecycleMachine';
   import { getMachinePool, transferMachinePool } from '@services/source/dbdirty';
 
+  import { useGlobalBizs, useSystemEnviron } from '@stores';
+
   import DbStatus from '@components/db-status/index.vue';
 
   import HostSearchSelect from '@views/resource-manage/common/components/host-search-select/Index.vue';
@@ -98,6 +104,8 @@
 
   const { t } = useI18n();
   const route = useRoute();
+  const systemEnvironStore = useSystemEnviron();
+  const globalBizsStore = useGlobalBizs();
 
   const tableRef = useTemplateRef('tableRef');
 
@@ -108,6 +116,8 @@
   const isBatchConvertToRecyclePool = ref(false);
   const curImportData = ref<FaultOrRecycleMachineModel>();
   const searchValue = ref([]);
+
+  const defaultBizId = systemEnvironStore.urls.DBA_APP_BK_BIZ_ID;
 
   const isFaultPool = computed(() => route.name === 'faultPool');
 
