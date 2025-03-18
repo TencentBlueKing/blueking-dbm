@@ -186,7 +186,7 @@
   const sortTableByCluster = () => {
     const clusterMap = tableData.value.reduce<Record<string, IDataRow[]>>((acc, item) => {
       const { domain } = item.cluster;
-      acc[domain] = acc[domain] || [];
+      Object.assign(acc, { [domain]: acc[domain] || [] });
       acc[domain].push(item);
       return acc;
     }, {});
@@ -212,6 +212,8 @@
     const listResult = await getRedisMachineList({
       add_role_count: true,
       ip: dataList.map((item) => item.ip).join(','),
+      limit: -1,
+      offset: 0,
     });
 
     const machineIpMap = Object.fromEntries(listResult.results.map((item) => [item.ip, item]));
@@ -370,7 +372,7 @@
     const clusterMap = tableData.value.reduce<Record<string, IDataRow[]>>((acc, item) => {
       if (item.ip) {
         const clusterName = item.cluster.domain;
-        acc[clusterName] = acc[clusterName] || [];
+        Object.assign(acc, { [clusterName]: acc[clusterName] || [] });
         acc[clusterName].push(item);
       }
       return acc;
