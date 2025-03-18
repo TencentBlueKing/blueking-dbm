@@ -189,7 +189,7 @@ SQLSERVER_HA_MANUAL_DATA = {
         "inst_num": 1,
         "ip_source": "manual_input",
         "nodes": {
-            "sqlserver_ha": [
+            "backend": [
                 {"ip": "3.2.2.1", "bk_cloud_id": 0, "bk_host_id": 3001},
                 {"ip": "3.2.2.2", "bk_cloud_id": 0, "bk_host_id": 3002},
             ]
