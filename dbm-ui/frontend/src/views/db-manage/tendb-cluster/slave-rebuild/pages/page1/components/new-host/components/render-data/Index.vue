@@ -90,5 +90,17 @@
       color: #3a84ff;
       cursor: pointer;
     }
+
+    .toolbox-render-table {
+      max-height: 400px;
+      margin: 0;
+      overflow: scroll;
+
+      thead {
+        position: sticky;
+        top: -1px;
+        z-index: 999;
+      }
+    }
   }
 </style>
