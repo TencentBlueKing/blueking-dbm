@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import { TicketTypes } from '@common/const';
+
 import { t } from '@locales/index';
 
 export interface MenuChild {
@@ -91,7 +93,7 @@ export default [
   {
     children: [
       {
-        id: 'sqlServerDataMigrate',
+        id: TicketTypes.SQLSERVER_FULL_MIGRATE,
         name: t('数据迁移'),
         parentId: 'data',
       },
