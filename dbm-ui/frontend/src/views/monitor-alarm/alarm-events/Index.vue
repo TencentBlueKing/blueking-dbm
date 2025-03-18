@@ -245,6 +245,11 @@
 
   export type RowData = ServiceReturnType<typeof getAlarmEventsList>['results'][number];
 
+  interface Exposes {
+    customUpdate: (param: Record<string, any>) => void;
+    getSearchValue: () => Record<string, any>;
+  }
+
   const { t } = useI18n();
   const route = useRoute();
   const globalBizStore = useGlobalBizs();
@@ -361,7 +366,7 @@
     'severity',
   ];
 
-  const searchValue: Record<string, string> = {};
+  let searchValue: Record<string, string> = {};
   const columnFilterParams: Record<string, string> = {};
 
   const triggerSearch = () => {
@@ -530,6 +535,16 @@
   const handleShieldSuccess = () => {
     currentEvent.value!.is_shielded = true;
   };
+
+  defineExpose<Exposes>({
+    customUpdate(params: Record<string, any>) {
+      searchValue = params;
+      triggerSearch();
+    },
+    getSearchValue() {
+      return searchValue;
+    },
+  });
 </script>
 <style lang="less" scoped>
   .alarm-events-page {

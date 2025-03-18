@@ -67,15 +67,12 @@
             allow-create
             collapse-tags
             :disabled="isFixed || disabled"
+            enable-virtual-render
             filterable
+            :list="selectList"
             multiple
             multiple-mode="tag"
             @change="handleContentChange">
-            <BkOption
-              v-for="item in selectList"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value" />
           </BkSelect>
         </div>
         <div class="operate-box">
@@ -276,7 +273,13 @@
   watchEffect(() => {
     if (props.data?.name) {
       titleValue.value = props.data.name;
-      contentValue.value = props.data.value;
+      contentValue.value =
+        props.data.key === 'instance'
+          ? props.data.value.map((item) => {
+              const [ip, port] = item.split('-');
+              return `${ip}:${port}`;
+            })
+          : props.data.value;
       operationSign.value = {
         label: operationList.find((item) => item.value === props.data!.method)!.label,
         value: props.data.method,

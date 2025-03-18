@@ -31,7 +31,7 @@
         </div>
       </div>
     </Teleport>
-    <AlarmEventsPage />
+    <AlarmEventsPage ref="alarmEventsPageRef" />
   </div>
 </template>
 <script setup lang="ts">
@@ -43,30 +43,38 @@
 
   const { t } = useI18n();
   const route = useRoute();
-  const router = useRouter();
   const { assitCount, todoCount } = useAlarmEventsCount();
 
-  const currentActiveTab = ref(route.query.manage || 'todo');
+  const alarmEventsPageRef = ref<InstanceType<typeof AlarmEventsPage>>();
+  const currentActiveTab = ref('');
 
   const titleTooltip = `${t('待我处理')}：${t('展示我作为主DBA 的业务，所产生的告警事件')}\n${t('待我协助')}：${t('展示我作为备 DBA、二线 DBA 的业务，所产生的告警事件')}`;
 
-  const handleClickTab = (tab: string) => {
-    currentActiveTab.value = tab;
-    const query = {
-      ...route.query,
-    };
-    if (tab === 'todo') {
-      Object.assign(query, { self_manage: true });
-      delete query.self_assist;
-    } else {
-      Object.assign(query, { self_assist: true });
-      delete query.self_manage;
+  watchEffect(() => {
+    if (route.query.self_manage) {
+      currentActiveTab.value = 'todo';
+      return;
     }
 
-    router.replace({
-      name: 'AlarmEventsTodo',
-      query,
-    });
+    if (route.query.self_assist) {
+      currentActiveTab.value = 'assist';
+      return;
+    }
+
+    currentActiveTab.value = 'todo';
+  });
+
+  const handleClickTab = (tab: string) => {
+    currentActiveTab.value = tab;
+    const params = alarmEventsPageRef.value!.getSearchValue();
+    if (tab === 'todo') {
+      Object.assign(params, { self_manage: true });
+      delete params.self_assist;
+    } else {
+      Object.assign(params, { self_assist: true });
+      delete params.self_manage;
+    }
+    alarmEventsPageRef.value!.customUpdate(params);
   };
 </script>
 <style lang="less">
