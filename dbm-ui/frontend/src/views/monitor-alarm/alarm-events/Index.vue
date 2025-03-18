@@ -481,6 +481,10 @@
     const searchData = _.cloneDeep(data);
     Object.keys(searchValue).forEach((key) => {
       if (!searchData[key] && searchDataKeys.includes(key)) {
+        // 业务下的告警事件特殊处理
+        if (key === 'bk_biz_id' && !isTodoPage.value && !isGlobalPage.value) {
+          return;
+        }
         // searchselect 删除的项
         delete searchValue[key];
       } else if (searchData[key]) {

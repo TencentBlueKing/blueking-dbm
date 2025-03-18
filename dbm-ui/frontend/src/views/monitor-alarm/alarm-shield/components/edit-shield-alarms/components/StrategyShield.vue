@@ -39,6 +39,7 @@
   <DimensionShield
     ref="dimensionShieldRef"
     :data="data"
+    :db-type="dbValue"
     :disabled="disabled" />
   <BkFormItem
     class="mt-24"

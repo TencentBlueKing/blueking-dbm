@@ -18,6 +18,7 @@
       :key="item.key"
       ref="dimensionItemRefs"
       :data="item"
+      :db-type="dbType"
       :disabled="disabled"
       :excludes="excludes"
       :is-fixed="index === 0"
@@ -51,11 +52,13 @@
 
   interface Props {
     data?: AlarmShieldModel['dimension_config'];
+    dbType?: string;
     disabled?: boolean;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     data: undefined,
+    dbType: '',
     disabled: false,
   });
 

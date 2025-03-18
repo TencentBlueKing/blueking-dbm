@@ -107,7 +107,7 @@
 
   interface Props {
     data?: AlarmShieldModel['dimension_config']['dimension_conditions'][number];
-    dbtype?: string;
+    dbType?: string;
     disabled?: boolean;
     enableAdd?: boolean;
     enableDelete?: boolean;
@@ -135,7 +135,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     data: undefined,
-    dbtype: '',
+    dbType: '',
     disabled: false,
     enableAdd: true,
     enableDelete: true,
@@ -148,6 +148,14 @@
   });
 
   const emits = defineEmits<Emits>();
+
+  const fetchInstanceList = (params: ServiceParameters<typeof getInstanceList>) =>
+    getInstanceList(params).then((data) =>
+      data.map((item) => {
+        const [ip, port] = item.split('-');
+        return `${ip}:${port}`;
+      }),
+    );
 
   const { t } = useI18n();
   const { currentBizInfo } = useGlobalBizs();
@@ -165,9 +173,9 @@
       dbtype?: string;
     } = {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      dbtype: props.dbtype,
+      dbtype: props.dbType,
     };
-    if (!props.dbtype) {
+    if (!props.dbType) {
       delete params.dbtype;
     }
     requestHandler(params).then((data) => {
@@ -206,7 +214,7 @@
 
   const serviceMap = {
     cluster_domain: getClusterList,
-    instance: getInstanceList,
+    instance: fetchInstanceList,
     instance_host: getIpList,
     instance_role: getRoleList,
   };
@@ -329,7 +337,13 @@
       return {
         key: titleValue.value,
         method: operationSign.value.value,
-        values: contentValue.value,
+        values:
+          titleValue.value === 'instance'
+            ? contentValue.value.map((item) => {
+                const [ip, port] = (item as string).split(':');
+                return `${ip}-${port}`;
+              })
+            : contentValue.value,
       };
     },
   });
