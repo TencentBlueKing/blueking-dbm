@@ -15,11 +15,14 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"math/rand/v2"
 	"os"
 	"path"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/gofrs/flock"
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
@@ -73,6 +76,7 @@ type CutOverCtx struct {
 	fd                       *os.File //  持久化回滚sql
 	primaryShardSwitchSqls   []string
 	slaveShardSwitchSqls     []string
+	fdLock                   *flock.Flock
 }
 
 // SvrPairs TODO
@@ -185,6 +189,7 @@ func (r *SpiderClusterBackendSwitchComp) Init() (err error) {
 		}
 		r.slavesConn[slaveAddr] = slaveConn
 	}
+	r.fdLock = flock.New(path.Join(cst.BK_PKG_INSTALL_PATH, LOCK_FILE_NAME))
 	return nil
 }
 
@@ -415,9 +420,14 @@ func (r *SpiderClusterBackendSwitchComp) connTdbctl() (err error) {
 	return err
 }
 
-// CutOver TODO
+// CutOver cut over
 func (r *SpiderClusterBackendSwitchComp) CutOver() (err error) {
 	var tdbctlFlushed bool
+	// get file lock
+	if err = r.CutOverCtx.GetFileLock(); err != nil {
+		logger.Error("get file lock failed %s", err.Error())
+		return err
+	}
 	logger.Info("the switching operation will be performed")
 	defer func() {
 		if err != nil && len(r.primaryShardrollbackSqls) > 0 {
@@ -431,6 +441,10 @@ func (r *SpiderClusterBackendSwitchComp) CutOver() (err error) {
 				return
 			}
 			if ferr := r.flushrouting(); ferr != nil {
+				return
+			}
+			if uerr := r.fdLock.Unlock(); uerr != nil {
+				logger.Error("unlock file lock failed %s", uerr.Error())
 				return
 			}
 			logger.Info("flush rollback route successfully~")
@@ -648,6 +662,27 @@ func (r *SpiderClusterBackendSwitchComp) ChangeMasterToNewMaster() (err error) {
 			return err
 		}
 	}
+	return err
+}
+
+// GetFileLock get file lock
+func (c *CutOverCtx) GetFileLock() (err error) {
+	logger.Info("get file lock ...")
+	err = cmutil.Retry(cmutil.RetryConfig{
+		Times: 300,
+		// nolint
+		DelayTime: time.Duration(rand.IntN(100)+200) * time.Millisecond,
+	}, func() (err error) {
+		locked, err := c.fdLock.TryLock()
+		if err != nil {
+			return err
+		}
+		if !locked {
+			return fmt.Errorf("lock file failed,try it later")
+		}
+		logger.Info("get file lock successfully~")
+		return nil
+	})
 	return err
 }
 

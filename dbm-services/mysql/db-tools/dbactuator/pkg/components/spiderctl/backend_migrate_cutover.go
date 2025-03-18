@@ -13,11 +13,15 @@ package spiderctl
 import (
 	"errors"
 	"fmt"
+	"path"
 	"slices"
+
+	"github.com/gofrs/flock"
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 )
 
@@ -181,6 +185,9 @@ func (s *SpiderClusterBackendMigrateCutoverComp) Example() interface{} {
 	}
 }
 
+// LOCK_FILE_NAME cutover lock file name
+const LOCK_FILE_NAME = ".cutover.lock"
+
 // Init TODO
 func (s *SpiderClusterBackendMigrateCutoverComp) Init() (err error) {
 	logger.Info("cutover param is %v", s.Params.MigrateCutoverPairs)
@@ -215,6 +222,7 @@ func (s *SpiderClusterBackendMigrateCutoverComp) Init() (err error) {
 	s.svrNameServersMap = svrNameServersMap
 	s.checkVars = []string{"character_set_server", "lower_case_table_names", "time_zone", "binlog_format",
 		"log_bin_compress"}
+	s.fdLock = flock.New(path.Join(cst.BK_PKG_INSTALL_PATH, LOCK_FILE_NAME))
 	return nil
 }
 
@@ -409,8 +417,13 @@ func (s *SpiderClusterBackendMigrateCutoverComp) PersistenceRollbackFile() (err 
 	return
 }
 
-// CutOver TODO
+// CutOver cut over
 func (s *SpiderClusterBackendMigrateCutoverComp) CutOver() (err error) {
+	// get file lock
+	if err = s.CutOverCtx.GetFileLock(); err != nil {
+		logger.Error("get file lock failed %s", err.Error())
+		return err
+	}
 	var tdbctlFlushed bool
 	// change the central control route
 	// release the lock until after performing the rollback routing
@@ -429,6 +442,10 @@ func (s *SpiderClusterBackendMigrateCutoverComp) CutOver() (err error) {
 			}
 			if ferr := s.flushrouting(); ferr != nil {
 				err = fmt.Errorf("%w,flush rollback route err:%w", err, ferr)
+				return
+			}
+			if uerr := s.fdLock.Unlock(); uerr != nil {
+				logger.Error("unlock file lock failed %s", uerr.Error())
 				return
 			}
 			logger.Info("rollback route successfully~")
