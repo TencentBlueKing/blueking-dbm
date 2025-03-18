@@ -1265,6 +1265,80 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "platform_alert_event_view",
+                "name": "全局告警事件查看",
+                "name_en": "platform_alert_event_view",
+                "type": "view",
+                "related_resource_types": [],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "平台管理",
+                "subgroup": "",
+                "description": "全局告警事件查看",
+                "description_en": "platform_alert_event_view"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mysql_dbconsole",
+                "name": "MySQL DB自助查询",
+                "name_en": "mysql_dbconsole",
+                "type": "view",
+                "related_resource_types": [],
+                "related_actions": [
+                    "platform_manage"
+                ],
+                "version": 1,
+                "hidden": true,
+                "group": "平台管理",
+                "subgroup": "",
+                "description": "MySQL DB自助查询",
+                "description_en": "mysql_dbconsole"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "tendbcluster_dbconsole",
+                "name": "TendbCluster DB自助查询",
+                "name_en": "tendbcluster_dbconsole",
+                "type": "view",
+                "related_resource_types": [],
+                "related_actions": [
+                    "platform_manage"
+                ],
+                "version": 1,
+                "hidden": true,
+                "group": "平台管理",
+                "subgroup": "",
+                "description": "TendbCluster DB自助查询",
+                "description_en": "tendbcluster_dbconsole"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "sqlserver_dbconsole",
+                "name": "SQLServer DB自助查询",
+                "name_en": "sqlserver_dbconsole",
+                "type": "view",
+                "related_resource_types": [],
+                "related_actions": [
+                    "platform_manage"
+                ],
+                "version": 1,
+                "hidden": true,
+                "group": "平台管理",
+                "subgroup": "",
+                "description": "SQLServer DB自助查询",
+                "description_en": "sqlserver_dbconsole"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "dbconfig_view",
                 "name": "数据库配置查看",
                 "name_en": "dbconfig_view",
