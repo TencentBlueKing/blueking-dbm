@@ -29,7 +29,7 @@
           @remove="handleRemove(index)" />
       </RenderData>
       <BkForm
-        class="toolbox-form mt-24"
+        class="toolbox-form mt-8"
         form-type="vertical">
         <BkFormItem
           :label="t('备份源')"
