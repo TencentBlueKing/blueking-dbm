@@ -1,8 +1,9 @@
 package mysqlcmd
 
 import (
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/v2/rotatebinlog"
 	"fmt"
+
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/v2/rotatebinlog"
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd"
@@ -60,7 +61,7 @@ func (d *PushMySQLRotateBinlogConfigAct) Run() (err error) {
 			Func:    d.Service.PreCheck,
 		},
 		{
-			FunName: "渲染 config.yaml",
+			FunName: "渲染 main.yaml",
 			Func:    d.Service.GenerateRuntimeConfig,
 		},
 		{

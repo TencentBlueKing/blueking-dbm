@@ -1,11 +1,18 @@
 package rotate
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+
+	gyaml "github.com/ghodss/yaml"
 	"github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 	"github.com/spf13/viper"
 
+	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/cst"
 )
 
@@ -75,14 +82,35 @@ func initConfigDefault() {
 	viper.SetDefault("public.max_old_days_to_upload", 7)
 }
 
-// InitConfig 读取 config.yaml 配置
+// InitConfig 读取 main.yaml 配置
 func InitConfig(confFile string) (*Config, error) {
 	initConfigDefault()
-	viper.SetConfigType("yaml")
-	if confFile != "" {
-		viper.SetConfigFile(confFile)
+	configObj, err := ReadMainConfig(confFile)
+	if err != nil {
+		return nil, err
+	}
+
+	servers, err := readInstanceConfig(confFile)
+	if err != nil {
+		return nil, err
 	} else {
-		viper.SetConfigName("config")
+		// merge servers to main config
+		servers = append(servers, configObj.Servers...)
+		servers = deduplicateServers(servers)
+		configObj.Servers = servers
+	}
+	//logger.Debug("ConfigObj: %+v", ConfigObj)
+	return configObj, nil
+}
+
+// ReadMainConfig read main.yaml, not include instance config
+func ReadMainConfig(mainConfFile string) (*Config, error) {
+	viper.SetConfigType("yaml")
+	if mainConfFile != "" {
+		viper.SetConfigFile(mainConfFile)
+	} else {
+		viper.SetConfigName("main")
+		//viper.SetConfigName("config")
 		viper.AddConfigPath(".") // 搜索路径可以设置多个，viper 会根据设置顺序依次查找
 		home, _ := homedir.Dir()
 		viper.AddConfigPath(home)
@@ -104,6 +132,64 @@ func InitConfig(confFile string) (*Config, error) {
 	} else {
 		PublicConfig = configObj.Public
 	}
-	//logger.Debug("ConfigObj: %+v", ConfigObj)
+
+	if len(configObj.Servers) > 0 {
+		// remove servers section to separated instance config file
+		for _, serverConfig := range configObj.Servers {
+			yamlData, err := gyaml.Marshal(serverConfig) // use json tag
+			if err != nil {
+				return nil, err
+			}
+			serverConfigFile := filepath.Join(filepath.Dir(mainConfFile),
+				fmt.Sprintf("server.%d.yaml", serverConfig.Port))
+			if err := os.WriteFile(serverConfigFile, yamlData, 0644); err != nil {
+				return nil, err
+			}
+		}
+		configObj.Servers = nil
+		yamlData, err := gyaml.Marshal(configObj) // use json tag
+		if err != nil {
+			return nil, err
+		}
+		if err := os.WriteFile(mainConfFile, yamlData, 0644); err != nil {
+			return nil, err
+		}
+	}
 	return configObj, nil
+}
+
+func readInstanceConfig(mainConfFile string) ([]*ServerObj, error) {
+	// search server.<port>.yaml
+	serverConfigName := "server.*.yaml"
+	serverConfigPath := filepath.Join(filepath.Dir(mainConfFile), serverConfigName)
+	files, err := filepath.Glob(serverConfigPath)
+	if err != nil {
+		logger.Error("search InstanceConfig '%s' failed: %v", serverConfigName, err)
+		return nil, err
+	} else {
+		logger.Info("found config servers:%v", files)
+	}
+	var servers []*ServerObj
+	for _, f := range files {
+		s := ServerObj{}
+		viperServer := viper.New()
+		viperServer.SetConfigType("yaml")
+		viperServer.SetConfigFile(f)
+		if err = viperServer.ReadInConfig(); err != nil {
+			logger.Error("readInstanceConfig %s read failed: %v", f, err)
+			continue
+		}
+		if err = viperServer.Unmarshal(&s); err != nil {
+			logger.Error("readInstanceConfig %s unmarshal failed: %v", f, err)
+			continue
+		}
+		servers = append(servers, &s)
+	}
+	return servers, nil
+}
+
+func deduplicateServers(servers []*ServerObj) []*ServerObj {
+	return lo.UniqBy(servers, func(item *ServerObj) string {
+		return item.Host + ":" + strconv.Itoa(item.Port)
+	})
 }

@@ -124,7 +124,7 @@ func MigrateInstanceBackupInfo(infoFilePath string, cnf *config.BackupConfig) (s
 			BackupType:           backupType,
 			BackupHost:           infoObj.BackupHost,
 			BackupPort:           infoObj.BackupPort,
-			MysqlRole:            infoObj.BackupRole,
+			MysqlRole:            strings.ToLower(infoObj.BackupRole),
 			DataSchemaGrant:      infoObj.DataOrGrant,
 			IsFullBackup:         isFullBackup,
 			BackupBeginTime:      beginTime,

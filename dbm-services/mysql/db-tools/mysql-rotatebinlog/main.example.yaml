@@ -4,7 +4,7 @@ public:
   # 一般情况， master 使用 most, slave 使用 least
   keep_policy: most
   # 每个实例允许的 binlog 目录大小
-  max_binlog_total_size: 200g
+  max_binlog_total_size: 2000g
   # binlog 所在挂载目录的空间使用率上限百分比，0-100
   max_disk_used_pct: 80
   # 超过最大保留时间的 binlog，会直接删除。不进行备份

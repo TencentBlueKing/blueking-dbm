@@ -45,7 +45,7 @@ var rootCmd = &cobra.Command{
 			return err
 		}
 
-		if removeConfigs, err := cmd.PersistentFlags().GetStringSlice("removeConfig"); err != nil {
+		if removeConfigs, err := cmd.PersistentFlags().GetIntSlice("removeConfig"); err != nil {
 			return err
 		} else if len(removeConfigs) > 0 {
 			return comp.RemoveConfig(removeConfigs)
@@ -67,8 +67,9 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	var Config string
-	rootCmd.PersistentFlags().StringVarP(&Config, "config", "c", "config.yaml", "config file")
-	rootCmd.PersistentFlags().StringSlice("removeConfig", nil, "remove binlog instance rotate config from config file")
+	rootCmd.PersistentFlags().StringVarP(&Config, "config", "c", "main.yaml", "config file")
+	rootCmd.PersistentFlags().IntSlice("removeConfig", nil, "remove binlog instance rotate config from config file")
+	//rootCmd.PersistentFlags().StringSlice("removeConfig", nil, "remove binlog instance rotate config from config file")
 	rootCmd.PersistentFlags().Bool("addSchedule", false, "add schedule to crond")
 	rootCmd.PersistentFlags().Bool("delSchedule", false, "del schedule from crond")
 	viper.BindPFlag("config", rootCmd.PersistentFlags().Lookup("config"))

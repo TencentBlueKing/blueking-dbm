@@ -23,12 +23,13 @@ import (
 
 // ServerObj rotate_binlog.yaml servers 配置
 type ServerObj struct {
-	Host     string       `json:"host" mapstructure:"host" validate:"required"` // 当前实例的主机地址
-	Port     int          `json:"port" mapstructure:"port" validate:"required"` // 当前实例的端口
-	Username string       `json:"username,omitempty" mapstructure:"username"`   // 连接当前实例的User
-	Password string       `json:"password,omitempty" mapstructure:"password"`   // 连接当前实例的User Pwd
-	Socket   string       `json:"socket,omitempty" mapstructure:"socket"`       // 连接socket
-	Tags     InstanceMeta `json:"tags" mapstructure:"tags" validate:"required"`
+	Host     string `json:"host" mapstructure:"host" validate:"required"` // 当前实例的主机地址
+	Port     int    `json:"port" mapstructure:"port" validate:"required"` // 当前实例的端口
+	Username string `json:"username,omitempty" mapstructure:"username"`   // 连接当前实例的User
+	Password string `json:"password,omitempty" mapstructure:"password"`   // 连接当前实例的User Pwd
+	Socket   string `json:"socket,omitempty" mapstructure:"socket"`       // 连接socket
+	// Tags labels
+	Tags InstanceMeta `json:"tags" mapstructure:"tags" validate:"required"`
 	//MaxBinlogTotalSize string       `json:"max_binlog_total_size" mapstructure:"max_binlog_total_size"`
 
 	dbWorker  *native.DbWorker
@@ -109,9 +110,10 @@ func (i *ServerObj) Rotate() (lastFileBefore *models.BinlogFileModel, err error)
 // FreeSpace 实例 rotate 主逻辑
 // Remove, Backup, Purge
 func (i *ServerObj) FreeSpace() (err error) {
-	sizeToFreeBytes := i.rotate.sizeToFreeMB * 1024 * 1024 // MB to bytes
+	sizeToFreeBytes := i.rotate.sizeToFreeMB * 1024 * 1024           // MB to bytes
+	sizeToFreeBytesBurst := i.rotate.sizeToFreeBurstMB * 1024 * 1024 // MB to bytes
 	logger.Info("plan to free port %d binlog bytes %d", i.Port, sizeToFreeBytes)
-	if err = i.rotate.Remove(sizeToFreeBytes, true); err != nil {
+	if err = i.rotate.Remove(sizeToFreeBytes, sizeToFreeBytesBurst, true); err != nil {
 		logger.Error("Remove %+v", err)
 	}
 	if err = i.PurgeIndex(); err != nil {

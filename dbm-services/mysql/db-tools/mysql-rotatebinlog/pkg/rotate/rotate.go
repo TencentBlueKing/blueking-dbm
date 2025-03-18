@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"modernc.org/mathutil"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/go-pubpkg/reportlog"
@@ -26,13 +28,16 @@ type BinlogRotateConfig struct {
 // BinlogRotate TODO
 type BinlogRotate struct {
 	//backupClient    backup.BackupClient
-	binlogDir       string
-	binlogInst      models.BinlogFileModel
-	sizeToFreeMB    int64 // MB
-	binlogSizeMB    int64 // MB
-	purgeInterval   time.Duration
-	rotateInterval  time.Duration
-	maxKeepDuration time.Duration
+	binlogDir  string
+	binlogInst models.BinlogFileModel
+	// sizeToFreeMB 计划释放这么多，可能因为没有上传实际没有释放这么多
+	sizeToFreeMB int64 // MB
+	// sizeToFreeBurstMB 一定要释放这么多
+	sizeToFreeBurstMB int64 // MB
+	binlogSizeMB      int64 // MB
+	purgeInterval     time.Duration
+	rotateInterval    time.Duration
+	maxKeepDuration   time.Duration
 }
 
 // String 用于打印
@@ -248,7 +253,8 @@ func (i *ServerObj) RegisterBinlog(lastFileBefore *models.BinlogFileModel) error
 		}
 		var backupStatus int
 		if i.backupEnable {
-			if fileObj.Mtime.Before(time.Now().Add(-time.Hour * 24 * time.Duration(i.publicCfg.MaxOldDaysToUpload))) {
+			if i.publicCfg.MaxOldDaysToUpload > 0 &&
+				fileObj.Mtime.Before(time.Now().Add(-time.Hour*24*time.Duration(i.publicCfg.MaxOldDaysToUpload))) {
 				backupStatus = models.FileStatusTooOldToRegister
 			} else {
 				backupStatus = models.IBStatusNew
@@ -390,7 +396,7 @@ func (r *BinlogRotate) Backup(backupClient backup.BackupClient) error {
 // 将本地 done,success 的超过阈值的 binlog 文件删除，更新 binlog 列表状态
 // 超过 max_keep_days 的强制删除，单位 bytes
 // sizeBytesToFree=999999999 代表尽可能删除
-func (r *BinlogRotate) Remove(sizeBytesToFree int64, success bool) (err error) {
+func (r *BinlogRotate) Remove(sizeBytesToFree, sizeBytesBurstToFree int64, success bool) (err error) {
 	if sizeBytesToFree == 0 {
 		logger.Info("no need to free %d binlog size", r.binlogInst.Port)
 		return nil
@@ -399,7 +405,7 @@ func (r *BinlogRotate) Remove(sizeBytesToFree int64, success bool) (err error) {
 	if success {
 		binlogFiles, err = r.binlogInst.QuerySuccess(models.DB.Conn)
 	} else {
-		binlogFiles, err = r.binlogInst.QueryFailed(models.DB.Conn)
+		binlogFiles, err = r.binlogInst.QueryUnfinished(models.DB.Conn)
 	}
 	if err != nil {
 		return err
@@ -415,13 +421,26 @@ func (r *BinlogRotate) Remove(sizeBytesToFree int64, success bool) (err error) {
 			break
 		}
 		fileFullPath := filepath.Join(r.binlogDir, f.Filename)
-		logger.Info("remove file: %s", fileFullPath)
-		if err = os.Remove(fileFullPath); err != nil {
-			logger.Error("remove file failed: %s", err.Error())
-			// return err
+		if cmutil.FileExists(fileFullPath) {
+			if success {
+				logger.Info("remove file: %s", fileFullPath)
+			} else {
+				logger.Warn("remove file force: %s, status=%d", fileFullPath, f.BackupStatus)
+			}
+			if err = os.Remove(fileFullPath); err != nil {
+				logger.Error("remove file failed: %s", err.Error())
+			}
+		} else {
+			logger.Info("file not exists: %s", fileFullPath)
+			// 也要更新状态
 		}
-		if !cmutil.FileExists(fileFullPath) {
-			f.BackupStatus = models.FileStatusRemoved
+
+		if !cmutil.FileExists(fileFullPath) { // remove success
+			if success {
+				f.BackupStatus = models.FileStatusRemoved
+			} else {
+				f.BackupStatus = models.FileStatusForceRemoved
+			}
 			if err = f.Update(models.DB.Conn); err != nil {
 				logger.Error(err.Error())
 				// return err
@@ -441,11 +460,10 @@ func (r *BinlogRotate) Remove(sizeBytesToFree int64, success bool) (err error) {
 			success, sizeDeleted, sizeBytesToFree,
 		)
 		// 需要删除 备份未完成的 binlog
-		if success {
-			leftSizeBytesToFree := sizeBytesToFree - sizeDeleted
-			return r.Remove(leftSizeBytesToFree, false)
+		if success && sizeDeleted < sizeBytesBurstToFree {
+			leftSizeBytesToFree := mathutil.MinInt64(sizeBytesBurstToFree, sizeBytesToFree) - sizeDeleted
+			return r.Remove(leftSizeBytesToFree, leftSizeBytesToFree, false)
 		}
-
 	}
 	logger.Info("removeSuccess=%t sizeBytesDeleted:%d, fileDeleted:%d. binlog lastDeleted: %s",
 		success, sizeDeleted, fileDeleted, stopFile)

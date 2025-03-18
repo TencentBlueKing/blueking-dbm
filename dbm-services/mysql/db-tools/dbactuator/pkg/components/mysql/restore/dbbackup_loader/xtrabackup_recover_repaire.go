@@ -364,7 +364,7 @@ func (x *Xtrabackup) ChangeDirOwner(dirs []string) error {
 		// 如果my.cnf中没有配置这个目录, 就不做操作
 		if p := x.myCnf.GetMyCnfByKeyWithDefault(util.MysqldSec, v, ""); p != "" {
 			if filepath.IsAbs(p) {
-				commands = append(commands, fmt.Sprintf("chown -R mysql %s", path.Dir(p)))
+				commands = append(commands, fmt.Sprintf("chown -R mysql:mysql %s", path.Dir(p)))
 			}
 			// @todo 如果是相对目录，忽略 or 报错 ?
 		}
@@ -372,7 +372,8 @@ func (x *Xtrabackup) ChangeDirOwner(dirs []string) error {
 	script := strings.Join(commands, "\n")
 	logger.Info("ChangeDirOwner: %s", script)
 	if _, err := osutil.ExecShellCommand(false, script); err != nil {
-		return err
+		logger.Warn("ChangeDirOwner failed: %s", err.Error())
+		//return err
 	}
 	return nil
 }

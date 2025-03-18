@@ -619,6 +619,8 @@ func (i *InstallMySQLComp) InitInstanceDirs() (err error) {
 			return err
 		}
 	}
+	defaultDbBakCmd := fmt.Sprintf("mkdir -p /data/dbbak ; chown mysql /data/dbbak")
+	osutil.ExecShellCommand(false, defaultDbBakCmd)
 	return nil
 }
 

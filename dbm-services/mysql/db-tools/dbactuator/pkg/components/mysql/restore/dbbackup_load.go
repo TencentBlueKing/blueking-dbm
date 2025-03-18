@@ -310,6 +310,10 @@ func (m *DBLoader) initDirs(removeOld bool) error {
 	if err := osutil.CheckAndMkdir("", m.untarDir); err != nil {
 		return err
 	}
+	if dirParts := strings.Split(m.untarDir, "/"); len(dirParts) >= 2 {
+		dbbakDir := "/" + strings.Join(dirParts[:2], "/")
+		osutil.ExecShellCommand(false, fmt.Sprintf("chown mysql:mysql %s", dbbakDir))
+	}
 
 	m.targetDir = filepath.Join(m.untarDir, m.BackupInfo.indexObj.GetBackupFileBasename())
 	logger.Info("current recover work directory: %s", m.taskDir)

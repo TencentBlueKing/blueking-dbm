@@ -174,7 +174,7 @@ func (c *ClearInstanceConfigComp) clearRotateBinlog() (err error) {
 	// 删除实例的rotate_binlog配置
 	installPath := cst.MysqlRotateBinlogInstallPath
 	binPath := path.Join(installPath, string(tools.ToolMysqlRotatebinlog))
-	configFile := path.Join(installPath, "config.yaml")
+	configFile := path.Join(installPath, "main.yaml")
 
 	if !cmutil.FileExists(binPath) {
 		logger.Info("%s not exists, skip", binPath)

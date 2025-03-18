@@ -49,9 +49,13 @@ func BuildDumper(cnf *config.BackupConfig, db *sql.DB) (dumper Dumper, err error
 			if glibcVer, err := cmutil.GetGlibcVersion(); err != nil {
 				logger.Log.Warn("failed to glibc version, err:", err)
 			} else if glibcVer < "2.14" {
-				// mydumper need glibc version >= 2.14
-				logger.Log.Infof("UseMysqldump auto with glibc version %s < 2.14, use mysqldump", glibcVer)
-				cnf.LogicalBackup.UseMysqldump = cst.LogicalMysqldumpYes
+				/*
+					// mydumper need glibc version >= 2.14
+					logger.Log.Infof("UseMysqldump auto with glibc version %s < 2.14, use mysqldump", glibcVer)
+					cnf.LogicalBackup.UseMysqldump = cst.LogicalMysqldumpYes
+				*/
+				// 最新版本 mydumper 已经支持 glibc 2.14 以上版本
+				cnf.LogicalBackup.UseMysqldump = cst.LogicalMysqldumpNo
 			} else {
 				logger.Log.Infof("UseMysqldump auto with glibc version %s >= 2.14, use mydumper", glibcVer)
 				cnf.LogicalBackup.UseMysqldump = cst.LogicalMysqldumpNo

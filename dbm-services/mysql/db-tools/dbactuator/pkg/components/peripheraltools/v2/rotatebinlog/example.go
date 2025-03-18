@@ -1,12 +1,13 @@
 package rotatebinlog
 
 import (
+	"encoding/json"
+	"path/filepath"
+
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/common"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/rotate"
-	"encoding/json"
-	"path/filepath"
 )
 
 func (c *MySQLRotateBinlogComp) Example() interface{} {
@@ -27,7 +28,7 @@ func (c *MySQLRotateBinlogComp) Example() interface{} {
 			Configs: rotate.Config{
 				Public: rotate.PublicCfg{
 					KeepPolicy:         "most",
-					MaxBinlogTotalSize: "200g",
+					MaxBinlogTotalSize: "2000g",
 					MaxDiskUsedPct:     80,
 					MaxKeepDuration:    "61d",
 					PurgeInterval:      "4h",

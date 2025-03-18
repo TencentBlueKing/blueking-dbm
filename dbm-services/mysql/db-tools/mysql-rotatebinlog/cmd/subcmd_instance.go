@@ -23,7 +23,7 @@ var instanceCmd = &cobra.Command{
 	Long:  `add or remove instance rotate config(user port), and will reschedule for mysql-crond`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		comp := rotate.RotateBinlogComp{Config: viper.GetString("config")}
-		if removeConfigs, err := cmd.Flags().GetStringSlice("remove"); err != nil {
+		if removeConfigs, err := cmd.Flags().GetIntSlice("remove"); err != nil {
 			return err
 		} else if len(removeConfigs) > 0 {
 			if err = comp.RemoveConfig(removeConfigs); err != nil {
@@ -40,7 +40,7 @@ var instanceCmd = &cobra.Command{
 
 func init() {
 	//命令行的flag
-	instanceCmd.Flags().StringSlice("remove", nil, "remove binlog instance rotate port from config")
+	instanceCmd.Flags().IntSlice("remove", nil, "remove binlog instance rotate port from config")
 
 	rootCmd.AddCommand(instanceCmd)
 }

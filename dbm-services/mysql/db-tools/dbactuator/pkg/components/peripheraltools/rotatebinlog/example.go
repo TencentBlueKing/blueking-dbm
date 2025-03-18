@@ -32,7 +32,7 @@ func (c *MySQLRotateBinlogComp) Example() interface{} {
 			Configs: rotate.Config{
 				Public: rotate.PublicCfg{
 					KeepPolicy:         "most",
-					MaxBinlogTotalSize: "200g",
+					MaxBinlogTotalSize: "2000g",
 					MaxDiskUsedPct:     80,
 					MaxKeepDuration:    "61d",
 					PurgeInterval:      "4h",

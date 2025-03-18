@@ -184,9 +184,26 @@ func mysqlbinlogHasOpt(binlogCmd string, option string) error {
 	if err != nil {
 		return err
 	}
-	if strings.Contains(errStr, option) || strings.Contains(outStr, option) {
-		return nil
-	} else {
+	if strings.Contains(errStr, "unknown option") {
 		return errors.Errorf("mysqlbinlog %s has no option %s", binlogCmd, option)
 	}
+	if strings.Contains(outStr, option) {
+		return nil
+	}
+	return errors.Errorf("check option error for %s %s", binlogCmd, option)
+}
+
+// mysqlCliHasOpt test mysql client has option or not
+func mysqlCliHasOpt(mysqlCmd string, option string) error {
+	outStr, errStr, err := cmutil.ExecCommand(false, "", mysqlCmd, "--help")
+	if err != nil {
+		return err
+	}
+	if strings.Contains(errStr, "unknown option") {
+		return errors.Errorf("mysql %s has no option %s", mysqlCmd, option)
+	}
+	if strings.Contains(outStr, option) {
+		return nil
+	}
+	return errors.Errorf("check option error for %s %s", mysqlCmd, option)
 }

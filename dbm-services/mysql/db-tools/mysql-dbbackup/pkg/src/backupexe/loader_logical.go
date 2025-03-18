@@ -215,8 +215,8 @@ func (l *LogicalLoader) Execute() (err error) {
 	if err != nil {
 		logger.Log.Error("myloader load backup failed: ", err, errStr)
 		// 尝试读取 myloader.log 里 CRITICAL 关键字
-		errStrPrefix := fmt.Sprintf("tail 5 error from %s", logfile)
-		errStrDetail, _ := cmutil.NewGrepLines(logfile, true, false).
+		errStrPrefix := fmt.Sprintf("head 5 error from %s", logfile)
+		errStrDetail, _ := cmutil.NewGrepLines(logfile, true, true).
 			MatchWords([]string{"CRITICAL", "not found", "error", "fatal"}, 5)
 		if len(errStrDetail) > 0 {
 			logger.Log.Info(errStrPrefix)

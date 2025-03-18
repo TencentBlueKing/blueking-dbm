@@ -2,16 +2,17 @@ package rotatebinlog
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
 
-	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/backup"
-
-	"github.com/ghodss/yaml"
+	gyaml "github.com/ghodss/yaml"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
+
+	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/backup"
 )
 
 func (c *MySQLRotateBinlogComp) GenerateRuntimeConfig() (err error) {
@@ -43,11 +44,27 @@ func (c *MySQLRotateBinlogComp) GenerateRuntimeConfig() (err error) {
 			c.Params.Configs.BackupClient[k] = mapObj
 		}
 	}
-	yamlData, err := yaml.Marshal(c.Params.Configs) // use json tag
+
+	// rotatebinlog config has main:main.yaml and instance:server.<port>.yaml
+	// first: render instance server.<port>.yaml
+	for _, serverConfig := range c.Params.Configs.Servers {
+		yamlData, err := gyaml.Marshal(serverConfig) // use json tag
+		if err != nil {
+			return err
+		}
+		serverConfigFile := filepath.Join(c.installPath, fmt.Sprintf("server.%d.yaml", serverConfig.Port))
+		if err := os.WriteFile(serverConfigFile, yamlData, 0644); err != nil {
+			return err
+		}
+	}
+
+	// then: render mail main.yaml (remove servers section)
+	c.Params.Configs.Servers = nil
+	yamlData, err := gyaml.Marshal(c.Params.Configs) // use json tag
 	if err != nil {
 		return err
 	}
-	c.configFile = filepath.Join(c.installPath, "config.yaml")
+	c.configFile = filepath.Join(c.installPath, "main.yaml")
 	if err := os.WriteFile(c.configFile, yamlData, 0644); err != nil {
 		return err
 	}

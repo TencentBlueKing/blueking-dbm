@@ -9,6 +9,8 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/samber/lo"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/go-pubpkg/validate"
@@ -19,7 +21,7 @@ import (
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/models"
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/util"
 
-	"github.com/ghodss/yaml"
+	gyaml "github.com/ghodss/yaml"
 	errs "github.com/pkg/errors"
 	"github.com/spf13/cast"
 	"github.com/spf13/viper"
@@ -34,7 +36,7 @@ type RotateBinlogComp struct {
 // Example TODO
 func (c *RotateBinlogComp) Example() interface{} {
 	return RotateBinlogComp{
-		Config: "config.yaml",
+		Config: "main.yaml",
 	}
 }
 
@@ -67,12 +69,16 @@ func (c *RotateBinlogComp) Start() (err error) {
 		return err
 	}
 
-	var servers []*ServerObj
-	if err = viper.UnmarshalKey("servers", &servers); err != nil {
-		return errs.Wrap(err, "parse config servers")
-	} else {
-		logger.Info("config servers: %+v", servers)
-	}
+	var servers []*ServerObj = c.ConfigObj.Servers
+	logger.Info("config servers: %+v", servers)
+
+	/*
+		if err = viper.UnmarshalKey("servers", &servers); err != nil {
+			return errs.Wrap(err, "parse config servers")
+		} else {
+			logger.Info("config servers: %+v", servers)
+		}
+	*/
 	var errRet error
 	for _, inst := range servers {
 		inst.instance = &native.InsObject{
@@ -129,27 +135,36 @@ func (c *RotateBinlogComp) Start() (err error) {
 }
 
 // RemoveConfig 删除某个 binlog 实例的 rotate 配置
-func (c *RotateBinlogComp) RemoveConfig(ports []string) (err error) {
-	if c.ConfigObj, err = InitConfig(c.Config); err != nil {
-		return err
-	}
-	for _, binlogPort := range ports {
-		port := cast.ToInt(binlogPort)
-		newServers := make([]*ServerObj, 0)
-		var portFound bool
-		for _, binlogInst := range c.ConfigObj.Servers {
-			if binlogInst.Port == port {
-				portFound = true
-			} else {
-				newServers = append(newServers, binlogInst)
+func (c *RotateBinlogComp) RemoveConfig(ports []int) (err error) {
+	// remove file server.<port>.yaml
+	for _, port := range ports {
+		serverConfigFile := filepath.Join(filepath.Dir(c.Config), fmt.Sprintf("server.%d.yaml", port))
+		if cmutil.FileExists(serverConfigFile) {
+			logger.Info("remove config file %s", serverConfigFile)
+			if err = os.Remove(serverConfigFile); err != nil {
+				return err
 			}
 		}
-		if !portFound {
-			logger.Warn("port instance %d not found when running removeConfig", port)
+	}
+
+	// remove server from main config if possible
+	if c.ConfigObj, err = ReadMainConfig(c.Config); err != nil {
+		return err
+	}
+	newServers := make([]*ServerObj, 0)
+	for _, binlogInst := range c.ConfigObj.Servers {
+		if !lo.Contains(ports, binlogInst.Port) {
+			newServers = append(newServers, binlogInst)
 		}
+	}
+	if len(newServers) == len(c.ConfigObj.Servers) {
+		// no change
+		return nil
+	} else {
 		c.ConfigObj.Servers = newServers
 	}
-	yamlData, err := yaml.Marshal(c.ConfigObj) // use json tag
+
+	yamlData, err := gyaml.Marshal(c.ConfigObj) // use json tag
 	if err != nil {
 		return err
 	}
@@ -186,7 +201,7 @@ func (c *RotateBinlogComp) HandleScheduler(addSchedule, delSchedule bool) (handl
 			// Command:  fmt.Sprintf(`cd %s && %s`, executeDir, executable),
 			Command:  executable,
 			WorkDir:  executeDir,
-			Args:     []string{"-c", "config.yaml"},
+			Args:     []string{"-c", "main.yaml"},
 			Schedule: viper.GetString("crond.schedule"),
 			Creator:  "sys",
 			Enable:   true,
@@ -268,6 +283,7 @@ func (c *RotateBinlogComp) decideSizeToFree(servers []*ServerObj) error {
 				sizeToFree := binlogSizeMB - maxBinlogSizeAllowedMB
 				if sizeToFree > inst.rotate.sizeToFreeMB {
 					inst.rotate.sizeToFreeMB = sizeToFree
+					inst.rotate.sizeToFreeBurstMB = sizeToFree // 一定会清理这么多，不论是否上传
 				}
 				logger.Info("plan to free space: %+v", inst.rotate)
 			}
