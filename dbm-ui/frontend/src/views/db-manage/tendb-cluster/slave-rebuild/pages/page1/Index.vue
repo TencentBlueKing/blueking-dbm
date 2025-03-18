@@ -114,13 +114,13 @@
     overflow: hidden;
 
     .slave-rebuild-types {
-      margin-top: 24px;
+      margin-top: 16px;
 
       .slave-rebuild-types-title {
         position: relative;
         font-size: @font-size-mini;
-        color: @title-color;
         font-weight: 700;
+        color: @title-color;
 
         &::after {
           position: absolute;
