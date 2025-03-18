@@ -15,7 +15,13 @@ import type { RouteRecordRaw } from 'vue-router';
 import type { SqlServerFunctions } from '@services/model/function-controller/functionController';
 import FunctionControllModel from '@services/model/function-controller/functionController';
 
+import { DBTypes, TicketTypes } from '@common/const';
+
+import { createToolboxRoute } from '@utils';
+
 import { t } from '@locales/index';
+
+const { createRouteItem } = createToolboxRoute(DBTypes.SQLSERVER);
 
 const routes: RouteRecordRaw[] = [
   {
@@ -153,19 +159,12 @@ const toolboxRouters: RouteRecordRaw[] = [
         },
         component: () => import('@views/db-manage/sqlserver/db-backup/Index.vue'),
       },
-      {
-        path: 'data-migrate/:page?',
-        name: 'sqlServerDataMigrate',
-        meta: {
-          navName: t('数据迁移'),
-        },
-        component: () => import('@views/db-manage/sqlserver/data-migrate/Index.vue'),
-      },
+      createRouteItem(TicketTypes.SQLSERVER_FULL_MIGRATE, t('数据迁移')),
       {
         path: 'data-migrate-record',
         name: 'sqlServerDataMigrateRecord',
         meta: {
-          navName: t('数据迁移'),
+          navName: t('迁移记录'),
         },
         component: () => import('@views/db-manage/sqlserver/data-migrate-record/Index.vue'),
       },
