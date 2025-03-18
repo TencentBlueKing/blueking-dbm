@@ -19,8 +19,7 @@
   },
   "dependencies": {
     "@blueking/app-select": "0.0.1-beta.12",
-    "@blueking/bk-trace": "1.0.3",
-    "@blueking/bk-trace-core": "0.0.1",
+    "@blueking/bk-trace-core": "0.0.2",
     "@blueking/bk-weweb": "0.0.26",
     "@blueking/bkflow.js": "0.1.11",
     "@blueking/date-picker": "1.0.1",
