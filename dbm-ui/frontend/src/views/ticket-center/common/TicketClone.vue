@@ -176,6 +176,7 @@
     [TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER]: TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER, // Spider 定点回档
     [TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES]: 'SpiderProxyScaleUp', // Spider扩容接入层
     [TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY]: TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY, // Spider 添加运维节点
+    [TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES]: 'SpiderProxyScaleDown', // Spider缩容接入层
     [TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY]: 'SpiderProxySlaveApply', // Spider 部署只读接入层
     [TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE]: 'spiderDbClear', // Spider tendbcluster 清档
   };

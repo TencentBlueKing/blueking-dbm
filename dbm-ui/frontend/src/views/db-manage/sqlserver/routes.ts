@@ -150,19 +150,12 @@ const toolboxRouters: RouteRecordRaw[] = [
         },
         component: () => import('@views/db-manage/sqlserver/db-backup/Index.vue'),
       },
-      {
-        path: 'data-migrate/:page?',
-        name: 'sqlServerDataMigrate',
-        meta: {
-          navName: t('数据迁移'),
-        },
-        component: () => import('@views/db-manage/sqlserver/data-migrate/Index.vue'),
-      },
+      createRouteItem(TicketTypes.SQLSERVER_FULL_MIGRATE, t('数据迁移')),
       {
         path: 'data-migrate-record',
         name: 'sqlServerDataMigrateRecord',
         meta: {
-          navName: t('数据迁移'),
+          navName: t('迁移记录'),
         },
         component: () => import('@views/db-manage/sqlserver/data-migrate-record/Index.vue'),
       },
