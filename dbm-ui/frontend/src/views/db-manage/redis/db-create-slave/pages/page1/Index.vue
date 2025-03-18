@@ -242,6 +242,8 @@
     const listResult = await getRedisMachineList({
       add_role_count: true,
       ip: ips.join(','),
+      limit: -1,
+      offset: 0,
     });
 
     const machineIpMap = listResult.results.reduce(
