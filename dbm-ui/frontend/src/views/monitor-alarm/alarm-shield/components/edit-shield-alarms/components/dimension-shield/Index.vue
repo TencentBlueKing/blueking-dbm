@@ -6,6 +6,7 @@
     <DimensionSelector
       ref="dimensionSelectorRef"
       :data="data"
+      :db-type="dbType"
       :disabled="disabled" />
   </BkFormItem>
 </template>
@@ -20,6 +21,7 @@
 
   interface Props {
     data?: AlarmShieldModel['dimension_config'];
+    dbType?: string;
     disabled?: boolean;
   }
 
@@ -31,6 +33,7 @@
 
   withDefaults(defineProps<Props>(), {
     data: undefined,
+    dbType: '',
     disabled: false,
   });
 
