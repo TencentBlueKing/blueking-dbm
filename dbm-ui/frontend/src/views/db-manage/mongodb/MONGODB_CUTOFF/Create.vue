@@ -256,14 +256,15 @@
             mongodb: [] as SpecHostList,
             mongos: [] as SpecHostList,
           };
-          const dataList = formData.tableData.map((item) => ({
-            bk_cloud_id: item.host.bk_cloud_id,
-            bk_host_id: item.host.bk_host_id,
-            ip: item.host.ip,
-            spec_id: item.spec_id,
-          }));
           Object.assign(infoItem, {
-            [formData.tableData[0].host.machine_type]: dataList,
+            [item.host.machine_type]: [
+              {
+                bk_cloud_id: item.host.bk_cloud_id,
+                bk_host_id: item.host.bk_host_id,
+                ip: item.host.ip,
+                spec_id: item.spec_id,
+              },
+            ],
           });
           return infoItem;
         }),
