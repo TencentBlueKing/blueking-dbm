@@ -12,40 +12,32 @@
 -->
 
 <template>
-  <BkTable :data="[ticketDetails.details]">
-    <BkTableColumn
-      field="cluster_id"
-      :label="t('集群ID')" />
-    <BkTableColumn
-      field="immute_domain"
-      :label="t('集群名称')">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
-      </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="cluster_type_name"
-      :label="t('集群类型')">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].cluster_type_name }}
-      </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('角色类型')">
-      <template #default="{ data }: { data: RowData }">
-        {{ nodeTypeText[getCurrentNode(data.old_nodes)] || '--' }}
-      </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('被替换的节点IP')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.old_nodes[getCurrentNode(data.old_nodes) as keyof RowData['old_nodes']]?.[0]?.ip  || '--' }}
-      </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('新节点IP')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.nodes[getCurrentNode(data.old_nodes) as keyof RowData['old_nodes']]?.[0]?.ip || '--' }}
-      </template>
-    </BkTableColumn>
-  </BkTable>
+  <div
+    v-for="(item, index) in dataList"
+    :key="index">
+    <strong class="ticket-details-info-title">{{ item.nodeText }}</strong>
+    <InfoList>
+      <InfoItem :label="t('集群：')">
+        {{ item.clusterName }}
+      </InfoItem>
+      <InfoItem :label="t('集群ID：')">
+        {{ item.clusterId }}
+      </InfoItem>
+      <InfoItem :label="t('服务器选择方式：')">
+        {{ item.ipSourceDisplay }}
+      </InfoItem>
+      <InfoItem :label="t('已选IP：')">
+        <BkTable :data="item.hostList">
+          <BkTableColumn
+            field="oldNodeIp"
+            :label="t('被替换的节点IP')" />
+          <BkTableColumn
+            field="newNodeIp"
+            :label="t('新节点IP')" />
+        </BkTable>
+      </InfoItem>
+    </InfoList>
+  </div>
 </template>
 
 <script setup lang="tsx">
@@ -53,13 +45,24 @@
 
   import TicketModel, { type Bigdata } from '@services/model/ticket/ticket';
 
+  import InfoList, { Item as InfoItem } from '../../../components/info-list/Index.vue';
+
   interface Props {
     ticketDetails: TicketModel<Bigdata.ResourcePool.Replace>;
   }
 
-  type RowData = Props['ticketDetails']['details'];
+  interface RowData {
+    clusterId: number;
+    clusterName: string;
+    hostList: {
+      newNodeIp: string;
+      oldNodeIp: string;
+    }[];
+    ipSourceDisplay: string;
+    nodeText: string;
+  }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 
@@ -77,13 +80,29 @@
     zookeeper: 'Zookeeper',
   };
 
-  const getCurrentNode = (nodes: RowData['old_nodes']) => {
-    let currentNode = '';
-    Object.entries(nodes).forEach(([node, hosts]) => {
+  const dataList = computed(() => {
+    const list: RowData[] = [];
+    const { cluster_id: clusterId, clusters, resource_spec: resourceSpec, specs } = props.ticketDetails.details;
+    Object.entries(props.ticketDetails.details.old_nodes).forEach(([node, hosts]) => {
       if (hosts.length) {
-        currentNode = node;
+        const currentResourceSpec = resourceSpec[node as keyof typeof resourceSpec];
+        const isManulSelect = currentResourceSpec.hosts?.length > 0;
+        list.push({
+          clusterId,
+          clusterName: clusters[clusterId]?.immute_domain || '--',
+          hostList: hosts.map((host: { ip: string }) => {
+            return {
+              newNodeIp: isManulSelect
+                ? currentResourceSpec.hosts[0].ip
+                : `${t('匹配规格：')} ${specs[currentResourceSpec.spec_id].name}`,
+              oldNodeIp: host.ip,
+            };
+          }),
+          ipSourceDisplay: isManulSelect ? t('从资源池手动选择') : t('从资源池自动匹配'),
+          nodeText: nodeTypeText[node] || '--',
+        });
       }
     });
-    return currentNode;
-  };
+    return list;
+  });
 </script>

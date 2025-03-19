@@ -134,7 +134,7 @@
 
     isLoading.value = true;
     getEsNodeList({
-      bk_biz_id: globalBizsStore.currentBizId,
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       cluster_id: props.data.id,
       no_limit: 1,
     })
@@ -218,6 +218,8 @@
 
   // 缩容节点主机修改
   const handleNodeHostChange = (nodeList: TNodeInfo['nodeList']) => {
+    console.log(nodeList, 'nodeList');
+
     const shrinkDisk = nodeList.reduce((result, hostItem) => result + hostItem.disk, 0);
     nodeInfoMap[nodeType.value].nodeList = nodeList;
     nodeInfoMap[nodeType.value].shrinkDisk = shrinkDisk;
@@ -280,13 +282,12 @@
             const generateExtInfo = () =>
               Object.entries(nodeInfoMap).reduce(
                 (results, [key, item]) => {
-                  const obj = {
-                    shrink_disk: item.shrinkDisk,
-                    total_disk: item.totalDisk,
-                    total_hosts: item.originalNodeList.length,
-                  };
                   Object.assign(results, {
-                    [key]: obj,
+                    [key]: {
+                      shrink_disk: item.shrinkDisk,
+                      total_disk: item.totalDisk,
+                      total_hosts: item.originalNodeList.length,
+                    },
                   });
                   return results;
                 },

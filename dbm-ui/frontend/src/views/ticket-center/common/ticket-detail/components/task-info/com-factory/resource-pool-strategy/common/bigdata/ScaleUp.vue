@@ -15,7 +15,7 @@
   <div
     v-for="(item, index) in dataList"
     :key="index">
-    <strong class="ticket-details-info-title">{{ item.title }}</strong>
+    <strong class="ticket-details-info-title">{{ item.nodeText }}</strong>
     <InfoList>
       <InfoItem :label="t('集群：')">
         {{ item.clusterName }}
@@ -24,7 +24,7 @@
         {{ item.clusterId }}
       </InfoItem>
       <InfoItem :label="t('服务器选择方式：')">
-        {{ t('从资源池手动选择') }}
+        {{ item.isManulSelect ? t('从资源池手动选择') : t('从资源池自动匹配') }}
       </InfoItem>
       <InfoItem :label="t('扩容容量：')">
         {{ t('当前m_G_扩容后预估n_G', { m: item.totalDisk, n: item.expectDisk }) }}
@@ -34,7 +34,9 @@
           t('当前n台_扩容至m台', { n: item.totalHost, m: item.totalHost + item.count })
         }})
       </InfoItem>
-      <InfoItem :label="t('已选IP：')">
+      <InfoItem
+        v-if="item.isManulSelect"
+        :label="t('已选IP：')">
         <BkTable :data="item.hostList">
           <BkTableColumn
             field="ip"
@@ -44,6 +46,11 @@
             :label="t('磁盘_GB')" />
         </BkTable>
       </InfoItem>
+      <InfoItem
+        v-else
+        :label="t('匹配规格：')">
+        {{ item.specName }}
+      </InfoItem>
     </InfoList>
   </div>
 </template>
@@ -52,7 +59,6 @@
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Bigdata } from '@services/model/ticket/ticket';
-  import type { HostInfo } from '@services/types';
 
   import InfoList, { Item as InfoItem } from '../../../components/info-list/Index.vue';
 
@@ -65,8 +71,16 @@
     clusterName: string;
     count: number;
     expectDisk: number;
-    hostList: HostInfo[];
-    title: string;
+    hostList: {
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_disk: number;
+      bk_host_id: number;
+      ip: string;
+    }[];
+    isManulSelect: boolean;
+    nodeText: string;
+    specName: string;
     totalDisk: number;
     totalHost: number;
   }
@@ -91,17 +105,26 @@
 
   const dataList = computed(() => {
     const list: RowData[] = [];
-    const { cluster_id: clusterId, clusters, ext_info: extInfo } = props.ticketDetails.details;
-    Object.entries(props.ticketDetails.details.resource_spec).forEach(([node, item]) => {
-      if (item.hosts.length) {
-        const extInfoData = extInfo[node as keyof Bigdata.ResourcePool.ScaleUp['ext_info']];
+    const {
+      cluster_id: clusterId,
+      clusters,
+      ext_info: extInfo,
+      resource_spec: resourceSpec,
+      specs,
+    } = props.ticketDetails.details;
+    Object.entries(resourceSpec).forEach(([node, currentResourceSpec]) => {
+      if (currentResourceSpec) {
+        const extInfoData = extInfo[node as keyof Bigdata.ResourcePool.Shrink['ext_info']];
+        const isManulSelect = currentResourceSpec.hosts?.length > 0;
         list.push({
           clusterId,
           clusterName: clusters[clusterId]?.immute_domain || '--',
-          count: item.count,
+          count: currentResourceSpec.count,
           expectDisk: extInfoData.expansion_disk,
-          hostList: item.hosts,
-          title: nodeTypeText[node] || '--',
+          hostList: isManulSelect ? currentResourceSpec.hosts : [],
+          isManulSelect,
+          nodeText: nodeTypeText[node] || '--',
+          specName: specs[currentResourceSpec.spec_id]?.name || '--',
           totalDisk: extInfoData.total_disk,
           totalHost: extInfoData.total_hosts,
         });

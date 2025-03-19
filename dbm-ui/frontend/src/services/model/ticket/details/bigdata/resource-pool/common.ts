@@ -19,6 +19,7 @@ interface ResourceSpecItem {
   hosts: {
     bk_biz_id: number;
     bk_cloud_id: number;
+    bk_disk: number;
     bk_host_id: number;
     ip: string;
   }[];
