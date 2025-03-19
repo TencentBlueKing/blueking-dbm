@@ -20,3 +20,8 @@ GoVersion: %s`, version, githash, buildstamp, goversion)
 func VersionInfoOneLine() string {
 	return fmt.Sprintf(`Version: %s Githash: %s Buildstamp: %s GoVersion: %s`, version, githash, buildstamp, goversion)
 }
+
+// Version 显示在心跳metrics中的版本信息 编译时间+githash
+func Version() string {
+	return fmt.Sprintf("%s-%s", buildstamp, githash)
+}

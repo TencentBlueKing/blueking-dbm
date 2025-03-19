@@ -77,7 +77,7 @@ func (r *RedisRPCEmbed) IsExecuteCommand() bool {
 	return false
 }
 
-// doCommand 执行redis命令
+// DoCommand 执行redis命令
 func (r *RedisRPCEmbed) DoCommand(c *gin.Context) {
 	// 获取参数
 	var param RedisQueryParams

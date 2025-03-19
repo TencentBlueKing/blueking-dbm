@@ -66,15 +66,18 @@ var registeredConfig = RegisteredClusterConfig()
 const ShieldEndTimeKey = "shield-end-time"
 const ShieldEndTimeFormat = "2006-01-02 15:04:05"
 
+// GetAllClusterConfigRows 所有的集群配置项
 func GetAllClusterConfigRows() []ClusterConfigItem {
 	return []ClusterConfigItem{
-		{Segment: "backup", Key: "enable", Value: "true"},                   // 是否开启备份
-		{Segment: "backup", Key: "zip", Value: "true"},                      // 是否开启压缩，默认开启
-		{Segment: "backup", Key: "full-tag", Value: "MONGO_FULL_BACKUP"},    // full_tag
-		{Segment: "backup", Key: "full-freq", Value: "86400"},               // full_tag 全备时间间隔,默认是1天
-		{Segment: "backup", Key: "incr-enable", Value: "true"},              // 是否开启增量备份
-		{Segment: "backup", Key: "incr-tag", Value: "MONGO_INCR_BACKUP"},    // incr_tag
-		{Segment: "backup", Key: "incr-freq", Value: "3600"},                // incr_tag 增量备份时间间隔，单位秒
+		{Segment: "backup", Key: "enable", Value: "true"},                // 是否开启备份
+		{Segment: "backup", Key: "zip", Value: "true"},                   // 是否开启压缩，默认开启
+		{Segment: "backup", Key: "full-tag", Value: "MONGO_FULL_BACKUP"}, // full_tag
+		{Segment: "backup", Key: "full-freq", Value: "86400"},            // 全备时间间隔,默认是1天
+		{Segment: "backup", Key: "incr-enable", Value: "true"},           // 是否开启增量备份
+		{Segment: "backup", Key: "incr-tag", Value: "MONGO_INCR_BACKUP"}, // incr_tag
+		{Segment: "backup", Key: "incr-freq", Value: "3600"},             // 增量备份时间间隔，单位秒
+		// monitor.loginTimeout: checkService 登录超时时间，单位秒。默认10秒，有效值为[5,120]
+		{Segment: "monitor", Key: "loginTimeout", Value: "10"},
 		{Segment: "alarm", Key: "shield", Value: "false"},                   // 是否屏蔽事件产生
 		{Segment: "alarm", Key: ShieldEndTimeKey, Value: ""},                // 屏蔽结束时间，为空为0都表示永久屏蔽
 		{Segment: "parselog", Key: "enable", Value: "true"},                 // 是否开启日志解析

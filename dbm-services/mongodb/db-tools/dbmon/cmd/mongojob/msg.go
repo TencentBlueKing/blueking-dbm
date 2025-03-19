@@ -26,7 +26,6 @@ func GetBkMonitorBeatSender(beatConf *config.BkMonitorBeatConfig, serverConf *co
 		SetBkCloudID(serverConf.BkCloudID).
 		SetBkTargetIp(serverConf.IP).
 		SetApp(serverConf.App).
-		SetAppName(serverConf.AppName).
 		SetClusterDomain(serverConf.ClusterDomain).
 		SetClusterName(serverConf.ClusterName).
 		SetClusterType(serverConf.ClusterType).
