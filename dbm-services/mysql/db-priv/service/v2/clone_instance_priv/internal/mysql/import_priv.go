@@ -9,22 +9,22 @@ import (
 
 const privSqlBuckSize = 1000
 
-func ImportPriv(bkCloudId int64, address string, privs []string) (err error) {
+func ImportPriv(bkCloudId int64, address string, privs []string, logger *slog.Logger) (err error) {
 	createSqls, privSqls := splitSql(privs)
-	e := importSqls(bkCloudId, address, createSqls)
+	e := importSqls(bkCloudId, address, createSqls, logger)
 	if e != nil {
-		slog.Error(
+		logger.Error(
 			"import mysql priv create user sql",
 			slog.String("error", e.Error()),
 		)
 		err = errors.Join(err, e)
 	} else {
-		slog.Info("import mysql priv import create user success")
+		logger.Info("import mysql priv import create user success")
 	}
 
-	e = importSqls(bkCloudId, address, privSqls)
+	e = importSqls(bkCloudId, address, privSqls, logger)
 	if e != nil {
-		slog.Error(
+		logger.Error(
 			"import mysql priv import grant sql",
 			slog.String("error", e.Error()),
 		)
@@ -35,7 +35,7 @@ func ImportPriv(bkCloudId int64, address string, privs []string) (err error) {
 		return err
 	}
 
-	slog.Info("import mysql priv import grant success")
+	logger.Info("import mysql priv import grant success")
 	return nil
 }
 
@@ -51,10 +51,10 @@ func splitSql(privs []string) (createSqls []string, grantSqls []string) {
 	return createSqls, grantSqls
 }
 
-func importSqls(bkCloudId int64, address string, sqls []string) (err error) {
+func importSqls(bkCloudId int64, address string, sqls []string, logger *slog.Logger) (err error) {
 	var bulkSqls []string
 
-	slog.Info(
+	logger.Info(
 		"import mysql priv sql",
 		slog.Int("buck size", privSqlBuckSize),
 		slog.Int("total sqls", len(sqls)),
@@ -63,16 +63,16 @@ func importSqls(bkCloudId int64, address string, sqls []string) (err error) {
 	for _, sql := range sqls {
 		bulkSqls = append(bulkSqls, sql)
 		if len(bulkSqls) > privSqlBuckSize {
-			e := doImport(bkCloudId, address, bulkSqls)
+			e := doImport(bkCloudId, address, bulkSqls, logger)
 			if e != nil {
-				slog.Error(
+				logger.Error(
 					"import mysql priv sql one buck",
 					slog.String("error", e.Error()),
 				)
 				err = errors.Join(err, e)
 			}
 			leftCount -= privSqlBuckSize
-			slog.Info(
+			logger.Info(
 				"import mysql priv sql one buck success",
 				slog.Int("sql left", leftCount),
 			)
@@ -81,22 +81,22 @@ func importSqls(bkCloudId int64, address string, sqls []string) (err error) {
 	}
 
 	if len(bulkSqls) > 0 {
-		e := doImport(bkCloudId, address, bulkSqls)
+		e := doImport(bkCloudId, address, bulkSqls, logger)
 		if e != nil {
-			slog.Error(
+			logger.Error(
 				"import mysql priv sql last buck",
 				slog.String("error", e.Error()),
 			)
 			err = errors.Join(err, e)
 		}
 
-		slog.Info("import mysql priv sql last buck success")
+		logger.Info("import mysql priv sql last buck success")
 	}
 
 	return err
 }
 
-func doImport(bkCloudId int64, address string, sqls []string) (err error) {
+func doImport(bkCloudId int64, address string, sqls []string, logger *slog.Logger) (err error) {
 	drsRes, err := drs.RPCMySQL(
 		bkCloudId,
 		[]string{address},
@@ -105,7 +105,7 @@ func doImport(bkCloudId int64, address string, sqls []string) (err error) {
 		600,
 	)
 	if err != nil {
-		slog.Error(
+		logger.Error(
 			"import priv",
 			slog.String("address", address),
 			slog.String("error", err.Error()),
@@ -113,7 +113,7 @@ func doImport(bkCloudId int64, address string, sqls []string) (err error) {
 		return err
 	}
 	if drsRes[0].ErrorMsg != "" {
-		slog.Error(
+		logger.Error(
 			"import priv",
 			slog.String("address", address),
 			slog.String("error", drsRes[0].ErrorMsg),
@@ -123,7 +123,7 @@ func doImport(bkCloudId int64, address string, sqls []string) (err error) {
 
 	for _, cr := range drsRes[0].CmdResults {
 		if cr.ErrorMsg != "" {
-			slog.Error(
+			logger.Error(
 				"import priv",
 				slog.String("address", address),
 				slog.String("error", cr.ErrorMsg),

@@ -64,15 +64,21 @@ func init() {
 	grantPattern56 = regexp.MustCompile(`(?miU)^(.*)to\s+(.*)(\s+identified.*)?(\s+with.*)?$`)
 }
 
-func ProcessGrantSql(privs []string, sourceAddr, targetAddr string, sourceVersion, targetVersion int, isStorage bool) (res []string, err error) {
+func ProcessGrantSql(privs []string, sourceAddr, targetAddr string, sourceVersion, targetVersion int, isStorage bool, logger *slog.Logger) (res []string, err error) {
 	// spider 1 == 55
 	// spider 3 == 57
 	// 但是, spider 3 不能使用 /*!57xx / 这样的 version hint
 	// 所以不能加 if not exists
 	// 等到后面 spider 4 这里会贼麻烦
+	logger.Info("process grant sql",
+		slog.Bool("isStorage", isStorage),
+		slog.Int("source version", sourceVersion),
+		slog.Int("target version", targetVersion),
+		slog.Int("privs count", len(privs)),
+	)
 	if isStorage {
 		if sourceVersion <= 56 && targetVersion >= 57 {
-			c, g, err := trans56To57(privs)
+			c, g, err := trans56To57(privs, logger)
 			if err != nil {
 				return res, err
 			}
@@ -80,12 +86,15 @@ func ProcessGrantSql(privs []string, sourceAddr, targetAddr string, sourceVersio
 			res = append(res, g...)
 		} else if sourceVersion >= 57 {
 			res = addIfNotExists(privs)
+		} else {
+			res = privs
 		}
 	} else {
 		res = privs
 	}
-
+	logger.Info("process grant sql", slog.Int("priv count after trans", len(res)))
 	res = replaceHost(res, sourceAddr, targetAddr)
+	logger.Info("process grant sql", slog.Int("priv count after replace", len(res)))
 
 	return res, nil
 }
@@ -130,7 +139,7 @@ grant xxx on  xx to username@userhost [identified xxx] [with xxx]
 
 To user ... [WITH] 之间的部分, 用在 create user 中
 */
-func trans56To57(grantSqls56 []string) (createUserSqls []string, grantSqls []string, err error) {
+func trans56To57(grantSqls56 []string, logger *slog.Logger) (createUserSqls []string, grantSqls []string, err error) {
 	userIdentifiedByMap := make(map[string]string)
 	userWithClauseMap := make(map[string]string)
 
@@ -141,7 +150,7 @@ func trans56To57(grantSqls56 []string) (createUserSqls []string, grantSqls []str
 		if m == nil {
 			// 这里的概率非常非常低, 除非用错了
 			err = fmt.Errorf("invalid grant sql: %s", trimGrantSql)
-			slog.Error(
+			logger.Error(
 				"trans grant 56 to 57",
 				slog.String("err", err.Error()),
 			)

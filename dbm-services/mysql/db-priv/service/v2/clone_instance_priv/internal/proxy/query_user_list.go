@@ -11,7 +11,7 @@ import (
 	pe "github.com/pkg/errors"
 )
 
-func QueryUserList(bkCloudId int64, addr string) ([]string, error) {
+func QueryUserList(bkCloudId int64, addr string, logger *slog.Logger) ([]string, error) {
 	adminAddr := adminAddr(addr)
 
 	drsRes, err := drs.RPCProxyAdmin(
@@ -22,7 +22,7 @@ func QueryUserList(bkCloudId int64, addr string) ([]string, error) {
 		600,
 	)
 	if err != nil {
-		slog.Error(
+		logger.Error(
 			"query proxy user list",
 			slog.String("address", adminAddr),
 			slog.String("error", err.Error()),
@@ -31,7 +31,7 @@ func QueryUserList(bkCloudId int64, addr string) ([]string, error) {
 	}
 
 	if drsRes[0].ErrorMsg != "" {
-		slog.Error(
+		logger.Error(
 			"query proxy user list",
 			slog.String("address", adminAddr),
 			slog.String("error", drsRes[0].ErrorMsg),
@@ -40,7 +40,7 @@ func QueryUserList(bkCloudId int64, addr string) ([]string, error) {
 	}
 
 	if drsRes[0].CmdResults[0].ErrorMsg != "" {
-		slog.Error(
+		logger.Error(
 			"failed to query proxy user list",
 			slog.String("address", adminAddr),
 			slog.String("error", drsRes[0].ErrorMsg),

@@ -45,4 +45,5 @@ MYSQL_CLONE_FLOW_PARAMS = {
     "clone_data": {"source": "127.0.0.1:", "target": "127.0.1.1", "bk_cloud_id": 0},
     "clone_type": "client",
     "inst_machine_type_map": {},
+    "root_id": "0400b8a0056f11",
 }

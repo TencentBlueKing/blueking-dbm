@@ -29,7 +29,16 @@ class CloneRules(BaseService):
     """根据克隆表单数据进行权限克隆"""
 
     # @staticmethod
-    def _clone_rule(self, bk_biz_id, clone_cluster_type, clone_type, operator, clone_data, inst_machine_type_map):
+    def _clone_rule(
+        self,
+        bk_biz_id,
+        clone_cluster_type,
+        clone_type,
+        operator,
+        clone_data,
+        inst_machine_type_map,
+        uid,
+    ):
         # 权限克隆全局参数准备
         params = {
             "bk_biz_id": bk_biz_id,
@@ -40,6 +49,8 @@ class CloneRules(BaseService):
                 *UserName.get_values(),
                 "gcs_dba",
             ],
+            **self.extra_log,
+            "uid": uid,
         }
         try:
             # 调用客户端克隆/实例克隆
@@ -72,6 +83,7 @@ class CloneRules(BaseService):
 
     def _execute(self, data, parent_data, callback=None) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
+        global_data = data.get_one_of_inputs("global_data")
         ticket_id = kwargs["uid"]
         bk_biz_id = kwargs["bk_biz_id"]
         operator = kwargs["operator"]
@@ -81,7 +93,15 @@ class CloneRules(BaseService):
         inst_machine_type_map = kwargs.get("inst_machine_type_map")
 
         # 权限克隆
-        resp = self._clone_rule(bk_biz_id, clone_cluster_type, clone_type, operator, clone_data, inst_machine_type_map)
+        resp = self._clone_rule(
+            bk_biz_id,
+            clone_cluster_type,
+            clone_type,
+            operator,
+            clone_data,
+            inst_machine_type_map,
+            global_data.get("uid"),
+        )
         # 实例化权限克隆记录，后续存到数据库中
         record = MySQLPermissionCloneRecord(
             ticket_id=ticket_id,

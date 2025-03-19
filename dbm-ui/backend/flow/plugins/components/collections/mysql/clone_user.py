@@ -46,7 +46,6 @@ class CloneUserService(BaseService):
         ).get_address__machine_map(clone_data_list)
 
         try:
-
             for clone_data in clone_data_list:
                 if clone_data.get("machine_type"):
                     target_machine_type = source_machine_type = clone_data["machine_type"]
@@ -61,6 +60,8 @@ class CloneUserService(BaseService):
                         *UserName.get_values(),
                         "gcs_dba",
                     ],
+                    **self.extra_log,
+                    "uid": global_data.get("uid"),
                 }
                 params.update(
                     {

@@ -10,7 +10,7 @@ import (
 	"golang.org/x/exp/maps"
 )
 
-func QueryUserPriv(bkCloudId int64, address string, userList []string, withShowCreate bool) (privs []string, err error) {
+func QueryUserPriv(bkCloudId int64, address string, userList []string, withShowCreate bool, logger *slog.Logger) (privs []string, err error) {
 	var limiterChan = make(chan struct{}, 5)
 	var wg sync.WaitGroup
 
@@ -47,7 +47,7 @@ func QueryUserPriv(bkCloudId int64, address string, userList []string, withShowC
 					<-limiterChan
 				}()
 
-				res, err := queryUserPriv(bkCloudId, address, users, withShowCreate)
+				res, err := queryUserPriv(bkCloudId, address, users, withShowCreate, logger)
 				if err != nil {
 					errChan <- err
 					return
@@ -66,7 +66,7 @@ func QueryUserPriv(bkCloudId int64, address string, userList []string, withShowC
 	quitChan <- struct{}{}
 
 	if len(bulkUsers) > 0 {
-		res, e := queryUserPriv(bkCloudId, address, bulkUsers, withShowCreate)
+		res, e := queryUserPriv(bkCloudId, address, bulkUsers, withShowCreate, logger)
 		if err != nil {
 			err = errors.Join(err, e)
 		} else {
@@ -77,7 +77,7 @@ func QueryUserPriv(bkCloudId int64, address string, userList []string, withShowC
 	return
 }
 
-func queryUserPriv(bkCloudId int64, address string, userList []string, withShowCreate bool) (privs []string, err error) {
+func queryUserPriv(bkCloudId int64, address string, userList []string, withShowCreate bool, logger *slog.Logger) (privs []string, err error) {
 	var cmds []string
 	for _, user := range userList {
 		if withShowCreate {
@@ -94,7 +94,7 @@ func queryUserPriv(bkCloudId int64, address string, userList []string, withShowC
 		600,
 	)
 	if err != nil {
-		slog.Error(
+		logger.Error(
 			"query mysql user priv",
 			slog.String("address", address),
 			slog.String("error", err.Error()),
@@ -102,7 +102,7 @@ func queryUserPriv(bkCloudId int64, address string, userList []string, withShowC
 		return nil, err
 	}
 	if drsRes[0].ErrorMsg != "" {
-		slog.Error(
+		logger.Error(
 			"query mysql user priv",
 			slog.String("address", address),
 			slog.String("error", drsRes[0].ErrorMsg),
@@ -112,7 +112,7 @@ func queryUserPriv(bkCloudId int64, address string, userList []string, withShowC
 
 	for _, cr := range drsRes[0].CmdResults {
 		if cr.ErrorMsg != "" {
-			slog.Error(
+			logger.Error(
 				"query mysql user priv",
 				slog.String("address", address),
 				slog.String("error", cr.ErrorMsg),

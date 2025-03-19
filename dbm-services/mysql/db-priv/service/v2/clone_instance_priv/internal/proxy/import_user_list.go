@@ -12,14 +12,14 @@ import (
 
 const proxyUserImportBuckSize = 1000
 
-func ImportUserList(bkCloudId int64, addr string, userList []string) error {
+func ImportUserList(bkCloudId int64, addr string, userList []string, logger *slog.Logger) error {
 	adminAddr := adminAddr(addr)
 
 	var oneBuckUsers []string
 	var errCollect error
 
-	slog.Info(
-		"clone proxy users",
+	logger.Info(
+		"import proxy users",
 		slog.Int("buck size", proxyUserImportBuckSize),
 		slog.Int("total users", len(userList)),
 	)
@@ -33,7 +33,7 @@ func ImportUserList(bkCloudId int64, addr string, userList []string) error {
 				strings.Join(oneBuckUsers, ","),
 			)
 
-			err := doProxyUserImport(bkCloudId, adminAddr, refreshSql)
+			err := doProxyUserImport(bkCloudId, adminAddr, refreshSql, logger)
 			if err != nil {
 				slog.Error(
 					"clone proxy users one buck",
@@ -43,7 +43,7 @@ func ImportUserList(bkCloudId int64, addr string, userList []string) error {
 			}
 
 			leftCount -= proxyUserImportBuckSize
-			slog.Info(
+			logger.Info(
 				"clone proxy users one buck success",
 				slog.Int("user left", leftCount),
 			)
@@ -55,9 +55,9 @@ func ImportUserList(bkCloudId int64, addr string, userList []string) error {
 			"refresh_users('%s', '+')",
 			strings.Join(oneBuckUsers, ","),
 		)
-		err := doProxyUserImport(bkCloudId, adminAddr, refreshSql)
+		err := doProxyUserImport(bkCloudId, adminAddr, refreshSql, logger)
 		if err != nil {
-			slog.Error(
+			logger.Error(
 				"clone proxy users last buck",
 				slog.String("error", err.Error()),
 			)
@@ -65,7 +65,7 @@ func ImportUserList(bkCloudId int64, addr string, userList []string) error {
 		}
 
 		// leftCount -= len(oneBuckUsers) 不用计数了
-		slog.Info(
+		logger.Info(
 			"clone proxy users last buck success",
 		)
 	}
@@ -79,7 +79,7 @@ func ImportUserList(bkCloudId int64, addr string, userList []string) error {
 	return errCollect
 }
 
-func doProxyUserImport(bkCloudId int64, address string, sql string) error {
+func doProxyUserImport(bkCloudId int64, address string, sql string, logger *slog.Logger) error {
 	drsRes, err := drs.RPCProxyAdmin(
 		bkCloudId,
 		[]string{address},
@@ -88,7 +88,7 @@ func doProxyUserImport(bkCloudId int64, address string, sql string) error {
 		600,
 	)
 	if err != nil {
-		slog.Error(
+		logger.Error(
 			"import proxy user",
 			slog.String("address", address),
 			slog.String("sql", sql),
@@ -97,7 +97,7 @@ func doProxyUserImport(bkCloudId int64, address string, sql string) error {
 		return pe.Wrap(err, "failed to import proxy user")
 	}
 	if drsRes[0].ErrorMsg != "" {
-		slog.Error(
+		logger.Error(
 			"import proxy user",
 			slog.String("address", address),
 			slog.String("sql", sql),
@@ -106,7 +106,7 @@ func doProxyUserImport(bkCloudId int64, address string, sql string) error {
 		return errors.New(drsRes[0].ErrorMsg)
 	}
 	if drsRes[0].CmdResults[0].ErrorMsg != "" {
-		slog.Error(
+		logger.Error(
 			"import proxy user",
 			slog.String("address", address),
 			slog.String("sql", sql),

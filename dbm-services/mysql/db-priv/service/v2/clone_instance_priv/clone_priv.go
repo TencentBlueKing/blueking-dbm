@@ -7,8 +7,8 @@ import (
 )
 
 func (c *CloneInstancePrivPara) CloneInstancePriv(jsonPara string, ticket string) error {
-	slog.Info(
-		"clone instance priv v2",
+	c.logger.Info(
+		"",
 		slog.String("jsonPara", jsonPara),
 	)
 
@@ -23,8 +23,8 @@ func (c *CloneInstancePrivPara) CloneInstancePriv(jsonPara string, ticket string
 		return errno.ClonePrivilegesFail.Add("source address or target address is the same")
 	}
 
-	slog.Info(
-		"clone instance priv v2",
+	c.logger.Info(
+		"",
 		slog.Any("system users", c.SystemUsers),
 		slog.String("machine type", c.Source.MachineType),
 	)

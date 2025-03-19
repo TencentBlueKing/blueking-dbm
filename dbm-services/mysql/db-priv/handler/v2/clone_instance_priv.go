@@ -29,9 +29,10 @@ func CloneInstancePriv(c *gin.Context) {
 		handler.SendResponse(c, errno.ErrBind, err)
 		return
 	}
+	input.Init()
 
 	slog.Info(
-		"clone instance priv",
+		"clone instance priv v2",
 		slog.String("body", string(body)),
 		slog.String("unmarshal param", input.Json()),
 	)

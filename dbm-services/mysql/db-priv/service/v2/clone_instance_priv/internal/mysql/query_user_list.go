@@ -8,11 +8,11 @@ import (
 	"strings"
 )
 
-func QueryUserList(bkCloudId int64, addr string, excludeUsers []string, targetAddr string) ([]string, error) {
+func QueryUserList(bkCloudId int64, addr string, excludeUsers []string, targetAddr string, logger *slog.Logger) ([]string, error) {
 	targetIp := strings.Split(targetAddr, ":")[0]
 
 	excludeUsersStr := fmt.Sprintf("'%s'", strings.Join(append(systemUsers, excludeUsers...), "', '"))
-	slog.Info(
+	logger.Info(
 		"query user list",
 		slog.String("addr", addr),
 		slog.String("excludeUsers", excludeUsersStr),
@@ -30,7 +30,7 @@ func QueryUserList(bkCloudId int64, addr string, excludeUsers []string, targetAd
 		600,
 	)
 	if err != nil {
-		slog.Error(
+		logger.Error(
 			"query mysql user list",
 			slog.String("address", addr),
 			slog.String("sql", sql),
@@ -40,7 +40,7 @@ func QueryUserList(bkCloudId int64, addr string, excludeUsers []string, targetAd
 	}
 
 	if drsRes[0].ErrorMsg != "" {
-		slog.Error(
+		logger.Error(
 			"query mysql user list",
 			slog.String("address", addr),
 			slog.String("sql", sql),
@@ -50,7 +50,7 @@ func QueryUserList(bkCloudId int64, addr string, excludeUsers []string, targetAd
 	}
 
 	if drsRes[0].CmdResults[0].ErrorMsg != "" {
-		slog.Error(
+		logger.Error(
 			"query mysql user list",
 			slog.String("address", addr),
 			slog.String("sql", sql),
