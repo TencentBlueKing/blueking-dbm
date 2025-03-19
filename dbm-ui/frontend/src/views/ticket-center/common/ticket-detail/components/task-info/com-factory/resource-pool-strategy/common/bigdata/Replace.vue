@@ -42,7 +42,7 @@
     </BkTableColumn>
     <BkTableColumn :label="t('新节点IP')">
       <template #default="{ data }: { data: RowData }">
-        {{ data.resource_spec[getCurrentNode(data.old_nodes) as keyof RowData['old_nodes']].hosts?.[0]?.ip || '--' }}
+        {{ data.nodes[getCurrentNode(data.old_nodes) as keyof RowData['old_nodes']]?.[0]?.ip || '--' }}
       </template>
     </BkTableColumn>
   </BkTable>
