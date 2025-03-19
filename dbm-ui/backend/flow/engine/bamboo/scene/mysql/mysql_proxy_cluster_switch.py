@@ -280,15 +280,34 @@ class MySQLProxyClusterSwitchFlow(object):
                 ),
             )
 
-            # 不能放在最后
-            # 不然一直不点确认就不会安装监控, 有危险
-            sub_pipeline.add_act(
-                act_name=_("生成标准化单据"),
-                act_component_code=GenerateMySQLClusterStandardizeFlowComponent.code,
-                kwargs={
-                    "trans_func": GenerateMySQLClusterStandardizeFlowService.generate_from_cluster_ids.__name__,
-                    "cluster_ids": list(set(info["cluster_ids"])),
-                },
+            # # 不能放在最后
+            # # 不然一直不点确认就不会安装监控, 有危险
+            generate_standardize_bill_sub_pipe = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+            g_acts = []
+            for cluster_id in info["cluster_ids"]:
+                cluster = self.__get_switch_cluster_info(
+                    cluster_id=cluster_id,
+                    target_proxy_ip=info["target_proxy_ip"]["ip"],
+                    origin_proxy_ip=info["origin_proxy_ip"]["ip"],
+                )
+
+                g_acts.append(
+                    {
+                        "act_name": _(
+                            "{} {}:{}".format(cluster["name"], info["target_proxy_ip"]["ip"], cluster["proxy_port"])
+                        ),
+                        "act_component_code": GenerateMySQLClusterStandardizeFlowComponent.code,
+                        "kwargs": {
+                            "trans_func": GenerateMySQLClusterStandardizeFlowService.generate_from_cluster_ids.__name__,
+                            "cluster_ids": [cluster_id],
+                            "instances": ["{}:{}".format(info["target_proxy_ip"]["ip"], cluster["proxy_port"])],
+                        },
+                    }
+                )
+
+            generate_standardize_bill_sub_pipe.add_parallel_acts(g_acts)
+            sub_pipeline.add_sub_pipeline(
+                sub_flow=generate_standardize_bill_sub_pipe.build_sub_process(sub_name=_("生成标准化单据"))
             )
 
             # 阶段4 后续流程需要在这里加一个暂停节点，让用户在合适的时间执行下架旧实例操作
@@ -338,17 +357,6 @@ class MySQLProxyClusterSwitchFlow(object):
             )
 
         mysql_proxy_cluster_add_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-
-        # gp = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-        # gp.add_act(
-        #     act_name=_("生成标准化单据"),
-        #     act_component_code=GenerateMySQLClusterStandardizeFlowComponent.code,
-        #     kwargs={
-        #         "trans_func": GenerateMySQLClusterStandardizeFlowService.generate_from_cluster_ids.__name__,
-        #         "cluster_ids": cluster_ids,
-        #     },
-        # )
-        # mysql_proxy_cluster_add_pipeline.add_sub_pipeline(sub_flow=gp.build_sub_process(sub_name=_("生成标准化单据")))
 
         mysql_proxy_cluster_add_pipeline.run_pipeline()
 

@@ -50,7 +50,7 @@ def make_proxy_standardize_acts(ip_group) -> List:
         for ip, port_list in ip_dicts.items():
             acts.append(
                 {
-                    "act_name": _(f"{ip}"),
+                    "act_name": _(f"{ip}:{port_list}"),
                     "act_component_code": ExecuteDBActuatorScriptComponent.code,
                     "kwargs": asdict(
                         ExecActuatorKwargs(

@@ -158,7 +158,7 @@ def standardize_mysql_cluster_subflow(
             DeployPeripheralToolsDepart.MySQLCrond,
         }
         & set(departs)
-        and (has_ip_group(proxy_group) or hash(storage_group))
+        and (has_ip_group(proxy_group) or has_ip_group(storage_group))
     ):
         # mysql-crond 要提前独立做, 按机器
         if DeployPeripheralToolsDepart.MySQLCrond in departs:
