@@ -42,3 +42,35 @@ binlog 清理机制会优先清理已经上传成功的,最旧的文件，由于
 ```
 ./rotatebinlog query --filename-like 'binlog.04757%'
 ```
+
+## 3. 怎么控制 binlog 是否上传备份系统
+由 main.yaml 里面的 `backup_enable` 和 server.xxx.yaml 里面的 `db_role` 来决定是否上传备份系统。
+
+- backup_enable=auto 
+  `auto` 是默认值，此时只有 db_role=`master` 的实例才会上传 binlog，其他角色如`repeater`,`slave`,`orphan` 默认不上传。
+
+- backup_enable=yes
+  此时不论 db_role 值是什么，都会上传备份系统。
+  在单节点 mysql 上，db_role=orphan，默认是不上传 binlog的，如果需要上传则设置 `public.backup_enable` 为 `yes`。
+
+首次开启 binlog 上传，当前默认只处理最近 7 天的 binlog。超过 7 天的避免集中大量上传，可以通过 `public.max_old_days_to_upload` 修改。
+
+main.yaml:
+```
+public:
+  backup_enable: auto
+  max_old_days_to_upload: 7
+```
+
+server.3306.yaml:
+```
+host: x.x.x.x
+port: 3306
+username: testuser
+password: testpass
+tags:
+  bk_biz_id: 1234
+  cluster_domain: abcd.efg.dbatest.db
+  cluster_id: 5678
+  db_role: slave
+```

@@ -26,7 +26,7 @@ release-bin: build
 .PHONY: beta
 beta:
 	cd ${BASE_DIR}/cmd && go build -ldflags ${BETA_BUILD_FLAG} -o ${OUTPUT_DIR}/${PROJ}/${PROJ_BIN}
-	cp config.example.yaml ${OUTPUT_DIR}/${PROJ}/main.yaml.example
+	cp main.example.yaml ${OUTPUT_DIR}/${PROJ}/main.yaml.example
 	tar -C ${OUTPUT_DIR} -zcf ${OUTPUT_DIR}/${PROJ_PKG} ${PROJ}/
 
 .PHONY: clean
