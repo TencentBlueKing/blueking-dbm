@@ -7,7 +7,6 @@ import type { Nodes, ResourceSpec } from './common';
  */
 export interface Replace extends ResourcePoolDetailBase {
   cluster_id: number;
-  nodes: Nodes;
   old_nodes: Nodes;
   resource_spec: ResourceSpec;
 }

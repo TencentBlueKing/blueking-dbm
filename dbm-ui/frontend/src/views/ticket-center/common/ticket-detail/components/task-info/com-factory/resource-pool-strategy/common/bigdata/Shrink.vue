@@ -15,7 +15,7 @@
   <div
     v-for="(item, index) in dataList"
     :key="index">
-    <strong class="ticket-details-info-title">{{ item.title }}</strong>
+    <strong class="ticket-details-info-title">{{ item.nodeText }}</strong>
     <InfoList>
       <InfoItem :label="t('集群：')">
         {{ item.clusterName }}
@@ -24,7 +24,7 @@
         {{ item.clusterId }}
       </InfoItem>
       <InfoItem :label="t('服务器选择方式：')">
-        {{ t('从资源池手动选择') }}
+        {{ item.isManulSelect ? t('从资源池手动选择') : t('从资源池自动匹配') }}
       </InfoItem>
       <InfoItem :label="t('缩容容量：')">
         {{ t('当前m_G_缩容后预估n_G', { m: item.totalDisk, n: item.totalDisk - item.shrinkDisk }) }}
@@ -34,7 +34,9 @@
           t('当前n台_缩容至m台', { n: item.totalHost, m: item.totalHost - item.count })
         }})
       </InfoItem>
-      <InfoItem :label="t('已选IP：')">
+      <InfoItem
+        v-if="item.isManulSelect"
+        :label="t('已选IP：')">
         <BkTable :data="item.hostList">
           <BkTableColumn
             field="ip"
@@ -64,8 +66,9 @@
     clusterName: string;
     count: number;
     hostList: Bigdata.ResourcePool.Shrink['recycle_hosts'];
+    isManulSelect: boolean;
+    nodeText: string;
     shrinkDisk: number;
-    title: string;
     totalDisk: number;
     totalHost: number;
   }
@@ -94,18 +97,21 @@
       cluster_id: clusterId,
       clusters,
       ext_info: extInfo,
+      old_nodes: oldNodes,
       recycle_hosts: recycleHosts,
     } = props.ticketDetails.details;
-    Object.entries(props.ticketDetails.details.old_nodes).forEach(([node, hosts]) => {
-      if (hosts.length) {
+    Object.entries(oldNodes).forEach(([node, hostList]) => {
+      if (hostList.length > 0) {
         const extInfoData = extInfo[node as keyof Bigdata.ResourcePool.Shrink['ext_info']];
+        const isManulSelect = recycleHosts?.length > 0;
         list.push({
           clusterId,
           clusterName: clusters[clusterId]?.immute_domain || '--',
-          count: hosts.length,
-          hostList: recycleHosts,
+          count: hostList.length,
+          hostList: isManulSelect ? recycleHosts : [],
+          isManulSelect,
+          nodeText: nodeTypeText[node] || '--',
           shrinkDisk: extInfoData.shrink_disk,
-          title: nodeTypeText[node] || '--',
           totalDisk: extInfoData.total_disk,
           totalHost: extInfoData.total_hosts,
         });

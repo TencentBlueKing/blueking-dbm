@@ -122,7 +122,7 @@
 
     isLoading.value = true;
     getPulsarNodeList({
-      bk_biz_id: globalBizsStore.currentBizId,
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       cluster_id: props.data.id,
       no_limit: 1,
     })
@@ -241,13 +241,12 @@
             const generateExtInfo = () =>
               Object.entries(nodeInfoMap).reduce(
                 (results, [key, item]) => {
-                  const obj = {
-                    shrink_disk: item.shrinkDisk,
-                    total_disk: item.totalDisk,
-                    total_hosts: item.originalNodeList.length,
-                  };
                   Object.assign(results, {
-                    [key]: obj,
+                    [key]: {
+                      shrink_disk: item.shrinkDisk,
+                      total_disk: item.totalDisk,
+                      total_hosts: item.originalNodeList.length,
+                    },
                   });
                   return results;
                 },

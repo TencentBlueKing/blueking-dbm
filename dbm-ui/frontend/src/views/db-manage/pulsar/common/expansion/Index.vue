@@ -260,13 +260,12 @@
             const generateExtInfo = () =>
               Object.entries(nodeInfoMap).reduce(
                 (results, [key, item]) => {
-                  const obj = {
-                    expansion_disk: item.expansionDisk,
-                    total_disk: item.totalDisk,
-                    total_hosts: item.originalHostList.length,
-                  };
                   Object.assign(results, {
-                    [key]: obj,
+                    [key]: {
+                      expansion_disk: item.expansionDisk,
+                      total_disk: item.totalDisk,
+                      total_hosts: item.originalHostList.length,
+                    },
                   });
                   return results;
                 },

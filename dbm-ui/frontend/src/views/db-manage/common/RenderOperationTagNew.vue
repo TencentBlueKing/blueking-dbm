@@ -34,9 +34,9 @@
         :resource="data.ticketId"
         target="_blank"
         :to="{
-          name: 'SelfServiceMyTickets',
-          query: {
-            id: data.ticketId,
+          name: 'bizTicketManage',
+          params: {
+            ticketId: `${data.ticketId}`,
           },
         }">
         {{ t('单据') }}
