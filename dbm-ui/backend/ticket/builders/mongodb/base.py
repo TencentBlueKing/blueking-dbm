@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from collections import defaultdict
 from contextlib import contextmanager
 from typing import Dict, List
 
@@ -95,11 +96,15 @@ class BaseMongoDBOperateDetailSerializer(SkipToRepresentationMixin, serializers.
         """校验这一批机器对应的shard节点在不同的分片"""
         storages, storage_id__shard = MongoDBListRetrieveResource.query_storage_shard(Q(machine__in=machines))
         shard_set = set()
+        unique_shard_dict = defaultdict(list)
         for storage in storages:
             shard = storage_id__shard[storage.id]
             unique_shard_name = f"{storage.cluster.first().id}_{storage.machine.machine_type}_{shard}"
+            unique_shard_dict[unique_shard_name].append(storage.machine.ip)
             if unique_shard_name in shard_set:
-                raise serializers.ValidationError(_("请保证机器{}不能再同一个分片{}中").format(storage.machine.ip, shard))
+                raise serializers.ValidationError(
+                    _("{}属于同一个分片{}, 不能同时做整机替换").format(unique_shard_dict[unique_shard_name], shard)
+                )
             shard_set.add(unique_shard_name)
 
     @classmethod

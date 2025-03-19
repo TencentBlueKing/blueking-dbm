@@ -23,6 +23,7 @@ from backend.core import notify
 from backend.tests.mock_data.components.cc import CCApiMock
 from backend.tests.mock_data.components.dbresource import DBResourceApiMock
 from backend.tests.mock_data.components.itsm import ItsmApiMock
+from backend.tests.mock_data.components.nodeman import NodemanApiMock
 from backend.tests.mock_data.iam_app.permission import PermissionMock
 from backend.tests.mock_data.ticket.ticket_flow import PASSWORD, ROOT_ID
 from backend.ticket.constants import TicketFlowStatus, TicketStatus
@@ -52,9 +53,12 @@ class BaseTicketTest:
         patch.object(settings, "MIDDLEWARE", return_value=[]),
         patch.object(ClusterOperateRecordManager, "get_exclusive_ticket_map", return_value=[]),
         patch("backend.ticket.flow_manager.itsm.ItsmApi", ItsmApiMock()),
-        patch("backend.db_services.cmdb.biz.CCApi", CCApiMock()),
         patch("backend.db_services.cmdb.biz.Permission", PermissionMock),
         patch("backend.ticket.flow_manager.resource.DBResourceApi", DBResourceApiMock),
+        patch("backend.db_services.dbresource.handlers.CCApi", CCApiMock()),
+        patch("backend.db_services.cmdb.biz.CCApi", CCApiMock()),
+        patch("backend.db_services.ipchooser.query.resource.CCApi", CCApiMock()),
+        patch("backend.db_services.ipchooser.query.resource.BKNodeManApi", NodemanApiMock()),
     ]
     # 默认测试请求客户端
     client = APIClient()

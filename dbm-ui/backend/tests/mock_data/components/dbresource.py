@@ -22,6 +22,9 @@ MACHINE_RESOURCE_DATA = {
     "rack_id": "68123",
     "sub_zone": "sh-qp",
     "bk_biz_id": BK_BIZ_ID,
+    "dedicated_biz": BK_BIZ_ID,
+    "labels": [],
+    "rs_type": "",
     "bk_host_id": 0,
     "bk_cloud_id": 0,
     "sub_zone_id": "141",
@@ -60,3 +63,7 @@ class DBResourceApiMock(object):
     @classmethod
     def resource_confirm(cls, params):
         return True
+
+    @classmethod
+    def resource_apply(cls, params, *args, **kwargs):
+        return cls.resource_pre_apply(params, *args, **kwargs)

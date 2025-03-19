@@ -13,8 +13,7 @@ from datetime import datetime
 from typing import Tuple
 
 from django.db import models
-from django.db.models import F, Window
-from django.db.models.functions import RowNumber
+from django.db.models import Max
 from django.forms import model_to_dict
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
@@ -157,15 +156,16 @@ class MachineEvent(AuditedModel):
         """获取主机最近一次主机事件"""
         bk_host_ids = [host["bk_host_id"] for host in hosts]
 
-        # 使用窗口函数将最近的时间进行聚合。
-        # TODO：当前版本不支持窗口函数过滤，Django 4.2+ 后貌似会支持
-        host_events = MachineEvent.objects.filter(bk_host_id__in=bk_host_ids).annotate(
-            row=Window(expression=RowNumber(), partition_by=[F("bk_host_id")], order_by=[F("update_at").desc()])
-        )
-        host_latest_event_map = {event.bk_host_id: model_to_dict(event) for event in host_events if event.row == 1}
+        # 获得主机ID与主机最后一次事件映射
+        events = MachineEvent.objects.filter(bk_host_id__in=bk_host_ids).values("bk_host_id").annotate(last=Max("id"))
+        host_last_event_id_map = {event["bk_host_id"]: event["last"] for event in events}
+        event_map = MachineEvent.objects.in_bulk(list(host_last_event_id_map.values()))
+        host_last_event_map = {
+            host_id: model_to_dict(event_map[event_id]) for host_id, event_id in host_last_event_id_map.items()
+        }
 
         # 补充主机事件
         for host in hosts:
-            host.update(latest_event=host_latest_event_map.get(host["bk_host_id"], {}))
+            host.update(latest_event=host_last_event_map.get(host["bk_host_id"], {}))
 
-        return host_latest_event_map
+        return host_last_event_map
