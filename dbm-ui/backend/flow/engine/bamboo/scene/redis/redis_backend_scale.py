@@ -20,7 +20,7 @@ from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterEntryRole, InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.db_meta.models import Cluster, Machine
+from backend.db_meta.models import AppCache, Cluster, Machine
 from backend.db_services.redis.util import is_redis_cluster_protocal
 from backend.flow.consts import (
     DEFAULT_LAST_IO_SECOND_AGO,
@@ -406,10 +406,18 @@ class RedisBackendScaleFlow(object):
             redis_install_sub_pipelines.append(RedisBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params))
         return redis_install_sub_pipelines
 
-    # > 4.0 版本需要重做一下slave，否则可能会丢数据
-    # rediscluster架构需要特殊考虑
+    # 重做slave重构
     def redis_local_redo_dr(self, act_kwargs, sync_relations) -> list:
-        sub_pipelines, resync_args = [], deepcopy(act_kwargs)
+        """
+        1、停dbmon
+        2、重做slave
+        3、启dbmon
+        """
+        redis_redo_dr_sub_pipelines, resync_args, install_args = [], deepcopy(act_kwargs), deepcopy(act_kwargs)
+        ip_ports = defaultdict(list)
+        slave_instances_params = defaultdict(list)
+        app = AppCache.get_app_attr(install_args.cluster["bk_biz_id"], "db_app_abbr")
+        app_name = AppCache.get_app_attr(install_args.cluster["bk_biz_id"], "bk_biz_name")
         resync_args.cluster = {
             "bk_biz_id": int(act_kwargs.cluster["bk_biz_id"]),
             "cluster_id": int(act_kwargs.cluster["cluster_id"]),
@@ -418,12 +426,13 @@ class RedisBackendScaleFlow(object):
             "bk_cloud_id": int(act_kwargs.cluster["bk_cloud_id"]),
             "instances": [],
         }
+
         for sync_link in sync_relations:
-            one_resync_args = deepcopy(resync_args)
             new_master, new_slave = sync_link["sync_dst1"], sync_link["sync_dst2"]
             for instances in sync_link["ins_link"]:
                 master_port, slave_port = instances["sync_dst1"], instances["sync_dst2"]
-                one_resync_args.cluster["instances"].append(
+                ip_ports[new_slave].append(int(instances["sync_dst2"]))
+                slave_instances_params[new_slave].append(
                     {
                         "master_ip": new_master,
                         "master_port": int(master_port),
@@ -431,16 +440,68 @@ class RedisBackendScaleFlow(object):
                         "slave_port": int(slave_port),
                     }
                 )
-            one_resync_args.exec_ip = new_slave
-            one_resync_args.get_redis_payload_func = RedisActPayload.redis_local_redo_dr.__name__
-            sub_pipelines.append(
+        for new_slave_ip, instances in slave_instances_params.items():
+            sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
+
+            # 停dbmon
+            install_args.cluster["servers"] = [
                 {
-                    "act_name": _("{}-本地重建Slave").format(new_slave),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(one_resync_args),
+                    "bk_biz_id": str(act_kwargs.cluster["bk_biz_id"]),
+                    "bk_cloud_id": int(act_kwargs.cluster["bk_cloud_id"]),
+                    "server_ports": [],
+                    "server_shards": {},
+                    "cluster_domain": act_kwargs.cluster["immute_domain"],
                 }
+            ]
+            install_args.exec_ip = new_slave_ip
+            install_args.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
+            sub_pipeline.add_act(
+                act_name=_("卸载 slave dbmon-{}").format(new_slave_ip),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(install_args),
             )
-        return sub_pipelines
+
+            # 重做slave
+            one_resync_args = deepcopy(resync_args)
+            one_resync_args.cluster["instances"] = instances
+            one_resync_args.exec_ip = new_slave_ip
+            one_resync_args.get_redis_payload_func = RedisActPayload.redis_local_redo_dr.__name__
+            sub_pipeline.add_act(
+                act_name=_("{}-本地重建Slave").format(new_slave_ip),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(one_resync_args),
+            )
+
+            # 启dbmon
+            install_args.cluster["servers"] = [
+                {
+                    "app": app,
+                    "app_name": app_name,
+                    "bk_biz_id": str(install_args.cluster["bk_biz_id"]),
+                    "bk_cloud_id": int(install_args.cluster["bk_cloud_id"]),
+                    "meta_role": InstanceRole.REDIS_SLAVE.value,  # 可能是master/slave 角色
+                    "server_shards": {},
+                    "cache_backup_mode": "",
+                    "cluster_name": act_kwargs.cluster["cluster_name"],
+                    "cluster_type": act_kwargs.cluster["cluster_type"],
+                    "cluster_domain": act_kwargs.cluster["immute_domain"],
+                    "server_ip": new_slave_ip,
+                    "server_ports": ip_ports[new_slave_ip],
+                }
+            ]
+            install_args.exec_ip = new_slave_ip
+            install_args.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
+            sub_pipeline.add_act(
+                act_name=_("部署 slave dbmon-{}").format(new_slave_ip),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(install_args),
+            )
+
+            redis_redo_dr_sub_pipelines.append(
+                sub_pipeline.build_sub_process(sub_name=_("Redis-{}-重做slave原子任务").format(new_slave_ip))
+            )
+
+        return redis_redo_dr_sub_pipelines
 
     def redis_backend_scale_flow(self):
         """
@@ -595,7 +656,9 @@ class RedisBackendScaleFlow(object):
                 ClusterType.TendisRedisInstance.value,
                 ClusterType.TendisTwemproxyRedisInstance.value,
             ] and version_ge(act_kwargs.cluster["db_version"], "4"):
-                sub_pipeline.add_parallel_acts(acts_list=self.redis_local_redo_dr(act_kwargs, sync_relations))
+                sub_pipeline.add_parallel_sub_pipeline(
+                    sub_flow_list=self.redis_local_redo_dr(act_kwargs, sync_relations)
+                )
 
             sub_pipeline.add_act(act_name=_("Redis-人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
