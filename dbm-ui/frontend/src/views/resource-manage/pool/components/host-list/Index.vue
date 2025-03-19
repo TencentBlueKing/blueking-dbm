@@ -75,13 +75,13 @@
         <template #content>
           <BkDropdownMenu>
             <BkDropdownItem @click="handleCopySelectHost">
-              {{ t('已选主机') }}
+              {{ t('已选 IP') }}
             </BkDropdownItem>
             <BkDropdownItem @click="handleCopyAllHost">
               {{ copyAllHostText }}
             </BkDropdownItem>
             <BkDropdownItem @click="handleCopyAllAbnormalHost">
-              {{ t('所有异常主机') }}
+              {{ t('所有异常 IP') }}
             </BkDropdownItem>
           </BkDropdownMenu>
         </template>
@@ -225,7 +225,7 @@
 
   const copyAllHostText = computed(() => {
     const isFilter = Object.keys(searchParams.value).length > 0;
-    return `${t('所有主机')}（${isFilter ? t('筛选后') : t('全量')}）`;
+    return `${t('所有 IP')}（${isFilter ? t('筛选后') : t('全量')}）`;
   });
 
   const dataSource = (params: ServiceParameters<typeof fetchList>) =>

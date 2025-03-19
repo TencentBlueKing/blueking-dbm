@@ -46,7 +46,7 @@
   };
 
   const handleRedirect = () => {
-    router.push({
+    const routeInfo = router.resolve({
       name: 'resourcePool',
       params: {
         page: 'host-list',
@@ -55,6 +55,7 @@
         hosts: props.ipList.join(','),
       },
     });
+    window.open(routeInfo.href, '_blank');
   };
 </script>
 
