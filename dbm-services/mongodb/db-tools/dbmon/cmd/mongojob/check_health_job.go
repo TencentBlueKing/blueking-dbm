@@ -81,7 +81,15 @@ func (job *CheckHealthJob) runOneServer(svrItem *config.ConfServerItem) {
 	}
 
 	startTime := time.Now()
-	loginTimeout := 10
+	loginTimeoutVal, err := config.ClusterConfig.GetInt64(svrItem, "montior", "loginTimeout", 10)
+	// loginTimeoutVal < 5, loginTimeoutVal = 5
+	if loginTimeoutVal < 5 {
+		loginTimeoutVal = 5
+	} else if loginTimeoutVal > 120 {
+		loginTimeoutVal = 120
+	}
+
+	loginTimeout := int(loginTimeoutVal)
 	if err := checkService(loginTimeout, svrItem, logger); err == nil {
 		return
 	}

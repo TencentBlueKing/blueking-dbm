@@ -4,6 +4,7 @@ package dbmonheartbeat
 import (
 	"dbm-services/mongodb/db-tools/dbmon/cmd/basejob"
 	"dbm-services/mongodb/db-tools/dbmon/cmd/mongojob"
+	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/buildinfo"
 	"fmt"
 	"runtime"
 	"sync"
@@ -78,6 +79,9 @@ func (job *Job) sendHeartBeat(conf *config.BkMonitorBeatConfig, serverConf *conf
 	if err != nil {
 		return err
 	}
+	// 会添加一个版本的维度
+	msgH.SetLabel("dbmon_version", buildinfo.Version())
+
 	return msgH.SendTimeSeriesMsg(conf.MetricConfig.DataID, conf.MetricConfig.Token,
 		serverConf.IP, MongoDbmonHeartBeatMetricName, 1, job.Logger)
 }

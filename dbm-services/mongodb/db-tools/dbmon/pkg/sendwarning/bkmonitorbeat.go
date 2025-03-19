@@ -142,6 +142,11 @@ func (bm *BkMonitorEventSender) newDimenSion() {
 	}
 }
 
+// SetLabel set SetLabel key value. 用于设置维度信息
+func (bm *BkMonitorEventSender) SetLabel(k, v string) *BkMonitorEventSender {
+	return bm.set(k, v)
+}
+
 // SetBkBizID set bk_biz_id
 func (bm *BkMonitorEventSender) SetBkBizID(bkBizID string) *BkMonitorEventSender {
 	return bm.set("bk_biz_id", bkBizID).set("appid", bkBizID)

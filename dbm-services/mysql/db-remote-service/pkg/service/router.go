@@ -22,6 +22,9 @@ func RegisterRouter(engine *gin.Engine) {
 	twemproxyGroup := engine.Group("/twemproxy")
 	twemproxyGroup.POST("/rpc", handler_rpc.TwemproxyRPCHandler)
 
+	mongodbGroup := engine.Group("/mongodb")
+	mongodbGroup.POST("/rpc", handler_rpc.MongoRPCHandler)
+
 	sqlserverGroup := engine.Group("/sqlserver")
 	// 这是drs内部远程查询接口，不给业务开放
 	sqlserverGroup.POST("/rpc", handler_rpc.SqlserverRPCHandler)
