@@ -41,8 +41,8 @@
       <template #default="{ data }: { data: RowData }">
         <div v-if="data.restore_time">{{ t('回档到指定时间：') }}{{ data.restore_time }}</div>
         <div v-else-if="data.restore_backup_file">
-          {{ t('备份记录：') }}{{ data.restore_backup_file.role }}
-          {{ dayjs(data.restore_backup_file.start_time).format('YYYY-MM-DD HH:mm:ss ZZ') }}
+          {{ t('备份记录：') }}{{ data.restore_backup_file.logs[0].role }}
+          {{ data.restore_backup_file.logs[0].backup_begin_time }}
         </div>
       </template>
     </BkTableColumn>
@@ -64,7 +64,6 @@
   </BkTable>
 </template>
 <script setup lang="ts">
-  import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Sqlserver } from '@services/model/ticket/ticket';
