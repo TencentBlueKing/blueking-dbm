@@ -194,7 +194,7 @@
       spec_id: row.spec_id,
       subzone_ids: subzoneId || '',
     };
-    router.push({
+    const routerInfo = router.resolve({
       name: 'resourcePool',
       params: {
         page: 'host-list',
@@ -203,6 +203,7 @@
         ...params,
       },
     });
+    window.open(routerInfo.href, '_blank');
   };
 </script>
 
