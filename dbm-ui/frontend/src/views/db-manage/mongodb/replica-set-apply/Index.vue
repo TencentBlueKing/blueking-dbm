@@ -30,13 +30,10 @@
             v-model="formData.details.bk_cloud_id"
             @change="handleChangeCloud" />
         </DbCard>
-        <RegionItem
-          ref="regionItemRef"
-          v-model="formData.details.city_code" />
+        <RegionRequirements
+          ref="regionRequirements"
+          v-model="formData.details" />
         <DbCard :title="t('数据库部署信息')">
-          <AffinityItem
-            v-model="formData.details.disaster_tolerance_level"
-            :city-code="formData.details.city_code" />
           <BkFormItem
             :label="t('MongoDB版本')"
             property="details.db_version"
@@ -164,6 +161,11 @@
               type="number" />
             <span class="input-desc">{{ t('预计容量nG', [estimatedCapacity]) }}</span>
           </BkFormItem>
+          <EstimatedCost
+            :params="{
+              db_type: DBTypes.MONGODB,
+              resource_spec: resourceSepc,
+            }" />
           <BkFormItem :label="t('备注')">
             <BkInput
               v-model="formData.remark"
@@ -201,6 +203,7 @@
 
 <script setup lang="ts">
   import InfoBox from 'bkui-vue/lib/info-box';
+  import { type ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -209,14 +212,14 @@
 
   import { useApplyBase } from '@hooks';
 
-  import { ClusterTypes, DBTypes, MachineTypes, TicketTypes } from '@common/const';
+  import { Affinity, ClusterTypes, DBTypes, MachineTypes, TicketTypes } from '@common/const';
 
   import DbForm from '@components/db-form/index.vue';
 
-  import AffinityItem from '@views/db-manage/common/apply-items/AffinityItem.vue';
   import BusinessItems from '@views/db-manage/common/apply-items/BusinessItems.vue';
   import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
-  import RegionItem from '@views/db-manage/common/apply-items/RegionItem.vue';
+  import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
+  import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/Common.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
 
   import DomainTable from './components/DomainTable.vue';
@@ -229,7 +232,7 @@
       cluster_type: ClusterTypes.MONGO_REPLICA_SET,
       db_app_abbr: '',
       db_version: '',
-      disaster_tolerance_level: 'SAME_SUBZONE_CROSS_SWTICH',
+      disaster_tolerance_level: Affinity.SAME_SUBZONE_CROSS_SWTICH,
       ip_source: 'resource_pool',
       node_count: 3,
       node_replica_count: 1,
@@ -245,6 +248,7 @@
         spec_id: '',
       },
       start_port: 27001,
+      sub_zone_ids: [] as number[],
     },
     remark: '',
     ticket_type: TicketTypes.MONGODB_REPLICASET_APPLY,
@@ -255,8 +259,9 @@
   const router = useRouter();
   const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
 
+  const regionRequirementsRef = useTemplateRef('regionRequirements');
+
   const formRef = ref<InstanceType<typeof DbForm>>();
-  const regionItemRef = ref<InstanceType<typeof RegionItem>>();
   const specRef = ref<InstanceType<typeof SpecSelector>>();
   const cloudInfo = ref({
     id: '' as number | string,
@@ -292,6 +297,16 @@
 
     return Math.round(clusterCapacity * (capacityPercentage / 100));
   });
+
+  const resourceSepc = computed(
+    () =>
+      ({
+        mongo_machine_set: {
+          count: formData.details.node_count,
+          spec_id: formData.details.resource_spec.spec_id,
+        },
+      }) as ComponentProps<typeof EstimatedCost>['params']['resource_spec'],
+  );
 
   const { data: versionList, loading: getVersionsLoading } = useRequest(getVersions, {
     defaultParams: [{ query_key: DBTypes.MONGODB }],
@@ -352,7 +367,6 @@
 
     baseState.isSubmitting = true;
 
-    // const { cityName } = regionItemRef.value.getValue();
     const { details } = formData;
     const params = {
       ...formData,
@@ -363,6 +377,7 @@
             count: details.node_count,
             spec_id: details.resource_spec.spec_id,
             ...specRef.value!.getData(),
+            ...regionRequirementsRef.value!.getValue(),
           },
         },
         spec_id: details.resource_spec.spec_id,

@@ -19,6 +19,12 @@ import { useFunController, useSystemEnviron } from '@stores';
  */
 export function checkDbConsole(key: ExtractedControllerDataKeys) {
   const { funControllerData } = useFunController();
+
+  const [firstKey, secondKey] = key.split('.');
+  if (firstKey === 'common') {
+    return funControllerData.getFlatData('common')[secondKey as keyof Record<'common', boolean>];
+  }
+
   const { ENABLE_EXTERNAL_PROXY } = useSystemEnviron().urls;
   return !ENABLE_EXTERNAL_PROXY || funControllerData.getFlatData(key)[key];
 }

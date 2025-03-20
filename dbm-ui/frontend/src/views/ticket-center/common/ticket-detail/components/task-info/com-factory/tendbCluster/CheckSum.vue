@@ -13,18 +13,18 @@
 
 <template>
   <InfoList>
-    <InfoItem :label="t('指定执行时间:')">
+    <InfoItem :label="t('指定执行时间')">
       {{ utcDisplayTime(ticketDetails.details.timing) }}
     </InfoItem>
-    <InfoItem :label="t('全局超时时间（h）:')">
+    <InfoItem :label="t('全局超时时间（h）')">
       {{ ticketDetails.details.runtime_hour }}
     </InfoItem>
-    <InfoItem :label="t('修复数据:')">
+    <InfoItem :label="t('修复数据')">
       {{ ticketDetails.details.data_repair.is_repair ? t('是') : t('否') }}
     </InfoItem>
     <InfoItem
       v-if="ticketDetails.details.data_repair.is_repair"
-      :label="t('修复模式:')">
+      :label="t('修复模式')">
       {{ repairModesMap[ticketDetails.details.data_repair.mode] }}
     </InfoItem>
   </InfoList>

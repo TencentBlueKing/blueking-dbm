@@ -39,7 +39,7 @@
     </BkTableColumn>
   </BkTable>
   <InfoList>
-    <InfoItem :label="t('是否强制切换:')">
+    <InfoItem :label="t('是否强制切换')">
       {{ ticketDetails.details.force ? t('是') : t('否') }}
     </InfoItem>
   </InfoList>

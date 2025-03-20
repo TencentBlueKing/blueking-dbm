@@ -12,16 +12,16 @@
 -->
 <template>
   <InfoList>
-    <InfoItem :label="t('所属业务:')">
+    <InfoItem :label="t('所属业务')">
       {{ ticketDetails.bk_biz_name || '--' }}
     </InfoItem>
-    <InfoItem :label="t('指定执行时间:')">
+    <InfoItem :label="t('指定执行时间')">
       {{ utcDisplayTime(ticketDetails.details.timing) || '--' }}
     </InfoItem>
-    <InfoItem :label="t('自动修复:')">
+    <InfoItem :label="t('自动修复')">
       {{ ticketDetails.details.data_repair.is_repair ? t('是') : t('否') }}
     </InfoItem>
-    <InfoItem :label="t('全局超时时间（h）:')">
+    <InfoItem :label="t('全局超时时间（h）')">
       {{ ticketDetails.details.runtime_hour }}
     </InfoItem>
   </InfoList>

@@ -36,14 +36,9 @@
           v-model="formData.details.bk_cloud_id"
           @change="handleChangeCloud" />
       </DbCard>
-      <RegionItem
-        ref="regionItemRef"
-        v-model="formData.details.city_code" />
-      <!-- <DbCard
-        v-if="!isDefaultCity"
-        :title="t('数据库部署信息')">
-        <AffinityItem v-model="formData.details.disaster_tolerance_level" />
-      </DbCard> -->
+      <RegionRequirements
+        ref="regionRequirements"
+        v-model="formData.details" />
       <DbCard :title="t('部署需求')">
         <BkFormItem
           :label="t('ES版本')"
@@ -62,9 +57,9 @@
             <BkRadioButton label="resource_pool">
               {{ t('自动从资源池匹配') }}
             </BkRadioButton>
-            <BkRadioButton label="manual_input">
+            <!-- <BkRadioButton label="manual_input">
               {{ t('业务空闲机') }}
-            </BkRadioButton>
+            </BkRadioButton> -->
           </BkRadioGroup>
         </BkFormItem>
         <Transition
@@ -296,6 +291,11 @@
             style="width: 185px"
             type="number" />
         </BkFormItem>
+        <EstimatedCost
+          :params="{
+            db_type: DBTypes.ES,
+            resource_spec: formData.details.resource_spec,
+          }" />
         <BkFormItem :label="t('备注')">
           <BkInput
             v-model="formData.remark"
@@ -341,7 +341,7 @@
 
   import { useApplyBase } from '@hooks';
 
-  import { OSTypes } from '@common/const';
+  import { Affinity, DBTypes, OSTypes } from '@common/const';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
@@ -350,7 +350,8 @@
   import ClusterAlias from '@views/db-manage/common/apply-items/ClusterAlias.vue';
   import ClusterName from '@views/db-manage/common/apply-items/ClusterName.vue';
   import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
-  import RegionItem from '@views/db-manage/common/apply-items/RegionItem.vue';
+  import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
+  import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/BigData.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
   import WithInstanceHostTable, {
     type IHostTableDataWithInstance,
@@ -379,7 +380,7 @@
       cluster_name: '',
       db_app_abbr: '',
       db_version: '',
-      disaster_tolerance_level: 'NONE', // 同 affinity
+      disaster_tolerance_level: Affinity.MAX_EACH_ZONE_EQUAL, // 同 affinity
       http_port: 9200,
       ip_source: 'resource_pool',
       nodes: {
@@ -417,12 +418,13 @@
       ...item,
     }));
 
+  const regionRequirementsRef = useTemplateRef('regionRequirements');
+
   const formRef = ref();
   const specMasterRef = ref();
   const specClientRef = ref();
   const specHotRef = ref();
   const specColdRef = ref();
-  const regionItemRef = ref();
 
   const formData = reactive(genDefaultFormData());
 
@@ -651,18 +653,11 @@
 
       const getDetails = () => {
         const details: Record<string, any> = _.cloneDeep(formData.details);
-        const { cityCode } = regionItemRef.value.getValue();
 
         if (formData.details.ip_source === 'resource_pool') {
           delete details.nodes;
 
-          const regionAndDisasterParams = {
-            affinity: details.disaster_tolerance_level,
-            location_spec: {
-              city: cityCode,
-              sub_zone_ids: [],
-            },
-          };
+          const regionAndDisasterParams = regionRequirementsRef.value!.getValue();
 
           const result: Record<string, any> = {
             ...details,

@@ -36,11 +36,10 @@
           v-model="formData.details.bk_cloud_id"
           @change="handleChangeCloud" />
       </DbCard>
-      <RegionItem
-        ref="regionItemRef"
-        v-model="formData.details.city_code" />
+      <RegionRequirements
+        ref="regionRequirements"
+        v-model="formData.details" />
       <DbCard :title="t('部署需求')">
-        <AffinityItem v-model="formData.details.disaster_tolerance_level" />
         <BkFormItem
           :label="t('Doris版本')"
           property="details.db_version"
@@ -58,9 +57,9 @@
             <BkRadioButton label="resource_pool">
               {{ t('自动从资源池匹配') }}
             </BkRadioButton>
-            <BkRadioButton label="manual_input">
+            <!-- <BkRadioButton label="manual_input">
               {{ t('业务空闲机') }}
-            </BkRadioButton>
+            </BkRadioButton> -->
           </BkRadioGroup>
         </BkFormItem>
         <Transition
@@ -335,6 +334,11 @@
             type="number" />
           <span class="input-desc">{{ t('范围min_max', { min: 1024, max: 65535 }) }}</span>
         </BkFormItem>
+        <EstimatedCost
+          :params="{
+            db_type: DBTypes.DORIS,
+            resource_spec: formData.details.resource_spec,
+          }" />
         <BkFormItem :label="t('备注')">
           <BkInput
             v-model="formData.remark"
@@ -380,18 +384,18 @@
 
   import { useApplyBase } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
+  import { Affinity, DBTypes, TicketTypes } from '@common/const';
 
   import DbForm from '@components/db-form/index.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
-  import AffinityItem from '@views/db-manage/common/apply-items/AffinityItem.vue';
   import BusinessItems from '@views/db-manage/common/apply-items/BusinessItems.vue';
   import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
   import ClusterAlias from '@views/db-manage/common/apply-items/ClusterAlias.vue';
   import ClusterName from '@views/db-manage/common/apply-items/ClusterName.vue';
   import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
-  import RegionItem from '@views/db-manage/common/apply-items/RegionItem.vue';
+  import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
+  import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/BigData.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
   import RenderHostTable from '@views/db-manage/common/big-data-host-table/RenderHostTable.vue';
 
@@ -419,7 +423,7 @@
       cluster_name: '',
       db_app_abbr: '',
       db_version: '',
-      disaster_tolerance_level: 'NONE', // 同 affinity
+      disaster_tolerance_level: Affinity.MAX_EACH_ZONE_EQUAL, // 同 affinity
       http_port: 8030,
       ip_source: 'resource_pool',
       nodes: {
@@ -452,12 +456,13 @@
     ticket_type: TicketTypes.DORIS_APPLY,
   });
 
+  const regionRequirementsRef = useTemplateRef('regionRequirements');
+
   const formRef = ref<InstanceType<typeof DbForm>>();
   const specFollowerRef = ref<InstanceType<typeof SpecSelector>>();
   const specObserverRef = ref<InstanceType<typeof SpecSelector>>();
   const specHotRef = ref<InstanceType<typeof SpecSelector>>();
   const specColdRef = ref<InstanceType<typeof SpecSelector>>();
-  const regionItemRef = ref<InstanceType<typeof RegionItem>>();
   const totalCapacity = ref(0);
   const isClickSubmit = ref(false);
   const cloudInfo = ref({
@@ -739,18 +744,11 @@
 
       const getDetails = () => {
         const { details }: { details: Record<string, any> } = _.cloneDeep(formData);
-        const { cityCode } = regionItemRef.value!.getValue();
 
         if (formData.details.ip_source === 'resource_pool') {
           delete details.nodes;
 
-          const regionAndDisasterParams = {
-            affinity: details.disaster_tolerance_level,
-            location_spec: {
-              city: cityCode,
-              sub_zone_ids: [],
-            },
-          };
+          const regionAndDisasterParams = regionRequirementsRef.value!.getValue();
 
           const result = {
             ...details,

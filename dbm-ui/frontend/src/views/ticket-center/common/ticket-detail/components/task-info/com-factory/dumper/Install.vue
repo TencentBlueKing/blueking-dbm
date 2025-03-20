@@ -14,31 +14,31 @@
 <template>
   <InfoList>
     <InfoItem
-      :label="t('订阅的库表：')"
+      :label="t('订阅的库表')"
       style="flex: 0 0 100%">
       <BkTable
         :columns="subscribeColumns"
         :data="subscribeTableData" />
     </InfoItem>
     <InfoItem
-      :label="t('数据源与接收端：')"
+      :label="t('数据源与接收端')"
       style="flex: 0 0 100%">
       <BkTable
         :columns="receiverColumns"
         :data="receiverTableData" />
     </InfoItem>
     <InfoItem
-      :label="t('订阅名称：')"
+      :label="t('订阅名称')"
       style="flex: 0 0 100%">
       {{ name }}
     </InfoItem>
     <InfoItem
-      :label="t('Dumper部署位置：')"
+      :label="t('Dumper部署位置')"
       style="flex: 0 0 100%">
       {{ t('集群Master所在主机') }}
     </InfoItem>
     <InfoItem
-      :label="t('数据同步方式：')"
+      :label="t('数据同步方式')"
       style="flex: 0 0 100%">
       {{ addType === 'incr_sync' ? t('增量同步') : t('全量同步') }}
     </InfoItem>

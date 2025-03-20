@@ -16,8 +16,8 @@ import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 export function generateMysqlHaApplyCloneData(ticketData: TicketModel<Mysql.HaApply>) {
   const { details } = ticketData;
   return Promise.resolve({
-    affinity: details.disaster_tolerance_level,
-    backendSpecId: details.resource_spec?.backend.spec_id,
+    affinity: details.resource_spec?.backend_group.affinity || '',
+    backendSpecId: details.resource_spec?.backend_group.spec_id,
     bizId: ticketData.bk_biz_id,
     cityCode: details.city_code,
     cloudId: details.bk_cloud_id,
@@ -32,5 +32,6 @@ export function generateMysqlHaApplyCloneData(ticketData: TicketModel<Mysql.HaAp
     remark: ticketData.remark,
     startMysqlPort: details.start_mysql_port,
     startProxyPort: details.start_proxy_port,
+    subZoneIds: details.resource_spec?.backend_group.location_spec.sub_zone_ids || [],
   });
 }

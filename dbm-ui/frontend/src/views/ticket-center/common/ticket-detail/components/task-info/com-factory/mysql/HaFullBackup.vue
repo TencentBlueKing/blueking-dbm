@@ -24,10 +24,10 @@
     </BkTableColumn>
   </BkTable>
   <InfoList>
-    <InfoItem :label="t('备份类型:')">
+    <InfoItem :label="t('备份类型')">
       {{ backupType }}
     </InfoItem>
-    <InfoItem :label="t('备份保存时间:')">
+    <InfoItem :label="t('备份保存时间')">
       {{ fileTag }}
     </InfoItem>
   </InfoList>
