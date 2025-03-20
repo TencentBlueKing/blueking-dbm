@@ -62,6 +62,15 @@ export function getMachineEvents(params: {
 }
 
 /**
+ * 获取主机当前周期的事件
+ */
+export function getHostCurrentEvent(params: { bk_host_id: number }) {
+  return http
+    .get<MachineEventModel[]>(`${path}/get_host_current_events/`, params)
+    .then((res) => res.map((item: MachineEventModel) => new MachineEventModel(item)));
+}
+
+/**
  * 将污点池主机转移至待回收模块
  */
 export function transferDirtyMachines(params: { bk_host_ids: number[] }) {
@@ -83,7 +92,10 @@ export function getMachinePool(params: {
   ips?: string;
   limit?: number;
   offset?: number;
-  pool: 'fault' | 'recycle';
+  /**
+   * 不传则为所有主机
+   */
+  pool?: 'fault' | 'recycle';
 }) {
   return http.get<ListBase<FaultOrRecycleMachineModel[]>>(`${path}/query_machine_pool/`, params).then((res) => ({
     ...res,
@@ -96,6 +108,7 @@ export function getMachinePool(params: {
  */
 export function transferMachinePool(params: {
   bk_host_ids: number[];
+  remark?: string;
   source: 'fault' | 'recycle';
   target: 'fault' | 'recycle' | 'recycled';
 }) {

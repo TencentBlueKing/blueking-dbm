@@ -14,6 +14,7 @@ export * from './masterFailOver';
 export * from './masterSlaveSwitch';
 export * from './modifyStatus';
 export * from './reset';
+export * as ResourcePool from './resource-pool/index';
 export * from './restoreLocalSlave';
 export * from './restoreSlave';
 export * from './rollback';

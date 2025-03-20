@@ -35,15 +35,14 @@
   }
 </script>
 <script setup lang="ts" generic="T extends string[] | number[] | string | number">
-  import { useAttrs, watch } from 'vue';
+  import { useAttrs, type VNode, watch } from 'vue';
 
   import useColumn from '../useColumn';
 
   const props = defineProps<Props>();
 
   const emits = defineEmits<{
-    (e: 'blur'): void;
-    (e: 'focus'): void;
+    (e: 'blur' | 'focus'): void;
     (e: 'change', value: T): void;
   }>();
 
@@ -52,11 +51,11 @@
     trigger?: (value: { selected: any[] }) => VNode;
   }>();
 
+  const modelValue = defineModel<T>();
+
   const attrs = useAttrs();
 
   const columnContext = useColumn();
-
-  const modelValue = defineModel<T>();
 
   watch(modelValue, () => {
     columnContext?.validate('change');

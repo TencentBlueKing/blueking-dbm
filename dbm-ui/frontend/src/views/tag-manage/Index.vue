@@ -40,14 +40,14 @@
         <BkButton
           class="operation-btn"
           theme="primary"
-          @click="handleCreate"
-          >{{ t('新建') }}
+          @click="handleCreate">
+          {{ t('新建') }}
         </BkButton>
         <BkButton
           class="operation-btn"
           :disabled="!hasSelected"
-          @click="handleBatchDelete"
-          >{{ t('批量删除') }}
+          @click="handleBatchDelete">
+          {{ t('批量删除') }}
         </BkButton>
         <BkSearchSelect
           v-model="searchValue"
@@ -86,12 +86,12 @@
   import { useRequest } from 'vue-request';
 
   import ResourceTagModel from '@services/model/db-resource/ResourceTag';
-  import { deleteTag, getTagRelatedResource, listTag, updateTag } from '@services/source/tag';
+  import { deleteTag, getTagRelatedResource, listTag, updateTag, validateTag } from '@services/source/tag';
 
   import { useGlobalBizs } from '@stores';
 
   import BusinessSelector from '@views/tag-manage/components/BusinessSelector.vue';
-  import CreateTag from '@views/tag-manage/components/CreateTag.vue'
+  import CreateTag from '@views/tag-manage/components/CreateTag.vue';
   import EditableCell from '@views/tag-manage/components/EditableCell.vue';
 
   import { getSearchSelectorParams, messageSuccess } from '@utils';
@@ -107,129 +107,137 @@
   const curBiz = ref(currentBizInfo!);
   const curEditId = ref(-1);
   const searchValue = ref([]);
-  const bindIpMap = ref<Map<number, number>>(new Map()); // 标签ID与当前标签绑定的IP数的映射
+
+  const bindIpMap = shallowRef<Map<number, number>>(new Map()); // 标签ID与当前标签绑定的IP数的映射
+
+  const isBusiness = route.name === 'BizResourceTag';
+
+  const searchSelectData = [
+    {
+      id: 'value',
+      name: t('标签'),
+    },
+    {
+      id: 'creator',
+      name: t('创建人'),
+    },
+  ];
 
   const hasSelected = computed(() => selected.value.length > 0);
-  const selectedIds = computed(() => selected.value.map(item => item.id));
-  const isBusiness = route.name === 'BizResourceTag';
+  const selectedIds = computed(() => selected.value.map((item) => item.id));
 
   const { run: runDelete } = useRequest(deleteTag, {
     manual: true,
     onSuccess() {
       fetchData();
       messageSuccess(t('删除成功'));
-    }
+    },
   });
+
+  const tableColumn = computed(() => [
+    {
+      field: 'value',
+      label: t('标签'),
+      render: ({ data }: { data: ResourceTagModel }) =>
+        bindIpMap.value.get(data.id) ? (
+          data.value
+        ) : (
+          <EditableCell
+            data={data}
+            editId={curEditId.value}
+            onBlur={handleBlur}
+            onEdit={handleEdit}
+          />
+        ),
+    },
+    {
+      field: 'count',
+      label: t('绑定的IP'),
+      render: ({ data }: { data: ResourceTagModel }) => {
+        if (!bindIpMap.value.get(data.id)) {
+          return 0;
+        }
+        const { href } = router.resolve({
+          name: isBusiness ? 'BizResourcePool' : 'resourcePool',
+          params: {
+            page: isBusiness ? 'business' : 'host-list',
+          },
+          query: {
+            labels: data.id,
+          },
+        });
+        return (
+          <a
+            href={href}
+            target='_blank'>
+            {bindIpMap.value.get(data.id)}
+          </a>
+        );
+      },
+    },
+    {
+      field: 'creator',
+      label: t('创建人'),
+      render: ({ data }: { data: ResourceTagModel }) => data.creator || '--',
+      sort: true,
+    },
+    {
+      field: 'create_at',
+      label: t('创建时间'),
+      render: ({ data }: { data: ResourceTagModel }) => data.createAtDisplay || '--',
+      sort: true,
+    },
+    {
+      label: t('操作'),
+      render: ({ data }: { data: ResourceTagModel }) => (
+        <BKPopConfirm
+          ext-cls='content-wrapper'
+          title={t('确认删除该标签值？')}
+          trigger='click'
+          width={280}
+          onConfirm={() => handleDelete(data)}>
+          {{
+            content: (
+              <>
+                <div>
+                  {t('标签：')}
+                  <span style="color: '#313238'">{data.value}</span>
+                </div>
+                <div class='mb-10 mt-4'>{t('删除操作无法撤回，请谨慎操作！')}</div>
+              </>
+            ),
+            default: (
+              <Button
+                v-bk-tooltips={{
+                  content: t('该标签已被绑定 ，不能删除'),
+                  disabled: !bindIpMap.value.get(data.id),
+                }}
+                disabled={!!bindIpMap.value.get(data.id)}
+                theme='primary'
+                text>
+                {t('删除')}
+              </Button>
+            ),
+          }}
+        </BKPopConfirm>
+      ),
+    },
+  ]);
+
+  const { run: getRelatedResource } = useRequest(getTagRelatedResource, {
+    manual: true,
+    onSuccess(data) {
+      bindIpMap.value = new Map(data.map((item) => [item.id, item.ip_count]));
+    },
+  });
+
   const { run: runUpdate } = useRequest(updateTag, {
     manual: true,
     onSuccess() {
       curEditId.value = -1;
       fetchData();
       messageSuccess(t('更新成功'));
-    }
-  });
-
-  const searchSelectData = [
-    {
-      name: t('标签'),
-      id: 'value',
     },
-    {
-      name: t('创建人'),
-      id: 'creator',
-    }
-  ];
-
-  const tableColumn = computed(
-    () => [
-      {
-        label: t('标签'),
-        field: 'value',
-        render: ({ data }: { data: ResourceTagModel }) => (
-          bindIpMap.value.get(data.id) ? data.value :
-            <EditableCell
-              data={data}
-              editId={curEditId.value}
-              onBlur={handleBlur}
-              onEdit={handleEdit}
-            />
-        )
-      },
-      {
-        label: t('绑定的IP'),
-        field: 'count',
-        render: ({ data }: { data: ResourceTagModel }) => {
-          if (!bindIpMap.value.get(data.id)) {
-            return 0;
-          }
-          const { href } = router.resolve({
-            name: isBusiness ? 'BizResourcePool' : 'resourcePool',
-            query: {
-              labels: data.id
-            },
-            params: {
-              page: isBusiness ? 'business' : 'host-list'
-            }
-          });
-          return (
-            <a href={href} target='_blank'>
-              {bindIpMap.value.get(data.id)}
-            </a>)
-        },
-      },
-      {
-        label: t('创建人'),
-        sort: true,
-        field: 'creator',
-        render: ({ data }: { data: ResourceTagModel }) => data.creator || '--',
-      },
-      {
-        label: t('创建时间'),
-        sort: true,
-        field: 'create_at',
-        render: ({ data }: { data: ResourceTagModel }) => data.createAtDisplay || '--',
-      },
-      {
-        label: t('操作'),
-        render: ({ data }: { data: ResourceTagModel }) => (
-          <BKPopConfirm
-            width={280}
-            trigger='click'
-            title={t('确认删除该标签值？')}
-            ext-cls='content-wrapper'
-            onConfirm={() => handleDelete(data)}
-          >
-            {{
-              default: (
-                <Button
-                  theme='primary'
-                  text
-                  disabled={!!bindIpMap.value.get(data.id)}
-                  v-bk-tooltips={{
-                    content: t('该标签已被绑定 ，不能删除'),
-                    disabled: !bindIpMap.value.get(data.id),
-                  }}>
-                  {t('删除')}
-                </Button>
-              ),
-              content: (
-                <>
-                  <div>{t('标签：')}<span style="color: '#313238'">{data.value}</span></div>
-                  <div class="mb-10 mt-4">{t('删除操作无法撤回，请谨慎操作！')}</div>
-                </>
-              )
-            }}
-          </BKPopConfirm>
-        )
-      }
-    ]
-  );
-
-  const { run: getRelatedResource } = useRequest(getTagRelatedResource, {
-    manual: true,
-    onSuccess(data) {
-      bindIpMap.value = new Map(data.map((item) => [item.id, item.ip_count]));
-    }
   });
 
   watch(searchValue, () => {
@@ -251,23 +259,15 @@
 
   const handleBatchDelete = () => {
     InfoBox({
-      title: t('确认批量删除n个标签？', { n: selected.value.length }),
-      confirmText: t('删除'),
       cancelText: t('取消'),
-      confirmButtonTheme: 'danger',
-      width: 480,
       class: 'batch-delete-wrapper',
+      confirmButtonTheme: 'danger',
+      confirmText: t('删除'),
       content: (
         <div class='tag-manage-batch-delete-wrapper'>
           <div class='tag-wrapper'>
-            <div class='tag'>
-              {t('标签:')}
-            </div>
-            <div class='content'>
-              {
-                selected.value.map(v => v.value).join(',')
-              }
-            </div>
+            <div class='tag'>{t('标签:')}</div>
+            <div class='content'>{selected.value.map((v) => v.value).join(',')}</div>
           </div>
           <div class='tips'>{t('删除后将无法恢复，请谨慎操作')}</div>
         </div>
@@ -275,42 +275,57 @@
       onConfirm: () => {
         runDelete({
           bk_biz_id: curBiz.value.bk_biz_id,
-          ids: selectedIds.value
+          ids: selectedIds.value,
         });
-      }
+      },
+      title: t('确认批量删除n个标签？', { n: selected.value.length }),
+      width: 480,
     });
   };
 
   const handleCreate = () => {
     isCreateTagDialogShow.value = true;
-  }
+  };
 
   const handleBlur = (data: ResourceTagModel, val: string) => {
-    runUpdate({
-      bk_biz_id: curBiz.value.bk_biz_id,
-      id: data.id,
-      value: val,
-    });
-
-  }
+    if (val && data.value !== val) {
+      validateTag({
+        bk_biz_id: curBiz.value.bk_biz_id,
+        tags: [{ key: 'dbresource', value: val }],
+      }).then((existData) => {
+        if (existData.length === 0) {
+          runUpdate({
+            bk_biz_id: curBiz.value.bk_biz_id,
+            id: data.id,
+            value: val,
+          });
+        } else {
+          curEditId.value = -1;
+        }
+      });
+    } else {
+      curEditId.value = -1;
+    }
+  };
 
   const handleEdit = (data: ResourceTagModel) => {
     curEditId.value = data.id;
-  }
+  };
 
   const handleDelete = (data: ResourceTagModel) => {
     runDelete({
       bk_biz_id: curBiz.value.bk_biz_id,
-      ids: [data.id]
+      ids: [data.id],
     });
-  }
+  };
 
   const handleBizChange = (bkBizId: number) => {
     curBiz.value = bizIdMap.get(bkBizId)!;
     fetchData();
-  }
+  };
 
-  const disableSelectMethod = (data: ResourceTagModel) => bindIpMap.value.get(data.id) ? t('该标签已被绑定 ，不能删除') : false;
+  const disableSelectMethod = (data: ResourceTagModel) =>
+    bindIpMap.value.get(data.id) ? t('该标签已被绑定 ，不能删除') : false;
 
   const clearSearchValue = () => {
     searchValue.value = [];
@@ -325,7 +340,7 @@
   const handleRequestSuccess = (data: ServiceReturnType<typeof listTag>) => {
     getRelatedResource({
       bk_biz_id: curBiz.value.bk_biz_id,
-      ids: data.results.map(item => item.id),
+      ids: data.results.map((item) => item.id),
       resource_type: 'resource',
     });
   };
@@ -337,9 +352,9 @@
 
 <style lang="less" scoped>
   .title-divider {
-    color: #dcdee5;
     margin-right: 16px;
     margin-left: 7px;
+    color: #dcdee5;
   }
 
   :deep(.table-row) {
@@ -353,9 +368,9 @@
       }
 
       .operation-icon {
+        margin-left: 7.5px;
         color: #3a84ff;
         cursor: pointer;
-        margin-left: 7.5px;
         visibility: hidden;
       }
     }
@@ -375,9 +390,9 @@
       }
 
       .search-selector {
-        margin-left: auto;
         width: 560px;
         height: 32px;
+        margin-left: auto;
       }
     }
   }
@@ -400,21 +415,21 @@
       }
 
       .content {
-        flex: 1;
+        margin-left: 14px;
         color: #313238;
         text-align: left;
-        margin-left: 14px;
         word-break: break-all;
+        flex: 1;
       }
     }
 
     .tips {
-      background: #f5f6fa;
-      border-radius: 2px;
       padding: 12px 16px;
       margin-top: 16px;
-      text-align: left;
       font-size: 14px;
+      text-align: left;
+      background: #f5f6fa;
+      border-radius: 2px;
     }
   }
 

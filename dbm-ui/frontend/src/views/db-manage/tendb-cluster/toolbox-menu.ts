@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import { TicketTypes } from '@common/const';
+
 import { t } from '@locales/index';
 
 export interface MenuChild {
@@ -68,19 +70,18 @@ export default [
       },
       {
         dbConsoleValue: 'tendbCluster.toolbox.proxyScaleDown',
-        id: 'SpiderProxyScaleDown',
+        id: TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES,
         name: t('缩容接入层'),
         parentId: 'spider_cluster_maintain',
       },
       {
         dbConsoleValue: 'tendbCluster.toolbox.masterSlaveClone',
-        id: 'spiderMasterSlaveClone',
+        id: TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER,
         name: t('迁移主从'),
         parentId: 'spider_cluster_maintain',
       },
       {
-        dbConsoleValue: 'tendbCluster.toolbox.slaveRebuild',
-        id: 'spiderSlaveRebuild',
+        id: TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE,
         name: t('重建从库'),
         parentId: 'spider_cluster_maintain',
       },
@@ -106,7 +107,7 @@ export default [
     children: [
       {
         dbConsoleValue: 'tendbCluster.toolbox.addMnt',
-        id: 'spiderAddMnt',
+        id: TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY,
         name: t('添加运维节点'),
         parentId: 'spider_mnt',
       },
@@ -138,7 +139,7 @@ export default [
     children: [
       {
         dbConsoleValue: 'tendbCluster.toolbox.rollback',
-        id: 'spiderRollback',
+        id: TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER,
         name: t('定点构造'),
         parentId: 'spider_fileback',
       },

@@ -258,7 +258,7 @@
       groupNum: item.machine_pair_cnt,
       isLoading: false,
       proxy: {
-        count: new Set(item.proxy.map((item) => item.ip)).size,
+        count: item.proxyCount,
         id: item.proxy[0].spec_config.id,
       },
       rowKey: item.master_domain,

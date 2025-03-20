@@ -7,6 +7,7 @@ export interface InstanceRelatedCluster {
   creator: string;
   db_module_id: number;
   id: number;
+  immute_domain: string;
   major_version: string;
   master_domain: string;
   phase: string;

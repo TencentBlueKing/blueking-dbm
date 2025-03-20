@@ -10,6 +10,8 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
+import { TicketTypes } from '@common/const';
+
 import { t } from '@locales/index';
 
 export interface MenuChild {
@@ -54,12 +56,12 @@ export default [
         parentId: 'mongo_manage',
       },
       {
-        id: 'MongoProxyScaleDown',
+        id: TicketTypes.MONGODB_REDUCE_MONGOS,
         name: t('缩容接入层'),
         parentId: 'mongo_manage',
       },
       {
-        id: 'MongoDBReplace',
+        id: TicketTypes.MONGODB_CUTOFF,
         name: t('整机替换'),
         parentId: 'mongo_manage',
       },
@@ -71,7 +73,7 @@ export default [
   {
     children: [
       {
-        id: 'MongoDBStructure',
+        id: TicketTypes.MONGODB_PITR_RESTORE,
         name: t('定点构造'),
         parentId: 'mongo_rollback',
       },

@@ -97,7 +97,7 @@
   import { type InjectionKey, type Ref, type VNode } from 'vue';
 
   import TendbclusterMachineModel from '@services/model/tendbcluster/tendbcluster-machine';
-  import type { ListBase } from '@services/types';
+  import type { HostInfo, ListBase } from '@services/types';
 
   import { t } from '@locales/index';
 
@@ -112,7 +112,7 @@
     create_at: string;
     db_module_id: number;
     db_module_name: string;
-    host_info: any;
+    host_info: HostInfo;
     id: number;
     instance_address: string;
     instance_role: string;
@@ -123,6 +123,7 @@
     port: number;
     related_clusters: {
       cluster_type: string;
+      db_module_id: number;
       id: number;
       immute_domain: string;
       master_domain: string;
@@ -144,11 +145,11 @@
       status: string;
     }[];
     role: string;
-    shard?: string;
-    spec_config?: TendbclusterMachineModel['spec_config'];
-    spec_id?: number;
-    status?: string;
-    version?: string;
+    shard: string;
+    spec_config: TendbclusterMachineModel['spec_config'];
+    spec_id: number;
+    status: string;
+    version: string;
   }
 
   export type InstanceSelectorValues<T> = Record<string, T[]>;
@@ -313,7 +314,6 @@
       | 'RedisHost'
       | 'mongoCluster'
       | 'TendbSingleHost'
-      | 'TendbHaHost'
     )[];
     disableDialogSubmitMethod?: (hostList: Array<string>) => string | boolean;
     hideManualInput?: boolean;
@@ -969,7 +969,11 @@
     if (isEmpty.value) {
       info.disabled = true;
       info.tooltips.disabled = false;
-      info.tooltips.content = panelTabActive.value.includes('Host') ? t('请选择主机') : t('请选择实例');
+      info.tooltips.content =
+        panelTabActive.value.includes('Host') ||
+        tabListMap[props.clusterTypes[0]][0]?.tableConfig?.firsrColumn?.field === 'ip'
+          ? t('请选择主机')
+          : t('请选择实例');
       return info;
     }
 
@@ -1000,9 +1004,6 @@
         isInnerChange = false;
         return;
       }
-      if (props.selected) {
-        Object.assign(lastValues, props.selected);
-      }
       if (
         props.clusterTypes.length > 0 &&
         (!panelTabActive.value || !props.clusterTypes.includes(panelTabActive.value as Props['clusterTypes'][number]))
@@ -1013,6 +1014,15 @@
     },
     {
       immediate: true,
+    },
+  );
+
+  watch(
+    () => props.selected,
+    () => {
+      if (props.selected) {
+        Object.assign(lastValues, props.selected);
+      }
     },
   );
 

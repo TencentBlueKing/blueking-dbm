@@ -1,22 +1,19 @@
 <template>
   <ReviewDataDialog
-    :is-show="isShow"
-    :loading="isRemoving"
+    v-model:is-show="isShow"
+    :alert="t('仅新导入且无被申请、转移等使用事件的主机，可执行撤销导入')"
+    :confirm-handler="handleConfirm"
     :selected="selectedIpList"
-    :tip="t('确认后，主机将从资源池移回原有模块')"
+    :tip="t('确认后，主机将从资源池删除，同时 CMDB 位置回到来源业务的空闲机模块')"
     :title="t('确认批量撤销 {n} 台主机的导入?', { n: props.selected.length })"
-    @cancel="handleCancel"
-    @confirm="handleConfirm" />
+    @success="handleSuccess" />
 </template>
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
   import DbResourceModel from '@services/model/db-resource/DbResource';
   import { removeResource } from '@services/source/dbresourceResource';
-
-  import { messageSuccess } from '@utils';
 
   import ReviewDataDialog from '../review-data-dialog/Index.vue';
 
@@ -24,9 +21,7 @@
     selected: DbResourceModel[];
   }
 
-  interface Emits {
-    (e: 'refresh'): void;
-  }
+  type Emits = (e: 'refresh') => void;
 
   const props = defineProps<Props>();
 
@@ -40,25 +35,19 @@
 
   const selectedIpList = computed(() => props.selected.map((item) => item.ip));
 
-  const { loading: isRemoving, run: runDelete } = useRequest(removeResource, {
-    manual: true,
-    onSuccess() {
-      emits('refresh');
-      isShow.value = false;
-      messageSuccess(t('设置成功'));
-    },
-  });
-
   const handleConfirm = () => {
-    runDelete({
-      bk_host_ids: props.selected.map((item) => item.bk_host_id),
+    return removeResource({
       event: 'undo_import',
+      hosts: props.selected.map((item) => ({
+        bk_biz_id: item.bk_biz_id,
+        bk_cloud_id: item.bk_cloud_id,
+        bk_host_id: item.bk_host_id,
+        ip: item.ip,
+      })),
     });
   };
 
-  const handleCancel = () => {
-    isShow.value = false;
+  const handleSuccess = () => {
+    emits('refresh');
   };
 </script>
-
-<style lang="scss" scoped></style>

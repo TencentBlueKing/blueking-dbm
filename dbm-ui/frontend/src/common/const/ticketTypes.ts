@@ -141,6 +141,7 @@ export enum TicketTypes {
   MONGODB_FULL_BACKUP = 'MONGODB_FULL_BACKUP', // mongo 全库备份
   MONGODB_INSTANCE_DEINSTALL = 'MONGODB_INSTANCE_DEINSTALL', // mongo 实例下架
   MONGODB_INSTANCE_RELOAD = 'MONGODB_INSTANCE_RELOAD', // mongodb重启
+  MONGODB_PITR_RESTORE = 'MONGODB_PITR_RESTORE', // mongo pitr 定点构造
   MONGODB_PLUGIN_CREATE_CLB = 'MONGODB_PLUGIN_CREATE_CLB', // mongo 启用 clb
   MONGODB_PLUGIN_DELETE_CLB = 'MONGODB_PLUGIN_DELETE_CLB', // mongo 禁用 clb
   MONGODB_REDUCE_MONGOS = 'MONGODB_REDUCE_MONGOS', // mongo 缩容接入层
@@ -251,6 +252,9 @@ export enum TicketTypes {
   DORIS_REPLACE = 'DORIS_REPLACE', // doris 替换
   DORIS_SCALE_UP = 'DORIS_SCALE_UP', // doris 扩容
   DORIS_SHRINK = 'DORIS_SHRINK', // doris 缩容
+}
+export enum TicketTypes {
+  RECYCLE_OLD_HOST = 'RECYCLE_OLD_HOST', // 已下架主机再利用
 }
 
 export type TicketTypesStrings = keyof typeof TicketTypes;

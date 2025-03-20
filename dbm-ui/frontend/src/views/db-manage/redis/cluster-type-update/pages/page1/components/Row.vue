@@ -313,7 +313,7 @@
             },
             proxy: {
               affinity: Affinity.CROS_SUBZONE,
-              count: props.data.proxy.count,
+              count: Math.min(props.data.proxy.count, 5), // 最大5台
               spec_id: props.data.proxy.id,
             },
           },

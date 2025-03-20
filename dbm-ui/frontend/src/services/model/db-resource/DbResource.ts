@@ -13,7 +13,7 @@
 
 import { DBTypeInfos, DBTypes } from '@common/const';
 
-import { bytePretty } from '@utils';
+import { bytePretty, utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
 
@@ -32,6 +32,7 @@ export default class DbResource {
   city_id: string;
   consume_time: string;
   create_time: string;
+  dedicated_biz: number;
   device_class: string;
   for_biz: {
     bk_biz_id: number;
@@ -39,11 +40,12 @@ export default class DbResource {
   };
   ip: string;
   labels: {
-    name: string;
     id: number;
+    name: string;
   }[];
   net_device_id: string;
   os_bit: string;
+  os_name: string;
   os_type: string;
   os_version: string;
   permission: {
@@ -65,40 +67,44 @@ export default class DbResource {
   sub_zone_id: string;
   svr_type_name: string;
   update_time: string;
+  updater: string;
 
   constructor(payload = {} as DbResource) {
-    this.agent_status = payload.agent_status;
-    this.asset_id = payload.asset_id;
-    this.bk_biz_id = payload.bk_biz_id;
-    this.bk_cloud_id = payload.bk_cloud_id;
-    this.bk_cloud_name = payload.bk_cloud_name;
-    this.bk_cpu = payload.bk_cpu;
-    this.bk_disk = payload.bk_disk;
-    this.bk_host_id = payload.bk_host_id;
-    this.bk_host_innerip = payload.bk_host_innerip;
+    this.agent_status = payload.agent_status || 0;
+    this.asset_id = payload.asset_id || '--';
+    this.bk_biz_id = payload.bk_biz_id || 0;
+    this.bk_cloud_id = payload.bk_cloud_id || 0;
+    this.bk_cloud_name = payload.bk_cloud_name || '--';
+    this.bk_cpu = payload.bk_cpu || 0;
+    this.bk_disk = payload.bk_disk || 0;
+    this.bk_host_id = payload.bk_host_id || 0;
+    this.bk_host_innerip = payload.bk_host_innerip || '--';
     this.bk_mem = payload.bk_mem || 0;
-    this.city = payload.city;
-    this.city_id = payload.city_id;
-    this.consume_time = payload.consume_time;
-    this.create_time = payload.create_time;
-    this.device_class = payload.device_class;
-    this.for_biz = payload.for_biz;
-    this.ip = payload.ip;
-    this.labels = payload.labels;
-    this.net_device_id = payload.net_device_id;
-    this.os_bit = payload.os_bit;
-    this.os_type = payload.os_type;
-    this.os_version = payload.os_version;
-    this.permission = payload.permission;
-    this.rack_id = payload.rack_id;
-    this.raid = payload.raid;
-    this.resource_type = payload.resource_type;
-    this.status = payload.status;
+    this.city = payload.city || '--';
+    this.city_id = payload.city_id || '--';
+    this.consume_time = payload.consume_time || '--';
+    this.create_time = payload.create_time || '--';
+    this.dedicated_biz = payload.dedicated_biz || 0;
+    this.device_class = payload.device_class || '--';
+    this.for_biz = payload.for_biz || '--';
+    this.ip = payload.ip || '--';
+    this.labels = payload.labels || '--';
+    this.net_device_id = payload.net_device_id || '--';
+    this.os_bit = payload.os_bit || '--';
+    this.os_type = payload.os_type || '--';
+    this.os_version = payload.os_version || '--';
+    this.os_name = payload.os_name || '--';
+    this.permission = payload.permission || '--';
+    this.rack_id = payload.rack_id || '--';
+    this.raid = payload.raid || '--';
+    this.resource_type = payload.resource_type || '--';
+    this.status = payload.status || '--';
     this.storage_device = payload.storage_device || {};
-    this.sub_zone = payload.sub_zone;
-    this.sub_zone_id = payload.sub_zone_id;
-    this.svr_type_name = payload.svr_type_name;
-    this.update_time = payload.update_time;
+    this.sub_zone = payload.sub_zone || '--';
+    this.sub_zone_id = payload.sub_zone_id || '--';
+    this.svr_type_name = payload.svr_type_name || '--';
+    this.updater = payload.updater || '--';
+    this.update_time = payload.update_time || '--';
   }
 
   get bkMemText() {
@@ -120,6 +126,13 @@ export default class DbResource {
     if (!this.resource_type || this.resource_type === 'PUBLIC') {
       return t('通用');
     }
+    if (this.resource_type === 'vm') {
+      return 'Vm';
+    }
     return DBTypeInfos[this.resource_type as DBTypes]?.name;
+  }
+
+  get updateAtDisplay() {
+    return utcDisplayTime(this.update_time) || '--';
   }
 }

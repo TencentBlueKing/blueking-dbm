@@ -5,5 +5,5 @@
 
 <script setup lang="ts">
   // import BarChart from './components/BarChart.vue';
-  import List from './components/List.vue';
+  import List from './components/list/Index.vue';
 </script>

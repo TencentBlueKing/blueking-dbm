@@ -18,6 +18,14 @@ export interface ScaleUpdown extends DetailBase {
     >;
     future_capacity: number;
     group_num: number;
+    old_nodes: {
+      backend_hosts: {
+        bk_biz_id: number;
+        bk_cloud_id: number;
+        bk_host_id: number;
+        ip: string;
+      }[];
+    };
     online_switch_type: OnlineSwitchType;
     resource_spec: {
       backend_group: {

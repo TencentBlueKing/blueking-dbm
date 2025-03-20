@@ -36,7 +36,7 @@
           </BkButton>
           <template #content>
             <BkDropdownMenu>
-              <BkDropdownItem @click="handleShowBatchAssign">
+              <BkDropdownItem @click="() => handleShowBatchAssign()">
                 {{ t('重新设置资源归属') }}
               </BkDropdownItem>
               <BkDropdownItem
@@ -45,18 +45,18 @@
                   disabled: isSelectedSameBiz,
                 }"
                 :class="isSelectedSameBiz ? undefined : 'disabled-cls'"
-                @click="handleShowBatchAddTags">
+                @click="() => handleShowBatchAddTags()">
                 {{ t('添加资源标签') }}
               </BkDropdownItem>
               <BkDropdownItem
-                v-if="type === 'business'"
+                v-if="type === ResourcePool.business"
                 @click="handleShowBatchCovertToPublic">
                 {{ t('退回公共资源池') }}
               </BkDropdownItem>
-              <BkDropdownItem @click="handleShowBatchSetting"> {{ t('设置主机属性') }} </BkDropdownItem>
-              <BkDropdownItem @click="handleShowBatchMoveToFaultPool"> {{ t('转入故障池') }} </BkDropdownItem>
+              <BkDropdownItem @click="() => handleShowBatchSetting()"> {{ t('设置主机属性') }} </BkDropdownItem>
+              <BkDropdownItem @click="() => handleShowBatchMoveToFaultPool()"> {{ t('转入故障池') }} </BkDropdownItem>
               <BkDropdownItem
-                v-if="type !== 'business'"
+                v-if="type !== ResourcePool.business"
                 @click="handleShowBatchMoveToRecyclePool">
                 {{ t('转入待回收池') }}
               </BkDropdownItem>
@@ -74,14 +74,14 @@
         </BkButton>
         <template #content>
           <BkDropdownMenu>
-            <BkDropdownItem @click="handleCopyAllHost">
-              {{ t('所有主机') }}
-            </BkDropdownItem>
             <BkDropdownItem @click="handleCopySelectHost">
-              {{ t('已选主机') }}
+              {{ t('已选 IP') }}
+            </BkDropdownItem>
+            <BkDropdownItem @click="handleCopyAllHost">
+              {{ copyAllHostText }}
             </BkDropdownItem>
             <BkDropdownItem @click="handleCopyAllAbnormalHost">
-              {{ t('所有异常主机') }}
+              {{ t('所有异常 IP') }}
             </BkDropdownItem>
           </BkDropdownMenu>
         </template>
@@ -89,8 +89,9 @@
       <AuthButton
         action-id="resource_operation_view"
         class="quick-search-btn"
-        @click="handleGoOperationRecord">
+        @click="handleGoTaskHistory">
         <DbIcon type="history-2" />
+        <span class="ml-4">{{ t('导入记录') }}</span>
       </AuthButton>
     </div>
     <RenderTable
@@ -108,35 +109,35 @@
     <BatchSetting
       v-model:is-show="isShowBatchSetting"
       :data="selectionHostIdList"
-      @change="handleBatchSettingChange" />
+      @success="handleRefresh" />
     <BatchCovertToPublic
       v-model:is-show="isShowBatchCovertToPublic"
-      :selected="selectionListWholeDataMemo"
+      :selected="selectionList"
       @refresh="handleRefresh" />
     <BatchAddTags
       v-model:is-show="isShowBatchAddTags"
-      :selected="selectionListWholeDataMemo"
+      :selected="selectionList"
       @refresh="handleRefresh" />
     <BatchMoveToRecyclePool
       v-model:is-show="isShowBatchMoveToRecyclePool"
-      :selected="selectionListWholeDataMemo"
+      :selected="selectionList"
       @refresh="handleRefresh" />
     <BatchMoveToFaultPool
       v-model:is-show="isShowBatchMoveToFaultPool"
-      :selected="selectionListWholeDataMemo"
+      :selected="selectionList"
       @refresh="handleRefresh" />
     <BatchUndoImport
       v-model:is-show="isShowBatchUndoImport"
-      :selected="selectionListWholeDataMemo"
+      :selected="selectionList"
       @refresh="handleRefresh" />
     <BatchConvertToBusiness
       v-model:is-show="isShowBatchConvertToBusiness"
       :biz-id="(currentBizId as number)"
-      :selected="selectionListWholeDataMemo"
+      :selected="selectionList"
       @refresh="handleRefresh" />
     <BatchAssign
       v-model:is-show="isShowBatchAssign"
-      :selected="selectionListWholeDataMemo"
+      :selected="selectionList"
       @refresh="handleRefresh" />
     <UpdateAssign
       v-model:is-show="isShowUpdateAssign"
@@ -147,7 +148,6 @@
 <script setup lang="tsx">
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { useRouter } from 'vue-router';
 
   import DbResourceModel from '@services/model/db-resource/DbResource';
   import { fetchList } from '@services/source/dbresourceResource';
@@ -158,9 +158,10 @@
   import DiskPopInfo from '@components/disk-pop-info/DiskPopInfo.vue';
   import HostAgentStatus from '@components/host-agent-status/Index.vue';
 
-  import { execCopy } from '@utils';
+  import { execCopy, messageWarn } from '@utils';
 
   import { ResourcePool } from '../../type';
+  import { useImportResourcePoolTooltip } from '../hooks/useImportResourcePoolTip';
 
   import BatchAddTags from './components/batch-add-tags/Index.vue';
   import BatchAssign from './components/batch-assign/Index.vue';
@@ -170,7 +171,6 @@
   import BatchMoveToRecyclePool from './components/batch-move-to-recycle-pool/Index.vue';
   import BatchSetting from './components/batch-setting/Index.vue';
   import BatchUndoImport from './components/batch-undo-import/Index.vue';
-  import HostOperationTip from './components/HostOperationTip.vue';
   import RenderTable from './components/RenderTable.vue';
   import SearchBox from './components/search-box/Index.vue';
   import UpdateAssign from './components/update-assign/Index.vue';
@@ -185,17 +185,14 @@
   });
 
   const { t } = useI18n();
-  const router = useRouter();
   const { currentBizId } = useGlobalBizs();
 
-  const {
-    setting: tableSetting,
-    handleChange: handleSettingChange,
-  } = useTableSetting();
+  const { handleChange: handleSettingChange, setting: tableSetting } = useTableSetting();
+  const { taskHistoryListHref } = useImportResourcePoolTooltip();
 
-  const searchBoxRef = ref();
-  const tableRef = ref();
-  const selectionHostIdList = ref<number[]>([]);
+  const searchBoxRef = useTemplateRef('searchBoxRef');
+  const tableRef = useTemplateRef('tableRef');
+
   const isShowBatchSetting = ref(false);
   const isShowBatchCovertToPublic = ref(false);
   const isShowBatchMoveToRecyclePool = ref(false);
@@ -205,8 +202,13 @@
   const isShowBatchAssign = ref(false);
   const isShowUpdateAssign = ref(false);
   const isShowBatchAddTags = ref(false);
-  const curEditData = ref<DbResourceModel>({} as DbResourceModel);
   const isSelectedSameBiz = ref(false);
+
+  const selectionList = shallowRef<DbResourceModel[]>([]);
+  const curEditData = shallowRef<DbResourceModel>({} as DbResourceModel);
+  const searchParams = shallowRef<Record<string, any>>({});
+
+  const selectionHostIdList = computed(() => selectionList.value.map((selectionItem) => selectionItem.bk_host_id));
 
   const curBizId = computed(() => {
     let bizId = undefined;
@@ -221,264 +223,169 @@
     return bizId;
   });
 
-  const dataSource = (params: ServiceParameters<typeof fetchList>) => fetchList({
-    for_biz: curBizId.value,
-    ...params,
+  const copyAllHostText = computed(() => {
+    const isFilter = Object.keys(searchParams.value).length > 0;
+    return `${t('所有 IP')}（${isFilter ? t('筛选后') : t('全量')}）`;
   });
 
-  let searchParams: Record<string, any> = {};
-  let selectionListWholeDataMemo: DbResourceModel[] = [];
-  const tableColumn = [
+  const dataSource = (params: ServiceParameters<typeof fetchList>) =>
+    fetchList({
+      for_biz: curBizId.value,
+      ...params,
+    });
+
+  const tableColumn = computed(() => [
     {
-      label: 'IP',
       field: 'ip',
       fixed: 'left',
-      width: 150,
+      label: 'IP',
+      minWidth: 110,
     },
     {
-      label: t('管控区域'),
       field: 'bk_cloud_name',
-      width: 120,
+      label: t('管控区域'),
+      minWidth: 80,
     },
     {
-      label: t('Agent 状态'),
       field: 'agent_status',
-      width: 100,
+      label: t('Agent 状态'),
+      minWidth: 100,
       render: ({ data }: { data: DbResourceModel }) => <HostAgentStatus data={data.agent_status} />,
     },
     {
-      label: t('资源归属'),
       field: 'resourceOwner',
-      width: 320,
+      label: t('资源归属'),
       render: ({ data }: { data: DbResourceModel }) => (
         <bk-popover
-          theme="light"
-          placement="top"
+          placement='top'
           popover-delay={[300, 0]}
+          theme='light'
           disable-outside-click>
           {{
-            default: () => (
-              <div class='resource-owner-wrapper'>
-                <div class='resource-owner'>
-                  <bk-tag
-                    theme={
-                      (data.for_biz.bk_biz_id === 0 || !data.for_biz.bk_biz_name)
-                        ? 'success'
-                        : ''
-                    }
-                  >
-                    {t('所属业务')} : {data.forBizDisplay}
-                  </bk-tag>
-                  <bk-tag
-                    theme={
-                      (!data.resource_type || data.resource_type === 'PUBLIC')
-                        ? 'success'
-                        : ''
-                    }
-                  >
-                    {t('所属DB')} : {data.resourceTypeDisplay}
-                  </bk-tag>
-                  {
-                    data.labels && Array.isArray(data.labels) && (
-                      data.labels.map(item => (<bk-tag>{item.name}</bk-tag>))
-                    )}
-                </div>
-                {
-                  props.type !== ResourcePool.public && (
-                    <DbIcon
-                      type="edit"
-                      class='operation-icon'
-                      onClick={() => handleEdit(data)}
-                    />
-                  )
-                }
-              </div>
-            ),
             content: () => (
               <div class='resource-owner-tips'>
                 <strong>{t('所属业务')}：</strong>
                 <div class='resource-owner-tips-values mb-10'>
-                  <bk-tag
-                    theme={
-                      (data.for_biz.bk_biz_id === 0 || !data.for_biz.bk_biz_name)
-                        ? 'success'
-                        : ''
-                    }
-                  >
+                  <bk-tag theme={data.for_biz.bk_biz_id === 0 || !data.for_biz.bk_biz_name ? 'success' : ''}>
                     {data.forBizDisplay}
                   </bk-tag>
                 </div>
                 <strong>{t('所属DB')}</strong>
                 <div class='resource-owner-tips-values mb-10'>
-                  <bk-tag
-                    theme={
-                      (!data.resource_type || data.resource_type === 'PUBLIC')
-                        ? 'success'
-                        : ''
-                    }
-                  >
+                  <bk-tag theme={!data.resource_type || data.resource_type === 'PUBLIC' ? 'success' : ''}>
                     {data.resourceTypeDisplay}
                   </bk-tag>
                 </div>
-                {
-                  !!data.labels.length && (
-                    <>
-                      <strong>{t('资源标签')}</strong>
-                      <div class='resource-owner-tips-values mb-10'>
-                        {
-                          data.labels.map(item => (<bk-tag>{item.name}</bk-tag>))
-                        }
-                      </div>
-                    </>
-                  )
-                }
-
+                {!!data.labels.length && (
+                  <>
+                    <strong>{t('资源标签')}</strong>
+                    <div class='resource-owner-tips-values mb-10'>
+                      {data.labels.map((item) => (
+                        <bk-tag>{item.name}</bk-tag>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
-            )
+            ),
+            default: () => (
+              <div class='resource-owner-wrapper'>
+                <div class='resource-owner'>
+                  <bk-tag theme={data.for_biz.bk_biz_id === 0 || !data.for_biz.bk_biz_name ? 'success' : ''}>
+                    {t('所属业务')} : {data.forBizDisplay}
+                  </bk-tag>
+                  <bk-tag theme={!data.resource_type || data.resource_type === 'PUBLIC' ? 'success' : ''}>
+                    {t('所属DB')} : {data.resourceTypeDisplay}
+                  </bk-tag>
+                  {data.labels && Array.isArray(data.labels) && data.labels.map((item) => <bk-tag>{item.name}</bk-tag>)}
+                </div>
+                {props.type !== ResourcePool.public && (
+                  <DbIcon
+                    class='operation-icon'
+                    type='edit'
+                    onClick={() => handleEdit(data)}
+                  />
+                )}
+              </div>
+            ),
           }}
         </bk-popover>
       ),
+      width: 320,
     },
     {
-      label: t('机架'),
-      field: 'rack_id',
-      render: ({ data }: { data: DbResourceModel }) => data.rack_id || '--',
-    },
-    {
-      label: t('机型'),
-      field: 'device_class',
-      render: ({ data }: { data: DbResourceModel }) => data.device_class || '--',
-    },
-    {
-      label: t('操作系统类型'),
-      width: 120,
-      field: 'os_type',
-      render: ({ data }: { data: DbResourceModel }) => data.os_type || '--',
-    },
-    {
-      label: t('地域'),
       field: 'city',
+      label: t('地域'),
       render: ({ data }: { data: DbResourceModel }) => data.city || '--',
     },
     {
-      label: t('园区'),
       field: 'sub_zone',
+      label: t('园区'),
       render: ({ data }: { data: DbResourceModel }) => data.sub_zone || '--',
     },
     {
-      label: t('CPU(核)'),
+      field: 'rack_id',
+      label: t('机架'),
+      render: ({ data }: { data: DbResourceModel }) => data.rack_id || '--',
+    },
+    {
+      field: 'os_type',
+      label: t('操作系统类型'),
+      render: ({ data }: { data: DbResourceModel }) => data.os_type || '--',
+      width: 120,
+    },
+    {
+      field: 'os_name',
+      label: t('操作系统名称'),
+      render: ({ data }: { data: DbResourceModel }) => data.os_name || '--',
+      width: 150,
+    },
+    {
+      field: 'device_class',
+      label: t('机型'),
+      render: ({ data }: { data: DbResourceModel }) => data.device_class || '--',
+    },
+    {
       field: 'bk_cpu',
+      label: t('CPU(核)'),
     },
     {
-      label: t('内存'),
       field: 'bkMemText',
+      label: t('内存'),
       render: ({ data }: { data: DbResourceModel }) => data.bkMemText || '0 M',
+      width: 80,
     },
     {
-      label: t('磁盘容量(G)'),
       field: 'bk_disk',
+      label: t('磁盘容量(G)'),
       minWidth: 120,
       render: ({ data }: { data: DbResourceModel }) => (
-        <DiskPopInfo data={data.storage_device} trigger='click'>
-          <span style="line-height: 40px; color: #3a84ff;cursor: pointer">
-            {data.bk_disk}
-          </span>
+        <DiskPopInfo
+          data={data.storage_device}
+          trigger='click'>
+          <span style='line-height: 40px; color: #3a84ff;cursor: pointer'>{data.bk_disk}</span>
         </DiskPopInfo>
       ),
     },
     {
-      label: t('操作'),
-      field: 'id',
-      width: 300,
-      fixed: 'right',
-      render: ({ data }: { data: DbResourceModel }) => (
-        <>
-          {props.type === ResourcePool.public && (
-            <HostOperationTip
-              data={data}
-              type="to_biz"
-              onRefresh={fetchData}
-              tip={t('确认后，主机将标记为业务专属')}
-              title={t('确认转入业务资源池？')}
-            >
-              <bk-button
-                text
-                theme="primary">
-                {t('转入业务资源池')}
-              </bk-button>
-            </HostOperationTip>
-          )}
-          {
-            [ResourcePool.business, ResourcePool.global].includes(props.type) && <>
-              {
-                props.type === ResourcePool.business ? (
-                  <HostOperationTip
-                    data={data}
-                    title={t('确认退回公共资源池？')}
-                    tip={t('确认后，主机不再归属当前业务')}
-                    type='to_public'
-                    onRefresh={fetchData} >
-                    <bk-button
-                      text
-                      theme="primary">
-                      {t('退回公共资源池')}
-                    </bk-button>
-                  </HostOperationTip>
-                ) : (
-                  <HostOperationTip
-                    data={data}
-                    title={t('确认转入待回收池？')}
-                    tip={t('确认后，主机将标记为待回收，等待处理')}
-                    type='to_recycle'
-                    onRefresh={fetchData} >
-                    <bk-button
-                      text
-                      theme="primary">
-                      {t('转入待回收池')}
-                    </bk-button>
-                  </HostOperationTip>
-                )
-              }
-              <HostOperationTip
-                data={data}
-                title={t('确认转入待故障池？')}
-                tip={t('确认后，主机将标记为故障，等待处理')}
-                type='to_fault'
-                onRefresh={fetchData} >
-                <bk-button
-                  text
-                  class='ml-16'
-                  theme="primary">
-                  {t('转入故障池')}
-                </bk-button>
-              </HostOperationTip>
-              <HostOperationTip
-                data={data}
-                title={t('确认撤销导入？')}
-                tip={t('确认后，主机将从资源池移回原有模块')}
-                type='undo_import'
-                onRefresh={fetchData}>
-                <bk-button
-                  text
-                  class='ml-16'
-                  theme="primary">
-                  {t('撤销导入')}
-                </bk-button>
-              </HostOperationTip>
-            </>
-          }
-        </>
-      ),
+      field: 'updateAtDisplay',
+      label: t('转入时间'),
     },
-  ];
+    {
+      field: 'updater',
+      label: t('转入人'),
+      render: ({ data }: { data: DbResourceModel }) => data.updater || '--',
+      width: 100,
+    },
+  ]);
 
   const fetchData = () => {
-    tableRef.value.fetchData(searchParams);
+    tableRef.value!.fetchData(searchParams.value, {});
   };
 
   const handleSearch = (params: Record<string, any>) => {
-    searchParams = params;
-    tableRef.value.fetchData(params);
+    searchParams.value = params;
+    fetchData();
   };
 
   // 批量设置
@@ -489,65 +396,63 @@
   // 复制所有主机
   const handleCopyAllHost = () => {
     fetchList({
-      offset: 0,
       limit: -1,
+      offset: 0,
+      ...searchParams.value,
     }).then((data) => {
-      const ipList = data.results.map(item => item.ip);
-      execCopy(ipList.join('\n'), `${t('复制成功n个IP', { n: ipList.length })}\n`);
+      if (!data.results.length) {
+        messageWarn(t('暂无可复制 IP'));
+        return;
+      }
+      const ipList = data.results.map((item) => item.ip);
+      execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }));
     });
   };
 
   // 复制已选主机
   const handleCopySelectHost = () => {
-    const ipList = selectionListWholeDataMemo.map(item => item.ip);
-    execCopy(ipList.join('\n'), `${t('复制成功n个IP', { n: ipList.length })}\n`);
+    const ipList = selectionList.value.map((item) => item.ip);
+    execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }));
   };
 
   // 复制所有异常主机
   const handleCopyAllAbnormalHost = () => {
     fetchList({
-      offset: 0,
       limit: -1,
+      offset: 0,
+      ...searchParams.value,
     }).then((data) => {
+      if (!data.results.length) {
+        messageWarn(t('暂无可复制 IP'));
+        return;
+      }
       const ipList = data.results.reduce<string[]>((result, item) => {
         if (!item.agent_status) {
           result.push(item.ip);
         }
         return result;
       }, []);
-      execCopy(ipList.join('\n'), `${t('复制成功n个IP', { n: ipList.length })}\n`);
+      execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }));
     });
   };
 
-  // 批量编辑后刷新列表
-  const handleBatchSettingChange = () => {
-    fetchData();
-    Object.values(selectionHostIdList.value).forEach((hostId) => {
-      tableRef.value.removeSelectByKey(hostId);
-    });
-    selectionHostIdList.value = [];
-  };
-
-  // 跳转操作记录
-  const handleGoOperationRecord = () => {
-    router.push({
-      name: 'resourcePoolOperationRecord',
-    });
+  // 跳转历史任务
+  const handleGoTaskHistory = () => {
+    window.open(taskHistoryListHref);
   };
 
   const handleSelection = (list: number[], selectionListWholeData: DbResourceModel[]) => {
-    selectionHostIdList.value = list;
-    selectionListWholeDataMemo = selectionListWholeData;
-    isSelectedSameBiz.value = (new Set(selectionListWholeData.map(item => item.for_biz.bk_biz_id))).size === 1;
+    selectionList.value = selectionListWholeData;
+    isSelectedSameBiz.value = new Set(selectionListWholeData.map((item) => item.for_biz.bk_biz_id)).size === 1;
   };
 
   const handleClearSearch = () => {
-    searchBoxRef.value.clearValue();
+    searchBoxRef.value!.clearValue();
   };
 
   const handleShowBatchCovertToPublic = () => {
     isShowBatchCovertToPublic.value = true;
-  }
+  };
 
   const handleShowBatchMoveToRecyclePool = () => {
     isShowBatchMoveToRecyclePool.value = true;
@@ -555,7 +460,7 @@
 
   const handleShowBatchMoveToFaultPool = () => {
     isShowBatchMoveToFaultPool.value = true;
-  }
+  };
 
   const handleShowBatchUndoImport = () => {
     isShowBatchUndoImport.value = true;
@@ -563,29 +468,25 @@
 
   const handleShowBatchConvertToBusiness = () => {
     isShowBatchConvertToBusiness.value = true;
-  }
+  };
 
   const handleShowBatchAddTags = () => {
     isShowBatchAddTags.value = true;
-  }
+  };
 
   const handleShowBatchAssign = () => {
     isShowBatchAssign.value = true;
-  }
+  };
 
   const handleEdit = (data: DbResourceModel) => {
     isShowUpdateAssign.value = true;
     curEditData.value = data;
-  }
+  };
 
   const handleRefresh = () => {
+    tableRef.value!.clearSelected();
     fetchData();
-    Object.values(selectionHostIdList.value).forEach((hostId) => {
-      tableRef.value.removeSelectByKey(hostId);
-    });
-    selectionListWholeDataMemo = [];
-    selectionHostIdList.value = [];
-  }
+  };
 
   onMounted(() => {
     fetchData();
@@ -598,7 +499,6 @@
       align-items: center;
 
       .quick-search-btn {
-        width: 32px;
         margin-left: auto;
       }
 

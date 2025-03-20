@@ -9,6 +9,6 @@ export interface ProxyUpgrade extends DetailBase {
       current_version: string;
       target_package: string;
     };
-    pkg_id: string;
+    pkg_id: number;
   }[];
 }

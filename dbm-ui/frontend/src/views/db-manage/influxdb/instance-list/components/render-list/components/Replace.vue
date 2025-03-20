@@ -32,7 +32,12 @@
           v-model:host-list="nodeInfoMap.influxdb.hostList"
           v-model:node-list="nodeInfoMap.influxdb.nodeList"
           v-model:resource-spec="nodeInfoMap.influxdb.resourceSpec"
+          :cloud-info="{
+            id: 0,
+            name: '',
+          }"
           :data="nodeInfoMap.influxdb"
+          :db-type="DBTypes.INFLUXDB"
           :ip-source="ipSource"
           @remove-node="handleRemoveNode" />
       </div>
@@ -61,7 +66,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import HostReplace, { type TReplaceNode } from '@views/db-manage/common/host-replace/Index.vue';
 
@@ -137,7 +142,7 @@
           return reject();
         }
 
-        Promise.resolve(influxdbRef.value.getValue()).then(
+        Promise.all([influxdbRef.value.getValue()]).then(
           ([influxdbValue]) => {
             const isEmptyValue = () => {
               if (ipSource.value === 'manual_input') {
@@ -175,8 +180,12 @@
                 const nodeData = {};
                 if (ipSource.value === 'manual_input') {
                   Object.assign(nodeData, {
-                    new_nodes: {
-                      influxdb: influxdbValue.new_nodes,
+                    resource_spec: {
+                      influxdb: {
+                        count: influxdbValue.new_nodes.length,
+                        hosts: influxdbValue.new_nodes,
+                        spec_id: 0,
+                      },
                     },
                   });
                 } else {
@@ -189,13 +198,13 @@
                 createTicket({
                   bk_biz_id: currentBizId,
                   details: {
-                    ip_source: ipSource.value,
+                    ip_source: 'resource_pool',
                     old_nodes: {
                       influxdb: influxdbValue.old_nodes,
                     },
                     ...nodeData,
                   },
-                  ticket_type: 'INFLUXDB_REPLACE',
+                  ticket_type: TicketTypes.INFLUXDB_REPLACE,
                 }).then(() => {
                   emits('change');
                   resolve('success');

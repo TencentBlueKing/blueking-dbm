@@ -45,6 +45,7 @@
             name: data.bk_cloud_name,
           }"
           :data="nodeInfoMap[nodeType]"
+          :db-type="DBTypes.HDFS"
           :ip-source="ipSource" />
       </div>
     </div>
@@ -62,9 +63,7 @@
 
   import { useTicketMessage } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
-
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import HostExpansion, { type TExpansionNode } from '@views/db-manage/common/host-expansion/Index.vue';
   import NodeStatusList from '@views/db-manage/common/host-expansion/NodeStatusList.vue';
@@ -85,10 +84,7 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-  const globalBizsStore = useGlobalBizs();
   const ticketMessage = useTicketMessage();
-
-  const bizId = globalBizsStore.currentBizId;
 
   const nodeStatusList = [
     {
@@ -194,15 +190,12 @@
             const generateExtInfo = () =>
               Object.entries(nodeInfoMap).reduce(
                 (results, [key, item]) => {
-                  const obj = {
-                    // target_disk: item.targetDisk,
-                    expansion_disk: item.expansionDisk,
-                    host_list: item.hostList,
-                    total_disk: item.totalDisk,
-                    total_hosts: item.originalHostList.length,
-                  };
                   Object.assign(results, {
-                    [key]: obj,
+                    [key]: {
+                      expansion_disk: item.expansionDisk,
+                      total_disk: item.totalDisk,
+                      total_hosts: item.originalHostList.length,
+                    },
                   });
                   return results;
                 },
@@ -212,14 +205,19 @@
             if (ipSource.value === 'manual_input') {
               const fomatHost = (hostList: TExpansionNode['hostList'] = []) =>
                 hostList.map((hostItem) => ({
-                  bk_biz_id: hostItem.meta.bk_biz_id,
-                  bk_cloud_id: hostItem.cloud_id,
-                  bk_host_id: hostItem.host_id,
+                  bk_biz_id: hostItem.dedicated_biz,
+                  bk_cloud_id: hostItem.bk_cloud_id,
+                  bk_disk: hostItem.bk_disk,
+                  bk_host_id: hostItem.bk_host_id,
                   ip: hostItem.ip,
                 }));
               Object.assign(hostData, {
-                nodes: {
-                  datanode: fomatHost(nodeInfoMap.datanode.hostList),
+                resource_spec: {
+                  datanode: {
+                    count: nodeInfoMap.datanode.hostList.length,
+                    hosts: fomatHost(nodeInfoMap.datanode.hostList),
+                    spec_id: 0,
+                  },
                 },
               });
             } else {
@@ -231,14 +229,14 @@
             }
 
             createTicket({
-              bk_biz_id: bizId,
+              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
               details: {
                 cluster_id: props.data.id,
-                ip_source: ipSource.value,
-                ...hostData,
                 ext_info: generateExtInfo(),
+                ip_source: 'resource_pool',
+                ...hostData,
               },
-              ticket_type: 'HDFS_SCALE_UP',
+              ticket_type: TicketTypes.HDFS_SCALE_UP,
             }).then((data) => {
               ticketMessage(data.id);
               resolve('success');

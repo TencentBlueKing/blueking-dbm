@@ -426,12 +426,12 @@
     display: flex;
     width: 100%;
     height: 42px;
-    cursor: pointer;
-    background: #fff;
-    transition: all 0.15s;
     overflow: hidden;
     color: #63656e;
+    cursor: pointer;
+    background: #fff;
     border: 1px solid transparent;
+    transition: all 0.15s;
     align-items: center;
 
     &:hover {
@@ -442,6 +442,7 @@
     &.is-focused {
       z-index: 99;
       border: 1px solid #3a84ff;
+
       .focused-flag {
         transform: rotateZ(-90deg);
       }
@@ -475,6 +476,7 @@
 
     &.is-error {
       background: rgb(255 221 221 / 20%);
+
       .inner-input {
         background-color: #fff1f1;
       }

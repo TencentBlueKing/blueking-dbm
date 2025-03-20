@@ -26,6 +26,9 @@
         :max-height="tableMaxHeight"
         :pagination="pagination"
         :pagination-heihgt="60"
+        remote-pagination
+        :row-class-name="rowCls"
+        show-overflow-tooltip
         v-bind="$attrs"
         @column-sort="handleColumnSortChange"
         @page-limit-change="handlePageLimitChange"
@@ -51,12 +54,12 @@
 </template>
 <script lang="tsx">
   export interface IPagination {
+    align: string;
     count: number;
     current: number;
+    layout: Array<string>;
     limit: number;
     limitList: Array<number>;
-    align: string;
-    layout: Array<string>;
     remote: boolean;
   }
   export interface IPaginationExtra {
@@ -64,34 +67,33 @@
   }
 
   interface Props {
+    clearSelection?: boolean;
     columns: InstanceType<typeof Table>['$props']['columns'];
     dataSource: (params: any, payload?: IRequestPayload) => Promise<any>;
-    fixedPagination?: boolean;
-    clearSelection?: boolean;
-    paginationExtra?: IPaginationExtra;
-    selectable?: boolean;
     disableSelectMethod?: (data: any) => boolean | string;
-    rowCls?: string;
+    fixedPagination?: boolean;
+    paginationExtra?: IPaginationExtra;
     // data 数据的主键
     primaryKey?: string;
+    rowCls?: string;
+    selectable?: boolean;
   }
 
   interface Emits {
     (e: 'requestSuccess', value: any): void;
     (e: 'requestFinished', value: any[]): void;
     (e: 'clearSearch'): void;
-    (e: 'selection', key: string[], list: any[]): void;
-    (e: 'selection', key: number[], list: any[]): void;
+    (e: 'selection', key: string[] | number[], list: any[]): void;
   }
 
   interface Exposes {
+    bkTableRef: Ref<InstanceType<typeof Table>>;
+    clearSelected: () => void;
     fetchData: (params: Record<string, any>, baseParams: Record<string, any>) => void;
     getData: <T>() => Array<T>;
-    clearSelected: () => void;
     loading: Ref<boolean>;
-    bkTableRef: Ref<InstanceType<typeof Table>>;
-    updateTableKey: () => void;
     removeSelectByKey: (key: string) => void;
+    updateTableKey: () => void;
   }
 </script>
 <script setup lang="tsx">
@@ -112,20 +114,20 @@
   import { useStorage } from '@vueuse/core';
 
   const props = withDefaults(defineProps<Props>(), {
-    fixedPagination: false,
     clearSelection: true,
-    paginationExtra: () => ({}),
-    selectable: false,
-    disableSelectMethod: () => false,
-    primaryKey: 'id',
     containerHeight: undefined,
+    disableSelectMethod: () => false,
+    fixedPagination: false,
+    paginationExtra: () => ({}),
+    primaryKey: 'id',
+    rowCls: '',
+    selectable: false,
   });
 
   const emits = defineEmits<Emits>();
 
   // 生成可选中列配置
   const genSelectionColumn = () => ({
-    width: 60,
     fixed: 'left',
     label: () => (
       // const renderCheckbox = () => {
@@ -143,22 +145,12 @@
       // };
       <div class='db-table-select-cell'>
         <bk-checkbox
-          model-value={isWholeChecked.value}
           label={true}
+          model-value={isWholeChecked.value}
           onChange={handleWholeSelect}
         />
         <bk-popover
-          placement='bottom-start'
-          theme='light db-table-select-menu'
-          arrow={false}
-          trigger='hover'
           v-slots={{
-            default: () => (
-              <db-icon
-                class='select-menu-flag'
-                type='down-big'
-              />
-            ),
             content: () => (
               <div class='db-table-select-plan'>
                 <div
@@ -173,26 +165,37 @@
                 </div>
               </div>
             ),
-          }}></bk-popover>
+            default: () => (
+              <db-icon
+                class='select-menu-flag'
+                type='down-big'
+              />
+            ),
+          }}
+          arrow={false}
+          placement='bottom-start'
+          theme='light db-table-select-menu'
+          trigger='hover'></bk-popover>
       </div>
     ),
     render: ({ data }: { data: any }) => {
       const selectDisabled = props.disableSelectMethod(data);
       const tips = {
-        disabled: !selectDisabled,
         content: _.isString(selectDisabled) ? selectDisabled : t('禁止选择'),
+        disabled: !selectDisabled,
       };
       return (
         <span v-bk-tooltips={tips}>
           <bk-checkbox
-            label={true}
             disabled={selectDisabled}
-            onChange={() => handleRowClick(data)}
+            label={true}
             modelValue={Boolean(rowSelectMemo.value[_.get(data, props.primaryKey)])}
+            onChange={() => handleRowClick(data)}
           />
         </span>
       );
     },
+    width: 60,
   });
 
   const { t } = useI18n();
@@ -206,21 +209,21 @@
   const tableData = ref<ListBase<any>>({
     count: 0,
     next: '',
+    permission: {},
     previous: '',
     results: [],
-    permission: {},
   });
   const isSearching = ref(false);
   const isAnomalies = ref(false);
   const rowSelectMemo = shallowRef<Record<string | number, Record<any, any>>>({});
   const isWholeChecked = ref(false);
   const pagination = reactive<IPagination>({
+    align: 'right',
     count: 0,
     current: 1,
+    layout: ['total', 'limit', 'list'],
     limit: paginationLimitCache.value,
     limitList: [10, 20, 50, 100],
-    align: 'right',
-    layout: ['total', 'limit', 'list'],
     remote: true,
     ...props.paginationExtra,
   });
@@ -261,7 +264,7 @@
     const baseParamsKeys = Object.keys(baseParamsMemo);
 
     for (const [key, value] of Object.entries(paramsMemo)) {
-      if (baseParamsKeys.includes(key) || [undefined, ''].includes(value as any)) continue;
+      if (baseParamsKeys.includes(key) || ['', undefined].includes(value as any)) continue;
 
       searchKeys.push(key);
     }
@@ -276,8 +279,8 @@
     Promise.resolve().then(() => {
       isLoading.value = loading;
       const params = {
-        offset: (pagination.current - 1) * pagination.limit,
         limit: pagination.limit,
+        offset: (pagination.current - 1) * pagination.limit,
         ...paramsMemo,
         ...sortParams,
       };
@@ -323,7 +326,7 @@
     if (props.fixedPagination) {
       return;
     }
-    const { offset, page_size: limit, order_field: orderField, order_type: orderType } = getSearchParams();
+    const { offset, order_field: orderField, order_type: orderType, page_size: limit } = getSearchParams();
     if (offset && limit) {
       pagination.current = ~~offset;
       pagination.limit = ~~limit;
@@ -381,8 +384,8 @@
     if (value) {
       props
         .dataSource({
-          offset: (pagination.current - 1) * pagination.limit,
           limit: -1,
+          offset: (pagination.current - 1) * pagination.limit,
           ...paramsMemo,
           ...sortParams,
         })
@@ -432,9 +435,9 @@
   // 排序
   const handleColumnSortChange = (sortPayload: any) => {
     const valueMap = {
-      null: undefined,
-      desc: 0,
       asc: 1,
+      desc: 0,
+      null: undefined,
     };
     sortParams = {
       [sortPayload.column.field]: valueMap[sortPayload.type as keyof typeof valueMap],
@@ -461,20 +464,20 @@
     emits('clearSearch');
   };
 
-  const calcPageLimit = () => {
-    const windowInnerHeight = window.innerHeight;
-    const tableHeaderHeight = 42;
-    const tableRowHeight = 42;
-    const pageOffsetTop = 260;
-    const tableFooterHeight = 60;
+  // const calcPageLimit = () => {
+  //   const windowInnerHeight = window.innerHeight;
+  //   const tableHeaderHeight = 42;
+  //   const tableRowHeight = 42;
+  //   const pageOffsetTop = 260;
+  //   const tableFooterHeight = 60;
 
-    const tableRowTotalHeight = windowInnerHeight - pageOffsetTop - tableHeaderHeight - tableFooterHeight;
+  //   const tableRowTotalHeight = windowInnerHeight - pageOffsetTop - tableHeaderHeight - tableFooterHeight;
 
-    const rowNum = Math.floor(tableRowTotalHeight / tableRowHeight);
-    const pageLimit = new Set([...pagination.limitList, rowNum]);
-    pagination.limit = rowNum;
-    pagination.limitList = [...pageLimit].sort((a, b) => a - b);
-  };
+  //   const rowNum = Math.floor(tableRowTotalHeight / tableRowHeight);
+  //   const pageLimit = new Set([...pagination.limitList, rowNum]);
+  //   pagination.limit = rowNum;
+  //   pagination.limitList = [...pageLimit].sort((a, b) => a - b);
+  // };
 
   const calcTableHeight = _.throttle(() => {
     if (rootRef.value) {
@@ -486,16 +489,16 @@
 
   onMounted(() => {
     parseURL();
-    calcPageLimit();
+    // calcPageLimit();
     calcTableHeight();
     window.addEventListener('resize', calcTableHeight);
     const observer = new MutationObserver(() => {
       calcTableHeight();
     });
     observer.observe(document.querySelector('body') as Node, {
-      subtree: true,
-      childList: true,
       characterData: true,
+      childList: true,
+      subtree: true,
     });
     onBeforeUnmount(() => {
       observer.takeRecords();
@@ -505,6 +508,12 @@
   });
 
   defineExpose<Exposes>({
+    bkTableRef,
+    // 清空选择
+    clearSelected() {
+      // bkTableRef.value?.clearSelection();
+      handleClearWholeSelect();
+    },
     // 获取远程数据
     fetchData(params = {} as Record<string, any>, baseParams = {} as Record<string, any>, loading = true) {
       paramsMemo = {
@@ -523,18 +532,13 @@
     getData() {
       return tableData.value.results;
     },
-    // 清空选择
-    clearSelected() {
-      bkTableRef.value?.clearSelection();
+    loading: isLoading,
+    removeSelectByKey(key: string) {
+      delete rowSelectMemo.value[key];
     },
     updateTableKey() {
       tableKey.value = random();
     },
-    removeSelectByKey(key: string) {
-      delete rowSelectMemo.value[key];
-    },
-    loading: isLoading,
-    bkTableRef,
   });
 </script>
 <style lang="less">
