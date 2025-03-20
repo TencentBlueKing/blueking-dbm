@@ -13,6 +13,8 @@
 
 import type { HostInfo } from '@services/types';
 
+import { Affinity } from '@common/const';
+
 /**
  * 初始化表单数据
  * @returns formdata
@@ -24,7 +26,7 @@ export const getInitFormdata = () => ({
     city_code: '',
     db_app_abbr: '',
     db_version: '',
-    disaster_tolerance_level: 'NONE', // 同 affinity
+    disaster_tolerance_level: Affinity.MAX_EACH_ZONE_EQUAL, // 同 affinity
     group_id: '',
     ip_source: 'resource_pool',
     nodes: {

@@ -53,6 +53,9 @@ export default class FunctionController {
   'bizConfigManage.ticketFlowSetting': ControllerItem<string>;
   'bizConfigManage.ticketNoticeSetting': ControllerItem<string>;
 
+  // 通用开关，涉及多个功能页面
+  'common.specCostEstimate': ControllerItem<string>;
+
   'databaseManage.missionManage': ControllerItem<string>;
   'databaseManage.temporaryPaasswordModify': ControllerItem<string>;
   'databaseManage.whitelistManage': ControllerItem<string>;
@@ -205,6 +208,7 @@ export default class FunctionController {
   addons: ControllerItem<AddonsFunctions>;
   bigdata: ControllerItem<BigdataFunctions>;
   bizConfigManage: ControllerItem<string>;
+  common: ControllerItem<string>;
   databaseManage: ControllerItem<string>;
   globalConfigManage: ControllerItem<string>;
   mongodb: ControllerItem<MongoFunctions>;
@@ -220,6 +224,7 @@ export default class FunctionController {
   constructor(payload = {} as FunctionController) {
     this.addons = payload.addons;
     this.mysql = payload.mysql;
+    this.common = payload.common;
     this.redis = payload.redis;
     this.mongodb = payload.mongodb;
     this.bigdata = payload.bigdata;

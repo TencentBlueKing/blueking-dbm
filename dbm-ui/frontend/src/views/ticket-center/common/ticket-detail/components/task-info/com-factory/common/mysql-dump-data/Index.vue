@@ -13,22 +13,22 @@
 
 <template>
   <InfoList>
-    <InfoItem :label="t('目标集群：')">
+    <InfoItem :label="t('目标集群')">
       {{ ticketDetails.details.clusters[ticketDetails.details.cluster_id].immute_domain }}
     </InfoItem>
-    <InfoItem :label="t('目标 DB：')">
+    <InfoItem :label="t('目标 DB')">
       <TagBlock :data="ticketDetails.details.databases" />
     </InfoItem>
-    <InfoItem :label="t('目标表名：')">
+    <InfoItem :label="t('目标表名')">
       <TagBlock :data="ticketDetails.details.tables" />
     </InfoItem>
-    <InfoItem :label="t('忽略表名：')">
+    <InfoItem :label="t('忽略表名')">
       <TagBlock :data="ticketDetails.details.tables_ignore" />
     </InfoItem>
-    <InfoItem :label="t('where 条件：')">
+    <InfoItem :label="t('where 条件')">
       {{ ticketDetails.details.where || '--' }}
     </InfoItem>
-    <InfoItem :label="t('导出数据：')">
+    <InfoItem :label="t('导出数据')">
       <template v-if="ticketDetails.details.dump_data && ticketDetails.details.dump_schema">
         {{ t('数据和表结构') }}
       </template>

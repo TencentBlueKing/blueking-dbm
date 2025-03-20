@@ -228,3 +228,16 @@ export function getSummaryList(params: {
 export function appendHostLabel(params: { bk_host_ids: number[]; labels: number[] }) {
   return http.post(`${path}/append_labels/`, params);
 }
+
+// 计算预估成本
+export function specCostEstimate(params: {
+  db_type: string;
+  resource_spec: {
+    [key: string]: {
+      count: number;
+      spec_id: number;
+    };
+  };
+}) {
+  return http.post<number>(`${path}/spec_cost_estimate/`, params);
+}

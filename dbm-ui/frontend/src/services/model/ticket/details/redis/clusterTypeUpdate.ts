@@ -1,3 +1,5 @@
+import { Affinity } from '@common/const';
+
 import type { DetailBase, DetailClusters, DetailSpecs } from '../common';
 
 export interface ClusterTypeUpdate extends DetailBase {
@@ -17,12 +19,12 @@ export interface ClusterTypeUpdate extends DetailBase {
     online_switch_type: 'user_confirm';
     resource_spec: {
       backend_group: {
-        affinity: 'CROS_SUBZONE';
+        affinity: Affinity.CROS_SUBZONE;
         count: number; // 机器组数
         spec_id: number;
       };
       proxy: {
-        affinity: 'CROS_SUBZONE';
+        affinity: Affinity.CROS_SUBZONE;
         count: number;
         spec_id: number;
       };

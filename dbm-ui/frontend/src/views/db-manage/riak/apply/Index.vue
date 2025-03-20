@@ -41,9 +41,9 @@
           v-model="formData.details.bk_cloud_id"
           @change="handleChangeCloud" />
       </DbCard>
-      <RegionItem
-        ref="regionItemRef"
-        v-model="formData.details.city_code" />
+      <RegionRequirements
+        ref="regionRequirements"
+        v-model="formData.details" />
       <DbCard :title="t('数据库部署信息')">
         <BkFormItem
           :label="t('Riak版本')"
@@ -82,9 +82,9 @@
             <BkRadioButton label="resource_pool">
               {{ t('自动从资源池匹配') }}
             </BkRadioButton>
-            <BkRadioButton label="manual_input">
+            <!-- <BkRadioButton label="manual_input">
               {{ t('业务空闲机') }}
-            </BkRadioButton>
+            </BkRadioButton> -->
           </BkRadioGroup>
         </BkFormItem>
         <Transition
@@ -151,6 +151,11 @@
             </BkFormItem>
           </div>
         </Transition>
+        <EstimatedCost
+          :params="{
+            db_type: DBTypes.RIAK,
+            resource_spec: resourceSepc,
+          }" />
         <BkFormItem :label="t('备注')">
           <BkInput
             v-model="formData.remark"
@@ -188,13 +193,14 @@
 </template>
 <script setup lang="ts">
   import InfoBox from 'bkui-vue/lib/info-box';
+  import { type ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import type { BizItem, HostInfo } from '@services/types';
 
   import { useApplyBase } from '@hooks';
 
-  import { ClusterTypes, OSTypes, TicketTypes } from '@common/const';
+  import { Affinity, ClusterTypes, DBTypes, OSTypes, TicketTypes } from '@common/const';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
@@ -202,8 +208,9 @@
   import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
   import ClusterAlias from '@views/db-manage/common/apply-items/ClusterAlias.vue';
   import ClusterName from '@views/db-manage/common/apply-items/ClusterName.vue';
+  import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
   import ModuleItem from '@views/db-manage/common/apply-items/ModuleItem.vue';
-  import RegionItem from '@views/db-manage/common/apply-items/RegionItem.vue';
+  import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/BigData.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
 
   // 目前固定为此版本
@@ -219,6 +226,7 @@
       db_app_abbr: '',
       db_module_id: null as number | null,
       db_version: '2.2',
+      disaster_tolerance_level: Affinity.MAX_EACH_ZONE_EQUAL, // 同 affinity
       ip_source: 'resource_pool',
       nodes: [] as HostInfo[],
       // http_port: 8087,
@@ -233,6 +241,8 @@
   const router = useRouter();
   const { t } = useI18n();
   const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+
+  const regionRequirementsRef = useTemplateRef('regionRequirements');
 
   const formRef = ref();
   const specRef = ref();
@@ -260,6 +270,16 @@
       },
     ],
   };
+
+  const resourceSepc = computed(
+    () =>
+      ({
+        riak: {
+          count: formData.nodes_num,
+          spec_id: formData.spec_id,
+        },
+      }) as ComponentProps<typeof EstimatedCost>['params']['resource_spec'],
+  );
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
@@ -304,6 +324,7 @@
               count: formData.nodes_num,
               spec_id: formData.spec_id,
               ...specRef.value.getData(),
+              ...regionRequirementsRef.value!.getValue(),
             },
           },
         });

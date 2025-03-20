@@ -14,7 +14,7 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode, ClusterListSpec } from '@services/types';
 
-import { ClusterAffinityMap, ClusterTypes } from '@common/const';
+import { Affinity, affinityMap, ClusterTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
@@ -66,12 +66,13 @@ export default class Pulsar extends ClusterBase {
   cluster_name: string;
   cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
+  cluster_subzons: string[];
   cluster_time_zone: string;
   cluster_type: ClusterTypes;
   cluster_type_name: string;
   create_at: string;
   creator: string;
-  disaster_tolerance_level: keyof typeof ClusterAffinityMap;
+  disaster_tolerance_level: Affinity;
   domain: string;
   id: number;
   major_version: string;
@@ -110,6 +111,7 @@ export default class Pulsar extends ClusterBase {
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
+    this.cluster_subzons = payload.cluster_subzons || [];
     this.cap_usage = payload.cap_usage;
     this.cluster_alias = payload.cluster_alias;
     this.cluster_entry = payload.cluster_entry;
@@ -154,7 +156,7 @@ export default class Pulsar extends ClusterBase {
     );
   }
   get disasterToleranceLevelName() {
-    return ClusterAffinityMap[this.disaster_tolerance_level];
+    return affinityMap[this.disaster_tolerance_level];
   }
   get isStarting() {
     return Boolean(this.operations.find((item) => item.ticket_type === Pulsar.PULSAR_ENABLE));

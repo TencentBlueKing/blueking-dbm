@@ -1,7 +1,7 @@
 import type RedisModel from '@services/model/redis/redis';
 import type { OnlineSwitchType } from '@services/types';
 
-import type { AffinityType } from '@views/db-manage/redis/common/types';
+import { Affinity } from '@common/const';
 
 import type { DetailBase, DetailClusters, DetailSpecs } from '../common';
 
@@ -21,7 +21,7 @@ export interface ScaleUpdown extends DetailBase {
     online_switch_type: OnlineSwitchType;
     resource_spec: {
       backend_group: {
-        affinity: AffinityType;
+        affinity: Affinity;
         count: number; // 机器组数
         spec_id: number;
       };

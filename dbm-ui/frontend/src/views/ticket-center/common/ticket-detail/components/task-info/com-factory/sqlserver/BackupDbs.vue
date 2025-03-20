@@ -49,13 +49,13 @@
     </BkTableColumn>
   </BkTable>
   <InfoList>
-    <InfoItem :label="t('备份方式：')">
+    <InfoItem :label="t('备份方式')">
       {{ ticketDetails.details.backup_type === 'full_backup' ? t('全量备份') : t('增量备份') }}
     </InfoItem>
-    <InfoItem :label="t('备份位置：')">
+    <InfoItem :label="t('备份位置')">
       {{ ticketDetails.details.backup_place === 'master' ? t('主库主机') : t('--') }}
     </InfoItem>
-    <InfoItem :label="t('备份保存时间：')">
+    <InfoItem :label="t('备份保存时间')">
       {{ fileTagMap[ticketDetails.details.file_tag] }}
     </InfoItem>
   </InfoList>

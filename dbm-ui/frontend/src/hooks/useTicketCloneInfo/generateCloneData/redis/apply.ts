@@ -47,6 +47,7 @@ export function generateRedisApplyCloneData(ticketData: TicketModel<Redis.Cluste
           spec_id: details.resource_spec.proxy.spec_id,
         },
       },
+      sub_zone_ids: details.resource_spec?.backend_group.location_spec.sub_zone_ids || [],
     },
     remark: ticketData.remark,
     ticket_type: TicketTypes.REDIS_CLUSTER_APPLY,

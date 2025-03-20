@@ -14,7 +14,7 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
 
-import { ClusterAffinityMap, ClusterTypes } from '@common/const';
+import { Affinity, affinityMap, ClusterTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
@@ -58,6 +58,7 @@ export default class Redis extends ClusterBase {
   cluster_shard_num: number;
   cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
+  cluster_subzons: string[];
   cluster_time_zone: string;
   cluster_type: ClusterTypes;
   cluster_type_name: string;
@@ -65,7 +66,7 @@ export default class Redis extends ClusterBase {
   creator: string;
   db_module_id: number;
   db_module_name: string;
-  disaster_tolerance_level: keyof typeof ClusterAffinityMap;
+  disaster_tolerance_level: Affinity;
   dns_to_clb: boolean;
   id: number;
   machine_pair_cnt: number;
@@ -105,6 +106,7 @@ export default class Redis extends ClusterBase {
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
+    this.cluster_subzons = payload.cluster_subzons || [];
     this.cluster_access_port = payload.cluster_access_port;
     this.cluster_alias = payload.cluster_alias;
     this.cluster_capacity = payload.cluster_capacity;
@@ -164,7 +166,7 @@ export default class Redis extends ClusterBase {
   }
 
   get disasterToleranceLevelName() {
-    return ClusterAffinityMap[this.disaster_tolerance_level];
+    return affinityMap[this.disaster_tolerance_level];
   }
 
   get isOnlineCLB() {
