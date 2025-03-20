@@ -2,7 +2,9 @@ package mysqlcmd
 
 import (
 	"fmt"
+	"path/filepath"
 
+	"dbm-services/common/go-pubpkg/filecontext"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/rollback"
@@ -39,9 +41,19 @@ func GoFlashbackBinlogCommand() *cobra.Command {
 			subcmd.ToPrettyJson(act.Payload.Example()),
 		),
 		Run: func(cmd *cobra.Command, args []string) {
-			util.CheckErr(act.Validate())
-			util.CheckErr(act.Init())
-			util.CheckErr(act.Run())
+			if act.Phase == "prepare" {
+				util.CheckErr(act.Validate())
+				util.CheckErr(act.Init())
+				util.CheckErr(act.Prepare())
+			} else if act.Phase == "execute" {
+				util.CheckErr(act.Validate())
+				util.CheckErr(act.Init())
+				util.CheckErr(act.Execute())
+			} else {
+				util.CheckErr(act.Validate())
+				util.CheckErr(act.Init())
+				util.CheckErr(act.Run())
+			}
 		},
 	}
 	return cmd
@@ -57,6 +69,10 @@ func (d *GoFlashbackBinlogAct) Init() (err error) {
 		return err
 	}
 	d.Payload.GeneralParam = subcmd.GeneralRuntimeParam
+
+	contextFile := fmt.Sprintf(filepath.Join(d.Payload.GeneralParam.ActuatorWorkDir(),
+		"flashback_%s_%s_%d.ctx.json"), d.BaseOptions.Uid, d.BaseOptions.RootId, d.Payload.Params.TgtInstance.Port)
+	d.Payload.Params.ShareContext = filecontext.NewFileContext(contextFile)
 	return
 }
 
@@ -68,6 +84,35 @@ func (d *GoFlashbackBinlogAct) Validate() error {
 // Run TODO
 func (d *GoFlashbackBinlogAct) Run() (err error) {
 	defer util.LoggerErrorStack(logger.Error, err)
+	var steps subcmd.Steps
+	steps = subcmd.Steps{
+		{
+			FunName: "初始化",
+			Func:    d.Payload.Params.Init,
+		},
+		{
+			FunName: "预检查",
+			Func:    d.Payload.Params.PreCheck,
+		},
+		{
+			FunName: "开始准备 binlog",
+			Func:    d.Payload.Params.PhasePrepare,
+		},
+		{
+			FunName: "开始导入 binlog",
+			Func:    d.Payload.Params.PhaseExecute,
+		},
+	}
+	if err = steps.Run(); err != nil {
+		return err
+	}
+	logger.Info("flashback binlog successfully")
+	return nil
+}
+
+// Prepare 分阶段执行，prepare phase
+func (d *GoFlashbackBinlogAct) Prepare() (err error) {
+	defer util.LoggerErrorStack(logger.Error, err)
 	steps := subcmd.Steps{
 		{
 			FunName: "初始化",
@@ -78,8 +123,24 @@ func (d *GoFlashbackBinlogAct) Run() (err error) {
 			Func:    d.Payload.Params.PreCheck,
 		},
 		{
+			FunName: "开始准备 binlog",
+			Func:    d.Payload.Params.PhasePrepare,
+		},
+	}
+	if err = steps.Run(); err != nil {
+		return err
+	}
+	logger.Info("prepare binlog successfully")
+	return nil
+}
+
+// Execute 分阶段执行，execute phase
+func (d *GoFlashbackBinlogAct) Execute() (err error) {
+	defer util.LoggerErrorStack(logger.Error, err)
+	steps := subcmd.Steps{
+		{
 			FunName: "开始 flashback binlog",
-			Func:    d.Payload.Params.Start,
+			Func:    d.Payload.Params.PhaseExecute,
 		},
 	}
 	if err = steps.Run(); err != nil {

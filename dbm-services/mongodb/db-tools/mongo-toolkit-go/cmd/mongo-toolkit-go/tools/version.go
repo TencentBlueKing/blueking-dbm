@@ -1,6 +1,7 @@
 package tools
 
 import (
+	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/buildinfo"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -26,7 +27,7 @@ var versionCmd = &cobra.Command{
 	Short: "version",
 	Long:  "version info",
 	Run: func(cmd *cobra.Command, args []string) {
-		printVersion()
+		fmt.Printf("mongo-toolkit-go\n%s\n", buildinfo.VersionInfo())
 	}}
 
 // init versionCmd

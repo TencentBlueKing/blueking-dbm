@@ -12,5 +12,5 @@
 */
 
 .cursor-element {
-  background: url("./lock.svg") center center no-repeat;
+  background: url('./lock.svg') center center no-repeat;
 }

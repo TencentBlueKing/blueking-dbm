@@ -10,6 +10,7 @@ require (
 	github.com/cloudfoundry/gosigar v1.3.59
 	github.com/dustin/go-humanize v1.0.1
 	github.com/go-sql-driver/mysql v1.7.1
+	github.com/gofrs/flock v0.12.1
 	github.com/golang/glog v1.1.2
 	github.com/jaypipes/ghw v0.12.0
 	github.com/jmoiron/sqlx v1.3.5
@@ -20,6 +21,7 @@ require (
 	github.com/spf13/cobra v1.7.0
 	github.com/xdg-go/scram v1.1.2
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
+	golang.org/x/sync v0.7.0
 	gopkg.in/ini.v1 v1.67.0
 )
 
@@ -71,7 +73,7 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.3 // indirect
 	github.com/zclconf/go-cty v1.14.0 // indirect
 	golang.org/x/mod v0.17.0 // indirect
-	golang.org/x/sys v0.20.0 // indirect
+	golang.org/x/sys v0.22.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
 	howett.net/plist v1.0.0 // indirect
 )

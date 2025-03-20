@@ -35,9 +35,8 @@ func CacheGetConfigFile(fd api.BaseConfFileDef) (*ConfigFileDefModel, error) {
 	if cacheVal, err := CacheLocal.Get(cacheKey); err != nil {
 		if errors.Is(err, freecache.ErrNotFound) {
 			return CacheSetAndGetConfigFile(fd)
-			// return CacheGetConfigFile(namespace, confType, confFile)
 		}
-		return nil, err
+		return nil, errors.WithMessage(err, "get from cache")
 	} else {
 		cacheValStr := string(cacheVal)
 		if cacheValStr == NotFoundInDB || cacheVal == nil {
@@ -63,10 +62,11 @@ func CacheSetAndGetConfigFile(fd api.BaseConfFileDef) (*ConfigFileDefModel, erro
 			CacheLocal.Set(cacheKey, []byte(NotFoundInDB), 60)
 			return nil, nil
 		}
-		return nil, err
+		logger.Error("QueryConfigFileDetail err=%s", err.Error())
+		return nil, errors.WithMessage(err, "read db to cache")
 	}
 	f := confFiles[0]
-	// logger.Info("CacheSetAndGetConfigFile to cache: %+v", f)
+	logger.Info("CacheSetAndGetConfigFile to cache: %+v", f)
 
 	cacheVal, _ := serialize.SerializeToString(f, false)
 	CacheLocal.Set(cacheKey, []byte(cacheVal), 300)
@@ -104,38 +104,6 @@ type ConfFileInfo struct {
 	LevelVersioned    string `json:"level_versioned"`
 	ConfNameValidate  int8   `json:"conf_name_validate"`
 	ConfValueValidate int8   `json:"conf_value_validate"`
-}
-
-// CacheNamespaceType2 key: namespace.dbconf, value: file_list
-var CacheNamespaceType2 map[string]ConfFileInfo
-
-// CacheGetConfigFileList TODO
-//
-//	{
-//	   "namespace1": {
-//	       "conf_type1": {"conf_files": ["f1", "f2"], "conf_name_validate":1, "level_name":""},
-//	       "conf_type2": {"conf_files": ["f1", "f2"]}
-//	   },
-//	   "namespace1": {
-//	       "conf_type3": {"conf_files": ["f1", "f2"]},
-//	       "conf_type4": {"conf_files": ["f1", "f2"]}
-//	   }
-//	}
-func CacheGetConfigFileList(namespace, confType, confFile string) (map[string]ConfTypeFile, error) {
-	cacheKey := []byte("namespace|conf_type")
-	if cacheVal, err := CacheLocal.Get(cacheKey); err != nil {
-		if errors.Is(err, freecache.ErrNotFound) {
-			return CacheSetAndGetConfigFileList(namespace, confType, confFile)
-		}
-		return nil, err
-	} else {
-		namespaceType := map[string]ConfTypeFile{}
-		cacheValStr := string(cacheVal)
-		serialize.UnSerializeString(cacheValStr, &namespaceType, false)
-		logger.Info("CacheGetConfigFileList from cache: %+v", namespaceType)
-
-		return namespaceType, nil
-	}
 }
 
 // CacheSetAndGetConfigFileList TODO

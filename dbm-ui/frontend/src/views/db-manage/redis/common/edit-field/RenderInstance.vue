@@ -47,9 +47,7 @@
     data?: string;
   }
 
-  interface Emits {
-    (e: 'inputFinish', value: string): void;
-  }
+  type Emits = (e: 'inputFinish', value: string) => void;
 
   interface Exposes {
     getValue: (isSubmit?: boolean) => Promise<IHostInfo>;
@@ -73,14 +71,15 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('目标实例不能为空'),
+      validator: (value: string) => Boolean(value),
     },
     {
-      validator: (value: string) => ipPort.test(value),
       message: t('目标实例输入格式有误'),
+      validator: (value: string) => ipPort.test(value),
     },
     {
+      message: t('目标实例不存在'),
       validator: async (value: string) => {
         const listResult = await getRedisInstances({ instance_address: value });
         if (listResult.results.length && !isSkipInputFinish) {
@@ -88,9 +87,9 @@
         }
         return listResult.results.length > 0;
       },
-      message: t('目标实例不存在'),
     },
     {
+      message: t('目标实例重复'),
       validator: (value: string) => {
         const currentClusterSelectMap = instanceMemo[instanceKey];
         const otherClusterMemoMap = { ...instanceMemo };
@@ -103,6 +102,7 @@
           {} as Record<string, boolean>,
         );
         const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
+        // eslint-disable-next-line @typescript-eslint/prefer-for-of
         for (let i = 0; i < currentSelectClusterIdList.length; i++) {
           if (otherClusterIdMap[currentSelectClusterIdList[i]]) {
             return false;
@@ -110,7 +110,6 @@
         }
         return true;
       },
-      message: t('目标实例重复'),
     },
   ];
 

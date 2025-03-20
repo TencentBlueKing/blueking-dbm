@@ -69,8 +69,8 @@
 
   interface Props {
     modelValue: string;
-    title: string;
     readonly?: boolean;
+    title: string;
   }
 
   interface Emits {
@@ -79,8 +79,8 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    readonly: false,
     messageList: () => [],
+    readonly: false,
     syntaxChecking: false,
   });
 
@@ -187,17 +187,17 @@
 
   onMounted(() => {
     editor = monaco.editor.create(editorRef.value, {
+      automaticLayout: true,
       language: 'sql',
-      theme: 'vs-dark',
-      readOnly: props.readonly,
       minimap: {
         enabled: false,
       },
-      wordWrap: 'bounded',
+      readOnly: props.readonly,
       scrollbar: {
         alwaysConsumeMouseWheel: false,
       },
-      automaticLayout: true,
+      theme: 'vs-dark',
+      wordWrap: 'bounded',
     });
     editor.onDidChangeModelContent(() => {
       const value = editor.getValue();

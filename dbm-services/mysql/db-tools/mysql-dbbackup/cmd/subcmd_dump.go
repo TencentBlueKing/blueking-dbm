@@ -207,7 +207,7 @@ func dumpExecute(cmd *cobra.Command, args []string) (err error) {
 func backupData(ctx context.Context, cnf *config.BackupConfig) (err error) {
 	logger.Log.Infof("Dbbackup begin for %d", cnf.Public.MysqlPort)
 	// validate dumpBackup
-	if err = validate.GoValidateStruct(cnf.Public, false); err != nil {
+	if err = validate.GoValidateStructTag(cnf.Public, "ini"); err != nil {
 		return err
 	}
 	if cnf.Public.EncryptOpt == nil {

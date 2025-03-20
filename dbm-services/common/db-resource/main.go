@@ -64,10 +64,6 @@ func main() {
 		ctx.SecureJSON(http.StatusOK, map[string]interface{}{"buildstamp": buildstamp, "githash": githash,
 			"version": version})
 	})
-	lcron := cron.New()
-	registerCrontab(lcron)
-	lcron.Start()
-	defer lcron.Stop()
 
 	srv := &http.Server{
 		Addr:              config.GAppConfig.ListenAddr,
@@ -79,6 +75,12 @@ func main() {
 			logger.Fatal("listen: %s\n", err)
 		}
 	}()
+
+	lcron := cron.New()
+	registerCrontab(lcron)
+	lcron.Start()
+	defer lcron.Stop()
+
 	// Wait for interrupt signal to gracefully shutdown the server with
 	// a timeout of 5 seconds.
 	quit := make(chan os.Signal, 1)

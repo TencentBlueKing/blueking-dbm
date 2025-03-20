@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -47,6 +48,7 @@ func FileExistsErr(path string) error {
 }
 
 // IsDirectory 检查本机路径是否是目录
+// 如果目录不存在，则返回 false
 func IsDirectory(path string) bool {
 	fileInfo, err := os.Stat(path)
 	if err != nil {
@@ -83,6 +85,21 @@ func GetFileSize(path string) int64 {
 	return f.Size()
 }
 
+func GetFileModifyTime(filename string) (bool, int64) {
+	if _, err := os.Stat(filename); !os.IsNotExist(err) {
+		f, err1 := os.Open(filename)
+		if err1 != nil {
+			return true, 0
+		}
+		fi, err2 := f.Stat()
+		if err2 != nil {
+			return true, 0
+		}
+		return true, fi.ModTime().Unix()
+	}
+	return false, 0
+}
+
 // OSCopyFile os cp file
 func OSCopyFile(srcFile, dstFile string) error {
 	_, errStr, err := ExecCommand(true, "", "cp", "-p", srcFile, dstFile)
@@ -90,4 +107,15 @@ func OSCopyFile(srcFile, dstFile string) error {
 		return errors.New(errStr)
 	}
 	return nil
+}
+
+// SafeRmDir TODO
+func SafeRmDir(dir string) (err error) {
+	if strings.TrimSpace(dir) == "/" {
+		return fmt.Errorf("禁止删除系统根目录")
+	}
+	if strings.Contains(dir, "..") {
+		return fmt.Errorf("禁止删除父级目录")
+	}
+	return os.RemoveAll(dir)
 }

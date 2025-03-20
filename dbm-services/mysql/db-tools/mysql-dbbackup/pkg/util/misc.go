@@ -15,9 +15,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/spf13/cast"
 
-	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/common"
@@ -121,18 +119,6 @@ func CalServerDataSize(port int) (uint64, error) {
 	datasize := strings.Replace(string(res), "\n", "", -1)
 	words := strings.Fields(datasize)
 	return strconv.ParseUint(words[0], 10, 64)
-}
-
-func CalBackupDataSize() (uint64, error) {
-	// 如果不是全部数据备份，
-
-	// 逻辑备份, total_filesize*1.5 + 20G
-	// 物理备份, total_filesize*1.2 + 20G
-
-	// 如果没有找到历史备份
-	// 逻辑备份*1
-	// 物理备份
-	return 0, nil
 }
 
 // DiskUsage Get disk usage info
@@ -272,39 +258,6 @@ func FindBackupConfigFiles(dir string) ([]string, error) {
 		}
 	}
 	return cnfFilesNew, nil
-}
-
-// GrepLinesFromFile 从文件里面 grep 错误关键字
-// 如果不指定 keywords，则直接 tail / head 文件行
-func GrepLinesFromFile(logFilePath string, keywords []string, linesRet int, sensitive bool, tail bool) (string, error) {
-	var grepCommand []string
-	lineNum := "-" + cast.ToString(linesRet)
-	if len(keywords) > 0 {
-		grepExpr := "'" + strings.Join(keywords, "|") + "'"
-		if sensitive {
-			grepCommand = append(grepCommand, "grep", "-E")
-		} else {
-			grepCommand = append(grepCommand, "grep", "-Ei")
-		}
-		grepCommand = append(grepCommand, grepExpr, logFilePath)
-		if tail {
-			grepCommand = append(grepCommand, "|", "tail", lineNum)
-		} else {
-			grepCommand = append(grepCommand, "|", "head", lineNum)
-		}
-	} else {
-		if tail {
-			grepCommand = append(grepCommand, "tail", lineNum, logFilePath)
-		} else {
-			grepCommand = append(grepCommand, "head", lineNum, logFilePath)
-		}
-	}
-	errStrDetail, cmdStdErr, err := cmutil.ExecCommand(true, "", grepCommand[0], grepCommand[1:]...)
-	if strings.TrimSpace(errStrDetail) != "" {
-		return errStrDetail, nil
-	} else {
-		return "", errors.WithMessage(err, cmdStdErr)
-	}
 }
 
 // GetMaxRunningTime Get MaxRunningTime from BackupTimeOut

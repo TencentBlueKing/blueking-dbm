@@ -53,8 +53,8 @@
   const ticketId = computed(() => Number(route.params.ticketId) || 0);
 
   const isPreChecking = useDetailPreCheck({
-    id: ticketId.value,
     creator: username,
+    id: ticketId.value,
   });
 
   const handleStretchLayoutChange = (value: boolean) => {

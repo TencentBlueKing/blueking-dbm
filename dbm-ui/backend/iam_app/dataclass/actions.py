@@ -171,6 +171,39 @@ class ActionEnum:
         hidden=True,
     )
 
+    MYSQL_DBCONSOLE = ActionMeta(
+        id="mysql_dbconsole",
+        name=_("MySQL DB自助查询"),
+        name_en="mysql_dbconsole",
+        type="view",
+        related_actions=[GLOBAL_MANAGE.id],
+        related_resource_types=[],
+        group=_("全局设置"),
+        hidden=True,
+    )
+
+    TENDBCLUSTER_DBCONSOLE = ActionMeta(
+        id="tendbcluster_dbconsole",
+        name=_("TendbCluster DB自助查询"),
+        name_en="tendbcluster_dbconsole",
+        type="view",
+        related_actions=[GLOBAL_MANAGE.id],
+        related_resource_types=[],
+        group=_("全局设置"),
+        hidden=True,
+    )
+
+    SQLSERVER_DBCONSOLE = ActionMeta(
+        id="sqlserver_dbconsole",
+        name=_("SQLServer DB自助查询"),
+        name_en="sqlserver_dbconsole",
+        type="view",
+        related_actions=[GLOBAL_MANAGE.id],
+        related_resource_types=[],
+        group=_("全局设置"),
+        hidden=True,
+    )
+
     BIZ_TICKET_CONFIG_SET = ActionMeta(
         id="biz_ticket_config_set",
         name=_("单据免审批设置"),
@@ -268,6 +301,18 @@ class ActionEnum:
         name=_("全局巡检报告查看"),
         name_en="platform_healthy_report_view",
         type="manage",
+        related_actions=[],
+        related_resource_types=[],
+        group=_("平台管理"),
+        subgroup="",
+        common_labels=[],
+    )
+
+    PLATFORM_ALERT_EVENT_VIEW = ActionMeta(
+        id="platform_alert_event_view",
+        name=_("全局告警事件查看"),
+        name_en="platform_alert_event_view",
+        type="view",
         related_actions=[],
         related_resource_types=[],
         group=_("平台管理"),
@@ -1814,6 +1859,30 @@ class ActionEnum:
         type="create",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
+        group=_("业务配置"),
+        subgroup=_("监控策略"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    ALERT_SHIELD_CREATE = ActionMeta(
+        id="alert_shield_create",
+        name=_("告警屏蔽创建"),
+        name_en="alert_shield_create",
+        type="create",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("业务配置"),
+        subgroup=_("监控策略"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    ALERT_SHIELD_MANAGE = ActionMeta(
+        id="alert_shield_manage",
+        name=_("告警屏蔽管理"),
+        name_en="alert_shield_manage",
+        type="manage",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.BUSINESS],
         group=_("业务配置"),
         subgroup=_("监控策略"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],

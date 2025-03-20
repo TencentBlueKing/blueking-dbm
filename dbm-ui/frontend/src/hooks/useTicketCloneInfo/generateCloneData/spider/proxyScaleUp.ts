@@ -44,29 +44,29 @@ export async function generateSpiderProxyScaleUpCloneData(ticketData: TicketMode
     // }
 
     return {
-      rowKey: random(),
-      isLoading: false,
+      bkCloudId: clusterItem.bk_cloud_id,
       cluster: clusterItem.master_domain,
       clusterId: item.cluster_id,
-      bkCloudId: clusterItem.bk_cloud_id,
-      nodeType: item.add_spider_role,
+      clusterType: clusterItem.cluster_spec.spec_cluster_type,
+      isLoading: false,
       masterCount,
-      slaveCount,
       mntCount: clusterItem.spider_mnt.length,
-      spiderMasterList: clusterItem.spider_master,
-      spiderSlaveList: clusterItem.spider_slave,
+      nodeType: item.add_spider_role,
+      rowKey: random(),
+      slaveCount,
       // spec: {
       //   ...clusterItem.spider_master[0].spec_config,
       //   count: targetNum,
       // },
       specId: item.resource_spec.spider_ip_list.spec_id,
+      spiderMasterList: clusterItem.spider_master,
+      spiderSlaveList: clusterItem.spider_slave,
       targetNum: String(item.resource_spec.spider_ip_list.count),
-      clusterType: clusterItem.cluster_spec.spec_cluster_type,
     };
   });
 
   return {
-    tableDataList,
     remark: ticketData.remark,
+    tableDataList,
   };
 }

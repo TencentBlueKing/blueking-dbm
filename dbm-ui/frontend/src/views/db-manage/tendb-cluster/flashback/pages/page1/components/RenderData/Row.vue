@@ -75,16 +75,16 @@
   import { random } from '@utils';
 
   export interface IDataRow {
-    rowKey: string;
     clusterData?: {
-      id: number;
       domain: string;
+      id: number;
     };
-    startTime?: string;
-    endTime?: string;
     databases?: string[];
-    tables?: string[];
     databasesIgnore?: string[];
+    endTime?: string;
+    rowKey: string;
+    startTime?: string;
+    tables?: string[];
     tablesIgnore?: string[];
   }
 
@@ -92,13 +92,13 @@
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
-    rowKey: random(),
     clusterData: data.clusterData,
-    startTime: data.startTime,
-    endTime: data.endTime,
     databases: data.databases,
-    tables: data.tables,
     databasesIgnore: data.databasesIgnore,
+    endTime: data.endTime,
+    rowKey: random(),
+    startTime: data.startTime,
+    tables: data.tables,
     tablesIgnore: data.tablesIgnore,
   });
 </script>
@@ -151,6 +151,8 @@
 
   const ingoredbAndTableNameBaseRules = [
     {
+      message: t('不支持 *'),
+      trigger: 'change',
       validator: (value: string[]) => {
         if (value.length < 1) {
           return true;
@@ -158,8 +160,6 @@
 
         return _.every(value, (item) => !/\*/.test(item));
       },
-      message: t('不支持 *'),
-      trigger: 'change',
     },
     // {
     //   validator: (value: string[]) => {
@@ -172,9 +172,9 @@
     //   trigger: 'change',
     // },
     {
-      validator: (value: string[]) => _.every(value, (item) => !/^%$/.test(item)),
       message: t('% 不允许单独使用'),
       trigger: 'change',
+      validator: (value: string[]) => _.every(value, (item) => !/^%$/.test(item)),
     },
   ];
 
@@ -207,8 +207,8 @@
       list.map((domain) =>
         createRowData({
           clusterData: {
-            id: 0,
             domain,
+            id: 0,
           },
         }),
       ),
@@ -251,14 +251,14 @@
         'clone',
         createRowData({
           clusterData: {
-            id: clusterData.cluster_id,
             domain: '',
+            id: clusterData.cluster_id,
           },
-          startTime: startTimeData.start_time,
-          endTime: endTimeData.end_time,
           databases: databasesData.databases,
-          tables: tablesData.tables,
           databasesIgnore: databasesIgnoreData.databases_ignore,
+          endTime: endTimeData.end_time,
+          startTime: startTimeData.start_time,
+          tables: tablesData.tables,
           tablesIgnore: tablesIgnoreData.tables_ignore,
         }),
       );

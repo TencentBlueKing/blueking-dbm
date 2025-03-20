@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
@@ -175,19 +176,30 @@ func (c *OnMySQLComponent) instanceRenameTables(port int) error {
 		// 源的触发器已经没了
 		// 这里要在目的把触发器恢复
 		for _, trigger := range createTriggers {
-			_, err = c.dbConn.ExecContext(context.Background(), fmt.Sprintf("USE `%s`", toDB))
+			err := doCreateTrigger(c.dbConn, trigger, toDB)
 			if err != nil {
-				logger.Error("change db to %s failed: %v", toDB, err)
 				return err
 			}
-			_, err = c.dbConn.ExecContext(context.Background(), trigger)
-			if err != nil {
-				logger.Error("create trigger %s in %s failed: %v", trigger, toDB, err)
-				return err
-			}
-			logger.Info("create trigger %s in %s success", trigger, toDB)
 		}
 	}
+	return nil
+}
+
+func doCreateTrigger(conn *sqlx.Conn, trigger, db string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	_, err := conn.ExecContext(ctx, fmt.Sprintf("USE `%s`", db))
+	if err != nil {
+		logger.Error("change db to %s failed: %v", db, err)
+		return err
+	}
+	_, err = conn.ExecContext(ctx, trigger)
+	if err != nil {
+		logger.Error("create trigger %s in %s failed: %v", trigger, db, err)
+		return err
+	}
+	logger.Info("create trigger %s in %s success", trigger, db)
 	return nil
 }
 

@@ -70,51 +70,46 @@
   import { getSpecResourceCount } from '@services/source/dbresourceResource';
   import { getFilterClusterSpec } from '@services/source/dbresourceSpec';
 
-  import {
-    DBTypes,
-    MachineTypes
-  } from '@common/const';
+  import { DBTypes, MachineTypes } from '@common/const';
 
   import MiniTag from '@components/mini-tag/index.vue';
 
   import SpecTip from '@images/spec-tip.png';
 
-  export type MongoConfigSpecRow = ClusterSpecModel & {
-    shard_node_num: number;
-    shard_num: number;
-    shard_node_spec: string;
-    machine_num: number;
+  export type MongoConfigSpecRow = {
     count: number;
-  }
+    machine_num: number;
+    shard_node_num: number;
+    shard_node_spec: string;
+    shard_num: number;
+  } & ClusterSpecModel;
 
   interface Props {
+    bizId: number | string;
+    cloudId: number | string;
+    isApply?: boolean;
+    originSpecId?: number | string;
     properties: {
-      capacity: string,
-      specId: string,
-    },
-    bizId: number | string,
-    cloudId: number | string,
-    shardNum?: number,
-    shardNodeCount?: number,
-    isApply?: boolean
-    originSpecId?: number | string
+      capacity: string;
+      specId: string;
+    };
+    shardNodeCount?: number;
+    shardNum?: number;
     // clusterType: ClusterTypes.MONGO_REPLICA_SET | ClusterTypes.MONGO_SHARED_CLUSTER
   }
 
-  interface Emits {
-    (e: 'currentChange', value?: MongoConfigSpecRow): void
-  }
+  type Emits = (e: 'currentChange', value?: MongoConfigSpecRow) => void;
 
   const props = withDefaults(defineProps<Props>(), {
-    shardNum: 0,
-    shardNodeCount: 0,
     isApply: true,
     originSpecId: undefined,
+    shardNodeCount: 0,
+    shardNum: 0,
   });
   const emits = defineEmits<Emits>();
   const modelValue = defineModel<{
-    spec_id: number | string,
-    capacity: number | string,
+    capacity: number | string;
+    spec_id: number | string;
   }>({
     required: true,
   });
@@ -129,54 +124,60 @@
   const columns = computed(() => [
     {
       field: 'spec_name',
-      showOverflowTooltip: false,
-      renderHead: () => (
-        <bk-popover
-          theme="light"
-          extCls='mongo-config-spec-name-popover'>
-          {{
-            default: () => <span class='spec-name-head'>{t('资源规格')}</span>,
-            content: () => <img src={SpecTip} width={200}></img>,
-          }}
-        </bk-popover>
-      ),
-      render: ({ data, index }: { data: MongoConfigSpecRow, index: number }) => {
+      render: ({ data, index }: { data: MongoConfigSpecRow; index: number }) => {
         let tag;
         if (props.originSpecId === data.spec_id) {
           tag = (
             <MiniTag
               class='ml-2'
-              theme="info"
-              content={t('当前方案')} />
+              content={t('当前方案')}
+              theme='info'
+            />
           );
         } else if (data.machine_num > data.count) {
           tag = (
             <MiniTag
               class='ml-2'
-              theme="danger"
-              content={t('资源不足')} />
+              content={t('资源不足')}
+              theme='danger'
+            />
           );
         }
 
         return (
-          <div class="spec-id-box">
+          <div class='spec-id-box'>
             <bk-radio
-              v-model={modelValue.value.spec_id}
-              label={data.spec_id}
               key={index}
-              class="spec-radio"
+              v-model={modelValue.value.spec_id}
+              class='spec-radio'
+              label={data.spec_id}
               onClick={(event: Event) => handleRowClick(event, data)}>
               <div
-                class="text-overflow"
                 v-overflow-tips
+                class='text-overflow'
                 onClick={(event: Event) => event.stopPropagation()}>
                 {data.spec_name}
               </div>
             </bk-radio>
-            { tag }
+            {tag}
           </div>
         );
       },
+      renderHead: () => (
+        <bk-popover
+          extCls='mongo-config-spec-name-popover'
+          theme='light'>
+          {{
+            content: () => (
+              <img
+                src={SpecTip}
+                width={200}></img>
+            ),
+            default: () => <span class='spec-name-head'>{t('资源规格')}</span>,
+          }}
+        </bk-popover>
+      ),
+      showOverflowTooltip: false,
     },
     {
       field: 'shard_node_num',
@@ -186,38 +187,35 @@
     {
       field: 'shard_num',
       label: t('Shard数量'),
-      width: 100,
-      render: ({ data, index }: { data: MongoConfigSpecRow, index: number }) => {
+      render: ({ data, index }: { data: MongoConfigSpecRow; index: number }) => {
         if (props.isApply) {
           return (
             <bk-select
-              modelValue={data.shard_num}
-              clearable={false}
               class='shard-node-spec'
+              clearable={false}
+              modelValue={data.shard_num}
               onChange={(value: string) => handleShardNumChange(value, index, 'shard_num')}>
-              {
-                data.shard_choices.map((item, index) => (
-                  <bk-option
-                    key={index}
-                    label={item.shard_num}
-                    value={item.shard_num}>
-                  </bk-option>
-                ))
-              }
+              {data.shard_choices.map((item, index) => (
+                <bk-option
+                  key={index}
+                  label={item.shard_num}
+                  value={item.shard_num}></bk-option>
+              ))}
             </bk-select>
           );
         }
 
-        return <span>{ data.shard_num }</span>;
+        return <span>{data.shard_num}</span>;
       },
+      width: 100,
     },
     {
       field: 'shard_node_spec',
       label: t('Shard节点规格'),
       render: ({ data }: { data: MongoConfigSpecRow }) => {
         // if (props.isApply) {
-        const index = data.shard_choices.findIndex(choiceItem => choiceItem.shard_num === data.shard_num);
-        return <span>{ index > -1 ? data.shard_choices[index].shard_spec : '--' }</span>;
+        const index = data.shard_choices.findIndex((choiceItem) => choiceItem.shard_num === data.shard_num);
+        return <span>{index > -1 ? data.shard_choices[index].shard_spec : '--'}</span>;
         // }
 
         // return (
@@ -261,62 +259,69 @@
     },
   ]);
 
-  const {
-    run: getFilterClusterSpecRun,
-    loading: isLoading,
-  } = useRequest(getFilterClusterSpec, {
+  const { loading: isLoading, run: getFilterClusterSpecRun } = useRequest(getFilterClusterSpec, {
     manual: true,
+    onError() {
+      specList.value = [];
+    },
     onSuccess(res) {
       const shardNodeNum = props.isApply ? 3 : props.shardNodeCount; // 节点数，部署时固定，容量变更取自集群信息
-      specList.value = res.map(item => Object.assign(item, {
-        shard_node_num: shardNodeNum,
-        shard_num: props.isApply ? item.shard_recommend.shard_num : props.shardNum,
-        shard_node_spec: '',
-        machine_num: item.machine_pair * shardNodeNum, // 机器组数 x 每个Shard节点数
-        count: 0,
-      } as MongoConfigSpecRow));
+      specList.value = res.map((item) =>
+        Object.assign(item, {
+          count: 0,
+          machine_num: item.machine_pair * shardNodeNum, // 机器组数 x 每个Shard节点数
+          shard_node_num: shardNodeNum,
+          shard_node_spec: '',
+          shard_num: props.isApply ? item.shard_recommend.shard_num : props.shardNum,
+        } as MongoConfigSpecRow),
+      );
       getSpecResourceCountRun({
         bk_biz_id: Number(props.bizId),
         bk_cloud_id: Number(props.cloudId),
-        spec_ids: specList.value.map(item => item.spec_id),
+        spec_ids: specList.value.map((item) => item.spec_id),
       });
-    },
-    onError() {
-      specList.value = [];
     },
   });
 
   const { run: getSpecResourceCountRun } = useRequest(getSpecResourceCount, {
     manual: true,
     onSuccess(data) {
-      specList.value = specList.value.map(item => Object.assign(item, {
-        count: data[item.spec_id] ?? 0,
-      }));
+      specList.value = specList.value.map((item) =>
+        Object.assign(item, {
+          count: data[item.spec_id] ?? 0,
+        }),
+      );
     },
   });
 
-  watch(() => modelValue.value.spec_id, (newSpecId) => {
-    if (newSpecId) {
-      specRef.value.clearValidate();
-    } else {
-      emits('currentChange');
-    }
-  });
+  watch(
+    () => modelValue.value.spec_id,
+    (newSpecId) => {
+      if (newSpecId) {
+        specRef.value.clearValidate();
+      } else {
+        emits('currentChange');
+      }
+    },
+  );
 
-  watch(() => modelValue.value.capacity, (newCapacity) => {
-    if (!props.isApply) {
-      modelValue.value.spec_id = props.originSpecId as number | string;
-    }
+  watch(
+    () => modelValue.value.capacity,
+    (newCapacity) => {
+      if (!props.isApply) {
+        modelValue.value.spec_id = props.originSpecId as number | string;
+      }
 
-    if (newCapacity === '') {
-      specList.value = [];
-    } else {
-      clearTimeout(timer);
-      timer = setTimeout(() => {
-        fetchFilterClusterSpec();
-      }, 400);
-    }
-  });
+      if (newCapacity === '') {
+        specList.value = [];
+      } else {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          fetchFilterClusterSpec();
+        }, 400);
+      }
+    },
+  );
 
   const handleCapacityChange = (value: number) => {
     modelValue.value.capacity = value;
@@ -339,11 +344,11 @@
     }
 
     getFilterClusterSpecRun({
+      capacity: Number(modelValue.value.capacity),
+      shard_num: props.shardNum,
       spec_cluster_type: DBTypes.MONGODB,
       // spec_cluster_type: props.clusterType,
       spec_machine_type: MachineTypes.MONGODB,
-      capacity: Number(modelValue.value.capacity),
-      shard_num: props.shardNum,
     });
   };
   fetchFilterClusterSpec();

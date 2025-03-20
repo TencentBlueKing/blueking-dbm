@@ -13,11 +13,15 @@ package spiderctl
 import (
 	"errors"
 	"fmt"
+	"path"
 	"slices"
+
+	"github.com/gofrs/flock"
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 )
 
@@ -103,11 +107,15 @@ type CutoverUnit struct {
 	Password string `json:"password"`
 }
 
-func (c *CutoverUnit) getSwitchRouterSql(svrName string) string {
-	return fmt.Sprintf("TDBCTL ALTER NODE %s options(user '%s', password '%s', host '%s', port %d);",
+func (c *CutoverUnit) getSwitchRouterSql(svrName string, withSync bool) string {
+	sqlStr := fmt.Sprintf("TDBCTL ALTER NODE %s options(user '%s', password '%s', host '%s', port %d) ",
 		svrName,
 		c.User,
 		c.Password, c.Host, c.Port)
+	if withSync {
+		sqlStr += " WITH SYNC"
+	}
+	return sqlStr + " ;"
 }
 
 // GetHostPort TODO
@@ -177,6 +185,9 @@ func (s *SpiderClusterBackendMigrateCutoverComp) Example() interface{} {
 	}
 }
 
+// LOCK_FILE_NAME cutover lock file name
+const LOCK_FILE_NAME = ".cutover.lock"
+
 // Init TODO
 func (s *SpiderClusterBackendMigrateCutoverComp) Init() (err error) {
 	logger.Info("cutover param is %v", s.Params.MigrateCutoverPairs)
@@ -211,6 +222,7 @@ func (s *SpiderClusterBackendMigrateCutoverComp) Init() (err error) {
 	s.svrNameServersMap = svrNameServersMap
 	s.checkVars = []string{"character_set_server", "lower_case_table_names", "time_zone", "binlog_format",
 		"log_bin_compress"}
+	s.fdLock = flock.New(path.Join(cst.BK_PKG_INSTALL_PATH, LOCK_FILE_NAME))
 	return nil
 }
 
@@ -219,6 +231,22 @@ func (s *SpiderClusterBackendMigrateCutoverComp) PreCheck() (err error) {
 	if err = s.cutOverPairsParamCheck(); err != nil {
 		return err
 	}
+	// check whether the origin master and the target master replication status is normal
+	for addr, conn := range s.destMasterConn {
+		var slaveStatus native.ShowSlaveStatusResp
+		slaveStatus, err = conn.ShowSlaveStatus()
+		if err != nil {
+			return err
+		}
+		logger.Info("the new master %s replication status is %v", addr, slaveStatus)
+		if !slaveStatus.ReplSyncIsOk() {
+			return fmt.Errorf("%s replication status is abnormal ,IO Thread: %s,SQL Thread:%s", addr,
+				slaveStatus.SlaveIORunning,
+				slaveStatus.SlaveSQLRunning)
+		}
+		logger.Info("check the new master:%s synchronization status to be switched is normal", addr)
+	}
+
 	// check dest master with dest slave replicate status
 	if s.existRemoteSlave {
 		logger.Info("check whether the master slave synchronization status to be switched is normal")
@@ -228,11 +256,13 @@ func (s *SpiderClusterBackendMigrateCutoverComp) PreCheck() (err error) {
 			if err != nil {
 				return err
 			}
+			logger.Info("the slave %s replication status is %v", addr, slaveStatus)
 			if !slaveStatus.ReplSyncIsOk() {
 				return fmt.Errorf("%s replication status is abnormal ,IO Thread: %s,SQL Thread:%s", addr,
 					slaveStatus.SlaveIORunning,
 					slaveStatus.SlaveSQLRunning)
 			}
+			logger.Info("check the slave:%s synchronization status to be switched is normal", addr)
 		}
 	}
 	// compare origin master with dest master variables
@@ -274,8 +304,10 @@ func (s *SpiderClusterBackendMigrateCutoverComp) checkPairsVariables() (err erro
 		if !ok {
 			return fmt.Errorf("get %s conn from destMasterConn map failed", pair.DestMaster.GetHostPort())
 		}
+		logger.Info("check %s with %s variables", pair.MasterSvr.ServerName, pair.DestMaster.GetHostPort())
 		if err = s.tdbCtlConn.MySQLVarsCompare(svrName, destMasterConn, s.checkVars); err != nil {
-			return err
+			return fmt.Errorf("check %s with %s variables failed %s", pair.MasterSvr.ServerName,
+				pair.DestMaster.GetHostPort(), err.Error())
 		}
 	}
 	return
@@ -323,7 +355,7 @@ func (s *SpiderClusterBackendMigrateCutoverComp) connDest() (err error) {
 		}
 		s.destMasterConn[destMasterAddr] = masterConn
 		if !ins.destSlaveIsEmpty() {
-			slaveConn, err := ins.DestMaster.Conn()
+			slaveConn, err := ins.DestSlave.Conn()
 			if err != nil {
 				return err
 			}
@@ -371,10 +403,10 @@ func (s *SpiderClusterBackendMigrateCutoverComp) PersistenceRollbackFile() (err 
 	}
 	for _, pair := range s.cutOverPairs {
 		masterSvrName := pair.MasterSvr.ServerName
-		s.primaryShardrollbackSqls = append(s.primaryShardrollbackSqls, pair.MasterSvr.GetAlterNodeSql(masterSvrName))
+		s.primaryShardrollbackSqls = append(s.primaryShardrollbackSqls, pair.MasterSvr.GetAlterNodeSql(masterSvrName, true))
 		if s.existRemoteSlave {
 			slaveSvrName := pair.SlaveSvr.ServerName
-			s.slaveShardrollbackSqls = append(s.slaveShardrollbackSqls, pair.SlaveSvr.GetAlterNodeSql(slaveSvrName))
+			s.slaveShardrollbackSqls = append(s.slaveShardrollbackSqls, pair.SlaveSvr.GetAlterNodeSql(slaveSvrName, true))
 		}
 	}
 	rollbackSqls := slices.Concat(s.primaryShardrollbackSqls, s.slaveShardrollbackSqls)
@@ -385,8 +417,13 @@ func (s *SpiderClusterBackendMigrateCutoverComp) PersistenceRollbackFile() (err 
 	return
 }
 
-// CutOver TODO
+// CutOver cut over
 func (s *SpiderClusterBackendMigrateCutoverComp) CutOver() (err error) {
+	// get file lock
+	if err = s.CutOverCtx.GetFileLock(); err != nil {
+		logger.Error("get file lock failed %s", err.Error())
+		return err
+	}
 	var tdbctlFlushed bool
 	// change the central control route
 	// release the lock until after performing the rollback routing
@@ -407,9 +444,17 @@ func (s *SpiderClusterBackendMigrateCutoverComp) CutOver() (err error) {
 				err = fmt.Errorf("%w,flush rollback route err:%w", err, ferr)
 				return
 			}
+			if uerr := s.fdLock.Unlock(); uerr != nil {
+				logger.Error("unlock file lock failed %s", uerr.Error())
+				return
+			}
 			logger.Info("rollback route successfully~")
 		}
 	}()
+
+	if err = s.flushTablesAtEverySpiderNode(); err != nil {
+		return fmt.Errorf("[未切换]: flush tables failed:%w", err)
+	}
 
 	logger.Info("start refreshing the primary spt route")
 	if err = s.switchSpt(); err != nil {
@@ -435,7 +480,7 @@ func (s *SpiderClusterBackendMigrateCutoverComp) CutOver() (err error) {
 	if err = s.RecordBinlogPos(); err != nil {
 		return err
 	}
-	logger.Info("doing tdbctl flush routing force ... ")
+	logger.Info("doing tdbctl flush routing cache ... ")
 	return s.flushrouting()
 }
 
@@ -471,12 +516,12 @@ func (s *SpiderClusterBackendMigrateCutoverComp) switchSpt() (err error) {
 	var alterSqls []string
 	for _, pair := range s.cutOverPairs {
 		masterSvrName := pair.MasterSvr.ServerName
-		alterSql := pair.DestMaster.getSwitchRouterSql(masterSvrName)
+		alterSql := pair.DestMaster.getSwitchRouterSql(masterSvrName, true)
 		logger.Info("will execute  master spt switch sql:%s", mysqlcomm.CleanSvrPassword(alterSql))
 		alterSqls = append(alterSqls, alterSql)
 		if s.existRemoteSlave {
 			slaveSvrName := pair.SlaveSvr.ServerName
-			alterSql := pair.DestSlave.getSwitchRouterSql(slaveSvrName)
+			alterSql := pair.DestSlave.getSwitchRouterSql(slaveSvrName, true)
 			logger.Info("will execute slave spt switch sql:%s", mysqlcomm.CleanSvrPassword(alterSql))
 			alterSqls = append(alterSqls, alterSql)
 		}

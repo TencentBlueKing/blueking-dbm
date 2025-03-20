@@ -48,11 +48,11 @@
     ticketDetail: TicketModel<unknown>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: FlowMode.STATUS_FAILED,
   });
+
+  defineProps<Props>();
 
   const { t } = useI18n();
 </script>

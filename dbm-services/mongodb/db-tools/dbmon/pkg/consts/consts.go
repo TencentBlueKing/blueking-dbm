@@ -18,9 +18,7 @@ const (
 
 // time layout
 const (
-	UnixtimeLayout     = "2006-01-02 15:04:05"
-	FilenameTimeLayout = "20060102-150405"
-	FilenameDayLayout  = "20060102"
+	UnixtimeLayout = "2006-01-02 15:04:05"
 )
 
 // account
@@ -38,32 +36,10 @@ const (
 	DbaReportSaveDir = "/home/mysql/dbareport/"
 )
 
-// tool path
-const (
-	DbToolsPath = "/home/mysql/dbtools/"
-	RedisCliBin = "/home/mysql/dbtools/redis-cli"
-)
-
 // backup
 const (
-	IBSBackupClient = "/usr/local/bin/backup_client"
-	COSBackupClient = "/usr/local/backup_client/bin/backup_client"
-	COSInfoFile     = "/home/mysql/.cosinfo.toml"
-
-	RedisFullBackupReportType   = "redis_fullbackup"
-	RedisBinlogBackupReportType = "redis_binlogbackup"
-
-	MongoBackupRepoter = "mongo_backup_report_%s.log"
-
 	BackupClientStrorageTypeCOS  = "cos"
 	BackupClientStrorageTypeHDFS = "hdfs"
-)
-
-const (
-	// PayloadFormatRaw raw
-	PayloadFormatRaw = "raw"
-	// PayloadFormatBase64 base64
-	PayloadFormatBase64 = "base64"
 )
 
 // IsMongo TODO

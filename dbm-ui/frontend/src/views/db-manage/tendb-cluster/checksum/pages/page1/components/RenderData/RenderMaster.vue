@@ -51,8 +51,8 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('校验不能为空'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 

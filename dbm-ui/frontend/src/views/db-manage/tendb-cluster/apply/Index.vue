@@ -164,24 +164,23 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.TENDBCLUSTER_APPLY,
     onSuccess(cloneData) {
       const {
-        bizId,
         affinity,
-        cloudId,
-        cityCode,
-        dbModuleId,
-        remark,
-        clusterName,
-        clusterAlias,
-        spiderPort,
-        spiderSpecId,
-        spiderSpecCount,
-        backendSpecId,
         backendSpecCount,
+        backendSpecId,
+        bizId,
         capacity,
+        cityCode,
+        cloudId,
+        clusterAlias,
+        clusterName,
+        dbModuleId,
         futureCapacity,
+        remark,
+        spiderPort,
+        spiderSpecCount,
+        spiderSpecId,
       } = cloneData;
 
       formdata.bk_biz_id = bizId;
@@ -203,43 +202,44 @@
       formdata.details.resource_spec.backend_group.capacity = capacity;
       formdata.details.resource_spec.backend_group.future_capacity = futureCapacity;
     },
+    type: TicketTypes.TENDBCLUSTER_APPLY,
   });
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
   const initData = () => ({
     bk_biz_id: '' as number | '',
-    remark: '',
-    ticket_type: TicketTypes.TENDBCLUSTER_APPLY,
     details: {
       bk_cloud_id: 0,
-      db_app_abbr: '',
-      cluster_name: '',
-      cluster_alias: '',
       city_code: '',
-      db_module_id: null as null | number,
+      cluster_alias: '',
+      cluster_name: '',
       cluster_shard_num: 0,
-      remote_shard_num: 0,
+      db_app_abbr: '',
+      db_module_id: null as null | number,
       disaster_tolerance_level: 'NONE',
+      remote_shard_num: 0,
       resource_spec: {
-        spider: {
-          spec_id: '' as number | '',
-          count: 2,
-        },
         backend_group: {
-          spec_id: '' as number | '',
-          count: 0,
-          capacity: '',
-          future_capacity: '',
           affinity: 'NONE',
+          capacity: '',
+          count: 0,
+          future_capacity: '',
           location_spec: {
             city: '',
             sub_zone_ids: [],
           },
+          spec_id: '' as number | '',
+        },
+        spider: {
+          count: 2,
+          spec_id: '' as number | '',
         },
       },
       spider_port: 25000,
     },
+    remark: '',
+    ticket_type: TicketTypes.TENDBCLUSTER_APPLY,
   });
 
   // 基础设置
@@ -270,7 +270,7 @@
     ],
     'details.spider_port': [
       {
-        message: t('范围n_min_max', { n: 3306, min: 25000, max: 65535 }),
+        message: t('范围n_min_max', { max: 65535, min: 25000, n: 3306 }),
         trigger: 'change',
         validator: (value: number) => value === 3306 || (value >= 25000 && value <= 65535),
       },
@@ -288,9 +288,8 @@
   /** 重置表单 */
   const handleResetFormdata = () => {
     InfoBox({
-      title: t('确认重置表单内容'),
-      content: t('重置后_将会清空当前填写的内容'),
       cancelText: t('取消'),
+      content: t('重置后_将会清空当前填写的内容'),
       onConfirm: () => {
         Object.assign(formdata, initData());
         nextTick(() => {
@@ -298,6 +297,7 @@
         });
         return true;
       },
+      title: t('确认重置表单内容'),
     });
   };
 
@@ -325,23 +325,23 @@
       return {
         ...details,
         cluster_shard_num: Number(specInfo.cluster_shard_num),
-        remote_shard_num: Number(specInfo.cluster_shard_num) / specInfo.machine_pair,
         disaster_tolerance_level: details.resource_spec.backend_group.affinity,
+        remote_shard_num: Number(specInfo.cluster_shard_num) / specInfo.machine_pair,
         resource_spec: {
+          backend_group: {
+            ...details.resource_spec.backend_group,
+            count: specInfo.machine_pair,
+            location_spec: {
+              city: cityCode,
+              sub_zone_ids: [],
+            },
+            spec_info: specInfo,
+          },
           spider: {
             ...details.resource_spec.spider,
             ...specProxyRef.value.getData(),
             ...regionAndDisasterParams,
             count: Number(details.resource_spec.spider.count),
-          },
-          backend_group: {
-            ...details.resource_spec.backend_group,
-            count: specInfo.machine_pair,
-            spec_info: specInfo,
-            location_spec: {
-              city: cityCode,
-              sub_zone_ids: [],
-            },
           },
         },
       };

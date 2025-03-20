@@ -37,42 +37,42 @@ export async function generateRedisClusterTypeUpdateCloneData(ticketData: Ticket
   const tableData = infos.map((item) => {
     const currentClusterInfo = clusterListMap[item.src_cluster];
     return {
-      rowKey: random(),
-      isLoading: false,
-      srcCluster: clusters[item.src_cluster].immute_domain,
-      srcClusterType: currentClusterInfo.cluster_type_name,
-      clusterType: currentClusterInfo.cluster_type,
-      clusterId: item.src_cluster,
       bkCloudId: currentClusterInfo.bk_cloud_id,
-      switchMode: t('需人工确认'),
+      clusterId: item.src_cluster,
+      clusterType: currentClusterInfo.cluster_type,
+      clusterTypeName: currentClusterInfo.cluster_type_name,
       currentCapacity: {
-        used: 1,
         total: currentClusterInfo.cluster_capacity,
+        used: 1,
       },
       currentSepc: `${currentClusterInfo.cluster_capacity}G_${currentClusterInfo.cluster_spec.qps.max}/s${t('（n 分片）', { n: currentClusterInfo.cluster_shard_num })}`,
-      targetClusterType: item.target_cluster_type,
       currentShardNum: currentClusterInfo.cluster_shard_num,
-      groupNum: currentClusterInfo.machine_pair_cnt,
-      clusterTypeName: currentClusterInfo.cluster_type_name,
       currentSpecId: currentClusterInfo.cluster_spec.spec_id,
-      disasterToleranceLevel: currentClusterInfo.disaster_tolerance_level,
       dbVersion: item.db_version,
+      disasterToleranceLevel: currentClusterInfo.disaster_tolerance_level,
+      groupNum: currentClusterInfo.machine_pair_cnt,
+      isLoading: false,
+      proxy: {
+        count: new Set(currentClusterInfo.proxy.map((item) => item.ip)).size,
+        id: currentClusterInfo.proxy[0].spec_config.id,
+      },
+      rowKey: random(),
       specConfig: {
         cpu: currentClusterInfo.cluster_spec.cpu,
         id: currentClusterInfo.cluster_spec.spec_id,
         mem: currentClusterInfo.cluster_spec.mem,
         qps: currentClusterInfo.cluster_spec.qps,
       },
-      proxy: {
-        id: currentClusterInfo.proxy[0].spec_config.id,
-        count: new Set(currentClusterInfo.proxy.map((item) => item.ip)).size,
-      },
+      srcCluster: clusters[item.src_cluster].immute_domain,
+      srcClusterType: currentClusterInfo.cluster_type_name,
+      switchMode: t('需人工确认'),
+      targetClusterType: item.target_cluster_type,
     };
   });
   return {
-    tableList: tableData,
-    type: ticketData.details.data_check_repair_setting.type,
     frequency: ticketData.details.data_check_repair_setting.execution_frequency,
     remark: ticketData.remark,
+    tableList: tableData,
+    type: ticketData.details.data_check_repair_setting.type,
   };
 }

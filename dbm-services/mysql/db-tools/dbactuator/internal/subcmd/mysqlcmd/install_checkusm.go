@@ -28,6 +28,7 @@ const InstallMySQLChecksum = "install-checksum"
 // @Accept       json
 // @Param        body body      mysql.InstallMySQLChecksumComp  true  "short description"
 // @Router       /mysql/install-checksum [post]
+// Deprecated: 老版本
 func NewInstallMySQLChecksumCommand() *cobra.Command {
 	act := InstallMySQLChecksumAct{
 		BaseOptions: subcmd.GBaseOptions,

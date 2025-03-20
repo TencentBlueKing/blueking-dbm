@@ -13,7 +13,7 @@
 
 <template>
   <SmartAction>
-    <div class="sipder-manage-db-clear-page">
+    <div class="mysql-manage-db-clear-page">
       <BkAlert
         closable
         theme="info"
@@ -52,6 +52,19 @@
           </BkCheckbox>
         </div>
       </div>
+      <BkForm
+        class="mt-24"
+        form-type="vertical">
+        <BkFormItem
+          :label="t('删除备份库时间')"
+          required>
+          <BkRadioGroup v-model="clearMode">
+            <BkRadio :label="7">{{ t('7天后') }}</BkRadio>
+            <BkRadio :label="15">{{ t('15天后') }}</BkRadio>
+            <BkRadio label="manual">{{ t('手动') }}</BkRadio>
+          </BkRadioGroup>
+        </BkFormItem>
+      </BkForm>
       <TicketRemark v-model="remark" />
       <BatchInput
         v-model:is-show="isShowBatchInput"
@@ -113,25 +126,35 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.MYSQL_HA_TRUNCATE_DATA,
     onSuccess(cloneData) {
       const { isSafeStatus, tableDataList } = cloneData;
       tableData.value = tableDataList;
       isSafe.value = isSafeStatus;
       remark.value = cloneData.remark;
       window.changeConfirm = true;
+      if (cloneData.clear_mode) {
+        clearMode.value = cloneData.clear_mode.mode === 'manual' ? 'manual' : cloneData.clear_mode.days;
+      } else {
+        clearMode.value = 'manual';
+      }
     },
+    type: TicketTypes.MYSQL_HA_TRUNCATE_DATA,
   });
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA,
     onSuccess(cloneData) {
       const { isSafeStatus, tableDataList } = cloneData;
       tableData.value = tableDataList;
       isSafe.value = isSafeStatus;
       window.changeConfirm = true;
+      if (cloneData.clear_mode) {
+        clearMode.value = cloneData.clear_mode.mode === 'manual' ? 'manual' : cloneData.clear_mode.days;
+      } else {
+        clearMode.value = 'manual';
+      }
     },
+    type: TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA,
   });
 
   const rowRefs = ref();
@@ -140,6 +163,7 @@
   const isSubmitting = ref(false);
   const isShowBatchInput = ref(false);
   const tableData = ref<Array<IDataRow>>([createRowData({})]);
+  const clearMode = ref<7 | 15 | 'manual'>(7);
   const remark = ref('');
 
   const selectedClusters = shallowRef<{ [key: string]: Array<TendbhaModel> }>({
@@ -173,10 +197,10 @@
   async function handleBatchInput(list: Array<InputItem>) {
     const domains = list.map((item) => item.cluster);
     const clusterInfos = await queryClusters({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       cluster_filters: domains.map((domain) => ({
         immute_domain: domain,
       })),
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
     });
     const clusterInfoMap = clusterInfos.reduce<Record<string, TendbhaModel>>(
       (results, item) =>
@@ -191,14 +215,14 @@
       return {
         ...createRowData(),
         clusterData: {
-          id: currentCluster.id,
           domain: cluster,
+          id: currentCluster.id,
           type: currentCluster.cluster_type,
         },
         dbPatterns: item.dbs,
-        tablePatterns: item.tables,
         ignoreDbs: item.ignoreDbs,
         ignoreTables: item.ignoreTables,
+        tablePatterns: item.tables,
       };
     });
     if (checkListEmpty(tableData.value)) {
@@ -221,12 +245,12 @@
     }
 
     const resultList = await queryClusters({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       cluster_filters: [
         {
           id: clusterId,
         },
       ],
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
     });
     if (resultList.length < 1) {
       return;
@@ -235,8 +259,8 @@
     const domain = item.master_domain;
     const row = createRowData({
       clusterData: {
-        id: item.id,
         domain,
+        id: item.id,
         type: item.cluster_type,
       },
     });
@@ -254,8 +278,8 @@
       if (!domainMemo[domain]) {
         const row = createRowData({
           clusterData: {
-            id: item.id,
             domain: item.master_domain,
+            id: item.id,
             type: item.cluster_type,
           },
         });
@@ -319,20 +343,33 @@
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
       .then((data) => {
         const clusterTypes = _.uniq(tableData.value.map((item) => item.clusterData?.type));
+
+        const clearModelParams = {};
+        if (clearMode.value === 'manual') {
+          Object.assign(clearModelParams, {
+            mode: 'manual',
+          });
+        } else {
+          Object.assign(clearModelParams, {
+            days: clearMode.value,
+            mode: 'timer',
+          });
+        }
         return createTicket({
-          ticket_type:
-            clusterTypes[0] === ClusterTypes.TENDBHA
-              ? TicketTypes.MYSQL_HA_TRUNCATE_DATA
-              : TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA,
-          remark: remark.value,
+          bk_biz_id: currentBizId,
           details: {
+            clear_mode: clearModelParams,
             infos: data.map((item) =>
               Object.assign(item, {
                 force: !isSafe.value,
               }),
             ),
           },
-          bk_biz_id: currentBizId,
+          remark: remark.value,
+          ticket_type:
+            clusterTypes[0] === ClusterTypes.TENDBHA
+              ? TicketTypes.MYSQL_HA_TRUNCATE_DATA
+              : TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA,
         }).then((data) => {
           window.changeConfirm = false;
           router.push({
@@ -362,7 +399,7 @@
 </script>
 
 <style lang="less">
-  .sipder-manage-db-clear-page {
+  .mysql-manage-db-clear-page {
     padding-bottom: 20px;
 
     .page-action-box {
@@ -374,6 +411,12 @@
         padding-bottom: 2px;
         border-bottom: 1px dashed #979ba5;
       }
+    }
+
+    .bk-form-label {
+      font-size: 12px;
+      font-weight: bold;
+      color: #313238;
     }
   }
 </style>

@@ -55,25 +55,25 @@
   const descRef = ref<InstanceType<typeof TableEditInput>>();
 
   const formData = reactive({
-    name: '',
-    desc: '',
     builtin: false,
+    desc: '',
+    name: '',
   });
 
   const nameRules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('变量名不能为空'),
+      validator: (value: string) => Boolean(value),
     },
     {
-      validator: (value: string) => _.every(list.value, (item) => item.name !== value),
       message: t('变量名重复'),
+      validator: (value: string) => _.every(list.value, (item) => item.name !== value),
     },
   ];
   const descRules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('变量说明不能为空'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 
@@ -91,11 +91,11 @@
       (descRef.value as InstanceType<typeof TableEditInput>).getValue(),
     ]).then(() => {
       updateVariableMethod({
-        op_type: 'add',
         new_var: {
           ...formData,
         },
         old_var: undefined,
+        op_type: 'add',
       });
     });
   };

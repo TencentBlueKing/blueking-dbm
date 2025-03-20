@@ -25,10 +25,10 @@
     ticketDetails: TicketModel<Hdfs.Disable>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.HDFS_DISABLE,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

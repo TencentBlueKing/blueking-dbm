@@ -47,7 +47,6 @@
   import StatusSucceeded from '../flow-type-common/StatusSucceeded.vue';
 
   interface Props {
-    ticketDetail: TicketModel;
     data: FlowMode<
       unknown,
       {
@@ -55,13 +54,14 @@
         status: string;
       }
     >;
+    ticketDetail: TicketModel;
   }
-
-  defineProps<Props>();
 
   defineOptions({
     name: FlowMode.STATUS_SUCCEEDED,
   });
+
+  defineProps<Props>();
 
   const { t } = useI18n();
 </script>

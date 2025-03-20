@@ -188,7 +188,7 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import DbForm from '@components/db-form/index.vue'
+  import DbForm from '@components/db-form/index.vue';
 
   import ApplySchema, { APPLY_SCHEME } from '@views/db-manage/common/apply-schema/Index.vue';
   import { specClusterMachineMap } from '@views/db-manage/redis/common/const';
@@ -196,65 +196,65 @@
   import CustomSchema from './CustomSchema.vue';
 
   export interface Props {
-    isShow?: boolean;
-    isSameShardNum?: boolean;
     data?: {
-      targetCluster: string,
-      currentSepcId: string,
-      currentSepc: string,
+      bkCloudId: number;
       capacity: {
-        total: number,
-        used: number,
-      },
-      clusterType: ClusterTypes,
-      shardNum: number,
-      groupNum: number,
-      bkCloudId: number
+        total: number;
+        used: number;
+      };
+      clusterType: ClusterTypes;
+      currentSepc: string;
+      currentSepcId: string;
+      groupNum: number;
+      shardNum: number;
+      targetCluster: string;
     };
-    title?: string,
-    showTitleTag?: boolean,
     hideShardColumn?: boolean;
+    isSameShardNum?: boolean;
+    isShow?: boolean;
+    showTitleTag?: boolean;
+    title?: string;
   }
 
   export interface CapacityNeed {
-    current: number,
-    future: number,
+    current: number;
+    future: number;
   }
 
   export interface SpecResultInfo {
-    cluster_capacity: number,
-    max: number,
-    cluster_shard_num: number,
-    spec_id: number,
-    machine_pair: number
+    cluster_capacity: number;
+    cluster_shard_num: number;
+    machine_pair: number;
+    max: number;
+    spec_id: number;
   }
 
   type FilterClusterSpecItem = ServiceReturnType<typeof getFilterClusterSpec>[0];
 
   interface Emits {
-    (e: 'click-confirm', obj: SpecResultInfo, capacity: CapacityNeed): void
-    (e: 'click-cancel'): void
+    (e: 'click-confirm', obj: SpecResultInfo, capacity: CapacityNeed): void;
+    (e: 'click-cancel'): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    isShow: false,
-    isSameShardNum: false, // 集群容量变更才需要
     data: () => ({
-      targetCluster: '',
-      currentSepc: '',
-      currentSepcId: '',
+      bkCloudId: 0,
       capacity: {
         total: 1,
         used: 0,
       },
       clusterType: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-      shardNum: 0,
+      currentSepc: '',
+      currentSepcId: '',
       groupNum: 0,
-      bkCloudId: 0
+      shardNum: 0,
+      targetCluster: '',
     }),
-    title: '',
-    showTitleTag: true,
     hideShardColumn: false,
+    isSameShardNum: false, // 集群容量变更才需要
+    isShow: false,
+    showTitleTag: true,
+    title: '',
   });
 
   const emits = defineEmits<Emits>();
@@ -262,10 +262,10 @@
   const { t } = useI18n();
   const handleBeforeClose = useBeforeClose();
 
-  const formRef = ref<InstanceType<typeof DbForm>>()
-  const customSchemaRef = ref<InstanceType<typeof CustomSchema>>()
+  const formRef = ref<InstanceType<typeof DbForm>>();
+  const customSchemaRef = ref<InstanceType<typeof CustomSchema>>();
   const radioValue = ref(-1);
-  const radioChoosedId  = ref(''); // 标记，sort重新定位index用
+  const radioChoosedId = ref(''); // 标记，sort重新定位index用
   const isTableLoading = ref(false);
   const isConfirmLoading = ref(false);
   const tableData = ref<FilterClusterSpecItem[]>([]);
@@ -277,39 +277,45 @@
   const applySchema = ref(APPLY_SCHEME.AUTO);
 
   const specInfo = reactive({
-    capacityNeed: '' as number | '',
     capacityFutureNeed: '' as number | '',
-    specId: '',
+    capacityNeed: '' as number | '',
+    clusterShardNum: 1,
     count: 1,
     shardNum: 1,
-    clusterShardNum: 1,
+    specId: '',
     totalCapcity: 0,
-  })
+  });
 
   const clusterInfo = reactive({
     bizId: 0,
     cloudId: 0,
     clusterType: '',
-    machineType: ''
-  })
+    machineType: '',
+  });
 
   const futrueCapacityRule = [
     {
-      validator: (value: number) => value < Number(specInfo.capacityNeed || 0),
-      trigger: 'change',
       message: t('未来容量必须大于等于目标容量'),
+      trigger: 'change',
+      validator: (value: number) => value < Number(specInfo.capacityNeed || 0),
     },
-  ]
+  ];
 
   const isAbleSubmit = computed(() => {
     if (applySchema.value === APPLY_SCHEME.AUTO) {
-      return radioValue.value !== -1
+      return radioValue.value !== -1;
     }
-    return true
+    return true;
   });
-  const isMemoryType = computed(() => [ClusterTypes.TWEMPROXY_REDIS_INSTANCE, ClusterTypes.PREDIXY_REDIS_CLUSTER].includes(props.data.clusterType));
-  const targetCapacityTitle = computed(() => (isMemoryType.value ? t('目标集群容量需求(内存容量)') : t('目标集群容量需求(磁盘容量)')));
-  const futureCapacityTitle = computed(() => (isMemoryType.value ? t('未来集群容量需求(内存容量)') : t('未来集群容量需求(磁盘容量)')));
+  const isMemoryType = computed(() =>
+    [ClusterTypes.PREDIXY_REDIS_CLUSTER, ClusterTypes.TWEMPROXY_REDIS_INSTANCE].includes(props.data.clusterType),
+  );
+  const targetCapacityTitle = computed(() =>
+    isMemoryType.value ? t('目标集群容量需求(内存容量)') : t('目标集群容量需求(磁盘容量)'),
+  );
+  const futureCapacityTitle = computed(() =>
+    isMemoryType.value ? t('未来集群容量需求(内存容量)') : t('未来集群容量需求(磁盘容量)'),
+  );
 
   const currentSpec = computed(() => {
     if (props?.data) {
@@ -323,45 +329,50 @@
     const rate = ((diff / targetCapacity.value.current) * 100).toFixed(2);
     if (diff < 0) {
       return {
-        rate,
         num: diff,
+        rate,
       };
     }
     return {
-      rate: `+${rate}`,
       num: `+${diff}`,
+      rate: `+${rate}`,
     };
   });
 
-  const isDataChange = computed(() => specInfo.capacityNeed !== '' || specInfo.capacityFutureNeed !== ''
-    || radioValue.value !== -1);
+  const isDataChange = computed(
+    () => specInfo.capacityNeed !== '' || specInfo.capacityFutureNeed !== '' || radioValue.value !== -1,
+  );
 
   const columns = computed(() => {
     const totalColums = [
       {
-        label: t('资源规格'),
         field: 'spec',
-        showOverflowTooltip: true,
-        width: 260,
-        render: ({ index, row }: { index: number, row: ClusterSpecModel }) => (
-          <div style="display:flex;align-items:center;">
-            <bk-radio label={index} v-model={radioValue.value}>{row.spec_name}</bk-radio>
+        label: t('资源规格'),
+        render: ({ index, row }: { index: number; row: ClusterSpecModel }) => (
+          <div style='display:flex;align-items:center;'>
+            <bk-radio
+              v-model={radioValue.value}
+              label={index}>
+              {row.spec_name}
+            </bk-radio>
           </div>
         ),
+        showOverflowTooltip: true,
+        width: 260,
       },
       {
-        label: t('需机器组数'),
         field: 'machine_pair',
+        label: t('需机器组数'),
         sort: true,
       },
       {
-        label: t('集群分片'),
         field: 'cluster_shard_num',
+        label: t('集群分片'),
         sort: true,
       },
       {
-        label: t('集群容量(G)'),
         field: 'cluster_capacity',
+        label: t('集群容量(G)'),
         sort: true,
       },
     ];
@@ -374,32 +385,40 @@
 
   let rawTableData: FilterClusterSpecItem[] = [];
 
-  watch(() => props.data, () => {
-    if (props.data) {
-      targetCapacity.value.current = props.data.capacity.total;
-      Object.assign(specInfo, {
-        count: props.data.groupNum,
-        shardNum: props.data.shardNum / props.data.groupNum,
-        clusterShardNum: props.data.shardNum,
-      })
-      Object.assign(clusterInfo, {
-        bizId: window.PROJECT_CONFIG.BIZ_ID,
-        cloudId: props.data.bkCloudId,
-        clusterType: props.data.clusterType,
-        machineType: specClusterMachineMap[props.data.clusterType]
-      })
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    () => {
+      if (props.data) {
+        targetCapacity.value.current = props.data.capacity.total;
+        Object.assign(specInfo, {
+          clusterShardNum: props.data.shardNum,
+          count: props.data.groupNum,
+          shardNum: props.data.shardNum / props.data.groupNum,
+        });
+        Object.assign(clusterInfo, {
+          bizId: window.PROJECT_CONFIG.BIZ_ID,
+          cloudId: props.data.bkCloudId,
+          clusterType: props.data.clusterType,
+          machineType: specClusterMachineMap[props.data.clusterType],
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
-  watch(() => specInfo.capacityNeed, (data) => {
-    if (data && data > 0 && data !== specInfo.capacityFutureNeed) {
-      specInfo.capacityFutureNeed = data;
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => specInfo.capacityNeed,
+    (data) => {
+      if (data && data > 0 && data !== specInfo.capacityFutureNeed) {
+        specInfo.capacityFutureNeed = data;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   watch(radioValue, (index) => {
     if (index === -1) {
@@ -414,10 +433,10 @@
     nextTick(() => {
       if (applySchema.value !== APPLY_SCHEME.AUTO) {
         targetCapacity.value.total = specInfo.totalCapcity;
-        targetSepc.value = customSchemaRef.value!.getInfo().spec_name
+        targetSepc.value = customSchemaRef.value!.getInfo().spec_name;
       }
-    })
-  })
+    });
+  });
 
   const handleSearchClusterSpec = async () => {
     if (specInfo.capacityNeed === '' || specInfo.capacityFutureNeed === '') {
@@ -426,13 +445,17 @@
     if (specInfo.capacityNeed > 0 && specInfo.capacityFutureNeed > 0) {
       isTableLoading.value = true;
       const clusterType = props.data?.clusterType ?? ClusterTypes.TWEMPROXY_REDIS_INSTANCE;
-      const machineType = clusterType === ClusterTypes.PREDIXY_REDIS_CLUSTER ? ClusterTypes.PREDIXY_REDIS_CLUSTER : specClusterMachineMap[clusterType];
+      const machineType =
+        clusterType === ClusterTypes.PREDIXY_REDIS_CLUSTER
+          ? ClusterTypes.PREDIXY_REDIS_CLUSTER
+          : specClusterMachineMap[clusterType];
       const params = {
+        capacity: specInfo.capacityNeed,
+        future_capacity:
+          specInfo.capacityNeed <= specInfo.capacityFutureNeed ? specInfo.capacityFutureNeed : specInfo.capacityNeed,
+        shard_num: props.data.shardNum === 0 ? undefined : props.data.shardNum,
         spec_cluster_type: 'redis',
         spec_machine_type: machineType,
-        shard_num: props.data.shardNum === 0 ? undefined : props.data.shardNum,
-        capacity: specInfo.capacityNeed,
-        future_capacity: specInfo.capacityNeed <= specInfo.capacityFutureNeed ? specInfo.capacityFutureNeed : specInfo.capacityNeed,
       };
       if (!props.isSameShardNum) {
         delete params.shard_num;
@@ -450,48 +473,48 @@
     const index = radioValue.value;
     if (applySchema.value === APPLY_SCHEME.AUTO) {
       if (index !== -1) {
-        handleClickConfirm()
+        handleClickConfirm();
       }
     } else {
-      const validateResult = await formRef.value!.validate()
+      const validateResult = await formRef.value!.validate();
       if (validateResult) {
-        handleClickConfirm()
+        handleClickConfirm();
       }
     }
   };
 
   const handleClickConfirm = () => {
-    const result = {} as SpecResultInfo
-    const capacityInfo = {} as CapacityNeed
+    const result = {} as SpecResultInfo;
+    const capacityInfo = {} as CapacityNeed;
     if (applySchema.value === APPLY_SCHEME.AUTO) {
       const index = radioValue.value;
-      const choosedObj = tableData.value[index]
+      const choosedObj = tableData.value[index];
       Object.assign(result, {
         cluster_capacity: choosedObj.cluster_capacity,
-        max: choosedObj.qps.max,
         cluster_shard_num: choosedObj.cluster_shard_num,
-        spec_id: choosedObj.spec_id,
         machine_pair: choosedObj.machine_pair,
-      })
+        max: choosedObj.qps.max,
+        spec_id: choosedObj.spec_id,
+      });
       Object.assign(capacityInfo, {
         current: Number(specInfo.capacityNeed),
-        future: Number(specInfo.capacityFutureNeed)
-      })
+        future: Number(specInfo.capacityFutureNeed),
+      });
     } else {
       Object.assign(result, {
         cluster_capacity: specInfo.totalCapcity,
-        max: 0,
         cluster_shard_num: specInfo.clusterShardNum,
+        machine_pair: specInfo.count,
+        max: 0,
         spec_id: specInfo.specId,
-        machine_pair: specInfo.count
-      })
+      });
       Object.assign(capacityInfo, {
         current: props.data.capacity.total,
-        future: specInfo.totalCapcity
-      })
+        future: specInfo.totalCapcity,
+      });
     }
     emits('click-confirm', result, capacityInfo);
-  }
+  };
 
   async function handleClose() {
     const result = await handleBeforeClose(isDataChange.value);
@@ -505,17 +528,17 @@
     radioChoosedId.value = row.spec_name;
   };
 
-  const handleColumnSort = (data: { column: { field: string }, index: number, type: string }) => {
+  const handleColumnSort = (data: { column: { field: string }; index: number; type: string }) => {
     const { column, type } = data;
     const filed = column.field as keyof FilterClusterSpecItem;
     if (type === 'asc') {
-      tableData.value.sort((prevItem, nextItem) => prevItem[filed] as number - (nextItem[filed] as number));
+      tableData.value.sort((prevItem, nextItem) => (prevItem[filed] as number) - (nextItem[filed] as number));
     } else if (type === 'desc') {
-      tableData.value.sort((prevItem, nextItem) => nextItem[filed] as number - (prevItem[filed] as number));
+      tableData.value.sort((prevItem, nextItem) => (nextItem[filed] as number) - (prevItem[filed] as number));
     } else {
       tableData.value = rawTableData;
     }
-    const index = tableData.value.findIndex(item => item.spec_name === radioChoosedId.value);
+    const index = tableData.value.findIndex((item) => item.spec_name === radioChoosedId.value);
     radioValue.value = index;
   };
 </script>

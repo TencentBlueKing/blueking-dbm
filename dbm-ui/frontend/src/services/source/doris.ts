@@ -27,13 +27,13 @@ const getRootPath = () => `/apis/bigdata/bizs/${window.PROJECT_CONFIG.BIZ_ID}/do
  * 获取集群列表
  */
 export function getDorisList(params: {
-  limit?: number;
-  offset?: number;
-  id?: number;
-  name?: string;
-  ip?: string;
-  domain?: string;
   creator?: string;
+  domain?: string;
+  id?: number;
+  ip?: string;
+  limit?: number;
+  name?: string;
+  offset?: number;
 }) {
   return http.get<ListBase<DorisModel[]>>(`${getRootPath()}/`, params).then((data) => ({
     ...data,
@@ -59,13 +59,13 @@ export function getDorisTableFields() {
  * 获取实例列表
  */
 export function getDorisInstanceList(params: {
+  cluster_id?: number;
+  instance_address?: string;
+  ip?: string;
   limit?: number;
   offset?: number;
-  cluster_id?: number;
-  ip?: string;
   port?: string;
   role?: string;
-  instance_address?: string;
 }) {
   return http.get<ListBase<DorisInstanceModel[]>>(`${getRootPath()}/list_instances/`, params).then((data) => ({
     ...data,
@@ -147,20 +147,20 @@ export function exportDorisInstanceToExcel(params: { bk_host_ids?: number[] }) {
  * 查询主机列表
  */
 export function getDorisMachineList(params: {
-  limit?: number;
-  offset?: number;
-  bk_host_id?: number;
-  ip?: string;
-  cluster_ids?: string;
-  bk_city_name?: string;
-  machine_type?: string;
-  bk_os_name?: string;
-  bk_cloud_id?: number;
-  bk_agent_id?: string;
-  instance_role?: string;
-  creator?: string;
   add_role_count?: boolean;
+  bk_agent_id?: string;
+  bk_city_name?: string;
+  bk_cloud_id?: number;
+  bk_host_id?: number;
+  bk_os_name?: string;
+  cluster_ids?: string;
   cluster_type?: string;
+  creator?: string;
+  instance_role?: string;
+  ip?: string;
+  limit?: number;
+  machine_type?: string;
+  offset?: number;
 }) {
   return http.get<ListBase<DorisMachineModel[]>>(`${getRootPath()}/list_machines/`, params).then((data) => ({
     ...data,

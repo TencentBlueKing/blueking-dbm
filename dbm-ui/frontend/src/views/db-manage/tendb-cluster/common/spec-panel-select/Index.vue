@@ -35,8 +35,8 @@
 
   interface Props {
     cloudId?: number;
-    data?: number;
     currentSpecIds?: number[];
+    data?: number;
   }
 
   interface Exposes {
@@ -47,8 +47,8 @@
 
   const props = withDefaults(defineProps<Props>(), {
     cloudId: 0,
-    data: undefined,
     currentSpecIds: () => [],
+    data: undefined,
   });
 
   const selectRef = ref();
@@ -61,8 +61,8 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('请先输入集群'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 
@@ -78,10 +78,10 @@
         isLoading.value = true;
         try {
           const listResult = await getResourceSpecList({
-            spec_cluster_type: 'tendbcluster',
-            spec_machine_type: 'proxy',
             limit: -1,
             offset: 0,
+            spec_cluster_type: 'tendbcluster',
+            spec_machine_type: 'proxy',
           });
           const specResultList = listResult.results;
           const countResult = await getSpecResourceCount({
@@ -91,14 +91,14 @@
           });
           specList.value = specResultList.map((item) => ({
             id: item.spec_id,
-            name: item.spec_name,
             isCurrent: false,
+            name: item.spec_name,
             specData: {
-              name: item.spec_name,
+              count: countResult[item.spec_id],
               cpu: item.cpu,
               id: item.spec_id,
               mem: item.mem,
-              count: countResult[item.spec_id],
+              name: item.spec_name,
               storage_spec: item.storage_spec,
             },
           }));

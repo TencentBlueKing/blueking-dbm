@@ -14,7 +14,15 @@ from typing import Dict, List
 
 from django.db.models import QuerySet
 
-from backend.db_meta.enums import ClusterEntryType, ClusterPhase, InstanceInnerRole, InstancePhase, InstanceStatus
+from backend.db_meta.enums import (
+    ClusterEntryType,
+    ClusterPhase,
+    ClusterType,
+    InstanceInnerRole,
+    InstancePhase,
+    InstanceStatus,
+    TenDBClusterSpiderRole,
+)
 from backend.db_meta.enums.extra_process_type import ExtraProcessType
 from backend.db_meta.flatten.machine import _machine_prefetch, _single_machine_cc_info, _single_machine_city_info
 from backend.db_meta.models import StorageInstance
@@ -160,6 +168,12 @@ def storage_instance(storages: QuerySet) -> List[Dict]:
 
         proxyinstance_set = []
         for p in ins.proxyinstance_set.all():
+            if p.cluster_type == ClusterType.TenDBCluster and p.tendbclusterspiderext.spider_role in [
+                TenDBClusterSpiderRole.SPIDER_MNT,
+                TenDBClusterSpiderRole.SPIDER_SLAVE_MNT,
+            ]:
+                continue
+
             pinfo = {"ip": p.machine.ip, "port": p.port, "admin_port": p.admin_port, "status": p.status}
             proxyinstance_set.append(pinfo)
         info["proxyinstance_set"] = proxyinstance_set

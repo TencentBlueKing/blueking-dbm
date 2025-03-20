@@ -227,6 +227,6 @@ do
         echo "$REDIS_DATA_DIR/redis/$port not exist"
         exit -1
     fi
-    sed -ei '/^slaveof/d' $REDIS_DATA_DIR/redis/$port/*.conf
+    sed -i '/^slaveof/d' $REDIS_DATA_DIR/redis/$port/*.conf
 done <<< "$ports"
 """

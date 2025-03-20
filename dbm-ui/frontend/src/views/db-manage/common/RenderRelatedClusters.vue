@@ -49,13 +49,11 @@
 
   interface Props {
     data?: T;
-    role?: string;
     placeholder?: string;
+    role?: string;
   }
 
-  interface Emits {
-    (e: 'change', value: number[]): void;
-  }
+  type Emits = (e: 'change', value: number[]) => void;
 
   interface Exposes {
     getValue: () => Promise<Record<'cluster_ids', number[]>>;
@@ -65,8 +63,8 @@
 
   const props = withDefaults(defineProps<Props>(), {
     data: undefined,
-    role: 'master',
     placeholder: t('自动生成'),
+    role: 'master',
   });
 
   const emits = defineEmits<Emits>();
@@ -100,7 +98,7 @@
 
       relatedClusterList.value = [];
       emits('change', []);
-      if (props.data && props.data.ip) {
+      if (props.data?.ip) {
         fetchChecklInstances({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           instance_addresses: [props.data.ip],

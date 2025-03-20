@@ -90,7 +90,7 @@
 
   import { useTaskCount } from '@hooks';
 
-  const { rootRef, popRef, taskList, taskCount, handleRevokeTask, handleGoTaskLog } = useTaskCount('mysql');
+  const { handleGoTaskLog, handleRevokeTask, popRef, rootRef, taskCount, taskList } = useTaskCount('mysql');
 
   const { t } = useI18n();
 </script>

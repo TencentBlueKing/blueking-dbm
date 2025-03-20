@@ -20,8 +20,8 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
-    name: 'KafkaManage',
     path: 'kafka',
+    name: 'KafkaManage',
     meta: {
       navName: t('Kafka_集群管理'),
     },
@@ -39,11 +39,11 @@ const routes: RouteRecordRaw[] = [
       //   component: () => import('@views/db-manage/kafka/apply/Index.vue'),
       // },
       {
-        name: 'KafkaList',
         path: 'list',
+        name: 'KafkaList',
         meta: {
-          navName: t('Kafka_集群管理'),
           fullscreen: true,
+          navName: t('Kafka_集群管理'),
         },
         component: () => import('@views/db-manage/kafka/list/Index.vue'),
       },

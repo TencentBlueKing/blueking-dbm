@@ -66,10 +66,10 @@
             v-model="formData.file_tag"
             size="small">
             <template v-if="isBackupTypeFull">
-              <BkRadio label="DBFILE1M"> {{ t('1 个月') }} </BkRadio>
-              <BkRadio label="DBFILE6M"> {{ t('6 个月') }} </BkRadio>
-              <BkRadio label="DBFILE1Y"> {{ t('1 年') }} </BkRadio>
-              <BkRadio label="DBFILE3Y"> {{ t('3 年') }} </BkRadio>
+              <BkRadio label="DBFILE1M"> {{ t('1个月') }} </BkRadio>
+              <BkRadio label="DBFILE6M"> {{ t('6个月') }} </BkRadio>
+              <BkRadio label="DBFILE1Y"> {{ t('1年') }} </BkRadio>
+              <BkRadio label="DBFILE3Y"> {{ t('3年') }} </BkRadio>
             </template>
             <template v-else>
               <BkRadio label="INCREMENT_BACKUP"> 15 {{ t('天') }} </BkRadio>
@@ -132,25 +132,25 @@
 
   const backupLocationList = [
     {
-      value: 'master',
       label: t('主库主机'),
+      value: 'master',
     },
   ];
 
   const tabListConfig = {
-    [ClusterTypes.SQLSERVER_SINGLE]: {
-      name: t('单节点集群'),
-      showPreviewResultTitle: true,
-    },
     [ClusterTypes.SQLSERVER_HA]: {
       name: t('主从集群'),
+      showPreviewResultTitle: true,
+    },
+    [ClusterTypes.SQLSERVER_SINGLE]: {
+      name: t('单节点集群'),
       showPreviewResultTitle: true,
     },
   } as unknown as Record<ClusterTypes, TabItem>;
 
   const createDefaultData = () => ({
-    backup_type: 'full_backup',
     backup_place: 'master',
+    backup_type: 'full_backup',
     file_tag: 'DBFILE1M',
   });
 
@@ -168,7 +168,6 @@
   const isBackupTypeFull = computed(() => formData.backup_type === 'full_backup');
 
   useTicketCloneInfo({
-    type: TicketTypes.SQLSERVER_BACKUP_DBS,
     onSuccess(cloneData) {
       formData.backup_type = cloneData.backup_type;
       formData.backup_place = cloneData.backup_place;
@@ -176,15 +175,16 @@
       tableData.value = cloneData.info.map((item) =>
         createRowData({
           clusterData: {
-            id: item.cluster.id,
-            domain: item.cluster.immute_domain,
             cloudId: item.cluster.bk_cloud_id,
+            domain: item.cluster.immute_domain,
+            id: item.cluster.id,
           },
           dbList: item.db_list,
           ignoreDbList: item.ignore_db_list,
         }),
       );
     },
+    type: TicketTypes.SQLSERVER_BACKUP_DBS,
   });
 
   watch(
@@ -216,9 +216,9 @@
     const newList = list.reduce((result, item) => {
       const row = createRowData({
         clusterData: {
-          id: item.id,
-          domain: item.master_domain,
           cloudId: item.bk_cloud_id,
+          domain: item.master_domain,
+          id: item.id,
         },
       });
       result.push(row);
@@ -252,11 +252,11 @@
       const infos = await Promise.all(rowRefs.value!.map((item) => item.getValue()));
       await createTicket({
         bk_biz_id: currentBizId,
-        ticket_type: TicketTypes.SQLSERVER_BACKUP_DBS,
         details: {
           ...formData,
           infos,
         },
+        ticket_type: TicketTypes.SQLSERVER_BACKUP_DBS,
       }).then((data) => {
         window.changeConfirm = false;
         router.push({

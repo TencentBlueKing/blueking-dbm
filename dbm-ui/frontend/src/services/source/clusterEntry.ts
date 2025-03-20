@@ -19,8 +19,8 @@ import http from '../http';
  * 获取集群入口列表
  */
 export const getClusterEntries = (params: {
-  cluster_id: number;
   bk_biz_id: number;
+  cluster_id: number;
   entry_type?: 'dns' | 'clb' | 'polaris' | 'clbDns';
 }) =>
   http
@@ -31,10 +31,10 @@ export const getClusterEntries = (params: {
  * 修改集群访问入口
  */
 export const updateClusterEntryConfig = (params: {
-  cluster_id: number;
   cluster_entry_details: {
     cluster_entry_type: string;
     domain_name: string;
     target_instances: string[];
   }[];
+  cluster_id: number;
 }) => http.post<{ cluster_id?: number }>('/apis/cluster_entry/refresh_cluster_domain/', params);

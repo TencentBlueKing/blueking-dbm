@@ -138,9 +138,15 @@ func (param RequestInputParam) SortDetails() ([]ObjectDetail, error) {
 		if len(dtlp.DeviceClass) > 0 {
 			item.Priority++
 		}
+
+		if dtlp.Count > 1 {
+			item.Priority += int64(dtlp.Count)
+		}
+
 		if err := pq.Push(&item); err != nil {
 			return nil, err
 		}
+
 	}
 	for pq.Len() > 0 {
 		item, err := pq.Pop()

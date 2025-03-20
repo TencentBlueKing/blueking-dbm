@@ -21,7 +21,7 @@ export default function (rootId: string) {
   const ticketId = ref('');
 
   const statusText = computed(() => {
-    if (['RUNNING', 'CREATED'].includes(status.value)) {
+    if (['CREATED', 'RUNNING'].includes(status.value)) {
       return 'pending';
     }
     if (status.value === 'FINISHED') {
@@ -31,7 +31,6 @@ export default function (rootId: string) {
   });
 
   const { cancel } = useRequest(getTaskflowDetails, {
-    pollingInterval: 2000,
     defaultParams: [
       {
         rootId,
@@ -44,6 +43,7 @@ export default function (rootId: string) {
         cancel();
       }
     },
+    pollingInterval: 2000,
   });
 
   onBeforeUnmount(() => {

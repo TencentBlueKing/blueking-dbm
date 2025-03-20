@@ -167,10 +167,10 @@
             bkCloudId: instanceData.bk_cloud_id,
             bkCloudName: instanceData.bk_cloud_name,
             bkHostId: instanceData.bk_host_id,
+            clusterId: instanceData.cluster_id,
+            instanceAddress: instanceData.instance_address,
             ip,
             port: instanceData.port,
-            instanceAddress: instanceData.instance_address,
-            clusterId: instanceData.cluster_id,
           },
         });
         newList.push(row);
@@ -221,13 +221,13 @@
       isSubmitting.value = true;
       const infos = await Promise.all(rowRefs.value.map((item) => item.getValue()));
       await createTicket({
-        ticket_type: 'MYSQL_RESTORE_SLAVE',
-        remark: localRemark.value,
+        bk_biz_id: currentBizId,
         details: {
           backup_source: backupSource.value,
           infos,
         },
-        bk_biz_id: currentBizId,
+        remark: localRemark.value,
+        ticket_type: 'MYSQL_RESTORE_SLAVE',
       }).then((data) => {
         window.changeConfirm = false;
 

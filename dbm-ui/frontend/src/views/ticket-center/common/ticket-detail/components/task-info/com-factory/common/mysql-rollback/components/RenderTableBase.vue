@@ -73,8 +73,8 @@
   import { utcDisplayTime } from '@utils';
 
   interface Props {
-    ticketDetails: TicketModel<Mysql.RollbackCluster>;
     showDbName?: boolean;
+    ticketDetails: TicketModel<Mysql.RollbackCluster>;
   }
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
@@ -86,7 +86,7 @@
   const { t } = useI18n();
 
   const backupSourceMap = {
-    remote: t('远程备份'),
     local: t('本地备份'),
+    remote: t('远程备份'),
   };
 </script>

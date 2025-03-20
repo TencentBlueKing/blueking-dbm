@@ -98,7 +98,7 @@ class SQLParseHandler:
             "query_length": len(sql),
         }
 
-    def parse_select_statement(self, sql: str, need_keywords: list = None):
+    def parse_select_statement(self, sql: str, need_keywords: list = None, db_query: bool = False):
         """判断并解析select语句"""
         # 默认select语句要有limit
         need_keywords = need_keywords or ["LIMIT"]
@@ -153,10 +153,12 @@ class SQLParseHandler:
         if parse_show_desc_tokens(parsed_sqls[0].tokens):
             return
 
-        # 判断解析表结构，不允许查询系统表
+        # 判断解析表结构，普通用户不允许查询系统库，自助查询只允许查系统库
         dbs = [table.split(".")[0] for table in self.parse_sql(sql)["table_name"].split(",")]
-        if dbs and set(dbs).intersection(set(SYSTEM_DBS)):
+        if dbs and not db_query and set(dbs).intersection(set(SYSTEM_DBS)):
             raise SQLParseBaseException(_("不允许查询以下系统库表:{}").format(SYSTEM_DBS))
+        elif dbs and db_query and not set(dbs).issubset(set(SYSTEM_DBS)):
+            raise SQLParseBaseException(_("只允许查询以下系统库表:{}").format(SYSTEM_DBS))
 
         valid_select = all(parse_select_tokens(parsed_sqls[0], parsed_sqls[0].tokens))
         if not valid_select:

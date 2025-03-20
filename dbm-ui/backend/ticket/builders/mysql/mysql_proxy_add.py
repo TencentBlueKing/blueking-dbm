@@ -46,6 +46,11 @@ class MysqlProxyAddDetailSerializer(MySQLBaseOperateDetailSerializer):
             attrs, host_key=["new_proxy"], cluster_key=["cluster_ids"]
         )
 
+        # 校验添加新proxy主机不能重复
+        new_proxy_hosts = [info["new_proxy"]["bk_host_id"] for info in attrs["infos"]]
+        if len(set(new_proxy_hosts)) != len(new_proxy_hosts):
+            raise serializers.ValidationError(_("目标主机有重复，请重新输入"))
+
         return attrs
 
 

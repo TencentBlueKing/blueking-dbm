@@ -292,12 +292,14 @@ const (
 	IBStatusExpired = 44 // 文件已过期
 	// FileStatusRemoved TODO
 	FileStatusRemoved = 201
-	// FileStatusAbnormal TODO
-	FileStatusAbnormal = 202
+	// FileStatusForceRemoved remove by force, may upload failed
+	FileStatusForceRemoved = 202
 	// FileStatusNoNeedUpload binlog无需上传
 	FileStatusNoNeedUpload = 203
 	// FileStatusTooOldToRegister binlog文件时间太老，无需上传
 	FileStatusTooOldToRegister = 204
+	// FileStatusAbnormal TODO
+	FileStatusAbnormal = 205
 )
 
 const (
@@ -324,6 +326,7 @@ var IBStatusMap = map[int]string{
 	IBStatusExpired:      "done, expired",         // 备份系统文件已过期
 
 	FileStatusRemoved:          "local removed",
+	FileStatusForceRemoved:     "local force removed",
 	FileStatusAbnormal:         "file abnormal",
 	FileStatusNoNeedUpload:     "no need to backup",
 	FileStatusTooOldToRegister: "too old to backup",
@@ -363,13 +366,13 @@ func (m *BinlogFileModel) QueryUnfinished(db *sqlx.DB) ([]*BinlogFileModel, erro
 
 // QuerySuccess 查询上传成功的文件，或者不需要上传的文件
 func (m *BinlogFileModel) QuerySuccess(db *sqlx.DB) ([]*BinlogFileModel, error) {
-	inWhere := sq.Eq{"backup_status": []int{IBStatusSuccess, FileStatusNoNeedUpload}}
+	inWhere := sq.Eq{"backup_status": []int{IBStatusSuccess, FileStatusNoNeedUpload, FileStatusTooOldToRegister}}
 	return m.Query(db, inWhere)
 }
 
 // QueryFailed 查询上传失败、过期的文件
 func (m *BinlogFileModel) QueryFailed(db *sqlx.DB) ([]*BinlogFileModel, error) {
-	inWhere := sq.NotEq{"backup_status": []int{IBStatusSuccess, FileStatusRemoved, IBStatusFileNotFound}}
+	inWhere := sq.NotEq{"backup_status": []int{FileStatusRemoved, IBStatusFileNotFound}}
 	return m.Query(db, inWhere)
 }
 

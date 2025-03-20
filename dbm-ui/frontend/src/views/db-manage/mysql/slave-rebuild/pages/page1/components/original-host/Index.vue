@@ -94,8 +94,8 @@
   import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
 
   interface Props {
-    dataList?: IDataRow[];
     backupType?: string;
+    dataList?: IDataRow[];
     remark: string;
   }
 
@@ -168,10 +168,10 @@
           slave: {
             bkCloudId: instanceData.bk_cloud_id,
             bkHostId: instanceData.bk_host_id,
+            clusterId: instanceData.cluster_id,
+            instanceAddress: instanceData.instance_address,
             ip: instanceData.ip,
             port: instanceData.port,
-            instanceAddress: instanceData.instance_address,
-            clusterId: instanceData.cluster_id,
           },
         });
         newList.push(row);
@@ -200,7 +200,7 @@
     if (instanceAddress) {
       delete instanceMemo[instanceAddress];
       const clustersArr = selectedIntances.value[ClusterTypes.TENDBHA];
-      // eslint-disable-next-line max-len
+
       selectedIntances.value[ClusterTypes.TENDBHA] = clustersArr.filter(
         (item) => item.instance_address !== instanceAddress,
       );
@@ -225,13 +225,13 @@
       isSubmitting.value = true;
       const infos = await Promise.all(rowRefs.value.map((item) => item.getValue()));
       await createTicket({
-        ticket_type: 'MYSQL_RESTORE_LOCAL_SLAVE',
-        remark: localRemark.value,
+        bk_biz_id: currentBizId,
         details: {
           backup_source: backupSource.value,
           infos,
         },
-        bk_biz_id: currentBizId,
+        remark: localRemark.value,
+        ticket_type: 'MYSQL_RESTORE_LOCAL_SLAVE',
       }).then((data) => {
         window.changeConfirm = false;
 

@@ -116,6 +116,25 @@ type Ssh struct {
 
 // DoSSH do ssh detect
 func (b *BaseDetectDB) DoSSH(shellStr string) error {
+	resultChan := make(chan error, 1)
+
+	go func() {
+		resultChan <- b.doRawSSH(shellStr)
+	}()
+
+	timeout := time.Duration(b.SshInfo.Timeout) * time.Second
+	select {
+	case err := <-resultChan:
+		return err
+	case <-time.After(timeout):
+		log.Logger.Warnf("SSH timeout. IP:%s Cmd:%s", b.Ip, shellStr)
+		return fmt.Errorf("ssh_timeout")
+	}
+}
+
+// doRawSSH do raw ssh detect
+// ClientConfig's timeout at some scenario may be not work
+func (b *BaseDetectDB) doRawSSH(shellStr string) error {
 	conf := &ssh.ClientConfig{
 		Timeout:         time.Second * time.Duration(b.SshInfo.Timeout), // ssh 连接time out 时间一秒钟, 如果ssh验证错误 会在一秒内返回
 		User:            b.SshInfo.User,
@@ -151,8 +170,26 @@ func (b *BaseDetectDB) DoSSH(shellStr string) error {
 	return nil
 }
 
-// DoExtendSSH establishes an SSH connection, executes a command, and fetches the system uptime
+// DoExtendSSH establishes an SSH connection, executes a command, and compare the system uptime
 func (b *BaseDetectDB) DoExtendSSH(shellStr string) error {
+	resultChan := make(chan error, 1)
+
+	go func() {
+		resultChan <- b.doSSHWithUptime(shellStr)
+	}()
+
+	timeout := time.Duration(b.SshInfo.Timeout) * time.Second
+	select {
+	case err := <-resultChan:
+		return err
+	case <-time.After(timeout):
+		log.Logger.Warnf("ExtendSSH timeout. IP:%s Cmd:%s", b.Ip, shellStr)
+		return fmt.Errorf("extend_ssh_timeout")
+	}
+}
+
+// doSSHWithUptime establishes an SSH connection, executes a command, and compare the system uptime
+func (b *BaseDetectDB) doSSHWithUptime(shellStr string) error {
 	// 创建 SSH 配置
 	conf := &ssh.ClientConfig{
 		Timeout:         time.Second * time.Duration(b.SshInfo.Timeout),

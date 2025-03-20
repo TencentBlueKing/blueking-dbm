@@ -63,9 +63,7 @@
     accountType: AccountTypes;
   }
 
-  interface Emits {
-    (e: 'change'): void;
-  }
+  type Emits = (e: 'change') => void;
 
   interface Expose {
     reset: () => void;
@@ -93,30 +91,34 @@
     );
 
   const clusterTabListConfig = {
-    tendbhaSlave: {
-      name: t('高可用-从域名'),
-      showPreviewResultTitle: true,
-      getResourceList: (params: ServiceParameters<typeof getTendbhaSalveList>) => {
-        params.slave_domain = params.domain;
-        delete params.domain;
-        return getTendbhaSalveList(params);
-      },
-    },
     [ClusterTypes.TENDBHA]: {
-      name: t('高可用-主域名'),
-      showPreviewResultTitle: true,
       getResourceList: (params: ServiceParameters<typeof getTendbhaList>) => {
+        // eslint-disable-next-line
         params.master_domain = params.domain;
+        // eslint-disable-next-line
         delete params.domain;
         return getTendbhaList(params);
       },
+      name: t('高可用-主域名'),
+      showPreviewResultTitle: true,
+    },
+    tendbhaSlave: {
+      getResourceList: (params: ServiceParameters<typeof getTendbhaSalveList>) => {
+        // eslint-disable-next-line
+        params.slave_domain = params.domain;
+        // eslint-disable-next-line
+        delete params.domain;
+        return getTendbhaSalveList(params);
+      },
+      name: t('高可用-从域名'),
+      showPreviewResultTitle: true,
     },
   } as unknown as Record<string, TabConfig>;
 
   const rules = [
     {
-      required: true,
       message: t('域名不能为空'),
+      required: true,
       validator: (value: string) => value !== '',
     },
     {
@@ -204,7 +206,9 @@
     // 按状态分类结果
     const classifiedResult = result.reduce<Record<string, string[]>>((acc, item) => {
       if (!acc[item.status]) {
-        acc[item.status] = [];
+        Object.assign(acc, {
+          [item.status]: [],
+        });
       }
       acc[item.status].push(item.domain);
       return acc;

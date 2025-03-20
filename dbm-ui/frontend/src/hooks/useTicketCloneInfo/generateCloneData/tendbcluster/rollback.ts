@@ -16,28 +16,28 @@ import { random } from '@utils';
 
 // Spider 定点构造
 export function generateSpiderRollbackCloneData(ticketData: TicketModel<TendbCluster.RollbackCluster>) {
-  const { clusters, infos, rollback_cluster_type } = ticketData.details;
+  const { clusters, infos } = ticketData.details;
   const tableDataList = infos.map((item) => ({
-    rowKey: random(),
+    backupid: item.backupinfo.backup_id,
+    backupSource: 'remote',
     clusterData: {
-      id: item.cluster_id,
-      domain: clusters[item.cluster_id].immute_domain,
       cloudId: clusters[item.cluster_id].bk_cloud_id,
       cloudName: clusters[item.cluster_id].bk_cloud_name,
+      domain: clusters[item.cluster_id].immute_domain,
+      id: item.cluster_id,
     },
-    targetClusterId: item.target_cluster_id,
-    rollbackHost: item.rollback_host,
-    backupSource: 'remote',
-    rollbackType: item.rollback_type,
-    backupid: item.backupinfo.backup_id,
-    rollbackTime: item.rollback_time,
     databases: item.databases,
     databasesIgnore: item.databases_ignore,
+    rollbackHost: item.rollback_host,
+    rollbackTime: item.rollback_time,
+    rollbackType: item.rollback_type,
+    rowKey: random(),
     tables: item.tables,
     tablesIgnore: item.tables_ignore,
+    targetClusterId: item.target_cluster_id,
   }));
   return Promise.resolve({
+    rollback_cluster_type: ticketData.details.rollback_cluster_type,
     tableDataList,
-    rollback_cluster_type,
   });
 }

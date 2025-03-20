@@ -44,10 +44,7 @@
 <script setup lang="tsx">
   import type { ComputedRef, Ref } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import {
-    useRoute,
-    useRouter,
-  } from 'vue-router';
+  import { useRoute, useRouter } from 'vue-router';
 
   import { getBusinessConfigList } from '@services/source/configs';
 
@@ -55,10 +52,10 @@
 
   import type { TreeData } from '../types';
 
-  type ConfigListItem = ServiceReturnType<typeof getBusinessConfigList>
+  type ConfigListItem = ServiceReturnType<typeof getBusinessConfigList>;
 
   interface Props {
-    confType: string
+    confType: string;
   }
 
   const props = defineProps<Props>();
@@ -73,52 +70,58 @@
   /**
    * table 设置
    */
-  const columns = [{
-    label: t('名称'),
-    field: 'name',
-    render: ({ cell, data }: { cell: string, data: ConfigListItem[number] }) => (
-      <bk-button
-        text
-        theme="primary"
-        onClick={() => handleToDetails(data)}>
-        {cell}
-      </bk-button>
-    ),
-  }, {
-    label: t('数据库版本'),
-    field: 'version',
-    sort: true,
-  }, {
-    label: t('更新时间'),
-    field: 'updated_at',
-    sort: true,
-  }, {
-    label: t('更新人'),
-    field: 'updated_by',
-    render: ({ cell }: { cell: string }) => cell || '--',
-    sort: true,
-  }, {
-    label: t('操作'),
-    field: 'operation',
-    width: '80px',
-    render: ({ data }: { data: ConfigListItem[number] }) => (
-      <auth-button
-        text
-        action-id="dbconfig_edit"
-        resource={activeTab?.value}
-        permission={data.permission.dbconfig_edit}
-        theme="primary"
-        onClick={() => handleToEdit(data)}>
-        { t('编辑') }
-      </auth-button>
-    ),
-  }];
+  const columns = [
+    {
+      field: 'name',
+      label: t('名称'),
+      render: ({ cell, data }: { cell: string; data: ConfigListItem[number] }) => (
+        <bk-button
+          theme='primary'
+          text
+          onClick={() => handleToDetails(data)}>
+          {cell}
+        </bk-button>
+      ),
+    },
+    {
+      field: 'version',
+      label: t('数据库版本'),
+      sort: true,
+    },
+    {
+      field: 'updated_at',
+      label: t('更新时间'),
+      sort: true,
+    },
+    {
+      field: 'updated_by',
+      label: t('更新人'),
+      render: ({ cell }: { cell: string }) => cell || '--',
+      sort: true,
+    },
+    {
+      field: 'operation',
+      label: t('操作'),
+      render: ({ data }: { data: ConfigListItem[number] }) => (
+        <auth-button
+          action-id='dbconfig_edit'
+          permission={data.permission.dbconfig_edit}
+          resource={activeTab?.value}
+          theme='primary'
+          text
+          onClick={() => handleToEdit(data)}>
+          {t('编辑')}
+        </auth-button>
+      ),
+      width: '80px',
+    },
+  ];
 
   const state = reactive({
-    loading: false,
     data: [] as ConfigListItem,
-    search: '',
     isAnomalies: false,
+    loading: false,
+    search: '',
   });
 
   const searchValue = (value: string) => value.toLowerCase().includes(state.search);
@@ -126,7 +129,7 @@
     if (state.search === '') return state.data;
 
     return state.data.filter((item) => {
-      const { name, version, updated_by: updatedBy } = item;
+      const { name, updated_by: updatedBy, version } = item;
       return searchValue(name) || searchValue(version) || searchValue(updatedBy);
     });
   });
@@ -139,9 +142,9 @@
 
     state.loading = true;
     const params = {
-      meta_cluster_type: activeTab?.value as string,
-      conf_type: props.confType,
       bk_biz_id: globalBizsStore.currentBizId,
+      conf_type: props.confType,
+      meta_cluster_type: activeTab?.value as string,
     };
     getBusinessConfigList(params, {
       permission: 'catch',
@@ -167,8 +170,8 @@
   const changeViewParams = computed(() => ({
     clusterType: activeTab?.value,
     confType: props.confType,
-    treeId: treeNode?.value.treeId,
     parentId: treeNode?.value.parentId,
+    treeId: treeNode?.value.treeId,
   }));
 
   /**

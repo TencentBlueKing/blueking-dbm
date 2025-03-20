@@ -14,6 +14,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend import env
+from backend.configuration.constants import DBType
 from backend.constants import INT_MAX
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.spec import SpecClusterType, SpecMachineType
@@ -426,6 +427,11 @@ class SpecCountResourceSerializer(serializers.Serializer):
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
     spec_ids = serializers.ListField(help_text=_("规格ID列表"), child=serializers.IntegerField())
     city = serializers.CharField(help_text=_("城市"), default="default", required=False)
+
+
+class SpecCostEstimateSerializer(serializers.Serializer):
+    db_type = serializers.ChoiceField(help_text=_("组件类型"), choices=DBType.get_choices())
+    resource_spec = serializers.JSONField(help_text=_("部署规格"))
 
 
 class SpecCountResourceResponseSerializer(serializers.Serializer):

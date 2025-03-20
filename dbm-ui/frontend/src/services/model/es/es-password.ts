@@ -14,8 +14,8 @@
 export default class EsPassword {
   cluster_name: string;
   domain: string;
-  username: string;
   password: string;
+  username: string;
 
   constructor(payload = {} as EsPassword) {
     this.cluster_name = payload.cluster_name;

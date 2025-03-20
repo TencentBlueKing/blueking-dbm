@@ -76,17 +76,17 @@
   }
 
   export interface IDataRow {
-    rowKey: string;
-    isLoading: boolean;
     clusterData?: {
-      domain: string;
       cloudId: number;
-      clusterType: string;
       clusterId: number;
-      relatedInstance: ComponentProps<typeof RenderOldMasterSlaveHost>['data'];
+      clusterType: string;
       currentSpecId: number;
       dbVersion: string;
+      domain: string;
+      relatedInstance: ComponentProps<typeof RenderOldMasterSlaveHost>['data'];
     };
+    isLoading: boolean;
+    rowKey: string;
     targetSpecId?: number;
     targetVersion?: string;
   }
@@ -95,15 +95,15 @@
 
   // 创建表格数据
   export const createRowData = (data?: Omit<IDataRow, 'rowKey' | 'isLoading'>): IDataRow => ({
-    rowKey: random(),
     isLoading: false,
+    rowKey: random(),
     ...data,
   });
 
   interface Props {
     data: IDataRow;
-    removeable: boolean;
     inputedClusters?: string[];
+    removeable: boolean;
   }
 
   interface Emits {
@@ -115,18 +115,18 @@
 
   interface Exposes {
     getValue: () => Promise<{
+      db_version: string;
+      display_info: {
+        domain: string;
+        ip: string;
+        migrate_type: 'domain';
+      };
       instance: Awaited<ReturnType<ComponentExposed<typeof RenderOldMasterSlaveHost>['getValue']>>;
       resource_spec: {
         backend_group: {
-          spec_id: string;
           count: number;
+          spec_id: string;
         };
-      };
-      db_version: string;
-      display_info: {
-        migrate_type: 'domain';
-        ip: string;
-        domain: string;
       };
     }>;
   }
@@ -203,18 +203,18 @@
       ]).then((data) => {
         const [clusterData, instanceData, specData, versionData] = data;
         return {
+          db_version: versionData,
+          display_info: {
+            domain: clusterData,
+            ip: '',
+            migrate_type: 'domain',
+          },
           instance: instanceData,
           resource_spec: {
             backend_group: {
-              spec_id: specData,
               count: 1,
+              spec_id: specData,
             },
-          },
-          db_version: versionData,
-          display_info: {
-            migrate_type: 'domain',
-            ip: '',
-            domain: clusterData,
           },
         };
       });

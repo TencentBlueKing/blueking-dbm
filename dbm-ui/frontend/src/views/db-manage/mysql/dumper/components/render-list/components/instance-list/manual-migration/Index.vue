@@ -177,16 +177,16 @@
   const formRules = {
     binlog_file: [
       {
-        validator: (value: string) => Boolean(value),
         message: t('不能为空'),
         trigger: 'blur',
+        validator: (value: string) => Boolean(value),
       },
     ],
     binlog_pos: [
       {
-        validator: (value: string) => Boolean(value),
         message: t('不能为空'),
         trigger: 'blur',
+        validator: (value: string) => Boolean(value),
       },
     ],
   };
@@ -201,10 +201,7 @@
     await formRef.value.validate();
     const params = {
       bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.TBINLOGDUMPER_SWITCH_NODES,
-      remark: '',
       details: {
-        is_safe: true,
         infos: [
           {
             cluster_id: props.data.cluster_id,
@@ -220,7 +217,10 @@
             ],
           },
         ],
+        is_safe: true,
       },
+      remark: '',
+      ticket_type: TicketTypes.TBINLOGDUMPER_SWITCH_NODES,
     };
     isSubmitting.value = true;
     try {

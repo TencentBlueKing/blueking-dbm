@@ -61,8 +61,14 @@ class AuthorizeRulesV2(BaseService):
         # 对授权的规则进行授权记录
         auth_logs: List[DBRuleActionLog] = []
         for db in authorize_data["access_dbs"]:
-            rule = user_db_rules_map[authorize_data["user"]][db]
-            account_id, rule_id = rule["account_id"], rule["id"]
+            try:
+                rule = user_db_rules_map[authorize_data["user"]][db]
+                account_id, rule_id = rule["account_id"], rule["id"]
+            except KeyError:
+                msg = "{} not found in {}".format(db, user_db_rules_map[authorize_data["user"]])
+                self.log_error(msg)
+                raise Exception(msg)
+
             log = DBRuleActionLog(
                 account_id=account_id, rule_id=rule_id, operator=operator, action_type=RuleActionType.AUTH
             )

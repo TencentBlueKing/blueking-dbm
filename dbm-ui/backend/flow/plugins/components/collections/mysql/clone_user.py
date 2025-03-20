@@ -19,6 +19,7 @@ from backend.components.mysql_priv_manager.client import DBPrivManagerApi
 from backend.db_services.mysql.permission.clone.handlers import CloneHandler
 from backend.db_services.mysql.permission.constants import CloneClusterType, CloneType
 from backend.exceptions import ApiResultError
+from backend.flow.consts import UserName
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
 logger = logging.getLogger("flow")
@@ -53,7 +54,14 @@ class CloneUserService(BaseService):
                     source_machine_type = address__machine_map[clone_data["source"]].machine_type
                     target_machine_type = address__machine_map[clone_data["target"]].machine_type
 
-                params = {"bk_biz_id": int(global_data["bk_biz_id"]), "operator": global_data["created_by"]}
+                params = {
+                    "bk_biz_id": int(global_data["bk_biz_id"]),
+                    "operator": global_data["created_by"],
+                    "system_users": [
+                        *UserName.get_values(),
+                        "gcs_dba",
+                    ],
+                }
                 params.update(
                     {
                         "source": {
@@ -64,7 +72,7 @@ class CloneUserService(BaseService):
                         "bk_cloud_id": clone_data["bk_cloud_id"],
                     }
                 )
-                DBPrivManagerApi.clone_instance(params=params, timeout=DBPrivManagerApi.TIMEOUT)
+                DBPrivManagerApi.clone_instance_v2(params=params, timeout=DBPrivManagerApi.TIMEOUT)
             return True
         except Exception as e:  # pylint: disable=broad-except
             if isinstance(e, ApiResultError):

@@ -24,51 +24,51 @@ const STATUS_NORMAL = 'normal';
 const STATUS_ABNORMAL = 'abnormal';
 
 export default class Pulsar extends ClusterBase {
-  static STATUS_NORMAL = STATUS_NORMAL;
-  static STATUS_ABNORMAL = STATUS_ABNORMAL;
+  static PULSAR_DESTROY = 'PULSAR_DESTROY';
+  static PULSAR_DISABLE = 'PULSAR_DISABLE';
 
+  static PULSAR_ENABLE = 'PULSAR_ENABLE';
+  static PULSAR_REBOOT = 'PULSAR_REBOOT';
+  static PULSAR_REPLACE = 'PULSAR_REPLACE';
   static PULSAR_SCALE_UP = 'PULSAR_SCALE_UP';
   static PULSAR_SHRINK = 'PULSAR_SHRINK';
-  static PULSAR_REPLACE = 'PULSAR_REPLACE';
-  static PULSAR_ENABLE = 'PULSAR_ENABLE';
-  static PULSAR_DISABLE = 'PULSAR_DISABLE';
-  static PULSAR_DESTROY = 'PULSAR_DESTROY';
-  static PULSAR_REBOOT = 'PULSAR_REBOOT';
-
   static operationIconMap = {
+    [Pulsar.PULSAR_DESTROY]: t('删除中'),
+    [Pulsar.PULSAR_DISABLE]: t('禁用中'),
+    [Pulsar.PULSAR_ENABLE]: t('启用中'),
+    [Pulsar.PULSAR_REBOOT]: t('重启中'),
+    [Pulsar.PULSAR_REPLACE]: t('替换中'),
     [Pulsar.PULSAR_SCALE_UP]: t('扩容中'),
     [Pulsar.PULSAR_SHRINK]: t('缩容中'),
-    [Pulsar.PULSAR_REPLACE]: t('替换中'),
-    [Pulsar.PULSAR_ENABLE]: t('启用中'),
-    [Pulsar.PULSAR_DISABLE]: t('禁用中'),
-    [Pulsar.PULSAR_DESTROY]: t('删除中'),
-    [Pulsar.PULSAR_REBOOT]: t('重启中'),
   };
-
   static operationTextMap = {
+    [Pulsar.PULSAR_DESTROY]: t('删除任务进行中'),
+    [Pulsar.PULSAR_DISABLE]: t('禁用任务进行中'),
+    [Pulsar.PULSAR_ENABLE]: t('启用任务进行中'),
+    [Pulsar.PULSAR_REBOOT]: t('实例重启任务进行中'),
+    [Pulsar.PULSAR_REPLACE]: t('替换任务进行中'),
     [Pulsar.PULSAR_SCALE_UP]: t('扩容任务进行中'),
     [Pulsar.PULSAR_SHRINK]: t('缩容任务进行中'),
-    [Pulsar.PULSAR_REPLACE]: t('替换任务进行中'),
-    [Pulsar.PULSAR_ENABLE]: t('启用任务进行中'),
-    [Pulsar.PULSAR_DISABLE]: t('禁用任务进行中'),
-    [Pulsar.PULSAR_DESTROY]: t('删除任务进行中'),
-    [Pulsar.PULSAR_REBOOT]: t('实例重启任务进行中'),
   };
+
+  static STATUS_ABNORMAL = STATUS_ABNORMAL;
+
+  static STATUS_NORMAL = STATUS_NORMAL;
 
   access_url: string;
   bk_biz_id: number;
   bk_biz_name: string;
-  bk_cloud_name: string;
   bk_cloud_id: number;
+  bk_cloud_name: string;
   cap_usage: number;
   cluster_alias: string;
   cluster_entry: ClusterListEntry[];
   cluster_name: string;
   cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
+  cluster_time_zone: string;
   cluster_type: ClusterTypes;
   cluster_type_name: string;
-  cluster_time_zone: string;
   create_at: string;
   creator: string;
   disaster_tolerance_level: keyof typeof ClusterAffinityMap;
@@ -83,21 +83,21 @@ export default class Pulsar extends ClusterBase {
     ticket_type: string;
     title: string;
   }>;
+  permission: {
+    access_entry_edit: boolean;
+    pulsar_access_entry_view: boolean;
+    pulsar_destroy: boolean;
+    pulsar_enable_disable: boolean;
+    pulsar_reboot: boolean;
+    pulsar_replace: boolean;
+    pulsar_scale_up: boolean;
+    pulsar_shrink: boolean;
+    pulsar_view: boolean;
+  };
   phase: string;
   pulsar_bookkeeper: ClusterListNode[];
   pulsar_broker: ClusterListNode[];
   pulsar_zookeeper: ClusterListNode[];
-  permission: {
-    access_entry_edit: boolean;
-    pulsar_access_entry_view: boolean;
-    pulsar_view: boolean;
-    pulsar_enable_disable: boolean;
-    pulsar_destroy: boolean;
-    pulsar_scale_up: boolean;
-    pulsar_shrink: boolean;
-    pulsar_replace: boolean;
-    pulsar_reboot: boolean;
-  };
   region: string;
   status: string;
   update_at: string;
@@ -137,40 +137,33 @@ export default class Pulsar extends ClusterBase {
     this.updater = payload.updater;
   }
 
-  get runningOperation() {
-    const operateTicketTypes = Object.keys(Pulsar.operationTextMap);
-    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+  get allInstanceList() {
+    return [...this.pulsar_bookkeeper, ...this.pulsar_broker, ...this.pulsar_zookeeper];
   }
 
-  // 操作中的状态
-  get operationRunningStatus() {
-    if (this.operations.length < 1) {
-      return '';
-    }
-    const operation = this.runningOperation;
-    if (!operation) {
-      return '';
-    }
-    return operation.ticket_type;
+  get allIPList() {
+    return uniq(this.allInstanceList.map((item) => item.ip));
   }
-  // 操作中的状态描述文本
-  get operationStatusText() {
-    return Pulsar.operationTextMap[this.operationRunningStatus];
+  // 异常主机IP
+  get allUnavailableIPList() {
+    return uniq(
+      this.allInstanceList.reduce(
+        (pre, cur) => [...pre, ...(cur.status === 'unavailable' ? [cur.ip] : [])],
+        [] as string[],
+      ),
+    );
   }
-  // 操作中的状态 icon
-  get operationStatusIcon() {
-    return Pulsar.operationIconMap[this.operationRunningStatus];
+  get disasterToleranceLevelName() {
+    return ClusterAffinityMap[this.disaster_tolerance_level];
   }
-  // 操作中的单据 ID
-  get operationTicketId() {
-    if (this.operations.length < 1) {
-      return 0;
-    }
-    const operation = this.runningOperation;
-    if (!operation) {
-      return 0;
-    }
-    return operation.ticket_id;
+  get isStarting() {
+    return Boolean(this.operations.find((item) => item.ticket_type === Pulsar.PULSAR_ENABLE));
+  }
+
+  get masterDomainDisplayName() {
+    const port = this.pulsar_broker[0]?.port;
+    const displayName = port ? `${this.domain}:${port}` : this.domain;
+    return displayName;
   }
 
   get operationDisabled() {
@@ -189,51 +182,58 @@ export default class Pulsar extends ClusterBase {
     return false;
   }
 
-  get masterDomainDisplayName() {
-    const port = this.pulsar_broker[0]?.port;
-    const displayName = port ? `${this.domain}:${port}` : this.domain;
-    return displayName;
+  // 操作中的状态
+  get operationRunningStatus() {
+    if (this.operations.length < 1) {
+      return '';
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return '';
+    }
+    return operation.ticket_type;
   }
 
-  get allInstanceList() {
-    return [...this.pulsar_bookkeeper, ...this.pulsar_broker, ...this.pulsar_zookeeper];
+  // 操作中的状态 icon
+  get operationStatusIcon() {
+    return Pulsar.operationIconMap[this.operationRunningStatus];
   }
 
-  get allIPList() {
-    return uniq(this.allInstanceList.map((item) => item.ip));
-  }
-
-  // 异常主机IP
-  get allUnavailableIPList() {
-    return uniq(
-      this.allInstanceList.reduce(
-        (pre, cur) => [...pre, ...(cur.status === 'unavailable' ? [cur.ip] : [])],
-        [] as string[],
-      ),
-    );
+  // 操作中的状态描述文本
+  get operationStatusText() {
+    return Pulsar.operationTextMap[this.operationRunningStatus];
   }
 
   get operationTagTips() {
     return this.operations.map((item) => ({
       icon: Pulsar.operationIconMap[item.ticket_type],
-      tip: Pulsar.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,
+      tip: Pulsar.operationTextMap[item.ticket_type],
     }));
   }
 
-  get isStarting() {
-    return Boolean(this.operations.find((item) => item.ticket_type === Pulsar.PULSAR_ENABLE));
-  }
-
-  get disasterToleranceLevelName() {
-    return ClusterAffinityMap[this.disaster_tolerance_level];
+  // 操作中的单据 ID
+  get operationTicketId() {
+    if (this.operations.length < 1) {
+      return 0;
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return 0;
+    }
+    return operation.ticket_id;
   }
 
   get roleFailedInstanceInfo() {
     return {
       Bookkeeper: ClusterBase.getRoleFaildInstanceList(this.pulsar_bookkeeper),
-      Zookeeper: ClusterBase.getRoleFaildInstanceList(this.pulsar_zookeeper),
       Broker: ClusterBase.getRoleFaildInstanceList(this.pulsar_broker),
+      Zookeeper: ClusterBase.getRoleFaildInstanceList(this.pulsar_zookeeper),
     };
+  }
+
+  get runningOperation() {
+    const operateTicketTypes = Object.keys(Pulsar.operationTextMap);
+    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
   }
 }

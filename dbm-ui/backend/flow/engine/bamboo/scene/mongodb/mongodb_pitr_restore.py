@@ -97,12 +97,18 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
         # 4. 执行回档任务
 
         # 所有涉及的cluster
+        cluster_id_list_from = []
+        cluster_id_list_to = []
         cluster_id_list = []
         for row in self.payload["infos"]:
             cluster_id_list.append(row["dst_cluster_id"])
+            cluster_id_list_to.append(row["dst_cluster_id"])
             if row["src_cluster_id"] > 0:
                 cluster_id_list.append(row["src_cluster_id"])
-        self.check_cluster_id_list(cluster_id_list)
+                cluster_id_list_from.append(row["src_cluster_id"])
+        # cluster_id 不能重复
+        self.check_cluster_id_list(cluster_id_list_from)
+        self.check_cluster_id_list(cluster_id_list_to)
         clusters = MongoRepository.fetch_many_cluster_dict(id__in=cluster_id_list)
         dest_dir = str(DirEnum.MONGO_RECOVER_DIR.value)
 

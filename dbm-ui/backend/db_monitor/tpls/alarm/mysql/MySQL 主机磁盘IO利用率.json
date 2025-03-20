@@ -45,14 +45,14 @@
             ],
             "agg_condition": [
               {
-                "key": "db_type",
+                "key": "cluster_type",
                 "value": [
-                  "mysql",
-                  "tendbcluster"
+                  "tendbsingle",
+                  "tendbha"
                 ],
                 "method": "eq",
                 "condition": "and",
-                "dimension_name": "dbm db type"
+                "dimension_name": "dbm cluster type"
               }
             ],
             "metric_field": "util",
@@ -89,10 +89,10 @@
             "time_ranges": [
               {
                 "end": "23:59",
-                "start": "06:00"
+                "start": "09:00"
               },
               {
-                "end": "02:59",
+                "end": "02:00",
                 "start": "00:00"
               }
             ]
@@ -231,7 +231,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "AVG(I/O使用率)",
-  "version": 26,
+  "version": 27,
   "alert_source": "time_series",
   "custom_conditions": [],
   "export_at": "2024-11-26T16:26:58+08:00"

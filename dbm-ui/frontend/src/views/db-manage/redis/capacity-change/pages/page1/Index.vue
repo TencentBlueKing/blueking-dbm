@@ -89,12 +89,12 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.REDIS_SCALE_UPDOWN,
     onSuccess(cloneData) {
       tableData.value = cloneData.tableDataList;
       remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
+    type: TicketTypes.REDIS_SCALE_UPDOWN,
   });
 
   const rowRefs = ref();
@@ -137,27 +137,27 @@
 
   // 根据集群选择返回的数据加工成table所需的数据
   const generateRowDateFromRequest = (data: RedisModel) => ({
-    rowKey: data.master_domain,
-    isLoading: false,
-    targetCluster: data.master_domain,
-    currentSepc: data.cluster_spec.spec_name,
-    clusterId: data.id,
     bkCloudId: data.bk_cloud_id,
-    clusterTypeName: data.cluster_type_name,
+    clusterId: data.id,
     clusterStats: data.cluster_stats,
-    disasterToleranceLevel: data.disaster_tolerance_level,
-    shardNum: data.cluster_shard_num,
-    groupNum: data.machine_pair_cnt,
-    machineCount: data.redis_master.length,
-    version: data.major_version,
     clusterType: data.cluster_type,
+    clusterTypeName: data.cluster_type_name,
     currentCapacity: {
-      used: 1,
       total: data.cluster_capacity,
+      used: 1,
     },
+    currentSepc: data.cluster_spec.spec_name,
+    disasterToleranceLevel: data.disaster_tolerance_level,
+    groupNum: data.machine_pair_cnt,
+    isLoading: false,
+    machineCount: data.redis_master.length,
+    rowKey: data.master_domain,
+    shardNum: data.cluster_shard_num,
     spec: data.cluster_spec,
-    targetShardNum: 0,
+    targetCluster: data.master_domain,
     targetGroupNum: 0,
+    targetShardNum: 0,
+    version: data.major_version,
   });
 
   // 批量选择
@@ -204,7 +204,7 @@
     tableData.value.splice(index, 1);
     delete domainMemo[targetCluster];
     const clustersArr = selectedClusters.value[ClusterTypes.REDIS];
-    // eslint-disable-next-line max-len
+
     selectedClusters.value[ClusterTypes.REDIS] = clustersArr.filter((item) => item.master_domain !== targetCluster);
   };
 
@@ -217,12 +217,12 @@
       );
       const params = {
         bk_biz_id: currentBizId,
-        ticket_type: TicketTypes.REDIS_SCALE_UPDOWN,
-        remark: remark.value,
         details: {
-          ip_source: 'resource_pool',
           infos,
+          ip_source: 'resource_pool',
         },
+        remark: remark.value,
+        ticket_type: TicketTypes.REDIS_SCALE_UPDOWN,
       };
       await createTicket(params).then((data) => {
         window.changeConfirm = false;

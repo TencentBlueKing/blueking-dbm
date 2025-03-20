@@ -20,8 +20,8 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
-    name: 'RiakManage',
     path: 'riak',
+    name: 'RiakManage',
     meta: {
       navName: t('Riak_集群管理'),
     },
@@ -31,11 +31,11 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@views/db-manage/riak/Index.vue'),
     children: [
       {
-        name: 'RiakList',
         path: 'list',
+        name: 'RiakList',
         meta: {
-          navName: t('Riak_集群管理'),
           fullscreen: true,
+          navName: t('Riak_集群管理'),
         },
         component: () => import('@views/db-manage/riak/list/Index.vue'),
       },

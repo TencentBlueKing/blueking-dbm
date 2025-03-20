@@ -8,7 +8,6 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/truncate/pkg"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
 	"fmt"
-	"time"
 
 	_ "github.com/go-sql-driver/mysql" // mysql 驱动
 	"github.com/jmoiron/sqlx"
@@ -146,11 +145,8 @@ func (c *PreDropStageOnRemoteComponent) instanceDropStageDBs(port int) error {
 }
 
 func (c *PreDropStageOnRemoteComponent) instanceDropStageDB(port int, dbName string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Second)
-	defer cancel()
-
 	_, err := c.dbConn.ExecContext(
-		ctx,
+		context.Background(),
 		fmt.Sprintf("DROP DATABASE IF EXISTS `%s`", dbName),
 	)
 	if err != nil {

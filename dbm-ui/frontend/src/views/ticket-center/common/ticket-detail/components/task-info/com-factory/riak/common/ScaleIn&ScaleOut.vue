@@ -64,7 +64,7 @@
   import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
 
   interface Props {
-    ticketDetails: TicketModel<Riak.ScaleIn>
+    ticketDetails: TicketModel<Riak.ScaleIn>;
   }
 
   const props = defineProps<Props>();
@@ -72,10 +72,10 @@
   const { t } = useI18n();
 
   const rowData = ref<{
-    clusterName: string,
-    clusterId: number,
-    specName: string,
-    count: number,
+    clusterId: number;
+    clusterName: string;
+    count: number;
+    specName: string;
   }>();
 
   const isScaleUp = props.ticketDetails.ticket_type.includes('SCALE_OUT');
@@ -85,17 +85,17 @@
 
   const tableColumns = [
     {
-      label: t('节点 IP'),
       field: 'ip',
+      label: t('节点 IP'),
     },
     {
-      label: t('Agent状态'),
       field: 'alive',
+      label: t('Agent状态'),
       render: ({ data }: { data: { alive: number } }) => <span>{data.alive === 1 ? t('正常') : t('异常')}</span>,
     },
     {
-      label: t('磁盘_GB'),
       field: 'bk_disk',
+      label: t('磁盘_GB'),
     },
   ];
 
@@ -109,20 +109,26 @@
   const ipList = computed(() => props.ticketDetails.details?.nodes?.riak || []);
 
   const { loading: isLoading } = useRequest(getResourceSpecList, {
-    defaultParams: [{
-      spec_cluster_type: 'riak',
-      offset: 0,
-      limit: -1,
-    }],
+    defaultParams: [
+      {
+        limit: -1,
+        offset: 0,
+        spec_cluster_type: 'riak',
+      },
+    ],
     onSuccess(specList) {
-      const specListMap = specList.results.reduce((specListMapPrev, specItem) => Object.assign(specListMapPrev, {
-        [specItem.spec_id]: specItem.spec_name,
-      }), {} as Record<string, string>);
+      const specListMap = specList.results.reduce(
+        (specListMapPrev, specItem) =>
+          Object.assign(specListMapPrev, {
+            [specItem.spec_id]: specItem.spec_name,
+          }),
+        {} as Record<string, string>,
+      );
 
       rowData.value = {
         clusterId,
-        count: props.ticketDetails.details?.resource_spec?.riak.count || 0,
         clusterName: clusterInfo?.immute_domain ?? '--',
+        count: props.ticketDetails.details?.resource_spec?.riak.count || 0,
         specName: specListMap[props.ticketDetails.details?.resource_spec?.riak.spec_id] || '--',
       };
     },

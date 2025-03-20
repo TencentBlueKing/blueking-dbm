@@ -18,23 +18,23 @@ import { t } from '@locales/index';
 
 export default class TaskFlow {
   static STATUS_TEXT_MAP: Record<string, string> = {
-    // CREATED: t('等待执行'),
-    READY: t('等待执行'),
-    RUNNING: t('执行中'),
+    FAILED: t('执行失败'),
     // SUSPENDED: t('执行中'),
     // BLOCKED: t('执行中'),
     FINISHED: t('执行成功'),
-    FAILED: t('执行失败'),
+    // CREATED: t('等待执行'),
+    READY: t('等待执行'),
     REVOKED: t('已终止'),
+    RUNNING: t('执行中'),
   };
 
   static STATUS_THEME_MAP: Record<string, string> = {
-    RUNNING: 'loading',
-    SUSPENDED: 'loading',
     BLOCKED: 'loading',
     CREATED: 'default',
-    READY: 'default',
     FINISHED: 'success',
+    READY: 'default',
+    RUNNING: 'loading',
+    SUSPENDED: 'loading',
   };
 
   bk_biz_id: number;
@@ -68,15 +68,15 @@ export default class TaskFlow {
     this.updated_at = payload.updated_at;
   }
 
+  get createAtDisplay() {
+    return utcDisplayTime(this.created_at) || '--';
+  }
+
   get statusText() {
     return TaskFlow.STATUS_TEXT_MAP[this.status] || '--';
   }
 
   get statusTheme() {
     return TaskFlow.STATUS_THEME_MAP[this.status] || 'danger';
-  }
-
-  get createAtDisplay() {
-    return utcDisplayTime(this.created_at) || '--';
   }
 }

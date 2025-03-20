@@ -139,8 +139,8 @@
   import RenderDataRow, { createRowData, type IDataRow, type IDataRowBatchKey } from './Row.vue';
 
   interface Props {
-    tableList: IDataRow[];
     remark: string;
+    tableList: IDataRow[];
   }
 
   const props = defineProps<Props>();
@@ -163,23 +163,23 @@
   const tabListConfig = {
     RedisHost: [
       {
-        topoConfig: {
-          totalCountFunc: (dataList: RedisModel[]) => {
-            const ipSet = new Set<string>();
-            dataList.forEach((dataItem) => dataItem.redis_master.forEach((masterItem) => ipSet.add(masterItem.ip)));
-            return ipSet.size;
-          },
-        },
         tableConfig: {
+          disabledRowConfig: {
+            handler: (data: RedisMachineModel) =>
+              data.isUnvailable || data.related_instances.some((item) => item.status === 'unavailable'),
+            tip: t('集群或实例状态异常，不可选择'),
+          },
           getTableList: (params: ServiceReturnType<typeof getRedisMachineList>) =>
             getRedisMachineList({
               cluster_type: ClusterTypes.REDIS_INSTANCE,
               ...params,
             }),
-          disabledRowConfig: {
-            handler: (data: RedisMachineModel) =>
-              data.isUnvailable || data.related_instances.some((item) => item.status === 'unavailable'),
-            tip: t('集群或实例状态异常，不可选择'),
+        },
+        topoConfig: {
+          totalCountFunc: (dataList: RedisModel[]) => {
+            const ipSet = new Set<string>();
+            dataList.forEach((dataItem) => dataItem.redis_master.forEach((masterItem) => ipSet.add(masterItem.ip)));
+            return ipSet.size;
           },
         },
       },
@@ -206,30 +206,30 @@
 
   const specList = shallowRef<
     {
-      value: number;
       label: string;
+      value: number;
     }[]
   >();
   const versionList = shallowRef<
     {
-      value: string;
       label: string;
+      value: string;
     }[]
   >([]);
 
   useRequest(getResourceSpecList, {
     defaultParams: [
       {
-        spec_cluster_type: ClusterTypes.REDIS,
-        spec_machine_type: specClusterMachineMap[ClusterTypes.REDIS_INSTANCE],
         limit: -1,
         offset: 0,
+        spec_cluster_type: ClusterTypes.REDIS,
+        spec_machine_type: specClusterMachineMap[ClusterTypes.REDIS_INSTANCE],
       },
     ],
     onSuccess(listResult) {
       specList.value = listResult.results.map((item) => ({
-        value: item.spec_id,
         label: item.spec_name,
+        value: item.spec_id,
       }));
     },
   });
@@ -243,8 +243,8 @@
     ],
     onSuccess(listResult) {
       versionList.value = listResult.map((item) => ({
-        value: item,
         label: item,
+        value: item,
       }));
     },
   });
@@ -290,17 +290,17 @@
   };
 
   const generateTableRow = (item: RedisMachineModel) => ({
-    rowKey: random(),
-    isLoading: false,
     clusterData: {
-      ip: item.ip,
       cloudId: item.bk_cloud_id,
       clusterType: ClusterTypes.REDIS_INSTANCE,
-      // related_cluster: item.related_clusters,
-      relatedInstance: item.related_instances,
       currentSpecId: item.spec_config.id,
       dbVersion: item.related_clusters[0].major_version,
+      ip: item.ip,
+      // related_cluster: item.related_clusters,
+      relatedInstance: item.related_instances,
     },
+    isLoading: false,
+    rowKey: random(),
   });
 
   // 批量选择
@@ -370,19 +370,19 @@
         .map((infoItem) =>
           infoItem.instance.map((instaneItem) => ({
             ...instaneItem,
-            resource_spec: infoItem.resource_spec,
             db_version: infoItem.db_version,
             display_info: infoItem.display_info,
+            resource_spec: infoItem.resource_spec,
           })),
         )
         .flat();
       await createTicket({
-        ticket_type: TicketTypes.REDIS_SINGLE_INS_MIGRATE,
-        remark: localRemark.value,
+        bk_biz_id: currentBizId,
         details: {
           infos,
         },
-        bk_biz_id: currentBizId,
+        remark: localRemark.value,
+        ticket_type: TicketTypes.REDIS_SINGLE_INS_MIGRATE,
       }).then((data) => {
         window.changeConfirm = false;
 

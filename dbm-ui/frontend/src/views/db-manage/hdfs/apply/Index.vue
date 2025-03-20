@@ -366,39 +366,39 @@
 
   const genDefaultFormData = () => ({
     bk_biz_id: '' as number | '',
-    ticket_type: 'HDFS_APPLY',
     details: {
       bk_cloud_id: 0,
-      db_app_abbr: '',
-      cluster_name: '',
-      cluster_alias: '',
       city_code: '',
+      cluster_alias: '',
+      cluster_name: '',
+      db_app_abbr: '',
       db_version: '',
-      ip_source: 'resource_pool',
       disaster_tolerance_level: 'NONE', // 同 affinity
+      http_port: 50070,
+      ip_source: 'resource_pool',
       nodes: {
+        datanode: [] as Array<HostInfo>,
         namenode: [] as Array<HostInfo>,
         zookeeper: [] as Array<HostInfo>,
-        datanode: [] as Array<HostInfo>,
       },
       resource_spec: {
-        zookeeper: {
-          spec_id: '',
-          count: 3,
-        },
         datanode: {
-          spec_id: '',
           count: 2,
+          spec_id: '',
         },
         namenode: {
-          spec_id: '',
           count: 2,
+          spec_id: '',
+        },
+        zookeeper: {
+          count: 3,
+          spec_id: '',
         },
       },
-      http_port: 50070,
       rpc_port: 9000,
     },
     remark: '',
+    ticket_type: 'HDFS_APPLY',
   });
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
@@ -421,43 +421,43 @@
   // const isDefaultCity = computed(() => formData.details.city_code === 'default');
 
   const rules = {
-    'details.nodes.namenode': [
+    'details.http_post': [
       {
-        required: true,
-        validator: () => formData.details.nodes.namenode.length === 2 && formData.details.nodes.zookeeper.length === 3,
-        message: t('NameNode必须两台_Zookeeper_JournalNode必须三台'),
+        message: t('访问端口必填'),
         trigger: 'change',
+        validator: () => formData.details.http_port,
+      },
+      {
+        message: t('禁用2181_8480_8485'),
+        trigger: 'change',
+        validator: (value: number) => ![2181, 8480, 8485].includes(value),
       },
     ],
     'details.nodes.datanode': [
       {
-        validator: (value: Array<any>) => value.length >= 2,
         message: t('DataNode至少2台'),
         trigger: 'change',
+        validator: (value: Array<any>) => value.length >= 2,
       },
     ],
-    'details.http_post': [
+    'details.nodes.namenode': [
       {
-        validator: () => formData.details.http_port,
-        message: t('访问端口必填'),
+        message: t('NameNode必须两台_Zookeeper_JournalNode必须三台'),
+        required: true,
         trigger: 'change',
-      },
-      {
-        validator: (value: number) => ![2181, 8480, 8485].includes(value),
-        message: t('禁用2181_8480_8485'),
-        trigger: 'change',
+        validator: () => formData.details.nodes.namenode.length === 2 && formData.details.nodes.zookeeper.length === 3,
       },
     ],
     'details.rpc_port': [
       {
-        validator: () => formData.details.rpc_port,
         message: t('访问端口必填'),
         trigger: 'change',
+        validator: () => formData.details.rpc_port,
       },
       {
-        validator: (value: number) => ![2181, 8480, 8485].includes(value),
         message: t('禁用2181_8480_8485'),
         trigger: 'change',
+        validator: (value: number) => ![2181, 8480, 8485].includes(value),
       },
     ],
   };
@@ -472,10 +472,10 @@
         totalCapacity.value = disk * count;
       }
     },
-    { flush: 'post', deep: true },
+    { deep: true, flush: 'post' },
   );
 
-  const { baseState, bizState, handleCreateAppAbbr, handleCreateTicket, handleCancel } = useApplyBase();
+  const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
 
   // 切换业务，需要重置 IP 相关的选择
   function handleChangeBiz(info: BizItem) {
@@ -547,10 +547,10 @@
       baseState.isSubmitting = true;
       const mapIpField = (ipList: Array<HostInfo>) =>
         ipList.map((item) => ({
+          bk_biz_id: item.biz.id,
+          bk_cloud_id: item.cloud_area.id,
           bk_host_id: item.host_id,
           ip: item.ip,
-          bk_cloud_id: item.cloud_area.id,
-          bk_biz_id: item.biz.id,
         }));
 
       const getDetails = () => {
@@ -569,11 +569,11 @@
           return {
             ...details,
             resource_spec: {
-              zookeeper: {
-                ...details.resource_spec.zookeeper,
-                ...specZookeeperRef.value.getData(),
+              datanode: {
+                ...details.resource_spec.datanode,
+                ...specDatanodeRef.value.getData(),
                 ...regionAndDisasterParams,
-                count: Number(details.resource_spec.zookeeper.count),
+                count: Number(details.resource_spec.datanode.count),
               },
               namenode: {
                 ...details.resource_spec.namenode,
@@ -581,11 +581,11 @@
                 ...regionAndDisasterParams,
                 count: Number(details.resource_spec.namenode.count),
               },
-              datanode: {
-                ...details.resource_spec.datanode,
-                ...specDatanodeRef.value.getData(),
+              zookeeper: {
+                ...details.resource_spec.zookeeper,
+                ...specZookeeperRef.value.getData(),
                 ...regionAndDisasterParams,
-                count: Number(details.resource_spec.datanode.count),
+                count: Number(details.resource_spec.zookeeper.count),
               },
             },
           };
@@ -595,9 +595,9 @@
         return {
           ...details,
           nodes: {
-            zookeeper: mapIpField(formData.details.nodes.zookeeper),
-            namenode: mapIpField(formData.details.nodes.namenode),
             datanode: mapIpField(formData.details.nodes.datanode),
+            namenode: mapIpField(formData.details.nodes.namenode),
+            zookeeper: mapIpField(formData.details.nodes.zookeeper),
           },
         };
       };
@@ -614,7 +614,6 @@
   // 重置表单
   const handleReset = () => {
     InfoBox({
-      title: t('确认重置表单内容'),
       content: t('重置后_将会清空当前填写的内容'),
       onConfirm: () => {
         Object.assign(formData, genDefaultFormData());
@@ -624,6 +623,7 @@
         });
         return true;
       },
+      title: t('确认重置表单内容'),
     });
   };
 

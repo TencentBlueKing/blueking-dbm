@@ -85,9 +85,7 @@
     isShardCluster: boolean;
   }
 
-  interface Emits {
-    (e: 'batchSelectCluster'): void;
-  }
+  type Emits = (e: 'batchSelectCluster') => void;
 
   defineProps<Props>();
 

@@ -21,9 +21,9 @@
     data: FlowMode<unknown>['todos'][number];
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: FlowMode.TODO_STATUS_DONE_FAILED,
   });
+
+  defineProps<Props>();
 </script>

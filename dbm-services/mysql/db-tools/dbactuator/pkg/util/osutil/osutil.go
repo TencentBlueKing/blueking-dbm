@@ -543,14 +543,6 @@ func GetNumaStr() string {
 	return ""
 }
 
-// SafeRmDir TODO
-func SafeRmDir(dir string) (err error) {
-	if strings.TrimSpace(dir) == "/" {
-		return fmt.Errorf("禁止删除系统根目录")
-	}
-	return os.RemoveAll(dir)
-}
-
 func getFileSize(f string) (int64, error) {
 	fd, err := os.Stat(f)
 	if err != nil {

@@ -22,7 +22,7 @@
     ]
   },
   "description": "tendis-PredixyRedisCluster",
-  "editable": true,
+  "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
   "id": null,
@@ -51,6 +51,7 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -64,6 +65,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 3,
@@ -86,7 +88,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -194,6 +197,7 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -207,6 +211,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 3,
@@ -229,7 +234,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -337,6 +343,7 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -350,6 +357,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 3,
@@ -372,7 +380,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -480,6 +489,7 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -493,6 +503,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 3,
@@ -515,7 +526,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -623,6 +635,7 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -636,6 +649,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 3,
@@ -658,7 +672,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -1231,6 +1246,7 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -1244,6 +1260,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 3,
@@ -1266,7 +1283,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -1839,6 +1857,7 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -1852,6 +1871,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 3,
@@ -1874,7 +1894,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -2038,6 +2059,7 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -2051,6 +2073,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 3,
@@ -2073,7 +2096,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -2237,6 +2261,7 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -2250,6 +2275,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 3,
@@ -2272,7 +2298,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -2436,6 +2463,7 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -2449,6 +2477,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 3,
@@ -2471,7 +2500,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -2635,6 +2665,7 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -2648,6 +2679,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 3,
@@ -2670,7 +2702,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -2713,6 +2746,7 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
+              "enableDownSampling": true,
               "expressionList": [],
               "format": "time_series",
               "hide": false,
@@ -2727,7 +2761,17 @@
                   "data_type_label": "time_series",
                   "display": true,
                   "filter_dict": {},
-                  "functions": [],
+                  "functions": [
+                    {
+                      "id": "irate",
+                      "params": [
+                        {
+                          "id": "window",
+                          "value": "2m"
+                        }
+                      ]
+                    }
+                  ],
                   "group_by": [
                     "ip"
                   ],
@@ -2738,7 +2782,7 @@
                   "refId": "a",
                   "result_table_id": "dbm_system.net",
                   "result_table_label": "os",
-                  "time_field": "",
+                  "time_field": "time",
                   "where": [
                     {
                       "key": "cluster_domain",
@@ -2769,6 +2813,7 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
+              "enableDownSampling": true,
               "expressionList": [],
               "format": "time_series",
               "hide": false,
@@ -2783,7 +2828,17 @@
                   "data_type_label": "time_series",
                   "display": true,
                   "filter_dict": {},
-                  "functions": [],
+                  "functions": [
+                    {
+                      "id": "irate",
+                      "params": [
+                        {
+                          "id": "window",
+                          "value": "2m"
+                        }
+                      ]
+                    }
+                  ],
                   "group_by": [
                     "ip"
                   ],
@@ -2794,7 +2849,7 @@
                   "refId": "a",
                   "result_table_id": "dbm_system.net",
                   "result_table_label": "os",
-                  "time_field": "",
+                  "time_field": "time",
                   "where": [
                     {
                       "key": "cluster_domain",
@@ -2825,6 +2880,7 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
+              "enableDownSampling": true,
               "expressionList": [],
               "format": "time_series",
               "hide": false,
@@ -2839,7 +2895,17 @@
                   "data_type_label": "time_series",
                   "display": true,
                   "filter_dict": {},
-                  "functions": [],
+                  "functions": [
+                    {
+                      "id": "irate",
+                      "params": [
+                        {
+                          "id": "window",
+                          "value": "2m"
+                        }
+                      ]
+                    }
+                  ],
                   "group_by": [
                     "ip"
                   ],
@@ -2850,7 +2916,7 @@
                   "refId": "a",
                   "result_table_id": "dbm_system.net",
                   "result_table_label": "os",
-                  "time_field": "",
+                  "time_field": "time",
                   "where": [
                     {
                       "key": "cluster_domain",
@@ -2891,6 +2957,7 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -2904,6 +2971,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 3,
@@ -2926,7 +2994,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -2969,6 +3038,7 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
+              "enableDownSampling": true,
               "expressionList": [],
               "format": "time_series",
               "hide": false,
@@ -2983,7 +3053,17 @@
                   "data_type_label": "time_series",
                   "display": true,
                   "filter_dict": {},
-                  "functions": [],
+                  "functions": [
+                    {
+                      "id": "irate",
+                      "params": [
+                        {
+                          "id": "window",
+                          "value": "2m"
+                        }
+                      ]
+                    }
+                  ],
                   "group_by": [
                     "ip"
                   ],
@@ -2994,7 +3074,7 @@
                   "refId": "a",
                   "result_table_id": "dbm_system.net",
                   "result_table_label": "os",
-                  "time_field": "",
+                  "time_field": "time",
                   "where": [
                     {
                       "key": "cluster_domain",
@@ -3025,6 +3105,7 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
+              "enableDownSampling": true,
               "expressionList": [],
               "format": "time_series",
               "hide": false,
@@ -3039,7 +3120,17 @@
                   "data_type_label": "time_series",
                   "display": true,
                   "filter_dict": {},
-                  "functions": [],
+                  "functions": [
+                    {
+                      "id": "irate",
+                      "params": [
+                        {
+                          "id": "window",
+                          "value": "2m"
+                        }
+                      ]
+                    }
+                  ],
                   "group_by": [
                     "ip"
                   ],
@@ -3050,7 +3141,7 @@
                   "refId": "a",
                   "result_table_id": "dbm_system.net",
                   "result_table_label": "os",
-                  "time_field": "",
+                  "time_field": "time",
                   "where": [
                     {
                       "key": "cluster_domain",
@@ -3081,6 +3172,7 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
+              "enableDownSampling": true,
               "expressionList": [],
               "format": "time_series",
               "hide": false,
@@ -3095,7 +3187,17 @@
                   "data_type_label": "time_series",
                   "display": true,
                   "filter_dict": {},
-                  "functions": [],
+                  "functions": [
+                    {
+                      "id": "irate",
+                      "params": [
+                        {
+                          "id": "window",
+                          "value": "2m"
+                        }
+                      ]
+                    }
+                  ],
                   "group_by": [
                     "ip"
                   ],
@@ -3106,7 +3208,7 @@
                   "refId": "a",
                   "result_table_id": "dbm_system.net",
                   "result_table_label": "os",
-                  "time_field": "",
+                  "time_field": "time",
                   "where": [
                     {
                       "key": "cluster_domain",
@@ -3147,6 +3249,7 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -3160,6 +3263,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 3,
@@ -3182,7 +3286,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -3291,6 +3396,7 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -3304,6 +3410,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 3,
@@ -3326,7 +3433,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -3435,6 +3543,7 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -3448,6 +3557,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 3,
@@ -3470,7 +3580,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -3635,6 +3746,7 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -3648,6 +3760,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 3,
@@ -3670,7 +3783,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -8371,8 +8485,8 @@
           "width": 300
         },
         "tooltip": {
-          "mode": "single",
-          "sort": "none"
+          "mode": "multi",
+          "sort": "desc"
         }
       },
       "pluginVersion": "9.1.0",
@@ -9160,7 +9274,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -9378,7 +9493,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -9557,7 +9673,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -9887,7 +10004,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -10343,13 +10461,22 @@
         "options": [],
         "query": {
           "metricConfig": {
+            "data_label": "exporter_dbm_redis_exporter",
             "data_source_label": "bk_monitor",
             "data_type_label": "time_series",
             "group_by": "app",
             "metric_field": "redis_up",
             "result_table_id": "exporter_dbm_redis_exporter.__default__",
             "result_table_label": "component",
-            "where": []
+            "where": [
+              {
+                "key": "cluster_type",
+                "method": "eq",
+                "value": [
+                  "PredixyRedisCluster"
+                ]
+              }
+            ]
           },
           "queryType": "dimension",
           "variables": ""
@@ -10362,9 +10489,9 @@
       },
       {
         "current": {
-          "selected": false,
-          "text": "cache.theotest222.dbatest.db",
-          "value": "cache.theotest222.dbatest.db"
+          "selected": true,
+          "text": "",
+          "value": ""
         },
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
@@ -10435,7 +10562,7 @@
   "timezone": "",
   "title": "tendis-PredixyRedisCluster",
   "uid": "PredixyRedisCluster",
-  "version": 4,
+  "version": 11,
   "weekStart": "",
   "__inputs": [
     {

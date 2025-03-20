@@ -8,7 +8,7 @@ import (
 )
 
 func IsTableExistsIn(conn *sqlx.Conn, tableName, dbName string) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	var cnt int
@@ -26,7 +26,7 @@ func IsTableExistsIn(conn *sqlx.Conn, tableName, dbName string) (bool, error) {
 }
 
 func IsTriggerExistsIn(conn *sqlx.Conn, triggerName, dbName string) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	var cnt int
@@ -44,7 +44,7 @@ func IsTriggerExistsIn(conn *sqlx.Conn, triggerName, dbName string) (bool, error
 }
 
 func IsEventExistsIn(conn *sqlx.Conn, eventName, dbName string) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	var cnt int
@@ -62,7 +62,7 @@ func IsEventExistsIn(conn *sqlx.Conn, eventName, dbName string) (bool, error) {
 }
 
 func IsRoutineExistsIn(conn *sqlx.Conn, routineName, dbName string) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	var cnt int
@@ -80,7 +80,7 @@ func IsRoutineExistsIn(conn *sqlx.Conn, routineName, dbName string) (bool, error
 }
 
 func IsViewExistsIn(conn *sqlx.Conn, viewName, dbName string) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	var cnt int

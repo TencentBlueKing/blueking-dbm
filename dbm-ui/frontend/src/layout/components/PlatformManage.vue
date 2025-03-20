@@ -19,6 +19,16 @@
       </BkMenuItem>
     </BkMenuGroup>
     <BkMenuGroup
+      v-if="isDev"
+      :name="t('DBA 工具箱')">
+      <BkMenuItem key="DbaManageMysqlWebQuery">
+        <template #icon>
+          <DbIcon type="ticket" />
+        </template>
+        MySql
+      </BkMenuItem>
+    </BkMenuGroup>
+    <BkMenuGroup
       v-db-console="'platformManage.healthReport'"
       :name="t('巡检')">
       <BkMenuItem key="inspectionReportGlobal">
@@ -29,6 +39,20 @@
           v-overflow-tips.right
           class="text-overflow">
           {{ t('巡检报告') }}
+        </span>
+      </BkMenuItem>
+    </BkMenuGroup>
+    <BkMenuGroup
+      v-db-console="'platformManage.AlarmEvents'"
+      :name="t('告警')">
+      <BkMenuItem key="AlarmEventsGlobal">
+        <template #icon>
+          <DbIcon type="db-config" />
+        </template>
+        <span
+          v-overflow-tips.right
+          class="text-overflow">
+          {{ t('告警事件') }}
         </span>
       </BkMenuItem>
     </BkMenuGroup>
@@ -45,8 +69,10 @@
   const menuRef = ref<InstanceType<typeof Menu>>();
 
   const {
-    parentKey,
     key: currentActiveKey,
+    parentKey,
     routeLocation: handleMenuChange,
   } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, 'ticketPlatformManage');
+
+  const isDev = process.env.NODE_ENV !== 'production';
 </script>

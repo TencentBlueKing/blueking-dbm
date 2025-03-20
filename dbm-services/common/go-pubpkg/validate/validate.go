@@ -6,36 +6,13 @@ import (
 	"log"
 	"reflect"
 	"strings"
-	"time"
 
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
 	en_translations "github.com/go-playground/validator/v10/translations/en"
 	"github.com/pkg/errors"
-	"github.com/robfig/cron/v3"
-
-	"dbm-services/common/go-pubpkg/cmutil"
 )
-
-// ValidateEnums TODO
-// make validate tag work with enums tag
-// 避免 validate oneof 和 swagger enums 写 2 份重复的校验和文档
-// example: Method string `validate:"required,enums" enums:"post,get" json:"method"`
-func ValidateEnums(f validator.FieldLevel) bool {
-	fieldValue := f.Field().String()
-	fieldName := f.StructFieldName()
-	// get StructField
-	sf, _ := f.Parent().Type().FieldByName(fieldName)
-	// get tag value from tag_field enums
-	tagValue := sf.Tag.Get(TagEnum)
-	enumsValues := strings.Split(tagValue, ",")
-	if cmutil.StringsHas(enumsValues, fieldValue) {
-		return true
-	} else {
-		return false
-	}
-}
 
 // GoValidateStructSimple TODO
 // 简单校验 struct，不涉及逻辑
@@ -51,9 +28,6 @@ func GoValidateStructSimple(v interface{}, enum bool) error {
 	return nil
 }
 
-// TagEnum TODO
-const TagEnum = "enums"
-
 // GoValidateStruct v 不能是Ptr
 func GoValidateStruct(v interface{}, enum bool) error {
 	return GoValidateTransError(v, "json", enum, false)
@@ -61,6 +35,11 @@ func GoValidateStruct(v interface{}, enum bool) error {
 
 func GoValidateStructCharset(v interface{}, enum bool, checkCharset bool) error {
 	return GoValidateTransError(v, "json", enum, checkCharset)
+}
+
+// GoValidateStructTag v 不能是Ptr
+func GoValidateStructTag(v interface{}, tagName string) error {
+	return GoValidateTransError(v, tagName, true, false)
 }
 
 // GoValidateTransError v 不能是Ptr
@@ -112,8 +91,12 @@ func translateErr2Msg(v interface{}, trans ut.Translator, err error) error {
 			}
 			errStr = append(errStr, errmsg)
 			continue
+		} else if vErr.Tag() == "dir" {
+			errmsg := fmt.Sprintf("dir %s=%s may not exist", vErr.Field(), vErr.Value())
+			errStr = append(errStr, errmsg)
+		} else {
+			errStr = append(errStr, vErr.Translate(trans))
 		}
-		errStr = append(errStr, vErr.Translate(trans))
 	}
 	return errors.New(strings.Join(errStr, " || "))
 }
@@ -155,41 +138,4 @@ func translate(ut ut.Translator, fe validator.FieldError) string {
 		return fe.(error).Error()
 	}
 	return s
-}
-
-func validCharSet(f validator.FieldLevel) bool {
-	v := f.Field().String()
-	return cmutil.HasElem(
-		v, []string{"default", "utf8mb4", "utf8", "latin1", "gb2312", "gbk", "binary", "gb18030", "utf8mb3"},
-	)
-}
-
-// validateCrontabExpr 验证Liunx crontab表达式
-func validateCrontabExpr(f validator.FieldLevel) bool {
-	v := f.Field().String()
-	err := validateCronExpr(v)
-	return err == nil
-}
-
-// validateCronExpr TODO
-/**
- * @description: crontab 表达式检查,如果返回error != nil，则表示crontab 表达式不正确
- * @receiver {string} cronstr eg:" * * * 3 5"
- * @return {*}
- */
-func validateCronExpr(cronstr string) (err error) {
-	specParser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
-	_, err = specParser.Parse(cronstr)
-	return
-}
-
-// validateTimeStr TODO
-// 验证时间字符串 "09:00:00" 这种
-func validateTimeStr(f validator.FieldLevel) bool {
-	v := f.Field().String()
-	if strings.TrimSpace(v) == "" {
-		return true
-	}
-	_, err := time.Parse("15:04:05", v)
-	return err == nil
 }

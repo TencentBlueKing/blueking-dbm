@@ -79,24 +79,22 @@
   import UserSelect from './components/item/UserSelect.vue';
 
   interface Props {
-    loading: boolean;
     accountType: AccountTypes;
+    loading: boolean;
   }
 
-  interface Emits {
-    (
-      e: 'change',
-      params?: {
-        ips: string;
-        immute_domains: string;
-        users: string;
-        dbs: string;
-        cluster_type: ClusterTypes;
-        account_type: AccountTypes;
-        is_master: boolean;
-      },
-    ): void;
-  }
+  type Emits = (
+    e: 'change',
+    params?: {
+      account_type: AccountTypes;
+      cluster_type: ClusterTypes;
+      dbs: string;
+      immute_domains: string;
+      ips: string;
+      is_master: boolean;
+      users: string;
+    },
+  ) => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -104,13 +102,13 @@
   const { t } = useI18n();
 
   const getDefaultFormData = () => ({
-    ips: '',
-    immute_domains: '',
-    users: [] as string[],
-    dbs: [] as string[],
-    cluster_type: ClusterTypes.TENDBSINGLE,
     account_type: props.accountType,
+    cluster_type: ClusterTypes.TENDBSINGLE,
+    dbs: [] as string[],
+    immute_domains: '',
+    ips: '',
     is_master: true,
+    users: [] as string[],
   });
 
   const formRef = ref<InstanceType<typeof Form>>();
@@ -123,10 +121,10 @@
     formRef.value!.validate().then(() => {
       const params = {
         ...formData,
-        ips: formData.ips.replace(batchSplitRegex, ','),
-        immute_domains: formData.immute_domains.replace(batchSplitRegex, ','),
-        users: formData.users.join(','),
         dbs: formData.dbs.join(','),
+        immute_domains: formData.immute_domains.replace(batchSplitRegex, ','),
+        ips: formData.ips.replace(batchSplitRegex, ','),
+        users: formData.users.join(','),
       };
       emits('change', params);
     });

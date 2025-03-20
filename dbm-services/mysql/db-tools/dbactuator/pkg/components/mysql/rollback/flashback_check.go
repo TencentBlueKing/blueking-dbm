@@ -129,7 +129,9 @@ func (f *Flashback) checkVersionAndVars() error {
 			f.ToolSet.Set(tools.ToolMysqlbinlog, f.ToolSet.MustGet(tools.ToolMysqlbinlogRollback80))
 			f.recover.ToolSet.Set(tools.ToolMysqlbinlog, f.ToolSet.MustGet(tools.ToolMysqlbinlogRollback80))
 		}
-		if curInstVersion.LessThan(flashbackAtLeastVer) || curInstVersion.GreaterThan(flashbackVer80) {
+		if curInstVersion.LessThan(flashbackAtLeastVer) {
+			return nil
+		} else if curInstVersion.GreaterThan(flashbackVer80) {
 			return errors.Errorf("mysql version %s does not support flashback", curInstVersion)
 		} else if curInstVersion.GreaterThan(fullrowAtLeastVer) {
 			if val, err := f.dbWorker.GetSingleGlobalVar("binlog_row_image"); err != nil {

@@ -43,6 +43,10 @@ func (c *PrivTaskPara) addWhiteList(targetMetaInfos []*service.Instance) (err er
 		slog.Any("cmds", cmds),
 	)
 
+	if len(cmds) == 0 {
+		return nil
+	}
+
 	// drs 执行多个 sql 是循环一个一个来的
 	// 所以批量发送是可以的, 只是这么搞 drs 负载估计要炸
 	// 这里搞并发的意义不大
@@ -58,7 +62,7 @@ func (c *PrivTaskPara) addWhiteList(targetMetaInfos []*service.Instance) (err er
 			addresses,
 			cmds,
 			false,
-			0,
+			600,
 		)
 		if err != nil {
 			slog.Error("add proxy white list", slog.String("err", err.Error()))

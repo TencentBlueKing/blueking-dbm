@@ -58,16 +58,16 @@
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
+  defineOptions({
+    name: TicketTypes.TENDBCLUSTER_CLIENT_CLONE_RULES,
+    inheritAttrs: false,
+  });
+
   defineProps<Props>();
 
   const copyIp = (data: string[]) => {
     execCopy(data.join('\n'), t('复制成功，共n条', { n: data.length }));
   };
-
-  defineOptions({
-    name: TicketTypes.TENDBCLUSTER_CLIENT_CLONE_RULES,
-    inheritAttrs: false,
-  });
 
   const { t } = useI18n();
 </script>

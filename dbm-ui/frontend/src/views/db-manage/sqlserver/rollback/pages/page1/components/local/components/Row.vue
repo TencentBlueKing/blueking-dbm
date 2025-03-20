@@ -75,32 +75,32 @@
   import RenderRename from './RenderRename.vue';
 
   export interface IDataRow {
-    rowKey: string;
     clusterData?: {
-      id: number;
-      domain: string;
       cloudId: number;
+      domain: string;
+      id: number;
     };
-    restoreBackupFile?: ServiceReturnType<typeof queryBackupLogs>[number];
-    restoreTime: string;
-    dbName: string[];
     dbIgnoreName: string[];
+    dbName: string[];
     renameDbName: {
       db_name: string;
-      target_db_name: string;
       rename_db_name: string;
+      target_db_name: string;
     }[];
+    restoreBackupFile?: ServiceReturnType<typeof queryBackupLogs>[number];
+    restoreTime: string;
+    rowKey: string;
   }
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
-    rowKey: random(),
     clusterData: data.clusterData,
+    dbIgnoreName: data.dbIgnoreName || [],
+    dbName: data.dbName || [],
+    renameDbName: data.renameDbName || [],
     restoreBackupFile: data.restoreBackupFile,
     restoreTime: data.restoreTime || '',
-    dbName: data.dbName || [],
-    dbIgnoreName: data.dbIgnoreName || [],
-    renameDbName: data.renameDbName || [],
+    rowKey: random(),
   });
 </script>
 <script setup lang="ts">

@@ -75,8 +75,8 @@
         if (props.data) {
           return batchProcessTicket({
             action: 'TERMINATE',
-            ticket_ids: [props.data.id],
             params: terminateFormMode,
+            ticket_ids: [props.data.id],
           });
         }
         if (props.todoData) {
@@ -84,8 +84,8 @@
             action: 'TERMINATE',
             operations: [
               {
-                todo_id: props.todoData.id,
                 params: terminateFormMode,
+                todo_id: props.todoData.id,
               },
             ],
           });

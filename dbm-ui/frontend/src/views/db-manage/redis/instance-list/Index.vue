@@ -32,5 +32,5 @@
   import Detail from './components/detail/Index.vue';
   import List from './components/list/Index.vue';
 
-  const instanceData = ref<{ instanceAddress: string; clusterId: number; clusterType: string; version: string }>();
+  const instanceData = ref<{ clusterId: number; clusterType: string; instanceAddress: string; version: string }>();
 </script>

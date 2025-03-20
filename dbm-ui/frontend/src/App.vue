@@ -55,7 +55,9 @@
     <template #content-header>
       <RouterBack />
     </template>
-    <DbRouterView style="height: 100%" />
+    <DbRouterView
+      :key="route.name"
+      style="height: 100%" />
   </Layout>
   <SystemVersionLog v-model:is-show="isShowSystemVersionLog" />
 </template>
@@ -86,8 +88,9 @@
   import('@blueking/notice-component/dist/style.css');
 
   const userProfileStore = useUserProfile();
-  const { t, locale } = useI18n();
+  const { locale, t } = useI18n();
   const systemEnvironStore = useSystemEnviron();
+  const route = useRoute();
 
   const documentTitles: Record<string, string> = {
     en: 'DBM | Tencent BlueKing',
@@ -125,13 +128,13 @@
 
   const handleSignOut = () => {
     InfoBox({
-      title: t('确认退出登录'),
       onConfirm: () =>
         getLogout().then(() => {
           window.changeConfirm = false;
           window.location.reload();
           return true;
         }),
+      title: t('确认退出登录'),
     });
   };
 

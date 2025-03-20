@@ -88,10 +88,10 @@
   const renderCom = computed(() => (isLocal.value ? RenderLocal : RenderOtherCluster));
 
   useTicketCloneInfo({
-    type: TicketTypes.SQLSERVER_ROLLBACK,
     onSuccess(data) {
       isLocal.value = data.is_local;
     },
+    type: TicketTypes.SQLSERVER_ROLLBACK,
   });
 
   const handleSubmit = () => {
@@ -100,13 +100,13 @@
       .value!.submit()
       .then((data) =>
         createTicket({
-          ticket_type: TicketTypes.SQLSERVER_ROLLBACK,
-          remark: '',
-          details: {
-            is_local: isLocal.value,
-            infos: data,
-          },
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          details: {
+            infos: data,
+            is_local: isLocal.value,
+          },
+          remark: '',
+          ticket_type: TicketTypes.SQLSERVER_ROLLBACK,
         }).then((data) => {
           window.changeConfirm = false;
           router.push({

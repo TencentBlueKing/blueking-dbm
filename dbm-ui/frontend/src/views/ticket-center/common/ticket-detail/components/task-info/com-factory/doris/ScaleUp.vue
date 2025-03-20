@@ -25,10 +25,10 @@
     ticketDetails: TicketModel<Es.ScaleUp>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.ES_SCALE_UP,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

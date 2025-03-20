@@ -12,7 +12,10 @@ package syntax
 
 // Checker create db syntax checker
 func (c CreateDBResult) Checker(mysqlVersion string) (r *CheckerResult) {
-	r = &CheckerResult{}
+	r = &CheckerResult{
+		ObjName:  c.DbName,
+		IsSpFunc: true,
+	}
 	// 检查库名规范
 	if R.BuiltInRule.TableNameSpecification.KeyWord {
 		r.ParseBultinRisk(func() (bool, string) {

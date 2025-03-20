@@ -25,8 +25,8 @@ export async function generateSpiderAuthorizeRuleCloneData(ticketData: TicketMod
       ip_list: ticketData.details.authorize_data.source_ips!.map((item) => item.ip),
       scope_list: [
         {
-          scope_type: 'biz',
           scope_id: ticketData.bk_biz_id,
+          scope_type: 'biz',
         },
       ],
     });
@@ -39,13 +39,13 @@ export async function generateSpiderAuthorizeRuleCloneData(ticketData: TicketMod
     offset: 0,
   });
   const clusterList: {
-    master_domain: string;
     cluster_name: string;
+    master_domain: string;
   }[] = clustersResult.results;
 
   return {
-    clusterType: authorizeData.cluster_type as ClusterTypes,
     clusterList,
+    clusterType: authorizeData.cluster_type as ClusterTypes,
     dbs: authorizeData.access_dbs,
     sourceIpList,
     user: authorizeData.user,

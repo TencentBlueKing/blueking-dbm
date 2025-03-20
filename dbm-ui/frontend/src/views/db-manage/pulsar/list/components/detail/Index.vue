@@ -90,8 +90,8 @@
 
   interface PanelItem {
     label: string;
-    name: string;
     link: string;
+    name: string;
   }
 
   const props = defineProps<Props>();
@@ -108,8 +108,8 @@
   });
 
   const {
-    loading: isLoading,
     data: clusterData,
+    loading: isLoading,
     run: fetchResourceDetails,
   } = useRequest(getPulsarDetail, {
     manual: true,
@@ -121,8 +121,8 @@
       if (res.urls.length > 0) {
         monitorPanelList.value = res.urls.map((item) => ({
           label: item.view,
-          name: item.view,
           link: item.url,
+          name: item.view,
         }));
       }
     },
@@ -137,8 +137,8 @@
         });
         runGetMonitorUrls({
           bk_biz_id: currentBizId,
-          cluster_type: ClusterTypes.PULSAR,
           cluster_id: props.clusterId,
+          cluster_type: ClusterTypes.PULSAR,
         });
       }
     },

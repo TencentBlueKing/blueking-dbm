@@ -207,8 +207,9 @@ func (h *DbWorker) QueryWithArgs(query string, args ...interface{}) ([]map[strin
 		return nil, err
 	}
 	defer func() {
-		if err = rows.Close(); err != nil {
-			logger.Warn("close row failed, err:%s", err.Error())
+		if errx := rows.Close(); errx != nil {
+			logger.Warn("close row failed, err:%s", errx.Error())
+			err = errx
 		}
 	}()
 	// get all columns name
@@ -699,6 +700,21 @@ func (h *DbWorker) ShowTables(db string) (tables []string, err error) {
 	return tables, nil
 }
 
+// View view
+type View struct {
+	DbName  string `db:"TABLE_SCHEMA"`
+	Name    string `db:"TABLE_NAME"`
+	Definer string `db:"DEFINER"`
+}
+
+// GetAllViews get all views
+func (h *DbWorker) GetAllViews() (views []View, err error) {
+	if err = h.Queryx(&views, "select TABLE_SCHEMA,TABLE_NAME,DEFINER from information_schema.views"); err != nil {
+		return
+	}
+	return views, nil
+}
+
 // ShowEngines 返回执行 show engines;
 //
 //	@receiver h
@@ -850,7 +866,7 @@ func compareDbVariables(referVars, compareVars map[string]string, checkVars []st
 		}
 
 		if strings.Compare(referV, compareV) != 0 {
-			errs = append(errs, fmt.Errorf("存在差异： 变量名:%s Master:%s,Slave:%s", varName, referV, compareV))
+			errs = append(errs, fmt.Errorf("存在差异： 变量名:%s Master:%s,Slave:%s", varName, compareV, referV))
 		}
 	}
 	return errors.Join(errs...)

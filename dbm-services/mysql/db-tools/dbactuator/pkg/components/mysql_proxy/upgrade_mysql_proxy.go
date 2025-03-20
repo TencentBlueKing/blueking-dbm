@@ -159,7 +159,7 @@ func (p *UpgradeProxyComp) RestartProxy() (err error) {
 			Port:           port,
 			ProxyAdminUser: p.adminUser,
 			ProxyAdminPwd:  p.adminPwd,
-		}.Restart()
+		}.Restart(port)
 		if err != nil {
 			logger.Error("restart mysql proxy %d failed %s", port, err.Error())
 			return err

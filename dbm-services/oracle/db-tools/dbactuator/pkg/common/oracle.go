@@ -4,9 +4,10 @@ package common
 import (
 	oracleClient "database/sql"
 	"fmt"
+	"time"
+
 	"github.com/godror/godror"
 	_ "github.com/godror/godror" // godror oracle 驱动
-	"time"
 )
 
 // GetInfoFromOracle 从oracle中获取信息

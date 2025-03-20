@@ -70,17 +70,15 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  interface Emits {
-    (e: 'change', value: string[]): void;
-  }
+  type Emits = (e: 'change', value: string[]) => void;
 
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
   const errorTextMap = {
-    repeat: t('输入域名重复'),
     maxlength: t('最大长度为m', { m: 63 }),
+    repeat: t('输入域名重复'),
   };
 
   const { body } = document;

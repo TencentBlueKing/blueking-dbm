@@ -25,10 +25,10 @@
     ticketDetails: TicketModel<Riak.Enable>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.RIAK_CLUSTER_ENABLE,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

@@ -11,22 +11,22 @@
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
+  import { TicketTypes } from '@/common/const';
+
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
 
   import DBRename from './common/DBRename.vue';
-
-  import { TicketTypes } from '@/common/const';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.HaRenameDatabase>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.MYSQL_HA_RENAME_DATABASE,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 
   const { t } = useI18n();
 </script>

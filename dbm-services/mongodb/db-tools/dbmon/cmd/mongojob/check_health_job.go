@@ -1,11 +1,19 @@
 package mongojob
 
 import (
+	"dbm-services/mongodb/db-tools/dbmon/cmd/basejob"
 	"dbm-services/mongodb/db-tools/dbmon/pkg/linuxproc"
 	"fmt"
+	"os"
+	"path"
+	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
+
+	"go.uber.org/zap"
 
 	"dbm-services/mongodb/db-tools/dbmon/config"
 	"dbm-services/mongodb/db-tools/dbmon/embedfiles"
@@ -17,107 +25,142 @@ import (
 
 // checkHealthHandle 全局任务句柄
 var checkHealthHandle *CheckHealthJob
+var onceGetCheckHealthHandle sync.Once
 
 // GetCheckHealthHandle 获取任务句柄
-func GetCheckHealthHandle(conf *config.Configuration) *CheckHealthJob {
-	if checkHealthHandle == nil {
-		lock.Lock()
-		defer lock.Unlock()
-		if checkHealthHandle == nil {
-			checkHealthHandle = &CheckHealthJob{
-				Conf: conf,
-				Name: "checkhealth",
-			}
+func GetCheckHealthHandle(conf *config.DbMonConfig, logger *zap.Logger, jobName string) *CheckHealthJob {
+	onceGetCheckHealthHandle.Do(func() {
+		checkHealthHandle = &CheckHealthJob{
+			BaseJob: basejob.BaseJob{
+				Name:   jobName,
+				Conf:   conf,
+				Logger: logger.With(zap.String("job", jobName)),
+			},
 		}
-	}
+	})
 	return checkHealthHandle
 }
 
 // CheckHealthJob 登录检查.
 type CheckHealthJob struct { // NOCC:golint/naming(其他:设计如此)
-	Name  string                `json:"name"`
-	Conf  *config.Configuration `json:"conf"`
-	Tasks []*BackupTask         `json:"tasks"`
-	Err   error                 `json:"-"`
+	basejob.BaseJob
+	Tasks []*BackupTask `json:"tasks"`
 }
 
 const mongoBin = "/usr/local/mongodb/bin/mongo"
 const startMongoScript = "/usr/local/mongodb/bin/start_mongo.sh"
 
-// Run 执行例行备份. 被cron对象调用
+// Run 执行CheckHealthJob任务
 func (job *CheckHealthJob) Run() {
-	mylog.Logger.Info(fmt.Sprintf("%s Run start", job.Name))
-	defer func() {
-		mylog.Logger.Info(fmt.Sprintf("%s Run End, Err: %+v", job.Name, job.Err))
-	}()
-
-	for _, svrItem := range job.Conf.Servers {
-		mylog.Logger.Info(fmt.Sprintf("job %s server: %s:%v start", job.Name, svrItem.IP, svrItem.Port))
-		job.runOneServer(&svrItem)
-		mylog.Logger.Info(fmt.Sprintf("job %s server: %s:%v end", job.Name, svrItem.IP, svrItem.Port))
+	job.LoopTimes++
+	var logger = job.Logger
+	if err := job.UpdateConf(); err != nil {
+		logger.Warn(fmt.Sprintf("UpdateConf return err %s", err.Error()))
+		return
 	}
-
+	logger.Info("start", zap.Int("loopTimes", int(job.LoopTimes)))
+	for _, svrItem := range job.MyConf.Servers {
+		job.runOneServer(&svrItem)
+	}
+	logger.Info("done", zap.Int("loopTimes", int(job.LoopTimes)), zap.Error(job.Err))
 }
 
 func (job *CheckHealthJob) runOneServer(svrItem *config.ConfServerItem) {
+	logger := mylog.Logger.With(
+		zap.String("job", job.Name),
+		zap.String("instance", svrItem.Addr()))
+
 	if !consts.IsMongo(svrItem.ClusterType) {
-		mylog.Logger.Warn(fmt.Sprintf("server %+v is not a mongo instance", svrItem.IP))
+		logger.Warn(fmt.Sprintf("server %v is not a mongo instance", svrItem.IP))
 		return
 	}
 
+	if job.LoopTimes%5 == 1 {
+		logger.Info("removeOldMongoLogFiles", zap.Uint64("times", job.LoopTimes))
+		removeOldMongoLogFiles(svrItem, logger)
+	}
+
+	startTime := time.Now()
 	loginTimeout := 10
-	t := time.Now()
-	err := checkService(loginTimeout, svrItem)
-
-	mylog.Logger.Info(fmt.Sprintf("checkService %s:%d cost %0.1f seconds, err: %v",
-		svrItem.IP, svrItem.Port, time.Now().Sub(t).Seconds(), err))
-	if err == nil {
+	if err := checkService(loginTimeout, svrItem, logger); err == nil {
 		return
 	}
-	elapsedTime := time.Now().Sub(t).Seconds()
-
+	elapsedTime := time.Since(startTime).Seconds()
 	// 检查 进程是否存在，存在： 发送消息LoginTimeout
 	// Port被别的进程占用，此处算是误告，但问题不大，反正都需要人工处理.
 	using, err := checkPortInUse(svrItem.Port)
 	if err != nil {
-		mylog.Logger.Info(fmt.Sprintf("checkService %s:%d cost %0.1f seconds, err: %v",
-			svrItem.IP, svrItem.Port, elapsedTime, err))
+		logger.Info(fmt.Sprintf("checkPortInUse took %0.1f seconds, err: %v", elapsedTime, err))
 	}
 	if using {
-		// 进程存在
-		// 发送消息LoginTimeout
-		SendEvent(&job.Conf.BkMonitorBeat,
-			svrItem,
-			consts.EventMongoLogin,
-			consts.WarnLevelError,
-			fmt.Sprintf("login timeout, taking %0.1f seconds", elapsedTime),
-		)
+		// 进程存在 发送消息LoginTimeout
+		SendEvent(&job.MyConf.BkMonitorBeat, svrItem, consts.EventMongoLogin, consts.WarnLevelError,
+			fmt.Sprintf("login timeout, taking %0.1f seconds", elapsedTime), logger)
 		return
 	}
 
 	// 进程不存在，尝试启动
 	// 启动成功: 发送消息LoginSuccess
 	// 启动失败: 发送消息LoginFailed
-	startMongo(svrItem.Port)
-	err = checkService(loginTimeout, svrItem)
-	if err == nil {
+	startMongo(svrItem.Port, logger)
+	startTime = time.Now()
+	job.Err = checkService(loginTimeout, svrItem, logger)
+	logger.Info(fmt.Sprintf("checkService again,  cost %0.1f seconds, err: %v",
+		time.Since(startTime).Seconds(), job.Err))
+	if job.Err == nil {
 		// 发送消息LoginSuccess
-		SendEvent(&job.Conf.BkMonitorBeat,
-			svrItem,
-			consts.EventMongoRestart,
-			consts.WarnLevelWarning,
-			fmt.Sprintf("restarted"),
-		)
+		SendEvent(&job.MyConf.BkMonitorBeat, svrItem, consts.EventMongoRestart, consts.WarnLevelWarning,
+			"restarted", logger)
 	} else {
 		// 发送消息LoginFailed
-		SendEvent(&job.Conf.BkMonitorBeat,
-			svrItem,
-			consts.EventMongoRestart,
-			consts.WarnLevelError,
-			fmt.Sprintf("restart failed"),
-		)
+		SendEvent(&job.MyConf.BkMonitorBeat,
+			svrItem, consts.EventMongoRestart, consts.WarnLevelError,
+			"restart failed", logger)
 	}
 
+}
+
+const secondsDay = 86400
+
+// removeOldMongoLogFiles 删除旧文件
+func removeOldMongoLogFiles(svrItem *config.ConfServerItem, logger *zap.Logger) {
+	logPattern := path.Join("/data/mongolog", strconv.Itoa(svrItem.Port), "mongo.log*")
+	logMaxTime, _ := config.ClusterConfig.GetInt64(svrItem, "log", "maxtime", secondsDay*15)
+	if logMaxTime < secondsDay*2 {
+		logMaxTime = secondsDay * 2
+	}
+	err := removeOldFile(logPattern, logMaxTime, logger)
+	if err != nil {
+		logger.Error(fmt.Sprintf("remove old file failed: %v", err))
+	}
+}
+
+// RemoveOldFile removes the old file that matches the pattern.
+// 1. delete file if modTime < now - maxTimeSeconds
+// 2. delete 1 oldest file if totalSize > maxTotalSize (delete the oldest file first)
+func removeOldFile(pattern string, maxTimeSeconds int64, logger *zap.Logger) error {
+	files, err := filepath.Glob(pattern)
+	if err != nil {
+		return err
+	}
+
+	now := time.Now().Unix()
+	for _, file := range files {
+		fileInfo, err := os.Stat(file)
+		if err != nil {
+			return err
+		}
+
+		if now-fileInfo.ModTime().Unix() > maxTimeSeconds {
+			err = os.Remove(file)
+			logger.Info(fmt.Sprintf("remove old file %s", file))
+			if err != nil {
+				return err
+			}
+			continue
+		}
+	}
+	return nil
 }
 
 // checkPortInUse 分析/proc/net/tcp，判断端口是否被占用
@@ -139,14 +182,14 @@ func checkPortInUse(port int) (bool, error) {
 }
 
 // checkService 尝试登录
-func checkService(loginTimeout int, svrItem *config.ConfServerItem) error {
+func checkService(loginTimeout int, svrItem *config.ConfServerItem, logger *zap.Logger) error {
 	user := svrItem.UserName
 	pass := svrItem.Password
 	authDb := "admin"
 	port := fmt.Sprintf("%d", svrItem.Port)
 	outBuf, errBuf, err := ExecLoginJs(mongoBin, loginTimeout, svrItem.IP, port, user, pass, authDb,
-		embedfiles.MongoLoginJs)
-	mylog.Logger.Info(fmt.Sprintf("ExecLoginJs %s stdout: %q, stderr: %q", port, outBuf, errBuf))
+		embedfiles.MongoLoginJs, logger)
+	logger.Info(fmt.Sprintf("ExecLoginJs %s stdout: %q, stderr: %q", port, outBuf, errBuf))
 	if err == nil {
 		return nil
 	}
@@ -157,14 +200,12 @@ func checkService(loginTimeout int, svrItem *config.ConfServerItem) error {
 	if strings.Contains(string(outBuf), "connect ok") {
 		return nil
 	}
-
 	return errors.New("login failed")
 }
 
-func startMongo(port int) error {
+func startMongo(port int, logger *zap.Logger) error {
 	ret, err := DoCommandWithTimeout(60, startMongoScript, fmt.Sprintf("%d", port))
-	mylog.Logger.Info(fmt.Sprintf("exec %s return err:%v", ret.Cmdline, err))
-
+	logger.Info(fmt.Sprintf("exec %s return err:%v", ret.Cmdline, err))
 	if err != nil {
 		return err
 	}

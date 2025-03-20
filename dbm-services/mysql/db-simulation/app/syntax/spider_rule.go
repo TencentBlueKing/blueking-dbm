@@ -33,6 +33,8 @@ type SpiderChecker interface {
 type SpiderRules struct {
 	CommandRule           CommandRule           `yaml:"CommandRule"`
 	SpiderCreateTableRule SpiderCreateTableRule `yaml:"SpiderCreateTableRule"`
+	AlterTableRule        AlterTableRule        `yaml:"AlterTableRule"`
+	DmlRule               DmlRule               `yaml:"DmlRule"`
 }
 
 // SpiderCreateTableRule spider create table 建表规则
@@ -71,6 +73,8 @@ func init() {
 	var initCompiles = []*RuleItem{}
 	initCompiles = append(initCompiles, traverseRule(SR.CommandRule)...)
 	initCompiles = append(initCompiles, traverseRule(SR.SpiderCreateTableRule)...)
+	initCompiles = append(initCompiles, traverseRule(SR.AlterTableRule)...)
+	initCompiles = append(initCompiles, traverseRule(SR.DmlRule)...)
 	for _, c := range initCompiles {
 		if err = c.compile(); err != nil {
 			logger.Fatal("compile rule failed %s", err.Error())

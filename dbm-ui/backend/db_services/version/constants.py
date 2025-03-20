@@ -53,8 +53,8 @@ class RedisVersion(str, StructuredEnum):
     Redis409 = EnumField("Redis-4.0.9", _("Redis-4.0.9"))
     Redis50 = EnumField("Redis-5", _("Redis-5"))
     Redis60 = EnumField("Redis-6", _("Redis-6"))
-    Redis70 = EnumField("Redis-7", _("Redis-7"))
-    Redis72 = EnumField("Redis-7.2", _("Redis-7.2"))
+    Redis70 = EnumField("Redis-70", _("Redis-70"))
+    Redis74 = EnumField("Redis-74", _("Redis-74"))
 
 
 class MongodbVersion(str, StructuredEnum):
@@ -69,6 +69,7 @@ class TendisPlusVersion(str, StructuredEnum):
     TendisPlus25 = EnumField("Tendisplus-2.5", _("Tendisplus-2.5"))
     TendisPlus26 = EnumField("Tendisplus-2.6", _("Tendisplus-2.6"))
     TendisPlus27 = EnumField("Tendisplus-2.7", _("Tendisplus-2.7"))
+    TendisPlus28 = EnumField("Tendisplus-2.8", _("Tendisplus-2.8"))
 
 
 class TendisSsdVersion(str, StructuredEnum):

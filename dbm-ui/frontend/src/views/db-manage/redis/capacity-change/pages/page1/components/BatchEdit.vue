@@ -56,32 +56,30 @@
 
 <script setup lang="ts">
   type ErrorInfo = {
-    isPass: boolean;
     errorText: string;
+    isPass: boolean;
   };
 
   interface Props {
     title?: string;
-    width?: number;
     validator?: (value: string) => ErrorInfo;
+    width?: number;
   }
 
-  interface Emits {
-    (e: 'change', value: string): void;
-  }
+  type Emits = (e: 'change', value: string) => void;
 
   const props = withDefaults(defineProps<Props>(), {
     title: '',
+    validator: () => (): ErrorInfo => ({ errorText: '', isPass: true }),
     width: 540,
-    validator: () => (): ErrorInfo => ({ isPass: true, errorText: '' }),
   });
   const emits = defineEmits<Emits>();
 
   const state = reactive({
-    isShow: false,
-    value: '',
-    isShowError: false,
     errorMessage: '',
+    isShow: false,
+    isShowError: false,
+    value: '',
   });
   const { body } = document;
 

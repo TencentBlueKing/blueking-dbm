@@ -6,9 +6,9 @@ export interface ReduceMongos extends DetailBase {
     cluster_id: number;
     reduce_count: number;
     reduce_nodes: {
-      ip: string;
-      bk_host_id: number;
       bk_cloud_id: number;
+      bk_host_id: number;
+      ip: string;
     }[];
     role: string;
   }[];

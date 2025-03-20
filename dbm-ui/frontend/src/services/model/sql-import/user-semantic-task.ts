@@ -28,15 +28,15 @@ export default class UserSemanticTasks {
     this.root_id = payload.root_id;
   }
 
-  get isSucceeded() {
-    return this.status === 'FINISHED';
+  get isFailed() {
+    return !this.isSucceeded && !this.isPending;
   }
 
   get isPending() {
-    return ['RUNNING', 'CREATED'].includes(this.status);
+    return ['CREATED', 'RUNNING'].includes(this.status);
   }
 
-  get isFailed() {
-    return !this.isSucceeded && !this.isPending;
+  get isSucceeded() {
+    return this.status === 'FINISHED';
   }
 }

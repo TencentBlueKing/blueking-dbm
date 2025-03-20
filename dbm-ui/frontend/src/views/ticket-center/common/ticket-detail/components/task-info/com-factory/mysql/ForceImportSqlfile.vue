@@ -12,10 +12,10 @@
     ticketDetails: TicketModel<Mysql.ImportSqlFile>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.MYSQL_FORCE_IMPORT_SQLFILE,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

@@ -28,12 +28,12 @@ export function useTableData() {
   const tableData = shallowRef<DbResourceModel[]>([]);
 
   const pagination = reactive({
+    align: 'right',
     count: 0,
     current: 1,
+    layout: ['total', 'limit', 'list'],
     limit: 10,
     limitList: [10, 20, 50, 100],
-    align: 'right',
-    layout: ['total', 'limit', 'list'],
   });
   const searchValue = ref('');
 
@@ -83,12 +83,12 @@ export function useTableData() {
   };
 
   return {
-    isLoading,
     data: tableData,
+    fetchResources,
+    handeChangeLimit,
+    handleChangePage,
+    isLoading,
     pagination,
     searchValue,
-    fetchResources,
-    handleChangePage,
-    handeChangeLimit,
   };
 }

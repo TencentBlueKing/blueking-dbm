@@ -22,7 +22,7 @@ const path = '/apis/iam';
  */
 export function checkAuthAllowed(params: {
   action_ids: Array<string>;
-  resources?: Array<{ type: string; id?: string | number }>;
+  resources?: Array<{ id?: string | number; type: string }>;
 }) {
   return http.post<
     {
@@ -37,7 +37,7 @@ export function checkAuthAllowed(params: {
  */
 export function getApplyDataLink(params: {
   action_ids: Array<string>;
-  resources?: Array<{ type: string; id?: string | number }>;
+  resources?: Array<{ id?: string | number; type: string }>;
 }) {
   return http.post<ApplyDataModel>(`${path}/get_apply_data/`, params).then((data) => new ApplyDataModel(data));
 }
@@ -45,16 +45,16 @@ export function getApplyDataLink(params: {
 export function simpleCheckAllowed(
   params: {
     action_id: string;
-    resource_id?: string | number;
     bk_biz_id?: number;
     is_raise_exception?: boolean;
+    resource_id?: string | number;
   },
   payload = {} as IRequestPayload,
 ) {
   return http.post<boolean>(`${path}/simple_check_allowed/`, params, payload);
 }
 
-export function simpleGetApplyData(params: { action_id: string; resource_id?: string | number; bk_biz_id?: number }) {
+export function simpleGetApplyData(params: { action_id: string; bk_biz_id?: number; resource_id?: string | number }) {
   return http
     .post<ApplyDataModel>(`${path}/simple_get_apply_data/`, {
       ...params,

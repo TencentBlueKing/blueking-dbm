@@ -23,11 +23,11 @@ type ProfileItem = ServiceReturnType<typeof getProfile>['profile'][number];
 export const useUserProfile = defineStore('UserProfile', {
   state: () => ({
     globalManage: false, // 顶部导航全部配置访问权限
-    isSuperuser: false, // 登录用户超级管理员权限
     isDba: false,
+    isSuperuser: false, // 登录用户超级管理员权限
     platformManage: false,
-    platformTicketView: false,
     platformTaskflowView: false,
+    platformTicketView: false,
     profile: {} as Record<string, any>,
     rerourceManage: false, // 顶部导航资源管理访问权限
     username: '',

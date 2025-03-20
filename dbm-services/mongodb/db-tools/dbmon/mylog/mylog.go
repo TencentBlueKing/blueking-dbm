@@ -47,11 +47,44 @@ func mkdirIfNotExistsWithPerm(dir string, perm os.FileMode) {
 	}
 }
 
-// InitRotateLoger 初始化日志logger
-func InitRotateLoger() {
-	debug := viper.GetBool("BK_DBMON_DEBUG")
+// InitLoggerStdout 初始化日志 InitLoggerStdout
+func InitLoggerStdout(debug bool) {
+	debugEnv := viper.GetBool("BK_DBMON_DEBUG")
 	var level zap.AtomicLevel
-	if debug == true {
+	if debug || debugEnv {
+		level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
+	} else {
+		level = zap.NewAtomicLevelAt(zapcore.InfoLevel)
+	}
+
+	cfg := zap.NewProductionConfig()
+	cfg.EncoderConfig = zapcore.EncoderConfig{
+		MessageKey: "msg",
+		LevelKey:   "level",
+		TimeKey:    "time",
+		NameKey:    "name",
+		CallerKey:  "caller",
+		// FunctionKey:    "func",
+		StacktraceKey:  "stacktrace",
+		LineEnding:     zapcore.DefaultLineEnding,
+		EncodeLevel:    zapcore.LowercaseLevelEncoder,
+		EncodeTime:     zapcore.ISO8601TimeEncoder,
+		EncodeDuration: zapcore.SecondsDurationEncoder,
+		EncodeCaller:   zapcore.ShortCallerEncoder,
+		EncodeName:     zapcore.FullNameEncoder,
+	}
+
+	core := zapcore.NewCore(zapcore.NewJSONEncoder(cfg.EncoderConfig), zapcore.AddSync(os.Stdout), level)
+	Logger = zap.New(core, zap.AddCaller())
+	AdapterLog = &LogAdapter{}
+	AdapterLog.Logger = Logger
+}
+
+// InitRotateLoger 初始化日志logger
+func InitRotateLoger(debug bool) {
+	debugEnv := viper.GetBool("BK_DBMON_DEBUG")
+	var level zap.AtomicLevel
+	if debug || debugEnv {
 		level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
 	} else {
 		level = zap.NewAtomicLevelAt(zapcore.InfoLevel)
@@ -62,12 +95,12 @@ func InitRotateLoger() {
 
 	cfg := zap.NewProductionConfig()
 	cfg.EncoderConfig = zapcore.EncoderConfig{
-		MessageKey:     "msg",
-		LevelKey:       "level",
-		TimeKey:        "time",
-		NameKey:        "name",
-		CallerKey:      "caller",
-		FunctionKey:    "func",
+		MessageKey: "msg",
+		LevelKey:   "level",
+		TimeKey:    "time",
+		NameKey:    "name",
+		CallerKey:  "caller",
+		// FunctionKey:    "func",
 		StacktraceKey:  "stacktrace",
 		LineEnding:     zapcore.DefaultLineEnding,
 		EncodeLevel:    zapcore.LowercaseLevelEncoder,
@@ -79,7 +112,7 @@ func InitRotateLoger() {
 
 	lj := zapcore.AddSync(&lumberjack.Logger{
 		Filename:   filepath.Join(logDir, "bk-dbmon.log"),
-		MaxSize:    64, // 单个日志文件大小,单位MB
+		MaxSize:    32, // 单个日志文件大小,单位MB
 		MaxBackups: 7,  // 最多保存10个文件
 		MaxAge:     15, // 最多保存15天内的日志
 		LocalTime:  true,

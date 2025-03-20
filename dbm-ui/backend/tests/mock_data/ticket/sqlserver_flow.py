@@ -79,7 +79,7 @@ SQLSERVER_SINGLE_APPLY_TICKET_DATA = {
         "inst_num": 1,
         "ip_source": "resource_pool",
         "resource_spec": {
-            "sqlserver_single": {
+            "backend": {
                 "spec_id": 1,
                 "spec_name": "2核_4G_10G",
                 "spec_cluster_type": "sqlserver_single",
@@ -117,7 +117,7 @@ SQLSERVER_SINGLE_MANUAL_DATA = {
         "cluster_count": 1,
         "inst_num": 1,
         "ip_source": "manual_input",
-        "nodes": {"sqlserver_single": [{"ip": "2.2.2.1", "bk_cloud_id": 0}]},
+        "nodes": {"backend": [{"ip": "2.2.2.1", "bk_cloud_id": 0}]},
         "domains": [
             {
                 "key": "sqlserverha01",
@@ -189,7 +189,7 @@ SQLSERVER_HA_MANUAL_DATA = {
         "inst_num": 1,
         "ip_source": "manual_input",
         "nodes": {
-            "sqlserver_ha": [
+            "backend": [
                 {"ip": "3.2.2.1", "bk_cloud_id": 0, "bk_host_id": 3001},
                 {"ip": "3.2.2.2", "bk_cloud_id": 0, "bk_host_id": 3002},
             ]

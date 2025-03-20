@@ -16,11 +16,11 @@ import { t } from '@locales/index';
 
 const routes = [
   {
-    name: 'PlatformTicketFlowSetting',
     path: 'platform-ticket-flow-setting',
+    name: 'PlatformTicketFlowSetting',
     meta: {
-      navName: t('单据流程设置'),
       fullscreen: true,
+      navName: t('单据流程设置'),
     },
     component: () => import('@views/ticket-flow-setting-global/Index.vue'),
   },

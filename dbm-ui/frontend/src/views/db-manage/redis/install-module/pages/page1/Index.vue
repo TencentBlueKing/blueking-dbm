@@ -92,12 +92,12 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.REDIS_CLUSTER_LOAD_MODULES,
     onSuccess(cloneData) {
       tableData.value = cloneData.tableDataList;
       remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
+    type: TicketTypes.REDIS_CLUSTER_LOAD_MODULES,
   });
 
   // 检测列表是否为空
@@ -140,15 +140,15 @@
 
   // 转换成行数据
   const generateTableRow = (item: RedisModel) => ({
-    rowKey: item.master_domain,
-    isLoading: false,
-    srcCluster: item.master_domain,
-    clusterId: item.id,
     bkCloudId: item.bk_cloud_id,
+    clusterId: item.id,
     clusterType: item.cluster_type,
     clusterTypeName: item.cluster_type_name,
     dbVersion: item.major_version,
+    isLoading: false,
     loadModules: [],
+    rowKey: item.master_domain,
+    srcCluster: item.master_domain,
   });
 
   // 批量选择
@@ -218,12 +218,12 @@
       }
       const params = {
         bk_biz_id: currentBizId,
-        ticket_type: TicketTypes.REDIS_CLUSTER_LOAD_MODULES,
-        remark: remark.value,
         details: {
           bk_cloud_id: infos[0].bk_cloud_id,
           infos,
         },
+        remark: remark.value,
+        ticket_type: TicketTypes.REDIS_CLUSTER_LOAD_MODULES,
       };
 
       await createTicket(params).then((data) => {

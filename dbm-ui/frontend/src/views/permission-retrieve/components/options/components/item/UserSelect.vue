@@ -67,13 +67,13 @@
 
   interface Props {
     formData: {
-      ips: string;
-      immute_domains: string;
-      users: string[];
-      dbs: string[];
-      cluster_type: ClusterTypes;
       account_type: AccountTypes;
+      cluster_type: ClusterTypes;
+      dbs: string[];
+      immute_domains: string;
+      ips: string;
       is_master: boolean;
+      users: string[];
     };
     validateFunc: () => Promise<boolean>;
   }
@@ -99,8 +99,8 @@
 
   const {
     data: userList,
-    run: runGetUserList,
     loading,
+    run: runGetUserList,
   } = useRequest(accoutMap[props.formData.account_type as keyof typeof accoutMap].ruleApi, {
     manual: true,
   });
@@ -111,10 +111,10 @@
     props.validateFunc().then((result) => {
       if (result) {
         runGetUserListDebounce({
-          ips: props.formData.ips.replace(batchSplitRegex, ','),
-          immute_domains: props.formData.immute_domains.replace(batchSplitRegex, ','),
-          cluster_type: props.formData.cluster_type,
           account_type: props.formData.account_type,
+          cluster_type: props.formData.cluster_type,
+          immute_domains: props.formData.immute_domains.replace(batchSplitRegex, ','),
+          ips: props.formData.ips.replace(batchSplitRegex, ','),
           limit: -1,
           offset: 0,
         });

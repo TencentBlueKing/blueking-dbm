@@ -370,7 +370,7 @@ func (p ImportMachParam) transHostInfoToDbModule(h *cc.Host, bkCloudId int, labe
 		CityID:          h.IdcCityId,
 		SubZone:         h.SZone,
 		SubZoneID:       h.SZoneID,
-		RackID:          strings.TrimSpace(h.Equipment),
+		RackID:          cleanStr(h.Equipment),
 		SvrTypeName:     h.SvrTypeName,
 		Status:          model.Unused,
 		NetDeviceID:     util.TransInnerSwitchIpAsNetDeviceId(h.InnerSwitchIp),
@@ -392,4 +392,8 @@ func dealEmptyRs(rsType string) string {
 		return model.PUBLIC_RESOURCE_DBTYEP
 	}
 	return rsType
+}
+
+func cleanStr(v string) string {
+	return strings.ReplaceAll(strings.TrimSpace(v), "\"", "")
 }

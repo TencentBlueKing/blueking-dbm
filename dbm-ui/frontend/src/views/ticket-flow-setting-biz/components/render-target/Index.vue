@@ -43,14 +43,14 @@
   }
 
   const modelValue = defineModel<{
-    dbType: DBTypes;
     bizId: number;
     clusterIds: number[];
+    dbType: DBTypes;
   }>({
     default: () => ({
-      dbType: DBTypes.MYSQL,
       bizId: 0,
       clusterIds: [],
+      dbType: DBTypes.MYSQL,
     }),
   });
 

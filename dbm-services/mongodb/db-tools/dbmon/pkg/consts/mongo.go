@@ -15,7 +15,6 @@ import (
 const (
 	MetaRoleShardsvrBackup        = "mongo_backup"
 	MetaRoleShardsvrBackupNewName = "backup"
-	MetaRoleMongos                = "mongos"
 )
 
 // twemproxy monitor event categories

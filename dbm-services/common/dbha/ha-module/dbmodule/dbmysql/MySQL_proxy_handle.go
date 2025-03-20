@@ -1,28 +1,28 @@
 package dbmysql
 
 import (
-	"database/sql"
 	"fmt"
 
 	"dbm-services/common/dbha/ha-module/log"
 
 	_ "github.com/go-sql-driver/mysql" // mysql TODO
+	"github.com/jmoiron/sqlx"
 )
 
 // ConnectAdminProxy use admin port to connect proxy
-func ConnectAdminProxy(user, password, address string) (*sql.DB, error) {
+func ConnectAdminProxy(user, password, address string) (*sqlx.DB, error) {
 	config := fmt.Sprintf("%s:%s@tcp(%s)/?timeout=5s&maxAllowedPacket=%s",
 		user,
 		password,
 		address,
 		"4194304")
-	db, err := sql.Open("mysql", config)
+	db, err := sqlx.Open("mysql", config)
 	if err != nil {
 		log.Logger.Errorf("Database connection failed. user: %s, address: %v,err:%s.", user,
 			address, err.Error())
 		return nil, err
 	}
-	if _, err = db.Query("select version();"); err != nil {
+	if _, err = db.Queryx("select version();"); err != nil {
 		log.Logger.Errorf("Check Database connection failed. user: %s, address: %v,err:%s.", user,
 			address, err.Error())
 		return nil, err
@@ -50,28 +50,23 @@ func SwitchProxyBackendAddress(proxyIp string, proxyAdminPort int, proxyUser str
 		return fmt.Errorf("exec switch sql failed")
 	}
 
-	var (
-		backendIndex    int
-		address         string
-		state           string
-		backendType     string
-		uuid            []uint8
-		connectedClient int
-	)
-
-	rows, err := db.Query(querySql)
+	rows, err := db.Queryx(querySql)
 	if err != nil {
 		log.Logger.Errorf("query backend failed. err:%s", err.Error())
 		return fmt.Errorf("query backen failed")
 	}
+	defer rows.Close()
+
 	for rows.Next() {
-		err = rows.Scan(&backendIndex, &address, &state, &backendType, &uuid, &connectedClient)
-		if err != nil {
+		result := make(map[string]interface{})
+		if err = rows.MapScan(result); err != nil {
 			log.Logger.Errorf("scan rows failed. err:%s", err.Error())
-			return fmt.Errorf("scan rows failed")
+			return fmt.Errorf("scan rows failed:%s", err.Error())
 		}
+		address := string(result["address"].([]byte))
+		state := string(result["state"].([]byte))
 		if address == fmt.Sprintf("%s:%d", slaveIp, slavePort) {
-			log.Logger.Infof("%s:%d refresh backend to %s is working", proxyIp, proxyAdminPort, slaveIp)
+			log.Logger.Errorf("%s:%d refresh backend to %s is working", proxyIp, proxyAdminPort, slaveIp)
 			if address != "1.1.1.1:3306" {
 				if state == "up" || state == "unknown" {
 					// update cmdb backend

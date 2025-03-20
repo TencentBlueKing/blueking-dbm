@@ -90,7 +90,7 @@
   const { t } = useI18n();
 
   const createDefaultData = () => ({
-    instanceList: [] as { ip: string; port: number; bk_cloud_id: number; cluster_type: ClusterTypes; role: string }[],
+    instanceList: [] as { bk_cloud_id: number; cluster_type: ClusterTypes; ip: string; port: number; role: string }[],
     password: '',
     validDuration: 1,
     validDurationType: 'day',
@@ -111,11 +111,11 @@
       if (instanceList.length > 0) {
         const instance = instanceList[0];
         const dbTypeMap = {
-          [ClusterTypes.TENDBSINGLE]: DBTypes.MYSQL,
-          [ClusterTypes.TENDBHA]: DBTypes.MYSQL,
-          [ClusterTypes.TENDBCLUSTER]: DBTypes.TENDBCLUSTER,
           [ClusterTypes.SQLSERVER_HA]: DBTypes.SQLSERVER,
           [ClusterTypes.SQLSERVER_SINGLE]: DBTypes.SQLSERVER,
+          [ClusterTypes.TENDBCLUSTER]: DBTypes.TENDBCLUSTER,
+          [ClusterTypes.TENDBHA]: DBTypes.MYSQL,
+          [ClusterTypes.TENDBSINGLE]: DBTypes.MYSQL,
         } as Record<ClusterTypes, DBTypes>;
         instanceDbType.value = dbTypeMap[instance.cluster_type];
       }
@@ -125,7 +125,7 @@
     },
   );
 
-  const { run: modifyAdminPasswordRun, loading: submitting } = useRequest(modifyAdminPassword, {
+  const { loading: submitting, run: modifyAdminPasswordRun } = useRequest(modifyAdminPassword, {
     manual: true,
     onSuccess(data) {
       submitted.value = true;
@@ -147,27 +147,27 @@
 
   const handleSubmit = (
     instanceList: {
-      ip: string;
-      port: number;
       bk_cloud_id: number;
       cluster_type: ClusterTypes;
+      ip: string;
+      port: number;
       role: string;
     }[] = [],
   ) => {
     const roleMap: Record<string, string> = {};
     const instanceListParam = (instanceList.length ? instanceList : formData.instanceList).map((instance) => {
-      const { ip, port, bk_cloud_id, role, cluster_type } = instance;
+      const { bk_cloud_id, cluster_type, ip, port, role } = instance;
       roleMap[`${ip}:${port}`] = role;
-      return { ip, port, bk_cloud_id, role, cluster_type };
+      return { bk_cloud_id, cluster_type, ip, port, role };
     });
 
     const lockHour = formData.validDuration * (formData.validDurationType === 'day' ? 24 : 1);
 
     modifyAdminPasswordRun({
-      lock_hour: lockHour,
-      password: formData.password,
       instance_list: instanceListParam,
       is_async: true,
+      lock_hour: lockHour,
+      password: formData.password,
     });
   };
 

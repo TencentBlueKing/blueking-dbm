@@ -132,6 +132,15 @@ class DownloadMediaKwargs(DownloadMediaBaseKwargs):
 
 
 @dataclass()
+class DownloadMediaWithRetryKwargs(DownloadMediaKwargs):
+    """
+    带重试的传文件
+    """
+
+    retry_seconds: int = None
+
+
+@dataclass()
 class DownloadMediaKwargsForPool(DownloadMediaBaseKwargs):
     """
     针对资源池获取IP的场景
@@ -393,7 +402,13 @@ class ExecuteRdsKwargs:
     bk_cloud_id: int
     instance_ip: str
     instance_port: int
-    sqls: list
+    sqls: list = field(default_factory=list)
+
+
+@dataclass()
+class CheckSlaveStatusKwargs(ExecuteRdsKwargs):
+    master_ip: str = ""
+    master_port: int = 0
 
 
 @dataclass()
@@ -404,7 +419,8 @@ class CrondMonitorKwargs:
 
     bk_cloud_id: int
     exec_ips: list
-    name: str = ""
+    #  默认是操作监控屏蔽与解屏蔽
+    name: str = "mysql-monitor"
     port: int = 0
     minutes: int = 1440
     enable: bool = False
@@ -609,3 +625,9 @@ class DropProxyUsersInBackendKwargs:
 
     cluster_id: int
     origin_proxy_host: str
+
+
+@dataclass
+class ResetSlaveViaDRSKwargs:
+    address: str
+    bk_cloud_id: int

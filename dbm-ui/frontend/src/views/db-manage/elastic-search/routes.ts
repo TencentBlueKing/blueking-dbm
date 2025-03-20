@@ -20,8 +20,8 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
-    name: 'EsManage',
     path: 'elastic-search',
+    name: 'EsManage',
     meta: {
       navName: t('ES_集群管理'),
     },
@@ -39,11 +39,11 @@ const routes: RouteRecordRaw[] = [
       //   component: () => import('@views/db-manage/elastic-search/apply/Index.vue'),
       // },
       {
-        name: 'EsList',
         path: 'list',
+        name: 'EsList',
         meta: {
-          navName: t('ES_集群管理'),
           fullscreen: true,
+          navName: t('ES_集群管理'),
         },
         component: () => import('@views/db-manage/elastic-search/list/Index.vue'),
       },

@@ -358,38 +358,38 @@
 
   const genDefaultFormData = () => ({
     bk_biz_id: '' as '' | number,
-    remark: '',
-    ticket_type: 'KAFKA_APPLY',
     details: {
       bk_cloud_id: 0,
-      db_app_abbr: '',
-      cluster_name: '',
-      cluster_alias: '',
       city_code: '',
+      cluster_alias: '',
+      cluster_name: '',
+      db_app_abbr: '',
       db_version: '',
-      ip_source: 'resource_pool',
       disaster_tolerance_level: 'NONE', // 同 affinity
-      nodes: {
-        zookeeper: [] as Array<HostInfo>,
-        broker: [] as Array<HostInfo>,
-      },
-      resource_spec: {
-        zookeeper: {
-          spec_id: '',
-          count: 3,
-        },
-        broker: {
-          spec_id: '',
-          count: 2,
-        },
-      },
-      port: 9092,
-      partition_num: 1,
-      retention_hours: 4,
-      retention_bytes: -1,
-      replication_num: 2,
+      ip_source: 'resource_pool',
       no_security: 0,
+      nodes: {
+        broker: [] as Array<HostInfo>,
+        zookeeper: [] as Array<HostInfo>,
+      },
+      partition_num: 1,
+      port: 9092,
+      replication_num: 2,
+      resource_spec: {
+        broker: {
+          count: 2,
+          spec_id: '',
+        },
+        zookeeper: {
+          count: 3,
+          spec_id: '',
+        },
+      },
+      retention_bytes: -1,
+      retention_hours: 4,
     },
+    remark: '',
+    ticket_type: 'KAFKA_APPLY',
   });
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
@@ -399,44 +399,44 @@
   });
 
   const rules = {
-    'details.nodes.zookeeper': [
-      {
-        validator: (value: Array<any>) => value.length === 3,
-        message: t('Zookeeper需3台'),
-        trigger: 'change',
-      },
-    ],
     'details.nodes.broker': [
       {
-        validator: (value: Array<any>) => value.length > 0,
         message: t('Broker不能为空'),
         trigger: 'change',
+        validator: (value: Array<any>) => value.length > 0,
+      },
+    ],
+    'details.nodes.zookeeper': [
+      {
+        message: t('Zookeeper需3台'),
+        trigger: 'change',
+        validator: (value: Array<any>) => value.length === 3,
       },
     ],
     'details.port': [
       {
-        validator: (value: number) => value >= 1025 && value <= 65535,
         message: t('访问端口范围1025_65535'),
         trigger: 'change',
+        validator: (value: number) => value >= 1025 && value <= 65535,
       },
     ],
     'details.replication_num': [
       {
+        message: t('副本数需小于等于Broker数量'),
+        trigger: 'change',
         validator: (value: number) => {
           if (formData.details.ip_source === 'resource_pool') {
             return value <= formData.details.resource_spec.broker.count;
           }
           return value <= formData.details.nodes.broker.length;
         },
-        message: t('副本数需小于等于Broker数量'),
-        trigger: 'change',
       },
     ],
     'details.resource_spec.zookeeper.count': [
       {
-        validator: (value: number) => value % 2 === 1,
         message: t('至少3台_且为奇数'),
         trigger: 'change',
+        validator: (value: number) => value % 2 === 1,
       },
     ],
   };
@@ -460,10 +460,10 @@
         totalCapacity.value = disk * count;
       }
     },
-    { flush: 'post', deep: true },
+    { deep: true, flush: 'post' },
   );
 
-  const { baseState, bizState, handleCreateAppAbbr, handleCreateTicket, handleCancel } = useApplyBase();
+  const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
 
   const zookeeperDisableDialogSubmitMethod = (hostList: Array<any>) =>
     hostList.length !== 3 ? t('zookeeper需3台') : false;
@@ -521,10 +521,10 @@
       baseState.isSubmitting = true;
       const mapIpField = (ipList: Array<HostInfo>) =>
         ipList.map((item) => ({
+          bk_biz_id: item.biz.id,
+          bk_cloud_id: item.cloud_area.id,
           bk_host_id: item.host_id,
           ip: item.ip,
-          bk_cloud_id: item.cloud_area.id,
-          bk_biz_id: item.biz.id,
         }));
 
       const getDetails = () => {
@@ -543,17 +543,17 @@
           return {
             ...details,
             resource_spec: {
-              zookeeper: {
-                ...details.resource_spec.zookeeper,
-                ...specZookeeperRef.value.getData(),
-                ...regionAndDisasterParams,
-                count: Number(details.resource_spec.zookeeper.count),
-              },
               broker: {
                 ...details.resource_spec.broker,
                 ...specBrokerRef.value.getData(),
                 ...regionAndDisasterParams,
                 count: Number(details.resource_spec.broker.count),
+              },
+              zookeeper: {
+                ...details.resource_spec.zookeeper,
+                ...specZookeeperRef.value.getData(),
+                ...regionAndDisasterParams,
+                count: Number(details.resource_spec.zookeeper.count),
               },
             },
           };
@@ -563,8 +563,8 @@
         return {
           ...details,
           nodes: {
-            zookeeper: mapIpField(formData.details.nodes.zookeeper),
             broker: mapIpField(formData.details.nodes.broker),
+            zookeeper: mapIpField(formData.details.nodes.zookeeper),
           },
         };
       };
@@ -581,9 +581,8 @@
   // 重置表单
   const handleReset = () => {
     InfoBox({
-      title: t('确认重置表单内容'),
-      content: t('重置后_将会清空当前填写的内容'),
       cancelText: t('取消'),
+      content: t('重置后_将会清空当前填写的内容'),
       onConfirm: () => {
         Object.assign(formData, genDefaultFormData());
         formRef.value.clearValidate();
@@ -592,6 +591,7 @@
         });
         return true;
       },
+      title: t('确认重置表单内容'),
     });
   };
 

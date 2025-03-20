@@ -15,7 +15,7 @@
       }
     ]
   },
-  "editable": true,
+  "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
   "id": null,
@@ -3356,1050 +3356,6 @@
       "type": "row"
     },
     {
-      "collapsed": false,
-      "datasource": {
-        "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
-      },
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 1
-      },
-      "id": 54,
-      "panels": [],
-      "targets": [
-        {
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
-          },
-          "refId": "A"
-        }
-      ],
-      "title": "Cluster Info",
-      "type": "row"
-    },
-    {
-      "datasource": {
-        "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
-      },
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 0,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "none"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 3,
-        "x": 0,
-        "y": 2
-      },
-      "hideTimeOverride": true,
-      "id": 35,
-      "maxDataPoints": 100,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "last"
-          ],
-          "fields": "/^mongodb$/",
-          "values": false
-        },
-        "showPercentChange": false,
-        "text": {},
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "10.4.0",
-      "targets": [
-        {
-          "cluster": [],
-          "datasource": {
-            "uid": "dba_mongo_proxy"
-          },
-          "enableDownSampling": true,
-          "expressionList": [],
-          "format": "table",
-          "host": [],
-          "mode": "code",
-          "module": [],
-          "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_label": "exporter_dbm_mongodb_exporter",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [
-                "mongodb"
-              ],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "AVG",
-              "metric_field": "mongodb_version_info",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "A",
-          "source": "bkmonitor:exporter_dbm_mongodb_exporter:mongodb_version_info{cluster_domain=\"$cluster_domain\"}  or bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_version_info{cluster_domain=\"$cluster_domain\"} ",
-          "step": 300,
-          "type": "instant"
-        }
-      ],
-      "timeFrom": "1m",
-      "title": "Version",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 0,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "none"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 3,
-        "x": 3,
-        "y": 2
-      },
-      "hideTimeOverride": true,
-      "id": 47,
-      "maxDataPoints": 100,
-      "options": {
-        "colorMode": "none",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "10.4.0",
-      "targets": [
-        {
-          "cluster": [],
-          "datasource": {
-            "uid": "dba_mongo_proxy"
-          },
-          "enableDownSampling": true,
-          "expressionList": [],
-          "format": "time_series",
-          "hide": false,
-          "host": [],
-          "mode": "ui",
-          "module": [],
-          "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_label": "exporter_dbm_mongodb_exporter",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "count_without_time",
-              "metric_field": "mongodb_up",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "proxy"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "A",
-          "source": "count(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_up{instance_role=\"proxy\"})",
-          "step": 300,
-          "type": "instant"
-        }
-      ],
-      "timeFrom": "1m",
-      "title": "Mongos",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 0,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "none"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 3,
-        "x": 6,
-        "y": 2
-      },
-      "hideTimeOverride": true,
-      "id": 36,
-      "maxDataPoints": 100,
-      "options": {
-        "colorMode": "none",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "10.4.0",
-      "targets": [
-        {
-          "cluster": [],
-          "datasource": {
-            "uid": "dba_mongo_proxy"
-          },
-          "enableDownSampling": true,
-          "expressionList": [],
-          "format": "time_series",
-          "host": [],
-          "mode": "ui",
-          "module": [],
-          "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_label": "exporter_dbm_mongodb_exporter",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "max_without_time",
-              "metric_field": "mongodb_mongos_sharding_shards_total",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "A",
-          "source": "",
-          "step": 300,
-          "type": "instant"
-        }
-      ],
-      "timeFrom": "1m",
-      "title": "Shards",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [
-            {
-              "options": {
-                "0": {
-                  "text": "NO"
-                },
-                "1": {
-                  "text": "YES"
-                }
-              },
-              "type": "value"
-            }
-          ],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "none"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 3,
-        "x": 9,
-        "y": 2
-      },
-      "hideTimeOverride": true,
-      "id": 5,
-      "maxDataPoints": 100,
-      "options": {
-        "colorMode": "none",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "10.4.0",
-      "targets": [
-        {
-          "cluster": [],
-          "datasource": {
-            "uid": "dba_mongo_proxy"
-          },
-          "enableDownSampling": true,
-          "expressionList": [],
-          "format": "time_series",
-          "host": [],
-          "mode": "code",
-          "module": [],
-          "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_label": "exporter_dbm_mongodb_exporter",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "max_without_time",
-              "metric_field": "mongodb_mongos_sharding_balancer_enabled",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "A",
-          "source": "max(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongos_sharding_balancer_enabled{cluster_domain=\"$cluster_domain\"})",
-          "step": "300",
-          "type": "instant"
-        }
-      ],
-      "timeFrom": "1m",
-      "title": "Balancer Enabled",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 0,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "none"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 2,
-        "x": 12,
-        "y": 2
-      },
-      "hideTimeOverride": true,
-      "id": 79,
-      "maxDataPoints": 100,
-      "options": {
-        "colorMode": "none",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "10.4.0",
-      "targets": [
-        {
-          "cluster": [],
-          "datasource": {
-            "uid": "dba_mongo_proxy"
-          },
-          "enableDownSampling": true,
-          "expressionList": [],
-          "format": "time_series",
-          "host": [],
-          "mode": "ui",
-          "module": [],
-          "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_label": "exporter_dbm_mongodb_exporter",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "max_without_time",
-              "metric_field": "mongodb_mongos_sharding_databases_total",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "type",
-                  "method": "eq",
-                  "value": [
-                    "partitioned"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "A",
-          "source": "",
-          "step": 300,
-          "type": "instant"
-        }
-      ],
-      "timeFrom": "1m",
-      "title": "Sharded DBs",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 0,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "none"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 3,
-        "x": 14,
-        "y": 2
-      },
-      "hideTimeOverride": true,
-      "id": 39,
-      "maxDataPoints": 100,
-      "options": {
-        "colorMode": "none",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "10.4.0",
-      "targets": [
-        {
-          "cluster": [],
-          "datasource": {
-            "uid": "dba_mongo_proxy"
-          },
-          "enableDownSampling": true,
-          "expressionList": [],
-          "format": "time_series",
-          "host": [],
-          "mode": "ui",
-          "module": [],
-          "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_label": "exporter_dbm_mongodb_exporter",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "avg_without_time",
-              "metric_field": "mongodb_mongos_sharding_databases_total",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "type",
-                  "method": "eq",
-                  "value": [
-                    "unpartitioned"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "A",
-          "source": "",
-          "step": 300,
-          "type": "instant"
-        }
-      ],
-      "timeFrom": "1m",
-      "title": "Unsharded DBs",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 0,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "none"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 2,
-        "x": 17,
-        "y": 2
-      },
-      "hideTimeOverride": true,
-      "id": 10,
-      "maxDataPoints": 100,
-      "options": {
-        "colorMode": "none",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "10.4.0",
-      "targets": [
-        {
-          "cluster": [],
-          "datasource": {
-            "uid": "dba_mongo_proxy"
-          },
-          "enableDownSampling": true,
-          "expressionList": [],
-          "format": "time_series",
-          "host": [],
-          "mode": "ui",
-          "module": [],
-          "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_label": "exporter_dbm_mongodb_exporter",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "max_without_time",
-              "metric_field": "mongodb_mongos_sharding_collections_total",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "A",
-          "source": "",
-          "step": 300,
-          "type": "instant"
-        }
-      ],
-      "timeFrom": "1m",
-      "title": "Sharded Collections",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 0,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "none"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 2,
-        "x": 19,
-        "y": 2
-      },
-      "hideTimeOverride": true,
-      "id": 11,
-      "maxDataPoints": 100,
-      "options": {
-        "colorMode": "none",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "10.4.0",
-      "targets": [
-        {
-          "cluster": [],
-          "datasource": {
-            "uid": "dba_mongo_proxy"
-          },
-          "enableDownSampling": true,
-          "expressionList": [],
-          "format": "time_series",
-          "host": [],
-          "mode": "ui",
-          "module": [],
-          "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_label": "exporter_dbm_mongodb_exporter",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "avg_without_time",
-              "metric_field": "mongodb_mongos_sharding_chunks_total",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "A",
-          "source": "",
-          "step": 300,
-          "type": "instant"
-        }
-      ],
-      "timeFrom": "1m",
-      "title": "Chunks",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 0,
-          "mappings": [
-            {
-              "options": {
-                "0": {
-                  "text": "NO"
-                },
-                "1": {
-                  "text": "YES"
-                },
-                "2": {
-                  "text": "UNKNOWN"
-                }
-              },
-              "type": "value"
-            }
-          ],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "none"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 3,
-        "x": 21,
-        "y": 2
-      },
-      "hideTimeOverride": true,
-      "id": 4,
-      "maxDataPoints": 100,
-      "options": {
-        "colorMode": "none",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "10.4.0",
-      "targets": [
-        {
-          "cluster": [],
-          "datasource": {
-            "uid": "dba_mongo_proxy"
-          },
-          "enableDownSampling": true,
-          "expressionList": [],
-          "format": "time_series",
-          "host": [],
-          "mode": "code",
-          "module": [],
-          "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_label": "exporter_dbm_mongodb_exporter",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "AVG",
-              "metric_field": "mongodb_mongos_sharding_chunks_is_balanced",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "A",
-          "source": "max(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongos_sharding_chunks_is_balanced{cluster_domain=\"$cluster_domain\"})",
-          "step": 300,
-          "type": "instant"
-        }
-      ],
-      "timeFrom": "1m",
-      "title": "Chunks Balanced",
-      "type": "stat"
-    },
-    {
       "collapsed": true,
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
@@ -4409,7 +3365,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 5
+        "y": 1
       },
       "id": 76,
       "panels": [
@@ -4438,7 +3394,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -4638,7 +3595,7 @@
           },
           "gridPos": {
             "h": 14,
-            "w": 12,
+            "w": 11,
             "x": 0,
             "y": 6
           },
@@ -4792,6 +3749,1050 @@
         "h": 1,
         "w": 24,
         "x": 0,
+        "y": 2
+      },
+      "id": 54,
+      "panels": [],
+      "targets": [
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
+          },
+          "refId": "A"
+        }
+      ],
+      "title": "Cluster Info",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 3,
+        "x": 0,
+        "y": 3
+      },
+      "hideTimeOverride": true,
+      "id": 35,
+      "maxDataPoints": 100,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "fields": "/^mongodb$/",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {},
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "uid": "dba_mongo_proxy"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "table",
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_label": "exporter_dbm_mongodb_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [
+                "mongodb"
+              ],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "AVG",
+              "metric_field": "mongodb_version_info",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "bkmonitor:exporter_dbm_mongodb_exporter:mongodb_version_info{cluster_domain=\"$cluster_domain\"}  or bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_version_info{cluster_domain=\"$cluster_domain\"} ",
+          "step": 300,
+          "type": "instant"
+        }
+      ],
+      "timeFrom": "1m",
+      "title": "Version",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 3,
+        "x": 3,
+        "y": 3
+      },
+      "hideTimeOverride": true,
+      "id": 47,
+      "maxDataPoints": 100,
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "uid": "dba_mongo_proxy"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_label": "exporter_dbm_mongodb_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "count_without_time",
+              "metric_field": "mongodb_up",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "proxy"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "count(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_up{instance_role=\"proxy\"})",
+          "step": 300,
+          "type": "instant"
+        }
+      ],
+      "timeFrom": "1m",
+      "title": "Mongos",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 3,
+        "x": 6,
+        "y": 3
+      },
+      "hideTimeOverride": true,
+      "id": 36,
+      "maxDataPoints": 100,
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "uid": "dba_mongo_proxy"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_label": "exporter_dbm_mongodb_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "max_without_time",
+              "metric_field": "mongodb_mongos_sharding_shards_total",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "",
+          "step": 300,
+          "type": "instant"
+        }
+      ],
+      "timeFrom": "1m",
+      "title": "Shards",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "text": "NO"
+                },
+                "1": {
+                  "text": "YES"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 3,
+        "x": 9,
+        "y": 3
+      },
+      "hideTimeOverride": true,
+      "id": 5,
+      "maxDataPoints": 100,
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "uid": "dba_mongo_proxy"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_label": "exporter_dbm_mongodb_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "max_without_time",
+              "metric_field": "mongodb_mongos_sharding_balancer_enabled",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "max(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongos_sharding_balancer_enabled{cluster_domain=\"$cluster_domain\"})",
+          "step": "300",
+          "type": "instant"
+        }
+      ],
+      "timeFrom": "1m",
+      "title": "Balancer Enabled",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 2,
+        "x": 12,
+        "y": 3
+      },
+      "hideTimeOverride": true,
+      "id": 79,
+      "maxDataPoints": 100,
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "uid": "dba_mongo_proxy"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_label": "exporter_dbm_mongodb_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "max_without_time",
+              "metric_field": "mongodb_mongos_sharding_databases_total",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "type",
+                  "method": "eq",
+                  "value": [
+                    "partitioned"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "",
+          "step": 300,
+          "type": "instant"
+        }
+      ],
+      "timeFrom": "1m",
+      "title": "Sharded DBs",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 3,
+        "x": 14,
+        "y": 3
+      },
+      "hideTimeOverride": true,
+      "id": 39,
+      "maxDataPoints": 100,
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "uid": "dba_mongo_proxy"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_label": "exporter_dbm_mongodb_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "avg_without_time",
+              "metric_field": "mongodb_mongos_sharding_databases_total",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "type",
+                  "method": "eq",
+                  "value": [
+                    "unpartitioned"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "",
+          "step": 300,
+          "type": "instant"
+        }
+      ],
+      "timeFrom": "1m",
+      "title": "Unsharded DBs",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 2,
+        "x": 17,
+        "y": 3
+      },
+      "hideTimeOverride": true,
+      "id": 10,
+      "maxDataPoints": 100,
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "uid": "dba_mongo_proxy"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_label": "exporter_dbm_mongodb_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "max_without_time",
+              "metric_field": "mongodb_mongos_sharding_collections_total",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "",
+          "step": 300,
+          "type": "instant"
+        }
+      ],
+      "timeFrom": "1m",
+      "title": "Sharded Collections",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 2,
+        "x": 19,
+        "y": 3
+      },
+      "hideTimeOverride": true,
+      "id": 11,
+      "maxDataPoints": 100,
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "uid": "dba_mongo_proxy"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_label": "exporter_dbm_mongodb_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "avg_without_time",
+              "metric_field": "mongodb_mongos_sharding_chunks_total",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "",
+          "step": 300,
+          "type": "instant"
+        }
+      ],
+      "timeFrom": "1m",
+      "title": "Chunks",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "text": "NO"
+                },
+                "1": {
+                  "text": "YES"
+                },
+                "2": {
+                  "text": "UNKNOWN"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 3,
+        "x": 21,
+        "y": 3
+      },
+      "hideTimeOverride": true,
+      "id": 4,
+      "maxDataPoints": 100,
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "uid": "dba_mongo_proxy"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_label": "exporter_dbm_mongodb_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "AVG",
+              "metric_field": "mongodb_mongos_sharding_chunks_is_balanced",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "max(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongos_sharding_chunks_is_balanced{cluster_domain=\"$cluster_domain\"})",
+          "step": 300,
+          "type": "instant"
+        }
+      ],
+      "timeFrom": "1m",
+      "title": "Chunks Balanced",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
+      },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
         "y": 6
       },
       "id": 52,
@@ -4814,6 +4815,7 @@
         "type": "bkmonitor-timeseries-datasource",
         "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -4873,7 +4875,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 12,
         "x": 0,
         "y": 7
@@ -5100,7 +5102,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 12,
         "x": 12,
         "y": 7
@@ -5350,7 +5352,7 @@
         ]
       },
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 12,
         "x": 0,
         "y": 14
@@ -5541,7 +5543,7 @@
         ]
       },
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 12,
         "x": 12,
         "y": 14
@@ -5693,7 +5695,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -5706,7 +5709,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 12,
         "x": 0,
         "y": 21
@@ -5858,7 +5861,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -5871,7 +5875,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 12,
         "x": 12,
         "y": 21
@@ -6023,7 +6027,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -6036,7 +6041,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 12,
         "x": 0,
         "y": 28
@@ -6051,7 +6056,7 @@
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
-          "width": 300
+          "width": 350
         },
         "tooltip": {
           "mode": "multi",
@@ -6181,7 +6186,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -6194,7 +6200,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 12,
         "x": 12,
         "y": 28
@@ -6341,7 +6347,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "transparent"
+                "color": "transparent",
+                "value": null
               },
               {
                 "color": "rgba(0, 0, 0, 0.27)",
@@ -6353,12 +6360,12 @@
               }
             ]
           },
-          "unit": "ops"
+          "unit": "short"
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 12,
         "x": 12,
         "y": 35
@@ -6504,7 +6511,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -6517,7 +6525,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 12,
         "x": 0,
         "y": 43
@@ -6635,7 +6643,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -6648,7 +6657,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 12,
         "x": 12,
         "y": 43
@@ -6753,6 +6762,7 @@
             "axisColorMode": "text",
             "axisLabel": "",
             "axisPlacement": "auto",
+            "axisWidth": 40,
             "barAlignment": 0,
             "drawStyle": "line",
             "fillOpacity": 20,
@@ -6780,6 +6790,7 @@
             }
           },
           "decimals": 1,
+          "fieldMinMax": false,
           "links": [],
           "mappings": [],
           "min": 0,
@@ -6787,7 +6798,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -6800,7 +6812,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 12,
         "x": 0,
         "y": 50
@@ -6919,7 +6931,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -6932,7 +6945,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 12,
         "x": 12,
         "y": 50
@@ -7012,7 +7025,7 @@
       "type": "timeseries"
     },
     {
-      "collapsed": true,
+      "collapsed": false,
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
         "uid": "${DS_蓝鲸监控_- 指标数据}"
@@ -7024,956 +7037,7 @@
         "y": 57
       },
       "id": 58,
-      "panels": [
-        {
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
-          },
-          "description": "mongodb_mongod_global_lock_current_queue\nrequire version >=3.6",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisBorderShow": false,
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 10,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "insertNulls": false,
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "never",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "decimals": 1,
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green"
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "short"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 114
-          },
-          "id": 60,
-          "options": {
-            "legend": {
-              "calcs": [
-                "max"
-              ],
-              "displayMode": "table",
-              "placement": "right",
-              "showLegend": true,
-              "width": 350
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "pluginVersion": "10.4.0",
-          "targets": [
-            {
-              "cluster": [],
-              "datasource": {
-                "uid": "dba_mongo_proxy"
-              },
-              "enableDownSampling": true,
-              "expressionList": [],
-              "format": "time_series",
-              "hide": false,
-              "host": [],
-              "mode": "code",
-              "module": [],
-              "promqlAlias": "$tag_rs_nm $tag_instance_host $tag_type",
-              "query_configs": [
-                {
-                  "alias": "",
-                  "data_label": "exporter_dbm_mongodb_exporter",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "display": true,
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [],
-                  "interval": "auto",
-                  "interval_unit": "s",
-                  "method": "AVG",
-                  "metric_field": "mongodb_mongod_global_lock_current_queue",
-                  "refId": "a",
-                  "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
-                  "result_table_label": "component",
-                  "time_field": "time",
-                  "where": []
-                }
-              ],
-              "refId": "A",
-              "source": "bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_global_lock_current_queue{cluster_domain=\"$cluster_domain\",instance_role!=\"backup\",type!=\"total\",rs_state=\"1\"}",
-              "step": "",
-              "type": "range"
-            }
-          ],
-          "title": "WiredTiger Queue (primary)",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
-          },
-          "description": "mongodb_mongod_global_lock_current_queue\nsecondary but not include backup node",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisBorderShow": false,
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 10,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "insertNulls": false,
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "never",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "decimals": 1,
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green"
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "short"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 114
-          },
-          "id": 114,
-          "options": {
-            "legend": {
-              "calcs": [
-                "max"
-              ],
-              "displayMode": "table",
-              "placement": "right",
-              "showLegend": true,
-              "sortBy": "Max",
-              "sortDesc": true,
-              "width": 350
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "pluginVersion": "10.4.0",
-          "targets": [
-            {
-              "cluster": [],
-              "datasource": {
-                "uid": "dba_mongo_proxy"
-              },
-              "enableDownSampling": true,
-              "expressionList": [],
-              "format": "time_series",
-              "hide": false,
-              "host": [],
-              "mode": "code",
-              "module": [],
-              "promqlAlias": "$tag_rs_nm $tag_instance_host $tag_type",
-              "query_configs": [
-                {
-                  "alias": "",
-                  "data_label": "exporter_dbm_mongodb_exporter",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "display": true,
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [],
-                  "interval": "auto",
-                  "interval_unit": "s",
-                  "method": "AVG",
-                  "metric_field": "mongodb_mongod_global_lock_current_queue",
-                  "refId": "a",
-                  "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
-                  "result_table_label": "component",
-                  "time_field": "time",
-                  "where": []
-                }
-              ],
-              "refId": "A",
-              "source": "bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_global_lock_current_queue{cluster_domain=\"$cluster_domain\",instance_role!=\"backup\",type!=\"total\",rs_state!=\"1\"}",
-              "step": "",
-              "type": "range"
-            }
-          ],
-          "title": "WiredTiger Queue (secondary)",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
-          },
-          "description": "mongodb_mongod_wiredtiger_session_open_sessions_total \nrequire version >=3.6",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisBorderShow": false,
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 10,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "insertNulls": false,
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "never",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "decimals": 1,
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green"
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "short"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 122
-          },
-          "id": 115,
-          "options": {
-            "legend": {
-              "calcs": [
-                "lastNotNull",
-                "max"
-              ],
-              "displayMode": "table",
-              "placement": "right",
-              "showLegend": true,
-              "width": 350
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "pluginVersion": "10.4.0",
-          "targets": [
-            {
-              "cluster": [],
-              "datasource": {
-                "uid": "dba_mongo_proxy"
-              },
-              "enableDownSampling": true,
-              "expressionList": [],
-              "format": "time_series",
-              "hide": false,
-              "host": [],
-              "mode": "code",
-              "module": [],
-              "promqlAlias": "$tag_rs_nm $tag_instance_host",
-              "query_configs": [
-                {
-                  "alias": "",
-                  "data_label": "exporter_dbm_mongodb_exporter",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "display": true,
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [],
-                  "interval": "auto",
-                  "interval_unit": "s",
-                  "method": "AVG",
-                  "metric_field": "mongodb_mongod_global_lock_current_queue",
-                  "refId": "a",
-                  "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
-                  "result_table_label": "component",
-                  "time_field": "time",
-                  "where": []
-                }
-              ],
-              "refId": "A",
-              "source": "bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_wiredtiger_session_open_sessions_total{cluster_domain=\"$cluster_domain\",instance_role!=\"backup\",type!=\"total\",rs_state=\"1\"}",
-              "step": "",
-              "type": "range"
-            }
-          ],
-          "title": "WiredTiger Session (primary)",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
-          },
-          "description": "mongodb_mongod_wiredtiger_session_open_sessions_total \nrequire version >=3.6",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisBorderShow": false,
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 10,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "insertNulls": false,
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "never",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green"
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "short"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 122
-          },
-          "id": 116,
-          "options": {
-            "legend": {
-              "calcs": [
-                "lastNotNull",
-                "max"
-              ],
-              "displayMode": "table",
-              "placement": "right",
-              "showLegend": true,
-              "width": 550
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "pluginVersion": "10.4.0",
-          "targets": [
-            {
-              "cluster": [],
-              "datasource": {
-                "uid": "dba_mongo_proxy"
-              },
-              "enableDownSampling": true,
-              "expressionList": [],
-              "format": "time_series",
-              "hide": false,
-              "host": [],
-              "mode": "code",
-              "module": [],
-              "promqlAlias": "$tag_rs_nm $tag_instance_host",
-              "query_configs": [
-                {
-                  "alias": "",
-                  "data_label": "exporter_dbm_mongodb_exporter",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "display": true,
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [],
-                  "interval": "auto",
-                  "interval_unit": "s",
-                  "method": "AVG",
-                  "metric_field": "mongodb_mongod_global_lock_current_queue",
-                  "refId": "a",
-                  "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
-                  "result_table_label": "component",
-                  "time_field": "time",
-                  "where": []
-                }
-              ],
-              "refId": "A",
-              "source": "bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_wiredtiger_session_open_sessions_total{cluster_domain=\"$cluster_domain\",instance_role!=\"backup\",type!=\"total\",rs_state=\"2\"}",
-              "step": "",
-              "type": "range"
-            }
-          ],
-          "title": "WiredTiger Session (secondary)",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
-          },
-          "description": "mongodb_mongod_wiredtiger_session_open_sessions_total \n\nrequire version >=3.6",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisBorderShow": false,
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 10,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "insertNulls": false,
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "never",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "decimals": 1,
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green"
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "percentunit"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 130
-          },
-          "id": 117,
-          "options": {
-            "legend": {
-              "calcs": [
-                "lastNotNull",
-                "max"
-              ],
-              "displayMode": "table",
-              "placement": "right",
-              "showLegend": true,
-              "width": 350
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "pluginVersion": "10.4.0",
-          "targets": [
-            {
-              "cluster": [],
-              "datasource": {
-                "uid": "dba_mongo_proxy"
-              },
-              "enableDownSampling": true,
-              "expressionList": [],
-              "format": "time_series",
-              "hide": false,
-              "host": [],
-              "mode": "code",
-              "module": [],
-              "promqlAlias": "$tag_instance $tag_instance_role",
-              "query_configs": [
-                {
-                  "alias": "",
-                  "data_label": "exporter_dbm_mongodb_exporter",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "display": true,
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [],
-                  "interval": "auto",
-                  "interval_unit": "s",
-                  "method": "AVG",
-                  "metric_field": "mongodb_mongod_global_lock_current_queue",
-                  "refId": "a",
-                  "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
-                  "result_table_label": "component",
-                  "time_field": "time",
-                  "where": []
-                }
-              ],
-              "refId": "A",
-              "source": "bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_wiredtiger_cache_pages{cluster_domain=\"$cluster_domain\",instance_role!=\"backup\",type=\"dirty\" } / ignoring(type) bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_wiredtiger_cache_pages{cluster_domain=\"$cluster_domain\",instance_role!=\"backup\",type=\"total\" }",
-              "step": "",
-              "type": "range"
-            }
-          ],
-          "title": "WiredTiger Dirty%",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
-          },
-          "description": "",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisBorderShow": false,
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 10,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "insertNulls": false,
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "never",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "decimals": 1,
-              "mappings": [],
-              "max": -2,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green"
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "short"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 9,
-            "w": 12,
-            "x": 12,
-            "y": 130
-          },
-          "id": 118,
-          "options": {
-            "legend": {
-              "calcs": [
-                "max"
-              ],
-              "displayMode": "table",
-              "placement": "right",
-              "showLegend": true,
-              "sortBy": "Max",
-              "sortDesc": true,
-              "width": 350
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "pluginVersion": "10.4.0",
-          "targets": [
-            {
-              "cluster": [],
-              "datasource": {
-                "uid": "dba_mongo_proxy"
-              },
-              "enableDownSampling": true,
-              "expressionList": [],
-              "format": "time_series",
-              "hide": false,
-              "host": [],
-              "mode": "code",
-              "module": [],
-              "promqlAlias": "$tag_instance $tag_state",
-              "query_configs": [
-                {
-                  "alias": "$tag_instance $tag_state",
-                  "data_label": "exporter_dbm_mongodb_exporter",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "display": true,
-                  "filter_dict": {},
-                  "functions": [
-                    {
-                      "id": "irate",
-                      "params": [
-                        {
-                          "id": "window",
-                          "value": "2m"
-                        }
-                      ]
-                    }
-                  ],
-                  "group_by": [
-                    "state",
-                    "instance"
-                  ],
-                  "interval": 60,
-                  "interval_unit": "s",
-                  "method": "AVG",
-                  "metric_field": "mongodb_mongod_metrics_query_executor_total",
-                  "refId": "a",
-                  "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
-                  "result_table_label": "component",
-                  "time_field": "time",
-                  "where": [
-                    {
-                      "key": "cluster_domain",
-                      "method": "eq",
-                      "value": [
-                        "$cluster_domain"
-                      ]
-                    }
-                  ]
-                }
-              ],
-              "refId": "A",
-              "source": "avg by (state, instance) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_metrics_record_moves_total{cluster_domain=\"$cluster_domain\"}[2m]))",
-              "step": "",
-              "type": "range"
-            }
-          ],
-          "title": "scan object",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
-          },
-          "description": "",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisBorderShow": false,
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 10,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "insertNulls": false,
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "never",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "decimals": 1,
-              "mappings": [],
-              "max": -2,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green"
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "short"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 9,
-            "w": 12,
-            "x": 0,
-            "y": 138
-          },
-          "id": 93,
-          "options": {
-            "legend": {
-              "calcs": [
-                "max"
-              ],
-              "displayMode": "table",
-              "placement": "right",
-              "showLegend": true,
-              "sortBy": "Max",
-              "sortDesc": true,
-              "width": 350
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "pluginVersion": "10.4.0",
-          "targets": [
-            {
-              "cluster": [],
-              "datasource": {
-                "uid": "dba_mongo_proxy"
-              },
-              "enableDownSampling": true,
-              "expressionList": [],
-              "format": "time_series",
-              "hide": false,
-              "host": [],
-              "mode": "code",
-              "module": [],
-              "promqlAlias": "$tag_instance $tag_state",
-              "query_configs": [
-                {
-                  "alias": "$tag_instance $tag_state",
-                  "data_label": "exporter_dbm_mongodb_exporter",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "display": true,
-                  "filter_dict": {},
-                  "functions": [
-                    {
-                      "id": "irate",
-                      "params": [
-                        {
-                          "id": "window",
-                          "value": "2m"
-                        }
-                      ]
-                    }
-                  ],
-                  "group_by": [
-                    "state",
-                    "instance"
-                  ],
-                  "interval": 60,
-                  "interval_unit": "s",
-                  "method": "AVG",
-                  "metric_field": "mongodb_mongod_metrics_query_executor_total",
-                  "refId": "a",
-                  "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
-                  "result_table_label": "component",
-                  "time_field": "time",
-                  "where": [
-                    {
-                      "key": "cluster_domain",
-                      "method": "eq",
-                      "value": [
-                        "$cluster_domain"
-                      ]
-                    }
-                  ]
-                }
-              ],
-              "refId": "A",
-              "source": "avg by (state, instance) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_metrics_query_executor_total{cluster_domain=\"$cluster_domain\"}[2m]))",
-              "step": "",
-              "type": "range"
-            }
-          ],
-          "title": "scan object",
-          "type": "timeseries"
-        }
-      ],
+      "panels": [],
       "targets": [
         {
           "datasource": {
@@ -7987,7 +7051,962 @@
       "type": "row"
     },
     {
-      "collapsed": true,
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
+      },
+      "description": "mongodb_mongod_global_lock_current_queue\nrequire version >=3.6",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 58
+      },
+      "id": 60,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "width": 350
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "uid": "dba_mongo_proxy"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "$tag_rs_nm $tag_instance_host $tag_type",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_label": "exporter_dbm_mongodb_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "AVG",
+              "metric_field": "mongodb_mongod_global_lock_current_queue",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": []
+            }
+          ],
+          "refId": "A",
+          "source": "bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_global_lock_current_queue{cluster_domain=\"$cluster_domain\",instance_role!=\"backup\",type!=\"total\",rs_state=\"1\"}",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "WiredTiger Queue (primary)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
+      },
+      "description": "mongodb_mongod_global_lock_current_queue\nsecondary but not include backup node",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 58
+      },
+      "id": 114,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true,
+          "width": 350
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "uid": "dba_mongo_proxy"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "$tag_rs_nm $tag_instance_host $tag_type",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_label": "exporter_dbm_mongodb_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "AVG",
+              "metric_field": "mongodb_mongod_global_lock_current_queue",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": []
+            }
+          ],
+          "refId": "A",
+          "source": "bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_global_lock_current_queue{cluster_domain=\"$cluster_domain\",instance_role!=\"backup\",type!=\"total\",rs_state!=\"1\"}",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "WiredTiger Queue (secondary)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
+      },
+      "description": "mongodb_mongod_wiredtiger_session_open_sessions_total \nrequire version >=3.6",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 66
+      },
+      "id": 115,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "width": 350
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "uid": "dba_mongo_proxy"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "$tag_rs_nm $tag_instance_host",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_label": "exporter_dbm_mongodb_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "AVG",
+              "metric_field": "mongodb_mongod_global_lock_current_queue",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": []
+            }
+          ],
+          "refId": "A",
+          "source": "bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_wiredtiger_session_open_sessions_total{cluster_domain=\"$cluster_domain\",instance_role!=\"backup\",type!=\"total\",rs_state=\"1\"}",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "WiredTiger Session (primary)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
+      },
+      "description": "mongodb_mongod_wiredtiger_session_open_sessions_total \nrequire version >=3.6",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 66
+      },
+      "id": 116,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "width": 350
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "uid": "dba_mongo_proxy"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "$tag_rs_nm $tag_instance_host",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_label": "exporter_dbm_mongodb_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "AVG",
+              "metric_field": "mongodb_mongod_global_lock_current_queue",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": []
+            }
+          ],
+          "refId": "A",
+          "source": "bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_wiredtiger_session_open_sessions_total{cluster_domain=\"$cluster_domain\",instance_role!=\"backup\",type!=\"total\",rs_state=\"2\"}",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "WiredTiger Session (secondary)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
+      },
+      "description": "mongodb_mongod_wiredtiger_session_open_sessions_total \n\nrequire version >=3.6",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 74
+      },
+      "id": 117,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "width": 350
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "uid": "dba_mongo_proxy"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "$tag_instance $tag_instance_role",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_label": "exporter_dbm_mongodb_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "AVG",
+              "metric_field": "mongodb_mongod_global_lock_current_queue",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": []
+            }
+          ],
+          "refId": "A",
+          "source": "bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_wiredtiger_cache_pages{cluster_domain=\"$cluster_domain\",instance_role!=\"backup\",type=\"dirty\" } / ignoring(type) bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_wiredtiger_cache_pages{cluster_domain=\"$cluster_domain\",instance_role!=\"backup\",type=\"total\" }",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "WiredTiger Dirty%",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 1,
+          "mappings": [],
+          "max": -2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 74
+      },
+      "id": 118,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true,
+          "width": 350
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "uid": "dba_mongo_proxy"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "$tag_instance $tag_state",
+          "query_configs": [
+            {
+              "alias": "$tag_instance $tag_state",
+              "data_label": "exporter_dbm_mongodb_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [
+                "state",
+                "instance"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "AVG",
+              "metric_field": "mongodb_mongod_metrics_query_executor_total",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "avg by (state, instance) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_metrics_record_moves_total{cluster_domain=\"$cluster_domain\"}[2m]))",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "scan object",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 1,
+          "mappings": [],
+          "max": -2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 82
+      },
+      "id": 93,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true,
+          "width": 350
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "uid": "dba_mongo_proxy"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "$tag_instance $tag_state",
+          "query_configs": [
+            {
+              "alias": "$tag_instance $tag_state",
+              "data_label": "exporter_dbm_mongodb_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [
+                "state",
+                "instance"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "AVG",
+              "metric_field": "mongodb_mongod_metrics_query_executor_total",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "avg by (state, instance) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_metrics_query_executor_total{cluster_domain=\"$cluster_domain\"}[2m]))",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "scan object",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
         "uid": "${DS_蓝鲸监控_- 指标数据}"
@@ -7996,141 +8015,10 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 58
+        "y": 91
       },
       "id": 50,
-      "panels": [
-        {
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisBorderShow": false,
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 60,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "insertNulls": false,
-                "lineInterpolation": "linear",
-                "lineWidth": 2,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "never",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "normal"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "min": 0,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green"
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "none"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 7,
-            "w": 12,
-            "x": 0,
-            "y": 7
-          },
-          "id": 41,
-          "options": {
-            "legend": {
-              "calcs": [
-                "lastNotNull",
-                "max"
-              ],
-              "displayMode": "table",
-              "placement": "right",
-              "showLegend": true,
-              "sortBy": "Max",
-              "sortDesc": true,
-              "width": 350
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "none"
-            }
-          },
-          "pluginVersion": "10.4.0",
-          "targets": [
-            {
-              "cluster": [],
-              "datasource": {
-                "uid": "dba_mongo_proxy"
-              },
-              "enableDownSampling": true,
-              "expressionList": [],
-              "format": "time_series",
-              "hide": false,
-              "host": [],
-              "mode": "code",
-              "module": [],
-              "promqlAlias": "$tag_shard",
-              "query_configs": [
-                {
-                  "alias": "",
-                  "data_label": "exporter_dbm_mongodb_exporter",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "display": true,
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [],
-                  "interval": "auto",
-                  "interval_unit": "s",
-                  "method": "AVG",
-                  "metric_field": "mongodb_mongos_sharding_shard_chunks_total",
-                  "refId": "a",
-                  "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
-                  "result_table_label": "component",
-                  "time_field": "time",
-                  "where": []
-                }
-              ],
-              "refId": "A",
-              "source": "max(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongos_sharding_shard_chunks_total{cluster_domain=\"$cluster_domain\"}) by (shard)",
-              "step": "",
-              "type": "range"
-            }
-          ],
-          "title": "Chunks by Shard",
-          "type": "timeseries"
-        }
-      ],
+      "panels": [],
       "targets": [
         {
           "datasource": {
@@ -8144,12 +8032,143 @@
       "type": "row"
     },
     {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 60,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 92
+      },
+      "id": 41,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true,
+          "width": 350
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "uid": "dba_mongo_proxy"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "$tag_shard",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_label": "exporter_dbm_mongodb_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "AVG",
+              "metric_field": "mongodb_mongos_sharding_shard_chunks_total",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": []
+            }
+          ],
+          "refId": "A",
+          "source": "max(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongos_sharding_shard_chunks_total{cluster_domain=\"$cluster_domain\"}) by (shard)",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "Chunks by Shard",
+      "type": "timeseries"
+    },
+    {
       "collapsed": true,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 59
+        "y": 99
       },
       "id": 119,
       "panels": [],
@@ -8160,7 +8179,7 @@
   "refresh": "10s",
   "schemaVersion": 39,
   "tags": [
-    "MongoDB"
+    "MongoShardedCluster"
   ],
   "templating": {
     "list": [
@@ -8237,8 +8256,8 @@
       {
         "current": {
           "selected": false,
-          "text": "mongos.dfobt.dfdgr.db",
-          "value": "mongos.dfobt.dfdgr.db"
+          "text": "",
+          "value": ""
         },
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
@@ -8322,7 +8341,7 @@
   "timezone": "browser",
   "title": "MongoDB Cluster",
   "uid": "mongodbCluster",
-  "version": 98,
+  "version": 106,
   "weekStart": "",
   "__inputs": [
     {
@@ -8332,10 +8351,24 @@
       "type": "datasource",
       "pluginId": "bkmonitor-timeseries-datasource",
       "pluginName": "Blueing Monitor TimeSeries"
+    },
+    {
+      "name": "DS_日志平台",
+      "label": "日志平台",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "bk_log_datasource",
+      "pluginName": "BlueKing Log TimeSeries"
     }
   ],
   "__elements": {},
   "__requires": [
+    {
+      "type": "datasource",
+      "id": "bk_log_datasource",
+      "name": "BlueKing Log TimeSeries",
+      "version": "1.0.0"
+    },
     {
       "type": "datasource",
       "id": "bkmonitor-timeseries-datasource",

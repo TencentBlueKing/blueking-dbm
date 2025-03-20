@@ -19,13 +19,13 @@ const getRootPath = () => `/apis/mongodb/bizs/${window.PROJECT_CONFIG.BIZ_ID}/pe
  * MongoDB 授权规则前置检查
  */
 export function preCheckAuthorizeRules(params: {
+  cluster_ids?: number[];
+  cluster_type: string;
   mongo_users: {
-    user: string;
     access_dbs: string[];
+    user: string;
   }[];
   target_instances: string[];
-  cluster_type: string;
-  cluster_ids?: number[];
 }) {
   return http.post<{
     authorize_data: {

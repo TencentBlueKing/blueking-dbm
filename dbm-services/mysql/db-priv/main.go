@@ -64,6 +64,15 @@ func main() {
 	handler.RegisterRoutes(engine, "/priv", (&handler.PrivService{}).Routes())
 	handler.RegisterRoutes(engine, "/priv/v2", v2.Routes())
 
+	for _, e := range engine.Routes() {
+		slog.Info(
+			"start service",
+			slog.String("method", e.Method),
+			slog.String("path", e.Path),
+			slog.String("handler", e.Handler),
+		)
+	}
+
 	if err := engine.Run(viper.GetString("http.listenAddress")); err != nil {
 		slog.Error("注册服务失败", err)
 	}

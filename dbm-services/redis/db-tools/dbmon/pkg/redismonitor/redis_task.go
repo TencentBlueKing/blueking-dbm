@@ -400,7 +400,10 @@ func (task *RedisMonitorTask) CheckPersist() {
 			return
 		}
 		if strings.ToLower(appendonly) == "no" {
-			msg = fmt.Sprintf("redis_slave(%s) appendonly==%s", cliItem.Addr, appendonly)
+			var _ok string
+			// 备份要求是AOF ， 那我把这个AOF 再打开呗
+			_ok, task.Err = cliItem.ConfigSet("appendonly", "yes")
+			msg = fmt.Sprintf("redis_slave(%s) appendonly==%s; reset 2 YES.(config set %s)", cliItem.Addr, appendonly, _ok)
 			mylog.Logger.Warn(msg)
 			task.eventSender.SendWarning(consts.EventRedisPersist, msg, consts.WarnLevelWarning, task.ServerConf.ServerIP)
 			return

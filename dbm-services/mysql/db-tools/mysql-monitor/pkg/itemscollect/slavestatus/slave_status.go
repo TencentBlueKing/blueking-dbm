@@ -78,7 +78,7 @@ func (s *slaveStatusChecker) Run() (msg string, err error) {
 
 func (s *slaveStatusChecker) skipErr() error {
 	_, err := s.db.Exec(
-		`STOP SLAVE SQL_THREAD;SET GLOBAL SQL_SLAVE_SKIP_COUNTER=1;START SLAVE SQL_THREAD`,
+		`STOP SLAVE SQL_THREAD;SET GLOBAL GTID_MODE=ON_PERMISSIVE;SET GLOBAL SQL_SLAVE_SKIP_COUNTER=1;START SLAVE SQL_THREAD;SET GLOBAL GTID_MODE=ON`,
 	)
 	if err != nil {
 		slog.Error("skip err failed", err)

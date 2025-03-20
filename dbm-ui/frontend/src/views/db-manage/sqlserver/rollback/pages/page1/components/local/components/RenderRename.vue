@@ -75,11 +75,11 @@
 
   interface Props {
     clusterData?: {
-      id: number;
       domain: string;
+      id: number;
     };
-    restoreTime?: string;
     restoreBackupFile?: ServiceReturnType<typeof queryBackupLogs>[number];
+    restoreTime?: string;
   }
 
   interface Expose {
@@ -103,8 +103,8 @@
   const localRenameInfoList = shallowRef<
     {
       db_name: string;
-      target_db_name: string;
       rename_db_name: string;
+      target_db_name: string;
     }[]
   >([]);
   const isShowEditName = ref(false);
@@ -119,12 +119,12 @@
 
   const rules = [
     {
-      validator: () => localRenameInfoList.value.length > 0,
       message: t('构造后 DB 名不能为空'),
+      validator: () => localRenameInfoList.value.length > 0,
     },
     {
-      validator: () => hasEditDbName.value,
       message: t('构造后 DB 名待有冲突更新'),
+      validator: () => hasEditDbName.value,
     },
   ];
 
@@ -133,8 +133,8 @@
     onSuccess(data) {
       localRenameInfoList.value = data.map((item) => ({
         db_name: item,
-        target_db_name: item,
         rename_db_name: '',
+        target_db_name: item,
       }));
     },
   });
@@ -146,10 +146,10 @@
         return;
       }
       fetchSqlserverDbs({
+        backup_logs: props.restoreBackupFile ? { logs: props.restoreBackupFile.logs } : undefined,
         cluster_id: props.clusterData.id,
         db_pattern: dbName.value,
         ignore_db: dbIgnoreName.value,
-        backup_logs: props.restoreBackupFile ? { logs: props.restoreBackupFile.logs } : undefined,
         restore_time: props.restoreTime,
       });
     },

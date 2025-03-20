@@ -110,9 +110,7 @@
     clusterId: number;
   }
 
-  interface Emits {
-    (e: 'detailChange', data: RiakModel): void;
-  }
+  type Emits = (e: 'detailChange', data: RiakModel) => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -144,8 +142,8 @@
       if (monitorUrlsResult.urls.length > 0) {
         monitorPanelList.value = monitorUrlsResult.urls.map((urlItem) => ({
           label: urlItem.view,
-          name: urlItem.view,
           link: urlItem.url,
+          name: urlItem.view,
         }));
       }
     },
@@ -162,8 +160,8 @@
       });
       runGetMonitorUrls({
         bk_biz_id: currentBizId,
-        cluster_type: ClusterTypes.RIAK,
         cluster_id: props.clusterId,
+        cluster_type: ClusterTypes.RIAK,
       });
     },
     {

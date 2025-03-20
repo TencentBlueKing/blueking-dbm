@@ -16,9 +16,9 @@
   import StatusTodo from './StatusTodo.vue';
 
   interface Props {
-    ticketData: TicketModel;
     data: FlowMode['todos'][number];
     flowData: FlowMode;
+    ticketData: TicketModel;
   }
 
   const props = defineProps<Props>();

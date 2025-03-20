@@ -838,6 +838,21 @@ class RedisDBMeta(object):
             RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(receiver_objs)
         return True
 
+    # 刷新bkcc 服务实例，触发gse 重新下发GSE，插件配置
+    def flush_ges_exporter_config(self) -> bool:
+        from backend.db_meta.models import Cluster
+        from backend.flow.utils.redis.redis_module_operate import RedisCCTopoOperator
+
+        cluster = Cluster.objects.get(id=self.cluster["cluster_id"])
+        cc_mutil_module = True
+        if cluster.cluster_type != ClusterType.TendisRedisInstance.value:
+            cc_mutil_module = False
+            RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(cluster.proxyinstance_set.all())
+        RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(
+            cluster.storageinstance_set.all(), is_increment=cc_mutil_module
+        )
+        return True
+
     def redis_role_swap_4_scene(self) -> bool:
         """
         主从互切 [仅RedisCluster 类型]

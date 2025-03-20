@@ -98,17 +98,17 @@
   const isSubmitting = ref(false);
 
   const comMap = {
-    [ProxyReplaceTypes.INSTANCE_REPLACE]: ReplaceInstance,
     [ProxyReplaceTypes.HOST_REPLACE]: ReplaceHost,
+    [ProxyReplaceTypes.INSTANCE_REPLACE]: ReplaceInstance,
   };
 
   useTicketCloneInfo({
-    type: TicketTypes.MYSQL_PROXY_SWITCH,
     onSuccess(data) {
       replaceType.value = (data.infos[0].display_info.type as ProxyReplaceTypes) || ProxyReplaceTypes.INSTANCE_REPLACE;
       force.value = data.force;
       window.changeConfirm = true;
     },
+    type: TicketTypes.MYSQL_PROXY_SWITCH,
   });
 
   const handleSubmit = async () => {
@@ -117,12 +117,12 @@
       const infos = await tableRef.value!.getValue();
       await createTicket({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        ticket_type: TicketTypes.MYSQL_PROXY_SWITCH,
-        remark: '',
         details: {
-          infos,
           force: force.value,
+          infos,
         },
+        remark: '',
+        ticket_type: TicketTypes.MYSQL_PROXY_SWITCH,
       }).then((data) => {
         window.changeConfirm = false;
         router.push({

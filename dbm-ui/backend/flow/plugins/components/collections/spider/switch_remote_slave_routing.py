@@ -31,6 +31,7 @@ class SwitchRemoteSlaveRoutingService(BaseService):
         new_ip: str,
         new_port: int,
         tdbctl_pass: str,
+        ctl_primary: str,
     ):
         """
         替换实例的路由信息的具体逻辑
@@ -41,9 +42,6 @@ class SwitchRemoteSlaveRoutingService(BaseService):
         @param new_port: 新实例的port
         @param tdbctl_pass: 新实例
         """
-
-        # 获取最新cluster的中控 primary节点
-        ctl_primary = cluster.tendbcluster_ctl_primary_address()
 
         rpc_params = {
             "addresses": [ctl_primary],
@@ -78,15 +76,31 @@ class SwitchRemoteSlaveRoutingService(BaseService):
             "set tc_admin=1",
             f"TDBCTL ALTER NODE "
             f"{server_name} OPTIONS(host '{new_ip}', port {new_port}, password '{tdbctl_pass}', user '{TDBCTL_USER}')",
-            "TDBCTL FLUSH ROUTING",
         ]
         rpc_params["cmds"] = exec_sql
         res = DRSApi.rpc(rpc_params)
         if res[0]["error_msg"]:
-            self.log_error(f"exec TDBCTL-ALTER-NODE failed: {res[0]['error_msg']}")
+            self.log_error(f"TDBCTL ALTER NODE failed: {res[0]['error_msg']}")
             return False
 
-        self.log_info(f"exec TDBCTL-ALTER-NODE success: [{server_name}->{new_ip}:{new_port}]")
+        self.log_info(f"TDBCTL ALTER NODE success: [{server_name}->{new_ip}:{new_port}]")
+        return True
+
+    def _flush_routing(self, ctl_primary: str, bk_cloud_id: int):
+        rpc_params = {
+            "addresses": [ctl_primary],
+            "force": False,
+            "bk_cloud_id": bk_cloud_id,
+            "cmds": [
+                "set tc_admin=1",
+                "TDBCTL FLUSH ROUTING FORCE",
+            ],
+        }
+        res = DRSApi.rpc(rpc_params)
+        if res[0]["error_msg"]:
+            self.log_error(f"TDBCTL FLUSH ROUTING FORCE failed: {res[0]['error_msg']}")
+            return False
+        self.log_info("TDBCTL FLUSH ROUTING FORCE success")
         return True
 
     def _execute(self, data, parent_data):
@@ -96,6 +110,8 @@ class SwitchRemoteSlaveRoutingService(BaseService):
 
         # 获取cluster对象，包括中控实例、 spider端口等
         cluster = Cluster.objects.get(id=kwargs["cluster_id"])
+        # 获取最新cluster的中控 primary节点
+        ctl_primary = cluster.tendbcluster_ctl_primary_address()
         for pairs in switch_remote_instance_pairs:
             if not self._alter_remote_slave_routing(
                 cluster=cluster,
@@ -105,10 +121,11 @@ class SwitchRemoteSlaveRoutingService(BaseService):
                 new_port=pairs["new_port"],
                 server_name=pairs["server_name"],
                 tdbctl_pass=pairs["tdbctl_pass"],
+                ctl_primary=ctl_primary,
             ):
                 return False
-
-        return True
+        # 是否作为独立节点?
+        return self._flush_routing(ctl_primary, cluster.bk_cloud_id)
 
 
 class SwitchRemoteSlaveRoutingComponent(Component):

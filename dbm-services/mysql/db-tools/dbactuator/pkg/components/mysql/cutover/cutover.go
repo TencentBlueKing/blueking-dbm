@@ -253,7 +253,10 @@ func (m *CutOverToSlaveComp) PreCheck() (err error) {
 	}
 	// 如果需要锁表切换，则进行锁表切换前置检查
 	if m.Params.LockedSwitch {
-		return m.cluster.MasterIns.LockTablesPreCheck(m.backupUser)
+		return util.Retry(util.RetryConfig{Times: 10, DelayTime: 1 * time.Second},
+			func() error {
+				return m.cluster.MasterIns.LockTablesPreCheck(m.backupUser)
+			})
 	}
 	return err
 }

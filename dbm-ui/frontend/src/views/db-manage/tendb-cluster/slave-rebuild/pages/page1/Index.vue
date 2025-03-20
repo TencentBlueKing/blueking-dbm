@@ -62,34 +62,34 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE,
     onSuccess(cloneData) {
       ticketCloneData.value = cloneData;
       ticketType.value = TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE;
       window.changeConfirm = true;
     },
+    type: TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE,
   });
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.TENDBCLUSTER_RESTORE_SLAVE,
     onSuccess(cloneData) {
       ticketCloneData.value = cloneData;
       ticketType.value = TicketTypes.TENDBCLUSTER_RESTORE_SLAVE;
       window.changeConfirm = true;
     },
+    type: TicketTypes.TENDBCLUSTER_RESTORE_SLAVE,
   });
 
   const comMap = {
     TENDBCLUSTER_RESTORE_LOCAL_SLAVE: {
       content: OriginalHost,
-      createRowData: createOriginHostRowData,
       createDefaultFormData: createOriginalHostFormData,
+      createRowData: createOriginHostRowData,
     },
     TENDBCLUSTER_RESTORE_SLAVE: {
       content: NewHost,
-      createRowData: createNewHostRowData,
       createDefaultFormData: createNewHostFormData,
+      createRowData: createNewHostRowData,
     },
   };
 
@@ -101,8 +101,8 @@
   watch(ticketType, () => {
     const currentComponent = comMap[ticketType.value];
     Object.assign(ticketCloneData, {
-      tableDataList: [currentComponent.createDefaultFormData()],
       formData: currentComponent.createDefaultFormData(),
+      tableDataList: [currentComponent.createDefaultFormData()],
     });
   });
 </script>

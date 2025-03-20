@@ -71,17 +71,17 @@
     data: FlowMode<unknown, any>;
   }
 
-  defineProps<Props>();
-
-  defineSlots<{
-    title: () => VNode;
-    contentPreppend: () => VNode;
-    content: () => VNode;
-  }>();
-
   defineOptions({
     name: FlowMode.STATUS_SKIPPED,
   });
+
+  defineProps<Props>();
+
+  defineSlots<{
+    content: () => VNode;
+    contentPreppend: () => VNode;
+    title: () => VNode;
+  }>();
 
   const { t } = useI18n();
 </script>

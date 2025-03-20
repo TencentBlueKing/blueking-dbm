@@ -44,7 +44,7 @@
 
   interface Props {
     data?: {
-      name: string;
+      count?: number;
       cpu: {
         max: number;
         min: number;
@@ -54,6 +54,7 @@
         max: number;
         min: number;
       };
+      name: string;
       qps: {
         max: number;
         min: number;
@@ -63,7 +64,6 @@
         size: number;
         type: string;
       }[];
-      count?: number;
     };
     isLoading?: boolean;
   }

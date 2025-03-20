@@ -111,16 +111,15 @@
 
   interface Props {
     modelValue?: {
-      id: number;
-      domain: string;
       cloudId: number | null;
+      domain: string;
+      id: number;
     };
     relateClusterTips?: string;
+    role?: string;
   }
 
-  interface Emits {
-    (e: 'idChange', value: { id: number; cloudId: number | null }): void;
-  }
+  type Emits = (e: 'idChange', value: { cloudId: number | null; id: number }) => void;
 
   interface Exposes {
     getValue: () => {
@@ -136,6 +135,7 @@
   const props = withDefaults(defineProps<Props>(), {
     modelValue: undefined,
     relateClusterTips: '同主机关联的其他集群，勾选后一同克隆',
+    role: undefined,
   });
   const emits = defineEmits<Emits>();
 
@@ -162,45 +162,46 @@
 
   const rules = [
     {
+      message: '目标集群不能为空',
       validator: (value: string) => {
         if (value) {
           return true;
         }
         emits('idChange', {
-          id: 0,
           cloudId: null,
+          id: 0,
         });
         return false;
       },
-      message: '目标集群不能为空',
     },
     {
+      message: '目标集群不存在',
       validator: (value: string) =>
         queryClusters({
+          bk_biz_id: currentBizId,
           cluster_filters: [
             {
               immute_domain: value,
             },
           ],
-          bk_biz_id: currentBizId,
         }).then((data) => {
           if (data.length > 0) {
             localClusterId.value = data[0].id;
             emits('idChange', {
-              id: localClusterId.value,
               cloudId: data[0].bk_cloud_id,
+              id: localClusterId.value,
             });
             return true;
           }
           emits('idChange', {
-            id: 0,
             cloudId: null,
+            id: 0,
           });
           return false;
         }),
-      message: '目标集群不存在',
     },
     {
+      message: '目标集群重复',
       validator: () => {
         const currentClusterSelectMap = clusterIdMemo[instanceKey];
         const otherClusterMemoMap = { ...clusterIdMemo };
@@ -215,6 +216,7 @@
         );
 
         const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
+        // eslint-disable-next-line @typescript-eslint/prefer-for-of
         for (let i = 0; i < currentSelectClusterIdList.length; i++) {
           if (otherClusterIdMap[currentSelectClusterIdList[i]]) {
             return false;
@@ -222,7 +224,6 @@
         }
         return true;
       },
-      message: '目标集群重复',
     },
   ];
 
@@ -241,8 +242,9 @@
   const fetchRelatedClustersByClusterIds = () => {
     isRelateLoading.value = true;
     findRelatedClustersByClusterIds({
-      cluster_ids: [localClusterId.value],
       bk_biz_id: currentBizId,
+      cluster_ids: [localClusterId.value],
+      role: props.role,
     })
       .then((data) => {
         if (data.length < 1) {
@@ -282,20 +284,20 @@
     }
 
     tippyIns = tippy(handlerRef.value as SingleTarget, {
-      content: popRef.value,
-      placement: 'bottom',
       appendTo: () => document.body,
-      theme: 'light',
-      maxWidth: 'none',
-      trigger: 'click',
-      interactive: true,
       arrow: true,
+      content: popRef.value,
+      interactive: true,
+      maxWidth: 'none',
       offset: [0, 8],
-      zIndex: 999,
       onHide() {
         selectRelateClusterList.value = Object.values(realateCheckedMap.value);
         isShowRelateMemo.value = false;
       },
+      placement: 'bottom',
+      theme: 'light',
+      trigger: 'click',
+      zIndex: 999,
     });
   };
 
@@ -303,7 +305,7 @@
   watch(
     () => props.modelValue,
     () => {
-      const { id = 0, domain = '' } = props.modelValue || {};
+      const { domain = '', id = 0 } = props.modelValue || {};
       localClusterId.value = id;
       localDomain.value = domain;
       isShowEdit.value = !id;

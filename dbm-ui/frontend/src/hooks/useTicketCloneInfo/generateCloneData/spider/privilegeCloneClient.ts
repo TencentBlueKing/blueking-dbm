@@ -18,15 +18,15 @@ import { random } from '@utils';
 // Spider 权限克隆
 export function generateSpiderPrivilegeCloneClientCloneData(ticketData: TicketModel<TendbCluster.ClientCloneRules>) {
   return Promise.resolve({
+    remark: ticketData.remark,
     tableDataList: ticketData.details.clone_data.map((item) => ({
+      module: item.module,
       rowKey: random(),
       source: {
         bk_cloud_id: item.bk_cloud_id,
         ip: item.source,
       },
-      module: item.module,
       target: item.target,
     })),
-    remark: ticketData.remark,
   });
 }

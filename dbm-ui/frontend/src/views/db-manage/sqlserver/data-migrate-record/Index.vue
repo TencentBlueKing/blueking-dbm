@@ -145,7 +145,7 @@
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
-  import { useRouter } from 'vue-router'
+  import { useRouter } from 'vue-router';
 
   import MigrateRecordModel from '@services/model/sqlserver/migrate-record';
   import { forceFailedMigrate, getList, manualTerminateSync } from '@services/source/sqlserverMigrate';
@@ -163,7 +163,7 @@
 
   const searchKeyword = ref('');
 
-  const { loading: isLoading, data, run: fetchList } = useRequest(getList);
+  const { data, loading: isLoading, run: fetchList } = useRequest(getList);
 
   const handelChange = (value: string) => {
     fetchList({
@@ -189,23 +189,29 @@
         cluster_name: searchKeyword.value,
       });
 
-      const {href} = router.resolve({
+      const { href } = router.resolve({
         name: 'SelfServiceMyTickets',
         query: {
           id: data.ticket_id,
-        }
-      })
+        },
+      });
       InfoBox({
-        title: t('操作成功'),
         content: () => (
           <div>
-            提交成功，请可前往“<a href={href} target="_blank">单据</a>”确认执行
+            提交成功，请可前往“
+            <a
+              href={href}
+              target='_blank'>
+              单据
+            </a>
+            ”确认执行
           </div>
         ),
+        onConfirm() {
+          window.open(href);
+        },
+        title: t('操作成功'),
         type: 'success',
-        onConfirm(){
-          window.open(href)
-        }
-      })
+      });
     });
 </script>

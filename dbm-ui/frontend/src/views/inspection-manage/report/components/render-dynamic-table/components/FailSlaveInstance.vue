@@ -66,7 +66,7 @@
     default: false,
   });
 
-  const isTextOverflow = ref<Record<string, boolean>>({})
+  const isTextOverflow = ref<Record<string, boolean>>({});
   const searchKey = useDebouncedRef('');
   const activeKey = ref(0);
   const instanceList = shallowRef<ServiceReturnType<typeof getChecksumInstance>['results']>([]);
@@ -79,31 +79,31 @@
 
   const tableColumns = [
     {
-      label: t('库名'),
       field: 'db_name',
+      label: t('库名'),
       minWidth: 220,
       render: ({ data }: { data: IDataRow }) => (
         <TextOverflowLayout>
           {{
-            default: () => data.db_name
+            default: () => data.db_name,
           }}
         </TextOverflowLayout>
-      )
+      ),
     },
     {
-      label: t('表名'),
       field: 'table_name',
-      render: ({ data, index }: { data: IDataRow, index: number }) => (
+      label: t('表名'),
+      render: ({ data, index }: { data: IDataRow; index: number }) => (
         <p
-          class="table-name"
-          row-key={`row-${index}`}
           v-bk-tooltips={{
             content: data.table_name,
             disabled: !isTextOverflow.value[`row-${index}`],
-          }}>
+          }}
+          class='table-name'
+          row-key={`row-${index}`}>
           {data.table_name}
         </p>
-      )
+      ),
     },
   ];
 
@@ -122,23 +122,23 @@
       return;
     }
     fetchInstanceList({
-      report_id: props.id,
-      offset: 0,
       limit: -1,
+      offset: 0,
+      report_id: props.id,
     });
   });
 
   const checkOverflow = () => {
-    setTimeout(()=>{
+    setTimeout(() => {
       const elementList = document.querySelectorAll('.table-name');
-      elementList.forEach(ele => {
+      elementList.forEach((ele) => {
         const { clientWidth } = ele;
         const rowKey = ele.getAttribute('row-key') as string;
         const textHeight = calcTextHeight(ele.innerHTML, clientWidth); // 计算实际文本高度，默认行高40
         isTextOverflow.value[rowKey] = textHeight > 400; // 400为最大高度，即最多展示10行
-      })
-    })
-  }
+      });
+    });
+  };
 
   const handleActive = (data: UnwrapRef<typeof instanceList>[number]) => {
     activeKey.value = data.id;

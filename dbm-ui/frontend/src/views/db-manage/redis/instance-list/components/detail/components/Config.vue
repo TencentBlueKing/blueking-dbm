@@ -40,23 +40,23 @@
 
   const columns = [
     {
-      label: t('参数项'),
       field: 'conf_name',
+      label: t('参数项'),
     },
     {
-      label: t('参数值'),
       field: 'conf_value',
+      label: t('参数值'),
     },
     {
-      label: t('描述'),
       field: 'description',
+      label: t('描述'),
       render: ({ cell }: { cell: string }) => cell || '--',
     },
   ];
 
   const {
-    loading: isLoading,
     data,
+    loading: isLoading,
     run: fetchLevelConfig,
   } = useRequest(getLevelConfig, {
     manual: true,
@@ -68,17 +68,17 @@
       if (props.instanceData) {
         fetchLevelConfig({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          conf_type: 'dbconf',
+          level_name: 'cluster',
           level_value: props.instanceData.cluster_id,
           meta_cluster_type: props.instanceData.cluster_type,
-          level_name: 'cluster',
-          conf_type: 'dbconf',
           version: props.instanceData.version,
         });
       }
     },
     {
-      immediate: true,
       deep: true,
+      immediate: true,
     },
   );
 </script>

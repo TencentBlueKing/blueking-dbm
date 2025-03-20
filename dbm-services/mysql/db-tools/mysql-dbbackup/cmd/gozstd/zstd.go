@@ -218,7 +218,9 @@ func Compress(in io.Reader, out io.Writer, level int, threads int) (int64, error
 	if err != nil {
 		return 0, err
 	}
-	n, err := io.Copy(enc, in)
+	bufTmp := make([]byte, 128*1024)
+	n, err := io.CopyBuffer(enc, in, bufTmp)
+	//n, err := io.Copy()
 	if err != nil {
 		enc.Close()
 		return 0, err
@@ -233,8 +235,9 @@ func Decompress(in io.Reader, out io.Writer, threads int) (int64, error) {
 		return 0, err
 	}
 	defer dec.Close()
-
-	n, err := io.Copy(out, dec)
+	bufTmp := make([]byte, 128*1024)
+	n, err := io.CopyBuffer(out, dec, bufTmp)
+	//n, err := io.Copy(out, dec)
 	return n, err
 }
 

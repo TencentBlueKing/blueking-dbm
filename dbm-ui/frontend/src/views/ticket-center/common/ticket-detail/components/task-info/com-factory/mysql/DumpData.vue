@@ -12,10 +12,10 @@
     ticketDetails: TicketModel<Mysql.DumpData>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.MYSQL_DUMP_DATA,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

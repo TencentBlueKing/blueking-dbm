@@ -54,26 +54,24 @@
   import { type Rules } from '../../hooks/useValidtor';
   import TagInput from '../tag-input/index.vue';
 
-  interface Props {
-    placeholder?: string;
-    single?: boolean;
-    rules?: Rules;
+  export interface Props {
     disabled?: boolean;
+    placeholder?: string;
+    rules?: Rules;
+    single?: boolean;
   }
 
-  interface Emits {
-    (e: 'change', value: string[]): void;
-  }
+  type Emits = (e: 'change', value: string[]) => void;
 
   interface Exposes {
     getValue: () => Promise<string[]>;
   }
 
   withDefaults(defineProps<Props>(), {
-    placeholder: '',
-    single: false,
-    rules: undefined,
     disabled: false,
+    placeholder: '',
+    rules: undefined,
+    single: false,
   });
 
   const emits = defineEmits<Emits>();

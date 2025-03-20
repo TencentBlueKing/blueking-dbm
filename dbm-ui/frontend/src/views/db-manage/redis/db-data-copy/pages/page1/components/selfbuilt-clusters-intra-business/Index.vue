@@ -135,27 +135,27 @@
   }>();
 
   enum ClusterType {
-    REDIS_INSTANCE = 'RedisInstance', // 主从版
     REDIS_CLUSTER = 'RedisCluster', // 集群版
+    REDIS_INSTANCE = 'RedisInstance', // 主从版
   }
 
   const { t } = useI18n();
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.REDIS_CLUSTER_DATA_COPY,
     onSuccess(cloneData) {
       tableData.value = cloneData.tableList;
       window.changeConfirm = true;
     },
+    type: TicketTypes.REDIS_CLUSTER_DATA_COPY,
   });
 
   const tableData = ref([createRowData()]);
   const rowRefs = ref();
 
   const batchEditShow = reactive({
-    includeKey: false,
     excludeKey: false,
+    includeKey: false,
   });
 
   const tableAvailable = computed(() => tableData.value.findIndex((item) => Boolean(item.srcCluster)) > -1);
@@ -179,14 +179,14 @@
     const item = JSON.parse(r) as RedisDSTHistoryJobModel;
     tableData.value = [
       {
-        rowKey: item.src_cluster,
+        clusterType: item.src_cluster_type as ClusterType,
+        excludeKey: item.key_black_regex === '' ? [] : item.key_black_regex.split('\n'),
+        includeKey: item.key_white_regex === '' ? [] : item.key_white_regex.split('\n'),
         isLoading: false,
+        password: '',
+        rowKey: item.src_cluster,
         srcCluster: item.src_cluster,
         targetClusterId: item.dst_cluster_id,
-        includeKey: item.key_white_regex === '' ? [] : item.key_white_regex.split('\n'),
-        excludeKey: item.key_black_regex === '' ? [] : item.key_black_regex.split('\n'),
-        clusterType: item.src_cluster_type as ClusterType,
-        password: '',
       },
     ];
     destroyLocalStorage();

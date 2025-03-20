@@ -109,17 +109,15 @@
   type ManualConfigType = Required<PanelListType[number]>['manualConfig'];
 
   interface Props {
+    firsrColumn?: TableConfigType['firsrColumn'];
     lastValues: InstanceSelectorValues<IValue>;
     manualConfig: Required<ManualConfigType>;
+    statusFilter?: TableConfigType['statusFilter'];
     // clusterId?: number,
     tableSetting: TableSetting;
-    firsrColumn?: TableConfigType['firsrColumn'];
-    statusFilter?: TableConfigType['statusFilter'];
   }
 
-  interface Emits {
-    (e: 'change', value: Props['lastValues']): void;
-  }
+  type Emits = (e: 'change', value: Props['lastValues']) => void;
   const props = withDefaults(defineProps<Props>(), {
     firsrColumn: undefined,
     statusFilter: undefined,
@@ -132,26 +130,26 @@
   const inputRef = ref();
 
   const inputState = reactive({
-    values: '',
+    isLoading: false,
     placeholder:
       props.manualConfig.checkType === 'instance'
         ? t('请输入IP_Port_如_1_1_1_1_10000_多个可使用换行_空格或_分隔')
         : t('请输入IP_如_1_1_1_1_多个可使用换行_空格或_分隔'),
-    isLoading: false,
     tableData: [] as IValue[],
+    values: '',
   });
   const errorState = reactive({
     format: {
-      show: false,
-      selectionStart: 0,
-      selectionEnd: 0,
       count: 0,
+      selectionEnd: 0,
+      selectionStart: 0,
+      show: false,
     },
     instance: {
-      show: false,
-      selectionStart: 0,
-      selectionEnd: 0,
       count: 0,
+      selectionEnd: 0,
+      selectionStart: 0,
+      show: false,
     },
   });
 
@@ -168,7 +166,7 @@
    * 标记错误
    */
   const handleSelectionError = (key: 'format' | 'instance') => {
-    const { selectionStart, selectionEnd } = errorState[key];
+    const { selectionEnd, selectionStart } = errorState[key];
     const textarea = inputRef.value?.$el?.getElementsByTagName?.('textarea')?.[0];
     if (textarea) {
       (textarea as HTMLInputElement).focus();
@@ -269,13 +267,13 @@
           );
         if (!isExisted) {
           lastValues[type].push({
+            bk_cloud_id: item.host_info.cloud_id,
             bk_host_id: item.bk_host_id,
-            instance_address: item.instance_address,
             cluster_id: item.cluster_id,
             cluster_type: item.cluster_type,
-            bk_cloud_id: item.host_info.cloud_id,
-            port: item.port,
+            instance_address: item.instance_address,
             ip: item.ip,
+            port: item.port,
           } as IValue);
         }
       }

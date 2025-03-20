@@ -116,12 +116,12 @@
   const router = useRouter();
 
   const treeState = reactive<TreeState>({
+    data: [],
     isAnomalies: false,
     loading: false,
     search: '',
-    data: [],
   });
-  const { treeRef, treeSearchConfig, treePrefixIcon, handleSelectedTreeNode, fetchBusinessTopoTree } =
+  const { fetchBusinessTopoTree, handleSelectedTreeNode, treePrefixIcon, treeRef, treeSearchConfig } =
     useTreeData(treeState);
   // 可创建模块
 
@@ -184,34 +184,34 @@
 
   const createModule = () => {
     const ticketTypeMap = {
-      [ClusterTypes.TENDBSINGLE]: TicketTypes.MYSQL_SINGLE_APPLY,
-      [ClusterTypes.TENDBHA]: TicketTypes.MYSQL_HA_APPLY,
-      [ClusterTypes.SQLSERVER_SINGLE]: TicketTypes.SQLSERVER_SINGLE_APPLY,
       [ClusterTypes.SQLSERVER_HA]: TicketTypes.SQLSERVER_HA_APPLY,
+      [ClusterTypes.SQLSERVER_SINGLE]: TicketTypes.SQLSERVER_SINGLE_APPLY,
+      [ClusterTypes.TENDBHA]: TicketTypes.MYSQL_HA_APPLY,
+      [ClusterTypes.TENDBSINGLE]: TicketTypes.MYSQL_SINGLE_APPLY,
     } as Record<ClusterTypes, TicketTypes>;
 
-    if ([ClusterTypes.TENDBSINGLE, ClusterTypes.TENDBHA].includes(clusterType.value)) {
+    if ([ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE].includes(clusterType.value)) {
       router.push({
         name: 'SelfServiceCreateDbModule',
         params: {
-          type: ticketTypeMap[clusterType.value],
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          type: ticketTypeMap[clusterType.value],
         },
         query: {
-          from: String(route.name),
           clusterType: clusterType.value,
+          from: String(route.name),
         },
       });
-    } else if ([ClusterTypes.SQLSERVER_SINGLE, ClusterTypes.SQLSERVER_HA].includes(clusterType.value)) {
+    } else if ([ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE].includes(clusterType.value)) {
       router.push({
         name: 'SqlServerCreateDbModule',
         params: {
-          ticketType: ticketTypeMap[clusterType.value],
           bizId: window.PROJECT_CONFIG.BIZ_ID,
+          ticketType: ticketTypeMap[clusterType.value],
         },
         query: {
-          from: String(route.name),
           clusterType: clusterType.value,
+          from: String(route.name),
         },
       });
     } else {
@@ -221,8 +221,8 @@
           bizId: window.PROJECT_CONFIG.BIZ_ID,
         },
         query: {
-          from: String(route.name),
           clusterType: clusterType.value,
+          from: String(route.name),
         },
       });
     }

@@ -25,10 +25,10 @@
     ticketDetails: TicketModel<Doris.Destroy>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.DORIS_DESTROY,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

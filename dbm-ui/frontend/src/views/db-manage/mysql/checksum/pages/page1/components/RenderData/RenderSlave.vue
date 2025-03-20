@@ -27,8 +27,8 @@
   import TableEditSelect, { type IListItem } from '@components/render-table/columns/select/index.vue';
 
   interface Props {
-    list?: string[];
     data?: string[];
+    list?: string[];
   }
 
   interface Exposes {
@@ -36,8 +36,8 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    list: () => [],
     data: () => [],
+    list: () => [],
   });
 
   const { t } = useI18n();
@@ -48,8 +48,8 @@
 
   const rules = [
     {
-      validator: (list: string[]) => list.length > 0,
       message: t('请选择'),
+      validator: (list: string[]) => list.length > 0,
     },
   ];
 

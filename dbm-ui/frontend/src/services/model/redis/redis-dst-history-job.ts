@@ -12,18 +12,18 @@
  */
 
 export enum CopyModes {
-  INTRA_BISNESS = 'one_app_diff_cluster', // 业务内
-  CROSS_BISNESS = 'diff_app_diff_cluster', // 跨业务
-  INTRA_TO_THIRD = 'copy_to_other_system', // 业务内至第三方
-  SELFBUILT_TO_INTRA = 'user_built_to_dbm', // 自建集群至业务内
   COPY_FROM_ROLLBACK_INSTANCE = 'copy_from_rollback_instance', // 构造实例至业务内
   COPY_FROM_ROLLBACK_TEMP = 'copy_from_rollback_temp', // 从回滚临时环境复制数据
+  CROSS_BISNESS = 'diff_app_diff_cluster', // 跨业务
+  INTRA_BISNESS = 'one_app_diff_cluster', // 业务内
+  INTRA_TO_THIRD = 'copy_to_other_system', // 业务内至第三方
+  SELFBUILT_TO_INTRA = 'user_built_to_dbm', // 自建集群至业务内
 }
 
 export enum WriteModes {
   DELETE_AND_WRITE_TO_REDIS = 'delete_and_write_to_redis', // 先删除同名redis key，再执行写入 (如: del $key + hset $key)
-  KEEP_AND_APPEND_TO_REDIS = 'keep_and_append_to_redis', // 保留同名redis key，追加写入
   FLUSHALL_AND_WRITE_TO_REDIS = 'flushall_and_write_to_redis', // 先清空目标集群所有数据，再写入
+  KEEP_AND_APPEND_TO_REDIS = 'keep_and_append_to_redis', // 保留同名redis key，追加写入
 }
 
 export enum DisconnectModes {
@@ -49,12 +49,12 @@ export enum RepairAndVerifyFrequencyModes {
 }
 
 export enum TransmissionTypes {
-  FULL_TRANSFERING = 'in_full_transfer', // 全量传输中
-  INCREMENTAL_TRANSFERING = 'in_incremental_sync', // 增量传输中
-  FULL_TRANSFER_FAILED = 'full_transfer_failed', // 全量传输失败
-  INCREMENTAL_TRANSFER_FAILED = 'incremental_sync_failed', // 增量传输失败
-  TO_BE_EXECUTED = 'pending_execution', // 待执行
   END_OF_TRANSMISSION = 'transfer_completed', // 传输结束
+  FULL_TRANSFER_FAILED = 'full_transfer_failed', // 全量传输失败
+  FULL_TRANSFERING = 'in_full_transfer', // 全量传输中
+  INCREMENTAL_TRANSFER_FAILED = 'incremental_sync_failed', // 增量传输失败
+  INCREMENTAL_TRANSFERING = 'in_incremental_sync', // 增量传输中
+  TO_BE_EXECUTED = 'pending_execution', // 待执行
   TRANSSION_TERMINATE = 'transfer_terminated', // 传输终止
   UNKNOWN = 'unknown', // 未知状态
 }
@@ -64,33 +64,33 @@ export default class RedisDSTHistoryJob {
   bill_id: number;
   bk_cloud_id: number;
   create_time: string;
-  dts_bill_type: string;
-  dts_copy_type: CopyModes;
+  data_check_repair_execution_frequency: RepairAndVerifyFrequencyModes;
+  data_check_repair_type: RepairAndVerifyModes;
   dst_bk_biz_id: string;
   dst_cluster: string;
   dst_cluster_id: number;
   dst_cluster_type: string;
-  data_check_repair_type: RepairAndVerifyModes;
-  data_check_repair_execution_frequency: RepairAndVerifyFrequencyModes;
+  dts_bill_type: string;
+  dts_copy_type: CopyModes;
   failed_cnt: number;
   id: number;
-  key_white_regex: string;
   key_black_regex: string;
-  last_data_check_repair_flow_id: string;
+  key_white_regex: string;
   last_data_check_repair_flow_execute_time: string;
+  last_data_check_repair_flow_id: string;
   online_switch_type: string;
   pending_exec_cnt: number;
   running_cnt: number;
-  sync_disconnect_type: DisconnectModes;
-  sync_disconnect_reminder_frequency: RemindFrequencyModes;
   src_cluster: string;
   src_cluster_id: number;
   src_cluster_type: string;
   src_rollback_bill_id: number;
-  success_cnt: number;
   status: TransmissionTypes;
-  total_cnt: number;
+  success_cnt: number;
+  sync_disconnect_reminder_frequency: RemindFrequencyModes;
+  sync_disconnect_type: DisconnectModes;
   to_exec_cnt: number;
+  total_cnt: number;
   update_time: string;
   user: string;
   write_mode: WriteModes;

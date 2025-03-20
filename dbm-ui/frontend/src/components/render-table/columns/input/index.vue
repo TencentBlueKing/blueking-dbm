@@ -62,16 +62,16 @@
 
   interface Props {
     autoFocus?: boolean;
+    clearable?: boolean;
+    disabled?: boolean;
+    ignoreSameInput?: boolean;
+    isShowBlur?: boolean;
+    max?: number;
+    min?: number;
+    pasteFn?: (value: string) => string;
     placeholder?: string;
     rules?: Rules;
-    disabled?: boolean;
     type?: string;
-    min?: number;
-    max?: number;
-    isShowBlur?: boolean;
-    clearable?: boolean;
-    ignoreSameInput?: boolean;
-    pasteFn?: (value: string) => string;
   }
 
   type ValueType = string | number;
@@ -86,23 +86,23 @@
   }
 
   interface Exposes {
+    focus: () => void;
     getValue: () => Promise<ValueType>;
     validator: () => Promise<boolean>;
-    focus: () => void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     autoFocus: false,
+    clearable: true,
+    disabled: false,
+    ignoreSameInput: false,
+    isShowBlur: false,
+    max: Number.MAX_SAFE_INTEGER,
+    min: Number.MIN_SAFE_INTEGER,
+    pasteFn: undefined,
     placeholder: '请输入',
     rules: undefined,
-    disabled: false,
     type: 'text',
-    min: Number.MIN_SAFE_INTEGER,
-    max: Number.MAX_SAFE_INTEGER,
-    isShowBlur: false,
-    clearable: true,
-    ignoreSameInput: false,
-    pasteFn: undefined,
   });
 
   const emits = defineEmits<Emits>();
@@ -216,6 +216,7 @@
     let paste = (event.clipboardData || window.clipboardData).getData('text');
     paste = encodeMult(paste);
     paste = paste.replace(/^\s+|\s+$/g, '');
+    paste = props.type === 'number' ? Number(paste) : paste;
     modelValue.value = props.pasteFn ? props.pasteFn(paste) : paste;
     window.changeConfirm = true;
   };
@@ -227,6 +228,9 @@
   });
 
   defineExpose<Exposes>({
+    focus() {
+      (rootRef.value as HTMLElement).querySelector('input')?.focus();
+    },
     getValue() {
       return validator(modelValue.value)
         .then(() => modelValue.value)
@@ -237,9 +241,6 @@
         () => true,
         () => false,
       );
-    },
-    focus() {
-      (rootRef.value as HTMLElement).querySelector('input')?.focus();
     },
   });
 </script>

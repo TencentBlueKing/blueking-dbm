@@ -44,9 +44,11 @@ from backend.flow.plugins.components.collections.mysql.clear_machine import MySQ
 from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.mysql.mysql_check_binlog_dump import MySQLCheckBinlogDumpComponent
 from backend.flow.plugins.components.collections.mysql.mysql_crond_control import MysqlCrondMonitorControlComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.mysql_rds_execute import MySQLExecuteRdsComponent
+from backend.flow.plugins.components.collections.mysql.reset_slave_via_drs import ResetSlaveViaDRSComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_ports, get_version_and_charset
@@ -58,6 +60,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     ExecActuatorKwargs,
     ExecuteRdsKwargs,
     InstanceUserCloneKwargs,
+    ResetSlaveViaDRSKwargs,
     UpdateDnsRecordKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
@@ -299,6 +302,18 @@ class MySQLRestoreSlaveRemoteFlow(object):
                             )
                         ),
                     )
+                    switch_sub_pipeline.add_act(
+                        act_name=_("切换后屏蔽旧实例备份 {}").format(self.data["old_slave_ip"]),
+                        act_component_code=MysqlCrondMonitorControlComponent.code,
+                        kwargs=asdict(
+                            CrondMonitorKwargs(
+                                bk_cloud_id=cluster_class.bk_cloud_id,
+                                exec_ips=[self.data["old_slave_ip"]],
+                                name="dbbackup",
+                                port=master.port,
+                            )
+                        ),
+                    )
                     switch_sub_pipeline_list.append(switch_sub_pipeline.build_sub_process(sub_name=_("切换到新从节点")))
 
                 uninstall_svr_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
@@ -481,6 +496,17 @@ class MySQLRestoreSlaveRemoteFlow(object):
             tendb_migrate_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
 
             tendb_migrate_pipeline.add_act(
+                act_name=_("当前 master reset slave {}".format(master.ip_port)),
+                act_component_code=ResetSlaveViaDRSComponent.code,
+                kwargs=asdict(
+                    ResetSlaveViaDRSKwargs(
+                        address=master.ip_port,
+                        bk_cloud_id=cluster_model.bk_cloud_id,
+                    )
+                ),
+            )
+
+            tendb_migrate_pipeline.add_act(
                 act_name=_("下发db-actor到节点{}".format(target_slave.machine.ip)),
                 act_component_code=TransFileComponent.code,
                 kwargs=asdict(
@@ -534,6 +560,18 @@ class MySQLRestoreSlaveRemoteFlow(object):
                         exec_ips=[target_slave.machine.ip],
                         port=target_slave.port,
                         minutes=MySQLMonitorPauseTime.RESTORE_DATA,
+                    )
+                ),
+            )
+
+            tendb_migrate_pipeline.add_act(
+                act_name=_("检查实例是否存在从库{}").format(target_slave.ip_port),
+                act_component_code=MySQLCheckBinlogDumpComponent.code,
+                kwargs=asdict(
+                    ExecuteRdsKwargs(
+                        bk_cloud_id=cluster_model.bk_cloud_id,
+                        instance_ip=target_slave.machine.ip,
+                        instance_port=target_slave.port,
                     )
                 ),
             )

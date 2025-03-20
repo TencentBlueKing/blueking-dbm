@@ -21,7 +21,7 @@ const path = '/apis/conf/ip_whitelist';
 /**
  * IP白名单列表
  */
-export function getWhitelist(params: Record<string, any> & { bk_biz_id: number }) {
+export function getWhitelist(params: { bk_biz_id: number } & Record<string, any>) {
   return http.post<ListBase<IpWhiteModel[]>>(`${path}/iplist/`, params).then((data) => ({
     ...data,
     results: data.results.map(
@@ -45,7 +45,7 @@ export function createWhitelist(params: { bk_biz_id: number; ips: string[]; rema
 /**
  * 编辑IP白名单
  */
-export function updateWhitelist(params: { id: number; bk_biz_id: number; ips: string[]; remark: string }) {
+export function updateWhitelist(params: { bk_biz_id: number; id: number; ips: string[]; remark: string }) {
   return http.put(`${path}/${params.id}/`, params);
 }
 

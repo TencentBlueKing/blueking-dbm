@@ -29,9 +29,9 @@
 
   /* eslint-disable vue/no-unused-properties */
   interface Props {
-    placeholder?: string;
     maxlength?: number;
     minlength?: number;
+    placeholder?: string;
     rows?: number;
   }
 
@@ -44,9 +44,9 @@
   const emits = defineEmits<Emits>();
 
   const slots = defineSlots<{
-    prepend?: () => VNode;
-    default?: () => VNode;
     append?: () => VNode;
+    default?: () => VNode;
+    prepend?: () => VNode;
   }>();
 
   const attrs = useAttrs();

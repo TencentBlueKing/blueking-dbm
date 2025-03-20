@@ -92,17 +92,16 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.REDIS_CLUSTER_INS_MIGRATE,
     onSuccess(cloneData) {
       tableList.value = cloneData.tableDataList;
       remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
+    type: TicketTypes.REDIS_CLUSTER_INS_MIGRATE,
   });
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.REDIS_SINGLE_INS_MIGRATE,
     onSuccess(cloneData) {
       formData.architectureType = 'masterSlave';
 
@@ -117,6 +116,7 @@
         window.changeConfirm = true;
       });
     },
+    type: TicketTypes.REDIS_SINGLE_INS_MIGRATE,
   });
 
   const initFormData = () => ({

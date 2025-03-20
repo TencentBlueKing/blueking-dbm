@@ -12,7 +12,10 @@
 package cmutil
 
 import (
+	"strings"
 	"time"
+
+	"github.com/spf13/cast"
 
 	"dbm-services/common/go-pubpkg/logger"
 
@@ -48,4 +51,90 @@ func Retry(r RetryConfig, f func() error) (err error) {
 // DecreasingRetry 递减Sleep重试
 func DecreasingRetry() (err error) {
 	return
+}
+
+// GrepLines 日志过滤
+type GrepLines struct {
+	// FilePath	日志文件路径
+	FilePath string
+	// IgnoreCase 是否忽略大小写, 默认false大小写敏感
+	IgnoreCase bool
+	// FromHead from head or tail，默认false从 tail 里面取
+	FromHead bool
+}
+
+// NewGrepLines 日志过滤，从文件里面 grep 错误关键字
+func NewGrepLines(filePath string, ignoreCase, fromHead bool) *GrepLines {
+	return &GrepLines{
+		FilePath:   filePath,
+		IgnoreCase: ignoreCase,
+		FromHead:   fromHead,
+	}
+}
+
+// MatchWordsExclude 从文件里面 grep 排除关键字
+func (g *GrepLines) MatchWordsExclude(keyWordsExclude []string, linesRet int) (string, error) {
+	var grepCommand []string
+	lineNum := "-" + cast.ToString(linesRet)
+	if len(keyWordsExclude) > 0 {
+		grepExpr := "'" + strings.Join(keyWordsExclude, "|") + "'"
+		if g.IgnoreCase {
+			grepCommand = append(grepCommand, "grep", "-Evi")
+		} else {
+			grepCommand = append(grepCommand, "grep", "-Ev")
+		}
+		grepCommand = append(grepCommand, grepExpr, g.FilePath)
+		if g.FromHead {
+			grepCommand = append(grepCommand, "|", "head", lineNum)
+		} else {
+			grepCommand = append(grepCommand, "|", "tail", lineNum)
+		}
+	} else {
+		if g.FromHead {
+			grepCommand = append(grepCommand, "head", lineNum, g.FilePath)
+		} else {
+			grepCommand = append(grepCommand, "tail", lineNum, g.FilePath)
+		}
+	}
+	errStrDetail, cmdStdErr, err := ExecCommand(true, "", grepCommand[0], grepCommand[1:]...)
+	errStrDetail = strings.TrimSpace(errStrDetail)
+	if errStrDetail != "" {
+		return errStrDetail, nil
+	} else {
+		return "", errors.WithMessage(err, cmdStdErr)
+	}
+}
+
+// MatchWords 从文件里面 grep 错误关键字
+// 如果不指定 keywords，则直接 tail / head 文件行
+func (g *GrepLines) MatchWords(keywords []string, linesRet int) (string, error) {
+	var grepCommand []string
+	lineNum := "-" + cast.ToString(linesRet)
+	if len(keywords) > 0 {
+		grepExpr := "'" + strings.Join(keywords, "|") + "'"
+		if g.IgnoreCase {
+			grepCommand = append(grepCommand, "grep", "-Ei")
+		} else {
+			grepCommand = append(grepCommand, "grep", "-E")
+		}
+		grepCommand = append(grepCommand, grepExpr, g.FilePath)
+		if g.FromHead {
+			grepCommand = append(grepCommand, "|", "head", lineNum)
+		} else {
+			grepCommand = append(grepCommand, "|", "tail", lineNum)
+		}
+	} else {
+		if g.FromHead {
+			grepCommand = append(grepCommand, "head", lineNum, g.FilePath)
+		} else {
+			grepCommand = append(grepCommand, "tail", lineNum, g.FilePath)
+		}
+	}
+	errStrDetail, cmdStdErr, err := ExecCommand(true, "", grepCommand[0], grepCommand[1:]...)
+	errStrDetail = strings.TrimSpace(errStrDetail)
+	if errStrDetail != "" {
+		return errStrDetail, nil
+	} else {
+		return "", errors.WithMessage(err, cmdStdErr)
+	}
 }

@@ -25,10 +25,10 @@
     ticketDetails: TicketModel<Hdfs.ScaleUp>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.HDFS_SCALE_UP,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

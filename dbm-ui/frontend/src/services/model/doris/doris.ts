@@ -25,36 +25,36 @@ const STATUS_NORMAL = 'normal';
 const STATUS_ABNORMAL = 'abnormal';
 
 export default class Doris extends ClusterBase {
-  static STATUS_NORMAL = STATUS_NORMAL;
-  static STATUS_ABNORMAL = STATUS_ABNORMAL;
+  static DORIS_DESTROY = TicketTypes.DORIS_DESTROY;
+  static DORIS_DISABLE = TicketTypes.DORIS_DISABLE;
 
   static DORIS_ENABLE = TicketTypes.DORIS_ENABLE;
-  static DORIS_DISABLE = TicketTypes.DORIS_DISABLE;
-  static DORIS_DESTROY = TicketTypes.DORIS_DESTROY;
+  static DORIS_REBOOT = TicketTypes.DORIS_REBOOT;
+  static DORIS_REPLACE = TicketTypes.DORIS_REPLACE;
   static DORIS_SCALE_UP = TicketTypes.DORIS_SCALE_UP;
   static DORIS_SHRINK = TicketTypes.DORIS_SHRINK;
-  static DORIS_REPLACE = TicketTypes.DORIS_REPLACE;
-  static DORIS_REBOOT = TicketTypes.DORIS_REBOOT;
-
   static operationIconMap = {
-    [Doris.DORIS_ENABLE]: t('启用中'),
-    [Doris.DORIS_DISABLE]: t('禁用中'),
     [Doris.DORIS_DESTROY]: t('删除中'),
+    [Doris.DORIS_DISABLE]: t('禁用中'),
+    [Doris.DORIS_ENABLE]: t('启用中'),
+    [Doris.DORIS_REBOOT]: t('重启中'),
+    [Doris.DORIS_REPLACE]: t('替换中'),
     [Doris.DORIS_SCALE_UP]: t('扩容中'),
     [Doris.DORIS_SHRINK]: t('缩容中'),
-    [Doris.DORIS_REPLACE]: t('替换中'),
-    [Doris.DORIS_REBOOT]: t('重启中'),
   };
-
   static operationTextMap = {
-    [Doris.DORIS_ENABLE]: t('启用任务进行中'),
-    [Doris.DORIS_DISABLE]: t('禁用任务进行中'),
     [Doris.DORIS_DESTROY]: t('删除任务进行中'),
+    [Doris.DORIS_DISABLE]: t('禁用任务进行中'),
+    [Doris.DORIS_ENABLE]: t('启用任务进行中'),
+    [Doris.DORIS_REBOOT]: t('实例重启任务进行中'),
+    [Doris.DORIS_REPLACE]: t('替换任务进行中'),
     [Doris.DORIS_SCALE_UP]: t('扩容任务进行中'),
     [Doris.DORIS_SHRINK]: t('缩容任务进行中'),
-    [Doris.DORIS_REPLACE]: t('替换任务进行中'),
-    [Doris.DORIS_REBOOT]: t('实例重启任务进行中'),
   };
+
+  static STATUS_ABNORMAL = STATUS_ABNORMAL;
+
+  static STATUS_NORMAL = STATUS_NORMAL;
 
   access_url: string;
   bk_biz_id: number;
@@ -137,83 +137,6 @@ export default class Doris extends ClusterBase {
     this.access_url = payload.access_url;
   }
 
-  get runningOperation() {
-    const operateTicketTypes = Object.keys(Doris.operationTextMap);
-    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
-  }
-
-  // 操作中的状态
-  get operationRunningStatus() {
-    if (this.operations.length < 1) {
-      return '';
-    }
-    const operation = this.runningOperation;
-    if (!operation) {
-      return '';
-    }
-    return operation.ticket_type;
-  }
-
-  // 操作中的状态描述文本
-  get operationStatusText() {
-    return Doris.operationTextMap[this.operationRunningStatus];
-  }
-
-  // 操作中的状态 icon
-  get operationStatusIcon() {
-    return Doris.operationIconMap[this.operationRunningStatus];
-  }
-
-  // 操作中的单据 ID
-  get operationTicketId() {
-    if (this.operations.length < 1) {
-      return 0;
-    }
-    const operation = this.runningOperation;
-    if (!operation) {
-      return 0;
-    }
-    return operation.ticket_id;
-  }
-
-  get operationDisabled() {
-    // 集群异常不支持操作
-    if (this.isAbnormal) {
-      return true;
-    }
-    // 被禁用的集群不支持操作
-    if (this.phase !== 'online') {
-      return true;
-    }
-    // 各个操作互斥，有其他任务进行中禁用操作按钮
-    if (this.operationRunningStatus) {
-      return true;
-    }
-    return false;
-  }
-
-  get operationTagTips() {
-    return this.operations.map((item) => ({
-      icon: Doris.operationIconMap[item.ticket_type],
-      tip: Doris.operationTextMap[item.ticket_type],
-      ticketId: item.ticket_id,
-    }));
-  }
-
-  get isStarting() {
-    return Boolean(this.operations.find((item) => item.ticket_type === Doris.DORIS_ENABLE));
-  }
-
-  get masterDomainDisplayName() {
-    const port = this.doris_follower[0]?.port;
-    const displayName = port ? `${this.domain}:${port}` : this.domain;
-    return displayName;
-  }
-
-  get isAbnormal() {
-    return this.status === STATUS_ABNORMAL;
-  }
-
   get allInstanceList() {
     return [...this.doris_follower, ...this.doris_observer, ...this.doris_backend_cold, ...this.doris_backend_hot];
   }
@@ -236,12 +159,89 @@ export default class Doris extends ClusterBase {
     return ClusterAffinityMap[this.disaster_tolerance_level];
   }
 
+  get isAbnormal() {
+    return this.status === STATUS_ABNORMAL;
+  }
+
+  get isStarting() {
+    return Boolean(this.operations.find((item) => item.ticket_type === Doris.DORIS_ENABLE));
+  }
+
+  get masterDomainDisplayName() {
+    const port = this.doris_follower[0]?.port;
+    const displayName = port ? `${this.domain}:${port}` : this.domain;
+    return displayName;
+  }
+
+  get operationDisabled() {
+    // 集群异常不支持操作
+    if (this.isAbnormal) {
+      return true;
+    }
+    // 被禁用的集群不支持操作
+    if (this.phase !== 'online') {
+      return true;
+    }
+    // 各个操作互斥，有其他任务进行中禁用操作按钮
+    if (this.operationRunningStatus) {
+      return true;
+    }
+    return false;
+  }
+
+  // 操作中的状态
+  get operationRunningStatus() {
+    if (this.operations.length < 1) {
+      return '';
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return '';
+    }
+    return operation.ticket_type;
+  }
+
+  // 操作中的状态 icon
+  get operationStatusIcon() {
+    return Doris.operationIconMap[this.operationRunningStatus];
+  }
+
+  // 操作中的状态描述文本
+  get operationStatusText() {
+    return Doris.operationTextMap[this.operationRunningStatus];
+  }
+
+  get operationTagTips() {
+    return this.operations.map((item) => ({
+      icon: Doris.operationIconMap[item.ticket_type],
+      ticketId: item.ticket_id,
+      tip: Doris.operationTextMap[item.ticket_type],
+    }));
+  }
+
+  // 操作中的单据 ID
+  get operationTicketId() {
+    if (this.operations.length < 1) {
+      return 0;
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return 0;
+    }
+    return operation.ticket_id;
+  }
+
   get roleFailedInstanceInfo() {
     return {
       Follower: ClusterBase.getRoleFaildInstanceList(this.doris_follower),
       Observer: ClusterBase.getRoleFaildInstanceList(this.doris_observer),
-      [t('热节点')]: ClusterBase.getRoleFaildInstanceList(this.doris_backend_hot),
       [t('冷节点')]: ClusterBase.getRoleFaildInstanceList(this.doris_backend_cold),
+      [t('热节点')]: ClusterBase.getRoleFaildInstanceList(this.doris_backend_hot),
     };
+  }
+
+  get runningOperation() {
+    const operateTicketTypes = Object.keys(Doris.operationTextMap);
+    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
   }
 }

@@ -45,22 +45,22 @@
 
   export interface IValue {
     db_name: string;
-    target_db_name: string;
     rename_db_name: string;
+    target_db_name: string;
   }
 
   interface Props {
     clusterId: number;
-    targetClusterId: number;
-    dbName: string[];
     dbIgnoreName: string[];
+    dbName: string[];
     renameInfoList: IValue[];
+    targetClusterId: number;
   }
 
   interface Expose {
     submit: () => Promise<{
-      dbName: Props['dbName'];
       dbIgnoreName: Props['dbIgnoreName'];
+      dbName: Props['dbName'];
       renameInfoList: IValue[];
     }>;
   }
@@ -96,7 +96,7 @@
     },
   );
 
-  const handleClusterDbChange = (payload: { dbName: string[]; dbIgnoreName: string[]; renameInfoList: IValue[] }) => {
+  const handleClusterDbChange = (payload: { dbIgnoreName: string[]; dbName: string[]; renameInfoList: IValue[] }) => {
     localDbName.value = payload.dbName;
     localDbIgnoreName.value = payload.dbIgnoreName;
     localRenameInfoList.value = payload.renameInfoList;
@@ -112,8 +112,8 @@
     submit() {
       isInnerChange = true;
       return dbListRef.value!.getValue().then(() => ({
-        dbName: localDbName.value,
         dbIgnoreName: localDbIgnoreName.value,
+        dbName: localDbName.value,
         renameInfoList: localRenameInfoList.value,
       }));
     },

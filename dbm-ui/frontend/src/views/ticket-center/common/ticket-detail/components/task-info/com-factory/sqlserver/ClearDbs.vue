@@ -67,18 +67,18 @@
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.SQLSERVER_CLEAR_DBS,
     inheritAttrs: false,
   });
 
+  defineProps<Props>();
+
   const { t } = useI18n();
 
   const clearModeMap = {
     clean_tables: t('清理表数据'),
-    drop_tables: t('删除表'),
     drop_dbs: t('删除整库'),
+    drop_tables: t('删除表'),
   } as Record<string, string>;
 </script>

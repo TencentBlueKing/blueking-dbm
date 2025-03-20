@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -19,7 +20,7 @@ import (
 // PhysicalLoader this is used to load physical backup
 // decompress, apply, recover
 type PhysicalLoader struct {
-	cnf           *config.BackupConfig
+	cnf           *config.PhysicalLoad
 	dbbackupHome  string
 	mysqlVersion  string
 	storageEngine string
@@ -74,19 +75,21 @@ func (p *PhysicalLoader) Execute() error {
 // decompress todo use qpress command instead
 func (p *PhysicalLoader) decompress() error {
 	binPath := filepath.Join(p.dbbackupHome, p.innodbCmd.innobackupexBin)
-
+	decompressThreads := p.cnf.Threads
+	if runtime.NumCPU() >= 16 {
+		decompressThreads = 8
+	}
 	args := []string{
 		"--decompress",
-		//fmt.Sprintf("--qpress=%s", filepath.Join(p.dbbackupHome, "/bin", "qpress")),
-		fmt.Sprintf("--parallel=%d", p.cnf.PhysicalLoad.Threads),
+		fmt.Sprintf("--parallel=%d --compress-threads=%d", decompressThreads, decompressThreads),
 	}
 	if strings.Compare(p.mysqlVersion, "005007000") < 0 {
 		// xtrabackup <=5.6 没有 removal original 选项
-		args = append(args, p.cnf.PhysicalLoad.MysqlLoadDir)
+		args = append(args, p.cnf.MysqlLoadDir)
 	} else {
 		args = append(args, "--remove-original")
 		args = append(args, []string{
-			fmt.Sprintf("--target-dir=%s", p.cnf.PhysicalLoad.MysqlLoadDir),
+			fmt.Sprintf("--target-dir=%s", p.cnf.MysqlLoadDir),
 		}...)
 	}
 	if strings.Compare(p.mysqlVersion, "008000000") >= 0 && p.isOfficial {
@@ -113,7 +116,7 @@ func (p *PhysicalLoader) apply() error {
 	binPath := filepath.Join(p.dbbackupHome, p.innodbCmd.innobackupexBin)
 
 	args := []string{
-		fmt.Sprintf("--parallel=%d", p.cnf.PhysicalLoad.Threads), "--use-memory=1GB",
+		fmt.Sprintf("--parallel=%d", p.cnf.Threads), "--use-memory=1GB",
 	}
 	/*
 		xtraVersion := p.innodbCmd.GetXtrabackupVersion()
@@ -135,10 +138,10 @@ func (p *PhysicalLoader) apply() error {
 	}
 
 	if strings.Compare(p.mysqlVersion, "005007000") < 0 {
-		args = append(args, p.cnf.PhysicalLoad.MysqlLoadDir)
+		args = append(args, p.cnf.MysqlLoadDir)
 	} else {
 		args = append(args, []string{
-			fmt.Sprintf("--target-dir=%s", p.cnf.PhysicalLoad.MysqlLoadDir),
+			fmt.Sprintf("--target-dir=%s", p.cnf.MysqlLoadDir),
 		}...)
 	}
 
@@ -154,7 +157,7 @@ func (p *PhysicalLoader) apply() error {
 		logger.Log.Error("physical apply failed: ", err, errStr)
 		// 尝试读取 xtrabackup.log 里 ERROR 关键字
 		errStrPrefix := fmt.Sprintf("tail 5 error from %s", logfile)
-		errStrDetail, _ := util.GrepLinesFromFile(logfile, []string{"ERROR", "fatal"}, 5, false, true)
+		errStrDetail, _ := cmutil.NewGrepLines(logfile, true, false).MatchWords([]string{"ERROR", "fatal"}, 5)
 		if len(errStrDetail) > 0 {
 			logger.Log.Info(errStrPrefix)
 			logger.Log.Error(errStrDetail)
@@ -172,19 +175,19 @@ func (p *PhysicalLoader) load() error {
 	binPath := filepath.Join(p.dbbackupHome, p.innodbCmd.innobackupexBin)
 
 	_, _, err := cmutil.ExecCommand(false, "", "sed", "-i", "/^innodb_undo_directory/d",
-		p.cnf.PhysicalLoad.DefaultsFile)
+		p.cnf.DefaultsFile)
 	if err != nil {
-		logger.Log.Warn("xtrabackup fix innodb_undo_directory for ", p.cnf.PhysicalLoad.DefaultsFile, err)
+		logger.Log.Warn("xtrabackup fix innodb_undo_directory for ", p.cnf.DefaultsFile, err)
 	}
 
 	args := []string{
-		fmt.Sprintf("--defaults-file=%s", p.cnf.PhysicalLoad.DefaultsFile),
+		fmt.Sprintf("--defaults-file=%s", p.cnf.DefaultsFile),
 	}
-	if p.cnf.PhysicalLoad.ExtraOpt != "" {
-		args = append(args, p.cnf.PhysicalLoad.ExtraOpt)
+	if p.cnf.ExtraOpt != "" {
+		args = append(args, p.cnf.ExtraOpt)
 	}
 
-	if p.cnf.PhysicalLoad.CopyBack {
+	if p.cnf.CopyBack {
 		args = append(args, "--copy-back")
 	} else {
 		args = append(args, "--move-back")
@@ -198,10 +201,10 @@ func (p *PhysicalLoader) load() error {
 		args = append(args, fmt.Sprintf("--ibbackup=%s", filepath.Join(p.dbbackupHome, p.innodbCmd.xtrabackupBin)))
 	}
 	if strings.Compare(p.mysqlVersion, "005007000") < 0 {
-		args = append(args, p.cnf.PhysicalLoad.MysqlLoadDir)
+		args = append(args, p.cnf.MysqlLoadDir)
 	} else {
 		args = append(args, []string{
-			fmt.Sprintf("--target-dir=%s", p.cnf.PhysicalLoad.MysqlLoadDir),
+			fmt.Sprintf("--target-dir=%s", p.cnf.MysqlLoadDir),
 		}...)
 	}
 
@@ -218,7 +221,7 @@ func (p *PhysicalLoader) load() error {
 		logger.Log.Error("xtrabackup copy data failed: ", err, errStr)
 		// 尝试读取 xtrabackup.log 里 ERROR 关键字
 		errStrPrefix := fmt.Sprintf("tail 5 error from %s", logfile)
-		errStrDetail, _ := util.GrepLinesFromFile(logfile, []string{"ERROR", "fatal"}, 5, false, true)
+		errStrDetail, _ := cmutil.NewGrepLines(logfile, true, false).MatchWords([]string{"ERROR", "fatal"}, 5)
 		if len(errStrDetail) > 0 {
 			logger.Log.Info(errStrPrefix)
 			logger.Log.Error(errStrDetail)

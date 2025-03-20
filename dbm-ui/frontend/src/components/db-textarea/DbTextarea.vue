@@ -52,8 +52,8 @@
   interface Props {
     displayHeight?: number | string;
     maxHeight?: number;
-    teleportToBody?: boolean;
     rowHeight?: number;
+    teleportToBody?: boolean;
   }
 
   interface Emits {
@@ -67,8 +67,8 @@
   const props = withDefaults(defineProps<Props>(), {
     displayHeight: 'auto',
     maxHeight: 70,
-    teleportToBody: true,
     rowHeight: 18,
+    teleportToBody: true,
   });
   const emits = defineEmits<Emits>();
 
@@ -100,7 +100,7 @@
   // const height = computed(() => rows.value * rowHeight);
   // bk textarea style
   const style = computed(() =>
-    Object.assign({ maxHeight: `${props.maxHeight}px`, '--row-height': `${props.rowHeight}px` }, attrs.style || {}),
+    Object.assign({ '--row-height': `${props.rowHeight}px`, maxHeight: `${props.maxHeight}px` }, attrs.style || {}),
   );
   const renderValues = computed(() => modelValue.value.split('\n').join(', '));
   const placeholder = computed(() => {
@@ -126,7 +126,7 @@
   const handleEdit = () => {
     // 为了解决第一次用 getBoundingClientRect 获取信息不准确问题
     if (dbTextareaRef.value) {
-      const { x, y, width } = dbTextareaRef.value.getBoundingClientRect();
+      const { width, x, y } = dbTextareaRef.value.getBoundingClientRect();
       inputPosition.x = x;
       inputPosition.y = y;
       inputPosition.width = width;
@@ -157,7 +157,7 @@
 
     if (dbTextareaRef.value && props.teleportToBody) {
       const el = textareaRef.value.$el as HTMLDivElement;
-      const { x, y, width } = dbTextareaRef.value.getBoundingClientRect();
+      const { width, x, y } = dbTextareaRef.value.getBoundingClientRect();
       el.style.transition = 'unset';
       el.style.width = `${inputPosition.width || width}px`;
       el.style.position = 'fixed';
@@ -214,8 +214,8 @@
   };
 
   defineExpose({
-    setTextareaHeight,
     focus,
+    setTextareaHeight,
   });
 </script>
 

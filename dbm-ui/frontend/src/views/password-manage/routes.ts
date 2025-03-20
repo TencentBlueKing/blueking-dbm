@@ -18,21 +18,21 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
-    name: 'passwordManage',
     path: 'password-manage',
+    name: 'passwordManage',
     children: [
       {
-        name: 'PlatformPasswordPolicy',
         path: 'policy',
+        name: 'PlatformPasswordPolicy',
         meta: {
-          navName: t('密码安全规则'),
           fullscreen: true,
+          navName: t('密码安全规则'),
         },
         component: () => import('@views/password-manage/policy/Index.vue'),
       },
       {
-        name: 'PlatformPasswordRandomization',
         path: 'randomization',
+        name: 'PlatformPasswordRandomization',
         meta: {
           navName: t('密码随机化管理'),
         },

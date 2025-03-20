@@ -136,23 +136,23 @@
 
   // 根据集群选择返回的数据加工成table所需的数据
   const generateRowDateFromRequest = (item: MongoDBModel) => ({
-    rowKey: item.master_domain,
-    isLoading: false,
-    clusterName: item.master_domain,
-    clusterId: item.id,
-    shardNum: item.shard_num,
     affinity: item.disaster_tolerance_level,
-    machineNum: item.replicaset_machine_num,
+    clusterId: item.id,
+    clusterName: item.master_domain,
     currentSpec: {
       ...item.mongos[0].spec_config,
       count: item.mongos.length,
     },
+    isLoading: false,
+    machineNum: item.replicaset_machine_num,
     reduceIpList: item.mongos.map((item) => ({
+      disabled: false,
       label: item.ip,
       value: item.ip,
-      disabled: false,
       ...item,
     })),
+    rowKey: item.master_domain,
+    shardNum: item.shard_num,
   });
 
   // 批量选择
@@ -224,11 +224,11 @@
       const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
       const params = {
         bk_biz_id: currentBizId,
-        ticket_type: TicketTypes.MONGODB_REDUCE_MONGOS,
         details: {
-          is_safe: !isIgnoreBusinessAccess.value,
           infos,
+          is_safe: !isIgnoreBusinessAccess.value,
         },
+        ticket_type: TicketTypes.MONGODB_REDUCE_MONGOS,
       };
       await createTicket(params).then((data) => {
         window.changeConfirm = false;

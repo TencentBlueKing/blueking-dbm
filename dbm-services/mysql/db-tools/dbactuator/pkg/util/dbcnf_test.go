@@ -17,7 +17,7 @@ func TestGetMySQLDatadir(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log("datadir path:", datadir)
-	logdir, err := c.GetMySQLLogDir()
+	logdir, err := c.GetMySQLLogRootDir()
 	if err != nil {
 		t.Fatal(err)
 	}

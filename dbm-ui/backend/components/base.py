@@ -226,7 +226,7 @@ class DataAPI(object):
                 raise DataAPIException(error_message=error_message)
 
     @staticmethod
-    def is_backend_request():
+    def is_backend_request(local_request):
         is_backend = False
         for argv in sys.argv:
             # celery 进程，都认为是后台任务
@@ -236,6 +236,9 @@ class DataAPI(object):
             # 本地开发 runserver 进程，认为是后台任务
             if "manage.py" in argv and "runserver" not in sys.argv:
                 is_backend = True
+        # 标记内部调用
+        if getattr(local_request, "internal_call", False):
+            is_backend = True
         return is_backend
 
     def get_error_message(self, error_message, request_id=None):
@@ -425,7 +428,7 @@ class DataAPI(object):
             "bk_app_secret": params.pop("bk_app_secret", env.SECRET_KEY),
             "bk_username": params.pop("bk_username", "Anonymous"),
         }
-        if use_admin or self.is_backend_request():
+        if use_admin or self.is_backend_request(local_request):
             # 使用管理员/平台身份调用接口
             bkapi_auth_headers["bk_username"] = env.DEFAULT_USERNAME
         elif local_request and local_request.COOKIES:

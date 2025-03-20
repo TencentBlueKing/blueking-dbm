@@ -126,24 +126,24 @@
 
   interface Props {
     isDisabled: boolean;
-    rowData?: IDataRow;
     isLoading?: boolean;
+    rowData?: IDataRow;
     targetVersion?: string;
   }
 
   interface Exposes {
     getValue: () => Promise<{
-      shard_num: number;
-      group_num: number;
       capacity: number;
       future_capacity: number;
+      group_num: number;
       resource_spec: {
         backend_group: {
-          spec_id: number;
-          count: number;
           affinity: AffinityType;
+          count: number;
+          spec_id: number;
         };
       };
+      shard_num: number;
       update_mode: string;
     }>;
   }
@@ -161,10 +161,10 @@
 
   const localValue = reactive({
     cluster_capacity: 0,
-    max: 0,
     cluster_shard_num: 0,
-    spec_id: 0,
     machine_pair: 0,
+    max: 0,
+    spec_id: 0,
   });
 
   const currentCapacity = computed(() => {
@@ -187,8 +187,8 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('请选择目标容量'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 
@@ -198,25 +198,25 @@
       return;
     }
     const { rowData } = props;
-    if (rowData && rowData.targetCluster) {
+    if (rowData?.targetCluster) {
       const { spec = {} as NonNullable<IDataRow['spec']> } = rowData;
       const obj = {
-        targetCluster: rowData.targetCluster,
+        bkCloudId: rowData.bkCloudId,
+        capacity: rowData.currentCapacity ?? { total: 1, used: 0 },
+        cloudId: rowData.bkCloudId,
+        clusterType: rowData.clusterType ?? ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
         currentSepc: {
-          name: spec.spec_name ?? '',
           cpu: spec.cpu,
           id: spec.spec_id,
           mem: spec.mem,
+          name: spec.spec_name ?? '',
           qps: spec.qps,
           storage_spec: spec.storage_spec,
         },
-        capacity: rowData.currentCapacity ?? { used: 0, total: 1 },
-        clusterType: rowData.clusterType ?? ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-        cloudId: rowData.bkCloudId,
         // groupNum: rowData.groupNum ?? 0,
         groupNum: localValue.machine_pair,
         shardNum: rowData.shardNum ?? 0,
-        bkCloudId: rowData.bkCloudId,
+        targetCluster: rowData.targetCluster,
       };
       activeRowData.value = obj;
       showChooseClusterTargetPlan.value = true;
@@ -241,18 +241,18 @@
         return selectRef.value.getValue().then(() => true);
       }
       return Promise.resolve({
-        shard_num: localValue.cluster_shard_num, // props.rowData!.shardNum
-        group_num: localValue.machine_pair, // targetObj.value!.requireMachineGroupNum,
         capacity: futureCapacity.value ?? 1,
         future_capacity: futureCapacity.value ?? 1,
-        update_mode: targetObj.value?.updateMode,
+        group_num: localValue.machine_pair, // targetObj.value!.requireMachineGroupNum,
         resource_spec: {
           backend_group: {
-            spec_id: localValue.spec_id,
-            count: targetObj.value!.requireMachineGroupNum, // 机器实际需要申请的组数
             affinity: props.rowData?.disasterToleranceLevel || AffinityType.CROS_SUBZONE, // 暂时固定 'CROS_SUBZONE',
+            count: targetObj.value!.requireMachineGroupNum, // 机器实际需要申请的组数
+            spec_id: localValue.spec_id,
           },
         },
+        shard_num: localValue.cluster_shard_num, // props.rowData!.shardNum
+        update_mode: targetObj.value?.updateMode,
       });
     },
   });

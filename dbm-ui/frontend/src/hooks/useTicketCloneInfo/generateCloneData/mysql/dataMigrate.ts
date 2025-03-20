@@ -20,13 +20,13 @@ export function generateMysqlDataMigrateCloneData(ticketData: TicketModel<Mysql.
   const tableDataList = infos.map((item) => {
     const sourceClusterInfo = clusters[item.source_cluster];
     return {
-      rowKey: random(),
+      cloneType: item.data_schema_grant,
       clusterData: {
-        id: item.source_cluster,
         domain: sourceClusterInfo.immute_domain,
+        id: item.source_cluster,
         type: sourceClusterInfo.cluster_type,
       },
-      cloneType: item.data_schema_grant,
+      rowKey: random(),
       targetClusters: item.target_clusters.map((id) => clusters[id].immute_domain).join(','),
     };
   });

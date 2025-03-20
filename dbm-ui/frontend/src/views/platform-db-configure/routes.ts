@@ -18,8 +18,8 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
-    name: 'PlatformDbConfigure',
     path: 'platform-db-configure',
+    name: 'PlatformDbConfigure',
     meta: {
       navName: t('数据库配置'),
     },
@@ -29,17 +29,17 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@views/platform-db-configure/Index.vue'),
     children: [
       {
-        name: 'PlatformDbConfigureList',
         path: 'list/:clusterType?',
+        name: 'PlatformDbConfigureList',
         meta: {
-          navName: t('数据库配置'),
           fullscreen: true,
+          navName: t('数据库配置'),
         },
         component: () => import('@views/db-configure/platform/List.vue'),
       },
       {
-        name: 'PlatformDbConfigureEdit',
         path: 'edit/:clusterType/:version/:confType',
+        name: 'PlatformDbConfigureEdit',
         meta: {
           navName: t('编辑平台配置'),
           // fullscreen: true,
@@ -47,11 +47,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@views/db-configure/platform/Edit.vue'),
       },
       {
-        name: 'PlatformDbConfigureDetail',
         path: 'detail/:clusterType/:version/:confType',
+        name: 'PlatformDbConfigureDetail',
         meta: {
-          navName: t('配置详情'),
           fullscreen: true,
+          navName: t('配置详情'),
         },
         component: () => import('@views/db-configure/platform/Detail.vue'),
       },

@@ -23,7 +23,7 @@
         "origin_sql": "",
         "query_configs": [
           {
-            "data_source_label": "bk_monitor",
+            "data_source_label": "prometheus",
             "data_type_label": "time_series",
             "alias": "a",
             "metric_id": "",

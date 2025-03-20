@@ -21,6 +21,7 @@ type DeployMysqlCrondAct struct {
 const DeployMySQLCrond = "deploy-mysql-crond"
 
 // NewDeployMySQLCrondCommand 实现
+// Deprecated: 老版本
 func NewDeployMySQLCrondCommand() *cobra.Command {
 	act := DeployMysqlCrondAct{
 		BaseOptions: subcmd.GBaseOptions,

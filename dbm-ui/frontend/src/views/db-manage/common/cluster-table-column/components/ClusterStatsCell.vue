@@ -27,15 +27,15 @@
   import type { ISupportClusterType } from '../types';
 
   interface Props {
-    clusterType: ISupportClusterType;
     clusterId: number;
+    clusterType: ISupportClusterType;
   }
 
   const props = defineProps<Props>();
 
   const route = useRoute();
 
-  const { loading: isLoading, data: clusterStatInfo } = useRequest(
+  const { data: clusterStatInfo, loading: isLoading } = useRequest(
     (params) =>
       queryClusterStat(params, {
         cache: route.name as string,

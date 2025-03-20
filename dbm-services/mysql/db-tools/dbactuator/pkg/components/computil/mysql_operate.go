@@ -239,9 +239,8 @@ func ForceShutDownMySQL(user, password, socket string) (err error) {
 }
 
 // ForceShutDownMySQL 强制关闭mysqld
-//
-//	@receiver param
-//	@return err
+// 先用 mysqladmin shutdown，如果失败再用 kill -2 去停止mysql
+// 最后循环判断 mysqld 是否已经关闭
 func (param ShutdownMySQLParam) ForceShutDownMySQL() (err error) {
 	mysqladminCmd := []string{"mysqladmin", "-u", param.MySQLUser, "-p" + param.MySQLPwd}
 	if param.Socket != "" {
@@ -252,6 +251,7 @@ func (param ShutdownMySQLParam) ForceShutDownMySQL() (err error) {
 		return errors.Errorf("no socket file givien")
 	}
 	// shellCMD := fmt.Sprintf("mysqladmin -u%s -p%s -S%s shutdown", param.MySQLUser, param.MySQLPwd, param.Socket)
+	mysqladminCmd = append(mysqladminCmd, "shutdown")
 	output, err := mysqlutil.ExecCommandMySQLShell(strings.Join(mysqladminCmd, " "))
 	if err != nil {
 		logger.Warn("使用mysqladmin shutdown 失败:%s output:%s", err.Error(), string(output))
@@ -274,23 +274,33 @@ func JudgeMysqldShutDown(prefix string) (err error) {
 	for {
 		select {
 		case <-ot.C:
-			return errors.New("停止MySQL超时")
+			return fmt.Errorf("stop mysqld timeout:%s", prefix)
 		case <-tk.C:
 			// 不能直接grep mysqld 因为存在 mysqldata
-			shellCMD := fmt.Sprintf("ps -efwww | grep %s|grep -E 'mysqld |mysqld_safe'| grep -v grep|wc -l", prefix)
+			//shellCMD := fmt.Sprintf("ps -efwww | grep %s|grep -E 'mysqld |mysqld_safe'| grep -v grep|wc -l", prefix)
+			shellCMD := fmt.Sprintf("ps -efwww | grep %s|grep -E 'mysqld |mysqld_safe'| grep -v grep", prefix)
 			out, err := osutil.ExecShellCommand(false, shellCMD)
 			if err != nil {
-				logger.Info("execute %s get an error:%s", shellCMD, err.Error())
+				if strings.TrimSpace(out) == "" {
+					// grep no process found
+					logger.Info("mysqld exit success:%s", prefix)
+					time.Sleep(2 * time.Second)
+					// 遇见过进程停掉之后，还往 data/xxx.err 写了条 mysqld_safe mysqld from pid file ....pid ended
+					return nil
+				}
+				logger.Error("execute %s get an error:%s", shellCMD, err.Error())
 				return err
 			}
-			logger.Info("shell output information is %s", out)
-			if strings.TrimSpace(out) == "0" {
-				logger.Info("mysql has been exited,success～ ,process count is %s", out)
-				// 遇见过进程停掉之后，还往 data/xxx.err 写了条 mysqld_safe mysqld from pid file ....pid ended
+			logger.Info("stop mysqld output: %s", out)
+			// 提示: len(strings.Split("", "\n")) = 1
+			processCnt := len(cmutil.SplitAnyRuneTrim(strings.TrimSpace(out), "\n"))
+			if processCnt == 0 {
+				logger.Info("mysqld exit success:%s", prefix)
 				time.Sleep(2 * time.Second)
+				// 遇见过进程停掉之后，还往 data/xxx.err 写了条 mysqld_safe mysqld from pid file ....pid ended
 				return nil
 			}
-			logger.Warn("mysqld 进程还在，等待进程关闭...")
+			logger.Warn("mysqld process is still running:%s, count:%d", prefix, processCnt)
 		}
 	}
 }
@@ -330,7 +340,7 @@ func KillReMindMySQLClient(regexpStr string) error {
 //	@receiver regexpStr: 根据regexpStr grep 进程IDs
 //	@return error
 func KillMySQLD(regexpStr string) error {
-	logger.Info("start kill -15 mysqld")
+	logger.Info("start kill -15 mysqld:%s", regexpStr)
 	if strings.TrimSpace(regexpStr) == "" {
 		return errors.New("grep 参数为空，不允许！！！")
 	}

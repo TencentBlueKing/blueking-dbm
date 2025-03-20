@@ -32,9 +32,7 @@
     needHostNum: number;
   }
 
-  interface Emits {
-    (e: 'change', value: number): void;
-  }
+  type Emits = (e: 'change', value: number) => void;
 
   interface Exposes {
     getValue: () => Promise<number>;

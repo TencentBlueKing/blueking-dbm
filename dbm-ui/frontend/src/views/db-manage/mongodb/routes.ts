@@ -10,86 +10,86 @@ export const mongoToolboxChildrenRoutes: RouteRecordRaw[] = [
     path: 'script-execute/:step?',
     name: 'MongoScriptExecute',
     meta: {
-      navName: t('变更脚本执行'),
       activeMenu: 'mongoToolbox',
+      navName: t('变更脚本执行'),
     },
     component: () => import('@views/db-manage/mongodb/script-execute/Index.vue'),
   },
   {
-    name: 'MongoShardScaleUp',
     path: 'shard-scale-up/:page?',
+    name: 'MongoShardScaleUp',
     meta: {
       navName: t('扩容Shard节点数'),
     },
     component: () => import('@views/db-manage/mongodb/shard-scale-up/Index.vue'),
   },
   {
-    name: 'MongoShardScaleDown',
     path: 'shard-scale-down/:page?',
+    name: 'MongoShardScaleDown',
     meta: {
       navName: t('缩容Shard节点数'),
     },
     component: () => import('@views/db-manage/mongodb/shard-scale-down/Index.vue'),
   },
   {
-    name: 'MongoCapacityChange',
     path: 'capacity-change/:page?',
+    name: 'MongoCapacityChange',
     meta: {
       navName: t('集群容量变更'),
     },
     component: () => import('@views/db-manage/mongodb/capacity-change/Index.vue'),
   },
   {
-    name: 'MongoProxyScaleUp',
     path: 'proxy-scale-up/:page?',
+    name: 'MongoProxyScaleUp',
     meta: {
       navName: t('扩容接入层'),
     },
     component: () => import('@views/db-manage/mongodb/proxy-scale-up/Index.vue'),
   },
   {
-    name: 'MongoProxyScaleDown',
     path: 'proxy-scale-down/:page?',
+    name: 'MongoProxyScaleDown',
     meta: {
       navName: t('缩容接入层'),
     },
     component: () => import('@views/db-manage/mongodb/proxy-scale-down/Index.vue'),
   },
   {
-    name: 'MongoDBReplace',
     path: 'db-replace/:page?',
+    name: 'MongoDBReplace',
     meta: {
       navName: t('整机替换'),
     },
     component: () => import('@views/db-manage/mongodb/db-replace/Index.vue'),
   },
   {
-    name: 'MongoDBStructure',
     path: 'db-structure/:page?',
+    name: 'MongoDBStructure',
     meta: {
       navName: t('定点构造'),
     },
     component: () => import('@views/db-manage/mongodb/db-structure/Index.vue'),
   },
   {
-    name: 'MongoStructureInstance',
     path: 'structure-instance/:page?',
+    name: 'MongoStructureInstance',
     meta: {
       navName: t('构造实例'),
     },
     component: () => import('@views/db-manage/mongodb/structure-instance/Index.vue'),
   },
   {
-    name: 'MongoDbTableBackup',
     path: 'db-data-copy/:page?',
+    name: 'MongoDbTableBackup',
     meta: {
       navName: t('库表备份'),
     },
     component: () => import('@views/db-manage/mongodb/db-table-backup/Index.vue'),
   },
   {
-    name: 'MongoDbBackup',
     path: 'db-data-copy-record/:page?',
+    name: 'MongoDbBackup',
     meta: {
       navName: t('全库备份'),
     },
@@ -107,8 +107,8 @@ export const mongoToolboxChildrenRoutes: RouteRecordRaw[] = [
 
 const routes: RouteRecordRaw[] = [
   {
-    name: 'MongoDBManage',
     path: 'mongodb',
+    name: 'MongoDBManage',
     meta: {
       navName: t('集群管理'),
     },
@@ -118,29 +118,29 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@views/db-manage/mongodb/Index.vue'),
     children: [
       {
-        name: 'MongoDBReplicaSetList',
         path: 'replica-set-list',
+        name: 'MongoDBReplicaSetList',
         meta: {
-          navName: t('【MongoDB】副本集集群管理'),
           fullscreen: true,
+          navName: t('【MongoDB】副本集集群管理'),
         },
         component: () => import('@views/db-manage/mongodb/replica-set-list/Index.vue'),
       },
       {
-        name: 'mongodbReplicaSetInstanceList',
         path: 'replica-set-instance-list',
+        name: 'mongodbReplicaSetInstanceList',
         meta: {
-          navName: t('【MongoDB】副本集集群实例视图'),
           fullscreen: true,
+          navName: t('【MongoDB】副本集集群实例视图'),
         },
         component: () => import('@views/db-manage/mongodb/instance-list/index.vue'),
       },
       {
-        name: 'MongoDBSharedClusterList',
         path: 'shared-cluster-list',
+        name: 'MongoDBSharedClusterList',
         meta: {
-          navName: t('【MongoDB】分片集群管理'),
           fullscreen: true,
+          navName: t('【MongoDB】分片集群管理'),
         },
         component: () => import('@views/db-manage/mongodb/shared-cluster-list/Index.vue'),
       },
@@ -154,31 +154,31 @@ const routes: RouteRecordRaw[] = [
       //   component: () => import('@views/db-manage/mongodb/instance-list/index.vue'),
       // },
       {
-        name: 'mongodbShareClusterInstanceList',
         path: 'share-cluster-instance-list',
+        name: 'mongodbShareClusterInstanceList',
         meta: {
-          navName: t('【MongoDB】分片集群实例视图'),
           fullscreen: true,
+          navName: t('【MongoDB】分片集群实例视图'),
         },
         component: () => import('@views/db-manage/mongodb/instance-list/index.vue'),
       },
       {
-        name: 'MongodbPermission',
         path: 'permission',
+        name: 'MongodbPermission',
         meta: {
           navName: t('【MongoDB】授权规则'),
         },
         component: () => import('@views/db-manage/mongodb/permission/Index.vue'),
       },
       {
-        name: 'MongoToolbox',
         path: 'toolbox',
+        name: 'MongoToolbox',
+        meta: {
+          fullscreen: true,
+          navName: t('工具箱'),
+        },
         redirect: {
           name: 'MongoScriptExecute',
-        },
-        meta: {
-          navName: t('工具箱'),
-          fullscreen: true,
         },
         component: () => import('@views/db-manage/mongodb/toolbox/Index.vue'),
         children: mongoToolboxChildrenRoutes,

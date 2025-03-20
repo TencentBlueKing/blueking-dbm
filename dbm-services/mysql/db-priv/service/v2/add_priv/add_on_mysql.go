@@ -125,7 +125,7 @@ func (c *PrivTaskPara) addOneDtOnMySQLForSplitClient(
 				),
 			},
 			true,
-			30,
+			600,
 		)
 		// 调用 api 有问题, 比如 request body
 		if err != nil {
@@ -195,7 +195,7 @@ func readConflictReport(uuid string, bkCloudId int64, addr string, reports map[s
 			fmt.Sprintf(`SELECT * FROM infodba_schema.dba_grant_result WHERE id = '%s'`, uuid),
 		},
 		false,
-		30,
+		600,
 	)
 	if err != nil {
 		slog.Error("add on mysql read conflict report", slog.String("err", err.Error()))

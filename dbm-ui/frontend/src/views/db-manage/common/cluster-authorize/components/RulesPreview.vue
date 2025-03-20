@@ -153,23 +153,23 @@
   interface Props {
     accountType: AccountTypes.MYSQL | AccountTypes.TENDBCLUSTER;
     data: {
+      access_dbs: string[];
+      rules: PermissionRule['rules'];
       source_ips: {
-        ip: string;
-        bk_host_id: number;
         bk_biz_id: number;
+        bk_host_id: number;
+        ip: string;
       }[];
       target_instances: string[];
       user: string;
-      access_dbs: string[];
-      rules: PermissionRule['rules'];
     };
   }
 
   interface IDataRow {
-    ips: string[];
-    account: string;
     accessDbs: string[];
+    account: string;
     clusterDomains: string[];
+    ips: string[];
     privilege: AccountRulePrivilege;
   }
 
@@ -196,10 +196,10 @@
 
       tableData.value = [
         {
-          ips: props.data.source_ips.map((item) => item.ip),
-          account: props.data.user,
           accessDbs: props.data.access_dbs,
+          account: props.data.user,
           clusterDomains: props.data.target_instances,
+          ips: props.data.source_ips.map((item) => item.ip),
           privilege: {
             ddl: ddl.filter((item) => privileageMap[item]),
             dml: dml.filter((item) => privileageMap[item]),

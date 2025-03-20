@@ -28,25 +28,25 @@
     ticketDetails: TicketModel<Mongodb.TemporaryDestroy>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.MONGODB_TEMPORARY_DESTROY,
     inheritAttrs: false,
   });
 
+  const props = defineProps<Props>();
+
   const { t } = useI18n();
 
   const columns = [
     {
-      label: t('临时集群名称'),
       field: 'name',
+      label: t('临时集群名称'),
       showOverflowTooltip: false,
     },
   ];
 
   const dataList = computed(() => {
-    const { clusters, cluster_ids: clusterIds } = props.ticketDetails.details;
+    const { cluster_ids: clusterIds, clusters } = props.ticketDetails.details;
     return clusterIds.map((id) => ({
       name: clusters[id].name,
     }));

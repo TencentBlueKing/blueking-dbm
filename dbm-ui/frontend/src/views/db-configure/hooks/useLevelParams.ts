@@ -20,10 +20,10 @@ import { clusterTypeInfos, ClusterTypes, ConfLevels, type ConfLevelValues } from
 import { notModuleClusters } from '../common/const';
 
 export type LevelParams = {
+  bk_biz_id?: number;
+  level_info?: any;
   level_name?: ConfLevelValues;
   level_value?: number;
-  level_info?: any;
-  bk_biz_id?: number;
 };
 
 /**
@@ -41,7 +41,7 @@ export const useLevelParams = (isPlat: boolean): ComputedRef<LevelParams> => {
       return {};
     }
 
-    const { treeId, parentId, clusterType } = route.params;
+    const { clusterType, parentId, treeId } = route.params;
 
     if (!treeId) {
       return {
@@ -50,10 +50,10 @@ export const useLevelParams = (isPlat: boolean): ComputedRef<LevelParams> => {
     }
 
     const params = {
+      bk_biz_id: globalBizsStore.currentBizId,
+      level_info: undefined as any,
       level_name: ConfLevels.PLAT,
       level_value: 0,
-      level_info: undefined as any,
-      bk_biz_id: globalBizsStore.currentBizId,
     };
     // 处理路由参数
     const [levelType, nodeId] = (treeId as string).split('-');

@@ -66,9 +66,9 @@
   import { encodeRegexp, messageSuccess } from '@utils';
 
   interface Props {
-    id: string;
-    draggable: boolean;
     activeViewName: string;
+    draggable: boolean;
+    id: string;
     serachKey: string;
   }
 

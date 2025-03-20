@@ -32,9 +32,7 @@
     data?: IDataRow['srcCluster'];
   }
 
-  interface Emits {
-    (e: 'onInputFinish', value: string): void;
-  }
+  type Emits = (e: 'onInputFinish', value: string) => void;
 
   interface Exposes {
     getValue: () => Promise<string>;
@@ -51,13 +49,13 @@
 
   const rules = [
     {
+      message: t('目标集群不能为空'),
       validator: (value: string) => {
         if (value) {
           return true;
         }
         return false;
       },
-      message: t('目标集群不能为空'),
     },
   ];
 

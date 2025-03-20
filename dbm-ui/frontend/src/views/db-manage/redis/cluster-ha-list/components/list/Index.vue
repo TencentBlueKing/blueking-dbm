@@ -104,6 +104,14 @@
         label="Slave"
         :search-ip="batchSearchIpInatanceList"
         :selected-list="selected" />
+      <BkTableColumn
+        field="module_names"
+        label="Modules"
+        :width="150">
+        <template #default="{ data }: { data: RedisModel }">
+          <TagBlock :data="data.module_names" />
+        </template>
+      </BkTableColumn>
       <CommonColumn :cluster-type="ClusterTypes.REDIS_INSTANCE" />
       <BkTableColumn
         :fixed="isStretchLayoutOpen ? false : 'right'"
@@ -306,6 +314,7 @@
 
   import DbTable from '@components/db-table/index.vue';
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
+  import TagBlock from '@components/tag-block/Index.vue';
 
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
@@ -336,46 +345,46 @@
     // messageWarn,
   } from '@utils';
 
+  const clusterId = defineModel<number>('clusterId');
+
   enum ClusterNodeKeys {
     PROXY = 'proxy',
     REDIS_MASTER = 'redis_master',
     REDIS_SLAVE = 'redis_slave',
   }
 
-  const clusterId = defineModel<number>('clusterId');
-
   const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
   const globalBizsStore = useGlobalBizs();
-  const { handleDisableCluster, handleEnableCluster, handleDeleteCluster } = useOperateClusterBasic(
+  const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(
     ClusterTypes.REDIS_INSTANCE,
     {
       onSuccess: () => fetchData(),
     },
   );
-  const { state: extractState, handleShow: handleShowExtract } = useShowExtractKeys();
-  const { state: deleteKeyState, handleShow: handlShowDeleteKeys } = useShowDeleteKeys();
-  const { state: backupState, handleShow: handleShowBackup } = useShowBackup();
-  const { state: purgeState, handleShow: handleShowPurge } = useShowPurge();
+  const { handleShow: handleShowExtract, state: extractState } = useShowExtractKeys();
+  const { handleShow: handlShowDeleteKeys, state: deleteKeyState } = useShowDeleteKeys();
+  const { handleShow: handleShowBackup, state: backupState } = useShowBackup();
+  const { handleShow: handleShowPurge, state: purgeState } = useShowPurge();
   const { isOpen: isStretchLayoutOpen, splitScreen: stretchLayoutSplitScreen } = useStretchLayout();
 
   let isInit = true;
 
   const {
+    batchSearchIpInatanceList,
+    clearSearchValue,
+    columnFilterChange,
+    columnSortChange,
+    handleSearchValueChange,
+    isFilter,
     searchAttrs,
     searchValue,
     sortValue,
-    batchSearchIpInatanceList,
-    isFilter,
-    columnFilterChange,
-    columnSortChange,
-    clearSearchValue,
-    handleSearchValueChange,
   } = useLinkQueryColumnSerach({
-    searchType: ClusterTypes.REDIS,
     attrs: ['bk_cloud_id', 'major_version', 'region', 'time_zone'],
     fetchDataFn: () => fetchData(isInit),
+    searchType: ClusterTypes.REDIS,
   });
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
@@ -383,90 +392,87 @@
   const getTableInstance = () => tableRef.value;
   // 提取Key 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.REDIS_KEYS_EXTRACT,
     onSuccess(cloneData) {
       extractState.isShow = true;
       extractState.data = cloneData;
       window.changeConfirm = true;
     },
+    type: TicketTypes.REDIS_KEYS_EXTRACT,
   });
 
   // 删除Key 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.REDIS_KEYS_DELETE,
     onSuccess(cloneData) {
       deleteKeyState.isShow = true;
       deleteKeyState.data = cloneData;
       window.changeConfirm = true;
     },
+    type: TicketTypes.REDIS_KEYS_DELETE,
   });
 
   // 集群备份单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.REDIS_BACKUP,
     onSuccess(cloneData) {
       backupState.isShow = true;
       backupState.data = cloneData;
       window.changeConfirm = true;
     },
+    type: TicketTypes.REDIS_BACKUP,
   });
 
   // 清档单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.REDIS_PURGE,
     onSuccess(cloneData) {
       purgeState.isShow = true;
       purgeState.data = cloneData;
       window.changeConfirm = true;
     },
+    type: TicketTypes.REDIS_PURGE,
   });
 
   const selected = shallowRef<RedisModel[]>([]);
 
   /** 查看密码 */
   const passwordState = reactive({
-    isShow: false,
     fetchParams: {
-      cluster_id: -1,
       bk_biz_id: globalBizsStore.currentBizId,
+      cluster_id: -1,
       db_type: DBTypes.REDIS,
       type: DBTypes.REDIS,
     },
+    isShow: false,
   });
 
   const searchSelectData = computed(() => [
     {
-      name: t('访问入口'),
+      async: false,
       id: 'domain',
       multiple: true,
-      async: false,
+      name: t('访问入口'),
     },
     {
-      name: t('IP 或 IP:Port'),
+      async: false,
       id: 'instance',
       multiple: true,
-      async: false,
+      name: t('IP 或 IP:Port'),
     },
     {
-      name: 'ID',
       id: 'id',
+      name: 'ID',
     },
     {
-      name: t('集群名称'),
+      async: false,
       id: 'name',
       multiple: true,
-      async: false,
+      name: t('集群名称'),
     },
     {
-      name: t('管控区域'),
+      children: searchAttrs.value.bk_cloud_id,
       id: 'bk_cloud_id',
       multiple: true,
-      children: searchAttrs.value.bk_cloud_id,
+      name: t('管控区域'),
     },
     {
-      name: t('状态'),
-      id: 'status',
-      multiple: true,
       children: [
         {
           id: 'normal',
@@ -477,28 +483,31 @@
           name: t('异常'),
         },
       ],
+      id: 'status',
+      multiple: true,
+      name: t('状态'),
     },
     {
-      name: t('版本'),
+      children: searchAttrs.value.major_version,
       id: 'major_version',
       multiple: true,
-      children: searchAttrs.value.major_version,
+      name: t('版本'),
     },
     {
-      name: t('地域'),
+      children: searchAttrs.value.region,
       id: 'region',
       multiple: true,
-      children: searchAttrs.value.region,
+      name: t('地域'),
     },
     {
-      name: t('创建人'),
       id: 'creator',
+      name: t('创建人'),
     },
     {
-      name: t('时区'),
+      children: searchAttrs.value.time_zone,
       id: 'time_zone',
       multiple: true,
-      children: searchAttrs.value.time_zone,
+      name: t('时区'),
     },
   ]);
 
@@ -508,9 +517,9 @@
     }
 
     return {
-      small: true,
       align: 'left',
       layout: ['total', 'limit', 'list'],
+      small: true,
     };
   });
   const selectedIds = computed(() => selected.value.map((item) => item.id));
@@ -576,10 +585,6 @@
   };
 
   const disableSelectMethod = (data: RedisModel) => {
-    if (!data.isOnline) {
-      return true;
-    }
-
     if (data.operations?.length > 0) {
       const operationData = data.operations[0];
       return ([TicketTypes.REDIS_INSTANCE_DESTROY, TicketTypes.REDIS_INSTANCE_CLOSE] as string[]).includes(

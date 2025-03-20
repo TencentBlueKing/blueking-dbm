@@ -57,6 +57,7 @@ var MycnfCloneItemsDefault = []string{
 	"max_connections",
 	"group_concat_max_len",
 	"secure_file_priv",
+	"innodb_strict_mode",
 
 	// slave
 	"slave_parallel_workers",

@@ -181,23 +181,18 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import _ from 'lodash'
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import DorisDetailModel from '@services/model/doris/doris-detail';
   import DorisNodeModel from '@services/model/doris/doris-node';
-  import {
-    getDorisDetail,
-    getDorisNodeList,
-  } from '@services/source/doris';
+  import { getDorisDetail, getDorisNodeList } from '@services/source/doris';
 
-  import {
-    useLinkQueryColumnSerach,
-  } from '@hooks';
+  import { useLinkQueryColumnSerach } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes } from '@common/const'
+  import { ClusterTypes } from '@common/const';
 
   import RenderHostStatus from '@components/render-host-status/Index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
@@ -220,37 +215,34 @@
   const props = defineProps<Props>();
 
   const globalBizsStore = useGlobalBizs();
-  const { t, locale } = useI18n();
+  const { locale, t } = useI18n();
 
   const {
-    searchValue,
-    sortValue,
+    clearSearchValue,
     columnCheckedMap,
     columnFilterChange,
     columnSortChange,
-    clearSearchValue,
-    validateSearchValues,
     handleSearchValueChange,
+    searchValue,
+    sortValue,
+    validateSearchValues,
   } = useLinkQueryColumnSerach({
-    searchType: ClusterTypes.DORIS,
     attrs: ['bk_cloud_id'],
-    fetchDataFn: () => fetchNodeList(),
     defaultSearchItem: {
       id: 'ip',
       name: 'IP',
-    }
+    },
+    fetchDataFn: () => fetchNodeList(),
+    searchType: ClusterTypes.DORIS,
   });
 
   const searchSelectData = [
     {
-      name: 'IP',
       id: 'ip',
       multiple: true,
+      name: 'IP',
     },
     {
-      name: t('类型'),
-      id: 'node_type',
-      multiple: true,
       children: [
         {
           id: 'doris_backend_hot',
@@ -269,6 +261,9 @@
           name: 'Observer',
         },
       ],
+      id: 'node_type',
+      multiple: true,
+      name: t('类型'),
     },
   ];
 
@@ -289,7 +284,6 @@
 
   const columns = computed(() => [
     {
-      width: 60,
       fixed: 'left',
       label: () => (
         <bk-checkbox
@@ -304,85 +298,83 @@
           model-value={Boolean(checkedNodeMap.value[data.bk_host_id])}
           onChange={(value: boolean) => handleSelect(value, data)}
         />
-        ),
+      ),
+      width: 60,
     },
     {
-      label: t('节点IP'),
       field: 'ip',
-      width: 140,
-      showOverflowTooltip: false,
+      label: t('节点IP'),
       render: ({ data }: { data: DorisNodeModel }) => (
         <TextOverflowLayout>
           {{
-            default: () => <span>{data.ip}</span>,
             append: () => (
               <>
-                {
-                  data.isNew && (
-                    <bk-tag
-                      theme="success"
-                      size="small"
-                      class="ml-4">
-                      NEW
-                    </bk-tag>
-                  )
-                }
+                {data.isNew && (
+                  <bk-tag
+                    class='ml-4'
+                    size='small'
+                    theme='success'>
+                    NEW
+                  </bk-tag>
+                )}
               </>
-            )
+            ),
+            default: () => <span>{data.ip}</span>,
           }}
         </TextOverflowLayout>
       ),
+      showOverflowTooltip: false,
+      width: 140,
     },
     {
-      label: t('实例数量'),
       field: 'node_count',
+      label: t('实例数量'),
       sort: true,
       width: 120,
     },
     {
-      label: t('类型'),
       field: 'node_type',
       filter: {
+        checked: columnCheckedMap.value.node_type,
         filterFn: () => true,
         list: [
           {
-            value: 'doris_backend_hot',
             text: t('热节点'),
+            value: 'doris_backend_hot',
           },
           {
-            value: 'doris_backend_cold',
             text: t('冷节点'),
+            value: 'doris_backend_cold',
           },
           {
-            value: 'doris_follower',
             text: 'Follower',
+            value: 'doris_follower',
           },
           {
-            value: 'doris_observer',
             text: 'Observer',
+            value: 'doris_observer',
           },
         ],
-        checked: columnCheckedMap.value.node_type,
       },
-      width: 200,
+      label: t('类型'),
       render: ({ data }: { data: DorisNodeModel }) => <RenderClusterRole data={[data.role]} />,
+      width: 200,
     },
     {
-      label: t('Agent状态'),
       field: 'status',
-      width: 120,
+      label: t('Agent状态'),
       render: ({ data }: { data: DorisNodeModel }) => <RenderHostStatus data={data.status} />,
+      width: 120,
     },
     {
-      label: t('部署时间'),
       field: 'create_at',
-      sort: true,
+      label: t('部署时间'),
       render: ({ data }: { data: DorisNodeModel }) => <span>{data.createAtDisplay}</span>,
+      sort: true,
     },
     {
-      label: t('操作'),
-      width: isCN.value ? 200 : 260,
       fixed: 'right',
+      label: t('操作'),
       render: ({ data }: { data: DorisNodeModel }) => {
         const shrinkDisableTooltips = checkNodeShrinkDisable(data);
         return (
@@ -390,15 +382,12 @@
             <OperationBtnStatusTips data={operationData.value}>
               <span v-bk-tooltips={shrinkDisableTooltips.tooltips}>
                 <auth-button
-                  text
-                  theme="primary"
-                  action-id="doris_shrink"
+                  action-id='doris_shrink'
+                  disabled={shrinkDisableTooltips.disabled || operationData.value?.operationDisabled}
                   permission={data.permission.doris_shrink}
                   resource={data.bk_host_id}
-                  disabled={
-                    shrinkDisableTooltips.disabled
-                    || operationData.value?.operationDisabled
-                  }
+                  theme='primary'
+                  text
                   onClick={() => handleShrinkOne(data)}>
                   {t('缩容')}
                 </auth-button>
@@ -406,26 +395,26 @@
             </OperationBtnStatusTips>
             <OperationBtnStatusTips data={operationData.value}>
               <auth-button
-                text
-                theme="primary"
-                action-id="doris_replace"
+                action-id='doris_replace'
+                class='ml-8'
+                disabled={operationData.value?.operationDisabled}
                 permission={data.permission.doris_replace}
                 resource={data.bk_host_id}
-                class="ml-8"
-                disabled={operationData.value?.operationDisabled}
+                theme='primary'
+                text
                 onClick={() => handleReplaceOne(data)}>
                 {t('替换')}
               </auth-button>
             </OperationBtnStatusTips>
             <OperationBtnStatusTips data={operationData.value}>
               <auth-button
-                text
-                theme="primary"
-                action-id="doris_reboot"
+                action-id='doris_reboot'
+                class='ml-8'
+                disabled={operationData.value?.operationDisabled}
                 permission={data.permission.doris_reboot}
                 resource={data.bk_host_id}
-                class="ml-8"
-                disabled={operationData.value?.operationDisabled}
+                theme='primary'
+                text
                 onClick={() => handleShowDetail(data)}>
                 {t('重启实例')}
               </auth-button>
@@ -433,12 +422,14 @@
           </>
         );
       },
+      width: isCN.value ? 200 : 260,
     },
   ]);
 
   const isCN = computed(() => locale.value === 'zh-cn');
-  const isSelectedAll = computed(() => tableData.value.length > 0
-    && Object.keys(checkedNodeMap.value).length >= tableData.value.length);
+  const isSelectedAll = computed(
+    () => tableData.value.length > 0 && Object.keys(checkedNodeMap.value).length >= tableData.value.length,
+  );
 
   const batchShrinkDisabledInfo = computed(() => {
     // 1.Follower 为必须，3个节点, 缩容
@@ -448,8 +439,8 @@
     const options = {
       disabled: false,
       tooltips: {
-        disabled: true,
         content: '',
+        disabled: true,
       },
     };
     const selectList = Object.values(checkedNodeMap.value);
@@ -459,7 +450,7 @@
       options.tooltips.content = t('请先选中节点');
       return options;
     }
-    if (selectList.some(item => item.isFollower)) {
+    if (selectList.some((item) => item.isFollower)) {
       options.disabled = true;
       options.tooltips.disabled = false;
       options.tooltips.content = t('Follower节点不支持缩容');
@@ -467,7 +458,7 @@
     }
 
     let observerNumTotal = 0;
-    let observerNum = 0
+    let observerNum = 0;
     let hotNodeNumTotal = 0;
     let hotNodeNum = 0;
     let coldNodeNumTotal = 0;
@@ -492,7 +483,7 @@
       }
     });
 
-    if (observerNumTotal > 0 && (observerNumTotal - observerNum === 1)) {
+    if (observerNumTotal > 0 && observerNumTotal - observerNum === 1) {
       options.disabled = true;
       options.tooltips.disabled = false;
       options.tooltips.content = t('Observer类型节点若存在至少保留两台');
@@ -506,25 +497,25 @@
   });
 
   const isBatchReplaceDisabeld = computed(() => Object.keys(checkedNodeMap.value).length < 1);
-  const selectedIdList = computed(() => Object.values(checkedNodeMap.value).map(item => item.ip));
-  const abnormalNodeList = computed(() => tableData.value.filter(item => item.isAbnormal));
+  const selectedIdList = computed(() => Object.values(checkedNodeMap.value).map((item) => item.ip));
+  const abnormalNodeList = computed(() => tableData.value.filter((item) => item.isAbnormal));
 
   const fetchClusterDetail = () => {
     // 获取集群详情
     getDorisDetail({
       id: props.clusterId,
-    })
-      .then((data) => {
-        operationData.value = data;
-      });
+    }).then((data) => {
+      operationData.value = data;
+    });
   };
 
-  const {
-    pause: pauseFetchClusterDetail,
-    resume: resumeFetchClusterDetail,
-  } = useTimeoutPoll(fetchClusterDetail, 2000, {
-    immediate: true,
-  });
+  const { pause: pauseFetchClusterDetail, resume: resumeFetchClusterDetail } = useTimeoutPoll(
+    fetchClusterDetail,
+    2000,
+    {
+      immediate: true,
+    },
+  );
 
   const fetchNodeList = () => {
     isLoading.value = true;
@@ -554,17 +545,21 @@
       });
   };
 
-  watch(() => props.clusterId, () => {
-    pauseFetchClusterDetail();
-    resumeFetchClusterDetail();
-    fetchNodeList();
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.clusterId,
+    () => {
+      pauseFetchClusterDetail();
+      resumeFetchClusterDetail();
+      fetchNodeList();
+    },
+    {
+      immediate: true,
+    },
+  );
 
   watch(searchValue, () => {
-    checkedNodeMap.value = {}
-  })
+    checkedNodeMap.value = {};
+  });
 
   const setRowClass = (data: DorisNodeModel) => (data.isNew ? 'is-new-row' : '');
 
@@ -572,8 +567,8 @@
     const options = {
       disabled: false,
       tooltips: {
-        disabled: true,
         content: '',
+        disabled: true,
       },
     };
 
@@ -602,11 +597,11 @@
         options.disabled = true;
         options.tooltips.disabled = false;
         options.tooltips.content = t('Follower类型节点若存在至少保留两台');
-      } else if (node.isHot && hotNodeNum > 0  && coldNodeNum === 0) {
+      } else if (node.isHot && hotNodeNum > 0 && coldNodeNum === 0) {
         options.disabled = true;
         options.tooltips.disabled = false;
         options.tooltips.content = t('冷/热 数据节点必选 1 种以上，每个角色至少需要 2 台');
-      } else if (node.isCold && coldNodeNum > 0  && hotNodeNum === 0) {
+      } else if (node.isCold && coldNodeNum > 0 && hotNodeNum === 0) {
         options.disabled = true;
         options.tooltips.disabled = false;
         options.tooltips.content = t('冷/热 数据节点必选 1 种以上，每个角色至少需要 2 台');
@@ -628,8 +623,8 @@
 
   // 复制IP
   const handleCopyIp = (dataList: DorisNodeModel[]) => {
-    const ipList = dataList.map(nodeItem => nodeItem.ip);
-    execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }))
+    const ipList = dataList.map((nodeItem) => nodeItem.ip);
+    execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }));
   };
 
   const handleSelect = (checked: boolean, data: DorisNodeModel) => {
@@ -645,10 +640,13 @@
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      checkedNodeMap.value = tableData.value.reduce((result, nodeData) => ({
-        ...result,
-        [nodeData.bk_host_id]: nodeData,
-      }), {} as Record<number, DorisNodeModel>);
+      checkedNodeMap.value = tableData.value.reduce(
+        (result, nodeData) => ({
+          ...result,
+          [nodeData.bk_host_id]: nodeData,
+        }),
+        {} as Record<number, DorisNodeModel>,
+      );
     } else {
       checkedNodeMap.value = {};
     }

@@ -11,6 +11,7 @@ package slavestatus
 import (
 	"fmt"
 	"log/slog"
+	"slices"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 )
@@ -28,6 +29,8 @@ type getPrimaryRes struct {
 	Port         uint32 `db:"PORT"`
 	IsThisServer uint32 `db:"IS_THIS_SERVER"`
 }
+
+var ctlErrNos = []int{1505, 1396, 1032}
 
 // Run 运行
 func (c *ctlReplicateChecker) Run() (msg string, err error) {
@@ -50,12 +53,34 @@ func (c *ctlReplicateChecker) Run() (msg string, err error) {
 	}
 
 	if !c.isOk() {
+		ioErrNo, sqlErrNo, err := c.getErrNo()
+		if err != nil {
+			slog.Warn("invalid errno", err)
+		} else {
+			slog.Info("err no found", slog.Int("io err", ioErrNo), slog.Int("sql err", sqlErrNo))
+			slog.Info("io err if is skip", slog.Int("id", slices.Index(ctlErrNos, ioErrNo)))
+			slog.Info("sql err if is skip", slog.Int("id", slices.Index(ctlErrNos, sqlErrNo)))
+			if slices.Index(ctlErrNos, ioErrNo) >= 0 || slices.Index(ctlErrNos, sqlErrNo) >= 0 {
+				slog.Info("need skip errno found")
+				err := c.skipErr()
+				if err != nil {
+					slog.Warn(
+						"skip error failed",
+						err,
+						slog.Int("io errno", ioErrNo),
+						slog.Int("sql errno", sqlErrNo),
+					)
+				} else {
+					slog.Info("skip err success")
+					return "", nil
+				}
+			}
+		}
 		slaveErr, err := c.collectError()
 		if err != nil {
 			return "", err
 		}
 		return fmt.Sprintf("IO/SQL thread not running: %s", slaveErr), nil
-
 	}
 	slog.Info(
 		"tdbctl primary is master",

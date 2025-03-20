@@ -113,24 +113,24 @@
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
 
   useTicketCloneInfo({
-    type: TicketTypes.SQLSERVER_MASTER_SLAVE_SWITCH,
     onSuccess(cloneData) {
       tableData.value = cloneData.map((item) =>
         createRowData({
+          clusterIdList: item.cluster_ids,
           masterData: {
-            bk_host_id: item.master.bk_host_id,
             bk_cloud_id: item.master.bk_cloud_id,
+            bk_host_id: item.master.bk_host_id,
             ip: item.master.ip,
           },
           slaveData: {
-            bk_host_id: item.slave.bk_host_id,
             bk_cloud_id: item.slave.bk_cloud_id,
+            bk_host_id: item.slave.bk_host_id,
             ip: item.slave.ip,
           },
-          clusterIdList: item.cluster_ids,
         }),
       );
     },
+    type: TicketTypes.SQLSERVER_MASTER_SLAVE_SWITCH,
   });
 
   // Master 批量选择
@@ -142,12 +142,12 @@
     instanceSelectValue.value = data;
     const newList = [] as IDataRow[];
     data[ClusterTypes.SQLSERVER_HA].forEach((proxyData) => {
-      const { ip, bk_host_id, bk_cloud_id } = proxyData;
+      const { bk_cloud_id, bk_host_id, ip } = proxyData;
       newList.push(
         createRowData({
           masterData: {
-            bk_host_id,
             bk_cloud_id,
+            bk_host_id,
             ip,
           },
         }),
@@ -180,12 +180,12 @@
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
       .then((data) =>
         createTicket({
-          ticket_type: TicketTypes.SQLSERVER_MASTER_SLAVE_SWITCH,
-          remark: '',
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           details: {
             infos: data,
           },
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          remark: '',
+          ticket_type: TicketTypes.SQLSERVER_MASTER_SLAVE_SWITCH,
         }).then((data) => {
           window.changeConfirm = false;
 

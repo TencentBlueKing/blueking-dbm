@@ -5,6 +5,7 @@ export * from './checkSum';
 export * from './clientCloneRules';
 export * from './dataMigrate';
 export * from './dataRepair';
+export * from './deleteClearDb';
 export * from './dumpData';
 export * from './flashBack';
 export * from './haApply';

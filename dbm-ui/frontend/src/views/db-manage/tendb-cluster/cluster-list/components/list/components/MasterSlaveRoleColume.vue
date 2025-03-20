@@ -92,7 +92,7 @@
   defineSlots<Slots<ClusterTypes.TENDBCLUSTER, 'spider_master' | 'spider_slave'>>();
   const { t } = useI18n();
 
-  const handleCopy = (data: { ip: string; instance: string }[], field: 'ip' | 'instance') => {
+  const handleCopy = (data: { instance: string; ip: string }[], field: 'ip' | 'instance') => {
     const copyData = _.uniq(data.map((item) => item[field]));
     if (copyData.length < 1) {
       messageWarn('数据为空');

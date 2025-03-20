@@ -19,13 +19,14 @@ export interface SingleApply extends DetailBase {
   ip_source: string;
   nodes?: {
     [ClusterTypes.SQLSERVER_SINGLE]: {
-      ip: string;
-      bk_host_id: number;
-      bk_cloud_id: number;
       bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_host_id: number;
+      ip: string;
     }[];
   };
   resource_spec?: {
+    backend: SpecInfo;
     backend_group: SpecInfo;
   };
   spec: string;

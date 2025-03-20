@@ -37,7 +37,6 @@ func (u *RestartMySQLProxyComp) Example() interface{} {
 //	@receiver u
 //	@return err
 func (u *RestartMySQLProxyComp) PreCheck() (err error) {
-
 	db := native.InsObject{
 		Host: u.Params.Host,
 		User: u.GeneralParam.RuntimeAccountParam.ProxyAdminUser,
@@ -49,15 +48,6 @@ func (u *RestartMySQLProxyComp) PreCheck() (err error) {
 		logger.Error("连接%d的Admin Port 失败%s", u.Params.Port, err.Error())
 		return err
 	}
-	// inuse, err := db.CheckProxyInUse()
-	// if err != nil {
-	// 	logger.Error("检查Proxy可用性检查失败")
-	// 	return err
-	// }
-	// if inuse {
-	// 	return fmt.Errorf("检测到%d存在可用连接", u.Params.Port)
-	// }
-
 	return
 }
 
@@ -75,7 +65,7 @@ func (u *RestartMySQLProxyComp) RestartProxy() (err error) {
 		ProxyAdminUser: u.GeneralParam.RuntimeAccountParam.ProxyAdminUser,
 		ProxyAdminPwd:  u.GeneralParam.RuntimeAccountParam.ProxyAdminPwd,
 	}
-	if err := p.Restart(); err != nil {
+	if err := p.Restart(u.Params.Port); err != nil {
 		logger.Error("重启 proxy(%d) 失败,err:%s", u.Params.Port, err.Error())
 		return err
 	}

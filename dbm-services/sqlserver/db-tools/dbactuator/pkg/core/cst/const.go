@@ -285,6 +285,56 @@ var (
 `
 )
 
+var (
+	GRANT_DRS_SYS_READ_SQL = `
+	USE [master]
+	DECLARE @username NVARCHAR(50) = '%s'
+	DECLARE @sql NVARCHAR(MAX)
+	set @sql='
+	USE [master]
+	IF EXISTS (SELECT * FROM sys.sysusers WHERE name = '''+@username+''')
+		BEGIN
+			DROP USER ['+@username+']
+		END
+	CREATE USER ['+@username+'] FOR LOGIN ['+@username+']
+	ALTER ROLE [db_datareader] ADD MEMBER ['+@username+']
+
+	USE [model]
+	IF EXISTS (SELECT * FROM sys.sysusers WHERE name = '''+@username+''')
+		BEGIN
+			DROP USER ['+@username+']
+		END
+	CREATE USER ['+@username+'] FOR LOGIN ['+@username+']
+	ALTER ROLE [db_datareader] ADD MEMBER ['+@username+']
+
+	USE [msdb]
+	IF EXISTS (SELECT * FROM sys.sysusers WHERE name = '''+@username+''')
+		BEGIN
+			DROP USER ['+@username+']
+		END
+	CREATE USER ['+@username+'] FOR LOGIN ['+@username+']
+	ALTER ROLE [db_datareader] ADD MEMBER ['+@username+']
+
+	USE [tempdb]
+	IF EXISTS (SELECT * FROM sys.sysusers WHERE name = '''+@username+''')
+		BEGIN
+			DROP USER ['+@username+']
+		END
+	CREATE USER ['+@username+'] FOR LOGIN ['+@username+']
+	ALTER ROLE [db_datareader] ADD MEMBER ['+@username+']
+
+	USE [Monitor]
+	IF EXISTS (SELECT * FROM sys.sysusers WHERE name = '''+@username+''')
+		BEGIN
+			DROP USER ['+@username+']
+		END
+	CREATE USER ['+@username+'] FOR LOGIN ['+@username+']
+	ALTER ROLE [db_datareader] ADD MEMBER ['+@username+']
+	'
+	exec(@sql)
+`
+)
+
 // 导出系统库一些配置专用的SQL
 var (
 	BACKUP_FILTER_SQL   = `SELECT [NAME] FROM [%s].[dbo].[BACKUP_FILTER];`

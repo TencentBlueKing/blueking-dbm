@@ -169,7 +169,8 @@ SYMMETRIC_CIPHER_TYPE = get_type_env(key="SYMMETRIC_CIPHER_TYPE", _type=str, def
 
 # 数据平台应用 token
 BKDATA_DATA_TOKEN = get_type_env(key="BKDATA_DATA_TOKEN", _type=str, default="")
-
+# 数据平台前端数据上报地址
+BKDATA_FRONTEND_DATA_ID = get_type_env(key="BKDATA_FRONTEND_DATA_ID", _type=str, default="")
 
 # gcs/scr平台
 GCS_SCR_OPERATOR = get_type_env(key="GCS_SCR_OPERATOR", _type=str, default="scr-system")

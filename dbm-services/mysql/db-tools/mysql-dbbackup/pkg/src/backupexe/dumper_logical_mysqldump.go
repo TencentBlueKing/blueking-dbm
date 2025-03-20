@@ -34,7 +34,6 @@ import (
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
 )
 
 // LogicalDumperMysqldump logical dumper using mysqldump tool
@@ -307,7 +306,7 @@ func (l *LogicalDumperMysqldump) Execute(ctx context.Context) (err error) {
 	err = cmd.Run()
 	if err != nil || stderr.String() != "" {
 		errStrPrefix := fmt.Sprintf("tail 5 error from %s", mysqldumpLogFile)
-		errStrDetail, _ := util.GrepLinesFromFile(mysqldumpLogFile, nil, 2, false, true)
+		errStrDetail, _ := cmutil.NewGrepLines(mysqldumpLogFile, true, false).MatchWords(nil, 5)
 		if len(errStrDetail) > 0 {
 			logger.Log.Info(errStrPrefix)
 			logger.Log.Error(errStrDetail)

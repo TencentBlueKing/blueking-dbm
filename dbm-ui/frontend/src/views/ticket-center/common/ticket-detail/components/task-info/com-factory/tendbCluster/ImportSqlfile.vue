@@ -12,10 +12,10 @@
     ticketDetails: TicketModel<TendbCluster.ImportSqlFile>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

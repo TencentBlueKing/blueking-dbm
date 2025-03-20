@@ -151,7 +151,7 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import DorisNodeModel from '@services/model/doris/doris-node'
+  import DorisNodeModel from '@services/model/doris/doris-node';
 
   import RenderHostStatus from '@components/render-host-status/Index.vue';
 
@@ -159,30 +159,30 @@
 
   export interface TShrinkNode<N> {
     // 节点显示名称
-    label: string,
-    // 原始节点列表
-    originalNodeList: N[],
-    // 缩容后的节点列表
-    nodeList: N[],
-    // 原始磁盘大小
-    totalDisk: number,
-    // 缩容目标磁盘大小
-    targetDisk: number,
-    // 选择节点后实际的缩容磁盘大小
-    shrinkDisk: number,
+    label: string;
     // 改节点所需的最少主机数
-    minHost: number,
+    minHost: number;
+    // 缩容后的节点列表
+    nodeList: N[];
+    // 原始节点列表
+    originalNodeList: N[];
+    // 选择节点后实际的缩容磁盘大小
+    shrinkDisk: number;
     // 节点类型 tag 文本
     tagText: string;
+    // 缩容目标磁盘大小
+    targetDisk: number;
+    // 原始磁盘大小
+    totalDisk: number;
   }
 
   interface Props {
-    data: TShrinkNode<DorisNodeModel>,
+    data: TShrinkNode<DorisNodeModel>;
   }
 
   interface Emits {
-    (e: 'change', value: Props['data']['nodeList']): void,
-    (e: 'target-disk-change', value: Props['data']['totalDisk']): void,
+    (e: 'change', value: Props['data']['nodeList']): void;
+    (e: 'target-disk-change', value: Props['data']['totalDisk']): void;
   }
 
   const props = defineProps<Props>();
@@ -197,42 +197,44 @@
   const isDisabled = computed(() => props.data.originalNodeList.length <= props.data.minHost);
 
   // 台数误差
-  const targetMatchReal = computed(() => props.data.originalNodeList.length - localTargetDisk.value - nodeTableData.value.length);
+  const targetMatchReal = computed(
+    () => props.data.originalNodeList.length - localTargetDisk.value - nodeTableData.value.length,
+  );
 
   const tableColumns = [
     {
-      label: t('节点 IP'),
       field: 'ip',
+      label: t('节点 IP'),
       render: ({ data }: { data: Props['data']['nodeList'][0] }) => data.ip || '--',
     },
     {
-      label: t('Agent状态'),
       field: 'alive',
-      render: ({ data }: { data: Props['data']['nodeList'][0] }) => <RenderHostStatus data={data.status} />
+      label: t('Agent状态'),
+      render: ({ data }: { data: Props['data']['nodeList'][0] }) => <RenderHostStatus data={data.status} />,
     },
     {
-      label: t('磁盘_GB'),
       field: 'disk',
+      label: t('磁盘_GB'),
       render: ({ data }: { data: Props['data']['nodeList'][0] }) => data.disk || '--',
     },
     {
       label: t('操作'),
-      width: 100,
       render: ({ data }: { data: Props['data']['nodeList'][0] }) => (
         <bk-button
+          theme='primary'
           text
-          theme="primary"
           onClick={() => handleRemoveHost(data)}>
           {t('删除')}
         </bk-button>
       ),
+      width: 100,
     },
   ];
 
   // 调整目标容量时需要自动匹配
   watch(localTargetDisk, () => {
-    const nodeList = props.data.originalNodeList.slice(0, props.data.originalNodeList.length - localTargetDisk.value)
-    nodeTableData.value = nodeList
+    const nodeList = props.data.originalNodeList.slice(0, props.data.originalNodeList.length - localTargetDisk.value);
+    nodeTableData.value = nodeList;
 
     emits('change', nodeList);
   });
@@ -257,12 +259,15 @@
 
   // 删除选择的节点
   const handleRemoveHost = (data: Props['data']['nodeList'][0]) => {
-    const nodeList = nodeTableData.value.reduce((result, item) => {
-      if (item.bk_host_id !== data.bk_host_id) {
-        result.push(item);
-      }
-      return result;
-    }, [] as Props['data']['nodeList']);
+    const nodeList = nodeTableData.value.reduce(
+      (result, item) => {
+        if (item.bk_host_id !== data.bk_host_id) {
+          result.push(item);
+        }
+        return result;
+      },
+      [] as Props['data']['nodeList'],
+    );
 
     nodeTableData.value = nodeList;
     window.changeConfirm = true;

@@ -55,24 +55,24 @@
 
   const rules = [
     {
-      validator: (value: string[]) => !value.some((item) => /\*/.test(item) && item.length > 1),
       message: t('* 只能独立使用'),
       trigger: 'change',
+      validator: (value: string[]) => !value.some((item) => /\*/.test(item) && item.length > 1),
     },
     {
-      validator: (value: string[]) => value.every((item) => !/^%$/.test(item)),
       message: t('% 不允许单独使用'),
       trigger: 'change',
+      validator: (value: string[]) => value.every((item) => !/^%$/.test(item)),
     },
     {
+      message: t('含通配符的单元格仅支持输入单个对象'),
+      trigger: 'change',
       validator: (value: string[]) => {
         if (value.some((item) => /[*%?]/.test(item))) {
           return value.length < 2;
         }
         return true;
       },
-      message: t('含通配符的单元格仅支持输入单个对象'),
-      trigger: 'change',
     },
   ];
 
@@ -84,17 +84,17 @@
 
   onMounted(() => {
     tippyIns = tippy(rootRef.value as SingleTarget, {
-      content: popRef.value,
-      placement: 'top',
       appendTo: () => document.body,
-      theme: 'light',
-      maxWidth: 'none',
-      trigger: 'manual',
-      interactive: true,
       arrow: true,
-      offset: [0, 8],
-      zIndex: 999999,
+      content: popRef.value,
       hideOnClick: true,
+      interactive: true,
+      maxWidth: 'none',
+      offset: [0, 8],
+      placement: 'top',
+      theme: 'light',
+      trigger: 'manual',
+      zIndex: 999999,
     });
   });
 

@@ -25,10 +25,10 @@
     ticketDetails: TicketModel<Kafka.Disable>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.KAFKA_DISABLE,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

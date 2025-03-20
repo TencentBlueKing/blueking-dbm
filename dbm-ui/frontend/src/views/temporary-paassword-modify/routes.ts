@@ -16,8 +16,8 @@ import { t } from '@locales/index';
 
 const routes = [
   {
-    name: 'DBPasswordTemporaryModify',
     path: 'temporary-paassword-modify',
+    name: 'DBPasswordTemporaryModify',
     meta: {
       navName: t('临时密码修改'),
     },

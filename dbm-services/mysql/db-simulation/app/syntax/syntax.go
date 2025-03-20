@@ -341,11 +341,9 @@ func (tf *TmysqlParseFile) Execute(alreadExecutedSqlfileCh chan string, version 
 	// Iterate through all SQL files
 	for _, fileName := range tf.Param.FileNames {
 		wg.Add(1)
-		c <- struct{}{} // Acquire semaphore
 		go func(sqlfile, ver string) {
-			defer wg.Done()
-			defer func() { <-c }() // Release semaphore
-
+			c <- struct{}{}
+			defer func() { <-c; wg.Done() }()
 			//nolint
 			command := exec.Command("/bin/bash", "-c", tf.getCommand(sqlfile, ver))
 			logger.Info("command is %s", command)
@@ -389,8 +387,8 @@ func (t *TmysqlParse) AnalyzeParseResult(alreadExecutedSqlfileCh chan string, my
 
 	for sqlfile := range alreadExecutedSqlfileCh {
 		wg.Add(1)
-		c <- struct{}{}
 		go func(fileName string) {
+			c <- struct{}{}
 			defer wg.Done()
 			err = t.AnalyzeOne(fileName, mysqlVersion, dbtype)
 			if err != nil {
@@ -621,6 +619,28 @@ func (c *CheckInfo) runSpidercheck(ddlTbls map[string][]string, res ParseLineQue
 			return err
 		}
 		sc = o
+	case SQLTypeDelete:
+		var o DeleteResult
+		if err = json.Unmarshal(bs, &o); err != nil {
+			logger.Error("json unmasrshal line failed %s", err.Error())
+			return err
+		}
+		sc = o
+	case SQLTypeUpdate:
+		var o UpdateResult
+		if err = json.Unmarshal(bs, &o); err != nil {
+			logger.Error("json unmasrshal line failed %s", err.Error())
+			return err
+		}
+		sc = o
+	case SQLTypeCreateFunction, SQLTypeCreateTrigger, SQLTypeCreateEvent, SQLTypeCreateProcedure, SQLTypeCreateView,
+		SQLTypeCreateSpFunction:
+		var o DefinerBase
+		if err = json.Unmarshal(bs, &o); err != nil {
+			logger.Error("json unmasrshal line failed %s", err.Error())
+			return err
+		}
+		sc = o
 	case SQLTypeAlterTable:
 		var o AlterTableResult
 		if err = json.Unmarshal(bs, &o); err != nil {
@@ -734,8 +754,8 @@ func (c *CheckInfo) runcheck(res ParseLineQueryBase, bs []byte, mysqlVersion str
 }
 
 func prettyErrorsOutput(warnInfos []string) (msg string) {
-	for idx, v := range warnInfos {
-		msg += fmt.Sprintf("%d: %s\n", idx+1, v)
+	for _, v := range warnInfos {
+		msg += fmt.Sprintf("%s\n", v)
 	}
 	return
 }

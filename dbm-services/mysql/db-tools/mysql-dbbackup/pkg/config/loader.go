@@ -57,4 +57,11 @@ type PhysicalLoad struct {
 	Threads      int    `ini:"Threads"`
 	CopyBack     bool   `ini:"CopyBack"` // use copy-back or move-back
 	ExtraOpt     string `ini:"ExtraOpt"` // other xtrabackup recover options string to be appended
+
+	/* TODO: 后续如果物理备份需要连接数据库，不使用 Public 里的，直接放在这里
+	MysqlHost     string `ini:"MysqlHost"`
+	MysqlPort     int    `ini:"MysqlPort"`
+	MysqlUser     string `ini:"MysqlUser" validate:"required"`
+	MysqlPasswd   string `ini:"MysqlPasswd"`
+	*/
 }

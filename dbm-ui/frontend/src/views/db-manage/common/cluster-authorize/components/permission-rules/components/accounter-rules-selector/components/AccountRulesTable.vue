@@ -44,170 +44,168 @@
   import DbTable from '@components/db-table/index.vue';
 
   export interface Props<T> {
-    accountType: AccountTypes,
-    selectedList?: T[]
+    accountType: AccountTypes;
+    selectedList?: T[];
   }
 
   export interface Emits<T> {
-    (e: 'change', value: UnwrapRef<typeof selectedMap>): void,
-    (e: 'delete', value: T[]): void
+    (e: 'change', value: UnwrapRef<typeof selectedMap>): void;
+    (e: 'delete', value: T[]): void;
   }
 
   export interface Expose {
-    searchData: (value?: Record<string, string>) => void
+    searchData: (value?: Record<string, string>) => void;
   }
 
   const props = withDefaults(defineProps<Props<T>>(), {
-    selectMode: false,
     selectedList: () => [],
+    selectMode: false,
   });
   const emits = defineEmits<Emits<T>>();
 
-  const renderList = (row: T) => (
-    expandMap.value[row.account.account_id]
-      ? row.rules.slice(0, 1)
-      : row.rules
-  );
+  const renderList = (row: T) => (expandMap.value[row.account.account_id] ? row.rules.slice(0, 1) : row.rules);
 
   const { t } = useI18n();
   const router = useRouter();
 
-  const selectedMap = shallowRef<Record<string, {
-    account: T['account'],
-    rule: T['rules'][number]
-  }>>({});
+  const selectedMap = shallowRef<
+    Record<
+      string,
+      {
+        account: T['account'];
+        rule: T['rules'][number];
+      }
+    >
+  >({});
   const expandMap = ref<Record<number, boolean>>({});
-  const tableRef = ref<InstanceType<typeof DbTable>>()
+  const tableRef = ref<InstanceType<typeof DbTable>>();
 
   const columns = [
     {
-      label: t('账号名称'),
       field: 'user',
-      showOverflowTooltip: false,
+      label: t('账号名称'),
       render: ({ data }: { data: T }) => (
-          <div
-            class="mongo-permission-cell"
-            onClick={ () => handleToggleExpand(data) }>
-            {
-              data.rules.length > 1 && (
-                <db-icon
-                  type="down-shape"
-                  class={[
-                    'user-icon',
-                    { 'user-icon-expand': !expandMap.value[data.account.account_id] },
-                  ]} />
-              )
-            }
-            {
-              <div class="user-name">
-                { data.account.user }
-              </div>
-            }
-            {
-              data.isNew && (
-                <span
-                  class="glob-new-tag ml-6"
-                  data-text="NEW" />
-              )
-            }
-          </div>
-        ),
+        <div
+          class='mongo-permission-cell'
+          onClick={() => handleToggleExpand(data)}>
+          {data.rules.length > 1 && (
+            <db-icon
+              class={['user-icon', { 'user-icon-expand': !expandMap.value[data.account.account_id] }]}
+              type='down-shape'
+            />
+          )}
+          {<div class='user-name'>{data.account.user}</div>}
+          {data.isNew && (
+            <span
+              class='glob-new-tag ml-6'
+              data-text='NEW'
+            />
+          )}
+        </div>
+      ),
+      showOverflowTooltip: false,
     },
     {
-      label: t('访问DB'),
       field: 'access_db',
-      showOverflowTooltip: true,
-      render: ({ data, index }: { data: T, index: number }) => {
+      label: t('访问DB'),
+      render: ({ data, index }: { data: T; index: number }) => {
         if (data.rules.length === 0) {
           return (
-            <div class="mongo-permission-cell access-db">
+            <div class='mongo-permission-cell access-db'>
               <bk-checkbox
                 disabled={true}
                 label={true}
               />
-              <span>{ t('暂无规则') }，</span>
+              <span>{t('暂无规则')}，</span>
               <bk-button
-                theme="primary"
-                size="small"
+                size='small'
+                theme='primary'
                 text
-                onClick={ (event: Event) => handleShowCreateRule(data, event) }>
-                { t('立即新建') }
+                onClick={(event: Event) => handleShowCreateRule(data, event)}>
+                {t('立即新建')}
               </bk-button>
             </div>
           );
         }
 
-        return (
-          renderList(data).map((rule, ruleIndex) => (
-              <div
-                class="mongo-permission-cell access-db"
-                onClick={() => handleChange(index, ruleIndex)}>
-                <bk-checkbox
-                  model-value={Boolean(selectedDomainMap.value[rule.rule_id])}
-                  label={true}
-                  onChange={() => handleChange(index, ruleIndex)}
-                />
-                <bk-tag>{ rule.access_db }</bk-tag>
-              </div>
-          ))
-        );
+        return renderList(data).map((rule, ruleIndex) => (
+          <div
+            class='mongo-permission-cell access-db'
+            onClick={() => handleChange(index, ruleIndex)}>
+            <bk-checkbox
+              label={true}
+              model-value={Boolean(selectedDomainMap.value[rule.rule_id])}
+              onChange={() => handleChange(index, ruleIndex)}
+            />
+            <bk-tag>{rule.access_db}</bk-tag>
+          </div>
+        ));
       },
+      showOverflowTooltip: true,
     },
     {
-      label: t('权限'),
       field: 'privilege',
-      showOverflowTooltip: false,
-      render: ({ data, index }: { data: T, index: number }) => {
+      label: t('权限'),
+      render: ({ data, index }: { data: T; index: number }) => {
         if (data.rules.length > 0) {
           return renderList(data).map((rule, ruleIndex) => {
             const { privilege } = rule;
 
             return (
               <div
-                class="mongo-permission-cell"
+                class='mongo-permission-cell'
                 onClick={() => handleChange(index, ruleIndex)}>
-                {
-                  privilege ? privilege.replace(/,/g, '，') : '--'
-                }
+                {privilege ? privilege.replace(/,/g, '，') : '--'}
               </div>
             );
           });
         }
 
-        return <div class="mongo-permission-cell">--</div>;
+        return <div class='mongo-permission-cell'>--</div>;
       },
+      showOverflowTooltip: false,
     },
   ];
 
   const dataSource = computed(() => {
     const apiMap: Record<string, (params: any) => Promise<any>> = {
       [AccountTypes.MONGODB]: getMongodbPermissionRules,
-      [AccountTypes.SQLSERVER]: getSqlserverPermissionRules
-    }
+      [AccountTypes.SQLSERVER]: getSqlserverPermissionRules,
+    };
 
-    return apiMap[props.accountType]
-  })
-
-  watch(() => props.selectedList, (newDataList) => {
-    const newDataListCopy = _.cloneDeep(newDataList);
-    selectedMap.value = newDataListCopy.reduce((prevSelectedMap, dataItem) => {
-      const ruleMap = dataItem.rules
-        .reduce((prevRuleMap, ruleItem) => Object.assign({}, prevRuleMap, {
-          [ruleItem.rule_id]: Object.assign({}, dataItem, { rule: ruleItem }),
-        }), {} as typeof selectedMap.value);
-      return Object.assign({}, prevSelectedMap, ruleMap);
-    }, {});
-    emits('change', selectedMap.value);
-  }, {
-    immediate: true,
+    return apiMap[props.accountType];
   });
 
+  watch(
+    () => props.selectedList,
+    (newDataList) => {
+      const newDataListCopy = _.cloneDeep(newDataList);
+      selectedMap.value = newDataListCopy.reduce((prevSelectedMap, dataItem) => {
+        const ruleMap = dataItem.rules.reduce(
+          (prevRuleMap, ruleItem) =>
+            Object.assign({}, prevRuleMap, {
+              [ruleItem.rule_id]: Object.assign({}, dataItem, { rule: ruleItem }),
+            }),
+          {} as typeof selectedMap.value,
+        );
+        return Object.assign({}, prevSelectedMap, ruleMap);
+      }, {});
+      emits('change', selectedMap.value);
+    },
+    {
+      immediate: true,
+    },
+  );
+
   const getList = (searchSelectorParams: Record<string, string> = {}) => {
-    tableRef.value!.fetchData({
-      ...searchSelectorParams,
-    }, {
-      account_type: props.accountType,
-    })
+    tableRef.value!.fetchData(
+      {
+        ...searchSelectorParams,
+      },
+      {
+        account_type: props.accountType,
+      },
+    );
   };
 
   const handleClearSearch = () => {
@@ -226,8 +224,8 @@
     event.stopPropagation();
     const routeMap: Record<string, string> = {
       [AccountTypes.MONGODB]: 'MongodbPermission',
-      [AccountTypes.SQLSERVER]: 'SqlServerPermissionRules'
-    }
+      [AccountTypes.SQLSERVER]: 'SqlServerPermissionRules',
+    };
     const route = router.resolve({
       name: routeMap[props.accountType],
     });
@@ -235,13 +233,17 @@
   };
 
   // 选中域名列表
-  const selectedDomainMap = computed(() => Object.keys(selectedMap.value)
-    .reduce((result, selectKey) => Object.assign({}, result, { [selectKey]: true }), {} as Record<number, boolean>));
+  const selectedDomainMap = computed(() =>
+    Object.keys(selectedMap.value).reduce(
+      (result, selectKey) => Object.assign({}, result, { [selectKey]: true }),
+      {} as Record<number, boolean>,
+    ),
+  );
 
   const handleChange = (dataIndex: number, ruleIndex: number) => {
-    const rowItem = tableRef.value!.getData<T>()[dataIndex]
+    const rowItem = tableRef.value!.getData<T>()[dataIndex];
     const ruleItem = rowItem.rules[ruleIndex];
-    const isChecked = !!(selectedMap.value[ruleItem.rule_id]);
+    const isChecked = !!selectedMap.value[ruleItem.rule_id];
     const selectedMapMemo = { ...selectedMap.value };
     if (!isChecked) {
       selectedMapMemo[ruleItem.rule_id] = Object.assign({}, rowItem, { rule: ruleItem });

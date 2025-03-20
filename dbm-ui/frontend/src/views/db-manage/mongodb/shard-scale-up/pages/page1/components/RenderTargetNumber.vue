@@ -28,9 +28,9 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
+    currentNodeNum: number;
     data?: IDataRow['targetNum'];
     isLoading?: boolean;
-    currentNodeNum: number;
   }
 
   interface Exposes {
@@ -53,12 +53,12 @@
     //   message: t('必须为奇数'),
     // },
     {
-      validator: (value: number) => value > props.currentNodeNum,
       message: t('必须大于当前节点数'),
+      validator: (value: number) => value > props.currentNodeNum,
     },
     {
-      validator: (value: number) => value >= 3,
       message: t('不能少于n台', { n: 3 }),
+      validator: (value: number) => value >= 3,
     },
   ];
 

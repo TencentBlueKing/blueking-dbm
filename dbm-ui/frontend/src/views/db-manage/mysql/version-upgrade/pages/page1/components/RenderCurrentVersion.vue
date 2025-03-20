@@ -57,12 +57,12 @@
   import { useI18n } from 'vue-i18n';
 
   interface Props {
+    charset: string;
     data?: {
       currentVersion: string;
-      packageVersion: string;
       moduleName: string;
+      packageVersion: string;
     };
-    charset: string;
     isLoading: boolean;
   }
 

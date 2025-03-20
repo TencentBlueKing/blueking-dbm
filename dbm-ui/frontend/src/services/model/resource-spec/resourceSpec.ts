@@ -21,38 +21,38 @@ export default class ResourceSpec {
     max: number;
     min: number;
   };
-  mem: {
-    max: number;
-    min: number;
-  };
-  storage_spec: {
-    mount_point: string;
-    size: number;
-    type: string;
-  }[];
-  device_class: string[];
   create_at: string;
   creator: string;
   desc: string;
+  device_class: string[];
   enable: boolean;
-  spec_db_type: DBTypes;
-  spec_cluster_type: ClusterTypes;
-  spec_machine_type: MachineTypes;
-  spec_name: string;
-  update_at: string;
-  updater: string;
-  spec_id: number;
-  is_refer: boolean;
   instance_num: number;
-  qps: {
-    min: number;
+  is_refer: boolean;
+  mem: {
     max: number;
+    min: number;
   };
   permission: {
     spec_create: boolean;
     spec_delete: boolean;
     spec_update: boolean;
   };
+  qps: {
+    max: number;
+    min: number;
+  };
+  spec_cluster_type: ClusterTypes;
+  spec_db_type: DBTypes;
+  spec_id: number;
+  spec_machine_type: MachineTypes;
+  spec_name: string;
+  storage_spec: {
+    mount_point: string;
+    size: number;
+    type: string;
+  }[];
+  update_at: string;
+  updater: string;
 
   constructor(payload = {} as ResourceSpec) {
     this.cpu = payload.cpu;
@@ -76,22 +76,14 @@ export default class ResourceSpec {
     this.permission = payload.permission || {};
   }
 
+  get isRecentSeconds() {
+    const createDay = new Date(this.create_at);
+    const today = new Date();
+    return differenceInSeconds(today, createDay) < 30;
+  }
+
   get name() {
     return this.spec_name;
-  }
-
-  get isRecentSeconds() {
-    try {
-      const createDay = new Date(this.create_at);
-      const today = new Date();
-      return differenceInSeconds(today, createDay) < 30;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  get updateAtDisplay() {
-    return utcDisplayTime(this.update_at);
   }
 
   get qpsText() {
@@ -100,5 +92,9 @@ export default class ResourceSpec {
     }
 
     return '--';
+  }
+
+  get updateAtDisplay() {
+    return utcDisplayTime(this.update_at);
   }
 }

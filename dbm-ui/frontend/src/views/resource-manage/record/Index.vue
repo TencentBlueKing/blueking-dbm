@@ -69,77 +69,74 @@
 
   const tableRef = ref();
   const operationDateTime = ref<[string, string]>([
-    dayjs().subtract(7, 'day')
-      .format('YYYY-MM-DD HH:mm:ss'),
+    dayjs().subtract(7, 'day').format('YYYY-MM-DD HH:mm:ss'),
     dayjs().format('YYYY-MM-DD HH:mm:ss'),
   ]);
-  const ticketTypes = ref<Array<{id: string, name: string}>>([]);
+  const ticketTypes = ref<Array<{ id: string; name: string }>>([]);
 
-  const searchSelectData = computed(() => [
-    {
-      name: t('操作类型'),
-      id: 'operation_type',
-      children: [
+  const searchSelectData = computed(
+    () =>
+      [
         {
-          id: [OperationModel.OPERATIN_TYPE_IMPORTED],
-          name: t('导入主机'),
-
+          name: t('操作类型'),
+          id: 'operation_type',
+          children: [
+            {
+              id: [OperationModel.OPERATIN_TYPE_IMPORTED],
+              name: t('导入主机'),
+            },
+            {
+              id: [OperationModel.OPERATIN_TYPE_CONSUMED],
+              name: t('消费主机'),
+            },
+          ],
         },
         {
-          id: [OperationModel.OPERATIN_TYPE_CONSUMED],
-          name: t('消费主机'),
-        },
-      ],
-    },
-    {
-      name: t('单据类型'),
-      id: 'ticket_types',
-      multiple: true,
-      children: ticketTypes.value,
-    },
-    {
-      name: t('关联单据'),
-      id: 'ticket_ids',
-    },
-    {
-      name: t('关联任务'),
-      id: 'task_ids',
-    },
-    {
-      name: t('操作状态'),
-      id: 'status',
-      children: [
-        {
-          id: [OperationModel.STATUS_PENDING],
-          name: t('等待执行'),
-
+          name: t('单据类型'),
+          id: 'ticket_types',
+          multiple: true,
+          children: ticketTypes.value,
         },
         {
-          id: [OperationModel.STATUS_RUNNING],
-          name: t('执行中'),
-
+          name: t('关联单据'),
+          id: 'ticket_ids',
         },
         {
-          id: [OperationModel.STATUS_SUCCEEDED],
-          name: t('执行成功'),
-
+          name: t('关联任务'),
+          id: 'task_ids',
         },
         {
-          id: [OperationModel.STATUS_FAILED],
-          name: t('执行失败'),
-
+          name: t('操作状态'),
+          id: 'status',
+          children: [
+            {
+              id: [OperationModel.STATUS_PENDING],
+              name: t('等待执行'),
+            },
+            {
+              id: [OperationModel.STATUS_RUNNING],
+              name: t('执行中'),
+            },
+            {
+              id: [OperationModel.STATUS_SUCCEEDED],
+              name: t('执行成功'),
+            },
+            {
+              id: [OperationModel.STATUS_FAILED],
+              name: t('执行失败'),
+            },
+            {
+              id: [OperationModel.STATUS_REVOKED],
+              name: t('执行失败'),
+            },
+          ],
         },
         {
-          id: [OperationModel.STATUS_REVOKED],
-          name: t('执行失败'),
+          name: t('操作人'),
+          id: 'operator',
         },
-      ],
-    },
-    {
-      name: t('操作人'),
-      id: 'operator',
-    },
-  ] as ISearchItem[]);
+      ] as ISearchItem[],
+  );
 
   const tableColumn = computed(() => [
     {
@@ -148,15 +145,13 @@
       fixed: 'left',
       width: 200,
       sort: true,
-      render: ({ data }: {data: OperationModel}) => data.updateTimeDisplay,
+      render: ({ data }: { data: OperationModel }) => data.updateTimeDisplay,
     },
     {
       label: t('操作主机明细（台）'),
       field: 'total_count',
       sort: true,
-      render: ({ data }: {data: OperationModel}) => (
-        <HostDetail data={data} />
-      ),
+      render: ({ data }: { data: OperationModel }) => <HostDetail data={data} />,
     },
     {
       label: t('操作类型'),
@@ -174,46 +169,50 @@
         ],
         checked: columnCheckedMap.value.operation_type,
       },
-      render: ({ data }: {data: OperationModel}) => data.operationTypeText,
+      render: ({ data }: { data: OperationModel }) => data.operationTypeText,
     },
     {
       label: t('单据类型'),
       field: 'ticket_types',
       filter: {
-        list: ticketTypes.value.map(item => ({
+        list: ticketTypes.value.map((item) => ({
           value: item.id,
           text: item.name,
         })),
         checked: columnCheckedMap.value.ticket_types,
       },
-      render: ({ data }: {data: OperationModel}) => data.ticket_type_display || '--',
+      render: ({ data }: { data: OperationModel }) => data.ticket_type_display || '--',
     },
     {
       label: t('关联单据'),
       field: 'ticket_id',
       width: 170,
-      render: ({ data }: {data: OperationModel}) => (data.ticket_id
-        ? <auth-router-link
+      render: ({ data }: { data: OperationModel }) =>
+        data.ticket_id ? (
+          <auth-router-link
             to={{
               name: 'bizTicketManage',
               params: {
                 ticketId: data.ticket_id,
               },
             }}
-            action-id="ticket_view"
+            action-id='ticket_view'
             resource={data.ticket_id}
             permission={data.permission.ticket_view}
-            target="_blank">
+            target='_blank'>
             {data.ticket_id}
           </auth-router-link>
-        : '--'),
+        ) : (
+          '--'
+        ),
     },
     {
       label: t('关联任务'),
       field: 'task_id',
-      render: ({ data }: {data: OperationModel}) => (data.task_id
-        ? <auth-router-link
-            action-id="flow_detail"
+      render: ({ data }: { data: OperationModel }) =>
+        data.task_id ? (
+          <auth-router-link
+            action-id='flow_detail'
             resource={data.task_id}
             permission={data.permission.flow_detail}
             to={{
@@ -225,10 +224,12 @@
                 from: route.name as string,
               },
             }}
-            target="_blank">
+            target='_blank'>
             {data.task_id}
           </auth-router-link>
-        : '--'),
+        ) : (
+          '--'
+        ),
     },
     {
       label: t('操作人'),
@@ -243,22 +244,18 @@
           {
             value: [OperationModel.STATUS_PENDING],
             text: t('等待执行'),
-
           },
           {
             value: [OperationModel.STATUS_RUNNING],
             text: t('执行中'),
-
           },
           {
             value: [OperationModel.STATUS_SUCCEEDED],
             text: t('执行成功'),
-
           },
           {
             value: [OperationModel.STATUS_FAILED],
             text: t('执行失败'),
-
           },
           {
             value: [OperationModel.STATUS_REVOKED],
@@ -267,8 +264,8 @@
         ],
         checked: columnCheckedMap.value.status,
       },
-      render: ({ data }: {data: OperationModel}) => (
-        <div style="display: flex; align-items: center;">
+      render: ({ data }: { data: OperationModel }) => (
+        <div style='display: flex; align-items: center;'>
           <db-icon
             class={{
               'rotate-loading': data.isRunning,
@@ -278,19 +275,22 @@
               'vertical-align': 'middle',
             }}
             type={data.statusIcon}
-            svg />
-          <span class="ml-4">{data.statusText}</span>
+            svg
+          />
+          <span class='ml-4'>{data.statusText}</span>
         </div>
       ),
     },
   ]);
 
   useRequest(getTicketTypes, {
-    defaultParams: [{
-      is_apply: 1,
-    }],
+    defaultParams: [
+      {
+        is_apply: 1,
+      },
+    ],
     onSuccess(data) {
-      ticketTypes.value = data.map(item => ({
+      ticketTypes.value = data.map((item) => ({
         id: item.key,
         name: item.value,
       }));
@@ -305,8 +305,8 @@
     // 没有选中过滤标签
     if (!item) {
       // 过滤掉已经选过的标签
-      const selected = (searchValue.value || []).map(value => value.id);
-      return searchSelectData.value.filter(item => !selected.includes(item.id));
+      const selected = (searchValue.value || []).map((value) => value.id);
+      return searchSelectData.value.filter((item) => !selected.includes(item.id));
     }
 
     // 远程加载执行人
@@ -316,14 +316,16 @@
       }
       return getUserList({
         fuzzy_lookups: keyword,
-      }).then(res => res.results.map(item => ({
-        id: item.username,
-        name: item.username,
-      })));
+      }).then((res) =>
+        res.results.map((item) => ({
+          id: item.username,
+          name: item.username,
+        })),
+      );
     }
 
     // 不需要远层加载
-    return searchSelectData.value.find(set => set.id === item.id)?.children || [];
+    return searchSelectData.value.find((set) => set.id === item.id)?.children || [];
   };
 
   // const serachValidateValues = (
@@ -344,10 +346,7 @@
   // 获取数据
   const fetchData = () => {
     const searchParams = getSearchSelectorParams(searchValue.value);
-    const [
-      beginTime,
-      endTime,
-    ] = operationDateTime.value;
+    const [beginTime, endTime] = operationDateTime.value;
     tableRef.value.fetchData({
       ...searchParams,
       ...sortValue,

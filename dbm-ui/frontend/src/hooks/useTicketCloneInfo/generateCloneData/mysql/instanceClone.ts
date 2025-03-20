@@ -41,24 +41,24 @@ export async function generateMysqlInstanceCloneData(ticketData: TicketModel<Mys
       source: {
         bkCloudId: sourceInstance.bk_cloud_id,
         clusterId: sourceInstance.cluster_id,
+        clusterType: sourceInstance.cluster_type,
         dbModuleId: sourceInstance.db_module_id,
         dbModuleName: sourceInstance.db_module_name,
         instanceAddress: sourceInstance.instance_address,
         masterDomain: sourceInstance.master_domain,
-        clusterType: sourceInstance.cluster_type,
       },
       target: {
-        cluster_id: targetInstance.cluster_id,
-        bk_host_id: targetInstance.bk_host_id,
         bk_cloud_id: targetInstance.bk_cloud_id,
-        port: targetInstance.port,
-        ip: targetInstance.ip,
+        bk_host_id: targetInstance.bk_host_id,
+        cluster_id: targetInstance.cluster_id,
         instance_address: targetInstance.instance_address,
+        ip: targetInstance.ip,
+        port: targetInstance.port,
       },
     };
   });
   return Promise.resolve({
-    tableDataList,
     remark: ticketData.remark,
+    tableDataList,
   });
 }

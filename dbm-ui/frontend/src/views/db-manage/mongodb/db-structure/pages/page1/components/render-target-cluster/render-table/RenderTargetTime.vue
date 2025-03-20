@@ -37,8 +37,8 @@
 
   const timerRules = [
     {
-      validator: (value: string) => !!value,
       message: t('回档时间不能为空'),
+      validator: (value: string) => !!value,
     },
   ];
 

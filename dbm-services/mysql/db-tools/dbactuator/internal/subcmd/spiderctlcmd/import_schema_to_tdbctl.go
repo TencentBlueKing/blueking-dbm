@@ -109,8 +109,12 @@ func (d *ImportSchemaFromBackendAct) Run() (err error) {
 			Func:    d.Service.Migrate,
 		},
 		{
-			FunName: "从本地spider导出存储过程、触发器等dbctl",
+			FunName: "从本地spider导出存储过程、触发器至tdbctl",
 			Func:    d.Service.MigrateRoutinesAndTriger,
+		},
+		{
+			FunName: "从本地spider视图到tdbctl",
+			Func:    d.Service.MigrateViewsFromSpider,
 		},
 	}
 

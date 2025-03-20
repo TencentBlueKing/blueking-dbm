@@ -7,13 +7,13 @@ export default class ipWhite {
   id: number;
   ips: string[];
   is_global: boolean;
-  remark: string;
-  update_at: string;
-  updater: string;
   permission: {
     global_ip_whitelist_manage: boolean;
     ip_whitelist_manage: boolean;
   };
+  remark: string;
+  update_at: string;
+  updater: string;
 
   constructor(payload = {} as ipWhite) {
     this.bk_biz_id = payload.bk_biz_id;

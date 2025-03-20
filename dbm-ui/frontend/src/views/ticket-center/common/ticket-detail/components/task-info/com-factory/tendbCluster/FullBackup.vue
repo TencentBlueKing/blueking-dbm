@@ -48,12 +48,12 @@
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.TENDBCLUSTER_FULL_BACKUP,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 
@@ -67,9 +67,9 @@
 
   const fileTagMap: Record<string, string> = {
     DBFILE1M: t('1个月'),
-    DBFILE6M: t('6个月'),
     DBFILE1Y: t('1年'),
     DBFILE3Y: t('3年'),
+    DBFILE6M: t('6个月'),
   };
   // 备份保存时间
   const backupTime = computed(() => {

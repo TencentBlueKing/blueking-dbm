@@ -183,7 +183,6 @@ func (c *Component) GenerateBackupConfig() error {
 			logger.Error("mkdir %s failed: %s", backupConfig.Public.BackupDir, err.Error())
 			return err
 		}
-
 	}
 	// 增加为tbinlogdumper做库表备份的日志输出，保存流程上下文
 	c.backupDir = backupConfig.Public.BackupDir

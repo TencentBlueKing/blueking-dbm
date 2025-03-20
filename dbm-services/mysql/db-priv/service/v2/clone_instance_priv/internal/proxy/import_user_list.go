@@ -1,0 +1,118 @@
+package proxy
+
+import (
+	"dbm-services/mysql/priv-service/service/v2/internal/drs"
+	"errors"
+	"fmt"
+	"log/slog"
+	"strings"
+
+	pe "github.com/pkg/errors"
+)
+
+const proxyUserImportBuckSize = 1000
+
+func ImportUserList(bkCloudId int64, addr string, userList []string) error {
+	adminAddr := adminAddr(addr)
+
+	var oneBuckUsers []string
+	var errCollect error
+
+	slog.Info(
+		"clone proxy users",
+		slog.Int("buck size", proxyUserImportBuckSize),
+		slog.Int("total users", len(userList)),
+	)
+
+	leftCount := len(userList)
+	for _, user := range userList {
+		oneBuckUsers = append(oneBuckUsers, user)
+		if len(oneBuckUsers) >= proxyUserImportBuckSize {
+			refreshSql := fmt.Sprintf(
+				"refresh_users('%s', '+')",
+				strings.Join(oneBuckUsers, ","),
+			)
+
+			err := doProxyUserImport(bkCloudId, adminAddr, refreshSql)
+			if err != nil {
+				slog.Error(
+					"clone proxy users one buck",
+					slog.String("error", err.Error()),
+				)
+				errCollect = errors.Join(errCollect, err)
+			}
+
+			leftCount -= proxyUserImportBuckSize
+			slog.Info(
+				"clone proxy users one buck success",
+				slog.Int("user left", leftCount),
+			)
+			oneBuckUsers = []string{}
+		}
+	}
+	if len(oneBuckUsers) > 0 {
+		refreshSql := fmt.Sprintf(
+			"refresh_users('%s', '+')",
+			strings.Join(oneBuckUsers, ","),
+		)
+		err := doProxyUserImport(bkCloudId, adminAddr, refreshSql)
+		if err != nil {
+			slog.Error(
+				"clone proxy users last buck",
+				slog.String("error", err.Error()),
+			)
+			errCollect = errors.Join(errCollect, err)
+		}
+
+		// leftCount -= len(oneBuckUsers) 不用计数了
+		slog.Info(
+			"clone proxy users last buck success",
+		)
+	}
+
+	/*
+		这个检查没有必要
+		if leftCount > 0 {
+		}
+	*/
+
+	return errCollect
+}
+
+func doProxyUserImport(bkCloudId int64, address string, sql string) error {
+	drsRes, err := drs.RPCProxyAdmin(
+		bkCloudId,
+		[]string{address},
+		[]string{sql},
+		false,
+		600,
+	)
+	if err != nil {
+		slog.Error(
+			"import proxy user",
+			slog.String("address", address),
+			slog.String("sql", sql),
+			slog.String("error", err.Error()),
+		)
+		return pe.Wrap(err, "failed to import proxy user")
+	}
+	if drsRes[0].ErrorMsg != "" {
+		slog.Error(
+			"import proxy user",
+			slog.String("address", address),
+			slog.String("sql", sql),
+			slog.String("error", drsRes[0].ErrorMsg),
+		)
+		return errors.New(drsRes[0].ErrorMsg)
+	}
+	if drsRes[0].CmdResults[0].ErrorMsg != "" {
+		slog.Error(
+			"import proxy user",
+			slog.String("address", address),
+			slog.String("sql", sql),
+			slog.String("error", drsRes[0].CmdResults[0].ErrorMsg),
+		)
+		return errors.New(drsRes[0].CmdResults[0].ErrorMsg)
+	}
+	return nil
+}

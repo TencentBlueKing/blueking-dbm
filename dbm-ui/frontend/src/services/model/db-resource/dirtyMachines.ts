@@ -10,16 +10,16 @@ export default class DirtyMachines {
   }[];
   ip: string;
   is_dirty: boolean;
-  task_id: string;
-  ticket_id: number;
-  ticket_type: string;
-  ticket_type_display: string;
   operator: string;
   permission: {
     dirty_pool_manage: boolean;
     flow_detail: boolean;
     ticket_view: boolean;
   };
+  task_id: string;
+  ticket_id: number;
+  ticket_type: string;
+  ticket_type_display: string;
 
   constructor(payload = {} as DirtyMachines) {
     this.bk_biz_id = payload.bk_biz_id;

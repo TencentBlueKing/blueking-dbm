@@ -59,9 +59,7 @@
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
-  interface Emits {
-    (e: 'batchSelectCluster'): void;
-  }
+  type Emits = (e: 'batchSelectCluster') => void;
 
   const emits = defineEmits<Emits>();
 

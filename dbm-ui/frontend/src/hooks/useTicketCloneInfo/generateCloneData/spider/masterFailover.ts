@@ -26,20 +26,20 @@ export function generateSpiderMasterFailoverCloneData(ticketData: TicketModel<Te
   } = ticketData.details;
 
   const tableDataList = infos.map((item) => ({
-    rowKey: random(),
     clusterData: {
-      id: item.cluster_id,
       domain: clusters[item.cluster_id].immute_domain,
+      id: item.cluster_id,
     },
     masterData: item.switch_tuples[0].master,
+    rowKey: random(),
     slaveData: item.switch_tuples[0].slave,
   }));
 
   return Promise.resolve({
-    tableDataList,
     isCheckDelay,
     isCheckProcess,
     isVerifyChecksum,
     remark: ticketData.remark,
+    tableDataList,
   });
 }

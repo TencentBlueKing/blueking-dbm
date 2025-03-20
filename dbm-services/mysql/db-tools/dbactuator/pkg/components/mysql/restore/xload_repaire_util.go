@@ -186,7 +186,7 @@ func (x *XLoad) CleanEnv(dirs []string) error {
 				pathsToReset = append(pathsToReset, relaylogdir)
 			}
 		case "log_bin", "log-bin":
-			val, err := x.myCnf.GetMySQLLogDir()
+			val, err := x.myCnf.GetMySQLLogRootDir()
 			if err != nil {
 				return err
 			}
@@ -208,7 +208,7 @@ func (x *XLoad) CleanEnv(dirs []string) error {
 		}
 	}
 
-	return dbbackup_loader.ResetPath(pathsToReset)
+	return dbbackup_loader.ResetPath(pathsToReset, x.myCnf, false)
 }
 
 // ReplaceMycnf godoc

@@ -38,8 +38,8 @@
       ...params,
     });
 
-  const { value: datePickerValue, shortcutsRange } = useDatePicker();
-  const { value: searachSelectValue, searchSelectData } = useSearchSelect();
+  const { shortcutsRange, value: datePickerValue } = useDatePicker();
+  const { searchSelectData, value: searachSelectValue } = useSearchSelect();
 </script>
 <style lang="less">
   .ticket-list-card-mode {

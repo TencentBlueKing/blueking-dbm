@@ -22,8 +22,8 @@ import { checkDbConsole } from '@utils';
 import { t } from '@locales/index';
 
 const redisInstallModuleRoute = {
-  name: 'RedisInstallModule',
   path: 'install-module/:page?',
+  name: 'RedisInstallModule',
   meta: {
     navName: t('安装 Module'),
   },
@@ -31,8 +31,8 @@ const redisInstallModuleRoute = {
 };
 
 const redisCapacityChangeRoute = {
-  name: 'RedisCapacityChange',
   path: 'capacity-change/:page?',
+  name: 'RedisCapacityChange',
   meta: {
     navName: t('集群容量变更'),
   },
@@ -40,8 +40,8 @@ const redisCapacityChangeRoute = {
 };
 
 const redisProxyScaleUpRoute = {
-  name: 'RedisProxyScaleUp',
   path: 'proxy-scale-up/:page?',
+  name: 'RedisProxyScaleUp',
   meta: {
     navName: t('扩容接入层'),
   },
@@ -49,8 +49,8 @@ const redisProxyScaleUpRoute = {
 };
 
 const redisProxyScaleDownRoute = {
-  name: 'RedisProxyScaleDown',
   path: 'proxy-scale-down/:page?',
+  name: 'RedisProxyScaleDown',
   meta: {
     navName: t('缩容接入层'),
   },
@@ -58,8 +58,8 @@ const redisProxyScaleDownRoute = {
 };
 
 const redisDBCreateSlaveRoute = {
-  name: 'RedisDBCreateSlave',
   path: 'db-create-slave/:page?',
+  name: 'RedisDBCreateSlave',
   meta: {
     navName: t('重建从库'),
   },
@@ -67,8 +67,8 @@ const redisDBCreateSlaveRoute = {
 };
 
 const redisMasterFailoverRoute = {
-  name: 'RedisMasterFailover',
   path: 'master-failover/:page?',
+  name: 'RedisMasterFailover',
   meta: {
     navName: t('主从切换'),
   },
@@ -76,8 +76,8 @@ const redisMasterFailoverRoute = {
 };
 
 const redisDBReplaceRoute = {
-  name: 'RedisDBReplace',
   path: 'db-replace/:page?',
+  name: 'RedisDBReplace',
   meta: {
     navName: t('整机替换'),
   },
@@ -85,8 +85,8 @@ const redisDBReplaceRoute = {
 };
 
 const redisMigrateRoute = {
-  name: 'RedisMigrate',
   path: 'db-migrate/:page?',
+  name: 'RedisMigrate',
   meta: {
     navName: t('迁移'),
   },
@@ -94,8 +94,8 @@ const redisMigrateRoute = {
 };
 
 const redisClusterShardUpdateRoute = {
-  name: 'RedisClusterShardUpdate',
   path: 'cluster-shard-update/:page?',
+  name: 'RedisClusterShardUpdate',
   meta: {
     navName: t('集群分片变更'),
   },
@@ -103,8 +103,8 @@ const redisClusterShardUpdateRoute = {
 };
 
 const redisClusterTypeUpdateRoute = {
-  name: 'RedisClusterTypeUpdate',
   path: 'cluster-type-update/:page?',
+  name: 'RedisClusterTypeUpdate',
   meta: {
     navName: t('集群类型变更'),
   },
@@ -112,8 +112,8 @@ const redisClusterTypeUpdateRoute = {
 };
 
 const redisDBStructureRoute = {
-  name: 'RedisDBStructure',
   path: 'db-structure/:page?',
+  name: 'RedisDBStructure',
   meta: {
     navName: t('定点构造'),
   },
@@ -121,8 +121,8 @@ const redisDBStructureRoute = {
 };
 
 const redisStructureInstanceRoute = {
-  name: 'RedisStructureInstance',
   path: 'structure-instance/:page?',
+  name: 'RedisStructureInstance',
   meta: {
     navName: t('构造实例'),
   },
@@ -130,8 +130,8 @@ const redisStructureInstanceRoute = {
 };
 
 const redisRecoverFromInstanceRoute = {
-  name: 'RedisRecoverFromInstance',
   path: 'recover-from-instance/:page?',
+  name: 'RedisRecoverFromInstance',
   meta: {
     navName: t('以构造实例恢复'),
   },
@@ -139,8 +139,8 @@ const redisRecoverFromInstanceRoute = {
 };
 
 const redisDBDataCopyRoute = {
-  name: 'RedisDBDataCopy',
   path: 'db-data-copy/:page?',
+  name: 'RedisDBDataCopy',
   meta: {
     navName: t('数据复制'),
   },
@@ -148,8 +148,8 @@ const redisDBDataCopyRoute = {
 };
 
 const redisDBDataCopyRecordRoute = {
-  name: 'RedisDBDataCopyRecord',
   path: 'db-data-copy-record/:page?',
+  name: 'RedisDBDataCopyRecord',
   meta: {
     navName: t('数据复制记录'),
   },
@@ -157,8 +157,8 @@ const redisDBDataCopyRecordRoute = {
 };
 
 const redisVersionUpgradeRoute = {
-  name: 'RedisVersionUpgrade',
   path: 'version-upgrade/:page?',
+  name: 'RedisVersionUpgrade',
   meta: {
     navName: t('版本升级'),
   },
@@ -166,8 +166,8 @@ const redisVersionUpgradeRoute = {
 };
 
 const redisWebconsoleRoute = {
-  name: 'RedisWebconsole',
   path: 'webconsole',
+  name: 'RedisWebconsole',
   meta: {
     navName: 'Webconsole',
   },
@@ -175,42 +175,42 @@ const redisWebconsoleRoute = {
 };
 
 const toolboxDbConsoleRouteMap = {
-  'redis.toolbox.installModule': redisInstallModuleRoute,
   'redis.toolbox.capacityChange': redisCapacityChangeRoute,
-  'redis.toolbox.proxyScaleUp': redisProxyScaleUpRoute,
-  'redis.toolbox.proxyScaleDown': redisProxyScaleDownRoute,
   'redis.toolbox.clusterShardChange': redisClusterShardUpdateRoute,
   'redis.toolbox.clusterTypeChange': redisClusterTypeUpdateRoute,
-  'redis.toolbox.slaveRebuild': redisDBCreateSlaveRoute,
-  'redis.toolbox.masterSlaveSwap': redisMasterFailoverRoute,
-  'redis.toolbox.dbReplace': redisDBReplaceRoute,
-  'redis.toolbox.migrate': redisMigrateRoute,
-  'redis.toolbox.versionUpgrade': redisVersionUpgradeRoute,
-  'redis.toolbox.rollback': redisDBStructureRoute,
-  'redis.toolbox.rollbackRecord': redisStructureInstanceRoute,
-  'redis.toolbox.recoverFromInstance': redisRecoverFromInstanceRoute,
   'redis.toolbox.dataCopy': redisDBDataCopyRoute,
   'redis.toolbox.dataCopyRecord': redisDBDataCopyRecordRoute,
+  'redis.toolbox.dbReplace': redisDBReplaceRoute,
+  'redis.toolbox.installModule': redisInstallModuleRoute,
+  'redis.toolbox.masterSlaveSwap': redisMasterFailoverRoute,
+  'redis.toolbox.migrate': redisMigrateRoute,
+  'redis.toolbox.proxyScaleDown': redisProxyScaleDownRoute,
+  'redis.toolbox.proxyScaleUp': redisProxyScaleUpRoute,
+  'redis.toolbox.recoverFromInstance': redisRecoverFromInstanceRoute,
+  'redis.toolbox.rollback': redisDBStructureRoute,
+  'redis.toolbox.rollbackRecord': redisStructureInstanceRoute,
+  'redis.toolbox.slaveRebuild': redisDBCreateSlaveRoute,
+  'redis.toolbox.versionUpgrade': redisVersionUpgradeRoute,
   'redis.toolbox.webconsole': redisWebconsoleRoute,
 };
 
 const toolboxRoutes = [
   {
-    name: 'RedisToolbox',
     path: 'toolbox',
+    name: 'RedisToolbox',
+    meta: {
+      fullscreen: true,
+      navName: t('工具箱'),
+    },
     redirect: {
       name: '',
-    },
-    meta: {
-      navName: t('工具箱'),
-      fullscreen: true,
     },
     component: () => import('@views/db-manage/redis/toolbox/Index.vue'),
     children: [] as RouteRecordRaw[],
   },
   {
-    name: 'RedisToolboxDataCheckRepair',
     path: 'data-check-repair/:page?',
+    name: 'RedisToolboxDataCheckRepair',
     meta: {
       navName: t('数据校验修复'),
     },
@@ -219,39 +219,39 @@ const toolboxRoutes = [
 ];
 
 const redisInstanceListRoute = {
-  name: 'DatabaseRedisInstanceList',
   path: 'instance-list',
+  name: 'DatabaseRedisInstanceList',
   meta: {
-    navName: t('Redis 集群实例视图'),
     fullscreen: true,
+    navName: t('Redis 集群实例视图'),
   },
   component: () => import('@views/db-manage/redis/instance-list/Index.vue'),
 };
 
 const redisHaInstanceListRoute = {
-  name: 'DatabaseRedisHaInstanceList',
   path: 'instance-ha-list',
+  name: 'DatabaseRedisHaInstanceList',
   meta: {
-    navName: t('Redis 主从实例视图'),
     fullscreen: true,
+    navName: t('Redis 主从实例视图'),
   },
   component: () => import('@views/db-manage/redis/instance-ha-list/Index.vue'),
 };
 
 const redisDatabaseHaList = {
-  name: 'DatabaseRedisHaList',
   path: 'cluster-ha-list',
+  name: 'DatabaseRedisHaList',
   meta: {
-    navName: t('Redis 主从管理'),
     fullscreen: true,
+    navName: t('Redis 主从管理'),
   },
   component: () => import('@views/db-manage/redis/cluster-ha-list/Index.vue'),
 };
 
 const routes: RouteRecordRaw[] = [
   {
-    name: 'RedisManage',
     path: 'redis',
+    name: 'RedisManage',
     meta: {
       navName: t('Redis_集群管理'),
     },
@@ -261,11 +261,11 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@views/db-manage/redis/Index.vue'),
     children: [
       {
-        name: 'DatabaseRedisList',
         path: 'cluster-list',
+        name: 'DatabaseRedisList',
         meta: {
-          navName: t('Redis_集群管理'),
           fullscreen: true,
+          navName: t('Redis_集群管理'),
         },
         component: () => import('@views/db-manage/redis/cluster-list/Index.vue'),
       },

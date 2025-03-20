@@ -72,18 +72,18 @@
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.MYSQL_PROXY_SWITCH,
     inheritAttrs: false,
   });
 
+  const props = defineProps<Props>();
+
   const { t } = useI18n();
 
   const displayInfoTypeMap = {
-    INSTANCE_REPLACE: t('实例替换'),
     HOST_REPLACE: t('整机替换'),
+    INSTANCE_REPLACE: t('实例替换'),
   };
 
   const isHostReplace = computed(() => props.ticketDetails.details.infos[0].display_info.type === 'HOST_REPLACE');

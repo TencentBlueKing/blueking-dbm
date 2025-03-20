@@ -136,8 +136,8 @@
 
   interface Props {
     versionList: {
-      value: string;
       label: string;
+      value: string;
     }[];
   }
 
@@ -152,14 +152,14 @@
   const { t } = useI18n();
 
   const batchEditShow = reactive({
-    switchMode: false,
     dbVersion: false,
+    switchMode: false,
   });
 
   const switchModeList = [
     {
-      value: t('需人工确认'),
       label: t('需人工确认'),
+      value: t('需人工确认'),
     },
   ];
 

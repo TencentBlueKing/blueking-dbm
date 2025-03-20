@@ -11,7 +11,8 @@ specific language governing permissions and limitations under the License.
 import json
 
 from django.core.cache import cache
-from django.db.models import Q
+from django.db.models import CharField, Q, Value
+from django.db.models.functions import Cast, Concat
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext as _
 from django_filters import rest_framework as filters
@@ -20,27 +21,25 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
+from backend import env
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.bk_web.viewsets import AuditedModelViewSet
-from backend.db_monitor import serializers
-
-from ... import env
-from ...configuration.constants import PLAT_BIZ_ID, DBType
-from ...db_meta.enums import ClusterType, InstanceRole
-from ...db_meta.models import Cluster, DBModule, StorageInstance
-from ...iam_app.dataclass import ResourceEnum
-from ...iam_app.dataclass.actions import ActionEnum
-from ...iam_app.handlers.drf_perm.base import (
+from backend.configuration.constants import PLAT_BIZ_ID
+from backend.db_meta.enums import ClusterType
+from backend.db_meta.models import Cluster, DBModule, ProxyInstance, StorageInstance
+from backend.db_monitor import constants, serializers
+from backend.db_monitor.models import MonitorPolicy
+from backend.iam_app.dataclass import ResourceEnum
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.drf_perm.base import (
     BizDBTypeResourceActionPermission,
     DBManagePermission,
     ResourceActionPermission,
     get_request_key_id,
 )
-from ...iam_app.handlers.drf_perm.monitor import MonitorPolicyPermission
-from ...iam_app.handlers.permission import Permission
-from ...ticket.models import Ticket
-from .. import constants
-from ..models import MonitorPolicy
+from backend.iam_app.handlers.drf_perm.monitor import MonitorPolicyPermission
+from backend.iam_app.handlers.permission import Permission
+from backend.ticket.models import Ticket
 
 
 class MonitorPolicyListFilter(filters.FilterSet):
@@ -50,7 +49,7 @@ class MonitorPolicyListFilter(filters.FilterSet):
     db_type = filters.CharFilter(lookup_expr="exact", label=_("db类型"))
     target_keyword = filters.CharFilter(lookup_expr="icontains", label=_("目标关键字检索"))
     is_enabled = filters.BooleanFilter(label=_("是否启用"))
-
+    monitor_policy_ids = filters.CharFilter(method="filter_monitor_policy_id", label=_("监控策略ID列表"))
     bk_biz_id = filters.NumberFilter(method="filter_bk_biz_id", label=_("业务ID"))
 
     # 如果只需要开区间，可以简化配置，这里的注释留作学习示例
@@ -71,6 +70,10 @@ class MonitorPolicyListFilter(filters.FilterSet):
             qs = qs | Q(notify_groups__contains=group)
 
         return queryset.filter(qs)
+
+    def filter_monitor_policy_id(self, queryset, name, value):
+        """过滤多个策略ID: value=1,2,3"""
+        return queryset.filter(monitor_policy_id__in=value.split(","))
 
     def filter_bk_biz_id(self, queryset, name, value):
         """默认包含平台告警策略"""
@@ -142,11 +145,7 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
                     instance_ids_getter=self.instance_getter("db_type"),
                 )
             else:
-                permission = BizDBTypeResourceActionPermission(
-                    [ActionEnum.MONITOR_POLICY_LIST],
-                    instance_biz_getter=self.instance_getter("bk_biz_id"),
-                    instance_dbtype_getter=self.instance_getter("db_type"),
-                )
+                permission = DBManagePermission()
             return [permission]
         elif self.action == "clone_strategy":
             policy = MonitorPolicy.objects.get(id=self.request.data["parent_id"])
@@ -229,6 +228,22 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
     def update_strategy(self, request, *args, **kwargs):
         return Response(self.get_object().update(self.validated_data, request.user.username))
 
+    @common_swagger_auto_schema(
+        operation_summary=_("批量更新策略告警组"),
+        tags=[constants.SWAGGER_TAG],
+        request_body=serializers.BatchUpdateMonitorPolicyNotifySerializer(),
+    )
+    @action(methods=["POST"], detail=False, serializer_class=serializers.BatchUpdateMonitorPolicyNotifySerializer)
+    def batch_update_notify_group(self, request, *args, **kwargs):
+        notify_groups = self.validated_data["notify_groups"]
+        # 更新较慢考虑采用多线程方案
+        policy_map = MonitorPolicy.objects.in_bulk(id_list=[info["policy_id"] for info in notify_groups])
+        for info in notify_groups:
+            policy = policy_map[info["policy_id"]]
+            params = {"notify_groups": info["groups"]}
+            policy.update(params, username=request.user.username)
+        return Response()
+
     # @common_swagger_auto_schema(
     #     operation_summary=_("恢复默认策略"),
     #     tags=[constants.SWAGGER_TAG],
@@ -251,21 +266,93 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
         filter_class=None,
     )
     def cluster_list(self, request, *args, **kwargs):
-        dbtype = self.validated_data["dbtype"]
+        dbtype = self.validated_data.get("dbtype")
         bk_biz_id = self.validated_data["bk_biz_id"]
-
-        if dbtype == DBType.InfluxDB:
-            return Response(
-                StorageInstance.objects.filter(instance_role=InstanceRole.INFLUXDB).values_list(
-                    "machine__ip", flat=True
-                )
-            )
-
-        clusters = Cluster.objects.filter(
-            cluster_type__in=ClusterType.db_type_to_cluster_types(dbtype), bk_biz_id=bk_biz_id
-        )
+        clusters = Cluster.objects.filter(bk_biz_id=bk_biz_id)
+        if dbtype:
+            clusters = clusters.filter(cluster_type__in=ClusterType.db_type_to_cluster_types(dbtype))
 
         return Response(clusters.values_list("immute_domain", flat=True))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("根据db类型查询实例列表"),
+        tags=[constants.SWAGGER_TAG],
+        query_serializer=serializers.ListClusterSerializer,
+    )
+    @action(
+        methods=["GET"],
+        detail=False,
+        serializer_class=serializers.ListClusterSerializer,
+        pagination_class=None,
+        filter_class=None,
+    )
+    def instance_list(self, request, *args, **kwargs):
+        bk_biz_id = self.validated_data["bk_biz_id"]
+        storage_instances = (
+            StorageInstance.objects.select_related("machine")
+            .filter(bk_biz_id=bk_biz_id)
+            .annotate(
+                instance=Concat(
+                    Cast("machine__ip", output_field=CharField()), Value("-"), Cast("port", output_field=CharField())
+                )
+            )
+            .values_list("instance", flat=True)
+        )
+        proxy_instances = (
+            ProxyInstance.objects.select_related("machine")
+            .filter(bk_biz_id=bk_biz_id)
+            .annotate(
+                instance=Concat(
+                    Cast("machine__ip", output_field=CharField()), Value("-"), Cast("port", output_field=CharField())
+                )
+            )
+            .values_list("instance", flat=True)
+        )
+        return Response(list(storage_instances) + list(proxy_instances))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("根据db类型查询IP列表"),
+        tags=[constants.SWAGGER_TAG],
+        query_serializer=serializers.ListClusterSerializer,
+    )
+    @action(
+        methods=["GET"],
+        detail=False,
+        serializer_class=serializers.ListClusterSerializer,
+        pagination_class=None,
+        filter_class=None,
+    )
+    def ip_list(self, request, *args, **kwargs):
+        bk_biz_id = self.validated_data["bk_biz_id"]
+        storage_ips = (
+            StorageInstance.objects.select_related("machine")
+            .filter(bk_biz_id=bk_biz_id)
+            .values_list("machine__ip", flat=True)
+        )
+        proxy_ips = (
+            ProxyInstance.objects.select_related("machine")
+            .filter(bk_biz_id=bk_biz_id)
+            .values_list("machine__ip", flat=True)
+        )
+        return Response(list(set(list(storage_ips) + list(proxy_ips))))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("根据db类型查询角色列表"),
+        tags=[constants.SWAGGER_TAG],
+        query_serializer=serializers.ListClusterSerializer,
+    )
+    @action(
+        methods=["GET"],
+        detail=False,
+        serializer_class=serializers.ListClusterSerializer,
+        pagination_class=None,
+        filter_class=None,
+    )
+    def instance_role_list(self, request, *args, **kwargs):
+        bk_biz_id = self.validated_data["bk_biz_id"]
+        storage_roles = StorageInstance.objects.filter(bk_biz_id=bk_biz_id).values_list("instance_role", flat=True)
+        proxy_roles = ProxyInstance.objects.filter(bk_biz_id=bk_biz_id).values_list("access_layer", flat=True)
+        return Response(list(set(list(storage_roles) + list(proxy_roles))))
 
     @common_swagger_auto_schema(
         operation_summary=_("根据db类型查询模块列表"),

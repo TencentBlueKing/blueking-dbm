@@ -76,39 +76,39 @@
   import RenderSourceCluster from './RenderSourceCluster.vue';
 
   enum ClusterType {
-    REDIS_INSTANCE = 'RedisInstance', // 主从版
     REDIS_CLUSTER = 'RedisCluster', // 集群版
+    REDIS_INSTANCE = 'RedisInstance', // 主从版
   }
 
   export interface IDataRow {
-    rowKey: string;
+    clusterType: ClusterType;
+    excludeKey: string[];
+    includeKey: string[];
     isLoading: boolean;
+    password: string;
+    rowKey: string;
     srcCluster: string;
     targetClusterId: number;
-    clusterType: ClusterType;
-    password: string;
-    includeKey: string[];
-    excludeKey: string[];
   }
 
   export type IDataRowBatchKey = keyof Pick<IDataRow, 'includeKey' | 'excludeKey'>;
 
   // 创建表格数据
   export const createRowData = (): IDataRow => ({
-    rowKey: random(),
+    clusterType: ClusterType.REDIS_CLUSTER,
+    excludeKey: [],
+    includeKey: ['*'],
     isLoading: false,
+    password: '',
+    rowKey: random(),
     srcCluster: '',
     targetClusterId: 0,
-    clusterType: ClusterType.REDIS_CLUSTER,
-    password: '',
-    includeKey: ['*'],
-    excludeKey: [],
   });
 
   interface Props {
+    clusterList: SelectItem[];
     data: IDataRow;
     removeable: boolean;
-    clusterList: SelectItem[];
   }
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
@@ -169,13 +169,13 @@
       );
       emits('clone', {
         ...props.data,
-        rowKey: random(),
-        isLoading: false,
         clusterType,
-        password,
-        targetClusterId,
-        includeKey,
         excludeKey,
+        includeKey,
+        isLoading: false,
+        password,
+        rowKey: random(),
+        targetClusterId,
       });
     });
   };
@@ -185,12 +185,12 @@
       return await Promise.all(getRowData()).then((data) => {
         const [srcCluster, clusterType, password, targetClusterId, includeKey, excludeKey] = data;
         return {
-          src_cluster: srcCluster,
           dst_cluster: targetClusterId,
-          src_cluster_type: clusterType,
-          src_cluster_password: password,
-          key_white_regex: includeKey.join('\n'),
           key_black_regex: excludeKey.join('\n'),
+          key_white_regex: includeKey.join('\n'),
+          src_cluster: srcCluster,
+          src_cluster_password: password,
+          src_cluster_type: clusterType,
         };
       });
     },

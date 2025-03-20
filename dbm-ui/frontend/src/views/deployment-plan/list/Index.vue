@@ -70,12 +70,7 @@
   </DbSideslider>
 </template>
 <script setup lang="tsx">
-  import {
-    computed,
-    onMounted,
-    ref,
-    shallowRef,
-  } from 'vue';
+  import { computed, onMounted, ref, shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type DeployPlanModel from '@services/model/db-resource/DeployPlan';
@@ -114,51 +109,50 @@
 
   const tableColumn = [
     {
-      label: t('方案名称'),
       field: 'name',
       fixed: 'left',
+      label: t('方案名称'),
     },
     {
-      label: t('集群分片数'),
       field: 'shard_cnt',
+      label: t('集群分片数'),
       width: 100,
     },
     {
-      label: t('后端存储资源规格（机器数量）'),
       field: 'machine_pair_cnt',
+      label: t('后端存储资源规格（机器数量）'),
       width: 250,
     },
     {
-      label: t('集群预估容量（G）'),
       field: 'capacity',
+      label: t('集群预估容量（G）'),
       width: 150,
     },
     {
-      label: t('更新时间'),
       field: 'update_at',
+      label: t('更新时间'),
       width: 200,
     },
     {
-      label: t('更新人'),
       field: 'updater',
+      label: t('更新人'),
       width: 150,
     },
     {
       label: t('操作'),
-      width: 150,
-      render: ({ data }: {data: DeployPlanModel}) => (
+      render: ({ data }: { data: DeployPlanModel }) => (
         <>
           <bk-button
-            theme="primary"
+            theme='primary'
             text
             onClick={() => handleEdit(data)}>
             {t('编辑')}
           </bk-button>
           <bk-button
-            theme="primary"
-            text
-            class="ml-8"
+            class='ml-8'
             loading={Boolean(cloneLoadingMap.value[data.id])}
+            theme='primary'
+            text
             onClick={() => handleClone(data)}>
             {t('克隆')}
           </bk-button>
@@ -168,24 +162,28 @@
               disabled: !data.is_refer,
             }}>
             <bk-button
-              theme="primary"
-              class="ml-8"
-              text
+              class='ml-8'
               disabled={data.is_refer}
               loading={Boolean(removeLoadingMap.value[data.id])}
+              theme='primary'
+              text
               onClick={() => handleRemove(data)}>
               {t('删除')}
             </bk-button>
           </span>
         </>
       ),
+      width: 150,
     },
   ];
 
   const fetchData = () => {
-    tableRef.value.fetchData({}, {
-      cluster_type: clusterType.value,
-    });
+    tableRef.value.fetchData(
+      {},
+      {
+        cluster_type: clusterType.value,
+      },
+    );
   };
 
   const handleTableSelection = (idList: number[]) => {
@@ -207,9 +205,10 @@
     isBatchRemoveing.value = true;
     batchRemoveDeployPlan({
       deploy_plan_ids: tableSelectIdList.value,
-    }).then(() => {
-      fetchData();
     })
+      .then(() => {
+        fetchData();
+      })
       .finally(() => {
         isBatchRemoveing.value = false;
       });
@@ -228,17 +227,18 @@
       [data.id]: true,
     };
     createDeployPlan({
-      name: data.name,
-      shard_cnt: data.shard_cnt,
       capacity: data.capacity,
-      machine_pair_cnt: data.machine_pair_cnt,
       cluster_type: data.cluster_type,
       desc: data.desc,
+      machine_pair_cnt: data.machine_pair_cnt,
+      name: data.name,
+      shard_cnt: data.shard_cnt,
       spec: data.spec,
-    }).then(() => {
-      fetchData();
-      messageSuccess(t('部署方案克隆成功'));
     })
+      .then(() => {
+        fetchData();
+        messageSuccess(t('部署方案克隆成功'));
+      })
       .finally(() => {
         cloneLoadingMap.value = {
           ...cloneLoadingMap.value,
@@ -259,10 +259,11 @@
     };
     removeDeployPlan({
       id: data.id,
-    }).then(() => {
-      fetchData();
-      messageSuccess(t('删除成功'));
     })
+      .then(() => {
+        fetchData();
+        messageSuccess(t('删除成功'));
+      })
       .finally(() => {
         removeLoadingMap.value = {
           ...removeLoadingMap.value,

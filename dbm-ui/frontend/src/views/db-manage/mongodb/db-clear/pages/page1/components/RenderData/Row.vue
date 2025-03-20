@@ -66,22 +66,22 @@
   import { random } from '@utils';
 
   export interface IDataRow {
-    rowKey: string;
-    clusterName: string;
     clusterId: number;
+    clusterName: string;
     clusterType: string;
     dbPatterns?: string[];
-    tablePatterns?: string[];
     ignoreDbs?: string[];
     ignoreTables?: string[];
+    rowKey: string;
+    tablePatterns?: string[];
   }
 
   // 创建表格数据
   export const createRowData = () => ({
-    rowKey: random(),
-    clusterName: '',
     clusterId: 0,
+    clusterName: '',
     clusterType: '',
+    rowKey: random(),
   });
 </script>
 <script setup lang="ts">
@@ -98,10 +98,10 @@
   import RenderDropType from './RenderDropType.vue';
 
   interface Props {
-    data: IDataRow;
-    removeable: boolean;
     clusterType: ClusterTypes;
+    data: IDataRow;
     isShardCluster: boolean;
+    removeable: boolean;
   }
 
   interface Emits {
@@ -116,8 +116,8 @@
     ns_filter: {
       db_patterns: string[];
       ignore_dbs: string[];
-      table_patterns: string[];
       ignore_tables: string[];
+      table_patterns: string[];
     };
   }
 

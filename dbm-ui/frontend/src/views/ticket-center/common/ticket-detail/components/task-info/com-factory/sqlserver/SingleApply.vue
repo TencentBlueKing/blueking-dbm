@@ -85,16 +85,12 @@
           {{ ticketDetails.details.charset }}
         </BkTableColumn>
         <BkTableColumn
-          v-if="ticketDetails.details.nodes?.sqlserver_single"
-          field="sqlserver_single"
+          v-if="ticketDetails.details.nodes?.backend"
+          field="backend"
           :label="t('服务器')"
           :min-width="180">
-          <template
-            v-for="host in ticketDetails.details.nodes.sqlserver_single"
-            :key="host.bk_host_id">
-            <div>
-              {{ host.ip }}
-            </div>
+          <template #default="{ rowIndex }">
+            {{ ticketDetails.details.nodes.backend[rowIndex].ip }}
           </template>
         </BkTableColumn>
       </BkTable>
@@ -117,12 +113,12 @@
     ticketDetails: TicketModel<Sqlserver.SingleApply>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.SQLSERVER_SINGLE_APPLY,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 
@@ -131,10 +127,10 @@
       return undefined;
     }
     const data = props.ticketDetails.details.resource_spec;
-    // data.sqlserver_single 历史数据兼容问题, 类型不需要定义
+    // data.sqlserver_single / data.backend_group 历史数据兼容问题, 类型不需要定义
     // eslint-disable-next-line
     // @ts-ignore
-    return data.sqlserver_single || data.backend_group;
+    return data.sqlserver_single || data.backend_group || data.backend;
   });
 </script>
 <style lang="less" scoped>

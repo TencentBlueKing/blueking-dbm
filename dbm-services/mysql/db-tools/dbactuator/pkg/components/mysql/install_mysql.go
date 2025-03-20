@@ -133,6 +133,9 @@ type Mysqld struct {
 	TokudbTmpDir    string `json:"tokudb_tmp_dir"`
 }
 
+// nolint
+const tokudbPlugin = `TokuDB=ha_tokudb.so;TokuDB_trx=ha_tokudb.so;TokuDB_locks=ha_tokudb.so;TokuDB_lock_waits=ha_tokudb.so;TokuDB_file_map=ha_tokudb.so;TokuDB_fractal_tree_info=ha_tokudb.so;TokuDB_fractal_tree_block_map=ha_tokudb.so`
+
 // Example subcommand example input
 func (i *InstallMySQLComp) Example() interface{} {
 	comp := InstallMySQLComp{
@@ -241,6 +244,23 @@ func (i *InstallMySQLComp) InitDefaultParam() (err error) {
 			logger.Error("初始化mycnf ini 模版:%s", ierr.Error())
 			return ierr
 		}
+		if isTokudb(i.Params.Engine) {
+			// 如果参数中没有plugin-load,此次安装应该是迁移过来的实力，模块不是tokudb,所以会缺少一些参数
+			// 但是参数克隆会把engine也克隆过来，依旧按照tokudb来初始化
+			// 但是需要额外补充参数
+			if !cnftpl.Cfg.Section("mysqld").HasKey("plugin-load") {
+				_, err = cnftpl.Cfg.Section("mysqld").NewKey("plugin-load", tokudbPlugin)
+				if err != nil {
+					logger.Error("增加tokudb插件失败:%s", err.Error())
+					return err
+				}
+				if err = replenishTokudbCnf(cnftpl, i.Params.InstMem, path.Join(i.DataBaseDir, strconv.Itoa(port))); err != nil {
+					// 重新渲染my.cnf
+					logger.Error("重新渲染tokudb my.cnf失败:%s", err.Error())
+					return err
+				}
+			}
+		}
 		i.MyCnfTpls[port] = cnftpl
 	}
 
@@ -258,6 +278,25 @@ func (i *InstallMySQLComp) InitDefaultParam() (err error) {
 		return err
 	}
 	return nil
+}
+
+func replenishTokudbCnf(cfg *util.CnfFile, size uint64, datadir string) (err error) {
+	tokudb_cache_size := fmt.Sprintf("%dM", size/2)
+	tokuBasedir := path.Join(datadir, "tokudb")
+	tokuDatadir := path.Join(tokuBasedir, "data")
+	tokuLogdir := path.Join(tokuBasedir, "log")
+	tokuTmpdir := path.Join(tokuBasedir, "tmp")
+	cfg.Cfg.Section("mysqld").Key("tokudb_cache_size").SetValue(tokudb_cache_size)
+	cfg.Cfg.Section("mysqld").Key("tokudb_data_dir").SetValue(tokuDatadir)
+	cfg.Cfg.Section("mysqld").Key("tokudb_log_dir").SetValue(tokuLogdir)
+	cfg.Cfg.Section("mysqld").Key("tokudb_tmp_dir").SetValue(tokuTmpdir)
+	cfg.Cfg.Section("mysqld").Key("tokudb_commit_sync").SetValue("0")
+	cfg.Cfg.Section("mysqld").Key("tokudb_fsync_log_period").SetValue("1000")
+	cfg.Cfg.Section("mysqld").Key("tokudb_lock_timeout").SetValue("50000")
+	cfg.Cfg.Section("mysqld").Key("tokudb_fs_reserve_percent").SetValue("0")
+	cfg.ReplaceValue("mysqld", "innodb_buffer_pool_size", false, "200M")
+	cfg.ReplaceValue("mysqld", "default_storage_engine", false, "Tokudb")
+	return
 }
 
 // PreCheck do precheck
@@ -569,6 +608,11 @@ func (i *InstallMySQLComp) generateMycnfOnePort(port Port, tmplFileName string) 
 		return err
 	}
 
+	if port == Port(3306) {
+		_ = os.Remove(cst.DefaultMyCnfName)
+		_ = os.Symlink(cnf, cst.DefaultMyCnfName)
+	}
+
 	return nil
 }
 
@@ -597,6 +641,8 @@ func (i *InstallMySQLComp) InitInstanceDirs() (err error) {
 			return err
 		}
 	}
+	defaultDbBakCmd := fmt.Sprintf("mkdir -p /data/dbbak ; chown mysql /data/dbbak")
+	osutil.ExecShellCommand(false, defaultDbBakCmd)
 	return nil
 }
 
@@ -754,6 +800,9 @@ func (i *InstallMySQLComp) RegisterOtherEngine() (err error) {
 			},
 		}
 		if err = comp.Init(); err != nil {
+			return err
+		}
+		if err = comp.ReWriteMyCnf(); err != nil {
 			return err
 		}
 		if err = comp.Install(); err != nil {

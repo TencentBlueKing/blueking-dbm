@@ -160,8 +160,7 @@ class ClusterServiceHandler:
         return master_slave_pair_infos
 
     def find_related_clusters_by_cluster_ids(
-        self,
-        cluster_ids: List[int],
+        self, cluster_ids: List[int], role: str = InstanceInnerRole.MASTER
     ) -> List[Dict[str, Any]]:
         """
         查询集群同机关联的集群，取 master 所在的实例进一步进行查询
@@ -178,24 +177,42 @@ class ClusterServiceHandler:
         input: cluster_ids=[2, 3]
         output: [cluster1, cluster2, cluster3]
         """
-        masters = StorageInstance.objects.select_related("machine").filter(
-            cluster__id__in=cluster_ids, instance_inner_role=InstanceInnerRole.MASTER.value
+        storages = StorageInstance.objects.select_related("machine").filter(
+            cluster__id__in=cluster_ids, instance_inner_role=role
         )
-        if not masters.exists():
+        proxies = ProxyInstance.objects.select_related("machine").filter(
+            cluster__id__in=cluster_ids, access_layer=role
+        )
+        instances = list(storages) + list(proxies)
+
+        if not instances:
             raise InstanceNotExistException(_("无法找到集群{}所包含实例，请检查集群相关信息").format(cluster_ids))
 
+        # 获取实例的关联集群信息
         related_clusters = self.find_related_clusters_by_instances(
-            [DBInstance.from_inst_obj(master) for master in masters]
+            [DBInstance.from_inst_obj(inst) for inst in instances]
         )
-        cluster_id_related_clusters_map = {data["cluster_info"]["id"]: data for data in related_clusters}
-        return [
-            {
-                "cluster_id": cluster_id,
-                "cluster_info": cluster_id_related_clusters_map[cluster_id]["cluster_info"],
-                "related_clusters": cluster_id_related_clusters_map[cluster_id]["related_clusters"],
-            }
-            for cluster_id in cluster_ids
-        ]
+
+        # 聚合集群的关联集群信息
+        cluster_id__info_map = {}
+        cluster_id__related_clusters_map = defaultdict(list)
+        for info in related_clusters:
+            cluster_id__info_map[info["cluster_info"]["id"]] = info["cluster_info"]
+            cluster_id__related_clusters_map[info["cluster_info"]["id"]].extend(info["related_clusters"])
+
+        cluster_related_infos: List[Dict[str, Any]] = []
+        for cluster_id in cluster_ids:
+            # 对关联集群去重
+            related_clusters = cluster_id__related_clusters_map[cluster_id]
+            related_clusters = list({c["id"]: c for c in related_clusters}.values())
+            cluster_related_infos.append(
+                {
+                    "cluster_id": cluster_id,
+                    "cluster_info": cluster_id__info_map[cluster_id],
+                    "related_clusters": related_clusters,
+                }
+            )
+        return cluster_related_infos
 
     def find_related_clusters_by_instances(
         self, instances: List[DBInstance], same_role: bool = False

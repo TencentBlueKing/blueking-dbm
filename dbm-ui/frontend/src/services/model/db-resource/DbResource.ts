@@ -52,10 +52,10 @@ export default class DbResource {
   status: string;
   storage_device: {
     [key: string]: {
-      size: number;
       disk_id: string;
       disk_type: string;
       file_type: string;
+      size: number;
     };
   };
   sub_zone: string;
@@ -102,15 +102,15 @@ export default class DbResource {
     return bytePretty(this.bk_mem * 1024 * 1024);
   }
 
-  get isAbnormal() {
-    return this.agent_status === 0;
-  }
-
   get forBizDisplay() {
     if (this.for_biz.bk_biz_id === 0 || !this.for_biz.bk_biz_name) {
       return t('公共资源池');
     }
     return this.for_biz.bk_biz_name;
+  }
+
+  get isAbnormal() {
+    return this.agent_status === 0;
   }
 
   get resourceTypeDisplay() {

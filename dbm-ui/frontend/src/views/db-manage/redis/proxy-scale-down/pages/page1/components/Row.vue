@@ -95,50 +95,50 @@
   import RenderTargetNumber from './RenderTargetNumber.vue';
 
   export interface IDataRow {
-    rowKey: string;
-    isLoading: boolean;
-    cluster: string;
-    clusterId: number;
     bkCloudId: number;
-    nodeType: string;
+    cluster: string;
     cluster_type_name: string;
-    proxyList: RedisModel['proxy'];
-    switchMode?: string;
+    clusterId: number;
     hostSelectType?: string;
+    isLoading: boolean;
+    nodeType: string;
+    proxyList: RedisModel['proxy'];
+    rowKey: string;
     selectedNodeList?: IValue[];
+    switchMode?: string;
     targetNum?: string;
   }
 
   export interface InfoItem {
-    cluster_id: number;
     bk_cloud_id: number;
-    target_proxy_count?: number | string;
+    cluster_id: number;
+    online_switch_type: OnlineSwitchType;
     proxy_reduce_count?: number | string;
     spider_reduced_hosts?: {
-      ip: string;
-      bk_host_id: number;
-      bk_cloud_id: number;
       bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_host_id: number;
+      ip: string;
     }[];
-    online_switch_type: OnlineSwitchType;
+    target_proxy_count?: number | string;
   }
 
   // 创建表格数据
   export const createRowData = (): IDataRow => ({
-    rowKey: random(),
-    isLoading: false,
-    cluster: '',
-    clusterId: 0,
     bkCloudId: 0,
-    nodeType: '',
+    cluster: '',
     cluster_type_name: '',
+    clusterId: 0,
+    isLoading: false,
+    nodeType: '',
     proxyList: [],
+    rowKey: random(),
   });
 
   interface Props {
     data: IDataRow;
-    removeable: boolean;
     inputedClusters?: string[];
+    removeable: boolean;
   }
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
@@ -174,6 +174,13 @@
         [ClusterTypes.REDIS]: [
           {
             name: t('主机选择'),
+            tableConfig: {
+              firsrColumn: {
+                field: 'ip',
+                label: t('Proxy 主机'),
+                role: 'proxy',
+              },
+            },
             topoConfig: {
               filterClusterId: props.data!.clusterId,
               getTopoList: (params: ServiceParameters<typeof getRedisClusterList>) =>
@@ -182,19 +189,12 @@
                   domain: props.data.cluster,
                 }),
             },
-            tableConfig: {
-              firsrColumn: {
-                label: t('Proxy 主机'),
-                field: 'ip',
-                role: 'proxy',
-              },
-            },
           },
           {
             tableConfig: {
               firsrColumn: {
-                label: t('Proxy 主机'),
                 field: 'ip',
+                label: t('Proxy 主机'),
                 role: 'proxy',
               },
             },
@@ -250,10 +250,10 @@
       const rowInfo = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
       const cloneData = {
         ...props.data,
-        rowKey: random(),
         isLoading: false,
-        targetNum: String(Number(rowInfo[1].proxy_reduce_count)),
+        rowKey: random(),
         switchMode: rowInfo[3],
+        targetNum: String(Number(rowInfo[1].proxy_reduce_count)),
       };
       if (rowInfo[2]) {
         Object.assign(cloneData, {
@@ -275,8 +275,8 @@
       ]).then((data) => {
         const [targetNum, hostData, switchMode] = data;
         const info = {
-          cluster_id: props.data.clusterId,
           bk_cloud_id: props.data.bkCloudId,
+          cluster_id: props.data.clusterId,
           online_switch_type: switchMode as OnlineSwitchType,
         };
 

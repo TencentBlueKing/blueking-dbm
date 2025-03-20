@@ -39,20 +39,20 @@ const routes: RouteRecordRaw[] = [
       //   component: () => import('@views/db-manage/influxdb/apply/index.vue'),
       // },
       {
-        name: 'InfluxDBInstances',
         path: 'instance-list/:groupId(\\d+)?',
+        name: 'InfluxDBInstances',
         meta: {
-          navName: t('InfluxDB实例管理'),
           fullscreen: true,
+          navName: t('InfluxDB实例管理'),
         },
         component: () => import('@views/db-manage/influxdb/instance-list/Index.vue'),
       },
       {
-        name: 'InfluxDBInstDetails',
         path: 'instance-details/:instId(\\d+)',
+        name: 'InfluxDBInstDetails',
         meta: {
-          navName: t('InfluxDB实例详情'),
           fullscreen: true,
+          navName: t('InfluxDB实例详情'),
         },
         component: () => import('@views/db-manage/influxdb/details/Details.vue'),
       },

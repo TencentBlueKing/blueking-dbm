@@ -17,8 +17,8 @@ export default class TicketFlowDescribe {
   group: string;
   id: number;
   permission: {
-    ticket_config_set: boolean;
     biz_ticket_config_set: boolean;
+    ticket_config_set: boolean;
   };
   ticket_type: string;
   ticket_type_display: string;
@@ -42,18 +42,9 @@ export default class TicketFlowDescribe {
     this.updater = payload.updater;
   }
 
-  get updateAtDisplay() {
-    return utcDisplayTime(this.update_at);
-  }
-
-  // 是否内置目标
-  get isDefaultTarget() {
-    return this.bk_biz_id === 0;
-  }
-
-  // 是否自定义目标
-  get isCustomTarget() {
-    return this.bk_biz_id !== 0;
+  // 集群列表
+  get clusterDomainList() {
+    return this.clusters.map((cluster) => cluster.immute_domain);
   }
 
   // 是否集群目标
@@ -66,8 +57,17 @@ export default class TicketFlowDescribe {
     return this.isCustomTarget && !this.isClusterTarget;
   }
 
-  // 集群列表
-  get clusterDomainList() {
-    return this.clusters.map((cluster) => cluster.immute_domain);
+  // 是否自定义目标
+  get isCustomTarget() {
+    return this.bk_biz_id !== 0;
+  }
+
+  // 是否内置目标
+  get isDefaultTarget() {
+    return this.bk_biz_id === 0;
+  }
+
+  get updateAtDisplay() {
+    return utcDisplayTime(this.update_at);
   }
 }

@@ -5,6 +5,7 @@ import (
 	"dbm-services/mysql/priv-service/service/v2/internal"
 	"fmt"
 	"log/slog"
+	"slices"
 	"strings"
 )
 
@@ -96,6 +97,17 @@ func (c *PrivTaskPara) prepareTenDBHA(targetMetaInfos []*service.Instance) (
 				fmt.Sprintf(`%s:%d`, s.IP, s.Port),
 			)
 		}
+	}
+
+	/*
+		如果来源有 localhost
+		1. 只有 localhost 时, 说明不需要通过 proxy 访问, 只保留 localhost 授权
+		2. 如果还有其他的 ip, 则把 localhost 追加进去
+	*/
+	if len(c.SourceIPs) == 1 && c.SourceIPs[0] == "localhost" {
+		clientIps = []string{"localhost"}
+	} else if slices.Index(c.SourceIPs, "localhost") >= 0 {
+		clientIps = append(clientIps, "localhost")
 	}
 
 	return

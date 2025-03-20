@@ -18,11 +18,11 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
-    name: 'PlatformVersionFiles',
     path: 'version-files',
+    name: 'PlatformVersionFiles',
     meta: {
-      navName: t('版本文件'),
       fullscreen: true,
+      navName: t('版本文件'),
     },
     component: () => import('@views/version-files/list/Index.vue'),
   },

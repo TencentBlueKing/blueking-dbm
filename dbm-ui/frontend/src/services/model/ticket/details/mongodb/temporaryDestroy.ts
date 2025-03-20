@@ -1,6 +1,7 @@
 import type { DetailBase } from '../common';
 
 export interface TemporaryDestroy extends DetailBase {
+  cluster_ids: number[];
   clusters: Record<
     number,
     {
@@ -28,5 +29,4 @@ export interface TemporaryDestroy extends DetailBase {
       updater: string;
     }
   >;
-  cluster_ids: number[];
 }

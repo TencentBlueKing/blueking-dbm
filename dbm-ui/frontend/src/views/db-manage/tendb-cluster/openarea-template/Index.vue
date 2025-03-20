@@ -26,25 +26,18 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import {
-    onMounted,
-    ref,
-  } from 'vue';
+  import { onMounted, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
 
   import OpenareaTemplateModel from '@services/model/openarea/openareaTemplate';
-  import {
-    getList,
-    remove,
-  } from '@services/source/openarea';
+  import { getList, remove } from '@services/source/openarea';
 
-  import { useDebouncedRef,useTicketCloneInfo  } from '@hooks';
+  import { useDebouncedRef, useTicketCloneInfo } from '@hooks';
 
   import { TicketTypes } from '@common/const';
 
   import { messageSuccess } from '@utils';
-
 
   const { t } = useI18n();
   const router = useRouter();
@@ -53,7 +46,6 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.TENDBCLUSTER_OPEN_AREA,
     onSuccess(cloneData) {
       router.push({
         name: 'spiderOpenareaCreate',
@@ -61,38 +53,38 @@
           id: cloneData.id,
         },
         query: {
-          from: route.name as string
-        }
-      })
+          from: route.name as string,
+        },
+      });
     },
+    type: TicketTypes.TENDBCLUSTER_OPEN_AREA,
   });
 
   const tableRef = ref();
 
   const tableColumns = [
     {
+      field: 'config_name',
       label: t('模板名称'),
-      field: 'config_name',
     },
     {
+      field: 'config_name',
       label: t('源集群'),
-      field: 'config_name',
-      render: ({ data }: {data: OpenareaTemplateModel}) => data.source_cluster.immute_domain || '--',
+      render: ({ data }: { data: OpenareaTemplateModel }) => data.source_cluster.immute_domain || '--',
     },
     {
-      label: t('更新人'),
       field: 'updater',
+      label: t('更新人'),
     },
     {
-      label: t('更新时间'),
       field: 'update_at',
+      label: t('更新时间'),
+      render: ({ data }: { data: OpenareaTemplateModel }) => data.updateAtDisplay || '--',
       sort: true,
-      render: ({ data }: {data: OpenareaTemplateModel}) => data.updateAtDisplay || '--',
     },
     {
       label: t('操作'),
-      width: 190,
-      render: ({ data }: {data: OpenareaTemplateModel}) => (
+      render: ({ data }: { data: OpenareaTemplateModel }) => (
         <>
           <router-link
             to={{
@@ -101,65 +93,69 @@
                 id: data.id,
               },
               query: {
-                from: route.name
-              }
+                from: route.name,
+              },
             }}>
-            { t('开区') }
+            {t('开区')}
           </router-link>
           <auth-router-link
-            action-id="tendb_openarea_config_update"
-            resource={data.id}
-            permission={data.permission.tendb_openarea_config_update}
-            class="ml-8"
             to={{
               name: 'spiderOpenareaTemplateEdit',
               params: {
                 id: data.id,
               },
               query: {
-                from: route.name
-              }
-            }}>
-            { t('编辑') }
+                from: route.name,
+              },
+            }}
+            action-id='tendb_openarea_config_update'
+            class='ml-8'
+            permission={data.permission.tendb_openarea_config_update}
+            resource={data.id}>
+            {t('编辑')}
           </auth-router-link>
           <auth-template
-            action-id="tendb_openarea_config_destroy"
-            resource={data.id}
-            permission={data.permission.tendb_openarea_config_destroy}>
+            action-id='tendb_openarea_config_destroy'
+            permission={data.permission.tendb_openarea_config_destroy}
+            resource={data.id}>
             <db-popconfirm
-              title={t('确认删除该模板？')}
+              confirmHandler={() => handleRemove(data)}
               content={t('删除操作无法撤回，请谨慎操作！')}
-              confirmHandler={() => handleRemove(data)}>
+              title={t('确认删除该模板？')}>
               <bk-button
-                class="ml-8"
-                text
-                theme="primary">
-                { t('删除') }
+                class='ml-8'
+                theme='primary'
+                text>
+                {t('删除')}
               </bk-button>
             </db-popconfirm>
           </auth-template>
         </>
       ),
+      width: 190,
     },
   ];
 
-  watch(
-    searchKey,
-    () => {
-      nextTick(() => {
-        tableRef.value.fetchData({
+  watch(searchKey, () => {
+    nextTick(() => {
+      tableRef.value.fetchData(
+        {
           config_name: searchKey.value,
-        }, {
+        },
+        {
           cluster_type: 'tendbcluster',
-        });
-      })
-    }
-  );
+        },
+      );
+    });
+  });
 
   const fetchData = () => {
-    tableRef.value.fetchData({}, {
-      cluster_type: 'tendbcluster',
-    });
+    tableRef.value.fetchData(
+      {},
+      {
+        cluster_type: 'tendbcluster',
+      },
+    );
   };
 
   // 表头排序
@@ -169,17 +165,17 @@
       label: string;
     };
     index: number;
-    type: 'asc' | 'desc' | 'null'
+    type: 'asc' | 'desc' | 'null';
   }) => {
-    let desc = ''
+    let desc = '';
     if (data.type === 'asc') {
       desc = data.column.field;
     } else if (data.type === 'desc') {
       desc = `-${data.column.field}`;
     }
     tableRef.value.fetchData({
-      desc,
       cluster_type: 'tendbcluster',
+      desc,
     });
   };
 
@@ -189,10 +185,11 @@
     });
   };
 
-  const handleRemove = (data: OpenareaTemplateModel) => remove(data).then(() => {
-    messageSuccess(t('删除成功'));
-    fetchData();
-  });
+  const handleRemove = (data: OpenareaTemplateModel) =>
+    remove(data).then(() => {
+      messageSuccess(t('删除成功'));
+      fetchData();
+    });
 
   onMounted(() => {
     fetchData();

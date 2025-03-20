@@ -106,8 +106,8 @@ func checkRouter(nodes []native.Server, tdbctlRouters map[string]native.Server) 
 	cChan := make(chan struct{}, 5)
 	for _, node := range nodes {
 		wg.Add(1)
-		cChan <- struct{}{}
 		go func(spiderNode native.Server) {
+			cChan <- struct{}{}
 			logger.Info("开始检查 %s-%s的路由", spiderNode.ServerName, spiderNode.GetEndPoint())
 			defer func() { wg.Done(); <-cChan }()
 			sconn, errx := spiderNode.GetConn()

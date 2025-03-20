@@ -25,10 +25,10 @@
     ticketDetails: TicketModel<Es.Enable>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.ES_ENABLE,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

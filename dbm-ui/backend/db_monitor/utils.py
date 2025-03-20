@@ -224,5 +224,17 @@ def create_bklog_collector(startswith: str = ""):
 def format_shield_description(bk_biz_id, description=""):
     prefix = f"[dbm:appid={bk_biz_id}]"
     # 先删后补，避免出现多个前缀
-    description.replace(prefix, "").strip()
+    description = description.replace(prefix, "").strip()
     return f"{prefix}{description}"
+
+
+def deformat_shield_description(bk_biz_id, description=""):
+    prefix = f"[dbm:appid={bk_biz_id}]"
+    description = description.replace(prefix, "").strip()
+    return description
+
+
+def parse_shield_description_biz(description=""):
+    p = r"\[dbm:appid=(\d+)\]"
+    match = re.search(p, description)
+    return int(match.group(1)) if match else env.DBA_APP_BK_BIZ_ID

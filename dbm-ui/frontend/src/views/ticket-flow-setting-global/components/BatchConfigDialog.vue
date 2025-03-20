@@ -32,9 +32,7 @@
     ticketTypes: string[];
   }
 
-  interface Emits {
-    (e: 'success'): void;
-  }
+  type Emits = (e: 'success') => void;
 
   const props = defineProps<Props>();
 
@@ -48,14 +46,14 @@
 
   const defaultConfigList = [
     {
-      value: 'need_itsm',
-      label: t('添加单据审批节点'),
       checked: false,
+      label: t('添加单据审批节点'),
+      value: 'need_itsm',
     },
     {
-      value: 'need_manual_confirm',
-      label: t('添加人工确认节点'),
       checked: false,
+      label: t('添加人工确认节点'),
+      value: 'need_manual_confirm',
     },
   ];
 
@@ -75,7 +73,6 @@
 
   const handleConfirm = () => {
     const params = {
-      ticket_types: props.ticketTypes,
       configs: configList.value.reduce<Record<string, boolean>>(
         (results, item) =>
           Object.assign(results, {
@@ -83,6 +80,7 @@
           }),
         {},
       ),
+      ticket_types: props.ticketTypes,
     };
     updateTicketFlowConfigRun(params);
   };

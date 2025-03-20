@@ -156,6 +156,7 @@ class SpiderDBMeta(object):
         TenDBClusterClusterHandler.remote_switch(
             cluster_id=self.global_data["cluster_id"],
             switch_tuples=self.global_data["switch_tuples"],
+            force=self.global_data["force"],
         )
         return True
 

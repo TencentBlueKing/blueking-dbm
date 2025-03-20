@@ -56,19 +56,12 @@
 
   import { useLinkQueryColumnSerach } from '@hooks';
 
-  import {
-    TicketTypes,
-    type TicketTypesStrings,
-  } from '@common/const';
+  import { TicketTypes, type TicketTypesStrings } from '@common/const';
   import { ClusterTypes } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
 
-  import {
-    getCostTimeDisplay,
-    getMenuListSearch,
-    getSearchSelectorParams,
-  } from '@utils';
+  import { getCostTimeDisplay, getMenuListSearch, getSearchSelectorParams } from '@utils';
 
   import type { ListState } from '../common/types';
   import RedisResultFiles from '../components/RedisResultFiles.vue';
@@ -76,19 +69,14 @@
   const route = useRoute();
   const { t } = useI18n();
 
-  const {
-    searchValue,
-    columnCheckedMap,
-    columnFilterChange,
-    clearSearchValue,
-    handleSearchValueChange,
-  } = useLinkQueryColumnSerach({
-    searchType: ClusterTypes.TENDBHA,
-    attrs: [],
-    fetchDataFn: () => fetchTableData(),
-    isCluster: false,
-    isQueryAttrs: false,
-  });
+  const { clearSearchValue, columnCheckedMap, columnFilterChange, handleSearchValueChange, searchValue } =
+    useLinkQueryColumnSerach({
+      attrs: [],
+      fetchDataFn: () => fetchTableData(),
+      isCluster: false,
+      isQueryAttrs: false,
+      searchType: ClusterTypes.TENDBHA,
+    });
 
   /**
    * 近 7 天
@@ -106,10 +94,10 @@
   const tableRef = ref();
   const state = reactive<ListState>({
     data: [],
-    ticketTypes: [],
     filter: {
       daterange: initDate(),
     },
+    ticketTypes: [],
   });
   /** 查看结果文件功能 */
   const resultFileState = reactive({
@@ -119,44 +107,41 @@
 
   const searchData = computed(() => [
     {
-      name: 'ID',
       id: 'root_ids',
+      name: 'ID',
     },
     {
-      name: t('任务类型'),
+      children: state.ticketTypes,
       id: 'ticket_type',
       multiple: true,
-      children: state.ticketTypes,
+      name: t('任务类型'),
     },
     {
-      name: t('状态'),
-      id: 'status',
-      multiple: true,
       children: Object.keys(TaskFlowModel.STATUS_TEXT_MAP).map((id: string) => ({
         id,
         name: t(TaskFlowModel.STATUS_TEXT_MAP[id]),
       })),
+      id: 'status',
+      multiple: true,
+      name: t('状态'),
     },
     {
-      name: t('关联单据'),
       id: 'uid',
+      name: t('关联单据'),
     },
     {
-      name: t('执行人'),
       id: 'created_by',
+      name: t('执行人'),
     },
   ]);
 
   const columns = computed(() => [
     {
-      label: 'ID',
       field: 'root_id',
       fixed: 'left',
+      label: 'ID',
       render: ({ data }: { data: TaskFlowModel }) => (
         <auth-router-link
-          action-id="flow_detail"
-          resource={data.root_id}
-          permission={data.permission.flow_detail}
           to={{
             name: 'taskHistoryDetail',
             params: {
@@ -165,113 +150,120 @@
             query: {
               from: route.name,
             },
-          }}>
-          { data.root_id }
+          }}
+          action-id='flow_detail'
+          permission={data.permission.flow_detail}
+          resource={data.root_id}>
+          {data.root_id}
         </auth-router-link>
       ),
     },
     {
-      label: t('任务类型'),
       field: 'ticket_type',
       filter: {
-        list: state.ticketTypes.map(item => ({
-          text: item.name, value: item.id,
-        })),
         checked: columnCheckedMap.value.ticket_type,
+        list: state.ticketTypes.map((item) => ({
+          text: item.name,
+          value: item.id,
+        })),
       },
+      label: t('任务类型'),
       render: ({ data }: { data: TaskFlowModel }) => <span>{data.ticket_type_display || '--'}</span>,
     },
     {
-      label: t('状态'),
       field: 'status',
       filter: {
-        list: Object.keys(TaskFlowModel.STATUS_TEXT_MAP).map(id => ({
-          text: t(TaskFlowModel.STATUS_TEXT_MAP[id]), value: id,
-        })),
         checked: columnCheckedMap.value.status,
+        list: Object.keys(TaskFlowModel.STATUS_TEXT_MAP).map((id) => ({
+          text: t(TaskFlowModel.STATUS_TEXT_MAP[id]),
+          value: id,
+        })),
       },
-      width: 160,
+      label: t('状态'),
       render: ({ data }: { data: TaskFlowModel }) => (
         <DbStatus
-          type="linear"
-          theme={data.statusTheme}>
+          theme={data.statusTheme}
+          type='linear'>
           {t(data.statusText)}
         </DbStatus>
       ),
+      width: 160,
     },
     {
-      label: t('关联单据'),
       field: 'uid',
-      width: 100,
-      render: ({ data }: { data: TaskFlowModel }) => (
-        data.uid ? <auth-router-link
-          action-id="ticket_view"
-          permission={data.permission.ticket_view}
-          resource={data.uid}
-          to={{
-            name: 'bizTicketManage',
-            params: {
-              ticketId: data.uid,
-            }
-          }}
-          target="_blank">
-          { data.uid }
-        </auth-router-link> : '--'
-      ),
-    },
-    {
-      label: t('执行人'),
-      field: 'created_by',
-      width: 120,
-    },
-    {
-      label: t('执行时间'),
-      field: 'created_at',
-      width: 250,
-      render: ({ data }: { data: TaskFlowModel }) => data.createAtDisplay,
-    },
-    {
-      label: t('耗时'),
-      field: 'cost_time',
-      width: 150,
-      render: ({ cell }: { cell: number }) => getCostTimeDisplay(cell),
-    },
-    {
-      label: t('操作'),
-      fixed: 'right',
-      width: 120,
-      render: ({ data }: { data: TaskFlowModel }) => (
-        <div class="table-operations">
+      label: t('关联单据'),
+      render: ({ data }: { data: TaskFlowModel }) =>
+        data.uid ? (
           <auth-router-link
-            action-id="flow_detail"
-            resource={data.root_id}
-            permission={data.permission.flow_detail}
+            to={{
+              name: 'bizTicketManage',
+              params: {
+                ticketId: data.uid,
+              },
+            }}
+            action-id='ticket_view'
+            permission={data.permission.ticket_view}
+            resource={data.uid}
+            target='_blank'>
+            {data.uid}
+          </auth-router-link>
+        ) : (
+          '--'
+        ),
+      width: 100,
+    },
+    {
+      field: 'created_by',
+      label: t('执行人'),
+      width: 120,
+    },
+    {
+      field: 'created_at',
+      label: t('执行时间'),
+      render: ({ data }: { data: TaskFlowModel }) => data.createAtDisplay,
+      width: 250,
+    },
+    {
+      field: 'cost_time',
+      label: t('耗时'),
+      render: ({ cell }: { cell: number }) => getCostTimeDisplay(cell),
+      width: 150,
+    },
+    {
+      fixed: 'right',
+      label: t('操作'),
+      render: ({ data }: { data: TaskFlowModel }) => (
+        <div class='table-operations'>
+          <auth-router-link
             to={{
               name: 'taskHistoryDetail',
               params: {
                 root_id: data.root_id,
               },
-            }}>
-            { t('查看详情') }
+            }}
+            action-id='flow_detail'
+            permission={data.permission.flow_detail}
+            resource={data.root_id}>
+            {t('查看详情')}
           </auth-router-link>
-          {includesResultFiles.includes(data.ticket_type) && data.status === 'FINISHED'
-            ? <bk-button
-                class="ml-6"
-                text
-                theme="primary"
-                onClick={() => handleShowResultFiles(data.root_id)}>
-                { t('查看结果文件') }
-              </bk-button>
-            : null
-          }
+          {includesResultFiles.includes(data.ticket_type) && data.status === 'FINISHED' ? (
+            <bk-button
+              class='ml-6'
+              theme='primary'
+              text
+              onClick={() => handleShowResultFiles(data.root_id)}>
+              {t('查看结果文件')}
+            </bk-button>
+          ) : null}
         </div>
       ),
+      width: 120,
     },
   ]);
 
   useRequest(getTicketTypes, {
     onSuccess(data) {
-      state.ticketTypes = data.map(item => ({
+      state.ticketTypes = data.map((item) => ({
         id: item.key,
         name: item.value,
       }));
@@ -280,21 +272,24 @@
 
   const fetchTableData = () => {
     const { daterange } = state.filter;
-    const dateParams = daterange.filter(item => item).length === 0
-      ? {}
-      : {
-        created_at__gte: format(new Date(daterange[0]), 'yyyy-MM-dd HH:mm:ss'),
-        created_at__lte: format(new Date(daterange[1]), 'yyyy-MM-dd HH:mm:ss'),
-      };
+    const dateParams =
+      daterange.filter((item) => item).length === 0
+        ? {}
+        : {
+            created_at__gte: format(new Date(daterange[0]), 'yyyy-MM-dd HH:mm:ss'),
+            created_at__lte: format(new Date(daterange[1]), 'yyyy-MM-dd HH:mm:ss'),
+          };
 
-    tableRef.value.fetchData({
-      ...dateParams,
-      ...getSearchSelectorParams(searchValue.value),
-    }, {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-    });
+    tableRef.value.fetchData(
+      {
+        ...dateParams,
+        ...getSearchSelectorParams(searchValue.value),
+      },
+      {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      },
+    );
   };
-
 
   async function getMenuList(item: ISearchItem | undefined, keyword: string) {
     if (item?.id !== 'created_by' && keyword) {
@@ -304,8 +299,8 @@
     // 没有选中过滤标签
     if (!item) {
       // 过滤掉已经选过的标签
-      const selected = (searchValue.value || []).map(value => value.id);
-      return searchData.value.filter(item => !selected.includes(item.id));
+      const selected = (searchValue.value || []).map((value) => value.id);
+      return searchData.value.filter((item) => !selected.includes(item.id));
     }
 
     // 远程加载执行人
@@ -315,22 +310,22 @@
       }
       return getUserList({
         fuzzy_lookups: keyword,
-      })
-        .then(res => res.results.map(item => ({
+      }).then((res) =>
+        res.results.map((item) => ({
           id: item.username,
           name: item.username,
-        })));
+        })),
+      );
     }
 
     // 不需要远层加载
-    return searchData.value.find(set => set.id === item.id)?.children || [];
+    return searchData.value.find((set) => set.id === item.id)?.children || [];
   }
 
   const handleClearSearch = () => {
     state.filter.daterange = ['', ''];
     clearSearchValue();
   };
-
 
   const handleShowResultFiles = (id: string) => {
     resultFileState.isShow = true;

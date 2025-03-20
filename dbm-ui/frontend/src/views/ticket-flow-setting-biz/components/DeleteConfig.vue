@@ -47,9 +47,7 @@
     data: TicketFlowDescribeModel;
   }
 
-  interface Emits {
-    (e: 'success'): void;
-  }
+  type Emits = (e: 'success') => void;
 
   defineProps<Props>();
 

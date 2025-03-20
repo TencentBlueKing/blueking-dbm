@@ -30,13 +30,11 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    data?: IDataRow['nodeType'];
     clusterType?: IDataRow['clusterType'];
+    data?: IDataRow['nodeType'];
   }
 
-  interface Emits {
-    (e: 'change', value: string): void;
-  }
+  type Emits = (e: 'change', value: string) => void;
 
   interface Exposes {
     getValue: () => Promise<string>;
@@ -52,23 +50,23 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('请先输入集群'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 
   const selectList = computed(() => {
     const nodeTypeList = [
       {
-        value: 'Backend',
         label: 'Backend',
+        value: 'Backend',
       },
     ];
 
     if (props.clusterType !== ClusterTypes.REDIS_INSTANCE) {
       nodeTypeList.push({
-        value: 'Proxy',
         label: 'Proxy',
+        value: 'Proxy',
       });
     }
 

@@ -33,7 +33,7 @@ type APIServerResponse struct {
 // APIServerResponseCompatible TODO
 type APIServerResponseCompatible struct {
 	Code    int             `json:"code"`
-	Message string          `json:"msg"`
+	Message string          `json:"message"`
 	Data    json.RawMessage `json:"data"`
 }
 

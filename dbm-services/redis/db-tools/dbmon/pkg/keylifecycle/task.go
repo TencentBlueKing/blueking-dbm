@@ -167,7 +167,7 @@ func (t *Task) hotKeyWithMonitor(server Instance) (string, error) {
 	t.rotateFile(hkfile)
 
 	mylog.Logger.Info(fmt.Sprintf("do hot key analyse : %s", server.Addr))
-	hkCmd := fmt.Sprintf("%s hotkeys -A %s -S %s -a %s -D %s --raw -o %s > %s 2>&1",
+	hkCmd := fmt.Sprintf("%s hotkeys -A %s -S %s -a '%s' -D %s --raw -o %s > %s 2>&1",
 		consts.TendisKeyLifecycleBin, server.App, server.Addr, server.Password, server.Domain, t.logFile, hkfile)
 
 	mylog.Logger.Info(fmt.Sprintf("exec cmd : %s", hkCmd))
@@ -247,7 +247,7 @@ func (t *Task) bigKeyWithAof4Cache(server Instance, bkfile, kmfile string) (int6
 
 	step, slptime, sample, confidence, adjfactor := getStatToolParams(dbsize)
 	cmdExec := fmt.Sprintf(
-		"cat %s | %s keystat --stdin --raw -B %s -M %s -o %s -S %s -a %s -A %s -D %s "+
+		"cat %s | %s keystat --stdin --raw -B %s -M %s -o %s -S %s -a '%s' -A %s -D %s "+
 			"--step %d --keymodetop 100 --samples %d --confidence %d --adjfactor %d --duration %d > %s 2>&1",
 		allkeys, consts.TendisKeyLifecycleBin, bkfile, kmfile, t.logFile,
 		server.Addr, server.Password, server.App, server.Domain,
@@ -303,7 +303,7 @@ func (t *Task) statRawKeysFileDetail(keysFile string, bkFile string, kmFile stri
 	step, slptime, sample, confidence, adjfactor := getStatToolParams(keyLines)
 
 	cmdExec := fmt.Sprintf(
-		"cat %s | %s keystat --ssd --stdin --raw -B %s -M %s -o %s -S %s -a %s -A %s -D %s "+
+		"cat %s | %s keystat --ssd --stdin --raw -B %s -M %s -o %s -S %s -a '%s' -A %s -D %s "+
 			"--step %d --keymodetop 100 --samples %d --confidence %d --adjfactor %d --duration %d > %s 2>&1",
 		keysFile, consts.TendisKeyLifecycleBin, bkFile, kmFile, t.logFile,
 		server.Addr, server.Password, server.App, server.Domain,

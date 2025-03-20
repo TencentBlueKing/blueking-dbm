@@ -13,16 +13,16 @@
 import _ from 'lodash';
 import { createRouter, createWebHistory, type Router, type RouteRecordRaw } from 'vue-router';
 
+import { connectToMain, rootPath } from '@blueking/sub-saas';
+
 import { useGlobalBizs } from '@stores';
 
 import BizPermission from '@views/BizPermission.vue';
 import getDbConfRoutes from '@views/db-configure/routes';
-import getDbManageRoutes from '@views/db-manage/routes';
+import getDbManageRoutes, { getDbaManageRoutes } from '@views/db-manage/routes';
 import getDbhaSwitchEventsRouters from '@views/dbha-switch-events/routes';
 import getDutyRuleManageRoutes from '@views/duty-rule-manage/routes';
 import getInspectionRoutes from '@views/inspection-manage/routes';
-import getDBMonitorAlarmRoutes from '@views/monitor-alarm-db/routes';
-import getPlatMonitorAlarmRoutes from '@views/monitor-alarm-plat/routes';
 import getNotificationSettingRoutes from '@views/notification-setting/routes';
 import getPasswordManageRoutes from '@views/password-manage/routes';
 import getPlatformDbConfigureRoutes from '@views/platform-db-configure/routes';
@@ -42,7 +42,7 @@ import getWhitelistRoutes from '@views/whitelist/routes';
 
 import { checkDbConsole } from '@utils';
 
-import { connectToMain, rootPath } from '@blueking/sub-saas';
+import getMonitorAlarmRoutes from '@/views/monitor-alarm/routes';
 
 let appRouter: Router;
 
@@ -95,21 +95,18 @@ export default () => {
 
   let bizPermission = false;
   const bizInfo = _.find(bizList, (item) => item.bk_biz_id === Number(currentBiz));
-  if (bizInfo && bizInfo.permission.db_manage) {
+  if (bizInfo?.permission.db_manage) {
     bizPermission = true;
   }
 
   getTicketRoutes();
   getTaskHistoryRoutes();
   getInspectionRoutes();
+  getDbaManageRoutes();
+  getMonitorAlarmRoutes();
 
   const routes = [
     {
-      path: rootPath,
-      name: 'index',
-      redirect: {
-        name: checkDbConsole('personalWorkbench.serviceApply') ? 'MyTodos' : 'DatabaseTendbha',
-      },
       children: [
         ...getResourceManageRoutes(),
         ...getVersionFilesRoutes(),
@@ -120,15 +117,17 @@ export default () => {
         ...getDutyRuleManageRoutes(),
         ...moduleList,
       ],
+      name: 'index',
+      path: rootPath,
+      redirect: {
+        name: checkDbConsole('personalWorkbench.serviceApply') ? 'MyTodos' : 'DatabaseTendbha',
+      },
     },
     {
-      path: `${rootPath}${currentBiz}`,
       children: [
         ...getDbManageRoutes(),
         ...getDbConfRoutes(),
         ...getDbhaSwitchEventsRouters(),
-        ...getDBMonitorAlarmRoutes(),
-        ...getPlatMonitorAlarmRoutes(),
         ...getNotificationSettingRoutes(),
         ...getStaffManageRoutes(),
         ...getWhitelistRoutes(),
@@ -140,11 +139,12 @@ export default () => {
         ...businessModuleList,
         ...getTicketNoticeRoutes(),
       ],
+      path: `${rootPath}${currentBiz}`,
     },
     {
-      path: '/:pathMatch(.*)*',
-      name: '404',
       component: () => import('@views/404.vue'),
+      name: '404',
+      path: '/:pathMatch(.*)*',
     },
   ];
 

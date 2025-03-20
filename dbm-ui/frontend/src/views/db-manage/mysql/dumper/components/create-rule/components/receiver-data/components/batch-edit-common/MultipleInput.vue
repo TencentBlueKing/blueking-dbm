@@ -26,8 +26,8 @@
   import { useI18n } from 'vue-i18n';
 
   interface Exposes {
-    getValue: () => string[];
     focus: () => void;
+    getValue: () => string[];
   }
 
   const { t } = useI18n();
@@ -60,15 +60,15 @@
   };
 
   defineExpose<Exposes>({
+    focus() {
+      inputRef.value?.focus();
+    },
     getValue() {
       const isChecked = checkInput();
       if (isChecked) {
         return localValue.value.split('\n');
       }
       return [];
-    },
-    focus() {
-      inputRef.value?.focus();
     },
   });
 </script>

@@ -98,18 +98,18 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH,
     onSuccess(cloneData) {
-      const { isCheckDelay, isCheckProcess, isVerifyChecksum, tableDataList, remark } = cloneData;
+      const { isCheckDelay, isCheckProcess, isVerifyChecksum, remark, tableDataList } = cloneData;
       tableData.value = tableDataList;
       Object.assign(formData, {
+        is_check_delay: isCheckDelay,
         is_check_process: isCheckProcess,
         is_verify_checksum: isVerifyChecksum,
-        is_check_delay: isCheckDelay,
         remark,
       });
       window.changeConfirm = true;
     },
+    type: TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH,
   });
 
   const rowRefs = ref();
@@ -120,9 +120,9 @@
   const selectedIps = shallowRef<InstanceSelectorValues<IValue>>({ tendbcluster: [] });
 
   const formData = reactive({
+    is_check_delay: true,
     is_check_process: true,
     is_verify_checksum: true,
-    is_check_delay: true,
     remark: '',
   });
 
@@ -145,12 +145,12 @@
   const handelMasterProxyChange = (data: InstanceSelectorValues<IValue>) => {
     selectedIps.value = data;
     const newList = data.tendbcluster.reduce((result, item) => {
-      const { ip, bk_host_id, bk_cloud_id } = item;
+      const { bk_cloud_id, bk_host_id, ip } = item;
       if (!ipMemo[ip]) {
         const row = createRowData({
           masterData: {
-            bk_host_id,
             bk_cloud_id,
+            bk_host_id,
             ip,
           },
         });
@@ -211,13 +211,13 @@
       isSubmitting.value = true;
       const data = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
       await createTicket({
-        ticket_type: TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH,
-        remark: formData.remark,
+        bk_biz_id: currentBizId,
         details: {
           ...formData,
           infos: data,
         },
-        bk_biz_id: currentBizId,
+        remark: formData.remark,
+        ticket_type: TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH,
       }).then((data) => {
         window.changeConfirm = false;
 

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"dbm-services/common/go-pubpkg/filecontext"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/common"
@@ -54,6 +55,8 @@ type GoFlashback struct {
 	flashback     *restore.GoApplyBinlog
 	tableFilter   *db_table_filter.DbTableFilter
 	tablesInfo    []*native.TableSchema
+
+	ShareContext *filecontext.FileContext `json:"-"`
 }
 
 // Init TODO
@@ -269,7 +272,50 @@ func guessRowsFilterType(rowsFilterExpr string) int {
 	return -1
 }
 
+// PhasePrepare parse binlog
+// 检查版本、实例角色、 binlog 格式
+func (f *GoFlashback) PhasePrepare() (err error) {
+	if err = f.flashback.Start(); err != nil {
+		return err
+	}
+	logger.Info("write context to %s", f.ShareContext.GetContextFilePath())
+	if err = f.ShareContext.Set("taskDir", f.flashback.GetTaskDir(), false); err != nil {
+		return err
+	}
+	if err = f.ShareContext.Set("scriptName", f.flashback.GetScriptName(), false); err != nil {
+		return err
+	}
+	if err = f.ShareContext.Save(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// PhaseExecute import binlog
+func (f *GoFlashback) PhaseExecute() error {
+	logger.Info("read context from %s", f.ShareContext.GetContextFilePath())
+	taskDir, err := f.ShareContext.GetString("taskDir")
+	if err != nil {
+		return err
+	}
+	scriptName, err := f.ShareContext.GetString("scriptName")
+	if err != nil {
+		return err
+	}
+	f.dbWorker, err = f.TgtInstance.Conn()
+	if err != nil {
+		return err
+	}
+	defer f.dbWorker.Close()
+
+	if err := restore.BinlogImport(taskDir, scriptName, f.dbWorker); err != nil {
+		return err
+	}
+	return nil
+}
+
 // Start 检查版本、实例角色、 binlog 格式
+// run parse and import binlog
 func (f *GoFlashback) Start() error {
 	if err := f.flashback.Start(); err != nil {
 		return err

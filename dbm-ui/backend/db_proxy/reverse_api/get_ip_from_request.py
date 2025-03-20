@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from django.db.models import Q
 
-from backend.db_proxy.models import DBCloudProxy
+from backend.db_proxy.models import DBExtension
 
 
 def get_client_ip(request):
@@ -36,10 +36,8 @@ def get_bk_cloud_id(request):
     bk_cloud_id = request.GET.get("bk_cloud_id")
 
     try:
-        proxy = DBCloudProxy.objects.get(
-            Q(internal_address=nginx_ip, bk_cloud_id=bk_cloud_id)
-            | Q(external_address=nginx_ip, bk_cloud_id=bk_cloud_id)
-        )
-    except DBCloudProxy.DoesNotExist:
-        raise DBCloudProxy.DoesNotExist(f"DBCloudProxy not found for ip {nginx_ip}, bk_cloud_id {bk_cloud_id}")
+        filters = Q(bk_cloud_id=bk_cloud_id) & (Q(details__ip=nginx_ip) | Q(details__bk_outer_ip=nginx_ip))
+        proxy = DBExtension.objects.get(filters)
+    except DBExtension.DoesNotExist:
+        raise DBExtension.DoesNotExist(f"DBCloudProxy not found for ip {nginx_ip}, bk_cloud_id {bk_cloud_id}")
     return proxy.bk_cloud_id

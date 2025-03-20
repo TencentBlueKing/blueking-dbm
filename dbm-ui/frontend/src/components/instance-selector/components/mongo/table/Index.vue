@@ -13,24 +13,28 @@
 
 <template>
   <div class="instance-selector-render-topo-host">
-    <BkInput
+    <SerachBar
       v-model="searchValue"
-      clearable
-      :placeholder="t('请输入实例')" />
+      is-host
+      :placeholder="t('请输入或选择条件搜索')"
+      :search-attrs="searchAttrs"
+      :validate-search-values="validateSearchValues"
+      @search-value-change="handleSearchValueChange" />
     <BkLoading
       :loading="isLoading"
       :z-index="2">
       <DbOriginalTable
         :columns="columns"
-        :data="isManul ? renderManualData : tableData"
-        :max-height="530"
+        :data="tableData"
+        :max-height="520"
         :pagination="pagination.count < 10 ? false : pagination"
         :settings="tableSetting"
         :show-overflow="false"
         style="margin-top: 12px"
+        @clear-search="clearSearchValue"
+        @column-filter="columnFilterChange"
         @page-limit-change="handeChangeLimit"
         @page-value-change="handleChangePage"
-        @refresh="fetchResources"
         @row-click.stop.prevent="handleRowClick" />
     </BkLoading>
   </div>
@@ -38,6 +42,8 @@
 <script setup lang="tsx">
   import type { Ref } from 'vue';
   import { useI18n } from 'vue-i18n';
+
+  import { useLinkQueryColumnSerach } from '@hooks';
 
   import { ClusterTypes } from '@common/const';
 
@@ -50,6 +56,8 @@
   } from '@components/instance-selector/Index.vue';
   import { activePanelInjectionKey } from '@components/instance-selector/Index.vue';
 
+  import SerachBar from '../../common/SearchBar.vue';
+
   import { useTableData } from './useTableData';
 
   type TableConfigType = Required<PanelListType[number]>['tableConfig'];
@@ -57,39 +65,57 @@
   type DataRow = Record<string, any>;
 
   interface Props {
-    lastValues: InstanceSelectorValues<IValue>,
-    tableSetting: TableSetting,
-    activePanelId?: string,
-    clusterId?: number,
-    isManul?: boolean,
-    manualTableData?: DataRow[];
-    firsrColumn?: TableConfigType['firsrColumn'],
+    activePanelId?: string;
+    clusterId?: number;
     // roleFilterList?: TableConfigType['roleFilterList'],
-    disabledRowConfig?: TableConfigType['disabledRowConfig'],
-    multiple: boolean,
-    getTableList: NonNullable<TableConfigType['getTableList']>,
-    statusFilter?: TableConfigType['statusFilter'],
+    disabledRowConfig?: TableConfigType['disabledRowConfig'];
+    firsrColumn?: TableConfigType['firsrColumn'];
+    getTableList: NonNullable<TableConfigType['getTableList']>;
+    isManul?: boolean;
+    lastValues: InstanceSelectorValues<IValue>;
+    multiple: boolean;
+    statusFilter?: TableConfigType['statusFilter'];
+    tableSetting: TableSetting;
   }
 
-  interface Emits {
-    (e: 'change', value: InstanceSelectorValues<IValue>): void;
-  }
+  type Emits = (e: 'change', value: InstanceSelectorValues<IValue>) => void;
 
   const props = withDefaults(defineProps<Props>(), {
-    clusterId: undefined,
-    isManul: false,
-    manualTableData: () => ([]),
-    firsrColumn: undefined,
-    statusFilter: undefined,
-    isRemotePagination: true,
     activePanelId: 'tendbcluster',
+    clusterId: undefined,
     disabledRowConfig: undefined,
+    firsrColumn: undefined,
+    isManul: false,
+    isRemotePagination: true,
+    manualTableData: () => [],
     roleFilterList: undefined,
+    statusFilter: undefined,
   });
 
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+
+  const {
+    clearSearchValue,
+    columnAttrs,
+    columnCheckedMap,
+    columnFilterChange,
+    handleSearchValueChange,
+    searchAttrs,
+    searchValue,
+    validateSearchValues,
+  } = useLinkQueryColumnSerach({
+    attrs: ['bk_cloud_id'],
+    defaultSearchItem: {
+      id: 'ip',
+      name: 'IP',
+    },
+    fetchDataFn: () => fetchResources(),
+    initAutoFetch: false,
+    isDiscardNondefault: true,
+    searchType: [ClusterTypes.MONGO_SHARED_CLUSTER, ClusterTypes.MONGO_REPLICA_SET].join(','),
+  });
 
   const activePanel = inject(activePanelInjectionKey) as Ref<string> | undefined;
 
@@ -98,239 +124,285 @@
   const initRole = computed(() => props.firsrColumn?.role);
   const selectClusterId = computed(() => props.clusterId);
   const firstColumnFieldId = computed(() => (props.firsrColumn?.field || 'instance_address') as keyof IValue);
-  const mainSelectDisable = computed(() => (props.disabledRowConfig
-    // eslint-disable-next-line max-len
-    ? tableData.value.filter(data => props.disabledRowConfig?.handler(data)).length === tableData.value.length : false));
+  const mainSelectDisable = computed(() =>
+    props.disabledRowConfig
+      ? tableData.value.filter((data) => props.disabledRowConfig?.handler(data)).length === tableData.value.length
+      : false,
+  );
 
   const {
-    isLoading,
     data: tableData,
-    pagination,
-    searchValue,
-    generateParams,
     fetchResources,
-    handleChangePage,
+    generateParams,
     handeChangeLimit,
-  } = useTableData<DataRow>(selectClusterId, initRole);
+    handleChangePage,
+    isLoading,
+    pagination,
+  } = useTableData<DataRow>(searchValue, selectClusterId, initRole);
 
-  const renderManualData = computed(() => {
-    if (searchValue.value === '') {
-      return props.manualTableData;
-    }
-    return props.manualTableData.filter(item => (
-      (item[firstColumnFieldId.value] as string).includes(searchValue.value)
-    ));
-  });
-
-  const isSelectedAll = computed(() => (
-    tableData.value.length > 0
-    // eslint-disable-next-line max-len
-    && tableData.value.length === tableData.value.filter(item => checkedMap.value[item[firstColumnFieldId.value]]).length
-  ));
+  const isSelectedAll = computed(
+    () =>
+      tableData.value.length > 0 &&
+      tableData.value.length ===
+        tableData.value.filter((item) => checkedMap.value[item[firstColumnFieldId.value]]).length,
+  );
 
   let isSelectedAllReal = false;
 
   const columns = [
     {
-      minWidth: 70,
       fixed: 'left',
-      label: () => props.multiple && (
-        <div style="display:flex;align-items:center">
-          <bk-checkbox
-            label={true}
-            model-value={isSelectedAll.value}
-            disabled={mainSelectDisable.value}
-            onChange={handleSelectPageAll}
-          />
-          <bk-popover
-            placement="bottom-start"
-            theme="light db-table-select-menu"
-            arrow={ false }
-            trigger='hover'
-            v-slots={{
-              default: () => <db-icon class="select-menu-flag" type="down-big" />,
-              content: () => (
-                <div class="db-table-select-plan">
-                  <div
-                    class="item"
-                    onClick={handleWholeSelect}>{t('跨页全选')}</div>
-                </div>
-              ),
-            }}>
-          </bk-popover>
-        </div>
-      ),
-      render: ({ data }: {data: DataRow}) => {
+      label: () =>
+        props.multiple && (
+          <div style='display:flex;align-items:center'>
+            <bk-checkbox
+              disabled={mainSelectDisable.value}
+              label={true}
+              model-value={isSelectedAll.value}
+              onChange={handleSelectPageAll}
+            />
+            <bk-popover
+              v-slots={{
+                content: () => (
+                  <div class='db-table-select-plan'>
+                    <div
+                      class='item'
+                      onClick={handleWholeSelect}>
+                      {t('跨页全选')}
+                    </div>
+                  </div>
+                ),
+                default: () => (
+                  <db-icon
+                    class='select-menu-flag'
+                    type='down-big'
+                  />
+                ),
+              }}
+              arrow={false}
+              placement='bottom-start'
+              theme='light db-table-select-menu'
+              trigger='hover'></bk-popover>
+          </div>
+        ),
+      minWidth: 70,
+      render: ({ data }: { data: DataRow }) => {
         if (props.disabledRowConfig && props.disabledRowConfig.handler(data)) {
           return (
-            <bk-popover theme="dark" placement="top" popoverDelay={0}>
+            <bk-popover
+              placement='top'
+              popoverDelay={0}
+              theme='dark'>
               {{
-                default: () => <bk-checkbox style="vertical-align: middle;" disabled />,
                 content: () => <span>{props.disabledRowConfig?.tip}</span>,
+                default: () => (
+                  <bk-checkbox
+                    style='vertical-align: middle;'
+                    disabled
+                  />
+                ),
               }}
             </bk-popover>
           );
         }
         return props.multiple ? (
           <bk-checkbox
-            style="vertical-align: middle;"
             label={true}
             model-value={Boolean(checkedMap.value[data[firstColumnFieldId.value]])}
+            style='vertical-align: middle;'
             onChange={(value: boolean) => handleTableSelectOne(value, data)}
           />
-          ) : (
+        ) : (
           <bk-radio
-            style="vertical-align: middle;"
-            model-value={Boolean(checkedMap.value[data[firstColumnFieldId.value]])}
             label={true}
+            model-value={Boolean(checkedMap.value[data[firstColumnFieldId.value]])}
+            style='vertical-align: middle;'
             onChange={(value: boolean) => handleTableSelectOne(value, data)}
           />
         );
       },
     },
     {
-      fixed: 'left',
-      minWidth: 160,
-      label: props.firsrColumn?.label ? props.firsrColumn.label : t('实例'),
       field: props.firsrColumn?.field ? props.firsrColumn.field : 'instance_address',
+      fixed: 'left',
+      label: props.firsrColumn?.label ? props.firsrColumn.label : t('实例'),
+      minWidth: 160,
     },
     {
-      label: t('角色'),
       field: 'role',
+      label: t('角色'),
       minWidth: 160,
-      showOverflow: true,
-      rowspan: ({ row }: { row: DataRow }) => {
-        if (row.machine_type === 'mongodb') {
-          const rowSpan = tableData.value.filter((item) => item.master_domain === row.master_domain && item.machine_type === row.machine_type && item.shard === row.shard).length;
-          return rowSpan > 1 ? rowSpan : 1;
-        }
-        const rowSpan = tableData.value.filter((item) => item.master_domain === row.master_domain && item.machine_type === row.machine_type).length;
-        return rowSpan > 1 ? rowSpan : 1;
-      },
       render: ({ row }: { row: DataRow }) => {
         if (row.cluster_type === ClusterTypes.MONGO_SHARED_CLUSTER && row.machine_type === 'mongodb') {
-          return row.shard
+          return row.shard;
         }
-        return row.machine_type
-      }
+        return row.machine_type;
+      },
+      rowspan: ({ row }: { row: DataRow }) => {
+        if (row.machine_type === 'mongodb') {
+          const rowSpan = tableData.value.filter(
+            (item) =>
+              item.master_domain === row.master_domain &&
+              item.machine_type === row.machine_type &&
+              item.shard === row.shard,
+          ).length;
+          return rowSpan > 1 ? rowSpan : 1;
+        }
+        const rowSpan = tableData.value.filter(
+          (item) => item.master_domain === row.master_domain && item.machine_type === row.machine_type,
+        ).length;
+        return rowSpan > 1 ? rowSpan : 1;
+      },
+      showOverflow: true,
     },
     {
-      label: t('实例状态'),
       field: 'status',
-      render: ({ data }: {data: DataRow}) => {
-        const isNormal = props.statusFilter ? props.statusFilter(data) : data.status === 'running';
-        const info = isNormal ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
-        return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
+      filter: {
+        checked: columnCheckedMap.value.status,
+        list: [
+          {
+            text: t('正常'),
+            value: 'running',
+          },
+          {
+            text: t('异常'),
+            value: 'unavailable',
+          },
+          {
+            text: t('重建中'),
+            value: 'loading',
+          },
+        ],
       },
-    },
-    {
-      label: t('园区'),
-      field: 'bk_sub_zone',
-      minWidth: 120,
-      showOverflow: true,
-      render: ({ data }: DataRow) => data.bk_sub_zone || '--',
-    },
-    {
-      label: t('机架ID'),
-      field: 'bk_rack_id',
-      minWidth: 80,
-      showOverflow: true,
-      render: ({ data }: DataRow) => data.bk_rack_id || '--',
-    },
-    {
-      label: t('机型'),
-      field: 'bk_svr_device_cls_name',
-      minWidth: 120,
-      showOverflow: true,
-      render: ({ data }: DataRow) => data.bk_svr_device_cls_name || '--',
-    },
-    {
-      minWidth: 100,
-      label: t('管控区域'),
-      field: 'bk_cloud_name',
-      showOverflow: true,
-    },
-    {
-      minWidth: 100,
-      label: t('Agent状态'),
-      field: 'alive',
+      label: t('状态'),
       render: ({ data }: DataRow) => {
-        const info = data.host_info?.alive === 1 ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
+        const isNormal = props.statusFilter ? props.statusFilter(data) : data.status === 'running';
+        const info = isNormal ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
     },
     {
-      label: t('主机名称'),
+      field: 'bk_sub_zone',
+      label: t('园区'),
+      minWidth: 120,
+      render: ({ data }: DataRow) => data.bk_sub_zone || '--',
+      showOverflow: true,
+    },
+    {
+      field: 'bk_rack_id',
+      label: t('机架ID'),
+      minWidth: 80,
+      render: ({ data }: DataRow) => data.bk_rack_id || '--',
+      showOverflow: true,
+    },
+    {
+      field: 'bk_svr_device_cls_name',
+      label: t('机型'),
+      minWidth: 120,
+      render: ({ data }: DataRow) => data.bk_svr_device_cls_name || '--',
+      showOverflow: true,
+    },
+    {
+      field: 'bk_cloud_id',
+      filter: {
+        checked: columnCheckedMap.value.bk_cloud_id,
+        list: columnAttrs.value.bk_cloud_id,
+      },
+      label: t('管控区域'),
+      minWidth: 100,
+      render: ({ data }: DataRow) => <span>{data.bk_cloud_name ?? '--'}</span>,
+      showOverflow: true,
+    },
+    {
+      field: 'alive',
+      label: t('Agent状态'),
+      minWidth: 100,
+      render: ({ data }: DataRow) => {
+        const info =
+          data.host_info?.alive === 1 ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };
+        return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
+      },
+    },
+    {
       field: 'host_name',
-      showOverflow: true,
+      label: t('主机名称'),
       render: ({ data }: DataRow) => data.host_info?.host_name || '--',
+      showOverflow: true,
     },
     {
-      label: t('OS名称'),
       field: 'os_name',
-      showOverflow: true,
+      label: t('OS名称'),
       render: ({ data }: DataRow) => data.host_info?.os_name || '--',
+      showOverflow: true,
     },
     {
-      label: t('所属云厂商'),
       field: 'cloud_vendor',
-      showOverflow: true,
+      label: t('所属云厂商'),
       render: ({ data }: DataRow) => data.host_info?.cloud_vendor || '--',
+      showOverflow: true,
     },
     {
-      label: t('OS类型'),
       field: 'os_type',
-      showOverflow: true,
+      label: t('OS类型'),
       render: ({ data }: DataRow) => data.host_info.os_type || '--',
+      showOverflow: true,
     },
     {
-      label: t('主机ID'),
       field: 'host_id',
-      showOverflow: true,
+      label: t('主机ID'),
       render: ({ data }: DataRow) => data.host_info?.host_id || '--',
+      showOverflow: true,
     },
     {
-      label: 'Agent ID',
       field: 'agent_id',
-      showOverflow: true,
+      label: 'Agent ID',
       render: ({ data }: DataRow) => data.host_info?.agent_id || '--',
+      showOverflow: true,
     },
   ];
 
-  watch(() => props.lastValues, () => {
-    if (props.isManul) {
-      checkedMap.value = {};
-      for (const checkedList of Object.values(props.lastValues)) {
-        for (const item of checkedList) {
-          checkedMap.value[item[firstColumnFieldId.value]] = item;
+  watch(
+    () => props.lastValues,
+    () => {
+      if (props.isManul) {
+        checkedMap.value = {};
+        for (const checkedList of Object.values(props.lastValues)) {
+          for (const item of checkedList) {
+            checkedMap.value[item[firstColumnFieldId.value]] = item;
+          }
+        }
+        return;
+      }
+      // 切换 tab 回显选中状态 \ 预览结果操作选中状态
+      if (activePanel?.value && activePanel.value !== 'manualInput') {
+        checkedMap.value = {};
+        const checkedList = props.lastValues[activePanel.value];
+        if (checkedList) {
+          for (const item of checkedList) {
+            checkedMap.value[item[firstColumnFieldId.value]] = item;
+          }
         }
       }
-      return;
-    }
-    // 切换 tab 回显选中状态 \ 预览结果操作选中状态
-    if (activePanel?.value && activePanel.value !== 'manualInput') {
-      checkedMap.value = {};
-      const checkedList = props.lastValues[activePanel.value];
-      if (checkedList) {
-        for (const item of checkedList) {
-          checkedMap.value[item[firstColumnFieldId.value]] = item;
-        }
-      }
-    }
-  }, { immediate: true, deep: true });
+    },
+    { deep: true, immediate: true },
+  );
 
-  watch(() => props.clusterId, () => {
-    if (props.clusterId) {
-      fetchResources();
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.clusterId,
+    () => {
+      if (props.clusterId) {
+        fetchResources();
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   watch(searchValue, () => {
-    checkedMap.value = {}
-    triggerChange()
-  })
+    checkedMap.value = {};
+    triggerChange();
+  });
 
   const triggerChange = () => {
     if (props.isManul) {
@@ -367,17 +439,20 @@
     isLoading.value = true;
     const params = generateParams();
     params.limit = -1;
-    props.getTableList(params).then((data) => {
-      data.results.forEach((dataItem: IValue) => {
-        if (!props.disabledRowConfig?.handler(dataItem)) {
-          handleTableSelectOne(true, dataItem);
-        }
-      });
-    }).finally(() => isLoading.value = false);
+    props
+      .getTableList(params)
+      .then((data) => {
+        data.results.forEach((dataItem: IValue) => {
+          if (!props.disabledRowConfig?.handler(dataItem)) {
+            handleTableSelectOne(true, dataItem);
+          }
+        });
+      })
+      .finally(() => (isLoading.value = false));
   };
 
   const handleSelectPageAll = (checked: boolean) => {
-    const list = props.isManul ? renderManualData.value : tableData.value;
+    const list = tableData.value;
     if (props.disabledRowConfig) {
       isSelectedAllReal = !isSelectedAllReal;
       for (const data of list) {

@@ -119,12 +119,12 @@
       id?: number;
       master_domain?: string;
     };
-    start_time?: string;
-    end_time?: string;
     databases?: string[];
-    tables?: string[];
-    rows_filter?: string;
     direct_write_back?: boolean;
+    end_time?: string;
+    rows_filter?: string;
+    start_time?: string;
+    tables?: string[];
   }
 
   const { t } = useI18n();
@@ -134,12 +134,12 @@
 
   const createTableData = (data = {} as IRowData) => ({
     cluster: data.cluster,
-    start_time: data.start_time || '',
-    end_time: data.end_time || '',
     databases: data.databases || [],
-    tables: data.tables || [],
-    rows_filter: data.rows_filter || '',
     direct_write_back: data.direct_write_back || false,
+    end_time: data.end_time || '',
+    rows_filter: data.rows_filter || '',
+    start_time: data.start_time || '',
+    tables: data.tables || [],
   });
 
   const formRef = useTemplateRef('formRef');
@@ -148,8 +148,8 @@
 
   const isSubmiting = ref(false);
   const formData = reactive({
-    flashback_type: 'RECORD_FLASHBACK',
     direct_write_back: true,
+    flashback_type: 'RECORD_FLASHBACK',
     remark: '',
   });
 
@@ -212,24 +212,24 @@
     Promise.all([formRef.value!.validate(), editableTableRef.value!.validate()])
       .then(() =>
         createTicket({
-          ticket_type: TicketTypes.MYSQL_FLASHBACK,
-          remark: formData.remark,
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           details: {
+            flashback_type: 'RECORD_FLASHBACK',
+            force: true,
             infos: tableData.value.map((item) => ({
               cluster_id: item.cluster?.id,
-              start_time: formatDateToUTC(item.start_time),
-              end_time: formatDateToUTC(item.end_time),
               databases: item.databases,
               databases_ignore: [],
+              direct_write_back: formData.direct_write_back,
+              end_time: formatDateToUTC(item.end_time),
+              rows_filter: item.rows_filter,
+              start_time: formatDateToUTC(item.start_time),
               tables: item.tables,
               tables_ignore: [],
-              rows_filter: item.rows_filter,
-              direct_write_back: formData.direct_write_back,
             })),
-            force: true,
-            flashback_type: 'RECORD_FLASHBACK',
           },
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          remark: formData.remark,
+          ticket_type: TicketTypes.MYSQL_FLASHBACK,
         }).then((data) => {
           window.changeConfirm = false;
           router.push({

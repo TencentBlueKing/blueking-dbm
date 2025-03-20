@@ -50,9 +50,7 @@
 
   import BatchOperateIcon from '@views/db-manage/common/batch-operate-icon/Index.vue';
 
-  interface Emits {
-    (e: 'showIpSelector'): void;
-  }
+  type Emits = (e: 'showIpSelector') => void;
 
   const emits = defineEmits<Emits>();
 

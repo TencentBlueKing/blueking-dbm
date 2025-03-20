@@ -298,11 +298,11 @@
   const props = defineProps<Props>();
 
   const initCreateFormdata = () => ({
-    version: '',
+    md5: '',
     name: '',
     path: '',
     size: 0,
-    md5: '',
+    version: '',
   });
 
   const { t } = useI18n();
@@ -313,21 +313,21 @@
 
   const state = reactive<IState>({
     active: '',
-    isLoading: false,
-    isAnomalies: false,
-    pagination: useDefaultPagination(),
     data: [] as VersionFileModel[],
+    isAnomalies: false,
+    isLoading: false,
+    pagination: useDefaultPagination(),
     search: '',
   });
 
   /** 新增文件功能 */
   const createFileState = reactive({
-    isShow: false,
+    formdata: initCreateFormdata(),
     isLoading: false,
     isLoadVersions: false,
+    isShow: false,
     uploadUrl: '',
     versions: [] as string[],
-    formdata: initCreateFormdata(),
   });
 
   // 类型参数
@@ -357,38 +357,38 @@
     const limitTypes = ['mysql', 'mysql-proxy'];
     if (limitTypes.includes(state.active)) {
       return {
-        accept: '.tar.gz',
-        tips: t('支持上传tar_gz压缩格式文件_文件大小不超过1GB'),
+        accept: '.tar.gz,.tar.xz',
+        tips: t('支持上传tar_gz_xz压缩格式文件_文件大小不超过10GB'),
       };
     }
     return {
       accept: '',
-      tips: t('文件大小不超过1GB'),
+      tips: t('文件大小不超过10GB'),
     };
   });
 
   const isShowSwitch = computed(() => props.pkgTypeList.length > 0 && props.pkgTypeList.includes(state.active));
 
   const rules = {
-    version: [
-      {
-        required: true,
-        message: t('必填'),
-        trigger: 'blur',
-      },
-    ],
     name: [
       {
-        required: true,
         message: t('文件不能为空'),
+        required: true,
         trigger: 'change',
         validator: (val: string[]) => val.length > 0,
+      },
+    ],
+    version: [
+      {
+        message: t('必填'),
+        required: true,
+        trigger: 'blur',
       },
     ],
   };
 
   /** 操作列表基础方法 */
-  const { fetchPackages, handleChangePage, handeChangeLimit, handleConfirmDelete } = useVersionFiles(state, typeParams);
+  const { fetchPackages, handeChangeLimit, handleChangePage, handleConfirmDelete } = useVersionFiles(state, typeParams);
 
   const { run: runUpdatePackage } = useRequest(updatePackage, {
     manual: true,
@@ -420,7 +420,7 @@
     const filename = fileObj.name;
     const limitTypes = ['mysql', 'mysql-proxy'];
     if (limitTypes.includes(state.active)) {
-      if (!filename.endsWith('tar.gz')) {
+      if (!filename.endsWith('tar.gz') && !filename.endsWith('tar.xz')) {
         return;
       }
     }
@@ -524,8 +524,8 @@
 
   const handleConfirmSwitch = async (row: VersionFileModel) => {
     runUpdatePackage({
-      id: row.id,
       enable: !row.enable,
+      id: row.id,
     });
   };
 
@@ -541,8 +541,8 @@
     createFileState.isLoadVersions = true;
     getVersions(
       {
-        query_key: state.active,
         db_type: props.info.name,
+        query_key: state.active,
       },
       {
         permission: 'catch',

@@ -105,9 +105,7 @@
     utc: string;
   }
 
-  interface Emits {
-    (e: 'change', value: string, info: TimezoneItem): void;
-  }
+  type Emits = (e: 'change', value: string, info: TimezoneItem) => void;
 
   interface TimeZoneGroup {
     label: string;
@@ -116,7 +114,7 @@
 
   const emits = defineEmits<Emits>();
 
-  const { Option, Group } = Select;
+  const { Group, Option } = Select;
 
   const timezoneList = [
     {

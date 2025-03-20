@@ -16,6 +16,7 @@ import (
 	"dbm-services/common/dbha/ha-module/util"
 
 	mysqlDriver "github.com/go-sql-driver/mysql"
+	"github.com/pkg/errors"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -232,50 +233,39 @@ func (m *MySQLDetectInstance) CheckMySQL(errChan chan error) {
 }
 
 // CheckSSH use ssh check whether machine alived
-func (m *MySQLDetectInstance) detectSSH() error {
-	touchFile := fmt.Sprintf("%s_%s_%d", m.SshInfo.Dest, "agent", m.Port)
-
-	touchStr := fmt.Sprintf("touch %s && if [ -d \"/data1/dbha/\" ]; then touch /data1/dbha/%s ; fi "+
-		"&& if [ -d \"/data/dbha/\" ]; then touch /data/dbha/%s ; fi", touchFile, touchFile, touchFile)
-
-	if err := m.DoSSH(touchStr); err != nil {
-		log.Logger.Warnf("do ssh failed. err:%s", err.Error())
-		return err
-	}
-	return nil
-}
-
 func (m *MySQLDetectInstance) CheckSSH() error {
-	sshCtx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(m.SshInfo.Timeout))
-	defer cancel()
+	touchFile := fmt.Sprintf("%s_%s_%d", m.SshInfo.Dest, "agent", m.Port)
+	touchStr := fmt.Sprintf(
+		"touch %s && if [ -d \"/data1/dbha/\" ]; then touch /data1/dbha/%s ; fi "+
+			"&& if [ -d \"/data/dbha/\" ]; then touch /data/dbha/%s ; fi",
+		touchFile, touchFile, touchFile,
+	)
 
-	errChan := make(chan error, 1)
-	go func() {
-		errChan <- m.detectSSH()
-	}()
-
-	select {
-	case <-sshCtx.Done():
-		err := fmt.Errorf("check ssh timeout for ip:%s, port:%d", m.Ip, m.Port)
-		log.Logger.Warnf(err.Error())
-		m.Status = constvar.SSHCheckFailed
-		return err
-	case sshErr := <-errChan:
-		if sshErr != nil {
-			if util.CheckSSHErrIsAuthFail(sshErr) {
-				m.Status = constvar.SSHAuthFailed
-				log.Logger.Warnf("check ssh auth failed. ip:%s, port:%d, app:%s, status:%s",
-					m.Ip, m.Port, m.App, m.Status)
-			} else {
-				m.Status = constvar.SSHCheckFailed
-				log.Logger.Warnf("check ssh failed. ip:%s, port:%d, app:%s, status:%s",
-					m.Ip, m.Port, m.App, m.Status)
-			}
-			return sshErr
-		}
-		log.Logger.Infof("check ssh success. ip:%s, port:%d, app:%s", m.Ip, m.Port, m.App)
+	err := m.DoSSH(touchStr)
+	switch {
+	case err == nil:
+		log.Logger.Infof("check ssh success. ip:%s, port:%d, app:%s",
+			m.Ip, m.SshInfo.Port, m.App)
 		m.Status = constvar.SSHCheckSuccess
 		return nil
+
+	case errors.Is(err, context.DeadlineExceeded):
+		logMsg := fmt.Sprintf("check ssh timeout. ip:%s, port:%d", m.Ip, m.SshInfo.Port)
+		log.Logger.Warn(logMsg)
+		m.Status = constvar.SSHCheckFailed
+		return fmt.Errorf("%s: %w", logMsg, err)
+
+	case util.CheckSSHErrIsAuthFail(err):
+		log.Logger.Warnf("ssh auth failed. ip:%s, port:%d, app:%s",
+			m.Ip, m.SshInfo.Port, m.App)
+		m.Status = constvar.SSHAuthFailed
+		return err
+
+	default:
+		log.Logger.Warnf("ssh check failed. ip:%s, port:%d, app:%s, err:%v",
+			m.Ip, m.SshInfo.Port, m.App, err)
+		m.Status = constvar.SSHCheckFailed
+		return err
 	}
 }
 

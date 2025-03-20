@@ -15,8 +15,8 @@
       <I18nT
         keypath="定时时间_m_倒计时_t"
         scope="global">
-        <span>{{ utcDisplayTime(data.details.run_time) }}</span>
-        <RunCountdown :model-value="data.details.run_time" />
+        <span>{{ utcDisplayTime(data.details.trigger_time) }}</span>
+        <RunCountdown :model-value="data.details.trigger_time" />
       </I18nT>
     </template>
   </DbTimeLineItem>
@@ -33,12 +33,13 @@
   interface Props {
     data: FlowMode<{
       run_time: string;
+      trigger_time: string;
     }>;
   }
-
-  defineProps<Props>();
 
   defineOptions({
     name: FlowMode.STATUS_RUNNING,
   });
+
+  defineProps<Props>();
 </script>

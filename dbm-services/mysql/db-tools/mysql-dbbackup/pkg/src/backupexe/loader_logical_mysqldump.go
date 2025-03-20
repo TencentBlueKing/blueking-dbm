@@ -28,12 +28,11 @@ import (
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
 )
 
 // LogicalLoaderMysqldump this logical loader is used to load logical backup with mysql(client)
 type LogicalLoaderMysqldump struct {
-	cnf          *config.BackupConfig
+	cnf          *config.LogicalLoaderConfig
 	dbbackupHome string
 	dbConn       *sql.DB
 	// initConnect load 之前会保留 init_connect 参数，load完成后会恢复
@@ -140,6 +139,7 @@ func (l *LogicalLoaderMysqldump) Execute() (err error) {
 		"-P" + strconv.Itoa(l.cnf.LogicalLoad.MysqlPort),
 		"-u" + l.cnf.LogicalLoad.MysqlUser,
 		"-p" + l.cnf.LogicalLoad.MysqlPasswd,
+		"-v",
 	}
 	if l.cnf.LogicalLoad.MysqlCharset != "" {
 		args = append(args, fmt.Sprintf("--default-character-set=%s", l.cnf.LogicalLoad.MysqlCharset))
@@ -190,7 +190,8 @@ func (l *LogicalLoaderMysqldump) Execute() (err error) {
 		logger.Log.Error("mysqldump load backup failed: ", err, errStr)
 		// 尝试读取 mysqldump_load.log 里 CRITICAL 关键字
 		errStrPrefix := fmt.Sprintf("tail 5 error from %s", logfile)
-		errStrDetail, _ := util.GrepLinesFromFile(logfile, []string{"ERROR", "unknown", " No such"}, 5, false, true)
+		errStrDetail, _ := cmutil.NewGrepLines(logfile, true, false).
+			MatchWords([]string{"ERROR", "unknown", " No such"}, 5)
 		if len(errStrDetail) > 0 {
 			logger.Log.Info(errStrPrefix)
 			logger.Log.Error(errStrDetail)

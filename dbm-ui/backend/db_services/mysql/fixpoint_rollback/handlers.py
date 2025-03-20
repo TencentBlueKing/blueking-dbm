@@ -197,6 +197,9 @@ class FixPointRollbackHandler:
             else:
                 role_map = {"spider_master": "spider_node", "TDBCTL": "tdbctl_node", "spider_slave": "spider_slave"}
                 node_role = role_map.get(log["mysql_role"], log["mysql_role"])
+                # 忽略不合法的角色
+                if node_role not in backup_id__backup_logs_map[backup_id]:
+                    continue
                 backup_node = backup_id__backup_logs_map[backup_id][node_role]
                 backup_node = insert_log_into_node(backup_node, log)
 

@@ -44,6 +44,19 @@
           </BkCheckbox>
         </div>
       </div>
+      <BkForm
+        class="mt-24"
+        form-type="vertical">
+        <BkFormItem
+          :label="t('删除备份库时间')"
+          required>
+          <BkRadioGroup v-model="clearMode">
+            <BkRadio :label="7">{{ t('7天后') }}</BkRadio>
+            <BkRadio :label="15">{{ t('15天后') }}</BkRadio>
+            <BkRadio label="manual">{{ t('手动') }}</BkRadio>
+          </BkRadioGroup>
+        </BkFormItem>
+      </BkForm>
       <TicketRemark v-model="remark" />
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
@@ -98,13 +111,19 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE,
     onSuccess(cloneData) {
-      const { tableDataList, remark: ticketRemark } = cloneData;
+      const { remark: ticketRemark, tableDataList } = cloneData;
       tableData.value = tableDataList;
       remark.value = ticketRemark;
+      isSafe.value = cloneData.isSafe;
       window.changeConfirm = true;
+      if (cloneData.clear_mode) {
+        clearMode.value = cloneData.clear_mode.mode === 'manual' ? 'manual' : cloneData.clear_mode.days;
+      } else {
+        clearMode.value = 'manual';
+      }
     },
+    type: TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE,
   });
 
   const rowRefs = ref();
@@ -112,6 +131,7 @@
   const isSafe = ref(false);
   const isSubmitting = ref(false);
   const tableData = ref<Array<IDataRow>>([createRowData({})]);
+  const clearMode = ref<7 | 15 | 'manual'>(7);
   const remark = ref('');
 
   const selectedClusters = shallowRef<{ [key: string]: Array<TendbclusterModel> }>({ [ClusterTypes.TENDBCLUSTER]: [] });
@@ -160,8 +180,8 @@
       if (!domainMemo[domain]) {
         const row = createRowData({
           clusterData: {
-            id: item.id,
             domain: item.master_domain,
+            id: item.id,
           },
         });
         result.push(row);
@@ -220,18 +240,30 @@
     try {
       isSubmitting.value = true;
       const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
+      const clearModelParams = {};
+      if (clearMode.value === 'manual') {
+        Object.assign(clearModelParams, {
+          mode: 'manual',
+        });
+      } else {
+        Object.assign(clearModelParams, {
+          days: clearMode.value,
+          mode: 'timer',
+        });
+      }
 
       await createTicket({
-        ticket_type: TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE,
-        remark: remark.value,
+        bk_biz_id: currentBizId,
         details: {
+          clear_mode: clearModelParams,
           infos: infos.map((item) =>
             Object.assign(item, {
               force: !isSafe.value,
             }),
           ),
         },
-        bk_biz_id: currentBizId,
+        remark: remark.value,
+        ticket_type: TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE,
       }).then((data) => {
         window.changeConfirm = false;
         router.push({
@@ -271,6 +303,12 @@
         padding-bottom: 2px;
         border-bottom: 1px dashed #979ba5;
       }
+    }
+
+    .bk-form-label {
+      font-size: 12px;
+      font-weight: bold;
+      color: #313238;
     }
   }
 </style>

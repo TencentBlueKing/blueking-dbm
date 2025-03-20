@@ -137,31 +137,25 @@ func TarADir(originDir, tarSaveDir string, rmOrigin bool) (tarFile string, err e
 	tarFile = filepath.Join(tarSaveDir, basename+".tar")
 
 	if rmOrigin {
-		tarCmd = fmt.Sprintf(`cd %s && tar  -cf %s  %s && rm -rf %s`,
-			baseDir, filepath.Base(tarFile), basename, basename)
+		tarCmd = fmt.Sprintf(`cd %s && %s  -cf %s  %s && rm -rf %s`,
+			baseDir, consts.TarBin, filepath.Base(tarFile), basename, basename)
 		rmCmd = fmt.Sprintf("rm -f %s", tarFile)
 	} else {
-		tarCmd = fmt.Sprintf(`cd %s && tar -cf %s %s`, baseDir, filepath.Base(tarFile), basename)
+		tarCmd = fmt.Sprintf(`cd %s && %s -cf %s %s`, baseDir, consts.TarBin, filepath.Base(tarFile), basename)
 		rmCmd = fmt.Sprintf("rm -f %s", tarFile)
 	}
 	mylog.Logger.Info(tarCmd)
 	maxRetryTimes := 5
-	for maxRetryTimes >= 0 {
-		maxRetryTimes--
-		err = nil
-		_, err = RunBashCmd(tarCmd, "", nil, 6*time.Hour)
-		if err != nil && !strings.Contains(err.Error(), "file changed as we read it") {
+	for range maxRetryTimes {
+		if _, err = RunBashCmd(tarCmd, "", nil, 6*time.Hour); err != nil {
 			// 如果报错则删除tar文件然后重试
-			mylog.Logger.Info(rmCmd)
+			mylog.Logger.Info(fmt.Sprintf("delete last tar backup file [%s], and retry 4 ERR:%+v", rmCmd, err))
 			RunBashCmd(rmCmd, "", nil, 10*time.Minute)
+			time.Sleep(time.Second * 10)
 			continue
 		}
-		err = nil
-		// tar命令成功了,则退出
+		mylog.Logger.Info(fmt.Sprintf("tar backup files finish ^_^, with exit err:%+v", err))
 		break
-	}
-	if err != nil {
-		return
 	}
 	return
 }

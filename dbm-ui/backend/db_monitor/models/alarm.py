@@ -957,7 +957,8 @@ class MonitorPolicy(AuditedModel):
 
         # param -> model
         for key in update_fields:
-            setattr(self, key, params[key])
+            if key in params:
+                setattr(self, key, params[key])
 
         # 可选参数
         if "custom_conditions" in params:

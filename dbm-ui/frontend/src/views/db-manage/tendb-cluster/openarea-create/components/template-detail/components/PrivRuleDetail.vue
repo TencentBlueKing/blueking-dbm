@@ -12,18 +12,15 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import {
-    onMounted,
-    ref,
-  } from 'vue';
+  import { onMounted, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import MysqlPermissionAccountModel from '@services/model/mysql/mysql-permission-account';
-  import { getPermissionRules } from '@services/source/mysqlPermissionAccount'
+  import { getPermissionRules } from '@services/source/mysqlPermissionAccount';
 
   interface Props {
-    clusterId: number,
-    ruleIdList: number[]
+    clusterId: number;
+    ruleIdList: number[];
   }
 
   const props = defineProps<Props>();
@@ -36,36 +33,34 @@
 
   const columns = [
     {
-      label: t('账号名称'),
       field: 'user',
-      width: 220,
-      showOverflowTooltip: false,
+      label: t('账号名称'),
       render: ({ data }: { data: MysqlPermissionAccountModel }) => (
-        <div class="account-box">
-            <db-icon
-              type="down-shape"
-              class={{
-                'flod-flag': true,
-                'is-flod': rowFlodMap.value[data.account.user],
-              }}
-              style={{
-                opacity: data.rules.length < 2 ? 0 : 1,
-              }}
-              onClick={() => handleToogleExpand(data.account.user)} />
-            <bk-button
-              text
-              theme="primary">
-              { data.account.user }
-            </bk-button>
+        <div class='account-box'>
+          <db-icon
+            class={{
+              'flod-flag': true,
+              'is-flod': rowFlodMap.value[data.account.user],
+            }}
+            style={{
+              opacity: data.rules.length < 2 ? 0 : 1,
+            }}
+            type='down-shape'
+            onClick={() => handleToogleExpand(data.account.user)}
+          />
+          <bk-button
+            theme='primary'
+            text>
+            {data.account.user}
+          </bk-button>
         </div>
       ),
+      showOverflowTooltip: false,
+      width: 220,
     },
     {
-      label: t('访问DB'),
-      width: 300,
       field: 'access-db',
-      showOverflowTooltip: true,
-      sort: true,
+      label: t('访问DB'),
       render: ({ data }: { data: MysqlPermissionAccountModel }) => {
         if (data.rules.length < 1) {
           return '--';
@@ -73,31 +68,28 @@
 
         const renderRules = rowFlodMap.value[data.account.user] ? data.rules.slice(0, 1) : data.rules;
 
-        return renderRules.map(item => (
-          <div class="inner-row">
-            <bk-tag>
-              {item.access_db}
-            </bk-tag>
+        return renderRules.map((item) => (
+          <div class='inner-row'>
+            <bk-tag>{item.access_db}</bk-tag>
           </div>
         ));
       },
-    },
-    {
-      label: t('权限'),
-      field: 'privilege',
       showOverflowTooltip: true,
       sort: true,
+      width: 300,
+    },
+    {
+      field: 'privilege',
+      label: t('权限'),
       render: ({ data }: { data: MysqlPermissionAccountModel }) => {
         if (data.rules.length === 0) {
-          return <div class="inner-row">--</div>;
+          return <div class='inner-row'>--</div>;
         }
         const renderRules = rowFlodMap.value[data.account.user] ? data.rules.slice(0, 1) : data.rules;
-        return renderRules.map(item => (
-          <div class="inner-row">
-            {item.privilege}
-          </div>
-        ));
+        return renderRules.map((item) => <div class='inner-row'>{item.privilege}</div>);
       },
+      showOverflowTooltip: true,
+      sort: true,
     },
   ];
 
@@ -116,9 +108,9 @@
       return;
     }
     tableRef.value.fetchData({
+      account_type: 'tendbcluster',
       cluster_id: props.clusterId,
       rule_ids: props.ruleIdList.join(','),
-      account_type: 'tendbcluster',
     });
   });
 </script>

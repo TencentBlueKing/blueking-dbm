@@ -13,7 +13,7 @@
 
 <template>
   <BkPopConfirm
-    v-model:isShow="isShow"
+    v-model:is-show="isShow"
     placement="top"
     :title="t('修改目标')"
     trigger="manual"
@@ -55,9 +55,7 @@
     data: TicketFlowDescribeModel;
   }
 
-  interface Emits {
-    (e: 'success'): void;
-  }
+  type Emits = (e: 'success') => void;
 
   const props = defineProps<Props>();
 
@@ -72,9 +70,9 @@
   const targetRef = ref<InstanceType<typeof RenderTarget>>();
 
   const targetData = computed(() => ({
-    dbType: (props.data.group as DBTypes) || DBTypes.MYSQL,
     bizId: props.data.bk_biz_id || 0,
     clusterIds: props.data.cluster_ids || [],
+    dbType: (props.data.group as DBTypes) || DBTypes.MYSQL,
   }));
 
   const { run: updateTicketFlowConfigRun } = useRequest(updateTicketFlowConfig, {
@@ -90,12 +88,12 @@
     const targetData = await targetRef.value!.getValue();
     const params = {
       ...targetData,
-      ticket_types: [props.data.ticket_type],
-      configs: {
-        need_manual_confirm: props.data.configs.need_manual_confirm,
-        need_itsm: props.data.configs.need_itsm,
-      },
       config_ids: [props.data.id],
+      configs: {
+        need_itsm: props.data.configs.need_itsm,
+        need_manual_confirm: props.data.configs.need_manual_confirm,
+      },
+      ticket_types: [props.data.ticket_type],
     };
     updateTicketFlowConfigRun(params);
   };

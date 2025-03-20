@@ -50,8 +50,8 @@
 
   const rules = [
     {
-      validator: (value: string) => !!value,
       message: t('备份记录不能为空'),
+      validator: (value: string) => !!value,
     },
   ];
 
@@ -73,13 +73,13 @@
       logRecordList.value = data[props.clusterId].map((item) => {
         if (props.clusterType === ClusterTypes.MONGO_SHARED_CLUSTER) {
           return {
-            value: getBackupId(item),
             label: `${item.set_name}-${item.role_type}-${utcDisplayTime(item.end_time)}`,
+            value: getBackupId(item),
           };
         }
         return {
-          value: `${item.file_name}`,
           label: `${item.role_type}${utcDisplayTime(item.end_time)}`,
+          value: `${item.file_name}`,
         };
       });
       logRecordListMemo = data[props.clusterId];

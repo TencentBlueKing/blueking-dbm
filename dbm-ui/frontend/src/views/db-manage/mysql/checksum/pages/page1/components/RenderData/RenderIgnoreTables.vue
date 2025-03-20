@@ -15,9 +15,9 @@
   import RenderTableName from '@views/db-manage/mysql/common/edit-field/TableName.vue';
 
   interface Props {
-    modelValue?: string[];
-    ignoreDbs?: string[];
     clusterId: number;
+    ignoreDbs?: string[];
+    modelValue?: string[];
   }
 
   interface Exposes {
@@ -32,17 +32,17 @@
 
   const rules = computed(() => [
     {
+      message: t('忽略 DB 和忽略表名需同时为空或者同时有值'),
       validator: (value: string[]) =>
         (props.ignoreDbs && props.ignoreDbs.length > 0 && value.length > 0) ||
         ((!props.ignoreDbs || props.ignoreDbs.length === 0) && value.length === 0),
-      message: t('忽略 DB 和忽略表名需同时为空或者同时有值'),
     },
     {
+      message: t('一格仅支持单个 % 对象'),
       validator: (value: string[]) => {
-        const hasAllMatch = _.find(value, (item) => /%$/.test(item));
+        const hasAllMatch = _.find(value, (item) => item.endsWith('%'));
         return !(value.length > 1 && hasAllMatch);
       },
-      message: t('一格仅支持单个 % 对象'),
     },
   ]);
 

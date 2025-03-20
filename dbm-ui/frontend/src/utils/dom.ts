@@ -79,7 +79,7 @@ export const scrollTopSmooth = function (target: HTMLElement, destScrollTop: num
 export const getParentByClass = (node: Element, className: string) => {
   let parentNode: Element | null = node;
   while (parentNode) {
-    if (parentNode.classList && parentNode.classList.contains(className)) {
+    if (parentNode.classList?.contains(className)) {
       return parentNode;
     }
     parentNode = parentNode.parentNode as Element;

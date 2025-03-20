@@ -41,21 +41,19 @@
   import { random } from '@utils';
 
   interface Props {
-    data?: string;
     checkDuplicate?: boolean;
+    data?: string;
   }
 
-  interface Emits {
-    (e: 'onInputFinish', value: string): void;
-  }
+  type Emits = (e: 'onInputFinish', value: string) => void;
 
   interface Exposes {
     getValue: () => Promise<string>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    data: '',
     checkDuplicate: true,
+    data: '',
   });
   const emits = defineEmits<Emits>();
 
@@ -69,22 +67,23 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(_.trim(value)),
       message: t('目标集群不能为空'),
+      validator: (value: string) => Boolean(_.trim(value)),
     },
     {
-      validator: (value: string) => domainRegex.test(_.trim(value)),
       message: t('目标集群输入格式有误'),
+      validator: (value: string) => domainRegex.test(_.trim(value)),
     },
     {
+      message: t('目标集群不存在'),
       validator: (value: string) =>
         queryClusters({
+          bk_biz_id: currentBizId,
           cluster_filters: [
             {
               immute_domain: value,
             },
           ],
-          bk_biz_id: currentBizId,
         }).then((data) => {
           if (data.length > 0) {
             localClusterId.value = data[0].id;
@@ -92,9 +91,9 @@
           }
           return false;
         }),
-      message: t('目标集群不存在'),
     },
     {
+      message: t('目标集群重复'),
       validator: () => {
         if (!props.checkDuplicate) {
           return true;
@@ -112,6 +111,7 @@
         );
 
         const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
+        // eslint-disable-next-line @typescript-eslint/prefer-for-of
         for (let i = 0; i < currentSelectClusterIdList.length; i++) {
           if (otherClusterIdMap[currentSelectClusterIdList[i]]) {
             return false;
@@ -119,7 +119,6 @@
         }
         return true;
       },
-      message: t('目标集群重复'),
     },
   ];
 

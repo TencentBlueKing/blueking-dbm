@@ -80,8 +80,8 @@
     );
     if (copyList.length === 0) {
       Message({
-        theme: 'primary',
         message: t('无异常IP可复制'),
+        theme: 'primary',
       });
       return;
     }

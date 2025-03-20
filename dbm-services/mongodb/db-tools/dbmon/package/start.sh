@@ -1,5 +1,18 @@
 #!/usr/bin/env sh
 
+
+# cutLog 将日志文件大小控制在20M以内
+function cutLog() {
+    logFile=$1
+    if [ -f $logFile ]; then
+        logSize=$(stat -c %s $logFile 2>/dev/null)
+        if [ $logSize -gt 20971520 ]; then
+            echo "[$nowtime] $logFile size is greater than 20M, truncate to 10M"
+            tail -c 10M $logFile >$logFile.tmp  && mv $logFile.tmp $logFile
+        fi
+    fi
+}
+
 DIR=$(dirname $0)
 cd $DIR
 
@@ -11,6 +24,7 @@ healthUrl="http://$httpAddr/health"
 
 if curl $healthUrl >/dev/null 2>&1; then
     echo "[$nowtime] bk-dbmon is running"
+    cutLog ./logs/start.log
     exit 0
 fi
 
@@ -23,7 +37,12 @@ if [[ ! -d "./logs" ]]; then
     mkdir -p ./logs
 fi
 
-nohup ./bk-dbmon --config=$confFile >>./logs/start.log 2>&1 &
+logLevel=""
+if [ "$1" == "debug" ];then
+   logLevel="--logLevel=debug"
+fi
+
+nohup ./bk-dbmon --config=$confFile $logLevel >>./logs/start.log 2>&1 &
 
 sleep 1
 

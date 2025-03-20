@@ -14,7 +14,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE, SLAVE_DOMAIN_INITIAL_VALUE, AffinityEnum
-from backend.db_meta.enums import ClusterType, MachineType
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache, DBModule
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.sqlserver import SqlserverController
@@ -44,7 +44,7 @@ class SQLServerHAApplyDetailSerializer(SQLServerSingleApplyDetailSerializer):
         if attrs["ip_source"] == IpSource.RESOURCE_POOL:
             machine_count = attrs["resource_spec"]["backend_group"]["count"] * 2
         else:
-            machine_count = len(attrs["nodes"][MachineType.SQLSERVER_HA.value])
+            machine_count = len(attrs["nodes"]["backend"])
         if machine_count != expected_count:
             raise serializers.ValidationError(_("机器输入数量{}有误，预期数量{}").format(expected_count, machine_count))
 
@@ -85,7 +85,7 @@ class SQLServerHAApplyFlowParamBuilder(SQLServerSingleApplyFlowParamBuilder):
 
     @classmethod
     def insert_ip_into_apply_infos(cls, ticket_data, infos: List[Dict]):
-        backend_nodes = ticket_data["nodes"][MachineType.SQLSERVER_HA.value]
+        backend_nodes = ticket_data["nodes"]["backend"]
         for index, apply_info in enumerate(infos):
             # 每组集群需要两个后端 IP 和两个 Proxy IP
             start, end = index * 2, (index + 1) * 2

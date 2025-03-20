@@ -18,8 +18,8 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
-    name: 'DbConfigure',
     path: 'db-configure',
+    name: 'DbConfigure',
     meta: {
       navName: t('数据库配置'),
     },
@@ -29,27 +29,27 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@views/db-configure/Index.vue'),
     children: [
       {
-        name: 'DbConfigureList',
         path: 'list/:clusterType?',
+        name: 'DbConfigureList',
         meta: {
-          navName: t('数据库配置'),
           fullscreen: true,
+          navName: t('数据库配置'),
         },
         component: () => import('@views/db-configure/business/list/Index.vue'),
       },
       {
-        name: 'DbConfigureDetail',
         path: 'detail/:clusterType/:version/:confType/:treeId/:parentId?',
+        name: 'DbConfigureDetail',
         meta: {
-          navName: t('配置详情'),
           fullscreen: true,
+          navName: t('配置详情'),
         },
         props: true,
         component: () => import('@views/db-configure/business/Detail.vue'),
       },
       {
-        name: 'DbConfigureEdit',
         path: 'edit/:clusterType/:version/:confType/:treeId/:parentId?',
+        name: 'DbConfigureEdit',
         meta: {
           navName: t('配置编辑'),
         },
@@ -57,32 +57,32 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@views/db-configure/business/Edit.vue'),
       },
       {
-        name: 'DbConfigureBind',
         path: 'bind/:clusterType/:moduleId',
+        name: 'DbConfigureBind',
         meta: {
           navName: t('绑定模块'),
         },
         component: () => import('@views/db-configure/business/Bind.vue'),
       },
       {
-        name: 'SelfServiceCreateDbModule',
         path: 'create-db-module/:type/:bk_biz_id/',
+        name: 'SelfServiceCreateDbModule',
         meta: {
           navName: t('新建模块'),
         },
         component: () => import('@views/service-apply/create-db-module/Index.vue'),
       },
       {
-        name: 'createSpiderModule',
         path: 'create-module/:bizId(\\d+)',
+        name: 'createSpiderModule',
         meta: {
           navName: t('新建模块'),
         },
         component: () => import('@views/db-manage/tendb-cluster/apply/CreateModule.vue'),
       },
       {
-        name: 'SqlServerCreateDbModule',
         path: 'sqlserver-create-db-module/:ticketType/:bizId/',
+        name: 'SqlServerCreateDbModule',
         meta: {
           navName: t('新建模块'),
         },

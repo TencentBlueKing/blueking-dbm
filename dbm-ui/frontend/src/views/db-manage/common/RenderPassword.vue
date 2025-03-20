@@ -130,9 +130,9 @@
     access_port: 0,
     cluster_name: '',
     domain: '',
-    username: '',
     password: '',
     token: '',
+    username: '',
   });
 
   getPulsarPassword({ cluster_id: props.clusterId })
@@ -157,15 +157,15 @@
   });
 
   const handleCopy = (type: string) => {
-    const { cluster_name, domain, access_port, username, password, token } = result.value;
-    // eslint-disable-next-line camelcase
-    const domainPort = `${domain}:${access_port}`;
+    const { access_port: accessPort, cluster_name: clusterName, domain, password, token, username } = result.value;
+
+    const domainPort = `${domain}:${accessPort}`;
     let passwordToken = password;
     if (token) {
       passwordToken = `${password} ${token}`;
     }
-    // eslint-disable-next-line camelcase
-    let content = `${t('集群名称')}: ${cluster_name}\n${t('域名')}: ${domainPort}\n${t('账号')}: ${username}\n${t('密码')}: ${passwordToken}`;
+
+    let content = `${t('集群名称')}: ${clusterName}\n${t('域名')}: ${domainPort}\n${t('账号')}: ${username}\n${t('密码')}: ${passwordToken}`;
     let securityInfo = '';
     if (props.dbType) {
       securityInfo = `security.protocol=SASL_PLAINTEXT\nsasl.mechanism=SCRAM-SHA-512\nsasl.jaas.config=org.apache.${props.dbType}.common.security.scram.ScramLoginModule required username="${username}" password="${password}";`;
@@ -173,7 +173,7 @@
     }
     switch (type) {
       case 'cluster_name':
-        copy(cluster_name);
+        copy(clusterName);
         break;
       case 'domain':
         copy(domainPort);

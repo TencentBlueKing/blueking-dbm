@@ -13,11 +13,18 @@ from typing import List
 
 from django.utils.translation import ugettext as _
 
+from backend import env
+from backend.components import BKMonitorV3Api
 from backend.db_monitor.models import MonitorPolicy, NoticeGroup
+from backend.db_monitor.utils import parse_shield_description_biz
 from backend.iam_app.dataclass.actions import ActionEnum, ActionMeta
 from backend.iam_app.dataclass.resources import ResourceEnum, ResourceMeta
 from backend.iam_app.exceptions import ActionNotExistError, ResourceNotExistError
-from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission, get_request_key_id
+from backend.iam_app.handlers.drf_perm.base import (
+    BizOrGlobalResourceActionPermission,
+    ResourceActionPermission,
+    get_request_key_id,
+)
 
 
 class NotifyGroupPermission(ResourceActionPermission):
@@ -82,3 +89,55 @@ class MonitorPolicyPermission(ResourceActionPermission):
     def has_object_permission(self, request, view, obj):
         """策略鉴权已经在has permission完成了，无需obj鉴权"""
         return True
+
+
+class ListAlertEventPermission(BizOrGlobalResourceActionPermission):
+    """
+    监控事件查看相关鉴权
+    """
+
+    def __init__(self, actions=None, resource_meta=None):
+        super().__init__(actions, resource_meta)
+        self.biz_action = ActionEnum.DB_MANAGE
+        self.global_action = ActionEnum.PLATFORM_ALERT_EVENT_VIEW
+
+    def instance_ids_getter(self, request, view):
+
+        # 如果是个人视角查看，则不鉴权
+        if request.data.get("self_manage", False) or request.data.get("self_assist", False):
+            self.actions = self.resource_meta = None
+            return []
+
+        return super().instance_ids_getter(request, view)
+
+
+class AlertShieldPermission(ResourceActionPermission):
+    """
+    告警屏蔽相关鉴权
+    """
+
+    def __init__(self, actions: List[ActionMeta] = None, resource_meta: ResourceMeta = None):
+        # 固定资源是业务
+        resource_meta = ResourceEnum.BUSINESS
+        super().__init__(actions=actions, resource_meta=resource_meta, instance_ids_getter=self.instance_ids_getter)
+
+    def instance_ids_getter(self, request, view):
+        # 创建动作 -- 告警屏蔽创建鉴权
+        if view.action == "create":
+            self.actions = [ActionEnum.ALERT_SHIELD_CREATE]
+            return [get_request_key_id(request, "bk_biz_id")]
+
+        # 从监控获得告警屏蔽详情
+        try:
+            shield = BKMonitorV3Api.get_shield({"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "id": view.kwargs["pk"]})
+            bk_biz_id = parse_shield_description_biz(shield["description"])
+        except Exception:  # pylint: disable=broad-except
+            bk_biz_id = env.DBA_APP_BK_BIZ_ID
+
+        # 详情 -- 业务管理; 禁用、编辑 -- 告警屏蔽管理
+        if view.action == "retrieve":
+            self.actions = [ActionEnum.DB_MANAGE]
+        elif view.action in ["disable", "update"]:
+            self.actions = [ActionEnum.ALERT_SHIELD_MANAGE]
+
+        return [bk_biz_id]

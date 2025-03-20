@@ -194,8 +194,8 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<any[]>;
     getTableValue: () => IDataRow[];
+    getValue: () => Promise<any[]>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -209,10 +209,10 @@
   const isShowClusterSelector = ref(false);
   const receiverType = ref('KAFKA');
   const batchDialogConfig = ref({
-    type: 'text',
     key: '',
-    title: '',
     placeholder: '',
+    title: '',
+    type: 'text',
   });
 
   const selectedClusters = shallowRef<{ [key: string]: Array<TendbhaModel> }>({ [ClusterTypes.TENDBHA]: [] });
@@ -221,60 +221,60 @@
   const domainMemo: Record<string, boolean> = {};
 
   const batchEditConfigMap = {
-    dumperId: {
-      type: 'textarea',
-      title: t('dumper实例ID'),
-      placeholder: '',
-    },
-    receiver: {
-      type: 'text',
-      title: t('接收端地址'),
-      placeholder: t('IP_PORT_或_域名_端口'),
-    },
     account: {
-      type: 'text',
-      title: t('账号'),
       placeholder: t('请输入账号'),
+      title: t('账号'),
+      type: 'text',
     },
-    password: {
-      type: 'password',
-      title: t('密码'),
-      placeholder: t('请输入密码'),
-    },
-    l5ModId: {
-      type: 'number',
-      title: 'l5_modid',
-      placeholder: t('请输入'),
+    dumperId: {
+      placeholder: '',
+      title: t('dumper实例ID'),
+      type: 'textarea',
     },
     l5CmdId: {
-      type: 'number',
-      title: 'l5_cmdid',
       placeholder: t('请输入'),
+      title: 'l5_cmdid',
+      type: 'number',
+    },
+    l5ModId: {
+      placeholder: t('请输入'),
+      title: 'l5_modid',
+      type: 'number',
+    },
+    password: {
+      placeholder: t('请输入密码'),
+      title: t('密码'),
+      type: 'password',
+    },
+    receiver: {
+      placeholder: t('IP_PORT_或_域名_端口'),
+      title: t('接收端地址'),
+      type: 'text',
     },
   } as Record<
     string,
     {
-      type: string;
-      title: string;
       placeholder: string;
+      title: string;
+      type: string;
     }
   >;
 
   const generateTableRow = (item: TendbhaModel) => ({
-    rowKey: item.master_domain,
-    isLoading: false,
-    srcCluster: {
-      clusterName: item.master_domain,
-      clusterId: item.id,
-      moduleId: item.db_module_id,
-    },
+    account: '',
     dumperId: '',
+    isLoading: false,
+    l5CmdId: 0,
+    l5ModId: 0,
+    password: '',
     receiver: '',
     receiverType: receiverType.value,
-    account: '',
-    password: '',
-    l5ModId: 0,
-    l5CmdId: 0,
+    rowKey: item.master_domain,
+    srcCluster: {
+      clusterId: item.id,
+      clusterName: item.master_domain,
+      moduleId: item.db_module_id,
+    },
   });
 
   watch(
@@ -321,12 +321,12 @@
   };
 
   const handleShowBatchEdit = (key: string) => {
-    const { type, title, placeholder } = batchEditConfigMap[key];
+    const { placeholder, title, type } = batchEditConfigMap[key];
     batchDialogConfig.value = {
-      type,
       key,
-      title,
       placeholder,
+      title,
+      type,
     };
   };
 
@@ -341,7 +341,7 @@
     tableData.value.splice(index, 1);
     delete domainMemo[srcCluster.clusterName];
     const clustersArr = selectedClusters.value[ClusterTypes.TENDBHA];
-    // eslint-disable-next-line max-len
+
     selectedClusters.value[ClusterTypes.TENDBHA] = clustersArr.filter(
       (item) => item.master_domain !== srcCluster.clusterName,
     );
@@ -385,8 +385,8 @@
   };
 
   defineExpose<Exposes>({
-    getValue: () => Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue())),
     getTableValue: () => tableData.value,
+    getValue: () => Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue())),
   });
 </script>
 <style lang="less">

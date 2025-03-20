@@ -14,28 +14,34 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-var sqlserverQueryParseCommands = []string{
-	"show",
-	"select",
-	"restore filelistonly",
-	"restore headeronly",
-}
-
-var sqlserverExecuteParseCommands = []string{
-	"use",
-	"insert",
-	"exec msdb.dbo.sp_update_job",
-	"drop login",
-	"alter login",
-	"create login",
-	"create user",
-	"drop user",
-	"alter authorization",
-	"exec sp_addrolemember",
-}
-
 // SqlserverRPCEmbed sqlserver 实现
 type SqlserverRPCEmbed struct {
+}
+
+// InitQueryParseCommands 定义可以支持查询语句的结构
+func (c *SqlserverRPCEmbed) InitQueryParseCommands() []string {
+	return []string{
+		"show",
+		"select",
+		"restore filelistonly",
+		"restore headeronly",
+	}
+}
+
+// InitQueryParseCommands 定义可以支持查询语句的结构
+func (c *SqlserverRPCEmbed) InitExecuteParseCommands() []string {
+	return []string{
+		"use",
+		"insert",
+		"exec msdb.dbo.sp_update_job",
+		"drop login",
+		"alter login",
+		"create login",
+		"create user",
+		"drop user",
+		"alter authorization",
+		"exec sp_addrolemember",
+	}
 }
 
 // ParseCommand sqlserver 解析命令
@@ -77,6 +83,7 @@ func (c *SqlserverRPCEmbed) MakeConnection(address string, user string, password
 
 // IsQueryCommand sqlserver 解析命令
 func (c *SqlserverRPCEmbed) IsQueryCommand(pc *rpc_core.ParseQueryBase) bool {
+	sqlserverQueryParseCommands := c.InitQueryParseCommands()
 	for _, ele := range sqlserverQueryParseCommands {
 		if strings.HasPrefix(strings.ToLower(pc.Command), ele) {
 			return true
@@ -88,6 +95,7 @@ func (c *SqlserverRPCEmbed) IsQueryCommand(pc *rpc_core.ParseQueryBase) bool {
 
 // IsExecuteCommand sqlserver 解析命令
 func (c *SqlserverRPCEmbed) IsExecuteCommand(pc *rpc_core.ParseQueryBase) bool {
+	sqlserverExecuteParseCommands := c.InitExecuteParseCommands()
 	for _, ele := range sqlserverExecuteParseCommands {
 		if strings.HasPrefix(strings.ToLower(pc.Command), ele) {
 			return true

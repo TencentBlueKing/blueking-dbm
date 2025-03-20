@@ -72,9 +72,9 @@
   import { execCopy } from '@utils';
 
   interface Props {
-    fetchParams: Record<string, any>,
-    fetchNodes: (params: any) => Promise<HostNode[]>,
-    title?: string,
+    fetchNodes: (params: any) => Promise<HostNode[]>;
+    fetchParams: Record<string, any>;
+    title?: string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -89,69 +89,81 @@
   /**
    * 预览表格配置
    */
-  const columns = [{
-    label: 'IP',
-    field: 'bk_host_innerip',
-  }, {
-    label: t('每台主机节点数'),
-    field: 'instance_num',
-    render: ({ data }: {data: HostNode}) => data.instance_num || '--',
-  }, {
-    label: 'IPv6',
-    field: 'bk_host_innerip_v6',
-    render: ({ data }: {data: HostNode}) => data.bk_host_innerip_v6 || '--',
-  }, {
-    label: t('管控区域'),
-    field: 'bk_cloud_name',
-    render: ({ data }: {data: HostNode}) => data.bk_cloud_name || '--',
-  }, {
-    label: t('Agent状态'),
-    field: 'status',
-    render: ({ data }: {data: HostNode}) => {
-      if (typeof data.status !== 'number') return '--';
-
-      const text = [t('异常'), t('正常')];
-      return <DbStatus theme={data.status === 1 ? 'success' : 'danger'}>{text[data.status]}</DbStatus>;
+  const columns = [
+    {
+      field: 'bk_host_innerip',
+      label: 'IP',
     },
-  }, {
-    label: t('主机名称'),
-    field: 'bk_host_name',
-    render: ({ data }: {data: HostNode}) => data.bk_host_name || '--',
-  }, {
-    label: t('OS名称'),
-    field: 'bk_os_name',
-    render: ({ data }: {data: HostNode}) => data.bk_os_name || '--',
-  }, {
-    label: t('所属云厂商'),
-    field: 'bk_cloud_vendor',
-    render: ({ data }: {data: HostNode}) => data.bk_cloud_vendor || '--',
-  }, {
-    label: t('OS类型'),
-    field: 'bk_os_type',
-    render: ({ data }: {data: HostNode}) => data.bk_os_type || '--',
-  }, {
-    label: t('主机ID'),
-    field: 'bk_host_id',
-    render: ({ data }: {data: HostNode}) => data.bk_host_id || '--',
-  }, {
-    label: 'Agent ID',
-    field: 'bk_agent_id',
-    render: ({ data }: {data: HostNode}) => data.bk_agent_id || '--',
-  }];
+    {
+      field: 'instance_num',
+      label: t('每台主机节点数'),
+      render: ({ data }: { data: HostNode }) => data.instance_num || '--',
+    },
+    {
+      field: 'bk_host_innerip_v6',
+      label: 'IPv6',
+      render: ({ data }: { data: HostNode }) => data.bk_host_innerip_v6 || '--',
+    },
+    {
+      field: 'bk_cloud_name',
+      label: t('管控区域'),
+      render: ({ data }: { data: HostNode }) => data.bk_cloud_name || '--',
+    },
+    {
+      field: 'status',
+      label: t('Agent状态'),
+      render: ({ data }: { data: HostNode }) => {
+        if (typeof data.status !== 'number') return '--';
+
+        const text = [t('异常'), t('正常')];
+        return <DbStatus theme={data.status === 1 ? 'success' : 'danger'}>{text[data.status]}</DbStatus>;
+      },
+    },
+    {
+      field: 'bk_host_name',
+      label: t('主机名称'),
+      render: ({ data }: { data: HostNode }) => data.bk_host_name || '--',
+    },
+    {
+      field: 'bk_os_name',
+      label: t('OS名称'),
+      render: ({ data }: { data: HostNode }) => data.bk_os_name || '--',
+    },
+    {
+      field: 'bk_cloud_vendor',
+      label: t('所属云厂商'),
+      render: ({ data }: { data: HostNode }) => data.bk_cloud_vendor || '--',
+    },
+    {
+      field: 'bk_os_type',
+      label: t('OS类型'),
+      render: ({ data }: { data: HostNode }) => data.bk_os_type || '--',
+    },
+    {
+      field: 'bk_host_id',
+      label: t('主机ID'),
+      render: ({ data }: { data: HostNode }) => data.bk_host_id || '--',
+    },
+    {
+      field: 'bk_agent_id',
+      label: 'Agent ID',
+      render: ({ data }: { data: HostNode }) => data.bk_agent_id || '--',
+    },
+  ];
   const state = reactive({
+    data: [] as HostNode[],
+    isAnomalies: false,
     isLoading: false,
     keyword: '',
-    settings: {
-      fields: columns.map(item => ({
-        label: item.label,
-        field: item.field,
-        disabled: ['bk_host_innerip', 'bk_host_innerip_v6'].includes(item.field),
-      })),
-      checked: ['bk_host_innerip', 'bk_host_innerip_v6', 'bk_host_name', 'status', 'instance_num'],
-    },
-    data: [] as HostNode[],
     pagination: useDefaultPagination(),
-    isAnomalies: false,
+    settings: {
+      checked: ['bk_host_innerip', 'bk_host_innerip_v6', 'bk_host_name', 'status', 'instance_num'],
+      fields: columns.map((item) => ({
+        disabled: ['bk_host_innerip', 'bk_host_innerip_v6'].includes(item.field),
+        field: item.field,
+        label: item.label,
+      })),
+    },
   });
 
   watch(isShow, (isShowNew) => {
@@ -161,14 +173,14 @@
   });
 
   function handleCopyAbnormalIps() {
-    const abnormalIps = state.data.filter(item => item.status === 0).map(item => item.bk_host_innerip);
+    const abnormalIps = state.data.filter((item) => item.status === 0).map((item) => item.bk_host_innerip);
     if (abnormalIps.length > 0) {
       execCopy(abnormalIps.join('\n'), t('复制成功，共n条', { n: abnormalIps.length }));
     }
   }
 
   function handleCopyIps() {
-    const ips = state.data.map(item => item.bk_host_innerip);
+    const ips = state.data.map((item) => item.bk_host_innerip);
     if (ips.length > 0) {
       execCopy(ips.join('\n'), t('复制成功，共n条', { n: ips.length }));
     }
@@ -179,11 +191,12 @@
    */
   function fetchHostNodes() {
     state.isLoading = true;
-    props.fetchNodes({
-      ...props.fetchParams,
-      ...state.pagination.getFetchParams(),
-      keyword: state.keyword,
-    })
+    props
+      .fetchNodes({
+        ...props.fetchParams,
+        ...state.pagination.getFetchParams(),
+        keyword: state.keyword,
+      })
       .then((res) => {
         state.data = res;
         state.isAnomalies = false;

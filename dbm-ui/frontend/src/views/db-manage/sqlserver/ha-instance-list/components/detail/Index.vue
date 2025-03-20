@@ -53,8 +53,8 @@
 
   interface Props {
     instanceData?: {
-      instanceAddress: string;
       clusterId: number;
+      instanceAddress: string;
     };
   }
 
@@ -67,8 +67,8 @@
   const data = ref<SqlServerHaInstanceModel>();
 
   const queryConfigInfos = computed(() => ({
-    dbModuleId: data.value?.db_module_id ?? 0,
     clusterId: props.instanceData ? props.instanceData.clusterId : 0,
+    dbModuleId: data.value?.db_module_id ?? 0,
     version: data.value?.version ?? '',
   }));
 
@@ -84,11 +84,11 @@
     () => {
       if (props.instanceData) {
         retrieveSqlserverHaInstanceRun({
-          dbType: DBTypes.SQLSERVER,
           bk_biz_id: globalBizsStore.currentBizId,
-          type: ClusterTypes.SQLSERVER_HA,
-          instance_address: props.instanceData.instanceAddress,
           cluster_id: props.instanceData.clusterId,
+          dbType: DBTypes.SQLSERVER,
+          instance_address: props.instanceData.instanceAddress,
+          type: ClusterTypes.SQLSERVER_HA,
         });
       }
     },

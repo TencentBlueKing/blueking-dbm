@@ -17,11 +17,11 @@ import { useGlobalBizs } from '@stores';
 import { ClusterTypes } from '@common/const';
 
 interface TopoTreeData {
+  children: Array<TopoTreeData>;
+  count: number;
   id: number;
   name: string;
   obj: 'biz' | 'cluster';
-  count: number;
-  children: Array<TopoTreeData>;
 }
 
 /**
@@ -29,12 +29,12 @@ interface TopoTreeData {
  */
 export function useTopoData<T extends Record<string, any>>(filterClusterId: ComputedRef<number | undefined>) {
   const { currentBizId, currentBizInfo } = useGlobalBizs();
-  const currentInstance = getCurrentInstance() as ComponentInternalInstance & {
+  const currentInstance = getCurrentInstance() as {
     proxy: {
-      getTopoList: (params: any) => Promise<any>;
       countFunc?: (data: T) => number;
+      getTopoList: (params: any) => Promise<any>;
     };
-  };
+  } & ComponentInternalInstance;
 
   const isLoading = ref(false);
   const selectClusterId = ref<number>();
@@ -65,21 +65,21 @@ export function useTopoData<T extends Record<string, any>>(filterClusterId: Comp
         const countFn = currentInstance.proxy?.countFunc;
         const formatData = data.map((item: T) => ({ ...item, count: countFn ? countFn(item) : item.masters.length }));
         const children = formatData.map((item: T) => ({
+          children: [],
+          count: item.count,
           id: item.id,
           name: item.master_domain,
           obj: 'cluster',
-          count: item.count,
-          children: [],
         }));
         treeData.value = filterClusterId.value
           ? children
           : [
               {
-                name: currentBizInfo?.display_name || '--',
-                id: currentBizId,
-                obj: 'biz',
-                count: formatData.reduce((count: number, item: any) => count + item.count, 0),
                 children,
+                count: formatData.reduce((count: number, item: any) => count + item.count, 0),
+                id: currentBizId,
+                name: currentBizInfo?.display_name || '--',
+                obj: 'biz',
               },
             ];
         setTimeout(() => {
@@ -98,10 +98,10 @@ export function useTopoData<T extends Record<string, any>>(filterClusterId: Comp
   };
 
   return {
-    treeRef,
-    isLoading,
-    treeData,
-    selectClusterId,
     fetchResources,
+    isLoading,
+    selectClusterId,
+    treeData,
+    treeRef,
   };
 }

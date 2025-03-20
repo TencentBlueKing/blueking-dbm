@@ -35,9 +35,9 @@
 
   interface Props {
     queryInfos: {
+      clusterId: number;
       dbModuleId: number;
       version: string;
-      clusterId: number;
     };
   }
 
@@ -47,30 +47,30 @@
   const { t } = useI18n();
 
   const data = shallowRef<ServiceReturnType<typeof getLevelConfig>>({
+    conf_items: [],
+    description: '',
     name: '',
     version: '',
-    description: '',
-    conf_items: [],
   });
 
   const columns = [
     {
-      label: t('参数项'),
       field: 'conf_name',
+      label: t('参数项'),
     },
     {
-      label: t('参数值'),
       field: 'conf_value',
+      label: t('参数值'),
     },
     {
-      label: t('描述'),
       field: 'description',
+      label: t('描述'),
     },
     {
-      label: t('重启实例生效'),
       field: 'need_restart',
-      width: 200,
+      label: t('重启实例生效'),
       render: ({ cell }: { cell: number }) => (cell === 1 ? t('是') : t('否')),
+      width: 200,
     },
   ];
 
@@ -81,24 +81,24 @@
   watch(
     () => props.queryInfos,
     (infos) => {
-      const { dbModuleId, version, clusterId } = infos;
+      const { clusterId, dbModuleId, version } = infos;
       if (dbModuleId && version && clusterId) {
         getLevelConfigRun({
           bk_biz_id: currentBizId,
-          level_value: props.queryInfos.clusterId,
-          meta_cluster_type: ClusterTypes.SQLSERVER_HA,
-          level_name: 'cluster',
           conf_type: 'dbconf',
-          version: props.queryInfos.version,
           level_info: {
             module: String(props.queryInfos.dbModuleId),
           },
+          level_name: 'cluster',
+          level_value: props.queryInfos.clusterId,
+          meta_cluster_type: ClusterTypes.SQLSERVER_HA,
+          version: props.queryInfos.version,
         });
       }
     },
     {
-      immediate: true,
       deep: true,
+      immediate: true,
     },
   );
 </script>

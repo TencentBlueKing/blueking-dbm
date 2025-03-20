@@ -28,6 +28,7 @@ from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow i
 from backend.flow.engine.bamboo.scene.mysql.common.recover_slave_instance import slave_recover_sub_flow
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.mysql.mysql_check_binlog_dump import MySQLCheckBinlogDumpComponent
 from backend.flow.plugins.components.collections.mysql.mysql_crond_control import MysqlCrondMonitorControlComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.mysql_rds_execute import MySQLExecuteRdsComponent
@@ -179,6 +180,17 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
                     ),
                 )
 
+                sync_data_sub_pipeline.add_act(
+                    act_name=_("检查实例是否存在从库{}").format(target_slave.ip_port),
+                    act_component_code=MySQLCheckBinlogDumpComponent.code,
+                    kwargs=asdict(
+                        ExecuteRdsKwargs(
+                            bk_cloud_id=cluster_class.bk_cloud_id,
+                            instance_ip=target_slave.machine.ip,
+                            instance_port=target_slave.port,
+                        )
+                    ),
+                )
                 sync_data_sub_pipeline.add_act(
                     act_name=_("从库reset slave {}").format(target_slave.ip_port),
                     act_component_code=MySQLExecuteRdsComponent.code,

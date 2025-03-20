@@ -12,3 +12,4 @@ specific language governing permissions and limitations under the License.
 from .alarm import *
 from .collect import *
 from .dashboard import *
+from .mysql_autofix_todo import *

@@ -11,6 +11,7 @@
 package sqlserver
 
 import (
+	"database/sql"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -78,7 +79,21 @@ func (b *BackupDBSComp) Init() error {
 	if b.Params.TargetBackupDir != "" {
 		b.BackupDir = b.Params.TargetBackupDir
 	} else {
-		b.BackupDir = filepath.Join(cst.BASE_DATA_PATH, cst.MSSQL_BACKUP_NAME, b.Params.JobID)
+		// 在实例上查询备份路径
+		var dir sql.NullString
+		switch b.Params.BackupType {
+		case FULL_BACKUP:
+			dir, _ = b.LocalDB.GetFullBackupPath()
+		case LOG_BACKUP:
+			dir, _ = b.LocalDB.GetLogBackupPath()
+		default:
+			return fmt.Errorf("backup type [%s] is not supported", b.Params.BackupType)
+		}
+		if dir.Valid {
+			b.BackupDir = dir.String
+		} else {
+			b.BackupDir = filepath.Join(cst.BASE_DATA_PATH, cst.MSSQL_BACKUP_NAME, b.Params.JobID)
+		}
 	}
 	// 计算这次的backup_job_id
 	b.BackupID = osutil.GenerateRandomString(32)

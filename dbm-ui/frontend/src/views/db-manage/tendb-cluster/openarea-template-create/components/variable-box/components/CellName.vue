@@ -74,7 +74,6 @@
 
   const handleEditSubmit = () => {
     updateVariableMethod({
-      op_type: 'update',
       new_var: {
         ...props.data,
         name: modelValue.value,
@@ -82,6 +81,7 @@
       old_var: {
         ...props.data,
       },
+      op_type: 'update',
     });
   };
 

@@ -45,18 +45,18 @@
   import { random } from '@utils';
 
   export interface IDataRow {
-    rowKey: string;
     clusterName: string;
     databases?: string[];
     databasesIgnore?: string[];
+    rowKey: string;
     tables?: string[];
     tablesIgnore?: string[];
   }
 
   // 创建表格数据
   export const createRowData = () => ({
-    rowKey: random(),
     clusterName: '',
+    rowKey: random(),
   });
 
   interface Props {

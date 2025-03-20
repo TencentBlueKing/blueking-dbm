@@ -14,52 +14,52 @@
 import { t } from '@locales/index';
 
 export default {
+  checked: ['ip', 'cpu', 'bk_disk', 'host_name', 'alive'],
   fields: [
     {
-      label: 'IP',
-      field: 'ip',
       disabled: true,
+      field: 'ip',
+      label: 'IP',
     },
     {
-      label: t('机型'),
       field: 'cpu',
+      label: t('机型'),
     },
     {
-      label: t('机房'),
       field: 'bk_idc_name',
+      label: t('机房'),
     },
     {
-      label: t('管控区域'),
       field: 'cloud_area',
+      label: t('管控区域'),
     },
     {
-      label: t('Agent状态'),
       field: 'alive',
+      label: t('Agent状态'),
     },
     {
-      label: t('主机名称'),
       field: 'host_name',
+      label: t('主机名称'),
     },
     {
-      label: t('OS名称'),
       field: 'os_name',
+      label: t('OS名称'),
     },
     {
-      label: t('所属云厂商'),
       field: 'cloud_vendor',
+      label: t('所属云厂商'),
     },
     {
-      label: t('OS类型'),
       field: 'os_type',
+      label: t('OS类型'),
     },
     {
-      label: t('主机ID'),
       field: 'host_id',
+      label: t('主机ID'),
     },
     {
-      label: 'Agent ID',
       field: 'agent_id',
+      label: 'Agent ID',
     },
   ],
-  checked: ['ip', 'cpu', 'bk_disk', 'host_name', 'alive'],
 };

@@ -3,15 +3,16 @@ package sendwarning
 // 用于发送bkMonitorMsg
 // 消息有两类，Event事件消息和TimeSeries时序消息
 import (
-	"dbm-services/mongodb/db-tools/dbmon/mylog"
+	"dbm-services/mongodb/db-tools/dbmon/pkg/fileutil"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mycmd"
 	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
+	"go.uber.org/zap"
+
 	"dbm-services/mongodb/db-tools/dbmon/pkg/consts"
-	"dbm-services/mongodb/db-tools/dbmon/util"
 )
 
 // eventBodyItem 告警项
@@ -38,11 +39,11 @@ type BkMonitorEventSender struct {
 // NewBkMonitorEventSender new
 func NewBkMonitorEventSender(beatPath, agentAddress string) (ret *BkMonitorEventSender,
 	err error) {
-	if !util.FileExists(beatPath) {
+	if !fileutil.FileExists(beatPath) {
 		err = fmt.Errorf("BEAT_PATH:%s not exists", beatPath)
 		return
 	}
-	if !util.FileExists(agentAddress) {
+	if !fileutil.FileExists(agentAddress) {
 		err = fmt.Errorf("agent_address:%s not exists", agentAddress)
 		return
 	}
@@ -58,7 +59,7 @@ func NewBkMonitorEventSender(beatPath, agentAddress string) (ret *BkMonitorEvent
 
 // SendEventMsg 发送告警消息
 func (bm *BkMonitorEventSender) SendEventMsg(dataId int64, token string, eventName,
-	warnmsg, warnLevel, targetIP string) (err error) {
+	warnmsg, warnLevel, targetIP string, logger *zap.Logger) (err error) {
 	bm.newDimenSion()
 	bm.DataID = dataId
 	bm.AccessToken = token
@@ -76,15 +77,28 @@ func (bm *BkMonitorEventSender) SendEventMsg(dataId int64, token string, eventNa
 		"-report.message.kind", "event",
 		"-report.agent.address", bm.AgentAddress,
 		"-report.message.body", string(tempBytes))
+	o, err := sendCmd.Run2(20 * time.Second)
 
-	mylog.Logger.Info(sendCmd.GetCmdLine("", false))
-	_, err = sendCmd.Run2(20 * time.Second)
+	if err == nil {
+		logger.Info("sendEventMsg",
+			zap.String("cmd", sendCmd.GetCmdLine("", false)),
+			zap.String("stdout", o.OutBuf.String()),
+			zap.String("stderr", o.ErrBuf.String()),
+			zap.String("err", fmt.Sprintf("%v", err)))
+	} else {
+		logger.Info("sendEventMsg",
+			zap.String("cmd", sendCmd.GetCmdLine("", false)),
+			zap.String("stdout", o.OutBuf.String()),
+			zap.String("stderr", o.ErrBuf.String()),
+			zap.String("err", fmt.Sprintf("%v", err)))
+	}
+
 	return
 }
 
 // SendTimeSeriesMsg dbmon心跳上报. "mongo_dbmon_heart_beat"
 func (bm *BkMonitorEventSender) SendTimeSeriesMsg(dataId int64, token string, targetIP string,
-	metricName string, val float64) (err error) {
+	metricName string, val float64, logger *zap.Logger) (err error) {
 	bm.newDimenSion()
 	bm.DataID = dataId
 	bm.AccessToken = token
@@ -102,27 +116,21 @@ func (bm *BkMonitorEventSender) SendTimeSeriesMsg(dataId int64, token string, ta
 		"-report.message.kind", "timeseries",
 		"-report.agent.address", bm.AgentAddress,
 		"-report.message.body", string(tempBytes))
-	_, err = sendCmd.Run2(20 * time.Second)
-	mylog.Logger.Info(fmt.Sprintf("%s err: %v", sendCmd.GetCmdLine("", false), err))
-	return
-}
-
-// addDbMetaInfo 生成content中前面db元信息
-func (bm *BkMonitorEventSender) addDbMetaInfo(warnmsg string) string {
-	var ret strings.Builder
-	var ok bool
-	if len(bm.Data[0].Dimension) > 0 {
-		firstDimen := bm.Data[0].Dimension
-		for _, field := range []string{"bk_biz_id", "bk_cloud_id", "app_id", "app", "app_name",
-			"cluster_domain", "cluster_type", "instance", "instance_role"} {
-			if _, ok = firstDimen[field]; !ok {
-				continue
-			}
-			ret.WriteString(fmt.Sprintf("%s:%v\n", field, firstDimen[field]))
-		}
+	o, err := sendCmd.Run2(20 * time.Second)
+	if err == nil {
+		logger.Info("SendTimeSeriesMsg",
+			zap.String("cmd", sendCmd.GetCmdLine("", false)),
+			zap.String("stdout", o.OutBuf.String()),
+			zap.String("stderr", o.ErrBuf.String()),
+			zap.String("err", fmt.Sprintf("%v", err)))
+	} else {
+		logger.Error("SendTimeSeriesMsg",
+			zap.String("cmd", sendCmd.GetCmdLine("", false)),
+			zap.String("stdout", o.OutBuf.String()),
+			zap.String("stderr", o.ErrBuf.String()),
+			zap.String("err", fmt.Sprintf("%v", err)))
 	}
-	ret.WriteString("message:" + warnmsg)
-	return ret.String()
+	return
 }
 
 func (bm *BkMonitorEventSender) newDimenSion() {
@@ -132,12 +140,6 @@ func (bm *BkMonitorEventSender) newDimenSion() {
 	if len(bm.Data[0].Dimension) == 0 {
 		bm.Data[0].Dimension = map[string]interface{}{}
 	}
-}
-
-// DeleteAllDimesion delete all dimension
-func (bm *BkMonitorEventSender) DeleteAllDimesion() *BkMonitorEventSender {
-	bm.Data = bm.Data[:0]
-	return bm
 }
 
 // SetBkBizID set bk_biz_id
@@ -207,22 +209,6 @@ func (bm *BkMonitorEventSender) SetEventCreateTime() *BkMonitorEventSender {
 	return bm.set("event_create_time", time.Now().Local().Format(consts.UnixtimeLayout))
 }
 
-// ReplaceAllDimensions 用参数中dimensions替代 bm.Data[0].Dimension
-func (bm *BkMonitorEventSender) ReplaceAllDimensions(dimensions map[string]interface{}) *BkMonitorEventSender {
-	bm.newDimenSion()
-	bm.Data[0].Dimension = dimensions
-	return bm
-}
-
-// AppendDimensions 将参数中 dimensions 内容 replace 到 bm.Data[0].Dimension
-func (bm *BkMonitorEventSender) AppendDimensions(dimensions map[string]interface{}) *BkMonitorEventSender {
-	bm.newDimenSion()
-	for key, val := range dimensions {
-		bm.set(key, val)
-	}
-	return bm
-}
-
 func (bm *BkMonitorEventSender) newMetrics() {
 	if len(bm.Data) == 0 {
 		bm.Data = append(bm.Data, eventBodyItem{})
@@ -230,20 +216,4 @@ func (bm *BkMonitorEventSender) newMetrics() {
 	if len(bm.Data[0].Metrics) == 0 {
 		bm.Data[0].Metrics = map[string]float64{}
 	}
-}
-
-// ReplaceAllMetrcs 用参数中 metics 替代 bm.Data[0].Metrics
-func (bm *BkMonitorEventSender) ReplaceAllMetrcs(metrcs map[string]float64) *BkMonitorEventSender {
-	bm.newMetrics()
-	bm.Data[0].Metrics = metrcs
-	return bm
-}
-
-// AppendMetrcs 将参数中 metics 内容 replace 到 bm.Data[0].Metrcs
-func (bm *BkMonitorEventSender) AppendMetrcs(metrcs map[string]float64) *BkMonitorEventSender {
-	bm.newMetrics()
-	for key, val := range metrcs {
-		bm.Data[0].Metrics[key] = val
-	}
-	return bm
 }

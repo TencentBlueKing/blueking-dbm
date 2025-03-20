@@ -23,42 +23,53 @@ func BuildLoader(cnf *config.BackupConfig, backupType string, backupTool string,
 	if strings.ToLower(backupType) == cst.BackupLogical {
 		if backupTool == cst.ToolMysqldump {
 			// mysqldump 共用 LogicalLoad 参数
-			if err := validate.GoValidateStruct(cnf.LogicalLoad, false); err != nil {
+			if err := validate.GoValidateStructTag(cnf.LogicalLoad, "ini"); err != nil {
 				return nil, err
 			}
-			if err := validate.GoValidateStruct(cnf.LogicalLoadMysqldump, false); err != nil {
+			if err := validate.GoValidateStructTag(cnf.LogicalLoadMysqldump, "ini"); err != nil {
 				return nil, err
 			}
 			loader = &LogicalLoaderMysqldump{
-				cnf: cnf,
+				cnf: &config.LogicalLoaderConfig{
+					LogicalLoad:          cnf.LogicalLoad,
+					LogicalLoadMysqldump: cnf.LogicalLoadMysqldump,
+				},
 			}
+			// validate
 		} else {
-			if err := validate.GoValidateStruct(cnf.LogicalLoad, false); err != nil {
+			if err := validate.GoValidateStructTag(cnf.LogicalLoad, "ini"); err != nil {
 				return nil, err
 			}
 			loader = &LogicalLoader{
-				cnf: cnf,
+				cnf: &cnf.LogicalLoad,
 			}
 		}
 		if err := cnf.LogicalLoad.ValidateFilter(); err != nil {
 			return nil, err
 		}
 	} else if strings.ToLower(backupType) == cst.BackupPhysical {
-		if err := validate.GoValidateStruct(cnf.PhysicalLoad, false); err != nil {
+		if err := validate.GoValidateStructTag(cnf.PhysicalLoad, "ini"); err != nil {
 			return nil, err
 		}
 		if cst.StorageEngineRocksdb == storageEngine {
 			loader = &PhysicalRocksdbLoader{
-				cfg: cnf,
+				cfg: &config.PhysicalLoaderConfig{
+					Public:       cnf.Public,
+					PhysicalLoad: cnf.PhysicalLoad,
+				},
 			}
 		} else if storageEngine == cst.StorageEngineTokudb || backupTool == "tokudb_back.pl" {
 			loader = &PhysicalTokudbLoader{
-				cnf: cnf,
+				cnf: &config.PhysicalLoaderConfig{
+					Public:       cnf.Public,
+					PhysicalLoad: cnf.PhysicalLoad,
+				},
 			}
 		} else {
 			loader = &PhysicalLoader{
-				cnf: cnf,
+				cnf: &cnf.PhysicalLoad,
 			}
+			// validate
 		}
 	} else {
 		logger.Log.Error(fmt.Sprintf("Unknown BackupType: %s", backupType))

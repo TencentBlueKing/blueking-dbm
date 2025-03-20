@@ -22,10 +22,10 @@
 
   interface Props {
     data: {
-      ip: string,
-      alive: number,
-      bk_disk: number,
-      instance_num?: number,
+      alive: number;
+      bk_disk: number;
+      instance_num?: number;
+      ip: string;
     }[];
   }
 
@@ -33,27 +33,27 @@
 
   const { t } = useI18n();
 
-  const isShowInstanceColumn = props.data.find(item => item.instance_num !== undefined);
+  const isShowInstanceColumn = props.data.find((item) => item.instance_num !== undefined);
 
   const tableColumns = [
     {
-      label: t('节点 IP'),
       field: 'ip',
+      label: t('节点 IP'),
     },
     {
-      label: t('Agent状态'),
       field: 'alive',
-      render: ({ data }: {data: { alive: number }}) => <span>{data.alive === 1 ? t('正常') : t('异常')}</span>,
+      label: t('Agent状态'),
+      render: ({ data }: { data: { alive: number } }) => <span>{data.alive === 1 ? t('正常') : t('异常')}</span>,
     },
     {
-      label: t('磁盘_GB'),
       field: 'bk_disk',
+      label: t('磁盘_GB'),
     },
   ];
   if (isShowInstanceColumn) {
     tableColumns.splice(1, 0, {
-      label: t('每台主机实例数'),
       field: 'instance_num',
+      label: t('每台主机实例数'),
     });
   }
 </script>

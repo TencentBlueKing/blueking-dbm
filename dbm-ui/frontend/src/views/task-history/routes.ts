@@ -20,30 +20,30 @@ import { t } from '@locales/index';
 export default function getRoutes() {
   registerModule([
     {
-      name: 'platformTaskManage',
       path: 'platform-task',
-      component: () => import('@views/task-history/Index.vue'),
+      name: 'platformTaskManage',
       meta: {
         navName: t('历史任务'),
       },
       redirect: {
         name: 'platformTaskHistoryList',
       },
+      component: () => import('@views/task-history/Index.vue'),
       children: [
         {
-          name: 'platformTaskHistoryList',
           path: 'list',
+          name: 'platformTaskHistoryList',
           meta: {
             navName: t('历史任务'),
           },
           component: () => import('@views/task-history/list/Index.vue'),
         },
         {
-          name: 'platformTaskHistoryDetail',
           path: 'detail/:root_id',
+          name: 'platformTaskHistoryDetail',
           meta: {
-            navName: t('任务详情'),
             fullscreen: true,
+            navName: t('任务详情'),
           },
           component: () => import('@views/task-history/detail/Index.vue'),
         },
@@ -54,30 +54,30 @@ export default function getRoutes() {
   if (checkDbConsole('databaseManage.missionManage')) {
     registerBusinessModule([
       {
-        name: 'taskHistory',
         path: 'task-history',
-        component: () => import('@views/task-history/Index.vue'),
+        name: 'taskHistory',
         meta: {
           navName: t('历史任务'),
         },
         redirect: {
           name: 'taskHistoryList',
         },
+        component: () => import('@views/task-history/Index.vue'),
         children: [
           {
-            name: 'taskHistoryList',
             path: 'list',
+            name: 'taskHistoryList',
             meta: {
               navName: t('历史任务'),
             },
             component: () => import('@views/task-history/list/Index.vue'),
           },
           {
-            name: 'taskHistoryDetail',
             path: 'detail/:root_id',
+            name: 'taskHistoryDetail',
             meta: {
-              navName: t('任务详情'),
               fullscreen: true,
+              navName: t('任务详情'),
             },
             component: () => import('@views/task-history/detail/Index.vue'),
           },

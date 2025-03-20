@@ -14,96 +14,96 @@
 import { t } from '@locales/index';
 
 export interface MenuChild {
-  name: string;
   id: string;
+  name: string;
   parentId: string;
 }
 
 export default [
   {
-    name: t('集群维护'),
-    id: 'manage',
-    icon: 'db-icon-cluster',
     children: [
       {
-        name: t('集群容量变更'),
         id: 'RedisCapacityChange',
+        name: t('集群容量变更'),
         parentId: 'manage',
       },
       {
-        name: t('扩容接入层'),
         id: 'RedisProxyScaleUp',
+        name: t('扩容接入层'),
         parentId: 'manage',
       },
       {
-        name: t('缩容接入层'),
         id: 'RedisProxyScaleDown',
+        name: t('缩容接入层'),
         parentId: 'manage',
       },
       {
-        name: t('集群分片变更'),
         id: 'RedisClusterShardUpdate',
+        name: t('集群分片变更'),
         parentId: 'manage',
       },
       {
-        name: t('集群类型变更'),
         id: 'RedisClusterTypeUpdate',
+        name: t('集群类型变更'),
         parentId: 'manage',
       },
       {
-        name: t('重建从库'),
         id: 'RedisDBCreateSlave',
+        name: t('重建从库'),
         parentId: 'manage',
       },
       {
-        name: t('主从切换'),
         id: 'RedisMasterFailover',
+        name: t('主从切换'),
         parentId: 'manage',
       },
       {
-        name: t('整机替换'),
         id: 'RedisDBReplace',
+        name: t('整机替换'),
         parentId: 'manage',
       },
     ],
+    icon: 'db-icon-cluster',
+    id: 'manage',
+    name: t('集群维护'),
   },
   {
-    name: t('数据构造'),
-    id: 'struct',
-    icon: 'db-icon-copy',
     children: [
       {
-        name: t('定点构造'),
         id: 'RedisDBStructure',
+        name: t('定点构造'),
         parentId: 'struct',
       },
       {
-        name: t('构造实例'),
         id: 'RedisStructureInstance',
+        name: t('构造实例'),
         parentId: 'struct',
       },
       {
-        name: t('以构造实例恢复'),
         id: 'RedisRecoverFromInstance',
+        name: t('以构造实例恢复'),
         parentId: 'struct',
       },
     ],
+    icon: 'db-icon-copy',
+    id: 'struct',
+    name: t('数据构造'),
   },
   {
-    name: t('数据传输（DTS）'),
-    id: 'dts',
-    icon: 'db-icon-data',
     children: [
       {
-        name: t('数据复制'),
         id: 'RedisDBDataCopy',
+        name: t('数据复制'),
         parentId: 'dts',
       },
       {
-        name: t('数据复制记录'),
         id: 'RedisDBDataCopyRecord',
+        name: t('数据复制记录'),
         parentId: 'dts',
       },
     ],
+    icon: 'db-icon-data',
+    id: 'dts',
+    name: t('数据传输（DTS）'),
   },
 ];

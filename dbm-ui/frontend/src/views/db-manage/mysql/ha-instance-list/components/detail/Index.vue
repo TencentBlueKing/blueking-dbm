@@ -52,8 +52,8 @@
 
   interface Props {
     instanceData?: {
-      instanceAddress: string;
       clusterId: number;
+      instanceAddress: string;
     };
   }
 
@@ -65,8 +65,8 @@
   const activePanel = ref('info');
   const data = ref<ServiceReturnType<typeof retrieveTendbhaInstance>>();
   const queryConfigInfos = computed(() => ({
-    dbModuleId: data.value?.db_module_id ?? 0,
     clusterId: props.instanceData ? props.instanceData.clusterId : 0,
+    dbModuleId: data.value?.db_module_id ?? 0,
     version: data.value?.version ?? '',
   }));
 
@@ -82,11 +82,11 @@
     () => {
       if (props.instanceData) {
         fetchInstDetails({
-          dbType: DBTypes.MYSQL,
           bk_biz_id: globalBizsStore.currentBizId,
-          type: ClusterTypes.TENDBHA,
-          instance_address: props.instanceData.instanceAddress,
           cluster_id: props.instanceData.clusterId,
+          dbType: DBTypes.MYSQL,
+          instance_address: props.instanceData.instanceAddress,
+          type: ClusterTypes.TENDBHA,
         });
       }
     },

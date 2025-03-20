@@ -317,6 +317,8 @@ func (e *ExecutePartitionSQLComp) excuteInitSql(
 	// 使用pt工具执行初始化分区，暂时不做并发操作
 	errs := []string{}
 	for _, partitionSQL := range partitionSQLSets {
+		// 检查磁盘这个行为执行是正确的 但实际对应分区逻辑是执行失败的 所以要把错误报出来
+		// precheck中进行错误的信息处理
 		flag, err := e.precheck(partitionSQL.NeedSize, myInsInfo)
 		pt_tool := "percona-toolkit-3.5.0/bin/pt-online-schema-change"
 		user := e.GeneralParam.RuntimeAccountParam.PartitionYwUser
@@ -350,8 +352,8 @@ func (e *ExecutePartitionSQLComp) excuteInitSql(
 }
 
 func (e *ExecutePartitionSQLComp) precheck(needSize int64, myInsInfo MyInstanceInfo) (flag bool, err error) {
-	// (已用磁盘空间+3*表大小)/总容量<90%
-	// (可用磁盘空间+NeedSize)/总容量>10%
+	// (已用磁盘空间+3*表大小)/总容量<95%
+	// (可用磁盘空间+NeedSize)/总容量>5%
 	// 连接db
 	dbConn, err := native.InsObject{
 		Host: myInsInfo.Ip,
@@ -377,10 +379,12 @@ func (e *ExecutePartitionSQLComp) precheck(needSize int64, myInsInfo MyInstanceI
 		return false, err
 	}
 	rate := (float64(diskInfo.Available) + float64(needSize/1024)) / float64(size)
-	if rate > 0.1 {
+
+	if rate > 0.05 {
 		flag = true
 	} else {
 		flag = false
+		err = fmt.Errorf("当前磁盘空间使用率为：%f，建议先进行数据清理，请联系dba处理。", 1-rate)
 	}
 	return flag, nil
 }

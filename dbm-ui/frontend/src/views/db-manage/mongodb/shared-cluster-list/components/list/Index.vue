@@ -84,7 +84,14 @@
         :label="t('访问入口')"
         :selected-list="selected"
         @go-detail="handleToDetails"
-        @refresh="fetchData" />
+        @refresh="fetchData">
+        <template #append="{ data }">
+          <ClusterEntryPanel
+            v-if="data.isOnlineCLB"
+            :cluster-id="data.id"
+            entry-type="clb" />
+        </template>
+      </MasterDomainColumn>
       <ClusterNameColumn
         :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
         :get-table-instance="getTableInstance"
@@ -121,37 +128,12 @@
       <BkTableColumn
         :fixed="isStretchLayoutOpen ? false : 'right'"
         :label="t('操作')"
-        :min-width="240"
+        :min-width="140"
         :show-overflow="false">
         <template #default="{data}: {data: MongodbModel}">
-          <!-- 集群容量变更 -->
-          <OperationBtnStatusTips
-            v-db-console="'mongodb.sharedClusterList.capacityChange'"
-            :data="data">
-            <BkButton
-              class="ml-8"
-              :disabled="data.isOffline || data.operationDisabled"
-              text
-              theme="primary"
-              @click="handleCapacityChange(data)">
-              {{ t('集群容量变更') }}
-            </BkButton>
-          </OperationBtnStatusTips>
-          <OperationBtnStatusTips
-            v-db-console="'mongodb.sharedClusterList.enable'"
-            :data="data">
-            <BkButton
-              class="ml-8"
-              :disabled="data.isStarting || data.isOnline"
-              text
-              theme="primary"
-              @click="handleEnableCluster([data])">
-              {{ t('启用') }}
-            </BkButton>
-          </OperationBtnStatusTips>
           <BkButton
             v-db-console="'mongodb.sharedClusterList.getAccess'"
-            class="ml-8"
+            class="ml-8 mr-8"
             :disabled="data.isOffline"
             text
             theme="primary"
@@ -159,7 +141,50 @@
             {{ t('获取访问方式') }}
           </BkButton>
           <MoreActionExtend>
-            <BkDropdownItem v-db-console="'mongodb.sharedClusterList.disable'">
+            <BkDropdownItem v-db-console="'mongodb.sharedClusterList.capacityChange'">
+              <OperationBtnStatusTips :data="data">
+                <BkButton
+                  :disabled="data.isOffline || data.operationDisabled"
+                  text
+                  theme="primary"
+                  @click="handleCapacityChange(data)">
+                  {{ t('集群容量变更') }}
+                </BkButton>
+              </OperationBtnStatusTips>
+            </BkDropdownItem>
+            <BkDropdownItem v-db-console="'mongodb.sharedClusterList.enableCLB'">
+              <OperationBtnStatusTips
+                :data="data"
+                :disabled="!data.isOffline">
+                <AuthButton
+                  action-id="mongodb_plugin_create_clb"
+                  :disabled="data.isOffline"
+                  :permission="data.permission.mongodb_plugin_create_clb"
+                  :resource="data.id"
+                  text
+                  theme="primary"
+                  @click="handleSwitchClb(data)">
+                  {{ data.isOnlineCLB ? t('禁用CLB') : t('启用CLB') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </BkDropdownItem>
+            <BkDropdownItem
+              v-if="data.isOffline"
+              v-db-console="'mongodb.sharedClusterList.enable'">
+              <OperationBtnStatusTips :data="data">
+                <BkButton
+                  class="ml-8"
+                  :disabled="data.isStarting || data.isOnline"
+                  text
+                  theme="primary"
+                  @click="handleEnableCluster([data])">
+                  {{ t('启用') }}
+                </BkButton>
+              </OperationBtnStatusTips>
+            </BkDropdownItem>
+            <BkDropdownItem
+              v-if="data.isOnline"
+              v-db-console="'mongodb.sharedClusterList.disable'">
               <OperationBtnStatusTips :data="data">
                 <BkButton
                   :disabled="data.isOffline || Boolean(data.operationTicketId)"
@@ -242,6 +267,7 @@
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
+  import ClusterEntryPanel from '@views/db-manage/common/cluster-entry-panel/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import ClusterNameColumn from '@views/db-manage/common/cluster-table-column/ClusterNameColumn.vue';
   import ClusterStatsColumn from '@views/db-manage/common/cluster-table-column/ClusterStatsColumn.vue';
@@ -252,7 +278,7 @@
   import StatusColumn from '@views/db-manage/common/cluster-table-column/StatusColumn.vue';
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
   import ExcelAuthorize from '@views/db-manage/common/ExcelAuthorize.vue';
-  import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
+  import { useOperateClusterBasic, useSwitchClb } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import AccessEntry from '@views/db-manage/mongodb/components/AccessEntry.vue';
   import CapacityChange from '@views/db-manage/mongodb/components/CapacityChange.vue';
@@ -265,67 +291,65 @@
   const route = useRoute();
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
-  const { handleDisableCluster, handleEnableCluster, handleDeleteCluster } = useOperateClusterBasic(
+  const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(
     ClusterTypes.MONGODB,
     {
       onSuccess: () => fetchData(),
     },
   );
+  const { handleSwitchClb } = useSwitchClb(ClusterTypes.MONGO_SHARED_CLUSTER);
   const { isOpen: isStretchLayoutOpen, splitScreen: stretchLayoutSplitScreen } = useStretchLayout();
   const {
+    batchSearchIpInatanceList,
+    clearSearchValue,
+    columnFilterChange,
+    columnSortChange,
+    handleSearchValueChange,
+    isFilter,
     searchAttrs,
     searchValue,
     sortValue,
-    batchSearchIpInatanceList,
-    isFilter,
-    columnFilterChange,
-    columnSortChange,
-    clearSearchValue,
     validateSearchValues,
-    handleSearchValueChange,
   } = useLinkQueryColumnSerach({
-    searchType: ClusterTypes.MONGO_SHARED_CLUSTER,
     attrs: ['bk_cloud_id', 'major_version', 'region', 'time_zone'],
-    fetchDataFn: () => fetchData(isInit),
     defaultSearchItem: {
-      name: t('访问入口'),
       id: 'domain',
+      name: t('访问入口'),
     },
+    fetchDataFn: () => fetchData(isInit),
+    searchType: ClusterTypes.MONGO_SHARED_CLUSTER,
   });
 
   const searchSelectData = computed(() => [
     {
-      name: t('访问入口'),
+      async: false,
       id: 'domain',
       multiple: true,
-      async: false,
+      name: t('访问入口'),
     },
     {
-      name: t('IP 或 IP:Port'),
+      async: false,
       id: 'instance',
       multiple: true,
-      async: false,
+      name: t('IP 或 IP:Port'),
     },
     {
-      name: 'ID',
       id: 'id',
+      name: 'ID',
     },
     {
-      name: t('集群名称'),
+      async: false,
       id: 'name',
       multiple: true,
-      async: false,
+      name: t('集群名称'),
     },
     {
-      name: t('管控区域'),
+      children: searchAttrs.value.bk_cloud_id,
       id: 'bk_cloud_id',
       multiple: true,
-      children: searchAttrs.value.bk_cloud_id,
+      name: t('管控区域'),
     },
     {
-      name: t('状态'),
-      id: 'status',
-      multiple: true,
       children: [
         {
           id: 'normal',
@@ -336,28 +360,31 @@
           name: t('异常'),
         },
       ],
+      id: 'status',
+      multiple: true,
+      name: t('状态'),
     },
     {
-      name: t('版本'),
+      children: searchAttrs.value.major_version,
       id: 'major_version',
       multiple: true,
-      children: searchAttrs.value.major_version,
+      name: t('版本'),
     },
     {
-      name: t('地域'),
+      children: searchAttrs.value.region,
       id: 'region',
       multiple: true,
-      children: searchAttrs.value.region,
+      name: t('地域'),
     },
     {
-      name: t('创建人'),
       id: 'creator',
+      name: t('创建人'),
     },
     {
-      name: t('时区'),
+      children: searchAttrs.value.time_zone,
       id: 'time_zone',
       multiple: true,
-      children: searchAttrs.value.time_zone,
+      name: t('时区'),
     },
   ]);
 
@@ -365,14 +392,14 @@
   const capacityChangeShow = ref(false);
   const isCapacityChange = ref(false);
   const detailData = ref<{
-    id: number;
-    clusterName: string;
-    specId: number;
-    specName: string;
     bizId: number;
     cloudId: number;
-    shardNum: number;
+    clusterName: string;
+    id: number;
     shardNodeCount: number;
+    shardNum: number;
+    specId: number;
+    specName: string;
   }>();
   const clusterAuthorizeShow = ref(false);
   const excelAuthorizeShow = ref(false);
@@ -489,25 +516,25 @@
 
   const handleCapacityChange = (row: MongodbModel) => {
     const {
-      id,
-      cluster_name: clusterName,
       bk_biz_id: bizId,
       bk_cloud_id: cloudId,
-      shard_num: shardNum,
-      shard_node_count: shardNodeCount,
+      cluster_name: clusterName,
+      id,
       mongodb,
+      shard_node_count: shardNodeCount,
+      shard_num: shardNum,
     } = row;
     const { id: specId, name } = mongodb[0].spec_config;
 
     detailData.value = {
-      id,
-      clusterName,
-      specId,
-      specName: name,
       bizId,
       cloudId,
-      shardNum,
+      clusterName,
+      id,
       shardNodeCount,
+      shardNum,
+      specId,
+      specName: name,
     };
     capacityChangeShow.value = true;
   };

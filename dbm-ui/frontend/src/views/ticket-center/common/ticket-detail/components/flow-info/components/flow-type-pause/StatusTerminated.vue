@@ -25,9 +25,9 @@
     data: FlowMode;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: FlowMode.STATUS_RUNNING,
   });
+
+  defineProps<Props>();
 </script>

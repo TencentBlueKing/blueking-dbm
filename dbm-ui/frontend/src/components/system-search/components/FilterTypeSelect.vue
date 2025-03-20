@@ -32,16 +32,16 @@
 
 <script lang="ts">
   export enum FilterType {
-    EXACT = 'EXACT',
     CONTAINS = 'CONTAINS',
+    EXACT = 'EXACT',
   }
 </script>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
   interface Props {
-    titleColor: string;
     iconType: string;
+    titleColor: string;
     triggerClassName: string;
   }
 

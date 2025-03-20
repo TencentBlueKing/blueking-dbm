@@ -51,8 +51,8 @@ var (
 	// ErrDuplicateItem TODO
 	ErrDuplicateItem = Errno{Code: 10000, Message: "duplicate conf_name", CNMessage: "配置项重复"}
 	// ErrNamespaceType TODO
-	ErrNamespaceType = Errno{Code: 10000, Message: "invalid namespace or conf_type or conf_file",
-		CNMessage: "namespace,conf_type,conf_file 参数错误"}
+	ErrNamespaceType = Errno{Code: 10000, Message: "conf_file definition not found",
+		CNMessage: "未找到参数文件定义"}
 	// ErrUnversionable TODO
 	ErrUnversionable = Errno{Code: 10000, Message: "this namespace conf_type is unVersion-able",
 		CNMessage: "该 namespace conf_type 不支持版本化"}

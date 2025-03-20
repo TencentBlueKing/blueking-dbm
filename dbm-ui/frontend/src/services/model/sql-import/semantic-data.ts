@@ -13,8 +13,8 @@
 
 export default class SemanticData {
   backup: Array<{
-    db_patterns: string[];
     backup_on: string;
+    db_patterns: string[];
     table_patterns: string[];
   }>;
   bk_biz_id: number;

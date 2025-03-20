@@ -32,24 +32,24 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    data?: IDataRow['targetNum'];
-    isLoading?: boolean;
     count?: number;
+    data?: IDataRow['targetNum'];
     disabled?: boolean;
+    isLoading?: boolean;
   }
 
   interface Exposes {
     getValue: () => Promise<{
-      target_proxy_count: number;
       proxy_reduce_count: number;
+      target_proxy_count: number;
     }>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    data: '',
     count: 2,
-    isLoading: false,
+    data: '',
     disabled: false,
+    isLoading: false,
   });
 
   const { t } = useI18n();
@@ -61,16 +61,16 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('目标台数不能为空'),
+      validator: (value: string) => Boolean(value),
     },
     {
-      validator: (value: string) => !nonInterger.test(value),
       message: t('格式有误，请输入数字'),
+      validator: (value: string) => !nonInterger.test(value),
     },
     {
-      validator: (value: number) => props.count - value >= 2,
       message: t('缩容后不能少于2台'),
+      validator: (value: number) => props.count - value >= 2,
     },
   ];
 
@@ -91,13 +91,13 @@
       return editRef.value
         .getValue()
         .then(() => ({
-          target_proxy_count: props.count - Number(localValue.value),
           proxy_reduce_count: Number(localValue.value),
+          target_proxy_count: props.count - Number(localValue.value),
         }))
         .catch(() =>
           Promise.reject({
-            target_proxy_count: Number(localValue.value),
             proxy_reduce_count: Number(localValue.value),
+            target_proxy_count: Number(localValue.value),
           }),
         );
     },

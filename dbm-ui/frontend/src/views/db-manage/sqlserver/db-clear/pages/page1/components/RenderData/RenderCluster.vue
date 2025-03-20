@@ -38,9 +38,9 @@
   }
 
   const modelValue = defineModel<{
-    id: number;
-    domain: string;
     cloudId: null | number;
+    domain: string;
+    id: number;
   }>();
 
   const instanceKey = `render_cluster_${random()}`;
@@ -55,10 +55,11 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('目标集群不能为空'),
+      validator: (value: string) => Boolean(value),
     },
     {
+      message: t('目标集群不存在'),
       validator: (value: string) =>
         filterClusters<SqlServerHaClusterDetailModel>({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -67,18 +68,18 @@
           if (data.length > 0) {
             localClusterId.value = data[0].id;
             modelValue.value = {
-              id: data[0].id,
               cloudId: data[0].bk_cloud_id,
               domain: data[0].master_domain,
+              id: data[0].id,
             };
             return true;
           }
           modelValue.value = undefined;
           return false;
         }),
-      message: t('目标集群不存在'),
     },
     {
+      message: t('目标集群重复'),
       validator: () => {
         const currentClusterSelectMap = clusterIdMemo[instanceKey];
         const otherClusterMemoMap = { ...clusterIdMemo };
@@ -93,6 +94,7 @@
         );
 
         const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
+        // eslint-disable-next-line @typescript-eslint/prefer-for-of
         for (let i = 0; i < currentSelectClusterIdList.length; i++) {
           if (otherClusterIdMap[currentSelectClusterIdList[i]]) {
             return false;
@@ -100,7 +102,6 @@
         }
         return true;
       },
-      message: t('目标集群重复'),
     },
   ];
 
@@ -108,7 +109,7 @@
   watch(
     modelValue,
     () => {
-      const { id = 0, domain = '' } = modelValue.value || {};
+      const { domain = '', id = 0 } = modelValue.value || {};
       localClusterId.value = id;
       localDomain.value = domain;
     },

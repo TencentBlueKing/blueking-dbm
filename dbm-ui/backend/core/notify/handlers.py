@@ -9,10 +9,12 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+import re
 import textwrap
+from datetime import datetime, timedelta, timezone
 
 from celery import shared_task
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from jinja2 import Environment
 
 from backend import env
@@ -26,10 +28,9 @@ from backend.core.notify.template import FAILED_TEMPLATE, FINISHED_TEMPLATE, TER
 from backend.db_meta.models import AppCache
 from backend.env import DEFAULT_USERNAME
 from backend.exceptions import ApiResultError
-from backend.ticket.builders import BuilderFactory
 from backend.ticket.constants import TicketStatus, TicketType, TodoStatus
 from backend.ticket.models import Flow, Ticket
-from backend.ticket.todos import ActionType
+from backend.ticket.todos import TodoActionType
 from backend.utils.cache import func_cache_decorator
 
 logger = logging.getLogger("root")
@@ -78,7 +79,7 @@ class BkChatHandler(BaseNotifyHandler):
     def get_actions(msg_type, ticket):
         """获取bkchat操作按钮"""
         # TODO: 暂时去掉[待确认]按钮
-        if ticket.status not in [TicketStatus.APPROVE]:
+        if not ticket or ticket.status not in [TicketStatus.APPROVE]:
             return []
 
         todo = ticket.todo_of_ticket.filter(status=TodoStatus.TODO).first()
@@ -90,14 +91,14 @@ class BkChatHandler(BaseNotifyHandler):
             "name": _("同意") if ticket.status == TicketStatus.APPROVE else _("确认执行"),
             "color": "green",
             "callback_url": f"{env.BK_DBM_APIGATEWAY}/tickets/bkchat_process_todo/",
-            "callback_data": {"action": ActionType.APPROVE.value, "todo_id": todo.id, "params": {}},
+            "callback_data": {"action": TodoActionType.APPROVE.value, "todo_id": todo.id, "params": {}},
         }
         refuse_action = {
             "name": _("拒绝") if ticket.status == TicketStatus.APPROVE else _("终止单据"),
             "color": "red",
             "callback_url": f"{env.BK_DBM_APIGATEWAY}/tickets/bkchat_process_todo/",
             "callback_data": {
-                "action": ActionType.TERMINATE.value,
+                "action": TodoActionType.TERMINATE.value,
                 "todo_id": todo.id,
                 "params": {"remark": _("使用「蓝鲸审批助手」终止单据")},
             },
@@ -114,14 +115,17 @@ class BkChatHandler(BaseNotifyHandler):
         else:
             return "warning"
 
-    def render_title_content(self, msg_type, title, content, ticket, phase, receivers):
+    def render_title_content(self, msg_type, title, content, phase, receivers):
         """重新渲染标题和内容样式，bkchat有特定要求"""
         # title 要加上样式
-        title = _("「DBM」：您有{ticket_type}单据 「{ticket_id}」<font color='{color}'>{status}</font>").format(
-            ticket_type=TicketType.get_choice_label(ticket.ticket_type),
-            ticket_id=ticket.id,
-            status=TicketStatus.get_choice_label(phase),
-            color=self.get_title_color(phase),
+        title = re.sub(
+            r"(?P<title>「DBM」：.+「[0-9]+?」)(?P<msg>.+)",
+            r"\g<title><font color='{}'>\g<msg></font>".format(self.get_title_color(phase)),
+            title,
+        )
+        # 终止提醒(如果有)也需要加上样式
+        title = re.sub(
+            r"(?P<time>.+?)(?P<msg> {})".format(_("前未处理将自动终止")), r"<font color='red'>\g<time></font> \g<msg>", title
         )
 
         # content要去掉点击详情，即最后一行，并且加上@通知人
@@ -134,7 +138,7 @@ class BkChatHandler(BaseNotifyHandler):
 
     def send_msg(self, msg_type, context):
         ticket, phase, receivers = context["ticket"], context["phase"], context["receivers"]
-        title, content = self.render_title_content(msg_type, self.title, self.content, ticket, phase, receivers)
+        title, content = self.render_title_content(msg_type, self.title, self.content, phase, receivers)
         ticket_operators = ticket.get_current_operators()
         approvers = list(dict.fromkeys(ticket_operators["operators"] + ticket_operators["helpers"]))
         msg_info = {
@@ -229,17 +233,15 @@ class NotifyAdapter:
 
     register_notify_class = [CmsiHandler, BkChatHandler]
 
-    def __init__(self, ticket_id: int, flow_id: int = None):
+    def __init__(self, ticket_id: int, deadline: int = None):
         """
         @param ticket_id: 单据ID
-        @param flow_id: 流程ID
         """
         # 初始化单据，流程信息
         try:
             self.ticket = Ticket.objects.get(id=ticket_id)
-            self.flow = Flow.objects.get(id=flow_id) if flow_id else self.ticket.current_flow()
         except (Ticket.DoesNotExist, Flow.DoesNotExist):
-            raise NotifyBaseException(_("无法初始化通知适配器，无法找到此单据{}或流程{}").format(ticket_id, flow_id))
+            raise NotifyBaseException(_("无法初始化通知适配器，无法找到此单据{}").format(ticket_id))
 
         # 当前阶段，对于运行中发通知的单据，实际上是【待继续】，这里做一次转换
         self.phase = TicketStatus.INNER_TODO if self.ticket.status == TicketStatus.RUNNING else self.ticket.status
@@ -248,6 +250,8 @@ class NotifyAdapter:
         self.bk_biz_id = self.ticket.bk_biz_id
         self.receivers = self.get_receivers()
         self.clusters = [cluster["immute_domain"] for cluster in self.ticket.details.pop("clusters", {}).values()]
+        # 单据终止时间，用于终止提醒
+        self.deadline = deadline
 
     @classmethod
     def get_support_msg_types(cls):
@@ -277,8 +281,9 @@ class NotifyAdapter:
         if self.phase in [TicketStatus.PENDING]:
             receivers = creator
         elif self.phase in [TicketStatus.APPROVE]:
-            itsm_builder = BuilderFactory.get_builder_cls(self.ticket.ticket_type).itsm_flow_builder(self.ticket)
-            receivers = itsm_builder.get_approvers().split(",")
+            from backend.ticket.handler import TicketHandler
+
+            receivers = TicketHandler.get_itsm_approvers(self.ticket.current_flow())
         else:
             receivers = creator + biz_helpers
         # 去重后返回
@@ -319,6 +324,13 @@ class NotifyAdapter:
             "detail_address": self.ticket.url,
             "terminate_reason": self.ticket.get_terminate_reason(),
         }
+
+        # 如果有终止时间，说明是一个终止提醒
+        if self.deadline:
+            timeout = datetime.now(timezone.utc) + timedelta(hours=self.deadline)
+            timeout = timeout.astimezone().strftime("%Y-%m-%d %H:%M:%S%z")
+            title += _("\n{} 前未处理将自动终止").format(timeout)
+
         content = textwrap.dedent(template.render(payload))
         return title, content
 
@@ -355,6 +367,6 @@ class NotifyAdapter:
 
 
 @shared_task
-def send_msg(ticket_id: int, flow_id: int = None):
+def send_msg(ticket_id: int, deadline: int = None):
     # 可异步发送消息，非阻塞路径默认不抛出异常
-    NotifyAdapter(ticket_id, flow_id).send_msg()
+    NotifyAdapter(ticket_id, deadline).send_msg()

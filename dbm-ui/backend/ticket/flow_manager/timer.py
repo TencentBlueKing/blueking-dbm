@@ -109,5 +109,7 @@ class TimerFlow(BaseTicketFlow):
             )
 
         # 更新flow的状态信息
-        self.flow_obj.update_details(expired_flag=self.expired_flag, run_time=self.run_time)
+        self.flow_obj.update_details(
+            expired_flag=self.expired_flag, run_time=self.run_time, trigger_time=self.trigger_time
+        )
         return timer_uid

@@ -22,9 +22,11 @@ from backend.db_proxy.models import DBExtension
 from backend.flow.consts import (
     DEFAULT_INSTANCE,
     MSSQL_ADMIN,
+    MSSQL_DATA_READ_DRS_USER,
     MSSQL_DBHA,
     MSSQL_DRS,
     MSSQL_EXPORTER,
+    MSSQL_SYS_READ_DRS_USER,
     SqlserverComponent,
     SqlserverUserName,
 )
@@ -41,19 +43,36 @@ class PayloadHandler(object):
         self.global_data = global_data
 
     @staticmethod
-    def get_sqlserver_drs_account(bk_cloud_id: int):
+    def get_sqlserver_drs_account(bk_cloud_id: int, user: str = MSSQL_DRS):
         """
         获取sqlserver在drs的admin账号密码
         """
-        if env.DRS_PASSWORD:
+        if env.DRS_PASSWORD and user == MSSQL_DRS:
             return {"drs_user": MSSQL_DRS, "drs_pwd": env.DRS_PASSWORD}
+
+        elif env.DRS_PASSWORD and user == MSSQL_DATA_READ_DRS_USER:
+            return {"drs_data_read_user": MSSQL_DATA_READ_DRS_USER, "drs_data_read_pwd": env.DRS_PASSWORD}
+
+        elif env.DRS_PASSWORD and user == MSSQL_SYS_READ_DRS_USER:
+            return {"drs_sys_read_user": MSSQL_SYS_READ_DRS_USER, "drs_sys_read_pwd": env.DRS_PASSWORD}
 
         bk_cloud_name = AsymmetricCipherConfigType.get_cipher_cloud_name(bk_cloud_id)
         drs = DBExtension.get_latest_extension(bk_cloud_id=bk_cloud_id, extension_type=ExtensionType.DRS)
-        return {
-            "drs_user": MSSQL_DRS,
-            "drs_pwd": AsymmetricHandler.decrypt(name=bk_cloud_name, content=drs.details["pwd"]),
-        }
+        if user == MSSQL_DRS:
+            return {
+                "drs_user": MSSQL_DRS,
+                "drs_pwd": AsymmetricHandler.decrypt(name=bk_cloud_name, content=drs.details["pwd"]),
+            }
+        elif user == MSSQL_DATA_READ_DRS_USER:
+            return {
+                "drs_data_read_user": MSSQL_DATA_READ_DRS_USER,
+                "drs_data_read_pwd": AsymmetricHandler.decrypt(name=bk_cloud_name, content=drs.details["pwd"]),
+            }
+        elif user == MSSQL_SYS_READ_DRS_USER:
+            return {
+                "drs_sys_read_user": MSSQL_SYS_READ_DRS_USER,
+                "drs_sys_read_pwd": AsymmetricHandler.decrypt(name=bk_cloud_name, content=drs.details["pwd"]),
+            }
 
     @staticmethod
     def get_sqlserver_dbha_account(bk_cloud_id: int):
@@ -152,7 +171,13 @@ class PayloadHandler(object):
         user_map["mssql_admin_pwd"] = get_random_string(length=10)
 
         # 添加drs账号和密码
-        user_map.update(cls.get_sqlserver_drs_account(bk_cloud_id))
+        user_map.update(cls.get_sqlserver_drs_account(bk_cloud_id, MSSQL_DRS))
+
+        # 添加业务库账号只读drs账号和密码
+        user_map.update(cls.get_sqlserver_drs_account(bk_cloud_id, MSSQL_DATA_READ_DRS_USER))
+
+        # 添加系统库账号只读drs账号和密码
+        user_map.update(cls.get_sqlserver_drs_account(bk_cloud_id, MSSQL_SYS_READ_DRS_USER))
 
         # 添加dbha账号和密码
         user_map.update(cls.get_sqlserver_dbha_account(bk_cloud_id))

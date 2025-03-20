@@ -25,10 +25,10 @@
     ticketDetails: TicketModel<Pulsar.Destroy>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.PULSAR_DESTROY,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

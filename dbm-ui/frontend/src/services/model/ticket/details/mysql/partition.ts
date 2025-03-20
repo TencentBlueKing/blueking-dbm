@@ -3,29 +3,29 @@ import type { DetailBase, DetailClusters } from '../common';
 export interface Partition extends DetailBase {
   clusters: DetailClusters;
   infos: {
-    config_id: string;
-    cluster_id: number;
     bk_cloud_id: number;
+    cluster_id: number;
+    config_id: string;
     immute_domain: string;
     partition_objects: {
-      ip: string;
-      port: number;
-      shard_name: string;
       execute_objects: [
         {
-          dblike: string;
-          tblike: string;
-          config_id: number;
           add_partition: [];
+          config_id: number;
+          dblike: string;
           drop_partition: [];
           init_partition: [
             {
-              sql: string;
               need_size: number;
+              sql: string;
             },
           ];
+          tblike: string;
         },
       ];
+      ip: string;
+      port: number;
+      shard_name: string;
     }[];
   }[];
 }

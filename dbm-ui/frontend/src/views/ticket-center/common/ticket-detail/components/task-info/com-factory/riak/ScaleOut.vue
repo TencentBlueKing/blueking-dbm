@@ -25,10 +25,10 @@
     ticketDetails: TicketModel<Riak.ScaleOut>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.RIAK_CLUSTER_SCALE_OUT,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

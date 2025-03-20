@@ -49,7 +49,7 @@
       name: string;
     }[]
   >((result, item) => {
-    const { id, name, dbType, moduleId } = item;
+    const { dbType, id, moduleId, name } = item;
     const data = funControllerStore.funControllerData.getFlatData(moduleId);
     if (props.excludes.includes(id)) {
       return result;

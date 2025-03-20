@@ -9,19 +9,26 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging.config
+from dataclasses import asdict
 from typing import Dict, List, Optional
+
+from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.api.cluster.apis import query_cluster_by_hosts
 from backend.db_meta.models import Cluster, Machine
-from backend.flow.engine.bamboo.scene.common.builder import Builder
+from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.redis.atom_jobs import ClusterDbmonInstallAtomJob, ClusterIPsDbmonInstallAtomJob
+from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
+from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
+from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 
 logger = logging.getLogger("flow")
 
 
+# Redis 机器标准化流程 dbmon，介质重新下发，exporter 重写
 class RedisDbmonSceneFlow(object):
     def __init__(self, root_id: str, data: Optional[Dict]):
         """
@@ -118,11 +125,34 @@ class RedisDbmonSceneFlow(object):
 
         sub_pipelines = []
         for cluster in clusters:
+            sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
+
+            passwd_ret = PayloadHandler.redis_get_password_by_domain(cluster.immute_domain)
             params = {
                 "cluster_domain": cluster.immute_domain,
+                "redis_password": passwd_ret.get("redis_password", "NO_REDIS_PAS_CONFIED"),
+                "proxy_password": passwd_ret.get("redis_proxy_password", "NO_PROXY_PAS_CONFIED"),
                 "is_stop": self.data.get("is_stop", False),
+                "restart_exporter": self.data.get("restart_exporter", False),
             }
-            sub_builder = ClusterDbmonInstallAtomJob(self.root_id, self.data, act_kwargs, params)
-            sub_pipelines.append(sub_builder)
+            reinstall_dbmon = ClusterDbmonInstallAtomJob(self.root_id, self.data, act_kwargs, params)
+            sub_pipeline.add_sub_pipeline(reinstall_dbmon)
+
+            # 让GSE-重新下发exporter配置 （集群级别）
+            if self.data.get("restart_exporter", False):
+                act_kwargs.cluster = {
+                    "meta_func_name": RedisDBMeta.flush_ges_exporter_config.__name__,
+                    "cluster_id": cluster.id,
+                    "immute_domain": cluster.immute_domain,
+                }
+                sub_pipeline.add_act(
+                    act_name=_("GSE重新下发Exporter"),
+                    act_component_code=RedisDBMetaComponent.code,
+                    kwargs=asdict(act_kwargs),
+                )
+
+            sub_pipelines.append(
+                sub_pipeline.build_sub_process(sub_name=_("REDIS集群标准化-{}").format(cluster.immute_domain))
+            )
         redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         redis_pipeline.run_pipeline()

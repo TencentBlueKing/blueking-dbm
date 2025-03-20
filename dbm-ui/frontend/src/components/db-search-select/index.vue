@@ -30,14 +30,12 @@
   type SearchSelectProps = InstanceType<typeof SearchSelect>['$props'];
 
   interface Props {
-    data: SearchSelectProps['data'];
     conditions?: SearchSelectProps['conditions'];
+    data: SearchSelectProps['data'];
     parseUrl?: boolean; // 是否从 URL 上面解析搜索值
   }
 
-  interface Emits {
-    (e: 'change', value: NonNullable<SearchSelectProps['modelValue']>): void;
-  }
+  type Emits = (e: 'change', value: NonNullable<SearchSelectProps['modelValue']>) => void;
 
   const props = withDefaults(defineProps<Props>(), {
     conditions: () => [],
@@ -88,8 +86,8 @@
       });
     },
     {
-      immediate: true,
       deep: true,
+      immediate: true,
     },
   );
 

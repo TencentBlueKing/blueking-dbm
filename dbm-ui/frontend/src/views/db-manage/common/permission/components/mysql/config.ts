@@ -20,7 +20,6 @@ const SPECIAL_ACCOUNT = [
 export default {
   [AccountTypes.MYSQL]: {
     dbOperations: {
-      dml: ['select', 'insert', 'update', 'delete', 'show view'],
       ddl: [
         'create',
         'alter',
@@ -35,6 +34,7 @@ export default {
         'references',
         'create temporary tables',
       ],
+      dml: ['select', 'insert', 'update', 'delete', 'show view'],
       glob: ['file', 'reload', 'show databases', 'process', 'replication slave', 'replication client'],
     },
     ddlSensitiveWords: ['trigger', 'event', 'create routine', 'alter routine', 'references', 'create temporary tables'],
@@ -42,8 +42,8 @@ export default {
   },
   [AccountTypes.TENDBCLUSTER]: {
     dbOperations: {
-      dml: ['select', 'insert', 'update', 'delete'],
       ddl: ['execute'],
+      dml: ['select', 'insert', 'update', 'delete'],
       glob: ['file', 'reload', 'process', 'show databases'],
     },
     ddlSensitiveWords: [],

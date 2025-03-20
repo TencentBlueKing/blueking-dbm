@@ -106,9 +106,7 @@
     isShow: boolean;
   }
 
-  interface Emits {
-    (e: 'grammar-check', doCheck: boolean, checkPass: boolean): void;
-  }
+  type Emits = (e: 'grammar-check', doCheck: boolean, checkPass: boolean) => void;
 
   interface Expose {
     getValue: () => Promise<string[]>;
@@ -125,7 +123,7 @@
     };
   })();
 
-  const { grammarCheckHandle, dbType: currentDbType } = useSqlImport();
+  const { dbType: currentDbType, grammarCheckHandle } = useSqlImport();
   const { t } = useI18n();
 
   const modelValue = defineModel<string[]>({
@@ -133,13 +131,13 @@
   });
 
   const {
-    isContentLoading,
-    selectFileName,
-    selectFileData,
-    fileNameList: uploadFileNameList,
-    fileDataMap: uploadFileDataMap,
-    initEditableFile,
     fetchFileContentByFileName,
+    fileDataMap: uploadFileDataMap,
+    fileNameList: uploadFileNameList,
+    initEditableFile,
+    isContentLoading,
+    selectFileData,
+    selectFileName,
   } = useEditableFileContent(modelValue);
 
   let isInnerChange = false;
@@ -191,14 +189,14 @@
 
     uploadFileNameList.value = [...uploadFileNameList.value, fileName];
     uploadFileDataMap.value[fileName] = createFileData({
-      realFilePath: fileName,
-      isSuccess: false,
       content: '-- Please enter the SQL statement\n\n',
-      messageList: [],
+      grammarCheck: undefined,
       isCheckFailded: false,
+      isSuccess: false,
       isUploadFailed: false,
       isUploading: false,
-      grammarCheck: undefined,
+      messageList: [],
+      realFilePath: fileName,
     });
     selectFileName.value = fileName;
     emits('grammar-check', false, false);

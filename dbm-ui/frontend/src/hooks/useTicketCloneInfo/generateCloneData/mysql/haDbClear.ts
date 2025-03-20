@@ -15,24 +15,25 @@ import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 import { random } from '@utils';
 
 // MySQL 高可用清档
-export function generateMysqlDbClearCloneData(ticketData: TicketModel<Mysql.HaTeuncateData>) {
+export function generateMysqlDbClearCloneData(ticketData: TicketModel<Mysql.TruncateData>) {
   const { clusters, infos } = ticketData.details;
   const tableDataList = infos.map((item) => ({
-    rowKey: random(),
     clusterData: {
-      id: item.cluster_id,
       domain: clusters[item.cluster_id].immute_domain,
+      id: item.cluster_id,
       type: clusters[item.cluster_id].cluster_type,
     },
     dbPatterns: item.db_patterns,
     ignoreDbs: item.ignore_dbs,
     ignoreTables: item.ignore_tables,
+    rowKey: random(),
     tablePatterns: item.table_patterns,
     truncateDataType: item.truncate_data_type,
   }));
   return Promise.resolve({
-    tableDataList,
+    clear_mode: ticketData.details.clear_mode,
     isSafeStatus: !infos[0].force,
     remark: ticketData.remark,
+    tableDataList,
   });
 }

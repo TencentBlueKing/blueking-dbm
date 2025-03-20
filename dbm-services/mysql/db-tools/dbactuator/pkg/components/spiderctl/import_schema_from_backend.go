@@ -11,8 +11,11 @@
 package spiderctl
 
 import (
+	"context"
+	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path"
 	"runtime"
@@ -176,6 +179,7 @@ func (c *ImportSchemaFromBackendComp) streamMigrate() (err error) {
 	logger.Info("will create mydumper.cnf ...")
 	mydumperCnf := path.Join(c.tmpDumpDir, "mydumper.cnf")
 	if !cmutil.FileExists(mydumperCnf) {
+		// nolint
 		if err = os.WriteFile(mydumperCnf, []byte("[myloader_session_variables]\n	tc_admin=0\n"), 0644); err != nil {
 			logger.Error("create mydumper.cnf failed %s", err.Error())
 			return err
@@ -228,6 +232,7 @@ func (c *ImportSchemaFromBackendComp) migrateUseMydumper() (err error) {
 	logger.Info("will create mydumper.cnf ...")
 	mydumperCnf := path.Join(c.tmpDumpDir, "mydumper.cnf")
 	if !cmutil.FileExists(mydumperCnf) {
+		// nolint
 		if err = os.WriteFile(mydumperCnf, []byte("[myloader_session_variables]\n	tc_admin=0\n"), 0644); err != nil {
 			logger.Error("create mydumper.cnf failed %s", err.Error())
 			return err
@@ -317,9 +322,10 @@ func (c *ImportSchemaFromBackendComp) migrateUseMysqlDump() (err error) {
 		return err
 	}
 	defer func() {
-		_, err = c.tdbctlConn.Exec("set global tc_admin=1;")
-		if err != nil {
-			logger.Error("set global tc_admin=1 failed %s,请手动配置成tc_admin = 1", err.Error())
+		_, errx := c.tdbctlConn.Exec("set global tc_admin=1;")
+		if errx != nil {
+			logger.Error("set global tc_admin=1 failed %s,请手动配置成tc_admin = 1", errx.Error())
+			err = errx
 		}
 	}()
 	dumpfileInfo := dumper.GetDumpFileInfo()
@@ -338,12 +344,24 @@ func (c *ImportSchemaFromBackendComp) migrateUseMysqlDump() (err error) {
 	wg := sync.WaitGroup{}
 	ctrChan := make(chan struct{}, c.maxThreads)
 	for _, db := range c.dumpDbs {
+		conn, err := c.tdbctlConn.Db.Conn(context.Background())
+		if err != nil {
+			logger.Error("从连接池获取连接失败:%s", err.Error())
+			return err
+		}
 		wg.Add(1)
-		ctrChan <- struct{}{}
 		dumpfile := dumpfileInfo[buildBackendDb(db)]
-		go func(db string, dumpfile string) {
+		go func(conn *sql.Conn, db string, dumpfile string) {
+			ctrChan <- struct{}{}
 			defer func() { wg.Done(); <-ctrChan }()
-			_, err := c.tdbctlConn.Exec(fmt.Sprintf("CREATE DATABASE %s /*!40100 DEFAULT CHARACTER SET %s */;", db, c.charset))
+			_, err = conn.ExecContext(context.Background(), fmt.Sprintf("set tc_admin=0;"))
+			if err != nil {
+				logger.Error("set session tc_admin=0 failed:%s", err.Error())
+				errChan <- err
+			}
+			defer conn.Close()
+			_, err := conn.ExecContext(context.Background(), fmt.Sprintf(
+				"CREATE DATABASE %s /*!40100 DEFAULT CHARACTER SET %s */;", db, c.charset))
 			if err != nil {
 				logger.Error("创建数据库:%s 失败:%s", db, err.Error())
 				errChan <- err
@@ -354,7 +372,7 @@ func (c *ImportSchemaFromBackendComp) migrateUseMysqlDump() (err error) {
 				logger.Error("执行导入schema文件:%s 失败:%s", dumpfile, err.Error())
 				errChan <- err
 			}
-		}(db, dumpfile)
+		}(conn, db, dumpfile)
 	}
 	go func() {
 		wg.Wait()
@@ -414,6 +432,33 @@ func (c *ImportSchemaFromBackendComp) MigrateRoutinesAndTriger() (err error) {
 	if err != nil {
 		logger.Error("执行导入存储过程、触发器、event的SQL文件:%s 失败:%s", c.tmpDumpFile, err.Error())
 		return err
+	}
+	return err
+}
+
+// MigrateViewsFromSpider 从spider导出视图导入到中控
+func (c *ImportSchemaFromBackendComp) MigrateViewsFromSpider() (err error) {
+	// get all views from spiderconn
+	var views []native.View
+	if views, err = c.spiderconn.GetAllViews(); err != nil {
+		logger.Error("show views from spiderconn failed: %s", err.Error())
+		return err
+	}
+	logger.Info("get all views from spiderconn success, views:%d", len(views))
+	for _, view := range views {
+		logger.Info("import view: %s.%s", view.DbName, view.Name)
+		var viewName, viewSQL, charsetClient, collationClient string
+		err = c.spiderconn.Db.QueryRow(fmt.Sprintf("show create view `%s`.`%s`", view.DbName, view.Name)).Scan(&viewName,
+			&viewSQL,
+			&charsetClient,
+			&collationClient)
+		if err != nil {
+			log.Fatal("Error fetching view:", err)
+		}
+		if _, err = c.tdbctlConn.Exec(viewSQL); err != nil {
+			logger.Error("import view failed: %s", err.Error())
+			return err
+		}
 	}
 	return err
 }

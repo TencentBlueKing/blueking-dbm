@@ -20,8 +20,8 @@ from ..proxy_api import ProxyAPI
 class _DRSApi(object):
     MODULE = _("DB 远程服务")
     BASE_DOMAIN = DRS_APIGW_DOMAIN
-    # mysql默认超时时间为1h TODO: 后续长耗时，改造到下发dbactuator执行更合理
-    DRS_MYSQL_TIMEOUT = 60 * 60
+    # DRS长耗时超时时间为1h TODO: 后续长耗时，改造到下发dbactuator执行更合理
+    DRS_TIMEOUT = 60 * 60
     DRS_SHORT_TIMEOUT = 10
 
     def __init__(self):
@@ -38,7 +38,7 @@ class _DRSApi(object):
             module=self.MODULE,
             ssl=ssl_flag,
             description=_("DB 远程执行"),
-            default_timeout=self.DRS_MYSQL_TIMEOUT,
+            default_timeout=self.DRS_TIMEOUT,
         )
 
         self.short_rpc = ProxyAPI(
@@ -59,7 +59,7 @@ class _DRSApi(object):
             module=self.MODULE,
             ssl=ssl_flag,
             description=_("DB PROXY远程执行"),
-            default_timeout=self.DRS_MYSQL_TIMEOUT,
+            default_timeout=self.DRS_TIMEOUT,
         )
 
         self.redis_rpc = ProxyAPI(
@@ -69,6 +69,7 @@ class _DRSApi(object):
             module=self.MODULE,
             ssl=ssl_flag,
             description=_("redis 远程执行"),
+            default_timeout=self.DRS_TIMEOUT,
         )
 
         self.twemproxy_rpc = ProxyAPI(
@@ -87,6 +88,24 @@ class _DRSApi(object):
             module=self.MODULE,
             ssl=ssl_flag,
             description=_("sqlserver 远程执行"),
+        )
+
+        self.sqlserver_data_read_rpc = ProxyAPI(
+            method="POST",
+            base=self.BASE_DOMAIN,
+            url="sqlserver/data-read-rpc",
+            module=self.MODULE,
+            ssl=ssl_flag,
+            description=_("sqlserver 远程执行(业务库数据只读账号)"),
+        )
+
+        self.sqlserver_sys_read_rpc = ProxyAPI(
+            method="POST",
+            base=self.BASE_DOMAIN,
+            url="sqlserver/sys-read-rpc",
+            module=self.MODULE,
+            ssl=ssl_flag,
+            description=_("sqlserver 远程执行(业务库数据只读账号)"),
         )
 
         self.webconsole_rpc = ProxyAPI(

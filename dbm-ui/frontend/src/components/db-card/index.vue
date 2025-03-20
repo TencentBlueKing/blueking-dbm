@@ -44,34 +44,29 @@
     </Transition>
   </div>
 </template>
-
-<script lang="ts">
-  export default {
-    name: 'DbCard',
-  };
-</script>
-
 <script setup lang="ts">
   interface Props {
-    title?: string;
     desc?: string;
     mode?: 'normal' | 'collapse' | string;
+    title?: string;
   }
 
-  interface Emits {
-    (e: 'collapsed', value: boolean): void;
-  }
+  type Emits = (e: 'collapsed', value: boolean) => void;
+
+  defineOptions({
+    name: 'DbCard',
+  });
 
   const props = withDefaults(defineProps<Props>(), {
-    title: '',
     desc: '',
     mode: 'normal',
+    title: '',
   });
+
   const emits = defineEmits<Emits>();
   const collapse = defineModel<boolean>('collapse', {
     default: true,
   });
-
   const localCollpase = ref(true);
   const isNormalMode = computed(() => props.mode === 'normal');
   const notFolded = computed(() => localCollpase.value && !isNormalMode.value);

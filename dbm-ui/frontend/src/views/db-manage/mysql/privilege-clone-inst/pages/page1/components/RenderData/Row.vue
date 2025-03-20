@@ -41,12 +41,12 @@
   import { random } from '@utils';
 
   export interface IProxyData {
-    cluster_id: number;
-    bk_host_id: number;
     bk_cloud_id: number;
-    port: number;
-    ip: string;
+    bk_host_id: number;
+    cluster_id: number;
     instance_address: string;
+    ip: string;
+    port: number;
   }
 
   export interface IDataRow {
@@ -137,12 +137,12 @@
           rowKey: random(),
           source: props.data.source,
           target: {
-            cluster_id: 0,
-            bk_host_id: 0,
             bk_cloud_id: 0,
-            port: 0,
-            ip: '',
+            bk_host_id: 0,
+            cluster_id: 0,
             instance_address: rowInfo[1].target,
+            ip: '',
+            port: 0,
           },
         }),
       );
@@ -155,8 +155,8 @@
         ([sourceData, targetData]) => ({
           ...sourceData,
           ...targetData,
-          cluster_domain: localSource.value!.masterDomain,
           bk_cloud_id: localSource.value!.bkCloudId,
+          cluster_domain: localSource.value!.masterDomain,
         }),
       );
     },

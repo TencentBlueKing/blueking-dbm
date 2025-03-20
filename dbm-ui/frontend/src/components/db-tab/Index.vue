@@ -41,8 +41,8 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    labelConfig: undefined,
     exclude: () => [],
+    labelConfig: undefined,
   });
 
   const funControllerStore = useFunController();
@@ -56,7 +56,7 @@
 
   const renderTabs = computed(() =>
     Object.values(DBTypeInfos).reduce((result, item) => {
-      const { id, name, moduleId } = item;
+      const { id, moduleId, name } = item;
       const data = funControllerStore.funControllerData.getFlatData(moduleId);
       if (data[id] && !props.exclude.includes(id)) {
         result.push({

@@ -86,6 +86,10 @@ func (l *LogicalLoader) PreLoad() error {
 	return nil
 }
 
+func (l *LogicalLoader) PostLoad() error {
+	return nil
+}
+
 // Load 恢复数据
 // 1. create config 2. loadbackup
 func (l *LogicalLoader) Load() error {

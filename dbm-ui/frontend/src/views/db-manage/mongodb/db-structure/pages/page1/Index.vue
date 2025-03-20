@@ -175,14 +175,14 @@
       const specInfo = targetSpecRef.value!.getValue();
       const params = {
         bk_biz_id: currentBizId,
-        ticket_type: TicketTypes.MONGODB_RESTORE,
-        remark: '',
         details: {
-          instance_per_host: formData.value.shardNum,
           cluster_ids: formData.value.clusterIds,
+          instance_per_host: formData.value.shardNum,
           ...targetClusterInfo,
           ...specInfo,
         },
+        remark: '',
+        ticket_type: TicketTypes.MONGODB_RESTORE,
       };
       if (dbTables) {
         Object.assign(params.details, {

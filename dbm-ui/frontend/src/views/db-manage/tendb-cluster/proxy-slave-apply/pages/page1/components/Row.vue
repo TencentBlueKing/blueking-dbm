@@ -53,13 +53,13 @@
   import RenderTargetNumber from './RenderTargetNumber.vue';
 
   export interface IDataRow {
-    rowKey: string;
-    isLoading: boolean;
+    bizId: number;
+    cloudId: number;
     cluster: string;
     clusterId: number;
     clusterType: string;
-    cloudId: number;
-    bizId: number;
+    isLoading: boolean;
+    rowKey: string;
     spec?: SpecInfo;
     specId?: number;
     targetNum?: string;
@@ -69,21 +69,21 @@
     cluster_id: number;
     resource_spec: {
       spider_slave_ip_list: {
-        spec_id: 1;
         count: 2;
+        spec_id: 1;
       } & SpecInfo;
     };
   }
 
   // 创建表格数据
   export const createRowData = (): IDataRow => ({
-    rowKey: random(),
-    isLoading: false,
+    bizId: 0,
+    cloudId: 0,
     cluster: '',
     clusterId: 0,
     clusterType: '',
-    cloudId: 0,
-    bizId: 0,
+    isLoading: false,
+    rowKey: random(),
   });
 </script>
 <script setup lang="ts">
@@ -133,8 +133,8 @@
       const rowInfo = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
       emits('clone', {
         ...props.data,
-        rowKey: random(),
         isLoading: false,
+        rowKey: random(),
         specId: rowInfo[1].spec_id,
         targetNum: rowInfo[2].count,
       });

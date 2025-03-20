@@ -47,7 +47,7 @@ func (c *MySQLRotateBinlogComp) GenerateRuntimeConfig() (err error) {
 	if err != nil {
 		return err
 	}
-	c.configFile = filepath.Join(c.installPath, "config.yaml")
+	c.configFile = filepath.Join(c.installPath, "main.yaml")
 	if err := os.WriteFile(c.configFile, yamlData, 0644); err != nil {
 		return err
 	}

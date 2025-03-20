@@ -20,8 +20,8 @@ import type UserSemanticTaskModel from '@services/model/sql-import/user-semantic
  */
 export const useSQLTaskCount = defineStore('useSQLTaskCount', {
   state: () => ({
-    taskList: [] as UserSemanticTaskModel[],
     isPolling: false,
+    taskList: [] as UserSemanticTaskModel[],
   }),
   getters: {
     taskCount: (state) => state.taskList.length ?? 0,

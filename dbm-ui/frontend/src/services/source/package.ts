@@ -23,11 +23,11 @@ const path = '/apis/packages';
  */
 export function getPackages(
   params: {
-    pkg_type: string;
     db_type: string;
     keyword?: string;
     limit?: number;
     offset?: number;
+    pkg_type: string;
   },
   payload = {} as IRequestPayload,
 ) {
@@ -48,15 +48,15 @@ export function getPackages(
  * 新建版本
  */
 export function createPackage(params: {
-  name: string;
-  version: string;
-  pkg_type: string;
-  db_type: string;
-  path: string;
-  size: number;
-  md5: string;
   allow_biz_ids?: number[];
+  db_type: string;
+  md5: string;
   mode?: string;
+  name: string;
+  path: string;
+  pkg_type: string;
+  size: number;
+  version: string;
 }) {
   return http.post(`${path}/`, params);
 }
@@ -72,18 +72,18 @@ export function deletePackage(params: { id: number }) {
  * 更新版本文件属性
  */
 export function updatePackage(params: {
-  id: number;
-  priority?: number;
-  enable?: boolean;
-  name?: string;
-  version?: string;
-  pkg_type?: string;
-  db_type?: string;
-  path?: string;
-  size?: number;
-  md5?: string;
   allow_biz_ids?: number[];
+  db_type?: string;
+  enable?: boolean;
+  id: number;
+  md5?: string;
   mode?: string;
+  name?: string;
+  path?: string;
+  pkg_type?: string;
+  priority?: number;
+  size?: number;
+  version?: string;
 }) {
   return http.patch(`${path}/${params.id}/`, params);
 }
@@ -91,7 +91,7 @@ export function updatePackage(params: {
 /**
  * 查询组件安装包列表
  */
-export function listPackages(params: { db_type: string; query_key: string; limit?: number; offset?: number }) {
+export function listPackages(params: { db_type: string; limit?: number; offset?: number; query_key: string }) {
   return http.get<string[]>(`${path}/list_install_packages/`, params);
 }
 
@@ -99,12 +99,12 @@ export function listPackages(params: { db_type: string; query_key: string; limit
  * 查询组件安装包类型
  */
 export function listPackageTypes(params: {
-  keyword?: string;
   db_type?: string;
-  pkg_type?: string;
-  version?: string;
+  keyword?: string;
   limit?: number;
   offset?: number;
+  pkg_type?: string;
+  version?: string;
 }) {
   return http.get<Record<string, string[]>>(`${path}/list_install_pkg_types/`, params);
 }

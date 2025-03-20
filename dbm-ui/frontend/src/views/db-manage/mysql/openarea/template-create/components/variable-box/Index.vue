@@ -53,9 +53,9 @@
   import RenderTable from './components/Table.vue';
 
   export interface IVariable {
-    name: string;
-    desc: string;
     builtin: boolean;
+    desc: string;
+    name: string;
   }
 
   const OPEN_AREA_VARS_KEY = 'OPEN_AREA_VARS';
@@ -112,11 +112,11 @@
 
   const handleRemove = (variable: IVariable) => {
     deleteVariableMethod({
-      op_type: 'delete',
+      new_var: undefined,
       old_var: {
         ...variable,
       },
-      new_var: undefined,
+      op_type: 'delete',
     });
   };
 

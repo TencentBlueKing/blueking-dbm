@@ -57,14 +57,14 @@ export function getGroupList(params: { bk_biz_id: number }) {
  */
 export function createGroup(params: { bk_biz_id: number; name: string }) {
   return http.post<{
-    id: number;
-    creator: string;
-    create_at: string;
-    updater: string;
-    update_at: string;
     bk_biz_id: number;
+    create_at: string;
+    creator: string;
+    id: number;
     instance_count: number;
     name: string;
+    update_at: string;
+    updater: string;
   }>(`${path}/`, params);
 }
 
@@ -73,30 +73,30 @@ export function createGroup(params: { bk_biz_id: number; name: string }) {
  */
 export function getGroupInfo(params: { id: number }) {
   return http.get<{
-    id: number;
-    creator: string;
-    create_at: string;
-    updater: string;
-    update_at: string;
     bk_biz_id: number;
+    create_at: string;
+    creator: string;
+    id: number;
     instance_count: number;
     name: string;
+    update_at: string;
+    updater: string;
   }>(`${path}/${params.id}/`);
 }
 
 /**
  * 更新分组信息
  */
-export function updateGroupInfo(params: { id: number; bk_biz_id: number; name: string }) {
+export function updateGroupInfo(params: { bk_biz_id: number; id: number; name: string }) {
   return http.put<{
-    id: number;
-    creator: string;
-    create_at: string;
-    updater: string;
-    update_at: string;
     bk_biz_id: number;
+    create_at: string;
+    creator: string;
+    id: number;
     instance_count: number;
     name: string;
+    update_at: string;
+    updater: string;
   }>(`${path}/${params.id}/`, params);
 }
 
@@ -110,6 +110,6 @@ export function deleteGroup(params: { id: number }) {
 /**
  * 移动实例到新分组
  */
-export function moveInstancesToGroup(params: { new_group_id: number; instance_ids: number[] }) {
+export function moveInstancesToGroup(params: { instance_ids: number[]; new_group_id: number }) {
   return http.post(`${path}/move_instances/`, params);
 }

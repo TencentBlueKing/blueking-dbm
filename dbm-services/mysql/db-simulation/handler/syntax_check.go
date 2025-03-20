@@ -257,6 +257,16 @@ func (s SyntaxHandler) ParseSQLFileRelationDb(r *gin.Context) {
 		s.SendResponse(r, err, nil)
 		return
 	}
+	if len(dbs) > 400 {
+		s.SendResponse(r, nil, gin.H{
+			"create_dbs": createDbs,
+			"dbs":        []string{},
+			"dump_all":   true,
+			"timestamp":  time.Now().Unix(),
+			"desc":       "too many tables,change to dump all",
+		})
+		return
+	}
 	defer p.DelTempDir()
 	// 如果所有的命令都是alter table, dump指定库表
 	logger.Debug("debug: %v,%d", allCommands, len(allCommands))
@@ -270,8 +280,8 @@ func (s SyntaxHandler) ParseSQLFileRelationDb(r *gin.Context) {
 		for _, tbl := range relationTbls {
 			tblCount += len(lo.Uniq(tbl.Tbls))
 		}
-		// sql语句的变更表数量大于5000,防止mysqldump 拼接参数过长导致执行失败
-		if tblCount > 5000 || len(relationTbls) > 100 {
+		// sql语句的变更表数量大于2000,防止mysqldump 拼接参数过长导致执行失败
+		if tblCount > 2000 || len(relationTbls) > 100 {
 			s.SendResponse(r, nil, gin.H{
 				"create_dbs": createDbs,
 				"dbs":        dbs,

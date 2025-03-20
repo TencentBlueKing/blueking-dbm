@@ -18,13 +18,17 @@ import pytest
 from django.conf import settings
 from django.core.cache import cache
 
+from backend.db_meta.enums import ClusterType
+from backend.db_meta.models import Cluster
 from backend.flow.models import FlowNode, FlowTree
+from backend.tests.mock_data.components.cc import CCApiMock
 from backend.tests.mock_data.components.dbconfig import DBConfigApiMock
 from backend.tests.mock_data.components.mysql_priv_manager import DBPrivManagerApiMock
 from backend.tests.mock_data.components.sql_import import SQLSimulationApiMock
 from backend.tests.mock_data.flow.engine.bamboo.engine import BambooEngineMock
 from backend.tests.mock_data.ticket.mysql_flow import (
     MYSQL_AUTHORIZE_TICKET_DATA,
+    MYSQL_DUMP_DATA,
     MYSQL_ITSM_AUTHORIZE_TICKET_DATA,
     MYSQL_SINGLE_APPLY_TICKET_DATA,
     MYSQL_TENDBHA_TICKET_DATA,
@@ -69,12 +73,14 @@ class TestMySQLTicket(BaseTicketTest):
         mock_bamboo_api_patch = patch(
             "backend.ticket.builders.mysql.mysql_import_sqlfile.BambooEngine", BambooEngineMock
         )
+        mock_cc_api_patch = patch("backend.db_meta.models.app.CCApi", CCApiMock())
         cls.patches.extend(
             [
                 mock_list_account_rules_patch,
                 mock_dbconfig_api_patch,
                 mock_simulation_api_patch,
                 mock_bamboo_api_patch,
+                mock_cc_api_patch,
             ]
         )
         super().apply_patches()
@@ -95,6 +101,11 @@ class TestMySQLTicket(BaseTicketTest):
 
     def test_mysql_ha_apply_flow(self):
         self.flow_test(MYSQL_TENDBHA_TICKET_DATA)
+
+    def test_mysql_dump_data_flow(self, init_mysql_cluster):
+        cluster = Cluster.objects.filter(cluster_type=ClusterType.TenDBHA).first()
+        MYSQL_DUMP_DATA["details"]["cluster_id"] = cluster.id
+        self.flow_test(MYSQL_DUMP_DATA)
 
     def test_exclusive_ticket_map(self):
         # 测试互斥表互斥逻辑正常

@@ -11,6 +11,7 @@
 package mysql
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -53,18 +54,20 @@ func (c *CleanMysqlComp) Example() interface{} {
 // CleanMysqlParam 删除目标实例里面的所有 database
 // 保留系统库，如 mysql,infodba_schema, sys 等
 type CleanMysqlParam struct {
-	// 是否执行 stop slave
+	// StopSlave 是否执行 stop slave
 	StopSlave bool `json:"stop_slave"`
-	// 是否执行 reset slave all
+	// ResetSlave 是否执行 reset slave all
 	ResetSlave bool `json:"reset_slave"`
-	// drop_database 之后是否重启实例
+	// Restart drop_database 之后是否重启实例
 	Restart bool `json:"restart"`
-	// 当实例不空闲时是否强制清空
+	// Force 当实例不空闲时是否强制清空
 	Force bool `json:"force"`
-	// 是否执行 drop database，这里是确认行为. 如果 false 则只把 drop 命令打印到输出
-	DropDatabase     bool `json:"drop_database"`
+	// DropDatabase 是否执行 drop database，这里是确认行为. 如果 false 则只把 drop 命令打印到输出
+	DropDatabase bool `json:"drop_database"`
+	// EnableBinlog 清库时是否开启 binlog
+	EnableBinlog     bool `json:"enable_binlog"`
 	CheckIntervalSec int  `json:"check_interval_sec"`
-	// 清空目标实例
+	// TgtInstance 清空的目标实例
 	TgtInstance *native.Instance `json:"tgt_instance" validate:"required"`
 }
 
@@ -145,11 +148,21 @@ func (c *CleanMysqlComp) Start() error {
 			return err
 		}
 	} else {
+		ctx := context.Background()
+		dbConn, err := c.dbworker.Db.Conn(ctx)
+		if err != nil {
+			return err
+		}
+		if !c.Params.EnableBinlog {
+			if _, err = dbConn.ExecContext(ctx, "SET sql_log_bin=0;"); err != nil {
+				return err
+			}
+		}
 		for _, dbName := range databases {
 			dropSQL := fmt.Sprintf("DROP DATABASE `%s`;", dbName["SCHEMA_NAME"])
 			logger.Warn("run sql %s", dropSQL)
 			if c.Params.DropDatabase {
-				if _, err := c.dbworker.Exec(dropSQL); err != nil {
+				if _, err := dbConn.ExecContext(ctx, dropSQL); err != nil {
 					return errors.WithMessage(err, dropSQL)
 				}
 			} else {

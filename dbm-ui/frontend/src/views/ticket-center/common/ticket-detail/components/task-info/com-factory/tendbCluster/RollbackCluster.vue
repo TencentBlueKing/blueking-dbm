@@ -113,19 +113,19 @@
     ticketDetails: TicketModel<TendbCluster.RollbackCluster>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER,
     inheritAttrs: false,
   });
 
+  defineProps<Props>();
+
   const { t } = useI18n();
 
   const rollbackTypeLabel = {
-    BUILD_INTO_NEW_CLUSTER: t('构造到新集群'),
     BUILD_INTO_EXIST_CLUSTER: t('构造到已有集群'),
     BUILD_INTO_METACLUSTER: t('构造到原集群'),
+    BUILD_INTO_NEW_CLUSTER: t('构造到新集群'),
   } as Record<string, string>;
 
   type RowData = Props['ticketDetails']['details']['infos'][number];

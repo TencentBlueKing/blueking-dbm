@@ -216,12 +216,12 @@
     ticketDetails: TicketModel<Es.Apply>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.ES_APPLY,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
   const { AFFINITY: affinityList } = useSystemEnviron().urls;

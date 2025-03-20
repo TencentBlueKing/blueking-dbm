@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from collections import defaultdict
 
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
@@ -65,6 +66,14 @@ class MysqlProxySwitchDetailSerializer(MySQLBaseOperateDetailSerializer):
         super(MysqlProxySwitchDetailSerializer, self).validate_instance_related_clusters(
             attrs, instance_key=["origin_proxy"], cluster_key=["cluster_ids"], role=AccessLayer.PROXY
         )
+
+        # 对于不同集群，校验添加新proxy主机不能重复
+        new__old_proxy_map = defaultdict(int)
+        for info in attrs["infos"]:
+            old_proxy, new_proxy = info["origin_proxy"]["bk_host_id"], info["target_proxy"]["bk_host_id"]
+            if new__old_proxy_map[new_proxy] and new__old_proxy_map[new_proxy] != old_proxy:
+                raise serializers.ValidationError(_("不允许不同主机替换到同一台{}上").format(info["target_proxy"]["ip"]))
+            new__old_proxy_map[new_proxy] = old_proxy
 
         return attrs
 

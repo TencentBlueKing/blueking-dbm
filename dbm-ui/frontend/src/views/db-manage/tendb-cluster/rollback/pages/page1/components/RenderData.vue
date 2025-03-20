@@ -45,9 +45,9 @@
 </template>
 <script lang="ts">
   const enum RollbackClusterTypes {
-    BUILD_INTO_NEW_CLUSTER = 'BUILD_INTO_NEW_CLUSTER',
     BUILD_INTO_EXIST_CLUSTER = 'BUILD_INTO_EXIST_CLUSTER',
     BUILD_INTO_METACLUSTER = 'BUILD_INTO_METACLUSTER',
+    BUILD_INTO_NEW_CLUSTER = 'BUILD_INTO_NEW_CLUSTER',
   }
 
   interface Props {
@@ -99,9 +99,6 @@
     () =>
       ({
         [ClusterTypes.TENDBCLUSTER]: {
-          // 仅有构造到新集群为单选
-          multiple: props.rollbackClusterType !== RollbackClusterTypes.BUILD_INTO_NEW_CLUSTER,
-          getResourceList: getTendbClusterList,
           disabledRowConfig:
             props.rollbackClusterType !== RollbackClusterTypes.BUILD_INTO_EXIST_CLUSTER
               ? [
@@ -111,6 +108,9 @@
                   },
                 ]
               : [],
+          getResourceList: getTendbClusterList,
+          // 仅有构造到新集群为单选
+          multiple: props.rollbackClusterType !== RollbackClusterTypes.BUILD_INTO_NEW_CLUSTER,
         },
       }) as unknown as Record<string, TabConfig>,
   );
@@ -143,7 +143,7 @@
       Object.assign(row, { ...obj });
     });
     const field = Object.keys(obj)[0] as keyof IDataRow;
-    if (['databases', 'tables', 'databasesIgnore', 'tablesIgnore'].includes(field)) {
+    if (['databases', 'databasesIgnore', 'tables', 'tablesIgnore'].includes(field)) {
       nextTick(() => {
         Promise.all(rowRefs.value.map((item: { validator: (field: keyof IDataRow) => void }) => item.validator(field)));
       });
@@ -158,11 +158,11 @@
       if (!domainMemo[domain]) {
         const row = createRowData({
           clusterData: {
-            id: clusterData.id,
-            domain,
             cloudId: clusterData.bk_cloud_id,
             cloudName: clusterData.bk_biz_name,
             clusterType: clusterData.cluster_type,
+            domain,
+            id: clusterData.id,
           },
         });
         results.push(row);
@@ -206,12 +206,12 @@
       const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
       await createTicket({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        ticket_type: TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER,
-        remark: '',
         details: {
-          rollback_cluster_type: props.rollbackClusterType,
           infos,
+          rollback_cluster_type: props.rollbackClusterType,
         },
+        remark: '',
+        ticket_type: TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER,
       }).then((data) => {
         window.changeConfirm = false;
         router.push({

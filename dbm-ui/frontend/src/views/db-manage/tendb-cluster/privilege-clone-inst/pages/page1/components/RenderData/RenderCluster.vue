@@ -44,13 +44,13 @@
       return inputRef.value
         .getValue()
         .then(() => ({
-          cluster_domain: props.source!.masterDomain,
           bk_cloud_id: props.source!.bkCloudId,
+          cluster_domain: props.source!.masterDomain,
         }))
         .catch(() =>
           Promise.reject({
-            cluster_domain: props.source?.masterDomain,
             bk_cloud_id: props.source?.bkCloudId,
+            cluster_domain: props.source?.masterDomain,
           }),
         );
     },

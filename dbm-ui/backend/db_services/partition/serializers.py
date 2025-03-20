@@ -27,12 +27,20 @@ class PartitionListSerializer(serializers.Serializer):
     immute_domains = serializers.CharField(help_text=_("集群域名"), required=False)
     dblikes = serializers.CharField(help_text=_("匹配库"), required=False)
     tblikes = serializers.CharField(help_text=_("匹配表"), required=False)
+    domain_name = serializers.CharField(help_text=_("集群名称"), required=False)
     ids = serializers.CharField(help_text=_("策略ID"), required=False)
 
     limit = serializers.IntegerField(required=False, default=10)
     offset = serializers.IntegerField(required=False, default=0)
 
     def validate(self, attrs):
+        # 过滤集群类型
+        if attrs["cluster_type"] not in [
+            ClusterType.TenDBCluster.value,
+            ClusterType.TenDBHA.value,
+            ClusterType.TenDBSingle.value,
+        ]:
+            raise serializers.ValidationError(_("目前集群类型仅支持tendbha、tengdbsingle、tendbcluster三种类型。"))
         filter_fields = ["immute_domains", "dblikes", "tblikes", "ids"]
         # 将过滤参数转为list
         for field in filter_fields:

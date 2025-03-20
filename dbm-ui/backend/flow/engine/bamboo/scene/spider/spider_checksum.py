@@ -19,7 +19,7 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
-from backend.flow.consts import ACCOUNT_PREFIX, DBA_SYSTEM_USER
+from backend.flow.consts import ACCOUNT_PREFIX, DBA_SYSTEM_USER, MAX_LONG_JOB_TIMEOUT
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.common.sleep_time_service import SleepTimerComponent
@@ -179,6 +179,7 @@ class SpiderChecksumFlow(object):
                     act_component_code=ExecuteDBActuatorScriptComponent.code,
                     kwargs=asdict(
                         ExecActuatorKwargs(
+                            job_timeout=MAX_LONG_JOB_TIMEOUT,
                             exec_ip=shard["master"]["ip"],
                             bk_cloud_id=info["bk_cloud_id"],
                             run_as_system_user=DBA_SYSTEM_USER,

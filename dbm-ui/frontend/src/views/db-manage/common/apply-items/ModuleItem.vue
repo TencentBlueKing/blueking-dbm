@@ -110,8 +110,8 @@
   import { clusterTypeInfos, ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   interface Props {
-    clusterType: ClusterTypes;
     bizId: number | '';
+    clusterType: ClusterTypes;
   }
 
   const props = defineProps<Props>();
@@ -236,8 +236,8 @@
 
   const fetchModuleList = () => {
     runGetModules({
-      cluster_type: props.clusterType,
       bk_biz_id: Number(props.bizId),
+      cluster_type: props.clusterType,
     });
   };
 
@@ -323,18 +323,18 @@
   const handleCreateModule = () => {
     const routeNameMap: Record<string, string> = {
       [DBTypes.MYSQL]: 'SelfServiceCreateDbModule',
-      [DBTypes.TENDBCLUSTER]: 'createSpiderModule',
       [DBTypes.SQLSERVER]: 'SqlServerCreateDbModule',
+      [DBTypes.TENDBCLUSTER]: 'createSpiderModule',
     };
 
     const getParams = () => {
       if (dbType === DBTypes.MYSQL) {
         return {
+          bk_biz_id: props.bizId,
           type:
             props.clusterType === ClusterTypes.TENDBSINGLE
               ? TicketTypes.MYSQL_SINGLE_APPLY
               : TicketTypes.MYSQL_HA_APPLY,
-          bk_biz_id: props.bizId,
         };
       }
       if (dbType === DBTypes.TENDBCLUSTER) {
@@ -343,11 +343,11 @@
         };
       }
       return {
+        bizId: props.bizId,
         ticketType:
           props.clusterType === ClusterTypes.SQLSERVER_SINGLE
             ? TicketTypes.SQLSERVER_SINGLE_APPLY
             : TicketTypes.SQLSERVER_HA_APPLY,
-        bizId: props.bizId,
       };
     };
 
@@ -368,19 +368,19 @@
     }
 
     const typeMap: Record<string, string> = {
-      [ClusterTypes.TENDBSINGLE]: TicketTypes.MYSQL_SINGLE_APPLY,
-      [ClusterTypes.TENDBHA]: TicketTypes.MYSQL_HA_APPLY,
-      [ClusterTypes.SQLSERVER_SINGLE]: TicketTypes.SQLSERVER_SINGLE_APPLY,
       [ClusterTypes.SQLSERVER_HA]: TicketTypes.SQLSERVER_HA_APPLY,
+      [ClusterTypes.SQLSERVER_SINGLE]: TicketTypes.SQLSERVER_SINGLE_APPLY,
+      [ClusterTypes.TENDBHA]: TicketTypes.MYSQL_HA_APPLY,
+      [ClusterTypes.TENDBSINGLE]: TicketTypes.MYSQL_SINGLE_APPLY,
     };
 
     isBindModule.value = true;
     const url = router.resolve({
       name: 'SelfServiceBindDbModule',
       params: {
-        type: typeMap[props.clusterType],
         bk_biz_id: props.bizId,
         db_module_id: modelValue.value,
+        type: typeMap[props.clusterType],
       },
       query: dbType === DBTypes.MYSQL ? { alias_name: moduleAliasName.value } : {},
     });

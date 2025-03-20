@@ -8,7 +8,7 @@ export default (
 ) => {
   const activeIndex = ref(-1);
 
-  const handleKeydown = _.throttle((event: KeyboardEvent) => {
+  const handleKeydown = _.throttle((event: Event) => {
     activeIndex.value = -1;
     if (!panelEle.value) {
       return;

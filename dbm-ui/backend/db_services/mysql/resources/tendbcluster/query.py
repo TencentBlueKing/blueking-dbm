@@ -8,16 +8,16 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from collections import defaultdict
 from typing import Any, Callable, Dict, List
 
-from django.db.models import F, Q, QuerySet, Value
+from django.db.models import F, Prefetch, Q, QuerySet, Value
 from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.api.cluster.tendbcluster.detail import scan_cluster
-from backend.db_meta.enums import InstanceInnerRole, InstanceRole, TenDBClusterSpiderRole
+from backend.db_meta.api.cluster.tendbcluster.handler import TenDBClusterClusterHandler
+from backend.db_meta.enums import InstanceRole, TenDBClusterSpiderRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import AppCache
@@ -109,31 +109,15 @@ class ListRetrieveResource(query.ListRetrieveResource):
         **kwargs,
     ) -> Dict[str, Any]:
         """将集群对象转为可序列化的 dict 结构"""
-
-        def get_remote_infos(insts: List[StorageInstance]):
-            """获取remote信息，并补充分片信息"""
-            remote_infos = defaultdict(list)
-            for inst in insts:
-                try:
-                    related = "as_ejector" if inst.instance_inner_role == InstanceInnerRole.MASTER else "as_receiver"
-                    shard_id = getattr(inst, related).all()[0].tendbclusterstorageset.shard_id
-                except Exception:
-                    # 如果无法找到shard_id，则默认为-1。有可能实例处于restoring状态(比如集群容量变更时)
-                    shard_id = -1
-
-                remote_infos[inst.instance_inner_role].append({**inst.simple_desc, "shard_id": shard_id})
-
-            remote_infos[InstanceInnerRole.MASTER.value].sort(key=lambda x: x.get("shard_id", -1))
-            remote_infos[InstanceInnerRole.SLAVE.value].sort(key=lambda x: x.get("shard_id", -1))
-            return remote_infos[InstanceInnerRole.MASTER.value], remote_infos[InstanceInnerRole.SLAVE.value]
-
         # 获取spider，remote角色实例信息
         spider = {
             role: [inst.simple_desc for inst in cluster.proxies if inst.tendbclusterspiderext.spider_role == role]
             for role in TenDBClusterSpiderRole.get_values()
         }
 
-        remote_db, remote_dr = get_remote_infos(cluster.storages)
+        remote_db, remote_dr = TenDBClusterClusterHandler.get_remote_infos(cluster.storages)
+        remote_db = [{**inst.simple_desc, "shard_id": inst.shard_id} for inst in remote_db]
+        remote_dr = [{**inst.simple_desc, "shard_id": inst.shard_id} for inst in remote_dr]
         # 计算machine分组
         machine_list = list(set([inst["bk_host_id"] for inst in [*remote_db, *remote_dr]]))
         machine_pair_cnt = len(machine_list) / 2
@@ -274,7 +258,12 @@ class ListRetrieveResource(query.ListRetrieveResource):
 
     @classmethod
     def get_topo_graph(cls, bk_biz_id: int, cluster_id: int) -> dict:
-        cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
+        cluster = Cluster.objects.prefetch_related(
+            Prefetch(
+                "storageinstance_set", queryset=StorageInstance.objects.select_related("machine"), to_attr="storages"
+            )
+        ).get(bk_biz_id=bk_biz_id, id=cluster_id)
+
         graph = scan_cluster(cluster).to_dict()
         return graph
 

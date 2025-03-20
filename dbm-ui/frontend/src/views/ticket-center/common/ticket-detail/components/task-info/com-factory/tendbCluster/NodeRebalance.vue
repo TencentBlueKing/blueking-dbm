@@ -79,12 +79,12 @@
     ticketDetails: TicketModel<TendbCluster.NodeRebalance>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.TENDBCLUSTER_NODE_REBALANCE,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 
@@ -97,9 +97,9 @@
   useRequest(getResourceSpecList, {
     defaultParams: [
       {
-        spec_cluster_type: DBTypes.TENDBCLUSTER,
         limit: -1,
         offset: 0,
+        spec_cluster_type: DBTypes.TENDBCLUSTER,
       },
     ],
     onSuccess(data) {

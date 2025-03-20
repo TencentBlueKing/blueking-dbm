@@ -20,7 +20,7 @@ import (
 // PhysicalTokudbLoader this is used to load physical backup
 // decompress, apply, recover
 type PhysicalTokudbLoader struct {
-	cnf           *config.BackupConfig
+	cnf           *config.PhysicalLoaderConfig
 	dbbackupHome  string
 	mysqlVersion  string
 	storageEngine string
@@ -76,7 +76,7 @@ func (p *PhysicalTokudbLoader) load() error {
 	if err != nil {
 		logger.Log.Error("tokudb recover failed: ", err, errStr)
 		errStrPrefix := fmt.Sprintf("tail 5 error from %s", logfile)
-		errStrDetail, _ := util.GrepLinesFromFile(logfile, []string{"ERROR", "fatal"}, 5, false, true)
+		errStrDetail, _ := cmutil.NewGrepLines(logfile, true, false).MatchWords([]string{"ERROR", "fatal"}, 5)
 		if len(errStrDetail) > 0 {
 			logger.Log.Info(errStrPrefix)
 			logger.Log.Error(errStrDetail)

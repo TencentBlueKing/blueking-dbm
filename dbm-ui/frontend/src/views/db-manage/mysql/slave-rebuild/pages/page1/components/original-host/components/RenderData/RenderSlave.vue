@@ -61,14 +61,15 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(_.trim(value)),
       message: t('目标从库实例不能为空'),
+      validator: (value: string) => Boolean(_.trim(value)),
     },
     {
-      validator: (value: string) => ipPort.test(value),
       message: t('目标从库实例格式不正确'),
+      validator: (value: string) => ipPort.test(value),
     },
     {
+      message: t('目标从库实例不存在'),
       validator: (value: string) =>
         checkMysqlInstances({
           bizId: currentBizId,
@@ -86,17 +87,17 @@
             modelValue.value = {
               bkCloudId: instanceData.bk_cloud_id,
               bkHostId: instanceData.bk_host_id,
+              clusterId: instanceData.cluster_id,
+              instanceAddress: instanceData.instance_address,
               ip: instanceData.ip,
               port: instanceData.port,
-              instanceAddress: instanceData.instance_address,
-              clusterId: instanceData.cluster_id,
             };
           }
           return true;
         }),
-      message: t('目标从库实例不存在'),
     },
     {
+      message: t('源实例重复'),
       validator: () => {
         const currentClusterSelectMap = instanceAddreddMemo[instanceKey];
         const otherClusterMemoMap = { ...instanceAddreddMemo };
@@ -111,6 +112,7 @@
         );
 
         const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
+        // eslint-disable-next-line @typescript-eslint/prefer-for-of
         for (let i = 0; i < currentSelectClusterIdList.length; i++) {
           if (otherClusterIdMap[currentSelectClusterIdList[i]]) {
             return false;
@@ -118,7 +120,6 @@
         }
         return true;
       },
-      message: t('源实例重复'),
     },
   ];
 
@@ -153,10 +154,10 @@
             slave: {
               bk_biz_id: currentBizId,
               bk_cloud_id: modelValue.value.bkCloudId,
-              ip: modelValue.value.ip,
               bk_host_id: modelValue.value.bkHostId,
-              port: modelValue.value.port,
               instance_address: modelValue.value.instanceAddress,
+              ip: modelValue.value.ip,
+              port: modelValue.value.port,
             },
           };
         })
@@ -167,10 +168,10 @@
                   slave: {
                     bk_biz_id: currentBizId,
                     bk_cloud_id: modelValue.value?.bkCloudId,
-                    ip: modelValue.value?.ip,
                     bk_host_id: modelValue.value?.bkHostId,
-                    port: modelValue.value?.port,
                     instance_address: modelValue.value?.instanceAddress,
+                    ip: modelValue.value?.ip,
+                    port: modelValue.value?.port,
                   },
                 }
               : undefined,

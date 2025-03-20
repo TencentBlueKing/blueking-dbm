@@ -25,10 +25,10 @@
     ticketDetails: TicketModel<Sqlserver.DataMigrate>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.SQLSERVER_INCR_MIGRATE,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

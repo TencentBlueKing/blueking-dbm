@@ -1,6 +1,8 @@
 package common
 
 import (
+	"os"
+
 	"gopkg.in/yaml.v2"
 )
 
@@ -43,4 +45,18 @@ func (y *YamlMongoSConf) GetConfContent() ([]byte, error) {
 		return nil, err
 	}
 	return out, nil
+}
+
+// LoadMongoSConfFromFile 从文件中加载配置
+func LoadMongoSConfFromFile(filePath string) (*YamlMongoSConf, error) {
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+	var y YamlMongoSConf
+	err = yaml.Unmarshal(content, &y)
+	if err != nil {
+		return nil, err
+	}
+	return &y, nil
 }

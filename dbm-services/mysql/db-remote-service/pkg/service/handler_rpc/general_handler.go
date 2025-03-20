@@ -36,6 +36,10 @@ func generalHandler(rpcEmbed rpc_core.RPCEmbedInterface) func(*gin.Context) {
 		}
 		req.TrimSpace()
 
+		if req.QueryTimeout <= 0 {
+			req.QueryTimeout = 600
+		}
+
 		slog.Info(
 			"enter rpc handler",
 			slog.String("addresses", strings.Join(req.Addresses, ",")),

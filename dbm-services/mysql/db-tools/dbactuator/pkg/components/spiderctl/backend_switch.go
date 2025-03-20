@@ -15,11 +15,14 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"math/rand/v2"
 	"os"
 	"path"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/gofrs/flock"
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
@@ -46,6 +49,8 @@ type runtimeCtx struct {
 type SpiderRemotedbSwitchParam struct {
 	Host string `json:"host" validate:"required,ip"`
 	Port int    `json:"port" validate:"required,lt=65536,gte=3306"`
+	// 主从延迟检查
+	SlaveDelayCheck bool `json:"slave_delay_check"`
 	// 客户端连接检查
 	ClientConnCheck bool `json:"client_conn_check"`
 	// 数据校验结果检查
@@ -71,6 +76,7 @@ type CutOverCtx struct {
 	fd                       *os.File //  持久化回滚sql
 	primaryShardSwitchSqls   []string
 	slaveShardSwitchSqls     []string
+	fdLock                   *flock.Flock
 }
 
 // SvrPairs TODO
@@ -183,6 +189,7 @@ func (r *SpiderClusterBackendSwitchComp) Init() (err error) {
 		}
 		r.slavesConn[slaveAddr] = slaveConn
 	}
+	r.fdLock = flock.New(path.Join(cst.BK_PKG_INSTALL_PATH, LOCK_FILE_NAME))
 	return nil
 }
 
@@ -193,37 +200,68 @@ func (r *SpiderClusterBackendSwitchComp) PreCheck() (err error) {
 	if err = r.validateServers(); err != nil {
 		return err
 	}
-	if err = r.consistencySwitchCheck(); err != nil {
-		if r.Params.Force {
-			logger.Warn(err.Error())
-			return nil
-		}
-		return err
+	// 强制切换,忽略检查
+	if r.Params.Force {
+		return nil
 	}
-	return r.getSwitchSqls()
-}
-
-func (r *SpiderClusterBackendSwitchComp) consistencySwitchCheck() (err error) {
 	// 检查复制关系
 	if err = r.checkReplicationRelation(); err != nil {
 		return err
 	}
 	// 主从延迟检查
-	for addr, conn := range r.slavesConn {
-		if err = conn.ReplicateDelayCheck(1, 1024); err != nil {
-			logger.Error("%s replicate delay abnormal %s", addr, err.Error())
-			return err
+	if r.Params.SlaveDelayCheck {
+		for addr, conn := range r.slavesConn {
+			if err = conn.ReplicateDelayCheck(1, 1024); err != nil {
+				logger.Error("%s replicate delay abnormal %s", addr, err.Error())
+				return err
+			}
 		}
 	}
 	if r.Params.ClientConnCheck {
-		if err := r.CheckSpiderAppProcesslist(); err != nil {
+		if err = r.CheckSpiderAppProcesslist(); err != nil {
 			return err
 		}
 	}
 	if r.Params.VerifyChecksum {
 		return validateChecksum(r.slavesConn)
 	}
-	return nil
+	return err
+}
+
+// GenerateSwitchSqls 生成切换sql
+func (r *SpiderClusterBackendSwitchComp) GenerateSwitchSqls() (err error) {
+	for _, ms := range r.Params.SwitchPairs {
+		var mastersvr, slavesvr native.Server
+		var exist bool
+		mh := ms.Master.IpPort()
+		if mastersvr, exist = r.ipPortServersMap[mh]; !exist {
+			return fmt.Errorf("master %s: not found in mysql.servers", mh)
+		}
+		sh := ms.Slave.IpPort()
+		if slavesvr, exist = r.ipPortServersMap[sh]; !exist {
+			return fmt.Errorf("slave %s: not found in mysql.servers", sh)
+		}
+		r.realSwitchSvrPairs = append(r.realSwitchSvrPairs, SvrPairs{
+			MptName: mastersvr.ServerName,
+			SptName: slavesvr.ServerName,
+			Master:  &mastersvr,
+			Slave:   &slavesvr,
+		})
+	}
+	if len(r.realSwitchSvrPairs) == 0 {
+		return fmt.Errorf("no switch instance")
+	}
+	for _, ins_pair := range r.realSwitchSvrPairs {
+		primarySwitchSql := ins_pair.Slave.GetAlterNodeSql(ins_pair.MptName, true)
+		logger.Info("primary spt switch sql:%s", mysqlcomm.CleanSvrPassword(primarySwitchSql))
+		r.primaryShardSwitchSqls = append(r.primaryShardSwitchSqls, primarySwitchSql)
+		if !r.Params.Force {
+			slaveSwitchSql := ins_pair.Master.GetAlterNodeSql(ins_pair.SptName, true)
+			logger.Info("slave spt switch sql:%s", mysqlcomm.CleanSvrPassword(slaveSwitchSql))
+			r.slaveShardSwitchSqls = append(r.slaveShardSwitchSqls, slaveSwitchSql)
+		}
+	}
+	return err
 }
 
 // connSpiders TODO
@@ -366,12 +404,6 @@ func (r *SpiderClusterBackendSwitchComp) validateServers() (err error) {
 				masterShardNum,
 				slaveShardNum)
 		}
-		r.realSwitchSvrPairs = append(r.realSwitchSvrPairs, SvrPairs{
-			MptName: mastersvr.ServerName,
-			SptName: slavesvr.ServerName,
-			Master:  &mastersvr,
-			Slave:   &slavesvr,
-		})
 	}
 	return nil
 }
@@ -388,12 +420,15 @@ func (r *SpiderClusterBackendSwitchComp) connTdbctl() (err error) {
 	return err
 }
 
-// CutOver TODO
+// CutOver cut over
 func (r *SpiderClusterBackendSwitchComp) CutOver() (err error) {
 	var tdbctlFlushed bool
+	// get file lock
+	if err = r.CutOverCtx.GetFileLock(); err != nil {
+		logger.Error("get file lock failed %s", err.Error())
+		return err
+	}
 	logger.Info("the switching operation will be performed")
-	// 更改中控路由
-	logger.Info("refresh the tdbctl route,but spider hasn t taken effect yet")
 	defer func() {
 		if err != nil && len(r.primaryShardrollbackSqls) > 0 {
 			logger.Info("start execute rollback router sql ... ")
@@ -408,11 +443,15 @@ func (r *SpiderClusterBackendSwitchComp) CutOver() (err error) {
 			if ferr := r.flushrouting(); ferr != nil {
 				return
 			}
+			if uerr := r.fdLock.Unlock(); uerr != nil {
+				logger.Error("unlock file lock failed %s", uerr.Error())
+				return
+			}
 			logger.Info("flush rollback route successfully~")
 		}
 	}()
 	if !r.Params.Force {
-		if err = r.fushTablesAtEverySpiderNode(); err != nil {
+		if err = r.flushTablesAtEverySpiderNode(); err != nil {
 			return fmt.Errorf("[未切换]: flush tables failed:%w", err)
 		}
 	}
@@ -440,22 +479,8 @@ func (r *SpiderClusterBackendSwitchComp) CutOver() (err error) {
 		return err
 	}
 	// flush 到中控生效,此时才算真正切换，中控更改后端的路由
-	logger.Info("execute:tdbctl flush routing force")
+	logger.Info("execute:tdbctl flush routing cache")
 	return r.flushrouting()
-}
-
-func (r *SpiderClusterBackendSwitchComp) getSwitchSqls() (err error) {
-	for _, ins_pair := range r.realSwitchSvrPairs {
-		primarySwitchSql := ins_pair.Slave.GetAlterNodeSql(ins_pair.MptName)
-		logger.Info("primary spt switch sql:%s", mysqlcomm.CleanSvrPassword(primarySwitchSql))
-		r.primaryShardSwitchSqls = append(r.primaryShardSwitchSqls, primarySwitchSql)
-		if !r.Params.Force {
-			slaveSwitchSql := ins_pair.Master.GetAlterNodeSql(ins_pair.SptName)
-			logger.Info("slave spt switch sql:%s", mysqlcomm.CleanSvrPassword(slaveSwitchSql))
-			r.slaveShardSwitchSqls = append(r.slaveShardSwitchSqls, slaveSwitchSql)
-		}
-	}
-	return
 }
 
 // CutOverSlave TODO
@@ -492,8 +517,8 @@ func (r *SpiderClusterBackendSwitchComp) CutOverSlave() (err error) {
 func (r *SpiderClusterBackendSwitchComp) PersistenceRollbackFile() (err error) {
 	var masterRbSqls, slaveRbSqls, w []string
 	for _, ins_pair := range r.realSwitchSvrPairs {
-		masterRbSqls = append(masterRbSqls, ins_pair.Master.GetAlterNodeSql(ins_pair.MptName))
-		slaveRbSqls = append(slaveRbSqls, ins_pair.Slave.GetAlterNodeSql(ins_pair.SptName))
+		masterRbSqls = append(masterRbSqls, ins_pair.Master.GetAlterNodeSql(ins_pair.MptName, false))
+		slaveRbSqls = append(slaveRbSqls, ins_pair.Slave.GetAlterNodeSql(ins_pair.SptName, false))
 	}
 	if err = r.initRollbackRouteFile(); err != nil {
 		return err
@@ -640,6 +665,27 @@ func (r *SpiderClusterBackendSwitchComp) ChangeMasterToNewMaster() (err error) {
 	return err
 }
 
+// GetFileLock get file lock
+func (c *CutOverCtx) GetFileLock() (err error) {
+	logger.Info("get file lock ...")
+	err = cmutil.Retry(cmutil.RetryConfig{
+		Times: 300,
+		// nolint
+		DelayTime: time.Duration(rand.IntN(100)+200) * time.Millisecond,
+	}, func() (err error) {
+		locked, err := c.fdLock.TryLock()
+		if err != nil {
+			return err
+		}
+		if !locked {
+			return fmt.Errorf("lock file failed,try it later")
+		}
+		logger.Info("get file lock successfully~")
+		return nil
+	})
+	return err
+}
+
 func (c *CutOverCtx) getSysUsers(servers []native.Server, sysUsers []string) {
 	for _, server := range servers {
 		sysUsers = append(sysUsers, server.Username)
@@ -701,8 +747,8 @@ func (c *CutOverCtx) lockaAllSpidersWrite() (err error) {
 	return
 }
 
-// fushTablesAtEverySpiderNode flush tables at every spider node
-func (c *CutOverCtx) fushTablesAtEverySpiderNode() (err error) {
+// flushTablesAtEverySpiderNode flush tables at every spider node
+func (c *CutOverCtx) flushTablesAtEverySpiderNode() (err error) {
 	for addr, lockConn := range c.spidersLockConn {
 		fn := func() (e error) {
 			_, e = lockConn.ExecContext(context.Background(), "FLUSH TABLES")
@@ -742,7 +788,7 @@ func (c *CutOverCtx) Unlock() (err error) {
 
 func (c *CutOverCtx) flushrouting() (err error) {
 	if err = cmutil.Retry(cmutil.RetryConfig{Times: 3, DelayTime: 1 * time.Second}, func() error {
-		_, ferr := c.tdbCtlConn.Exec("tdbctl flush routing force")
+		_, ferr := c.tdbCtlConn.Exec("TDBCTL FLUSH ROUTING CACHE;")
 		return ferr
 	}); err != nil {
 		return err

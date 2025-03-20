@@ -44,16 +44,16 @@
   import TicketStatusTag from '@components/ticket-status-tag/Index.vue';
 
   interface Props {
-    keyword: string,
-    data: TicketModel[],
-    bizIdNameMap: Record<number, string>
-    isAnomalies: boolean,
-    isSearching: boolean
+    bizIdNameMap: Record<number, string>;
+    data: TicketModel[];
+    isAnomalies: boolean;
+    isSearching: boolean;
+    keyword: string;
   }
 
   interface Emits {
-    (e: 'refresh'): void,
-    (e: 'clearSearch'): void
+    (e: 'refresh'): void;
+    (e: 'clearSearch'): void;
   }
 
   const props = defineProps<Props>();
@@ -88,47 +88,48 @@
 
   const columns = computed(() => [
     {
-      label: t('单号'),
       field: 'id',
-      width: 150,
+      label: t('单号'),
       render: ({ data }: { data: TicketModel }) => (
         <bk-button
+          theme='primary'
           text
-          theme="primary"
           onclick={() => handleToTicket(data)}>
           <HightLightText
             keyWord={props.keyword}
+            highLightColor='#FF9C01'
             text={String(data.id)}
-            highLightColor='#FF9C01' />
+          />
         </bk-button>
       ),
+      width: 150,
     },
     {
-      label: t('单据类型'),
       field: 'ticket_type_display',
       filter: {
-        list: Array.from(filterMap.value.ticketTypeSet).map(ticketTypeItem => ({
-          value: ticketTypeItem,
+        list: Array.from(filterMap.value.ticketTypeSet).map((ticketTypeItem) => ({
           text: ticketTypeItem,
+          value: ticketTypeItem,
         })),
       },
+      label: t('单据类型'),
       render: ({ data }: { data: TicketModel }) => data.ticket_type_display || '--',
     },
     {
-      label: t('单据状态'),
       field: 'status',
-      sort: true,
+      label: t('单据状态'),
       render: ({ data }: { data: TicketModel }) => <TicketStatusTag data={data} />,
+      sort: true,
     },
     {
-      label: t('业务'),
       field: 'bk_biz_id',
       filter: {
-        list: Object.entries(filterMap.value.bizNameMap).map(bizItem => ({
-          value: Number(bizItem[0]),
+        list: Object.entries(filterMap.value.bizNameMap).map((bizItem) => ({
           text: bizItem[1],
+          value: Number(bizItem[0]),
         })),
       },
+      label: t('业务'),
       render: ({ data }: { data: TicketModel }) => filterMap.value.bizNameMap[data.bk_biz_id] || '--',
     },
     // {
@@ -137,28 +138,30 @@
     //   render: ({ data }: { data: TicketModel }) => data.bk_idc_name || '--',
     // },
     {
-      label: t('申请人'),
       field: 'creator',
-      sort: true,
+      label: t('申请人'),
       render: ({ data }: { data: TicketModel }) => data.creator || '--',
+      sort: true,
     },
     {
-      label: t('申请时间'),
       field: 'create_at',
-      sort: true,
+      label: t('申请时间'),
       render: ({ data }: { data: TicketModel }) => data.createAtDisplay || '--',
+      sort: true,
     },
   ]);
 
   const handleToTicket = (data: Props['data'][number]) => {
-    location({
-      name: 'bizTicketManage',
-      params: {
-        ticketId: data.id,
+    location(
+      {
+        name: 'bizTicketManage',
+        params: {
+          ticketId: data.id,
+        },
       },
-    }, data.bk_biz_id);
+      data.bk_biz_id,
+    );
   };
-
 
   const handleRefresh = () => {
     emits('refresh');

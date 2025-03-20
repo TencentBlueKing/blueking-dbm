@@ -4,20 +4,8 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"log"
-	"path"
 	"time"
-
-	"go.uber.org/zap"
-
-	"github.com/fsnotify/fsnotify"
-	"github.com/pkg/errors"
-	"github.com/spf13/viper"
 )
-
-func init() {
-
-}
 
 // BkDbmLabel bk dbm label for Instance
 type BkDbmLabel struct {
@@ -63,6 +51,22 @@ func (c *ConfServerItem) Addr() string {
 	return fmt.Sprintf("%s:%d", c.IP, c.Port)
 }
 
+// GetClusterIdStr  return cluster id string
+func (c *ConfServerItem) GetClusterIdStr() string {
+	return fmt.Sprintf("%d", c.ClusterId)
+}
+
+// MetaForLog 用于日志输出.
+func (c *ConfServerItem) MetaForLog() string {
+	return fmt.Sprintf(
+		`"meta":{"app":%q,"appid":%d,"cluster_domain":%q,"cluster_name":%q,"cluster_role":%q,"cluster_type":%q,`+
+			`"instance_set_name":%q,`+
+			`"instance":%q,"instance_host":%q,"instance_port":%d,"instance_role":%q}`,
+		c.App, c.BkBizID,
+		c.ClusterDomain, c.ClusterName, c.RoleType, c.ClusterType,
+		c.SetName, c.Addr(), c.IP, c.Port, c.MetaRole)
+}
+
 // BkMonitorData 注册在Bk的Event.
 type BkMonitorData struct {
 	DataID int64  `yaml:"data_id" json:"data_id" mapstructure:"data_id"`
@@ -85,83 +89,22 @@ type Configuration struct {
 	HttpAddress              string              `yaml:"http_address"  json:"http_address" mapstructure:"http_address"`
 	BkMonitorBeat            BkMonitorBeatConfig `yaml:"bkmonitorbeat"  json:"bkmonitorbeat" mapstructure:"bkmonitorbeat"`
 	Servers                  []ConfServerItem    `yaml:"servers" json:"servers" mapstructure:"servers"`
-	LoadTime                 string              `yaml:"-" json:"-" mapstructure:"-"`
+	LoadTime                 time.Time           `yaml:"-" json:"-" mapstructure:"-"`
+	LoadCount                int                 `yaml:"-" json:"-" mapstructure:"-"`
+}
+
+func (c *Configuration) SetDefault() {
+	if c.BackupClientStrorageType == "" {
+		c.BackupClientStrorageType = "cos"
+	}
+	if c.ReportLeftDay == 0 {
+		c.ReportLeftDay = 15
+	}
+	c.LoadTime = time.Now()
 }
 
 // String string
 func (c *Configuration) String() string {
 	tmp, _ := json.Marshal(c)
 	return string(tmp)
-}
-
-// GlobalConf 全局配置
-// 如果配置文件被修改,会重新加载配置文件更新全局配置
-// todo 是否需要将静态配置和动态配置分开？
-var GlobalConf *Configuration
-
-func _loadConfigFile() (*Configuration, error) {
-	conf := Configuration{
-		LoadTime: time.Now().Format(time.RFC3339),
-	}
-	err := viper.Unmarshal(&conf)
-	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("viper.Unmarshal fail,err:%v,configFile:%s", err, viper.ConfigFileUsed()))
-	}
-	if conf.BkMonitorBeat.BeatPath == "" {
-		return nil, errors.New("bk_monitor_beat.beat_path error")
-	}
-	if conf.BackupClientStrorageType == "" {
-		conf.BackupClientStrorageType = "cos"
-	}
-	if conf.ReportLeftDay == 0 {
-		conf.ReportLeftDay = 15
-	}
-	return &conf, nil
-}
-
-func loadConfigFile(first bool) {
-	conf, err := _loadConfigFile()
-	if err != nil {
-		if first {
-			log.Fatalf("loadConfigFile fail,err:%v", err)
-		} else {
-			log.Printf("loadConfigFile fail,err:%v", err)
-			return
-		}
-	}
-	GlobalConf = conf
-}
-
-func WriteConfig(path string, conf *Configuration) error {
-	viper.SetConfigFile(path)
-	viper.SetConfigType("yaml")
-	viper.Set("report_save_dir", conf.ReportSaveDir)
-	viper.Set("report_left_day", conf.ReportLeftDay)
-	viper.Set("backup_client_storage_type", conf.BackupClientStrorageType)
-	viper.Set("http_address", conf.HttpAddress)
-	viper.Set("bkmonitorbeat", conf.BkMonitorBeat)
-	viper.Set("servers", conf.Servers)
-	return viper.WriteConfig()
-}
-
-// InitConfig reads in config file and ENV variables if set.
-func InitConfig(cfgFile string, logger *zap.Logger) {
-	var err error
-	viper.SetConfigFile(cfgFile)
-	viper.AddConfigPath(path.Dir(cfgFile))
-	viper.SetConfigType("yaml")
-	if err = viper.ReadInConfig(); err != nil {
-		logger.Fatal(fmt.Sprintf("ReadInConfig error %v", err)) // 读取配置文件失败
-	}
-
-	logger.Info(fmt.Sprintf("Using config file: %s and watch file change event\n", viper.ConfigFileUsed()))
-	/* Read Config File && Watch file change event */
-	loadConfigFile(true)
-	viper.OnConfigChange(func(e fsnotify.Event) {
-		// 重新加载配置文件。 测试不生效. todo 改为接收信号
-		logger.Info(fmt.Sprintf("Config file changed: %s", e.Name))
-		loadConfigFile(false)
-	})
-	viper.WatchConfig()
-	viper.AutomaticEnv()
 }

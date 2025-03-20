@@ -131,7 +131,7 @@ class CloudProxyPassViewSet(BaseProxyPassViewSet):
         bk_cloud_id = self.params_validate(self.get_serializer_class())["bk_cloud_id"]
         # 目前子配置只有大数据转发，并且考虑社区化部署集群量较少，这里就全量拉去更新
         cluster_extensions = ClusterExtension.objects.filter(bk_cloud_id=bk_cloud_id)
-        proxy = DBCloudProxy.objects.filter(bk_cloud_id=bk_cloud_id).last()
+        proxy_external_address = DBCloudProxy.get_cloud_proxy_external_address(bk_cloud_id=bk_cloud_id)
         file_list: List[Dict[str, Any]] = []
         for extension in cluster_extensions:
             conf_tpl = getattr(nginxconf_tpl, f"{extension.db_type}_conf_tpl", None)
@@ -141,5 +141,5 @@ class CloudProxyPassViewSet(BaseProxyPassViewSet):
             file_list.append(nginxconf_tpl.render_nginx_tpl(conf_tpl=conf_tpl, extension=extension, encode=False))
             # 保存访问地址
             if not extension.access_url:
-                extension.save_access_url(nginx_url=f"{proxy.external_address}:{80}")
+                extension.save_access_url(nginx_url=f"{proxy_external_address}:{80}")
         return Response(file_list)

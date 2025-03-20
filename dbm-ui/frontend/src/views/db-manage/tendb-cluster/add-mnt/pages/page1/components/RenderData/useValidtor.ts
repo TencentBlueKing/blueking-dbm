@@ -14,8 +14,8 @@
 import { reactive, toRefs } from 'vue';
 
 export type Rules = Array<{
-  validator: (value: any) => boolean | Promise<boolean>;
   message: string | (() => string);
+  validator: (value: any) => boolean | Promise<boolean>;
 }>;
 
 const getRuleMessage = (rule: Rules[0]) => {
@@ -27,8 +27,8 @@ const getRuleMessage = (rule: Rules[0]) => {
 
 export default function (rules: Rules | undefined) {
   const state = reactive({
-    loading: false,
     error: false,
+    loading: false,
     message: '',
   });
 

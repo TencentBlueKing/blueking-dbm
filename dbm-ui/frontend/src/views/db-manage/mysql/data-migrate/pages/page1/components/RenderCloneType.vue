@@ -26,9 +26,7 @@
 
   import TableEditSelect from '@components/render-table/columns/select/index.vue';
 
-  interface Emits {
-    (e: 'change', value: string): void;
-  }
+  type Emits = (e: 'change', value: string) => void;
 
   interface Exposes {
     getValue: () => Promise<{
@@ -48,19 +46,19 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('不能为空'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 
   const list = [
     {
-      value: 'data,schema',
       label: t('克隆表结构和数据'),
+      value: 'data,schema',
     },
     {
-      value: 'schema',
       label: t('克隆表结构'),
+      value: 'schema',
     },
   ];
 

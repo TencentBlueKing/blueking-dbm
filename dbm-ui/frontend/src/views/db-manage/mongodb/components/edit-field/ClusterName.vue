@@ -46,9 +46,7 @@
     isShowBlur?: boolean;
   }
 
-  interface Emits {
-    (e: 'inputFinish', value: string): void;
-  }
+  type Emits = (e: 'inputFinish', value: string) => void;
 
   interface Exposes {
     getValue: () => Promise<number>;
@@ -72,14 +70,15 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('目标集群不能为空'),
+      validator: (value: string) => Boolean(value),
     },
     {
-      validator: (value: string) => domainRegex.test(value),
       message: t('目标集群输入格式有误'),
+      validator: (value: string) => domainRegex.test(value),
     },
     {
+      message: t('目标集群不存在'),
       validator: (value: string) =>
         getMongoList({
           exact_domain: value,
@@ -90,9 +89,9 @@
           }
           return false;
         }),
-      message: t('目标集群不存在'),
     },
     {
+      message: t('目标集群重复'),
       validator: () => {
         const currentClusterSelectMap = clusterIdMemo[instanceKey];
         const otherClusterMemoMap = { ...clusterIdMemo };
@@ -106,6 +105,7 @@
           {} as Record<string, boolean>,
         );
         const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
+        // eslint-disable-next-line @typescript-eslint/prefer-for-of
         for (let i = 0; i < currentSelectClusterIdList.length; i++) {
           if (otherClusterIdMap[currentSelectClusterIdList[i]]) {
             return false;
@@ -113,7 +113,6 @@
         }
         return true;
       },
-      message: t('目标集群重复'),
     },
   ];
 

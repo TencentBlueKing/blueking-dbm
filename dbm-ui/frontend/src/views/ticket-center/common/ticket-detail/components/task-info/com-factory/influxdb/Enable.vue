@@ -26,10 +26,10 @@
     ticketDetails: TicketModel<Influxdb.Enable>;
   }
 
-  defineProps<Details>();
-
   defineOptions({
     name: TicketTypes.INFLUXDB_ENABLE,
     inheritAttrs: false,
   });
+
+  defineProps<Details>();
 </script>

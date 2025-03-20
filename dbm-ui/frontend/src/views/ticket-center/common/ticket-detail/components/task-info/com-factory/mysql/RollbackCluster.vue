@@ -12,10 +12,10 @@
     ticketDetails: TicketModel<Mysql.RollbackCluster>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.MYSQL_ROLLBACK_CLUSTER,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

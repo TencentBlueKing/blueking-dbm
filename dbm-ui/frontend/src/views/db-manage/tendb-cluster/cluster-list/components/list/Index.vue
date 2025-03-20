@@ -126,6 +126,7 @@
           :cluster-type="ClusterTypes.TENDBCLUSTER"
           field="spider_slave"
           :get-table-instance="getTableInstance"
+          :is-filter="isFilter"
           label="Spider Slave"
           :search-ip="searchIp"
           :selected-list="selected" />
@@ -133,6 +134,7 @@
           :cluster-type="ClusterTypes.TENDBCLUSTER"
           field="spider_mnt"
           :get-table-instance="getTableInstance"
+          :is-filter="isFilter"
           :label="t('运维节点')"
           :search-ip="searchIp"
           :selected-list="selected" />
@@ -140,6 +142,7 @@
           :cluster-type="ClusterTypes.TENDBCLUSTER"
           field="remote_db"
           :get-table-instance="getTableInstance"
+          :is-filter="isFilter"
           label="RemoteDB"
           :search-ip="searchIp"
           :selected-list="selected" />
@@ -147,6 +150,7 @@
           :cluster-type="ClusterTypes.TENDBCLUSTER"
           field="remote_dr"
           :get-table-instance="getTableInstance"
+          :is-filter="isFilter"
           label="RemoteDR"
           :search-ip="searchIp"
           :selected-list="selected" />
@@ -304,41 +308,25 @@
   import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
-  import {
-    useRoute,
-    useRouter,
-  } from 'vue-router';
+  import { useRoute, useRouter } from 'vue-router';
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
-  import {
-    getTendbClusterList,
-    getTendbclusterPrimary,
-  } from '@services/source/tendbcluster';
+  import { getTendbClusterList, getTendbclusterPrimary } from '@services/source/tendbcluster';
   import { createTicket } from '@services/source/ticket';
   import { getUserList } from '@services/source/user';
 
-  import {
-    useLinkQueryColumnSerach,
-    useStretchLayout,
-    useTableSettings,
-    useTicketMessage,
-  } from '@hooks';
+  import { useLinkQueryColumnSerach, useStretchLayout, useTableSettings, useTicketMessage } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
-  import {
-    AccountTypes,
-    ClusterTypes,
-    TicketTypes,
-    UserPersonalSettings,
-  } from '@common/const';
+  import { AccountTypes, ClusterTypes, TicketTypes, UserPersonalSettings } from '@common/const';
 
   import DbTable from '@components/db-table/index.vue';
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
-  import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue'
-  import ClusterExportData from '@views/db-manage/common/cluster-export-data/Index.vue'
+  import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
+  import ClusterExportData from '@views/db-manage/common/cluster-export-data/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import ClusterNameColumn from '@views/db-manage/common/cluster-table-column/ClusterNameColumn.vue';
   import ClusterStatsColumn from '@views/db-manage/common/cluster-table-column/ClusterStatsColumn.vue';
@@ -354,30 +342,23 @@
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
 
-  import {
-    getMenuListSearch,
-    getSearchSelectorParams,
-    isRecentDays,
-    messageWarn,
-  } from '@utils';
+  import { getMenuListSearch, getSearchSelectorParams, isRecentDays, messageWarn } from '@utils';
 
   import MasterSlaveRoleColumn from './components/MasterSlaveRoleColume.vue';
   import RemoteRoleColumn from './components/RemoteRoleColumn.vue';
 
   interface IColumn {
-    data: TendbClusterModel
+    data: TendbClusterModel;
   }
 
+  const clusterId = defineModel<number>('clusterId');
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
-  const {
-    isOpen: isStretchLayoutOpen,
-    splitScreen: stretchLayoutSplitScreen,
-  } = useStretchLayout();
+  const { isOpen: isStretchLayoutOpen, splitScreen: stretchLayoutSplitScreen } = useStretchLayout();
   const { currentBizId } = useGlobalBizs();
   const ticketMessage = useTicketMessage();
-  const { handleDisableCluster, handleEnableCluster, handleDeleteCluster } = useOperateClusterBasic(
+  const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(
     ClusterTypes.TENDBCLUSTER,
     {
       onSuccess: () => fetchTableData(),
@@ -385,79 +366,68 @@
   );
 
   const {
+    clearSearchValue,
+    columnFilterChange,
+    columnSortChange,
+    handleSearchValueChange,
+    isFilter,
     searchAttrs,
     searchValue,
     sortValue,
-    isFilter,
-    columnFilterChange,
-    columnSortChange,
-    clearSearchValue,
     validateSearchValues,
-    handleSearchValueChange,
   } = useLinkQueryColumnSerach({
-    searchType: ClusterTypes.TENDBCLUSTER,
-    attrs: [
-      'bk_cloud_id',
-      'db_module_id',
-      'major_version',
-      'region',
-      'time_zone',
-    ],
-    fetchDataFn: () => fetchTableData(),
+    attrs: ['bk_cloud_id', 'db_module_id', 'major_version', 'region', 'time_zone'],
     defaultSearchItem: {
-      name: t('访问入口'),
       id: 'domain',
-    }
+      name: t('访问入口'),
+    },
+    fetchDataFn: () => fetchTableData(),
+    searchType: ClusterTypes.TENDBCLUSTER,
   });
-
-  const clusterId = defineModel<number>('clusterId');
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const removeMNTInstanceIds = ref<number[]>([]);
   const excelAuthorizeShow = ref(false);
   const clusterAuthorizeShow = ref(false);
-  const showDataExportSlider = ref(false)
-  const currentData = ref<IColumn['data']>()
+  const showDataExportSlider = ref(false);
+  const currentData = ref<IColumn['data']>();
   const selected = ref<TendbClusterModel[]>([]);
   const clusterPrimaryMap = ref<Record<string, boolean>>({});
 
-  const getTableInstance = () => tableRef.value
+  const getTableInstance = () => tableRef.value;
 
-  const selectedIds = computed(() => selected.value.map(item => item.id));
-  const tableDataList = computed(() => tableRef.value?.getData<TendbClusterModel>() || [])
+  const selectedIds = computed(() => selected.value.map((item) => item.id));
+  const tableDataList = computed(() => tableRef.value?.getData<TendbClusterModel>() || []);
   const hasData = computed(() => tableDataList.value.length > 0);
 
   const searchSelectData = computed(() => [
     {
-      name: t('访问入口'),
+      async: false,
       id: 'domain',
       multiple: true,
-      async: false,
+      name: t('访问入口'),
     },
     {
-      name: t('IP 或 IP:Port'),
+      async: false,
       id: 'instance',
       multiple: true,
-      async: false,
+      name: t('IP 或 IP:Port'),
     },
     {
-      name: 'ID',
       id: 'id',
+      name: 'ID',
     },
     {
-      name: t('集群名称'),
       id: 'name',
+      name: t('集群名称'),
     },
     {
-      name: t('管控区域'),
+      children: searchAttrs.value.bk_cloud_id,
       id: 'bk_cloud_id',
       multiple: true,
-      children: searchAttrs.value.bk_cloud_id,
+      name: t('管控区域'),
     },
     {
-      name: t('状态'),
-      id: 'status',
-      multiple: true,
       children: [
         {
           id: 'normal',
@@ -468,24 +438,27 @@
           name: t('异常'),
         },
       ],
+      id: 'status',
+      multiple: true,
+      name: t('状态'),
     },
     {
-      name: t('版本'),
+      children: searchAttrs.value.major_version,
       id: 'major_version',
       multiple: true,
-      children: searchAttrs.value.major_version,
+      name: t('版本'),
     },
     {
-      name: t('地域'),
+      children: searchAttrs.value.region,
       id: 'region',
       multiple: true,
-      children: searchAttrs.value.region,
+      name: t('地域'),
     },
     {
-      name: t('时区'),
+      children: searchAttrs.value.time_zone,
       id: 'time_zone',
       multiple: true,
-      children: searchAttrs.value.time_zone,
+      name: t('时区'),
     },
   ]);
   const paginationExtra = computed(() => {
@@ -494,14 +467,14 @@
     }
 
     return {
-      small: true,
       align: 'left',
       layout: ['total', 'limit', 'list'],
+      small: true,
     };
   });
 
   const searchIp = computed<string[]>(() => {
-    const ipObj = searchValue.value.find(item => item.id === 'ip');
+    const ipObj = searchValue.value.find((item) => item.id === 'ip');
     if (ipObj && ipObj.values) {
       return [ipObj.values[0].id];
     }
@@ -515,7 +488,9 @@
         clusterPrimaryMap.value = data.reduce<Record<string, boolean>>((acc, cur) => {
           const ip = cur.primary.split(':')[0];
           if (ip) {
-            acc[ip] = true;
+            Object.assign(acc, {
+              [ip]: true,
+            });
           }
           return acc;
         }, {});
@@ -526,7 +501,7 @@
   const { runAsync: fetchData } = useRequest(getTendbClusterList, {
     manual: true,
     onSuccess(data) {
-      const clusterIds = data.results.map(item => item.id);
+      const clusterIds = data.results.map((item) => item.id);
       if (clusterIds.length > 0) {
         getSpiderClusterPrimaryRun({
           cluster_ids: clusterIds,
@@ -547,8 +522,8 @@
     // 没有选中过滤标签
     if (!item) {
       // 过滤掉已经选过的标签
-      const selected = (searchValue.value || []).map(value => value.id);
-      return searchSelectData.value.filter(item => !selected.includes(item.id));
+      const selected = (searchValue.value || []).map((value) => value.id);
+      return searchSelectData.value.filter((item) => !selected.includes(item.id));
     }
 
     // 远程加载执行人
@@ -558,14 +533,16 @@
       }
       return getUserList({
         fuzzy_lookups: keyword,
-      }).then(res => res.results.map(item => ({
-        id: item.username,
-        name: item.username,
-      })));
+      }).then((res) =>
+        res.results.map((item) => ({
+          id: item.username,
+          name: item.username,
+        })),
+      );
     }
 
     // 不需要远层加载
-    return searchSelectData.value.find(set => set.id === item.id)?.children || [];
+    return searchSelectData.value.find((set) => set.id === item.id)?.children || [];
   };
 
   // 设置行样式
@@ -576,13 +553,10 @@
     if (row.id === clusterId.value) {
       classList.push('is-selected-row');
     }
-    return classList.filter(cls => cls).join(' ');
+    return classList.filter((cls) => cls).join(' ');
   };
 
-  const {
-    settings,
-    updateTableSettings,
-  } = useTableSettings(UserPersonalSettings.TENDBCLUSTER_TABLE_SETTINGS, {
+  const { settings, updateTableSettings } = useTableSettings(UserPersonalSettings.TENDBCLUSTER_TABLE_SETTINGS, {
     checked: [
       'master_domain',
       'slave_domain',
@@ -604,9 +578,13 @@
 
   let isInitData = true;
   const fetchTableData = () => {
-    tableRef.value?.fetchData({
-      ...getSearchSelectorParams(searchValue.value),
-    }, { ...sortValue }, isInitData);
+    tableRef.value?.fetchData(
+      {
+        ...getSearchSelectorParams(searchValue.value),
+      },
+      { ...sortValue },
+      isInitData,
+    );
     isInitData = false;
 
     return Promise.resolve([]);
@@ -621,23 +599,31 @@
   // 下架运维节点
   const handleRemoveMNT = (data: TendbClusterModel) => {
     InfoBox({
-      width: 480,
-      title: t('确认下架运维节点'),
+      cancelText: t('取消'),
+      confirmText: t('下架'),
       content: () => (
         <>
           <p>{t('下架后将无法再访问_请谨慎操作')}</p>
-          <div style="text-align: left; padding: 0 24px;">
-            <p class="pt-12" style="font-size: 12px;">{t('请勾选要下架的运维节点')}</p>
-            <Checkbox.Group class="mnt-checkbox-group" style="flex-wrap: wrap;" v-model={removeMNTInstanceIds.value}>
-              {
-                data.spider_mnt.map(item => <Checkbox label={item.bk_instance_id}>{item.instance}</Checkbox>)
-              }
+          <div style='text-align: left; padding: 0 24px;'>
+            <p
+              class='pt-12'
+              style='font-size: 12px;'>
+              {t('请勾选要下架的运维节点')}
+            </p>
+            <Checkbox.Group
+              v-model={removeMNTInstanceIds.value}
+              class='mnt-checkbox-group'
+              style='flex-wrap: wrap;'>
+              {data.spider_mnt.map((item) => (
+                <Checkbox label={item.bk_instance_id}>{item.instance}</Checkbox>
+              ))}
             </Checkbox.Group>
           </div>
         </>
       ),
-      confirmText: t('下架'),
-      cancelText: t('取消'),
+      onCancel: () => {
+        removeMNTInstanceIds.value = [];
+      },
       onConfirm: () => {
         if (removeMNTInstanceIds.value.length === 0) {
           messageWarn(t('请勾选要下架的运维节点'));
@@ -645,21 +631,21 @@
         }
         return createTicket({
           bk_biz_id: currentBizId,
-          ticket_type: 'TENDBCLUSTER_SPIDER_MNT_DESTROY',
           details: {
-            is_safe: true,
             infos: [
               {
                 cluster_id: data.id,
                 spider_ip_list: data.spider_mnt
-                  .filter(item => removeMNTInstanceIds.value.includes(item.bk_instance_id))
-                  .map(item => ({
-                    ip: item.ip,
+                  .filter((item) => removeMNTInstanceIds.value.includes(item.bk_instance_id))
+                  .map((item) => ({
                     bk_cloud_id: item.bk_cloud_id,
+                    ip: item.ip,
                   })),
               },
             ],
+            is_safe: true,
           },
+          ticket_type: 'TENDBCLUSTER_SPIDER_MNT_DESTROY',
         })
           .then((res) => {
             ticketMessage(res.id);
@@ -668,29 +654,28 @@
           })
           .catch(() => false);
       },
-      onCancel: () => {
-        removeMNTInstanceIds.value = [];
-      },
+      title: t('确认下架运维节点'),
+      width: 480,
     });
   };
 
   // 下架只读集群
   const handleDestroySlave = (data: TendbClusterModel) => {
     InfoBox({
-      type: 'warning',
-      title: t('确认下架只读集群'),
       content: t('下架后将无法访问只读集群'),
-      onConfirm: () => createTicket({
-        bk_biz_id: currentBizId,
-        ticket_type: 'TENDBCLUSTER_SPIDER_SLAVE_DESTROY',
-        details: {
-          is_safe: true,
-          cluster_ids: [data.id],
-        },
-      })
-        .then((res) => {
+      onConfirm: () =>
+        createTicket({
+          bk_biz_id: currentBizId,
+          details: {
+            cluster_ids: [data.id],
+            is_safe: true,
+          },
+          ticket_type: 'TENDBCLUSTER_SPIDER_SLAVE_DESTROY',
+        }).then((res) => {
           ticketMessage(res.id);
-        })
+        }),
+      title: t('确认下架只读集群'),
+      type: 'warning',
     });
   };
 
@@ -720,7 +705,7 @@
   };
 
   const handleShowDataExportSlider = (data: IColumn['data']) => {
-    currentData.value = data
+    currentData.value = data;
     showDataExportSlider.value = true;
   };
 
@@ -731,7 +716,7 @@
   const handleBatchOperationSuccess = () => {
     tableRef.value!.clearSelected();
     fetchTableData();
-  }
+  };
 
   onMounted(() => {
     if (!clusterId.value && route.query.id) {

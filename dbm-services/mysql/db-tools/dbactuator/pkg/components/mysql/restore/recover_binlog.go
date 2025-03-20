@@ -243,7 +243,7 @@ exit $retcode
 			"dbPort":          r.TgtInstance.Port,
 			"dbUser":          r.TgtInstance.User,
 			"dbPass":          r.TgtInstance.Pwd,
-			"mysqlOpt":        "--max-allowed-packet=1073741824 --binary-mode",
+			"mysqlOpt":        "--max-allowed-packet=1073741824",
 			"mysqlCmd":        r.ToolSet.MustGet(tools.ToolMysqlclient),
 			"dirBinlogParsed": dirBinlogParsed,
 			"sqlFiles":        strings.Join(r.BinlogFiles, " "),
@@ -347,13 +347,15 @@ func (r *RecoverBinlog) buildMysqlOptions() error {
 	if len(initCommands) > 0 {
 		r.TgtInstance.Options += fmt.Sprintf(" --init-command='%s'", strings.Join(initCommands, ";"))
 	}
-	if mysqlOpt.BinaryMode {
-		r.TgtInstance.Options += " --binary-mode"
-	}
+
 	if mysqlOpt.MaxAllowedPacket > 0 {
 		r.TgtInstance.Options += fmt.Sprintf(" --max-allowed-packet=%d", mysqlOpt.MaxAllowedPacket)
 	}
-	r.mysqlCli = r.TgtInstance.MySQLClientCmd(r.ToolSet.MustGet(tools.ToolMysqlclient))
+	mysqlClient := r.ToolSet.MustGet(tools.ToolMysqlclient)
+	if mysqlOpt.BinaryMode && mysqlCliHasOpt(mysqlClient, "--binary-mode") == nil {
+		r.TgtInstance.Options += " --binary-mode"
+	}
+	r.mysqlCli = r.TgtInstance.MySQLClientCmd(mysqlClient)
 	return nil
 }
 
@@ -477,7 +479,7 @@ func (r *RecoverBinlog) buildFilterOpts() error {
 
 func (r *RecoverBinlog) initDirs() error {
 	if r.WorkID == "" {
-		r.WorkID = newTimestampString()
+		r.WorkID = cmutil.NewTimestampString()
 	}
 	r.taskDir = fmt.Sprintf("%s/recover_binlog_%s/%d", r.WorkDir, r.WorkID, r.TgtInstance.Port)
 	if err := osutil.CheckAndMkdir("", r.taskDir); err != nil {

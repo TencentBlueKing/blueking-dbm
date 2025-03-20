@@ -75,24 +75,22 @@
   import CollapseMini from './CollapseMini.vue';
 
   interface Props {
-    lastValues: InstanceSelectorValues<IValue>;
-    titleMap: Record<string, string>;
-    showTitle?: boolean;
-    displayKey?: keyof IValue;
     activePanelId?: string;
+    displayKey?: keyof IValue;
+    lastValues: InstanceSelectorValues<IValue>;
+    showTitle?: boolean;
+    titleMap: Record<string, string>;
   }
 
   type Keys = keyof Props['lastValues'];
 
-  interface Emits {
-    (e: 'change', value: Props['lastValues']): void;
-  }
+  type Emits = (e: 'change', value: Props['lastValues']) => void;
 
   const props = withDefaults(defineProps<Props>(), {
+    activePanelId: 'tendbcluster',
+    displayKey: 'instance_address',
     showTitle: false,
     title: '',
-    displayKey: 'instance_address',
-    activePanelId: 'tendbcluster',
   });
   const emits = defineEmits<Emits>();
 

@@ -25,10 +25,10 @@
     ticketDetails: TicketModel<Doris.Shrink>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.DORIS_SHRINK,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

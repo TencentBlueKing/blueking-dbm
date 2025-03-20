@@ -77,6 +77,15 @@ class ProfileSerializer(serializers.Serializer):
     values = serializers.JSONField()
 
 
+class ProfileSqlSerializer(serializers.Serializer):
+    class SqlSelfSerializer(serializers.Serializer):
+        name = serializers.CharField(help_text=_("sql名称"))
+        sql = serializers.CharField(help_text=_("sql内容"))
+        is_top = serializers.BooleanField(help_text=_("是否置顶"), required=False, default=False)
+
+    sqls = serializers.ListSerializer(help_text=_("收藏sql列表"), child=SqlSelfSerializer())
+
+
 class ListDBAdminSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
 
@@ -254,3 +263,7 @@ class FunctionControllerSerializer(serializers.Serializer):
     class Meta:
         model = FunctionController
         fields = "__all__"
+
+
+class GetCommonSQLSerializer(serializers.Serializer):
+    db_type = serializers.ChoiceField(help_text=_("组件类型"), choices=DBType.get_choices())

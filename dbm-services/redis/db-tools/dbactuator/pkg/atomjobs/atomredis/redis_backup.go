@@ -637,13 +637,19 @@ func (task *BackupTask) getRedisShardVal() {
 
 // RedisInstanceBackup redis(cache)实例备份
 func (task *BackupTask) RedisInstanceBackup() {
-	var srcFile string
+	var srcFile, version string
 	var targetFile string
 	var confMap map[string]string
 	var fileSize int64
 	nowtime := time.Now().Local().Format(consts.FilenameTimeLayout)
 	task.StartTime = time.Now().Local()
-	if task.Role == consts.RedisMasterRole {
+
+	// 兼容 Redis-7 版本
+	if version, task.Err = task.Cli.GetTendisVersion(); task.Err != nil {
+		return
+	}
+
+	if task.Role == consts.RedisMasterRole || strings.HasPrefix(version, "7.") {
 		// redis master backup rdb
 		confMap, task.Err = task.Cli.ConfigGet("dbfilename")
 		if task.Err != nil {

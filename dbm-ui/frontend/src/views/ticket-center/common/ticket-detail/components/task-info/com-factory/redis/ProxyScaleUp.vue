@@ -50,12 +50,12 @@
     ticketDetails: TicketModel<Redis.ProxyScaleUp>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.REDIS_PROXY_SCALE_UP,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 
   type IRowData = Props['ticketDetails']['details']['infos'][number];
 

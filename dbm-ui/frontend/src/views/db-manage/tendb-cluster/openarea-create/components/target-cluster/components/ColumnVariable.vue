@@ -27,8 +27,8 @@
   import TableEditInput from '@views/db-manage/tendb-cluster/common/edit/Input.vue';
 
   interface Props {
-    name: string;
     data?: string;
+    name: string;
   }
   interface Exposes {
     getValue: () => Promise<Record<string, string>>;
@@ -45,8 +45,8 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('变量名name不能为空', { name: props.name }),
+      validator: (value: string) => Boolean(value),
     },
   ];
 

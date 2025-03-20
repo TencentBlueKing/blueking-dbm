@@ -75,11 +75,7 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import {
-    ref,
-    shallowRef,
-    watch,
-  } from 'vue';
+  import { ref, shallowRef, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type { HostInfo } from '@services/types';
@@ -92,12 +88,10 @@
   import useLocalPagination from './hook/useLocalPagination';
 
   interface Props {
-    data: Array<HostInfo>
+    data: Array<HostInfo>;
   }
 
-  interface Emits {
-    (e: 'update:data', value: Array<HostInfo>): void
-  }
+  type Emits = (e: 'update:data', value: Array<HostInfo>) => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -109,85 +103,83 @@
 
   const columns = [
     {
-      label: 'IP',
       field: 'ip',
+      label: 'IP',
+      render: ({ data }: { data: HostInfo }) => data.ip,
       width: 160,
-      render: ({ data }: {data: HostInfo}) => data.ip,
     },
     {
-      label: t('机型'),
       field: 'bk_cpu',
-      render: ({ data }: {data: HostInfo}) => data.bk_cpu || '--',
+      label: t('机型'),
+      render: ({ data }: { data: HostInfo }) => data.bk_cpu || '--',
     },
     {
-      label: t('机房'),
       field: 'bk_idc_name',
-      render: ({ data }: {data: HostInfo}) => data.bk_idc_name || '--',
+      label: t('机房'),
+      render: ({ data }: { data: HostInfo }) => data.bk_idc_name || '--',
     },
     {
-      label: t('主机名称'),
       field: 'host_name',
-      render: ({ data }: {data: HostInfo}) => data.host_name || '--',
+      label: t('主机名称'),
+      render: ({ data }: { data: HostInfo }) => data.host_name || '--',
     },
     {
-      label: t('Agent状态'),
       field: 'alive',
-      render: ({ data }: {data: HostInfo}) => {
-        const info = data.alive === 1 ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
+      label: t('Agent状态'),
+      render: ({ data }: { data: HostInfo }) => {
+        const info = data.alive === 1 ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
     },
     {
-      label: t('管控区域'),
       field: 'cloud_area',
-      render: ({ data }: {data: HostInfo}) => data.cloud_area.name || '--',
+      label: t('管控区域'),
+      render: ({ data }: { data: HostInfo }) => data.cloud_area.name || '--',
     },
     {
-      label: t('OS名称'),
       field: 'os_name',
-      render: ({ data }: {data: HostInfo}) => data.os_name || '--',
+      label: t('OS名称'),
+      render: ({ data }: { data: HostInfo }) => data.os_name || '--',
     },
     {
-      label: t('OS类型'),
       field: 'os_type',
-      render: ({ data }: {data: HostInfo}) => data.os_type || '--',
+      label: t('OS类型'),
+      render: ({ data }: { data: HostInfo }) => data.os_type || '--',
     },
     {
-      label: t('主机ID'),
       field: 'host_id',
-      render: ({ data }: {data: HostInfo}) => data.host_id || '--',
+      label: t('主机ID'),
+      render: ({ data }: { data: HostInfo }) => data.host_id || '--',
     },
     {
-      label: 'Agent ID',
       field: 'agent_id',
-      render: ({ data }: {data: HostInfo}) => data.agent_id || '--',
+      label: 'Agent ID',
+      render: ({ data }: { data: HostInfo }) => data.agent_id || '--',
     },
     {
-      label: t('操作'),
       field: 'operation',
-      width: 100,
-      render: ({ data }: {data: HostInfo}) => (
+      label: t('操作'),
+      render: ({ data }: { data: HostInfo }) => (
         <bk-button
+          theme='primary'
           text
-          theme="primary"
           onClick={() => handleRemove(data)}>
-          { t('删除') }
+          {t('删除')}
         </bk-button>
       ),
+      width: 100,
     },
   ];
 
-  watch(() => props.data, () => {
-    localData.value = props.data;
-  });
+  watch(
+    () => props.data,
+    () => {
+      localData.value = props.data;
+    },
+  );
 
-  const {
-    searchKey,
-    pagination,
-    serachList,
-    handlePaginationCurrentChange,
-    handlePaginationLimitChange,
-  } = useLocalPagination(localData);
+  const { handlePaginationCurrentChange, handlePaginationLimitChange, pagination, searchKey, serachList } =
+    useLocalPagination(localData);
 
   const handleClearSearch = () => {
     searchKey.value = '';
@@ -210,10 +202,13 @@
 
   // 清空所有主机
   const handleClearAll = () => {
-    const searchHostIdMap = serachList.value.reduce((result, hostData) => ({
-      ...result,
-      [hostData.host_id]: true,
-    }), {} as Record<number, boolean>);
+    const searchHostIdMap = serachList.value.reduce(
+      (result, hostData) => ({
+        ...result,
+        [hostData.host_id]: true,
+      }),
+      {} as Record<number, boolean>,
+    );
 
     const result = props.data.reduce((result, hostData) => {
       if (!searchHostIdMap[hostData.host_id]) {
@@ -226,15 +221,18 @@
 
   // 清空异常主机
   const handleClearAbnormal = () => {
-    const searchHostIdMap = serachList.value.reduce((result, hostData) => {
-      if (!hostData.alive) {
-        return {
-          ...result,
-          [hostData.host_id]: true,
-        };
-      }
-      return result;
-    }, {} as Record<number, boolean>);
+    const searchHostIdMap = serachList.value.reduce(
+      (result, hostData) => {
+        if (!hostData.alive) {
+          return {
+            ...result,
+            [hostData.host_id]: true,
+          };
+        }
+        return result;
+      },
+      {} as Record<number, boolean>,
+    );
 
     const result = props.data.reduce((result, hostData) => {
       if (!searchHostIdMap[hostData.host_id]) {
@@ -247,7 +245,7 @@
 
   // 复制所有主机IP
   const handleCopyAll = () => {
-    const ipList = serachList.value.map(_ => _.ip);
+    const ipList = serachList.value.map((_) => _.ip);
     execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }));
   };
 

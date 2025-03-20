@@ -78,7 +78,7 @@ def fill_cluster_service_nginx_conf():
 
     for cloud_id in cloud__db_type__extension.keys():
         # 获取下发nginx conf的机器 TODO: 后续要改为clb的地址进行转发
-        proxy = DBCloudProxy.objects.filter(bk_cloud_id=cloud_id).last()
+        proxy_external_address = DBCloudProxy.get_cloud_proxy_external_address(bk_cloud_id=cloud_id)
         nginx_extensions = DBExtension.get_extension_in_cloud(bk_cloud_id=cloud_id, extension_type=ExtensionType.NGINX)
         # 获取nginx的bk_agent_id(兼容gse2.0的agent查询)
         for nginx_extension in nginx_extensions:
@@ -105,7 +105,7 @@ def fill_cluster_service_nginx_conf():
                 # 渲染配置
                 file_list.append(nginxconf_tpl.render_nginx_tpl(extension=extension, template=template, encode=True))
                 # 这里先提前写入access url，至于是否执行成功根据is_flush
-                extension.save_access_url(nginx_url=f"{proxy.external_address}:{manage_port}")
+                extension.save_access_url(nginx_url=f"{proxy_external_address}:{manage_port}")
                 extension_ids.append(extension.id)
 
         # 下发nginx服务配置
@@ -113,5 +113,5 @@ def fill_cluster_service_nginx_conf():
         resp = _job_push_config_file(_cloud_id=cloud_id, _nginx_list=nginx_list, _file_list=file_list)
         if resp:
             # 缓存inst_id和nginx id，用于回调job，默认缓存时间和定时周期一致
-            RedisConn.lpush(resp["data"]["job_instance_id"], *extension_ids, proxy.bk_cloud_id)
+            RedisConn.lpush(resp["data"]["job_instance_id"], *extension_ids, cloud_id)
             RedisConn.expire(resp["data"]["job_instance_id"], JOB_INSTANCE_EXPIRE_TIME)

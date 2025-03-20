@@ -1,7 +1,7 @@
 import tencentConfig from 'eslint-config-tencent/ts';
 import importPlugin from 'eslint-plugin-import';
 import oxlint from 'eslint-plugin-oxlint';
-// import perfectionist from 'eslint-plugin-perfectionist';
+import perfectionist from 'eslint-plugin-perfectionist';
 import simpleImportSortPlugin from 'eslint-plugin-simple-import-sort';
 import pluginVue from 'eslint-plugin-vue';
 import globals from 'globals';
@@ -70,106 +70,194 @@ export default defineConfigWithVueTs(
         'error',
         {
           selector: 'variable',
-          format: ['camelCase', 'UPPER_CASE'],
+          format: ['camelCase', 'PascalCase', 'UPPER_CASE'],
         },
       ],
+      '@typescript-eslint/no-misused-promises': [
+        'error',
+        {
+          checksVoidReturn: false,
+        },
+      ],
+      '@typescript-eslint/unified-signatures': 'off',
       'no-underscore-dangle': ['error', { enforceInMethodNames: false }],
       'no-param-reassign': ['error', { props: true }],
     },
   },
-  // {
-  //   files: ['**/*.ts', '**/*.tsx', '**/*.vue'],
-  //   plugins: {
-  //     perfectionist,
-  //   },
-  //   rules: {
-  //     'perfectionist/sort-jsx-props': [
-  //       'error',
-  //       {
-  //         type: 'alphabetical',
-  //         order: 'asc',
-  //         ignoreCase: true,
-  //         specialCharacters: 'keep',
-  //         ignorePattern: [],
-  //         partitionByNewLine: false,
-  //         newlinesBetween: 'ignore',
-  //         groups: [
-  //           'DEFINITION',
-  //           'LIST_RENDERING',
-  //           'CONDITIONALS',
-  //           'RENDER_MODIFIERS',
-  //           'GLOBAL',
-  //           'UNIQUE',
-  //           'SLOT',
-  //           'TWO_WAY_BINDING',
-  //           'OTHER_DIRECTIVES',
-  //           'multiline',
-  //           'unknown',
-  //           'shorthand',
-  //           'callback',
-  //         ],
-  //         customGroups: {
-  //           DEFINITION: '^v-is',
-  //           LIST_RENDERING: '^v-for',
-  //           CONDITIONALS: '^(v-if|v-else-if|v-else|v-show|v-cloak)',
-  //           RENDER_MODIFIERS: '^(v-once|v-pre)',
-  //           GLOBAL: '^id',
-  //           UNIQUE: '^(ref|key)',
-  //           SLOT: '^v-slot',
-  //           TWO_WAY_BINDING: '^v-model',
-  //           OTHER_DIRECTIVES: '^v-.+',
-  //           callback: '^on.+',
-  //         },
-  //       },
-  //     ],
-  //     'perfectionist/sort-array-includes': 'error',
-  //     'perfectionist/sort-classes': [
-  //       'error',
-  //       {
-  //         type: 'alphabetical',
-  //         order: 'asc',
-  //         ignoreCase: true,
-  //         specialCharacters: 'keep',
-  //         partitionByComment: false,
-  //         partitionByNewLine: false,
-  //         newlinesBetween: 'ignore',
-  //         ignoreCallbackDependenciesPatterns: [],
-  //         groups: [
-  //           'index-signature',
-  //           ['static-property', 'static-accessor-property'],
-  //           ['static-get-method', 'static-set-method'],
-  //           ['protected-static-property', 'protected-static-accessor-property'],
-  //           ['protected-static-get-method', 'protected-static-set-method'],
-  //           ['private-static-property', 'private-static-accessor-property'],
-  //           ['private-static-get-method', 'private-static-set-method'],
-  //           'static-block',
-  //           ['static-method', 'static-function-property'],
-  //           ['protected-static-method', 'protected-static-function-property'],
-  //           ['private-static-method', 'private-static-function-property'],
-  //           ['property', 'accessor-property'],
-  //           ['protected-property', 'protected-accessor-property'],
-  //           ['protected-get-method', 'protected-set-method'],
-  //           ['private-property', 'private-accessor-property'],
-  //           ['private-get-method', 'private-set-method'],
-  //           'constructor',
-  //           ['get-method', 'set-method'],
-  //           ['method', 'function-property'],
-  //           ['protected-method', 'protected-function-property'],
-  //           ['private-method', 'private-function-property'],
-  //           'unknown',
-  //         ],
-  //         customGroups: [],
-  //       },
-  //     ],
-  //     'perfectionist/sort-enums': 'error',
-  //     'perfectionist/sort-intersection-types': 'error',
-  //     'perfectionist/sort-interfaces': 'error',
-  //     'perfectionist/sort-named-imports': 'error',
-  //     'perfectionist/sort-object-types': 'error',
-  //     'perfectionist/sort-objects': 'error',
-  //   },
-  // },
   {
+    files: ['**/*.ts', '**/*.tsx', '**/*.vue'],
+    plugins: {
+      perfectionist,
+    },
+    rules: {
+      'perfectionist/sort-jsx-props': [
+        'error',
+        {
+          type: 'alphabetical',
+          order: 'asc',
+          ignoreCase: true,
+          specialCharacters: 'keep',
+          ignorePattern: [],
+          partitionByNewLine: false,
+          newlinesBetween: 'ignore',
+          groups: [
+            'DEFINITION',
+            'LIST_RENDERING',
+            'CONDITIONALS',
+            'RENDER_MODIFIERS',
+            'GLOBAL',
+            'UNIQUE',
+            'SLOT',
+            'TWO_WAY_BINDING',
+            'OTHER_DIRECTIVES',
+            'multiline',
+            'unknown',
+            'shorthand',
+            'callback',
+          ],
+          customGroups: {
+            DEFINITION: '^v-is',
+            LIST_RENDERING: '^v-for',
+            CONDITIONALS: '^(v-if|v-else-if|v-else|v-show|v-cloak)',
+            RENDER_MODIFIERS: '^(v-once|v-pre)',
+            GLOBAL: '^id',
+            UNIQUE: '^(ref|key)',
+            SLOT: '^v-slot',
+            TWO_WAY_BINDING: '^v-model',
+            OTHER_DIRECTIVES: '^v-.+',
+            callback: '^on.+',
+          },
+        },
+      ],
+      'perfectionist/sort-array-includes': 'error',
+      'perfectionist/sort-classes': [
+        'error',
+        {
+          type: 'alphabetical',
+          order: 'asc',
+          ignoreCase: true,
+          specialCharacters: 'keep',
+          partitionByComment: false,
+          partitionByNewLine: false,
+          newlinesBetween: 'ignore',
+          ignoreCallbackDependenciesPatterns: [],
+          groups: [
+            'index-signature',
+            ['static-property', 'static-accessor-property'],
+            ['static-get-method', 'static-set-method'],
+            ['protected-static-property', 'protected-static-accessor-property'],
+            ['protected-static-get-method', 'protected-static-set-method'],
+            ['private-static-property', 'private-static-accessor-property'],
+            ['private-static-get-method', 'private-static-set-method'],
+            'static-block',
+            ['static-method', 'static-function-property'],
+            ['protected-static-method', 'protected-static-function-property'],
+            ['private-static-method', 'private-static-function-property'],
+            ['property', 'accessor-property'],
+            ['protected-property', 'protected-accessor-property'],
+            ['protected-get-method', 'protected-set-method'],
+            ['private-property', 'private-accessor-property'],
+            ['private-get-method', 'private-set-method'],
+            'constructor',
+            ['get-method', 'set-method'],
+            ['method', 'function-property'],
+            ['protected-method', 'protected-function-property'],
+            ['private-method', 'private-function-property'],
+            'unknown',
+          ],
+          customGroups: [],
+        },
+      ],
+      'perfectionist/sort-enums': 'error',
+      'perfectionist/sort-intersection-types': 'error',
+      'perfectionist/sort-interfaces': 'error',
+      'perfectionist/sort-named-imports': [
+        'error',
+        {
+          ignoreAlias: true,
+        },
+      ],
+      'perfectionist/sort-object-types': ['error'],
+      'perfectionist/sort-objects': [
+        'error',
+        {
+          type: 'unsorted',
+          useConfigurationIf: {
+            callingFunctionNamePattern: '^defineOptions',
+          },
+        },
+      ],
+    },
+    ignores: ['**/**/routes.ts', 'src/stores/*'],
+  },
+  // 格式化 vue router 的配置顺序
+  {
+    plugins: {
+      perfectionist,
+    },
+    files: ['**/**/routes.ts'],
+    rules: {
+      'perfectionist/sort-objects': [
+        'error',
+        {
+          groups: ['path', 'name', 'meta', 'unknown', 'component', 'children'],
+          customGroups: [
+            {
+              groupName: 'path',
+              elementNamePattern: 'path',
+            },
+            {
+              groupName: 'name',
+              elementNamePattern: 'name',
+            },
+            {
+              groupName: 'meta',
+              elementNamePattern: 'meta',
+            },
+            {
+              groupName: 'component',
+              elementNamePattern: 'component',
+            },
+            {
+              groupName: 'children',
+              elementNamePattern: 'children',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  // 格式化 vue store 的配置顺序
+  {
+    plugins: {
+      perfectionist,
+    },
+    files: ['src/stores/*'],
+    rules: {
+      'perfectionist/sort-objects': [
+        'error',
+        {
+          groups: ['state', 'getters', 'actions', 'unknown'],
+          customGroups: [
+            {
+              groupName: 'state',
+              elementNamePattern: 'state',
+            },
+            {
+              groupName: 'getters',
+              elementNamePattern: 'getters',
+            },
+            {
+              groupName: 'actions',
+              elementNamePattern: 'actions',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['**/*.ts', '**/*.tsx', '**/*.vue'],
     plugins: {
       import: importPlugin,
     },
@@ -244,7 +332,13 @@ export default defineConfigWithVueTs(
           alphabetical: true,
         },
       ],
-      'vue/define-macros-order': ['error', { order: ['defineProps', 'defineEmits'] }],
+      'vue/define-macros-order': [
+        'error',
+        {
+          order: ['defineOptions', 'defineProps', 'defineEmits', 'defineSlots', 'defineModel'],
+          defineExposeLast: false,
+        },
+      ],
       'vue/no-undef-properties': ['error', { ignores: ['/^\\$/'] }],
       'vue/no-unused-properties': [
         'error',
@@ -281,6 +375,13 @@ export default defineConfigWithVueTs(
       ],
       'vue/no-setup-props-reactivity-loss': 'off',
       'vue/no-setup-props-destructure': 'off',
+      'vue/v-on-function-call': [
+        'error',
+        'never',
+        {
+          ignoreIncludesComment: false,
+        },
+      ],
     },
   },
   {

@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import importlib
 import logging
 import os
 from dataclasses import asdict, dataclass
@@ -75,6 +74,27 @@ class TodoActor:
         """处理操作的具体实现"""
         raise NotImplementedError
 
+    def deliver(self, username, action, params):
+        """当前用户分派给其他指定用户"""
+        processors, remark = params["processors"], params["remark"]
+
+        # 剔除当前用户，并追加后续分派用户
+        if username in self.todo.helpers:
+            self.todo.helpers.remove(username)
+            self.todo.helpers.extend(processors)
+        elif username in self.todo.operators:
+            self.todo.operators.remove(username)
+            self.todo.operators.extend(processors)
+        else:
+            raise TodoWrongOperatorException(_("{}不是处理人或者协助人，无法进行分派").format(username))
+
+        self.todo.save()
+        self._deliver(username, processors, remark)
+
+    def _deliver(self, username, processors, remark):
+        """额外的分派逻辑，由子类独立实现"""
+        pass
+
 
 class TodoActorFactory:
     """待办执行器工厂"""
@@ -111,13 +131,14 @@ def register_all_todos():
     re_import_modules(path=os.path.dirname(__file__), module_path="backend.ticket.todos")
 
 
-class ActionType(str, StructuredEnum):
+class TodoActionType(str, StructuredEnum):
     """
     待办操作类型
     """
 
     APPROVE = EnumField("APPROVE", _("确认执行"))
     TERMINATE = EnumField("TERMINATE", _("终止单据"))
+    DELIVER = EnumField("DELIVER", _("分派代办"))
 
 
 @dataclass

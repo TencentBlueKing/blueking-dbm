@@ -29,18 +29,18 @@
   import TableTagInput from '@components/render-table/columns/db-table-name/Index.vue';
 
   interface Props {
-    modelValue?: string[];
-    initValue?: string[];
-    disabled?: boolean;
-    clusterId?: number;
-    required?: boolean;
-    placeholder?: string;
-    single?: boolean;
     allowAsterisk?: boolean; // 是否允许单个 *
+    clusterId?: number;
+    disabled?: boolean;
+    initValue?: string[];
+    modelValue?: string[];
+    placeholder?: string;
+    required?: boolean;
     rules?: {
-      validator: (value: string[]) => boolean;
       message: string;
+      validator: (value: string[]) => boolean;
     }[];
+    single?: boolean;
   }
 
   interface Emits {
@@ -53,15 +53,15 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    modelValue: undefined,
-    initValue: undefined,
-    placeholder: '',
-    clusterId: undefined,
-    required: true,
-    single: false,
-    rules: undefined,
-    disabled: false,
     allowAsterisk: true,
+    clusterId: undefined,
+    disabled: false,
+    initValue: undefined,
+    modelValue: undefined,
+    placeholder: '',
+    required: true,
+    rules: undefined,
+    single: false,
   });
 
   const emits = defineEmits<Emits>();
@@ -78,19 +78,20 @@
 
     return [
       {
+        message: t('表名不能为空'),
         validator: (value: string[]) => {
           if (!props.required) {
             return true;
           }
           return value && value.length > 0;
         },
-        message: t('表名不能为空'),
       },
       {
-        validator: (value: string[]) => _.every(value, (item) => /^[-_a-zA-Z0-9*?%]{0,64}$/.test(item)),
         message: t('库表名支持数字、字母、中划线、下划线，最大64字符'),
+        validator: (value: string[]) => _.every(value, (item) => /^[-_a-zA-Z0-9*?%]{0,64}$/.test(item)),
       },
       {
+        message: t('不允许为 *'),
         validator: (value: string[]) => {
           if (props.allowAsterisk) {
             return true;
@@ -98,16 +99,15 @@
 
           return _.every(value, (item) => item !== '*');
         },
-        message: t('不允许为 *'),
       },
       {
+        message: t('* 只能独立使用'),
         validator: (value: string[]) =>
           !_.some(value, (item) => (/\*/.test(item) && item.length > 1) || (value.length > 1 && item === '*')),
-        message: t('* 只能独立使用'),
       },
       {
-        validator: (value: string[]) => _.every(value, (item) => !/^[%?]$/.test(item)),
         message: t('% 或 ? 不允许单独使用'),
+        validator: (value: string[]) => _.every(value, (item) => !/^[%?]$/.test(item)),
       },
       // {
       //   validator: (value: string[]) => {

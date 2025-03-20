@@ -16,11 +16,11 @@
   import { useI18n } from 'vue-i18n';
 
   import MysqlPermissionAccountModel from '@services/model/mysql/mysql-permission-account';
-  import { getPermissionRules } from '@services/source/mysqlPermissionAccount'
+  import { getPermissionRules } from '@services/source/mysqlPermissionAccount';
 
   interface Props {
-    clusterId: number,
-    ruleIdList: number[]
+    clusterId: number;
+    ruleIdList: number[];
   }
 
   const props = defineProps<Props>();
@@ -33,13 +33,11 @@
 
   const columns = [
     {
-      label: t('账号名称'),
       field: 'user',
-      width: 220,
+      label: t('账号名称'),
       render: ({ data }: { data: MysqlPermissionAccountModel }) => (
-        <div class="account-box">
+        <div class='account-box'>
           <db-icon
-            type="down-shape"
             class={{
               'flod-flag': true,
               'is-flod': rowFlodMap.value[data.account.user],
@@ -47,19 +45,21 @@
             style={{
               opacity: data.rules.length < 2 ? 0 : 1,
             }}
-            onClick={() => handleToogleExpand(data.account.user)} />
+            type='down-shape'
+            onClick={() => handleToogleExpand(data.account.user)}
+          />
           <bk-button
-            text
-            theme="primary">
-            { data.account.user }
+            theme='primary'
+            text>
+            {data.account.user}
           </bk-button>
         </div>
       ),
+      width: 220,
     },
     {
-      label: t('访问DB'),
-      width: 300,
       field: 'access-db',
+      label: t('访问DB'),
       render: ({ data }: { data: MysqlPermissionAccountModel }) => {
         if (data.rules.length < 1) {
           return '--';
@@ -67,28 +67,23 @@
 
         const renderRules = rowFlodMap.value[data.account.user] ? data.rules.slice(0, 1) : data.rules;
 
-        return renderRules.map(item => (
-          <div class="inner-row">
-            <bk-tag>
-              {item.access_db}
-            </bk-tag>
+        return renderRules.map((item) => (
+          <div class='inner-row'>
+            <bk-tag>{item.access_db}</bk-tag>
           </div>
         ));
       },
+      width: 300,
     },
     {
-      label: t('权限'),
       field: 'privilege',
+      label: t('权限'),
       render: ({ data }: { data: MysqlPermissionAccountModel }) => {
         if (data.rules.length === 0) {
-          return <div class="inner-row">--</div>;
+          return <div class='inner-row'>--</div>;
         }
         const renderRules = rowFlodMap.value[data.account.user] ? data.rules.slice(0, 1) : data.rules;
-        return renderRules.map(item => (
-          <div class="inner-row">
-            {item.privilege}
-          </div>
-        ));
+        return renderRules.map((item) => <div class='inner-row'>{item.privilege}</div>);
       },
     },
   ];
@@ -108,9 +103,9 @@
       return;
     }
     tableRef.value.fetchData({
+      account_type: 'mysql',
       cluster_id: props.clusterId,
       rule_ids: props.ruleIdList.join(','),
-      account_type: 'mysql',
     });
   });
 </script>

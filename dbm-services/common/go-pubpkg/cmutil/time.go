@@ -24,3 +24,7 @@ func ParseLocalTimeString(s string) (time.Time, error) {
 	}
 	return t, nil
 }
+
+func NewTimestampString() string {
+	return time.Now().Format("20060102150405")
+}

@@ -22,7 +22,7 @@ rotate_binlog 通过 crontab 等定时任务管理器，周期性调起
 ## 单机多实例 binlog rotate，使用一个进程进行
 因为 rotate 需要计算总共释放多少空间来满足 空间使用率 要求，单机多个实例不能完全独立的去rotate，而是需要全局去把控。
 
-所以 config.yaml 配置渲染的时候是多实例配置在一个 配置文件
+所以 main.yaml 配置渲染的时候是多实例配置在一个 配置文件
 
 ## purge index
 为了避免直接 purge 来直接删除 binlog 可能会导致实例卡主，rotate_binlog 程序是先删 binlog 文件，再 purge 掉已删除的文件，让 purge 来维护 binlog.index 文件。
@@ -36,17 +36,17 @@ purge index 的频率由 `purge_interval` 来控制，注意 当 `purge_interval
 
 ## 删除某个 binlog 实例的 rotate
 ```
-./rotate_binlog -c config.yaml --removeConfig 20000,20001
+./rotate_binlog -c main.yaml --removeConfig 20000,20001
 ```
 如果机器上所有实例都被删除，需要外部去停止定时任务。
 
 ## 管理schedule
 rotate_binlog 可以作为独立程序 crontab 来运行，也可以注册到 mysql-crond 中，由它来定时调度
 ```
-./rotate_binlog -c config.yaml --addSchedule
-./rotate_binlog -c config.yaml --delSchedule
+./rotate_binlog -c main.yaml --addSchedule
+./rotate_binlog -c main.yaml --delSchedule
 ```
-调度频率，由 config.yaml `crond.schedule` 来定义。
+调度频率，由 main.yaml `crond.schedule` 来定义。
 
 ## sqlite
 rotate_binlog 通过 sqlite 本地 db 记录处理过的 binlog 状态，代替一起通过文本文件的方式。

@@ -40,10 +40,8 @@ class ClusterViewSet(viewsets.SystemViewSet):
     )
     @action(methods=["POST"], detail=False, serializer_class=FindRelatedClustersByClusterIdRequestSerializer)
     def find_related_clusters_by_cluster_ids(self, request, bk_biz_id):
-        validated_data = self.params_validate(self.get_serializer_class())
-        return Response(
-            ClusterServiceHandler(bk_biz_id).find_related_clusters_by_cluster_ids(validated_data["cluster_ids"])
-        )
+        data = self.params_validate(self.get_serializer_class())
+        return Response(ClusterServiceHandler(bk_biz_id).find_related_clusters_by_cluster_ids(**data))
 
     @common_swagger_auto_schema(
         operation_summary=_("通过实例查询同机关联集群"),

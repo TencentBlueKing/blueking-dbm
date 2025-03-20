@@ -70,26 +70,26 @@
   import RenderTargetNumber from './RenderTargetNumber.vue';
 
   export interface IDataRow {
-    rowKey: string;
-    isLoading: boolean;
+    bkCloudId: number;
     cluster: string;
     clusterId: number;
-    bkCloudId: number;
-    nodeType: string;
+    clusterType?: string;
+    isLoading: boolean;
     masterCount: number;
-    slaveCount: number;
     mntCount: number; // 校验 spider_master + spider _mnt <=37
-    spiderMasterList: TendbClusterModel['spider_master'];
-    spiderSlaveList: TendbClusterModel['spider_slave'];
+    nodeType: string;
+    rowKey: string;
+    slaveCount: number;
     // spec?: SpecInfo;
     specId?: number;
+    spiderMasterList: TendbClusterModel['spider_master'];
+    spiderSlaveList: TendbClusterModel['spider_slave'];
     targetNum?: string;
-    clusterType?: string;
   }
 
   export interface InfoItem {
-    cluster_id: number;
     add_spider_role: string;
+    cluster_id: number;
     resource_spec: {
       spider_ip_list: {
         count: number;
@@ -100,24 +100,24 @@
 
   // 创建表格数据
   export const createRowData = (): IDataRow => ({
-    rowKey: random(),
-    isLoading: false,
+    bkCloudId: 0,
     cluster: '',
     clusterId: 0,
-    bkCloudId: 0,
-    nodeType: '',
+    isLoading: false,
     masterCount: 0,
-    slaveCount: 0,
     mntCount: 0,
+    nodeType: '',
+    rowKey: random(),
+    slaveCount: 0,
     spiderMasterList: [],
     spiderSlaveList: [],
   });
 </script>
 <script setup lang="ts">
   interface Props {
+    choosedNodeType?: string[];
     data: IDataRow;
     removeable: boolean;
-    choosedNodeType?: string[];
   }
 
   interface Emits {
@@ -192,8 +192,8 @@
         ...createRowData(),
         cluster: props.data.cluster,
         nodeType: nodeType.reduce_spider_role,
-        targetNum: targetNum.count ? targetNum.count : '',
         specId: specInfo.spec_id,
+        targetNum: targetNum.count ? targetNum.count : '',
       });
     });
   };

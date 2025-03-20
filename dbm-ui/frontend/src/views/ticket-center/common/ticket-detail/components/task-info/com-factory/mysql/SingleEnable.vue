@@ -13,10 +13,10 @@
     ticketDetails: TicketModel<Mysql.SingleEnable>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.MYSQL_SINGLE_ENABLE,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

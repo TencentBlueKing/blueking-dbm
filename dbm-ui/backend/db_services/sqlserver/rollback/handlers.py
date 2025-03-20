@@ -189,14 +189,6 @@ class SQLServerRollbackHandler(object):
         backup_logs.sort(key=lambda x: x["lastlsn"])
         # 对比每个日志备份的LSN的连续情况
         for log in backup_logs:
-            if full_backup_info["checkpointlsn"] != log["databasebackuplsn"]:
-                # 表示获取日志备份有问题，有存在和全量备份不关联的日志备份
-                err.append(
-                    _("请联系系统管理员，恢复集群[{}]的数据库[{}]中拉取到无关联的日志备份记录[{}]").format(
-                        full_backup_info["cluster_address"], full_backup_info["db_name"], log["file_name"]
-                    )
-                )
-                continue
             if check_lsn == 0:
                 # 表示是第一个lsn
                 check_lsn = log["lastlsn"]

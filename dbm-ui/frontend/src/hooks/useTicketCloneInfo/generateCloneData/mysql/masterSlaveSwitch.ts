@@ -27,12 +27,12 @@ export function generateMysqlMasterSlaveSwicthCloneData(ticketData: TicketModel<
   const tableDataList = infos.map((item) => {
     const clusterId = item.cluster_ids[0];
     return {
-      rowKey: random(),
       clusterData: {
-        id: clusterId,
         domain: clusters[clusterId].immute_domain,
+        id: clusterId,
       },
       masterData: item.master_ip,
+      rowKey: random(),
       slaveData: item.slave_ip,
     };
   });
@@ -41,7 +41,7 @@ export function generateMysqlMasterSlaveSwicthCloneData(ticketData: TicketModel<
     isCheckDelay,
     isCheckProcess,
     isVerifyChecksum,
-    tableDataList,
     remark: ticketData.remark,
+    tableDataList,
   });
 }

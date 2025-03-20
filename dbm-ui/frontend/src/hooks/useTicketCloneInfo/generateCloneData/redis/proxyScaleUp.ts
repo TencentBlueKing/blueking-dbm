@@ -33,22 +33,22 @@ export async function generateRedisProxyScaleUpCloneData(ticketData: TicketModel
   );
 
   return {
+    remark: ticketData.remark,
     tableDataList: infos.map((item) => ({
-      rowKey: random(),
-      isLoading: false,
-      cluster: clusters[item.cluster_id].immute_domain,
-      clusterId: item.cluster_id,
       bkCloudId: item.bk_cloud_id,
+      cluster: clusters[item.cluster_id].immute_domain,
+      cluster_type_name: clusterListMap[item.cluster_id].cluster_type_name,
+      clusterId: item.cluster_id,
+      isLoading: false,
       nodeType: 'Proxy',
-      targetNum: `${item.resource_spec.proxy.count}`,
+      rowKey: random(),
+      rowModelData: clusterListMap[item.cluster_id],
+      selectedSpecId: item.resource_spec.proxy.spec_id,
       spec: {
         ...specs[item.resource_spec.proxy.spec_id],
         count: item.target_proxy_count,
       },
-      rowModelData: clusterListMap[item.cluster_id],
-      cluster_type_name: clusterListMap[item.cluster_id].cluster_type_name,
-      selectedSpecId: item.resource_spec.proxy.spec_id,
+      targetNum: `${item.resource_spec.proxy.count}`,
     })),
-    remark: ticketData.remark,
   };
 }

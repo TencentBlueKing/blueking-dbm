@@ -71,35 +71,35 @@
   }
 
   export interface IDataRow {
-    rowKey: string;
-    isLoading: boolean;
-    spanData: {
-      isStart: boolean;
-      isGeneral: boolean;
-      rowSpan: number;
-    };
     clusterData?: {
-      instance: string;
-      domain: string;
       clusterId: number;
       clusterType: string;
+      domain: string;
+      instance: string;
       specId: number;
       specName: string;
     };
+    isLoading: boolean;
     master?: IHostData;
+    rowKey: string;
     slave?: IHostData;
+    spanData: {
+      isGeneral: boolean;
+      isStart: boolean;
+      rowSpan: number;
+    };
   }
 
   // 创建表格数据
   export const createRowData = (clusterData?: NonNullable<IDataRow['clusterData']>): IDataRow => ({
-    rowKey: random(),
+    clusterData,
     isLoading: false,
+    rowKey: random(),
     spanData: {
-      isStart: false,
       isGeneral: true,
+      isStart: false,
       rowSpan: 1,
     },
-    clusterData,
   });
 </script>
 
@@ -119,19 +119,19 @@
   interface Exposes {
     getValue: () => Promise<{
       cluster_id: number;
-      resource_spec: {
-        backend_group: {
-          spec_id: number;
-          count: number;
-        };
+      display_info: {
+        db_version: string[];
+        instance: Awaited<ReturnType<ComponentExposed<typeof RenderInstance>['getValue']>>;
       };
       old_nodes: {
         master: IHostData[];
         slave: IHostData[];
       };
-      display_info: {
-        instance: Awaited<ReturnType<ComponentExposed<typeof RenderInstance>['getValue']>>;
-        db_version: string[];
+      resource_spec: {
+        backend_group: {
+          count: number;
+          spec_id: number;
+        };
       };
     }>;
   }
@@ -172,19 +172,19 @@
           const clusterInfo = props.data.clusterData!;
           return {
             cluster_id: clusterInfo.clusterId,
-            resource_spec: {
-              backend_group: {
-                spec_id: clusterInfo.specId,
-                count: 1,
-              },
+            display_info: {
+              db_version: versionData,
+              instance: instanceData,
             },
             old_nodes: {
               master: [props.data.master!],
               slave: [props.data.slave!],
             },
-            display_info: {
-              instance: instanceData,
-              db_version: versionData,
+            resource_spec: {
+              backend_group: {
+                count: 1,
+                spec_id: clusterInfo.specId,
+              },
             },
           };
         },

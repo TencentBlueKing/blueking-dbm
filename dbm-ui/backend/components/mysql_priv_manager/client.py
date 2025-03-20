@@ -109,6 +109,11 @@ class _DBPrivManagerApi(BaseApi):
             url="/priv/clone_instance_priv",
             description=_("实例间权限克隆"),
         )
+        self.clone_instance_v2 = self.generate_data_api(
+            method="POST",
+            url="/priv/v2/clone_instance_priv",
+            description=_("实例间权限克隆 v2"),
+        )
         self.pre_check_clone_instance = self.generate_data_api(
             method="POST",
             url="/priv/clone_instance_priv_dry_run",

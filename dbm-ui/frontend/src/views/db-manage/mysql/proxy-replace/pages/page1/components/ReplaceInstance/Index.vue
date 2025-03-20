@@ -55,12 +55,12 @@
     getValue(): Promise<
       {
         cluster_ids: number[];
+        display_info: {
+          related_clusters: string[];
+          type: string;
+        };
         origin_proxy: IDataRow['originProxy'];
         target_proxy: IDataRow['targetProxy'];
-        display_info: {
-          type: string;
-          related_clusters: string[];
-        };
       }[]
     >;
     reset(): void;
@@ -68,7 +68,6 @@
 
   const { t } = useI18n();
   useTicketCloneInfo({
-    type: TicketTypes.MYSQL_PROXY_SWITCH,
     onSuccess(data) {
       window.changeConfirm = false;
       if (data.infos[0].display_info.type === ProxyReplaceTypes.INSTANCE_REPLACE) {
@@ -83,6 +82,7 @@
         );
       }
     },
+    type: TicketTypes.MYSQL_PROXY_SWITCH,
   });
 
   const tabListConfig = {
@@ -92,8 +92,8 @@
         name: t('目标实例'),
         tableConfig: {
           firsrColumn: {
-            label: t('Proxy 实例'),
             field: 'instance_address',
+            label: t('Proxy 实例'),
             role: 'proxy',
           },
         },
@@ -103,8 +103,8 @@
         name: t('手动输入'),
         tableConfig: {
           firsrColumn: {
-            label: t('Proxy 实例'),
             field: 'instance_address',
+            label: t('Proxy 实例'),
             role: 'proxy',
           },
         },
@@ -141,12 +141,12 @@
       if (!instanceMemo[instance]) {
         const row = createRowData({
           originProxy: {
-            ip: item.ip,
+            bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
             bk_cloud_id: item.bk_cloud_id,
             bk_host_id: item.bk_host_id,
-            bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-            port: item.port,
             instance_address: instance,
+            ip: item.ip,
+            port: item.port,
           },
           relatedClusters: [
             {

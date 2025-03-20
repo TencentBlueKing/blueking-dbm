@@ -26,10 +26,10 @@
     ticketDetails: TicketModel<Sqlserver.Destroy>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.SQLSERVER_DESTROY,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

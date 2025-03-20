@@ -36,8 +36,8 @@ export function updateAdmins(params: {
   bk_biz_id: number;
   db_admins: {
     db_type: string;
-    users: string[];
     db_type_display: string;
+    users: string[];
   }[];
 }) {
   return http.post(`${path}/upsert_admins/`, params);

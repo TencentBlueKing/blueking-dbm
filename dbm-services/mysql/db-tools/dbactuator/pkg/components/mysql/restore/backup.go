@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/pkg/errors"
 
@@ -15,8 +14,9 @@ import (
 
 // BackupInfo backup file info
 type BackupInfo struct {
+	// WorkDir /data/dbbak/5ff3fc36e75f11/20000
 	WorkDir string `json:"work_dir" validate:"required" example:"/data1/dbbak"` // 备份恢复目录，工作目录
-	// 备份文件所在本地目录，理论上doDr不会对该目录写入，而是写入 targetDir
+	// BackupDir 备份文件所在本地目录，理论上doDr不会对该目录写入，而是写入 targetDir
 	BackupDir string `json:"backup_dir"  validate:"required" example:"/data/dbbak"`
 	// 备份文件名列表，key 是 info|full|priv|index, value 是是相对于 backup_dir 的文件名列表
 	BackupFiles map[string][]string `json:"backup_files" validate:"required"`
@@ -117,8 +117,4 @@ func (b *BackupInfo) GetBackupMetaFile(fileType string) error {
 	}
 	logger.Info("backupType=%s, backupHost=%s, backupPort=%d", b.backupType, b.backupHost, b.backupPort)
 	return nil
-}
-
-func newTimestampString() string {
-	return time.Now().Format("20060102150405")
 }

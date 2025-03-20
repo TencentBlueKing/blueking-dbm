@@ -13,10 +13,10 @@
     ticketDetails: TicketModel<Mysql.SingleDestroy>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.MYSQL_SINGLE_DESTROY,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

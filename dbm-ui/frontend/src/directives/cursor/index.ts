@@ -20,18 +20,18 @@ import './index.css';
 
 interface Cursor {
   __bk_dbm_cursor__: {
-    mouseEnterHandler: (event: MouseEvent) => void;
-    mouseMoveHandler: (event: MouseEvent) => void;
-    mouseLeaveHandler: (event: MouseEvent) => void;
     element: HTMLElement;
+    mouseEnterHandler: (event: MouseEvent) => void;
+    mouseLeaveHandler: (event: MouseEvent) => void;
+    mouseMoveHandler: (event: MouseEvent) => void;
   };
 }
 
-type TargetEl = HTMLElement & Cursor;
+type TargetEl = Cursor & HTMLElement;
 
 /* eslint-disable no-param-reassign,no-underscore-dangle */
 
-const init = function (el: HTMLElement & Cursor) {
+const init = function (el: Cursor & HTMLElement) {
   el.__bk_dbm_cursor__.mouseMoveHandler = function (event: MouseEvent): void {
     const { pageX, pageY } = event;
     const elLeft = pageX + 12;
@@ -62,7 +62,7 @@ const init = function (el: HTMLElement & Cursor) {
   el.addEventListener('mouseleave', el.__bk_dbm_cursor__.mouseLeaveHandler);
 };
 
-const destroy = function (el: HTMLElement & Cursor) {
+const destroy = function (el: Cursor & HTMLElement) {
   el.__bk_dbm_cursor__.element && el.__bk_dbm_cursor__.element.remove();
   el.removeEventListener('mouseenter', el.__bk_dbm_cursor__.mouseEnterHandler);
   el.removeEventListener('mousemove', el.__bk_dbm_cursor__.mouseMoveHandler);
@@ -75,11 +75,11 @@ export default {
     (el as TargetEl).__bk_dbm_cursor__ = {} as Cursor['__bk_dbm_cursor__'];
     init(el as TargetEl);
   },
+  unmounted(el: HTMLElement) {
+    destroy(el as TargetEl);
+  },
   update(el: HTMLElement) {
     destroy(el as TargetEl);
     init(el as TargetEl);
-  },
-  unmounted(el: HTMLElement) {
-    destroy(el as TargetEl);
   },
 } as ObjectDirective;

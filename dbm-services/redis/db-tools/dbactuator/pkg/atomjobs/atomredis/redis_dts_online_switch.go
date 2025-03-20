@@ -350,6 +350,11 @@ func (job *RedisDtsOnlineSwitch) NewProxyConfigFileForSameType() (err error) {
 		job.params.SrcProxyIP+":"+strconv.Itoa(job.params.DstProxyPort),
 		job.params.SrcProxyIP+":"+strconv.Itoa(job.params.SrcProxyPort),
 	)
+	// predixy 需要替换Log /data/predixy/50100/logs/log 行
+	dstConfContent = strings.ReplaceAll(dstConfContent,
+		"predixy/"+strconv.Itoa(job.params.DstProxyPort),
+		"predixy/"+strconv.Itoa(job.params.SrcProxyPort),
+	)
 	dstConfContent = strings.ReplaceAll(dstConfContent, "\\n", "\n")
 	if consts.IsTwemproxyClusterType(job.params.SrcClusterType) {
 		re := regexp.MustCompile(`\s\spassword\s*:\s*` + job.params.DstProxyPassword)

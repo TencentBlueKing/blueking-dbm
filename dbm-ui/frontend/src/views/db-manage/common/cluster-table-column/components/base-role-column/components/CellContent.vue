@@ -85,6 +85,7 @@
   </div>
 </template>
 <script setup lang="ts">
+  import type { VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type { ClusterListNode } from '@services/types';
@@ -95,22 +96,22 @@
   import { execCopy, messageWarn } from '@utils';
 
   interface Props {
-    label: string;
-    data: ClusterListNode[];
-    hightlightKey?: string[];
-    title?: string;
     clusterData: {
       masterDomain: string;
     };
+    data: ClusterListNode[];
+    hightlightKey?: string[];
+    label: string;
+    title?: string;
   }
 
   const props = defineProps<Props>();
 
   defineSlots<{
     default: (params: { data: { ip: string; port: number; status: string } }) => VNode;
-    nodeTag: (params: { data: { ip: string; port: number; status: string } }) => VNode;
-    instanceListTitle: () => VNode;
     instanceList: () => VNode;
+    instanceListTitle: () => VNode;
+    nodeTag: (params: { data: { ip: string; port: number; status: string } }) => VNode;
   }>();
 
   const { t } = useI18n();
@@ -126,7 +127,7 @@
   const handleToolsShow = () => {
     setTimeout(() => {
       isToolsShow.value = true;
-    }, 1000);
+    }, 300);
   };
 
   const handleCopyIps = () => {
@@ -154,14 +155,6 @@
 
 <style lang="less">
   .cluster-list-role-instances-list-box {
-    .db-icon-copy {
-      display: none;
-      margin-top: 1px;
-      color: @primary-color;
-      vertical-align: text-top;
-      cursor: pointer;
-    }
-
     .is-active {
       display: inline-block !important;
     }
@@ -175,30 +168,5 @@
         line-height: 20px;
       }
     }
-  }
-
-  .cluster-role-instance-copy-btn {
-    display: inline-block;
-    padding: 0 4px;
-    line-height: 24px;
-    vertical-align: middle;
-    border-radius: 2px;
-
-    * {
-      font-size: 12px !important;
-    }
-
-    &:hover {
-      background-color: #f0f1f5;
-    }
-  }
-
-  .cluster-role-instance-copy-btn-split {
-    display: inline-block;
-    width: 1px;
-    height: 18px;
-    margin: 0 4px;
-    vertical-align: middle;
-    background-color: #f0f1f5;
   }
 </style>

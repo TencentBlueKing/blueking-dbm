@@ -17,6 +17,8 @@ from django.utils.translation import ugettext as _
 
 from backend.components.dbresource.client import DBResourceApi
 from backend.components.gse.client import GseApi
+from backend.configuration.constants import COST_ESTIMATE_TEMPLATE, DBType, SystemSettingsEnum
+from backend.configuration.models import SystemSettings
 from backend.db_meta.enums.spec import SpecClusterType, SpecMachineType
 from backend.db_meta.models import AppCache, Spec
 from backend.db_services.dbresource.exceptions import SpecOperateException
@@ -397,6 +399,7 @@ class ResourceHandler(object):
 
     @classmethod
     def spec_resource_count(cls, bk_biz_id: int, bk_cloud_id: int, spec_ids: List[int], city: str):
+        """规格预估资源数量"""
         specs = Spec.objects.filter(spec_id__in=spec_ids)
         if not specs.exists():
             return {}
@@ -425,6 +428,8 @@ class ResourceHandler(object):
 
     @staticmethod
     def resource_list(params):
+        """资源列表"""
+
         def _format_resource_fields(data, _cloud_info, _biz_infos):
             data.update(
                 {
@@ -459,3 +464,29 @@ class ResourceHandler(object):
 
         resource_data["results"] = resource_data.pop("details")
         return resource_data
+
+    @classmethod
+    def spec_cost_estimate(cls, db_type: DBType, resource_spec: dict):
+        """规格预估运营成本"""
+        # 获取组件运营单价
+        cost_estimate = SystemSettings.get_setting_value(key=SystemSettingsEnum.COST_ESTIMATE, default={})
+        db_cost_estimate = cost_estimate.get(db_type, COST_ESTIMATE_TEMPLATE)
+
+        # 获取规格信息
+        spec_ids = [spec["spec_id"] for role, spec in resource_spec.items()]
+        spec_map = Spec.objects.in_bulk(spec_ids, field_name="spec_id")
+
+        # 计算预期成本
+        excepted_cost = 0
+        for role, apply_spec in resource_spec.items():
+            spec = spec_map[apply_spec["spec_id"]]
+            # 申请数量，后端是组数要乘2
+            count = apply_spec["count"] * 2 if role == "backend_group" else apply_spec["count"]
+            # 每台机器预估单价
+            cpu_per_cost = spec.cpu["max"] * db_cost_estimate["cpu"]
+            mem_per_cost = spec.mem["max"] * db_cost_estimate["mem"]
+            disk_per_cost = sum([db_cost_estimate["storage"][d["type"]] * d["size"] for d in spec.storage_spec])
+            # 合并计算总价
+            excepted_cost += (cpu_per_cost + mem_per_cost + disk_per_cost) * count
+
+        return excepted_cost

@@ -96,14 +96,14 @@
     ticketDetails: TicketModel<Mongodb.RemoveNs>;
   }
 
-  defineProps<Props>();
-
-  type RowData = Props['ticketDetails']['details']['infos'][number];
-
   defineOptions({
     name: TicketTypes.MONGODB_REMOVE_NS,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
+
+  type RowData = Props['ticketDetails']['details']['infos'][number];
 
   const { t } = useI18n();
 </script>

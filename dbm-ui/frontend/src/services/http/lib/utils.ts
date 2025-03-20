@@ -68,7 +68,7 @@ function forEach(obj: any, fn: any) {
   if (isArray(obj)) {
     // Iterate over array values
     for (let i = 0, l = obj.length; i < l; i++) {
-      /* eslint-disable */
+       
       fn.call(null, obj[i], i, obj);
     }
   } else {

@@ -20,8 +20,8 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
-    name: 'HdfsManage',
     path: 'hdfs',
+    name: 'HdfsManage',
     meta: {
       navName: t('HDFS_集群管理'),
     },
@@ -39,11 +39,11 @@ const routes: RouteRecordRaw[] = [
       //   component: () => import('@views/db-manage/hdfs/apply/Index.vue'),
       // },
       {
-        name: 'HdfsList',
         path: 'list',
+        name: 'HdfsList',
         meta: {
-          navName: t('HDFS_集群管理'),
           fullscreen: true,
+          navName: t('HDFS_集群管理'),
         },
         component: () => import('@views/db-manage/hdfs/list/Index.vue'),
       },

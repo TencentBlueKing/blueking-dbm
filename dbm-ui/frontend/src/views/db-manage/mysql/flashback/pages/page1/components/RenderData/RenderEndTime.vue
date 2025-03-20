@@ -70,15 +70,15 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('结束时间不能为空'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 
   watch(
     () => props.startTime,
     () => {
-      modelValue.value = '';
+      modelValue.value = props.startTime;
     },
   );
 

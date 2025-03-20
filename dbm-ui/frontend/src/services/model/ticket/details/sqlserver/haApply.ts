@@ -21,10 +21,10 @@ export interface HaApply extends DetailBase {
   ip_source: string;
   nodes?: {
     [ClusterTypes.SQLSERVER_HA]: {
-      ip: string;
-      bk_host_id: number;
-      bk_cloud_id: number;
       bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_host_id: number;
+      ip: string;
     }[];
   };
   resource_spec?: {

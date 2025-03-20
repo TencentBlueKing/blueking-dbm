@@ -54,19 +54,17 @@
   type Selected = Record<string, Record<string, any>[]>;
 
   interface Props {
-    tabList: { name: string; id: string }[];
+    displayKey?: string;
     selectedMap: SelectMapValueType<Record<string, any>>;
     showTitle?: boolean;
-    displayKey?: string;
+    tabList: { id: string; name: string }[];
   }
 
-  interface Emits {
-    (e: 'delete', value: Record<string, any>, tabKey: string): void;
-  }
+  type Emits = (e: 'delete', value: Record<string, any>, tabKey: string) => void;
 
   const props = withDefaults(defineProps<Props>(), {
-    showTitle: false,
     displayKey: 'master_domain',
+    showTitle: false,
   });
 
   const emits = defineEmits<Emits>();

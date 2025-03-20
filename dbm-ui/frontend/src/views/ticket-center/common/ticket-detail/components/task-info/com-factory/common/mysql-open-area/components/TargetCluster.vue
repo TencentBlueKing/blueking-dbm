@@ -31,9 +31,9 @@
   }
 
   interface RowData {
-    targetCluster: string;
-    newDb: string;
     ips: string;
+    newDb: string;
+    targetCluster: string;
   }
 
   const props = defineProps<Props>();
@@ -41,60 +41,67 @@
   const { t } = useI18n();
 
   const clustersMap = props.ticketDetails.details.clusters;
-  const clusterIpsMap = props.ticketDetails.details.rules_set.reduce<Record<string, string[]>>((acc, { target_instances: [cluster], source_ips }) => {
-    acc[cluster] = _.uniq((acc[cluster] || []).concat(source_ips));
-    return acc;
-  }, {});
+  const clusterIpsMap = props.ticketDetails.details.rules_set.reduce<Record<string, string[]>>(
+    (acc, { source_ips, target_instances: [cluster] }) => {
+      return Object.assign(acc, {
+        [cluster]: _.uniq((acc[cluster] || []).concat(source_ips)),
+      });
+    },
+    {},
+  );
 
   const tableData = computed(() =>
     _.flatMap(
       _.sortBy(
-      props.ticketDetails.details.config_data.map((item) => {
-        const cluster = clustersMap[item.cluster_id]?.immute_domain;
-        return item.execute_objects.map((executeObject) => ({
-          targetCluster: cluster,
-          newDb: executeObject.target_db,
-          ips: clusterIpsMap[cluster]?.join(',') || '',
-        }));
-      }), 'newDb')
+        props.ticketDetails.details.config_data.map((item) => {
+          const cluster = clustersMap[item.cluster_id]?.immute_domain;
+          return item.execute_objects.map((executeObject) => ({
+            ips: clusterIpsMap[cluster]?.join(',') || '',
+            newDb: executeObject.target_db,
+            targetCluster: cluster,
+          }));
+        }),
+        'newDb',
+      ),
     ),
   );
 
   const columns = computed(() => [
     {
-      label: t('目标集群'),
       field: 'targetCluster',
+      label: t('目标集群'),
       minWidth: 200,
-      width: 250,
       rowspan: ({ row }: { row: RowData }) => {
         const { targetCluster } = row;
         const rowSpan = tableData.value.filter((item) => item.targetCluster === targetCluster).length;
         return rowSpan > 1 ? rowSpan : 1;
       },
+      width: 250,
     },
     {
-      label: t('新DB'),
       field: 'newDb',
+      label: t('新DB'),
       minWidth: 150,
       width: 200,
     },
     {
-      label: t('授权的IP'),
       field: 'ips',
-      showOverflowTooltip: true,
+      label: t('授权的IP'),
       render: ({ data }: { data: RowData }) => {
-        const ipList = data.ips.replace(/,/g, '\n')
+        const ipList = data.ips.replace(/,/g, '\n');
         return (
           <span>
-            { data.ips || '--' }
+            {data.ips || '--'}
             <db-icon
+              class='copy-btn'
               is-show={data.ips.length > 0}
-              class="copy-btn"
-              type="copy"
-              onClick={() => execCopy(ipList, t('复制成功，共n条', { n: ipList.split('\n').length }))} />
+              type='copy'
+              onClick={() => execCopy(ipList, t('复制成功，共n条', { n: ipList.split('\n').length }))}
+            />
           </span>
-        )
-      }
+        );
+      },
+      showOverflowTooltip: true,
     },
   ]);
 </script>

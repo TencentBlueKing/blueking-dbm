@@ -68,7 +68,7 @@
   import RenderClusterStatus from '@components/cluster-status/Index.vue';
 
   interface Props {
-    data: Record<any, any> & { id: number };
+    data: { id: number } & Record<any, any>;
   }
 
   const props = defineProps<Props>();

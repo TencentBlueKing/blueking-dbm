@@ -44,9 +44,9 @@
 
   const rules = [
     {
-      validator: (val: string) => nameRegx.test(val),
       message: clusterNamePlaceholder,
       trigger: 'blur',
+      validator: (val: string) => nameRegx.test(val),
     },
   ];
 </script>

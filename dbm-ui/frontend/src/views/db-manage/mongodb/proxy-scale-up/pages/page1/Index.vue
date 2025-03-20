@@ -116,24 +116,24 @@
   useRequest(getResourceSpecList, {
     defaultParams: [
       {
-        spec_cluster_type: 'mongodb',
-        spec_machine_type: 'mongos',
         limit: -1,
         offset: 0,
+        spec_cluster_type: 'mongodb',
+        spec_machine_type: 'mongos',
       },
     ],
     onSuccess(data) {
       specList.value = data.results.map((item) => ({
-        value: item.spec_id,
         label: item.spec_name,
         specData: {
-          name: item.spec_name,
+          count: 0,
           cpu: item.cpu,
           id: item.spec_id,
           mem: item.mem,
-          count: 0,
+          name: item.spec_name,
           storage_spec: item.storage_spec,
         },
+        value: item.spec_id,
       }));
     },
   });
@@ -167,17 +167,17 @@
 
   // 根据集群选择返回的数据加工成table所需的数据
   const generateRowDateFromRequest = (item: MongodbModel) => ({
-    rowKey: item.master_domain,
-    isLoading: false,
-    clusterName: item.master_domain,
     clusterId: item.id,
-    shardNum: item.shard_num,
-    machineNum: item.replicaset_machine_num,
+    clusterName: item.master_domain,
     // mongosNum: item.mongos.length,
     currentSpec: {
       ...item.mongos[0].spec_config,
       count: item.shard_num,
     },
+    isLoading: false,
+    machineNum: item.replicaset_machine_num,
+    rowKey: item.master_domain,
+    shardNum: item.shard_num,
   });
 
   // 批量选择
@@ -251,10 +251,10 @@
       );
       const params = {
         bk_biz_id: currentBizId,
-        ticket_type: TicketTypes.MONGODB_ADD_MONGOS,
         details: {
           infos,
         },
+        ticket_type: TicketTypes.MONGODB_ADD_MONGOS,
       };
       await createTicket(params).then((data) => {
         window.changeConfirm = false;

@@ -131,13 +131,13 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.TENDBCLUSTER_FULL_BACKUP,
     onSuccess(cloneData) {
-      const { tableDataList, form } = cloneData;
+      const { form, tableDataList } = cloneData;
       Object.assign(formData, form);
       tableData.value = tableDataList;
       window.changeConfirm = true;
     },
+    type: TicketTypes.TENDBCLUSTER_FULL_BACKUP,
   });
 
   const formRef = ref();
@@ -186,8 +186,8 @@
       if (!domainMemo[domain]) {
         const row = createRowData({
           clusterData: {
-            id: item.id,
             domain: item.master_domain,
+            id: item.id,
           },
         });
         result.push(row);
@@ -253,13 +253,13 @@
       const data = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
       await createTicket({
         bk_biz_id: currentBizId,
-        ticket_type: TicketTypes.TENDBCLUSTER_FULL_BACKUP,
-        remark: formData.remark,
         details: {
           backup_type: formData.backup_type,
           file_tag: formData.file_tag,
           infos: data,
         },
+        remark: formData.remark,
+        ticket_type: TicketTypes.TENDBCLUSTER_FULL_BACKUP,
       }).then((data) => {
         window.changeConfirm = false;
         router.push({

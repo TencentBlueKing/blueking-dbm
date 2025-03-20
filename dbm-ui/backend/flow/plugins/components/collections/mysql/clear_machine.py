@@ -17,6 +17,7 @@ from pipeline.component_framework.component import Component
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Machine, ProxyInstance, StorageInstance
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptService
+from backend.flow.utils.cc_manage import CcManage
 
 logger = logging.getLogger("flow")
 
@@ -42,10 +43,13 @@ class MySQLClearMachineService(ExecuteDBActuatorScriptService):
         # 检测机器列表是否还有实例注册
         target_ip_list = copy.deepcopy(exec_ips)
         for ip in exec_ips:
-            machines = Machine.objects.filter(ip=ip, bk_cloud_id=kwargs["bk_cloud_id"]).prefetch_related(
-                "proxyinstance_set", "storageinstance_set"
+            # 先转换成list模式，避免后面的惰性查询
+            machines = list(
+                Machine.objects.filter(ip=ip, bk_cloud_id=kwargs["bk_cloud_id"]).prefetch_related(
+                    "proxyinstance_set", "storageinstance_set"
+                )
             )
-            if not machines.exists():
+            if not len(machines):
                 continue
 
             # ip+bk_cloud_id是唯一值，如果存在只有一行数据
@@ -55,7 +59,10 @@ class MySQLClearMachineService(ExecuteDBActuatorScriptService):
                 target_ip_list.remove(ip)
             else:
                 # 如果只有machine表注册，可以认为脏数据，可能并发下架引起的，这里可以做一次清理
+                # 删除前做一次cc模块的转移
                 self.log_info(_("机器还在machine表存在残留数据，执行machine数据清理[{}]").format(ip))
+                cc_manage = CcManage(machines[0].bk_biz_id, machines[0].cluster_type)
+                cc_manage.recycle_host([machines[0].bk_host_id])
                 machines[0].delete(keep_parents=True)
 
         if not target_ip_list:

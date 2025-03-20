@@ -37,8 +37,8 @@
       old_slave_host: {
         bk_biz_id: number;
         bk_cloud_id: number;
-        ip: string;
         bk_host_id: number;
+        ip: string;
         port: number;
       };
     }>;
@@ -53,14 +53,15 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(_.trim(value)),
       message: t('待重建从库主机不能为空'),
+      validator: (value: string) => Boolean(_.trim(value)),
     },
     {
-      validator: (value: string) => ipv4.test(value),
       message: t('待重建从库主机格式不正确'),
+      validator: (value: string) => ipv4.test(value),
     },
     {
+      message: t('待重建从库主机不存在'),
       validator: (value: string) =>
         checkInstance({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -74,14 +75,13 @@
             bkCloudId: instanceData.bk_cloud_id,
             bkCloudName: instanceData.bk_cloud_name,
             bkHostId: instanceData.bk_host_id,
-            ip: instanceData.ip,
-            port: instanceData.port,
             clusterId: instanceData.cluster_id,
             dbModuleId: instanceData.db_module_id,
+            ip: instanceData.ip,
+            port: instanceData.port,
           };
           return true;
         }),
-      message: t('待重建从库主机不存在'),
     },
   ];
 
@@ -112,8 +112,8 @@
           old_slave_host: {
             bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
             bk_cloud_id: modelValue.value.bkCloudId,
-            ip: modelValue.value.ip,
             bk_host_id: modelValue.value.bkHostId,
+            ip: modelValue.value.ip,
             port: modelValue.value.port,
           },
         };

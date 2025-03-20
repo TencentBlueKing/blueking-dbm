@@ -18,8 +18,8 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
-    name: 'PlatformWhitelist',
     path: 'whitelist_platform',
+    name: 'PlatformWhitelist',
     meta: {
       navName: t('授权白名单'),
     },

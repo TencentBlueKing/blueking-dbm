@@ -18,7 +18,7 @@ const path = '/apis/conf/biz_settings';
 /**
  * 创建业务配置
  */
-export const create = function (params: { bk_biz_id: number; type: string; key: string; value: any }) {
+export const create = function (params: { bk_biz_id: number; key: string; type: string; value: any }) {
   return http.post(`${path}/`, params);
 };
 /**

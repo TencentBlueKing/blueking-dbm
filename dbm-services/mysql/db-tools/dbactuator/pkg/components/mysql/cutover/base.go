@@ -239,17 +239,16 @@ func (m *MySQLClusterDetail) SetProxiesDefaultBackend() (err error) {
 	return
 }
 
-// LockTablesPreCheck TODO
-// TryLockTables
+// LockTablesPreCheck 加锁前预检查
 func (c *MasterInfo) LockTablesPreCheck(backupUser string) (err error) {
 	// 尝试去kill backup processlist
 	// backup processlist 占用的时间比较长会影响lock table
 	if err = c.KillBackupUserProcesslist(backupUser); err != nil {
-		return err
+		return fmt.Errorf("[锁定切换 前置检查]：失败:%w", err)
 	}
 	// 查看是否有长的非活跃连接
 	if err = c.FindLongQuery(); err != nil {
-		return err
+		return fmt.Errorf("[锁定切换 前置检查]： 失败:%w", err)
 	}
 	return
 }

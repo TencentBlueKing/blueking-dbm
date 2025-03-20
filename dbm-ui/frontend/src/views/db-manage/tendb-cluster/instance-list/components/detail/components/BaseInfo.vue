@@ -10,18 +10,13 @@
 
   import type TendbclusterInstanceModel from '@services/model/tendbcluster/tendbcluster-instance';
 
-  import {
-    type ClusterInstStatus,
-    clusterInstStatus,
-  } from '@common/const';
+  import { type ClusterInstStatus, clusterInstStatus } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
-  import EditInfo, {
-    type InfoColumn,
-  } from '@components/editable-info/index.vue';
+  import EditInfo, { type InfoColumn } from '@components/editable-info/index.vue';
 
   interface Props {
-    data: TendbclusterInstanceModel
+    data: TendbclusterInstanceModel;
   }
 
   const props = defineProps<Props>();
@@ -32,16 +27,16 @@
   const columns: InfoColumn[][] = [
     [
       {
-        label: t('实例'),
         key: 'instance_address',
+        label: t('实例'),
       },
       {
-        label: t('主机IP'),
         key: 'bk_host_innerip',
+        label: t('主机IP'),
       },
       {
-        label: t('状态'),
         key: 'status',
+        label: t('状态'),
         render: () => {
           const status = props.data.status as ClusterInstStatus;
           if (!status) {
@@ -53,8 +48,8 @@
         },
       },
       {
-        label: t('主访问入口'),
         key: 'master_domain',
+        label: t('主访问入口'),
         render: () => {
           const domain = props.data.master_domain;
           if (!domain) {
@@ -62,48 +57,54 @@
           }
 
           return (
-            <div class="inline-item">
-              <div class="text-overflow" v-overflow-tips>
-                <a href="javascript:" onClick={handleToClusterDetails}>{domain}</a>
+            <div class='inline-item'>
+              <div
+                v-overflow-tips
+                class='text-overflow'>
+                <a
+                  href='javascript:'
+                  onClick={handleToClusterDetails}>
+                  {domain}
+                </a>
               </div>
-              <i class="db-icon-link ml-4" />
+              <i class='db-icon-link ml-4' />
             </div>
           );
         },
       },
       {
-        label: t('从访问入口'),
         key: 'slave_domain',
+        label: t('从访问入口'),
       },
       {
-        label: t('管控区域'),
         key: 'bk_cloud_name',
+        label: t('管控区域'),
       },
       {
-        label: t('地域'),
         key: 'bk_idc_city_name',
+        label: t('地域'),
       },
       {
-        label: t('所在园区'),
         key: 'bk_sub_zone',
+        label: t('所在园区'),
       },
     ],
     [
       {
-        label: t('版本'),
         key: 'version',
+        label: t('版本'),
       },
       {
-        label: t('部署角色'),
         key: 'role',
+        label: t('部署角色'),
       },
       {
-        label: t('部署时间'),
         key: 'create_at',
+        label: t('部署时间'),
       },
       {
-        label: 'CPU',
         key: 'bk_cpu',
+        label: 'CPU',
         render: () => {
           if (!Number.isFinite(props.data.bk_cpu)) {
             return '--';
@@ -112,8 +113,8 @@
         },
       },
       {
-        label: t('内存'),
         key: 'bk_mem',
+        label: t('内存'),
         render: () => {
           if (!Number.isFinite(props.data.bk_mem)) {
             return '--';
@@ -122,8 +123,8 @@
         },
       },
       {
-        label: t('磁盘'),
         key: 'bk_disk',
+        label: t('磁盘'),
         render: () => {
           if (!Number.isFinite(props.data.bk_disk)) {
             return '--';

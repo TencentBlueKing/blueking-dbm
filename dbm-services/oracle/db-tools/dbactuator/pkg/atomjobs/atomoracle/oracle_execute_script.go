@@ -7,11 +7,12 @@ import (
 	"dbm-services/oracle/db-tools/dbactuator/pkg/util"
 	"encoding/json"
 	"fmt"
-	"github.com/go-playground/validator/v10"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/go-playground/validator/v10"
 )
 
 // ExecuteScriptConfParams 执行脚本初始化参数

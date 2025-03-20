@@ -35,24 +35,25 @@
 
 <script setup lang="tsx">
   import _ from 'lodash';
+  import { type VNode } from 'vue';
 
   import TicketModel from '@services/model/ticket/ticket';
 
   export interface DemandInfoConfig {
-    title?: string;
     list: {
-      label: string;
-      key?: string;
-      iswhole?: boolean;
-      isTable?: boolean;
       isHidden?: boolean;
+      isTable?: boolean;
+      iswhole?: boolean;
+      key?: string;
+      label: string;
       render?: () => VNode | string | null;
     }[];
+    title?: string;
   }
 
   interface Props {
-    data: TicketModel;
     config: DemandInfoConfig[];
+    data: TicketModel;
   }
 
   const props = defineProps<Props>();

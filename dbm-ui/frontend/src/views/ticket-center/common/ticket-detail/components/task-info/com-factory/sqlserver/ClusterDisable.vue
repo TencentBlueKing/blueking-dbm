@@ -26,10 +26,10 @@
     ticketDetails: TicketModel<Sqlserver.Disable>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.SQLSERVER_DISABLE,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

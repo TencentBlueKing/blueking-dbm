@@ -31,8 +31,8 @@
 
   interface Props {
     data?: IDataRow['targetNum'];
-    isLoading?: boolean;
     disabled?: boolean;
+    isLoading?: boolean;
   }
 
   interface Exposes {
@@ -41,9 +41,9 @@
 
   const props = withDefaults(defineProps<Props>(), {
     data: '',
-    min: 0,
-    isLoading: false,
     disabled: false,
+    isLoading: false,
+    min: 0,
   });
 
   const { t } = useI18n();
@@ -54,16 +54,16 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('目标台数不能为空'),
+      validator: (value: string) => Boolean(value),
     },
     {
-      validator: (value: string) => !nonInterger.test(value),
       message: t('格式有误，请输入数字'),
+      validator: (value: string) => !nonInterger.test(value),
     },
     {
-      validator: (value: string) => Number(value) >= 1,
       message: t('不能少于n台', { n: 1 }),
+      validator: (value: string) => Number(value) >= 1,
     },
   ];
 

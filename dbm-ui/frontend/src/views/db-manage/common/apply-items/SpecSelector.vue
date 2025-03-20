@@ -3,6 +3,7 @@
     <BkSelect
       class="spec-selector"
       :clearable="clearable"
+      filterable
       :loading="loading"
       :model-value="modelValue"
       @change="handleChange">
@@ -105,30 +106,28 @@
   }
 
   interface Props {
-    modelValue: number | string;
+    bizId: number | string;
+    city?: string;
+    clearable?: boolean;
+    cloudId: number | string;
     clusterType: string;
     machineType: string;
-    bizId: number | string;
-    cloudId: number | string;
+    modelValue: number | string;
     showRefresh?: boolean;
-    clearable?: boolean;
-    city?: string;
   }
 
-  interface Emits {
-    (e: 'update:modelValue', value: number | string): void;
-  }
+  type Emits = (e: 'update:modelValue', value: number | string) => void;
 
   interface Expose {
-    getData: () => Pick<ResourceSpecModel, 'spec_name' | 'cpu' | 'mem' | 'storage_spec' | 'qps'> & {
+    getData: () => {
       instance_num?: number;
-    };
+    } & Pick<ResourceSpecModel, 'spec_name' | 'cpu' | 'mem' | 'storage_spec' | 'qps'>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    showRefresh: true,
-    clearable: true,
     city: undefined,
+    clearable: true,
+    showRefresh: true,
   });
   const emits = defineEmits<Emits>();
 
@@ -142,20 +141,20 @@
     run: fetchData,
   } = useRequest(getResourceSpecList, {
     manual: true,
-    onSuccess: () => {
-      list.value = data.value?.results ?? [];
-    },
     onError: () => {
       list.value = [];
+    },
+    onSuccess: () => {
+      list.value = data.value?.results ?? [];
     },
   });
 
   const getData = () => {
     fetchData({
+      enable: true,
       limit: -1,
       spec_cluster_type: props.clusterType,
       spec_machine_type: props.machineType,
-      enable: true,
     });
   };
 
@@ -192,13 +191,13 @@
     getSpecResourceCount({
       bk_biz_id: Number(props.bizId),
       bk_cloud_id: Number(props.cloudId),
-      spec_ids: list.value.map((item) => item.spec_id),
       city: props.city,
+      spec_ids: list.value.map((item) => item.spec_id),
     }).then((data) => {
       list.value = list.value.map((item) => ({
         ...item,
-        name: item.spec_name,
         count: data[item.spec_id],
+        name: item.spec_name,
       }));
     });
   }, 100);
@@ -215,7 +214,7 @@
         fetchSpecResourceCount();
       }
     },
-    { immediate: true, deep: true },
+    { deep: true, immediate: true },
   );
 
   defineExpose<Expose>({
@@ -224,19 +223,33 @@
       if (item) {
         const { instance_num: instanceNum } = item;
         return {
-          spec_name: item.spec_name,
           cpu: item.cpu,
-          mem: item.mem,
-          storage_spec: item.storage_spec,
           instance_num: instanceNum && instanceNum > 0 ? instanceNum : undefined,
+          mem: item.mem,
           qps: item.qps,
+          spec_name: item.spec_name,
+          storage_spec: item.storage_spec,
         };
       }
       return {} as ReturnType<Expose['getData']>;
     },
   });
 </script>
+<style lang="less">
+  .bk-select-option {
+    > span {
+      display: block;
+      width: 100%;
+    }
 
+    &.is-selected {
+      .spec-display-count {
+        color: white;
+        background-color: #a3c5fd;
+      }
+    }
+  }
+</style>
 <style lang="less" scoped>
   .spec-selector-wrapper {
     position: relative;
@@ -268,15 +281,6 @@
       text-align: center;
       background-color: #f0f1f5;
       border-radius: 2px;
-    }
-  }
-
-  .bk-select-option {
-    &.is-selected {
-      .spec-display-count {
-        color: white;
-        background-color: #a3c5fd;
-      }
     }
   }
 

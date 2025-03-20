@@ -91,7 +91,7 @@
   import { useI18n } from 'vue-i18n';
 
   export interface SpecInfo {
-    name: string;
+    count?: number;
     cpu: {
       max: number;
       min: number;
@@ -101,6 +101,7 @@
       max: number;
       min: number;
     };
+    name: string;
     qps: {
       max: number;
       min: number;
@@ -110,7 +111,6 @@
       size: number;
       type: string;
     }[];
-    count?: number;
   }
 
   interface Props {
@@ -121,21 +121,21 @@
 
   withDefaults(defineProps<Props>(), {
     data: () => ({
-      id: 1,
-      name: '默认规格',
-      cpu: {
-        min: 0,
-        max: 1,
-      },
-      mem: {
-        min: 0,
-        max: 1,
-      },
-      qps: {
-        min: 0,
-        max: 1,
-      },
       count: 1,
+      cpu: {
+        max: 1,
+        min: 0,
+      },
+      id: 1,
+      mem: {
+        max: 1,
+        min: 0,
+      },
+      name: '默认规格',
+      qps: {
+        max: 1,
+        min: 0,
+      },
       storage_spec: [
         {
           mount_point: '/data',

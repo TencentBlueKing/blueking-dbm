@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 from django.utils.translation import gettext_lazy as _
 
 from backend import env
@@ -99,9 +100,13 @@ GB = 1 << 30
 TB = 1 << 40
 PB = 1 << 50
 
+# job默认超时时间 2h
 DEFAULT_JOB_TIMEOUT = 7200
+# job长耗时 1天
 LONG_JOB_TIMEOUT = 86400
 BIGFILE_JOB_SCP_TIMEOUT = 86400
+# job最大超时时间 3天
+MAX_LONG_JOB_TIMEOUT = 259200
 
 # 默认监听时间，1分钟
 DEFAULT_MONITOR_TIME = 60000
@@ -395,8 +400,7 @@ class DBActuatorActionEnum(str, StructuredEnum):
     ChangeMaster = EnumField("change-master", _("change-master"))
     SetBackend = EnumField("set-backend", _("set-backend"))
     UnInstall = EnumField("uninstall", _("uninstall"))
-    DeployDbbackup = EnumField("deploy-dbbackup", _("deploy-dbbackup"))
-    InstallMonitor = EnumField("install-monitor", _("install-monitor"))
+
     SenmanticDumpSchema = EnumField("semantic-dumpschema", _("semantic-dumpschema"))
     ImportSQLFile = EnumField("import-sqlfile", _("import-sqlfile"))
     CloneClientGrant = EnumField("clone-client-grant", _("clone-client-grant"))
@@ -417,11 +421,7 @@ class DBActuatorActionEnum(str, StructuredEnum):
     FlashBackBinlog = EnumField("flashback-binlog", _("flashback-binlog"))
     GoFlashBackBinlog = EnumField("goflashback-binlog", _("goflashback-binlog"))
     FullBackup = EnumField("full-backup", _("full-backup"))
-    DeployMySQLChecksum = EnumField("install-checksum", _("install-checksum"))
     MysqlEditConfig = EnumField("mycnf-change", _("mycnf-change"))
-    DeployMysqlBinlogRotate = EnumField("deploy-mysql-rotatebinlog", _("安装mysql-rotatebinlog程序"))
-    DeployDBAToolkit = EnumField("install-dbatoolkit", _("安装dba-toolkit程序"))
-    DeployMySQLCrond = EnumField("deploy-mysql-crond", _("deploy-mysql-crond"))
     MysqlClearSurroundingConfig = EnumField("clear-inst-config", _("mysql实例的周边配置清理"))
     SpiderInitClusterRouting = EnumField("init-cluster-routing", _("初始化spider集群节点关系"))
     SpiderAddTmpNode = EnumField("add-tmp-spider", _("添加spider临时节点"))
@@ -437,8 +437,6 @@ class DBActuatorActionEnum(str, StructuredEnum):
     MysqlOpenAreaDumpData = EnumField("open_area_dumpdata", _("Mysql开区导出库表数据"))
     MysqlOpenAreaImportData = EnumField("open_area_importdata", _("Mysql开区导入库表数据"))
     EnableTokudb = EnumField("enable-tokudb-engine", _("MySQL实例安装tokudb引擎"))
-    StandardizeMySQLInstance = EnumField("standardize-mysql", _("标准化MySQL实例"))
-    StandardizeTenDBHAProxy = EnumField("standardize-proxy", _("标准化Proxy实例"))
     Upgrade = EnumField("upgrade", _("本地升级"))
     MysqlDataMigrateDump = EnumField("mysql_data_migrate_dump", _("Mysql数据迁移导出库"))
     MysqlDataMigrateImport = EnumField("mysql_data_migrate_import", _("Mysql数据迁移导入库"))
@@ -453,12 +451,27 @@ class DBActuatorActionEnum(str, StructuredEnum):
     CreateToDBViaCtl = EnumField("create-to-db-via-ctl", _("重命名在中控建立目标库"))
     RenamePreDropToOnRemote = EnumField("rename-pre-drop-to-on-remote", _("TenDBCluster 重命名在remote预清理目标库"))
     RenameDropFromViaCtl = EnumField("rename-drop-from-via-ctl", _("TenDBCluster 重命名在中控删除源库"))
+    ChangeServerId = EnumField("change-server-id", _("change-server-id"))
+    # 实例标准化
+    StandardizeMySQLInstance = EnumField("standardize-mysql", _("标准化MySQL实例"))
+    StandardizeTenDBHAProxy = EnumField("standardize-proxy", _("标准化Proxy实例"))
+    # 未分类
+    DeployDBAToolkit = EnumField("install-dbatoolkit", _("安装dba-toolkit程序"))
+    # mysql surrounding v1
+    DeployDbbackup = EnumField("deploy-dbbackup", _("deploy-dbbackup"))
+    InstallMonitor = EnumField("install-monitor", _("install-monitor"))
+    DeployMysqlBinlogRotate = EnumField("deploy-mysql-rotatebinlog", _("安装mysql-rotatebinlog程序"))
+    DeployMySQLCrond = EnumField("deploy-mysql-crond", _("deploy-mysql-crond"))
+    DeployMySQLChecksum = EnumField("install-checksum", _("install-checksum"))
+    # mysql peripheral tools v2
+    PreparePeripheraltoolsBinary = EnumField("prepare-peripheraltools-binary", _("prepare-peripheraltools-binary"))
     PushMySQLCrondConfig = EnumField("push-mysql-crond-config", _("推送mysql-crond配置"))
     PushMySQLMonitorConfig = EnumField("push-mysql-monitor-config", _("推送mysql-monitor配置"))
-    PushChecksumConfig = EnumField("push-checksum-config", _("推送mysql-table-checksum配置"))
     PushNewDbBackupConfig = EnumField("push-new-db-backup-config", _("推送备份配置"))
+    PushChecksumConfig = EnumField("push-checksum-config", _("推送mysql-table-checksum配置"))
     PushMySQLRotatebinlogConfig = EnumField("push-mysql-rotatebinlog-config", _("推送rotatebinlog配置"))
-    ChangeServerId = EnumField("change-server-id", _("change-server-id"))
+    PushExporterCnf = EnumField("push-exporter-cnf", _("push-exporter-cnf"))
+    ProxyInplaceAutofix = EnumField("proxy-inplace-autofix", _("原地启动 proxy"))
 
 
 class RedisActuatorActionEnum(str, StructuredEnum):
@@ -507,6 +520,7 @@ class RedisActuatorActionEnum(str, StructuredEnum):
     RESHAPE = EnumField("reshape", _("reshape"))
     CLUSTER_RESET_FLUSH_MEET = EnumField("cluster_reset_flush_meet", _("cluster_reset_flush_meet"))
     REPLICAS_FORCE_RESYNC = EnumField("replicas_force_resync", _("replicas_force_resync"))
+    RESTART_EXPORTER = EnumField("restart_exporter", _("restart_exporter"))
 
 
 class MongoDBActuatorActionEnum(str, StructuredEnum):
@@ -812,8 +826,22 @@ MSSQL_DRS = "mssql_drs"
 # sqlserver的用户登录admin账号名称
 MSSQL_ADMIN = SQLSERVER_ADMIN_USER
 
+# sqlserver的业务库数据只读账号
+MSSQL_DATA_READ_DRS_USER = "mssql_data_read_drs"
+
+# sqlserver的系统库数据只读账号
+MSSQL_SYS_READ_DRS_USER = "mssql_sys_read_drs"
+
 # sqlserver自定义系统账号列表
-SQLSERVER_CUSTOM_SYS_USER = [MSSQL_EXPORTER, MSSQL_ADMIN, MSSQL_DBHA, MSSQL_DRS, "sa"]
+SQLSERVER_CUSTOM_SYS_USER = [
+    MSSQL_EXPORTER,
+    MSSQL_ADMIN,
+    MSSQL_DBHA,
+    MSSQL_DRS,
+    MSSQL_DATA_READ_DRS_USER,
+    MSSQL_SYS_READ_DRS_USER,
+    "sa",
+]
 
 # window系统job账号
 WINDOW_SYSTEM_JOB_USER = "system"

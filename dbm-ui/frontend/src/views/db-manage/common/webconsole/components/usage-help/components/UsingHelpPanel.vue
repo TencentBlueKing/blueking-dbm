@@ -29,9 +29,7 @@
     dbType?: DBTypes;
   }
 
-  interface Emits {
-    (e: 'hide'): void;
-  }
+  type Emits = (e: 'hide') => void;
 
   const props = withDefaults(defineProps<Props>(), {
     dbType: DBTypes.MYSQL,
@@ -41,8 +39,8 @@
 
   const contentMap = {
     [DBTypes.MYSQL]: RenderMysqlContent,
-    [DBTypes.TENDBCLUSTER]: RenderMysqlContent,
     [DBTypes.REDIS]: RenderRedisContent,
+    [DBTypes.TENDBCLUSTER]: RenderMysqlContent,
   };
 
   const renderContent = computed(() => contentMap[props.dbType as keyof typeof contentMap]);

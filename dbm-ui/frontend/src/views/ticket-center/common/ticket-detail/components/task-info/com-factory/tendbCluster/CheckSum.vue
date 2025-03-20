@@ -95,6 +95,8 @@
   import { type UnwrapRef, watchEffect } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import type { VxeTablePropTypes } from '@blueking/vxe-table';
+
   import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
@@ -103,20 +105,18 @@
 
   import { utcDisplayTime } from '@utils';
 
-  import type { VxeTablePropTypes } from '@blueking/vxe-table';
-
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<TendbCluster.CheckSum>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.TENDBCLUSTER_CHECKSUM,
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 
@@ -143,16 +143,16 @@
         });
       });
       mergeCells.value.push({
-        row: rowIndex,
-        rowspan: infoItem.backup_infos.length,
         col: 0,
         colspan: 1,
-      });
-      mergeCells.value.push({
         row: rowIndex,
         rowspan: infoItem.backup_infos.length,
+      });
+      mergeCells.value.push({
         col: 1,
         colspan: 1,
+        row: rowIndex,
+        rowspan: infoItem.backup_infos.length,
       });
       rowIndex += infoItem.backup_infos.length;
     });

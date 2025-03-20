@@ -19,8 +19,8 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
-    name: 'SqlServerManage',
     path: 'sqlserver',
+    name: 'SqlServerManage',
     meta: {
       navName: t('SQlServer_工具箱'),
     },
@@ -30,35 +30,35 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@views/db-manage/sqlserver/Index.vue'),
     children: [
       {
-        name: 'SqlServerHaClusterList',
         path: 'ha-cluster-list',
+        name: 'SqlServerHaClusterList',
         meta: {
-          navName: t('SQLServer主从集群管理'),
           fullscreen: true,
+          navName: t('SQLServer主从集群管理'),
         },
         component: () => import('@views/db-manage/sqlserver/ha-cluster-list/Index.vue'),
       },
       {
-        name: 'SqlServerHaInstanceList',
         path: 'ha-instance-list',
+        name: 'SqlServerHaInstanceList',
         meta: {
-          navName: t('【SQLServer 主从集群】实例视图'),
           fullscreen: true,
+          navName: t('【SQLServer 主从集群】实例视图'),
         },
         component: () => import('@views/db-manage/sqlserver/ha-instance-list/Index.vue'),
       },
       {
-        name: 'SqlServerSingle',
         path: 'single-cluster-list',
+        name: 'SqlServerSingle',
         meta: {
-          navName: t('SQLServer单节点集群管理'),
           fullscreen: true,
+          navName: t('SQLServer单节点集群管理'),
         },
         component: () => import('@views/db-manage/sqlserver/single-cluster-list/Index.vue'),
       },
       {
-        name: 'SqlServerPermissionRules',
         path: 'permission-rules',
+        name: 'SqlServerPermissionRules',
         meta: {
           navName: t('【SQLServer】授权规则'),
         },
@@ -73,8 +73,8 @@ const toolboxRouters: RouteRecordRaw[] = [
     path: 'toolbox',
     name: 'sqlserverToolbox',
     meta: {
-      navName: t('SQlServer_工具箱'),
       fullscreen: true,
+      navName: t('SQlServer_工具箱'),
     },
     redirect: {
       name: 'sqlServerExecute',
@@ -82,88 +82,88 @@ const toolboxRouters: RouteRecordRaw[] = [
     component: () => import('@views/db-manage/sqlserver/toolbox/Index.vue'),
     children: [
       {
-        name: 'sqlServerExecute',
         path: 'sql-execute/:page?',
+        name: 'sqlServerExecute',
         meta: {
           navName: t('变更SQL执行'),
         },
         component: () => import('@views/db-manage/sqlserver/sql-execute/index.vue'),
       },
       {
-        name: 'sqlServerDBRename',
         path: 'db-rename/:page?',
+        name: 'sqlServerDBRename',
         meta: {
           navName: t('DB重命名'),
         },
         component: () => import('@views/db-manage/sqlserver/db-rename/Index.vue'),
       },
       {
-        name: 'sqlServerSlaveRebuild',
         path: 'slave-rebuild/:page?',
+        name: 'sqlServerSlaveRebuild',
         meta: {
           navName: t('重建从库'),
         },
         component: () => import('@views/db-manage/sqlserver/slave-rebuild/index.vue'),
       },
       {
-        name: 'sqlServerSlaveAdd',
         path: 'slave-add/:page?',
+        name: 'sqlServerSlaveAdd',
         meta: {
           navName: t('添加从库'),
         },
         component: () => import('@views/db-manage/sqlserver/slave-add/index.vue'),
       },
       {
-        name: 'sqlServerMasterSlaveSwap',
         path: 'master-slave-swap/:page?',
+        name: 'sqlServerMasterSlaveSwap',
         meta: {
           navName: t('主从互切'),
         },
         component: () => import('@views/db-manage/sqlserver/master-slave-swap/index.vue'),
       },
       {
-        name: 'sqlServerMasterFailover',
         path: 'master-failover/:page?',
+        name: 'sqlServerMasterFailover',
         meta: {
           navName: t('主库故障切换'),
         },
         component: () => import('@views/db-manage/sqlserver/master-failover/index.vue'),
       },
       {
-        name: 'sqlServerDBClear',
         path: 'db-clear/:page?',
+        name: 'sqlServerDBClear',
         meta: {
           navName: t('清档'),
         },
         component: () => import('@views/db-manage/sqlserver/db-clear/Index.vue'),
       },
       {
-        name: 'sqlServerDBRollback',
         path: 'rollback/:page?',
+        name: 'sqlServerDBRollback',
         meta: {
           navName: t('定点回档'),
         },
         component: () => import('@views/db-manage/sqlserver/rollback/Index.vue'),
       },
       {
-        name: 'SqlServerDbBackup',
         path: 'db-backup/:page?',
+        name: 'SqlServerDbBackup',
         meta: {
           navName: t('数据库备份'),
         },
         component: () => import('@views/db-manage/sqlserver/db-backup/Index.vue'),
       },
       {
-        name: 'sqlServerDataMigrate',
         path: 'data-migrate/:page?',
+        name: 'sqlServerDataMigrate',
         meta: {
           navName: t('数据迁移'),
         },
         component: () => import('@views/db-manage/sqlserver/data-migrate/Index.vue'),
       },
       {
-        name: 'sqlServerDataMigrateRecord',
         path: 'data-migrate-record',
+        name: 'sqlServerDataMigrateRecord',
         meta: {
           navName: t('数据迁移'),
         },

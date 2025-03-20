@@ -33,17 +33,20 @@ Global Flags:
       --threads int              threads for myloader or xtrabackup, default 8 (default 8)
 ```
 
-示例：
+#### 示例1：
 ```
 ./dbbackup loadbackup logical \
  --load-dir /data/dbbak/xx_xx_xxxxxx_logical \
  -i /data/dbbak/xx_xx_xxxxxx_logical.index \
- --host x.x.x.x --port 3306 -u xxx -p xxx
+ --host x.x.x.x --port 3306 -u xxx -p xxx \
+ --databases db1,db2 --tables "*"
  
+ # 也可以指定配置文件来导入
 ./dbbackup loadbackup logical --config loader_xxx.ini
 ```
 
-如果是 mydumper 备份出的文件，还可以通过 `--databases` 等选项控制导入的数据。mysqldump 导出的数据 使用 `--databases` 则会提示错误。
+如果是 mydumper 备份出的文件，可以通过 `--databases` 等选项控制导入的数据。
+mysqldump 导出的数据 使用 `--databases` 则会提示错误。
 
 逻辑备份导入 `loadbackup logical` 是不需要指定字符集，dbbackup 会自动使用导出后备份文件里面的 charset (即 .index 里面的 backup_charset ) 
 

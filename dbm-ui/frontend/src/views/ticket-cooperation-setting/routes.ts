@@ -16,8 +16,8 @@ import { t } from '@locales/index';
 
 const routes = [
   {
-    name: 'TicketCooperationSetting',
     path: 'ticket-cooperation-setting',
+    name: 'TicketCooperationSetting',
     meta: {
       navName: t('单据协助设置'),
     },

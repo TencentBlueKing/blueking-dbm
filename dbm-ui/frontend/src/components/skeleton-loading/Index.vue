@@ -36,13 +36,13 @@
   import ClusterList from './components/ClusterList.vue';
 
   interface Props {
-    name?: string;
     loading: boolean;
+    name?: string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    name: undefined,
     loading: true,
+    name: undefined,
   });
 
   const comMap = {

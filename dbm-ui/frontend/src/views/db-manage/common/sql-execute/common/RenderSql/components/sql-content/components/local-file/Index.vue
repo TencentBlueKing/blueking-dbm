@@ -95,9 +95,7 @@
     isShow: boolean;
   }
 
-  interface Emits {
-    (e: 'grammar-check', doCheck: boolean, checkPass: boolean): void;
-  }
+  type Emits = (e: 'grammar-check', doCheck: boolean, checkPass: boolean) => void;
 
   interface Expose {
     getValue: () => Promise<string[]>;
@@ -107,7 +105,7 @@
 
   const emits = defineEmits<Emits>();
 
-  const { grammarCheckHandle, dbType: currentDbType } = useSqlImport();
+  const { dbType: currentDbType, grammarCheckHandle } = useSqlImport();
   const { t } = useI18n();
 
   const modelValue = defineModel<string[]>({
@@ -115,13 +113,13 @@
   });
 
   const {
-    isContentLoading,
-    selectFileName,
-    selectFileData,
-    fileNameList: uploadFileNameList,
-    fileDataMap: uploadFileDataMap,
-    initEditableFile,
     fetchFileContentByFileName,
+    fileDataMap: uploadFileDataMap,
+    fileNameList: uploadFileNameList,
+    initEditableFile,
+    isContentLoading,
+    selectFileData,
+    selectFileName,
   } = useEditableFileContent(modelValue);
 
   const uploadRef = ref();
@@ -197,15 +195,15 @@
       if (curFile.size > 1073741824) {
         currentFileDataMap[curFile.name] = {
           ...currentFileDataMap[curFile.name],
-          realFilePath: '/',
-          isSuccess: true,
           content: '--',
-          messageList: [],
+          grammarCheck: undefined,
           isCheckFailded: false,
+          isSuccess: true,
           isUploadFailed: true,
           isUploading: false,
+          messageList: [],
+          realFilePath: '/',
           uploadErrorMessage: t('文件上传失败——文件大小超过限制（最大为1GB）'),
-          grammarCheck: undefined,
         };
         return;
       }
@@ -238,12 +236,12 @@
           const grammarCheckResult = data[realFilePath];
           lastUploadFileDataMap[grammarCheckResult.raw_file_name] = {
             ...lastUploadFileDataMap[grammarCheckResult.raw_file_name],
-            realFilePath,
-            isSuccess: true,
             content: grammarCheckResult.content,
-            messageList: grammarCheckResult.messageList,
-            isCheckFailded: grammarCheckResult.isError,
             grammarCheck: grammarCheckResult,
+            isCheckFailded: grammarCheckResult.isError,
+            isSuccess: true,
+            messageList: grammarCheckResult.messageList,
+            realFilePath,
           };
         });
         uploadFileDataMap.value = lastUploadFileDataMap;

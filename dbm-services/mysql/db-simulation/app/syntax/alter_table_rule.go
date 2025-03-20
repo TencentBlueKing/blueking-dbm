@@ -16,7 +16,9 @@ import (
 
 // Checker syntax checker
 func (c AlterTableResult) Checker(mysqlVersion string) (r *CheckerResult) {
-	r = &CheckerResult{}
+	r = &CheckerResult{
+		ObjName: c.TableName,
+	}
 	for _, altercmd := range c.AlterCommands {
 		r.Parse(R.AlterTableRule.HighRiskType, altercmd.Type, "")
 		r.Parse(R.AlterTableRule.HighRiskPkAlterType, altercmd.GetPkAlterType(), "")

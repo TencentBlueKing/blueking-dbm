@@ -7,6 +7,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from collections import defaultdict
 from typing import List, Optional
 
 from django.db import transaction
@@ -22,11 +23,12 @@ from backend.db_meta.enums import (
     ClusterType,
     InstanceInnerRole,
     InstanceRole,
+    InstanceStatus,
     MachineType,
     TenDBClusterSpiderRole,
 )
 from backend.db_meta.exceptions import InstanceNotExistException
-from backend.db_meta.models import Cluster, ClusterEntry, ProxyInstance, StorageInstanceTuple
+from backend.db_meta.models import Cluster, ClusterEntry, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum, TenDBBackUpLocation
 from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version, get_spider_real_version
@@ -274,9 +276,12 @@ class TenDBClusterClusterHandler(ClusterHandler):
 
     @classmethod
     @transaction.atomic
-    def remote_switch(cls, cluster_id: int, switch_tuples: list):
+    def remote_switch(cls, cluster_id: int, switch_tuples: list, force: bool):
         """
         对已有集群的remote存储对进行切换记录
+        @param cluster_id:集群id
+        @param switch_tuples: 待替换的主从对list
+        @param force: 表示这次是互切还是强切
         """
         cluster = Cluster.objects.get(id=cluster_id)
         for switch_tuple in switch_tuples:
@@ -288,9 +293,31 @@ class TenDBClusterClusterHandler(ClusterHandler):
             slave_objs.update(instance_role=InstanceRole.REMOTE_MASTER, instance_inner_role=InstanceInnerRole.MASTER)
             master_objs.update(instance_role=InstanceRole.REMOTE_SLAVE, instance_inner_role=InstanceInnerRole.SLAVE)
 
+            # 如果是主故障切换(强切)，旧master的状态主动设置为UNAVAILABLE
+            if force:
+                master_objs.update(status=InstanceStatus.UNAVAILABLE)
+
             # 修改主从的映射关系
             for obj in master_objs:
                 StorageInstanceTuple.objects.filter(ejector=obj).update(ejector=F("receiver"), receiver=obj)
+
+            # 更改所有spider和remote节点的映射关系
+            for spider in cluster.proxyinstance_set.filter(
+                tendbclusterspiderext__spider_role__in=[
+                    TenDBClusterSpiderRole.SPIDER_MASTER,
+                    TenDBClusterSpiderRole.SPIDER_MNT,
+                ]
+            ):
+                # proxy 和 storage 在model设计是many_to_many模型，所以数据不存在或者重复都会静默忽略，不需要做防御性编程
+                spider.storageinstance.remove(*master_objs)
+                spider.storageinstance.add(*slave_objs)
+
+            for spider in cluster.proxyinstance_set.filter(
+                tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE
+            ):
+                # proxy 和 storage 在model设计是many_to_many模型，所以数据不存在或者重复都会静默忽略，不需要做防御性编程
+                spider.storageinstance.remove(*slave_objs)
+                spider.storageinstance.add(*master_objs)
 
             cc_topo_operator = MysqlCCTopoOperator(cluster)
             cc_topo_operator.is_bk_module_created = True
@@ -324,3 +351,25 @@ class TenDBClusterClusterHandler(ClusterHandler):
         ).all()
         for ce in clusterentry:
             ce.delete(keep_parents=True)
+
+    @staticmethod
+    def get_remote_infos(insts: List[StorageInstance]):
+        """获取remote信息，并补充分片信息"""
+        remote_infos = defaultdict(list)
+        for inst in insts:
+            try:
+                related = "as_ejector" if inst.instance_inner_role == InstanceInnerRole.MASTER else "as_receiver"
+                shard_id = getattr(inst, related).all()[0].tendbclusterstorageset.shard_id
+            except Exception:
+                # 如果无法找到shard_id，则默认为-1。有可能实例处于restoring状态(比如集群容量变更时)
+                shard_id = -1
+
+            setattr(inst, "shard_id", shard_id)
+            remote_infos[inst.instance_role].append(inst)
+
+        # 将-1分片放在最后，优先展示合法分片
+        sort_func = lambda x: x.shard_id if x.shard_id >= 0 else float("inf")  # noqa: E731
+        master_infos = sorted(remote_infos[InstanceRole.REMOTE_MASTER.value], key=sort_func)
+        slave_infos = sorted(remote_infos[InstanceRole.REMOTE_SLAVE.value], key=sort_func)
+
+        return master_infos, slave_infos

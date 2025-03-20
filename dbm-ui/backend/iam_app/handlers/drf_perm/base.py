@@ -23,6 +23,7 @@ from backend import env
 from backend.iam_app.dataclass.actions import ActionEnum, ActionMeta
 from backend.iam_app.dataclass.resources import ResourceEnum, ResourceMeta
 from backend.iam_app.handlers.permission import Permission
+from backend.utils.string import str2bool
 
 logger = logging.getLogger("root")
 
@@ -83,40 +84,47 @@ class IAMPermission(permissions.BasePermission):
         self.actions = actions
         self.resources = resources or []
 
+    def add_audit_event(self, request):
+        """对于操作请求进行审计"""
+        context = AuditContext(request=request)
+
+        # 查询类请求（简单定义为所有 GET 请求）不审计
+        if request.method == "GET":
+            return
+
+        # 审计操作类请求
+        if hasattr(request, "data"):
+            extend_data = request.data
+        else:
+            extend_data = {}
+        for action in self.actions:
+            if not self.resources:
+                bk_audit_client.add_event(action=action, audit_context=context, extend_data=extend_data)
+                continue
+            # 打散资源，平铺成资源列表
+            resources_list = list(itertools.chain(*self.resources))
+            for resource in resources_list:
+                try:
+                    bk_audit_client.add_event(
+                        action=action,
+                        resource_type=self.resource_type() if self.resource_type else resource,
+                        audit_context=context,
+                        instance=CommonInstance(resource.attribute),
+                        extend_data=extend_data,
+                    )
+                except TypeError as e:
+                    logger.error("bk audit add event error...%s", e)
+
     def has_permission(self, request, view):
         iam = Permission(request=request)
-        context = AuditContext(request=request)
-        # 查询类请求（简单定义为所有 GET 请求）不审计
-        if request.method != "GET":
-            # 审计操作类请求
-            if hasattr(request, "data"):
-                extend_data = request.data
-            else:
-                extend_data = {}
-            for action in self.actions:
-                if not self.resources:
-                    bk_audit_client.add_event(action=action, audit_context=context, extend_data=extend_data)
-                    continue
-                # 打散资源，平铺成资源列表
-                resources_list = list(itertools.chain(*self.resources))
-                for resource in resources_list:
-                    try:
-                        bk_audit_client.add_event(
-                            action=action,
-                            resource_type=self.resource_type() if self.resource_type else resource,
-                            audit_context=context,
-                            instance=CommonInstance(resource.attribute),
-                            extend_data=extend_data,
-                        )
-                    except TypeError as e:
-                        logger.error("bk audit add event error...%s", e)
-
-        # 如果是超级用户或忽略鉴权，则跳过鉴权
-        if request.user.is_superuser or env.BK_IAM_SKIP:
-            return True
 
         # 如果没有动作请求，则跳过鉴权
         if not self.actions:
+            return True
+
+        # 如果是超级用户或忽略鉴权，则跳过鉴权
+        if request.user.is_superuser or env.BK_IAM_SKIP:
+            self.add_audit_event(request)
             return True
 
         for action in self.actions:
@@ -127,6 +135,7 @@ class IAMPermission(permissions.BasePermission):
             else:
                 iam.batch_is_allowed(actions=[action], resources_list=self.resources, is_raise_exception=True)
 
+        self.add_audit_event(request)
         return True
 
     def has_object_permission(self, request, view, obj):
@@ -251,6 +260,28 @@ class DBManagePermission(ResourceActionPermission):
 
     def instance_biz_id_getter(self, request, view):
         return self.get_key_id(request, view, self.resource_meta.id, many=True)
+
+
+class BizOrGlobalResourceActionPermission(ResourceActionPermission):
+    global_action = biz_action = None
+
+    def __init__(self, actions: List[ActionMeta] = None, resource_meta: ResourceMeta = None):
+        super().__init__(actions, resource_meta, self.instance_ids_getter)
+
+    def instance_ids_getter(self, request, view):
+        platform = str2bool(get_request_key_id(request, key="platform", default=False))
+        bk_biz_id = int(get_request_key_id(request, key="bk_biz_id", default=0))
+
+        # 非平台查询，有业务ID过滤巡检，则用业务鉴权
+        if not platform and bk_biz_id:
+            self.actions = [self.biz_action]
+            self.resource_meta = ResourceEnum.BUSINESS
+            return [bk_biz_id]
+
+        # 其他情况则是查看全局，则用平台管理鉴权
+        self.actions = [self.global_action]
+        self.resource_meta = None
+        return []
 
 
 class BizDBTypeResourceActionPermission(MoreResourceActionPermission):

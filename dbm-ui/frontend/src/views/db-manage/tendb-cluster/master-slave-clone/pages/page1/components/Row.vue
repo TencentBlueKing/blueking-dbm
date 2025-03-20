@@ -74,40 +74,40 @@
   import RenderSlaveHost from './RenderSlaveHost.vue';
 
   export interface IDataRow {
-    rowKey: string;
-    isLoading: boolean;
     clusterData: {
-      ip: string;
-      clusterId: number;
-      domain: string;
       cloudId: number;
       cloudName: string;
+      clusterId: number;
+      domain: string;
       hostId: number;
+      ip: string;
     };
+    isLoading: boolean;
     masterInstanceList: NonNullable<IValue['related_instances']>;
     newHostList: string[];
+    rowKey: string;
   }
 
   // 创建表格数据
   export const createRowData = (): IDataRow => ({
-    rowKey: random(),
-    isLoading: false,
     clusterData: {
-      ip: '',
-      clusterId: 0,
-      domain: '',
       cloudId: 0,
       cloudName: '',
+      clusterId: 0,
+      domain: '',
       hostId: 0,
+      ip: '',
     },
+    isLoading: false,
     masterInstanceList: [] as IDataRow['masterInstanceList'],
     newHostList: [],
+    rowKey: random(),
   });
 
   interface Props {
     data: IDataRow;
-    removeable: boolean;
     inputedIps: string[];
+    removeable: boolean;
   }
 
   interface Emits {
@@ -127,10 +127,10 @@
   interface Exposes {
     getValue: () => Promise<{
       cluster_id: number;
-      old_master: HostItem;
-      old_slave: HostItem;
       new_master: HostItem;
       new_slave: HostItem;
+      old_master: HostItem;
+      old_slave: HostItem;
     }>;
   }
 </script>
@@ -173,18 +173,18 @@
   const handleClone = () => {
     Promise.all([masterRef.value!.getValue(), instanceRef.value!.getValue()]).then(([masterData, instanceData]) => {
       emits('clone', {
-        rowKey: random(),
-        isLoading: false,
         clusterData: {
-          ip: masterData.old_master.ip,
-          clusterId: masterData.cluster_id,
-          domain: '',
           cloudId: masterData.old_master.bk_cloud_id,
           cloudName: '',
+          clusterId: masterData.cluster_id,
+          domain: '',
           hostId: masterData.old_master.bk_host_id,
+          ip: masterData.old_master.ip,
         },
+        isLoading: false,
         masterInstanceList: [],
         newHostList: [instanceData.new_master.ip, instanceData.new_slave.ip],
+        rowKey: random(),
       });
     });
   };

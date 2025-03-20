@@ -18,44 +18,44 @@ import { random } from '@utils';
 // Spider Checksum
 export function generateSpiderChecksumCloneData(ticketData: TicketModel<TendbCluster.CheckSum>) {
   const { details, remark } = ticketData;
-  const { infos, clusters } = details;
+  const { clusters, infos } = details;
   const tableDataList = infos.map((item) => {
     const clusterInfo = clusters[item.cluster_id];
     return {
-      rowKey: random(),
-      clusterData: {
-        id: item.cluster_id,
-        domain: clusterInfo.immute_domain,
-      },
-      scope: item.checksum_scope,
       backupInfos: item.backup_infos.map((backupInfosItem) => {
         const {
-          slave,
-          master,
           db_patterns: dbPatterns,
           ignore_dbs: ignoreDbs,
-          table_patterns: tablePatterns,
           ignore_tables: ignoreTables,
+          master,
+          slave,
+          table_patterns: tablePatterns,
         } = backupInfosItem;
         return {
-          slave,
-          master,
           dbPatterns,
           ignoreDbs,
-          tablePatterns,
           ignoreTables,
+          master,
+          slave,
+          tablePatterns,
         };
       }),
+      clusterData: {
+        domain: clusterInfo.immute_domain,
+        id: item.cluster_id,
+      },
+      rowKey: random(),
+      scope: item.checksum_scope,
     };
   });
   return Promise.resolve({
-    tableDataList,
     formInfo: {
       data_repair: details.data_repair,
       is_sync_non_innodb: details.is_sync_non_innodb,
-      timing: new Date(details.timing),
-      runtime_hour: details.runtime_hour,
       remark,
+      runtime_hour: details.runtime_hour,
+      timing: new Date(details.timing),
     },
+    tableDataList,
   });
 }

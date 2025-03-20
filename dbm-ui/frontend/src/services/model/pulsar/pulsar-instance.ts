@@ -39,7 +39,6 @@ export default class PulsarInstance {
   cluster_id: number;
   cluster_type: ClusterTypes;
   create_at: string;
-  restart_at: string;
   domain: string;
   host_info: HostInfo;
   id: number;
@@ -47,6 +46,7 @@ export default class PulsarInstance {
   instance_name: string;
   operations: InstanceListOperation[];
   related_clusters: InstanceRelatedCluster[];
+  restart_at: string;
   role: string;
   status: string;
 
@@ -74,6 +74,13 @@ export default class PulsarInstance {
     this.status = payload.status;
   }
 
+  get operationDisabled() {
+    // 各个操作互斥，有其他任务进行中禁用操作按钮
+    if (this.operationRunningStatus) {
+      return true;
+    }
+    return false;
+  }
   // 操作中的状态
   get operationRunningStatus() {
     if (this.operations.length < 1) {
@@ -85,14 +92,23 @@ export default class PulsarInstance {
     }
     return operation.ticket_type;
   }
-  // 操作中的状态描述文本
-  get operationStatusText() {
-    return PulsarInstance.operationTextMap[this.operationRunningStatus];
-  }
   // 操作中的状态 icon
   get operationStatusIcon() {
     return PulsarInstance.operationIconMap[this.operationRunningStatus];
   }
+  // 操作中的状态描述文本
+  get operationStatusText() {
+    return PulsarInstance.operationTextMap[this.operationRunningStatus];
+  }
+
+  get operationTagTips() {
+    return this.operations.map((item) => ({
+      icon: PulsarInstance.operationIconMap[item.ticket_type],
+      ticketId: item.ticket_id,
+      tip: PulsarInstance.operationTextMap[item.ticket_type],
+    }));
+  }
+
   // 操作中的单据 ID
   get operationTicketId() {
     if (this.operations.length < 1) {
@@ -103,21 +119,5 @@ export default class PulsarInstance {
       return 0;
     }
     return operation.ticket_id;
-  }
-
-  get operationDisabled() {
-    // 各个操作互斥，有其他任务进行中禁用操作按钮
-    if (this.operationRunningStatus) {
-      return true;
-    }
-    return false;
-  }
-
-  get operationTagTips() {
-    return this.operations.map((item) => ({
-      icon: PulsarInstance.operationIconMap[item.ticket_type],
-      tip: PulsarInstance.operationTextMap[item.ticket_type],
-      ticketId: item.ticket_id,
-    }));
   }
 }

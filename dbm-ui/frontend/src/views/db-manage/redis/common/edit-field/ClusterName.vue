@@ -35,9 +35,7 @@
     inputed?: string[];
   }
 
-  interface Emits {
-    (e: 'inputFinish', value: RedisModel): void;
-  }
+  type Emits = (e: 'inputFinish', value: RedisModel) => void;
 
   interface Exposes {
     getValue: (isSubmit?: boolean) => Promise<string>;
@@ -60,14 +58,15 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('目标集群不能为空'),
+      validator: (value: string) => Boolean(value),
     },
     {
-      validator: (value: string) => domainRegex.test(value),
       message: t('目标集群输入格式有误'),
+      validator: (value: string) => domainRegex.test(value),
     },
     {
+      message: t('目标集群不存在'),
       validator: async (value: string) => {
         const listResult = await getRedisList({ exact_domain: value });
         if (listResult.results.length && !isSkipInputFinish) {
@@ -75,11 +74,10 @@
         }
         return listResult.results.length > 0;
       },
-      message: t('目标集群不存在'),
     },
     {
-      validator: (value: string) => props.inputed.filter((item) => item === value).length < 2,
       message: t('目标集群重复'),
+      validator: (value: string) => props.inputed.filter((item) => item === value).length < 2,
     },
   ];
 

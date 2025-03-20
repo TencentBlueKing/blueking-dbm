@@ -158,17 +158,17 @@
   const { t } = useI18n();
 
   const batchEditShow = reactive({
+    backupLocal: false,
     dbPatterns: false,
     ignoreDbs: false,
-    tablePatterns: false,
     ignoreTables: false,
-    backupLocal: false,
+    tablePatterns: false,
   });
 
   const selectList = [
     {
-      value: 'remote',
       label: 'RemoteDR',
+      value: 'remote',
     },
   ];
 

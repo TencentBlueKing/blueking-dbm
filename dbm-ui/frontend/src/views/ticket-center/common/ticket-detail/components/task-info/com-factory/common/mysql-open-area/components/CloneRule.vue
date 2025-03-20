@@ -37,23 +37,21 @@
 
   const columns = [
     {
+      field: 'source_db',
       label: t('克隆 DB'),
       minWidth: 150,
       width: 200,
-      field: 'source_db',
     },
     {
-      label: t('克隆表数据'),
       field: 'data_tblist',
+      label: t('克隆表数据'),
       render: ({ data }: { data: RowData }) => (
-        <span>
-          { data.data_tblist.length > 0 ? data.data_tblist.join(',') : '--' }
-        </span>
+        <span>{data.data_tblist.length > 0 ? data.data_tblist.join(',') : '--'}</span>
       ),
     },
     {
-      label: t('生成的目标 DB 范式'),
       field: 'target_db_pattern',
+      label: t('生成的目标 DB 范式'),
     },
   ];
 </script>

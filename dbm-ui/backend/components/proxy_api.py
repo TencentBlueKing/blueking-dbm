@@ -40,9 +40,9 @@ class ProxyAPI(DataAPI):
             return url
 
         # 只取最新的nginx作为转发服务
-        proxy = DBCloudProxy.objects.filter(bk_cloud_id=bk_cloud_id).last()
+        proxy_url = DBCloudProxy.get_cloud_proxy_external_address(bk_cloud_id)
         host = "https://" if self.ssl else "http://"
-        external_address = f"{host}{proxy.external_address}"
+        external_address = f"{host}{proxy_url}"
         return url.replace(self.base.rstrip("/"), external_address)
 
 

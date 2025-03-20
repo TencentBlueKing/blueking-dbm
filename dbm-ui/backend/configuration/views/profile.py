@@ -9,13 +9,15 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import ugettext_lazy as _
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.configuration.constants import ProfileLabel
 from backend.configuration.models import DBAdministrator, Profile
-from backend.configuration.serializers import ProfileSerializer
+from backend.configuration.serializers import ProfileSerializer, ProfileSqlSerializer
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.permission import Permission
 
@@ -35,13 +37,15 @@ class ProfileViewSet(viewsets.SystemViewSet):
         resource_manage = client.is_allowed(action=ActionEnum.RESOURCE_MANAGE, resources=[])
         global_manage = client.is_allowed(action=ActionEnum.GLOBAL_MANAGE, resources=[])
         platform_manage = client.is_allowed(action=ActionEnum.PLATFORM_MANAGE, resources=[])
+        # 排除个人配置SQL，只用于DB查询没必要全量返回
+        profile = Profile.objects.filter(username=username).exclude(label=ProfileLabel.SQL).values("label", "values")
         return Response(
             {
                 "resource_manage": resource_manage,
                 "global_manage": global_manage,
                 "platform_manage": platform_manage,
                 "username": username,
-                "profile": list(Profile.objects.filter(username=username).values("label", "values")),
+                "profile": list(profile),
                 "is_superuser": request.user.is_superuser,
                 "is_dba": DBAdministrator.is_dba(request.user.username),
             }
@@ -57,3 +61,14 @@ class ProfileViewSet(viewsets.SystemViewSet):
             label=validated_data["label"],
         )
         return Response()
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询个人收藏SQL"), tags=[SWAGGER_TAG], responses={status.HTTP_200_OK: ProfileSqlSerializer()}
+    )
+    @action(methods=["GET"], detail=False)
+    def get_profile_sql(self, request, *args, **kwargs):
+        try:
+            sql_profile = Profile.objects.get(username=request.user.username, label=ProfileLabel.SQL)
+            return Response(sql_profile.values)
+        except Profile.DoesNotExist:
+            return Response(data=[])

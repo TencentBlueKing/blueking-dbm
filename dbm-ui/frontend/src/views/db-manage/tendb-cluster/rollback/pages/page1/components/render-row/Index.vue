@@ -112,9 +112,9 @@
    * MySql 定点回档类型
    */
   enum RollbackClusterTypes {
-    BUILD_INTO_NEW_CLUSTER = 'BUILD_INTO_NEW_CLUSTER',
     BUILD_INTO_EXIST_CLUSTER = 'BUILD_INTO_EXIST_CLUSTER',
     BUILD_INTO_METACLUSTER = 'BUILD_INTO_METACLUSTER',
+    BUILD_INTO_NEW_CLUSTER = 'BUILD_INTO_NEW_CLUSTER',
   }
 
   /**
@@ -128,62 +128,62 @@
   }
 
   export interface IDataRow {
-    rowKey: string;
+    backupid?: string;
+    backupSource: string;
     clusterData: {
-      id: number;
-      domain: string;
       cloudId?: number;
       cloudName?: string;
       clusterType?: string;
+      domain: string;
+      id: number;
     };
-    targetClusterId?: number;
-    rollbackHost: {
-      // 接入层
-      spider_host: RollbackHost;
-      // 存储层
-      remote_hosts: RollbackHost[];
-    };
-    backupSource: string;
-    rollbackType: string;
-    backupid?: string;
-    rollbackTime?: string;
     databases: string[];
     databasesIgnore?: string[];
+    rollbackHost: {
+      // 存储层
+      remote_hosts: RollbackHost[];
+      // 接入层
+      spider_host: RollbackHost;
+    };
+    rollbackTime?: string;
+    rollbackType: string;
+    rowKey: string;
     tables: string[];
     tablesIgnore?: string[];
+    targetClusterId?: number;
   }
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
-    rowKey: random(),
-    clusterData: data.clusterData || {
-      id: 0,
-      domain: '',
-    },
-    targetClusterId: data.targetClusterId,
-    rollbackHost: data.rollbackHost || {
-      spider_host: {
-        ip: '',
-        bk_host_id: 0,
-        bk_cloud_id: 0,
-        bk_biz_id: 0,
-      },
-      remote_hosts: [],
-    },
-    backupSource: data.backupSource || BackupSources.REMOTE,
-    rollbackType: data.rollbackType || BackupTypes.BACKUPID,
     backupid: data.backupid || '',
-    rollbackTime: data.rollbackTime || '',
+    backupSource: data.backupSource || BackupSources.REMOTE,
+    clusterData: data.clusterData || {
+      domain: '',
+      id: 0,
+    },
     databases: data.databases || ['*'],
     databasesIgnore: data.databasesIgnore,
+    rollbackHost: data.rollbackHost || {
+      remote_hosts: [],
+      spider_host: {
+        bk_biz_id: 0,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        ip: '',
+      },
+    },
+    rollbackTime: data.rollbackTime || '',
+    rollbackType: data.rollbackType || BackupTypes.BACKUPID,
+    rowKey: random(),
     tables: data.tables || ['*'],
     tablesIgnore: data.tablesIgnore,
+    targetClusterId: data.targetClusterId,
   });
 
   interface Props {
-    rollbackClusterType: RollbackClusterTypes;
     data: IDataRow;
     removeable: boolean;
+    rollbackClusterType: RollbackClusterTypes;
   }
   interface Emits {
     (e: 'add', params: IDataRow[]): void;
@@ -191,8 +191,8 @@
   }
 
   interface Exposes {
-    validator: (field: keyof IDataRow) => void;
     getValue: () => Promise<any>;
+    validator: (field: keyof IDataRow) => void;
   }
 </script>
 <script setup lang="ts">
@@ -237,15 +237,15 @@
     spider_host: {} as RollbackHost,
   });
   const localClusterData = ref<IDataRow['clusterData']>({
-    id: 0,
     domain: '',
+    id: 0,
   });
   const localBackupSource = ref(BackupSources.REMOTE);
 
   const configMap = {
-    [RollbackClusterTypes.BUILD_INTO_NEW_CLUSTER]: ['host', 'dbTableIgnore'],
     [RollbackClusterTypes.BUILD_INTO_EXIST_CLUSTER]: ['targetCluster', 'dbTableIgnore', 'operate'],
     [RollbackClusterTypes.BUILD_INTO_METACLUSTER]: ['operate'] as string[],
+    [RollbackClusterTypes.BUILD_INTO_NEW_CLUSTER]: ['host', 'dbTableIgnore'],
   };
 
   const showColumn = (column: string) => computed(() => configMap[props.rollbackClusterType].includes(column));
@@ -347,11 +347,11 @@
         ...clusterData,
         ...backupSourceData,
         ...modeData,
-        target_cluster_id: clusterData.cluster_id,
         databases: ['*'],
         databases_ignore: [],
         tables: ['*'],
         tables_ignore: [],
+        target_cluster_id: clusterData.cluster_id,
       }),
     );
 
@@ -373,6 +373,15 @@
   );
 
   defineExpose<Exposes>({
+    getValue() {
+      if (props.rollbackClusterType === RollbackClusterTypes.BUILD_INTO_NEW_CLUSTER) {
+        return getNewClusterRowData();
+      }
+      if (props.rollbackClusterType === RollbackClusterTypes.BUILD_INTO_EXIST_CLUSTER) {
+        return getExistClusterRowData();
+      }
+      return getMetaClusterRowData();
+    },
     validator(field: keyof IDataRow) {
       switch (field) {
         case 'databases':
@@ -390,15 +399,6 @@
         default:
           break;
       }
-    },
-    getValue() {
-      if (props.rollbackClusterType === RollbackClusterTypes.BUILD_INTO_NEW_CLUSTER) {
-        return getNewClusterRowData();
-      }
-      if (props.rollbackClusterType === RollbackClusterTypes.BUILD_INTO_EXIST_CLUSTER) {
-        return getExistClusterRowData();
-      }
-      return getMetaClusterRowData();
     },
   });
 </script>

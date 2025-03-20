@@ -30,9 +30,7 @@
     modelValue: string;
   }
 
-  interface Emits {
-    (e: 'change', value: string): void;
-  }
+  type Emits = (e: 'change', value: string) => void;
 
   interface Exposes {
     getValue: () => Promise<Record<string, string>>;
@@ -49,23 +47,23 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('清档类型不能为空'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 
   const list = [
     {
-      value: 'truncate_table',
       label: t('清除表数据_truncatetable'),
+      value: 'truncate_table',
     },
     {
-      value: 'drop_table',
       label: t('清除表数据和结构_droptable'),
+      value: 'drop_table',
     },
     {
-      value: 'drop_database',
       label: t('删除整库_dropdatabase'),
+      value: 'drop_database',
     },
   ];
 

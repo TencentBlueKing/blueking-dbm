@@ -64,9 +64,7 @@
     appAbbr: string;
   }
 
-  interface Emits {
-    (e: 'change', value: string[]): void;
-  }
+  type Emits = (e: 'change', value: string[]) => void;
 
   withDefaults(defineProps<Props>(), {
     appAbbr: '',

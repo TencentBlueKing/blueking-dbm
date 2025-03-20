@@ -35,8 +35,8 @@
 
   interface Props {
     instanceData: {
-      instanceAddress: string;
       clusterId: number;
+      instanceAddress: string;
     };
   }
 
@@ -47,9 +47,9 @@
   const activePanel = ref('info');
 
   const {
+    data,
     loading: isLoading,
     run: fetchInstDetails,
-    data,
   } = useRequest(retrieveMongoInstanceDetail, {
     manual: true,
   });
@@ -58,8 +58,8 @@
     () => props.instanceData,
     () => {
       fetchInstDetails({
-        instance_address: props.instanceData.instanceAddress,
         cluster_id: props.instanceData.clusterId,
+        instance_address: props.instanceData.instanceAddress,
       });
     },
     {

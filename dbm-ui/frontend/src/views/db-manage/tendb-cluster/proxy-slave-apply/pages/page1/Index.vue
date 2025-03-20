@@ -91,12 +91,12 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY,
     onSuccess(cloneData) {
       tableData.value = cloneData.tableDataList;
       remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
+    type: TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY,
   });
 
   const rowRefs = ref();
@@ -139,18 +139,18 @@
 
   // 根据集群选择返回的数据加工成table所需的数据
   const generateRowDateFromRequest = (item: TendbClusterModel) => ({
-    rowKey: random(),
-    isLoading: false,
+    bizId: item.bk_biz_id,
+    cloudId: item.bk_cloud_id,
     cluster: item.master_domain,
     clusterId: item.id,
     clusterType: item.cluster_spec.spec_cluster_type,
-    cloudId: item.bk_cloud_id,
-    bizId: item.bk_biz_id,
+    isLoading: false,
+    rowKey: random(),
     spec: {
       ...item.cluster_spec,
-      name: item.cluster_spec.spec_name,
-      id: item.cluster_spec.spec_id,
       count: 0,
+      id: item.cluster_spec.spec_id,
+      name: item.cluster_spec.spec_name,
     },
     specId: item.cluster_spec.spec_id,
   });
@@ -233,12 +233,12 @@
       );
       const params = {
         bk_biz_id: currentBizId,
-        ticket_type: TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY,
-        remark: remark.value,
         details: {
-          ip_source: 'resource_pool',
           infos,
+          ip_source: 'resource_pool',
         },
+        remark: remark.value,
+        ticket_type: TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY,
       };
 
       await createTicket(params).then((data) => {

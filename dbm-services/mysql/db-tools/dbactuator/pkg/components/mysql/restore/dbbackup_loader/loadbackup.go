@@ -6,4 +6,5 @@ type DBBackupLoader interface {
 	CreateConfigFile() error
 	PreLoad() error
 	Load() error
+	PostLoad() error
 }

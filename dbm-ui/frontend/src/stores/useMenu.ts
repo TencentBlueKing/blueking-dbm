@@ -17,12 +17,12 @@ import { getTicketsCount } from '@services/source/ticket';
 
 export const useMenu = defineStore('useMenu', {
   state: () => ({
-    toggleCollapsed: false,
     hoverCollapsed: true,
     menuCountMap: {
-      todos: 0,
       tickets: 0,
+      todos: 0,
     },
+    toggleCollapsed: false,
   }),
   getters: {
     // 切换展开/收起
@@ -31,11 +31,15 @@ export const useMenu = defineStore('useMenu', {
     isHover: (state) => state.toggleCollapsed && state.hoverCollapsed === false,
   },
   actions: {
-    toggle() {
-      this.toggleCollapsed = !this.toggleCollapsed;
-      if (this.toggleCollapsed) {
-        this.hoverCollapsed = true;
-      }
+    fetchTicketsCount() {
+      getTicketsCount({ count_type: 'MY_APPROVE' }).then((count = 0) => {
+        this.menuCountMap.tickets = count;
+      });
+    },
+    fetchTodosCount() {
+      getTicketsCount({ count_type: 'MY_TODO' }).then((count = 0) => {
+        this.menuCountMap.todos = count;
+      });
     },
     mouseenter() {
       this.hoverCollapsed = false;
@@ -43,15 +47,11 @@ export const useMenu = defineStore('useMenu', {
     mouseleave() {
       this.hoverCollapsed = true;
     },
-    fetchTodosCount() {
-      getTicketsCount({ count_type: 'MY_TODO' }).then((count = 0) => {
-        this.menuCountMap.todos = count;
-      });
-    },
-    fetchTicketsCount() {
-      getTicketsCount({ count_type: 'MY_APPROVE' }).then((count = 0) => {
-        this.menuCountMap.tickets = count;
-      });
+    toggle() {
+      this.toggleCollapsed = !this.toggleCollapsed;
+      if (this.toggleCollapsed) {
+        this.hoverCollapsed = true;
+      }
     },
     updateMenuCount() {
       // this.fetchTicketsCount();

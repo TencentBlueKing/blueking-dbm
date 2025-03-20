@@ -69,12 +69,12 @@ export function queryBackupLogs(params: { cluster_id: number; days?: number }) {
 
 // 根据备份记录和库匹配模式查询操作库
 export function queryDbsByBackupLog(params: {
-  cluster_id: number;
-  db_pattern: string[];
-  ignore_db: string[];
   backup_logs?: {
     logs: any[];
   };
+  cluster_id: number;
+  db_pattern: string[];
+  ignore_db: string[];
   restore_time?: string;
 }) {
   return http.post<string[]>(`${path}/rollback/query_dbs_by_backup_log/`, params);

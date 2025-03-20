@@ -25,20 +25,20 @@ type StartProxyParam struct {
 }
 
 // Restart TODO
-func (s StartProxyParam) Restart() (err error) {
+func (s StartProxyParam) Restart(port int) (err error) {
 	logger.Info("restart mysql-proxy")
 	if err = KillDownProxy(s.Port); err != nil {
 		logger.Error("kill mysql-proxy error: %v", err)
 		return err
 	}
-	return s.Start()
+	return s.Start(port)
 }
 
 // Start TODO
-func (s StartProxyParam) Start() (err error) {
+func (s StartProxyParam) Start(port int) (err error) {
 	scmd := fmt.Sprintf(
-		"su - mysql -c \"cd %s && ./mysql-proxy --defaults-file=%s  &>/dev/null &\"",
-		path.Join(s.InstallPath, "bin"), s.ProxyCnf,
+		"su - mysql -c \"cd %s && ./mysql-proxy --defaults-file=%s > /tmp/start_proxy_%d.log 2>&1 &\"",
+		path.Join(s.InstallPath, "bin"), s.ProxyCnf, port,
 	)
 	logger.Info("start mysql-proxy commands: [%s]", scmd)
 	if _, err = osutil.ExecShellCommand(false, scmd); err != nil {

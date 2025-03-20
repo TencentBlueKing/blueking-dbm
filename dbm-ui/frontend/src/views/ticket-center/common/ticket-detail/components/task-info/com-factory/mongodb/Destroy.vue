@@ -12,10 +12,10 @@
     ticketDetails: TicketModel<Mongodb.Destroy>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.MONGODB_DESTROY,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

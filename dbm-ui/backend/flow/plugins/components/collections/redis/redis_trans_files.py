@@ -70,6 +70,7 @@ class RedisBackupFileTransService(BkJobService):
         FlowNode.objects.filter(root_id=root_id, node_id=node_id).update(hosts=exec_ips)
 
         # 请求传输
+        payload["timeout"] = 3600 * 24  # 设置24个小时超时时间
         resp = JobApi.fast_transfer_file(payload, raw=True)
 
         # 传入调用结果，并单调监听任务状态

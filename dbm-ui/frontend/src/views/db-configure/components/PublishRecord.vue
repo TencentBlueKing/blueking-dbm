@@ -72,24 +72,19 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import {
-    getConfigVersionDetails,
-    getConfigVersionList,
-  } from '@services/source/configs';
+  import { getConfigVersionDetails, getConfigVersionList } from '@services/source/configs';
 
   import { useTableMaxHeight } from '@hooks';
 
-  import EditInfo, {
-    type InfoColumn,
-  } from '@components/editable-info/index.vue';
+  import EditInfo, { type InfoColumn } from '@components/editable-info/index.vue';
 
   import ReadonlyTable from './ReadonlyTable.vue';
 
-  type ConfigVersionDetails = ServiceReturnType<typeof getConfigVersionDetails>
-  type ConfigVersionListResult = ServiceReturnType<typeof getConfigVersionList>
+  type ConfigVersionDetails = ServiceReturnType<typeof getConfigVersionDetails>;
+  type ConfigVersionListResult = ServiceReturnType<typeof getConfigVersionList>;
 
   interface Props {
-    fetchParams: ServiceParameters<typeof getConfigVersionDetails>
+    fetchParams: ServiceParameters<typeof getConfigVersionDetails>;
   }
 
   const props = defineProps<Props>();
@@ -101,48 +96,54 @@
     data: {
       versions: [] as ConfigVersionListResult['versions'],
     } as ConfigVersionListResult,
-    loading: false,
     isAnomalies: false,
+    loading: false,
   });
 
   /**
    * table columns
    */
-  const columns = [{
-    label: t('发布时间'),
-    field: 'created_at',
-    render: ({ data }: {data: ConfigVersionListResult['versions'][number]}) => (
-      <bk-button
-        text
-        theme="primary"
-        onClick={() => handleToDetails(data)}>
-        {data.created_at}
-      </bk-button>
-    ),
-  }, {
-    label: t('发布人'),
-    field: 'created_by',
-  }, {
-    label: t('数据库版本'),
-    field: 'conf_file',
-  }, {
-    label: t('修改项'),
-    field: 'rows_affected',
-  }, {
-    label: t('备注'),
-    field: 'description',
-  }];
+  const columns = [
+    {
+      field: 'created_at',
+      label: t('发布时间'),
+      render: ({ data }: { data: ConfigVersionListResult['versions'][number] }) => (
+        <bk-button
+          theme='primary'
+          text
+          onClick={() => handleToDetails(data)}>
+          {data.created_at}
+        </bk-button>
+      ),
+    },
+    {
+      field: 'created_by',
+      label: t('发布人'),
+    },
+    {
+      field: 'conf_file',
+      label: t('数据库版本'),
+    },
+    {
+      field: 'rows_affected',
+      label: t('修改项'),
+    },
+    {
+      field: 'description',
+      label: t('备注'),
+    },
+  ];
 
   /**
    * 设置 side slider
    */
   const sideState = reactive({
-    isShow: false,
-    loading: false,
-    isAnomalies: false,
     data: {
       configs: [] as any[],
     } as ConfigVersionDetails,
+    isAnomalies: false,
+    isShow: false,
+    loading: false,
     title: '',
   });
   const handleToDetails = (row: ConfigVersionListResult['versions'][number]) => {
@@ -154,26 +155,34 @@
    * slider base info
    */
   const baseColumns: InfoColumn[][] = [
-    [{
-      label: t('配置名称'),
-      key: 'name',
-    }, {
-      label: t('描述'),
-      key: 'description',
-    }, {
-      label: t('数据库版本'),
-      key: 'version',
-    }, {
-      label: t('发布备注'),
-      key: 'publish_description',
-    }],
-    [{
-      label: t('发布时间'),
-      key: 'created_at',
-    }, {
-      label: t('发布人'),
-      key: 'created_by',
-    }],
+    [
+      {
+        key: 'name',
+        label: t('配置名称'),
+      },
+      {
+        key: 'description',
+        label: t('描述'),
+      },
+      {
+        key: 'version',
+        label: t('数据库版本'),
+      },
+      {
+        key: 'publish_description',
+        label: t('发布备注'),
+      },
+    ],
+    [
+      {
+        key: 'created_at',
+        label: t('发布时间'),
+      },
+      {
+        key: 'created_by',
+        label: t('发布人'),
+      },
+    ],
   ];
 
   /**
@@ -195,12 +204,16 @@
       });
   };
 
-  watch(() => props.fetchParams, () => {
-    fetchConfigVersionList();
-  }, { immediate: true, deep: true });
+  watch(
+    () => props.fetchParams,
+    () => {
+      fetchConfigVersionList();
+    },
+    { deep: true, immediate: true },
+  );
 
   const fetchVersionDetails = (createdAt: string) => {
-    const versionInfo = state.data.versions.find(item => item.created_at === createdAt);
+    const versionInfo = state.data.versions.find((item) => item.created_at === createdAt);
     if (versionInfo) {
       sideState.data = {
         configs: [] as any[],
@@ -212,11 +225,15 @@
   /**
    *  查询配置发布记录详情
    */
-  watch(() => sideState.title, (value, old) => {
-    if (value && value !== old) {
-      fetchVersionDetails(value);
-    }
-  }, { immediate: true });
+  watch(
+    () => sideState.title,
+    (value, old) => {
+      if (value && value !== old) {
+        fetchVersionDetails(value);
+      }
+    },
+    { immediate: true },
+  );
 
   const fetchConfigVersionDetails = (revision: string) => {
     if (!revision) return;

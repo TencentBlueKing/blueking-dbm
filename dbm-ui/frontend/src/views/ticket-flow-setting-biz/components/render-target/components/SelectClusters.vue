@@ -47,8 +47,8 @@
   import useValidtor from '@components/render-table/hooks/useValidtor';
 
   interface Props {
-    dbType: DBTypes;
     bizId: number;
+    dbType: DBTypes;
   }
 
   interface Emits {
@@ -72,14 +72,14 @@
 
   const rules = [
     {
-      validator: (value: number[]) => value.length > 0,
       message: t('至少选择一个集群'),
+      validator: (value: number[]) => value.length > 0,
     },
   ];
 
   const { message: errorMessage, validator } = useValidtor(rules);
 
-  const { run: fetchData, data: clusterList } = useRequest(queryAllTypeCluster, {
+  const { data: clusterList, run: fetchData } = useRequest(queryAllTypeCluster, {
     manual: true,
   });
 
@@ -90,8 +90,8 @@
         fetchData({
           bk_biz_id: props.bizId,
           cluster_types: queryClusterTypes[props.dbType as keyof typeof queryClusterTypes].join(','),
-          phase: 'online',
           limit: -1,
+          phase: 'online',
         });
       }
     },

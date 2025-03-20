@@ -441,7 +441,8 @@ class CcManage(object):
                             ],
                         }
                     ],
-                }
+                },
+                use_admin=True,
             )
         )
         self.add_label_for_service_instance(bk_instance_ids, labels_dict)
@@ -533,23 +534,24 @@ class CcManage(object):
         self.delete_cc_module(db_type, cluster_type, instance_id=ins.id)
 
 
-def format_operate_collector_cache_key(db_type, machine_type, action, suffix) -> tuple:
+def format_operate_collector_cache_key(bk_biz_id, db_type, machine_type, action, suffix="trigger_time") -> tuple:
     """
     生成操作采集器缓存key
+    按照 管控业务-组件-机器类型-动作 进行聚合
     """
-    cache_key = f"operate_collector_{db_type}_{machine_type}_{action}"
+    cache_key = f"operate_collector_{bk_biz_id}_{db_type}_{machine_type}_{action}"
     trigger_time_key = f"{cache_key}_{suffix}"
     return cache_key, trigger_time_key
 
 
 @app.task
-def operate_collector(db_type: str, machine_type: str, bk_instance_ids: list, action: str):
+def operate_collector(bk_biz_id: int, db_type: str, machine_type: str, bk_instance_ids: list, action: str):
     """
     操作采集器
     调用监控 API，针对本次变更的范围进行下发
 
     """
-    cache_key, trigger_time_key = format_operate_collector_cache_key(db_type, machine_type, action, "trigger_time")
+    cache_key, trigger_time_key = format_operate_collector_cache_key(bk_biz_id, db_type, machine_type, action)
     trigger_time = RedisConn.get(trigger_time_key)
 
     # 通过触发时间，加上延迟窗口，来实现滚动窗口，避免串行调用节点管理
@@ -565,24 +567,30 @@ def operate_collector(db_type: str, machine_type: str, bk_instance_ids: list, ac
                 db_type=db_type, machine_type=machine_type, bk_instance_ids=bk_instance_ids, action=action
             )
         )
+
     plugin_id = INSTANCE_MONITOR_PLUGINS[db_type][machine_type]["plugin_id"]
     collect_instances = CollectInstance.objects.filter(db_type=db_type, plugin_id=plugin_id)
     for collect_ins in collect_instances:
-        if machine_type in collect_ins.machine_types or not collect_ins.machine_types:
-            try:
-                BKMonitorV3Api.run_collect_config(
-                    {
-                        "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
-                        "id": collect_ins.collect_id,
-                        "scope": {
-                            "node_type": "INSTANCE",
-                            "nodes": [{"id": bk_instance_id} for bk_instance_id in bk_instance_ids],
-                        },
-                        "action": action,
-                    }
-                )
-            except ApiError as err:
-                logger.error(f"[run_collect_config] id:{collect_ins.collect_id} error: {err}")
+        # 当前采集绑定机器类型，且下发的实例不属于绑定范围，则跳过
+        if collect_ins.machine_types and machine_type not in collect_ins.machine_types:
+            continue
+        # 下发采集器
+        try:
+            BKMonitorV3Api.run_collect_config(
+                {
+                    "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+                    "id": collect_ins.collect_id,
+                    "scope": {
+                        "bk_biz_id": bk_biz_id,
+                        "object_type": "SERVICE",
+                        "node_type": "INSTANCE",
+                        "nodes": [{"id": bk_instance_id} for bk_instance_id in bk_instance_ids],
+                    },
+                    "action": action,
+                }
+            )
+        except ApiError as err:
+            logger.error(f"[run_collect_config] id:{collect_ins.collect_id} error: {err}")
 
 
 def trigger_operate_collector(
@@ -602,18 +610,24 @@ def trigger_operate_collector(
     if not bk_instance_ids:
         return
 
+    # 获取实例信息，同一批下发实例的采集：组件、类型、管控业务都相同，任取一个即可
+    ins = (
+        StorageInstance.objects.filter(bk_instance_id__in=bk_instance_ids).first()
+        or ProxyInstance.objects.filter(bk_instance_id__in=bk_instance_ids).first()
+    )
+    if ins is None:
+        return
+
     # 监控某些场景下，不传入 db_type 和 machine_type 的情况，例如 dbha 切换后，仅更新标签
     if db_type is None and machine_type is None and bk_instance_ids is not None:
-        ins = (
-            StorageInstance.objects.filter(bk_instance_id__in=bk_instance_ids).first()
-            or ProxyInstance.objects.filter(bk_instance_id__in=bk_instance_ids).first()
-        )
-        if ins is None:
-            return
         machine_type = ins.machine_type
         db_type = ClusterType.cluster_type_to_db_type(ins.cluster_type)
 
-    cache_key, trigger_time_key = format_operate_collector_cache_key(db_type, machine_type, action, "trigger_time")
+    # 在多个集群同时部署的时候，可能存在不同管控业务在一个滑动窗口下发采集器
+    # 因此聚合管控业务和实例，后续按照管控业务维度下发采集器
+    # 按照管控业务发起任务下发
+    hosting_biz = BizSettings.get_exact_hosting_biz(ins.bk_biz_id, ins.cluster_type)
+    cache_key, trigger_time_key = format_operate_collector_cache_key(hosting_biz, db_type, machine_type, action)
     trigger_time = RedisConn.get(trigger_time_key)
 
     # 设置触发时间， 以 OPERATE_COLLECTOR_COUNTDOWN 作为一个滚动窗口来执行采集器操作
@@ -625,6 +639,7 @@ def trigger_operate_collector(
     RedisConn.lpush(cache_key, *bk_instance_ids)
     operate_collector.apply_async(
         kwargs={
+            "bk_biz_id": hosting_biz,
             "db_type": db_type,
             "machine_type": machine_type,
             "bk_instance_ids": bk_instance_ids,

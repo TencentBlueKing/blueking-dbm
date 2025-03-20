@@ -270,30 +270,68 @@ class RemoteServiceHandler:
             cluster_databases_infos.append({"cluster_id": info["cluster_id"], "databases": databases})
         return cluster_databases_infos
 
+    @classmethod
+    def console_rpc(cls, instances: list, cmd: str, db_query: bool):
+        """
+        执行rpc命令，只支持select语句
+        @param instances: 实例信息
+        @param cmd: 执行命令
+        @param db_query: 是否只允许查询系统库 -- DB自助查询
+        """
+        # 校验select语句
+        SQLParseHandler().parse_select_statement(sql=cmd, db_query=db_query)
+
+        # 按云区域对instance分组
+        bk_cloud__instances_map: Dict[int, List] = defaultdict(list)
+        for info in instances:
+            bk_cloud__instances_map[info["bk_cloud_id"]].append(info["instance"])
+
+        # 获取rpc结果
+        instance_rpc_results: List = []
+        for bk_cloud_id, addresses in bk_cloud__instances_map.items():
+            rpc_results = DRSApi.webconsole_rpc({"bk_cloud_id": bk_cloud_id, "addresses": addresses, "cmds": [cmd]})
+            cmd_results = [
+                {
+                    "instance": res["address"],
+                    "table_data": res["cmd_results"][0]["table_data"] if not res["error_msg"] else None,
+                    "error_msg": res["error_msg"],
+                }
+                for res in rpc_results
+            ]
+            instance_rpc_results.extend(cmd_results)
+
+        return instance_rpc_results
+
     def webconsole_rpc(self, cluster_id: int, cmd: str, **kwargs):
         """
         执行webconsole命令，只支持select语句
         @param cluster_id: 集群ID
         @param cmd: 执行命令
         """
+        # 获取远程执行地址
+        cluster = Cluster.objects.get(id=cluster_id)
+        __, remote_address = self._get_cluster_address(cluster_id__role_map={}, cluster_id=cluster.id)
 
-        # 校验select语句
+        # 请求rpc
         try:
-            SQLParseHandler().parse_select_statement(cmd)
+            instances = [{"bk_cloud_id": cluster.bk_cloud_id, "instance": remote_address}]
+            rpc_results = self.console_rpc(instances, cmd, db_query=False)
+            return {"query": rpc_results[0]["table_data"], "error_msg": rpc_results[0]["error_msg"]}
         except SQLParseBaseException as e:
             return {"query": [], "error_msg": e.message}
 
-        # 获取远程执行地址
-        cluster = Cluster.objects.get(id=cluster_id)
-        bk_cloud_id = cluster.bk_cloud_id
-        __, remote_address = self._get_cluster_address(cluster_id__role_map={}, cluster_id=cluster.id)
-
-        # 获取rpc结果
-        rpc_results = DRSApi.webconsole_rpc({"bk_cloud_id": bk_cloud_id, "addresses": [remote_address], "cmds": [cmd]})
-        if rpc_results[0]["error_msg"]:
-            return {"query": [], "error_msg": rpc_results[0]["error_msg"]}
-
-        return {"query": rpc_results[0]["cmd_results"][0]["table_data"], "error_msg": ""}
+    @classmethod
+    def dbconsole_rpc(
+        cls,
+        instances: list,
+        cmd: str,
+    ):
+        """
+        DB自助查询
+        @param instances: 实例信息
+        @param cmd: 执行命令
+        """
+        return cls.console_rpc(instances, cmd, db_query=True)
 
     def validate_table_fields(self, info, input_fild_names):
         """

@@ -15,18 +15,18 @@
  * 节点详情
  */
 export interface HostNode {
-  bk_os_name: string;
-  bk_host_id: number;
-  bk_cloud_id: number;
-  bk_host_innerip_v6: string;
-  bk_host_name: string;
-  bk_os_type: number | string;
-  bk_host_innerip: string;
-  status: number;
   bk_agent_id: string;
+  bk_cloud_id: number;
   bk_cloud_name: string;
   bk_cloud_vendor: null;
   bk_cpu: number;
+  bk_host_id: number;
+  bk_host_innerip: string;
+  bk_host_innerip_v6: string;
+  bk_host_name: string;
   bk_mem: number;
+  bk_os_name: string;
+  bk_os_type: number | string;
   instance_num: number;
+  status: number;
 }

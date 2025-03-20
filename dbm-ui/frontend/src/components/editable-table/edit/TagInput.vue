@@ -18,8 +18,8 @@
 
   /* eslint-disable vue/no-unused-properties */
   export interface Props {
-    placeholder?: string;
     maxData?: number;
+    placeholder?: string;
   }
 
   export interface Emits<T> {

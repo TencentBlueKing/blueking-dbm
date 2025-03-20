@@ -1,12 +1,13 @@
 package mongojob
 
 import (
-	"dbm-services/mongodb/db-tools/dbmon/mylog"
 	"dbm-services/mongodb/db-tools/dbmon/pkg/consts"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mycmd"
 	"fmt"
 	"strconv"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 // BackupTaskOption 备份任务参数
@@ -26,6 +27,7 @@ type BackupTaskOption struct {
 	FullFreq           int    `json:"full_freq"`
 	IncrFreq           int    `json:"incr_freq"`
 	Labels             string `json:"labels"`
+	Zip                bool   `json:"zip"`
 }
 
 // BackupTask 备份任务
@@ -41,8 +43,7 @@ func NewBackupTask() *BackupTask {
 // 组装命令行，调用MongoToolKit执行备份任务，返回错误
 // 调用MongoToolKit执行备份任务的原因是，MongoToolKit已经实现了备份的逻辑，不需要重复实现
 // 也可实现备份时可重启dbmon，但目前没有实现
-func (task *BackupTask) Do(option *BackupTaskOption) error {
-
+func (task *BackupTask) Do(option *BackupTaskOption, logger *zap.Logger) error {
 	backupType := "AUTO"
 	reportFile, _, _ := consts.GetMongoBackupReportPath()
 
@@ -61,12 +62,16 @@ func (task *BackupTask) Do(option *BackupTaskOption) error {
 		cb.Append("--remove-old-file-first")
 	}
 
+	if option.Zip {
+		cb.Append("--zip")
+	}
+
 	// dbmon的日志不上传Es，可以打印密码.
 	cmdLine := cb.GetCmdLine2(false)
-	mylog.Logger.Info(fmt.Sprintf("cmdLine: %s", cmdLine))
+	logger.Info(fmt.Sprintf("cmdLine: %s", cmdLine))
 
 	o, err := cb.Run2(time.Hour * 24)
-	mylog.Logger.Info(
+	logger.Info(
 		fmt.Sprintf("Exec %s cost %0.1f Seconds, stdout: %s, stderr %s",
 			cmdLine,
 			o.End.Sub(o.Start).Seconds(),

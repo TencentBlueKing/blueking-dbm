@@ -20,8 +20,8 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
-    name: 'PulsarManage',
     path: 'pulsar',
+    name: 'PulsarManage',
     meta: {
       navName: t('Pulsar集群管理'),
     },
@@ -39,11 +39,11 @@ const routes: RouteRecordRaw[] = [
       //   component: () => import('@views/db-manage/pulsar/apply/index.vue'),
       // },
       {
-        name: 'PulsarList',
         path: 'list',
+        name: 'PulsarList',
         meta: {
-          navName: t('Pulsar集群管理'),
           fullscreen: true,
+          navName: t('Pulsar集群管理'),
         },
         component: () => import('@views/db-manage/pulsar/list/Index.vue'),
       },

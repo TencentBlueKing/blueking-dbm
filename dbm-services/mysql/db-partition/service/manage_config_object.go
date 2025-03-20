@@ -49,6 +49,7 @@ type QueryParititionsInput struct {
 	Offset        int      `json:"offset"`
 	OrderBy       string   `json:"order_by"`
 	AscDesc       string   `json:"asc_desc"`
+	DomainName    string   `json:"domain_name"`
 }
 
 // QueryLogInput TODO

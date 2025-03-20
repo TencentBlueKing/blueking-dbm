@@ -27,6 +27,8 @@ export const useTicketMessage = () => {
     });
 
     Message({
+      delay: 6000,
+      dismissable: false,
       message: h('p', {}, [
         t('任务提交成功_具体结果可前往'),
         h(
@@ -40,8 +42,6 @@ export const useTicketMessage = () => {
         t('查看'),
       ]),
       theme: 'success',
-      delay: 6000,
-      dismissable: false,
     });
   };
 };

@@ -49,19 +49,19 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('目标台数不能为空'),
+      validator: (value: string) => Boolean(value),
     },
     {
-      validator: (value: string) => !nonInterger.test(value),
       message: t('格式有误，请输入数字'),
+      validator: (value: string) => !nonInterger.test(value),
     },
     {
+      message: `${t('台数范围')}: 1 - 1024`,
       validator: (value: string) => {
         const num = Number(value);
         return num >= 1 && num <= 1024;
       },
-      message: `${t('台数范围')}: 1 - 1024`,
     },
   ];
 

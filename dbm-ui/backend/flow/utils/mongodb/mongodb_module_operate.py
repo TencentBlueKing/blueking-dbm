@@ -9,9 +9,45 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from typing import Union
+
 from backend.configuration.constants import DBType
+from backend.db_meta.enums import AccessLayer, ClusterType
+from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.flow.utils.base.cc_topo_operate import CCTopoOperator
 
 
 class MongoDBCCTopoOperator(CCTopoOperator):
     db_type = DBType.MongoDB.value
+
+    def generate_custom_labels(self, ins: Union[StorageInstance, ProxyInstance], cluster: Cluster) -> dict:
+        """
+        生成 MongoDB 集群分片标签
+        MongoReplicaSet 的值为cluster.name
+        MongoShardedCluster 的值为 primary的nosqlstoragesetdtl_set.seg_range
+        """
+        try:
+            if cluster.cluster_type == ClusterType.MongoReplicaSet.value:
+                return {"shard": cluster.name}
+            elif (
+                cluster.cluster_type == ClusterType.MongoShardedCluster.value
+                and ins.instance_role != AccessLayer.PROXY.value
+            ):
+                return {"shard": self.get_mongo_shard(cluster, ins)}
+            return {}
+        except Exception as e:
+            raise e
+
+    @staticmethod
+    def get_mongo_shard(cluster: Cluster, ins: StorageInstance) -> str:
+        """
+        获取 ins的分片信息
+        """
+
+        for m in cluster.nosqlstoragesetdtl_set.all():
+            if m.instance == ins:
+                return m.seg_range
+            for e in m.instance.as_ejector.all():
+                if e.receiver == ins:
+                    return m.seg_range
+        return "unknown"

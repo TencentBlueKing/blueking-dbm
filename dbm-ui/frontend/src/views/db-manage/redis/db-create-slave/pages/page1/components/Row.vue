@@ -81,50 +81,50 @@
   // import RenderSlaveHost from './RenderSlaveHost.vue';
 
   export interface IDataRow {
-    rowKey: string;
-    isLoading: boolean;
-    slaveIp: string;
-    masterIp: string;
-    clusterIds: number[];
     bkCloudId: number;
     bkHostId: number;
     cluster: {
       domain: string;
-      isStart: boolean;
       isGeneral: boolean;
+      isStart: boolean;
       rowSpan: number;
     };
-    targetNum: number;
-    spec?: SpecInfo;
+    clusterIds: number[];
+    isLoading: boolean;
+    masterIp: string;
+    rowKey: string;
     slaveHost?: {
       faults: number;
       total: number;
     };
+    slaveIp: string;
+    spec?: SpecInfo;
+    targetNum: number;
   }
 
   // 创建表格数据
   export const createRowData = (data?: IDataRow) => ({
-    rowKey: random(),
-    isLoading: false,
-    slaveIp: data?.slaveIp ?? '',
-    masterIp: data?.masterIp ?? '',
-    clusterIds: [] as number[],
     bkCloudId: 0,
     bkHostId: 0,
     cluster: {
       domain: data?.cluster?.domain ?? '',
-      isStart: false,
       isGeneral: true,
+      isStart: false,
       rowSpan: 1,
     },
+    clusterIds: [] as number[],
+    isLoading: false,
+    masterIp: data?.masterIp ?? '',
+    rowKey: random(),
+    slaveIp: data?.slaveIp ?? '',
     targetNum: 1,
   });
 </script>
 <script setup lang="ts">
   interface Props {
     data: IDataRow;
-    removeable: boolean;
     inputedIps?: string[];
+    removeable: boolean;
   }
 
   interface Emits {
@@ -167,8 +167,8 @@
     Promise.allSettled([hostRef.value!.getValue()]).then((rowData) => {
       emits('clone', {
         ...props.data,
-        rowKey: random(),
         isLoading: false,
+        rowKey: random(),
       });
     });
   };

@@ -84,19 +84,19 @@
     ticketDetail: TicketModel<unknown>;
   }
 
-  const props = defineProps<Props>();
-
-  defineSlots<{
-    title: () => VNode;
-    content: () => VNode;
-  }>();
-
   defineOptions({
     name: FlowMode.STATUS_FAILED,
   });
 
+  const props = defineProps<Props>();
+
+  defineSlots<{
+    content: () => VNode;
+    title: () => VNode;
+  }>();
+
   const { t } = useI18n();
-  const { username, isSuperuser } = useUserProfile();
+  const { isSuperuser, username } = useUserProfile();
 
   const isCanOperation = computed(
     () =>

@@ -40,12 +40,12 @@ export default class AdminPassword {
     this.username = payload.username;
   }
 
-  get uniqueKey() {
-    return `${this.bk_cloud_id}:${this.ip}:${this.port}`;
-  }
-
   get lockUntilDisplay() {
     return utcDisplayTime(this.lock_until);
+  }
+
+  get uniqueKey() {
+    return `${this.bk_cloud_id}:${this.ip}:${this.port}`;
   }
 
   get updateTimeDisplay() {

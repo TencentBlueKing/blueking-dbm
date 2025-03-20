@@ -236,7 +236,7 @@ func (p *PackageFile) tarballDir() error {
 	if walkErr != nil {
 		return walkErr
 	}
-	if err := os.RemoveAll(p.srcDir); err != nil {
+	if err := cmutil.SafeRmDir(p.srcDir); err != nil {
 		return err
 	}
 	return nil

@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"go.uber.org/zap"
+
 	log "dbm-services/mongodb/db-tools/dbmon/mylog"
 )
 
@@ -54,13 +56,14 @@ func ExecJs(bin string, timeout int, host, port, user, pass, authDB, scriptConte
 }
 
 // ExecLoginJs 执行脚本, 用户密码在eval传入
-func ExecLoginJs(bin string, timeout int, host, port, user, pass, authDB, scriptContent string) ([]byte, []byte,
+func ExecLoginJs(bin string, timeout int, host, port, user, pass, authDB, scriptContent string,
+	logger *zap.Logger) ([]byte, []byte,
 	error) {
 	args := []string{"--quiet", "--host", host, "--port", port}
 	args = append(args, "--eval", fmt.Sprintf("var user='%s';var pwd='%s';%s", user, pass, scriptContent))
 	out, err := DoCommandWithTimeout(timeout, bin, args...)
 	argLen := len(args)
-	log.Logger.Debug(fmt.Sprintf("exec %s %s return %s\n", bin, args[:argLen-2], out.Stdout.Bytes()))
+	logger.Debug(fmt.Sprintf("exec %s %s return %s\n", bin, args[:argLen-2], out.Stdout.Bytes()))
 	// log.Logger.Debug(fmt.Sprintf("scriptContent %s\n", scriptContent))
 	return out.Stdout.Bytes(), out.Stderr.Bytes(), err
 }

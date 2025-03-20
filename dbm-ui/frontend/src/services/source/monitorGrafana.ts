@@ -17,11 +17,11 @@ import http from '../http';
  * 获取监控警告管理地址
  */
 export function getMonitorUrls(
-  params: Record<string, any> & {
-    cluster_type: string;
+  params: {
     cluster_id?: number;
+    cluster_type: string;
     instance_id?: number;
-  },
+  } & Record<string, any>,
 ) {
   return http.get<{
     urls: {

@@ -69,35 +69,35 @@
   import RenderSrcCluster from './RenderSrcCluster.vue';
 
   export interface IDataRow {
-    rowKey: string;
-    srcClusterData?: {
-      id: number;
-      domain: string;
-      cloudId: number;
-      majorVersion: string;
-    };
-    dstClusterData?: {
-      id: number;
-      domain: string;
-      cloudId: number;
-    };
     dbList: string[];
+    dstClusterData?: {
+      cloudId: number;
+      domain: string;
+      id: number;
+    };
     ignoreDbList: string[];
     renameInfos: {
       db_name: string;
-      target_db_name: string;
       rename_db_name: string;
+      target_db_name: string;
     }[];
+    rowKey: string;
+    srcClusterData?: {
+      cloudId: number;
+      domain: string;
+      id: number;
+      majorVersion: string;
+    };
   }
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
-    rowKey: random(),
-    srcClusterData: data.srcClusterData,
-    dstClusterData: data.dstClusterData,
     dbList: data.dbList || [],
+    dstClusterData: data.dstClusterData,
     ignoreDbList: data.ignoreDbList || [],
     renameInfos: data.renameInfos || [],
+    rowKey: random(),
+    srcClusterData: data.srcClusterData,
   });
 </script>
 <script setup lang="ts">

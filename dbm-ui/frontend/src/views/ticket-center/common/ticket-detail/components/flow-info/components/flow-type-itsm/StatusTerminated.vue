@@ -51,11 +51,11 @@
     >;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: FlowMode.STATUS_TERMINATED,
   });
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 

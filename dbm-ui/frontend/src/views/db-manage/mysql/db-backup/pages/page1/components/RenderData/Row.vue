@@ -40,20 +40,20 @@
   import { random } from '@utils';
 
   export interface IDataRow {
-    rowKey: string;
+    backupLocal: string;
     clusterData?: {
-      id: number;
       domain: string;
+      id: number;
       type: string;
     };
-    backupLocal: string;
+    rowKey: string;
   }
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>): IDataRow => ({
-    rowKey: random(),
-    clusterData: data.clusterData,
     backupLocal: data.backupLocal || '',
+    clusterData: data.clusterData,
+    rowKey: random(),
   });
 </script>
 <script setup lang="ts">
@@ -109,8 +109,8 @@
       emits(
         'clone',
         createRowData({
-          clusterData: props.data.clusterData,
           backupLocal: rowInfo[1].backup_local,
+          clusterData: props.data.clusterData,
         }),
       );
     });

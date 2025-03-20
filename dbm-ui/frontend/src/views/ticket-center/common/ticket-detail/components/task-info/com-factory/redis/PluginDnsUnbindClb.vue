@@ -19,16 +19,16 @@
 
   import { TicketTypes } from '@common/const';
 
-  import RenderClb from './common/Clb.vue';
+  import RenderClb from '../common/Clb.vue';
 
   interface Props {
     ticketDetails: TicketModel<Redis.PluginDnsUnbindClb>;
   }
 
-  defineProps<Props>();
-
   defineOptions({
     name: TicketTypes.REDIS_PLUGIN_DNS_UNBIND_CLB,
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
 </script>

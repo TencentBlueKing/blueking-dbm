@@ -25,18 +25,18 @@ const getRootPath = () => `/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/spid
  * 获取 TendbCluster 集群列表
  */
 export function getTendbClusterList(params: {
-  limit?: number;
-  offset?: number;
-  id?: number;
-  name?: string;
-  ip?: string;
+  cluster_ids?: number[];
+  creator?: string;
+  db_module_id?: number;
   domain?: string;
   exact_domain?: string;
-  creator?: string;
-  version?: string;
-  cluster_ids?: number[];
-  db_module_id?: number;
+  id?: number;
+  ip?: string;
+  limit?: number;
+  name?: string;
+  offset?: number;
   region?: string;
+  version?: string;
 }) {
   return http.get<ListBase<TendbclusterModel[]>>(`${getRootPath()}/`, params).then((data) => ({
     ...data,
@@ -55,18 +55,18 @@ export function getTendbClusterList(params: {
  * 获取 TendbCluster 集群列表
  */
 export function getTendbClusterFlatList(params: {
-  limit?: number;
-  offset?: number;
-  id?: number;
-  name?: string;
-  ip?: string;
+  cluster_ids?: number[];
+  creator?: string;
+  db_module_id?: number;
   domain?: string;
   exact_domain?: string;
-  creator?: string;
-  version?: string;
-  cluster_ids?: number[];
-  db_module_id?: number;
+  id?: number;
+  ip?: string;
+  limit?: number;
+  name?: string;
+  offset?: number;
   region?: string;
+  version?: string;
 }) {
   return http.get<ListBase<TendbclusterModel[]>>(`${getRootPath()}/`, params).then((data) =>
     data.results.map(
@@ -104,17 +104,17 @@ export function getTendbSlaveClusterList(params: { limit?: number; offset?: numb
  */
 export function getTendbclusterListByBizId(params: {
   bk_biz_id: number;
-  limit?: number;
-  offset?: number;
-  id?: number;
-  name?: string;
-  ip?: string;
-  domain?: string;
-  creator?: string;
-  version?: string;
   cluster_ids?: number[];
+  creator?: string;
   db_module_id?: number;
+  domain?: string;
+  id?: number;
+  ip?: string;
+  limit?: number;
+  name?: string;
+  offset?: number;
   region?: string;
+  version?: string;
 }) {
   return http
     .get<ListBase<TendbclusterModel[]>>(`/apis/mysql/bizs/${params.bk_biz_id}/spider_resources/`, params)
@@ -168,17 +168,17 @@ export function exportTendbclusterInstanceToExcel(params: { bk_host_ids?: number
  * 查询主机列表
  */
 export function getTendbclusterMachineList(params: {
-  limit?: number;
-  offset?: number;
-  bk_host_id?: number;
-  ip?: string;
-  machine_type?: string;
-  bk_os_name?: string;
-  bk_cloud_id?: number;
   bk_agent_id?: string;
-  instance_role?: string;
-  spider_role?: string;
+  bk_cloud_id?: number;
+  bk_host_id?: number;
+  bk_os_name?: string;
   creator?: string;
+  instance_role?: string;
+  ip?: string;
+  limit?: number;
+  machine_type?: string;
+  offset?: number;
+  spider_role?: string;
 }) {
   return http.get<ListBase<TendbclusterMachineModel[]>>(`${getRootPath()}/list_machines/`, params).then((data) => ({
     ...data,
@@ -189,7 +189,7 @@ export function getTendbclusterMachineList(params: {
 /**
  * 获取 spider 实例详情
  */
-export const getTendbclusterInstanceDetail = (params: { instance_address: string; cluster_id: number }) =>
+export const getTendbclusterInstanceDetail = (params: { cluster_id: number; instance_address: string }) =>
   http.get<TendbclusterInstanceModel>(`${getRootPath()}/retrieve_instance/`, params);
 
 /**

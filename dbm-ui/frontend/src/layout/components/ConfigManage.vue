@@ -48,6 +48,18 @@
               {{ t('告警组') }}
             </span>
           </BkMenuItem>
+          <BkMenuItem
+            key="AlarmShield"
+            v-db-console="'bizConfigManage.alarmShield'">
+            <template #icon>
+              <DbIcon type="pingbi" />
+            </template>
+            <span
+              v-overflow-tips.right
+              class="text-overflow">
+              {{ t('告警屏蔽') }}
+            </span>
+          </BkMenuItem>
         </BkMenuGroup>
         <BkMenuGroup :name="t('单据配置')">
           <BkMenuItem
@@ -120,8 +132,8 @@
   const menuRef = ref<InstanceType<typeof Menu>>();
 
   const {
-    parentKey,
     key: currentActiveKey,
+    parentKey,
     routeLocation: handleMenuChange,
   } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, 'DbConfigure');
 

@@ -31,16 +31,17 @@
       #footer>
       <slot name="footer">
         <BkButton
-          class="mr8"
+          v-if="showConfirm"
+          class="mr-8"
           :disabled="disabledConfirm"
           :loading="isLoading"
-          style="width: 102px"
+          style="min-width: 88px"
           theme="primary"
           @click="handleConfirm">
           {{ confirmText || $t('提交') }}
         </BkButton>
         <BkButton
-          style="min-width: 64px"
+          style="min-width: 88px"
           @click="handleCancle">
           {{ cancelText || $t('取消') }}
         </BkButton>
@@ -56,29 +57,31 @@
   import { leaveConfirm } from '@utils';
 
   interface Props {
-    isShow: boolean;
-    showFooter?: boolean;
-    confirmText?: string;
     cancelText?: string;
+    confirmText?: string;
     disabledConfirm?: boolean;
+    isShow: boolean;
     renderDirective?: 'if' | 'show';
+    showConfirm?: boolean;
+    showFooter?: boolean;
+    showLeaveConfirm?: boolean;
   }
 
-  interface Emits {
-    (e: 'update:isShow', isShow: boolean): void;
-  }
+  type Emits = (e: 'update:isShow', isShow: boolean) => void;
   interface Exposes {
-    handleConfirm: () => void;
     handleCancle: () => void;
+    handleConfirm: () => void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    isShow: false,
-    showFooter: true,
-    disabledConfirm: false,
-    confirmText: '',
     cancelText: '',
+    confirmText: '',
+    disabledConfirm: false,
+    isShow: false,
     renderDirective: 'if',
+    showConfirm: true,
+    showFooter: true,
+    showLeaveConfirm: true,
   });
 
   const emit = defineEmits<Emits>();
@@ -130,13 +133,17 @@
   // 取消
   const handleCancle = () => {
     const { cancel } = getModelProvier();
-    leaveConfirm()
+    if (!props.showLeaveConfirm) {
+      return Promise.resolve(cancel()).then(() => close());
+    }
+
+    return leaveConfirm()
       .then(() => cancel())
       .then(() => close());
   };
 
   defineExpose<Exposes>({
-    handleConfirm,
     handleCancle,
+    handleConfirm,
   });
 </script>

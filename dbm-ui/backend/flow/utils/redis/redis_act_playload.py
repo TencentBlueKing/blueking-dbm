@@ -1270,6 +1270,16 @@ class RedisActPayload(object):
             "payload": payload,
         }
 
+    def bk_restart_exporter(self, **kwargs) -> dict:
+        """
+        redis exporter 重启
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": RedisActuatorActionEnum.RESTART_EXPORTER.value,
+            "payload": kwargs["params"],
+        }
+
     # 场景化需求
     def __get_redis_pkg(self, cluster_type, db_version):
         if cluster_type == ClusterType.TendisTwemproxyRedisInstance.value:

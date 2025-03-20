@@ -69,8 +69,8 @@
 
   interface PanelItem {
     label: string;
-    name: string;
     link: string;
+    name: string;
   }
 
   const props = defineProps<Props>();
@@ -89,8 +89,8 @@
       if (res.urls.length > 0) {
         monitorPanelList.value = res.urls.map((item) => ({
           label: item.view,
-          name: item.view,
           link: item.url,
+          name: item.view,
         }));
       }
     },
@@ -101,8 +101,8 @@
     () => {
       runGetMonitorUrls({
         bk_biz_id: currentBizId,
-        cluster_type: ClusterTypes.SQLSERVER_SINGLE,
         cluster_id: props.singleClusterData.clusterId,
+        cluster_type: ClusterTypes.SQLSERVER_SINGLE,
       });
     },
     { immediate: true },

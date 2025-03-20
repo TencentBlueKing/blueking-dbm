@@ -13,3 +13,20 @@ type BackupConfig struct {
 	PhysicalBackup         PhysicalBackup         `ini:"PhysicalBackup"`
 	PhysicalLoad           PhysicalLoad           `ini:"PhysicalLoad"`
 }
+
+type LoaderConfig struct {
+	//Public               Public               `ini:"Public"`
+	LogicalLoad          LogicalLoad          `ini:"LogicalLoad"`
+	LogicalLoadMysqldump LogicalLoadMysqldump `ini:"LogicalLoadMysqldump"`
+	PhysicalLoad         PhysicalLoad         `ini:"PhysicalLoad"`
+}
+
+type LogicalLoaderConfig struct {
+	LogicalLoad          LogicalLoad          `ini:"LogicalLoad"`
+	LogicalLoadMysqldump LogicalLoadMysqldump `ini:"LogicalLoadMysqldump"`
+}
+
+type PhysicalLoaderConfig struct {
+	Public       Public       `ini:"Public"`
+	PhysicalLoad PhysicalLoad `ini:"PhysicalLoad"`
+}

@@ -9,6 +9,7 @@ const ClusterTypeSqlServer = "sqlserver"
 
 const MachineTypeProxy = "proxy"
 const MachineTypeBackend = "backend"
+const MachineTypeSpider = "spider"
 
 const EntryRoleMasterEntry = "master_entry"
 const EntryRoleSlaveEntry = "slave_entry"

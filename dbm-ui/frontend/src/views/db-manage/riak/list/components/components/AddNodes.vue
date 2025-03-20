@@ -125,9 +125,7 @@
     data: RiakModel;
   }
 
-  interface Emits {
-    (e: 'submitSuccess'): void;
-  }
+  type Emits = (e: 'submitSuccess') => void;
 
   interface Expose {
     submit: () => Promise<boolean | void | undefined>;
@@ -141,18 +139,18 @@
   const ticketMessage = useTicketMessage();
 
   const formRules = {
-    nodes_num: [
-      {
-        validator: (value: number) => value >= 1,
-        message: t('节点数至少为n台', [1]),
-        trigger: 'change',
-      },
-    ],
     nodes: [
       {
-        validator: (value: HostInfo[]) => value.length >= 1,
         message: t('节点数至少为n台', [1]),
         trigger: 'change',
+        validator: (value: HostInfo[]) => value.length >= 1,
+      },
+    ],
+    nodes_num: [
+      {
+        message: t('节点数至少为n台', [1]),
+        trigger: 'change',
+        validator: (value: number) => value >= 1,
       },
     ],
   };
@@ -160,10 +158,10 @@
   const formRef = ref();
   const nodesRef = ref();
   const formData = reactive({
-    ip_source: 'resource_pool',
-    spec_id: '',
     count: 1,
+    ip_source: 'resource_pool',
     nodes: [] as HostInfo[],
+    spec_id: '',
   });
 
   const disableHostSubmitMethods = (hostList: Array<HostInfo[]>) =>
@@ -183,11 +181,11 @@
       const { ip_source: ipSource } = formData;
       const params = {
         bk_biz_id: currentBizId,
-        ticket_type: TicketTypes.RIAK_CLUSTER_SCALE_OUT,
         details: {
-          ip_source: ipSource,
           cluster_id: props.data.id,
+          ip_source: ipSource,
         },
+        ticket_type: TicketTypes.RIAK_CLUSTER_SCALE_OUT,
       };
 
       if (ipSource === 'resource_pool') {
@@ -203,11 +201,11 @@
         Object.assign(params.details, {
           nodes: {
             riak: formData.nodes.map((nodeItem) => ({
-              ip: nodeItem.ip,
-              bk_host_id: nodeItem.host_id,
-              bk_cloud_id: nodeItem.cloud_id,
               alive: nodeItem.alive,
+              bk_cloud_id: nodeItem.cloud_id,
               bk_disk: nodeItem.bk_disk,
+              bk_host_id: nodeItem.host_id,
+              ip: nodeItem.ip,
             })),
           },
         });

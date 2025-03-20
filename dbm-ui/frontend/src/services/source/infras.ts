@@ -37,8 +37,8 @@ export function getInfrasSubzonesByCity(params: { city_code: string }) {
     {
       bk_city: number;
       bk_city_code: string;
-      bk_sub_zone_id: number;
       bk_sub_zone: string;
+      bk_sub_zone_id: number;
     }[]
   >(`${path}/cities/list_subzones/`, params);
 }
@@ -47,41 +47,41 @@ export function getInfrasSubzonesByCity(params: { city_code: string }) {
  * redis 容量列表
  */
 export function getCapSpecs(params: {
+  cityCode: string;
+  cluster_type: string;
+  ip_source: string;
   nodes: {
     master: Array<{
-      ip: string;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      bk_cpu?: number;
-      bk_mem?: number;
-      bk_disk?: number;
       bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_cpu?: number;
+      bk_disk?: number;
+      bk_host_id: number;
+      bk_mem?: number;
+      ip: string;
     }>;
     slave: Array<{
-      ip: string;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      bk_cpu?: number;
-      bk_mem?: number;
-      bk_disk?: number;
       bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_cpu?: number;
+      bk_disk?: number;
+      bk_host_id: number;
+      bk_mem?: number;
+      ip: string;
     }>;
   };
-  ip_source: string;
-  cluster_type: string;
-  cityCode: string;
 }) {
   return http.post<
     {
+      cap_key: string;
       group_num: number;
+      max_disk: number;
       maxmemory: number;
+      selected: boolean;
       shard_num: number;
       spec: string;
-      total_memory: number;
-      cap_key: string;
-      selected: boolean;
-      max_disk: number;
       total_disk: string;
+      total_memory: number;
     }[]
   >(`${path}/cities/cap_specs/`, params);
 }

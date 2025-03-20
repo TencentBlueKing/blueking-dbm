@@ -26,6 +26,7 @@ def register_report(db_type):
     def decorator(report_cls):
         db_report_maps[db_type].append(report_cls)
         setattr(report_cls, "db_type", db_type)
+        return report_cls
 
     return decorator
 

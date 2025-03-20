@@ -208,6 +208,12 @@ BK_MONITOR_SAVE_DISPATCH_GROUP_TEMPLATE = {
 
 MONITOR_EVENTS = "monitor_events"
 
+
+class MySQLAutofixStep(str, StructuredEnum):
+    IN_PLACE_AUTOFIX = EnumField("IN_PLACE_AUTOFIX", _("原地自愈"))
+    REPLACE_NEW = EnumField("REPLACE_NEW", _("新机替换"))
+
+
 AUTOFIX_ACTION_NAME = "dbm_autofix_http_callback"
 
 # 故障自愈模板
