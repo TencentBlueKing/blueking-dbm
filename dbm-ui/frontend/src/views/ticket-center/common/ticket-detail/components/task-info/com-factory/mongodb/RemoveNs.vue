@@ -27,7 +27,7 @@
       </template>
     </BkTableColumn>
     <BkTableColumn
-      field="drop_collection"
+      field="drop_type"
       :label="t('清档类型')"
       :width="300">
       <template #default="{data}: {data: RowData}">
@@ -36,9 +36,9 @@
     </BkTableColumn>
     <BkTableColumn
       field="drop_index"
-      :label="t('是否删除索引')">
+      :label="t('索引处理')">
       <template #default="{data}: {data: RowData}">
-        {{ data.drop_type === 'drop_index' ? t('是') : t('否') }}
+        {{ data.drop_index ? t('删除索引') : t('保留索引') }}
       </template>
     </BkTableColumn>
     <BkTableColumn
