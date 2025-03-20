@@ -721,6 +721,7 @@ CREATE_POLICY_DETAILS = {
         "relate_type": "NOTICE",
         "user_groups": [20],
     },
+    "labels": [],
 }
 
 CREATE_POLICY = [

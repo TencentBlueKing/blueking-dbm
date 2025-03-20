@@ -59,7 +59,7 @@ class InstallNodemanPluginService(BaseService):
         job_details = BKNodeManApi.job_details({"job_id": job_id})
         status = job_details["status"]
         if status in BKNodeManApi.JobStatusType.PROCESSING_STATUS:
-            self.log_info("installing plugin")
+            self.log_info(f"installing plugin, job id is {job_id}")
             return True
         if status == BKNodeManApi.JobStatusType.SUCCESS:
             self.log_info("install plugin successfully")

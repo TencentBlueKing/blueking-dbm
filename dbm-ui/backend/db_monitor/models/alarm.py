@@ -718,11 +718,13 @@ class MonitorPolicy(AuditedModel):
         bkm_dbm_report: dict = SystemSettings.get_setting_value(key=SystemSettingsEnum.BKM_DBM_REPORT.value)
 
         items = details["items"]
+        # 监控返回的标签带//，因此转化一下
+        labels = [label.strip("/") for label in details["labels"]]
         # 事件类告警，无需设置告警目标，否则要求上报的数据必须携带服务实例id（告警目标匹配依据）
         for item in items:
             # 更新监控目标为db_type对应的cmdb拓扑，其中标签 NO_MONITOR_TARGET 的策略，无需添加监控目标
             objs = AppMonitorTopo.get_set_by_dbtype(db_type=db_type)
-            if objs and "NO_MONITOR_TARGET" not in details["labels"]:
+            if objs and "NO_MONITOR_TARGET" not in labels:
                 item["target"] = [
                     [
                         {
