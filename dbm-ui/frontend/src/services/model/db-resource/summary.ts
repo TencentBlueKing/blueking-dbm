@@ -51,7 +51,7 @@ export default class Summary {
     this.disk_summary = payload.disk_summary;
     this.cpu_mem_summary = payload.cpu_mem_summary;
     this.count = payload.count;
-    this.sub_zone_detail = payload.sub_zone_detail;
+    this.sub_zone_detail = payload.sub_zone_detail || {};
   }
 
   get deviceDisplay() {

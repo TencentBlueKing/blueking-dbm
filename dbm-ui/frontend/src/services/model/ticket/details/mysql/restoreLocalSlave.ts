@@ -1,3 +1,5 @@
+import type { BackupSourceType } from '@services/types';
+
 import type { DetailBase, DetailClusters } from '../common';
 
 /**
@@ -5,9 +7,8 @@ import type { DetailBase, DetailClusters } from '../common';
  */
 
 export interface RestoreLocalSlave extends DetailBase {
-  backup_source: 'local' | 'remote';
+  backup_source: BackupSourceType;
   clusters: DetailClusters;
-  force: boolean;
   infos: {
     cluster_id: number;
     slave: {
@@ -15,7 +16,7 @@ export interface RestoreLocalSlave extends DetailBase {
       bk_cloud_id: number;
       bk_host_id: number;
       ip: string;
-      port?: number;
+      port: number;
     };
   }[];
 }

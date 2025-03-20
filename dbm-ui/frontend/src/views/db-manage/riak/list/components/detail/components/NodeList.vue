@@ -352,15 +352,16 @@
           bk_biz_id: currentBizId,
           details: {
             bk_cloud_id: row.bk_cloud_id,
-            cluster_id: props.data.id,
-            nodes: [
-              {
-                bk_biz_id: currentBizId,
-                bk_cloud_id: row.bk_cloud_id,
-                bk_host_id: row.bk_host_id,
-                ip: row.ip,
-              },
-            ],
+            old_nodes: {
+              riak: [
+                {
+                  bk_biz_id: currentBizId,
+                  bk_cloud_id: row.bk_cloud_id,
+                  bk_host_id: row.bk_host_id,
+                  ip: row.ip,
+                },
+              ],
+            },
           },
           ticket_type: TicketTypes.RIAK_CLUSTER_SCALE_IN,
         }).then((createTicketResult) => {

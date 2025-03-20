@@ -20,7 +20,6 @@ export interface InstanceInfos {
   bk_cloud_id: number;
   bk_cloud_name: string;
   bk_host_id: number;
-  cluster_domain: string;
   cluster_id: number;
   cluster_name: string;
   cluster_type: string;
@@ -41,6 +40,7 @@ export interface InstanceInfos {
     creator: string;
     db_module_id: number;
     id: number;
+    immute_domain: string;
     major_version: string;
     master_domain: string;
     phase: string;
@@ -51,15 +51,27 @@ export interface InstanceInfos {
   }[];
   role: string;
   spec_config: {
-    cpu: number;
+    count: number;
+    cpu: {
+      max: number;
+      min: number;
+    };
+    device_class: string;
     id: number;
-    mem: number;
+    mem: {
+      max: number;
+      min: number;
+    };
     name: string;
+    qps: {
+      max: number;
+      min: number;
+    };
     storage_spec: {
       mount_point: string;
       size: number;
       type: string;
-    };
+    }[];
   };
   status: 'running' | 'unavailable';
 }

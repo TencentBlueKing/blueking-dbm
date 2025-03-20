@@ -16,11 +16,13 @@ import type { RouteRecordRaw } from 'vue-router';
 import type { MySQLFunctions } from '@services/model/function-controller/functionController';
 import FunctionControllModel from '@services/model/function-controller/functionController';
 
-import { AccountTypes } from '@common/const';
+import { AccountTypes, DBTypes, TicketTypes } from '@common/const';
 
-import { checkDbConsole } from '@utils';
+import { checkDbConsole, createToolboxRoute } from '@utils';
 
 import { t } from '@locales/index';
+
+const { createRouteItem } = createToolboxRoute(DBTypes.MYSQL);
 
 export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   {
@@ -55,30 +57,10 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/mysql/privilege-clone-inst/Index.vue'),
   },
-  {
-    path: 'slave-rebuild/:page?',
-    name: 'MySQLSlaveRebuild',
-    meta: {
-      navName: t('重建从库'),
-    },
-    component: () => import('@views/db-manage/mysql/slave-rebuild/index.vue'),
-  },
-  {
-    path: 'slave-add/:page?',
-    name: 'MySQLSlaveAdd',
-    meta: {
-      navName: t('添加从库'),
-    },
-    component: () => import('@views/db-manage/mysql/slave-add/Index.vue'),
-  },
-  {
-    path: 'master-slave-clone/:page?',
-    name: 'MySQLMasterSlaveClone',
-    meta: {
-      navName: t('迁移主从'),
-    },
-    component: () => import('@views/db-manage/mysql/master-slave-clone/index.vue'),
-  },
+  createRouteItem(TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE, t('重建从库')),
+  createRouteItem(TicketTypes.MYSQL_ADD_SLAVE, t('添加从库')),
+  createRouteItem(TicketTypes.MYSQL_MIGRATE_CLUSTER, t('迁移主从')),
+  createRouteItem(TicketTypes.MYSQL_PROXY_ADD, t('添加Proxy')),
   {
     path: 'master-slave-swap/:page?',
     name: 'MySQLMasterSlaveSwap',
@@ -87,30 +69,8 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/mysql/master-slave-swap/index.vue'),
   },
-  {
-    path: 'proxy-replace/:page?',
-    name: 'MySQLProxyReplace',
-    meta: {
-      navName: t('替换Proxy'),
-    },
-    component: () => import('@views/db-manage/mysql/proxy-replace/index.vue'),
-  },
-  {
-    path: 'proxy-add/:page?',
-    name: 'MySQLProxyAdd',
-    meta: {
-      navName: t('添加Proxy'),
-    },
-    component: () => import('@views/db-manage/mysql/proxy-add/index.vue'),
-  },
-  {
-    path: 'master-failover/:page?',
-    name: 'MySQLMasterFailover',
-    meta: {
-      navName: t('主库故障切换'),
-    },
-    component: () => import('@views/db-manage/mysql/master-failover/index.vue'),
-  },
+  createRouteItem(TicketTypes.MYSQL_PROXY_SWITCH, t('替换Proxy')),
+  createRouteItem(TicketTypes.MYSQL_MASTER_FAIL_OVER, t('主库故障切换')),
   {
     path: 'db-table-backup/:page?',
     name: 'MySQLDBTableBackup',
@@ -135,14 +95,7 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/mysql/db-clear/Index.vue'),
   },
-  {
-    path: 'rollback/:page?',
-    name: 'MySQLDBRollback',
-    meta: {
-      navName: t('定点构造'),
-    },
-    component: () => import('@views/db-manage/mysql/rollback/Index.vue'),
-  },
+  createRouteItem(TicketTypes.MYSQL_ROLLBACK_CLUSTER, t('定点构造')),
   {
     path: 'flashback/:page?',
     name: 'MySQLDBFlashback',
@@ -183,14 +136,7 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/mysql/webconsole/Index.vue'),
   },
-  {
-    path: 'version-upgrade/:page?',
-    name: 'MySQLVersionUpgrade',
-    meta: {
-      navName: t('版本升级'),
-    },
-    component: () => import('@views/db-manage/mysql/version-upgrade/Index.vue'),
-  },
+  createRouteItem(TicketTypes.MYSQL_PROXY_UPGRADE, t('版本升级')),
   {
     path: 'MYSQL_FLASHBACK/:page?',
     name: 'MYSQL_FLASHBACK',

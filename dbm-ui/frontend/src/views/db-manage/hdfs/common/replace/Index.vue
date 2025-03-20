@@ -38,6 +38,7 @@
             name: data.bk_cloud_name,
           }"
           :data="nodeInfoMap.datanode"
+          :db-type="DBTypes.HDFS"
           :ip-source="ipSource"
           @remove-node="handleRemoveNode" />
       </div>
@@ -67,7 +68,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import HostReplace, { type TReplaceNode } from '@views/db-manage/common/host-replace/Index.vue';
 
@@ -151,8 +152,7 @@
           messageError(t('至少替换一种节点类型'));
           return reject();
         }
-
-        Promise.resolve(datanodeRef.value.getValue()).then(
+        Promise.all([datanodeRef.value.getValue()]).then(
           ([datanodeValue]) => {
             const isEmptyValue = () => {
               if (ipSource.value === 'manual_input') {
@@ -190,8 +190,12 @@
                 const nodeData = {};
                 if (ipSource.value === 'manual_input') {
                   Object.assign(nodeData, {
-                    new_nodes: {
-                      datanode: datanodeValue.new_nodes,
+                    resource_spec: {
+                      datanode: {
+                        count: datanodeValue.new_nodes.length,
+                        hosts: datanodeValue.new_nodes,
+                        spec_id: 0,
+                      },
                     },
                   });
                 } else {
@@ -201,17 +205,18 @@
                     },
                   });
                 }
+
                 createTicket({
                   bk_biz_id: currentBizId,
                   details: {
                     cluster_id: props.data.id,
-                    ip_source: ipSource.value,
+                    ip_source: 'resource_pool',
                     old_nodes: {
                       datanode: datanodeValue.old_nodes,
                     },
                     ...nodeData,
                   },
-                  ticket_type: 'HDFS_REPLACE',
+                  ticket_type: TicketTypes.HDFS_REPLACE,
                 }).then(() => {
                   emits('change');
                   resolve('success');

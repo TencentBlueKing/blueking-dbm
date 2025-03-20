@@ -257,7 +257,7 @@
     isLoading: false,
     machineType: item.cluster_spec.spec_machine_type,
     proxy: {
-      count: new Set(item.proxy.map((item) => item.ip)).size,
+      count: item.proxyCount,
       id: item.proxy[0].spec_config.id,
     },
     rowKey: item.master_domain,

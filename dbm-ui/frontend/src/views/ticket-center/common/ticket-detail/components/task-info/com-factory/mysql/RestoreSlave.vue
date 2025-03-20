@@ -37,7 +37,7 @@
     </BkTableColumn>
     <BkTableColumn :label="t('新从库主机')">
       <template #default="{ data }: { data: RowData }">
-        {{ data?.new_slave.ip }}
+        {{ data.new_slave.ip }}
       </template>
     </BkTableColumn>
   </BkTable>

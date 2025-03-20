@@ -2,18 +2,43 @@ import InfoBox from 'bkui-vue/lib/info-box';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
-import { createTicket } from '@services/source/ticket';
+import { createTicketNew } from '@services/source/ticket';
 
-import { messageError, messageSuccess } from '@utils';
+import type { TicketTypes } from '@common/const';
 
-export const useCreateTicket = (params: Record<string, any>) => {
-  const { locale, t } = useI18n();
+import { messageError } from '@utils';
+
+export function useCreateTicket<T>(ticketType: TicketTypes, options?: { onSuccess?: (ticketId: number) => void }) {
+  const loading = ref(false);
   const router = useRouter();
+  const { locale, t } = useI18n();
 
-  createTicket(params)
-    .then(() => messageSuccess(t('单据创建成功')))
-    .catch((e) => {
-      const { code, data } = e;
+  const run = async (formData: { details: T; ignore_duplication?: boolean; remark?: string }) => {
+    const params = {
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      details: formData.details,
+      ignore_duplication: formData.ignore_duplication,
+      remark: formData.remark || '',
+      ticket_type: ticketType,
+    };
+    try {
+      loading.value = true;
+      const { id: ticketId } = await createTicketNew<T>(params);
+      if (options?.onSuccess) {
+        options.onSuccess(ticketId);
+      } else {
+        router.push({
+          name: ticketType,
+          params: {
+            page: 'success',
+          },
+          query: {
+            ticketId,
+          },
+        });
+      }
+    } catch (e: any) {
+      const { code, data, message } = e;
       const duplicateCode = 8704005;
       if (code === duplicateCode) {
         const id = data.duplicate_ticket_id;
@@ -58,7 +83,7 @@ export const useCreateTicket = (params: Record<string, any>) => {
           },
           onConfirm: async () => {
             try {
-              await createTicket({
+              await run({
                 ...params,
                 ignore_duplication: true,
               });
@@ -68,8 +93,16 @@ export const useCreateTicket = (params: Record<string, any>) => {
           },
           title: t('是否继续提交单据'),
         });
+      } else {
+        messageError(message);
       }
+    } finally {
+      loading.value = false;
+    }
+  };
 
-      messageError(e.message);
-    });
-};
+  return {
+    loading,
+    run,
+  };
+}

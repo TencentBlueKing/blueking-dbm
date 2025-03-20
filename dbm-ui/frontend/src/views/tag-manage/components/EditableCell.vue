@@ -26,7 +26,6 @@
       {{ data.value }}
       <DbIcon
         class="operation-icon"
-        style="font-size: 18px"
         type="edit"
         @click="handleEdit(data)" />
     </span>
@@ -36,7 +35,7 @@
 <script setup lang="ts">
   import { defineEmits, defineProps } from 'vue';
 
-  import type ResourceTagModel from '@services/model/db-resource/ResourceTag';
+  import ResourceTagModel from '@services/model/db-resource/ResourceTag';
 
   interface Props {
     data: ResourceTagModel;
@@ -54,12 +53,13 @@
 
   const inputRef = useTemplateRef('inputRef');
 
-  const editVal = ref(props.data.value);
+  const editVal = ref('');
 
   watch(
     () => [props.data, props.editId],
     () => {
       if (props.data.id === props.editId) {
+        editVal.value = props.data.value;
         nextTick(() => {
           inputRef.value!.focus();
         });
@@ -76,4 +76,11 @@
   };
 </script>
 
-<style lang="less" scoped></style>
+<style lang="less" scoped>
+  .tag-box {
+    .operation-icon {
+      font-size: 18px;
+      cursor: pointer;
+    }
+  }
+</style>

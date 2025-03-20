@@ -19,6 +19,8 @@ import { t } from '@locales/index';
 
 import type { DetailBase } from './details/common';
 
+export type * as Bigdata from './details/bigdata/index';
+export type * as Common from './details/common';
 export type * as Doris from './details/doris';
 export type * as Dumper from './details/dumper';
 export type * as Es from './details/elastic-search';

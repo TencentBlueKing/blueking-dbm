@@ -269,6 +269,15 @@
         id: item.key,
         name: item.value,
       }));
+
+      const ticketTypeItem = searchValue.value.find((item) => item.id === 'ticket_type__in');
+      if (ticketTypeItem) {
+        const ticketTypeMap = data.reduce<Record<string, string>>(
+          (result, item) => Object.assign(result, { [item.key]: item.value }),
+          {},
+        );
+        ticketTypeItem.values?.forEach((valueItem) => Object.assign(valueItem, { name: ticketTypeMap[valueItem.id] }));
+      }
     },
   });
 

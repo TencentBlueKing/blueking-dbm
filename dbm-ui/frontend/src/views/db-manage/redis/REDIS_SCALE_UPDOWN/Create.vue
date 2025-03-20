@@ -41,18 +41,18 @@
               :placeholder="t('自动生成')" />
           </EditableColumn>
           <RedisVersionColumn
-            v-model="item.version"
+            v-model="item.db_version"
             :cluster="item.cluster" />
           <CurrentCapacityColumn :cluster="item.cluster" />
           <TargetCapacityColumn
-            v-model="item.backendGroup"
+            v-model="item.backend_group"
             :row-data="item" />
           <EditableColumn
-            field="switchMode"
+            field="online_switch_type"
             :label="t('切换模式')"
             :min-width="150">
             <EditableSelect
-              v-model="item.switchMode"
+              v-model="item.online_switch_type"
               :disabled="!item.cluster.id"
               :input-search="false"
               :list="switchModeOptions" />
@@ -90,8 +90,9 @@
   import { useI18n } from 'vue-i18n';
 
   import RedisModel from '@services/model/redis/redis';
+  import type { Redis } from '@services/model/ticket/ticket';
 
-  import { useCreateTicket } from '@hooks';
+  import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { Affinity, ClusterTypes, TicketTypes } from '@common/const';
 
@@ -105,7 +106,7 @@
   import TargetCapacityColumn from './components/target-capacity-column/Index.vue';
 
   interface RowData {
-    backendGroup: {
+    backend_group: {
       affinity: string;
       capacity: number;
       count: number;
@@ -122,12 +123,12 @@
       update_mode: string;
     };
     cluster: {
-      cluster_spec?: RedisModel['cluster_spec'];
-      cluster_stats?: RedisModel['cluster_stats'];
       group_num: RedisModel['machine_pair_cnt'];
       shard_num: RedisModel['cluster_shard_num'];
     } & Pick<
       RedisModel,
+      | 'cluster_stats'
+      | 'cluster_spec'
       | 'id'
       | 'master_domain'
       | 'cluster_type'
@@ -137,19 +138,19 @@
       | 'cluster_capacity'
       | 'disaster_tolerance_level'
     >;
-    currentCapacity: {
+    cluster_capacity: {
       total: number;
       used: number;
     };
-    switchMode: string;
-    version: string;
+    db_version: string;
+    online_switch_type: string;
   }
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
-    backendGroup: data.backendGroup || {
+    backend_group: data.backend_group || {
       affinity: Affinity.CROS_SUBZONE,
       capacity: 1,
       count: 0,
@@ -163,21 +164,23 @@
     cluster: data.cluster || {
       bk_cloud_id: 0,
       cluster_capacity: 0,
+      cluster_spec: {} as RedisModel['cluster_spec'],
+      cluster_stats: {} as RedisModel['cluster_stats'],
       cluster_type: ClusterTypes.REDIS_CLUSTER,
       cluster_type_name: '',
-      disaster_tolerance_level: 'CROS_SUBZONE',
+      disaster_tolerance_level: Affinity.CROS_SUBZONE,
       group_num: 0,
       id: 0,
       major_version: '',
       master_domain: '',
       shard_num: 0,
     },
-    currentCapacity: data.currentCapacity || {
+    cluster_capacity: data.cluster_capacity || {
       total: 1,
       used: 0,
     },
-    switchMode: data.switchMode || '',
-    version: data.version || '',
+    db_version: data.db_version || '',
+    online_switch_type: data.online_switch_type || '',
   });
 
   const defaultData = () => ({
@@ -200,6 +203,52 @@
       value: 'no_confirm',
     },
   ];
+
+  useTicketDetail<Redis.ScaleUpdown>(TicketTypes.REDIS_SCALE_UPDOWN, {
+    onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+      const { clusters, infos } = details;
+      Object.assign(formData, {
+        ...createTickePayload(ticketDetail),
+        tableData: infos.map((item) => {
+          const clusterInfo = clusters[item.cluster_id];
+          return createTableRow({
+            backend_group: {
+              affinity: item.resource_spec.backend_group.affinity,
+              capacity: item.capacity,
+              count: item.resource_spec.backend_group.count,
+              future_capacity: item.future_capacity,
+              group_num: item.group_num,
+              old_machine_info: item.old_nodes.backend_hosts,
+              shard_num: item.shard_num,
+              spec_id: item.resource_spec.backend_group.spec_id,
+              update_mode: item.update_mode,
+            },
+            cluster: {
+              bk_cloud_id: clusterInfo.bk_cloud_id,
+              cluster_capacity: item.display_info.cluster_capacity,
+              cluster_spec: item.display_info.cluster_spec,
+              cluster_stats: item.display_info.cluster_stats,
+              cluster_type: clusterInfo.cluster_type,
+              cluster_type_name: clusterInfo.cluster_type_name,
+              disaster_tolerance_level: clusterInfo.disaster_tolerance_level as Affinity,
+              group_num: item.group_num,
+              id: clusterInfo.id,
+              major_version: clusterInfo.major_version,
+              master_domain: clusterInfo.immute_domain,
+              shard_num: item.shard_num,
+            },
+            cluster_capacity: {
+              total: item.display_info.cluster_capacity,
+              used: 0,
+            },
+            db_version: item.db_version,
+            online_switch_type: item.online_switch_type,
+          });
+        }),
+      });
+    },
+  });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     infos: {
@@ -243,31 +292,31 @@
       details: {
         infos: formData.tableData.map((item) => ({
           bk_cloud_id: item.cluster.bk_cloud_id,
-          capacity: item.backendGroup.capacity,
+          capacity: item.backend_group.capacity,
           cluster_id: item.cluster.id,
-          db_version: item.version,
+          db_version: item.db_version,
           display_info: {
-            cluster_capacity: item.currentCapacity.total,
+            cluster_capacity: item.cluster_capacity.total,
             cluster_shard_num: item.cluster.shard_num,
-            cluster_spec: item.cluster?.cluster_spec,
-            cluster_stats: item.cluster?.cluster_stats,
+            cluster_spec: item.cluster.cluster_spec,
+            cluster_stats: item.cluster.cluster_stats,
             machine_pair_cnt: item.cluster.group_num,
           },
-          future_capacity: item.backendGroup.future_capacity,
-          group_num: item.backendGroup.group_num,
+          future_capacity: item.backend_group.future_capacity,
+          group_num: item.backend_group.group_num,
           old_nodes: {
-            backend_hosts: item.backendGroup.old_machine_info,
+            backend_hosts: item.backend_group.old_machine_info,
           },
-          online_switch_type: item.switchMode,
+          online_switch_type: item.online_switch_type,
           resource_spec: {
             backend_group: {
-              affinity: item.backendGroup.affinity as Affinity,
-              count: item.backendGroup.count,
-              spec_id: item.backendGroup.spec_id,
+              affinity: item.backend_group.affinity as Affinity,
+              count: item.backend_group.count,
+              spec_id: item.backend_group.spec_id,
             },
           },
-          shard_num: item.backendGroup.shard_num,
-          update_mode: item.backendGroup.update_mode,
+          shard_num: item.backend_group.shard_num,
+          update_mode: item.backend_group.update_mode,
         })),
         ip_source: 'resource_pool',
       },
@@ -298,7 +347,7 @@
               master_domain: item.master_domain,
               shard_num: item.cluster_shard_num,
             },
-            switchMode: 'user_confirm',
+            online_switch_type: 'user_confirm',
           }),
         );
       }

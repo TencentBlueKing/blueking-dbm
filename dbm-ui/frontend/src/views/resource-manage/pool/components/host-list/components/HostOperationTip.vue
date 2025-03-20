@@ -42,15 +42,13 @@
   import { messageSuccess } from '@utils';
 
   interface Props {
-    title: string;
-    tip: string;
     data: DbResourceModel;
+    tip: string;
+    title: string;
     type: ServiceParameters<typeof removeResource>['event'] | 'to_biz' | 'to_public';
   }
 
-  interface Emits {
-    (e: 'refresh'): void;
-  }
+  type Emits = (e: 'refresh') => void;
 
   const props = defineProps<Props>();
 
@@ -76,7 +74,7 @@
   });
 
   const handleConfirm = () => {
-    if (['to_public', 'to_biz'].includes(props.type)) {
+    if (['to_biz', 'to_public'].includes(props.type)) {
       convertToPublic({
         bk_host_ids: [props.data.bk_host_id],
         for_biz: props.type === 'to_biz' ? globalBizsStore.currentBizId : 0,
@@ -87,8 +85,13 @@
       return;
     }
     runRemove({
-      bk_host_ids: [props.data.bk_host_id],
       event: props.type,
+      hosts: [props.data].map((item) => ({
+        bk_biz_id: item.bk_biz_id,
+        bk_cloud_id: item.bk_cloud_id,
+        bk_host_id: item.bk_host_id,
+        ip: item.ip,
+      })),
     });
   };
 </script>

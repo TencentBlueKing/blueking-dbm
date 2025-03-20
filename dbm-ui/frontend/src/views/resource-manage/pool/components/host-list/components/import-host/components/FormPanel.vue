@@ -141,7 +141,7 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { reactive } from 'vue';
+  import { reactive, type UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -150,21 +150,18 @@
   import { listTag } from '@services/source/tag';
   import type { BizItem, HostInfo } from '@services/types';
 
-  import { execCopy, messageWarn } from '@utils';
-  import { useCopy } from '@hooks';
-
   import { useGlobalBizs } from '@stores';
 
   import TagSelector from '@views/resource-manage/pool/components/tag-selector/Index.vue';
 
+  import { execCopy, messageWarn } from '@utils';
+
   interface Props {
     hostList: HostInfo[];
   }
-  interface Emits {
-    (e: 'update:hostList', value: Props['hostList']): void;
-  }
+  type Emits = (e: 'update:hostList', value: Props['hostList']) => void;
   interface Expose {
-    getValue: () => Promise<any>;
+    getValue: () => Promise<UnwrapRef<typeof formData>>;
   }
 
   const props = defineProps<Props>();
@@ -180,8 +177,8 @@
   const isShowHostActionPop = ref(false);
   const formData = reactive({
     for_biz: isBusiness ? globalBizsStore.currentBizId : 0,
+    labels: [] as number[],
     resource_type: '',
-    labels: [],
   });
 
   const bizList = shallowRef<ServiceReturnType<typeof getBizs>>([]);
@@ -302,8 +299,8 @@
     getValue() {
       return formRef.value.validate().then(() => ({
         for_biz: Number(formData.for_biz),
-        resource_type: formData.resource_type,
         labels: formData.labels,
+        resource_type: formData.resource_type,
       }));
     },
   });

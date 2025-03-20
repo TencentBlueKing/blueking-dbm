@@ -25,6 +25,7 @@
         width: `${tableContext?.columnSizeConfig.value[columnKey]?.renderWidth}px`,
       }">
       <slot />
+
       <div
         v-if="loading"
         class="bk-editable-table-column-loading">
@@ -52,6 +53,17 @@
       ref="tipsRef"
       class="bk-editable-table-body-column-tips">
       <slot name="tips" />
+    </div>
+    <div
+      v-if="validateState.isError"
+      class="bk-editable-table-column-error">
+      <slot
+        name="error"
+        v-bind="{ message: validateState.errorMessage }">
+        <i
+          v-bk-tooltips="validateState.errorMessage"
+          class="bk-dbm db-icon-exclamation-fill" />
+      </slot>
     </div>
   </td>
 </template>
@@ -610,6 +622,11 @@
 
         & > *:not(.bk-editable-table-column-disabled-mask) {
           pointer-events: none;
+        }
+
+        * {
+          pointer-events: none;
+          background: #fafbfd;
         }
       }
     }
