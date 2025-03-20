@@ -7,7 +7,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
 import json
 import logging
 import re
@@ -75,17 +74,14 @@ class SqlserverActuatorScriptService(BkJobService):
         db_act_template = getattr(mssql_act_payload, kwargs["get_payload_func"])(
             ips=exec_ips, trans_data=trans_data, custom_params=kwargs.get("custom_params", {})
         )
-        db_act_template.update(
-            {
-                "root_id": root_id,
-                "node_id": node_id,
-                "version_id": self._runtime_attrs.get("version"),
-                "uid": global_data["uid"],
-            }
-        )
+        db_act_template.root_id = root_id
+        db_act_template.node_id = node_id
+        db_act_template.version_id = self._runtime_attrs.get("version")
+        db_act_template.uid = global_data["uid"]
 
-        # payload参数转换base64格式
-        db_act_template["payload"] = base64_encode(json.dumps(db_act_template["payload"]))
+        # 转换兼容新版本参数传
+        db_act_template.extend_payload = base64_encode(json.dumps({"extend": db_act_template.payload.extend}))
+        general_payload_base_string = base64_encode(json.dumps({"general": db_act_template.payload.general}))
 
         # 更新节点信息
         FlowNode.objects.filter(root_id=root_id, node_id=node_id).update(hosts=exec_ips)
@@ -100,12 +96,11 @@ class SqlserverActuatorScriptService(BkJobService):
             "is_param_sensitive": 1,
             "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": f"DBM_{node_name}_{node_id}",
-            "script_content": base64_encode(template.render(db_act_template)),
+            "script_content": base64_encode(template.render(asdict(db_act_template))),
             "script_language": 5,
             "target_server": {"ip_list": exec_ips},
-            "script_param": base64_encode(json.dumps(db_act_template["payload"])),
+            "script_param": base64_encode(general_payload_base_string),
         }
-        self.log_debug("[{}] ready start task with body {}".format(node_name, body))
 
         if settings.DEBUG:
             # debug模式下打开

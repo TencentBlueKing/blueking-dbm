@@ -9,6 +9,8 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import logging
+from dataclasses import dataclass, field
+from functools import wraps
 
 from django.utils.translation import ugettext as _
 
@@ -16,6 +18,7 @@ from backend.configuration.constants import DBType
 from backend.db_package.models import Package
 from backend.env import WINDOW_SSH_PORT
 from backend.flow.consts import SQLSERVER_CUSTOM_SYS_USER, DBActuatorTypeEnum, MediumEnum, SqlserverActuatorActionEnum
+from backend.flow.engine.bamboo.scene.sqlserver.common.exceptions import ActPayloadFlowException
 from backend.flow.utils.sqlserver.payload_handler import PayloadHandler
 from backend.flow.utils.sqlserver.sqlserver_bk_config import (
     get_module_infos,
@@ -26,29 +29,82 @@ from backend.flow.utils.sqlserver.sqlserver_bk_config import (
 logger = logging.getLogger("flow")
 
 
+@dataclass
+class Payload:
+    """
+    定义执行Payload结构体
+    @attributes general general
+    @attributes extend extend
+    """
+
+    general: dict = field(default_factory=dict)
+    extend: dict = field(default_factory=dict)
+
+
+@dataclass
+class SqlserverActPayloadReturn:
+    """
+    定义执行SqlserverActPayloadReturn结构体
+    @attributes db_type dbactor的db组件
+    @attributes action dbactor的执行类型
+    @attributes payload # 传入dbactor的参数体
+    @attributes root_id # flow的root_id
+    @attributes node_id # component的node_id
+    @attributes version_id # component的运行时的版本id
+    @attributes uid # 对应的单据ID
+    """
+
+    db_type: DBActuatorTypeEnum
+    action: SqlserverActuatorActionEnum
+    payload: Payload
+    extend_payload: str = ""
+    root_id: str = ""
+    node_id: str = ""
+    version_id: str = ""
+    uid: str = ""
+
+    def __post_init__(self):
+        """后处理：将字典自动转换为 Payload 对象"""
+        # 转换 payload 字段
+        if isinstance(self.payload, dict):
+            self.payload = Payload(**self.payload)
+
+        else:
+            raise ActPayloadFlowException(message=_("联系管理员，payload传入类型异常（非dict）"))
+
+
+def wrap_sqlserver_act_return(func):
+    """
+    自动将返回的字典转换为 SqlserverActPayloadReturn 对象
+    todo 后续这里做输出参数的合法性
+    """
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        # 执行原函数获取字典
+        result_dict = func(*args, **kwargs)
+        # 创建 dataclass 实例
+        return SqlserverActPayloadReturn(**result_dict)
+
+    return wrapper
+
+
 class SqlserverActPayload(PayloadHandler):
+    @wrap_sqlserver_act_return
     def system_init_payload(self, **kwargs) -> dict:
         """
         系统初始化payload
         """
-        payload = {"ssh_port": WINDOW_SSH_PORT}
         return {
             "db_type": DBActuatorTypeEnum.Default.value,
             "action": SqlserverActuatorActionEnum.SysInit.value,
-            "payload": {**self.get_init_system_account(), **payload},
+            "payload": {
+                "general": {"runtime_account": self.get_init_system_account()},
+                "extend": {"ssh_port": WINDOW_SSH_PORT},
+            },
         }
 
-    @staticmethod
-    def check_mssql_service_payload(self, **kwargs) -> dict:
-        """
-        测试实例是否注册存在的payload
-        """
-        return {
-            "db_type": DBActuatorTypeEnum.Sqlserver_check.value,
-            "action": SqlserverActuatorActionEnum.MssqlServiceCheck.value,
-            "payload": {},
-        }
-
+    @wrap_sqlserver_act_return
     def get_install_sqlserver_payload(self, **kwargs) -> dict:
         """
         拼接安装sqlserver的payload参数, 分别兼容集群申请、集群实例重建、集群实例添加单据的获取方式
@@ -106,6 +162,7 @@ class SqlserverActPayload(PayloadHandler):
             },
         }
 
+    @wrap_sqlserver_act_return
     def get_init_sqlserver_payload(self, **kwargs) -> dict:
         """
         拼接初始化sqlserver的payload参数
@@ -147,6 +204,7 @@ class SqlserverActPayload(PayloadHandler):
             },
         }
 
+    @wrap_sqlserver_act_return
     def get_execute_sql_payload(self, **kwargs) -> dict:
         """
         执行SQL文件的payload
@@ -166,6 +224,7 @@ class SqlserverActPayload(PayloadHandler):
             },
         }
 
+    @wrap_sqlserver_act_return
     def get_backup_dbs_payload(self, **kwargs) -> dict:
         """
         执行数据库备份的payload
@@ -193,6 +252,7 @@ class SqlserverActPayload(PayloadHandler):
             },
         }
 
+    @wrap_sqlserver_act_return
     def get_rename_dbs_payload(self, **kwargs) -> dict:
         """
         执行数据库重命名的payload
@@ -212,6 +272,7 @@ class SqlserverActPayload(PayloadHandler):
             },
         }
 
+    @wrap_sqlserver_act_return
     def get_clean_dbs_payload(self, **kwargs) -> dict:
         """
         执行数据库清档的payload
@@ -239,6 +300,7 @@ class SqlserverActPayload(PayloadHandler):
             },
         }
 
+    @wrap_sqlserver_act_return
     def get_switch_payload(self, **kwargs) -> dict:
         """
         执行互切或者故障转移的payload
@@ -260,6 +322,7 @@ class SqlserverActPayload(PayloadHandler):
             },
         }
 
+    @wrap_sqlserver_act_return
     def get_check_abnormal_db_payload(self, **kwargs) -> dict:
         """
         检查实例是否存在非正常状态的数据
@@ -276,6 +339,7 @@ class SqlserverActPayload(PayloadHandler):
             },
         }
 
+    @wrap_sqlserver_act_return
     def get_check_inst_process_payload(self, **kwargs) -> dict:
         """
         检查实例是否存在业务连接
@@ -293,6 +357,7 @@ class SqlserverActPayload(PayloadHandler):
             },
         }
 
+    @wrap_sqlserver_act_return
     def get_clone_user_payload(self, **kwargs) -> dict:
         """
         实例之间克隆用户
@@ -313,6 +378,7 @@ class SqlserverActPayload(PayloadHandler):
             },
         }
 
+    @wrap_sqlserver_act_return
     def get_clone_jobs_payload(self, **kwargs) -> dict:
         """
         实例之间克隆作业
@@ -331,6 +397,7 @@ class SqlserverActPayload(PayloadHandler):
             },
         }
 
+    @wrap_sqlserver_act_return
     def get_clone_linkserver_payload(self, **kwargs) -> dict:
         """
         实例之间克隆linkserver配置
@@ -349,6 +416,7 @@ class SqlserverActPayload(PayloadHandler):
             },
         }
 
+    @wrap_sqlserver_act_return
     def get_restore_full_dbs_payload(self, **kwargs) -> dict:
         """
         恢复全量备份的payload
@@ -367,6 +435,7 @@ class SqlserverActPayload(PayloadHandler):
             },
         }
 
+    @wrap_sqlserver_act_return
     def get_restore_log_dbs_payload(self, **kwargs) -> dict:
         """
         恢复增量备份的payload
@@ -386,6 +455,7 @@ class SqlserverActPayload(PayloadHandler):
             },
         }
 
+    @wrap_sqlserver_act_return
     def get_build_database_mirroring(self, **kwargs) -> dict:
         """
         建立数据库级别镜像关系的payload
@@ -410,6 +480,7 @@ class SqlserverActPayload(PayloadHandler):
             },
         }
 
+    @wrap_sqlserver_act_return
     def get_build_add_dbs_in_always_on(self, **kwargs) -> dict:
         """
         建立数据库加入always_on可用组的payload
@@ -433,6 +504,7 @@ class SqlserverActPayload(PayloadHandler):
             },
         }
 
+    @wrap_sqlserver_act_return
     def get_build_always_on(self, **kwargs) -> dict:
         """
         建立实例加入always_on可用组的payload
@@ -457,6 +529,7 @@ class SqlserverActPayload(PayloadHandler):
             },
         }
 
+    @wrap_sqlserver_act_return
     def get_init_machine_for_always_on(self, **kwargs) -> dict:
         """
         建立always_on可用组之前初始化机器的payload
@@ -480,6 +553,7 @@ class SqlserverActPayload(PayloadHandler):
             },
         }
 
+    @wrap_sqlserver_act_return
     def uninstall_sqlserver(self, **kwargs) -> dict:
         """
         卸载sqlserver的payload
@@ -501,6 +575,7 @@ class SqlserverActPayload(PayloadHandler):
             },
         }
 
+    @wrap_sqlserver_act_return
     def check_backup_file_is_in_local(self, **kwargs) -> dict:
         """
         移动备份文件
@@ -517,6 +592,7 @@ class SqlserverActPayload(PayloadHandler):
             },
         }
 
+    @wrap_sqlserver_act_return
     def init_instance_for_dbm(self, **kwargs) -> dict:
         """
         接入DBM初始化实例
@@ -533,6 +609,7 @@ class SqlserverActPayload(PayloadHandler):
             },
         }
 
+    @wrap_sqlserver_act_return
     def get_clear_config_payload(self, **kwargs) -> dict:
         """
         执行清理实例配置的payload，例如清理Job、LinkServer
@@ -551,6 +628,7 @@ class SqlserverActPayload(PayloadHandler):
             },
         }
 
+    @wrap_sqlserver_act_return
     def get_remote_dr_payload(self, **kwargs) -> dict:
         """
         移除AlwaysOn可用组

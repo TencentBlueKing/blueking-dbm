@@ -25,7 +25,6 @@ import (
 	"fmt"
 
 	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/riak/db-tools/dbactuator/pkg/rollback"
 	"dbm-services/sqlserver/db-tools/dbactuator/internal/subcmd"
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/components/sqlserver"
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/util"
@@ -60,7 +59,6 @@ func NewInitSqlServerCommand() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(act.Validate())
 			if act.RollBack {
-				util.CheckErr(act.Rollback())
 				return
 			}
 			util.CheckErr(act.Init())
@@ -80,23 +78,6 @@ func (d *InitSqlServerAct) Init() (err error) {
 	d.BaseService.GeneralParam = subcmd.GeneralRuntimeParam
 
 	return d.BaseService.InitParamForInitSqlserver()
-}
-
-// Rollback 回滚
-//
-//	@receiver d
-//	@return err
-func (d *InitSqlServerAct) Rollback() (err error) {
-	var r rollback.RollBackObjects
-	if err = d.DeserializeAndValidate(&r); err != nil {
-		logger.Error("DeserializeAndValidate failed, %v", err)
-		return err
-	}
-	err = r.RollBack()
-	if err != nil {
-		logger.Error("roll back failed %s", err.Error())
-	}
-	return
 }
 
 // Run 执行

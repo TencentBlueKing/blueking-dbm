@@ -78,8 +78,8 @@ func (d *DeploySqlServerAct) Init() (err error) {
 //	@return err
 func (d *DeploySqlServerAct) Rollback() (err error) {
 	var r rollback.RollBackObjects
-	if err = d.DeserializeAndValidate(&r); err != nil {
-		logger.Error("DeserializeAndValidate failed, %v", err)
+	if err = d.RollBackDeserializeAndValidate(&r); err != nil {
+		logger.Error("RollBackDeserializeAndValidate failed, %v", err)
 		return err
 	}
 	err = r.RollBack()

@@ -63,9 +63,9 @@ class SQLServerRollbackHandler(object):
         unique_list = []
         seen_values = set()
         for binlog in binlogs + last_binlogs:
-            if binlog["task_id"] not in seen_values:
+            if binlog["backup_id"] not in seen_values:
                 unique_list.append(binlog)
-                seen_values.add(binlog["task_id"])
+                seen_values.add(binlog["backup_id"])
 
         return unique_list
 

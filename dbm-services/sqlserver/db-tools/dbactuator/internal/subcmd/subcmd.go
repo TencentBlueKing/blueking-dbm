@@ -56,14 +56,16 @@ func init() {
 	此参数是json字符串的base64编码之后的字符串
 */
 type BaseOptions struct {
-	Uid           string
-	RootId        string
-	NodeId        string
-	VersionId     string
-	Payload       string
-	PayloadFormat string
-	RollBack      bool
-	Helper        bool
+	Uid               string
+	RootId            string
+	NodeId            string
+	VersionId         string
+	GeneralPayload    string
+	ExtendPayload     string
+	ExtendPayloadFile string
+	RollBackPayload   string
+	RollBack          bool
+	Helper            bool
 	// 是否为外部版本
 	// on ON
 	External string
@@ -119,21 +121,37 @@ func (s Steps) Run() (err error) {
 	return nil
 }
 
+// 根据payload_file获取payload内容
+func (b *BaseOptions) GetExtendPayloadFormFile() error {
+	if b.ExtendPayloadFile == "" {
+		return fmt.Errorf("ExtendPayloadFile文件为空")
+	}
+	content, err := os.ReadFile(b.ExtendPayloadFile)
+	if err != nil {
+		return fmt.Errorf("读取extend_Payload文件失败: %v\n", err)
+
+	}
+	b.ExtendPayload = string(content)
+	return nil
+}
+
 // DeserializeAndValidate TODO
 /*
-	反序列化payload,并校验参数
+	反序列化回滚的payload,并校验参数
 	ps: 参数校验 from golang validate v10
 */
-func (b *BaseOptions) DeserializeAndValidate(s interface{}) (err error) {
+func (b *BaseOptions) RollBackDeserializeAndValidate(s interface{}) (err error) {
 	var bp []byte
-	if b.PayloadFormat == PayloadFormatRaw {
-		bp = []byte(b.Payload)
-	} else {
-		bp, err = base64.StdEncoding.DecodeString(b.Payload)
-		if err != nil {
-			return err
-		}
+	if len(b.RollBackPayload) == 0 {
+		// 可以接受为空
+		logger.Info("RollBackPayload is null")
+		return nil
 	}
+	bp, err = base64.StdEncoding.DecodeString(b.RollBackPayload)
+	if err != nil {
+		return err
+	}
+
 	// logger.Info("payload received: %s", bp)
 	// 如果 s 里面的 sub struct 是 pointer，要初始化后再传进来才能解析到环境变量
 	if err := env.Parse(s); err != nil {
@@ -161,35 +179,43 @@ func (b *BaseOptions) DeserializeAndValidate(s interface{}) (err error) {
 	ps: 参数校验 from golang validate v10
 */
 func (b *BaseOptions) Deserialize(s interface{}) (err error) {
-	var bp []byte
-	if b.PayloadFormat == PayloadFormatRaw {
-		bp = []byte(b.Payload)
-	} else {
-		bp, err = base64.StdEncoding.DecodeString(b.Payload)
-		if err != nil {
-			return err
-		}
-	}
-	if err := env.Parse(s); err != nil {
-		logger.Warn("env parse error, ignore environment variables for payload:%s", err.Error())
-	}
-	logger.Info("params from env %+v", s)
-	g := components.RuntimeAccountParam{}
-	if err := env.Parse(&g); err != nil {
-		logger.Warn("env parse error, ignore environment variables for payload:%s", err.Error())
-	}
-	// logger.Info("Account from env: %+v", g)
+	var extendBp []byte
+	var generalBp []byte
+
 	bip := components.BaseInputParam{
 		ExtendParam:  s,
-		GeneralParam: &components.GeneralParam{RuntimeAccountParam: g},
+		GeneralParam: &components.GeneralParam{RuntimeAccountParam: components.RuntimeAccountParam{}},
 	}
-	// logger.Info("payload received: %s", bp)
-	defer logger.Info("payload parsed: %+v", bip)
-	if err = json.Unmarshal(bp, &bip); err != nil {
-		logger.Error("json.Unmarshal failed, %v", s, err)
+
+	// 解析ExtendPayload
+	if err = b.GetExtendPayloadFormFile(); err != nil {
+		return err
+	}
+
+	extendBp, err = base64.StdEncoding.DecodeString(b.ExtendPayload)
+	if err != nil {
+		fmt.Println("ExtendPayload err")
+		return err
+	}
+	if err = json.Unmarshal(extendBp, &bip); err != nil {
+		logger.Error("[ExtendPayload] json.Unmarshal failed, %v", s, err)
 		err = errors.WithMessage(err, "参数解析错误")
 		return
 	}
+
+	// 解析GeneralPayload
+	generalBp, err = base64.StdEncoding.DecodeString(b.GeneralPayload)
+	if err != nil {
+		fmt.Println("GeneralPayload err")
+		return err
+	}
+	if err = json.Unmarshal(generalBp, &bip); err != nil {
+		logger.Error("[GeneralPayload] json.Unmarshal failed, %v", s, err)
+		err = errors.WithMessage(err, "参数解析错误")
+		return
+	}
+
+	defer logger.Info("payload parsed: %+v", bip)
 	// logger.Info("params after unmarshal %+v", bip)
 	if err = validate.GoValidateStruct(bip, false, true); err != nil {
 		logger.Error("validate struct failed, %v", s, err)
@@ -197,44 +223,17 @@ func (b *BaseOptions) Deserialize(s interface{}) (err error) {
 		return
 	}
 	GeneralRuntimeParam = bip.GeneralParam
-	return nil
-}
 
-// DeserializeSimple 简单 payload 不需要 {"extend":{body}}，直接传入 body
-func (b *BaseOptions) DeserializeSimple(s interface{}) (err error) {
-	var body []byte
-	if b.PayloadFormat == PayloadFormatRaw {
-		body = []byte(b.Payload)
-	} else {
-		body, err = base64.StdEncoding.DecodeString(b.Payload)
-		if err != nil {
-			return err
-		}
-	}
-	// logger.Info("payload received: %s", body)
-	// 如果 s 里面的 sub struct 是 pointer，要初始化后再传进来才能解析到环境变量
-	if err := env.Parse(s); err != nil {
-		logger.Warn("env parse error, ignore environment variables for payload:%s", err.Error())
-	}
-
-	defer logger.Info("payload parsed: %+v", s)
-	if err = json.Unmarshal(body, &s); err != nil {
-		logger.Error("json.Unmarshal failed, %v", s, err)
-		err = errors.WithMessage(err, "参数解析错误")
-		return
-	}
-	if err = validate.GoValidateStruct(s, false, true); err != nil {
-		logger.Error("validate struct failed, %v", s, err)
-		err = errors.WithMessage(err, "参数输入错误")
-		return
-	}
 	return nil
 }
 
 // Validate TODO
 func (b BaseOptions) Validate() (err error) {
-	if len(b.Payload) == 0 {
-		return fmt.Errorf("payload need input")
+	if len(b.ExtendPayloadFile) == 0 {
+		return fmt.Errorf("ExtendPayloadFile need input")
+	}
+	if len(b.GeneralPayload) == 0 {
+		return fmt.Errorf("GeneralPayload need input")
 	}
 	return nil
 }

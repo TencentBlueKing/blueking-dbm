@@ -356,7 +356,6 @@ func (i *InstallSqlServerComp) SqlServerStartup() error {
 		)
 		if err != nil {
 			i.DeleteConfs()
-			i.DeleteFiles()
 			logger.Error("setup failed: %s", result)
 			return err
 		}

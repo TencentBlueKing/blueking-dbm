@@ -112,17 +112,31 @@ Buildstamp:%s`, version, githash, strings.ToUpper(external), buildstamp),
 	groups.Add(cmds)
 	// 标志可以是 "persistent" 的，这意味着该标志将可用于分配给它的命令以及该命令下的每个命令。对于全局标志，将标志分配为根上的持久标志。
 	// 默认每个subcomand 都默认带这些参数
-	cmds.PersistentFlags().StringVarP(&subcmd.GBaseOptions.Payload, "payload", "p", subcmd.GBaseOptions.Payload,
-		"command payload <base64>")
-	cmds.PersistentFlags().StringVarP(&subcmd.GBaseOptions.PayloadFormat, "payload-format", "m",
-		subcmd.GBaseOptions.PayloadFormat, "command payload format, default base64, value_allowed: base64|raw")
+	cmds.PersistentFlags().StringVarP(
+		&subcmd.GBaseOptions.GeneralPayload,
+		"general_payload",
+		"g",
+		subcmd.GBaseOptions.GeneralPayload,
+		"command general_payload <base64>")
+	cmds.PersistentFlags().StringVarP(
+		&subcmd.GBaseOptions.ExtendPayloadFile,
+		"extend_payload_file",
+		"e",
+		subcmd.GBaseOptions.ExtendPayloadFile,
+		"command extend_payload_file")
+	cmds.PersistentFlags().StringVarP(
+		&subcmd.GBaseOptions.RollBackPayload,
+		"rollback_payload",
+		"o",
+		subcmd.GBaseOptions.RollBackPayload,
+		"command rollback_payload <base64>")
 	cmds.PersistentFlags().StringVarP(&subcmd.GBaseOptions.Uid, "uid", "U", subcmd.GBaseOptions.Uid, "单据id")
 	cmds.PersistentFlags().StringVarP(&subcmd.GBaseOptions.RootId, "root_id", "R", subcmd.GBaseOptions.NodeId, "流程id")
 	cmds.PersistentFlags().StringVarP(&subcmd.GBaseOptions.NodeId, "node_id", "N", subcmd.GBaseOptions.NodeId, "节点id")
 	cmds.PersistentFlags().StringVarP(&subcmd.GBaseOptions.VersionId, "version_id", "V", subcmd.GBaseOptions.NodeId,
 		"运行版本id")
 	cmds.PersistentFlags().BoolVarP(&subcmd.GBaseOptions.RollBack, "rollback", "r", subcmd.GBaseOptions.RollBack, "回滚任务")
-	cmds.PersistentFlags().BoolVarP(&subcmd.GBaseOptions.Helper, "helper", "E", subcmd.GBaseOptions.Helper, "payload参数说明")
+	cmds.PersistentFlags().BoolVarP(&subcmd.GBaseOptions.Helper, "helper", "H", subcmd.GBaseOptions.Helper, "payload参数说明")
 	subcmd.GBaseOptions.External = external
 	// @todo add --daemon mode to serve http to call subcmd/components
 	return cmds

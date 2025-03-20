@@ -22,7 +22,7 @@ import (
 // SysInitAct TODO
 type SysInitAct struct {
 	*subcmd.BaseOptions
-	Service sysinit.SysInitParam
+	Service sysinit.SysInitComp
 }
 
 // NewSysInitCommand TODO
@@ -44,11 +44,12 @@ func NewSysInitCommand() *cobra.Command {
 }
 
 // Init TODO
-func (d *SysInitAct) Init() (err error) {
-	if err = d.DeserializeAndValidate(&d.Service); err != nil {
-		logger.Error("DeserializeAndValidate err %s", err.Error())
+func (s *SysInitAct) Init() (err error) {
+	if err = s.Deserialize(&s.Service.Params); err != nil {
+		logger.Error("Deserialize err %s", err.Error())
 		return err
 	}
+	s.Service.GeneralParam = subcmd.GeneralRuntimeParam
 	return
 }
 

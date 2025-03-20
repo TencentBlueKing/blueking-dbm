@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
 Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
@@ -8,22 +7,17 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import logging
+from django.utils.translation import ugettext as _
 
-from django.apps import AppConfig
-
-logger = logging.getLogger("root")
+from backend.exceptions import AppBaseException, ErrorCode
 
 
-class FlowConfig(AppConfig):
-    default_auto_field = "django.db.models.BigAutoField"
-    name = "backend.flow"
+class SqlserverFlowBaseException(AppBaseException):
+    MODULE_CODE = ErrorCode.FLOW_CODE
+    MESSAGE = _("Flow模块Sqlserver异常")
 
-    def ready(self):
-        from pipeline.eri.signals import post_set_state
 
-        import backend.flow.signal.sqlserver_dts_callback_handler  # noqa
-        import backend.iam_app.handlers.signal  # noqa
-        from backend.flow.signal.handlers import post_set_state_signal_handler
-
-        post_set_state.connect(post_set_state_signal_handler, dispatch_uid="_post_set_state_handler")
+class ActPayloadFlowException(SqlserverFlowBaseException):
+    ERROR_CODE = "001"
+    MESSAGE = _("解析act payload结构异常")
+    MESSAGE_TPL = _("{message}")

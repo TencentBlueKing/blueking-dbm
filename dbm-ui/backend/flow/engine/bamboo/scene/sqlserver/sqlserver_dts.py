@@ -658,6 +658,7 @@ class SqlserverDTSFlow(BaseFlow):
                         source_cluster=cluster,
                         source_instance=master_instance,
                         target_cluster=target_cluster,
+                        backup_path=backup_path,
                     )
                 )
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=target_sub_pipelines)
@@ -792,6 +793,7 @@ class SqlserverDTSFlow(BaseFlow):
                         source_cluster=cluster,
                         source_instance=master_instance,
                         target_cluster=target_cluster,
+                        backup_path=backup_path,
                     )
                 )
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=target_sub_pipelines)
@@ -839,9 +841,15 @@ class SqlserverDTSFlow(BaseFlow):
         target_cluster: Cluster,
         source_cluster: Cluster,
         source_instance: StorageInstance,
+        backup_path: str,
     ):
         """
-        恢复数据的流程
+        恢复全量数据的子流程
+        @param sub_flow_context: 传递的子流程全局变量global_data
+        @param target_cluster: 目前集群cluster对象
+        @param source_cluster: 源集群的cluster对象
+        @param source_instance:原集群的作为数据来源实例
+        @param backup_path: 原集群当时备份文件的目录
         """
         # 声明子流程
         sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
@@ -850,7 +858,7 @@ class SqlserverDTSFlow(BaseFlow):
         )
 
         # 这里计算出目标集群的恢复目录
-        target_backup_path = self.__calc_target_backup_path(target_cluster.id, target_master_instance.port, "full")
+        target_restore_path = self.__calc_target_backup_path(target_cluster.id, target_master_instance.port, "full")
 
         # 给目标集群的master发执行器
         sub_pipeline.add_act(
@@ -875,11 +883,14 @@ class SqlserverDTSFlow(BaseFlow):
                         target_hosts=[
                             Host(ip=target_master_instance.machine.ip, bk_cloud_id=target_cluster.bk_cloud_id)
                         ],
-                        file_target_path=target_backup_path,
+                        file_target_path=target_restore_path,
                         cluster_id=source_cluster.id,
                     ),
                 ),
             )
+        else:
+            # 源和目标是在同一台机器上，为了优化产生多余的备份文件，直接用backup目录作为恢复目录
+            target_restore_path = backup_path
 
         # 恢复全量备份文件
         sub_pipeline.add_act(
@@ -892,7 +903,7 @@ class SqlserverDTSFlow(BaseFlow):
                     restore_infos=sub_flow_context["dts_infos"],
                     restore_mode=SqlserverRestoreMode.FULL.value,
                     restore_db_status=SqlserverRestoreDBStatus.NORECOVERY.value,
-                    restore_path=target_backup_path,
+                    restore_path=target_restore_path,
                     exec_ips=[Host(ip=target_master_instance.machine.ip, bk_cloud_id=target_cluster.bk_cloud_id)],
                     port=target_master_instance.port,
                     job_timeout=DBM_SQLSERVER_JOB_LONG_TIMEOUT,
@@ -916,7 +927,7 @@ class SqlserverDTSFlow(BaseFlow):
                     restore_infos=sub_flow_context["dts_infos"],
                     restore_mode=SqlserverRestoreMode.LOG.value,
                     restore_db_status=restore_db_status,
-                    restore_path=target_backup_path,
+                    restore_path=target_restore_path,
                     exec_ips=[Host(ip=target_master_instance.machine.ip, bk_cloud_id=target_cluster.bk_cloud_id)],
                     port=target_master_instance.port,
                     job_timeout=DBM_SQLSERVER_JOB_LONG_TIMEOUT,
@@ -932,9 +943,15 @@ class SqlserverDTSFlow(BaseFlow):
         target_cluster: Cluster,
         source_cluster: Cluster,
         source_instance: StorageInstance,
+        backup_path: str,
     ):
         """
         恢复增量备份数据的流程
+        @param sub_flow_context: 传递的子流程全局变量global_data
+        @param target_cluster: 目前集群cluster对象
+        @param source_cluster: 源集群的cluster对象
+        @param source_instance:原集群的作为数据来源实例
+        @param backup_path: 原集群当时备份文件的目录
         """
         # 声明子流程
         sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
@@ -943,7 +960,7 @@ class SqlserverDTSFlow(BaseFlow):
         )
 
         # 这里计算出目标集群的恢复目录
-        target_backup_path = self.__calc_target_backup_path(target_cluster.id, target_master_instance.port, "incr")
+        target_restore_path = self.__calc_target_backup_path(target_cluster.id, target_master_instance.port, "incr")
 
         # 给目标集群的master发执行器
         sub_pipeline.add_act(
@@ -968,12 +985,15 @@ class SqlserverDTSFlow(BaseFlow):
                         target_hosts=[
                             Host(ip=target_master_instance.machine.ip, bk_cloud_id=target_cluster.bk_cloud_id)
                         ],
-                        file_target_path=target_backup_path,
+                        file_target_path=target_restore_path,
                         cluster_id=source_cluster.id,
                         is_trans_full_backup=False,
                     ),
                 ),
             )
+        else:
+            # 源和目标是在同一台机器上，为了优化产生多余的备份文件，直接用backup目录作为恢复目录
+            target_restore_path = backup_path
 
         # 恢复日志备份文件
         if self.data["is_last"]:
@@ -991,7 +1011,7 @@ class SqlserverDTSFlow(BaseFlow):
                     restore_infos=sub_flow_context["dts_infos"],
                     restore_mode=SqlserverRestoreMode.LOG.value,
                     restore_db_status=restore_db_status,
-                    restore_path=target_backup_path,
+                    restore_path=target_restore_path,
                     exec_ips=[Host(ip=target_master_instance.machine.ip, bk_cloud_id=target_cluster.bk_cloud_id)],
                     port=target_master_instance.port,
                     job_timeout=DBM_SQLSERVER_JOB_LONG_TIMEOUT,

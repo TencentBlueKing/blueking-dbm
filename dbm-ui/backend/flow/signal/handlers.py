@@ -17,6 +17,7 @@ from backend.db_dirty.handlers import DBDirtyMachineHandler
 from backend.flow.consts import StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.models import FlowNode, FlowTree
+from backend.flow.signal.callback_map import call_ticket_handler
 from backend.ticket.constants import FlowCallbackType, FlowType, TicketFlowStatus
 from backend.ticket.flow_manager.inner import InnerFlow
 from backend.ticket.flow_manager.manager import TicketFlowManager
@@ -72,6 +73,17 @@ def post_set_state_signal_handler(sender, node_id, to_state, version, root_id, *
         except Exception as e:  # pylint: disable=broad-except
             logger.debug(_("【状态信号捕获】污点池处理/回调单据 发生错误，错误信息{}").format(e))
             return
+
+    # 针对不同类型单据，调用个性化方法
+    # 所有不同类型传入的参数这里是一致的
+    logger.info("call_ticket_handler execute")
+    try:
+        ticket = Ticket.objects.get(id=tree.uid)
+    except (Ticket.DoesNotExist, ValueError):
+        return
+    call_ticket_handler(
+        ticket_type=ticket.ticket_type, node_id=node_id, root_id=root_id, ticket_id=tree.uid, status=to_state
+    )
 
 
 def callback_ticket(ticket_id, root_id):

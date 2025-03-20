@@ -20,7 +20,7 @@ from backend.flow.consts import SqlserverDtsMode
 from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.ticket import builders
 from backend.ticket.builders.sqlserver.base import BaseSQLServerTicketFlowBuilder, SQLServerBaseOperateDetailSerializer
-from backend.ticket.constants import FlowRetryType, FlowType, TicketFlowStatus, TicketType
+from backend.ticket.constants import FlowRetryType, FlowType, TicketType
 from backend.ticket.models import Flow, Ticket
 
 
@@ -83,19 +83,7 @@ class SQLServerDataMigrateFlowParamBuilder(builders.FlowParamBuilder):
         return super().build_controller_info()
 
     def post_callback(self):
-        flow = self.ticket.current_flow()
-        if flow.status not in [TicketFlowStatus.REVOKED, TicketFlowStatus.FAILED, TicketFlowStatus.TERMINATED]:
-            return
-        # 流程失败/终止情况下，更新传输记录状态
-        dts_ids = [info["dts_id"] for info in self.ticket_data["infos"]]
-        # 全量传输中 ----> 全量传输失败
-        SqlserverDtsInfo.objects.filter(id__in=dts_ids, status=DtsStatus.FullOnline).update(
-            status=DtsStatus.FullFailed
-        )
-        # 增量传输中 ----> 增量传输失败
-        SqlserverDtsInfo.objects.filter(id__in=dts_ids, status=DtsStatus.IncrOnline).update(
-            status=DtsStatus.IncrFailed
-        )
+        pass
 
     def format_ticket_data(self):
         self.ticket_data["is_last"] = (self.ticket_data["dts_mode"] == SqlserverDtsMode.FULL) or (

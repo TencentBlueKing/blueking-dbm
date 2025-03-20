@@ -297,7 +297,7 @@ var (
 			DROP USER ['+@username+']
 		END
 	CREATE USER ['+@username+'] FOR LOGIN ['+@username+']
-	ALTER ROLE [db_datareader] ADD MEMBER ['+@username+']
+	EXEC sp_addrolemember N''db_datareader'', N'''+@username+'''
 
 	USE [model]
 	IF EXISTS (SELECT * FROM sys.sysusers WHERE name = '''+@username+''')
@@ -305,7 +305,7 @@ var (
 			DROP USER ['+@username+']
 		END
 	CREATE USER ['+@username+'] FOR LOGIN ['+@username+']
-	ALTER ROLE [db_datareader] ADD MEMBER ['+@username+']
+	EXEC sp_addrolemember N''db_datareader'', N'''+@username+'''
 
 	USE [msdb]
 	IF EXISTS (SELECT * FROM sys.sysusers WHERE name = '''+@username+''')
@@ -313,7 +313,7 @@ var (
 			DROP USER ['+@username+']
 		END
 	CREATE USER ['+@username+'] FOR LOGIN ['+@username+']
-	ALTER ROLE [db_datareader] ADD MEMBER ['+@username+']
+	EXEC sp_addrolemember N''db_datareader'', N'''+@username+'''
 
 	USE [tempdb]
 	IF EXISTS (SELECT * FROM sys.sysusers WHERE name = '''+@username+''')
@@ -321,7 +321,7 @@ var (
 			DROP USER ['+@username+']
 		END
 	CREATE USER ['+@username+'] FOR LOGIN ['+@username+']
-	ALTER ROLE [db_datareader] ADD MEMBER ['+@username+']
+	EXEC sp_addrolemember N''db_datareader'', N'''+@username+'''
 
 	USE [Monitor]
 	IF EXISTS (SELECT * FROM sys.sysusers WHERE name = '''+@username+''')
@@ -329,7 +329,7 @@ var (
 			DROP USER ['+@username+']
 		END
 	CREATE USER ['+@username+'] FOR LOGIN ['+@username+']
-	ALTER ROLE [db_datareader] ADD MEMBER ['+@username+']
+	EXEC sp_addrolemember N''db_datareader'', N'''+@username+'''
 	'
 	exec(@sql)
 `

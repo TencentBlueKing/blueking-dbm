@@ -87,8 +87,9 @@ echo Test privilege flush successfully!
 # 同时对比actuator的md5,如果一致则不发，提供效率
 sqlserver_actuator_template = """
 param (
-    [string]$payload
+    [string]$general_payload
 )
+$extend_payload = "{{extend_payload}}"
 $targetDir = "d:\\install\\dbactuator-{{uid}}"
 $logDir = Join-Path $targetDir "logs"
 $sourceFile = "d:\\install\\dbactuator.exe"
@@ -99,9 +100,12 @@ if (-not (Test-Path $logDir)) {
 }
 
 Set-Location $targetDir
+$tempFile = "extend_payload_{{node_id}}.tmp"
+$extend_payload | Set-Content -Path $tempFile -Force
+
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Unrestricted -Force
 ..\\dbactuator.exe  {{db_type}} {{action}} --uid {{uid}} --root_id {{root_id}} --node_id {{node_id}} --version_id \
- {{version_id}}  --payload $payload
+{{version_id}}  --general_payload $general_payload --extend_payload_file $tempFile
 
 if ($LASTEXITCODE -ne 0 ) {
 exit 1

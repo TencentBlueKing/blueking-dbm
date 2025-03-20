@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/sqlserver/db-tools/dbactuator/pkg/components"
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/core/staticembed"
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/util/osutil"
@@ -27,13 +28,14 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+type SysInitComp struct {
+	GeneralParam *components.GeneralParam
+	Params       *SysInitParam
+}
+
 // SysInitParam TODO
 type SysInitParam struct {
-	SSHPort       int    `json:"ssh_port" validate:"required,gt=0"`
-	OSMssqlUser   string `json:"mssql_user"`
-	OSMssqlPwd    string `json:"mssql_pwd"`
-	SQLServerUser string `json:"sqlserver_user"`
-	SQLServerPwd  string `json:"sqlserver_pwd"`
+	SSHPort int `json:"ssh_port" validate:"required,gt=0"`
 }
 
 /*
@@ -42,7 +44,7 @@ type SysInitParam struct {
 */
 
 // PreCheck 初始化的预检测
-func (s *SysInitParam) PreCheck() error {
+func (s *SysInitComp) PreCheck() error {
 	// 判断机器是否数据盘D盘，如果没有存在则异常
 	d := osutil.WINSFile{FileName: cst.BASE_DATA_PATH}
 	err, check := d.FileExists()
@@ -91,12 +93,12 @@ func (s *SysInitParam) PreCheck() error {
 }
 
 // CreateSysUser 创建需要的系统账号
-func (s *SysInitParam) CreateSysUser() error {
+func (s *SysInitComp) CreateSysUser() error {
 	logger.Info("start exec createSysUser ...")
 	// 创建mssql账号
 	mssql := osutil.WINSOSUser{
-		User:    s.OSMssqlUser,
-		Pass:    s.OSMssqlPwd,
+		User:    s.GeneralParam.RuntimeAccountParam.OSMssqlUser,
+		Pass:    s.GeneralParam.RuntimeAccountParam.OSMssqlPwd,
 		Comment: "SQL SERVER ACCOUNT",
 	}
 	if mssql.UserExists() {
@@ -115,12 +117,12 @@ func (s *SysInitParam) CreateSysUser() error {
 	if err := mssql.RemoveGroupMember("Users"); err != nil {
 		return err
 	}
-	logger.Info("create system-user [%s] successfully ", s.OSMssqlUser)
+	logger.Info("create system-user [%s] successfully ", mssql.User)
 
 	// 创建sqlserver账号
 	sqlserver := osutil.WINSOSUser{
-		User:    s.SQLServerUser,
-		Pass:    s.SQLServerPwd,
+		User:    s.GeneralParam.RuntimeAccountParam.SQLServerUser,
+		Pass:    s.GeneralParam.RuntimeAccountParam.SQLServerPwd,
 		Comment: "SQL SERVER SERVICE ACCOUNT",
 	}
 	if sqlserver.UserExists() {
@@ -138,7 +140,7 @@ func (s *SysInitParam) CreateSysUser() error {
 	if err := sqlserver.RemoveGroupMember("Users"); err != nil {
 		return err
 	}
-	logger.Info("create system-user [%s] successfully ", s.SQLServerUser)
+	logger.Info("create system-user [%s] successfully ", sqlserver.User)
 	// 创建backupman账号
 	backupman := osutil.WINSOSUser{
 		User:    "backupman",
@@ -158,7 +160,7 @@ func (s *SysInitParam) CreateSysUser() error {
 }
 
 // CreateSysDir TODO
-func (s *SysInitParam) CreateSysDir() error {
+func (s *SysInitComp) CreateSysDir() error {
 	logger.Info("start exec createSysDir ...")
 	createDir := []string{
 		filepath.Join(cst.BASE_DATA_PATH, cst.BK_PKG_INSTALL_NAME),
@@ -214,7 +216,7 @@ func (s *SysInitParam) CreateSysDir() error {
 }
 
 // SysInitMachine TODO
-func (s *SysInitParam) SysInitMachine() error {
+func (s *SysInitComp) SysInitMachine() error {
 	logger.Info("start exec sysinit ...")
 	data, err := staticembed.SysInitScript.ReadFile(staticembed.SysInitScriptFileName)
 	if err != nil {
@@ -242,7 +244,7 @@ func (s *SysInitParam) SysInitMachine() error {
 }
 
 // CheckSSHForLocal 本地模拟ssh连接检测是否正常，模拟dbha做一次ssh校验
-func (s *SysInitParam) CheckSSHForLocal() error {
+func (s *SysInitComp) CheckSSHForLocal() error {
 	var host string
 	var err error
 	host, err = osutil.StandardPowerShellCommand(
@@ -262,14 +264,14 @@ func (s *SysInitParam) CheckSSHForLocal() error {
 	checkStr := fmt.Sprintf("echo 1 > %s", fmt.Sprintf("%s\\\\%s\\\\%s", cst.BASE_DATA_PATH, cst.MSSQL_DBHA_NAME, "test"))
 	conf := &ssh.ClientConfig{
 		Timeout:         time.Second * time.Duration(10), // ssh 连接time out 时间10秒钟, 如果ssh验证错误 会在一秒内返回
-		User:            s.OSMssqlUser,
+		User:            s.GeneralParam.RuntimeAccountParam.OSMssqlUser,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(), // 这个可以， 但是不够安全
 		Config: ssh.Config{
 			Ciphers: []string{"arcfour", "aes128-ctr", "aes192-ctr"}, // 指定加密算法，目前利用sygwin联调
 		},
 	}
-	conf.Auth = []ssh.AuthMethod{ssh.Password(s.OSMssqlPwd)}
-	addr := fmt.Sprintf("%s:%d", strings.ReplaceAll(strings.ReplaceAll(host, "\r", ""), "\n", ""), s.SSHPort)
+	conf.Auth = []ssh.AuthMethod{ssh.Password(s.GeneralParam.RuntimeAccountParam.OSMssqlPwd)}
+	addr := fmt.Sprintf("%s:%d", strings.ReplaceAll(strings.ReplaceAll(host, "\r", ""), "\n", ""), s.Params.SSHPort)
 	logger.Info(addr)
 	sshClient, err := ssh.Dial("tcp", addr, conf)
 	if err != nil {
