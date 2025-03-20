@@ -41,11 +41,11 @@ type PartitionAccoutParam struct {
 var allPriv = []string{"ALL PRIVILEGES"}
 var ywUserPriv = []string{"SELECT", "CREATE", "RELOAD", "PROCESS", "SHOW DATABASES", "REPLICATION CLIENT"}
 var backupUserPriv = []string{"SELECT", "RELOAD", "PROCESS", "SHOW DATABASES", "REPLICATION CLIENT", "SHOW VIEW",
-	"TRIGGER", "EVENT", "SUPER"}
+	"TRIGGER", "EVENT", "SUPER", "EXECUTE"}
 
 // performance_schema.log_status
 var backupUserPriv80 = []string{"SELECT", "RELOAD", "PROCESS", "SHOW DATABASES", "REPLICATION CLIENT", "SHOW VIEW",
-	"TRIGGER", "EVENT", "SUPER", "BACKUP_ADMIN"} // SUPER is deprecated
+	"TRIGGER", "EVENT", "SUPER", "BACKUP_ADMIN", "EXECUTE"} // SUPER is deprecated
 var replUserPriv = []string{"REPLICATION SLAVE", "REPLICATION CLIENT"}
 var monitorUserPriv = []string{"SELECT", "RELOAD", "PROCESS", "SHOW DATABASES", "SUPER", "REPLICATION CLIENT",
 	"SHOW VIEW", "EVENT", "TRIGGER", "CREATE TABLESPACE"}

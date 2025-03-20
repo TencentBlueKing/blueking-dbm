@@ -15,7 +15,7 @@ func SendMonitorMetrics(name string, value int64, customDimension map[string]int
 
 	additionDimension := map[string]interface{}{
 		"cluster_domain":                config.MonitorConfig.ImmuteDomain,
-		"db_module":                     *config.MonitorConfig.DBModuleID,
+		"cluster_type":                  config.MonitorConfig.ClusterType,
 		"machine_type":                  config.MonitorConfig.MachineType,
 		"bk_cloud_id":                   strconv.Itoa(*config.MonitorConfig.BkCloudID),
 		"instance_port":                 strconv.Itoa(config.MonitorConfig.Port),

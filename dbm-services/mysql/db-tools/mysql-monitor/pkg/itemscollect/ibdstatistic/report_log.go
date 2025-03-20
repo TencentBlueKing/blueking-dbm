@@ -17,16 +17,17 @@ import (
 
 type tableSizeStruct struct {
 	// ReportTime time.RFC3339, format like 024-11-29T11:19:02+08:00
-	ReportTime        time.Time `json:"report_time"`
-	BkCloudId         int       `json:"bk_cloud_id"`
-	BkBizId           int       `json:"bk_biz_id"`
-	ImmuteDomain      string    `json:"cluster_domain"`
-	DBModule          int       `json:"db_module"`
-	MachineType       string    `json:"machine_type"`
-	Ip                string    `json:"instance_host"`
-	Port              int       `json:"instance_port"`
-	Role              string    `json:"instance_role"`
-	ServiceInstanceId int64     `json:"bk_target_service_instance_id"`
+	ReportTime   time.Time `json:"report_time"`
+	BkCloudId    int       `json:"bk_cloud_id"`
+	BkBizId      int       `json:"bk_biz_id"`
+	ImmuteDomain string    `json:"cluster_domain"`
+	//DBModule          int       `json:"db_module"`
+	ClusterType       string `json:"cluster_type"`
+	MachineType       string `json:"machine_type"`
+	Ip                string `json:"instance_host"`
+	Port              int    `json:"instance_port"`
+	Role              string `json:"instance_role"`
+	ServiceInstanceId int64  `json:"bk_target_service_instance_id"`
 	// OriginalDBName original DBName for spider remote(with shard_id suffix)
 	OriginalDBName string `json:"original_database_name"`
 	DBName         string `json:"database_name"`
@@ -70,7 +71,7 @@ func reportLog(result map[string]map[string]int64) error {
 				BkCloudId:         *config.MonitorConfig.BkCloudID,
 				BkBizId:           config.MonitorConfig.BkBizId,
 				ImmuteDomain:      config.MonitorConfig.ImmuteDomain,
-				DBModule:          *config.MonitorConfig.DBModuleID,
+				ClusterType:       config.MonitorConfig.ClusterType,
 				MachineType:       config.MonitorConfig.MachineType,
 				Ip:                config.MonitorConfig.Ip,
 				Port:              config.MonitorConfig.Port,

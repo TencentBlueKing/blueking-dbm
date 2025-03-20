@@ -701,7 +701,7 @@ class MySQLController(BaseController):
 
     def cluster_standardize(self):
         flow = MySQLStandardizeFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.doit()
+        flow.new_bill()
 
     def dbha_autofix_register_scene(self):
         """

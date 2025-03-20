@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging.config
 from dataclasses import asdict
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from django.utils.translation import ugettext as _
 
@@ -21,6 +21,8 @@ from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import init_machine_sub_flow
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import DeployPeripheralToolsDepart
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
 from backend.flow.plugins.components.collections.common.delete_cc_service_instance import DelCCServiceInstComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
@@ -35,10 +37,6 @@ from backend.flow.plugins.components.collections.mysql.drop_proxy_client_in_back
     DropProxyUsersInBackendComponent,
 )
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
-from backend.flow.plugins.components.collections.mysql.generate_mysql_cluster_standardize_flow import (
-    GenerateMySQLClusterStandardizeFlowComponent,
-    GenerateMySQLClusterStandardizeFlowService,
-)
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import (
@@ -53,6 +51,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     RecycleDnsRecordKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
+from backend.flow.utils.mysql.mysql_context_dataclass import SystemInfoContext
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
 from backend.flow.utils.mysql.proxy_act_payload import ProxyActPayload
 
@@ -91,6 +90,7 @@ class MySQLProxyClusterSwitchFlow(object):
         return {
             "id": cluster_id,
             "bk_cloud_id": cluster.bk_cloud_id,
+            "immute_domain": cluster.immute_domain,
             "name": cluster.name,
             "cluster_type": cluster.cluster_type,
             # 集群所有的backend实例的端口是一致的，获取第一个对象的端口信息即可
@@ -280,10 +280,11 @@ class MySQLProxyClusterSwitchFlow(object):
                 ),
             )
 
-            # # 不能放在最后
-            # # 不然一直不点确认就不会安装监控, 有危险
-            generate_standardize_bill_sub_pipe = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-            g_acts = []
+            # 不能放在最后
+            # 不然一直不点确认就不会安装监控, 有危险
+            # 这里所在的循环是按 ip 来发起 subflow
+            # 所以肯定只有一个 bk cloud id
+            clusters_detail: Dict[str, Dict[str, List[str]]] = {}
             for cluster_id in info["cluster_ids"]:
                 cluster = self.__get_switch_cluster_info(
                     cluster_id=cluster_id,
@@ -291,23 +292,26 @@ class MySQLProxyClusterSwitchFlow(object):
                     origin_proxy_ip=info["origin_proxy_ip"]["ip"],
                 )
 
-                g_acts.append(
-                    {
-                        "act_name": _(
-                            "{} {}:{}".format(cluster["name"], info["target_proxy_ip"]["ip"], cluster["proxy_port"])
-                        ),
-                        "act_component_code": GenerateMySQLClusterStandardizeFlowComponent.code,
-                        "kwargs": {
-                            "trans_func": GenerateMySQLClusterStandardizeFlowService.generate_from_cluster_ids.__name__,
-                            "cluster_ids": [cluster_id],
-                            "instances": ["{}:{}".format(info["target_proxy_ip"]["ip"], cluster["proxy_port"])],
-                        },
-                    }
-                )
+                cluster_detail = {"proxy": ["{}:{}".format(cluster["target_proxy_ip"], cluster["proxy_port"])]}
+                immute_domain = cluster["immute_domain"]
+                clusters_detail[immute_domain] = cluster_detail
 
-            generate_standardize_bill_sub_pipe.add_parallel_acts(g_acts)
             sub_pipeline.add_sub_pipeline(
-                sub_flow=generate_standardize_bill_sub_pipe.build_sub_process(sub_name=_("生成标准化单据"))
+                sub_flow=standardize_mysql_cluster_subflow(
+                    root_id=self.root_id,
+                    data=copy.deepcopy(self.data),
+                    bk_cloud_id=info["target_proxy_ip"]["bk_cloud_id"],
+                    bk_biz_id=self.data["bk_biz_id"],
+                    cluster_type=ClusterType.TenDBHA,
+                    clusters_detail=clusters_detail,
+                    departs=[
+                        DeployPeripheralToolsDepart.DBAToolKit,
+                        DeployPeripheralToolsDepart.MySQLCrond,
+                        DeployPeripheralToolsDepart.MySQLMonitor,
+                    ],
+                    with_actuator=False,
+                    with_bk_plugin=False,
+                )
             )
 
             # 阶段4 后续流程需要在这里加一个暂停节点，让用户在合适的时间执行下架旧实例操作
@@ -358,7 +362,7 @@ class MySQLProxyClusterSwitchFlow(object):
 
         mysql_proxy_cluster_add_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
-        mysql_proxy_cluster_add_pipeline.run_pipeline()
+        mysql_proxy_cluster_add_pipeline.run_pipeline(init_trans_data_class=SystemInfoContext())
 
     def proxy_reduce_sub_flow(self, cluster_id: int, bk_cloud_id: int, origin_proxy_ip: str, origin_proxy_port: int):
         """

@@ -133,7 +133,8 @@ func (c *ViaCtlComponent) CreateSchemaInToDB() error {
 				!strings.HasPrefix(line, "ERROR 1304") /*procedure function*/ &&
 				!strings.HasPrefix(line, "ERROR 1537") /*event*/ &&
 				!strings.HasPrefix(line, "ERROR 1359") /*trigger*/ &&
-				!strings.HasPrefix(line, "ERROR 1840") {
+				!strings.HasPrefix(line, "ERROR 1840") &&
+				!strings.Contains(line, "can be insecure") {
 				importErrors = append(importErrors, line)
 			}
 		}

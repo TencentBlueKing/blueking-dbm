@@ -92,7 +92,7 @@ func (c *MySQLMonitorComp) generateRuntimeConfigIns(port int, bkInstanceId int64
 		MachineType:  c.Params.MachineType,
 		Role:         &c.Params.Role,
 		BkCloudID:    &c.Params.BkCloudId,
-		DBModuleID:   &c.Params.DBModuleId,
+		//DBModuleID:   &c.Params.DBModuleId,
 		Log: &config.LogConfig{
 			Console:    false,
 			LogFileDir: &logDir,

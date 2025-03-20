@@ -20,12 +20,9 @@ from backend.db_meta.enums import ClusterType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import init_machine_sub_flow
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
-from backend.flow.plugins.components.collections.mysql.generate_mysql_cluster_standardize_flow import (
-    GenerateMySQLClusterStandardizeFlowComponent,
-    GenerateMySQLClusterStandardizeFlowService,
-)
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import (
@@ -84,7 +81,6 @@ class MySQLSingleApplyFlow(object):
         mysql_single_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
         sub_pipelines = []
 
-        immute_domains = []
         for info in self.data["apply_infos"]:
             # 以机器维度并发处理 内容：比如获取对应节点资源、先发介质、初始化机器、安装实例、安装备份进程
 
@@ -103,7 +99,6 @@ class MySQLSingleApplyFlow(object):
                 cluster["new_ip"] = info["new_ip"]["ip"]
                 cluster["mysql_port"] = sub_flow_context["mysql_ports"][number]
                 clusters.append(cluster)
-                immute_domains.append(cluster["master"])
             sub_flow_context["clusters"] = clusters
 
             # 声明子流程
@@ -184,19 +179,27 @@ class MySQLSingleApplyFlow(object):
                 ),
             )
 
+            clusters_detail = {}
+            for cluster in sub_flow_context["clusters"]:
+                clusters_detail[cluster["master"]] = {
+                    "storage": ["{}:{}".format(cluster["new_ip"], cluster["mysql_port"])]
+                }
+
+            sub_pipeline.add_sub_pipeline(
+                sub_flow=standardize_mysql_cluster_subflow(
+                    root_id=self.root_id,
+                    data=copy.deepcopy(self.data),
+                    bk_cloud_id=self.data["bk_cloud_id"],
+                    bk_biz_id=self.data["bk_biz_id"],
+                    cluster_type=ClusterType.TenDBSingle,
+                    clusters_detail=clusters_detail,
+                    with_actuator=False,
+                    with_bk_plugin=False,
+                )
+            )
+
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("部署单节点集群")))
 
         mysql_single_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-
-        gp = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-        gp.add_act(
-            act_name=_("生成标准化单据"),
-            act_component_code=GenerateMySQLClusterStandardizeFlowComponent.code,
-            kwargs={
-                "trans_func": GenerateMySQLClusterStandardizeFlowService.generate_from_immute_domains.__name__,
-                "immute_domains": immute_domains,
-            },
-        )
-        mysql_single_pipeline.add_sub_pipeline(sub_flow=gp.build_sub_process(sub_name=_("生成标准化单据")))
 
         return mysql_single_pipeline.build_sub_process(sub_name=_("部署子流程"))

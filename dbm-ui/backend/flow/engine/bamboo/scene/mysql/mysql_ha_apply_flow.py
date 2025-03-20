@@ -20,12 +20,9 @@ from backend.db_meta.enums import ClusterType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import init_machine_sub_flow
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
-from backend.flow.plugins.components.collections.mysql.generate_mysql_cluster_standardize_flow import (
-    GenerateMySQLClusterStandardizeFlowComponent,
-    GenerateMySQLClusterStandardizeFlowService,
-)
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import (
@@ -75,7 +72,7 @@ class MySQLHAApplyFlow(object):
         mysql_ha_pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_pipelines = []
 
-        immute_domains = []
+        clusters_detail = {}
         for info in self.data["apply_infos"]:
             # 以机器维度并发处理 内容：比如获取对应节点资源、先发介质、初始化机器、安装实例、安装备份进程
 
@@ -104,7 +101,17 @@ class MySQLHAApplyFlow(object):
                 bk_host_ids.append(info["mysql_ip_list"][1]["bk_host_id"])
                 bk_host_ids.append(info["proxy_ip_list"][0]["bk_host_id"])
                 bk_host_ids.append(info["proxy_ip_list"][1]["bk_host_id"])
-                immute_domains.append(cluster["master"])
+
+                clusters_detail[cluster["master"]] = {
+                    "storage": [
+                        "{}:{}".format(cluster["new_master_ip"], cluster["mysql_port"]),
+                        "{}:{}".format(cluster["new_slave_ip"], cluster["mysql_port"]),
+                    ],
+                    "proxy": [
+                        "{}:{}".format(cluster["new_proxy_1_ip"], cluster["proxy_port"]),
+                        "{}:{}".format(cluster["new_proxy_2_ip"], cluster["proxy_port"]),
+                    ],
+                }
             sub_flow_context["clusters"] = clusters
 
             # 声明子流程
@@ -287,15 +294,17 @@ class MySQLHAApplyFlow(object):
 
         mysql_ha_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
-        gp = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-        gp.add_act(
-            act_name=_("生成标准化单据"),
-            act_component_code=GenerateMySQLClusterStandardizeFlowComponent.code,
-            kwargs={
-                "trans_func": GenerateMySQLClusterStandardizeFlowService.generate_from_immute_domains.__name__,
-                "immute_domains": immute_domains,
-            },
+        mysql_ha_pipeline.add_sub_pipeline(
+            sub_flow=standardize_mysql_cluster_subflow(
+                root_id=self.root_id,
+                data=copy.deepcopy(self.data),
+                bk_cloud_id=self.data["bk_cloud_id"],
+                bk_biz_id=self.data["bk_biz_id"],
+                cluster_type=ClusterType.TenDBHA,
+                clusters_detail=clusters_detail,
+                with_actuator=False,
+                with_bk_plugin=False,
+            )
         )
-        mysql_ha_pipeline.add_sub_pipeline(sub_flow=gp.build_sub_process(sub_name=_("生成标准化单据")))
 
         mysql_ha_pipeline.run_pipeline(init_trans_data_class=HaApplyManualContext())

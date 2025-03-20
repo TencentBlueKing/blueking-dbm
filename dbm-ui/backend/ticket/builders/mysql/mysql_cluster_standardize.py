@@ -13,6 +13,7 @@ from rest_framework import serializers
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
+from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import DeployPeripheralToolsDepart
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
@@ -32,13 +33,13 @@ class MySQLClusterStandardizeDetailSerializer(MySQLBaseOperateDetailSerializer):
     with_bk_plugin = serializers.BooleanField()
     with_cc_standardize = serializers.BooleanField()
     with_instance_standardize = serializers.BooleanField()
-    instances = serializers.ListField(child=serializers.CharField())
 
     def validate(self, attrs):
         cluster_ids = attrs.get("cluster_ids")
-        instances = attrs.get("instances")
-        if instances and len(instances) > 0 and len(cluster_ids) > 1:
-            raise serializers.ValidationError(_("指定标准化部分实例后, 只能输入一个集群"))
+        cluster_type = attrs.get("cluster_type")
+
+        if Cluster.objects.filter(pk__in=cluster_ids).exclude(cluster_type=cluster_type).exists():
+            raise serializers.ValidationError(_("集群类型不匹配"))
 
 
 class MySQLClusterStandardizeFlowParamBuilder(builders.FlowParamBuilder):

@@ -17,15 +17,16 @@ type AuthCollect struct {
 }
 
 type Config struct {
-	BkBizId         int           `yaml:"bk_biz_id"`
-	Ip              string        `yaml:"ip" validate:"required,ipv4"`
-	Port            int           `yaml:"port" validate:"required,gt=1024,lte=65535"`
-	BkInstanceId    int64         `yaml:"bk_instance_id" validate:"required,gt=0"`
-	ImmuteDomain    string        `yaml:"immute_domain"`
-	MachineType     string        `yaml:"machine_type"`
-	Role            *string       `yaml:"role"`
-	BkCloudID       *int          `yaml:"bk_cloud_id" validate:"required,gte=0"`
-	DBModuleID      *int          `yaml:"db_module_id" validate:"required"`
+	BkBizId      int     `yaml:"bk_biz_id"`
+	Ip           string  `yaml:"ip" validate:"required,ipv4"`
+	Port         int     `yaml:"port" validate:"required,gt=1024,lte=65535"`
+	BkInstanceId int64   `yaml:"bk_instance_id" validate:"required,gt=0"`
+	ClusterType  string  `yaml:"cluster_type"`
+	ImmuteDomain string  `yaml:"immute_domain"`
+	MachineType  string  `yaml:"machine_type"`
+	Role         *string `yaml:"role"`
+	BkCloudID    *int    `yaml:"bk_cloud_id" validate:"required,gte=0"`
+	//DBModuleID      *int          `yaml:"db_module_id" validate:"required"`
 	Log             *LogConfig    `yaml:"log"`
 	ItemsConfigFile string        `yaml:"items_config_file" validate:"required"`
 	ApiUrl          string        `yaml:"api_url" validate:"required"`

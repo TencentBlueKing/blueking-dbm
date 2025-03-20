@@ -36,5 +36,6 @@ type MySQLMonitorParam struct {
 	ImmuteDomain       string                         `json:"immute_domain"`
 	ClusterId          int                            `json:"cluster_id"`
 	ItemsConfig        map[string]*config.MonitorItem `json:"items_config" yaml:"items_config"`
-	DBModuleId         int                            `json:"db_module_id"`
+	//DBModuleId         int                            `json:"db_module_id"`
+	ClusterType string `json:"cluster_type"`
 }

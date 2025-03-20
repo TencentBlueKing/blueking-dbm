@@ -75,7 +75,7 @@ func reportLog2(dbTableSize map[string]int64, dbSize map[string]int64) error {
 			BkCloudId:         *config.MonitorConfig.BkCloudID,
 			BkBizId:           config.MonitorConfig.BkBizId,
 			ImmuteDomain:      config.MonitorConfig.ImmuteDomain,
-			DBModule:          *config.MonitorConfig.DBModuleID,
+			ClusterType:       config.MonitorConfig.ClusterType,
 			MachineType:       config.MonitorConfig.MachineType,
 			Ip:                config.MonitorConfig.Ip,
 			Port:              config.MonitorConfig.Port,

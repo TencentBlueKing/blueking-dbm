@@ -15,7 +15,7 @@ func SendMonitorEvent(name string, msg string) {
 	additionDimension := map[string]interface{}{
 		"appid":          config.MonitorConfig.BkBizId,
 		"cluster_domain": config.MonitorConfig.ImmuteDomain,
-		"db_module":      *config.MonitorConfig.DBModuleID,
+		"cluster_type":   config.MonitorConfig.ClusterType,
 		"machine_type":   config.MonitorConfig.MachineType,
 		"bk_cloud_id":    *config.MonitorConfig.BkCloudID,
 		// "server_ip":                     config.MonitorConfig.Ip,   // 监控插件服务实例维度和自定义上报维度统一

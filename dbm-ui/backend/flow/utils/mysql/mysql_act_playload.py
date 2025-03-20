@@ -26,7 +26,7 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.core.consts import BK_PKG_INSTALL_PATH
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
-from backend.db_meta.enums import InstanceInnerRole, MachineType
+from backend.db_meta.enums import InstanceInnerRole, MachineType, TenDBClusterSpiderRole
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.db_package.models import Package
@@ -2982,11 +2982,14 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         """
         ip = kwargs["ip"]
         bk_biz_id = self.cluster["bk_biz_id"]
+        cluster_type = self.cluster["cluster_type"]
         immute_domain = self.cluster["immute_domain"]
         port_list = self.cluster["port_list"]
         machine_type = self.cluster["machine_type"]
-        db_module_id = self.cluster["db_module_id"]
-        cluster_id = self.cluster["cluster_id"]
+
+        cluster_obj = Cluster.objects.get(immute_domain=immute_domain)
+        db_module_id = cluster_obj.db_module_id
+        cluster_id = cluster_obj.pk
 
         port_bk_instance_list = []
         if machine_type in [MachineType.PROXY, MachineType.SPIDER]:
@@ -2996,11 +2999,21 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             ins_list = StorageInstance.objects.filter(machine__ip=ip, port__in=port_list)
             role = ins_list[0].instance_inner_role
 
+        # 运维节点的 bk_instance_id 硬编码为 0
+        # 只是让 mysql-monitor 部署能跑
         for ins in ins_list:
+            if ins.machine_type == MachineType.SPIDER and ins.tendbclusterspiderext.spider_role in [
+                TenDBClusterSpiderRole.SPIDER_MNT,
+                TenDBClusterSpiderRole.SPIDER_SLAVE_MNT,
+            ]:
+                bk_instance_id = 0
+            else:
+                bk_instance_id = ins.bk_instance_id
+
             port_bk_instance_list.append(
                 {
                     "port": ins.port,
-                    "bk_instance_id": ins.bk_instance_id,
+                    "bk_instance_id": bk_instance_id,
                 }
             )
 
@@ -3031,8 +3044,9 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "bk_biz_id": int(bk_biz_id),
                     "port_bk_instance_list": port_bk_instance_list,
                     "ip": ip,
+                    "cluster_type": cluster_type,
                     "immute_domain": immute_domain,
-                    "db_module_id": db_module_id,
+                    # "db_module_id": db_module_id,
                     "role": role,
                     "cluster_id": cluster_id,
                     "items_config": cluster_items_config["content"],
@@ -3050,8 +3064,10 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         port_list = self.cluster["port_list"]
         machine_type = self.cluster["machine_type"]
         cluster_type = self.cluster["cluster_type"]
-        db_module_id = self.cluster["db_module_id"]
-        cluster_id = self.cluster["cluster_id"]
+
+        cluster_obj = Cluster.objects.get(immute_domain=immute_domain)
+        db_module_id = cluster_obj.db_module_id
+        cluster_id = cluster_obj.pk
 
         ini = get_backup_ini_config(
             bk_biz_id=bk_biz_id,
@@ -3192,7 +3208,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 "extend": {
                     "ip": kwargs["ip"],
                     "port_list": self.cluster["port_list"],
-                    "machine_type": self.cluster["machine_type"],
+                    "machine_type": Machine.objects.get(ip=kwargs["ip"], bk_cloud_id=self.bk_cloud_id).machine_type,
                 },
             },
         }

@@ -39,7 +39,8 @@ func (c *MySQLMonitorComp) Example() interface{} {
 			Role:         "master",
 			ImmuteDomain: "db.local",
 			ClusterId:    123,
-			DBModuleId:   234,
+			ClusterType:  "tendbsingle",
+			//DBModuleId:   234,
 		},
 	}
 }

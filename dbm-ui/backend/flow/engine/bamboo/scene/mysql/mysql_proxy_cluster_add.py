@@ -21,6 +21,8 @@ from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import init_machine_sub_flow
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import DeployPeripheralToolsDepart
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
 from backend.flow.plugins.components.collections.mysql.clone_proxy_client_in_backend import (
     CloneProxyUsersInBackendComponent,
 )
@@ -29,10 +31,6 @@ from backend.flow.plugins.components.collections.mysql.clone_proxy_user_in_clust
 )
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
-from backend.flow.plugins.components.collections.mysql.generate_mysql_cluster_standardize_flow import (
-    GenerateMySQLClusterStandardizeFlowComponent,
-    GenerateMySQLClusterStandardizeFlowService,
-)
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import (
@@ -44,6 +42,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     ExecActuatorKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
+from backend.flow.utils.mysql.mysql_context_dataclass import SystemInfoContext
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
 from backend.flow.utils.mysql.proxy_act_payload import ProxyActPayload
 
@@ -82,6 +81,7 @@ class MySQLProxyClusterAddFlow(object):
         return {
             "id": cluster_id,
             "bk_cloud_id": cluster.bk_cloud_id,
+            "immute_domain": cluster.immute_domain,
             "name": cluster.name,
             "cluster_type": cluster.cluster_type,
             "template_proxy_ip": template_proxy.machine.ip,
@@ -122,10 +122,12 @@ class MySQLProxyClusterAddFlow(object):
         mysql_proxy_cluster_add_pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_pipelines = []
 
-        cluster_ids = []
-
+        bk_cloud_id_clusters_detail = {}
         # 多集群操作时循环加入集群proxy下架子流程
         for info in self.data["infos"]:
+            current_bk_cloud_id = info["proxy_ip"]["bk_cloud_id"]
+            if current_bk_cloud_id not in bk_cloud_id_clusters_detail:
+                bk_cloud_id_clusters_detail[current_bk_cloud_id] = {}
 
             # 拼接子流程需要全局参数
             sub_flow_context = copy.deepcopy(self.data)
@@ -177,15 +179,18 @@ class MySQLProxyClusterAddFlow(object):
             # 阶段2 根据需要添加的proxy的集群，依次添加
             add_proxy_sub_list = []
             for cluster_id in info["cluster_ids"]:
-                if cluster_id not in cluster_ids:
-                    cluster_ids.append(cluster_id)
-
                 # 拼接子流程需要全局参数
                 sub_sub_flow_context = copy.deepcopy(self.data)
                 sub_sub_flow_context.pop("infos")
 
                 # 获取对应的集群信息
                 cluster = self.__get_proxy_instance_info(cluster_id=cluster_id, proxy_ip=info["proxy_ip"]["ip"])
+
+                # 给后面标准化用
+                immute_domain = cluster["immute_domain"]
+                bk_cloud_id_clusters_detail[current_bk_cloud_id][immute_domain] = {
+                    "proxy": ["{}:{}".format(cluster["target_proxy_ip"], cluster["proxy_port"])]
+                }
 
                 # 针对集群维度声明子流程
                 add_proxy_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_sub_flow_context))
@@ -271,15 +276,26 @@ class MySQLProxyClusterAddFlow(object):
 
         mysql_proxy_cluster_add_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
-        gp = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-        gp.add_act(
-            act_name=_("生成标准化单据"),
-            act_component_code=GenerateMySQLClusterStandardizeFlowComponent.code,
-            kwargs={
-                "trans_func": GenerateMySQLClusterStandardizeFlowService.generate_from_cluster_ids.__name__,
-                "cluster_ids": cluster_ids,
-            },
-        )
-        mysql_proxy_cluster_add_pipeline.add_sub_pipeline(sub_flow=gp.build_sub_process(sub_name=_("生成标准化单据")))
+        standardize_pipes = []
+        for bk_cloud_id, clusters_detail in bk_cloud_id_clusters_detail.items():
+            standardize_pipes.append(
+                standardize_mysql_cluster_subflow(
+                    root_id=self.root_id,
+                    data=copy.deepcopy(self.data),
+                    bk_cloud_id=bk_cloud_id,
+                    bk_biz_id=self.data["bk_biz_id"],
+                    cluster_type=ClusterType.TenDBHA,
+                    clusters_detail=clusters_detail,
+                    departs=[
+                        DeployPeripheralToolsDepart.DBAToolKit,
+                        DeployPeripheralToolsDepart.MySQLCrond,
+                        DeployPeripheralToolsDepart.MySQLMonitor,
+                    ],
+                    with_actuator=False,
+                    with_bk_plugin=False,
+                )
+            )
 
-        mysql_proxy_cluster_add_pipeline.run_pipeline()
+        mysql_proxy_cluster_add_pipeline.add_parallel_sub_pipeline(sub_flow_list=standardize_pipes)
+
+        mysql_proxy_cluster_add_pipeline.run_pipeline(init_trans_data_class=SystemInfoContext())

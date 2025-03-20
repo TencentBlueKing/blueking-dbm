@@ -14,8 +14,8 @@ from pipeline.component_framework.component import Component
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import ALLDEPARTS
 from backend.flow.plugins.components.collections.common.base_service import BaseService
-from backend.ticket.constants import TicketType
-from backend.ticket.models import Ticket
+from backend.ticket.constants import FlowType, TicketType
+from backend.ticket.models import Flow, Ticket
 
 
 class GenerateMySQLClusterStandardizeFlowService(BaseService):
@@ -38,7 +38,6 @@ class GenerateMySQLClusterStandardizeFlowService(BaseService):
     @staticmethod
     def generate_from_cluster_ids(global_data, kwargs):
         cluster_ids = kwargs.get("cluster_ids")
-        cluster_objects = Cluster.objects.filter(pk__in=cluster_ids)
 
         ticket_remark = ""
         if "uid" in global_data:
@@ -47,14 +46,14 @@ class GenerateMySQLClusterStandardizeFlowService(BaseService):
 
         bk_biz_id = global_data["bk_biz_id"]
 
-        Ticket.create_ticket(
+        standardize_ticket = Ticket.create_ticket(
             ticket_type=TicketType.MYSQL_CLUSTER_STANDARDIZE,
             creator=global_data["created_by"],
             bk_biz_id=bk_biz_id,
             remark=ticket_remark,
             details={
                 "bk_biz_id": bk_biz_id,
-                "cluster_type": cluster_objects.first().cluster_type,
+                "cluster_type": kwargs.get("cluster_type"),
                 "cluster_ids": cluster_ids,
                 "departs": kwargs.get("departs", ALLDEPARTS),
                 "with_deploy_binary": kwargs.get("with_deploy_binary", True),
@@ -63,9 +62,16 @@ class GenerateMySQLClusterStandardizeFlowService(BaseService):
                 "with_bk_plugin": kwargs.get("with_bk_plugin", True),
                 "with_cc_standardize": kwargs.get("with_cc_standardize", True),
                 "with_instance_standardize": kwargs.get("with_instance_standardize", True),
-                "instances": kwargs.get("instances", None),
             },
         )
+
+        if "uid" in global_data:
+            Flow.objects.create(
+                ticket=Ticket.objects.get(id=global_data["uid"]),
+                flow_type=FlowType.DELIVERY,
+                details={"related_ticket": standardize_ticket.id},
+                flow_alias=_("MySQL 集群标准化"),
+            )
 
 
 class GenerateMySQLClusterStandardizeFlowComponent(Component):

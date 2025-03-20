@@ -17,72 +17,84 @@ from django.utils.translation import ugettext as _
 from backend.db_meta.enums import AccessLayer, ClusterMachineAccessTypeDefine, ClusterType, MachineType
 from backend.flow.consts import DBA_ROOT_USER
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
-from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.group_ips import has_ip_group
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.clusters_detail_helper import (
+    clusters_detail_ip_ports_by_access_layer,
+)
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 
 
 def instance_standardize(
-    root_id: str, data: Dict, cluster_type: ClusterType, proxy_group, storage_group
+    root_id: str,
+    data: Dict,
+    bk_cloud_id: int,
+    cluster_type: ClusterType,
+    cluster_details: Dict[str, Dict[str, List[str]]],
 ) -> SubProcess:
     acts = []
 
-    if has_ip_group(storage_group):
+    proxy_ip_port_dict, storage_ip_port_dict = clusters_detail_ip_ports_by_access_layer(cluster_details)
+
+    if storage_ip_port_dict:
         acts = make_mysql_standardize_acts(
-            storage_group, machine_type=ClusterMachineAccessTypeDefine[cluster_type][AccessLayer.STORAGE]
+            bk_cloud_id=bk_cloud_id,
+            ip_port_dict=storage_ip_port_dict,
+            machine_type=ClusterMachineAccessTypeDefine[cluster_type][AccessLayer.STORAGE],
         )
 
-    if has_ip_group(proxy_group):
+    if proxy_ip_port_dict:
         if cluster_type == ClusterType.TenDBCluster:
-            acts.extend(make_mysql_standardize_acts(ip_group=proxy_group, machine_type=MachineType.SPIDER))
+            acts.extend(
+                make_mysql_standardize_acts(
+                    bk_cloud_id=bk_cloud_id, ip_port_dict=proxy_ip_port_dict, machine_type=MachineType.SPIDER
+                )
+            )
         elif cluster_type == ClusterType.TenDBHA:
-            acts.extend(make_proxy_standardize_acts(proxy_group))
+            acts.extend(make_proxy_standardize_acts(bk_cloud_id=bk_cloud_id, ip_port_dict=proxy_ip_port_dict))
 
     sp = SubBuilder(root_id=root_id, data=data)
     sp.add_parallel_acts(acts_list=acts)
     return sp.build_sub_process(sub_name=_("实例标准化"))
 
 
-def make_proxy_standardize_acts(ip_group) -> List:
+def make_proxy_standardize_acts(bk_cloud_id: int, ip_port_dict) -> List:
     acts = []
-    for bk_cloud_id, ip_dicts in ip_group.items():
-        for ip, port_list in ip_dicts.items():
-            acts.append(
-                {
-                    "act_name": _(f"{ip}:{port_list}"),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(
-                        ExecActuatorKwargs(
-                            exec_ip=ip,
-                            run_as_system_user=DBA_ROOT_USER,
-                            get_mysql_payload_func=MysqlActPayload.standardize_proxy.__name__,
-                            cluster={"port_list": port_list},
-                            bk_cloud_id=bk_cloud_id,
-                        )
-                    ),
-                }
-            )
+    for ip, port_list in ip_port_dict.items():
+        acts.append(
+            {
+                "act_name": _(f"{ip}:{port_list}"),
+                "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                "kwargs": asdict(
+                    ExecActuatorKwargs(
+                        exec_ip=ip,
+                        run_as_system_user=DBA_ROOT_USER,
+                        get_mysql_payload_func=MysqlActPayload.standardize_proxy.__name__,
+                        cluster={"port_list": port_list},
+                        bk_cloud_id=bk_cloud_id,
+                    )
+                ),
+            }
+        )
     return acts
 
 
-def make_mysql_standardize_acts(ip_group, machine_type: MachineType) -> List:
+def make_mysql_standardize_acts(bk_cloud_id: int, ip_port_dict, machine_type: MachineType) -> List:
     acts = []
-    for bk_cloud_id, ip_group in ip_group.items():
-        for ip, port_list in ip_group.items():
-            acts.append(
-                {
-                    "act_name": _(f"{ip}"),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(
-                        ExecActuatorKwargs(
-                            exec_ip=ip,
-                            run_as_system_user=DBA_ROOT_USER,
-                            get_mysql_payload_func=MysqlActPayload.standardize_mysql.__name__,
-                            cluster={"port_list": port_list, "machine_type": machine_type},
-                            bk_cloud_id=bk_cloud_id,
-                        )
-                    ),
-                }
-            )
+    for ip, port_list in ip_port_dict.items():
+        acts.append(
+            {
+                "act_name": _(f"{ip}:{port_list}"),
+                "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                "kwargs": asdict(
+                    ExecActuatorKwargs(
+                        exec_ip=ip,
+                        run_as_system_user=DBA_ROOT_USER,
+                        get_mysql_payload_func=MysqlActPayload.standardize_mysql.__name__,
+                        cluster={"port_list": port_list, "machine_type": machine_type},
+                        bk_cloud_id=bk_cloud_id,
+                    )
+                ),
+            }
+        )
     return acts

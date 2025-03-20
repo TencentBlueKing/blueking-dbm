@@ -10,9 +10,8 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import logging
-from collections import defaultdict
 from dataclasses import asdict
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from django.utils.translation import ugettext as _
 
@@ -66,7 +65,6 @@ class ProxyInplaceAutofixFlow(object):
         bk_biz_id = self.data["bk_biz_id"]
         ip = self.data["ip"]
         check_id = self.data["check_id"]
-        # cluster_id = self.data["cluster_id"]
         port_list = self.data["port_list"]
         machine_type = self.data["machine_type"]
 
@@ -135,32 +133,28 @@ class ProxyInplaceAutofixFlow(object):
             },
         )
 
-        cluster_id_port_map = defaultdict(list)
+        clusters_detail: Dict[str, Dict[str, List[str]]] = {}
         for p in ProxyInstance.objects.filter(machine__ip=ip, machine__bk_cloud_id=bk_cloud_id):
             cluster_obj = p.cluster.first()
-            cluster_id_port_map[cluster_obj.id].append(p.port)
+            clusters_detail[cluster_obj.immute_domain] = {"proxy": [p.ip_port]}
 
-        standardize_pipes = []
-        for cluster_id, plist in cluster_id_port_map.items():
-            standardize_pipes.append(
-                standardize_mysql_cluster_subflow(
-                    root_id=self.root_id,
-                    data=copy.deepcopy(self.data),
-                    bk_biz_id=bk_biz_id,
-                    cluster_type=ClusterType.TenDBHA,
-                    cluster_ids=[cluster_id],
-                    departs=[DeployPeripheralToolsDepart.MySQLMonitor],
-                    with_deploy_binary=False,
-                    with_collect_sysinfo=False,
-                    with_actuator=False,
-                    with_bk_plugin=False,
-                    with_cc_standardize=False,
-                    with_instance_standardize=False,
-                    instances=["{}:{}".format(ip, p) for p in plist],
-                )
+        autofix_pipeline.add_sub_pipeline(
+            sub_flow=standardize_mysql_cluster_subflow(
+                root_id=self.root_id,
+                data=copy.deepcopy(self.data),
+                bk_cloud_id=bk_cloud_id,
+                bk_biz_id=bk_biz_id,
+                cluster_type=ClusterType.TenDBHA,
+                clusters_detail=clusters_detail,
+                departs=[DeployPeripheralToolsDepart.MySQLMonitor],
+                with_deploy_binary=False,
+                with_collect_sysinfo=False,
+                with_actuator=False,
+                with_bk_plugin=False,
+                with_cc_standardize=False,
+                with_instance_standardize=False,
             )
-
-        autofix_pipeline.add_parallel_sub_pipeline(sub_flow_list=standardize_pipes)
+        )
 
         pipeline = Builder(root_id=self.root_id, data=self.data)
         pipeline.add_sub_pipeline(sub_flow=autofix_pipeline.build_sub_process(sub_name=_("proxy原地自愈")))
