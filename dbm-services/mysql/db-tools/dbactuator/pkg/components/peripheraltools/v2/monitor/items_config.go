@@ -1,14 +1,15 @@
 package monitor
 
 import (
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/internal"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"fmt"
 	"path/filepath"
 	"slices"
 	"strings"
+
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/internal"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 
 	"golang.org/x/exp/maps"
 	"gopkg.in/yaml.v2"

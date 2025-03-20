@@ -252,6 +252,38 @@ type ConnectionCollect struct {
             to: "${1}_MERGED.${table}"
     ```
     
+为了避免处理复杂的转义问题，`merge_rules` 可以用 base64 来编码，编码的内容。
+
+**mysql/tendb merge_rules:**  
+
+以下 2 种写法完全等效
+```
+merge_rules:
+    - from: (?P<db>stage_truncate_).+\..*
+      to: ${db}_MERGED._MERGED
+    - from: (?P<db>bak_20\d\d).+\..*
+      to: ${db}_MERGED._MERGED
+    - from: (bak_cbs)_.+\.(?P<table>.+)
+      to: ${1}_MERGED.${table}
+
+merge_rules: LSBmcm9tOiAoP1A8ZGI+c3RhZ2VfdHJ1bmNhdGVfKS4rXC4uKgogIHRvOiAke2RifV9NRVJHRUQuX01FUkdFRAotIGZyb206ICg/UDxkYj5iYWtfMjBcZFxkKS4rXC4uKgogIHRvOiAke2RifV9NRVJHRUQuX01FUkdFRAotIGZyb206IChiYWtfY2JzKV8uK1wuKD9QPHRhYmxlPi4rKQogIHRvOiAkezF9X01FUkdFRC4ke3RhYmxlfQ==
+```
+
+**spider merge_rules:**  
+以下 2 种写法完全等效
+```
+merge_rules:
+    - from: (?P<db>stage_truncate)_.+_(?P<shard>\d+)\..*
+      to: ${db}_MERGED_${shard}._MERGED
+    - from: (?P<db>bak_20\d\d).+_(?P<shard>\d+)\..*
+      to: ${db}_MERGED_${shard}._MERGED
+    - from: (bak_cbs)_.+_(\d+)\.(?P<table>.+)
+      to: ${1}_MERGED_${2}.${table}
+  
+merge_rules: LSBmcm9tOiAoP1A8ZGI+c3RhZ2VfdHJ1bmNhdGUpXy4rXyg/UDxzaGFyZD5cZCspXC4uKgogIHRvOiAke2RifV9NRVJHRURfJHtzaGFyZH0uX01FUkdFRAotIGZyb206ICg/UDxkYj5iYWtfMjBcZFxkKS4rXyg/UDxzaGFyZD5cZCspXC4uKgogIHRvOiAke2RifV9NRVJHRURfJHtzaGFyZH0uX01FUkdFRAotIGZyb206IChiYWtfY2JzKV8uK18oXGQrKVwuKD9QPHRhYmxlPi4rKQogIHRvOiAkezF9X01FUkdFRF8kezJ9LiR7dGFibGV9
+```
+
+
 ## 生成dbconfig 配置
 ```
 perl config2sql.pl | sed  's/"enable":"1"/"enable":true/g'

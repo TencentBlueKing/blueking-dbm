@@ -1,6 +1,7 @@
 package simpleconfig
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"strings"
 
@@ -153,11 +154,30 @@ func CastValueType(confName string, confValue string, f api.BaseConfFileDef, val
 			return newValue
 		} else if valueSubType == validatestruct.DTypeSubMap {
 			mapI := make(map[string]interface{})
+			base64Flag := "==base64=="
+			if strings.HasPrefix(confValue, base64Flag) {
+				confValue = string(decodeBase64Value(confValue))
+			}
 			err := json.Unmarshal([]byte(confValue), &mapI)
 			if err != nil {
 				logger.Error("fail to unmarshal conf_value %s. err:%s", confValue, err.Error())
 				return confValue
 			}
+			/*
+				// 是否需要对 map 的 value 再做一次 base64 解码
+				for k, v := range mapI {
+					if strings.HasPrefix(cast.ToString(v), "==base64==") {
+						logger.Info("conf_value sub value is base64, decode it: %v", v)
+						valBytes := []byte(decodeBase64Value(cast.ToString(v)))
+						subValue := make(map[string]interface{})
+						if err := json.Unmarshal(valBytes, &subValue); err != nil {
+							logger.Error("fail to unmarshal conf_value sub value %s. err:%s", confValue, err.Error())
+						} else {
+							mapI[k] = subValue
+						}
+					}
+				}
+			*/
 			return mapI
 		}
 		return confValue
@@ -165,4 +185,17 @@ func CastValueType(confName string, confValue string, f api.BaseConfFileDef, val
 		logger.Warn("%sun-support value_type %s to cast %s", f.ConfFile, valueType, confValue)
 		return confValue
 	}
+}
+
+func decodeBase64Value(value string) []byte {
+	base64Flag := "==base64=="
+	if strings.HasPrefix(value, base64Flag) {
+		base64Body := strings.TrimSpace(strings.TrimPrefix(value, base64Flag))
+		if valBytes, err := base64.StdEncoding.DecodeString(base64Body); err != nil {
+			return []byte(value)
+		} else {
+			return valBytes
+		}
+	}
+	return []byte(value)
 }

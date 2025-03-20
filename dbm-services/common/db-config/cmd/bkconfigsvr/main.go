@@ -49,7 +49,9 @@ func main() {
 
 	// process db migrate
 	pflag.Parse()
-	if config.GetBool("migrate") || config.GetBool("migrate.enable") || true {
+	if config.GetBool("skip-migrate") {
+		logger.Info("do not run migrations")
+	} else { // if config.GetBool("migrate") || config.GetBool("migrate.enable") || true
 		logger.Info("run db migrations...")
 		if err := dbMigrate(); err != nil && err != migrate.ErrNoChange {
 			log.Fatal(err)
@@ -59,8 +61,6 @@ func main() {
 		if config.GetBool("migrate") {
 			os.Exit(0)
 		}
-	} else {
-		logger.Info("do not run migrations")
 	}
 
 	model.LoadCache()
@@ -103,6 +103,8 @@ func init() {
 		"run migrate to databases and exit. set migrate.enable to config.yaml will run migrate and continue ")
 	pflag.String("migrate.source", "", "migrate source path")
 	pflag.Int("migrate.force", 0, "force the version to be clean if it's dirty")
+
+	pflag.Bool("skip-migrate", false, "do not run migrate to databases")
 	viper.BindPFlags(pflag.CommandLine)
 }
 

@@ -1,6 +1,8 @@
 package config
 
-import "slices"
+import (
+	"slices"
+)
 
 // MonitorItem 监控项
 type MonitorItem struct {

@@ -3,9 +3,15 @@ package ibdstatistic
 
 import (
 	"database/sql"
+	"encoding/base64"
+	"encoding/json"
 	"log/slog"
 	"regexp"
 	"sort"
+	"strings"
+
+	"github.com/spf13/cast"
+	"gopkg.in/yaml.v2"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/internal/cst"
@@ -48,9 +54,10 @@ func init() {
 
 }
 
+// MergeRuleDef ibd statistic 库表合并规则
 type MergeRuleDef struct {
-	From string `mapstructure:"from"`
-	To   string `mapstructure:"to"`
+	From string `mapstructure:"from" yaml:"from" json:"from"`
+	To   string `mapstructure:"to" yaml:"to" json:"to"`
 }
 
 type ibdStatistic struct {
@@ -180,9 +187,55 @@ func (c *ibdStatistic) initCustomOptions() {
 
 // New TODO
 func New(cc *monitoriteminterface.ConnectionCollect) monitoriteminterface.MonitorItemInterface {
-	opts := cc.GetCustomOptions(name)
+	opts := cc.GetCustomOptions(name) // ItemOptions is map[string]interface{}
+	for k, v := range opts {
+		// merge_rules 支持 base64 编码的 json
+		if k != "merge_rules" {
+			continue
+		}
+		base64Flag := "==base64=="
+		valStr := cast.ToString(v)
+		if valStr == "" {
+			continue
+		}
+		var decodedBytes []byte
+		var err error
+		hasBase64Flag := strings.HasPrefix(valStr, base64Flag)
+		if hasBase64Flag {
+			// 去掉 base64 标识
+			valStr = strings.TrimSpace(strings.TrimPrefix(valStr, base64Flag))
+		}
+		// 尝试用 base64 解码
+		if decodedBytes, err = base64.StdEncoding.DecodeString(valStr); err == nil {
+			if len(decodedBytes) == 0 {
+				continue
+			}
+			var mergeRules []*MergeRuleDef
+			if err = yaml.Unmarshal(decodedBytes, &mergeRules); err != nil {
+				slog.Error("ibd-statistic",
+					slog.String("msg", "options.merge_rules unmarshal yaml"), slog.Any("error", err))
+			} else {
+				opts[k] = mergeRules
+				continue
+			}
+
+			if err = json.Unmarshal(decodedBytes, &mergeRules); err != nil {
+				slog.Error("ibd-statistic",
+					slog.String("msg", "options.merge_rules unmarshal json"), slog.Any("error", err))
+			} else {
+				opts[k] = mergeRules
+				continue
+			}
+		} else if hasBase64Flag {
+			slog.Error("ibd-statistic", slog.String("msg", "options.merge_rules decode base64 failed"))
+			opts[k] = nil
+		}
+	}
+
 	var itemObj ibdStatistic
-	if err := mapstructure.Decode(opts, &itemObj); err != nil {
+	if err := mapstructure.Decode(opts, &itemObj); err != nil { // map interface to struct
+		slog.Error("ibd-statistic",
+			slog.String("msg", "options.merge_rules format error"), slog.Any("error", err))
 		panic(err)
 	}
 	itemObj.db = cc.MySqlDB

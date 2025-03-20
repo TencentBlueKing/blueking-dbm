@@ -51,6 +51,7 @@ func (c *ConnectionCollect) Close() {
 
 type ItemOptions map[string]interface{}
 
+// InitItemOptions set map  collectorName:options
 func (c *ConnectionCollect) InitItemOptions() map[string]ItemOptions {
 	opts := make(map[string]ItemOptions)
 	for _, opt := range config.ItemsConfig {
@@ -59,6 +60,8 @@ func (c *ConnectionCollect) InitItemOptions() map[string]ItemOptions {
 	c.itemOptions = opts
 	return opts
 }
+
+// GetCustomOptions return options of collector name
 func (c *ConnectionCollect) GetCustomOptions(name string) ItemOptions {
 	return c.itemOptions[name]
 }

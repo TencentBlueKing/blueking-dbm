@@ -17,7 +17,7 @@ build:
 
 .PHONY: release-bin
 release-bin: build
-	cp config.example.yaml ${OUTPUT_DIR}/${PROJ}/main.yaml.example
+	cp main.example.yaml ${OUTPUT_DIR}/${PROJ}/main.yaml.example
 	# 为了保证 tar 压缩得到的包的 md5 一致，这里修改文件的时间戳，同时把 tar -zcf 拆为 tar -cf && gzip
 	find ${OUTPUT_DIR} -exec touch -t ${GITDATE} {} +
 	tar -C ${OUTPUT_DIR} -cf ${OUTPUT_DIR}/${TAR_PKG} ${PROJ}/
