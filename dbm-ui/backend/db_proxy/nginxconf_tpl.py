@@ -44,6 +44,7 @@ location /{{bk_biz_id}}/{{db_type}}/{{cluster_name}}/{{service_type}} {
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_pass {{service_url}};
+    proxy_cookie_path / /{{bk_biz_id}}/{{db_type}}/{{cluster_name}}/{{service_type}};
     client_max_body_size 100m;
     proxy_connect_timeout 120;
     proxy_send_timeout 120;
@@ -62,6 +63,7 @@ location /{{bk_biz_id}}/{{db_type}}/{{cluster_name}}/{{service_type}} {
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_pass {{service_url}};
+    proxy_cookie_path / /{{bk_biz_id}}/{{db_type}}/{{cluster_name}}/{{service_type}};
     client_max_body_size 100m;
     proxy_connect_timeout 120;
     proxy_send_timeout 120;
@@ -87,6 +89,7 @@ location /{{bk_biz_id}}/{{db_type}}/{{cluster_name}}/{{service_type}} {
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_pass {{service_url}};
+    proxy_cookie_path / /{{bk_biz_id}}/{{db_type}}/{{cluster_name}}/{{service_type}};
     client_max_body_size 100m;
     proxy_connect_timeout 120;
     proxy_send_timeout 120;
@@ -104,6 +107,7 @@ location /{{bk_biz_id}}/{{db_type}}/{{cluster_name}}/{{service_type}} {
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_pass {{service_url}}/{{bk_biz_id}}/{{db_type}}/{{cluster_name}}/{{service_type}};
+    proxy_cookie_path / /{{bk_biz_id}}/{{db_type}}/{{cluster_name}}/{{service_type}};
     client_max_body_size 100m;
     proxy_connect_timeout 120;
     proxy_send_timeout 120;
@@ -122,6 +126,7 @@ location /{{bk_biz_id}}/{{db_type}}/{{cluster_name}}/{{service_type}} {
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_pass {{service_url}}/ui/index.html;
+    proxy_cookie_path / /{{bk_biz_id}}/{{db_type}}/{{cluster_name}}/{{service_type}};
     client_max_body_size 100m;
     proxy_connect_timeout 120;
     proxy_send_timeout 120;
