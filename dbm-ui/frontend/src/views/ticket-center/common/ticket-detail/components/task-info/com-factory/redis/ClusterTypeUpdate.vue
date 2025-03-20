@@ -65,12 +65,12 @@
     </BkTableColumn>
   </BkTable>
   <InfoList>
-    <InfoItem :label="t('校验与修复类型:')">
+    <InfoItem :label="t('校验与修复类型')">
       {{ repairAndVerifyTypesMap[ticketDetails.details.data_check_repair_setting.type] }}
     </InfoItem>
     <InfoItem
       v-if="ticketDetails.details.data_check_repair_setting.type !== 'no_check_no_repair'"
-      :label="t('校验与修复频率设置:')">
+      :label="t('校验与修复频率设置')">
       {{ repairAndVerifyFrequencyMap[ticketDetails.details.data_check_repair_setting.execution_frequency] }}
     </InfoItem>
   </InfoList>

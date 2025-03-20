@@ -1,6 +1,6 @@
 <template>
   <div class="db-ticket-info-item">
-    <div class="db-ticket-info-item-lable">{{ label }}</div>
+    <div class="db-ticket-info-item-lable">{{ label }}：</div>
     <div class="db-ticket-info-item-value">
       <slot />
     </div>
@@ -14,7 +14,7 @@
   defineProps<Props>();
 </script>
 <style lang="less">
-  @label-width: 150px;
+  @label-width: 160px;
 
   .db-ticket-info-item {
     flex: 1 0 50%;

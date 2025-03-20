@@ -21,6 +21,7 @@ import {
 import type { ExecuteModes, HostInfo, OnlineSwitchType, RepairModes } from '@services/types';
 
 import type { ClusterTypes } from '@common/const';
+import { Affinity } from '@common/const';
 
 import type { DetailBase, DetailClusters, DetailSpecs, SpecInfo } from './common';
 
@@ -87,7 +88,7 @@ export interface RedisScaleUpDownDetails extends DetailBase {
     online_switch_type: OnlineSwitchType;
     resource_spec: {
       backend_group: {
-        affinity: 'CROS_SUBZONE';
+        affinity: Affinity.CROS_SUBZONE;
         count: number; // 机器组数
         spec_id: number;
       };
@@ -116,12 +117,12 @@ export interface RedisClusterShardUpdateDetails extends DetailBase {
     online_switch_type: 'user_confirm';
     resource_spec: {
       backend_group: {
-        affinity: 'CROS_SUBZONE';
+        affinity: Affinity.CROS_SUBZONE;
         count: number; // 机器组数
         spec_id: number;
       };
       proxy: {
-        affinity: 'CROS_SUBZONE';
+        affinity: Affinity.CROS_SUBZONE;
         count: number;
         spec_id: number;
       };
@@ -150,12 +151,12 @@ export interface RedisClusterTypeUpdateDetails extends DetailBase {
     online_switch_type: 'user_confirm';
     resource_spec: {
       backend_group: {
-        affinity: 'CROS_SUBZONE';
+        affinity: Affinity.CROS_SUBZONE;
         count: number; // 机器组数
         spec_id: number;
       };
       proxy: {
-        affinity: 'CROS_SUBZONE';
+        affinity: Affinity.CROS_SUBZONE;
         count: number;
         spec_id: number;
       };

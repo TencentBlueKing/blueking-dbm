@@ -21,7 +21,7 @@
       :data="data" />
     <InfoList>
       <Item
-        :label="t('备注:')"
+        :label="t('备注')"
         style="width: 100%">
         <div style="margin-top: 4px; line-height: 24px; white-space: normal">
           {{ data.remark || '--' }}

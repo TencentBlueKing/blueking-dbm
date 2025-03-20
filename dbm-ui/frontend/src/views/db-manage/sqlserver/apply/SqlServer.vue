@@ -24,14 +24,10 @@
             v-model="formData.details.bk_cloud_id"
             @change="handleChangeCloud" />
         </DbCard>
-        <RegionItem
-          ref="regionItemRef"
-          v-model="formData.details.city_code" />
+        <RegionRequirements
+          ref="regionRequirements"
+          v-model="formData.details" />
         <DbCard :title="t('数据库部署信息')">
-          <AffinityItem
-            v-if="!isSingleType"
-            v-model="formData.details.disaster_tolerance_level"
-            :city-code="formData.details.city_code" />
           <BkFormItem
             :label="t('SQLServer起始端口')"
             property="details.start_mssql_port"
@@ -88,9 +84,9 @@
               <BkRadioButton label="resource_pool">
                 {{ t('自动从资源池匹配') }}
               </BkRadioButton>
-              <BkRadioButton label="manual_input">
+              <!-- <BkRadioButton label="manual_input">
                 {{ t('手动录入IP') }}
-              </BkRadioButton>
+              </BkRadioButton> -->
             </BkRadioGroup>
           </BkFormItem>
           <Transition
@@ -150,6 +146,11 @@
               </BkFormItem>
             </div>
           </Transition>
+          <EstimatedCost
+            :params="{
+              db_type: DBTypes.SQLSERVER,
+              resource_spec: resourceSepc,
+            }" />
           <BkFormItem :label="t('备注')">
             <BkInput
               v-model="formData.remark"
@@ -217,6 +218,7 @@
 
 <script setup lang="tsx">
   import InfoBox from 'bkui-vue/lib/info-box';
+  import { type ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRoute } from 'vue-router';
 
@@ -226,15 +228,15 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
-  import AffinityItem from '@views/db-manage/common/apply-items/AffinityItem.vue';
   import BusinessItems from '@views/db-manage/common/apply-items/BusinessItems.vue';
   import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
+  import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
   import ModuleItem from '@views/db-manage/common/apply-items/ModuleItem.vue';
-  import RegionItem from '@views/db-manage/common/apply-items/RegionItem.vue';
+  import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/Common.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
 
   import DomainTable from './components/DomainTable.vue';
@@ -282,16 +284,18 @@
         },
       },
       start_mssql_port: 48322, // SQLServer起始端口
+      sub_zone_ids: [] as number[],
     },
     remark: '',
     ticket_type: isSingleType ? TicketTypes.SQLSERVER_SINGLE_APPLY : TicketTypes.SQLSERVER_HA_APPLY,
   });
 
+  const regionRequirementsRef = useTemplateRef('regionRequirements');
+
   const formRef = ref();
   const backendRef = ref();
   const moduleItemRef = ref<InstanceType<typeof ModuleItem>>();
   const isShowPreview = ref(false);
-  const regionItemRef = ref<InstanceType<typeof RegionItem>>();
   const specBackendRef = ref<InstanceType<typeof SpecSelector>>();
   const moduleAliasName = ref('');
   const moduleLevelConfig = ref({
@@ -377,6 +381,16 @@
     );
   });
 
+  const resourceSepc = computed(
+    () =>
+      ({
+        backend_group: {
+          count: resourceSpecbackendGroupCount.value,
+          spec_id: formData.details.resource_spec.backend_group.spec_id,
+        },
+      }) as ComponentProps<typeof EstimatedCost>['params']['resource_spec'],
+  );
+
   /**
    * 设置 domain 数量
    */
@@ -452,7 +466,7 @@
     baseState.isSubmitting = true;
     const getDetails = () => {
       const { details } = formData;
-      const { cityCode } = regionItemRef.value!.getValue();
+
       const resourceSpecKey = isSingleType ? 'backend' : 'backend_group';
       if (details.ip_source === 'resource_pool') {
         return {
@@ -462,12 +476,8 @@
             [resourceSpecKey]: {
               spec_id: details.resource_spec.backend_group.spec_id,
               ...specBackendRef.value!.getData(),
-              affinity: details.disaster_tolerance_level,
+              ...regionRequirementsRef.value!.getValue(),
               count: resourceSpecbackendGroupCount.value,
-              location_spec: {
-                city: cityCode,
-                sub_zone_ids: [],
-              },
               spec_cluster_type: clusterType,
               spec_machine_type: clusterType,
             },

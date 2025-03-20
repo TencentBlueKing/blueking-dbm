@@ -12,180 +12,145 @@
 -->
 
 <template>
-  <strong class="ticket-details-info-title">{{ $t('业务信息') }}</strong>
-  <div class="ticket-details-list">
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ $t('所属业务') }}：</span>
-      <span class="ticket-details-item-value">{{ ticketDetails?.bk_biz_name || '--' }}</span>
-    </div>
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ $t('业务英文名') }}：</span>
-      <span class="ticket-details-item-value">{{ ticketDetails?.db_app_abbr || '--' }}</span>
-    </div>
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ $t('集群名称') }}：</span>
-      <span class="ticket-details-item-value">{{ ticketDetails?.details?.cluster_name || '--' }}</span>
-    </div>
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ $t('集群别名') }}：</span>
-      <span class="ticket-details-item-value">{{ ticketDetails?.details?.cluster_alias || '--' }}</span>
-    </div>
-  </div>
-  <strong class="ticket-details-info-title">{{ $t('地域要求') }}</strong>
-  <div class="ticket-details-list">
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ $t('数据库部署地域') }}：</span>
-      <span class="ticket-details-item-value">{{ cityName }}</span>
-    </div>
-  </div>
-  <strong class="ticket-details-info-title">{{ $t('数据库部署信息') }}</strong>
-  <div class="ticket-details-list">
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ $t('容灾要求') }}：</span>
-      <span class="ticket-details-item-value">{{ affinity }}</span>
-    </div>
-  </div>
-  <strong class="ticket-details-info-title">{{ $t('部署需求') }}</strong>
-  <div class="ticket-details-list">
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ $t('版本') }}：</span>
-      <span class="ticket-details-item-value">{{ ticketDetails?.details?.db_version || '--' }}</span>
-    </div>
-    <template v-if="ticketDetails?.details?.ip_source === redisIpSources.manual_input.id">
-      <div class="ticket-details-item">
-        <span class="ticket-details-item-label">{{ $t('热节点IP') }}：</span>
-        <span class="ticket-details-item-value">
+  <div class="info-title">{{ t('部署模块') }}</div>
+  <InfoList>
+    <InfoItem :label="t('所属业务')">
+      {{ ticketDetails.bk_biz_name || '--' }}
+    </InfoItem>
+    <InfoItem :label="t('业务英文名')">
+      {{ ticketDetails.db_app_abbr || '--' }}
+    </InfoItem>
+    <InfoItem :label="t('集群名称')">
+      {{ ticketDetails.details.cluster_name || '--' }}
+    </InfoItem>
+    <InfoItem :label="t('集群别名')">
+      {{ ticketDetails.details.cluster_alias || '--' }}
+    </InfoItem>
+  </InfoList>
+  <RegionRequirements :details="ticketDetails.details" />
+  <div class="info-title mt-20">{{ t('部署需求') }}</div>
+  <InfoList>
+    <InfoItem :label="t('版本')">
+      {{ ticketDetails.details.cluster_alias || '--' }}
+    </InfoItem>
+    <template v-if="isFromResourcePool">
+      <InfoItem :label="t('Master节点规格')">
+        <BkPopover
+          v-if="masterSpec"
+          placement="top"
+          theme="light">
           <span
-            v-if="getServiceNums('hot') > 0"
-            class="host-nums"
-            @click="handleShowPreview('hot')">
-            <a href="javascript:">{{ getServiceNums('hot') }}</a>
-            {{ $t('台') }}
+            class="pb-2"
+            style="cursor: pointer; border-bottom: 1px dashed #979ba5">
+            {{ masterSpec.spec_name }}（{{ `${masterSpec.count} ${t('台')}` }}）
           </span>
-          <template v-else>--</template>
-        </span>
-      </div>
-      <div class="ticket-details-item">
-        <span class="ticket-details-item-label">{{ $t('冷节点IP') }}：</span>
-        <span class="ticket-details-item-value">
+          <template #content>
+            <SpecInfos :data="masterSpec" />
+          </template>
+        </BkPopover>
+        <span v-else>--</span>
+      </InfoItem>
+      <InfoItem :label="t('Client节点规格')">
+        <BkPopover
+          v-if="clientSpec"
+          placement="top"
+          theme="light">
           <span
-            v-if="getServiceNums('cold') > 0"
-            class="host-nums"
-            @click="handleShowPreview('cold')">
-            <a href="javascript:">{{ getServiceNums('cold') }}</a>
-            {{ $t('台') }}
+            class="pb-2"
+            style="cursor: pointer; border-bottom: 1px dashed #979ba5">
+            {{ clientSpec.spec_name }}（{{ `${clientSpec.count} ${t('台')}` }}）
           </span>
-          <template v-else>--</template>
-        </span>
-      </div>
-      <div class="ticket-details-item">
-        <span class="ticket-details-item-label">{{ $t('Client节点IP') }}：</span>
-        <span class="ticket-details-item-value">
+          <template #content>
+            <SpecInfos :data="clientSpec" />
+          </template>
+        </BkPopover>
+        <span v-else>--</span>
+      </InfoItem>
+      <InfoItem :label="t('热节点规格')">
+        <BkPopover
+          v-if="hotSpec"
+          placement="top"
+          theme="light">
           <span
-            v-if="getServiceNums('client') > 0"
-            class="host-nums"
-            @click="handleShowPreview('client')">
-            <a href="javascript:">{{ getServiceNums('client') }}</a>
-            {{ $t('台') }}
+            class="pb-2"
+            style="cursor: pointer; border-bottom: 1px dashed #979ba5">
+            {{ hotSpec.spec_name }}（{{ `${hotSpec.count} ${t('台')}` }}）
           </span>
-          <template v-else>--</template>
-        </span>
-      </div>
-      <div class="ticket-details-item">
-        <span class="ticket-details-item-label">{{ $t('Master节点IP') }}：</span>
-        <span class="ticket-details-item-value">
+          <template #content>
+            <SpecInfos :data="hotSpec" />
+          </template>
+        </BkPopover>
+        <span v-else>--</span>
+      </InfoItem>
+      <InfoItem :label="t('冷节点规格')">
+        <BkPopover
+          v-if="coldSpec"
+          placement="top"
+          theme="light">
           <span
-            v-if="getServiceNums('master') > 0"
-            class="host-nums"
-            @click="handleShowPreview('master')">
-            <a href="javascript:">{{ getServiceNums('master') }}</a>
-            {{ $t('台') }}
+            class="pb-2"
+            style="cursor: pointer; border-bottom: 1px dashed #979ba5">
+            {{ coldSpec.spec_name }}（{{ `${coldSpec.count} ${t('台')}` }}）
           </span>
-          <template v-else>--</template>
-        </span>
-      </div>
+          <template #content>
+            <SpecInfos :data="coldSpec" />
+          </template>
+        </BkPopover>
+        <span v-else>--</span>
+      </InfoItem>
     </template>
     <template v-else>
-      <div class="ticket-details-item">
-        <span class="ticket-details-item-label">{{ $t('Master节点规格') }}：</span>
-        <span class="ticket-details-item-value">
-          <BkPopover
-            placement="top"
-            theme="light">
-            <span
-              class="pb-2"
-              style="cursor: pointer; border-bottom: 1px dashed #979ba5">
-              {{ masterSpec?.spec_name }}（{{ `${masterSpec?.count} ${$t('台')}` }}）
-            </span>
-            <template #content>
-              <SpecInfos :data="masterSpec" />
-            </template>
-          </BkPopover>
-        </span>
-      </div>
-      <div
-        v-if="clientSpec.spec_id"
-        class="ticket-details-item">
-        <span class="ticket-details-item-label">{{ $t('Client节点规格') }}：</span>
-        <span class="ticket-details-item-value">
-          <BkPopover
-            placement="top"
-            theme="light">
-            <span
-              class="pb-2"
-              style="cursor: pointer; border-bottom: 1px dashed #979ba5">
-              {{ clientSpec?.spec_name }}（{{ `${clientSpec?.count} ${$t('台')}` }}）
-            </span>
-            <template #content>
-              <SpecInfos :data="clientSpec" />
-            </template>
-          </BkPopover>
-        </span>
-      </div>
-      <div
-        v-if="hotSpec.spec_id"
-        class="ticket-details-item">
-        <span class="ticket-details-item-label">{{ $t('热节点规格') }}：</span>
-        <span class="ticket-details-item-value">
-          <BkPopover
-            placement="top"
-            theme="light">
-            <span
-              class="pb-2"
-              style="cursor: pointer; border-bottom: 1px dashed #979ba5">
-              {{ hotSpec?.spec_name }}（{{ `${hotSpec?.count} ${$t('台')}` }}）
-            </span>
-            <template #content>
-              <SpecInfos :data="clientSpec" />
-            </template>
-          </BkPopover>
-        </span>
-      </div>
-      <div
-        v-if="coldSpec.spec_id"
-        class="ticket-details-item">
-        <span class="ticket-details-item-label">{{ $t('冷节点规格') }}：</span>
-        <span class="ticket-details-item-value">
-          <BkPopover
-            placement="top"
-            theme="light">
-            <span
-              class="pb-2"
-              style="cursor: pointer; border-bottom: 1px dashed #979ba5">
-              {{ coldSpec?.spec_name }}（{{ `${coldSpec?.count} ${$t('台')}` }}）
-            </span>
-            <template #content>
-              <SpecInfos :data="coldSpec" />
-            </template>
-          </BkPopover>
-        </span>
-      </div>
+      <InfoItem :label="t('热节点IP')">
+        <BkButton
+          v-if="getServiceNums('hot') > 0"
+          text
+          theme="primary"
+          @click="handleShowPreview('hot')">
+          {{ t('台') }}
+        </BkButton>
+        <span v-else>--</span>
+      </InfoItem>
+      <InfoItem :label="t('冷节点IP')">
+        <BkButton
+          v-if="getServiceNums('cold') > 0"
+          text
+          theme="primary"
+          @click="handleShowPreview('cold')">
+          {{ t('台') }}
+        </BkButton>
+        <span v-else>--</span>
+      </InfoItem>
+      <InfoItem :label="t('Client节点IP')">
+        <BkButton
+          v-if="getServiceNums('client') > 0"
+          text
+          theme="primary"
+          @click="handleShowPreview('client')">
+          {{ t('台') }}
+        </BkButton>
+        <span v-else>--</span>
+      </InfoItem>
+      <InfoItem :label="t('Master节点IP')">
+        <BkButton
+          v-if="getServiceNums('master') > 0"
+          text
+          theme="primary"
+          @click="handleShowPreview('master')">
+          {{ t('台') }}
+        </BkButton>
+        <span v-else>--</span>
+      </InfoItem>
     </template>
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ $t('端口号') }}：</span>
-      <span class="ticket-details-item-value">{{ ticketDetails?.details?.http_port || '--' }}</span>
-    </div>
-  </div>
+    <InfoItem :label="t('端口号')">
+      {{ ticketDetails.details.http_port || '--' }}
+    </InfoItem>
+    <EstimatedCost
+      v-if="ticketDetails.details.resource_spec"
+      :params="{
+        db_type: DBTypes.ES,
+        resource_spec: ticketDetails.details.resource_spec,
+      }" />
+  </InfoList>
   <HostPreview
     v-model:is-show="previewState.isShow"
     :fetch-nodes="getTicketHostNodes"
@@ -195,21 +160,19 @@
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
   import TicketModel, { type Es } from '@services/model/ticket/ticket';
-  import { getInfrasCities, getTicketHostNodes } from '@services/source/ticket';
+  import { getTicketHostNodes } from '@services/source/ticket';
 
-  import { useSystemEnviron } from '@stores';
-
-  import { TicketTypes } from '@common/const';
+  import { DBTypes, TicketTypes } from '@common/const';
 
   import HostPreview from '@components/host-preview/HostPreview.vue';
 
-  import { redisIpSources } from '@views/db-manage/redis/apply/common/const';
-
   import { firstLetterToUpper } from '@utils';
 
+  import EstimatedCost from '../components/EstimatedCost.vue';
+  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  import RegionRequirements from '../components/RegionRequirements.vue';
   import SpecInfos from '../components/SpecInfos.vue';
 
   interface Props {
@@ -224,30 +187,11 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
-  const { AFFINITY: affinityList } = useSystemEnviron().urls;
 
-  const cityName = ref('--');
+  const isFromResourcePool = props.ticketDetails.details.ip_source === 'resource_pool';
 
-  const masterSpec = computed(() => props.ticketDetails?.details?.resource_spec?.master || {});
-  const clientSpec = computed(() => props.ticketDetails?.details?.resource_spec?.client || {});
-  const hotSpec = computed(() => props.ticketDetails?.details?.resource_spec?.hot || {});
-  const coldSpec = computed(() => props.ticketDetails?.details?.resource_spec?.cold || {});
-
-  const affinity = computed(() => {
-    const level = props.ticketDetails?.details?.disaster_tolerance_level;
-    if (level && affinityList) {
-      return affinityList.find((item) => item.value === level)?.label;
-    }
-    return '--';
-  });
-
-  useRequest(getInfrasCities, {
-    onSuccess: (cityList) => {
-      const cityCode = props.ticketDetails.details.city_code;
-      const name = cityList.find((item) => item.city_code === cityCode)?.city_name;
-      cityName.value = name ?? '--';
-    },
-  });
+  const { resource_spec: resourceSpec } = props.ticketDetails?.details;
+  const { client: clientSpec, cold: coldSpec, hot: hotSpec, master: masterSpec } = resourceSpec;
 
   /**
    * 获取服务器数量
@@ -277,3 +221,10 @@
     previewState.title = `【${firstLetterToUpper(role)}】${t('主机预览')}`;
   }
 </script>
+
+<style lang="less" scoped>
+  .info-title {
+    font-weight: bold;
+    color: #313238;
+  }
+</style>

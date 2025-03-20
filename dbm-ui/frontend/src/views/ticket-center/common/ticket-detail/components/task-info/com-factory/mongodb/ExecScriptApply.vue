@@ -13,10 +13,10 @@
 
 <template>
   <InfoList>
-    <InfoItem :label="t('脚本来源：')">
+    <InfoItem :label="t('脚本来源')">
       {{ ticketDetails.details.mode === 'file' ? t('脚本文件') : t('手动输入') }}
     </InfoItem>
-    <InfoItem :label="t('脚本执行内容：')">
+    <InfoItem :label="t('脚本执行内容')">
       <BkButton
         text
         theme="primary"
@@ -25,7 +25,7 @@
       </BkButton>
     </InfoItem>
     <InfoItem
-      :label="t('目标集群：')"
+      :label="t('目标集群')"
       style="flex: 1 0 100%">
       <BkTable :data="tableData">
         <BkTableColumn

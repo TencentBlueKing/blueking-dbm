@@ -35,14 +35,9 @@
           v-model="formdata.details.bk_cloud_id"
           @change="handleChangeCloud" />
       </DbCard>
-      <RegionItem
-        ref="regionItemRef"
-        v-model="formdata.details.city_code" />
-      <!-- <DbCard
-        v-if="!isDefaultCity"
-        :title="t('数据库部署信息')">
-        <AffinityItem v-model="formdata.details.disaster_tolerance_level" />
-      </DbCard> -->
+      <RegionRequirements
+        ref="regionRequirements"
+        v-model="formdata.details" />
       <DbCard :title="t('部署需求')">
         <BkFormItem
           :label="t('InfluxDB版本')"
@@ -61,9 +56,9 @@
             <BkRadioButton label="resource_pool">
               {{ t('自动从资源池匹配') }}
             </BkRadioButton>
-            <BkRadioButton label="manual_input">
+            <!-- <BkRadioButton label="manual_input">
               {{ t('业务空闲机') }}
-            </BkRadioButton>
+            </BkRadioButton> -->
           </BkRadioGroup>
         </BkFormItem>
         <Transition
@@ -132,6 +127,11 @@
             style="width: 185px"
             type="number" />
         </BkFormItem>
+        <EstimatedCost
+          :params="{
+            db_type: DBTypes.INFLUXDB,
+            resource_spec: formdata.details.resource_spec,
+          }" />
         <BkFormItem :label="t('备注')">
           <BkInput
             v-model="formdata.remark"
@@ -178,15 +178,15 @@
 
   import { useApplyBase } from '@hooks';
 
-  import { OSTypes } from '@common/const';
+  import { DBTypes, OSTypes } from '@common/const';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
-  // import AffinityItem from '@views/db-manage/common/apply-items/AffinityItem.vue';
   import BusinessItems from '@views/db-manage/common/apply-items/BusinessItems.vue';
   import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
   import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
-  import RegionItem from '@views/db-manage/common/apply-items/RegionItem.vue';
+  import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
+  import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/BigData.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
 
   import { getInitFormdata } from './common/base';
@@ -198,20 +198,19 @@
   const router = useRouter();
   const { t } = useI18n();
 
+  const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+
+  const regionRequirementsRef = useTemplateRef('regionRequirements');
+
+  const groupName = ref('');
+  const formRef = ref();
+  const specRef = ref();
+
+  const formdata = reactive(getInitFormdata());
   const cloudInfo = reactive({
     id: '' as number | string,
     name: '',
   });
-  const groupName = ref('');
-
-  const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
-
-  const formdata = reactive(getInitFormdata());
-  const formRef = ref();
-  const specRef = ref();
-  const regionItemRef = ref();
-
-  // const isDefaultCity = computed(() => formdata.details.city_code === 'default');
 
   const rules = {
     'details.nodes.influxdb': [
@@ -269,22 +268,18 @@
           ...markRaw(formdata.details),
           group_name: groupName.value,
         };
-        const { cityCode } = regionItemRef.value.getValue();
 
         if (formdata.details.ip_source === 'resource_pool') {
           delete details.nodes;
+          const regionAndDisasterParams = regionRequirementsRef.value!.getValue();
           return {
             ...details,
             resource_spec: {
               influxdb: {
                 ...details.resource_spec.influxdb,
                 ...specRef.value.getData(),
-                affinity: details.disaster_tolerance_level,
+                ...regionAndDisasterParams,
                 count: Number(details.resource_spec.influxdb.count),
-                location_spec: {
-                  city: cityCode,
-                  sub_zone_ids: [],
-                },
               },
             },
           };

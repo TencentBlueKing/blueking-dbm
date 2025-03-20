@@ -33,7 +33,7 @@ const getFormData = (type: string) => ({
     cluster_count: 1,
     db_app_abbr: '',
     db_module_id: null as null | number,
-    disaster_tolerance_level: 'NONE', // 同 affinity
+    disaster_tolerance_level: '', // 同 affinity
     domains: [{ key: '' }],
     inst_num: 1,
     ip_source: 'resource_pool',
@@ -43,7 +43,7 @@ const getFormData = (type: string) => ({
     },
     resource_spec: {
       backend: {
-        affinity: 'NONE',
+        affinity: '',
         count: 0,
         location_spec: {
           city: '',
@@ -67,6 +67,7 @@ const getFormData = (type: string) => ({
     spec: '',
     start_mysql_port: 20000,
     start_proxy_port: 10000,
+    sub_zone_ids: [] as number[],
   },
   remark: '',
   ticket_type: type,
