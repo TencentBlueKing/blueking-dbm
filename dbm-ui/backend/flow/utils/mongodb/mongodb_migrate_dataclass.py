@@ -234,7 +234,8 @@ class MigrateActKwargs:
                 backup_node = instance
             else:
                 nodes.append(instance)
-        nodes.append(backup_node)
+        if backup_node:
+            nodes.append(backup_node)
         nodes[-1]["role"] = self.instance_role[-1]
         for index in range(len(nodes) - 1):
             nodes[index]["role"] = self.instance_role[index]
@@ -268,7 +269,8 @@ class MigrateActKwargs:
                     if instance.get("role") == "shardsvr-primary":
                         immute_domain = instance.get("domain")
                     storages.append(instance)
-            storages.append(backup_node)
+            if backup_node:
+                storages.append(backup_node)
             # 转换role
             if len(storages) > 2:
                 storages[-1]["role"] = self.instance_role[-1]

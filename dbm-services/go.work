@@ -12,6 +12,7 @@ use (
 	common/dbha/hadb-api
 	common/go-pubpkg
 	common/reverse-api
+	oracle/db-tools/dbactuator
 	mongodb/db-tools/dbactuator
 	mongodb/db-tools/dbmon
 	mongodb/db-tools/mongo-toolkit-go
