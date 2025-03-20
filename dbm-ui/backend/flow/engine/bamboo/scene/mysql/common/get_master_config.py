@@ -16,7 +16,7 @@ from backend.db_meta.models import Cluster, StorageInstance
 
 logger = logging.getLogger("root")
 
-query_cmds = """show global variables where Variable_name in ('binlog_format','binlog_row_image','character_set_server',
+variables_sql = """show global variables where Variable_name in ('binlog_format','binlog_row_image','character_set_server',
 'collation_server','interactive_timeout','log_bin_compress','long_query_time',
 'lower_case_table_names','max_allowed_packet','max_binlog_size','max_connections',
 'net_buffer_length','relay_log_uncompress','replica_parallel_type','replica_parallel_workers',
@@ -24,7 +24,7 @@ query_cmds = """show global variables where Variable_name in ('binlog_format','b
 'table_open_cache','wait_timeout','time_zone','group_concat_max_len','secure_file_priv')"""
 
 
-def get_cluster_config(cluster: Cluster) -> dict:
+def get_cluster_config(cluster: Cluster, query_cmds=variables_sql) -> dict:
     master_config = {}
     master_model = cluster.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.MASTER.value).first()
     if master_model is None:
@@ -50,7 +50,7 @@ def get_cluster_config(cluster: Cluster) -> dict:
     return master_config
 
 
-def get_instance_config(bk_cloud_id: int, ip: str, ports: list = None) -> dict:
+def get_instance_config(bk_cloud_id: int, ip: str, ports: list = None, query_cmds=variables_sql) -> dict:
     all_storage_config = {}
     if ports is None:
         storages = StorageInstance.objects.filter(bk_cloud_id=bk_cloud_id, machine__ip=ip).all()

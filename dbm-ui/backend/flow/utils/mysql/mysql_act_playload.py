@@ -246,6 +246,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         拼接安装MySQL的payload参数, 分别兼容集群申请、集群实例重建、集群实例添加单据的获取方式
         由于集群实例重建或者添加单据是不知道 需要部署的版本号以及字符集，需要通过接口获取
         """
+        logger.debug("cluster info ", self.cluster)
         init_mysql_config = {}
         engine = "innodb"
         if self.ticket_data.get("charset") and self.ticket_data.get("db_version"):

@@ -109,6 +109,7 @@ class MySQLSingleApplyFlow(object):
                 exec_ip=info["new_ip"]["ip"],
                 cluster_type=ClusterType.TenDBSingle,
                 bk_cloud_id=int(self.data["bk_cloud_id"]),
+                cluster={"old_instance_configs": info.get("old_instance_configs", {})},
             )
 
             # 初始新机器

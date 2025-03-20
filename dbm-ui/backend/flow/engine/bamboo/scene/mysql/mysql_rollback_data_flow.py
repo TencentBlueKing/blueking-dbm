@@ -29,6 +29,7 @@ from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.exceptions import NormalTenDBFlowException
 from backend.flow.engine.bamboo.scene.mysql.common.get_local_backup import check_storage_database, get_local_backup
+from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_cluster_config
 from backend.flow.engine.bamboo.scene.mysql.mysql_rollback_data_sub_flow import (
     rollback_local_and_backupid,
     rollback_local_and_time,
@@ -126,8 +127,15 @@ class MySQLRollbackDataFlow(object):
             install_ticket["start_mysql_port"] = master.port
             install_ticket["inst_num"] = 1
             install_ticket["ticket_type"] = self.ticket_data["ticket_type"]
+            sql = """show global variables where Variable_name in ('sql_mode','max_allowed_packet','lower_case_table_names',
+            'innodb_strict_mode','max_heap_table_size','tmp_table_size','character_set_server','collation_server')"""
+            old_instance_configs = get_cluster_config(cluster_class, query_cmds=sql)
             install_ticket["apply_infos"] = [
-                {"new_ip": self.data["bk_rollback"], "clusters": [{"name": cluster_name, "master": master_domain}]}
+                {
+                    "new_ip": self.data["bk_rollback"],
+                    "old_instance_configs": {str(master.port): old_instance_configs},
+                    "clusters": [{"name": cluster_name, "master": master_domain}],
+                }
             ]
             sub_pipeline.add_sub_pipeline(
                 MySQLSingleApplyFlow(root_id=self.root_id, data=install_ticket).deploy_mysql_single_flow()
