@@ -12,22 +12,30 @@
 -->
 
 <template>
-  <DbaManageMenu
-    :routes="routes"
-    sub-title="MySQL" />
+  <div class="result-panel-tips-main">
+    <template v-for="(item, index) in data">
+      <TipItem
+        v-if="item"
+        :key="index"
+        :data="item" />
+    </template>
+  </div>
 </template>
 <script setup lang="ts">
-  import { useI18n } from 'vue-i18n';
+  import TipItem from './components/Tip.vue';
 
-  import DbaManageMenu from '@views/db-manage/common/dba-manage-menu/Index.vue';
+  interface Props {
+    data?: string[];
+  }
 
-  const { t } = useI18n();
-
-  const routes = [
-    {
-      dbConsoleValue: 'dbaManage.mysql.webQuery',
-      id: 'DbaManageMysqlWebQuery',
-      name: t('Web 查询'),
-    },
-  ];
+  withDefaults(defineProps<Props>(), {
+    data: () => [],
+  });
 </script>
+<style lang="less" scoped>
+  .result-panel-tips-main {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+</style>

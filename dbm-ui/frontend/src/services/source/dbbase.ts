@@ -104,7 +104,7 @@ export function checkClusterDatabase(params: { bk_biz_id: number; cluster_id: nu
 }
 
 // 根据用户手动输入的ip[:port]查询真实的实例
-export function checkInstance<T extends InstanceInfos>(params: { bk_biz_id: number; instance_addresses: string[] }) {
+export function checkInstance<T extends InstanceInfos>(params: { bk_biz_id?: number; instance_addresses: string[] }) {
   return http.post<T[]>(`${path}/check_instances/`, params);
 }
 
@@ -169,4 +169,22 @@ export function queryClusterStat(params: { bk_biz_id: number; cluster_type: stri
     },
     payload,
   );
+}
+
+// dbconsole查询
+export function dbConsole(params: {
+  cmd: string;
+  db_type: string;
+  instances: {
+    bk_cloud_id: number;
+    instance: string;
+  }[];
+}) {
+  return http.post<
+    {
+      error_msg: string;
+      instance: string;
+      table_data: Record<string, string>[];
+    }[]
+  >(`${path}/dbconsole/`, params);
 }
