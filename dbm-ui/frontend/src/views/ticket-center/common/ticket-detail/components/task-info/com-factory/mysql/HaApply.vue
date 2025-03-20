@@ -13,42 +13,34 @@
 <template>
   <div class="info-title">{{ t('部署模块') }}</div>
   <InfoList>
-    <InfoItem :label="t('所属业务：')">
+    <InfoItem :label="t('所属业务')">
       {{ ticketDetails.bk_biz_name || '--' }}
     </InfoItem>
-    <InfoItem :label="t('业务英文名：')">
+    <InfoItem :label="t('业务英文名')">
       {{ ticketDetails.db_app_abbr || '--' }}
     </InfoItem>
-    <InfoItem :label="t('DB模块名：')">
+    <InfoItem :label="t('DB模块名')">
       {{ ticketDetails.details.db_module_name || '--' }}
     </InfoItem>
   </InfoList>
-  <div class="info-title mt-20">{{ t('地域要求') }}</div>
-  <InfoList>
-    <InfoItem :label="t('数据库部署地域：')">
-      {{ ticketDetails.details.city_name }}
-    </InfoItem>
-  </InfoList>
+  <RegionRequirements :details="ticketDetails.details" />
   <div class="info-title mt-20">{{ t('数据库部署信息') }}</div>
   <InfoList>
-    <InfoItem :label="t('容灾要求：')">
-      {{ affinity }}
-    </InfoItem>
-    <InfoItem :label="t('Proxy起始端口：')">
+    <InfoItem :label="t('Proxy起始端口')">
       {{ ticketDetails.details.start_proxy_port || '--' }}
     </InfoItem>
-    <InfoItem :label="t('MySQL起始端口：')">
+    <InfoItem :label="t('MySQL起始端口')">
       {{ ticketDetails.details.start_mysql_port || '--' }}
     </InfoItem>
   </InfoList>
   <div class="info-title mt-20">{{ t('需求信息') }}</div>
   <InfoList>
-    <InfoItem :label="t('数量：')">
+    <InfoItem :label="t('数量')">
       {{ ticketDetails.details.cluster_count }}
     </InfoItem>
     <InfoItem
       v-if="ticketDetails.details.resource_spec?.proxy"
-      :label="t('Proxy存储资源规格：')">
+      :label="t('Proxy存储资源规格')">
       <BkPopover
         placement="top"
         theme="light">
@@ -82,8 +74,14 @@
         </template>
       </BkPopover>
     </InfoItem>
+    <EstimatedCost
+      v-if="ticketDetails.details.resource_spec"
+      :params="{
+        db_type: DBTypes.MYSQL,
+        resource_spec: ticketDetails.details.resource_spec,
+      }" />
     <InfoItem
-      :label="t('集群设置：')"
+      :label="t('集群设置')"
       style="width: 100%">
       <BkTable
         :data="ticketDetails.details.domains"
@@ -163,10 +161,11 @@
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
-  import { mysqlType, type MysqlTypeString, TicketTypes } from '@common/const';
+  import { DBTypes, mysqlType, type MysqlTypeString, TicketTypes } from '@common/const';
 
-  import { useAffinity } from '../../hooks/useAffinity';
+  import EstimatedCost from '../components/EstimatedCost.vue';
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  import RegionRequirements from '../components/RegionRequirements.vue';
   import SpecInfos from '../components/SpecInfos.vue';
 
   interface Props {
@@ -178,11 +177,9 @@
     inheritAttrs: false,
   });
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
 
   const { t } = useI18n();
-
-  const { affinity } = useAffinity(props.ticketDetails);
 </script>
 <style lang="less" scoped>
   .info-title {

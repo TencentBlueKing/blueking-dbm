@@ -209,7 +209,8 @@
         typeof props.bizId === 'number' &&
         props.bizId > 0 &&
         typeof props.cloudId === 'number' &&
-        data.value?.results?.length
+        data.value?.results?.length &&
+        props.city
       ) {
         fetchSpecResourceCount();
       }

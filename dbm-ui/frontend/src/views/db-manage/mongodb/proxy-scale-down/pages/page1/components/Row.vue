@@ -32,7 +32,7 @@
         ref="selectRef"
         :count="data.currentSpec?.count || 2"
         :disabled="!data.clusterName"
-        :is-check-affinity="data.affinity === 'CROS_SUBZONE'"
+        :is-check-affinity="data.affinity === Affinity.CROS_SUBZONE"
         :is-loading="data.isLoading"
         :select-list="data.reduceIpList"
         @change="handleIpSelectChange" />
@@ -52,6 +52,8 @@
   </tr>
 </template>
 <script lang="ts">
+  import { Affinity } from '@common/const';
+
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
   import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
   import type { SpecInfo } from '@components/render-table/columns/spec-display/Panel.vue';

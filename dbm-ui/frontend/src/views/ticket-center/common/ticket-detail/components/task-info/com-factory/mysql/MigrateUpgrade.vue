@@ -117,10 +117,10 @@
     </BkTableColumn>
   </BkTable>
   <InfoList>
-    <InfoItem :label="t('忽略业务连接：')">
+    <InfoItem :label="t('忽略业务连接')">
       {{ ticketDetails.details.force ? t('是') : t('否') }}
     </InfoItem>
-    <InfoItem :label="t('备份源：')">
+    <InfoItem :label="t('备份源')">
       {{ backupSourceMap[ticketDetails.details.backup_source] }}
     </InfoItem>
   </InfoList>

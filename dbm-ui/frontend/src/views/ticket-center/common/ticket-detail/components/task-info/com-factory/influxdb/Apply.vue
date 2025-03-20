@@ -12,80 +12,64 @@
 -->
 
 <template>
-  <strong class="ticket-details-info-title">{{ $t('业务信息') }}</strong>
-  <div class="ticket-details-list">
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ $t('所属业务') }}：</span>
-      <span class="ticket-details-item-value">{{ ticketDetails?.bk_biz_name || '--' }}</span>
-    </div>
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ $t('业务英文名') }}：</span>
-      <span class="ticket-details-item-value">{{ ticketDetails?.db_app_abbr || '--' }}</span>
-    </div>
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ $t('分组名') }}：</span>
-      <span class="ticket-details-item-value">{{ ticketDetails?.details?.group_name || '--' }}</span>
-    </div>
-  </div>
-  <strong class="ticket-details-info-title">{{ $t('地域要求') }}</strong>
-  <div class="ticket-details-list">
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ $t('数据库部署地域') }}：</span>
-      <span class="ticket-details-item-value">{{ cityName }}</span>
-    </div>
-  </div>
-  <strong class="ticket-details-info-title">{{ $t('数据库部署信息') }}</strong>
-  <div class="ticket-details-list">
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ $t('容灾要求') }}：</span>
-      <span class="ticket-details-item-value">{{ affinity }}</span>
-    </div>
-  </div>
-  <strong class="ticket-details-info-title">{{ $t('部署需求') }}</strong>
-  <div class="ticket-details-list">
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ $t('版本') }}：</span>
-      <span class="ticket-details-item-value">{{ ticketDetails?.details?.db_version || '--' }}</span>
-    </div>
-    <template v-if="ticketDetails?.details?.ip_source === redisIpSources.manual_input.id">
-      <div class="ticket-details-item">
-        <span class="ticket-details-item-label">{{ $t('服务器') }}：</span>
-        <span class="ticket-details-item-value">
+  <div class="info-title">{{ t('部署模块') }}</div>
+  <InfoList>
+    <InfoItem :label="t('所属业务')">
+      {{ ticketDetails.bk_biz_name || '--' }}
+    </InfoItem>
+    <InfoItem :label="t('业务英文名')">
+      {{ ticketDetails.db_app_abbr || '--' }}
+    </InfoItem>
+    <InfoItem :label="t('分组名')">
+      {{ ticketDetails.details.group_name || '--' }}
+    </InfoItem>
+  </InfoList>
+  <RegionRequirements :details="ticketDetails.details" />
+  <div class="info-title">{{ t('部署需求') }}</div>
+  <InfoList>
+    <InfoItem :label="t('版本')">
+      {{ ticketDetails.details.db_version || '--' }}
+    </InfoItem>
+    <template v-if="isFromResourcePool">
+      <InfoItem :label="t('规格')">
+        <BkPopover
+          v-if="influxdbSpec"
+          placement="top"
+          theme="light">
           <span
-            v-if="getServiceNums() > 0"
-            class="host-nums"
-            @click="handleShowPreview">
-            <a href="javascript:">{{ getServiceNums() }}</a>
-            {{ $t('台') }}
+            class="pb-2"
+            style="cursor: pointer; border-bottom: 1px dashed #979ba5">
+            {{ influxdbSpec.spec_name }}（{{ `${influxdbSpec.count} ${t('台')}` }}）
           </span>
-          <template v-else>--</template>
-        </span>
-      </div>
+          <template #content>
+            <SpecInfos :data="influxdbSpec" />
+          </template>
+        </BkPopover>
+        <span v-else>--</span>
+      </InfoItem>
     </template>
-    <template v-if="ticketDetails?.details?.ip_source === 'resource_pool'">
-      <div class="ticket-details-item">
-        <span class="ticket-details-item-label">{{ $t('规格') }}：</span>
-        <span class="ticket-details-item-value">
-          <BkPopover
-            placement="top"
-            theme="light">
-            <span
-              class="pb-2"
-              style="cursor: pointer; border-bottom: 1px dashed #979ba5">
-              {{ influxdbSpec?.spec_name }}（{{ `${influxdbSpec?.count} ${$t('台')}` }}）
-            </span>
-            <template #content>
-              <SpecInfos :data="influxdbSpec" />
-            </template>
-          </BkPopover>
-        </span>
-      </div>
+    <template v-else>
+      <InfoItem :label="t('服务器')">
+        <BkButton
+          v-if="getServiceNums() > 0"
+          text
+          theme="primary"
+          @click="handleShowPreview">
+          {{ t('台') }}
+        </BkButton>
+        <span v-else>--</span>
+      </InfoItem>
     </template>
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ $t('访问端口') }}：</span>
-      <span class="ticket-details-item-value">{{ ticketDetails?.details?.port || '--' }}</span>
-    </div>
-  </div>
+    <InfoItem :label="t('访问端口')">
+      {{ ticketDetails.details.port || '--' }}
+    </InfoItem>
+    <EstimatedCost
+      v-if="ticketDetails.details.resource_spec"
+      :params="{
+        db_type: DBTypes.INFLUXDB,
+        resource_spec: ticketDetails.details.resource_spec,
+      }" />
+  </InfoList>
   <HostPreview
     v-model:is-show="previewState.isShow"
     :fetch-nodes="getTicketHostNodes"
@@ -95,19 +79,17 @@
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
   import TicketModel, { type Influxdb } from '@services/model/ticket/ticket';
-  import { getInfrasCities, getTicketHostNodes } from '@services/source/ticket';
+  import { getTicketHostNodes } from '@services/source/ticket';
 
-  import { useSystemEnviron } from '@stores';
-
-  import { TicketTypes } from '@common/const';
+  import { DBTypes, TicketTypes } from '@common/const';
 
   import HostPreview from '@components/host-preview/HostPreview.vue';
 
-  import { redisIpSources } from '@views/db-manage/redis/apply/common/const';
-
+  import EstimatedCost from '../components/EstimatedCost.vue';
+  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  import RegionRequirements from '../components/RegionRequirements.vue';
   import SpecInfos from '../components/SpecInfos.vue';
 
   interface Props {
@@ -120,27 +102,10 @@
   });
   const props = defineProps<Props>();
   const { t } = useI18n();
-  const { AFFINITY: affinityList } = useSystemEnviron().urls;
 
-  const cityName = ref('--');
+  const isFromResourcePool = props.ticketDetails.details.ip_source === 'resource_pool';
 
   const influxdbSpec = computed(() => props.ticketDetails?.details?.resource_spec?.influxdb || {});
-
-  const affinity = computed(() => {
-    const level = props.ticketDetails?.details?.disaster_tolerance_level;
-    if (level && affinityList) {
-      return affinityList.find((item) => item.value === level)?.label;
-    }
-    return '--';
-  });
-
-  useRequest(getInfrasCities, {
-    onSuccess: (cityList) => {
-      const cityCode = props.ticketDetails.details.city_code;
-      const name = cityList.find((item) => item.city_code === cityCode)?.city_name;
-      cityName.value = name ?? '--';
-    },
-  });
 
   /**
    * 获取服务器数量
@@ -170,3 +135,10 @@
     previewState.title = `【InfluxDB】${t('主机预览')}`;
   }
 </script>
+
+<style lang="less" scoped>
+  .info-title {
+    font-weight: bold;
+    color: #313238;
+  }
+</style>

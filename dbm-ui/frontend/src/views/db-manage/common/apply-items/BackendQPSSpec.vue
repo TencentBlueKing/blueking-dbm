@@ -468,13 +468,16 @@
     getData() {
       if (applyType.value === 'auto') {
         const item = specs.value.find((item) => item.spec_id === Number(modelValue.value.spec_id))!;
-        return {
-          cluster_capacity: item.cluster_capacity,
-          cluster_shard_num: item.cluster_shard_num,
-          machine_pair: item.machine_pair,
-          qps: item.qps,
-          spec_name: item.spec_name,
-        };
+        if (item) {
+          return {
+            cluster_capacity: item.cluster_capacity,
+            cluster_shard_num: item.cluster_shard_num,
+            machine_pair: item.machine_pair,
+            qps: item.qps,
+            spec_name: item.spec_name,
+          };
+        }
+        return {};
       }
       const item = specSelectorRef.value!.getData()!;
       const { count } = modelValue.value;

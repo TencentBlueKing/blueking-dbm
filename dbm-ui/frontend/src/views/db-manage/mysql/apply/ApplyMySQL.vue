@@ -36,14 +36,10 @@
             v-model="formdata.details.bk_cloud_id"
             @change="handleChangeCloud" />
         </DbCard>
-        <RegionItem
-          ref="regionItemRef"
-          v-model="formdata.details.city_code" />
+        <RegionRequirements
+          ref="regionRequirements"
+          v-model="formdata.details" />
         <DbCard :title="t('数据库部署信息')">
-          <AffinityItem
-            v-if="!isSingleType"
-            v-model="formdata.details.resource_spec.backend.affinity"
-            :city-code="formdata.details.city_code" />
           <BkFormItem
             v-if="!isSingleType"
             :label="t('Proxy起始端口')"
@@ -123,9 +119,9 @@
               <BkRadioButton label="resource_pool">
                 {{ t('自动从资源池匹配') }}
               </BkRadioButton>
-              <BkRadioButton label="manual_input">
+              <!-- <BkRadioButton label="manual_input">
                 {{ t('业务空闲机') }}
-              </BkRadioButton>
+              </BkRadioButton> -->
             </BkRadioGroup>
           </BkFormItem>
           <Transition
@@ -240,6 +236,11 @@
               </template>
             </div>
           </Transition>
+          <EstimatedCost
+            :params="{
+              db_type: DBTypes.MYSQL,
+              resource_spec: resourceSepc,
+            }" />
           <BkFormItem :label="t('备注')">
             <BkInput
               v-model="formdata.remark"
@@ -304,6 +305,7 @@
 
 <script setup lang="tsx">
   import _ from 'lodash';
+  import { type ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRoute } from 'vue-router';
 
@@ -311,17 +313,17 @@
 
   import { useApplyBase, useTicketCloneInfo } from '@hooks';
 
-  import { mysqlType, type MysqlTypeString, TicketTypes } from '@common/const';
+  import { DBTypes, mysqlType, type MysqlTypeString, TicketTypes } from '@common/const';
   import { OSTypes } from '@common/const';
   import { nameRegx } from '@common/regex';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
-  import AffinityItem from '@views/db-manage/common/apply-items/AffinityItem.vue';
   import BusinessItems from '@views/db-manage/common/apply-items/BusinessItems.vue';
   import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
+  import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
   import ModuleItem from '@views/db-manage/common/apply-items/ModuleItem.vue';
-  import RegionItem from '@views/db-manage/common/apply-items/RegionItem.vue';
+  import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/Common.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
 
   import DomainTable from './components/MySQLDomainTable.vue';
@@ -355,19 +357,21 @@
         remark,
         startMysqlPort,
         startProxyPort,
+        subZoneIds,
       } = cloneData;
 
-      formdata.details.resource_spec.backend.affinity = affinity;
+      formdata.details.disaster_tolerance_level = affinity;
+      formdata.details.sub_zone_ids = subZoneIds;
       formdata.bk_biz_id = bizId;
       formdata.details.bk_cloud_id = cloudId;
-      formdata.details.resource_spec.backend.spec_id = backendSpecId;
+      formdata.details.resource_spec.backend.spec_id = backendSpecId as number;
       formdata.details.city_code = cityCode;
       formdata.details.cluster_count = clusterCount;
       formdata.details.db_module_id = dbModuleId;
       formdata.details.domains = domains;
       formdata.details.inst_num = instNum;
       formdata.details.ip_source = ipSource;
-      formdata.details.resource_spec.proxy.spec_id = proxySpecId;
+      formdata.details.resource_spec.proxy.spec_id = proxySpecId as number;
       formdata.remark = remark;
       formdata.details.start_mysql_port = startMysqlPort;
       formdata.details.start_proxy_port = startProxyPort;
@@ -399,9 +403,11 @@
         remark,
         singleSpecId,
         startMysqlPort,
+        subZoneIds,
       } = cloneData;
 
-      formdata.details.resource_spec.backend.affinity = affinity;
+      formdata.details.disaster_tolerance_level = affinity;
+      formdata.details.sub_zone_ids = subZoneIds;
       formdata.bk_biz_id = bizId;
       formdata.details.bk_cloud_id = cloudId;
       formdata.details.city_code = cityCode;
@@ -426,13 +432,14 @@
   const isSingleType = route.name === 'SelfServiceApplySingle';
   const dbType: string = isSingleType ? TicketTypes.MYSQL_SINGLE_APPLY : TicketTypes.MYSQL_HA_APPLY;
 
+  const regionRequirementsRef = useTemplateRef('regionRequirements');
+
   const specProxyRef = ref();
   const specBackendRef = ref();
   const specSingleRef = ref();
   const backendRef = ref();
   const proxyRef = ref();
   const moduleRef = ref();
-  const regionItemRef = ref();
   const moduleAliasName = ref('');
   const moduleLevelConfig = ref({
     charset: '',
@@ -504,7 +511,26 @@
     return isSingleType ? nums : nums * 2;
   });
 
-  // const isDefaultCity = computed(() => formdata.details.city_code === 'default');
+  const resourceSepc = computed(() => {
+    if (isSingleType) {
+      return {
+        backend: {
+          count: hostNums.value,
+          spec_id: formdata.details.resource_spec.single.spec_id,
+        },
+      } as ComponentProps<typeof EstimatedCost>['params']['resource_spec'];
+    }
+    return {
+      backend_group: {
+        count: Math.floor(hostNums.value / 2),
+        spec_id: formdata.details.resource_spec.backend.spec_id,
+      },
+      proxy: {
+        count: hostNums.value,
+        spec_id: formdata.details.resource_spec.proxy.spec_id,
+      },
+    } as ComponentProps<typeof EstimatedCost>['params']['resource_spec'];
+  });
 
   // 获取基础数据信息
   const { fetchState, formdata, handleResetFormdata } = useMysqlData(dbType);
@@ -689,16 +715,7 @@
 
       const getDetails = () => {
         const details: Record<string, any> = _.cloneDeep(formdata.details);
-        const { cityCode } = regionItemRef.value.getValue();
-        const { affinity } = details.resource_spec.backend;
-
-        const regionAndDisasterParams = {
-          affinity,
-          location_spec: {
-            city: cityCode,
-            sub_zone_ids: [],
-          },
-        };
+        const regionAndDisasterParams = regionRequirementsRef.value!.getValue();
 
         if (formdata.details.ip_source === 'resource_pool') {
           delete details.nodes;
@@ -709,11 +726,8 @@
                 backend: {
                   ...details.resource_spec.single,
                   ...specSingleRef.value.getData(),
+                  ...regionAndDisasterParams,
                   count: hostNums.value,
-                  location_spec: {
-                    city: cityCode,
-                    sub_zone_ids: [],
-                  },
                 },
               },
             };
@@ -721,16 +735,13 @@
 
           return {
             ...details,
-            disaster_tolerance_level: affinity,
+            // disaster_tolerance_level: affinity,
             resource_spec: {
               backend_group: {
                 ...details.resource_spec.backend,
                 ...specBackendRef.value.getData(),
+                ...regionAndDisasterParams,
                 count: Math.floor(hostNums.value / 2),
-                location_spec: {
-                  city: cityCode,
-                  sub_zone_ids: [],
-                },
               },
               proxy: {
                 ...details.resource_spec.proxy,
@@ -745,7 +756,7 @@
         delete details.resource_spec;
         return {
           ...details,
-          disaster_tolerance_level: affinity,
+          // disaster_tolerance_level: affinity,
           nodes: {
             backend: formatNodes(formdata.details.nodes.backend),
             proxy: formatNodes(formdata.details.nodes.proxy),

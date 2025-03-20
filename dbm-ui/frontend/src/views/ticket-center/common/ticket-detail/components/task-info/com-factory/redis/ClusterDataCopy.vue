@@ -72,23 +72,23 @@
     </BkTableColumn>
   </BkTable>
   <InfoList>
-    <InfoItem :label="t('复制类型：')">
+    <InfoItem :label="t('复制类型')">
       {{ copyTypesMap[ticketDetails.details.dts_copy_type] }}
     </InfoItem>
-    <InfoItem :label="t('写入类型：')">
+    <InfoItem :label="t('写入类型')">
       {{ writeTypesMap[ticketDetails.details.write_mode] }}
     </InfoItem>
-    <InfoItem :label="t('断开设置：')">
+    <InfoItem :label="t('断开设置')">
       {{ disconnectTypesMap[ticketDetails.details.sync_disconnect_setting.type] }}
     </InfoItem>
     <InfoItem
       v-if="ticketDetails.details.sync_disconnect_setting.type !== 'auto_disconnect_after_replication'"
-      :label="t('提醒频率：')">
+      :label="t('提醒频率')">
       {{ remindFrequencyTypesMap[ticketDetails.details.sync_disconnect_setting.reminder_frequency] }}
     </InfoItem>
     <InfoItem
       v-if="ticketDetails.details.sync_disconnect_setting.type !== 'auto_disconnect_after_replication'"
-      :label="t('校验与修复类型：')">
+      :label="t('校验与修复类型')">
       {{ repairAndVerifyTypesMap[ticketDetails.details.data_check_repair_setting.type] }}
     </InfoItem>
     <InfoItem
@@ -96,7 +96,7 @@
         ticketDetails.details.sync_disconnect_setting.type !== 'auto_disconnect_after_replication' &&
         ticketDetails.details.data_check_repair_setting.type !== 'no_check_no_repair'
       "
-      :label="t('校验与修复频率设置：')">
+      :label="t('校验与修复频率设置')">
       {{ repairAndVerifyFrequencyTypesMap[ticketDetails.details.data_check_repair_setting.execution_frequency] }}
     </InfoItem>
   </InfoList>
