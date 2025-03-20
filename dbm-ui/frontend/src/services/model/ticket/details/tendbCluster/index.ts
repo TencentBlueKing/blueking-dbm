@@ -23,6 +23,7 @@ export * from './nodeRebalance';
 export * from './openArea';
 export * from './partition';
 export * from './renameDataBase';
+export * as ResourcePool from './resource-pool/index';
 export * from './restoreLocalSlave';
 export * from './restoreSlave';
 export * from './rollbackCluster';

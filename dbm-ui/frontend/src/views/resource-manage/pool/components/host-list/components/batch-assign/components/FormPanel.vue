@@ -63,7 +63,8 @@
         property="labels">
         <TagSelector
           v-model="formData.labels"
-          :bk-biz-id="formData.for_biz" />
+          :bk-biz-id="formData.for_biz"
+          :default-list="currentData?.labels" />
       </BkFormItem>
     </BkForm>
   </div>
@@ -73,6 +74,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import DbResourceModel from '@services/model/db-resource/DbResource';
   import { getBizs } from '@services/source/cmdb';
   import { fetchDbTypeList } from '@services/source/infras';
   import { listTag } from '@services/source/tag';
@@ -82,13 +84,17 @@
 
   interface Props {
     bizId: number;
+    currentData?: {
+      labels: DbResourceModel['labels'];
+      resourceType: string;
+    };
   }
 
   interface Expose {
     getValue: () => Promise<{
+      for_biz: number;
       labels: number[];
       resource_type: string;
-      for_biz: number;
     }>;
   }
 
@@ -99,17 +105,17 @@
 
   const formRef = useTemplateRef('formRef');
 
+  const isBusiness = route.name === 'BizResourcePool';
+
   const formData = reactive({
-    for_biz: 0,
-    resource_type: '',
-    labels: [] as number[],
+    for_biz: isBusiness ? window.PROJECT_CONFIG.BIZ_ID : 0,
+    labels: (props.currentData?.labels || []).map((labelItem) => labelItem.id),
+    resource_type: props.currentData?.resourceType || '',
   });
 
   const bizList = shallowRef<ServiceReturnType<typeof getBizs>>([]);
   const dbTypeList = shallowRef<ServiceReturnType<typeof fetchDbTypeList>>([]);
   const tagList = shallowRef<ServiceReturnType<typeof listTag>['results']>([]);
-
-  const isBusiness = route.name === 'BizResourcePool';
 
   useRequest(getBizs, {
     onSuccess(data) {
@@ -150,8 +156,8 @@
     getValue() {
       return formRef.value!.validate().then(() => ({
         for_biz: Number(formData.for_biz),
-        resource_type: formData.resource_type,
         labels: formData.labels,
+        resource_type: formData.resource_type,
       }));
     },
   });

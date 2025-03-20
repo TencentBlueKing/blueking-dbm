@@ -10,7 +10,22 @@
  * on an "AS IS" BASIS; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND; either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
+
+import { MachineEvents } from '@common/const/machineEvents';
+
+import { bytePretty, utcDisplayTime } from '@utils';
+
+import { t } from '@locales/index';
+
 export default class FaultOrRecycleMachine {
+  static poolTextMap: Record<string, string> = {
+    dirty: t('污点池'),
+    fault: t('故障池'),
+    recycle: t('待回收池'),
+    recycled: t('已回收'),
+    resource: t('资源池'),
+  };
+
   agent_status: number;
   bk_biz_id: number;
   bk_cloud_id: number;
@@ -23,6 +38,18 @@ export default class FaultOrRecycleMachine {
   creator: string;
   device_class: string;
   ip: string;
+  latest_event: {
+    bk_biz_id: number;
+    bk_host_id: number;
+    creator: string;
+    event: MachineEvents;
+    id: number;
+    ip: string;
+    remark: string;
+    ticket?: number;
+    to: string;
+    updater: string;
+  };
   os_name: string;
   pool: string;
   rack_id: string;
@@ -39,17 +66,30 @@ export default class FaultOrRecycleMachine {
     this.bk_disk = payload.bk_disk;
     this.bk_host_id = payload.bk_host_id;
     this.bk_mem = payload.bk_mem;
-    this.city = payload.city;
+    this.city = payload.city || '--';
     this.create_at = payload.create_at;
     this.creator = payload.creator;
-    this.device_class = payload.device_class;
+    this.device_class = payload.device_class || '--';
     this.ip = payload.ip;
     this.os_name = payload.os_name;
     this.pool = payload.pool;
-    this.rack_id = payload.rack_id;
-    this.sub_zone = payload.sub_zone;
+    this.rack_id = payload.rack_id || '--';
+    this.sub_zone = payload.sub_zone || '--';
+    this.latest_event = payload.latest_event || {};
     this.ticket = payload.ticket;
     this.update_at = payload.update_at;
     this.updater = payload.updater;
+  }
+
+  get bkMemText() {
+    return bytePretty(this.bk_mem * 1024 * 1024);
+  }
+
+  get poolDispaly() {
+    return FaultOrRecycleMachine.poolTextMap[this.pool] || [];
+  }
+
+  get updateAtDisplay() {
+    return utcDisplayTime(this.update_at) || '--';
   }
 }

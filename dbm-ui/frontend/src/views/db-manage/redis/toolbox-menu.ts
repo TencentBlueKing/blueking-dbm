@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import { TicketTypes } from '@common/const';
+
 import { t } from '@locales/index';
 
 export interface MenuItem {
@@ -47,7 +49,7 @@ export default [
           },
           {
             dbConsoleValue: 'redis.toolbox.dbReplace',
-            id: 'RedisDBReplace',
+            id: TicketTypes.REDIS_CLUSTER_CUTOFF,
             name: t('整机替换'),
             parentId: 'common-manage',
           },
@@ -148,13 +150,13 @@ export default [
           },
           {
             dbConsoleValue: 'redis.toolbox.proxyScaleDown',
-            id: 'RedisProxyScaleDown',
+            id: TicketTypes.REDIS_PROXY_SCALE_DOWN,
             name: t('缩容接入层'),
             parentId: 'cluster-manage',
           },
           {
             dbConsoleValue: 'redis.toolbox.capacityChange',
-            id: 'RedisCapacityChange',
+            id: TicketTypes.REDIS_SCALE_UPDOWN,
             name: t('集群容量变更'),
             parentId: 'cluster-manage',
           },

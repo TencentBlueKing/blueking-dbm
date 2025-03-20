@@ -1,4 +1,6 @@
 export interface ClusterListSpec {
+  id: number;
+  name: string;
   cpu: {
     max: number;
     min: number;

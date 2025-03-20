@@ -12,10 +12,17 @@
 -->
 
 <template>
+  <InfoList>
+    <InfoItem :label="t('迁移类型：')">
+      {{ operaObjectMap[ticketDetails.details.opera_object] }}
+    </InfoItem>
+  </InfoList>
   <BkTable
     :data="ticketDetails.details.infos"
     :show-overflow="false">
-    <BkTableColumn :label="t('目标集群')">
+    <BkTableColumn
+      v-if="ticketDetails.details.opera_object === OperaObejctType.CLUSTER"
+      :label="t('目标集群')">
       <template #default="{ data }: { data: RowData }">
         <div
           v-for="clusterId in data.cluster_ids"
@@ -25,7 +32,42 @@
         </div>
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('新主从主机')">
+    <template v-else-if="ticketDetails.details.opera_object === OperaObejctType.MACHINE">
+      <BkTableColumn
+        :label="t('目标Master主机')"
+        :min-width="150">
+        <template #default="{ data }: { data: RowData }">
+          {{ data.old_nodes.old_master[0].ip }}
+        </template>
+      </BkTableColumn>
+
+      <BkTableColumn
+        :label="t('同机关联实例')"
+        :min-width="300">
+        <template #default="{ data }: { data: RowData }">
+          <p
+            v-for="item in relatedInstances[data.old_nodes.old_master[0].ip]"
+            :key="item">
+            {{ item }}
+          </p>
+        </template>
+      </BkTableColumn>
+
+      <BkTableColumn
+        :label="t('同机关联集群')"
+        :min-width="300">
+        <template #default="{ data }: { data: RowData }">
+          <p
+            v-for="item in relatedInstances[data.old_nodes.old_master[0].ip]"
+            :key="item">
+            {{ item }}
+          </p>
+        </template>
+      </BkTableColumn>
+    </template>
+    <BkTableColumn
+      :label="t('新主从主机')"
+      :min-width="150">
       <template #default="{ data }: { data: RowData }">
         <div>
           <BkTag
@@ -54,8 +96,11 @@
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
+  import { checkInstance } from '@services/source/dbbase';
+  import { OperaObejctType } from '@services/types';
 
   import { TicketTypes } from '@common/const';
 
@@ -72,7 +117,34 @@
     inheritAttrs: false,
   });
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
+
+  const operaObjectMap = {
+    [OperaObejctType.CLUSTER]: t('集群迁移'),
+    [OperaObejctType.MACHINE]: t('整机迁移'),
+  };
+
+  const relatedInstances = reactive<Record<string, string[]>>({});
+  const relatedClusters = reactive<Record<string, string[]>>({});
+
+  useRequest(checkInstance, {
+    defaultParams: [
+      {
+        bk_biz_id: props.ticketDetails.bk_biz_id,
+        instance_addresses: props.ticketDetails.details.infos.map((item) => item.old_nodes.old_master[0].ip),
+      },
+    ],
+    onSuccess: (data) => {
+      data.forEach((item) => {
+        Object.assign(relatedInstances, {
+          [item.ip]: [...(relatedInstances[item.ip] || []), item.instance_address],
+        });
+        Object.assign(relatedClusters, {
+          [item.ip]: [...(relatedClusters[item.ip] || []), item.master_domain],
+        });
+      });
+    },
+  });
 </script>

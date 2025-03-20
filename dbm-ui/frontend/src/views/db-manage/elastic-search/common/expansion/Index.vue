@@ -48,6 +48,7 @@
             name: data.bk_cloud_name,
           }"
           :data="nodeInfoMap[nodeType]"
+          :db-type="DBTypes.ES"
           :disable-host-method="disableHostMethod"
           :ip-source="ipSource" />
       </div>
@@ -67,11 +68,9 @@
 
   import { useTicketMessage } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
-  import { ClusterTypes } from '@common/const';
-
-  import HostExpansion, { type TExpansionNode } from '@views/db-manage/common/es-host-expansion/Index.vue';
+  import HostExpansion, { type TExpansionNode } from '@views/db-manage/common/host-expansion/Index.vue';
   import NodeStatusList from '@views/db-manage/common/host-expansion/NodeStatusList.vue';
 
   import { messageError } from '@utils';
@@ -93,16 +92,13 @@
     hostList.reduce(
       (result, item) => ({
         ...result,
-        [item.host_id]: true,
+        [item.bk_host_id]: true,
       }),
       {} as Record<number, boolean>,
     );
 
   const { t } = useI18n();
-  const globalBizsStore = useGlobalBizs();
   const ticketMessage = useTicketMessage();
-
-  const bizId = globalBizsStore.currentBizId;
 
   const nodeStatusList = [
     {
@@ -129,7 +125,6 @@
       originalHostList: [],
       resourceSpec: {
         count: 0,
-        instance_num: 1,
         spec_id: 0,
       },
       role: 'es_client',
@@ -147,7 +142,6 @@
       originalHostList: [],
       resourceSpec: {
         count: 0,
-        instance_num: 1,
         spec_id: 0,
       },
       role: 'es_datanode_cold',
@@ -165,7 +159,6 @@
       originalHostList: [],
       resourceSpec: {
         count: 0,
-        instance_num: 1,
         spec_id: 0,
       },
       role: 'es_datanode_hot',
@@ -288,15 +281,12 @@
             const generateExtInfo = () =>
               Object.entries(nodeInfoMap).reduce(
                 (results, [key, item]) => {
-                  const obj = {
-                    // target_disk: item.targetDisk,
-                    expansion_disk: item.expansionDisk,
-                    host_list: item.hostList,
-                    total_disk: item.totalDisk,
-                    total_hosts: item.originalHostList.length,
-                  };
                   Object.assign(results, {
-                    [key]: obj,
+                    [key]: {
+                      expansion_disk: item.expansionDisk,
+                      total_disk: item.totalDisk,
+                      total_hosts: item.originalHostList.length,
+                    },
                   });
                   return results;
                 },
@@ -304,25 +294,25 @@
               );
 
             if (ipSource.value === 'manual_input') {
-              const fomatHost = (hostList: TExpansionNode['hostList'] = []) =>
-                hostList.map((hostItem) => ({
-                  bk_biz_id: hostItem.meta.bk_biz_id,
-                  bk_cloud_id: hostItem.cloud_id,
-                  bk_host_id: hostItem.host_id,
-                  instance_num: hostItem.instance_num,
+              const formatHost = (hostList: TExpansionNode['hostList'] = []) => {
+                const hosts = hostList.map((hostItem) => ({
+                  bk_biz_id: hostItem.dedicated_biz,
+                  bk_cloud_id: hostItem.bk_cloud_id,
+                  bk_disk: hostItem.bk_disk,
+                  bk_host_id: hostItem.bk_host_id,
                   ip: hostItem.ip,
                 }));
+                return {
+                  count: hostList.length,
+                  hosts,
+                  spec_id: 0,
+                };
+              };
               Object.assign(hostData, {
-                nodes: {
-                  // client 节点没有 instance_num
-                  client: nodeInfoMap.client.hostList.map((hostItem) => ({
-                    bk_biz_id: hostItem.meta.bk_biz_id,
-                    bk_cloud_id: hostItem.cloud_id,
-                    bk_host_id: hostItem.host_id,
-                    ip: hostItem.ip,
-                  })),
-                  cold: fomatHost(nodeInfoMap.cold.hostList),
-                  hot: fomatHost(nodeInfoMap.hot.hostList),
+                resource_spec: {
+                  client: formatHost(nodeInfoMap.client.hostList),
+                  cold: formatHost(nodeInfoMap.cold.hostList),
+                  hot: formatHost(nodeInfoMap.hot.hostList),
                 },
               });
             } else {
@@ -351,14 +341,14 @@
             }
 
             createTicket({
-              bk_biz_id: bizId,
+              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
               details: {
                 cluster_id: props.data.id,
-                ip_source: ipSource.value,
-                ...hostData,
                 ext_info: generateExtInfo(),
+                ip_source: 'resource_pool',
+                ...hostData,
               },
-              ticket_type: 'ES_SCALE_UP',
+              ticket_type: TicketTypes.ES_SCALE_UP,
             }).then((data) => {
               ticketMessage(data.id);
               resolve('success');

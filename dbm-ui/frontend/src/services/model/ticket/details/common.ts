@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import type { ClusterTypes } from '@common/const';
+
 export interface DetailBase {
   __ticket_detail__: string;
 }
@@ -21,7 +23,7 @@ export interface DetailClusters {
     bk_biz_id: number;
     bk_cloud_id: number;
     bk_cloud_name: string;
-    cluster_type: string;
+    cluster_type: ClusterTypes;
     cluster_type_name: string;
     creator: string;
     db_module_id: number;
@@ -106,4 +108,56 @@ export interface NodeInfo {
   storage_device: Record<string, any>;
   sub_zone: string;
   sub_zone_id: string;
+}
+
+export interface ResourcePoolRecycleHost {
+  bk_agent_id: string;
+  bk_biz_id: number;
+  bk_cloud_id: number;
+  bk_cloud_name: string;
+  bk_cloud_vendor?: any;
+  bk_cpu: number;
+  bk_cpu_architecture: string;
+  bk_cpu_module: string;
+  bk_disk: number;
+  bk_host_id: number;
+  bk_host_innerip: string;
+  bk_host_innerip_v6: string;
+  bk_host_name: string;
+  bk_host_outerip: string;
+  bk_mem: number;
+  bk_os_name: string;
+  bk_os_type: string;
+  city: string;
+  device_class: string;
+  host_id: number;
+  ip: string;
+  operator: string;
+  os_name: string;
+  os_type: string;
+  rack_id: string;
+  status: number;
+  sub_zone: string;
+}
+
+/**
+ * 已下架主机再利用
+ */
+export interface ResourcePoolRecycle extends DetailBase {
+  fault_hosts: ResourcePoolRecycleHost[]; // 转移到故障池机器
+  group: string; // 回收机器的组件类型
+  parent_ticket: number; // 关联的父单
+  recycle_hosts: ResourcePoolRecycleHost[]; // 转移到待回收的机器
+  recycled_hosts: ResourcePoolRecycleHost[]; // 转移到CC待回收的机器
+  resource_hosts: ResourcePoolRecycleHost[]; // 退回到资源池的机器
+}
+
+export interface ResourcePoolDetailBase extends DetailBase, Omit<ResourcePoolRecycle, 'group' | 'parent_ticket'> {
+  clusters: DetailClusters;
+  ip_recycle: {
+    for_biz: number;
+    ip_dest: 'resource';
+  };
+  ip_source: 'resource_pool';
+  specs: DetailSpecs;
 }

@@ -32,6 +32,17 @@ import DbStatus from '@components/db-status/index.vue';
 import DbTable from '@components/db-table/index.vue';
 import DbOriginalTable from '@components/db-table/OriginalTable.vue';
 import DbTextarea from '@components/db-textarea/DbTextarea.vue';
+import EditableTable, {
+  Block as EditableBlock,
+  Column as EditableColumn,
+  DatePicker as EditableDatePicker,
+  Input as EditableInput,
+  Row as EditableRow,
+  Select as EditableSelect,
+  TagInput as EditableTagInput,
+  Textarea as EditableTextarea,
+  TimePicker as EditableTimePicker,
+} from '@components/editable-table/Index.vue';
 import FunController from '@components/function-controller/FunController.vue';
 import MoreActionExtend from '@components/more-action-extend/Index.vue';
 import ScrollFaker from '@components/scroll-faker/Index.vue';
@@ -39,11 +50,24 @@ import SkeletonLoading from '@components/skeleton-loading/Index.vue';
 import SmartAction from '@components/smart-action/Index.vue';
 import { ipSelector } from '@components/vue2/ip-selector';
 
+import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
+
 import UserSelector from '@patch/user-selector/selector.vue';
 
 import('@blueking/table/vue3/vue3.css');
 
 export const setGlobalComps = (app: App<Element>) => {
+  app.component('EditableTable', EditableTable);
+  app.component('EditableBlock', EditableBlock);
+  app.component('EditableColumn', EditableColumn);
+  app.component('EditableDatePicker', EditableDatePicker);
+  app.component('EditableInput', EditableInput);
+  app.component('EditableRow', EditableRow);
+  app.component('EditableSelect', EditableSelect);
+  app.component('EditableTagInput', EditableTagInput);
+  app.component('EditableTextarea', EditableTextarea);
+  app.component('EditableTimePicker', EditableTimePicker);
+  app.component('OperationColumn', OperationColumn);
   app.component('DbCard', DbCard);
   app.component('DbForm', DbForm);
   app.component('DbFormItem', DbFormItem);

@@ -51,52 +51,30 @@
   import FaultOrRecycleMachineModel from '@services/model/db-resource/FaultOrRecycleMachine';
   import { importResource } from '@services/source/dbresourceResource';
 
-  import { messageSuccess } from '@utils';
+  import { useSystemEnviron } from '@stores';
+
+  import { useImportResourcePoolTooltip } from '../../../hooks/useImportResourcePoolTip';
 
   import FormPanel from './components/FormPanel.vue';
   import ListPanel from './components/ListPanel.vue';
-
-  interface Emits {
-    (e: 'refresh'): void;
-  }
 
   const emits = defineEmits<Emits>();
 
   const isShow = defineModel<boolean>('isShow', {
     default: false,
   });
+
   const hostList = defineModel<FaultOrRecycleMachineModel[]>('hostList', {
     default: () => [],
   });
 
+  type Emits = (e: 'refresh') => void;
+
   const { t } = useI18n();
+  const systemEnvironStore = useSystemEnviron();
+
   const formPanelRef = useTemplateRef('formPanelRef');
-  const router = useRouter();
-
-
-
-  const tooltip = computed(() => {
-    const path = router.resolve({
-      name: 'taskHistory'
-    });
-    return !hostList.value.length
-      ? {
-        disabled: !!hostList.value.length,
-        content: t('请选择主机'),
-      }
-      : {
-        theme: 'light',
-        content: () => (
-          <div>
-            {t('提交后，将会进行主机初始化任务，具体的导入结果，可以通过“')}
-            <a href={path.href} target='_blank'>
-              {t('任务历史')}
-            </a>
-            {t('”查看')}
-          </div>
-        )
-      }
-  });
+  const { successMessage, tooltip } = useImportResourcePoolTooltip(hostList);
 
   const width = Math.ceil(window.innerWidth * 0.8);
   const contentHeight = Math.ceil(window.innerHeight * 0.8 - 48);
@@ -106,9 +84,9 @@
 
   const { loading: isUpdating, run: runImport } = useRequest(importResource, {
     manual: true,
-    onSuccess() {
+    onSuccess({ task_ids: taskIds }) {
       handleCancel();
-      messageSuccess(t('操作成功'));
+      successMessage(taskIds);
     },
   });
 
@@ -119,14 +97,16 @@
   const handleSubmit = async () => {
     const data = await formPanelRef.value!.getValue();
     runImport({
-      hosts: hostList.value.map((item) => ({
-        ip: item.ip,
-        host_id: item.bk_host_id,
-        bk_cloud_id: item.bk_cloud_id,
-      })),
+      bk_biz_id: systemEnvironStore.urls.DBA_APP_BK_BIZ_ID,
       for_biz: data.for_biz as number,
-      resource_type: data.resource_type as string,
+      hosts: hostList.value.map((item) => ({
+        bk_cloud_id: item.bk_cloud_id,
+        host_id: item.bk_host_id,
+        ip: item.ip,
+      })),
       labels: data.labels,
+      resource_type: data.resource_type as string,
+      return_resource: true,
     });
   };
 

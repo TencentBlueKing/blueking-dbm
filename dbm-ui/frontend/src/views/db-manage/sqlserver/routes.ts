@@ -15,7 +15,13 @@ import type { RouteRecordRaw } from 'vue-router';
 import type { SqlServerFunctions } from '@services/model/function-controller/functionController';
 import FunctionControllModel from '@services/model/function-controller/functionController';
 
+import { DBTypes, TicketTypes } from '@common/const';
+
+import { createToolboxRoute } from '@utils';
+
 import { t } from '@locales/index';
+
+const { createRouteItem } = createToolboxRoute(DBTypes.SQLSERVER);
 
 const routes: RouteRecordRaw[] = [
   {
@@ -97,22 +103,8 @@ const toolboxRouters: RouteRecordRaw[] = [
         },
         component: () => import('@views/db-manage/sqlserver/db-rename/Index.vue'),
       },
-      {
-        path: 'slave-rebuild/:page?',
-        name: 'sqlServerSlaveRebuild',
-        meta: {
-          navName: t('重建从库'),
-        },
-        component: () => import('@views/db-manage/sqlserver/slave-rebuild/index.vue'),
-      },
-      {
-        path: 'slave-add/:page?',
-        name: 'sqlServerSlaveAdd',
-        meta: {
-          navName: t('添加从库'),
-        },
-        component: () => import('@views/db-manage/sqlserver/slave-add/index.vue'),
-      },
+      createRouteItem(TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE, t('重建从库')),
+      createRouteItem(TicketTypes.SQLSERVER_ADD_SLAVE, t('添加从库')),
       {
         path: 'master-slave-swap/:page?',
         name: 'sqlServerMasterSlaveSwap',

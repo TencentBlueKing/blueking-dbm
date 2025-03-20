@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import { TicketTypes } from '@common/const';
+
 import { t } from '@locales/index';
 
 export interface MenuChild {
@@ -63,7 +65,7 @@ export default [
     children: [
       {
         dbConsoleValue: 'mysql.toolbox.rollback',
-        id: 'MySQLDBRollback',
+        id: TicketTypes.MYSQL_ROLLBACK_CLUSTER,
         name: t('定点构造'),
         parentId: 'fileback',
       },
@@ -101,19 +103,19 @@ export default [
     children: [
       {
         dbConsoleValue: 'mysql.toolbox.slaveRebuild',
-        id: 'MySQLSlaveRebuild',
+        id: TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE,
         name: t('重建从库'),
         parentId: 'migrate',
       },
       {
         dbConsoleValue: 'mysql.toolbox.slaveAdd',
-        id: 'MySQLSlaveAdd',
+        id: TicketTypes.MYSQL_ADD_SLAVE,
         name: t('添加从库'),
         parentId: 'migrate',
       },
       {
         dbConsoleValue: 'mysql.toolbox.masterSlaveClone',
-        id: 'MySQLMasterSlaveClone',
+        id: TicketTypes.MYSQL_MIGRATE_CLUSTER,
         name: t('迁移主从'),
         parentId: 'migrate',
       },
@@ -125,25 +127,25 @@ export default [
       },
       {
         dbConsoleValue: 'mysql.toolbox.proxyReplace',
-        id: 'MySQLProxyReplace',
+        id: TicketTypes.MYSQL_PROXY_SWITCH,
         name: t('替换Proxy'),
         parentId: 'migrate',
       },
       {
         dbConsoleValue: 'mysql.toolbox.proxyAdd',
-        id: 'MySQLProxyAdd',
+        id: TicketTypes.MYSQL_PROXY_ADD,
         name: t('添加Proxy'),
         parentId: 'migrate',
       },
       {
         dbConsoleValue: 'mysql.toolbox.masterFailover',
-        id: 'MySQLMasterFailover',
+        id: TicketTypes.MYSQL_MASTER_FAIL_OVER,
         name: t('主库故障切换'),
         parentId: 'migrate',
       },
       {
         dbConsoleValue: 'mysql.toolbox.versionUpgrade',
-        id: 'MySQLVersionUpgrade',
+        id: TicketTypes.MYSQL_PROXY_UPGRADE,
         name: t('版本升级'),
         parentId: 'migrate',
       },
