@@ -81,9 +81,7 @@
     editData: DbResourceModel;
   }
 
-  interface Emits {
-    (e: 'refresh'): void;
-  }
+  type Emits = (e: 'refresh') => void;
 
   const props = defineProps<Props>();
 
@@ -100,8 +98,8 @@
 
   const formData = reactive({
     for_biz: globalBizsStore.currentBizId,
-    resource_type: '',
     labels: [] as DbResourceModel['labels'][number]['id'][],
+    resource_type: '',
   });
   const bizList = shallowRef<ServiceReturnType<typeof getBizs>>([]);
   const dbTypeList = shallowRef<ServiceReturnType<typeof fetchDbTypeList>>([]);
@@ -119,8 +117,8 @@
       formData.labels = props.editData.labels.map((item) => item.id);
     },
     {
-      immediate: true,
       deep: true,
+      immediate: true,
     },
   );
 
@@ -161,9 +159,9 @@
     runUpdate({
       bk_host_ids: [props.editData.bk_host_id],
       for_biz: Number(formData.for_biz),
-      resource_type: formData.resource_type,
       labels: formData.labels,
       rack_id: '',
+      resource_type: formData.resource_type,
       storage_device: {},
     });
   };

@@ -18,17 +18,17 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
-    name: 'BizResourcePool',
     path: 'pool/:page?',
+    name: 'BizResourcePool',
     meta: {
-      navName: t('资源池'),
       fullscreen: true,
+      navName: t('资源池'),
     },
     component: () => import('@views/resource-manage/pool/business/Index.vue'),
   },
   {
-    name: 'BizResourceTag',
     path: 'business-resource-tag',
+    name: 'BizResourceTag',
     meta: {
       navName: t('资源标签'),
     },

@@ -18,6 +18,18 @@
         </span>
       </BkMenuItem>
       <BkMenuItem
+        key="faultPool"
+        v-db-console="'resourceManage.faultPool'">
+        <template #icon>
+          <DbIcon type="guzhangji" />
+        </template>
+        <span
+          v-overflow-tips.right
+          class="text-overflow">
+          {{ t('故障池') }}
+        </span>
+      </BkMenuItem>
+      <BkMenuItem
         key="toRecyclePool"
         v-db-console="'resourceManage.toRecyclePool'">
         <template #icon>
@@ -30,15 +42,15 @@
         </span>
       </BkMenuItem>
       <BkMenuItem
-        key="faultPool"
-        v-db-console="'resourceManage.faultPool'">
+        key="allHost"
+        v-db-console="'resourceManage.allHost'">
         <template #icon>
-          <DbIcon type="guzhangji" />
+          <DbIcon type="list" />
         </template>
         <span
           v-overflow-tips.right
           class="text-overflow">
-          {{ t('故障池') }}
+          {{ t('所有主机') }}
         </span>
       </BkMenuItem>
       <BkMenuItem

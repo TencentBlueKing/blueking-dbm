@@ -82,19 +82,17 @@
   import { fetchDbTypeList } from '@services/source/infras';
   import type { BizItem } from '@services/types';
 
-  import { useGlobalBizs } from '@stores';
+  import { useGlobalBizs, useSystemEnviron } from '@stores';
 
   import TagSelector from '@views/resource-manage/pool/components/tag-selector/Index.vue';
 
-  import { messageSuccess } from '@utils';
+  import { useImportResourcePoolTooltip } from '../../hooks/useImportResourcePoolTip';
 
   interface Props {
     data: FaultOrRecycleMachineModel;
   }
 
-  interface Emits {
-    (e: 'refresh'): void;
-  }
+  type Emits = (e: 'refresh') => void;
 
   const props = defineProps<Props>();
 
@@ -105,44 +103,26 @@
   });
 
   const { t } = useI18n();
-  const router = useRouter();
   const globalBizsStore = useGlobalBizs();
+  const systemEnvironStore = useSystemEnviron();
+  const { successMessage, tooltip } = useImportResourcePoolTooltip();
 
   const formRef = useTemplateRef('formRef');
 
   const formData = reactive({
     for_biz: 0,
-    resource_type: '',
     labels: [] as DbResourceModel['labels'][number]['id'][],
+    resource_type: '',
   });
   const dbTypeList = shallowRef<ServiceReturnType<typeof fetchDbTypeList>>([]);
 
-  const bizList = computed(() => (
-    [
-      {
-        bk_biz_id: 0,
-        display_name: t('公共资源池'),
-      } as BizItem,
-      ...globalBizsStore.bizs
-    ]
-  ));
-
-  const path = router.resolve({
-    name: 'taskHistory'
-  });
-
-  const tooltip = {
-    theme: 'light',
-    content: () => (
-      <div>
-        {t('提交后，将会进行主机初始化任务，具体的导入结果，可以通过“')}
-        <a href={path.href} target='_blank'>
-          {t('任务历史')}
-        </a>
-        {t('”查看')}
-      </div>
-    )
-  };
+  const bizList = computed(() => [
+    {
+      bk_biz_id: 0,
+      display_name: t('公共资源池'),
+    } as BizItem,
+    ...globalBizsStore.bizs,
+  ]);
 
   useRequest(fetchDbTypeList, {
     onSuccess(data) {
@@ -158,26 +138,28 @@
 
   const { loading: isImporting, run: runImport } = useRequest(importResource, {
     manual: true,
-    onSuccess() {
+    onSuccess({ task_ids: taskIds }) {
       emits('refresh');
       isShow.value = false;
-      messageSuccess(t('操作成功'));
+      successMessage(taskIds);
     },
   });
 
   const handleSubmit = async () => {
     await formRef.value!.validate();
     runImport({
+      bk_biz_id: systemEnvironStore.urls.DBA_APP_BK_BIZ_ID,
+      for_biz: Number(formData.for_biz),
       hosts: [
         {
-          ip: props.data.ip,
-          host_id: props.data.bk_host_id,
           bk_cloud_id: props.data.bk_cloud_id,
+          host_id: props.data.bk_host_id,
+          ip: props.data.ip,
         },
       ],
-      for_biz: Number(formData.for_biz),
-      resource_type: formData.resource_type,
       labels: formData.labels,
+      resource_type: formData.resource_type,
+      return_resource: true,
     });
   };
 

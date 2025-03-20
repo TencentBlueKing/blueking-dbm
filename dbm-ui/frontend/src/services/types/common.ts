@@ -33,3 +33,14 @@ export enum RepairModes {
   AUTO_REPAIR = 'auto_repair',
   MANUAL_CONFIRM = 'manual_confirm',
 }
+
+export enum BackupSourceType {
+  LOCAL = 'local',
+  REMOTE = 'remote',
+}
+
+export enum OperaObejctType {
+  CLUSTER = 'cluster',
+  INSTANCE = 'instance',
+  MACHINE = 'machine',
+}

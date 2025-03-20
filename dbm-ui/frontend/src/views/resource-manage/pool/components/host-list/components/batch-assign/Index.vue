@@ -16,7 +16,8 @@
       <template #main>
         <FormPanel
           ref="formPanelRef"
-          :biz-id="curBizId" />
+          :biz-id="curBizId"
+          :current-data="currentData" />
       </template>
       <template #aside>
         <ListPanel
@@ -67,9 +68,7 @@
     selected: DbResourceModel[];
   }
 
-  interface Emits {
-    (e: 'refresh'): void;
-  }
+  type Emits = (e: 'refresh') => void;
 
   const props = defineProps<Props>();
 
@@ -77,9 +76,6 @@
 
   const isShow = defineModel<boolean>('isShow', {
     default: false,
-  });
-  const hostList = defineModel<DbResourceModel[]>('hostList', {
-    default: () => [],
   });
 
   const { t } = useI18n();
@@ -91,7 +87,20 @@
     height: `${contentHeight}px`,
   };
 
+  const hostList = shallowRef<DbResourceModel[]>([]);
+
   const curBizId = computed(() => hostList.value[0]?.for_biz.bk_biz_id || 0);
+
+  const currentData = computed(() => {
+    if (props.selected.length === 1) {
+      const { labels, resource_type: resourceType } = props.selected[0];
+      return {
+        labels: labels,
+        resourceType,
+      };
+    }
+    return undefined;
+  });
 
   const { loading: isUpdating, run: runUpdate } = useRequest(updateResource, {
     manual: true,
@@ -118,9 +127,9 @@
     runUpdate({
       bk_host_ids: hostList.value.map((item) => item.bk_host_id),
       for_biz: data.for_biz as number,
-      resource_type: data.resource_type as string,
       labels: data.labels,
       rack_id: '',
+      resource_type: data.resource_type as string,
       storage_device: {},
     });
   };

@@ -18,9 +18,11 @@ import FunctionControllModel, {
   type MySQLFunctions,
 } from '@services/model/function-controller/functionController';
 
-import { AccountTypes } from '@common/const';
+import { AccountTypes, DBTypes, TicketTypes } from '@common/const';
 
-import { checkDbConsole } from '@utils';
+import { checkDbConsole, createToolboxRoute } from '@utils';
+
+const { createRouteItem } = createToolboxRoute(DBTypes.TENDBCLUSTER);
 
 import { t } from '@locales/index';
 
@@ -137,15 +139,9 @@ const spiderToolboxRoute = {
       },
       component: () => import('@views/db-manage/tendb-cluster/proxy-scale-up/Index.vue'),
     },
-    {
-      path: 'proxy-scale-down/:page?',
-      name: 'SpiderProxyScaleDown',
-      meta: {
-        dbConsole: 'tendbCluster.toolbox.proxyScaleDown',
-        navName: t('缩容接入层'),
-      },
-      component: () => import('@views/db-manage/tendb-cluster/proxy-scale-down/Index.vue'),
-    },
+    createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES, t('缩容接入层'), {
+      dbConsole: 'tendbCluster.toolbox.proxyScaleDown',
+    }),
     {
       path: 'proxy-slave-apply/:page?',
       name: 'SpiderProxySlaveApply',
@@ -155,15 +151,9 @@ const spiderToolboxRoute = {
       },
       component: () => import('@views/db-manage/tendb-cluster/proxy-slave-apply/Index.vue'),
     },
-    {
-      path: 'add-mnt/:page?',
-      name: 'spiderAddMnt',
-      meta: {
-        dbConsole: 'tendbCluster.toolbox.addMnt',
-        navName: t('添加运维节点'),
-      },
-      component: () => import('@views/db-manage/tendb-cluster/add-mnt/Index.vue'),
-    },
+    createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY, t('添加运维节点'), {
+      dbConsole: 'tendbCluster.toolbox.addMnt',
+    }),
     {
       path: 'db-table-backup/:page?',
       name: 'spiderDbTableBackup',
@@ -200,15 +190,9 @@ const spiderToolboxRoute = {
       },
       component: () => import('@views/db-manage/tendb-cluster/TENDBCLUSTER_FLASHBACK/Index.vue'),
     },
-    {
-      path: 'rollback/:page?',
-      name: 'spiderRollback',
-      meta: {
-        dbConsole: 'tendbCluster.toolbox.rollback',
-        navName: t('定点构造'),
-      },
-      component: () => import('@views/db-manage/tendb-cluster/rollback/Index.vue'),
-    },
+    createRouteItem(TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER, t('定点构造'), {
+      dbConsole: 'tendbCluster.toolbox.rollback',
+    }),
     {
       path: 'rollback-record',
       name: 'spiderRollbackRecord',
@@ -263,24 +247,12 @@ const spiderToolboxRoute = {
       },
       component: () => import('@views/db-manage/tendb-cluster/openarea-template/Index.vue'),
     },
-    {
-      path: 'master-slave-clone/:page?',
-      name: 'spiderMasterSlaveClone',
-      meta: {
-        dbConsole: 'tendbCluster.toolbox.masterSlaveClone',
-        navName: t('迁移主从'),
-      },
-      component: () => import('@views/db-manage/tendb-cluster/master-slave-clone/Index.vue'),
-    },
-    {
-      path: 'slave-rebuild/:page?',
-      name: 'spiderSlaveRebuild',
-      meta: {
-        dbConsole: 'tendbCluster.toolbox.slaveRebuild',
-        navName: t('重建从库'),
-      },
-      component: () => import('@views/db-manage/tendb-cluster/slave-rebuild/Index.vue'),
-    },
+    createRouteItem(TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER, t('迁移主从'), {
+      dbConsole: 'tendbCluster.toolbox.masterSlaveClone',
+    }),
+    createRouteItem(TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE, t('重建从库'), {
+      dbConsole: 'tendbCluster.toolbox.slaveRebuild',
+    }),
     {
       path: 'webconsole',
       name: 'SpiderWebconsole',

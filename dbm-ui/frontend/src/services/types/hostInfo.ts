@@ -16,6 +16,7 @@
  */
 export interface HostInfo {
   agent_id: number;
+  agent_status: number;
   alive: number;
   biz: {
     id: number;

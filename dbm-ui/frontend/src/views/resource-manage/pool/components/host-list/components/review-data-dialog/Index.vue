@@ -18,7 +18,13 @@
     :title="title"
     @closed="handleClose">
     <div class="review-data-wrapper">
-      <div class="tip">{{ tip }}</div>
+      <div class="dialog-tip">{{ tip }}</div>
+      <BkAlert
+        v-if="alert"
+        class="mb-8"
+        closable
+        theme="warning"
+        :title="alert" />
       <div class="selected-wrapper">
         <div class="selected-title">
           <I18nT keypath="已选择以下n台主机">
@@ -36,22 +42,37 @@
           </div>
         </div>
       </div>
+      <BkForm
+        v-if="showRemark"
+        ref="formRef"
+        class="mt-16"
+        form-type="vertical"
+        :model="formData">
+        <BkFormItem
+          :label="t('备注')"
+          property="remark"
+          required>
+          <BkInput
+            v-model="formData.remark"
+            class="mt-6" />
+        </BkFormItem>
+      </BkForm>
     </div>
     <template #footer>
-      <div class="footer">
+      <div class="dialog-footer">
         <BkButton
-          :loading="loading"
+          :loading="isLoading"
           style="width: 88px"
           :theme="theme"
-          @click="handleConfirm"
-          >{{ t('确定') }}
+          @click="handleConfirm">
+          {{ t('确定') }}
         </BkButton>
         <BkButton
           class="ml-9 operation-btn"
-          :loading="loading"
+          :disabled="isLoading"
           style="width: 88px"
-          @click="handleClose"
-          >{{ t('取消') }}
+          @click="handleClose">
+          {{ t('取消') }}
         </BkButton>
       </div>
     </template>
@@ -59,22 +80,27 @@
 </template>
 
 <script setup lang="tsx">
+  import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import { messageSuccess } from '@utils';
+
   interface Props {
-    title: string;
-    tip: string;
-    loading: boolean;
+    alert?: string;
+    cancelHandler?: () => Promise<any> | void;
+    confirmHandler: (value: UnwrapRef<typeof formData>) => Promise<any> | void;
     selected: string[];
+    showRemark?: boolean;
     theme?: 'primary' | 'danger';
+    tip: string;
+    title: string;
   }
 
-  interface Emits {
-    (e: 'confirm'): void;
-    (e: 'cancel'): void;
-  }
+  type Emits = (e: 'success') => void;
 
-  withDefaults(defineProps<Props>(), {
+  const props = withDefaults(defineProps<Props>(), {
+    alert: undefined,
+    cancelHandler: () => Promise.resolve(),
     theme: 'primary',
   });
 
@@ -85,14 +111,36 @@
 
   const { t } = useI18n();
 
+  const formRef = useTemplateRef('formRef');
+
+  const isLoading = ref(false);
+
+  const formData = reactive({
+    remark: '',
+  });
+
   const handleConfirm = () => {
-    emits('confirm');
-    isShow.value = false;
+    isLoading.value = true;
+    Promise.resolve()
+      .then(() => formRef.value?.validate())
+      .then(() => props.confirmHandler(formData))
+      .then(() => {
+        messageSuccess(t('操作成功'));
+        emits('success');
+        isShow.value = false;
+        formData.remark = '';
+      })
+      .finally(() => {
+        isLoading.value = false;
+      });
   };
 
   const handleClose = () => {
-    emits('cancel');
-    isShow.value = false;
+    Promise.resolve()
+      .then(() => props.cancelHandler())
+      .then(() => {
+        isShow.value = false;
+      });
   };
 </script>
 
@@ -100,26 +148,26 @@
   .review-data-wrapper {
     font-size: 14px;
 
-    .tip {
-      background: #f5f6fa;
-      border-radius: 2px;
+    .dialog-tip {
       padding: 12px 16px;
       margin-bottom: 8px;
+      background: #f5f6fa;
+      border-radius: 2px;
     }
 
     .selected-wrapper {
-      border: 1px solid #eaebf0;
-      border-radius: 2px;
       max-height: 192px;
       overflow-y: auto;
+      border: 1px solid #eaebf0;
+      border-radius: 2px;
 
       .selected-title {
-        width: 100%;
-        padding: 5px 16px;
-        background: #f0f1f5;
-        color: #313238;
         position: sticky;
         top: 0;
+        width: 100%;
+        padding: 5px 16px;
+        color: #313238;
+        background: #f0f1f5;
 
         .selected-count {
           font-weight: 700;
@@ -136,7 +184,7 @@
 
           &:nth-child(4n-3),
           &:nth-child(4n-2) {
-            background-color: #ffffff;
+            background-color: #fff;
           }
 
           &:nth-child(4n-1),
@@ -146,9 +194,14 @@
         }
       }
     }
+
+    .remark-label {
+      font-size: 12px;
+      color: #63656e;
+    }
   }
 
-  .footer {
+  .dialog-footer {
     display: flex;
     justify-content: center;
   }
@@ -157,10 +210,10 @@
 <style lang="less">
   .review-data-dialog {
     .bk-dialog-footer {
-      background-color: #fff !important;
-      border: none !important;
       padding-top: 0 !important;
       padding-bottom: 24px !important;
+      background-color: #fff !important;
+      border: none !important;
     }
   }
 </style>

@@ -25,7 +25,16 @@ const path = '/apis/dbresource/resource';
 /**
  * 资源删除
  */
-export function removeResource(params: { bk_host_ids: number[]; event: 'to_recycle' | 'to_fault' | 'undo_import' }) {
+export function removeResource(params: {
+  event: 'to_recycle' | 'to_fault' | 'undo_import';
+  hosts: {
+    bk_biz_id: number;
+    bk_cloud_id: number;
+    bk_host_id: number;
+    ip: string;
+  }[];
+  remark?: string;
+}) {
   return http.post<{ bk_host_ids: number[] }>(`${path}/delete/`, params);
 }
 
@@ -64,6 +73,7 @@ export function fetchMountPoints() {
  * 资源池导入
  */
 export function importResource(params: {
+  bk_biz_id: number;
   for_biz: number;
   hosts: Array<{
     bk_cloud_id: number;
@@ -72,8 +82,11 @@ export function importResource(params: {
   }>;
   labels: number[];
   resource_type: string;
+  return_resource?: boolean; // 是否 故障池，待回收池 转入资源池
 }) {
-  return http.post(`${path}/import/`, params);
+  return http.post<{
+    task_ids: string[];
+  }>(`${path}/import/`, params);
 }
 
 /**
@@ -205,21 +218,27 @@ export function getGroupCount() {
  */
 export function getSummaryList(params: {
   city?: string;
+  cluster_type?: string;
+  db_type: DBTypes;
+  enable_spec?: boolean;
   for_biz?: number;
   group_by: string;
-  spec_param: {
-    cluster_type?: string;
-    db_type: DBTypes;
-    enable_spec?: boolean;
-    machine_type?: string;
-    spec_id_list?: number[];
-  };
+  machine_type?: string;
+  spec_id_list?: number[];
   sub_zones?: string[];
 }) {
-  return http.get<SummaryModel[]>(`${path}/resource_summary/`, params).then((data) => ({
-    count: data.length || 0,
-    results: data.map((item) => new SummaryModel(item)),
-  }));
+  return http
+    .get<{
+      no_spec_ip_list: string[];
+      summary_data: SummaryModel[];
+    }>(`${path}/resource_summary/`, params)
+    .then((data) => ({
+      count: data.summary_data.length || 0,
+      results: {
+        no_spec_ip_list: data.no_spec_ip_list || [],
+        summary_data: data.summary_data.map((item) => new SummaryModel(item)),
+      },
+    }));
 }
 
 /**

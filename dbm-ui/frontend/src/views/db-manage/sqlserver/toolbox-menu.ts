@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import { TicketTypes } from '@common/const';
+
 import { t } from '@locales/index';
 
 export interface MenuChild {
@@ -64,12 +66,12 @@ export default [
   {
     children: [
       {
-        id: 'sqlServerSlaveRebuild',
+        id: TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE,
         name: t('重建从库'),
         parentId: 'migrate',
       },
       {
-        id: 'sqlServerSlaveAdd',
+        id: TicketTypes.SQLSERVER_ADD_SLAVE,
         name: t('添加从库'),
         parentId: 'migrate',
       },

@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="bi-data-cluster-expansion-node-box">
+  <div class="big-data-cluster-expansion-node-box">
     <div class="header-box">
       <span class="header-label">{{ data.label }}</span>
       <BkTag
@@ -25,23 +25,26 @@
       <BkFormItem>
         <ResourcePoolSelector
           v-if="ipSource === 'resource_pool'"
+          v-model:expansion-disk="expansionDisk"
+          v-model:resource-spec="resourceSpec"
           :cloud-info="cloudInfo"
-          :data="data"
-          @change="handleResourcePoolChange" />
-        <HostSelector
+          :data="data" />
+        <ResourceHostSelect
           v-else
-          :cloud-info="cloudInfo"
-          :data="data"
-          :disable-host-method="disableHostMethod"
-          @change="handleHoseSelectChange" />
+          v-model:expansion-disk="expansionDisk"
+          v-model:host-list="hostList"
+          :db-type="dbType">
+        </ResourceHostSelect>
       </BkFormItem>
     </BkForm>
   </div>
 </template>
 <script setup lang="tsx">
-  import type { HostInfo } from '@services/types';
+  import DbResourceModel from '@services/model/db-resource/DbResource';
 
-  import HostSelector from './components/HostSelector.vue';
+  import { DBTypes } from '@common/const';
+
+  import ResourceHostSelect from './components/ResourceHostSelect.vue';
   import ResourcePoolSelector from './components/ResourcePoolSelector.vue';
 
   export interface TExpansionNode {
@@ -52,7 +55,7 @@
     // 实际选中的扩容主机容量
     expansionDisk: number;
     // 扩容主机
-    hostList: HostInfo[];
+    hostList: DbResourceModel[];
     // 服务器来源
     ipSource: 'resource_pool' | 'manual_input';
     // 集群节点展示名
@@ -89,7 +92,7 @@
       name: string;
     };
     data: TExpansionNode;
-    disableHostMethod?: (params: HostInfo) => string | boolean;
+    dbType: DBTypes;
     ipSource: string;
   }
 
@@ -104,27 +107,9 @@
   const expansionDisk = defineModel<TExpansionNode['expansionDisk']>('expansionDisk', {
     required: true,
   });
-
-  const handleHoseSelectChange = (
-    hostListValue: TExpansionNode['hostList'],
-    expansionDiskValue: TExpansionNode['expansionDisk'],
-  ) => {
-    hostList.value = hostListValue;
-    expansionDisk.value = expansionDiskValue;
-    window.changeConfirm = true;
-  };
-
-  const handleResourcePoolChange = (
-    resourceSpecValue: TExpansionNode['resourceSpec'],
-    expansionDiskValue: TExpansionNode['expansionDisk'],
-  ) => {
-    resourceSpec.value = resourceSpecValue;
-    expansionDisk.value = expansionDiskValue;
-    window.changeConfirm = true;
-  };
 </script>
 <style lang="less">
-  .bi-data-cluster-expansion-node-box {
+  .big-data-cluster-expansion-node-box {
     padding: 0 24px 24px;
 
     .bk-form-label {
@@ -166,18 +151,6 @@
         padding: 0 16px;
         margin-top: 12px;
         background: #fafbfd;
-        align-items: center;
-      }
-    }
-
-    .data-preview-table {
-      margin-top: 16px;
-
-      .data-preview-header {
-        display: flex;
-        height: 42px;
-        padding: 0 16px;
-        background: #f0f1f5;
         align-items: center;
       }
     }

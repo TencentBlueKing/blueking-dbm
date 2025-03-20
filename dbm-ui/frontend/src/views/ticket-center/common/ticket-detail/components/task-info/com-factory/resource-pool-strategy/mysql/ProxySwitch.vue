@@ -13,39 +13,46 @@
 
 <template>
   <InfoList>
-    <InfoItem :label="t('替换类型')">
-      {{ displayInfoTypeMap[ticketDetails.details.infos[0].display_info.type] }}
+    <InfoItem :label="t('替换类型：')">
+      {{ operaObjectMap[ticketDetails.details.opera_object] }}
     </InfoItem>
   </InfoList>
   <BkTable
     :data="ticketDetails.details.infos"
     :show-overflow="false">
-    <BkTableColumn :label="t('目标Proxy')">
+    <BkTableColumn
+      :label="t('目标Proxy')"
+      :min-width="150">
       <template #default="{ data }: { data: RowData }">
         {{ data.old_nodes.origin_proxy[0].ip }}
       </template>
     </BkTableColumn>
     <BkTableColumn
-      v-if="isHostReplace"
-      :label="t('关联实例')">
+      v-if="ticketDetails.details.opera_object === OperaObejctType.MACHINE"
+      :label="t('关联实例')"
+      :min-width="300">
       <template #default="{ data }: { data: RowData }">
         <p
-          v-for="item in data.display_info.related_instances"
+          v-for="item in relatedInstances[data.old_nodes.origin_proxy[0].ip]"
           :key="item">
           {{ item }}
         </p>
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('关联集群')">
+    <BkTableColumn
+      :label="t('关联集群')"
+      :min-width="300">
       <template #default="{ data }: { data: RowData }">
         <p
-          v-for="item in data.display_info.related_clusters"
+          v-for="item in relatedClusters[data.old_nodes.origin_proxy[0].ip]"
           :key="item">
           {{ item }}
         </p>
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('新Proxy主机')">
+    <BkTableColumn
+      :label="t('新Proxy主机')"
+      :min-width="150">
       <template #default="{ data }: { data: RowData }">
         {{ data.resource_spec.target_proxy.hosts[0].ip }}
       </template>
@@ -59,8 +66,11 @@
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
+  import { checkInstance } from '@services/source/dbbase';
+  import { OperaObejctType } from '@services/types';
 
   import { TicketTypes } from '@common/const';
 
@@ -81,10 +91,30 @@
 
   const { t } = useI18n();
 
-  const displayInfoTypeMap = {
-    HOST_REPLACE: t('整机替换'),
-    INSTANCE_REPLACE: t('实例替换'),
+  const operaObjectMap = {
+    [OperaObejctType.INSTANCE]: t('实例替换'),
+    [OperaObejctType.MACHINE]: t('整机替换'),
   };
 
-  const isHostReplace = computed(() => props.ticketDetails.details.infos[0].display_info.type === 'HOST_REPLACE');
+  const relatedInstances = reactive<Record<string, string[]>>({});
+  const relatedClusters = reactive<Record<string, string[]>>({});
+
+  useRequest(checkInstance, {
+    defaultParams: [
+      {
+        bk_biz_id: props.ticketDetails.bk_biz_id,
+        instance_addresses: props.ticketDetails.details.infos.map((item) => item.old_nodes.origin_proxy[0].ip),
+      },
+    ],
+    onSuccess: (data) => {
+      data.forEach((item) => {
+        Object.assign(relatedInstances, {
+          [item.ip]: [...(relatedInstances[item.ip] || []), item.instance_address],
+        });
+        Object.assign(relatedClusters, {
+          [item.ip]: [...(relatedClusters[item.ip] || []), item.master_domain],
+        });
+      });
+    },
+  });
 </script>

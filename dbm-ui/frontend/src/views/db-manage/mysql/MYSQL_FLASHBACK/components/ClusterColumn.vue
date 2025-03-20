@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <Column
+  <EditableColumn
     :append-rules="rules"
     field="cluster.master_domain"
     fixed="left"
@@ -28,11 +28,11 @@
         <DbIcon type="batch-host-select" />
       </span>
     </template>
-    <Input
+    <EditableInput
       v-model="modelValue.master_domain"
       :placeholder="t('请输入集群域名')"
       @change="handleInputChange" />
-  </Column>
+  </EditableColumn>
   <ClusterSelector
     v-model:is-show="showSelector"
     :cluster-types="[ClusterTypes.TENDBHA]"
@@ -50,7 +50,6 @@
   import { batchSplitRegex, domainRegex } from '@common/regex';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
-  import { Column, Input } from '@components/editable-table/Index.vue';
 
   interface Props {
     selectedIds: number[];

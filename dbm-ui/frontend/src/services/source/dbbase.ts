@@ -36,6 +36,8 @@ export function filterClusters<
     bk_cloud_name: string;
     cluster_name: string;
     cluster_type: string;
+    db_module_id: number;
+    db_module_name: string;
     id: number;
     major_version: string;
     master_domain: string;

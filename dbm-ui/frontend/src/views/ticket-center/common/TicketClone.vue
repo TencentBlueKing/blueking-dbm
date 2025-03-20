@@ -48,8 +48,35 @@
   const { t } = useI18n();
   const router = useRouter();
 
+  /**
+   * 资源池协议的单据
+   */
+  const resourcePoolTickets = {
+    [TicketTypes.MONGODB_CUTOFF]: TicketTypes.MONGODB_CUTOFF, // mongo 整机替换
+    [TicketTypes.MONGODB_REDUCE_MONGOS]: TicketTypes.MONGODB_REDUCE_MONGOS, // mongo 缩容接入层
+    [TicketTypes.MYSQL_ADD_SLAVE]: TicketTypes.MYSQL_ADD_SLAVE, // Mysql 添加从库
+    [TicketTypes.MYSQL_MIGRATE_CLUSTER]: TicketTypes.MYSQL_MIGRATE_CLUSTER, // Mysql 迁移主从
+    [TicketTypes.MYSQL_MIGRATE_UPGRADE]: TicketTypes.MYSQL_PROXY_UPGRADE, // MySQL 迁移升级
+    [TicketTypes.MYSQL_PROXY_ADD]: TicketTypes.MYSQL_PROXY_ADD, // Mysql 添加Proxy
+    [TicketTypes.MYSQL_PROXY_SWITCH]: TicketTypes.MYSQL_PROXY_SWITCH, // Mysql 替换Proxy
+    [TicketTypes.MYSQL_RESTORE_SLAVE]: TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE, // Mysql 重建从库-新机重建
+    [TicketTypes.MYSQL_ROLLBACK_CLUSTER]: TicketTypes.MYSQL_ROLLBACK_CLUSTER, // Mysql 定点构造
+    [TicketTypes.REDIS_CLUSTER_CUTOFF]: TicketTypes.REDIS_CLUSTER_CUTOFF, // Redis 整机替换
+    [TicketTypes.SQLSERVER_ADD_SLAVE]: TicketTypes.SQLSERVER_ADD_SLAVE, // sqlserver 添加从库
+    [TicketTypes.SQLSERVER_RESTORE_SLAVE]: TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE, // sqlserver 重建从库_新机重建
+    [TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER]: TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER, // spider 迁移主从
+    [TicketTypes.TENDBCLUSTER_RESTORE_SLAVE]: TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE, // spider 重建从库-新机重建
+    [TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER]: TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER, // Spider 定点回档
+    [TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY]: TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY, // Spider 添加运维节点
+  };
+
+  /**
+   * 重构的单据并非全都是资源池协议单据
+   */
   const ticketTypeRouteNameMap: Record<string, string> = {
-    [TicketTypes.MYSQL_ADD_SLAVE]: 'MySQLSlaveAdd', // Mysql 添加从库
+    ...resourcePoolTickets,
+    [TicketTypes.MONGODB_PITR_RESTORE]: TicketTypes.MONGODB_PITR_RESTORE, // mongo 定点构造
+    [TicketTypes.MYSQL_ADD_SLAVE]: TicketTypes.MYSQL_ADD_SLAVE, // Mysql 添加从库
     [TicketTypes.MYSQL_AUTHORIZE_RULES]: 'PermissionRules', // Mysql 授权
     [TicketTypes.MYSQL_CHECKSUM]: 'MySQLChecksum', // Mysql 数据校验修复
     [TicketTypes.MYSQL_CLIENT_CLONE_RULES]: 'MySQLPrivilegeCloneClient', // Mysql 客户端权限克隆
@@ -66,18 +93,18 @@
     [TicketTypes.MYSQL_HA_TRUNCATE_DATA]: 'MySQLDBClear', // Mysql 高可用清档
     [TicketTypes.MYSQL_IMPORT_SQLFILE]: 'MySQLExecute', // Mysql 变更SQL执行
     [TicketTypes.MYSQL_INSTANCE_CLONE_RULES]: 'MySQLPrivilegeCloneInst', // Mysql DB实例权限克隆
-    [TicketTypes.MYSQL_LOCAL_UPGRADE]: 'MySQLVersionUpgrade', // MySQL 原地升级
-    [TicketTypes.MYSQL_MASTER_FAIL_OVER]: 'MySQLMasterFailover', // Mysql 主库故障切换
+    [TicketTypes.MYSQL_LOCAL_UPGRADE]: TicketTypes.MYSQL_PROXY_UPGRADE, // MySQL 原地升级
+    [TicketTypes.MYSQL_MASTER_FAIL_OVER]: TicketTypes.MYSQL_MASTER_FAIL_OVER, // Mysql 主库故障切换
     [TicketTypes.MYSQL_MASTER_SLAVE_SWITCH]: 'MySQLMasterSlaveSwap', // Mysql 主从互切
-    [TicketTypes.MYSQL_MIGRATE_CLUSTER]: 'MySQLMasterSlaveClone', // Mysql 迁移主从
-    [TicketTypes.MYSQL_MIGRATE_UPGRADE]: 'MySQLVersionUpgrade', // MySQL 迁移升级
+    [TicketTypes.MYSQL_MIGRATE_CLUSTER]: TicketTypes.MYSQL_MIGRATE_CLUSTER, // Mysql 迁移主从
+    [TicketTypes.MYSQL_MIGRATE_UPGRADE]: TicketTypes.MYSQL_PROXY_UPGRADE, // MySQL 迁移升级
     [TicketTypes.MYSQL_OPEN_AREA]: 'MySQLOpenareaTemplate', // Mysql 新建开区
-    [TicketTypes.MYSQL_PROXY_ADD]: 'MySQLProxyAdd', // Mysql 添加Proxy
-    [TicketTypes.MYSQL_PROXY_SWITCH]: 'MySQLProxyReplace', // Mysql 替换Proxy
-    [TicketTypes.MYSQL_PROXY_UPGRADE]: 'MySQLVersionUpgrade', // MySQL Proxy 升级
-    [TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE]: 'MySQLSlaveRebuild', // Mysql 重建从库
-    [TicketTypes.MYSQL_RESTORE_SLAVE]: 'MySQLSlaveRebuild', // Mysql 重建从库
-    [TicketTypes.MYSQL_ROLLBACK_CLUSTER]: 'MySQLDBRollback', // Mysql 定点构造
+    [TicketTypes.MYSQL_PROXY_ADD]: TicketTypes.MYSQL_PROXY_ADD, // Mysql 添加Proxy
+    [TicketTypes.MYSQL_PROXY_SWITCH]: TicketTypes.MYSQL_PROXY_SWITCH, // Mysql 替换Proxy
+    [TicketTypes.MYSQL_PROXY_UPGRADE]: TicketTypes.MYSQL_PROXY_UPGRADE, // MySQL Proxy 升级
+    [TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE]: TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE, // Mysql 重建从库
+    [TicketTypes.MYSQL_RESTORE_SLAVE]: TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE, // Mysql 重建从库
+    [TicketTypes.MYSQL_ROLLBACK_CLUSTER]: TicketTypes.MYSQL_ROLLBACK_CLUSTER, // Mysql 定点构造
     [TicketTypes.MYSQL_SINGLE_APPLY]: 'SelfServiceApplySingle', // Mysql 单节点部署
     [TicketTypes.MYSQL_SINGLE_DESTROY]: 'DatabaseTendbsingle', // Mysql 单节点删除
     [TicketTypes.MYSQL_SINGLE_DISABLE]: 'DatabaseTendbsingle', // Mysql 单节点禁用
@@ -87,7 +114,7 @@
     [TicketTypes.REDIS_BACKUP]: 'DatabaseRedisList', // Redis 集群备份
     [TicketTypes.REDIS_CLUSTER_ADD_SLAVE]: 'RedisDBCreateSlave', // Redis 重建从库
     [TicketTypes.REDIS_CLUSTER_APPLY]: 'SelfServiceApplyRedis', // Redis 申请部署
-    [TicketTypes.REDIS_CLUSTER_CUTOFF]: 'RedisDBReplace', // Redis 整机替换
+    [TicketTypes.REDIS_CLUSTER_CUTOFF]: TicketTypes.REDIS_CLUSTER_CUTOFF, // Redis 整机替换
     [TicketTypes.REDIS_CLUSTER_DATA_COPY]: 'RedisDBDataCopy', // Redis 数据复制
     [TicketTypes.REDIS_CLUSTER_INS_MIGRATE]: 'RedisMigrate', // Redis 集群迁移
     [TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY]: 'RedisRecoverFromInstance', // Redis 以构造实例恢复
@@ -108,13 +135,13 @@
     [TicketTypes.REDIS_PLUGIN_DNS_UNBIND_CLB]: 'DatabaseRedisList', // Redis 解绑CLB
     [TicketTypes.REDIS_PROXY_CLOSE]: 'DatabaseRedisList', // Redis 集群禁用
     [TicketTypes.REDIS_PROXY_OPEN]: 'DatabaseRedisList', // Redis 集群启用
-    [TicketTypes.REDIS_PROXY_SCALE_DOWN]: 'RedisProxyScaleDown', // Redis 缩容接入层
+    [TicketTypes.REDIS_PROXY_SCALE_DOWN]: TicketTypes.REDIS_PROXY_SCALE_DOWN, // Redis 缩容接入层
     [TicketTypes.REDIS_PROXY_SCALE_UP]: 'RedisProxyScaleUp', // Redis 扩容接入层
     [TicketTypes.REDIS_PURGE]: 'DatabaseRedisList', // Redis 集群清档
-    [TicketTypes.REDIS_SCALE_UPDOWN]: 'RedisCapacityChange', // Redis 集群容量变更
+    [TicketTypes.REDIS_SCALE_UPDOWN]: TicketTypes.REDIS_SCALE_UPDOWN, // Redis 集群容量变更
     [TicketTypes.REDIS_SINGLE_INS_MIGRATE]: 'RedisMigrate', // Redis 主从迁移
     [TicketTypes.REDIS_VERSION_UPDATE_ONLINE]: 'RedisVersionUpgrade', // redis 版本升级
-    [TicketTypes.SQLSERVER_ADD_SLAVE]: 'sqlServerSlaveAdd', // sqlserver 添加从库
+    [TicketTypes.SQLSERVER_ADD_SLAVE]: TicketTypes.SQLSERVER_ADD_SLAVE, // sqlserver 添加从库
     [TicketTypes.SQLSERVER_BACKUP_DBS]: 'SqlServerDbBackup', // sqlserver 库备份
     [TicketTypes.SQLSERVER_CLEAR_DBS]: 'sqlServerDBClear', // sqlserver 清档
     [TicketTypes.SQLSERVER_DATA_MIGRATE]: 'sqlServerDataMigrate', // sqlserver 数据迁移
@@ -124,8 +151,8 @@
     [TicketTypes.SQLSERVER_INCR_MIGRATE]: 'sqlServerDataMigrate', // sqlserver 增量迁移
     [TicketTypes.SQLSERVER_MASTER_FAIL_OVER]: 'sqlServerMasterFailover', // sqlserver 主库故障切换
     [TicketTypes.SQLSERVER_MASTER_SLAVE_SWITCH]: 'sqlServerMasterSlaveSwap', // sqlserver 主从互切
-    [TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE]: 'sqlServerSlaveRebuild', // sqlserver 重建从库_原地重建
-    [TicketTypes.SQLSERVER_RESTORE_SLAVE]: 'sqlServerSlaveRebuild', // sqlserver 重建从库_新机重建
+    [TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE]: TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE, // sqlserver 重建从库_原地重建
+    [TicketTypes.SQLSERVER_RESTORE_SLAVE]: TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE, // sqlserver 重建从库_新机重建
     [TicketTypes.SQLSERVER_ROLLBACK]: 'sqlServerDBRollback', // sqlserver 定点构造
     [TicketTypes.TENDBCLUSTER_APPLY]: 'spiderApply', // spider 集群部署
     [TicketTypes.TENDBCLUSTER_AUTHORIZE_RULES]: 'spiderPermission',
@@ -138,21 +165,34 @@
     [TicketTypes.TENDBCLUSTER_INSTANCE_CLONE_RULES]: 'spiderPrivilegeCloneInst', // Spider DB 实例权限克隆
     [TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER]: 'spiderMasterFailover', // Spider remote主故障切换
     [TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH]: 'spiderMasterSlaveSwap', // Spider remote 主从切换
-    [TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER]: 'spiderMasterSlaveClone', // spider 迁移主从
+    [TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER]: TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER, // spider 迁移主从
     [TicketTypes.TENDBCLUSTER_NODE_REBALANCE]: 'spiderCapacityChange', // Spider 集群remote节点扩缩容
     [TicketTypes.TENDBCLUSTER_OPEN_AREA]: 'spiderOpenareaTemplate', // Spider 开区
     [TicketTypes.TENDBCLUSTER_RENAME_DATABASE]: 'spiderDbRename', // Spider Tendbcluster 重命名
-    [TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE]: 'spiderSlaveRebuild', // spider 重建从库-原地重建
-    [TicketTypes.TENDBCLUSTER_RESTORE_SLAVE]: 'spiderSlaveRebuild', // spider 重建从库-新机重建
-    [TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER]: 'spiderRollback', // Spider 定点回档
+    [TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE]: TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE, // spider 重建从库-原地重建
+    [TicketTypes.TENDBCLUSTER_RESTORE_SLAVE]: TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE, // spider 重建从库-新机重建
+    [TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER]: TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER, // Spider 定点回档
     [TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES]: 'SpiderProxyScaleUp', // Spider扩容接入层
-    [TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY]: 'spiderAddMnt', // Spider 添加运维节点
+    [TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY]: TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY, // Spider 添加运维节点
     [TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES]: 'SpiderProxyScaleDown', // Spider缩容接入层
     [TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY]: 'SpiderProxySlaveApply', // Spider 部署只读接入层
     [TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE]: 'spiderDbClear', // Spider tendbcluster 清档
   };
 
-  const isSupported = computed(() => !!ticketTypeRouteNameMap[props.data.ticket_type]);
+  const isSupported = computed(() => {
+    if (resourcePoolTickets[props.data.ticket_type as keyof typeof resourcePoolTickets]) {
+      const resourcePoolDetails = (props.data as TicketModel<{ ip_recycle?: { ip_dest: string }; ip_source?: string }>)
+        .details;
+
+      // 接口返回的结构是否为资源池协议
+      const isResourcePoolDetails =
+        resourcePoolDetails.ip_recycle?.ip_dest === 'resource' || resourcePoolDetails.ip_source === 'resource_pool';
+
+      return isResourcePoolDetails;
+    }
+
+    return !!ticketTypeRouteNameMap[props.data.ticket_type];
+  });
 
   const handleResubmitTicket = async () => {
     let name = '';

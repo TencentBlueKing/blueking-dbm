@@ -48,6 +48,7 @@
             name: data.bk_cloud_name,
           }"
           :data="nodeInfoMap[nodeType]"
+          :db-type="DBTypes.DORIS"
           :disable-host-method="(data: HostInfo) => disableHostMethod(data, nodeInfoMap[nodeType].mutexNodeTypes)"
           :ip-source="ipSource" />
       </div>
@@ -67,9 +68,7 @@
 
   import { useTicketMessage } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
-
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import HostExpansion, { type TExpansionNode } from '@views/db-manage/common/host-expansion/Index.vue';
   import NodeStatusList from '@views/db-manage/common/host-expansion/NodeStatusList.vue';
@@ -97,7 +96,7 @@
     hostList.reduce(
       (result, item) => ({
         ...result,
-        [item.host_id]: true,
+        [item.bk_host_id]: true,
       }),
       {} as Record<number, boolean>,
     );
@@ -124,7 +123,6 @@
   });
 
   const { t } = useI18n();
-  const { currentBizId } = useGlobalBizs();
   const ticketMessage = useTicketMessage();
 
   const nodeStatusList = [
@@ -306,15 +304,12 @@
             const generateExtInfo = () =>
               Object.entries(nodeInfoMap).reduce(
                 (results, [key, item]) => {
-                  const obj = {
-                    // target_disk: item.targetDisk,
-                    expansion_disk: item.expansionDisk,
-                    host_list: item.hostList,
-                    total_disk: item.totalDisk,
-                    total_hosts: item.originalHostList.length,
-                  };
                   Object.assign(results, {
-                    [key]: obj,
+                    [key]: {
+                      expansion_disk: item.expansionDisk,
+                      total_disk: item.totalDisk,
+                      total_hosts: item.originalHostList.length,
+                    },
                   });
                   return results;
                 },
@@ -322,18 +317,25 @@
               );
 
             if (ipSource.value === 'manual_input') {
-              const fomatHost = (hostList: TExpansionNode['hostList'] = []) =>
-                hostList.map((hostItem) => ({
-                  bk_biz_id: hostItem.meta.bk_biz_id,
-                  bk_cloud_id: hostItem.cloud_id,
-                  bk_host_id: hostItem.host_id,
+              const formatHost = (hostList: TExpansionNode['hostList'] = []) => {
+                const hosts = hostList.map((hostItem) => ({
+                  bk_biz_id: hostItem.dedicated_biz,
+                  bk_cloud_id: hostItem.bk_cloud_id,
+                  bk_disk: hostItem.bk_disk,
+                  bk_host_id: hostItem.bk_host_id,
                   ip: hostItem.ip,
                 }));
+                return {
+                  count: hostList.length,
+                  hosts,
+                  spec_id: 0,
+                };
+              };
               Object.assign(hostData, {
-                nodes: {
-                  cold: fomatHost(nodeInfoMap.cold.hostList),
-                  hot: fomatHost(nodeInfoMap.hot.hostList),
-                  observer: fomatHost(nodeInfoMap.observer.hostList),
+                resource_spec: {
+                  cold: formatHost(nodeInfoMap.cold.hostList),
+                  hot: formatHost(nodeInfoMap.hot.hostList),
+                  observer: formatHost(nodeInfoMap.observer.hostList),
                 },
               });
             } else {
@@ -359,12 +361,12 @@
             }
 
             createTicket({
-              bk_biz_id: currentBizId,
+              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
               details: {
                 cluster_id: props.data.id,
-                ip_source: ipSource.value,
-                ...hostData,
                 ext_info: generateExtInfo(),
+                ip_source: 'resource_pool',
+                ...hostData,
               },
               ticket_type: TicketTypes.DORIS_SCALE_UP,
             })
