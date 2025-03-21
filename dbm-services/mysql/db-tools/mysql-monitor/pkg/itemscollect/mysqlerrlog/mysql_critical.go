@@ -27,12 +27,13 @@ func init() {
 					"restarting transaction",
 					"slave SQL thread was killed",
 					`\[Warning\]`,
-					"Failed to execute mysql_file_stat on file",
+					"Failed to execute mysql_file_stat on file", // binlog deleted
 					"DEPRECATED",
 					"errno: 36",
 					"Slave I/O",
 					"mysqld_safe mysqld restarted",
 					"Failed to open log",
+					"Got error 1152 from storage engine", // tokudb
 					"Could not open log file",
 					"Cannot open.*ib_buffer_pool.*No such file", // 物理备份恢复会产生这个日志
 				},
