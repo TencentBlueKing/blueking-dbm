@@ -31,12 +31,12 @@ export default class ResourceTag {
     this.value = payload.value || '';
   }
 
-  get isNewCreated() {
-    return dayjs().isBefore(dayjs(this.create_at).add(24, 'hour'));
-  }
-
   get createAtDisplay() {
     return utcDisplayTime(this.create_at);
+  }
+
+  get isNewCreated() {
+    return dayjs().isBefore(dayjs(this.create_at).add(24, 'hour'));
   }
 
   get updatedAtDisplay() {

@@ -108,7 +108,6 @@
   import MachineEventModel from '@services/model/db-resource/machineEvent';
   import { getMachineEvents } from '@services/source/dbdirty';
   import { getTicketTypes } from '@services/source/ticket';
-  import { getUserList } from '@services/source/user';
 
   import { useLinkQueryColumnSerach } from '@hooks';
 

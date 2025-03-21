@@ -123,7 +123,6 @@
   import FaultOrRecycleMachineModel from '@services/model/db-resource/FaultOrRecycleMachine';
   import { getMachinePool } from '@services/source/dbdirty';
   import { fetchDeviceClass } from '@services/source/dbresourceResource';
-  import { getUserList } from '@services/source/user';
 
   import { useLinkQueryColumnSerach } from '@hooks';
 

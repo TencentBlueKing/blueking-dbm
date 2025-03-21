@@ -2,24 +2,27 @@
   <div class="fault-pool-container">
     <div class="operation-wrapper">
       <template v-if="isFaultPool">
-        <BkButton
+        <AuthButton
+          action-id="resource_pool_manage"
           :disabled="!selected.length"
           @click="handleBatchImport">
           {{ t('批量导入资源池') }}
-        </BkButton>
-        <BkButton
+        </AuthButton>
+        <AuthButton
+          action-id="resource_pool_manage"
           class="ml-8"
           :disabled="!selected.length"
           @click="handleBatchConvertToRecyclePool">
           {{ t('批量转入回收池') }}
-        </BkButton>
+        </AuthButton>
       </template>
-      <BkButton
+      <AuthButton
         v-else
+        action-id="resource_pool_manage"
         :disabled="!selected.length"
         @click="handleBatchRecycle">
         {{ t('批量回收') }}
-      </BkButton>
+      </AuthButton>
       <BkDropdown class="ml-8">
         <BkButton>
           {{ t('复制') }}
@@ -102,7 +105,6 @@
   import FaultOrRecycleMachineModel from '@services/model/db-resource/FaultOrRecycleMachine';
   import { getMachinePool, transferMachinePool } from '@services/source/dbdirty';
   import { fetchDeviceClass } from '@services/source/dbresourceResource';
-  import { getUserList } from '@services/source/user';
 
   import { useLinkQueryColumnSerach } from '@hooks';
 

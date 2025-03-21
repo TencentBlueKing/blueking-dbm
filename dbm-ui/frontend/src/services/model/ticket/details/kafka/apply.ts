@@ -18,8 +18,13 @@ export interface Apply extends DetailBase {
     hot: HostInfo[];
     master: HostInfo[];
   };
+  partition_num: number;
+  port: number;
+  replication_num: number;
   resource_spec: {
     broker: SpecInfo;
     zookeeper: SpecInfo;
   };
+  retention_bytes: number;
+  retention_hours: number;
 }

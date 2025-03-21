@@ -22,7 +22,7 @@
         <span class="title">{{ t('新建标签') }}</span>
         <span class="title-divider">|</span>
         <span class="biz-name">
-          {{ biz?.name }}
+          {{ biz?.name || t('公共资源池') }}
         </span>
       </div>
     </template>
@@ -71,7 +71,7 @@
   import type { BizItem } from '@services/types';
 
   interface Props {
-    biz: BizItem;
+    biz?: BizItem;
   }
 
   type Emits = (e: 'create') => void;
@@ -91,6 +91,8 @@
   const formModel = reactive({
     tags: [] as string[],
   });
+
+  const curBizId = computed(() => props.biz?.bk_biz_id || 0);
 
   const rules = computed(() => {
     const existedArr = formModel.tags.filter((item) => existedTagsSet.value.has(item));
@@ -125,7 +127,7 @@
     () => formModel.tags,
     (tags) => {
       runValidate({
-        bk_biz_id: props.biz.bk_biz_id,
+        bk_biz_id: curBizId.value,
         tags: tags.map((tag) => ({ key: 'dbresource', value: tag })),
       });
     },
@@ -143,7 +145,7 @@
   const handleConfirm = async () => {
     await formRef.value!.validate();
     runCreate({
-      bk_biz_id: props.biz.bk_biz_id,
+      bk_biz_id: curBizId.value,
       tags: formModel.tags.map((tag) => ({ key: 'dbresource', value: tag })),
     });
   };
