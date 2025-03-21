@@ -20,7 +20,14 @@
     </BkTableColumn>
     <BkTableColumn :label="t('目标集群')">
       <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.dst_cluster].immute_domain }}
+        <div v-if="data.dst_cluster_list.length > 0">
+          <p
+            v-for="clusterId in data.dst_cluster_list"
+            :key="clusterId">
+            {{ ticketDetails.details.clusters[clusterId].immute_domain }}
+          </p>
+        </div>
+        <span v-else>{{ ticketDetails.details.clusters[data.dst_cluster].immute_domain }}</span>
       </template>
     </BkTableColumn>
     <BkTableColumn :label="t('迁移 DB 名')">

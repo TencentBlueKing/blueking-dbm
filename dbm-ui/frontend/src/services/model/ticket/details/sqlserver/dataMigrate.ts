@@ -6,6 +6,7 @@ export interface DataMigrate extends DetailBase {
   infos: {
     db_list: string[];
     dst_cluster: number;
+    dst_cluster_list: number[];
     dts_id: number;
     ignore_db_list: string[];
     rename_infos: {
