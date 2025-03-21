@@ -122,11 +122,27 @@ def instances(
     cluster_types: Optional[List[str]] = None,
     hash_cnt: Optional[int] = None,
     hash_value: Optional[int] = None,
+    machine_only: bool = False,
 ):
 
+    logger.info(
+        f"receive param: "
+        f"logical_city_ids: {logical_city_ids}, "
+        f"addresses: {addresses}, "
+        f"statuses: {statuses}, "
+        f"bk_cloud_id: {bk_cloud_id}, "
+        f"cluster_types: {cluster_types}, "
+        f"hash_cnt: {hash_cnt}, "
+        f"hash_value: {hash_cnt}, "
+        f"machine_only: {machine_only}"
+    )
     logical_city_ids = request_validator.validated_integer_list(logical_city_ids)
     addresses = request_validator.validated_str_list(addresses)
     statuses = request_validator.validated_str_list(statuses)
+
+    # 当指定了实例是, 禁用裁剪
+    if addresses:
+        machine_only = False
 
     # dbha 会频繁周期性调用这个函数, 拉取需要探测的实例
     # 在这个接口的最开始, 检查所有集群的 end_time
@@ -177,7 +193,16 @@ def instances(
         ClusterDBHAExt.objects.filter(end_time__gte=datetime.now()).values_list("cluster_id", flat=True)
     )
 
-    return [ele for ele in flat_instances if ele["cluster_id"] not in disabled_dbha_cluster_ids]
+    res = [ele for ele in flat_instances if ele["cluster_id"] not in disabled_dbha_cluster_ids]
+
+    if machine_only:
+        dres = {}
+        for ele in res:
+            if (ele["ip"] not in dres) or (ele["port"] < dres[ele["ip"]]["port"]):
+                dres[ele["ip"]] = ele
+        return list(dres.values())
+
+    return res
 
 
 @transaction.atomic

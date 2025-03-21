@@ -39,6 +39,7 @@ class InstancesSerializer(BaseProxyPassSerializer):
     )
     hash_cnt = serializers.IntegerField(help_text=_("哈希分片数"), required=False)
     hash_value = serializers.IntegerField(help_text=_("哈希分片值"), required=False)
+    machine_only = serializers.BooleanField(help_text=_("机器只返回一个实例"), required=False, default=False)
 
 
 class InstancesResponseSerializer(serializers.Serializer):
