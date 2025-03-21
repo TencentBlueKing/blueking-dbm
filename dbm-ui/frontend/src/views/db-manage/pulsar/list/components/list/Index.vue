@@ -106,36 +106,13 @@
         :min-width="180"
         :show-overflow="false">
         <template #default="{data}: {data: PulsarModel}">
-          <OperationBtnStatusTips
-            v-db-console="'pulsar.clusterManage.scaleUp'"
-            :data="data">
-            <AuthButton
-              action-id="pulsar_scale_up"
-              class="mr-8"
-              :disabled="data.operationDisabled"
-              :permission="data.permission.pulsar_scale_up"
-              :resource="data.id"
-              text
-              theme="primary"
-              @click="handleShowExpansion(data)">
-              {{ t('扩容') }}
-            </AuthButton>
-          </OperationBtnStatusTips>
-          <OperationBtnStatusTips
-            v-db-console="'pulsar.clusterManage.scaleDown'"
-            :data="data">
-            <AuthButton
-              action-id="pulsar_shrink"
-              class="mr-8"
-              :disabled="data.operationDisabled"
-              :permission="data.permission.pulsar_shrink"
-              :resource="data.id"
-              text
-              theme="primary"
-              @click="handleShowShrink(data)">
-              {{ t('缩容') }}
-            </AuthButton>
-          </OperationBtnStatusTips>
+          <a
+            v-db-console="'pulsar.clusterManage.manage'"
+            class="mr-8"
+            :href="data.access_url"
+            target="_blank">
+            {{ t('控制台') }}
+          </a>
           <AuthButton
             v-db-console="'pulsar.clusterManage.getAccess'"
             action-id="pulsar_access_entry_view"
@@ -149,6 +126,34 @@
             {{ t('获取访问方式') }}
           </AuthButton>
           <MoreActionExtend>
+            <BkDropdownItem v-db-console="'pulsar.clusterManage.scaleUp'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  action-id="pulsar_scale_up"
+                  :disabled="data.operationDisabled"
+                  :permission="data.permission.pulsar_scale_up"
+                  :resource="data.id"
+                  text
+                  theme="primary"
+                  @click="handleShowExpansion(data)">
+                  {{ t('扩容') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </BkDropdownItem>
+            <BkDropdownItem v-db-console="'pulsar.clusterManage.scaleDown'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  action-id="pulsar_shrink"
+                  :disabled="data.operationDisabled"
+                  :permission="data.permission.pulsar_shrink"
+                  :resource="data.id"
+                  text
+                  theme="primary"
+                  @click="handleShowShrink(data)">
+                  {{ t('缩容') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </BkDropdownItem>
             <BkDropdownItem
               v-if="data.isOffline"
               v-db-console="'pulsar.clusterManage.enable'">
@@ -166,7 +171,7 @@
               </OperationBtnStatusTips>
             </BkDropdownItem>
             <BkDropdownItem
-              v-if="data.isOnline"
+              v-else
               v-db-console="'pulsar.clusterManage.disable'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
@@ -198,14 +203,6 @@
                   {{ t('删除') }}
                 </AuthButton>
               </OperationBtnStatusTips>
-            </BkDropdownItem>
-            <BkDropdownItem v-db-console="'pulsar.clusterManage.manage'">
-              <a
-                :href="data.access_url"
-                style="color: #63656e"
-                target="_blank">
-                {{ t('控制台') }}
-              </a>
             </BkDropdownItem>
           </MoreActionExtend>
         </template>
