@@ -20,21 +20,25 @@ class Tag(AuditedModel):
     bk_biz_id = models.IntegerField(help_text=_("业务 ID"), default=0)
     key = models.CharField(help_text=_("标签键"), default="", max_length=64)
     value = models.CharField(help_text=_("标签值"), default="", max_length=255)
-    type = models.CharField(
-        help_text=_("tag类型"), max_length=64, choices=TagType.get_choices(), default=TagType.CUSTOM.value
-    )
+
+    type = models.CharField(help_text=_("tag类型"), max_length=64, choices=TagType.get_choices())
+    is_builtin = models.BooleanField(help_text=_("是否内置"), default=False)
 
     class Meta:
         unique_together = ["bk_biz_id", "key", "value"]
 
     @property
-    def tag_desc(self):
-        """仅返回tag的信息"""
-        return {"bk_biz_id": self.bk_biz_id, "key": self.key, "type": self.type}
+    def desc(self):
+        return {"key": self.key, "value": self.value, "is_builtin": self.is_builtin, "id": self.id}
 
     @classmethod
-    def get_or_create_system_tag(cls, key: str, value: str):
+    def get_builtin_tag(cls, key, value, type):
+        """获取内置tag，如果不存在则创建"""
         tag, created = cls.objects.get_or_create(
-            bk_biz_id=PLAT_BIZ_ID, key=key, value=value, type=TagType.SYSTEM.value
+            key=key,
+            value=value,
+            type=type,
+            is_builtin=True,
+            defaults={"bk_biz_id": PLAT_BIZ_ID},
         )
-        return tag
+        return tag, created

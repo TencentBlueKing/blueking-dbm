@@ -103,9 +103,8 @@ class TendbFixPointRollbackFlowParamBuilder(builders.FlowParamBuilder):
         rollback_flow.save(update_fields=["details"])
 
         # 对临时集群记录变更
-        temporary_tag, _ = Tag.objects.get_or_create(
-            bk_biz_id=self.ticket.bk_biz_id, key=SystemTagEnum.TEMPORARY.value, value=True, type=TagType.SYSTEM.value
-        )
+        temporary_tag, __ = Tag.get_builtin_tag(key=SystemTagEnum.TEMPORARY, value=True, type=TagType.CLUSTER)
+
         target_cluster.tags.add(temporary_tag)
         ClusterOperateRecord.objects.get_or_create(
             cluster_id=target_cluster.id, ticket=self.ticket, flow=rollback_flow

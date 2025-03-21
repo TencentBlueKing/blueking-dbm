@@ -96,7 +96,7 @@ class BaseSQLServerViewSet(viewsets.ResourceViewSet):
 
     db_type = DBType.Sqlserver
 
-    list_perm_actions = [ActionEnum.SQLSERVER_VIEW]
+    list_perm_actions = [ActionEnum.SQLSERVER_VIEW, ActionEnum.SQLSERVER_EDIT]
     list_instance_perm_actions = [ActionEnum.SQLSERVER_VIEW]
     list_external_perm_actions = [ActionEnum.ACCESS_ENTRY_EDIT]
 

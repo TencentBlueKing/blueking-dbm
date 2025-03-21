@@ -104,8 +104,9 @@ class MongoDBViewSet(ResourceViewSet):
     list_perm_actions = [
         ActionEnum.MONGODB_VIEW,
         ActionEnum.MONGODB_ENABLE_DISABLE,
-        ActionEnum.MONGODB_DESTROY,
         ActionEnum.MONGODB_WEBCONSOLE,
+        ActionEnum.MONGODB_EDIT,
+        ActionEnum.MONGODB_DESTROY,
     ]
     list_instance_perm_actions = [ActionEnum.MONGODB_VIEW]
 

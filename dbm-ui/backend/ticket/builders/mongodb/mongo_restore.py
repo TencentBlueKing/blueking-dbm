@@ -130,9 +130,8 @@ class MongoDBRestoreFlowParamBuilder(builders.FlowParamBuilder):
         tmp_clusters = Cluster.objects.filter(tmp_cluster_filters)
 
         # 为临时集群添加临时标志和记录
-        temporary_tag, _ = Tag.objects.get_or_create(
-            bk_biz_id=bk_biz_id, key=SystemTagEnum.TEMPORARY.value, type=TagType.SYSTEM.value
-        )
+        temporary_tag, __ = Tag.get_builtin_tag(key=SystemTagEnum.TEMPORARY, value=True, type=TagType.CLUSTER)
+
         source_cluster_name__cluster: Dict[str, Cluster] = {}
         cluster_records: List[ClusterOperateRecord] = []
         for cluster in tmp_clusters:

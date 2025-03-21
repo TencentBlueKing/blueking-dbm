@@ -116,6 +116,7 @@ class RedisClusterViewSet(viewsets.ResourceViewSet):
         ActionEnum.REDIS_OPEN_CLOSE,
         ActionEnum.REDIS_PURGE,
         ActionEnum.REDIS_VIEW,
+        ActionEnum.REDIS_EDIT,
         ActionEnum.REDIS_BACKUP,
         ActionEnum.REDIS_ACCESS_ENTRY_VIEW,
         ActionEnum.REDIS_WEBCONSOLE,

@@ -213,3 +213,9 @@ class ClusterMonitorTopoAdmin(admin.ModelAdmin):
 class SyncFailedMachineAdmin(admin.ModelAdmin):
     list_display = ("bk_host_id", "error")
     search_fields = ("error",)
+
+
+@admin.register(models.tag.Tag)
+class TagAdmin(admin.ModelAdmin):
+    list_display = ("key", "value", "bk_biz_id", "is_builtin", "type")
+    search_fields = ("bk_biz_id", "key", "value")

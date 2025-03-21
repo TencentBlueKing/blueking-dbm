@@ -247,3 +247,21 @@ class UpdateClusterAliasSerializer(serializers.Serializer):
             raise serializers.ValidationError(_("The new alias cannot be the same as the current alias."))
 
         return attrs
+
+
+class UpdateClusterTagsSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+    tags = serializers.ListField(child=serializers.IntegerField(), help_text=_("标签列表"))
+
+
+class RemoveClusterTagKeysSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    cluster_ids = serializers.ListField(child=serializers.IntegerField(), help_text=_("集群ID列表"))
+    keys = serializers.ListField(child=serializers.CharField(), help_text=_("标签键列表"))
+
+
+class AddClusterTagKeysSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    cluster_ids = serializers.ListField(child=serializers.IntegerField(), help_text=_("集群ID列表"))
+    tags = serializers.ListField(child=serializers.IntegerField(), help_text=_("标签列表"))

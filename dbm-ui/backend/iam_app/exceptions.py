@@ -43,6 +43,12 @@ class GetSystemInfoError(BaseIAMError):
     MESSAGE = _lazy("获取系统信息错误")
 
 
+class ResourceInvalidError(BaseIAMError):
+    ERROR_CODE = "004"
+    MESSAGE = _lazy("资源不合法")
+    MESSAGE_TPL = _lazy("资源ID:{resource_id}不合法")
+
+
 class PermissionDeniedError(BaseIAMError):
     ERROR_CODE = "403"
     MESSAGE = _lazy("权限校验不通过")
@@ -57,10 +63,10 @@ class PermissionDeniedError(BaseIAMError):
 
 
 class BkJwtClientException(BaseJWTError):
-    ERROR_CODE = "003"
+    ERROR_CODE = "001"
     MESSAGE = _lazy("JWT认证后端不存在")
 
 
 class BkJwtVerifyException(BaseJWTError):
-    ERROR_CODE = "003"
+    ERROR_CODE = "002"
     MESSAGE = _lazy("JWT校验异常")

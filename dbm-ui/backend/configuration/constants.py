@@ -134,6 +134,8 @@ class SystemSettingsEnum(str, StructuredEnum):
     MACHINE_PROPERTY = EnumField("MACHINE_PROPERTY", _("主机属性开关"))
     PADDING_PROXY_APPS = EnumField("PADDING_PROXY_APPS", _("补全proxy业务"))
     DISABLE_DBHA_APPS_CLUSTER_TYPE = EnumField("DISABLE_DBHA_APPS_CLUSTER_TYPE", _("禁用DBHA业务"))
+    # 内置标签列表
+    BUILTIN_LABELS = EnumField("BUILTIN_LABELS", _("内置标签列表"))
 
 
 class BizSettingsEnum(str, StructuredEnum):

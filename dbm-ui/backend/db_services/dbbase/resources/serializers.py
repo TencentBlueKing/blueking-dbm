@@ -42,6 +42,7 @@ class ListResourceSLZ(serializers.Serializer):
     cluster_type = serializers.CharField(required=False, help_text=_("集群类型"))
     ordering = serializers.CharField(required=False, help_text=_("排序字段,非必填"))
     tag_ids = serializers.CharField(required=False, help_text=_("标签"))
+    tag_keys = serializers.CharField(required=False, help_text=_("标签键"))
 
 
 class ListMySQLResourceSLZ(ListResourceSLZ):

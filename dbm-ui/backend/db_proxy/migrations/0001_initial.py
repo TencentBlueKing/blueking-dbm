@@ -3,8 +3,7 @@
 from django.db import migrations, models
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import InstanceStatus
-from backend.db_proxy.constants import ExtensionType
+from backend.db_proxy.constants import ExtensionServiceStatus, ExtensionType
 
 
 class Migration(migrations.Migration):
@@ -50,7 +49,7 @@ class Migration(migrations.Migration):
                 (
                     "status",
                     models.CharField(
-                        choices=InstanceStatus.get_choices(),
+                        choices=ExtensionServiceStatus.get_choices(),
                         max_length=64,
                         verbose_name="服务状态",
                     ),

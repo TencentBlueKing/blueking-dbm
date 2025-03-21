@@ -430,7 +430,9 @@ class ListRetrieveResource(BaseListRetrieveResource):
             # 域名
             "domain": build_q_for_domain_by_cluster(domains=query_params.get("domain", "").split(",")),
             # 标签
-            "tags": Q(tags__in=query_params.get("tags", "").split(",")),
+            "tag_ids": Q(tags__in=query_params.get("tag_ids", "").split(",")),
+            # 标签key过滤
+            "tag_keys": Q(tags__key__in=query_params.get("tag_keys", "").split(",")),
         }
 
         filter_params_map.update(inner_filter_params_map)
@@ -590,21 +592,19 @@ class ListRetrieveResource(BaseListRetrieveResource):
         @param cluster_entry_map: key 是 cluster.id, value 是当前集群对应的 entry 映射
         @param cluster_operate_records_map: key 是 cluster.id, value 是当前集群对应的 操作记录 映射
         """
-        spec = None
+        cluster_spec = None
         cluster_entry_map_value = ClusterEntry.get_entries_map(entries=cluster.entries).get(cluster.id, {})
         bk_cloud_name = cloud_info.get(str(cluster.bk_cloud_id), {}).get("bk_cloud_name", "")
 
         # 补充集群规格信息
-        if cls.storage_spec_role is not None:
-            storage_spec = next(
-                (storage for storage in cluster.storages if storage.instance_role == cls.storage_spec_role), None
-            )
-            if storage_spec:
-                spec_id = storage_spec.machine.spec_id
-                spec = kwargs["remote_spec_map"].get(spec_id)
+        if cls.storage_spec_role:
+            storage = next((inst for inst in cluster.storages if inst.instance_role == cls.storage_spec_role), None)
+            cluster_spec_id = storage.machine.spec_id if storage else 0
+            cluster_spec = kwargs["remote_spec_map"].get(cluster_spec_id)
 
         return {
             "id": cluster.id,
+            "db_type": ClusterType.cluster_type_to_db_type(cluster.cluster_type),
             "phase": cluster.phase,
             "phase_name": cluster.get_phase_display(),
             "status": cluster.status,
@@ -633,7 +633,8 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "updater": cluster.updater,
             "create_at": datetime2str(cluster.create_at),
             "update_at": datetime2str(cluster.update_at),
-            "cluster_spec": model_to_dict(spec) if spec else None,
+            "cluster_spec": model_to_dict(cluster_spec) if cluster_spec else None,
+            "tags": [tag.desc for tag in cluster.tags.all()],
         }
 
     @classmethod

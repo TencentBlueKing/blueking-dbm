@@ -94,6 +94,7 @@ class DBSingleViewSet(viewsets.ResourceViewSet):
         ActionEnum.MYSQL_ENABLE_DISABLE,
         ActionEnum.MYSQL_DESTROY,
         ActionEnum.MYSQL_VIEW,
+        ActionEnum.MYSQL_EDIT,
         ActionEnum.MYSQL_DUMP_DATA,
         ActionEnum.MYSQL_WEBCONSOLE,
     ]

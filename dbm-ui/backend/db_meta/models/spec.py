@@ -37,18 +37,18 @@ class Spec(AuditedModel):
     spec_name = models.CharField(max_length=128, help_text=_("虚拟规格名称"))
     spec_cluster_type = models.CharField(max_length=64, choices=SpecClusterType.get_choices(), help_text=_("组件类型"))
     spec_machine_type = models.CharField(max_length=64, choices=SpecMachineType.get_choices(), help_text=_("机器类型"))
-    cpu = models.JSONField(help_text=_('cpu规格描述:{"min":1,"max":10}'), default=dict)
-    mem = models.JSONField(help_text=_('mem规格描述:{"min":100,"max":1000}'), default=dict)
-    device_class = models.JSONField(help_text=_('实际机器机型: ["class1","class2"]'), default=dict)
+    cpu = models.JSONField(null=True, help_text=_('cpu规格描述:{"min":1,"max":10}'), default=dict)
+    mem = models.JSONField(null=True, help_text=_('mem规格描述:{"min":100,"max":1000}'), default=dict)
+    device_class = models.JSONField(null=True, help_text=_('实际机器机型: ["class1","class2"]'), default=dict)
     storage_spec = models.JSONField(
-        help_text=_('存储磁盘需求配置:[{"mount_point":"/data","size":500,"type":"ssd"}]'), default=dict
+        help_text=_('存储磁盘需求配置:[{"mount_point":"/data","size":500,"type":"ssd"}]'), default=dict, null=True
     )
     desc = models.TextField(help_text=_("资源规格描述"), null=True, blank=True)
     enable = models.BooleanField(help_text=_("是否启用"), default=True)
     # es专属
     instance_num = models.IntegerField(default=0, help_text=_("实例数(es专属)"))
     # spider，redis集群专属
-    qps = models.JSONField(default=dict, help_text=_('qps规格描述:{"min": 1, "max": 100}'))
+    qps = models.JSONField(default=dict, help_text=_('qps规格描述:{"min": 1, "max": 100}'), null=True)
 
     class Meta:
         verbose_name = verbose_name_plural = _("资源规格(Spec)")

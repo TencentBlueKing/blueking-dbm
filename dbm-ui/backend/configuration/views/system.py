@@ -51,6 +51,14 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
     default_permission_class = [ResourceActionPermission([ActionEnum.GLOBAL_MANAGE])]
 
     @common_swagger_auto_schema(
+        operation_summary=_("查询内置标签"),
+        tags=tags,
+    )
+    @action(methods=["GET"], detail=False)
+    def builtin_labels(self, request, *args, **kwargs):
+        return Response(SystemSettings.get_setting_value(SystemSettingsEnum.BUILTIN_LABELS.value, default=[]))
+
+    @common_swagger_auto_schema(
         operation_summary=_("查询磁盘类型"),
         tags=tags,
     )

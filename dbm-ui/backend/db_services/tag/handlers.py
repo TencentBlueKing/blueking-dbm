@@ -64,9 +64,9 @@ class TagHandler:
 
             # 查询关联资源并按照标签聚合
             tag__resource_list = defaultdict(list)
-            related_objs = field.related_model.objects.prefetch_related("tags").filter(tags__in=ids)
+            related_objs = field.related_model.objects.prefetch_related("tags").filter(tags__in=ids).distinct()
             for obj in related_objs:
-                for tag in obj.tags:
+                for tag in obj.tags.all():
                     tag__resource_list[tag.id].append(obj)
 
             # 填充关联资源信息
@@ -77,7 +77,6 @@ class TagHandler:
                 data.append({"id": tag_id, "related_resources": related_resources})
 
         # 2. 查询第三方服务关联资源（如资源池、后续可能扩展的别的服务）
-
         if resource_type == TagResourceType.DB_RESOURCE.value:
             # 资源池根据标签聚合数量
             label_count_map = DBResourceApi.resource_label_count()
@@ -86,7 +85,7 @@ class TagHandler:
         return data
 
     @classmethod
-    def batch_create(cls, bk_biz_id: int, tags: List[Dict[str, str]], creator: str = ""):
+    def batch_create(cls, bk_biz_id: int, tags: List[Dict], type: str, creator: str, is_builtin: bool = False):
         """
         批量创建标签
         """
@@ -94,17 +93,22 @@ class TagHandler:
         if duplicate_tags:
             raise ValidationError(_("检查到重复的标签"), data=duplicate_tags)
 
-        tag_models = [Tag(bk_biz_id=bk_biz_id, key=tag["key"], value=tag["value"], creator=creator) for tag in tags]
+        tag_models = [
+            Tag(bk_biz_id=bk_biz_id, key=t["key"], value=t["value"], creator=creator, type=type, is_builtin=is_builtin)
+            for t in tags
+        ]
         Tag.objects.bulk_create(tag_models)
+
+        # 重新获取标签信息给前端返回
+        created_tags = cls.verify_duplicated(bk_biz_id, tags)
+        return created_tags
 
     @classmethod
     def verify_duplicated(cls, bk_biz_id: int, tags: List[Dict[str, str]]) -> List[Dict[str, str]]:
         """
         检查标签是否重复
         """
-        biz_tags = [f"{tag.key}:{tag.value}" for tag in Tag.objects.filter(bk_biz_id=bk_biz_id)]
-        duplicate_tags = []
-        for tag in tags:
-            if f'{tag["key"]}:{tag["value"]}' in biz_tags:
-                duplicate_tags.append(tag)
+        created_tags = [f"{tag['key']}:{tag['value']}" for tag in tags]
+        biz_tags = {f"{tag.key}:{tag.value}": tag for tag in Tag.objects.filter(bk_biz_id=bk_biz_id)}
+        duplicate_tags = [tag.desc for kv, tag in biz_tags.items() if kv in created_tags]
         return duplicate_tags

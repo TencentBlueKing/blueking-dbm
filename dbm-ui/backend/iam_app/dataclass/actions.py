@@ -408,6 +408,18 @@ class ActionEnum:
         ],
     )
 
+    MYSQL_EDIT = ActionMeta(
+        id="mysql_edit",
+        name=_("MySQL 集群编辑"),
+        name_en="MySQL Edit",
+        type="edit",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("MySQL"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     MYSQL_IMPORT_SQLFILE = ActionMeta(
         id=TicketType.MYSQL_IMPORT_SQLFILE.lower(),
         related_resource_types=[ResourceEnum.MYSQL],
@@ -759,6 +771,18 @@ class ActionEnum:
         ],
     )
 
+    TENDBCLUSTER_EDIT = ActionMeta(
+        id="tendbcluster_edit",
+        name=_("TenDB Cluster 集群编辑"),
+        name_en="tendbcluster_edit",
+        type="edit",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("TenDBCluster"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     TENDBCLUSTER_IMPORT_SQLFILE = ActionMeta(
         id=TicketType.TENDBCLUSTER_IMPORT_SQLFILE.lower(),
         related_resource_types=[ResourceEnum.TENDBCLUSTER],
@@ -1040,6 +1064,18 @@ class ActionEnum:
         ],
     )
 
+    REDIS_EDIT = ActionMeta(
+        id="redis_edit",
+        name=_("Redis 集群编辑"),
+        name_en="redis_edit",
+        type="edit",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("Redis"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     REDIS_WEBCONSOLE = ActionMeta(
         id="redis_webconsole",
         name=_("Redis Webconsole执行"),
@@ -1149,6 +1185,18 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.ES_ACCESS],
     )
 
+    ES_EDIT = ActionMeta(
+        id="es_edit",
+        name=_("ES 集群编辑"),
+        name_en="es_edit",
+        type="edit",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.ES],
+        group=_("ES"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     VM_APPLY = ActionMeta(
         id="vm_apply",
         name=_("VM 集群部署"),
@@ -1163,13 +1211,26 @@ class ActionEnum:
 
     VM_VIEW = ActionMeta(
         id="vm_view",
-        name=_("VictoriaMetrics 集群详情查看"),
+        name=_("VM 集群详情查看"),
         name_en="vm_view",
         type="view",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.VM],
         group=_("VM"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.BIZ_READ_ONLY],
+    )
+
+    VM_EDIT = ActionMeta(
+        id="vm_edit",
+        name=_("VictoriaMetrics 集群编辑"),
+        name_en="vm_edit",
+        type="edit",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.VM],
+        group=_("VM"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     ES_ACCESS_ENTRY_VIEW = ActionMeta(
@@ -1227,6 +1288,18 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.BIZ_MAINTAIN],
     )
 
+    DORIS_EDIT = ActionMeta(
+        id="doris_edit",
+        name=_("Doris 集群编辑"),
+        name_en="doris_edit",
+        type="edit",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.DORIS],
+        group=_("Doris"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     DORIS_ACCESS_ENTRY_VIEW = ActionMeta(
         id="doris_access_entry_view",
         name=_("Doris 集群访问"),
@@ -1261,6 +1334,18 @@ class ActionEnum:
         group=_("Kafka"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.KAFKA_ACCESS],
+    )
+
+    KAFKA_EDIT = ActionMeta(
+        id="kafka_edit",
+        name=_("Kafka 集群编辑"),
+        name_en="kafka_edit",
+        type="edit",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.KAFKA],
+        group=_("Kafka"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     KAFKA_ACCESS_ENTRY_VIEW = ActionMeta(
@@ -1315,6 +1400,18 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.HDFS_ACCESS],
     )
 
+    HDFS_EDIT = ActionMeta(
+        id="hdfs_edit",
+        name=_("HDFS 集群编辑"),
+        name_en="hdfs_edit",
+        type="edit",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.HDFS],
+        group=_("HDFS"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     HDFS_ACCESS_ENTRY_VIEW = ActionMeta(
         id="hdfs_access_entry_view",
         name=_("HDFS 集群访问"),
@@ -1357,6 +1454,18 @@ class ActionEnum:
         group=_("Pulsar"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    PULSAR_EDIT = ActionMeta(
+        id="pulsar_edit",
+        name=_("Pulsar 集群编辑"),
+        name_en="pulsar_edit",
+        type="edit",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.PULSAR],
+        group=_("Pulsar"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     PULSAR_ACCESS_ENTRY_VIEW = ActionMeta(
@@ -1404,6 +1513,18 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.BIZ_MAINTAIN],
     )
 
+    RIAK_EDIT = ActionMeta(
+        id="riak_edit",
+        name=_("Riak 集群编辑"),
+        name_en="riak_edit",
+        type="edit",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.RIAK],
+        group=_("Riak"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     RIAK_ACCESS_ENTRY_VIEW = ActionMeta(
         id="riak_access_entry_view",
         name=_("Riak 集群访问"),
@@ -1438,6 +1559,18 @@ class ActionEnum:
         group=_("MongoDB"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    MONGODB_EDIT = ActionMeta(
+        id="mongodb_edit",
+        name=_("Mongodb 集群编辑"),
+        name_en="mongodb_edit",
+        type="edit",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("MongoDB"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MONGODB_APPLY = ActionMeta(
@@ -1561,6 +1694,17 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.BIZ_MAINTAIN],
     )
 
+    SQLSERVER_EDIT = ActionMeta(
+        id="sqlserver_edit",
+        name=_("SQLServer 集群编辑"),
+        name_en="sqlserver_edit",
+        type="edit",
+        related_resource_types=[ResourceEnum.SQLSERVER],
+        group=_("SQLServer"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     SQLSERVER_ADMIN_PWD_MODIFY = ActionMeta(
         id="sqlserver_admin_pwd_modify",
         name=_("SQLServer 临时密码修改"),
@@ -1680,7 +1824,7 @@ class ActionEnum:
 
     GLOBAL_RESOURCE_TAG_MANAGE = ActionMeta(
         id="global_resource_tag_manage",
-        name=_("全局资源标签管理"),
+        name=_("全局标签管理"),
         name_en="global_resource_tag_manage",
         type="manage",
         related_actions=[RESOURCE_MANAGE.id],
@@ -1692,7 +1836,7 @@ class ActionEnum:
 
     RESOURCE_TAG_MANAGE = ActionMeta(
         id="resource_tag_manage",
-        name=_("资源标签管理"),
+        name=_("标签管理"),
         name_en="resource_tag_manage",
         type="manage",
         related_actions=[DB_MANAGE.id],

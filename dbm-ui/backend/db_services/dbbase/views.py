@@ -25,7 +25,7 @@ from backend.bk_web.swagger import ResponseSwaggerAutoSchema, common_swagger_aut
 from backend.components import BKBaseApi, DRSApi
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceRole
-from backend.db_meta.models import Cluster, DBModule, ProxyInstance, StorageInstance
+from backend.db_meta.models import Cluster, DBModule, ProxyInstance, StorageInstance, Tag
 from backend.db_services.dbbase.cluster.handlers import ClusterServiceHandler
 from backend.db_services.dbbase.cluster.serializers import (
     BatchCheckClusterDbsSerializer,
@@ -38,6 +38,7 @@ from backend.db_services.dbbase.resources import register
 from backend.db_services.dbbase.resources.query import ListRetrieveResource, ResourceList
 from backend.db_services.dbbase.resources.serializers import ClusterSLZ
 from backend.db_services.dbbase.serializers import (
+    AddClusterTagKeysSerializer,
     ClusterDbTypeSerializer,
     ClusterEntryFilterSerializer,
     ClusterFilterSerializer,
@@ -53,8 +54,10 @@ from backend.db_services.dbbase.serializers import (
     QueryClusterCapResponseSerializer,
     QueryClusterCapSerializer,
     QueryClusterInstanceCountSerializer,
+    RemoveClusterTagKeysSerializer,
     ResourceAdministrationSerializer,
     UpdateClusterAliasSerializer,
+    UpdateClusterTagsSerializer,
     WebConsoleResponseSerializer,
     WebConsoleSerializer,
 )
@@ -63,7 +66,11 @@ from backend.db_services.mongodb.cluster.handlers import ClusterServiceHandler a
 from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
 from backend.db_services.redis.toolbox.handlers import ToolboxHandler
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
-from backend.iam_app.handlers.drf_perm.cluster import ClusterDBConsolePermission, ClusterWebconsolePermission
+from backend.iam_app.handlers.drf_perm.cluster import (
+    ClusterDBConsolePermission,
+    ClusterEditPermission,
+    ClusterWebconsolePermission,
+)
 
 SWAGGER_TAG = _("集群通用接口")
 
@@ -83,9 +90,16 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         (
             "simple_query_cluster",
             "common_query_cluster",
+            "filter_clusters",
         ): [DBManagePermission()],
         ("webconsole",): [ClusterWebconsolePermission()],
         ("dbconsole",): [ClusterDBConsolePermission()],
+        (
+            "update_cluster_alias",
+            "update_cluster_tag",
+            "remove_cluster_tag_keys",
+            "add_cluster_tag_keys",
+        ): [ClusterEditPermission()],
     }
     default_permission_class = [DBManagePermission()]
 
@@ -487,5 +501,54 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         cluster = Cluster.objects.get(bk_biz_id=validated_data["bk_biz_id"], id=validated_data["cluster_id"])
         cluster.alias = validated_data["new_alias"]
         cluster.save(update_fields=["alias"])
-        serializer = ClusterSLZ(cluster)
-        return Response(serializer.data)
+        return Response(ClusterSLZ(cluster).data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("更新集群标签"),
+        request_body=UpdateClusterTagsSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=UpdateClusterTagsSerializer)
+    def update_cluster_tag(self, request):
+        """更新集群标签"""
+        data = self.params_validate(self.get_serializer_class())
+        cluster = Cluster.objects.get(bk_biz_id=data["bk_biz_id"], id=data["cluster_id"])
+        tags = Tag.objects.filter(id__in=data["tags"])
+        # 清空旧标签，添加新标签
+        cluster.tags.clear()
+        cluster.tags.add(*tags)
+        return Response(ClusterSLZ(cluster).data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("批量移除标签键"),
+        request_body=RemoveClusterTagKeysSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=RemoveClusterTagKeysSerializer)
+    def remove_cluster_tag_keys(self, request):
+        """批量移除标签键"""
+        data = self.params_validate(self.get_serializer_class())
+        tag_ids = list(Tag.objects.filter(key__in=data["keys"]).values_list("id", flat=True))
+        Cluster.tags.through.objects.filter(cluster_id__in=data["cluster_ids"], tag_id__in=tag_ids).delete()
+        return Response()
+
+    @common_swagger_auto_schema(
+        operation_summary=_("批量增加标签键"),
+        request_body=AddClusterTagKeysSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=AddClusterTagKeysSerializer)
+    def add_cluster_tag_keys(self, request):
+        """批量增加标签键"""
+        data = self.params_validate(self.get_serializer_class())
+
+        tags = Tag.objects.filter(id__in=data["tags"])
+        through = Cluster.tags.through
+
+        # 这里需要先获取到所有标签键，然后排除已经存在该key的集群，考虑到这里标签一次性不会太多，暂用for循环处理
+        for tag in tags:
+            add_clusters = Cluster.objects.filter(id__in=data["cluster_ids"]).exclude(tags__key=tag.key)
+            add_tags = [through(cluster_id=cluster.id, tag_id=tag.id) for cluster in add_clusters]
+            through.objects.bulk_create(add_tags)
+
+        return Response()

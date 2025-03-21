@@ -8,11 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import re
 
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.bk_web.serializers import AuditedSerializer
+from backend.db_meta.enums.comm import TagType
 from backend.db_meta.models import Tag
 from backend.db_services.tag import mock
 from backend.db_services.tag.constants import TagResourceType
@@ -35,12 +37,26 @@ class BatchCreateTagsSerializer(serializers.Serializer):
 
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     tags = serializers.ListField(child=CreateTagSerializer())
+    type = serializers.ChoiceField(help_text=_("标签类型"), choices=TagType.get_choices())
+    is_builtin = serializers.BooleanField(help_text=_("是否内置"), required=False, default=False)
+
+    def validate(self, attrs):
+        # 校验标签key长度只能为1-50，value长度只能为1-100
+        # 键值只能有字母、数字、汉字、中划线、下划线和点.组成
+        pattern = re.compile(r"^[\w\-\.\u4e00-\u9fa5]+$")
+        for tag in attrs["tags"]:
+            if len(tag["key"]) > 50 or len(tag["value"]) > 100:
+                raise serializers.ValidationError(_("标签键值长度超出限制"))
+            if not pattern.match(tag["key"]) or not pattern.match(tag["value"]):
+                raise serializers.ValidationError(_("标签键值只能由字母、数字、汉字、中划线、下划线和点组成"))
+        return attrs
 
 
 class UpdateTagSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     id = serializers.IntegerField(help_text=_("标签 ID"))
     value = serializers.CharField(help_text=_("标签value"))
+    type = serializers.ChoiceField(help_text=_("标签类型"), choices=TagType.get_choices())
 
 
 class DeleteTagsSerializer(serializers.Serializer):
