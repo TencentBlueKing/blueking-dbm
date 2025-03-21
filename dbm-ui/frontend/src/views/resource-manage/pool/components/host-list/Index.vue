@@ -19,21 +19,23 @@
       @change="handleSearch" />
     <div class="action-box mb-16">
       <template v-if="type === ResourcePool.public">
-        <BkButton
+        <AuthButton
+          action-id="resource_pool_manage"
           :disabled="selectionHostIdList.length < 1"
           theme="primary"
           @click="handleShowBatchConvertToBusiness">
           {{ t('转入业务资源池') }}
-        </BkButton>
+        </AuthButton>
       </template>
       <template v-else>
         <BkDropdown :disabled="selectionHostIdList.length < 1">
-          <BkButton
+          <AuthButton
+            action-id="resource_pool_manage"
             class="ml-8"
             :disabled="selectionHostIdList.length < 1">
             {{ t('批量操作') }}
             <DbIcon type="down-big" />
-          </BkButton>
+          </AuthButton>
           <template #content>
             <BkDropdownMenu>
               <BkDropdownItem @click="() => handleShowBatchAssign()">
@@ -87,7 +89,7 @@
         </template>
       </BkDropdown>
       <AuthButton
-        action-id="resource_operation_view"
+        action-id="resource_manage"
         class="quick-search-btn"
         @click="handleGoTaskHistory">
         <DbIcon type="history-2" />
@@ -300,11 +302,16 @@
                   {data.labels && Array.isArray(data.labels) && data.labels.map((item) => <bk-tag>{item.name}</bk-tag>)}
                 </div>
                 {props.type !== ResourcePool.public && (
-                  <DbIcon
-                    class='operation-icon'
-                    type='edit'
-                    onClick={() => handleEdit(data)}
-                  />
+                  <auth-button
+                    action-id='resource_pool_manage'
+                    permission={data.permission.resource_pool_manage}
+                    text
+                    onClick={() => handleEdit(data)}>
+                    <DbIcon
+                      class='operation-icon'
+                      type='edit'
+                    />
+                  </auth-button>
                 )}
               </div>
             ),

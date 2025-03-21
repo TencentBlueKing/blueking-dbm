@@ -9,7 +9,9 @@
         :active-key="currentActiveKey"
         :opened-keys="[parentKey]"
         @click="handleMenuChange">
-        <BkMenuGroup :name="t('资源管理')">
+        <BkMenuGroup
+          v-if="!!checkResult"
+          :name="t('资源管理')">
           <BkMenuItem
             key="BizResourcePool"
             v-db-console="'bizConfigManage.businessResourcePool'">
@@ -151,6 +153,9 @@
   import { Menu } from 'bkui-vue';
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
+
+  import { simpleCheckAllowed } from '@services/source/iam';
 
   import AppSelect from './AppSelect.vue';
   import { useActiveKey } from './hooks/useActiveKey';
@@ -168,4 +173,12 @@
   } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, 'BizResourcePool');
 
   const styles = useMenuStyles(menuBoxRef);
+
+  const { data: checkResult } = useRequest(simpleCheckAllowed, {
+    defaultParams: [
+      {
+        action_id: 'resource_manage',
+      },
+    ],
+  });
 </script>

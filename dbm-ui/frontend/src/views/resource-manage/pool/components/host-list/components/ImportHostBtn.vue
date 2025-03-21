@@ -7,7 +7,8 @@
       :count="taskNumber"
       theme="danger"
       :visible="taskNumber < 1">
-      <BkButton
+      <AuthButton
+        action-id="resource_pool_manage"
         class="w-88"
         theme="primary"
         @click="handleExportHost">
@@ -15,7 +16,7 @@
           class="mr-6"
           type="add" />
         {{ t('导入主机') }}
-      </BkButton>
+      </AuthButton>
     </BkBadge>
     <template #content>
       <I18nT keypath="当前已经有n个导入任务正在进行中，">
@@ -37,9 +38,7 @@
 
   import { fetchImportTask } from '@services/source/dbresourceResource';
 
-  interface Emits {
-    (e: 'exportHost'): void;
-  }
+  type Emits = (e: 'exportHost') => void;
 
   const emits = defineEmits<Emits>();
 
@@ -49,11 +48,11 @@
   const taskNumber = computed(() => (taskInfo.value ? taskInfo.value.task_ids.length : 0));
 
   const { data: taskInfo } = useRequest(fetchImportTask, {
-    manual: false,
     initialData: {
       bk_biz_id: 0,
       task_ids: [],
     },
+    manual: false,
   });
 
   const handleExportHost = () => {

@@ -266,7 +266,7 @@
   );
 
   watch(
-    modelValue,
+    [modelValue, moduleList],
     () => {
       const item = (moduleList.value || []).find((item) => item.db_module_id === modelValue.value);
       moduleAliasName.value = item?.alias_name ?? '';

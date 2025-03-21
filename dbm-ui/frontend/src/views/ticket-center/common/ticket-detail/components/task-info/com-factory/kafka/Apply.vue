@@ -31,7 +31,7 @@
   <div class="info-title mt-20">{{ t('部署需求') }}</div>
   <InfoList>
     <InfoItem :label="t('版本')">
-      {{ ticketDetails.details.cluster_alias || '--' }}
+      {{ ticketDetails.details.db_version || '--' }}
     </InfoItem>
     <template v-if="isFromResourcePool">
       <InfoItem :label="t('Broker节点规格')">
@@ -93,7 +93,31 @@
       <span v-if="ticketDetails.details.no_security !== undefined">
         {{ ticketDetails.details.no_security === 0 ? t('开启') : t('不开启') }}
       </span>
-      <span>--</span>
+      <span v-else>--</span>
+    </InfoItem>
+    <InfoItem :label="t('总容量')">
+      {{ totalCapacity }}
+    </InfoItem>
+    <InfoItem :label="t('访问端口')">
+      {{ ticketDetails.details.port || '--' }}
+    </InfoItem>
+    <InfoItem :label="t('Partition数量')">
+      {{ ticketDetails.details.partition_num || '--' }}
+    </InfoItem>
+    <InfoItem :label="t('消息保留时间')">
+      <span v-if="ticketDetails.details.retention_hours !== undefined">
+        {{ ticketDetails.details.retention_hours }} {{ t('小时') }}
+      </span>
+      <span v-else>--</span>
+    </InfoItem>
+    <InfoItem :label="t('消息保留大小')">
+      <span v-if="ticketDetails.details.retention_bytes !== undefined">
+        {{ ticketDetails.details.retention_bytes }} {{ t('字节') }}
+      </span>
+      <span v-else>--</span>
+    </InfoItem>
+    <InfoItem :label="t('副本数量')">
+      {{ ticketDetails.details.replication_num || '--' }}
     </InfoItem>
     <EstimatedCost
       v-if="ticketDetails.details.resource_spec"
@@ -139,8 +163,12 @@
 
   const isFromResourcePool = props.ticketDetails.details.ip_source === 'resource_pool';
 
-  const zookeeperSpec = computed(() => props.ticketDetails?.details?.resource_spec?.zookeeper || {});
-  const brokerSpec = computed(() => props.ticketDetails?.details?.resource_spec?.broker || {});
+  const zookeeperSpec = props.ticketDetails?.details?.resource_spec?.zookeeper || {};
+  const brokerSpec = props.ticketDetails?.details?.resource_spec?.broker || {};
+
+  const { count, storage_spec: storageSpec = [] } = brokerSpec;
+  const disk = storageSpec.reduce((total: number, item: { size: number }) => total + Number(item.size || 0), 0);
+  const totalCapacity = disk * count;
 
   /**
    * 获取服务器数量
