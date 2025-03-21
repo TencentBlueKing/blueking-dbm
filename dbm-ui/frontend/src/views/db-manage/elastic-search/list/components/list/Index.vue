@@ -215,7 +215,7 @@
                 :href="data.access_url"
                 style="color: #63656e"
                 target="_blank">
-                {{ t('管理') }}
+                Kibana
               </a>
             </BkDropdownItem>
           </MoreActionExtend>
@@ -253,7 +253,8 @@
       :width="500">
       <RenderPassword
         v-if="operationData"
-        :cluster-id="operationData.id" />
+        :cluster-id="operationData.id"
+        :db-type="DBTypes.ES" />
       <template #footer>
         <BkButton @click="handleHidePassword">
           {{ t('关闭') }}
@@ -275,7 +276,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes, UserPersonalSettings } from '@common/const';
+  import { ClusterTypes, DBTypes, UserPersonalSettings } from '@common/const';
 
   import DbTable from '@components/db-table/index.vue';
   import MoreActionExtend from '@components/more-action-extend/Index.vue';

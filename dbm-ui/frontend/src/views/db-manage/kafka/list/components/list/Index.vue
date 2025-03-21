@@ -195,12 +195,15 @@
             </BkDropdownItem>
             <!-- 管理链接 -->
             <BkDropdownItem v-db-console="'kafka.clusterManage.manage'">
-              <a
-                class="mr8"
-                :href="data.access_url"
-                target="_blank">
-                {{ t('管理') }}
-              </a>
+              <AuthButton
+                action-id="kafka_access_entry_view"
+                :permission="data.permission.kafka_access_entry_view"
+                :resource="data.id"
+                text
+                theme="primary"
+                @click="() => handleGoToManagePage(data.id, data.access_url)">
+                {{ t('控制台') }}
+              </AuthButton>
             </BkDropdownItem>
           </MoreActionExtend>
         </template>
@@ -255,7 +258,7 @@
   import { useRoute, useRouter } from 'vue-router';
 
   import KafkaModel from '@services/model/kafka/kafka';
-  import { getKafkaList } from '@services/source/kafka';
+  import { getKafkaList, getKafkaPassword } from '@services/source/kafka';
   import { getUserList } from '@services/source/user';
 
   import { useLinkQueryColumnSerach, useStretchLayout, useTableSettings } from '@hooks';
@@ -516,6 +519,13 @@
 
   const handleHidePassword = () => {
     isShowPassword.value = false;
+  };
+
+  const handleGoToManagePage = async (clusterId: number, accessUrl: string) => {
+    const pwdInfo = await getKafkaPassword({ cluster_id: clusterId });
+    const [scheme, path] = accessUrl.split('//');
+    const managePageUrl = `${scheme}//${pwdInfo.username}:${pwdInfo.password}@${path}`;
+    window.open(managePageUrl);
   };
 
   onMounted(() => {

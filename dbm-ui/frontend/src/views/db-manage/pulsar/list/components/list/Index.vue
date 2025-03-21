@@ -204,7 +204,7 @@
                 :href="data.access_url"
                 style="color: #63656e"
                 target="_blank">
-                {{ t('管理') }}
+                {{ t('控制台') }}
               </a>
             </BkDropdownItem>
           </MoreActionExtend>
@@ -239,9 +239,10 @@
       v-model:is-show="isShowPassword"
       render-directive="if"
       :title="t('获取访问方式')">
-      <ManagerPassword
+      <RenderPassword
         v-if="operationData"
-        :cluster-id="operationData.id" />
+        :cluster-id="operationData.id"
+        :db-type="DBTypes.PULSAR" />
       <template #footer>
         <BkButton @click="handleHidePassword">
           {{ t('关闭') }}
@@ -263,7 +264,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes, UserPersonalSettings } from '@common/const';
+  import { ClusterTypes, DBTypes, UserPersonalSettings } from '@common/const';
 
   import DbTable from '@components/db-table/index.vue';
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
@@ -279,12 +280,11 @@
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
+  import RenderPassword from '@views/db-manage/common/RenderPassword.vue';
   import ClusterExpansion from '@views/db-manage/pulsar/common/expansion/Index.vue';
   import ClusterShrink from '@views/db-manage/pulsar/common/shrink/Index.vue';
 
   import { getMenuListSearch, getSearchSelectorParams } from '@utils';
-
-  import ManagerPassword from './components/ManagerPassword.vue';
 
   const clusterId = defineModel<number>('clusterId');
 
