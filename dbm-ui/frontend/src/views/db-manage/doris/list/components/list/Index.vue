@@ -164,7 +164,7 @@
                 <a
                   :href="data.access_url"
                   target="_blank">
-                  {{ t('管理') }}
+                  WebUI
                 </a>
               </BkDropdownItem>
               <BkDropdownItem v-db-console="'doris.clusterManage.disable'">
@@ -258,7 +258,8 @@
       :title="t('获取访问方式')">
       <RenderPassword
         v-if="operationData"
-        :cluster-id="operationData.id" />
+        :cluster-id="operationData.id"
+        :db-type="DBTypes.DORIS" />
       <template #footer>
         <BkButton @click="handleHidePassword">
           {{ t('关闭') }}
@@ -280,7 +281,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes, UserPersonalSettings } from '@common/const';
+  import { ClusterTypes, DBTypes, UserPersonalSettings } from '@common/const';
 
   import DbTable from '@components/db-table/index.vue';
   import MoreActionExtend from '@components/more-action-extend/Index.vue';

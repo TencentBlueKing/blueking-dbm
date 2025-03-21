@@ -229,12 +229,15 @@
                 </OperationBtnStatusTips>
               </BkDropdownItem>
               <BkDropdownItem v-db-console="'hdfs.clusterManage.manage'">
-                <a
-                  :href="data.access_url"
-                  style="color: #63656e"
-                  target="_blank">
-                  {{ t('管理') }}
-                </a>
+                <AuthButton
+                  action-id="hdfs_access_entry_view"
+                  :permission="data.permission.hdfs_access_entry_view"
+                  :resource="data.id"
+                  text
+                  theme="primary"
+                  @click="() => handleGoToManagePage(data.id, data.access_url)">
+                  WebUI
+                </AuthButton>
               </BkDropdownItem>
             </MoreActionExtend>
           </template>
@@ -273,7 +276,8 @@
       :width="500">
       <RenderPassword
         v-if="operationData"
-        :cluster-id="operationData.id" />
+        :cluster-id="operationData.id"
+        :db-type="DBTypes.HDFS" />
       <template #footer>
         <BkButton @click="handleHidePassword">
           {{ t('关闭') }}
@@ -299,14 +303,14 @@
   import { useRoute, useRouter } from 'vue-router';
 
   import HdfsModel from '@services/model/hdfs/hdfs';
-  import { getHdfsList } from '@services/source/hdfs';
+  import { getHdfsList, getHdfsPassword } from '@services/source/hdfs';
   import { getUserList } from '@services/source/user';
 
   import { useLinkQueryColumnSerach, useStretchLayout, useTableSettings } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes, UserPersonalSettings } from '@common/const';
+  import { ClusterTypes, DBTypes, UserPersonalSettings } from '@common/const';
 
   import DbTable from '@components/db-table/index.vue';
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
@@ -569,6 +573,13 @@
   const handleShowSettings = (clusterData: HdfsModel) => {
     operationData.value = clusterData;
     isShowSettings.value = true;
+  };
+
+  const handleGoToManagePage = async (clusterId: number, accessUrl: string) => {
+    const pwdInfo = await getHdfsPassword({ cluster_id: clusterId });
+    const [scheme, path] = accessUrl.split('//');
+    const managePageUrl = `${scheme}//${pwdInfo.username}:${pwdInfo.password}@${path}`;
+    window.open(managePageUrl);
   };
 
   onMounted(() => {
