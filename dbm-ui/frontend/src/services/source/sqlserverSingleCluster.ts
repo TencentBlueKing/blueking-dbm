@@ -23,7 +23,7 @@ const getPath = () => `/apis/sqlserver/bizs/${window.PROJECT_CONFIG.BIZ_ID}/sqls
 /**
  * 获取集群列表
  */
-export function getSingleClusterList(params: { limit?: number; offset?: number }) {
+export function getSingleClusterList(params: { domain?: string; limit?: number; offset?: number }) {
   return http.get<ListBase<SqlServerSingleModel[]>>(`${getPath()}/`, params).then((data) => ({
     ...data,
     results: data.results.map(
