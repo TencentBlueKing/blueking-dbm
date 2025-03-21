@@ -576,6 +576,7 @@ def operate_collector(bk_biz_id: int, db_type: str, machine_type: str, bk_instan
             continue
         # 下发采集器
         try:
+            nodes = [{"id": bk_instance_id, "bk_biz_id": bk_biz_id} for bk_instance_id in bk_instance_ids]
             BKMonitorV3Api.run_collect_config(
                 {
                     "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
@@ -584,7 +585,7 @@ def operate_collector(bk_biz_id: int, db_type: str, machine_type: str, bk_instan
                         "bk_biz_id": bk_biz_id,
                         "object_type": "SERVICE",
                         "node_type": "INSTANCE",
-                        "nodes": [{"id": bk_instance_id} for bk_instance_id in bk_instance_ids],
+                        "nodes": nodes,
                     },
                     "action": action,
                 }
