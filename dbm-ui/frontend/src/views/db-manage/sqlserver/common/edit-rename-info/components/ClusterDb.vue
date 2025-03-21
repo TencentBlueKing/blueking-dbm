@@ -1,7 +1,5 @@
 <template>
-  <BkTable
-    :border="['outer', 'row', 'col']"
-    :data="[{}]">
+  <BkTable :data="[{}]">
     <BkTableColumn :label="t('回档 DB')">
       <RenderDbName
         :model-value="localDBName"

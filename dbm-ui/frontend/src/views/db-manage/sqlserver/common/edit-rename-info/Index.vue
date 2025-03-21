@@ -122,15 +122,5 @@
 <style lang="less" scoped>
   .edit-name-box {
     padding: 20px 24px;
-
-    :deep(.bk-vxe-table) {
-      .vxe-cell {
-        padding: 0 !important;
-      }
-
-      .bk-form-content {
-        margin-left: 0 !important;
-      }
-    }
   }
 </style>
