@@ -1991,6 +1991,10 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         }
 
     def mysql_backup_demand_payload(self, **kwargs):
+        port = self.ticket_data["port"]
+        if self.cluster.get("is_ctl"):
+            port = port + 1000
+
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.MySQLBackupDemand.value,
@@ -1998,7 +2002,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 "general": {"runtime_account": self.account},
                 "extend": {
                     "host": self.ticket_data["ip"],
-                    "port": self.ticket_data["port"],
+                    "port": port,
                     "role": self.ticket_data["role"],
                     "backup_type": self.ticket_data["backup_type"],
                     "backup_gsd": self.ticket_data["backup_gsd"],
