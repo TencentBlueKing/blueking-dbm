@@ -88,15 +88,19 @@ class DBResourceViewSet(viewsets.SystemViewSet):
             "resource_confirm",
             "resource_delete",
             "resource_update",
+            "append_labels",
         ): [ResourceActionPermission([ActionEnum.RESOURCE_POLL_MANAGE])],
         (
             "spec_resource_count",
+            "spec_cost_estimate",
             "get_mountpoints",
             "get_disktypes",
             "get_subzones",
             "get_device_class",
+            "list_dba_hosts",
+            "query_dba_hosts",
+            "resource_import_urls",
         ): [],
-        ("query_operation_list",): [ResourceActionPermission([ActionEnum.RESOURCE_OPERATION_VIEW])],
     }
     default_permission_class = [ResourceActionPermission([ActionEnum.RESOURCE_MANAGE])]
     filter_class = None

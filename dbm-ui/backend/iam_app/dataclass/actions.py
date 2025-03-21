@@ -1058,7 +1058,7 @@ class ActionEnum:
 
     REDIS_ACCESS_ENTRY_VIEW = ActionMeta(
         id="redis_access_entry_view",
-        name=_("Redis 获取访问方式"),
+        name=_("Redis 集群访问"),
         name_en="redis_access_entry_view",
         type="view",
         related_actions=[DB_MANAGE.id],
@@ -1174,7 +1174,7 @@ class ActionEnum:
 
     ES_ACCESS_ENTRY_VIEW = ActionMeta(
         id="es_access_entry_view",
-        name=_("ES 获取访问方式"),
+        name=_("ES 集群访问"),
         name_en="es_access_entry_view",
         type="view",
         related_actions=[DB_MANAGE.id],
@@ -1229,7 +1229,7 @@ class ActionEnum:
 
     DORIS_ACCESS_ENTRY_VIEW = ActionMeta(
         id="doris_access_entry_view",
-        name=_("Doris 获取访问方式"),
+        name=_("Doris 集群访问"),
         name_en="doris_access_entry_view",
         type="view",
         related_actions=[DB_MANAGE.id],
@@ -1265,7 +1265,7 @@ class ActionEnum:
 
     KAFKA_ACCESS_ENTRY_VIEW = ActionMeta(
         id="kafka_access_entry_view",
-        name=_("Kafka 获取访问方式"),
+        name=_("Kafka 集群访问"),
         name_en="kafka_access_entry_view",
         type="view",
         related_actions=[DB_MANAGE.id],
@@ -1317,7 +1317,7 @@ class ActionEnum:
 
     HDFS_ACCESS_ENTRY_VIEW = ActionMeta(
         id="hdfs_access_entry_view",
-        name=_("HDFS 获取访问方式"),
+        name=_("HDFS 集群访问"),
         name_en="hdfs_access_entry_view",
         type="view",
         related_actions=[DB_MANAGE.id],
@@ -1361,7 +1361,7 @@ class ActionEnum:
 
     PULSAR_ACCESS_ENTRY_VIEW = ActionMeta(
         id="pulsar_access_entry_view",
-        name=_("Pulsar 获取访问方式"),
+        name=_("Pulsar 集群访问"),
         name_en="pulsar_access_entry_view",
         type="view",
         related_actions=[DB_MANAGE.id],
@@ -1406,7 +1406,7 @@ class ActionEnum:
 
     RIAK_ACCESS_ENTRY_VIEW = ActionMeta(
         id="riak_access_entry_view",
-        name=_("Riak 获取访问方式"),
+        name=_("Riak 集群访问"),
         name_en="riak_access_entry_view",
         type="view",
         related_actions=[DB_MANAGE.id],
@@ -1652,7 +1652,7 @@ class ActionEnum:
 
     RESOURCE_POLL_MANAGE = ActionMeta(
         id="resource_pool_manage",
-        name=_("资源池管理"),
+        name=_("资源管理"),
         name_en="resource_pool_manage",
         type="manage",
         related_actions=[RESOURCE_MANAGE.id],
@@ -1662,27 +1662,27 @@ class ActionEnum:
         hidden=True,
     )
 
-    RESOURCE_OPERATION_VIEW = ActionMeta(
-        id="resource_operation_view",
-        name=_("资源池操作记录查看"),
-        name_en="resource_operation_view",
-        type="view",
-        related_actions=[RESOURCE_MANAGE.id],
-        related_resource_types=[],
-        group=_("资源管理"),
-        subgroup=_("资源池"),
-        hidden=True,
-    )
-
-    DIRTY_POLL_MANAGE = ActionMeta(
-        id="dirty_pool_manage",
-        name=_("污点池管理"),
-        name_en="dirty_pool_manage",
+    GLOBAL_RESOURCE_TAG_MANAGE = ActionMeta(
+        id="global_resource_tag_manage",
+        name=_("全局资源标签管理"),
+        name_en="global_resource_tag_manage",
         type="manage",
         related_actions=[RESOURCE_MANAGE.id],
         related_resource_types=[],
         group=_("资源管理"),
-        subgroup=_("污点池"),
+        subgroup=_("标签"),
+        hidden=True,
+    )
+
+    RESOURCE_TAG_MANAGE = ActionMeta(
+        id="resource_tag_manage",
+        name=_("资源标签管理"),
+        name_en="resource_tag_manage",
+        type="manage",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("资源管理"),
+        subgroup=_("标签"),
         hidden=True,
     )
 

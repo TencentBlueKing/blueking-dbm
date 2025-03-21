@@ -14,6 +14,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend import env
+from backend.components.hcm.client import HCMApi
 from backend.configuration.constants import DBType
 from backend.constants import INT_MAX
 from backend.db_dirty.constants import MachineEventType
@@ -51,14 +52,24 @@ class ResourceImportSerializer(serializers.Serializer):
     return_resource = serializers.BooleanField(help_text=_("是否为退回资源"), required=False)
 
     def validate(self, attrs):
-        host_ids = [host["host_id"] for host in attrs["hosts"]]
+        host_id__ip_map = {host["host_id"]: host["ip"] for host in attrs["hosts"]}
+        host_ids = list(host_id__ip_map.keys())
 
         # 如果主机存在元数据，则拒绝导入
         exist_hosts = list(Machine.objects.filter(bk_host_id__in=host_ids).values_list("ip", flat=True))
         if exist_hosts:
             raise serializers.ValidationError(_("导入主机{}存在元数据，请检查后重新导入").format(exist_hosts))
 
-        # TODO：如果主机存在裁撤单 / uwork单，则不允许导入
+        # 存在uwork或者是待裁撤主机，则不允许导入
+        check_work = HCMApi.check_host_has_uwork(host_ids)
+        if check_work:
+            ips = [host_id__ip_map[host_id] for host_id in check_work.keys()]
+            raise serializers.ValidationError(_("导入主机{}存在uwork单据，请处理后重新导入").format(ips))
+
+        check_dissolved = HCMApi.check_host_is_dissolved(host_ids)
+        if check_dissolved:
+            ips = [host_id__ip_map[host_id] for host_id in check_dissolved]
+            raise serializers.ValidationError(_("导入主机包含裁撤主机:{}，无法进行导入").format(ips))
 
         return attrs
 
