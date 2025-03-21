@@ -93,8 +93,9 @@
 
   const currentData = computed(() => {
     if (props.selected.length === 1) {
-      const { labels, resource_type: resourceType } = props.selected[0];
+      const { for_biz: forBiz, labels, resource_type: resourceType } = props.selected[0];
       return {
+        forBiz,
         labels: labels,
         resourceType,
       };

@@ -21,7 +21,7 @@
         <div
           ref="businessSelectorRef"
           class="business-selector">
-          <div>{{ bizIdMap.get(selected as number)?.name }}</div>
+          <div>{{ bizIdMap.get(selected as number)?.name || t('公共资源池') }}</div>
           <AngleDownFill
             class="triangle-icon mt-2 ml-7"
             :class="[{ rotate: !isExpanded }]" />
@@ -56,8 +56,8 @@
 
 <script setup lang="tsx">
   import { AngleDownFill } from 'bkui-vue/lib/icon';
-  import { cloneDeep } from 'lodash';
   import { defineEmits, ref } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   import { getProfile, upsertProfile } from '@services/source/profile';
 
@@ -67,6 +67,7 @@
 
   const emits = defineEmits<Emits>();
 
+  const { t } = useI18n();
   const { bizIdMap, bizs: bizList, currentBizInfo } = useGlobalBizs();
   const userStore = useUserProfile();
 
@@ -75,7 +76,18 @@
   const isExpanded = ref(false);
 
   const sortedBizList = computed(() => {
-    const clonedBizList = cloneDeep(bizList);
+    const clonedBizList = bizList.map((bizItem) => {
+      return {
+        bk_biz_id: bizItem.bk_biz_id,
+        english_name: bizItem.english_name,
+        name: bizItem.name,
+      };
+    });
+    clonedBizList.unshift({
+      bk_biz_id: 0,
+      english_name: '',
+      name: t('公共资源池'),
+    });
 
     return clonedBizList.sort((item1, item2) => {
       const isItem1Favored = favorBizIdSet.value.has(item1.bk_biz_id) ? 1 : 0;

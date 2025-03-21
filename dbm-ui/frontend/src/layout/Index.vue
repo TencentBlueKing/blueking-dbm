@@ -100,7 +100,7 @@
       label: t('业务配置'),
       value: menuEnum.configManage,
     },
-    userProfile.rerourceManage && {
+    userProfile.resourceManage && {
       dbConsoleValue: 'resourceManage',
       label: t('资源管理'),
       value: menuEnum.resourceManage,

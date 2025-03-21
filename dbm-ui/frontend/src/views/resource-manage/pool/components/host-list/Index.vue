@@ -19,15 +19,20 @@
       @change="handleSearch" />
     <div class="action-box mb-16">
       <template v-if="type === ResourcePool.public">
-        <BkButton
+        <AuthButton
+          action-id="resource_pool_manage"
           :disabled="selectionHostIdList.length < 1"
           theme="primary"
           @click="handleShowBatchConvertToBusiness">
           {{ t('转入业务资源池') }}
-        </BkButton>
+        </AuthButton>
       </template>
       <template v-else>
-        <BkDropdown :disabled="selectionHostIdList.length < 1">
+        <BkDropdown
+          :disabled="selectionHostIdList.length < 1"
+          :popover-options="{
+            renderDirective: 'show',
+          }">
           <BkButton
             class="ml-8"
             :disabled="selectionHostIdList.length < 1">
@@ -36,31 +41,33 @@
           </BkButton>
           <template #content>
             <BkDropdownMenu>
-              <BkDropdownItem @click="() => handleShowBatchAssign()">
-                {{ t('重新设置资源归属') }}
-              </BkDropdownItem>
-              <BkDropdownItem
-                v-bk-tooltips="{
-                  content: t('仅支持同业务的主机'),
-                  disabled: isSelectedSameBiz,
-                }"
-                :class="isSelectedSameBiz ? undefined : 'disabled-cls'"
-                @click="() => handleShowBatchAddTags()">
-                {{ t('添加资源标签') }}
-              </BkDropdownItem>
-              <BkDropdownItem
-                v-if="type === ResourcePool.business"
-                @click="handleShowBatchCovertToPublic">
-                {{ t('退回公共资源池') }}
-              </BkDropdownItem>
-              <BkDropdownItem @click="() => handleShowBatchSetting()"> {{ t('设置主机属性') }} </BkDropdownItem>
-              <BkDropdownItem @click="() => handleShowBatchMoveToFaultPool()"> {{ t('转入故障池') }} </BkDropdownItem>
-              <BkDropdownItem
-                v-if="type !== ResourcePool.business"
-                @click="handleShowBatchMoveToRecyclePool">
-                {{ t('转入待回收池') }}
-              </BkDropdownItem>
-              <BkDropdownItem @click="handleShowBatchUndoImport"> {{ t('撤销导入') }} </BkDropdownItem>
+              <AuthTemplate action-id="resource_pool_manage">
+                <BkDropdownItem @click="() => handleShowBatchAssign()">
+                  {{ t('重新设置资源归属') }}
+                </BkDropdownItem>
+                <BkDropdownItem
+                  v-bk-tooltips="{
+                    content: t('仅支持同业务的主机'),
+                    disabled: isSelectedSameBiz,
+                  }"
+                  :class="isSelectedSameBiz ? undefined : 'disabled-cls'"
+                  @click="() => handleShowBatchAddTags()">
+                  {{ t('添加资源标签') }}
+                </BkDropdownItem>
+                <BkDropdownItem
+                  v-if="type === ResourcePool.business"
+                  @click="handleShowBatchCovertToPublic">
+                  {{ t('退回公共资源池') }}
+                </BkDropdownItem>
+                <BkDropdownItem @click="() => handleShowBatchSetting()"> {{ t('设置主机属性') }} </BkDropdownItem>
+                <BkDropdownItem @click="() => handleShowBatchMoveToFaultPool()"> {{ t('转入故障池') }} </BkDropdownItem>
+                <BkDropdownItem
+                  v-if="type !== ResourcePool.business"
+                  @click="handleShowBatchMoveToRecyclePool">
+                  {{ t('转入待回收池') }}
+                </BkDropdownItem>
+                <BkDropdownItem @click="handleShowBatchUndoImport"> {{ t('撤销导入') }} </BkDropdownItem>
+              </AuthTemplate>
             </BkDropdownMenu>
           </template>
         </BkDropdown>
@@ -87,7 +94,7 @@
         </template>
       </BkDropdown>
       <AuthButton
-        action-id="resource_operation_view"
+        action-id="resource_manage"
         class="quick-search-btn"
         @click="handleGoTaskHistory">
         <DbIcon type="history-2" />
@@ -300,11 +307,16 @@
                   {data.labels && Array.isArray(data.labels) && data.labels.map((item) => <bk-tag>{item.name}</bk-tag>)}
                 </div>
                 {props.type !== ResourcePool.public && (
-                  <DbIcon
-                    class='operation-icon'
-                    type='edit'
-                    onClick={() => handleEdit(data)}
-                  />
+                  <auth-button
+                    action-id='resource_pool_manage'
+                    permission={data.permission.resource_pool_manage}
+                    text
+                    onClick={() => handleEdit(data)}>
+                    <DbIcon
+                      class='operation-icon'
+                      type='edit'
+                    />
+                  </auth-button>
                 )}
               </div>
             ),

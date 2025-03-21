@@ -285,9 +285,7 @@
         ...sortParams,
       };
       props
-        .dataSource(params, {
-          permission: 'page',
-        })
+        .dataSource(params)
         .then((data) => {
           tableData.value = data;
           pagination.count = data.count;
