@@ -117,52 +117,13 @@
         :min-width="200"
         :show-overflow="false">
         <template #default="{data}: {data: EsModel}">
-          <template v-if="data.isOffline">
-            <AuthButton
-              v-db-console="'es.clusterManage.enable'"
-              action-id="es_enable_disable"
-              class="mr-8"
-              :disabled="data.isStarting"
-              :permission="data.permission.es_enable_disable"
-              :resource="data.id"
-              text
-              theme="primary"
-              @click="handleEnableCluster([data])">
-              {{ t('启用') }}
-            </AuthButton>
-          </template>
-          <template v-else>
-            <OperationBtnStatusTips
-              v-db-console="'es.clusterManage.scaleUp'"
-              :data="data">
-              <AuthButton
-                action-id="es_scale_up"
-                class="mr8"
-                :disabled="data.operationDisabled"
-                :permission="data.permission.es_scale_up"
-                :resource="data.id"
-                text
-                theme="primary"
-                @click="handleShowExpandsion(data)">
-                {{ t('扩容') }}
-              </AuthButton>
-            </OperationBtnStatusTips>
-            <OperationBtnStatusTips
-              v-db-console="'es.clusterManage.scaleDown'"
-              :data="data">
-              <AuthButton
-                action-id="es_shrink"
-                class="mr8"
-                :disabled="data.operationDisabled"
-                :permission="data.permission.es_shrink"
-                :resource="data.id"
-                text
-                theme="primary"
-                @click="handleShowShrink(data)">
-                {{ t('缩容') }}
-              </AuthButton>
-            </OperationBtnStatusTips>
-          </template>
+          <a
+            v-db-console="'es.clusterManage.manage'"
+            class="mr-8"
+            :href="data.access_url"
+            target="_blank">
+            Kibana
+          </a>
           <AuthButton
             v-db-console="'es.clusterManage.getAccess'"
             action-id="es_access_entry_view"
@@ -176,8 +137,50 @@
             {{ t('获取访问方式') }}
           </AuthButton>
           <MoreActionExtend>
+            <BkDropdownItem v-db-console="'es.clusterManage.scaleUp'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  action-id="es_scale_up"
+                  :disabled="data.operationDisabled"
+                  :permission="data.permission.es_scale_up"
+                  :resource="data.id"
+                  text
+                  theme="primary"
+                  @click="handleShowExpandsion(data)">
+                  {{ t('扩容') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </BkDropdownItem>
+            <BkDropdownItem v-db-console="'es.clusterManage.scaleDown'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  action-id="es_shrink"
+                  :disabled="data.operationDisabled"
+                  :permission="data.permission.es_shrink"
+                  :resource="data.id"
+                  text
+                  theme="primary"
+                  @click="handleShowShrink(data)">
+                  {{ t('缩容') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </BkDropdownItem>
             <BkDropdownItem
-              v-if="data.isOnline"
+              v-if="data.isOffline"
+              v-db-console="'es.clusterManage.enable'">
+              <AuthButton
+                action-id="es_enable_disable"
+                :disabled="data.isStarting"
+                :permission="data.permission.es_enable_disable"
+                :resource="data.id"
+                text
+                theme="primary"
+                @click="handleEnableCluster([data])">
+                {{ t('启用') }}
+              </AuthButton>
+            </BkDropdownItem>
+            <BkDropdownItem
+              v-else
               v-db-console="'es.clusterManage.disable'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
@@ -209,14 +212,6 @@
                   {{ t('删除') }}
                 </AuthButton>
               </OperationBtnStatusTips>
-            </BkDropdownItem>
-            <BkDropdownItem v-db-console="'es.clusterManage.manage'">
-              <a
-                :href="data.access_url"
-                style="color: #63656e"
-                target="_blank">
-                Kibana
-              </a>
             </BkDropdownItem>
           </MoreActionExtend>
         </template>
