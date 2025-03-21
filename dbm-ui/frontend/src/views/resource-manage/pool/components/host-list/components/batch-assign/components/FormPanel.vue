@@ -85,6 +85,7 @@
   interface Props {
     bizId: number;
     currentData?: {
+      forBiz: DbResourceModel['for_biz'];
       labels: DbResourceModel['labels'];
       resourceType: string;
     };
@@ -108,7 +109,7 @@
   const isBusiness = route.name === 'BizResourcePool';
 
   const formData = reactive({
-    for_biz: isBusiness ? window.PROJECT_CONFIG.BIZ_ID : 0,
+    for_biz: isBusiness ? window.PROJECT_CONFIG.BIZ_ID : props.currentData?.forBiz.bk_biz_id,
     labels: (props.currentData?.labels || []).map((labelItem) => labelItem.id),
     resource_type: props.currentData?.resourceType || '',
   });

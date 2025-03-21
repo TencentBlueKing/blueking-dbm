@@ -9,7 +9,9 @@
         :active-key="currentActiveKey"
         :opened-keys="[parentKey]"
         @click="handleMenuChange">
-        <BkMenuGroup :name="t('资源管理')">
+        <BkMenuGroup
+          v-if="userProfile.resourceManage"
+          :name="t('资源管理')">
           <BkMenuItem
             key="BizResourcePool"
             v-db-console="'bizConfigManage.businessResourcePool'">
@@ -152,11 +154,14 @@
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import { useUserProfile } from '@stores';
+
   import AppSelect from './AppSelect.vue';
   import { useActiveKey } from './hooks/useActiveKey';
   import { useMenuStyles } from './hooks/useMenuStyles';
 
   const { t } = useI18n();
+  const userProfile = useUserProfile();
 
   const menuBoxRef = ref<HTMLElement>();
   const menuRef = ref<InstanceType<typeof Menu>>();
@@ -165,7 +170,10 @@
     key: currentActiveKey,
     parentKey,
     routeLocation: handleMenuChange,
-  } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, 'BizResourcePool');
+  } = useActiveKey(
+    menuRef as Ref<InstanceType<typeof Menu>>,
+    userProfile.resourceManage ? 'BizResourcePool' : 'DbConfigure',
+  );
 
   const styles = useMenuStyles(menuBoxRef);
 </script>

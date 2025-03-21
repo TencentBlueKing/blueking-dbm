@@ -37,18 +37,22 @@
     </Teleport>
     <div class="tags-management-container">
       <div class="header-action mb-16">
-        <BkButton
+        <AuthButton
+          :action-id="actionId"
           class="operation-btn"
+          :resource="resource"
           theme="primary"
           @click="handleCreate">
           {{ t('新建') }}
-        </BkButton>
-        <BkButton
+        </AuthButton>
+        <AuthButton
+          :action-id="actionId"
           class="operation-btn"
           :disabled="!hasSelected"
+          :resource="resource"
           @click="handleBatchDelete">
           {{ t('批量删除') }}
-        </BkButton>
+        </AuthButton>
         <BkSearchSelect
           v-model="searchValue"
           class="search-selector"
@@ -80,8 +84,7 @@
 </template>
 
 <script setup lang="tsx">
-  import { Button, InfoBox } from 'bkui-vue';
-  import BKPopConfirm from 'bkui-vue/lib/pop-confirm';
+  import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -104,13 +107,16 @@
   const tableRef = ref();
   const selected = ref<ResourceTagModel[]>([]);
   const isCreateTagDialogShow = ref(false);
-  const curBiz = ref(currentBizInfo!);
+  const curBiz = ref(currentBizInfo);
   const curEditId = ref(-1);
   const searchValue = ref([]);
 
   const bindIpMap = shallowRef<Map<number, number>>(new Map()); // 标签ID与当前标签绑定的IP数的映射
 
   const isBusiness = route.name === 'BizResourceTag';
+  // 权限相关
+  const actionId = isBusiness ? 'resource_tag_manage' : 'global_resource_tag_manage';
+  const resource = isBusiness ? window.PROJECT_CONFIG.BIZ_ID : undefined;
 
   const searchSelectData = [
     {
@@ -125,6 +131,7 @@
 
   const hasSelected = computed(() => selected.value.length > 0);
   const selectedIds = computed(() => selected.value.map((item) => item.id));
+  const curBizId = computed(() => curBiz.value?.bk_biz_id || 0);
 
   const { run: runDelete } = useRequest(deleteTag, {
     manual: true,
@@ -143,8 +150,10 @@
           data.value
         ) : (
           <EditableCell
+            actionId={actionId}
             data={data}
             editId={curEditId.value}
+            resource={resource}
             onBlur={handleBlur}
             onEdit={handleEdit}
           />
@@ -190,12 +199,12 @@
     {
       label: t('操作'),
       render: ({ data }: { data: ResourceTagModel }) => (
-        <BKPopConfirm
+        <db-popconfirm
+          confirmHandler={() => handleDelete(data)}
           ext-cls='content-wrapper'
           title={t('确认删除该标签值？')}
           trigger='click'
-          width={280}
-          onConfirm={() => handleDelete(data)}>
+          width={280}>
           {{
             content: (
               <>
@@ -207,19 +216,23 @@
               </>
             ),
             default: (
-              <Button
-                v-bk-tooltips={{
-                  content: t('该标签已被绑定 ，不能删除'),
-                  disabled: !bindIpMap.value.get(data.id),
-                }}
-                disabled={!!bindIpMap.value.get(data.id)}
-                theme='primary'
-                text>
-                {t('删除')}
-              </Button>
+              <span>
+                <auth-button
+                  v-bk-tooltips={{
+                    content: t('该标签已被绑定 ，不能删除'),
+                    disabled: !bindIpMap.value.get(data.id),
+                  }}
+                  action-id={actionId}
+                  disabled={!!bindIpMap.value.get(data.id)}
+                  resource={resource}
+                  theme='primary'
+                  text>
+                  {t('删除')}
+                </auth-button>
+              </span>
             ),
           }}
-        </BKPopConfirm>
+        </db-popconfirm>
       ),
     },
   ]);
@@ -248,7 +261,7 @@
     const searchParams = getSearchSelectorParams(searchValue.value);
     tableRef.value.fetchData({
       ...searchParams,
-      bk_biz_id: curBiz.value.bk_biz_id,
+      bk_biz_id: curBizId.value,
       ordering: '-create_at',
     });
   };
@@ -274,7 +287,7 @@
       ),
       onConfirm: () => {
         runDelete({
-          bk_biz_id: curBiz.value.bk_biz_id,
+          bk_biz_id: curBiz.value?.bk_biz_id || 0,
           ids: selectedIds.value,
         });
       },
@@ -290,12 +303,12 @@
   const handleBlur = (data: ResourceTagModel, val: string) => {
     if (val && data.value !== val) {
       validateTag({
-        bk_biz_id: curBiz.value.bk_biz_id,
+        bk_biz_id: curBizId.value,
         tags: [{ key: 'dbresource', value: val }],
       }).then((existData) => {
         if (existData.length === 0) {
           runUpdate({
-            bk_biz_id: curBiz.value.bk_biz_id,
+            bk_biz_id: curBizId.value,
             id: data.id,
             value: val,
           });
@@ -314,7 +327,7 @@
 
   const handleDelete = (data: ResourceTagModel) => {
     runDelete({
-      bk_biz_id: curBiz.value.bk_biz_id,
+      bk_biz_id: curBizId.value,
       ids: [data.id],
     });
   };
@@ -339,7 +352,7 @@
 
   const handleRequestSuccess = (data: ServiceReturnType<typeof listTag>) => {
     getRelatedResource({
-      bk_biz_id: curBiz.value.bk_biz_id,
+      bk_biz_id: curBizId.value,
       ids: data.results.map((item) => item.id),
       resource_type: 'resource',
     });
