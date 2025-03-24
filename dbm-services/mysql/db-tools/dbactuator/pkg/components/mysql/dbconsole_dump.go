@@ -151,10 +151,9 @@ func (c *DbConsoleDumpComp) Init() (err error) {
 			return err
 		}
 	} else if len(c.Params.DumpDetail.TablesIgnore) > 0 {
-		ignoreDbs := c.Params.DumpDetail.Databases
 		dbTablefiler, err = db_table_filter.NewFilter(
 			c.Params.DumpDetail.Databases, tbls,
-			ignoreDbs, c.Params.DumpDetail.TablesIgnore,
+			nil, c.Params.DumpDetail.TablesIgnore,
 		)
 		if err != nil {
 			return err
