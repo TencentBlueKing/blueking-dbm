@@ -39,6 +39,7 @@
       :row-config="{
         useKey: true,
         keyField: 'id',
+        height: 40,
       }"
       :scroll-y="{ enabled: true, gt: 0 }"
       selectable
@@ -414,20 +415,18 @@
       });
       return result;
     }, {});
-    if (!severityList.value[0].count) {
-      severityList.value.forEach((item) => {
-        // 全部
-        if (!item.value) {
-          Object.assign(item, {
-            count: severityInfo.count,
-          });
-        } else {
-          Object.assign(item, {
-            count: severityMap[item.value],
-          });
-        }
-      });
-    }
+    severityList.value.forEach((item) => {
+      // 全部
+      if (!item.value) {
+        Object.assign(item, {
+          count: severityInfo.count,
+        });
+      } else {
+        Object.assign(item, {
+          count: severityMap[item.value],
+        });
+      }
+    });
   };
 
   const handleSelectLevel = (level: number) => {
@@ -481,6 +480,15 @@
     const searchData = _.cloneDeep(data);
     Object.keys(searchValue).forEach((key) => {
       if (!searchData[key] && searchDataKeys.includes(key)) {
+        // 业务下的告警事件特殊处理
+        if (key === 'bk_biz_id' && !isTodoPage.value && !isGlobalPage.value) {
+          return;
+        }
+
+        if (key === 'severity' && activeLevel.value) {
+          return;
+        }
+
         // searchselect 删除的项
         delete searchValue[key];
       } else if (searchData[key]) {
