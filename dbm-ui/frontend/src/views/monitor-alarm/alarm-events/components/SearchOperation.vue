@@ -286,7 +286,7 @@
 
     if (!handledValueList.length) {
       filterData.value = {
-        db_types: filterData.value.db,
+        db_types: filterData.value.db_types,
         ...initDatetime(),
       };
       return;
