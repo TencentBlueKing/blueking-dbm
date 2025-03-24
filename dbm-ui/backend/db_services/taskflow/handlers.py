@@ -221,21 +221,28 @@ class TaskFlowHandler:
         if history["finished_time"] < timezone.now() - timedelta(days=env.BKLOG_DEFAULT_RETENTION):
             return [self.generate_log_record(message=_("节点日志仅保留{}天").format(env.BKLOG_DEFAULT_RETENTION))]
 
+        # 探测日志的pod名称
+        detected_pods = ["worker", "dbsimulation", "dbpriv"]
+        detected_pods_query = " OR ".join([f"__ext.io_kubernetes_pod:*{pod}*" for pod in detected_pods])
+
         start_time = datetime2str(history["started_time"])
         end_time = datetime2str(history["finished_time"] + timedelta(days=1))
+        # 获取pod采集日志
         dbm_logs = self.bklog_esquery_search(
             indices=f"{env.DBA_APP_BK_BIZ_ID}_bklog.dbm_log",
-            query_string=f"({self.root_id} AND {node_id} AND {version_id})"
-            f" AND (__ext.io_kubernetes_pod:*worker* OR __ext.io_kubernetes_pod:*dbsimulation*)",
+            query_string=f"({self.root_id} AND {node_id} AND {version_id}) AND ({detected_pods_query})",
             start_time=start_time,
             end_time=end_time,
         )
+        # 获取dbactuator采集日志
         dbm_dbactuator_logs = self.bklog_esquery_search(
             indices=f"{env.DBA_APP_BK_BIZ_ID}_bklog.dbm_dbactuator,{env.DBA_APP_BK_BIZ_ID}_bklog.dbm_win_dbactuator,",
             query_string=f"{self.root_id} AND {node_id} AND {version_id}",
             start_time=start_time,
             end_time=end_time,
         )
+
+        # 格式化日志信息
         logs = []
         sorted_hits = sorted(
             dbm_logs + dbm_dbactuator_logs,

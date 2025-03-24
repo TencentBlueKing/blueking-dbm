@@ -36,7 +36,8 @@ from backend.utils.redis import RedisConn
 
 logger = logging.getLogger("flow")
 
-OPERATE_COLLECTOR_COUNTDOWN = 30
+# 采集器下发的时间窗口
+OPERATE_COLLECTOR_COUNTDOWN = 60
 
 
 class CcManage(object):
