@@ -171,11 +171,14 @@ export default class AlarmEvent {
   }
 
   get instance() {
+    let instanceInfo: DimensionInfo;
     let ipInfo: DimensionInfo;
     let hostInfo: DimensionInfo;
     let portInfo: DimensionInfo;
     this.dimensions.forEach((item) => {
-      if (item.key === 'ip') {
+      if (item.key === 'instance') {
+        instanceInfo = item;
+      } else if (item.key === 'ip') {
         ipInfo = item;
       } else if (item.key === 'tags.instance_host') {
         hostInfo = item;
@@ -183,6 +186,10 @@ export default class AlarmEvent {
         portInfo = item;
       }
     });
+    if (instanceInfo) {
+      return instanceInfo.display_value;
+    }
+
     if (ipInfo) {
       return ipInfo.display_value;
     }
