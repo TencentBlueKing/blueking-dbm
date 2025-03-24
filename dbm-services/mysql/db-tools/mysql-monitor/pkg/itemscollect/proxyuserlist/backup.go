@@ -85,6 +85,10 @@ func (c *Checker) cleanOldBackup() error {
 		_ = conn.Close()
 	}()
 
+	_, err = conn.ExecContext(context.Background(), `SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ`)
+	if err != nil {
+		return err
+	}
 	_, err = conn.ExecContext(context.Background(), `SET SESSION binlog_format='statement';`)
 	if err != nil {
 		return err

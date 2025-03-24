@@ -37,7 +37,7 @@ func InitConfig(configPath string) error {
 	}
 
 	MonitorConfig = &Config{}
-	err = yaml.UnmarshalStrict(content, MonitorConfig)
+	err = yaml.Unmarshal(content, MonitorConfig)
 	if err != nil {
 		slog.Error("init config", slog.String("error", err.Error()))
 		return err

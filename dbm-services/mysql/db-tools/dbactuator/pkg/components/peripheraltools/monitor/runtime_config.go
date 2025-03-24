@@ -95,7 +95,6 @@ func generateRuntimeConfigIns(mmp *MySQLMonitorParam, instance *internal.Instanc
 		MachineType:  mmp.MachineType,
 		Role:         &instance.Role,
 		BkCloudID:    &mmp.BkCloudId,
-		//ClusterType:   instance.,
 		Log: &config.LogConfig{
 			Console:    false,
 			LogFileDir: &logDir,

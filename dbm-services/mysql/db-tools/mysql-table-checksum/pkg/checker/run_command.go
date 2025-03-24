@@ -142,7 +142,7 @@ func (r *Checker) isEmptyResultTbl() (bool, error) {
 
 func (r *Checker) writeFakeResult(fakeDB string, fakeTbl string) error {
 	// 为了兼容 flashback, 这里拼上库前缀
-	ts := time.Now()
+	ts := time.Now().Format("2006-01-02 15:04:05")
 	_, err := r.conn.ExecContext(
 		context.Background(),
 		fmt.Sprintf("REPLACE INTO %s.%s("+

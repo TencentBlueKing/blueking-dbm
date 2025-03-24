@@ -34,7 +34,7 @@ package:
 	cp ${OUTPUT_DIR}/${PROJ_BIN} ${PKG_DIR}/
 	chmod +x ${PKG_DIR}/*.sh && chmod +x ${PKG_DIR}/dbbackup
 	chmod +x ${PKG_DIR}/bin/* && chmod +x ${PKG_DIR}/bin/*/*
-	tar -C ${OUTPUT_DIR} -zcf ${OUTPUT_DIR}/${PROJ_PKG} ${PROJ}
+	tar --no-xattrs -C ${OUTPUT_DIR} -zcf ${OUTPUT_DIR}/${PROJ_PKG} ${PROJ}
 	md5sum ${OUTPUT_DIR}/${PROJ_PKG}
 
 .PHONY: clean

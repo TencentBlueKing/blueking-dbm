@@ -20,7 +20,7 @@ release-bin:
 	cp -a checksum_history.sql ${OUTPUT_DIR}/
 	# 为了保证 tar 压缩得到的包的 md5 一致，这里修改文件的时间戳，同时把 tar -zcf 拆为 tar -cf && gzip
 	find ${OUTPUT_DIR} -exec touch -t ${GITDATE} {} +
-	tar -C ${OUTPUT_DIR} --numeric-owner -cvf ${OUTPUT_DIR}/${TAR_PKG} ${PROJ} pt-table-checksum pt-table-sync checksum_history.sql lib
+	tar --no-xattrs -C ${OUTPUT_DIR} --numeric-owner -cvf ${OUTPUT_DIR}/${TAR_PKG} ${PROJ} pt-table-checksum pt-table-sync checksum_history.sql lib
 	gzip -n -f ${OUTPUT_DIR}/${TAR_PKG}
 
 .PHONY: dev-bin
