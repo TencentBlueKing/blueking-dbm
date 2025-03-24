@@ -12,7 +12,9 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.rules">
+  <BkTable
+    :data="ticketDetails.details.rules"
+    :show-overflow="false">
     <BkTableColumn :label="t('集群')">
       <template #default="{ data }: { data: IRowData }">
         {{ ticketDetails.details.clusters[data.cluster_id]?.immute_domain }}
@@ -27,11 +29,11 @@
       <template #default="{ data }: { data: IRowData }">
         <span v-if="!data.white_regex">--</span>
         <template v-else>
-          <BkTag
+          <p
             v-for="item in data.white_regex.split('\n')"
             :key="item">
-            {{ item }}
-          </BkTag>
+            <BkTag>{{ item }}</BkTag>
+          </p>
         </template>
       </template>
     </BkTableColumn>
@@ -39,11 +41,11 @@
       <template #default="{ data }: { data: IRowData }">
         <span v-if="!data.black_regex">--</span>
         <template v-else>
-          <BkTag
+          <p
             v-for="item in data.black_regex.split('\n')"
             :key="item">
-            {{ item }}
-          </BkTag>
+            <BkTag>{{ item }}</BkTag>
+          </p>
         </template>
       </template>
     </BkTableColumn>
