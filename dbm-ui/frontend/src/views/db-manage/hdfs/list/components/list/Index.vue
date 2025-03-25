@@ -119,54 +119,17 @@
           :min-width="200"
           :show-overflow="false">
           <template #default="{data}: {data: HdfsModel}">
-            <template v-if="data.isOffline">
-              <OperationBtnStatusTips
-                v-db-console="'hdfs.clusterManage.enable'"
-                :data="data">
-                <AuthButton
-                  v-db-console="'hdfs.clusterManage.enable'"
-                  action-id="hdfs_enable_disable"
-                  class="mr-8"
-                  :disabled="data.isStarting"
-                  :permission="data.permission.hdfs_enable_disable"
-                  :resource="data.id"
-                  text
-                  theme="primary"
-                  @click="handleEnableCluster([data])">
-                  {{ t('启用') }}
-                </AuthButton>
-              </OperationBtnStatusTips>
-            </template>
-            <template v-else>
-              <OperationBtnStatusTips :data="data">
-                <AuthButton
-                  v-db-console="'hdfs.clusterManage.scaleUp'"
-                  action-id="hdfs_scale_up"
-                  class="mr-8"
-                  :disabled="data.operationDisabled"
-                  :permission="data.permission.hdfs_scale_up"
-                  :resource="data.id"
-                  text
-                  theme="primary"
-                  @click="handleShowExpansion(data)">
-                  {{ t('扩容') }}
-                </AuthButton>
-              </OperationBtnStatusTips>
-              <OperationBtnStatusTips :data="data">
-                <AuthButton
-                  v-db-console="'hdfs.clusterManage.scaleDown'"
-                  action-id="hdfs_shrink"
-                  class="mr-8"
-                  :disabled="data.operationDisabled"
-                  :permission="data.permission.hdfs_shrink"
-                  :resource="data.id"
-                  text
-                  theme="primary"
-                  @click="handleShowShrink(data)">
-                  {{ t('缩容') }}
-                </AuthButton>
-              </OperationBtnStatusTips>
-            </template>
+            <AuthButton
+              v-db-console="'hdfs.clusterManage.manage'"
+              action-id="hdfs_access_entry_view"
+              class="mr-8"
+              :permission="data.permission.hdfs_access_entry_view"
+              :resource="data.id"
+              text
+              theme="primary"
+              @click="() => handleGoToManagePage(data.id, data.access_url)">
+              WebUI
+            </AuthButton>
             <AuthButton
               v-db-console="'hdfs.clusterManage.getAccess'"
               action-id="hdfs_access_entry_view"
@@ -180,6 +143,34 @@
               {{ t('获取访问方式') }}
             </AuthButton>
             <MoreActionExtend>
+              <BkDropdownItem v-db-console="'hdfs.clusterManage.scaleUp'">
+                <OperationBtnStatusTips :data="data">
+                  <AuthButton
+                    action-id="hdfs_scale_up"
+                    :disabled="data.operationDisabled"
+                    :permission="data.permission.hdfs_scale_up"
+                    :resource="data.id"
+                    text
+                    theme="primary"
+                    @click="handleShowExpansion(data)">
+                    {{ t('扩容') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </BkDropdownItem>
+              <BkDropdownItem v-db-console="'hdfs.clusterManage.scaleDown'">
+                <OperationBtnStatusTips :data="data">
+                  <AuthButton
+                    action-id="hdfs_shrink"
+                    :disabled="data.operationDisabled"
+                    :permission="data.permission.hdfs_shrink"
+                    :resource="data.id"
+                    text
+                    theme="primary"
+                    @click="handleShowShrink(data)">
+                    {{ t('缩容') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </BkDropdownItem>
               <BkDropdownItem v-db-console="'hdfs.clusterManage.viewAccessConfiguration'">
                 <AuthButton
                   action-id="hdfs_view"
@@ -193,7 +184,24 @@
                 </AuthButton>
               </BkDropdownItem>
               <BkDropdownItem
-                v-if="data.isOnline"
+                v-if="data.isOffline"
+                v-db-console="'hdfs.clusterManage.enable'">
+                <OperationBtnStatusTips :data="data">
+                  <AuthButton
+                    action-id="hdfs_enable_disable"
+                    class="mr-8"
+                    :disabled="data.isStarting"
+                    :permission="data.permission.hdfs_enable_disable"
+                    :resource="data.id"
+                    text
+                    theme="primary"
+                    @click="handleEnableCluster([data])">
+                    {{ t('启用') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </BkDropdownItem>
+              <BkDropdownItem
+                v-else
                 v-db-console="'hdfs.clusterManage.disable'">
                 <OperationBtnStatusTips :data="data">
                   <AuthButton
@@ -209,9 +217,7 @@
                 </OperationBtnStatusTips>
               </BkDropdownItem>
               <BkDropdownItem v-db-console="'hdfs.clusterManage.delete'">
-                <OperationBtnStatusTips
-                  v-db-console="'hdfs.clusterManage.delete'"
-                  :data="data">
+                <OperationBtnStatusTips :data="data">
                   <AuthButton
                     v-bk-tooltips="{
                       disabled: data.isOffline,
@@ -227,14 +233,6 @@
                     {{ t('删除') }}
                   </AuthButton>
                 </OperationBtnStatusTips>
-              </BkDropdownItem>
-              <BkDropdownItem v-db-console="'hdfs.clusterManage.manage'">
-                <a
-                  :href="data.access_url"
-                  style="color: #63656e"
-                  target="_blank">
-                  {{ t('管理') }}
-                </a>
               </BkDropdownItem>
             </MoreActionExtend>
           </template>
@@ -273,7 +271,8 @@
       :width="500">
       <RenderPassword
         v-if="operationData"
-        :cluster-id="operationData.id" />
+        :cluster-id="operationData.id"
+        :db-type="DBTypes.HDFS" />
       <template #footer>
         <BkButton @click="handleHidePassword">
           {{ t('关闭') }}
@@ -299,14 +298,14 @@
   import { useRoute, useRouter } from 'vue-router';
 
   import HdfsModel from '@services/model/hdfs/hdfs';
-  import { getHdfsList } from '@services/source/hdfs';
+  import { getHdfsList, getHdfsPassword } from '@services/source/hdfs';
   import { getUserList } from '@services/source/user';
 
   import { useLinkQueryColumnSerach, useStretchLayout, useTableSettings } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes, UserPersonalSettings } from '@common/const';
+  import { ClusterTypes, DBTypes, UserPersonalSettings } from '@common/const';
 
   import DbTable from '@components/db-table/index.vue';
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
@@ -569,6 +568,13 @@
   const handleShowSettings = (clusterData: HdfsModel) => {
     operationData.value = clusterData;
     isShowSettings.value = true;
+  };
+
+  const handleGoToManagePage = async (clusterId: number, accessUrl: string) => {
+    const pwdInfo = await getHdfsPassword({ cluster_id: clusterId });
+    const [scheme, path] = accessUrl.split('//');
+    const managePageUrl = `${scheme}//${pwdInfo.username}:${pwdInfo.password}@${path}`;
+    window.open(managePageUrl);
   };
 
   onMounted(() => {

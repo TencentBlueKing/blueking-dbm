@@ -16,8 +16,7 @@ import DorisDetailModel from '@services/model/doris/doris-detail';
 import DorisInstanceModel from '@services/model/doris/doris-instance';
 import DorisMachineModel from '@services/model/doris/doris-machine';
 import DorisNodeModel from '@services/model/doris/doris-node';
-import DorisPasswordModel from '@services/model/doris/doris-password';
-import type { ListBase } from '@services/types';
+import type { BigDataClusterPassword, ListBase } from '@services/types';
 
 import http from '../http';
 
@@ -105,9 +104,7 @@ export function getDorisTopoGraph(params: { cluster_id: number }) {
  * 获取 Doris 集群访问密码
  */
 export function getDorisPassword(params: { cluster_id: number }) {
-  return http
-    .get<DorisPasswordModel>(`${getRootPath()}/${params.cluster_id}/get_password/`)
-    .then((data) => new DorisPasswordModel(data));
+  return http.get<BigDataClusterPassword>(`${getRootPath()}/${params.cluster_id}/get_password/`);
 }
 
 /**

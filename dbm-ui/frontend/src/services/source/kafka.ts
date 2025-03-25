@@ -16,8 +16,7 @@ import KafkaDetailModel from '@services/model/kafka/kafka-detail';
 import KafkaInstanceModel from '@services/model/kafka/kafka-instance';
 import KafkaMachineModel from '@services/model/kafka/kafka-machine';
 import KafkaNodeModel from '@services/model/kafka/kafka-node';
-import KafkaPasswordModel from '@services/model/kafka/kafka-password';
-import type { ListBase } from '@services/types';
+import type { BigDataClusterPassword, ListBase } from '@services/types';
 
 import { useGlobalBizs } from '@stores';
 
@@ -86,9 +85,7 @@ export function getKafkaTopoGraph(params: { cluster_id: number }) {
  * 获取 Kafka 集群访问密码
  */
 export function getKafkaPassword(params: { cluster_id: number } & Record<string, any>) {
-  return http
-    .get<KafkaPasswordModel>(`${path}/${params.cluster_id}/get_password/`)
-    .then((data) => new KafkaPasswordModel(data));
+  return http.get<BigDataClusterPassword>(`${path}/${params.cluster_id}/get_password/`);
 }
 
 /**

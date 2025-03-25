@@ -98,54 +98,17 @@
         :min-width="200"
         :show-overflow="false">
         <template #default="{data}: {data: KafkaModel}">
-          <template v-if="data.isOffline">
-            <OperationBtnStatusTips
-              v-db-console="'kafka.clusterManage.enable'"
-              :data="data">
-              <AuthButton
-                action-id="kafka_enable_disable"
-                class="mr-8"
-                :disabled="data.isStarting"
-                :permission="data.permission.kafka_enable_disable"
-                :resource="data.id"
-                text
-                theme="primary"
-                @click="handleEnableCluster([data])">
-                {{ t('启用') }}
-              </AuthButton>
-            </OperationBtnStatusTips>
-          </template>
-          <template v-if="data.isOnline">
-            <OperationBtnStatusTips
-              v-db-console="'kafka.clusterManage.scaleUp'"
-              :data="data"
-              :disabled="!data.isOffline">
-              <AuthButton
-                action-id="kafka_scale_up"
-                class="mr8"
-                :permission="data.permission.kafka_scale_up"
-                :resource="data.id"
-                text
-                theme="primary"
-                @click="handleShowExpansion(data)">
-                {{ t('扩容') }}
-              </AuthButton>
-            </OperationBtnStatusTips>
-            <OperationBtnStatusTips
-              v-db-console="'kafka.clusterManage.scaleDown'"
-              :data="data">
-              <AuthButton
-                action-id="kafka_shrink"
-                class="mr8"
-                :permission="data.permission.kafka_shrink"
-                :resource="data.id"
-                text
-                theme="primary"
-                @click="handleShowShrink(data)">
-                {{ t('缩容') }}
-              </AuthButton>
-            </OperationBtnStatusTips>
-          </template>
+          <AuthButton
+            v-db-console="'kafka.clusterManage.manage'"
+            action-id="kafka_access_entry_view"
+            class="mr-8"
+            :permission="data.permission.kafka_access_entry_view"
+            :resource="data.id"
+            text
+            theme="primary"
+            @click="() => handleGoToManagePage(data.id, data.access_url)">
+            {{ t('控制台') }}
+          </AuthButton>
           <AuthButton
             v-db-console="'kafka.clusterManage.getAccess'"
             action-id="kafka_access_entry_view"
@@ -159,7 +122,53 @@
             {{ t('获取访问方式') }}
           </AuthButton>
           <MoreActionExtend>
-            <BkDropdownItem v-db-console="'kafka.clusterManage.disable'">
+            <BkDropdownItem v-db-console="'kafka.clusterManage.scaleUp'">
+              <OperationBtnStatusTips
+                :data="data"
+                :disabled="!data.isOffline">
+                <AuthButton
+                  action-id="kafka_scale_up"
+                  :permission="data.permission.kafka_scale_up"
+                  :resource="data.id"
+                  text
+                  theme="primary"
+                  @click="handleShowExpansion(data)">
+                  {{ t('扩容') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </BkDropdownItem>
+            <BkDropdownItem v-db-console="'kafka.clusterManage.scaleDown'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  action-id="kafka_shrink"
+                  :permission="data.permission.kafka_shrink"
+                  :resource="data.id"
+                  text
+                  theme="primary"
+                  @click="handleShowShrink(data)">
+                  {{ t('缩容') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </BkDropdownItem>
+            <BkDropdownItem
+              v-if="data.isOffline"
+              v-db-console="'kafka.clusterManage.enable'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  action-id="kafka_enable_disable"
+                  :disabled="data.isStarting"
+                  :permission="data.permission.kafka_enable_disable"
+                  :resource="data.id"
+                  text
+                  theme="primary"
+                  @click="handleEnableCluster([data])">
+                  {{ t('启用') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </BkDropdownItem>
+            <BkDropdownItem
+              v-else
+              v-db-console="'kafka.clusterManage.disable'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
                   action-id="kafka_enable_disable"
@@ -174,7 +183,6 @@
               </OperationBtnStatusTips>
             </BkDropdownItem>
             <BkDropdownItem v-db-console="'kafka.clusterManage.delete'">
-              <!-- 删除按钮 -->
               <OperationBtnStatusTips :data="data">
                 <AuthButton
                   v-bk-tooltips="{
@@ -182,7 +190,6 @@
                     content: t('请先禁用集群'),
                   }"
                   action-id="kafka_destroy"
-                  class="mr8"
                   :disabled="data.isOnline || Boolean(data.operationTicketId)"
                   :permission="data.permission.kafka_destroy"
                   :resource="data.id"
@@ -192,15 +199,6 @@
                   {{ t('删除') }}
                 </AuthButton>
               </OperationBtnStatusTips>
-            </BkDropdownItem>
-            <!-- 管理链接 -->
-            <BkDropdownItem v-db-console="'kafka.clusterManage.manage'">
-              <a
-                class="mr8"
-                :href="data.access_url"
-                target="_blank">
-                {{ t('管理') }}
-              </a>
             </BkDropdownItem>
           </MoreActionExtend>
         </template>
@@ -255,7 +253,7 @@
   import { useRoute, useRouter } from 'vue-router';
 
   import KafkaModel from '@services/model/kafka/kafka';
-  import { getKafkaList } from '@services/source/kafka';
+  import { getKafkaList, getKafkaPassword } from '@services/source/kafka';
   import { getUserList } from '@services/source/user';
 
   import { useLinkQueryColumnSerach, useStretchLayout, useTableSettings } from '@hooks';
@@ -516,6 +514,13 @@
 
   const handleHidePassword = () => {
     isShowPassword.value = false;
+  };
+
+  const handleGoToManagePage = async (clusterId: number, accessUrl: string) => {
+    const pwdInfo = await getKafkaPassword({ cluster_id: clusterId });
+    const [scheme, path] = accessUrl.split('//');
+    const managePageUrl = `${scheme}//${pwdInfo.username}:${pwdInfo.password}@${path}`;
+    window.open(managePageUrl);
   };
 
   onMounted(() => {

@@ -1,3 +1,4 @@
+export * from './bigDataClusterPassword';
 export * from './clusterListEntry';
 export * from './clusterListNode';
 export * from './clusterListOperation';
