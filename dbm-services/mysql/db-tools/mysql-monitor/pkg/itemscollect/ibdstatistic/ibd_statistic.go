@@ -35,6 +35,7 @@ import (
 var name = "ibd-statistic"
 
 var ibdExt string
+var tokudbExt string
 var partitionPattern *regexp.Regexp
 var defaultMergeRules []*MergeRuleDef
 var systemDBs = []string{
@@ -50,8 +51,8 @@ var systemDBs = []string{
 
 func init() {
 	ibdExt = ".ibd"
-	partitionPattern = regexp.MustCompile(`^(.*)#[pP]#.*\.ibd`)
-
+	tokudbExt = ".tokudb"
+	partitionPattern = regexp.MustCompile(`^(.*)#[pP]#.*`)
 }
 
 // MergeRuleDef ibd statistic 库表合并规则

@@ -22,6 +22,34 @@ import (
 	"dbm-services/common/go-pubpkg/cmutil"
 )
 
+func (c *ibdStatistic) rewriteMergeTableName(oldDbName, oldTableName string) (dbName, tableName string, err error) {
+	dbName = oldDbName
+	tableName = oldTableName
+	if !c.DisableMergePartition {
+		match := partitionPattern.FindStringSubmatch(oldTableName)
+		if match != nil {
+			tableName = match[1]
+		}
+	}
+
+	if len(c.reMergeRulesFrom) > 0 {
+		oldDbTbName := fmt.Sprintf("%s.%s", dbName, tableName)
+		for i, reMergeRule := range c.reMergeRulesFrom {
+			if reMergeRule.MatchString(oldDbTbName) {
+				newDbTbName := reMergeRule.ReplaceAllString(oldDbTbName, c.reMergeRulesTo[i])
+				dbName, tableName, err = cmutil.GetDbTableName(newDbTbName)
+				slog.Debug("merge rule matched", slog.String("rule_to", c.reMergeRulesTo[i]),
+					slog.String("name_from", oldDbTbName), slog.String("name_to", newDbTbName))
+				if err != nil {
+					return "", "", errors.WithMessagef(err, "using merge rules to %s", c.reMergeRulesTo[i])
+				}
+				break
+			}
+		}
+	}
+	return dbName, tableName, nil
+}
+
 func (c *ibdStatistic) collectResult2(dataDir string) (map[string]int64, map[string]int64, error) {
 	var err error
 	dbSize := make(map[string]int64)
@@ -52,33 +80,14 @@ func (c *ibdStatistic) collectResult2(dataDir string) (map[string]int64, map[str
 			if err != nil {
 				return fs.SkipDir
 			}
-
 			if !d.IsDir() && strings.ToLower(filepath.Ext(d.Name())) == ibdExt {
 				dir := filepath.Dir(path)
 				dbName := filepath.Base(dir)
 				tableName := strings.TrimSuffix(d.Name(), ibdExt)
-
-				if !c.DisableMergePartition {
-					match := partitionPattern.FindStringSubmatch(d.Name())
-					if match != nil {
-						tableName = match[1]
-					}
-				}
-
-				if len(c.reMergeRulesFrom) > 0 {
-					oldDbTbName := fmt.Sprintf("%s.%s", dbName, tableName)
-					for i, reMergeRule := range c.reMergeRulesFrom {
-						if reMergeRule.MatchString(oldDbTbName) {
-							newDbTbName := reMergeRule.ReplaceAllString(oldDbTbName, c.reMergeRulesTo[i])
-							dbName, tableName, err = cmutil.GetDbTableName(newDbTbName)
-							slog.Debug("merge rule matched", slog.String("rule_to", c.reMergeRulesTo[i]),
-								slog.String("name_from", oldDbTbName), slog.String("name_to", newDbTbName))
-							if err != nil {
-								return errors.WithMessagef(err, "using merge rules to %s", c.reMergeRulesTo[i])
-							}
-							break
-						}
-					}
+				dbName, tableName, err = c.rewriteMergeTableName(dbName, tableName)
+				if err != nil {
+					slog.Error("ibd-statistic collect result", slog.String("error", err.Error()))
+					//return err
 				}
 				dbTableName := fmt.Sprintf("%s.%s", dbName, tableName)
 
@@ -99,11 +108,19 @@ func (c *ibdStatistic) collectResult2(dataDir string) (map[string]int64, map[str
 			return nil
 		},
 	)
-
 	if err != nil {
 		slog.Error("ibd-statistic collect result", slog.String("error", err.Error()))
 		return nil, nil, err
 	}
 
+	tokudbTableSize, tokudbDbSize, err := c.collectTokudb()
+	if err == nil {
+		for dbName, size := range tokudbDbSize {
+			dbSize[dbName] = +size
+		}
+		for dbTableName, size := range tokudbTableSize {
+			tableSize[dbTableName] = size
+		}
+	}
 	return tableSize, dbSize, nil
 }
