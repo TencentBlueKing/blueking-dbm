@@ -18,6 +18,7 @@ import (
 	"dbm-services/mysql/db-remote-service/pkg/config"
 	"dbm-services/mysql/db-remote-service/pkg/service"
 
+	"github.com/gin-contrib/pprof"
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
@@ -56,6 +57,7 @@ var rootCmd = &cobra.Command{
 		})
 
 		service.RegisterRouter(r)
+		pprof.Register(r)
 
 		if config.RuntimeConfig.TLS {
 			slog.Info("run in tls mode")

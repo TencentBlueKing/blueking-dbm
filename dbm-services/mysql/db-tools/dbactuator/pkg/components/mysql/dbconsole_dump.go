@@ -176,6 +176,10 @@ func (c *DbConsoleDumpComp) Init() (err error) {
 	}
 	logger.Info("special tables %v", c.realTables)
 	logger.Info("ignore tables %v", c.realIgnoreTables)
+
+	if len(c.realTables) <= 0 {
+		return fmt.Errorf("none tables should be backup")
+	}
 	// ignore sys dbs
 	c.dbs = slices.DeleteFunc(c.Params.DumpDetail.Databases, func(s string) bool {
 		return slices.Contains(sysDbs, s)

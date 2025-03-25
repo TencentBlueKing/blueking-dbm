@@ -99,7 +99,15 @@ func queryAtom(conn *sqlx.Conn, cmd string, timeout time.Duration) (tableDataTyp
 	}
 
 	defer func() {
-		_ = rows.Close()
+		err := rows.Close()
+		if err != nil {
+			slog.Error(
+				"close rows failed",
+				slog.String("cmd", cmd),
+				slog.String("error", err.Error()))
+		} else {
+			slog.Info("close rows success", slog.String("cmd", cmd))
+		}
 	}()
 
 	tableData := make(tableDataType, 0)

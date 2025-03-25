@@ -26,7 +26,7 @@ import (
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/utils"
 
 	_ "github.com/go-sql-driver/mysql" // mysql TODO
-	"github.com/juju/fslock"
+	"github.com/gofrs/flock"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
@@ -43,25 +43,30 @@ func Run(hardcode bool) error {
 	slog.Info("main loop", slog.Bool("hardcode", hardcode))
 
 	lockFileName := fmt.Sprintf("%d-%s.lock", config.MonitorConfig.Port, strings.Join(iNames, "."))
-	localFileBasePath := filepath.Join(cst.MySQLMonitorInstallPath, "locks")
-	err := os.MkdirAll(localFileBasePath, os.ModePerm)
+	lockFileBasePath := filepath.Join(cst.MySQLMonitorInstallPath, "locks")
+	err := os.MkdirAll(lockFileBasePath, os.ModePerm)
 	if err != nil {
 		slog.Error(
 			"main loop",
-			slog.String("lock file base dir", localFileBasePath),
+			slog.String("lock file base dir", lockFileBasePath),
 			slog.String("err", err.Error()),
 		)
 		return errors.WithStack(err)
 	}
 
-	lockFilePath := filepath.Join(localFileBasePath, lockFileName)
+	lockFilePath := filepath.Join(lockFileBasePath, lockFileName)
 
 	slog.Info("main loop", slog.String("lockFilePath", lockFilePath))
-	lk := fslock.New(lockFilePath)
-	err = lk.TryLock()
+
+	fl := flock.New(lockFilePath)
+	locked, err := fl.TryLock()
 	if err != nil {
 		slog.Error("main loop",
 			slog.String("error", err.Error()))
+		return errors.WithStack(err)
+	}
+	slog.Info("main loop", slog.Bool("locked", locked))
+	if !locked {
 		utils.SendMonitorEvent(
 			"db-hang",
 			fmt.Sprintf("last round %s not finish, db may be hang", strings.Join(iNames, ",")),
@@ -69,7 +74,7 @@ func Run(hardcode bool) error {
 		return errors.Wrapf(err, "main loop lock file %s failed, may be last round not finish", lockFilePath)
 	}
 	defer func() {
-		_ = lk.Unlock()
+		_ = fl.Unlock()
 	}()
 	slog.Info("main loop get lock success", slog.String("lockFilePath", lockFilePath))
 

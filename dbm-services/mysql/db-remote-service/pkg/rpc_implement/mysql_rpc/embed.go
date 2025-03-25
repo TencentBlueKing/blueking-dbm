@@ -39,6 +39,7 @@ func (c *MySQLRPCEmbed) MakeConnection(address string, user string, password str
 	retryTimes := 0
 
 CONNSTART:
+	slog.Info("make mysql connection", slog.String("address", address), slog.Int("retries", retryTimes))
 	if retryTimes > 3 {
 		return nil, fmt.Errorf("failed to connect to mysql server after %d retries", retryTimes)
 	}
@@ -60,12 +61,15 @@ CONNSTART:
 		goto CONNSTART
 	}
 
-	_, err = db.Queryx("SELECT 1")
+	sr, err := db.Queryx("SELECT 1")
 	if err != nil {
 		slog.Warn("try select 1 failed", slog.String("err", err.Error()), slog.String("address", address))
 		time.Sleep(2 * time.Second)
 		goto CONNSTART
 	}
+	defer func() {
+		_ = sr.Close()
+	}()
 
 	return db, nil
 }

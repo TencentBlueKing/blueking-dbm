@@ -18,4 +18,5 @@ type RPCEmbedInterface interface {
 	IsExecuteCommand(*ParseQueryBase) bool
 	User() string
 	Password() string
+	//Close()
 }

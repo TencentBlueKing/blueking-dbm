@@ -79,30 +79,78 @@ func (m *Checker) DryRun() ([]PartitionObject, error) {
 			slog.Error("msg", "GetTendbclusterInstances", err)
 			return objects, err
 		}
+
+		// 遍历集群所有实例临时改成并发
+		// 因为从日志看每个实例要好几秒
+		var wg sync.WaitGroup
+		var limiterChan = make(chan struct{}, 20)
+		var objChan = make(chan PartitionObject)
+		var errChan = make(chan error)
+		var quitChan = make(chan struct{})
+
+		go func() {
+			for {
+				select {
+				case <-quitChan:
+					return
+				case obj := <-objChan:
+					objects = append(objects, obj)
+					wg.Done()
+				case e := <-errChan:
+					err = errors.Join(err, e)
+					wg.Done()
+				default:
+				}
+			}
+		}()
+
 		for _, instances := range hostNodes {
 			for _, ins := range instances {
-				newconfigs := make([]*PartitionConfig, len(configs))
-				for k, v := range configs {
-					newconfig := *v
-					if ins.Wrapper == "mysql" {
-						newconfig.DbLike = fmt.Sprintf("%s_%s", newconfig.DbLike, ins.SplitNum)
+				limiterChan <- struct{}{}
+				wg.Add(1)
+
+				go func(ins SpiderNode) {
+					defer func() {
+						<-limiterChan
+					}()
+
+					newconfigs := make([]*PartitionConfig, len(configs))
+					for k, v := range configs {
+						newconfig := *v
+						if ins.Wrapper == "mysql" {
+							newconfig.DbLike = fmt.Sprintf("%s_%s", newconfig.DbLike, ins.SplitNum)
+						}
+						newconfigs[k] = &newconfig
 					}
-					newconfigs[k] = &newconfig
-				}
-				sqls, _, _, errInner := CheckPartitionConfigs(newconfigs, ins.Wrapper,
-					splitCnt, false, Host{Ip: ins.Ip, Port: ins.Port, BkCloudId: ins.Cloud})
-				if errInner != nil {
-					slog.Error("msg", "CheckPartitionConfigs", err)
-					return objects, errno.GetPartitionSqlFail.Add(fmt.Sprintf("%s:%d\n%s", ins.Ip,
-						ins.Port, errInner.Error()))
-				}
-				if len(sqls) == 0 {
-					continue
-				}
-				objects = append(objects, PartitionObject{Ip: ins.Ip, Port: ins.Port, ShardName: ins.ServerName,
-					ExecuteObjects: sqls})
+					sqls, _, _, errInner := CheckPartitionConfigs(newconfigs, ins.Wrapper,
+						splitCnt, false, Host{Ip: ins.Ip, Port: ins.Port, BkCloudId: ins.Cloud})
+					if errInner != nil {
+						slog.Error("msg", "CheckPartitionConfigs", errInner)
+						//return objects, errno.GetPartitionSqlFail.Add(fmt.Sprintf("%s:%d\n%s", ins.Ip,
+						//	ins.Port, errInner.Error()))
+						errChan <- errno.GetPartitionSqlFail.Add(
+							fmt.Sprintf(
+								"%s:%d\n%s",
+								ins.Ip, ins.Port, errInner.Error(),
+							),
+						)
+					}
+					if len(sqls) == 0 {
+						wg.Done()
+						return
+					}
+					//objects = append(objects, PartitionObject{Ip: ins.Ip, Port: ins.Port, ShardName: ins.ServerName,
+					//	ExecuteObjects: sqls})
+					objChan <- PartitionObject{Ip: ins.Ip, Port: ins.Port, ShardName: ins.ServerName,
+						ExecuteObjects: sqls}
+				}(ins)
+
 			}
 		}
+
+		wg.Wait()
+		quitChan <- struct{}{}
+
 		if len(objects) == 0 {
 			return objects, errno.NothingToDo
 		}
@@ -110,13 +158,15 @@ func (m *Checker) DryRun() ([]PartitionObject, error) {
 		slog.Error(m.ClusterType, "error", errors.New("not supported db type"))
 		return objects, errno.NotSupportedClusterType
 	}
+
+	slog.Info("dry run finish")
 	return objects, nil
 }
 
 // CheckPartitionConfigs 检查一批分区规则是否需要执行，生成分区语句
 func CheckPartitionConfigs(configs []*PartitionConfig, dbtype string, splitCnt int, fromCron bool, host Host) ([]PartitionSql,
 	[]IdLog, []IdLog, error) {
-	fmt.Printf("do CheckPartitionConfigs")
+	slog.Info("do CheckPartitionConfigs start", slog.Any("host", host))
 	sqlSet := PartitionSqlSet{}
 	nothingToDoSet := ConfigIdLogSet{}
 	checkFailSet := ConfigIdLogSet{}
@@ -151,6 +201,7 @@ func CheckPartitionConfigs(configs []*PartitionConfig, dbtype string, splitCnt i
 		msg = strings.TrimPrefix(msg, "\n")
 		return sqlSet.PartitionSqls, nothingToDoSet.IdLogs, checkFailSet.IdLogs, fmt.Errorf(msg)
 	}
+	slog.Info("do CheckPartitionConfigs finish", slog.Any("host", host))
 	return sqlSet.PartitionSqls, nothingToDoSet.IdLogs, checkFailSet.IdLogs, nil
 }
 

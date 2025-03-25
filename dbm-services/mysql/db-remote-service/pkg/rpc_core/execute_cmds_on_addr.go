@@ -16,22 +16,56 @@ func (c *RPCWrapper) executeOneAddr(address string) (res []CmdResultType, err er
 		c.logger.Error("make connection", slog.String("error", err.Error()))
 		return nil, err
 	}
+	slog.Info("execute one addr connection make",
+		slog.String("address", address),
+		slog.Any("db", db),
+		slog.Any("stat", db.Stats()),
+	)
+	//db.Close()
 
 	defer func() {
-		_ = db.Close()
+		err := db.Close()
+		if err != nil {
+			slog.Error(
+				"close db",
+				slog.String("address", address),
+				slog.Any("db", db),
+				slog.String("error", err.Error()),
+				slog.Any("stat", db.Stats()),
+			)
+		} else {
+			slog.Info(
+				"close db",
+				slog.String("address", address),
+				slog.Any("db", db),
+				slog.Any("stat", db.Stats()),
+			)
+		}
+		db.Stats()
 	}()
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(c.queryTimeout))
-	defer cancel()
-
-	conn, err := db.Connx(ctx)
+	conn, err := db.Connx(context.Background()) //db.Connx(ctx)
 	if err != nil {
 		c.logger.Error("get conn from db", slog.String("error", err.Error()))
 		return nil, err
 	}
 	defer func() {
-		_ = conn.Close()
+		err := conn.Close()
+		if err != nil {
+			slog.Error(
+				"close conn",
+				slog.String("address", address),
+				slog.Any("db", db),
+				slog.String("error", err.Error()),
+			)
+		} else {
+			slog.Info(
+				"close conn",
+				slog.String("address", address),
+				slog.Any("db", db))
+		}
 	}()
+	slog.Info("execute one addr get conn", slog.Any("stat", db.Stats()))
 
 	for idx, command := range c.commands {
 		command = strings.TrimSpace(command)

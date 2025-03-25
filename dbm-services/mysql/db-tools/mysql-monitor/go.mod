@@ -8,7 +8,6 @@ require (
 	github.com/go-playground/validator/v10 v10.15.4
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/jmoiron/sqlx v1.3.5
-	github.com/juju/fslock v0.0.0-20160525022230-4d5c94c67b4b
 	github.com/juju/ratelimit v1.0.2
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/pingcap/errors v0.11.4
@@ -23,6 +22,7 @@ require (
 )
 
 require (
+	github.com/gofrs/flock v0.12.1
 	github.com/mitchellh/mapstructure v1.5.0
 	golang.org/x/exp v0.0.0-20230515195305-f3d0a9c9a5cc
 	golang.org/x/time v0.1.0
@@ -45,7 +45,7 @@ require (
 	github.com/subosito/gotenv v1.4.2 // indirect
 	golang.org/x/crypto v0.9.0 // indirect
 	golang.org/x/net v0.10.0 // indirect
-	golang.org/x/sys v0.12.0 // indirect
+	golang.org/x/sys v0.22.0 // indirect
 	golang.org/x/text v0.9.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

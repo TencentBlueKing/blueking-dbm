@@ -47,6 +47,18 @@ func (s StartProxyParam) Start(port int) (err error) {
 	return util.Retry(util.RetryConfig{Times: 6, DelayTime: 5 * time.Second}, func() error { return s.checkStart() })
 }
 
+func (s StartProxyParam) StartAsMySQL(port int) (err error) {
+	scmd := fmt.Sprintf(
+		"cd %s && ./mysql-proxy --defaults-file=%s > /tmp/start_proxy_%d.log 2>&1 &",
+		path.Join(s.InstallPath, "bin"), s.ProxyCnf, port,
+	)
+	logger.Info("start mysql-proxy commands: [%s]", scmd)
+	if _, err = osutil.ExecShellCommand(false, scmd); err != nil {
+		return err
+	}
+	return s.checkStart() //util.Retry(util.RetryConfig{Times: 3, DelayTime: 1 * time.Second}, func() error { return s.checkStart() })
+}
+
 // checkStart 检查mysql proxy 是否启成功
 func (s StartProxyParam) checkStart() (err error) {
 	shellCmd := fmt.Sprintf("ps -efwww|grep 'mysql-proxy'|grep '%s'|grep -v grep", s.ProxyCnf)
@@ -55,10 +67,12 @@ func (s StartProxyParam) checkStart() (err error) {
 		logger.Error("invoke shellCmd[%s] error:%s", shellCmd, err.Error())
 		return err
 	}
+	logger.Info("invoke shellCmd[%s]: %s", shellCmd, out)
 	if !strings.Contains(string(out), s.ProxyCnf) {
 		return fmt.Errorf("proxyStartCmd:%s not contain proxyCnf:[%s]", out, s.ProxyCnf)
 	}
 	// Test Conn ...
+	logger.Info("try connect :%s:%d with %s:%s", s.Host, s.Port, s.ProxyAdminUser, s.ProxyAdminPwd)
 	pc, err := native.NewDbWorkerNoPing(fmt.Sprintf("%s:%d", s.Host, native.GetProxyAdminPort(s.Port)), s.ProxyAdminUser,
 		s.ProxyAdminPwd)
 	if err != nil {

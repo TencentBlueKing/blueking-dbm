@@ -9,13 +9,10 @@
 package monitoriteminterface
 
 import (
-	"fmt"
-	"log/slog"
-	"time"
-
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface/internal"
+	"log/slog"
 
-	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
@@ -89,109 +86,118 @@ func (o ItemOptions) GetStringSlice(optionName string, defaultValue interface{})
 func NewConnectionCollect() (*ConnectionCollect, error) {
 	switch config.MonitorConfig.MachineType {
 	case "backend", "remote", "single":
-		db, err := connectDB(
-			config.MonitorConfig.Ip,
-			config.MonitorConfig.Port,
-			config.MonitorConfig.Auth.Mysql,
-			true,
-			false,
-		)
-		if err != nil {
-			slog.Error(
-				fmt.Sprintf("connect %s", config.MonitorConfig.MachineType),
-				slog.String("error", err.Error()),
-				slog.String("ip", config.MonitorConfig.Ip),
-				slog.Int("port", config.MonitorConfig.Port),
-			)
-			return nil, err
-		}
-		return &ConnectionCollect{MySqlDB: db}, nil
+		db, err := internal.ConnectMySQL()
+
+		//db, err := connectDB(
+		//	config.MonitorConfig.Ip,
+		//	config.MonitorConfig.Port,
+		//	config.MonitorConfig.Auth.Mysql,
+		//	true,
+		//	false,
+		//)
+		//if err != nil {
+		//	slog.Error(
+		//		fmt.Sprintf("connect %s", config.MonitorConfig.MachineType),
+		//		slog.String("error", err.Error()),
+		//		slog.String("ip", config.MonitorConfig.Ip),
+		//		slog.Int("port", config.MonitorConfig.Port),
+		//	)
+		//	return nil, err
+		//}
+		return &ConnectionCollect{MySqlDB: db}, err
 	case "proxy":
-		db1, err := connectDB(
-			config.MonitorConfig.Ip,
-			config.MonitorConfig.Port,
-			config.MonitorConfig.Auth.Proxy,
-			false,
-			false,
-		)
-		if err != nil {
-			slog.Error(
-				"connect proxy",
-				slog.String("error", err.Error()),
-				slog.String("ip", config.MonitorConfig.Ip),
-				slog.Int("port", config.MonitorConfig.Port),
-			)
-			return nil, err
-		}
-
-		adminPort := config.MonitorConfig.Port + 1000
-		db2, err := connectDB(
-			config.MonitorConfig.Ip,
-			adminPort,
-			config.MonitorConfig.Auth.ProxyAdmin,
-			false,
-			true,
-		)
-		if err != nil {
-			var merr *mysql.MySQLError
-			if errors.As(err, &merr) {
-				if merr.Number == 1105 {
-					// 连接 proxy 管理端肯定在这里返回
-					return &ConnectionCollect{ProxyDB: db1, ProxyAdminDB: db2}, nil
-				}
-			}
-			slog.Error(
-				"connect proxy admin",
-				slog.String("error", err.Error()),
-				slog.String("ip", config.MonitorConfig.Ip),
-				slog.Int("port", adminPort),
-			)
-			return nil, err
-		}
-		// 这里其实永远到不了, 因为 mysql 协议连接 proxy 管理端必然 err!=nil
-		return &ConnectionCollect{ProxyDB: db1, ProxyAdminDB: db2}, nil
+		pdb, padb, err := internal.ConnectProxy()
+		return &ConnectionCollect{
+			ProxyDB:      pdb,
+			ProxyAdminDB: padb,
+		}, err
+		//db1, err := connectDB(
+		//	config.MonitorConfig.Ip,
+		//	config.MonitorConfig.Port,
+		//	config.MonitorConfig.Auth.Proxy,
+		//	false,
+		//	false,
+		//)
+		//if err != nil {
+		//	slog.Error(
+		//		"connect proxy",
+		//		slog.String("error", err.Error()),
+		//		slog.String("ip", config.MonitorConfig.Ip),
+		//		slog.Int("port", config.MonitorConfig.Port),
+		//	)
+		//	return nil, err
+		//}
+		//
+		//adminPort := config.MonitorConfig.Port + 1000
+		//db2, err := connectDB(
+		//	config.MonitorConfig.Ip,
+		//	adminPort,
+		//	config.MonitorConfig.Auth.ProxyAdmin,
+		//	false,
+		//	true,
+		//)
+		//if err != nil {
+		//	var merr *mysql.MySQLError
+		//	if errors.As(err, &merr) {
+		//		if merr.Number == 1105 {
+		//			// 连接 proxy 管理端肯定在这里返回
+		//			return &ConnectionCollect{ProxyDB: db1, ProxyAdminDB: db2}, nil
+		//		}
+		//	}
+		//	slog.Error(
+		//		"connect proxy admin",
+		//		slog.String("error", err.Error()),
+		//		slog.String("ip", config.MonitorConfig.Ip),
+		//		slog.Int("port", adminPort),
+		//	)
+		//	return nil, err
+		//}
+		//// 这里其实永远到不了, 因为 mysql 协议连接 proxy 管理端必然 err!=nil
+		//return &ConnectionCollect{ProxyDB: db1, ProxyAdminDB: db2}, nil
 	case "spider":
-		db1, err := connectDB(
-			config.MonitorConfig.Ip,
-			config.MonitorConfig.Port,
-			config.MonitorConfig.Auth.Mysql,
-			true,
-			false,
-		)
-		if err != nil {
-			slog.Error(
-				"connect spider",
-				slog.String("error", err.Error()),
-				slog.String("ip", config.MonitorConfig.Ip),
-				slog.Int("port", config.MonitorConfig.Port),
-			)
-			return nil, err
-		}
-
-		// spider_slave 不建立到中控的连接
-		// 所以要小心
-		var db2 *sqlx.DB
-		if *config.MonitorConfig.Role == "spider_master" {
-			ctlPort := config.MonitorConfig.Port + 1000
-			db2, err = connectDB(
-				config.MonitorConfig.Ip,
-				ctlPort,
-				config.MonitorConfig.Auth.Mysql,
-				true,
-				false,
-			)
-			if err != nil {
-				slog.Error(
-					"connect ctl",
-					slog.String("error", err.Error()),
-					slog.String("ip", config.MonitorConfig.Ip),
-					slog.Int("port", ctlPort),
-				)
-				return nil, errors.Wrap(err, "connect spider ctl")
-			}
-		}
-
-		return &ConnectionCollect{MySqlDB: db1, CtlDB: db2}, nil
+		sdb, ctlDB, err := internal.ConnectSpider()
+		return &ConnectionCollect{MySqlDB: sdb, CtlDB: ctlDB}, err
+		//db1, err := connectDB(
+		//	config.MonitorConfig.Ip,
+		//	config.MonitorConfig.Port,
+		//	config.MonitorConfig.Auth.Mysql,
+		//	true,
+		//	false,
+		//)
+		//if err != nil {
+		//	slog.Error(
+		//		"connect spider",
+		//		slog.String("error", err.Error()),
+		//		slog.String("ip", config.MonitorConfig.Ip),
+		//		slog.Int("port", config.MonitorConfig.Port),
+		//	)
+		//	return nil, err
+		//}
+		//
+		//// spider_slave 不建立到中控的连接
+		//// 所以要小心
+		//var db2 *sqlx.DB
+		//if *config.MonitorConfig.Role == "spider_master" {
+		//	ctlPort := config.MonitorConfig.Port + 1000
+		//	db2, err = connectDB(
+		//		config.MonitorConfig.Ip,
+		//		ctlPort,
+		//		config.MonitorConfig.Auth.Mysql,
+		//		true,
+		//		false,
+		//	)
+		//	if err != nil {
+		//		slog.Error(
+		//			"connect ctl",
+		//			slog.String("error", err.Error()),
+		//			slog.String("ip", config.MonitorConfig.Ip),
+		//			slog.Int("port", ctlPort),
+		//		)
+		//		return nil, errors.Wrap(err, "connect spider ctl")
+		//	}
+		//}
+		//
+		//return &ConnectionCollect{MySqlDB: db1, CtlDB: db2}, nil
 	default:
 		err := errors.Errorf(
 			"not support machine type: %s",
@@ -202,53 +208,53 @@ func NewConnectionCollect() (*ConnectionCollect, error) {
 	}
 }
 
-func connectDB(ip string, port int, ca *config.ConnectAuth, withPing bool, isProxyAdmin bool) (db *sqlx.DB, err error) {
-	if withPing {
-		db, err = sqlx.Connect(
-			"mysql", fmt.Sprintf(
-				"%s:%s@tcp(%s:%d)/%s?parseTime=true&loc=%s&timeout=%s&multiStatements=true",
-				ca.User, ca.Password, ip, port,
-				"",
-				time.Local.String(),
-				config.MonitorConfig.InteractTimeout,
-			),
-		)
-		if err != nil {
-			slog.Error("connect db with ping", err)
-			return nil, err
-		}
-	} else {
-		db, err = sqlx.Open(
-			"mysql", fmt.Sprintf(
-				"%s:%s@tcp(%s:%d)/%s?parseTime=true&loc=%s&timeout=%s",
-				ca.User, ca.Password, ip, port,
-				"",
-				time.Local.String(),
-				config.MonitorConfig.InteractTimeout,
-			),
-		)
-		if err != nil {
-			slog.Error("connect db without ping", err)
-			return nil, err
-		}
-		// 没有 ping 可能返回的是一个无效连接
-		// proxy admin 端口 用 select version
-		// proxy 数据端口用 select 1
-		if isProxyAdmin {
-			_, err = db.Queryx(`SELECT VERSION`)
-		} else {
-			_, err = db.Queryx(`SELECT 1`)
-		}
-		if err != nil {
-			slog.Error("ping proxy failed", err)
-			return nil, err
-		}
-		slog.Info("ping proxy success")
-	}
-
-	db.SetConnMaxIdleTime(0)
-	db.SetMaxIdleConns(0)
-	db.SetConnMaxLifetime(0)
-
-	return db, nil
-}
+//func connectDB(ip string, port int, ca *config.ConnectAuth, withPing bool, isProxyAdmin bool) (db *sqlx.DB, err error) {
+//	if withPing {
+//		db, err = sqlx.Connect(
+//			"mysql", fmt.Sprintf(
+//				"%s:%s@tcp(%s:%d)/%s?parseTime=true&loc=%s&timeout=%s&multiStatements=true",
+//				ca.User, ca.Password, ip, port,
+//				"",
+//				time.Local.String(),
+//				config.MonitorConfig.InteractTimeout,
+//			),
+//		)
+//		if err != nil {
+//			slog.Error("connect db with ping", err)
+//			return nil, err
+//		}
+//	} else {
+//		db, err = sqlx.Open(
+//			"mysql", fmt.Sprintf(
+//				"%s:%s@tcp(%s:%d)/%s?parseTime=true&loc=%s&timeout=%s",
+//				ca.User, ca.Password, ip, port,
+//				"",
+//				time.Local.String(),
+//				config.MonitorConfig.InteractTimeout,
+//			),
+//		)
+//		if err != nil {
+//			slog.Error("connect db without ping", err)
+//			return nil, err
+//		}
+//		// 没有 ping 可能返回的是一个无效连接
+//		// proxy admin 端口 用 select version
+//		// proxy 数据端口用 select 1
+//		if isProxyAdmin {
+//			_, err = db.Queryx(`SELECT VERSION`)
+//		} else {
+//			_, err = db.Queryx(`SELECT 1`)
+//		}
+//		if err != nil {
+//			slog.Error("ping proxy failed", err)
+//			return nil, err
+//		}
+//		slog.Info("ping proxy success")
+//	}
+//
+//	db.SetConnMaxIdleTime(0)
+//	db.SetMaxIdleConns(0)
+//	db.SetConnMaxLifetime(0)
+//
+//	return db, nil
+//}
