@@ -17,8 +17,7 @@ import HdfsDetailModel from '@services/model/hdfs/hdfs-detail';
 import HdfsInstanceModel from '@services/model/hdfs/hdfs-instance';
 import HdfsMachineModel from '@services/model/hdfs/hdfs-machine';
 import HdfsNodeModel from '@services/model/hdfs/hdfs-node';
-import HdfsPasswordModel from '@services/model/hdfs/hdfs-password';
-import type { ListBase } from '@services/types';
+import type { BigDataClusterPassword, ListBase } from '@services/types';
 
 import { useGlobalBizs } from '@stores';
 
@@ -93,9 +92,7 @@ export function getHdfsXmls(params: { cluster_id: number }) {
  * 获取 Hdfs 集群访问密码
  */
 export function getHdfsPassword(params: { cluster_id: number }) {
-  return http
-    .get<HdfsPasswordModel>(`${path}/${params.cluster_id}/get_password/`)
-    .then((data) => new HdfsPasswordModel(data));
+  return http.get<BigDataClusterPassword>(`${path}/${params.cluster_id}/get_password/`);
 }
 
 /**

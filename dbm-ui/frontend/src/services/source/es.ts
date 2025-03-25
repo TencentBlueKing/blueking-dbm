@@ -16,8 +16,7 @@ import EsDetailModel from '@services/model/es/es-detail';
 import EsInstanceModel from '@services/model/es/es-instance';
 import EsMachineModel from '@services/model/es/es-machine';
 import EsNodeModel from '@services/model/es/es-node';
-import EsPasswordModel from '@services/model/es/es-password';
-import type { ListBase } from '@services/types';
+import type { BigDataClusterPassword, ListBase } from '@services/types';
 
 import { useGlobalBizs } from '@stores';
 
@@ -86,9 +85,7 @@ export function getEsTopoGraph(params: { cluster_id: number }) {
  * 获取 ES 集群访问密码
  */
 export function getEsPassword(params: { cluster_id: number }) {
-  return http
-    .get<EsPasswordModel>(`${path}/${params.cluster_id}/get_password/`)
-    .then((data) => new EsPasswordModel(data));
+  return http.get<BigDataClusterPassword>(`${path}/${params.cluster_id}/get_password/`);
 }
 
 /**
