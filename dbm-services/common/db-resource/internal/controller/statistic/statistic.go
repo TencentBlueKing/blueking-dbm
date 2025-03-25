@@ -146,6 +146,9 @@ func (s *Handler) ResourceDistribution(c *gin.Context) {
 		cityMap[cityInfo.BkIdcCityName] = cityInfo.LogicalCityName
 		allLogicCitys = append(allLogicCitys, cityInfo.LogicalCityName)
 	}
+	if lo.IsNotEmpty(param.City) {
+		allLogicCitys = []string{param.City}
+	}
 	db := model.DB.Self.Table(model.TbRpDetailName())
 	if err := param.dbFilter(db); err != nil {
 		s.SendResponse(c, err, "Failed to apply database filter")

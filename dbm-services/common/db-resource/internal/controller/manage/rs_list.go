@@ -234,3 +234,21 @@ func (c *MachineResourceHandler) ListAll(r *rf.Context) {
 	}
 	c.SendResponse(r, nil, map[string]interface{}{"details": data, "count": count})
 }
+
+// ListOsName returns all os names
+func (c *MachineResourceHandler) ListOsName(r *rf.Context) {
+	// requestId := r.GetString("request_id")
+	var data []string
+	db := model.DB.Self.Table(model.TbRpDetailName()).Distinct("os_name")
+	err := db.Scan(&data).Error
+	if err != nil {
+		c.SendResponse(r, err, err.Error())
+		return
+	}
+	var count int64
+	if err := db.Count(&count).Error; err != nil {
+		c.SendResponse(r, err, err.Error())
+		return
+	}
+	c.SendResponse(r, nil, data)
+}

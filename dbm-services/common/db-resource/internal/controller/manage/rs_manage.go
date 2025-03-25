@@ -45,6 +45,7 @@ func (c *MachineResourceHandler) RegisterRouter(engine *rf.Engine) {
 	{
 		r.POST("/list", c.List)
 		r.POST("/list/all", c.ListAll)
+		r.POST("/list/osname", c.ListOsName)
 		r.POST("/update", c.Update)
 		r.POST("/batch/update", c.BatchUpdate)
 		r.POST("/append/labels", c.AddLabels)

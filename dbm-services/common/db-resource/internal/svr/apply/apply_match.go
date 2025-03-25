@@ -12,6 +12,7 @@ package apply
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -70,7 +71,7 @@ func (c *PickerObject) PickerSameSubZone(cross_switch bool) {
 }
 
 // PickerCrossSubzone 跨园区匹配
-func (c *PickerObject) PickerCrossSubzone(cross_subzone bool) {
+func (c *PickerObject) PickerCrossSubzone(cross_subzone, cross_swicth bool) {
 	campKeys := c.sortSubZoneNum(cross_subzone)
 	if len(campKeys) == 0 {
 		return
@@ -95,7 +96,7 @@ func (c *PickerObject) PickerCrossSubzone(cross_subzone bool) {
 		}
 		logger.Info(fmt.Sprintf("surplus %s,%d", subzone, pq.Len()))
 		logger.Info(fmt.Sprintf("%s,%d,%d", subzone, c.Count, len(c.SatisfiedHostIds)))
-		if c.pickerOneByPriority(subzone, false) {
+		if c.pickerOneByPriority(subzone, cross_swicth) {
 			if cross_subzone {
 				delete(c.PriorityElements, subzone)
 			}
@@ -116,7 +117,6 @@ func (c *PickerObject) PickerCrossSubzone(cross_subzone bool) {
 			return
 		}
 	}
-
 }
 
 // sortSubZoneNum 根据排序剩下有效的园区
@@ -174,6 +174,9 @@ func (c *PickerObject) pickerOneByPriority(key string, cross_switch bool) bool {
 				continue
 			}
 		}
+		if slices.Contains(c.SatisfiedHostIds, v.BkHostId) {
+			return false
+		}
 		c.ExistEquipmentIds = append(c.ExistEquipmentIds, v.Equipment)
 		c.SatisfiedHostIds = append(c.SatisfiedHostIds, v.BkHostId)
 		c.ExistLinkNetdeviceIds = append(c.ExistLinkNetdeviceIds, v.LinkNetdeviceId...)
@@ -202,7 +205,6 @@ const (
 )
 
 func (o *SearchContext) setResourcePriority(ins model.TbRpDetail, ele *Item) {
-	logger.Info("%v", ins.Storages)
 	if err := ins.UnmarshalDiskInfo(); err != nil {
 		logger.Error("%s umarshal disk failed %s", ins.IP, err.Error())
 	}

@@ -32,7 +32,7 @@ const (
 
 type subzone = string
 
-// PickerObject TODO
+// PickerObject picker object
 type PickerObject struct {
 	Item          string
 	Count         int
@@ -52,8 +52,7 @@ type PickerObject struct {
 	ProcessLogs           []string
 }
 
-// LockReturnPickers TODO
-// GetDetailInfoFromPickers 将匹配好的机器资源,查询出详情结果返回
+// LockReturnPickers 将匹配好的机器资源,查询出详情结果返回
 //
 //	@param elements
 //	@return []model.BatchGetTbDetailResult
@@ -162,14 +161,14 @@ func (c *PickerObject) CrossRackCheck(v InstanceObject) bool {
 	return c.InterSectForEquipment(v.Equipment) == 0
 }
 
-// DebugDistrubuteLog TODO
+// DebugDistrubuteLog debug log
 func (c *PickerObject) DebugDistrubuteLog() {
 	for key, v := range c.PickDistrbute {
 		logger.Debug(fmt.Sprintf("Zone:%s,PickCount:%d", key, v))
 	}
 }
 
-// PreselectedSatisfiedInstance TODO
+// PreselectedSatisfiedInstance preselect satisfied resource
 func (c *PickerObject) PreselectedSatisfiedInstance() error {
 	affectRows, err := model.UpdateTbRpDetail(c.SatisfiedHostIds, model.Preselected)
 	if err != nil {
@@ -182,7 +181,7 @@ func (c *PickerObject) PreselectedSatisfiedInstance() error {
 	return nil
 }
 
-// RollbackUnusedInstance TODO
+// RollbackUnusedInstance roll back unselected resources
 func (c *PickerObject) RollbackUnusedInstance() error {
 	return model.UpdateTbRpDetailStatusAtSelling(c.SatisfiedHostIds, model.Unused)
 }
@@ -214,7 +213,7 @@ func (pw CampusWrapper) Less(i, j int) bool {
 	return pw.by(&pw.Campus[i], &pw.Campus[j])
 }
 
-// PickerDone TODO
+// PickerDone picker done
 func (c *PickerObject) PickerDone() bool {
 	return len(c.SatisfiedHostIds) == c.Count
 }

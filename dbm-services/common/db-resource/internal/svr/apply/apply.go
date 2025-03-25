@@ -343,6 +343,8 @@ func (o *SearchContext) PickCheck() (err error) {
 	return nil
 }
 
+// predictResourceNoMatchReason TODO
+// nolint
 func (o *SearchContext) predictResourceNoMatchReason() (reason string) {
 	type checkFunc struct {
 		name string
@@ -533,10 +535,34 @@ func (o *SearchContext) PickInstanceBase(picker *PickerObject, items []model.TbR
 		picker.PickerRandom()
 	case CROS_SUBZONE:
 		picker.PriorityElements, picker.SubZonePrioritySumMap, err = o.AnalysisResourcePriority(items, false)
-		picker.PickerCrossSubzone(true)
+		picker.PickerCrossSubzone(true, false)
 	case MAX_EACH_ZONE_EQUAL:
 		picker.PriorityElements, picker.SubZonePrioritySumMap, err = o.AnalysisResourcePriority(items, false)
-		picker.PickerCrossSubzone(false)
+		if err != nil {
+			return err
+		}
+		// 先跨园区选一遍
+		picker.PickerCrossSubzone(true, false)
+		if picker.PickerDone() {
+			return
+		}
+		picker.PriorityElements, picker.SubZonePrioritySumMap, err = o.AnalysisResourcePriority(items, false)
+		if err != nil {
+			return err
+		}
+		logger.Info("picker priority elements %d", len(picker.PriorityElements))
+		// 在循环园区 跨机架选一遍
+		picker.PickerCrossSubzone(false, true)
+		if picker.PickerDone() {
+			return
+		}
+		picker.PriorityElements, picker.SubZonePrioritySumMap, err = o.AnalysisResourcePriority(items, false)
+		if err != nil {
+			return err
+		}
+		logger.Info("picker priority elements %d", len(picker.PriorityElements))
+		// 在循环园区 选一遍
+		picker.PickerCrossSubzone(false, false)
 	case SAME_SUBZONE:
 		picker.PriorityElements, picker.SubZonePrioritySumMap, err = o.AnalysisResourcePriority(items, false)
 		picker.PickerSameSubZone(false)
