@@ -238,6 +238,7 @@ func (a *MonitorAgent) FetchDBInstance() error {
 		HashCnt:        mod,
 		HashValue:      modValue,
 		ClusterTypes:   []string{a.DetectType},
+		MachineOnly:    true,
 	}
 
 	rawInfo, err := a.CmDBClient.GetDBInstanceInfoByCityID(req)

@@ -42,6 +42,8 @@ type DBInstanceByCityRequest struct {
 	HashCnt        int      `json:"hash_cnt"`
 	HashValue      int      `json:"hash_value"`
 	ClusterTypes   []string `json:"cluster_types"`
+	//if true, only return the smallest port instance of same ip
+	MachineOnly bool `json:"machine_only"`
 }
 
 // DBInstanceInfo instance info
@@ -176,6 +178,7 @@ func (c *CmDBClient) GetDBInstanceInfoByCityID(requestInfo DBInstanceByCityReque
 		HashCnt:        requestInfo.HashCnt,
 		HashValue:      requestInfo.HashValue,
 		ClusterTypes:   requestInfo.ClusterTypes,
+		MachineOnly:    requestInfo.MachineOnly,
 	}
 
 	log.Logger.Debugf("GetDBInstanceInfoByCityID param:%#v", req)
