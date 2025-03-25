@@ -54,14 +54,16 @@
           :confirm-handler="handleReset"
           :content="t('重置将会恢复默认设置的内容')"
           :title="t('确认重置')">
-          <AuthButton
-            action-id="biz_notify_config"
-            class="ml8 w-88"
-            :disabled="updateSettingLoading"
-            :loading="resetSettingLoading"
-            :resource="bizId">
-            {{ t('重置') }}
-          </AuthButton>
+          <span>
+            <AuthButton
+              action-id="biz_notify_config"
+              class="ml8 w-88"
+              :disabled="updateSettingLoading"
+              :loading="resetSettingLoading"
+              :resource="bizId">
+              {{ t('重置') }}
+            </AuthButton>
+          </span>
         </DbPopconfirm>
       </template>
     </SmartAction>
@@ -96,7 +98,7 @@
   const dataList = ref<DataRow[]>([]);
 
   const bizId = window.PROJECT_CONFIG.BIZ_ID;
-  const DefaultMessageTypeList = [MessageTypes.MAIL, MessageTypes.RTX];
+  const DefaultMessageTypeList = [MessageTypes.RTX];
   const NoticeTicketTypeList = Object.entries(TicketModel.statusTextMap).filter(
     ([status]) => ![TicketModel.STATUS_RUNNING, TicketModel.STATUS_TIMER].includes(status),
   );
@@ -366,6 +368,7 @@
         .message-type-head {
           display: flex;
           align-items: center;
+          justify-content: center;
 
           .message-type-head-tip {
             font-size: 14px;
