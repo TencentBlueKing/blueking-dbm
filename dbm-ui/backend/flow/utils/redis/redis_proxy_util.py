@@ -611,7 +611,10 @@ def get_cluster_proxy_version(cluster_id: int) -> list:
     """
     获取redis cluster proxy版本列表
     """
-    cluster = Cluster.objects.get(id=cluster_id)
+    cluster = Cluster.objects.prefetch_related(
+        "proxyinstance_set",
+        "proxyinstance_set__machine",
+    ).get(id=cluster_id)
     versions = set()
     passwd_ret = PayloadHandler.redis_get_password_by_cluster_id(cluster_id)
     if is_predixy_proxy_type(cluster.cluster_type):
@@ -631,7 +634,10 @@ def get_cluster_redis_version(cluster_id: int) -> str:
     """
     获取redis cluster redis版本
     """
-    cluster = Cluster.objects.get(id=cluster_id)
+    cluster = Cluster.objects.prefetch_related(
+        "storageinstance_set",
+        "storageinstance_set__machine",
+    ).get(id=cluster_id)
     passwd_ret = PayloadHandler.redis_get_password_by_cluster_id(cluster_id)
     one_running_master = cluster.storageinstance_set.filter(
         instance_role=InstanceRole.REDIS_MASTER.value, status=InstanceStatus.RUNNING

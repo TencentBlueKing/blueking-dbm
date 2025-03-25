@@ -121,7 +121,13 @@ class RedisBackendScaleFlow(object):
         3. proxy实例列表 [x.x.x.3:50000...]
         4. master、slave机器对应关系
         """
-        cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
+        cluster = Cluster.objects.prefetch_related(
+            "proxyinstance_set",
+            "storageinstance_set",
+            "proxyinstance_set__machine",
+            "storageinstance_set__machine",
+            "storageinstance_set__as_ejector",
+        ).get(id=cluster_id, bk_biz_id=bk_biz_id)
 
         master_ip_ports_map = defaultdict(list)
         ins_pair_map = defaultdict()

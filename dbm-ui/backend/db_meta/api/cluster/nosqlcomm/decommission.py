@@ -191,6 +191,7 @@ def decommission_instances(ip: str, bk_cloud_id: int, ports: List) -> bool:
 
     machine_obj = Machine.objects.filter(ip=ip, bk_cloud_id=bk_cloud_id).first()
     keep_machine = False
+    cc_manage = CcManage(machine_obj.bk_biz_id, machine_obj.cluster_type)
     if machine_obj.access_layer == AccessLayer.PROXY:
         logger.info(" proxyInstance {}:{}".format(ip, ports))
         ProxyInstance.objects.filter(machine=machine_obj, port__in=ports).delete()
@@ -200,14 +201,16 @@ def decommission_instances(ip: str, bk_cloud_id: int, ports: List) -> bool:
 
     elif machine_obj.access_layer in [AccessLayer.STORAGE, AccessLayer.CONFIG]:
         logger.info(" storageInstance {}:{}".format(ip, ports))
-        StorageInstance.objects.filter(machine=machine_obj, port__in=ports).delete()
+        instance_objs = StorageInstance.objects.filter(machine=machine_obj, port__in=ports)
+        cc_manage.delete_service_instance(bk_instance_ids=[inst.bk_instance_id for inst in instance_objs])
+        instance_objs.delete()
         if StorageInstance.objects.filter(machine=machine_obj).exists():
             keep_machine = True
             logger.info("ignore stroage machine {} , another instance existed.".format(ip))
 
     if not keep_machine:
         logger.info(" machine {}".format(ip))
-        CcManage(machine_obj.bk_biz_id, machine_obj.cluster_type).recycle_host([machine_obj.bk_host_id])
+        cc_manage.recycle_host([machine_obj.bk_host_id])
         machine_obj.delete()
 
     return True
