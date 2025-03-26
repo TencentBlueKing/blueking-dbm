@@ -10,7 +10,6 @@ specific language governing permissions and limitations under the License.
 """
 import json
 import logging
-import time
 from collections import defaultdict
 from typing import Any, Dict, List
 
@@ -35,9 +34,6 @@ from backend.flow.consts import OperateCollectorActionEnum
 from backend.utils.redis import RedisConn
 
 logger = logging.getLogger("flow")
-
-# 采集器下发的时间窗口
-OPERATE_COLLECTOR_COUNTDOWN = 60
 
 
 class CcManage(object):
@@ -535,14 +531,23 @@ class CcManage(object):
         self.delete_cc_module(db_type, cluster_type, instance_id=ins.id)
 
 
-def format_operate_collector_cache_key(bk_biz_id, db_type, machine_type, action, suffix="trigger_time") -> tuple:
+def format_operate_collector_cache_key(bk_biz_id, db_type, machine_type, action) -> str:
     """
     生成操作采集器缓存key
     按照 管控业务-组件-机器类型-动作 进行聚合
     """
-    cache_key = f"operate_collector_{bk_biz_id}_{db_type}_{machine_type}_{action}"
-    trigger_time_key = f"{cache_key}_{suffix}"
-    return cache_key, trigger_time_key
+    op = "____"
+    cache_key = f"OperateCollectorV2{op}{bk_biz_id}{op}{db_type}{op}{machine_type}{op}{action}"
+    return cache_key
+
+
+def parser_operate_collector_cache_key(cache_key: str):
+    """
+    解析操作采集器缓存key
+    """
+    op = "____"
+    prefix, bk_biz_id, db_type, machine_type, action = cache_key.split(op)
+    return bk_biz_id, db_type, machine_type, action
 
 
 @app.task
@@ -550,24 +555,15 @@ def operate_collector(bk_biz_id: int, db_type: str, machine_type: str, bk_instan
     """
     操作采集器
     调用监控 API，针对本次变更的范围进行下发
-
     """
-    cache_key, trigger_time_key = format_operate_collector_cache_key(bk_biz_id, db_type, machine_type, action)
-    trigger_time = RedisConn.get(trigger_time_key)
+    if not bk_instance_ids:
+        return
 
-    # 通过触发时间，加上延迟窗口，来实现滚动窗口，避免串行调用节点管理
-    if trigger_time is None or time.time() - float(trigger_time) >= OPERATE_COLLECTOR_COUNTDOWN:
-        bk_instance_ids = [int(bk_inst_id) for bk_inst_id in RedisConn.lrange(cache_key, 0, -1)]
-        if not bk_instance_ids:
-            return
-
-        RedisConn.delete(cache_key)
-        RedisConn.delete(trigger_time_key)
-        logger.error(
-            "operate_collector: {db_type} {machine_type} {bk_instance_ids} {action}".format(
-                db_type=db_type, machine_type=machine_type, bk_instance_ids=bk_instance_ids, action=action
-            )
+    logger.error(
+        "operate_collector: {db_type} {machine_type} {bk_instance_ids} {action}".format(
+            db_type=db_type, machine_type=machine_type, bk_instance_ids=bk_instance_ids, action=action
         )
+    )
 
     plugin_id = INSTANCE_MONITOR_PLUGINS[db_type][machine_type]["plugin_id"]
     collect_instances = CollectInstance.objects.filter(db_type=db_type, plugin_id=plugin_id)
@@ -629,23 +625,8 @@ def trigger_operate_collector(
     # 因此聚合管控业务和实例，后续按照管控业务维度下发采集器
     # 按照管控业务发起任务下发
     hosting_biz = BizSettings.get_exact_hosting_biz(ins.bk_biz_id, ins.cluster_type)
-    cache_key, trigger_time_key = format_operate_collector_cache_key(hosting_biz, db_type, machine_type, action)
-    trigger_time = RedisConn.get(trigger_time_key)
+    cache_key = format_operate_collector_cache_key(hosting_biz, db_type, machine_type, action)
 
-    # 设置触发时间， 以 OPERATE_COLLECTOR_COUNTDOWN 作为一个滚动窗口来执行采集器操作
-    if not trigger_time:
-        trigger_time = time.time()
-        logger.error(f"trigger_operate_collector trigger_timer: {trigger_time}")
-        RedisConn.set(trigger_time_key, trigger_time, ex=OPERATE_COLLECTOR_COUNTDOWN)
-
-    RedisConn.lpush(cache_key, *bk_instance_ids)
-    operate_collector.apply_async(
-        kwargs={
-            "bk_biz_id": hosting_biz,
-            "db_type": db_type,
-            "machine_type": machine_type,
-            "bk_instance_ids": bk_instance_ids,
-            "action": action,
-        },
-        countdown=OPERATE_COLLECTOR_COUNTDOWN,
-    )
+    # 这里先推入下发任务，再将任务加入任务列表，保证执行一致性
+    RedisConn.sadd(cache_key, *bk_instance_ids)
+    RedisConn.sadd("operate_collector", cache_key)

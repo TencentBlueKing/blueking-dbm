@@ -19,6 +19,13 @@ QUERY_TASK_STATUS_INTERVAL = 5
 # backup task status success
 BACKUP_TASK_SUCCESS = 4
 
+# 原子性的获取列表所有值并清空
+GET_AND_DELETE_SET_LUA = """
+local elements = redis.call('SMEMBERS', KEYS[1])
+redis.call('DEL', KEYS[1])
+return elements
+"""
+
 
 class PeriodicTaskType(str, StructuredEnum):
     REMOTE = EnumField("remote", _("远程 API 周期任务"))

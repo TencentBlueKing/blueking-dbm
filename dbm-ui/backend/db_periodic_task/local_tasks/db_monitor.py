@@ -21,9 +21,12 @@ from backend.configuration.models import DBAdministrator, SystemSettings
 from backend.db_monitor.constants import DEFAULT_ALERT_NOTICE, MONITOR_EVENTS
 from backend.db_monitor.models import CollectInstance, DispatchGroup, MonitorPolicy, NoticeGroup
 from backend.db_monitor.tasks import update_app_policy
+from backend.db_periodic_task.constants import GET_AND_DELETE_SET_LUA
 from backend.db_periodic_task.local_tasks.context_manager import start_new_span
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
 from backend.db_periodic_task.utils import TimeUnit, calculate_countdown
+from backend.flow.utils.cc_manage import operate_collector, parser_operate_collector_cache_key
+from backend.utils.redis import RedisConn
 
 logger = logging.getLogger("celery")
 
@@ -188,3 +191,16 @@ def sync_monitor_collect_strategy():
     logger.info("sync_monitor_collect_strategy update for: %s", unmanaged_biz)
     CollectInstance.sync_collect_strategy()
     cache.set(key, list(unmanaged_biz))
+
+
+@register_periodic_task(run_every=crontab(minute="*/1"))
+def cycle_trigger_operator_collector():
+    script = RedisConn.register_script(GET_AND_DELETE_SET_LUA)
+    # 获取当前的任务列表并清空
+    task_list = script(keys=["operate_collector"])
+    for cache_key in task_list:
+        # 获取采集下发相关信息
+        bk_biz_id, db_type, machine_type, action = parser_operate_collector_cache_key(cache_key)
+        # 获取当前任务缓存的实例ID，下发采集任务
+        bk_instance_ids = script(keys=[cache_key])
+        operate_collector(bk_biz_id, db_type, machine_type, bk_instance_ids, action)
