@@ -54,6 +54,30 @@ class ClusterEntry(AuditedModel):
         verbose_name = verbose_name_plural = _("集群访问入口(ClusterEntry)")
 
     @classmethod
+    def get_entries_map(cls, entries):
+        """
+        @param entries: 集群访问入口对象集
+        """
+        cluster_entry_map = defaultdict(dict)
+
+        for entry in entries:
+            access_entry = entry.entry
+            cluster_map = cluster_entry_map[entry.cluster_id]
+
+            # Handle non-DNS entries
+            if entry.cluster_entry_type != ClusterEntryType.DNS:
+                cluster_map[entry.cluster_entry_type] = access_entry
+                continue
+
+            # Handle DNS entries
+            if access_entry == entry.cluster.immute_domain:
+                cluster_map["master_domain"] = access_entry
+            elif entry.role == ClusterEntryRole.SLAVE_ENTRY:
+                cluster_map["slave_domain"] = access_entry
+
+        return cluster_entry_map
+
+    @classmethod
     def get_cluster_entry_map(cls, cluster_ids: List[int]) -> Dict[int, Dict[str, str]]:
         """
         返回格式如：
@@ -66,21 +90,8 @@ class ClusterEntry(AuditedModel):
         }
         ToDo ClusterEntry 添加了专门的角色信息, 这里的逻辑可以简化掉了
         """
-        cluster_entry_map = defaultdict(dict)
-        for entry in cls.objects.filter(cluster_id__in=cluster_ids).select_related("cluster"):
-            access_entry = entry.entry
-            # 这里假设非DNS只有一个入口，无需额外区分
-            if entry.cluster_entry_type != ClusterEntryType.DNS:
-                cluster_entry_map[entry.cluster_id][entry.cluster_entry_type] = access_entry
-                continue
-
-            # DNS 需额外区分主域名和从域名， entry 中 cluster.immute_domain 为主域名
-            # 如果entry.role为slave_entry，则为从域名
-            if access_entry == entry.cluster.immute_domain:
-                cluster_entry_map[entry.cluster_id]["master_domain"] = access_entry
-            elif entry.role == ClusterEntryRole.SLAVE_ENTRY:
-                cluster_entry_map[entry.cluster_id]["slave_domain"] = access_entry
-        return cluster_entry_map
+        entries = cls.objects.filter(cluster_id__in=cluster_ids).select_related("cluster")
+        return cls.get_entries_map(entries)
 
     @property
     def detail(self):

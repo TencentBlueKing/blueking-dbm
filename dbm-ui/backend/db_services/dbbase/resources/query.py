@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import abc
+from collections import defaultdict
 from typing import Any, Callable, Dict, List, Tuple, Union
 
 import attr
@@ -17,6 +18,7 @@ from django.forms import model_to_dict
 from django.http import HttpResponse
 from django.utils.translation import ugettext_lazy as _
 
+from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole
 from backend.db_meta.enums.comm import SystemTagEnum
@@ -38,6 +40,7 @@ from backend.db_services.dbbase.resources.query_base import (
 )
 from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
+from backend.db_services.redis.redis_modules.models.redis_module_support import ClusterRedisModuleAssociate
 from backend.flow.utils.dns_manage import DnsManage
 from backend.ticket.models import ClusterOperateRecord
 from backend.utils.excel import ExcelHandler
@@ -505,8 +508,8 @@ class ListRetrieveResource(BaseListRetrieveResource):
         cluster_ids = [c.id for c in cluster_list]
 
         # 获取集群与访问入口的映射
-        cluster_entry_map = ClusterEntry.get_cluster_entry_map(cluster_ids)
-
+        # cluster_entry_map = ClusterEntry.get_cluster_entry_map(cluster_ids)
+        cluster_entry_map = defaultdict(dict)
         # 获取DB模块的映射信息
         db_module_names_map = {
             module["db_module_id"]: module["db_module_name"]
@@ -514,6 +517,16 @@ class ListRetrieveResource(BaseListRetrieveResource):
                 "db_module_id", "db_module_name"
             )
         }
+
+        # 获取redis集群DB模块的映射信息
+        if set(cls.cluster_types).intersection([*ClusterType.db_type_to_cluster_types(DBType.Redis)]):
+            # 获取redis模块的映射信息
+            kwargs["redis_cluster_module_map"] = {
+                module["cluster_id"]: module["module_names"]
+                for module in ClusterRedisModuleAssociate.objects.filter(cluster_id__in=cluster_ids)
+                .distinct()
+                .values("cluster_id", "module_names")
+            }
 
         # 获取集群操作记录的映射关系
         cluster_operate_records_map = ClusterOperateRecord.get_cluster_records_map(cluster_ids)
@@ -574,7 +587,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
         @param cluster_operate_records_map: key 是 cluster.id, value 是当前集群对应的 操作记录 映射
         """
         spec = None
-        cluster_entry_map_value = cluster_entry_map.get(cluster.id, {})
+        cluster_entry_map_value = ClusterEntry.get_entries_map(entries=cluster.entries)
         bk_cloud_name = cloud_info.get(str(cluster.bk_cloud_id), {}).get("bk_cloud_name", "")
 
         # 补充集群规格信息

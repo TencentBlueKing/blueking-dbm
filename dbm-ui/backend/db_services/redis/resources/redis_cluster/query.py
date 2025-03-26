@@ -28,7 +28,6 @@ from backend.db_services.dbbase.resources import query
 from backend.db_services.dbbase.resources.query import ResourceList
 from backend.db_services.dbbase.resources.register import register_resource_decorator
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
-from backend.db_services.redis.redis_modules.models.redis_module_support import ClusterRedisModuleAssociate
 from backend.db_services.redis.resources.constants import SQL_QUERY_MASTER_SLAVE_STATUS
 from backend.utils.basic import dictfetchall
 
@@ -105,9 +104,7 @@ class RedisListRetrieveResource(query.ListRetrieveResource):
         **kwargs,
     ) -> ResourceList:
         # 提前预取storage的tuple
-        storage_queryset = storage_queryset.prefetch_related(
-            "machine", "nosqlstoragesetdtl_set", "as_receiver", "as_ejector"
-        )
+        storage_queryset = storage_queryset.prefetch_related("nosqlstoragesetdtl_set", "as_receiver", "as_ejector")
         return super()._filter_cluster_hook(
             bk_biz_id,
             cluster_queryset,
@@ -198,15 +195,13 @@ class RedisListRetrieveResource(query.ListRetrieveResource):
             cluster_capacity = spec.capacity * machine_pair_cnt if spec else 0
 
         # dns是否指向clb
-        dns_to_clb = cluster.clusterentry_set.filter(
-            cluster_entry_type=ClusterEntryType.DNS.value,
-            entry=cluster.immute_domain,
-            forward_to__cluster_entry_type=ClusterEntryType.CLB.value,
-        ).exists()
-
-        # 获取集群module名称
-        cluster_module = ClusterRedisModuleAssociate.objects.filter(cluster_id=cluster.id).first()
-        module_names = cluster_module.module_names if cluster_module is not None else []
+        dns_to_clb = any(
+            entry.cluster_entry_type == ClusterEntryType.DNS.value
+            and entry.entry == cluster.immute_domain
+            and entry.forward_to is not None
+            and entry.forward_to.cluster_entry_type == ClusterEntryType.CLB.value
+            for entry in cluster.entries
+        )
 
         # 集群额外信息
         cluster_extra_info = {
@@ -218,7 +213,7 @@ class RedisListRetrieveResource(query.ListRetrieveResource):
             "redis_slave": remote_infos[InstanceRole.REDIS_SLAVE.value],
             "cluster_shard_num": len(remote_infos[InstanceRole.REDIS_MASTER.value]),
             "machine_pair_cnt": machine_pair_cnt,
-            "module_names": module_names,
+            "module_names": kwargs.get("redis_cluster_module_map", {}).get(cluster.id, []),
         }
         cluster_info = super()._to_cluster_representation(
             cluster,
