@@ -28,41 +28,46 @@
         </AuthButton>
       </template>
       <template v-else>
-        <BkDropdown :disabled="selectionHostIdList.length < 1">
-          <AuthButton
-            action-id="resource_pool_manage"
+        <BkDropdown
+          :disabled="selectionHostIdList.length < 1"
+          :popover-options="{
+            renderDirective: 'show',
+          }">
+          <BkButton
             class="ml-8"
             :disabled="selectionHostIdList.length < 1">
             {{ t('批量操作') }}
             <DbIcon type="down-big" />
-          </AuthButton>
+          </BkButton>
           <template #content>
             <BkDropdownMenu>
-              <BkDropdownItem @click="() => handleShowBatchAssign()">
-                {{ t('重新设置资源归属') }}
-              </BkDropdownItem>
-              <BkDropdownItem
-                v-bk-tooltips="{
-                  content: t('仅支持同业务的主机'),
-                  disabled: isSelectedSameBiz,
-                }"
-                :class="isSelectedSameBiz ? undefined : 'disabled-cls'"
-                @click="() => handleShowBatchAddTags()">
-                {{ t('添加资源标签') }}
-              </BkDropdownItem>
-              <BkDropdownItem
-                v-if="type === ResourcePool.business"
-                @click="handleShowBatchCovertToPublic">
-                {{ t('退回公共资源池') }}
-              </BkDropdownItem>
-              <BkDropdownItem @click="() => handleShowBatchSetting()"> {{ t('设置主机属性') }} </BkDropdownItem>
-              <BkDropdownItem @click="() => handleShowBatchMoveToFaultPool()"> {{ t('转入故障池') }} </BkDropdownItem>
-              <BkDropdownItem
-                v-if="type !== ResourcePool.business"
-                @click="handleShowBatchMoveToRecyclePool">
-                {{ t('转入待回收池') }}
-              </BkDropdownItem>
-              <BkDropdownItem @click="handleShowBatchUndoImport"> {{ t('撤销导入') }} </BkDropdownItem>
+              <AuthTemplate action-id="resource_pool_manage">
+                <BkDropdownItem @click="() => handleShowBatchAssign()">
+                  {{ t('重新设置资源归属') }}
+                </BkDropdownItem>
+                <BkDropdownItem
+                  v-bk-tooltips="{
+                    content: t('仅支持同业务的主机'),
+                    disabled: isSelectedSameBiz,
+                  }"
+                  :class="isSelectedSameBiz ? undefined : 'disabled-cls'"
+                  @click="() => handleShowBatchAddTags()">
+                  {{ t('添加资源标签') }}
+                </BkDropdownItem>
+                <BkDropdownItem
+                  v-if="type === ResourcePool.business"
+                  @click="handleShowBatchCovertToPublic">
+                  {{ t('退回公共资源池') }}
+                </BkDropdownItem>
+                <BkDropdownItem @click="() => handleShowBatchSetting()"> {{ t('设置主机属性') }} </BkDropdownItem>
+                <BkDropdownItem @click="() => handleShowBatchMoveToFaultPool()"> {{ t('转入故障池') }} </BkDropdownItem>
+                <BkDropdownItem
+                  v-if="type !== ResourcePool.business"
+                  @click="handleShowBatchMoveToRecyclePool">
+                  {{ t('转入待回收池') }}
+                </BkDropdownItem>
+                <BkDropdownItem @click="handleShowBatchUndoImport"> {{ t('撤销导入') }} </BkDropdownItem>
+              </AuthTemplate>
             </BkDropdownMenu>
           </template>
         </BkDropdown>

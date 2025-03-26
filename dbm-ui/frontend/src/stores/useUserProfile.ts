@@ -29,7 +29,7 @@ export const useUserProfile = defineStore('UserProfile', {
     platformTaskflowView: false,
     platformTicketView: false,
     profile: {} as Record<string, any>,
-    rerourceManage: false, // 顶部导航资源管理访问权限
+    resourceManage: false, // 顶部导航资源管理访问权限
     username: '',
   }),
   actions: {
@@ -44,7 +44,7 @@ export const useUserProfile = defineStore('UserProfile', {
         this.platformManage = Boolean(result.platform_manage);
         this.platformTicketView = Boolean(result.platform_ticket_view);
         this.platformTaskflowView = Boolean(result.platform_taskflow_view);
-        this.rerourceManage = Boolean(result.resource_manage);
+        this.resourceManage = Boolean(result.resource_manage);
         this.username = result.username;
 
         this.profile = result.profile.reduce(
