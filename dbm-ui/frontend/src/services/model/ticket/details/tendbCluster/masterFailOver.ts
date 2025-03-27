@@ -15,12 +15,14 @@ export interface MasterFailOver extends DetailBase {
         bk_cloud_id: number;
         bk_host_id: number;
         ip: string;
+        port: number;
       };
       slave: {
         bk_biz_id: number;
         bk_cloud_id: number;
         bk_host_id: number;
         ip: string;
+        port: number;
       };
     }[];
   }[];

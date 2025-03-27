@@ -112,6 +112,15 @@ export const useGlobalBizs = defineStore('GlobalBizs', {
         });
     },
     /**
+     * 通过业务ID 拿到业务信息
+     * @param bizId
+     * @returns
+     */
+    getBizInfoById(bizId: number) {
+      const targetBizItem = this.bizs.find((item) => item.bk_biz_id === bizId);
+      return targetBizItem;
+    },
+    /**
      * 判断是否存在业务且有业务权限
      * @param bizId 业务 ID
      * @returns boolean | undefined

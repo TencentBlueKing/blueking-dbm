@@ -13,11 +13,11 @@
 
 export * from './useAlarmEventsCount';
 export * from './useApplyBase';
+export * from './useBatchCreateTicket';
 export * from './useBeforeClose';
 export * from './useCopy';
 export * from './useCopyFromSelection';
 export * from './useCreateTicket';
-export * from './useDebouncedRef';
 export * from './useDebouncedRef';
 export * from './useDefaultPagination';
 export * from './useEventBus';

@@ -26,6 +26,7 @@ import { messageError } from '@utils';
 import { locale, t } from '@locales/index';
 
 import http, { type IRequestPayload } from '../http';
+import type { DetailClusters } from '../model/ticket/details/common';
 
 const path = '/apis/tickets';
 
@@ -66,6 +67,27 @@ export function createTicketNew<T>(params: {
   ticket_type: TicketTypes;
 }) {
   return http.post<{ id: number }>(`${path}/`, params, { catchError: true });
+}
+
+/**
+ * 批量创建单据
+ */
+export function createTicketBatch<T>(params: {
+  tickets: {
+    bk_biz_id: number;
+    details: T;
+    ignore_duplication?: boolean;
+    remark: string;
+    ticket_type: TicketTypes;
+  }[];
+}) {
+  return http.post<{ bk_biz_id: number; clusters: DetailClusters; id: number }[]>(
+    `${path}/batch_create_ticket/`,
+    params,
+    {
+      catchError: true,
+    },
+  );
 }
 
 /**

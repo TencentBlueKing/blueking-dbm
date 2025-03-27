@@ -22,7 +22,7 @@
       v-db-console="'platformManage.dbaManage'"
       :name="t('DBA 工具箱')">
       <BkMenuItem
-        key="DbaManageMysqlWebQuery"
+        key="DbaManageMysql"
         v-db-console="'platformManage.dbaManage.mysql'">
         <template #icon>
           <DbIcon type="mysql" />
@@ -30,12 +30,20 @@
         MySQL
       </BkMenuItem>
       <BkMenuItem
-        key="DbaManageTendbClusterWebQuery"
+        key="DbaManageTendbCluster"
         v-db-console="'platformManage.dbaManage.tendbCluster'">
         <template #icon>
           <DbIcon type="mysql" />
         </template>
         Tendb Cluster
+      </BkMenuItem>
+      <BkMenuItem
+        key="DbaManageRedis"
+        v-db-console="'platformManage.dbaManage.redis'">
+        <template #icon>
+          <DbIcon type="redis" />
+        </template>
+        Redis
       </BkMenuItem>
       <BkMenuItem key="DbaManageSQLServerWebQuery">
         <template #icon>

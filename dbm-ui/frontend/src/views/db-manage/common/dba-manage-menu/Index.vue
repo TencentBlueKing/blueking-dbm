@@ -92,7 +92,7 @@
   const serachKey = useDebouncedRef('');
 
   const toolboxTitle = ref('');
-  const activeMenu = ref('');
+  const activeMenu = ref(route.name);
 
   const renderRoutes = computed(() => {
     if (serachKey.value) {
@@ -101,12 +101,6 @@
     }
 
     return props.routes;
-  });
-
-  watchEffect(() => {
-    if (props.routes.length) {
-      activeMenu.value = props.routes[0].id;
-    }
   });
 
   watch(
@@ -119,18 +113,9 @@
     },
   );
 
-  watch(
-    activeMenu,
-    () => {
-      router.push({ name: activeMenu.value });
-    },
-    {
-      immediate: true,
-    },
-  );
-
   const handleMenuClick = (id: string) => {
     activeMenu.value = id;
+    router.push({ name: activeMenu.value });
   };
 </script>
 <style lang="less">
