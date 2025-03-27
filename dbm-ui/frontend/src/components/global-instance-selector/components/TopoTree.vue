@@ -107,8 +107,9 @@
   const { loading } = useRequest(getBizModuleTopoTree, {
     defaultParams: [
       {
-        ...props.params,
+        cluster_types: props.params.cluster_types,
         count_type: 'instance',
+        instance_inner_role: props.params.instance_inner_role,
       },
     ],
     onSuccess(data) {

@@ -89,10 +89,7 @@
   export type IValue = ServiceReturnType<typeof getGlobalInstance>['results'][0];
 
   interface Props {
-    params?: {
-      cluster_types: ClusterTypes[];
-      instance_inner_role: 'master' | 'slave';
-    };
+    params?: ServiceParameters<typeof getGlobalInstance>;
   }
 
   type Emits = (e: 'change', data: IValue[]) => void;
