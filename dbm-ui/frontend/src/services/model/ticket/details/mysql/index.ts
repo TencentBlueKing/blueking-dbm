@@ -16,6 +16,7 @@ export * from './haEnable';
 export * from './haFullBackup';
 export * from './importSqlFile';
 export * from './instanceCloneRules';
+export * from './instanceFailOver';
 export * from './localUpgrade';
 export * from './masterFailOver';
 export * from './masterSlaveSwitch';

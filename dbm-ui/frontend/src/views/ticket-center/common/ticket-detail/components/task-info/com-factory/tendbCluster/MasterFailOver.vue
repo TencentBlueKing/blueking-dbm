@@ -12,17 +12,6 @@
 -->
 
 <template>
-  <InfoList>
-    <InfoItem :label="t('检查业务来源的连接')">
-      {{ ticketDetails.details.is_check_process ? t('是') : t('否') }}
-    </InfoItem>
-    <InfoItem :label="t('检查主从同步延迟')">
-      {{ ticketDetails.details.is_check_delay ? t('是') : t('否') }}
-    </InfoItem>
-    <InfoItem :label="t('检查主从数据校验结果')">
-      {{ ticketDetails.details.is_verify_checksum ? t('是') : t('否') }}
-    </InfoItem>
-  </InfoList>
   <BkTable :data="ticketDetails.details.infos">
     <BkTableColumn :label="t('故障主库主机')">
       <template #default="{ data }: { data: RowData }">
@@ -40,6 +29,17 @@
       </template>
     </BkTableColumn>
   </BkTable>
+  <InfoList>
+    <InfoItem :label="t('检查业务来源的连接')">
+      {{ ticketDetails.details.is_check_process ? t('是') : t('否') }}
+    </InfoItem>
+    <InfoItem :label="t('检查主从同步延迟')">
+      {{ ticketDetails.details.is_check_delay ? t('是') : t('否') }}
+    </InfoItem>
+    <InfoItem :label="t('检查主从数据校验结果')">
+      {{ ticketDetails.details.is_verify_checksum ? t('是') : t('否') }}
+    </InfoItem>
+  </InfoList>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

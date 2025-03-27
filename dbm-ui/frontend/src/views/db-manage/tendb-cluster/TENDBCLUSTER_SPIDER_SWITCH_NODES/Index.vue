@@ -43,8 +43,8 @@
         </EditableTableRow>
       </EditableTable>
       <BkFormItem
-        class="fit-content"
-        v-bk-tooltips="t('存在业务连接时需要人工确认')">
+        v-bk-tooltips="t('存在业务连接时需要人工确认')"
+        class="fit-content">
         <BkCheckbox
           v-model="formData.is_safe"
           :false-label="false"
@@ -77,10 +77,12 @@
 </template>
 <script lang="ts" setup>
   import _ from 'lodash';
+  import type { _DeepPartial } from 'pinia';
   import { reactive, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type { TendbCluster } from '@services/model/ticket/ticket';
+
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { TicketTypes } from '@common/const';
@@ -93,13 +95,12 @@
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
+  import { random } from '@utils';
+
   import HostColumn, { type SelectorHost } from './components/HostColumn.vue';
   import SpecColumn from './components/SpecColumn.vue';
-  import { random } from '@utils';
-  import type { DeepPartial } from '@services/types';
 
   interface RowData {
-    row_key: string;
     host: {
       bk_biz_id: number;
       bk_cloud_id: number;
@@ -112,6 +113,7 @@
       role: string;
       spec_id: number;
     };
+    row_key: string;
   }
 
   const { t } = useI18n();
@@ -126,8 +128,7 @@
     },
   ];
 
-  const createTableRow = (data: DeepPartial<RowData> = {}) => ({
-    row_key: random(),
+  const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
     host: {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
@@ -141,6 +142,7 @@
       spec_id: 0,
       ...data.host,
     },
+    row_key: random(),
   });
 
   const defaultData = () => ({
@@ -188,17 +190,17 @@
           spec_id: number;
         };
       };
+      row_key: string;
       spider_old_ip_list: {
         bk_cloud_id: number;
         bk_host_id: number;
         ip: string;
         port: number;
       }[];
-      row_key: string;
       switch_spider_role: string;
     }[];
-    is_safe: boolean;
     ip_source: 'resource_pool';
+    is_safe: boolean;
     old_nodes: {
       spider_master: {
         bk_cloud_id: number;
@@ -221,9 +223,7 @@
     const oldNodes = _.groupBy(formData.tableData, (item) => item.host.role);
     createTicketRun({
       details: {
-        is_safe: formData.is_safe,
         infos: formData.tableData.map((item) => ({
-          row_key: item.row_key,
           cluster_id: item.host.cluster_id,
           resource_spec: {
             [`${item.host.role}_${item.host.ip}`]: {
@@ -232,6 +232,7 @@
               spec_id: item.host.spec_id,
             },
           },
+          row_key: item.row_key,
           spider_old_ip_list: [
             {
               bk_cloud_id: item.host.bk_cloud_id,
@@ -243,6 +244,7 @@
           switch_spider_role: item.host.role,
         })),
         ip_source: 'resource_pool',
+        is_safe: formData.is_safe,
         old_nodes: {
           spider_master: (oldNodes['spider_master'] || []).map((item) => ({
             bk_cloud_id: item.host.bk_cloud_id,
