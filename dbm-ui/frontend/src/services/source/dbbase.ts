@@ -11,9 +11,9 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { InstanceInfos } from '@services/types';
+import type { InstanceInfos, ListBase } from '@services/types';
 
-import { ClusterTypes } from '@common/const';
+import { ClusterTypes, DBTypes } from '@common/const';
 
 import http, { type IRequestPayload } from '../http';
 
@@ -217,4 +217,53 @@ export function removeClusterTagKeys(params: { bk_biz_id: number; cluster_ids: n
 // 更新集群标签
 export function updateClusterTag(params: { bk_biz_id: number; cluster_id: number; tags: number[] }) {
   return http.post(`${path}/update_cluster_tag/`, params);
+}
+
+// 查询全局实例
+export function getGlobalInstance(params: {
+  bk_biz_id?: number; // 业务ID
+  cluster_id?: number; // 集群ID
+  cluster_type?: string; // 集群类型
+  db_module_id?: number; // 模块ID
+  db_type: DBTypes; // 组件类型
+  domain?: string; // 域名查询
+  exact_ip?: string; // 精确IP查询
+  group_id?: string; // 分组ID
+  instance_address?: string; // 实例地址查询
+  ip?: string; // 主机IP查询
+  limit?: number;
+  offset?: number;
+  port?: string; // 端口查询
+  role?: string; // 过滤的实例角色
+  status?: string; // 实例状态
+}) {
+  return http.get<ListBase<InstanceInfos[]>>(`${path}/get_global_instance/`, params);
+}
+
+// 查询全局主机
+export function getGlobalMachine(params: {
+  add_role_count?: boolean; // 是否增加角色数量
+  bk_agent_id?: string; // agent ID
+  bk_biz_id?: number; // 业务ID
+  bk_city_name?: string; // 城市名称
+  bk_cloud_id?: number; // 云区域ID
+  bk_host_id?: number; // 主机ID
+  bk_os_name?: string; // 操作系统
+  cluster_ids?: string; // 集群ID列表
+  cluster_status?: string;
+  cluster_type?: string;
+  creator?: string; // 创建人
+  db_module_id?: number; // 模块ID
+  db_type: DBTypes; // 数据库类型
+  instance_address?: string;
+  instance_role?: string; // 实例角色
+  instance_status?: string; // 实例状态
+  ip?: string; // 主机IP
+  limit?: number; // 分页限制
+  machine_type?: string; // 机器类型
+  offset?: number;
+  role?: string; // 过滤的实例角色
+  spider_role?: string; // spider角色
+}) {
+  return http.get<ListBase<InstanceInfos[]>>(`${path}/get_global_machine/`, params);
 }

@@ -1,6 +1,6 @@
 import { DBTypes, type TicketTypes } from '@common/const';
 
-export function createToolboxRoute(dbType: DBTypes) {
+export function createDbaToolboxRoute(dbType: DBTypes) {
   const dbToolbox = dbType === DBTypes.TENDBCLUSTER ? 'tendb-cluster' : dbType;
 
   const createRouteItem = (
@@ -8,14 +8,13 @@ export function createToolboxRoute(dbType: DBTypes) {
     navName: string,
     meta: { dbConsole?: string; fullscreen?: boolean; navName?: string; routeName?: string } = {},
   ) => ({
-    component: () => import(`@views/db-manage/${dbToolbox}/${ticketType}/Index.vue`),
+    component: () => import(`@views/db-manage/${dbToolbox}/dba-manage/${ticketType}/Index.vue`),
     meta: {
-      fullscreen: true,
       navName,
       routeName: ticketType,
       ...meta,
     },
-    name: ticketType,
+    name: `DBA_${ticketType}`,
     path: `${ticketType}`,
   });
 
