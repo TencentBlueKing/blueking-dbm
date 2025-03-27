@@ -56,7 +56,7 @@
   const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
-  const activeTab = useDebouncedRef(route.params.page as ResourcePool);
+  const activeTab = useDebouncedRef((route.params.page as ResourcePool) || ResourcePool.business);
   const listRef = useTemplateRef('listRef');
 
   const isShowImportHost = ref(false);
