@@ -19,5 +19,6 @@ export * from './hostInfo';
 export * from './hostNode';
 export * from './instanceInfos';
 export * from './listBase';
+export * from './machineInfos';
 export * from './permission';
 export * from './resourceTopo';
