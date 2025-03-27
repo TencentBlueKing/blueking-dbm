@@ -10,7 +10,18 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
+import { TicketTypes } from '@common/const';
+
 import { t } from '@locales/index';
+
+const createRouteItem = (ticketType: TicketTypes, navName: string) => ({
+  path: `${ticketType}:page?`,
+  name: `DBA_${ticketType}`,
+  meta: {
+    navName,
+  },
+  component: () => import(`@views/db-manage/mysql/dba-manage/${ticketType}/Index.vue`),
+});
 
 export default function getRoutes() {
   return [
@@ -33,6 +44,7 @@ export default function getRoutes() {
           },
           component: () => import('@views/db-manage/mysql/dba-manage/web-query/Index.vue'),
         },
+        createRouteItem(TicketTypes.MYSQL_MASTER_FAIL_OVER, t('主库故障切换')),
       ],
     },
   ];

@@ -12,29 +12,21 @@
 -->
 
 <template>
-  <DbaManageMenu
-    :routes="routes"
-    sub-title="MySQL" />
+  <Component :is="components[page]" />
 </template>
 <script setup lang="ts">
-  import { useI18n } from 'vue-i18n';
+  import { useRoute } from 'vue-router';
 
-  import { TicketTypes } from '@common/const';
+  import Page2 from '@views/db-manage/common/dba-create-ticket-success/Index.vue';
 
-  import DbaManageMenu from '@views/db-manage/common/dba-manage-menu/Index.vue';
+  import Page1 from './Create.vue';
 
-  const { t } = useI18n();
+  const route = useRoute();
 
-  const routes = [
-    {
-      dbConsoleValue: 'dbaManage.mysql.webQuery',
-      id: 'DbaManageMysqlWebQuery',
-      name: t('Web 查询'),
-    },
-    {
-      dbConsoleValue: 'dbaManage.mysql.masterFailOver',
-      id: `DBA_${TicketTypes.MYSQL_MASTER_FAIL_OVER}`,
-      name: t('主库故障切换'),
-    },
-  ];
+  const components = {
+    create: Page1,
+    success: Page2,
+  };
+
+  const page = computed(() => (route.params.page as keyof typeof components) || 'create');
 </script>

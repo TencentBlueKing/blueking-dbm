@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { InstanceInfos } from '@services/types';
+import type { InstanceInfos, ListBase } from '@services/types';
 
 import { ClusterTypes } from '@common/const';
 
@@ -185,4 +185,41 @@ export function dbConsole(params: {
       table_data: Record<string, string>[];
     }[]
   >(`${path}/dbconsole/`, params);
+}
+
+// 查询全局实例
+export function getGlobalInstance(params: {
+  bk_biz_id?: number;
+  cluster_ids?: number[]; // 逗号分隔
+  cluster_types: ClusterTypes[]; // 逗号分隔
+  db_module_id?: number;
+  instance?: string;
+  instance_inner_role?: 'master' | 'slave' | 'proxy'; // 过滤的实例角色
+  limit?: number;
+  offset?: number;
+}) {
+  return http.get<
+    ListBase<
+      {
+        bk_biz_id: number;
+        bk_cloud_id: number;
+        bk_cloud_name: string;
+        bk_host_id: number;
+        cluster_id: number;
+        cluster_name: string;
+        cluster_type: string;
+        create_at: string;
+        db_module_id: number;
+        instance_address: string;
+        ip: string;
+        master_domain: string;
+        port: number;
+        role: string;
+        spec_config: {
+          id: number;
+        };
+        status: string;
+      }[]
+    >
+  >(`${path}/get_global_instance/`, params);
 }

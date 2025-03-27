@@ -14,6 +14,8 @@ import pinyin from 'tiny-pinyin';
 
 import type { BizItem } from '@services/types';
 
+import type { ClusterTypes } from '@/common/const';
+
 import http from '../http';
 
 const path = '/apis/cmdb';
@@ -127,3 +129,28 @@ export function createAppAbbr(params: { db_app_abbr: string; id: number }) {
     db_app_abbr: string;
   }>(`${path}/${params.id}/set_db_app_abbr/`, params);
 }
+
+/**
+ * 获取当前集群类型所有业务下模型列表
+ */
+export const getBizModuleTopoTree = (params: {
+  bk_biz_name?: string;
+  cluster_types: ClusterTypes[]; // 逗号分隔
+  count_type?: 'cluster' | 'instance'; // 以cluster/instance为维度 统计业务模块对应的数量信息
+  instance_inner_role?: 'master' | 'slave' | 'proxy'; // 如果count_type是instance实例   根据过滤条件是传参
+  limit?: number;
+  module_name?: string;
+  offset?: number;
+}) =>
+  http.get<
+    {
+      bk_biz_id: number;
+      bk_biz_name: string;
+      count: number;
+      modules: {
+        count: number;
+        module_id: number;
+        module_name: string;
+      }[];
+    }[]
+  >(`${path}/list_biz_module_trees/`, params);
