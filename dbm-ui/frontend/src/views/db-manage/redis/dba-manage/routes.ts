@@ -16,35 +16,27 @@ import { createDbaToolboxRoute } from '@utils';
 
 import { t } from '@locales/index';
 
-const { createRouteItem } = createDbaToolboxRoute(DBTypes.TENDBCLUSTER);
+const { createRouteItem } = createDbaToolboxRoute(DBTypes.REDIS);
 
 export default function getRoutes() {
   return [
     {
-      path: 'tendb-cluster',
-      name: 'DbaManageTendbCluster',
+      path: 'redis',
+      name: 'DbaManageRedis',
       meta: {
-        navName: t('TendbCluster 工具箱'),
+        navName: t('Redis 工具箱'),
       },
       redirect: {
-        name: 'DbaManageTendbClusterWebQuery',
+        name: `DBA_${TicketTypes.REDIS_CLUSTER_CUTOFF}`,
       },
-      component: () => import('@views/db-manage/tendb-cluster/dba-manage/Index.vue'),
+      component: () => import('@views/db-manage/redis/dba-manage/Index.vue'),
       children: [
         {
           path: 'toolbox-result/:ticketType?/:ticketIds?',
-          name: 'DbaManageTendbClusterToolboxResult',
+          name: 'DbaManageRedisToolboxResult',
           component: () => import('@views/db-manage/common/dba-toolbox-result/Index.vue'),
         },
-        {
-          path: 'web-query',
-          name: 'DbaManageTendbClusterWebQuery',
-          meta: {
-            navName: t('管理控制台'),
-          },
-          component: () => import('@views/db-manage/tendb-cluster/dba-manage/web-query/Index.vue'),
-        },
-        createRouteItem(TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER, t('主库故障切换')),
+        createRouteItem(TicketTypes.REDIS_CLUSTER_CUTOFF, t('整机替换')),
       ],
     },
   ];

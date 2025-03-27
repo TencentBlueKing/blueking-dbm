@@ -14,7 +14,7 @@
 <template>
   <DbaManageMenu
     :routes="routes"
-    sub-title="TendbCluster" />
+    sub-title="Redis" />
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -27,14 +27,9 @@
 
   const routes = [
     {
-      dbConsoleValue: 'dbaManage.tendbcluster.webQuery',
-      id: 'DbaManageTendbClusterWebQuery',
-      name: t('管理控制台'),
-    },
-    {
-      dbConsoleValue: 'dbaManage.tendbcluster.masterFailOver',
-      id: `DBA_${TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER}`,
-      name: t('主库故障切换'),
+      dbConsoleValue: 'dbaManage.redis.clusterCutoff',
+      id: `DBA_${TicketTypes.REDIS_CLUSTER_CUTOFF}`,
+      name: t('整机替换'),
     },
   ];
 </script>

@@ -11,9 +11,9 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { InstanceInfos } from '@services/types';
+import type { InstanceInfos, ListBase } from '@services/types';
 
-import { ClusterTypes } from '@common/const';
+import { ClusterTypes, DBTypes } from '@common/const';
 
 import http, { type IRequestPayload } from '../http';
 
@@ -217,4 +217,85 @@ export function removeClusterTagKeys(params: { bk_biz_id: number; cluster_ids: n
 // 更新集群标签
 export function updateClusterTag(params: { bk_biz_id: number; cluster_id: number; tags: number[] }) {
   return http.post(`${path}/update_cluster_tag/`, params);
+}
+
+// 查询全局实例
+export function getGlobalInstance(params: {
+  bk_biz_id?: number;
+  cluster_id?: number;
+  cluster_type?: string;
+  db_module_id?: number;
+  db_type: DBTypes;
+  domain?: string;
+  exact_ip?: string;
+  group_id?: string;
+  instance_address?: string;
+  ip?: string;
+  limit?: number;
+  offset?: number;
+  port?: string;
+  role?: string; // 过滤的实例角色
+  status?: string;
+}) {
+  return http.get<
+    ListBase<
+      {
+        bk_biz_id: number;
+        bk_cloud_id: number;
+        bk_cloud_name: string;
+        bk_host_id: number;
+        cluster_id: number;
+        cluster_name: string;
+        cluster_type: string;
+        create_at: string;
+        db_module_id: number;
+        instance_address: string;
+        ip: string;
+        master_domain: string;
+        port: number;
+        role: string;
+        spec_config: {
+          id: number;
+        };
+        status: string;
+      }[]
+    >
+  >(`${path}/get_global_instance/`, params);
+}
+
+// 查询全局主机
+export function getGlobalMachine(params: {
+  bk_biz_id?: number;
+  cluster_ids?: number[]; // 逗号分隔
+  cluster_types: string; // 逗号分隔
+  db_module_id?: number;
+  instance?: string;
+  limit?: number;
+  offset?: number;
+  role?: string; // 过滤的实例角色
+}) {
+  return http.get<
+    ListBase<
+      {
+        bk_biz_id: number;
+        bk_cloud_id: number;
+        bk_cloud_name: string;
+        bk_host_id: number;
+        cluster_id: number;
+        cluster_name: string;
+        cluster_type: string;
+        create_at: string;
+        db_module_id: number;
+        instance_address: string;
+        ip: string;
+        master_domain: string;
+        port: number;
+        role: string;
+        spec_config: {
+          id: number;
+        };
+        status: string;
+      }[]
+    >
+  >(`${path}/get_global_machine/`, params);
 }
