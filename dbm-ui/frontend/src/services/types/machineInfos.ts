@@ -11,9 +11,29 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import { t } from '@locales/index';
+import type { HostInfo, MachineRelatedCluster, MachineRelatedInstance, MachineSpecConfig } from '@services/types';
 
-export const textMap = {
-  idleHosts: t('待替换的主机'),
-  manualInput: t('手动输入'),
-};
+/**
+ * 主机详细信息
+ */
+export interface MachineInfos {
+  bk_biz_id: number;
+  bk_cloud_id: number;
+  bk_cloud_name: string;
+  bk_host_id: number;
+  bk_os_name: string;
+  bk_rack_id: number;
+  bk_sub_zone: string;
+  bk_svr_device_cls_name: string;
+  cluster_type: string;
+  create_at: string;
+  db_module_id: number;
+  host_info: HostInfo;
+  instance_role: string;
+  ip: string;
+  machine_type: string;
+  related_clusters: MachineRelatedCluster[];
+  related_instances: MachineRelatedInstance[];
+  spec_config: MachineSpecConfig;
+  spec_id: number;
+}
