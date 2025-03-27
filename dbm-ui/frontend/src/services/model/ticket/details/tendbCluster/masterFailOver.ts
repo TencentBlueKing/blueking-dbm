@@ -1,7 +1,7 @@
 import type { DetailBase, DetailClusters } from '../common';
 
 /**
- * TenDB Cluster 主库故障切换
+ * TenDB Cluster 主库故障主机切换
  */
 
 export interface MasterFailOver extends DetailBase {

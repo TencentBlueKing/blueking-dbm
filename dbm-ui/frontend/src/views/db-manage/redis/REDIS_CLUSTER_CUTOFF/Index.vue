@@ -12,16 +12,20 @@
 -->
 
 <template>
-  <SmartAction>
+  <SmartAction class="redis-cluster-cutoff">
     <BkAlert
       class="mb-20"
       closable
       :title="t('整机替换：将原主机上的所有实例搬迁到同等规格的新主机')" />
+    <BatchInput
+      :config="batchInputConfig"
+      @change="handleBatchInput" />
     <BkForm
-      class="mb-20"
+      class="mt-16 mb-16"
       form-type="vertical"
       :model="formData">
       <EditableTable
+        :key="tableKey"
         ref="table"
         class="mb-20"
         :model="formData.tableData">
@@ -31,23 +35,29 @@
           <HostColumn
             v-model="item.host"
             :selected="selected"
-            @append-row="handleAppendRow(item.host, index)"
             @batch-edit="handleBatchEdit" />
           <EditableColumn
             :label="t('角色类型')"
             :min-width="150">
-            <EditableBlock
-              v-model="item.host.role"
-              :placeholder="t('自动生成')" />
+            <div style="flex: 1">
+              <EditableBlock
+                v-model="item.host.role"
+                :placeholder="t('自动生成')" />
+              <EditableBlock
+                v-if="item.host.related_slave?.bk_host_id"
+                class="related-cell">
+                redis_slave
+              </EditableBlock>
+            </div>
           </EditableColumn>
           <EditableColumn
             :label="t('所属集群')"
             :min-width="150">
             <EditableBlock
-              v-model="item.host.cluster_domain"
+              v-model="item.host.master_domain"
               :placeholder="t('自动生成')" />
           </EditableColumn>
-          <SpecColumn v-model="item.host.spec_config" />
+          <SpecColumn v-model="item.host" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -79,50 +89,52 @@
 <script lang="ts" setup>
   import _ from 'lodash';
   import { reactive, useTemplateRef } from 'vue';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import type { Redis } from '@services/model/ticket/ticket';
-  import { queryMasterSlavePairs } from '@services/source/redisToolbox';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { TicketTypes } from '@common/const';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
-  import type { SpecInfo } from '@views/db-manage/redis/common/spec-panel/Index.vue';
 
   import HostColumn, { type SelectorHost } from './components/HostColumn.vue';
   import SpecColumn from './components/SpecColumn.vue';
 
   interface RowData {
-    host: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      cluster_domain: string;
-      cluster_ids: number[];
-      ip: string;
-      role: string;
-      spec_config: SpecInfo;
-    };
+    host: ComponentProps<typeof HostColumn>['modelValue'];
   }
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
 
-  const createTableRow = (data = {} as Partial<RowData>) => ({
-    host: data.host || {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      cluster_domain: '',
-      cluster_ids: [],
-      ip: '',
-      role: '',
-      spec_config: {} as SpecInfo,
+  const batchInputConfig = [
+    {
+      case: '192.168.10.2',
+      key: 'ip',
+      label: t('待替换主机'),
     },
+  ];
+
+  const createTableRow = (data: { host?: Partial<RowData['host']> } = {}) => ({
+    host: Object.assign(
+      {
+        bk_biz_id: 0,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        cluster_ids: [] as number[],
+        ip: '',
+        master_domain: '',
+        role: '',
+        spec_config: {} as RowData['host']['spec_config'],
+      },
+      data.host,
+    ),
   });
 
   const defaultData = () => ({
@@ -131,48 +143,41 @@
   });
 
   const formData = reactive(defaultData());
+  const tableKey = ref(Date.now());
 
   const selected = computed(() => formData.tableData.filter((item) => item.host.bk_host_id).map((item) => item.host));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
 
   useTicketDetail<Redis.ResourcePool.ClusterCutoff>(TicketTypes.REDIS_CLUSTER_CUTOFF, {
     onSuccess(ticketDetail) {
-      const { bk_biz_id: bizId, details } = ticketDetail;
-      const { clusters, infos, specs } = details;
+      const { infos } = ticketDetail.details;
       Object.assign(formData, {
         payload: createTickePayload(ticketDetail),
       });
       if (infos.length > 0) {
         const dataList: RowData[] = [];
-        const generateData = (
-          list: Redis.ResourcePool.ClusterCutoff['infos'][0]['old_nodes']['redis_master'],
-          role: keyof Redis.ResourcePool.ClusterCutoff['infos'][0]['old_nodes'],
-          clusterIds: number[],
-        ) => {
+        const checkMap: Record<string, boolean> = {};
+        const generateData = (list: { ip: string; master_ip: string }[]) => {
           if (list?.length) {
-            const clusterInfo = clusters[clusterIds[0]];
             list.forEach((item) => {
-              dataList.push(
-                createTableRow({
-                  host: {
-                    bk_biz_id: bizId,
-                    bk_cloud_id: 0,
-                    bk_host_id: item.bk_host_id,
-                    cluster_domain: clusterInfo.immute_domain,
-                    cluster_ids: clusterIds,
-                    ip: item.ip,
-                    role,
-                    spec_config: specs[item.master_spec_id || item.spec_id],
-                  },
-                }),
-              );
+              const ip = item.master_ip || item.ip;
+              if (!checkMap[ip]) {
+                dataList.push(
+                  createTableRow({
+                    host: {
+                      ip,
+                    },
+                  }),
+                );
+                checkMap[ip] = true;
+              }
             });
           }
         };
         infos.forEach((item) => {
-          generateData(item.old_nodes.redis_master, 'redis_master', item.cluster_ids);
-          generateData(item.old_nodes.redis_slave, 'redis_slave', item.cluster_ids);
-          generateData(item.old_nodes.proxy, 'proxy', item.cluster_ids);
+          generateData(item.old_nodes.redis_master);
+          generateData(item.old_nodes.redis_slave);
+          generateData(item.old_nodes.proxy);
         });
         formData.tableData = [...dataList];
       }
@@ -203,29 +208,7 @@
     if (!result) {
       return;
     }
-    const sameClusters: Record<string, RowData[]> = {};
-    const taskList: Promise<ServiceReturnType<typeof queryMasterSlavePairs>>[] = [];
-    formData.tableData.forEach((item) => {
-      if (!sameClusters[item.host.cluster_domain]) {
-        sameClusters[item.host.cluster_domain] = [];
-      }
-      sameClusters[item.host.cluster_domain].push(item);
-      item.host.cluster_ids.forEach((clusterId) => {
-        taskList.push(
-          queryMasterSlavePairs({
-            cluster_id: clusterId,
-          }),
-        );
-      });
-    });
-    const results = await Promise.all(taskList);
-    // 主从映射关系
-    const slaveMasterMap = _.flatten(results).reduce<Record<string, string>>((acc, item) => {
-      Object.assign(acc, {
-        [item.master_ip]: item.slave_ip,
-      });
-      return acc;
-    }, {});
+    const sameClusters = _.groupBy(formData.tableData, (item) => item.host.master_domain);
 
     const infos = Object.values(sameClusters).map((sameRows) => {
       const info = {
@@ -234,29 +217,18 @@
         proxy: [],
         redis_master: [],
         redis_slave: [],
-      } as unknown as TicketDetail['infos'][0];
-      const needDeleteSlaves: string[] = [];
+      };
       sameRows.forEach((item) => {
         const spec = {
           bk_host_id: item.host.bk_host_id,
           ip: item.host.ip,
-          spec_id: item.host.spec_config?.id || 0,
+          spec_id: item.host.spec_config.id,
         };
-        const list = info[
-          item.host.role as 'redis_slave' | 'redis_master' | 'proxy'
-        ] as TicketDetail['infos'][0]['redis_master'];
+        const list = info[item.host.role as 'redis_slave' | 'redis_master' | 'proxy'];
         _.merge(info, {
           [item.host.role]: [...list, spec],
         });
-        if (item.host.role === 'redis_master') {
-          const deleteSlaveIp = slaveMasterMap[item.host.ip];
-          if (deleteSlaveIp) {
-            needDeleteSlaves.push(deleteSlaveIp);
-          }
-        }
       });
-      // 当选择了master的时候，过滤对应的slave
-      info.redis_slave = info.redis_slave.filter((item) => !needDeleteSlaves.includes(item.ip));
       return info;
     });
 
@@ -279,14 +251,7 @@
         acc.push(
           createTableRow({
             host: {
-              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-              bk_cloud_id: item.bk_cloud_id,
-              bk_host_id: item.bk_host_id,
-              cluster_domain: item.cluster_domain,
-              cluster_ids: item.cluster_ids,
               ip: item.ip,
-              role: item.role,
-              spec_config: item.spec_config,
             },
           }),
         );
@@ -296,30 +261,29 @@
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
   };
 
-  const handleAppendRow = async (host: RowData['host'], index: number) => {
-    const taskList = host.cluster_ids.map((clusterId) => queryMasterSlavePairs({ cluster_id: clusterId }));
-
-    const results = await Promise.all(taskList);
-    // 返回的是分片主机（可能多个重复），只取一个
-    const [{ slaves }] = results.flatMap((data) => data.filter((item) => item.master_ip === host.ip));
-
-    if (slaves) {
-      formData.tableData.splice(
-        index + 1,
-        0,
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.reduce<RowData[]>((acc, item) => {
+      acc.push(
         createTableRow({
           host: {
-            bk_biz_id: slaves.bk_biz_id,
-            bk_cloud_id: slaves.bk_cloud_id,
-            bk_host_id: slaves.bk_host_id,
-            cluster_domain: host.cluster_domain,
-            cluster_ids: host.cluster_ids,
-            ip: slaves.ip,
-            role: 'redis_slave',
-            spec_config: host.spec_config,
+            ip: item.ip,
           },
         }),
       );
+      return acc;
+    }, []);
+    if (isClear) {
+      tableKey.value = Date.now();
+      formData.tableData = [...dataList]; // 覆盖
+    } else {
+      formData.tableData = [...(formData.tableData[0].host.bk_host_id ? formData.tableData : []), ...dataList]; // 追加
     }
   };
 </script>
+<style lang="less">
+  .redis-cluster-cutoff {
+    .related-cell {
+      border-top: 1px solid #dcdee5;
+    }
+  }
+</style>

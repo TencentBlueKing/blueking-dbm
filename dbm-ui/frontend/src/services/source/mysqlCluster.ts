@@ -16,7 +16,7 @@ import TendbhaModel from '@services/model/mysql/tendbha';
 
 import http from '../http';
 
-const getRootPath = () => `/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/cluster`;
+const getRootPath = (bizId = window.PROJECT_CONFIG.BIZ_ID) => `/apis/mysql/bizs/${bizId}/cluster`;
 
 /**
  * 通过集群查询同机关联集群
@@ -61,7 +61,7 @@ export function getIntersectedSlaveMachinesFromClusters(params: {
       bk_host_id: number;
       ip: string;
     }>
-  >(`${getRootPath()}/get_intersected_slave_machines_from_clusters/`, params);
+  >(`${getRootPath(params.bk_biz_id)}/get_intersected_slave_machines_from_clusters/`, params);
 }
 
 /**

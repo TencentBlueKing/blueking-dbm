@@ -12,9 +12,9 @@
  */
 import http from '@services/http';
 import RedisModel from '@services/model/redis/redis';
-import type { ListBase } from '@services/types';
+import type { ListBase, MachineSpecConfig } from '@services/types';
 
-const getRootPath = () => `/apis/redis/bizs/${window.PROJECT_CONFIG.BIZ_ID}/toolbox`;
+const getRootPath = (bizId = window.PROJECT_CONFIG.BIZ_ID) => `/apis/redis/bizs/${bizId}/toolbox`;
 
 interface MachineInstancePairItem {
   bk_biz_id: number;
@@ -23,16 +23,18 @@ interface MachineInstancePairItem {
   bk_instance_id: number;
   instance: string;
   ip: string;
+  is_stand_by: boolean;
   name: string;
   phase: string;
   port: number;
+  spec_config: MachineSpecConfig;
   status: string;
 }
 
 /**
  * 根据cluster_id查询主从关系对
  */
-export function queryMasterSlavePairs(params: { cluster_id: number }) {
+export function queryMasterSlavePairs(params: { bk_biz_id?: number; cluster_id: number; }) {
   return http.post<
     {
       master_ip: string;
@@ -40,7 +42,7 @@ export function queryMasterSlavePairs(params: { cluster_id: number }) {
       slave_ip: string;
       slaves: MachineInstancePairItem;
     }[]
-  >(`${getRootPath()}/query_master_slave_pairs/`, params);
+  >(`${getRootPath(params.bk_biz_id)}/query_master_slave_pairs/`, params);
 }
 
 // 获取集群列表(重建从库)
