@@ -111,6 +111,8 @@ INSTANCE_MONITOR_PLUGINS = {
         MachineType.VM_AUTH: {"name": "vmauth", "plugin_id": "dbm_vmauth_bkpull", "func_name": "vmauth-prod"},
     },
 }
+# mysql和tendbcluster采集器一致
+INSTANCE_MONITOR_PLUGINS[DBType.TenDBCluster] = INSTANCE_MONITOR_PLUGINS[DBType.MySQL]
 
 SET_NAME_TEMPLATE = "db.{db_type}.{monitor_plugin_name}"
 

@@ -86,12 +86,16 @@ class AlertView(SystemViewSet):
         if self_manage:
             # 主负责的业务（第一个 DBA）
             biz_cluster_type_conditions = (
-                f'tags.appid : "{dba.bk_biz_id}"' for dba in dbas if dba.users[0] == request.user.username
+                f'(tags.appid : "{dba.bk_biz_id}" AND labels: "DBM_{dba.db_type.upper()}")'
+                for dba in dbas
+                if dba.users[0] == request.user.username
             )
         elif self_assist:
             # 协助的业务（非第一个 DBA）
             biz_cluster_type_conditions = (
-                f'tags.appid : "{dba.bk_biz_id}"' for dba in dbas if dba.users[0] != request.user.username
+                f'(tags.appid : "{dba.bk_biz_id}" AND labels: "DBM_{dba.db_type.upper()}")'
+                for dba in dbas
+                if dba.users[0] != request.user.username
             )
         biz_cluster_type_query_string = " OR ".join(set(biz_cluster_type_conditions))
         if biz_cluster_type_query_string:
