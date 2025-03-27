@@ -20,20 +20,37 @@
         <span class="spec-title">{{ t('规格需求') }}</span>
       </div>
     </template>
-    <EditableBlock
-      v-model="localValue.name"
-      :placeholder="t('自动生成')">
-      <template #append>
-        <SpecPanel
-          v-if="localValue.id"
-          :data="localValue"
-          :hide-qps="!localValue.qps.min">
-          <DbIcon
-            class="visible-icon ml-4"
-            type="visible1" />
-        </SpecPanel>
-      </template>
-    </EditableBlock>
+    <div style="flex: 1">
+      <EditableBlock
+        v-model="localValue.name"
+        :placeholder="t('自动生成')">
+        <template #append>
+          <SpecPanel
+            v-if="localValue.id"
+            :data="localValue"
+            :hide-qps="!localValue.qps.min">
+            <DbIcon
+              class="visible-icon ml-4"
+              type="visible1" />
+          </SpecPanel>
+        </template>
+      </EditableBlock>
+      <EditableBlock
+        v-if="relatedSlaveSpec.id"
+        v-model="relatedSlaveSpec.name"
+        class="related-cell"
+        :placeholder="t('自动生成')">
+        <template #append>
+          <SpecPanel
+            :data="relatedSlaveSpec"
+            :hide-qps="!relatedSlaveSpec.qps.min">
+            <DbIcon
+              class="visible-icon ml-4"
+              type="visible1" />
+          </SpecPanel>
+        </template>
+      </EditableBlock>
+    </div>
   </EditableColumn>
 </template>
 
@@ -44,39 +61,46 @@
 
   import type { SpecInfo } from '@views/db-manage/redis/common/spec-panel/Index.vue';
 
-  const modelValue = defineModel<SpecInfo>({
+  const modelValue = defineModel<{
+    related_slave?: {
+      spec_config: SpecInfo;
+    }; // 关联的从库ip，仅当role=redis_master时存在
+    spec_config: SpecInfo;
+  }>({
     required: true,
   });
+
   const { t } = useI18n();
 
-  const localValue = computed<SpecInfo>(() =>
-    Object.assign(
+  const createDefaultData = () => ({
+    count: 0,
+    cpu: {
+      max: 1,
+      min: 0,
+    },
+    id: 0,
+    mem: {
+      max: 1,
+      min: 0,
+    },
+    name: '',
+    qps: {
+      max: 1,
+      min: 0,
+    },
+    storage_spec: [
       {
-        count: 0,
-        cpu: {
-          max: 1,
-          min: 0,
-        },
-        id: 0,
-        mem: {
-          max: 1,
-          min: 0,
-        },
-        name: '--',
-        qps: {
-          max: 1,
-          min: 0,
-        },
-        storage_spec: [
-          {
-            mount_point: '/data',
-            size: 0,
-            type: '默认',
-          },
-        ],
+        mount_point: '/data',
+        size: 0,
+        type: '默认',
       },
-      modelValue.value,
-    ),
+    ],
+  });
+
+  const localValue = computed<SpecInfo>(() => Object.assign(createDefaultData(), modelValue.value.spec_config));
+
+  const relatedSlaveSpec = computed<SpecInfo>(() =>
+    Object.assign(createDefaultData(), modelValue.value.related_slave?.spec_config),
   );
 </script>
 

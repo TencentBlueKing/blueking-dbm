@@ -12,18 +12,18 @@
 -->
 
 <template>
-  <div
-    class="collapse-mini"
-    :class="[{ 'collapse-mini--collapse': state.collapse }]">
+  <div class="resource-selector-collapse-mini">
     <div
-      class="collapse-mini__header"
+      class="collapse-mini-header"
       @click="handleToggle">
-      <i class="db-icon-down-big collapse-mini__icon" />
+      <i
+        class="db-icon-down-big collapse-mini-icon"
+        :class="[{ 'collapse-mini-collapse': state.collapse }]" />
       <slot name="title">
         <I18nT
-          keypath="共n条"
+          keypath="共m个"
           tag="span">
-          <template #n>
+          <template #m>
             <strong style="color: #3a84ff">{{ count }}</strong>
           </template>
         </I18nT>
@@ -33,7 +33,7 @@
     <Transition mode="in-out">
       <div
         v-show="state.collapse"
-        class="collapse-mini__content">
+        class="collapse-mini-content">
         <slot />
       </div>
     </Transition>
@@ -59,38 +59,36 @@
     },
   );
 
-  function handleToggle() {
+  const handleToggle = () => {
     state.collapse = !state.collapse;
-  }
+  };
 </script>
 
 <style lang="less" scoped>
   @import '@styles/mixins.less';
 
-  .collapse-mini {
-    margin-top: 16px;
+  .resource-selector-collapse-mini {
+    margin-bottom: 16px;
 
-    &:first-child {
+    .collapse-mini:first-child {
       margin-top: 0;
     }
 
-    &__header {
+    .collapse-mini-header {
       height: 24px;
       padding-bottom: 4px;
       cursor: pointer;
       .flex-center();
     }
 
-    &__icon {
+    .collapse-mini-icon {
       font-size: @font-size-normal;
       transform: rotate(-90deg);
       transition: all 0.2s;
     }
 
-    &--collapse {
-      .collapse-mini__icon {
-        transform: rotate(0);
-      }
+    .collapse-mini-collapse {
+      transform: rotate(0) !important;
     }
   }
 </style>

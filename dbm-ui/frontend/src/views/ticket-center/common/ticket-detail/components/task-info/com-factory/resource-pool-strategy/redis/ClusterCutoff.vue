@@ -13,35 +13,76 @@
 
 <template>
   <BkTable
+    border
     :data="tableData"
     :merge-cells="mergeCells"
+    :row-class-name="generateRowClass"
     :show-overflow="false">
     <BkTableColumn
       field="ip"
       :label="t('目标主机')"
-      :min-width="150" />
+      :min-width="150">
+      <template #default="{ data }: { data: RowData }">
+        <p class="has-related">{{ data.ip || '--' }}</p>
+        <div
+          v-if="data?.related_slave_ip"
+          class="related-slave">
+          <p>{{ t('关联 Slave') }}</p>
+          <p>-- {{ data?.related_slave_ip }}</p>
+        </div>
+      </template>
+    </BkTableColumn>
     <BkTableColumn
       field="role"
       :label="t('角色类型')"
-      :min-width="150" />
+      :min-width="150">
+      <template #default="{ data }: { data: RowData }">
+        <p class="has-related">{{ data.role || '--' }}</p>
+        <p
+          v-if="data?.related_slave_ip"
+          class="has-related related-slave-cell">
+          redis_slave
+        </p>
+      </template>
+    </BkTableColumn>
     <BkTableColumn
       field="cluster_domain"
       :label="t('所属集群')"
-      :min-width="250" />
+      :min-width="250">
+      <template #default="{ data }: { data: RowData }">
+        <p class="has-related">{{ data.cluster_domain || '--' }}</p>
+      </template>
+    </BkTableColumn>
     <BkTableColumn
       field="spec_config"
       :label="t('规格需求')"
       :min-width="200">
       <template #default="{ data }: { data: RowData }">
-        {{ data.spec_config?.name || '--' }}
-        <SpecPanel
-          v-if="data.spec_config?.name"
-          :data="data.spec_config"
-          :hide-qps="!data.spec_config.qps?.min">
-          <DbIcon
-            class="visible-icon ml-4"
-            type="visible1" />
-        </SpecPanel>
+        <div class="has-related">
+          {{ data.spec_config?.name || '--' }}
+          <SpecPanel
+            v-if="data.spec_config?.name"
+            :data="data.spec_config"
+            :hide-qps="!data.spec_config.qps?.min">
+            <DbIcon
+              class="visible-icon ml-4"
+              type="visible1" />
+          </SpecPanel>
+        </div>
+
+        <div
+          v-if="data.related_slave_spec?.name"
+          class="has-related related-slave-cell">
+          {{ data.related_slave_spec?.name || '--' }}
+          <SpecPanel
+            v-if="data.related_slave_spec?.name"
+            :data="data.related_slave_spec"
+            :hide-qps="!data.related_slave_spec.qps?.min">
+            <DbIcon
+              class="visible-icon ml-4"
+              type="visible1" />
+          </SpecPanel>
+        </div>
       </template>
     </BkTableColumn>
   </BkTable>
@@ -74,16 +115,23 @@
 
   interface RowData {
     cluster_domain: string;
-    cluster_id: number;
     ip: string;
+    related_slave_ip?: string; // 关联的slave
+    related_slave_spec?: SpecInfo; // 关联的slave
     role: string;
     spec_config: SpecInfo;
-    spec_id: number;
   }
 
   const mergeCells = shallowRef<Array<{ col: number; colspan: number; row: number; rowspan: number }>>([]);
   const ipInfoMap = reactive<Record<string, RowData>>({});
   const tableData = ref<RowData[]>([]);
+
+  const generateRowClass = ({ row }: { row: RowData }) => {
+    if (row.related_slave_ip) {
+      return 'related-slave-row';
+    }
+    return '';
+  };
 
   watch(
     () => props.ticketDetails.details,
@@ -93,31 +141,28 @@
         return;
       }
 
-      const extIps: string[] = [];
-
       const generateData = (
-        list: Props['ticketDetails']['details']['infos'][0]['old_nodes']['redis_master'],
-        role: keyof Props['ticketDetails']['details']['infos'][0]['old_nodes'],
+        list: Redis.ResourcePool.ClusterCutoff['infos'][0]['redis_master'],
+        role: keyof Redis.ResourcePool.ClusterCutoff['infos'][0]['old_nodes'],
         clusterIds: number[],
       ) => {
         if (list?.length) {
-          _.uniqBy(list, 'ip').forEach((hostItem) => {
+          _.uniqBy(list, 'ip').forEach((hostInfo) => {
             const clusterInfo = clusters[clusterIds[0]];
-            const specId = hostItem?.spec_id || hostItem?.master_spec_id;
-            if (!specs[specId]) {
-              extIps.push(hostItem.ip);
-            }
-            if (!ipInfoMap[hostItem.ip]) {
+            const ip = hostInfo.master_ip || hostInfo.ip;
+            const specId = hostInfo.master_spec_id || hostInfo.spec_id;
+            if (!ipInfoMap[ip]) {
               Object.assign(ipInfoMap, {
-                [hostItem.ip]: {
+                [ip]: {
                   cluster_domain: clusterInfo.immute_domain,
-                  cluster_id: clusterInfo.id,
-                  ip: hostItem.ip,
+                  ip,
                   role,
                   spec_config: specs[specId],
-                  spec_id: specId,
                 },
               });
+            } else {
+              ipInfoMap[ip].related_slave_ip = hostInfo.ip;
+              ipInfoMap[ip].related_slave_spec = specs[specId];
             }
           });
         }
@@ -150,10 +195,39 @@
     },
   );
 </script>
-<style lang="less" scoped>
+<style lang="less">
   .visible-icon {
     font-size: 16px;
     color: #3a84ff;
     cursor: pointer;
+  }
+
+  .related-slave-row {
+    td {
+      height: 80px !important;
+      padding: 0 !important;
+    }
+
+    .vxe-cell {
+      padding: 0 !important;
+    }
+
+    .has-related {
+      height: 40px;
+      padding: 0 16px;
+      line-height: 40px;
+    }
+
+    .related-slave {
+      height: 40px;
+      padding: 0 16px;
+      line-height: 18px;
+      color: #979ba5;
+      background: #fafbfd;
+    }
+
+    .related-slave-cell {
+      border-top: 1px solid #dcdee5;
+    }
   }
 </style>
