@@ -26,7 +26,7 @@
 
   import { messageSuccess } from '@utils';
 
-  export type IValue = ServiceReturnType<typeof importDbStruct>[number];
+  type IValue = ServiceReturnType<typeof importDbStruct>[number];
 
   interface Props {
     data: {

@@ -28,10 +28,15 @@
 
   import ClusterDb from './components/ClusterDb.vue';
   import ExportBtn from './components/ExportBtn.vue';
-  import ImportBtn, { type IValue } from './components/ImportBtn.vue';
+  import ImportBtn from './components/ImportBtn.vue';
   import RenameList from './components/rename-list/Index.vue';
 
-  export type { IValue };
+  export type IValue = {
+    db_name: string;
+    rename_cluster_list: number[];
+    rename_db_name: string;
+    target_db_name: string;
+  };
 
   const modelValue = defineModel<{
     dbIgnoreName: string[];

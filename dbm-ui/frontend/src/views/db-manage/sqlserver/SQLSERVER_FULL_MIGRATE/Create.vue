@@ -143,6 +143,7 @@
     }[];
     renameInfoList: {
       db_name: string;
+      rename_cluster_list: number[];
       rename_db_name: string;
       target_db_name: string;
     }[];
@@ -207,6 +208,7 @@
             }),
             renameInfoList: item.rename_infos.map((cur) => ({
               db_name: cur.old_db_name,
+              rename_cluster_list: [],
               rename_db_name: cur.db_name,
               target_db_name: cur.target_db_name,
             })),
@@ -246,6 +248,7 @@
             }),
             renameInfoList: item.rename_infos.map((cur) => ({
               db_name: cur.old_db_name,
+              rename_cluster_list: [],
               rename_db_name: cur.db_name,
               target_db_name: cur.target_db_name,
             })),
@@ -268,6 +271,7 @@
       ignore_db_list: string[];
       rename_infos: {
         db_name: string;
+        rename_cluster_list: number[];
         rename_db_name: string;
         target_db_name: string;
       }[];
@@ -283,6 +287,7 @@
       ignore_db_list: string[];
       rename_infos: {
         db_name: string;
+        rename_cluster_list: number[];
         rename_db_name: string;
         target_db_name: string;
       }[];

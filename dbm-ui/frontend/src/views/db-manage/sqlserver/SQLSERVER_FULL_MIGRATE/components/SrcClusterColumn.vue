@@ -50,7 +50,7 @@
   <ClusterSelector
     v-model:is-show="showSingleSelector"
     :cluster-types="[ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE]"
-    :selected="currentSelectedClusters"
+    :selected="currentSelected"
     :tab-list-config="tabListConfig"
     @change="handleSingleSelectorChange" />
 </template>
@@ -96,12 +96,32 @@
 
   const { t } = useI18n();
 
-  const tabListConfig = {
+  const showSingleSelector = ref(false);
+  const showBatchSelector = ref(false);
+  const currentSelected = reactive({
+    [ClusterTypes.SQLSERVER_HA]: [],
+    [ClusterTypes.SQLSERVER_SINGLE]: [],
+  });
+
+  const selectedClusters = computed<Record<string, SqlServerHaModel[]>>(() => ({
+    [ClusterTypes.SQLSERVER_HA]: props.selected.filter(
+      (item) => item.cluster_type === ClusterTypes.SQLSERVER_HA,
+    ) as SqlServerHaModel[],
+    [ClusterTypes.SQLSERVER_SINGLE]: props.selected.filter(
+      (item) => item.cluster_type === ClusterTypes.SQLSERVER_SINGLE,
+    ) as SqlServerHaModel[],
+  }));
+
+  const tabListConfig = computed(() => ({
     [ClusterTypes.SQLSERVER_HA]: {
       disabledRowConfig: [
         {
           handler: (data: any) => data.isOffline,
           tip: t('集群已禁用'),
+        },
+        {
+          handler: (data: any) => props.selected.findIndex((item) => item.id === data.id) > -1,
+          tip: t('集群已被其他行选择'),
         },
       ],
       id: ClusterTypes.SQLSERVER_HA,
@@ -114,30 +134,15 @@
           handler: (data: any) => data.isOffline,
           tip: t('集群已禁用'),
         },
+        {
+          handler: (data: any) => props.selected.findIndex((item) => item.id === data.id) > -1,
+          tip: t('集群已被其他行选择'),
+        },
       ],
       id: ClusterTypes.SQLSERVER_SINGLE,
       multiple: false,
       name: t('SqlServer 单节点'),
     },
-  };
-
-  const showSingleSelector = ref(false);
-  const showBatchSelector = ref(false);
-  const selectedClusters = computed<Record<string, SqlServerHaModel[]>>(() => ({
-    [ClusterTypes.SQLSERVER_HA]: props.selected.filter(
-      (item) => item.cluster_type === ClusterTypes.SQLSERVER_HA,
-    ) as SqlServerHaModel[],
-    [ClusterTypes.SQLSERVER_SINGLE]: props.selected.filter(
-      (item) => item.cluster_type === ClusterTypes.SQLSERVER_SINGLE,
-    ) as SqlServerHaModel[],
-  }));
-  const currentSelectedClusters = computed<Record<string, SqlServerHaModel[]>>(() => ({
-    [ClusterTypes.SQLSERVER_HA]: [modelValue.value].filter(
-      (item) => item.cluster_type === ClusterTypes.SQLSERVER_HA,
-    ) as SqlServerHaModel[],
-    [ClusterTypes.SQLSERVER_SINGLE]: [modelValue.value].filter(
-      (item) => item.cluster_type === ClusterTypes.SQLSERVER_SINGLE,
-    ) as SqlServerHaModel[],
   }));
 
   const rules = [
@@ -211,6 +216,7 @@
         major_version: item.major_version,
         master_domain: item.master_domain,
       };
+      Object.assign(currentSelected, selected);
     }
   };
 </script>
