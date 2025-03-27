@@ -23,6 +23,7 @@ import getDbManageRoutes, { getDbaManageRoutes } from '@views/db-manage/routes';
 import getDbhaSwitchEventsRouters from '@views/dbha-switch-events/routes';
 import getDutyRuleManageRoutes from '@views/duty-rule-manage/routes';
 import getInspectionRoutes from '@views/inspection-manage/routes';
+import getMonitorAlarmRoutes from '@views/monitor-alarm/routes';
 import getNotificationSettingRoutes from '@views/notification-setting/routes';
 import getPasswordManageRoutes from '@views/password-manage/routes';
 import getPlatformDbConfigureRoutes from '@views/platform-db-configure/routes';
@@ -43,8 +44,6 @@ import getVersionFilesRoutes from '@views/version-files/routes';
 import getWhitelistRoutes from '@views/whitelist/routes';
 
 import { checkDbConsole } from '@utils';
-
-import getMonitorAlarmRoutes from '@/views/monitor-alarm/routes';
 
 let appRouter: Router;
 
