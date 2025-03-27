@@ -58,11 +58,8 @@
 
   type Emits = (e: 'change', value: IValue) => void;
 
-  interface Expose {
-    getValue: () => Promise<IValue>;
-  }
-
   const props = defineProps<Props>();
+
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
@@ -120,12 +117,13 @@
               isExist.push(dstClusterMap.value[clusterId].master_domain);
             }
           });
-          return !isExist.length
-            ? true
-            : t('集群x已存在DB名y', {
-                x: isExist.join('、'),
-                y: value,
-              });
+          if (isExist.length) {
+            return t('集群x已存在DB名y', {
+              x: isExist.join('、'),
+              y: value,
+            });
+          }
+          return true;
         });
       },
     },
@@ -162,17 +160,22 @@
           db_list: [value],
         }).then((data) => {
           const isExist: string[] = [];
+          const clusterIds: number[] = [];
           Object.entries(data).forEach(([clusterId, dbCheckMap]) => {
             if (dbCheckMap[value]) {
               isExist.push(dstClusterMap.value[clusterId].master_domain);
+              clusterIds.push(dstClusterMap.value[clusterId].id);
             }
           });
-          return !isExist.length
-            ? true
-            : t('集群x已存在DB名y', {
-                x: isExist.join('、'),
-                y: value,
-              });
+          if (isExist.length) {
+            localValue.value.rename_cluster_list = clusterIds;
+            emits('change', localValue.value);
+            return t('集群x已存在DB名y', {
+              x: isExist.join('、'),
+              y: value,
+            });
+          }
+          return true;
         });
       },
     },
@@ -207,15 +210,6 @@
     targetDbNameRef.value!.validator().then((result) => {
       isTargetDbNameError.value = !result;
     });
-  });
-
-  defineExpose<Expose>({
-    getValue() {
-      return renameDbNameRef
-        .value!.getValue()
-        .then(() => targetDbNameRef.value!.getValue())
-        .then(() => localValue.value);
-    },
   });
 </script>
 <style lang="less" scoped>
