@@ -14,7 +14,6 @@
         <RenderRow
           v-for="(item, index) in modelValue"
           :key="index"
-          ref="rowRefs"
           :cluster-data="clusterData"
           :index="index"
           :whole-db-list="modelValue"
@@ -32,7 +31,6 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
@@ -55,28 +53,17 @@
     };
   }
 
-  interface Expose {
-    getValue: () => Promise<IValue[]>;
-  }
-
   defineProps<Props>();
 
   const modelValue = defineModel<IValue[]>({
     default: () => [],
   });
-  const { t } = useI18n();
 
-  const rowRefs = ref<InstanceType<typeof RenderRow>[]>([]);
+  const { t } = useI18n();
 
   const handleChange = (value: IValue, index: number) => {
     modelValue.value.splice(index, 1, value);
   };
-
-  defineExpose<Expose>({
-    getValue() {
-      return Promise.all(rowRefs.value!.map((item) => item.getValue()));
-    },
-  });
 </script>
 <style lang="less">
   .sqlserver-manage-rollback-rename-info-box {
