@@ -139,11 +139,6 @@
 
     return [
       {
-        message: t('不能以stage_truncate开头或dba_rollback结尾'),
-        trigger: 'change',
-        validator: (value: string[]) => _.every(value, (item) => /^(?!stage_truncate)(?!.*dba_rollback$).*/.test(item)),
-      },
-      {
         message: t('库表名支持数字、字母、中划线、下划线，最大35字符'),
         trigger: 'change',
         validator: (value: string[]) => _.every(value, (item) => /^[-_a-zA-Z0-9*?%]{0,35}$/.test(item)),
@@ -191,9 +186,6 @@
           if (!props.checkExist) {
             return true;
           }
-          if (!props.clusterId) {
-            return false;
-          }
           // % 通配符不需要校验存在
           if (/%$/.test(value[0]) || value[0] === '*') {
             return true;
@@ -201,6 +193,9 @@
           const clearDbList = _.filter(value, (item) => !/[*%]/.test(item));
           if (clearDbList.length < 1) {
             return true;
+          }
+          if (!props.clusterId && value.length) {
+            return t('请先选择源集群');
           }
           return checkClusterDatabase({
             bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -228,12 +223,12 @@
           if (!props.checkNotExist) {
             return true;
           }
-          if (!props.clusterId) {
-            return false;
-          }
           const clearDbList = _.filter(value, (item) => !/[*%]/.test(item));
           if (clearDbList.length < 1) {
             return true;
+          }
+          if (!props.clusterId && value.length) {
+            return t('请先选择源集群');
           }
           return checkClusterDatabase({
             bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,

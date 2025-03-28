@@ -145,6 +145,7 @@
     onSuccess(data) {
       renameInfoList.value = data.map((item) => ({
         db_name: item,
+        rename_cluster_list: [],
         rename_db_name: '',
         target_db_name: item,
       }));

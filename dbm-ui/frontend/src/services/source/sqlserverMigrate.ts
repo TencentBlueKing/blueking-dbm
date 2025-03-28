@@ -32,6 +32,6 @@ export function forceFailedMigrate(params: { dts_id: number }) {
 }
 
 // 断开同步
-export function manualTerminateSync(params: { ticket_id: number }) {
+export function manualTerminateSync(params: { dts_id: number; ticket_id: number }) {
   return http.post<{ ticket_id: number }>(`${getPath()}/manual_terminate_sync/`, params);
 }

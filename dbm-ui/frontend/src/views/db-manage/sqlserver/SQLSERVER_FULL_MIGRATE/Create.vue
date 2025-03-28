@@ -160,7 +160,7 @@
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
     dbIgnoreName: data.dbIgnoreName || [],
-    dbName: data.dbName || [],
+    dbName: data.dbName || ['*'],
     dstCluster: data.dstCluster || [],
     renameInfoList: data.renameInfoList || [],
     srcCluster: data.srcCluster || {
