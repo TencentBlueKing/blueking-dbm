@@ -21,15 +21,15 @@
   <BkDialog
     :is-show="isShow"
     :quick-close="false"
-    :title="t('xx_批量录入', { title: t('主库故障切换') })"
+    :title="t('xx_批量录入', { title: t('整机替换') })"
     :width="1200"
     @closed="handleClose">
     <div class="batch-input">
       <div class="batch-input-format">
         <div class="batch-input-format-item">
-          <strong>Master</strong>
+          <strong>{{ t('待替换主机') }}</strong>
           <p class="pt-8">
-            192.10.10.2:1000
+            192.10.10.2
             <DbIcon
               v-bk-tooltips="t('复制格式')"
               class="batch-input-copy"
@@ -97,10 +97,10 @@
 
   import { useCopy } from '@hooks';
 
-  import { ipPort } from '@common/regex';
+  import { ipv4 } from '@common/regex';
 
   export interface InputItem {
-    master: string;
+    ip: string;
   }
 
   type Emits = (e: 'change', data: InputItem[]) => void;
@@ -116,7 +116,7 @@
 
   const inputRef = ref();
 
-  const placeholder = t('请输入IP:Port_如: 192.10.10.2:1000_多个对象_换行分隔');
+  const placeholder = t('请输入IP_如: 192.10.10.2_多个对象_换行分隔');
 
   const state = reactive({
     formatError: {
@@ -138,7 +138,7 @@
    * 复制格式
    */
   function handleCopy() {
-    copy('192.10.10.2:1000');
+    copy('192.10.10.2');
   }
 
   /**
@@ -199,10 +199,10 @@
     state.formatError.selectionEnd = newLines.join('\n').length;
     state.formatError.show = count > 0;
 
-    // IP:Port 格式错误
+    // IPv4 格式错误
     for (let i = lines.length - 1; i >= 0; i--) {
       const contents = getContents(lines[i]);
-      if (ipPort.test(contents[0]) === false) {
+      if (ipv4.test(contents[0]) === false) {
         const remove = lines.splice(i, 1);
         newLines.push(...remove);
       }
@@ -221,9 +221,9 @@
     }
 
     const res = newLines.map((item) => {
-      const [master] = getContents(item);
+      const [ip] = getContents(item);
       return {
-        master,
+        ip,
       };
     });
     emits('change', res);

@@ -16,9 +16,9 @@ export function useCreateTicket<T>(
   const router = useRouter();
   const { locale, t } = useI18n();
 
-  const run = async (formData: { details: T; ignore_duplication?: boolean; remark?: string }) => {
+  const run = async (formData: { bk_biz_id?: number; details: T; ignore_duplication?: boolean; remark?: string }) => {
     const params = {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      bk_biz_id: formData.bk_biz_id || window.PROJECT_CONFIG.BIZ_ID,
       details: formData.details,
       ignore_duplication: formData.ignore_duplication,
       remark: formData.remark || '',

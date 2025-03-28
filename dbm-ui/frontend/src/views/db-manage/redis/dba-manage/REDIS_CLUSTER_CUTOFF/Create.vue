@@ -16,16 +16,7 @@
     <BkAlert
       class="mb-20"
       closable
-      :title="t('Slave提升成主库_断开同步_切换后集成成单点状态_一般用于紧急切换')" />
-    <div>
-      <div class="title-spot mt-12 mb-10">{{ t('切换类型') }}<span class="required" /></div>
-      <CardCheckbox
-        v-model="operaObjectType"
-        :desc="t('用于强制执行实例级别切换')"
-        icon="rebuild"
-        :title="t('实例切换')"
-        :true-value="OperaObejctType.INSTANCE" />
-    </div>
+      :title="t('用于批量执行整机替换')" />
     <BatchInput @change="handleBatchInput" />
     <BkForm
       class="mb-20"
@@ -38,25 +29,29 @@
         <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
-          <MasterColumn
-            v-model="item.master"
+          <HostColumn
+            v-model="item.host"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
-          <SlaveColumn
-            v-model="item.slave"
-            :master="item.master" />
+          <EditableColumn
+            :label="t('角色类型')"
+            :min-width="150">
+            <EditableBlock
+              v-model="item.host.role"
+              :placeholder="t('自动生成')" />
+          </EditableColumn>
           <EditableColumn
             :label="t('所属集群')"
             :min-width="150">
             <EditableBlock
-              v-model="item.master.master_domain"
+              v-model="item.host.master_domain"
               :placeholder="t('自动生成')" />
           </EditableColumn>
           <EditableColumn
             :label="t('所属业务')"
             :min-width="150">
-            <EditableBlock v-if="item.master.bk_biz_id">
-              {{ getBizInfoById(item.master.bk_biz_id)?.name || item.master.bk_biz_id }}
+            <EditableBlock v-if="item.host.bk_biz_id">
+              {{ getBizInfoById(item.host.bk_biz_id)?.name || item.host.bk_biz_id }}
             </EditableBlock>
             <EditableBlock
               v-else
@@ -96,13 +91,10 @@
   import { useI18n } from 'vue-i18n';
 
   import type { Mysql } from '@services/model/ticket/ticket';
-  import { OperaObejctType } from '@services/types';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { TicketTypes } from '@common/const';
-
-  import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
 
   import CheckPayload, {
     createCheckPayload,
@@ -114,26 +106,17 @@
   import { useGlobalBizs } from '@/stores';
 
   import BatchInput, { type InputItem } from './components/BatchInput.vue';
-  import MasterColumn, { type IValue } from './components/MasterColumn.vue';
-  import SlaveColumn from './components/SlaveColumn.vue';
+  import HostColumn, { type IValue } from './components/HostColumn.vue';
 
   interface RowData {
-    master: {
+    host: {
       bk_biz_id: number;
       bk_cloud_id: number;
       bk_host_id: number;
       cluster_id: number;
-      instance_address: string;
       ip: string;
       master_domain: string;
-      port: number;
-    };
-    slave: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      instance_address: string;
-      ip: string;
+      role: string;
     };
   }
 
@@ -142,22 +125,14 @@
   const tableRef = useTemplateRef('table');
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
-    master: data.master || {
+    host: data.host || {
       bk_biz_id: 0,
       bk_cloud_id: 0,
       bk_host_id: 0,
       cluster_id: 0,
-      instance_address: '',
       ip: '',
       master_domain: '',
-      port: 0,
-    },
-    slave: data.slave || {
-      bk_biz_id: 0,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      instance_address: '',
-      ip: '',
+      role: '',
     },
   });
 
@@ -167,33 +142,26 @@
     ...createTickePayload(),
   });
 
-  const operaObjectType = ref(OperaObejctType.INSTANCE);
   const formData = reactive(defaultData());
 
-  const selected = computed(() =>
-    formData.tableData.filter((item) => item.master.bk_host_id).map((item) => item.master),
-  );
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.instance_address, true])));
+  const selected = computed(() => formData.tableData.filter((item) => item.host.bk_host_id).map((item) => item.host));
+  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
 
   useTicketDetail<Mysql.MasterFailOver>(TicketTypes.MYSQL_MASTER_FAIL_OVER, {
     async onSuccess(ticketDetail) {
       const { details } = ticketDetail;
+
       const { clusters, infos } = details;
       Object.assign(formData, {
         ...createCheckPayload(details),
         ...createTickePayload(ticketDetail),
         tableData: infos.map((item) =>
           createTableRow({
-            master: {
+            host: {
               ...item.master_ip,
               cluster_id: item.cluster_ids[0],
-              instance_address: `${item.master_ip.ip}:${item.master_ip.port}`,
               master_domain: clusters[item.cluster_ids[0]].immute_domain,
-              port: item.master_ip.port as number,
-            },
-            slave: {
-              ...item.slave_ip,
-              instance_address: `${item.slave_ip.ip}:${item.slave_ip.port}`,
+              role: '',
             },
           }),
         ),
@@ -205,12 +173,6 @@
     infos: {
       cluster_ids: number[];
       master_ip: {
-        bk_biz_id: number;
-        bk_cloud_id: number;
-        bk_host_id: number;
-        ip: string;
-      };
-      slave_ip: {
         bk_biz_id: number;
         bk_cloud_id: number;
         bk_host_id: number;
@@ -230,23 +192,17 @@
       return;
     }
     const infosByBiz = formData.tableData.reduce<Record<number, Mysql.MasterFailOver['infos']>>((acc, item) => {
-      const currentBizId = item.master.bk_biz_id;
+      const currentBizId = item.host.bk_biz_id;
       Object.assign(acc, {
         [currentBizId]: [
           ...(acc[currentBizId] || []),
           {
-            cluster_ids: [item.master.cluster_id],
+            cluster_ids: [item.host.cluster_id],
             master_ip: {
-              bk_biz_id: item.master.bk_biz_id,
-              bk_cloud_id: item.master.bk_cloud_id,
-              bk_host_id: item.master.bk_host_id,
-              ip: item.master.ip,
-            },
-            slave_ip: {
-              bk_biz_id: item.slave.bk_biz_id,
-              bk_cloud_id: item.slave.bk_cloud_id,
-              bk_host_id: item.slave.bk_host_id,
-              ip: item.slave.ip,
+              bk_biz_id: item.host.bk_biz_id,
+              bk_cloud_id: item.host.bk_cloud_id,
+              bk_host_id: item.host.bk_host_id,
+              ip: item.host.ip,
             },
           },
         ],
@@ -269,8 +225,6 @@
     });
 
     console.log(data);
-
-    // createTicketRunAsync(data);
   };
 
   const handleReset = () => {
@@ -279,18 +233,17 @@
 
   const handleBatchEdit = (list: IValue[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!selectedMap.value[item.instance_address]) {
+      if (!selectedMap.value[item.ip]) {
         acc.push(
           createTableRow({
-            master: {
+            host: {
               bk_biz_id: item.bk_biz_id,
               bk_cloud_id: item.bk_cloud_id,
               bk_host_id: item.bk_host_id,
               cluster_id: item.cluster_id,
-              instance_address: item.instance_address,
               ip: item.ip,
               master_domain: item.master_domain,
-              port: item.port,
+              role: item.role,
             },
           }),
         );
@@ -302,18 +255,17 @@
 
   const handleBatchInput = (data: InputItem[]) => {
     const dataList = data.reduce<RowData[]>((acc, item) => {
-      if (!selectedMap.value[item.master]) {
+      if (!selectedMap.value[item.ip]) {
         acc.push(
           createTableRow({
-            master: {
+            host: {
               bk_biz_id: 0,
               bk_cloud_id: 0,
               bk_host_id: 0,
               cluster_id: 0,
-              instance_address: item.master,
-              ip: '',
+              ip: item.ip,
               master_domain: '',
-              port: 0,
+              role: '',
             },
           }),
         );

@@ -412,17 +412,8 @@
             replaceSearchParams(params);
           }
           if (!isPaginationChangeFetch) {
-            const selectMap = props.selected.reduce<Record<string, any>>((acc, item) => {
-              Object.assign(acc, {
-                [item[props.primaryKey]]: item,
-              });
-              return acc;
-            }, {});
-            rowSelectMemo.value = {
-              ...selectMap,
-            };
-            isPaginationChangeFetch = false;
             isWholeChecked.value = false;
+            isPaginationChangeFetch = false;
             triggerSelection();
           }
 
@@ -463,6 +454,21 @@
     () => props.columns,
     () => {
       tableKey.value = Date.now().toString();
+    },
+  );
+
+  watch(
+    () => props.selected,
+    () => {
+      const selectMap = props.selected.reduce<Record<string, any>>((acc, item) => {
+        Object.assign(acc, {
+          [item[props.primaryKey]]: item,
+        });
+        return acc;
+      }, {});
+      rowSelectMemo.value = {
+        ...selectMap,
+      };
     },
   );
 

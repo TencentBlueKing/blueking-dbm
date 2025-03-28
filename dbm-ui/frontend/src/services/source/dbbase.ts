@@ -191,7 +191,7 @@ export function dbConsole(params: {
 export function getGlobalInstance(params: {
   bk_biz_id?: number;
   cluster_ids?: number[]; // 逗号分隔
-  cluster_types: ClusterTypes[]; // 逗号分隔
+  cluster_types: string; // 逗号分隔
   db_module_id?: number;
   instance?: string;
   instance_inner_role?: 'master' | 'slave' | 'proxy'; // 过滤的实例角色

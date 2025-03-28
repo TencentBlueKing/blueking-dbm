@@ -37,6 +37,12 @@
         </template>
         SQLServer
       </BkMenuItem>
+      <BkMenuItem key="DbaManageRedis">
+        <template #icon>
+          <DbIcon type="redis" />
+        </template>
+        Redis
+      </BkMenuItem>
     </BkMenuGroup>
     <BkMenuGroup
       v-db-console="'platformManage.healthReport'"

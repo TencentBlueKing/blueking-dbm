@@ -21,18 +21,8 @@
     </div>
     <div style="margin-top: 16px; font-size: 14px; line-height: 22px; color: #63656e">
       <I18nT
-        keypath="接下来您可以通过xx查看任务最新动态"
+        keypath="已按业务生成n个单据_您可点击单号查看详情"
         tag="span">
-        <RouterLink
-          target="_blank"
-          :to="{
-            name: 'bizTicketManage',
-            params: {
-              ticketId: `${ticketId}`,
-            },
-          }">
-          {{ t('单据') }}
-        </RouterLink>
       </I18nT>
     </div>
     <div class="operation-steps">

@@ -23,7 +23,7 @@
               {{ t('清空所有') }}
             </BkDropdownItem>
             <BkDropdownItem @click="handleCopy">
-              {{ t('复制所有实例') }}
+              {{ t('复制所有IP') }}
             </BkDropdownItem>
           </BkDropdownMenu>
         </template>
@@ -48,12 +48,12 @@
           :title="getBizInfoById(Number(bizId))?.name || `${t('业务')}${bizId}`">
           <div
             v-for="item of items"
-            :key="item.instance_address"
+            :key="item.ip"
             class="result-item">
             <span
               v-overflow-tips
               class="text-overflow">
-              {{ item.instance_address }}
+              {{ item.ip }}
             </span>
             <DbIcon
               type="close result-item-remove"
@@ -100,17 +100,17 @@
   const handleRemove = (item: IValue) => {
     emits(
       'change',
-      props.selected.filter((cur) => cur.instance_address !== item.instance_address),
+      props.selected.filter((cur) => cur.ip !== item.ip),
     );
   };
 
   const handleCopy = () => {
     if (isEmpty.value) {
-      messageWarn(t('没有可复制实例'));
+      messageWarn(t('没有可复制IP'));
       return;
     }
 
-    const copyData = props.selected.map((item) => item.instance_address);
+    const copyData = props.selected.map((item) => item.ip);
     execCopy(copyData.join('\n'), t('复制成功，共n条', { n: copyData.length }));
   };
 </script>

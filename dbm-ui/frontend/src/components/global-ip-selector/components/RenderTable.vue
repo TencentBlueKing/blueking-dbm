@@ -22,14 +22,14 @@
       :data-source="dataSource"
       :height="500"
       ignore-biz
-      primary-key="instance_address"
+      primary-key="ip"
       selectable
       :selected="selected"
       show-select-all-page
       @column-filter="handleFilter"
       @selection="updateLastValues">
       <BkTableColumn
-        field="instance_address"
+        field="ip"
         :label="instanceRoleText"
         :min-width="150" />
       <BkTableColumn
@@ -140,7 +140,7 @@
   // 首字母大写
   const capitalize = (str: string) => str.toLowerCase().replace(/^\w/, (match) => match.toUpperCase());
 
-  const instanceRoleText = t('xx实例', { role: capitalize(props.params?.instance_inner_role || 'master') });
+  const instanceRoleText = t('xx主机', { role: capitalize(props.params?.instance_inner_role || 'master') });
   const searchSelectValue = ref<SearchValue[]>([]);
   const dbTableRef = useTemplateRef('table');
 

@@ -14,9 +14,9 @@
 <template>
   <EditableColumn
     :append-rules="rules"
-    field="master.instance_address"
+    field="master.ip"
     fixed="left"
-    label="Master"
+    :label="t('待替换主机')"
     :loading="loading"
     :min-width="150"
     required>
@@ -29,13 +29,16 @@
       </span>
     </template>
     <EditableInput
-      v-model="modelValue.instance_address"
+      v-model="modelValue.ip"
       :placeholder="t('请输入如: 192.10.10.2:1000')"
       @change="handleInputChange" />
   </EditableColumn>
-  <GlobalInstanceSelector
+  <GlobalIpSelector
     v-model:is-show="showSelector"
     v-model:selected="dataList"
+    :params="{
+      cluster_types: queryClusterTypes[DBTypes.REDIS].join(','),
+    }"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
@@ -44,11 +47,10 @@
 
   import { getGlobalInstance } from '@services/source/dbbase';
 
-  import { ipPort } from '@common/regex';
+  import { DBTypes, queryClusterTypes } from '@common/const';
+  import { ipv4 } from '@common/regex';
 
-  import GlobalInstanceSelector, { type IValue } from '@components/global-instance-selector/Index.vue';
-
-  import { ClusterTypes } from '@/common/const';
+  import GlobalIpSelector, { type IValue } from '@components/global-ip-selector/Index.vue';
 
   export type { IValue };
 
@@ -67,10 +69,8 @@
     bk_cloud_id: number;
     bk_host_id: number;
     cluster_id: number;
-    instance_address: string;
     ip: string;
     master_domain: string;
-    port: number;
   }>({
     required: true,
   });
@@ -82,17 +82,17 @@
 
   const rules = [
     {
-      message: t('目标实例输入格式有误'),
+      message: t('IP 格式不符合IPv4标准'),
       trigger: 'change',
-      validator: (value: string) => ipPort.test(value),
+      validator: (value: string) => ipv4.test(value),
     },
     {
-      message: t('目标实例重复'),
+      message: t('目标主机重复'),
       trigger: 'blur',
-      validator: (value: string) => props.selected.filter((item) => item.instance_address === value).length < 2,
+      validator: (value: string) => props.selected.filter((item) => item.ip === value).length < 2,
     },
     {
-      message: t('目标实例不存在'),
+      message: t('目标主机不存在'),
       trigger: 'blur',
       validator: () => Boolean(modelValue.value.bk_host_id),
     },
@@ -108,10 +108,8 @@
           bk_cloud_id: item.bk_cloud_id,
           bk_host_id: item.bk_host_id,
           cluster_id: item.cluster_id,
-          instance_address: item.instance_address,
           ip: item.ip,
           master_domain: item.master_domain,
-          port: item.port,
         };
       }
     },
@@ -127,10 +125,8 @@
       bk_cloud_id: 0,
       bk_host_id: 0,
       cluster_id: 0,
-      instance_address: value,
-      ip: '',
+      ip: value,
       master_domain: '',
-      port: 0,
     };
   };
 
@@ -141,11 +137,10 @@
   watch(
     modelValue,
     () => {
-      if (modelValue.value.instance_address && !modelValue.value.bk_host_id) {
+      if (modelValue.value.ip && !modelValue.value.bk_host_id) {
         queryInstance({
-          cluster_types: ClusterTypes.TENDBHA,
-          instance: modelValue.value.instance_address,
-          instance_inner_role: 'master',
+          cluster_types: queryClusterTypes[DBTypes.REDIS].join(','),
+          instance: modelValue.value.ip,
         });
       }
     },

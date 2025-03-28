@@ -174,13 +174,13 @@
         instance: lines.join(','),
       });
       // 去重
-      const uniqRes = _.uniqBy(results, 'instance_address');
+      const uniqRes = _.uniqBy(results, 'ip');
 
       const legalInstances = [];
       for (let i = lines.length - 1; i >= 0; i--) {
         const item = lines[i];
         const remove = lines.splice(i, 1);
-        const isExisted = uniqRes.find((cur) => cur.instance_address === item);
+        const isExisted = uniqRes.find((cur) => cur.ip === item);
         if (!isExisted) {
           newLines.push(...remove);
         } else {
