@@ -183,6 +183,7 @@
 
   const handleStopSync = (data: MigrateRecordModel) =>
     manualTerminateSync({
+      dts_id: data.id,
       ticket_id: data.ticket_id,
     }).then((data) => {
       fetchList({
