@@ -33,7 +33,7 @@
         <BkButton
           class="ml-4"
           size="small"
-          @click="handleCapacityChange">
+          @click="handleToCapacityChange">
           {{ t('集群容量变更') }}
         </BkButton>
         <BkDropdown class="ml-4">
@@ -99,27 +99,10 @@
         v-if="activePanelKey === activePanel?.name"
         :url="activePanel?.link" />
     </div>
-    <DbSideslider
-      v-if="capacityData"
-      v-model:is-show="capacityChangeShow"
-      :disabled-confirm="!isCapacityChange"
-      :width="960">
-      <template #header>
-        <span>
-          {{ t('MongoDB 集群容量变更【xxx】', [capacityData.clusterName]) }}
-          <BkTag theme="info">
-            {{ t('存储层') }}
-          </BkTag>
-        </span>
-      </template>
-      <CapacityChange
-        v-model:is-change="isCapacityChange"
-        :data="capacityData" />
-    </DbSideslider>
     <AccessEntry
-      v-if="accessEntryInfo"
+      v-if="data"
       v-model:is-show="accessEntryInfoShow"
-      :data="accessEntryInfo" />
+      :data="data" />
   </div>
 </template>
 
@@ -127,7 +110,6 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import MongodbDetailModel from '@services/model/mongodb/mongodb-detail';
   import { getMongoClusterDetails } from '@services/source/mongodb';
   import { getMonitorUrls } from '@services/source/monitorGrafana';
 
@@ -135,7 +117,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes, DBTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import RenderClusterStatus from '@components/cluster-status/Index.vue';
 
@@ -144,7 +126,6 @@
   import MonitorDashboard from '@views/db-manage/common/cluster-monitor/MonitorDashboard.vue';
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import AccessEntry from '@views/db-manage/mongodb/components/AccessEntry.vue';
-  import CapacityChange from '@views/db-manage/mongodb/components/CapacityChange.vue';
 
   import { checkDbConsole } from '@utils';
 
@@ -157,6 +138,7 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
+  const router = useRouter();
   const { currentBizId } = useGlobalBizs();
   const { isOpen: isStretchLayoutOpen } = useStretchLayout();
   const { handleDisableCluster } = useOperateClusterBasic(ClusterTypes.MONGODB, {
@@ -164,18 +146,6 @@
   });
 
   const activePanelKey = ref('topo');
-  const capacityChangeShow = ref(false);
-  const isCapacityChange = ref(false);
-  const capacityData = ref<{
-    bizId: number;
-    cloudId: number;
-    clusterName: string;
-    id: number;
-    shardNodeCount: number;
-    shardNum: number;
-    specId: number;
-    specName: string;
-  }>();
   const monitorPanelList = ref<
     {
       label: string;
@@ -184,7 +154,6 @@
     }[]
   >([]);
   const accessEntryInfoShow = ref(false);
-  const accessEntryInfo = ref<MongodbDetailModel | undefined>();
 
   const activePanel = computed(() => monitorPanelList.value.find((item) => item.name === activePanelKey.value));
 
@@ -194,30 +163,6 @@
     run: fetchResourceDetails,
   } = useRequest(getMongoClusterDetails, {
     manual: true,
-    onSuccess(result) {
-      const {
-        bk_biz_id: bizId,
-        bk_cloud_id: cloudId,
-        cluster_name: clusterName,
-        id,
-        mongodb,
-        shard_node_count: shardNodeCount,
-        shard_num: shardNum,
-      } = result;
-      const { id: specId, name } = mongodb[0].spec_config;
-
-      capacityData.value = {
-        bizId,
-        cloudId,
-        clusterName,
-        id,
-        shardNodeCount,
-        shardNum,
-        specId,
-        specName: name,
-      };
-      accessEntryInfo.value = result;
-    },
   });
 
   const { run: runGetMonitorUrls } = useRequest(getMonitorUrls, {
@@ -257,8 +202,14 @@
     accessEntryInfoShow.value = true;
   };
 
-  const handleCapacityChange = () => {
-    capacityChangeShow.value = true;
+  const handleToCapacityChange = () => {
+    const routeInfo = router.resolve({
+      name: TicketTypes.MONGODB_SCALE_UPDOWN,
+      query: {
+        masterDomain: data.value?.master_domain,
+      },
+    });
+    window.open(routeInfo.href, '_blank');
   };
 </script>
 

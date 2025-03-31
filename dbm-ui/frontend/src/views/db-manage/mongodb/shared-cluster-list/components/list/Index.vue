@@ -147,7 +147,7 @@
                   :disabled="data.isOffline || data.operationDisabled"
                   text
                   theme="primary"
-                  @click="handleCapacityChange(data)">
+                  @click="handleToCapacityChange(data)">
                   {{ t('集群容量变更') }}
                 </BkButton>
               </OperationBtnStatusTips>
@@ -225,23 +225,6 @@
     v-model:is-show="excelAuthorizeShow"
     :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
     :ticket-type="TicketTypes.MONGODB_EXCEL_AUTHORIZE" />
-  <DbSideslider
-    v-if="detailData"
-    v-model:is-show="capacityChangeShow"
-    :disabled-confirm="!isCapacityChange"
-    :width="960">
-    <template #header>
-      <span>
-        {{ t('MongoDB 集群容量变更【xxx】', [detailData.clusterName]) }}
-        <BkTag theme="info">
-          {{ t('存储层') }}
-        </BkTag>
-      </span>
-    </template>
-    <CapacityChange
-      v-model:is-change="isCapacityChange"
-      :data="detailData" />
-  </DbSideslider>
   <AccessEntry
     v-if="accessEntryInfo"
     v-model:is-show="accessEntryInfoShow"
@@ -281,7 +264,6 @@
   import { useOperateClusterBasic, useSwitchClb } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import AccessEntry from '@views/db-manage/mongodb/components/AccessEntry.vue';
-  import CapacityChange from '@views/db-manage/mongodb/components/CapacityChange.vue';
 
   import { getMenuListSearch, getSearchSelectorParams } from '@utils';
 
@@ -390,18 +372,6 @@
   ]);
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
-  const capacityChangeShow = ref(false);
-  const isCapacityChange = ref(false);
-  const detailData = ref<{
-    bizId: number;
-    cloudId: number;
-    clusterName: string;
-    id: number;
-    shardNodeCount: number;
-    shardNum: number;
-    specId: number;
-    specName: string;
-  }>();
   const clusterAuthorizeShow = ref(false);
   const excelAuthorizeShow = ref(false);
   const selected = ref<MongodbModel[]>([]);
@@ -515,29 +485,14 @@
     clusterId.value = id;
   };
 
-  const handleCapacityChange = (row: MongodbModel) => {
-    const {
-      bk_biz_id: bizId,
-      bk_cloud_id: cloudId,
-      cluster_name: clusterName,
-      id,
-      mongodb,
-      shard_node_count: shardNodeCount,
-      shard_num: shardNum,
-    } = row;
-    const { id: specId, name } = mongodb[0].spec_config;
-
-    detailData.value = {
-      bizId,
-      cloudId,
-      clusterName,
-      id,
-      shardNodeCount,
-      shardNum,
-      specId,
-      specName: name,
-    };
-    capacityChangeShow.value = true;
+  const handleToCapacityChange = (row: MongodbModel) => {
+    const routeInfo = router.resolve({
+      name: TicketTypes.MONGODB_SCALE_UPDOWN,
+      query: {
+        masterDomain: row.master_domain,
+      },
+    });
+    window.open(routeInfo.href, '_blank');
   };
 
   let isInit = true;
