@@ -1,0 +1,193 @@
+<template>
+  <EditableTable
+    ref="table"
+    class="mb-20"
+    :model="modelValue.renameInfoList">
+    <EditableRow
+      v-for="(item, index) in modelValue.renameInfoList"
+      :key="index">
+      <EditableColumn
+        field="db_name"
+        :label="t('构造 DB 名称')"
+        required>
+        <EditableBlock v-model="item.db_name" />
+      </EditableColumn>
+      <EditableColumn
+        :append-rules="targetDbNameRules"
+        field="target_db_name"
+        :label="t('构造后 DB 名称（自动生成，可修改）')"
+        required>
+        <EditableInput
+          v-model="item.target_db_name"
+          :class="{
+            'is-change': valueMemo[index].target_db_name !== item.target_db_name,
+          }" />
+      </EditableColumn>
+      <EditableColumn
+        :append-rules="renameDbNamerules"
+        field="rename_db_name"
+        :label="t('已存在的 DB（可修改）')">
+        <EditableInput
+          v-model="item.rename_db_name"
+          :class="{
+            'is-change': valueMemo[index].rename_db_name !== item.rename_db_name,
+          }"
+          @change="() => handleChange(index)" />
+      </EditableColumn>
+    </EditableRow>
+  </EditableTable>
+</template>
+<script setup lang="ts">
+  import _ from 'lodash';
+  import { useI18n } from 'vue-i18n';
+
+  import { checkClusterDatabase } from '@services/source/dbbase';
+
+  import type { IValue } from '../Index.vue';
+
+  interface Props {
+    data: {
+      dstCluster: {
+        id: number;
+        master_domain: string;
+      }[];
+      srcCluster: {
+        id: number;
+        master_domain: string;
+      };
+    };
+  }
+
+  const props = defineProps<Props>();
+
+  const modelValue = defineModel<{
+    dbIgnoreName: string[];
+    dbName: string[];
+    renameInfoList: IValue[];
+  }>({
+    required: true,
+  });
+
+  const { t } = useI18n();
+  const tableRef = useTemplateRef('table');
+
+  const valueMemo = _.cloneDeep(modelValue.value.renameInfoList);
+
+  const dstClusterIdList = computed(() => props.data.dstCluster.map((item) => item.id));
+  const dstClusterMap = computed(() => Object.fromEntries(props.data.dstCluster.map((cur) => [cur.id, cur])));
+
+  const targetDbNameRules = [
+    {
+      message: t('跟已存在的 DB 名冲突，请修改其一'),
+      trigger: 'change',
+      validator: (value: string, rowData: IValue) => {
+        // rename_db_name(第三列)可用时，不需要校验 target_db_name(第二列)
+        if (rowData.rename_db_name) {
+          return true;
+        }
+        if (!value) {
+          return true;
+        }
+        return Number(_.countBy(modelValue.value.renameInfoList, 'target_db_name')[value]) < 2;
+      },
+    },
+    {
+      trigger: 'change',
+      validator: (value: string, rowData: IValue) => {
+        // rename_db_name(第三列)可用时，不需要校验 target_db_name(第二列)
+        if (rowData.rename_db_name) {
+          return true;
+        }
+        return checkClusterDatabase<{
+          [clusterId: string]: {
+            [dbName: string]: boolean;
+          };
+        }>({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_id: props.data.srcCluster.id,
+          cluster_ids: dstClusterIdList.value,
+          db_list: [value],
+        }).then((data) => {
+          const isExist: string[] = [];
+          Object.entries(data).forEach(([clusterId, dbCheckMap]) => {
+            if (dbCheckMap[value]) {
+              isExist.push(dstClusterMap.value[clusterId].master_domain);
+            }
+          });
+          if (isExist.length) {
+            return t('集群x已存在DB名y', {
+              x: isExist.join('、'),
+              y: value,
+            });
+          }
+          return true;
+        });
+      },
+    },
+  ];
+
+  const renameDbNamerules = [
+    {
+      message: t('和其它已填写数据重复'),
+      trigger: 'change',
+      validator: (value: string) => {
+        if (!value) {
+          return true;
+        }
+        const targetDbCount = Number(_.countBy(modelValue.value.renameInfoList, 'target_db_name')[value]) || 0;
+        const count = Number(_.countBy(modelValue.value.renameInfoList, 'rename_db_name')[value]) || 0;
+        return targetDbCount + count < 2;
+      },
+    },
+    {
+      trigger: 'change',
+      validator: (value: string, rowData: IValue) => {
+        if (!value) {
+          return true;
+        }
+        Object.assign(rowData.rename_cluster_list, dstClusterIdList.value);
+        return checkClusterDatabase<{
+          [clusterId: string]: {
+            [dbName: string]: boolean;
+          };
+        }>({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_id: props.data.srcCluster.id,
+          cluster_ids: dstClusterIdList.value,
+          db_list: [value],
+        }).then((data) => {
+          const isExist: string[] = [];
+          Object.entries(data).forEach(([clusterId, dbCheckMap]) => {
+            if (dbCheckMap[value]) {
+              isExist.push(dstClusterMap.value[clusterId].master_domain);
+            }
+          });
+          if (isExist.length) {
+            return t('集群x已存在DB名y', {
+              x: isExist.join('、'),
+              y: value,
+            });
+          }
+          return true;
+        });
+      },
+    },
+  ];
+
+  const handleChange = (index: number) => {
+    tableRef.value?.validateByRowIndex(index);
+  };
+
+  onMounted(() => {
+    tableRef.value?.validateByField('target_db_name');
+  });
+</script>
+<style lang="less" scoped>
+  .is-change {
+    background: #fff8e9;
+
+    :deep(.bk-input--text) {
+      background: inherit;
+    }
+  }
+</style>

@@ -68,9 +68,9 @@
             :label="t('忽略 DB 名')"
             @batch-edit="handleBatchEdit" />
           <RenameColumn
+            v-model="item.renameInfoList"
             v-model:db-ignore-name="item.dbIgnoreName"
             v-model:db-name="item.dbName"
-            v-model:rename-info-list="item.renameInfoList"
             :data="item" />
           <OperationColumn
             v-model:table-data="formData.tableData"
@@ -157,6 +157,7 @@
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
+  const router = useRouter();
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
     dbIgnoreName: data.dbIgnoreName || [],
@@ -294,7 +295,19 @@
       src_cluster: number;
     }[];
     need_auto_rename: boolean;
-  }>(TicketTypes.SQLSERVER_INCR_MIGRATE);
+  }>(TicketTypes.SQLSERVER_INCR_MIGRATE, {
+    onSuccess(ticketId) {
+      router.push({
+        name: TicketTypes.SQLSERVER_FULL_MIGRATE,
+        params: {
+          page: 'success',
+        },
+        query: {
+          ticketId,
+        },
+      });
+    },
+  });
 
   const handleSubmit = async () => {
     const result = await tableRef.value!.validate();
