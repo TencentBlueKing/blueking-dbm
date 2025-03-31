@@ -4,7 +4,8 @@
     required>
     <BkRadioGroup
       v-model="modelValue"
-      style="width: 314px">
+      style="width: 314px"
+      @change="handleChange">
       <BkRadioButton
         :label="APPLY_SCHEME.AUTO"
         style="flex: 1">
@@ -33,9 +34,17 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  const { t } = useI18n();
+  type Emits = (e: 'change') => void;
+
+  const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<APPLY_SCHEME>({
     required: true,
   });
+
+  const { t } = useI18n();
+
+  const handleChange = () => {
+    emits('change');
+  };
 </script>
