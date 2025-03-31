@@ -279,7 +279,7 @@ class MySQLMasterSlaveSwitchFlow(object):
                     ),
                 )
 
-                # 阶段2 主实例的账号信息克隆到从实例上
+                # 阶段2 从实例的账号信息克隆到主实例上
                 cluster_switch_sub_pipeline.add_act(
                     act_name=_("新master克隆旧master权限"),
                     act_component_code=CloneUserComponent.code,
@@ -287,8 +287,25 @@ class MySQLMasterSlaveSwitchFlow(object):
                         InstanceUserCloneKwargs(
                             clone_data=[
                                 {
-                                    "source": f"{info['master_ip']['ip']}{AUTH_ADDRESS_DIVIDER}{cluster['mysql_port']}",
-                                    "target": f"{info['slave_ip']['ip']}{AUTH_ADDRESS_DIVIDER}{cluster['mysql_port']}",
+                                    "source": f"{cluster['old_master_ip']}{AUTH_ADDRESS_DIVIDER}{cluster['mysql_port']}",
+                                    "target": f"{cluster['new_master_ip']}{AUTH_ADDRESS_DIVIDER}{cluster['mysql_port']}",
+                                    "bk_cloud_id": cluster["bk_cloud_id"],
+                                },
+                            ]
+                        )
+                    ),
+                )
+
+                # 阶段2.1 主实例的账号信息克隆到从实例上
+                cluster_switch_sub_pipeline.add_act(
+                    act_name=_("旧master克隆新master权限"),
+                    act_component_code=CloneUserComponent.code,
+                    kwargs=asdict(
+                        InstanceUserCloneKwargs(
+                            clone_data=[
+                                {
+                                    "source": f"{cluster['new_master_ip']}{AUTH_ADDRESS_DIVIDER}{cluster['mysql_port']}",
+                                    "target": f"{cluster['old_master_ip']}{AUTH_ADDRESS_DIVIDER}{cluster['mysql_port']}",
                                     "bk_cloud_id": cluster["bk_cloud_id"],
                                 },
                             ]
@@ -297,7 +314,7 @@ class MySQLMasterSlaveSwitchFlow(object):
                 )
 
                 # 阶段3 执行主从切换的原子任务
-                cluster_sw_kwargs.exec_ip = info["slave_ip"]["ip"]
+                cluster_sw_kwargs.exec_ip = cluster["new_master_ip"]
                 cluster_sw_kwargs.get_mysql_payload_func = (
                     MysqlActPayload.get_set_backend_toward_slave_payload.__name__
                 )
@@ -316,7 +333,7 @@ class MySQLMasterSlaveSwitchFlow(object):
                         act_component_code=TransFileComponent.code,
                         kwargs=asdict(
                             DownloadMediaKwargs(
-                                bk_cloud_id=info["slave_ip"]["bk_cloud_id"],
+                                bk_cloud_id=cluster["bk_cloud_id"],
                                 exec_ip=cluster["other_slave_info"],
                                 file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
                             )
