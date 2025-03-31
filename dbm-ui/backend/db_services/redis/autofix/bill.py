@@ -54,6 +54,12 @@ def generate_autofix_ticket(fault_clusters: QuerySet):
             cluster.save(update_fields=["status_version", "deal_status", "update_at"])
             continue
 
+        generate_single_autofix_ticket(cluster)
+
+
+# 独立出来
+def generate_single_autofix_ticket(cluster: RedisAutofixCore):
+    try:
         fault_machines = json.loads(cluster.fault_machines)
         mongos_list, mongod_list, redis_proxies, redis_slaves, cluster_ids = [], [], [], [], [cluster.cluster_id]
         for fault_machine in fault_machines:
@@ -94,6 +100,13 @@ def generate_autofix_ticket(fault_clusters: QuerySet):
             mongo_create_ticket(cluster, cluster_ids, mongos_list, mongod_list)
             return
         create_ticket(cluster, cluster_ids, redis_proxies, redis_slaves)
+    except Exception as e:
+        logger.error("create autofix ticket for cluster {} , failed : {}".format(cluster.immute_domain, e))
+        cluster.status_version = "create ticket failed by : {}".format(e)
+        cluster.update_at = datetime2str(datetime.datetime.now(timezone.utc))
+        cluster.deal_status = AutofixStatus.AF_FAIL.value
+        cluster.save(update_fields=["status_version", "deal_status", "update_at"])
+        return
 
 
 def create_ticket(cluster: RedisAutofixCore, cluster_ids: list, redis_proxies: list, redis_slaves: list):
@@ -112,6 +125,7 @@ def create_ticket(cluster: RedisAutofixCore, cluster_ids: list, redis_proxies: l
         ],
     }
     logger.info("create ticket for cluster {} , details : {}".format(cluster.immute_domain, details))
+    ips = ["{}:{}".format(host["instance_type"], host["ip"]) for host in redis_proxies + redis_slaves]
 
     try:
         redisDBA = DBAdministrator.objects.get(bk_biz_id=cluster.bk_biz_id, db_type=DBType.Redis.value)
@@ -125,7 +139,7 @@ def create_ticket(cluster: RedisAutofixCore, cluster_ids: list, redis_proxies: l
         ticket_type=TicketType.REDIS_CLUSTER_AUTOFIX.value,
         group=DBType.Redis.value,
         status=TicketStatus.PENDING.value,
-        remark=_("自动发起-自愈任务-{}".format(cluster.immute_domain)),
+        remark=_("自动发起-{}".format(ips)),
         details=details,
         is_reviewed=True,
     )

@@ -146,7 +146,7 @@ class RedisDbmonSceneFlow(object):
                     "immute_domain": cluster.immute_domain,
                 }
                 sub_pipeline.add_act(
-                    act_name=_("GSE重新下发Exporter"),
+                    act_name=_("重新下发GSE配置"),
                     act_component_code=RedisDBMetaComponent.code,
                     kwargs=asdict(act_kwargs),
                 )
