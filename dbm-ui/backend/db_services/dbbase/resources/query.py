@@ -587,7 +587,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
         @param cluster_operate_records_map: key 是 cluster.id, value 是当前集群对应的 操作记录 映射
         """
         spec = None
-        cluster_entry_map_value = ClusterEntry.get_entries_map(entries=cluster.entries)
+        cluster_entry_map_value = ClusterEntry.get_entries_map(entries=cluster.entries).get(cluster.id, {})
         bk_cloud_name = cloud_info.get(str(cluster.bk_cloud_id), {}).get("bk_cloud_name", "")
 
         # 补充集群规格信息
