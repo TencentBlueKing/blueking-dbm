@@ -64,8 +64,8 @@ def ClusterDbmonInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, para
     # 下发介质
     acts_list, max_batch, batch_ips, batch_seq = [], 150, [], 0
     for ip in cluster_ips_set.keys():
+        batch_ips.append(ip)
         if len(batch_ips) < max_batch:
-            batch_ips.append(ip)
             continue
         else:
             batch_seq += 1
@@ -90,6 +90,8 @@ def ClusterDbmonInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, para
         )
     if acts_list:
         sub_pipeline.add_parallel_acts(acts_list=acts_list)
+    # Add An Empty Node
+    sub_pipeline.add_act(act_name=_("Redis-空节点"), act_component_code=SimpleEmptyComponent.code, kwargs={})
 
     # 重启 dbmon
     acts_list = []
