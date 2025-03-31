@@ -134,15 +134,13 @@
             label="ShardSvr"
             required>
             <MongoConfigSpec
-              ref="mongoConfigSpecRef"
               v-model="formData.details.resource_spec.mongodb"
-              :biz-id="formData.bk_biz_id"
-              :cloud-id="formData.details.bk_cloud_id"
-              :properties="{
-                capacity: 'details.resource_spec.mongodb.capacity',
-                specId: 'details.resource_spec.mongodb.spec_id',
-              }"
-              @current-change="handleMongoConfigSpecChange" />
+              v-model:apply-schema="applySchema"
+              v-model:spec-data="mongoConfigSpecData"
+              :params="{
+                bk_biz_id: formData.bk_biz_id,
+                bk_cloud_id: formData.details.bk_cloud_id,
+              }" />
           </BkFormItem>
           <BkFormItem
             :label="t('每台主机oplog容量占比')"
@@ -201,6 +199,7 @@
 
 <script setup lang="ts">
   import InfoBox from 'bkui-vue/lib/info-box';
+  import type { UnwrapRef } from 'vue';
   import { type ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -222,7 +221,9 @@
   import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/Common.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
-  import MongoConfigSpec, { type MongoConfigSpecRow } from '@views/db-manage/mongodb/components/MongoConfigSpec.vue';
+  import { APPLY_SCHEME } from '@views/db-manage/common/apply-schema/Index.vue';
+
+  import MongoConfigSpec from './components/MongoConfigSpec.vue';
 
   const initData = () => ({
     bk_biz_id: '' as number | '',
@@ -245,7 +246,11 @@
         mongodb: {
           capacity: 0,
           count: 0,
-          spec_id: '',
+          machine_group_shard_num: 0,
+          shard_machine_group: 0,
+          shard_node_count: 3,
+          shards_num: 0,
+          spec_id: 0,
         },
         mongos: {
           count: 2,
@@ -269,12 +274,14 @@
   const formRef = ref<InstanceType<typeof DbForm>>();
   const mongoCofigSpecRef = ref<InstanceType<typeof SpecSelector>>();
   const mongosSpecRef = ref<InstanceType<typeof SpecSelector>>();
-  const mongoConfigSpecRef = ref<InstanceType<typeof MongoConfigSpec>>();
-  const mongoConfigSpec = ref<MongoConfigSpecRow>();
+
+  const applySchema = ref<APPLY_SCHEME>(APPLY_SCHEME.AUTO);
+  const mongoConfigSpecData = ref<ComponentProps<typeof MongoConfigSpec>['specData']>();
   const cloudInfo = ref({
     id: '' as number | string,
     name: '',
   });
+
   const formData = reactive(initData());
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
@@ -285,6 +292,55 @@
         message: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
         trigger: 'blur',
         validator: (val: string) => nameRegx.test(val),
+      },
+    ],
+    'details.resource_spec.mongodb.capacity': [
+      {
+        message: t('集群容量需求不能为空'),
+        trigger: 'change',
+        validator: (value: number) => !!value,
+      },
+    ],
+    'details.resource_spec.mongodb.machine_group_shard_num': [
+      {
+        message: t('集群 Shared 数 / 机器组数，需要整除'),
+        trigger: 'change',
+        validator: () => {
+          const { shard_machine_group: shardMachineGroup, shards_num: shardsNum } =
+            formData.details.resource_spec.mongodb;
+          if (shardMachineGroup && shardsNum) {
+            return shardsNum % shardMachineGroup === 0;
+          }
+          return true;
+        },
+      },
+    ],
+    'details.resource_spec.mongodb.shard_machine_group': [
+      {
+        message: t('机器组数不能为空'),
+        trigger: 'change',
+        validator: (value: number) => !!value,
+      },
+    ],
+    'details.resource_spec.mongodb.shard_node_count': [
+      {
+        message: t('每个 Shard 节点数不能为空'),
+        trigger: 'change',
+        validator: (value: number) => !!value,
+      },
+    ],
+    'details.resource_spec.mongodb.shards_num': [
+      {
+        message: t('集群 Shared 数不能为空'),
+        trigger: 'change',
+        validator: (value: number) => !!value,
+      },
+    ],
+    'details.resource_spec.mongodb.spec_id': [
+      {
+        message: t('规格不能为空'),
+        trigger: 'change',
+        validator: (value: number) => !!value,
       },
     ],
     'details.resource_spec.mongos.count': [
@@ -298,7 +354,7 @@
 
   const estimatedCapacity = computed(() => {
     const capacityPercentage = formData.details.oplog_percent;
-    const capacity = mongoConfigSpec.value?.capacity || 0;
+    const capacity = formData.details.resource_spec.mongodb.capacity || 0;
 
     return Math.round(capacity * (capacityPercentage / 100));
   });
@@ -311,7 +367,7 @@
           spec_id: formData.details.resource_spec.mongo_config.spec_id,
         },
         mongodb: {
-          count: (mongoConfigSpec.value?.machine_pair || 0) * 3, // shard_machine_group * 3(固定值)
+          count: formData.details.resource_spec.mongodb.count,
           spec_id: formData.details.resource_spec.mongodb.spec_id,
         },
         mongos: {
@@ -319,6 +375,16 @@
           spec_id: formData.details.resource_spec.mongos.spec_id,
         },
       }) as ComponentProps<typeof EstimatedCost>['params']['resource_spec'],
+  );
+
+  watch(
+    () => [
+      formData.details.resource_spec.mongodb.shards_num,
+      formData.details.resource_spec.mongodb.shard_machine_group,
+    ],
+    () => {
+      formRef.value!.validate('details.resource_spec.mongodb.machine_group_shard_num');
+    },
   );
 
   const { data: versionList, loading: getVersionsLoading } = useRequest(getVersions, {
@@ -332,10 +398,6 @@
 
   const handleChangeCloud = (info: { id: number | string; name: string }) => {
     cloudInfo.value = info;
-  };
-
-  const handleMongoConfigSpecChange = (value?: MongoConfigSpecRow) => {
-    mongoConfigSpec.value = value;
   };
 
   const handleResetformData = () => {
@@ -361,7 +423,7 @@
     const { details } = formData;
     const { resource_spec: resourceSpec } = details;
     const { mongo_config: mongoConfig, mongodb, mongos } = resourceSpec;
-    const mongoConfigSpecData = mongoConfigSpec.value as NonNullable<typeof mongoConfigSpec.value>;
+    const mongodbSpecData = mongoConfigSpecData.value as NonNullable<UnwrapRef<typeof mongoConfigSpecData>>;
     const regionAndDisasterParams = regionRequirementsRef.value!.getValue();
 
     const params = {
@@ -376,14 +438,16 @@
             ...regionAndDisasterParams,
           },
           mongodb: {
-            ...mongodb,
+            // ...mongodb,
             ...regionAndDisasterParams,
-            count: mongoConfigSpecData.machine_pair * 3, // shard_machine_group * 3(固定值)
-            cpu: mongoConfigSpecData.cpu,
-            instance_num: mongoConfigSpecData.instance_num,
-            mem: mongoConfigSpecData.mem,
-            spec_name: mongoConfigSpecData.spec_name,
-            storage_spec: mongoConfigSpecData.storage_spec,
+            capacity: mongodb.capacity,
+            count: mongodb.count,
+            cpu: mongodbSpecData.cpu,
+            instance_num: mongodbSpecData.instance_num,
+            mem: mongodbSpecData.mem,
+            spec_id: mongodb.spec_id,
+            spec_name: mongodbSpecData.spec_name,
+            storage_spec: mongodbSpecData.storage_spec,
           },
           mongos: {
             ...mongos,
@@ -391,8 +455,8 @@
             ...regionAndDisasterParams,
           },
         },
-        shard_machine_group: mongoConfigSpecData.machine_pair,
-        shard_num: mongoConfigSpecData.shard_num,
+        shard_machine_group: mongodb.shard_machine_group,
+        shard_num: mongodb.shards_num,
       },
     };
 

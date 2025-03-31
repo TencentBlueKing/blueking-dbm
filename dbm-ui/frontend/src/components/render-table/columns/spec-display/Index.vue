@@ -48,7 +48,7 @@
         max: number;
         min: number;
       };
-      id: number;
+      // id: number;
       mem: {
         max: number;
         min: number;

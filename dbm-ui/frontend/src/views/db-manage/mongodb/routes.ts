@@ -37,14 +37,7 @@ export const mongoToolboxChildrenRoutes: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/mongodb/shard-scale-down/Index.vue'),
   },
-  {
-    path: 'capacity-change/:page?',
-    name: 'MongoCapacityChange',
-    meta: {
-      navName: t('集群容量变更'),
-    },
-    component: () => import('@views/db-manage/mongodb/capacity-change/Index.vue'),
-  },
+  createRouteItem(TicketTypes.MONGODB_SCALE_UPDOWN, t('集群容量变更')),
   {
     path: 'proxy-scale-up/:page?',
     name: 'MongoProxyScaleUp',
