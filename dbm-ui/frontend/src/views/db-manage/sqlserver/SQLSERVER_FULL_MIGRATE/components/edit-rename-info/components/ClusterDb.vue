@@ -10,7 +10,7 @@
         allow-asterisk
         :batch-edit="false"
         check-not-exist
-        :cluster-id="item.srcCluster.id"
+        :cluster-id="data.srcCluster.id"
         field="dbName"
         :label="t('迁移 DB 名')"
         required />
@@ -18,7 +18,7 @@
         v-model="item.dbIgnoreName"
         :batch-edit="false"
         check-not-exist
-        :cluster-id="item.srcCluster.id"
+        :cluster-id="data.srcCluster.id"
         field="dbIgnoreName"
         :label="t('忽略 DB 名')" />
     </EditableRow>
@@ -34,14 +34,21 @@
 
   import type { IValue } from '../Index.vue';
 
+  interface Props {
+    data: {
+      srcCluster: {
+        id: number;
+        master_domain: string;
+      };
+    };
+  }
+
+  const props = defineProps<Props>();
+
   const modelValue = defineModel<{
     dbIgnoreName: string[];
     dbName: string[];
     renameInfoList: IValue[];
-    srcCluster: {
-      id: number;
-      master_domain: string;
-    };
   }>({
     required: true,
   });
@@ -55,6 +62,7 @@
     onSuccess(data) {
       modelValue.value.renameInfoList = data.map((item) => ({
         db_name: item,
+        rename_cluster_list: [],
         rename_db_name: '',
         target_db_name: item,
       }));
@@ -64,11 +72,11 @@
   watch(
     () => [tableData.value[0].dbName, tableData.value[0].dbIgnoreName],
     ([dbName, dbIgnoreName]) => {
-      if (!modelValue.value.srcCluster.id || dbName.length < 1) {
+      if (!props.data.srcCluster.id || dbName.length < 1) {
         return;
       }
       fetchSqlserverDbs({
-        cluster_id: modelValue.value.srcCluster.id,
+        cluster_id: props.data.srcCluster.id,
         db_list: dbName,
         ignore_db_list: dbIgnoreName,
       });

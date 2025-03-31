@@ -10,7 +10,7 @@
     <EditableBlock
       style="cursor: pointer"
       @click="handleShowEditName">
-      <span v-if="renameInfoList.length < 1">--</span>
+      <span v-if="localValue.renameInfoList.length < 1">--</span>
       <template v-else>
         <span
           v-if="hasEditDbName"
@@ -21,38 +21,20 @@
           v-else
           keypath="n项待修改">
           <span style="padding-right: 4px; font-weight: bold; color: #ea3636">
-            {{ renameInfoList.length }}
+            {{ localValue.renameInfoList.length }}
           </span>
         </I18nT>
       </template>
     </EditableBlock>
   </EditableColumn>
-  <BkSideslider
+  <EditRenameInfo
+    v-model="localValue"
     v-model:is-show="isShowEditName"
-    :width="900">
-    <template #header>
-      <span>{{ t('手动修改迁移的 DB 名') }}</span>
-      <BkTag class="ml-8">{{ data.srcCluster.master_domain }}</BkTag>
-    </template>
-    <EditRenameInfo v-model="localValue" />
-    <template #footer>
-      <BkButton
-        class="w-88"
-        theme="primary"
-        @click="handleSubmit">
-        {{ t('保存') }}
-      </BkButton>
-      <BkButton
-        class="w-88 ml-8"
-        @click="handleCancel">
-        {{ t('取消') }}
-      </BkButton>
-    </template>
-  </BkSideslider>
+    :data="data"
+    @submit="handleSubmit" />
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import { computed, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -65,13 +47,10 @@
 
   interface Props {
     data: {
-      dbIgnoreName: string[];
-      dbName: string[];
       dstCluster: {
         id: number;
         master_domain: string;
       }[];
-      renameInfoList: IValue[];
       srcCluster: {
         id: number;
         master_domain: string;
@@ -89,7 +68,7 @@
     required: true,
   });
 
-  const renameInfoList = defineModel<IValue[]>('renameInfoList', {
+  const renameInfoList = defineModel<IValue[]>({
     required: true,
   });
 
@@ -97,9 +76,13 @@
 
   const isShowEditName = ref(false);
   const hasEditDbName = ref(false);
-  const localValue = ref(props.data);
+  const localValue = ref<InstanceType<typeof EditRenameInfo>['modelValue']>({
+    dbIgnoreName: [],
+    dbName: [],
+    renameInfoList: [],
+  });
 
-  const disabledMethod = (rowData: Props['data'], field?: string) => {
+  const disabledMethod = (rowData: any, field?: string) => {
     if (
       field === 'renameInfoList' &&
       (!rowData.srcCluster.id || rowData.dstCluster.length < 1 || rowData.dbName.length < 1)
@@ -131,8 +114,6 @@
     },
   ];
 
-  const dstClusterIdList = computed(() => props.data.dstCluster.map((item) => item.id));
-
   const { loading, run: runCheckClusterDatabase } = useRequest(checkClusterDatabase, {
     manual: true,
     onSuccess(data) {
@@ -143,7 +124,7 @@
   const { run: fetchSqlserverDbs } = useRequest(getSqlserverDbs, {
     manual: true,
     onSuccess(data) {
-      renameInfoList.value = data.map((item) => ({
+      localValue.value.renameInfoList = data.map((item) => ({
         db_name: item,
         rename_cluster_list: [],
         rename_db_name: '',
@@ -153,7 +134,7 @@
         runCheckClusterDatabase({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           cluster_id: props.data.srcCluster.id,
-          cluster_ids: dstClusterIdList.value,
+          cluster_ids: props.data.dstCluster.map((item) => item.id),
           db_list: data,
         });
       }
@@ -161,26 +142,20 @@
   });
 
   watch(
-    () => props.data,
+    () => [props.data.srcCluster.id, dbName.value, dbIgnoreName.value],
     () => {
-      localValue.value = props.data;
-    },
-    {
-      immediate: true,
-    },
-  );
-
-  watch(
-    () => [localValue.value.dbName, localValue.value.dbIgnoreName],
-    ([dbName, dbIgnoreName]) => {
-      if (!props.data.srcCluster.id || dbName.length < 1) {
-        return;
+      localValue.value = {
+        dbIgnoreName: dbIgnoreName.value,
+        dbName: dbName.value,
+        renameInfoList: [],
+      };
+      if (props.data.srcCluster.id && dbName.value.length > 0 && renameInfoList.value.length < 1) {
+        fetchSqlserverDbs({
+          cluster_id: props.data.srcCluster.id,
+          db_list: dbName.value,
+          ignore_db_list: dbIgnoreName.value,
+        });
       }
-      fetchSqlserverDbs({
-        cluster_id: props.data.srcCluster.id,
-        db_list: dbName,
-        ignore_db_list: dbIgnoreName,
-      });
     },
     {
       immediate: true,
@@ -197,9 +172,5 @@
     dbName.value = localValue.value.dbName;
     dbIgnoreName.value = localValue.value.dbIgnoreName;
     renameInfoList.value = localValue.value.renameInfoList;
-  };
-
-  const handleCancel = () => {
-    isShowEditName.value = false;
   };
 </script>

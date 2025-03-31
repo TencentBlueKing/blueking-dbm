@@ -1,7 +1,15 @@
 <template>
-  <div>
+  <BkSideslider
+    v-model:is-show="isShow"
+    :width="900">
+    <template #header>
+      <span>{{ t('手动修改迁移的 DB 名') }}</span>
+      <BkTag class="ml-8">{{ data.srcCluster.master_domain }}</BkTag>
+    </template>
     <div class="edit-name-box">
-      <ClusterDb v-model="modelValue" />
+      <ClusterDb
+        v-model="modelValue"
+        :data="data" />
       <div style="margin-top: 24px; margin-bottom: 16px; font-size: 12px">
         <span style="font-weight: bold; color: #313238">{{ t('DB 列表') }}</span>
         <I18nT
@@ -10,26 +18,40 @@
           {{ modelValue.renameInfoList.length }}
         </I18nT>
         <ImportBtn
-          v-model="modelValue.renameInfoList"
+          v-model="modelValue"
           class="ml-12"
-          :data="modelValue" />
+          :data="data" />
         <ExportBtn
+          v-model="modelValue"
           class="ml-12"
-          :data="modelValue" />
+          :data="data" />
       </div>
       <RenameList
-        v-model="modelValue.renameInfoList"
-        :cluster-data="modelValue" />
+        v-model="modelValue"
+        :data="data" />
     </div>
-  </div>
+    <template #footer>
+      <BkButton
+        class="w-88"
+        theme="primary"
+        @click="handleSubmit">
+        {{ t('保存') }}
+      </BkButton>
+      <BkButton
+        class="w-88 ml-8"
+        @click="handleCancel">
+        {{ t('取消') }}
+      </BkButton>
+    </template>
+  </BkSideslider>
 </template>
-<script setup lang="tsx">
+<script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
   import ClusterDb from './components/ClusterDb.vue';
   import ExportBtn from './components/ExportBtn.vue';
   import ImportBtn from './components/ImportBtn.vue';
-  import RenameList from './components/rename-list/Index.vue';
+  import RenameList from './components/RenameList.vue';
 
   export type IValue = {
     db_name: string;
@@ -38,23 +60,47 @@
     target_db_name: string;
   };
 
+  interface Props {
+    data: {
+      dstCluster: {
+        id: number;
+        master_domain: string;
+      }[];
+      srcCluster: {
+        id: number;
+        master_domain: string;
+      };
+    };
+  }
+
+  type Emits = (e: 'submit', data: typeof modelValue.value) => void;
+
+  defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
+
+  const isShow = defineModel<boolean>('isShow', {
+    required: true,
+  });
+
   const modelValue = defineModel<{
     dbIgnoreName: string[];
     dbName: string[];
-    dstCluster: {
-      id: number;
-      master_domain: string;
-    }[];
     renameInfoList: IValue[];
-    srcCluster: {
-      id: number;
-      master_domain: string;
-    };
   }>({
     required: true,
   });
 
   const { t } = useI18n();
+
+  const handleSubmit = () => {
+    emits('submit', modelValue.value);
+    isShow.value = false;
+  };
+
+  const handleCancel = () => {
+    isShow.value = false;
+  };
 </script>
 <style lang="less" scoped>
   .edit-name-box {
