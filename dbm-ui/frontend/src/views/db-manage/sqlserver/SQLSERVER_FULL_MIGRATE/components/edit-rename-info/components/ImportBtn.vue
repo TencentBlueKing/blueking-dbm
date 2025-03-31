@@ -30,8 +30,6 @@
 
   interface Props {
     data: {
-      dbIgnoreName: string[];
-      dbName: string[];
       srcCluster: {
         id: number;
         master_domain: string;
@@ -41,7 +39,11 @@
 
   const props = defineProps<Props>();
 
-  const modelValue = defineModel<IValue[]>({
+  const modelValue = defineModel<{
+    dbIgnoreName: string[];
+    dbName: string[];
+    renameInfoList: IValue[];
+  }>({
     required: true,
   });
 
@@ -63,14 +65,14 @@
     }
     const params = new FormData();
     params.append('cluster_id', `${props.data.srcCluster.id}`);
-    params.append('db_list', props.data.dbName.join(','));
-    params.append('ignore_db_list', props.data.dbIgnoreName.join(','));
+    params.append('db_list', modelValue.value.dbName.join(','));
+    params.append('ignore_db_list', modelValue.value.dbIgnoreName.join(','));
     params.append('db_excel', files[0]);
     isImportLoading.value = true;
     importDbStruct(params)
       .then((data) => {
         messageSuccess(t('导入成功'));
-        modelValue.value = data;
+        modelValue.value.renameInfoList = data;
       })
       .finally(() => {
         isImportLoading.value = false;
