@@ -226,13 +226,14 @@
 
   const emits = defineEmits<Emits<T>>();
 
+  const slots = defineSlots<{
+    submitTips?: (params: { clusterList: string[] }) => VNode;
+  }>();
+
   const isShow = defineModel<boolean>('isShow', {
     default: false,
   });
 
-  const slots = defineSlots<{
-    submitTips?: (params: { clusterList: string[] }) => VNode;
-  }>();
   const { dialogWidth } = useSelectorDialogWidth();
   const { t } = useI18n();
 
@@ -483,8 +484,8 @@
             return result;
           }
           const tabSelectMap = {
-            list: props.selected[tabKey],
-            map: props.selected[tabKey].reduce(
+            list: _.cloneDeep(props.selected[tabKey]),
+            map: _.cloneDeep(props.selected[tabKey]).reduce(
               (selectResult, selectItem) => ({
                 ...selectResult,
                 [selectItem.id]: selectItem,
