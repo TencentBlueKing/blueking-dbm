@@ -1,9 +1,11 @@
 <template>
-  <div class="web-query-main-page">
+  <div
+    ref="pageRef"
+    class="web-query-main-page">
     <BkAlert
       closable
       theme="info"
-      :title="t('用于户跨业务多实例查询')" />
+      :title="alertTip" />
     <BkForm
       ref="formRef"
       class="web-query-form"
@@ -23,7 +25,7 @@
         </BkRadioGroup>
       </BkFormItem>
       <BkFormItem
-        :label="t('查询实例')"
+        :label="t('实例')"
         property="instance"
         required>
         <div class="query-instance-main">
@@ -41,6 +43,14 @@
               type="add" />
             {{ t('从拓扑添加') }}
           </BkButton> -->
+          <div
+            v-if="invalidInstanceList.length"
+            class="error-info-main"
+            @click="handleCopyInvalidInstances">
+            <DbIcon
+              v-bk-tooltips="t('复制无效实例')"
+              type="copy" />
+          </div>
         </div>
       </BkFormItem>
       <BkFormItem
@@ -50,7 +60,8 @@
           :db-type="dbType"
           :instances="instanceList"
           :query-type="formData.queryType"
-          @execute="handleExecute" />
+          @execute="handleExecute"
+          @fetch-data-success="handleFetchDataSuccess" />
       </BkFormItem>
     </BkForm>
   </div>
@@ -64,6 +75,8 @@
   import { DBTypes } from '@common/const';
   import { batchInputSplitRegex, ipPort } from '@common/regex';
 
+  import { execCopy } from '@utils';
+
   import SQLQuery from './components/sql-query/Index.vue';
 
   interface Props {
@@ -76,15 +89,20 @@
 
   const { t } = useI18n();
 
+  const pageRef = ref<HTMLElement>();
   const formRef = ref();
   const formData = ref({
     instance: '',
     queryType: 'proxy',
   });
+  const invalidInstanceList = ref<string[]>([]);
 
   const isMysql = computed(() => props.dbType === DBTypes.MYSQL);
   const instanceList = computed(() =>
     formData.value.instance.split(batchInputSplitRegex).filter((item) => ipPort.test(item)),
+  );
+  const alertTip = computed(() =>
+    isMysql.value ? t('执行常用管理命令，支持 Proxy 和 Backend 操作') : t('执行常用管理命令，支持spider、Backend'),
   );
 
   const autoSizeConf = {
@@ -92,12 +110,23 @@
     minRows: 5,
   };
 
-  let message = '';
-
   const rules = {
     instance: [
       {
-        message: () => message,
+        message: t('不能为空'),
+        trigger: 'blur',
+        validator: (value: string) => !!value,
+      },
+      {
+        message: t('实例格式错误，请输入 IP:Port'),
+        trigger: 'blur',
+        validator: (value: string) => {
+          const instanceList = value.split(batchInputSplitRegex);
+          return instanceList.every((item) => ipPort.test(item));
+        },
+      },
+      {
+        message: t('存在无效实例'),
         trigger: 'blur',
         validator: async (value: string) => {
           if (!isMysql.value) {
@@ -121,8 +150,7 @@
               return true;
             }
 
-            const finalList = [...invalidList, ...notMatchlist];
-            message = t('n不是proxy实例', { n: finalList.join(' , ') });
+            invalidInstanceList.value = [...invalidList, ...notMatchlist];
             return false;
           }
 
@@ -138,12 +166,19 @@
             return true;
           }
 
-          const finalList = [...invalidList, ...notMatchlist];
-          message = t('{n}不是master/slave实例', { n: finalList.join(' , ') });
+          invalidInstanceList.value = [...invalidList, ...notMatchlist];
           return false;
         },
       },
     ],
+  };
+
+  const handleCopyInvalidInstances = () => {
+    execCopy(invalidInstanceList.value.join('\n'));
+  };
+
+  const handleFetchDataSuccess = () => {
+    pageRef.value!.scrollTop = pageRef.value!.scrollHeight / 3;
   };
 
   const handleExecute = () => {
@@ -163,8 +198,17 @@
       }
 
       .query-instance-main {
+        position: relative;
         display: flex;
         width: 100%;
+
+        .error-info-main {
+          position: absolute;
+          bottom: -26px;
+          left: 76px;
+          color: #3a84ff;
+          cursor: pointer;
+        }
       }
     }
   }
