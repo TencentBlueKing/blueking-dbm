@@ -28,6 +28,7 @@
     </EditableBlock>
   </EditableColumn>
   <EditRenameInfo
+    ref="editName"
     v-model="localValue"
     v-model:is-show="isShowEditName"
     :data="data"
@@ -73,6 +74,7 @@
   });
 
   const { t } = useI18n();
+  const editRenameRef = useTemplateRef('editName');
 
   const isShowEditName = ref(false);
   const hasEditDbName = ref(false);
@@ -149,7 +151,7 @@
         dbName: dbName.value,
         renameInfoList: [],
       };
-      if (props.data.srcCluster.id && dbName.value.length > 0 && renameInfoList.value.length < 1) {
+      if (props.data.srcCluster.id && dbName.value.length > 0) {
         fetchSqlserverDbs({
           cluster_id: props.data.srcCluster.id,
           db_list: dbName.value,
@@ -163,6 +165,7 @@
   );
 
   const handleShowEditName = () => {
+    editRenameRef.value?.updateTableKey();
     isShowEditName.value = true;
   };
 

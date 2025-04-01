@@ -9,7 +9,8 @@
     <div class="edit-name-box">
       <ClusterDb
         v-model="modelValue"
-        :data="data" />
+        :data="data"
+        @change="updateTableKey" />
       <div style="margin-top: 24px; margin-bottom: 16px; font-size: 12px">
         <span style="font-weight: bold; color: #313238">{{ t('DB 列表') }}</span>
         <I18nT
@@ -27,6 +28,7 @@
           :data="data" />
       </div>
       <RenameList
+        :key="tableKey"
         v-model="modelValue"
         :data="data" />
     </div>
@@ -75,6 +77,10 @@
 
   type Emits = (e: 'submit', data: typeof modelValue.value) => void;
 
+  interface Exposes {
+    updateTableKey(): void;
+  }
+
   defineProps<Props>();
 
   const emits = defineEmits<Emits>();
@@ -93,6 +99,12 @@
 
   const { t } = useI18n();
 
+  const tableKey = ref(Date.now().toString());
+
+  const updateTableKey = () => {
+    tableKey.value = Date.now().toString();
+  };
+
   const handleSubmit = () => {
     emits('submit', modelValue.value);
     isShow.value = false;
@@ -101,6 +113,10 @@
   const handleCancel = () => {
     isShow.value = false;
   };
+
+  defineExpose<Exposes>({
+    updateTableKey,
+  });
 </script>
 <style lang="less" scoped>
   .edit-name-box {
