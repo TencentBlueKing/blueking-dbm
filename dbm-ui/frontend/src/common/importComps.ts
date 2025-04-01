@@ -48,6 +48,7 @@ import MoreActionExtend from '@components/more-action-extend/Index.vue';
 import ScrollFaker from '@components/scroll-faker/Index.vue';
 import SkeletonLoading from '@components/skeleton-loading/Index.vue';
 import SmartAction from '@components/smart-action/Index.vue';
+import TableDetailDialog from '@components/table-detail-dialog/Index.vue';
 import { ipSelector } from '@components/vue2/ip-selector';
 
 import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
@@ -91,6 +92,7 @@ export const setGlobalComps = (app: App<Element>) => {
   app.component('AuthOption', AuthOption);
   app.component('AuthSwitcher', AuthSwitch);
   app.component('AuthRouterLink', AuthRouterLink);
+  app.component('TableDetailDialog', TableDetailDialog);
   setTimeout(() => {
     // eslint-disable-next-line
     delete app._context.components.BkTable;

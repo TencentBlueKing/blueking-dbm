@@ -14,15 +14,18 @@
 <template>
   <ScrollFaker>
     <BkLoading
-      class="ticket-details-page"
-      :loading="isLoading"
-      style="min-height: calc(100vh - 104px - var(--notice-height))">
+      class="ticket-details-box"
+      :loading="isLoading">
       <PermissionCatch :key="ticketId">
-        <SmartAction :offset-target="getOffsetTarget">
+        <SmartAction
+          :offset-target="getOffsetTarget"
+          :teleport-to="smartActionTeleportTo">
           <div
             v-if="ticketData"
             class="pb-20">
-            <BaseInfo :ticket-data="ticketData" />
+            <BaseInfo
+              v-if="isDetailPage"
+              :ticket-data="ticketData" />
             <TaskInfo
               :key="ticketId"
               :data="ticketData" />
@@ -40,7 +43,7 @@
               class="mr-8"
               :data="ticketData" />
             <BkButton
-              v-if="isShowGoDetail"
+              v-if="!isDetailPage"
               @click="handleGoDetail">
               {{ t('新窗口打开') }}
             </BkButton>
@@ -68,19 +71,22 @@
   import TaskInfo from './components/task-info/Index.vue';
 
   interface Props {
+    smartActionTeleportTo?: string;
     ticketId: number;
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    smartActionTeleportTo: 'body',
+  });
 
   const router = useRouter();
   const route = useRoute();
 
   const { t } = useI18n();
 
-  const getOffsetTarget = () => document.body.querySelector('.ticket-details-page .db-card');
+  const getOffsetTarget = () => document.body.querySelector('.ticket-details-box .db-card');
 
-  const isShowGoDetail = route.name !== 'ticketDetail';
+  const isDetailPage = route.name === 'ticketDetail';
 
   const isLoading = ref(true);
   const ticketData = shallowRef<TicketModel>();
@@ -131,10 +137,9 @@
 </script>
 
 <style lang="less">
-  .ticket-details-page {
-    padding: 24px;
+  .ticket-details-box {
+    min-height: 300px;
     font-size: 12px;
-    background: #f5f7fa;
 
     .db-card {
       .db-card__content {

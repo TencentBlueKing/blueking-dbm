@@ -11,7 +11,7 @@ export default () => {
         fullscreen: true,
         navName: t('我的申请'),
       },
-      component: () => import('@views/ticket-center/self-apply/Index.vue'),
+      component: () => import('@/views/ticket-center/ticket-self-apply/Index.vue'),
     },
     {
       path: 'ticket-self-todo/:assist?/:status?/:ticketId?',
@@ -29,7 +29,7 @@ export default () => {
         }
         next();
       },
-      component: () => import('@views/ticket-center/self-todo/Index.vue'),
+      component: () => import('@/views/ticket-center/ticket-self-todo/Index.vue'),
     },
     {
       path: 'ticket-self-done/:ticketId?',
@@ -38,17 +38,17 @@ export default () => {
         fullscreen: true,
         navName: t('我的已办'),
       },
-      component: () => import('@views/ticket-center/self-done/Index.vue'),
+      component: () => import('@/views/ticket-center/ticket-self-done/Index.vue'),
     },
-    {
-      path: 'ticket-self-manage/:ticketId?',
-      name: 'ticketSelfManage',
-      meta: {
-        fullscreen: true,
-        navName: t('我负责的业务'),
-      },
-      component: () => import('@views/ticket-center/self-manage/Index.vue'),
-    },
+    // {
+    //   path: 'ticket-self-manage/:ticketId?',
+    //   name: 'ticketSelfManage',
+    //   meta: {
+    //     fullscreen: true,
+    //     navName: t('我负责的业务'),
+    //   },
+    //   component: () => import('@views/ticket-center/ticket-self-manage/Index.vue'),
+    // },
     {
       path: 'ticket-platform-manage/:ticketId?',
       name: 'ticketPlatformManage',
@@ -56,7 +56,7 @@ export default () => {
         fullscreen: true,
         navName: t('单据'),
       },
-      component: () => import('@views/ticket-center/platform-manage/Index.vue'),
+      component: () => import('@/views/ticket-center/ticket-platform-manage/Index.vue'),
     },
     {
       path: 'ticket/:ticketId?',
@@ -65,19 +65,19 @@ export default () => {
         fullscreen: true,
         navName: t('单据详情'),
       },
-      component: () => import('@views/ticket-center/detail-page/Index.vue'),
+      component: () => import('@views/ticket-center/detail/Index.vue'),
     },
   ]);
 
   registerBusinessModule([
     {
-      path: 'ticket-manage/:ticketId?',
+      path: 'ticket-business-manage/:ticketId?',
       name: 'bizTicketManage',
       meta: {
         fullscreen: true,
         navName: t('单据'),
       },
-      component: () => import('@views/ticket-center/business/Index.vue'),
+      component: () => import('@/views/ticket-center/ticket-business-manage/Index.vue'),
     },
   ]);
 };

@@ -12,7 +12,9 @@
 -->
 
 <template>
-  <BkLoading :loading="isLoading">
+  <BkLoading
+    :loading="isLoading"
+    style="min-height: 100px">
     <DbTimeLine>
       <template
         v-for="item in flowList"
