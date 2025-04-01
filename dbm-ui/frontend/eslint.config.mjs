@@ -312,7 +312,7 @@ export default defineConfigWithVueTs(
           multiline: 'never',
         },
       ],
-      'vue/component-tags-order': ['warn', { order: ['template', 'script', 'style'] }],
+      'vue/block-order': ['warn', { order: ['template', 'script', 'style'] }],
       'vue/attributes-order': [
         'error',
         {
@@ -375,13 +375,7 @@ export default defineConfigWithVueTs(
       ],
       'vue/no-setup-props-reactivity-loss': 'off',
       'vue/no-setup-props-destructure': 'off',
-      'vue/v-on-function-call': [
-        'error',
-        'never',
-        {
-          ignoreIncludesComment: false,
-        },
-      ],
+      'vue/no-unused-vars': ['error'],
     },
   },
   {

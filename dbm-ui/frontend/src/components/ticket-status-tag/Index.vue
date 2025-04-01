@@ -59,9 +59,10 @@
     font-size: 12px;
     font-weight: normal;
     color: v-bind(fontdcolor);
+    white-space: nowrap;
     background: v-bind(backgroundcolor);
-    align-items: center;
     border-radius: 2px;
+    align-items: center;
 
     &.is-small {
       height: 16px;
