@@ -16,14 +16,15 @@
     :disabled-method="disabledMethod"
     field="backend_group.spec_id"
     :label="t('目标容量')"
-    :min-width="150"
+    :min-width="200"
     required
     :rule="rules">
-    <div class="capacity-box">
+    <div
+      class="capacity-box"
+      @click="handleShowSideslider">
       <EditableInput
         v-if="!modelValue.spec_id || !activeRowData || !targetObj"
-        :placeholder="t('请选择')"
-        @focus="handleShowSideslider">
+        :placeholder="t('请选择')">
         <template #append>
           <DbIcon
             class="down-icon"
@@ -193,6 +194,8 @@
   };
 
   const handleShowSideslider = () => {
+    console.log(11);
+
     const {
       bk_cloud_id: bkCloudId,
       cluster_spec: spec,
@@ -252,46 +255,44 @@
   }
 
   .capacity-box {
-    flex: 1;
-    width: 100%;
+    overflow: hidden;
+  }
 
-    .display-content {
-      padding: 11px 16px;
-      overflow: hidden;
-      line-height: 20px;
-      white-space: nowrap;
+  .display-content {
+    padding: 11px 16px;
+    line-height: 20px;
+    white-space: nowrap;
 
-      .item {
+    .content-item {
+      display: flex;
+      width: 100%;
+
+      .item-title {
+        width: 64px;
+        text-align: right;
+      }
+
+      .item-content {
+        flex: 1;
         display: flex;
-        width: 100%;
+        align-items: center;
 
-        .item-title {
-          width: 64px;
-          text-align: right;
+        .percent {
+          margin-left: 4px;
+          font-size: 12px;
+          font-weight: bold;
+          color: #313238;
         }
 
-        .item-content {
-          flex: 1;
-          display: flex;
-          align-items: center;
+        .spec {
+          margin-left: 2px;
+          font-size: 12px;
+          color: #979ba5;
+        }
 
-          .percent {
-            margin-left: 4px;
-            font-size: 12px;
-            font-weight: bold;
-            color: #313238;
-          }
-
-          .spec {
-            margin-left: 2px;
-            font-size: 12px;
-            color: #979ba5;
-          }
-
-          :deep(.render-spec-box) {
-            height: 22px;
-            padding: 0;
-          }
+        :deep(.render-spec-box) {
+          height: 22px;
+          padding: 0;
         }
       }
     }

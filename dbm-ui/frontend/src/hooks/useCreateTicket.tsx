@@ -4,13 +4,17 @@ import { useRouter } from 'vue-router';
 
 import { createTicketNew } from '@services/source/ticket';
 
-import type { TicketTypes } from '@common/const';
+import { DBTypeInfos, type TicketTypes } from '@common/const';
 
 import { messageError } from '@utils';
 
-export function useCreateTicket<T>(ticketType: TicketTypes, options?: { onSuccess?: (ticketId: number) => void }) {
+export function useCreateTicket<T>(
+  ticketType: TicketTypes,
+  options?: { onSuccess?: (ticketId: number) => void; ticketTypeRoute?: TicketTypes },
+) {
   const loading = ref(false);
   const router = useRouter();
+  const route = useRoute();
   const { locale, t } = useI18n();
 
   const run = async (formData: { details: T; ignore_duplication?: boolean; remark?: string }) => {
@@ -26,16 +30,18 @@ export function useCreateTicket<T>(ticketType: TicketTypes, options?: { onSucces
       const { id: ticketId } = await createTicketNew<T>(params);
       if (options?.onSuccess) {
         options.onSuccess(ticketId);
-      } else {
-        router.push({
-          name: ticketType,
-          params: {
-            page: 'success',
-          },
-          query: {
-            ticketId,
-          },
-        });
+      } else if (options?.ticketTypeRoute || route.name === ticketType) {
+        const targetTicketType = options?.ticketTypeRoute || ticketType;
+        const targetDb = targetTicketType.split('_')[0];
+        if (Object.keys(DBTypeInfos).includes(targetDb.toLocaleLowerCase())) {
+          router.push({
+            name: `${targetDb}_ToolboxResult`,
+            params: {
+              ticketId,
+              ticketType: targetTicketType,
+            },
+          });
+        }
       }
     } catch (e: any) {
       const { code, data, message } = e;

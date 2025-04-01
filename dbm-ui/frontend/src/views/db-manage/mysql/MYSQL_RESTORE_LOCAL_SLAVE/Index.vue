@@ -12,21 +12,92 @@
 -->
 
 <template>
-  <Component :is="components[page]" />
+  <BkAlert
+    class="mb-20"
+    closable
+    :title="t('重建从库_原机器或新机器重新同步数据及权限_并且将域名解析指向同步好的机器')" />
+  <div>
+    <strong class="restore-types-title">
+      {{ t('重建类型') }}
+    </strong>
+    <div class="mt-8 mb-20">
+      <CardCheckbox
+        v-model="restoreType"
+        :desc="t('在原主机上进行故障从库实例重建')"
+        icon="rebuild"
+        :title="t('原地重建')"
+        :true-value="TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE" />
+      <CardCheckbox
+        v-model="restoreType"
+        class="ml-8"
+        :desc="t('将从库主机的全部实例重建到新主机')"
+        icon="host"
+        :title="t('新机重建')"
+        :true-value="TicketTypes.MYSQL_RESTORE_SLAVE" />
+    </div>
+  </div>
+  <Component
+    :is="comMap[restoreType]"
+    :key="restoreType"
+    :ticket-details="ticketDetails" />
 </template>
-<script setup lang="ts">
-  import { useRoute } from 'vue-router';
+<script lang="ts" setup>
+  import { useI18n } from 'vue-i18n';
 
-  import Page2 from '@views/db-manage/common/create-ticket-success/Index.vue';
+  import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
-  import Page1 from './Create.vue';
+  import { useTicketDetail } from '@hooks';
 
-  const route = useRoute();
+  import { TicketTypes } from '@common/const';
 
-  const components = {
-    create: Page1,
-    success: Page2,
+  import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
+
+  import MYSQL_RESTORE_LOCAL_SLAVE from './components/MYSQL_RESTORE_LOCAL_SLAVE/Index.vue';
+  import MYSQL_RESTORE_SLAVE from './components/MYSQL_RESTORE_SLAVE/Index.vue';
+
+  const { t } = useI18n();
+
+  const comMap = {
+    MYSQL_RESTORE_LOCAL_SLAVE,
+    MYSQL_RESTORE_SLAVE,
   };
 
-  const page = computed(() => (route.params.page as keyof typeof components) || 'create');
+  const restoreType = ref<TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE | TicketTypes.MYSQL_RESTORE_SLAVE>(
+    TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE,
+  );
+  const ticketDetails = ref<TicketModel<Mysql.RestoreLocalSlave> | TicketModel<Mysql.ResourcePool.RestoreSlave>>();
+
+  useTicketDetail<Mysql.RestoreLocalSlave>(TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE, {
+    onSuccess(ticketDetail) {
+      restoreType.value = TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE;
+      nextTick(() => {
+        ticketDetails.value = ticketDetail;
+      });
+    },
+  });
+
+  useTicketDetail<Mysql.ResourcePool.RestoreSlave>(TicketTypes.MYSQL_RESTORE_SLAVE, {
+    onSuccess(ticketDetail) {
+      restoreType.value = TicketTypes.MYSQL_RESTORE_SLAVE;
+      nextTick(() => {
+        ticketDetails.value = ticketDetail;
+      });
+    },
+  });
 </script>
+
+<style lang="less" scoped>
+  .restore-types-title {
+    position: relative;
+    font-size: @font-size-mini;
+    color: @title-color;
+
+    &::after {
+      position: absolute;
+      top: 2px;
+      right: -8px;
+      color: @danger-color;
+      content: '*';
+    }
+  }
+</style>

@@ -12,21 +12,241 @@
 -->
 
 <template>
-  <Component :is="components[page]" />
+  <SmartAction>
+    <BkAlert
+      class="mb-20"
+      closable
+      :title="t('Slave提升成主库_断开同步_切换后集成成单点状态_一般用于紧急切换')" />
+    <BkForm
+      class="mb-20"
+      form-type="vertical"
+      :model="formData">
+      <EditableTable
+        ref="table"
+        class="mb-20"
+        :model="formData.tableData">
+        <EditableRow
+          v-for="(item, index) in formData.tableData"
+          :key="index">
+          <MasterHostColumn
+            v-model="item.master"
+            :selected="selected"
+            @batch-edit="handleBatchEdit" />
+          <SlaveHostColumn
+            v-model="item.slave"
+            :master-host="item.master" />
+          <EditableColumn
+            :label="t('同机关联的集群')"
+            :min-width="150"
+            required>
+            <EditableBlock v-if="item.master.related_clusters.length">
+              <p
+                v-for="cluster in item.master.related_clusters"
+                :key="cluster.id">
+                {{ cluster.master_domain }}
+              </p>
+            </EditableBlock>
+            <EditableBlock
+              v-else
+              :placeholder="t('自动生成')" />
+          </EditableColumn>
+          <OperationColumn
+            v-model:table-data="formData.tableData"
+            :create-row-method="createTableRow" />
+        </EditableRow>
+      </EditableTable>
+      <CheckPayload v-model="formData.checkPayload" />
+      <TicketPayload v-model="formData.payload" />
+    </BkForm>
+    <template #action>
+      <BkButton
+        class="mr-8 w-88"
+        :loading="isSubmitting"
+        theme="primary"
+        @click="handleSubmit">
+        {{ t('提交') }}
+      </BkButton>
+      <DbPopconfirm
+        :confirm-handler="handleReset"
+        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+        :title="t('确认重置页面')">
+        <BkButton
+          class="ml8 w-88"
+          :disabled="isSubmitting">
+          {{ t('重置') }}
+        </BkButton>
+      </DbPopconfirm>
+    </template>
+  </SmartAction>
 </template>
-<script setup lang="ts">
-  import { useRoute } from 'vue-router';
+<script lang="ts" setup>
+  import { reactive, useTemplateRef } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
-  import Page2 from '@views/db-manage/common/create-ticket-success/Index.vue';
+  import type { Mysql } from '@services/model/ticket/ticket';
+  import { findRelatedClustersByClusterIds } from '@services/source/mysqlCluster';
 
-  import Page1 from './Create.vue';
+  import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  const route = useRoute();
+  import { TicketTypes } from '@common/const';
 
-  const components = {
-    create: Page1,
-    success: Page2,
+  import CheckPayload, {
+    createCheckPayload,
+  } from '@views/db-manage/common/toolbox-field/form-item/check-payload/Index.vue';
+  import TicketPayload, {
+    createTickePayload,
+  } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+
+  import MasterHostColumn, { type SelectorHost } from './components/MasterHostColumn.vue';
+  import SlaveHostColumn from './components/SlaveHostColumn.vue';
+
+  interface RowData {
+    master: {
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_host_id: number;
+      ip: string;
+      related_clusters: {
+        id: number;
+        master_domain: string;
+      }[];
+    };
+    slave: {
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_host_id: number;
+      ip: string;
+    };
+  }
+
+  const { t } = useI18n();
+  const tableRef = useTemplateRef('table');
+
+  const createTableRow = (data = {} as Partial<RowData>) => {
+    const initHost = () => ({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      bk_cloud_id: 0,
+      bk_host_id: 0,
+      ip: '',
+    });
+    return {
+      master: data.master || {
+        ...initHost(),
+        related_clusters: [] as RowData['master']['related_clusters'],
+      },
+      slave: data.slave || initHost(),
+    };
   };
 
-  const page = computed(() => (route.params.page as keyof typeof components) || 'create');
+  const defaultData = () => ({
+    checkPayload: createCheckPayload(),
+    payload: createTickePayload(),
+    tableData: [createTableRow()],
+  });
+
+  const formData = reactive(defaultData());
+
+  const selected = computed(() =>
+    formData.tableData.filter((item) => item.master.bk_host_id).map((item) => item.master),
+  );
+  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
+
+  useTicketDetail<Mysql.MasterFailOver>(TicketTypes.MYSQL_MASTER_FAIL_OVER, {
+    async onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+      const { clusters, infos } = details;
+      const resultList = await Promise.all(
+        infos.map((item) =>
+          findRelatedClustersByClusterIds({
+            bk_biz_id: clusters[item.cluster_ids[0]].bk_biz_id,
+            cluster_ids: item.cluster_ids,
+          }),
+        ),
+      );
+      Object.assign(formData, {
+        ...createCheckPayload(details),
+        ...createTickePayload(ticketDetail),
+        tableData: infos.map((item, index) =>
+          createTableRow({
+            master: {
+              ...item.master_ip,
+              related_clusters: [resultList[index][0].cluster_info, ...resultList[index][0].related_clusters],
+            },
+            slave: item.slave_ip,
+          }),
+        ),
+      });
+    },
+  });
+
+  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
+    infos: {
+      cluster_ids: number[];
+      master_ip: {
+        bk_biz_id: number;
+        bk_cloud_id: number;
+        bk_host_id: number;
+        ip: string;
+      };
+      slave_ip: {
+        bk_biz_id: number;
+        bk_cloud_id: number;
+        bk_host_id: number;
+        ip: string;
+      };
+    }[];
+    is_check_delay: boolean;
+    is_check_process: boolean;
+    is_verify_checksum: boolean;
+  }>(TicketTypes.MYSQL_MASTER_FAIL_OVER);
+
+  const handleSubmit = async () => {
+    const result = await tableRef.value!.validate();
+    if (!result) {
+      return;
+    }
+    createTicketRun({
+      details: {
+        infos: formData.tableData.map((item) => ({
+          cluster_ids: item.master.related_clusters.map((item) => item.id),
+          master_ip: {
+            bk_biz_id: item.master.bk_biz_id,
+            bk_cloud_id: item.master.bk_cloud_id,
+            bk_host_id: item.master.bk_host_id,
+            ip: item.master.ip,
+          },
+          slave_ip: item.slave,
+        })),
+        ...formData.checkPayload,
+      },
+      ...formData.payload,
+    });
+  };
+
+  const handleReset = () => {
+    Object.assign(formData, defaultData());
+  };
+
+  const handleBatchEdit = (list: SelectorHost[]) => {
+    const dataList = list.reduce<RowData[]>((acc, item) => {
+      if (!selectedMap.value[item.ip]) {
+        acc.push(
+          createTableRow({
+            master: {
+              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+              bk_cloud_id: item.bk_cloud_id,
+              bk_host_id: item.bk_host_id,
+              ip: item.ip,
+              related_clusters: item.related_clusters.map((item) => ({
+                id: item.id,
+                master_domain: item.immute_domain,
+              })),
+            },
+          }),
+        );
+      }
+      return acc;
+    }, []);
+    formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+  };
 </script>

@@ -41,7 +41,7 @@
         </EditableRow>
       </EditableTable>
       <BackupSource v-model="formData.backupSource" />
-      <TicketPayload v-model="formData" />
+      <TicketPayload v-model="formData.payload" />
     </BkForm>
     <template #action>
       <BkButton
@@ -118,8 +118,8 @@
 
   const defaultData = () => ({
     backupSource: BackupSourceType.REMOTE,
+    payload: createTickePayload(),
     tableData: [createTableRow()],
-    ...createTickePayload(),
   });
 
   const formData = reactive(defaultData());
@@ -182,7 +182,7 @@
             },
           })),
         },
-        remark: formData.remark,
+        ...formData.payload,
       });
     }
   };

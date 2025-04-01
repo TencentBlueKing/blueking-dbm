@@ -96,14 +96,7 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
     component: () => import('@views/db-manage/mysql/db-clear/Index.vue'),
   },
   createRouteItem(TicketTypes.MYSQL_ROLLBACK_CLUSTER, t('定点构造')),
-  {
-    path: 'flashback/:page?',
-    name: 'MySQLDBFlashback',
-    meta: {
-      navName: t('闪回'),
-    },
-    component: () => import('@views/db-manage/mysql/flashback/Index.vue'),
-  },
+  createRouteItem(TicketTypes.MYSQL_FLASHBACK, t('闪回')),
   {
     path: 'checksum/:page?',
     name: 'MySQLChecksum',
@@ -137,14 +130,6 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
     component: () => import('@views/db-manage/mysql/webconsole/Index.vue'),
   },
   createRouteItem(TicketTypes.MYSQL_PROXY_UPGRADE, t('版本升级')),
-  {
-    path: 'MYSQL_FLASHBACK/:page?',
-    name: 'MYSQL_FLASHBACK',
-    meta: {
-      navName: t('闪回'),
-    },
-    component: () => import('@views/db-manage/mysql/MYSQL_FLASHBACK/Index.vue'),
-  },
 ];
 
 const singleRoutes: RouteRecordRaw[] = [
@@ -195,7 +180,14 @@ const mysqlToolboxRouters: RouteRecordRaw[] = [
       name: 'MySQLExecute',
     },
     component: () => import('@views/db-manage/mysql/toolbox/index.vue'),
-    children: mysqlToolboxChildrenRouters,
+    children: [
+      ...mysqlToolboxChildrenRouters,
+      {
+        path: 'toolbox-result/:ticketType?/:ticketId?',
+        name: 'MYSQL_ToolboxResult',
+        component: () => import('@views/db-manage/common/create-ticket-success/Index.vue'),
+      },
+    ],
   },
 ];
 

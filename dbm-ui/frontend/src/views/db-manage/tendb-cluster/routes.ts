@@ -172,24 +172,9 @@ const spiderToolboxRoute = {
       },
       component: () => import('@views/db-manage/tendb-cluster/db-backup/Index.vue'),
     },
-    {
-      path: 'flashback/:page?',
-      name: 'spiderFlashback',
-      meta: {
-        dbConsole: 'tendbCluster.toolbox.flashback',
-        navName: t('闪回'),
-      },
-      component: () => import('@views/db-manage/tendb-cluster/flashback/Index.vue'),
-    },
-    {
-      path: 'TENDBCLUSTER_FLASHBACK/:page?',
-      name: 'TENDBCLUSTER_FLASHBACK',
-      meta: {
-        dbConsole: 'tendbCluster.toolbox.flashback',
-        navName: t('闪回'),
-      },
-      component: () => import('@views/db-manage/tendb-cluster/TENDBCLUSTER_FLASHBACK/Index.vue'),
-    },
+    createRouteItem(TicketTypes.TENDBCLUSTER_FLASHBACK, t('闪回'), {
+      dbConsole: 'tendbCluster.toolbox.flashback',
+    }),
     createRouteItem(TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER, t('定点构造'), {
       dbConsole: 'tendbCluster.toolbox.rollback',
     }),
@@ -261,6 +246,14 @@ const spiderToolboxRoute = {
         navName: 'Webconsole',
       },
       component: () => import('@views/db-manage/tendb-cluster/webconsole/Index.vue'),
+    },
+    {
+      path: 'toolbox-result/:ticketType?/:ticketId?',
+      name: 'TENDBCLUSTER_ToolboxResult',
+      meta: {
+        dbConsole: 'tendbCluster.toolbox.toolboxResult',
+      },
+      component: () => import('@views/db-manage/common/create-ticket-success/Index.vue'),
     },
   ],
 };

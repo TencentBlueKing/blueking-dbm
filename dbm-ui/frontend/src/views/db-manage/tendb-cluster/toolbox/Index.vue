@@ -49,13 +49,21 @@
   import ToolboxSide from './components/toolbox-side/Index.vue';
 
   const route = useRoute();
+  const router = useRouter();
 
   const toolboxTitle = ref('');
 
   watch(
     route,
     () => {
-      toolboxTitle.value = route.meta.navName as string;
+      if (route.params.ticketType && route.name === 'TENDBCLUSTER_ToolboxResult') {
+        const targetRoute = router.resolve({
+          name: route.params.ticketType as string,
+        });
+        toolboxTitle.value = targetRoute.meta.navName as string;
+      } else {
+        toolboxTitle.value = route.meta.navName as string;
+      }
     },
     {
       immediate: true,

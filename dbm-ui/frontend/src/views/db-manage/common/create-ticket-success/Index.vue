@@ -17,7 +17,7 @@
       <DbIcon type="check-circle-fill" />
     </div>
     <div style="margin-top: 36px; font-size: 24px; line-height: 32px; color: #313238">
-      {{ t('xx任务提交成功', { name: route.meta.navName }) }}
+      {{ t('xx任务提交成功', { name: targetRoute.meta.navName }) }}
     </div>
     <div style="margin-top: 16px; font-size: 14px; line-height: 22px; color: #63656e">
       <I18nT
@@ -73,7 +73,7 @@
   import { useI18n } from 'vue-i18n';
 
   interface Props {
-    steps: Array<{ name: string; current?: boolean }>;
+    steps: Array<{ current?: boolean; name: string }>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -84,12 +84,16 @@
   const route = useRoute();
   const router = useRouter();
 
-  const { ticketId } = route.query;
+  const { ticketId, ticketType } = route.params;
+
+  const targetRoute = router.resolve({
+    name: ticketType as string,
+  });
 
   const renderSteps = computed(() =>
     props.steps.length > 0
       ? props.steps
-      : [{ name: t('单据审批') }, { name: t('xx执行', { name: route.meta.navName }) }, { name: t('任务完成') }],
+      : [{ name: t('单据审批') }, { name: t('xx执行', { name: targetRoute.meta.navName }) }, { name: t('任务完成') }],
   );
 
   const currentIndex = computed(() => {
@@ -109,7 +113,7 @@
 
   const handleStepChange = () => {
     router.push({
-      name: route.name,
+      name: ticketType as string,
     });
   };
 </script>

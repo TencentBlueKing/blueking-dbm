@@ -68,7 +68,7 @@
 
   const ipSelectList = computed(() => {
     const currentSpec = {
-      ...(props.rowData.cluster.mongos?.[0]?.spec_config || {}),
+      ...props.rowData.cluster.mongos?.[0]?.spec_config,
       count: props.rowData.cluster.mongos.length || 0,
     };
     const reduceIpList = props.rowData.cluster.mongos.map((item) => ({
