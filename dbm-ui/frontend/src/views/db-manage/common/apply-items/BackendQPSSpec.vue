@@ -279,7 +279,7 @@
     };
   });
 
-  const getSpecCapacity = (storageSpec: ResourceSpecModel['storage_spec']) => {
+  const getSpecCapacity = (storageSpec = [] as ResourceSpecModel['storage_spec']) => {
     let specCapacity = 0;
     // eslint-disable-next-line @typescript-eslint/prefer-for-of
     for (let i = 0; i < storageSpec.length; i++) {
@@ -479,15 +479,18 @@
         }
         return {};
       }
-      const item = specSelectorRef.value!.getData()!;
-      const { count } = modelValue.value;
-      return {
-        cluster_capacity: count * getSpecCapacity(item.storage_spec!),
-        cluster_shard_num: clusterShardNum.value,
-        machine_pair: count,
-        qps: item.qps,
-        spec_name: item.spec_name,
-      };
+      const item = specSelectorRef.value?.getData();
+      if (item) {
+        const { count } = modelValue.value;
+        return {
+          cluster_capacity: count * getSpecCapacity(item.storage_spec),
+          cluster_shard_num: clusterShardNum.value,
+          machine_pair: count,
+          qps: item.qps,
+          spec_name: item.spec_name,
+        };
+      }
+      return {};
     },
   });
 </script>

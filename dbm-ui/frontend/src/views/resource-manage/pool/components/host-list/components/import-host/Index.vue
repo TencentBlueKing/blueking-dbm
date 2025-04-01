@@ -50,6 +50,7 @@
         </BkButton>
         <BkButton
           class="ml-8"
+          :disabled="isSubmitting"
           @click="handleCancel">
           {{ t('取消') }}
         </BkButton>
@@ -98,7 +99,7 @@
     isSubmitting.value = true;
     Promise.all([selectHostPanelRef.value!.getValue(), formRef.value!.getValue()])
       .then(([selectHostPanelData, fromData]) => {
-        importResource({
+        return importResource({
           ...selectHostPanelData,
           ...fromData,
           hosts: hostSelectList.value.map((item) => ({

@@ -93,6 +93,14 @@
           </BkDropdownMenu>
         </template>
       </BkDropdown>
+      <BkButton
+        class="ml-8"
+        @click="handleRefresh">
+        <DbIcon
+          class="mr-4"
+          type="refresh" />
+        {{ t('刷新数据') }}
+      </BkButton>
       <AuthButton
         action-id="resource_manage"
         class="quick-search-btn"
@@ -246,7 +254,7 @@
       field: 'ip',
       fixed: 'left',
       label: 'IP',
-      minWidth: 110,
+      minWidth: 130,
     },
     {
       field: 'bk_cloud_name',

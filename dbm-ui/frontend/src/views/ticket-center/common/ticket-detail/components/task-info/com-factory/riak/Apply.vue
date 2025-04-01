@@ -78,12 +78,6 @@
         <span v-else>--</span>
       </InfoItem>
     </template>
-    <EstimatedCost
-      v-if="ticketDetails.details.resource_spec"
-      :params="{
-        db_type: DBTypes.RIAK,
-        resource_spec: ticketDetails.details.resource_spec,
-      }" />
   </InfoList>
   <HostPreview
     v-model:is-show="previewShow"
@@ -98,13 +92,12 @@
   import TicketModel, { type Riak } from '@services/model/ticket/ticket';
   import { getTicketHostNodes } from '@services/source/ticket';
 
-  import { DBTypes, TicketTypes } from '@common/const';
+  import { TicketTypes } from '@common/const';
 
   import HostPreview from '@components/host-preview/HostPreview.vue';
 
   import { firstLetterToUpper } from '@utils';
 
-  import EstimatedCost from '../components/EstimatedCost.vue';
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
   import RegionRequirements from '../components/RegionRequirements.vue';
   import SpecInfos from '../components/SpecInfos.vue';
