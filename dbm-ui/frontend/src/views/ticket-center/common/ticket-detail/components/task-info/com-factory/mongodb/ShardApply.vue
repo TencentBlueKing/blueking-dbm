@@ -93,12 +93,6 @@
       </BkPopover>
       <span v-else>--</span>
     </InfoItem>
-    <EstimatedCost
-      v-if="ticketDetails.details.resource_spec"
-      :params="{
-        db_type: DBTypes.MONGODB,
-        resource_spec: ticketDetails.details.resource_spec,
-      }" />
   </InfoList>
 </template>
 
@@ -107,9 +101,8 @@
 
   import TicketModel, { type Mongodb } from '@services/model/ticket/ticket';
 
-  import { DBTypes, TicketTypes } from '@common/const';
+  import { TicketTypes } from '@common/const';
 
-  import EstimatedCost from '../components/EstimatedCost.vue';
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
   import RegionRequirements from '../components/RegionRequirements.vue';
   import SpecInfos from '../components/SpecInfos.vue';

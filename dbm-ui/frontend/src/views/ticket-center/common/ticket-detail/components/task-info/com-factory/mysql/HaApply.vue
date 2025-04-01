@@ -74,12 +74,6 @@
         </template>
       </BkPopover>
     </InfoItem>
-    <EstimatedCost
-      v-if="ticketDetails.details.resource_spec"
-      :params="{
-        db_type: DBTypes.MYSQL,
-        resource_spec: ticketDetails.details.resource_spec,
-      }" />
     <InfoItem
       :label="t('集群设置')"
       style="width: 100%">
@@ -161,9 +155,8 @@
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
-  import { DBTypes, mysqlType, type MysqlTypeString, TicketTypes } from '@common/const';
+  import { mysqlType, type MysqlTypeString, TicketTypes } from '@common/const';
 
-  import EstimatedCost from '../components/EstimatedCost.vue';
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
   import RegionRequirements from '../components/RegionRequirements.vue';
   import SpecInfos from '../components/SpecInfos.vue';

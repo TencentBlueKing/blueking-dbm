@@ -56,12 +56,6 @@
       </BkPopover>
       <span v-else>--</span>
     </InfoItem>
-    <EstimatedCost
-      v-if="ticketDetails.details.resource_spec"
-      :params="{
-        db_type: DBTypes.REDIS,
-        resource_spec: ticketDetails.details.resource_spec,
-      }" />
     <InfoItem
       :label="t('域名设置')"
       style="width: 100%">
@@ -94,9 +88,8 @@
 
   import TicketModel, { type Redis } from '@services/model/ticket/ticket';
 
-  import { DBTypes, TicketTypes } from '@common/const';
+  import { TicketTypes } from '@common/const';
 
-  import EstimatedCost from '../components/EstimatedCost.vue';
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
   import RegionRequirements from '../components/RegionRequirements.vue';
   import SpecInfos from '../components/SpecInfos.vue';

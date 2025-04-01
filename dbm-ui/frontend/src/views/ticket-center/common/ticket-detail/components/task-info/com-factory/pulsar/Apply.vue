@@ -130,12 +130,6 @@
     <InfoItem :label="t('访问端口')">
       {{ ticketDetails.details.port || '--' }}
     </InfoItem>
-    <EstimatedCost
-      v-if="ticketDetails.details.resource_spec"
-      :params="{
-        db_type: DBTypes.PULSAR,
-        resource_spec: ticketDetails.details.resource_spec,
-      }" />
   </InfoList>
   <HostPreview
     v-model:is-show="previewState.isShow"
@@ -150,11 +144,10 @@
   import TicketModel, { type Pulsar } from '@services/model/ticket/ticket';
   import { getTicketHostNodes } from '@services/source/ticket';
 
-  import { DBTypes, TicketTypes } from '@common/const';
+  import { TicketTypes } from '@common/const';
 
   import HostPreview from '@components/host-preview/HostPreview.vue';
 
-  import EstimatedCost from '../components/EstimatedCost.vue';
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
   import RegionRequirements from '../components/RegionRequirements.vue';
   import SpecInfos from '../components/SpecInfos.vue';

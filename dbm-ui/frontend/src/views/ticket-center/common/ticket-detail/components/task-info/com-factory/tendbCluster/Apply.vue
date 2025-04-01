@@ -64,12 +64,6 @@
         </template>
       </BkPopover>
     </InfoItem>
-    <EstimatedCost
-      v-if="ticketDetails.details.resource_spec"
-      :params="{
-        db_type: DBTypes.TENDBCLUSTER,
-        resource_spec: ticketDetails.details.resource_spec,
-      }" />
     <InfoItem
       :label="t('集群部署方案：')"
       style="width: 100%">
@@ -104,9 +98,8 @@
   import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
   import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
 
-  import { DBTypes, TicketTypes } from '@common/const';
+  import { TicketTypes } from '@common/const';
 
-  import EstimatedCost from '../components/EstimatedCost.vue';
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
   import RegionRequirements from '../components/RegionRequirements.vue';
   import SpecInfos from '../components/SpecInfos.vue';

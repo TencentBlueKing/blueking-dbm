@@ -38,7 +38,8 @@
         <BkSelect
           v-model="formData.for_biz"
           :allow-empty-values="[0]"
-          :disabled="isBusiness">
+          :disabled="isBusiness"
+          filterable>
           <BkOption
             v-for="bizItem in bizList"
             :key="bizItem.bk_biz_id"

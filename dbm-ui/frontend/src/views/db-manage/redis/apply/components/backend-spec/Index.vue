@@ -308,7 +308,7 @@
         return {};
       }
 
-      return customSchemaRef.value!.getInfo();
+      return customSchemaRef.value?.getInfo();
     },
   });
 </script>

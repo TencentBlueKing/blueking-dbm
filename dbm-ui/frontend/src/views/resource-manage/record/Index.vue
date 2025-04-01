@@ -65,17 +65,13 @@
         :label="t('关联单据')"
         :min-width="200">
         <template #default="{ data }: { data: MachineEventModel }">
-          <RouterLink
+          <BkButton
             v-if="data.ticket"
-            target="_blank"
-            :to="{
-              name: 'bizTicketManage',
-              params: {
-                ticketId: data.ticket,
-              },
-            }">
+            text
+            theme="primary"
+            @click="handleToTicket(data)">
             {{ data.ticket_type_display }}
-          </RouterLink>
+          </BkButton>
           <span v-else>--</span>
         </template>
       </BkTableColumn>
@@ -120,6 +116,7 @@
   import { getMenuListSearch, getSearchSelectorParams } from '@utils';
 
   const { t } = useI18n();
+  const router = useRouter();
   const globalBizStore = useGlobalBizs();
   const {
     clearSearchValue,
@@ -244,6 +241,17 @@
   const handleClearSearch = () => {
     operationDateTime.value = ['', ''];
     clearSearchValue();
+  };
+
+  const handleToTicket = (data: MachineEventModel) => {
+    const taskHistoryListRoute = router.resolve({
+      name: 'bizTicketManage',
+      params: {
+        ticketId: data.ticket,
+      },
+    });
+    const href = taskHistoryListRoute.href.replace(/\/(\d+)\//, `/${data.bk_biz_id}/`);
+    window.open(href, '_blank');
   };
 </script>
 
