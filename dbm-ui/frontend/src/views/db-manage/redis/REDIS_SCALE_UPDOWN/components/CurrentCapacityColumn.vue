@@ -15,11 +15,11 @@
   <EditableColumn
     field="cluster_capacity"
     :label="t('当前容量')"
-    :min-width="150">
-    <div class="capacity-box">
-      <div
-        v-if="cluster?.cluster_stats?.total"
-        class="display-content">
+    :min-width="200">
+    <div
+      v-if="cluster?.cluster_stats?.total"
+      class="capacity-box">
+      <div class="display-content">
         <div class="item">
           <div class="item-title">{{ t('当前容量') }}：</div>
           <div class="item-content">
@@ -54,10 +54,10 @@
           </div>
         </div>
       </div>
-      <EditableBlock
-        v-else
-        :placeholder="t('自动生成')" />
     </div>
+    <EditableBlock
+      v-else
+      :placeholder="t('自动生成')" />
   </EditableColumn>
 </template>
 <script lang="ts" setup>
@@ -85,46 +85,44 @@
 
 <style lang="less" scoped>
   .capacity-box {
-    flex: 1;
-    width: 100%;
+    overflow: hidden;
+  }
 
-    .display-content {
-      padding: 11px 16px;
-      overflow: hidden;
-      line-height: 20px;
-      white-space: nowrap;
+  .display-content {
+    padding: 11px 16px;
+    line-height: 20px;
+    white-space: nowrap;
 
-      .item {
+    .item {
+      display: flex;
+      width: 100%;
+
+      .item-title {
+        width: 64px;
+        text-align: right;
+      }
+
+      .item-content {
+        flex: 1;
         display: flex;
-        width: 100%;
+        align-items: center;
 
-        .item-title {
-          width: 64px;
-          text-align: right;
+        .percent {
+          margin-left: 4px;
+          font-size: 12px;
+          font-weight: bold;
+          color: #313238;
         }
 
-        .item-content {
-          flex: 1;
-          display: flex;
-          align-items: center;
+        .spec {
+          margin-left: 2px;
+          font-size: 12px;
+          color: #979ba5;
+        }
 
-          .percent {
-            margin-left: 4px;
-            font-size: 12px;
-            font-weight: bold;
-            color: #313238;
-          }
-
-          .spec {
-            margin-left: 2px;
-            font-size: 12px;
-            color: #979ba5;
-          }
-
-          :deep(.render-spec-box) {
-            height: 22px;
-            padding: 0;
-          }
+        :deep(.render-spec-box) {
+          height: 22px;
+          padding: 0;
         }
       }
     }

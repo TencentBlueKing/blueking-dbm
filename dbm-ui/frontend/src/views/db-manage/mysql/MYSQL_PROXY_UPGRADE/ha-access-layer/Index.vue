@@ -46,7 +46,7 @@
     <IgnoreBiz
       v-model="formData.force"
       v-bk-tooltips="t('如忽略_有连接的情况下也会执行')" />
-    <TicketPayload v-model="formData" />
+    <TicketPayload v-model="formData.payload" />
     <template #action>
       <BkButton
         class="mr-8 w-88"
@@ -127,8 +127,8 @@
 
   const defaultData = () => ({
     force: false,
+    payload: createTickePayload(),
     tableData: [createTableRow()],
-    ...createTickePayload(),
   });
 
   const formData = reactive(defaultData());
@@ -236,7 +236,7 @@
             pkg_id: item.target_version.pkg_id,
           })),
         },
-        remark: formData.remark,
+        ...formData.payload,
       });
     }
   };

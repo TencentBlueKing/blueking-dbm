@@ -37,7 +37,7 @@
     <IgnoreBiz
       v-model="formData.force"
       v-bk-tooltips="t('如忽略_有连接的情况下也会执行')" />
-    <TicketPayload v-model="formData" />
+    <TicketPayload v-model="formData.payload" />
     <template #action>
       <BkButton
         class="mr-8 w-88"
@@ -111,7 +111,6 @@
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
-  const router = useRouter();
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
     cluster: data.cluster || {
@@ -135,8 +134,8 @@
 
   const defaultData = () => ({
     force: false,
+    payload: createTickePayload(),
     tableData: [createTableRow()],
-    ...createTickePayload(),
   });
 
   const formData = reactive(defaultData());
@@ -188,17 +187,7 @@
       pkg_id: number;
     }[];
   }>(TicketTypes.MYSQL_LOCAL_UPGRADE, {
-    onSuccess(ticketId) {
-      router.push({
-        name: TicketTypes.MYSQL_PROXY_UPGRADE,
-        params: {
-          page: 'success',
-        },
-        query: {
-          ticketId,
-        },
-      });
-    },
+    ticketTypeRoute: TicketTypes.MYSQL_PROXY_UPGRADE,
   });
 
   watch(
@@ -278,7 +267,7 @@
             pkg_id: item.target_version.pkg_id,
           })),
         },
-        remark: formData.remark,
+        ...formData.payload,
       });
     }
   };

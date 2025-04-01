@@ -52,7 +52,7 @@
         </EditableRow>
       </EditableTable>
       <BackupSource v-model="formData.backupSource" />
-      <TicketPayload v-model="formData" />
+      <TicketPayload v-model="formData.payload" />
     </BkForm>
     <template #action>
       <BkButton
@@ -116,7 +116,6 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
-  const router = useRouter();
   const tableRef = useTemplateRef('table');
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
@@ -137,8 +136,8 @@
 
   const defaultData = () => ({
     backupSource: BackupSourceType.REMOTE,
+    payload: createTickePayload(),
     tableData: [createTableRow()],
-    ...createTickePayload(),
   });
 
   const formData = reactive(defaultData());
@@ -166,17 +165,7 @@
     }[];
     ip_source: 'resource_pool';
   }>(TicketTypes.TENDBCLUSTER_RESTORE_SLAVE, {
-    onSuccess(ticketId) {
-      router.push({
-        name: TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE,
-        params: {
-          page: 'success',
-        },
-        query: {
-          ticketId,
-        },
-      });
-    },
+    ticketTypeRoute: TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE,
   });
 
   watch(
@@ -234,7 +223,7 @@
           })),
           ip_source: 'resource_pool',
         },
-        remark: formData.remark,
+        ...formData.payload,
       });
     }
   };

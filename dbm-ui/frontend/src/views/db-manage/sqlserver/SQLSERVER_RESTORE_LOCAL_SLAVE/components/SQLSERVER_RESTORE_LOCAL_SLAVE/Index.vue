@@ -40,7 +40,7 @@
             :create-row-method="createTableRow" />
         </EditableRow>
       </EditableTable>
-      <TicketPayload v-model="formData" />
+      <TicketPayload v-model="formData.payload" />
     </BkForm>
     <template #action>
       <BkButton
@@ -115,8 +115,8 @@
   });
 
   const defaultData = () => ({
+    payload: createTickePayload(),
     tableData: [createTableRow()],
-    ...createTickePayload(),
   });
 
   const formData = reactive(defaultData());
@@ -177,7 +177,7 @@
             },
           })),
         },
-        remark: formData.remark,
+        ...formData.payload,
       });
     }
   };

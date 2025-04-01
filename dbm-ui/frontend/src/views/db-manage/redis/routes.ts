@@ -189,7 +189,13 @@ const toolboxRoutes = [
       name: '',
     },
     component: () => import('@views/db-manage/redis/toolbox/Index.vue'),
-    children: [] as RouteRecordRaw[],
+    children: [
+      {
+        path: 'toolbox-result/:ticketType?/:ticketId?',
+        name: 'REDIS_ToolboxResult',
+        component: () => import('@views/db-manage/common/create-ticket-success/Index.vue'),
+      },
+    ] as RouteRecordRaw[],
   },
   {
     path: 'data-check-repair/:page?',
@@ -292,7 +298,7 @@ export default function getRoutes(funControllerData: FunctionControllModel) {
     });
 
     if (!toolboxRoutes[0].redirect!.name) {
-      toolboxRoutes[0].redirect!.name = (toolboxRoutes[0].children![0]?.name as string) ?? '';
+      toolboxRoutes[0].redirect!.name = 'RedisDBCreateSlave';
     }
     routes[0].children?.push(...toolboxRoutes);
   }

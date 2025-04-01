@@ -82,7 +82,7 @@
       v-model="formData.force"
       v-bk-tooltips="t('如忽略_有连接的情况下也会执行')" />
     <BackupSource v-model="formData.backup_source" />
-    <TicketPayload v-model="formData" />
+    <TicketPayload v-model="formData.payload" />
     <template #action>
       <BkButton
         class="mr-8 w-88"
@@ -174,7 +174,6 @@
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
-  const router = useRouter();
 
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
@@ -216,8 +215,8 @@
   const defaultData = () => ({
     backup_source: BackupSourceType.REMOTE,
     force: false,
+    payload: createTickePayload(),
     tableData: [createTableRow()],
-    ...createTickePayload(),
   });
 
   const formData = reactive(defaultData());
@@ -288,17 +287,7 @@
     }[];
     ip_source: 'resource_pool';
   }>(TicketTypes.MYSQL_MIGRATE_UPGRADE, {
-    onSuccess(ticketId) {
-      router.push({
-        name: TicketTypes.MYSQL_PROXY_UPGRADE,
-        params: {
-          page: 'success',
-        },
-        query: {
-          ticketId,
-        },
-      });
-    },
+    ticketTypeRoute: TicketTypes.MYSQL_PROXY_UPGRADE,
   });
 
   watch(
@@ -421,7 +410,7 @@
           })),
           ip_source: 'resource_pool',
         },
-        remark: formData.remark,
+        ...formData.payload,
       });
     }
   };

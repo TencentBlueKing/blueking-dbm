@@ -76,15 +76,20 @@
   const { run: fetchVersions } = useRequest(getClusterVersions, {
     manual: true,
     onSuccess(versions) {
+      if (!versions.length) {
+        return;
+      }
       versionList.value = versions.map((item) => ({
         label: item,
         value: item,
       }));
+      let currentVersion = '';
       versions.forEach((item) => {
         if (item.indexOf(props.cluster.major_version.toLocaleLowerCase()) > -1) {
-          modelValue.value = item;
+          currentVersion = item;
         }
       });
+      modelValue.value = currentVersion || versions[0];
     },
   });
 

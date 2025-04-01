@@ -88,6 +88,11 @@ const toolboxRouters: RouteRecordRaw[] = [
     component: () => import('@views/db-manage/sqlserver/toolbox/Index.vue'),
     children: [
       {
+        path: 'toolbox-result/:ticketType?/:ticketId?',
+        name: 'SQLSERVER_ToolboxResult',
+        component: () => import('@views/db-manage/common/create-ticket-success/Index.vue'),
+      },
+      {
         path: 'sql-execute/:page?',
         name: 'sqlServerExecute',
         meta: {
