@@ -43,7 +43,11 @@
     };
   }
 
+  type Emits = (e: 'change') => void;
+
   const props = defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
     dbIgnoreName: string[];
@@ -66,6 +70,7 @@
         rename_db_name: '',
         target_db_name: item,
       }));
+      emits('change');
     },
   });
 

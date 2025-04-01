@@ -20,17 +20,17 @@
         <EditableInput
           v-model="item.target_db_name"
           :class="{
-            'is-change': valueMemo[index].target_db_name !== item.target_db_name,
+            'is-change': valueMemo[index]?.target_db_name !== item.target_db_name,
           }" />
       </EditableColumn>
       <EditableColumn
-        :append-rules="renameDbNamerules"
+        :append-rules="renameDbNameRules"
         field="rename_db_name"
         :label="t('已存在的 DB（可修改）')">
         <EditableInput
           v-model="item.rename_db_name"
           :class="{
-            'is-change': valueMemo[index].rename_db_name !== item.rename_db_name,
+            'is-change': valueMemo[index]?.rename_db_name !== item.rename_db_name,
           }"
           @change="() => handleChange(index)" />
       </EditableColumn>
@@ -76,6 +76,8 @@
   const dstClusterIdList = computed(() => props.data.dstCluster.map((item) => item.id));
   const dstClusterMap = computed(() => Object.fromEntries(props.data.dstCluster.map((cur) => [cur.id, cur])));
 
+  const renameClusterIds: number[] = [];
+
   const targetDbNameRules = [
     {
       message: t('跟已存在的 DB 名冲突，请修改其一'),
@@ -112,6 +114,7 @@
           Object.entries(data).forEach(([clusterId, dbCheckMap]) => {
             if (dbCheckMap[value]) {
               isExist.push(dstClusterMap.value[clusterId].master_domain);
+              renameClusterIds.push(Number(clusterId));
             }
           });
           if (isExist.length) {
@@ -126,7 +129,7 @@
     },
   ];
 
-  const renameDbNamerules = [
+  const renameDbNameRules = [
     {
       message: t('和其它已填写数据重复'),
       trigger: 'change',
@@ -145,7 +148,6 @@
         if (!value) {
           return true;
         }
-        Object.assign(rowData.rename_cluster_list, dstClusterIdList.value);
         return checkClusterDatabase<{
           [clusterId: string]: {
             [dbName: string]: boolean;
@@ -168,6 +170,8 @@
               y: value,
             });
           }
+          // rename_cluster_list依赖于第二列的校验
+          Object.assign(rowData.rename_cluster_list, renameClusterIds);
           return true;
         });
       },
