@@ -9,7 +9,7 @@ specific language governing permissions and limitations under the License.
 """
 
 from backend.db_meta.enums import ClusterType
-from backend.flow.engine.bamboo.scene.cloud.mysql_machine_clear_flow import ClearMysqlMachineFlow
+from backend.flow.engine.bamboo.scene.mysql.mysql_machine_clear_flow import ClearMysqlMachineFlow
 from backend.flow.engine.bamboo.scene.spider.append_deploy_ctl_flow import AppendDeployCTLFlow
 from backend.flow.engine.bamboo.scene.spider.db_table_backup import TenDBClusterDBTableBackupFlow
 from backend.flow.engine.bamboo.scene.spider.full_backup import TenDBClusterFullBackupFlow

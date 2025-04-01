@@ -16,6 +16,7 @@ from django.utils.translation import ugettext as _
 
 from backend import env
 from backend.components.dbresource.client import DBResourceApi
+from backend.configuration.constants import DBType
 from backend.db_dirty.constants import MachineEventType
 from backend.db_dirty.models import MachineEvent
 from backend.db_services.cmdb.biz import get_or_create_resource_module
@@ -160,5 +161,23 @@ class ImportResourceInitStepFlow(object):
                 act_component_code=TransferHostToPoolComponent.code,
                 kwargs={**asdict(kwargs), "event": MachineEventType.Recycled.value},
             )
+
+        p.run_pipeline()
+
+    def machine_idle_check_flow(self):
+        p = Builder(root_id=self.root_id, data=self.data)
+
+        kwargs = InitCheckForResourceKwargs(
+            ips=self.data["sa_check_ips"],
+            bk_biz_id=self.data["bk_biz_id"],
+            account_name=WINDOW_ADMIN_USER_FOR_CHECK
+            if self.data["db_type"] == DBType.Sqlserver
+            else LINUX_ADMIN_USER_FOR_CHECK,
+        )
+        p.add_act(
+            act_name=_("执行sa空闲检查"),
+            act_component_code=CheckMachineIdleComponent.code,
+            kwargs=asdict(kwargs),
+        )
 
         p.run_pipeline()

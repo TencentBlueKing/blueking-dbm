@@ -22,7 +22,7 @@ from backend.db_meta.api.cluster.tendispluscluster.handler import TendisPlusClus
 from backend.db_meta.api.cluster.tendisssd.handler import TendisSSDClusterHandler
 from backend.db_meta.enums import ClusterEntryType, InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.db_meta.models import AppCache, Machine
+from backend.db_meta.models import AppCache, Machine, NosqlStorageSetDtl, StorageInstanceTuple
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.dbbase.resources import query
 from backend.db_services.dbbase.resources.query import ResourceList
@@ -103,8 +103,17 @@ class RedisListRetrieveResource(query.ListRetrieveResource):
         offset: int,
         **kwargs,
     ) -> ResourceList:
-        # 提前预取storage的tuple
-        storage_queryset = storage_queryset.prefetch_related("nosqlstoragesetdtl_set", "as_receiver", "as_ejector")
+        # 这里不要用prefetch，在实例数过多的时候内存处理反而比sql查询更慢，这里提前做map缓存
+        storage_ids = list(storage_queryset.values_list("id", flat=True))
+        # 获得tuple对应的id映射
+        seg_ranges = NosqlStorageSetDtl.objects.filter(bk_biz_id=bk_biz_id, instance__in=storage_ids).values_list(
+            "instance", "seg_range"
+        )
+        seg_range_map = {t[0]: t[1] for t in seg_ranges}
+        # 获取实例id对应的分片信息
+        for t in StorageInstanceTuple.objects.filter(ejector__in=storage_ids).values_list("ejector", "receiver"):
+            if t[0] in seg_range_map:
+                seg_range_map[t[1]] = seg_range_map[t[0]]
         return super()._filter_cluster_hook(
             bk_biz_id,
             cluster_queryset,
@@ -112,6 +121,7 @@ class RedisListRetrieveResource(query.ListRetrieveResource):
             storage_queryset,
             limit,
             offset,
+            seg_range_map=seg_range_map,
             **kwargs,
         )
 
@@ -129,60 +139,21 @@ class RedisListRetrieveResource(query.ListRetrieveResource):
         **kwargs,
     ) -> Dict[str, Any]:
         """集群序列化"""
-        # 创建一个字典来存储 ejector_id 到cluster.storages下标的映射
-        ejector_id__storage_map = {storage_instance.id: storage_instance for storage_instance in cluster.storages}
+        seg_range_map = kwargs["seg_range_map"]
 
+        # 填充分片信息
         remote_infos = {InstanceRole.REDIS_MASTER.value: [], InstanceRole.REDIS_SLAVE.value: []}
         for inst in cluster.storages:
-            try:
-                seg_range = (
-                    inst.nosqlstoragesetdtl_set.all()[0].seg_range
-                    if inst.cluster_type != ClusterType.RedisInstance.value
-                    else "-1"
-                )
-            except IndexError:
-                # 异常处理 因nosqlstoragesetdtl的分片数据只有redis为master才有seg_range值 以下处理是slave找出对应master seg_range并赋予值 供主从对应排序处理
-                receivers = inst.as_receiver.all()
-                # 检查receivers是否为空
-                if receivers:
-                    master = ejector_id__storage_map.get(receivers[0].ejector_id)
-                    seg_range = (
-                        master.nosqlstoragesetdtl_set.all()[0].seg_range
-                        if master.nosqlstoragesetdtl_set.all()
-                        else "-1"
-                    )
-                else:
-                    seg_range = "-1"
-            except Exception:
-                # 如果无法找到seg_range，则默认为-1。有可能实例处于restoring状态(比如集群容量变更时)
-                seg_range = "-1"
-
+            seg_range = seg_range_map.get(inst.id, "")
             remote_infos[inst.instance_role].append({**inst.simple_desc, "seg_range": seg_range})
 
         # 对 master 和 slave 的 seg_range 进行排序
+        machine_list = []
         for role in [InstanceRole.REDIS_MASTER.value, InstanceRole.REDIS_SLAVE.value]:
-            remote_infos[role].sort(
-                key=lambda x: int(x.get("seg_range", "-1").split("-")[0])
-                if x.get("seg_range", "-1").split("-")[0].isdigit()
-                else -1
-            )
+            remote_infos[role].sort(key=lambda x: int(x["seg_range"].split("-")[0]) if x["seg_range"] else -1)
+            machine_list.extend([inst["bk_host_id"] for inst in remote_infos[role]])
 
-            # 将排序后 seg_range 为 "-1" 的条目置空
-            for item in remote_infos[role]:
-                if item["seg_range"] == "-1":
-                    item["seg_range"] = ""
-
-        machine_list = list(
-            set(
-                [
-                    inst["bk_host_id"]
-                    for inst in [
-                        *remote_infos[InstanceRole.REDIS_MASTER.value],
-                        *remote_infos[InstanceRole.REDIS_SLAVE.value],
-                    ]
-                ]
-            )
-        )
+        machine_list = list(set(machine_list))
         machine_pair_cnt = len(machine_list) / 2
 
         # 补充集群的规格和容量信息

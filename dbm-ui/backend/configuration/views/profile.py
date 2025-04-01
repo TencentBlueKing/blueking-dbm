@@ -71,4 +71,4 @@ class ProfileViewSet(viewsets.SystemViewSet):
             sql_profile = Profile.objects.get(username=request.user.username, label=ProfileLabel.SQL)
             return Response(sql_profile.values)
         except Profile.DoesNotExist:
-            return Response(data=[])
+            return Response(data={})

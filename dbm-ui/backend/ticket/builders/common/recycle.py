@@ -17,8 +17,10 @@ from rest_framework import serializers
 from backend import env
 from backend.configuration.constants import DBType
 from backend.db_dirty.constants import PoolType
+from backend.flow.engine.controller.base import BaseController
 from backend.ticket import builders
 from backend.ticket.builders import (
+    FlowParamBuilder,
     ImportPoolParamBuilder,
     ImportResourceParamBuilder,
     RecycleParamBuilder,
@@ -45,6 +47,23 @@ class RecycleHostParamBuilder(RecycleParamBuilder):
         super().format_ticket_data()
 
 
+class MachineIdleCheckParamBuilder(FlowParamBuilder):
+    controller = BaseController.machine_idle_check_flow
+
+    def format_ticket_data(self):
+        data = self.ticket_data
+        hosts = [*data["fault_hosts"], *data["recycle_hosts"], *data["resource_hosts"], *data["recycled_hosts"]]
+        self.ticket_data.update(
+            {
+                "ticket_id": self.ticket.id,
+                "bk_biz_id": self.ticket.bk_biz_id,
+                "sa_check_ips": [recycle["ip"] for recycle in hosts],
+                "operator": self.ticket.creator,
+                "db_type": self.ticket_data["group"],
+            }
+        )
+
+
 class RecycleHostResourceParamBuilder(ImportResourceParamBuilder):
     def format_ticket_data(self):
         super().format_ticket_data()
@@ -54,6 +73,7 @@ class RecycleHostFlowBuilder(TicketFlowBuilder):
     serializer = RecycleHostDetailSerializer
     import_resource_flow_builder = RecycleHostResourceParamBuilder
     recycle_flow_builder = RecycleHostParamBuilder
+    machine_idle_check_flow_builder = MachineIdleCheckParamBuilder
     # 此单据不属于任何db，暂定为common
     group = "common"
     editable = False
@@ -61,10 +81,24 @@ class RecycleHostFlowBuilder(TicketFlowBuilder):
     def init_ticket_flows(self):
         flows = []
 
-        # 定时执行
-        if env.HOST_RECYCLE_RETENTION_DAYS:
+        # 定时执行 TODO: 暂时去掉 改为人工确认
+        # if env.HOST_RECYCLE_RETENTION_DAYS:
+        #     flows.append(
+        #         Flow(ticket=self.ticket, flow_type=FlowType.TIMER.value, flow_alias=_("定时执行")),
+        #     )
+
+        # 人工确认
+        flows.append(Flow(ticket=self.ticket, flow_type=FlowType.PAUSE.value, flow_alias=_("人工确认执行")))
+
+        # 主机空闲检查
+        if env.SA_CHECK_TEMPLATE_ID:
             flows.append(
-                Flow(ticket=self.ticket, flow_type=FlowType.TIMER.value, flow_alias=_("定时执行")),
+                Flow(
+                    ticket=self.ticket,
+                    flow_type=FlowType.HOST_RECYCLE.value,
+                    details=self.machine_idle_check_flow_builder(self.ticket).get_params(),
+                    flow_alias=_("主机空闲检查"),
+                ),
             )
 
         # 数据清理

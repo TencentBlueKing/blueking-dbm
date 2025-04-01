@@ -43,7 +43,9 @@ from backend.ticket.constants import (
     TODO_RUNNING_STATUS,
     CountType,
     FlowType,
+    TicketStatus,
     TicketType,
+    TodoStatus,
 )
 from backend.ticket.contexts import TicketContext
 from backend.ticket.exceptions import TicketDuplicationException
@@ -248,7 +250,12 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
     @action(methods=["GET"], detail=False, serializer_class=ListTicketStatusSerializer, filter_class=None)
     def list_ticket_status(self, request, *args, **kwargs):
         ticket_ids = self.params_validate(self.get_serializer_class())["ticket_ids"].split(",")
-        ticket_status_map = {ticket.id: ticket.status for ticket in Ticket.objects.filter(id__in=ticket_ids)}
+        tickets = Ticket.objects.filter(id__in=ticket_ids)
+        ticket_status_map = {ticket.id: ticket.status for ticket in tickets}
+        # 对于包含任务代办的单据，状态更新为待继续
+        todo_tickets = tickets.filter(status=TicketStatus.RUNNING, todo_of_ticket__status=TodoStatus.TODO)
+        for ticket in todo_tickets:
+            ticket_status_map[ticket.id] = TicketStatus.INNER_TODO
         return Response(ticket_status_map)
 
     @common_swagger_auto_schema(

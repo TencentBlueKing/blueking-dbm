@@ -10,7 +10,6 @@ specific language governing permissions and limitations under the License.
 """
 
 from backend.db_meta.enums import ClusterType
-from backend.flow.engine.bamboo.scene.cloud.mysql_machine_clear_flow import ClearMysqlMachineFlow
 from backend.flow.engine.bamboo.scene.common.account_rule_manage import AccountRulesFlows
 from backend.flow.engine.bamboo.scene.common.download_dbactor import DownloadDbactorFlow
 from backend.flow.engine.bamboo.scene.common.download_file import DownloadFileFlow
@@ -40,6 +39,7 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_ha_upgrade import (
     DestroyNonStanbySlaveMySQLFlow,
     TendbClusterUpgradeFlow,
 )
+from backend.flow.engine.bamboo.scene.mysql.mysql_machine_clear_flow import ClearMysqlMachineFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_master_fail_over import MySQLMasterFailOverFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_master_slave_switch import MySQLMasterSlaveSwitchFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_migrate_cluster_remote_flow import MySQLMigrateClusterRemoteFlow

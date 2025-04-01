@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+from collections import defaultdict
 
 from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext_lazy as _
@@ -18,7 +19,6 @@ from backend.configuration.constants import DBPrivSecurityType
 from backend.configuration.handlers.password import DBPasswordHandler
 from backend.db_meta.enums import ClusterType
 from backend.db_services.dbbase.constants import ES_DEFAULT_PORT
-from backend.flow.consts import ES_DEFAULT_INSTANCE_NUM
 from backend.flow.engine.controller.es import EsController
 from backend.ticket import builders
 from backend.ticket.builders.common import constants
@@ -128,12 +128,19 @@ class EsApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
             if role not in next_flow_data[nodes_key]:
                 continue
 
+            resource_spec = ticket_data["resource_spec"][role]
+            # 手动选择资源池主机，实例数已经填充
+            instance_num_map = defaultdict(int)
+            for host in resource_spec.get("hosts", []):
+                instance_num_map[host["bk_host_id"]] = host["instance_num"]
+
             for node in next_flow_data["nodes"][role]:
-                node["instance_num"] = ticket_data["resource_spec"][role].get("instance_num", ES_DEFAULT_INSTANCE_NUM)
+                # 手动选择资源池主机，实例数已经填充
+                node["instance_num"] = instance_num_map[node["bk_host_id"]] or resource_spec["instance_num"]
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()
-        self.fill_instance_num(next_flow.details["ticket_data"], self.ticket_data, nodes_key="nodes")
+        self.fill_instance_num(next_flow.details["ticket_data"], self.ticket.details, nodes_key="nodes")
         next_flow.save(update_fields=["details"])
 
 

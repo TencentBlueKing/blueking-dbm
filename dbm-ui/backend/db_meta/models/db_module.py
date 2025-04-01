@@ -68,12 +68,11 @@ class DBModule(AuditedModel):
 
             for dm in cls.objects.filter(q).all():
                 appcache = appcache_dict.get(str(dm.bk_biz_id))
+                db_app_abbr = appcache["db_app_abbr"] if appcache else ""
                 db_module_choices.append(
                     (
                         dm.db_module_id,
-                        f"[{dm.db_module_id}]-"
-                        f"[{dm.cluster_type}]-[app:{appcache['db_app_abbr']}]-"
-                        f"{dm.db_module_name}",
+                        f"[{dm.db_module_id}]-" f"[{dm.cluster_type}]-[app:{db_app_abbr}]-" f"{dm.db_module_name}",
                     )
                 )
 

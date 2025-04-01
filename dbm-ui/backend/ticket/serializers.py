@@ -128,11 +128,10 @@ class TicketSerializer(AuditedSerializer, serializers.ModelSerializer):
         return obj.running_todos[0].operators if obj.running_todos else []
 
     def get_todo_helpers(self, obj):
-        obj.running_todo_helpers = [todo for todo in obj.todo_of_ticket.all() if todo.status == TodoStatus.TODO]
-        return obj.running_todo_helpers[0].helpers if obj.running_todo_helpers else []
+        return obj.running_todos[0].helpers if obj.running_todos else []
 
     def get_status(self, obj):
-        if obj.status == TicketStatus.RUNNING and (obj.running_todos or obj.running_todo_helpers):
+        if obj.status == TicketStatus.RUNNING and obj.running_todos:
             obj.status = TicketStatus.INNER_TODO
         return obj.status
 
