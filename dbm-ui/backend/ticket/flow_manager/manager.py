@@ -122,5 +122,5 @@ class TicketFlowManager(object):
         # 如果是inner flow的终止，要联动回收主机。TODO: 暂时去掉，改为flow独立决定回收机器
         # 如果是待下架单据，正常结束要联动回收主机
         if target_status == TicketStatus.SUCCEEDED and self.ticket.ticket_type in BuilderFactory.recycle_ticket_type:
-            recycle_old_hosts = self.ticket.details["recycle_hosts"]
+            recycle_old_hosts = self.ticket.details.get("recycle_hosts", [])
             create_recycle_ticket.apply_async(args=(self.ticket.id, recycle_old_hosts, TicketType.RECYCLE_OLD_HOST))
