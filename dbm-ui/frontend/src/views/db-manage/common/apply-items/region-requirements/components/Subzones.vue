@@ -42,10 +42,12 @@
         <div
           v-if="subzoneList?.length"
           class="subzone-bar" />
+        <!--  v-bk-tooltips="t('至少选择n个区', { n: 2 })"  -->
         <BkCheckboxGroup
           v-model="subZones"
-          v-bk-tooltips="t('至少选择n个区', { n: 2 })"
+          v-bk-tooltips="t('暂不支持')"
           class="subzone-checkbox-group"
+          disabled
           @change="handleSubZonesChange">
           <BkCheckbox
             v-for="item in subzoneList"
@@ -272,9 +274,9 @@
           background: #f5f7fa;
           border-radius: 2px;
 
-          &:hover {
-            color: #3a84ff;
-          }
+          // &:hover {
+          //   color: #3a84ff;
+          // }
         }
       }
     }
