@@ -710,3 +710,6 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-dingwei:before {
 	content: "\e213";
 }
+.db-icon-qiehuan:before {
+	content: "\e215";
+}

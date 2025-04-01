@@ -32,6 +32,7 @@ declare module 'vue' {
     OperationColumn: typeof import('@views/db-manage/common/toolbox-field/column/operation-column/Index.vue').default;
     ScrollFaker: typeof import('@components/scroll-faker/Index.vue').default;
     SmartAction: typeof import('@components/smart-action/Index.vue').default;
+    TableDetailDialog: typeof import('@components/table-detail-dialog/Index.vue').default;
   }
 }
 

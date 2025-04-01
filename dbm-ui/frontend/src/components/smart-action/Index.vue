@@ -21,7 +21,7 @@
       <Teleport
         v-if="showActionArea"
         :disabled="!isFixed"
-        to="body">
+        :to="teleportTo">
         <div
           v-show="isPlaceholderShow"
           ref="actionRef"
@@ -44,12 +44,14 @@
     fill?: number;
     offsetTarget?: () => Element | null;
     showActionArea?: boolean;
+    teleportTo?: string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     fill: 0,
     offsetTarget: () => null,
     showActionArea: true,
+    teleportTo: 'body',
   });
 
   const placeholderRef = ref();
@@ -93,9 +95,10 @@
     if (!placeholderRef.value) {
       return;
     }
+    const { left: targetLeft } = document.querySelector(props.teleportTo)!.getBoundingClientRect();
     const { height, left, top } = placeholderRef.value.getBoundingClientRect();
     isFixed.value = height + top + 25 > window.innerHeight;
-    paddingLeft.value = left;
+    paddingLeft.value = left - targetLeft;
     setTimeout(() => {
       isPlaceholderShow.value = true;
     });
@@ -128,7 +131,7 @@
     right: 0;
     bottom: 0;
     left: 0;
-    z-index: 99;
+    z-index: 1;
     display: flex;
     height: 52px;
     background: #fff;

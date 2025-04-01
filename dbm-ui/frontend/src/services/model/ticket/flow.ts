@@ -45,7 +45,7 @@ const TODO_STATUS_RUNNING = 'RUNNING';
 const TODO_STATUS_DONE_SUCCESS = 'DONE_SUCCESS';
 const TODO_STATUS_DONE_FAILED = 'DONE_FAILED';
 
-export default class Flow<D = unknown, S = string> {
+export default class Flow<D = unknown, S = any> {
   static STATUS_FAILED = STATUS_FAILED;
   static STATUS_PENDING = STATUS_PENDING;
   static STATUS_REVOKED = STATUS_REVOKED;
