@@ -36,6 +36,7 @@ SUPPORTED_FLOW_MAP = {
     FlowType.TIMER.value: TimerFlow,
     FlowType.RESOURCE_APPLY: ResourceApplyFlow,
     FlowType.RESOURCE_DELIVERY: ResourceDeliveryFlow,
+    FlowType.RESOURCE_BATCH_DELIVERY: ResourceDeliveryFlow,
     FlowType.RESOURCE_BATCH_APPLY: ResourceBatchApplyFlow,
     FlowType.HOST_RECYCLE: SimpleTaskFlow,
 }

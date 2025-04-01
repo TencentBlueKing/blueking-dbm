@@ -568,6 +568,7 @@ class FlowType(str, StructuredEnum):
     RESOURCE_APPLY = EnumField("RESOURCE_APPLY", _("资源申请"))
     # 资源交付节点，用于机器部署成功后通过资源池服务. TODO: 已废弃，保留仅因为历史单据展示
     RESOURCE_DELIVERY = EnumField("RESOURCE_DELIVERY", _("资源交付"))
+    RESOURCE_BATCH_DELIVERY = EnumField("RESOURCE_BATCH_DELIVERY", _("资源批量交付"))
     # 资源批量申请节点
     RESOURCE_BATCH_APPLY = EnumField("RESOURCE_BATCH_APPLY", _("资源批量申请"))
     # 主机回收
