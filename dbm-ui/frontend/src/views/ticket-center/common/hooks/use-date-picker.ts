@@ -1,5 +1,5 @@
 import dayjs from 'dayjs';
-import { computed, onBeforeUnmount, ref } from 'vue';
+import { computed, ref } from 'vue';
 
 import { useUrlSearch } from '@hooks';
 
@@ -7,7 +7,7 @@ interface IPicker {
   value: () => [Date, Date];
 }
 
-const create = () => {
+export default () => {
   const value = ref<[Date, Date] | [string, string]>(['', '']);
   const { getSearchParams } = useUrlSearch();
 
@@ -70,18 +70,4 @@ const create = () => {
     shortcutsRange,
     value,
   };
-};
-
-let context: ReturnType<typeof create> | undefined;
-
-export default () => {
-  if (!context) {
-    context = create();
-  }
-
-  onBeforeUnmount(() => {
-    context = undefined;
-  });
-
-  return context;
 };

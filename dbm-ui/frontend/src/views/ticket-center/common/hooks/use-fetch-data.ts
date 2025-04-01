@@ -8,7 +8,7 @@ import { useEventBus, useUrlSearch } from '@hooks';
 
 import { useStorage, useTimeoutFn } from '@vueuse/core';
 
-const create = (dataSource: typeof getTickets, options?: { onSuccess?: (data: TicketModel[]) => void }) => {
+export default (dataSource: typeof getTickets, options?: { onSuccess?: (data: TicketModel[]) => void }) => {
   const eventBus = useEventBus();
   const { getSearchParams, replaceSearchParams } = useUrlSearch();
   const paginationLimitCache = useStorage('table_pagination_limit', 20);
@@ -104,18 +104,4 @@ const create = (dataSource: typeof getTickets, options?: { onSuccess?: (data: Ti
     pagination,
     tableMaxHeight,
   };
-};
-
-let context: ReturnType<typeof create> | undefined;
-
-export default (...args: Parameters<typeof create>) => {
-  if (!context) {
-    context = create(...args);
-  }
-
-  onBeforeUnmount(() => {
-    context = undefined;
-  });
-
-  return context;
 };
