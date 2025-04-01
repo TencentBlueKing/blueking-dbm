@@ -18,25 +18,31 @@
         {{ t('任务') }}
       </BkMenuItem>
     </BkMenuGroup>
-    <BkMenuGroup :name="t('DBA 工具箱')">
-      <BkMenuItem key="DbaManageMysqlWebQuery">
+    <BkMenuGroup
+      v-db-console="'platformManage.dbaManage'"
+      :name="t('DBA 工具箱')">
+      <BkMenuItem
+        key="DbaManageMysqlWebQuery"
+        v-db-console="'platformManage.dbaManage.mysql'">
         <template #icon>
           <DbIcon type="mysql" />
         </template>
         MySQL
       </BkMenuItem>
-      <BkMenuItem key="DbaManageTendbClusterWebQuery">
+      <BkMenuItem
+        key="DbaManageTendbClusterWebQuery"
+        v-db-console="'platformManage.dbaManage.tendbCluster'">
         <template #icon>
           <DbIcon type="mysql" />
         </template>
         Tendb Cluster
       </BkMenuItem>
-      <BkMenuItem key="DbaManageSQLServerWebQuery">
+      <!-- <BkMenuItem key="DbaManageSQLServerWebQuery">
         <template #icon>
           <DbIcon type="sqlserver" />
         </template>
         SQLServer
-      </BkMenuItem>
+      </BkMenuItem> -->
     </BkMenuGroup>
     <BkMenuGroup
       v-if="isDev"

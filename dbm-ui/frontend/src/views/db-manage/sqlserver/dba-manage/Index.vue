@@ -27,7 +27,7 @@
     {
       dbConsoleValue: 'dbaManage.sqlserver.webQuery',
       id: 'DbaManageSQLServerWebQuery',
-      name: t('Web 查询'),
+      name: t('管理控制台'),
     },
   ];
 </script>

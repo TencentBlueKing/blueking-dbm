@@ -161,10 +161,11 @@
   const localValue = ref('');
   const isFullscreen = ref(false);
   const isMessageListFolded = ref(true);
-  const currentOperation = ref('');
+  const currentOperation = ref('query');
   const collectionRenderKey = ref(0);
   const collectName = ref('');
-  const divideMin = ref(0);
+  const divideMin = ref(290);
+  const sqlProfile = ref<SqlProfile>();
 
   const operationList = computed(() => {
     const frequent = {
@@ -185,8 +186,16 @@
     return [frequent, collect];
   });
 
-  const { data: sqlProfile, run: fetchProfileSql } = useRequest(getProfileSql, {
+  const { run: fetchProfileSql } = useRequest(getProfileSql, {
     manual: true,
+    onSuccess(data) {
+      // 临时处理
+      if (Array.isArray(data)) {
+        sqlProfile.value = {};
+      } else {
+        sqlProfile.value = data;
+      }
+    },
   });
 
   watch(currentOperation, () => {

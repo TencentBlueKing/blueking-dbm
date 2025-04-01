@@ -15,9 +15,9 @@
   <BkResizeLayout
     :border="false"
     class="editor-resize-wrapper"
-    :initial-divide="500"
+    :initial-divide="800"
     :max="600"
-    :min="150"
+    :min="100"
     placement="bottom"
     :style="resizeLayoutStyle"
     @after-resize="handleAfterResize">
@@ -58,7 +58,10 @@
     queryType?: string;
   }
 
-  type Emits = (e: 'execute') => void;
+  interface Emits {
+    (e: 'execute'): void;
+    (e: 'fetchDataSuccess'): void;
+  }
 
   const props = withDefaults(defineProps<Props>(), {
     dbType: DBTypes.MYSQL,
@@ -91,7 +94,10 @@
         db_type: props.dbType,
         instances: instanceInfoList,
       });
-      console.log(queryResult);
+      const errorList = queryResult.value.filter((item) => !!item.error_msg).map((item) => item.error_msg);
+      if (!errorList.length) {
+        emits('fetchDataSuccess');
+      }
     } finally {
       isExecuting.value = false;
       const endTime = dayjs();
@@ -167,19 +173,6 @@
         }
       }
     }
-
-    .editor-resize-wrapper {
-      height: calc(100% - 40px);
-      background: #212121;
-
-      // &.resize-disabled {
-      //   :deep(.bk-resize-layout-aside) {
-      //     &::after {
-      //       display: none;
-      //     }
-      //   }
-      // }
-    }
   }
 </style>
 <style lang="less">
@@ -190,5 +183,13 @@
   .result-panel-main {
     height: 100%;
     background: #fff;
+  }
+
+  .editor-resize-wrapper {
+    height: 1200px !important;
+
+    .bk-resize-layout-aside-content {
+      overflow: auto !important;
+    }
   }
 </style>

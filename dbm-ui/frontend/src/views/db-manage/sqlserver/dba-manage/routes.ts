@@ -29,7 +29,7 @@ export default function getRoutes() {
           path: 'web-query',
           name: 'DbaManageSQLServerWebQuery',
           meta: {
-            navName: t('Web 查询'),
+            navName: t('管理控制台'),
           },
           component: () => import('@views/db-manage/sqlserver/dba-manage/web-query/Index.vue'),
         },
