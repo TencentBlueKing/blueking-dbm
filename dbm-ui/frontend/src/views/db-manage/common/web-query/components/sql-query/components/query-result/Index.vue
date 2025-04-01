@@ -80,6 +80,11 @@
       if (props.data) {
         tipList.value = props.data.filter((item) => !!item.error_msg).map((item) => item.error_msg);
         resultPanels.value[0].num = tipList.value.length;
+        if (!tipList.value.length) {
+          currentPanel.value = 'result';
+        } else {
+          currentPanel.value = 'tip';
+        }
       }
     },
   );
@@ -91,10 +96,6 @@
 
     :deep(.bk-tab--top) {
       height: 100%;
-
-      .bk-tab-content {
-        overflow-y: auto;
-      }
     }
 
     :deep(.bk-tab-header--has-num-elliptic) {

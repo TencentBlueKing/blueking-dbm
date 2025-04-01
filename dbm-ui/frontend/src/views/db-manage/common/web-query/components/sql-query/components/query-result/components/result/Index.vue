@@ -36,7 +36,7 @@
       ref="tableRef"
       class="query-result-table"
       :columns="columns"
-      :container-height="500"
+      :container-height="800"
       :data-source="dataSource"
       :remote-pagination="false"
       :row-config="{
@@ -166,7 +166,7 @@
     );
     const colsWidths = columns.value.map(() => ({ width: 30 }));
 
-    exportExcelFile(formatData, colsWidths, 'Sheet1', `${props.dbType}_${t('Web 查询')}.xlsx`);
+    exportExcelFile(formatData, colsWidths, 'Sheet1', `${props.dbType}_${t('管理控制台')}.xlsx`);
   };
 </script>
 <style lang="less" scoped>
