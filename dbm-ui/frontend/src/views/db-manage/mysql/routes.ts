@@ -184,8 +184,8 @@ const mysqlToolboxRouters: RouteRecordRaw[] = [
       ...mysqlToolboxChildrenRouters,
       {
         path: 'toolbox-result/:ticketType?/:ticketId?',
-        name: 'MYSQL_ToolboxResult',
-        component: () => import('@views/db-manage/common/create-ticket-success/Index.vue'),
+        name: 'MysqlToolboxResult',
+        component: () => import('@views/db-manage/common/toolbox-result/Index.vue'),
       },
     ],
   },

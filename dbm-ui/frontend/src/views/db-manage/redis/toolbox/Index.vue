@@ -54,7 +54,7 @@
   watch(
     route,
     () => {
-      if (route.params.ticketType && route.name === 'REDIS_ToolboxResult') {
+      if (route.params.ticketType && route.name === 'RedisToolboxResult') {
         const targetRoute = router.resolve({
           name: route.params.ticketType as string,
         });

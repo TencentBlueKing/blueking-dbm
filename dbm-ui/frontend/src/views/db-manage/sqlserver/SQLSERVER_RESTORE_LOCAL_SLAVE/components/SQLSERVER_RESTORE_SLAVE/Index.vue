@@ -159,9 +159,7 @@
       };
     }[];
     ip_source: 'resource_pool';
-  }>(TicketTypes.SQLSERVER_RESTORE_SLAVE, {
-    ticketTypeRoute: TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE,
-  });
+  }>(TicketTypes.SQLSERVER_RESTORE_SLAVE);
 
   watch(
     () => props.ticketDetails,

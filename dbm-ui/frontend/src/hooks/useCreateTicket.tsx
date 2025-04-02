@@ -4,14 +4,11 @@ import { useRouter } from 'vue-router';
 
 import { createTicketNew } from '@services/source/ticket';
 
-import { DBTypeInfos, type TicketTypes } from '@common/const';
+import { type TicketTypes } from '@common/const';
 
 import { messageError } from '@utils';
 
-export function useCreateTicket<T>(
-  ticketType: TicketTypes,
-  options?: { onSuccess?: (ticketId: number) => void; ticketTypeRoute?: TicketTypes },
-) {
+export function useCreateTicket<T>(ticketType: TicketTypes, options?: { onSuccess?: (ticketId: number) => void }) {
   const loading = ref(false);
   const router = useRouter();
   const route = useRoute();
@@ -30,18 +27,26 @@ export function useCreateTicket<T>(
       const { id: ticketId } = await createTicketNew<T>(params);
       if (options?.onSuccess) {
         options.onSuccess(ticketId);
-      } else if (options?.ticketTypeRoute || route.name === ticketType) {
-        const targetTicketType = options?.ticketTypeRoute || ticketType;
-        const targetDb = targetTicketType.split('_')[0];
-        if (Object.keys(DBTypeInfos).includes(targetDb.toLocaleLowerCase())) {
-          router.push({
-            name: `${targetDb}_ToolboxResult`,
-            params: {
-              ticketId,
-              ticketType: targetTicketType,
-            },
-          });
-        }
+        return;
+      }
+      const toolboxResultMap = {
+        MONGODB: 'MongodbToolboxResult',
+        MYSQL: 'MysqlToolboxResult',
+        REDIS: 'RedisToolboxResult',
+        SQLSERVER: 'SqlserverToolboxResult',
+        TENDBCLUSTER: 'TendbclusterToolboxResult',
+      };
+      const targetTicketType = route.meta.routeName as string;
+      const targetDb = targetTicketType.split('_')[0];
+      const resultRouteName = toolboxResultMap[targetDb as keyof typeof toolboxResultMap];
+      if (resultRouteName) {
+        router.push({
+          name: resultRouteName,
+          params: {
+            ticketId,
+            ticketType: targetTicketType,
+          },
+        });
       }
     } catch (e: any) {
       const { code, data, message } = e;

@@ -54,7 +54,7 @@
   watch(
     route,
     () => {
-      if (route.params.ticketType && route.name === 'SQLSERVER_ToolboxResult') {
+      if (route.params.ticketType && route.name === 'SqlserverToolboxResult') {
         const targetRoute = router.resolve({
           name: route.params.ticketType as string,
         });

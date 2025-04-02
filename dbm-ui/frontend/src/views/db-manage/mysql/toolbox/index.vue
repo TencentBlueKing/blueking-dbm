@@ -56,7 +56,7 @@
   watch(
     route,
     () => {
-      if (route.params.ticketType && route.name === 'MYSQL_ToolboxResult') {
+      if (route.params.ticketType && route.name === 'MysqlToolboxResult') {
         const targetRoute = router.resolve({
           name: route.params.ticketType as string,
         });

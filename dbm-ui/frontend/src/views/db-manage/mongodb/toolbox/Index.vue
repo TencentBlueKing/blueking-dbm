@@ -54,7 +54,7 @@
   watch(
     route,
     () => {
-      if (route.params.ticketType && route.name === 'MONGODB_ToolboxResult') {
+      if (route.params.ticketType && route.name === 'MongodbToolboxResult') {
         const targetRoute = router.resolve({
           name: route.params.ticketType as string,
         });

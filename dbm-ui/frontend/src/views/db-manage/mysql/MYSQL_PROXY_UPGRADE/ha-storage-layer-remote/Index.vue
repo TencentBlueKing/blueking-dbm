@@ -286,9 +286,7 @@
       };
     }[];
     ip_source: 'resource_pool';
-  }>(TicketTypes.MYSQL_MIGRATE_UPGRADE, {
-    ticketTypeRoute: TicketTypes.MYSQL_PROXY_UPGRADE,
-  });
+  }>(TicketTypes.MYSQL_MIGRATE_UPGRADE);
 
   watch(
     () => props.ticketDetails,
