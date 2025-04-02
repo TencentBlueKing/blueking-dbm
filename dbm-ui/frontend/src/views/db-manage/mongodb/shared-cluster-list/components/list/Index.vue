@@ -128,7 +128,7 @@
       <BkTableColumn
         :fixed="isStretchLayoutOpen ? false : 'right'"
         :label="t('操作')"
-        :min-width="140"
+        :min-width="200"
         :show-overflow="false">
         <template #default="{data}: {data: MongodbModel}">
           <BkButton
@@ -140,6 +140,21 @@
             @click="handleShowAccessEntry(data)">
             {{ t('获取访问方式') }}
           </BkButton>
+          <AuthRouterLink
+            action-id="mongodb_webconsole"
+            class="mr-8"
+            :disabled="data.isOffline"
+            :permission="data.permission.mongodb_webconsole"
+            :resource="data.id"
+            target="_blank"
+            :to="{
+              name: 'MongodbWebconsole',
+              query: {
+                clusterId: data.id,
+              },
+            }">
+            Webconsole
+          </AuthRouterLink>
           <MoreActionExtend>
             <BkDropdownItem v-db-console="'mongodb.sharedClusterList.capacityChange'">
               <OperationBtnStatusTips :data="data">

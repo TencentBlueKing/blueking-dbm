@@ -81,6 +81,14 @@ export const mongoToolboxChildrenRoutes: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/mongodb/db-clear/Index.vue'),
   },
+  {
+    path: 'webconsole',
+    name: 'MongodbWebconsole',
+    meta: {
+      navName: 'Webconsole',
+    },
+    component: () => import('@views/db-manage/mongodb/webconsole/Index.vue'),
+  },
 ];
 
 const routes: RouteRecordRaw[] = [

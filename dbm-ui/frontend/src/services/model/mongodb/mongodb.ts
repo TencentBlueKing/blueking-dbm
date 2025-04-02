@@ -81,6 +81,7 @@ export default class Mongodb extends ClusterBase {
     mongodb_enable_disable: boolean;
     mongodb_plugin_create_clb: boolean;
     mongodb_view: boolean;
+    mongodb_webconsole: boolean;
   };
   phase: string;
   phase_name: string;
