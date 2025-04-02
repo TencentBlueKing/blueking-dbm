@@ -65,6 +65,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
+  import { useRouter } from 'vue-router';
 
   import TicketModel from '@services/model/ticket/ticket';
   import { getTicketDetails, getTicketStatus } from '@services/source/ticket';
@@ -75,7 +76,7 @@
 
   import TicketDetail from '@views/ticket-center/common/ticket-detail/Index.vue';
 
-  import { execCopy, utcTimeToSeconds } from '@utils';
+  import { execCopy, getSelfDomain, utcTimeToSeconds } from '@utils';
 
   import { useTimeoutFn } from '@vueuse/core';
 
@@ -86,6 +87,7 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
+  const router = useRouter();
 
   const isLoading = ref(true);
   const ticketData = shallowRef<TicketModel>();
@@ -148,11 +150,27 @@
   );
 
   const handleCopyLink = () => {
-    execCopy(window.location.href);
+    const { href } = router.resolve({
+      name: 'ticketDetail',
+      params: {
+        ticketId: props.ticketId,
+      },
+      query: {
+        test: 1,
+      },
+    });
+    execCopy(`${getSelfDomain()}${href}`);
   };
 
   const handleCopyTitleAndLink = () => {
-    execCopy(`${ticketData.value?.ticket_type_display}\n${window.location.href}`);
+    const { href } = router.resolve({
+      name: 'ticketDetail',
+      params: {
+        ticketId: props.ticketId,
+      },
+    });
+
+    execCopy(`${ticketData.value?.ticket_type_display}\n${getSelfDomain()}${href}`);
   };
 </script>
 <style lang="less">
