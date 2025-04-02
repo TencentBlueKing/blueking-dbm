@@ -30,6 +30,10 @@ export const parseURL = (url: string) => {
   };
 };
 
+export const getSelfDomain = () => {
+  return `${window.location.protocol}//${window.location.host}`;
+};
+
 export const buildURLParams = (params: any) => {
   function forEach(obj: any, fn: any) {
     // Don't bother if no value provided
