@@ -340,40 +340,42 @@ class Cluster(AuditedModel):
         if self.cluster_type != ClusterType.TenDBCluster.value:
             raise DBMetaException(message=_("{} 类型集群没有中控节点".format(self.cluster_type)))
 
-        # 取一个状态正常的 spider-master 接入层
-        spider_instance = self.proxyinstance_set.filter(
+        for si in self.proxyinstance_set.filter(
             tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER,
             status=InstanceStatus.RUNNING.value,
-        ).first()
+        ):
+            ctl_address = "{}{}{}".format(si.machine.ip, IP_PORT_DIVIDER, si.port + 1000)
+            logger.info("ctl address: {}".format(ctl_address))
 
-        ctl_address = "{}{}{}".format(spider_instance.machine.ip, IP_PORT_DIVIDER, spider_instance.port + 1000)
+            try:
+                res = DRSApi.short_rpc(
+                    {
+                        "addresses": [ctl_address],
+                        "cmds": ["tdbctl get primary"],
+                        "force": False,
+                        "bk_cloud_id": self.bk_cloud_id,
+                    }
+                )
 
-        logger.info("ctl address: {}".format(ctl_address))
-        try:
-            res = DRSApi.short_rpc(
-                {
-                    "addresses": [ctl_address],
-                    "cmds": ["tdbctl get primary"],
-                    "force": False,
-                    "bk_cloud_id": self.bk_cloud_id,
-                }
-            )
-        except (ApiError, Exception) as e:
-            logger.error(_("get primary failed: {}".format(e)))
-            return ""
+                logger.info("tdbctl get primary res: {}".format(res))
 
-        logger.info("tdbctl get primary res: {}".format(res))
+                if res[0]["error_msg"]:
+                    logger.error("get primary failed: {}, try next spider instance".format(res[0]["error_msg"]))
+                    continue
 
-        if res[0]["error_msg"]:
-            raise DBMetaException(message=_("get primary failed: {}".format(res[0]["error_msg"])))
+                primary_info_table_data = res[0]["cmd_results"][0]["table_data"]
 
-        primary_info_table_data = res[0]["cmd_results"][0]["table_data"]
-        if primary_info_table_data:
-            return "{}{}{}".format(
-                primary_info_table_data[0]["HOST"], IP_PORT_DIVIDER, primary_info_table_data[0]["PORT"]
-            )
-        else:
-            return ctl_address
+                if primary_info_table_data:
+                    return "{}{}{}".format(
+                        primary_info_table_data[0]["HOST"], IP_PORT_DIVIDER, primary_info_table_data[0]["PORT"]
+                    )
+                else:
+                    return ctl_address
+
+            except (ApiError, Exception) as e:
+                logger.error(_("get primary failed: {}, try next spider instance".format(e)))
+
+        raise DBMetaException(message=_("get primary failed on all spider instances"))
 
     @classmethod
     def get_cluster_stats(cls, bk_biz_id, cluster_types) -> dict:
