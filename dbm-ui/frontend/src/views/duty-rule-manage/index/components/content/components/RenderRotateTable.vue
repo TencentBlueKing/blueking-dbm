@@ -15,12 +15,43 @@
   <div class="render-rotate-table-title">
     {{ t('轮值表') }}
   </div>
-  <DbOriginalTable
-    class="render-rotate-table-box"
-    :columns="columns"
+  <BkTable
     :data="tableData"
     :max-height="300"
-    @scroll-bottom="handleScrollToBottom" />
+    :show-overflow="false"
+    @scroll-bottom="handleScrollToBottom">
+    <BkTableColumn
+      field="dateTime"
+      :label="t('日期')"
+      :min-width="120">
+      <template #default="{ data: rowData }: { data: RowData }">
+        <div class="date">
+          {{ rowData.dateTime }}
+          <MiniTag
+            v-if="rowData.dateTime === dayjs(new Date()).format('YYYY-MM-DD')"
+            :content="t('今日')"
+            theme="info" />
+        </div>
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      field="timeRange"
+      :label="t('时段')"
+      :min-width="200" />
+    <BkTableColumn
+      field="peoples"
+      :label="t('轮值人员')">
+      <template #default="{ data: rowData }: { data: RowData }">
+        <div class="peoples">
+          <BkTag
+            v-for="item in rowData.peoples"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </div>
+      </template>
+    </BkTableColumn>
+  </BkTable>
 </template>
 
 <script setup lang="tsx">
@@ -86,50 +117,6 @@
     }));
   });
 
-  const columns = [
-    {
-      field: 'dateTime',
-      label: t('日期'),
-      minWidth: 120,
-      render: ({ data }: { data: RowData }) => {
-        let tag = null;
-        const today = dayjs(new Date()).format('YYYY-MM-DD');
-        if (data.dateTime === today) {
-          tag = (
-            <MiniTag
-              content={t('今日')}
-              theme='info'
-            />
-          );
-        }
-        return (
-          <div class='date'>
-            {data.dateTime}
-            {tag}
-          </div>
-        );
-      },
-    },
-    {
-      field: 'timeRange',
-      label: t('时段'),
-      minWidth: 200,
-      render: ({ data }: { data: RowData }) => data.timeRange.join(' , '),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'peoples',
-      label: t('轮值人员'),
-      render: ({ data }: { data: RowData }) => (
-        <div class='peoples'>
-          {data.peoples.map((item) => (
-            <bk-tag>{item}</bk-tag>
-          ))}
-        </div>
-      ),
-    },
-  ];
-
   const handleScrollToBottom = () => {
     if (props.data.duty_arranges.length > 8) {
       isShowAllData.value = true;
@@ -142,12 +129,5 @@
     margin-bottom: 17px;
     font-weight: 700;
     color: #313238;
-  }
-
-  .render-rotate-table-box {
-    :deep(.peoples) {
-      display: flex;
-      flex-wrap: wrap;
-    }
   }
 </style>
