@@ -7,48 +7,46 @@
     :theme="theme"
     :value="modelValue"
     @change="handleAppChange">
-    <template #value="{ data }">
-      <div>
-        <span>{{ data.name }}</span>
-        <span> (#{{ data.bk_biz_id }}</span>
-        <template v-if="data.english_name">, {{ data.english_name }}</template>
-        <span>)</span>
-      </div>
+    <template #value="{ data }: { data: IAppItem }">
+      <slot
+        :data="data"
+        name="value">
+        <TextOverflowLayout>
+          {{ data.name }} (#{{ data.bk_biz_id }} {{ data.english_name ? `, ${data.english_name}` : '' }})
+        </TextOverflowLayout>
+      </slot>
     </template>
     <template #default="{ data }">
       <AuthTemplate
+        v-if="permissionActionId"
         :action-id="permissionActionId"
         :biz-id="data.bk_biz_id"
         :permission="data.permission[permissionActionId]"
-        :resource="data.bk_biz_id"
-        style="flex: 1">
+        :resource="data.bk_biz_id">
         <template #default="{ permission }">
           <div
             class="db-app-select-item"
             :class="{ 'not-permission': !permission }"
             :data-id="permissionActionId">
-            <RenderItem :data="data" />
-            <div style="margin-left: auto">
-              <DbIcon
-                v-if="favorBizIdMap[data.bk_biz_id]"
-                class="unfavor-btn"
-                style="color: #ffb848"
-                type="star-fill"
-                @click.stop="handleUnfavor(data.bk_biz_id)" />
-              <DbIcon
-                v-else
-                class="favor-btn"
-                type="star"
-                @click.stop="handleFavor(data.bk_biz_id)" />
-            </div>
+            <RenderItem
+              v-model:favor-biz-id-map="favorBizIdMap"
+              :data="data" />
           </div>
         </template>
       </AuthTemplate>
+      <div
+        v-else
+        class="db-app-select-item">
+        <RenderItem
+          v-model:favor-biz-id-map="favorBizIdMap"
+          :data="data" />
+      </div>
     </template>
   </AppSelect>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
+  import type { VNode } from 'vue';
   import { computed, shallowRef } from 'vue';
 
   import AppSelect from '@blueking/app-select';
@@ -59,9 +57,11 @@
 
   import { UserPersonalSettings } from '@common/const';
 
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
+
   import { encodeRegexp, makeMap } from '@utils';
 
-  import '@blueking/app-select/dist/style.css';
+  import '@blueking/app-select/dist/app-select.css';
 
   import RenderItem from './RenderItem.vue';
 
@@ -72,6 +72,7 @@
     permissionActionId?: string;
     theme?: string;
   }
+
   type Emits = (e: 'change', value: IAppItem) => void;
 
   const props = withDefaults(defineProps<Props>(), {
@@ -80,6 +81,10 @@
   });
 
   const emits = defineEmits<Emits>();
+
+  defineSlots<{
+    value?: (params: { data: IAppItem }) => VNode;
+  }>();
 
   const modelValue = defineModel<IAppItem>();
 
@@ -99,33 +104,15 @@
     modelValue.value = appInfo;
     emits('change', appInfo);
   };
-
-  const handleUnfavor = (bizId: number) => {
-    const lastFavorBizIdMap = { ...favorBizIdMap.value };
-    delete lastFavorBizIdMap[bizId];
-    favorBizIdMap.value = lastFavorBizIdMap;
-
-    userProfile.updateProfile({
-      label: UserPersonalSettings.APP_FAVOR,
-      values: Object.keys(lastFavorBizIdMap),
-    });
-  };
-
-  const handleFavor = (bizId: number) => {
-    favorBizIdMap.value = {
-      ...favorBizIdMap.value,
-      [bizId]: true,
-    };
-    userProfile.updateProfile({
-      label: UserPersonalSettings.APP_FAVOR,
-      values: Object.keys(favorBizIdMap.value),
-    });
-  };
 </script>
 <style lang="less">
   .bk-app-select-menu[data-theme='dark'] {
     .bk-app-select-menu-filter input {
       color: #c4c6cc;
+    }
+
+    .bk-app-select-menu-item > span {
+      width: 100%;
     }
 
     .not-permission {
@@ -144,43 +131,6 @@
     align-items: center;
     width: 100%;
     user-select: none;
-
-    &:hover {
-      .favor-btn {
-        opacity: 100%;
-      }
-    }
-
-    .favor-btn {
-      opacity: 0%;
-      transition: all 0.1s;
-    }
-
-    .db-app-select-text {
-      display: flex;
-      flex: 1;
-      padding-right: 12px;
-      overflow: hidden;
-    }
-
-    .db-app-select-name {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .db-app-select-desc {
-      display: flex;
-      overflow: hidden;
-      color: #979ba5;
-      white-space: nowrap;
-    }
-
-    .db-app-select-en-name {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      flex: 0 1 auto;
-    }
   }
 
   .db-app-select-tooltips {
