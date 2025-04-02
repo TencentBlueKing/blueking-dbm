@@ -4,7 +4,7 @@
       v-for="(clusterId, index) in selectedClusters"
       :key="clusterId"
       class="tab-item"
-      :class="{ 'item-selected': clusterId === modelValue }"
+      :class="{ 'item-selected': clusterId === localClusterId }"
       @click="() => handleActiveTab(clusterId)">
       <div class="active-bar"></div>
       <div class="tab-item-content">
@@ -30,8 +30,7 @@
       class="add-icon-main">
       <DbIcon
         class="add-icon"
-        type="increase"
-        @click="handleClickAddIcon" />
+        type="increase" />
     </div>
   </div>
   <div style="display: none">
@@ -40,24 +39,28 @@
       class="webconsole-select-clusters"
       :style="{ height: clustersPanelHeight }">
       <div class="title">{{ t('连接的集群') }}</div>
-      <BkSelect
-        ref="clutersRef"
-        class="clusters-select"
-        disable-focus-behavior
-        filterable
-        :model-value="selectedClusters"
-        multiple
-        :popover-options="{ disableTeleport: true }"
-        @change="handleClusterSelectChange">
-        <template #trigger>
-          <span></span>
-        </template>
-        <BkOption
-          v-for="item in clusterList"
-          :key="item.id"
-          :name="item.immute_domain"
-          :value="item.id" />
-      </BkSelect>
+      <div class="clusters-select">
+        <BkInput
+          v-model="searchValue"
+          behavior="simplicity"
+          class="cluster-select-search"
+          :placeholder="t('请输入关键字')">
+          <template #prefix>
+            <DbIcon
+              class="input-icon"
+              type="search" />
+          </template>
+        </BkInput>
+        <ul class="cluster-select-warpper">
+          <li
+            v-for="item in renderOptions"
+            :key="item.id"
+            class="cluster-select-option"
+            @click="handleClusterSelectChange([item.id])">
+            {{ item.immute_domain }}
+          </li>
+        </ul>
+      </div>
     </div>
   </div>
 </template>
@@ -96,20 +99,16 @@
   const { t } = useI18n();
   const route = useRoute();
 
-  const modelValue = defineModel({
-    default: 0 as number,
-    type: Number,
-  });
-
   const routeClusterId = route.query.clusterId;
   let clustersRaw: ClusterItem[] = [];
   let tippyIns: Instance | undefined;
 
-  const clutersRef = ref();
   const addTabRef = ref();
   const popRef = ref();
+  const localClusterId = ref(0);
   const clustersMap = ref<Record<number, ClusterItem>>({});
   const selectedClusters = ref<number[]>([]);
+  const searchValue = ref('');
 
   const clustersPanelHeight = computed(() => {
     if (!clusterList.value) {
@@ -121,6 +120,10 @@
     const height = 288 - (6 - clusterList.value.length) * 32;
     return `${height}px`;
   });
+
+  const renderOptions = computed(() =>
+    clusterList.value?.filter((item) => item.immute_domain.indexOf(searchValue.value) !== -1),
+  );
 
   const { data: clusterList } = useRequest(queryAllTypeCluster, {
     defaultParams: [
@@ -158,7 +161,7 @@
     }
     const id = ids.pop()!;
     selectedClusters.value.push(id);
-    modelValue.value = id;
+    localClusterId.value = id;
     emits('change', clustersMap.value[id]);
     updateClusterSelect();
     tippyIns?.hide();
@@ -169,7 +172,7 @@
   };
 
   const handleActiveTab = (id: number) => {
-    modelValue.value = id;
+    localClusterId.value = id;
     emits('change', clustersMap.value[id]);
   };
 
@@ -185,19 +188,13 @@
     const currentClusterId = selectedClusters.value[index];
     selectedClusters.value.splice(index, 1);
     const clusterCount = selectedClusters.value.length;
-    if (currentClusterId === modelValue.value) {
+    if (currentClusterId === localClusterId.value) {
       emits('removeTab', currentClusterId);
       // 关闭当前打开tab
-      modelValue.value = clusterCount === 0 ? 0 : selectedClusters.value[clusterCount - 1];
-      emits('change', clustersMap.value[modelValue.value]);
+      localClusterId.value = clusterCount === 0 ? 0 : selectedClusters.value[clusterCount - 1];
+      emits('change', clustersMap.value[localClusterId.value]);
     }
     updateClusterSelect();
-  };
-
-  const handleClickAddIcon = () => {
-    setTimeout(() => {
-      clutersRef.value.showPopover();
-    });
   };
 
   onMounted(() => {
@@ -209,14 +206,6 @@
       interactive: true,
       maxWidth: 'none',
       offset: [0, 0],
-      onHide() {
-        clutersRef.value.hidePopover();
-      },
-      onShow() {
-        setTimeout(() => {
-          clutersRef.value.showPopover();
-        });
-      },
       placement: 'bottom-start',
       theme: 'light',
       trigger: 'mouseenter click',
@@ -245,10 +234,42 @@
     padding: 0 !important;
 
     .clusters-select {
-      .bk-select-popover {
-        border: none;
-        transform: translate3d(0, 41px, 0);
-        box-shadow: none;
+      margin: 8px;
+
+      .cluster-select-search {
+        border-bottom: 1px solid #eaebf0;
+      }
+
+      .input-icon {
+        display: flex;
+        padding-left: 8px;
+        font-size: 16px;
+        color: #c4c6cc;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .cluster-select-warpper {
+        margin-top: 4px;
+      }
+
+      .cluster-select-option {
+        position: relative;
+        display: flex;
+        height: 32px;
+        overflow: hidden;
+        font-size: 12px;
+        color: #63656e;
+        text-align: left;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        cursor: pointer;
+        user-select: none;
+        align-items: center;
+
+        &:hover {
+          background-color: #f5f7fa;
+        }
       }
     }
 
@@ -366,14 +387,6 @@
       .add-icon {
         font-size: 15px;
         color: #c4c6cc;
-      }
-
-      .clusters-select {
-        .bk-select-popover {
-          border: none;
-          transform: translate3d(0, 41px, 0);
-          box-shadow: none;
-        }
       }
     }
   }
