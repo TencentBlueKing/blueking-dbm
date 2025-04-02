@@ -116,4 +116,16 @@ export default [
     id: 'mongo_data',
     name: t('数据处理'),
   },
+  {
+    children: [
+      {
+        id: 'MongodbWebconsole',
+        name: 'Webconsole',
+        parentId: 'redis_data_query',
+      },
+    ],
+    icon: 'db-icon-search',
+    id: 'mongo_data_query',
+    name: t('数据查询'),
+  },
 ];

@@ -22,6 +22,7 @@
 <script setup lang="ts">
   import { DBTypes } from '@common/const';
 
+  import RenderMongodbContent from './RenderMongodbContent.vue';
   import RenderMysqlContent from './RenderMysqlContent.vue';
   import RenderRedisContent from './RenderRedisContent.vue';
 
@@ -38,6 +39,7 @@
   const emits = defineEmits<Emits>();
 
   const contentMap = {
+    [DBTypes.MONGODB]: RenderMongodbContent,
     [DBTypes.MYSQL]: RenderMysqlContent,
     [DBTypes.REDIS]: RenderRedisContent,
     [DBTypes.TENDBCLUSTER]: RenderMysqlContent,
