@@ -12,96 +12,64 @@
 -->
 
 <template>
-  <BkSelect
-    display-key="display_name"
-    enable-virtual-render
-    filterable
-    id-key="bk_biz_id"
-    :input-search="false"
-    :list="bizList"
-    :model-value="defaultValue"
+  <AppSelect
+    :data="globalBizsStore.bizListWithPublic"
+    :generate-key="(item: IAppItem) => item.bk_biz_id"
+    :generate-name="(item: IAppItem) => item.display_name"
     :placeholder="t('请选择所属业务')"
-    show-selected-icon
+    :search-extension-method="searchExtensionMethod"
+    :value="currentApp"
     @change="handleChange">
-    <!-- <BkOption
-      v-for="bizItem in bizList"
-      :key="bizItem.bk_biz_id"
-      :label="bizItem.display_name"
-      :value="bizItem.bk_biz_id" /> -->
-    <template
-      v-if="simple"
-      #extension>
-      <div class="resourece-pool-serach-item-action">
-        <div
-          class="action-item"
-          @click="handleSubmit">
-          {{ t('确认') }}
-        </div>
-        <div
-          class="action-item"
-          @click="handleCancel">
-          {{ t('取消') }}
-        </div>
-      </div>
-    </template>
-  </BkSelect>
+  </AppSelect>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
+
+  import AppSelect from '@blueking/app-select';
 
   import { getBizs } from '@services/source/cmdb';
 
+  import { useGlobalBizs } from '@stores';
+
+  import { encodeRegexp } from '@utils';
+
+  type IAppItem = ServiceReturnType<typeof getBizs>[number];
+
   interface Props {
     defaultValue?: string;
-    simple?: boolean;
   }
-  interface Emits {
-    (e: 'change', value: Props['defaultValue']): void;
-    (e: 'submit'): void;
-    (e: 'cancel'): void;
-  }
+  type Emits = (e: 'change', value: Props['defaultValue']) => void;
 
-  withDefaults(defineProps<Props>(), {
+  const props = withDefaults(defineProps<Props>(), {
     defaultValue: '',
-    simple: false,
   });
 
   const emits = defineEmits<Emits>();
 
-  defineOptions({
-    inheritAttrs: false,
-  });
-
   const { t } = useI18n();
+  const globalBizsStore = useGlobalBizs();
 
-  const bizList = shallowRef<
-    {
-      bk_biz_id: string;
-      display_name: string;
-    }[]
-  >([]);
+  const currentApp = shallowRef<IAppItem>();
 
-  useRequest(getBizs, {
-    onSuccess(data) {
-      bizList.value = [
-        { bk_biz_id: '0', display_name: t('公共资源池') },
-        ...data.map((item) => ({
-          bk_biz_id: `${item.bk_biz_id}`,
-          display_name: item.display_name,
-        })),
-      ];
+  watch(
+    () => props.defaultValue,
+    () => {
+      if (props.defaultValue) {
+        currentApp.value = globalBizsStore.bizIdMap.get(Number(props.defaultValue));
+      }
     },
-  });
+    {
+      immediate: true,
+    },
+  );
 
-  const handleSubmit = () => {
-    emits('submit');
-  };
-  const handleCancel = () => {
-    emits('cancel');
+  const searchExtensionMethod = (data: IAppItem, keyword: string) => {
+    const rule = new RegExp(encodeRegexp(keyword), 'i');
+    return rule.test(data.english_name);
   };
 
-  const handleChange = (value: Props['defaultValue']) => {
-    emits('change', value);
+  const handleChange = (appInfo: IAppItem) => {
+    currentApp.value = appInfo;
+    emits('change', String(appInfo.bk_biz_id));
   };
 </script>

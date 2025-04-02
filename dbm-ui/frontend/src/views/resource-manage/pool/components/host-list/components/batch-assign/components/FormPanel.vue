@@ -35,17 +35,15 @@
         :label="t('所属业务')"
         property="for_biz"
         required>
-        <BkSelect
-          v-model="formData.for_biz"
-          :allow-empty-values="[0]"
+        <AppSelect
+          :data="globalBizsStore.bizListWithPublic"
           :disabled="isBusiness"
-          filterable>
-          <BkOption
-            v-for="bizItem in bizList"
-            :key="bizItem.bk_biz_id"
-            :label="bizItem.display_name"
-            :value="bizItem.bk_biz_id" />
-        </BkSelect>
+          :generate-key="(item: IAppItem) => item.bk_biz_id"
+          :generate-name="(item: IAppItem) => item.display_name"
+          :search-extension-method="searchExtensionMethod"
+          :value="currentApp"
+          @change="handleAppChange">
+        </AppSelect>
       </BkFormItem>
       <BkFormItem
         :label="t('所属DB')"
@@ -75,13 +73,21 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import AppSelect from '@blueking/app-select';
+
   import DbResourceModel from '@services/model/db-resource/DbResource';
   import { getBizs } from '@services/source/cmdb';
   import { fetchDbTypeList } from '@services/source/infras';
   import { listTag } from '@services/source/tag';
   import type { BizItem } from '@services/types';
 
+  import { useGlobalBizs } from '@stores';
+
   import TagSelector from '@views/resource-manage/pool/components/tag-selector/Index.vue';
+
+  import { encodeRegexp } from '@utils';
+
+  type IAppItem = ServiceReturnType<typeof getBizs>[number];
 
   interface Props {
     bizId: number;
@@ -104,6 +110,7 @@
 
   const { t } = useI18n();
   const route = useRoute();
+  const globalBizsStore = useGlobalBizs();
 
   const formRef = useTemplateRef('formRef');
 
@@ -115,6 +122,9 @@
     resource_type: props.currentData?.resourceType || '',
   });
 
+  const currentApp = shallowRef(
+    formData.for_biz !== undefined ? globalBizsStore.bizIdMap.get(formData.for_biz) : undefined,
+  );
   const bizList = shallowRef<ServiceReturnType<typeof getBizs>>([]);
   const dbTypeList = shallowRef<ServiceReturnType<typeof fetchDbTypeList>>([]);
   const tagList = shallowRef<ServiceReturnType<typeof listTag>['results']>([]);
@@ -153,6 +163,16 @@
       tagList.value = data.results;
     },
   });
+
+  const searchExtensionMethod = (data: IAppItem, keyword: string) => {
+    const rule = new RegExp(encodeRegexp(keyword), 'i');
+    return rule.test(data.english_name);
+  };
+
+  const handleAppChange = (appInfo: IAppItem) => {
+    currentApp.value = appInfo;
+    formData.for_biz = appInfo.bk_biz_id;
+  };
 
   defineExpose<Expose>({
     getValue() {
