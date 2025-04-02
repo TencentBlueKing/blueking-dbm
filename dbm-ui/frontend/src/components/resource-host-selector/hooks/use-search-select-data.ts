@@ -3,7 +3,7 @@ import { useI18n } from 'vue-i18n';
 import { useRequest } from 'vue-request';
 
 import { fetchDiskTypes, fetchMountPoints, getOsTypeList } from '@services/source/dbresourceResource';
-import { fetchDbTypeList } from '@services/source/infras';
+import { fetchDbTypeList, getInfrasCities, getInfrasSubzonesByCity } from '@services/source/infras';
 import { getCloudList } from '@services/source/ipchooser';
 
 import { useGlobalBizs } from '@stores';
@@ -17,71 +17,88 @@ export default (props: any) => {
   const globalBizsStore = useGlobalBizs();
 
   const value = ref<SearchValue[]>([]);
+  const columnFilterValue = reactive<Record<string, string>>({});
 
   const searchSelectData = computed(() => {
     const serachList = [
       {
-        name: 'IP',
         id: 'hosts',
+        name: 'IP',
       },
       {
-        name: t('所属业务'),
-        id: 'for_biz',
         children: globalBizsStore.bizs.map((item) => ({
           id: `${item.bk_biz_id}`,
           name: item.name,
         })),
+        id: 'for_biz',
+        name: t('所属业务'),
       },
       {
-        name: t('所属DB类型'),
-        id: 'resource_type',
         children: [{ id: 'PUBLIC', name: t('通用') }].concat(dbTypeList.value ?? []),
+        id: 'resource_type',
+        name: t('所属DB类型'),
       },
       {
-        name: t('管控区域'),
-        id: 'bk_cloud_ids',
         children: cloudList.value?.map((item) => ({
           id: item.bk_cloud_id,
           name: item.bk_cloud_name,
         })),
+        id: 'bk_cloud_ids',
+        name: t('管控区域'),
       },
       {
-        name: t('Agent 状态'),
-        id: 'agent_status',
         children: [
           {
-            name: t('正常'),
             id: '1',
+            name: t('正常'),
           },
           {
-            name: t('异常'),
             id: '0',
+            name: t('异常'),
           },
         ],
+        id: 'agent_status',
+        name: t('Agent 状态'),
       },
       {
-        name: t('操作系统类型'),
-        id: 'mount_point',
         children: osTypeList.value?.map((item) => ({
           id: item,
           name: item,
         })),
+        id: 'mount_point',
+        name: t('操作系统类型'),
       },
       {
-        name: t('磁盘挂载点'),
-        id: 'mount_point',
         children: mountPointList.value?.map((item) => ({
           id: item,
           name: item,
         })),
+        id: 'mount_point',
+        name: t('磁盘挂载点'),
       },
       {
-        name: t('磁盘类型'),
-        id: 'disk_type',
         children: diskTypeList.value?.map((item) => ({
           id: item,
           name: item,
         })),
+        id: 'disk_type',
+        name: t('磁盘类型'),
+      },
+      {
+        children: cityList.value?.map((item) => ({
+          id: item.city_code,
+          name: item.city_name,
+        })),
+        id: 'city',
+        name: t('地域'),
+      },
+      {
+        children: subzoneList.value?.map((item) => ({
+          id: item.bk_sub_zone_id,
+          name: item.bk_sub_zone,
+        })),
+        id: 'sub_zone',
+        name: t('园区'),
       },
     ];
 
@@ -105,8 +122,8 @@ export default (props: any) => {
   const { data: osTypeList } = useRequest(getOsTypeList, {
     defaultParams: [
       {
-        offset: 0,
         limit: -1,
+        offset: 0,
       },
     ],
     initialData: [],
@@ -116,9 +133,54 @@ export default (props: any) => {
     initialData: [],
   });
 
+  const cityList = shallowRef<ServiceReturnType<typeof getInfrasCities>>([]);
+  useRequest(getInfrasCities, {
+    onSuccess(data) {
+      cityList.value = data.filter((item) => item.city_code !== 'default');
+    },
+  });
+
+  const { data: subzoneList } = useRequest(getInfrasSubzonesByCity, {
+    initialData: [],
+  });
+
+  const filterOption = computed(() => ({
+    city: {
+      checked: [],
+      list: (cityList.value || []).map((item) => ({
+        text: item.city_name,
+        value: item.city_code,
+      })),
+    },
+    device_class: {
+      checked: [],
+      list: [],
+    },
+    os_name: {
+      checked: [],
+      list: [],
+    },
+    sub_zone: {
+      checked: [],
+      list: (subzoneList.value || []).map((item) => ({
+        text: item.bk_sub_zone,
+        value: item.bk_sub_zone_id,
+      })),
+    },
+  }));
+
+  const handleFilter = ({ checked, field }: { checked: string[]; field: string }) => {
+    Object.assign(columnFilterValue, {
+      [field]: checked.length ? checked.join(',') : undefined,
+    });
+  };
+
   return {
-    value,
-    searchSelectData,
+    columnFilterValue,
+    filterOption,
     formatSearchValue,
+    handleFilter,
+    searchSelectData,
+    value,
   };
 };

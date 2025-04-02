@@ -16,7 +16,8 @@
           ref="table"
           :container-height="contentHeight"
           :data-source="dataSource"
-          :height="contentHeight">
+          :height="contentHeight"
+          @column-filter="handleFilter">
           <BkTableColumn
             fixed="left"
             :resizable="false"
@@ -60,10 +61,12 @@
           </BkTableColumn>
           <BkTableColumn
             field="city"
+            :filter="filterOption.city"
             :label="t('地域')"
             :min-width="120" />
           <BkTableColumn
             field="sub_zone"
+            :filter="filterOption.sub_zone"
             :label="t('园区')"
             :min-width="120" />
           <BkTableColumn
@@ -72,10 +75,12 @@
             :min-width="120" />
           <BkTableColumn
             field="os_name"
+            :filter="filterOption.os_name"
             :label="t('操作系统名称')"
             :min-width="180" />
           <BkTableColumn
             field="device_class"
+            :filter="filterOption.device_class"
             :label="t('机型')"
             :min-width="120" />
         </DbTable>
@@ -158,7 +163,14 @@
   const contentHeight = window.innerHeight * 0.8 - 100;
 
   const { t } = useI18n();
-  const { formatSearchValue, searchSelectData, value: searchSelectValue } = useSearchSelectData(props);
+  const {
+    columnFilterValue,
+    filterOption,
+    formatSearchValue,
+    handleFilter,
+    searchSelectData,
+    value: searchSelectValue,
+  } = useSearchSelectData(props);
   const dbTableRef = useTemplateRef('table');
   const currentPanelTab = ref('host');
   const rowSelectMemo = shallowRef<Record<number, DbResourceModel>>({});
@@ -175,6 +187,15 @@
 
   watch(searchSelectValue, () => {
     dbTableRef.value?.fetchData(formatSearchValue.value);
+  });
+
+  watch(columnFilterValue, () => {
+    console.log(columnFilterValue, 'columnFilterValue');
+
+    dbTableRef.value?.fetchData({
+      ...formatSearchValue.value,
+      ...columnFilterValue,
+    });
   });
 
   watch(isShow, () => {
