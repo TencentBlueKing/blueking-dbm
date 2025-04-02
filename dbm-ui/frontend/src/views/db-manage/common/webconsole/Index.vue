@@ -62,6 +62,7 @@
 
   import ClearScreen from './components/ClearScreen.vue';
   import ClusterTabs, { type ClusterItem } from './components/ClusterTabs.vue';
+  import MongodbConsolePanel from './components/console-panel/mongodb/Index.vue';
   import MysqlConsolePanel from './components/console-panel/mysql/Index.vue';
   import RedisConsolePanel from './components/console-panel/redis/Index.vue';
   import ExportData from './components/ExportData.vue';
@@ -81,6 +82,7 @@
   const { t } = useI18n();
 
   const consolePanelMap = {
+    [DBTypes.MONGODB]: MongodbConsolePanel,
     [DBTypes.MYSQL]: MysqlConsolePanel,
     [DBTypes.REDIS]: RedisConsolePanel,
     [DBTypes.TENDBCLUSTER]: MysqlConsolePanel,
