@@ -9,7 +9,6 @@ declare module 'vue' {
     BkTable: typeof import('@blueking/table/typings/BkTable.vue');
     BkTableColumn: typeof import('@blueking/table/typings/BkTableColumn.vue');
     BkTableColumn: typeof import('@blueking/table/typings/BkTableColumn.vue');
-    DbAppSelect: typeof import('@components/db-app-select/Index.vue').default;
     DbCard: typeof import('@components/db-card/index.vue').default;
     DbForm: typeof import('@components/db-form/index.vue').default;
     DbIcon: typeof import('@components/db-icon/index.ts').default;

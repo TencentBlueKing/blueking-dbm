@@ -20,6 +20,20 @@ import { useUserProfile } from '@stores';
 
 import { UserPersonalSettings } from '@common/const';
 
+import { t } from '@locales/index';
+
+const PUBLIC_BIZ_INFO = {
+  bk_biz_id: 0,
+  display_name: t('公共资源池'),
+  english_name: '',
+  name: t('公共资源池'),
+  permission: {
+    db_manage: true,
+  },
+  pinyin_head: '',
+  pinyin_name: '',
+};
+
 export const useGlobalBizs = defineStore('GlobalBizs', {
   state: () => ({
     bizs: [] as BizItem[],
@@ -29,11 +43,15 @@ export const useGlobalBizs = defineStore('GlobalBizs', {
   }),
   getters: {
     bizIdMap: (state) =>
-      state.bizs.reduce<Map<number, BizItem>>((map, biz) => {
+      [PUBLIC_BIZ_INFO].concat(state.bizs).reduce<Map<number, BizItem>>((map, biz) => {
         map.set(biz.bk_biz_id, biz);
         return map;
       }, new Map()),
+    bizListWithPublic: (state) => {
+      return [PUBLIC_BIZ_INFO].concat(state.bizs);
+    },
     currentBizInfo: (state): BizItem | undefined => state.bizs.find((item) => item.bk_biz_id === state.currentBizId),
+    publicBiz: () => PUBLIC_BIZ_INFO,
   },
   actions: {
     changeBizId(id: number) {

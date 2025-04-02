@@ -23,7 +23,12 @@
           {{ t('全局') }}
         </BkTag>
         <span class="title-divider">|</span>
-        <BusinessSelector @change="handleBizChange" />
+        <DbAppSelect
+          :list="bizs"
+          :model-value="curBiz"
+          type="text"
+          @change="handleBizChange">
+        </DbAppSelect>
       </div>
       <div
         v-else
@@ -89,28 +94,32 @@
   import { useRequest } from 'vue-request';
 
   import ResourceTagModel from '@services/model/db-resource/ResourceTag';
+  import { getBizs } from '@services/source/cmdb';
   import { deleteTag, getTagRelatedResource, listTag, updateTag, validateTag } from '@services/source/tag';
 
   import { useGlobalBizs } from '@stores';
 
-  import BusinessSelector from '@views/tag-manage/components/BusinessSelector.vue';
+  import DbAppSelect from '@components/db-app-select/Index.vue';
+
   import CreateTag from '@views/tag-manage/components/CreateTag.vue';
   import EditableCell from '@views/tag-manage/components/EditableCell.vue';
 
   import { getSearchSelectorParams, messageSuccess } from '@utils';
 
+  type IAppItem = ServiceReturnType<typeof getBizs>[number];
+
   const { t } = useI18n();
-  const { bizIdMap, currentBizInfo } = useGlobalBizs();
+  const { bizs, currentBizInfo } = useGlobalBizs();
   const route = useRoute();
   const router = useRouter();
 
   const tableRef = ref();
   const selected = ref<ResourceTagModel[]>([]);
   const isCreateTagDialogShow = ref(false);
-  const curBiz = ref(currentBizInfo);
   const curEditId = ref(-1);
   const searchValue = ref([]);
 
+  const curBiz = shallowRef(currentBizInfo);
   const bindIpMap = shallowRef<Map<number, number>>(new Map()); // 标签ID与当前标签绑定的IP数的映射
 
   const isBusiness = route.name === 'BizResourceTag';
@@ -332,8 +341,8 @@
     });
   };
 
-  const handleBizChange = (bkBizId: number) => {
-    curBiz.value = bizIdMap.get(bkBizId)!;
+  const handleBizChange = (appInfo?: IAppItem) => {
+    curBiz.value = appInfo;
     fetchData();
   };
 

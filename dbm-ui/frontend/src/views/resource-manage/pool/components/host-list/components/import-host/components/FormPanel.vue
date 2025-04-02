@@ -97,19 +97,13 @@
           :label="t('所属业务')"
           property="for_biz"
           required>
-          <div class="com-input">
-            <BkSelect
-              v-model="formData.for_biz"
-              :allow-empty-values="[0]"
-              :disabled="isBusiness"
-              filterable>
-              <BkOption
-                v-for="bizItem in bizList"
-                :key="bizItem.bk_biz_id"
-                :label="bizItem.display_name"
-                :value="bizItem.bk_biz_id" />
-            </BkSelect>
-          </div>
+          <DbAppSelect
+            :disabled="isBusiness"
+            :list="globalBizsStore.bizs"
+            :model-value="currentApp"
+            :show-public-biz="!isBusiness"
+            @change="handleAppChange">
+          </DbAppSelect>
         </BkFormItem>
         <BkFormItem
           :label="t('所属DB类型')"
@@ -148,18 +142,23 @@
   import { getBizs } from '@services/source/cmdb';
   import { fetchDbTypeList } from '@services/source/infras';
   import { listTag } from '@services/source/tag';
-  import type { BizItem, HostInfo } from '@services/types';
+  import type { HostInfo } from '@services/types';
 
   import { useGlobalBizs } from '@stores';
+
+  import DbAppSelect from '@components/db-app-select/Index.vue';
 
   import TagSelector from '@views/resource-manage/pool/components/tag-selector/Index.vue';
 
   import { execCopy, messageWarn } from '@utils';
 
+  type IAppItem = ServiceReturnType<typeof getBizs>[number];
+
   interface Props {
     hostList: HostInfo[];
   }
   type Emits = (e: 'update:hostList', value: Props['hostList']) => void;
+
   interface Expose {
     getValue: () => Promise<UnwrapRef<typeof formData>>;
   }
@@ -181,21 +180,11 @@
     resource_type: '',
   });
 
-  const bizList = shallowRef<ServiceReturnType<typeof getBizs>>([]);
   const dbTypeList = shallowRef<ServiceReturnType<typeof fetchDbTypeList>>([]);
   const tagList = shallowRef<ServiceReturnType<typeof listTag>['results']>([]);
-
-  useRequest(getBizs, {
-    onSuccess(data) {
-      bizList.value = [
-        {
-          bk_biz_id: 0,
-          display_name: t('公共资源池'),
-        } as BizItem,
-        ...data,
-      ];
-    },
-  });
+  const currentApp = shallowRef(
+    formData.for_biz !== undefined ? globalBizsStore.bizIdMap.get(formData.for_biz) : undefined,
+  );
 
   useRequest(fetchDbTypeList, {
     onSuccess(data) {
@@ -293,6 +282,11 @@
     }, []);
 
     emits('update:hostList', hostListResult);
+  };
+
+  const handleAppChange = (appInfo?: IAppItem) => {
+    currentApp.value = appInfo;
+    formData.for_biz = appInfo!.bk_biz_id;
   };
 
   defineExpose<Expose>({

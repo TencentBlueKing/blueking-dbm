@@ -12,6 +12,7 @@
       v-bk-tooltips="{
         content: overflowTips,
         disabled: !overflowTips,
+        extCls: 'text-overflow-layout-tooltips',
       }"
       class="layout-content">
       <div>
@@ -61,6 +62,12 @@
     });
   });
 </script>
+
+<style lang="less">
+  .text-overflow-layout-tooltips {
+    z-index: 999999 !important;
+  }
+</style>
 <style lang="less">
   .text-overflow-layout {
     display: flex;

@@ -18,7 +18,7 @@
     "prettier": "prettier --write ./src"
   },
   "dependencies": {
-    "@blueking/app-select": "0.0.1-beta.12",
+    "@blueking/app-select": "0.0.1-beta.18",
     "@blueking/bk-trace-core": "0.0.2",
     "@blueking/bk-weweb": "0.0.26",
     "@blueking/bkflow.js": "0.1.11",

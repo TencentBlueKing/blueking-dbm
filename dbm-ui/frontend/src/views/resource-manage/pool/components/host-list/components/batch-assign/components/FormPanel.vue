@@ -35,17 +35,13 @@
         :label="t('所属业务')"
         property="for_biz"
         required>
-        <BkSelect
-          v-model="formData.for_biz"
-          :allow-empty-values="[0]"
+        <DbAppSelect
           :disabled="isBusiness"
-          filterable>
-          <BkOption
-            v-for="bizItem in bizList"
-            :key="bizItem.bk_biz_id"
-            :label="bizItem.display_name"
-            :value="bizItem.bk_biz_id" />
-        </BkSelect>
+          :list="globalBizsStore.bizs"
+          :model-value="currentApp"
+          :show-public-biz="!isBusiness"
+          @change="handleAppChange">
+        </DbAppSelect>
       </BkFormItem>
       <BkFormItem
         :label="t('所属DB')"
@@ -81,7 +77,13 @@
   import { listTag } from '@services/source/tag';
   import type { BizItem } from '@services/types';
 
+  import { useGlobalBizs } from '@stores';
+
+  import DbAppSelect from '@components/db-app-select/Index.vue';
+
   import TagSelector from '@views/resource-manage/pool/components/tag-selector/Index.vue';
+
+  type IAppItem = ServiceReturnType<typeof getBizs>[number];
 
   interface Props {
     bizId: number;
@@ -104,6 +106,7 @@
 
   const { t } = useI18n();
   const route = useRoute();
+  const globalBizsStore = useGlobalBizs();
 
   const formRef = useTemplateRef('formRef');
 
@@ -115,6 +118,9 @@
     resource_type: props.currentData?.resourceType || '',
   });
 
+  const currentApp = shallowRef(
+    formData.for_biz !== undefined ? globalBizsStore.bizIdMap.get(formData.for_biz) : undefined,
+  );
   const bizList = shallowRef<ServiceReturnType<typeof getBizs>>([]);
   const dbTypeList = shallowRef<ServiceReturnType<typeof fetchDbTypeList>>([]);
   const tagList = shallowRef<ServiceReturnType<typeof listTag>['results']>([]);
@@ -153,6 +159,11 @@
       tagList.value = data.results;
     },
   });
+
+  const handleAppChange = (appInfo?: IAppItem) => {
+    currentApp.value = appInfo;
+    formData.for_biz = appInfo!.bk_biz_id;
+  };
 
   defineExpose<Expose>({
     getValue() {
