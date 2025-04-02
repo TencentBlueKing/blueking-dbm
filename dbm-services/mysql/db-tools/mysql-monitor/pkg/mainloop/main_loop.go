@@ -11,6 +11,7 @@ package mainloop
 
 import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/update_monitor_config"
 	"fmt"
 	"log/slog"
 	"math/rand"
@@ -78,6 +79,23 @@ func Run(hardcode bool) error {
 	}()
 	slog.Info("main loop get lock success", slog.String("lockFilePath", lockFilePath))
 
+	if hardcode && slices.Index(iNames, "update-monitor-config") >= 0 {
+		msg, err := (&update_monitor_config.Checker{}).Run()
+		if err != nil {
+			slog.Error(
+				"main loop",
+				slog.String("error", err.Error()))
+			utils.SendMonitorEvent(
+				"monitor-internal-error",
+				fmt.Sprintf("update-monitor-config failed, %s", err.Error()),
+			)
+		}
+		if msg != "" {
+			slog.Info("main loop", slog.String("msg", msg))
+			utils.SendMonitorEvent("update-monitor-config", msg)
+		}
+	}
+
 	if hardcode && slices.Index(iNames, config.HeartBeatName) >= 0 {
 		utils.SendMonitorMetrics(config.HeartBeatName, 1, nil)
 	}
@@ -94,7 +112,7 @@ func Run(hardcode bool) error {
 	}()
 	cc.InitItemOptions() // set item custom options to runner
 
-	slog.Debug("make connection collect", slog.Any("connection collect", cc))
+	slog.Info("make connection collect", slog.Any("connection collect", cc))
 
 	if hardcode {
 		return nil

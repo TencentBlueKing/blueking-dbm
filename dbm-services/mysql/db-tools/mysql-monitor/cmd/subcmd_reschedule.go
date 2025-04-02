@@ -45,6 +45,7 @@ var subCmdReschedule = &cobra.Command{
 
 		config.InjectMonitorDbUpItem()
 		config.InjectMonitorHeartBeatItem()
+		config.InjectUpdateMonitorConfigItem()
 
 		err = config.WriteMonitorItemsBack()
 		if err != nil {

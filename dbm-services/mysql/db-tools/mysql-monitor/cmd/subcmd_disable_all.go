@@ -57,6 +57,7 @@ var subCmdDisableAll = &cobra.Command{
 			config.InjectMonitorDbUpItem()
 		}
 		config.InjectMonitorHeartBeatItem()
+		config.InjectUpdateMonitorConfigItem()
 
 		slog.Info("disable-all",
 			slog.String("staff", viper.GetString("staff")))

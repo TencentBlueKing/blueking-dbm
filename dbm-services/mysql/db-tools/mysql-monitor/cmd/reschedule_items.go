@@ -43,7 +43,7 @@ func reschedule(configFileDir, configFileName, staff string) error {
 	itemGroups := make(map[string][]*config.MonitorItem)
 	for _, ele := range config.ItemsConfig {
 		// 硬编码监控项先排除掉
-		if ele.Name == "db-up" || ele.Name == config.HeartBeatName {
+		if ele.Name == "db-up" || ele.Name == config.HeartBeatName || ele.Name == "update-monitor-config" {
 			if ele.IsEnable() {
 				hardCodeItems = append(hardCodeItems, ele)
 			}

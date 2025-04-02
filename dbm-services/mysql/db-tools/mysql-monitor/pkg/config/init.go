@@ -1,12 +1,14 @@
 package config
 
 import (
+	acst "dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/gofrs/flock"
 	"gopkg.in/yaml.v2"
 )
 
@@ -15,6 +17,7 @@ var HeartBeatSchedule = "@every 5m"
 var MonitorConfig *Config
 var ItemsConfig []*MonitorItem
 var DBUpSchedule = "@every 10s"
+var UpdateMonitorConfigSchedule = "@every 10m"
 
 // InitConfig 配置初始化
 func InitConfig(configPath string) error {
@@ -29,6 +32,30 @@ func InitConfig(configPath string) error {
 		configPath = filepath.Join(cwd, configPath)
 	}
 	fmt.Printf("config path: %s\n", configPath)
+
+	lockFileName := fmt.Sprintf("%s.lock", filepath.Base(configPath))
+	lockFileBasePath := filepath.Join(acst.MySQLMonitorInstallPath, "locks")
+	err := os.MkdirAll(lockFileBasePath, os.ModePerm)
+	if err != nil {
+		slog.Error(
+			"init config",
+			slog.String("dir", lockFileBasePath),
+			slog.String("err", err.Error()),
+		)
+		return err
+	}
+	lockFilePath := filepath.Join(lockFileBasePath, lockFileName)
+	fl := flock.New(lockFilePath)
+
+	// 共享锁
+	err = fl.RLock()
+	if err != nil {
+		slog.Error("init config", slog.String("error", err.Error()))
+		return err
+	}
+	defer func() {
+		_ = fl.Unlock()
+	}()
 
 	content, err := os.ReadFile(configPath)
 	if err != nil {
@@ -91,7 +118,7 @@ func InjectMonitorHeartBeatItem() {
 		Role:        nil,
 	}
 	ItemsConfig = injectItem(heartBeatItem, ItemsConfig)
-	slog.Debug("inject hardcode", slog.Any("items", ItemsConfig))
+	slog.Info("inject hardcode", slog.String("item", HeartBeatName))
 }
 
 func InjectMonitorDbUpItem() {
@@ -104,7 +131,30 @@ func InjectMonitorDbUpItem() {
 		Role:        nil,
 	}
 	ItemsConfig = injectItem(dbUpItem, ItemsConfig)
-	slog.Debug("inject hardcode", slog.Any("items", ItemsConfig))
+	slog.Info("inject hardcode", slog.String("item", "db-up"))
+}
+
+func InjectUpdateMonitorConfigItem() {
+	// 只有主备存储才需要更新配置中的角色
+	if MonitorConfig.MachineType != "backend" && MonitorConfig.MachineType != "remote" {
+		return
+	}
+	slog.Info(
+		"inject hardcode",
+		slog.String("machine_type", MonitorConfig.MachineType),
+		slog.String("name", "update-monitor-config"),
+	)
+
+	enable := true
+	item := &MonitorItem{
+		Name:        "update-monitor-config",
+		Enable:      &enable,
+		Schedule:    &UpdateMonitorConfigSchedule,
+		MachineType: []string{MonitorConfig.MachineType},
+		Role:        nil,
+	}
+	ItemsConfig = injectItem(item, ItemsConfig)
+	slog.Info("inject hardcode", slog.String("item", "update-monitor-config"))
 }
 
 func injectItem(item *MonitorItem, collect []*MonitorItem) (res []*MonitorItem) {
