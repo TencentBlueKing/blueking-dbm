@@ -1,93 +1,103 @@
 <template>
   <AppSelect
-    :data="withFavorBizList"
+    v-bind="{ ...attrs, ...props }"
+    :data="dataList"
     :generate-key="(item: IAppItem) => item.bk_biz_id"
     :generate-name="(item: IAppItem) => item.display_name"
     :search-extension-method="searchExtensionMethod"
-    :theme="theme"
     :value="modelValue"
     @change="handleAppChange">
     <template #value="{ data }">
-      <div>
-        <span>{{ data.name }}</span>
-        <span> (#{{ data.bk_biz_id }}</span>
-        <template v-if="data.english_name">, {{ data.english_name }}</template>
-        <span>)</span>
-      </div>
+      <slot
+        :data="data"
+        name="value">
+        <TextOverflowLayout class="db-select-no-permission-trigger">
+          <span>{{ data.name }}</span>
+          <span> (#{{ data.bk_biz_id }}</span>
+          <span v-if="data.english_name">, {{ data.english_name }}</span>
+          <span>)</span>
+        </TextOverflowLayout>
+      </slot>
     </template>
     <template #default="{ data }">
-      <AuthTemplate
-        :action-id="permissionActionId"
-        :biz-id="data.bk_biz_id"
-        :permission="data.permission[permissionActionId]"
-        :resource="data.bk_biz_id"
-        style="flex: 1">
-        <template #default="{ permission }">
-          <div
-            class="db-app-select-item"
-            :class="{ 'not-permission': !permission }"
-            :data-id="permissionActionId">
-            <RenderItem :data="data" />
-            <div style="margin-left: auto">
-              <DbIcon
-                v-if="favorBizIdMap[data.bk_biz_id]"
-                class="unfavor-btn"
-                style="color: #ffb848"
-                type="star-fill"
-                @click.stop="handleUnfavor(data.bk_biz_id)" />
-              <DbIcon
-                v-else
-                class="favor-btn"
-                type="star"
-                @click.stop="handleFavor(data.bk_biz_id)" />
-            </div>
-          </div>
+      <TextOverflowLayout class="db-select-no-permission-item">
+        <span>{{ data.name }}</span>
+        <span style="color: #979ba5">
+          (#{{ data.bk_biz_id }}{{ data.english_name ? `, ${data.english_name}` : '' }})
+        </span>
+        <template
+          v-if="data.bk_biz_id !== publicBiz.bk_biz_id"
+          #append>
+          <DbIcon
+            v-if="favorBizIdMap[data.bk_biz_id]"
+            class="unfavor-btn ml-4"
+            style="color: #ffb848"
+            type="star-fill"
+            @click.stop="handleUnfavor(data.bk_biz_id)" />
+          <DbIcon
+            v-else
+            class="favor-btn ml-4"
+            type="star"
+            @click.stop="handleFavor(data.bk_biz_id)" />
         </template>
-      </AuthTemplate>
+      </TextOverflowLayout>
     </template>
   </AppSelect>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import { computed, shallowRef } from 'vue';
+  import type { VNode } from 'vue';
+  import { computed } from 'vue';
 
   import AppSelect from '@blueking/app-select';
 
   import { getBizs } from '@services/source/cmdb';
 
-  import { useUserProfile } from '@stores';
+  import { useGlobalBizs, useUserProfile } from '@stores';
 
   import { UserPersonalSettings } from '@common/const';
+
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { encodeRegexp, makeMap } from '@utils';
 
   import '@blueking/app-select/dist/style.css';
 
-  import RenderItem from './RenderItem.vue';
-
   type IAppItem = ServiceReturnType<typeof getBizs>[number];
 
   interface Props {
     list: IAppItem[];
-    permissionActionId?: string;
-    theme?: string;
+    showPublicBiz?: boolean;
   }
-  type Emits = (e: 'change', value: IAppItem) => void;
+
+  type Emits = (e: 'change', value?: IAppItem) => void;
 
   const props = withDefaults(defineProps<Props>(), {
-    permissionActionId: 'db_manage',
-    theme: 'light',
+    showPublicBiz: true,
   });
 
   const emits = defineEmits<Emits>();
 
+  defineSlots<{
+    value?: (params: { data: IAppItem }) => VNode;
+  }>();
+
   const modelValue = defineModel<IAppItem>();
 
+  const attrs = useAttrs();
   const userProfile = useUserProfile();
+  const { publicBiz } = useGlobalBizs();
 
   const favorBizIdMap = shallowRef(makeMap(userProfile.profile[UserPersonalSettings.APP_FAVOR] || []));
 
-  const withFavorBizList = computed(() => _.sortBy(props.list, (item) => favorBizIdMap.value[item.bk_biz_id]));
+  const dataList = computed(() => {
+    const sortedList = _.sortBy(props.list, (item) => favorBizIdMap.value[item.bk_biz_id]);
+
+    if (props.showPublicBiz) {
+      sortedList.unshift(publicBiz);
+    }
+    return sortedList;
+  });
 
   const searchExtensionMethod = (data: IAppItem, keyword: string) => {
     const rule = new RegExp(encodeRegexp(keyword), 'i');
@@ -95,7 +105,7 @@
     return rule.test(data.english_name);
   };
 
-  const handleAppChange = (appInfo: IAppItem) => {
+  const handleAppChange = (appInfo?: IAppItem) => {
     modelValue.value = appInfo;
     emits('change', appInfo);
   };
@@ -122,74 +132,40 @@
     });
   };
 </script>
+
 <style lang="less">
-  .bk-app-select-menu[data-theme='dark'] {
-    .bk-app-select-menu-filter input {
-      color: #c4c6cc;
-    }
-
-    .not-permission {
-      * {
-        color: #70737a !important;
-      }
-
-      .db-app-select-name {
-        color: #c4c6cc;
-      }
-    }
-  }
-
-  .db-app-select-item {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    user-select: none;
-
-    &:hover {
-      .favor-btn {
-        opacity: 100%;
-      }
-    }
-
-    .favor-btn {
-      opacity: 0%;
-      transition: all 0.1s;
-    }
-
-    .db-app-select-text {
-      display: flex;
-      flex: 1;
+  .bk-app-select-value {
+    .db-select-no-permission-trigger {
       padding-right: 12px;
-      overflow: hidden;
-    }
 
-    .db-app-select-name {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      & span {
+        display: inline !important;
+      }
     }
-
-    .db-app-select-desc {
-      display: flex;
-      overflow: hidden;
-      color: #979ba5;
-      white-space: nowrap;
-    }
-
-    .db-app-select-en-name {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      flex: 0 1 auto;
-    }
-  }
-
-  .db-app-select-tooltips {
-    z-index: 1000000 !important;
-    white-space: nowrap;
   }
 
   .tippy-box[data-theme='bk-app-select-menu'] {
-    border: none !important;
-    box-shadow: 0 2px 3px 0 rgb(0 0 0 / 10%) !important;
+    .db-select-no-permission-item {
+      width: 100%;
+
+      .layout-content {
+        width: 100%;
+      }
+
+      & span {
+        display: inline !important;
+      }
+
+      &:hover {
+        .favor-btn {
+          opacity: 100%;
+        }
+      }
+
+      .favor-btn {
+        opacity: 0%;
+        transition: all 0.1s;
+      }
+    }
   }
 </style>

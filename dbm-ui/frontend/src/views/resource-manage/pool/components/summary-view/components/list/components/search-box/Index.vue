@@ -5,9 +5,11 @@
     <BkFormItem
       :label="t('所属业务')"
       required>
-      <Biz
-        :model="searchParams"
-        @change="handleSearch" />
+      <DbAppSelect
+        :list="globalBizsStore.bizs"
+        :model-value="currentApp"
+        @change="handleAppChange">
+      </DbAppSelect>
     </BkFormItem>
     <BkFormItem
       :label="t('所属DB类型')"
@@ -33,12 +35,19 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
+  import { getBizs } from '@services/source/cmdb';
+
   import { useUrlSearch } from '@hooks';
 
-  import Biz from './components/Biz.vue';
+  import { useGlobalBizs } from '@stores';
+
+  import DbAppSelect from '@components/db-app-select/Index.vue';
+
   import Db from './components/Db.vue';
   import Region from './components/Region.vue';
   import Spec from './components/Spec.vue';
+
+  type IAppItem = ServiceReturnType<typeof getBizs>[number];
 
   type Emits = (e: 'search') => void;
 
@@ -46,11 +55,31 @@
 
   const { t } = useI18n();
   const { getSearchParams, replaceSearchParams } = useUrlSearch();
+  const globalBizsStore = useGlobalBizs();
 
   const searchParams = ref(getSearchParams());
 
+  const currentApp = shallowRef<IAppItem>();
+
+  watch(
+    searchParams,
+    () => {
+      if (searchParams.value.for_biz) {
+        currentApp.value = globalBizsStore.bizIdMap.get(Number(searchParams.value.for_biz));
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
+
   const filterEmptyValues = (obj: any): any =>
     _.pickBy(obj, (value) => value !== '' && (!_.isArray(value) || !_.isEmpty(value)));
+
+  const handleAppChange = (appInfo?: IAppItem) => {
+    currentApp.value = appInfo;
+    handleSearch({ for_biz: appInfo!.bk_biz_id });
+  };
 
   const handleSearch = (data = {} as Record<string, string | number>, type?: string, isInit = false) => {
     let params = getSearchParams();
@@ -90,6 +119,7 @@
     display: flex;
 
     :deep(.bk-form-item) {
+      min-width: 0;
       margin-bottom: 0;
 
       .bk-form-label {
