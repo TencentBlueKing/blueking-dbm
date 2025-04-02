@@ -4,7 +4,12 @@
       {{ t('所属业务') }}: {{ isForBiz ? props.data.for_biz.bk_biz_name : t('公共资源池') }}
     </BkTag>
     <BkTag :theme="isForDb ? 'success' : undefined">
-      {{ t('所属DB') }}: {{ isForDb ? DBTypeInfos[data.resource_type as DBTypes].name : t('通用') }}
+      {{ t('所属DB') }}:
+      {{
+        isForDb && DBTypeInfos[data.resource_type as DBTypes]
+          ? DBTypeInfos[data.resource_type as DBTypes].name
+          : t('通用')
+      }}
     </BkTag>
     <BkTag
       v-for="labelItem in data.labels"
