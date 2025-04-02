@@ -359,6 +359,11 @@ func (m *ModifyAdminUserPasswordPara) ModifyAdminPassword() (BatchResult, error)
 		if cluster.BkBizId == nil {
 			return batch, errno.BkBizIdIsEmpty
 		}
+
+		if *cluster.BkBizId == 860 {
+			return batch, nil
+		}
+
 		// 一个集群中的各个实例使用同一个密码
 		var psw, encrypt string
 		var errOuter error

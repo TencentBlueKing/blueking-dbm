@@ -31,9 +31,12 @@ import (
 )
 
 // Run 执行Job
-func (m PartitionJob) Run() {
+func (m *PartitionJob) Run() {
 	var err error
 	var key string
+
+	m.weekday = int(time.Now().Weekday())
+
 	offetSeconds := m.ZoneOffset * 60 * 60
 	zone := time.FixedZone(m.ZoneName, offetSeconds)
 	m.CronDate = time.Now().In(zone).Format("20060102")
@@ -52,10 +55,10 @@ func (m PartitionJob) Run() {
 }
 
 // ExecuteTendbhaPartition 执行tendbha的分区
-func (m PartitionJob) ExecuteTendbhaPartition() {
+func (m *PartitionJob) ExecuteTendbhaPartition() {
 	slog.Info("do ExecuteTendbhaPartition")
 	timeStr := time.Now().Format(time.RFC3339)
-	needMysql, errOuter := NeedPartition(m.CronType, Tendbha, m.ZoneOffset, m.CronDate)
+	needMysql, errOuter := NeedPartition(m.CronType, Tendbha, m.ZoneOffset, m.CronDate, m.weekday)
 	if errOuter != nil {
 		msg := "partition error. get need partition list fail"
 		SendMonitor(msg, errOuter)
@@ -135,44 +138,78 @@ func (m PartitionJob) ExecuteTendbhaPartition() {
 		machineFileName[host] = filename
 		slog.Info("machineFileName", "host", host, "filename", filename)
 	}
-	slog.Info("test", "cloudMachineList", cloudMachineList, "machineFileName", machineFileName)
+	//slog.Info("test", "cloudMachineList", cloudMachineList, "machineFileName", machineFileName)
 	DownLoadFilesCreateTicketByMachine(cloudMachineList, machineFileName, Tendbha, m.CronDate)
 }
 
 // ExecuteTendbclusterPartition 执行tendbcluster的分区
-func (m PartitionJob) ExecuteTendbclusterPartition() {
-	slog.Info("do ExecuteTendbclusterPartition")
+func (m *PartitionJob) ExecuteTendbclusterPartition() {
 	timeStr := time.Now().Format(time.RFC3339)
-	needMysql, errOuter := NeedPartition(m.CronType, Tendbcluster, m.ZoneOffset, m.CronDate)
+	zone := m.ZoneName
+
+	slog.Info(
+		"do ExecuteTendbclusterPartition start",
+		slog.String("zone", zone),
+		slog.Any("partition job object", m),
+		slog.String("timeStr", timeStr),
+	)
+
+	needMysql, errOuter := NeedPartition(m.CronType, Tendbcluster, m.ZoneOffset, m.CronDate, m.weekday)
 	if errOuter != nil {
 		msg := "partition error. get need partition list fail"
 		SendMonitor(msg, errOuter)
 		slog.Error("msg", msg, errOuter)
 		return
 	}
+	slog.Info(
+		"do ExecuteTendbclusterPartition",
+		slog.String("zone", zone),
+		slog.Int("count need", len(needMysql)),
+	)
 	// 规则属于哪个集群
 	var clusterConfigs = make(map[string][]*PartitionConfig)
 	for _, need := range needMysql {
+		slog.Info("do ExecuteTendbclusterPartition", slog.Any("need", need), slog.String("zone", zone))
 		cluster := fmt.Sprintf("%s|%d|%d", need.ImmuteDomain, need.Port, need.BkCloudId)
 		clusterConfigs[cluster] = append(clusterConfigs[cluster], need)
 	}
 	// 需要下载dbactor的机器
-	var machineFileName = make(map[string]string)
-	var clusterIps = make(map[string][]string)
+	//var machineFileName = make(map[string]string)
+	//var clusterIps = make(map[string][]string)
 	// 每个集群的规则一起执行
 	for cluster := range clusterConfigs {
+		slog.Info("do ExecuteTendbclusterPartition cluster begin", slog.String("cluster", cluster))
 		// 获取集群结构
 		hostNodes, splitCnt, err := GetTendbclusterInstances(cluster)
 		if err != nil {
 			msg := fmt.Sprintf("get tendbcluster %s nodes error", cluster)
 			SendMonitor(msg, err)
-			slog.Error("msg", msg, err)
+			slog.Error(
+				"do ExecuteTendbclusterPartition",
+				slog.String("cluster", cluster),
+				slog.String("zone", zone),
+				slog.String("err", err.Error()),
+				slog.String("msg", msg),
+			)
 			continue
 		}
-		slog.Info("spider struct", "hostNodes", hostNodes, "splitCnt", splitCnt)
+		slog.Info("do ExecuteTendbclusterPartition",
+			slog.String("cluster", cluster),
+			slog.String("zone", zone),
+			slog.Any("hostNodes", hostNodes),
+			slog.Int("splitCnt", splitCnt),
+		)
 		var nothing, checkFail []IdLog
 		doSomething := make(map[string][]PartitionObject)
 		configs := clusterConfigs[cluster]
+
+		slog.Info("do ExecuteTendbclusterPartition",
+			slog.String("cluster", cluster),
+			slog.String("zone", zone),
+			slog.Any("cluster configs", configs),
+			slog.Int("cluster configs count", len(configs)),
+		)
+
 		// 获取每个机器上需要执行的分区语句
 		for host, instances := range hostNodes {
 			// 获取每个实例需要执行的分区语句
@@ -196,27 +233,69 @@ func (m PartitionJob) ExecuteTendbclusterPartition() {
 				checkFail = append(checkFail, fail...)
 			}
 		}
+		slog.Info("do ExecuteTendbclusterPartition",
+			slog.String("cluster", cluster),
+			slog.String("zone", zone),
+			slog.Any("checkFail", checkFail),
+			slog.Any("nothing", nothing),
+		)
+
 		// 检查失败的、不需要执行的记录到日志中，即使记录日志失败，仍然继续执行分区
 		doList := NeedExecuteList(doSomething, nothing, checkFail, m.CronDate, Tendbcluster)
+		slog.Info("do ExecuteTendbclusterPartition",
+			slog.String("cluster", cluster),
+			slog.String("zone", zone),
+			slog.Any("dolist", doList),
+			slog.Int("dolist count", len(doList)),
+		)
+
 		if len(doList) == 0 {
 			continue
 		}
+
+		var machineFileName = make(map[string]string)
+		var clusterIps = make(map[string][]string)
 		for host, objects := range doList {
 			tmp := strings.Split(host, "|")
 			ip := tmp[0]
 			filename := fmt.Sprintf("partition_%s_%s_%s_%s.json", ip, m.CronDate, m.CronType, timeStr)
+			slog.Info(
+				"do ExecuteTendbclusterPartition begin upload file",
+				slog.String("cluster", cluster),
+				slog.String("zone", zone),
+				slog.String("filename", filename))
 			err = UploadObejct(objects, filename)
 			if err != nil {
+				slog.Error(
+					"do ExecuteTendbclusterPartition",
+					slog.String("cluster", cluster),
+					slog.String("zone", zone),
+					slog.String("filename", filename),
+					slog.String("err", err.Error()))
 				continue
 			}
 			clusterIps[cluster] = append(clusterIps[cluster], ip)
 			machineFileName[host] = filename
-			slog.Info("clusterIps", "cluster", cluster, "ip", ip)
-			slog.Info("machineFileName", "host", host, "filename", filename)
+			slog.Info(
+				"do ExecuteTendbclusterPartition upload file finish",
+				slog.String("cluster", cluster),
+				slog.String("zone", zone),
+				slog.String("filename", filename),
+			)
 		}
-		slog.Info("test", "cloudMachineList", clusterIps, "machineFileName", machineFileName)
+		slog.Info(
+			"do ExecuteTendbclusterPartition cluster finish",
+			slog.String("cluster", cluster),
+			slog.String("zone", zone),
+		)
+		DownLoadFilesCreateTicketByCluster(clusterIps, machineFileName, Tendbcluster, m.CronDate)
 	}
-	DownLoadFilesCreateTicketByCluster(clusterIps, machineFileName, Tendbcluster, m.CronDate)
+	//DownLoadFilesCreateTicketByCluster(clusterIps, machineFileName, Tendbcluster, m.CronDate)
+
+	slog.Info(
+		"do ExecuteTendbclusterPartition finish",
+		slog.String("zone", zone),
+	)
 }
 
 // NeedExecuteList spider集群需要多个节点在执行分区规则，只有所有节点均不需要执行sql，才不不需要下发分区任务

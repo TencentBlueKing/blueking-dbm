@@ -78,7 +78,7 @@ class ProxyInplaceAutofixFlow(object):
                     bk_cloud_id=bk_cloud_id,
                     exec_ip=ip,
                     file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
-                    retry_seconds=120,
+                    retry_seconds=7200,
                 )
             ),
         )

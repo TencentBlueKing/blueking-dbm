@@ -71,6 +71,10 @@ func main() {
 		context.String(http.StatusOK, "pong")
 	})
 	router.RegisterRouter(r)
+	for _, ele := range r.Routes() {
+		slog.Info("router", slog.Any("router", ele.Path))
+	}
+
 	if err = r.Run(viper.GetString("listen_address")); err != nil {
 		slog.Error("register router fail:", err)
 		os.Exit(0)

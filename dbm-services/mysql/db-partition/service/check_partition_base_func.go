@@ -36,7 +36,7 @@ func (config *PartitionConfig) GetPartitionDbLikeTbLike(dbtype string, splitCnt 
 	var sql string
 	var needSize int
 	wg := sync.WaitGroup{}
-	tokenBucket := make(chan int, 10)
+	tokenBucket := make(chan int, 50)
 	for _, tb := range tbs {
 		wg.Add(1)
 		tokenBucket <- 0
@@ -130,6 +130,19 @@ func (config *PartitionConfig) GetDbTableInfo(fromCron bool, host Host) (ptlist 
 		var partitioned bool
 		db := row["TABLE_SCHEMA"].(string)
 		tb := row["TABLE_NAME"].(string)
+
+		copt, ok := row["CREATE_OPTIONS"]
+		if !ok || copt == nil {
+			slog.Info(
+				"get table info create_options null",
+				slog.String("db", db),
+				slog.String("tb", tb),
+				slog.String("address", address),
+			)
+
+			continue
+		}
+
 		if strings.Contains(row["CREATE_OPTIONS"].(string), "partitioned") {
 			partitioned = true
 			//check分区字段、分区间隔
@@ -658,7 +671,7 @@ func CreatePartitionTicket(flows []Info, ClusterType string, domain string, vdat
 }
 
 // NeedPartition 获取需要实施的分区规则
-func NeedPartition(cronType string, clusterType string, zoneOffset int, cronDate string) ([]*PartitionConfig, error) {
+func NeedPartition(cronType string, clusterType string, zoneOffset int, cronDate string, weekDay int) ([]*PartitionConfig, error) {
 	var configTb, logTb string
 	var doNothing []*Checker
 
@@ -675,7 +688,7 @@ func NeedPartition(cronType string, clusterType string, zoneOffset int, cronDate
 	vzone := fmt.Sprintf("%+03d:00", zoneOffset)
 	// 集群被offline时，其分区规则也被禁用，规则不会被定时任务执行
 	var all, need []*PartitionConfig
-	err := model.DB.Self.Table(configTb).Where("time_zone = ? and phase in (?,?)", vzone, online, offline).Scan(&all).
+	err := model.DB.Self.Table(configTb).Where("time_zone = ? and phase in (?,?) and crc32(id) % 7 = ?", vzone, online, offline, weekDay).Scan(&all).
 		Error
 	if err != nil {
 		slog.Error("msg", fmt.Sprintf("query %s err", configTb), err)

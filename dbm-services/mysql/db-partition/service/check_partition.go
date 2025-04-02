@@ -83,7 +83,7 @@ func (m *Checker) DryRun() ([]PartitionObject, error) {
 		// 遍历集群所有实例临时改成并发
 		// 因为从日志看每个实例要好几秒
 		var wg sync.WaitGroup
-		var limiterChan = make(chan struct{}, 20)
+		var limiterChan = make(chan struct{}, 50)
 		var objChan = make(chan PartitionObject)
 		var errChan = make(chan error)
 		var quitChan = make(chan struct{})
@@ -171,10 +171,10 @@ func CheckPartitionConfigs(configs []*PartitionConfig, dbtype string, splitCnt i
 	nothingToDoSet := ConfigIdLogSet{}
 	checkFailSet := ConfigIdLogSet{}
 	wg := sync.WaitGroup{}
-	limit := rate.Every(time.Millisecond * 200) // QPS：5
-	burst := 5                                  // 桶容量 5
+	limit := rate.Every(time.Millisecond * 20) // QPS：50
+	burst := 50                                // 桶容量 50
 	limiter := rate.NewLimiter(limit, burst)
-	tokenBucket := make(chan int, 10) // 最大并行度
+	tokenBucket := make(chan int, 50) // 最大并行度
 
 	for _, config := range configs {
 		err := limiter.Wait(context.Background())

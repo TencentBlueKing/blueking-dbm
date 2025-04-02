@@ -69,13 +69,13 @@ func RegisterCron() ([]*cron.Cron, error) {
 			c = cron.New(cron.WithLocation(zone))
 		}
 		// 添加执行分区的定时任务
-		_, err := c.AddJob(timing, PartitionJob{CronType: Daily, ZoneOffset: offset, ZoneName: name, Hour: timingHour})
+		_, err := c.AddJob(timing, &PartitionJob{CronType: Daily, ZoneOffset: offset, ZoneName: name, Hour: timingHour})
 		if err != nil {
 			slog.Error("msg", "cron add daily job error", err)
 			return CronList, err
 		}
 		for _, retry := range multiHours {
-			_, err = c.AddJob(fmt.Sprintf("08 %s * * * ", retry), PartitionJob{CronType: Retry,
+			_, err = c.AddJob(fmt.Sprintf("08 %s * * * ", retry), &PartitionJob{CronType: Retry,
 				ZoneOffset: offset, ZoneName: name, Hour: retry})
 		}
 		if err != nil {

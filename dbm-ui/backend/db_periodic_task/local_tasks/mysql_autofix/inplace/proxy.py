@@ -40,7 +40,7 @@ def autofix_proxy(r: Dict):
 
     # 机器的所有端口 dbha 事件都上报了才会触发自愈
     # 否则会轮空
-    if len(port_list) > r["port__count"]:
+    if len(port_list) < r["port__count"]:
         min_create_at = (
             MySQLAutofixTodo.objects.filter(check_id=check_id)
             .values("create_at")
