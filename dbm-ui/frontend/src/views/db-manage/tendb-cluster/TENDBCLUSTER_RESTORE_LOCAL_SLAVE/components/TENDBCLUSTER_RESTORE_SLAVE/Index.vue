@@ -164,9 +164,7 @@
       };
     }[];
     ip_source: 'resource_pool';
-  }>(TicketTypes.TENDBCLUSTER_RESTORE_SLAVE, {
-    ticketTypeRoute: TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE,
-  });
+  }>(TicketTypes.TENDBCLUSTER_RESTORE_SLAVE);
 
   watch(
     () => props.ticketDetails,

@@ -249,11 +249,11 @@ const spiderToolboxRoute = {
     },
     {
       path: 'toolbox-result/:ticketType?/:ticketId?',
-      name: 'TENDBCLUSTER_ToolboxResult',
+      name: 'TendbclusterToolboxResult',
       meta: {
         dbConsole: 'tendbCluster.toolbox.toolboxResult',
       },
-      component: () => import('@views/db-manage/common/create-ticket-success/Index.vue'),
+      component: () => import('@views/db-manage/common/toolbox-result/Index.vue'),
     },
   ],
 };

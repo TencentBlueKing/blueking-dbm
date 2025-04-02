@@ -170,8 +170,8 @@ const routes: RouteRecordRaw[] = [
           ...mongoToolboxChildrenRoutes,
           {
             path: 'toolbox-result/:ticketType?/:ticketId?',
-            name: 'MONGODB_ToolboxResult',
-            component: () => import('@views/db-manage/common/create-ticket-success/Index.vue'),
+            name: 'MongodbToolboxResult',
+            component: () => import('@views/db-manage/common/toolbox-result/Index.vue'),
           },
         ],
       },

@@ -177,9 +177,7 @@
       new_db_module_id: number;
       pkg_id: number;
     }[];
-  }>(TicketTypes.MYSQL_LOCAL_UPGRADE, {
-    ticketTypeRoute: TicketTypes.MYSQL_PROXY_UPGRADE,
-  });
+  }>(TicketTypes.MYSQL_LOCAL_UPGRADE);
 
   watch(
     () => props.ticketDetails,

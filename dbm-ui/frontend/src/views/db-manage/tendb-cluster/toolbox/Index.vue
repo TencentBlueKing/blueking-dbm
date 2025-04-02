@@ -56,7 +56,7 @@
   watch(
     route,
     () => {
-      if (route.params.ticketType && route.name === 'TENDBCLUSTER_ToolboxResult') {
+      if (route.params.ticketType && route.name === 'TendbclusterToolboxResult') {
         const targetRoute = router.resolve({
           name: route.params.ticketType as string,
         });

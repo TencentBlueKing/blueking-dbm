@@ -196,9 +196,7 @@
       };
     }[];
     ip_source: 'resource_pool';
-  }>(TicketTypes.MYSQL_RESTORE_SLAVE, {
-    ticketTypeRoute: TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE,
-  });
+  }>(TicketTypes.MYSQL_RESTORE_SLAVE);
 
   watch(
     () => props.ticketDetails,

@@ -192,8 +192,8 @@ const toolboxRoutes = [
     children: [
       {
         path: 'toolbox-result/:ticketType?/:ticketId?',
-        name: 'REDIS_ToolboxResult',
-        component: () => import('@views/db-manage/common/create-ticket-success/Index.vue'),
+        name: 'RedisToolboxResult',
+        component: () => import('@views/db-manage/common/toolbox-result/Index.vue'),
       },
     ] as RouteRecordRaw[],
   },
