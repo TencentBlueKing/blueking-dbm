@@ -37,7 +37,7 @@ class RedisTicketService(BaseService):
         redisDBA = DBAdministrator.get_biz_db_type_admins(bk_biz_id=kwargs["bk_biz_id"], db_type=DBType.Redis.value)
 
         ticket = Ticket.objects.create(
-            creator=redisDBA.users[0],
+            creator=redisDBA[0],
             bk_biz_id=kwargs["bk_biz_id"],
             ticket_type=kwargs["ticket_type"],
             group=DBType.Redis.value,
