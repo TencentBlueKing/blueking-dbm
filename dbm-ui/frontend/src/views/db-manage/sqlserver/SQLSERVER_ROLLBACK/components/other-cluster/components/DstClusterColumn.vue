@@ -21,6 +21,14 @@
     :loading="isLoading"
     :min-width="300"
     required>
+    <template #headAppend>
+      <span
+        v-bk-tooltips="t('批量选择')"
+        class="batch-select-button"
+        @click="handleShowHeadClusterSelector">
+        <DbIcon type="batch-host-select" />
+      </span>
+    </template>
     <EditableInput
       v-model="modelValue.master_domain"
       class="column-input"
@@ -36,12 +44,19 @@
       </template>
     </EditableInput>
     <ClusterSelector
-      v-model:is-show="isShowBatchSelector"
+      v-model:is-show="isShowHeadClusterSelector"
       :cluster-types="[ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE]"
       only-one-type
-      :selected="selected"
+      :selected="headSelected"
       :tab-list-config="clusterSelectorTabConfig"
-      @change="handelClusterChange" />
+      @change="handleHeadClusterChange" />
+    <ClusterSelector
+      v-model:is-show="isShowCellClusterSelector"
+      :cluster-types="[ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE]"
+      only-one-type
+      :selected="cellSelected"
+      :tab-list-config="clusterSelectorTabConfig"
+      @change="handleCellClusterChange" />
   </EditableColumn>
 </template>
 <script setup lang="ts">
@@ -68,7 +83,10 @@
     };
   }
 
+  type Emits = (e: 'batch-edit', value: SqlServerHaModel[]) => void;
+
   const props = defineProps<Props>();
+  const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<Partial<ServiceReturnType<typeof filterClusters>[number]>>({
     required: true,
@@ -84,7 +102,13 @@
 
   const { t } = useI18n();
 
-  const isShowBatchSelector = ref(false);
+  const isShowHeadClusterSelector = ref(false);
+  const isShowCellClusterSelector = ref(false);
+
+  const headSelected: ComponentProps<typeof ClusterSelector>['selected'] = {
+    [ClusterTypes.SQLSERVER_HA]: [],
+    [ClusterTypes.SQLSERVER_SINGLE]: [],
+  };
 
   const clusterSelectorTabConfig = {
     [ClusterTypes.SQLSERVER_HA]: {
@@ -142,7 +166,7 @@
     },
   });
 
-  const selected = computed(() => {
+  const cellSelected = computed(() => {
     const selectedClusters: ComponentProps<typeof ClusterSelector>['selected'] = {
       [ClusterTypes.SQLSERVER_HA]: [],
       [ClusterTypes.SQLSERVER_SINGLE]: [],
@@ -176,17 +200,32 @@
     },
   );
 
-  const handleShowClusterSelector = () => {
-    isShowBatchSelector.value = true;
+  const handleHeadClusterChange = (selected: { [key: string]: Array<SqlServerHaModel> }) => {
+    const clusterList = Object.values(selected).flatMap((selectedList) => selectedList);
+    emits('batch-edit', clusterList);
   };
 
-  const handelClusterChange = (selected: { [key: string]: Array<SqlServerHaModel> }) => {
+  const handleShowHeadClusterSelector = () => {
+    isShowHeadClusterSelector.value = true;
+  };
+
+  const handleShowClusterSelector = () => {
+    isShowCellClusterSelector.value = true;
+  };
+
+  const handleCellClusterChange = (selected: { [key: string]: Array<SqlServerHaModel> }) => {
     const list = Object.values(selected).filter((item) => item.length > 0);
     const [clusterData] = list[0];
     modelValue.value = clusterData;
   };
 </script>
 <style lang="less" scoped>
+  .batch-select-button {
+    font-size: 14px;
+    color: #3a84ff;
+    cursor: pointer;
+  }
+
   .dst-cluster-column {
     .edit-btn-inner {
       display: flex;
