@@ -16,7 +16,8 @@
         @batch-edit="handleClusterBatchEdit" />
       <DstClusterColumn
         v-model="rowData.dst_cluster"
-        :src-cluster-data="rowData.cluster" />
+        :src-cluster-data="rowData.cluster"
+        @batch-edit="handleDstClusterBatchEdit" />
       <RenderModeColumn
         v-model:restore-backup-file="rowData.restore_backup_file"
         v-model:restore-time="rowData.restore_time"
@@ -232,6 +233,16 @@
     });
     tableData.value = [...(tableData.value[0].cluster.master_domain ? tableData.value : []), ...newList];
     window.changeConfirm = true;
+  };
+
+  const handleDstClusterBatchEdit = (clusterList: SqlserverHaModel[]) => {
+    if (clusterList.length > 0) {
+      const [clusterItem] = clusterList;
+      tableData.value.forEach((item) => {
+        Object.assign(item, { dst_cluster: clusterItem });
+      });
+      window.changeConfirm = true;
+    }
   };
 
   const handleDbTableBatchEdit = (value: string[], field: string) => {
