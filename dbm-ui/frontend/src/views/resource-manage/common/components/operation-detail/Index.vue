@@ -7,6 +7,12 @@
       v-else
       :keypath="ticketManagekeyPathMap[data.event as keyof typeof ticketManagekeyPathMap]"
       tag="span">
+      <BkButton
+        text
+        theme="primary"
+        @click="handleToTicketManage">
+        {{ data.ticket }}
+      </BkButton>
       <RouterLink
         target="_blank"
         :to="{
@@ -32,6 +38,8 @@
 
   import { MachineEvents, machineEventsDisplayMap } from '@common/const/machineEvents';
 
+  import { getBusinessHref } from '@utils';
+
   interface Props {
     data: {
       bk_biz_id: number;
@@ -45,6 +53,7 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
+  const router = useRouter();
   const globalBizsStore = useGlobalBizs();
 
   const ticketManagekeyPathMap: Record<MachineEvents.TO_FAULT | MachineEvents.TO_RECYCLE, string> = {
@@ -68,4 +77,18 @@
     [MachineEvents.TO_RECYCLE]: t('从其他池转入待回收池'),
     [MachineEvents.UNDO_IMPORT]: t('退回「n」业务 CMDB 空闲机模块', { n: bizName.value }),
   }));
+
+  const handleToTicketManage = () => {
+    const routeInfo = router.resolve({
+      name: 'bizTicketManage',
+      params: {
+        ticketId: props.data.ticket,
+      },
+      query: {
+        ids: props.data.ticket,
+      },
+    });
+    const href = getBusinessHref(routeInfo.href, props.data.bk_biz_id);
+    window.open(href, '_blank');
+  };
 </script>

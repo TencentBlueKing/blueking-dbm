@@ -34,16 +34,17 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
-  import { useRouter } from 'vue-router';
 
   import { fetchImportTask } from '@services/source/dbresourceResource';
+
+  import { useImportResourcePoolTooltip } from '../../hooks/useImportResourcePoolTip';
 
   type Emits = (e: 'exportHost') => void;
 
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-  const router = useRouter();
+  const { getImportTaskHref } = useImportResourcePoolTooltip();
 
   const taskNumber = computed(() => (taskInfo.value ? taskInfo.value.task_ids.length : 0));
 
@@ -60,14 +61,7 @@
   };
 
   const handleGoDatabaseMission = () => {
-    router.push({
-      name: 'taskHistoryList',
-      params: {
-        bizId: taskInfo.value?.bk_biz_id,
-      },
-      query: {
-        root_ids: taskInfo.value?.task_ids.join(','),
-      },
-    });
+    const taskHref = getImportTaskHref(taskInfo.value?.task_ids || []);
+    window.open(taskHref, '_blank');
   };
 </script>

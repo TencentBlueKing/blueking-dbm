@@ -44,6 +44,7 @@ export default class DbResource {
     name: string;
   }[];
   net_device_id: string;
+  operator: string;
   os_bit: string;
   os_name: string;
   os_type: string;
@@ -90,6 +91,7 @@ export default class DbResource {
     this.ip = payload.ip || '--';
     this.labels = payload.labels || '--';
     this.net_device_id = payload.net_device_id || '--';
+    this.operator = payload.operator || '--';
     this.os_bit = payload.os_bit || '--';
     this.os_type = payload.os_type || '--';
     this.os_version = payload.os_version || '--';

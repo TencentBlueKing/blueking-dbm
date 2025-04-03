@@ -1,6 +1,6 @@
 <template>
   <BkPopover
-    :popover-delay="[0, 300]"
+    :popover-delay="50"
     theme="light"
     :trigger="trigger"
     :width="430">

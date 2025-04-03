@@ -32,6 +32,7 @@
           :disabled="selectionHostIdList.length < 1"
           :popover-options="{
             renderDirective: 'show',
+            hideIgnoreReference: true,
           }">
           <BkButton
             class="ml-8"
@@ -72,7 +73,10 @@
           </template>
         </BkDropdown>
       </template>
-      <BkDropdown trigger="click">
+      <BkDropdown
+        :popover-options="{
+          hideIgnoreReference: true,
+        }">
         <BkButton
           class="ml-8"
           style="width: 80px">
@@ -264,8 +268,8 @@
     {
       field: 'agent_status',
       label: t('Agent 状态'),
-      minWidth: 100,
       render: ({ data }: { data: DbResourceModel }) => <HostAgentStatus data={data.agent_status} />,
+      width: 100,
     },
     {
       field: 'resourceOwner',
@@ -337,33 +341,43 @@
       field: 'city',
       label: t('地域'),
       render: ({ data }: { data: DbResourceModel }) => data.city || '--',
+      showOverflow: true,
+      width: 80,
     },
     {
       field: 'sub_zone',
       label: t('园区'),
       render: ({ data }: { data: DbResourceModel }) => data.sub_zone || '--',
+      showOverflow: true,
+      width: 90,
     },
     {
       field: 'rack_id',
       label: t('机架'),
       render: ({ data }: { data: DbResourceModel }) => data.rack_id || '--',
+      showOverflow: true,
+      width: 80,
     },
     {
       field: 'os_type',
       label: t('操作系统类型'),
       render: ({ data }: { data: DbResourceModel }) => data.os_type || '--',
+      showOverflow: true,
       width: 120,
     },
     {
       field: 'os_name',
       label: t('操作系统名称'),
       render: ({ data }: { data: DbResourceModel }) => data.os_name || '--',
+      showOverflow: true,
       width: 150,
     },
     {
       field: 'device_class',
       label: t('机型'),
+      minWidth: 130,
       render: ({ data }: { data: DbResourceModel }) => data.device_class || '--',
+      showOverflow: true,
     },
     {
       field: 'bk_cpu',
@@ -372,13 +386,13 @@
     {
       field: 'bkMemText',
       label: t('内存'),
+      minWidth: 90,
       render: ({ data }: { data: DbResourceModel }) => data.bkMemText || '0 M',
-      width: 80,
+      showOverflow: true,
     },
     {
       field: 'bk_disk',
       label: t('磁盘容量(G)'),
-      minWidth: 120,
       render: ({ data }: { data: DbResourceModel }) => (
         <DiskPopInfo
           data={data.storage_device}
@@ -386,15 +400,17 @@
           <span style='line-height: 40px; color: #3a84ff;cursor: pointer'>{data.bk_disk}</span>
         </DiskPopInfo>
       ),
+      width: 100,
     },
     {
       field: 'updateAtDisplay',
       label: t('转入时间'),
+      width: 180,
     },
     {
-      field: 'updater',
+      field: 'operator',
       label: t('转入人'),
-      render: ({ data }: { data: DbResourceModel }) => data.updater || '--',
+      showOverflow: true,
       width: 100,
     },
   ]);
@@ -458,7 +474,7 @@
 
   // 跳转历史任务
   const handleGoTaskHistory = () => {
-    window.open(taskHistoryListHref);
+    window.open(taskHistoryListHref, '_blank');
   };
 
   const handleSelection = (list: number[], selectionListWholeData: DbResourceModel[]) => {
