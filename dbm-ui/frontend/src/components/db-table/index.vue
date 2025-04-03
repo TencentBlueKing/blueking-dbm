@@ -69,12 +69,14 @@
                 <template #content>
                   <div class="db-table-select-plan">
                     <div
-                      class="item"
+                      class="plan-item"
+                      :class="{ 'is-selected': isCurrentPageAllSelected }"
                       @click="handlePageSelect">
                       {{ t('本页全选') }}
                     </div>
                     <div
-                      class="item"
+                      class="plan-item"
+                      :class="{ 'is-selected': isWholeChecked }"
                       @click="handleWholeSelect">
                       {{ t('跨页全选') }}
                     </div>
@@ -235,12 +237,18 @@
               content: () => (
                 <div class='db-table-select-plan'>
                   <div
-                    class='item'
+                    class={{
+                      'is-selected': isCurrentPageAllSelected.value,
+                      'plan-item': true,
+                    }}
                     onClick={handlePageSelect}>
                     {t('本页全选')}
                   </div>
                   <div
-                    class='item'
+                    class={{
+                      'is-selected': isWholeChecked.value,
+                      'plan-item': true,
+                    }}
                     onClick={handleWholeSelect}>
                     {t('跨页全选')}
                   </div>
@@ -317,6 +325,9 @@
   });
   // 是否本页全选
   const isCurrentPageAllSelected = computed(() => {
+    if (isWholeChecked.value) {
+      return false;
+    }
     const list = tableData.value.results;
     if (list.length < 1) {
       return false;
@@ -721,8 +732,8 @@
 
       &::after {
         position: absolute;
-        top: 1px;
-        left: 4px;
+        top: 2px;
+        left: 5px;
         width: 4px;
         height: 8px;
         border: 2px solid #3a84ff;
@@ -746,7 +757,7 @@
     .db-table-select-plan {
       padding: 5px 0;
 
-      .item {
+      .plan-item {
         padding: 0 10px;
         font-size: 12px;
         line-height: 26px;
