@@ -81,7 +81,7 @@ export default class MigrateRecord {
   source_cluster_domain: string;
   source_cluster_id: number;
   status: (typeof STATUS)[keyof typeof STATUS];
-  target_cluster_domain: string;
+  target_cluster_domain: string[];
   target_cluster_id: number;
   ticket_id: number;
   update_at: string;
@@ -100,7 +100,7 @@ export default class MigrateRecord {
     this.source_cluster_domain = payload.source_cluster_domain;
     this.source_cluster_id = payload.source_cluster_id;
     this.status = payload.status;
-    this.target_cluster_domain = payload.target_cluster_domain;
+    this.target_cluster_domain = payload.target_cluster_domain || [];
     this.target_cluster_id = payload.target_cluster_id;
     this.ticket_id = payload.ticket_id;
     this.update_at = payload.update_at;
