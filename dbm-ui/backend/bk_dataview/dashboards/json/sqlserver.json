@@ -210,7 +210,7 @@
           "type": "range"
         }
       ],
-      "title": "Total Processor Time",
+      "title": "CPU Usage Ratio",
       "type": "timeseries"
     },
     {
@@ -884,7 +884,14 @@
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "enableDownSampling": true,
-          "expressionList": [],
+          "expressionList": [
+            {
+              "active": true,
+              "alias": "[$tag_cluster_domain]:$tag_instance[$tag_instance_role]",
+              "expression": "a/60",
+              "functions": []
+            }
+          ],
           "format": "time_series",
           "host": [],
           "mode": "ui",
@@ -896,15 +903,15 @@
               "data_label": "exporter_dbm_mssql_exporter",
               "data_source_label": "bk_monitor",
               "data_type_label": "time_series",
-              "display": true,
+              "display": false,
               "filter_dict": {},
               "functions": [
                 {
-                  "id": "rate",
+                  "id": "delta",
                   "params": [
                     {
                       "id": "window",
-                      "value": "2m"
+                      "value": "1m"
                     }
                   ]
                 }
@@ -1044,11 +1051,11 @@
               "filter_dict": {},
               "functions": [
                 {
-                  "id": "rate",
+                  "id": "delta",
                   "params": [
                     {
                       "id": "window",
-                      "value": "2m"
+                      "value": "1m"
                     }
                   ]
                 }
@@ -1083,7 +1090,7 @@
           "type": "range"
         }
       ],
-      "title": "Checkpoint pages/sec",
+      "title": "Checkpoint pages/min",
       "type": "timeseries"
     },
     {
@@ -1172,7 +1179,14 @@
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "enableDownSampling": true,
-          "expressionList": [],
+          "expressionList": [
+            {
+              "active": true,
+              "alias": "[$tag_cluster_domain]$tag_instance[$tag_instance_role]",
+              "expression": "a/60",
+              "functions": []
+            }
+          ],
           "format": "time_series",
           "host": [],
           "mode": "ui",
@@ -1184,15 +1198,15 @@
               "data_label": "exporter_dbm_mssql_exporter",
               "data_source_label": "bk_monitor",
               "data_type_label": "time_series",
-              "display": true,
+              "display": false,
               "filter_dict": {},
               "functions": [
                 {
-                  "id": "rate",
+                  "id": "delta",
                   "params": [
                     {
                       "id": "window",
-                      "value": "2m"
+                      "value": "1m"
                     }
                   ]
                 }
@@ -1227,7 +1241,7 @@
           "type": "range"
         }
       ],
-      "title": "Disk Transfers/sec",
+      "title": "Disk iops",
       "type": "timeseries"
     },
     {
@@ -1460,7 +1474,14 @@
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "enableDownSampling": true,
-              "expressionList": [],
+              "expressionList": [
+                {
+                  "active": true,
+                  "alias": "[$tag_cluster_domain]$tag_instance[$tag_instance_role]",
+                  "expression": "a/60",
+                  "functions": []
+                }
+              ],
               "format": "time_series",
               "hide": false,
               "host": [],
@@ -1473,15 +1494,15 @@
                   "data_label": "exporter_dbm_mssql_exporter",
                   "data_source_label": "bk_monitor",
                   "data_type_label": "time_series",
-                  "display": true,
+                  "display": false,
                   "filter_dict": {},
                   "functions": [
                     {
-                      "id": "rate",
+                      "id": "idelta",
                       "params": [
                         {
                           "id": "window",
-                          "value": "2m"
+                          "value": "1m"
                         }
                       ]
                     }
@@ -1883,7 +1904,14 @@
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "enableDownSampling": true,
-              "expressionList": [],
+              "expressionList": [
+                {
+                  "active": true,
+                  "alias": "[$tag_cluster_domain]$tag_instance[$tag_instance_role]",
+                  "expression": "a/60",
+                  "functions": []
+                }
+              ],
               "format": "time_series",
               "hide": false,
               "host": [],
@@ -1896,15 +1924,15 @@
                   "data_label": "exporter_dbm_mssql_exporter",
                   "data_source_label": "bk_monitor",
                   "data_type_label": "time_series",
-                  "display": true,
+                  "display": false,
                   "filter_dict": {},
                   "functions": [
                     {
-                      "id": "rate",
+                      "id": "idelta",
                       "params": [
                         {
                           "id": "window",
-                          "value": "2m"
+                          "value": "1m"
                         }
                       ]
                     }
@@ -2003,7 +2031,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -2018,7 +2047,7 @@
             "h": 9,
             "w": 8,
             "x": 0,
-            "y": 63
+            "y": 43
           },
           "id": 17,
           "options": {
@@ -2041,7 +2070,14 @@
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "enableDownSampling": true,
-              "expressionList": [],
+              "expressionList": [
+                {
+                  "active": true,
+                  "alias": "[$tag_cluster_domain]$tag_instance[$tag_instance_role]",
+                  "expression": "a/60",
+                  "functions": []
+                }
+              ],
               "format": "time_series",
               "hide": false,
               "host": [],
@@ -2054,15 +2090,15 @@
                   "data_label": "exporter_dbm_mssql_exporter",
                   "data_source_label": "bk_monitor",
                   "data_type_label": "time_series",
-                  "display": true,
+                  "display": false,
                   "filter_dict": {},
                   "functions": [
                     {
-                      "id": "rate",
+                      "id": "delta",
                       "params": [
                         {
                           "id": "window",
-                          "value": "2m"
+                          "value": "1m"
                         }
                       ]
                     }
@@ -2147,7 +2183,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -2162,7 +2199,7 @@
             "h": 9,
             "w": 8,
             "x": 8,
-            "y": 63
+            "y": 43
           },
           "id": 18,
           "options": {
@@ -2185,7 +2222,14 @@
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "enableDownSampling": true,
-              "expressionList": [],
+              "expressionList": [
+                {
+                  "active": true,
+                  "alias": "[$tag_cluster_domain]$tag_instance[$tag_instance_role]",
+                  "expression": "a/60",
+                  "functions": []
+                }
+              ],
               "format": "time_series",
               "hide": false,
               "host": [],
@@ -2198,15 +2242,15 @@
                   "data_label": "exporter_dbm_mssql_exporter",
                   "data_source_label": "bk_monitor",
                   "data_type_label": "time_series",
-                  "display": true,
+                  "display": false,
                   "filter_dict": {},
                   "functions": [
                     {
-                      "id": "rate",
+                      "id": "delta",
                       "params": [
                         {
                           "id": "window",
-                          "value": "2m"
+                          "value": "1m"
                         }
                       ]
                     }
@@ -2291,7 +2335,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -2306,7 +2351,7 @@
             "h": 9,
             "w": 8,
             "x": 16,
-            "y": 63
+            "y": 43
           },
           "id": 19,
           "options": {
@@ -2329,7 +2374,14 @@
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "enableDownSampling": true,
-              "expressionList": [],
+              "expressionList": [
+                {
+                  "active": true,
+                  "alias": "[$tag_cluster_domain]$tag_instance[$tag_instance_role]",
+                  "expression": "a/60",
+                  "functions": []
+                }
+              ],
               "format": "time_series",
               "hide": false,
               "host": [],
@@ -2342,15 +2394,15 @@
                   "data_label": "exporter_dbm_mssql_exporter",
                   "data_source_label": "bk_monitor",
                   "data_type_label": "time_series",
-                  "display": true,
+                  "display": false,
                   "filter_dict": {},
                   "functions": [
                     {
-                      "id": "rate",
+                      "id": "delta",
                       "params": [
                         {
                           "id": "window",
-                          "value": "2m"
+                          "value": "1m"
                         }
                       ]
                     }
@@ -2435,7 +2487,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -2450,7 +2503,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 72
+            "y": 52
           },
           "id": 20,
           "options": {
@@ -2568,7 +2621,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -2583,7 +2637,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 72
+            "y": 52
           },
           "id": 21,
           "options": {
@@ -2606,7 +2660,14 @@
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "enableDownSampling": true,
-              "expressionList": [],
+              "expressionList": [
+                {
+                  "active": true,
+                  "alias": "[$tag_cluster_domain]$tag_instance[$tag_instance_role]",
+                  "expression": "a/60",
+                  "functions": []
+                }
+              ],
               "format": "time_series",
               "hide": false,
               "host": [],
@@ -2619,15 +2680,15 @@
                   "data_label": "exporter_dbm_mssql_exporter",
                   "data_source_label": "bk_monitor",
                   "data_type_label": "time_series",
-                  "display": true,
+                  "display": false,
                   "filter_dict": {},
                   "functions": [
                     {
-                      "id": "rate",
+                      "id": "delta",
                       "params": [
                         {
                           "id": "window",
-                          "value": "2m"
+                          "value": "1m"
                         }
                       ]
                     }
@@ -2712,7 +2773,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -2727,7 +2789,7 @@
             "h": 9,
             "w": 12,
             "x": 0,
-            "y": 80
+            "y": 60
           },
           "id": 22,
           "options": {
@@ -2750,7 +2812,14 @@
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "enableDownSampling": true,
-              "expressionList": [],
+              "expressionList": [
+                {
+                  "active": true,
+                  "alias": "[$tag_cluster_domain]$tag_instance[$tag_instance_role]",
+                  "expression": "a/60",
+                  "functions": []
+                }
+              ],
               "format": "time_series",
               "hide": false,
               "host": [],
@@ -2763,15 +2832,15 @@
                   "data_label": "exporter_dbm_mssql_exporter",
                   "data_source_label": "bk_monitor",
                   "data_type_label": "time_series",
-                  "display": true,
+                  "display": false,
                   "filter_dict": {},
                   "functions": [
                     {
-                      "id": "rate",
+                      "id": "delta",
                       "params": [
                         {
                           "id": "window",
-                          "value": "2m"
+                          "value": "1m"
                         }
                       ]
                     }
@@ -2856,7 +2925,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -2871,7 +2941,7 @@
             "h": 9,
             "w": 12,
             "x": 12,
-            "y": 80
+            "y": 60
           },
           "id": 23,
           "options": {
@@ -3041,7 +3111,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -3056,7 +3127,7 @@
             "h": 9,
             "w": 12,
             "x": 0,
-            "y": 4
+            "y": 44
           },
           "id": 25,
           "options": {
@@ -3174,7 +3245,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -3189,7 +3261,7 @@
             "h": 9,
             "w": 12,
             "x": 12,
-            "y": 4
+            "y": 44
           },
           "id": 26,
           "options": {
@@ -3307,7 +3379,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -3322,7 +3395,7 @@
             "h": 9,
             "w": 12,
             "x": 0,
-            "y": 13
+            "y": 53
           },
           "id": 27,
           "options": {
@@ -3345,7 +3418,14 @@
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "enableDownSampling": true,
-              "expressionList": [],
+              "expressionList": [
+                {
+                  "active": true,
+                  "alias": "[$tag_cluster_domain]$tag_instance[$tag_instance_role]",
+                  "expression": "a/60",
+                  "functions": []
+                }
+              ],
               "format": "time_series",
               "hide": false,
               "host": [],
@@ -3358,15 +3438,15 @@
                   "data_label": "exporter_dbm_mssql_exporter",
                   "data_source_label": "bk_monitor",
                   "data_type_label": "time_series",
-                  "display": true,
+                  "display": false,
                   "filter_dict": {},
                   "functions": [
                     {
-                      "id": "rate",
+                      "id": "delta",
                       "params": [
                         {
                           "id": "window",
-                          "value": "2m"
+                          "value": "1m"
                         }
                       ]
                     }
@@ -3451,7 +3531,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -3466,7 +3547,7 @@
             "h": 9,
             "w": 12,
             "x": 12,
-            "y": 13
+            "y": 53
           },
           "id": 28,
           "options": {
@@ -3489,7 +3570,14 @@
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "enableDownSampling": true,
-              "expressionList": [],
+              "expressionList": [
+                {
+                  "active": true,
+                  "alias": "[$tag_cluster_domain]$tag_instance[$tag_instance_role]",
+                  "expression": "a/60",
+                  "functions": []
+                }
+              ],
               "format": "time_series",
               "hide": false,
               "host": [],
@@ -3506,11 +3594,11 @@
                   "filter_dict": {},
                   "functions": [
                     {
-                      "id": "rate",
+                      "id": "delta",
                       "params": [
                         {
                           "id": "window",
-                          "value": "2m"
+                          "value": "1m"
                         }
                       ]
                     }
@@ -3595,7 +3683,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -3610,7 +3699,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 22
+            "y": 62
           },
           "id": 29,
           "options": {
@@ -3735,7 +3824,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -3750,7 +3840,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 22
+            "y": 62
           },
           "id": 30,
           "options": {
@@ -3889,7 +3979,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -3904,7 +3995,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 65
+            "y": 45
           },
           "id": 32,
           "options": {
@@ -3944,11 +4035,11 @@
                   "filter_dict": {},
                   "functions": [
                     {
-                      "id": "rate",
+                      "id": "delta",
                       "params": [
                         {
                           "id": "window",
-                          "value": "2m"
+                          "value": "1m"
                         }
                       ]
                     }
@@ -3983,7 +4074,7 @@
               "type": "range"
             }
           ],
-          "title": "Checkpoint pages/sec",
+          "title": "Checkpoint pages/min",
           "type": "timeseries"
         },
         {
@@ -4033,7 +4124,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -4048,7 +4140,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 65
+            "y": 45
           },
           "id": 33,
           "options": {
@@ -4177,7 +4269,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -4192,7 +4285,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 73
+            "y": 53
           },
           "id": 34,
           "options": {
@@ -4215,7 +4308,14 @@
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "enableDownSampling": true,
-              "expressionList": [],
+              "expressionList": [
+                {
+                  "active": true,
+                  "alias": "[$tag_cluster_domain]$tag_instance[$tag_instance_role]",
+                  "expression": "a/60",
+                  "functions": []
+                }
+              ],
               "format": "time_series",
               "host": [],
               "mode": "ui",
@@ -4227,15 +4327,15 @@
                   "data_label": "exporter_dbm_mssql_exporter",
                   "data_source_label": "bk_monitor",
                   "data_type_label": "time_series",
-                  "display": true,
+                  "display": false,
                   "filter_dict": {},
                   "functions": [
                     {
-                      "id": "rate",
+                      "id": "delta",
                       "params": [
                         {
                           "id": "window",
-                          "value": "2m"
+                          "value": "1m"
                         }
                       ]
                     }
@@ -4320,7 +4420,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -4335,7 +4436,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 73
+            "y": 53
           },
           "id": 35,
           "options": {
@@ -4358,7 +4459,14 @@
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "enableDownSampling": true,
-              "expressionList": [],
+              "expressionList": [
+                {
+                  "active": true,
+                  "alias": "[$tag_cluster_domain]$tag_instance[$tag_instance_role]",
+                  "expression": "a/60",
+                  "functions": []
+                }
+              ],
               "format": "time_series",
               "host": [],
               "mode": "ui",
@@ -4370,15 +4478,15 @@
                   "data_label": "exporter_dbm_mssql_exporter",
                   "data_source_label": "bk_monitor",
                   "data_type_label": "time_series",
-                  "display": true,
+                  "display": false,
                   "filter_dict": {},
                   "functions": [
                     {
-                      "id": "rate",
+                      "id": "delta",
                       "params": [
                         {
                           "id": "window",
-                          "value": "2m"
+                          "value": "1m"
                         }
                       ]
                     }
@@ -4463,7 +4571,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -4478,7 +4587,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 81
+            "y": 61
           },
           "id": 36,
           "options": {
@@ -4634,7 +4743,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -4649,7 +4759,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 81
+            "y": 61
           },
           "id": 37,
           "options": {
@@ -4781,7 +4891,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -4796,7 +4907,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 6
+            "y": 46
           },
           "id": 39,
           "options": {
@@ -4914,7 +5025,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -4929,7 +5041,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 6
+            "y": 46
           },
           "id": 40,
           "options": {
@@ -5047,7 +5159,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -5062,7 +5175,7 @@
             "h": 9,
             "w": 8,
             "x": 0,
-            "y": 14
+            "y": 54
           },
           "id": 41,
           "options": {
@@ -5180,7 +5293,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -5195,7 +5309,7 @@
             "h": 9,
             "w": 8,
             "x": 8,
-            "y": 14
+            "y": 54
           },
           "id": 42,
           "options": {
@@ -5313,7 +5427,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -5328,7 +5443,7 @@
             "h": 9,
             "w": 8,
             "x": 16,
-            "y": 14
+            "y": 54
           },
           "id": 43,
           "options": {
@@ -5498,7 +5613,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -5513,7 +5629,7 @@
             "h": 8,
             "w": 10,
             "x": 0,
-            "y": 67
+            "y": 47
           },
           "id": 45,
           "options": {
@@ -5536,7 +5652,14 @@
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "enableDownSampling": true,
-              "expressionList": [],
+              "expressionList": [
+                {
+                  "active": true,
+                  "alias": "[$tag_cluster_domain]$tag_instance[$tag_instance_role]",
+                  "expression": "a/1024/1024",
+                  "functions": []
+                }
+              ],
               "format": "time_series",
               "host": [],
               "mode": "ui",
@@ -5548,7 +5671,7 @@
                   "data_label": "exporter_dbm_mssql_exporter",
                   "data_source_label": "bk_monitor",
                   "data_type_label": "time_series",
-                  "display": true,
+                  "display": false,
                   "filter_dict": {},
                   "functions": [],
                   "group_by": [
@@ -5581,7 +5704,7 @@
               "type": "range"
             }
           ],
-          "title": "MSSQL Out traffic(KB)",
+          "title": "MSSQL Out traffic(MB)",
           "type": "timeseries"
         },
         {
@@ -5631,7 +5754,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -5646,7 +5770,7 @@
             "h": 8,
             "w": 10,
             "x": 10,
-            "y": 67
+            "y": 47
           },
           "id": 46,
           "options": {
@@ -5669,7 +5793,14 @@
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "enableDownSampling": true,
-              "expressionList": [],
+              "expressionList": [
+                {
+                  "active": true,
+                  "alias": "[$tag_cluster_domain]$tag_instance[$tag_instance_role]",
+                  "expression": "a/1024/1024",
+                  "functions": []
+                }
+              ],
               "format": "time_series",
               "host": [],
               "mode": "ui",
@@ -5681,7 +5812,7 @@
                   "data_label": "exporter_dbm_mssql_exporter",
                   "data_source_label": "bk_monitor",
                   "data_type_label": "time_series",
-                  "display": true,
+                  "display": false,
                   "filter_dict": {},
                   "functions": [],
                   "group_by": [
@@ -5714,7 +5845,7 @@
               "type": "range"
             }
           ],
-          "title": "MSSQL In traffic(KB)",
+          "title": "MSSQL In traffic(MB)",
           "type": "timeseries"
         },
         {
@@ -5764,7 +5895,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -5779,7 +5911,7 @@
             "h": 8,
             "w": 10,
             "x": 0,
-            "y": 75
+            "y": 55
           },
           "id": 47,
           "options": {
@@ -5816,7 +5948,17 @@
                   "data_type_label": "time_series",
                   "display": true,
                   "filter_dict": {},
-                  "functions": [],
+                  "functions": [
+                    {
+                      "id": "delta",
+                      "params": [
+                        {
+                          "id": "window",
+                          "value": "1m"
+                        }
+                      ]
+                    }
+                  ],
                   "group_by": [
                     "instance",
                     "instance_role",
@@ -5897,7 +6039,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -5912,7 +6055,7 @@
             "h": 8,
             "w": 10,
             "x": 10,
-            "y": 75
+            "y": 55
           },
           "id": 48,
           "options": {
@@ -5949,7 +6092,17 @@
                   "data_type_label": "time_series",
                   "display": true,
                   "filter_dict": {},
-                  "functions": [],
+                  "functions": [
+                    {
+                      "id": "delta",
+                      "params": [
+                        {
+                          "id": "window",
+                          "value": "1m"
+                        }
+                      ]
+                    }
+                  ],
                   "group_by": [
                     "instance",
                     "instance_role",
@@ -6030,7 +6183,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -6045,7 +6199,7 @@
             "h": 8,
             "w": 10,
             "x": 0,
-            "y": 83
+            "y": 63
           },
           "id": 49,
           "options": {
@@ -6068,7 +6222,14 @@
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "enableDownSampling": true,
-              "expressionList": [],
+              "expressionList": [
+                {
+                  "active": true,
+                  "alias": "[$tag_cluster_domain]$tag_instance[$tag_instance_role]",
+                  "expression": "a/60",
+                  "functions": []
+                }
+              ],
               "format": "time_series",
               "host": [],
               "mode": "ui",
@@ -6080,9 +6241,19 @@
                   "data_label": "exporter_dbm_mssql_exporter",
                   "data_source_label": "bk_monitor",
                   "data_type_label": "time_series",
-                  "display": true,
+                  "display": false,
                   "filter_dict": {},
-                  "functions": [],
+                  "functions": [
+                    {
+                      "id": "delta",
+                      "params": [
+                        {
+                          "id": "window",
+                          "value": "1m"
+                        }
+                      ]
+                    }
+                  ],
                   "group_by": [
                     "instance",
                     "instance_role",
@@ -6163,7 +6334,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -6178,7 +6350,7 @@
             "h": 8,
             "w": 10,
             "x": 10,
-            "y": 83
+            "y": 63
           },
           "id": 50,
           "options": {
@@ -6201,7 +6373,14 @@
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "enableDownSampling": true,
-              "expressionList": [],
+              "expressionList": [
+                {
+                  "active": true,
+                  "alias": "[$tag_cluster_domain]$tag_instance[$tag_instance_role]",
+                  "expression": "a/60",
+                  "functions": []
+                }
+              ],
               "format": "time_series",
               "host": [],
               "mode": "ui",
@@ -6213,9 +6392,19 @@
                   "data_label": "exporter_dbm_mssql_exporter",
                   "data_source_label": "bk_monitor",
                   "data_type_label": "time_series",
-                  "display": true,
+                  "display": false,
                   "filter_dict": {},
-                  "functions": [],
+                  "functions": [
+                    {
+                      "id": "delta",
+                      "params": [
+                        {
+                          "id": "window",
+                          "value": "1m"
+                        }
+                      ]
+                    }
+                  ],
                   "group_by": [
                     "instance",
                     "instance_role",
@@ -6296,7 +6485,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -6311,7 +6501,7 @@
             "h": 8,
             "w": 10,
             "x": 0,
-            "y": 91
+            "y": 71
           },
           "id": 51,
           "options": {
@@ -6334,7 +6524,14 @@
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "enableDownSampling": true,
-              "expressionList": [],
+              "expressionList": [
+                {
+                  "active": true,
+                  "alias": "[$tag_cluster_domain]$tag_instance[$tag_instance_role]",
+                  "expression": "a/60",
+                  "functions": []
+                }
+              ],
               "format": "time_series",
               "host": [],
               "mode": "ui",
@@ -6346,9 +6543,19 @@
                   "data_label": "exporter_dbm_mssql_exporter",
                   "data_source_label": "bk_monitor",
                   "data_type_label": "time_series",
-                  "display": true,
+                  "display": false,
                   "filter_dict": {},
-                  "functions": [],
+                  "functions": [
+                    {
+                      "id": "delta",
+                      "params": [
+                        {
+                          "id": "window",
+                          "value": "1m"
+                        }
+                      ]
+                    }
+                  ],
                   "group_by": [
                     "instance",
                     "instance_role",
@@ -6443,7 +6650,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -6458,7 +6666,7 @@
             "h": 8,
             "w": 8,
             "x": 0,
-            "y": 68
+            "y": 80
           },
           "id": 53,
           "options": {
@@ -6576,7 +6784,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -6591,7 +6800,7 @@
             "h": 8,
             "w": 8,
             "x": 8,
-            "y": 68
+            "y": 80
           },
           "id": 54,
           "options": {
@@ -6709,7 +6918,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -6724,7 +6934,7 @@
             "h": 8,
             "w": 8,
             "x": 16,
-            "y": 68
+            "y": 80
           },
           "id": 55,
           "options": {
@@ -6842,7 +7052,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -6857,7 +7068,7 @@
             "h": 8,
             "w": 8,
             "x": 0,
-            "y": 76
+            "y": 88
           },
           "id": 56,
           "options": {
@@ -6975,7 +7186,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -6990,7 +7202,7 @@
             "h": 8,
             "w": 8,
             "x": 8,
-            "y": 76
+            "y": 88
           },
           "id": 57,
           "options": {
@@ -7108,7 +7320,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -7123,7 +7336,7 @@
             "h": 8,
             "w": 8,
             "x": 16,
-            "y": 76
+            "y": 88
           },
           "id": 58,
           "options": {
@@ -7223,7 +7436,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -7238,7 +7452,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 69
+            "y": 97
           },
           "id": 60,
           "options": {
@@ -7368,7 +7582,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -7383,7 +7598,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 69
+            "y": 97
           },
           "id": 61,
           "options": {
@@ -7469,7 +7684,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -7485,7 +7701,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 77
+            "y": 105
           },
           "id": 62,
           "options": {
@@ -7607,7 +7823,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -7622,7 +7839,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 77
+            "y": 105
           },
           "id": 63,
           "options": {
@@ -7754,7 +7971,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -7769,7 +7987,7 @@
             "h": 8,
             "w": 6,
             "x": 0,
-            "y": 70
+            "y": 98
           },
           "id": 65,
           "options": {
@@ -7887,7 +8105,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -7902,7 +8121,7 @@
             "h": 8,
             "w": 6,
             "x": 6,
-            "y": 70
+            "y": 98
           },
           "id": 66,
           "options": {
@@ -8020,7 +8239,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -8035,7 +8255,7 @@
             "h": 8,
             "w": 6,
             "x": 12,
-            "y": 70
+            "y": 98
           },
           "id": 67,
           "options": {
@@ -8153,7 +8373,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -8168,7 +8389,7 @@
             "h": 8,
             "w": 6,
             "x": 18,
-            "y": 70
+            "y": 98
           },
           "id": 68,
           "options": {
@@ -8336,6 +8557,6 @@
   "timezone": "default",
   "title": "Mssql-Instance",
   "uid": "r5IAkJIIz",
-  "version": 5,
+  "version": 141,
   "weekStart": ""
 }
