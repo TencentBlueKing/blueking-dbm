@@ -53,13 +53,15 @@
                 <template #content>
                   <div class="select-menu">
                     <div
-                      class="item"
-                      @clilck="handlePageSelect">
+                      class="select-menu-item"
+                      :class="{ 'is-selected': isCurrentPageAllSelected }"
+                      @click="handlePageSelect">
                       {{ t('本页全选') }}
                     </div>
                     <div
-                      class="item"
-                      @clilck="handleWholeSelect">
+                      class="select-menu-item"
+                      :class="{ 'is-selected': isWholeChecked }"
+                      @click="handleWholeSelect">
                       {{ t('跨页全选') }}
                     </div>
                   </div>
@@ -274,7 +276,7 @@
   </BkLoading>
 </template>
 <script setup lang="tsx">
-  import { onBeforeUnmount, shallowRef, useTemplateRef, type VNode } from 'vue';
+  import { onBeforeUnmount, shallowRef, type UnwrapRef, useTemplateRef, type VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
   import { useRoute, useRouter } from 'vue-router';
@@ -396,12 +398,10 @@
     fetchData();
   });
 
-  watch(
-    () => [dataList, rowSelectMemo],
-    () => {
-      isCurrentPageAllSelected.value = dataList.value.every((item) => rowSelectMemo.value[item.id]);
-    },
-  );
+  watch([dataList, rowSelectMemo], () => {
+    isCurrentPageAllSelected.value =
+      !isWholeChecked.value && dataList.value.every((item) => rowSelectMemo.value[item.id]);
+  });
 
   watch(dataList, () => {
     if (dataList.value.length < 1) {
@@ -436,9 +436,9 @@
   };
 
   const handlePageSelect = () => {
-    const rowSelect = { ...rowSelectMemo.value };
+    const rowSelect: UnwrapRef<typeof rowSelectMemo> = {};
     dataList.value.forEach((item) => {
-      rowSelectMemo.value[item.id] = item;
+      rowSelect[item.id] = item;
     });
     rowSelectMemo.value = rowSelect;
     triggerSelection();
@@ -615,8 +615,8 @@
 
         &::after {
           position: absolute;
-          top: 1px;
-          left: 4px;
+          top: 2px;
+          left: 5px;
           width: 4px;
           height: 8px;
           border: 2px solid #3a84ff;
@@ -641,7 +641,7 @@
     .select-menu {
       padding: 5px 0;
 
-      .item {
+      .select-menu-item {
         padding: 0 10px;
         font-size: 12px;
         line-height: 26px;
