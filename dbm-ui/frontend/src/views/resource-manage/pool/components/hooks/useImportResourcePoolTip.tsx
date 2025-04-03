@@ -20,16 +20,12 @@ import type { HostInfo } from '@services/types';
 
 import { useSystemEnviron } from '@stores';
 
+import { getBusinessHref } from '@utils';
+
 export const useImportResourcePoolTooltip = (hostList?: Ref<(FaultOrRecycleMachineModel | HostInfo)[]>) => {
   const { t } = useI18n();
   const router = useRouter();
   const systemEnvironStore = useSystemEnviron();
-
-  const formatHref = (originHref: string) => {
-    const bizId = systemEnvironStore.urls.DBA_APP_BK_BIZ_ID;
-    const href = originHref.replace(/\/(\d+)\//, `/${bizId}/`);
-    return href;
-  };
 
   const taskHistoryListRoute = router.resolve({
     name: 'taskHistoryList',
@@ -37,7 +33,7 @@ export const useImportResourcePoolTooltip = (hostList?: Ref<(FaultOrRecycleMachi
       ticket_type__in: 'RESOURCE_IMPORT',
     },
   });
-  const taskHistoryListHref = formatHref(taskHistoryListRoute.href);
+  const taskHistoryListHref = getBusinessHref(taskHistoryListRoute.href, systemEnvironStore.urls.DBA_APP_BK_BIZ_ID);
 
   const tooltip = computed(() => {
     const content = {
@@ -67,8 +63,9 @@ export const useImportResourcePoolTooltip = (hostList?: Ref<(FaultOrRecycleMachi
         };
   });
 
-  const successMessage = (taskIds: string[]) => {
-    const getRouteInfo = () => {
+  // 根据导入任务的数量决定跳转的页面
+  const getImportTaskHref = (taskIds: string[]) => {
+    const getRouteInfo = (taskIds: string[]) => {
       if (taskIds.length === 1) {
         return router.resolve({
           name: 'taskHistoryDetail',
@@ -85,8 +82,12 @@ export const useImportResourcePoolTooltip = (hostList?: Ref<(FaultOrRecycleMachi
       });
     };
 
-    const routeInfo = getRouteInfo();
-    const routeInfoHref = formatHref(routeInfo.href);
+    const routeInfo = getRouteInfo(taskIds);
+    return getBusinessHref(routeInfo.href, systemEnvironStore.urls.DBA_APP_BK_BIZ_ID);
+  };
+
+  const successMessage = (taskIds: string[]) => {
+    const routeInfoHref = getImportTaskHref(taskIds);
 
     Message({
       delay: 6000,
@@ -108,6 +109,7 @@ export const useImportResourcePoolTooltip = (hostList?: Ref<(FaultOrRecycleMachi
   };
 
   return {
+    getImportTaskHref,
     successMessage,
     taskHistoryListHref,
     tooltip,
