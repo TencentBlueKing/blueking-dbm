@@ -122,17 +122,21 @@ class TicketSerializer(AuditedSerializer, serializers.ModelSerializer):
             raise serializers.ValidationError(_("不允许提交敏感单据类型{}").format(value))
         return value
 
+    def get_running_todos(self, obj):
+        if not hasattr(obj, "_running_todos"):
+            obj._running_todos = [todo for todo in obj.todo_of_ticket.all() if todo.status == TodoStatus.TODO]
+        return obj._running_todos
+
     def get_todo_operators(self, obj):
-        # 任取一个运行中的todo，获取operators即可
-        obj.running_todos = [todo for todo in obj.todo_of_ticket.all() if todo.status == TodoStatus.TODO]
-        return obj.running_todos[0].operators if obj.running_todos else []
+        running_todos = self.get_running_todos(obj)
+        return running_todos[0].operators if running_todos else []
 
     def get_todo_helpers(self, obj):
-        obj.running_todo_helpers = [todo for todo in obj.todo_of_ticket.all() if todo.status == TodoStatus.TODO]
-        return obj.running_todo_helpers[0].helpers if obj.running_todo_helpers else []
+        running_todos = self.get_running_todos(obj)
+        return running_todos[0].helpers if running_todos else []
 
     def get_status(self, obj):
-        if obj.status == TicketStatus.RUNNING and (obj.running_todos or obj.running_todo_helpers):
+        if obj.status == TicketStatus.RUNNING and obj._running_todos:
             obj.status = TicketStatus.INNER_TODO
         return obj.status
 
