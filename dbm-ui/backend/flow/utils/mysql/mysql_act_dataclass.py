@@ -192,6 +192,18 @@ class RecycleDnsRecordKwargs:
 
 
 @dataclass()
+class ClbKwargs:
+    """
+    定义clb管理的活动节点专属参数
+    """
+
+    clb_op_type: Optional[Any]  # 操作方式
+    clb_ip: str = None  # clb ip
+    clb_op_exec_port: int = None  # 如果做添加或者更新域名管理，执行实例的port
+    exec_ip: Optional[Any] = None  # 表示执行的ip，多个ip传入list类型，当个ip传入str类型
+
+
+@dataclass()
 class DeleteClusterDnsKwargs:
     """
     定义dns管理的活动节点专属参数

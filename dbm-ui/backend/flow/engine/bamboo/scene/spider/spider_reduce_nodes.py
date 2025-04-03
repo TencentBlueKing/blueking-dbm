@@ -16,18 +16,18 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import TenDBClusterSpiderRole
+from backend.db_meta.enums import ClusterEntryRole, TenDBClusterSpiderRole
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster
-from backend.flow.consts import MIN_SPIDER_MASTER_COUNT, MIN_SPIDER_SLAVE_COUNT
+from backend.flow.consts import MIN_SPIDER_MASTER_COUNT, MIN_SPIDER_SLAVE_COUNT, DnsOpType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
+from backend.flow.engine.bamboo.scene.common.entrys_manager import BuildEntrysManageSubflow
 from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import reduce_spider_slaves_flow
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import NormalSpiderFlowException
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.check_client_connections import CheckClientConnComponent
-from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.spider.drop_spider_ronting import DropSpiderRoutingComponent
-from backend.flow.utils.mysql.mysql_act_dataclass import CheckClientConnKwargs, RecycleDnsRecordKwargs
+from backend.flow.utils.mysql.mysql_act_dataclass import CheckClientConnKwargs
 from backend.flow.utils.spider.spider_act_dataclass import DropSpiderRoutingKwargs
 
 logger = logging.getLogger("flow")
@@ -129,9 +129,10 @@ class TenDBClusterReduceNodesFlow(object):
                 )
 
             # 计算待下架的spider节点列表,转化成全局参数
+            reduce_spider_role = info["reduce_spider_role"]
             reduce_spiders = self.__calc_reduce_spiders(
                 cluster=cluster,
-                reduce_spider_role=info["reduce_spider_role"],
+                reduce_spider_role=reduce_spider_role,
                 spider_reduced_to_count=int(info["spider_reduced_to_count"]),
                 spider_reduced_hosts=info.get("spider_reduced_hosts"),
             )
@@ -169,18 +170,32 @@ class TenDBClusterReduceNodesFlow(object):
             )
 
             # 回收对应的域名关系
-            sub_pipeline.add_act(
-                act_name=_("回收对应spider集群映射"),
-                act_component_code=MySQLDnsManageComponent.code,
-                kwargs=asdict(
-                    RecycleDnsRecordKwargs(
-                        bk_cloud_id=cluster.bk_cloud_id,
-                        dns_op_exec_port=cluster.proxyinstance_set.first().port,
-                        exec_ip=[info["ip"] for info in reduce_spiders],
-                    ),
-                ),
+            # sub_pipeline.add_act(
+            #     act_name=_("回收对应spider集群映射"),
+            #     act_component_code=MySQLDnsManageComponent.code,
+            #     kwargs=asdict(
+            #         RecycleDnsRecordKwargs(
+            #             bk_cloud_id=cluster.bk_cloud_id,
+            #             dns_op_exec_port=cluster.proxyinstance_set.first().port,
+            #             exec_ip=[info["ip"] for info in reduce_spiders],
+            #         ),
+            #     ),
+            # )
+            entry_role = ClusterEntryRole.MASTER_ENTRY.value
+            if reduce_spider_role == TenDBClusterSpiderRole.SPIDER_SLAVE.value:
+                entry_role = ClusterEntryRole.SLAVE_ENTRY.value
+            entrysub_process = BuildEntrysManageSubflow(
+                root_id=self.root_id,
+                ticket_data=self.data,
+                op_type=DnsOpType.RECYCLE_RECORD,
+                param={
+                    "cluster_id": cluster.id,
+                    "port": cluster.proxyinstance_set.first().port,
+                    "del_ips": [info["ip"] for info in reduce_spiders],
+                    "entry_role": [entry_role],
+                },
             )
-
+            sub_pipeline.add_sub_pipeline(sub_flow=entrysub_process)
             # 后续流程需要在这里加一个暂停节点，让用户在合适的时间执行下架
             sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
 

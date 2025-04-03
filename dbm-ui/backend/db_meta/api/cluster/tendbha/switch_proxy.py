@@ -43,7 +43,9 @@ def add_proxy(cluster_ids: list, proxy_ip: str, template_proxy_ip: str = None):
                 0
             ]
 
-        entry_list = template_proxy.bind_entry.filter(cluster_entry_type=ClusterEntryType.DNS).all()
+        entry_list = template_proxy.bind_entry.filter(
+            cluster_entry_type__in=[ClusterEntryType.DNS, ClusterEntryType.CLB]
+        ).all()
         for bind_entry in entry_list:
             bind_entry.proxyinstance_set.add(*proxy_objs)
 

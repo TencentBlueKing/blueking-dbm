@@ -31,15 +31,21 @@ def create(domains: List[Dict], creator: str = ""):
     for dm in domains:
         try:
             c = Cluster.objects.filter(immute_domain=dm["domain"]).get()
-            entry = c.clusterentry_set.create(
-                cluster_entry_type=ClusterEntryType.CLB,
-                entry=dm["clb_ip"],
-            )
+            if dm.get("role"):
+                entry = c.clusterentry_set.create(
+                    cluster_entry_type=ClusterEntryType.CLB, entry=dm["clb_ip"], role=dm["role"]
+                )
+            else:
+                entry = c.clusterentry_set.create(
+                    cluster_entry_type=ClusterEntryType.CLB,
+                    entry=dm["clb_ip"],
+                )
             entry.clbentrydetail_set.create(
                 clb_ip=dm.get("clb_ip"),
                 clb_id=dm.get("clb_id", ""),
                 listener_id=dm.get("clb_listener_id", ""),
                 clb_region=dm.get("clb_region", ""),
+                clb_port=dm.get("clb_port", 0),
                 creator=creator,
             )
             proxy_objs = c.proxyinstance_set.all()

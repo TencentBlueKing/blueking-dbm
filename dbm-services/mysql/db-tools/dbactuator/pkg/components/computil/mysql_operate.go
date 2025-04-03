@@ -277,7 +277,7 @@ func JudgeMysqldShutDown(prefix string) (err error) {
 			return fmt.Errorf("stop mysqld timeout:%s", prefix)
 		case <-tk.C:
 			// 不能直接grep mysqld 因为存在 mysqldata
-			//shellCMD := fmt.Sprintf("ps -efwww | grep %s|grep -E 'mysqld |mysqld_safe'| grep -v grep|wc -l", prefix)
+			// shellCMD := fmt.Sprintf("ps -efwww | grep %s|grep -E 'mysqld |mysqld_safe'| grep -v grep|wc -l", prefix)
 			shellCMD := fmt.Sprintf("ps -efwww | grep %s|grep -E 'mysqld |mysqld_safe'| grep -v grep", prefix)
 			out, err := osutil.ExecShellCommand(false, shellCMD)
 			if err != nil {

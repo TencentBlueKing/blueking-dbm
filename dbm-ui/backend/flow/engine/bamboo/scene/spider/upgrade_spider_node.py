@@ -16,13 +16,14 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterType, InstanceStatus, TenDBClusterSpiderRole
+from backend.db_meta.enums import ClusterEntryRole, ClusterType, InstanceStatus, TenDBClusterSpiderRole
 from backend.db_meta.enums.instance_phase import InstancePhase
 from backend.db_meta.exceptions import ClusterNotExistException, DBMetaException
 from backend.db_meta.models import Cluster, ProxyInstance
 from backend.db_package.models import Package
-from backend.flow.consts import MediumEnum
+from backend.flow.consts import DnsOpType, MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
+from backend.flow.engine.bamboo.scene.common.entrys_manager import BuildEntrysManageSubflow
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.spider.spider_add_nodes import TenDBClusterAddNodesFlow
 from backend.flow.plugins.components.collections.common.delete_cc_service_instance import DelCCServiceInstComponent
@@ -212,17 +213,29 @@ class UpgradeSpiderFlow(TenDBClusterAddNodesFlow):
             reduce_spiders = [{"ip": s.machine.ip} for s in reduce_master_spiders] + [
                 {"ip": s.machine.ip} for s in reduce_slave_spiders
             ]
-            sub_pipeline.add_act(
-                act_name=_("回收对应spider集群映射"),
-                act_component_code=MySQLDnsManageComponent.code,
-                kwargs=asdict(
-                    RecycleDnsRecordKwargs(
-                        bk_cloud_id=cluster.bk_cloud_id,
-                        dns_op_exec_port=cluster.proxyinstance_set.first().port,
-                        exec_ip=[info["ip"] for info in reduce_spiders],
-                    ),
-                ),
+            # sub_pipeline.add_act(
+            #     act_name=_("回收对应spider集群映射"),
+            #     act_component_code=MySQLDnsManageComponent.code,
+            #     kwargs=asdict(
+            #         RecycleDnsRecordKwargs(
+            #             bk_cloud_id=cluster.bk_cloud_id,
+            #             dns_op_exec_port=cluster.proxyinstance_set.first().port,
+            #             exec_ip=[info["ip"] for info in reduce_spiders],
+            #         ),
+            #     ),
+            # )
+            entrysub_process = BuildEntrysManageSubflow(
+                root_id=self.root_id,
+                ticket_data=self.data,
+                op_type=DnsOpType.RECYCLE_RECORD,
+                param={
+                    "cluster_id": cluster.id,
+                    "port": cluster.proxyinstance_set.first().port,
+                    "del_ips": [info["ip"] for info in reduce_spiders],
+                    "entry_role": [ClusterEntryRole.MASTER_ENTRY.value, ClusterEntryRole.SLAVE_ENTRY.value],
+                },
             )
+            sub_pipeline.add_sub_pipeline(sub_flow=entrysub_process)
             # 删除spider的路由关系
             sub_pipeline.add_act(
                 act_name=_("删除spider的路由关系"),

@@ -106,6 +106,12 @@ from backend.flow.views.mongodb_scene import (
 from backend.flow.views.mysql import MysqlMachineClearApiView
 from backend.flow.views.mysql_add_slave_remote import AddMysqlSlaveRemoteSceneApiView
 from backend.flow.views.mysql_checksum import MysqlChecksumSceneApiView
+from backend.flow.views.mysql_clb_operation import (
+    MysqlClbCreateSceneApiView,
+    MysqlClbDeleteSceneApiView,
+    MysqlDomainBindClbIpSceneApiView,
+    MysqlDomainUnBindClbIpSceneApiView,
+)
 from backend.flow.views.mysql_data_migrate import MysqlDataMigrateSceneApiView
 from backend.flow.views.mysql_edit_config import MysqlEditConfigSceneApiView
 from backend.flow.views.mysql_flashback import MysqlFlashbackSceneApiView
@@ -367,6 +373,11 @@ urlpatterns = [
     # tendbcluster upgrade
     url(r"^scene/tendbcluster/upgrade_spider$", UpgradeTendbClusterSpiderSceneApiView.as_view()),
     url(r"^scene/tendbcluster/upgrade_remote$", UpgradeTendbClusterRemoteSceneApiView.as_view()),
+    # mysql clb operation
+    url(r"^scene/mysql/clb_create$", MysqlClbCreateSceneApiView.as_view()),
+    url(r"^scene/mysql/clb_delete$", MysqlClbDeleteSceneApiView.as_view()),
+    url(r"^scene/mysql/domain_bind_clb_ip$", MysqlDomainBindClbIpSceneApiView.as_view()),
+    url(r"^scene/mysql/domain_unbind_clb_ip$", MysqlDomainUnBindClbIpSceneApiView.as_view()),
     # mysql
     url(r"^scene/dbconsole_dump$", DbConsoleDumpApiView.as_view()),
     url(r"^scene/install_mysql_apply$", InstallMySQLSingleSceneApiView.as_view()),

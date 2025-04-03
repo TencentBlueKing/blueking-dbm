@@ -14,13 +14,15 @@ from typing import Optional
 
 from django.utils.translation import ugettext as _
 
-from backend.db_meta.enums import ClusterEntryRole
+from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster, ClusterEntry
+from backend.flow.consts import DnsOpType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
+from backend.flow.plugins.components.collections.common.mysql_clb_manage import MySQLClbManageComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
-from backend.flow.utils.mysql.mysql_act_dataclass import CreateDnsKwargs, DBMetaOPKwargs
+from backend.flow.utils.mysql.mysql_act_dataclass import ClbKwargs, CreateDnsKwargs, DBMetaOPKwargs
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
 
 
@@ -124,6 +126,34 @@ class SpiderClusterEnableFlow(object):
                                 add_domain_name=slave_domain,
                                 dns_op_exec_port=cluster_info["spider_slave_port"],
                                 exec_ip=cluster_info["spider_slave_ip_list"],
+                            )
+                        ),
+                    }
+                )
+            # enable clb
+            if self.data["is_only_delete_slave_domain"]:
+                cluster_enterys = ClusterEntry.objects.filter(
+                    cluster__id=cluster_id,
+                    cluster_entry_type=ClusterEntryType.CLB,
+                    role=ClusterEntryRole.SLAVE_ENTRY.value,
+                ).all()
+            else:
+                cluster_enterys = ClusterEntry.objects.filter(
+                    cluster__id=cluster_id,
+                    cluster_entry_type=ClusterEntryType.CLB,
+                ).all()
+            for ce in cluster_enterys:
+                instance_list = ce.proxyinstance_set.all()
+                acts_list.append(
+                    {
+                        "act_name": _("enable clb rs weight -> 10"),
+                        "act_component_code": MySQLClbManageComponent.code,
+                        "kwargs": asdict(
+                            ClbKwargs(
+                                clb_op_type=DnsOpType.CLB_ENABLE_RS.value,
+                                clb_ip=ce.entry,
+                                clb_op_exec_port=instance_list[0].port,
+                                exec_ip=[instance.machine.ip for instance in instance_list],
                             )
                         ),
                     }

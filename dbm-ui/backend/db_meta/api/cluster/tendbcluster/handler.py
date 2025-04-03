@@ -242,9 +242,19 @@ class TenDBClusterClusterHandler(ClusterHandler):
         else:
             # 扩容spider的节点处理
             if spider_role == TenDBClusterSpiderRole.SPIDER_MASTER:
-                cluster_entry_list = list(cluster.clusterentry_set.filter(role=ClusterEntryRole.MASTER_ENTRY))
+                cluster_entry_list = list(
+                    cluster.clusterentry_set.filter(
+                        role=ClusterEntryRole.MASTER_ENTRY,
+                        forward_to_id__isnull=True,
+                    )
+                )
             elif spider_role == TenDBClusterSpiderRole.SPIDER_SLAVE:
-                cluster_entry_list = list(cluster.clusterentry_set.filter(role=ClusterEntryRole.SLAVE_ENTRY))
+                cluster_entry_list = list(
+                    cluster.clusterentry_set.filter(
+                        role=ClusterEntryRole.SLAVE_ENTRY,
+                        forward_to_id__isnull=True,
+                    )
+                )
 
         # 录入集群相关信息
         api.cluster.tendbcluster.add_spiders(
@@ -350,7 +360,8 @@ class TenDBClusterClusterHandler(ClusterHandler):
     def clear_clusterentry(cls, cluster_id: int):
         cluster = Cluster.objects.get(id=cluster_id)
         clusterentry = cluster.clusterentry_set.filter(
-            cluster_entry_type=ClusterEntryType.DNS.value, role=ClusterEntryRole.SLAVE_ENTRY.value
+            cluster_entry_type__in=[ClusterEntryType.DNS, ClusterEntryType.CLB],
+            role=ClusterEntryRole.SLAVE_ENTRY.value,
         ).all()
         for ce in clusterentry:
             ce.delete(keep_parents=True)

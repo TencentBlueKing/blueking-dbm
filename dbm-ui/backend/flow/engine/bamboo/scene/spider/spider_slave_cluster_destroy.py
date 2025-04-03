@@ -16,13 +16,14 @@ from django.utils.translation import ugettext as _
 
 from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster, ProxyInstance
+from backend.flow.consts import DnsOpType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
+from backend.flow.engine.bamboo.scene.common.entrys_manager import BuildEntrysManageSubflow
 from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import reduce_spider_slaves_flow
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
-from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.spider.drop_spider_ronting import DropSpiderRoutingComponent
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
-from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs, DeleteClusterDnsKwargs
+from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs
 from backend.flow.utils.spider.spider_act_dataclass import DropSpiderRoutingKwargs
 from backend.flow.utils.spider.spider_db_meta import SpiderDBMeta
 
@@ -95,18 +96,30 @@ class TenDBSlaveClusterDestroyFlow(object):
             )
 
             # 删除对应的域名关系
-            sub_pipeline.add_act(
-                act_name=_("删除集群域名"),
-                act_component_code=MySQLDnsManageComponent.code,
-                kwargs=asdict(
-                    DeleteClusterDnsKwargs(
-                        bk_cloud_id=slave_cluster["bk_cloud_id"],
-                        delete_cluster_id=slave_cluster["cluster_id"],
-                        is_only_delete_slave_domain=True,
-                    ),
-                ),
+            # sub_pipeline.add_act(
+            #     act_name=_("删除集群域名"),
+            #     act_component_code=MySQLDnsManageComponent.code,
+            #     kwargs=asdict(
+            #         DeleteClusterDnsKwargs(
+            #             bk_cloud_id=slave_cluster["bk_cloud_id"],
+            #             delete_cluster_id=slave_cluster["cluster_id"],
+            #             is_only_delete_slave_domain=True,
+            #         ),
+            #     ),
+            # )
+            entrysub_process = BuildEntrysManageSubflow(
+                root_id=self.root_id,
+                ticket_data=sub_flow_context,
+                op_type=DnsOpType.CLUSTER_DELETE,
+                param={
+                    "cluster_id": cluster_id,
+                    "port": slave_cluster["port"],
+                    "del_ips": slave_cluster["spider_ip_list"],
+                    "entry_role": [ClusterEntryRole.SLAVE_ENTRY.value],
+                    "is_only_delete_slave_entry": True,
+                },
             )
-
+            sub_pipeline.add_sub_pipeline(sub_flow=entrysub_process)
             # 暂停节点，让用户在合适的时间执行下架
             sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
 

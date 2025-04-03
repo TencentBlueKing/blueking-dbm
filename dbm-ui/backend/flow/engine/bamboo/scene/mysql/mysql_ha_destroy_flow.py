@@ -15,16 +15,20 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
+from backend.db_meta.enums import ClusterEntryType
 from backend.db_meta.exceptions import ClusterNotExistException
-from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
+from backend.db_meta.models import Cluster, ClusterEntry, ProxyInstance, StorageInstance
+from backend.flow.consts import DnsOpType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.common.delete_cc_service_instance import DelCCServiceInstComponent
+from backend.flow.plugins.components.collections.common.mysql_clb_manage import MySQLClbManageComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import (
+    ClbKwargs,
     DBMetaOPKwargs,
     DelServiceInstKwargs,
     DownloadMediaKwargs,
@@ -113,7 +117,26 @@ class MySQLHADestroyFlow(object):
                     )
                 ),
             )
-
+            # delete clb
+            acts_list = []
+            cluster_enterys = ClusterEntry.objects.filter(
+                cluster__id=cluster_id,
+                cluster_entry_type=ClusterEntryType.CLB,
+            ).all()
+            for ce in cluster_enterys:
+                acts_list.append(
+                    {
+                        "act_name": _("删除CLB"),
+                        "act_component_code": MySQLClbManageComponent.code,
+                        "kwargs": asdict(
+                            ClbKwargs(
+                                clb_op_type=DnsOpType.CLUSTER_DELETE,
+                                clb_ip=ce.entry,
+                            ),
+                        ),
+                    }
+                )
+                sub_pipeline.add_parallel_acts(acts_list=acts_list)
             # 阶段1 下发db-actuator介质包
             sub_pipeline.add_act(
                 act_name=_("下发db-actuator介质"),

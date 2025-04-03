@@ -14,12 +14,14 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
-from backend.db_meta.enums import ClusterEntryType, InstanceInnerRole
-from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
+from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType, InstanceInnerRole
+from backend.db_meta.models import Cluster, ClusterEntry, ProxyInstance, StorageInstance
+from backend.flow.consts import DnsOpType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
+from backend.flow.plugins.components.collections.common.mysql_clb_manage import MySQLClbManageComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
-from backend.flow.utils.mysql.mysql_act_dataclass import CreateDnsKwargs, DBMetaOPKwargs
+from backend.flow.utils.mysql.mysql_act_dataclass import ClbKwargs, CreateDnsKwargs, DBMetaOPKwargs
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
 
 logger = logging.getLogger("flow")
@@ -104,6 +106,27 @@ class MySQLHAEnableFlow(object):
                                 dns_op_exec_port=cluster["proxy_port"],
                                 exec_ip=cluster["proxy_ip_list"],
                             )
+                        ),
+                    }
+                )
+            # enable clb
+            cluster_enterys = ClusterEntry.objects.filter(
+                cluster__id=cluster_id,
+                cluster_entry_type=ClusterEntryType.CLB,
+                role=ClusterEntryRole.MASTER_ENTRY.value,
+            ).all()
+            for ce in cluster_enterys:
+                acts_list.append(
+                    {
+                        "act_name": _("启用Clb RS调整权重为10"),
+                        "act_component_code": MySQLClbManageComponent.code,
+                        "kwargs": asdict(
+                            ClbKwargs(
+                                clb_op_type=DnsOpType.CLB_ENABLE_RS.value,
+                                clb_ip=ce.entry,
+                                clb_op_exec_port=cluster["proxy_port"],
+                                exec_ip=cluster["proxy_ip_list"],
+                            ),
                         ),
                     }
                 )

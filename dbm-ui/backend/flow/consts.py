@@ -749,6 +749,8 @@ class DnsOpType(str, StructuredEnum):
     ADD_AND_DELETE = EnumField("add_and_delete", _("add_and_delete"))
     IP_DNS_RECORD_RECYCLE = EnumField("ip_dns_recycle_record", _("ip_dns对应记录回收"))
     CLB_CHANGE_WEIGHT = EnumField("clb_change_weight", _("clb修改权重"))
+    CLB_DISABLE_RS = EnumField("clb_disable_rs", _("clb_disable_rs"))
+    CLB_ENABLE_RS = EnumField("clb_enable_rs", _("clb_enable_rs"))
 
 
 class ManagerOpType(str, StructuredEnum):

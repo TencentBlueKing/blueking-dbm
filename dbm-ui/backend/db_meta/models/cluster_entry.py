@@ -137,6 +137,7 @@ class CLBEntryDetail(AuditedModel):
     clb_id = models.CharField(default="", max_length=30)
     listener_id = models.CharField(default="", max_length=30)
     clb_region = models.CharField(default="", max_length=50)
+    clb_port = models.IntegerField(default=0)
 
     @property
     def url(self):

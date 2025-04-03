@@ -33,3 +33,19 @@ class TransDataKwargs:
 
     # 调用第三方接口返回的数据
     output: Optional[Any] = None
+
+
+@dataclass()
+class MySQLClbActKwargs:
+    """节点私有变量数据类"""
+
+    # 集群id
+    cluster_id: int = None
+    # 操作人员
+    creator: str = None
+    # spider角色
+    role: str = None
+    # 名字服务类型
+    name_service_operation_type: str = None
+    # 加载到上下文的dataclass类的名称
+    set_trans_data_dataclass: str = None

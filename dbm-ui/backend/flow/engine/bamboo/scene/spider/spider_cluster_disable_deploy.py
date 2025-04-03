@@ -19,8 +19,10 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType, ClusterType
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster, ClusterEntry
+from backend.flow.consts import DnsOpType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.plugins.components.collections.common.mysql_clb_manage import MySQLClbManageComponent
 from backend.flow.plugins.components.collections.mysql.check_client_connections import CheckClientConnComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -28,6 +30,7 @@ from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQ
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CheckClientConnKwargs,
+    ClbKwargs,
     DBMetaOPKwargs,
     DeleteClusterDnsKwargs,
     DownloadMediaKwargs,
@@ -107,18 +110,49 @@ class SpiderClusterDisableFlow(object):
                 ),
             )
 
-            sub_pipeline.add_act(
-                act_name=_("删除集群域名"),
-                act_component_code=MySQLDnsManageComponent.code,
-                kwargs=asdict(
-                    DeleteClusterDnsKwargs(
-                        bk_cloud_id=cluster_info["bk_cloud_id"],
-                        delete_cluster_id=cluster_id,
-                        is_only_delete_slave_domain=self.data["is_only_delete_slave_domain"],
+            act_lists = []
+            act_lists.append(
+                {
+                    "act_name": _("删除集群域名"),
+                    "act_component_code": MySQLDnsManageComponent.code,
+                    "kwargs": asdict(
+                        DeleteClusterDnsKwargs(
+                            bk_cloud_id=cluster_info["bk_cloud_id"],
+                            delete_cluster_id=cluster_id,
+                            is_only_delete_slave_domain=self.data["is_only_delete_slave_domain"],
+                        ),
                     ),
-                ),
+                }
             )
-
+            # disable clb
+            if self.data["is_only_delete_slave_domain"]:
+                cluster_enterys = ClusterEntry.objects.filter(
+                    cluster__id=cluster_id,
+                    cluster_entry_type=ClusterEntryType.CLB,
+                    role=ClusterEntryRole.SLAVE_ENTRY.value,
+                ).all()
+            else:
+                cluster_enterys = ClusterEntry.objects.filter(
+                    cluster__id=cluster_id,
+                    cluster_entry_type=ClusterEntryType.CLB,
+                ).all()
+            for ce in cluster_enterys:
+                instance_list = ce.proxyinstance_set.all()
+                act_lists.append(
+                    {
+                        "act_name": _("disable clb rs weight -> 0"),
+                        "act_component_code": MySQLClbManageComponent.code,
+                        "kwargs": asdict(
+                            ClbKwargs(
+                                clb_op_type=DnsOpType.CLB_DISABLE_RS.value,
+                                clb_ip=ce.entry,
+                                clb_op_exec_port=instance_list[0].port,
+                                exec_ip=[instance.machine.ip for instance in instance_list],
+                            )
+                        ),
+                    }
+                )
+            sub_pipeline.add_parallel_acts(acts_list=act_lists)
             # 传入需要下发的ip列表
             sub_pipeline.add_act(
                 act_name=_("下发db-actuator介质"),

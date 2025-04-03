@@ -18,15 +18,15 @@ from django.utils.translation import ugettext as _
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.models import Cluster
-from backend.flow.consts import MIN_TENDB_PROXY_COUNT
+from backend.flow.consts import MIN_TENDB_PROXY_COUNT, DnsOpType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
+from backend.flow.engine.bamboo.scene.common.entrys_manager import BuildEntrysManageSubflow
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.exceptions import NormalTenDBFlowException
 from backend.flow.plugins.components.collections.common.delete_cc_service_instance import DelCCServiceInstComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.check_client_connections import CheckClientConnComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
-from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.drop_proxy_client_in_backend import (
     DropProxyUsersInBackendComponent,
 )
@@ -40,7 +40,6 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     DownloadMediaKwargs,
     DropProxyUsersInBackendKwargs,
     ExecActuatorKwargs,
-    RecycleDnsRecordKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
@@ -138,17 +137,28 @@ class MySQLProxyClusterReduceFlow(object):
                         ),
                     )
 
-                cluster_sub_pipeline.add_act(
-                    act_name=_("回收proxy域名映射"),
-                    act_component_code=MySQLDnsManageComponent.code,
-                    kwargs=asdict(
-                        RecycleDnsRecordKwargs(
-                            bk_cloud_id=cluster.bk_cloud_id,
-                            dns_op_exec_port=origin_proxy.port,
-                            exec_ip=origin_proxy.machine.ip,
-                        ),
-                    ),
+                # cluster_sub_pipeline.add_act(
+                #     act_name=_("回收proxy域名映射"),
+                #     act_component_code=MySQLDnsManageComponent.code,
+                #     kwargs=asdict(
+                #         RecycleDnsRecordKwargs(
+                #             bk_cloud_id=cluster.bk_cloud_id,
+                #             dns_op_exec_port=origin_proxy.port,
+                #             exec_ip=origin_proxy.machine.ip,
+                #         ),
+                #     ),
+                # )
+                entrysub_process = BuildEntrysManageSubflow(
+                    root_id=self.root_id,
+                    ticket_data=self.data,
+                    op_type=DnsOpType.RECYCLE_RECORD,
+                    param={
+                        "cluster_id": cluster_id,
+                        "port": cluster["proxy_port"],
+                        "del_ips": [info["proxy_ip"]["ip"]],
+                    },
                 )
+                cluster_sub_pipeline.add_sub_pipeline(sub_flow=entrysub_process)
 
                 cluster_sub_pipeline.add_act(
                     act_name=_("回收旧proxy在backend权限"),

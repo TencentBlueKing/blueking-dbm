@@ -14,10 +14,11 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterType, InstanceStatus, MachineType, TenDBClusterSpiderRole
+from backend.db_meta.enums import ClusterEntryRole, ClusterType, InstanceStatus, MachineType, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
-from backend.flow.consts import AUTH_ADDRESS_DIVIDER, DBA_ROOT_USER, TDBCTL_USER, PrivRole
+from backend.flow.consts import AUTH_ADDRESS_DIVIDER, DBA_ROOT_USER, TDBCTL_USER, DnsOpType, PrivRole
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
+from backend.flow.engine.bamboo.scene.common.entrys_manager import BuildEntrysManageSubflow
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
     check_sub_flow,
@@ -29,7 +30,6 @@ from backend.flow.plugins.components.collections.common.delete_cc_service_instan
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
-from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.sync_master import SyncMasterComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
@@ -41,7 +41,6 @@ from backend.flow.plugins.components.collections.spider.spider_db_meta import Sp
 from backend.flow.utils.base.base_dataclass import Instance
 from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
 from backend.flow.utils.mysql.mysql_act_dataclass import (
-    CreateDnsKwargs,
     DBMetaOPKwargs,
     DelServiceInstKwargs,
     DownloadMediaKwargs,
@@ -220,19 +219,30 @@ def add_spider_slaves_sub_flow(
     )
 
     # 阶段7 添加从域名
-    sub_pipeline.add_act(
-        act_name=_("添加集群域名"),
-        act_component_code=MySQLDnsManageComponent.code,
-        kwargs=asdict(
-            CreateDnsKwargs(
-                bk_cloud_id=cluster.bk_cloud_id,
-                add_domain_name=slave_domain,
-                dns_op_exec_port=tmp_spider.port,
-                exec_ip=[ip_info["ip"] for ip_info in add_spider_slaves],
-            )
-        ),
+    # sub_pipeline.add_act(
+    #     act_name=_("添加集群域名"),
+    #     act_component_code=MySQLDnsManageComponent.code,
+    #     kwargs=asdict(
+    #         CreateDnsKwargs(
+    #             bk_cloud_id=cluster.bk_cloud_id,
+    #             add_domain_name=slave_domain,
+    #             dns_op_exec_port=tmp_spider.port,
+    #             exec_ip=[ip_info["ip"] for ip_info in add_spider_slaves],
+    #         )
+    #     ),
+    # )
+    entrysub_process = BuildEntrysManageSubflow(
+        root_id=root_id,
+        ticket_data=parent_global_data,
+        op_type=DnsOpType.CREATE,
+        param={
+            "cluster_id": cluster.id,
+            "port": tmp_spider.port,
+            "add_ips": [ip_info["ip"] for ip_info in add_spider_slaves],
+            "entry_role": [ClusterEntryRole.SLAVE_ENTRY.value],
+        },
     )
-
+    sub_pipeline.add_sub_pipeline(sub_flow=entrysub_process)
     return sub_pipeline.build_sub_process(sub_name=_("集群[{}]添加spider slave节点".format(cluster.name)))
 
 
@@ -445,18 +455,29 @@ def add_spider_masters_sub_flow(
         )
 
         # 阶段8 添加域名映射关系
-        sub_pipeline.add_act(
-            act_name=_("添加集群域名"),
-            act_component_code=MySQLDnsManageComponent.code,
-            kwargs=asdict(
-                CreateDnsKwargs(
-                    bk_cloud_id=cluster.bk_cloud_id,
-                    add_domain_name=cluster.immute_domain,
-                    dns_op_exec_port=tmp_spider.port,
-                    exec_ip=[ip_info["ip"] for ip_info in add_spider_masters],
-                )
-            ),
+        # sub_pipeline.add_act(
+        #     act_name=_("添加集群域名"),
+        #     act_component_code=MySQLDnsManageComponent.code,
+        #     kwargs=asdict(
+        #         CreateDnsKwargs(
+        #             bk_cloud_id=cluster.bk_cloud_id,
+        #             add_domain_name=cluster.immute_domain,
+        #             dns_op_exec_port=tmp_spider.port,
+        #             exec_ip=[ip_info["ip"] for ip_info in add_spider_masters],
+        #         )
+        #     ),
+        # )
+        entrysub_process = BuildEntrysManageSubflow(
+            root_id=root_id,
+            ticket_data=parent_global_data,
+            op_type=DnsOpType.CREATE,
+            param={
+                "cluster_id": cluster.id,
+                "port": tmp_spider.port,
+                "add_ips": [ip_info["ip"] for ip_info in add_spider_masters],
+            },
         )
+        sub_pipeline.add_sub_pipeline(sub_flow=entrysub_process)
         tag = "master"
 
     return sub_pipeline.build_sub_process(sub_name=_("集群[{}]添加spider {}节点".format(cluster.name, tag)))

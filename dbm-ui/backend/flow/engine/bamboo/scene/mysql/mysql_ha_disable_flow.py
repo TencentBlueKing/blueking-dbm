@@ -16,10 +16,12 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import Cluster, ProxyInstance
+from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType, ClusterType
+from backend.db_meta.models import Cluster, ClusterEntry, ProxyInstance
+from backend.flow.consts import DnsOpType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.plugins.components.collections.common.mysql_clb_manage import MySQLClbManageComponent
 from backend.flow.plugins.components.collections.mysql.check_client_connections import CheckClientConnComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -27,6 +29,7 @@ from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQ
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CheckClientConnKwargs,
+    ClbKwargs,
     DBMetaOPKwargs,
     DeleteClusterDnsKwargs,
     DownloadMediaKwargs,
@@ -110,6 +113,25 @@ class MySQLHADisableFlow(object):
                     ),
                 ),
             )
+            # disable clb
+            cluster_enterys = ClusterEntry.objects.filter(
+                cluster__id=cluster_id,
+                cluster_entry_type=ClusterEntryType.CLB,
+                role=ClusterEntryRole.MASTER_ENTRY.value,
+            ).all()
+            for ce in cluster_enterys:
+                sub_pipeline.add_act(
+                    act_name=_("禁用Clb RS调整权重为0"),
+                    act_component_code=MySQLClbManageComponent.code,
+                    kwargs=asdict(
+                        ClbKwargs(
+                            clb_op_type=DnsOpType.CLB_DISABLE_RS.value,
+                            clb_ip=ce.entry,
+                            clb_op_exec_port=cluster["proxy_port"],
+                            exec_ip=cluster["proxy_ip_list"],
+                        ),
+                    ),
+                )
 
             # 阶段2 重启proxy实例，来清空已存在的长连接
             sub_pipeline.add_act(
