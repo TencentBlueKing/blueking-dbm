@@ -129,55 +129,60 @@
   // 生成可选中列配置
   const genSelectionColumn = () => ({
     fixed: 'left',
-    label: () => (
-      // const renderCheckbox = () => {
-      //   if (isWholeChecked.value) {
-      //     return (
-      //       <div class="db-table-whole-check" onClick={handleClearWholeSelect} />
-      //     );
-      //   }
-      //   return (
-      //     <bk-checkbox
-      //       label={true}
-      //       modelValue={isCurrentPageAllSelected.value}
-      //       onChange={handleTogglePageSelect} />
-      //   );
-      // };
-      <div class='db-table-select-cell'>
-        <bk-checkbox
-          label={true}
-          model-value={isWholeChecked.value}
-          onChange={handleWholeSelect}
-        />
-        <bk-popover
-          v-slots={{
-            content: () => (
-              <div class='db-table-select-plan'>
-                <div
-                  class='item'
-                  onClick={handlePageSelect}>
-                  {t('本页全选')}
+    label: () => {
+      const renderCheckbox = () => {
+        if (isWholeChecked.value) {
+          return (
+            <div
+              class='db-table-whole-check'
+              onClick={handleClearWholeSelect}
+            />
+          );
+        }
+        if (isCurrentPageAllSelected.value) {
+          return (
+            <bk-checkbox
+              label={true}
+              modelValue={true}
+              onChange={handleTogglePageSelect}
+            />
+          );
+        }
+        return <bk-checkbox onChange={handleWholeSelect} />;
+      };
+      return (
+        <div class='db-table-select-cell'>
+          {renderCheckbox()}
+          <bk-popover
+            v-slots={{
+              content: () => (
+                <div class='db-table-select-plan'>
+                  <div
+                    class={{ 'is-selected': isCurrentPageAllSelected.value, 'plan-item': true }}
+                    onClick={handlePageSelect}>
+                    {t('本页全选')}
+                  </div>
+                  <div
+                    class={{ 'is-selected': isWholeChecked.value, 'plan-item': true }}
+                    onClick={() => handleWholeSelect(!isWholeChecked.value)}>
+                    {t('跨页全选')}
+                  </div>
                 </div>
-                <div
-                  class='item'
-                  onClick={() => handleWholeSelect(!isWholeChecked.value)}>
-                  {t('跨页全选')}
-                </div>
-              </div>
-            ),
-            default: () => (
-              <db-icon
-                class='select-menu-flag'
-                type='down-big'
-              />
-            ),
-          }}
-          arrow={false}
-          placement='bottom-start'
-          theme='light db-table-select-menu'
-          trigger='hover'></bk-popover>
-      </div>
-    ),
+              ),
+              default: () => (
+                <db-icon
+                  class='select-menu-flag'
+                  type='down-big'
+                />
+              ),
+            }}
+            arrow={false}
+            placement='bottom-start'
+            theme='light db-table-select-menu'
+            trigger='hover'></bk-popover>
+        </div>
+      );
+    },
     render: ({ data }: { data: any }) => {
       const selectDisabled = props.disableSelectMethod(data);
       const tips = {
@@ -227,20 +232,25 @@
     remote: true,
     ...props.paginationExtra,
   });
+
   // 是否本页全选
-  // const isCurrentPageAllSelected = computed(() => {
-  //   const list = tableData.value.results;
-  //   if (list.length < 1) {
-  //     return false;
-  //   }
-  //   const selectMap = { ...rowSelectMemo.value };
-  //   for (let i = 0; i < list.length; i++) {
-  //     if (!selectMap[_.get(list[i], props.primaryKey)]) {
-  //       return false;
-  //     }
-  //   }
-  //   return true;
-  // });
+  const isCurrentPageAllSelected = computed(() => {
+    if (isWholeChecked.value) {
+      return false;
+    }
+    const list = tableData.value.results;
+    if (list.length < 1) {
+      return false;
+    }
+    const selectMap = { ...rowSelectMemo.value };
+    // eslint-disable-next-line @typescript-eslint/prefer-for-of
+    for (let i = 0; i < list.length; i++) {
+      if (!selectMap[_.get(list[i], props.primaryKey)]) {
+        return false;
+      }
+    }
+    return true;
+  });
 
   const localColumns = computed(() => {
     if (!props.selectable || !props.columns) {
@@ -294,7 +304,8 @@
 
           // 默认清空选项
           if (props.clearSelection) {
-            bkTableRef.value?.clearSelection?.();
+            // bkTableRef.value?.clearSelection?.();
+            handleClearWholeSelect();
           }
 
           if (!props.fixedPagination) {
@@ -354,21 +365,21 @@
   };
 
   // 切换当前页全选
-  // const handleTogglePageSelect = (checked: boolean) => {
-  //   const selectMap = { ...rowSelectMemo.value };
-  //   tableData.value.results.forEach((dataItem: any) => {
-  //     if (checked) {
-  //       selectMap[_.get(dataItem, props.primaryKey)] = dataItem;
-  //     } else {
-  //       delete selectMap[_.get(dataItem, props.primaryKey)];
-  //     }
-  //   });
-  //   if (!checked) {
-  //     isWholeChecked.value = false;
-  //   }
-  //   rowSelectMemo.value = selectMap;
-  //   triggerSelection();
-  // };
+  const handleTogglePageSelect = (checked: boolean) => {
+    const selectMap = { ...rowSelectMemo.value };
+    tableData.value.results.forEach((dataItem: any) => {
+      if (checked) {
+        selectMap[_.get(dataItem, props.primaryKey)] = dataItem;
+      } else {
+        delete selectMap[_.get(dataItem, props.primaryKey)];
+      }
+    });
+    if (!checked) {
+      isWholeChecked.value = false;
+    }
+    rowSelectMemo.value = selectMap;
+    triggerSelection();
+  };
 
   // 清空选择
   const handleClearWholeSelect = () => {
@@ -560,6 +571,7 @@
     align-items: center;
 
     .db-table-whole-check {
+      flex-shrink: 0;
       position: relative;
       display: inline-block;
       width: 16px;
@@ -572,8 +584,8 @@
 
       &::after {
         position: absolute;
-        top: 1px;
-        left: 4px;
+        top: 2px;
+        left: 5px;
         width: 4px;
         height: 8px;
         border: 2px solid #3a84ff;
@@ -597,7 +609,7 @@
     .db-table-select-plan {
       padding: 5px 0;
 
-      .item {
+      .plan-item {
         padding: 0 10px;
         font-size: 12px;
         line-height: 26px;
