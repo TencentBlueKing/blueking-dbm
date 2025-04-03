@@ -15,7 +15,7 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.flow.consts import MongoDBInstanceType
+from backend.flow.consts import MongoDBInstanceType, MongoInstanceDbmonType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.plugins.components.collections.mongodb.change_instance_status import (
     ChangeInstanceStatusOperationComponent,
@@ -24,6 +24,7 @@ from backend.flow.plugins.components.collections.mongodb.enable_disable_mongodb 
     EnableDisableMongoDBOperationComponent,
 )
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
+from backend.flow.plugins.components.collections.mongodb.fast_exec_script import MongoFastExecScriptComponent
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 
 
@@ -58,11 +59,13 @@ def cluster_enable_disable(
     )
 
     acts_list = []
+    acts_dbmon_list = []
     # 启用
     if enable:
         name = "enable"
         if cluster_type == ClusterType.MongoReplicaSet.value:
             for node in sub_get_kwargs.payload["nodes"]:
+                # 开启进程
                 kwargs = sub_get_kwargs.get_mongo_start_kwargs(
                     node_info=node,
                     instance_type=MongoDBInstanceType.MongoD.value,
@@ -74,8 +77,20 @@ def cluster_enable_disable(
                         "kwargs": kwargs,
                     }
                 )
+                # 解禁dbmon
+                kwargs_start_dbmon = sub_get_kwargs.get_dbmon_operation_kwargs(
+                    node_info=node, operation_type=MongoInstanceDbmonType.UnblockDbmon
+                )
+                acts_dbmon_list.append(
+                    {
+                        "act_name": _("MongoDB-{}:{}-mongod解禁dbmon".format(node["ip"], str(node["port"]))),
+                        "act_component_code": MongoFastExecScriptComponent.code,
+                        "kwargs": kwargs_start_dbmon,
+                    }
+                )
         elif cluster_type == ClusterType.MongoShardedCluster.value:
             for mongos in sub_get_kwargs.payload["mongos_nodes"]:
+                # 开启进程
                 kwargs = sub_get_kwargs.get_mongo_start_kwargs(
                     node_info=mongos,
                     instance_type=MongoDBInstanceType.MongoS.value,
@@ -87,11 +102,23 @@ def cluster_enable_disable(
                         "kwargs": kwargs,
                     }
                 )
+                # 解禁dbmon
+                kwargs_start_dbmon = sub_get_kwargs.get_dbmon_operation_kwargs(
+                    node_info=mongos, operation_type=MongoInstanceDbmonType.UnblockDbmon
+                )
+                acts_dbmon_list.append(
+                    {
+                        "act_name": _("MongoDB-{}:{}-mongos解禁dbmon".format(mongos["ip"], str(mongos["port"]))),
+                        "act_component_code": MongoFastExecScriptComponent.code,
+                        "kwargs": kwargs_start_dbmon,
+                    }
+                )
     # 禁用
     else:
         name = "disable"
         if cluster_type == ClusterType.MongoReplicaSet.value:
             for node in sub_get_kwargs.payload["nodes"]:
+                # 关闭进程
                 kwargs = sub_get_kwargs.get_mongo_deinstall_kwargs(
                     node_info=node,
                     instance_type=MongoDBInstanceType.MongoD.value,
@@ -106,8 +133,20 @@ def cluster_enable_disable(
                         "kwargs": kwargs,
                     }
                 )
+                # 禁用dbmon
+                kwargs_stop_dbmon = sub_get_kwargs.get_dbmon_operation_kwargs(
+                    node_info=node, operation_type=MongoInstanceDbmonType.ShieldDbmon
+                )
+                acts_dbmon_list.append(
+                    {
+                        "act_name": _("MongoDB-{}:{}-mongod禁用dbmon".format(node["ip"], str(node["port"]))),
+                        "act_component_code": MongoFastExecScriptComponent.code,
+                        "kwargs": kwargs_stop_dbmon,
+                    }
+                )
         elif cluster_type == ClusterType.MongoShardedCluster.value:
             for mongos in sub_get_kwargs.payload["mongos_nodes"]:
+                # 关闭进程
                 kwargs = sub_get_kwargs.get_mongo_deinstall_kwargs(
                     node_info=mongos,
                     instance_type=MongoDBInstanceType.MongoS.value,
@@ -122,7 +161,25 @@ def cluster_enable_disable(
                         "kwargs": kwargs,
                     }
                 )
+                # 禁用dbmon
+                kwargs_stop_dbmon = sub_get_kwargs.get_dbmon_operation_kwargs(
+                    node_info=mongos, operation_type=MongoInstanceDbmonType.ShieldDbmon
+                )
+                acts_dbmon_list.append(
+                    {
+                        "act_name": _("MongoDB-{}:{}-mongos禁用dbmon".format(mongos["ip"], str(mongos["port"]))),
+                        "act_component_code": MongoFastExecScriptComponent.code,
+                        "kwargs": kwargs_stop_dbmon,
+                    }
+                )
+    # 禁用并行关闭dbmon
+    if not enable:
+        sub_pipeline.add_parallel_acts(acts_list=acts_dbmon_list)
+    # 并行开启或禁用
     sub_pipeline.add_parallel_acts(acts_list=acts_list)
+    # 开启并行开启dbmon
+    if enable:
+        sub_pipeline.add_parallel_acts(acts_list=acts_dbmon_list)
 
     # 修改cluster状态
     kwargs = {"cluster_id": cluster_id, "enable": enable}

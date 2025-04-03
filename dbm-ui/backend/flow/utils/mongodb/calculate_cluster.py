@@ -18,7 +18,8 @@ from backend.flow.consts import MongoDBClusterDefaultPort, MongoDBDomainPrefix, 
 def get_cache_size(memory_size: int, cache_percent: float, num: int) -> int:
     """计算内存大小 gb"""
 
-    return int(memory_size * cache_percent / num / 1024)
+    cache_size = int(memory_size * cache_percent / num / 1024)
+    return cache_size if cache_size > 0 else 1
 
 
 def get_oplog_size(disk_size: int, oplog_percent: float, num: int) -> int:
@@ -153,7 +154,7 @@ def cluster_calc(payload: dict, payload_clusters: dict, app: str) -> dict:
     config_mem_size_gb = get_cache_size(
         memory_size=payload["nodes"]["mongo_config"][0]["bk_mem"],
         cache_percent=MongoDBTotalCache.Cache_Percent,
-        num=node_replica_count,
+        num=1,
     )
     # shard oplogSizeMB
     data_disk = "/data1"

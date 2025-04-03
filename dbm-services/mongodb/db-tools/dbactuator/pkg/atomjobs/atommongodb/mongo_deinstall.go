@@ -111,16 +111,17 @@ func (d *DeInstall) Init(runtime *jobruntime.JobGenericRuntime) error {
 	strPort := strconv.Itoa(d.ConfParams.Port)
 	d.PortDir = filepath.Join(d.DataDir, "mongodata", strPort)
 	d.DbpathDir = filepath.Join(d.DataDir, "mongodata", strPort, "db")
+	strTime := time.Now().Format("2006-01-02")
 	if d.ConfParams.SetId == "" {
-		d.DbPathRenameDir = filepath.Join(d.DataDir, "mongodata", fmt.Sprintf("%s_%d",
-			d.ConfParams.InstanceType, d.ConfParams.Port))
-		d.LogPathRenameDir = filepath.Join(d.BackupDir, "mongolog", fmt.Sprintf("%s_%d",
-			d.ConfParams.InstanceType, d.ConfParams.Port))
+		d.DbPathRenameDir = filepath.Join(d.DataDir, "mongodata", fmt.Sprintf("%s_%d_%s_removed",
+			d.ConfParams.InstanceType, d.ConfParams.Port, strTime))
+		d.LogPathRenameDir = filepath.Join(d.BackupDir, "mongolog", fmt.Sprintf("%s_%d_%s_removed",
+			d.ConfParams.InstanceType, d.ConfParams.Port, strTime))
 	} else {
-		d.DbPathRenameDir = filepath.Join(d.DataDir, "mongodata", fmt.Sprintf("%s_%s_%d",
-			d.ConfParams.InstanceType, d.ConfParams.SetId, d.ConfParams.Port))
-		d.LogPathRenameDir = filepath.Join(d.BackupDir, "mongolog", fmt.Sprintf("%s_%s_%d",
-			d.ConfParams.InstanceType, d.ConfParams.SetId, d.ConfParams.Port))
+		d.DbPathRenameDir = filepath.Join(d.DataDir, "mongodata", fmt.Sprintf("%s_%s_%d_%s_removed",
+			d.ConfParams.InstanceType, d.ConfParams.SetId, d.ConfParams.Port, strTime))
+		d.LogPathRenameDir = filepath.Join(d.BackupDir, "mongolog", fmt.Sprintf("%s_%s_%d_%s_removed",
+			d.ConfParams.InstanceType, d.ConfParams.SetId, d.ConfParams.Port, strTime))
 	}
 	d.IPInfo = strings.Join(d.ConfParams.NodeInfo, "|")
 	d.LogPortDir = filepath.Join(d.BackupDir, "mongolog", strPort)

@@ -1578,3 +1578,23 @@ class VmRoleEnum(str, StructuredEnum):
     VMINSERT = EnumField("vminsert", _("vminsert"))
     VMSELECT = EnumField("vmselect", _("vmselect"))
     VMSTORAGE = EnumField("vmstorage", _("vmstorage"))
+
+
+class MongoInstanceDbmonType(str, StructuredEnum):
+    """
+    定义mongodb实例的dbmon操作
+    """
+
+    ShieldDbmon = EnumField("shield", _("shield"))
+    UnblockDbmon = EnumField("unblock", _("unblock"))
+    DeleteDbmon = EnumField("delete", _("delete"))
+
+
+class ExecuteShellScriptUser(str, StructuredEnum):
+    """
+    定义执行shell脚本的osuser操作
+    """
+
+    Root = EnumField("root", _("root"))
+    Mysql = EnumField("mysql", _("mysql"))
+    Mongodb = EnumField("mongodb", _("mongodb"))

@@ -15,7 +15,7 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.flow.consts import MongoDBInstanceType
+from backend.flow.consts import MongoDBInstanceType, MongoInstanceDbmonType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.name_service.name_service import NameServiceFlow
 from backend.flow.plugins.components.collections.mongodb.delete_domain_from_dns import (
@@ -25,26 +25,40 @@ from backend.flow.plugins.components.collections.mongodb.delete_password_from_db
     ExecDeletePasswordFromDBOperationComponent,
 )
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
+from backend.flow.plugins.components.collections.mongodb.fast_exec_script import MongoFastExecScriptComponent
 from backend.flow.plugins.components.collections.mongodb.mongo_shutdown_meta import MongosShutdownMetaComponent
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 
 from .mongos_replace import cluster_clb
 
 
-def mongo_deinstall_parallel(sub_get_kwargs: ActKwargs, nodes: list, instance_type: str, force: bool) -> list:
+def mongo_deinstall_parallel(sub_get_kwargs: ActKwargs, nodes: list, instance_type: str, force: bool):
     acts_list = []
+    acts_dbmon_list = []
     for node in nodes:
+        # 关闭实例
         kwargs = sub_get_kwargs.get_mongo_deinstall_kwargs(
             node_info=node, nodes_info=nodes, instance_type=instance_type, force=force, rename_dir=True
         )
         acts_list.append(
             {
-                "act_name": _("MongoDB-{}-{}卸载".format(node["ip"], instance_type)),
+                "act_name": _("MongoDB-{}:{}-{}卸载".format(node["ip"], str(node["port"]), instance_type)),
                 "act_component_code": ExecuteDBActuatorJobComponent.code,
                 "kwargs": kwargs,
             }
         )
-    return acts_list
+        # 删除dbmon
+        kwargs_delete_dbmon = sub_get_kwargs.get_dbmon_operation_kwargs(
+            node_info=node, operation_type=MongoInstanceDbmonType.DeleteDbmon
+        )
+        acts_dbmon_list.append(
+            {
+                "act_name": _("MongoDB-{}:{}-删除dbmon".format(node["ip"], str(node["port"]))),
+                "act_component_code": MongoFastExecScriptComponent.code,
+                "kwargs": kwargs_delete_dbmon,
+            }
+        )
+    return acts_list, acts_dbmon_list
 
 
 def deinstall(
@@ -70,45 +84,51 @@ def deinstall(
     # 复制集卸载
     if sub_get_kwargs.payload["cluster_type"] == ClusterType.MongoReplicaSet.value:
         # mongo卸载——并行
-        acts_list = mongo_deinstall_parallel(
+        acts_list, acts_dbmon_list = mongo_deinstall_parallel(
             sub_get_kwargs=sub_get_kwargs,
             nodes=sub_get_kwargs.payload["nodes"],
             instance_type=MongoDBInstanceType.MongoD.value,
             force=False,
         )
-        if acts_list:
+        if acts_list and acts_dbmon_list:
+            sub_pipeline.add_parallel_acts(acts_list=acts_dbmon_list)
             sub_pipeline.add_parallel_acts(acts_list=acts_list)
     # cluster卸载
     elif sub_get_kwargs.payload["cluster_type"] == ClusterType.MongoShardedCluster.value:
         # mongos卸载——并行
-        acts_list = mongo_deinstall_parallel(
+        acts_list, acts_dbmon_list = mongo_deinstall_parallel(
             sub_get_kwargs=sub_get_kwargs,
             nodes=sub_get_kwargs.payload["mongos_nodes"],
             instance_type=MongoDBInstanceType.MongoS.value,
             force=mongos_deinstall_force,
         )
-        if acts_list:
+        if acts_list and acts_dbmon_list:
+            sub_pipeline.add_parallel_acts(acts_list=acts_dbmon_list)
             sub_pipeline.add_parallel_acts(acts_list=acts_list)
         # shard卸载——并行
         many_acts_list = []
+        many_acts_dbmon_list = []
         for shard_nodes in sub_get_kwargs.payload["shards_nodes"]:
-            acts_list = mongo_deinstall_parallel(
+            acts_list, acts_dbmon_list = mongo_deinstall_parallel(
                 sub_get_kwargs=sub_get_kwargs,
                 nodes=shard_nodes["nodes"],
                 instance_type=MongoDBInstanceType.MongoD.value,
                 force=True,
             )
             many_acts_list.extend(acts_list)
-        if many_acts_list:
+            many_acts_dbmon_list.extend(acts_dbmon_list)
+        if many_acts_list and many_acts_dbmon_list:
+            sub_pipeline.add_parallel_acts(acts_list=many_acts_dbmon_list)
             sub_pipeline.add_parallel_acts(acts_list=many_acts_list)
         # config卸载——并行
-        acts_list = mongo_deinstall_parallel(
+        acts_list, acts_dbmon_list = mongo_deinstall_parallel(
             sub_get_kwargs=sub_get_kwargs,
             nodes=sub_get_kwargs.payload["config_nodes"],
             instance_type=MongoDBInstanceType.MongoD.value,
             force=True,
         )
-        if acts_list:
+        if acts_list and acts_dbmon_list:
+            sub_pipeline.add_parallel_acts(acts_list=acts_dbmon_list)
             sub_pipeline.add_parallel_acts(acts_list=acts_list)
         if not reduce_mongos:
             # 判断是否有clb

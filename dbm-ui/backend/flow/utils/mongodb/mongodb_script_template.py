@@ -174,3 +174,21 @@ mongodb_cluster_inti_js_script = """
 sh.setBalancerState(false);
 db.getSisterDB('config').settings.save({ _id:'chunksize', value: 512 });
 """
+
+# 禁用bk-dbmon 监控
+mongodb_dbmon_shield_port = """
+cd /home/mysql/bk-dbmon
+/home/mysql/bk-dbmon/bk-dbmon alarm shield --port {{port}}
+"""
+
+# 解禁bk-dbmon 监控
+mongodb_dbmon_unblock_port = """
+cd /home/mysql/bk-dbmon
+/home/mysql/bk-dbmon/bk-dbmon alarm unblock --port {{port}}
+"""
+
+# 删除bk-dbmon 监控
+mongodb_dbmon_delete_port = """
+cd /home/mysql/bk-dbmon
+/home/mysql/bk-dbmon/bk-dbmon meta delete --port  {{port}}
+"""
