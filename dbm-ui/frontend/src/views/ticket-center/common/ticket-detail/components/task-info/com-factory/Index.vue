@@ -23,9 +23,16 @@
     default: {
       name: TicketTypes;
     };
-  }>('./resource-pool-strategy/*/*.vue', {
-    eager: true,
-  });
+  }>(
+    [
+      './resource-pool-strategy/*/*.vue',
+      './resource-pool-strategy/*/*/*.vue',
+      '!./resource-pool-strategy/*/*/components',
+    ],
+    {
+      eager: true,
+    },
+  );
 
   const allModule = import.meta.glob<{
     default: {
@@ -36,7 +43,7 @@
   });
 
   const detailsComp = computed(() => {
-    const resourcePoolDetails = (props.data as TicketModel<{ ip_source?: string; ip_recycle?: { ip_dest: string } }>)
+    const resourcePoolDetails = (props.data as TicketModel<{ ip_recycle?: { ip_dest: string }; ip_source?: string }>)
       .details;
 
     const isResourcePool =

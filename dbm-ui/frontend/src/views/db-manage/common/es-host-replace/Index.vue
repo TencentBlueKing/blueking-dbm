@@ -96,7 +96,7 @@
             </div>
           </td>
           <td>
-            <HostSelector
+            <ResourceHostSelect
               v-if="ipSource === 'manual_input'"
               v-model="hostList"
               :data="data"
@@ -121,19 +121,23 @@
   import { useI18n } from 'vue-i18n';
 
   import type EsNodeModel from '@services/model/es/es-node';
-  import { checkHost } from '@services/source/ipchooser';
-
-  import { type IHostTableDataWithInstance } from '@views/db-manage/common/big-data-host-table/es-host-table/index.vue';
 
   import { random } from '@utils';
 
-  import HostSelector from './components/HostSelector.vue';
+  import ResourceHostSelect from './components/ResourceHostSelect.vue';
   import ResourcePoolSelector from './components/ResourcePoolSelector.vue';
 
   export interface TReplaceNode {
     // 集群id
     clusterId: number;
-    hostList: IHostTableDataWithInstance[];
+    hostList: {
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_disk: number;
+      bk_host_id: number;
+      instance_num?: number;
+      ip: string;
+    }[];
     nodeList: EsNodeModel[];
     // 扩容资源池
     resourceSpec: {
@@ -161,7 +165,7 @@
       name: string;
     };
     data: TReplaceNode;
-    disableHostMethod?: (params: ServiceReturnType<typeof checkHost>[number]) => string | boolean;
+    disableHostMethod?: (params: TReplaceNode['hostList'][0]) => string | boolean;
     ipSource: string;
   }
 
@@ -243,6 +247,8 @@
         return Promise.reject();
       }
 
+      console.log(hostList.value, 'hostList.value');
+
       if (nodeList.value.length < 1) {
         return Promise.resolve({
           new_nodes: [],
@@ -256,8 +262,9 @@
       }
       return Promise.resolve({
         new_nodes: hostList.value.map((hostItem) => ({
-          bk_cloud_id: hostItem.cloud_id,
-          bk_host_id: hostItem.host_id,
+          bk_biz_id: hostItem.bk_biz_id,
+          bk_cloud_id: hostItem.bk_cloud_id,
+          bk_host_id: hostItem.bk_host_id,
           instance_num: hostItem.instance_num,
           ip: hostItem.ip,
         })),

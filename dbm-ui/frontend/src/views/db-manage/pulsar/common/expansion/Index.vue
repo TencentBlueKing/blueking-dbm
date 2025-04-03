@@ -26,7 +26,7 @@
         {{ t('资源池自动匹配') }}
       </BkRadioButton>
       <BkRadioButton label="manual_input">
-        {{ t('手动选择') }}
+        {{ t('资源池手动选择') }}
       </BkRadioButton>
     </BkRadioGroup>
     <div class="wrapper">

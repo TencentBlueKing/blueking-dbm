@@ -207,6 +207,7 @@
                     ref="specFollowerRef"
                     v-model="formData.details.resource_spec.follower.spec_id"
                     :biz-id="formData.bk_biz_id"
+                    :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="doris"
                     machine-type="doris_follower" />
@@ -231,6 +232,7 @@
                     ref="specObserverRef"
                     v-model="formData.details.resource_spec.observer.spec_id"
                     :biz-id="formData.bk_biz_id"
+                    :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="doris"
                     machine-type="doris_observer" />
@@ -260,6 +262,7 @@
                     ref="specHotRef"
                     v-model="formData.details.resource_spec.hot.spec_id"
                     :biz-id="formData.bk_biz_id"
+                    :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="doris"
                     machine-type="doris_backend" />
@@ -283,6 +286,7 @@
                     ref="specColdRef"
                     v-model="formData.details.resource_spec.cold.spec_id"
                     :biz-id="formData.bk_biz_id"
+                    :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="doris"
                     machine-type="doris_backend" />

@@ -139,6 +139,7 @@
       }
 
       .node-item-name {
+        width: 100px;
         padding-right: 8px;
         overflow: hidden;
         text-overflow: ellipsis;

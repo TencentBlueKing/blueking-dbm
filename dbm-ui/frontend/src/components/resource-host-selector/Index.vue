@@ -25,10 +25,13 @@
             <template #default="{ data }">
               <BkCheckbox
                 v-bk-tooltips="{
-                  content: t('已选够n台', { n: limit }),
-                  disabled: isInfinity || selectedNum < limit,
+                  content: disableHostMethod(data) || t('已选够n台', { n: limit }),
+                  disabled: !disableHostMethod(data) && (isInfinity || selectedNum < limit),
                 }"
-                :disabled="!isInfinity && selectedNum === limit && !Boolean(rowSelectMemo[data.bk_host_id])"
+                :disabled="
+                  !!disableHostMethod(data) ||
+                  (!isInfinity && selectedNum === limit && !Boolean(rowSelectMemo[data.bk_host_id]))
+                "
                 label
                 :model-value="Boolean(rowSelectMemo[data.bk_host_id])"
                 @change="() => handleSelectChange(data)" />
@@ -131,6 +134,7 @@
   export type IValue = DbResourceModel;
 
   interface Props {
+    disableHostMethod?: (params: IValue) => string | boolean;
     limit?: number;
     params?: {
       bk_cloud_ids?: string;
@@ -147,6 +151,7 @@
   type Emits = (e: 'change', value: DbResourceModel[]) => void;
 
   const props = withDefaults(defineProps<Props>(), {
+    disableHostMethod: () => '',
     limit: -1,
     params: () => ({}),
   });
@@ -190,8 +195,6 @@
   });
 
   watch(columnFilterValue, () => {
-    console.log(columnFilterValue, 'columnFilterValue');
-
     dbTableRef.value?.fetchData({
       ...formatSearchValue.value,
       ...columnFilterValue,

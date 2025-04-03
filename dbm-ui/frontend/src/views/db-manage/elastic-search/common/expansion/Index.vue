@@ -26,7 +26,7 @@
         {{ $t('资源池自动匹配') }}
       </BkRadioButton>
       <BkRadioButton label="manual_input">
-        {{ $t('手动选择') }}
+        {{ $t('资源池手动选择') }}
       </BkRadioButton>
     </BkRadioGroup>
     <div class="wrapper">
@@ -37,7 +37,7 @@
         :list="nodeStatusList"
         :node-info="nodeInfoMap" />
       <div class="node-panel">
-        <HostExpansion
+        <EsHostExpansion
           v-if="!isLoading"
           :key="nodeType"
           v-model:expansion-disk="nodeInfoMap[nodeType].expansionDisk"
@@ -48,7 +48,6 @@
             name: data.bk_cloud_name,
           }"
           :data="nodeInfoMap[nodeType]"
-          :db-type="DBTypes.ES"
           :disable-host-method="disableHostMethod"
           :ip-source="ipSource" />
       </div>
@@ -64,13 +63,12 @@
   import EsMachineModel from '@services/model/es/es-machine';
   import { getEsMachineList } from '@services/source/es';
   import { createTicket } from '@services/source/ticket';
-  import type { HostInfo } from '@services/types';
 
   import { useTicketMessage } from '@hooks';
 
-  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import HostExpansion, { type TExpansionNode } from '@views/db-manage/common/host-expansion/Index.vue';
+  import EsHostExpansion, { type TExpansionNode } from '@views/db-manage/common/es-host-expansion/Index.vue';
   import NodeStatusList from '@views/db-manage/common/host-expansion/NodeStatusList.vue';
 
   import { messageError } from '@utils';
@@ -125,6 +123,7 @@
       originalHostList: [],
       resourceSpec: {
         count: 0,
+        instance_num: 1,
         spec_id: 0,
       },
       role: 'es_client',
@@ -142,6 +141,7 @@
       originalHostList: [],
       resourceSpec: {
         count: 0,
+        instance_num: 1,
         spec_id: 0,
       },
       role: 'es_datanode_cold',
@@ -159,6 +159,7 @@
       originalHostList: [],
       resourceSpec: {
         count: 0,
+        instance_num: 1,
         spec_id: 0,
       },
       role: 'es_datanode_hot',
@@ -214,17 +215,17 @@
   fetchHostDetail();
 
   // 扩容主机节点互斥
-  const disableHostMethod = (hostData: HostInfo) => {
-    const hotDisableHostMethod = (hostData: HostInfo) => {
+  const disableHostMethod = (hostData: TExpansionNode['hostList'][number]) => {
+    const hotDisableHostMethod = (hostData: TExpansionNode['hostList'][number]) => {
       const coldHostIdMap = makeMapByHostId(nodeInfoMap.cold.hostList);
-      if (coldHostIdMap[hostData.host_id]) {
+      if (coldHostIdMap[hostData.bk_host_id]) {
         return t('主机已被xx节点使用', ['冷']);
       }
       return false;
     };
-    const coldDisableHostMethod = (hostData: HostInfo) => {
+    const coldDisableHostMethod = (hostData: TExpansionNode['hostList'][number]) => {
       const hotHostIdMap = makeMapByHostId(nodeInfoMap.hot.hostList);
-      if (hotHostIdMap[hostData.host_id]) {
+      if (hotHostIdMap[hostData.bk_host_id]) {
         return t('主机已被xx节点使用', ['热']);
       }
       return false;
@@ -294,14 +295,22 @@
               );
 
             if (ipSource.value === 'manual_input') {
-              const formatHost = (hostList: TExpansionNode['hostList'] = []) => {
-                const hosts = hostList.map((hostItem) => ({
-                  bk_biz_id: hostItem.dedicated_biz,
-                  bk_cloud_id: hostItem.bk_cloud_id,
-                  bk_disk: hostItem.bk_disk,
-                  bk_host_id: hostItem.bk_host_id,
-                  ip: hostItem.ip,
-                }));
+              const formatHost = ({ hostList = [], role }: { hostList: TExpansionNode['hostList']; role: string }) => {
+                const hosts = hostList.map((hostItem) => {
+                  const item = {
+                    bk_biz_id: hostItem.bk_biz_id,
+                    bk_cloud_id: hostItem.bk_cloud_id,
+                    bk_disk: hostItem.bk_disk,
+                    bk_host_id: hostItem.bk_host_id,
+                    ip: hostItem.ip,
+                  };
+                  if (role !== 'es_client') {
+                    Object.assign(item, {
+                      instance_num: hostItem.instance_num,
+                    });
+                  }
+                  return item;
+                });
                 return {
                   count: hostList.length,
                   hosts,
@@ -310,9 +319,9 @@
               };
               Object.assign(hostData, {
                 resource_spec: {
-                  client: formatHost(nodeInfoMap.client.hostList),
-                  cold: formatHost(nodeInfoMap.cold.hostList),
-                  hot: formatHost(nodeInfoMap.hot.hostList),
+                  client: formatHost(nodeInfoMap.client),
+                  cold: formatHost(nodeInfoMap.cold),
+                  hot: formatHost(nodeInfoMap.hot),
                 },
               });
             } else {
@@ -349,11 +358,15 @@
                 ...hostData,
               },
               ticket_type: TicketTypes.ES_SCALE_UP,
-            }).then((data) => {
-              ticketMessage(data.id);
-              resolve('success');
-              emits('change');
-            });
+            })
+              .then((data) => {
+                ticketMessage(data.id);
+                resolve('success');
+                emits('change');
+              })
+              .catch(() => {
+                reject();
+              });
           },
           subTitle: renderSubTitle,
           title: t('确认扩容【name】集群', { name: props.data.cluster_name }),

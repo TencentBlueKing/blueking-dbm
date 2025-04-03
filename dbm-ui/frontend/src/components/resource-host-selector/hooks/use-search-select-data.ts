@@ -2,7 +2,7 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRequest } from 'vue-request';
 
-import { fetchDiskTypes, fetchMountPoints, getOsTypeList } from '@services/source/dbresourceResource';
+import { fetchDeviceClass, fetchDiskTypes, fetchMountPoints, getOsTypeList } from '@services/source/dbresourceResource';
 import { fetchDbTypeList, getInfrasCities, getInfrasSubzonesByCity } from '@services/source/infras';
 import { getCloudList } from '@services/source/ipchooser';
 
@@ -100,6 +100,14 @@ export default (props: any) => {
         id: 'sub_zone',
         name: t('园区'),
       },
+      {
+        children: deviceClassList.value?.map((item) => ({
+          id: item.id,
+          name: item.device_type,
+        })),
+        id: 'device_class',
+        name: t('机型'),
+      },
     ];
 
     return serachList.filter((item) => props.params[item.id] === undefined);
@@ -144,6 +152,13 @@ export default (props: any) => {
     initialData: [],
   });
 
+  const deviceClassList = shallowRef<ServiceReturnType<typeof fetchDeviceClass>['results']>([]);
+  useRequest(fetchDeviceClass, {
+    onSuccess(data) {
+      deviceClassList.value = data.results;
+    },
+  });
+
   const filterOption = computed(() => ({
     city: {
       checked: [],
@@ -154,7 +169,10 @@ export default (props: any) => {
     },
     device_class: {
       checked: [],
-      list: [],
+      list: (deviceClassList.value || []).map((item) => ({
+        text: item.device_type,
+        value: item.id,
+      })),
     },
     os_name: {
       checked: [],
