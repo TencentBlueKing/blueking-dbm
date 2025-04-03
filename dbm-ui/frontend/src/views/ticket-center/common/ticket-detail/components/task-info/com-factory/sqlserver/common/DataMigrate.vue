@@ -12,13 +12,19 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn :label="t('源集群')">
+  <BkTable
+    :data="ticketDetails.details.infos"
+    :show-overflow="false">
+    <BkTableColumn
+      :label="t('源集群')"
+      :min-width="200">
       <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.clusters[data.src_cluster].immute_domain }}
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('目标集群')">
+    <BkTableColumn
+      :label="t('目标集群')"
+      :min-width="200">
       <template #default="{ data }: { data: RowData }">
         <div v-if="data.dst_cluster_list.length > 0">
           <p
@@ -30,17 +36,23 @@
         <span v-else>{{ ticketDetails.details.clusters[data.dst_cluster].immute_domain }}</span>
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('迁移 DB 名')">
+    <BkTableColumn
+      :label="t('迁移 DB 名')"
+      :min-width="200">
       <template #default="{ data }: { data: RowData }">
         <TagBlock :data="data.db_list" />
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('忽略 DB 名')">
+    <BkTableColumn
+      :label="t('忽略 DB 名')"
+      :min-width="200">
       <template #default="{ data }: { data: RowData }">
         <TagBlock :data="data.ignore_db_list" />
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('迁移后 DB 名')">
+    <BkTableColumn
+      :label="t('迁移后 DB 名')"
+      :min-width="200">
       <template #default="{ data }: { data: RowData }">
         <TagBlock :data="data.rename_infos.map((item) => item.target_db_name)" />
       </template>
