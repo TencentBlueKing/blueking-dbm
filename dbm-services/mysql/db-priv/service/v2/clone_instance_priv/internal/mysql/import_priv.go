@@ -97,10 +97,16 @@ func importSqls(bkCloudId int64, address string, sqls []string, logger *slog.Log
 }
 
 func doImport(bkCloudId int64, address string, sqls []string, logger *slog.Logger) (err error) {
+	if len(sqls) == 0 {
+		logger.Info("import mysql priv sql is empty")
+		return nil
+	}
+
 	drsRes, err := drs.RPCMySQL(
 		bkCloudId,
 		[]string{address},
-		append(sqls, "FLUSH PRIVILEGES"),
+		sqls,
+		//append(sqls, "FLUSH PRIVILEGES"),
 		true,
 		600,
 	)

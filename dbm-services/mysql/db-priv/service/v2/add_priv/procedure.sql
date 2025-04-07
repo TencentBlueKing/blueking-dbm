@@ -58,7 +58,7 @@ BEGIN
         CALL dba_grant_one_ip(username, @ip, db_list, long_psw, priv_str, global_priv_str);
     END WHILE;
 
-    FLUSH PRIVILEGES;
+--     FLUSH PRIVILEGES;
 END//
 DELIMITER ;
 

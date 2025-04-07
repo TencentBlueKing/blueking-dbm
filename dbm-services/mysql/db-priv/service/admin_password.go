@@ -504,9 +504,9 @@ func (m *ModifyAdminUserPasswordPara) ModifyAdminPasswordForMysql(
 		notOK := InstanceList{instanceList.Role, []IpPort{}}
 		role := instanceList.Role
 		if *cluster.ClusterType == tendbcluster && role == tdbctl {
-			base = append(base, flushPriv, setBinlogOff, setTcAdminOFF)
+			base = append(base /*flushPriv,*/, setBinlogOff, setTcAdminOFF)
 		} else {
-			base = append(base, flushPriv, setBinlogOff)
+			base = append(base /*flushPriv,*/, setBinlogOff)
 		}
 		for _, address := range instanceList.Addresses {
 			// 获取修改密码的语句
@@ -531,7 +531,7 @@ func (m *ModifyAdminUserPasswordPara) ModifyAdminPasswordForMysql(
 				userIp = fmt.Sprintf("ALTER USER '%s'@'%s' "+
 					"IDENTIFIED WITH mysql_native_password BY '%s'", m.UserName, address.Ip, psw)
 			}
-			sqls = append(sqls, userLocalhost, userIp, setBinlogOn, flushPriv)
+			sqls = append(sqls, userLocalhost, userIp, setBinlogOn /*, flushPriv*/)
 			// 到实例更新密码
 			var queryRequest = QueryRequest{[]string{hostPort}, sqls, true,
 				60, *cluster.BkCloudId}

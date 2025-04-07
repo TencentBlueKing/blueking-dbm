@@ -633,16 +633,16 @@ func ImportMysqlPrivileges(userGrants []UserGrant, address string, bkCloudId int
 		}(row)
 	}
 	wg.Wait()
-	queryRequest := QueryRequest{[]string{address}, []string{flushPriv}, true, 60, bkCloudId}
-	_, err := OneAddressExecuteSql(queryRequest)
-	if err != nil {
-		errMsg.mu.Lock()
-		errMsg.errs = append(errMsg.errs, err.Error())
-		errMsg.mu.Unlock()
-	}
-	if len(errMsg.errs) > 0 {
-		return fmt.Errorf(strings.Join(errMsg.errs, "\n"))
-	}
+	//queryRequest := QueryRequest{[]string{address}, []string{flushPriv}, true, 60, bkCloudId}
+	//_, err := OneAddressExecuteSql(queryRequest)
+	//if err != nil {
+	//	errMsg.mu.Lock()
+	//	errMsg.errs = append(errMsg.errs, err.Error())
+	//	errMsg.mu.Unlock()
+	//}
+	//if len(errMsg.errs) > 0 {
+	//	return fmt.Errorf(strings.Join(errMsg.errs, "\n"))
+	//}
 	return nil
 }
 

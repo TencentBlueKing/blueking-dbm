@@ -5,7 +5,8 @@ const insertConnLogPriv = "grant insert on infodba_schema.conn_log to"
 const setBinlogOff = "SET SESSION sql_log_bin=0;"
 const setBinlogOn = "SET SESSION sql_log_bin=1;"
 const setTcAdminOFF = "SET SESSION tc_admin=off;"
-const flushPriv = "flush privileges;"
+
+// const flushPriv = "flush privileges;"
 const sep string = "\n        "
 
 // PrivTaskPara AddPrivDryRun,AddPriv 函数的入参

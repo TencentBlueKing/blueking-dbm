@@ -119,10 +119,10 @@ func GenerateBackendSQL(account TbAccounts, rule TbAccountRules, ips []string, m
 
 	if clusterType == tdbctl {
 		// 仅AddPrivWithoutAccountRule内部接口使用
-		result.backendSQL = append(result.backendSQL, flushPriv, setBinlogOff, setTcAdminOFF)
+		result.backendSQL = append(result.backendSQL /*flushPriv,*/, setBinlogOff, setTcAdminOFF)
 		clusterType = tendbsingle
 	} else {
-		result.backendSQL = append(result.backendSQL, flushPriv, setBinlogOff)
+		result.backendSQL = append(result.backendSQL /*flushPriv,*/, setBinlogOff)
 	}
 
 	containConnLogDBFlag := ContainConnLogDB(rule.Dbname)
@@ -283,7 +283,7 @@ func GenerateBackendSQL(account TbAccounts, rule TbAccountRules, ips []string, m
 	case err := <-errorChan:
 		return nil, err
 	}
-	result.backendSQL = append(result.backendSQL, setBinlogOn, flushPriv)
+	result.backendSQL = append(result.backendSQL, setBinlogOn /*, flushPriv*/)
 	return result.backendSQL, nil
 }
 
