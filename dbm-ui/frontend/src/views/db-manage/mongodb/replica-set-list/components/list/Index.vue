@@ -435,12 +435,13 @@
   };
 
   const handleToCapacityChange = (row: MongodbModel) => {
-    router.push({
+    const routeInfo = router.resolve({
       name: TicketTypes.MONGODB_SCALE_UPDOWN,
       query: {
         masterDomain: row.master_domain,
       },
     });
+    window.open(routeInfo.href, '_blank');
   };
 
   const handleSelection = (key: unknown, list: MongodbModel[]) => {
