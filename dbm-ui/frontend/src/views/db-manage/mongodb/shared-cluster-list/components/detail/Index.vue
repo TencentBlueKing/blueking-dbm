@@ -203,12 +203,13 @@
   };
 
   const handleToCapacityChange = () => {
-    router.push({
+    const routeInfo = router.resolve({
       name: TicketTypes.MONGODB_SCALE_UPDOWN,
       query: {
         masterDomain: data.value?.master_domain,
       },
     });
+    window.open(routeInfo.href, '_blank');
   };
 </script>
 
