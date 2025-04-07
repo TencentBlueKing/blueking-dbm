@@ -1,5 +1,7 @@
 <template>
-  <WebQuery :db-type="DBTypes.TENDBCLUSTER" />
+  <WebQuery
+    action-id="tendbcluster_dbconsole"
+    :db-type="DBTypes.TENDBCLUSTER" />
 </template>
 <script setup lang="ts">
   import { DBTypes } from '@common/const';

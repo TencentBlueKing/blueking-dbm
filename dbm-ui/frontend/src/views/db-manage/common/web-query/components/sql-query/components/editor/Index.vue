@@ -365,6 +365,10 @@
       }
     }
 
+    :deep(.bk-resize-layout-aside-content) {
+      height: 100% !important;
+    }
+
     .editor-layout-header {
       display: flex;
       align-items: center;

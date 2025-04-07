@@ -189,6 +189,7 @@
     height: 1200px !important;
 
     .bk-resize-layout-aside-content {
+      height: auto !important;
       overflow: auto !important;
     }
   }

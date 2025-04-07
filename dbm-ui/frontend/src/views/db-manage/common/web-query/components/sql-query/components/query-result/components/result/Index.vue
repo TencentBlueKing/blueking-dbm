@@ -36,14 +36,16 @@
       ref="tableRef"
       class="query-result-table"
       :columns="columns"
-      :container-height="800"
+      :container-height="containerHeight"
       :data-source="dataSource"
+      :pagination-limit="20"
       :remote-pagination="false"
       :row-config="{
         isHover: false,
         height: 28,
       }"
-      stripe />
+      stripe
+      @pagination-change="handlePaginationChange" />
   </div>
 </template>
 <script setup lang="ts">
@@ -74,6 +76,7 @@
   const seqId = random();
 
   const tableRef = ref();
+  const containerHeight = ref(800);
   const columns = ref<
     {
       field: string;
@@ -156,6 +159,15 @@
       immediate: true,
     },
   );
+
+  const handlePaginationChange = (data: { limit: number }) => {
+    if (data.limit > 20) {
+      containerHeight.value = 800 + (data.limit - 20) * 28;
+      return;
+    }
+
+    containerHeight.value = 800;
+  };
 
   const handleExport = () => {
     const formatData = queryResults.value.map((item) =>
