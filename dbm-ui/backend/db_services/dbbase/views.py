@@ -58,11 +58,7 @@ from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
 from backend.db_services.redis.toolbox.handlers import ToolboxHandler
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
-from backend.iam_app.handlers.drf_perm.cluster import (
-    ClusterDBConsolePermission,
-    ClusterListPermission,
-    ClusterWebconsolePermission,
-)
+from backend.iam_app.handlers.drf_perm.cluster import ClusterDBConsolePermission, ClusterWebconsolePermission
 
 SWAGGER_TAG = _("集群通用接口")
 
@@ -75,14 +71,16 @@ class DBBaseViewSet(viewsets.SystemViewSet):
     pagination_class = AuditedLimitOffsetPagination
 
     action_permission_map = {
-        ("verify_duplicated_cluster_name",): [],
+        (
+            "verify_duplicated_cluster_name",
+            "check_instances",
+        ): [],
         (
             "simple_query_cluster",
             "common_query_cluster",
         ): [DBManagePermission()],
         ("webconsole",): [ClusterWebconsolePermission()],
         ("dbconsole",): [ClusterDBConsolePermission()],
-        ("check_instances",): [ClusterListPermission()],
     }
     default_permission_class = [DBManagePermission()]
 
