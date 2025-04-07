@@ -277,6 +277,8 @@
         }
 
         .vxe-table--scroll-y-handle {
+          background-color: #282829;
+
           &:hover {
             &::-webkit-scrollbar {
               width: 10px;
@@ -304,17 +306,6 @@
           &::-webkit-scrollbar-track {
             background: #282829;
           }
-
-          // &::-webkit-scrollbar-thumb {
-          //   width: 6px;
-
-          // }
-
-          // &::-webkit-scrollbar-thumb:hover {
-          //   width: 10px;
-          //   border-radius: 5px;
-          //   opacity: 68%;
-          // }
         }
       }
     }

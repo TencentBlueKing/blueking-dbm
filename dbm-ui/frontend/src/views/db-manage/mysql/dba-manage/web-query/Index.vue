@@ -1,5 +1,7 @@
 <template>
-  <WebQuery :db-type="DBTypes.MYSQL" />
+  <WebQuery
+    action-id="mysql_dbconsole"
+    :db-type="DBTypes.MYSQL" />
 </template>
 <script setup lang="ts">
   import { DBTypes } from '@common/const';

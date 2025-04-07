@@ -1,5 +1,7 @@
 <template>
-  <WebQuery :db-type="DBTypes.SQLSERVER" />
+  <WebQuery
+    action-id="sqlserver_dbconsole"
+    :db-type="DBTypes.SQLSERVER" />
 </template>
 <script setup lang="ts">
   import { DBTypes } from '@common/const';
