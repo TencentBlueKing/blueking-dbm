@@ -1,54 +1,102 @@
 <template>
-  <div
-    ref="rootRef"
-    v-bk-tooltips="{
-      disabled: !Boolean(text),
-      content: text,
-      allowHtml: true,
-      extCls: 'db-app-select-tooltips',
-    }"
-    class="db-app-select-text">
-    <div
-      class="db-app-select-name"
-      :style="{
-        'max-width': text ? '175px' : 'unset',
-        flex: text ? '1 0 auto' : 'unset',
-      }">
-      {{ data.name }}
+  <TextOverflowLayout class="db-app-select-render-item">
+    <div class="db-app-select-content">
+      <span class="db-app-select-name">
+        {{ data.name }}
+      </span>
+      <span style="color: #979ba5">
+        (#{{ data.bk_biz_id }}{{ data.english_name ? `, ${data.english_name}` : '' }})
+      </span>
     </div>
-    <div class="db-app-select-desc">
-      <div>(#{{ data.bk_biz_id }}</div>
-      <div
-        v-if="data.english_name"
-        class="db-app-select-en-name">
-        , {{ data.english_name }}
-      </div>
-      <div>)</div>
-    </div>
-  </div>
+    <template #append>
+      <DbIcon
+        v-if="favorBizIdMap[data.bk_biz_id]"
+        class="ml-4"
+        style="color: #ffb848"
+        type="star-fill"
+        @click.stop="handleUnfavor(data.bk_biz_id)" />
+      <DbIcon
+        v-else
+        class="favor-btn ml-4"
+        type="star"
+        @click.stop="handleFavor(data.bk_biz_id)" />
+    </template>
+  </TextOverflowLayout>
 </template>
-<script setup lang="ts">
-  import { onMounted, ref } from 'vue';
 
+<script setup lang="ts">
   import { getBizs } from '@services/source/cmdb';
 
-  import { calcTextWidth } from '@utils';
+  import { useUserProfile } from '@stores';
 
-  defineProps<{
-    data: ServiceReturnType<typeof getBizs>[number];
-  }>();
+  import { UserPersonalSettings } from '@common/const';
 
-  const rootRef = ref<HTMLElement>();
-  const text = ref('');
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
-  onMounted(() => {
-    setTimeout(() => {
-      const renderText = rootRef.value!.innerText.replace(/\n/g, '');
+  type IAppItem = ServiceReturnType<typeof getBizs>[number];
 
-      const width = calcTextWidth(renderText, rootRef.value);
-      const { width: maxWidth } = rootRef.value!.getBoundingClientRect();
+  interface Props {
+    data: IAppItem;
+  }
 
-      text.value = width > maxWidth ? renderText : '';
-    });
+  defineProps<Props>();
+
+  const favorBizIdMap = defineModel<Record<string | number, boolean>>('favorBizIdMap', {
+    required: true,
   });
+
+  const userProfile = useUserProfile();
+
+  const handleUnfavor = (bizId: number) => {
+    const lastFavorBizIdMap = { ...favorBizIdMap.value };
+    delete lastFavorBizIdMap[bizId];
+    favorBizIdMap.value = lastFavorBizIdMap;
+
+    userProfile.updateProfile({
+      label: UserPersonalSettings.APP_FAVOR,
+      values: Object.keys(lastFavorBizIdMap),
+    });
+  };
+
+  const handleFavor = (bizId: number) => {
+    favorBizIdMap.value = {
+      ...favorBizIdMap.value,
+      [bizId]: true,
+    };
+    nextTick(() => {
+      userProfile.updateProfile({
+        label: UserPersonalSettings.APP_FAVOR,
+        values: Object.keys(favorBizIdMap.value),
+      });
+    });
+  };
 </script>
+
+<style lang="less" scoped>
+  .db-app-select-render-item {
+    width: 100%;
+
+    :deep(.layout-content) {
+      width: 100%;
+    }
+
+    .db-app-select-content > span {
+      display: inline !important;
+    }
+
+    .db-app-select-name {
+      flex: 1;
+    }
+
+    &:hover {
+      .favor-btn {
+        opacity: 100%;
+      }
+    }
+
+    .favor-btn {
+      opacity: 0%;
+      transition: all 0.1s;
+    }
+  }
+</style>
