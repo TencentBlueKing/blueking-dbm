@@ -162,7 +162,7 @@ func DecodeFileV0FULL(filename string) (*BackupFileName, error) {
 	fields := strings.Split(filename, "-")
 	fn := len(fields)
 
-	if fn <= 7 {
+	if fn < 7 {
 		return nil, fmt.Errorf("bad format")
 	}
 
@@ -199,7 +199,7 @@ func DecodeFileV0INCR(filename string) (*BackupFileName, error) {
 	fields := strings.Split(filename, "-")
 	fn := len(fields)
 
-	if fn < 9 {
+	if fn < 8 {
 		return nil, fmt.Errorf("bad format: len %d", fn)
 	}
 
