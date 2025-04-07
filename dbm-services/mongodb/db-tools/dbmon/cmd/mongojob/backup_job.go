@@ -75,6 +75,13 @@ func (job *BackupJob) Run() {
 	for _, svrItem := range myconf.Servers {
 		if svrItem.MetaRole == consts.MetaRoleShardsvrBackup ||
 			svrItem.MetaRole == consts.MetaRoleShardsvrBackupNewName {
+
+			// 如果屏蔽告警，也不发起备份.
+			if isAlaramShield(&svrItem,
+				"skip backup because Shielded", job.Logger) {
+				continue
+			}
+
 			backupEnable, err := config.ClusterConfig.GetOne(&svrItem, "backup", "enable")
 			job.Logger.Debug(fmt.Sprintf("get backup.enable : %s", backupEnable),
 				zap.String("instance", svrItem.Addr()), zap.Error(err))

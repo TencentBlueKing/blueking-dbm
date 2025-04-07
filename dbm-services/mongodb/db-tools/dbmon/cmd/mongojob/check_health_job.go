@@ -99,6 +99,12 @@ func (job *CheckHealthJob) runOneServer(svrItem *config.ConfServerItem) {
 		return
 	}
 
+	// 如果已屏蔽告警，不会尝试拉起进程
+	if isAlaramShield(svrItem,
+		"skip to start mongo because isAlaramShield", job.Logger) {
+		return
+	}
+
 	// 进程不存在，尝试启动
 	// 启动成功: 发送消息LoginSuccess
 	// 启动失败: 发送消息LoginFailed

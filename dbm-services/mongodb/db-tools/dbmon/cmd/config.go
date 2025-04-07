@@ -82,6 +82,11 @@ func parsePortArg(portList string) ([]int, error) {
 	if portList == "all" || portList == "0" {
 		return []int{0}, nil
 	}
+
+	if portList == "" {
+		return nil, errors.New("portList is empty")
+	}
+
 	ports := strings.Split(portList, ",")
 	portInts := make([]int, 0, len(ports))
 	for _, p := range ports {
