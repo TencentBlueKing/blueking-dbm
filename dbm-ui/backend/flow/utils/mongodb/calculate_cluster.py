@@ -48,6 +48,7 @@ def machine_order_by_tolerance(disaster_tolerance_level: str, machine_set: list)
         AffinityEnum.SAME_SUBZONE,
         AffinityEnum.NONE,
         AffinityEnum.SAME_SUBZONE_CROSS_SWTICH,
+        AffinityEnum.CROSS_RACK,
     ]:
         machines = machine_set
     return machines
