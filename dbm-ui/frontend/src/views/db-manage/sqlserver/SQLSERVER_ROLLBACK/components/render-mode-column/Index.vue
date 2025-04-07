@@ -23,7 +23,7 @@
       <BatchEditColumn
         v-model="isShowBatchEdit"
         :disable-fn="disableDate"
-        :title="t('回档到指定时间')"
+        :title="t('回档类型')"
         type="datetime"
         @change="handleBatchEditChange">
         <span
@@ -32,6 +32,51 @@
           @click="handleBatchEditShow">
           <DbIcon type="bulk-edit" />
         </span>
+        <template #content>
+          <div
+            class="title-spot edit-title"
+            style="font-weight: normal">
+            {{ t('回档类型') }} <span class="required" />
+          </div>
+          <BkSelect
+            v-model="batchBackupType"
+            :clearable="false"
+            filterable
+            :list="targetList"
+            @change="handleBatchBackupTypeChange" />
+          <div v-if="batchBackupType === 'record'">
+            <div
+              class="title-spot edit-title mt-24"
+              style="font-weight: normal">
+              {{ t('备份文件 (批量编辑仅支持 “指定时间自动匹配” )') }} <span class="required" />
+            </div>
+            <BkDatePicker
+              v-model="batchTimePickValue"
+              :clearable="false"
+              :placeholder="t('如：2019-01-30 12:12:21')"
+              style="width: 361px"
+              type="datetime" />
+            <div
+              class="mt-4"
+              :style="{ color: '#979ba5', lineHeight: '20px' }">
+              {{ t('自动匹配指定日期前的最新全库备份') }}
+            </div>
+          </div>
+          <div v-else>
+            <div
+              class="title-spot edit-title mt-24"
+              style="font-weight: normal">
+              {{ t('时间') }} <span class="required" />
+            </div>
+            <BkDatePicker
+              v-model="batchTimePickValue"
+              :clearable="false"
+              :disabled-date="disableDate"
+              :placeholder="t('如：2019-01-30 12:12:21')"
+              style="width: 361px"
+              type="datetime" />
+          </div>
+        </template>
       </BatchEditColumn>
     </template>
     <div style="width: 140px">
@@ -56,6 +101,8 @@
         <RecordSelector
           ref="localBackupFileRef"
           v-model="restoreBackupFile"
+          v-model:auto-match-date-time="autoMatchDateTime"
+          v-model:record-type="recordType"
           :cluster-id="clusterId"
           :disabled="editDisabled"
           @datetime-confirm="handleDatetimeConfirm" />
@@ -71,13 +118,24 @@
 
   import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
 
-  import RecordSelector from './RecordSelector.vue';
+  import RecordSelector, { OperateType } from './RecordSelector.vue';
 
   interface Props {
     clusterId?: number;
   }
 
-  type Emits = (e: 'batch-edit', value: string, field: string) => void;
+  type Emits = (
+    e: 'batch-edit',
+    value: {
+      time: string;
+      type: string;
+    },
+    field: string,
+  ) => void;
+
+  interface Expose {
+    setRecordByBatch: (time: string) => void;
+  }
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -107,11 +165,14 @@
       },
     },
     {
-      message: t('暂无与指定时间最近的备份记录'),
+      message: '',
       trigger: 'change',
       validator: () => {
         if (localBackupType.value === 'time') {
           return true;
+        }
+        if (!props.clusterId) {
+          return t('请先设置集群');
         }
         return localBackupFileRef.value!.validateMatchLog();
       },
@@ -131,6 +192,10 @@
 
   const isShowBatchEdit = ref(false);
   const localBackupType = ref('record');
+  const batchTimePickValue = ref('');
+  const batchBackupType = ref('record');
+  const autoMatchDateTime = ref('');
+  const recordType = ref(OperateType.MANUAL);
 
   const editDisabled = computed(() => !props.clusterId);
 
@@ -176,10 +241,33 @@
     isShowBatchEdit.value = true;
   };
 
-  const handleBatchEditChange = (value: string | string[]) => {
+  const handleBatchEditChange = () => {
     isInit = false;
-    emits('batch-edit', value as string, 'restore_time');
+    emits(
+      'batch-edit',
+      {
+        time: batchTimePickValue.value,
+        type: batchBackupType.value,
+      },
+      'restore_time',
+    );
   };
+
+  const handleBatchBackupTypeChange = () => {
+    batchTimePickValue.value = '';
+  };
+
+  defineExpose<Expose>({
+    setRecordByBatch(time: string) {
+      nextTick(() => {
+        autoMatchDateTime.value = time;
+        recordType.value = OperateType.MATCH;
+        if (props.clusterId) {
+          handleDatetimeConfirm();
+        }
+      });
+    },
+  });
 </script>
 <style lang="less" scoped>
   .render-mode {

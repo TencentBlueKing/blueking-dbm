@@ -15,6 +15,7 @@
         :tab-list-config="clusterSelectorTabConfig"
         @batch-edit="handleClusterBatchEdit" />
       <RenderModeColumn
+        ref="renderModeColumnRef"
         v-model:restore-backup-file="rowData.restore_backup_file"
         v-model:restore-time="rowData.restore_time"
         :cluster-id="rowData.cluster.id"
@@ -129,6 +130,7 @@
   const { format: formatDateToUTC } = useTimeZoneFormat();
 
   const editableTableRef = useTemplateRef('editableTable');
+  const renderModeColumnRef = useTemplateRef<Array<InstanceType<typeof RenderModeColumn>>>('renderModeColumnRef');
 
   const rules = {
     'cluster.master_domain': [
@@ -222,13 +224,27 @@
     window.changeConfirm = true;
   };
 
-  const handleRenderModeBatchEdit = (value: string[], field: string) => {
-    tableData.value.forEach((item) => {
-      Object.assign(item, {
-        [field]: value,
-        restore_backup_file: undefined,
+  const handleRenderModeBatchEdit = (
+    value: {
+      time: string;
+      type: string;
+    },
+    field: string,
+  ) => {
+    if (value.type === 'time') {
+      tableData.value.forEach((item) => {
+        Object.assign(item, {
+          [field]: value.time,
+        });
       });
-    });
+    } else {
+      tableData.value.forEach((item) => {
+        Object.assign(item, {
+          restore_time: '',
+        });
+      });
+      renderModeColumnRef.value!.forEach((refItem) => refItem.setRecordByBatch(value.time));
+    }
     window.changeConfirm = true;
   };
 

@@ -23,10 +23,10 @@
     required>
     <template #headAppend>
       <span
-        v-bk-tooltips="t('批量选择')"
+        v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
         class="batch-select-button"
         @click="handleShowHeadClusterSelector">
-        <DbIcon type="batch-host-select" />
+        <DbIcon type="bulk-edit" />
       </span>
     </template>
     <EditableInput
