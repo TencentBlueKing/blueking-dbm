@@ -47,8 +47,7 @@ class TenDBClusterReduceMNTFlow(object):
         定义运维节点下架后端流程
         增加单据临时ADMIN账号的添加和删除逻辑
         """
-        cluster_ids = [i["cluster_id"] for i in self.data["infos"]]
-        pipeline = Builder(root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids)))
+        pipeline = Builder(root_id=self.root_id, data=self.data)
 
         sub_pipelines = []
         for info in self.data["infos"]:
@@ -88,7 +87,6 @@ class TenDBClusterReduceMNTFlow(object):
                 kwargs=asdict(
                     DropSpiderRoutingKwargs(
                         cluster_id=cluster.id,
-                        is_safe=self.data["is_safe"],
                         reduce_spiders=reduce_spiders,
                     )
                 ),

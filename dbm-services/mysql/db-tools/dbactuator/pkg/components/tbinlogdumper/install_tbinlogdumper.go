@@ -161,6 +161,16 @@ func (i *InstallTbinlogDumperComp) InitDumperDefaultParam() error {
 	return nil
 }
 
+func (i *InstallTbinlogDumperComp) PreCheck() error {
+	for _, f := range i.Checkfunc {
+		if err := f(); err != nil {
+			logger.Error("check failed %s", err.Error())
+			return err
+		}
+	}
+	return nil
+}
+
 // precheckDir TODO
 /*
 	检查根路径下是已经存在tbinlogdumper相关的数据和日志目录

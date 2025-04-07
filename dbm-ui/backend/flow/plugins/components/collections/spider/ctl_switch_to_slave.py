@@ -20,6 +20,7 @@ from backend.db_meta.models import Cluster
 from backend.flow.consts import TDBCTL_USER, ConfigTypeEnum, NameSpaceEnum
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import CtlSwitchToSlaveFailedException
 from backend.flow.plugins.components.collections.common.base_service import BaseService
+from backend.flow.utils.spider.spider_db_function import get_flush_routing_sql_for_server
 
 
 class CtlSwitchToSlaveService(BaseService):
@@ -213,6 +214,29 @@ class CtlSwitchToSlaveService(BaseService):
                 raise CtlSwitchToSlaveFailedException(message=_(f"exec change master  failed: {res[0]['error_msg']}"))
         return True
 
+    def _flush_routing(self, ctl_master: str, bk_cloud_id: int):
+        """
+        @param ctl_master: 当前集群的中控primary
+        @param bk_cloud_id: 云区域id
+        """
+        get_flush_routing_sql_list = get_flush_routing_sql_for_server(
+            ctl_master=ctl_master,
+            bk_cloud_id=bk_cloud_id,
+        )
+        self.log_info(f"exec flush_routing cmds:[{get_flush_routing_sql_list}]")
+        res = DRSApi.rpc(
+            {
+                "addresses": [ctl_master],
+                "cmds": ["set tc_admin=1"] + get_flush_routing_sql_list,
+                "force": False,
+                "bk_cloud_id": bk_cloud_id,
+            }
+        )
+        if res[0]["error_msg"]:
+            self.log_error(f"flush routing failed:[{res[0]['error_msg']}]")
+            return False
+        return True
+
     def _execute(self, data, parent_data):
         kwargs = data.get_one_of_inputs("kwargs")
 
@@ -249,6 +273,13 @@ class CtlSwitchToSlaveService(BaseService):
         # 阶段5 连接新的primary节点，执行剔除原primary节点的命令, 并提升自己为primary TDBCTL ENABLE PRIMARY
         self._new_master_enable_primary(cluster, new_ctl_primary, reduce_ctl_primary)
         self.log_info(_("节点[{}]提升自己为primary成功").format(new_ctl_primary))
+
+        # 阶段6 其余tdbctl slave执行flush routing，确保路由是同步的
+        self.log_info("exec flush routing ....")
+        if not self._flush_routing(ctl_master=new_ctl_primary, bk_cloud_id=cluster.bk_cloud_id):
+            return False
+        self.log_info("exec flush routing successfully")
+        return True
 
 
 class CtlSwitchToSlaveComponent(Component):

@@ -67,7 +67,7 @@ class DropSpiderRoutingKwargs:
 
     cluster_id: int
     reduce_spiders: list  # 待下架的spider列表，每个元素的格式是字典
-    is_safe: bool  # 是否做安全检测
+    is_reduce_tdbctl: bool = False  # 控制是否下架中控实例
 
 
 @dataclass()

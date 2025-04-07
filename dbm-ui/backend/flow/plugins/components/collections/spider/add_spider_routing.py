@@ -21,6 +21,7 @@ from backend.flow.engine.bamboo.scene.spider.common.exceptions import (
     NormalSpiderFlowException,
 )
 from backend.flow.plugins.components.collections.common.base_service import BaseService
+from backend.flow.utils.spider.spider_db_function import get_flush_routing_sql_for_server
 
 
 class AddSpiderRoutingService(BaseService):
@@ -118,6 +119,29 @@ class AddSpiderRoutingService(BaseService):
 
         return True
 
+    def flush_routing(self, ctl_master: str, bk_cloud_id: int, add_spiders: list = None):
+        """
+        @param ctl_master: 当前集群的中控primary
+        @param bk_cloud_id: 云区域id
+        @param add_spiders: 加入list
+        """
+        get_flush_routing_sql_list = get_flush_routing_sql_for_server(
+            ctl_master=ctl_master, bk_cloud_id=bk_cloud_id, add_spiders=add_spiders
+        )
+        self.log_info(f"exec flush_routing cmds:[{get_flush_routing_sql_list}]")
+        res = DRSApi.rpc(
+            {
+                "addresses": [ctl_master],
+                "cmds": ["set tc_admin=1"] + get_flush_routing_sql_list,
+                "force": False,
+                "bk_cloud_id": bk_cloud_id,
+            }
+        )
+        if res[0]["error_msg"]:
+            self.log_error(f"flush routing failed:[{res[0]['error_msg']}]")
+            return False
+        return True
+
     def _exec_create_node(self, cluster: Cluster, user: str, passwd: str, spider_ip: str, spider_port: int, tag: str):
         """
         定义通过中控master添加node的公共方法
@@ -146,7 +170,7 @@ class AddSpiderRoutingService(BaseService):
             "tdbctl create node wrapper '{}' options(user '{}', password '{}', host '{}', port {}) with database"
         ).format(tag, user, passwd, spider_ip, spider_port)
 
-        rpc_params["cmds"] = cmds + [sql] + ["TDBCTL FLUSH ROUTING"]
+        rpc_params["cmds"] = cmds + [sql]
         self.log_info(f"exec add-node cmds:[{rpc_params['cmds']}]")
         res = DRSApi.rpc(rpc_params)
 
@@ -229,6 +253,8 @@ class AddSpiderRoutingService(BaseService):
         admin_port = cluster.proxyinstance_set.first().admin_port
         ctl_pass = ""
 
+        self.log_info(f"[{cluster.immute_domain}] the cluster_ctl_primary is {ctl_master} ")
+
         if kwargs["add_spider_role"] == TenDBClusterSpiderRole.SPIDER_MASTER.value:
             # 如果添加的是spider_master，则必须添加中控实例，添加中控实例之前，获取中控实例的密码
             ctl_pass = self._read_ctl_pass(ctl_master=ctl_master, bk_cloud_id=cluster.bk_cloud_id)
@@ -285,6 +311,15 @@ class AddSpiderRoutingService(BaseService):
                     tag=tag,
                 ):
                     return False
+
+        # 统一刷新路由信息
+        self.log_info("exec flush routing ....")
+        if not self.flush_routing(
+            ctl_master=ctl_master, bk_cloud_id=cluster.bk_cloud_id, add_spiders=kwargs["add_spiders"]
+        ):
+            return False
+        self.log_info("exec flush routing successfully")
+
         return True
 
 

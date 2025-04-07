@@ -34,8 +34,8 @@ from backend.flow.plugins.components.collections.mysql.exec_actuator_script impo
 from backend.flow.plugins.components.collections.mysql.sync_master import SyncMasterComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.spider.add_spider_routing import AddSpiderRoutingComponent
-from backend.flow.plugins.components.collections.spider.ctl_drop_routing import CtlDropRoutingComponent
 from backend.flow.plugins.components.collections.spider.ctl_switch_to_slave import CtlSwitchToSlaveComponent
+from backend.flow.plugins.components.collections.spider.drop_spider_ronting import DropSpiderRoutingComponent
 from backend.flow.plugins.components.collections.spider.remote_migrate_cut_over import RemoteMigrateCutOverComponent
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
 from backend.flow.utils.base.base_dataclass import Instance
@@ -53,8 +53,8 @@ from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.spider.get_spider_incr import get_spider_master_incr
 from backend.flow.utils.spider.spider_act_dataclass import (
     AddSpiderRoutingKwargs,
-    CtlDropRoutingKwargs,
     CtlSwitchToSlaveKwargs,
+    DropSpiderRoutingKwargs,
 )
 from backend.flow.utils.spider.spider_db_meta import SpiderDBMeta
 
@@ -763,7 +763,7 @@ def reduce_ctls_routing(root_id: str, parent_global_data: dict, cluster: Cluster
             # 本次回收事件涉及到ctl主节点回收，则加入这次回收流程
             reduce_ctl_primary = f"{ctl.machine.ip}{IP_PORT_DIVIDER}{ctl.admin_port}"
         else:
-            reduce_ctl_secondary_list.append(f"{ctl.machine.ip}{IP_PORT_DIVIDER}{ctl.admin_port}")
+            reduce_ctl_secondary_list.append({"ip": ctl.machine.ip})
 
     sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
 
@@ -788,22 +788,18 @@ def reduce_ctls_routing(root_id: str, parent_global_data: dict, cluster: Cluster
             ),
         )
 
-    acts_list = []
-    for ctl in reduce_ctl_secondary_list:
-        acts_list.append(
-            {
-                "act_name": _("卸载中控实例路由[{}]".format(ctl)),
-                "act_component_code": CtlDropRoutingComponent.code,
-                "kwargs": asdict(
-                    CtlDropRoutingKwargs(
-                        cluster_id=cluster.id,
-                        reduce_ctl=ctl,
-                    )
-                ),
-            }
+    if reduce_ctl_secondary_list:
+        sub_pipeline.add_act(
+            act_name=_("回收中控实例路由信息"),
+            act_component_code=DropSpiderRoutingComponent.code,
+            kwargs=asdict(
+                DropSpiderRoutingKwargs(
+                    cluster_id=cluster.id,
+                    reduce_spiders=reduce_ctl_secondary_list,
+                    is_reduce_tdbctl=True,
+                )
+            ),
         )
-    if len(acts_list) > 0:
-        sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
     return sub_pipeline.build_sub_process(sub_name=_("删除中控的路由节点"))
 

@@ -51,8 +51,7 @@ class TenDBSlaveClusterApplyFlow(object):
         目前产品形态 spider专属一套集群，所以流程只支持spider单机单实例安装
         增加单据临时ADMIN账号的添加和删除逻辑
         """
-        cluster_ids = [i["cluster_id"] for i in self.data["infos"]]
-        pipeline = Builder(root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids)))
+        pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_pipelines = []
 
         # 机器维度部署spider节点
@@ -121,4 +120,4 @@ class TenDBSlaveClusterApplyFlow(object):
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("[{}]添加slave集群".format(cluster.name))))
 
         pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        pipeline.run_pipeline(is_drop_random_user=True, init_trans_data_class=SystemInfoContext())
+        pipeline.run_pipeline(init_trans_data_class=SystemInfoContext())

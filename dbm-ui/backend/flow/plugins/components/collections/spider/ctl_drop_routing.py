@@ -14,9 +14,33 @@ from backend.components import DRSApi
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import CtlSwitchToSlaveFailedException
 from backend.flow.plugins.components.collections.common.base_service import BaseService
+from backend.flow.utils.spider.spider_db_function import get_flush_routing_sql_for_server
 
 
 class CtlDropRoutingService(BaseService):
+    def flush_routing(self, ctl_master: str, bk_cloud_id: int):
+        """
+        @param ctl_master: 当前集群的中控primary
+        @param bk_cloud_id: 云区域id
+        """
+        get_flush_routing_sql_list = get_flush_routing_sql_for_server(
+            ctl_master=ctl_master,
+            bk_cloud_id=bk_cloud_id,
+        )
+        self.log_info(f"exec flush_routing cmds:[{get_flush_routing_sql_list}]")
+        res = DRSApi.rpc(
+            {
+                "addresses": [ctl_master],
+                "cmds": ["set tc_admin=1"] + get_flush_routing_sql_list,
+                "force": False,
+                "bk_cloud_id": bk_cloud_id,
+            }
+        )
+        if res[0]["error_msg"]:
+            self.log_error(f"flush routing failed:[{res[0]['error_msg']}]")
+            return False
+        return True
+
     def _execute(self, data, parent_data):
         kwargs = data.get_one_of_inputs("kwargs")
 
@@ -59,9 +83,9 @@ class CtlDropRoutingService(BaseService):
             exec_sql = [
                 "set tc_admin=1",
                 f"TDBCTL DROP NODE IF EXISTS {server_name}",
-                "TDBCTL FLUSH ROUTING",
             ]
             rpc_params["cmds"] = exec_sql
+            self.log_info(f"exec tdbctl drop node cmds: [{exec_sql}]")
             res = DRSApi.rpc(rpc_params)
             if res[0]["error_msg"]:
                 raise CtlSwitchToSlaveFailedException(
