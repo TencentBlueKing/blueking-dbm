@@ -367,42 +367,34 @@ class RedisClusterCMRSceneFlow(object):
             )
         )
         # 第三步：接入层管理：清理旧接入层(这里可能需要留点时间然后在执行下一步)
-        sub_pipeline.add_sub_pipeline(
-            sub_flow=AccessManagerAtomJob(
-                self.root_id,
-                self.data,
-                act_kwargs,
-                {
-                    "cluster_id": act_kwargs.cluster["cluster_id"],
-                    "port": act_kwargs.cluster["proxy_port"],
-                    "del_ips": old_proxies,
-                    "op_type": DnsOpType.RECYCLE_RECORD.value,
-                    # CLB延迟删除行为
-                    "clb_delay_delete": True,
-                },
-            )
-        )
+        params = {
+            "cluster_id": act_kwargs.cluster["cluster_id"],
+            "port": act_kwargs.cluster["proxy_port"],
+            "del_ips": old_proxies,
+            "op_type": DnsOpType.RECYCLE_RECORD.value,
+            # CLB延迟删除行为
+            "clb_delay_delete": True,
+        }
+        access_sub_builder = AccessManagerAtomJob(self.root_id, self.data, act_kwargs, params)
+        if access_sub_builder:
+            sub_pipeline.add_sub_pipeline(sub_flow=access_sub_builder)
 
         # 第四步：人工确认
         sub_pipeline.add_act(act_name=_("旧Proxy下架-等待确认"), act_component_code=PauseComponent.code, kwargs={})
 
         # 真正下架CLB
-        sub_pipeline.add_sub_pipeline(
-            sub_flow=AccessManagerAtomJob(
-                self.root_id,
-                self.data,
-                act_kwargs,
-                {
-                    "cluster_id": act_kwargs.cluster["cluster_id"],
-                    "port": act_kwargs.cluster["proxy_port"],
-                    "del_ips": old_proxies,
-                    "op_type": DnsOpType.RECYCLE_RECORD.value,
-                    # CLB延迟删除行为
-                    "clb_delay_delete": False,
-                    "only_cluster_entry_type": ClusterEntryType.CLB.value,
-                },
-            )
-        )
+        params = {
+            "cluster_id": act_kwargs.cluster["cluster_id"],
+            "port": act_kwargs.cluster["proxy_port"],
+            "del_ips": old_proxies,
+            "op_type": DnsOpType.RECYCLE_RECORD.value,
+            # CLB延迟删除行为
+            "clb_delay_delete": False,
+            "only_cluster_entry_type": ClusterEntryType.CLB.value,
+        }
+        access_sub_builder = AccessManagerAtomJob(self.root_id, self.data, act_kwargs, params)
+        if access_sub_builder:
+            sub_pipeline.add_sub_pipeline(sub_flow=access_sub_builder)
 
         # 第四步：卸载Proxy
         proxy_down_pipelines = []

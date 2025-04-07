@@ -296,7 +296,9 @@ def AccessManagerAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Dic
                 continue
         param["entry"] = ce["entry"]
         sub_builder_list.append(generic_manager(ce["cluster_entry_type"], root_id, ticket_data, act_kwargs, param))
-
-    sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
-    sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_builder_list)
-    return sub_pipeline.build_sub_process(sub_name=_("{}-{}-dns/clb 接入层子任务".format(cluster_id, param["op_type"])))
+    if len(sub_builder_list) != 0:
+        sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
+        sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_builder_list)
+        return sub_pipeline.build_sub_process(sub_name=_("{}-{}-dns/clb 接入层子任务".format(cluster_id, param["op_type"])))
+    # 不需要对接入层做任何变更
+    return None

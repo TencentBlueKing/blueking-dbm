@@ -310,7 +310,8 @@ class RedisProxyScaleFlow(object):
                 "clb_delay_delete": True,
             }
             access_sub_builder = AccessManagerAtomJob(self.root_id, self.data, act_kwargs, params)
-            sub_pipeline.add_sub_pipeline(sub_flow=access_sub_builder)
+            if access_sub_builder:
+                sub_pipeline.add_sub_pipeline(sub_flow=access_sub_builder)
 
             if info["online_switch_type"] == SwitchConfirmType.USER_CONFIRM.value:
                 sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
@@ -326,7 +327,8 @@ class RedisProxyScaleFlow(object):
                 "only_cluster_entry_type": ClusterEntryType.CLB.value,
             }
             access_sub_builder = AccessManagerAtomJob(self.root_id, self.data, act_kwargs, params)
-            sub_pipeline.add_sub_pipeline(sub_flow=access_sub_builder)
+            if access_sub_builder:
+                sub_pipeline.add_sub_pipeline(sub_flow=access_sub_builder)
 
             proxy_down_pipelines = []
             for proxy_ip in cluster_info["scale_down_ips"]:
