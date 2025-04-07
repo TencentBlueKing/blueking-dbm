@@ -86,31 +86,29 @@
   import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
 
   interface Props {
-    field: string;
-    label: string;
-    clusterId: number;
-    minWidth?: number;
-    required?: boolean;
+    allowAsterisk?: boolean;
     checkExist?: boolean;
     checkNotExist?: boolean;
-    allowAsterisk?: boolean;
+    clusterId: number;
+    field: string;
+    label: string;
+    minWidth?: number;
+    required?: boolean;
     rules?: {
-      validator: (value: string[]) => boolean;
       message: string;
       trigger: string;
+      validator: (value: string[]) => boolean;
     }[];
   }
 
-  interface Emits {
-    (e: 'batch-edit', value: string[], field: string): void;
-  }
+  type Emits = (e: 'batch-edit', value: string[], field: string) => void;
 
   const props = withDefaults(defineProps<Props>(), {
-    minWidth: 200,
-    required: false,
+    allowAsterisk: false,
     checkExist: false,
     checkNotExist: false,
-    allowAsterisk: false,
+    minWidth: 200,
+    required: false,
     rules: () => [],
   });
 
@@ -137,21 +135,23 @@
 
     return [
       {
-        validator: (value: string[]) => _.every(value, (item) => /^(?!stage_truncate)(?!.*dba_rollback$).*/.test(item)),
         message: t('不能以stage_truncate开头或dba_rollback结尾'),
         trigger: 'change',
+        validator: (value: string[]) => _.every(value, (item) => /^(?!stage_truncate)(?!.*dba_rollback$).*/.test(item)),
       },
       {
-        validator: (value: string[]) => _.every(value, (item) => /^[-_a-zA-Z0-9*?%]{0,35}$/.test(item)),
         message: t('库表名支持数字、字母、中划线、下划线，最大35字符'),
         trigger: 'change',
+        validator: (value: string[]) => _.every(value, (item) => /^[-_a-zA-Z0-9*?%]{0,35}$/.test(item)),
       },
       {
-        validator: (value: string[]) => _.every(value, (item) => !systemDbNames.includes(item)),
         message: t('不允许输入系统库和特殊库'),
         trigger: 'change',
+        validator: (value: string[]) => _.every(value, (item) => !systemDbNames.includes(item)),
       },
       {
+        message: t('不允许为 *'),
+        trigger: 'change',
         validator: (value: string[]) => {
           if (props.allowAsterisk) {
             return true;
@@ -159,10 +159,10 @@
 
           return _.every(value, (item) => item !== '*');
         },
-        message: t('不允许为 *'),
-        trigger: 'change',
       },
       {
+        message: t('DB 已存在'),
+        trigger: 'change',
         validator: (value: string[]) => {
           if (!props.checkExist) {
             return true;
@@ -196,10 +196,10 @@
             return true;
           });
         },
-        message: t('DB 已存在'),
-        trigger: 'change',
       },
       {
+        message: t('DB 不存在'),
+        trigger: 'change',
         validator: (value: string[]) => {
           if (!props.checkNotExist) {
             return true;
@@ -229,8 +229,6 @@
             return true;
           });
         },
-        message: t('DB 不存在'),
-        trigger: 'change',
       },
     ];
   });
@@ -251,17 +249,17 @@
     nextTick(() => {
       if (rootRef.value) {
         tippyIns = tippy(rootRef.value as SingleTarget, {
-          content: popRef.value,
-          placement: 'top',
           appendTo: () => document.body,
-          theme: 'light',
-          maxWidth: 'none',
-          trigger: 'manual',
-          interactive: true,
           arrow: true,
-          offset: [0, 18],
-          zIndex: 9998,
+          content: popRef.value,
           hideOnClick: true,
+          interactive: true,
+          maxWidth: 'none',
+          offset: [0, 18],
+          placement: 'top',
+          theme: 'light',
+          trigger: 'manual',
+          zIndex: 9998,
         });
       }
     });

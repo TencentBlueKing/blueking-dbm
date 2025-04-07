@@ -25,24 +25,25 @@
       <BkFormItem>
         <ResourcePoolSelector
           v-if="ipSource === 'resource_pool'"
+          v-model:expansion-disk="expansionDisk"
+          v-model:resource-spec="resourceSpec"
           :cloud-info="cloudInfo"
-          :data="data"
-          @change="handleResourcePoolChange" />
-        <HostSelector
+          :data="data" />
+        <ResourceHostSelect
           v-else
-          :cloud-info="cloudInfo"
+          v-model:expansion-disk="expansionDisk"
+          v-model:host-list="hostList"
           :data="data"
-          :disable-host-method="disableHostMethod"
-          @change="handleHoseSelectChange" />
+          :disable-host-method="disableHostMethod">
+        </ResourceHostSelect>
       </BkFormItem>
     </BkForm>
   </div>
 </template>
 <script setup lang="tsx">
   import EsMachineModel from '@services/model/es/es-machine';
-  import type { HostInfo } from '@services/types';
 
-  import HostSelector from './components/HostSelector.vue';
+  import ResourceHostSelect from './components/ResourceHostSelect.vue';
   import ResourcePoolSelector from './components/ResourcePoolSelector.vue';
 
   export interface TExpansionNode {
@@ -53,7 +54,16 @@
     // 实际选中的扩容主机容量
     expansionDisk: number;
     // 扩容主机
-    hostList: Array<{ instance_num: number } & HostInfo>;
+    hostList: {
+      agent_status: number;
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_disk: number;
+      bk_host_id: number;
+      // hot、cold有；client没有
+      instance_num?: number;
+      ip: string;
+    }[];
     // 服务器来源
     ipSource: 'resource_pool' | 'manual_input';
     // 集群节点展示名
@@ -84,7 +94,7 @@
       name: string;
     };
     data: TExpansionNode;
-    disableHostMethod?: (params: HostInfo) => string | boolean;
+    disableHostMethod?: (params: TExpansionNode['hostList'][number]) => string | boolean;
     ipSource: string;
   }
 
@@ -99,24 +109,6 @@
   const expansionDisk = defineModel<TExpansionNode['expansionDisk']>('expansionDisk', {
     required: true,
   });
-
-  const handleHoseSelectChange = (
-    hostListValue: TExpansionNode['hostList'],
-    expansionDiskValue: TExpansionNode['expansionDisk'],
-  ) => {
-    hostList.value = hostListValue;
-    expansionDisk.value = expansionDiskValue;
-    window.changeConfirm = true;
-  };
-
-  const handleResourcePoolChange = (
-    resourceSpecValue: TExpansionNode['resourceSpec'],
-    expansionDiskValue: TExpansionNode['expansionDisk'],
-  ) => {
-    resourceSpec.value = resourceSpecValue;
-    expansionDisk.value = expansionDiskValue;
-    window.changeConfirm = true;
-  };
 </script>
 <style lang="less">
   .es-cluster-expansion-node-box {
@@ -134,11 +126,12 @@
     }
 
     .header-box {
+      width: 200px;
       padding: 10px 0;
       font-size: 14px;
       color: #313238;
 
-      .header-box-label {
+      .header-label {
         font-weight: bold;
       }
     }

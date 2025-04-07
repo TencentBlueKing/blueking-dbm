@@ -83,6 +83,10 @@
           {{ data.device_class || '--' }}
         </template>
       </BkTableColumn>
+      <BkTableColumn
+        field="remark"
+        :label="t('备注')"
+        :min-width="200" />
     </BkTable>
   </DbCard>
 </template>

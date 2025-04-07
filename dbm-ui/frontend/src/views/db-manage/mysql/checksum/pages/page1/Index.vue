@@ -34,6 +34,7 @@
             :data="item"
             :removeable="tableData.length < 2"
             @add="(payload) => handleAppend(index, payload)"
+            @clone="(payload: IDataRow) => handleClone(index, payload)"
             @cluster-input-finish="(clusterId) => handleChangeCluster(index, clusterId)"
             @remove="handleRemove(index)" />
         </RenderData>
@@ -369,6 +370,16 @@
       const clustersArr = selectedClusters.value[ClusterTypes.TENDBHA];
       selectedClusters.value[ClusterTypes.TENDBHA] = clustersArr.filter((item) => item.master_domain !== domain);
     }
+  };
+
+  // 复制行数据
+  const handleClone = (index: number, sourceData: IDataRow) => {
+    const dataList = [...tableData.value];
+    dataList.splice(index + 1, 0, sourceData);
+    tableData.value = dataList;
+    setTimeout(() => {
+      rowRefs.value[rowRefs.value.length - 1].getValue();
+    });
   };
 
   function handleReset() {

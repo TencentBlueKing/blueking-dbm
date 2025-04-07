@@ -48,7 +48,7 @@
       <TagDbNameColumn
         v-model="item.databases"
         allow-asterisk
-        check-exist
+        check-not-exist
         :cluster-id="item.cluster.id"
         field="databases"
         :label="t('回档DB')"
@@ -64,7 +64,6 @@
       <TagDbNameColumn
         v-model="item.tables"
         allow-asterisk
-        check-exist
         :cluster-id="item.cluster.id"
         field="tables"
         :label="t('回档表名')"
@@ -72,7 +71,6 @@
         @batch-edit="handleBatchEdit" />
       <TagDbNameColumn
         v-model="item.tables_ignore"
-        check-exist
         :cluster-id="item.cluster.id"
         field="tables_ignore"
         :label="t('忽略表名')"

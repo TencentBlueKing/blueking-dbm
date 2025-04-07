@@ -63,7 +63,9 @@
     </td>
     <OperateColumn
       :removeable="removeable"
-      :show-add="false"
+      show-clone
+      @add="handleAppend"
+      @clone="handleClone"
       @remove="handleRemove" />
   </tr>
 </template>
@@ -147,6 +149,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
+    (e: 'clone', value: IDataRow): void;
     (e: 'clusterInputFinish', value: number): void;
   }
 
@@ -193,11 +196,40 @@
     localClusterId.value = clusterId;
   };
 
+  const handleAppend = () => {
+    emits('add', [createRowData()]);
+  };
+
   const handleRemove = () => {
     if (props.removeable) {
       return;
     }
     emits('remove');
+  };
+
+  const handleClone = () => {
+    Promise.allSettled([
+      clusterRef.value!.getValue(),
+      slaveRef.value!.getValue(),
+      dbPatternsRef.value!.getValue('db_patterns'),
+      tablePatternsRef.value!.getValue('table_patterns'),
+      ignoreDbsRef.value!.getValue('ignore_dbs'),
+      ignoreTablesRef.value!.getValue('ignore_tables'),
+    ]).then((rowData) => {
+      const rowInfo = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
+      emits(
+        'clone',
+        createRowData({
+          clusterData: props.data.clusterData,
+          dbPatterns: rowInfo[2].db_patterns,
+          ignoreDbs: rowInfo[4].ignore_dbs,
+          ignoreTables: rowInfo[5].ignore_tables,
+          rowKey: random(),
+          slaveList: rowInfo[1],
+          tablePatterns: rowInfo[3].table_patterns,
+        }),
+      );
+    });
   };
 
   const formatInstance = (inst: ResourceItemInstInfo) => ({

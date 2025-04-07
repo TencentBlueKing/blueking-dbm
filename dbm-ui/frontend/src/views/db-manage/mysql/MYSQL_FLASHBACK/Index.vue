@@ -204,7 +204,7 @@
   const handleFlashbackTypeChange = (type: string) => {
     if (type === 'TABLE_FLASHBACK') {
       router.push({
-        name: TicketTypes.MYSQL_FLASHBACK,
+        name: 'MySQLDBFlashback',
       });
     }
   };
