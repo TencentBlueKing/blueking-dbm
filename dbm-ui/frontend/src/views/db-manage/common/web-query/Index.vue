@@ -20,7 +20,11 @@
           v-model="formData.queryType"
           style="width: 300px"
           type="card">
-          <BkRadioButton label="proxy">Proxy</BkRadioButton>
+          <BkRadioButton
+            disabled
+            label="proxy">
+            Proxy
+          </BkRadioButton>
           <BkRadioButton label="master_slave">Master/Slave</BkRadioButton>
         </BkRadioGroup>
       </BkFormItem>
@@ -70,7 +74,11 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
+  import IamApplyDataModel from '@services/model/iam/apply-data';
   import { checkInstance } from '@services/source/dbbase';
+  import { simpleGetApplyData } from '@services/source/iam';
+
+  import { useEventBus } from '@hooks';
 
   import { DBTypes } from '@common/const';
   import { batchInputSplitRegex, ipPort } from '@common/regex';
@@ -80,6 +88,7 @@
   import SQLQuery from './components/sql-query/Index.vue';
 
   interface Props {
+    actionId: string;
     dbType?: DBTypes.MYSQL | DBTypes.TENDBCLUSTER | DBTypes.SQLSERVER;
   }
 
@@ -93,7 +102,7 @@
   const formRef = ref();
   const formData = ref({
     instance: '',
-    queryType: 'proxy',
+    queryType: 'master_slave',
   });
   const invalidInstanceList = ref<string[]>([]);
 
@@ -121,7 +130,8 @@
         message: t('实例格式错误，请输入 IP:Port'),
         trigger: 'blur',
         validator: (value: string) => {
-          const instanceList = value.split(batchInputSplitRegex);
+          const inputValue = value.trim();
+          const instanceList = inputValue.split(batchInputSplitRegex);
           return instanceList.every((item) => ipPort.test(item));
         },
       },
@@ -147,6 +157,7 @@
               return results;
             }, []);
             if (!notMatchlist.length && !invalidList.length) {
+              invalidInstanceList.value = [];
               return true;
             }
 
@@ -163,6 +174,7 @@
             return results;
           }, []);
           if (!notMatchlist.length && !invalidList.length) {
+            invalidInstanceList.value = [];
             return true;
           }
 
@@ -184,6 +196,20 @@
   const handleExecute = () => {
     formRef.value.validate('instance');
   };
+
+  const checkPagePermission = async () => {
+    const authInfo = await simpleGetApplyData({
+      action_id: props.actionId,
+    });
+    if (!authInfo.hasPermission) {
+      const iamResult = new IamApplyDataModel(authInfo);
+      const { emit } = useEventBus();
+      // 要页面级鉴权
+      emit('permission-page', iamResult);
+    }
+  };
+
+  checkPagePermission();
 </script>
 <style lang="less">
   .web-query-main-page {

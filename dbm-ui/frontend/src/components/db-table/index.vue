@@ -148,6 +148,7 @@
     paginationExtra?: {
       small?: boolean;
     };
+    paginationLimit?: number;
     // data 数据的主键
     primaryKey?: string;
     // 是否解析 URL query 参数
@@ -168,6 +169,7 @@
     (e: 'clearSearch'): void;
     (e: 'selection', key: string[], list: any[]): void;
     (e: 'selection', key: number[], list: any[]): void;
+    (e: 'paginationChange', value: typeof pagination): void;
   }
 
   export interface Exposes {
@@ -189,6 +191,7 @@
     disableSelectMethod: () => false,
     fixedPagination: false,
     paginationExtra: () => ({}),
+    paginationLimit: undefined,
     primaryKey: 'id',
     releateUrlQuery: false,
     remotePagination: true,
@@ -313,7 +316,7 @@
     count: 0,
     current: 1,
     layout: ['total', 'limit', 'list'],
-    limit: paginationLimitCache.value,
+    limit: props.paginationLimit ? props.paginationLimit : paginationLimitCache.value,
     limitList: [10, 20, 50, 100],
     ...props.paginationExtra,
   });
@@ -349,6 +352,21 @@
 
   let isReady = false;
   let isPaginationChangeFetch = false;
+
+  watch(
+    () => props.columns,
+    () => {
+      tableKey.value = Date.now().toString();
+    },
+  );
+
+  watch(
+    () => props.containerHeight,
+    () => {
+      calcTableHeight();
+    },
+  );
+
   /**
    * 判断是否处于搜索状态
    */
@@ -442,13 +460,6 @@
     });
     return results;
   };
-
-  watch(
-    () => props.columns,
-    () => {
-      tableKey.value = Date.now().toString();
-    },
-  );
 
   // 解析 URL 上面的分页信息
   const parseURL = () => {
@@ -618,6 +629,7 @@
     pagination.current = 1;
     isPaginationChangeFetch = true;
     paginationLimitCache.value = pageLimit;
+    emits('paginationChange', pagination);
     fetchListData();
   };
 
@@ -628,7 +640,7 @@
     }
     pagination.current = pageValue;
     isPaginationChangeFetch = true;
-
+    emits('paginationChange', pagination);
     fetchListData();
   };
 
