@@ -19,6 +19,7 @@ from django.utils.translation import ugettext as _
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.db_meta import api
+from backend.db_meta.enums import ClusterEntryType
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import Machine
 from backend.db_services.redis.util import is_twemproxy_proxy_type
@@ -298,14 +299,31 @@ class RedisProxyScaleFlow(object):
             sub_pipeline.add_act(
                 act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
             )
-            if info["online_switch_type"] == SwitchConfirmType.USER_CONFIRM.value:
-                sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
+            # 域名、北极星 直接删除。clb 先修改权重为0，后面人工确认后再删除
             params = {
                 "cluster_id": info["cluster_id"],
                 "port": cluster_info["proxy_port"],
                 "del_ips": cluster_info["scale_down_ips"],
                 "op_type": DnsOpType.RECYCLE_RECORD,
+                # CLB延迟删除行为
+                "clb_delay_delete": True,
+            }
+            access_sub_builder = AccessManagerAtomJob(self.root_id, self.data, act_kwargs, params)
+            sub_pipeline.add_sub_pipeline(sub_flow=access_sub_builder)
+
+            if info["online_switch_type"] == SwitchConfirmType.USER_CONFIRM.value:
+                sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
+
+            # 真正卸载CLB
+            params = {
+                "cluster_id": info["cluster_id"],
+                "port": cluster_info["proxy_port"],
+                "del_ips": cluster_info["scale_down_ips"],
+                "op_type": DnsOpType.RECYCLE_RECORD,
+                # CLB延迟删除行为
+                "clb_delay_delete": False,
+                "only_cluster_entry_type": ClusterEntryType.CLB.value,
             }
             access_sub_builder = AccessManagerAtomJob(self.root_id, self.data, act_kwargs, params)
             sub_pipeline.add_sub_pipeline(sub_flow=access_sub_builder)

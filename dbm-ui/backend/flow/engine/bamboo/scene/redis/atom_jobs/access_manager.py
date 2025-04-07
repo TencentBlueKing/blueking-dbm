@@ -143,17 +143,31 @@ def CLBManagerAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Dict) 
 
     # clb删除rs
     if param["op_type"] == DnsOpType.RECYCLE_RECORD:
-        dns_kwargs = ClbKwargs(
-            clb_op_type=DnsOpType.RECYCLE_RECORD,
-            clb_ip=param["entry"],
-            clb_op_exec_port=param["port"],
-        )
-        act_kwargs.exec_ip = param["del_ips"]
-        clb_sub_pipeline.add_act(
-            act_name=_("clb剔除rs"),
-            act_component_code=RedisClbManageComponent.code,
-            kwargs={**asdict(act_kwargs), **asdict(dns_kwargs)},
-        )
+        # CLB 会延迟删除，那么这个地方只处理权重
+        if param.get("clb_delay_delete", False):
+            dns_kwargs = ClbKwargs(
+                clb_op_type=DnsOpType.CLB_CHANGE_WEIGHT,
+                clb_ip=param["entry"],
+                clb_op_exec_port=param["port"],
+            )
+            act_kwargs.exec_ip = param["del_ips"]
+            clb_sub_pipeline.add_act(
+                act_name=_("clb修改rs权重为0"),
+                act_component_code=RedisClbManageComponent.code,
+                kwargs={**asdict(act_kwargs), **asdict(dns_kwargs)},
+            )
+        else:
+            dns_kwargs = ClbKwargs(
+                clb_op_type=DnsOpType.RECYCLE_RECORD,
+                clb_ip=param["entry"],
+                clb_op_exec_port=param["port"],
+            )
+            act_kwargs.exec_ip = param["del_ips"]
+            clb_sub_pipeline.add_act(
+                act_name=_("clb剔除rs"),
+                act_component_code=RedisClbManageComponent.code,
+                kwargs={**asdict(act_kwargs), **asdict(dns_kwargs)},
+            )
 
     if param["op_type"] == DnsOpType.CLUSTER_DELETE:
         dns_kwargs = ClbKwargs(
@@ -276,6 +290,10 @@ def AccessManagerAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Dic
         if ce["forward_to_id"]:
             # 有forward_to_id, 这这条记录不需要操作，只需要操作forward_to_id对应的记录
             continue
+        # 只操作部分type
+        if "only_cluster_entry_type" in param:
+            if ce["cluster_entry_type"] != param["only_cluster_entry_type"]:
+                continue
         param["entry"] = ce["entry"]
         sub_builder_list.append(generic_manager(ce["cluster_entry_type"], root_id, ticket_data, act_kwargs, param))
 

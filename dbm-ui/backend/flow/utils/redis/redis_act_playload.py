@@ -132,7 +132,7 @@ class RedisActPayload(object):
 
         self.__init_dbconfig_params()
         if self.ticket_data["ticket_type"] in apply_list + cutoff_list + tool_list + migrate_list:
-            self.account = self.__get_define_config(NameSpaceEnum.Common, ConfigFileEnum.OS, ConfigTypeEnum.OSConf)
+            # self.account = self.__get_define_config(NameSpaceEnum.Common, ConfigFileEnum.OS, ConfigTypeEnum.OSConf)
             db_version = ""
             if "db_version" in self.cluster:
                 db_version = self.cluster["db_version"]
@@ -148,7 +148,8 @@ class RedisActPayload(object):
                 NameSpaceEnum.Common, ConfigFileEnum.Redis, ConfigTypeEnum.ActConf
             )
         if self.ticket_data["ticket_type"] in redis_scale_list + proxy_scale_list:
-            self.account = self.__get_define_config(NameSpaceEnum.Common, ConfigFileEnum.OS, ConfigTypeEnum.OSConf)
+            pass
+            # self.account = self.__get_define_config(NameSpaceEnum.Common, ConfigFileEnum.OS, ConfigTypeEnum.OSConf)
 
     def __init_dbconfig_params(self) -> Any:
         if "cluster_type" in self.cluster:

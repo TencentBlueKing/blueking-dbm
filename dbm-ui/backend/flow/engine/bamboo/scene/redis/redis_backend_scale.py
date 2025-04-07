@@ -20,7 +20,7 @@ from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterEntryRole, InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.db_meta.models import AppCache, Cluster, Machine
+from backend.db_meta.models import Cluster, Machine
 from backend.db_services.redis.util import is_redis_cluster_protocal
 from backend.flow.consts import (
     DEFAULT_LAST_IO_SECOND_AGO,
@@ -422,8 +422,7 @@ class RedisBackendScaleFlow(object):
         redis_redo_dr_sub_pipelines, resync_args, install_args = [], deepcopy(act_kwargs), deepcopy(act_kwargs)
         ip_ports = defaultdict(list)
         slave_instances_params = defaultdict(list)
-        app = AppCache.get_app_attr(install_args.cluster["bk_biz_id"], "db_app_abbr")
-        app_name = AppCache.get_app_attr(install_args.cluster["bk_biz_id"], "bk_biz_name")
+        slave_master_pair = defaultdict()
         resync_args.cluster = {
             "bk_biz_id": int(act_kwargs.cluster["bk_biz_id"]),
             "cluster_id": int(act_kwargs.cluster["cluster_id"]),
@@ -434,15 +433,16 @@ class RedisBackendScaleFlow(object):
         }
 
         for sync_link in sync_relations:
-            new_master, new_slave = sync_link["sync_dst1"], sync_link["sync_dst2"]
+            new_master_ip, new_slave_ip = sync_link["sync_dst1"], sync_link["sync_dst2"]
+            slave_master_pair[new_slave_ip] = new_master_ip
             for instances in sync_link["ins_link"]:
                 master_port, slave_port = instances["sync_dst1"], instances["sync_dst2"]
-                ip_ports[new_slave].append(int(instances["sync_dst2"]))
-                slave_instances_params[new_slave].append(
+                ip_ports[new_slave_ip].append(int(instances["sync_dst2"]))
+                slave_instances_params[new_slave_ip].append(
                     {
-                        "master_ip": new_master,
+                        "master_ip": new_master_ip,
                         "master_port": int(master_port),
-                        "slave_ip": new_slave,
+                        "slave_ip": new_slave_ip,
                         "slave_port": int(slave_port),
                     }
                 )
@@ -466,6 +466,13 @@ class RedisBackendScaleFlow(object):
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(install_args),
             )
+            install_args.exec_ip = slave_master_pair[new_slave_ip]
+            install_args.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
+            sub_pipeline.add_act(
+                act_name=_("卸载 master dbmon-{}").format(slave_master_pair[new_slave_ip]),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(install_args),
+            )
 
             # 重做slave
             one_resync_args = deepcopy(resync_args)
@@ -478,25 +485,20 @@ class RedisBackendScaleFlow(object):
                 kwargs=asdict(one_resync_args),
             )
 
-            # 启dbmon
-            install_args.cluster["servers"] = [
-                {
-                    "app": app,
-                    "app_name": app_name,
-                    "bk_biz_id": str(install_args.cluster["bk_biz_id"]),
-                    "bk_cloud_id": int(install_args.cluster["bk_cloud_id"]),
-                    "meta_role": InstanceRole.REDIS_SLAVE.value,  # 可能是master/slave 角色
-                    "server_shards": {},
-                    "cache_backup_mode": "",
-                    "cluster_name": act_kwargs.cluster["cluster_name"],
-                    "cluster_type": act_kwargs.cluster["cluster_type"],
-                    "cluster_domain": act_kwargs.cluster["immute_domain"],
-                    "server_ip": new_slave_ip,
-                    "server_ports": ip_ports[new_slave_ip],
-                }
-            ]
+            # 启动dbmon
+            del install_args.cluster["servers"]
+            install_args.exec_ip = slave_master_pair[new_slave_ip]
+            install_args.cluster["ip"] = slave_master_pair[new_slave_ip]
+            install_args.get_redis_payload_func = RedisActPayload.bkdbmon_install_list_new.__name__
+            sub_pipeline.add_act(
+                act_name=_("部署 master dbmon-{}").format(slave_master_pair[new_slave_ip]),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(install_args),
+            )
+
             install_args.exec_ip = new_slave_ip
-            install_args.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
+            install_args.cluster["ip"] = new_slave_ip
+            install_args.get_redis_payload_func = RedisActPayload.bkdbmon_install_list_new.__name__
             sub_pipeline.add_act(
                 act_name=_("部署 slave dbmon-{}").format(new_slave_ip),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,

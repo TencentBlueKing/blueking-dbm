@@ -61,6 +61,15 @@ class RedisClbManageService(BaseService):
 
             add_instance_list = [f"{ip}:{kwargs['clb_op_exec_port']}" for ip in exec_ips]
             result = clb_manager.add_clb_rs(instance_list=add_instance_list)
+        elif dns_op_type == DnsOpType.CLB_CHANGE_WEIGHT:
+            # 安全删除CLB，前置行为：修改权重
+            exec_ips = self.__get_exec_ips(kwargs=kwargs, trans_data=trans_data)
+            if not exec_ips:
+                self.log_error(_("该节点获取到执行ip信息为空，请联系系统管理员"))
+                return False
+
+            change_instance_list = [f"{ip}:{kwargs['clb_op_exec_port']}" for ip in exec_ips]
+            result = clb_manager.update_clb_rs_weight(instance_list=change_instance_list, weight=0)
         elif dns_op_type == DnsOpType.RECYCLE_RECORD:
             # 删除CLB映射,proxy缩容场景
             exec_ips = self.__get_exec_ips(kwargs=kwargs, trans_data=trans_data)

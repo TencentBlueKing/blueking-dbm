@@ -77,3 +77,19 @@ class CLBManage(object):
             raw=True,
         )
         return True
+
+    def update_clb_rs_weight(self, instance_list: list, weight: int) -> bool:
+        """
+        修改clb权重;适用场景：proxy缩容前置行为
+        """
+        NameServiceApi.clb_change_target_weight(
+            {
+                "region": self.clb_region,
+                "loadbalancerid": self.clb_id,
+                "listenerid": self.listener_id,
+                "ips": instance_list,
+                "weight": weight,
+            },
+            raw=True,
+        )
+        return True

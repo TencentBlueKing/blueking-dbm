@@ -419,7 +419,7 @@ func (test *RedisInstallTest) SetTendisplusRedisConf() {
 		"logdir":                              "{{redis_data_dir}}/data/log",
 		"dir":                                 "{{redis_data_dir}}/data/db",
 		"dumpdir":                             "{{redis_data_dir}}/data/dump",
-		"pidfile":                             "{{redis_data_dir}}data/tendisplus.pid",
+		"pidfile":                             "{{redis_data_dir}}/data/tendisplus.pid",
 		"slowlog":                             "{{redis_data_dir}}/data/slowlog",
 		"databases":                           "{{databases}}",
 		"requirepass":                         "{{password}}",

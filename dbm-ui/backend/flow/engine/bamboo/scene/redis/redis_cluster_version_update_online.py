@@ -693,6 +693,9 @@ class RedisClusterVersionUpdateOnline(object):
             )
         sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
+        # 这个地方需要增加一个人工确认节点。并且尽量慢点执行。否则client可能还会访问到old master
+        sub_pipeline.add_act(act_name=_("Redis-人工确认"), act_component_code=PauseComponent.code, kwargs={})
+
         # 升级old master
         act_kwargs.cluster = {}
         act_kwargs.exec_ip = master_ip

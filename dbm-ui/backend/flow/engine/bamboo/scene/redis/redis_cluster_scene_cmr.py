@@ -22,7 +22,7 @@ from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta import api
-from backend.db_meta.enums import ClusterType, InstanceRole
+from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole
 from backend.db_meta.models import Cluster
 from backend.db_services.redis.util import is_twemproxy_proxy_type
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigFileEnum, ConfigTypeEnum, DnsOpType, SyncType
@@ -377,12 +377,32 @@ class RedisClusterCMRSceneFlow(object):
                     "port": act_kwargs.cluster["proxy_port"],
                     "del_ips": old_proxies,
                     "op_type": DnsOpType.RECYCLE_RECORD.value,
+                    # CLB延迟删除行为
+                    "clb_delay_delete": True,
                 },
             )
         )
 
         # 第四步：人工确认
         sub_pipeline.add_act(act_name=_("旧Proxy下架-等待确认"), act_component_code=PauseComponent.code, kwargs={})
+
+        # 真正下架CLB
+        sub_pipeline.add_sub_pipeline(
+            sub_flow=AccessManagerAtomJob(
+                self.root_id,
+                self.data,
+                act_kwargs,
+                {
+                    "cluster_id": act_kwargs.cluster["cluster_id"],
+                    "port": act_kwargs.cluster["proxy_port"],
+                    "del_ips": old_proxies,
+                    "op_type": DnsOpType.RECYCLE_RECORD.value,
+                    # CLB延迟删除行为
+                    "clb_delay_delete": False,
+                    "only_cluster_entry_type": ClusterEntryType.CLB.value,
+                },
+            )
+        )
 
         # 第四步：卸载Proxy
         proxy_down_pipelines = []
