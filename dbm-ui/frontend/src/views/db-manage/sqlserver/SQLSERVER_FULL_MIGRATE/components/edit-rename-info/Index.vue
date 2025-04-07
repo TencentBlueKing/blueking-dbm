@@ -48,6 +48,7 @@
   </BkSideslider>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import ClusterDb from './components/ClusterDb.vue';
@@ -96,12 +97,18 @@
   }>({
     required: true,
   });
-
   const { t } = useI18n();
 
   const tableKey = ref(Date.now().toString());
+  const dbNameMemo = _.cloneDeep(modelValue.value.dbName || []);
 
   const updateTableKey = () => {
+    const hasEditDbRename = modelValue.value.dbName.some((item) => {
+      return dbNameMemo.includes(item);
+    });
+    if (!hasEditDbRename) {
+      return;
+    }
     tableKey.value = Date.now().toString();
   };
 

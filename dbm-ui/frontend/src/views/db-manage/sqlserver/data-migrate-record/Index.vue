@@ -14,7 +14,8 @@
       :pagination="pagination">
       <BkTable
         class="mt-16"
-        :data="data">
+        :data="data"
+        :show-overflow="false">
         <BkTableColumn
           field="source_cluster_domain"
           fixed="left"
@@ -24,7 +25,15 @@
           field="target_cluster_domain"
           fixed="left"
           :label="t('目标集群')"
-          :width="220" />
+          :width="220">
+          <template #default="{ data: rowData }: {data: MigrateRecordModel}">
+            <p
+              v-for="item in rowData.target_cluster_domain"
+              :key="item">
+              {{ item }}
+            </p>
+          </template>
+        </BkTableColumn>
         <BkTableColumn
           field="dtsModeText"
           :label="t('迁移类型')"
