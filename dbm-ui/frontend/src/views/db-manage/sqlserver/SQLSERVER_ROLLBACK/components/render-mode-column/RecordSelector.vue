@@ -142,6 +142,13 @@
     </div>
   </div>
 </template>
+
+<script lang="ts">
+  export enum OperateType {
+    MANUAL = 'maunal',
+    MATCH = 'match',
+  }
+</script>
 <script setup lang="ts">
   import _ from 'lodash';
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
@@ -174,13 +181,14 @@
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<ServiceReturnType<typeof queryBackupLogs>[number]>();
+  const autoMatchDateTime = defineModel<string>('autoMatchDateTime', {
+    required: true,
+  });
+  const recordType = defineModel<string>('recordType', {
+    required: true,
+  });
 
   const { t } = useI18n();
-
-  enum OperateType {
-    MANUAL = 'maunal',
-    MATCH = 'match',
-  }
 
   let tippyIns: Instance;
 
@@ -209,8 +217,6 @@
   const dateRenderRef = ref();
   const isShowPop = ref(false);
   const open = ref(false);
-  const recordType = ref(OperateType.MANUAL);
-  const autoMatchDateTime = ref('');
 
   const backupLogListMemo = shallowRef<ServiceReturnType<typeof queryBackupLogs>>([]);
 
