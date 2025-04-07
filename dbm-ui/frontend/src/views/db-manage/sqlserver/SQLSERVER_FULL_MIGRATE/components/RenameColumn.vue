@@ -29,6 +29,7 @@
     ref="editName"
     v-model="localValue"
     v-model:is-show="isShowEditName"
+    :conflict-db-list="conflictDbList"
     :data="data"
     @submit="handleSubmit" />
 </template>
@@ -185,6 +186,9 @@
   };
 
   const handleShowEditName = () => {
+    if (noConflictDb.value && !hasEditRename.value) {
+      return;
+    }
     editRenameRef.value?.updateTableKey();
     isShowEditName.value = true;
   };
@@ -194,14 +198,7 @@
     dbName.value = localValue.value.dbName;
     dbIgnoreName.value = localValue.value.dbIgnoreName;
     renameInfoList.value = localValue.value.renameInfoList;
-
-    const isEdit = localValue.value.renameInfoList.every((item) =>
-      conflictDbList.value.includes(item.db_name) ? item.rename_db_name || item.target_db_name !== item.db_name : true,
-    );
-
-    if (isEdit) {
-      hasEditRename.value = true;
-      conflictDbList.value = [];
-    }
+    hasEditRename.value = true;
+    conflictDbList.value = [];
   };
 </script>

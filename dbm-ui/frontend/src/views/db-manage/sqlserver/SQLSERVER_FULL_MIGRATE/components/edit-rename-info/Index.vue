@@ -51,6 +51,8 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
+  import { messageError } from '@utils';
+
   import ClusterDb from './components/ClusterDb.vue';
   import ExportBtn from './components/ExportBtn.vue';
   import ImportBtn from './components/ImportBtn.vue';
@@ -64,6 +66,7 @@
   };
 
   interface Props {
+    conflictDbList: string[];
     data: {
       dstCluster: {
         id: number;
@@ -82,7 +85,7 @@
     updateTableKey(): void;
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
@@ -113,6 +116,14 @@
   };
 
   const handleSubmit = () => {
+    // 是否对冲突的 DB 名都重命名了
+    const noConflictDb = modelValue.value.renameInfoList.every((item) =>
+      props.conflictDbList.includes(item.db_name) ? item.rename_db_name || item.target_db_name !== item.db_name : true,
+    );
+    if (!noConflictDb) {
+      messageError(t('请修改冲突的 DB 名'));
+      return;
+    }
     emits('submit', modelValue.value);
     isShow.value = false;
   };
