@@ -139,6 +139,9 @@ class TodoActionType(str, StructuredEnum):
     APPROVE = EnumField("APPROVE", _("确认执行"))
     TERMINATE = EnumField("TERMINATE", _("终止单据"))
     DELIVER = EnumField("DELIVER", _("分派代办"))
+    # 适用于定时代办
+    SKIP = EnumField("SKIP", _("跳过"))
+    CHANGE = EnumField("CHANGE", _("变更"))
 
 
 @dataclass

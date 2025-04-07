@@ -41,12 +41,14 @@ class TodoManager(models.Manager):
         # - 审批中：提单人可撤销，dba可处理，
         #   考虑某些单据审批人是特定配置(数据导出 -- 运维审批)，所以从ItsmBuilder获得审批人
         # - 待执行：operators[提单人] + helpers[单据协助人]
+        # - 定时中：operators[提单人] + helpers[单据协助人]
         # - 待继续：operators[提单人 + dba] + helpers[单据协助人 + second_dba + other_dba]
         # - 待补货：operators[提单人 + dba] + helpers[单据协助人 + second_dba + other_dba]
         # - 已失败：operators[提单人 + dba] + helpers[单据协助人 + second_dba + other_dba]
         todo_operators_map = {
             TodoType.ITSM: itsm_operators[:1],
             TodoType.APPROVE: creator,
+            TodoType.TIMER: creator,
             TodoType.INNER_APPROVE: creator + dba,
             TodoType.RESOURCE_REPLENISH: creator + dba,
             TodoType.INNER_FAILED: creator + dba,
@@ -54,6 +56,7 @@ class TodoManager(models.Manager):
         todo_helpers_map = {
             TodoType.ITSM: itsm_operators[1:],
             TodoType.APPROVE: biz_helpers,
+            TodoType.TIMER: biz_helpers,
             TodoType.INNER_APPROVE: biz_helpers + second_dba + other_dba,
             TodoType.RESOURCE_REPLENISH: biz_helpers + second_dba + other_dba,
             TodoType.INNER_FAILED: biz_helpers + second_dba + other_dba,

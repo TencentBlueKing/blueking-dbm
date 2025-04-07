@@ -21,6 +21,7 @@ from backend.ticket.constants import TodoType
 from backend.ticket.flow_manager.base import BaseTicketFlow
 from backend.ticket.models import Flow, Todo
 from backend.ticket.tasks.ticket_tasks import TicketTask, apply_ticket_task
+from backend.ticket.todos.timer_todo import TimerTodoContext
 from backend.utils.basic import get_target_items_from_details
 from backend.utils.time import countdown2str, datetime2str, str2datetime
 
@@ -37,9 +38,15 @@ class TimerFlow(BaseTicketFlow):
         super().__init__(flow_obj=flow_obj)
 
         self.root_id = flow_obj.flow_obj_id
+        # 过期标志
         self.expired_flag = flow_obj.details.get("expired_flag", None)
+        # 定时发起时间
         self.run_time = flow_obj.details.get("run_time", datetime2str(datetime.now(timezone.utc)))
-        self.trigger_time = get_target_items_from_details(obj=self.ticket.details, match_keys=["trigger_time"])[0]
+        # 定时异步任务id
+        self.task_id = flow_obj.details.get("task_id", "")
+        # 定时触发时间
+        ticket_trigger_time = get_target_items_from_details(obj=self.ticket.details, match_keys=["trigger_time"])[0]
+        self.trigger_time = flow_obj.details.get("trigger_time", ticket_trigger_time)
 
     @property
     def _start_time(self) -> str:
@@ -68,6 +75,7 @@ class TimerFlow(BaseTicketFlow):
     @property
     def _status(self) -> str:
         trigger_time = str2datetime(self.trigger_time)
+        now = datetime.now(timezone.utc)
         # 还未到定时节点，返回pending
         if self.expired_flag is None:
             return constants.TicketFlowStatus.PENDING.value
@@ -75,9 +83,10 @@ class TimerFlow(BaseTicketFlow):
         if self.expired_flag and self.ticket.todo_of_ticket.exist_unfinished():
             return self.flow_obj.update_status(constants.TicketFlowStatus.RUNNING.value)
         # 触发时间晚于当前时间，则返回running
-        if trigger_time > datetime.now(timezone.utc):
+        if trigger_time > now:
             return self.flow_obj.update_status(constants.TicketFlowStatus.RUNNING.value)
-        # 其他情况说明已触发，返回succeed
+        # 其他情况说明已触发，返回succeed，并且标记todo为已处理
+        self.flow_obj.todo_of_flow.update(status=constants.TodoStatus.DONE_SUCCESS.value, done_at=now)
         return self.flow_obj.update_status(constants.TicketFlowStatus.SUCCEEDED.value)
 
     @property
@@ -86,30 +95,33 @@ class TimerFlow(BaseTicketFlow):
 
     def _run(self) -> Union[int, str]:
         timer_uid = f"timer_{uuid.uuid1().hex}"
+        task_id = ""
 
-        # 如果触发时间已经过期，则变为手动触发，否则变为定时触发
+        # 创建一个定时todo TODO: get_or_create好像使得自定义的create方法不生效
+        try:
+            todo = Todo.objects.get(flow=self.flow_obj, ticket=self.ticket, type=TodoType.TIMER)
+        except Todo.DoesNotExist:
+            todo = Todo.objects.create(flow=self.flow_obj, ticket=self.ticket, type=TodoType.TIMER)
+            todo.context = TimerTodoContext(self.flow_obj.id, self.ticket.id).to_dict()
+
+        # 如果触发时间已经过期，则变为手动触发，否则为定时触发
         run_time, trigger_time = str2datetime(self.run_time), str2datetime(self.trigger_time)
         if run_time >= trigger_time:
-            from backend.ticket.todos.pause_todo import PauseTodoContext
-
+            todo.type = TodoType.APPROVE
+            todo.name = (_("【{}】流程待确认，是否继续？").format(self.ticket.get_ticket_type_display()),)
             self.expired_flag = True
-            Todo.objects.create(
-                name=_("【{}】定时流程待确认,是否继续？").format(self.ticket.get_ticket_type_display()),
-                flow=self.flow_obj,
-                ticket=self.ticket,
-                type=TodoType.APPROVE,
-                context=PauseTodoContext(self.flow_obj.id, self.ticket.id).to_dict(),
-            )
         else:
+            todo.name = _("【{}】流程定时中").format(self.ticket.get_ticket_type_display())
             self.expired_flag = False
-            apply_ticket_task(
+            task_id = apply_ticket_task(
                 ticket_id=self.ticket.id,
                 func_name=TicketTask.run_next_flow.__name__,
                 eta=trigger_time,
-            )
+            ).id
 
         # 更新flow的状态信息
+        todo.save()
         self.flow_obj.update_details(
-            expired_flag=self.expired_flag, run_time=self.run_time, trigger_time=self.trigger_time
+            expired_flag=self.expired_flag, run_time=self.run_time, trigger_time=self.trigger_time, task_id=task_id
         )
         return timer_uid
