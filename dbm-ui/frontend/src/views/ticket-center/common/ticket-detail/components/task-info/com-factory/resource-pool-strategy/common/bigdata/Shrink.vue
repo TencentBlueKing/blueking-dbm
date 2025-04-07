@@ -43,7 +43,11 @@
             :label="t('节点 IP')" />
           <BkTableColumn
             field="bk_disk"
-            :label="t('磁盘_GB')" />
+            :label="t('磁盘_GB')">
+            <template #default="{ data: rowData }: { data: InfoData['hostList'][0] }">
+              {{ hostInfoMap[rowData.ip] }}
+            </template>
+          </BkTableColumn>
         </BkTable>
       </InfoItem>
     </InfoList>
@@ -61,7 +65,7 @@
     ticketDetails: TicketModel<Bigdata.ResourcePool.Shrink>;
   }
 
-  interface RowData {
+  interface InfoData {
     clusterId: number;
     clusterName: string;
     count: number;
@@ -90,9 +94,10 @@
     slave: 'Slave',
     zookeeper: 'Zookeeper',
   };
+  let hostInfoMap: Record<string, number> = {};
 
   const dataList = computed(() => {
-    const list: RowData[] = [];
+    const list: InfoData[] = [];
     const {
       cluster_id: clusterId,
       clusters,
@@ -104,11 +109,20 @@
       if (hostList.length > 0) {
         const extInfoData = extInfo[node as keyof Bigdata.ResourcePool.Shrink['ext_info']];
         const isManulSelect = recycleHosts?.length > 0;
+        hostInfoMap = recycleHosts.reduce(
+          (acc, host) => {
+            Object.assign(acc, {
+              [host.ip]: host.bk_disk,
+            });
+            return acc;
+          },
+          {} as Record<string, number>,
+        );
         list.push({
           clusterId,
           clusterName: clusters[clusterId]?.immute_domain || '--',
           count: hostList.length,
-          hostList: isManulSelect ? recycleHosts : [],
+          hostList: isManulSelect ? hostList : [],
           isManulSelect,
           nodeText: nodeTypeText[node] || '--',
           shrinkDisk: extInfoData.shrink_disk,

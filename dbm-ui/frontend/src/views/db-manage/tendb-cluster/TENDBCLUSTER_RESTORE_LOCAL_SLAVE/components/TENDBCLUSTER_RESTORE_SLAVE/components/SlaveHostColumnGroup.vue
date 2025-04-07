@@ -89,7 +89,6 @@
     bk_cloud_id: number;
     bk_host_id?: number;
     cluster_id: number;
-    count: number;
     ip: string;
     master_domain: string;
     related_instances: string[];
@@ -101,7 +100,6 @@
       bk_cloud_id: 0,
       bk_host_id: undefined,
       cluster_id: 0,
-      count: 0,
       ip: '',
       master_domain: '',
       related_instances: [],
@@ -178,7 +176,6 @@
           bk_cloud_id: currentHost.bk_cloud_id,
           bk_host_id: currentHost.bk_host_id,
           cluster_id: currentHost.cluster_id,
-          count: currentHost.spec_config.count,
           ip: currentHost.ip,
           master_domain: currentHost.master_domain,
           related_instances: relatedInstances,
@@ -199,7 +196,6 @@
       bk_cloud_id: 0,
       bk_host_id: undefined,
       cluster_id: 0,
-      count: 0,
       ip: value,
       master_domain: '',
       related_instances: [],

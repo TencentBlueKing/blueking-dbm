@@ -43,7 +43,6 @@
               :placeholder="t('自动生成')" />
           </EditableColumn>
           <NewSlaveHostColumn
-            v-model="item.newSlave"
             :slave="item.slave"
             @batch-edit="handleBatchEdit" />
           <OperationColumn
@@ -94,13 +93,11 @@
   import SlaveHostColumnGroup, { type SelectorHost } from './components/SlaveHostColumnGroup.vue';
 
   interface RowData {
-    newSlave: string;
     slave: {
       bk_biz_id: number;
       bk_cloud_id: number;
       bk_host_id: number;
       cluster_id: number;
-      count: number;
       ip: string;
       master_domain: string;
       related_instances: string[];
@@ -119,7 +116,6 @@
   const tableRef = useTemplateRef('table');
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
-    newSlave: 'resource_pool',
     slave: data.slave || {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
@@ -181,7 +177,6 @@
               slave: {
                 ...item.old_nodes.old_slave[0],
                 cluster_id: 0,
-                count: 0,
                 master_domain: '',
                 related_instances: [],
                 spec_id: 0,
@@ -214,7 +209,7 @@
             },
             resource_spec: {
               new_slave: {
-                count: item.slave.count,
+                count: 1,
                 spec_id: item.slave.spec_id,
               },
             },
@@ -240,7 +235,6 @@
               bk_cloud_id: item.bk_cloud_id,
               bk_host_id: item.bk_host_id,
               cluster_id: item.cluster_id,
-              count: item.spec_config?.count ?? 0,
               ip: item.ip,
               master_domain: item.master_domain,
               related_instances: item.related_instances.map((item) => item.instance),

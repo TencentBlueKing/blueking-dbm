@@ -87,8 +87,9 @@
       </td>
       <OperateColumn
         :removeable="removeable"
-        :show-add="false"
-        :show-clone="false"
+        show-clone
+        @add="handleAppend"
+        @clone="handleClone"
         @remove="handleRemove" />
     </tr>
   </template>
@@ -157,6 +158,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
+    (e: 'clone', value: IDataRow): void;
   }
 
   interface Exposes {
@@ -250,11 +252,48 @@
     );
   };
 
+  const handleAppend = () => {
+    emits('add', [createRowData()]);
+  };
+
   const handleRemove = () => {
     if (props.removeable) {
       return;
     }
     emits('remove');
+  };
+
+  const handleClone = () => {
+    Promise.allSettled([
+      Promise.all(clusterRefs.value.map((item: any) => item.getValue())),
+      Promise.all(scopeRefs.value.map((item: any) => item.getValue())),
+      Promise.all(slaveRefs.value.map((item: any) => item.getValue())),
+      Promise.all(masterRefs.value.map((item: any) => item.getValue())),
+      Promise.all(dbPatternsRefs.value.map((item: any) => item.getValue('db_patterns'))),
+      Promise.all(tablePatternsRefs.value.map((item: any) => item.getValue('table_patterns'))),
+      Promise.all(ignoreDbsRefs.value.map((item: any) => item.getValue('ignore_dbs'))),
+      Promise.all(ignoreTablesRefs.value.map((item: any) => item.getValue('ignore_tables'))),
+    ]).then((rowData) => {
+      const rowInfo = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
+      emits(
+        'clone',
+        createRowData({
+          backupInfos: [
+            createBackupInfo({
+              dbPatterns: rowInfo[4][0].db_patterns,
+              ignoreDbs: rowInfo[6][0].ignore_dbs,
+              ignoreTables: rowInfo[7][0].ignore_tables,
+              master: rowInfo[3][0].master,
+              slave: rowInfo[2][0].slave,
+              tablePatterns: rowInfo[5][0].table_patterns,
+            }),
+          ],
+          clusterData: props.data.clusterData,
+          rowKey: random(),
+          scope: rowInfo[1][0].scope || props.data.scope,
+        }),
+      );
+    });
   };
 
   defineExpose<Exposes>({

@@ -13,21 +13,21 @@
 
 <template>
   <EditableColumn
-    field="newSlave"
+    field="slave.spec_id"
     :label="t('新从库主机')"
+    :loading="loading"
     :min-width="150"
     required>
     <div class="table-cell">
       <TableEditSelect
-        v-model="modelValue"
-        :disabled="!slave.spec_id"
+        v-model="localValue"
         :input-search="false"
         :list="optionList"
         :placeholder="t('请选择')">
         <template #option="{ optionItem }">
           <div class="spec-display">
             {{ optionItem.name }}
-            <span class="spec-display-count">{{ countMap[optionItem.id] }}</span>
+            <span class="spec-display-count">{{ count }}</span>
           </div>
         </template>
       </TableEditSelect>
@@ -52,9 +52,10 @@
 
   const props = defineProps<Props>();
 
-  const modelValue = defineModel<string>();
-
   const { t } = useI18n();
+
+  const localValue = ref('resource_pool');
+  const count = ref(0);
 
   const optionList = [
     {
@@ -64,21 +65,15 @@
     },
   ];
 
-  const countMap = reactive<Record<string, number>>({
-    resource_pool: 0,
-    // resource_pool_manual: 0,
-    // manual_input: 0,
-  });
-
-  const { run: fetchSpecResourceCount } = useRequest(getSpecResourceCount, {
+  const { loading, run: fetchSpecResourceCount } = useRequest(getSpecResourceCount, {
     manual: true,
     onSuccess(countResult) {
-      countMap.resource_pool = countResult[props.slave.spec_id] ?? 0;
+      count.value = countResult[props.slave.spec_id] ?? 0;
     },
   });
 
   watch(
-    () => props.slave,
+    () => props.slave.spec_id,
     () => {
       if (props.slave.spec_id) {
         fetchSpecResourceCount({

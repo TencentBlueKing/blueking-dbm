@@ -172,6 +172,18 @@ const spiderToolboxRoute = {
       },
       component: () => import('@views/db-manage/tendb-cluster/db-backup/Index.vue'),
     },
+    // 库表闪回
+    {
+      path: 'flashback/:page?',
+      name: 'spiderFlashback',
+      meta: {
+        dbConsole: 'tendbCluster.toolbox.flashback',
+        navName: t('闪回'),
+      },
+      component: () => import('@views/db-manage/tendb-cluster/flashback/Index.vue'),
+    },
+    // 记录级闪回
+    // 两个闪回两个路由，这里没问题
     createRouteItem(TicketTypes.TENDBCLUSTER_FLASHBACK, t('闪回'), {
       dbConsole: 'tendbCluster.toolbox.flashback',
     }),

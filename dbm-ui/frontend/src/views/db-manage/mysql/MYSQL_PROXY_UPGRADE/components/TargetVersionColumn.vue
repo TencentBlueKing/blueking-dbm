@@ -268,7 +268,7 @@
   });
 
   function fetchModuleList() {
-    if (props.cluster) {
+    if (props.cluster.cluster_type) {
       fetchModules({
         bk_biz_id: bizId,
         cluster_type: props.cluster.cluster_type,
