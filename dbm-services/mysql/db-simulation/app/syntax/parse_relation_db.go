@@ -178,8 +178,8 @@ func (t *TmysqlParse) analyzeRelationDbs(inputfileName, mysqlVersion string) (
 					return nil, nil, nil, false, err
 				}
 				// 需要排除create table like
-				if !c.IsCreateTableLike && !c.IsCreateTableSelect {
-					allCommandType = append(allCommandType, res.Command)
+				if c.IsCreateTableLike || c.IsCreateTableSelect {
+					return nil, nil, allCommandType, true, nil
 				}
 			} else {
 				allCommandType = append(allCommandType, res.Command)

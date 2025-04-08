@@ -367,7 +367,7 @@ func (s *SyntaxHandler) ParseSQLRelationDb(r *gin.Context) {
 	}
 	// 如果所有的命令都是alter table, dump指定库表
 	logger.Info("all command types: %v,%d", allCommands, len(allCommands))
-	if isAllOperateTable(allCommands) {
+	if isAllOperateTable(allCommands) || !dumpall {
 		relationTbls, err := p.ParseSpecialTbls("")
 		if err != nil {
 			s.SendResponse(r, err, nil)
