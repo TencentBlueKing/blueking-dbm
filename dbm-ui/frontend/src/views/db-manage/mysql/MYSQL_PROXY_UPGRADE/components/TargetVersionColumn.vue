@@ -221,6 +221,15 @@
     },
   ];
 
+  function fetchModuleList() {
+    if (props.cluster.cluster_type) {
+      fetchModules({
+        bk_biz_id: bizId,
+        cluster_type: props.cluster.cluster_type,
+      });
+    }
+  }
+
   const { run: queryMysqlHigherVersionPkgListRun } = useRequest(queryMysqlHigherVersionPkgList, {
     manual: true,
     onSuccess(versions) {
@@ -267,17 +276,8 @@
     },
   });
 
-  function fetchModuleList() {
-    if (props.cluster.cluster_type) {
-      fetchModules({
-        bk_biz_id: bizId,
-        cluster_type: props.cluster.cluster_type,
-      });
-    }
-  }
-
   watch(
-    () => props.cluster,
+    () => props.cluster.id,
     () => {
       if (props.cluster.id) {
         queryMysqlHigherVersionPkgListRun({

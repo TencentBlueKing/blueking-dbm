@@ -165,7 +165,7 @@
 
   const showSelector = ref(false);
   const selectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
-    [ClusterTypes.TENDBHA]: props.selected.map(
+    TendbhaHost: props.selected.map(
       (item) =>
         ({
           ip: item.ip,

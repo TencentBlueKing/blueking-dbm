@@ -41,7 +41,6 @@
           :last-values="lastValues"
           :role="role"
           :table-settings="tableSettings"
-          :valid-tab="panelList[0]"
           @change="handleChange" />
       </template>
       <template #aside>

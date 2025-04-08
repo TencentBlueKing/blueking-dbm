@@ -105,7 +105,6 @@
 
   import type { InstanceSelectorValues } from '../Index.vue';
 
-  import type { PanelTypes } from './PanelTab.vue';
   import RenderManualHost from './RenderManualHost.vue';
 
   export interface InstanceItem extends Omit<InstanceInfos, 'spec_config'> {
@@ -113,15 +112,12 @@
   }
 
   interface Props {
-    validTab: Exclude<PanelTypes, 'manualInput'>;
     lastValues: InstanceSelectorValues;
-    tableSettings: InstanceType<typeof Table>['$props']['settings'];
     role?: string;
+    tableSettings: InstanceType<typeof Table>['$props']['settings'];
   }
 
-  interface Emits {
-    (e: 'change', value: InstanceSelectorValues): void;
-  }
+  type Emits = (e: 'change', value: InstanceSelectorValues) => void;
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
@@ -130,23 +126,23 @@
   const inputRef = ref();
 
   const inputState = reactive({
-    values: '',
-    placeholder: t('请输入IP如_1_1_1_1多个可使用换行_空格或_分隔'),
     isLoading: false,
+    placeholder: t('请输入IP如_1_1_1_1多个可使用换行_空格或_分隔'),
     tableData: [] as InstanceItem[],
+    values: '',
   });
   const errorState = reactive({
     format: {
-      show: false,
-      selectionStart: 0,
-      selectionEnd: 0,
       count: 0,
+      selectionEnd: 0,
+      selectionStart: 0,
+      show: false,
     },
     instance: {
-      show: false,
-      selectionStart: 0,
-      selectionEnd: 0,
       count: 0,
+      selectionEnd: 0,
+      selectionStart: 0,
+      show: false,
     },
   });
 
@@ -163,7 +159,7 @@
    * 标记错误
    */
   const handleSelectionError = (key: 'format' | 'instance') => {
-    const { selectionStart, selectionEnd } = errorState[key];
+    const { selectionEnd, selectionStart } = errorState[key];
     const textarea = inputRef.value?.$el?.getElementsByTagName?.('textarea')?.[0];
     if (textarea) {
       (textarea as HTMLInputElement).focus();
@@ -210,7 +206,7 @@
       queryResult.map((item) => queryMasterSlavePairs({ cluster_id: item.cluster_id })),
     );
     const masterSlaveMap = masterSlaveResult.flat().reduce<Record<string, string>>((acc, cur) => {
-      acc[cur.master_ip] = cur.slave_ip;
+      Object.assign(acc, { [cur.master_ip]: cur.slave_ip });
       return acc;
     }, {});
     const ipsSet = new Set(availableLines);
@@ -220,8 +216,8 @@
           // 格式化实例角色
           const roleMap = {
             master: 'redis_master',
-            slave: 'redis_slave',
             proxy: 'proxy',
+            slave: 'redis_slave',
           };
           acc.push({
             ...cur,
@@ -252,15 +248,25 @@
     errorState.instance.selectionStart = selectionEnd === 0 ? 0 : selectionEnd + 1;
     errorState.instance.selectionEnd = checkErrorLines.join('\n').length + errorState.format.selectionEnd + 1;
 
+    const formatValue = (data: InstanceItem) => ({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      bk_cloud_id: data?.host_info?.cloud_id || 0,
+      bk_host_id: data?.bk_host_id || 0,
+      cluster_domain: data.related_clusters[0].master_domain ?? '',
+      cluster_ids: data.related_clusters.map((item) => item.id) || [],
+      ip: data?.ip || '',
+      role: data?.role || '',
+      spec_config: data?.spec_config || null,
+    });
+
     // 解析完成后选中
     const lastValues = { ...props.lastValues };
-    const currentTab = props.validTab;
     for (const item of inputState.tableData) {
-      const list = lastValues[currentTab];
+      const list = lastValues.idleHosts;
       const isExisted = list.find((i) => i.ip === item.ip);
       if (!isExisted) {
         item.cluster_domain = item.master_domain;
-        lastValues[currentTab].push(item);
+        lastValues.idleHosts.push(formatValue(item));
       }
     }
     emits('change', {

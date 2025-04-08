@@ -129,10 +129,12 @@
     manual: true,
     onSuccess: (data) => {
       const [currentCluster] = data;
-      modelValue.value.related_clusters = currentCluster.related_clusters.map((item) => ({
-        id: item.id,
-        master_domain: item.master_domain,
-      }));
+      if (currentCluster) {
+        modelValue.value.related_clusters = currentCluster.related_clusters.map((item) => ({
+          id: item.id,
+          master_domain: item.master_domain,
+        }));
+      }
     },
   });
 
@@ -154,11 +156,6 @@
   watch(
     () => modelValue.value.master_domain,
     (value) => {
-      modelValue.value = {
-        id: undefined,
-        master_domain: value,
-        related_clusters: [],
-      };
       if (value) {
         queryCluster({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
