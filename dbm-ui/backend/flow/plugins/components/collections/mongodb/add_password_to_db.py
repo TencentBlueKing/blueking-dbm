@@ -51,7 +51,7 @@ class ExecAddPasswordToDBOperation(BaseService):
                     password = trans_data[username]
             else:
                 password = kwargs["passwords"][username]
-            result = MongoDBPassword().save_password_to_db(
+            result = MongoDBPassword().save_password_to_db2(
                 instances=kwargs["nodes"], username=username, password=password, operator=kwargs["operator"]
             )
             if result:

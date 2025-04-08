@@ -286,7 +286,7 @@ class ActKwargs:
                         raise ValueError("user:{} get password fail, error:{}".format(user, get_password["info"]))
                     self.payload[user] = get_password["password"]
                     # 保存密码
-                    info = MongoDBPassword().save_password_to_db(
+                    info = MongoDBPassword().save_password_to_db2(
                         instances=[
                             {
                                 "ip": str(self.payload["bk_biz_id"]),
