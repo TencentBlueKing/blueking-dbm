@@ -17,7 +17,7 @@
       :border="['row', 'col', 'outer']"
       class="custom-edit-table"
       :columns="columns"
-      :data="tableData">
+      :data="modelValue">
       <template #empty>
         <div
           class="create-row"
@@ -29,92 +29,89 @@
   </div>
 </template>
 <script lang="tsx">
-  export interface IStorageSpecItem {
+  export interface IStorageDeviceItem {
     mount_point: string;
     size: number;
     type: string;
   }
 </script>
 <script setup lang="tsx">
-  import _ from 'lodash';
-  import { ref, watch } from 'vue';
+  import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import { updateResource } from '@services/source/dbresourceResource';
   import { searchDeviceClass } from '@services/source/ipchooser';
 
+  type StorageDevice = NonNullable<ServiceParameters<typeof updateResource>['storage_device']>;
+
   interface TableColumnData {
-    data: IStorageSpecItem;
+    data: IStorageDeviceItem;
     index: number;
   }
 
-  interface Props {
-    modelValue: IStorageSpecItem[];
-    isEdit?: boolean;
-    isRequired?: boolean;
+  interface Expose {
+    getValue: () =>
+      | {
+          storage_device: StorageDevice;
+        }
+      | undefined;
   }
 
-  interface Emits {
-    (e: 'update:modelValue', value: IStorageSpecItem[]): void;
-  }
-
-  const props = withDefaults(defineProps<Props>(), {
-    isEdit: false,
-    isRequired: true,
+  const modelValue = defineModel<IStorageDeviceItem[]>({
+    required: true,
   });
-  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
-  const tableData = ref(_.cloneDeep(props.modelValue));
   const deviceClass = ref<{ label: string; value: string }[]>([]);
   const isLoadDeviceClass = ref(true);
 
-  const mountPointRules = (data: IStorageSpecItem) => {
+  const mountPointRules = (data: IStorageDeviceItem) => {
     // 非必填
-    if (!props.isRequired && !data.mount_point && !data.size && !data.type) {
+    if (!data.mount_point && !data.size && !data.type) {
       return [];
     }
 
     return [
       {
-        validator: (value: string) => /data(\d)*/.test(value),
         message: t('输入需符合正则_regx', { regx: '/data(\\d)*/' }),
         trigger: 'blur',
+        validator: (value: string) => /data(\d)*/.test(value),
       },
       {
-        validator: (value: string) => tableData.value.filter((item) => item.mount_point === value).length < 2,
         message: () => t('挂载点name重复', { name: data.mount_point }),
         trigger: 'blur',
+        validator: (value: string) => modelValue.value.filter((item) => item.mount_point === value).length < 2,
       },
     ];
   };
-  const sizeRules = (data: IStorageSpecItem) => {
+  const sizeRules = (data: IStorageDeviceItem) => {
     // 非必填且其他输入框没有输入
-    if (!props.isRequired && !data.mount_point && !data.type) {
+    if (!data.mount_point && !data.type) {
       return [];
     }
 
     return [
       {
-        required: true,
         message: t('必填项'),
-        validator: (value: string) => !!value,
+        required: true,
         trigger: 'blur',
+        validator: (value: string) => !!value,
       },
     ];
   };
-  const typeRules = (data: IStorageSpecItem) => {
+  const typeRules = (data: IStorageDeviceItem) => {
     // 非必填且其他输入框没有输入
-    if (!props.isRequired && !data.mount_point && !data.size) {
+    if (!data.mount_point && !data.size) {
       return [];
     }
 
     return [
       {
-        required: true,
         message: t('必填项'),
-        validator: (value: string) => !!value,
+        required: true,
         trigger: 'change',
+        validator: (value: string) => !!value,
       },
     ];
   };
@@ -124,22 +121,14 @@
       label: t('挂载点'),
       render: ({ data, index }: TableColumnData) => (
         <bk-form-item
-          property={`storage_spec.${index}.mount_point`}
           error-display-type='tooltips'
-          required={props.isRequired}
+          property={`storage_device.${index}.mount_point`}
           rules={mountPointRules(data)}>
-          <div
-            v-bk-tooltips={{
-              content: t('不支持修改'),
-              disabled: !props.isEdit,
-            }}>
-            <bk-input
-              class='large-size'
-              v-model={data.mount_point}
-              placeholder='/data123'
-              disabled={props.isEdit}
-            />
-          </div>
+          <bk-input
+            v-model={data.mount_point}
+            class='large-size'
+            placeholder='/data123'
+          />
         </bk-form-item>
       ),
     },
@@ -148,25 +137,17 @@
       label: t('磁盘容量G'),
       render: ({ data, index }: TableColumnData) => (
         <bk-form-item
-          property={`storage_spec.${index}.size`}
           error-display-type='tooltips'
-          required={props.isRequired}
+          property={`storage_device.${index}.size`}
           rules={sizeRules(data)}>
-          <div
-            v-bk-tooltips={{
-              content: t('不支持修改'),
-              disabled: !props.isEdit,
-            }}>
-            <bk-input
-              class='large-size'
-              modelValue={data.size || undefined}
-              type='number'
-              show-control={false}
-              min={10}
-              disabled={props.isEdit}
-              onChange={(value: string) => (data.size = Number(value))} // eslint-disable-line no-param-reassign
-            />
-          </div>
+          <bk-input
+            class='large-size'
+            min={10}
+            modelValue={data.size || undefined}
+            show-control={false}
+            type='number'
+            onChange={(value: string) => (data.size = Number(value))} // eslint-disable-line no-param-reassign
+          />
         </bk-form-item>
       ),
     },
@@ -175,52 +156,42 @@
       label: t('磁盘类型'),
       render: ({ data, index }: TableColumnData) => (
         <bk-form-item
-          property={`storage_spec.${index}.type`}
           error-display-type='tooltips'
-          required={props.isRequired}
+          property={`storage_device.${index}.type`}
           rules={typeRules(data)}>
-          <div
-            v-bk-tooltips={{
-              content: t('不支持修改'),
-              disabled: !props.isEdit,
-            }}>
-            <bk-select
-              class='large-size'
-              v-model={data.type}
-              clearable={false}
-              disabled={props.isEdit}
-              loading={isLoadDeviceClass.value}>
-              {deviceClass.value.map((item) => (
-                <bk-option
-                  label={item.label}
-                  value={item.value}
-                />
-              ))}
-            </bk-select>
-          </div>
+          <bk-select
+            v-model={data.type}
+            class='large-size'
+            clearable={false}
+            loading={isLoadDeviceClass.value}>
+            {deviceClass.value.map((item) => (
+              <bk-option
+                label={item.label}
+                value={item.value}
+              />
+            ))}
+          </bk-select>
         </bk-form-item>
       ),
     },
     {
       field: '',
       label: t('操作'),
-      width: 120,
       render: ({ index }: TableColumnData) => (
         <div class='opertaions'>
           <bk-button
             text
-            disabled={props.isEdit}
             onClick={() => handleAdd(index)}>
             <db-icon type='plus-fill' />
           </bk-button>
           <bk-button
             text
-            disabled={props.isEdit}
             onClick={() => handleRemove(index)}>
             <db-icon type='minus-fill' />
           </bk-button>
         </div>
       ),
+      width: 120,
     },
   ];
 
@@ -231,25 +202,15 @@
   });
 
   const handleCreate = () => {
-    tableData.value.push(createData());
+    modelValue.value.push(createData());
   };
   const handleAdd = (index: number) => {
-    tableData.value.splice(index + 1, 0, createData());
+    modelValue.value.splice(index + 1, 0, createData());
   };
 
   const handleRemove = (index: number) => {
-    tableData.value.splice(index, 1);
+    modelValue.value.splice(index, 1);
   };
-
-  watch(
-    tableData,
-    () => {
-      emits('update:modelValue', [...tableData.value]);
-    },
-    {
-      deep: true,
-    },
-  );
 
   searchDeviceClass()
     .then((res) => {
@@ -261,7 +222,29 @@
     .finally(() => {
       isLoadDeviceClass.value = false;
     });
+
+  defineExpose<Expose>({
+    getValue() {
+      if (modelValue.value.length === 0) {
+        return;
+      }
+      const storageDevice = modelValue.value.reduce<StorageDevice>(
+        (result, item) => ({
+          ...result,
+          [item.mount_point]: {
+            disk_type: item.type,
+            size: item.size,
+          },
+        }),
+        {},
+      );
+      return {
+        storage_device: storageDevice,
+      };
+    },
+  });
 </script>
+
 <style lang="less">
   .resource-spec-storage-box {
     .bk-vxe-table {

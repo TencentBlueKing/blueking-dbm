@@ -190,11 +190,20 @@ export function getSpecResourceCount(params: {
  */
 export function updateResource(params: {
   bk_host_ids: number[];
+  city_meta?: {
+    city: string;
+    city_id: string;
+  };
+  device_class?: string;
   for_biz?: number;
   labels?: number[];
-  rack_id: string;
+  rack_id?: string;
   resource_type?: string;
   storage_device?: Record<string, { disk_type: string; size: number }>;
+  sub_zone_meta?: {
+    sub_zone: string;
+    sub_zone_id: string;
+  };
 }) {
   return http.post(`${path}/update/`, params);
 }
