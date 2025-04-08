@@ -30,6 +30,20 @@ export function getInfrasCities() {
 }
 
 /**
+ * 查询服务器资源的城市信息
+ */
+export function listLogicCities() {
+  return http.get<
+    {
+      bk_idc_city_id: number;
+      bk_idc_city_name: string;
+      logical_city: number;
+      logical_city_name: string;
+    }[]
+  >(`${path}/cities/list_logic_cities/`);
+}
+
+/**
  * 查询城市园区信息
  */
 export function getInfrasSubzonesByCity(params: { city_code: string }) {

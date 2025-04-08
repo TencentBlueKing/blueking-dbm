@@ -12,7 +12,9 @@
       </span>
     </template>
     <div class="resource-pool-batch-setting">
-      <div class="mb-36">
+      <BkLoading
+        class="mb-36"
+        :loading="machinePropertyLoading">
         <BkSelect
           v-model="selectedOptions"
           class="mb-16 setting-item-selector"
@@ -25,7 +27,7 @@
             </BkButton>
           </template>
           <BkOption
-            v-for="item in SETTING_OPTIONS"
+            v-for="item in machinePropertyOptions"
             :key="item.value"
             :label="item.label"
             :value="item.value" />
@@ -35,29 +37,23 @@
           form-type="vertical"
           :model="formData">
           <div
-            v-if="selectedOptions.includes('storage_spec')"
+            v-for="item in selectedOptions"
+            :key="item"
             class="mb-16 setting-item">
             <DbIcon
               class="close-icon"
               type="close"
-              @click.stop="() => handleDelete('storage_spec')" />
-            <DbFormItem :label="t('磁盘')">
-              <ResourceSpecStorage v-model="formData.storage_spec" />
-            </DbFormItem>
-          </div>
-          <div
-            v-if="selectedOptions.includes('rack_id')"
-            class="mb-16 setting-item">
-            <DbIcon
-              class="close-icon"
-              type="close"
-              @click.stop="() => handleDelete('rack_id')" />
-            <DbFormItem :label="t('机架')">
-              <BkInput v-model="formData.rack_id" />
+              @click.stop="() => handleDelete(item)" />
+            <DbFormItem :label="settingMap[item].label">
+              <Component
+                :is="settingMap[item].content"
+                ref="itemRef"
+                v-model="formData[item as keyof UnwrapRef<typeof formData>]"
+                :form-data="formData" />
             </DbFormItem>
           </div>
         </DbForm>
-      </div>
+      </BkLoading>
     </div>
     <template #footer>
       <BkButton
@@ -69,6 +65,7 @@
       </BkButton>
       <BkButton
         class="ml8"
+        :disabled="isSubmiting"
         @click="handleCancel">
         {{ t('取消') }}
       </BkButton>
@@ -76,19 +73,21 @@
   </DbSideslider>
 </template>
 <script setup lang="ts">
-  import { reactive, ref } from 'vue';
+  import _ from 'lodash';
+  import { type Component, reactive, ref, type UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getBizs } from '@services/source/cmdb';
   import { updateResource } from '@services/source/dbresourceResource';
-  import { fetchDbTypeList } from '@services/source/infras';
+  import { getMachineProperty } from '@services/source/systemSettings';
 
   import { leaveConfirm } from '@utils';
 
-  import type { BizItem } from '@/services/types';
-
-  import ResourceSpecStorage, { type IStorageSpecItem } from './components/ResourceSpecStorage.vue';
+  import City from './components/City.vue';
+  import DeviceClass from './components/DeviceClass.vue';
+  import Rack from './components/Rack.vue';
+  import StorageDevice, { type IStorageDeviceItem } from './components/StorageDevice.vue';
+  import SubZone from './components/SubZone.vue';
 
   interface Props {
     data: number[];
@@ -107,54 +106,90 @@
   const { t } = useI18n();
 
   const genDefaultData = () => ({
+    city_meta: '' as string | number,
+    device_class: '',
     rack_id: '',
-    storage_spec: [] as IStorageSpecItem[],
+    storage_device: [] as IStorageDeviceItem[],
+    sub_zone_meta: '' as string | number,
   });
 
-  const formRef = ref();
-  const isSubmiting = ref(false);
-  const bizList = shallowRef<ServiceReturnType<typeof getBizs>>([]);
-  const dbTypeList = shallowRef<ServiceReturnType<typeof fetchDbTypeList>>([]);
+  const settingMap: Record<
+    string,
+    {
+      content: Component;
+      label: string;
+      type: string;
+    }
+  > = {
+    city_meta: {
+      content: City,
+      label: t('地域'),
+      type: 'number',
+    },
+    device_class: {
+      content: DeviceClass,
+      label: t('机型'),
+      type: 'string',
+    },
+    rack_id: {
+      content: Rack,
+      label: t('机架'),
+      type: 'string',
+    },
+    storage_device: {
+      content: StorageDevice,
+      label: t('磁盘'),
+      type: 'array',
+    },
+    sub_zone_meta: {
+      content: SubZone,
+      label: t('园区'),
+      type: 'number',
+    },
+  };
 
+  const formRef = useTemplateRef('formRef');
+  const itemRef = useTemplateRef<
+    {
+      getValue: () => Record<string, any> | undefined;
+    }[] &
+      Component
+  >('itemRef');
+
+  const isSubmiting = ref(false);
   const selectedOptions = ref<string[]>([]);
 
   const formData = reactive(genDefaultData());
 
-  const isSubmitDisabled = computed(() => !(formData.storage_spec.length > 0 || formData.rack_id));
+  const isSubmitDisabled = computed(
+    () =>
+      !Object.entries(formData).some(([formItemKey, formItemValue]) => {
+        const type = settingMap[formItemKey].type;
+        if (type === 'number') {
+          return _.isNumber(formItemValue);
+        }
+        return !_.isEmpty(formItemValue);
+      }),
+  );
 
-  const SETTING_OPTIONS = [
-    {
-      label: t('磁盘'),
-      value: 'storage_spec',
-    },
-    {
-      label: t('机架'),
-      value: 'rack_id',
-    },
-  ];
+  const machinePropertyOptions = computed(() =>
+    Object.entries(machinePropertyData.value || {}).reduce<
+      {
+        label: string;
+        value: string;
+      }[]
+    >((prev, [key, isShow]) => {
+      if (isShow) {
+        return prev.concat({
+          label: settingMap[key].label,
+          value: key,
+        });
+      }
+      return prev;
+    }, []),
+  );
 
-  useRequest(getBizs, {
-    onSuccess(data) {
-      bizList.value = [
-        {
-          bk_biz_id: 0,
-          display_name: t('公共资源池'),
-        } as BizItem,
-        ...data,
-      ];
-    },
-  });
-
-  useRequest(fetchDbTypeList, {
-    onSuccess(data) {
-      const cloneData = data;
-      cloneData.unshift({
-        id: 'PUBLIC',
-        name: t('通用'),
-      });
-      dbTypeList.value = cloneData;
-    },
-  });
+  const { data: machinePropertyData, loading: machinePropertyLoading } = useRequest(getMachineProperty);
 
   watch(
     () => props.isShow,
@@ -167,26 +202,21 @@
 
   const handleSubmit = () => {
     isSubmiting.value = true;
-    formRef.value
-      .validate()
+    formRef
+      .value!.validate()
       .then(() => {
-        const storageDevice = formData.storage_spec.reduce<Record<string, { disk_type: string; size: number }>>(
-          (result, item) => ({
-            ...result,
-            [item.mount_point]: {
-              disk_type: item.type,
-              size: item.size,
-            },
-          }),
-          {},
-        );
-        const params = {
-          bk_host_ids: props.data.map((item) => ~~item),
-          rack_id: formData.rack_id,
-          storage_device: storageDevice,
-        };
+        const params = itemRef.value!.reduce<Record<string, any>>((prev, item) => {
+          const value = item.getValue();
+          if (value) {
+            return Object.assign(prev, value);
+          }
+          return prev;
+        }, {});
 
-        return updateResource(params).then(() => {
+        return updateResource({
+          bk_host_ids: props.data,
+          ...params,
+        }).then(() => {
           window.changeConfirm = false;
           emits('success');
           handleCancel();
@@ -197,12 +227,14 @@
       });
   };
 
-  const handleDelete = (value: 'storage_spec' | 'rack_id') => {
-    selectedOptions.value = selectedOptions.value.filter((item) => item !== value);
-    if (value === 'storage_spec') {
-      formData[value] = [];
-    } else {
-      formData[value] = '';
+  const handleDelete = (key: string) => {
+    selectedOptions.value = selectedOptions.value.filter((item) => item !== key);
+
+    const type = settingMap[key].type;
+    if (type === 'string' || type === 'number') {
+      Object.assign(formData, { [key]: '' });
+    } else if (type === 'array') {
+      Object.assign(formData, { [key]: [] });
     }
   };
 
@@ -235,6 +267,7 @@
 
     .setting-item {
       position: relative;
+      padding: 6px;
 
       .close-icon {
         position: absolute;
@@ -244,7 +277,6 @@
       }
 
       &:hover {
-        padding: 6px;
         background-color: #f0f1f5;
 
         .close-icon {

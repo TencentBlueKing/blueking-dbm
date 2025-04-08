@@ -51,3 +51,14 @@ export function getSystemEnviron() {
 export const getDeviceClassList = function () {
   return http.get<string[]>(`${path}/device_classes/`);
 };
+
+// 查询主机属性开关配置
+export const getMachineProperty = function () {
+  return http.get<{
+    city_meta: boolean; // 地域
+    device_class: boolean; // 机型
+    rack_id: boolean; // 机架
+    storage_device: boolean; // 磁盘
+    sub_zone_meta: boolean; // 园区
+  }>(`${path}/machine_property/`);
+};
