@@ -76,14 +76,14 @@
             {{ t('执行') }}
           </BkButton>
           <BkPopConfirm
-            :title="t('收藏条件')"
+            :title="t('收藏')"
             trigger="click"
             width="340"
             @confirm="handleClickCollect">
             <template #content>
               <div class="editor-collect-main">
                 <div class="collect-title">
-                  {{ t('条件名称') }}
+                  {{ t('名称') }}
                 </div>
                 <AutoFocusInput
                   v-model="collectName"
