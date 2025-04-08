@@ -76,7 +76,7 @@
 
   import IamApplyDataModel from '@services/model/iam/apply-data';
   import { checkInstance } from '@services/source/dbbase';
-  import { simpleGetApplyData } from '@services/source/iam';
+  import { simpleCheckAllowed, simpleGetApplyData } from '@services/source/iam';
 
   import { useEventBus } from '@hooks';
 
@@ -198,6 +198,13 @@
   };
 
   const checkPagePermission = async () => {
+    const isAuthed = await simpleCheckAllowed({
+      action_id: props.actionId,
+    });
+    if (isAuthed) {
+      return;
+    }
+
     const authInfo = await simpleGetApplyData({
       action_id: props.actionId,
     });
