@@ -22,7 +22,7 @@ from backend.bk_web.constants import LEN_L_LONG, LEN_LONG, LEN_NORMAL, LEN_SHORT
 from backend.bk_web.models import AuditedModel
 from backend.components.hcm.client import HCMApi
 from backend.configuration.constants import PLAT_BIZ_ID, DBType, SystemSettingsEnum
-from backend.configuration.models import BizSettings, SystemSettings
+from backend.configuration.models import BizSettings, DBAdministrator, SystemSettings
 from backend.db_monitor.exceptions import AutofixException
 from backend.ticket.constants import (
     EXCLUSIVE_TICKET_EXCEL_PATH,
@@ -297,10 +297,14 @@ class Ticket(AuditedModel):
             else:
                 resource_hosts.append(host)
 
+        # 回收单的创建者为业务第一DBA，如果没有dba则取原单据创建者
+        dba, __, __ = DBAdministrator.get_dba_for_db_type(revoke_ticket.bk_biz_id, revoke_ticket.group)
+        creator = dba[0] if dba else revoke_ticket.creator
+
         # 创建回收单据流程
         recycle_ticket = Ticket.create_ticket(
             ticket_type=ticket_type,
-            creator=revoke_ticket.creator,
+            creator=creator,
             bk_biz_id=revoke_ticket.bk_biz_id,
             remark=_("单据{}结束后自动发起{}单据").format(revoke_ticket.id, TicketType.get_choice_label(ticket_type)),
             details={

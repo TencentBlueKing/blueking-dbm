@@ -342,10 +342,13 @@ class NotifyAdapter:
             biz_notify_config = BizSettings.get_setting_value(
                 self.bk_biz_id, key=BizSettingsEnum.NOTIFY_CONFIG, default=DEFAULT_BIZ_NOTIFY_CONFIG
             )
-            send_msg_config = biz_notify_config[self.phase]
+            send_msg_config = biz_notify_config.get(self.phase)
+
+        # 如果不存在通知配置，则提前退出
+        if not send_msg_config:
+            return
 
         send_msg_types = [msg_type for msg_type in send_msg_config if send_msg_config.get(msg_type)]
-
         for msg_type in send_msg_types:
             notify_class, context = self.get_notify_class(msg_type)
 

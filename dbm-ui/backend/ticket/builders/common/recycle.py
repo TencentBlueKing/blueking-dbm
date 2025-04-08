@@ -16,6 +16,7 @@ from rest_framework import serializers
 
 from backend import env
 from backend.configuration.constants import DBType
+from backend.configuration.models import BizSettings
 from backend.db_dirty.constants import PoolType
 from backend.flow.engine.controller.base import BaseController
 from backend.ticket import builders
@@ -79,38 +80,44 @@ class RecycleHostFlowBuilder(TicketFlowBuilder):
     group = "common"
     editable = False
 
+    def check_independent_recycle(self):
+        hosting_biz = BizSettings.get_exact_hosting_biz(self.ticket.bk_biz_id, self.ticket.details["group"])
+        return self.ticket.ticket_type == TicketType.RECYCLE_OLD_HOST and hosting_biz != env.DBA_APP_BK_BIZ_ID
+
     def init_ticket_flows(self):
         flows = []
 
-        # 定时执行 TODO: 暂时去掉 改为人工确认
-        # if env.HOST_RECYCLE_RETENTION_DAYS:
-        #     flows.append(
-        #         Flow(ticket=self.ticket, flow_type=FlowType.TIMER.value, flow_alias=_("定时执行")),
-        #     )
+        # 对于独立管控的回收单，跳过空闲检查和数据清理
+        if not self.check_independent_recycle():
+            # 定时执行 TODO: 暂时去掉 改为人工确认
+            # if env.HOST_RECYCLE_RETENTION_DAYS:
+            #     flows.append(
+            #         Flow(ticket=self.ticket, flow_type=FlowType.TIMER.value, flow_alias=_("定时执行")),
+            #     )
 
-        # 人工确认
-        flows.append(Flow(ticket=self.ticket, flow_type=FlowType.PAUSE.value, flow_alias=_("人工确认执行")))
+            # 人工确认
+            flows.append(Flow(ticket=self.ticket, flow_type=FlowType.PAUSE.value, flow_alias=_("人工确认执行")))
 
-        # 主机空闲检查
-        if env.SA_CHECK_TEMPLATE_ID:
+            # 主机空闲检查
+            if env.SA_CHECK_TEMPLATE_ID:
+                flows.append(
+                    Flow(
+                        ticket=self.ticket,
+                        flow_type=FlowType.HOST_RECYCLE.value,
+                        details=self.machine_idle_check_flow_builder(self.ticket).get_params(),
+                        flow_alias=_("主机空闲检查"),
+                    ),
+                )
+
+            # 数据清理
             flows.append(
                 Flow(
                     ticket=self.ticket,
                     flow_type=FlowType.HOST_RECYCLE.value,
-                    details=self.machine_idle_check_flow_builder(self.ticket).get_params(),
-                    flow_alias=_("主机空闲检查"),
+                    details=self.recycle_flow_builder(self.ticket).get_params(),
+                    flow_alias=_("主机数据清理"),
                 ),
             )
-
-        # 数据清理
-        flows.append(
-            Flow(
-                ticket=self.ticket,
-                flow_type=FlowType.HOST_RECYCLE.value,
-                details=self.recycle_flow_builder(self.ticket).get_params(),
-                flow_alias=_("主机数据清理"),
-            ),
-        )
 
         # 导入故障池
         if self.ticket.details["fault_hosts"]:

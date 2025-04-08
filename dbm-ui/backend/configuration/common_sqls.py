@@ -18,24 +18,20 @@ MYSQL_COMMON_SQL_STATEMENTS = [
     {"name": _("查看主从信息"), "sql": "show slave status;"},
     {"name": _("当前连接线程"), "sql": "show processlist;"},
     {"name": _("查询版本"), "sql": "show variables like 'version';"},
-    {
-        "name": _("查询字符集"),
-        "sql": "select @@character_set_server as character_set_server, @@character_set_database as "
-        "character_set_database;",
-    },
+    {"name": _("查询字符集"), "sql": "show variables like 'character_set%';"},
     {"name": _("查询最大连接数"), "sql": "show variables like 'max_connections';"},
     {"name": _("查询binlog是否打开"), "sql": "show variables like 'log_bin';"},
     {"name": _("查询binlog格式"), "sql": "show variables like 'binlog_format';"},
-    {
-        "name": _("慢查询阈值"),
-        "sql": "show variables like 'long_query_time';show variables like 'innodb_buffer_pool_size';show variables "
-        "like 'innodb_data_file_path';",
-    },
+    {"name": _("慢查询阈值"), "sql": "show variables like 'long_query_time';"},
     {"name": _("库查询"), "sql": "show databases;"},
-    {"name": _("已存在账户查询"), "sql": "select concat(User,'@',Host) from mysql.user;"},
+    {"name": _("innodb缓冲池大小"), "sql": "show variables like 'innodb_buffer_pool_size';"},
+    {"name": _("innodb数据文件位置"), "sql": "show variables like 'innodb_data_file_path';"},
+    {"name": _("库查询"), "sql": "show databases;"},
+    {"name": _("已存在账户查询"), "sql": "select concat(User,'@',Host) from mysql.user limit 1000;"},
     {
         "name": _("校验结果查询"),
-        "sql": "select * from infodba_schema.checksum where this_crc<>master_crc or this_cnt<>master_cnt;",
+        "sql": "select count(*) from infodba_schema.checksum "
+        "where this_crc<>master_crc or this_cnt<>master_cnt limit 1;",
     },
 ]
 

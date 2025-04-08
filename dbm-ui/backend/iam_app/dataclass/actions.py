@@ -289,7 +289,7 @@ class ActionEnum:
 
     MYSQL_DBCONSOLE = ActionMeta(
         id="mysql_dbconsole",
-        name=_("MySQL DB自助查询"),
+        name=_("MySQL 管理控制台"),
         name_en="mysql_dbconsole",
         type="view",
         related_actions=[PLATFORM_MANAGE.id],
@@ -300,7 +300,7 @@ class ActionEnum:
 
     TENDBCLUSTER_DBCONSOLE = ActionMeta(
         id="tendbcluster_dbconsole",
-        name=_("TendbCluster DB自助查询"),
+        name=_("TendbCluster 管理控制台"),
         name_en="tendbcluster_dbconsole",
         type="view",
         related_actions=[PLATFORM_MANAGE.id],
@@ -311,7 +311,7 @@ class ActionEnum:
 
     SQLSERVER_DBCONSOLE = ActionMeta(
         id="sqlserver_dbconsole",
-        name=_("SQLServer DB自助查询"),
+        name=_("SQLServer 管理控制台"),
         name_en="sqlserver_dbconsole",
         type="view",
         related_actions=[PLATFORM_MANAGE.id],

@@ -85,7 +85,7 @@ class MysqlMasterSlaveSwitchParamBuilder(builders.FlowParamBuilder):
         # 如果当前流程并没有执行成功，则忽略
         if self.ticket.current_flow().status != TicketFlowStatus.SUCCEEDED:
             return
-        dumper_migrate_flow = self.ticket.next_flow()
+        dumper_migrate_flow = self.ticket.flows.last()
         self.post_dumper_callback(dumper_migrate_flow, self.ticket, self.ticket_data)
 
 
