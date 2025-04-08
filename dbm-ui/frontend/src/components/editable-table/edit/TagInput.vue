@@ -13,6 +13,7 @@
     @focus="handleFocus" />
 </template>
 <script setup lang="ts" generic="T extends string[] | number[] | string | number">
+  import _ from 'lodash';
   import { watch } from 'vue';
 
   import useColumn from '../useColumn';
@@ -37,8 +38,11 @@
 
   const columnContext = useColumn();
 
-  watch(modelValue, () => {
-    columnContext?.validate('change');
+  watch(modelValue, (newValue, oldValue) => {
+    // 对于引用类型，实际值变化才校验
+    if (!_.isEqual(newValue, oldValue)) {
+      columnContext?.validate('change');
+    }
   });
 
   const handleBlur = () => {
