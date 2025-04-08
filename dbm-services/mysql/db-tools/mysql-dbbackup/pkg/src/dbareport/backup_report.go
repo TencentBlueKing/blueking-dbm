@@ -369,6 +369,7 @@ func (r *BackupLogReport) ReportBackupResult(indexFilePath string, index, upload
 			backupTaskResult.FileName = f.FileName
 			backupTaskResult.FileType = f.FileType
 			backupTaskResult.FileSize = f.FileSize
+			backupTaskResult.FileRetentionTag = metaInfo.FileRetentionTag
 			Report().Files.Println(backupTaskResult)
 		}
 	}

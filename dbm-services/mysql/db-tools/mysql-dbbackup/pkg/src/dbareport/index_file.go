@@ -111,8 +111,9 @@ type IndexFileItem struct {
 
 // ExtraFields 写入 db 的更多信息，json存储
 type ExtraFields struct {
-	BkCloudId     int    `json:"bk_cloud_id" db:"bk_cloud_id"`
-	TotalFilesize uint64 `json:"total_filesize" db:"total_filesize"`
+	BkCloudId        int    `json:"bk_cloud_id" db:"bk_cloud_id"`
+	FileRetentionTag string `json:"file_retention_tag" db:"file_retention_tag"`
+	TotalFilesize    uint64 `json:"total_filesize" db:"total_filesize"`
 	// TotalSizeKBUncompress 压缩前大小，如果是zstd压缩会提供压缩前大小，-1,0 都是无效值。这不是精确大小，可能存在四舍五入
 	TotalSizeKBUncompress int64 `json:"total_size_kb_uncompress" db:"total_size_kb_uncompress"`
 	EncryptEnable         bool  `json:"encrypt_enable" db:"encrypt_enable"`

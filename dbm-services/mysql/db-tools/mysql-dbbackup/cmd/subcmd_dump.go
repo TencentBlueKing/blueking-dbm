@@ -272,6 +272,9 @@ func backupData(ctx context.Context, cnf *config.BackupConfig) (err error) {
 	if exeErr != nil {
 		return exeErr
 	}
+	if cnf.BackupClient.FileTag != "" {
+		metaInfo.FileRetentionTag = cnf.BackupClient.FileTag
+	}
 	logger.Log.Info("backup main finish:", cnf.Public.MysqlPort)
 
 	// tar and split
