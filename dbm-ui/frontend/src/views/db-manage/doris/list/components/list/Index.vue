@@ -479,7 +479,7 @@
   };
 
   const fetchTableData = (loading?: boolean) => {
-    tableRef.value!.fetchData({ ...getSearchSelectorParams }, { ...sortValue }, loading);
+    tableRef.value!.fetchData({ ...getSearchSelectorParams(searchValue.value) }, { ...sortValue }, loading);
     isInit.value = false;
   };
 
