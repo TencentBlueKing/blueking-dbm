@@ -37,7 +37,7 @@ class MongoShardedClusterApplyDetailSerializer(serializers.Serializer):
 
     cluster_type = serializers.CharField(help_text=_("集群类型"))
     cluster_name = serializers.CharField(help_text=_("集群ID"))
-    cluster_alias = serializers.CharField(help_text=_("集群别名"))
+    cluster_alias = serializers.CharField(help_text=_("集群别名"), allow_blank=True, allow_null=True)
     db_version = serializers.CharField(help_text=_("版本号"))
     start_port = serializers.IntegerField(help_text=_("起始端口"))
     oplog_percent = serializers.IntegerField(help_text=_("oplog容量占比"))

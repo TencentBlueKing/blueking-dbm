@@ -67,8 +67,8 @@ class RedisFixPointMakeDetailSerializer(SkipToRepresentationMixin, serializers.S
 
             now = datetime.datetime.now(timezone.utc)
             recovery_time_point = str2datetime(recovery_time_point)
-            if recovery_time_point >= now or now - recovery_time_point > datetime.timedelta(days=15):
-                raise serializers.ValidationError(_("集群{}: 构造时间最多向前追溯15天.").format(cluster.immute_domain))
+            if recovery_time_point >= now or now - recovery_time_point > datetime.timedelta(days=25):
+                raise serializers.ValidationError(_("集群{}: 构造时间最多向前追溯25天.").format(cluster.immute_domain))
 
             return attr
 
