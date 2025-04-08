@@ -551,3 +551,10 @@
     z-index: 9 !important;
   }
 }
+
+// 处理tag粘在一起的问题
+.bk-tag {
+  & ~ .bk-tag {
+    margin-left: 4px;
+  }
+}
