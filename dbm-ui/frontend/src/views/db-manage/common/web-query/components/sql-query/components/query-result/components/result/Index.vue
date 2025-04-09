@@ -14,17 +14,44 @@
 <template>
   <div class="panel-results-main">
     <div class="results-info-main">
-      <span>{{ t('查询结果') }}</span>
-      <span class="ml-4 mr-4">:</span>
-      <I18nT
-        keypath="共m条"
-        tag="span">
-        <span style="font-weight: 700; color: #63656e">{{ queryResults.length }}</span>
-      </I18nT>
-      <span class="ml-4 mr-4">,</span>
-      <span>{{ t('耗时') }}</span>
-      <span>{{ querySeconds }}s</span>
-      <span class="ml-4 mr-4">,</span>
+      <div class="counts-display">
+        <span>{{ t('查询结果') }}</span>
+        <span class="ml-4 mr-4">:</span>
+        <I18nT
+          keypath="共m条"
+          tag="span">
+          <span style="font-weight: 700; color: #63656e">{{ queryResults.length }}</span>
+        </I18nT>
+        <span class="ml-4 mr-4">,</span>
+        <span>{{ t('耗时') }}</span>
+        <span>{{ querySeconds }}s</span>
+        <span class="ml-4 mr-4">,</span>
+        <I18nT
+          keypath="查询成功n个实例"
+          tag="span">
+          <span style="font-weight: 700; color: #2caf5e">{{ successInstances }}</span>
+        </I18nT>
+        <span class="ml-4 mr-4">,</span>
+        <I18nT
+          keypath="查询失败n个实例"
+          tag="span">
+          <span style="font-weight: 700; color: #ea3636">{{ failedInstances.length }}</span>
+        </I18nT>
+        <span class="ml-4 mr-4">:</span>
+        <div class="fail-list-main">
+          <TextOverflowLayout>
+            <span>{{ failedInstances.join(' , ') }}</span>
+            <template #append>
+              <DbIcon
+                v-bk-tooltips="t('复制失败实例')"
+                class="copy-icon"
+                type="copy"
+                @click="() => execCopy(failedInstances.join('\n'))" />
+            </template>
+          </TextOverflowLayout>
+        </div>
+      </div>
+
       <BkButton
         text
         theme="primary"
@@ -53,7 +80,9 @@
 
   import { DBTypes } from '@common/const';
 
-  import { exportExcelFile, random } from '@utils';
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
+
+  import { execCopy, exportExcelFile, random } from '@utils';
 
   import type { DbConsoleResults } from '../../../../Index.vue';
 
@@ -73,7 +102,6 @@
 
   // 以防跟元数据中的key发生冲突
   const instanceId = random();
-  const seqId = random();
 
   const tableRef = ref();
   const containerHeight = ref(800);
@@ -86,16 +114,29 @@
     }[]
   >([]);
 
+  const failedInstances = computed(() => {
+    if (!props.data.length || !props.data[0].table_data) {
+      return [];
+    }
+
+    return props.data.filter((item) => !!item.error_msg).map((info) => info.instance);
+  });
+
+  const successInstances = computed(() => props.data.length - failedInstances.value.length);
+
   const queryResults = computed(() => {
     if (!props.data.length || !props.data[0].table_data) {
       return [];
     }
 
     return props.data.reduce<Record<string, string | number>[]>((list, item) => {
+      if (!item.table_data) {
+        return list;
+      }
+
       item.table_data.forEach((row) => {
         list.push({
           [instanceId]: item.instance,
-          [seqId]: list.length + 1,
           ...row,
         });
       });
@@ -129,15 +170,10 @@
         }));
         columns.value = [
           {
-            field: seqId,
-            fixed: 'left',
-            label: t('序号'),
-            width: 120,
-          },
-          {
             field: instanceId,
             fixed: 'left',
             label: 'Instance',
+            width: 160,
           },
           ...dataKeys,
         ];
@@ -188,8 +224,32 @@
 
     .results-info-main {
       display: flex;
-      margin-bottom: 15px;
+      height: 48px;
+      padding: 0 16px;
       font-size: 12px;
+      background: #fff;
+      border-right: 1px solid #dcdee5;
+      border-left: 1px solid #dcdee5;
+      justify-content: space-between;
+      align-items: center;
+
+      .counts-display {
+        flex: 1;
+        display: flex;
+
+        .fail-list-main {
+          margin-right: 20px;
+          overflow: hidden;
+          flex: 1;
+
+          .copy-icon {
+            margin-left: 6px;
+            font-size: 14px;
+            color: #3a84ff;
+            cursor: pointer;
+          }
+        }
+      }
     }
   }
 </style>
