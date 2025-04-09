@@ -39,8 +39,10 @@
         v-model:db-ignore-name="rowData.ignore_db_list"
         v-model:db-name="rowData.db_list"
         :cluster="rowData.cluster"
+        is-local
         :restore-backup-file="rowData.restore_backup_file"
-        :restore-time="rowData.restore_time" />
+        :restore-time="rowData.restore_time"
+        :target-cluster-id="rowData.cluster.id" />
       <OperationColumn
         :create-row-method="createRowData"
         :table-data="tableData" />
@@ -61,9 +63,8 @@
   import ClusterColumn from '@views/db-manage/sqlserver/common/toolbox-field/cluster-column/Index.vue';
   import DbNameColumn from '@views/db-manage/sqlserver/common/toolbox-field/db-name-column/Index.vue';
 
-  import RenderModeColumn from '../render-mode-column/Index.vue';
-
-  import FinalDbColumn from './components/FinalDbColumn.vue';
+  import FinalDbColumn from '../common/FinalDbColumn.vue';
+  import RenderModeColumn from '../common/render-mode-column/Index.vue';
 
   interface Expose {
     reset: () => void;
