@@ -9,6 +9,7 @@
 package ibdstatistic
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -23,7 +24,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func reportLog2(dbTableSize map[string]int64, dbSize map[string]int64) error {
+func reportLog2(dbPort int, dbTableSize map[string]int64, dbSize map[string]int64) error {
 	dbsizeReportBaseDir := filepath.Join(cst.DBAReportBase, "mysql/dbsize")
 	err := os.MkdirAll(dbsizeReportBaseDir, os.ModePerm)
 	if err != nil {
@@ -31,7 +32,7 @@ func reportLog2(dbTableSize map[string]int64, dbSize map[string]int64) error {
 		return errors.Wrap(err, "failed to create database size reports directory")
 	}
 	// TODO add port to report_<port>.log
-	resultReport, err := reportlog.NewReporter(dbsizeReportBaseDir, "report.log", nil)
+	resultReport, err := reportlog.NewReporter(dbsizeReportBaseDir, fmt.Sprintf("report_%d.log", dbPort), nil)
 	if err != nil {
 		return err
 	}

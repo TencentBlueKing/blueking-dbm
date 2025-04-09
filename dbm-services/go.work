@@ -12,6 +12,7 @@ use (
 	common/dbha/hadb-api
 	common/go-pubpkg
 	common/reverse-api
+	common/bkdata-kafka-consumer
 	oracle/db-tools/dbactuator
 	mongodb/db-tools/dbactuator
 	mongodb/db-tools/dbmon

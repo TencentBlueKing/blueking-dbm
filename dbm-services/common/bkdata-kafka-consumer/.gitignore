@@ -1,0 +1,7 @@
+.idea
+build
+*.yaml
+main.yaml
+data.*yaml
+.DS_Store
+logs

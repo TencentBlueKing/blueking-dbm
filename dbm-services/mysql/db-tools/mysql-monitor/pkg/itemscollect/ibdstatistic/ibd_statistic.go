@@ -82,8 +82,9 @@ type ibdStatistic struct {
 // Run TODO
 func (c *ibdStatistic) Run() (msg string, err error) {
 	var dataDir sql.NullString
-	err = c.db.Get(&dataDir, `SELECT @@datadir`)
-	if err != nil {
+	var dbPort int
+	row := c.db.QueryRowx(`SELECT @@datadir, @@port`)
+	if err := row.Scan(&dataDir, &dbPort); err != nil {
 		slog.Error("ibd-statistic", slog.String("error", err.Error()))
 		return "", err
 	}
@@ -124,7 +125,7 @@ func (c *ibdStatistic) Run() (msg string, err error) {
 		}
 	}
 	//reportMetrics()
-	err = reportLog2(dbTableSize, dbSize)
+	err = reportLog2(dbPort, dbTableSize, dbSize)
 	if err != nil {
 		return "", err
 	}
