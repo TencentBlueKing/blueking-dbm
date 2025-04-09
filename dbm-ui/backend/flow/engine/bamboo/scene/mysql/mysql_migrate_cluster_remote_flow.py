@@ -45,6 +45,7 @@ from backend.flow.plugins.components.collections.common.download_backup_client i
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.mysql.mysql_checksum_ticket import MySQLCheckSumTicketComponent
 from backend.flow.plugins.components.collections.mysql.mysql_crond_control import MysqlCrondMonitorControlComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
@@ -56,11 +57,13 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     DBMetaOPKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
+    MysqlCheckSumKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import ClusterInfoContext
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
 from backend.ticket.builders.common.constants import MySQLBackupSource
+from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
 
@@ -134,7 +137,7 @@ class MySQLMigrateClusterRemoteFlow(object):
                 db_module_id=db_module_id,
                 cluster_type=cluster_class.cluster_type,
             )
-
+            self.data["need_checksum"] = self.ticket_data.get("need_checksum", False)
             self.data["master_ip"] = master_model.machine.ip
             self.data["cluster_type"] = cluster_class.cluster_type
             self.data["old_slave_ip"] = slave.machine.ip
@@ -223,6 +226,21 @@ class MySQLMigrateClusterRemoteFlow(object):
             )
             install_sub_pipeline_list.append(install_sub_pipeline.build_sub_process(sub_name=_("安装实例")))
 
+            # 生成checksum信息
+            checksum_info = {
+                "bk_biz_id": cluster_class.bk_biz_id,
+                "ticket_type": TicketType.MYSQL_CHECKSUM,
+                "remark": _("mysql成对迁移生成checksum单据"),
+                "details": {
+                    "data_repair": {
+                        "is_repair": True,
+                        "mode": "manual",
+                    },
+                    "is_sync_non_innodb": True,
+                    "runtime_hour": 48,
+                    "infos": [],
+                },
+            }
             sync_data_sub_pipeline_list = []
             for cluster_id in self.data["cluster_ids"]:
                 cluster_model = Cluster.objects.get(id=cluster_id)
@@ -244,6 +262,34 @@ class MySQLMigrateClusterRemoteFlow(object):
                 cluster["change_master_force"] = False
                 cluster["change_master"] = False
                 cluster["charset"] = self.data["charset"]
+                checksum_info["details"]["infos"] = []
+                checksum_info["details"]["infos"].append(
+                    {
+                        "cluster_id": cluster_model.id,
+                        "master": {
+                            "bk_biz_id": master_model.bk_biz_id,
+                            "bk_cloud_id": cluster_model.bk_cloud_id,
+                            "bk_host_id": master_model.machine_id,
+                            "ip": master_model.machine.ip,
+                            "port": master_model.port,
+                            "instance_inner_role": InstanceInnerRole.MASTER,
+                        },
+                        "slaves": [
+                            {
+                                "bk_biz_id": cluster_model.bk_biz_id,
+                                "bk_cloud_id": cluster_model.bk_cloud_id,
+                                "ip": self.data["new_master_ip"],
+                                "bk_host_id": self.data["bk_new_master"]["bk_host_id"],
+                                "port": master_model.port,
+                                "instance_inner_role": InstanceInnerRole.REPEATER,
+                            },
+                        ],
+                        "db_patterns": ["*"],
+                        "ignore_dbs": None,
+                        "table_patterns": ["*"],
+                        "ignore_tables": None,
+                    }
+                )
 
                 sync_data_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
                 if self.local_backup:
@@ -300,6 +346,19 @@ class MySQLMigrateClusterRemoteFlow(object):
                         )
                     ),
                 )
+
+                if self.data["need_checksum"]:
+                    sync_data_sub_pipeline.add_act(
+                        act_name=_("生成checksum单据"),
+                        act_component_code=MySQLCheckSumTicketComponent.code,
+                        kwargs=asdict(
+                            MysqlCheckSumKwargs(
+                                bk_biz_id=cluster_model.bk_biz_id,
+                                created_by=self.data["created_by"],
+                                checksum_info=copy.deepcopy(checksum_info),
+                            )
+                        ),
+                    )
                 sync_data_sub_pipeline_list.append(
                     sync_data_sub_pipeline.build_sub_process(sub_name=_("{} 集群恢复数据".format(cluster_model.name)))
                 )

@@ -412,6 +412,13 @@ class CheckSlaveStatusKwargs(ExecuteRdsKwargs):
 
 
 @dataclass()
+class MysqlCheckSumKwargs:
+    bk_biz_id: int
+    created_by: str
+    checksum_info: dict = None
+
+
+@dataclass()
 class CrondMonitorKwargs:
     """
     定义MySQL屏蔽和启用crond监控
