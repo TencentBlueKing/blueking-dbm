@@ -22,8 +22,8 @@
         <BkTableColumn
           v-if="selectable"
           fixed="left"
-          :min-width="80"
-          :width="80">
+          :min-width="60"
+          :width="60">
           <template #header>
             <div class="table-selection-head">
               <div
@@ -265,7 +265,8 @@
     </div>
     <TableDetailDialog
       v-model="isShowDetail"
-      :min-width="350"
+      :default-offset-left="300"
+      :min-width="900"
       @close="handleDetailDialogClose">
       <TicketDetail
         v-if="ticketId"
@@ -569,6 +570,12 @@
 
   const handleDetailDialogClose = () => {
     ticketId.value = 0;
+    router.replace({
+      params: {
+        ticketId: 0,
+      },
+      query: getSearchParams(),
+    });
   };
 
   onMounted(() => {

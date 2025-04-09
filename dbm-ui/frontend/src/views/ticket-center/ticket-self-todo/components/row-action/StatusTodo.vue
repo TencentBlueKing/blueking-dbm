@@ -14,9 +14,6 @@
       {{ t('终止单据') }}
     </BkButton>
   </ProcessTerminate>
-  <TicketDetailLink
-    class="ml-8"
-    :data="data" />
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -25,7 +22,6 @@
 
   import ProcessApproveExce from '@views/ticket-center/common/action-confirm/ProcessApproveExce.vue';
   import ProcessTerminate from '@views/ticket-center/common/action-confirm/ProcessTerminate.vue';
-  import TicketDetailLink from '@views/ticket-center/common/TicketDetailLink.vue';
 
   interface Props {
     data: TicketModel;

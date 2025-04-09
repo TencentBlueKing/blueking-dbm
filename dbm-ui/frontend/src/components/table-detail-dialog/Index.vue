@@ -32,12 +32,15 @@
 
   interface Props {
     // eslint-disable-next-line vue/no-unused-properties
+    defaultOffsetLeft?: number;
+    // eslint-disable-next-line vue/no-unused-properties
     minWidth?: number;
   }
 
   type Emits = (e: 'close') => void;
 
   withDefaults(defineProps<Props>(), {
+    defaultOffsetLeft: 0,
     minWidth: 600,
   });
 

@@ -26,14 +26,10 @@
         <BkTableColumn
           fixed="right"
           :label="t('操作')"
-          width="160">
+          width="80">
           <template #default="{ data }: { data: TicketModel }">
             <TicketClone
               v-if="data"
-              :data="data" />
-            <TicketDetailLink
-              v-if="data"
-              class="ml-8"
               :data="data" />
           </template>
         </BkTableColumn>
@@ -53,7 +49,6 @@
   import useSearchSelect from '@views/ticket-center/common/hooks/use-search-select';
   import TicketTable from '@views/ticket-center/common/ticket-table/Index.vue';
   import TicketClone from '@views/ticket-center/common/TicketClone.vue';
-  import TicketDetailLink from '@views/ticket-center/common/TicketDetailLink.vue';
 
   const route = useRoute();
 

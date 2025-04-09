@@ -42,11 +42,6 @@
             <TicketRevoke
               class="mr-8"
               :data="ticketData" />
-            <BkButton
-              v-if="!isDetailPage"
-              @click="handleGoDetail">
-              {{ t('新窗口打开') }}
-            </BkButton>
           </template>
         </SmartAction>
       </PermissionCatch>
@@ -54,9 +49,8 @@
   </ScrollFaker>
 </template>
 <script setup lang="tsx">
-  import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
-  import { useRoute, useRouter } from 'vue-router';
+  import { useRoute } from 'vue-router';
 
   import TicketModel from '@services/model/ticket/ticket';
   import { getTicketDetails } from '@services/source/ticket';
@@ -79,10 +73,7 @@
     smartActionTeleportTo: 'body',
   });
 
-  const router = useRouter();
   const route = useRoute();
-
-  const { t } = useI18n();
 
   const getOffsetTarget = () => document.body.querySelector('.ticket-details-box .db-card');
 
@@ -124,16 +115,6 @@
       immediate: true,
     },
   );
-
-  const handleGoDetail = () => {
-    const { href } = router.resolve({
-      name: 'ticketDetail',
-      params: {
-        ticketId: props.ticketId,
-      },
-    });
-    window.open(href);
-  };
 </script>
 
 <style lang="less">

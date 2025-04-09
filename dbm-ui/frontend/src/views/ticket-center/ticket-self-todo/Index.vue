@@ -42,7 +42,7 @@
         <BkTableColumn
           fixed="right"
           :label="t('操作')"
-          width="220">
+          width="160">
           <template #default="{ data }: { data: TicketModel }">
             <RowAction
               v-if="data"

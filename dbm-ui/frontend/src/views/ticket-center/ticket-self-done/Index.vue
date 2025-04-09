@@ -20,34 +20,19 @@
     </div>
     <TicketTable
       ref="dataTable"
-      :data-source="dataSource">
-      <template #action>
-        <BkTableColumn
-          fixed="right"
-          :label="t('操作')"
-          width="120">
-          <template #default="{ data }: { data: TicketModel }">
-            <TicketDetailLink
-              v-if="data"
-              :data="data" />
-          </template>
-        </BkTableColumn>
-      </template>
-    </TicketTable>
+      :data-source="dataSource" />
   </div>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
   import { useRoute } from 'vue-router';
 
-  import TicketModel from '@services/model/ticket/ticket';
   import { getTickets } from '@services/source/ticket';
 
   import useDatePicker from '@views/ticket-center/common/hooks/use-date-picker';
   import useDetailPreCheck from '@views/ticket-center/common/hooks/use-detail-precheck';
   import useSearchSelect from '@views/ticket-center/common/hooks/use-search-select';
   import TicketTable from '@views/ticket-center/common/ticket-table/Index.vue';
-  import TicketDetailLink from '@views/ticket-center/common/TicketDetailLink.vue';
 
   const route = useRoute();
   const { t } = useI18n();
