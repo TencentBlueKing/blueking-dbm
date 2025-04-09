@@ -31,9 +31,9 @@
       <template #default="{ data }: { data: RowData }">
         {{ data.spec?.name || '--' }}
         <SpecPanel
-          v-if="data.spec"
+          v-if="data.spec?.name"
           :data="data.spec"
-          :hide-qps="!data.spec.qps.min">
+          :hide-qps="!data.spec.qps?.min">
           <DbIcon
             class="visible-icon ml-4"
             type="visible1" />
@@ -89,10 +89,10 @@
         Object.entries(item.old_nodes).forEach(([role, hosts], index) => {
           const domain = clusters[item.cluster_ids[0]]?.immute_domain;
           tableData.value.push({
-            cluster_domain: clusters[item.cluster_ids[0]]?.immute_domain || '--',
-            ip: hosts[0].ip,
-            role,
-            spec: specs[hosts[0].spec_id] || {},
+            cluster_domain: clusters?.[item.cluster_ids[0]]?.immute_domain || '--',
+            ip: hosts?.[0]?.ip || '--',
+            role: role || '--',
+            spec: specs?.[hosts?.[0]?.spec_id] || {},
           });
           domainCounter[domain] = (domainCounter[domain] || 0) + 1;
           if (domainCounter[domain] > 1) {
