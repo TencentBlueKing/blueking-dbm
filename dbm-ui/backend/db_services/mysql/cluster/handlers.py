@@ -14,7 +14,6 @@ from typing import Any, Dict, List
 
 from django.db.models import Q, Value
 from django.db.models.query import QuerySet
-from django.forms import model_to_dict
 
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceRole, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster, DBModule, ProxyInstance, StorageInstance
@@ -100,7 +99,7 @@ class ClusterServiceHandler(BaseClusterServiceHandler):
 
         filter_cluster_list = []
         for cluster in clusters:
-            cluster_info = self._format_cluster_field(model_to_dict(cluster))
+            cluster_info = self._format_cluster_field(cluster.to_dict())
             cluster_info["db_module_name"] = db_module_names.get(cluster_info["db_module_id"], "")
 
             # 添加实例信息

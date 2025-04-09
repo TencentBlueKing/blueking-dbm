@@ -15,7 +15,6 @@ from functools import reduce
 from typing import Any, Dict, List, Set
 
 from django.db.models import F, Prefetch, Q
-from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
 from backend.db_meta.enums import AccessLayer, ClusterType, InstanceInnerRole, InstanceStatus
@@ -249,7 +248,7 @@ class ClusterServiceHandler:
         for inst_obj in instance_objs:
             inst_data = DBInstance.from_inst_obj(inst_obj).__str__()
             cluster = inst_obj.cluster.first()
-            inst_cluster_map[inst_data] = model_to_dict(cluster)
+            inst_cluster_map[inst_data] = cluster.to_dict()
             host_id_related_cluster[inst_obj.machine.bk_host_id].append(cluster)
             same_role_host_related_cluster[inst_obj.machine.bk_host_id][inst_obj.role].append(cluster)
 
@@ -263,7 +262,7 @@ class ClusterServiceHandler:
 
             inst_data = DBInstance.from_inst_obj(inst).__str__()
             related_clusters = [
-                self._format_cluster_field(model_to_dict(cluster))
+                self._format_cluster_field(cluster.to_dict())
                 for cluster in clusters
                 if cluster.id != inst_cluster_map[inst_data]["id"]
             ]

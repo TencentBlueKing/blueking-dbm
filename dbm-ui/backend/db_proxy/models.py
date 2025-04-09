@@ -210,6 +210,7 @@ class ClusterExtension(AuditedModel):
                 db_type=cluster.cluster_type,
                 cluster_name=cluster.name,
                 service_type=service_type,
+                is_deleted=False,
             ).access_url
         except ClusterExtension.DoesNotExist:
             access_url = ""

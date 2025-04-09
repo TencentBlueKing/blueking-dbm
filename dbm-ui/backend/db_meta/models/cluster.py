@@ -82,6 +82,7 @@ class Cluster(AuditedModel):
 
     def to_dict(self):
         """将集群所有字段转为字段"""
+        # 序列化集群信息请用这个方法代替model_to_dict
         return {
             **model_to_dict(self, exclude=["tags"]),
             "cluster_type_name": str(ClusterType.get_choice_label(self.cluster_type)),
