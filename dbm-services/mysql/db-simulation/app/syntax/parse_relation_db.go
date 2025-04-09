@@ -100,7 +100,9 @@ func (t *TmysqlParse) doParseInchan(alreadExecutedSqlfileCh chan string,
 			}
 			// 如果有dumpall 则直接返回退出,不在继续分析
 			if dumpAllDbs {
+				t.mu.Lock()
 				dumpAll = true
+				t.mu.Unlock()
 				// stop chan 可能会直接主协程退出
 				<-c
 				wg.Done()

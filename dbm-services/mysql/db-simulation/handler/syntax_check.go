@@ -320,9 +320,8 @@ func isAllOperateTable(allCommands []string) bool {
 	return lo.Every([]string{
 		syntax.SQLTypeAlterTable, syntax.SQLTypeUseDb,
 		syntax.SQLTypeCreateIndex, syntax.SQLTypeDropTable,
-		syntax.SQLTypeInsert, syntax.SQLTypeUpdate,
-		syntax.SQLTypeDelete, syntax.SQLTypeCreateTable,
-		syntax.SQLTypeReplace,
+		syntax.SQLTypeInsert, syntax.SQLTypeDelete,
+		syntax.SQLTypeCreateTable, syntax.SQLTypeReplace,
 	}, allCommands)
 }
 
@@ -367,7 +366,7 @@ func (s *SyntaxHandler) ParseSQLRelationDb(r *gin.Context) {
 	}
 	// 如果所有的命令都是alter table, dump指定库表
 	logger.Info("all command types: %v,%d", allCommands, len(allCommands))
-	if isAllOperateTable(allCommands) || !dumpall {
+	if isAllOperateTable(allCommands) {
 		relationTbls, err := p.ParseSpecialTbls("")
 		if err != nil {
 			s.SendResponse(r, err, nil)
