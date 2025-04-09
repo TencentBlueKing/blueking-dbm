@@ -94,10 +94,7 @@
         db_type: props.dbType,
         instances: instanceInfoList,
       });
-      const errorList = queryResult.value.filter((item) => !!item.error_msg).map((item) => item.error_msg);
-      if (!errorList.length) {
-        emits('fetchDataSuccess');
-      }
+      emits('fetchDataSuccess');
     } finally {
       isExecuting.value = false;
       const endTime = dayjs();
