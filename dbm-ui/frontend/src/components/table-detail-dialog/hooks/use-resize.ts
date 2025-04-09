@@ -45,7 +45,16 @@ export default (rootRef: Ref<HTMLDivElement | null>, resizeHandleRef: Ref<HTMLDi
 
   onMounted(() => {
     resizeHandleRef.value!.addEventListener('mousedown', handleMousedown);
+    const minWidth = currentInstance?.props.minWidth as number;
+    const defaultOffsetLeft = currentInstance?.props.defaultOffsetLeft as number;
+    const rootEle = rootRef.value as HTMLDivElement;
+    const rootWidth = (document.body.querySelector('.navigation-container') as HTMLDivElement).getBoundingClientRect()
+      .width;
+
+    const defaultWidth = rootWidth - defaultOffsetLeft;
+    rootEle.style.width = `${defaultWidth < minWidth ? minWidth : defaultWidth}px`;
   });
+
   onBeforeUnmount(() => {
     resizeHandleRef.value!.removeEventListener('mousedown', handleMousedown);
   });

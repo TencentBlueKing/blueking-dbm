@@ -6,9 +6,6 @@
     @click="handleGoProcess">
     {{ t('去处理') }}
   </BkButton>
-  <TicketDetailLink
-    class="ml-8"
-    :data="data" />
 </template>
 <script setup lang="ts">
   import { ref } from 'vue';
@@ -17,8 +14,6 @@
 
   import TicketModel from '@services/model/ticket/ticket';
   import { getInnerFlowInfo } from '@services/source/ticketFlow';
-
-  import TicketDetailLink from '@views/ticket-center/common/TicketDetailLink.vue';
 
   import { getBusinessHref } from '@utils';
 

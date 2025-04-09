@@ -25,6 +25,20 @@
               <BkDropdownItem @click="handleCopyTitleAndLink">{{ t('标题 + 单据链接') }}</BkDropdownItem>
             </template>
           </BkDropdown>
+          <RouterLink
+            class="go-detail-btn"
+            target="_blank"
+            :to="{
+              name: 'ticketDetail',
+              params: {
+                ticketId: ticketId,
+              },
+            }">
+            <DbIcon
+              class="mr-4"
+              type="link" />
+            {{ t('新窗口打开') }}
+          </RouterLink>
         </div>
         <div class="row-info">
           <div class="info-item">
@@ -175,10 +189,11 @@
 </script>
 <style lang="less">
   .table-ticket-detail-box {
+    position: relative;
     display: flex;
-    flex-direction: column;
     height: 100%;
     overflow: hidden;
+    flex-direction: column;
 
     .ticket-detail-info {
       padding: 12px 24px;
@@ -186,8 +201,9 @@
 
       .row-title {
         display: flex;
-        align-items: center;
+        padding-top: 3px;
         padding-right: 40px;
+        align-items: center;
 
         .ticket-type {
           overflow: hidden;
@@ -218,6 +234,11 @@
           color: #313238;
         }
       }
+    }
+
+    .go-detail-btn {
+      margin-left: auto;
+      font-size: 12px;
     }
 
     .ticket-more {
