@@ -168,7 +168,9 @@
   };
 
   onMounted(() => {
-    targetDbNameRef.value!.forEach((item) => item.validate());
+    nextTick(() => {
+      targetDbNameRef.value!.forEach((item) => item.validate());
+    });
   });
 
   defineExpose<Expose>({
