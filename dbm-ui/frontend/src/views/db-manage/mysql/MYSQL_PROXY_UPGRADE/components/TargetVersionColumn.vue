@@ -85,7 +85,7 @@
               :pop-width="240"
               :rules="moduleRules"
               @change="(value) => handleModuleChange(value as number)">
-              <template #default="{ item }: { item: ServiceReturnType<typeof getModules>[number] }">
+              <template #default="{ item }: { item: (typeof moduleSelectList.value)[0] }">
                 <AuthTemplate
                   action-id="dbconfig_view"
                   :biz-id="item.bk_biz_id"
@@ -93,11 +93,16 @@
                   resource="mysql"
                   style="flex: 1">
                   <template #default="{ permission }">
-                    <div
-                      class="module-select-item"
-                      :class="{ 'not-permission': !permission }"
-                      data-id="dbconfig_view">
-                      {{ item.name }}
+                    <div class="module-option-item">
+                      <div
+                        class="module-option-label"
+                        :class="{ 'not-permission': !permission }"
+                        data-id="dbconfig_view">
+                        {{ item.name }}
+                      </div>
+                      <div class="module-opiton-info">
+                        {{ item.info }}
+                      </div>
                     </div>
                   </template>
                 </AuthTemplate>
@@ -200,7 +205,18 @@
 
   const versionSelectList = ref<IListItem[]>([]);
   const packageSelectList = ref<IListItem[]>([]);
-  const moduleSelectList = ref<IListItem[]>([]);
+  const moduleSelectList = ref<
+    {
+      bk_biz_id: number;
+      disabled?: boolean;
+      id: string | number;
+      info: string;
+      name: string;
+      permission: {
+        dbconfig_view: boolean;
+      };
+    }[]
+  >([]);
 
   const versionRules = [
     {
@@ -260,19 +276,34 @@
   const { run: fetchModules } = useRequest(getModules, {
     manual: true,
     onSuccess(modules) {
-      const currentModule = modules.find((moduleItem) => moduleItem.db_module_id === props.cluster.db_module_id);
-      if (currentModule) {
-        modelValue.value.charset = currentModule.db_module_info.conf_items[0]?.conf_value;
+      const current = modules.find((m) => m.db_module_id === props.cluster.db_module_id);
+      if (!current) return;
 
-        moduleSelectList.value = modules
-          .filter((item) => item.db_module_info.conf_items[1].conf_value === modelValue.value.target_version)
-          .map((item) => ({
-            ...item,
-            id: item.db_module_id,
-          }));
-        modelValue.value.new_db_module_id = moduleSelectList.value[0]?.id;
-        modelValue.value.target_module_name = moduleSelectList.value[0]?.name;
+      const charset = current.db_module_info.conf_items.find((c) => c.conf_name === 'charset')?.conf_value || '';
+      modelValue.value.charset = charset;
+
+      const filtered = [];
+      for (const module of modules) {
+        const conf = Object.fromEntries(
+          module.db_module_info.conf_items.map(({ conf_name, conf_value }) => [conf_name, conf_value]),
+        );
+        if (conf.charset === charset && conf.db_version === modelValue.value.target_version) {
+          filtered.push({
+            bk_biz_id: module.bk_biz_id,
+            disabled: false,
+            id: module.db_module_id,
+            info: `${conf.db_version || ''}，${charset}`,
+            name: module.alias_name,
+            permission: module.permission,
+          });
+        }
       }
+
+      moduleSelectList.value = filtered;
+
+      const first = filtered[0] || {};
+      modelValue.value.new_db_module_id = first.id || '';
+      modelValue.value.target_module_name = first.name || '';
     },
   });
 
@@ -389,11 +420,22 @@
     }
   }
 
-  .module-select-item {
+  .module-option-item {
     display: flex;
-    align-items: center;
     width: 100%;
-    user-select: none;
+
+    .module-option-label {
+      flex: 1;
+      width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .module-opiton-info {
+      margin-left: auto;
+      color: #979ba5;
+    }
 
     .not-permission {
       * {
