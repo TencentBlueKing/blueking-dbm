@@ -31,27 +31,28 @@
           tag="span">
           <span style="font-weight: 700; color: #2caf5e">{{ successInstances }}</span>
         </I18nT>
-        <span class="ml-4 mr-4">,</span>
-        <I18nT
-          keypath="查询失败n个实例"
-          tag="span">
-          <span style="font-weight: 700; color: #ea3636">{{ failedInstances.length }}</span>
-        </I18nT>
-        <span class="ml-4 mr-4">:</span>
-        <div class="fail-list-main">
-          <TextOverflowLayout>
-            <span>{{ failedInstances.join(' , ') }}</span>
-            <template #append>
-              <DbIcon
-                v-bk-tooltips="t('复制失败实例')"
-                class="copy-icon"
-                type="copy"
-                @click="() => execCopy(failedInstances.join('\n'))" />
-            </template>
-          </TextOverflowLayout>
-        </div>
+        <template v-if="failedInstances.length">
+          <span class="ml-4 mr-4">,</span>
+          <I18nT
+            keypath="查询失败n个实例"
+            tag="span">
+            <span style="font-weight: 700; color: #ea3636">{{ failedInstances.length }}</span>
+          </I18nT>
+          <span class="ml-4 mr-4">:</span>
+          <div class="fail-list-main">
+            <TextOverflowLayout>
+              <span>{{ failedInstances.join(' , ') }}</span>
+              <template #append>
+                <DbIcon
+                  v-bk-tooltips="t('复制失败实例')"
+                  class="copy-icon"
+                  type="copy"
+                  @click="() => execCopy(failedInstances.join('\n'))" />
+              </template>
+            </TextOverflowLayout>
+          </div>
+        </template>
       </div>
-
       <BkButton
         text
         theme="primary"
