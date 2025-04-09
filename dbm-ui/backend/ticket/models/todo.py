@@ -28,10 +28,10 @@ class TodoManager(models.Manager):
         return self.filter(status__in=TODO_RUNNING_STATUS).exists()
 
     def get_operators(self, todo_type, flow, ticket, operators):
-        # 获得提单人，dba，业务协助人.
+        # 获得提单人，dba，协助人.
         creator = [ticket.creator]
         dba, second_dba, other_dba = DBAdministrator.get_dba_for_db_type(ticket.bk_biz_id, ticket.group)
-        biz_helpers = BizSettings.get_assistance(ticket.bk_biz_id)
+        ticket_helpers = ticket.helpers or BizSettings.get_assistance(ticket.bk_biz_id)
         # 从flow中获取单据审批人
         from backend.ticket.handler import TicketHandler
 
@@ -55,19 +55,19 @@ class TodoManager(models.Manager):
         }
         todo_helpers_map = {
             TodoType.ITSM: itsm_operators[1:],
-            TodoType.APPROVE: biz_helpers,
-            TodoType.TIMER: biz_helpers,
-            TodoType.INNER_APPROVE: biz_helpers + second_dba + other_dba,
-            TodoType.RESOURCE_REPLENISH: biz_helpers + second_dba + other_dba,
-            TodoType.INNER_FAILED: biz_helpers + second_dba + other_dba,
+            TodoType.APPROVE: ticket_helpers,
+            TodoType.TIMER: ticket_helpers,
+            TodoType.INNER_APPROVE: ticket_helpers + second_dba + other_dba,
+            TodoType.RESOURCE_REPLENISH: ticket_helpers + second_dba + other_dba,
+            TodoType.INNER_FAILED: ticket_helpers + second_dba + other_dba,
         }
         # 按照顺序去重
         operators = list(dict.fromkeys(operators + todo_operators_map.get(todo_type, [])))
         helpers = [item for item in todo_helpers_map.get(todo_type, []) if item not in operators]
-        return creator, biz_helpers, helpers, operators
+        return helpers, operators
 
     def create(self, **kwargs):
-        creator, biz_helpers, helpers, operators = self.get_operators(
+        helpers, operators = self.get_operators(
             kwargs["type"], kwargs["flow"], kwargs["ticket"], kwargs.get("operators", [])
         )
         kwargs["operators"] = operators

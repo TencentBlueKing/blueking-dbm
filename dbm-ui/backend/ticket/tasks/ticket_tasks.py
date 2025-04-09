@@ -23,6 +23,7 @@ from django.utils.translation import gettext as _
 
 from backend.components.bklog.handler import BKLogHandler
 from backend.configuration.constants import PLAT_BIZ_ID, DBType
+from backend.configuration.models import DBAdministrator
 from backend.constants import DEFAULT_SYSTEM_USER
 from backend.core import notify
 from backend.db_meta.enums import ClusterType
@@ -182,6 +183,7 @@ class TicketTask(object):
         # 构造修复单据
         for biz, db_type__repair_infos in biz__db_type__repair_infos.items():
             for db_type, repair_infos in db_type__repair_infos.items():
+                dba, second_dba, other_dba = DBAdministrator.get_dba_for_db_type(biz, db_type)
                 ticket_details = {
                     # "非innodb表是否修复"这个参数与校验保持一致，默认为false
                     "is_sync_non_innodb": False,
@@ -203,10 +205,11 @@ class TicketTask(object):
                 _create_ticket.apply_async(
                     kwargs={
                         "ticket_type": ticket_type,
-                        "creator": DEFAULT_SYSTEM_USER,
+                        "creator": dba[0],
                         "bk_biz_id": biz,
                         "remark": _("集群存在数据不一致，自动创建的数据修复单据"),
                         "details": ticket_details,
+                        "helpers": [*second_dba, *other_dba],
                     }
                 )
 
@@ -298,9 +301,11 @@ class TicketTask(object):
 
 # ----------------------------- 异步执行任务函数 ----------------------------------------
 @shared_task
-def _create_ticket(ticket_type, creator, bk_biz_id, remark, details) -> None:
+def _create_ticket(
+    ticket_type, creator, bk_biz_id, remark, details, auto_execute=True, send_msg_config=None, helpers=None
+) -> None:
     """创建一个新单据"""
-    Ticket.create_ticket(ticket_type=ticket_type, creator=creator, bk_biz_id=bk_biz_id, remark=remark, details=details)
+    Ticket.create_ticket(ticket_type, creator, bk_biz_id, remark, details, auto_execute, send_msg_config, helpers)
 
 
 @shared_task

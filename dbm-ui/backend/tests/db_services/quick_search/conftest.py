@@ -94,7 +94,6 @@ def init_ticket():
         group=DBType.MySQL,
         remark="",
         details={},
-        send_msg_config={},
         is_reviewed=False,
     )
     yield ticket

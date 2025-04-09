@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+import json
 import logging
 from collections import defaultdict
 from typing import Any, Dict, List, Union
@@ -24,6 +24,8 @@ from backend.components.hcm.client import HCMApi
 from backend.components.xwork.client import XworkApi
 from backend.configuration.constants import PLAT_BIZ_ID, DBType, SystemSettingsEnum
 from backend.configuration.models import BizSettings, DBAdministrator, SystemSettings
+from backend.core.encrypt.constants import AsymmetricCipherConfigType
+from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_monitor.exceptions import AutofixException
 from backend.ticket.constants import (
     EXCLUSIVE_TICKET_EXCEL_PATH,
@@ -72,6 +74,24 @@ class Flow(models.Model):
         verbose_name_plural = verbose_name = _("单据流程(Flow)")
         indexes = [models.Index(fields=["err_code"])]
 
+    @property
+    def flow_output(self):
+        # TODO: 后续废弃
+        flow_output = self.details.get("__flow_output")
+        if not flow_output:
+            return {}
+
+        data = flow_output["data"]
+        if flow_output["is_sensitive"]:
+            data = json.loads(AsymmetricHandler.decrypt(name=AsymmetricCipherConfigType.PASSWORD.value, content=data))
+
+        return data
+
+    @property
+    def flow_output_v2(self):
+        flow_output = self.context.get("__flow_output_v2", {})
+        return flow_output
+
     def update_details(self, **kwargs):
         self.details.update(kwargs)
         self.save(update_fields=["details", "update_at"])
@@ -105,7 +125,9 @@ class Ticket(AuditedModel):
     )
     remark = models.CharField(_("备注"), max_length=LEN_L_LONG)
     details = models.JSONField(_("单据差异化详情"), default=dict)
+    # TODO: send_msg_config字段后续删除，统一归纳到config字段
     send_msg_config = models.JSONField(_("单据通知设置"), default=dict)
+    config = models.JSONField(_("单据配置"), default=dict, blank=True, null=True)
     is_reviewed = models.BooleanField(_("单据是否审阅过"), default=False)
 
     class Meta:
@@ -126,6 +148,18 @@ class Ticket(AuditedModel):
     def iframe_url(self):
         """iframe 单据链接，目前仅用在itsm表单"""
         return f"{env.BK_SAAS_HOST}/sub/ticket/{self.id}"
+
+    @property
+    def helpers(self):
+        """单据协助人，一个单据协助人优先取单据粒度，其次取业务粒度"""
+        self.config = self.config or {}
+        return self.config.get("helpers", [])
+
+    @property
+    def context(self):
+        """单据上下文"""
+        self.config = self.config or {}
+        return self.config.get("context", {})
 
     def set_status(self, status):
         self.status = status
@@ -202,6 +236,7 @@ class Ticket(AuditedModel):
         details: Dict[str, Any],
         auto_execute: bool = True,
         send_msg_config: dict = None,
+        helpers: list = None,
     ) -> "Ticket":
         """
         自动创建单据
@@ -212,12 +247,13 @@ class Ticket(AuditedModel):
         :param details: 单据参数details
         :param auto_execute: 是否自动初始化执行单据
         :param send_msg_config: 消息发送类配置
+        :param helpers: 单据协助人
         """
 
         from backend.ticket.builders import BuilderFactory
 
         with transaction.atomic():
-            send_msg_config = send_msg_config or {}
+            config = {"send_msg_config": send_msg_config or {}, "helpers": helpers or []}
             ticket = Ticket.objects.create(
                 group=BuilderFactory.get_builder_cls(ticket_type).group,
                 creator=creator,
@@ -226,7 +262,7 @@ class Ticket(AuditedModel):
                 ticket_type=ticket_type,
                 remark=remark,
                 details=details,
-                send_msg_config=send_msg_config,
+                config=config,
             )
             logger.info(_("正在自动创建单据，单据详情: {}").format(ticket.__dict__))
             builder = BuilderFactory.create_builder(ticket)

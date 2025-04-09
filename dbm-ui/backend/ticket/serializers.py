@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import json
 from typing import Optional
 
 from django.utils import timezone
@@ -18,8 +17,6 @@ from rest_framework import serializers
 from backend.bk_web.constants import LEN_L_LONG
 from backend.bk_web.serializers import AuditedSerializer, TranslationSerializerMixin
 from backend.configuration.constants import PLAT_BIZ_ID, DBType
-from backend.core.encrypt.constants import AsymmetricCipherConfigType
-from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.core.notify.constants import MsgType
 from backend.ticket import mock_data
 from backend.ticket.builders import BuilderFactory
@@ -40,17 +37,22 @@ from backend.ticket.yasg_slz import todo_operate_example
 from backend.utils.time import calculate_cost_time, strptime
 
 
-class TicketSendMsgSerializer(serializers.Serializer):
-    # TODO: 暂时废弃，用不到单据类别的通知
-    msg_type = serializers.ListField(
-        help_text=_("发送类型"), child=serializers.ChoiceField(choices=MsgType.get_choices()), required=False
-    )
-    receiver__username = serializers.CharField(help_text=_("包含用户名，用户需在蓝鲸平台注册，多个以逗号分隔"), required=False)
-    sender = serializers.CharField(help_text=_("发件人/企微机器人ID"), required=False)
-    group_receiver = serializers.ListField(help_text=_("(机器人专用)接收者，可以传@all，或者会话id"), required=False)
-    mentioned_list = serializers.ListField(help_text=_("提醒群中的指定成员(@某个成员)，@all表示提醒所有人"), required=False)
-    mentioned_mobile_list = serializers.ListField(help_text=_("提醒手机号对应的群成员(@某个成员)，@all表示提醒所有人"), required=False)
-    visible_to_user = serializers.ListField(help_text=_("是否只给指定用户可见，默认给所有人可见"), required=False)
+class TicketConfigSerializer(serializers.Serializer):
+    """单据配置序列化器"""
+
+    class TicketSendMsgSerializer(serializers.Serializer):
+        msg_type = serializers.ListField(
+            help_text=_("发送类型"), child=serializers.ChoiceField(choices=MsgType.get_choices()), required=False
+        )
+        receiver__username = serializers.CharField(help_text=_("包含用户名，多个以逗号分隔"), required=False)
+        sender = serializers.CharField(help_text=_("发件人/企微机器人ID"), required=False)
+        group_receiver = serializers.ListField(help_text=_("(机器人专用)接收者，可以传@all，或者会话id"), required=False)
+        mentioned_list = serializers.ListField(help_text=_("提醒群中@某个成员，@all提醒所有人"), required=False)
+        mentioned_mobile_list = serializers.ListField(help_text=_("提醒手机号@某个成员，@all提醒所有人"), required=False)
+        visible_to_user = serializers.ListField(help_text=_("是否只给指定用户可见，默认给所有人可见"), required=False)
+
+    send_msg_config = TicketSendMsgSerializer(help_text=_("通知设置"), required=False)
+    helpers = serializers.ListField(help_text=_("单据协助人"), required=False, child=serializers.CharField())
 
 
 class TicketDetailsSerializer(serializers.Serializer):
@@ -109,8 +111,8 @@ class TicketSerializer(AuditedSerializer, serializers.ModelSerializer):
     ignore_duplication = serializers.BooleanField(
         help_text=_("是否忽略重复提交"), required=False, default=False, read_only=True
     )
-    # 通知设置
-    send_msg_config = TicketSendMsgSerializer(help_text=_("通知设置"), required=False)
+    # 单据配置/单据上下文
+    config = TicketConfigSerializer(help_text=_("单据配置"), required=False)
 
     class Meta:
         model = Ticket
@@ -163,7 +165,9 @@ class TicketFlowSerializer(TranslationSerializerMixin, serializers.ModelSerializ
     cost_time = serializers.SerializerMethodField(help_text=_("耗时"))
     flow_type_display = serializers.SerializerMethodField(help_text=_("流程类型显示名"))
     summary = serializers.SerializerMethodField(help_text=_("概览"))
+    # TODO: flow_output 这个key后续废弃。改造为output data字段
     flow_output = serializers.SerializerMethodField(help_text=_("流程输出数据"))
+    output_data = serializers.SerializerMethodField(help_text=_("流程输出数据V2"))
 
     def to_representation(self, instance):
         self.ticket_flow = TicketFlowManager(ticket=instance.ticket).get_ticket_flow_cls(flow_type=instance.flow_type)(
@@ -203,16 +207,11 @@ class TicketFlowSerializer(TranslationSerializerMixin, serializers.ModelSerializ
         return self.ticket_flow.summary
 
     def get_flow_output(self, obj):
-        if not obj.details.get("__flow_output"):
-            return {}
-        flow_output = obj.details.get("__flow_output")
-        output_data = flow_output["data"]
-        if flow_output["is_sensitive"]:
-            output_data = AsymmetricHandler.decrypt(
-                name=AsymmetricCipherConfigType.PASSWORD.value, content=output_data
-            )
-            output_data = json.loads(output_data)
-        return output_data
+        # TODO: flow_output 这个key后续废弃。改造为output data字段
+        return obj.flow_output
+
+    def get_output_data(self, obj):
+        return obj.flow_output_v2
 
     @property
     def translated_fields(self):
