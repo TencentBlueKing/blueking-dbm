@@ -102,5 +102,9 @@
       color: #fff;
       background: #3a84ff;
     }
+
+    :deep(.bk-tab-content) {
+      padding: 0;
+    }
   }
 </style>
