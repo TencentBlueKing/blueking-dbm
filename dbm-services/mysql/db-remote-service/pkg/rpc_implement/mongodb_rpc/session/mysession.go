@@ -10,7 +10,7 @@ import (
 
 // Job is a routine that can be run and stopped.
 type Job interface {
-	Run(startWg *sync.WaitGroup, logger *slog.Logger)
+	Run(startWg *sync.WaitGroup, logger *slog.Logger) error
 	Stop()
 	SendMsg(in []byte) (n int, err error)
 	ReceiveMsg(timeout int64) (out []byte, err error)
@@ -41,17 +41,27 @@ func (r *MySession) Run(j Job) error {
 	r.job = j
 	wg := sync.WaitGroup{}
 	wg.Add(1)
+	errChan := make(chan error, 1)
 	go func() {
 		r.stopped = false
-		r.job.Run(&wg, r.logger)
-		r.stoppedMutex.Lock()
+		err := r.job.Run(&wg, r.logger)
+		if err != nil {
+			errChan <- err
+			r.logger.Info(fmt.Sprintf("routine %s done, err: %s", r.Name, err))
+			wg.Done()
+		}
+		// todo: 这里不加锁有风险吗？
 		r.stopped = true
-		r.stoppedMutex.Unlock()
 	}()
-	wg.Wait()
-	r.logger.Info(fmt.Sprintf("routine %s started", r.Name))
-	return nil
-
+	wg.Wait() // wait for the routine to start. 最多2秒.
+	select {
+	case err := <-errChan:
+		r.logger.Info(fmt.Sprintf("routine %s done, err: %s", r.Name, err))
+		return err
+	default:
+		r.logger.Info(fmt.Sprintf("routine %s started", r.Name))
+		return nil
+	}
 }
 
 // IsTimeout todo check if the routine is timeout.
@@ -124,36 +134,34 @@ func NewPool(logger *slog.Logger) *Pool {
 // CheckTimeout checks if any routine is timeout.
 func (p *Pool) CheckTimeout(timeout int64) {
 	ticker := time.NewTicker(time.Duration(timeout) * time.Second)
-	for {
-		select {
-		case <-ticker.C:
-			// p.logger.Info("check timeout start", slog.Int("timeout", int(timeout)))
-			t := time.Now()
-			p.mutex.Lock()
-			var stopped []string
-			var runningCount int
-			for _, r := range p.routines {
-				if r.IsTimeout(timeout) {
-					p.logger.Info(fmt.Sprintf("routine %s is stopped by timeout", r.Name))
-					r.Stop()
-					delete(p.routines, r.Name)
-					stopped = append(stopped, r.Name)
-				} else if r.IsStopped() {
-					p.logger.Info(fmt.Sprintf("routine %s is stopped", r.Name))
-					stopped = append(stopped, r.Name)
-					delete(p.routines, r.Name)
-				} else {
-					runningCount++
-				}
+	for range ticker.C {
+		// p.logger.Info("check timeout start", slog.Int("timeout", int(timeout)))
+		t := time.Now()
+		p.mutex.Lock()
+		var stopped []string
+		var runningCount int
+		for _, r := range p.routines {
+			if r.IsTimeout(timeout) {
+				p.logger.Info(fmt.Sprintf("routine %s is stopped by timeout", r.Name))
+				r.Stop()
+				delete(p.routines, r.Name)
+				stopped = append(stopped, r.Name)
+			} else if r.IsStopped() {
+				p.logger.Info(fmt.Sprintf("routine %s is stopped", r.Name))
+				stopped = append(stopped, r.Name)
+				delete(p.routines, r.Name)
+			} else {
+				runningCount++
 			}
-			p.mutex.Unlock()
-			p.logger.Info("check timeout",
-				slog.Int("timeout", int(timeout)),
-				slog.String("elapsed", fmt.Sprintf("%0.6f seconds", time.Since(t).Seconds())),
-				slog.Int("stopped_count", len(stopped)),
-				slog.Int("running_count", runningCount),
-				slog.String("stopped", fmt.Sprintf("%+v", stopped)))
 		}
+		p.mutex.Unlock()
+		p.logger.Info("check timeout",
+			slog.Int("timeout", int(timeout)),
+			slog.String("elapsed", fmt.Sprintf("%0.6f seconds", time.Since(t).Seconds())),
+			slog.Int("stopped_count", len(stopped)),
+			slog.Int("running_count", runningCount),
+			slog.String("stopped", fmt.Sprintf("%+v", stopped)))
+
 	}
 }
 
