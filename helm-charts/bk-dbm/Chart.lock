@@ -53,6 +53,9 @@ dependencies:
 - name: backup-consumer
   repository: file://charts/backup-consumer
   version: 0.0.3
+- name: bkdata-kafka-consumer
+  repository: file://charts/bkdata-kafka-consumer
+  version: 0.0.3
 - name: db-remote-service
   repository: file://charts/db-remote-service
   version: 0.9.5
@@ -65,5 +68,5 @@ dependencies:
 - name: db-dbha
   repository: file://charts/db-dbha
   version: 0.1.0
-digest: sha256:4569713d2f5d7645e6e9e6a33424e0a6ea226da1623acddcea7ee55c5e5af43e
-generated: "2025-01-09T10:17:34.916203+08:00"
+digest: sha256:cc07fb4ac96d4318cc58013511c728dcfa24547eae178bfaf055ace357fddce7
+generated: "2025-04-10T17:46:30.430372363+08:00"

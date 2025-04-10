@@ -30,16 +30,6 @@ type MysqlBackupResult struct {
 	Sinker *Sinker
 }
 
-func NewMysqlBackupResultHandler(s *Sinker) (*MysqlBackupResult, error) {
-	db, err := getDb(s)
-	if err != nil {
-		return nil, err
-	}
-	handler := &MysqlBackupResult{Db: db, Ready: make(chan bool)}
-	handler.Sinker = s
-	return handler, nil
-}
-
 func (c *MysqlBackupResult) Setup(sarama.ConsumerGroupSession) error {
 	// Mark the consumer as ready
 	close(c.Ready)

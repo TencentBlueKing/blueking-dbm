@@ -1,7 +1,7 @@
 # 使用
 
 ```shell
-bkdata-kafka-consumer -c runtime_config.yaml
+bkdata-kafka-consumer -c config.yaml
 ```
 
 # 配置

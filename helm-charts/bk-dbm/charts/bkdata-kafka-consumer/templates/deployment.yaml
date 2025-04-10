@@ -32,13 +32,21 @@ spec:
             name:  bkdata-kafka-consumer-configmap
             items:
               -
-                key: main.yaml
+                key: config.yaml
                 mode: 420
                 path: path/to/config.yaml
               -
-                key: items_config.yaml
+                key: data.mysql-db-table-size.yaml
                 mode: 420
-                path: path/to/items_config.yaml
+                path: path/to/data.mysql-db-table-size.yaml
+              -
+                key: data.mysql-backup-result.yaml
+                mode: 420
+                path: path/to/data.mysql-backup-result.yaml
+              -
+                key: data.mysql-binlog-result.yaml
+                mode: 420
+                path: path/to/data.mysql-binlog-result.yaml
             defaultMode: 272
       containers:
         - name: {{ .Chart.Name }}
@@ -56,11 +64,19 @@ spec:
             -
               name: config-volume
               subPath: path/to/config.yaml
-              mountPath: /main.yaml
+              mountPath: /config.yaml
             -
               name: config-volume
-              subPath: path/to/items_config.yaml
-              mountPath: /items_config.yaml
+              subPath: path/to/data.mysql-db-table-size.yaml
+              mountPath: /data.mysql-db-table-size.yaml
+            -
+              name: config-volume
+              subPath: path/to/data.mysql-backup-result.yaml
+              mountPath: /data.mysql-backup-result.yaml
+            -
+              name: config-volume
+              subPath: data.mysql-binlog-result.yaml
+              mountPath: data.mysql-binlog-result.yaml
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

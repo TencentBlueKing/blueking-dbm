@@ -43,14 +43,23 @@ func (c *MysqlTableSize) Cleanup(sarama.ConsumerGroupSession) error {
 
 func (c *MysqlTableSize) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	if c.Sinker.RuntimeConfig.FromBeginning {
+		slog.Info("consumer from beginning",
+			slog.Any("topic", claim.Topic()),
+			slog.Any("partition", claim.Partition()),
+			slog.Any("groupId", c.Sinker.RuntimeConfig.GroupId))
 		session.ResetOffset(claim.Topic(), claim.Partition(), 0, "")
+	} else {
+		slog.Info("consumer from offset",
+			slog.Any("topic", claim.Topic()),
+			slog.Any("partition", claim.Partition()),
+			slog.Any("groupId", c.Sinker.RuntimeConfig.GroupId),
+			slog.Any("offset", claim.InitialOffset()))
 	}
-	batchSize := 20
-	if c.Sinker.RuntimeConfig.Dsn.BatchInserts > 0 {
-		batchSize = c.Sinker.RuntimeConfig.Dsn.BatchInserts
+	if c.Sinker.RuntimeConfig.SinkBatchSize == 0 {
+		c.Sinker.RuntimeConfig.SinkBatchSize = 1
 	}
-	items := make([]*mysql_table_size.MysqlTableSize, 0, batchSize)
-	msgs := make([]*sarama.ConsumerMessage, 0, batchSize)
+	items := make([]*mysql_table_size.MysqlTableSize, 0, c.Sinker.RuntimeConfig.SinkBatchSize)
+	msgs := make([]*sarama.ConsumerMessage, 0, c.Sinker.RuntimeConfig.SinkBatchSize)
 	for {
 		select {
 		case <-time.After(time.Second * 1):
@@ -87,7 +96,7 @@ func (c *MysqlTableSize) ConsumeClaim(session sarama.ConsumerGroupSession, claim
 				}
 				items = append(items, &kafkaObj)
 			}
-			if len(items) >= batchSize {
+			if len(msgs) >= c.Sinker.RuntimeConfig.SinkBatchSize {
 				if err := c.HandleMessageTryBatch(items, c.Sinker, c.Db); err != nil {
 					slog.Error("handle message batch", err)
 					time.Sleep(200 * time.Millisecond)
@@ -167,11 +176,15 @@ func (c *MysqlTableSize) HandleMessages(items []*mysql_table_size.MysqlTableSize
 	}
 
 	sqlStr, sqlArgs := builder.Build()
-	sqlFull, err := sb.MySQL.Interpolate(sqlStr, sqlArgs)
-	if err != nil {
-		return err
-	}
-	err = db.Exec(sqlFull).Error
+	err := db.Exec(sqlStr, sqlArgs...).Error
+	/*
+		sqlFull, err := sb.MySQL.Interpolate(sqlStr, sqlArgs)
+		if err != nil {
+			return err
+		}
+		err = db.Exec(sqlFull).Error
+
+	*/
 	if err != nil {
 		slog.Error("replace message",
 			slog.Any("msg", err), slog.String("sql", sqlStr), slog.Any("args", sqlArgs))

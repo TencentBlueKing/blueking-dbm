@@ -9,12 +9,15 @@
 package consumer
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
 	"log/slog"
 	"os"
+	"strings"
 
+	"github.com/spf13/cast"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -26,8 +29,18 @@ type messageWrapper struct {
 	} `json:"items"`
 }
 
+// getDb
+// doris: group_commit enable_insert_strict=false insert_max_filter_ratio=1
+// SET group_commit = async_mode; SET enable_insert_strict=false;
 func getDb(s *Sinker) (*gorm.DB, error) {
+	sessionParams := []string{}
+	for k, v := range s.RuntimeConfig.Dsn.SessionVariables {
+		sessionParams = append(sessionParams, fmt.Sprintf("%s=%s", k,
+			base64.URLEncoding.EncodeToString([]byte(cast.ToString(v)))))
+	}
 	tz := "loc=UTC&time_zone=%27%2B00%3A00%27" // we use UTC to get and set
+	sessionParams = append(sessionParams, tz)
+
 	dsn := fmt.Sprintf(
 		`%s:%s@tcp(%s)/%s?charset=%s&parseTime=True&%s`,
 		s.RuntimeConfig.Dsn.User,
@@ -35,7 +48,7 @@ func getDb(s *Sinker) (*gorm.DB, error) {
 		s.RuntimeConfig.Dsn.Address,
 		s.RuntimeConfig.Dsn.Database,
 		s.RuntimeConfig.Dsn.Charset,
-		tz,
+		strings.Join(sessionParams, "&"),
 	)
 	slowLogger := logger.New(
 		//将标准输出作为Writer

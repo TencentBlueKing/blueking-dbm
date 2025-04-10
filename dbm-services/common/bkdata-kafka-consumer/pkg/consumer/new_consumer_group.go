@@ -61,7 +61,11 @@ func (s *Sinker) newConsumerGroup() (sarama.ConsumerGroup, error) {
 	consumerConfig.Version = sarama.V0_10_2_0
 	consumerConfig.Consumer.Return.Errors = true
 	consumerConfig.Consumer.MaxProcessingTime = 200 * time.Millisecond
-	consumerConfig.Consumer.Fetch.Min = 1024
+	if s.RuntimeConfig.FetchMinBytes > 0 {
+		consumerConfig.Consumer.Fetch.Min = s.RuntimeConfig.FetchMinBytes
+	} else {
+		consumerConfig.Consumer.Fetch.Min = 1024
+	}
 	consumerConfig.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{
 		sarama.BalanceStrategyRoundRobin,
 		sarama.BalanceStrategyRange,

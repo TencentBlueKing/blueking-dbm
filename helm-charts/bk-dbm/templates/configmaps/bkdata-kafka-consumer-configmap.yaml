@@ -1,4 +1,5 @@
-{{- $dbInfo := fromYaml (include "bk-dbm.database" (list . "backupServer")) -}}
+{{- $statsDB := fromYaml (include "bk-dbm.database" (list . "dbmStats")) -}}
+{{- $reportDB := fromYaml (include "bk-dbm.database" (list . "dbmReport")) -}}
 
 apiVersion: v1
 kind: ConfigMap
@@ -10,8 +11,7 @@ metadata:
     {{- end }}
 data:
 # todo bk_data_id 应该调整为从日志平台接口获取
-  main.yaml: |-
-    bk_data_id: {{ index .Values "bkdata-kafka-consumer" "bk_data_id" }}
+  config.yaml: |-
     bk_app_code: "{{ .Values.dbm.envs.bkAppCode }}"
     bk_app_secret: "{{ .Values.dbm.envs.bkAppToken }}"
     {{- if .Values.bk.bkMonitorApiUrl }}
@@ -19,26 +19,53 @@ data:
     {{- else }}
     api_url: "{{ .Values.bk.bkComponentApiUrl }}/api/c/compapi/v2/monitor_v3"
     {{- end }}
-    client_id: "backup-stm"
-    group_id: "backup-stm"
-    dsn:
-      user: "{{ $dbInfo.user }}"
-      password: "{{ $dbInfo.password }}"
-      address: "{{ $dbInfo.host }}:{{ $dbInfo.port }}"
-      database: "{{ $dbInfo.name }}"
-      table: tb_backup_tasklist
-      charset: utf8mb4
-      connection_per_partition: 2
     log:
       console: true
       debug: true
       source: true
       json: false
       log_file_dir: logs
-  items_config.yaml: |-
-    items:
-      - name: "bkdata-kafka-consumer"
-        configmap: "bkdata-kafka-consumer-configmap"
-        items:
-          - name: "main.yaml"
-            path: "main.yaml"
+  data.mysql-db-table-size.yaml: |-
+    - bk_data_id: {{ index .Values "bkdata-kafka-consumer" "mysql-db-table-size" "bk_data_id" }}
+      group_id: {{ index .Values "bkdata-kafka-consumer" "mysql-db-table-size" "group_id" }}
+      from_beginning: false
+      sink_batch_size: 10
+      fetch_min_bytes: 1024
+      dsn:
+        address: "{{ $statsDB.host }}:{{ $statsDB.port }}"
+        user: "{{ $statsDB.user }}"
+        password: "{{ $statsDB.password }}"
+        database: "bk_dbm_stats"
+        table: "mysql_db_table_size"
+        charset: utf8
+        connection_per_partition: 4
+
+  data.mysql-backup-result.yaml: |-
+    - bk_data_id: {{ index .Values "bkdata-kafka-consumer" "mysql-backup-result" "bk_data_id" }}
+      group_id: {{ index .Values "bkdata-kafka-consumer" "mysql-backup-result" "group_id" }}
+      from_beginning: false
+      sink_batch_size: 1
+      fetch_min_bytes: 1024
+      dsn:
+        address: "{{ $reportDB.host }}:{{ $reportDB.port }}"
+        user: "{{ $reportDB.user }}"
+        password: "{{ $reportDB.password }}"
+        database: "bk_dbm_stats"
+        table: "mysql_db_table_size"
+        charset: utf8mb4
+        connection_per_partition: 2
+
+  data.mysql-binlog-result.yaml: |-
+    - bk_data_id: {{ index .Values "bkdata-kafka-consumer" "mysql-binlog-result" "bk_data_id" }}
+      group_id: {{ index .Values "bkdata-kafka-consumer" "mysql-binlog-result" "group_id" }}
+      from_beginning: false
+      sink_batch_size: 1
+      fetch_min_bytes: 1024
+      dsn:
+        address: "{{ $reportDB.host }}:{{ $reportDB.port }}"
+        user: "{{ $reportDB.user }}"
+        password: "{{ $reportDB.password }}"
+        database: "bk_dbm_stats"
+        table: "mysql_db_table_size"
+        charset: utf8mb4
+        connection_per_partition: 2

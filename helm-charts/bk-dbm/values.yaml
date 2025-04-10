@@ -489,6 +489,31 @@ backup-server:
     cos_default_dns: ""
     default_storage: "cos"
 
+bkdata-kafka-consumer:
+  enabled: true
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1024Mi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  mysql-db-table-size:
+    bk_data_id: 111
+    group_id: mysql_db_table_size_to_doris
+    fetch_min_bytes: 1024
+    dsn_connection_per_partition: 4
+  mysql-backup-result:
+    bk_data_id: 222
+    group_id: mysql-backup-result
+    fetch_min_bytes: 1024
+    dsn_connection_per_partition: 2
+  mysql-binlog-result:
+    bk_data_id: 333
+    group_id: mysql-binlog-result
+    fetch_min_bytes: 1024
+    dsn_connection_per_partition: 2
+
 # reloader
 stakater:
   enabled: true
@@ -673,3 +698,9 @@ externalDatabase:
     host: external-db-host-example
     port: 3306
     name: bk_dbm_backup_server
+  dbmStats:
+    username: bk-dbm
+    password: external-db-pwd-example
+    host: external-db-host-example
+    port: 3306
+    name: bk_dbm_stats
