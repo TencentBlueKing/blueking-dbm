@@ -8,7 +8,6 @@
       </I18nT>
     </template>
     <template #content>
-      {{ data.todos }}
       <TodoList
         v-if="data.todos.length > 0"
         :data="data.todos"
