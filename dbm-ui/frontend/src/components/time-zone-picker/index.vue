@@ -1658,7 +1658,7 @@
       selected.value = info;
       timeZone.value = {
         ...info,
-        utc: info.utc.substring(3),
+        utc: info.utc.substring(3) || '+00:00',
       };
 
       emits('change', val, info);

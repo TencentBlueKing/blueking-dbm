@@ -258,7 +258,7 @@
     }
 
     .navigation-nav {
-      z-index: 999999 !important;
+      z-index: 999 !important;
 
       .split-line {
         margin: 0 20px 0 60px;

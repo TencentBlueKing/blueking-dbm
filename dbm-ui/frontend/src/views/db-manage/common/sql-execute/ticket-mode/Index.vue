@@ -79,9 +79,6 @@
 
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
-  const { t } = useI18n();
-  const { format: formatDateToUTC } = useTimeZoneFormat();
-
   const modelValue = defineModel<{
     mode: string;
     trigger_time: string;
@@ -92,6 +89,8 @@
     }),
     required: true,
   });
+  const { t } = useI18n();
+  const { format: formatDateToUTC } = useTimeZoneFormat();
 
   const disableDate = (date: number | Date) => Boolean(date && date.valueOf() < Date.now() - 86400000);
 

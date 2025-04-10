@@ -79,8 +79,6 @@
 
   const { t } = useI18n();
 
-  const { defaultStatus: ticketStatus, list: statusList } = useStatusList();
-
   const { shortcutsRange, value: datePickerValue } = useDatePicker();
 
   const { searchSelectData, value: searachSelectValue } = useSearchSelect({
@@ -104,13 +102,15 @@
   const isShowBatchOperation = ref(false);
   const isAssist = ref(Number(route.params.assist));
 
+  const { defaultStatus: ticketStatus, list: statusList } = useStatusList(isAssist);
+
   const isSelectable = computed(() =>
     [TicketModel.STATUS_APPROVE, TicketModel.STATUS_RESOURCE_REPLENISH, TicketModel.STATUS_TODO].includes(
       ticketStatus.value,
     ),
   );
 
-  watch(ticketStatus, () => {
+  watch([ticketStatus, isAssist], () => {
     dataTableRef.value!.fetchData();
     dataTableRef.value!.resetSelection();
     router.replace({

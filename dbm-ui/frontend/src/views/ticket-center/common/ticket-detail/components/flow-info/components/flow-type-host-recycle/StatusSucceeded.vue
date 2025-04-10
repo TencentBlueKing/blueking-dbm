@@ -13,6 +13,14 @@
           :start-time="utcTimeToSeconds(data.start_time)"
           :value="data.cost_time" />
       </I18nT>
+      <template v-if="data.url">
+        <span> ，</span>
+        <a
+          :href="data.url"
+          target="_blank">
+          {{ t('查看详情') }}
+        </a>
+      </template>
     </template>
   </StatusSucceeded>
 </template>

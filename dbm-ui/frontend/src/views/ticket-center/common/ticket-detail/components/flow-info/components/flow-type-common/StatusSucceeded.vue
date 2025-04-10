@@ -9,8 +9,8 @@
     <template #content>
       <slot name="content">
         <TodoList
-          v-if="data.todos.length > 0"
-          :data="data.todos"
+          v-if="renderTodoList.length > 0"
+          :data="renderTodoList"
           :flow-data="data" />
         <span v-else>
           <I18nT
@@ -40,14 +40,15 @@
       </div>
     </template>
     <template
-      v-if="data.todos.length < 1"
+      v-if="renderTodoList.length < 1"
       #desc>
       {{ data.updateAtDisplay }}
     </template>
   </DbTimeLineItem>
 </template>
 <script setup lang="ts">
-  import { type VNode } from 'vue';
+  import _ from 'lodash';
+  import { computed, type VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import FlowMode from '@services/model/ticket/flow';
@@ -68,7 +69,7 @@
     inheritAttrs: false,
   });
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   defineSlots<{
     content: () => VNode;
@@ -79,4 +80,8 @@
   const { t } = useI18n({
     useScope: 'global',
   });
+
+  const renderTodoList = computed(() =>
+    _.filter(props.data.todos, (item) => item.type !== FlowMode.TODO_TYPE_INNER_FAILED),
+  );
 </script>
