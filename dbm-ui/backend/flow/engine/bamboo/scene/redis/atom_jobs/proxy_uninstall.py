@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging.config
+from copy import deepcopy
 from dataclasses import asdict
 from typing import Dict
 
@@ -34,7 +35,7 @@ cluster_apply_ticket = [TicketType.REDIS_SINGLE_APPLY.value, TicketType.REDIS_CL
 logger = logging.getLogger("flow")
 
 
-def ProxyUnInstallAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Dict) -> SubBuilder:
+def ProxyUnInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, param: Dict) -> SubBuilder:
     """
     ### SubBuilder: Proxy卸载原子任务
     act_kwargs.cluster = {
@@ -51,9 +52,20 @@ def ProxyUnInstallAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Di
             "proxy_port": 30000,
     }
     """
-    app = AppCache.get_app_attr(act_kwargs.cluster["bk_biz_id"], "db_app_abbr")
-    app_name = AppCache.get_app_attr(act_kwargs.cluster["bk_biz_id"], "bk_biz_name")
-    immute_domain = act_kwargs.cluster["immute_domain"]
+    app = AppCache.get_app_attr(sub_kwargs.cluster["bk_biz_id"], "db_app_abbr")
+    app_name = AppCache.get_app_attr(sub_kwargs.cluster["bk_biz_id"], "bk_biz_name")
+    immute_domain = sub_kwargs.cluster["immute_domain"]
+
+    # 重置下 cluster 参数
+    act_kwargs = deepcopy(sub_kwargs)
+    act_kwargs.cluster = {
+        "bk_biz_id": sub_kwargs.cluster["bk_biz_id"],
+        "bk_cloud_id": sub_kwargs.cluster["bk_cloud_id"],
+        "cluster_id": sub_kwargs.cluster["cluster_id"],
+        "immute_domain": sub_kwargs.cluster["immute_domain"],
+        "cluster_type": sub_kwargs.cluster["cluster_type"],
+        "operate": sub_kwargs.cluster.get("operate", ""),
+    }
 
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
     exec_ip = param["ip"]

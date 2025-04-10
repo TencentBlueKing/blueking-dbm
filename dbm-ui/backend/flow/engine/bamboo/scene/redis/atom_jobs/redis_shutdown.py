@@ -48,6 +48,16 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutd
     exec_ip = shutdown_param["ip"]
     act_kwargs = deepcopy(sub_kwargs)
 
+    # 重置下 cluster 参数
+    act_kwargs.cluster = {
+        "bk_biz_id": sub_kwargs.cluster["bk_biz_id"],
+        "bk_cloud_id": sub_kwargs.cluster["bk_cloud_id"],
+        "cluster_id": sub_kwargs.cluster["cluster_id"],
+        "immute_domain": sub_kwargs.cluster["immute_domain"],
+        "cluster_type": sub_kwargs.cluster["cluster_type"],
+        "operate": sub_kwargs.cluster.get("operate", ""),
+    }
+
     trans_files = GetFileList(db_type=DBType.Redis)
     act_kwargs.file_list = trans_files.redis_dbmon()
     act_kwargs.exec_ip = exec_ip
