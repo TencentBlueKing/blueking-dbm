@@ -33,8 +33,14 @@ func (r *Checker) masterHosts() (ip string, port int, err error) {
 			slaveStatus[k] = string(value)
 		}
 	}
-	slog.Debug("query master hosts", slog.Any("result map", slaveStatus))
-	ip = slaveStatus["Master_Host"].(string)
+	slog.Info("query master hosts", slog.Any("result map", slaveStatus))
+	ip, ok := slaveStatus["Master_Host"].(string)
+	if !ok {
+		err = fmt.Errorf("query master hosts error, Master_host: %v", slaveStatus["Master_Host"])
+		slog.Error("query master hosts error", slog.String("error", err.Error()))
+		return "", 0, err
+	}
+
 	port, err = strconv.Atoi(slaveStatus["Master_Port"].(string))
 
 	if err != nil {

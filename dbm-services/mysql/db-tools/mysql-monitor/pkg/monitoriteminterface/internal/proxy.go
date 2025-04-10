@@ -24,9 +24,9 @@ import (
 func ConnectProxy() (pdb *sqlx.DB, padb *sqlx.DB, err error) {
 	pdb, padb, err = connectPair()
 
-	if err != nil {
-		return retryAndRestartProxy()
-	}
+	//if err != nil {
+	//	return retryAndRestartProxy()
+	//}
 
 	return pdb, padb, err
 }

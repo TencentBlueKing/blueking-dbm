@@ -35,6 +35,10 @@ func (c *MySQLCrondComp) Stop() (err error) {
 
 // Start 启动进程
 func (c *MySQLCrondComp) Start() (err error) {
+	return Start()
+}
+
+func Start() (err error) {
 	chownCmd := fmt.Sprintf(`chown -R mysql %s`, cst.MySQLCrondInstallPath)
 	_, err = osutil.ExecShellCommand(false, chownCmd)
 	if err != nil {

@@ -105,7 +105,7 @@ func InitConfig(configPath string) error {
 	sii, err := getSelfInfo()
 	if err != nil {
 		slog.Error("init config", slog.String("error", err.Error()))
-		return err
+		return nil
 	}
 	slog.Info("init config", slog.Any("sii", sii))
 

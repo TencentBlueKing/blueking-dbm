@@ -64,6 +64,10 @@ func (c *InplaceAutofixAct) Run() (err error) {
 			Func:    c.Service.StartProxy,
 		},
 		{
+			FunName: "启动mysql-crond",
+			Func:    c.Service.StartCrond,
+		},
+		{
 			FunName: "克隆账号",
 			Func:    c.Service.CloneUsers,
 		},

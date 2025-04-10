@@ -4,6 +4,7 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql_proxy"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/v2/crond"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
@@ -130,6 +131,10 @@ func (c *InplaceAutofixComp) SetBackend() (err error) {
 
 	logger.Info("set backend success")
 	return nil
+}
+
+func (c *InplaceAutofixComp) StartCrond() (err error) {
+	return crond.Start()
 }
 
 func (c *InplaceAutofixComp) Example() interface{} {

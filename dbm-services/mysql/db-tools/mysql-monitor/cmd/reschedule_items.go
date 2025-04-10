@@ -105,18 +105,28 @@ func reschedule(configFileDir, configFileName, staff string) error {
 			"-c", configFileName,
 		}
 
+		var schedule string
+		if j.Name == config.HeartBeatName {
+			schedule = config.HeartBeatSchedule
+		} else if j.Name == "update-monitor-config" {
+			schedule = config.HeartBeatSchedule
+		} else if j.Name == "db-up" {
+			schedule = config.DBUpSchedule
+		}
+
 		eid, err := manager.CreateOrReplace(
 			ma.JobDefine{
 				Name: fmt.Sprintf(
 					"mysql-monitor-%d-hardcode-%s", config.MonitorConfig.Port, j.Name),
 				Command:  executable,
 				Args:     args,
-				Schedule: config.DBUpSchedule,
+				Schedule: schedule,
 				Creator:  staff, //viper.GetString("staff"),
 				Enable:   true,
 				WorkDir:  configFileDir,
 			}, true,
 		)
+
 		if err != nil {
 			slog.Error("reschedule add hardcode entry", slog.String("error", err.Error()))
 			return err
