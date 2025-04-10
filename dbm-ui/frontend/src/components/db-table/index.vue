@@ -240,12 +240,18 @@
               content: () => (
                 <div class='db-table-select-plan'>
                   <div
-                    class='item'
+                    class={{
+                      'is-selected': isCurrentPageAllSelected.value,
+                      'plan-item': true,
+                    }}
                     onClick={handlePageSelect}>
                     {t('本页全选')}
                   </div>
                   <div
-                    class='item'
+                    class={{
+                      'is-selected': isWholeChecked.value,
+                      'plan-item': true,
+                    }}
                     onClick={handleWholeSelect}>
                     {t('跨页全选')}
                   </div>

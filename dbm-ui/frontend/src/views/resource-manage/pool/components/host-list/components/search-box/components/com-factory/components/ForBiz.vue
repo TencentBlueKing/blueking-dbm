@@ -12,26 +12,19 @@
 -->
 
 <template>
-  <AppSelect
-    :data="globalBizsStore.bizListWithPublic"
-    :generate-key="(item: IAppItem) => item.bk_biz_id"
-    :generate-name="(item: IAppItem) => item.display_name"
-    :placeholder="t('请选择所属业务')"
-    :search-extension-method="searchExtensionMethod"
-    :value="currentApp"
+  <DbAppSelect
+    clearable
+    :list="globalBizsStore.bizListWithPublic"
+    :model-value="currentApp"
     @change="handleChange">
-  </AppSelect>
+  </DbAppSelect>
 </template>
 <script setup lang="ts">
-  import { useI18n } from 'vue-i18n';
-
-  import AppSelect from '@blueking/app-select';
-
   import { getBizs } from '@services/source/cmdb';
 
   import { useGlobalBizs } from '@stores';
 
-  import { encodeRegexp } from '@utils';
+  import DbAppSelect from '@components/db-app-select/Index.vue';
 
   type IAppItem = ServiceReturnType<typeof getBizs>[number];
 
@@ -40,13 +33,16 @@
   }
   type Emits = (e: 'change', value: Props['defaultValue']) => void;
 
+  interface Expose {
+    reset: () => void;
+  }
+
   const props = withDefaults(defineProps<Props>(), {
     defaultValue: '',
   });
 
   const emits = defineEmits<Emits>();
 
-  const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
 
   const currentApp = shallowRef<IAppItem>();
@@ -63,13 +59,15 @@
     },
   );
 
-  const searchExtensionMethod = (data: IAppItem, keyword: string) => {
-    const rule = new RegExp(encodeRegexp(keyword), 'i');
-    return rule.test(data.english_name);
+  const handleChange = (appInfo?: IAppItem) => {
+    currentApp.value = appInfo;
+    emits('change', appInfo ? String(appInfo.bk_biz_id) : '');
   };
 
-  const handleChange = (appInfo: IAppItem) => {
-    currentApp.value = appInfo;
-    emits('change', String(appInfo.bk_biz_id));
-  };
+  defineExpose<Expose>({
+    reset() {
+      currentApp.value = undefined;
+      emits('change', undefined);
+    },
+  });
 </script>

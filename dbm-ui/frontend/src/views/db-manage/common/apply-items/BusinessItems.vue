@@ -19,12 +19,12 @@
     <BkLoading
       :loading="isBizLoading"
       style="width: 435px">
-      <DbAppSelect
+      <DbAppSelectWithPermission
         :list="bizList"
         :model-value="currentBiz"
         :permission-action-id="perrmisionActionId"
         @change="handleAppChange">
-      </DbAppSelect>
+      </DbAppSelectWithPermission>
     </BkLoading>
   </BkFormItem>
   <BkFormItem
@@ -59,7 +59,7 @@
 
   import { nameRegx } from '@common/regex';
 
-  import DbAppSelect from '@components/db-app-select/Index.vue';
+  import DbAppSelectWithPermission from '@components/db-app-select/WithPermission.vue';
 
   type IAppItem = ServiceReturnType<typeof getBizs>[number];
 
@@ -67,18 +67,19 @@
     perrmisionActionId: string;
   }
 
-  const props = defineProps<Props>();
-
-  const emits = defineEmits<Emits>();
-
   interface Emits {
     (e: 'changeBiz', value: BizItem): void;
     (e: 'changeAppAbbr', value: string): void;
   }
 
+  const props = defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
+
   const bizId = defineModel<number | string>('bizId', {
     required: true,
   });
+
   const appAbbr = defineModel<string>('appAbbr', {
     default: '',
   });

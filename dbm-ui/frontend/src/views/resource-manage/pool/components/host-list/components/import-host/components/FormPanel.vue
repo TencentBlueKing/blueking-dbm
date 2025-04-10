@@ -97,16 +97,12 @@
           :label="t('所属业务')"
           property="for_biz"
           required>
-          <AppSelect
-            :data="globalBizsStore.bizListWithPublic"
+          <DbAppSelect
             :disabled="isBusiness"
-            :generate-key="(item: IAppItem) => item.bk_biz_id"
-            :generate-name="(item: IAppItem) => item.display_name"
-            :search-extension-method="searchExtensionMethod"
-            style="width: 100%"
-            :value="currentApp"
+            :list="globalBizsStore.bizListWithPublic"
+            :model-value="currentApp"
             @change="handleAppChange">
-          </AppSelect>
+          </DbAppSelect>
         </BkFormItem>
         <BkFormItem
           :label="t('所属DB类型')"
@@ -142,8 +138,6 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import AppSelect from '@blueking/app-select';
-
   import { getBizs } from '@services/source/cmdb';
   import { fetchDbTypeList } from '@services/source/infras';
   import { listTag } from '@services/source/tag';
@@ -151,9 +145,11 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import DbAppSelect from '@components/db-app-select/Index.vue';
+
   import TagSelector from '@views/resource-manage/pool/components/tag-selector/Index.vue';
 
-  import { encodeRegexp, execCopy, messageWarn } from '@utils';
+  import { execCopy, messageWarn } from '@utils';
 
   type IAppItem = ServiceReturnType<typeof getBizs>[number];
 
@@ -287,14 +283,9 @@
     emits('update:hostList', hostListResult);
   };
 
-  const searchExtensionMethod = (data: IAppItem, keyword: string) => {
-    const rule = new RegExp(encodeRegexp(keyword), 'i');
-    return rule.test(data.english_name);
-  };
-
-  const handleAppChange = (appInfo: IAppItem) => {
+  const handleAppChange = (appInfo?: IAppItem) => {
     currentApp.value = appInfo;
-    formData.for_biz = appInfo.bk_biz_id;
+    formData.for_biz = appInfo!.bk_biz_id;
   };
 
   defineExpose<Expose>({

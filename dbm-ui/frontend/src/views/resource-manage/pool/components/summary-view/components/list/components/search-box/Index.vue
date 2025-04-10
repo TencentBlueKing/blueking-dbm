@@ -5,14 +5,11 @@
     <BkFormItem
       :label="t('所属业务')"
       required>
-      <AppSelect
-        :data="globalBizsStore.bizListWithPublic"
-        :generate-key="(item: IAppItem) => item.bk_biz_id"
-        :generate-name="(item: IAppItem) => item.display_name"
-        :search-extension-method="searchExtensionMethod"
-        :value="currentApp"
+      <DbAppSelect
+        :list="globalBizsStore.bizListWithPublic"
+        :model-value="currentApp"
         @change="handleAppChange">
-      </AppSelect>
+      </DbAppSelect>
     </BkFormItem>
     <BkFormItem
       :label="t('所属DB类型')"
@@ -38,15 +35,13 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import AppSelect from '@blueking/app-select';
-
   import { getBizs } from '@services/source/cmdb';
 
   import { useUrlSearch } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
-  import { encodeRegexp } from '@utils';
+  import DbAppSelect from '@components/db-app-select/Index.vue';
 
   import Db from './components/Db.vue';
   import Region from './components/Region.vue';
@@ -81,14 +76,9 @@
   const filterEmptyValues = (obj: any): any =>
     _.pickBy(obj, (value) => value !== '' && (!_.isArray(value) || !_.isEmpty(value)));
 
-  const searchExtensionMethod = (data: IAppItem, keyword: string) => {
-    const rule = new RegExp(encodeRegexp(keyword), 'i');
-    return rule.test(data.english_name);
-  };
-
-  const handleAppChange = (appInfo: IAppItem) => {
+  const handleAppChange = (appInfo?: IAppItem) => {
     currentApp.value = appInfo;
-    handleSearch({ for_biz: appInfo.bk_biz_id });
+    handleSearch({ for_biz: appInfo!.bk_biz_id });
   };
 
   const handleSearch = (data = {} as Record<string, string | number>, type?: string, isInit = false) => {
@@ -129,6 +119,7 @@
     display: flex;
 
     :deep(.bk-form-item) {
+      min-width: 0;
       margin-bottom: 0;
 
       .bk-form-label {

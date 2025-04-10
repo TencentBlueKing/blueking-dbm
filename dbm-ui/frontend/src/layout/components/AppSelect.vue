@@ -1,11 +1,11 @@
 <template>
-  <DbAppSelect
+  <DbAppSelectWithPermission
     :list="bizList"
     :model-value="currentBiz"
     style="margin: 0 12px"
     theme="dark"
     @change="handleAppChange">
-  </DbAppSelect>
+  </DbAppSelectWithPermission>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
@@ -16,7 +16,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import DbAppSelect from '@components/db-app-select/Index.vue';
+  import DbAppSelectWithPermission from '@components/db-app-select/WithPermission.vue';
 
   type IAppItem = ServiceReturnType<typeof getBizs>[number];
 
