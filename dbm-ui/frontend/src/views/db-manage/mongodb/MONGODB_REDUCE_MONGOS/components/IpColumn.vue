@@ -45,8 +45,8 @@
   interface Props {
     rowData: {
       cluster: {
-        cluster_spec: MongoDBModel['cluster_spec'];
         mongos: MongoDBModel['mongos'];
+        spec_config: MongoDBModel['mongos'][0]['spec_config'];
       };
     };
   }
@@ -68,7 +68,7 @@
 
   const ipSelectList = computed(() => {
     const currentSpec = {
-      ...props.rowData.cluster.mongos?.[0]?.spec_config,
+      ...props.rowData.cluster.spec_config,
       count: props.rowData.cluster.mongos.length || 0,
     };
     const reduceIpList = props.rowData.cluster.mongos.map((item) => ({

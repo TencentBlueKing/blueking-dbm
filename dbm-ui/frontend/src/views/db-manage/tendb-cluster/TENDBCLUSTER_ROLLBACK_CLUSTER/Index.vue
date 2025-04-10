@@ -27,8 +27,7 @@
     <BkRadioGroup
       v-model="rollbackClusterType"
       style="width: 450px"
-      type="card"
-      @change="handleChange">
+      type="card">
       <BkRadioButton label="BUILD_INTO_NEW_CLUSTER">
         {{ t('构造到新集群') }}
       </BkRadioButton>
@@ -46,7 +45,7 @@
       <Component
         :is="tableMap[rollbackClusterType]"
         ref="table"
-        :data="formData.tableData" />
+        :ticket-details="ticketDetails" />
       <TicketPayload v-model="formData.payload" />
     </BkForm>
     <template #action>
@@ -101,7 +100,6 @@
   };
   const defaultData = () => ({
     payload: createTickePayload(),
-    tableData: [],
   });
 
   const rollbackClusterType =
@@ -173,9 +171,6 @@
 
   const handleReset = () => {
     Object.assign(formData, defaultData());
-  };
-
-  const handleChange = () => {
-    formData.tableData = [];
+    tableRef.value?.reset();
   };
 </script>

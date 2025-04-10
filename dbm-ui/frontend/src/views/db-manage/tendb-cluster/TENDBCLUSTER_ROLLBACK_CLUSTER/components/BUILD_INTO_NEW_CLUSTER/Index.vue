@@ -171,6 +171,7 @@
       ip_source: 'resource_pool'; // 只有在回档新集群选项，才传递此参数
       rollback_cluster_type: 'BUILD_INTO_NEW_CLUSTER';
     }>;
+    reset: () => void;
   }
 
   const props = defineProps<Props>();
@@ -301,6 +302,9 @@
         ip_source: 'resource_pool',
         rollback_cluster_type: 'BUILD_INTO_NEW_CLUSTER',
       };
+    },
+    reset() {
+      tableData.value = [createTableRow()];
     },
   });
 </script>

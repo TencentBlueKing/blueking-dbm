@@ -1,6 +1,6 @@
 import type { OperaObejctType } from '@services/types';
 
-import type { ResourcePoolDetailBase, ResourcePoolRecycleHost } from '../../common';
+import type { DetailMachines, ResourcePoolDetailBase, ResourcePoolRecycleHost } from '../../common';
 
 /**
  * MySQL 迁移主从
@@ -38,5 +38,6 @@ export interface MigrateCluster extends ResourcePoolDetailBase {
     };
   }[];
   is_safe: boolean;
+  machine_infos: DetailMachines;
   opera_object: OperaObejctType.CLUSTER | OperaObejctType.MACHINE;
 }

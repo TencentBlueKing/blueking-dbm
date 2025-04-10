@@ -18,7 +18,7 @@
       :label="t('目标分片集群')"
       :min-width="200">
       <template #default="{ row }: { row: RowData }">
-        {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
+        {{ ticketDetails.details.clusters?.[row.cluster_id]?.immute_domain || '--' }}
       </template>
     </BkTableColumn>
     <BkTableColumn
@@ -29,12 +29,12 @@
     <BkTableColumn
       :label="t('当前规格')"
       :min-width="150">
-      <template #default="{ row }: { row: RowData }">
-        {{ specMap[row.cluster_id]?.spec_name || '--' }}
+      <template #default>
+        {{ specInfo.name }}
         <SpecPanel
-          v-if="specMap[row.cluster_id]?.spec_id"
-          :data="specMap[row.cluster_id]"
-          :hide-qps="!specMap[row.cluster_id]?.qps?.min">
+          v-if="specInfo.id"
+          :data="specInfo"
+          :hide-qps="!specInfo.qps.min">
           <DbIcon
             class="visible-icon ml-4"
             type="visible1" />
@@ -45,7 +45,7 @@
       :label="t('缩容的IP')"
       :min-width="150">
       <template #default="{ row }: { row: RowData }">
-        {{ row.old_nodes.mongos.map((item) => item.ip).join(',') }}
+        {{ row.old_nodes.mongos?.length > 0 ? row.old_nodes.mongos.map((item) => item.ip).join(',') : '--' }}
       </template>
     </BkTableColumn>
   </BkTable>
@@ -60,7 +60,7 @@
 
   import { TicketTypes } from '@common/const';
 
-  import SpecPanel from '@components/render-table/columns/spec-display/Panel.vue';
+  import SpecPanel, { type SpecInfo } from '@components/render-table/columns/spec-display/Panel.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mongodb.ResourcePool.ReduceMongos>;
@@ -77,23 +77,58 @@
 
   const { t } = useI18n();
 
-  const specMap = reactive<Record<string, MongoDBModel['cluster_spec']>>({});
+  const specInfo = ref<SpecInfo>({
+    cpu: {
+      max: 0,
+      min: 0,
+    },
+    id: 0,
+    mem: {
+      max: 0,
+      min: 0,
+    },
+    name: '--',
+    qps: {
+      max: 0,
+      min: 0,
+    },
+    storage_spec: [],
+  });
 
-  useRequest(filterClusters<MongoDBModel>, {
-    defaultParams: [
-      {
-        bk_biz_id: props.ticketDetails.bk_biz_id,
-        cluster_ids: Object.keys(props.ticketDetails.details.clusters).join(','),
-      },
-    ],
+  const { run: fetchSpecInfo } = useRequest(filterClusters<MongoDBModel>, {
+    manual: true,
     onSuccess: (data) => {
       data.forEach((item) => {
-        Object.assign(specMap, {
-          [item.id]: item.cluster_spec,
-        });
+        if (item.mongos.length) {
+          specInfo.value = item.mongos[0].spec_config;
+        }
       });
     },
   });
+
+  watch(
+    () => props.ticketDetails.details,
+    () => {
+      if (props.ticketDetails.details.mackine_infos) {
+        Object.values(props.ticketDetails.details.mackine_infos).forEach(
+          (item: Props['ticketDetails']['details']['mackine_infos'][string]) => {
+            if (item.spec_config) {
+              specInfo.value = item.spec_config;
+            }
+          },
+        );
+      }
+      if (!specInfo.value.id) {
+        fetchSpecInfo({
+          bk_biz_id: props.ticketDetails.bk_biz_id,
+          cluster_ids: Object.keys(props.ticketDetails.details.clusters).join(','),
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 <style lang="less" scoped>
   .visible-icon {

@@ -1,4 +1,4 @@
-import type { ResourcePoolDetailBase } from '../../common';
+import type { DetailMachines, ResourcePoolDetailBase } from '../../common';
 /**
  * TenDB Cluster 主从迁移
  */
@@ -26,4 +26,5 @@ export interface MigrateCluster extends ResourcePoolDetailBase {
     };
   }[];
   is_safe: boolean;
+  machine_infos: DetailMachines;
 }
