@@ -6,21 +6,37 @@
       :label="t('目标Proxy')"
       :min-width="150">
       <template #default="{ data }: { data: RowData }">
-        {{ `${data.old_nodes.origin_proxy[0].ip}:${data.old_nodes.origin_proxy[0].port}` }}
+        {{
+          data.old_nodes.origin_proxy?.[0]
+            ? `${data.old_nodes.origin_proxy[0].ip}:${data.old_nodes.origin_proxy[0].port}`
+            : '--'
+        }}
       </template>
     </BkTableColumn>
     <BkTableColumn
       :label="t('关联集群')"
       :min-width="300">
       <template #default="{ data }: { data: RowData }">
-        {{ relatedCluster[`${data.old_nodes.origin_proxy[0].ip}:${data.old_nodes.origin_proxy[0].port}`] }}
+        <template
+          v-if="ticketDetails.details.machine_infos[data.old_nodes.origin_proxy[0].ip]?.related_clusters?.length">
+          <p
+            v-for="item in ticketDetails.details.machine_infos[data.old_nodes.origin_proxy[0].ip].related_clusters"
+            :key="item.immute_domain">
+            {{ item.immute_domain }}
+          </p>
+        </template>
+        <template
+          v-else-if="relatedCluster[`${data.old_nodes.origin_proxy[0].ip}:${data.old_nodes.origin_proxy[0].port}`]">
+          {{ relatedCluster[`${data.old_nodes.origin_proxy[0].ip}:${data.old_nodes.origin_proxy[0].port}`] }}
+        </template>
+        <template v-else> -- </template>
       </template>
     </BkTableColumn>
     <BkTableColumn
       :label="t('新Proxy主机')"
       :min-width="150">
       <template #default="{ data }: { data: RowData }">
-        {{ data.resource_spec.target_proxy.hosts[0].ip }}
+        {{ data.resource_spec.target_proxy.hosts?.[0] ? data.resource_spec.target_proxy.hosts[0].ip : '--' }}
       </template>
     </BkTableColumn>
   </BkTable>

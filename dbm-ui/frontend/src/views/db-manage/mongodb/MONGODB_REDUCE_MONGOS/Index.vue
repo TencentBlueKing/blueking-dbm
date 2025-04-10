@@ -40,12 +40,12 @@
           <EditableColumn
             :label="t('当前规格')"
             :min-width="180">
-            <EditableBlock v-if="item.cluster.cluster_spec.spec_id">
-              {{ item.cluster.cluster_spec.spec_name }}
+            <EditableBlock v-if="item.cluster.spec_config.id">
+              {{ item.cluster.spec_config.name }}
               <SpecPanel
-                v-if="item.cluster.cluster_spec.spec_id"
-                :data="item.cluster.cluster_spec"
-                :hide-qps="!item.cluster.cluster_spec.qps.min">
+                v-if="item.cluster.spec_config.id"
+                :data="item.cluster.spec_config"
+                :hide-qps="!item.cluster.spec_config.qps.min">
                 <DbIcon
                   class="visible-icon ml-4"
                   type="visible1" />
@@ -109,10 +109,10 @@
   interface RowData {
     cluster: {
       bk_cloud_id: number;
-      cluster_spec: MongoDBModel['cluster_spec'];
       id: number;
       master_domain: string;
       mongos: MongoDBModel['mongos'];
+      spec_config: MongoDBModel['mongos'][0]['spec_config'];
     };
     hosts: {
       bk_cloud_id: number;
@@ -128,10 +128,10 @@
   const createTableRow = (data = {} as Partial<RowData>) => ({
     cluster: data.cluster || {
       bk_cloud_id: 0,
-      cluster_spec: {} as MongoDBModel['cluster_spec'],
       id: 0,
       master_domain: '',
       mongos: [] as MongoDBModel['mongos'],
+      spec_config: {} as MongoDBModel['mongos'][0]['spec_config'],
     },
     hosts: data.hosts || ([] as RowData['hosts']),
     role: data.role || 'mongos',
@@ -158,10 +158,10 @@
           return createTableRow({
             cluster: {
               bk_cloud_id: clusterInfo.bk_cloud_id,
-              cluster_spec: {} as MongoDBModel['cluster_spec'],
               id: clusterInfo.id,
               master_domain: clusterInfo.immute_domain,
               mongos: [] as MongoDBModel['mongos'],
+              spec_config: {} as MongoDBModel['mongos'][0]['spec_config'],
             },
             hosts: item.old_nodes.mongos,
           });
@@ -216,10 +216,10 @@
           createTableRow({
             cluster: {
               bk_cloud_id: item.bk_cloud_id,
-              cluster_spec: item.cluster_spec,
               id: item.id,
               master_domain: item.master_domain,
               mongos: item.mongos,
+              spec_config: item.mongos[0].spec_config,
             },
           }),
         );

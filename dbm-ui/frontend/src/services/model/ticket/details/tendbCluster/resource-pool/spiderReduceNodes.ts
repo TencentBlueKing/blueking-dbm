@@ -19,4 +19,5 @@ export interface SpiderReduceNodes extends ResourcePoolDetailBase {
     spider_reduced_to_count: number;
   }[];
   is_safe: boolean; // 是否做安全检测
+  shrink_type: 'QUANTITY' | 'HOST'; // QUANTITY: 数量缩容 HOST: 主机缩容
 }

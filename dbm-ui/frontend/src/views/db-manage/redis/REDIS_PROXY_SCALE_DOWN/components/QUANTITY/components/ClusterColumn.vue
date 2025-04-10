@@ -30,8 +30,7 @@
     </template>
     <EditableInput
       v-model="modelValue.master_domain"
-      :placeholder="t('请输入集群域名')"
-      @change="handleInputChange" />
+      :placeholder="t('请输入集群域名')" />
   </EditableColumn>
   <ClusterSelector
     v-model:is-show="showSelector"
@@ -72,14 +71,12 @@
     id?: number;
     master_domain: string;
     proxyCount: number;
-    role: string;
   }>({
     default: () => ({
       cluster_type_name: '',
       id: undefined,
       master_domain: '',
       proxyCount: 0,
-      role: '',
     }),
   });
 
@@ -92,12 +89,12 @@
 
   const tabListConfig = {
     [ClusterTypes.REDIS]: {
-      // disabledRowConfig: [
-      //   {
-      //     handler: (data: RedisModel) => data.proxy.length <= 2,
-      //     tip: t('数量不足，Proxy至少保留 2 台'),
-      //   },
-      // ],
+      disabledRowConfig: [
+        {
+          handler: (data: RedisModel) => data.proxy.length <= 2,
+          tip: t('数量不足，Proxy至少保留 2 台'),
+        },
+      ],
       getResourceList: (params: ServiceParameters<typeof getRedisList>) =>
         getRedisList({
           cluster_type: [
@@ -132,19 +129,24 @@
         return Boolean(modelValue.value.id);
       },
     },
+    {
+      message: t('数量不足，Proxy至少保留 2 台'),
+      trigger: 'blur',
+      validator: () => modelValue.value.proxyCount >= 2,
+    },
   ];
 
   const { loading, run: queryCluster } = useRequest(filterClusters<RedisModel>, {
     manual: true,
     onSuccess: (data) => {
-      if (data.length) {
-        const [currentCluster] = data;
+      const [find] = data;
+      if (find) {
+        const item = new RedisModel(find);
         modelValue.value = {
-          cluster_type_name: currentCluster.cluster_type_name,
-          id: currentCluster.id,
-          master_domain: currentCluster.master_domain,
-          proxyCount: currentCluster.proxyCount,
-          role: 'Proxy',
+          cluster_type_name: item.cluster_type_name,
+          id: item.id,
+          master_domain: item.master_domain,
+          proxyCount: item.proxyCount || item.proxy.length,
         };
       }
     },
@@ -154,22 +156,6 @@
     showSelector.value = true;
   };
 
-  const handleInputChange = (value: string) => {
-    modelValue.value = {
-      cluster_type_name: '',
-      id: undefined,
-      master_domain: value,
-      proxyCount: 0,
-      role: '',
-    };
-    if (value) {
-      queryCluster({
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        exact_domain: value,
-      });
-    }
-  };
-
   const handleSelectorChange = (selected: Record<string, RedisModel[]>) => {
     emits('batch-edit', selected[ClusterTypes.REDIS]);
   };
@@ -177,7 +163,17 @@
   watch(
     () => modelValue.value.master_domain,
     (value) => {
-      handleInputChange(value);
+      modelValue.value = {
+        ...modelValue.value,
+        id: undefined,
+        master_domain: value,
+      };
+      if (value) {
+        queryCluster({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          exact_domain: value,
+        });
+      }
     },
     {
       immediate: true,

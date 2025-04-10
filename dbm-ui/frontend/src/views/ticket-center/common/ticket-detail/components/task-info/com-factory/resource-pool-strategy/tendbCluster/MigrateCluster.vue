@@ -20,7 +20,7 @@
       :label="t('目标主库主机')"
       :min-width="150">
       <template #default="{ data }: { data: RowData }">
-        {{ data.old_nodes.old_master[0].ip }}
+        {{ data.old_nodes.old_master?.[0]?.ip || '--' }}
       </template>
     </BkTableColumn>
     <BkTableColumn
@@ -28,26 +28,28 @@
       :min-width="200">
       <template #default="{ data }: { data: RowData }">
         <template
-          v-for="relateClusterItem in relateClusterMap[data.old_nodes.old_master[0].ip]"
-          :key="relateClusterItem.instance_address">
-          <div>{{ relateClusterItem.instance_address }}</div>
+          v-if="ticketDetails.details.machine_infos[data.old_nodes.old_master?.[0]?.ip]?.related_instances?.length">
+          <p
+            v-for="item in ticketDetails.details.machine_infos[data.old_nodes.old_master?.[0]?.ip].related_instances"
+            :key="item.instance">
+            {{ item.instance }}
+          </p>
         </template>
-        <template v-if="relateClusterMap[data.old_nodes.old_master[0].ip]?.length < 1">--</template>
-        <div
-          v-if="isRelateClusterLoading"
-          class="rotate-loading"
-          style="display: inline-block">
-          <DbIcon
-            svg
-            type="sync-pending" />
-        </div>
+        <template v-else-if="relatedInstances[data.old_nodes.old_master?.[0]?.ip]">
+          <p
+            v-for="item in relatedInstances[data.old_nodes.old_master?.[0]?.ip]"
+            :key="item">
+            {{ item }}
+          </p>
+        </template>
+        <template v-else> -- </template>
       </template>
     </BkTableColumn>
     <BkTableColumn
       :label="t('目标从库主机')"
       :min-width="150">
       <template #default="{ data }: { data: RowData }">
-        {{ data.old_nodes.old_slave[0].ip }}
+        {{ data.old_nodes.old_slave?.[0]?.ip || '--' }}
       </template>
     </BkTableColumn>
     <BkTableColumn
@@ -55,26 +57,28 @@
       :min-width="200">
       <template #default="{ data }: { data: RowData }">
         <template
-          v-for="relateClusterItem in relateClusterMap[data.old_nodes.old_slave[0].ip]"
-          :key="relateClusterItem.instance_address">
-          <div>{{ relateClusterItem.instance_address }}</div>
+          v-if="ticketDetails.details.machine_infos[data.old_nodes.old_slave?.[0]?.ip]?.related_instances?.length">
+          <p
+            v-for="item in ticketDetails.details.machine_infos[data.old_nodes.old_slave?.[0]?.ip].related_instances"
+            :key="item.instance">
+            {{ item.instance }}
+          </p>
         </template>
-        <template v-if="relateClusterMap[data.old_nodes.old_slave[0].ip]?.length < 1">--</template>
-        <div
-          v-if="isRelateClusterLoading"
-          class="rotate-loading"
-          style="display: inline-block">
-          <DbIcon
-            svg
-            type="sync-pending" />
-        </div>
+        <template v-else-if="relatedInstances[data.old_nodes.old_slave?.[0]?.ip]">
+          <p
+            v-for="item in relatedInstances[data.old_nodes.old_slave?.[0]?.ip]"
+            :key="item">
+            {{ item }}
+          </p>
+        </template>
+        <template v-else> -- </template>
       </template>
     </BkTableColumn>
     <BkTableColumn
       :label="t('所属集群')"
-      :min-width="200">
+      :min-width="260">
       <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+        {{ ticketDetails.details.clusters?.[data.cluster_id]?.immute_domain || '--' }}
       </template>
     </BkTableColumn>
   </BkTable>
@@ -85,7 +89,7 @@
   </InfoList>
 </template>
 
-<script setup lang="tsx">
+<script setup lang="ts">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -112,9 +116,9 @@
 
   const { t } = useI18n();
 
-  const relateClusterMap = shallowRef<Record<string, ServiceReturnType<typeof checkInstance>>>({});
+  const relatedInstances = reactive<Record<string, string[]>>({});
 
-  const { loading: isRelateClusterLoading } = useRequest(checkInstance, {
+  useRequest(checkInstance, {
     defaultParams: [
       {
         bk_biz_id: props.ticketDetails.bk_biz_id,
@@ -126,12 +130,11 @@
         ),
       },
     ],
-    onSuccess(data) {
+    onSuccess: (data) => {
       data.forEach((item) => {
-        if (!relateClusterMap.value[item.ip]) {
-          relateClusterMap.value[item.ip] = [];
-        }
-        relateClusterMap.value[item.ip].push(item);
+        Object.assign(relatedInstances, {
+          [item.ip]: [...(relatedInstances[item.ip] || []), item.instance_address],
+        });
       });
     },
   });
