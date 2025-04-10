@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-import json
 import logging
 
 from django.utils.translation import ugettext as _
@@ -47,9 +46,9 @@ class JobCallBackViewSet(BaseProxyPassViewSet):
     )
     @action(methods=["POST"], detail=False, serializer_class=JobCallBackSerializer, url_path="push_conf_callback")
     def push_conf_callback(self, request):
-        logger.info(f"request data: {request.data}")
-        # job传递过来的参数是包裹在key中的一堆字符串，T_T... TODO: 后续他们说会改为json格式
-        validated_data = json.loads(list(dict(request.data).keys())[0])
+        logger.info(f"nginx文件下发job回调 request data: {request.data}")
+
+        validated_data = self.params_validate(self.get_serializer_class())
         job_inst_id = validated_data["job_instance_id"]
         if validated_data["status"] not in SUCCESS_LIST:
             logger.error(_("[{}]nginx配置文件下发失败").format(job_inst_id))
@@ -100,7 +99,9 @@ class JobCallBackViewSet(BaseProxyPassViewSet):
     )
     @action(methods=["POST"], detail=False, serializer_class=JobCallBackSerializer, url_path="restart_callback")
     def restart_callback(self, request):
-        validated_data = json.loads(list(dict(request.data).keys())[0])
+        logger.info(f"nginx重启job回调视图 request data: {request.data}")
+
+        validated_data = self.params_validate(self.get_serializer_class())
         job_inst_id = validated_data["job_instance_id"]
         if validated_data["status"] not in SUCCESS_LIST:
             logger.error(_("[{}]nginx重启失败，请前往作业平台查看详情").format(job_inst_id))
