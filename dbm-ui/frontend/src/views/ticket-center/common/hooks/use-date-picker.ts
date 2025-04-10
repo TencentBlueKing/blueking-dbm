@@ -7,13 +7,19 @@ interface IPicker {
   value: () => [Date, Date];
 }
 
-export default () => {
-  const value = ref<[Date, Date] | [string, string]>(['', '']);
-  const { getSearchParams } = useUrlSearch();
+const genDefaultValue = () => ['', ''] as ['', ''];
 
+const value = ref<[Date, Date] | [string, string]>(genDefaultValue());
+
+export default () => {
+  const { getSearchParams } = useUrlSearch();
   const searchParams = getSearchParams();
   if (searchParams.create_at__gte && searchParams.create_at__lte) {
     value.value = [dayjs(searchParams.create_at__gte).toDate(), dayjs(searchParams.create_at__lte).toDate()];
+  }
+
+  if (!value.value[0]) {
+    value.value = genDefaultValue();
   }
 
   const shortcutsRange = [
@@ -63,6 +69,10 @@ export default () => {
       };
     }
     return {};
+  });
+
+  onBeforeUnmount(() => {
+    value.value = ['', ''];
   });
 
   return {

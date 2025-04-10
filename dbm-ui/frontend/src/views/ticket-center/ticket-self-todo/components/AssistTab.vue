@@ -1,7 +1,9 @@
 <template>
   <Teleport to="#dbContentTitleAppend">
     <div class="todo-ticket-action-box">
-      <BkPopover placement="top">
+      <BkPopover
+        placement="top"
+        :z-index="99999">
         <DbIcon type="attention" />
         <template #content>
           <div>{{ t('待我处理：通常是我提交的单据，或者我是业务主DBA') }}</div>

@@ -22,6 +22,4 @@
   const props = defineProps<Props>();
 
   const renderCom = StatusCommon[props.data.status];
-
-  console.log('renderComrenderComrenderComrenderCom ', props.flowData);
 </script>

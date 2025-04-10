@@ -1,5 +1,5 @@
 import _ from 'lodash';
-import { computed, onBeforeUnmount } from 'vue';
+import { computed, type Ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 
@@ -7,7 +7,7 @@ import TicketModel from '@services/model/ticket/ticket';
 
 import { useTicketCount } from '@hooks';
 
-const create = () => {
+export default (isAssist: Ref<number>) => {
   const { t } = useI18n();
   const { data: ticketCount } = useTicketCount();
 
@@ -16,7 +16,7 @@ const create = () => {
   const defaultStatus = ref('');
 
   const list = computed(() => {
-    const countData = Number(route.params.assist) ? ticketCount.value.to_help : ticketCount.value.pending;
+    const countData = isAssist.value ? ticketCount.value.to_help : ticketCount.value.pending;
     return [
       {
         count: countData.APPROVE,
@@ -53,21 +53,12 @@ const create = () => {
     defaultStatus.value = _.find(list.value, (item) => item.count > 0)?.id ?? TicketModel.STATUS_APPROVE;
   }
 
+  watch(list, () => {
+    defaultStatus.value = _.find(list.value, (item) => item.count > 0)?.id ?? TicketModel.STATUS_APPROVE;
+  });
+
   return {
     defaultStatus,
     list,
   };
-};
-
-let context: ReturnType<typeof create> | undefined;
-export default () => {
-  if (!context) {
-    context = create();
-  }
-
-  onBeforeUnmount(() => {
-    context = undefined;
-  });
-
-  return context;
 };

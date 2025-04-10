@@ -39,13 +39,22 @@ const TODO_TYPE_APPROVE = 'APPROVE';
 const TODO_TYPE_INNER_FAILED = 'INNER_FAILED';
 const TODO_TYPE_INNER_APPROVE = 'INNER_APPROVE';
 const TODO_TYPE_RESOURCE_REPLENISH = 'RESOURCE_REPLENISH';
+const TODO_TYPE_TIMER = 'TIMER';
 
 const TODO_STATUS_TODO = 'TODO';
 const TODO_STATUS_RUNNING = 'RUNNING';
 const TODO_STATUS_DONE_SUCCESS = 'DONE_SUCCESS';
 const TODO_STATUS_DONE_FAILED = 'DONE_FAILED';
 
-export default class Flow<D = unknown, S = any> {
+export default class Flow<
+  D = unknown,
+  S = any,
+  TD = {
+    flow_id: number;
+    remark: string;
+    ticket_id: number;
+  },
+> {
   static STATUS_FAILED = STATUS_FAILED;
   static STATUS_PENDING = STATUS_PENDING;
   static STATUS_REVOKED = STATUS_REVOKED;
@@ -53,26 +62,27 @@ export default class Flow<D = unknown, S = any> {
   static STATUS_SKIPPED = STATUS_SKIPPED;
   static STATUS_SUCCEEDED = STATUS_SUCCEEDED;
   static STATUS_TERMINATED = STATUS_TERMINATED;
+
   static TODO_STATUS_DONE_FAILED = TODO_STATUS_DONE_FAILED;
   static TODO_STATUS_DONE_SUCCESS = TODO_STATUS_DONE_SUCCESS;
   static TODO_STATUS_RUNNING = TODO_STATUS_RUNNING;
   static TODO_STATUS_TODO = TODO_STATUS_TODO;
-  static TODO_TYPE_APPROVE = TODO_TYPE_APPROVE;
 
+  static TODO_TYPE_APPROVE = TODO_TYPE_APPROVE;
   static TODO_TYPE_INNER_APPROVE = TODO_TYPE_INNER_APPROVE;
   static TODO_TYPE_INNER_FAILED = TODO_TYPE_INNER_FAILED;
   static TODO_TYPE_ITSM = TODO_TYPE_ITSM;
   static TODO_TYPE_RESOURCE_REPLENISH = TODO_TYPE_RESOURCE_REPLENISH;
+  static TODO_TYPE_TIMER = TODO_TYPE_TIMER;
+
   static TYPE_BK_ITSM = TYPE_BK_ITSM;
   static TYPE_DELIVERY = TYPE_DELIVERY;
   static TYPE_DESCRIBE_TASK = TYPE_DESCRIBE_TASK;
-
   static TYPE_HOST_IMPORT_RESOURCE = TYPE_HOST_IMPORT_RESOURCE;
   static TYPE_HOST_RECYCLE = TYPE_HOST_RECYCLE;
   static TYPE_INNER_FLOW = TYPE_INNER_FLOW;
   static TYPE_PAUSE = TYPE_PAUSE;
   static TYPE_RESOURCE_APPLY = TYPE_RESOURCE_APPLY;
-
   static TYPE_RESOURCE_BATCH_APPLY = TYPE_RESOURCE_BATCH_APPLY;
   static TYPE_RESOURCE_BATCH_DELIVERY = TYPE_RESOURCE_BATCH_DELIVERY;
   static TYPE_RESOURCE_DELIVERY = TYPE_RESOURCE_DELIVERY;
@@ -98,11 +108,7 @@ export default class Flow<D = unknown, S = any> {
   ticket: number;
   ticket_type: string;
   todos: {
-    context: {
-      flow_id: number;
-      remark: string;
-      ticket_id: number;
-    };
+    context: TD;
     cost_time: number;
     done_at: string;
     done_by: string;

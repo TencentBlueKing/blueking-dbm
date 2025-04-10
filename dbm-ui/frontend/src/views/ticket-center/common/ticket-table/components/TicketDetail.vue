@@ -17,7 +17,7 @@
               v-bk-tooltips="t('复制')"
               class="ml-8"
               size="small"
-              style="padding: 0 8px">
+              style="padding: 0 6px">
               <DbIcon type="copy-2" />
             </BkButton>
             <template #content>

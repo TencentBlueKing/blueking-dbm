@@ -81,6 +81,8 @@
   import TaskTips from '@views/db-manage/common/sql-execute/task-tips/Index.vue';
   import TicketMode from '@views/db-manage/common/sql-execute/ticket-mode/Index.vue';
 
+  import { utcDisplayTime } from '@utils';
+
   const router = useRouter();
   const route = useRoute();
   const { t } = useI18n();
@@ -120,7 +122,10 @@
         cluster_ids: cloneData.cluster_ids,
         execute_objects: cloneData.execute_objects,
         remark: cloneData.remark,
-        ticket_mode: cloneData.ticket_mode,
+        ticket_mode: {
+          ...cloneData.ticket_mode,
+          trigger_time: utcDisplayTime(cloneData.ticket_mode.trigger_time),
+        },
       });
       window.changeConfirm = true;
       uploadFilePath.value = cloneData.path;
@@ -142,7 +147,10 @@
         charset: semanticData.charset,
         cluster_ids: semanticData.cluster_ids,
         execute_objects: semanticData.execute_objects,
-        ticket_mode: semanticData.ticket_mode,
+        ticket_mode: {
+          ...semanticData.ticket_mode,
+          trigger_time: utcDisplayTime(semanticData.ticket_mode.trigger_time),
+        },
       });
       uploadFilePath.value = semanticData.path;
     },
