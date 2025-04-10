@@ -18,7 +18,7 @@
     fixed="left"
     :label="t('目标集群')"
     :loading="loading"
-    :min-width="200"
+    :min-width="300"
     required
     :validate-delay="300">
     <template #headAppend>
@@ -31,8 +31,7 @@
     </template>
     <EditableInput
       v-model="modelValue.master_domain"
-      :placeholder="t('请输入集群域名')"
-      @change="handleInputChange" />
+      :placeholder="t('请输入集群域名')" />
   </EditableColumn>
   <ClusterSelector
     v-model:is-show="showSelector"
@@ -122,42 +121,30 @@
         return Boolean(modelValue.value.id);
       },
     },
+    {
+      message: t('Spider_Master至少保留2台_Spider_Slave至少保留1台'),
+      trigger: 'blur',
+      validator: () => modelValue.value.master_count >= 2 && modelValue.value.slave_count >= 1,
+    },
   ];
 
   const { loading, run: queryCluster } = useRequest(filterClusters<TendbClusterModel>, {
     manual: true,
     onSuccess: (data) => {
-      if (data.length) {
-        const [currentCluster] = data;
-        modelValue.value = {
-          id: currentCluster.id,
-          master_count: currentCluster.spider_master.length,
-          master_domain: currentCluster.master_domain,
-          role: '',
-          slave_count: currentCluster.spider_slave.length,
-        };
+      const [item] = data;
+      if (item) {
+        modelValue.value = Object.assign(modelValue.value, {
+          id: item.id,
+          master_count: item.spider_master.length,
+          master_domain: item.master_domain,
+          slave_count: item.spider_slave.length,
+        });
       }
     },
   });
 
   const handleShowSelector = () => {
     showSelector.value = true;
-  };
-
-  const handleInputChange = (value: string) => {
-    modelValue.value = {
-      id: undefined,
-      master_count: 0,
-      master_domain: value,
-      role: '',
-      slave_count: 0,
-    };
-    if (value) {
-      queryCluster({
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        exact_domain: value,
-      });
-    }
   };
 
   const handleSelectorChange = (selected: Record<string, TendbClusterModel[]>) => {
@@ -167,7 +154,17 @@
   watch(
     () => modelValue.value.master_domain,
     (value) => {
-      handleInputChange(value);
+      modelValue.value = {
+        ...modelValue.value,
+        id: undefined,
+        master_domain: value,
+      };
+      if (value) {
+        queryCluster({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          exact_domain: value,
+        });
+      }
     },
     {
       immediate: true,

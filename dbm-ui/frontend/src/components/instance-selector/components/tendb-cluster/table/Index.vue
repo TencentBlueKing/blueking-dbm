@@ -210,6 +210,14 @@
       field: 'role',
       filter: props.roleFilterList,
       label: t('角色'),
+      minWidth: 120,
+      render: ({ data }: DataRow) => {
+        const instanceRoleMap = {
+          remote_master: 'Spider Master',
+          remote_slave: 'Spider Slave',
+        };
+        return instanceRoleMap[data.role as keyof typeof instanceRoleMap] || data.role || '--';
+      },
       showOverflow: true,
     },
     {

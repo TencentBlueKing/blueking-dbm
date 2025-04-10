@@ -13,27 +13,33 @@
 
 <template>
   <BkTable
+    :key="updateTableKey"
     :data="tableData"
+    :loading="loading"
     :merge-cells="mergeCells"
     :show-overflow="false">
     <BkTableColumn
       field="ip"
-      :label="t('目标主机')" />
+      :label="t('目标主机')"
+      :min-width="150" />
     <BkTableColumn
       field="role"
-      :label="t('角色类型')" />
+      :label="t('角色类型')"
+      :min-width="150" />
     <BkTableColumn
       field="cluster_domain"
-      :label="t('所属集群')" />
+      :label="t('所属集群')"
+      :min-width="250" />
     <BkTableColumn
-      field="spec"
-      :label="t('规格需求')">
+      field="spec_config"
+      :label="t('规格需求')"
+      :min-width="200">
       <template #default="{ data }: { data: RowData }">
-        {{ data.spec?.name || '--' }}
+        {{ data.spec_config?.name || '--' }}
         <SpecPanel
-          v-if="data.spec?.name"
-          :data="data.spec"
-          :hide-qps="!data.spec.qps?.min">
+          v-if="data.spec_config?.name"
+          :data="data.spec_config"
+          :hide-qps="!data.spec_config.qps?.min">
           <DbIcon
             class="visible-icon ml-4"
             type="visible1" />
@@ -44,9 +50,12 @@
 </template>
 
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import TicketModel, { type Redis } from '@services/model/ticket/ticket';
+  import { checkInstance } from '@services/source/dbbase';
 
   import { TicketTypes } from '@common/const';
 
@@ -69,42 +78,133 @@
 
   interface RowData {
     cluster_domain: string;
+    cluster_id: number;
     ip: string;
     role: string;
-    spec: SpecInfo;
+    spec_config: SpecInfo;
+    spec_id: number;
   }
 
-  const tableData = shallowRef<RowData[]>([]);
   const mergeCells = shallowRef<Array<{ col: number; colspan: number; row: number; rowspan: number }>>([]);
+  const ipInfoMap = reactive<Record<string, RowData>>({});
+  const tableData = ref<RowData[]>([]);
+  // 用于更新table的合并渲染
+  const updateTableKey = ref(Date.now());
+
+  /**
+   * 更新表格数据
+   * 1. 对数据进行排序
+   * 2. 处理合并单元格
+   * 3. 更新表格数据
+   * @returns {void}
+   */
+  const updateTableData = () => {
+    const list = _.sortBy(Object.values(ipInfoMap), 'cluster_domain');
+    const domainCounter: Record<string, number> = {};
+    list.forEach((rowData, index) => {
+      const domain = rowData.cluster_domain;
+      domainCounter[domain] = (domainCounter[domain] || 0) + 1;
+      if (domainCounter[domain] > 1) {
+        mergeCells.value.push({
+          col: 2,
+          colspan: 1,
+          row: index + 1 - domainCounter[domain],
+          rowspan: domainCounter[domain],
+        });
+      }
+    });
+    tableData.value = list;
+    updateTableKey.value = Date.now();
+  };
+
+  /**
+   * 查询机器信息
+   */
+  const { loading, run: queryMachineInfo } = useRequest(checkInstance, {
+    manual: true,
+    onSuccess: (data) => {
+      if (!data.length) {
+        return;
+      }
+      const roleTextMap = {
+        master: 'redis_master',
+        proxy: 'proxy',
+        redis_master: 'redis_master',
+        redis_slave: 'redis_slave',
+        slave: 'redis_slave',
+      };
+      data.forEach((item) => {
+        Object.assign(ipInfoMap, {
+          [item.ip]: {
+            cluster_domain: item.master_domain,
+            cluster_id: item.cluster_id,
+            ip: item.ip,
+            role: roleTextMap[item.role as keyof typeof roleTextMap],
+            spec_config: item.spec_config,
+            spec_id: item.spec_config.id,
+          },
+        });
+      });
+      updateTableData();
+    },
+  });
 
   watch(
     () => props.ticketDetails.details,
     () => {
-      const { clusters, infos, specs } = props.ticketDetails.details;
-      if (!infos.length) {
+      const { clusters, infos, recycle_hosts: recycleHosts, specs } = props.ticketDetails.details;
+      if (!infos.length || !recycleHosts.length) {
         return;
       }
-      const domainCounter: Record<string, number> = {};
-      infos.forEach((item) => {
-        Object.entries(item.old_nodes).forEach(([role, hosts], index) => {
-          const domain = clusters[item.cluster_ids[0]]?.immute_domain;
-          tableData.value.push({
-            cluster_domain: clusters?.[item.cluster_ids[0]]?.immute_domain || '--',
-            ip: hosts?.[0]?.ip || '--',
-            role: role || '--',
-            spec: specs?.[hosts?.[0]?.spec_id] || {},
+
+      const extIps: string[] = [];
+
+      const generateData = (
+        infoItem: Props['ticketDetails']['details']['infos'][0]['old_nodes'],
+        role: keyof Props['ticketDetails']['details']['infos'][0]['old_nodes'],
+        clusterInfo: Props['ticketDetails']['details']['clusters'][number],
+      ) => {
+        if (infoItem[role].length) {
+          _.uniqBy(infoItem[role], 'ip').forEach((hostItem) => {
+            const specId = hostItem?.spec_id || hostItem?.master_spec_id;
+            if (!specs[specId]) {
+              extIps.push(hostItem.ip);
+            }
+            if (!ipInfoMap[hostItem.ip]) {
+              Object.assign(ipInfoMap, {
+                [hostItem.ip]: {
+                  cluster_domain: clusterInfo.immute_domain,
+                  cluster_id: clusterInfo.id,
+                  ip: hostItem.ip,
+                  role,
+                  spec_config: specs[specId],
+                  spec_id: specId,
+                },
+              });
+            }
           });
-          domainCounter[domain] = (domainCounter[domain] || 0) + 1;
-          if (domainCounter[domain] > 1) {
-            mergeCells.value.push({
-              col: 2,
-              colspan: 1,
-              row: index + 1 - domainCounter[domain],
-              rowspan: domainCounter[domain],
-            });
-          }
-        });
+        }
+      };
+
+      infos.forEach((infoItem) => {
+        // generateData(infoItem, 'proxy', clusters[infoItem.cluster_ids[0]]);
+        // generateData(infoItem, 'redis_master', clusters[infoItem.cluster_ids[0]]);
+        // generateData(infoItem, 'redis_slave', clusters[infoItem.cluster_ids[0]]);
+        generateData(infoItem.old_nodes, 'proxy', clusters[infoItem.cluster_ids[0]]);
+        generateData(infoItem.old_nodes, 'redis_master', clusters[infoItem.cluster_ids[0]]);
+        generateData(infoItem.old_nodes, 'redis_slave', clusters[infoItem.cluster_ids[0]]);
       });
+
+      updateTableData();
+
+      // 补充redis_slave
+      extIps.push(...recycleHosts.map((hostItem) => hostItem.ip).filter((ip) => !ipInfoMap[ip]));
+      if (extIps.length) {
+        queryMachineInfo({
+          bk_biz_id: props.ticketDetails.bk_biz_id,
+          instance_addresses: _.uniq(extIps),
+        });
+      }
     },
     {
       immediate: true,

@@ -1,4 +1,4 @@
-import type { ResourcePoolDetailBase } from '../../common';
+import type { DetailMachines, ResourcePoolDetailBase } from '../../common';
 
 export interface ReduceMongos extends ResourcePoolDetailBase {
   infos: {
@@ -13,4 +13,5 @@ export interface ReduceMongos extends ResourcePoolDetailBase {
     reduce_count: number;
     role: string;
   }[];
+  mackine_infos: DetailMachines;
 }

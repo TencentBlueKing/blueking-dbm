@@ -12,40 +12,64 @@
 -->
 
 <template>
+  <InfoList>
+    <InfoItem :label="t('缩容方式：')">
+      {{ ticketDetails.details.shrink_type === 'HOST' ? t('指定主机缩容') : t('指定数量缩容') }}
+    </InfoItem>
+  </InfoList>
   <BkTable
+    v-if="ticketDetails.details.shrink_type === 'HOST'"
+    :data="tableData"
+    :show-overflow="false">
+    <BkTableColumn
+      field="ip"
+      :label="t('目标主机')"
+      :min-width="200" />
+    <BkTableColumn
+      field="role"
+      :label="t('缩容节点类型')"
+      :min-width="150" />
+    <BkTableColumn
+      field="domain"
+      :label="t('关联集群')"
+      :min-width="250" />
+  </BkTable>
+  <BkTable
+    v-else
     :data="ticketDetails.details.infos"
     :show-overflow="false">
-    <BkTableColumn :label="t('目标集群')">
+    <BkTableColumn
+      :label="t('目标集群')"
+      :min-width="200">
       <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+        {{ ticketDetails.details.clusters?.[data.cluster_id]?.immute_domain || '--' }}
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('缩容节点类型')">
+    <BkTableColumn
+      :label="t('缩容节点类型')"
+      :min-width="150">
       <template #default="{ data }: { data: RowData }">
-        {{ data.reduce_spider_role === 'spider_master' ? 'Master' : 'Slave' }}
+        {{ data.reduce_spider_role === 'spider_master' ? 'Spider Master' : 'Spider Slave' }}
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('主机选择方式')">
+    <BkTableColumn
+      :label="t('当前数量(台)')"
+      :min-width="100">
       <template #default="{ data }: { data: RowData }">
-        <template v-if="data.old_nodes.spider_reduced_hosts">
-          <div
-            v-for="item in data.old_nodes.spider_reduced_hosts"
-            :key="item.bk_host_id">
-            {{ item.ip }}
-          </div>
-        </template>
-        <span v-else>{{ t('自动匹配') }}</span>
+        {{ data.old_nodes.spider_reduced_hosts.length + data.spider_reduced_to_count }}
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('缩容数量(台)')">
+    <BkTableColumn
+      :label="t('缩容数量(台)')"
+      :min-width="100">
       <template #default="{ data }: { data: RowData }">
-        {{
-          data.old_nodes.spider_reduced_hosts
-            ? data.old_nodes.spider_reduced_hosts.length
-            : data.spider_reduced_to_count
-        }}
+        {{ data.old_nodes.spider_reduced_hosts.length }}
       </template>
     </BkTableColumn>
+    <BkTableColumn
+      field="spider_reduced_to_count"
+      :label="t('剩余数量(台)')"
+      :min-width="100" />
   </BkTable>
   <InfoList>
     <InfoItem :label="t('忽略业务连接')">
@@ -71,9 +95,31 @@
     inheritAttrs: false,
   });
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
+
+  interface HostTableRow {
+    domain: string;
+    ip: string;
+    role: string;
+  }
+
+  const tableData = computed(() => {
+    const { clusters, infos } = props.ticketDetails.details;
+    const data = infos.reduce<HostTableRow[]>((acc, item) => {
+      item.old_nodes.spider_reduced_hosts.forEach((host) => {
+        const cluster = clusters[item.cluster_id];
+        acc.push({
+          domain: cluster?.immute_domain || '--',
+          ip: host.ip,
+          role: item.reduce_spider_role === 'spider_master' ? 'Spider Master' : 'Spider Slave',
+        });
+      });
+      return acc;
+    }, []);
+    return data;
+  });
 </script>

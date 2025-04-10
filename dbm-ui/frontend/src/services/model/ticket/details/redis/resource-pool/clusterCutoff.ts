@@ -3,7 +3,9 @@ import type { ResourcePoolDetailBase } from '../../common';
 type RoleHostItem = {
   bk_host_id: number;
   ip: string;
-  spec_id: number;
+  master_ip: string;
+  master_spec_id: number;
+  spec_id?: number;
 }[];
 
 interface RoleHost {
@@ -12,11 +14,14 @@ interface RoleHost {
   redis_slave: RoleHostItem;
 }
 
-export interface ClusterCutoff extends ResourcePoolDetailBase, RoleHost {
+export interface ClusterCutoff extends ResourcePoolDetailBase {
   infos: {
     bk_cloud_id: number;
     cluster_ids: number[];
     old_nodes: RoleHost;
+    proxy: RoleHostItem;
+    redis_master: RoleHostItem;
+    redis_slave: RoleHostItem;
     resource_spec: {
       [k in string]: {
         affinity: string;
