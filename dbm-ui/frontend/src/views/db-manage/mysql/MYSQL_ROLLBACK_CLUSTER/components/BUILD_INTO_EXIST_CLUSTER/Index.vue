@@ -131,6 +131,7 @@
       }[];
       rollback_cluster_type: 'BUILD_INTO_EXIST_CLUSTER';
     }>;
+    reset: () => void;
   }
 
   const props = defineProps<Props>();
@@ -254,6 +255,9 @@
         })),
         rollback_cluster_type: 'BUILD_INTO_EXIST_CLUSTER',
       };
+    },
+    reset() {
+      tableData.value = [createTableRow()];
     },
   });
 </script>

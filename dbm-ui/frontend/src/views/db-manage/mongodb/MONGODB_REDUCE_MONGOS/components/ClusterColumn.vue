@@ -67,17 +67,17 @@
 
   const modelValue = defineModel<{
     bk_cloud_id: number;
-    cluster_spec: MongoDBModel['cluster_spec'];
     id?: number;
     master_domain: string;
     mongos: MongoDBModel['mongos'];
+    spec_config: MongoDBModel['mongos'][0]['spec_config'];
   }>({
     default: () => ({
       bk_cloud_id: 0,
-      cluster_spec: {} as MongoDBModel['cluster_spec'],
       id: undefined,
       master_domain: '',
       mongos: [] as MongoDBModel['mongos'],
+      spec_config: {} as MongoDBModel['mongos'][0]['spec_config'],
     }),
   });
 
@@ -135,10 +135,10 @@
       if (item) {
         modelValue.value = {
           bk_cloud_id: item.bk_cloud_id,
-          cluster_spec: item.cluster_spec,
           id: item.id,
           master_domain: item.master_domain,
           mongos: item.mongos,
+          spec_config: item.mongos[0].spec_config,
         };
       }
     },
@@ -151,10 +151,10 @@
   const handleInputChange = (value: string) => {
     modelValue.value = {
       bk_cloud_id: 0,
-      cluster_spec: {} as MongoDBModel['cluster_spec'],
       id: undefined,
       master_domain: value,
       mongos: [] as MongoDBModel['mongos'],
+      spec_config: {} as MongoDBModel['mongos'][0]['spec_config'],
     };
     if (value) {
       queryCluster({

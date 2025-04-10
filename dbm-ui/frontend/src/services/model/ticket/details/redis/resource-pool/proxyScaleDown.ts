@@ -14,4 +14,5 @@ export interface ProxyScaleDown extends ResourcePoolDetailBase {
     online_switch_type: 'user_confirm' | 'no_confirm';
     target_proxy_count: number;
   }[];
+  shrink_type: 'HOST' | 'QUANTITY';
 }

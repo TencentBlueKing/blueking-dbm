@@ -74,7 +74,7 @@
 
   const disableDate = (date: Date) => {
     const now = Date.now();
-    return date.valueOf() < now - 16 * 24 * 3600000 || date.valueOf() > now;
+    return date.valueOf() < now - 25 * 24 * 3600000 || date.valueOf() > now;
   };
 
   const handleDatetimeChange = (date: string) => {

@@ -1,6 +1,6 @@
 import type { OperaObejctType } from '@services/types';
 
-import type { ResourcePoolDetailBase } from '../../common';
+import type { DetailMachines, ResourcePoolDetailBase } from '../../common';
 
 /**
  * MySQL 替换Proxy
@@ -31,5 +31,6 @@ export interface ProxySwitch extends ResourcePoolDetailBase {
       };
     };
   }[];
+  machine_infos: DetailMachines;
   opera_object: OperaObejctType.INSTANCE | OperaObejctType.MACHINE;
 }

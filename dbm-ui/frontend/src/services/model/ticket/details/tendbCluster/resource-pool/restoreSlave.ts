@@ -1,4 +1,4 @@
-import type { ResourcePoolDetailBase } from '../../common';
+import type { DetailMachines, ResourcePoolDetailBase } from '../../common';
 
 /**
  * TenDB Cluster Slave重建
@@ -22,4 +22,5 @@ export interface RestoreSlave extends ResourcePoolDetailBase {
       };
     };
   }[];
+  machine_infos: DetailMachines;
 }
