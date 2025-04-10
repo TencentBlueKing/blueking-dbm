@@ -21,6 +21,7 @@ delete tencentRule['@typescript-eslint/keyword-spacing'];
 delete tencentRule['@typescript-eslint/semi'];
 delete tencentRule['@typescript-eslint/type-annotation-spacing'];
 delete tencentRule['@typescript-eslint/space-before-function-paren'];
+delete tencentRule['@typescript-eslint/dot-notation'];
 
 configureVueProject({
   scriptLangs: ['ts', 'tsx'],
