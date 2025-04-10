@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -17,10 +18,28 @@ var (
 	poolOnce sync.Once
 )
 
+func replaceSourceAttr(groups []string, a slog.Attr) slog.Attr {
+	if a.Key == slog.SourceKey {
+		if src, ok := a.Value.Any().(*slog.Source); ok {
+			shortPath := ""
+			fullPath := src.File
+			seps := strings.Split(fullPath, "/")
+			shortPath += seps[len(seps)-1]
+			shortPath += fmt.Sprintf(":%d", src.Line)
+			a.Value = slog.StringValue(shortPath)
+		}
+	}
+	return a
+}
+
 func getPool() (*slog.Logger, *session.Pool) {
 	// Create a new pool if it does not exist
 	poolOnce.Do(func() {
-		logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
+		opt := &slog.HandlerOptions{
+			AddSource:   true,
+			ReplaceAttr: replaceSourceAttr,
+		}
+		logger = slog.New(slog.NewJSONHandler(os.Stdout, opt))
 		pool = session.NewPool(logger.With("service", "mongo_rpc"))
 		go pool.CheckTimeout(60)
 	})
@@ -34,6 +53,9 @@ type QueryParams struct {
 	ClusterDomain string   `json:"cluster_domain"` // 集群名称
 	Addresses     []string `json:"addresses"`      // ip:port列表
 	SetName       string   `json:"set_name"`       // 如果是集群，指定为空
+	OaUser        string   `json:"oa_user"`        // OA用户名
+	AdminUsername string   `json:"admin_username"` // 管理员用户名
+	AdminPassword string   `json:"admin_password"` // 管理员密码
 	UserName      string   `json:"username"`       // 用户名
 	Password      string   `json:"password"`       // 密码  MongodbRepo().getPassword()
 	Token         string   `json:"session"`        // session token, 一个随机字符串
@@ -50,7 +72,7 @@ func (param *QueryParams) StringWithoutPasswd() string {
 
 // GetUniqSessionToken 打印参数，不打印密码
 func (param *QueryParams) GetUniqSessionToken() string {
-	return fmt.Sprintf("%s_%s_%s", param.ClusterDomain, param.UserName, param.Token)
+	return fmt.Sprintf("%s_%s_%s", param.ClusterDomain, param.OaUser, param.Token)
 }
 
 // MongoRPCEmbed redis 实现
@@ -67,26 +89,27 @@ func parseQueryParams(c *gin.Context) (*QueryParams, error) {
 	if err := c.BindJSON(param); err != nil {
 		return nil, fmt.Errorf("bad param, bind json failed")
 	}
-
 	if len(param.Addresses) == 0 {
 		return nil, fmt.Errorf("bad param, empty Addresses")
 	}
 	if len(param.Addresses[0]) == 0 {
 		return nil, fmt.Errorf("bad param, empty Addresses")
 	}
-
 	if len(param.Token) == 0 {
 		return nil, fmt.Errorf("bad param, empty token")
 	}
-
 	if len(param.UserName) == 0 {
 		return nil, fmt.Errorf("bad param, empty UserName")
 	}
-
 	if len(param.Password) == 0 {
 		return nil, fmt.Errorf("bad param, empty Password")
 	}
-
+	if len(param.AdminUsername) == 0 {
+		return nil, fmt.Errorf("bad param, empty AdminUsername")
+	}
+	if len(param.AdminPassword) == 0 {
+		return nil, fmt.Errorf("bad param, empty AdminPassword")
+	}
 	return param, nil
 }
 
@@ -145,7 +168,12 @@ func (r *MongoRPCEmbed) DoCommand(c *gin.Context) {
 	if err != nil {
 		logger.Error("read resp", slog.String("resp", string(v)))
 		session.Stop()
-		resp.SendError(err.Error())
+		// 有内容尽量返回.
+		if len(v) > 0 {
+			resp.SendResp(string(v), 0, "")
+		} else {
+			resp.SendError(err.Error())
+		}
 		return
 	} else {
 		resp.SendResp(string(v), 0, "")

@@ -35,8 +35,15 @@ func Connect(host, port, user, pass, authdb string, timeout time.Duration) (*mon
 }
 
 // ConnectWithDirect return mongo client
-func ConnectWithDirect(host, port, user, pass, authdb string, timeout time.Duration, direct bool) (*mongo.Client, error) {
-	mongoURI := fmt.Sprintf("mongodb://%s:%s@%s:%s/%s", user, encodeURIComponent(pass), host, port, authdb)
+func ConnectWithDirect(host, port, user, pass, authdb string,
+	timeout time.Duration, direct bool) (*mongo.Client, error) {
+	if host == "" {
+		return nil, fmt.Errorf("host is empty")
+	}
+	if port != "" {
+		host = fmt.Sprintf("%s:%s", host, port)
+	}
+	mongoURI := fmt.Sprintf("mongodb://%s:%s@%s/%s", user, encodeURIComponent(pass), host, authdb)
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	opt := options.Client().ApplyURI(mongoURI)

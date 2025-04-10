@@ -8,19 +8,26 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 const ClusterTypeReplicaSet = "MongoReplicaSet"
 
 type MongoHost struct {
-	Host     string `json:"host"`
-	Port     int    `json:"port"`
-	UserName string `json:"username"`
-	Password string `json:"password"`
-	SetName  string `json:"set_name"`
+	Host          string
+	Port          int
+	UserName      string
+	Password      string
+	SetName       string
+	AdminUsername string
+	AdminPassword string
+	RealRtxId     string // 真实的RTX ID
 }
 
 func encodeURIComponent(str string) string {
@@ -31,14 +38,14 @@ func encodeURIComponent(str string) string {
 
 func (h *MongoHost) Uri() string {
 	if h.SetName == "" {
-		return fmt.Sprintf("mongodb://%s:%s@%s/test?authSource=admin&readPreference=secondaryPreferred",
-			h.UserName, encodeURIComponent(h.Password), h.Host)
+		return fmt.Sprintf("mongodb://%s:%s@%s/test?authSource=admin&appname=webconsole_%s",
+			h.UserName, encodeURIComponent(h.Password), h.Host, h.RealRtxId)
 	} else {
+		// 副本集, replicaSet=SetName不加时，可以直接连Secondary
 		return fmt.Sprintf(
-			"mongodb://%s:%s@%s/test?replicaSet=%s&authSource=admin&readPreference=secondaryPreferred",
-			h.UserName, encodeURIComponent(h.Password), h.Host, h.SetName)
+			"mongodb://%s:%s@%s/test?authSource=admin&appname=webconsole_%s",
+			h.UserName, encodeURIComponent(h.Password), h.Host, h.RealRtxId)
 	}
-
 }
 
 // MongoShell is a routine that can be run and stopped.
@@ -51,18 +58,8 @@ type MongoShell struct {
 	Chan          chan []byte
 	Pid           int
 	StopChan      chan struct{}
-	ShellPath     string
 	MongoHost     MongoHost
-}
-
-// getMongoBin get mongo shell bin path. mongosh or mongo
-func getMongoBin(v string) string {
-	for _, ver := range []string{"2.4", "3.0", "3.2", "3.4", "3.6", "4.0", "4.2"} {
-		if strings.HasPrefix(v, ver+".") {
-			return "mongo"
-		}
-	}
-	return "mongosh"
+	MongoVersion  string
 }
 
 // NewMongoShellFromParm create a new MongoShell instance
@@ -72,29 +69,97 @@ func NewMongoShellFromParm(p *QueryParams) *MongoShell {
 		setName = p.SetName
 	}
 	return &MongoShell{
-		Chan:      make(chan []byte, 102400),
-		StopChan:  make(chan struct{}, 1),
-		ShellPath: getMongoBin(p.Version),
+		Chan:         make(chan []byte, 102400),
+		StopChan:     make(chan struct{}, 1),
+		MongoVersion: p.Version,
 		MongoHost: MongoHost{
-			Host:     strings.Join(p.Addresses, ","),
-			UserName: p.UserName,
-			Password: p.Password,
-			SetName:  setName,
+			Host:          p.Addresses[0], // 只取第一个地址
+			UserName:      p.UserName,
+			Password:      p.Password,
+			SetName:       setName,
+			AdminUsername: p.AdminUsername,
+			AdminPassword: p.AdminPassword,
+			RealRtxId:     p.OaUser,
 		},
 	}
 }
 
-func (r *MongoShell) Run(startWg *sync.WaitGroup, logger *slog.Logger) {
+// parseMongoVersion parses the MongoDB version string.
+func parseMongoVersion(version string) (major, minor int, err error) {
+	if strings.Contains(version, "-") {
+		fs := strings.Split(version, "-")
+		if len(fs) >= 2 {
+			version = fs[1]
+		} else {
+			return 0, 0, fmt.Errorf("invalid version string")
+		}
+	}
+	fs := strings.Split(version, ".")
+	if len(fs) < 2 {
+		return 0, 0, fmt.Errorf("invalid version string")
+	}
+
+	major, err = strconv.Atoi(fs[0])
+	if err != nil {
+		return 0, 0, fmt.Errorf("invalid major version")
+	}
+	minor, err = strconv.Atoi(fs[1])
+	if err != nil {
+		return 0, 0, fmt.Errorf("invalid minor version")
+	}
+	return
+}
+
+// buildArgs builds the arguments for the MongoShell process.
+// 不同的版本，shell和参数都不同
+func buildArgs(r *MongoShell) (argv []string, err error) {
+	major, minor, err := parseMongoVersion(r.MongoVersion)
+	if err != nil {
+		return nil, fmt.Errorf("invalid version string")
+	}
+
+	shellPath := "mongosh"
+	// 4.2 之前的版本，使用 mongo
+	isLowerVersion := major < 4 || (minor < 2 && major == 4)
+	if isLowerVersion {
+		shellPath = "mongo"
+	}
+
+	evalJs := ""
+	isMongos := r.MongoHost.SetName == ""
+
+	if isMongos {
+		// 分片集群，总是先执行一次 setReadPref secondary
+		evalJs = fmt.Sprintf("db.getMongo().setReadPref('secondary');")
+	} else {
+		// 副本集，4.2 之前的版本，使用 setSlaveOk
+		if isLowerVersion {
+			evalJs = fmt.Sprintf("db.getMongo().setSecondaryOk(true);")
+		} else {
+			evalJs = fmt.Sprintf("db.getMongo().setReadPref('secondary');")
+		}
+	}
+
+	cmdPath, err := exec.LookPath(shellPath)
+	if err != nil {
+		return nil, fmt.Errorf("internal error, exec.LookPath failed")
+	}
+	argv = append(argv, []string{cmdPath, "--norc", "--quiet", "--eval", evalJs, "--shell", r.MongoHost.Uri()}...)
+	return argv, nil
+}
+
+// Run starts the MongoShell process.
+// 如果返回Error，表示进程启动失败，startWg.Done() 不会被调用
+func (r *MongoShell) Run(startWg *sync.WaitGroup, logger *slog.Logger) error {
 	r.logger = logger
 	r.logger.Info("Run")
-	var cmdPath string
-	var argv []string
 	var err error
+
 	var inr, outr, outw *os.File
 	inr, r.ProcessStdin, err = os.Pipe()
 	if err != nil {
 		r.logger.Error("os.Pipe", slog.Any("err", err))
-		return
+		return fmt.Errorf("internal error, create pipe failed")
 	}
 	defer r.ProcessStdin.Close()
 	defer inr.Close()
@@ -102,27 +167,41 @@ func (r *MongoShell) Run(startWg *sync.WaitGroup, logger *slog.Logger) {
 	outr, outw, err = os.Pipe()
 	if err != nil {
 		r.logger.Error("os.Pipe", slog.Any("err", err))
-		return
+		return fmt.Errorf("internal error, create pipe failed")
 	}
-
 	defer outr.Close()
 	defer outw.Close()
+
+	r.logger.Info("createMongoShell", slog.Any("MongoHost", r.MongoHost))
+	// try to create readonly user
+
+	err = createReadOnlyUser(r.MongoHost.Host, r.MongoHost.AdminUsername, r.MongoHost.AdminPassword,
+		r.MongoHost.UserName, r.MongoHost.Password)
+	if err != nil {
+		if errors.Is(err, ErrConnectFail) {
+			r.logger.Error("ErrConnectFail", slog.Any("err", err))
+			return fmt.Errorf("internal error, ErrConnectFail")
+		} else {
+			r.logger.Error("ErrCreateReadOnlyUserFail", slog.Any("err", err))
+			return fmt.Errorf("internal error, ErrCreateReadOnlyUserFail")
+		}
+
+	}
 
 	// 启动进程，启动后，将进程的Pid出发送到 Chan
 	// 如果进程退出，关闭 Chan
 	pidChan := make(chan int)
 	procCtx, procCancel := context.WithCancel(context.Background())
-	// defer procCancel()
+
+	argv, err := buildArgs(r)
+	if err != nil {
+		r.logger.Error("buildArgs", slog.Any("err", err))
+		return fmt.Errorf("internal error, start process failed")
+	}
+	r.logger.Info("StartProcess", slog.String("cmdPath", argv[0]), slog.Any("argv", argv))
 
 	go func(pid chan<- int) {
-		// cmdPath, err = exec.LookPath("mongo")
-		if cmdPath, err = exec.LookPath(r.ShellPath); err != nil {
-			r.logger.Error("exec.LookPath", slog.Any("err", err))
-			return
-		}
-		argv = append(argv, []string{cmdPath, "--norc", "--quiet", r.MongoHost.Uri()}...)
-		r.logger.Info("StartProcess", slog.String("cmdPath", cmdPath), slog.Any("argv", argv))
-		proc, err := os.StartProcess(cmdPath, argv, &os.ProcAttr{
+		proc, err := os.StartProcess(argv[0], argv, &os.ProcAttr{
 			Files: []*os.File{inr, outw, outw},
 		})
 		if err != nil {
@@ -144,13 +223,11 @@ func (r *MongoShell) Run(startWg *sync.WaitGroup, logger *slog.Logger) {
 
 	}(pidChan)
 
-	r.logger.Info("StartProcess", slog.String("cmdPath", cmdPath), slog.Any("argv", argv))
-
 	var pid int
 	pid = <-pidChan
 	r.Pid = pid
 	time.Sleep(2)
-	r.logger.Info("StartProcess", slog.String("cmdPath", cmdPath), slog.Any("argv", argv),
+	r.logger.Info("startProcess", slog.String("cmdPath", argv[0]), slog.Any("argv", argv),
 		slog.Int("pid", r.Pid), slog.Any("err", err))
 	startWg.Done() // signal to main goroutine
 
@@ -167,7 +244,7 @@ func (r *MongoShell) Run(startWg *sync.WaitGroup, logger *slog.Logger) {
 			select {
 			case <-procCtx.Done():
 				r.logger.Info("pumpStdout stop, because procCtx.Done")
-				r.Chan <- []byte("exit\n")
+				// r.Chan <- []byte("exit\n")
 				goto done
 			default:
 				// ctx, _ := context.WithTimeout(context.Background(), 1*time.Second
@@ -189,13 +266,14 @@ func (r *MongoShell) Run(startWg *sync.WaitGroup, logger *slog.Logger) {
 		}
 	done:
 
-		r.logger.Info("close Chan", slog.String("func", "pumpStdout"))
+		r.logger.Info("close chan", slog.String("func", "pumpStdout"))
 		close(r.Chan)
 	}()
 
 	r.logger.Info("pumpStdout is running")
 	wg.Wait()
 	r.logger.Info("pumpStdout is done")
+	return nil
 }
 
 func (r *MongoShell) ReceiveMsg(timeout int64) (out []byte, err error) {
@@ -208,11 +286,12 @@ func (r *MongoShell) ReceiveMsg(timeout int64) (out []byte, err error) {
 		select {
 		case v, ok := <-r.Chan:
 			if !ok {
-				return nil, fmt.Errorf("chan closed")
+				r.logger.Info("chan closed", slog.String("v", string(v)))
+				return msg.Bytes(), fmt.Errorf("chan closed")
 			}
 			_, werr := msg.Write(v)
 			if werr != nil {
-				return nil, werr
+				return msg.Bytes(), werr
 			}
 
 			lastUpdate = time.Now().UnixMilli()
@@ -220,7 +299,7 @@ func (r *MongoShell) ReceiveMsg(timeout int64) (out []byte, err error) {
 				return msg.Bytes(), nil
 			}
 		case <-ctxTimeout.Done():
-			return nil, fmt.Errorf("timeout") // 返回超时或取消原因
+			return msg.Bytes(), fmt.Errorf("timeout") // 返回超时或取消原因
 		case <-checkCone:
 			if msg.Len() > 0 && time.Now().UnixMilli()-lastUpdate > 800 {
 				r.logger.Info("ReceiveMsg because of timeout", slog.Int("msgLen", msg.Len()))
@@ -233,15 +312,38 @@ func (r *MongoShell) ReceiveMsg(timeout int64) (out []byte, err error) {
 }
 
 func (r *MongoShell) Stop() {
-	r.logger.Info("Stop")
+	r.logger.Info("stop")
 	r.StopChan <- struct{}{}
-	r.logger.Info("Stopped")
+	r.logger.Info("stopped")
+}
+
+func precheckInput(msg []byte) ([]byte, error) {
+	// append "\n" to the end of msg
+	if len(msg) == 0 || msg[len(msg)-1] != '\n' {
+		msg = append(msg, []byte("\n")...)
+	}
+
+	// 避免空的输出
+	// reShow, _ := regexp.Compile("(?i)" + `^\s*show\b`)
+	reUse, _ := regexp.Compile("(?i)" + `^\s*use\b`)
+	reIt, _ := regexp.Compile("(?i)" + `^\s*it\b`)
+	if reIt.Match(msg) || reUse.Match(msg) {
+		// use xxx
+		// it;
+		// 一定会有返回，不需要加 print, 其它的就不一定了.
+	} else {
+		msg = append(msg, []byte("print('')\n")...)
+	}
+
+	return msg, nil
 }
 
 // SendMsg sends a message to process
 func (r *MongoShell) SendMsg(msg []byte) (n int, err error) {
-	// todo check priv
-	msg = append(msg, '\n')
+	msg, err = precheckInput(msg)
+	if err != nil {
+		return 0, errors.Wrap(err, "precheckInput")
+	}
 	n, err = r.ProcessStdin.Write(msg)
 	return
 }

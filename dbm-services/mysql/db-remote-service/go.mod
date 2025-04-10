@@ -13,9 +13,13 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
+	go.mongodb.org/mongo-driver v0.0.0-00010101000000-000000000000
 	go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.46.1
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
+
+// 1.10.6是最后一个支持<v3.6的版本
+replace go.mongodb.org/mongo-driver => go.mongodb.org/mongo-driver v1.10.6
 
 require (
 	github.com/bytedance/sonic v1.12.6 // indirect
