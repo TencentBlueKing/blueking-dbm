@@ -26,16 +26,8 @@
         <DbAppSelect
           :list="bizListWithPublic"
           :model-value="curBiz"
-          permission-action-id=""
+          type="text"
           @change="handleBizChange">
-          <template #value="{ data }">
-            <div class="business-selector-trigger">
-              {{ data?.name }}
-              <DbIcon
-                class="triangle-icon mt-2 ml-7"
-                type="right-shape" />
-            </div>
-          </template>
         </DbAppSelect>
       </div>
       <div
@@ -349,7 +341,7 @@
     });
   };
 
-  const handleBizChange = (appInfo: IAppItem) => {
+  const handleBizChange = (appInfo?: IAppItem) => {
     curBiz.value = appInfo;
     fetchData();
   };
@@ -432,27 +424,6 @@
   .tag-manage-header-container {
     display: flex;
     align-items: center;
-
-    .bk-app-select {
-      border: none !important;
-
-      .bk-app-select-menu-flag {
-        display: none;
-      }
-    }
-
-    .business-selector-trigger {
-      display: flex;
-      width: 360px;
-      font-size: 14px;
-      color: #3a84ff;
-      cursor: pointer;
-      align-items: center;
-
-      .triangle-icon {
-        transform: rotate(90deg);
-      }
-    }
   }
 
   .tag-manage-batch-delete-wrapper {

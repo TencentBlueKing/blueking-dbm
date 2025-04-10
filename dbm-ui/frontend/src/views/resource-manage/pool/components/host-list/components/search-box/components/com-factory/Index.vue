@@ -131,6 +131,7 @@
 <style lang="less">
   .resourece-pool-serach-item {
     display: inline-block;
+    min-width: 0;
 
     .bk-select {
       &.is-selected-all {
