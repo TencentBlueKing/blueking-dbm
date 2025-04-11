@@ -76,6 +76,10 @@ class RedisPolarisManageService(BaseService):
             self.log_error(_("无法适配到传入的域名处理类型,请联系系统管理员:{}").format(dns_op_type))
             return False
 
+        self.log_info(result)
+        if "code" in result and result["code"] != 0:
+            self.log_error(_("调用polaris执行失败").format(result))
+            return False
         self.log_info("successfully")
         return result
 

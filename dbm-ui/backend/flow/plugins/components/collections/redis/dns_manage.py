@@ -52,7 +52,6 @@ class RedisDnsManageService(BaseService):
         # 传入调用结果
         dns_op_type = kwargs["dns_op_type"]
         dns_manage = DnsManage(bk_biz_id=global_data["bk_biz_id"], bk_cloud_id=kwargs["bk_cloud_id"])
-        result = False
         if dns_op_type == DnsOpType.CREATE:
             # 添加域名映射,适配集群申请，单独添加域名的场景
             exec_ips = self.__get_exec_ips(kwargs=kwargs, trans_data=trans_data)
