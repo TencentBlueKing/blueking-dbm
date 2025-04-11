@@ -52,11 +52,8 @@
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
-  import MongoDBModel from '@services/model/mongodb/mongodb';
   import TicketModel, { type Mongodb } from '@services/model/ticket/ticket';
-  import { filterClusters } from '@services/source/dbbase';
 
   import { TicketTypes } from '@common/const';
 
@@ -95,21 +92,10 @@
     storage_spec: [],
   });
 
-  const { run: fetchSpecInfo } = useRequest(filterClusters<MongoDBModel>, {
-    manual: true,
-    onSuccess: (data) => {
-      data.forEach((item) => {
-        if (item.mongos.length) {
-          specInfo.value = item.mongos[0].spec_config;
-        }
-      });
-    },
-  });
-
   watch(
     () => props.ticketDetails.details,
     () => {
-      if (props.ticketDetails.details.mackine_infos) {
+      if (props.ticketDetails.details?.mackine_infos) {
         Object.values(props.ticketDetails.details.mackine_infos).forEach(
           (item: Props['ticketDetails']['details']['mackine_infos'][string]) => {
             if (item.spec_config) {
@@ -117,12 +103,6 @@
             }
           },
         );
-      }
-      if (!specInfo.value.id) {
-        fetchSpecInfo({
-          bk_biz_id: props.ticketDetails.bk_biz_id,
-          cluster_ids: Object.keys(props.ticketDetails.details.clusters).join(','),
-        });
       }
     },
     {

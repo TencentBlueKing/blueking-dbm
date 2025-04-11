@@ -34,26 +34,19 @@
   </EditableColumn>
   <InstanceSelector
     v-model:is-show="showSelector"
-    :cluster-types="[ClusterTypes.TENDBCLUSTER]"
+    :cluster-types="['SpiderHost']"
     :selected="selectedHosts"
-    :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import { checkInstance } from '@services/source/dbbase';
 
-  import { ClusterTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-    type IValue,
-    type PanelListType,
-  } from '@components/instance-selector/Index.vue';
+  import InstanceSelector, { type InstanceSelectorValues, type IValue } from '@components/instance-selector/Index.vue';
 
   export type SelectorHost = IValue;
 
@@ -94,37 +87,9 @@
 
   const { t } = useI18n();
 
-  const tabListConfig = {
-    [ClusterTypes.TENDBCLUSTER]: [
-      {
-        tableConfig: {
-          firsrColumn: {
-            field: 'ip',
-            label: t('目标主机'),
-            role: 'remote_master,remote_slave',
-          },
-        },
-        topoConfig: {
-          countFunc: (cluster: TendbClusterModel) => {
-            return cluster.spider_master.length + cluster.spider_slave.length;
-          },
-        },
-      },
-      {
-        tableConfig: {
-          firsrColumn: {
-            field: 'ip',
-            label: t('目标主机'),
-            role: 'remote_master,remote_slave',
-          },
-        },
-      },
-    ],
-  } as unknown as Record<ClusterTypes, PanelListType>;
-
   const showSelector = ref(false);
   const selectedHosts = computed<InstanceSelectorValues<IValue>>(() => ({
-    [ClusterTypes.TENDBCLUSTER]: props.selected.map(
+    SpiderHost: props.selected.map(
       (item) =>
         ({
           ip: item.ip,
@@ -162,7 +127,7 @@
           cluster_id: item.cluster_id,
           ip: item.ip,
           master_domain: item.master_domain,
-          role: item.role === 'slave' ? 'remote_slave' : 'remote_master',
+          role: item.role === 'slave' ? 'spider_slave' : 'spider_master',
         };
       }
     },
@@ -173,7 +138,7 @@
   };
 
   const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
-    emits('batch-edit', selected[ClusterTypes.TENDBCLUSTER]);
+    emits('batch-edit', selected.SpiderHost);
   };
 
   watch(

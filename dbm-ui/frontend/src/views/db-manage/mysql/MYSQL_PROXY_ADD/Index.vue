@@ -171,15 +171,17 @@
       {
         message: t('IP 重复'),
         trigger: 'blur',
-        validator: (value: string, rowData: RowData) => {
-          return newProxyCounter.value[rowData.new_proxy.ip] <= 1;
+        validator: (value: string, rowData?: Record<string, any>) => {
+          const row = rowData as RowData;
+          return newProxyCounter.value[row.new_proxy.ip] <= 1;
         },
       },
       {
         message: t('IP 重复'),
         trigger: 'change',
-        validator: (value: string, rowData: RowData) => {
-          return newProxyCounter.value[rowData.new_proxy.ip] <= 1;
+        validator: (value: string, rowData?: Record<string, any>) => {
+          const row = rowData as RowData;
+          return newProxyCounter.value[row.new_proxy.ip] <= 1;
         },
       },
     ],
