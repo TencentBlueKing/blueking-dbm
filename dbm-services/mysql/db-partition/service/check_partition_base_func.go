@@ -45,9 +45,20 @@ func (config *PartitionConfig) GetPartitionDbLikeTbLike(dbtype string, splitCnt 
 			tb.DbName, tb.TbName, tb.Partitioned, tb.HasUniqueKey))
 		go func(tb ConfigDetail) {
 			defer func() {
+				_, _ = OneAddressExecuteSql(QueryRequest{
+					Addresses: []string{fmt.Sprintf("%s:%d", host.Ip, host.Port)},
+					Cmds: []string{
+						fmt.Sprintf("FLUSH TABLE `%s`.`%s`", tb.DbName, tb.TbName),
+					},
+					Force:        true,
+					QueryTimeout: 600,
+					BkCloudId:    host.BkCloudId,
+				})
+
 				<-tokenBucket
 				wg.Done()
 			}()
+
 			if tb.Partitioned {
 				sql, err = tb.GetAddPartitionSql(host)
 				if err != nil {
@@ -90,6 +101,173 @@ func (config *PartitionConfig) GetPartitionDbLikeTbLike(dbtype string, splitCnt 
 	return initSqls.list, addSqls.list, dropSqls.list, nil
 }
 
+func (config *PartitionConfig) getOneTableInfo(address string, bkCloudId int, row map[string]interface{}, fromCron bool) (*ConfigDetail, error) {
+	var partitioned bool
+	db := row["TABLE_SCHEMA"].(string)
+	tb := row["TABLE_NAME"].(string)
+
+	defer func() {
+		_, _ = OneAddressExecuteSql(QueryRequest{
+			Addresses: []string{address},
+			Cmds: []string{
+				fmt.Sprintf("FLUSH TABLES `%s`.`%s`", db, tb),
+			},
+			Force:        true,
+			QueryTimeout: 300,
+			BkCloudId:    bkCloudId,
+		})
+	}()
+
+	copt, ok := row["CREATE_OPTIONS"]
+	if !ok || copt == nil {
+		slog.Info(
+			"get table info create_options null",
+			slog.String("db", db),
+			slog.String("tb", tb),
+			slog.String("address", address),
+		)
+		return nil, errno.CheckPartitionFailed.Add(
+			fmt.Sprintf("%s.%s create_options is null]",
+				strings.Replace(config.DbLike, "%", "%%", -1), config.TbLike))
+	}
+
+	if strings.Contains(row["CREATE_OPTIONS"].(string), "partitioned") {
+		slog.Info(
+			"check table partition column and interval",
+			slog.String("db", db),
+			slog.String("tb", tb),
+		)
+
+		partitioned = true
+		//check分区字段、分区间隔
+		sql := fmt.Sprintf("select PARTITION_EXPRESSION"+
+			" as PARTITION_EXPRESSION,PARTITION_METHOD as PARTITION_METHOD,PARTITION_NAME"+
+			" as PARTITION_NAME from "+
+			" information_schema.PARTITIONS where TABLE_SCHEMA = '%s' and TABLE_NAME = '%s' "+
+			" order by PARTITION_DESCRIPTION asc limit 2;",
+			db, tb)
+		queryRequest := QueryRequest{[]string{address}, []string{sql}, true, 30, bkCloudId}
+		output, err := OneAddressExecuteSql(queryRequest)
+		if err != nil {
+			slog.Error("GetDbTableInfo", sql, err.Error())
+			return nil, err
+		}
+		slog.Info(
+			"check table partition column and interval",
+			slog.String("db", db),
+			slog.String("tb", tb),
+			slog.Any("drs output", output),
+		)
+
+		flag := config.CustomizationCheck()
+		if flag {
+			// 分区表至少会有一个分区
+			for _, v := range output.CmdResults[0].TableData {
+				// 如果发现分区字段、分区间隔与规则不符合，需要重新做分区，页面调整了分区规则
+				pe, ok := v["PARTITION_EXPRESSION"]
+				if !ok || pe == nil {
+					slog.Info(
+						"check table partition column and interval bad partition expression",
+						slog.String("db", db),
+						slog.String("tb", tb),
+						slog.Any("drs output", output))
+					return nil, errno.CheckPartitionFailed.Add(
+						fmt.Sprintf("%s.%s partition expression is null",
+							strings.Replace(config.DbLike, "%", "%%", -1), config.TbLike))
+				}
+				pm, ok := v["PARTITION_METHOD"]
+				if !ok || pm == nil {
+					slog.Info(
+						"check table partition column and interval bad partition method",
+						slog.String("db", db),
+						slog.String("tb", tb),
+						slog.Any("drs output", output))
+					return nil, errno.CheckPartitionFailed.Add(
+						fmt.Sprintf("%s.%s partition method is null",
+							strings.Replace(config.DbLike, "%", "%%", -1), config.TbLike))
+				}
+
+				ok, errInner := CheckPartitionExpression(v["PARTITION_EXPRESSION"].(string),
+					v["PARTITION_METHOD"].(string),
+					config.PartitionColumn, config.PartitionType)
+				if errInner != nil {
+					slog.Error("CheckPartitionExpression", "error", errInner.Error())
+					return nil, errInner
+				} else if !ok {
+					// 如果页面调整了分区规则，允许在页面手动执行执行分区。定时任务不对已经分区过的表做初始化，风险高
+					if fromCron {
+						tips := fmt.Sprintf("partition crontab task not init partitioned table " +
+							"when partition expression in db not consistent with config in system, " +
+							"please confirm, you can execute from web")
+						slog.Error("CheckPartitionExpression", "tips", tips,
+							"db", db, "tb", tb)
+						return nil, fmt.Errorf("db like: [%s] and table like: [%s]: %s", db, tb, tips)
+					} else {
+						partitioned = false
+						break
+					}
+				}
+			}
+		}
+		if partitioned == true && len(output.CmdResults[0].TableData) == 2 {
+			pn, ok := output.CmdResults[0].TableData[0]["PARTITION_EXPRESSION"]
+			if !ok || pn == nil {
+				slog.Info(
+					"check table partition column and interval bad partition name",
+					slog.String("db", db),
+					slog.String("tb", tb),
+					slog.Any("drs output", output))
+				return nil, nil
+			}
+
+			ok, errInner := CalculateInterval(output.CmdResults[0].TableData[0]["PARTITION_NAME"].(string),
+				output.CmdResults[0].TableData[1]["PARTITION_NAME"].(string), config.PartitionTimeInterval)
+			if errInner != nil {
+				slog.Error("CalculateInterval", "error", errInner.Error())
+				return nil, errInner
+			} else if !ok {
+				if fromCron {
+					tips := fmt.Sprintf("partition crontab task not init partitioned table " +
+						"when partition interval in db not consistent with config in system, " +
+						"please confirm, you can execute from web")
+					slog.Error("CalculateInterval", "tips", tips,
+						"db", db, "tb", tb)
+					return nil, fmt.Errorf("db like: [%s] and table like: [%s]: %s", db, tb, tips)
+				} else {
+					partitioned = false
+				}
+			}
+		}
+	}
+
+	// 故意放到循环内部单个表来查
+	// 虽然会增加和drs的交互次数
+	// 但是能减少同一时间打开表的数量
+	uniqueKeySql := fmt.Sprintf(
+		`select distinct TABLE_SCHEMA as TABLE_SCHEMA,TABLE_NAME as TABLE_NAME `+
+			` from information_schema.TABLE_CONSTRAINTS `+
+			` where TABLE_SCHEMA = '%s' and TABLE_NAME = '%s' and `+
+			` CONSTRAINT_TYPE in ('UNIQUE','PRIMARY KEY');`,
+		db, tb)
+	queryRequest := QueryRequest{[]string{address}, []string{uniqueKeySql}, true,
+		30, bkCloudId}
+	hasUniqueKey, err := OneAddressExecuteSql(queryRequest)
+	if err != nil {
+		slog.Error("get", uniqueKeySql, err.Error())
+		return nil, err
+	}
+
+	uniqueKeyFlag := false
+	for _, unique := range hasUniqueKey.CmdResults[0].TableData {
+		if db == unique["TABLE_SCHEMA"].(string) && tb == unique["TABLE_NAME"].(string) {
+			uniqueKeyFlag = true
+		}
+	}
+
+	return &ConfigDetail{PartitionConfig: *config, DbName: db,
+		TbName: tb, Partitioned: partitioned, HasUniqueKey: uniqueKeyFlag}, nil
+}
+
 // GetDbTableInfo TODO
 func (config *PartitionConfig) GetDbTableInfo(fromCron bool, host Host) (ptlist []ConfigDetail, err error) {
 	address := fmt.Sprintf("%s:%d", host.Ip, host.Port)
@@ -101,7 +279,7 @@ func (config *PartitionConfig) GetDbTableInfo(fromCron bool, host Host) (ptlist 
 			` from information_schema.tables where TABLE_SCHEMA like '%s' and TABLE_NAME like '%s';`,
 		config.DbLike, config.TbLike)
 	var queryRequest = QueryRequest{[]string{address}, []string{sql}, true, 30,
-		int(host.BkCloudId)}
+		host.BkCloudId}
 	output, err = OneAddressExecuteSql(queryRequest)
 	if err != nil {
 		slog.Error("GetDbTableInfo", sql, err.Error())
@@ -112,112 +290,17 @@ func (config *PartitionConfig) GetDbTableInfo(fromCron bool, host Host) (ptlist 
 			fmt.Sprintf("db like: [%s] and table like: [%s]",
 				strings.Replace(config.DbLike, "%", "%%", -1), config.TbLike))
 	}
-	uniqueKeySql := fmt.Sprintf(
-		`select distinct TABLE_SCHEMA as TABLE_SCHEMA,TABLE_NAME as TABLE_NAME `+
-			` from information_schema.TABLE_CONSTRAINTS `+
-			` where TABLE_SCHEMA like '%s' and TABLE_NAME like '%s' and `+
-			` CONSTRAINT_TYPE in ('UNIQUE','PRIMARY KEY');`,
-		config.DbLike, config.TbLike)
-	queryRequest = QueryRequest{[]string{address}, []string{uniqueKeySql}, true,
-		30, int(host.BkCloudId)}
-	hasUniqueKey, err := OneAddressExecuteSql(queryRequest)
-	if err != nil {
-		slog.Error("get", sql, err.Error())
-		return nil, err
-	}
 
 	for _, row := range output.CmdResults[0].TableData {
-		var partitioned bool
-		db := row["TABLE_SCHEMA"].(string)
-		tb := row["TABLE_NAME"].(string)
-
-		copt, ok := row["CREATE_OPTIONS"]
-		if !ok || copt == nil {
-			slog.Info(
-				"get table info create_options null",
-				slog.String("db", db),
-				slog.String("tb", tb),
-				slog.String("address", address),
-			)
-
-			continue
+		partitionTable, err := config.getOneTableInfo(address, host.BkCloudId, row, fromCron)
+		if err != nil {
+			slog.Error("GetDbTableInfo", sql, err.Error())
+			return nil, err
 		}
-
-		if strings.Contains(row["CREATE_OPTIONS"].(string), "partitioned") {
-			partitioned = true
-			//check分区字段、分区间隔
-			sql = fmt.Sprintf("select PARTITION_EXPRESSION"+
-				" as PARTITION_EXPRESSION,PARTITION_METHOD as PARTITION_METHOD,PARTITION_NAME"+
-				" as PARTITION_NAME from "+
-				" information_schema.PARTITIONS where TABLE_SCHEMA like '%s' and TABLE_NAME like '%s' "+
-				" order by PARTITION_DESCRIPTION asc limit 2;",
-				db, tb)
-			queryRequest = QueryRequest{[]string{address}, []string{sql}, true, 30,
-				int(host.BkCloudId)}
-			output, err = OneAddressExecuteSql(queryRequest)
-			if err != nil {
-				slog.Error("GetDbTableInfo", sql, err.Error())
-				return nil, err
-			}
-
-			flag := config.CustomizationCheck()
-			if flag {
-				// 分区表至少会有一个分区
-				for _, v := range output.CmdResults[0].TableData {
-					// 如果发现分区字段、分区间隔与规则不符合，需要重新做分区，页面调整了分区规则
-					ok, errInner := CheckPartitionExpression(v["PARTITION_EXPRESSION"].(string),
-						v["PARTITION_METHOD"].(string),
-						config.PartitionColumn, config.PartitionType)
-					if errInner != nil {
-						slog.Error("CheckPartitionExpression", "error", errInner.Error())
-						return nil, errInner
-					} else if !ok {
-						// 如果页面调整了分区规则，允许在页面手动执行执行分区。定时任务不对已经分区过的表做初始化，风险高
-						if fromCron {
-							tips := fmt.Sprintf("partition crontab task not init partitioned table " +
-								"when partition expression in db not consistent with config in system, " +
-								"please confirm, you can execute from web")
-							slog.Error("CheckPartitionExpression", "tips", tips,
-								"db", db, "tb", tb)
-							return nil, fmt.Errorf("db like: [%s] and table like: [%s]: %s", db, tb, tips)
-						} else {
-							partitioned = false
-							break
-						}
-					}
-				}
-			}
-			if partitioned == true && len(output.CmdResults[0].TableData) == 2 {
-				ok, errInner := CalculateInterval(output.CmdResults[0].TableData[0]["PARTITION_NAME"].(string),
-					output.CmdResults[0].TableData[1]["PARTITION_NAME"].(string), config.PartitionTimeInterval)
-				if errInner != nil {
-					slog.Error("CalculateInterval", "error", errInner.Error())
-					return nil, errInner
-				} else if !ok {
-					if fromCron {
-						tips := fmt.Sprintf("partition crontab task not init partitioned table " +
-							"when partition interval in db not consistent with config in system, " +
-							"please confirm, you can execute from web")
-						slog.Error("CalculateInterval", "tips", tips,
-							"db", db, "tb", tb)
-						return nil, fmt.Errorf("db like: [%s] and table like: [%s]: %s", db, tb, tips)
-					} else {
-						partitioned = false
-					}
-				}
-			}
-		}
-		uniqueKeyFlag := false
-		for _, unique := range hasUniqueKey.CmdResults[0].TableData {
-			if db == unique["TABLE_SCHEMA"].(string) && tb == unique["TABLE_NAME"].(string) {
-				uniqueKeyFlag = true
-			}
-		}
-		partitionTable := ConfigDetail{PartitionConfig: *config, DbName: db,
-			TbName: tb, Partitioned: partitioned, HasUniqueKey: uniqueKeyFlag}
-		ptlist = append(ptlist, partitionTable)
+		ptlist = append(ptlist, *partitionTable)
 	}
 	slog.Info("finish getting all partition info")
+
 	return ptlist, nil
 }
 
@@ -335,7 +418,7 @@ func (m *ConfigDetail) GetDropPartitionSql(host Host) (string, error) {
 	}
 	sql = fmt.Sprintf("%s %s %s", base0, fx, base1)
 	var queryRequest = QueryRequest{Addresses: []string{address}, Cmds: []string{sql}, Force: true, QueryTimeout: 30,
-		BkCloudId: int(host.BkCloudId)}
+		BkCloudId: host.BkCloudId}
 	output, err := OneAddressExecuteSql(queryRequest)
 	if err != nil {
 		return dropSql, err
@@ -529,7 +612,7 @@ func (m *ConfigDetail) GetAddPartitionSql(host Host) (string, error) {
 		"select count(*) as COUNT from INFORMATION_SCHEMA.PARTITIONS where TABLE_SCHEMA='%s' and TABLE_NAME='%s' "+
 			"and partition_description>= %s", m.DbName, m.TbName, fx)
 	var queryRequest = QueryRequest{Addresses: []string{address}, Cmds: []string{vsql}, Force: true, QueryTimeout: 30,
-		BkCloudId: int(host.BkCloudId)}
+		BkCloudId: host.BkCloudId}
 	output, err := OneAddressExecuteSql(queryRequest)
 	if err != nil {
 		return addSql, err
@@ -554,9 +637,10 @@ func (m *ConfigDetail) GetAddPartitionSql(host Host) (string, error) {
 	// 表是分区表，但是已有的分区过旧，以至于不能包含今天或者未来的分区，添加能包含今天数据的分区
 	if len(output.CmdResults[0].TableData) == 0 {
 		begin = -1
-		vsql = fmt.Sprintf(`select %s %s from INFORMATION_SCHEMA.PARTITIONS limit 1;`, wantedDescIfOld, wantedNameIfOld)
+		//vsql = fmt.Sprintf(`select %s %s from INFORMATION_SCHEMA.PARTITIONS limit 1;`, wantedDescIfOld, wantedNameIfOld)
+		vsql = fmt.Sprintf(`select %s %s;`, wantedDescIfOld, wantedNameIfOld)
 		queryRequest = QueryRequest{Addresses: []string{address}, Cmds: []string{vsql}, Force: true, QueryTimeout: 30,
-			BkCloudId: int(host.BkCloudId)}
+			BkCloudId: host.BkCloudId}
 		output, err = OneAddressExecuteSql(queryRequest)
 		if err != nil {
 			return addSql, err
@@ -671,7 +755,7 @@ func CreatePartitionTicket(flows []Info, ClusterType string, domain string, vdat
 }
 
 // NeedPartition 获取需要实施的分区规则
-func NeedPartition(cronType string, clusterType string, zoneOffset int, cronDate string, weekDay int) ([]*PartitionConfig, error) {
+func NeedPartition(cronType string, clusterType string, zoneOffset int, cronDate string) ([]*PartitionConfig, error) {
 	var configTb, logTb string
 	var doNothing []*Checker
 
@@ -687,9 +771,19 @@ func NeedPartition(cronType string, clusterType string, zoneOffset int, cronDate
 	}
 	vzone := fmt.Sprintf("%+03d:00", zoneOffset)
 	// 集群被offline时，其分区规则也被禁用，规则不会被定时任务执行
+
+	configQuery := "time_zone = ? and phase in (?,?)"
+	tendbclusterConfigFilter := viper.GetString("tendbcluster.config.filter")
+	slog.Info("need partition", slog.String("tendbcluster.config.filter", tendbclusterConfigFilter))
+	if tendbclusterConfigFilter != "" {
+		configQuery = fmt.Sprintf("%s and %s", configQuery, tendbclusterConfigFilter)
+	}
+	slog.Info("need partition", slog.String("config query", configQuery))
+
 	var all, need []*PartitionConfig
-	err := model.DB.Self.Table(configTb).Where("time_zone = ? and phase in (?,?) and crc32(id) % 7 = ?", vzone, online, offline, weekDay).Scan(&all).
-		Error
+	err := model.DB.Self.Table(configTb).Where(
+		configQuery,
+		vzone, online, offline).Scan(&all).Error
 	if err != nil {
 		slog.Error("msg", fmt.Sprintf("query %s err", configTb), err)
 		return nil, err

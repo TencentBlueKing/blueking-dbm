@@ -154,7 +154,7 @@ func (c *PrivTaskPara) AddPriv(jsonPara, ticket string) (err error) {
 	}()
 
 	var errCollect error
-	reportCollect := make(map[string][]string, 0)
+	reportCollect := make(map[string][]string)
 	for {
 		select {
 		case err := <-errChan:

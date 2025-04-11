@@ -116,7 +116,7 @@ func loadSnapShot() ([]*mysqlProcess, error) {
 	var res []*mysqlProcess
 	err = json.Unmarshal(content, &res)
 	if err != nil {
-		slog.Error("unmarshal processlist", slog.String("error", err.Error()))
+		slog.Error("unmarshal processlist", slog.String("error", err.Error()), slog.String("content", string(content)))
 		return nil, err
 	}
 

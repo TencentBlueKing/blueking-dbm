@@ -18,7 +18,6 @@ type PartitionJob struct {
 	ZoneName    string `json:"zone_name"`
 	CronDate    string `json:"cron_date"`
 	Hour        string `json:"hour"`
-	weekday     int
 }
 
 // TendbhaRelation tendbha机器与分区配置关系

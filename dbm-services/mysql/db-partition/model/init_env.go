@@ -7,6 +7,9 @@ import (
 
 // InitEnv 环境变量初始化
 func InitEnv() {
+	// bk_biz_id = 132 and id % 7 = 0
+	viper.BindEnv("tendbcluster.config.filter", "TENDBCLUSTER_CONFIG_FILTER")
+
 	// meta DB参数
 	viper.BindEnv("db.user", "DB_USER")
 	viper.BindEnv("db.password", "DB_PASSWORD")

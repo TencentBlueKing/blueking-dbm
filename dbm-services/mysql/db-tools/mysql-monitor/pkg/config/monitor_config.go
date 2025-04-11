@@ -27,11 +27,12 @@ type Config struct {
 	Role         *string `yaml:"role"`
 	BkCloudID    *int    `yaml:"bk_cloud_id" validate:"required,gte=0"`
 	//DBModuleID      *int          `yaml:"db_module_id" validate:"required"`
-	Log             *LogConfig    `yaml:"log"`
-	ItemsConfigFile string        `yaml:"items_config_file" validate:"required"`
-	ApiUrl          string        `yaml:"api_url" validate:"required"`
-	Auth            AuthCollect   `yaml:"auth"`
-	DBASysDbs       []string      `yaml:"dba_sys_dbs" validate:"required"`
-	InteractTimeout time.Duration `yaml:"interact_timeout" validate:"required"`
-	DefaultSchedule string        `yaml:"default_schedule" validate:"required"`
+	Log                 *LogConfig    `yaml:"log"`
+	ItemsConfigFile     string        `yaml:"items_config_file" validate:"required"`
+	ApiUrl              string        `yaml:"api_url" validate:"required"`
+	Auth                AuthCollect   `yaml:"auth"`
+	DBASysDbs           []string      `yaml:"dba_sys_dbs" validate:"required"`
+	InteractTimeout     time.Duration `yaml:"interact_timeout" validate:"required"`
+	DefaultSchedule     string        `yaml:"default_schedule" validate:"required"`
+	AutoRestartInstance *bool         `yaml:"auto_restart_instance"`
 }

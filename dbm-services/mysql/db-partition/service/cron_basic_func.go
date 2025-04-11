@@ -14,6 +14,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"hash/crc32"
 	"log/slog"
 	"os"
 	"strconv"
@@ -24,6 +25,7 @@ import (
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/db-partition/util"
 
+	"github.com/spf13/viper"
 	"golang.org/x/time/rate"
 
 	"dbm-services/mysql/db-partition/model"
@@ -35,12 +37,17 @@ func (m *PartitionJob) Run() {
 	var err error
 	var key string
 
-	m.weekday = int(time.Now().Weekday())
-
 	offetSeconds := m.ZoneOffset * 60 * 60
 	zone := time.FixedZone(m.ZoneName, offetSeconds)
 	m.CronDate = time.Now().In(zone).Format("20060102")
-	key = fmt.Sprintf("%s_%s_%d_%s", m.CronType, m.Hour, m.ZoneOffset, m.CronDate)
+
+	filter := viper.GetString("tendbcluster.config.filter")
+	var filterCrc uint32
+	if filter != "" {
+		filterCrc = crc32.ChecksumIEEE([]byte(filter))
+	}
+
+	key = fmt.Sprintf("%s_%s_%d_%s_%d", m.CronType, m.Hour, m.ZoneOffset, m.CronDate, filterCrc)
 	flag, err := model.Lock(key)
 	if err != nil {
 		msg := "partition error. set redis mutual exclusion error"
@@ -58,7 +65,7 @@ func (m *PartitionJob) Run() {
 func (m *PartitionJob) ExecuteTendbhaPartition() {
 	slog.Info("do ExecuteTendbhaPartition")
 	timeStr := time.Now().Format(time.RFC3339)
-	needMysql, errOuter := NeedPartition(m.CronType, Tendbha, m.ZoneOffset, m.CronDate, m.weekday)
+	needMysql, errOuter := NeedPartition(m.CronType, Tendbha, m.ZoneOffset, m.CronDate)
 	if errOuter != nil {
 		msg := "partition error. get need partition list fail"
 		SendMonitor(msg, errOuter)
@@ -154,7 +161,7 @@ func (m *PartitionJob) ExecuteTendbclusterPartition() {
 		slog.String("timeStr", timeStr),
 	)
 
-	needMysql, errOuter := NeedPartition(m.CronType, Tendbcluster, m.ZoneOffset, m.CronDate, m.weekday)
+	needMysql, errOuter := NeedPartition(m.CronType, Tendbcluster, m.ZoneOffset, m.CronDate)
 	if errOuter != nil {
 		msg := "partition error. get need partition list fail"
 		SendMonitor(msg, errOuter)

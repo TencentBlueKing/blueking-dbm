@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"time"
 
 	"errors"
@@ -22,102 +23,63 @@ import (
 )
 
 func ConnectProxy() (pdb *sqlx.DB, padb *sqlx.DB, err error) {
-	pdb, padb, err = connectPair()
+	// 服务端口连接失败做重启尝试
+	pdb, err = connectProxy()
+	if err != nil {
+		if (config.MonitorConfig.AutoRestartInstance != nil &&
+			*config.MonitorConfig.AutoRestartInstance) &&
+			(strings.Contains(err.Error(), "invalid connection") ||
+				strings.Contains(err.Error(), "connection refused")) {
+			slog.Info("connect proxy service port failed try to reboot", slog.String("err", err.Error()))
+			return retryAndRestartProxy()
+		}
+		slog.Error(
+			"connect proxy failed skip reboot",
+			slog.String("err", err.Error()),
+		)
+		return nil, nil, err
+	}
 
-	//if err != nil {
-	//	return retryAndRestartProxy()
-	//}
-
+	// 管理端口连接失败只告警
+	padb, err = connectProxyAdmin()
 	return pdb, padb, err
+
 }
 
 // 第一次连接失败进入排他重试阶段
 // 先尝试重连, 失败则拉起进场, 再尝试连接
 // 为了防止不同周期的监控同时操作, 这里按端口文件锁排他
 func retryAndRestartProxy() (pdb *sqlx.DB, padb *sqlx.DB, err error) {
-	lockFileName := fmt.Sprintf(
-		"proxy-retry-restart-%d.lock",
-		config.MonitorConfig.Port,
-	)
-	lockFileBasePath := filepath.Join(cst.MySQLMonitorInstallPath, "locks")
-	err = os.MkdirAll(lockFileBasePath, os.ModePerm)
+	fl, err := addExLock()
 	if err != nil {
-		slog.Error(
-			"retry restart proxy",
-			slog.String("err", err.Error()),
-			slog.Int("port", config.MonitorConfig.Port),
-		)
 		return nil, nil, err
 	}
-	lockFilePath := filepath.Join(lockFileBasePath, lockFileName)
-	fl := flock.New(lockFilePath)
 
-	slog.Info("retry restart proxy begin wait lock")
-	err = fl.Lock()
-
-	if err != nil {
-		slog.Error(
-			"retry restart proxy",
-			slog.String("err", err.Error()))
-		return nil, nil, err
-	}
 	defer func() {
-		//_ = lk.Unlock()
 		_ = fl.Unlock()
-		slog.Info("unlock file")
+		slog.Info("reboot proxy unlock")
 	}()
 
-	slog.Info("retry restart proxy get lock success")
-
+	// 获得锁后, 首先尝试一次重连
 	pdb, padb, err = connectPair()
 	if err == nil {
-		slog.Info("retry restart proxy connect success")
+		slog.Info("retry connect proxy success")
 		return pdb, padb, nil
 	}
-	slog.Info("retry restart proxy connect failed", slog.String("error", err.Error()))
+	slog.Info("retry connect proxy failed, need reboot")
 
-	// 反向查询实例状态
-	info, layer, err := mrapi.ListInstanceInfo(*config.MonitorConfig.BkCloudID, config.MonitorConfig.Port)
+	running, err := confirmSelfIsRunning()
 	if err != nil {
-		slog.Info("retry restart proxy call reverse api", slog.String("error", err.Error()))
 		return nil, nil, err
 	}
-	slog.Info(
-		"retry restart proxy",
-		slog.Any("instances raw info", info),
-		slog.Any("layer", layer),
-	)
-	var pinfos []mrapi.ProxyInstanceInfo
-	err = json.Unmarshal(info, &pinfos)
-	if err != nil {
-		slog.Info("retry restart proxy unmarshal failed", slog.String("error", err.Error()))
+	if !running {
+		err = errors.New("self isn't running, skip reboot")
+		slog.Error("reboot proxy", slog.String("err", err.Error()))
 		return nil, nil, err
-	}
-
-	idx := slices.IndexFunc(pinfos, func(item mrapi.ProxyInstanceInfo) bool {
-		return item.Port == config.MonitorConfig.Port
-	})
-	if idx < 0 {
-		err = fmt.Errorf("instance [%d] not found", config.MonitorConfig.Port)
-		slog.Info("retry restart proxy", slog.String("error", err.Error()))
-		return nil, nil, err
-	}
-
-	pinfo := pinfos[idx]
-	slog.Info(
-		"retry restart proxy",
-		slog.Any("instance info", pinfo),
-	)
-
-	if pinfo.Status != "running" {
-		slog.Error(
-			"retry restart proxy skip restart",
-			slog.String("status", pinfo.Status))
-		return nil, nil, errors.New("proxy instance is not running")
 	}
 
 	_ = proxyutil.KillDownProxy(config.MonitorConfig.Port)
-	slog.Info("retry restart proxy kill success")
+	slog.Info("reboot proxy kill success")
 
 	p := proxyutil.StartProxyParam{
 		InstallPath:    cst.ProxyInstallPath,
@@ -131,20 +93,30 @@ func retryAndRestartProxy() (pdb *sqlx.DB, padb *sqlx.DB, err error) {
 	err = p.StartAsMySQL(config.MonitorConfig.Port)
 	if err != nil {
 		slog.Warn(
-			"restart proxy",
+			"reboot proxy",
 			slog.Int("port", config.MonitorConfig.Port),
 			slog.String("error", err.Error()),
 		)
 		return nil, nil, err
 	}
 
-	slog.Info("restart proxy", slog.Int("port", config.MonitorConfig.Port))
+	slog.Info("reboot proxy", slog.Int("port", config.MonitorConfig.Port))
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(3 * time.Second)
 
-	slog.Info("retry connect after restart proxy")
+	slog.Info("retry connect after reboot proxy")
 
-	return connectPair()
+	pdb, padb, err = connectPair()
+	if err != nil {
+		slog.Error(
+			"connect proxy after reboot",
+			slog.String("err", err.Error()),
+		)
+		return nil, nil, err
+	}
+
+	slog.Info("connect proxy after reboot success")
+	return pdb, padb, nil
 }
 
 func connectProxy() (db *sqlx.DB, err error) {
@@ -206,4 +178,75 @@ func connectPair() (pdb *sqlx.DB, padb *sqlx.DB, err error) {
 		err = errors.Join(err, e)
 	}
 	return pdb, padb, err
+}
+
+func addExLock() (fl *flock.Flock, err error) {
+	lockFileName := fmt.Sprintf(
+		"proxy-retry-restart-%d.lock",
+		config.MonitorConfig.Port,
+	)
+	lockFileBasePath := filepath.Join(cst.MySQLMonitorInstallPath, "locks")
+	err = os.MkdirAll(lockFileBasePath, os.ModePerm)
+	if err != nil {
+		slog.Error(
+			"reboot proxy create lock file",
+			slog.String("err", err.Error()),
+			slog.String("path", lockFileBasePath),
+		)
+		return nil, err
+	}
+	lockFilePath := filepath.Join(lockFileBasePath, lockFileName)
+	fl = flock.New(lockFilePath)
+
+	slog.Info(
+		"reboot proxy try to lock",
+		slog.String("path", lockFilePath),
+	)
+	// 这里用排它锁, 当获得锁时, 要么自己来重启, 要么别人重启完了
+	err = fl.Lock()
+	if err != nil {
+		slog.Error(
+			"reboot proxy try to lock",
+			slog.String("err", err.Error()))
+		return nil, err
+	}
+
+	slog.Info("reboot proxy try to lock success")
+	return fl, nil
+}
+
+func confirmSelfIsRunning() (bool, error) {
+	info, layer, err := mrapi.ListInstanceInfo(*config.MonitorConfig.BkCloudID, config.MonitorConfig.Port)
+	if err != nil {
+		slog.Info("query instance info", slog.String("error", err.Error()))
+		return false, err
+	}
+	slog.Info(
+		"query instance info",
+		slog.Any("instances raw info", info),
+		slog.Any("layer", layer),
+	)
+	var pinfos []mrapi.ProxyInstanceInfo
+	err = json.Unmarshal(info, &pinfos)
+	if err != nil {
+		slog.Info("query instance info unmarshal failed", slog.String("error", err.Error()))
+		return false, err
+	}
+
+	idx := slices.IndexFunc(pinfos, func(item mrapi.ProxyInstanceInfo) bool {
+		return item.Port == config.MonitorConfig.Port
+	})
+	if idx < 0 {
+		err = fmt.Errorf("instance [%d] not found", config.MonitorConfig.Port)
+		slog.Info("query instance info", slog.String("error", err.Error()))
+		return false, err
+	}
+
+	pinfo := pinfos[idx]
+	slog.Info(
+		"query instance info",
+		slog.Any("instance info", pinfo),
+	)
+
+	return pinfo.Status == "running" && pinfo.Phase == "online", nil
 }

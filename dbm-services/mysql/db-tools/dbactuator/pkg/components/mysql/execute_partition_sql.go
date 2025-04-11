@@ -167,6 +167,11 @@ func (e *ExecutePartitionSQLComp) excuteOneInstance(filePartitionSQLObj FilePart
 		// 并发执行ExecutePartitionSQLObj
 		go func(eb ExecutePartitionSQLObj) {
 			defer wg.Done()
+
+			defer func() {
+				_, _ = dbw.Exec(fmt.Sprintf("FLUSH TABLES `%s`.`%s`", eb.Dblike, eb.Tblike))
+			}()
+
 			// 每条分区config为一个单位，根据ConfigID生成一个对应的错误文件
 			// errfile := fmt.Sprintf("partition_%d_%s.err", eb.ConfigID, time.Now().Format("20060102150405"))
 			errsall := []string{}

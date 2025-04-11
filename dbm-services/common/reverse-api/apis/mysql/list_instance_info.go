@@ -52,5 +52,9 @@ func ListInstanceInfo(bkCloudId int, ports ...int) ([]byte, string, error) {
 		return nil, "", errors.Wrap(err, "failed to unmarshal ListInstanceInfo")
 	}
 
+	if len(r) == 0 {
+		return nil, "", errors.New("no instance info")
+	}
+
 	return data, r[0].AccessLayer, nil
 }

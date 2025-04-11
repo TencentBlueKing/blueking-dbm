@@ -124,7 +124,6 @@ def instances(
     hash_value: Optional[int] = None,
     machine_only: bool = False,
 ):
-
     logger.info(
         f"receive param: "
         f"logical_city_ids: {logical_city_ids}, "
@@ -210,34 +209,46 @@ def update_status(payloads: List, bk_cloud_id: int):
     """
     ToDo 验证 status
     """
+    logger.info("update_status receive payloads: {}, bk_cloud_id: {}".format(payloads, bk_cloud_id))
     DBHAUpdateStatusRequestSerializer(data={"payloads": payloads}).is_valid(raise_exception=True)
+    logger.info("update_status validate {} pass".format(payloads))
     for pl in payloads:
+        logger.info("update_status update {} status".format(pl))
+
         ip = pl["ip"]
         port = pl["port"]
 
         try:
             storage_obj = StorageInstance.objects.get(machine__ip=ip, port=port, machine__bk_cloud_id=bk_cloud_id)
+            logger.info("update_status storage found: {}".format(storage_obj))
             cluster = storage_obj.cluster.first()
+            logger.info("update status cluster found: {}".format(cluster))
 
             storage_obj.status = pl["status"]
             storage_obj.save(update_fields=["status"])
         except ObjectDoesNotExist:
             try:
                 proxy_obj = ProxyInstance.objects.get(machine__ip=ip, port=port, machine__bk_cloud_id=bk_cloud_id)
+                logger.info("update status proxy found: {}".format(proxy_obj))
                 cluster = proxy_obj.cluster.first()
+                logger.info("update status cluster found: {}".format(cluster))
 
                 proxy_obj.status = pl["status"]
                 proxy_obj.save(update_fields=["status"])
             except ObjectDoesNotExist:
+                logger.info("update status exception found: {} object not found".format(pl))
                 raise InstanceNotExistException(_("实例ip={}, port={}不存在，请检查输入参数或相关数据").format(ip, port))
             except Exception as e:
                 raise e
         except Exception as e:
+            logger.info("update_status exception found: {}".format(e))
             raise e
 
         if cluster and pl["status"] == InstanceStatus.UNAVAILABLE.value:
             cluster.status = ClusterStatus.ABNORMAL.value
             cluster.save(update_fields=["status"])
+
+        logger.info("update_status update {} status success".format(pl))
 
 
 @transaction.atomic

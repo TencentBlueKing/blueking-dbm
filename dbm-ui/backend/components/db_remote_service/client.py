@@ -117,5 +117,29 @@ class _DRSApi(object):
             description=_("webconsole 远程执行(只读账号)"),
         )
 
+        # {
+        #    "payloads": [
+        #        {
+        #            "addresses": ["1.1.1.1:20000", "2.2.2.2:20002"],
+        #            "cmds": ["select 1", "select now()"],
+        #            "bk_cloud_id": 0,
+        #        },
+        #        {
+        #            "addresses": ["3.3.3.3:20001", "4.4.4.4:20003"],
+        #            "cmds": ["select 2", "select now()"],
+        #            "bk_cloud_id": 0,
+        #        },
+        #    ],
+        #    "bk_cloud_id": 0,
+        # }
+        self.mysql_complex_rpc = ProxyAPI(
+            method="POST",
+            base=self.BASE_DOMAIN,
+            url="mysql/complex-rpc",
+            module=self.MODULE,
+            ssl=ssl_flag,
+            description=_("mysql rpc 复杂接口"),
+        )
+
 
 DRSApi = _DRSApi()

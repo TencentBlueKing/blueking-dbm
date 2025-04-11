@@ -13,7 +13,7 @@ import (
 func (c *PrivTaskPara) addWhiteList(targetMetaInfos []*service.Instance) (err error) {
 	//if c.ClusterType == internal.ClusterTypeTenDBHA {
 	//按 bk cloud id 分组
-	// 这个二层循环的量不大
+	//这个二层循环的量不大
 	workingProxies := make(map[int64][]string)
 	for _, ele := range targetMetaInfos {
 		if ele.BindTo == internal.MachineTypeProxy {

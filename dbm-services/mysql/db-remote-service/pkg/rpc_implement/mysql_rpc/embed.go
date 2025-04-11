@@ -15,7 +15,6 @@ import (
 	"dbm-services/mysql/db-remote-service/pkg/rpc_core"
 	"fmt"
 	"log/slog"
-	"net/url"
 	"regexp"
 	"slices"
 	"strings"
@@ -31,11 +30,7 @@ type MySQLRPCEmbed struct {
 
 // MakeConnection mysql 建立连接
 func (c *MySQLRPCEmbed) MakeConnection(address string, user string, password string, timeout int, timezone string) (*sqlx.DB, error) {
-	connectParam := fmt.Sprintf(
-		"timeout=%ds&time_zone='%s'",
-		timeout, url.QueryEscape(timezone),
-	)
-
+	connectParam := fmt.Sprintf("timeout=%ds", timeout)
 	retryTimes := 0
 
 CONNSTART:
