@@ -186,9 +186,6 @@
   };
 
   const handleShowEditName = () => {
-    if (noConflictDb.value && !hasEditRename.value) {
-      return;
-    }
     editRenameRef.value?.updateTableKey();
     isShowEditName.value = true;
   };

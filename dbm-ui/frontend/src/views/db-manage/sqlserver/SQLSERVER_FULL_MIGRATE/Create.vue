@@ -50,7 +50,9 @@
             @batch-edit="handleBatchEditCluster" />
           <DstClusterColumn
             v-model="item.dstCluster"
-            :src-cluster="item.srcCluster" />
+            :selected-map="selectedMap"
+            :src-cluster="item.srcCluster"
+            @batch-edit="handleBatchEdit" />
           <TagDbNameColumn
             v-model="item.dbName"
             allow-asterisk
