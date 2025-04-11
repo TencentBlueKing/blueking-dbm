@@ -130,6 +130,7 @@ class MongoDBCutoffResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder):
                         host["spec_config"] = resource_spec[f"{role}_{host['ip']}"]
                         host["spec_id"] = host["spec_config"]["id"]
                         # 填充主机信息
+                        host["down"] = False
                         host["target"] = info[f"{role}_{host['ip']}"][0]
                         host["target"]["spec_id"] = host["spec_config"]["id"]
                         # 填充实例信息
