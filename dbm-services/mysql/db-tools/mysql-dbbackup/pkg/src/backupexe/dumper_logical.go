@@ -192,7 +192,7 @@ func (l *LogicalDumper) Execute(ctx context.Context) error {
 		// mydumper 的错误信息要从头往后看，看最近的日志因为多线程的原因，不准确
 		errStrPrefix := fmt.Sprintf("head 5 error from %s", mydumperLogFile)
 		errStrDetail, _ := cmutil.NewGrepLines(mydumperLogFile, true, true).
-			MatchWords([]string{"ERROR", "fatal", "critical", "No such file"}, 5)
+			MatchWords([]string{"ERROR", "CRITICAL", "fatal", "No such file"}, 5)
 		if len(errStrDetail) > 0 {
 			logger.Log.Info(errStrPrefix)
 			logger.Log.Error(errStrDetail)
