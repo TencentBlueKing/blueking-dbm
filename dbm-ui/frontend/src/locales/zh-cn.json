@@ -4289,5 +4289,10 @@
   "请选择园区": "请选择园区",
   "请输入机架": "请输入机架",
   "请选择地域": "请选择地域",
+  "Spider_Master至少保留2台": "Spider_Master至少保留2台",
+  "Spider_Slave至少保留1台": "Spider_Slave至少保留1台",
+  "请保证缩容后的接入层 Spider Master 数量 >= 2": "请保证缩容后的接入层 Spider Master 数量 >= 2",
+  "请保证缩容后的接入层 Spider Slave数量 >= 1": "请保证缩容后的接入层 Spider Slave数量 >= 1",
+  "IP重复：ips": "IP重复：{0}",
   "这行勿动！新增翻译请在上一行添加！": ""
 }

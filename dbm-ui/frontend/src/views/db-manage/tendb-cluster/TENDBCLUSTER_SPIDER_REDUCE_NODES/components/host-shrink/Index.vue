@@ -13,6 +13,7 @@
 
 <template>
   <EditableTable
+    :key="tableData.length"
     ref="table"
     class="mb-20"
     :model="tableData">
@@ -128,8 +129,8 @@
    * key 是集群带出的role
    */
   const instanceRoleMap = {
-    remote_master: 'Spider Master',
-    remote_slave: 'Spider Slave',
+    spider_master: 'Spider Master',
+    spider_slave: 'Spider Slave',
   };
 
   watch(
@@ -150,7 +151,7 @@
                     cluster_id: clusterInfo.id,
                     ip: host.ip,
                     master_domain: clusterInfo.immute_domain,
-                    role: item.reduce_spider_role === 'spider_slave' ? 'remote_slave' : 'remote_master',
+                    role: item.reduce_spider_role,
                   },
                 }),
               );
@@ -193,15 +194,6 @@
         };
       }
 
-      /**
-       * 传给后端的值
-       * key 是集群带出的role
-       */
-      const instanceRoleValueMap = {
-        remote_master: 'spider_master',
-        remote_slave: 'spider_slave',
-      };
-
       return {
         infos: tableData.value.map((item) => ({
           cluster_id: item.spider_reduced_host.cluster_id,
@@ -215,7 +207,7 @@
               },
             ],
           },
-          reduce_spider_role: instanceRoleValueMap[item.spider_reduced_host.role as keyof typeof instanceRoleValueMap],
+          reduce_spider_role: item.spider_reduced_host.role,
         })),
       };
     },

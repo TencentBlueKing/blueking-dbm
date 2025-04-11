@@ -13,9 +13,7 @@
 
 <template>
   <BkTable
-    :key="updateTableKey"
     :data="tableData"
-    :loading="loading"
     :merge-cells="mergeCells"
     :show-overflow="false">
     <BkTableColumn
@@ -52,10 +50,8 @@
 <script setup lang="ts">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
   import TicketModel, { type Redis } from '@services/model/ticket/ticket';
-  import { checkInstance } from '@services/source/dbbase';
 
   import { TicketTypes } from '@common/const';
 
@@ -88,66 +84,6 @@
   const mergeCells = shallowRef<Array<{ col: number; colspan: number; row: number; rowspan: number }>>([]);
   const ipInfoMap = reactive<Record<string, RowData>>({});
   const tableData = ref<RowData[]>([]);
-  // 用于更新table的合并渲染
-  const updateTableKey = ref(Date.now());
-
-  /**
-   * 更新表格数据
-   * 1. 对数据进行排序
-   * 2. 处理合并单元格
-   * 3. 更新表格数据
-   * @returns {void}
-   */
-  const updateTableData = () => {
-    const list = _.sortBy(Object.values(ipInfoMap), 'cluster_domain');
-    const domainCounter: Record<string, number> = {};
-    list.forEach((rowData, index) => {
-      const domain = rowData.cluster_domain;
-      domainCounter[domain] = (domainCounter[domain] || 0) + 1;
-      if (domainCounter[domain] > 1) {
-        mergeCells.value.push({
-          col: 2,
-          colspan: 1,
-          row: index + 1 - domainCounter[domain],
-          rowspan: domainCounter[domain],
-        });
-      }
-    });
-    tableData.value = list;
-    updateTableKey.value = Date.now();
-  };
-
-  /**
-   * 查询机器信息
-   */
-  const { loading, run: queryMachineInfo } = useRequest(checkInstance, {
-    manual: true,
-    onSuccess: (data) => {
-      if (!data.length) {
-        return;
-      }
-      const roleTextMap = {
-        master: 'redis_master',
-        proxy: 'proxy',
-        redis_master: 'redis_master',
-        redis_slave: 'redis_slave',
-        slave: 'redis_slave',
-      };
-      data.forEach((item) => {
-        Object.assign(ipInfoMap, {
-          [item.ip]: {
-            cluster_domain: item.master_domain,
-            cluster_id: item.cluster_id,
-            ip: item.ip,
-            role: roleTextMap[item.role as keyof typeof roleTextMap],
-            spec_config: item.spec_config,
-            spec_id: item.spec_config.id,
-          },
-        });
-      });
-      updateTableData();
-    },
-  });
 
   watch(
     () => props.ticketDetails.details,
@@ -164,7 +100,7 @@
         role: keyof Props['ticketDetails']['details']['infos'][0]['old_nodes'],
         clusterInfo: Props['ticketDetails']['details']['clusters'][number],
       ) => {
-        if (infoItem[role].length) {
+        if (infoItem[role]?.length) {
           _.uniqBy(infoItem[role], 'ip').forEach((hostItem) => {
             const specId = hostItem?.spec_id || hostItem?.master_spec_id;
             if (!specs[specId]) {
@@ -187,24 +123,26 @@
       };
 
       infos.forEach((infoItem) => {
-        // generateData(infoItem, 'proxy', clusters[infoItem.cluster_ids[0]]);
-        // generateData(infoItem, 'redis_master', clusters[infoItem.cluster_ids[0]]);
-        // generateData(infoItem, 'redis_slave', clusters[infoItem.cluster_ids[0]]);
         generateData(infoItem.old_nodes, 'proxy', clusters[infoItem.cluster_ids[0]]);
         generateData(infoItem.old_nodes, 'redis_master', clusters[infoItem.cluster_ids[0]]);
         generateData(infoItem.old_nodes, 'redis_slave', clusters[infoItem.cluster_ids[0]]);
       });
 
-      updateTableData();
-
-      // 补充redis_slave
-      extIps.push(...recycleHosts.map((hostItem) => hostItem.ip).filter((ip) => !ipInfoMap[ip]));
-      if (extIps.length) {
-        queryMachineInfo({
-          bk_biz_id: props.ticketDetails.bk_biz_id,
-          instance_addresses: _.uniq(extIps),
-        });
-      }
+      const list = _.sortBy(Object.values(ipInfoMap), 'cluster_domain');
+      const domainCounter: Record<string, number> = {};
+      list.forEach((rowData, index) => {
+        const domain = rowData.cluster_domain;
+        domainCounter[domain] = (domainCounter[domain] || 0) + 1;
+        if (domainCounter[domain] > 1) {
+          mergeCells.value.push({
+            col: 2,
+            colspan: 1,
+            row: index + 1 - domainCounter[domain],
+            rowspan: domainCounter[domain],
+          });
+        }
+      });
+      tableData.value = list;
     },
     {
       immediate: true,

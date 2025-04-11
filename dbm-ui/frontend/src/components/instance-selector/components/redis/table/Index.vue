@@ -343,7 +343,7 @@
         [activePanel.value]: Object.values(checkedMap.value).map((item) => ({
           ...item,
           // 兼容历史遗留问题（对 bk_cloud_id, bk_cloud_name 的特殊处理）
-          bk_cloud_id: item.host_info.cloud_id,
+          bk_cloud_id: item.host_info?.cloud_id || 0,
           bk_cloud_name: item.host_info.cloud_area?.name || '--',
         })),
       });
