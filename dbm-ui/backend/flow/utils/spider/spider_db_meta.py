@@ -68,6 +68,7 @@ class SpiderDBMeta(object):
             "shard_infos": shard_infos,
             "region": self.global_data["city"],
             "disaster_tolerance_level": self.global_data["disaster_tolerance_level"],
+            "zone_list": self.global_data.get("zone_list", []),
         }
         TenDBClusterClusterHandler.create(**kwargs)
         return True

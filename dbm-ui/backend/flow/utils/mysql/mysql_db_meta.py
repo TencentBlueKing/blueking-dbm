@@ -72,6 +72,7 @@ class MySQLDBMeta(object):
             bk_cloud_id=int(self.ticket_data["bk_cloud_id"]),
             resource_spec=self.ticket_data.get("resource_spec", def_resource_spec),
             region=self.ticket_data["city"],
+            zone_list=self.ticket_data.get("zone_list", []),
         )
         return True
 
@@ -97,6 +98,7 @@ class MySQLDBMeta(object):
             "resource_spec": self.ticket_data.get("resource_spec", def_resource_spec),
             "region": self.ticket_data["city"],
             "disaster_tolerance_level": self.ticket_data["disaster_tolerance_level"],
+            "zone_list": self.ticket_data.get("zone_list", []),
         }
         TenDBHAClusterHandler.create(**kwargs)
         return True
