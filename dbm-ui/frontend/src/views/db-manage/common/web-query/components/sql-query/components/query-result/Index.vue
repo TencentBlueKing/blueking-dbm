@@ -105,6 +105,7 @@
 
     :deep(.bk-tab--top) {
       height: 100%;
+      border: 1px solid #dcdee5;
     }
 
     :deep(.bk-tab-header--has-num-elliptic) {
