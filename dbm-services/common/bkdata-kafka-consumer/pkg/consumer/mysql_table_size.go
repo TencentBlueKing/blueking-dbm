@@ -70,6 +70,7 @@ func (c *MysqlTableSize) ConsumeClaim(session sarama.ConsumerGroupSession, claim
 					session.MarkMessage(msgs[len(msgs)-1], "")
 					items = items[:0]
 					msgs = msgs[:0]
+					slog.Info("sink message", slog.String("key", string(msgs[len(msgs)-1].Key)))
 				}
 			}
 		case message := <-claim.Messages():
@@ -104,6 +105,7 @@ func (c *MysqlTableSize) ConsumeClaim(session sarama.ConsumerGroupSession, claim
 					session.MarkMessage(message, "")
 					items = items[:0]
 					msgs = msgs[:0]
+					slog.Info("sink message", slog.String("key", string(message.Key)))
 				}
 			}
 		case <-session.Context().Done():
@@ -176,15 +178,13 @@ func (c *MysqlTableSize) HandleMessages(items []*mysql_table_size.MysqlTableSize
 	}
 
 	sqlStr, sqlArgs := builder.Build()
-	err := db.Exec(sqlStr, sqlArgs...).Error
-	/*
-		sqlFull, err := sb.MySQL.Interpolate(sqlStr, sqlArgs)
-		if err != nil {
-			return err
-		}
-		err = db.Exec(sqlFull).Error
+	// err := db.Exec(sqlStr, sqlArgs...).Error
 
-	*/
+	sqlFull, err := sb.MySQL.Interpolate(sqlStr, sqlArgs)
+	if err != nil {
+		return err
+	}
+	err = db.Exec(sqlFull).Error
 	if err != nil {
 		slog.Error("replace message",
 			slog.Any("msg", err), slog.String("sql", sqlStr), slog.Any("args", sqlArgs))

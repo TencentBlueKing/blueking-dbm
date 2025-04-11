@@ -50,8 +50,8 @@ data:
         address: "{{ $reportDB.host }}:{{ $reportDB.port }}"
         user: "{{ $reportDB.user }}"
         password: "{{ $reportDB.password }}"
-        database: "bk_dbm_stats"
-        table: "mysql_db_table_size"
+        database: "bk_dbm_report"
+        table: "tb_mysql_backup_result"
         charset: utf8mb4
         connection_per_partition: 2
 
@@ -65,7 +65,7 @@ data:
         address: "{{ $reportDB.host }}:{{ $reportDB.port }}"
         user: "{{ $reportDB.user }}"
         password: "{{ $reportDB.password }}"
-        database: "bk_dbm_stats"
-        table: "mysql_db_table_size"
+        database: "bk_dbm_report"
+        table: "tb_mysql_binlog_result"
         charset: utf8mb4
         connection_per_partition: 2
