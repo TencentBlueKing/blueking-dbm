@@ -41,6 +41,7 @@
     </div>
     <BkResizeLayout
       :border="false"
+      class="editor-main-resizer"
       :initial-divide="divideMin"
       :max="800"
       :min="divideMin"
@@ -359,10 +360,6 @@
       display: flex;
       height: 100vh;
       flex-direction: column;
-
-      .editor-resize-wrapper {
-        flex: 1;
-      }
     }
 
     :deep(.bk-resize-layout-aside-content) {
@@ -381,10 +378,9 @@
 
       .query-operation-main {
         display: flex;
+        margin-left: auto;
         font-size: 12px;
         cursor: pointer;
-        flex: 1;
-        justify-content: flex-end;
 
         .operation-item {
           display: flex;
@@ -401,7 +397,6 @@
 
       .editro-action-box {
         display: flex;
-        margin-left: auto;
         color: #979ba5;
         align-items: center;
 
@@ -411,17 +406,10 @@
       }
     }
 
-    .editor-resize-wrapper {
-      height: calc(100% - 40px);
-      background: #212121;
-
-      // &.resize-disabled {
-      //   :deep(.bk-resize-layout-aside) {
-      //     &::after {
-      //       display: none;
-      //     }
-      //   }
-      // }
+    .editor-main-resizer {
+      :deep(.bk-resize-trigger) {
+        background-color: #1a1a1a;
+      }
     }
   }
 </style>

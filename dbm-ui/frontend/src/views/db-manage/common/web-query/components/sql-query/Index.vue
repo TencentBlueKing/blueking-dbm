@@ -114,64 +114,6 @@
     });
   });
 </script>
-<style lang="less" scoped>
-  .sql-execute-editor {
-    position: relative;
-    z-index: 0;
-    height: 100%;
-
-    &.is-full-screen {
-      display: flex;
-      height: 100vh;
-      flex-direction: column;
-
-      .editor-resize-wrapper {
-        flex: 1;
-      }
-    }
-
-    .editor-layout-header {
-      display: flex;
-      align-items: center;
-      height: 40px;
-      padding-right: 16px;
-      padding-left: 25px;
-      font-size: 14px;
-      color: #c4c6cc;
-      background: #2e2e2e;
-
-      .query-operation-main {
-        display: flex;
-        font-size: 12px;
-        cursor: pointer;
-        flex: 1;
-        justify-content: flex-end;
-
-        .operation-item {
-          display: flex;
-          width: 90px;
-          align-items: center;
-          justify-content: center;
-
-          &.operation-item-active {
-            color: #699df4;
-          }
-        }
-      }
-
-      .editro-action-box {
-        display: flex;
-        margin-left: auto;
-        color: #979ba5;
-        align-items: center;
-
-        & > * {
-          cursor: pointer;
-        }
-      }
-    }
-  }
-</style>
 <style lang="less">
   .bk-resize-layout-main {
     position: relative;
