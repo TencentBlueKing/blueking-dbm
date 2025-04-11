@@ -409,6 +409,10 @@
     .editor-main-resizer {
       :deep(.bk-resize-trigger) {
         background-color: #1a1a1a;
+
+        &:hover {
+          border-left: 1px solid #699df4;
+        }
       }
     }
   }

@@ -62,6 +62,7 @@
     </div>
     <DbTable
       ref="tableRef"
+      border="none"
       class="query-result-table"
       :columns="columns"
       :container-height="containerHeight"
@@ -229,8 +230,6 @@
       padding: 0 16px;
       font-size: 12px;
       background: #fff;
-      border-right: 1px solid #dcdee5;
-      border-left: 1px solid #dcdee5;
       justify-content: space-between;
       align-items: center;
 

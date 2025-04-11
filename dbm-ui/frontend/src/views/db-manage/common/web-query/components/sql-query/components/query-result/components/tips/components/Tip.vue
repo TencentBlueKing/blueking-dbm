@@ -50,7 +50,7 @@
     min-height: 40px;
     padding: 0 12px;
     margin: 0 16px;
-    margin-top: 8px;
+    margin-bottom: 8px;
     cursor: pointer;
     border: 1px solid transparent;
     border-radius: 2px;

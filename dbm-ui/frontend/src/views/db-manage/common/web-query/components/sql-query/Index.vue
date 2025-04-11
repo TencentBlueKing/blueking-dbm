@@ -15,7 +15,7 @@
   <BkResizeLayout
     :border="false"
     class="editor-resize-wrapper"
-    :initial-divide="800"
+    :initial-divide="400"
     :max="600"
     :min="100"
     placement="bottom"
@@ -125,7 +125,7 @@
   }
 
   .editor-resize-wrapper {
-    height: 1200px !important;
+    height: 800px !important;
 
     .bk-resize-layout-aside-content {
       height: auto !important;

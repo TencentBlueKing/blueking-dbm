@@ -24,9 +24,9 @@
   </div>
   <BkException
     v-else
+    class="mt-30 mb-30"
     :description="t('暂无提示')"
     scene="part"
-    style="margin-top: 30px"
     type="empty" />
 </template>
 <script setup lang="ts">
@@ -48,5 +48,6 @@
   .result-panel-tips-main {
     display: flex;
     flex-direction: column;
+    margin-top: 8px;
   }
 </style>
