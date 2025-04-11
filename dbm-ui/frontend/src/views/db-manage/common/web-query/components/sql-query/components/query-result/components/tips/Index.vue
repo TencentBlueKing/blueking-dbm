@@ -12,7 +12,9 @@
 -->
 
 <template>
-  <div class="result-panel-tips-main">
+  <div
+    v-if="data.length"
+    class="result-panel-tips-main">
     <template v-for="(item, index) in data">
       <TipItem
         v-if="item"
@@ -20,8 +22,16 @@
         :data="item" />
     </template>
   </div>
+  <BkException
+    v-else
+    :description="t('暂无提示')"
+    scene="part"
+    style="margin-top: 30px"
+    type="empty" />
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import TipItem from './components/Tip.vue';
 
   interface Props {
@@ -31,11 +41,12 @@
   withDefaults(defineProps<Props>(), {
     data: () => [],
   });
+
+  const { t } = useI18n();
 </script>
 <style lang="less" scoped>
   .result-panel-tips-main {
     display: flex;
     flex-direction: column;
-    gap: 8px;
   }
 </style>

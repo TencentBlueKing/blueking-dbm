@@ -61,12 +61,16 @@
 
   const currentPanel = ref('tip');
   const tipList = ref<string[]>([]);
-
-  const resultPanels = ref([
+  const resultPanels = ref<
+    {
+      label: string;
+      name: string;
+      num?: number;
+    }[]
+  >([
     {
       label: t('查询提示'),
       name: 'tip',
-      num: 0,
     },
     {
       label: t('查询结果'),
@@ -79,8 +83,13 @@
     () => {
       if (props.data) {
         tipList.value = props.data.filter((item) => !!item.error_msg).map((item) => item.error_msg);
-        resultPanels.value[0].num = tipList.value.length;
-        if (!tipList.value.length) {
+        if (tipList.value.length) {
+          resultPanels.value[0].num = tipList.value.length;
+        } else {
+          delete resultPanels.value[0].num;
+        }
+
+        if (tipList.value.length < props.data.length) {
           currentPanel.value = 'result';
         } else {
           currentPanel.value = 'tip';

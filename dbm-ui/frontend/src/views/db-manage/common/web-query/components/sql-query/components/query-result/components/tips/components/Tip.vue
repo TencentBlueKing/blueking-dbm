@@ -47,10 +47,14 @@
 <style lang="less" scoped>
   .tip-msg-main {
     display: flex;
-    padding: 10px 12px;
+    min-height: 40px;
+    padding: 0 12px;
+    margin: 0 16px;
+    margin-top: 8px;
     cursor: pointer;
     border: 1px solid transparent;
     border-radius: 2px;
+    align-items: center;
 
     &.is-error {
       background: #fdd9;
@@ -87,7 +91,7 @@
     }
 
     .msg-main {
-      font-size: 14px;
+      font-size: 12px;
       color: #4d4f56;
     }
   }

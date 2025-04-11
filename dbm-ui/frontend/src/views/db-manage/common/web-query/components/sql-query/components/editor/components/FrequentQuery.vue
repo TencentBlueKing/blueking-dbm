@@ -1,19 +1,24 @@
 <template>
   <div class="frequent-query-main">
-    <BkInput
-      v-model="searchValue"
-      class="input-main"
-      clearable
-      @clear="handleSearch"
-      @enter="handleSearch" />
-    <div class="query-list">
-      <div
-        v-for="(item, index) in recordList"
-        :key="index"
-        class="query-item"
-        @click="() => handleChooseRecord(item.sql)">
-        {{ item.name }}
-      </div>
+    <div class="input-main">
+      <BkInput
+        v-model="searchValue"
+        clearable
+        @clear="handleSearch"
+        @enter="handleSearch" />
+    </div>
+    <div class="query-list-wraper">
+      <ScrollFaker>
+        <div class="query-list">
+          <div
+            v-for="(item, index) in recordList"
+            :key="index"
+            class="query-item"
+            @click="() => handleChooseRecord(item.sql)">
+            {{ item.name }}
+          </div>
+        </div>
+      </ScrollFaker>
     </div>
   </div>
 </template>
@@ -76,7 +81,7 @@
     width: 100%;
     height: 100%;
     padding: 12px;
-    overflow-y: auto;
+    overflow: hidden;
     background-color: #282829;
     flex-direction: column;
 
@@ -99,26 +104,28 @@
       }
     }
 
-    .query-list {
-      width: 100%;
-      margin-top: 12px;
-      overflow-y: auto;
-      flex: 1;
+    .query-list-wraper {
+      height: calc(100% - 60px);
+      overflow: hidden;
 
-      .query-item {
+      :deep(.query-list) {
         width: 100%;
-        height: 32px;
-        padding: 0 12px;
-        overflow: hidden;
-        font-size: 12px;
-        color: #c4c6cc;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        cursor: pointer;
-        border-bottom: solid 1px #3d3d3d;
 
-        &:hover {
-          background-color: #333;
+        .query-item {
+          width: 100%;
+          height: 32px;
+          padding: 0 12px;
+          overflow: hidden;
+          font-size: 12px;
+          color: #c4c6cc;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          cursor: pointer;
+          border-bottom: solid 1px #3d3d3d;
+
+          &:hover {
+            background-color: #333;
+          }
         }
       }
     }
