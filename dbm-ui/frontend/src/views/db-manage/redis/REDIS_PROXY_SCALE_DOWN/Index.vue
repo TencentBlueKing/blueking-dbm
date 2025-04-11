@@ -76,15 +76,15 @@
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
-  import HOST from './components/HOST/Index.vue';
-  import QUANTITY from './components/QUANTITY/Index.vue';
+  import CountShrink from './components/count-shrink/Index.vue';
+  import HostShrink from './components/host-shrink/Index.vue';
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
 
   const tableMap = {
-    HOST,
-    QUANTITY,
+    HOST: HostShrink,
+    QUANTITY: CountShrink,
   };
   const defaultData = () => ({
     isSafe: false,

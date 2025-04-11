@@ -18,6 +18,8 @@ import { useGlobalBizs } from '@stores';
 
 import { getSearchSelectorParams } from '@utils';
 
+import { type PanelListType } from '../../../Index.vue';
+
 /**
  * 处理集群列表数据
  */
@@ -25,6 +27,7 @@ export function useTableData<T>(
   searchSelectValue: Ref<ISearchValue[]>,
   role?: Ref<string | undefined>,
   clusterId?: Ref<number | undefined>,
+  roleFilterList?: Required<PanelListType[number]>['tableConfig']['roleFilterList'],
 ) {
   const { currentBizId } = useGlobalBizs();
   const currentInstance = getCurrentInstance() as {
@@ -72,7 +75,24 @@ export function useTableData<T>(
       limit: pagination.limit,
       offset: (pagination.current - 1) * pagination.limit,
       ...getSearchSelectorParams(searchSelectValue.value),
-    };
+    } as Record<string, string | number>;
+
+    // 仅过滤出 roleFilterList 配置的角色
+    if (roleFilterList?.list?.length) {
+      if (!params?.role) {
+        const roleParams = roleFilterList?.list.map((item) => item.value).join(',');
+        Object.assign(params, {
+          role: roleParams,
+        });
+      }
+      if (clusterId?.value && clusterId.value !== currentBizId) {
+        Object.assign(params, {
+          cluster_id: clusterId.value,
+        });
+      }
+      return params;
+    }
+
     if (role?.value) {
       Object.assign(params, {
         role: role.value,

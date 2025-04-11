@@ -43,6 +43,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import RedisModel from '@services/model/redis/redis';
   import { checkInstance } from '@services/source/dbbase';
 
   import { ClusterTypes } from '@common/const';
@@ -101,6 +102,14 @@
             field: 'ip',
             label: t('Proxy 主机'),
             role: 'proxy',
+          },
+        },
+        topoConfig: {
+          countFunc: (item: RedisModel) => item.proxyCount,
+          totalCountFunc: (dataList: RedisModel[]) => {
+            const ipSet = new Set<string>();
+            dataList.forEach((dataItem) => dataItem.proxy.forEach((item) => ipSet.add(item.ip)));
+            return ipSet.size;
           },
         },
       },

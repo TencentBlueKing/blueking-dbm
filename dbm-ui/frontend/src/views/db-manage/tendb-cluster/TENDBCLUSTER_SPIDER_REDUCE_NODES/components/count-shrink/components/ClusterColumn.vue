@@ -122,9 +122,20 @@
       },
     },
     {
-      message: t('Spider_Master至少保留2台_Spider_Slave至少保留1台'),
+      message: '',
       trigger: 'blur',
-      validator: () => modelValue.value.master_count >= 2 && modelValue.value.slave_count >= 1,
+      validator: () => {
+        if (modelValue.value.master_count > 2 || modelValue.value.slave_count > 1) {
+          return true;
+        }
+        if (modelValue.value.master_count <= 2) {
+          return t('Spider_Master至少保留2台');
+        }
+        if (modelValue.value.slave_count <= 1) {
+          return t('Spider_Slave至少保留1台');
+        }
+        return true;
+      },
     },
   ];
 

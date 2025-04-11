@@ -34,8 +34,8 @@
             :selected="selected"
             @batch-edit="handleBatchEdit" />
           <SingleResourceHostColumn
-            v-model="item.slave"
-            field="slave.ip"
+            v-model="item.new_slave"
+            field="new_slave.ip"
             :label="t('新从库主机')"
             :params="{
               for_bizs: [currentBizId, 0],
@@ -98,7 +98,7 @@
         master_domain: string;
       }[];
     };
-    slave: {
+    new_slave: {
       bk_biz_id: number;
       bk_cloud_id: number;
       bk_host_id: number;
@@ -117,7 +117,7 @@
       master_domain: '',
       related_clusters: [],
     },
-    slave: data.slave || {
+    new_slave: data.new_slave || {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: 0,
@@ -147,6 +147,14 @@
       return acc;
     }, {});
   });
+  const newSlaveCounter = computed(() => {
+    return formData.tableData.reduce<Record<string, number>>((result, item) => {
+      Object.assign(result, {
+        [item.new_slave.ip]: (result[item.new_slave.ip] || 0) + 1,
+      });
+      return result;
+    }, {});
+  });
 
   const rules = {
     'cluster.master_domain': [
@@ -159,6 +167,24 @@
             return t('目标集群是集群target的关联集群_请勿重复添加', { target });
           }
           return true;
+        },
+      },
+    ],
+    'new_slave.ip': [
+      {
+        message: t('IP 重复'),
+        trigger: 'blur',
+        validator: (value: string, rowData?: Record<string, any>) => {
+          const row = rowData as RowData;
+          return newSlaveCounter.value[row.new_slave.ip] <= 1;
+        },
+      },
+      {
+        message: t('IP 重复'),
+        trigger: 'change',
+        validator: (value: string, rowData?: Record<string, any>) => {
+          const row = rowData as RowData;
+          return newSlaveCounter.value[row.new_slave.ip] <= 1;
         },
       },
     ],
@@ -179,7 +205,7 @@
               master_domain: clusterInfo.immute_domain,
               related_clusters: [],
             },
-            slave: item.resource_spec.new_slave.hosts[0],
+            new_slave: item.resource_spec.new_slave.hosts[0],
           });
         }),
       });
@@ -217,7 +243,7 @@
           cluster_ids: [item.cluster.id, ...item.cluster.related_clusters.map((item) => item.id)],
           resource_spec: {
             new_slave: {
-              hosts: [item.slave],
+              hosts: [item.new_slave],
               spec_id: 0,
             },
           },
