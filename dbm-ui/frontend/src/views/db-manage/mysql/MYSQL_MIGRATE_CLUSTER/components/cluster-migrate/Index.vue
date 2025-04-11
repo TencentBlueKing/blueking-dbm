@@ -15,7 +15,8 @@
   <EditableTable
     ref="table"
     class="mb-20"
-    :model="tableData">
+    :model="tableData"
+    :rules="rules">
     <EditableRow
       v-for="(item, index) in tableData"
       :key="index">
@@ -151,6 +152,64 @@
       .flatMap((item) => Object.values(item.batchCluster.clusters)),
   );
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
+
+  const newHostCounter = computed(() => {
+    return tableData.value.reduce<Record<string, number>>((result, item) => {
+      let count = 1;
+      if (item.newMaster.ip === item.newSlave.ip) {
+        count += 1;
+      }
+      Object.assign(
+        result,
+        {
+          [item.newMaster.ip]: (result[item.newMaster.ip] || 0) + 1,
+        },
+        {
+          [item.newSlave.ip]: (result[item.newSlave.ip] || 0) + count,
+        },
+      );
+      return result;
+    }, {});
+  });
+
+  const rules = {
+    'newMaster.ip': [
+      {
+        message: t('IP 重复'),
+        trigger: 'blur',
+        validator: (value: string, rowData?: Record<string, any>) => {
+          const row = rowData as RowData;
+          return newHostCounter.value[row.newMaster.ip] <= 1;
+        },
+      },
+      {
+        message: t('IP 重复'),
+        trigger: 'change',
+        validator: (value: string, rowData?: Record<string, any>) => {
+          const row = rowData as RowData;
+          return newHostCounter.value[row.newMaster.ip] <= 1;
+        },
+      },
+    ],
+    'newSlave.ip': [
+      {
+        message: t('IP 重复'),
+        trigger: 'blur',
+        validator: (value: string, rowData?: Record<string, any>) => {
+          const row = rowData as RowData;
+          return newHostCounter.value[row.newSlave.ip] <= 1;
+        },
+      },
+      {
+        message: t('IP 重复'),
+        trigger: 'change',
+        validator: (value: string, rowData?: Record<string, any>) => {
+          const row = rowData as RowData;
+          return newHostCounter.value[row.newSlave.ip] <= 1;
+        },
+      },
+    ],
+  };
 
   watch(
     () => props.ticketDetails,

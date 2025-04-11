@@ -78,14 +78,14 @@
      */
     field: string;
     label: string;
-    minWidth?: number;
     limit?: number;
+    minWidth?: number;
     params?: ComponentProps<typeof ResourceHostSelector>['params'];
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    minWidth: 300,
     limit: -1,
+    minWidth: 300,
     params: () => ({}),
   });
 
@@ -108,6 +108,8 @@
 
   const rules = [
     {
+      message: () => t('xx不符合IPv4标准', [notIpv4.join(',')]),
+      trigger: 'change',
       validator: (hosts: IHost[]) => {
         notIpv4 = [];
         hosts.forEach((item) => {
@@ -117,10 +119,10 @@
         });
         return !notIpv4.length;
       },
-      message: () => t('xx不符合IPv4标准', [notIpv4.join(',')]),
-      trigger: 'change',
     },
     {
+      message: () => t('目标主机xx不存在', [notFound.join(',')]),
+      trigger: 'blur',
       validator: (hosts: IHost[]) => {
         notFound = [];
         hosts.forEach((item) => {
@@ -130,20 +132,18 @@
         });
         return !notFound.length;
       },
-      message: () => t('目标主机xx不存在', [notFound.join(',')]),
-      trigger: 'blur',
     },
   ];
 
   const appendRules = [
     {
-      validator: () => localValue.value.split(batchSplitRegex).length <= props.limit,
       message: t('最多输入n个主机IP', { n: props.limit }),
       trigger: 'blur',
+      validator: () => localValue.value.split(batchSplitRegex).length <= props.limit,
     },
   ];
 
-  const { run: queryHost, loading } = useRequest(fetchList, {
+  const { loading, run: queryHost } = useRequest(fetchList, {
     manual: true,
     onSuccess: ({ results }) => {
       if (results.length) {
@@ -172,17 +172,17 @@
       destroyInst();
       nextTick(() => {
         tippyIns = tippy(rootRef.value as SingleTarget, {
-          content: popRef.value,
-          placement: 'top-start',
-          appendTo: () => document.body,
-          theme: 'light',
-          maxWidth: 'none',
-          trigger: 'mouseenter click',
-          interactive: true,
-          arrow: false,
           allowHTML: true,
-          zIndex: 999999,
+          appendTo: () => document.body,
+          arrow: false,
+          content: popRef.value,
           hideOnClick: true,
+          interactive: true,
+          maxWidth: 'none',
+          placement: 'top-start',
+          theme: 'light',
+          trigger: 'mouseenter click',
+          zIndex: 999999,
         });
       });
     }

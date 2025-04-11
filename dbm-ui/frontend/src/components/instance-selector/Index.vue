@@ -212,6 +212,7 @@
   import _ from 'lodash';
 
   import MongodbModel from '@services/model/mongodb/mongodb';
+  import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import { checkMongoInstances, checkMysqlInstances, checkRedisInstances } from '@services/source/instances';
   import { getMongoInstancesList, getMongoTopoList } from '@services/source/mongodb';
   import { queryClusters as queryMysqlCluster } from '@services/source/mysqlCluster';
@@ -314,6 +315,7 @@
       | 'RedisHost'
       | 'mongoCluster'
       | 'TendbSingleHost'
+      | 'SpiderHost'
     )[];
     disableDialogSubmitMethod?: (hostList: Array<string>) => string | boolean;
     hideManualInput?: boolean;
@@ -687,6 +689,76 @@
             role: 'redis_master',
           },
           getTableList: getRedisMachineList,
+        },
+      },
+    ],
+    SpiderHost: [
+      {
+        content: TendbClusterContent,
+        id: 'SpiderHost',
+        name: 'Tendb Cluster',
+        previewConfig: {
+          displayKey: 'ip',
+        },
+        tableConfig: {
+          firsrColumn: {
+            field: 'ip',
+            label: t('目标主机'),
+            role: '', // 不传， 以roleFilterList过滤
+          },
+          getTableList: getTendbclusterInstanceList,
+          roleFilterList: {
+            list: [
+              {
+                text: 'Spider Master',
+                value: 'spider_master',
+              },
+              {
+                text: 'Spider Slave',
+                value: 'spider_slave',
+              },
+            ],
+          },
+        },
+        topoConfig: {
+          countFunc: (cluster: TendbClusterModel) => {
+            return cluster.spider_master.length + cluster.spider_slave.length;
+          },
+          getTopoList: getTendbClusterList,
+        },
+      },
+      {
+        content: ManualInputHostContent,
+        id: 'manualInput',
+        manualConfig: {
+          activePanelId: 'SpiderHost',
+          checkInstances: getTendbclusterMachineList,
+          checkKey: 'ip',
+          checkType: 'ip',
+        },
+        name: t('手动输入'),
+        previewConfig: {
+          displayKey: 'ip',
+        },
+        tableConfig: {
+          firsrColumn: {
+            field: 'ip',
+            label: t('目标主机'),
+            role: '', // 不传， 以roleFilterList过滤
+          },
+          getTableList: getTendbclusterMachineList,
+          roleFilterList: {
+            list: [
+              {
+                text: 'Spider Master',
+                value: 'spider_master',
+              },
+              {
+                text: 'Spider Slave',
+                value: 'spider_slave',
+              },
+            ],
+          },
         },
       },
     ],

@@ -15,7 +15,8 @@
   <EditableTable
     ref="table"
     class="mb-20"
-    :model="tableData">
+    :model="tableData"
+    :rules="rules">
     <EditableRow
       v-for="(item, index) in tableData"
       :key="index">
@@ -153,6 +154,89 @@
 
   const selected = computed(() => tableData.value.filter((item) => item.master.bk_host_id).map((item) => item.master));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
+
+  const newHostCounter = computed(() => {
+    return tableData.value.reduce<Record<string, number>>((result, item) => {
+      let masterCount = 1;
+      if (item.master.ip === item.newMaster.ip) {
+        masterCount += 1;
+      }
+      let slaveCount = masterCount;
+      if (item.newMaster.ip === item.newSlave.ip) {
+        slaveCount += 1;
+      }
+      Object.assign(
+        result,
+        {
+          [item.master.ip]: (result[item.master.ip] || 0) + 1,
+        },
+        {
+          [item.newMaster.ip]: (result[item.newMaster.ip] || 0) + masterCount,
+        },
+        {
+          [item.newSlave.ip]: (result[item.newSlave.ip] || 0) + slaveCount,
+        },
+      );
+      return result;
+    }, {});
+  });
+
+  const rules = {
+    'master.ip': [
+      {
+        message: t('IP 重复'),
+        trigger: 'blur',
+        validator: (value: string, rowData?: Record<string, any>) => {
+          const row = rowData as RowData;
+          return newHostCounter.value[row.master.ip] <= 1;
+        },
+      },
+      {
+        message: t('IP 重复'),
+        trigger: 'change',
+        validator: (value: string, rowData?: Record<string, any>) => {
+          const row = rowData as RowData;
+          return newHostCounter.value[row.master.ip] <= 1;
+        },
+      },
+    ],
+    'newMaster.ip': [
+      {
+        message: t('IP 重复'),
+        trigger: 'blur',
+        validator: (value: string, rowData?: Record<string, any>) => {
+          const row = rowData as RowData;
+          return newHostCounter.value[row.newMaster.ip] <= 1;
+        },
+      },
+      {
+        message: t('IP 重复'),
+        trigger: 'change',
+        validator: (value: string, rowData?: Record<string, any>) => {
+          const row = rowData as RowData;
+          return newHostCounter.value[row.newMaster.ip] <= 1;
+        },
+      },
+    ],
+    'newSlave.ip': [
+      {
+        message: t('IP 重复'),
+        trigger: 'blur',
+        validator: (value: string, rowData?: Record<string, any>) => {
+          const row = rowData as RowData;
+          return newHostCounter.value[row.newSlave.ip] <= 1;
+        },
+      },
+      {
+        message: t('IP 重复'),
+        trigger: 'change',
+        validator: (value: string, rowData?: Record<string, any>) => {
+          const row = rowData as RowData;
+          return newHostCounter.value[row.newSlave.ip] <= 1;
+        },
+      },
+    ],
+  };
 
   watch(
     () => props.ticketDetails,

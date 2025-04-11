@@ -24,7 +24,8 @@
       <EditableTable
         ref="table"
         class="mb-20"
-        :model="formData.tableData">
+        :model="formData.tableData"
+        :rules="rules">
         <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
@@ -138,6 +139,35 @@
 
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
+  const hostCounter = computed(() => {
+    return formData.tableData.reduce<Record<string, number>>((result, item) => {
+      Object.assign(result, {
+        [item.host.ip]: (result[item.host.ip] || 0) + 1,
+      });
+      return result;
+    }, {});
+  });
+
+  const rules = {
+    'host.ip': [
+      {
+        message: t('IP 重复'),
+        trigger: 'blur',
+        validator: (value: string, rowData?: Record<string, any>) => {
+          const row = rowData as RowData;
+          return hostCounter.value[row.host.ip] <= 1;
+        },
+      },
+      {
+        message: t('IP 重复'),
+        trigger: 'change',
+        validator: (value: string, rowData?: Record<string, any>) => {
+          const row = rowData as RowData;
+          return hostCounter.value[row.host.ip] <= 1;
+        },
+      },
+    ],
+  };
 
   useTicketDetail<TendbCluster.ResourcePool.SpiderMntApply>(TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY, {
     onSuccess(ticketDetail) {

@@ -13,6 +13,7 @@
 
 <template>
   <EditableTable
+    :key="tableData.length"
     ref="table"
     class="mb-20"
     :model="tableData">
@@ -35,7 +36,8 @@
       <EditableColumn
         field="online_switch_type"
         :label="t('切换模式')"
-        :min-width="150">
+        :min-width="150"
+        :rowspan="rowSpan[item.proxy_reduced_host.master_domain]">
         <EditableSelect
           v-model="item.online_switch_type"
           :input-search="false"
@@ -48,6 +50,7 @@
   </EditableTable>
 </template>
 <script lang="ts" setup>
+  import _ from 'lodash';
   import { useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -195,18 +198,27 @@
         };
       }
 
+      const groupByCluster = _.groupBy(tableData.value, (item) => item.proxy_reduced_host.cluster_id);
+
+      const dataList = Object.entries(groupByCluster).map(([clusterId, items]) => {
+        const hostList = items.flatMap((item) => item.proxy_reduced_host);
+        return {
+          cluster_id: Number(clusterId),
+          hostList,
+          online_switch_type: items[0].online_switch_type,
+        };
+      });
+
       return {
-        infos: tableData.value.map((item) => ({
-          cluster_id: item.proxy_reduced_host.cluster_id,
+        infos: dataList.map((item) => ({
+          cluster_id: item.cluster_id,
           old_nodes: {
-            proxy_reduced_hosts: [
-              {
-                bk_biz_id: item.proxy_reduced_host.bk_biz_id,
-                bk_cloud_id: item.proxy_reduced_host.bk_cloud_id,
-                bk_host_id: item.proxy_reduced_host.bk_host_id,
-                ip: item.proxy_reduced_host.ip,
-              },
-            ],
+            proxy_reduced_hosts: item.hostList.map((item) => ({
+              bk_biz_id: item.bk_biz_id,
+              bk_cloud_id: item.bk_cloud_id,
+              bk_host_id: item.bk_host_id,
+              ip: item.ip,
+            })),
           },
           online_switch_type: item.online_switch_type,
         })),

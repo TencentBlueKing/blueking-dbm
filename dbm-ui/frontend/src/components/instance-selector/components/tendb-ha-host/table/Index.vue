@@ -211,7 +211,7 @@
     },
     {
       field: 'related_instances',
-      label: t('关联的从库实例'),
+      label: t('关联实例'),
       render: ({ data }: DataRow) => <RenderInstance data={data.related_instances || []}></RenderInstance>,
       width: 200,
     },

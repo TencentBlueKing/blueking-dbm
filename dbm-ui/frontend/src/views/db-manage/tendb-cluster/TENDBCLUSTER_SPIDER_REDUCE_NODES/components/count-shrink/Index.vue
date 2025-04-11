@@ -38,7 +38,13 @@
         :label="t('当前数量（台）')"
         :min-width="200">
         <EditableBlock :placeholder="t('自动生成')">
-          {{ item.cluster.role === 'spider_master' ? item.cluster.master_count : item.cluster.slave_count }}
+          {{
+            !item.cluster.id
+              ? ''
+              : item.cluster.role === 'spider_master'
+                ? item.cluster.master_count
+                : item.cluster.slave_count
+          }}
         </EditableBlock>
       </EditableColumn>
       <EditableColumn
@@ -138,9 +144,18 @@
 
   const targetCountRules = [
     {
-      message: t('剩余数量必须大于等于2'),
+      message: '',
       trigger: 'change',
-      validator: (value: string) => Number(value) >= 2,
+      validator: (value: string, rowData?: Record<string, any>) => {
+        const row = rowData as RowData;
+        if (Number(value) < 2 && row.cluster.role === 'spider_master') {
+          return t('请保证缩容后的接入层 Spider Master 数量 >= 2');
+        }
+        if (Number(value) < 1 && row.cluster.role === 'spider_slave') {
+          return t('请保证缩容后的接入层 Spider Slave数量 >= 1');
+        }
+        return true;
+      },
     },
   ];
 
@@ -193,6 +208,7 @@
               role: 'spider_master',
               slave_count: item.spider_slave.length,
             },
+            spider_reduced_to_count: `${item.spider_master.length}`,
           }),
         );
       }
