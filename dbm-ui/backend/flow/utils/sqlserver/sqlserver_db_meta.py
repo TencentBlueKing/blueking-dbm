@@ -51,6 +51,7 @@ class SqlserverDBMeta(object):
             resource_spec=self.global_data.get("resource_spec", def_resource_spec),
             region=self.global_data["region"],
             is_increment=self.global_data.get("is_increment", False),
+            zone_list=self.global_data.get("zone_list", []),
         )
         return True
 
@@ -74,6 +75,7 @@ class SqlserverDBMeta(object):
             sync_type=self.global_data["sync_type"],
             disaster_tolerance_level=self.global_data["disaster_tolerance_level"],
             is_increment=self.global_data.get("is_increment", False),
+            zone_list=self.global_data.get("zone_list", []),
         )
         return True
 
