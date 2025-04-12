@@ -41,7 +41,9 @@
             :placeholder="t('请输入查询实例或从拓扑选择，多个逗号或换行分隔')"
             :resize="false"
             style="width: 750px; height: 115px"
-            type="textarea" />
+            type="textarea"
+            @blur="handleInitInvalidValue"
+            @input="handleInitInvalidValue" />
           <!-- <BkButton class="ml-8">
             <DbIcon
               style="margin-right: 6px; color: #979ba5"
@@ -93,9 +95,12 @@
     dbType?: DBTypes.MYSQL | DBTypes.TENDBCLUSTER | DBTypes.SQLSERVER;
   }
 
+  type Emits = (e: 'pageScrollTo', crollLeft: number, scrollTop: number) => void;
+
   const props = withDefaults(defineProps<Props>(), {
     dbType: DBTypes.MYSQL,
   });
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
@@ -186,12 +191,17 @@
     ],
   };
 
+  const handleInitInvalidValue = () => {
+    console.log('change = ', invalidInstanceList.value);
+    invalidInstanceList.value = [];
+  };
+
   const handleCopyInvalidInstances = () => {
     execCopy(invalidInstanceList.value.join('\n'));
   };
 
   const handleFetchDataSuccess = () => {
-    pageRef.value!.scrollTop = pageRef.value!.scrollHeight / 3;
+    emits('pageScrollTo', 0, pageRef.value!.scrollHeight / 2);
   };
 
   const handleExecute = () => {
@@ -222,7 +232,6 @@
 <style lang="less">
   .web-query-main-page {
     height: 100%;
-    overflow-y: auto;
 
     .web-query-form {
       margin-top: 16px;

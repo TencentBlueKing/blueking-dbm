@@ -54,8 +54,10 @@
         <div
           :key="route.path"
           class="toolbox-content-wrapper">
-          <ScrollFaker style="padding: 0 24px">
-            <RouterView />
+          <ScrollFaker
+            ref="pageViewcrollFaker"
+            style="padding: 0 24px">
+            <RouterView @page-scroll-to="handlePageScroll" />
           </ScrollFaker>
         </div>
       </div>
@@ -67,6 +69,8 @@
   import { useRoute } from 'vue-router';
 
   import { useDebouncedRef } from '@hooks';
+
+  import ScrollFaker from '@components/scroll-faker/Index.vue';
 
   import { encodeRegexp } from '@utils';
 
@@ -89,6 +93,7 @@
   const router = useRouter();
   const serachKey = useDebouncedRef('');
 
+  const pageViewcrollFaker = ref<InstanceType<typeof ScrollFaker>>();
   const toolboxTitle = ref('');
   const activeMenu = ref('');
 
@@ -126,6 +131,10 @@
       immediate: true,
     },
   );
+
+  const handlePageScroll = (scrollLeft: number, scrollTop: number) => {
+    pageViewcrollFaker.value!.scrollTo(scrollLeft, scrollTop);
+  };
 
   const handleMenuClick = (id: string) => {
     activeMenu.value = id;
