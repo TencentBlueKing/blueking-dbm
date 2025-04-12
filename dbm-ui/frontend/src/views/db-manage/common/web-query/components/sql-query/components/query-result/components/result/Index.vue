@@ -64,6 +64,7 @@
       ref="tableRef"
       border="none"
       class="query-result-table"
+      :class="{ 'is-no-table-data': !queryResults.length }"
       :columns="columns"
       :container-height="containerHeight"
       :data-source="dataSource"
@@ -117,7 +118,7 @@
   >([]);
 
   const failedInstances = computed(() => {
-    if (!props.data.length || !props.data[0].table_data) {
+    if (!props.data.length) {
       return [];
     }
 
@@ -175,7 +176,7 @@
             field: instanceId,
             fixed: 'left',
             label: 'Instance',
-            width: 160,
+            width: 200,
           },
           ...dataKeys,
         ];
@@ -255,12 +256,22 @@
 </style>
 <style lang="less">
   .query-result-table {
+    &.is-no-table-data {
+      .vxe-table--header-wrapper {
+        display: none;
+      }
+    }
+
     .vxe-table--header-inner-wrapper {
       height: 28px !important;
     }
 
     .vxe-header--column {
       padding: 3px 0 !important;
+    }
+
+    .vxe-table--append-wrapper {
+      border-bottom: none;
     }
   }
 </style>
