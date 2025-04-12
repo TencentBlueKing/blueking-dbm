@@ -46,7 +46,7 @@ class JobCallBackViewSet(BaseProxyPassViewSet):
     )
     @action(methods=["POST"], detail=False, serializer_class=JobCallBackSerializer, url_path="push_conf_callback")
     def push_conf_callback(self, request):
-        logger.info(f"nginx文件下发job回调 request data: {request.data}")
+        logger.info(f"nginx push job callback: {request.data}")
 
         validated_data = self.params_validate(self.get_serializer_class())
         job_inst_id = validated_data["job_instance_id"]
@@ -99,7 +99,7 @@ class JobCallBackViewSet(BaseProxyPassViewSet):
     )
     @action(methods=["POST"], detail=False, serializer_class=JobCallBackSerializer, url_path="restart_callback")
     def restart_callback(self, request):
-        logger.info(f"nginx重启job回调视图 request data: {request.data}")
+        logger.info(f"nginx reload job callback: {request.data}")
 
         validated_data = self.params_validate(self.get_serializer_class())
         job_inst_id = validated_data["job_instance_id"]
