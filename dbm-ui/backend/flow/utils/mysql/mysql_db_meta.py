@@ -1060,6 +1060,15 @@ class MySQLDBMeta(object):
                 machine__ip=self.cluster["proxy_ip"],
             ).update(version=self.cluster["version"])
 
+    def update_proxy_instance_status(self):
+        """
+        更新proxy状态
+        """
+        with atomic():
+            ProxyInstance.objects.filter(
+                machine__ip=self.cluster["proxy_ip"],
+            ).update(phase=self.cluster["phase"], status=self.cluster["status"])
+
     def update_mysql_instance_version(self):
         """
         升级后更新mysql版本信息

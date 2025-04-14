@@ -23,6 +23,8 @@ class InstancePhase(str, StructuredEnum):
 
     TRANS_STAGE = EnumField("trans_stage", _(" scr/gcs迁移中"))
 
+    UPGRADING = EnumField("upgrading", _("升级中"))
+
     @classmethod
     def instance_status_transfer_valid(cls, source_phase, target_phase) -> bool:
         """

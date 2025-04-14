@@ -17,6 +17,8 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
+from backend.db_meta.enums import InstanceStatus
+from backend.db_meta.enums.instance_phase import InstancePhase
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, ProxyInstance
 from backend.db_package.models import Package
@@ -163,6 +165,16 @@ class MySQLProxyLocalUpgradeFlow(object):
         exec_act_kwargs = ExecActuatorKwargs(cluster=cluster, bk_cloud_id=bk_cloud_id)
         exec_act_kwargs.exec_ip = ip
         exec_act_kwargs.get_mysql_payload_func = ProxyActPayload.get_proxy_upgrade_payload.__name__
+        sub_pipeline.add_act(
+            act_name=_("更新proxy instance status -> upgrade"),
+            act_component_code=MySQLDBMetaComponent.code,
+            kwargs=asdict(
+                DBMetaOPKwargs(
+                    db_meta_class_func=MySQLDBMeta.update_proxy_instance_status.__name__,
+                    cluster={"proxy_ip": ip, "phase": InstancePhase.UPGRADING, "status": InstanceStatus.UPGRADING},
+                )
+            ),
+        )
         # 执行本地升级
         sub_pipeline.add_act(
             act_name=_("执行本地升级"),
@@ -170,14 +182,30 @@ class MySQLProxyLocalUpgradeFlow(object):
             kwargs=asdict(exec_act_kwargs),
         )
         # 更新proxy instance version 信息
-        sub_pipeline.add_act(
-            act_name=_("更新proxy version meta信息"),
-            act_component_code=MySQLDBMetaComponent.code,
-            kwargs=asdict(
-                DBMetaOPKwargs(
-                    db_meta_class_func=MySQLDBMeta.update_proxy_instance_version.__name__,
-                    cluster={"proxy_ip": ip, "version": proxy_version},
-                )
-            ),
+        act_list = []
+        act_list.append(
+            {
+                "act_name": _("更新proxy version meta信息"),
+                "act_component_code": MySQLDBMetaComponent.code,
+                "kwargs": asdict(
+                    DBMetaOPKwargs(
+                        db_meta_class_func=MySQLDBMeta.update_proxy_instance_version.__name__,
+                        cluster={"proxy_ip": ip, "version": proxy_version},
+                    )
+                ),
+            }
         )
+        act_list.append(
+            {
+                "act_name": _("更新proxy instance status -> online"),
+                "act_component_code": MySQLDBMetaComponent.code,
+                "kwargs": asdict(
+                    DBMetaOPKwargs(
+                        db_meta_class_func=MySQLDBMeta.update_proxy_instance_status.__name__,
+                        cluster={"proxy_ip": ip, "phase": InstancePhase.ONLINE, "status": InstanceStatus.RUNNING},
+                    )
+                ),
+            }
+        )
+        sub_pipeline.add_parallel_acts(act_list)
         return sub_pipeline.build_sub_process(sub_name=_("{}proxy实例升级").format(ip))

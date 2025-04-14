@@ -16,7 +16,8 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterType, TenDBClusterSpiderRole
+from backend.db_meta.enums import ClusterType, InstanceStatus, TenDBClusterSpiderRole
+from backend.db_meta.enums.instance_phase import InstancePhase
 from backend.db_meta.exceptions import ClusterNotExistException, DBMetaException
 from backend.db_meta.models import Cluster, ProxyInstance
 from backend.db_package.models import Package
@@ -434,21 +435,47 @@ class UpgradeSpiderFlow(TenDBClusterAddNodesFlow):
         exec_act_kwargs.exec_ip = ip
         exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_spider_upgrade_payload.__name__
         sub_pipeline.add_act(
+            act_name=_("更新spider instance status -> upgrade"),
+            act_component_code=MySQLDBMetaComponent.code,
+            kwargs=asdict(
+                DBMetaOPKwargs(
+                    db_meta_class_func=MySQLDBMeta.update_proxy_instance_status.__name__,
+                    cluster={"proxy_ip": ip, "phase": InstancePhase.UPGRADING, "status": InstanceStatus.UPGRADING},
+                )
+            ),
+        )
+        sub_pipeline.add_act(
             act_name=_("执行本地升级"),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(exec_act_kwargs),
         )
         # 更新proxy instance version 信息
-        sub_pipeline.add_act(
-            act_name=_("更新spider version meta信息"),
-            act_component_code=MySQLDBMetaComponent.code,
-            kwargs=asdict(
-                DBMetaOPKwargs(
-                    db_meta_class_func=MySQLDBMeta.update_proxy_instance_version.__name__,
-                    cluster={"proxy_ip": ip, "version": spider_version},
-                )
-            ),
+        act_list = []
+        act_list.append(
+            {
+                "act_name": _("更新spider version meta信息"),
+                "act_component_code": MySQLDBMetaComponent.code,
+                "kwargs": asdict(
+                    DBMetaOPKwargs(
+                        db_meta_class_func=MySQLDBMeta.update_proxy_instance_version.__name__,
+                        cluster={"proxy_ip": ip, "version": spider_version},
+                    )
+                ),
+            }
         )
+        act_list.append(
+            {
+                "act_name": _("更新spider instance status -> online"),
+                "act_component_code": MySQLDBMetaComponent.code,
+                "kwargs": asdict(
+                    DBMetaOPKwargs(
+                        db_meta_class_func=MySQLDBMeta.update_proxy_instance_status.__name__,
+                        cluster={"proxy_ip": ip, "phase": InstancePhase.ONLINE, "status": InstanceStatus.RUNNING},
+                    )
+                ),
+            }
+        )
+        sub_pipeline.add_parallel_acts(act_list)
         sub_pipeline.add_act(
             act_name=_("添加集群域名"),
             act_component_code=MySQLDnsManageComponent.code,

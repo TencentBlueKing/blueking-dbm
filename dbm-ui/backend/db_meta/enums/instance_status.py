@@ -17,3 +17,4 @@ class InstanceStatus(str, StructuredEnum):
     RUNNING = EnumField("running", _("running"))
     UNAVAILABLE = EnumField("unavailable", _("unavailable"))
     RESTORING = EnumField("restoring", _("restoring"))
+    UPGRADING = EnumField("upgrading", _("upgrading"))
