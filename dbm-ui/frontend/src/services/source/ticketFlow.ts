@@ -82,7 +82,7 @@ export function batchProcessTicket(params: {
 
 // /apis/tickets/batch_process_todo/
 export function batchProcessTodo(params: {
-  action: 'APPROVE' | 'TERMINATE';
+  action: 'APPROVE' | 'TERMINATE' | 'SKIP' | 'CHANGE';
   operations: {
     params?: Record<string, any>;
     todo_id: number;

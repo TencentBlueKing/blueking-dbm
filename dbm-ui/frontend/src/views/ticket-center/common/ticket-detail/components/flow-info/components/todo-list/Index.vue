@@ -19,6 +19,10 @@
         :data="todoItem"
         :flow-data="flowData"
         :ticket-data="ticketData" />
+      <TypeTimer
+        :data="todoItem"
+        :flow-data="flowData"
+        :ticket-data="ticketData" />
     </template>
   </div>
 </template>
@@ -32,6 +36,7 @@
   import TypeInnerApprove from './type-inner-approve/Index.vue';
   import TypeItsm from './type-itsm/Index.vue';
   import TypeResourceReplenish from './type-resource-replenish/Index.vue';
+  import TypeTimer from './type-timer/Index.vue';
 
   interface Props {
     data: FlowMode['todos'];

@@ -7,6 +7,7 @@
         :data="dataList"
         :max-height="tableMaxHeight"
         :pagination="pagination"
+        :row-class="rowClass"
         :row-config="{
           useKey: true,
           keyField: 'id',
@@ -368,6 +369,8 @@
       Boolean(formatDateValue.value.create_at__lte),
   );
 
+  const rowClass = (params: TicketModel) => (params.id === ticketId.value ? 'select-row' : '');
+
   const fetchData = () => {
     fetchTicketList({
       ...formatDateValue.value,
@@ -638,6 +641,12 @@
         margin-left: 4px;
         font-size: 18px;
         color: #63656e;
+      }
+    }
+
+    .select-row {
+      td {
+        background: #ebf2ff !important;
       }
     }
   }

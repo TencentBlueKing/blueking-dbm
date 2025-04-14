@@ -13,7 +13,7 @@
         <DbIcon type="close" />
       </div>
       <div
-        v-bk-tooltips="t('展开至最大')"
+        v-bk-tooltips="t('向左展开')"
         class="dbm-table-detail-dialog-expand-max"
         @click="handleExpandMax">
         <DbIcon type="2-jiantou-zuo" />
@@ -72,7 +72,7 @@
     top: 0;
     right: 0;
     bottom: 0;
-    z-index: 1000;
+    z-index: 999;
     display: block;
     width: 60%;
     max-width: 90%;
@@ -94,13 +94,17 @@
     display: flex;
     width: 32px;
     height: 32px;
-    font-size: 16px;
+    font-size: 24px;
     color: #979ba5;
     cursor: pointer;
     background: #dcdee5;
     border-radius: 2px;
     justify-content: center;
     align-items: center;
+
+    &:hover {
+      background: #c4c6cc;
+    }
   }
 
   .dbm-table-detail-dialog-expand-max {
@@ -117,6 +121,12 @@
     transform: translateY(-50%);
     align-items: center;
     justify-content: center;
+    transition: all 0.15s;
+
+    &:hover {
+      color: #fff;
+      background: #3a84ff;
+    }
   }
 
   .dbm-table-detail-dialog-resize {
