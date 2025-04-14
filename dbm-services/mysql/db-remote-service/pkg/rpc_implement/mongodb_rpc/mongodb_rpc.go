@@ -113,6 +113,9 @@ func parseQueryParams(c *gin.Context) (*QueryParams, error) {
 	return param, nil
 }
 
+const maxRespSize = 32 * 1024 * 1024 // 32M
+const maxTimeout = 115               // 115s
+
 // DoCommand do command for mongo
 func (r *MongoRPCEmbed) DoCommand(c *gin.Context) {
 	// Get the session pool && logger
@@ -149,6 +152,7 @@ func (r *MongoRPCEmbed) DoCommand(c *gin.Context) {
 		resp.SendError(err.Error())
 		return
 	}
+	var v []byte
 
 	// Send the command to the session
 	_, err = session.SendMsg([]byte(param.Command))
@@ -164,9 +168,9 @@ func (r *MongoRPCEmbed) DoCommand(c *gin.Context) {
 		return
 	}
 
-	v, err := session.ReceiveMsg(15)
+	v, err = session.ReceiveMsg(maxTimeout)
+	logger.Error("ReceiveMsg", slog.String("resp", string(v)), slog.Any("err", err))
 	if err != nil {
-		logger.Error("read resp", slog.String("resp", string(v)))
 		session.Stop()
 		// 有内容尽量返回.
 		if len(v) > 0 {

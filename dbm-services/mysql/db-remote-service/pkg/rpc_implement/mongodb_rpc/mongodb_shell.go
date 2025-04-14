@@ -55,11 +55,12 @@ type MongoShell struct {
 	ProcessOutBuf []byte
 	OutBuf        []byte
 	Cmd           string
-	Chan          chan []byte
+	BufChan       chan []byte
 	Pid           int
 	StopChan      chan struct{}
 	MongoHost     MongoHost
 	MongoVersion  string
+	ShellBin      string // mongo or mongosh
 }
 
 // NewMongoShellFromParm create a new MongoShell instance
@@ -69,7 +70,7 @@ func NewMongoShellFromParm(p *QueryParams) *MongoShell {
 		setName = p.SetName
 	}
 	return &MongoShell{
-		Chan:         make(chan []byte, 102400),
+		BufChan:      make(chan []byte, 2),
 		StopChan:     make(chan struct{}, 1),
 		MongoVersion: p.Version,
 		MongoHost: MongoHost{
@@ -118,11 +119,14 @@ func buildArgs(r *MongoShell) (argv []string, err error) {
 		return nil, fmt.Errorf("invalid version string")
 	}
 
-	shellPath := "mongosh"
 	// 4.2 之前的版本，使用 mongo
 	isLowerVersion := major < 4 || (minor < 2 && major == 4)
+	isLowerVersion = true // 高版本打算用mongosh的，但搭配mongosh跑不起来. 就先用mongo
+
 	if isLowerVersion {
-		shellPath = "mongo"
+		r.ShellBin = "mongo"
+	} else {
+		r.ShellBin = "mongosh"
 	}
 
 	evalJs := ""
@@ -140,7 +144,7 @@ func buildArgs(r *MongoShell) (argv []string, err error) {
 		}
 	}
 
-	cmdPath, err := exec.LookPath(shellPath)
+	cmdPath, err := exec.LookPath(r.ShellBin)
 	if err != nil {
 		return nil, fmt.Errorf("internal error, exec.LookPath failed")
 	}
@@ -188,8 +192,8 @@ func (r *MongoShell) Run(startWg *sync.WaitGroup, logger *slog.Logger) error {
 
 	}
 
-	// 启动进程，启动后，将进程的Pid出发送到 Chan
-	// 如果进程退出，关闭 Chan
+	// 启动进程，启动后，将进程的Pid出发送到 BufChan
+	// 如果进程退出，关闭 BufChan
 	pidChan := make(chan int)
 	procCtx, procCancel := context.WithCancel(context.Background())
 
@@ -208,7 +212,7 @@ func (r *MongoShell) Run(startWg *sync.WaitGroup, logger *slog.Logger) error {
 			r.logger.Error("os.StartProcess", slog.Any("err", err))
 		}
 		pidChan <- proc.Pid
-		// 等待进程结束， 进程结束后，关闭 Chan
+		// 等待进程结束， 进程结束后，关闭 BufChan
 		state, err := proc.Wait()
 		r.logger.Info("proc.exited", slog.String("state", state.String()), slog.Any("err", err))
 
@@ -227,32 +231,30 @@ func (r *MongoShell) Run(startWg *sync.WaitGroup, logger *slog.Logger) error {
 	pid = <-pidChan
 	r.Pid = pid
 	time.Sleep(2)
-	r.logger.Info("startProcess", slog.String("cmdPath", argv[0]), slog.Any("argv", argv),
+	r.logger.Info("startProcess",
+		slog.String("cmdPath", argv[0]), slog.Any("argv", argv),
 		slog.Int("pid", r.Pid), slog.Any("err", err))
 	startWg.Done() // signal to main goroutine
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
-		// pumpStdout
-		// 从 outr 读取数据，发送到 Chan
-		// 如果进程结束，关闭 Chan
-		r.logger.Info("pumpStdout: always read from outr, and send to Chan")
+		// read outr -> write BufChan
+		r.logger.Info("pumpStdout: always read from outr, and send to BufChan")
 		defer wg.Done()
-		var buf = make([]byte, 102400)
+		var buf = make([]byte, 1024)
 		for {
 			select {
 			case <-procCtx.Done():
 				r.logger.Info("pumpStdout stop, because procCtx.Done")
-				// r.Chan <- []byte("exit\n")
+				// r.BufChan <- []byte("exit\n")
 				goto done
 			default:
-				// ctx, _ := context.WithTimeout(context.Background(), 1*time.Second
 				// 阻塞读取 outr
 				n, readErr := outr.Read(buf)
-				r.logger.Info("readMsg",
-					slog.Int("readByte", n),
-					slog.String("buf", string(buf[:n])),
+				r.logger.Info("readFromOutr",
+					slog.Int("n", n),
+					slog.String("data", string(buf[:n])),
 					slog.Any("err", readErr),
 				)
 				if err != nil {
@@ -260,49 +262,62 @@ func (r *MongoShell) Run(startWg *sync.WaitGroup, logger *slog.Logger) error {
 					goto done
 				}
 				if n > 0 {
-					r.Chan <- buf[:n]
+					// 发送到 BufChan
+					r.logger.Info("sendToBufChan", slog.Int("n", n),
+						slog.String("data", string(buf[:n])))
+					var tmpBuf = make([]byte, n)
+					copy(tmpBuf, buf[:n])
+					r.BufChan <- tmpBuf
 				}
 			}
 		}
 	done:
 
 		r.logger.Info("close chan", slog.String("func", "pumpStdout"))
-		close(r.Chan)
+		close(r.BufChan)
 	}()
 
-	r.logger.Info("pumpStdout is running")
 	wg.Wait()
 	r.logger.Info("pumpStdout is done")
 	return nil
 }
 
+// ReceiveMsg receives a message from the process
 func (r *MongoShell) ReceiveMsg(timeout int64) (out []byte, err error) {
-	buf := make([]byte, 0, 32*1024*1024)
+	buf := make([]byte, 0, maxRespSize)
 	msg := bytes.NewBuffer(buf)
-	lastUpdate := time.Now().UnixMilli()
 	ctxTimeout, _ := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
 	checkCone := time.Tick(100 * time.Millisecond)
+	checkConeCount := 0
+	bytesTotal := 0
 	for {
 		select {
-		case v, ok := <-r.Chan:
+		case v, ok := <-r.BufChan:
+			r.logger.Info("readFromBufChan", slog.Bool("isResponseEnd", isResponseEnd(v)),
+				slog.String("v", string(v)))
+
 			if !ok {
 				r.logger.Info("chan closed", slog.String("v", string(v)))
 				return msg.Bytes(), fmt.Errorf("chan closed")
 			}
-			_, werr := msg.Write(v)
+			n, werr := msg.Write(v)
+			bytesTotal += n
+			// 超过了bufSize
 			if werr != nil {
 				return msg.Bytes(), werr
 			}
-
-			lastUpdate = time.Now().UnixMilli()
-			if isResponseEnd(msg.Bytes()) {
-				return msg.Bytes(), nil
+			if bytesTotal > maxRespSize {
+				r.logger.Info("excess data size", slog.Int("bytesTotal", bytesTotal))
+				return nil, fmt.Errorf("excess data size")
 			}
+			checkConeCount = 0
+
 		case <-ctxTimeout.Done():
 			return msg.Bytes(), fmt.Errorf("timeout") // 返回超时或取消原因
 		case <-checkCone:
-			if msg.Len() > 0 && time.Now().UnixMilli()-lastUpdate > 800 {
-				r.logger.Info("ReceiveMsg because of timeout", slog.Int("msgLen", msg.Len()))
+			checkConeCount += 1
+			if msg.Len() > 0 && checkConeCount > 4 {
+				r.logger.Info("timeout", slog.Int("msgLen", msg.Len()))
 				return msg.Bytes(), nil
 			}
 		}
@@ -317,7 +332,12 @@ func (r *MongoShell) Stop() {
 	r.logger.Info("stopped")
 }
 
-func precheckInput(msg []byte) ([]byte, error) {
+func precheckInput(ShellBin string, msg []byte) ([]byte, error) {
+	// 如果是 mongosh，不需要加 print
+	if ShellBin == "mongosh" {
+		return msg, nil
+	}
+
 	// append "\n" to the end of msg
 	if len(msg) == 0 || msg[len(msg)-1] != '\n' {
 		msg = append(msg, []byte("\n")...)
@@ -330,7 +350,7 @@ func precheckInput(msg []byte) ([]byte, error) {
 	if reIt.Match(msg) || reUse.Match(msg) {
 		// use xxx
 		// it;
-		// 一定会有返回，不需要加 print, 其它的就不一定了.
+		// 一定会有返回，不需要加 print, 其它的可能没有返回
 	} else {
 		msg = append(msg, []byte("print('')\n")...)
 	}
@@ -340,7 +360,7 @@ func precheckInput(msg []byte) ([]byte, error) {
 
 // SendMsg sends a message to process
 func (r *MongoShell) SendMsg(msg []byte) (n int, err error) {
-	msg, err = precheckInput(msg)
+	msg, err = precheckInput(r.ShellBin, msg)
 	if err != nil {
 		return 0, errors.Wrap(err, "precheckInput")
 	}

@@ -41,7 +41,7 @@ func TestPrecheckInput(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := precheckInput(tt.input)
+			got, err := precheckInput("mongo", tt.input)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("precheckInput() error = %v, wantErr %v", err, tt.wantErr)
 				return
