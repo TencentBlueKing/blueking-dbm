@@ -259,7 +259,7 @@
     {
       field: 'bk_cloud_name',
       label: t('管控区域'),
-      minWidth: 80,
+      minWidth: 100,
     },
     {
       field: 'agent_status',
@@ -407,7 +407,7 @@
       field: 'operator',
       label: t('转入人'),
       showOverflow: true,
-      width: 100,
+      width: 120,
     },
   ]);
 

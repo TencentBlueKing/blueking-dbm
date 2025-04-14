@@ -57,6 +57,7 @@
             class="mt-6" />
         </BkFormItem>
       </BkForm>
+      <slot name="append" />
     </div>
     <template #footer>
       <div class="dialog-footer">
@@ -80,7 +81,7 @@
 </template>
 
 <script setup lang="tsx">
-  import type { UnwrapRef } from 'vue';
+  import type { UnwrapRef, VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { messageSuccess } from '@utils';
@@ -105,6 +106,11 @@
   });
 
   const emits = defineEmits<Emits>();
+
+  defineSlots<{
+    append?: () => VNode;
+  }>();
+
   const isShow = defineModel<boolean>('isShow', {
     default: false,
   });
