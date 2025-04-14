@@ -192,7 +192,8 @@ class BizSettings(AbstractSettings):
         except ValueError:
             db_type = cluster_type
 
-        if db_type in hosting_db_types:
+        # 兼容组件类型和集群类型的情况
+        if db_type in hosting_db_types or cluster_type in hosting_db_types:
             return bk_biz_id
 
         # 默认都管控在DBA业务

@@ -32,7 +32,7 @@ class _CCApi(BaseApi):
             description=_("没有业务信息的主机查询"),
         )
         self.search_business = self.generate_data_api(
-            method="POST", url="search_business/", description=_("查询业务"), cache_time=30
+            method="POST", url="search_business/", description=_("查询业务"), cache_time=900
         )
         self.search_module = self.generate_data_api(
             method="POST",
