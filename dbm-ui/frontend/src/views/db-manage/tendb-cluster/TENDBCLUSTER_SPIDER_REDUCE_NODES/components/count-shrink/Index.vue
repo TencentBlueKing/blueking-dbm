@@ -147,6 +147,9 @@
       message: '',
       trigger: 'change',
       validator: (value: string, rowData?: Record<string, any>) => {
+        if (!value) {
+          return true;
+        }
         const row = rowData as RowData;
         if (Number(value) < 2 && row.cluster.role === 'spider_master') {
           return t('请保证缩容后的接入层 Spider Master 数量 >= 2');

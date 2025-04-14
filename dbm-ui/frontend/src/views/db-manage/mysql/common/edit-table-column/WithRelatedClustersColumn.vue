@@ -110,8 +110,8 @@
   const rules = [
     {
       message: t('集群域名格式不正确'),
-      trigger: 'change',
-      validator: (value: string) => domainRegex.test(value),
+      trigger: 'blur',
+      validator: (value: string) => !value || domainRegex.test(value),
     },
     {
       message: t('目标集群重复'),
@@ -121,7 +121,12 @@
     {
       message: t('目标集群不存在'),
       trigger: 'blur',
-      validator: () => Boolean(modelValue.value.id),
+      validator: (value: string) => {
+        if (!value) {
+          return true;
+        }
+        return Boolean(modelValue.value.id);
+      },
     },
   ];
 

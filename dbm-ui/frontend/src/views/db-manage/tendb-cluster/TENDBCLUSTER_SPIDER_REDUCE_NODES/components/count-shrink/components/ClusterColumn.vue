@@ -114,8 +114,8 @@
     {
       message: t('目标集群不存在'),
       trigger: 'blur',
-      validator: () => {
-        if (!modelValue.value.master_domain) {
+      validator: (value: string) => {
+        if (!value) {
           return true;
         }
         return Boolean(modelValue.value.id);
@@ -124,7 +124,10 @@
     {
       message: '',
       trigger: 'blur',
-      validator: () => {
+      validator: (value: string) => {
+        if (!value) {
+          return true;
+        }
         if (modelValue.value.master_count > 2 || modelValue.value.slave_count > 1) {
           return true;
         }

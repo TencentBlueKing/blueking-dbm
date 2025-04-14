@@ -178,6 +178,9 @@
         message: t('IP 重复'),
         trigger: 'blur',
         validator: (value: string, rowData?: Record<string, any>) => {
+          if (!value) {
+            return true;
+          }
           const row = rowData as RowData;
           return newHostCounter.value[row.newMaster.ip] <= 1;
         },
@@ -186,6 +189,9 @@
         message: t('IP 重复'),
         trigger: 'change',
         validator: (value: string, rowData?: Record<string, any>) => {
+          if (!value) {
+            return true;
+          }
           const row = rowData as RowData;
           return newHostCounter.value[row.newMaster.ip] <= 1;
         },
@@ -196,6 +202,9 @@
         message: t('IP 重复'),
         trigger: 'blur',
         validator: (value: string, rowData?: Record<string, any>) => {
+          if (!value) {
+            return true;
+          }
           const row = rowData as RowData;
           return newHostCounter.value[row.newSlave.ip] <= 1;
         },
@@ -204,6 +213,9 @@
         message: t('IP 重复'),
         trigger: 'change',
         validator: (value: string, rowData?: Record<string, any>) => {
+          if (!value) {
+            return true;
+          }
           const row = rowData as RowData;
           return newHostCounter.value[row.newSlave.ip] <= 1;
         },

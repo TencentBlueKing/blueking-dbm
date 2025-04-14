@@ -154,6 +154,9 @@
         message: t('IP 重复'),
         trigger: 'blur',
         validator: (value: string, rowData?: Record<string, any>) => {
+          if (!value) {
+            return true;
+          }
           const row = rowData as RowData;
           return hostCounter.value[row.host.ip] <= 1;
         },
@@ -162,6 +165,9 @@
         message: t('IP 重复'),
         trigger: 'change',
         validator: (value: string, rowData?: Record<string, any>) => {
+          if (!value) {
+            return true;
+          }
           const row = rowData as RowData;
           return hostCounter.value[row.host.ip] <= 1;
         },
@@ -174,7 +180,7 @@
       const { details } = ticketDetail;
       const { clusters, infos } = details;
       Object.assign(formData, {
-        ...createTickePayload(ticketDetail),
+        payload: createTickePayload(ticketDetail),
         tableData: infos.map((item) => {
           const clusterInfo = clusters[item.cluster_id];
           return createTableRow({

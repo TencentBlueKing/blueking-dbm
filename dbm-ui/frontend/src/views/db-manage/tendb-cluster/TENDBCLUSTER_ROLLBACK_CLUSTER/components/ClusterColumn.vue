@@ -58,9 +58,7 @@
     }[];
   }
 
-  interface Emits {
-    (e: 'batch-edit', list: TendbClusterModel[]): void;
-  }
+  type Emits = (e: 'batch-edit', list: TendbClusterModel[]) => void;
 
   const props = defineProps<Props>();
 
@@ -91,28 +89,28 @@
 
   const rules = [
     {
-      validator: (value: string) => domainRegex.test(value),
       message: t('集群域名格式不正确'),
       trigger: 'change',
+      validator: (value: string) => domainRegex.test(value),
     },
     {
-      validator: (value: string) => props.selected.filter((item) => item.master_domain === value).length < 2,
       message: t('目标集群重复'),
       trigger: 'blur',
+      validator: (value: string) => props.selected.filter((item) => item.master_domain === value).length < 2,
     },
     {
-      validator: () => {
-        if (!modelValue.value.master_domain) {
+      message: t('目标集群不存在'),
+      trigger: 'blur',
+      validator: (value: string) => {
+        if (!value) {
           return true;
         }
         return Boolean(modelValue.value.id);
       },
-      message: t('目标集群不存在'),
-      trigger: 'blur',
     },
   ];
 
-  const { run: queryCluster, loading } = useRequest(filterClusters<TendbClusterModel>, {
+  const { loading, run: queryCluster } = useRequest(filterClusters<TendbClusterModel>, {
     manual: true,
     onSuccess: (data) => {
       if (data.length) {

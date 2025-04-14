@@ -96,8 +96,8 @@
     {
       message: t('目标集群不存在'),
       trigger: 'blur',
-      validator: () => {
-        if (!modelValue.value.master_domain) {
+      validator: (value: string) => {
+        if (!value) {
           return true;
         }
         return Boolean(modelValue.value.id);

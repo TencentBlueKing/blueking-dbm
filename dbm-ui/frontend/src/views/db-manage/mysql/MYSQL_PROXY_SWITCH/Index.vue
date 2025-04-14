@@ -114,7 +114,7 @@
       const { force, opera_object: operaObject } = details;
       Object.assign(formData, {
         force,
-        ...createTickePayload(ticketDetail),
+        payload: createTickePayload(ticketDetail),
       });
       operaObjectType.value = operaObject;
       nextTick(() => {

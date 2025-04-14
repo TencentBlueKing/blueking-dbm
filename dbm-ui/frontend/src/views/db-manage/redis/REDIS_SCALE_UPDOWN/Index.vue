@@ -209,7 +209,7 @@
       const { details } = ticketDetail;
       const { clusters, infos } = details;
       Object.assign(formData, {
-        ...createTickePayload(ticketDetail),
+        payload: createTickePayload(ticketDetail),
         tableData: infos.map((item) => {
           const clusterInfo = clusters[item.cluster_id];
           return createTableRow({
