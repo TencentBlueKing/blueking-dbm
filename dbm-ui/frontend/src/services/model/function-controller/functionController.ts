@@ -54,6 +54,7 @@ export default class FunctionController {
   'bizConfigManage.ticketNoticeSetting': ControllerItem<string>;
 
   // 通用开关，涉及多个功能页面
+  'common.hcmRecycle': ControllerItem<string>;
   'common.specCostEstimate': ControllerItem<string>;
 
   'databaseManage.missionManage': ControllerItem<string>;

@@ -96,6 +96,9 @@ export function getMachinePool(params: {
    * 不传则为所有主机
    */
   pool?: 'fault' | 'recycle';
+  update_at__gte?: string;
+  update_at__lte?: string;
+  updater?: string;
 }) {
   return http.get<ListBase<FaultOrRecycleMachineModel[]>>(`${path}/query_machine_pool/`, params).then((res) => ({
     ...res,
@@ -108,9 +111,13 @@ export function getMachinePool(params: {
  */
 export function transferMachinePool(params: {
   bk_host_ids: number[];
+  hcm_recycle?: boolean;
   remark?: string;
   source: 'fault' | 'recycle';
   target: 'fault' | 'recycle' | 'recycled';
 }) {
-  return http.post(`${path}/transfer_hosts_to_pool/`, params);
+  return http.post<{
+    hcm_recycle_id: number;
+    message: string;
+  }>(`${path}/transfer_hosts_to_pool/`, params);
 }

@@ -39,12 +39,19 @@
           </BkDropdownMenu>
         </template>
       </BkDropdown>
+      <BkDatePicker
+        v-model="dateRange"
+        append-to-body
+        :placeholder="t('请选择转入时间范围')"
+        style="width: 350px; margin-left: auto"
+        type="datetimerange"
+        @change="fetchData" />
       <DbSearchSelect
         :data="searchSelectData"
         :get-menu-list="getMenuList"
         :model-value="searchValue"
         :placeholder="t('请输入或选择条件搜索')"
-        style="width: 500px; margin-left: auto"
+        style="width: 500px; margin-left: 8px"
         unique-select
         :validate-values="validateSearchValues"
         value-behavior="need-key"
@@ -54,8 +61,9 @@
       ref="tableRef"
       class="table-box"
       :columns="tableColumn"
-      :data-source="dataSource"
+      :data-source="getMachinePool"
       primary-key="bk_host_id"
+      releate-url-query
       remote-sort
       row-class="table-row"
       selectable
@@ -76,7 +84,16 @@
         })
       "
       :title="t('确认批量回收 {n} 台主机？', { n: selected.length })"
-      @success="handleRefresh" />
+      @success="handleRecycleRefresh">
+      <template #append>
+        <BkCheckbox
+          v-model="hcmRecycle"
+          v-db-console="'common.hcmRecycle'"
+          class="mt-12">
+          {{ t('勾选后，自动在「海垒」创建回收单据') }}
+        </BkCheckbox>
+      </template>
+    </ReviewDataDialog>
     <ReviewDataDialog
       v-model:is-show="isBatchConvertToRecyclePool"
       :confirm-handler="handleConvertSubmit"
@@ -97,8 +114,10 @@
 </template>
 
 <script setup lang="tsx">
+  import { Message } from 'bkui-vue';
   import BkButton from 'bkui-vue/lib/button';
   import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
+  import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -114,12 +133,25 @@
 
   import OperationDetail from '@views/resource-manage/common/components/operation-detail/Index.vue';
 
-  import { execCopy, getMenuListSearch, getSearchSelectorParams, messageWarn } from '@utils';
+  import {
+    checkDbConsole,
+    execCopy,
+    getMenuListSearch,
+    getSearchSelectorParams,
+    messageSuccess,
+    messageWarn,
+  } from '@utils';
 
   import ReviewDataDialog from '../host-list/components/review-data-dialog/Index.vue';
 
   import BatchImportResourcePool from './components/BatchImportResourcePool/Index.vue';
   import ImportResourcePool from './components/ImportResourcePool.vue';
+
+  // const initDate = () => {
+  //   const startTime = dayjs().subtract(7, 'day').format('YYYY-MM-DD HH:mm:ss');
+  //   const endTime = dayjs().format('YYYY-MM-DD HH:mm:ss');
+  //   return [startTime, endTime] as [string, string];
+  // };
 
   const { t } = useI18n();
   const route = useRoute();
@@ -149,15 +181,17 @@
   const isBatchImportResourcePoolShow = ref(false);
   const isBatchConvertToRecyclePool = ref(false);
   const curImportData = ref<FaultOrRecycleMachineModel>();
+  const dateRange = ref(['', ''] as [string, string]);
+  const hcmRecycle = ref(true);
 
   const defaultBizId = systemEnvironStore.urls.DBA_APP_BK_BIZ_ID;
 
   const tableColumn = [
     {
       field: 'ip',
+      fixed: 'left',
       label: 'IP',
-      render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.ip || '--',
-      width: 160,
+      minWidth: 130,
     },
     {
       field: 'agent_status',
@@ -175,32 +209,42 @@
               };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
+      width: 100,
     },
     {
       field: 'city',
       label: t('地域'),
       render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.city || '--',
+      showOverflow: true,
+      width: 80,
     },
     {
       field: 'sub_zone',
       label: t('园区'),
       render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.sub_zone || '--',
+      showOverflow: true,
+      width: 90,
     },
     {
       field: 'rack_id',
       label: t('机架'),
       render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.rack_id || '--',
+      showOverflow: true,
+      width: 80,
     },
     {
       field: 'os_name',
       label: t('操作系统名称'),
       render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.os_name || '--',
+      showOverflow: true,
       width: 150,
     },
     {
       field: 'device_class',
       label: t('机型'),
+      minWidth: 130,
       render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.device_class || '--',
+      showOverflow: true,
     },
     {
       field: 'bk_cpu',
@@ -210,24 +254,26 @@
     {
       field: 'bkMemText',
       label: t('内存(G)'),
+      minWidth: 90,
       showOverflow: true,
-      width: 80,
     },
     {
       field: 'bk_disk',
       label: t('磁盘总容量(G)'),
       render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.bk_disk || '--',
+      width: 110,
     },
     {
       field: 'updateAtDisplay',
       label: t('转入时间'),
+      width: 180,
     },
     {
       field: 'updater',
       label: t('转入人'),
       render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.updater || '--',
       showOverflow: true,
-      width: 100,
+      width: 120,
     },
     {
       field: 'latest_event',
@@ -245,6 +291,10 @@
       id: 'ips',
       multiple: true,
       name: 'IP',
+    },
+    {
+      id: 'updater',
+      name: t('转入人'),
     },
     {
       id: 'city',
@@ -311,18 +361,21 @@
   // 清空搜索条件
   const handleClearSearch = () => {
     clearSearchValue();
+    dateRange.value = ['', ''];
   };
-
-  const dataSource = (params: FaultOrRecycleMachineModel) =>
-    getMachinePool({
-      ...params,
-      bk_biz_id: undefined,
-      pool: isFaultPool.value ? 'fault' : 'recycle',
-    });
 
   const fetchData = () => {
     const searchParams = getSearchSelectorParams(searchValue.value);
-    tableRef.value?.fetchData(searchParams);
+    const [beginTime, endTime] = dateRange.value;
+
+    tableRef.value?.fetchData({
+      ...searchParams,
+      // ...sortValue,
+      bk_biz_id: undefined,
+      pool: isFaultPool.value ? 'fault' : 'recycle',
+      update_at__gte: beginTime ? dayjs(beginTime).format('YYYY-MM-DD HH:mm:ss') : '',
+      update_at__lte: endTime ? dayjs(endTime).format('YYYY-MM-DD HH:mm:ss') : '',
+    });
   };
 
   const handleSelection = (_data: FaultOrRecycleMachineModel, list: FaultOrRecycleMachineModel[]) => {
@@ -347,11 +400,15 @@
   };
 
   const handleRecycleSubmit = () => {
-    return transferMachinePool({
+    const params: ServiceParameters<typeof transferMachinePool> = {
       bk_host_ids: selected.value.map((item) => item.bk_host_id),
       source: 'recycle',
       target: 'recycled',
-    });
+    };
+    if (checkDbConsole('common.hcmRecycle')) {
+      params.hcm_recycle = hcmRecycle.value;
+    }
+    return transferMachinePool(params);
   };
 
   const handleConvertSubmit = ({ remark }: { remark: string }) => {
@@ -382,6 +439,34 @@
   const handleRefresh = () => {
     clearSelection();
     fetchData();
+  };
+
+  const handleRecycleRefresh = (data: ServiceReturnType<typeof transferMachinePool>) => {
+    if (checkDbConsole('common.hcmRecycle') && data.hcm_recycle_id) {
+      const { BK_HCM_URL, DBA_APP_BK_BIZ_ID } = systemEnvironStore.urls;
+      const targetHref = `${BK_HCM_URL}/#/business/applications?bizs=${DBA_APP_BK_BIZ_ID}&filter=order_id=${data.hcm_recycle_id}&type=host_recycle`;
+      Message({
+        delay: 6000,
+        dismissable: false,
+        message: h('p', {}, [
+          data.message,
+          h(
+            'a',
+            {
+              href: targetHref,
+              target: '_blank',
+            },
+            ` "${t('查看详情')}" `,
+          ),
+        ]),
+        theme: 'success',
+      });
+    } else {
+      messageSuccess(data.message);
+    }
+
+    hcmRecycle.value = true;
+    handleRefresh();
   };
 
   onMounted(() => {
