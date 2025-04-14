@@ -375,7 +375,8 @@
       name: t('集群名称'),
     },
     {
-      id: 'id',
+      id: 'cluster_ids',
+      multiple: true,
       name: 'ID',
     },
     {

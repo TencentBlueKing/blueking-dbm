@@ -29,7 +29,16 @@ const path = `/apis/bigdata/bizs/${currentBizId}/kafka/kafka_resources`;
 /**
  * 获取集群列表
  */
-export function getKafkaList(params: { bk_biz_id: number } & Record<string, any>) {
+export function getKafkaList(params: {
+  cluster_ids?: string;
+  creator?: string;
+  domain?: string;
+  id?: number;
+  ip?: string;
+  limit?: number;
+  name?: string;
+  offset?: number;
+}) {
   return http.get<ListBase<KafkaModel[]>>(`${path}/`, params).then((data) => ({
     ...data,
     results: data.results.map(

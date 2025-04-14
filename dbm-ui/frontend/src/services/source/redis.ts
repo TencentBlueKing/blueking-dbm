@@ -25,17 +25,15 @@ const getRootPath = () => `/apis/redis/bizs/${window.PROJECT_CONFIG.BIZ_ID}/redi
 /**
  * 获取集群列表
  */
-export function getRedisList(
-  params: {
-    bk_biz_id?: number;
-    cluster_ids?: string;
-    cluster_type?: string;
-    domain?: string;
-    exact_domain?: string;
-    limit?: number;
-    offset?: number;
-  } = {},
-) {
+export function getRedisList(params: {
+  bk_biz_id?: number;
+  cluster_ids?: string;
+  cluster_type?: string;
+  domain?: string;
+  exact_domain?: string;
+  limit?: number;
+  offset?: number;
+}) {
   return http.get<ListBase<RedisModel[]>>(`${getRootPath()}/`, params).then((data) => ({
     ...data,
     results: data.results.map(

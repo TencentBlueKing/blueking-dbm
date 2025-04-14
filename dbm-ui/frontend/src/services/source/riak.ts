@@ -30,8 +30,13 @@ const path = `/apis/bigdata/bizs/${currentBizId}/riak/riak_resources`;
  */
 export function getRiakList(params: {
   bk_biz_id: number;
-  cluster_ids?: number[] | number;
+  cluster_ids?: string;
+  creator?: string;
+  domain?: string;
+  id?: number;
+  ip?: string;
   limit: number;
+  name?: string;
   offset: number;
   type: string;
 }) {

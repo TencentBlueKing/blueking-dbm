@@ -383,7 +383,8 @@
       name: t('IP 或 IP:Port'),
     },
     {
-      id: 'id',
+      id: 'cluster_ids',
+      multiple: true,
       name: 'ID',
     },
     {

@@ -26,6 +26,7 @@ const getRootPath = () => `/apis/bigdata/bizs/${window.PROJECT_CONFIG.BIZ_ID}/do
  * 获取集群列表
  */
 export function getDorisList(params: {
+  cluster_ids?: string;
   creator?: string;
   domain?: string;
   id?: number;

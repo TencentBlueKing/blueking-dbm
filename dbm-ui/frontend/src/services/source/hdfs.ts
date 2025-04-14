@@ -30,7 +30,16 @@ const path = `/apis/bigdata/bizs/${currentBizId}/hdfs/hdfs_resources`;
 /**
  * 获取集群列表
  */
-export function getHdfsList(params: { bk_biz_id: number } & Record<string, any>) {
+export function getHdfsList(params: {
+  cluster_ids?: string;
+  creator?: string;
+  domain?: string;
+  id?: number;
+  ip?: string;
+  limit?: number;
+  name?: string;
+  offset?: number;
+}) {
   return http.get<ListBase<HdfsModel[]>>(`${path}/`, params).then((data) => ({
     ...data,
     results: data.results.map(
