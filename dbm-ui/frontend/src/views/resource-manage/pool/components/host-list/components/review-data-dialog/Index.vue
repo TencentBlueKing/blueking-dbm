@@ -57,6 +57,7 @@
             class="mt-6" />
         </BkFormItem>
       </BkForm>
+      <slot name="append" />
     </div>
     <template #footer>
       <div class="dialog-footer">
@@ -80,7 +81,7 @@
 </template>
 
 <script setup lang="tsx">
-  import type { UnwrapRef } from 'vue';
+  import type { UnwrapRef, VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { messageSuccess } from '@utils';
@@ -96,7 +97,7 @@
     title: string;
   }
 
-  type Emits = (e: 'success') => void;
+  type Emits = (e: 'success', data: Record<string, any>) => void;
 
   const props = withDefaults(defineProps<Props>(), {
     alert: undefined,
@@ -105,6 +106,11 @@
   });
 
   const emits = defineEmits<Emits>();
+
+  defineSlots<{
+    append?: () => VNode;
+  }>();
+
   const isShow = defineModel<boolean>('isShow', {
     default: false,
   });
@@ -124,9 +130,9 @@
     Promise.resolve()
       .then(() => formRef.value?.validate())
       .then(() => props.confirmHandler(formData))
-      .then(() => {
+      .then((data) => {
         messageSuccess(t('操作成功'));
-        emits('success');
+        emits('success', data);
         isShow.value = false;
         formData.remark = '';
       })
