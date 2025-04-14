@@ -114,7 +114,12 @@
     {
       message: t('目标集群不存在'),
       trigger: 'blur',
-      validator: () => Boolean(modelValue.value.id),
+      validator: (value: string) => {
+        if (!value) {
+          return true;
+        }
+        return Boolean(modelValue.value.id);
+      },
     },
   ];
 

@@ -114,7 +114,7 @@
       const { backup_source: backupSource, opera_object: operaObject } = details;
       Object.assign(formData, {
         backupSource,
-        ...createTickePayload(ticketDetail),
+        payload: createTickePayload(ticketDetail),
       });
       operaObjectType.value = operaObject;
       nextTick(() => {

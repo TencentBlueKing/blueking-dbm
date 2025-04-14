@@ -5,7 +5,7 @@ type RoleHostItem = {
   ip: string;
   master_ip: string;
   master_spec_id: number;
-  spec_id?: number;
+  spec_id: number;
 }[];
 
 interface RoleHost {

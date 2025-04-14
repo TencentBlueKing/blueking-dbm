@@ -101,7 +101,7 @@
       const { details } = ticketDetail;
       shrinkType.value = ticketDetail.details.shrink_type;
       Object.assign(formData, {
-        ...createTickePayload(ticketDetail),
+        payload: createTickePayload(ticketDetail),
       });
       nextTick(() => {
         ticketDetails.value = details;

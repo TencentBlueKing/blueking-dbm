@@ -132,7 +132,12 @@
     {
       message: t('目标实例不存在'),
       trigger: 'blur',
-      validator: () => Boolean(modelValue.value.bk_host_id),
+      validator: (value: string) => {
+        if (!value) {
+          return true;
+        }
+        return Boolean(modelValue.value.bk_host_id);
+      },
     },
   ];
 

@@ -165,7 +165,7 @@
       );
       Object.assign(formData, {
         ...createCheckPayload(details),
-        ...createTickePayload(ticketDetail),
+        payload: createTickePayload(ticketDetail),
         tableData: infos.map((item, index) =>
           createTableRow({
             master: {

@@ -181,7 +181,7 @@
       const { details } = ticketDetail;
       const { clusters, infos, specs } = details;
       Object.assign(formData, {
-        ...createTickePayload(ticketDetail),
+        payload: createTickePayload(ticketDetail),
       });
       if (infos.length > 0) {
         const dataList: RowData[] = [];

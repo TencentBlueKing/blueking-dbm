@@ -61,16 +61,20 @@
     }[];
   }
 
-  interface Emits {
-    (e: 'batch-edit', list: RedisModel[]): void;
-  }
+  type Emits = (e: 'batch-edit', list: RedisModel[]) => void;
 
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<
-    Pick<
+    {
+      cluster_spec?: RedisModel['cluster_spec'];
+      cluster_stats?: RedisModel['cluster_stats'];
+      group_num: RedisModel['machine_pair_cnt'];
+      id?: number;
+      shard_num: RedisModel['cluster_shard_num'];
+    } & Pick<
       RedisModel,
       | 'master_domain'
       | 'cluster_type'
@@ -79,27 +83,21 @@
       | 'major_version'
       | 'cluster_capacity'
       | 'disaster_tolerance_level'
-    > & {
-      cluster_stats?: RedisModel['cluster_stats'];
-      cluster_spec?: RedisModel['cluster_spec'];
-      group_num: RedisModel['machine_pair_cnt'];
-      shard_num: RedisModel['cluster_shard_num'];
-      id?: number;
-    }
+    >
   >({
     default: () => ({
-      master_domain: '',
-      cluster_type: '',
-      cluster_type_name: '',
-      major_version: '',
-      shard_num: 0,
-      group_num: 0,
       bk_cloud_id: 0,
       cluster_capacity: 0,
-      disaster_tolerance_level: 'CROS_SUBZONE',
-      id: undefined,
-      cluster_stats: {},
       cluster_spec: {},
+      cluster_stats: {},
+      cluster_type: '',
+      cluster_type_name: '',
+      disaster_tolerance_level: 'CROS_SUBZONE',
+      group_num: 0,
+      id: undefined,
+      major_version: '',
+      master_domain: '',
+      shard_num: 0,
     }),
   });
 
@@ -133,45 +131,45 @@
 
   const rules = [
     {
-      validator: (value: string) => domainRegex.test(value),
       message: t('集群域名格式不正确'),
       trigger: 'change',
+      validator: (value: string) => domainRegex.test(value),
     },
     {
-      validator: (value: string) => props.selected.filter((item) => item.master_domain === value).length < 2,
       message: t('目标集群重复'),
       trigger: 'blur',
+      validator: (value: string) => props.selected.filter((item) => item.master_domain === value).length < 2,
     },
     {
-      validator: () => {
-        if (!modelValue.value.master_domain) {
+      message: t('目标集群不存在'),
+      trigger: 'blur',
+      validator: (value: string) => {
+        if (!value) {
           return true;
         }
         return Boolean(modelValue.value.id);
       },
-      message: t('目标集群不存在'),
-      trigger: 'blur',
     },
   ];
 
-  const { run: queryCluster, loading } = useRequest(filterClusters<RedisModel>, {
+  const { loading, run: queryCluster } = useRequest(filterClusters<RedisModel>, {
     manual: true,
     onSuccess: (data) => {
       if (data.length) {
         const [currentCluster] = data;
         modelValue.value = {
-          id: currentCluster.id,
-          master_domain: currentCluster.master_domain,
+          bk_cloud_id: currentCluster.bk_cloud_id,
+          cluster_capacity: currentCluster.cluster_capacity,
+          cluster_spec: currentCluster.cluster_spec,
+          cluster_stats: currentCluster.cluster_stats,
           cluster_type: currentCluster.cluster_type,
           cluster_type_name: currentCluster.cluster_type_name,
-          cluster_stats: currentCluster.cluster_stats,
-          cluster_spec: currentCluster.cluster_spec,
-          cluster_capacity: currentCluster.cluster_capacity,
-          group_num: currentCluster.machine_pair_cnt,
-          shard_num: currentCluster.cluster_shard_num,
-          bk_cloud_id: currentCluster.bk_cloud_id,
-          major_version: currentCluster.major_version,
           disaster_tolerance_level: currentCluster.disaster_tolerance_level,
+          group_num: currentCluster.machine_pair_cnt,
+          id: currentCluster.id,
+          major_version: currentCluster.major_version,
+          master_domain: currentCluster.master_domain,
+          shard_num: currentCluster.cluster_shard_num,
         };
       }
     },
@@ -183,18 +181,18 @@
 
   const handleInputChange = (value: string) => {
     modelValue.value = {
-      master_domain: value,
-      cluster_type: '',
-      cluster_type_name: '',
-      major_version: '',
-      shard_num: 0,
-      group_num: 0,
       bk_cloud_id: 0,
       cluster_capacity: 0,
-      disaster_tolerance_level: 'CROS_SUBZONE',
-      id: undefined,
-      cluster_stats: {} as RedisModel['cluster_stats'],
       cluster_spec: {} as RedisModel['cluster_spec'],
+      cluster_stats: {} as RedisModel['cluster_stats'],
+      cluster_type: '',
+      cluster_type_name: '',
+      disaster_tolerance_level: 'CROS_SUBZONE',
+      group_num: 0,
+      id: undefined,
+      major_version: '',
+      master_domain: value,
+      shard_num: 0,
     };
     if (value) {
       queryCluster({

@@ -21,13 +21,13 @@
       </div>
     </template>
     <EditableBlock
-      v-model="modelValue.name"
+      v-model="localValue.name"
       :placeholder="t('自动生成')">
       <template #append>
         <SpecPanel
-          v-if="modelValue.name"
-          :data="modelValue"
-          :hide-qps="!modelValue.qps.min">
+          v-if="localValue.id"
+          :data="localValue"
+          :hide-qps="!localValue.qps.min">
           <DbIcon
             class="visible-icon ml-4"
             type="visible1" />
@@ -48,6 +48,36 @@
     required: true,
   });
   const { t } = useI18n();
+
+  const localValue = computed<SpecInfo>(() =>
+    Object.assign(
+      {
+        count: 0,
+        cpu: {
+          max: 1,
+          min: 0,
+        },
+        id: 0,
+        mem: {
+          max: 1,
+          min: 0,
+        },
+        name: '--',
+        qps: {
+          max: 1,
+          min: 0,
+        },
+        storage_spec: [
+          {
+            mount_point: '/data',
+            size: 0,
+            type: '默认',
+          },
+        ],
+      },
+      modelValue.value,
+    ),
+  );
 </script>
 
 <style lang="less" scoped>

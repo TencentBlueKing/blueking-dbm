@@ -122,8 +122,8 @@
     {
       message: t('目标集群不存在'),
       trigger: 'blur',
-      validator: () => {
-        if (!modelValue.value.master_domain) {
+      validator: (value: string) => {
+        if (!value) {
           return true;
         }
         return Boolean(modelValue.value.id);
@@ -132,7 +132,12 @@
     {
       message: t('数量不足，Proxy至少保留 2 台'),
       trigger: 'blur',
-      validator: () => modelValue.value.proxyCount >= 2,
+      validator: (value: string) => {
+        if (!value) {
+          return true;
+        }
+        return modelValue.value.proxyCount >= 2;
+      },
     },
   ];
 

@@ -151,31 +151,39 @@
       const { bk_biz_id: bizId, details } = ticketDetail;
       const { clusters, infos, specs } = details;
       Object.assign(formData, {
-        ...createTickePayload(ticketDetail),
+        payload: createTickePayload(ticketDetail),
       });
       if (infos.length > 0) {
         const dataList: RowData[] = [];
-        infos.forEach((item) => {
-          Object.entries(item.old_nodes).forEach(([role, hosts]) => {
-            const clusterInfo = clusters[item.cluster_ids[0]];
-            const [currentHost] = hosts;
-            if (currentHost) {
+        const generateData = (
+          list: Redis.ResourcePool.ClusterCutoff['infos'][0]['old_nodes']['redis_master'],
+          role: keyof Redis.ResourcePool.ClusterCutoff['infos'][0]['old_nodes'],
+          clusterIds: number[],
+        ) => {
+          if (list?.length) {
+            const clusterInfo = clusters[clusterIds[0]];
+            list.forEach((item) => {
               dataList.push(
                 createTableRow({
                   host: {
                     bk_biz_id: bizId,
-                    bk_cloud_id: currentHost.bk_cloud_id,
-                    bk_host_id: currentHost.bk_host_id,
+                    bk_cloud_id: 0,
+                    bk_host_id: item.bk_host_id,
                     cluster_domain: clusterInfo.immute_domain,
-                    cluster_ids: item.cluster_ids,
-                    ip: currentHost.ip,
+                    cluster_ids: clusterIds,
+                    ip: item.ip,
                     role,
-                    spec_config: specs[currentHost.spec_id],
+                    spec_config: specs[item.master_spec_id || item.spec_id],
                   },
                 }),
               );
-            }
-          });
+            });
+          }
+        };
+        infos.forEach((item) => {
+          generateData(item.old_nodes.redis_master, 'redis_master', item.cluster_ids);
+          generateData(item.old_nodes.redis_slave, 'redis_slave', item.cluster_ids);
+          generateData(item.old_nodes.proxy, 'proxy', item.cluster_ids);
         });
         formData.tableData = [...dataList];
       }
@@ -243,7 +251,7 @@
         const spec = {
           bk_host_id: item.host.bk_host_id,
           ip: item.host.ip,
-          spec_id: item.host.spec_config.id,
+          spec_id: item.host.spec_config?.id || 0,
         };
         const list = info[
           item.host.role as 'redis_slave' | 'redis_master' | 'proxy'
