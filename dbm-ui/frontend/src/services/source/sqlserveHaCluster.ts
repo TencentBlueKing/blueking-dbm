@@ -27,7 +27,17 @@ const path = `/apis/sqlserver/bizs/${currentBizId}/sqlserver_ha_resources`;
 /**
  * 获取集群列表
  */
-export function getHaClusterList(params: { limit?: number; offset?: number; sys_mode?: 'mirrorin' | 'always_on' }) {
+export function getHaClusterList(params: {
+  cluster_ids?: string;
+  creator?: string;
+  domain?: string;
+  id?: number;
+  ip?: string;
+  limit?: number;
+  name?: string;
+  offset?: number;
+  sys_mode?: 'mirrorin' | 'always_on';
+}) {
   return http.get<ListBase<SqlServerHaModel[]>>(`${path}/`, params).then((data) => ({
     ...data,
     results: data.results.map(

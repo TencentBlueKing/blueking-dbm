@@ -25,7 +25,16 @@ const getRootPath = () => `/apis/bigdata/bizs/${window.PROJECT_CONFIG.BIZ_ID}/pu
 /**
  * 获取集群列表
  */
-export function getPulsarList(params: { bk_biz_id: number } & Record<string, any>) {
+export function getPulsarList(params: {
+  cluster_ids?: string;
+  creator?: string;
+  domain?: string;
+  id?: number;
+  ip?: string;
+  limit?: number;
+  name?: string;
+  offset?: number;
+}) {
   return http.get<ListBase<PulsarModel[]>>(`${getRootPath()}/`, params).then((data) => ({
     ...data,
     results: data.results.map(

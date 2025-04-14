@@ -25,7 +25,7 @@ const getRootPath = () => `/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/spid
  * 获取 TendbCluster 集群列表
  */
 export function getTendbClusterList(params: {
-  cluster_ids?: number[];
+  cluster_ids?: string;
   creator?: string;
   db_module_id?: number;
   domain?: string;
@@ -84,7 +84,7 @@ export function getTendbClusterFlatList(params: {
  * 获取 TendbCluster 从集群列表
  */
 export function getTendbSlaveClusterList(params: { limit?: number; offset?: number; spider_slave_exist?: boolean }) {
-  params.spider_slave_exist = true;
+  Object.assign(params, { spider_slave_exist: true });
   return http.get<ListBase<TendbclusterModel[]>>(`${getRootPath()}/`, params).then((data) => ({
     ...data,
     results: data.results.map(

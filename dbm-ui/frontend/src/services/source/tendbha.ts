@@ -26,7 +26,7 @@ const getRootPath = () => `/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/tend
  */
 export function getTendbhaList(params: {
   bk_biz_id?: number;
-  cluster_ids?: number[] | number;
+  cluster_ids?: string;
   dbType?: string;
   domain?: string;
   exact_domain?: string;

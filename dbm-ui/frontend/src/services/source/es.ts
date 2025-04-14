@@ -29,7 +29,16 @@ const path = `/apis/bigdata/bizs/${currentBizId}/es/es_resources`;
 /**
  * 获取集群列表
  */
-export function getEsList(params: { bk_biz_id: number } & Record<string, any>) {
+export function getEsList(params: {
+  cluster_ids?: string;
+  creator?: string;
+  domain?: string;
+  id?: number;
+  ip?: string;
+  limit?: number;
+  name?: string;
+  offset?: number;
+}) {
   return http.get<ListBase<EsModel[]>>(`${path}/`, params).then((data) => ({
     ...data,
     results: data.results.map(

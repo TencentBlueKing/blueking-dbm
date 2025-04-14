@@ -57,7 +57,7 @@ interface ClusterInfo {
  * 获取Mongo集群
  */
 export function getMongoList(params: {
-  cluster_ids?: string[];
+  cluster_ids?: string;
   cluster_type?: string;
   creator?: string;
   db_module_id?: number;
