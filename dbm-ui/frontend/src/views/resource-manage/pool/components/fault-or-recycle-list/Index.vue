@@ -42,7 +42,7 @@
       <BkDatePicker
         v-model="dateRange"
         append-to-body
-        :placeholder="t('选择日期范围')"
+        :placeholder="t('请选择转入时间范围')"
         style="width: 350px; margin-left: auto"
         type="datetimerange"
         @change="fetchData" />
@@ -84,10 +84,11 @@
         })
       "
       :title="t('确认批量回收 {n} 台主机？', { n: selected.length })"
-      @success="handleRefresh">
+      @success="handleRecycleRefresh">
       <template #append>
         <BkCheckbox
           v-model="hcmRecycle"
+          v-db-console="'common.hcmRecycle'"
           class="mt-12">
           {{ t('勾选后，自动在「海垒」创建回收单据') }}
         </BkCheckbox>
@@ -113,6 +114,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { Message } from 'bkui-vue';
   import BkButton from 'bkui-vue/lib/button';
   import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import dayjs from 'dayjs';
@@ -131,18 +133,25 @@
 
   import OperationDetail from '@views/resource-manage/common/components/operation-detail/Index.vue';
 
-  import { execCopy, getMenuListSearch, getSearchSelectorParams, messageWarn } from '@utils';
+  import {
+    checkDbConsole,
+    execCopy,
+    getMenuListSearch,
+    getSearchSelectorParams,
+    messageSuccess,
+    messageWarn,
+  } from '@utils';
 
   import ReviewDataDialog from '../host-list/components/review-data-dialog/Index.vue';
 
   import BatchImportResourcePool from './components/BatchImportResourcePool/Index.vue';
   import ImportResourcePool from './components/ImportResourcePool.vue';
 
-  const initDate = () => {
-    const startTime = dayjs().subtract(7, 'day').format('YYYY-MM-DD HH:mm:ss');
-    const endTime = dayjs().format('YYYY-MM-DD HH:mm:ss');
-    return [startTime, endTime] as [string, string];
-  };
+  // const initDate = () => {
+  //   const startTime = dayjs().subtract(7, 'day').format('YYYY-MM-DD HH:mm:ss');
+  //   const endTime = dayjs().format('YYYY-MM-DD HH:mm:ss');
+  //   return [startTime, endTime] as [string, string];
+  // };
 
   const { t } = useI18n();
   const route = useRoute();
@@ -172,7 +181,7 @@
   const isBatchImportResourcePoolShow = ref(false);
   const isBatchConvertToRecyclePool = ref(false);
   const curImportData = ref<FaultOrRecycleMachineModel>();
-  const dateRange = ref(initDate());
+  const dateRange = ref(['', ''] as [string, string]);
   const hcmRecycle = ref(true);
 
   const defaultBizId = systemEnvironStore.urls.DBA_APP_BK_BIZ_ID;
@@ -183,13 +192,6 @@
       fixed: 'left',
       label: 'IP',
       minWidth: 130,
-    },
-    {
-      field: 'updater',
-      label: t('转入人'),
-      render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.updater || '--',
-      showOverflow: true,
-      width: 120,
     },
     {
       field: 'agent_status',
@@ -265,6 +267,13 @@
       field: 'updateAtDisplay',
       label: t('转入时间'),
       width: 180,
+    },
+    {
+      field: 'updater',
+      label: t('转入人'),
+      render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.updater || '--',
+      showOverflow: true,
+      width: 120,
     },
     {
       field: 'latest_event',
@@ -352,7 +361,7 @@
   // 清空搜索条件
   const handleClearSearch = () => {
     clearSearchValue();
-    dateRange.value = initDate();
+    dateRange.value = ['', ''];
   };
 
   const fetchData = () => {
@@ -391,12 +400,15 @@
   };
 
   const handleRecycleSubmit = () => {
-    return transferMachinePool({
+    const params: ServiceParameters<typeof transferMachinePool> = {
       bk_host_ids: selected.value.map((item) => item.bk_host_id),
-      hcm_recycle: hcmRecycle.value,
       source: 'recycle',
       target: 'recycled',
-    });
+    };
+    if (checkDbConsole('common.hcmRecycle')) {
+      params.hcm_recycle = hcmRecycle.value;
+    }
+    return transferMachinePool(params);
   };
 
   const handleConvertSubmit = ({ remark }: { remark: string }) => {
@@ -428,6 +440,34 @@
     hcmRecycle.value = true;
     clearSelection();
     fetchData();
+  };
+
+  const handleRecycleRefresh = (data: ServiceReturnType<typeof transferMachinePool>) => {
+    if (checkDbConsole('common.hcmRecycle') && data.hcm_recycle_id) {
+      const { BK_HCM_URL, DBA_APP_BK_BIZ_ID } = systemEnvironStore.urls;
+      const targetHref = `${BK_HCM_URL}/#/business/applications?bizs=${DBA_APP_BK_BIZ_ID}&filter=order_id=${data.hcm_recycle_id}&type=host_recycle`;
+      Message({
+        delay: 6000,
+        dismissable: false,
+        message: h('p', {}, [
+          data.message,
+          h(
+            'a',
+            {
+              href: targetHref,
+              target: '_blank',
+            },
+            ` "${t('查看详情')}" `,
+          ),
+        ]),
+        theme: 'success',
+      });
+    } else {
+      messageSuccess(data.message);
+    }
+
+    hcmRecycle.value = true;
+    handleRefresh();
   };
 
   onMounted(() => {

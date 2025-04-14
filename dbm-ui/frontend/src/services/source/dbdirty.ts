@@ -116,5 +116,8 @@ export function transferMachinePool(params: {
   source: 'fault' | 'recycle';
   target: 'fault' | 'recycle' | 'recycled';
 }) {
-  return http.post(`${path}/transfer_hosts_to_pool/`, params);
+  return http.post<{
+    hcm_recycle_id: number;
+    message: string;
+  }>(`${path}/transfer_hosts_to_pool/`, params);
 }

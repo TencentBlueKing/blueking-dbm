@@ -97,7 +97,7 @@
     title: string;
   }
 
-  type Emits = (e: 'success') => void;
+  type Emits = (e: 'success', data: Record<string, any>) => void;
 
   const props = withDefaults(defineProps<Props>(), {
     alert: undefined,
@@ -130,9 +130,9 @@
     Promise.resolve()
       .then(() => formRef.value?.validate())
       .then(() => props.confirmHandler(formData))
-      .then(() => {
+      .then((data) => {
         messageSuccess(t('操作成功'));
-        emits('success');
+        emits('success', data);
         isShow.value = false;
         formData.remark = '';
       })
