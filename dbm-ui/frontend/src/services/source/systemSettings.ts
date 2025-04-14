@@ -30,6 +30,7 @@ export function getSystemEnviron() {
     BK_COMPONENT_API_URL: string;
     BK_DBM_URL: string;
     BK_DOMAIN: string;
+    BK_HCM_URL: string;
     BK_HELPER_URL: string;
     BK_NODEMAN_URL: string;
     BK_SCR_URL: string;

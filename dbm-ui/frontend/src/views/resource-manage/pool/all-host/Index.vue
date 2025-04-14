@@ -78,7 +78,8 @@
       </BkTableColumn>
       <BkTableColumn
         field="bk_cpu"
-        :label="t('CPU (核)')">
+        :label="t('CPU (核)')"
+        :width="80">
       </BkTableColumn>
       <BkTableColumn
         field="bkMemText"
