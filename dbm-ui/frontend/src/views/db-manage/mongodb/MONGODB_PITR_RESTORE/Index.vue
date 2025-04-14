@@ -129,6 +129,7 @@
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       Object.assign(formData, {
+        payload: createTickePayload(ticketDetail),
         shardNum: details.instance_per_host,
         specId: details.resource_spec.mongodb.spec_id,
         tableData: details.cluster_ids.map((clusterId) => ({
@@ -137,7 +138,6 @@
           }),
           rollback_time: details.rollback_time[clusterId],
         })),
-        ...createTickePayload(ticketDetail),
       });
     },
   });

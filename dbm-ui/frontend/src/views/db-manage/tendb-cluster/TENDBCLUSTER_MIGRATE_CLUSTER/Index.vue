@@ -164,6 +164,7 @@
       const { backup_source: backupSource, infos } = details;
       Object.assign(formData, {
         backupSource,
+        payload: createTickePayload(ticketDetail),
         tableData: infos.map((item) =>
           createTableRow({
             oldMaster: {
@@ -179,7 +180,6 @@
             },
           }),
         ),
-        ...createTickePayload(ticketDetail),
       });
     },
   });

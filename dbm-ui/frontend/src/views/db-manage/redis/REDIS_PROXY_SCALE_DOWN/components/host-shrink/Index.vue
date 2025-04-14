@@ -149,6 +149,7 @@
             item.old_nodes.proxy_reduced_hosts.forEach((host) => {
               acc.push(
                 createTableRow({
+                  online_switch_type: item.online_switch_type,
                   proxy_reduced_host: {
                     bk_biz_id: host.bk_biz_id,
                     bk_cloud_id: host.bk_cloud_id,

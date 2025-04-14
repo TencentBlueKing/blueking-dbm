@@ -93,7 +93,6 @@
   const defaultData = () => ({
     isSafe: false,
     payload: createTickePayload(),
-    tableData: [],
   });
 
   const shrinkType = ref<TendbCluster.ResourcePool.SpiderReduceNodes['shrink_type']>('QUANTITY');
@@ -105,7 +104,8 @@
       const { details } = ticketDetail;
       shrinkType.value = ticketDetail.details.shrink_type;
       Object.assign(formData, {
-        ...createTickePayload(ticketDetail),
+        isSafe: details.is_safe,
+        payload: createTickePayload(ticketDetail),
       });
       nextTick(() => {
         ticketDetails.value = details;

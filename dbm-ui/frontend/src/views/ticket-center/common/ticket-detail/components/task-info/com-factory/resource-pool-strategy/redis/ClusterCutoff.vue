@@ -96,12 +96,13 @@
       const extIps: string[] = [];
 
       const generateData = (
-        infoItem: Props['ticketDetails']['details']['infos'][0]['old_nodes'],
+        list: Props['ticketDetails']['details']['infos'][0]['old_nodes']['redis_master'],
         role: keyof Props['ticketDetails']['details']['infos'][0]['old_nodes'],
-        clusterInfo: Props['ticketDetails']['details']['clusters'][number],
+        clusterIds: number[],
       ) => {
-        if (infoItem[role]?.length) {
-          _.uniqBy(infoItem[role], 'ip').forEach((hostItem) => {
+        if (list?.length) {
+          _.uniqBy(list, 'ip').forEach((hostItem) => {
+            const clusterInfo = clusters[clusterIds[0]];
             const specId = hostItem?.spec_id || hostItem?.master_spec_id;
             if (!specs[specId]) {
               extIps.push(hostItem.ip);
@@ -123,12 +124,12 @@
       };
 
       infos.forEach((infoItem) => {
-        generateData(infoItem.old_nodes, 'proxy', clusters[infoItem.cluster_ids[0]]);
-        generateData(infoItem.old_nodes, 'redis_master', clusters[infoItem.cluster_ids[0]]);
-        generateData(infoItem.old_nodes, 'redis_slave', clusters[infoItem.cluster_ids[0]]);
+        generateData(infoItem.old_nodes.redis_master, 'redis_master', infoItem.cluster_ids);
+        generateData(infoItem.old_nodes.redis_slave, 'redis_slave', infoItem.cluster_ids);
+        generateData(infoItem.old_nodes.proxy, 'proxy', infoItem.cluster_ids);
       });
 
-      const list = _.sortBy(Object.values(ipInfoMap), 'cluster_domain');
+      const list = Object.values(ipInfoMap);
       const domainCounter: Record<string, number> = {};
       list.forEach((rowData, index) => {
         const domain = rowData.cluster_domain;

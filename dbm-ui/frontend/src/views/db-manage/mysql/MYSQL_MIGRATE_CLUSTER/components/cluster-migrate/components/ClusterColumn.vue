@@ -100,6 +100,9 @@
       message: '',
       trigger: 'blur',
       validator: (value: string) => {
+        if (!value) {
+          return true;
+        }
         const repeats: string[] = [];
         const list = value.split(batchSplitRegex);
         list.forEach((domain, index) => {
@@ -116,6 +119,9 @@
       message: '',
       trigger: 'blur',
       validator: (value: string) => {
+        if (!value) {
+          return true;
+        }
         const notFounds: string[] = [];
         value.split(batchSplitRegex).forEach((item) => {
           if (!props.selectedMap[item]) {

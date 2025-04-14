@@ -54,7 +54,7 @@
 
   const { t } = useI18n();
 
-  const { run: querySlaveMachine, loading } = useRequest(getIntersectedSlaveMachinesFromClusters, {
+  const { loading, run: querySlaveMachine } = useRequest(getIntersectedSlaveMachinesFromClusters, {
     manual: true,
     onSuccess: (data) => {
       const [slaveHost] = data;
