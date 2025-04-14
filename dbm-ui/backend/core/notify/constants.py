@@ -25,7 +25,5 @@ class MsgType(str, StructuredEnum):
     UNKNOWN = EnumField("unknown", _("未知"))
 
 
-# 默认通知：微信和邮件
-DEFAULT_BIZ_NOTIFY_CONFIG = {
-    status: {MsgType.RTX.value: True, MsgType.MAIL.value: True} for status in TicketStatus.get_values()
-}
+# 默认通知：企业微信
+DEFAULT_BIZ_NOTIFY_CONFIG = {status: {MsgType.RTX.value: True} for status in TicketStatus.get_values()}

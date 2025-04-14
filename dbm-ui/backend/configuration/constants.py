@@ -130,6 +130,8 @@ class SystemSettingsEnum(str, StructuredEnum):
     SYNC_TENDBHA_CLUSTERS = EnumField("SYNC_TENDBHA_CLUSTERS", _("同步TenDBHA集群列表"))
     # 成本预估配置
     COST_ESTIMATE = EnumField("COST_ESTIMATE", _("COST_ESTIMATE"))
+    # 主机属性配置
+    MACHINE_PROPERTY = EnumField("MACHINE_PROPERTY", _("主机属性开关"))
 
 
 class BizSettingsEnum(str, StructuredEnum):
@@ -218,7 +220,17 @@ BKM_DUTY_NOTICE_VALUE = {
 # 默认的全业务配置信息
 BIZ_CONFIG_INFO = {
     # 开区默认内置变量
-    "OPEN_AREA_VARS": [{"desc": "APP", "name": "APP", "builtin": True}]
+    "OPEN_AREA_VARS": [{"desc": "APP", "name": "APP", "builtin": True}],
+    # 业务单据通知默认变量
+    "NOTIFY_CONFIG": {
+        "TODO": {"rtx": True},
+        "FAILED": {"rtx": True},
+        "APPROVE": {"rtx": True},
+        "SUCCEEDED": {"rtx": True},
+        "INNER_TODO": {"rtx": True},
+        "TERMINATED": {"rtx": True},
+        "RESOURCE_REPLENISH": {"rtx": True},
+    },
 }
 
 # 默认的环境容灾要求: 同城同园区，同城跨园区，同城无园区
@@ -230,6 +242,15 @@ AFFINITY_VALUE = [
     {"value": AffinityEnum.CROSS_RACK, "label": AffinityEnum.get_choice_label(AffinityEnum.CROSS_RACK)},
     {"value": AffinityEnum.CROS_SUBZONE, "label": AffinityEnum.get_choice_label(AffinityEnum.CROS_SUBZONE)},
 ]
+
+# 默认机器属性设置
+DEFAULT_MACHINE_PROPERTY = {
+    "rack_id": False,  # 机架
+    "city_meta": False,  # 地域
+    "device_class": False,  # 机型
+    "sub_zone_meta": False,  # 园区
+    "storage_device": True,  # 磁盘
+}
 
 # 默认具备迁移权限的人员
 DBM_DEFAULT_MIGRATE_USER = ["admin"]
@@ -248,6 +269,7 @@ DEFAULT_SETTINGS = [
     [SystemSettingsEnum.SYSTEM_MSG_TYPE, "list", ["weixin", "mail"], _("系统消息通知方式")],
     [SystemSettingsEnum.PADDING_PROXY_CLUSTER_LIST, "list", [], _("补全proxy的集群域名列表")],
     [SystemSettingsEnum.VIRTUAL_USERS, "list", [], _("平台调用的虚拟账户列表")],
+    [SystemSettingsEnum.MACHINE_PROPERTY, "dict", DEFAULT_MACHINE_PROPERTY, _("主机属性开关配置")],
 ]
 
 # 环境配置项 是否支持DNS解析 pulsar flow used

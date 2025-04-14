@@ -19,7 +19,7 @@ from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components import BKBaseApi
 from backend.configuration.common_sqls import DB_TYPE__COMMON_SQL_MAP
-from backend.configuration.constants import DISK_CLASSES, SystemSettingsEnum
+from backend.configuration.constants import DEFAULT_MACHINE_PROPERTY, DISK_CLASSES, SystemSettingsEnum
 from backend.configuration.models.system import BizSettings, SystemSettings
 from backend.configuration.serializers import (
     BatchUpdateBizSettingsSerializer,
@@ -139,6 +139,18 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
                 "MONITOR_EVENT_ACCESS_TOKEN": dbm_report["event"]["token"],
                 "MONITOR_SERVICE": dbm_report["proxy"],
             }
+        )
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询主机属性开关配置"),
+        tags=tags,
+    )
+    @action(methods=["GET"], detail=False, pagination_class=None)
+    def machine_property(self, request, *args, **kwargs):
+        return Response(
+            SystemSettings.get_setting_value(
+                SystemSettingsEnum.MACHINE_PROPERTY.value, default=DEFAULT_MACHINE_PROPERTY
+            )
         )
 
 

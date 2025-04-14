@@ -15,7 +15,8 @@ from rest_framework import serializers
 
 from backend import env
 from backend.components.hcm.client import HCMApi
-from backend.configuration.constants import DBType
+from backend.configuration.constants import DEFAULT_MACHINE_PROPERTY, DBType, SystemSettingsEnum
+from backend.configuration.models import SystemSettings
 from backend.constants import INT_MAX
 from backend.db_dirty.constants import MachineEventType
 from backend.db_meta.enums import InstanceRole
@@ -223,6 +224,23 @@ class ResourceUpdateSerializer(serializers.Serializer):
     resource_type = serializers.CharField(help_text=_("专属DB"), allow_blank=True, allow_null=True, required=False)
     storage_device = serializers.JSONField(help_text=_("磁盘挂载点信息"), required=False)
     rack_id = serializers.CharField(help_text=_("机架ID"), required=False, allow_null=True, allow_blank=True)
+    city_meta = serializers.JSONField(help_text=_("地域信息"), required=False)
+    sub_zone_meta = serializers.JSONField(help_text=_("园区信息"), required=False)
+    device_class = serializers.CharField(help_text=_("机型"), required=False)
+
+    def validate(self, attrs):
+        machine_property = SystemSettings.get_setting_value(
+            SystemSettingsEnum.MACHINE_PROPERTY.value, default=DEFAULT_MACHINE_PROPERTY
+        )
+        # 找出没有更新权限的字段
+        unauthorized_fields = [
+            self.fields[key].help_text for key in attrs.keys() if key in machine_property and not machine_property[key]
+        ]
+
+        # 无权限字段抛出 ValidationError
+        if unauthorized_fields:
+            raise serializers.ValidationError(_("permission_error：没有更新属性：{}的权限").format(unauthorized_fields))
+        return attrs
 
     class Meta:
         swagger_schema_fields = {"example": RESOURCE_UPDATE_PARAMS}
