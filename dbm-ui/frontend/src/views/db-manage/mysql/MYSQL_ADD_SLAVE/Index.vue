@@ -175,6 +175,9 @@
         message: t('IP 重复'),
         trigger: 'blur',
         validator: (value: string, rowData?: Record<string, any>) => {
+          if (!value) {
+            return true;
+          }
           const row = rowData as RowData;
           return newSlaveCounter.value[row.new_slave.ip] <= 1;
         },
@@ -183,6 +186,9 @@
         message: t('IP 重复'),
         trigger: 'change',
         validator: (value: string, rowData?: Record<string, any>) => {
+          if (!value) {
+            return true;
+          }
           const row = rowData as RowData;
           return newSlaveCounter.value[row.new_slave.ip] <= 1;
         },
@@ -196,7 +202,7 @@
       const { backup_source: backupSource, clusters, infos } = details;
       Object.assign(formData, {
         backupSource,
-        ...createTickePayload(ticketDetail),
+        payload: createTickePayload(ticketDetail),
         tableData: infos.map((item) => {
           const clusterInfo = clusters[item.cluster_ids[0]];
           return createTableRow({

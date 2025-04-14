@@ -153,15 +153,23 @@
       {
         message: t('IP 重复'),
         trigger: 'blur',
-        validator: (value: string, rowData: RowData) => {
-          return targetProxyCounter.value[rowData.targetProxy.ip] <= 1;
+        validator: (value: string, rowData?: Record<string, any>) => {
+          if (!value) {
+            return true;
+          }
+          const row = rowData as RowData;
+          return targetProxyCounter.value[row.targetProxy.ip] <= 1;
         },
       },
       {
         message: t('IP 重复'),
         trigger: 'change',
-        validator: (value: string, rowData: RowData) => {
-          return targetProxyCounter.value[rowData.targetProxy.ip] <= 1;
+        validator: (value: string, rowData?: Record<string, any>) => {
+          if (!value) {
+            return true;
+          }
+          const row = rowData as RowData;
+          return targetProxyCounter.value[row.targetProxy.ip] <= 1;
         },
       },
     ],

@@ -112,7 +112,7 @@
       const { details } = ticketDetail;
       rollbackClusterType.value = ticketDetail.details.rollback_cluster_type;
       Object.assign(formData, {
-        ...createTickePayload(ticketDetail),
+        payload: createTickePayload(ticketDetail),
       });
       nextTick(() => {
         ticketDetails.value = details;
