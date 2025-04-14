@@ -461,6 +461,7 @@ class ClusterOperateRecordManager(models.Manager):
                 exclusive_infos.append({"exclusive_ticket": record.ticket, "root_id": record.flow.flow_obj_id})
         return exclusive_infos
 
+    @transaction.atomic()
     def has_exclusive_operations_with_lock(self, ticket_type, cluster_id, **kwargs):
         """
         判断当前单据类型与集群正在进行中的单据是否互斥
