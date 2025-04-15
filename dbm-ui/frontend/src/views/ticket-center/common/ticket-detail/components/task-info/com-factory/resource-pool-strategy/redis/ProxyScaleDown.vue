@@ -110,9 +110,8 @@
     const { clusters, infos } = props.ticketDetails.details;
     const data = infos.reduce<HostTableRow[]>((acc, item) => {
       item.old_nodes.proxy_reduced_hosts.forEach((host) => {
-        const cluster = clusters[item.cluster_id];
         acc.push({
-          domain: cluster?.immute_domain || '--',
+          domain: clusters[item.cluster_id]?.immute_domain || '--',
           ip: host.ip,
           online_switch_type: item.online_switch_type === 'no_confirm' ? t('无需确认') : t('需人工确认'),
         });
