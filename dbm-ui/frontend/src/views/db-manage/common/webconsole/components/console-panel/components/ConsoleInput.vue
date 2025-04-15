@@ -3,7 +3,7 @@
     ref="consolePanelRef"
     class="console-panel-main"
     @click="handleInputFocus">
-    <div @mousedown="handleFreezeTextarea">
+    <div>
       <template
         v-for="(item, index) in panelInputMap[clusterId]"
         :key="index">
@@ -22,7 +22,7 @@
       <textarea
         ref="inputRef"
         class="input-main"
-        :disabled="loading || isFrozenTextarea"
+        :disabled="loading"
         :style="{ height: realHeight }"
         :value="command"
         @blur="handleInputBlur"
@@ -33,6 +33,7 @@
         @keyup.up="handleClickUpBtn" />
     </div>
   </div>
+  <DisableTab />
 </template>
 <script lang="ts">
   // 未执行的命令
@@ -57,9 +58,12 @@
 
   import { downloadText } from '@utils';
 
+  import DisableTab from './DisableTab.vue';
+
   export interface Props {
     cluster: ServiceReturnType<typeof queryAllTypeCluster>[number];
     extParams?: Record<string, unknown>;
+    intercept?: (value: string) => boolean;
     placeholder?: string;
     preCheck?: (value: string) => string;
   }
@@ -80,6 +84,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     extParams: () => ({}),
+    intercept: () => false, // false为默认不拦截
     placeholder: '',
     preCheck: () => '',
   });
@@ -89,7 +94,6 @@
   const command = ref('');
   const consolePanelRef = ref();
   const loading = ref(false);
-  const isFrozenTextarea = ref(false);
   const inputRef = ref();
   const realHeight = ref('52px');
 
@@ -129,23 +133,21 @@
   );
 
   const handleInputFocus = () => {
-    isFrozenTextarea.value = false;
     inputRef.value.focus();
-    checkCursorPosition();
-  };
-
-  const handleFreezeTextarea = () => {
-    isFrozenTextarea.value = true;
   };
 
   // 回车输入指令
   const handleClickSendCommand = async (e: any) => {
     // 输入预处理
-    const inputValue = e.target.value.trim() as string;
+    const inputValue = e.target.value?.trim() as string;
     const isInputed = inputValue.length > localPlaceholder.value.length;
 
     // 截取输入的命令
     const cmd = inputValue.substring(localPlaceholder.value.length);
+    // 是否拦截请求
+    if (props.intercept(cmd)) {
+      return;
+    }
     executedCommands[clusterId.value].push(cmd);
     commandIndex = executedCommands[clusterId.value].length;
     command.value = localPlaceholder.value;
@@ -252,6 +254,11 @@
       return;
     }
 
+    // 是否拦截
+    if (props.intercept(executedCommands[clusterId.value][commandIndex])) {
+      return;
+    }
+
     commandIndex = commandIndex - 1;
     command.value = localPlaceholder.value + executedCommands[clusterId.value][commandIndex];
     const cursorIndex = command.value.length;
@@ -280,6 +287,21 @@
       inputRef.value.setSelectionRange(cursorIndex, cursorIndex);
     }
   };
+
+  const handleKeyDownEnter = (event: KeyboardEvent) => {
+    if (event.key === 'Enter') {
+      const inputEvent = new KeyboardEvent('keyup', { key: 'Enter' });
+      inputRef.value.dispatchEvent(inputEvent);
+    }
+  };
+
+  onMounted(() => {
+    window.addEventListener('keydown', handleKeyDownEnter);
+  });
+
+  onBeforeUnmount(() => {
+    window.removeEventListener('keydown', handleKeyDownEnter);
+  });
 
   defineExpose<Expose>({
     clearCurrentScreen(id?: number) {
