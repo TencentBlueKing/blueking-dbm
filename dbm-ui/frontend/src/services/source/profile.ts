@@ -41,3 +41,19 @@ export function getProfile() {
 export function upsertProfile(params: { label: string; values: any }) {
   return http.post(`${path}/upsert_profile/`, params);
 }
+
+/**
+ * 查询个人收藏SQL
+ */
+export function getProfileSql() {
+  return http.get<
+    Record<
+      string,
+      {
+        is_top: boolean;
+        name: string;
+        sql: string;
+      }[]
+    >
+  >(`${path}/get_profile_sql/`);
+}

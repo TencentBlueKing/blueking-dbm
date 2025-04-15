@@ -15,23 +15,23 @@ import { t } from '@locales/index';
 export default function getRoutes() {
   return [
     {
-      path: 'mysql',
-      name: 'DbaManageMysql',
+      path: 'sqlserver',
+      name: 'DbaManageSQLServer',
       meta: {
-        navName: t('Mysql 工具箱'),
+        navName: t('SQLServer 工具箱'),
       },
       redirect: {
-        name: 'DbaManageMysqlWebQuery',
+        name: 'DbaManageSQLServerWebQuery',
       },
-      component: () => import('@views/db-manage/mysql/dba-manage/Index.vue'),
+      component: () => import('@views/db-manage/sqlserver/dba-manage/Index.vue'),
       children: [
         {
           path: 'web-query',
-          name: 'DbaManageMysqlWebQuery',
+          name: 'DbaManageSQLServerWebQuery',
           meta: {
             navName: t('管理控制台'),
           },
-          component: () => import('@views/db-manage/mysql/dba-manage/web-query/Index.vue'),
+          component: () => import('@views/db-manage/sqlserver/dba-manage/web-query/Index.vue'),
         },
       ],
     },

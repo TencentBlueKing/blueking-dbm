@@ -15,23 +15,23 @@ import { t } from '@locales/index';
 export default function getRoutes() {
   return [
     {
-      path: 'mysql',
-      name: 'DbaManageMysql',
+      path: 'tendb-cluster',
+      name: 'DbaManageTendbCluster',
       meta: {
-        navName: t('Mysql 工具箱'),
+        navName: t('TendbCluster 工具箱'),
       },
       redirect: {
-        name: 'DbaManageMysqlWebQuery',
+        name: 'DbaManageTendbClusterWebQuery',
       },
-      component: () => import('@views/db-manage/mysql/dba-manage/Index.vue'),
+      component: () => import('@views/db-manage/tendb-cluster/dba-manage/Index.vue'),
       children: [
         {
           path: 'web-query',
-          name: 'DbaManageMysqlWebQuery',
+          name: 'DbaManageTendbClusterWebQuery',
           meta: {
             navName: t('管理控制台'),
           },
-          component: () => import('@views/db-manage/mysql/dba-manage/web-query/Index.vue'),
+          component: () => import('@views/db-manage/tendb-cluster/dba-manage/web-query/Index.vue'),
         },
       ],
     },

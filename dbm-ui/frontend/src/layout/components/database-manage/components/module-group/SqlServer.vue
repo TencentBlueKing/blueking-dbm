@@ -1,6 +1,6 @@
 <template>
   <FunController module-id="sqlserver">
-    <BkMenuGroup name="SqlServer">
+    <BkMenuGroup name="SQLServer">
       <BkSubmenu key="SqlServerHaClusterManage">
         <template #icon>
           <DbIcon type="cluster" />
