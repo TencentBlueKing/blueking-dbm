@@ -8,20 +8,26 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import json
 import logging
 
 from celery.schedules import crontab
+from django.utils import timezone
 from django.utils import timezone as datetime
+from django.utils.translation import ugettext as _
 
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
 from backend.db_services.redis.autofix.bill import generate_autofix_ticket
 from backend.db_services.redis.autofix.enums import AutofixItem, AutofixStatus
+from backend.db_services.redis.autofix.message import send_msg_2_qywx
 from backend.db_services.redis.autofix.models import RedisAutofixCore, RedisAutofixCtl
 from backend.db_services.redis.autofix.watcher import (
     get_4_next_watch_ID,
     save_swithed_host_by_cluster,
     watcher_get_by_hosts,
 )
+from backend.ticket.constants import TicketStatus
+from backend.ticket.models import Ticket
 from backend.utils.time import datetime2str
 
 logger = logging.getLogger("root")
@@ -74,3 +80,49 @@ def start_autofix_flow():
         return
 
     generate_autofix_ticket(fixlists)
+
+
+@register_periodic_task(run_every=crontab(minute="*/1"))
+def watch_autofix_flow():
+    """监控自愈状态,已期进行流转"""
+
+    try:
+        fixlists = RedisAutofixCore.objects.filter(
+            deal_status__in=[
+                AutofixStatus.AF_WFLOW.value,
+                AutofixStatus.AF_REUSE.value,
+                AutofixStatus.AF_RUNNING.value,
+            ]
+        )
+    except RedisAutofixCore.DoesNotExist:
+        logger.info("waiting other flow items ... ")
+        return
+    if len(fixlists) == 0:
+        logger.info("waiting other flow  items ... ")
+        return
+
+    for flow in fixlists:
+        try:
+            ticket_obj = Ticket.objects.get(id=flow.ticket_id)
+
+            if ticket_obj.status == TicketStatus.RUNNING.value:
+                flow.deal_status = AutofixStatus.AF_RUNNING.value
+            elif ticket_obj.status == TicketStatus.SUCCEEDED.value:
+                flow.deal_status = AutofixStatus.AF_SUCC.value
+            else:
+                flow.deal_status = AutofixStatus.AF_FAIL.value
+                flow.status_version = ticket_obj.status
+                msgs, title = {}, _("{} - 自愈失败☹️".format(flow.immute_domain))
+                msgs["BKID"] = flow.bk_biz_id
+                msgs[_("集群类型")] = flow.cluster_type
+                msgs[_("故障机器")] = json.dumps(flow.fault_machines)
+                msgs[_("失败原因")] = flow.status_version
+                send_msg_2_qywx(title, msgs)
+
+            flow.update_at = datetime2str(datetime.datetime.now(timezone.utc))
+            flow.save(update_fields=["status_version", "deal_status", "update_at"])
+        except Exception as e:
+            flow.deal_status = AutofixStatus.AF_UNKOWN.value
+            flow.status_version = e
+            flow.update_at = datetime2str(datetime.datetime.now(timezone.utc))
+            flow.save(update_fields=["status_version", "deal_status", "update_at"])

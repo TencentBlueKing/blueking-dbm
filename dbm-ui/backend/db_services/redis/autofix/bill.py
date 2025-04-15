@@ -33,6 +33,7 @@ from backend.ticket.models import Ticket
 from backend.utils.time import datetime2str
 
 from .enums import AutofixStatus
+from .message import send_msg_2_qywx
 from .models import RedisAutofixCore
 
 logger = logging.getLogger("root")
@@ -151,6 +152,14 @@ def create_ticket(cluster: RedisAutofixCore, cluster_ids: list, redis_proxies: l
 
     # 初始化builder类
     try:
+        msgs, title = {}, _("{} - 发起自愈".format(cluster.immute_domain))
+        msgs[_("BKID")] = cluster.bk_biz_id
+        msgs[_("流程ID")] = ticket.id
+        msgs[_("集群IDS")] = cluster_ids
+        msgs[_("集群类型")] = cluster.cluster_type
+        msgs[_("故障机S")] = json.dumps(ips)
+        send_msg_2_qywx(title, msgs)
+
         builder = BuilderFactory.create_builder(ticket)
         builder.patch_ticket_detail()
         builder.init_ticket_flows()

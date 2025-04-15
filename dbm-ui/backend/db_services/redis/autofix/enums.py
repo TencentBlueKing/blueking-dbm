@@ -27,6 +27,7 @@ class AutofixItem(str, StructuredEnum):
 
     AUTOFIX_ENABLE = EnumField("enable", _("自愈开关"))
     DBHA_ID = EnumField("last_id", _("监控到的id"))
+    CHAT_IDS = EnumField("chat_ids", _("群消息IDS"))
     IGNORE_APPS = EnumField("ignore_apps", _("忽略自愈的APP列表"))
     IGNORE_DOMAINS = EnumField("ignore_domains", _("忽略自愈的集群列表"))
 
@@ -36,8 +37,12 @@ class AutofixStatus(str, StructuredEnum):
 
     AF_INIT = EnumField("initautofix", _("初始化"))
     AF_TICKET = EnumField("initticket", _("创建单据"))
-    AF_SFLOW = EnumField("startflow", _("发起flow流程"))
-    AF_WFLOW = EnumField("watchflow", _("监控流程完成状态"))
-    AF_IGNORE = EnumField("ignore", _("不支持自愈"))
+    AF_REUSE = EnumField("reuse_host", _("尝试复用"))
+    AF_REUSE_SUCCESS = EnumField("reuse_succ", _("复用搞定"))
+    AF_REUSE_FAILED = EnumField("reuse_fail", _("尝试失败"))
+    AF_WFLOW = EnumField("watchflow", _("监控状态"))
+    AF_IGNORE = EnumField("ignore", _("不理解类型"))
     AF_SUCC = EnumField("success", _("自愈成功"))
+    AF_RUNNING = EnumField("running", _("拼命干活中"))
     AF_FAIL = EnumField("fail", _("自愈失败"))
+    AF_UNKOWN = EnumField("unkown", _("未至之境"))

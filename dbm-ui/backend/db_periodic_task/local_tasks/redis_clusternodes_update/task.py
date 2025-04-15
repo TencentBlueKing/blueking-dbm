@@ -385,13 +385,15 @@ class RedisClusterNodesUpdateJob:
             if all([slave_obj.status == InstanceStatus.UNAVAILABLE.value for slave_obj in slave_objs]):
                 # 该机器所有实例都unrunning了
                 # 继续检测该机器 10 分钟内没被加入到自愈流程中
-                mins10_ago = datetime.now(timezone.utc) - timedelta(minutes=10)
+                # 需要根据 时间 + 单据状态 (10分钟不够)
+                mins10_ago = datetime.now(timezone.utc) - timedelta(minutes=600)
                 rows = RedisAutofixCore.objects.filter(cluster_id=cluster.id, create_at__gt=mins10_ago)
                 exists = False
                 for row in rows:
                     if ip in [item["ip"] for item in json.loads(row.fault_machines)]:
-                        exists = True
-                        break
+                        if row.deal_status in [AutofixStatus.AF_RUNNING.value, AutofixStatus.AF_TICKET.value]:
+                            exists = True
+                            break
                 if not exists:
                     fault_machines.append({"instance_type": slave_objs[0].machine_type, "ip": ip})
         if len(fault_machines) > 0:

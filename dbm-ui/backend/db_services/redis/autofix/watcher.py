@@ -15,6 +15,7 @@ from typing import Dict
 
 from django.utils import timezone
 from django.utils.crypto import get_random_string
+from django.utils.translation import ugettext_lazy as _
 
 from backend.components.hadb.client import HADBApi
 from backend.constants import DEFAULT_BK_CLOUD_ID
@@ -25,6 +26,7 @@ from backend.utils.time import datetime2timestamp
 
 from .const import REDIS_SWITCH_WAITER, SWITCH_MAX_WAIT_SECONDS, SWITCH_SMALL, RedisSwitchHost, RedisSwitchWait
 from .enums import AutofixItem, AutofixStatus, DBHASwitchResult
+from .message import send_msg_2_qywx
 from .models import RedisAutofixCore, RedisAutofixCtl, RedisIgnoreAutofix
 
 logger = logging.getLogger("root")
@@ -243,7 +245,7 @@ def save_swithed_host_by_cluster(batch_small: int, switch_hosts: Dict):
 
 # 把需要忽略自愈的保存起来
 def save_ignore_host(switched_host: RedisSwitchHost, msg):
-    RedisIgnoreAutofix.objects.update_or_create(
+    rst = RedisIgnoreAutofix.objects.update_or_create(
         bk_cloud_id=DEFAULT_BK_CLOUD_ID,
         bk_biz_id=switched_host.bk_biz_id,
         cluster_id=switched_host.cluster_id,
@@ -259,3 +261,18 @@ def save_ignore_host(switched_host: RedisSwitchHost, msg):
         sw_result=json.dumps(switched_host.sw_result),
         ignore_msg=msg,
     )
+
+    if switched_host.cluster_type in [
+        ClusterType.TwemproxyTendisSSDInstance.value,
+        ClusterType.TendisTwemproxyRedisInstance.value,
+        ClusterType.TendisPredixyRedisCluster.value,
+        ClusterType.TendisPredixyTendisplusCluster.value,
+        ClusterType.TendisRedisInstance.value,
+    ]:
+        msgs, title = {}, _("{}-忽略自愈".format(switched_host.immute_domain))
+        msgs[_("BKID")] = switched_host.bk_biz_id
+        msgs[_("故障IP")] = switched_host.ip
+        msgs[_("实例类型")] = switched_host.instance_type
+        msgs[_("ByDBHA")] = json.dumps(switched_host.sw_result)
+        msgs[_("xxxxxx")] = rst
+        send_msg_2_qywx(title, msgs)
