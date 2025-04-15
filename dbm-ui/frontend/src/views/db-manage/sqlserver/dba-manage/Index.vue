@@ -14,7 +14,7 @@
 <template>
   <DbaManageMenu
     :routes="routes"
-    sub-title="MySQL" />
+    sub-title="SQLServer" />
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -25,8 +25,8 @@
 
   const routes = [
     {
-      dbConsoleValue: 'dbaManage.mysql.webQuery',
-      id: 'DbaManageMysqlWebQuery',
+      dbConsoleValue: 'dbaManage.sqlserver.webQuery',
+      id: 'DbaManageSQLServerWebQuery',
       name: t('管理控制台'),
     },
   ];

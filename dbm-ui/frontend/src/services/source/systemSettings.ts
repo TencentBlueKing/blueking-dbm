@@ -48,9 +48,9 @@ export function getSystemEnviron() {
 }
 
 // 查询机型类型
-export const getDeviceClassList = function () {
+export function getDeviceClassList() {
   return http.get<string[]>(`${path}/device_classes/`);
-};
+}
 
 // 查询主机属性开关配置
 export const getMachineProperty = function () {
@@ -62,3 +62,13 @@ export const getMachineProperty = function () {
     sub_zone_meta: boolean; // 园区
   }>(`${path}/machine_property/`);
 };
+
+// 查询平台常用SQL语句
+export function getCommonSqls(params: { db_type: string }) {
+  return http.get<
+    {
+      name: string;
+      sql: string;
+    }[]
+  >(`${path}/common_sqls/`, params);
+}

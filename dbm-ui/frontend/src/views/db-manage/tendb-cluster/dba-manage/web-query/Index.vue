@@ -1,7 +1,7 @@
 <template>
   <WebQuery
-    action-id="mysql_dbconsole"
-    :db-type="DBTypes.MYSQL" />
+    action-id="tendbcluster_dbconsole"
+    :db-type="DBTypes.TENDBCLUSTER" />
 </template>
 <script setup lang="ts">
   import { DBTypes } from '@common/const';

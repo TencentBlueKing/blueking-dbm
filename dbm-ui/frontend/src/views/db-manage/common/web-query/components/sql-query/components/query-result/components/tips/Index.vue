@@ -12,22 +12,42 @@
 -->
 
 <template>
-  <DbaManageMenu
-    :routes="routes"
-    sub-title="MySQL" />
+  <div
+    v-if="data.length"
+    class="result-panel-tips-main">
+    <template v-for="(item, index) in data">
+      <TipItem
+        v-if="item"
+        :key="index"
+        :data="item" />
+    </template>
+  </div>
+  <BkException
+    v-else
+    class="mt-30 mb-30"
+    :description="t('暂无提示')"
+    scene="part"
+    type="empty" />
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import DbaManageMenu from '@views/db-manage/common/dba-manage-menu/Index.vue';
+  import TipItem from './components/Tip.vue';
+
+  interface Props {
+    data?: string[];
+  }
+
+  withDefaults(defineProps<Props>(), {
+    data: () => [],
+  });
 
   const { t } = useI18n();
-
-  const routes = [
-    {
-      dbConsoleValue: 'dbaManage.mysql.webQuery',
-      id: 'DbaManageMysqlWebQuery',
-      name: t('管理控制台'),
-    },
-  ];
 </script>
+<style lang="less" scoped>
+  .result-panel-tips-main {
+    display: flex;
+    flex-direction: column;
+    margin-top: 8px;
+  }
+</style>

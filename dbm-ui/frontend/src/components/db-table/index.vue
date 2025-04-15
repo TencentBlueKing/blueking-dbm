@@ -344,6 +344,14 @@
 
   let isReady = false;
   let isPaginationChangeFetch = false;
+
+  watch(
+    () => props.columns,
+    () => {
+      tableKey.value = Date.now().toString();
+    },
+  );
+
   /**
    * 判断是否处于搜索状态
    */
@@ -437,13 +445,6 @@
     });
     return results;
   };
-
-  watch(
-    () => props.columns,
-    () => {
-      tableKey.value = Date.now().toString();
-    },
-  );
 
   // 解析 URL 上面的分页信息
   const parseURL = () => {
@@ -623,7 +624,6 @@
     }
     pagination.current = pageValue;
     isPaginationChangeFetch = true;
-
     fetchListData();
   };
 

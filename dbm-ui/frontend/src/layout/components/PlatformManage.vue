@@ -19,14 +19,30 @@
       </BkMenuItem>
     </BkMenuGroup>
     <BkMenuGroup
-      v-if="isDev"
+      v-db-console="'platformManage.dbaManage'"
       :name="t('DBA 工具箱')">
-      <BkMenuItem key="DbaManageMysqlWebQuery">
+      <BkMenuItem
+        key="DbaManageMysqlWebQuery"
+        v-db-console="'platformManage.dbaManage.mysql'">
         <template #icon>
-          <DbIcon type="ticket" />
+          <DbIcon type="mysql" />
         </template>
-        MySql
+        MySQL
       </BkMenuItem>
+      <BkMenuItem
+        key="DbaManageTendbClusterWebQuery"
+        v-db-console="'platformManage.dbaManage.tendbCluster'">
+        <template #icon>
+          <DbIcon type="mysql" />
+        </template>
+        Tendb Cluster
+      </BkMenuItem>
+      <!-- <BkMenuItem key="DbaManageSQLServerWebQuery">
+        <template #icon>
+          <DbIcon type="sqlserver" />
+        </template>
+        SQLServer
+      </BkMenuItem> -->
     </BkMenuGroup>
     <BkMenuGroup
       v-db-console="'platformManage.healthReport'"
@@ -73,6 +89,4 @@
     parentKey,
     routeLocation: handleMenuChange,
   } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, 'ticketPlatformManage');
-
-  const isDev = process.env.NODE_ENV !== 'production';
 </script>
