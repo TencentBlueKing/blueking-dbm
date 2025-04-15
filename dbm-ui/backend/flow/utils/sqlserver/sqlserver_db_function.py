@@ -289,25 +289,33 @@ def exec_instance_backup_jobs(cluster_id, backup_jobs_type: SqlserverBackupJobEx
     操作实例的例行备份作业
     """
     cluster = Cluster.objects.get(id=cluster_id)
-    # 获取当前cluster的主节点,每个集群有且只有一个master/orphan 实例
-    master_instance = cluster.storageinstance_set.get(
-        instance_role__in=[InstanceRole.ORPHAN, InstanceRole.BACKEND_MASTER]
+    # 获取当前cluster所有主备节点信息
+    instances = cluster.storageinstance_set.filter(
+        instance_role__in=[InstanceRole.ORPHAN, InstanceRole.BACKEND_MASTER, InstanceRole.BACKEND_SLAVE],
+        is_stand_by=True,
     )
 
-    ret = DRSApi.sqlserver_rpc(
-        {
-            "bk_cloud_id": cluster.bk_cloud_id,
-            "addresses": [master_instance.ip_port],
-            "cmds": [
-                f"exec msdb.dbo.sp_update_job @job_name='TC_BACKUP_FULL',@enabled={backup_jobs_type}",
-                f"exec msdb.dbo.sp_update_job @job_name='TC_BACKUP_LOG',@enabled={backup_jobs_type}",
-            ],
-            "force": False,
-        }
-    )
-    if ret[0]["error_msg"]:
-        raise Exception(f"[{master_instance.ip_port}] exec backup-jobs failed: {ret[0]['error_msg']}")
-
+    for instance in instances:
+        ret = DRSApi.sqlserver_rpc(
+            {
+                "bk_cloud_id": cluster.bk_cloud_id,
+                "addresses": [instance.ip_port],
+                "cmds": [
+                    f"exec msdb.dbo.sp_update_job @job_name='TC_BACKUP_FULL',@enabled={backup_jobs_type}",
+                    f"exec msdb.dbo.sp_update_job @job_name='TC_BACKUP_LOG',@enabled={backup_jobs_type}",
+                ],
+                "force": False,
+            }
+        )
+        if ret[0]["error_msg"]:
+            if instance.status == InstanceStatus.UNAVAILABLE:
+                logger.warning(
+                    f"[{instance.ip_port}] exec backup-jobs failed: {ret[0]['error_msg']},"
+                    f"but status is unavailable ,skip"
+                )
+            else:
+                raise Exception(f"[{instance.ip_port}] exec backup-jobs failed: {ret[0]['error_msg']}")
+        logger.info(f"[{instance.ip_port}] exec backup-jobs successfully")
     return True
 
 
