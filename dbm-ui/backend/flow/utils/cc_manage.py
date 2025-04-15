@@ -236,7 +236,7 @@ class CcManage(object):
         for fail_update in failed_updates:
             for key, value in fail_update["properties"].items():
                 try:
-                    CCApi.update_host({"bk_host_id": fail_update["bk_host_id"], "data": {key: value}}, use_admin=True)
+                    CCApi.update_host({"bk_host_id": fail_update["bk_host_id"], key: value}, use_admin=True)
                 except Exception as e:  # pylint: disable=wildcard-import
                     logger.error("[update_host_dbmeta] single update error: %s:%s (%s)", key, value, e)
 
