@@ -3,6 +3,8 @@ import type { HostInfo } from '@services/types';
 import type { DetailBase, SpecInfo } from '../common';
 
 export interface Apply extends DetailBase {
+  bk_cloud_id: number;
+  bk_cloud_name: string;
   city_code: string;
   cluster_alias: string;
   cluster_name: string;
@@ -19,9 +21,9 @@ export interface Apply extends DetailBase {
   };
   query_port: number;
   resource_spec?: {
-    cold: SpecInfo;
+    cold?: SpecInfo;
     follower: SpecInfo;
-    hot: SpecInfo;
-    observer: SpecInfo;
+    hot?: SpecInfo;
+    observer?: SpecInfo;
   };
 }

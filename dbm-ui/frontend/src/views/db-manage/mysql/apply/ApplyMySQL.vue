@@ -310,9 +310,10 @@
   import { useI18n } from 'vue-i18n';
   import { useRoute } from 'vue-router';
 
+  import type { Mysql } from '@services/model/ticket/ticket';
   import type { BizItem, HostInfo } from '@services/types';
 
-  import { useApplyBase, useTicketCloneInfo } from '@hooks';
+  import { useApplyBase, useTicketDetail } from '@hooks';
 
   import { DBTypes, mysqlType, type MysqlTypeString, TicketTypes } from '@common/const';
   import { OSTypes } from '@common/const';
@@ -338,94 +339,93 @@
   const route = useRoute();
   const router = useRouter();
 
-  // 单据克隆
-  useTicketCloneInfo({
-    onSuccess(cloneData) {
-      const {
-        affinity,
-        backendSpecId,
-        bizId,
-        cityCode,
-        cloudId,
-        clusterCount,
-        dbAppAbbr,
-        dbModuleId,
-        domains,
-        instNum,
-        ipSource,
-        // nodes,
-        proxySpecId,
-        remark,
-        startMysqlPort,
-        startProxyPort,
-        subZoneIds,
-      } = cloneData;
+  useTicketDetail<Mysql.SingleApply>(TicketTypes.MYSQL_SINGLE_APPLY, {
+    onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
 
-      formdata.details.disaster_tolerance_level = affinity;
-      formdata.details.sub_zone_ids = subZoneIds;
-      formdata.bk_biz_id = bizId;
-      formdata.details.bk_cloud_id = cloudId;
-      formdata.details.resource_spec.backend.spec_id = backendSpecId as number;
-      formdata.details.city_code = cityCode;
-      formdata.details.cluster_count = clusterCount;
-      formdata.details.db_module_id = dbModuleId;
-      formdata.details.domains = domains;
-      formdata.details.inst_num = instNum;
-      formdata.details.ip_source = ipSource;
-      formdata.details.resource_spec.proxy.spec_id = proxySpecId as number;
-      formdata.remark = remark;
-      formdata.details.start_mysql_port = startMysqlPort;
-      formdata.details.start_proxy_port = startProxyPort;
-      formdata.details.db_app_abbr = dbAppAbbr;
+      Object.assign(formdata, {
+        bk_biz_id: ticketDetail.bk_biz_id,
+        remark: ticketDetail.remark,
+      });
+      Object.assign(formdata.details, {
+        bk_cloud_id: details.bk_cloud_id,
+        city_code: details.city_code,
+        cluster_count: details.domains.length,
+        db_version: details.db_version,
+        disaster_tolerance_level: details.disaster_tolerance_level,
+        domains: details.domains,
+        ip_source: details.ip_source,
+        start_mysql_port: details.start_mysql_port,
+      });
 
-      bizState.hasEnglishName = !!dbAppAbbr;
+      if (details.ip_source === 'resource_pool') {
+        const { backend } = details.resource_spec!;
+        const resourceSpec = {
+          single: {
+            count: backend.count,
+            spec_id: backend.spec_id,
+          },
+        };
+        Object.assign(formdata.details, {
+          inst_num: details.domains.length / backend.count,
+          resource_spec: resourceSpec,
+          sub_zone_ids: details.resource_spec!.backend.location_spec.sub_zone_ids || [],
+        });
+      }
 
-      // TODO: 需要提供接口补全每台主机的信息，不然会缺少字段导致数据处理报错
-      // formdata.details.nodes = nodes;
+      nextTick(() => {
+        Object.assign(formdata.details, {
+          db_module_id: details.db_module_id,
+        });
+      });
     },
-    type: TicketTypes.MYSQL_HA_APPLY,
   });
 
-  // 单据克隆
-  useTicketCloneInfo({
-    onSuccess(cloneData) {
-      const {
-        affinity,
-        bizId,
-        cityCode,
-        cloudId,
-        clusterCount,
-        dbAppAbbr,
-        dbModuleId,
-        domains,
-        instNum,
-        ipSource,
-        // nodes,
-        remark,
-        singleSpecId,
-        startMysqlPort,
-        subZoneIds,
-      } = cloneData;
+  useTicketDetail<Mysql.HaApply>(TicketTypes.MYSQL_HA_APPLY, {
+    onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
 
-      formdata.details.disaster_tolerance_level = affinity;
-      formdata.details.sub_zone_ids = subZoneIds;
-      formdata.bk_biz_id = bizId;
-      formdata.details.bk_cloud_id = cloudId;
-      formdata.details.city_code = cityCode;
-      formdata.details.cluster_count = clusterCount;
-      formdata.details.db_module_id = dbModuleId;
-      formdata.details.domains = domains;
-      formdata.details.inst_num = instNum;
-      formdata.details.ip_source = ipSource;
-      formdata.details.resource_spec.single.spec_id = singleSpecId;
-      formdata.remark = remark;
-      formdata.details.start_mysql_port = startMysqlPort;
-      // formdata.details.nodes = nodes;
-      formdata.details.db_app_abbr = dbAppAbbr;
+      Object.assign(formdata, {
+        bk_biz_id: ticketDetail.bk_biz_id,
+        remark: ticketDetail.remark,
+      });
+      Object.assign(formdata.details, {
+        bk_cloud_id: details.bk_cloud_id,
+        city_code: details.city_code,
+        cluster_count: details.domains.length,
+        db_version: details.db_version,
+        disaster_tolerance_level: details.disaster_tolerance_level,
+        domains: details.domains,
+        ip_source: details.ip_source,
+        start_mysql_port: details.start_mysql_port,
+        start_proxy_port: details.start_proxy_port,
+      });
 
-      bizState.hasEnglishName = !!dbAppAbbr;
+      if (details.ip_source === 'resource_pool') {
+        const { backend_group: backendGroup, proxy } = details.resource_spec!;
+        const resourceSpec = {
+          backend: {
+            count: backendGroup.count,
+            spec_id: backendGroup.spec_id,
+          },
+          proxy: {
+            count: proxy.count,
+            spec_id: proxy.spec_id,
+          },
+        };
+        Object.assign(formdata.details, {
+          inst_num: details.domains.length / backendGroup.count,
+          resource_spec: resourceSpec,
+          sub_zone_ids: details.resource_spec!.backend_group.location_spec.sub_zone_ids || [],
+        });
+      }
+
+      nextTick(() => {
+        Object.assign(formdata.details, {
+          db_module_id: details.db_module_id,
+        });
+      });
     },
-    type: TicketTypes.MYSQL_SINGLE_APPLY,
   });
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');

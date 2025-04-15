@@ -40,9 +40,9 @@
         <DbCard :title="t('数据库部署信息')">
           <BkFormItem
             :label="t('部署方式')"
-            property="details.appendApply"
+            property="details.apply_mode"
             required>
-            <BkRadioGroup v-model="formData.details.appendApply">
+            <BkRadioGroup v-model="formData.details.apply_mode">
               <BkRadio
                 key="new"
                 label="new">
@@ -145,11 +145,11 @@
           <BkFormItem
             v-if="!isAppend"
             :label="t('后端存储规格')"
-            property="details.resource_spec.spec_id"
+            property="details.resource_spec.backend_group.spec_id"
             required>
             <SpecSelector
               ref="specRef"
-              v-model="formData.details.resource_spec.spec_id"
+              v-model="formData.details.resource_spec.backend_group.spec_id"
               :biz-id="formData.bk_biz_id"
               :city="formData.details.city_code"
               :cloud-id="formData.details.bk_cloud_id"
@@ -226,11 +226,12 @@
   import { type ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
+  import type { Redis } from '@services/model/ticket/ticket';
   import { getRedisMachineList } from '@services/source/redis';
   import { queryMachineInstancePair } from '@services/source/redisToolbox';
   import type { BizItem } from '@services/types';
 
-  import { useApplyBase } from '@hooks';
+  import { useApplyBase, useTicketDetail } from '@hooks';
 
   import { Affinity, ClusterTypes, DBTypes, MachineTypes, TicketTypes } from '@common/const';
 
@@ -250,7 +251,7 @@
   const initData = () => ({
     bk_biz_id: '' as number | '',
     details: {
-      appendApply: 'new', // 是否是追加部署
+      apply_mode: 'new', // 是否是追加部署
       bk_cloud_id: 0,
       city_code: '', // 追加就非必填
       city_name: '', // 非协议
@@ -265,8 +266,10 @@
       port: 30000, // 追加就非必填
       redis_pwd: '',
       resource_spec: {
-        count: 2,
-        spec_id: '',
+        backend_group: {
+          count: 2,
+          spec_id: '',
+        },
       },
       sub_zone_ids: [] as number[],
     },
@@ -278,6 +281,68 @@
   const route = useRoute();
   const router = useRouter();
   const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+
+  useTicketDetail<Redis.InsApply>(TicketTypes.REDIS_INS_APPLY, {
+    onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+      const applyMode = details.ip_source === 'resource_pool' ? 'new' : 'append';
+
+      Object.assign(formData, {
+        bk_biz_id: ticketDetail.bk_biz_id,
+        remark: ticketDetail.remark,
+      });
+      Object.assign(formData.details, {
+        bk_cloud_id: details.bk_cloud_id,
+        city_code: details.city_code,
+        cluster_count: details.infos.length,
+        cluster_type: details.cluster_type,
+        db_version: details.db_version,
+        disaster_tolerance_level: details.disaster_tolerance_level,
+        infos: details.infos,
+        port: details.port,
+      });
+
+      if (details.ip_source === 'resource_pool') {
+        const resourceSpec = Object.entries(details.resource_spec!).reduce((prev, [specType, specInfo]) => {
+          return Object.assign(prev, {
+            [specType]: {
+              count: specInfo.count,
+              spec_id: specInfo.spec_id,
+            },
+          });
+        }, {});
+        Object.assign(formData.details, {
+          apply_mode: applyMode,
+          bk_cloud_id: details.bk_cloud_id,
+          city_code: details.city_code,
+          cluster_count: details.infos.length,
+          cluster_type: details.cluster_type,
+          db_version: details.db_version,
+          disaster_tolerance_level: details.disaster_tolerance_level,
+          group_count: details.infos.length / details.resource_spec!.backend_group.count,
+          infos: details.infos,
+          port: details.port,
+          resource_spec: resourceSpec,
+          sub_zone_ids: details.resource_spec!.backend_group.location_spec.sub_zone_ids || [],
+        });
+      } else {
+        Object.assign(formData.details, {
+          apply_mode: applyMode,
+          bk_cloud_id: details.bk_cloud_id,
+          city_code: details.city_code,
+          cluster_count: details.infos.length,
+          cluster_type: details.cluster_type,
+          db_version: details.db_version,
+          infos: details.infos.map((infoItem) => ({
+            cluster_name: infoItem.cluster_name,
+            databases: infoItem.databases,
+            masterHost: infoItem.backend_group?.master,
+            slaveHost: infoItem.backend_group?.slave,
+          })),
+        });
+      }
+    },
+  });
 
   const regionRequirementsRef = useTemplateRef('regionRequirements');
 
@@ -320,7 +385,7 @@
     ],
   };
 
-  const isAppend = computed(() => formData.details.appendApply === 'append');
+  const isAppend = computed(() => formData.details.apply_mode === 'append');
   const machineCount = computed(() => formData.details.cluster_count / formData.details.group_count);
   const portType = computed(() => {
     if (formData.details.cluster_count % formData.details.group_count !== 0) {
@@ -348,13 +413,13 @@
       ({
         backend_group: {
           count: machineCount.value,
-          spec_id: formData.details.resource_spec.spec_id,
+          spec_id: formData.details.resource_spec.backend_group.spec_id,
         },
       }) as ComponentProps<typeof EstimatedCost>['params']['resource_spec'],
   );
 
   watch(
-    [() => formData.details.resource_spec.spec_id, machineCount],
+    [() => formData.details.resource_spec.backend_group.spec_id, machineCount],
     ([newSpecId]) => {
       nextTick(() => {
         if (newSpecId) {
@@ -481,7 +546,7 @@
     const getDetails = () => {
       const { details }: { details: Partial<UnwrapRef<typeof formData>['details']> } = _.cloneDeep(formData);
 
-      if (details.appendApply === 'new') {
+      if (details.apply_mode === 'new') {
         Object.assign(details, {
           infos: details.infos!.map((infoItem) => ({
             cluster_name: infoItem.cluster_name,
@@ -490,7 +555,7 @@
           resource_spec: {
             backend_group: {
               count: Math.ceil(machineCount.value),
-              spec_id: details.resource_spec!.spec_id,
+              spec_id: details.resource_spec!.backend_group.spec_id,
               ...specRef.value!.getData(),
               ...regionRequirementsRef.value!.getValue(),
             },
@@ -498,7 +563,7 @@
         });
       } else {
         delete details.port;
-        delete details.city_code;
+        // delete details.city_code;
         delete details.db_version;
         delete details.resource_spec;
 
@@ -516,7 +581,7 @@
 
       delete details.cluster_count;
       delete details.group_count;
-      delete details.appendApply;
+      delete details.apply_mode;
       delete details.city_name;
 
       return {

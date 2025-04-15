@@ -1,5 +1,7 @@
 <template>
-  <div class="db-ticket-info-item">
+  <div
+    class="db-ticket-info-item"
+    :style="itemStyle">
     <div class="db-ticket-info-item-lable">{{ label }}：</div>
     <div class="db-ticket-info-item-value">
       <slot />
@@ -9,9 +11,17 @@
 <script setup lang="ts">
   interface Props {
     label: string;
+    wholeLine?: boolean;
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
+
+  const itemStyle = computed(() => {
+    if (props.wholeLine) {
+      return { flex: '1 0 100%' };
+    }
+    return {};
+  });
 </script>
 <style lang="less">
   @label-width: 160px;

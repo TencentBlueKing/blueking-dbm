@@ -138,14 +138,14 @@
   );
 
   watch(
-    () => [bizId.value, bizList.value],
+    [bizId, bizList],
     () => {
       currentBiz.value = _.find(bizList.value, (item) => item.bk_biz_id === bizId.value);
       const englishName = currentBiz.value?.english_name;
       hasEnglishName.value = !!englishName;
       appAbbr.value = englishName ?? '';
-      // 从申请实例 跳转过来，需要同步数据出去
-      if (route.query.bizId && currentBiz.value) {
+      // 从申请实例 跳转过来，或单据克隆，需要同步数据出去
+      if ((route.query.bizId || route.query.ticketType) && currentBiz.value) {
         handleAppChange(currentBiz.value);
       }
     },

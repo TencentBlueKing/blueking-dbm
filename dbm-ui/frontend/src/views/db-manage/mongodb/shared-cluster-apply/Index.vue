@@ -143,7 +143,7 @@
               }" />
           </BkFormItem>
           <BkFormItem
-            :label="t('每台主机oplog容量占比')"
+            :label="t('每台主机 oplog 容量占比')"
             property="details.oplog_percent"
             required>
             <BkInput
@@ -204,10 +204,11 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import type { Mongodb } from '@services/model/ticket/ticket';
   import { getVersions } from '@services/source/version';
   import type { BizItem } from '@services/types';
 
-  import { useApplyBase } from '@hooks';
+  import { useApplyBase, useTicketDetail } from '@hooks';
 
   import { ClusterTypes, DBTypes, MachineTypes, TicketTypes } from '@common/const';
   import { nameRegx } from '@common/regex';
@@ -268,6 +269,44 @@
   const route = useRoute();
   const router = useRouter();
   const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+
+  useTicketDetail<Mongodb.ShardApply>(TicketTypes.MONGODB_SHARD_APPLY, {
+    onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+
+      Object.assign(formData, {
+        bk_biz_id: ticketDetail.bk_biz_id,
+        remark: ticketDetail.remark,
+      });
+      Object.assign(formData.details, {
+        bk_cloud_id: details.bk_cloud_id,
+        city_code: details.city_code,
+        cluster_alias: details.cluster_alias,
+        cluster_name: details.cluster_name,
+        cluster_type: details.cluster_type,
+        db_version: details.db_version,
+        disaster_tolerance_level: details.disaster_tolerance_level,
+        ip_source: details.ip_source,
+        oplog_percent: details.oplog_percent,
+        start_port: details.start_port,
+      });
+
+      if (details.ip_source === 'resource_pool') {
+        const resourceSpec = Object.entries(details.resource_spec!).reduce((prev, [specType, specInfo]) => {
+          return Object.assign(prev, {
+            [specType]: {
+              count: specInfo.count,
+              spec_id: specInfo.spec_id,
+            },
+          });
+        }, {});
+        Object.assign(formData.details, {
+          resource_spec: resourceSpec,
+          sub_zone_ids: details.resource_spec!.mongo_config.location_spec.sub_zone_ids || [],
+        });
+      }
+    },
+  });
 
   const regionRequirementsRef = useTemplateRef('regionRequirements');
 

@@ -76,8 +76,15 @@
    */
   const ticketTypeRouteNameMap: Record<string, string> = {
     ...resourcePoolTickets,
+    [TicketTypes.DORIS_APPLY]: 'DorisApply',
+    [TicketTypes.ES_APPLY]: 'EsApply',
+    [TicketTypes.HDFS_APPLY]: 'HdfsApply',
+    [TicketTypes.INFLUXDB_APPLY]: 'SelfServiceApplyInfluxDB',
+    [TicketTypes.KAFKA_APPLY]: 'KafkaApply',
     [TicketTypes.MONGODB_PITR_RESTORE]: TicketTypes.MONGODB_PITR_RESTORE, // mongo 定点构造
+    [TicketTypes.MONGODB_REPLICASET_APPLY]: 'MongoDBReplicaSetApply',
     [TicketTypes.MONGODB_SCALE_UPDOWN]: TicketTypes.MONGODB_SCALE_UPDOWN, // mongodb 集群容量变更
+    [TicketTypes.MONGODB_SHARD_APPLY]: 'MongoDBSharedClusterApply',
     [TicketTypes.MYSQL_ADD_SLAVE]: TicketTypes.MYSQL_ADD_SLAVE, // Mysql 添加从库
     [TicketTypes.MYSQL_AUTHORIZE_RULES]: 'PermissionRules', // Mysql 授权
     [TicketTypes.MYSQL_CHECKSUM]: 'MySQLChecksum', // Mysql 数据校验修复
@@ -113,6 +120,7 @@
     [TicketTypes.MYSQL_SINGLE_ENABLE]: 'DatabaseTendbsingle', // Mysql 单节点启用
     [TicketTypes.MYSQL_SINGLE_RENAME_DATABASE]: 'MySQLDBRename', // Mysql DB重命名
     [TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA]: 'MySQLDBClear', // Mysql 单节点清档
+    [TicketTypes.PULSAR_APPLY]: 'PulsarApply',
     [TicketTypes.REDIS_BACKUP]: 'DatabaseRedisList', // Redis 集群备份
     [TicketTypes.REDIS_CLUSTER_ADD_SLAVE]: 'RedisDBCreateSlave', // Redis 重建从库
     [TicketTypes.REDIS_CLUSTER_APPLY]: 'SelfServiceApplyRedis', // Redis 申请部署
@@ -126,6 +134,7 @@
     [TicketTypes.REDIS_DATA_STRUCTURE_TASK_DELETE]: 'RedisStructureInstance', // Redis 删除构造任务
     [TicketTypes.REDIS_DATACOPY_CHECK_REPAIR]: 'RedisToolboxDataCheckRepair', // Redis 数据校验修复
     [TicketTypes.REDIS_DESTROY]: 'DatabaseRedisList', // Redis 集群删除
+    [TicketTypes.REDIS_INS_APPLY]: 'SelfServiceApplyRedisHa',
     [TicketTypes.REDIS_KEYS_DELETE]: 'DatabaseRedisList', // Redis 删除 key
     [TicketTypes.REDIS_KEYS_EXTRACT]: 'DatabaseRedisList', // Redis 提取 Key
     [TicketTypes.REDIS_MASTER_SLAVE_SWITCH]: 'RedisMasterFailover', // Redis 主从切换
@@ -143,12 +152,14 @@
     [TicketTypes.REDIS_SCALE_UPDOWN]: TicketTypes.REDIS_SCALE_UPDOWN, // Redis 集群容量变更
     [TicketTypes.REDIS_SINGLE_INS_MIGRATE]: 'RedisMigrate', // Redis 主从迁移
     [TicketTypes.REDIS_VERSION_UPDATE_ONLINE]: 'RedisVersionUpgrade', // redis 版本升级
+    [TicketTypes.RIAK_CLUSTER_APPLY]: 'RiakApply',
     [TicketTypes.SQLSERVER_ADD_SLAVE]: TicketTypes.SQLSERVER_ADD_SLAVE, // sqlserver 添加从库
     [TicketTypes.SQLSERVER_BACKUP_DBS]: TicketTypes.SQLSERVER_BACKUP_DBS, // sqlserver 库备份
     [TicketTypes.SQLSERVER_CLEAR_DBS]: TicketTypes.SQLSERVER_CLEAR_DBS, // sqlserver 清档
     [TicketTypes.SQLSERVER_DATA_MIGRATE]: 'sqlServerDataMigrate', // sqlserver 数据迁移
     [TicketTypes.SQLSERVER_DBRENAME]: TicketTypes.SQLSERVER_DBRENAME, // sqlserver DB重命名
     [TicketTypes.SQLSERVER_FULL_MIGRATE]: 'sqlServerDataMigrate', // sqlserver 全库迁移
+    [TicketTypes.SQLSERVER_HA_APPLY]: 'SqlServiceHaApply',
     [TicketTypes.SQLSERVER_IMPORT_SQLFILE]: 'sqlServerExecute', // sqlserver 变更SQL执行
     [TicketTypes.SQLSERVER_INCR_MIGRATE]: 'sqlServerDataMigrate', // sqlserver 增量迁移
     [TicketTypes.SQLSERVER_MASTER_FAIL_OVER]: 'sqlServerMasterFailover', // sqlserver 主库故障切换
@@ -156,6 +167,7 @@
     [TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE]: TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE, // sqlserver 重建从库_原地重建
     [TicketTypes.SQLSERVER_RESTORE_SLAVE]: TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE, // sqlserver 重建从库_新机重建
     [TicketTypes.SQLSERVER_ROLLBACK]: TicketTypes.SQLSERVER_ROLLBACK, // sqlserver 定点构造
+    [TicketTypes.SQLSERVER_SINGLE_APPLY]: 'SqlServiceSingleApply',
     [TicketTypes.TENDBCLUSTER_APPLY]: 'spiderApply', // spider 集群部署
     [TicketTypes.TENDBCLUSTER_AUTHORIZE_RULES]: 'spiderPermission',
     [TicketTypes.TENDBCLUSTER_CHECKSUM]: 'spiderChecksum', // Spider checksum
