@@ -117,7 +117,7 @@ class ExecuteDBActuatorScriptService(BkJobService):
             "script_content": base64_encode(template.render(db_act_template)),
             "script_language": 1,
             "target_server": {"ip_list": target_ip_info},
-            "timeout": 86400,
+            "timeout": 259200,
         }
         # 外边可以指定执行账户，不指定则采用默认账户Root
         common_kwargs = copy.deepcopy(redis_fast_execute_script_common_kwargs)
