@@ -389,10 +389,6 @@ class ListRetrieveResource(BaseListRetrieveResource):
         @param filter_func_map: 过滤函数map，每个函数必须接受query_params和cluster、proxy、storage三个query参数
         """
 
-        cluster_ids = query_params.get("cluster_ids", [])
-        if isinstance(cluster_ids, str):
-            cluster_ids = [int(x) for x in cluster_ids.split(",")]
-
         query_filters = Q(bk_biz_id=bk_biz_id, cluster_type__in=cls.cluster_types)
         proxy_queryset = ProxyInstance.objects.filter(query_filters)
         storage_queryset = StorageInstance.objects.filter(query_filters)
@@ -415,7 +411,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "city": Q(region__in=query_params.get("city", "").split(",")),
             "region": Q(region__in=query_params.get("region", "").split(",")),
             # 集群id列表
-            "cluster_ids": Q(id__in=cluster_ids),
+            "cluster_ids": Q(id__in=query_params.get("cluster_ids", "").split(",")),
             # 创建者
             "creator": Q(creator__icontains=query_params.get("creator")),
             # 所属DB模块
