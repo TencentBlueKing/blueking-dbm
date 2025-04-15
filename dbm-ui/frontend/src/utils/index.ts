@@ -42,5 +42,6 @@ export * from './random';
 export * from './recentDays';
 export * from './time';
 export * from './url';
+export * from './validateBrackets';
 export * from './vNodeToHtml';
 export * from './vueHelper';

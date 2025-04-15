@@ -4,7 +4,8 @@
     :cluster="cluster"
     :ext-params="{
       session_time: sessionTime,
-    }">
+    }"
+    :intercept="doIntercept">
     <template #default="{ message }">
       <RenderMessage :data="message" />
     </template>
@@ -15,6 +16,8 @@
   import type { queryAllTypeCluster } from '@services/source/dbbase';
 
   import { useTimeZoneFormat } from '@hooks';
+
+  import { validateBrackets } from '@utils';
 
   import ConsoleInput from '../components/ConsoleInput.vue';
 
@@ -30,6 +33,8 @@
 
   const consoleInputRef = ref<typeof ConsoleInput>();
   const sessionTime = ref(formatDateToUTC(new Date().toString()));
+
+  const doIntercept = (cmd: string) => !validateBrackets(cmd);
 
   defineExpose({
     clearCurrentScreen: (clusterId: number) => consoleInputRef.value!.clearCurrentScreen(clusterId),
