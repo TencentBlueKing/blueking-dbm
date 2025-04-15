@@ -73,3 +73,4 @@ class TendbClusterMigrateClusterFlowBuilder(BaseTendbTicketFlowBuilder):
     resource_batch_apply_builder = TendbClusterMigrateClusterResourceParamBuilder
     retry_type = FlowRetryType.MANUAL_RETRY
     need_patch_recycle_host_details = True
+    need_patch_machine_details = True

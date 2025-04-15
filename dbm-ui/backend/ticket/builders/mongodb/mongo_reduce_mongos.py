@@ -82,3 +82,4 @@ class MongoDBAddMongosApplyFlowBuilder(BaseMongoShardedTicketFlowBuilder):
     inner_flow_builder = MongoDBReduceMongosFlowParamBuilder
     inner_flow_name = _("MongoDB 缩容接入层执行")
     need_patch_recycle_host_details = True
+    need_patch_machine_details = True

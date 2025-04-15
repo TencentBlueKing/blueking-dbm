@@ -80,3 +80,4 @@ class TendbClusterRestoreSlaveFlowBuilder(BaseTendbTicketFlowBuilder):
     inner_flow_name = _("TenDB Cluster Slave重建")
     resource_batch_apply_builder = TendbClusterRestoreSlaveResourceParamBuilder
     need_patch_recycle_host_details = True
+    need_patch_machine_details = True

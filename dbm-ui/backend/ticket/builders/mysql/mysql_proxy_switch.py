@@ -98,6 +98,7 @@ class MysqlProxySwitchResourceParamBuilder(BaseOperateResourceParamBuilder):
 @builders.BuilderFactory.register(TicketType.MYSQL_PROXY_SWITCH, is_apply=True, is_recycle=True)
 class MysqlProxySwitchFlowBuilder(BaseMySQLHATicketFlowBuilder):
     need_patch_recycle_host_details = True
+    need_patch_machine_details = True
     retry_type = FlowRetryType.MANUAL_RETRY
     serializer = MysqlProxySwitchDetailSerializer
     inner_flow_builder = MysqlProxySwitchParamBuilder

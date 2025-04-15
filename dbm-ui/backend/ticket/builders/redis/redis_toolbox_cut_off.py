@@ -134,9 +134,21 @@ class RedisClusterCutOffFlowBuilder(BaseRedisTicketFlowBuilder):
         redis_masters = StorageInstance.objects.prefetch_related("as_ejector__receiver", "machine").filter(
             cluster=cluster, machine__ip__in=[host["ip"] for host in role_hosts]
         )
+
+        # 使用集合存储已添加的ip地址
+        seen_ips = set()
         for master in redis_masters:
             slave = master.as_ejector.get().receiver.machine
-            old_nodes[InstanceRole.REDIS_SLAVE].append({"ip": slave.ip, "bk_host_id": slave.bk_host_id})
+            if slave.ip not in seen_ips:
+                old_nodes[InstanceRole.REDIS_SLAVE].append(
+                    {
+                        "ip": slave.ip,
+                        "bk_host_id": slave.bk_host_id,
+                        "master_ip": master.machine.ip,
+                        "master_spec_id": master.machine.spec_id,
+                    }
+                )
+                seen_ips.add(slave.ip)
 
     def patch_slave_resource(self, cluster, info, resource_spec, old_nodes):
         role = InstanceRole.REDIS_SLAVE.value
@@ -204,9 +216,9 @@ class RedisClusterCutOffFlowBuilder(BaseRedisTicketFlowBuilder):
     def patch_resource_and_old_nodes(self):
         cluster_ids = list(itertools.chain(*[infos["cluster_ids"] for infos in self.ticket.details["infos"]]))
         cluster_map = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
-        old_nodes = defaultdict(list)
 
         for info in self.ticket.details["infos"]:
+            old_nodes = defaultdict(list)
             # 取第一个cluster即可，即使是多集群，也是单机多实例的情况
             cluster = cluster_map[info["cluster_ids"][0]]
             resource_spec = {}

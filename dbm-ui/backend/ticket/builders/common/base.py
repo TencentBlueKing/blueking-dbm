@@ -39,6 +39,11 @@ from backend.ticket.constants import TicketType
 from backend.utils.basic import get_target_items_from_details
 
 
+def get_filtered_items(details: Dict[str, Any], match_keys: List[str], valid_types: Union[type, tuple]) -> List:
+    targets = get_target_items_from_details(obj=details, match_keys=match_keys)
+    return [item for item in targets if isinstance(item, valid_types) and item]
+
+
 def fetch_cluster_ids(details: Dict[str, Any]) -> List[int]:
     cluster_keys = [
         "cluster_id",
@@ -52,20 +57,22 @@ def fetch_cluster_ids(details: Dict[str, Any]) -> List[int]:
         "target_cluster",
         "target_clusters",
     ]
-    targets = get_target_items_from_details(obj=details, match_keys=cluster_keys)
-    return [item for item in targets if isinstance(item, int) and item]
+    return get_filtered_items(details, cluster_keys, int)
 
 
-def fetch_instance_ids(details: Dict[str, Any]) -> List[int]:
+def fetch_instance_ids(details: Dict[str, Any]) -> List[Union[int, str]]:
     instance_id_keys = ["instance_id", "instance_ids"]
-    targets = get_target_items_from_details(obj=details, match_keys=instance_id_keys)
-    return [item for item in targets if isinstance(item, (int, str)) and item]
+    return get_filtered_items(details, instance_id_keys, (int, str))
 
 
 def fetch_host_ids(details: Dict[str, Any]) -> List[int]:
     host_keys = ["host_id", "bk_host_id", "bk_host_ids"]
-    targets = get_target_items_from_details(obj=details, match_keys=host_keys)
-    return [item for item in targets if isinstance(item, int) and item]
+    return get_filtered_items(details, host_keys, int)
+
+
+def fetch_machine_ids(details: Dict[str, Any]) -> List[Union[int, str]]:
+    machine_keys = ["ip"]
+    return get_filtered_items(details, machine_keys, (int, str))
 
 
 def fetch_apply_hosts(details: Dict[str, Any]) -> List[Dict]:
@@ -466,6 +473,7 @@ class BaseTicketFlowBuilderPatchMixin(object):
     need_patch_instance_details: bool = False
     need_patch_recycle_host_details: bool = False
     need_patch_recycle_cluster_details: bool = False
+    need_patch_machine_details: bool = False
 
     def patch_cluster_details(self):
         """补充集群信息"""
@@ -513,6 +521,47 @@ class BaseTicketFlowBuilderPatchMixin(object):
         recycle_hosts = [{"bk_host_id": host.bk_host_id} for host in recycle_hosts]
         self.ticket.details["recycle_hosts"] = ResourceHandler.standardized_resource_host(recycle_hosts)
 
+    def _collect_machine_details(self, machines):
+        machine_infos = defaultdict(dict)
+
+        for machine in machines:
+            storage_instances = list(machine.storageinstance_set.all())
+            proxy_instances = list(machine.proxyinstance_set.all())
+            all_instances = storage_instances + proxy_instances
+
+            # Determine instance role
+            if storage_instances:
+                machine_infos[machine.ip]["instance_role"] = storage_instances[0].instance_role
+            elif proxy_instances:
+                machine_infos[machine.ip]["instance_role"] = proxy_instances[0].access_layer
+
+            # Collect related instances
+            machine_infos[machine.ip]["related_instances"] = [inst.simple_desc for inst in all_instances]
+
+            # Collect related clusters
+            related_clusters = {inst.cluster.first().id for inst in all_instances if inst.cluster.first()}
+            if related_clusters:
+                machine_infos[machine.ip]["related_clusters"] = list(related_clusters)
+
+            # Add spec config
+            machine_infos[machine.ip]["spec_config"] = machine.spec_config
+
+        return machine_infos
+
+    def patch_machine_details(self):
+        """补充主机信息"""
+        machine_ips = [ip for info in self.ticket.details["infos"] for ip in fetch_machine_ids(info["old_nodes"])]
+
+        if not machine_ips:
+            return
+
+        master_machines = Machine.objects.filter(ip__in=machine_ips).prefetch_related(
+            "storageinstance_set__cluster", "proxyinstance_set__cluster"
+        )
+
+        machine_infos = self._collect_machine_details(master_machines)
+        self.ticket.details["machine_infos"] = machine_infos
+
     def patch_ticket_detail(self):
         if self.need_patch_cluster_details:
             self.patch_cluster_details()
@@ -524,6 +573,8 @@ class BaseTicketFlowBuilderPatchMixin(object):
             self.patch_recycle_host_details()
         if self.need_patch_recycle_cluster_details:
             self.patch_recycle_cluster_details()
+        if self.need_patch_machine_details:
+            self.patch_machine_details()
         self.ticket.save(update_fields=["details", "update_at", "remark"])
 
 

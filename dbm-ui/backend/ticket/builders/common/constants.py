@@ -168,3 +168,12 @@ class FlashbackBuildType(str, StructuredEnum):
 
     TABLE_FLASHBACK = EnumField("TABLE_FLASHBACK", _("库表闪回"))
     RECORD_FLASHBACK = EnumField("RECORD_FLASHBACK", _("记录级闪回"))
+
+
+class ShrinkType(str, StructuredEnum):
+    """
+    缩容方式
+    """
+
+    QUANTITY = EnumField("QUANTITY", _("数量缩容"))
+    HOST = EnumField("HOST", _("主机缩容"))

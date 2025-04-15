@@ -116,6 +116,7 @@ class MysqlMigrateClusterFlowBuilder(MysqlMasterSlaveSwitchFlowBuilder):
     inner_flow_name = TicketType.get_choice_label(TicketType.MYSQL_MIGRATE_CLUSTER)
     resource_batch_apply_builder = MysqlMigrateClusterResourceParamBuilder
     need_patch_recycle_host_details = True
+    need_patch_machine_details = True
 
     @staticmethod
     def get_old_master_slave_host(infos, cluster_map):

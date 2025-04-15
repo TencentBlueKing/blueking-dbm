@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Set
 from django.db.models import F, Prefetch, Q
 from django.utils.translation import ugettext_lazy as _
 
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import AccessLayer, ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.exceptions import ClusterNotExistException, InstanceNotExistException
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance, StorageInstanceTuple
@@ -359,6 +360,8 @@ class ClusterServiceHandler:
 
 def get_cluster_service_handler(bk_biz_id: int, db_type: str = "dbbase"):
     """根据集群类型获取对应的集群查询handler"""
+    if db_type == DBType.TenDBCluster.value:
+        db_type = DBType.MySQL.value
     handler_import_path = f"backend.db_services.{db_type}.cluster.handlers"
     try:
         handler_class = getattr(importlib.import_module(handler_import_path), "ClusterServiceHandler")

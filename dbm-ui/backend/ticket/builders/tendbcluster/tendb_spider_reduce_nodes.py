@@ -17,6 +17,7 @@ from backend.db_meta.models import Cluster
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import HostInfoSerializer, HostRecycleSerializer, fetch_cluster_ids
+from backend.ticket.builders.common.constants import ShrinkType
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
@@ -34,6 +35,9 @@ class TendbSpiderReduceNodesDetailSerializer(TendbBaseOperateDetailSerializer):
     is_safe = serializers.BooleanField(help_text=_("是否做安全检测"))
     infos = serializers.ListSerializer(help_text=_("缩容信息"), child=SpiderNodesItemSerializer())
     ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
+    shrink_type = serializers.ChoiceField(
+        help_text=_("缩容方式"), choices=ShrinkType.get_choices(), default=ShrinkType.QUANTITY.value
+    )
 
     def validate(self, attrs):
         super().validate(attrs)
@@ -55,6 +59,7 @@ class TendbSpiderReduceNodesFlowBuilder(BaseTendbTicketFlowBuilder):
     inner_flow_builder = TendbSpiderReduceNodesFlowParamBuilder
     inner_flow_name = _("TenDB Cluster 接入层缩容")
     need_patch_recycle_host_details = True
+    need_patch_machine_details = True
 
     def calc_reduce_spider(self):
         """计算实际缩容的spider主机"""

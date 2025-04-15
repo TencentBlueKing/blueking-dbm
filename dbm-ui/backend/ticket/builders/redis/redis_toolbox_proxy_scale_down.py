@@ -22,6 +22,7 @@ from backend.ticket.builders.common.base import (
     SkipToRepresentationMixin,
     fetch_cluster_ids,
 )
+from backend.ticket.builders.common.constants import ShrinkType
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
 from backend.ticket.constants import SwitchConfirmType, TicketType
 
@@ -44,6 +45,9 @@ class ProxyScaleDownDetailSerializer(SkipToRepresentationMixin, ClusterValidateM
 
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())
     ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
+    shrink_type = serializers.ChoiceField(
+        help_text=_("缩容方式"), choices=ShrinkType.get_choices(), default=ShrinkType.QUANTITY.value
+    )
 
     def validate(self, attrs):
         cluster_ids = fetch_cluster_ids(attrs)
@@ -97,7 +101,6 @@ class ProxyScaleDownFlowBuilder(BaseRedisTicketFlowBuilder):
             info["old_nodes"] = {
                 "proxy_reduced_hosts": [{"bk_host_id": proxy_ip__host[ip], "ip": ip} for ip in down_ips]
             }
-            info.pop("target_proxy_count")
 
     def patch_ticket_detail(self):
         self.patch_old_proxy_nodes()
