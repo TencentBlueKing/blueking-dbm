@@ -165,18 +165,11 @@
       if (item.newMaster.ip === item.newSlave.ip) {
         slaveCount += 1;
       }
-      Object.assign(
-        result,
-        {
-          [item.master.ip]: (result[item.master.ip] || 0) + 1,
-        },
-        {
-          [item.newMaster.ip]: (result[item.newMaster.ip] || 0) + masterCount,
-        },
-        {
-          [item.newSlave.ip]: (result[item.newSlave.ip] || 0) + slaveCount,
-        },
-      );
+      Object.assign(result, {
+        [item.master.ip]: (result[item.master.ip] || 0) + 1,
+        [item.newMaster.ip]: (result[item.newMaster.ip] || 0) + masterCount,
+        [item.newSlave.ip]: (result[item.newSlave.ip] || 0) + slaveCount,
+      });
       return result;
     }, {});
   });

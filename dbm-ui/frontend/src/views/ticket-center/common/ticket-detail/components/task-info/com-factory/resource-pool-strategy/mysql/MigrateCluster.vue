@@ -13,7 +13,7 @@
 
 <template>
   <InfoList>
-    <InfoItem :label="t('迁移类型：')">
+    <InfoItem :label="t('迁移类型')">
       {{ operaObjectMap[ticketDetails.details.opera_object] }}
     </InfoItem>
   </InfoList>
