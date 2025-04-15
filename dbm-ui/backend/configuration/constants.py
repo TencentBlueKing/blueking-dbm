@@ -245,10 +245,10 @@ AFFINITY_VALUE = [
 
 # 默认机器属性设置
 DEFAULT_MACHINE_PROPERTY = {
-    "rack_id": False,  # 机架
-    "city_meta": False,  # 地域
-    "device_class": False,  # 机型
-    "sub_zone_meta": False,  # 园区
+    "rack_id": True,  # 机架
+    "city_meta": True,  # 地域
+    "device_class": True,  # 机型
+    "sub_zone_meta": True,  # 园区
     "storage_device": True,  # 磁盘
 }
 
