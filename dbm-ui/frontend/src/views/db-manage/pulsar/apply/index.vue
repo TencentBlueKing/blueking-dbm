@@ -365,11 +365,12 @@
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
 
+  import type { Pulsar } from '@services/model/ticket/ticket';
   import type { BizItem, HostInfo } from '@services/types';
 
-  import { useApplyBase } from '@hooks';
+  import { useApplyBase, useTicketDetail } from '@hooks';
 
-  import { DBTypes, OSTypes } from '@common/const';
+  import { Affinity, DBTypes, OSTypes, TicketTypes } from '@common/const';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
@@ -382,14 +383,94 @@
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/BigData.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
 
-  import { getInitFormdata } from './common/base';
-
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
+
+  const getInitFormdata = () => ({
+    bk_biz_id: '' as number | '',
+    details: {
+      ack_quorum: 1,
+      bk_cloud_id: 0,
+      city_code: '',
+      cluster_alias: '',
+      cluster_name: '',
+      db_app_abbr: '',
+      db_version: '',
+      disaster_tolerance_level: Affinity.MAX_EACH_ZONE_EQUAL, // 同 affinity
+      ip_source: 'resource_pool',
+      nodes: {
+        bookkeeper: [] as HostInfo[],
+        broker: [] as HostInfo[],
+        zookeeper: [] as HostInfo[],
+      },
+      partition_num: 1,
+      // password: '',
+      port: 6650,
+      replication_num: 2,
+      resource_spec: {
+        bookkeeper: {
+          count: 2,
+          spec_id: '',
+        },
+        broker: {
+          count: 1,
+          spec_id: '',
+        },
+        zookeeper: {
+          count: 3,
+          spec_id: '',
+        },
+      },
+      retention_hours: 1,
+      sub_zone_ids: [] as number[],
+      username: '',
+    },
+    remark: '',
+    ticket_type: TicketTypes.PULSAR_APPLY,
+  });
 
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
   const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+
+  useTicketDetail<Pulsar.Apply>(TicketTypes.PULSAR_APPLY, {
+    onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+
+      Object.assign(formdata, {
+        bk_biz_id: ticketDetail.bk_biz_id,
+        remark: ticketDetail.remark,
+      });
+      Object.assign(formdata.details, {
+        ack_quorum: details.ack_quorum,
+        bk_cloud_id: details.bk_cloud_id,
+        city_code: details.city_code,
+        cluster_alias: details.cluster_alias,
+        cluster_name: details.cluster_name,
+        db_version: details.db_version,
+        disaster_tolerance_level: details.disaster_tolerance_level,
+        ip_source: details.ip_source,
+        partition_num: details.partition_num,
+        // password: details.password,
+        port: details.port,
+        replication_num: details.replication_num,
+        retention_hours: details.retention_hours,
+        username: details.username,
+      });
+
+      if (details.ip_source === 'resource_pool') {
+        const resourceSpec = Object.entries(details.resource_spec!).reduce((prev, [specType, specInfo]) => {
+          return Object.assign(prev, {
+            [specType]: {
+              count: specInfo.count,
+              spec_id: specInfo.spec_id,
+            },
+          });
+        }, {});
+        Object.assign(formdata.details.resource_spec, resourceSpec);
+      }
+    },
+  });
 
   const regionRequirementsRef = useTemplateRef('regionRequirements');
 

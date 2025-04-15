@@ -80,17 +80,26 @@
 
   const { t } = useI18n();
 
+  const MIN_COUNT = 2;
+
   const isAllCheck = ref(true);
   const subZone = ref<number>(0);
-  const subZones = ref([]);
+  const subZones = ref([] as number[]);
+
+  if (modelValue.value) {
+    if (modelValue.value.length >= MIN_COUNT) {
+      subZones.value = modelValue.value;
+      isAllCheck.value = false;
+    } else if (modelValue.value.length === 1) {
+      [subZone.value] = modelValue.value;
+    }
+  }
 
   const rules = [
     {
       required: true,
       trigger: 'change',
       validator: (value: number[]) => {
-        const MIN_COUNT = 2;
-
         if (max.value === 1) {
           return value.length > 0 ? true : Promise.resolve(t('园区不能为空'));
         }

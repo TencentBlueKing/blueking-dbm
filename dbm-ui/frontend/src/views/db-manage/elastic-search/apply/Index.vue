@@ -337,11 +337,12 @@
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
 
+  import type { Es } from '@services/model/ticket/ticket';
   import type { BizItem, HostInfo } from '@services/types';
 
-  import { useApplyBase } from '@hooks';
+  import { useApplyBase, useTicketDetail } from '@hooks';
 
-  import { Affinity, DBTypes, OSTypes } from '@common/const';
+  import { Affinity, DBTypes, OSTypes, TicketTypes } from '@common/const';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
@@ -361,6 +362,39 @@
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
+
+  useTicketDetail<Es.Apply>(TicketTypes.ES_APPLY, {
+    onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+
+      Object.assign(formData, {
+        bk_biz_id: ticketDetail.bk_biz_id,
+        remark: ticketDetail.remark,
+      });
+      Object.assign(formData.details, {
+        bk_cloud_id: details.bk_cloud_id,
+        city_code: details.city_code,
+        cluster_alias: details.cluster_alias,
+        cluster_name: details.cluster_name,
+        db_version: details.db_version,
+        disaster_tolerance_level: details.disaster_tolerance_level,
+        http_port: details.http_port,
+        ip_source: details.ip_source,
+      });
+
+      if (details.ip_source === 'resource_pool') {
+        const resourceSpec = Object.entries(details.resource_spec!).reduce((prev, [specType, specInfo]) => {
+          return Object.assign(prev, {
+            [specType]: {
+              count: specInfo.count,
+              spec_id: specInfo.spec_id,
+            },
+          });
+        }, {});
+        Object.assign(formData.details.resource_spec, resourceSpec);
+      }
+    },
+  });
 
   const makeMapByHostId = (hostList: HostInfo[]) =>
     hostList.reduce(
@@ -410,7 +444,7 @@
       sub_zone_ids: [] as number[],
     },
     remark: '',
-    ticket_type: 'ES_APPLY',
+    ticket_type: TicketTypes.ES_APPLY,
   });
 
   const formatIpDataWidthInstance = (data: HostInfo[]) =>

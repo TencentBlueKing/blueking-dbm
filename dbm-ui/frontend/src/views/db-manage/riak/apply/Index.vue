@@ -196,9 +196,10 @@
   import { type ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
+  import type { Riak } from '@services/model/ticket/ticket';
   import type { BizItem, HostInfo } from '@services/types';
 
-  import { useApplyBase } from '@hooks';
+  import { useApplyBase, useTicketDetail } from '@hooks';
 
   import { Affinity, ClusterTypes, DBTypes, OSTypes, TicketTypes } from '@common/const';
 
@@ -232,9 +233,9 @@
       sub_zone_ids: [] as number[],
       // http_port: 8087,
     },
-    nodes_num: 3,
+    nodes_num: 3, // resource_pool
     remark: '',
-    spec_id: '' as number | '',
+    spec_id: '' as number | '', // resource_pool
     ticket_type: TicketTypes.RIAK_CLUSTER_APPLY,
   });
 
@@ -242,6 +243,35 @@
   const router = useRouter();
   const { t } = useI18n();
   const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+
+  useTicketDetail<Riak.Apply>(TicketTypes.RIAK_CLUSTER_APPLY, {
+    onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+
+      Object.assign(formData, {
+        bk_biz_id: ticketDetail.bk_biz_id,
+        remark: ticketDetail.remark,
+      });
+      Object.assign(formData.details, {
+        bk_cloud_id: details.bk_cloud_id,
+        city_code: details.city_code,
+        cluster_alias: details.cluster_alias,
+        cluster_name: details.cluster_name,
+        db_module_id: details.db_module_name,
+        db_version: details.db_version,
+        disaster_tolerance_level: details.disaster_tolerance_level,
+        ip_source: details.ip_source,
+      });
+
+      if (details.ip_source === 'resource_pool') {
+        const { riak } = details.resource_spec!;
+        Object.assign(formData, {
+          nodes_num: riak.count,
+          spec_id: riak.spec_id,
+        });
+      }
+    },
+  });
 
   const regionRequirementsRef = useTemplateRef('regionRequirements');
 
