@@ -21,13 +21,6 @@
             {{ item.instance }}
           </p>
         </template>
-        <template v-else-if="relatedInstances?.[data.old_nodes.origin_proxy?.[0]?.ip]">
-          <p
-            v-for="item in relatedInstances[data.old_nodes.origin_proxy?.[0]?.ip]"
-            :key="item">
-            {{ item }}
-          </p>
-        </template>
         <template v-else> -- </template>
       </template>
     </BkTableColumn>
@@ -38,16 +31,10 @@
         <template
           v-if="ticketDetails.details.machine_infos?.[data.old_nodes.origin_proxy?.[0]?.ip]?.related_clusters?.length">
           <p
-            v-for="item in ticketDetails.details.machine_infos[data.old_nodes.origin_proxy?.[0]?.ip].related_clusters"
-            :key="item.immute_domain">
-            {{ item.immute_domain }}
-          </p>
-        </template>
-        <template v-else-if="relatedClusters?.[data.old_nodes.origin_proxy?.[0]?.ip]">
-          <p
-            v-for="item in relatedClusters[data.old_nodes.origin_proxy?.[0]?.ip]"
-            :key="item">
-            {{ item }}
+            v-for="clusterId in ticketDetails.details.machine_infos[data.old_nodes.origin_proxy?.[0]?.ip]
+              .related_clusters"
+            :key="clusterId">
+            {{ ticketDetails.details.clusters[clusterId]?.immute_domain || '--' }}
           </p>
         </template>
         <template v-else> -- </template>
@@ -64,10 +51,8 @@
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
-  import { checkInstance } from '@services/source/dbbase';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.ResourcePool.ProxySwitch>;
@@ -75,29 +60,7 @@
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
 
   const { t } = useI18n();
-
-  const relatedInstances = reactive<Record<string, string[]>>({});
-  const relatedClusters = reactive<Record<string, string[]>>({});
-
-  useRequest(checkInstance, {
-    defaultParams: [
-      {
-        bk_biz_id: props.ticketDetails.bk_biz_id,
-        instance_addresses: props.ticketDetails.details.infos.map((item) => item.old_nodes.origin_proxy[0].ip),
-      },
-    ],
-    onSuccess: (data) => {
-      data.forEach((item) => {
-        Object.assign(relatedInstances, {
-          [item.ip]: [...(relatedInstances[item.ip] || []), item.instance_address],
-        });
-        Object.assign(relatedClusters, {
-          [item.ip]: [...(relatedClusters[item.ip] || []), item.master_domain],
-        });
-      });
-    },
-  });
 </script>
