@@ -44,9 +44,9 @@
         <template
           v-if="ticketDetails.details.machine_infos[data.old_nodes.old_slave?.[0]?.ip]?.related_clusters?.length">
           <p
-            v-for="item in ticketDetails.details.machine_infos[data.old_nodes.old_slave?.[0]?.ip].related_clusters"
-            :key="item.immute_domain">
-            {{ item.immute_domain }}
+            v-for="clusterId in ticketDetails.details.machine_infos[data.old_nodes.old_slave[0].ip].related_clusters"
+            :key="clusterId">
+            {{ ticketDetails.details.clusters[clusterId]?.immute_domain || '--' }}
           </p>
         </template>
         <template v-else> -- </template>
