@@ -20,9 +20,6 @@
     <InfoItem :label="t('业务英文名')">
       {{ ticketDetails.db_app_abbr || '--' }}
     </InfoItem>
-    <InfoItem :label="t('集群ID')">
-      {{ ticketDetails.details.cluster_id || '--' }}
-    </InfoItem>
     <InfoItem :label="t('集群名称')">
       {{ ticketDetails.details.cluster_name || '--' }}
     </InfoItem>
@@ -92,6 +89,9 @@
         </template>
       </BkPopover>
       <span v-else>--</span>
+    </InfoItem>
+    <InfoItem :label="t('每台主机 oplog 容量占比')">
+      {{ ticketDetails.details.oplog_percent ? `${ticketDetails.details.oplog_percent} %` : '--' }}
     </InfoItem>
   </InfoList>
 </template>

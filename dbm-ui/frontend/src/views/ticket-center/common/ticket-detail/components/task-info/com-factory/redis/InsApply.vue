@@ -20,16 +20,26 @@
     <InfoItem :label="t('业务英文名')">
       {{ ticketDetails.db_app_abbr || '--' }}
     </InfoItem>
+    <InfoItem :label="t('管控区域')">
+      {{ ticketDetails.details.bk_cloud_name || '--' }}
+    </InfoItem>
   </InfoList>
-  <RegionRequirements :details="ticketDetails.details" />
+  <RegionRequirements
+    v-if="resourceSpec"
+    :details="ticketDetails.details" />
   <div class="info-title mt-20">{{ t('数据库部署信息') }}</div>
   <InfoList>
-    <InfoItem :label="t('业务英文名')">
+    <InfoItem :label="t('部署方式')">
       {{ ticketDetails.details.append_apply ? t('已有主从所在主机追加部署') : t('全新主机部署') }}
     </InfoItem>
   </InfoList>
-  <div class="info-title mt-20">{{ t('数据库部署信息') }}</div>
+  <div class="info-title mt-20">{{ t('部署需求') }}</div>
   <InfoList>
+    <InfoItem
+      v-if="!isAppend"
+      :label="t('Redis 版本')">
+      {{ ticketDetails.details.db_version || '--' }}
+    </InfoItem>
     <InfoItem
       v-if="!isAppend"
       :label="t('Redis 起始端口')">
@@ -58,7 +68,7 @@
     </InfoItem>
     <InfoItem
       :label="t('域名设置')"
-      style="width: 100%">
+      whole-line>
       <BkTable :data="tableData">
         <BkTableColumn
           field="mainDomain"
@@ -109,7 +119,7 @@
 
   const { db_app_abbr: appAbbr, details } = props.ticketDetails;
   const { append_apply: isAppend, infos, port = 0, resource_spec: resourceSpec } = details;
-  const backendSpec = resourceSpec.backend_group;
+  const backendSpec = resourceSpec?.backend_group;
   const tableData = infos.map((infoItem, index) => {
     const { cluster_name: clusterName } = infoItem;
     return {

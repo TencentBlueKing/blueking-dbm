@@ -3,8 +3,10 @@ import type { DetailBase, SpecInfo } from '../common';
 export interface InsApply extends DetailBase {
   append_apply: boolean; // 是否是追加部署
   bk_cloud_id: number;
+  bk_cloud_name: string;
   city_code?: string; // 追加就非必填
   cluster_type: string;
+  db_app_abbr: string;
   db_version?: string; // 追加就非必填
   disaster_tolerance_level: string;
   infos: {
@@ -24,9 +26,11 @@ export interface InsApply extends DetailBase {
     cluster_name: string;
     databases: number;
   }[];
+  ip_source: string;
   port?: number; // 追加就非必填
+  redis_pwd: string;
   // 如果是新部署，则一定从资源池部署
-  resource_spec: {
+  resource_spec?: {
     backend_group: SpecInfo;
   };
 }
