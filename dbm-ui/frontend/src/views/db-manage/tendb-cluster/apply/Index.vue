@@ -142,9 +142,10 @@
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
 
+  import type { TendbCluster } from '@services/model/ticket/ticket';
   import type { BizItem } from '@services/types';
 
-  import { useApplyBase, useTicketCloneInfo } from '@hooks';
+  import { useApplyBase, useTicketDetail } from '@hooks';
 
   import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
   import { nameRegx } from '@common/regex';
@@ -162,49 +163,6 @@
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
-
-  // 单据克隆
-  useTicketCloneInfo({
-    onSuccess(cloneData) {
-      const {
-        affinity,
-        backendSpecCount,
-        backendSpecId,
-        bizId,
-        capacity,
-        cityCode,
-        cloudId,
-        clusterAlias,
-        clusterName,
-        dbModuleId,
-        futureCapacity,
-        remark,
-        spiderPort,
-        spiderSpecCount,
-        spiderSpecId,
-      } = cloneData;
-
-      formdata.bk_biz_id = bizId;
-      formdata.remark = remark;
-      formdata.details.bk_cloud_id = cloudId;
-      formdata.details.cluster_name = clusterName;
-      formdata.details.cluster_alias = clusterAlias;
-      formdata.details.city_code = cityCode;
-      formdata.details.db_module_id = dbModuleId;
-      // formdata.details.cluster_shard_num: 0,
-      // formdata.details.remote_shard_num: 0,
-      formdata.details.disaster_tolerance_level = affinity;
-      formdata.details.spider_port = spiderPort;
-      formdata.details.resource_spec.spider.spec_id = spiderSpecId;
-      formdata.details.resource_spec.spider.count = spiderSpecCount;
-      formdata.details.resource_spec.backend_group.affinity = affinity;
-      formdata.details.resource_spec.backend_group.spec_id = backendSpecId;
-      formdata.details.resource_spec.backend_group.count = backendSpecCount;
-      formdata.details.resource_spec.backend_group.capacity = capacity;
-      formdata.details.resource_spec.backend_group.future_capacity = futureCapacity;
-    },
-    type: TicketTypes.TENDBCLUSTER_APPLY,
-  });
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
@@ -246,6 +204,49 @@
 
   // 基础设置
   const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+
+  useTicketDetail<TendbCluster.Apply>(TicketTypes.TENDBCLUSTER_APPLY, {
+    onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+
+      Object.assign(formdata, {
+        bk_biz_id: ticketDetail.bk_biz_id,
+        remark: ticketDetail.remark,
+      });
+      Object.assign(formdata.details, {
+        bk_cloud_id: details.bk_cloud_id,
+        city_code: details.city_code,
+        cluster_alias: details.cluster_alias,
+        cluster_name: details.cluster_name,
+        cluster_shard_num: details.cluster_shard_num,
+        db_module_id: details.db_module_id,
+        disaster_tolerance_level: details.disaster_tolerance_level,
+        ip_source: details.ip_source,
+        remote_shard_num: details.remote_shard_num,
+        spider_port: details.spider_port,
+      });
+
+      if (details.ip_source === 'resource_pool') {
+        const { spider } = details.resource_spec!;
+        const resourceSpec = {
+          spider: {
+            count: spider.count,
+            spec_id: spider.spec_id,
+          },
+        };
+        Object.assign(formdata.details, {
+          resource_spec: resourceSpec,
+          sub_zone_ids: details.resource_spec!.backend_group.location_spec.sub_zone_ids || [],
+        });
+      }
+
+      nextTick(() => {
+        Object.assign(formdata.details, {
+          db_module_id: details.db_module_id,
+        });
+      });
+    },
+  });
 
   const regionRequirementsRef = useTemplateRef('regionRequirements');
 
@@ -296,6 +297,7 @@
    * 变更业务
    */
   const handleChangeBiz = (info: BizItem) => {
+    formdata.details.db_module_id = null;
     bizState.info = info;
     bizState.hasEnglishName = !!info.english_name;
   };

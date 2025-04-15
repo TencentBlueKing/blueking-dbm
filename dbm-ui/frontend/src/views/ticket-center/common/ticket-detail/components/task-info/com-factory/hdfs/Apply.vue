@@ -26,6 +26,9 @@
     <InfoItem :label="t('集群别名')">
       {{ ticketDetails.details.cluster_alias || '--' }}
     </InfoItem>
+    <InfoItem :label="t('管控区域')">
+      {{ ticketDetails.details.bk_cloud_name || '--' }}
+    </InfoItem>
   </InfoList>
   <RegionRequirements :details="ticketDetails.details" />
   <div class="info-title mt-20">{{ t('部署需求') }}</div>
@@ -152,9 +155,8 @@
 
   const isFromResourcePool = props.ticketDetails.details.ip_source === 'resource_pool';
 
-  const zookeeperSpec = computed(() => props.ticketDetails?.details?.resource_spec?.zookeeper || {});
-  const namenodeSpec = computed(() => props.ticketDetails?.details?.resource_spec?.namenode || {});
-  const datanodeSpec = computed(() => props.ticketDetails?.details?.resource_spec?.datanode || {});
+  const { resource_spec: resourceSpec } = props.ticketDetails?.details;
+  const { datanode: datanodeSpec, namenode: namenodeSpec, zookeeper: zookeeperSpec } = resourceSpec || {};
 
   /**
    * 获取服务器数量
