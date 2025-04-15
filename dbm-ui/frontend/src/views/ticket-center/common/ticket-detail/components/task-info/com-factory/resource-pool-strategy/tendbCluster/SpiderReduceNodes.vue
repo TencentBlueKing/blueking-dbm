@@ -13,7 +13,7 @@
 
 <template>
   <InfoList>
-    <InfoItem :label="t('缩容方式：')">
+    <InfoItem :label="t('缩容方式')">
       {{ ticketDetails.details.shrink_type === 'HOST' ? t('指定主机缩容') : t('指定数量缩容') }}
     </InfoItem>
   </InfoList>
