@@ -7,6 +7,18 @@
         @click="handleGoApply">
         {{ t('申请实例') }}
       </BkButton>
+      <span
+        v-bk-tooltips="{
+          disabled: hasSelected,
+          content: t('请选择操作实例'),
+        }">
+        <BkButton
+          class="w-88 ml-6"
+          :disabled="!hasSelected"
+          @click="handleChangeInstanceOnline(selected)">
+          {{ t('批量重启') }}
+        </BkButton>
+      </span>
       <DropdownExportExcel
         export-type="instance"
         :has-selected="hasSelected"
@@ -25,6 +37,7 @@
       ref="tableRef"
       :columns="columns"
       :data-source="dataSource"
+      :disable-select-method="disableSelectMethod"
       releate-url-query
       :row-class="setRowClass"
       selectable
@@ -41,11 +54,10 @@
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
   import { useRoute, useRouter } from 'vue-router';
 
   import MongodbInstanceModel from '@services/model/mongodb/mongodb-instance';
-  import { getMongoInstancesList, getMongoRoleList } from '@services/source/mongodb';
+  import { getMongoInstancesList } from '@services/source/mongodb';
   import { createTicket } from '@services/source/ticket';
 
   import { useLinkQueryColumnSerach, useStretchLayout, useTableSettings, useTicketMessage } from '@hooks';
@@ -106,14 +118,7 @@
 
   const { isOpen: isStretchLayoutOpen, splitScreen: stretchLayoutSplitScreen } = useStretchLayout();
 
-  const tableRef = ref();
-
-  const roleListType = ref<
-    {
-      id: string;
-      name: string;
-    }[]
-  >([]);
+  const tableRef = useTemplateRef('tableRef');
 
   const selected = ref<MongodbInstanceModel[]>([]);
 
@@ -126,8 +131,8 @@
       name: t('IP 或 IP:Port'),
     },
     {
-      id: 'name',
-      name: t('集群名称'),
+      id: 'domain',
+      name: t('域名'),
     },
     {
       children: [
@@ -184,7 +189,26 @@
           </div>
         ),
         showOverflowTooltip: false,
-        width: 200,
+      },
+      {
+        field: 'master_domain',
+        fixed: 'left',
+        label: t('域名'),
+        minWidth: 200,
+        render: ({ data }: { data: MongodbInstanceModel }) => (
+          <div
+            v-overflow-tips
+            class='text-overflow'>
+            <router-link
+              to={{
+                name: data.cluster_type === 'MongoReplicaSet' ? 'MongoDBReplicaSetList' : 'MongoDBSharedClusterList',
+                query: { domain: data.master_domain },
+              }}>
+              {data.master_domain}
+            </router-link>
+          </div>
+        ),
+        showOverflowTooltip: false,
       },
       {
         field: 'role',
@@ -222,25 +246,6 @@
         },
       },
       {
-        field: 'cluster_name',
-        fixed: 'left',
-        label: t('所属集群'),
-        render: ({ data }: { data: MongodbInstanceModel }) => (
-          <div
-            v-overflow-tips
-            class='text-overflow'>
-            <router-link
-              to={{
-                name: data.cluster_type === 'MongoReplicaSet' ? 'MongoDBReplicaSetList' : 'MongoDBSharedClusterList',
-                query: { name: data.cluster_name },
-              }}>
-              {data.cluster_name}
-            </router-link>
-          </div>
-        ),
-        showOverflowTooltip: false,
-      },
-      {
         field: 'shard',
         label: t('分片名'),
         render: ({ data }: { data: MongodbInstanceModel }) => data.shard || '--',
@@ -260,7 +265,6 @@
         field: 'operation',
         fixed: 'right',
         label: t('操作'),
-        minWidth: 210,
         render: ({ data }: { data: MongodbInstanceModel }) => (
           <>
             <OperationBtnStatusTips data={data}>
@@ -269,22 +273,13 @@
                 disabled={data.isRebooting}
                 theme='primary'
                 text
-                onClick={() => handleChangeInstanceOnline(data, true)}>
+                onClick={() => handleChangeInstanceOnline([data])}>
                 {t('重启')}
-              </bk-button>
-            </OperationBtnStatusTips>
-            <OperationBtnStatusTips data={data}>
-              <bk-button
-                disabled={data.operationDisabled}
-                style={{ display: 'none' }}
-                theme='primary'
-                text
-                onClick={() => handleChangeInstanceOnline(data, false)}>
-                {t('禁用')}
               </bk-button>
             </OperationBtnStatusTips>
           </>
         ),
+        width: 100,
       },
     ];
     if (isStretchLayoutOpen.value) {
@@ -311,18 +306,9 @@
     defaultSettings,
   );
 
-  useRequest(getMongoRoleList, {
-    onSuccess(data) {
-      roleListType.value = data.map((item) => ({
-        id: item,
-        name: item,
-      }));
-    },
-  });
-
   let isInit = true;
   const fetchData = (loading?: boolean) => {
-    tableRef.value.fetchData(
+    tableRef.value!.fetchData(
       {
         ...getSearchSelectorParams(searchValue.value),
       },
@@ -335,7 +321,7 @@
     isInit = false;
   };
 
-  const handleChangeInstanceOnline = (data: MongodbInstanceModel, flag: boolean) => {
+  const handleChangeInstanceOnline = (data: MongodbInstanceModel[]) => {
     InfoBox({
       cancelText: t('取消'),
       confirmText: t('确认'),
@@ -344,27 +330,32 @@
       headerAlign: 'center',
       infoType: 'warning',
       onConfirm: async () => {
-        const type = flag ? TicketTypes.MONGODB_INSTANCE_RELOAD : TicketTypes.MONGODB_DISABLE;
         const params = {
           bk_biz_id: currentBizId,
           details: {
-            infos: [
-              {
-                bk_host_id: data.bk_host_id,
-                cluster_id: data.cluster_id,
-                port: data.port,
-                role: data.role,
-              },
-            ],
+            infos: data.map((item) => ({
+              bk_host_id: item.bk_host_id,
+              cluster_id: item.cluster_id,
+              instance_id: item.id,
+              port: item.port,
+              role: item.role,
+            })),
           },
-          ticket_type: type,
+          ticket_type: TicketTypes.MONGODB_INSTANCE_RELOAD,
         };
         await createTicket(params).then((res) => {
           ticketMessage(res.id);
+          fetchData();
         });
       },
-      subTitle: t('实例：name', { name: data.ip }),
-      title: flag ? t('确认重启该实例？') : t('确认禁用该实例'),
+      subTitle: (
+        <>
+          {data.map((item) => (
+            <div>{`${item.ip}:${item.port}`}</div>
+          ))}
+        </>
+      ),
+      title: t('确认重启实例？'),
     });
   };
 
@@ -373,6 +364,8 @@
       name: route.name === 'mongodbReplicaSetInstanceList' ? 'MongoDBReplicaSetApply' : 'MongoDBSharedClusterApply',
     });
   };
+
+  const disableSelectMethod = (data: MongodbInstanceModel) => (data.isRebooting ? t('实例重启中') : false);
 
   const handleSelection = (data: MongodbInstanceModel, list: MongodbInstanceModel[]) => {
     selected.value = list;
