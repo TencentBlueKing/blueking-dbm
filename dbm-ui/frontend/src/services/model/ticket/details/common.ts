@@ -41,6 +41,25 @@ export interface DetailClusters {
   };
 }
 
+export interface DetailInstances {
+  [instanceId: number]: {
+    bk_biz_id: number;
+    bk_cloud_id: number;
+    bk_host_id: number;
+    bk_instance_id: number;
+    bk_sub_zone: string;
+    instance: string;
+    ip: string;
+    is_stand_by: true;
+    name: string;
+    phase: string;
+    port: number;
+    spec_config: DetailSpecs;
+    status: string;
+    version: string;
+  };
+}
+
 export interface DetailSpecs {
   [key: string]: {
     count: number;

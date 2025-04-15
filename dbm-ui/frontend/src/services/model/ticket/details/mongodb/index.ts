@@ -10,6 +10,7 @@ export * from './excelAuthorize';
 export * from './execScriptApply';
 export * from './fullBackup';
 export * from './instanceDeinstall';
+export * from './instanceReload';
 export * from './pitrRestore';
 export * from './reduceMongos';
 export * from './reduceShardNodes';
