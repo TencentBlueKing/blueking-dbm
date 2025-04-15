@@ -300,17 +300,26 @@
                 condition: 'and',
                 key: item.key,
                 method: 'eq',
-                name: item.key,
+                name: item.display_key,
                 value: [item.value],
               }));
             } else {
+              const domianDimension = props.data!.dimensions.find((item) => item.key === 'tags.cluster_domain')!;
+              const bizDimension = props.data!.dimensions.find((item) => item.key === 'tags.appid')!;
               params.dimension_config.dimension_conditions = [
                 {
                   condition: 'and',
                   key: 'cluster_domain',
                   method: 'eq',
-                  name: 'cluster_domain',
-                  value: [props.data!.dimensions.find((item) => item.key === 'tags.cluster_domain')!.value],
+                  name: domianDimension.display_key,
+                  value: [domianDimension.value],
+                },
+                {
+                  condition: 'and',
+                  key: 'appid',
+                  method: 'eq',
+                  name: bizDimension.display_key,
+                  value: [bizDimension.value],
                 },
               ];
             }
