@@ -25,7 +25,7 @@
         </BkMenuGroup>
         <BkMenuGroup
           v-db-console="'observableManage.DBHASwitchEvents'"
-          :name="t('告警事件')">
+          name="DBHA">
           <BkMenuItem key="DBHASwitchEvents">
             <template #icon>
               <DbIcon type="db-config" />
