@@ -24,7 +24,7 @@
       <textarea
         ref="inputRef"
         class="input-main"
-        :disabled="isMouseMoving"
+        :disabled="Boolean(selectedText)"
         :style="{ height: realHeight }"
         :value="command"
         @blur="handleInputBlur"
@@ -60,7 +60,7 @@
   import { downloadText } from '@utils';
 
   import { useDisableTab } from './hooks/useDisableTab';
-  import { useMouseSelect } from './hooks/useMouseSelect';
+  import { useTextSelection } from './hooks/useTextSelection';
 
   export interface Props {
     cluster: ServiceReturnType<typeof queryAllTypeCluster>[number];
@@ -94,8 +94,7 @@
   const emits = defineEmits<Emits>();
 
   useDisableTab();
-  // 判断鼠标是否正在选中操作
-  const { isMouseMoving } = useMouseSelect();
+  const { selectedText } = useTextSelection();
 
   const command = ref('');
   const consolePanelRef = ref();
@@ -139,12 +138,7 @@
   );
 
   const handleInputFocus = () => {
-    if (isMouseMoving.value) {
-      isMouseMoving.value = false;
-      return;
-    }
     setTimeout(() => {
-      checkCursorPosition();
       inputRef.value.focus();
     });
   };
@@ -264,14 +258,15 @@
 
   // 键盘 ↑ 键
   const handleClickUpBtn = () => {
-    if (executedCommands[clusterId.value].length === 0 || commandIndex === 0) {
-      checkCursorPosition(true);
+    const cmd = command.value.substring(localPlaceholder.value.length);
+
+    // 是否拦截
+    if (cmd && props.intercept(cmd)) {
       return;
     }
 
-    const cmd = executedCommands[clusterId.value][commandIndex];
-    // 是否拦截
-    if (cmd && props.intercept(cmd)) {
+    if (executedCommands[clusterId.value].length === 0 || commandIndex === 0) {
+      checkCursorPosition(true);
       return;
     }
 
@@ -320,7 +315,6 @@
   });
 
   onActivated(() => {
-    isMouseMoving.value = false;
     handleInputFocus();
   });
 

@@ -1,7 +1,7 @@
 /**
  * 校验语句是否为完整的脚本语句
- * @example const isValid = validateBrackets("function test() { return ['value']; }");
-console.log(isValid); // true
+ * @example const isValid = validateBrackets('db.find({"{"})');
+ * console.log(isValid); // true
  * @param input 语句
  * @returns boolean
  */
@@ -13,20 +13,23 @@ export function validateBrackets(input: string): boolean {
     '}': '{',
   };
 
-  for (const char of input) {
-    if (["'", '"', '(', '[', '{'].includes(char)) {
-      // Handle quotes: check if the top of the stack is the same quote
-      if ((char === "'" || char === '"') && stack[stack.length - 1] === char) {
-        stack.pop(); // Closing quote
-      } else {
-        stack.push(char); // Opening bracket or quote
-      }
+  // 过滤掉注释内容（包括 // 和 /* */）
+  const withoutComments = input
+    .replace(/\/\/.*$/gm, '') // 去掉单行注释
+    .replace(/\/\*[\s\S]*?\*\//g, ''); // 去掉多行注释
+
+  // 过滤掉成对的引号内容
+  const filteredInput = withoutComments.replace(/(["'])(?:(?=(\\?))\2.)*?\1/g, '');
+
+  for (const char of filteredInput) {
+    if (['(', '[', '{'].includes(char)) {
+      stack.push(char); // 开括号入栈
     } else if ([')', ']', '}'].includes(char)) {
       if (stack.pop() !== pairs[char]) {
-        return false; // Mismatched bracket
+        return false; // 括号不匹配
       }
     }
   }
 
-  return stack.length === 0; // Stack should be empty if all pairs are matched
+  return stack.length === 0; // 栈为空表示所有括号匹配
 }
