@@ -144,7 +144,7 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         for resource_class, cluster_ids in resource_cls__cluster_ids_map.items():
             if not list(cluster_ids):
                 continue
-            query_params = {**data["query_params"], "cluster_ids": ",".join(cluster_ids)}
+            query_params = {**data["query_params"], "cluster_ids": ",".join(map(str, cluster_ids))}
             cluster_resource_data: ResourceList = resource_class.list_clusters(
                 bk_biz_id=data["bk_biz_id"], query_params=query_params, limit=-1, offset=0
             )
