@@ -119,17 +119,13 @@
           :min-width="200"
           :show-overflow="false">
           <template #default="{data}: {data: HdfsModel}">
-            <AuthButton
+            <a
               v-db-console="'hdfs.clusterManage.manage'"
-              action-id="hdfs_access_entry_view"
               class="mr-8"
-              :permission="data.permission.hdfs_access_entry_view"
-              :resource="data.id"
-              text
-              theme="primary"
-              @click="() => handleGoToManagePage(data.id, data.access_url)">
+              :href="data.access_url"
+              target="_blank">
               WebUI
-            </AuthButton>
+            </a>
             <AuthButton
               v-db-console="'hdfs.clusterManage.getAccess'"
               action-id="hdfs_access_entry_view"
@@ -298,7 +294,7 @@
   import { useRoute, useRouter } from 'vue-router';
 
   import HdfsModel from '@services/model/hdfs/hdfs';
-  import { getHdfsList, getHdfsPassword } from '@services/source/hdfs';
+  import { getHdfsList } from '@services/source/hdfs';
   import { getUserList } from '@services/source/user';
 
   import { useLinkQueryColumnSerach, useStretchLayout, useTableSettings } from '@hooks';
@@ -569,13 +565,6 @@
   const handleShowSettings = (clusterData: HdfsModel) => {
     operationData.value = clusterData;
     isShowSettings.value = true;
-  };
-
-  const handleGoToManagePage = async (clusterId: number, accessUrl: string) => {
-    const pwdInfo = await getHdfsPassword({ cluster_id: clusterId });
-    const [scheme, path] = accessUrl.split('//');
-    const managePageUrl = `${scheme}//${pwdInfo.username}:${pwdInfo.password}@${path}`;
-    window.open(managePageUrl);
   };
 
   onMounted(() => {
