@@ -240,14 +240,11 @@
     window.changeConfirm = true;
   };
 
-  const handleDstClusterBatchEdit = (clusterList: SqlserverHaModel[]) => {
-    if (clusterList.length > 0) {
-      const [clusterItem] = clusterList;
-      tableData.value.forEach((item) => {
-        Object.assign(item, { dst_cluster: clusterItem });
-      });
-      window.changeConfirm = true;
-    }
+  const handleDstClusterBatchEdit = (value: string) => {
+    tableData.value.forEach((item) => {
+      Object.assign(item.dst_cluster, { master_domain: value });
+    });
+    window.changeConfirm = true;
   };
 
   const handleDbTableBatchEdit = (value: string[], field: string) => {

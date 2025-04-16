@@ -22,12 +22,19 @@
     :min-width="300"
     required>
     <template #headAppend>
-      <span
-        v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
-        class="batch-select-button"
-        @click="handleShowHeadClusterSelector">
-        <DbIcon type="bulk-edit" />
-      </span>
+      <BatchEditColumn
+        v-model="showBatchEdit"
+        :placeholder="t('请输入集群域名')"
+        :title="t('目标集群')"
+        type="input"
+        @change="handleBatchEditChange">
+        <span
+          v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
+          class="batch-edit-btn"
+          @click="handleBatchEditShow">
+          <DbIcon type="bulk-edit" />
+        </span>
+      </BatchEditColumn>
     </template>
     <EditableInput
       v-model="modelValue.master_domain"
@@ -43,13 +50,6 @@
         </div>
       </template>
     </EditableInput>
-    <ClusterSelector
-      v-model:is-show="isShowHeadClusterSelector"
-      :cluster-types="[ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE]"
-      only-one-type
-      :selected="headSelected"
-      :tab-list-config="clusterSelectorTabConfig"
-      @change="handleHeadClusterChange" />
     <ClusterSelector
       v-model:is-show="isShowCellClusterSelector"
       :cluster-types="[ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE]"
@@ -74,6 +74,8 @@
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
 
+  import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
+
   interface Props {
     srcClusterData: {
       bk_cloud_id: 0;
@@ -83,7 +85,7 @@
     };
   }
 
-  type Emits = (e: 'batch-edit', value: SqlServerHaModel[]) => void;
+  type Emits = (e: 'batch-edit', value: string) => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -102,13 +104,8 @@
 
   const { t } = useI18n();
 
-  const isShowHeadClusterSelector = ref(false);
   const isShowCellClusterSelector = ref(false);
-
-  const headSelected: ComponentProps<typeof ClusterSelector>['selected'] = {
-    [ClusterTypes.SQLSERVER_HA]: [],
-    [ClusterTypes.SQLSERVER_SINGLE]: [],
-  };
+  const showBatchEdit = ref(false);
 
   const clusterSelectorTabConfig = {
     [ClusterTypes.SQLSERVER_HA]: {
@@ -200,13 +197,12 @@
     },
   );
 
-  const handleHeadClusterChange = (selected: { [key: string]: Array<SqlServerHaModel> }) => {
-    const clusterList = Object.values(selected).flatMap((selectedList) => selectedList);
-    emits('batch-edit', clusterList);
+  const handleBatchEditChange = (value: string | string[]) => {
+    emits('batch-edit', value as string);
   };
 
-  const handleShowHeadClusterSelector = () => {
-    isShowHeadClusterSelector.value = true;
+  const handleBatchEditShow = () => {
+    showBatchEdit.value = true;
   };
 
   const handleShowClusterSelector = () => {
@@ -220,7 +216,7 @@
   };
 </script>
 <style lang="less" scoped>
-  .batch-select-button {
+  .batch-edit-btn {
     font-size: 14px;
     color: #3a84ff;
     cursor: pointer;
