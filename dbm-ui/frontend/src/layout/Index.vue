@@ -331,7 +331,7 @@
 
   .db-navigation-content-header {
     position: relative;
-    z-index: 999;
+    z-index: 99;
     display: flex;
     height: 52px;
     padding: 0 14px;
