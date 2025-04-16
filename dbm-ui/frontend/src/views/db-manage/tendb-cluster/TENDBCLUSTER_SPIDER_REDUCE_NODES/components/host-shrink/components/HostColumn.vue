@@ -118,6 +118,16 @@
         return Boolean(modelValue.value.bk_host_id);
       },
     },
+    {
+      message: t('非接入层 IP'),
+      trigger: 'blur',
+      validator: (value: string) => {
+        if (!value) {
+          return true;
+        }
+        return modelValue.value.role === 'spider_master' || modelValue.value.role === 'spider_slave';
+      },
+    },
   ];
 
   const { loading, run: queryHost } = useRequest(checkInstance, {
@@ -132,7 +142,7 @@
           cluster_id: item.cluster_id,
           ip: item.ip,
           master_domain: item.master_domain,
-          role: item.role === 'slave' ? 'spider_slave' : 'spider_master',
+          role: item.role,
         };
       }
     },
