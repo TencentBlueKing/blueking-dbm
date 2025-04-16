@@ -46,7 +46,15 @@ const TODO_STATUS_RUNNING = 'RUNNING';
 const TODO_STATUS_DONE_SUCCESS = 'DONE_SUCCESS';
 const TODO_STATUS_DONE_FAILED = 'DONE_FAILED';
 
-export default class Flow<D = unknown, S = any> {
+export default class Flow<
+  D = unknown,
+  S = any,
+  TD = {
+    flow_id: number;
+    remark: string;
+    ticket_id: number;
+  },
+> {
   static STATUS_FAILED = STATUS_FAILED;
   static STATUS_PENDING = STATUS_PENDING;
   static STATUS_REVOKED = STATUS_REVOKED;
@@ -100,11 +108,7 @@ export default class Flow<D = unknown, S = any> {
   ticket: number;
   ticket_type: string;
   todos: {
-    context: {
-      flow_id: number;
-      remark: string;
-      ticket_id: number;
-    };
+    context: TD;
     cost_time: number;
     done_at: string;
     done_by: string;

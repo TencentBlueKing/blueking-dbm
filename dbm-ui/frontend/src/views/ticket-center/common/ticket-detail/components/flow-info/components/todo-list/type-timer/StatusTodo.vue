@@ -1,7 +1,70 @@
 <template>
+  <div class="mt-12">
+    <div v-if="data.context.action !== 'CHANGE'">
+      <I18nT
+        keypath="定时时间_m_倒计时_t"
+        scope="global">
+        <span>{{ utcDisplayTime(flowData.details.trigger_time) }}</span>
+        <RunCountdown :model-value="flowData.details.trigger_time" />
+      </I18nT>
+    </div>
+    <template v-if="data.context.action === 'CHANGE'">
+      <I18nT
+        keypath="U_已处理_A"
+        scope="global">
+        <span>{{ data.done_by }}</span>
+        <span style="color: #f59500">{{ t('修改定时') }}</span>
+      </I18nT>
+      <span>，</span>
+      <I18nT
+        keypath="定时时间_m_倒计时_t"
+        scope="global">
+        <span>{{ utcDisplayTime(flowData.details.trigger_time) }}</span>
+        <RunCountdown :model-value="flowData.details.trigger_time" />
+      </I18nT>
+    </template>
+    <I18nT
+      v-if="data.context.action === 'SKIP'"
+      keypath="U_已处理_A"
+      scope="global">
+      <span>{{ data.done_by }}</span>
+      <span style="color: #f59500">{{ t('立即执行') }}</span>
+    </I18nT>
+  </div>
+  <div class="mt-12">
+    <I18nT
+      keypath="处理人_p"
+      scope="global">
+      {{ data.operators.join(',') }}
+    </I18nT>
+    <I18nT
+      v-if="ticketData.todo_helpers.length > 0"
+      keypath="_协助人_p"
+      scope="global">
+      {{ ticketData.todo_helpers.join(',') }}
+    </I18nT>
+    <I18nT
+      keypath="_耗时_t"
+      scope="global">
+      <CostTimer
+        is-timing
+        :start-time="utcTimeToSeconds(flowData.start_time)"
+        :value="flowData.cost_time" />
+    </I18nT>
+  </div>
   <div
-    v-if="isSuperuser || data.operators.includes(username) || ticketData.todo_helpers.includes(username)"
-    class="mt-8">
+    v-if="data.context.action && data.context.remark"
+    class="mt-12"
+    style="line-height: 16px; color: #63656e">
+    <I18nT
+      keypath="备注：c"
+      scope="global">
+      <span>{{ data.context.remark }}</span>
+    </I18nT>
+  </div>
+  <div
+    v-if="data.operators.includes(username) || ticketData.todo_helpers.includes(username)"
+    class="mt-12">
     <DbPopconfirm
       :confirm-handler="handleExec"
       :content="t('将会立即进入下一节点，请谨慎操作！')"
@@ -31,11 +94,20 @@
 
   import { useUserProfile } from '@stores';
 
+  import CostTimer from '@components/cost-timer/CostTimer.vue';
+
+  import { utcDisplayTime, utcTimeToSeconds } from '@utils';
+
   import ModifyTimer from './components/ModifyTimer.vue';
   import ProcessTerminate from './components/ProcessTerminate.vue';
+  import RunCountdown from './components/RunCountdown.vue';
 
   interface Props {
-    data: FlowMode<unknown>['todos'][number];
+    data: FlowMode<
+      unknown,
+      unknown,
+      { action: 'CHANGE' | 'TERMINATE' | 'SKIP'; flow_id: number; remark: string; ticket_id: number }
+    >['todos'][number];
     flowData: FlowMode<{ run_time: string; trigger_time: string }>;
     ticketData: TicketModel;
   }
@@ -43,7 +115,7 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
-  const { isSuperuser, username } = useUserProfile();
+  const { username } = useUserProfile();
 
   const handleExec = () => {
     return batchProcessTodo({

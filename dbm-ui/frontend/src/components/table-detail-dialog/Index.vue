@@ -25,7 +25,7 @@
   </Teleport>
 </template>
 <script setup lang="ts">
-  import { useTemplateRef } from 'vue';
+  import { onBeforeUnmount, onMounted, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import useResize from './hooks/use-resize';
@@ -65,6 +65,30 @@
   const handleExpandMax = () => {
     rootRef.value!.style.width = '90%';
   };
+
+  const handleClickClose = (event: Event) => {
+    const eventPath = event.composedPath() as HTMLElement[];
+
+    for (const ele of eventPath) {
+      if (
+        ele.classList?.contains('bk-modal') ||
+        ele.classList?.contains('dbm-table-detail-dialog') ||
+        ele.classList?.contains('bk-popper') ||
+        ele.classList?.contains('tippy-box')
+      ) {
+        return true;
+      }
+    }
+    modelValue.value = false;
+  };
+
+  onMounted(() => {
+    document.body.addEventListener('click', handleClickClose);
+  });
+
+  onBeforeUnmount(() => {
+    document.body.removeEventListener('click', handleClickClose);
+  });
 </script>
 <style lang="less">
   .dbm-table-detail-dialog {

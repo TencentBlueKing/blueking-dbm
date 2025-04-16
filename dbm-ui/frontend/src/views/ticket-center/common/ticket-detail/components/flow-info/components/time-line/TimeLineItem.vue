@@ -91,17 +91,17 @@
   }
 
   .db-time-line-content {
-    margin-top: 10px;
+    margin-top: 12px;
   }
 
   .db-time-line-desc {
-    margin-top: 10px;
+    margin-top: 12px;
     font-size: 12px;
     line-height: 16px;
     color: #979ba5;
   }
 
   .db-time-line-action {
-    margin-top: 10px;
+    margin-top: 12px;
   }
 </style>
