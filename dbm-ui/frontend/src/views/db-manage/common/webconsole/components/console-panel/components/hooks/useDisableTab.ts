@@ -1,10 +1,4 @@
-<template>
-  <div>
-    <p>Tab 键已被禁用。</p>
-  </div>
-</template>
-
-<script setup lang="ts">
+export function useDisableTab() {
   const disableTabKey = (event: any) => {
     if (event.key === 'Tab') {
       event.preventDefault();
@@ -18,4 +12,4 @@
   onBeforeUnmount(() => {
     window.removeEventListener('keydown', disableTabKey);
   });
-</script>
+}
