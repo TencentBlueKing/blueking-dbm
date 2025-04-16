@@ -18,22 +18,23 @@
       </template>
     </div>
     <div v-show="loading">Waiting...</div>
-    <div class="input-line">
+    <div
+      v-show="!loading"
+      class="input-line">
       <textarea
         ref="inputRef"
         class="input-main"
-        :disabled="loading"
+        :disabled="isMouseMoving"
         :style="{ height: realHeight }"
         :value="command"
         @blur="handleInputBlur"
         @input="handleInputChange"
+        @keydown.enter="handleClickSendCommand"
         @keyup.down="handleClickDownBtn"
-        @keyup.enter.stop="handleClickSendCommand"
         @keyup.left="handleClickLeftBtn"
         @keyup.up="handleClickUpBtn" />
     </div>
   </div>
-  <DisableTab />
 </template>
 <script lang="ts">
   // 未执行的命令
@@ -58,7 +59,8 @@
 
   import { downloadText } from '@utils';
 
-  import DisableTab from './DisableTab.vue';
+  import { useDisableTab } from './hooks/useDisableTab';
+  import { useMouseSelect } from './hooks/useMouseSelect';
 
   export interface Props {
     cluster: ServiceReturnType<typeof queryAllTypeCluster>[number];
@@ -90,6 +92,10 @@
   });
 
   const emits = defineEmits<Emits>();
+
+  useDisableTab();
+  // 判断鼠标是否正在选中操作
+  const { isMouseMoving } = useMouseSelect();
 
   const command = ref('');
   const consolePanelRef = ref();
@@ -123,7 +129,7 @@
         }
 
         setTimeout(() => {
-          handleInputFocus();
+          inputRef.value.focus();
         });
       }
     },
@@ -133,24 +139,29 @@
   );
 
   const handleInputFocus = () => {
-    inputRef.value.focus();
+    if (isMouseMoving.value) {
+      isMouseMoving.value = false;
+      return;
+    }
+    setTimeout(() => {
+      checkCursorPosition();
+      inputRef.value.focus();
+    });
   };
 
   // 回车输入指令
   const handleClickSendCommand = async (e: any) => {
     // 输入预处理
-    const inputValue = e.target.value?.trim() as string;
+    const inputValue = e.target.value.trim() as string;
     const isInputed = inputValue.length > localPlaceholder.value.length;
 
     // 截取输入的命令
     const cmd = inputValue.substring(localPlaceholder.value.length);
-    // 是否拦截请求
+
+    // 拦截
     if (props.intercept(cmd)) {
       return;
     }
-    executedCommands[clusterId.value].push(cmd);
-    commandIndex = executedCommands[clusterId.value].length;
-    command.value = localPlaceholder.value;
 
     // 命令行渲染
     const commandLine = {
@@ -159,7 +170,8 @@
     };
     panelInputMap[clusterId.value].push(commandLine);
 
-    if (!isInputed) {
+    if (!isInputed || loading.value) {
+      command.value = '';
       return;
     }
 
@@ -203,6 +215,9 @@
       }
     } finally {
       loading.value = false;
+      executedCommands[clusterId.value].push(cmd);
+      commandIndex = executedCommands[clusterId.value].length;
+      command.value = localPlaceholder.value;
       setTimeout(() => {
         inputRef.value.focus();
         consolePanelRef.value.scrollTop = consolePanelRef.value.scrollHeight - consolePanelRef.value.clientHeight;
@@ -254,8 +269,9 @@
       return;
     }
 
+    const cmd = executedCommands[clusterId.value][commandIndex];
     // 是否拦截
-    if (props.intercept(executedCommands[clusterId.value][commandIndex])) {
+    if (cmd && props.intercept(cmd)) {
       return;
     }
 
@@ -301,6 +317,11 @@
 
   onBeforeUnmount(() => {
     window.removeEventListener('keydown', handleKeyDownEnter);
+  });
+
+  onActivated(() => {
+    isMouseMoving.value = false;
+    handleInputFocus();
   });
 
   defineExpose<Expose>({
