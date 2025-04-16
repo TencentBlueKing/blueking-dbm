@@ -493,5 +493,7 @@ class ClusterDBHAExt(AuditedModel):
     """
 
     cluster = models.OneToOneField(Cluster, on_delete=models.PROTECT, unique=True)
-    begin_time = models.DateTimeField(null=False, auto_now=True, help_text=_("屏蔽开始时间"), db_index=True)
+    begin_time = models.DateTimeField(
+        null=False, auto_now_add=True, auto_now=False, help_text=_("屏蔽开始时间"), db_index=True
+    )
     end_time = models.DateTimeField(default=None, null=False, auto_now=False, help_text=_("屏蔽结束时间"), db_index=True)

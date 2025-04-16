@@ -132,6 +132,8 @@ class SystemSettingsEnum(str, StructuredEnum):
     COST_ESTIMATE = EnumField("COST_ESTIMATE", _("COST_ESTIMATE"))
     # 主机属性配置
     MACHINE_PROPERTY = EnumField("MACHINE_PROPERTY", _("主机属性开关"))
+    PADDING_PROXY_APPS = EnumField("PADDING_PROXY_APPS", _("补全proxy业务"))
+    DISABLE_DBHA_APPS_CLUSTER_TYPE = EnumField("DISABLE_DBHA_APPS_CLUSTER_TYPE", _("禁用DBHA业务"))
 
 
 class BizSettingsEnum(str, StructuredEnum):
@@ -270,6 +272,8 @@ DEFAULT_SETTINGS = [
     [SystemSettingsEnum.PADDING_PROXY_CLUSTER_LIST, "list", [], _("补全proxy的集群域名列表")],
     [SystemSettingsEnum.VIRTUAL_USERS, "list", [], _("平台调用的虚拟账户列表")],
     [SystemSettingsEnum.MACHINE_PROPERTY, "dict", DEFAULT_MACHINE_PROPERTY, _("主机属性开关配置")],
+    [SystemSettingsEnum.PADDING_PROXY_APPS, "list", [], _("补全proxy业务")],
+    [SystemSettingsEnum.DISABLE_DBHA_APPS_CLUSTER_TYPE, "dict", {}, _("禁用DBHA业务")],
 ]
 
 # 环境配置项 是否支持DNS解析 pulsar flow used
