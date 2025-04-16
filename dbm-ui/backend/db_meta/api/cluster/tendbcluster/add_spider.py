@@ -21,7 +21,7 @@ def add_spiders(
     cluster: Optional[Cluster],
     spiders: Optional[List],
     spider_role: Optional[TenDBClusterSpiderRole],
-    domain_entry: Optional[ClusterEntry] = None,
+    domain_entry_list: List[ClusterEntry],
 ):
     """
     添加spider节点元信息, 包括spider不同角色的添加
@@ -48,8 +48,7 @@ def add_spiders(
             # receiver是代表slave实例对象
             shard_info.storage_instance_tuple.receiver.proxyinstance_set.add(*spiders_objs)
 
-    if not spider_role == TenDBClusterSpiderRole.SPIDER_MNT:
-        # 非运维节点添加域名映射
+    for domain_entry in domain_entry_list:
         domain_entry.proxyinstance_set.add(*spiders_objs)
 
     # 直到这里才有明确的 db module

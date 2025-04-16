@@ -177,7 +177,7 @@ class TenDBClusterClusterHandler(ClusterHandler):
         spider_role: Optional[TenDBClusterSpiderRole],
         resource_spec: dict,
         is_slave_cluster_create: bool,
-        domain: str = None,
+        new_slave_domain: str = None,
     ):
         """
         对已有的集群添加spider的元信息
@@ -185,11 +185,11 @@ class TenDBClusterClusterHandler(ClusterHandler):
         @param cluster_id: 待关联的集群id
         @param creator: 提单的用户名称
         @param spider_version: 待加入的spider版本号（包括小版本信息）
-        @param domain: 待关联的域名
         @param add_spiders: 待加入的spider机器信息
         @param spider_role: 待加入spider的角色
         @param resource_spec: 待加入spider的规格
         @param is_slave_cluster_create: 代表这次是否是添加从集群
+        @param new_slave_domain: 如果是添加从集群场景，这里代表新的从域名信息
         """
         cluster = Cluster.objects.get(id=cluster_id)
 
@@ -226,26 +226,29 @@ class TenDBClusterClusterHandler(ClusterHandler):
         # 新增的实例继承cluster集群的时区设置
         spider_objs = api.proxy_instance.create(proxies=spiders, creator=creator, time_zone=cluster.time_zone)
 
+        cluster_entry_list = []
         # 判断is_slave_cluster_create参数，如果是True则代表做从集群添加，需要添加从域名元信息；如果False则代表spider扩容
         if is_slave_cluster_create:
-            api.cluster.tendbcluster.slave_cluster_create_pre_check(slave_domain=domain)
-            cluster_entry = ClusterEntry.objects.create(
-                cluster=cluster,
-                cluster_entry_type=ClusterEntryType.DNS,
-                entry=domain,
-                creator=creator,
-                role=ClusterEntryRole.SLAVE_ENTRY.value,
-            )
+            api.cluster.tendbcluster.slave_cluster_create_pre_check(slave_domain=new_slave_domain)
+            cluster_entry_list = [
+                ClusterEntry.objects.create(
+                    cluster=cluster,
+                    cluster_entry_type=ClusterEntryType.DNS,
+                    entry=new_slave_domain,
+                    creator=creator,
+                    role=ClusterEntryRole.SLAVE_ENTRY.value,
+                )
+            ]
         else:
-            if domain:
-                cluster_entry = cluster.clusterentry_set.get(entry=domain)
-            else:
-                # 运维节点添加不需要做域名映射
-                cluster_entry = None
+            # 扩容spider的节点处理
+            if spider_role == TenDBClusterSpiderRole.SPIDER_MASTER:
+                cluster_entry_list = list(cluster.clusterentry_set.filter(role=ClusterEntryRole.MASTER_ENTRY))
+            elif spider_role == TenDBClusterSpiderRole.SPIDER_SLAVE:
+                cluster_entry_list = list(cluster.clusterentry_set.filter(role=ClusterEntryRole.SLAVE_ENTRY))
 
         # 录入集群相关信息
         api.cluster.tendbcluster.add_spiders(
-            cluster=cluster, spiders=spiders, domain_entry=cluster_entry, spider_role=spider_role
+            cluster=cluster, spiders=spiders, domain_entry_list=cluster_entry_list, spider_role=spider_role
         )
 
         # spider主机转移模块、添加对应的服务实例

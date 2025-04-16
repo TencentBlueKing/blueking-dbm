@@ -15,7 +15,7 @@ from django.db.transaction import atomic
 
 from backend.db_meta.api.cluster.tendbcluster.handler import TenDBClusterClusterHandler
 from backend.db_meta.api.cluster.tendbcluster.remotedb_node_migrate import TenDBClusterMigrateRemoteDb
-from backend.db_meta.enums import ClusterEntryRole, InstanceStatus, MachineType, TenDBClusterSpiderRole
+from backend.db_meta.enums import InstanceStatus, MachineType, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.flow.utils.dict_to_dataclass import dict_to_dataclass
 from backend.flow.utils.spider.spider_act_dataclass import ShardInfo
@@ -89,16 +89,16 @@ class SpiderDBMeta(object):
             "cluster_id": self.global_data["cluster_id"],
             "creator": self.global_data["created_by"],
             "spider_version": self.global_data["spider_version"],
-            "domain": self.global_data["slave_domain"],
             "add_spiders": self.global_data["spider_slave_ip_list"],
             "spider_role": TenDBClusterSpiderRole.SPIDER_SLAVE,
             "resource_spec": self.global_data["resource_spec"],
             "is_slave_cluster_create": True,
+            "new_slave_domain": self.global_data["slave_domain"],
         }
         TenDBClusterClusterHandler.add_spiders(**kwargs)
         return True
 
-    def add_spider_nodes(self, spider_role: Optional[TenDBClusterSpiderRole], domain: str = None):
+    def add_spider_nodes(self, spider_role: Optional[TenDBClusterSpiderRole]):
         """
         对已有的TenDB cluster集群 （spider集群）扩容写入的公共方法
         """
@@ -108,7 +108,6 @@ class SpiderDBMeta(object):
             "cluster_id": self.global_data["cluster_id"],
             "creator": self.global_data["created_by"],
             "spider_version": self.global_data["spider_version"],
-            "domain": domain,
             "add_spiders": self.global_data["spider_ip_list"],
             "spider_role": spider_role,
             "resource_spec": self.global_data.get("resource_spec") or default_spider_spec,
@@ -121,17 +120,13 @@ class SpiderDBMeta(object):
         """
         对已有的TenDB cluster集群 （spider集群）扩容spider-slave节点
         """
-        cluster = Cluster.objects.get(id=self.global_data["cluster_id"])
-        slave_dns = cluster.clusterentry_set.get(role=ClusterEntryRole.SLAVE_ENTRY).entry
-        self.add_spider_nodes(spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE, domain=slave_dns)
+        self.add_spider_nodes(spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE)
 
     def add_spider_master_nodes_apply(self):
         """
         对已有的TenDB cluster集群 （spider集群）扩容spider-master节点
         """
-        cluster = Cluster.objects.get(id=self.global_data["cluster_id"])
-        master_dns = cluster.clusterentry_set.get(role=ClusterEntryRole.MASTER_ENTRY).entry
-        self.add_spider_nodes(spider_role=TenDBClusterSpiderRole.SPIDER_MASTER, domain=master_dns)
+        self.add_spider_nodes(spider_role=TenDBClusterSpiderRole.SPIDER_MASTER)
 
     def reduce_spider_nodes_apply(self):
         """
@@ -159,7 +154,7 @@ class SpiderDBMeta(object):
         """
         对已有的TenDB cluster集群 （spider集群）扩容spider-mnt节点
         """
-        self.add_spider_nodes(spider_role=TenDBClusterSpiderRole.SPIDER_MNT, domain=None)
+        self.add_spider_nodes(spider_role=TenDBClusterSpiderRole.SPIDER_MNT)
 
     def remote_switch(self):
         """
