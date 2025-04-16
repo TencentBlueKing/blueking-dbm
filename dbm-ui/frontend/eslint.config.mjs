@@ -23,6 +23,7 @@ delete tencentRule['@typescript-eslint/type-annotation-spacing'];
 delete tencentRule['@typescript-eslint/space-before-function-paren'];
 delete tencentRule['@typescript-eslint/dot-notation'];
 delete tencentRule['@typescript-eslint/no-misused-promises'];
+delete tencentRule['@typescript-eslint/prefer-optional-chain'];
 
 configureVueProject({
   scriptLangs: ['ts', 'tsx'],

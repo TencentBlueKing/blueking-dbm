@@ -26,7 +26,7 @@
         </BkForm>
         <div style="margin-top: 4px; font-size: 12px; color: #979ba5">
           {{ t('原定时时间：') }}
-          {{ flowData.details.trigger_time }}
+          {{ utcDisplayTime(flowData.details.trigger_time) }}
         </div>
       </div>
     </template>
@@ -41,7 +41,7 @@
 
   import { useEventBus, useTimeZoneFormat } from '@hooks';
 
-  import { messageSuccess } from '@utils';
+  import { messageSuccess, utcDisplayTime } from '@utils';
 
   interface Props {
     flowData: FlowMode<{

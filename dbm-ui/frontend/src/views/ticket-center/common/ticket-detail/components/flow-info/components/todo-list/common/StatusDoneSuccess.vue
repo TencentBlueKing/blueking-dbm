@@ -20,7 +20,11 @@
         </a>
       </template>
     </div>
-    <div style="margin-top: 10px; color: #979ba5">{{ utcDisplayTime(data.done_at) }}</div>
+    <div
+      class="mt-12"
+      style="color: #979ba5">
+      {{ utcDisplayTime(data.done_at) }}
+    </div>
   </div>
 </template>
 <script setup lang="ts">
