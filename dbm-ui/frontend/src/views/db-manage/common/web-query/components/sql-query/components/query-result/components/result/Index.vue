@@ -138,7 +138,7 @@
   const successInstances = computed(() => props.data.length - failedInstances.value.length);
 
   const tableData = computed(() => {
-    if (!props.data.length || !props.data[0].table_data) {
+    if (!props.data.length) {
       return [];
     }
 
@@ -160,20 +160,23 @@
   watch(
     () => props.data,
     () => {
-      if (props.data.length && props.data[0].table_data) {
-        const dataKeys = Object.keys(props.data[0].table_data[0]).map((key) => ({
-          field: key,
-          label: key,
-        }));
-        columns.value = [
-          {
-            field: instanceId,
-            fixed: 'left',
-            label: 'Instance',
-            width: 200,
-          },
-          ...dataKeys,
-        ];
+      if (props.data.length) {
+        const firstValidTableData = props.data.find((item) => !!item.table_data);
+        if (firstValidTableData) {
+          const dataKeys = Object.keys(firstValidTableData.table_data[0]).map((key) => ({
+            field: key,
+            label: key,
+          }));
+          columns.value = [
+            {
+              field: instanceId,
+              fixed: 'left',
+              label: 'Instance',
+              width: 200,
+            },
+            ...dataKeys,
+          ];
+        }
       } else {
         columns.value = [];
       }
