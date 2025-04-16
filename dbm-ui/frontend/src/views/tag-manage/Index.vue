@@ -24,7 +24,7 @@
         </BkTag>
         <span class="title-divider">|</span>
         <DbAppSelect
-          :list="bizListWithPublic"
+          :list="bizs"
           :model-value="curBiz"
           type="text"
           @change="handleBizChange">
@@ -109,7 +109,7 @@
   type IAppItem = ServiceReturnType<typeof getBizs>[number];
 
   const { t } = useI18n();
-  const { bizListWithPublic, currentBizInfo } = useGlobalBizs();
+  const { bizs, currentBizInfo } = useGlobalBizs();
   const route = useRoute();
   const router = useRouter();
 

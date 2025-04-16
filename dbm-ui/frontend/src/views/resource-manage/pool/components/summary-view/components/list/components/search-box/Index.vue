@@ -6,7 +6,7 @@
       :label="t('所属业务')"
       required>
       <DbAppSelect
-        :list="globalBizsStore.bizListWithPublic"
+        :list="globalBizsStore.bizs"
         :model-value="currentApp"
         @change="handleAppChange">
       </DbAppSelect>

@@ -37,8 +37,9 @@
         required>
         <DbAppSelect
           :disabled="isBusiness"
-          :list="globalBizsStore.bizListWithPublic"
+          :list="globalBizsStore.bizs"
           :model-value="currentApp"
+          :show-public-biz="!isBusiness"
           @change="handleAppChange">
         </DbAppSelect>
       </BkFormItem>

@@ -51,6 +51,7 @@ export const useGlobalBizs = defineStore('GlobalBizs', {
       return [PUBLIC_BIZ_INFO].concat(state.bizs);
     },
     currentBizInfo: (state): BizItem | undefined => state.bizs.find((item) => item.bk_biz_id === state.currentBizId),
+    publicBiz: () => PUBLIC_BIZ_INFO,
   },
   actions: {
     changeBizId(id: number) {

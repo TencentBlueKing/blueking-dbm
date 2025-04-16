@@ -14,7 +14,7 @@
 <template>
   <DbAppSelect
     clearable
-    :list="globalBizsStore.bizListWithPublic"
+    :list="globalBizsStore.bizs"
     :model-value="currentApp"
     @change="handleChange">
   </DbAppSelect>
