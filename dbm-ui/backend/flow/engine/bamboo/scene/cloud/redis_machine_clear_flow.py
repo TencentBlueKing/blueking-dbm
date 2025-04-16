@@ -61,7 +61,7 @@ class ClearRedisMachineFlow(object):
         )
 
         main_pipeline.add_act(
-            act_name=_("清理机器-{}".format(clear_hosts_ips)),
+            act_name=_("清理机器"),
             act_component_code=ClearMachineScriptComponent.code,
             kwargs={"exec_ips": self.data["clear_hosts"]},
         )

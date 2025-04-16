@@ -274,6 +274,16 @@ class BkJobService(BaseService, metaclass=ABCMeta):
         }
         return JobApi.get_job_instance_ip_log({**payload, **ip_dict}, raw=True)
 
+    @staticmethod
+    def __url__(job_instance_id: int, link: bool = True):
+        """
+        获取job任务链接
+        """
+        url = f"{env.BK_JOB_URL}/api_execute/{job_instance_id}/"
+        if link:
+            url = _("<a href='{}' target='_blank'>{}</a>").format(url, url)
+        return url
+
     def __get_target_ip_context(
         self,
         job_instance_id: int,
@@ -329,6 +339,9 @@ class BkJobService(BaseService, metaclass=ABCMeta):
         if not kwargs.get(f"{node_name}_ext_result_cached"):
             kwargs[f"{node_name}_ext_result_cached"] = True
             self.log_info(f"[{node_name}] ext_result: {ext_result}")
+            # 打印job链接
+            if ext_result["data"] and "job_instance_id" in ext_result["data"]:
+                self.log_info(f"job url: {self.__url__(ext_result['data']['job_instance_id'])}")
 
         if isinstance(ext_result, bool):
             # ext_result 为 布尔类型 表示 不需要任务是同步进行，不需要调用api去监听任务状态
@@ -338,6 +351,11 @@ class BkJobService(BaseService, metaclass=ABCMeta):
         if not ext_result["result"]:
             # 调用结果检测到失败
             self.log_error(f"[{node_name}] schedule  status failed: {ext_result['error']}")
+            return False
+
+        if not ext_result["data"]:
+            # 没有data返回，可能是job内部服务异常
+            self.log_error(f"[{node_name}] job execute failed, request id is {ext_result.get('job_request_id')}")
             return False
 
         job_instance_id = ext_result["data"]["job_instance_id"]

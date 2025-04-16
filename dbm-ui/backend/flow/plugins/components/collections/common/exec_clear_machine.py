@@ -72,7 +72,7 @@ class ClearMachineScriptService(BkJobService):
 
         resp = JobApi.fast_execute_script(body, raw=True)
         self.log_debug(f"{node_name} fast execute script response: {resp}")
-        self.log_info(f"job url:{env.BK_JOB_URL}/api_execute/{resp['data']['job_instance_id']}")
+        self.log_info(f"job url: {self.__url__(resp['data']['job_instance_id'])}")
 
         # 传入调用结果，并单调监听任务状态
         data.outputs.ext_result = resp

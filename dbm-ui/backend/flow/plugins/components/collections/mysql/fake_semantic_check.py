@@ -22,11 +22,8 @@ class FakeSemanticCheck(BaseService):
     """模拟语义执行，仅用作测试"""
 
     def _execute(self, data, parent_data, callback=None) -> bool:
-        return True
         kwargs = data.get_one_of_inputs("kwargs")
         root_id = kwargs.get("root_id")
-
-        time.sleep(60 * 5)
 
         # 测试报错
         if kwargs.get("is_error"):
@@ -35,6 +32,12 @@ class FakeSemanticCheck(BaseService):
 
         # 模拟语义执行
         time.sleep(5)
+
+        # 打印日志
+        log_num = 900
+        for i in range(log_num):
+            self.log_info(f"test log {i}")
+            time.sleep(0.1)
 
         # 查询是否能自动提交单据，默认为手动提交
         is_auto_commit = False

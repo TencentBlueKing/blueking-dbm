@@ -16,4 +16,7 @@ from rest_framework import serializers
 class JobCallBackSerializer(serializers.Serializer):
     job_instance_id = serializers.IntegerField(help_text=_("作业实例ID"))
     status = serializers.IntegerField(help_text=_("作业状态码"))
-    step_instance_list = serializers.ListField(help_text=_("步骤块中包含的各个步骤执行状态"), child=serializers.DictField())
+    step_instances = serializers.ListField(help_text=_("各个步骤执行状态"), child=serializers.DictField(), required=False)
+    step_instance_list = serializers.ListField(
+        help_text=_("(兼容)各个步骤执行状态"), child=serializers.DictField(), required=False
+    )

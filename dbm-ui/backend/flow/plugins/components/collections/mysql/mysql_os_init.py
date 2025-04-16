@@ -111,7 +111,7 @@ class MySQLOsInit(BkJobService):
 
         resp = JobApi.fast_execute_script({**common_kwargs, **body}, raw=True)
         self.log_info(f"fast execute script response: {resp}")
-        self.log_info(f"job url:{env.BK_JOB_URL}/api_execute/{resp['data']['job_instance_id']}")
+        self.log_info(f"job url: {self.__url__(resp['data']['job_instance_id'])}")
         # 传入调用结果，并单调监听任务状态
         data.outputs.ext_result = resp
         data.outputs.exec_ips = exec_ips
@@ -246,7 +246,7 @@ class SysInit(BkJobService):
 
         resp = JobApi.fast_execute_script({**common_kwargs, **body}, raw=True)
         self.log_info(f"fast execute script response: {resp}")
-        self.log_info(f"job url:{env.BK_JOB_URL}/api_execute/{resp['data']['job_instance_id']}")
+        self.log_info(f"job url: {self.__url__(resp['data']['job_instance_id'])}")
         data.outputs.ext_result = resp
         data.outputs.exec_ips = exec_ips
         return True
@@ -297,7 +297,7 @@ class GetOsSysParam(BkJobService):
         common_kwargs["account_alias"] = DBA_ROOT_USER
         resp = JobApi.fast_execute_script({**common_kwargs, **body}, raw=True)
         self.log_info(f"fast execute script response: {resp}")
-        self.log_info(f"job url:{env.BK_JOB_URL}/api_execute/{resp['data']['job_instance_id']}")
+        self.log_info(f"job url: {self.__url__(resp['data']['job_instance_id'])}")
         # data.outputs.ext_result = resp
         # result = json.loads(re.search(cpl, resp["data"]["log_content"]).group("context"))
         # setattr(trans_data, "max_open_file", copy.deepcopy(result))

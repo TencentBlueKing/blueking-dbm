@@ -16,12 +16,10 @@ from . import models
 @admin.register(models.DirtyMachine)
 class DirtyMachineAdmin(admin.ModelAdmin):
     list_display = ("ip", "bk_host_id", "ticket", "pool")
-    list_filter = ("ip", "ticket", "pool")
     search_fields = ("ip", "bk_host_id")
 
 
 @admin.register(models.MachineEvent)
 class MachineEventAdmin(admin.ModelAdmin):
     list_display = ("ip", "bk_biz_id", "bk_host_id", "event", "to", "ticket")
-    list_filter = ("ip", "bk_biz_id", "to")
     search_fields = ("ip", "bk_biz_id", "bk_host_id")
