@@ -98,17 +98,13 @@
         :min-width="200"
         :show-overflow="false">
         <template #default="{data}: {data: KafkaModel}">
-          <AuthButton
+          <a
             v-db-console="'kafka.clusterManage.manage'"
-            action-id="kafka_access_entry_view"
             class="mr-8"
-            :permission="data.permission.kafka_access_entry_view"
-            :resource="data.id"
-            text
-            theme="primary"
-            @click="() => handleGoToManagePage(data.id, data.access_url)">
+            :href="data.access_url"
+            target="_blank">
             {{ t('控制台') }}
-          </AuthButton>
+          </a>
           <AuthButton
             v-db-console="'kafka.clusterManage.getAccess'"
             action-id="kafka_access_entry_view"
@@ -253,7 +249,7 @@
   import { useRoute, useRouter } from 'vue-router';
 
   import KafkaModel from '@services/model/kafka/kafka';
-  import { getKafkaList, getKafkaPassword } from '@services/source/kafka';
+  import { getKafkaList } from '@services/source/kafka';
   import { getUserList } from '@services/source/user';
 
   import { useLinkQueryColumnSerach, useStretchLayout, useTableSettings } from '@hooks';
@@ -515,13 +511,6 @@
 
   const handleHidePassword = () => {
     isShowPassword.value = false;
-  };
-
-  const handleGoToManagePage = async (clusterId: number, accessUrl: string) => {
-    const pwdInfo = await getKafkaPassword({ cluster_id: clusterId });
-    const [scheme, path] = accessUrl.split('//');
-    const managePageUrl = `${scheme}//${pwdInfo.username}:${pwdInfo.password}@${path}`;
-    window.open(managePageUrl);
   };
 
   onMounted(() => {
