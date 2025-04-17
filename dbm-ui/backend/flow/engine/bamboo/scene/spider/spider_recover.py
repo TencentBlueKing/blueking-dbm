@@ -90,13 +90,14 @@ def spider_recover_sub_flow(root_id: str, ticket_data: dict, cluster: dict):
             )
             if "query_binlog_error" in binlog_result.keys():
                 raise TendbGetBinlogFailedException(message=binlog_result["query_binlog_error"])
-            cluster.update(binlog_result)
 
+            cluster_ins = copy.deepcopy(cluster)
+            cluster_ins.update(binlog_result)
             download_kwargs = DownloadBackupFileKwargs(
                 bk_cloud_id=cluster["bk_cloud_id"],
                 task_ids=binlog_result["binlog_task_ids"],
-                dest_ip=cluster["rollback_ip"],
-                dest_dir=cluster["file_target_path"],
+                dest_ip=cluster_ins["rollback_ip"],
+                dest_dir=cluster_ins["file_target_path"],
                 reason="spider node rollback binlog",
             )
             sub_pipeline.add_act(
@@ -106,6 +107,7 @@ def spider_recover_sub_flow(root_id: str, ticket_data: dict, cluster: dict):
             )
 
             exec_act_kwargs.exec_ip = cluster["rollback_ip"]
+            exec_act_kwargs.cluster = copy.deepcopy(cluster_ins)
             exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_recover_binlog_payload.__name__
             sub_pipeline.add_act(
                 act_name=_("定点恢复之前滚binlog{}:{}").format(exec_act_kwargs.exec_ip, cluster["rollback_port"]),
@@ -202,13 +204,14 @@ def remote_node_rollback(root_id: str, ticket_data: dict, cluster: dict):
             )
             if "query_binlog_error" in binlog_result.keys():
                 raise TendbGetBinlogFailedException(message=binlog_result["query_binlog_error"])
-            cluster.update(binlog_result)
 
+            cluster_ins = copy.deepcopy(cluster)
+            cluster_ins.update(binlog_result)
             download_kwargs = DownloadBackupFileKwargs(
                 bk_cloud_id=cluster["bk_cloud_id"],
                 task_ids=binlog_result["binlog_task_ids"],
-                dest_ip=cluster["rollback_ip"],
-                dest_dir=cluster["file_target_path"],
+                dest_ip=cluster_ins["rollback_ip"],
+                dest_dir=cluster_ins["file_target_path"],
                 reason="tenDB rollback binlog",
             )
             sub_pipeline.add_act(
@@ -217,6 +220,7 @@ def remote_node_rollback(root_id: str, ticket_data: dict, cluster: dict):
                 kwargs=asdict(download_kwargs),
             )
             exec_act_kwargs.exec_ip = cluster["rollback_ip"]
+            exec_act_kwargs.cluster = copy.deepcopy(cluster_ins)
             exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_recover_binlog_payload.__name__
             sub_pipeline.add_act(
                 act_name=_("定点恢复之前滚binlog{}:{}".format(exec_act_kwargs.exec_ip, cluster["rollback_port"])),

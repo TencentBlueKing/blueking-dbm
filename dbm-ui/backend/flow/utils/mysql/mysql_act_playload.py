@@ -2212,7 +2212,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         """
         MYSQL 实例 前滚binglog
         """
-        logger.info(self.cluster["binlog_files"])
+        logger.info(self.cluster)
         logger.info(
             "backup_time: {} ~ stop_time: {} ".format(self.cluster["backup_time"], self.cluster["rollback_time"])
         )
