@@ -35,6 +35,7 @@ import '@blueking/ip-selector/dist/styles/vue2.6.x.css';
 import '@lib/bk-icon/iconcool';
 import '@styles/common.less';
 import 'bkui-vue/dist/style.css';
+import '@xterm/xterm/css/xterm.css';
 import { setGlobalDirectives } from '@/directives/index';
 import { subEnv } from '@blueking/sub-saas';
 

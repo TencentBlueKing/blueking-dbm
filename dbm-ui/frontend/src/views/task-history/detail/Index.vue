@@ -238,8 +238,8 @@
       </BkLoading>
     </div>
     <NodeLog
+      v-model:is-show="logState.isShow"
       :failed-nodes="failLeafNodes"
-      :is-show="logState.isShow"
       :node="logState.node"
       @close="() => (logState.isShow = false)"
       @quick-goto="handleQuickGotoFailNodeLog"

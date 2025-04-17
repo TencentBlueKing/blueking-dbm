@@ -13,10 +13,10 @@
 
 <template>
   <BkSideslider
-    v-model:is-show="state.isShow"
-    class="log"
+    v-model:is-show="isShow"
+    class="node-log-main"
     quick-close
-    render-directive="if"
+    render-directive="show"
     :width="960"
     @hidden="handleClose">
     <template #header>
@@ -40,7 +40,7 @@
               {{ status.text }}
             </BkTag>
             <span>
-              {{ $t('总耗时') }}
+              {{ t('总耗时') }}
               <CostTimer
                 :is-timing="STATUS_RUNNING"
                 :start-time="nodeData.started_at"
@@ -60,23 +60,23 @@
               class="refresh-btn"
               :loading="retryLoading"
               @click="() => (refreshShow = true)">
-              <i class="db-icon-refresh mr5" />{{ $t('失败重试') }}
+              <i class="db-icon-refresh mr5" />{{ t('失败重试') }}
             </BkButton>
             <template #content>
               <div class="tips-content">
                 <div class="title">
-                  {{ $t('确定重试吗') }}
+                  {{ t('确定重试吗') }}
                 </div>
                 <div class="btn">
                   <span
                     class="bk-button-primary bk-button mr-8"
                     @click="handleRefresh">
-                    {{ $t('确定') }}
+                    {{ t('确定') }}
                   </span>
                   <span
                     class="bk-button"
                     @click="() => (refreshShow = false)">
-                    {{ $t('取消') }}
+                    {{ t('取消') }}
                   </span>
                 </div>
               </div>
@@ -107,16 +107,16 @@
         class="log-content">
         <div class="log-tools">
           <span class="log-tools-title">
-            {{ $t('执行日志') }}
-            <span> {{ $t('日志保留7天_如需要请下载保存') }}</span>
+            {{ t('执行日志') }}
+            <span> {{ t('日志保留7天_如需要请下载保存') }}</span>
           </span>
           <div class="log-tools-bar">
             <i
-              v-bk-tooltips="$t('复制')"
+              v-bk-tooltips="t('复制')"
               class="db-icon-copy"
               @click="handleCopyLog" />
             <i
-              v-bk-tooltips="$t('下载')"
+              v-bk-tooltips="t('下载')"
               class="db-icon-import"
               @click="handleDownLoaderLog" />
             <i
@@ -125,8 +125,25 @@
               @click="toggle" />
           </div>
         </div>
-        <div class="log-details">
-          <BkLog ref="logRef" />
+        <div
+          class="log-details"
+          :style="{ height: isFullscreen ? 'calc(100% - 42px)' : '100%' }">
+          <div id="nodeLogLineNumbers"></div>
+          <div id="nodeLogTermContent"></div>
+          <div class="quick-switch">
+            <div
+              class="icon-box"
+              :class="{ 'is-disabled': isTermAtTop }"
+              @click="handleTermToTop">
+              <DbIcon type="top-huidaodingbu" />
+            </div>
+            <div
+              class="icon-box"
+              :class="{ 'is-disabled': isTermAtBottom }"
+              @click="handleTermToBottom">
+              <DbIcon type="top-huidaodibu" />
+            </div>
+          </div>
         </div>
       </div>
     </template>
@@ -137,15 +154,17 @@
   import { format } from 'date-fns';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
+  import { FitAddon } from 'xterm-addon-fit';
+  import { WebLinksAddon } from 'xterm-addon-web-links';
 
   import { getNodeLog, getRetryNodeHistories, retryTaskflowNode } from '@services/source/taskflow';
 
   import CostTimer from '@components/cost-timer/CostTimer.vue';
-  import BkLog from '@components/vue2/bk-log/index.vue';
 
-  import { execCopy, messageSuccess } from '@utils';
+  import { downloadText, execCopy, messageSuccess } from '@utils';
 
   import { useFullscreen, useTimeoutPoll } from '@vueuse/core';
+  import { Terminal } from '@xterm/xterm';
 
   import { NODE_STATUS_TEXT } from '../common/graphRender';
   import type { GraphNode } from '../common/utils';
@@ -156,7 +175,6 @@
 
   interface Props {
     failedNodes?: GraphNode[];
-    isShow?: boolean;
     node?: GraphNode;
   }
 
@@ -168,38 +186,132 @@
 
   const props = withDefaults(defineProps<Props>(), {
     failedNodes: () => [] as NonNullable<Props['failedNodes']>,
-    isShow: false,
     node: () => ({}) as NonNullable<Props['node']>,
   });
   const emits = defineEmits<Emits>();
+
+  const isShow = defineModel<boolean>('isShow', {
+    default: false,
+  });
+
+  const initTerm = () => {
+    terminal = new Terminal({
+      convertEol: false,
+      disableStdin: true,
+      fontFamily: 'Consolas, monospace',
+      fontSize: 12,
+      lineHeight: 1,
+      scrollback: 1000,
+      theme: {
+        background: '#1A1A1A', // 背景色
+        foreground: '#C4C6CC', // 默认字体颜色
+      },
+      windowsMode: false,
+    });
+    fitAddon = new FitAddon();
+    const linkAddon = new WebLinksAddon();
+    terminal.loadAddon(fitAddon);
+    terminal.loadAddon(linkAddon);
+    terminal.open(document.getElementById('nodeLogTermContent')!);
+    const viewport = terminal.element!.querySelector('.xterm-viewport')!;
+    lastScrollPosition = terminal.buffer.active.viewportY;
+
+    const originalWrite = terminal.write;
+    terminal.write = function (data) {
+      originalWrite.call(this, data);
+      // 仅当用户未手动滚动时自动跳转到底部
+      if (isAutoScrollEnabled) {
+        terminal.scrollToBottom();
+      } else {
+        // 维持用户手动定位的位置
+        setTimeout(() => {
+          terminal.scrollToLine(lastScrollPosition);
+        });
+      }
+    };
+
+    // 劫持键盘事件
+    terminal.attachCustomKeyEventHandler((e) => {
+      if ((e.ctrlKey || e.metaKey) && e.code === 'KeyC' && e.type === 'keydown') {
+        const selection = terminal.getSelection();
+        if (selection) {
+          execCopy(selection);
+          return false; // 阻止默认
+        }
+      }
+      return true;
+    });
+
+    terminal.attachCustomWheelEventHandler(() => {
+      setTimeout(() => {
+        lastScrollPosition = isScrollDown ? terminal.buffer.active.viewportY + 7 : terminal.buffer.active.viewportY - 7;
+      });
+      return true;
+    });
+
+    terminal.element!.querySelector('.xterm-viewport')!.addEventListener('scroll', () => {
+      isScrollDown = terminal.buffer.active.viewportY > currentScrollPosition;
+      currentScrollPosition = terminal.buffer.active.viewportY;
+      isAutoScrollEnabled = viewport.scrollTop >= viewport.scrollHeight - viewport.clientHeight;
+      updateLineNumbers();
+      checkTermScroll();
+    });
+  };
+
+  const getNodeLogRequest = (isInit?: boolean) => {
+    if (!currentData.value.version) {
+      return;
+    }
+
+    const params = {
+      node_id: nodeData.value.id,
+      root_id: rootId,
+      version_id: currentData.value.version,
+    };
+    getNodeLog(params)
+      .then((data) => {
+        logState.data = data;
+        handleClearLog();
+        handleSetLog(formatLogData(data));
+      })
+      .finally(() => {
+        logState.loading = false;
+        if (isInit && nodeData.value.status === 'RUNNING' && !isActive.value) {
+          resume();
+        }
+      });
+  };
 
   const { t } = useI18n();
   const route = useRoute();
 
   const rootId = route.params.root_id as string;
+  let terminal: Terminal;
+  let fitAddon: FitAddon;
+  let isAutoScrollEnabled = true; // 默认开启自动滚动
+  let lastScrollPosition = 0; // 记录上次滚动位置
+  let currentScrollPosition = 0; // 用来判断滚动条的滚动方向
+  let isScrollDown = false;
 
   const refreshShow = ref(false);
-  const logRef = ref();
   const logContentRef = ref<HTMLDivElement>();
+  const isTermAtTop = ref(false);
+  const isTermAtBottom = ref(false);
+  /** 当前选中日志版本的信息 */
+  const currentData = ref({ version: '' });
 
   const logState = reactive({
     data: [] as NodeLog[],
     loading: false,
   });
 
-  const state = reactive({
-    isShow: false,
-  });
-
   const currentFailNodeLogIndex = computed(() =>
     props.failedNodes.findIndex((item) => item.data.id === props.node.data.id),
   );
-
   const screenIcon = computed(() => ({
     icon: isFullscreen.value ? 'db-icon-un-full-screen' : 'db-icon-full-screen',
     text: isFullscreen.value ? t('取消全屏') : t('全屏'),
   }));
-
   const nodeData = computed(() => props.node.data || {});
   const status = computed(() => {
     const themesMap = {
@@ -215,13 +327,11 @@
 
     return {
       text: NODE_STATUS_TEXT[status],
-      theme: themesMap[status],
+      theme: themesMap[status] as '' | 'success' | 'danger' | 'info',
     };
   });
-
   const STATUS_RUNNING = computed(() => nodeData.value.status === 'RUNNING');
   const STATUS_FAILED = computed(() => nodeData.value.status === 'FAILED');
-
   const costTime = computed(() => {
     const { started_at: startedAt, updated_at: updatedAt } = nodeData.value;
     if (startedAt && updatedAt) {
@@ -238,97 +348,126 @@
       location.reload();
     },
   });
-
-  const formatLogData = (data: NodeLog[] = []) => {
-    const regex = /^##\[[a-z]+]/;
-
-    return data.map((item) => {
-      const { levelname, message, timestamp } = item;
-      const time = format(new Date(Number(timestamp)), 'yyyy-MM-dd HH:mm:ss');
-      return {
-        ...item,
-        message: regex.test(message)
-          ? message.replace(regex, (match: string) => `${match}[${time} ${levelname}]`)
-          : `[${time} ${levelname}] ${message}`,
-      };
-    });
-  };
-
-  /** 获取日志及下载日志接口  */
-  const getNodeLogRequest = (isInit?: boolean) => {
-    if (!currentData.value.version) {
-      return;
-    }
-
-    const params = {
-      node_id: nodeData.value.id,
-      root_id: rootId,
-      version_id: currentData.value.version,
-    };
-    getNodeLog(params)
-      .then((res) => {
-        logState.data = res;
-        handleClearLog();
-        handleSetLog(formatLogData(res));
-      })
-      .finally(() => {
-        logState.loading = false;
-        isInit && nodeData.value.status === 'RUNNING' && !isActive.value && resume();
-      });
-  };
-
   const { isActive, pause, resume } = useTimeoutPoll(getNodeLogRequest, 5000);
   const { isFullscreen, toggle } = useFullscreen(logContentRef);
 
   watch(
     () => STATUS_RUNNING.value,
-    (val) => {
-      val && !isActive.value && resume();
-      !val && isActive.value && pause();
+    (isRunning) => {
+      if (isRunning && !isActive.value) {
+        resume();
+      }
+      if (!isRunning && isActive.value) {
+        pause();
+      }
     },
   );
 
-  watch(
-    () => props.isShow,
-    () => {
-      state.isShow = props.isShow;
-    },
-    { immediate: true },
-  );
+  watch(isShow, () => {
+    if (isShow.value) {
+      getNodeLogRequest();
+      setTimeout(() => {
+        initTerm();
+      });
+    }
+  });
 
-  /**
-   * 清空日志
-   */
+  watch(isFullscreen, () => {
+    if (isFullscreen.value) {
+      setTimeout(() => {
+        fitAddon.fit();
+      });
+    } else {
+      isShow.value = false;
+      setTimeout(() => {
+        isShow.value = true;
+      });
+    }
+  });
+
+  // 更新行号函数
+  const updateLineNumbers = () => {
+    const lineNumbers = document.getElementById('nodeLogLineNumbers')!;
+    const buffer = terminal.buffer.active;
+    const startLine = buffer.viewportY + 1;
+    const endLine = startLine + terminal.rows - 1;
+
+    let numbersHtml = '';
+    for (let i = startLine; i <= endLine; i++) {
+      numbersHtml += `<div class="line-num">${i}</div>`;
+    }
+    lineNumbers.innerHTML = numbersHtml;
+  };
+
+  const checkTermScroll = () => {
+    isTermAtTop.value = terminal.buffer.active.viewportY === 0;
+    const buffer = terminal.buffer.active;
+    isTermAtBottom.value = buffer.viewportY + terminal.rows >= buffer.length;
+  };
+
   const handleClearLog = () => {
-    logRef.value?.handleLogClear();
+    terminal.clear();
+  };
+
+  const formatLogData = (data: NodeLog[] = [], isSetColor = true) => {
+    const regex = /^##\[[a-z]+]/;
+    return data.map((item) => {
+      const { levelname, message, timestamp } = item;
+      const time = format(new Date(Number(timestamp)), 'yyyy-MM-dd HH:mm:ss');
+      let rowText = regex.test(message)
+        ? message.replace(regex, (match: string) => `${match}[${time} ${levelname}]`)
+        : `[${time} ${levelname}] ${message}`;
+      rowText = rowText.replace(/\n/g, '\r\n');
+      if (!isSetColor) {
+        return rowText;
+      }
+
+      if (/\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} info\]/.test(rowText)) {
+        return `\x1b[32m${rowText}\x1b[0m`;
+      }
+
+      if (/\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} warn\]/.test(rowText)) {
+        return `\x1b[33m${rowText}\x1b[0m`;
+      }
+
+      if (/\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} error\]/.test(rowText)) {
+        return `\x1b[31m${rowText}\x1b[0m`;
+      }
+
+      return rowText;
+    });
+  };
+
+  const handleTermToTop = () => {
+    terminal.scrollToTop();
+    lastScrollPosition = 0;
+  };
+
+  const handleTermToBottom = () => {
+    terminal.scrollToBottom();
   };
 
   /**
    * 设置日志
    */
-  const handleSetLog = (data: NodeLog[] = []) => {
-    logRef.value?.handleLogAdd(data);
+  const handleSetLog = (list: string[]) => {
+    const str = list.join('\r\n');
+    terminal.write(str);
+    setTimeout(() => {
+      fitAddon.fit();
+      updateLineNumbers();
+      checkTermScroll();
+    });
   };
 
-  /** 当前选中日志版本的信息 */
-  const currentData = ref({ version: '' });
   /**
    * 下载日志
    */
   const handleDownLoaderLog = () => {
-    const params: any = {
-      node_id: nodeData.value.id,
-      root_id: rootId,
-      version_id: currentData.value.version,
-    };
-    const url = `/apis/taskflow/${params.root_id}/node_log/?root_id=${params.root_id}&node_id=${params.node_id}&version_id=${params.version_id}&download=1`;
-    const elt = document.createElement('a');
-    elt.setAttribute('href', url);
-    elt.style.display = 'none';
-    document.body.appendChild(elt);
-    elt.click();
-    document.body.removeChild(elt);
+    const messageList = formatLogData(logState.data, false);
+    downloadText(`${nodeData.value.id}.log`, messageList.join('\n'));
   };
+
   /**
    * 切换日志版本
    */
@@ -341,10 +480,10 @@
       getNodeLogRequest(true);
     });
   };
+
   const handleCopyLog = () => {
-    const logData = formatLogData(logState.data);
-    const messageList = logData.map((item) => item.message);
-    execCopy(messageList.join('\n'), t('复制成功，共n条', { n: messageList.length }));
+    const messageList = formatLogData(logState.data, false);
+    execCopy(messageList.join('\n'));
   };
 
   const handleRefresh = () => {
@@ -359,13 +498,28 @@
     emits('quickGoto', currentFailNodeLogIndex.value, isNext);
   };
 
-  /**
-   * close slider
-   */
   const handleClose = () => {
+    isAutoScrollEnabled = true;
+    terminal.clear();
+    terminal.dispose();
+    fitAddon.dispose();
     emits('close');
     pause();
   };
+
+  const handleWindowResize = () => {
+    fitAddon.fit();
+    updateLineNumbers();
+    checkTermScroll();
+  };
+
+  onMounted(() => {
+    window.addEventListener('resize', handleWindowResize);
+  });
+
+  onUnmounted(() => {
+    window.removeEventListener('resize', handleWindowResize);
+  });
 </script>
 
 <style lang="less" scoped>
@@ -385,7 +539,7 @@
     }
   }
 
-  .log {
+  .node-log-main {
     .log-header {
       width: 100%;
       .flex-center();
@@ -406,7 +560,6 @@
       }
 
       .log-header-btn {
-        // padding-right: 13px;
         text-align: right;
         flex-shrink: 0;
 
@@ -428,7 +581,7 @@
     }
 
     :deep(.bk-sideslider-content) {
-      height: calc(100vh - 60px);
+      height: calc(100vh - 100px);
       padding: 16px;
     }
   }
@@ -471,6 +624,60 @@
   }
 
   .log-details {
-    height: calc(100% - 42px);
+    position: relative;
+    display: flex;
+    width: 100%;
+    background-color: #1a1a1a;
+
+    #nodeLogLineNumbers {
+      width: 64px;
+      overflow: hidden;
+      font-family: Consolas, monospace;
+      font-size: 12px;
+      color: #979ba5;
+      user-select: none;
+
+      :deep(.line-num) {
+        width: 100%;
+        height: 14px;
+        text-align: center;
+      }
+    }
+
+    #nodeLogTermContent {
+      flex: 1;
+      height: 100%;
+    }
+
+    .quick-switch {
+      position: absolute;
+      right: 6px;
+      bottom: 4px;
+      display: flex;
+      width: 24px;
+      flex-direction: column;
+      cursor: pointer;
+      gap: 4px;
+
+      .icon-box {
+        display: flex;
+        width: 24px;
+        height: 24px;
+        color: #c4c6cc;
+        background-color: #4d4d4d;
+        align-items: center;
+        justify-content: center;
+
+        &.is-disabled {
+          color: #c4c6cc33;
+        }
+      }
+    }
+  }
+</style>
+<style lang="less">
+  .xterm .xterm-rows > div:hover {
+    cursor: pointer;
+    background: rgb(255 215 0 / 30%);
   }
 </style>
