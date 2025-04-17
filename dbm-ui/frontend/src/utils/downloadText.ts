@@ -11,10 +11,6 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import { t } from '@locales/index';
-
-import { messageSuccess } from './message';
-
 export const downloadText = (filename: string, text: string) => {
   const element = document.createElement('a');
   const blob = new Blob([text]);
@@ -29,6 +25,4 @@ export const downloadText = (filename: string, text: string) => {
   element.click();
 
   document.body.removeChild(element);
-
-  messageSuccess(t('下载成功'));
 };
