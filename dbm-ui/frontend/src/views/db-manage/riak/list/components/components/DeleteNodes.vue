@@ -144,12 +144,14 @@
                 details: {
                   bk_cloud_id: props.data.bk_cloud_id,
                   cluster_id: props.data.id,
-                  old_nodes: selectedList.map((nodeItem: RiakNodeModel) => ({
-                    bk_biz_id: currentBizId,
-                    bk_cloud_id: nodeItem.bk_cloud_id,
-                    bk_host_id: nodeItem.bk_host_id,
-                    ip: nodeItem.ip,
-                  })),
+                  old_nodes: {
+                    riak: selectedList.map((nodeItem: RiakNodeModel) => ({
+                      bk_biz_id: currentBizId,
+                      bk_cloud_id: nodeItem.bk_cloud_id,
+                      bk_host_id: nodeItem.bk_host_id,
+                      ip: nodeItem.ip,
+                    })),
+                  },
                 },
                 ticket_type: TicketTypes.RIAK_CLUSTER_SCALE_IN,
               }).then((createTicketResult) => {
