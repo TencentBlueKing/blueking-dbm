@@ -853,7 +853,7 @@
             backend_group: {
               ...details.resource_spec.backend_group,
               ...regionAndDisasterParams,
-              count: specInfo.machine_pair,
+              count: Number(specInfo.machine_pair),
               spec_info: specInfo,
             },
             proxy: {
