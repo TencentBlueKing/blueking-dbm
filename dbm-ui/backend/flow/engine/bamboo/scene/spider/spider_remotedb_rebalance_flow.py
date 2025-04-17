@@ -191,6 +191,7 @@ class TenDBRemoteRebalanceFlow(object):
                         cluster=cluster_class,
                         new_mysql_list=[node["master"]["ip"], node["slave"]["ip"]],
                         install_ports=cluster_info["ports"],
+                        bk_host_ids=[node["master"]["bk_host_id"], node["slave"]["bk_host_id"]],
                         db_config=node.get("db_config", {}),
                     )
                 )
