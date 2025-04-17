@@ -77,7 +77,7 @@ func (m MachineResourceHandler) SpecSum(r *gin.Context) {
 		}
 
 		db := model.DB.Self.Table(model.TbRpDetailName()).Select("count(*)")
-		db.Where("gse_agent_status_code = ? ", bk.GSE_AGENT_OK)
+		db.Where("gse_agent_status_code = ? ", bk.GseAlive)
 		db.Where(" bk_cloud_id = ? and status = ?  ", input.BkCloudId, model.Unused)
 		// 如果没有指定资源类型，表示只能选择无资源类型标签的资源
 		// 没有资源类型标签的资源可以被所有其他类型使用

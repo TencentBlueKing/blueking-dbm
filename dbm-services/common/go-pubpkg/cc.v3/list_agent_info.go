@@ -26,24 +26,49 @@ type ListAgentState struct {
 func NewListAgentState(client *Client) *ListAgentState {
 	return &ListAgentState{
 		client: client,
-		Url:    "/list_agent_info",
+		Url:    "/core/api/ipchooser_host/details/",
 	}
 }
 
 // ListAgentInfoParam TODO
 type ListAgentInfoParam struct {
 	// 最大支持1000个ID的查询
-	AgentIdList []string `json:"agent_id_list"`
+	HostList  []IpchooserHost `json:"host_list"`
+	AllScope  bool            `json:"all_scope"`
+	ScopeList []Scope         `json:"scope_list"`
 }
 
-// ListAgentInfoRespone TODO
+// IpchooserHost ipchooser host
+type IpchooserHost struct {
+	HostId int               `json:"host_id"`
+	Meta   IpchooserHostMeta `json:"meta"`
+}
+
+// IpchooserHostMeta ipchooser host meta
+type IpchooserHostMeta struct {
+	ScopeType string `json:"scope_type"`
+	ScopeId   string `json:"scope_id"`
+	BkBizId   int    `json:"bk_biz_id"`
+}
+
+// Scope scope
+type Scope struct {
+	ScopeType string `json:"scope_type"`
+	ScopeId   string `json:"scope_id"`
+}
+
+// ListAgentInfoRespone list agent info
+// nolint
 type ListAgentInfoRespone struct {
-	BkAgentId  string `json:"bk_agent_id"`
-	BkCloudID  int    `json:"bk_cloud_id"`
-	BkHostIp   string `json:"bk_host_ip"`
-	Version    string `json:"version"`
-	RunMode    int    `json:"run_mode"`
-	StatusCode int    `json:"status_code"`
+	BkAgentId string `json:"bk_agent_id"`
+	BkCloudID int    `json:"bk_cloud_id"`
+	HostId    int    `json:"host_id"`
+	Ip        string `json:"ip"`
+	// NOT_ALIVE = 0
+	// ALIVE = 1
+	// TERMINATED = 2
+	// NOT_INSTALLED = 3
+	BkAgentAlive int `json:"bk_agent_alive"`
 }
 
 // QueryListAgentInfo 查询主机gseAgent转态
