@@ -14,7 +14,6 @@ import (
 	"embed"
 	"encoding/json"
 	"net/http"
-	"path"
 
 	"dbm-services/common/go-pubpkg/cc.v3"
 	"dbm-services/common/go-pubpkg/logger"
@@ -42,16 +41,12 @@ var GetDiskInfoScript embed.FS
 var GetWinDiskScrip embed.FS
 
 const (
-	// ESB_PREFIX TODO
-	ESB_PREFIX = "/api/c/compapi/v2/jobv3/"
 	// 快速执行脚本
-	fast_execute_script = "fast_execute_script/"
+	fast_execute_script_uri = "/api/v3/fast_execute_script"
 	// 查询作业执行状态
-	get_job_status = "get_job_instance_status/"
-	// 根据作业实例ID查询作业执行日志
-	// get_job_instance_ip_log = "get_job_instance_ip_log/"
+	get_job_status_uri = "/api/v3/get_job_instance_status"
 	// 根据ip列表批量查询作业执行日志
-	batch_get_job_instance_ip_log = "batch_get_job_instance_ip_log/"
+	batch_get_job_instance_ip_log_uri = "/api/v3/batch_get_job_instance_ip_log"
 )
 
 // FastExecuteScriptParam TODO
@@ -117,10 +112,11 @@ type ScriptTaskLog struct {
 
 // GetJobInstanceStatusParam TODO
 type GetJobInstanceStatusParam struct {
-	BKBizId       int   `json:"bk_biz_id"`
-	JobInstanceID int64 `json:"job_instance_id"`
+	BkScopeType   string `json:"bk_scope_type" url:"bk_scope_type"`
+	BKBizId       int    `json:"bk_biz_id" url:"bk_scope_id"`
+	JobInstanceID int64  `json:"job_instance_id" url:"job_instance_id"`
 	// 是否返回每个ip上的任务详情，对应返回结果中的step_ip_result_list。默认值为false。
-	ReturnIpResult bool `json:"return_ip_result"`
+	ReturnIpResult bool `json:"return_ip_result" url:"return_ip_result" `
 }
 
 // GetJobInstanceStatusRpData TODO
@@ -174,7 +170,7 @@ type JobV3 struct {
 // ExecuteJob TODO
 func (g *JobV3) ExecuteJob(param *FastExecuteScriptParam) (data FastExecuteScriptRpData, err error) {
 	logger.Info("will execute job at %v", param.TargetServer.IPList)
-	resp, err := g.Client.Do(http.MethodPost, g.get_fast_execute_script_url(), param)
+	resp, err := g.Client.Do(http.MethodPost, fast_execute_script_uri, param)
 	if err != nil {
 		logger.Error("1 call fast_execute_script failed %s", err.Error())
 		g.track(resp)
@@ -193,9 +189,9 @@ func (g *JobV3) track(resp *cc.Response) {
 	}
 }
 
-// GetJobStatus TODO
+// GetJobStatus  get job status
 func (g *JobV3) GetJobStatus(param *GetJobInstanceStatusParam) (data GetJobInstanceStatusRpData, err error) {
-	resp, err := g.Client.Do(http.MethodPost, g.get_job_status_url(), param)
+	resp, err := g.Client.Do(http.MethodGet, get_job_status_uri, param)
 	if err != nil {
 		logger.Error("1 call get_job_status failed %s", err.Error())
 		g.track(resp)
@@ -211,7 +207,7 @@ func (g *JobV3) GetJobStatus(param *GetJobInstanceStatusParam) (data GetJobInsta
 // BatchGetJobInstanceIpLog TODO
 func (g *JobV3) BatchGetJobInstanceIpLog(param *BatchGetJobInstanceIpLogParam) (data BatchGetJobInstanceIpLogRpData,
 	err error) {
-	resp, err := g.Client.Do(http.MethodPost, g.batch_get_job_instance_ip_log_url(), param)
+	resp, err := g.Client.Do(http.MethodPost, batch_get_job_instance_ip_log_uri, param)
 	if err != nil {
 		logger.Error("call batch_get_job_instance_ip_log failed %s", err.Error())
 		g.track(resp)
@@ -223,20 +219,4 @@ func (g *JobV3) BatchGetJobInstanceIpLog(param *BatchGetJobInstanceIpLogParam) (
 	}
 	logger.Info("shell return content %v", data.ScriptTaskLogs)
 	return
-}
-
-func (g *JobV3) get_fast_execute_script_url() string {
-	return path.Join(ESB_PREFIX, fast_execute_script)
-}
-
-func (g *JobV3) get_job_status_url() string {
-	return path.Join(ESB_PREFIX, get_job_status)
-}
-
-// func (g *JobV3) get_job_instance_ip_log_url() string {
-// 	return path.Join(ESB_PREFIX, get_job_instance_ip_log)
-// }
-
-func (g *JobV3) batch_get_job_instance_ip_log_url() string {
-	return path.Join(ESB_PREFIX, batch_get_job_instance_ip_log)
 }

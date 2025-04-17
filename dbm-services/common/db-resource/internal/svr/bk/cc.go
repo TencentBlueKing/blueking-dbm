@@ -11,8 +11,7 @@
 package bk
 
 import (
-	"os"
-	"sync"
+	"strconv"
 	"time"
 
 	"dbm-services/common/db-resource/internal/config"
@@ -21,11 +20,14 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 )
 
-// EsbClient TODO
-var EsbClient *cc.Client
+// BkCmdbClient bk cmdb client
+var BkCmdbClient *cc.Client
 
-// GseClient TODO
-var GseClient *cc.Client
+// BkJobClient bk job client
+var BkJobClient *cc.Client
+
+// BkNodeManClient bk node man client
+var BkNodeManClient *cc.Client
 
 // CCModuleFields TODO
 var CCModuleFields []string
@@ -33,14 +35,19 @@ var CCModuleFields []string
 // init TODO
 func init() {
 	var err error
-	EsbClient, err = NewClient()
+	BkCmdbClient, err = NewClient(config.AppConfig.BkCmdbApiUrl)
 	if err != nil {
 		logger.Fatal("init cmdb client failed %s", err.Error())
 		return
 	}
-	GseClient, err = NewGseClient()
+	BkJobClient, err = NewClient(config.AppConfig.BkJobApiUrl)
 	if err != nil {
-		logger.Fatal("init gse client failed %s", err.Error())
+		logger.Fatal("init bk job client failed %s", err.Error())
+		return
+	}
+	BkNodeManClient, err = NewClient(config.AppConfig.BkNodeManApiUrl)
+	if err != nil {
+		logger.Fatal("init bk node man client failed %s", err.Error())
 		return
 	}
 	CCModuleFields = []string{
@@ -68,33 +75,15 @@ func init() {
 	}
 }
 
-// NewGseClient TODO
-func NewGseClient() (*cc.Client, error) {
-	var apiserver string
-	apiserver = config.AppConfig.BkSecretConfig.GseBaseUrl
-	if cmutil.IsNotEmpty(os.Getenv("GSE_APIGW_DOMAIN")) {
-		apiserver = os.Getenv("GSE_APIGW_DOMAIN")
-	}
-	logger.Info("gse api url %s", apiserver)
-	return cc.NewClient(apiserver, cc.Secret{
-		BKAppCode:   config.AppConfig.BkSecretConfig.BkAppCode,
-		BKAppSecret: config.AppConfig.BkSecretConfig.BKAppSecret,
-		BKUsername:  config.AppConfig.BkSecretConfig.BkUserName,
-	})
-}
-
-var once sync.Once
 var cli *cc.Client
 var clierr error
 
 // NewClient TODO
-func NewClient() (*cc.Client, error) {
-	once.Do(func() {
-		cli, clierr = cc.NewClient(config.AppConfig.BkSecretConfig.BkBaseUrl, cc.Secret{
-			BKAppCode:   config.AppConfig.BkSecretConfig.BkAppCode,
-			BKAppSecret: config.AppConfig.BkSecretConfig.BKAppSecret,
-			BKUsername:  config.AppConfig.BkSecretConfig.BkUserName,
-		})
+func NewClient(apiurl string) (*cc.Client, error) {
+	cli, clierr = cc.NewClient(apiurl, cc.Secret{
+		BKAppCode:   config.AppConfig.BkSecretConfig.BkAppCode,
+		BKAppSecret: config.AppConfig.BkSecretConfig.BKAppSecret,
+		BKUsername:  config.AppConfig.BkSecretConfig.BkUserName,
 	})
 	return cli, clierr
 }
@@ -103,7 +92,7 @@ func NewClient() (*cc.Client, error) {
 func BatchQueryHostsInfo(bizId int, allhosts []string) (ccHosts []*cc.Host, nofoundHosts []string, err error) {
 	for _, hosts := range cmutil.SplitGroup(allhosts, 200) {
 		err = cmutil.Retry(cmutil.RetryConfig{Times: 3, DelayTime: 1 * time.Second}, func() error {
-			data, resp, errx := cc.NewListBizHosts(EsbClient).QueryListBizHosts(&cc.ListBizHostsParam{
+			data, resp, errx := cc.NewListBizHostsGw(BkCmdbClient, strconv.Itoa(bizId)).QueryListBizHosts(&cc.ListBizHostsParam{
 				BkBizId: bizId,
 				Fileds:  CCModuleFields,
 				Page: cc.BKPage{
