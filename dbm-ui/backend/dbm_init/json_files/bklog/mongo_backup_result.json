@@ -614,7 +614,7 @@
             "unit": "",
             "alias_name": "",
             "option": {
-                "es_type": "integer",
+                "es_type": "long",
                 "real_path": "bk_separator_object.file_size",
                 "field_index": 15
             },
@@ -623,7 +623,7 @@
             "tokenize_on_chars": "",
             "is_built_in": false,
             "is_time": false,
-            "field_type": "int",
+            "field_type": "long",
             "is_analyzed": false,
             "is_delete": false,
             "is_dimension": true
