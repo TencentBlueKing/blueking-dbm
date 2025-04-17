@@ -17,11 +17,12 @@ import (
 	"runtime/debug"
 	"time"
 
+	"github.com/samber/lo"
+
 	"dbm-services/common/db-resource/internal/model"
 	"dbm-services/common/db-resource/internal/svr/bk"
 	"dbm-services/common/db-resource/internal/util"
 	"dbm-services/common/go-pubpkg/cc.v3"
-	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 )
 
@@ -41,7 +42,7 @@ var ArchiverResourceChan chan int
 var RecordRsOperatorInfoChan chan model.TbRpOperationInfo
 
 // SyncRsGseAgentStatusChan TODO
-var SyncRsGseAgentStatusChan chan []string
+var SyncRsGseAgentStatusChan chan []int
 
 // RuningTask TODO
 var RuningTask chan struct{}
@@ -51,7 +52,7 @@ func init() {
 	ArchiverResourceChan = make(chan int, 200)
 	RecordRsOperatorInfoChan = make(chan model.TbRpOperationInfo, 20)
 	RuningTask = make(chan struct{}, 100)
-	SyncRsGseAgentStatusChan = make(chan []string, 10)
+	SyncRsGseAgentStatusChan = make(chan []int, 10)
 }
 
 // init TODO
@@ -136,41 +137,60 @@ func recordRsOperationInfo(data model.TbRpOperationInfo) (err error) {
 }
 
 // UpdateResourceGseAgentStatus 更新gse状态
-func UpdateResourceGseAgentStatus(agentIds ...string) (err error) {
-	var agentIdList []string
-	db := model.DB.Self.Table(model.TbRpDetailName()).Select("bk_agent_id").Where(
-		"status = ? and agent_status_update_time < date_sub(now(),INTERVAL 5 MINUTE)", model.Unused)
-	if len(agentIds) > 0 {
-		db.Where("bk_agent_id in (?)", agentIds)
+func UpdateResourceGseAgentStatus(bkHostIds ...int) (err error) {
+	var unUsedRsList []model.TbRpDetail
+	db := model.DB.Self.Table(model.TbRpDetailName()).Where(
+		"status = ? and agent_status_update_time > date_sub(now(),INTERVAL 30 MINUTE)", model.Unused)
+	if len(bkHostIds) > 0 {
+		db.Where("bk_host_id in (?)", bkHostIds)
 	}
-	if err = db.Scan(&agentIdList).Error; err != nil {
+	if err = db.Scan(&unUsedRsList).Error; err != nil {
 		logger.Error("query resoure list failed %s", err.Error())
 		return err
 	}
-	for _, gseAgentIdlist := range cmutil.SplitGroup(agentIdList, 1000) {
-		agentStateList, resp, err := cc.NewListAgentState(bk.GseClient).QueryListAgentInfo(&cc.ListAgentInfoParam{
-			AgentIdList: gseAgentIdlist,
+	pl := make(map[int][]cc.IpchooserHost)
+	for _, rs := range unUsedRsList {
+		pl[rs.BkBizId] = append(pl[rs.BkBizId], cc.IpchooserHost{
+			HostId: rs.BkHostID,
+			Meta: cc.IpchooserHostMeta{
+				ScopeType: "biz",
+				ScopeId:   fmt.Sprintf("%d", rs.BkBizId),
+				BkBizId:   rs.BkBizId,
+			},
 		})
-		if err != nil {
-			var BkRequestId, BkMessage string
-			if resp != nil {
-				BkRequestId = resp.RequestId
-				BkMessage = resp.Message
-			}
-			logger.Error("query gse agent state failed %s;blueking trace id:%s,msg:%s", err.Error(), BkRequestId,
-				BkMessage)
-			return err
-		}
-		for _, agentState := range agentStateList {
-			agentId := agentState.BkAgentId
-			if cmutil.IsEmpty(agentId) {
-				agentId = fmt.Sprintf("%d:%s", agentState.BkCloudID, agentState.BkHostIp)
-			}
-			err = model.DB.Self.Table(model.TbRpDetailName()).Where("bk_agent_id = ? ", agentId).Updates(map[string]interface{}{
-				"gse_agent_status_code": agentState.StatusCode, "agent_status_update_time": time.Now()}).Error
+	}
+
+	for bkbizId, ipchooserHostsList := range pl {
+		for _, ipchooserHosts := range lo.Chunk(ipchooserHostsList, 200) {
+			agentStateList, resp, err := cc.NewListAgentState(bk.BkNodeManClient).QueryListAgentInfo(&cc.ListAgentInfoParam{
+				HostList: ipchooserHosts,
+				ScopeList: []cc.Scope{
+					{
+						ScopeType: "biz",
+						ScopeId:   fmt.Sprintf("%d", bkbizId),
+					},
+				},
+			})
 			if err != nil {
-				logger.Error("update gse agent status failed %s", err.Error())
-				continue
+				var BkRequestId, BkMessage string
+				if resp != nil {
+					BkRequestId = resp.RequestId
+					BkMessage = resp.Message
+				}
+				logger.Error("query ipchooser device failed %s;blueking trace id:%s,msg:%s", err.Error(), BkRequestId,
+					BkMessage)
+				return err
+			}
+			for _, agentState := range agentStateList {
+				err = model.DB.Self.Table(model.TbRpDetailName()).Where("bk_host_id = ? ", agentState.HostId).
+					Updates(map[string]interface{}{
+						"bk_agent_id":              agentState.BkAgentId,
+						"gse_agent_status_code":    agentState.BkAgentAlive,
+						"agent_status_update_time": time.Now()}).Error
+				if err != nil {
+					logger.Error("update gse agent status failed %s", err.Error())
+					continue
+				}
 			}
 		}
 	}

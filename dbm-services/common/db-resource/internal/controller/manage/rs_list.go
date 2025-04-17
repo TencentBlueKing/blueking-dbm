@@ -168,9 +168,9 @@ func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) (err error) {
 	}
 	switch strings.TrimSpace(strings.ToLower(c.GseAgentAlive)) {
 	case "true":
-		db.Where("gse_agent_status_code = ?  ", bk.GSE_AGENT_OK)
+		db.Where("gse_agent_status_code = ?  ", bk.GseAlive)
 	case "false":
-		db.Where("gse_agent_status_code != ?  ", bk.GSE_AGENT_OK)
+		db.Where("gse_agent_status_code != ?  ", bk.GseAlive)
 	}
 	if len(c.BkCloudIds) > 0 {
 		db.Where("bk_cloud_id in (?) ", c.BkCloudIds)

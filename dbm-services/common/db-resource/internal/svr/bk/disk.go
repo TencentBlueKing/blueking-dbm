@@ -241,7 +241,7 @@ func GetWindowsDiskInfo(hosts []IPList, bk_biz_id int) (ipFailedLogMap map[strin
 func getDiskInfoBase(hosts []IPList, bk_biz_id int, param *FastExecuteScriptParam) (ipFailedLogMap map[string]string,
 	ipLogs BatchGetJobInstanceIpLogRpData, err error) {
 	jober := JobV3{
-		Client: EsbClient,
+		Client: BkJobClient,
 	}
 	job, err := jober.ExecuteJob(param)
 	if err != nil {
@@ -253,6 +253,7 @@ func getDiskInfoBase(hosts []IPList, bk_biz_id int, param *FastExecuteScriptPara
 	var jobStatus GetJobInstanceStatusRpData
 	for i := 0; i < 100; i++ {
 		jobStatus, err = jober.GetJobStatus(&GetJobInstanceStatusParam{
+			BkScopeType:   "biz",
 			BKBizId:       bk_biz_id,
 			JobInstanceID: job.JobInstanceID,
 		})
@@ -272,6 +273,7 @@ func getDiskInfoBase(hosts []IPList, bk_biz_id int, param *FastExecuteScriptPara
 	}
 	// 再查询一遍状态
 	jobStatus, err = jober.GetJobStatus(&GetJobInstanceStatusParam{
+		BkScopeType:   "biz",
 		BKBizId:       bk_biz_id,
 		JobInstanceID: job.JobInstanceID,
 	})

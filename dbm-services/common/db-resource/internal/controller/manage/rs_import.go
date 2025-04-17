@@ -150,7 +150,8 @@ func Doimport(param ImportMachParam, requestId string) (resp *ImportHostResp, er
 	var ccHostsInfo []*cc.Host
 	var derr error
 	var diskResp bk.GetDiskResp
-	var notFoundHosts, gseAgentIds []string
+	var notFoundHosts []string
+	var bkHostIds []int
 	var elems []model.TbRpDetail
 	resp = &ImportHostResp{}
 	targetHosts := lo.Uniq(param.getIps())
@@ -197,13 +198,7 @@ func Doimport(param ImportMachParam, requestId string) (resp *ImportHostResp, er
 		delete(hostsMap, h.InnerIP)
 		el := param.transHostInfoToDbModule(h, h.BkCloudId, lableJson)
 		el.SetMore(h.InnerIP, diskResp.IpLogContentMap)
-		// gse agent 1.0的 agent 是用 cloudid:ip
-		gseAgentId := h.BkAgentId
-		if lo.IsEmpty(gseAgentId) {
-			gseAgentId = fmt.Sprintf("%d:%s", h.BkCloudId, h.InnerIP)
-		}
-		gseAgentIds = append(gseAgentIds, gseAgentId)
-		el.BkAgentId = gseAgentId
+		bkHostIds = append(bkHostIds, h.BKHostId)
 		if v, ok := cvmInfoMap[h.InnerIP]; ok {
 			el.DramCap = v.Memory * 1000
 		}
@@ -213,7 +208,7 @@ func Doimport(param ImportMachParam, requestId string) (resp *ImportHostResp, er
 		logger.Error("failed to save resource: %s", err.Error())
 		return resp, err
 	}
-	task.SyncRsGseAgentStatusChan <- gseAgentIds
+	task.SyncRsGseAgentStatusChan <- bkHostIds
 	return resp, err
 }
 
@@ -267,36 +262,37 @@ func buildTbRpItem(h *cc.Host, forBizId, bkbizId, bkCloudId int, rsType string, 
 		osType = bk.OsLinux
 	}
 	return model.TbRpDetail{
-		DedicatedBiz:    forBizId,
-		RsType:          dealEmptyRs(rsType),
-		BkCloudID:       bkCloudId,
-		BkBizId:         bkbizId,
-		AssetID:         h.AssetID,
-		BkHostID:        h.BKHostId,
-		IP:              h.InnerIP,
-		Labels:          label,
-		DeviceClass:     h.DeviceClass,
-		DramCap:         h.BkMem,
-		CPUNum:          h.BkCpu,
-		City:            h.IdcCityName,
-		CityID:          h.IdcCityId,
-		SubZone:         h.SZone,
-		SubZoneID:       h.SZoneID,
-		RackID:          cleanStr(h.Equipment),
-		SvrTypeName:     h.SvrTypeName,
-		Status:          model.Unused,
-		NetDeviceID:     util.TransInnerSwitchIpAsNetDeviceId(h.InnerSwitchIp),
-		StorageDevice:   []byte("{}"),
-		TotalStorageCap: h.BkDisk,
-		BkAgentId:       h.BkAgentId,
-		AgentStatusCode: 2,
-		OsType:          model.ConvertOsTypeToHuman(osType),
-		OsBit:           h.BkOsBit,
-		OsVerion:        h.BkOsVersion,
-		OsName:          util.CleanOsName(h.OSName),
-		Operator:        operator,
-		UpdateTime:      time.Now(),
-		CreateTime:      time.Now(),
+		DedicatedBiz:          forBizId,
+		RsType:                dealEmptyRs(rsType),
+		BkCloudID:             bkCloudId,
+		BkBizId:               bkbizId,
+		AssetID:               h.AssetID,
+		BkHostID:              h.BKHostId,
+		IP:                    h.InnerIP,
+		Labels:                label,
+		DeviceClass:           h.DeviceClass,
+		DramCap:               h.BkMem,
+		CPUNum:                h.BkCpu,
+		City:                  h.IdcCityName,
+		CityID:                h.IdcCityId,
+		SubZone:               h.SZone,
+		SubZoneID:             h.SZoneID,
+		RackID:                cleanStr(h.Equipment),
+		SvrTypeName:           h.SvrTypeName,
+		Status:                model.Unused,
+		NetDeviceID:           util.TransInnerSwitchIpAsNetDeviceId(h.InnerSwitchIp),
+		StorageDevice:         []byte("{}"),
+		TotalStorageCap:       h.BkDisk,
+		BkAgentId:             h.BkAgentId,
+		AgentStatusCode:       bk.GseAlive,
+		AgentStatusUpdateTime: time.Now(),
+		OsType:                model.ConvertOsTypeToHuman(osType),
+		OsBit:                 h.BkOsBit,
+		OsVerion:              h.BkOsVersion,
+		OsName:                util.CleanOsName(h.OSName),
+		Operator:              operator,
+		UpdateTime:            time.Now(),
+		CreateTime:            time.Now(),
 	}
 }
 
@@ -345,7 +341,7 @@ func (c *MachineResourceHandler) ImportMachineWithDiffInfo(r *rf.Context) {
 		hostsGroupbyBkBizId[v.BkBizId] = append(hostsGroupbyBkBizId[v.BkBizId], v)
 	}
 	var elems []model.TbRpDetail
-	var gseAgentIds []string
+	var bkHostIds []int
 	for bkBizId, hostList := range hostsGroupbyBkBizId {
 		var ccHostsInfo []*cc.Host
 		var diskResp bk.GetDiskResp
@@ -397,13 +393,7 @@ func (c *MachineResourceHandler) ImportMachineWithDiffInfo(r *rf.Context) {
 			el := buildTbRpItem(h, hostInfo.ForBiz, hostInfo.BkBizId, hostInfo.BkCloudId, hostInfo.RsType, jsonRaw,
 				input.Operator)
 			el.SetMore(h.InnerIP, diskResp.IpLogContentMap)
-			// gse agent 1.0的 agent 是用 cloudid:ip
-			gseAgentId := h.BkAgentId
-			if lo.IsEmpty(gseAgentId) {
-				gseAgentId = fmt.Sprintf("%d:%s", h.BkCloudId, h.InnerIP)
-			}
-			gseAgentIds = append(gseAgentIds, gseAgentId)
-			el.BkAgentId = gseAgentId
+			bkHostIds = append(bkHostIds, h.BKHostId)
 			if v, ok := cvmInfoMap[h.InnerIP]; ok {
 				el.DramCap = v.Memory * 1000
 			}
@@ -413,7 +403,7 @@ func (c *MachineResourceHandler) ImportMachineWithDiffInfo(r *rf.Context) {
 	if err := model.DB.Self.Table(model.TbRpDetailName()).Create(elems).Error; err != nil {
 		c.SendResponse(r, err, err)
 	}
-	task.SyncRsGseAgentStatusChan <- gseAgentIds
+	task.SyncRsGseAgentStatusChan <- bkHostIds
 	c.SendResponse(r, nil, "success")
 }
 
