@@ -62,6 +62,7 @@ export interface DetailInstances {
 
 export interface DetailSpecs {
   [key: string]: {
+    capacity: number;
     count: number;
     cpu: {
       max: number;
