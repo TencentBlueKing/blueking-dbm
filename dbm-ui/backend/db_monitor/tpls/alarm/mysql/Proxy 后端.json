@@ -230,7 +230,8 @@
     },
     "labels": [
       "DBM",
-      "DBM_MYSQL"
+      "DBM_MYSQL",
+      "MYSQL"
     ],
     "app": "",
     "path": "",
@@ -242,7 +243,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "COUNT(proxy-backend)",
-  "version": 26,
+  "version": 27,
   "alert_source": "event",
   "custom_conditions": []
 }

@@ -5986,7 +5986,7 @@
         {
           "datasource": {
             "type": "mysql",
-            "uid": "ds_dbm_doris"
+            "uid": "bkdbm_statsdb_source"
           },
           "fieldConfig": {
             "defaults": {
@@ -6044,7 +6044,7 @@
               "dataset": "",
               "datasource": {
                 "type": "mysql",
-                "uid": "ds_dbm_doris"
+                "uid": "bkdbm_statsdb_source"
               },
               "editorMode": "code",
               "format": "time_series",
@@ -6085,7 +6085,7 @@
         {
           "datasource": {
             "type": "mysql",
-            "uid": "ds_dbm_doris"
+            "uid": "bkdbm_statsdb_source"
           },
           "fieldConfig": {
             "defaults": {
@@ -6171,7 +6171,7 @@
               "dataset": "",
               "datasource": {
                 "type": "mysql",
-                "uid": "ds_dbm_doris"
+                "uid": "bkdbm_statsdb_source"
               },
               "editorMode": "code",
               "format": "time_series",
@@ -6212,7 +6212,7 @@
         {
           "datasource": {
             "type": "mysql",
-            "uid": "ds_dbm_doris"
+            "uid": "bkdbm_statsdb_source"
           },
           "fieldConfig": {
             "defaults": {
@@ -6267,7 +6267,7 @@
               "dataset": "",
               "datasource": {
                 "type": "mysql",
-                "uid": "ds_dbm_doris"
+                "uid": "bkdbm_statsdb_source"
               },
               "editorMode": "code",
               "format": "time_series",
@@ -6305,7 +6305,7 @@
               "dataset": "__internal_schema",
               "datasource": {
                 "type": "mysql",
-                "uid": "ds_dbm_doris"
+                "uid": "bkdbm_statsdb_source"
               },
               "editorMode": "code",
               "format": "time_series",
@@ -6339,7 +6339,7 @@
         {
           "datasource": {
             "type": "mysql",
-            "uid": "ds_dbm_doris"
+            "uid": "bkdbm_statsdb_source"
           },
           "fieldConfig": {
             "defaults": {
@@ -6426,7 +6426,7 @@
               "dataset": "",
               "datasource": {
                 "type": "mysql",
-                "uid": "ds_dbm_doris"
+                "uid": "bkdbm_statsdb_source"
               },
               "editorMode": "code",
               "format": "time_series",
@@ -7802,7 +7802,7 @@
       {
         "hide": 2,
         "name": "dbmStatsDB",
-        "query": "dbm_mysql_stats",
+        "query": "bk_dbm_stats",
         "skipUrlSync": false,
         "type": "constant"
       }

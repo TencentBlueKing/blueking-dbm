@@ -75,8 +75,8 @@ spec:
               mountPath: /data.mysql-backup-result.yaml
             -
               name: config-volume
-              subPath: data.mysql-binlog-result.yaml
-              mountPath: data.mysql-binlog-result.yaml
+              subPath: path/to/data.mysql-binlog-result.yaml
+              mountPath: /data.mysql-binlog-result.yaml
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

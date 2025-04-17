@@ -44,7 +44,7 @@
     {
       "datasource": {
         "type": "mysql",
-        "uid": "ds_dbm_doris"
+        "uid": "bkdbm_statsdb_source"
       },
       "fieldConfig": {
         "defaults": {
@@ -101,7 +101,7 @@
           "dataset": "__internal_schema",
           "datasource": {
             "type": "mysql",
-            "uid": "ds_dbm_doris"
+            "uid": "bkdbm_statsdb_source"
           },
           "editorMode": "code",
           "format": "time_series",
@@ -131,7 +131,7 @@
           "dataset": "__internal_schema",
           "datasource": {
             "type": "mysql",
-            "uid": "ds_dbm_doris"
+            "uid": "bkdbm_statsdb_source"
           },
           "editorMode": "code",
           "format": "table",
@@ -165,7 +165,7 @@
     {
       "datasource": {
         "type": "mysql",
-        "uid": "ds_dbm_doris"
+        "uid": "bkdbm_statsdb_source"
       },
       "fieldConfig": {
         "defaults": {
@@ -249,7 +249,7 @@
           "dataset": "__internal_schema",
           "datasource": {
             "type": "mysql",
-            "uid": "ds_dbm_doris"
+            "uid": "bkdbm_statsdb_source"
           },
           "editorMode": "code",
           "format": "time_series",
@@ -294,7 +294,7 @@
     {
       "datasource": {
         "type": "mysql",
-        "uid": "ds_dbm_doris"
+        "uid": "bkdbm_statsdb_source"
       },
       "fieldConfig": {
         "defaults": {
@@ -378,7 +378,7 @@
           "dataset": "__internal_schema",
           "datasource": {
             "type": "mysql",
-            "uid": "ds_dbm_doris"
+            "uid": "bkdbm_statsdb_source"
           },
           "editorMode": "code",
           "format": "time_series",
@@ -703,7 +703,7 @@
         {
           "datasource": {
             "type": "mysql",
-            "uid": "ds_dbm_doris"
+            "uid": "bkdbm_statsdb_source"
           },
           "fieldConfig": {
             "defaults": {
@@ -760,7 +760,7 @@
               "dataset": "__internal_schema",
               "datasource": {
                 "type": "mysql",
-                "uid": "ds_dbm_doris"
+                "uid": "bkdbm_statsdb_source"
               },
               "editorMode": "code",
               "format": "time_series",
@@ -790,7 +790,7 @@
               "dataset": "__internal_schema",
               "datasource": {
                 "type": "mysql",
-                "uid": "ds_dbm_doris"
+                "uid": "bkdbm_statsdb_source"
               },
               "editorMode": "code",
               "format": "table",
@@ -823,7 +823,7 @@
         {
           "datasource": {
             "type": "mysql",
-            "uid": "ds_dbm_doris"
+            "uid": "bkdbm_statsdb_source"
           },
           "fieldConfig": {
             "defaults": {
@@ -906,7 +906,7 @@
               "dataset": "__internal_schema",
               "datasource": {
                 "type": "mysql",
-                "uid": "ds_dbm_doris"
+                "uid": "bkdbm_statsdb_source"
               },
               "editorMode": "code",
               "format": "time_series",
@@ -1082,7 +1082,7 @@
         {
           "datasource": {
             "type": "mysql",
-            "uid": "ds_dbm_doris"
+            "uid": "bkdbm_statsdb_source"
           },
           "fieldConfig": {
             "defaults": {
@@ -1165,7 +1165,7 @@
               "dataset": "__internal_schema",
               "datasource": {
                 "type": "mysql",
-                "uid": "ds_dbm_doris"
+                "uid": "bkdbm_statsdb_source"
               },
               "editorMode": "code",
               "format": "time_series",
@@ -1194,7 +1194,7 @@
               "dataset": "__internal_schema",
               "datasource": {
                 "type": "mysql",
-                "uid": "ds_dbm_doris"
+                "uid": "bkdbm_statsdb_source"
               },
               "editorMode": "code",
               "format": "table",
@@ -1675,7 +1675,7 @@
         },
         "datasource": {
           "type": "mysql",
-          "uid": "ds_dbm_doris"
+          "uid": "bkdbm_statsdb_source"
         },
         "definition": "select distinct database_name \nfrom ${dbmStatsDB}.mysql_db_table_size \nwhere cluster_domain = '$cluster_domain' and \ndteventtimestamp > (UNIX_TIMESTAMP(now())-86400*2)*1000",
         "hide": 0,
@@ -1703,7 +1703,7 @@
         },
         "datasource": {
           "type": "mysql",
-          "uid": "ds_dbm_doris"
+          "uid": "bkdbm_statsdb_source"
         },
         "definition": "select distinct table_name \nfrom ${dbmStatsDB}.mysql_db_table_size \nwhere cluster_domain = '$cluster_domain' and \n  database_name = '$dbname' and\n  dteventtimestamp > (UNIX_TIMESTAMP(now())-86400*2)*1000 \n",
         "hide": 0,
@@ -1722,7 +1722,7 @@
       {
         "hide": 2,
         "name": "dbmStatsDB",
-        "query": "dbm_mysql_stats",
+        "query": "bk_dbm_stats",
         "skipUrlSync": false,
         "type": "constant"
       }

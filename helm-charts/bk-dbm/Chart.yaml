@@ -27,7 +27,7 @@ dependencies:
   - condition: dbm.enabled
     name: dbm
     repository: file://charts/dbm
-    version: 0.1.45
+    version: 0.1.46
   - condition: dbconfig.enabled
     name: dbconfig
     repository: file://charts/dbconfig
@@ -75,7 +75,7 @@ dependencies:
   - condition: bkdata-kafka-consumer.enabled
     name: bkdata-kafka-consumer
     repository: file://charts/bkdata-kafka-consumer
-    version: 0.0.4
+    version: 0.0.5
   - condition: global.cloudContainer
     name: db-remote-service
     repository: file://charts/db-remote-service

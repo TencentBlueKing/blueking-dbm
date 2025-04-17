@@ -235,7 +235,8 @@
     "labels": [
       "DBM",
       "DBM_MYSQL",
-      "MySQL"
+      "MySQL",
+      "NO_MONITOR_TARGET"
     ],
     "app": "",
     "path": "",
@@ -248,7 +249,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "MAX(master_slave_heartbeat)",
-  "version": 26,
+  "version": 27,
   "alert_source": "time_series",
   "custom_conditions": [],
   "export_at": "2024-12-06T15:54:01+08:00"

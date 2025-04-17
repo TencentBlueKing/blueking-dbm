@@ -42,3 +42,16 @@ datasources:
       keepCookies:
         - bk_uid
       baseUrl: ${BKMONITOR_URL}/rest/v2/grafana/bk_log_search/
+  - name: DBM-StatsDB
+    uid: bkdbm_statsdb_source
+    type: mysql
+    url: ${DBM_STATSDB_URL}
+    user: ${DBM_STATSDB_USER}
+    jsonData:
+      database:
+      maxOpenConns: 100
+      maxIdleConns: 100
+      maxIdleConnsAuto: true
+      connMaxLifetime: 14400
+    secureJsonData:
+      password: ${DBM_STATSDB_PASSWORD}
