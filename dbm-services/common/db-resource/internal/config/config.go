@@ -19,7 +19,10 @@ type Config struct {
 	RunMode       string `yaml:"runMode"`
 	ListenAddress string `yaml:"listenAddress"`
 	//	dbmeta: http://bk-dbm
-	DbMeta           string            `json:"dbmeta"`
+	DbMeta           string            `yaml:"dbmeta"`
+	BkCmdbApiUrl     string            `yaml:"bkCmdbApiUrl"`
+	BkJobApiUrl      string            `yaml:"bkJobApiUrl"`
+	BkNodeManApiUrl  string            `yaml:"bkNodeManApiUrl"`
 	Db               Db                `yaml:"db"`
 	CmdbDb           Db                `yaml:"cmdb_db" mapstructure:"cmdb_db"`
 	LoggerConfig     LoggerConfig      `yaml:"loggerConfig"`

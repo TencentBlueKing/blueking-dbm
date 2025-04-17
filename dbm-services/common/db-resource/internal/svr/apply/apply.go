@@ -298,10 +298,10 @@ func (o *SearchContext) pickBase(db *gorm.DB) {
 	// 如果指定了特殊资源，就只查询这些资源
 	if len(o.SpecialHostIds) > 0 {
 		db.Where("bk_host_id in (?) and status = ? and gse_agent_status_code = ? ", o.SpecialHostIds, model.Unused,
-			bk.GSE_AGENT_OK)
+			bk.GseAlive)
 		return
 	}
-	db.Where("bk_cloud_id = ? and status = ? and gse_agent_status_code = ? ", o.BkCloudId, model.Unused, bk.GSE_AGENT_OK)
+	db.Where("bk_cloud_id = ? and status = ? and gse_agent_status_code = ? ", o.BkCloudId, model.Unused, bk.GseAlive)
 
 	o.MatchIntetionBkBiz(db)
 	o.MatchRsType(db)
@@ -357,7 +357,7 @@ func (o *SearchContext) predictResourceNoMatchReason() (reason string) {
 			name: "base",
 			fn: func(db *gorm.DB) {
 				db.Where("bk_cloud_id = ? and status = ? and gse_agent_status_code = ? ",
-					o.BkCloudId, model.Unused, bk.GSE_AGENT_OK)
+					o.BkCloudId, model.Unused, bk.GseAlive)
 			},
 			desc: fmt.Sprintf("在匹配云区域%d,gse_agent 状态为ok的资源的时候没有匹配到资源", o.BkCloudId),
 		},

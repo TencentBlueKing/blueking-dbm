@@ -37,18 +37,13 @@ func InspectCheckResource() (err error) {
 	}
 	logger.Info("空闲模块id %v", allowCCMouduleInfo.CC_IDLE_MODULE_ID)
 	logger.Info("资源模块信息 %v", allowCCMouduleInfo.CC_MANAGE_TOPO)
-	client, err := bk.NewClient()
-	if err != nil {
-		logger.Error("new bk client failed %s", err.Error())
-		return err
-	}
 	hostIdMap := make(map[int][]int)
 	for _, machine := range machines {
 		hostIdMap[machine.BkBizId] = append(hostIdMap[machine.BkBizId], machine.BkHostID)
 	}
 	for bkBizId, hostIds := range hostIdMap {
 		for _, hostgp := range cmutil.SplitGroup(hostIds, 100) {
-			resp, ori, err := cc.NewFindHostTopoRelation(client).Query(&cc.FindHostTopoRelationParam{
+			resp, ori, err := cc.NewFindHostTopoRelation(bk.BkCmdbClient).Query(&cc.FindHostTopoRelationParam{
 				BkBizID:   bkBizId,
 				BkHostIds: hostgp,
 				Page: cc.BKPage{

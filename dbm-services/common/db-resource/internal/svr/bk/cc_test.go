@@ -1,6 +1,7 @@
 package bk_test
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -9,16 +10,17 @@ import (
 )
 
 func TestReserverCC(t *testing.T) {
-	client, err := cc.NewClient(os.Getenv("BK_COMPONENT_API_URL"), cc.Secret{
+	client, err := cc.NewClient(os.Getenv("BK_CMDB_API_URL"), cc.Secret{
 		BKAppCode:   os.Getenv("BK_APP_CODE"),
 		BKAppSecret: os.Getenv("BK_APP_SECRET"),
 		BKUsername:  os.Getenv("BK_USERNAME"),
 	})
+	fmt.Println(os.Getenv("BK_CMDB_API_URL"))
 	if err != nil {
 		t.Fatalf("new client failed %s", err.Error())
 		return
 	}
-	listBizHosts := cc.NewListBizHosts(client)
+	listBizHosts := cc.NewListBizHostsGw(client, "100443")
 
 	resp, _, err := listBizHosts.QueryListBizHosts(&cc.ListBizHostsParam{
 		BkBizId: 100443,
@@ -44,7 +46,7 @@ func TestReserverCC(t *testing.T) {
 		},
 		Page: cc.BKPage{
 			Start: 100,
-			Limit: 100,
+			Limit: 2,
 		},
 	})
 	if err != nil {

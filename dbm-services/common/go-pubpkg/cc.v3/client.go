@@ -107,6 +107,7 @@ func (c *Client) Do(method, uri string, params interface{}) (result *Response, e
 
 	req.Header.Set("X-Bkapi-Accept-Code-Type", "int")
 	req.Header.Set("X-Bkapi-Authorization", c.secretHeader)
+	req.Header.Set("Content-Type", "application/json")
 
 	if method == "GET" {
 		q, _ := query.Values(params)
