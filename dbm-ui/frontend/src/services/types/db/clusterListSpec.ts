@@ -1,6 +1,4 @@
 export interface ClusterListSpec {
-  id: number;
-  name: string;
   cpu: {
     max: number;
     min: number;
@@ -9,11 +7,13 @@ export interface ClusterListSpec {
   desc: string;
   device_class: string[];
   enable: boolean;
+  id: number;
   instance_num: number;
   mem: {
     max: number;
     min: number;
   };
+  name: string;
   qps: {
     max: number;
     min: number;

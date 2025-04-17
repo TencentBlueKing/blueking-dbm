@@ -30,8 +30,7 @@
     </template>
     <EditableInput
       v-model="modelValue.master_domain"
-      :placeholder="t('请输入集群域名')"
-      @change="handleInputChange" />
+      :placeholder="t('请输入集群域名')" />
   </EditableColumn>
   <ClusterSelector
     v-model:is-show="showSelector"
@@ -46,7 +45,7 @@
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import { filterClusters } from '@services/source/dbbase';
 
-  import { ClusterTypes } from '@common/const';
+  import { Affinity, ClusterTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
@@ -64,17 +63,32 @@
 
   const emits = defineEmits<Emits>();
 
-  const modelValue = defineModel<{
-    bk_cloud_id: number;
-    bk_cloud_name: string;
-    id?: number;
-    master_domain: string;
-  }>({
+  const modelValue = defineModel<
+    Pick<
+      TendbClusterModel,
+      | 'id'
+      | 'master_domain'
+      | 'bk_cloud_id'
+      | 'cluster_capacity'
+      | 'cluster_shard_num'
+      | 'cluster_spec'
+      | 'db_module_id'
+      | 'machine_pair_cnt'
+      | 'remote_shard_num'
+      | 'disaster_tolerance_level'
+    >
+  >({
     default: () => ({
       bk_cloud_id: 0,
-      bk_cloud_name: '',
-      id: undefined,
+      cluster_capacity: 0,
+      cluster_shard_num: 0,
+      cluster_spec: {} as TendbClusterModel['cluster_spec'],
+      db_module_id: 0,
+      disaster_tolerance_level: Affinity.CROS_SUBZONE,
+      id: 0,
+      machine_pair_cnt: 0,
       master_domain: '',
+      remote_shard_num: 0,
     }),
   });
 
@@ -82,13 +96,7 @@
 
   const showSelector = ref(false);
   const selectedClusters = computed<Record<string, TendbClusterModel[]>>(() => ({
-    [ClusterTypes.TENDBCLUSTER]: props.selected.map(
-      (item) =>
-        ({
-          id: item.id,
-          master_domain: item.master_domain,
-        }) as TendbClusterModel,
-    ),
+    [ClusterTypes.TENDBCLUSTER]: props.selected as TendbClusterModel[],
   }));
 
   const rules = [
@@ -117,13 +125,19 @@
   const { loading, run: queryCluster } = useRequest(filterClusters<TendbClusterModel>, {
     manual: true,
     onSuccess: (data) => {
-      if (data.length) {
-        const [currentCluster] = data;
+      const [item] = data;
+      if (item) {
         modelValue.value = {
-          bk_cloud_id: currentCluster.bk_cloud_id,
-          bk_cloud_name: currentCluster.bk_cloud_name,
-          id: currentCluster.id,
-          master_domain: currentCluster.master_domain,
+          bk_cloud_id: item.bk_cloud_id,
+          cluster_capacity: item.cluster_capacity,
+          cluster_shard_num: item.cluster_shard_num,
+          cluster_spec: item.cluster_spec,
+          db_module_id: item.db_module_id,
+          disaster_tolerance_level: item.disaster_tolerance_level,
+          id: item.id,
+          machine_pair_cnt: item.machine_pair_cnt,
+          master_domain: item.master_domain,
+          remote_shard_num: item.remote_shard_num,
         };
       }
     },
@@ -133,24 +147,33 @@
     showSelector.value = true;
   };
 
-  const handleInputChange = (value: string) => {
-    modelValue.value = {
-      bk_cloud_id: 0,
-      bk_cloud_name: '',
-      id: undefined,
-      master_domain: value,
-    };
-    if (value) {
-      queryCluster({
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        exact_domain: value,
-      });
-    }
-  };
-
   const handleSelectorChange = (selected: Record<string, TendbClusterModel[]>) => {
     emits('batch-edit', selected[ClusterTypes.TENDBCLUSTER]);
   };
+
+  watch(
+    () => modelValue.value.master_domain,
+    (value) => {
+      modelValue.value = {
+        bk_cloud_id: 0,
+        cluster_capacity: 0,
+        cluster_shard_num: 0,
+        cluster_spec: {} as TendbClusterModel['cluster_spec'],
+        db_module_id: 0,
+        disaster_tolerance_level: Affinity.CROS_SUBZONE,
+        id: 0,
+        machine_pair_cnt: 0,
+        master_domain: value,
+        remote_shard_num: 0,
+      };
+      if (value) {
+        queryCluster({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          exact_domain: value,
+        });
+      }
+    },
+  );
 </script>
 <style lang="less" scoped>
   .batch-host-select {
