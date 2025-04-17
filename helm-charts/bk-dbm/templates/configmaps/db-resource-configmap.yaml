@@ -14,6 +14,9 @@ data:
     gormlog: true
     listenAddress: 0.0.0.0:80
     dbmeta: {{ .Values.dbm.internalDomain | default "http://bk-dbm" }}
+    bkJobApiUrl: {{ .Values.bk.bkJobApiUrl }}
+    bkCmdbApiUrl: {{ .Values.bk.bkCmdbApiUrl }}
+    bkNodeManApiUrl: {{ .Values.bk.bkNodeManApiUrl }}
     db:
       name:  "{{ $dbResourceDB.name }}"
       addr:  "{{ $dbResourceDB.host }}:{{ $dbResourceDB.port }}"

@@ -9,10 +9,10 @@ import (
 	"dbm-services/common/go-pubpkg/cc.v3"
 )
 
-var BKBizId = 9999431
+var BKBizId = 1111111111
 
 func TestExecuteJob(t *testing.T) {
-	client, err := cc.NewClient(os.Getenv("BK_BASE_URL"), cc.Secret{
+	client, err := cc.NewClient(os.Getenv("BK_JOB_API_URL"), cc.Secret{
 		BKAppCode:   os.Getenv("BK_APP_CODE"),
 		BKAppSecret: os.Getenv("BK_APP_SECRET"),
 		BKUsername:  os.Getenv("BK_USERNAME"),
@@ -66,6 +66,7 @@ func TestGetJobInstanceStatus(t *testing.T) {
 		Client: client,
 	}
 	data, err := jober.GetJobStatus(&bk.GetJobInstanceStatusParam{
+		BkScopeType:   "biz",
 		BKBizId:       BKBizId,
 		JobInstanceID: 27936528246,
 	})
