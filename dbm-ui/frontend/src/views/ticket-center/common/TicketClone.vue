@@ -168,7 +168,7 @@
     [TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER]: 'spiderMasterFailover', // Spider remote主故障切换
     [TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH]: 'spiderMasterSlaveSwap', // Spider remote 主从切换
     [TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER]: TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER, // spider 迁移主从
-    [TicketTypes.TENDBCLUSTER_NODE_REBALANCE]: 'spiderCapacityChange', // Spider 集群remote节点扩缩容
+    [TicketTypes.TENDBCLUSTER_NODE_REBALANCE]: TicketTypes.TENDBCLUSTER_NODE_REBALANCE, // Spider 集群remote节点扩缩容
     [TicketTypes.TENDBCLUSTER_OPEN_AREA]: 'spiderOpenareaTemplate', // Spider 开区
     [TicketTypes.TENDBCLUSTER_RENAME_DATABASE]: 'spiderDbRename', // Spider Tendbcluster 重命名
     [TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE]: TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE, // spider 重建从库-原地重建

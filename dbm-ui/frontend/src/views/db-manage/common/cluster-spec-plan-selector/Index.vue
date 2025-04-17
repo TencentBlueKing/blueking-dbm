@@ -176,9 +176,6 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const { t } = useI18n();
-  const { currentBizId } = useGlobalBizs();
-
   const modelValue = defineModel<number>('modelValue');
   const specData = defineModel<{ futureCapacity: number; name: string }>('specData');
   const customSpecInfo = defineModel<{
@@ -187,6 +184,8 @@
   }>('customSpecInfo', {
     required: true,
   });
+  const { t } = useI18n();
+  const { currentBizId } = useGlobalBizs();
 
   const genSliderData = () => ({
     disabled: false,
@@ -201,7 +200,7 @@
   const localFutureCapacity = ref();
   const localClusterShardNum = ref();
   const queryTimer = ref();
-  const applyType = ref('auto');
+  const applyType = ref<'auto' | 'custom'>('auto');
 
   const sliderProps = reactive(genSliderData());
 
@@ -421,6 +420,10 @@
   watch(
     [() => customSpecInfo.value.count, () => customSpecInfo.value.specId],
     ([count, specId]) => {
+      if (specId) {
+        applyType.value = 'custom';
+      }
+
       nextTick(() => {
         const data = specSelectorRef.value?.getData();
         if (!_.isEmpty(data)) {

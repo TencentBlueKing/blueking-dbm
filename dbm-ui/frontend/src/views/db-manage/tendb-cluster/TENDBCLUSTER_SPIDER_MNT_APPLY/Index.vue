@@ -36,7 +36,7 @@
           <EditableColumn
             field="cluster.bk_cloud_name"
             :label="t('所属管控区域')"
-            :min-width="300">
+            :min-width="250">
             <EditableBlock
               v-model="item.cluster.bk_cloud_name"
               :placeholder="t('自动生成')" />
@@ -45,6 +45,7 @@
             v-model="item.host"
             field="host.ip"
             :label="t('运维节点 IP')"
+            :min-width="250"
             :params="{
               for_bizs: [currentBizId, 0],
               resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],

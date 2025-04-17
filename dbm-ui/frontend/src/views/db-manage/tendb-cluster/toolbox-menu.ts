@@ -58,7 +58,7 @@ export default [
       },
       {
         dbConsoleValue: 'tendbCluster.toolbox.capacityChange',
-        id: 'spiderCapacityChange',
+        id: TicketTypes.TENDBCLUSTER_NODE_REBALANCE,
         name: t('集群容量变更'),
         parentId: 'spider_cluster_maintain',
       },

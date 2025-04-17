@@ -121,15 +121,9 @@ const spiderToolboxRoute = {
       },
       component: () => import('@views/db-manage/tendb-cluster/master-failover/Index.vue'),
     },
-    {
-      path: 'capacity-change/:page?',
-      name: 'spiderCapacityChange',
-      meta: {
-        dbConsole: 'tendbCluster.toolbox.capacityChange',
-        navName: t('集群容量变更'),
-      },
-      component: () => import('@views/db-manage/tendb-cluster/capacity-change/Index.vue'),
-    },
+    createRouteItem(TicketTypes.TENDBCLUSTER_NODE_REBALANCE, t('集群容量变更'), {
+      dbConsole: 'tendbCluster.toolbox.capacityChange',
+    }),
     {
       path: 'proxy-scale-up/:page?',
       name: 'SpiderProxyScaleUp',
@@ -333,7 +327,7 @@ export default function getRoutes(funControllerData: FunctionControllModel) {
   if (mysqlController.tendbcluster_toolbox) {
     const toolboxRoutes = spiderToolboxRoute.children.filter((item) => {
       const dbConsole = item.meta.dbConsole as ExtractedControllerDataKeys;
-      return !funControllerData[dbConsole] || funControllerData[dbConsole].is_enabled;
+      return !funControllerData[dbConsole] || (funControllerData[dbConsole] as { is_enabled: boolean }).is_enabled;
     });
 
     if (toolboxRoutes.length > 0) {
