@@ -23,8 +23,8 @@
         <BkTableColumn
           v-if="selectable"
           fixed="left"
-          :min-width="60"
-          :width="60">
+          :min-width="80"
+          :width="80">
           <template #header>
             <div class="table-selection-head">
               <div
