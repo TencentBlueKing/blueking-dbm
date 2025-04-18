@@ -232,3 +232,7 @@ DBM_STATSDB_USER = get_type_env(key="DBM_STATSDB_USER", _type=str, default="")
 DBM_STATSDB_PASSWORD = get_type_env(key="DBM_STATSDB_PASSWORD", _type=str, default="")
 DBM_STATSDB_URL = get_type_env(key="DBM_STATSDB_URL", _type=str, default="")
 DBM_STATSDB_NAME = get_type_env(key="DBM_STATSDB_NAME", _type=str, default="")
+
+# 是否开启多租户
+ENABLE_MULTI_TENANT_MODE = get_type_env(key="ENABLE_MULTI_TENANT_MODE", _type=bool, default=False)
+IS_GLOBAL_TENANT = get_type_env(key="IS_GLOBAL_TENANT", _type=bool, default=False)

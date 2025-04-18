@@ -18,7 +18,7 @@ from backend.utils.string import pascal_to_snake
 from backend.utils.time import datetime2str
 
 
-def _get_log_from_bklog(collector, start_time, end_time, query_string="*") -> List[Dict]:
+def _get_log_from_bklog(bk_biz_id, collector, start_time, end_time, query_string="*") -> List[Dict]:
     """
     从日志平台获取对应采集项的日志
     @param collector: 采集项名称
@@ -26,6 +26,7 @@ def _get_log_from_bklog(collector, start_time, end_time, query_string="*") -> Li
     @param end_time: 结束时间
     @param query_string: 过滤条件
     """
+    # dba_app_id = TenantCache.get_tenant_dba_app(TenantCache.get_tenant_with_app(bk_biz_id))
     resp = BKLogApi.esquery_search(
         {
             "indices": f"{env.DBA_APP_BK_BIZ_ID}_bklog.{collector}",
@@ -52,7 +53,8 @@ class ClusterBackup:
     集群前一天备份信息，包括全备和binlog
     """
 
-    def __init__(self, cluster_id: int, cluster_domain: str):
+    def __init__(self, bk_biz_id: int, cluster_id: int, cluster_domain: str):
+        self.bk_biz_id = bk_biz_id
         self.cluster_id = cluster_id
         self.cluster_domain = cluster_domain
         self.backups = {}
@@ -66,6 +68,7 @@ class ClusterBackup:
         """
         backup_files = []
         backup_logs = _get_log_from_bklog(
+            bk_biz_id=self.bk_biz_id,
             collector="mysql_dbbackup_result",
             start_time=start_time,
             end_time=end_time,
@@ -105,6 +108,7 @@ class ClusterBackup:
         """
         binlogs = []
         backup_logs = _get_log_from_bklog(
+            bk_biz_id=self.bk_biz_id,
             collector="mysql_binlog_result",
             start_time=start_time,
             end_time=end_time,

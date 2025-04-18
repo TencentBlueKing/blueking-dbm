@@ -66,6 +66,28 @@ class Local(Singleton):
 
         return new_request_id()
 
+    @property
+    def tenant_id(self):
+        """获取租户ID"""
+        return getattr(_local, "tenant_id", None)
+
+    @tenant_id.setter
+    def tenant_id(self, value):
+        """设置租户ID"""
+        _local.tenant_id = value
+
+    def inject_tenant_id(self, tenant_id=None):
+        """从用户/header/request注入tenant_id"""
+        if tenant_id:
+            self.tenant_id = tenant_id
+        elif hasattr(self.request, "META") and self.request.META.get("X-Bk-Tenant-Id"):
+            self.tenant_id = self.request.META["X-Bk-Tenant-Id"]
+        elif hasattr(self.request, "user") and getattr(self.request.user, "tenant_id", None):
+            self.tenant_id = self.request.user.tenant_id
+        elif hasattr(self.request, "app") and getattr(self.request.app, "tenant_id", None):
+            self.tenant_id = self.request.app.tenant_id
+        return self.tenant_id
+
     def release(self):
         release_local(_local)
 

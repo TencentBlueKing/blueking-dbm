@@ -33,3 +33,9 @@ class ExternalClusterIdInvalidException(ExternalProxyBaseException):
     ERROR_CODE = "003"
     MESSAGE = _("转发集群请求非法")
     MESSAGE_TPL = _("转发集群[{cluster_id}]请求非法")
+
+
+class TenantNotExistException(ExternalProxyBaseException):
+    ERROR_CODE = "004"
+    MESSAGE = _("租户不存在")
+    MESSAGE_TPL = _("租户[{tenant_id}]不存在")

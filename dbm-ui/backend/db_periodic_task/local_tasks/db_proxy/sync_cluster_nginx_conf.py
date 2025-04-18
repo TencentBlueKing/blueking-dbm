@@ -26,7 +26,6 @@ from backend.db_proxy import nginxconf_tpl
 from backend.db_proxy.constants import JOB_INSTANCE_EXPIRE_TIME, NGINX_PUSH_TARGET_PATH, ExtensionType
 from backend.db_proxy.exceptions import ProxyPassBaseException
 from backend.db_proxy.models import ClusterExtension, DBCloudProxy, DBExtension
-from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.utils.redis import RedisConn
 
 logger = logging.getLogger("celery")
@@ -47,11 +46,6 @@ def fill_cluster_service_nginx_conf():
             }
             for _nginx in _nginx_list
         ]
-        ResourceQueryHelper.fill_agent_status(nginx_ip_list)
-        status_code = sum([nginx["status"] for nginx in nginx_ip_list])
-        if status_code != len(nginx_ip_list):
-            logger.error(_("nginx机器{}当前agent异常，跳过文件下发。请管理员检查机器运行状态").format(nginx_ip_list))
-            return None
 
         job_payload = copy.deepcopy(BK_PUSH_CONFIG_PAYLOAD)
         job_payload["task_name"] = f"cloud_id({_cloud_id})_push_nginx_conf"

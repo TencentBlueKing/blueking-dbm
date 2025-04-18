@@ -21,6 +21,7 @@ from backend.components.hadb.client import HADBApi
 from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.db_meta.api.cluster.apis import query_cluster_by_hosts_biz
 from backend.db_meta.enums import ClusterType
+from backend.db_meta.models.app import TenantCache
 from backend.exceptions import ApiRequestError, ApiResultError
 from backend.utils.time import datetime2timestamp
 
@@ -34,10 +35,11 @@ logger = logging.getLogger("root")
 
 # 从切换队列拿到切换实例列表， 然后聚会成故障机器维度
 def watcher_get_by_hosts() -> (int, dict):
-    switch_id = 0
+    bk_biz_id, switch_id = 0, 0
     try:
         switch_next = RedisAutofixCtl.objects.filter(ctl_name=AutofixItem.DBHA_ID.value).get()
         if switch_next:
+            bk_biz_id = switch_next.bk_biz_id
             switch_id = int(switch_next.ctl_value)
     except RedisAutofixCtl.DoesNotExist:
         RedisAutofixCtl.objects.create(
@@ -47,7 +49,11 @@ def watcher_get_by_hosts() -> (int, dict):
     logger.info("watch_dbha_switch_log from id {}".format(switch_id))
     try:
         switch_queues = HADBApi.switch_queue(
-            params={"name": "query_switch_queue_by_uid", "query_args": {"uid": switch_id}}
+            params={
+                "tenant_id": TenantCache.get_tenant_with_app(bk_biz_id),
+                "name": "query_switch_queue_by_uid",
+                "query_args": {"uid": switch_id},
+            }
         )
     except (ApiResultError, ApiRequestError, Exception) as error:  # pylint: disable=broad-except
         # 捕获ApiResultError, ApiRequestError和其他未知异常

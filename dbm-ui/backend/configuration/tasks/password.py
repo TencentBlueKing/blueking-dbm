@@ -10,7 +10,9 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging
+from collections import defaultdict
 from datetime import timedelta
+from typing import Dict
 
 from django.utils import timezone
 from django.utils.translation import ugettext as _
@@ -19,17 +21,19 @@ from backend.components import DBPrivManagerApi
 from backend.configuration.constants import DB_ADMIN_USER_MAP, AdminPasswordRole, DBPrivSecurityType, DBType
 from backend.db_meta.enums import ClusterType, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
+from backend.db_meta.models.app import AppCache
 from backend.db_periodic_task.models import DBPeriodicTask
 from backend.exceptions import ApiResultError
 
 logger = logging.getLogger("root")
 
 
-def randomize_admin_password(db_type: str, if_async: bool, range_type: str, clusters: list):
+def randomize_admin_password(tenant_id: str, db_type: str, if_async: bool, range_type: str, clusters: list):
     """密码随机化定时任务"""
     try:
         DBPrivManagerApi.modify_admin_password(
             params={  # 管理用户
+                "tenant_id": tenant_id,
                 "component": db_type,
                 "username": DB_ADMIN_USER_MAP[db_type],  # 管理用户
                 "operator": range_type,
@@ -51,15 +55,25 @@ def randomize_admin_password(db_type: str, if_async: bool, range_type: str, clus
 
 def randomize_mysql_admin_password(if_async: bool, range_type: str):
     """密码随机化定时任务，只随机化mysql数据库"""
-    randomize_admin_password(DBType.MySQL, if_async, range_type, clusters=get_all_mysql_clusters())
+    tenant__clusters_map = defaultdict(list)
+    # 按照租户聚合，并且分租户进行集群密码随机化更新
+    for cluster in get_all_mysql_clusters():
+        tenant__clusters_map[cluster["tenant_id"]].append(cluster)
+    for tenant_id, clusters in tenant__clusters_map.items():
+        randomize_admin_password(tenant_id, DBType.MySQL, if_async, range_type, clusters=clusters)
 
 
 def randomize_sqlserver_admin_password(if_async: bool, range_type: str):
     """密码随机化定时任务，只随机化sqlserver数据库"""
-    randomize_admin_password(DBType.Sqlserver, if_async, range_type, clusters=get_all_sqlserver_clusters())
+    tenant__clusters_map = defaultdict(list)
+    # 按照租户聚合，并且分租户进行集群密码随机化更新
+    for cluster in get_all_sqlserver_clusters():
+        tenant__clusters_map[cluster["tenant_id"]].append(cluster)
+    for tenant_id, clusters in tenant__clusters_map.items():
+        randomize_admin_password(tenant_id, DBType.Sqlserver, if_async, range_type, clusters=clusters)
 
 
-def get_mysql_instance(cluster: Cluster):
+def get_mysql_instance(cluster: Cluster, appcache_dict: Dict):
     def _get_instances(_role, _instances):
         if _role == AdminPasswordRole.TDBCTL.value:
             instance_info = {
@@ -97,6 +111,7 @@ def get_mysql_instance(cluster: Cluster):
         instances.append(_get_instances(AdminPasswordRole.TDBCTL.value, dbctls))
 
     return {
+        "tenant_id": appcache_dict.get(cluster.bk_biz_id, {}).get("tenant_id", ""),
         "bk_cloud_id": cluster.bk_cloud_id,
         "bk_biz_id": cluster.bk_biz_id,
         "cluster_type": cluster.cluster_type,
@@ -116,7 +131,8 @@ def get_all_mysql_clusters():
         "proxyinstance_set__machine",
         "proxyinstance_set__tendbclusterspiderext",
     ).filter(cluster_type__in=cluster_types)
-    cluster_infos = [get_mysql_instance(cluster) for cluster in clusters]
+    appcache_dict = AppCache.get_appcache(key="appcache_dict")
+    cluster_infos = [get_mysql_instance(cluster, appcache_dict) for cluster in clusters]
     return cluster_infos
 
 
@@ -128,10 +144,12 @@ def get_all_sqlserver_clusters():
     clusters = Cluster.objects.prefetch_related("storageinstance_set", "storageinstance_set__machine").filter(
         cluster_type__in=[ClusterType.SqlserverHA.value, ClusterType.SqlserverSingle.value]
     )
+    appcache_dict = AppCache.get_appcache(key="appcache_dict")
     for cluster in clusters:
         storages = cluster.storageinstance_set.all()
         cluster_infos.append(
             {
+                "tenant_id": appcache_dict.get(cluster.bk_biz_id, {}).get("tenant_id", ""),
                 "bk_cloud_id": cluster.bk_cloud_id,
                 "cluster_type": cluster.cluster_type,
                 "bk_biz_id": cluster.bk_biz_id,

@@ -62,7 +62,7 @@ def _check_binlog_backup(cluster_type, date_str):
         )
     )
     for c in Cluster.objects.filter(cluster_type=cluster_type):
-        backup = ClusterBackup(c.id, c.immute_domain)
+        backup = ClusterBackup(c.bk_biz_id, c.id, c.immute_domain)
         logger.info(
             "==== start check binlog for cluster {}, time range[{},{}] ====".format(
                 c.immute_domain, start_time, end_time

@@ -497,7 +497,8 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         data = self.params_validate(self.get_serializer_class())
         cluster_stat_map = {}
         for cluster_type in data["cluster_type"].split(","):
-            cluster_stat_map.update(sync_cluster_stat_by_cluster_type(data["bk_biz_id"], cluster_type))
+            cluster_stat = sync_cluster_stat_by_cluster_type(data["bk_biz_id"], cluster_type) or {}
+            cluster_stat_map.update(cluster_stat)
 
         cluster_domain_qs = Cluster.objects.filter(bk_biz_id=data["bk_biz_id"]).values("immute_domain", "id")
         cluster_domain_map = {cluster["immute_domain"]: cluster["id"] for cluster in cluster_domain_qs}
