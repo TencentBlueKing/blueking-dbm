@@ -26,7 +26,8 @@
         </DbCard>
         <RegionRequirements
           ref="regionRequirements"
-          v-model="formData.details" />
+          v-model="formData.details"
+          :type="isSingleType ? 'single' : 'common'" />
         <DbCard :title="t('数据库部署信息')">
           <BkFormItem
             :label="t('SQLServer起始端口')"
@@ -228,7 +229,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
+  import { Affinity, ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
@@ -262,7 +263,7 @@
       cluster_count: 1,
       db_app_abbr: '', // 业务 Code
       db_module_id: null as null | number,
-      disaster_tolerance_level: '', // 容灾
+      disaster_tolerance_level: Affinity.NONE, // 容灾
       domains: [{ key: '' }],
       inst_num: 1,
       ip_source: 'resource_pool',

@@ -35,10 +35,12 @@
   import { Affinity, affinityMap } from '@common/const';
 
   interface Props {
-    isBigdata?: boolean;
+    type?: 'common' | 'bigdata' | 'single';
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    type: 'common',
+  });
 
   const modelValue = defineModel<string>({
     required: true,
@@ -55,11 +57,23 @@
     };
   };
 
-  const defaultAffinityList = props.isBigdata
-    ? [Affinity.MAX_EACH_ZONE_EQUAL]
-    : [Affinity.CROS_SUBZONE, Affinity.SAME_SUBZONE_CROSS_SWTICH, Affinity.CROSS_RACK];
-  const radioAffinityList = systemAffinityList.some((systemAffinityItem) => systemAffinityItem.value === Affinity.NONE)
-    ? [...defaultAffinityList, Affinity.NONE]
-    : defaultAffinityList;
-  const radioDataList = radioAffinityList.map((key) => getAffinityItem(key));
+  let radioDataList: {
+    label: string;
+    value: string;
+  }[] = [];
+
+  if (props.type === 'single') {
+    radioDataList = [Affinity.NONE].map((key) => getAffinityItem(key));
+  } else {
+    const defaultAffinityList =
+      props.type === 'bigdata'
+        ? [Affinity.MAX_EACH_ZONE_EQUAL]
+        : [Affinity.CROS_SUBZONE, Affinity.SAME_SUBZONE_CROSS_SWTICH, Affinity.CROSS_RACK];
+    const radioAffinityList = systemAffinityList.some(
+      (systemAffinityItem) => systemAffinityItem.value === Affinity.NONE,
+    )
+      ? [...defaultAffinityList, Affinity.NONE]
+      : defaultAffinityList;
+    radioDataList = radioAffinityList.map((key) => getAffinityItem(key));
+  }
 </script>
