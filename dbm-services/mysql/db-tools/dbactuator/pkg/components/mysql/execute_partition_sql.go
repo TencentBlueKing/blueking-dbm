@@ -253,42 +253,46 @@ func (e *ExecutePartitionSQLComp) excuteOne(
 	dbw *sql.DB, partitionSQLSet []string,
 	connum int, myInsInfo MyInstanceInfo,
 ) (err error) {
-	wg := sync.WaitGroup{}
+	// wg := sync.WaitGroup{}
 	var errs []string
-	lock := &sync.Mutex{}
+	// lock := &sync.Mutex{}
 	// lockappend用于保证
-	lockappend := &sync.Mutex{}
+	// lockappend := &sync.Mutex{}
 	// 初始化分区的并发度可以低点
 	// 增加和删除分区相对消耗小点，可以增加并发度
-	c := make(chan struct{}, connum)
+	// c := make(chan struct{}, connum)
 	for _, partitionSQL := range partitionSQLSet {
-		c <- struct{}{}
-		wg.Add(1)
+		_, err = dbw.Exec(partitionSQL)
+		if err != nil {
+			errs = append(errs, fmt.Sprintf("%s执行失败，报错：%s", partitionSQL, err.Error()))
+		}
+		// c <- struct{}{}
+		// wg.Add(1)
 		// partitionSQL = e.replace(partitionSQL)
-		go func(partitionSQL string) {
-			defer wg.Done()
-			err := mysqlutil.ExecuteSqlAtLocal{
-				WorkDir:          e.WorkDir,
-				IsForce:          e.Params.Force,
-				Charset:          "utf8",
-				NeedShowWarnings: false,
-				Host:             myInsInfo.Ip,
-				Port:             myInsInfo.Port,
-				Socket:           myInsInfo.Socket,
-				User:             e.GeneralParam.RuntimeAccountParam.PartitionYwUser,
-				Password:         e.GeneralParam.RuntimeAccountParam.PartitionYwPwd,
-			}.ExecutePartitionByMySQLClient(dbw, partitionSQL, lock)
-			if err != nil {
-				lockappend.Lock()
-				errs = append(errs, fmt.Sprintf("%s执行失败，报错：%s", partitionSQL, err.Error()))
-				lockappend.Unlock()
-			}
-			<-c
-		}(partitionSQL)
+		// go func(partitionSQL string) {
+		//	defer wg.Done()
+		// err := mysqlutil.ExecuteSqlAtLocal{
+		// 	WorkDir:          e.WorkDir,
+		// 	IsForce:          e.Params.Force,
+		// 	Charset:          "utf8",
+		// 	NeedShowWarnings: false,
+		// 	Host:             myInsInfo.Ip,
+		// 	Port:             myInsInfo.Port,
+		// 	Socket:           myInsInfo.Socket,
+		// 	User:             e.GeneralParam.RuntimeAccountParam.PartitionYwUser,
+		// 	Password:         e.GeneralParam.RuntimeAccountParam.PartitionYwPwd,
+		// }.ExecutePartitionByMySQLClient(dbw, partitionSQL, lock)
+		// if err != nil {
+		// 	lockappend.Lock()
+		// 	errs = append(errs, fmt.Sprintf("%s执行失败，报错：%s", partitionSQL, err.Error()))
+		// 	lockappend.Unlock()
+		// }
+		// <-c
+		// }(partitionSQL)
 	}
-	wg.Wait()
+	// wg.Wait()
 	if len(errs) > 0 {
-		return fmt.Errorf(fmt.Sprintf("%s", strings.Join(errs, "\n")))
+		return fmt.Errorf("%s", strings.Join(errs, "\n"))
 	}
 	return nil
 }
@@ -297,7 +301,7 @@ func (e *ExecutePartitionSQLComp) excuteOne(
 func initDB(host string, port int, user string, pwd string) (dbw *sql.DB, err error) {
 	tcpdsn := fmt.Sprintf("%s:%d", host, port)
 	dsn := fmt.Sprintf(
-		"%s:%s@tcp(%s)/?charset=utf8&parseTime=True&loc=Local&timeout=30s&readTimeout=30s&lock_wait_timeout=5", user,
+		"%s:%s@tcp(%s)/?charset=utf8&parseTime=True&loc=Local&timeout=30s&readTimeout=30s&lock_wait_timeout=5&multiStatements=true", user,
 		pwd,
 		tcpdsn,
 	)
