@@ -190,22 +190,18 @@ class RedisInsShutdownFlow(object):
             sub_pipeline_list.append(access_sub_builder)
         redis_pipeline.add_parallel_sub_pipeline(sub_pipeline_list)
 
-        # 集群元数据删除
-        acts_list = []
+        # 单机全部实例下架的时候，由于rr级别，概率导致machine表没删除情况。修改成串行删除元数据
         for cluster_id in self.data["cluster_ids"]:
             act_kwargs.cluster = {
                 "cluster_id": cluster_id,
                 "meta_func_name": RedisDBMeta.cluster_shutdown.__name__,
                 "cluster_type": cluster_type,
             }
-            acts_list.append(
-                {
-                    "act_name": _("删除集群{}元数据").format(cluster_id),
-                    "act_component_code": RedisDBMetaComponent.code,
-                    "kwargs": asdict(act_kwargs),
-                }
+            redis_pipeline.add_act(
+                act_name=_("删除集群{}元数据").format(cluster_id),
+                act_component_code=RedisDBMetaComponent.code,
+                kwargs=asdict(act_kwargs),
             )
-        redis_pipeline.add_parallel_acts(acts_list=acts_list)
 
         acts_list = []
         for ip in master_ips + slave_ips:
