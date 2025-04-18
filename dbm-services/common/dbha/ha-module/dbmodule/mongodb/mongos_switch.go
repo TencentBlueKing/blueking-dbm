@@ -52,12 +52,11 @@ func (ins *MongosSwitch) CheckSwitch() (bool, error) {
 	// check dns keep at least One.
 	var err error
 	if ins.ApiGw.DNSFlag && len(ins.ApiGw.ServiceEntry.Dns) >= 1 {
-		for idx, bindInfo := range ins.ApiGw.ServiceEntry.Dns {
+		for _, bindInfo := range ins.ApiGw.ServiceEntry.Dns {
 			ins.ReportLogs(constvar.InfoResult,
 				fmt.Sprintf("check dns bind items %s had bindIPs:%d", bindInfo.DomainName, len(bindInfo.BindIps)))
 			if len(bindInfo.BindIps) <= 1 {
-				err = fmt.Errorf("%s|[%d:%s]:bind no more than one IPs:%+v",
-					err.Error(), idx, bindInfo.DomainName, bindInfo.BindIps)
+				err = fmt.Errorf("err:bind DNS no more than one IPs:%+v", bindInfo)
 				ins.ReportLogs(constvar.FailResult, err.Error())
 			}
 		}
