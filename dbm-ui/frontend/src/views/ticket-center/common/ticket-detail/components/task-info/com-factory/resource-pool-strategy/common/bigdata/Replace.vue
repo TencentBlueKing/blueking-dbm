@@ -17,16 +17,16 @@
     :key="index">
     <strong class="ticket-details-info-title">{{ item.nodeText }}</strong>
     <InfoList>
-      <InfoItem :label="t('集群：')">
+      <InfoItem :label="t('集群')">
         {{ item.clusterName }}
       </InfoItem>
-      <InfoItem :label="t('集群ID：')">
+      <InfoItem :label="t('集群ID')">
         {{ item.clusterId }}
       </InfoItem>
-      <InfoItem :label="t('服务器选择方式：')">
+      <InfoItem :label="t('服务器选择方式')">
         {{ item.ipSourceDisplay }}
       </InfoItem>
-      <InfoItem :label="t('已选IP：')">
+      <InfoItem :label="t('已选IP')">
         <BkTable :data="item.hostList">
           <BkTableColumn
             field="oldNodeIp"
