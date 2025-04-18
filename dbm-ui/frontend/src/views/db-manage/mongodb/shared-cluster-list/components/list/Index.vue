@@ -132,7 +132,7 @@
       <BkTableColumn
         :fixed="isStretchLayoutOpen ? false : 'right'"
         :label="t('操作')"
-        :min-width="140"
+        :min-width="200"
         :show-overflow="false">
         <template #default="{data}: {data: MongodbModel}">
           <BkButton
