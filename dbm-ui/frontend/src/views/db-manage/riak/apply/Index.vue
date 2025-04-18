@@ -229,6 +229,7 @@
       disaster_tolerance_level: Affinity.MAX_EACH_ZONE_EQUAL, // 同 affinity
       ip_source: 'resource_pool',
       nodes: [] as HostInfo[],
+      sub_zone_ids: [] as number[],
       // http_port: 8087,
     },
     nodes_num: 3,

@@ -455,6 +455,7 @@
           spec_id: '',
         },
       },
+      sub_zone_ids: [] as number[],
     },
     remark: '',
     ticket_type: TicketTypes.DORIS_APPLY,

@@ -47,7 +47,9 @@
 
   const { affinity, location_spec: locationSpec } = Object.values(props.details.resource_spec)[0];
   const { sub_zone_ids: subZoneIds } = locationSpec;
-  const showSubZone = [Affinity.CROS_SUBZONE, Affinity.SAME_SUBZONE_CROSS_SWTICH].includes(affinity as Affinity);
+  const showSubZone =
+    [Affinity.CROS_SUBZONE, Affinity.SAME_SUBZONE_CROSS_SWTICH].includes(affinity as Affinity) ||
+    (affinity === Affinity.NONE && subZoneIds && subZoneIds.length > 0);
 
   const affinityText = affinityMap[affinity as Affinity];
 

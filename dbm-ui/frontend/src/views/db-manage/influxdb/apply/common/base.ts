@@ -39,6 +39,7 @@ export const getInitFormdata = () => ({
         spec_id: '',
       },
     },
+    sub_zone_ids: [] as number[],
   },
   remark: '',
   ticket_type: 'INFLUXDB_APPLY',

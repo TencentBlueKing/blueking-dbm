@@ -55,6 +55,7 @@ export const getInitFormdata = () => ({
       },
     },
     retention_hours: 1,
+    sub_zone_ids: [] as number[],
     username: '',
   },
   remark: '',

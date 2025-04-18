@@ -38,7 +38,8 @@
         </DbCard>
         <RegionRequirements
           ref="regionRequirements"
-          v-model="formdata.details" />
+          v-model="formdata.details"
+          :type="isSingleType ? 'single' : 'common'" />
         <DbCard :title="t('数据库部署信息')">
           <BkFormItem
             v-if="!isSingleType"
