@@ -28,6 +28,7 @@ from backend.configuration.models import SystemSettings
 from backend.constants import CACHE_CLUSTER_STATS
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
+from backend.db_meta.models.app import TenantCache
 from backend.db_periodic_task.local_tasks import register_periodic_task, start_new_span
 from backend.db_periodic_task.local_tasks.db_meta.constants import (
     CLUSTER_MACHINE_LOAD_QUERY_TEMPLATE,
@@ -85,6 +86,7 @@ def query_cap(bk_biz_id, cluster_type, cap_key="used", clusters=None):
     if cluster_type in [ClusterType.TenDBSingle.value, ClusterType.TenDBHA.value, ClusterType.TenDBCluster.value]:
         params.pop("type", "")
 
+    params["tenant_id"] = TenantCache.get_tenant_with_app(bk_biz_id)
     params["bk_biz_id"] = env.DBA_APP_BK_BIZ_ID
     params["start_time"] = int(start_time.timestamp())
     params["end_time"] = int(end_time.timestamp())

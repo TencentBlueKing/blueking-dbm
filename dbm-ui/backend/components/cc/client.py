@@ -171,16 +171,6 @@ class _CCApi(BaseApi):
             url="/deletemany/proc/service_instance",
             description=_("删除服务实例"),
         )
-        self.create_process_instance = self.generate_data_api(
-            method="POST",
-            url="/create/proc/process_instance",
-            description=_("创建实例进程"),
-        )
-        self.delete_process_instance = self.generate_data_api(
-            method="DELETE",
-            url="/delete/proc/process_instance",
-            description=_("删除实例进程"),
-        )
         self.list_process_instance = self.generate_data_api(
             method="POST",
             url="/findmany/proc/process_instance",

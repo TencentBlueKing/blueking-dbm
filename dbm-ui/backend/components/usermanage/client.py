@@ -20,16 +20,22 @@ class _UserManageApi(BaseApi):
     BASE = USER_MANAGE_APIGW_DOMAIN
 
     def __init__(self):
-        self.list_users = self.generate_data_api(
+        # TODO：前端改造为通用的人员选择器，list_user接口可以后续废弃
+        self.list_user = self.generate_data_api(
             method="GET",
-            url="list_users/",
+            url="tenant/users/",
             description=_("获取所有用户"),
             cache_time=300,
         )
-        self.retrieve_user = self.generate_data_api(
+        self.list_tenant = self.generate_data_api(
             method="GET",
-            url="retrieve_user/",
-            description=_("获取单个用户"),
+            url="tenants/",
+            description=_("获取租户列表"),
+        )
+        self.batch_lookup_virtual_user = self.generate_data_api(
+            method="GET",
+            url="tenant/virtual-users/-/lookup/",
+            description=_("批量查询虚拟用户"),
         )
 
 

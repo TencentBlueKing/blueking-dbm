@@ -24,6 +24,7 @@ from backend.configuration.constants import DBType
 from backend.configuration.models import BizSettings, DBAdministrator
 from backend.db_meta.enums import ClusterType, ClusterTypeMachineTypeDefine
 from backend.db_meta.models import AppMonitorTopo, Cluster, ClusterMonitorTopo, Machine, ProxyInstance, StorageInstance
+from backend.db_meta.models.app import TenantCache
 from backend.db_meta.models.cluster_monitor import (
     INSTANCE_BKLOG_PLUGINS,
     INSTANCE_MONITOR_PLUGINS,
@@ -634,6 +635,7 @@ def operate_collector(bk_biz_id: int, db_type: str, machine_type: str, instance_
     host_nodes = [{"bk_host_id": bk_host_id, "bk_biz_id": bk_biz_id} for bk_host_id in bk_host_ids]
 
     # --- 下发监控采集器 ---
+    tenant_id = TenantCache.get_tenant_with_app(bk_biz_id)
     plugin_id = INSTANCE_MONITOR_PLUGINS[db_type][machine_type]["plugin_id"]
     # mysql 和 tendbcluster 共用的mysql采集项
     collect_db_type = DBType.MySQL if db_type == DBType.TenDBCluster else db_type
@@ -645,7 +647,13 @@ def operate_collector(bk_biz_id: int, db_type: str, machine_type: str, instance_
         # 下发采集器
         try:
             BKMonitorV3Api.run_collect_config(
-                {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "id": collect_ins.collect_id, "scope": scope, "action": action},
+                {
+                    "tenant_id": tenant_id,
+                    "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+                    "id": collect_ins.collect_id,
+                    "scope": scope,
+                    "action": action,
+                },
                 use_admin=True,
             )
         except ApiError as err:
@@ -673,6 +681,7 @@ def operate_collector(bk_biz_id: int, db_type: str, machine_type: str, instance_
         try:
             BKLogApi.run_databus_collectors(
                 {
+                    "tenant_id": tenant_id,
                     "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
                     "collector_config_id": collect_id,
                     "scope": bklog_scope,

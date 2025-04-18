@@ -29,7 +29,11 @@ from backend.bk_web.constants import (
     NON_EXTERNAL_PROXY_ROUTING,
     ROUTING_WHITELIST_PATTERNS,
 )
-from backend.bk_web.exceptions import ExternalProxyBaseException, ExternalRouteInvalidException
+from backend.bk_web.exceptions import (
+    ExternalProxyBaseException,
+    ExternalRouteInvalidException,
+    TenantNotExistException,
+)
 from backend.bk_web.handlers import _error
 from backend.ticket.views import TicketViewSet
 from backend.utils.local import local
@@ -61,8 +65,11 @@ class RequestProviderMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        # 注入request id
         local.request = request
         request.request_id = local.get_http_request_id()
+        # 注入tenant id
+        request.tenant_id = local.inject_tenant_id()
 
         response = self.get_response(request)
         response["X-Request-Id"] = request.request_id
@@ -83,13 +90,17 @@ class DBMLoginRequiredMiddleware(LoginRequiredMiddleware):
         """
 
         def authorize_admin_user():
-            request.user = User(username="admin", is_superuser=True)
+            tenant_id = request.headers.get("X-Bk-Tenant-Id", "")
+            if not tenant_id:
+                raise TenantNotExistException(_("请在请求头传递X-Bk-Tenant-Id信息"))
+            request.user = User(username="admin", is_superuser=True, tenant_id=tenant_id)
             request.internal_call = True
             setattr(request, "_dont_enforce_csrf_checks", True)
 
         def authorize_valid_user():
             username = request.jwt.payload.get("user", {}).get("username", None)
-            request.user = User(username=username) if username else AnonymousUser()
+            tenant_id = request.jwt.payload.get("user", {}).get("tenant_id", "")
+            request.user = User(username=username, tenant_id=tenant_id) if username else AnonymousUser()
             setattr(request, "_dont_enforce_csrf_checks", True)
 
         bk_app_code = request.COOKIES.get("bk_app_code")
@@ -102,8 +113,6 @@ class DBMLoginRequiredMiddleware(LoginRequiredMiddleware):
             return None
         elif request.is_bk_jwt():
             authorize_valid_user()
-        # TODO: 考虑特殊平台开发admin账号，比如通过X-Bkapi-JWT查看app_code是否为特殊加白(eg: 作业平台，bcs等)
-
         return super().process_view(request, view, args, kwargs)
 
 

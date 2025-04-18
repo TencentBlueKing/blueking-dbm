@@ -10,4 +10,4 @@ specific language governing permissions and limitations under the License.
 """
 from .db_meta_check import db_meta_check_task, sqlserver_topo_daily_check
 from .sync_cluster_stat import sync_cluster_stat_from_monitor
-from .update_app_cache import update_app_cache
+from .update_app_cache import bulk_update_tenant_cache

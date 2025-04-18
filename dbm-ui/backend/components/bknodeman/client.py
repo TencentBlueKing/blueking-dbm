@@ -37,6 +37,7 @@ class _BKNodeManApi(BaseApi):
         self.ipchooser_host_details = self.generate_data_api(
             method="POST", url="core/api/ipchooser_host/details/", description=_("查询agent状态")
         )
+        self.list_cloud = self.generate_data_api(method="GET", url="api/cloud/", description=_("查询云区域"))
 
 
 BKNodeManApi = _BKNodeManApi()

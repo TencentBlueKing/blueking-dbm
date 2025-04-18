@@ -9,16 +9,85 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+from typing import Dict
 
+from django.conf import settings
 from django.core.cache import cache
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
+from backend import env
 from backend.bk_web.models import AuditedModel
 from backend.components import CCApi
 from backend.dbm_init.constants import CC_APP_ABBR_ATTR
 
 logger = logging.getLogger("root")
+
+
+class TenantCache(AuditedModel):
+    """租户信息缓存表"""
+
+    tenant_id = models.CharField(primary_key=True, max_length=128, help_text=_("租户ID"))
+    tenant_name = models.CharField(_("租户名称"), max_length=128, default="")
+    status = models.CharField(_("状态"), max_length=64, default="enabled")
+    admin = models.CharField(_("管理员"), max_length=128, default="admin")
+    clouds = models.JSONField(_("云区域列表"), default=[])
+    dba_app_id = models.IntegerField(help_text=_("当前租户默认业务ID"), default=0)
+    dba_job_id = models.IntegerField(help_text=_("当前租户默认JOB执行业务集ID"), default=0)
+
+    class Meta:
+        verbose_name = verbose_name_plural = _("租户信息缓存表(TenantCache)")
+
+    @classmethod
+    def get_tenant_cache(cls) -> Dict[str, Dict]:
+        """获取租户缓存信息"""
+        if not cache.get("tenant_cache"):
+            tenant_cache = {tenant.tenant_id: tenant.to_dict() for tenant in cls.objects.all()}
+            cache.set("tenant_cache", tenant_cache, 60 * 60)
+        return cache.get("tenant_cache")
+
+    @classmethod
+    def get_cloud_tenant_cache(cls) -> Dict[int, str]:
+        """获取租户和云区域的缓存信息"""
+        if not cache.get("cloud_tenant_cache"):
+            cloud_tenant_map = {cloud: tenant.tenant_id for tenant in cls.objects.all() for cloud in tenant.clouds}
+            cache.set("cloud_tenant_cache", cloud_tenant_map, 60 * 60)
+        return cache.get("cloud_tenant_cache")
+
+    @classmethod
+    def get_tenant_attr(cls, tenant_id, attr_name, default=None):
+        """获取租户属性"""
+        tenant_cache = cls.get_tenant_cache()
+        return tenant_cache.get(tenant_id, {}).get(attr_name, default)
+
+    @classmethod
+    def get_tenant_with_cloud(cls, bk_cloud_id):
+        """根据云区域ID获取租户ID TODO: 这个方法并不准确，直连区域的租户共享"""
+        if not settings.ENABLE_MULTI_TENANT_MODE:
+            return settings.DEFAULT_TENANT_ID
+        return cls.get_cloud_tenant_cache().get(bk_cloud_id, "")
+
+    @classmethod
+    def get_tenant_with_app(cls, bk_biz_id):
+        """根据业务ID获取租户ID"""
+        if not settings.ENABLE_MULTI_TENANT_MODE:
+            return settings.DEFAULT_TENANT_ID
+        tenant_id = AppCache.get_appcache(key="appcache_dict").get(bk_biz_id, {}).get("tenant_id", "")
+        return tenant_id
+
+    @classmethod
+    def get_tenant_dba_app(cls, tenant_id):
+        """获取租户的dba_app_id"""
+        if not settings.ENABLE_MULTI_TENANT_MODE:
+            return env.DBA_APP_BK_BIZ_ID
+        return cls.get_tenant_attr(tenant_id, "dba_app_id", env.DBA_APP_BK_BIZ_ID)
+
+    @classmethod
+    def get_tenant_dba_job(cls, tenant_id):
+        """获取租户的dba_job_id"""
+        if not settings.ENABLE_MULTI_TENANT_MODE:
+            return env.JOB_BLUEKING_BIZ_ID
+        return cls.get_tenant_attr(tenant_id, "dba_job_id", env.JOB_BLUEKING_BIZ_ID)
 
 
 class AppCache(AuditedModel):
@@ -30,6 +99,7 @@ class AppCache(AuditedModel):
     language = models.CharField(_("语言"), max_length=64, default="")
     time_zone = models.CharField(_("时区"), max_length=64, default="")
     bk_biz_maintainer = models.CharField(_("运维人员"), max_length=512, default="")
+    tenant_id = models.CharField(help_text=_("租户ID"), max_length=128, default="default")
 
     class Meta:
         verbose_name = verbose_name_plural = _("CMDB业务信息缓存表(AppCache)")
