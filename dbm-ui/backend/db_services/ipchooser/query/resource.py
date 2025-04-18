@@ -200,6 +200,7 @@ class ResourceQueryHelper:
     def query_agent_status_from_nodeman(cc_hosts, fill_key="status"):
         """查询agent状态"""
         host_list, host_map, scope_list = [], {}, []
+        # 这里查询的一组主机必须属于一个租户，因此根据云区域
         # 构建bk_host_id对bk_biz_id的映射
         bk_host_id_to_biz_id = {
             item["bk_host_id"]: item["bk_biz_id"]

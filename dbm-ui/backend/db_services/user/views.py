@@ -32,4 +32,4 @@ class UserViewSet(viewsets.SystemViewSet):
     @action(methods=["GET"], detail=False, serializer_class=ListUsersSerializer)
     def list_users(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
-        return Response(UserManagerApi.list_users({"fields": "username,display_name", **data}))
+        return Response(UserManagerApi.list_user({"fields": "username,display_name", **data}))

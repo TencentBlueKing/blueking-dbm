@@ -21,6 +21,7 @@ from backend.components import BKLogApi, BKMonitorV3Api, CCApi
 from backend.configuration.models import BizSettings, DBAdministrator
 from backend.db_meta.enums import ClusterType, ClusterTypeMachineTypeDefine
 from backend.db_meta.models import AppMonitorTopo, Cluster, ClusterMonitorTopo, Machine, ProxyInstance, StorageInstance
+from backend.db_meta.models.app import TenantCache
 from backend.db_meta.models.cluster_monitor import INSTANCE_BKLOG_PLUGINS, INSTANCE_MONITOR_PLUGINS, SET_NAME_TEMPLATE
 from backend.db_monitor.models import CollectInstance, MonitorPolicy
 from backend.db_monitor.utils import create_bklog_collector
@@ -604,6 +605,7 @@ def operate_collector(bk_biz_id: int, db_type: str, machine_type: str, bk_instan
     scope = {"bk_biz_id": bk_biz_id, "object_type": "SERVICE", "node_type": "INSTANCE", "nodes": nodes}
 
     # --- 下发监控采集器 ---
+    tenant_id = TenantCache.get_tenant_with_app(bk_biz_id)
     plugin_id = INSTANCE_MONITOR_PLUGINS[db_type][machine_type]["plugin_id"]
     collect_instances = CollectInstance.objects.filter(db_type=db_type, plugin_id=plugin_id)
     for collect_ins in collect_instances:
@@ -613,7 +615,13 @@ def operate_collector(bk_biz_id: int, db_type: str, machine_type: str, bk_instan
         # 下发采集器
         try:
             BKMonitorV3Api.run_collect_config(
-                {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "id": collect_ins.collect_id, "scope": scope, "action": action},
+                {
+                    "tenant_id": tenant_id,
+                    "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+                    "id": collect_ins.collect_id,
+                    "scope": scope,
+                    "action": action,
+                },
                 use_admin=True,
             )
         except ApiError as err:
@@ -635,7 +643,13 @@ def operate_collector(bk_biz_id: int, db_type: str, machine_type: str, bk_instan
     collect_id = collect["collector_config_id"]
     try:
         BKLogApi.run_databus_collectors(
-            {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "collector_config_id": collect_id, "scope": scope, "action": action},
+            {
+                "tenant_id": tenant_id,
+                "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+                "collector_config_id": collect_id,
+                "scope": scope,
+                "action": action,
+            },
             use_admin=True,
         )
     except ApiError as err:

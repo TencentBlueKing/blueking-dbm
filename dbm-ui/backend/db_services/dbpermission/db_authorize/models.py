@@ -81,7 +81,7 @@ class DBRuleActionLog(models.Model):
             return []
         # 过滤离职的和虚拟账户
         virtual_users = SystemSettings.get_setting_value(key=SystemSettingsEnum.VIRTUAL_USERS, default=[])
-        real_users = UserManagerApi.list_users(
+        real_users = UserManagerApi.list_user(
             {"fields": "username", "exact_lookups": ",".join(users), "no_page": True}
         )
         real_users = [user["username"] for user in real_users]

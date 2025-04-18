@@ -204,3 +204,7 @@ INITIATIVE_DOWNLOAD = get_type_env(key="INITIATIVE_DOWNLOAD", _type=bool, defaul
 
 # 反向查询接口禁用安全检查
 DEBUG_REVERSE_API = get_type_env(key="DEBUG_REVERSE_API", _type=bool, default=False)
+
+# 是否开启多租户
+ENABLE_MULTI_TENANT_MODE = get_type_env(key="ENABLE_MULTI_TENANT_MODE", _type=bool, default=False)
+IS_GLOBAL_TENANT = get_type_env(key="IS_GLOBAL_TENANT", _type=bool, default=False)

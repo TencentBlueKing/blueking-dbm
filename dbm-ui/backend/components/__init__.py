@@ -58,3 +58,6 @@ class ApiConfig(AppConfig):
 
 
 default_app_config = "backend.api.ApiConfig"
+
+# 无需租户信息的API
+NO_NEED_TENANT_API = [DRSApi.BASE_DOMAIN]

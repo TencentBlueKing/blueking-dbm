@@ -120,7 +120,7 @@ def _check_tendbha_full_backup(date_str: str):
     for c in Cluster.objects.filter(query):
         try:
             logger.info("==== start check full backup for cluster {} ====".format(c.immute_domain))
-            backup = ClusterBackup(c.id, c.immute_domain)
+            backup = ClusterBackup(c.bk_biz_id, c.id, c.immute_domain)
 
             items = backup.query_backup_log_from_bklog(start_time, end_time)
             backup.backups = _build_backup_info_files(items)
@@ -161,7 +161,7 @@ def _check_tendbcluster_full_backup(date_str: str):
     for c in Cluster.objects.filter(cluster_type=ClusterType.TenDBCluster):
         try:
             logger.info("==== start check full backup for cluster {} ====".format(c.immute_domain))
-            backup = ClusterBackup(c.id, c.immute_domain)
+            backup = ClusterBackup(c.bk_biz_id, c.id, c.immute_domain)
             items = backup.query_backup_log_from_bklog(start_time, end_time)
             backup.backups = _build_backup_info_files(items)
             backup.success = False

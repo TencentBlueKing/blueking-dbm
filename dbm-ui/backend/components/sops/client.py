@@ -37,11 +37,6 @@ class _BkSopsApi(BaseApi):
             url="get_task_status/" if is_esb else "get_task_status/{task_id}/{bk_biz_id}/",
             description=_("查询任务状态"),
         )
-        self.get_task_node_detail = self.generate_data_api(
-            method="GET",
-            url="get_task_node_detail/" if is_esb else "get_task_node_detail/{task_id}/{bk_biz_id}/",
-            description=_("查询任务节点执行详情"),
-        )
 
 
 BkSopsApi = _BkSopsApi()

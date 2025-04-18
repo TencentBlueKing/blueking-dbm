@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from django.core.management.base import BaseCommand
 
-from backend.db_periodic_task.local_tasks.db_meta.update_app_cache import bulk_update_app_cache
+from backend.db_periodic_task.local_tasks.db_meta.update_app_cache import bulk_update_tenant_cache
 
 
 class Command(BaseCommand):
@@ -20,4 +20,4 @@ class Command(BaseCommand):
         pass
 
     def handle(self, *args, **options):
-        bulk_update_app_cache()
+        bulk_update_tenant_cache()

@@ -13,72 +13,21 @@ import logging
 import re
 
 from celery.schedules import crontab
+from django.conf import settings
 from django.utils import timezone
 
 from backend import env
-from backend.components import CCApi
+from backend.components import CCApi, UserManagerApi
+from backend.components.bknodeman.client import BKNodeManApi
 from backend.db_meta.models import AppCache
+from backend.db_meta.models.app import TenantCache
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
 from backend.dbm_init.constants import CC_APP_ABBR_ATTR
 
 logger = logging.getLogger("celery")
 
 
-def update_app_cache():
-    """TODO: deprecated: 缓存空闲机拓扑"""
-    now = datetime.datetime.now(timezone.utc)
-    logger.warning("[db_meta] start update app cache start: %s", now)
-
-    bizs = CCApi.search_business().get("info", [])
-
-    updated_bizs, created_bizs = [], []
-    for biz in bizs:
-        try:
-            logger.warning("[db_meta] sync app : %s", biz["bk_biz_id"])
-            bk_app_abbr = biz.get(env.BK_APP_ABBR, "")
-            db_app_abbr = biz.get(CC_APP_ABBR_ATTR, "").lower().replace(" ", "-").replace("_", "-")
-
-            # 目标环境中存在bk_app_abbr，则同步过来
-            if env.BK_APP_ABBR and env.BK_APP_ABBR != CC_APP_ABBR_ATTR:
-                # db_app_abbr为空才同步
-                if not db_app_abbr and db_app_abbr != bk_app_abbr:
-                    CCApi.update_business({"bk_biz_id": biz["bk_biz_id"], "db_app_abbr": bk_app_abbr}, use_admin=True)
-                    db_app_abbr = bk_app_abbr
-
-            # update or create fields
-            defaults = {
-                "bk_biz_name": biz["bk_biz_name"],
-                "language": biz["language"],
-                "time_zone": biz["time_zone"],
-                "bk_biz_maintainer": biz["bk_biz_maintainer"],
-            }
-
-            # 英文为空，则不更新进去，避免覆盖提单时刚写入的英文名
-            if not db_app_abbr:
-                defaults["db_app_abbr"] = db_app_abbr
-
-            obj, created = AppCache.objects.update_or_create(
-                defaults=defaults,
-                bk_biz_id=biz["bk_biz_id"],
-            )
-
-            if created:
-                created_bizs.append(obj.bk_biz_id)
-            else:
-                updated_bizs.append(obj.bk_biz_id)
-        except Exception as e:  # pylint: disable=wildcard-import
-            logger.error("[db_meta] cache app error: %s (%s)", biz, e)
-
-    logger.warning(
-        "[db_meta] finish update app cache end: %s, create_cnt: %s, update_cnt: %s",
-        datetime.datetime.now(timezone.utc) - now,
-        len(created_bizs),
-        len(updated_bizs),
-    )
-
-
-@register_periodic_task(run_every=crontab(minute="*/20"))
-def bulk_update_app_cache():
+def bulk_update_app_cache(tenant_id):
     """缓存空闲机拓扑"""
 
     REGEX_APP_ABBR = re.compile("^[A-Za-z0-9_-]+$")
@@ -105,7 +54,9 @@ def bulk_update_app_cache():
             # db_app_abbr 为空才同步，bk_app_abbr 只在create时插入，更新后，不能随便同步回来
             if not db_app_abbr and db_app_abbr != bk_app_abbr and REGEX_APP_ABBR.match(bk_app_abbr):
                 logger.warning("bulk_update_app_cache: set [%s]'s bk_app_abbr to [%s]", biz["bk_biz_id"], bk_app_abbr)
-                CCApi.update_business({"bk_biz_id": biz["bk_biz_id"], "db_app_abbr": bk_app_abbr}, use_admin=True)
+                CCApi.update_business(
+                    {"bk_biz_id": biz["bk_biz_id"], "db_app_abbr": bk_app_abbr, "tenant_id": tenant_id}
+                )
                 db_app_abbr = bk_app_abbr
 
         return db_app_abbr
@@ -113,17 +64,19 @@ def bulk_update_app_cache():
     # 批量同步准备
     LIMIT = 1000
     start = 0
-    total = CCApi.search_business({"page": {"start": 0, "limit": 1}}).get("count", 0)
+    total = CCApi.search_business({"page": {"start": 0, "limit": 1}, "tenant_id": tenant_id}).get("count", 0)
 
     begin_at = datetime.datetime.now(timezone.utc)
     logger.warning("bulk_update_app_cache: start update app cache total: %s", total)
 
     # 批量创建和更新
     create_cnt, update_cnt = 0, 0
-    update_fields = [CC_APP_ABBR_ATTR, "bk_biz_name", "time_zone", "bk_biz_maintainer"]
+    update_fields = [CC_APP_ABBR_ATTR, "bk_biz_name", "time_zone", "bk_biz_maintainer", "tenant_id"]
     while start < total:
-        info = CCApi.search_business({"page": {"start": start, "limit": LIMIT}}).get("info", [])
-        biz_map = {i["bk_biz_id"]: i for i in info}
+        info = CCApi.search_business({"page": {"start": start, "limit": LIMIT}, "tenant_id": tenant_id}).get(
+            "info", []
+        )
+        biz_map = {i["bk_biz_id"]: {**i, "tenant_id": tenant_id} for i in info}
 
         bk_biz_ids = list(biz_map.keys())
         exists = list(AppCache.objects.filter(bk_biz_id__in=bk_biz_ids).values_list("bk_biz_id", flat=True))
@@ -136,6 +89,7 @@ def bulk_update_app_cache():
             db_app_abbr = get_app_abbr(cc_app)
             new_apps.append(
                 AppCache(
+                    tenant_id=tenant_id,
                     bk_biz_id=bk_biz_id,
                     bk_biz_name=cc_app["bk_biz_name"],
                     time_zone=cc_app["time_zone"],
@@ -184,3 +138,43 @@ def bulk_update_app_cache():
         create_cnt,
         update_cnt,
     )
+
+
+@register_periodic_task(run_every=crontab(hour="*/1", minute=0))
+def bulk_update_tenant_cache():
+    """缓存租户信息"""
+
+    # --- 更新租户信息 ---
+    tenant_list = UserManagerApi.list_tenant(params={"tenant_id": settings.DEFAULT_TENANT_ID}, raw=True)["data"]
+    exists = list(TenantCache.objects.all().values_list("tenant_id", flat=True))
+    # 补充新增加的租户信息
+    new_tenants = [
+        TenantCache(tenant_id=tenant["id"], tenant_name=tenant["name"], status=tenant["status"])
+        for tenant in tenant_list
+        if tenant["id"] not in exists
+    ]
+    # 查询当前租户的admin
+    user_params = {"lookups": "bk_admin", "lookup_field": "login_name"}
+    for tenant in new_tenants:
+        params = {"tenant_id": tenant.tenant_id, **user_params}
+        admin = UserManagerApi.batch_lookup_virtual_user(params=params, raw=True)["data"]
+        tenant.admin = admin[0]["bk_username"] if admin else ""
+    # 批量创建
+    TenantCache.objects.bulk_create(new_tenants)
+
+    # --- 更新租户的云区域信息 ---
+    tenant_list = TenantCache.objects.all()
+    update_tenants = []
+    for tenant in tenant_list:
+        logger.info("bulk_update_tenant_cache[%s]: update clouds", tenant.tenant_id)
+        cloud_ids = [c["bk_cloud_id"] for c in BKNodeManApi.list_cloud(params={"tenant_id": tenant.tenant_id})]
+        if cloud_ids != tenant.clouds:
+            tenant.clouds = cloud_ids
+            update_tenants.append(tenant)
+    # 批量更新
+    TenantCache.objects.bulk_update(update_tenants, fields=["clouds"])
+
+    # --- 更新租户的业务信息 ---
+    for tenant in tenant_list:
+        logger.info("bulk_update_tenant_cache[%s]: update apps", tenant.tenant_id)
+        bulk_update_app_cache(tenant.tenant_id)
