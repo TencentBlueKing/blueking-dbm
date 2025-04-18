@@ -4,7 +4,7 @@
       v-for="(clusterId, index) in selectedClusters"
       :key="clusterId"
       class="tab-item"
-      :class="{ 'item-selected': clusterId === modelValue }"
+      :class="{ 'item-selected': clusterId === localClusterId }"
       @click="() => handleActiveTab(clusterId)">
       <div class="active-bar"></div>
       <div class="tab-item-content">
@@ -96,11 +96,6 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const modelValue = defineModel<Number>({
-    default: 0,
-    required: true,
-  });
-
   const { t } = useI18n();
   const route = useRoute();
 
@@ -110,6 +105,7 @@
 
   const addTabRef = ref();
   const popRef = ref();
+  const localClusterId = ref(0);
   const clustersMap = ref<Record<number, ClusterItem>>({});
   const selectedClusters = ref<number[]>([]);
   const searchValue = ref('');
@@ -165,7 +161,7 @@
     }
     const id = ids.pop()!;
     selectedClusters.value.push(id);
-    modelValue.value = id;
+    localClusterId.value = id;
     emits('change', clustersMap.value[id]);
     updateClusterSelect();
     tippyIns?.hide();
@@ -176,7 +172,7 @@
   };
 
   const handleActiveTab = (id: number) => {
-    modelValue.value = id;
+    localClusterId.value = id;
     emits('change', clustersMap.value[id]);
   };
 
@@ -192,11 +188,11 @@
     const currentClusterId = selectedClusters.value[index];
     selectedClusters.value.splice(index, 1);
     const clusterCount = selectedClusters.value.length;
-    if (currentClusterId === modelValue.value) {
+    if (currentClusterId === localClusterId.value) {
       emits('removeTab', currentClusterId);
       // 关闭当前打开tab
-      modelValue.value = clusterCount === 0 ? 0 : selectedClusters.value[clusterCount - 1];
-      emits('change', clustersMap.value[modelValue.value as number]);
+      localClusterId.value = clusterCount === 0 ? 0 : selectedClusters.value[clusterCount - 1];
+      emits('change', clustersMap.value[localClusterId.value]);
     }
     updateClusterSelect();
   };

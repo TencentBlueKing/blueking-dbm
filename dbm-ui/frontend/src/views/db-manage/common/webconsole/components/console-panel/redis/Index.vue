@@ -3,7 +3,7 @@
     ref="consoleInputRef"
     :cluster="cluster"
     :ext-params="{
-      dbNum,
+      db_num: dbNum,
       raw,
     }"
     :placeholder="placeholder"

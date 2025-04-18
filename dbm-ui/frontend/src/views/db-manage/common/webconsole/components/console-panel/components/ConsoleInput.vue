@@ -27,7 +27,6 @@
         :disabled="Boolean(selectedText)"
         :style="{ height: realHeight }"
         :value="command"
-        @blur="handleInputBlur"
         @input="handleInputChange"
         @keydown.enter="handleClickSendCommand"
         @keyup.down="handleClickDownBtn"
@@ -37,8 +36,8 @@
   </div>
 </template>
 <script lang="ts">
-  // 未执行的命令
-  const noExecuteCommand: Record<number, string> = {};
+  // 暂存，通常仅存一条
+  const inputStash: Record<number, string[]> = {};
   // 已执行过的命令
   const executedCommands: Record<number, string[]> = {};
 
@@ -59,13 +58,12 @@
 
   import { downloadText } from '@utils';
 
-  import { useDisableTab } from './hooks/useDisableTab';
   import { useTextSelection } from './hooks/useTextSelection';
 
   export interface Props {
+    checkLineBreak?: (value: string, cursorIndex: number) => boolean;
     cluster: ServiceReturnType<typeof queryAllTypeCluster>[number];
     extParams?: Record<string, unknown>;
-    intercept?: (value: string) => boolean;
     placeholder?: string;
     preCheck?: (value: string) => string;
   }
@@ -85,15 +83,14 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    checkLineBreak: () => false,
     extParams: () => ({}),
-    intercept: () => false, // false为默认不拦截
     placeholder: '',
     preCheck: () => '',
   });
 
   const emits = defineEmits<Emits>();
 
-  useDisableTab();
   const { selectedText } = useTextSelection();
 
   const command = ref('');
@@ -101,7 +98,6 @@
   const loading = ref(false);
   const inputRef = ref();
   const realHeight = ref('52px');
-
   // 用于查找命令的索引
   let commandIndex = 0;
 
@@ -112,8 +108,15 @@
     clusterId,
     () => {
       if (clusterId.value) {
-        command.value = localPlaceholder.value + (noExecuteCommand[clusterId.value] ?? '');
+        // 初始化暂存区
+        if (!inputStash[clusterId.value]) {
+          inputStash[clusterId.value] = [];
+          command.value = localPlaceholder.value;
+        } else {
+          command.value = inputStash[clusterId.value].pop() as string;
+        }
 
+        // 初始化已执行命令区
         if (!executedCommands[clusterId.value]) {
           executedCommands[clusterId.value] = [];
           commandIndex = 0;
@@ -121,6 +124,7 @@
           commandIndex = executedCommands[clusterId.value].length;
         }
 
+        // 初始化命令行渲染区
         if (!panelInputMap[clusterId.value]) {
           panelInputMap[clusterId.value] = [];
         } else {
@@ -143,6 +147,16 @@
     });
   };
 
+  /*
+   * cmd执行之后，更新数据
+   */
+  const commandExcuted = (cmd: string, result: (typeof panelInputMap)[number][0]) => {
+    panelInputMap[clusterId.value].push(result);
+    executedCommands[clusterId.value].push(cmd);
+    commandIndex = executedCommands[clusterId.value].length;
+    command.value = localPlaceholder.value;
+  };
+
   // 回车输入指令
   const handleClickSendCommand = async (e: any) => {
     // 输入预处理
@@ -152,8 +166,13 @@
     // 截取输入的命令
     const cmd = inputValue.substring(localPlaceholder.value.length);
 
-    // 拦截
-    if (props.intercept(cmd)) {
+    // 光标位置
+    const cursorIndex = inputRef.value.selectionStart - localPlaceholder.value.length;
+
+    const isBreakLine = props.checkLineBreak(cmd, cursorIndex);
+
+    // 是否换行
+    if (isBreakLine) {
       return;
     }
 
@@ -171,12 +190,11 @@
 
     // 语句预检
     const preCheckResult = props.preCheck(cmd);
-    if (preCheckResult) {
-      const errorLine = {
+    if (preCheckResult && !isBreakLine) {
+      commandExcuted(cmd, {
         message: preCheckResult,
         type: 'error',
-      };
-      panelInputMap[clusterId.value].push(errorLine);
+      });
       return;
     }
 
@@ -192,26 +210,21 @@
       // 请求结果渲染
       if (executeResult.error_msg) {
         // 错误消息
-        const errorLine = {
+        commandExcuted(cmd, {
           message: executeResult.error_msg,
           type: 'error',
-        };
-        panelInputMap[clusterId.value].push(errorLine);
+        });
       } else {
         // 正常消息
-        const normalLine = {
+        commandExcuted(cmd, {
           message: executeResult.query,
           type: 'normal',
-        };
-        panelInputMap[clusterId.value].push(normalLine);
+        });
 
         emits('success', cmd, executeResult.query);
       }
     } finally {
       loading.value = false;
-      executedCommands[clusterId.value].push(cmd);
-      commandIndex = executedCommands[clusterId.value].length;
-      command.value = localPlaceholder.value;
       setTimeout(() => {
         inputRef.value.focus();
         consolePanelRef.value.scrollTop = consolePanelRef.value.scrollHeight - consolePanelRef.value.clientHeight;
@@ -249,41 +262,42 @@
     });
   };
 
-  // 当前tab有未执行的command暂存，切换回来回显
-  const handleInputBlur = () => {
-    if (command.value.length > localPlaceholder.value.length) {
-      noExecuteCommand[clusterId.value] = command.value.substring(localPlaceholder.value.length);
-    }
-  };
-
   // 键盘 ↑ 键
   const handleClickUpBtn = () => {
-    const cmd = command.value.substring(localPlaceholder.value.length);
+    // 光标位置
+    const cursorPosition = inputRef.value.selectionStart;
 
-    // 是否拦截
-    if (cmd && props.intercept(cmd)) {
-      return;
+    // 如果光标在命令行的起始位置，切换到上一条命令
+    if (cursorPosition === 0) {
+      // 先暂存当前输入的命令
+      if (commandIndex === executedCommands[clusterId.value].length) {
+        inputStash[clusterId.value].push(command.value);
+      }
+      commandIndex = Math.max(0, commandIndex - 1);
+      const cmd = executedCommands[clusterId.value][commandIndex] || '';
+      command.value = localPlaceholder.value + cmd;
+      checkCursorPosition();
     }
-
-    if (executedCommands[clusterId.value].length === 0 || commandIndex === 0) {
-      checkCursorPosition(true);
-      return;
-    }
-
-    commandIndex = commandIndex - 1;
-    command.value = localPlaceholder.value + executedCommands[clusterId.value][commandIndex];
-    const cursorIndex = command.value.length;
-    inputRef.value.setSelectionRange(cursorIndex, cursorIndex);
   };
 
   // 键盘 ↓ 键
   const handleClickDownBtn = () => {
-    if (executedCommands[clusterId.value].length === 0 || commandIndex === executedCommands[clusterId.value].length) {
-      return;
-    }
+    // 光标位置
+    const cursorPosition = inputRef.value.selectionStart;
 
-    commandIndex = commandIndex + 1;
-    command.value = localPlaceholder.value + (executedCommands[clusterId.value][commandIndex] ?? '');
+    // 如果光标在命令行的末尾，切换到下一条命令
+    if (cursorPosition === command.value.length) {
+      // 暂存弹出
+      if (commandIndex === executedCommands[clusterId.value].length - 1 && inputStash[clusterId.value].length === 1) {
+        command.value = inputStash[clusterId.value].pop() as string;
+        checkCursorPosition();
+        return;
+      }
+      commandIndex = Math.min(executedCommands[clusterId.value].length, commandIndex + 1);
+      const cmd = executedCommands[clusterId.value][commandIndex] || '';
+      command.value = localPlaceholder.value + cmd;
+      checkCursorPosition();
+    }
   };
 
   // 键盘 ← 键
@@ -292,38 +306,61 @@
   };
 
   // 校正光标位置
-  const checkCursorPosition = (isStartToTextEnd = false) => {
-    if (inputRef.value.selectionStart <= localPlaceholder.value.length) {
-      const cursorIndex = isStartToTextEnd ? command.value.length : localPlaceholder.value.length;
+  const checkCursorPosition = () => {
+    if (inputRef.value.selectionStart < localPlaceholder.value.length) {
+      const cursorIndex = localPlaceholder.value.length;
       inputRef.value.setSelectionRange(cursorIndex, cursorIndex);
     }
   };
 
-  const handleKeyDownEnter = (event: KeyboardEvent) => {
+  /**
+   * 当前窗口全局键盘输入事件
+   * @param {KeyboardEvent} event
+   */
+  const handleKeyDown = (event: KeyboardEvent) => {
+    if (event.key === 'Tab') {
+      event.preventDefault();
+    }
+    if (event.key === 'Home') {
+      event.preventDefault();
+      inputRef.value.focus();
+      const cursorIndex = localPlaceholder.value.length;
+      inputRef.value.setSelectionRange(cursorIndex, cursorIndex);
+    }
     if (event.key === 'Enter') {
+      // 当前textarea失焦则禁止默认行为重新聚集
+      if (document.activeElement !== inputRef.value) {
+        event.preventDefault();
+        inputRef.value.focus();
+      }
       const inputEvent = new KeyboardEvent('keyup', { key: 'Enter' });
       inputRef.value.dispatchEvent(inputEvent);
     }
   };
 
   onMounted(() => {
-    window.addEventListener('keydown', handleKeyDownEnter);
+    window.addEventListener('keydown', handleKeyDown);
   });
 
   onBeforeUnmount(() => {
-    window.removeEventListener('keydown', handleKeyDownEnter);
+    window.removeEventListener('keydown', handleKeyDown);
   });
 
   onActivated(() => {
     handleInputFocus();
   });
 
+  onDeactivated(() => {
+    if (command.value.length > localPlaceholder.value.length) {
+      inputStash[clusterId.value].push(command.value);
+    }
+  });
+
   defineExpose<Expose>({
     clearCurrentScreen(id?: number) {
       const currentClusterId = id ?? clusterId.value;
       panelInputMap[currentClusterId] = [];
-      executedCommands[currentClusterId] = [];
-      noExecuteCommand[currentClusterId] = '';
+      inputStash[currentClusterId] = [];
       command.value = localPlaceholder.value;
     },
     export() {
@@ -355,7 +392,7 @@
     },
     isInputed(id?: number) {
       const currentClusterId = id ?? clusterId.value;
-      return executedCommands[currentClusterId]?.some(Boolean) || noExecuteCommand[currentClusterId]?.length > 0;
+      return executedCommands[currentClusterId]?.some(Boolean) || inputStash[currentClusterId]?.length > 0;
     },
     updateCommand() {
       nextTick(() => {
