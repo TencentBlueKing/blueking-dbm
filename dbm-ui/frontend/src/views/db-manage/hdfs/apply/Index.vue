@@ -397,6 +397,7 @@
         },
       },
       rpc_port: 9000,
+      sub_zone_ids: [] as number[],
     },
     remark: '',
     ticket_type: 'HDFS_APPLY',

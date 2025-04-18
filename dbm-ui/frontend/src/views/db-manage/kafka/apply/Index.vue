@@ -388,6 +388,7 @@
       },
       retention_bytes: -1,
       retention_hours: 4,
+      sub_zone_ids: [] as number[],
     },
     remark: '',
     ticket_type: 'KAFKA_APPLY',
