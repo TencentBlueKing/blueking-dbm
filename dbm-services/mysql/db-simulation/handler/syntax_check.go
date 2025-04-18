@@ -252,6 +252,7 @@ func (s SyntaxHandler) ParseSQLFileRelationDb(r *gin.Context) {
 			FileNames:      param.Files,
 		},
 	}
+	defer p.DelTempDir()
 	createDbs, dbs, allCommands, dumpall, err := p.DoParseRelationDbs("")
 	if err != nil {
 		s.SendResponse(r, err, nil)
@@ -270,7 +271,7 @@ func (s SyntaxHandler) ParseSQLFileRelationDb(r *gin.Context) {
 	defer p.DelTempDir()
 	// 如果所有的命令都是alter table, dump指定库表
 	logger.Debug("debug: %v,%d", allCommands, len(allCommands))
-	if isAllOperateTable(allCommands) {
+	if isAllOperateTable(allCommands) && !dumpall {
 		relationTbls, err := p.ParseSpecialTbls("")
 		if err != nil {
 			s.SendResponse(r, err, nil)
@@ -320,7 +321,7 @@ func isAllOperateTable(allCommands []string) bool {
 	return lo.Every([]string{
 		syntax.SQLTypeAlterTable, syntax.SQLTypeUseDb,
 		syntax.SQLTypeCreateIndex, syntax.SQLTypeDropTable,
-		syntax.SQLTypeInsert, syntax.SQLTypeDelete,
+		syntax.SQLTypeInsert, syntax.SQLTypeDelete, syntax.SQLTypeUpdate,
 		syntax.SQLTypeCreateTable, syntax.SQLTypeReplace,
 	}, allCommands)
 }
@@ -358,7 +359,7 @@ func (s *SyntaxHandler) ParseSQLRelationDb(r *gin.Context) {
 			FileNames:      []string{fileName},
 		},
 	}
-	// defer p.DelTempDir()
+	defer p.DelTempDir()
 	createDbs, dbs, allCommands, dumpall, err := p.DoParseRelationDbs("")
 	if err != nil {
 		s.SendResponse(r, err, nil)
@@ -366,7 +367,7 @@ func (s *SyntaxHandler) ParseSQLRelationDb(r *gin.Context) {
 	}
 	// 如果所有的命令都是alter table, dump指定库表
 	logger.Info("all command types: %v,%d", allCommands, len(allCommands))
-	if isAllOperateTable(allCommands) {
+	if isAllOperateTable(allCommands) && !dumpall {
 		relationTbls, err := p.ParseSpecialTbls("")
 		if err != nil {
 			s.SendResponse(r, err, nil)
@@ -382,7 +383,6 @@ func (s *SyntaxHandler) ParseSQLRelationDb(r *gin.Context) {
 		})
 		return
 	}
-
 	s.SendResponse(r, nil, gin.H{
 		"create_dbs": createDbs,
 		"dbs":        dbs,

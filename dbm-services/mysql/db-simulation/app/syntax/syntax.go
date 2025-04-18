@@ -248,8 +248,9 @@ func (t *TmysqlParse) Init() (err error) {
 	return nil
 }
 
-// DelTempDir TODO
+// DelTempDir del tempDir
 func (t *TmysqlParse) DelTempDir() {
+	logger.Info("start to remove tempDir:%s", t.tmpWorkdir)
 	if err := os.RemoveAll(t.tmpWorkdir); err != nil {
 		logger.Warn("remove tempDir:" + t.tmpWorkdir + ".error info:" + err.Error())
 	}

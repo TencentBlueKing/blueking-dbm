@@ -232,6 +232,7 @@ type ParseLineQueryBase struct {
 	ErrorMsg        string `json:"error_msg,omitempty"`
 	MinMySQLVersion int    `json:"min_mysql_version"`
 	MaxMySQLVersion int    `json:"max_my_sql_version"`
+	HasSubQuery     bool   `json:"has_subquery,omitempty"`
 }
 
 // IsSysDb sql modify target db is sys db

@@ -50,7 +50,6 @@ func (tf *TmysqlParseFile) DoParseRelationDbs(version string) (createDbs, relati
 	}
 	logger.Info("all sqlfiles download ok ~")
 	alreadExecutedSqlfileChan := make(chan string, len(tf.Param.FileNames))
-
 	go func() {
 		if err = tf.Execute(alreadExecutedSqlfileChan, version); err != nil {
 			logger.Error("failed to execute tmysqlparse: %s", err.Error())
@@ -168,40 +167,41 @@ func (t *TmysqlParse) analyzeRelationDbs(inputfileName, mysqlVersion string) (
 			logger.Error("json unmasrshal line:%s failed %s", string(line), err.Error())
 			return nil, nil, nil, false, err
 		}
-		// 判断是否有语法错误
+		//  ErrorCode !=0 就是语法错误
 		if res.ErrorCode != 0 {
 			return nil, nil, nil, false, fmt.Errorf("%s", res.ErrorMsg)
 		}
-		if lo.IsNotEmpty(res.Command) {
-			if res.Command == SQLTypeCreateTable {
-				var c CreateTableResult
-				if err = json.Unmarshal(line, &c); err != nil {
-					logger.Error("json unmasrshal line:%s failed %s", string(line), err.Error())
-					return nil, nil, nil, false, err
-				}
-				// 需要排除create table like
-				if c.IsCreateTableLike || c.IsCreateTableSelect {
-					return nil, nil, allCommandType, true, nil
-				}
-			} else {
-				allCommandType = append(allCommandType, res.Command)
-			}
-		}
-		if slices.Contains([]string{SQLTypeCreateProcedure, SQLTypeCreateFunction, SQLTypeCreateView, SQLTypeCreateTrigger,
-			SQLTypeInsertSelect, SQLTypeRelaceSelect},
-			res.Command) {
-			return nil, nil, allCommandType, true, nil
-		}
-		if lo.IsEmpty(res.DbName) {
+		if lo.IsEmpty(res.Command) {
 			continue
+		}
+		if lo.IsNotEmpty(res.DbName) {
+			relationDbs = append(relationDbs, res.DbName)
 		}
 		// create db not need dump db
 		if slices.Contains([]string{SQLTypeCreateDb}, res.Command) {
 			createDbs = append(createDbs, res.DbName)
 			continue
 		}
-		relationDbs = append(relationDbs, res.DbName)
-
+		if res.HasSubQuery {
+			return nil, relationDbs, allCommandType, true, nil
+		}
+		if slices.Contains([]string{SQLTypeCreateProcedure, SQLTypeCreateFunction, SQLTypeCreateView, SQLTypeCreateTrigger,
+			SQLTypeInsertSelect, SQLTypeRelaceSelect},
+			res.Command) {
+			return nil, relationDbs, allCommandType, true, nil
+		}
+		if res.Command == SQLTypeCreateTable {
+			var c CreateTableResult
+			if err = json.Unmarshal(line, &c); err != nil {
+				logger.Error("json unmasrshal line:%s failed %s", string(line), err.Error())
+				return nil, nil, nil, false, err
+			}
+			// 需要排除create table like
+			if c.IsCreateTableLike || c.IsCreateTableSelect {
+				return nil, relationDbs, allCommandType, true, nil
+			}
+		}
+		allCommandType = append(allCommandType, res.Command)
 	}
 	return createDbs, relationDbs, allCommandType, false, nil
 }

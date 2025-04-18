@@ -185,8 +185,8 @@ func IsEmptyTdbctlPodResourceConfig() bool {
 func loadConfig() (err error) {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
-	viper.AddConfigPath("$HOME/conf")
 	viper.AddConfigPath("./conf")
+	viper.AddConfigPath("$HOME/conf")
 	if err = viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			logger.Error("config file not found,maybe read by env")
