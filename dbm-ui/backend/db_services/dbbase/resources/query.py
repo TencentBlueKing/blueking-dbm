@@ -855,8 +855,8 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "bk_agent_id": Q(bk_agent_id=query_params.get("bk_agent_id")),
             "cluster_type": Q(cluster_type=query_params.get("cluster_type")),
             "instance_role": (
-                Q(storageinstance__instance_role=query_params.get("instance_role"))
-                | Q(proxyinstance__access_layer=query_params.get("instance_role"))
+                Q(storageinstance__instance_role=query_params.get("instance_role", "").split(","))
+                | Q(proxyinstance__access_layer=query_params.get("instance_role", "").split(","))
             ),
             "instance_status": (
                 Q(storageinstance__status=query_params.get("instance_status"))

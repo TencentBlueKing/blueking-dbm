@@ -497,7 +497,10 @@ class BaseTicketFlowBuilderPatchMixin(object):
         spec_ids = set([int(spec_id) for spec_id in spec_ids if isinstance(spec_id, (int, str))])
         if not spec_ids:
             return
-        specs = {spec.spec_id: spec.get_spec_info() for spec in Spec.objects.filter(spec_id__in=spec_ids)}
+        specs = {
+            spec.spec_id: {**spec.get_spec_info(), "capacity": spec.capacity}
+            for spec in Spec.objects.filter(spec_id__in=spec_ids)
+        }
         self.ticket.details["specs"] = specs
 
     def patch_instance_details(self):

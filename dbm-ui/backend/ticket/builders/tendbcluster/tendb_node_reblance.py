@@ -37,6 +37,7 @@ class TendbNodeRebalanceDetailSerializer(TendbBaseOperateDetailSerializer):
         # 前端额外需要参数，用于详情展示
         prev_cluster_spec_name = serializers.CharField(help_text=_("变更前的规格名"))
         prev_machine_pair = serializers.CharField(help_text=_("变更前机器组数"))
+        spec_id = serializers.IntegerField(help_text=_("变更前的规格id"), required=False)
 
     infos = serializers.ListSerializer(help_text=_("集群扩缩容信息"), child=NodeRebalanceItemSerializer())
     backup_source = serializers.ChoiceField(

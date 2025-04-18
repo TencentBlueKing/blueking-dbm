@@ -285,7 +285,7 @@ class RedisProxyScaleFlow(object):
                 info.get("target_proxy_count", 0),
                 info.get("proxy_reduced_hosts", []),
             )
-            cluster_tpl = {**cluster_info, "bk_biz_id": self.data["bk_biz_id"]}
+            cluster_tpl = {**cluster_info, "bk_biz_id": self.data["bk_biz_id"], "cluster_id": info["cluster_id"]}
             act_kwargs = ActKwargs()
             act_kwargs.set_trans_data_dataclass = CommonContext.__name__
             act_kwargs.is_update_trans_data = True
