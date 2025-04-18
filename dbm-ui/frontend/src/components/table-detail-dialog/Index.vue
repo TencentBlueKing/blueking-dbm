@@ -79,7 +79,7 @@
         return true;
       }
     }
-    modelValue.value = false;
+    handleClose();
   };
 
   onMounted(() => {

@@ -31,6 +31,16 @@
       <span style="color: #f59500">{{ t('立即执行') }}</span>
     </I18nT>
   </div>
+  <div
+    v-if="data.context.action && data.context.remark"
+    class="mt-12"
+    style="line-height: 16px; color: #63656e">
+    <I18nT
+      keypath="备注：c"
+      scope="global">
+      <span>{{ data.context.remark }}</span>
+    </I18nT>
+  </div>
   <div class="mt-12">
     <I18nT
       keypath="处理人_p"
@@ -50,16 +60,6 @@
         is-timing
         :start-time="utcTimeToSeconds(flowData.start_time)"
         :value="flowData.cost_time" />
-    </I18nT>
-  </div>
-  <div
-    v-if="data.context.action && data.context.remark"
-    class="mt-12"
-    style="line-height: 16px; color: #63656e">
-    <I18nT
-      keypath="备注：c"
-      scope="global">
-      <span>{{ data.context.remark }}</span>
     </I18nT>
   </div>
   <div

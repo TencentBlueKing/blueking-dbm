@@ -1,5 +1,5 @@
 import dayjs from 'dayjs';
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, ref } from 'vue';
 
 import { useUrlSearch } from '@hooks';
 
@@ -7,8 +7,11 @@ interface IPicker {
   value: () => [Date, Date];
 }
 
+const genDefaultValue = () => ['', ''] as ['', ''];
+
+const value = ref<[Date, Date] | [string, string]>(genDefaultValue());
+
 export default () => {
-  const value = ref<[Date, Date] | [string, string]>(['', '']);
   const { getSearchParams } = useUrlSearch();
 
   const searchParams = getSearchParams();
@@ -63,6 +66,10 @@ export default () => {
       };
     }
     return {};
+  });
+
+  onBeforeUnmount(() => {
+    value.value = genDefaultValue();
   });
 
   return {
