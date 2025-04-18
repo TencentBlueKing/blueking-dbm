@@ -17,26 +17,26 @@
     :key="index">
     <strong class="ticket-details-info-title">{{ item.nodeText }}</strong>
     <InfoList>
-      <InfoItem :label="t('集群：')">
+      <InfoItem :label="t('集群')">
         {{ item.clusterName }}
       </InfoItem>
-      <InfoItem :label="t('集群ID：')">
+      <InfoItem :label="t('集群ID')">
         {{ item.clusterId }}
       </InfoItem>
-      <InfoItem :label="t('服务器选择方式：')">
+      <InfoItem :label="t('服务器选择方式')">
         {{ item.isManulSelect ? t('从资源池手动选择') : t('从资源池自动匹配') }}
       </InfoItem>
-      <InfoItem :label="t('缩容容量：')">
+      <InfoItem :label="t('缩容容量')">
         {{ t('当前m_G_缩容后预估n_G', { m: item.totalDisk, n: item.totalDisk - item.shrinkDisk }) }}
       </InfoItem>
-      <InfoItem :label="t('缩容数量：')">
+      <InfoItem :label="t('缩容数量')">
         {{ t('n台', [item.count]) }}({{
           t('当前n台_缩容至m台', { n: item.totalHost, m: item.totalHost - item.count })
         }})
       </InfoItem>
       <InfoItem
         v-if="item.isManulSelect"
-        :label="t('已选IP：')">
+        :label="t('已选IP')">
         <BkTable :data="item.hostList">
           <BkTableColumn
             field="ip"
