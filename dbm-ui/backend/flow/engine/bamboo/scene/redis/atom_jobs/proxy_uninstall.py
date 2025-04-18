@@ -61,7 +61,7 @@ def ProxyUnInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, param: Di
     act_kwargs.cluster = {
         "bk_biz_id": sub_kwargs.cluster["bk_biz_id"],
         "bk_cloud_id": sub_kwargs.cluster["bk_cloud_id"],
-        "cluster_id": sub_kwargs.cluster["cluster_id"],
+        "cluster_id": sub_kwargs.cluster.get("cluster_id", "0000000000"),
         "immute_domain": sub_kwargs.cluster["immute_domain"],
         "cluster_type": sub_kwargs.cluster["cluster_type"],
         "cluster_name": sub_kwargs.cluster["cluster_name"],

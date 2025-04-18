@@ -12,7 +12,6 @@ import datetime
 import json
 import logging
 
-from django.utils import timezone
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
@@ -45,12 +44,12 @@ def send_msg_2_qywx(sub_title: str, msgs):
     redis_DBA = DBAdministrator.get_biz_db_type_admins(bk_biz_id=bk_biz_id, db_type=DBType.Redis.value)
     app_info = AppCache.objects.get(bk_biz_id=bk_biz_id)
 
-    content = _(">> Tendis-{}\n".format(sub_title))
+    content = _("=>>   {}\n".format(sub_title))
     for k, v in msgs.items():
         if k == "BKID":
             content += _("业务信息 : {}(#{},{})\n".format(app_info.bk_biz_name, app_info.bk_biz_id, app_info.db_app_abbr))
             content += _("业务DBA : {}(@{})\n".format(redis_DBA[0], redis_DBA[0]))
         else:
             content += _("{} : {}\n".format(k, v))
-    content += _("消息时间 : {}\n".format(date2str(datetime.datetime.now(timezone.utc), "%Y-%m-%d %H:%M:%S")))
+    content += _("消息时间 : {}\n".format(date2str(datetime.datetime.now(), "%Y-%m-%d %H:%M:%S")))
     CmsiHandler(_("Tendis自愈"), content, msg_ids).send_wecom_robot()
