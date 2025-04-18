@@ -42,11 +42,11 @@ var GetWinDiskScrip embed.FS
 
 const (
 	// 快速执行脚本
-	fast_execute_script_uri = "/api/v3/fast_execute_script"
+	fast_execute_script_uri = "/fast_execute_script"
 	// 查询作业执行状态
-	get_job_status_uri = "/api/v3/get_job_instance_status"
+	get_job_status_uri = "/get_job_instance_status"
 	// 根据ip列表批量查询作业执行日志
-	batch_get_job_instance_ip_log_uri = "/api/v3/batch_get_job_instance_ip_log"
+	batch_get_job_instance_ip_log_uri = "/batch_get_job_instance_ip_log"
 )
 
 // FastExecuteScriptParam TODO

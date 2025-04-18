@@ -37,7 +37,7 @@ func NewListBizHosts(client *Client) *ListBizHosts {
 func NewListBizHostsGw(client *Client, bkBizId string) *ListBizHosts {
 	return &ListBizHosts{
 		client: client,
-		url:    fmt.Sprintf("/api/v3/hosts/app/%s/list_hosts", bkBizId),
+		url:    fmt.Sprintf("/hosts/app/%s/list_hosts", bkBizId),
 	}
 }
 
