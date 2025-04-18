@@ -69,7 +69,7 @@
   const columns = [
     {
       field: 'ip',
-      label: t('节点实例'),
+      label: t('节点 IP'),
       render: ({ data }: { data: RiakNodeModel }) => <span>{data.ip || '--'}</span>,
     },
     {
@@ -79,14 +79,9 @@
       width: 100,
     },
     {
-      field: 'cpu',
-      label: t('CPU内存'),
-      render: ({ data }: { data: RiakNodeModel }) => <span>{data.cpu || '--'}</span>,
-    },
-    {
-      field: 'bk_host_name',
-      label: t('机型'),
-      render: ({ data }: { data: RiakNodeModel }) => <span>{data.bk_host_name || '--'}</span>,
+      field: 'disk',
+      label: t('磁盘容量(G)'),
+      render: ({ data }: { data: RiakNodeModel }) => <span>{data.disk || '--'}</span>,
     },
   ];
 
@@ -146,7 +141,6 @@
                   cluster_id: props.data.id,
                   old_nodes: {
                     riak: selectedList.map((nodeItem: RiakNodeModel) => ({
-                      bk_biz_id: currentBizId,
                       bk_cloud_id: nodeItem.bk_cloud_id,
                       bk_host_id: nodeItem.bk_host_id,
                       ip: nodeItem.ip,

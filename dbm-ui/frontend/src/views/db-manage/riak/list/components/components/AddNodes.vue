@@ -25,10 +25,10 @@
         required>
         <BkRadioGroup v-model="formData.ip_source">
           <BkRadioButton label="resource_pool">
-            {{ t('自动从资源池匹配') }}
+            {{ t('资源池自动匹配') }}
           </BkRadioButton>
           <BkRadioButton label="manual_input">
-            {{ t('业务空闲机') }}
+            {{ t('资源池手动选择') }}
           </BkRadioButton>
         </BkRadioGroup>
       </BkFormItem>
@@ -72,29 +72,52 @@
             :label="t('服务器')"
             property="nodes"
             required>
-            <IpSelector
-              :biz-id="currentBizId"
-              :cloud-info="{
-                id: data.bk_cloud_id,
-                name: data.bk_cloud_name,
+            <BkButton @click="handleShowSelector">
+              <i class="db-icon-add" />
+              {{ t('添加服务器') }}
+            </BkButton>
+            <ResourceHostSelector
+              v-model:is-show="isShowSelector"
+              :params="{
+                for_bizs: [currentBizId, 0],
+                resource_types: [DBTypes.RIAK, 'PUBLIC'],
               }"
-              :data="formData.nodes"
-              :disable-dialog-submit-method="disableHostSubmitMethods"
-              :os-types="[OSTypes.Linux]"
-              @change="handleProxyIpChange">
-              <template #desc>
-                {{ t('至少n台', { n: 1 }) }}
-              </template>
-              <template #submitTips="{ hostList }">
-                <I18nT
-                  keypath="至少n台_已选n台"
-                  style="font-size: 14px; color: #63656e"
-                  tag="span">
-                  <span style="font-weight: bold; color: #2dcb56"> 1 </span>
-                  <span style="font-weight: bold; color: #3a84ff"> {{ hostList.length }} </span>
-                </I18nT>
-              </template>
-            </IpSelector>
+              :selected="formData.nodes"
+              @change="handleHostChange" />
+            <BkTable
+              v-if="formData.nodes.length"
+              class="mt-16"
+              :data="formData.nodes">
+              <BkTableColumn
+                field="ip"
+                :label="t('节点 IP')"
+                :min-width="150"
+                :width="250" />
+              <BkTableColumn
+                field="agent_status"
+                :label="t('Agent状态')"
+                :min-width="150">
+                <template #default="{ row }">
+                  <RenderHostStatus :data="row.agent_status" />
+                </template>
+              </BkTableColumn>
+              <BkTableColumn
+                field="bk_disk"
+                :label="t('磁盘容量(G)')"
+                :min-width="150" />
+              <BkTableColumn
+                :label="t('操作')"
+                :min-width="150">
+                <template #default="{ row }">
+                  <BkButton
+                    text
+                    theme="primary"
+                    @click="handleDeleteNode(row)">
+                    {{ t('删除') }}
+                  </BkButton>
+                </template>
+              </BkTableColumn>
+            </BkTable>
           </BkFormItem>
         </div>
       </Transition>
@@ -111,11 +134,10 @@
 
   import { useTicketMessage } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
-  import { ClusterTypes, OSTypes, TicketTypes } from '@common/const';
-
-  import IpSelector from '@components/ip-selector/IpSelector.vue';
+  import RenderHostStatus from '@components/render-host-status/Index.vue';
+  import ResourceHostSelector, { type IValue } from '@components/resource-host-selector/Index.vue';
 
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
 
@@ -135,7 +157,7 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-  const { currentBizId } = useGlobalBizs();
+  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
   const ticketMessage = useTicketMessage();
 
   const formRules = {
@@ -160,18 +182,24 @@
   const formData = reactive({
     count: 1,
     ip_source: 'resource_pool',
-    nodes: [] as HostInfo[],
+    nodes: [] as IValue[],
     spec_id: '',
   });
+  const isShowSelector = ref(false);
 
-  const disableHostSubmitMethods = (hostList: Array<HostInfo[]>) =>
-    hostList.length < 1 ? t('至少n台', { n: 1 }) : false;
+  const handleShowSelector = () => {
+    isShowSelector.value = true;
+  };
 
-  const handleProxyIpChange = (data: HostInfo[]) => {
+  const handleHostChange = (data: IValue[]) => {
     formData.nodes = data;
     if (formData.nodes.length > 0) {
       nodesRef.value.clearValidate();
     }
+  };
+
+  const handleDeleteNode = (row: IValue) => {
+    formData.nodes = formData.nodes.filter((nodeItem) => nodeItem.ip !== row.ip);
   };
 
   defineExpose<Expose>({
@@ -183,7 +211,7 @@
         bk_biz_id: currentBizId,
         details: {
           cluster_id: props.data.id,
-          ip_source: ipSource,
+          ip_source: 'resource_pool',
         },
         ticket_type: TicketTypes.RIAK_CLUSTER_SCALE_OUT,
       };
@@ -199,14 +227,18 @@
         });
       } else {
         Object.assign(params.details, {
-          nodes: {
-            riak: formData.nodes.map((nodeItem) => ({
-              alive: nodeItem.alive,
-              bk_cloud_id: nodeItem.cloud_id,
-              bk_disk: nodeItem.bk_disk,
-              bk_host_id: nodeItem.host_id,
-              ip: nodeItem.ip,
-            })),
+          resource_spec: {
+            riak: {
+              count: formData.nodes.length,
+              hosts: formData.nodes.map((nodeItem) => ({
+                agent_status: nodeItem.agent_status,
+                bk_cloud_id: nodeItem.bk_cloud_id,
+                bk_disk: nodeItem.bk_disk,
+                bk_host_id: nodeItem.bk_host_id,
+                ip: nodeItem.ip,
+              })),
+              spec_id: 1,
+            },
           },
         });
       }
