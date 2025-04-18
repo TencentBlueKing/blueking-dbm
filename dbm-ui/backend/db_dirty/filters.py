@@ -52,10 +52,12 @@ class DirtyMachinePoolFilter(filters.FilterSet):
     rack_id = filters.CharFilter(field_name="rack_id", lookup_expr="icontains", label=_("机架"))
     device_class = filters.CharFilter(field_name="device_class", lookup_expr="icontains", label=_("机型"))
     os_name = filters.CharFilter(field_name="os_name", lookup_expr="icontains", label=_("操作系统"))
+    update_at__lte = filters.DateTimeFilter(field_name="update_at", lookup_expr="lte", label=_("更新时间早于"))
+    update_at__gte = filters.DateTimeFilter(field_name="update_at", lookup_expr="gte", label=_("更新时间晚于"))
 
     def filter_ips(self, queryset, name, value):
         return queryset.filter(ip__in=value.split(","))
 
     class Meta:
         model = DirtyMachine
-        fields = {"creator": ["exact"], "pool": ["exact"]}
+        fields = {"updater": ["exact"], "pool": ["exact"]}

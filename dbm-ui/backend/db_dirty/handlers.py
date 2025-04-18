@@ -17,10 +17,12 @@ from django.utils.translation import ugettext as _
 
 from backend import env
 from backend.components.dbresource.client import DBResourceApi
+from backend.components.hcm.client import HCMApi
 from backend.db_dirty.constants import MachineEventType, PoolType
 from backend.db_dirty.exceptions import PoolTransferException
 from backend.db_dirty.models import DirtyMachine, MachineEvent
 from backend.db_meta.models import Machine
+from backend.env import HCM_APIGW_DOMAIN
 from backend.flow.utils.cc_manage import CcManage
 
 logger = logging.getLogger("root")
@@ -33,7 +35,13 @@ class DBDirtyMachineHandler(object):
 
     @classmethod
     def transfer_hosts_to_pool(
-        cls, operator: str, bk_host_ids: List[int], source: PoolType, target: PoolType, remark: str = ""
+        cls,
+        operator: str,
+        bk_host_ids: List[int],
+        source: PoolType,
+        target: PoolType,
+        remark: str = "",
+        hcm_recycle: bool = False,
     ):
         """
         将主机转移待回收/故障池模块
@@ -42,20 +50,31 @@ class DBDirtyMachineHandler(object):
         @param source: 主机来源
         @param target: 主机去向
         @param remark: 备注
+        @param hcm_recycle: 是否在hcm创建回收单据，仅针对主机回收场景
         """
-        # 将主机按照业务分组
+        bk_biz_id = env.DBA_APP_BK_BIZ_ID
         recycle_hosts = DirtyMachine.objects.filter(bk_host_id__in=bk_host_ids)
         hosts = [{"bk_host_id": host.bk_host_id} for host in recycle_hosts]
-        bk_biz_id = env.DBA_APP_BK_BIZ_ID
+        recycle_id = None
+
         # 待回收 ---> 回收
         if source == PoolType.Recycle and target == PoolType.Recycled:
-            MachineEvent.host_event_trigger(bk_biz_id, hosts, MachineEventType.Recycled, operator, remark=remark)
+            message = _("主机删除成功！")
             CcManage(bk_biz_id, "").recycle_host(bk_host_ids)
+            # 如果配置了hcm，并且确认在hcm回收，则自动创建回收单据
+            if HCM_APIGW_DOMAIN and hcm_recycle:
+                recycle_id = HCMApi.create_recycle(bk_host_ids)
+                remark = _("已自动在「海垒」创建回收单据(单号：{})").format(recycle_id)
+                message += remark
+            MachineEvent.host_event_trigger(bk_biz_id, hosts, MachineEventType.Recycled, operator, remark=remark)
         # 故障池 ---> 待回收
         elif source == PoolType.Fault and target == PoolType.Recycle:
+            message = _("主机转移成功！")
             MachineEvent.host_event_trigger(bk_biz_id, hosts, MachineEventType.ToRecycle, operator, remark=remark)
         else:
             raise PoolTransferException(_("{}--->{}转移不合法").format(source, target))
+
+        return {"message": message, "hcm_recycle_id": recycle_id}
 
     @classmethod
     def migrate_machine_to_host_pool(cls):

@@ -9,8 +9,9 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 See the License for the specific language governing permissions and limitations under the License.
 """
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
+from ... import env
 from .. import CCApi
 from ..base import BaseApi
 from ..domains import HCM_APIGW_DOMAIN
@@ -36,6 +37,11 @@ class _HCMApi(BaseApi):
             url="/api/v1/woa/bizs/{bk_biz_id}/task/hosts/uwork_tickets/status/check/",
             description=_("检查主机是否有未完结的uwork单据"),
         )
+        self.create_biz_recycle = self.generate_data_api(
+            method="POST",
+            url="/api/v1/woa/bizs/{bk_biz_id}/task/create/recycle/order",
+            description=_("创建业务下的资源回收单据"),
+        )
 
     def check_host_is_dissolved(self, bk_host_ids: list):
         if not HCM_APIGW_DOMAIN:
@@ -58,6 +64,17 @@ class _HCMApi(BaseApi):
         resp = self.uwork_check(params={"bk_biz_id": biz, "bk_host_ids": bk_host_ids}, use_admin=True)
         has_uwork_hosts_map = {d["bk_host_id"]: d for d in resp["details"] if d["has_open_tickets"]}
         return has_uwork_hosts_map
+
+    def create_recycle(self, bk_host_ids: list):
+        params = {
+            "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+            "bk_host_ids": bk_host_ids,
+            "remark": "dbm auto create",
+            # 回收策略固定是：立刻销毁
+            "return_plan": {"cvm": "IMMEDIATE", "pm": "IMMEDIATE"},
+        }
+        resp = self.create_biz_recycle(params=params)
+        return resp["info"][0]["order_id"]
 
 
 HCMApi = _HCMApi()

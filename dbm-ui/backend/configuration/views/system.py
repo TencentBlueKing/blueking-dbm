@@ -122,6 +122,7 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
                     "BK_SCR_URL": env.BK_SCR_URL,
                     "BKDATA_FRONTEND_REPORT_URL": BKBaseApi.get_bkdata_frontend_report_url(),
                     "BKMONITOR_URL": env.BKMONITOR_URL,
+                    "BK_HCM_URL": env.BK_HCM_URL,
                 }
             )
         return Response(envs)

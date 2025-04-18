@@ -15,6 +15,7 @@ from rest_framework import serializers
 
 from backend import env
 from backend.components.hcm.client import HCMApi
+from backend.components.xwork.client import XworkApi
 from backend.configuration.constants import DBType
 from backend.constants import INT_MAX
 from backend.db_dirty.constants import MachineEventType
@@ -58,18 +59,24 @@ class ResourceImportSerializer(serializers.Serializer):
         # 如果主机存在元数据，则拒绝导入
         exist_hosts = list(Machine.objects.filter(bk_host_id__in=host_ids).values_list("ip", flat=True))
         if exist_hosts:
-            raise serializers.ValidationError(_("导入主机{}存在元数据，请检查后重新导入").format(exist_hosts))
+            raise serializers.ValidationError(_("导入失败，主机{}存在元数据，请检查后重新导入").format(exist_hosts))
 
         # 存在uwork或者是待裁撤主机，则不允许导入
-        check_work = HCMApi.check_host_has_uwork(host_ids)
-        if check_work:
-            ips = [host_id__ip_map[host_id] for host_id in check_work.keys()]
-            raise serializers.ValidationError(_("导入主机{}存在uwork单据，请处理后重新导入").format(ips))
+        check_uwork = HCMApi.check_host_has_uwork(host_ids)
+        if check_uwork:
+            ips = [host_id__ip_map[host_id] for host_id in check_uwork.keys()]
+            raise serializers.ValidationError(_("导入失败，检测主机{}有关联的uwork单据，请检查后重新导入").format(ips))
+
+        host_ip__host_id_map = {host["ip"]: host["host_id"] for host in attrs["hosts"]}
+        check_xwork = XworkApi.check_xwork_list(host_ip__host_id_map)
+        if check_xwork:
+            ips = [host_id__ip_map[host_id] for host_id in check_xwork.keys()]
+            raise serializers.ValidationError(_("导入失败，检测主机{}有关联的xwork单据，请检查后重新导入").format(ips))
 
         check_dissolved = HCMApi.check_host_is_dissolved(host_ids)
         if check_dissolved:
             ips = [host_id__ip_map[host_id] for host_id in check_dissolved]
-            raise serializers.ValidationError(_("导入主机包含裁撤主机:{}，无法进行导入").format(ips))
+            raise serializers.ValidationError(_("导入失败，检测主机{}为待裁撤主机，请检查后重新导入").format(ips))
 
         return attrs
 

@@ -55,8 +55,7 @@ class DBDirtyMachineViewSet(viewsets.SystemViewSet):
     @action(detail=False, methods=["POST"], serializer_class=TransferDirtyMachineSerializer)
     def transfer_hosts_to_pool(self, request):
         data = self.params_validate(self.get_serializer_class())
-        DBDirtyMachineHandler.transfer_hosts_to_pool(operator=request.user.username, **data)
-        return Response()
+        return Response(DBDirtyMachineHandler.transfer_hosts_to_pool(operator=request.user.username, **data))
 
     @common_swagger_auto_schema(
         operation_summary=_("机器事件列表"),

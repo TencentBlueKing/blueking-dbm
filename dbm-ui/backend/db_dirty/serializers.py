@@ -24,6 +24,7 @@ class TransferDirtyMachineSerializer(serializers.Serializer):
     source = serializers.ChoiceField(help_text=_("主机来源"), choices=PoolType.get_choices())
     target = serializers.ChoiceField(help_text=_("主机去向"), choices=PoolType.get_choices())
     remark = serializers.CharField(help_text=_("备注"), required=False)
+    hcm_recycle = serializers.BooleanField(help_text=_("是否从海磊自动回收"), required=False, default=False)
 
 
 class ListMachineEventSerializer(serializers.ModelSerializer):

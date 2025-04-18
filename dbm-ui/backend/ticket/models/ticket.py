@@ -21,6 +21,7 @@ from backend import env
 from backend.bk_web.constants import LEN_L_LONG, LEN_LONG, LEN_NORMAL, LEN_SHORT
 from backend.bk_web.models import AuditedModel
 from backend.components.hcm.client import HCMApi
+from backend.components.xwork.client import XworkApi
 from backend.configuration.constants import PLAT_BIZ_ID, DBType, SystemSettingsEnum
 from backend.configuration.models import BizSettings, DBAdministrator, SystemSettings
 from backend.db_monitor.exceptions import AutofixException
@@ -287,9 +288,14 @@ class Ticket(AuditedModel):
         # 存在uwork的主机需要回到故障池，存在裁撤单的主机需要回到待回收池，否则退回资源池
         dissolved_hosts = HCMApi.check_host_is_dissolved(host_ids)
         uwork_hosts = HCMApi.check_host_has_uwork(host_ids)
+        host_ip__host_id_map = {host["ip"]: host["bk_host_id"] for host in hosts}
+        xwork_hosts = XworkApi.check_xwork_list(host_ip__host_id_map)
         for host in hosts:
             if host["bk_host_id"] in uwork_hosts.keys():
                 host.update(remark=_("检测主机有关联的uwork单据"))
+                fault_hosts.append(host)
+            elif host["bk_host_id"] in xwork_hosts.keys():
+                host.update(remark=_("检测主机有关联的xwork单据"))
                 fault_hosts.append(host)
             elif host["bk_host_id"] in dissolved_hosts:
                 host.update(remark=_("检测主机为待裁撤主机"))
