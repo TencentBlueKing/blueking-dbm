@@ -54,6 +54,8 @@
       (moduleItem) => moduleItem.default.name === props.data.ticket_type,
     );
 
+    console.log(renderResourcePoolModule, isResourcePool);
+
     if (isResourcePool && renderResourcePoolModule) {
       return renderResourcePoolModule.default;
     }
