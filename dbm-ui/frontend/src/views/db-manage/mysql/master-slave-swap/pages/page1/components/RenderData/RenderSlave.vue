@@ -13,29 +13,26 @@
 
 <template>
   <div class="render-slave-box">
-    <BkLoading :loading="isLoading">
-      <TableEditSelect
-        ref="editRef"
-        v-model="localValue"
-        :list="slaveHostSelectList"
-        :placeholder="t('请输入选择从库')"
-        :rules="rules" />
-    </BkLoading>
+    <RenderText
+      ref="editRef"
+      :data="localValue"
+      :is-loading="isLoading"
+      :placeholder="t('选择主库主机后自动生成')"
+      :rules="rules" />
   </div>
 </template>
 <script lang="ts">
   const singleHostSelectMemo: { [key: string]: Record<string, boolean> } = {};
 </script>
 <script setup lang="ts">
-  import _ from 'lodash';
-  import { ref, shallowRef, watch } from 'vue';
+  import { ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { getIntersectedSlaveMachinesFromClusters } from '@services/source/mysqlCluster';
 
   import { useGlobalBizs } from '@stores';
 
-  import TableEditSelect, { type IListItem } from '@components/render-table/columns/select/index.vue';
+  import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
   import { random } from '@utils';
 
@@ -69,11 +66,13 @@
 
   const editRef = ref();
   const localValue = ref('');
+  const slaveData = reactive({
+    bk_biz_id: currentBizId,
+    bk_cloud_id: 0,
+    bk_host_id: 0,
+    ip: '',
+  });
   const isLoading = ref(false);
-
-  const slaveHostSelectList = shallowRef<IListItem[]>([]);
-
-  let allSlaveHostList: ISlaveHost[] = [];
 
   const rules = [
     {
@@ -91,20 +90,19 @@
         localValue.value = '';
       }
 
-      slaveHostSelectList.value = [];
-      allSlaveHostList = [];
       if (props.clusterList.length > 0) {
         isLoading.value = true;
         getIntersectedSlaveMachinesFromClusters({
           bk_biz_id: currentBizId,
           cluster_ids: props.clusterList,
+          is_stand_by: true,
         })
           .then((data) => {
-            slaveHostSelectList.value = data.map((hostData) => ({
-              label: hostData.ip,
-              value: genHostKey(hostData),
-            }));
-            allSlaveHostList = data;
+            const [slave] = data;
+            if (slave) {
+              localValue.value = genHostKey(slave);
+              Object.assign(slaveData, slave);
+            }
           })
           .finally(() => {
             isLoading.value = false;
@@ -121,9 +119,8 @@
       return editRef.value
         .getValue()
         .then(() => {
-          const slaveHostData = _.find(allSlaveHostList, (item) => genHostKey(item) === localValue.value);
           return {
-            slave_ip: slaveHostData,
+            slave_ip: slaveData,
           };
         })
         .catch(() =>
