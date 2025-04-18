@@ -286,6 +286,10 @@ func (c *ImportSchemaFromBackendComp) migrateUseMydumper() (err error) {
 // migrateUseMysqlDump 运行备份表结构
 // nolint
 func (c *ImportSchemaFromBackendComp) migrateUseMysqlDump() (err error) {
+	if len(c.dumpDbs) == 0 {
+		logger.Info("当前没有需要拷贝的表，请检查，直接返回")
+		return nil
+	}
 	dumpOption := mysqlutil.MySQLDumpOption{
 		DumpSchema:              true,
 		NoCreateDb:              true,
