@@ -15,22 +15,32 @@
   <DbCard :title="t('地域要求')">
     <DisasterToleranceLevelItem
       v-model="modelValue.disaster_tolerance_level"
-      is-bigdata />
+      type="bigdata" />
     <CityCodeItem v-model="modelValue" />
+    <SubzonesItem
+      v-if="showSubZoneItem"
+      v-model="modelValue.sub_zone_ids"
+      :city-code="modelValue.city_code"
+      :disaster-tolerance-level="modelValue.disaster_tolerance_level" />
   </DbCard>
 </template>
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import { Affinity } from '@common/const';
+
   import CityCodeItem from './components/CityCode.vue';
   import DisasterToleranceLevelItem from './components/DisasterToleranceLevel.vue';
+  import SubzonesItem from './components/Subzones.vue';
 
   interface Expose {
     getValue: () => {
       affinity: string;
       location_spec: {
         city: string;
+        include_or_exclue?: boolean;
+        sub_zone_ids?: number[];
       };
     };
   }
@@ -39,15 +49,32 @@
     city_code: string;
     city_name?: string;
     disaster_tolerance_level: string;
+    sub_zone_ids: number[];
   }>({
     required: true,
   });
 
   const { t } = useI18n();
 
+  const showSubZoneItem = computed(
+    () => modelValue.value.disaster_tolerance_level === Affinity.NONE && modelValue.value.city_code !== 'default',
+  );
+
   defineExpose<Expose>({
     getValue() {
-      const { city_code: city, disaster_tolerance_level: affinity } = modelValue.value;
+      const { city_code: city, disaster_tolerance_level: affinity, sub_zone_ids: subZoneIds } = modelValue.value;
+
+      // 无容灾要求且指定地域
+      if (affinity === Affinity.NONE && subZoneIds.length > 0) {
+        return {
+          affinity,
+          location_spec: {
+            city,
+            include_or_exclue: true,
+            sub_zone_ids: subZoneIds,
+          },
+        };
+      }
 
       return {
         affinity,

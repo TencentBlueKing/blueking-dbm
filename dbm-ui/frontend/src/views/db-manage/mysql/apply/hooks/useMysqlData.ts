@@ -18,7 +18,7 @@ import { useI18n } from 'vue-i18n';
 import { getInfrasHostSpecs } from '@services/source/infras';
 import type { HostInfo } from '@services/types';
 
-import { type MysqlTypeString } from '@common/const';
+import { Affinity, type MysqlTypeString } from '@common/const';
 
 type FetchState = {
   hostSpecs: ServiceReturnType<typeof getInfrasHostSpecs>;
@@ -33,7 +33,7 @@ const getFormData = (type: string) => ({
     cluster_count: 1,
     db_app_abbr: '',
     db_module_id: null as null | number,
-    disaster_tolerance_level: '', // 同 affinity
+    disaster_tolerance_level: Affinity.NONE, // 同 affinity
     domains: [{ key: '' }],
     inst_num: 1,
     ip_source: 'resource_pool',
