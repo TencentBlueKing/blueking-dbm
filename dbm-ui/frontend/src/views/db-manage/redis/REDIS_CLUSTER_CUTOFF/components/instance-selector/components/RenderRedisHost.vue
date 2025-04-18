@@ -82,7 +82,6 @@
       name: string;
       obj: 'biz' | 'cluster';
     };
-    role?: string;
     tableSettings: InstanceType<typeof Table>['$props'];
   }
 
@@ -262,20 +261,20 @@
     {
       field: 'ip',
       fixed: 'left',
-      label: props.role ? props.role.charAt(0).toUpperCase() + props.role.slice(1) : t('实例'),
+      label: 'IP',
       minWidth: 160,
     },
     {
       field: 'instance_role',
+      filter: {
+        checked: columnCheckedMap.value.role,
+        list: [
+          { text: 'redis_master', value: 'redis_master' },
+          { text: 'redis_slave', value: 'redis_slave' },
+          { text: 'proxy', value: 'proxy' },
+        ],
+      },
       label: t('角色类型'),
-      // filter: {
-      //   list: [
-      //     { text: 'master', value: 'master' },
-      //     { text: 'slave', value: 'slave' },
-      //     { text: 'proxy', value: 'proxy' },
-      //   ],
-      //   checked: columnCheckedMap.value.role,
-      // },
       render: ({ data }: TableItem) => <span>{data.instance_role}</span>,
       showOverflowTooltip: true,
     },

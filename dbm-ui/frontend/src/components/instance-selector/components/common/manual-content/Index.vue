@@ -266,15 +266,7 @@
               `${item[props.manualConfig.checkKey]}_${item.bk_cloud_id}`,
           );
         if (!isExisted) {
-          lastValues[type].push({
-            bk_cloud_id: item.host_info.cloud_id,
-            bk_host_id: item.bk_host_id,
-            cluster_id: item.cluster_id,
-            cluster_type: item.cluster_type,
-            instance_address: item.instance_address,
-            ip: item.ip,
-            port: item.port,
-          } as IValue);
+          lastValues[type].push(item as IValue);
         }
       }
       emits('change', {

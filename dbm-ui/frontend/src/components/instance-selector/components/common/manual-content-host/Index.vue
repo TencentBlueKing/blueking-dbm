@@ -250,22 +250,7 @@
               `${item[props.manualConfig.checkKey]}_${item.bk_cloud_id}`,
           );
         if (!isExisted) {
-          lastValues[type].push({
-            bk_cloud_id: item.bk_cloud_id,
-            bk_cloud_name: item.bk_cloud_name,
-            bk_host_id: item.bk_host_id,
-            cluster_id: item.related_clusters[0].id,
-            cluster_type: '',
-            instance_address: '',
-            ip: item.ip,
-            master_domain: item.related_clusters[0].immute_domain,
-            port: 0,
-            related_instances: (item.related_instances || []).map((instanceItem) => ({
-              instance: instanceItem.instance,
-              status: instanceItem.status,
-            })),
-            spec_config: item.spec_config,
-          } as IValue);
+          lastValues[type].push(item as IValue);
         }
       }
       emits('change', {
