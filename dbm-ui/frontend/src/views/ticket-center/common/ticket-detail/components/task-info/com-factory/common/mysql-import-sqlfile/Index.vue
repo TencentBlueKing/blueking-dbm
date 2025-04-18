@@ -35,7 +35,7 @@
     </InfoItem>
     <InfoItem
       :label="t('目标集群')"
-      style="flex: 1 0 100%">
+      style="flex: 1 0 100%; overflow: hidden">
       <BkTable :data="targetClusterData">
         <BkTableColumn
           :label="t('集群')"
@@ -63,7 +63,7 @@
     </InfoItem>
     <InfoItem
       :label="t('目标DB')"
-      style="flex: 1 0 100%; margin-top: 10px">
+      style="flex: 1 0 100%; margin-top: 10px; overflow: hidden">
       <BkTable :data="ticketDetails.details.execute_objects">
         <BkTableColumn :label="t('变更的 DB')">
           <template #default="{ data }: { data: TargetDbRow }">

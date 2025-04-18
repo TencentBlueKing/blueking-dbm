@@ -56,7 +56,7 @@
       <RouterBack />
     </template>
     <DbRouterView
-      :key="route.name"
+      :key="route.path"
       style="height: 100%" />
   </Layout>
   <SystemVersionLog v-model:is-show="isShowSystemVersionLog" />
