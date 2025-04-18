@@ -133,9 +133,11 @@
 
   const collapseExpandIndex = ref<number[]>([0]);
 
-  const renderGroupData = computed(() => {
+  const renderGroupData = shallowRef<{ data: IResouce[]; groupName: string }[]>([]);
+
+  watchEffect(() => {
     const nodes = props.ticketDetail.details.nodes;
-    return Object.keys(nodes).map((nodeName) => {
+    renderGroupData.value = Object.keys(nodes).map((nodeName) => {
       const nodeDataList = nodes[nodeName];
       if (nodeDataList[0].ip) {
         return {
@@ -159,6 +161,7 @@
         groupName: nodeName,
       };
     });
+    collapseExpandIndex.value = renderGroupData.value.map((item, index) => index);
   });
 
   const handleCopyIp = (data: IResouce[], event: Event) => {

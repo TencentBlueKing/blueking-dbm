@@ -67,6 +67,9 @@
   };
 
   const handleClickClose = (event: Event) => {
+    if (!modelValue.value) {
+      return;
+    }
     const eventPath = event.composedPath() as HTMLElement[];
 
     for (const ele of eventPath) {
