@@ -245,7 +245,7 @@ def save_swithed_host_by_cluster(batch_small: int, switch_hosts: Dict):
 
 # 把需要忽略自愈的保存起来
 def save_ignore_host(switched_host: RedisSwitchHost, msg):
-    rst = RedisIgnoreAutofix.objects.update_or_create(
+    RedisIgnoreAutofix.objects.update_or_create(
         bk_cloud_id=DEFAULT_BK_CLOUD_ID,
         bk_biz_id=switched_host.bk_biz_id,
         cluster_id=switched_host.cluster_id,
@@ -273,6 +273,7 @@ def save_ignore_host(switched_host: RedisSwitchHost, msg):
         msgs[_("BKID")] = switched_host.bk_biz_id
         msgs[_("故障IP")] = switched_host.ip
         msgs[_("实例类型")] = switched_host.instance_type
-        msgs[_("ByDBHA")] = json.dumps(switched_host.sw_result)
-        msgs[_("xxxxxx")] = rst
+        msgs[_("ByDBHA")] = _(
+            "待切换的实例:{}".format(list(set(switched_host.cluster_ports) - set((switched_host.sw_result))))
+        )
         send_msg_2_qywx(title, msgs)
