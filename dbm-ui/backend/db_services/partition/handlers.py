@@ -71,7 +71,16 @@ class PartitionHandler(object):
         @param user: 操作者
         @param create_data: 分区策略数据
         """
-
+        # 针对直接调用接口做规则检查
+        # 不符合规则的抛出异常，配置不会写入分区配置表
+        cls.verify_partition_field(
+            bk_biz_id=create_data["bk_biz_id"],
+            cluster_id=create_data["cluster_id"],
+            dblikes=create_data["dblikes"],
+            tblikes=create_data["tblikes"],
+            partition_column=create_data["partition_column"],
+            partition_column_type=create_data["partition_column_type"],
+        )
         # 创建分区策略
         try:
             partition = DBPartitionApi.create_conf(params=create_data)
@@ -79,7 +88,10 @@ class PartitionHandler(object):
             raise DBPartitionCreateException(_("分区管理创建失败，创建参数:{}, 错误信息: {}").format(create_data, e))
 
         # 如果不需要分区执行的数据，则默认直接返回分区创建数据
-        need_dry_run = create_data.pop("need_dry_run", True)
+        # need_dry_run = create_data.pop("need_dry_run", True)
+        create_data.pop("need_dry_run", True)
+        # 默认创建分区配置就立即初始化 此处用编码为True
+        need_dry_run = True
         if not need_dry_run:
             return partition
 
@@ -98,6 +110,8 @@ class PartitionHandler(object):
         for res in results:
             config__id_result.update(res)
 
+        # 创建分区配置立即初始化，硬编码为True
+        create_data["auto_commit"] = True
         # 如果不需要创建分区单据，则返回分区执行数据
         if not create_data["auto_commit"]:
             return config__id_result
