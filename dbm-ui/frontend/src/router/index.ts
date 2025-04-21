@@ -27,7 +27,7 @@ import getNotificationSettingRoutes from '@views/notification-setting/routes';
 import getPasswordManageRoutes from '@views/password-manage/routes';
 import getPlatformDbConfigureRoutes from '@views/platform-db-configure/routes';
 import getQuickSearchRoutes from '@views/quick-search/routes';
-import getResourceManageRoutes from '@views/resource-manage/routes';
+import getResourceManageRoutes, { getBizResourcePoolRoute } from '@views/resource-manage/routes';
 import getServiceApplyRoutes from '@views/service-apply/routes';
 import getStaffManageRoutes from '@views/staff-manage/routes';
 import getResourceTagRoutes from '@views/tag-manage/routes';
@@ -105,6 +105,7 @@ export default () => {
   getInspectionRoutes();
   getDbaManageRoutes();
   getMonitorAlarmRoutes();
+  getBizResourcePoolRoute();
 
   const routes = [
     {

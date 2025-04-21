@@ -46,6 +46,8 @@ export type ExtractedControllerDataKeys = Extract<keyof FunctionController, stri
 
 export default class FunctionController {
   'bizConfigManage.alarmGroup': ControllerItem<string>;
+  'bizConfigManage.businessClusterTag': ControllerItem<string>;
+  'bizConfigManage.businessResourceTag': ControllerItem<string>;
   'bizConfigManage.dbConfigure': ControllerItem<string>;
   'bizConfigManage.monitorStrategy': ControllerItem<string>;
   'bizConfigManage.StaffManage': ControllerItem<string>;

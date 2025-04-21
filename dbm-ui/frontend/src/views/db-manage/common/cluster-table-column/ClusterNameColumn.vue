@@ -134,12 +134,12 @@
 <style lang="less">
   .cluster-table-cluster-name-column {
     &:hover {
-      [class*=' db-icon'] {
-        display: inline !important;
+      [class*='db-icon'] {
+        display: block;
       }
     }
 
-    [class*=' db-icon'] {
+    [class*='db-icon'] {
       display: none;
       margin-top: 1px;
       margin-left: 4px;

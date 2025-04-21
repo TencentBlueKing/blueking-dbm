@@ -81,6 +81,7 @@ export default class Riak extends ClusterBase {
     riak_cluster_reboot: boolean;
     riak_cluster_scale_in: boolean;
     riak_cluster_scale_out: boolean;
+    riak_edit: boolean;
     riak_enable_disable: boolean;
     riak_view: boolean;
   };

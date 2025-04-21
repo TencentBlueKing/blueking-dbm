@@ -63,6 +63,7 @@
         selected.value = props.defaultValue.split(',').map((v) => +v);
         const { results } = await runAsyncList({
           ids: props.defaultValue,
+          type: 'resource',
         });
         tagList.value = uniqBy([...tagList.value, ...results], 'value');
       } else {
@@ -81,6 +82,7 @@
     tagList.value = [];
     runList({
       ...pagination,
+      type: 'resource',
       value: searchVal.value,
     });
   });
@@ -92,6 +94,7 @@
     pagination.offset = Math.min(pagination.count, pagination.offset + pagination.limit);
     runList({
       ...pagination,
+      type: 'resource',
       value: searchVal.value,
     });
   };
@@ -105,6 +108,6 @@
   };
 
   onMounted(() => {
-    runList(pagination);
+    runList({ ...pagination, type: 'resource' });
   });
 </script>

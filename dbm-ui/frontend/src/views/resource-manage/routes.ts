@@ -12,6 +12,8 @@
  */
 import type { RouteRecordRaw } from 'vue-router';
 
+import { registerBusinessModule } from '@router';
+
 import { checkDbConsole } from '@utils';
 
 import { t } from '@locales/index';
@@ -68,7 +70,7 @@ const resourceTagsManagementRoute = {
   meta: {
     navName: t('资源标签管理'),
   },
-  component: () => import('@views/tag-manage/Index.vue'),
+  component: () => import('@views/tag-manage/resource/Index.vue'),
 };
 
 const resourceSpecRoute = {
@@ -134,4 +136,27 @@ export default function getRoutes() {
   }
 
   return mainRoute;
+}
+
+/**
+ * 业务下的资源池相关的管理路由
+ */
+export function getBizResourcePoolRoute() {
+  registerBusinessModule([
+    {
+      path: 'resource-manage',
+      name: 'BizResourceManage',
+      children: [
+        {
+          path: 'pool/:page?',
+          name: 'BizResourcePool',
+          meta: {
+            fullscreen: true,
+            navName: t('资源池'),
+          },
+          component: () => import('@views/resource-manage/pool/business/Index.vue'),
+        },
+      ] as RouteRecordRaw[],
+    },
+  ]);
 }

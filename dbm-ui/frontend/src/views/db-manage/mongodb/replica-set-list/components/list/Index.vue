@@ -25,7 +25,7 @@
         class="ml-8"
         :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
         :selected="selected"
-        @success="handleBatchOperationSuccess" />
+        @success="fetchData" />
       <span
         v-bk-tooltips="{
           disabled: hasData,
@@ -54,6 +54,9 @@
         unique-select
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
+      <TagSearch
+        class="ml-8"
+        @search="fetchData" />
     </div>
     <DbTable
       ref="tableRef"
@@ -91,6 +94,7 @@
         :is-filter="isFilter"
         :selected-list="selected"
         @refresh="fetchData" />
+      <ClusterTagColumn @success="fetchData" />
       <StatusColumn :cluster-type="ClusterTypes.MONGO_REPLICA_SET" />
       <ClusterStatsColumn :cluster-type="ClusterTypes.MONGO_REPLICA_SET" />
       <RoleColumn
@@ -101,7 +105,9 @@
         :label="t('节点')"
         :search-ip="batchSearchIpInatanceList"
         :selected-list="selected" />
-      <CommonColumn :cluster-type="ClusterTypes.MONGO_REPLICA_SET" />
+      <CommonColumn
+        :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
+        @refresh="fetchData" />
       <BkTableColumn
         :fixed="isStretchLayoutOpen ? false : 'right'"
         :label="t('操作')"
@@ -222,12 +228,14 @@
 
   import DbTable from '@components/db-table/index.vue';
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
+  import TagSearch from '@components/tag-search/index.vue';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import ClusterNameColumn from '@views/db-manage/common/cluster-table-column/ClusterNameColumn.vue';
   import ClusterStatsColumn from '@views/db-manage/common/cluster-table-column/ClusterStatsColumn.vue';
+  import ClusterTagColumn from '@views/db-manage/common/cluster-table-column/ClusterTagColumn.vue';
   import CommonColumn from '@views/db-manage/common/cluster-table-column/CommonColumn.vue';
   import IdColumn from '@views/db-manage/common/cluster-table-column/IdColumn.vue';
   import MasterDomainColumn from '@views/db-manage/common/cluster-table-column/MasterDomainColumn.vue';
@@ -271,7 +279,7 @@
       id: 'domain',
       name: t('访问入口'),
     },
-    fetchDataFn: () => fetchData(isInit),
+    fetchDataFn: () => fetchData(),
     searchType: ClusterTypes.MONGO_REPLICA_SET,
   });
 
@@ -369,6 +377,7 @@
         'region',
         'disaster_tolerance_level',
         'mongodb',
+        'tags',
       ],
       disabled: ['master_domain'],
     },
@@ -466,22 +475,14 @@
     clusterId.value = id;
   };
 
-  let isInit = true;
-  const fetchData = (loading?: boolean) => {
+  const fetchData = (extraParams: Record<string, any> = {}) => {
     tableRef.value!.fetchData(
       {
         ...getSearchSelectorParams(searchValue.value),
         cluster_type: ClusterTypes.MONGO_REPLICA_SET,
       },
-      { ...sortValue },
-      loading,
+      { ...extraParams, ...sortValue },
     );
-    isInit = false;
-  };
-
-  const handleBatchOperationSuccess = () => {
-    tableRef.value!.clearSelected();
-    fetchData();
   };
 </script>
 

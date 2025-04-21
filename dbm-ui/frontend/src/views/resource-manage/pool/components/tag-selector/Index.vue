@@ -163,6 +163,7 @@
         limit: 1,
         offset: pagination.count,
         ordering: 'create_at',
+        type: 'resource',
       });
       tagList.value = uniqBy([...tagList.value, ...data.results], 'value');
       pagination.count = data.count;
@@ -180,6 +181,7 @@
       runListTag({
         bk_biz_id: props.bkBizId,
         ordering: 'create_at',
+        type: 'resource',
       });
     },
   );
@@ -193,6 +195,7 @@
       limit: pagination.limit,
       offset: pagination.offset,
       ordering: 'create_at',
+      type: 'resource',
       value: searchVal.value,
     });
   });
@@ -206,6 +209,7 @@
       bk_biz_id: props.bkBizId,
       limit: pagination.limit,
       offset: pagination.offset,
+      type: 'resource',
       value: searchVal.value,
     });
   };
@@ -229,6 +233,7 @@
             value: formData.tag,
           },
         ],
+        type: 'resource',
       });
     });
   };
@@ -262,6 +267,7 @@
       limit: pagination.limit,
       offset: 0,
       ordering: 'create_time',
+      type: 'resource',
     });
   });
 </script>

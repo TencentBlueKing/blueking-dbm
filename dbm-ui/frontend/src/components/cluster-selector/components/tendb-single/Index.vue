@@ -17,7 +17,8 @@
     :cluster-type="activeTab"
     :search-attrs="searchAttrs"
     :search-select-list="searchSelectList"
-    @search-value-change="handleSearchValueChange" />
+    @search-value-change="handleSearchValueChange"
+    @tag-value-change="fetchResources" />
   <BkLoading
     :loading="isLoading"
     :z-index="2">
@@ -53,6 +54,7 @@
   import { getSearchSelectorParams } from '@utils';
 
   import type { TabItem } from '../../Index.vue';
+  import { tagsColumn } from '../common/columns';
   import SerachBar from '../common/SearchBar.vue';
   import ClusterRelatedTasks from '../common/task-panel/Index.vue';
 
@@ -260,6 +262,7 @@
       ),
       showOverflowTooltip: true,
     },
+    tagsColumn,
     {
       field: 'status',
       filter: {

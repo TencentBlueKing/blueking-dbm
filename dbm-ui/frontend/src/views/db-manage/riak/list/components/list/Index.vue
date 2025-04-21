@@ -21,6 +21,12 @@
         @click="toApply">
         {{ t('申请实例') }}
       </AuthButton>
+      <ClusterBatchOperation
+        v-db-console="'riak.clusterManage.batchOperation'"
+        class="ml-8"
+        :cluster-type="ClusterTypes.RIAK"
+        :selected="selected"
+        @success="fetchData" />
       <DropdownExportExcel
         v-db-console="'riak.clusterManage.export'"
         :ids="selectedIds"
@@ -35,6 +41,9 @@
         :placeholder="t('请输入或选择条件搜索')"
         unique-select
         @change="handleSearchValueChange" />
+      <TagSearch
+        class="ml-8"
+        @search="fetchData" />
       <BkDatePicker
         v-model="deployTime"
         append-to-body
@@ -78,6 +87,7 @@
         :is-filter="isFilter"
         :selected-list="selected"
         @refresh="fetchData" />
+      <ClusterTagColumn @success="fetchData" />
       <StatusColumn :cluster-type="ClusterTypes.RIAK" />
       <ClusterStatsColumn :cluster-type="ClusterTypes.RIAK" />
       <RoleColumn
@@ -216,10 +226,13 @@
 
   import DbTable from '@components/db-table/index.vue';
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
+  import TagSearch from '@components/tag-search/index.vue';
 
+  import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import ClusterNameColumn from '@views/db-manage/common/cluster-table-column/ClusterNameColumn.vue';
   import ClusterStatsColumn from '@views/db-manage/common/cluster-table-column/ClusterStatsColumn.vue';
+  import ClusterTagColumn from '@views/db-manage/common/cluster-table-column/ClusterTagColumn.vue';
   import CommonColumn from '@views/db-manage/common/cluster-table-column/CommonColumn.vue';
   import IdColumn from '@views/db-manage/common/cluster-table-column/IdColumn.vue';
   import MasterDomainColumn from '@views/db-manage/common/cluster-table-column/MasterDomainColumn.vue';
@@ -364,6 +377,7 @@
       'status',
       'cluster_stats',
       'riak_node',
+      'tags',
     ],
     disabled: ['master_domain'],
   });
@@ -451,11 +465,7 @@
     deleteNodeShow.value = true;
   };
 
-  const fetchData = (
-    otherParamas: {
-      status?: string;
-    } = {},
-  ) => {
+  const fetchData = (otherParamas: Record<string, any> = {}) => {
     const params = {
       ...otherParamas,
       ...getSearchSelectorParams(searchValue.value),

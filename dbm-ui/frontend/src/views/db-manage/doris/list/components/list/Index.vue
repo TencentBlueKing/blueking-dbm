@@ -22,6 +22,12 @@
         @click="handleGoApply">
         {{ t('申请实例') }}
       </AuthButton>
+      <ClusterBatchOperation
+        v-db-console="'doris.clusterManage.batchOperation'"
+        class="ml-8"
+        :cluster-type="ClusterTypes.DORIS"
+        :selected="selected"
+        @success="fetchTableData" />
       <DropdownExportExcel
         v-db-console="'doris.clusterManage.batchOperation'"
         :has-selected="hasSelected"
@@ -39,6 +45,9 @@
         unique-select
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
+      <TagSearch
+        class="ml-8"
+        @search="fetchTableData" />
     </div>
     <DbTable
       ref="tableRef"
@@ -76,6 +85,7 @@
         :is-filter="isFilter"
         :selected-list="selected"
         @refresh="fetchTableData" />
+      <ClusterTagColumn @success="fetchTableData" />
       <StatusColumn :cluster-type="ClusterTypes.DORIS" />
       <ClusterStatsColumn :cluster-type="ClusterTypes.DORIS" />
       <RoleColumn
@@ -270,10 +280,13 @@
 
   import DbTable from '@components/db-table/index.vue';
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
+  import TagSearch from '@components/tag-search/index.vue';
 
+  import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import ClusterNameColumn from '@views/db-manage/common/cluster-table-column/ClusterNameColumn.vue';
   import ClusterStatsColumn from '@views/db-manage/common/cluster-table-column/ClusterStatsColumn.vue';
+  import ClusterTagColumn from '@views/db-manage/common/cluster-table-column/ClusterTagColumn.vue';
   import CommonColumn from '@views/db-manage/common/cluster-table-column/CommonColumn.vue';
   import IdColumn from '@views/db-manage/common/cluster-table-column/IdColumn.vue';
   import MasterDomainColumn from '@views/db-manage/common/cluster-table-column/MasterDomainColumn.vue';
@@ -327,7 +340,6 @@
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
   const isShowPassword = ref(false);
-  const isInit = ref(true);
 
   const selected = shallowRef<DorisModel[]>([]);
   const operationData = shallowRef<DorisModel>();
@@ -439,6 +451,7 @@
       'doris_backend_hot',
       'doris_backend_cold',
       'cluster_time_zone',
+      'tags',
     ],
     disabled: ['domain'],
   });
@@ -478,9 +491,8 @@
     return serachData.value.find((set) => set.id === item.id)?.children || [];
   };
 
-  const fetchTableData = (loading?: boolean) => {
-    tableRef.value!.fetchData({ ...getSearchSelectorParams(searchValue.value) }, { ...sortValue }, loading);
-    isInit.value = false;
+  const fetchTableData = (extraParams: Record<string, any> = {}) => {
+    tableRef.value!.fetchData({ ...getSearchSelectorParams(searchValue.value) }, { ...extraParams, ...sortValue });
   };
 
   const handleSelection = (key: any, list: Record<number, DorisModel>[]) => {

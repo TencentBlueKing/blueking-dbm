@@ -129,6 +129,7 @@
     [menuEnum.configManage]: [
       'BizResourcePool',
       'BizResourceTag',
+      'businessClusterTag',
       'DbConfigure',
       'DBMonitorStrategy',
       'DBMonitorAlarmGroup',
