@@ -66,7 +66,7 @@
 
   .db-time-line-icon {
     position: absolute;
-    top: 4px;
+    top: 3px;
     left: 0;
     display: flex;
     width: 15px;
