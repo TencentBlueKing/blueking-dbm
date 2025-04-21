@@ -26,6 +26,7 @@ class MongoDBInstanceReloadDetailSerializer(BaseMongoDBOperateDetailSerializer):
     class InstanceReloadDetailSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         bk_host_id = serializers.IntegerField(help_text=_("实例主机ID"))
+        instance_id = serializers.IntegerField(help_text=_("实例ID"))
         port = serializers.IntegerField(help_text=_("实例Port"))
         role = serializers.CharField(help_text=_("角色"), required=False)
 
@@ -65,8 +66,4 @@ class MongoDBInstanceReloadApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
     serializer = MongoDBInstanceReloadDetailSerializer
     inner_flow_builder = MongoDBInstanceReloadFlowParamBuilder
     inner_flow_name = _("MongoDB 实例重启")
-
-    def patch_ticket_detail(self):
-        for info in self.ticket.details["infos"]:
-            info["instance_id"] = f"{info['bk_host_id']}:{info['port']}"
-        self.ticket.save(update_fields=["details"])
+    need_patch_instance_details = True
