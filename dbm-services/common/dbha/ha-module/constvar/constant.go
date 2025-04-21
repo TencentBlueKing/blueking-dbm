@@ -376,6 +376,10 @@ const (
 	DBHAEventSQLserverSwitchSucc = "dbha_sqlserver_switch_ok"
 	// DBHAEventSQLserverSwitchErr TODO
 	DBHAEventSQLserverSwitchErr = "dbha_sqlserver_switch_err"
+	// DBHAEventMongosSwitchSucc TODO
+	DBHAEventMongosSwitchSucc = "dbha_mongos_switch_succ"
+	// DBHAEventMongosSwitchErr TODO
+	DBHAEventMongosSwitchErr = "dbha_mongos_switch_err"
 	// DBHAEventDetectRedisAuth TODO
 	DBHAEventDetectRedisAuth = "dbha_detect_redis_auth_fail"
 	// DBHAEventDetectSSHAuth TODO
