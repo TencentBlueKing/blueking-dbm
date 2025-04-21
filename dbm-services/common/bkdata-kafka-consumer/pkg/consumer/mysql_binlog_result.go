@@ -30,8 +30,11 @@ type MysqlBinlogResult struct {
 }
 
 func (c *MysqlBinlogResult) Setup(sarama.ConsumerGroupSession) error {
-	// Mark the consumer as ready
-	close(c.Ready)
+	createTableSql := mysql_binlog_result.CREATE_TABLE_SQL
+	if err := c.Db.Exec(createTableSql).Error; err != nil {
+		slog.Error("create table failed: %v, sql:%s", err, createTableSql)
+		return err
+	}
 	return nil
 }
 
@@ -49,9 +52,7 @@ func (c *MysqlBinlogResult) ConsumeClaim(session sarama.ConsumerGroupSession, cl
 				if err := c.HandleMessageTryBatch(msgs, c.Sinker, c.Db); err != nil {
 					slog.Error("handle message batch", err)
 				} else {
-					for _, msg := range msgs {
-						session.MarkMessage(msg, "")
-					}
+					session.MarkMessage(msgs[len(msgs)-1], "")
 				}
 				msgs = msgs[:0]
 			}
@@ -60,9 +61,9 @@ func (c *MysqlBinlogResult) ConsumeClaim(session sarama.ConsumerGroupSession, cl
 			if len(msgs) >= BatchSize {
 				if err := c.HandleMessageTryBatch(msgs, c.Sinker, c.Db); err != nil {
 					slog.Error("handle message batch", err)
+					time.Sleep(200 * time.Millisecond)
 				} else {
 					session.MarkMessage(message, "")
-
 				}
 				msgs = msgs[:0]
 			}
@@ -74,11 +75,11 @@ func (c *MysqlBinlogResult) ConsumeClaim(session sarama.ConsumerGroupSession, cl
 
 // HandleMessageTryBatch 先尝试批量写入到 db，如果失败，再尝试单条写入
 func (c *MysqlBinlogResult) HandleMessageTryBatch(msgs []*sarama.ConsumerMessage, s *Sinker, db *gorm.DB) error {
-	err := c.HandleMessageBatch(msgs, s, db)
+	err := c.HandleMessages(msgs, s, db)
 	if err != nil {
 		err = nil
 		for _, msg := range msgs {
-			if err2 := c.HandleMessageBatch([]*sarama.ConsumerMessage{msg}, s, db); err2 != nil {
+			if err2 := c.HandleMessages([]*sarama.ConsumerMessage{msg}, s, db); err2 != nil {
 				slog.Error("handle message", err2)
 				err = errors.Join(err, err2)
 			}
@@ -88,7 +89,7 @@ func (c *MysqlBinlogResult) HandleMessageTryBatch(msgs []*sarama.ConsumerMessage
 	return nil
 }
 
-func (c *MysqlBinlogResult) HandleMessageBatch(msgs []*sarama.ConsumerMessage, s *Sinker, db *gorm.DB) error {
+func (c *MysqlBinlogResult) HandleMessages(msgs []*sarama.ConsumerMessage, s *Sinker, db *gorm.DB) error {
 	if len(msgs) == 0 {
 		return nil
 	}
@@ -106,6 +107,7 @@ func (c *MysqlBinlogResult) HandleMessageBatch(msgs []*sarama.ConsumerMessage, s
 		"backup_status",
 		"backup_status_info",
 		"task_id",
+		"file_retention_tag",
 	)
 	for _, message := range msgs {
 		slog.Debug("process message", slog.String("Value", string(message.Value)))
@@ -152,6 +154,7 @@ func (c *MysqlBinlogResult) HandleMessageBatch(msgs []*sarama.ConsumerMessage, s
 				modelObj.BackupStatus,
 				modelObj.BackupStatusInfo,
 				modelObj.TaskId,
+				modelObj.FileRetentionTag,
 			)
 		}
 	}

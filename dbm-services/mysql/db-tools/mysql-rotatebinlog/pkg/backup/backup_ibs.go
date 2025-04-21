@@ -103,3 +103,8 @@ func (o *IBSBackupClient) Query(taskid string) (taskStatus int, err error) {
 		return taskStatus, nil
 	}
 }
+
+// StorageTag file retention tag
+func (o *IBSBackupClient) StorageTag() string {
+	return o.FileTag
+}

@@ -127,8 +127,8 @@ func ReadMainConfig(mainConfFile string) (*Config, error) {
 	if configObj.Public.BackupEnable == "" {
 		configObj.Public.BackupEnable = cst.BackupEnableAuto
 	} else if !lo.Contains(cst.BackupEnableAllowed, configObj.Public.BackupEnable) {
-		return nil, errors.Errorf("public.backup_enable value only true/false/auto, but get %s",
-			configObj.Public.BackupEnable)
+		return nil, errors.Errorf("public.backup_enable value only %s, but get %s",
+			cst.BackupEnableAllowed, configObj.Public.BackupEnable)
 	} else {
 		PublicConfig = configObj.Public
 	}

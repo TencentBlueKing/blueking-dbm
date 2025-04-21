@@ -31,8 +31,11 @@ type MysqlTableSizeDoris struct {
 }
 
 func (c *MysqlTableSizeDoris) Setup(sarama.ConsumerGroupSession) error {
-	// Mark the consumer as ready
-	//close(c.Ready)
+	createTableSql := mysql_table_size.CREATE_TABLE_SQL_DORIS
+	if err := c.Db.Exec(createTableSql).Error; err != nil {
+		slog.Error("create table failed: %v, sql:%s", err, createTableSql)
+		return err
+	}
 	return nil
 }
 

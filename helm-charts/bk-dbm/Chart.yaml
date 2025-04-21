@@ -75,7 +75,7 @@ dependencies:
   - condition: bkdata-kafka-consumer.enabled
     name: bkdata-kafka-consumer
     repository: file://charts/bkdata-kafka-consumer
-    version: 0.0.5
+    version: 0.0.6
   - condition: global.cloudContainer
     name: db-remote-service
     repository: file://charts/db-remote-service

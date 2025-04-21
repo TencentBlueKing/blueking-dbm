@@ -244,6 +244,19 @@ func (i *InstallMySQLComp) InitDefaultParam() (err error) {
 			logger.Error("初始化mycnf ini 模版:%s", ierr.Error())
 			return ierr
 		}
+
+		// 如果 loose_log_bin_compress 与 log_bin_compress 都存在，则以 log_bin_compress 为准
+		// 将 loose_log_bin_compress 设置为 log_bin_compress 的值，并删除 log_bin_compress
+		for looseKey, _ := range mycnf.Mysqld {
+			//looseKey = strings.Replace(looseKey, "-", "_", -1)
+			if strings.HasPrefix(looseKey, "mysqld.loose_") {
+				key := strings.Replace(looseKey, "mysqld.loose_", "mysqld.", 1)
+				if cnftpl.Cfg.Section("mysqld").HasKey(key) {
+					cnftpl.Cfg.Section("mysqld").Key(looseKey).SetValue(mycnf.Mysqld[key])
+					cnftpl.Cfg.Section("mysqld").DeleteKey(key)
+				}
+			}
+		}
 		if isTokudb(i.Params.Engine) {
 			// 如果参数中没有plugin-load,此次安装应该是迁移过来的实力，模块不是tokudb,所以会缺少一些参数
 			// 但是参数克隆会把engine也克隆过来，依旧按照tokudb来初始化

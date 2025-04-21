@@ -26,4 +26,5 @@ type BinlogFileModel struct {
 	BackupStatus     int    `json:"backup_status,omitempty" db:"backup_status"`
 	BackupStatusInfo string `json:"backup_status_info" db:"backup_status_info"`
 	TaskId           string `json:"task_id,omitempty" db:"task_id"`
+	FileRetentionTag string `json:"file_retention_tag" db:"file_retention_tag"`
 }

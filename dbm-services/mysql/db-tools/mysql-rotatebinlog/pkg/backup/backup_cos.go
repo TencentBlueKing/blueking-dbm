@@ -39,3 +39,14 @@ func (o *BKBackupClient) Query(taskId string) (int, error) {
 	status, _, err := o.backupClient.QueryStatus(taskId)
 	return status, err
 }
+
+// StorageTag file retention tag
+func (o *BKBackupClient) StorageTag() string {
+	return o.FileTag
+}
+
+// QueryStatus query status
+func (o *BKBackupClient) QueryStatus(taskId string) (int, error) {
+	status, _, err := o.backupClient.QueryStatus(taskId)
+	return status, err
+}

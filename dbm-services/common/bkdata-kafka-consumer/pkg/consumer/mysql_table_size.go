@@ -11,12 +11,15 @@ package consumer
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
 	sb "github.com/huandu/go-sqlbuilder"
+	"github.com/spf13/cast"
 
 	"dbm-services/common/bkdata-kafka-consumer/pkg/model/mysql_table_size"
 
@@ -33,7 +36,29 @@ type MysqlTableSize struct {
 
 func (c *MysqlTableSize) Setup(sarama.ConsumerGroupSession) error {
 	// Mark the consumer as ready
-	//close(c.Ready)
+	close(c.Ready)
+	timeNow := time.Now()
+	dateint := cast.ToInt(timeNow.Format("20060102"))
+
+	partitionsPreCreated := []string{}
+	for i := -7; i < 7; i++ {
+		daysint := int(timeNow.Sub(time.Unix(0, 0)).Hours()/24) + i - 1
+		partitionsPreCreated = append(partitionsPreCreated,
+			fmt.Sprintf("PARTITION p%d VALUES LESS THAN (%d) ENGINE = InnoDB", dateint+i, daysint))
+	}
+	//partitionInfo = append(partitionInfo, "PARTITION pmax VALUES LESS THAN (MAXVALUE) ENGINE = InnoDB")
+	partitionInfo := []string{
+		"/*!50100 PARTITION BY RANGE (to_days(`dteventtimehour`))",
+		"(",
+		strings.Join(partitionsPreCreated, ",\n"),
+		")",
+		"*/",
+	}
+	createTableSql := mysql_table_size.CREATE_TABLE_SQL_MYSQL + strings.Join(partitionInfo, "\n")
+	if err := c.Db.Exec(createTableSql).Error; err != nil {
+		slog.Error("create table failed: %v, sql:%s", err, createTableSql)
+		return err
+	}
 	return nil
 }
 

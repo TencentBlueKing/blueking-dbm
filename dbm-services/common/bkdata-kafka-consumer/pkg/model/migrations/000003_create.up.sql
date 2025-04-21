@@ -1,8 +1,5 @@
 CREATE TABLE `tb_mysql_backup_result` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `deleted_at` timestamp DEFAULT NULL,
   `backup_id` varchar(64) NOT NULL,
   `mysql_role` varchar(30) NOT NULL DEFAULT '',
   `shard_value` int(11) NOT NULL DEFAULT '0',
@@ -26,6 +23,9 @@ CREATE TABLE `tb_mysql_backup_result` (
   `binlog_info` text,
   `file_list` text,
   `extra_fields` text,
+  created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  is_deleted tinyint(4) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uniq_1` (`backup_host`,`backup_port`,`mysql_role`,`backup_consistent_time`),
   UNIQUE KEY `uniq_2` (`cluster_address`,`shard_value`,`mysql_role`,`backup_id`),

@@ -290,6 +290,7 @@ func (i *ServerObj) RegisterBinlog(lastFileBefore *models.BinlogFileModel) error
 			Host:             i.Host,
 			Port:             i.Port,
 			BackupEnable:     i.backupEnable,
+			FileRetentionTag: i.backupClient.StorageTag(),
 			Filename:         fileObj.Filename,
 			Filesize:         fileObj.Size,
 			FileMtime:        fileObj.Mtime.Format(time.RFC3339),

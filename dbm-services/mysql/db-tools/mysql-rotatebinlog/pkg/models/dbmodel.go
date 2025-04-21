@@ -87,6 +87,7 @@ type BinlogFileModel struct {
 	BackupStatus     int    `json:"backup_status,omitempty" db:"backup_status"`
 	BackupStatusInfo string `json:"backup_status_info" db:"backup_status_info"`
 	BackupTaskid     string `json:"task_id,omitempty" db:"task_id"`
+	FileRetentionTag string `json:"file_retention_tag" db:"file_retention_tag"`
 	*ModelAutoDatetime
 }
 
@@ -147,11 +148,13 @@ func (m *BinlogFileModel) Save(db *sqlx.DB, replace bool) error {
 		Columns(
 			"bk_biz_id", "cluster_id", "cluster_domain", "db_role", "host", "port", "filename",
 			"filesize", "start_time", "stop_time", "file_mtime", "backup_enable", "backup_status", "task_id",
+			"file_retention_tag",
 			"created_at", "updated_at",
 		).
 		Values(
 			m.BkBizId, m.ClusterId, m.ClusterDomain, m.DBRole, m.Host, m.Port, m.Filename,
 			m.Filesize, m.StartTime, m.StopTime, m.FileMtime, m.BackupEnable, m.BackupStatus, m.BackupTaskid,
+			m.FileRetentionTag,
 			m.CreatedAt, m.UpdatedAt,
 		)
 	sqlStr, args, err := sqlBuilder.ToSql()
@@ -180,12 +183,14 @@ func (m *BinlogFileModel) BatchSave(models []*BinlogFileModel, db *sqlx.DB) erro
 			Columns(
 				"bk_biz_id", "cluster_id", "cluster_domain", "db_role", "host", "port", "filename",
 				"filesize", "start_time", "stop_time", "file_mtime", "backup_enable", "backup_status", "task_id",
+				"file_retention_tag",
 				"created_at", "updated_at",
 			)
 		o.autoTime()
 		sqlBuilder = sqlBuilder.Values(
 			o.BkBizId, o.ClusterId, o.ClusterDomain, o.DBRole, o.Host, o.Port, o.Filename,
 			o.Filesize, o.StartTime, o.StopTime, o.FileMtime, o.BackupEnable, o.BackupStatus, o.BackupTaskid,
+			o.FileRetentionTag,
 			o.CreatedAt, o.UpdatedAt,
 		)
 		sqlStr, args, err := sqlBuilder.ToSql()
@@ -380,8 +385,8 @@ func (m *BinlogFileModel) QueryFailed(db *sqlx.DB) ([]*BinlogFileModel, error) {
 func (m *BinlogFileModel) Query(db *sqlx.DB, pred interface{}, params ...interface{}) ([]*BinlogFileModel, error) {
 	var files []*BinlogFileModel
 	sqlBuilder := sq.Select(
-		"bk_biz_id", "cluster_id", "cluster_domain", "db_role", "host", "port", "filename",
-		"filesize", "start_time", "stop_time", "file_mtime", "backup_enable", "backup_status", "task_id",
+		"bk_biz_id", "cluster_id", "cluster_domain", "db_role", "host", "port", "filename", "filesize",
+		"start_time", "stop_time", "file_mtime", "backup_enable", "backup_status", "task_id", "file_retention_tag",
 	).
 		From(m.TableName()).Where(m.instanceWhere())
 	sqlBuilder = sqlBuilder.Where(pred, params...).OrderBy("filename asc")
