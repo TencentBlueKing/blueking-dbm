@@ -83,6 +83,8 @@
   import TaskTips from '@views/db-manage/common/sql-execute/task-tips/Index.vue';
   import TicketMode from '@views/db-manage/common/sql-execute/ticket-mode/Index.vue';
 
+  import { utcDisplayTime } from '@utils';
+
   const router = useRouter();
   const route = useRoute();
   const { t } = useI18n();
@@ -107,7 +109,12 @@
 
   useTicketCloneInfo({
     onSuccess(cloneData) {
-      Object.assign(formData, cloneData);
+      Object.assign(formData, cloneData, {
+        ticket_mode: {
+          ...cloneData.ticket_mode,
+          trigger_time: utcDisplayTime(cloneData.ticket_mode.trigger_time),
+        },
+      });
       window.changeConfirm = true;
     },
     type: TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE,
@@ -134,7 +141,10 @@
         charset: semanticData.charset,
         cluster_ids: semanticData.cluster_ids,
         execute_objects: semanticData.execute_objects,
-        ticket_mode: semanticData.ticket_mode,
+        ticket_mode: {
+          ...semanticData.ticket_mode,
+          trigger_time: utcDisplayTime(semanticData.ticket_mode.trigger_time),
+        },
       });
       uploadFilePath.value = semanticData.path;
     },

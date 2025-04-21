@@ -38,6 +38,7 @@
       style="flex: 1 0 100%; overflow: hidden">
       <BkTable :data="targetClusterData">
         <BkTableColumn
+          fixed="left"
           :label="t('集群')"
           :min-width="250">
           <template #default="{ data }: { data: TargerCluster }">
@@ -65,7 +66,10 @@
       :label="t('目标DB')"
       style="flex: 1 0 100%; margin-top: 10px; overflow: hidden">
       <BkTable :data="ticketDetails.details.execute_objects">
-        <BkTableColumn :label="t('变更的 DB')">
+        <BkTableColumn
+          fixed="left"
+          :label="t('变更的 DB')"
+          :min-width="100">
           <template #default="{ data }: { data: TargetDbRow }">
             <TagBlock :data="data.dbnames" />
           </template>
