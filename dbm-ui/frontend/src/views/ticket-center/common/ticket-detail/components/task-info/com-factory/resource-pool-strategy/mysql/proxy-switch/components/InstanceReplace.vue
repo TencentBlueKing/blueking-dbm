@@ -18,7 +18,7 @@
       :min-width="300">
       <template #default="{ data }: { data: RowData }">
         <template
-          v-if="ticketDetails.details.machine_infos[data.old_nodes.origin_proxy?.[0].ip]?.related_clusters?.length">
+          v-if="ticketDetails.details.machine_infos?.[data.old_nodes.origin_proxy?.[0].ip]?.related_clusters?.length">
           <p
             v-for="clusterId in ticketDetails.details.machine_infos[data.old_nodes.origin_proxy[0].ip].related_clusters"
             :key="clusterId">

@@ -27,7 +27,7 @@
       :min-width="180">
       <template #default="{ data }: { data: RowData }">
         <template
-          v-if="ticketDetails.details.machine_infos[data.old_nodes.old_slave?.[0]?.ip]?.related_instances?.length">
+          v-if="ticketDetails.details.machine_infos?.[data.old_nodes.old_slave?.[0]?.ip]?.related_instances?.length">
           <p
             v-for="item in ticketDetails.details.machine_infos[data.old_nodes.old_slave?.[0]?.ip].related_instances"
             :key="item.instance">
@@ -42,7 +42,7 @@
       :min-width="220">
       <template #default="{ data }: { data: RowData }">
         <template
-          v-if="ticketDetails.details.machine_infos[data.old_nodes.old_slave?.[0]?.ip]?.related_clusters?.length">
+          v-if="ticketDetails.details.machine_infos?.[data.old_nodes.old_slave?.[0]?.ip]?.related_clusters?.length">
           <p
             v-for="clusterId in ticketDetails.details.machine_infos[data.old_nodes.old_slave[0].ip].related_clusters"
             :key="clusterId">
