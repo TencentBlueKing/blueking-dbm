@@ -167,7 +167,7 @@
           }
 
           const notMatchlist = instancesResult.reduce<string[]>((results, item) => {
-            if (['master', 'orphan', 'slave'].includes(item.role)) {
+            if (['master', 'orphan', 'repeater', 'slave'].includes(item.role)) {
               return results;
             }
 

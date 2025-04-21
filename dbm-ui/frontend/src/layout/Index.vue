@@ -167,7 +167,7 @@
       'PlatformTicketFlowSetting',
       'PlatformStaffManage',
     ],
-    [menuEnum.observableManage]: ['DBHASwitchEvents', 'inspectionManage', 'AlarmEvents'],
+    [menuEnum.observableManage]: ['DBHASwitchEvents', 'inspectionManage', 'AlarmManage'],
     [menuEnum.personalWorkbench]: [
       'serviceApply',
       'SelfServiceMyTickets',

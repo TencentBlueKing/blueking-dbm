@@ -10,6 +10,8 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
+import { type RouteRecordRaw } from 'vue-router';
+
 import { registerBusinessModule, registerModule } from '@router';
 
 import { checkDbConsole } from '@utils';
@@ -17,7 +19,7 @@ import { checkDbConsole } from '@utils';
 import { t } from '@locales/index';
 
 export default function getRoutes() {
-  registerModule([
+  const alarmGlobalRoutes: RouteRecordRaw[] = [
     {
       path: 'alarm-events-todo',
       name: 'AlarmEventsTodo',
@@ -36,72 +38,78 @@ export default function getRoutes() {
       },
       component: () => import('@views/monitor-alarm/alarm-events/Index.vue'),
     },
-  ]);
-  registerBusinessModule([
-    {
-      path: 'alarm-events',
-      name: 'AlarmEvents',
-      meta: {
-        fullscreen: true,
-        navName: t('告警事件'),
-      },
-      component: () => import('@views/monitor-alarm/alarm-events/Index.vue'),
-    },
-    {
-      path: 'alarm-shield',
-      name: 'AlarmShield',
-      meta: {
-        fullscreen: true,
-        navName: t('告警屏蔽'),
-      },
-      component: () => import('@views/monitor-alarm/alarm-shield/Index.vue'),
-    },
-  ]);
+  ];
 
-  if (checkDbConsole('bizConfigManage.monitorStrategy')) {
-    registerBusinessModule([
+  if (checkDbConsole('globalConfigManage.monitorStrategy')) {
+    alarmGlobalRoutes.push({
+      path: 'global-strategy',
+      name: 'PlatGlobalStrategy',
+      meta: {
+        fullscreen: true,
+        navName: t('全局策略'),
+      },
+      component: () => import('@views/monitor-alarm/global-strategy/Index.vue'),
+    });
+  }
+  registerModule(alarmGlobalRoutes);
+
+  const alarmManageBizRoute: RouteRecordRaw = {
+    path: 'alarm-manage',
+    name: 'AlarmManage',
+    meta: {
+      navName: t('告警'),
+    },
+    component: () => import('@views/monitor-alarm/Index.vue'),
+    children: [
       {
-        path: 'monitor-strategy',
-        name: 'DBMonitorStrategy',
+        path: 'list',
+        name: 'AlarmEvents',
         meta: {
           fullscreen: true,
-          navName: t('监控策略'),
-          tags: [
-            {
-              text: t('业务'),
-              theme: 'info',
-            },
-          ],
+          navName: t('告警事件'),
         },
-        component: () => import('@views/monitor-alarm/monitor-strategy/Index.vue'),
+        component: () => import('@views/monitor-alarm/alarm-events/Index.vue'),
       },
-    ]);
+      {
+        path: 'alarm-shield',
+        name: 'AlarmShield',
+        meta: {
+          fullscreen: true,
+          navName: t('告警屏蔽'),
+        },
+        component: () => import('@views/monitor-alarm/alarm-shield/Index.vue'),
+      },
+    ],
+  };
+
+  if (checkDbConsole('bizConfigManage.monitorStrategy')) {
+    alarmManageBizRoute.children!.push({
+      path: 'monitor-strategy',
+      name: 'DBMonitorStrategy',
+      meta: {
+        fullscreen: true,
+        navName: t('监控策略'),
+        tags: [
+          {
+            text: t('业务'),
+            theme: 'info',
+          },
+        ],
+      },
+      component: () => import('@views/monitor-alarm/monitor-strategy/Index.vue'),
+    });
   }
 
   if (checkDbConsole('bizConfigManage.alarmGroup')) {
-    registerBusinessModule([
-      {
-        path: 'alarm-group',
-        name: 'DBMonitorAlarmGroup',
-        meta: {
-          navName: t('告警组'),
-        },
-        component: () => import('@views/monitor-alarm/alarm-group/Index.vue'),
+    alarmManageBizRoute.children!.push({
+      path: 'alarm-group',
+      name: 'DBMonitorAlarmGroup',
+      meta: {
+        navName: t('告警组'),
       },
-    ]);
+      component: () => import('@views/monitor-alarm/alarm-group/Index.vue'),
+    });
   }
 
-  if (checkDbConsole('globalConfigManage.monitorStrategy')) {
-    registerBusinessModule([
-      {
-        path: 'global-strategy',
-        name: 'PlatGlobalStrategy',
-        meta: {
-          fullscreen: true,
-          navName: t('全局策略'),
-        },
-        component: () => import('@views/monitor-alarm/global-strategy/Index.vue'),
-      },
-    ]);
-  }
+  registerBusinessModule([alarmManageBizRoute]);
 }
