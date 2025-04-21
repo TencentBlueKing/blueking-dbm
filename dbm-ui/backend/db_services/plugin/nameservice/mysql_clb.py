@@ -25,6 +25,14 @@ from backend.env import CLB_DOMAIN
 from backend.flow.utils import dns_manage
 
 
+def get_slave_dns_entry(cluster_id: int) -> str:
+    """获取slave dns entry"""
+    slave_dns_entry = ClusterEntry.objects.filter(
+        cluster=cluster_id, cluster_entry_type=ClusterEntryType.DNS.value, role=ClusterEntryRole.SLAVE_ENTRY
+    ).first()
+    return slave_dns_entry.entry
+
+
 def create_lb_and_register_target(cluster_id: int, role: str) -> Dict[str, Any]:
     """创建clb并绑定后端主机"""
 
@@ -33,8 +41,15 @@ def create_lb_and_register_target(cluster_id: int, role: str) -> Dict[str, Any]:
     immute_domain = cluster.immute_domain
     bk_biz_id = cluster.bk_biz_id
     region = cluster.region
+    entry_role = ClusterEntryRole.MASTER_ENTRY
+    # 如果是spider slave，应该获取slave entry 作为注册clb的name
+    if role == TenDBClusterSpiderRole.SPIDER_SLAVE:
+        entry_role = ClusterEntryRole.SLAVE_ENTRY
+        immute_domain = get_slave_dns_entry(cluster_id=cluster_id)
     # 判断clb是否已经存在
-    if ClusterEntry.objects.filter(cluster=cluster, cluster_entry_type=ClusterEntryType.CLB.value).exists():
+    if ClusterEntry.objects.filter(
+        cluster=cluster, cluster_entry_type=ClusterEntryType.CLB.value, role=entry_role
+    ).exists():
         message = "clb of cluster:{} has existed".format(immute_domain)
         return response_fail(code=3, message=message)
     if cluster.cluster_type == ClusterType.TenDBHA:
@@ -73,12 +88,15 @@ def create_lb_and_register_target(cluster_id: int, role: str) -> Dict[str, Any]:
     return output
 
 
-def operate_part_target(cluster_id: int, ips: list, bind: bool) -> dict:
+def operate_part_target(cluster_id: int, ips: list, bind: bool, role: str) -> dict:
     """绑定或解绑部分后端主机"""
 
     # 获取信息
     cluster = Cluster.objects.get(id=cluster_id)
-    cluster_entry = ClusterEntry.objects.get(cluster=cluster, cluster_entry_type=ClusterEntryType.CLB.value)
+    entry_role = get_cluster_entry_role(role)
+    cluster_entry = ClusterEntry.objects.get(
+        cluster=cluster, cluster_entry_type=ClusterEntryType.CLB.value, role=entry_role
+    )
     clb_detail = CLBEntryDetail.objects.get(entry=cluster_entry)
     params = {
         "region": clb_detail.clb_region,
@@ -94,12 +112,15 @@ def operate_part_target(cluster_id: int, ips: list, bind: bool) -> dict:
     return output
 
 
-def deregister_target_and_delete_lb(cluster_id: int) -> Dict[str, Any]:
+def deregister_target_and_delete_lb(cluster_id: int, role: str) -> Dict[str, Any]:
     """解绑后端主机并删除clb"""
 
     # 获取集群信息
     cluster = Cluster.objects.get(id=cluster_id)
-    cluster_entry = ClusterEntry.objects.get(cluster=cluster, cluster_entry_type=ClusterEntryType.CLB.value)
+    entry_role = get_cluster_entry_role(role)
+    cluster_entry = ClusterEntry.objects.get(
+        cluster=cluster, cluster_entry_type=ClusterEntryType.CLB.value, role=entry_role
+    )
     clb_detail = CLBEntryDetail.objects.get(entry=cluster_entry)
     region = clb_detail.clb_region
     loadbalancerid = clb_detail.clb_id
@@ -119,26 +140,21 @@ def deregister_target_and_delete_lb(cluster_id: int) -> Dict[str, Any]:
 
 def add_clb_info_to_meta(output: Dict[str, Any], cluster_id: int, role: str, creator: str) -> Dict[str, Any]:
     """clb信息写入meta"""
-
-    # 获取信息
-    cluster = Cluster.objects.get(id=cluster_id)
-    entry_role = get_cluster_entry_role(role)
     # 进行判断请求结果,请求结果正确，写入数据库
     if output["code"] == 0:
         clb_ip = output["data"]["loadbalancerip"]
         try:
-            api.entry.clb.create(
+            api.entry.clb.create_by_role(
                 [
                     {
-                        "domain": cluster.immute_domain,
+                        "cluster_id": cluster_id,
                         "clb_ip": clb_ip,
                         "clb_id": output["data"]["loadbalancerid"],
                         "clb_listener_id": output["data"]["listenerid"],
-                        "clb_region": cluster.region,
                         "clb_port": output["clb_port"],
-                        "role": entry_role,
                     }
                 ],
+                role,
                 creator,
             )
         except Exception as e:
@@ -147,39 +163,48 @@ def add_clb_info_to_meta(output: Dict[str, Any], cluster_id: int, role: str, cre
     return response_ok()
 
 
-def delete_clb_info_from_meta(output: Dict[str, Any], cluster_id: int) -> Dict[str, Any]:
+def delete_clb_info_from_meta(output: Dict[str, Any], cluster_id: int, role: str) -> Dict[str, Any]:
     """在meta中删除clb信息"""
 
     # 获取信息
     cluster = Cluster.objects.get(id=cluster_id)
-    cluster_entry = ClusterEntry.objects.get(cluster=cluster, cluster_entry_type=ClusterEntryType.CLB.value)
+    entry_role = get_cluster_entry_role(role)
+    cluster_entry = ClusterEntry.objects.get(
+        cluster=cluster, cluster_entry_type=ClusterEntryType.CLB.value, role=entry_role
+    )
     clb_detail = CLBEntryDetail.objects.get(entry=cluster_entry)
     # 进行判断请求结果，如果为0操作删除db数据
     if output["code"] == 0:
         loadbalancerid = clb_detail.clb_id
         try:
-            cluster.clusterentry_set.filter(cluster_entry_type=ClusterEntryType.CLB).delete()
+            cluster.clusterentry_set.filter(cluster_entry_type=ClusterEntryType.CLB, role=entry_role).delete()
         except Exception as e:
             message = "delete clb:{} info in db fail, error:{}".format(loadbalancerid, str(e))
             return response_fail(code=1, message=message)
     return response_ok()
 
 
-def add_clb_domain_to_dns(cluster_id: int, creator: str) -> Dict[str, Any]:
+def add_clb_domain_to_dns(cluster_id: int, role: str, creator: str) -> Dict[str, Any]:
     """添加clb域名到dns"""
 
     # 获取信息
+
     cluster = Cluster.objects.get(id=cluster_id)
-    cluster_entry = ClusterEntry.objects.get(cluster=cluster, cluster_entry_type=ClusterEntryType.CLB.value)
-    clb_detail = CLBEntryDetail.objects.get(entry=cluster_entry)
     immute_domain = cluster.immute_domain
+    entry_role = get_cluster_entry_role(role=role)
+    if role == TenDBClusterSpiderRole.SPIDER_SLAVE:
+        immute_domain = get_slave_dns_entry(cluster_id=cluster_id)
+    cluster_entry = ClusterEntry.objects.get(
+        cluster=cluster, cluster_entry_type=ClusterEntryType.CLB.value, role=entry_role
+    )
+    clb_detail = CLBEntryDetail.objects.get(entry=cluster_entry)
     bk_cloud_id = cluster.bk_cloud_id
     bk_biz_id = cluster.bk_biz_id
     clb_ip = clb_detail.clb_ip
     # 添加clb域名以及dns
     if CLB_DOMAIN:
         # 添加clb域名dns
-        clb_domain = build_clb_domain(immute_domain)
+        clb_domain = "{}.{}".format("clb", immute_domain)
         result = dns_manage.DnsManage(bk_biz_id=bk_biz_id, bk_cloud_id=bk_cloud_id).get_domain(domain_name=clb_domain)
         if len(result) < 1:
             result = dns_manage.DnsManage(bk_biz_id=bk_biz_id, bk_cloud_id=bk_cloud_id).create_domain(
@@ -189,7 +214,7 @@ def add_clb_domain_to_dns(cluster_id: int, creator: str) -> Dict[str, Any]:
             return {"code": 3, "message": "add clb domain to dns fail"}
         try:
             if not ClusterEntry.objects.filter(
-                cluster=cluster, cluster_entry_type=ClusterEntryType.CLBDNS.value
+                cluster=cluster, cluster_entry_type=ClusterEntryType.CLBDNS.value, role=entry_role
             ).exists():
                 ClusterEntry.objects.create(
                     cluster=cluster,
@@ -197,6 +222,7 @@ def add_clb_domain_to_dns(cluster_id: int, creator: str) -> Dict[str, Any]:
                     entry=clb_domain,
                     creator=creator,
                     forward_to_id=cluster_entry.id,
+                    role=entry_role,
                 )
         except Exception as e:
             message = "cluster:{} add clb domain fail, error:{}".format(immute_domain, str(e))
@@ -204,17 +230,13 @@ def add_clb_domain_to_dns(cluster_id: int, creator: str) -> Dict[str, Any]:
     return response_ok()
 
 
-def build_clb_domain(domain: str) -> str:
-    """构建clb域名数据"""
-    return "{}.{}".format("clb", domain)
-
-
-def delete_clb_domain_from_dns(cluster_id: int) -> Dict[str, Any]:
+def delete_clb_domain_from_dns(cluster_id: int, role: str) -> Dict[str, Any]:
     """从dns中删除clb域名"""
 
     cluster = Cluster.objects.get(id=cluster_id)
+    entry_role = get_cluster_entry_role(role=role)
     dnsclb_entry = ClusterEntry.objects.filter(
-        cluster=cluster, cluster_entry_type=ClusterEntryType.CLBDNS.value
+        cluster=cluster, cluster_entry_type=ClusterEntryType.CLBDNS.value, role=entry_role
     ).first()
     # 如果存在clb域名指向clb ip，则删除
     if dnsclb_entry:
@@ -224,7 +246,7 @@ def delete_clb_domain_from_dns(cluster_id: int) -> Dict[str, Any]:
         bk_biz_id = cluster.bk_biz_id
         clb_ip = clb_detail.clb_ip
         port = clb_detail.clb_port
-        clb_domain = build_clb_domain(immute_domain)
+        clb_domain = dnsclb_entry.entry
         # 删除dns：clb域名绑定clb ip
         dns_list = dns_manage.DnsManage(bk_biz_id=bk_biz_id, bk_cloud_id=bk_cloud_id).get_domain(
             domain_name=clb_domain
@@ -238,7 +260,7 @@ def delete_clb_domain_from_dns(cluster_id: int) -> Dict[str, Any]:
                 return response_fail(code=1, message=message)
         # 删除元数据clbDns信息
         try:
-            cluster.clusterentry_set.filter(cluster_entry_type=ClusterEntryType.CLBDNS).delete()
+            cluster.clusterentry_set.filter(cluster_entry_type=ClusterEntryType.CLBDNS, role=entry_role).delete()
         except Exception as e:
             message = "delete clb domain of cluster:{} fail, error:{}".format(immute_domain, str(e))
             return response_fail(code=1, message=message)
@@ -259,8 +281,9 @@ def immute_domain_clb_ip(cluster_id: int, creator: str, bind: bool, role: str) -
     """
     try:
         # 获取集群信息
+        entry_role = get_cluster_entry_role(role=role)
         cluster = Cluster.objects.get(id=cluster_id)
-        clb_detail = get_clb_detail_by_cluster(cluster=cluster)
+        clb_detail = get_clb_detail_by_cluster(cluster=cluster, entry_role=entry_role)
         # 提取公共参数
         immute_domain = cluster.immute_domain
         bk_cloud_id = cluster.bk_cloud_id
@@ -274,7 +297,9 @@ def immute_domain_clb_ip(cluster_id: int, creator: str, bind: bool, role: str) -
             proxies = ProxyInstance.objects.filter(cluster=cluster).all()
             proxy_ips = [proxy.machine.ip for proxy in proxies]
         elif cluster.cluster_type == ClusterType.TenDBCluster:
-            proxies = cluster.proxyinstance_set.filter(tendbclusterspiderext__spider_role=role)
+            proxies = cluster.proxyinstance_set.filter(
+                tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER.value
+            )
             proxy_ips = [proxy.machine.ip for proxy in proxies]
         else:
             return response_fail(code=4, message=_("不支持的集群类型"))
@@ -392,7 +417,7 @@ def get_cluster_entry_role(role: str) -> ClusterEntryRole:
     return ClusterEntryRole.MASTER_ENTRY
 
 
-def get_clb_detail_by_cluster(cluster: Cluster) -> CLBEntryDetail:
+def get_clb_detail_by_cluster(cluster: Cluster, entry_role: ClusterEntryRole) -> CLBEntryDetail:
     """根据集群获取CLB详情
 
     Args:
@@ -404,7 +429,9 @@ def get_clb_detail_by_cluster(cluster: Cluster) -> CLBEntryDetail:
     Raises:
         DoesNotExist: 当CLB不存在时抛出
     """
-    clb_entry = ClusterEntry.objects.get(cluster=cluster, cluster_entry_type=ClusterEntryType.CLB.value)
+    clb_entry = ClusterEntry.objects.get(
+        cluster=cluster, cluster_entry_type=ClusterEntryType.CLB.value, role=entry_role
+    )
     return CLBEntryDetail.objects.get(entry=clb_entry)
 
 
