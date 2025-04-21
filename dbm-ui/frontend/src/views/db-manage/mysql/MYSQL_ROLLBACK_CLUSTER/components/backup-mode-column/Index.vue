@@ -60,8 +60,8 @@
               :placeholder="t('如：2019-01-30 12:12:21')"
               style="width: 361px"
               type="datetime"
-              :value="datePickerValue"
-              @change="handleDatePickerChange" />
+              :value="logDate"
+              @change="handleLogDateChange" />
             <div
               class="mt-4"
               :style="{ color: '#979ba5', lineHeight: '20px' }">
@@ -93,6 +93,7 @@
           @change="handleChangeRollbackTime" />
         <div v-else>
           <RecordSelector
+            :key="cluster.id"
             v-model:backupinfo="modelValue.backupinfo"
             backup-source="remote"
             :backupid="modelValue.backupid"
@@ -159,8 +160,12 @@
   const isShowBatchEdit = ref(false);
   const checkedModeType = ref(ROLLBACK_TYPE.BACKUPID);
   const datePickerValue = ref('');
+  const logDate = ref('');
 
-  const disableDate = (date: Date) => date && date.valueOf() > Date.now();
+  const disableDate = (date: number | Date) => {
+    const parsedDate = typeof date === 'number' ? new Date(date) : date;
+    return parsedDate && parsedDate.valueOf() > Date.now();
+  };
 
   const handleShowBatchEdit = () => {
     isShowBatchEdit.value = true;
@@ -172,6 +177,10 @@
 
   const handleDatePickerChange = (date: string) => {
     datePickerValue.value = date;
+  };
+
+  const handleLogDateChange = (date: string) => {
+    logDate.value = date;
   };
 
   const handleBatchEdit = () => {
@@ -188,7 +197,8 @@
       emits(
         'batch-edit',
         {
-          backupid: datePickerValue.value,
+          backupid: logDate.value,
+          backupinfo: modelValue.value.backupinfo,
           rollback_type: ROLLBACK_TYPE.BACKUPID,
         },
         'rollback',
