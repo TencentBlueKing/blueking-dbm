@@ -102,90 +102,9 @@ func (gqa *GQA) Process(cmdbInfos []dbutil.DataBaseSwitch) {
 		ip, port := instanceInfo.GetAddress()
 		log.Logger.Infof("gqa handle instance. ip:%s, port:%d", ip, port)
 
-		// check single IDC
-		lastCacheTime, ok := gqa.IDCCache[instanceInfo.GetIdcID()]
-		if ok {
-			if time.Now().After(lastCacheTime.Add(time.Duration(gqa.IDCCacheExpire) * time.Second)) {
-				delete(gqa.IDCCache, instanceInfo.GetIdcID())
-			} else {
-				err := gqa.delaySwitch(instanceInfo)
-				if err != nil {
-					errInfo := fmt.Sprintf("delay switch failed. err:%s", err.Error())
-					log.Logger.Errorf(errInfo)
-					gqa.HaDBClient.ReportHaLogRough(gmIP, instanceInfo.GetApp(), ip, port, "gqa", errInfo)
-				} else {
-					gqa.HaDBClient.ReportHaLogRough(gmIP, instanceInfo.GetApp(), ip, port, "gqa",
-						"single IDC switch too much, delay switch")
-				}
-				continue
-			}
-		}
-
-		// check status
 		if instanceInfo.GetStatus() != constvar.RUNNING && instanceInfo.GetStatus() != constvar.AVAILABLE {
 			gqa.HaDBClient.ReportHaLogRough(gmIP, instanceInfo.GetApp(), ip, port, "gqa",
 				fmt.Sprintf("status:%s not equal RUNNING or AVAILABLE", instanceInfo.GetStatus()))
-			continue
-		}
-
-		// query single instance total
-		singleTotal, err := gqa.HaDBClient.QuerySingleTotal(ip, port, gqa.SingleSwitchInterval)
-		if err != nil {
-			errInfo := fmt.Sprintf("query single total failed. err:%s", err.Error())
-			log.Logger.Errorf(errInfo)
-			gqa.HaDBClient.ReportHaLogRough(gmIP, instanceInfo.GetApp(), ip, port, "gqa", errInfo)
-			continue
-		}
-		if singleTotal >= gqa.SingleSwitchLimit {
-			gqa.HaDBClient.ReportHaLogRough(gmIP, instanceInfo.GetApp(), ip, port, "gqa", "reached single total.")
-			continue
-		}
-
-		// query all machines max total
-		intervalTotal, err := gqa.HaDBClient.QueryIntervalTotal(gqa.AllSwitchInterval)
-		if err != nil {
-			errInfo := fmt.Sprintf("query interval total failed. err:%s", err.Error())
-			log.Logger.Errorf(errInfo)
-			gqa.HaDBClient.ReportHaLogRough(gmIP, instanceInfo.GetApp(), ip, port, "gqa", errInfo)
-			continue
-		}
-		if intervalTotal >= gqa.AllSwitchLimit {
-			err = gqa.delaySwitch(instanceInfo)
-			if err != nil {
-				errInfo := fmt.Sprintf("delay switch failed. err:%s", err.Error())
-				log.Logger.Errorf(errInfo)
-				gqa.HaDBClient.ReportHaLogRough(gmIP, instanceInfo.GetApp(), ip, port, "gqa", errInfo)
-			} else {
-				gqa.HaDBClient.ReportHaLogRough(gmIP, instanceInfo.GetApp(), ip, port, "gqa",
-					"dbha switch too much, delay switch")
-			}
-			continue
-		}
-
-		// query job doing(machine)
-
-		// query single idc(machine) in 1 minute
-		idcTotal, err := gqa.HaDBClient.QuerySingleIDC(ip, instanceInfo.GetIdcID())
-		if err != nil {
-			errInfo := fmt.Sprintf("query single idc failed. err:%s", err.Error())
-			log.Logger.Errorf(errInfo)
-			gqa.HaDBClient.ReportHaLogRough(gmIP, instanceInfo.GetApp(), ip, port, "gqa", errInfo)
-			continue
-		}
-		if idcTotal >= gqa.SingleSwitchIDCLimit {
-			_, ok = gqa.IDCCache[instanceInfo.GetIdcID()]
-			if !ok {
-				gqa.IDCCache[instanceInfo.GetIdcID()] = time.Now()
-			}
-			err = gqa.delaySwitch(instanceInfo)
-			if err != nil {
-				errInfo := fmt.Sprintf("delay switch failed. err:%s", err.Error())
-				log.Logger.Errorf(errInfo)
-				gqa.HaDBClient.ReportHaLogRough(gmIP, instanceInfo.GetApp(), ip, port, "gqa", errInfo)
-			} else {
-				gqa.HaDBClient.ReportHaLogRough(gmIP, instanceInfo.GetApp(), ip, port, "gqa",
-					"single IDC switch too much, delay switch")
-			}
 			continue
 		}
 

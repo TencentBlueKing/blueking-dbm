@@ -69,39 +69,38 @@ func (gcm *GCM) DoSwitchSingle(switchInstance dbutil.DataBaseSwitch) {
 	log.Logger.Debugf("switch instance detail info:%#v", switchInstance)
 	switchQueueInfo := &model.HASwitchQueue{}
 
-	// 这里先将实例获取锁设为unavailable，再插入switch_queue。原因是如果先插switch_queue，如果其他gm同时更新，则会有多条
-	// switch_queue记录，则更新switch_queue会同时更新多条记录，因为我们没有无法区分哪条记录是哪个gm插入的
-	log.Logger.Infof("get instance lock and set unavailable")
-	err = gcm.SetUnavailableAndLockInstance(switchInstance)
-	if err != nil {
-		switchFail := "set instance to unavailable failed:" + err.Error()
-		switchInstance.ReportLogs(constvar.FailResult, switchFail)
-		monitor.MonitorSendSwitch(switchInstance, switchFail, false)
-		return
-	}
-
 	log.Logger.Infof("insert ha_switch_queue. info:{%s}", switchInstance.ShowSwitchInstanceInfo())
 	err = gcm.InsertSwitchQueue(switchInstance)
 	if err != nil {
-		log.Logger.Errorf("insert switch queue failed. err:%s, info{%s}", err.Error(),
-			switchInstance.ShowSwitchInstanceInfo())
 		switchFail := "insert switch queue failed. err:" + err.Error()
+		log.Logger.Errorf("%s, info{%s}", err.Error(), switchInstance.ShowSwitchInstanceInfo())
 		monitor.MonitorSendSwitch(switchInstance, switchFail, false)
 		return
 	}
-	//only after insert switch queue, unique switch uid generated
-	switchInstance.ReportLogs(constvar.InfoResult, "set instance unavailable success")
 
 	for i := 0; i < 1; i++ {
 		switchInstance.ReportLogs(constvar.InfoResult, "do pre-check before switch")
+		if switchInstance.GetStatus() != constvar.RUNNING && switchInstance.GetStatus() != constvar.AVAILABLE {
+			err = fmt.Errorf("status:%s not equal RUNNING or AVAILABLE", switchInstance.GetStatus())
+			break
+		}
+
+		log.Logger.Infof("get instance lock and set unavailable")
+		err = gcm.SetUnavailableAndLockInstance(switchInstance)
+		if err != nil {
+			err = fmt.Errorf("set instance to unavailable failed:" + err.Error())
+			log.Logger.Errorf("%s, info{%s}", err.Error(), switchInstance.ShowSwitchInstanceInfo())
+			break
+		}
+
+		//only after insert switch queue, unique switch uid generated
+		switchInstance.ReportLogs(constvar.InfoResult, "set instance unavailable success")
 
 		var needContinue bool
 		needContinue, err = switchInstance.CheckSwitch()
-
 		if err != nil {
-			log.Logger.Errorf("check switch failed. err:%s, info{%s}", err.Error(),
-				switchInstance.ShowSwitchInstanceInfo())
 			err = fmt.Errorf("check switch failed:%s", err.Error())
+			log.Logger.Errorf("%s, info{%s}", err.Error(), switchInstance.ShowSwitchInstanceInfo())
 			break
 		}
 		switchInstance.ReportLogs(constvar.InfoResult, "pre-check ok")
