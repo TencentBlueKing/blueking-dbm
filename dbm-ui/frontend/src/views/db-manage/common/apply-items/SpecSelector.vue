@@ -188,12 +188,17 @@
   };
 
   const fetchSpecResourceCount = _.debounce(() => {
-    getSpecResourceCount({
+    const params = {
       bk_biz_id: Number(props.bizId),
       bk_cloud_id: Number(props.cloudId),
-      city: props.city,
       spec_ids: list.value.map((item) => item.spec_id),
-    }).then((data) => {
+    };
+    if (props.city) {
+      Object.assign(params, {
+        city: props.city,
+      });
+    }
+    getSpecResourceCount(params).then((data) => {
       list.value = list.value.map((item) => ({
         ...item,
         count: data[item.spec_id],
@@ -209,8 +214,7 @@
         typeof props.bizId === 'number' &&
         props.bizId > 0 &&
         typeof props.cloudId === 'number' &&
-        data.value?.results?.length &&
-        props.city
+        data.value?.results?.length
       ) {
         fetchSpecResourceCount();
       }
