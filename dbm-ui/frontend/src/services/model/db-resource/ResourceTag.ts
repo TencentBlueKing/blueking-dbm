@@ -15,19 +15,32 @@ import dayjs from 'dayjs';
 import { utcDisplayTime } from '@utils';
 
 export default class ResourceTag {
+  bk_biz_id: number;
   create_at: string; // 创建时间
   creator: string; // 创建人
   id: number; // 标签ID
   is_builtin: boolean; // 是否内置标签
+  key: string;
+  permission: {
+    global_resource_tag_manage: boolean;
+    resource_tag_manage: boolean;
+  };
+  type: string;
   update_at: string; // 更新时间
+  updater: string;
   value: string; // 标签名
 
   constructor(payload = {} as ResourceTag) {
+    this.bk_biz_id = payload.bk_biz_id;
     this.create_at = payload.create_at || '';
     this.creator = payload.creator || '';
     this.id = payload.id || 0;
     this.is_builtin = payload.is_builtin || false;
+    this.key = payload.key;
+    this.permission = payload.permission;
+    this.type = payload.type;
     this.update_at = payload.update_at || '';
+    this.updater = payload.updater;
     this.value = payload.value || '';
   }
 

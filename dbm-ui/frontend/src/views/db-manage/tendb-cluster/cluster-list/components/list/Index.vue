@@ -26,7 +26,7 @@
           class="ml-8"
           :cluster-type="ClusterTypes.TENDBCLUSTER"
           :selected="selected"
-          @success="handleBatchOperationSuccess" />
+          @success="fetchTableData" />
         <span
           v-bk-tooltips="{
             disabled: hasData,
@@ -57,6 +57,9 @@
         unique-select
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
+      <TagSearch
+        class="ml-8"
+        @search="fetchTableData" />
     </div>
     <div
       class="table-wrapper"
@@ -103,6 +106,7 @@
           :get-table-instance="getTableInstance"
           :is-filter="isFilter"
           :selected-list="selected" />
+        <ClusterTagColumn @success="fetchTableData" />
         <StatusColumn :cluster-type="ClusterTypes.TENDBCLUSTER" />
         <ClusterStatsColumn :cluster-type="ClusterTypes.TENDBCLUSTER" />
         <MasterSlaveRoleColumn
@@ -155,7 +159,9 @@
           :search-ip="searchIp"
           :selected-list="selected" />
         <ModuleNameColumn :cluster-type="ClusterTypes.TENDBCLUSTER" />
-        <CommonColumn :cluster-type="ClusterTypes.TENDBCLUSTER" />
+        <CommonColumn
+          :cluster-type="ClusterTypes.TENDBCLUSTER"
+          @refresh="fetchTableData" />
         <BkTableColumn
           :fixed="isStretchLayoutOpen ? false : 'right'"
           :label="t('操作')"
@@ -323,6 +329,7 @@
 
   import DbTable from '@components/db-table/index.vue';
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
+  import TagSearch from '@components/tag-search/index.vue';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
@@ -330,6 +337,7 @@
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import ClusterNameColumn from '@views/db-manage/common/cluster-table-column/ClusterNameColumn.vue';
   import ClusterStatsColumn from '@views/db-manage/common/cluster-table-column/ClusterStatsColumn.vue';
+  import ClusterTagColumn from '@views/db-manage/common/cluster-table-column/ClusterTagColumn.vue';
   import CommonColumn from '@views/db-manage/common/cluster-table-column/CommonColumn.vue';
   import IdColumn from '@views/db-manage/common/cluster-table-column/IdColumn.vue';
   import MasterDomainColumn from '@views/db-manage/common/cluster-table-column/MasterDomainColumn.vue';
@@ -572,20 +580,18 @@
       'region',
       'spec_name',
       'bk_cloud_id',
+      'tags',
     ],
     disabled: ['master_domain'],
   });
 
-  let isInitData = true;
-  const fetchTableData = () => {
+  const fetchTableData = (extraParams: Record<string, any> = {}) => {
     tableRef.value?.fetchData(
       {
         ...getSearchSelectorParams(searchValue.value),
       },
-      { ...sortValue },
-      isInitData,
+      { ...extraParams, ...sortValue },
     );
-    isInitData = false;
 
     return Promise.resolve([]);
   };
@@ -714,11 +720,6 @@
 
   const handleShowExcelAuthorize = () => {
     excelAuthorizeShow.value = true;
-  };
-
-  const handleBatchOperationSuccess = () => {
-    tableRef.value!.clearSelected();
-    fetchTableData();
   };
 
   onMounted(() => {

@@ -75,6 +75,7 @@ export default class Tendbha extends ClusterBase {
     access_entry_edit: boolean;
     mysql_destroy: boolean;
     mysql_dump_data: boolean;
+    mysql_edit: boolean;
     mysql_enable_disable: boolean;
     mysql_view: boolean;
     mysql_webconsole: boolean;

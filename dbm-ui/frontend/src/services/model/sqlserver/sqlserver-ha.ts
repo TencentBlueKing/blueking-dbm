@@ -72,6 +72,7 @@ export default class SqlServerHaCluster extends ClusterBase {
   operations: ClusterListOperation[];
   permission: {
     access_entry_edit: boolean;
+    sqlserver_edit: boolean;
     sqlserver_view: boolean;
   };
   phase: string;

@@ -12,7 +12,7 @@
  */
 
 import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
-import { type ComponentInternalInstance, getCurrentInstance, reactive, ref, shallowRef } from 'vue';
+import { type ComponentInternalInstance, getCurrentInstance, reactive, type Ref, ref, shallowRef } from 'vue';
 
 import { useGlobalBizs } from '@stores';
 
@@ -56,7 +56,7 @@ export function useClusterData<T>(searchSelectValue: Ref<ISearchValue[]>) {
   /**
    * 获取列表
    */
-  const fetchResources = async () => {
+  const fetchResources = async (extraParams: Record<string, any> = {}) => {
     isLoading.value = true;
     return currentInstance.proxy
       .getResourceList({
@@ -64,6 +64,7 @@ export function useClusterData<T>(searchSelectValue: Ref<ISearchValue[]>) {
         limit: pagination.limit,
         offset: pagination.limit * (pagination.current - 1),
         ...getSearchSelectorParams(searchSelectValue.value),
+        ...extraParams,
       })
       .then((res) => {
         pagination.count = res.count;

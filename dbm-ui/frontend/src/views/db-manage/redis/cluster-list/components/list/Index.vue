@@ -28,7 +28,7 @@
           class="ml-8"
           :cluster-type="ClusterTypes.REDIS"
           :selected="selected"
-          @success="handleBatchOperationSuccess" />
+          @success="fetchData" />
         <DropdownExportExcel
           v-db-console="'redis.clusterManage.export'"
           :ids="selectedIds"
@@ -46,6 +46,9 @@
         unique-select
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
+      <TagSearch
+        class="ml-8"
+        @search="fetchData" />
     </div>
     <div class="table-wrapper">
       <DbTable
@@ -97,6 +100,7 @@
           :is-filter="isFilter"
           :selected-list="selected"
           @refresh="fetchData" />
+        <ClusterTagColumn @success="fetchData" />
         <StatusColumn :cluster-type="ClusterTypes.REDIS" />
         <ClusterStatsColumn :cluster-type="ClusterTypes.REDIS" />
         <RoleColumn
@@ -409,12 +413,14 @@
   import DbTable from '@components/db-table/index.vue';
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
   import TagBlock from '@components/tag-block/Index.vue';
+  import TagSearch from '@components/tag-search/index.vue';
 
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterEntryPanel from '@views/db-manage/common/cluster-entry-panel/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import ClusterNameColumn from '@views/db-manage/common/cluster-table-column/ClusterNameColumn.vue';
   import ClusterStatsColumn from '@views/db-manage/common/cluster-table-column/ClusterStatsColumn.vue';
+  import ClusterTagColumn from '@views/db-manage/common/cluster-table-column/ClusterTagColumn.vue';
   import CommonColumn from '@views/db-manage/common/cluster-table-column/CommonColumn.vue';
   import IdColumn from '@views/db-manage/common/cluster-table-column/IdColumn.vue';
   import MasterDomainColumn from '@views/db-manage/common/cluster-table-column/MasterDomainColumn.vue';
@@ -444,8 +450,6 @@
     REDIS_MASTER = 'redis_master',
     REDIS_SLAVE = 'redis_slave',
   }
-
-  let isInit = true;
 
   const { t } = useI18n();
   const route = useRoute();
@@ -483,7 +487,7 @@
       id: 'domain',
       name: t('访问入口'),
     },
-    fetchDataFn: () => fetchData(isInit),
+    fetchDataFn: () => fetchData(),
     searchType: ClusterTypes.REDIS,
   });
 
@@ -644,6 +648,7 @@
       'disaster_tolerance_level',
       'region',
       'spec_name',
+      'tags',
     ],
     disabled: ['master_domain'],
   });
@@ -693,7 +698,7 @@
     return classList.filter((cls) => cls).join(' ');
   };
 
-  const fetchData = (loading?: boolean) => {
+  const fetchData = (extraParams: Record<string, any> = {}) => {
     const params = {
       cluster_type: [
         ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
@@ -704,14 +709,10 @@
       ...getSearchSelectorParams(searchValue.value),
     };
 
-    tableRef.value!.fetchData(
-      params,
-      {
-        ...sortValue,
-      },
-      loading,
-    );
-    isInit = false;
+    tableRef.value!.fetchData(params, {
+      ...extraParams,
+      ...sortValue,
+    });
   };
 
   /**
@@ -796,11 +797,6 @@
       title,
       type: 'warning',
     });
-  };
-
-  const handleBatchOperationSuccess = () => {
-    tableRef.value!.clearSelected();
-    fetchData();
   };
 
   onMounted(() => {

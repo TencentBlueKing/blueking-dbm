@@ -17,7 +17,8 @@
     :cluster-type="activeTab"
     :search-attrs="searchAttrs"
     :search-select-list="searchSelectList"
-    @search-value-change="handleSearchValueChange" />
+    @search-value-change="handleSearchValueChange"
+    @tag-value-change="fetchResources" />
   <BkLoading
     :loading="isLoading"
     :z-index="2">
@@ -53,6 +54,7 @@
   import { getSearchSelectorParams } from '@utils';
 
   import type { TabItem } from '../../Index.vue';
+  import { tagsColumn } from '../common/columns';
   import SearchBar from '../common/SearchBar.vue';
   import ClusterRelatedTasks from '../common/task-panel/Index.vue';
 
@@ -74,13 +76,13 @@
 
   type ResourceItem = ValueOf<SelectedMap>[0];
 
-  const props = defineProps<Props>();
-
-  const emits = defineEmits<Emits>();
-
   defineOptions({
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
 
   const checkSelectedAll = () => {
     if (tableData.value.filter((data) => props.disabledRowConfig.find((item) => item.handler(data))).length > 0) {
@@ -248,6 +250,7 @@
       ),
       showOverflowTooltip: true,
     },
+    tagsColumn,
     {
       field: 'status',
       filter: {

@@ -13,7 +13,7 @@
           class="ml-8"
           :cluster-type="ClusterTypes.SQLSERVER_HA"
           :selected="selected"
-          @success="handleBatchOperationSuccess" />
+          @success="fetchData" />
         <BkButton
           v-db-console="'sqlserver.haClusterList.importAuthorize'"
           class="ml-8"
@@ -39,6 +39,9 @@
         unique-select
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
+      <TagSearch
+        class="ml-8"
+        @search="fetchData" />
     </div>
     <DbTable
       ref="tableRef"
@@ -80,6 +83,7 @@
         :get-table-instance="getTableInstance"
         :is-filter="isFilter"
         :selected-list="selected" />
+      <ClusterTagColumn @success="fetchData" />
       <StatusColumn :cluster-type="ClusterTypes.SQLSERVER_HA" />
       <ClusterStatsColumn :cluster-type="ClusterTypes.SQLSERVER_HA" />
       <RoleColumn
@@ -107,7 +111,9 @@
         </template>
       </BkTableColumn>
       <ModuleNameColumn :cluster-type="ClusterTypes.SQLSERVER_HA" />
-      <CommonColumn :cluster-type="ClusterTypes.SQLSERVER_HA" />
+      <CommonColumn
+        :cluster-type="ClusterTypes.SQLSERVER_HA"
+        @refresh="fetchData" />
       <BkTableColumn
         :fixed="isStretchLayoutOpen ? false : 'right'"
         :label="t('操作')"
@@ -213,12 +219,14 @@
 
   import DbTable from '@components/db-table/index.vue';
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
+  import TagSearch from '@components/tag-search/index.vue';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import ClusterNameColumn from '@views/db-manage/common/cluster-table-column/ClusterNameColumn.vue';
   import ClusterStatsColumn from '@views/db-manage/common/cluster-table-column/ClusterStatsColumn.vue';
+  import ClusterTagColumn from '@views/db-manage/common/cluster-table-column/ClusterTagColumn.vue';
   import CommonColumn from '@views/db-manage/common/cluster-table-column/CommonColumn.vue';
   import IdColumn from '@views/db-manage/common/cluster-table-column/IdColumn.vue';
   import MasterDomainColumn from '@views/db-manage/common/cluster-table-column/MasterDomainColumn.vue';
@@ -270,7 +278,7 @@
       id: 'domain',
       name: t('访问入口'),
     },
-    fetchDataFn: () => fetchData(isInit),
+    fetchDataFn: () => fetchData(),
     searchType: ClusterTypes.SQLSERVER_HA,
   });
 
@@ -383,6 +391,7 @@
       'disaster_tolerance_level',
       'region',
       'spec_name',
+      'tags',
     ],
     disabled: ['master_domain'],
   });
@@ -422,17 +431,14 @@
     return searchSelectData.value.find((set) => set.id === item.id)?.children || [];
   };
 
-  let isInit = true;
-  const fetchData = (loading?: boolean) => {
+  const fetchData = (extraParams: Record<string, any> = {}) => {
     tableRef.value!.fetchData(
       { ...getSearchSelectorParams(searchValue.value) },
       {
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        ...extraParams,
         ...sortValue,
       },
-      loading,
     );
-    isInit = false;
   };
 
   const handleResetCluster = (data: SqlServerHaModel) => {
@@ -492,11 +498,6 @@
         from: String(route.name),
       },
     });
-  };
-
-  const handleBatchOperationSuccess = () => {
-    tableRef.value!.clearSelected();
-    fetchData();
   };
 </script>
 <style lang="less">

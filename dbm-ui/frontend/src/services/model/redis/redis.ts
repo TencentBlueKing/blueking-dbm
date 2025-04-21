@@ -79,6 +79,7 @@ export default class Redis extends ClusterBase {
     redis_access_entry_view: boolean;
     redis_backup: boolean;
     redis_destroy: boolean;
+    redis_edit: boolean;
     redis_keys_delete: boolean;
     redis_keys_extract: boolean;
     redis_open_close: boolean;
