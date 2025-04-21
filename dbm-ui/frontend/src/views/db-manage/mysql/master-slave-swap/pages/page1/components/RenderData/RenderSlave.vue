@@ -56,7 +56,7 @@
 
   const props = defineProps<Props>();
 
-  const genHostKey = (hostData: any) => `${hostData.bk_cloud_id}:${hostData.ip}`;
+  const genHostKey = (hostData: any) => `${hostData.ip}`;
 
   const instanceKey = `render_slave_${random()}`;
   singleHostSelectMemo[instanceKey] = {};
