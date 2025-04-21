@@ -2,6 +2,7 @@
 package service
 
 import (
+	"dbm-services/mysql/db-tools/mysql-crond/pkg/third_party/instance_info_updater"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -362,5 +363,15 @@ func Start(version string, buildStamp string, gitHash string, quit chan struct{}
 			context.JSON(http.StatusOK, gin.H{})
 		},
 	)
+	r.GET(
+		"/third-party/update-instance-info", func(ctx *gin.Context) {
+			err := instance_info_updater.Updater()
+			if err != nil {
+				ctx.AbortWithStatusJSON(http.StatusInternalServerError, api.NewErrorResp(500, err))
+				return
+			}
+
+			ctx.JSON(http.StatusOK, gin.H{})
+		})
 	return r.Run(fmt.Sprintf("127.0.0.1:%d", config.RuntimeConfig.Port))
 }

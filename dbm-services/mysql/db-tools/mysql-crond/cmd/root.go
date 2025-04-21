@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"dbm-services/mysql/db-tools/mysql-crond/pkg/third_party"
 	"fmt"
 	"io"
 	"log/slog"
@@ -56,6 +57,13 @@ var rootCmd = &cobra.Command{
 			slog.Error("start crond", slog.String("error", err.Error()))
 			return err
 		}
+
+		slog.Info("start crond start third party update")
+		err = third_party.Updater()
+		if err != nil {
+			slog.Error("start crond", slog.String("error", err.Error()))
+		}
+		slog.Info("start crond init third party update finish")
 
 		quit := make(chan struct{})
 

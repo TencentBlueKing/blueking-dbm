@@ -12,6 +12,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+var Logger *slog.Logger
+
 var HeartBeatName = "mysql_monitor_heart_beat"
 var HeartBeatSchedule = "@every 5m"
 var MonitorConfig *Config

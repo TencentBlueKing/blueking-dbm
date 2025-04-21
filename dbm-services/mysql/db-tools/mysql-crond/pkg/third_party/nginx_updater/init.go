@@ -35,15 +35,19 @@ func Register(cj *cron.Cron) {
 }
 
 func updater() error {
-	err := os.MkdirAll(rconfig.CommonConfigDir, 0777)
-	if err != nil {
-		return errors.Wrap(err, "can't create config directory")
-	}
-
 	sleepN := time.Second * time.Duration(rand.Intn(120))
 	slog.Info("rand sleep", slog.Float64("seconds", sleepN.Seconds()))
 	time.Sleep(sleepN)
 	slog.Info("rand sleep awake")
+
+	return Updater()
+}
+
+func Updater() error {
+	err := os.MkdirAll(rconfig.CommonConfigDir, 0777)
+	if err != nil {
+		return errors.Wrap(err, "can't create config directory")
+	}
 
 	addrs, err := common.ListNginxAddrs(*config.RuntimeConfig.BkCloudID)
 	if err != nil {

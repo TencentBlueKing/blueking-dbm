@@ -9,6 +9,7 @@ import (
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 
+	"github.com/google/uuid"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
@@ -73,12 +74,13 @@ func initLogger(cfg *config.LogConfig) {
 		handleOpt.Level = slog.LevelInfo
 	}
 
-	var logger *slog.Logger
 	if cfg.Json {
-		logger = slog.New(slog.NewJSONHandler(io.MultiWriter(ioWriters...), &handleOpt))
+		config.Logger = slog.New(slog.NewJSONHandler(io.MultiWriter(ioWriters...), &handleOpt))
 	} else {
-		logger = slog.New(slog.NewTextHandler(io.MultiWriter(ioWriters...), &handleOpt))
+		config.Logger = slog.New(slog.NewTextHandler(io.MultiWriter(ioWriters...), &handleOpt))
 	}
 
-	slog.SetDefault(logger)
+	config.Logger = config.Logger.With("uuid", uuid.New().String())
+
+	slog.SetDefault(config.Logger)
 }

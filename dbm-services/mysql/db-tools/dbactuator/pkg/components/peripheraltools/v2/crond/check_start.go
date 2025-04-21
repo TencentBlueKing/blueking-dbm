@@ -46,6 +46,13 @@ func (c *MySQLCrondComp) CheckStart() (err error) {
 			}
 		}
 
+		/*
+			这里算是偷懒了, 现在 mysql-crond 启动
+			在调用 third-party 的时候有个最大 10s 的超时
+			所以即使进程存在, 也暴力等 15s
+		*/
+		time.Sleep(15 * time.Second)
+
 		return nil // 如果能走到这里, 说明正常启动了
 	}
 

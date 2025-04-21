@@ -41,6 +41,9 @@ func Run(hardcode bool) error {
 		iNames = viper.GetStringSlice("run-items")
 	}
 	slog.Info("main loop", slog.String("items", strings.Join(iNames, ",")))
+	config.Logger = config.Logger.With("items", strings.Join(iNames, ","))
+	slog.SetDefault(config.Logger)
+
 	slog.Info("main loop", slog.Bool("hardcode", hardcode))
 
 	lockFileName := fmt.Sprintf("%d-%s.lock", config.MonitorConfig.Port, strings.Join(iNames, "."))
@@ -115,19 +118,21 @@ func Run(hardcode bool) error {
 	slog.Info("make connection collect", slog.Any("connection collect", cc))
 
 	if hardcode {
+		slog.Info("hardcode finish")
 		return nil
 	}
 
 	randSleepN := rand.Intn(5)
 	slog.Info(
 		"run monitor items",
-		slog.Any("items", iNames),
 		slog.Int("randSleepN", randSleepN),
 	)
 	// 每次整体随机休眠 [0:5), 多实例场景时稍微错开
 	time.Sleep(time.Duration(randSleepN) * time.Second)
 
 	for _, iName := range iNames {
+		config.Logger = config.Logger.With("current item", iName)
+		slog.SetDefault(config.Logger)
 
 		if constructor, ok := itemscollect.RegisteredItemConstructor()[iName]; ok {
 
@@ -159,5 +164,7 @@ func Run(hardcode bool) error {
 			continue
 		}
 	}
+
+	slog.Info("main loop round finish")
 	return nil
 }

@@ -23,6 +23,7 @@ require (
 
 require (
 	github.com/gofrs/flock v0.12.1
+	github.com/google/uuid v1.1.2
 	github.com/mitchellh/mapstructure v1.5.0
 	golang.org/x/exp v0.0.0-20230515195305-f3d0a9c9a5cc
 	golang.org/x/time v0.1.0

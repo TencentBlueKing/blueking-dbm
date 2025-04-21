@@ -21,7 +21,7 @@ func connectDB(ip string, port int, ca *config.ConnectAuth, withPing bool, isPro
 			),
 		)
 		if err != nil {
-			slog.Error("connect db with ping", err)
+			slog.Error("connect db with ping", slog.String("err", err.Error()))
 			return nil, err
 		}
 	} else {
@@ -35,7 +35,7 @@ func connectDB(ip string, port int, ca *config.ConnectAuth, withPing bool, isPro
 			),
 		)
 		if err != nil {
-			slog.Error("connect db without ping", err)
+			slog.Error("connect db without ping", slog.String("err", err.Error()))
 			return nil, err
 		}
 		// 没有 ping 可能返回的是一个无效连接
@@ -48,7 +48,7 @@ func connectDB(ip string, port int, ca *config.ConnectAuth, withPing bool, isPro
 			sr, err = db.Queryx(`SELECT 1`)
 		}
 		if err != nil {
-			slog.Error("ping proxy failed", err)
+			slog.Error("ping proxy failed", slog.String("err", err.Error()))
 			return nil, err
 		}
 		defer func() {

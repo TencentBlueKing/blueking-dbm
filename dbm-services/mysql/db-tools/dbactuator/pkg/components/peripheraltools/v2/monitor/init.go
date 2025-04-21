@@ -3,6 +3,7 @@ package monitor
 import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
+	ma "dbm-services/mysql/db-tools/mysql-crond/api"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 )
 
@@ -14,6 +15,9 @@ type MySQLMonitorComp struct {
 
 func (c *MySQLMonitorComp) Init() (err error) {
 	c.tools = tools.NewToolSetWithPickNoValidate(tools.ToolMySQLMonitor)
+
+	manager := ma.NewManager("http://127.0.0.1:9999")
+	_ = manager.UpdateInstanceInfo()
 
 	return nil
 }
