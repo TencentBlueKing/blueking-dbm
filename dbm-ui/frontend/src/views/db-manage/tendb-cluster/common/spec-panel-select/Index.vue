@@ -12,12 +12,11 @@
 -->
 
 <template>
-  <BkLoading :loading="isLoading">
+  <BkLoading :loading="loading">
     <div class="render-spec-box">
       <TableEditSelect
         ref="selectRef"
         v-model="localValue"
-        :disabled="!localValue"
         :list="selectList"
         :placeholder="t('输入集群后自动生成')"
         :rules="rules"
@@ -27,6 +26,7 @@
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import { getSpecResourceCount } from '@services/source/dbresourceResource';
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
@@ -53,7 +53,6 @@
 
   const selectRef = ref();
   const localValue = ref();
-  const isLoading = ref(false);
 
   const specList = shallowRef<IListItem[]>([]);
 
@@ -70,41 +69,43 @@
     specList.value.map((item) => Object.assign({}, item, { isCurrent: props.currentSpecIds.includes(item.id) })),
   );
 
+  const { loading } = useRequest(getResourceSpecList, {
+    defaultParams: [
+      {
+        limit: -1,
+        offset: 0,
+        spec_cluster_type: 'tendbcluster',
+        spec_machine_type: 'proxy',
+      },
+    ],
+    onSuccess: async (result) => {
+      const specResultList = result.results;
+      const countResult = await getSpecResourceCount({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: props.cloudId,
+        spec_ids: specResultList.map((item) => item.spec_id),
+      });
+      specList.value = specResultList.map((item) => ({
+        id: item.spec_id,
+        isCurrent: false,
+        name: item.spec_name,
+        specData: {
+          count: countResult[item.spec_id],
+          cpu: item.cpu,
+          id: item.spec_id,
+          mem: item.mem,
+          name: item.spec_name,
+          storage_spec: item.storage_spec,
+        },
+      }));
+    },
+  });
+
   watch(
     () => props.data,
-    async (id) => {
+    (id) => {
       if (id !== undefined) {
         localValue.value = id;
-        isLoading.value = true;
-        try {
-          const listResult = await getResourceSpecList({
-            limit: -1,
-            offset: 0,
-            spec_cluster_type: 'tendbcluster',
-            spec_machine_type: 'proxy',
-          });
-          const specResultList = listResult.results;
-          const countResult = await getSpecResourceCount({
-            bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-            bk_cloud_id: props.cloudId,
-            spec_ids: specResultList.map((item) => item.spec_id),
-          });
-          specList.value = specResultList.map((item) => ({
-            id: item.spec_id,
-            isCurrent: false,
-            name: item.spec_name,
-            specData: {
-              count: countResult[item.spec_id],
-              cpu: item.cpu,
-              id: item.spec_id,
-              mem: item.mem,
-              name: item.spec_name,
-              storage_spec: item.storage_spec,
-            },
-          }));
-        } finally {
-          isLoading.value = false;
-        }
       }
     },
     {
