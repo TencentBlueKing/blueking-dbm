@@ -16,7 +16,7 @@ data:
     dbmeta: {{ .Values.dbm.internalDomain | default "http://bk-dbm" }}
     bkJobApiUrl: {{ .Values.bk.bkJobApiUrl }}
     bkCmdbApiUrl: {{ .Values.bk.bkCmdbApiUrl }}
-    bkNodeManApiUrl: {{ .Values.bk.bkNodeManApiUrl }}
+    bkNodeManApiUrl: {{ .Values.bk.bkNodemanApiUrl }}
     db:
       name:  "{{ $dbResourceDB.name }}"
       addr:  "{{ $dbResourceDB.host }}:{{ $dbResourceDB.port }}"

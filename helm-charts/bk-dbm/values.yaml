@@ -28,12 +28,14 @@ bk:
   bkLoginUrl: "https://example.com/login"
   # 蓝鲸配置平台
   bkCmdbUrl: "https://cmdb.example.com"
+  bkCmdbApiUrl: ""
   # 蓝鲸作业平台
   bluekingBizId: "9991001"
   bkJobUrl: "https://job.example.com"
   bkJobApiUrl: ""
   # 蓝鲸节点管理
   bkNodemanUrl: https://apps.example.com/bk--nodeman
+  bkNodemanApiUrl: ""
   #gcs/scr平台
   bkScrUrl: https://scr.example.com/
   bkScrApigwDomain: https://api.scr.example.com/
