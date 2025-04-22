@@ -37,7 +37,7 @@ class CLBManage(object):
         """
         删除clb后端的rs记录;适用场景：proxy下架的时候需要删除
         """
-        NameServiceApi.clb_deregister_part_target(
+        res = NameServiceApi.clb_deregister_part_target(
             {
                 "region": self.clb_region,
                 "loadbalancerid": self.clb_id,
@@ -46,13 +46,16 @@ class CLBManage(object):
             },
             raw=True,
         )
+        if "code" in res and res["code"] != 0:
+            logger.error(res)
+            return False
         return True
 
     def add_clb_rs(self, instance_list: list) -> bool:
         """
         增加clb后端的rs记录;适用场景：proxy上架的时候需要新增
         """
-        NameServiceApi.clb_register_part_target(
+        res = NameServiceApi.clb_register_part_target(
             {
                 "region": self.clb_region,
                 "loadbalancerid": self.clb_id,
@@ -61,6 +64,9 @@ class CLBManage(object):
             },
             raw=True,
         )
+        if "code" in res and res["code"] != 0:
+            logger.error(res)
+            return False
         return True
 
     def deregiste_clb(self) -> bool:
@@ -68,7 +74,7 @@ class CLBManage(object):
         删除clb后端的rs记录，并删除clb；
         适用场景：集群下架
         """
-        NameServiceApi.clb_deregister_target_and_del_lb(
+        res = NameServiceApi.clb_deregister_target_and_del_lb(
             {
                 "region": self.clb_region,
                 "loadbalancerid": self.clb_id,
@@ -76,13 +82,16 @@ class CLBManage(object):
             },
             raw=True,
         )
+        if "code" in res and res["code"] != 0:
+            logger.error(res)
+            return False
         return True
 
     def update_clb_rs_weight(self, instance_list: list, weight: int) -> bool:
         """
         修改clb权重;适用场景：proxy缩容前置行为
         """
-        NameServiceApi.clb_change_target_weight(
+        res = NameServiceApi.clb_change_target_weight(
             {
                 "region": self.clb_region,
                 "loadbalancerid": self.clb_id,
@@ -92,4 +101,7 @@ class CLBManage(object):
             },
             raw=True,
         )
+        if "code" in res and res["code"] != 0:
+            logger.error(res)
+            return False
         return True

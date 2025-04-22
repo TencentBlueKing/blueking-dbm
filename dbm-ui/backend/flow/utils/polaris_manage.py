@@ -41,27 +41,33 @@ class PolarisManage(object):
         """
         删除polaris后端的rs记录;适用场景：proxy下架的时候需要删除
         """
-        NameServiceApi.polaris_unbind_part_targets(
+        res = NameServiceApi.polaris_unbind_part_targets(
             {"servicename": self.servicename, "servicetoken": self.servicetoken, "ips": instance_list},
             raw=True,
         )
+        if "code" in res and res["code"] != 0:
+            logger.error(res)
+            return False
         return True
 
     def add_polaris_rs(self, instance_list: list) -> bool:
         """
         增加polaris后端的rs记录;适用场景：proxy上架的时候需要新增
         """
-        NameServiceApi.polaris_bind_part_targets(
+        res = NameServiceApi.polaris_bind_part_targets(
             {"servicename": self.servicename, "servicetoken": self.servicetoken, "ips": instance_list},
             raw=True,
         )
+        if "code" in res and res["code"] != 0:
+            logger.error(res)
+            return False
         return True
 
     def deregiste_polaris(self) -> bool:
         """
         删除polaris后端rs记录，并删除polaris;适用场景：集群下架
         """
-        NameServiceApi.polaris_unbind_targets_and_delete_alias_service(
+        res = NameServiceApi.polaris_unbind_targets_and_delete_alias_service(
             {
                 "servicename": self.servicename,
                 "servicetoken": self.servicetoken,
@@ -70,4 +76,7 @@ class PolarisManage(object):
             },
             raw=True,
         )
+        if "code" in res and res["code"] != 0:
+            logger.error(res)
+            return False
         return True
