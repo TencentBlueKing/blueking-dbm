@@ -26,7 +26,6 @@ from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import (
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs
 from backend.flow.utils.mysql.mysql_context_dataclass import SystemInfoContext
-from backend.flow.utils.spider.spider_bk_config import get_spider_version_and_charset
 from backend.flow.utils.spider.spider_db_meta import SpiderDBMeta
 
 logger = logging.getLogger("flow")
@@ -67,14 +66,7 @@ class TenDBClusterAddSpiderMNTFlow(object):
                 raise ClusterNotExistException(
                     cluster_id=info["cluster_id"], bk_biz_id=int(self.data["bk_biz_id"]), message=_("集群不存在")
                 )
-            # 通过bk—config获取版本号和字符集信息
-            # 获取的是业务默认配置，不一定是集群当前配置
-            spider_charset, spider_version = get_spider_version_and_charset(
-                bk_biz_id=cluster.bk_biz_id, db_module_id=cluster.db_module_id
-            )
-            # 补充这次单据需要的隐形参数，spider版本以及字符集
-            sub_flow_context["spider_charset"] = spider_charset
-            sub_flow_context["spider_version"] = spider_version
+
             # 启动子流程
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
             # 阶段1 根据场景执行添加spider-mnt子流程

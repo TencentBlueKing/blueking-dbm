@@ -16,16 +16,16 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterEntryRole, ClusterType, InstanceStatus, TenDBClusterSpiderRole
+from backend.db_meta.enums import ClusterType, InstanceStatus, TenDBClusterSpiderRole
 from backend.db_meta.enums.instance_phase import InstancePhase
 from backend.db_meta.exceptions import ClusterNotExistException, DBMetaException
 from backend.db_meta.models import Cluster, ProxyInstance
 from backend.db_package.models import Package
-from backend.flow.consts import DnsOpType, MediumEnum
+from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
-from backend.flow.engine.bamboo.scene.common.entrys_manager import BuildEntrysManageSubflow
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.spider.spider_add_nodes import TenDBClusterAddNodesFlow
+from backend.flow.engine.bamboo.scene.spider.spider_reduce_nodes import TenDBClusterReduceNodesFlow
 from backend.flow.plugins.components.collections.common.delete_cc_service_instance import DelCCServiceInstComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.check_client_connections import CheckClientConnComponent
@@ -35,8 +35,6 @@ from backend.flow.plugins.components.collections.mysql.exec_actuator_script impo
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.spider.ctl_drop_routing import CtlDropRoutingComponent
-from backend.flow.plugins.components.collections.spider.ctl_switch_to_slave import CtlSwitchToSlaveComponent
-from backend.flow.plugins.components.collections.spider.drop_spider_ronting import DropSpiderRoutingComponent
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CheckClientConnKwargs,
@@ -48,24 +46,20 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     RecycleDnsRecordKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
+from backend.flow.utils.mysql.mysql_context_dataclass import SystemInfoContext
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
 from backend.flow.utils.mysql.mysql_version_parse import (
     get_spider_sub_version_by_pkg_name,
     proxy_version_parse,
     tspider_version_parse,
 )
-from backend.flow.utils.spider.spider_act_dataclass import (
-    CtlDropRoutingKwargs,
-    CtlSwitchToSlaveKwargs,
-    DropSpiderRoutingKwargs,
-)
-from backend.flow.utils.spider.spider_bk_config import get_spider_version_and_charset
+from backend.flow.utils.spider.spider_act_dataclass import CtlDropRoutingKwargs
 from backend.flow.utils.spider.spider_db_meta import SpiderDBMeta
 
 logger = logging.getLogger("flow")
 
 
-class UpgradeSpiderFlow(TenDBClusterAddNodesFlow):
+class UpgradeSpiderFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNodesFlow):
     """
     TendbCluster spider节点迁移
         {
@@ -85,8 +79,12 @@ class UpgradeSpiderFlow(TenDBClusterAddNodesFlow):
     def __init__(self, root_id: str, data: Optional[Dict]):
         """
         @param root_id : 任务流程定义的root_id
-        @param ticket_data : 单据传递参数
+        @param data : 单据传递参数
         """
+        # 分别初始化父类的init方法
+        super().__init__(root_id=root_id, data=data)
+        super(TenDBClusterAddNodesFlow, self).__init__(root_id=root_id, data=data)
+
         self.root_id = root_id
         self.uid = data["uid"]
         self.bk_biz_id = data["bk_biz_id"]
@@ -138,158 +136,130 @@ class UpgradeSpiderFlow(TenDBClusterAddNodesFlow):
                 if slave_spiders_count > 0 and len(spider_slave_ip_list) < 0:
                     raise DBMetaException(message=_("待升级spiderSlave节点数传入ip节点数不一致,请确认"))
 
+    def migrate_upgrade_for_cluster(
+        self,
+        cluster_id: int,
+        spider_master_ip_list: list,
+        spider_slave_ip_list: list,
+        new_db_module_id: int,
+        new_pkg_id: int,
+    ):
+        """
+        根据集群维度，并发处理每个集群的替换节点信息
+        流程步骤：
+        1：修改cluster元数据，更改新的db_module_id版本
+        1：给集群新版本的spider实例(包括spider_master和spider_slave的角色)
+        2：人工确认
+        3：给集群所有旧版本spider实例下架(包括spider_master和spider_slave的角色)
+        """
+        # 获取对应集群相关对象
+        try:
+            cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=int(self.data["bk_biz_id"]))
+            old_spider_master = list(
+                cluster.proxyinstance_set.filter(
+                    tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
+                )
+            )
+            old_spider_slave = list(
+                cluster.proxyinstance_set.filter(
+                    tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE
+                )
+            )
+        except Cluster.DoesNotExist:
+            raise ClusterNotExistException(
+                cluster_id=cluster_id, bk_biz_id=int(self.data["bk_biz_id"]), message=_("集群不存在")
+            )
+
+        sub_pipeline = SubBuilder(
+            root_id=self.root_id, data={"uid": self.data["uid"], "bk_biz_id": int(self.data["bk_biz_id"])}
+        )
+
+        # 先执行扩容spider master实例
+        sub_pipeline.add_sub_pipeline(
+            self.add_spider_nodes_with_cluster(
+                cluster_id=cluster_id,
+                add_spider_role=TenDBClusterSpiderRole.SPIDER_MASTER.value,
+                add_spider_hosts=spider_master_ip_list,
+                new_db_module_id=new_db_module_id,
+                new_pkg_id=new_pkg_id,
+            )
+        )
+
+        # 先执行扩容spider slave实例, 如果spider slave集群存在
+        if spider_slave_ip_list:
+            sub_pipeline.add_sub_pipeline(
+                self.add_spider_nodes_with_cluster(
+                    cluster_id=cluster_id,
+                    add_spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE.value,
+                    add_spider_hosts=spider_slave_ip_list,
+                    new_db_module_id=new_db_module_id,
+                    new_pkg_id=new_pkg_id,
+                )
+            )
+
+        # 人工确认
+        sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
+
+        # 缩容spider master 节点
+        sub_pipeline.add_sub_pipeline(
+            self.reduce_spider_nodes_with_cluster(
+                cluster_id=cluster_id,
+                spider_reduced_hosts=[{"ip": s.machine.ip} for s in old_spider_master],
+                reduce_spider_role=TenDBClusterSpiderRole.SPIDER_MASTER.value,
+                spider_reduced_to_count_snapshot=0,
+                is_check_min_count=False,
+            )
+        )
+
+        # 缩容spider slave 节点
+        if old_spider_slave:
+            sub_pipeline.add_sub_pipeline(
+                self.reduce_spider_nodes_with_cluster(
+                    cluster_id=cluster_id,
+                    spider_reduced_hosts=[{"ip": s.machine.ip} for s in old_spider_slave],
+                    reduce_spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE.value,
+                    spider_reduced_to_count_snapshot=0,
+                    is_check_min_count=False,
+                )
+            )
+
+        # 更新集群模块信息
+        sub_pipeline.add_act(
+            act_name=_("更新集群db模块信息"),
+            act_component_code=MySQLDBMetaComponent.code,
+            kwargs=asdict(
+                DBMetaOPKwargs(
+                    db_meta_class_func=MySQLDBMeta.update_cluster_module.__name__,
+                    cluster={
+                        "cluster_ids": [cluster_id],
+                        "new_module_id": new_db_module_id,
+                    },
+                )
+            ),
+        )
+
+        return sub_pipeline.build_sub_process(sub_name=_("[{}]spider节点迁移升级流程".format(cluster.immute_domain)))
+
     def migrate_upgrade(self):
-        """执行替换spider节点的flow"""
-        pipeline = Builder(root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=self.cluster_ids)
+        """
+        新版本替换升级spider节点
+        """
+        pipeline = Builder(root_id=self.root_id, data=self.data)
+
         sub_pipelines = []
         for info in self.data["infos"]:
-            cluster_id = info["cluster_id"]
-            pkg_id = info["pkg_id"]
-            spider_master_ip_list = info["spider_master_ip_list"]
-            spider_slave_ip_list = info.get("spider_slave_ip_list", [])
-            new_db_module_id = info["new_db_module_id"]
-            # 拼接子流程需要全局参数
-            sub_flow_context = copy.deepcopy(self.data)
-            sub_flow_context.pop("infos")
-            sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
-            # 获取对应集群相关对象
-            try:
-                cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=int(self.data["bk_biz_id"]))
-            except Cluster.DoesNotExist:
-                raise ClusterNotExistException(
-                    cluster_id=cluster_id, bk_biz_id=int(self.data["bk_biz_id"]), message=_("集群不存在")
-                )
-            add_spider_piplines = []
-            # 先扩容spider节点
-            spider_charset, spider_version = get_spider_version_and_charset(
-                bk_biz_id=cluster.bk_biz_id, db_module_id=new_db_module_id
-            )
-            sub_flow_context.update(info)
-            sub_flow_context["spider_version"] = spider_version
-            sub_flow_context["spider_charset"] = spider_charset
-            sub_flow_context["spider_ip_list"] = spider_master_ip_list
-            sub_flow_context["pkg_id"] = pkg_id
-            sub_flow_context["ctl_charset"] = spider_charset
-            add_spider_piplines.append(self.add_spider_master_notes(sub_flow_context, cluster))
-            if len(spider_slave_ip_list) > 0:
-                sub_flow_context["spider_ip_list"] = spider_slave_ip_list
-                add_spider_piplines.append(self.add_spider_slave_notes(sub_flow_context, cluster))
-            sub_pipeline.add_parallel_sub_pipeline(add_spider_piplines)
-            # 先切换主中控到新的spider master 上
-            new_priamry_ctl_ip = spider_master_ip_list[0]["ip"]
-            ctl_port = cluster.proxyinstance_set.first().admin_port
-            sub_pipeline.add_act(
-                act_name=_("切换primary中控"),
-                act_component_code=CtlSwitchToSlaveComponent.code,
-                kwargs=asdict(
-                    CtlSwitchToSlaveKwargs(
-                        cluster_id=cluster.id,
-                        reduce_ctl_primary=cluster.tendbcluster_ctl_primary_address(),
-                        new_ctl_primary=f"{new_priamry_ctl_ip}{IP_PORT_DIVIDER}{ctl_port}",
-                    )
-                ),
-            )
-            # 后续流程需要在这里加一个暂停节点，让用户在合适的时间执行下架
-            sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
-            # 预检测
-            reduce_master_spiders = cluster.proxyinstance_set.filter(
-                tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
-            )
-            reduce_slave_spiders = cluster.proxyinstance_set.filter(
-                tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE
-            )
-            if self.data["is_safe"]:
-                sub_pipeline.add_act(
-                    act_name=_("检测回收Spider端连接情况"),
-                    act_component_code=CheckClientConnComponent.code,
-                    kwargs=asdict(
-                        CheckClientConnKwargs(
-                            bk_cloud_id=cluster.bk_cloud_id,
-                            check_instances=["{}:{}".format(s.machine.ip, s.port) for s in reduce_master_spiders],
-                        )
-                    ),
-                )
-            # 回收对应的域名关系
-            reduce_spiders = [{"ip": s.machine.ip} for s in reduce_master_spiders] + [
-                {"ip": s.machine.ip} for s in reduce_slave_spiders
-            ]
-            # sub_pipeline.add_act(
-            #     act_name=_("回收对应spider集群映射"),
-            #     act_component_code=MySQLDnsManageComponent.code,
-            #     kwargs=asdict(
-            #         RecycleDnsRecordKwargs(
-            #             bk_cloud_id=cluster.bk_cloud_id,
-            #             dns_op_exec_port=cluster.proxyinstance_set.first().port,
-            #             exec_ip=[info["ip"] for info in reduce_spiders],
-            #         ),
-            #     ),
-            # )
-            entrysub_process = BuildEntrysManageSubflow(
-                root_id=self.root_id,
-                ticket_data=self.data,
-                op_type=DnsOpType.RECYCLE_RECORD,
-                param={
-                    "cluster_id": cluster.id,
-                    "port": cluster.proxyinstance_set.first().port,
-                    "del_ips": [info["ip"] for info in reduce_spiders],
-                    "entry_role": [ClusterEntryRole.MASTER_ENTRY.value, ClusterEntryRole.SLAVE_ENTRY.value],
-                },
-            )
-            sub_pipeline.add_sub_pipeline(sub_flow=entrysub_process)
-            # 删除spider的路由关系
-            sub_pipeline.add_act(
-                act_name=_("删除spider的路由关系"),
-                act_component_code=DropSpiderRoutingComponent.code,
-                kwargs=asdict(
-                    DropSpiderRoutingKwargs(
-                        cluster_id=cluster.id,
-                        is_safe=self.data["is_safe"],
-                        reduce_spiders=reduce_spiders,
-                    )
-                ),
-            )
-            # 更新集群模块信息
-            sub_pipeline.add_act(
-                act_name=_("更新集群db模块信息"),
-                act_component_code=MySQLDBMetaComponent.code,
-                kwargs=asdict(
-                    DBMetaOPKwargs(
-                        db_meta_class_func=MySQLDBMeta.update_cluster_module.__name__,
-                        cluster={
-                            "cluster_ids": [cluster_id],
-                            "new_module_id": new_db_module_id,
-                        },
-                    )
-                ),
-            )
-            # 后续流程需要在这里加一个暂停节点，让用户在合适的时间执行下架
-            sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
-            # 根据场景执行下架spider子流程
-            sub_flow_context["force"] = True
-            if len(reduce_slave_spiders) > 0:
-                sub_pipeline.add_sub_pipeline(
-                    sub_flow=reduce_spider_flow(
-                        cluster=cluster,
-                        reduce_spiders=[{"ip": s.machine.ip} for s in reduce_slave_spiders],
-                        root_id=self.root_id,
-                        parent_global_data=sub_flow_context,
-                        spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE,
-                    )
-                )
-            sub_pipeline.add_sub_pipeline(
-                sub_flow=reduce_spider_flow(
-                    cluster=cluster,
-                    reduce_spiders=[{"ip": s.machine.ip} for s in reduce_master_spiders],
-                    root_id=self.root_id,
-                    parent_global_data=sub_flow_context,
-                    spider_role=TenDBClusterSpiderRole.SPIDER_MASTER,
+            sub_pipelines.append(
+                self.migrate_upgrade_for_cluster(
+                    cluster_id=info["cluster_id"],
+                    spider_master_ip_list=info["spider_master_ip_list"],
+                    spider_slave_ip_list=info["spider_slave_ip_list"],
+                    new_db_module_id=info["new_db_module_id"],
+                    new_pkg_id=info["pkg_id"],
                 )
             )
-            # append sub pipeline
-            sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("[{}]spider节点迁移升级流程".format(cluster.name))))
+
         pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        pipeline.run_pipeline()
-        return
+        pipeline.run_pipeline(init_trans_data_class=SystemInfoContext())
 
     def local_upgrade(self):
         """
@@ -312,7 +282,7 @@ class UpgradeSpiderFlow(TenDBClusterAddNodesFlow):
         sub_pipelines = []
         for upgrade_info in self.data["infos"]:
             cluster_id = upgrade_info["cluster_id"]
-            pkg_id = upgrade_info["pkg_id"]
+            pkg_id = int(upgrade_info["pkg_id"])
             new_db_module_id = upgrade_info["new_db_module_id"]
             spider_pkg = Package.objects.get(id=pkg_id)
             logger.info("param pkg_id:{},get the pkg name: {}".format(pkg_id, spider_pkg.name))

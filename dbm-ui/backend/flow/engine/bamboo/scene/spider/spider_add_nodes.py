@@ -28,7 +28,6 @@ from backend.flow.engine.bamboo.scene.spider.common.exceptions import NormalSpid
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs
 from backend.flow.utils.mysql.mysql_context_dataclass import SystemInfoContext
-from backend.flow.utils.spider.spider_bk_config import get_spider_version_and_charset
 from backend.flow.utils.spider.spider_db_meta import SpiderDBMeta
 
 logger = logging.getLogger("flow")
@@ -57,53 +56,67 @@ class TenDBClusterAddNodesFlow(object):
         pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_pipelines = []
         for info in self.data["infos"]:
-            # 拼接子流程需要全局参数
-            sub_flow_context = copy.deepcopy(self.data)
-            sub_flow_context.pop("infos")
-
-            # 获取对应集群相关对象
-            try:
-                cluster = Cluster.objects.get(id=info["cluster_id"], bk_biz_id=int(self.data["bk_biz_id"]))
-            except Cluster.DoesNotExist:
-                raise ClusterNotExistException(
-                    cluster_id=info["cluster_id"], bk_biz_id=int(self.data["bk_biz_id"]), message=_("集群不存在")
+            sub_pipelines.append(
+                self.add_spider_nodes_with_cluster(
+                    cluster_id=info["cluster_id"],
+                    add_spider_role=info["add_spider_role"],
+                    add_spider_hosts=info["spider_ip_list"],
                 )
-
-            # 根据集群去bk-config获取对应spider版本和字符集
-            spider_charset, spider_version = get_spider_version_and_charset(
-                bk_biz_id=cluster.bk_biz_id, db_module_id=cluster.db_module_id
             )
-
-            # 拼接子流程的全局参数
-            sub_flow_context.update(info)
-
-            # 补充这次单据需要的隐形参数，spider版本以及字符集
-            sub_flow_context["spider_charset"] = spider_charset
-            sub_flow_context["spider_version"] = spider_version
-
-            if info["add_spider_role"] == TenDBClusterSpiderRole.SPIDER_MASTER:
-
-                # 加入spider-master 子流程
-                sub_flow_context["ctl_charset"] = spider_charset
-                sub_pipelines.append(self.add_spider_master_notes(sub_flow_context, cluster))
-
-            elif info["add_spider_role"] == TenDBClusterSpiderRole.SPIDER_SLAVE:
-
-                # 加入spider-slave 子流程
-                sub_pipelines.append(self.add_spider_slave_notes(sub_flow_context, cluster))
-
-            else:
-                # 理论上不会出现，出现就中断这次流程构造
-                raise NormalSpiderFlowException(
-                    message=_("[{}]This type of role addition is not supported".format(info["add_spider_role"]))
-                )
-        if not sub_pipelines:
-            raise NormalSpiderFlowException(message=_("build spider-add-nodes-pipeline failed"))
 
         pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         pipeline.run_pipeline(init_trans_data_class=SystemInfoContext())
 
-    def add_spider_master_notes(self, sub_flow_context: dict, cluster: Cluster):
+    def add_spider_nodes_with_cluster(
+        self,
+        cluster_id: int,
+        add_spider_role: TenDBClusterSpiderRole,
+        add_spider_hosts: list,
+        new_db_module_id: int = 0,
+        new_pkg_id: int = 0,
+    ):
+        """
+        定义添加节点的子流程
+        """
+
+        # 获取对应集群相关对象
+        try:
+            cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=int(self.data["bk_biz_id"]))
+        except Cluster.DoesNotExist:
+            raise ClusterNotExistException(
+                cluster_id=cluster_id, bk_biz_id=int(self.data["bk_biz_id"]), message=_("集群不存在")
+            )
+
+        # 补充这次单据需要的隐形参数，spider版本以及字符集
+        sub_flow_context = {
+            "uid": self.data["uid"],
+            "bk_biz_id": cluster.bk_biz_id,
+            "cluster_id": cluster.id,
+            "created_by": self.data["created_by"],
+            "ticket_type": self.data["ticket_type"],
+            "spider_ip_list": add_spider_hosts,
+            "new_db_module_id": new_db_module_id,
+        }
+
+        if add_spider_role == TenDBClusterSpiderRole.SPIDER_MASTER:
+
+            # 加入spider-master 子流程
+            return self.add_spider_master_notes(sub_flow_context, cluster, new_db_module_id, new_pkg_id)
+
+        elif add_spider_role == TenDBClusterSpiderRole.SPIDER_SLAVE:
+
+            # 加入spider-slave 子流程
+            return self.add_spider_slave_notes(sub_flow_context, cluster, new_db_module_id, new_pkg_id)
+
+        else:
+            # 理论上不会出现，出现就中断这次流程构造
+            raise NormalSpiderFlowException(
+                message=_("[{}]This type of role addition is not supported".format(add_spider_role))
+            )
+
+    def add_spider_master_notes(
+        self, sub_flow_context: dict, cluster: Cluster, new_db_module_id: int = 0, new_pkg_id: int = 0
+    ):
         """
         定义spider master集群部署子流程
         目前产品形态 spider专属一套集群，所以流程只支持spider单机单实例安装
@@ -121,6 +134,8 @@ class TenDBClusterAddNodesFlow(object):
                 uid=sub_flow_context["uid"],
                 parent_global_data=sub_flow_context,
                 is_add_spider_mnt=False,
+                new_db_module_id=new_db_module_id,
+                new_pkg_id=new_pkg_id,
             )
         )
 
@@ -144,13 +159,13 @@ class TenDBClusterAddNodesFlow(object):
         )
         return sub_pipeline.build_sub_process(sub_name=_("[{}]添加spider-master节点流程".format(cluster.name)))
 
-    def add_spider_slave_notes(self, sub_flow_context: dict, cluster: Cluster):
+    def add_spider_slave_notes(
+        self, sub_flow_context: dict, cluster: Cluster, new_db_module_id: int = 0, new_pkg_id: int = 0
+    ):
         """
         添加spider-slave节点的子流程流程逻辑
         必须集群存在从集群，才能添加
         """
-        # spider slave 不安装备份程序，只解压
-        sub_flow_context["untar_only"] = True
 
         sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
 
@@ -162,6 +177,8 @@ class TenDBClusterAddNodesFlow(object):
                 root_id=self.root_id,
                 uid=sub_flow_context["uid"],
                 parent_global_data=copy.deepcopy(sub_flow_context),
+                new_db_module_id=new_db_module_id,
+                new_pkg_id=new_pkg_id,
             )
         )
         # 阶段2 变更db_meta数据

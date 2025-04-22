@@ -13,12 +13,17 @@ from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.db_meta.enums import ClusterType
 from backend.flow.consts import ConfigTypeEnum
+from backend.flow.engine.bamboo.scene.spider.common.exceptions import NormalSpiderFlowException
 
 
 def get_spider_version_and_charset(bk_biz_id, db_module_id) -> Any:
     """
     根据业务id和模块id，通过bk—config获取版本号和字符集信息
     """
+    if int(db_module_id) <= 0:
+        # 模块ID小于等于属于非法
+        raise NormalSpiderFlowException(message=f"db_module_id = {db_module_id} is illegal")
+
     data = DBConfigApi.query_conf_item(
         {
             "bk_biz_id": str(bk_biz_id),
@@ -33,7 +38,7 @@ def get_spider_version_and_charset(bk_biz_id, db_module_id) -> Any:
     return data["charset"], data["spider_version"]
 
 
-def calc_spider_max_count(bk_biz_id, db_module_id, db_version) -> int:
+def calc_spider_max_count(bk_biz_id, db_module_id, db_version, immute_domain: str = "init") -> int:
     """
     根据业务id和模块id，通过bk—config获取默认spider的配置
     得出spider_auto_increment_step配置
@@ -41,17 +46,19 @@ def calc_spider_max_count(bk_biz_id, db_module_id, db_version) -> int:
     @param bk_biz_id: 业务id
     @param db_module_id: db模块ID
     @param db_version: spider版本
+    @param immute_domain: 域名信息, 默认值init，代表无域名查询
     """
     spider_auto_increment_step = int(
         DBConfigApi.query_conf_item(
             {
                 "bk_biz_id": str(bk_biz_id),
-                "level_name": LevelName.MODULE,
-                "level_value": str(db_module_id),
+                "level_name": LevelName.CLUSTER,
+                "level_value": immute_domain,
+                "level_info": {"module": str(db_module_id)},
                 "conf_file": db_version,
                 "conf_type": ConfigTypeEnum.DBConf,
                 "namespace": ClusterType.TenDBCluster,
-                "format": FormatType.MAP,
+                "format": FormatType.MAP_LEVEL,
             }
         )["content"]["mysqld"]["spider_auto_increment_step"]
     )

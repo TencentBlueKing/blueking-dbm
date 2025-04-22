@@ -45,8 +45,8 @@ class CtlSwitchToSlaveKwargs:
     """
 
     cluster_id: int
-    reduce_ctl_primary: str  # 待回收的ctl，格式是ip:port
-    new_ctl_primary: str  # 待提升主的ctl，格式是ip:port
+    reduce_ctl_primary: str  # 待回收的ctl primary，格式是ip:port
+    reduce_ctl_secondary_list: list  # 待回收的ctl secondary, 格式是[{"ip":xxx...}...]
 
 
 @dataclass

@@ -57,6 +57,7 @@ from backend.flow.utils.spider.spider_act_dataclass import (
     CtlSwitchToSlaveKwargs,
     DropSpiderRoutingKwargs,
 )
+from backend.flow.utils.spider.spider_bk_config import get_spider_version_and_charset
 from backend.flow.utils.spider.spider_db_meta import SpiderDBMeta
 
 """
@@ -72,6 +73,8 @@ def add_spider_slaves_sub_flow(
     parent_global_data: dict,
     is_clone_user: bool = True,
     slave_domain: str = None,
+    new_pkg_id: int = 0,
+    new_db_module_id: int = 0,
 ):
     """
     定义对原有的TenDB cluster集群添加spider slave节点的公共子流程
@@ -82,7 +85,9 @@ def add_spider_slaves_sub_flow(
     @param root_id: flow流程的root_id
     @param parent_global_data: 本次子流程的对应上层流程的全局只读上下文
     @param uid: 单据id
-    @param is_clone_user 是否克隆权限
+    @param is_clone_user 是否克隆权限, 区分一些单据场景。
+    @param new_pkg_id 如果是做升级部署，需要传新版本的介质包，默认为0，表示不升级部署
+    @param new_db_module_id 如果是做升级部署，需要传新的DB模块ID，默认为0，表示不升级部署
     """
     tdbctl_pass = get_random_string(length=10)
 
@@ -99,7 +104,15 @@ def add_spider_slaves_sub_flow(
         )[0]
 
     parent_global_data["spider_ports"] = [tmp_spider.port]
-    parent_global_data["db_module_id"] = cluster.db_module_id
+    # 获取版本和字符集信息
+    parent_global_data["db_module_id"] = new_db_module_id if new_db_module_id else cluster.db_module_id
+    parent_global_data["spider_charset"], parent_global_data["spider_version"] = get_spider_version_and_charset(
+        bk_biz_id=cluster.bk_biz_id, db_module_id=parent_global_data["db_module_id"]
+    )
+    # spider slave 不安装备份程序，只解压
+    parent_global_data["untar_only"] = True
+
+    # 声明子流程
     sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
 
     # 拼接执行原子任务活动节点需要的通用的私有参数结构体, 减少代码重复率，但引用时注意内部参数值传递的问题
@@ -125,8 +138,8 @@ def add_spider_slaves_sub_flow(
     )
 
     # 阶段1 下发spider安装介质包
-    if parent_global_data.get("pkg_id"):
-        pkg_id = parent_global_data["pkg_id"]
+    if new_pkg_id:
+        # 代表升级部署，根据新的pkg_id下发介质包
         sub_pipeline.add_act(
             act_name=_("下发spider安装介质"),
             act_component_code=TransFileComponent.code,
@@ -134,11 +147,12 @@ def add_spider_slaves_sub_flow(
                 DownloadMediaKwargs(
                     bk_cloud_id=cluster.bk_cloud_id,
                     exec_ip=[ip_info["ip"] for ip_info in add_spider_slaves],
-                    file_list=GetFileList(db_type=DBType.MySQL).spider_upgrade_package(pkg_id=pkg_id),
+                    file_list=GetFileList(db_type=DBType.MySQL).spider_upgrade_package(pkg_id=new_pkg_id),
                 )
             ),
         )
     else:
+        # 根据继承的版本名称，或者介质包
         sub_pipeline.add_act(
             act_name=_("下发spider安装介质"),
             act_component_code=TransFileComponent.code,
@@ -260,6 +274,8 @@ def add_spider_masters_sub_flow(
     uid: str,
     parent_global_data: dict,
     is_add_spider_mnt: bool,
+    new_pkg_id: int = 0,
+    new_db_module_id: int = 0,
 ):
     """
     定义对原有的TenDB cluster集群添加spider master节点的公共子流程
@@ -271,6 +287,8 @@ def add_spider_masters_sub_flow(
     @param parent_global_data: 本次子流程的对应上层流程的全局只读上下文
     @param is_add_spider_mnt: 表示这次添加spider 运维节点，如果是则True，不是则False
     @param uid: 单据uid
+    @param new_pkg_id 如果是做升级部署，需要传新版本的介质包，默认为0，表示不升级部署
+    @param new_db_module_id 如果是做升级部署，需要传新的DB模块ID，默认为0，表示不升级部署
     """
     tag = "mnt"
     tdbctl_pass = get_random_string(length=10)
@@ -278,7 +296,15 @@ def add_spider_masters_sub_flow(
     # 获取到集群对应的spider端口，作为这次的安装
     parent_global_data["spider_ports"] = [cluster.proxyinstance_set.first().port]
     parent_global_data["ctl_port"] = cluster.proxyinstance_set.first().admin_port
-    parent_global_data["db_module_id"] = cluster.db_module_id
+
+    # 获取版本和字符集信息
+    parent_global_data["db_module_id"] = new_db_module_id if new_db_module_id else cluster.db_module_id
+    parent_global_data["spider_charset"], parent_global_data["spider_version"] = get_spider_version_and_charset(
+        bk_biz_id=cluster.bk_biz_id, db_module_id=parent_global_data["db_module_id"]
+    )
+    parent_global_data["ctl_charset"] = parent_global_data["spider_charset"]
+
+    # 声明子流程
     sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
 
     # 拼接执行原子任务活动节点需要的通用的私有参数结构体, 减少代码重复率，但引用时注意内部参数值传递的问题
@@ -303,8 +329,7 @@ def add_spider_masters_sub_flow(
         )
     )
     # 阶段1 下发spider安装介质包
-    if parent_global_data.get("pkg_id"):
-        pkg_id = parent_global_data["pkg_id"]
+    if new_pkg_id:
         sub_pipeline.add_act(
             act_name=_("下发spider安装介质"),
             act_component_code=TransFileComponent.code,
@@ -312,7 +337,7 @@ def add_spider_masters_sub_flow(
                 DownloadMediaKwargs(
                     bk_cloud_id=cluster.bk_cloud_id,
                     exec_ip=[ip_info["ip"] for ip_info in add_spider_masters],
-                    file_list=GetFileList(db_type=DBType.MySQL).spider_upgrade_package(pkg_id=pkg_id),
+                    file_list=GetFileList(db_type=DBType.MySQL).spider_upgrade_package(pkg_id=new_pkg_id),
                 )
             ),
         )
@@ -344,17 +369,11 @@ def add_spider_masters_sub_flow(
     acts_list = []
     for spider in get_spider_master_incr(cluster, add_spider_masters):
         exec_act_kwargs.exec_ip = spider["ip"]
-        if parent_global_data.get("pkg_id"):
-            exec_act_kwargs.cluster = {
-                "immutable_domain": cluster.immute_domain,
-                "auto_incr_value": spider["incr_number"],
-                "pkg_id": parent_global_data["pkg_id"],
-            }
-        else:
-            exec_act_kwargs.cluster = {
-                "immutable_domain": cluster.immute_domain,
-                "auto_incr_value": spider["incr_number"],
-            }
+        exec_act_kwargs.cluster = {
+            "immutable_domain": cluster.immute_domain,
+            "auto_incr_value": spider["incr_number"],
+            "pkg_id": new_pkg_id,
+        }
         exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_spider_payload.__name__
         acts_list.append(
             {
@@ -797,13 +816,6 @@ def reduce_ctls_routing(root_id: str, parent_global_data: dict, cluster: Cluster
 
     if reduce_ctl_primary:
         # 选择新节点作为primary，过滤待回收的节点
-        all_ctl = cluster.proxyinstance_set.filter(
-            tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
-        )
-
-        # 因为ctl集群是采用GTID+半同步数据同步，所以理论上选择任意一个从节点作为主，数据不会丢失
-        new_ctl_primary = all_ctl.exclude(machine__ip__in=[ip_info.machine.ip for ip_info in reduce_ctls]).first()
-
         sub_pipeline.add_act(
             act_name=_("切换ctl中控集群"),
             act_component_code=CtlSwitchToSlaveComponent.code,
@@ -811,7 +823,7 @@ def reduce_ctls_routing(root_id: str, parent_global_data: dict, cluster: Cluster
                 CtlSwitchToSlaveKwargs(
                     cluster_id=cluster.id,
                     reduce_ctl_primary=reduce_ctl_primary,
-                    new_ctl_primary=f"{new_ctl_primary.machine.ip}{IP_PORT_DIVIDER}{new_ctl_primary.admin_port}",
+                    reduce_ctl_secondary_list=reduce_ctl_secondary_list,
                 )
             ),
         )

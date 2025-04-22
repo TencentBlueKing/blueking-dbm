@@ -88,7 +88,6 @@ class SpiderDBMeta(object):
         kwargs = {
             "cluster_id": self.global_data["cluster_id"],
             "creator": self.global_data["created_by"],
-            "spider_version": self.global_data["spider_version"],
             "add_spiders": self.global_data["spider_slave_ip_list"],
             "spider_role": TenDBClusterSpiderRole.SPIDER_SLAVE,
             "resource_spec": self.global_data["resource_spec"],
@@ -107,11 +106,11 @@ class SpiderDBMeta(object):
         kwargs = {
             "cluster_id": self.global_data["cluster_id"],
             "creator": self.global_data["created_by"],
-            "spider_version": self.global_data["spider_version"],
             "add_spiders": self.global_data["spider_ip_list"],
             "spider_role": spider_role,
             "resource_spec": self.global_data.get("resource_spec") or default_spider_spec,
             "is_slave_cluster_create": False,
+            "new_db_module_id": self.global_data.get("new_db_module_id", 0),
         }
         TenDBClusterClusterHandler.add_spiders(**kwargs)
         return True

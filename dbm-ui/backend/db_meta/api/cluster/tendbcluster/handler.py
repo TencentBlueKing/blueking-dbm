@@ -35,6 +35,7 @@ from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_r
 from backend.flow.utils.cc_manage import CcManage
 from backend.flow.utils.mysql.mysql_module_operate import MysqlCCTopoOperator
 from backend.flow.utils.spider.spider_act_dataclass import ShardInfo
+from backend.flow.utils.spider.spider_bk_config import get_spider_version_and_charset
 
 
 class TenDBClusterClusterHandler(ClusterHandler):
@@ -172,26 +173,30 @@ class TenDBClusterClusterHandler(ClusterHandler):
         cls,
         cluster_id: int,
         creator: str,
-        spider_version: str,
         add_spiders: list,
         spider_role: Optional[TenDBClusterSpiderRole],
         resource_spec: dict,
         is_slave_cluster_create: bool,
         new_slave_domain: str = None,
+        new_db_module_id: int = 0,
     ):
         """
         对已有的集群添加spider的元信息
         因为从集群添加的行为spider-slave扩容行为基本类似，所以这里作为一个公共方法，对域名处理根据不同单据类型做不同的处理
         @param cluster_id: 待关联的集群id
         @param creator: 提单的用户名称
-        @param spider_version: 待加入的spider版本号（包括小版本信息）
         @param add_spiders: 待加入的spider机器信息
         @param spider_role: 待加入spider的角色
         @param resource_spec: 待加入spider的规格
         @param is_slave_cluster_create: 代表这次是否是添加从集群
         @param new_slave_domain: 如果是添加从集群场景，这里代表新的从域名信息
+        @param new_db_module_id: new_db_module_id代表新的模块ID，默认为0，代表延用cluster信息的模块ID做依据
         """
         cluster = Cluster.objects.get(id=cluster_id)
+        db_module_id = new_db_module_id if new_db_module_id else cluster.db_module_id
+        spider_charset, spider_version = get_spider_version_and_charset(
+            bk_biz_id=cluster.bk_biz_id, db_module_id=db_module_id
+        )
 
         # 录入机器
         machines = []

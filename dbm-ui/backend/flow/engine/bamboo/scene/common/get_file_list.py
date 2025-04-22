@@ -178,7 +178,7 @@ class GetFileList(object):
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{proxy_pkg.path}",
         ]
 
-    def spider_upgrade_package(self, pkg_id: str) -> list:
+    def spider_upgrade_package(self, pkg_id: int) -> list:
         """
         spider 升级需要的安装包列表
         """

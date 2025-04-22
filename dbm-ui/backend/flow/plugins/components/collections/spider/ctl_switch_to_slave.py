@@ -16,7 +16,7 @@ from backend.components import DBConfigApi, DRSApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import TenDBClusterSpiderRole
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import Cluster, ProxyInstance
 from backend.flow.consts import TDBCTL_USER, ConfigTypeEnum, NameSpaceEnum
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import CtlSwitchToSlaveFailedException
 from backend.flow.plugins.components.collections.common.base_service import BaseService
@@ -126,12 +126,12 @@ class CtlSwitchToSlaveService(BaseService):
 
         return True
 
-    def _new_master_enable_primary(self, cluster: Cluster, new_master: str, reduce_ctl_primary: str):
+    def _new_master_enable_primary(self, cluster: Cluster, new_master: ProxyInstance, reduce_ctl_primary: str):
         """
         提升新节点作为主节点的逻辑
         """
         rpc_params = {
-            "addresses": [new_master],
+            "addresses": [f"{new_master.machine.ip}{IP_PORT_DIVIDER}{new_master.admin_port}"],
             "cmds": [],
             "force": False,
             "bk_cloud_id": cluster.bk_cloud_id,
@@ -195,8 +195,8 @@ class CtlSwitchToSlaveService(BaseService):
         for secondary in other_secondary:
             repl_sql = (
                 f"CHANGE MASTER TO "
-                f"MASTER_HOST ='{new_primary.split(':')[0]}',"
-                f"MASTER_PORT={new_primary.split(':')[1]},"
+                f"MASTER_HOST ='{new_primary.machine.ip}',"
+                f"MASTER_PORT={new_primary.admin_port},"
                 f"MASTER_USER ='{data['repl_user']}',"
                 f"MASTER_PASSWORD='{data['repl_pwd']}',"
                 "MASTER_AUTO_POSITION = 1;"
@@ -214,19 +214,19 @@ class CtlSwitchToSlaveService(BaseService):
                 raise CtlSwitchToSlaveFailedException(message=_(f"exec change master  failed: {res[0]['error_msg']}"))
         return True
 
-    def _flush_routing(self, ctl_master: str, bk_cloud_id: int):
+    def _flush_routing(self, ctl_master: ProxyInstance, bk_cloud_id: int):
         """
         @param ctl_master: 当前集群的中控primary
         @param bk_cloud_id: 云区域id
         """
         get_flush_routing_sql_list = get_flush_routing_sql_for_server(
-            ctl_master=ctl_master,
+            ctl_master=f"{ctl_master.machine.ip}{IP_PORT_DIVIDER}{ctl_master.admin_port}",
             bk_cloud_id=bk_cloud_id,
         )
         self.log_info(f"exec flush_routing cmds:[{get_flush_routing_sql_list}]")
         res = DRSApi.rpc(
             {
-                "addresses": [ctl_master],
+                "addresses": [f"{ctl_master.machine.ip}{IP_PORT_DIVIDER}{ctl_master.admin_port}"],
                 "cmds": ["set tc_admin=1"] + get_flush_routing_sql_list,
                 "force": False,
                 "bk_cloud_id": bk_cloud_id,
@@ -241,7 +241,7 @@ class CtlSwitchToSlaveService(BaseService):
         kwargs = data.get_one_of_inputs("kwargs")
 
         reduce_ctl_primary = kwargs["reduce_ctl_primary"]
-        new_ctl_primary = kwargs["new_ctl_primary"]
+        reduce_ctl_secondary_list = kwargs["reduce_ctl_secondary_list"]
 
         # 获取cluster对象，包括中控实例、 spider端口等
         cluster = Cluster.objects.get(id=kwargs["cluster_id"])
@@ -250,6 +250,9 @@ class CtlSwitchToSlaveService(BaseService):
         ctl_set = cluster.proxyinstance_set.filter(
             tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
         ).exclude(machine__ip=reduce_ctl_primary.split(":")[0])
+
+        # 计算出新的primary节点，避开这批下架的tdbctl节点
+        new_ctl_primary = ctl_set.exclude(machine__ip__in=[i["ip"] for i in reduce_ctl_secondary_list]).first()
 
         # 阶段1 先检测是否当前可以提升主切换
         result = self._prepare_check(cluster=cluster, reduce_ctl_primary=reduce_ctl_primary)
@@ -264,7 +267,7 @@ class CtlSwitchToSlaveService(BaseService):
         self.log_info(_("关闭所有从节点的主从同步成功"))
 
         # 阶段3 根据传入新的primary节点,计算出其余的从节点
-        other_secondary = ctl_set.exclude(machine__ip=new_ctl_primary.split(":")[0])
+        other_secondary = ctl_set.exclude(machine__ip=new_ctl_primary.machine.ip)
 
         # 阶段4 其余节点同步新的primary节点
         self._sync_to_new_master(cluster, new_ctl_primary, other_secondary)
@@ -272,7 +275,7 @@ class CtlSwitchToSlaveService(BaseService):
 
         # 阶段5 连接新的primary节点，执行剔除原primary节点的命令, 并提升自己为primary TDBCTL ENABLE PRIMARY
         self._new_master_enable_primary(cluster, new_ctl_primary, reduce_ctl_primary)
-        self.log_info(_("节点[{}]提升自己为primary成功").format(new_ctl_primary))
+        self.log_info(_("节点[{}:{}]提升自己为primary成功").format(new_ctl_primary.machine.ip, new_ctl_primary.admin_port))
 
         # 阶段6 其余tdbctl slave执行flush routing，确保路由是同步的
         self.log_info("exec flush routing ....")
