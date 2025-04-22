@@ -13,7 +13,6 @@
 
 <template>
   <EditableTable
-    :key="tableData.length"
     ref="table"
     class="mb-20"
     :model="tableData">
@@ -48,10 +47,13 @@
   </EditableTable>
 </template>
 <script lang="ts" setup>
+  import _ from 'lodash';
   import { useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type { TendbCluster } from '@services/model/ticket/ticket';
+
+  import { messageError } from '@utils';
 
   import HostColumn, { type SelectorHost } from './components/HostColumn.vue';
 
@@ -187,29 +189,52 @@
 
   defineExpose<Exposes>({
     async getValue() {
-      const validateResult = await tableRef.value?.validate();
-      if (!validateResult) {
-        return {
-          infos: [],
-        };
-      }
+      try {
+        const validateResult = await tableRef.value?.validate();
+        if (!validateResult) {
+          return {
+            infos: [],
+          };
+        }
 
-      return {
-        infos: tableData.value.map((item) => ({
-          cluster_id: item.spider_reduced_host.cluster_id,
-          old_nodes: {
-            spider_reduced_hosts: [
-              {
+        /*
+         * 以cluster_id分组聚合
+         */
+        const groupByCluster = _.groupBy(tableData.value, (item) => item.spider_reduced_host.cluster_id);
+        const infos: ServiceReturnType<Exposes['getValue']>['infos'] = [];
+        // 校验角色是否一致
+        let validateRole = true;
+        Object.entries(groupByCluster).forEach(([clusterId, items]) => {
+          if (validateRole) {
+            // 只要有一个同集群下角色不一致就不允许缩容
+            validateRole = items.every((item) => item.spider_reduced_host.role === items[0].spider_reduced_host.role);
+          }
+          infos.push({
+            cluster_id: Number(clusterId),
+            old_nodes: {
+              spider_reduced_hosts: items.map((item) => ({
                 bk_biz_id: item.spider_reduced_host.bk_biz_id,
                 bk_cloud_id: item.spider_reduced_host.bk_cloud_id,
                 bk_host_id: item.spider_reduced_host.bk_host_id,
                 ip: item.spider_reduced_host.ip,
-              },
-            ],
-          },
-          reduce_spider_role: item.spider_reduced_host.role,
-        })),
-      };
+              })),
+            },
+            reduce_spider_role: items[0].spider_reduced_host.role,
+          });
+        });
+        if (!validateRole) {
+          throw new Error(t('同集群不允许同时缩容Spider Master和Spider Slave'));
+        }
+
+        return {
+          infos,
+        };
+      } catch (e: any) {
+        messageError(e.message);
+        return {
+          infos: [],
+        };
+      }
     },
     reset() {
       tableData.value = [createTableRow()];

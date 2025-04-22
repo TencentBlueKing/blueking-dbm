@@ -45,6 +45,7 @@
 
   import RedisModel from '@services/model/redis/redis';
   import { checkInstance } from '@services/source/dbbase';
+  import { getRedisClusterList } from '@services/source/redis';
 
   import { ClusterTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
@@ -79,6 +80,7 @@
     cluster_id: number;
     ip: string;
     master_domain: string;
+    role: string;
   }>({
     default: () => ({
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -87,6 +89,7 @@
       cluster_id: 0,
       ip: '',
       master_domain: '',
+      role: 'proxy',
     }),
   });
 
@@ -106,6 +109,16 @@
         },
         topoConfig: {
           countFunc: (item: RedisModel) => item.proxyCount,
+          getTopoList: (params: ServiceParameters<typeof getRedisClusterList>) =>
+            getRedisClusterList({
+              ...params,
+              cluster_type: [
+                ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+                ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+                ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+                ClusterTypes.PREDIXY_REDIS_CLUSTER,
+              ].join(','),
+            }),
           totalCountFunc: (dataList: RedisModel[]) => {
             const ipSet = new Set<string>();
             dataList.forEach((dataItem) => dataItem.proxy.forEach((item) => ipSet.add(item.ip)));
@@ -129,12 +142,7 @@
 
   const showSelector = ref(false);
   const selectedHosts = computed<InstanceSelectorValues<IValue>>(() => ({
-    [ClusterTypes.REDIS]: props.selected.map(
-      (item) =>
-        ({
-          ip: item.ip,
-        }) as IValue,
-    ),
+    [ClusterTypes.REDIS]: props.selected as IValue[],
   }));
 
   const rules = [
@@ -158,6 +166,16 @@
         return Boolean(modelValue.value.bk_host_id);
       },
     },
+    {
+      message: t('非接入层 IP'),
+      trigger: 'blur',
+      validator: (value: string) => {
+        if (!value) {
+          return true;
+        }
+        return modelValue.value.role === 'proxy';
+      },
+    },
   ];
 
   const { loading, run: queryHost } = useRequest(checkInstance, {
@@ -172,6 +190,7 @@
           cluster_id: item.related_clusters[0].id,
           ip: item.ip,
           master_domain: item.related_clusters[0].immute_domain,
+          role: item.role,
         };
       }
     },

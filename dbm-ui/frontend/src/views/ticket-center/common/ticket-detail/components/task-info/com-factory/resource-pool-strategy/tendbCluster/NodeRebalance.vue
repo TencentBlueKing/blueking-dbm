@@ -16,14 +16,16 @@
     <InfoItem :label="t('数据校验')">
       {{ ticketDetails.details.need_checksum ? t('是') : t('否') }}
     </InfoItem>
-    <InfoItem :label="t('校验时间')">
-      {{ isTimer ? t('定时执行') : t('立即执行') }}
-    </InfoItem>
-    <InfoItem
-      v-if="isTimer"
-      :label="t('定时执行时间:')">
-      {{ utcDisplayTime(ticketDetails.details.trigger_checksum_time) }}
-    </InfoItem>
+    <template v-if="ticketDetails.details.need_checksum">
+      <InfoItem :label="t('校验时间')">
+        {{ isTimer ? t('定时执行') : t('立即执行') }}
+      </InfoItem>
+      <InfoItem
+        v-if="isTimer"
+        :label="t('定时执行时间:')">
+        {{ utcDisplayTime(ticketDetails.details.trigger_checksum_time) }}
+      </InfoItem>
+    </template>
   </InfoList>
   <BkTable
     :data="ticketDetails.details.infos"
