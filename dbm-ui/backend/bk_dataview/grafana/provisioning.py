@@ -37,6 +37,7 @@ class Datasource:
     name: str
     type: str
     url: str
+    user: str = ""
     access: str = "direct"
     isDefault: bool = False
     withCredentials: bool = True
