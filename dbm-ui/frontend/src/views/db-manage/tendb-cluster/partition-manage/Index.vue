@@ -74,7 +74,7 @@
   import { ClusterTypes } from '@common/const';
   import { batchSplitRegex } from '@common/regex';
 
-  import { getSearchSelectorParams, messageSuccess } from '@utils';
+  import { getSearchSelectorParams, messageError, messageSuccess } from '@utils';
 
   import ExecuteLog from './components/ExecuteLog.vue';
   import PartitionOperation from './components/Operation.vue';
@@ -432,11 +432,15 @@
           }),
         {},
       );
-      const executeResult = await execute({
-        cluster_id: data.cluster_id,
-        partition_objects: dryRunData,
-      });
-      ticketMessage(executeResult.map((item) => item.id).join(','));
+      if (!dryRunData[data.id].length) {
+        messageError(t('目标分区异常'));
+      } else {
+        const executeResult = await execute({
+          cluster_id: data.cluster_id,
+          partition_objects: dryRunData,
+        });
+        ticketMessage(executeResult.map((item) => item.id).join(','));
+      }
     } finally {
       executeLoadingMap.value[data.id] = false;
     }
