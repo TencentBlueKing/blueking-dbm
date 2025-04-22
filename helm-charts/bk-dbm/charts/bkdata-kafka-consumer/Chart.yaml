@@ -1,6 +1,6 @@
 apiVersion: v2
-appVersion: 0.0.1-alpha.13
+appVersion: 0.0.1-alpha.14
 description: A Helm chart for bkdata-kafka-consumer
 name: bkdata-kafka-consumer
 type: application
-version: 0.0.6
+version: 0.0.7

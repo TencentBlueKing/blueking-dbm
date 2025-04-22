@@ -92,10 +92,10 @@ func (c *MysqlTableSize) ConsumeClaim(session sarama.ConsumerGroupSession, claim
 				if err := c.HandleMessageTryBatch(items, c.Sinker, c.Db); err != nil {
 					slog.Error("handle message batch", err)
 				} else {
+					slog.Info("sink message", slog.String("key", string(msgs[len(msgs)-1].Key)))
 					session.MarkMessage(msgs[len(msgs)-1], "")
 					items = items[:0]
 					msgs = msgs[:0]
-					slog.Info("sink message", slog.String("key", string(msgs[len(msgs)-1].Key)))
 				}
 			}
 		case message := <-claim.Messages():
@@ -127,10 +127,10 @@ func (c *MysqlTableSize) ConsumeClaim(session sarama.ConsumerGroupSession, claim
 					slog.Error("handle message batch", err)
 					time.Sleep(200 * time.Millisecond)
 				} else {
+					slog.Info("sink message", slog.String("key", string(message.Key)))
 					session.MarkMessage(message, "")
 					items = items[:0]
 					msgs = msgs[:0]
-					slog.Info("sink message", slog.String("key", string(message.Key)))
 				}
 			}
 		case <-session.Context().Done():
