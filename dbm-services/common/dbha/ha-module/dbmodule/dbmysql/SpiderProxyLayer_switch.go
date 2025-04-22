@@ -211,20 +211,10 @@ func (ins *SpiderProxyLayerSwitch) DoSwitch() error {
 	)
 
 	//1. delete name service
-	isSingle, err := ins.SingleAddressUnderDomain(ins.Entry)
-	if err != nil {
-		ins.ReportLogs(constvar.FailResult, fmt.Sprintf("check whether single address under domain failed:%s",
-			err.Error()))
+	ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("try to release ip[%s#%d] from all domain entry",
+		ins.Ip, ins.Port))
+	if err := ins.DeleteNameService(ins.Entry); err != nil {
 		return err
-	}
-	if isSingle {
-		return fmt.Errorf("only single address under this domain, skip release domain")
-	} else {
-		ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("try to release ip[%s#%d] from all domain entry",
-			ins.Ip, ins.Port))
-		if err := ins.DeleteNameService(ins.Entry); err != nil {
-			return err
-		}
 	}
 
 	//2. set all spider nodes
