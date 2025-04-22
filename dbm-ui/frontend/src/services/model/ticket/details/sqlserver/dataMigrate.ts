@@ -12,6 +12,8 @@ export interface DataMigrate extends DetailBase {
     rename_infos: {
       db_name: string;
       old_db_name: string;
+      rename_cluster_list: number[];
+      rename_db_name: string;
       target_db_name: string;
     }[];
     src_cluster: number;

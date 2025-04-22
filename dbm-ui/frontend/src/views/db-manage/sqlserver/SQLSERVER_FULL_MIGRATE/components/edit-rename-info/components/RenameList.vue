@@ -8,14 +8,14 @@
       :key="index">
       <EditableColumn
         field="db_name"
-        :label="t('构造 DB 名称')"
+        :label="t('迁移 DB 名称')"
         required>
         <EditableBlock v-model="item.db_name" />
       </EditableColumn>
       <EditableColumn
         :append-rules="targetDbNameRules"
         field="target_db_name"
-        :label="t('构造后 DB 名称（自动生成，可修改）')"
+        :label="t('迁移后 DB 名称（自动生成，可修改）')"
         required>
         <EditableInput
           v-model="item.target_db_name"
