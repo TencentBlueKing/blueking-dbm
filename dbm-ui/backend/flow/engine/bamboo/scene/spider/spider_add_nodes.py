@@ -15,9 +15,9 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
-from backend.db_meta.enums import ClusterEntryRole, TenDBClusterSpiderRole
+from backend.db_meta.enums import TenDBClusterSpiderRole
 from backend.db_meta.exceptions import ClusterNotExistException
-from backend.db_meta.models import Cluster, ClusterEntry
+from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import (
     add_spider_masters_sub_flow,
@@ -89,15 +89,8 @@ class TenDBClusterAddNodesFlow(object):
 
             elif info["add_spider_role"] == TenDBClusterSpiderRole.SPIDER_SLAVE:
 
-                try:
-                    # 先判断集群是否存在已添加从集群，如果没有则跳过这次扩容，判断依据是集群是存在有且只有一个的从域名
-                    slave_dns = cluster.clusterentry_set.get(role=ClusterEntryRole.SLAVE_ENTRY)
-                    # 加入spider-slave 子流程
-                    sub_pipelines.append(self.add_spider_slave_notes(sub_flow_context, cluster, slave_dns.entry))
-
-                except ClusterEntry.DoesNotExist:
-                    logger.warning(_("[{}]The cluster has not added a slave cluster, skip".format(cluster.name)))
-                    continue
+                # 加入spider-slave 子流程
+                sub_pipelines.append(self.add_spider_slave_notes(sub_flow_context, cluster))
 
             else:
                 # 理论上不会出现，出现就中断这次流程构造
@@ -151,7 +144,7 @@ class TenDBClusterAddNodesFlow(object):
         )
         return sub_pipeline.build_sub_process(sub_name=_("[{}]添加spider-master节点流程".format(cluster.name)))
 
-    def add_spider_slave_notes(self, sub_flow_context: dict, cluster: Cluster, slave_dns: str):
+    def add_spider_slave_notes(self, sub_flow_context: dict, cluster: Cluster):
         """
         添加spider-slave节点的子流程流程逻辑
         必须集群存在从集群，才能添加
@@ -169,7 +162,6 @@ class TenDBClusterAddNodesFlow(object):
                 root_id=self.root_id,
                 uid=sub_flow_context["uid"],
                 parent_global_data=copy.deepcopy(sub_flow_context),
-                slave_domain=slave_dns,
             )
         )
         # 阶段2 变更db_meta数据

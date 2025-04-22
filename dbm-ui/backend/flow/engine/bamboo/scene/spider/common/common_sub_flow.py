@@ -30,6 +30,7 @@ from backend.flow.plugins.components.collections.common.delete_cc_service_instan
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
+from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.sync_master import SyncMasterComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
@@ -41,6 +42,7 @@ from backend.flow.plugins.components.collections.spider.spider_db_meta import Sp
 from backend.flow.utils.base.base_dataclass import Instance
 from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
 from backend.flow.utils.mysql.mysql_act_dataclass import (
+    CreateDnsKwargs,
     DBMetaOPKwargs,
     DelServiceInstKwargs,
     DownloadMediaKwargs,
@@ -65,17 +67,17 @@ from backend.flow.utils.spider.spider_db_meta import SpiderDBMeta
 def add_spider_slaves_sub_flow(
     uid: str,
     cluster: Cluster,
-    slave_domain: str,
     add_spider_slaves: list,
     root_id: str,
     parent_global_data: dict,
     is_clone_user: bool = True,
+    slave_domain: str = None,
 ):
     """
     定义对原有的TenDB cluster集群添加spider slave节点的公共子流程
     提供部分需要单据使用：比如添加从集群、扩容接入层等功能
     @param cluster: 待操作的集群
-    @param slave_domain: 带添加spider slave节点所要关联的域名
+    @param slave_domain: 带添加spider slave节点所要关联的域名, 这里参数只针对只读集群的部署
     @param add_spider_slaves: 待添加的slave机器列表信息
     @param root_id: flow流程的root_id
     @param parent_global_data: 本次子流程的对应上层流程的全局只读上下文
@@ -219,30 +221,35 @@ def add_spider_slaves_sub_flow(
     )
 
     # 阶段7 添加从域名
-    # sub_pipeline.add_act(
-    #     act_name=_("添加集群域名"),
-    #     act_component_code=MySQLDnsManageComponent.code,
-    #     kwargs=asdict(
-    #         CreateDnsKwargs(
-    #             bk_cloud_id=cluster.bk_cloud_id,
-    #             add_domain_name=slave_domain,
-    #             dns_op_exec_port=tmp_spider.port,
-    #             exec_ip=[ip_info["ip"] for ip_info in add_spider_slaves],
-    #         )
-    #     ),
-    # )
-    entrysub_process = BuildEntrysManageSubflow(
-        root_id=root_id,
-        ticket_data=parent_global_data,
-        op_type=DnsOpType.CREATE,
-        param={
-            "cluster_id": cluster.id,
-            "port": tmp_spider.port,
-            "add_ips": [ip_info["ip"] for ip_info in add_spider_slaves],
-            "entry_role": [ClusterEntryRole.SLAVE_ENTRY.value],
-        },
-    )
-    sub_pipeline.add_sub_pipeline(sub_flow=entrysub_process)
+    if slave_domain:
+        # 这里针对spider_slave集群部署的场景，从域名是传进来的
+        sub_pipeline.add_act(
+            act_name=_("添加集群域名"),
+            act_component_code=MySQLDnsManageComponent.code,
+            kwargs=asdict(
+                CreateDnsKwargs(
+                    bk_cloud_id=cluster.bk_cloud_id,
+                    add_domain_name=slave_domain,
+                    dns_op_exec_port=tmp_spider.port,
+                    exec_ip=[ip_info["ip"] for ip_info in add_spider_slaves],
+                )
+            ),
+        )
+    else:
+        # 这里是针对扩容spider slave场景，所有的访问映射关系通过元数据获取
+        entry_sub_process = BuildEntrysManageSubflow(
+            root_id=root_id,
+            ticket_data=parent_global_data,
+            op_type=DnsOpType.CREATE,
+            param={
+                "cluster_id": cluster.id,
+                "port": tmp_spider.port,
+                "add_ips": [ip_info["ip"] for ip_info in add_spider_slaves],
+                "entry_role": [ClusterEntryRole.SLAVE_ENTRY.value],
+            },
+        )
+        sub_pipeline.add_sub_pipeline(sub_flow=entry_sub_process)
+
     return sub_pipeline.build_sub_process(sub_name=_("集群[{}]添加spider slave节点".format(cluster.name)))
 
 
