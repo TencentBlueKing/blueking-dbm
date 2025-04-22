@@ -146,6 +146,7 @@ class MongoUtil:
         )
 
         return {
+            "bk_cloud_id": cluster.bk_cloud_id,
             "cluster_id": cluster.cluster_id,
             "cluster_type": cluster.cluster_type,
             "cluster_domain": cluster.immute_domain,
