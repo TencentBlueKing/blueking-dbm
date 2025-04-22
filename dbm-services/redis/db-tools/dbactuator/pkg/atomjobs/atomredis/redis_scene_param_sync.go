@@ -78,14 +78,14 @@ func (job *RedisPramsSync) Run() (err error) {
 			job.runtime.Logger.Error("get redis pass from local failed,err %s:%v", addr1, err)
 			return err
 		}
-		rc1, err := myredis.NewRedisClientWithTimeout(addr1, pwd, 0, job.params.ClusterType, time.Second)
+		rc1, err := myredis.NewRedisClientWithTimeout(addr1, pwd, 0, job.params.ClusterType, time.Second*10)
 		if err != nil {
 			return fmt.Errorf("conn redis %s failed:%+v", addr1, err)
 		}
 		defer rc1.Close()
 
 		addr2 := fmt.Sprintf("%s:%d", pair.SlaveInfo.IP, pair.SlaveInfo.Port)
-		rc2, err := myredis.NewRedisClientWithTimeout(addr2, pwd, 0, job.params.ClusterType, time.Second)
+		rc2, err := myredis.NewRedisClientWithTimeout(addr2, pwd, 0, job.params.ClusterType, time.Second*10)
 		if err != nil {
 			return fmt.Errorf("conn redis %s failed:%+v", addr2, err)
 		}

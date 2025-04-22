@@ -126,7 +126,7 @@ func (job *Job) createTasks() {
 			}
 
 			if server.Cli, job.Err = myredis.NewRedisClientWithTimeout(server.Addr,
-				server.Password, 0, consts.TendisTypeRedisInstance, time.Second); job.Err != nil {
+				server.Password, 0, consts.TendisTypeRedisInstance, time.Second*10); job.Err != nil {
 				return
 			}
 

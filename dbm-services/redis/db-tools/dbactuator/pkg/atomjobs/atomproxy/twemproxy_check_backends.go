@@ -112,7 +112,7 @@ func (job *TwemproxyCheckBackends) Rollback() error {
 
 func (job *TwemproxyCheckBackends) getTwemproxyMd5(addr string) string {
 	// 建立一个链接（Dial拨号）
-	conn, err := net.DialTimeout("tcp", addr, time.Second*2)
+	conn, err := net.DialTimeout("tcp", addr, time.Second*10)
 	if err != nil {
 		job.runtime.Logger.Error(fmt.Sprintf("dial failed, {%s} err:%v\n", addr, err))
 		return fmt.Sprintf("Dail{%s}Failed:%+v", addr, err)

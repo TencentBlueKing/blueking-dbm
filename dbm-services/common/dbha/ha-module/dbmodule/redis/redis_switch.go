@@ -494,7 +494,7 @@ func (ins *RedisSwitch) TwemproxySwitchM2S(masterIp string, masterPort int, slav
 
 // DoSwitchTwemproxyBackends "change nosqlproxy $mt:$mp $st:$sp"
 func (ins *RedisSwitch) DoSwitchTwemproxyBackends(ip string, port int, from, to string) (rst string, err error) {
-	nc, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", ip, port), time.Second)
+	nc, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", ip, port), time.Second*10)
 	if err != nil {
 		return "nil", err
 	}
@@ -527,7 +527,7 @@ func (ins *RedisSwitch) GetTwemProxyBackendsMD5(ip string, adminPort int) (map[s
 // GetTwemproxyBackends get nosqlproxy servers
 func (ins *RedisSwitch) GetTwemproxyBackends(ip string, adminPort int) (segs map[string]string, err error) {
 	addr := fmt.Sprintf("%s:%d", ip, adminPort)
-	nc, err := net.DialTimeout("tcp", addr, time.Second)
+	nc, err := net.DialTimeout("tcp", addr, time.Second*10)
 	if err != nil {
 		return nil, err
 	}

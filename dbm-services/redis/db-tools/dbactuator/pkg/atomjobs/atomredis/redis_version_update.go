@@ -519,7 +519,7 @@ func (job *RedisVersionUpdate) startRedis(port int) (err error) {
 		return nil
 	}
 	// 多次检测直到 redis instance 成为 slave,且同步状态正常
-	_, err = job.isReplStateOK(cli, 1*time.Minute)
+	_, err = job.isReplStateOK(cli, 30*time.Minute)
 	if err != nil {
 		return err
 	}
