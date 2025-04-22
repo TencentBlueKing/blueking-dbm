@@ -1534,6 +1534,22 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
+    MONGODB_WEBCONSOLE = ActionMeta(
+        id="mongodb_webconsole",
+        name=_("MongoDB Webconsole执行"),
+        name_en="mongodb_webconsole",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("MongoDB"),
+        subgroup=_("集群管理"),
+        common_labels=[
+            CommonActionLabel.BIZ_READ_ONLY,
+            CommonActionLabel.BIZ_MAINTAIN,
+            CommonActionLabel.EXTERNAL_DEVELOPER
+        ],
+    )
+
     SQLSERVER_VIEW = ActionMeta(
         id="sqlserver_view",
         name=_("SQLServer 集群详情查看"),

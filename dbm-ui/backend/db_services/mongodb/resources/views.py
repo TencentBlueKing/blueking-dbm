@@ -101,7 +101,12 @@ class MongoDBViewSet(ResourceViewSet):
     query_serializer_class = serializers.ListMongoDBResourceSLZ
     list_instances_slz = serializers.MongoDBListInstancesSerializer
 
-    list_perm_actions = [ActionEnum.MONGODB_VIEW, ActionEnum.MONGODB_ENABLE_DISABLE, ActionEnum.MONGODB_DESTROY]
+    list_perm_actions = [
+        ActionEnum.MONGODB_VIEW,
+        ActionEnum.MONGODB_ENABLE_DISABLE,
+        ActionEnum.MONGODB_DESTROY,
+        ActionEnum.MONGODB_WEBCONSOLE,
+    ]
     list_instance_perm_actions = [ActionEnum.MONGODB_VIEW]
 
     @common_swagger_auto_schema(

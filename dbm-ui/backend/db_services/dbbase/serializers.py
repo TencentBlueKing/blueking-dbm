@@ -23,6 +23,7 @@ from backend.db_services.dbbase.resources.serializers import ListClusterEntriesS
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.redis.resources.redis_cluster.query import RedisListRetrieveResource
 from backend.dbm_init.constants import CC_APP_ABBR_ATTR
+from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.constants import TicketType
 
 
@@ -188,6 +189,8 @@ class WebConsoleSerializer(serializers.Serializer):
     # redis 额外参数
     db_num = serializers.IntegerField(help_text=_("数据库编号(redis 额外参数)"), required=False)
     raw = serializers.BooleanField(help_text=_("源编码(redis 额外参数)"), required=False)
+    # mongodb 额外参数
+    session_time = DBTimezoneField(help_text=_("会话创建时间(mongodb 额外参数)"), required=False)
 
 
 class DBConsoleSerializer(serializers.Serializer):

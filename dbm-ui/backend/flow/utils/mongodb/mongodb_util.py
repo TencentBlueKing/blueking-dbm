@@ -9,6 +9,7 @@ from backend.db_meta.models import Cluster
 from backend.flow.consts import ConfigFileEnum, ConfigTypeEnum, MongoDBManagerUser, NameSpaceEnum
 from backend.flow.utils.mongodb import mongodb_password
 from backend.flow.utils.mongodb.mongodb_module_operate import MongoDBCCTopoOperator
+from backend.flow.utils.mongodb.mongodb_repo import MongoRepository
 
 logger = logging.getLogger("flow")
 
@@ -93,3 +94,111 @@ class MongoUtil:
             MongoDBCCTopoOperator(cluster).transfer_instances_to_cluster_module(proxy_objs, is_increment=True)
 
             logger.info("cluster_id:{} update instance labels success".format(cluster_id))
+
+    @staticmethod
+    def get_mongodb_webconsole_args(cluster_id: int, session: str, command: str, timeout: int = 15):
+        """
+        获取mongodb webconsole参数
+        @param cluster_id: 集群id
+        @param session: session，用于标识一个请求，请务必保证带有用户id信息.
+        @param command: 命令，如：show dbs, 首次连接可以为空
+        @param timeout: 超时时间，单位秒
+        """
+        cluster = MongoRepository().fetch_one_cluster(withDomain=False, id=cluster_id)
+        if not cluster:
+            raise Exception("cluster_id:{} not found".format(cluster_id))
+
+        # 获得连接的节点, 集群为mongos节点，副本集优先使用backup节点，没有backup节点则为m1节点
+        connect_nodes = []
+        if cluster.is_sharded_cluster():
+            connect_nodes = cluster.get_mongos()[:2]  # 取两个mongos就行
+        else:
+            shard = cluster.get_shards()[0]
+            node = shard.get_backup_node()
+            if node:
+                connect_nodes.append(node)
+            else:
+                connect_nodes.append(shard.get_not_backup_nodes()[0])
+
+        if len(connect_nodes) == 0:
+            raise Exception("cluster_id:{} can not get connect node".format(cluster_id))
+
+        # ip port
+        node = connect_nodes[0]
+        adminUserName = MongoDBManagerUser.DbaUser.value
+        password_out = mongodb_password.MongoDBPassword().get_password_from_db(
+            node.ip, node.port, node.bk_cloud_id, adminUserName
+        )
+
+        if not password_out or "password" not in password_out:
+            raise Exception(
+                "can not get webconsole_user password for {}({}:{})".format(cluster_id, node.ip, node.port)
+            )
+        else:
+            adminPassword = password_out["password"]
+
+        user, pwd, is_created = MongoUtil.cluster_pwd_get_or_create(
+            cluster_id=cluster_id, bk_cloud_id=node.bk_cloud_id, username=MongoDBManagerUser.WebconsoleUser.value
+        )
+
+        logger.info(
+            "cluster_id:{} webconsole user: {}, password: {}, is_created: {}".format(cluster_id, user, pwd, is_created)
+        )
+
+        return {
+            "cluster_id": cluster.cluster_id,
+            "cluster_type": cluster.cluster_type,
+            "cluster_domain": cluster.immute_domain,
+            "version": cluster.major_version.split("-")[-1],
+            "addresses": [m.addr() for m in connect_nodes],  # 取两个mongos就行
+            "set_name": cluster.name,
+            "command": command,
+            "timeout": timeout,
+            "admin_username": adminUserName,
+            "admin_password": adminPassword,
+            "username": user,
+            "password": pwd,
+            "session": "{}:{}".format(cluster_id, session),
+        }
+
+    @staticmethod
+    def cluster_pwd_get_or_create(cluster_id: int, bk_cloud_id: int, username: str) -> (str, str, bool):
+        """
+        从密码库中获取或生成mongodb用户密码
+        按mongo:+cluster_id为主键获取密码, 密码规则为mongodb_password
+        返回 值为 (username, password, is_created)
+        """
+        is_created = False
+        cluster = "mongodb_cluster:{}".format(cluster_id)
+        out = mongodb_password.MongoDBPassword().get_password_from_db(cluster, int(0), bk_cloud_id, username)
+        # 接口返回异常
+        if not out or "password" not in out:
+            raise Exception("can not get dba_user password for {}:{}".format(cluster_id, bk_cloud_id))
+
+        # 如果密码为空，需要创建密码
+        if out["password"] is None or out["password"] == "":
+            new_pwd = mongodb_password.MongoDBPassword().create_user_password()
+            if new_pwd["password"] is None:
+                raise Exception("create password fail, error:{}".format(new_pwd["info"]))
+            # 密码长度小于8位，表示创建失败. 我们的密码规则不会允许小于8位的密码
+            if len(new_pwd["password"]) < 8:
+                raise Exception("create password fail, password length is {}".format(len(new_pwd["password"])))
+            err_msg = mongodb_password.MongoDBPassword().save_password_to_db2(
+                instances=[
+                    {
+                        "ip": cluster,
+                        "port": 0,
+                        "bk_cloud_id": bk_cloud_id,
+                    }
+                ],
+                username=username,
+                password=new_pwd["password"],
+                operator="admin",
+            )
+
+            if err_msg != "":
+                raise Exception("save password to db fail, error:{}".format(err_msg))
+            out["password"] = new_pwd["password"]
+            is_created = True
+
+        return username, out["password"], is_created

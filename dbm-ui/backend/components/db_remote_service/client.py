@@ -141,5 +141,15 @@ class _DRSApi(object):
             description=_("mysql rpc 复杂接口"),
         )
 
+        self.mongodb_rpc = ProxyAPI(
+            method="POST",
+            base=self.BASE_DOMAIN,
+            url="mongodb/rpc",
+            module=self.MODULE,
+            ssl=ssl_flag,
+            description=_("mongodb 远程执行"),
+            default_timeout=self.DRS_TIMEOUT,
+        )
+
 
 DRSApi = _DRSApi()

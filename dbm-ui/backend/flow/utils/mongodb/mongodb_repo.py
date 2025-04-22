@@ -40,6 +40,9 @@ class MongoNode:
         node = MongoNode(s.ip_port.split(":")[0], s.port, meta_role, s.machine.bk_cloud_id, s.machine_type, domain)
         return node
 
+    def addr(self) -> str:
+        return "{}:{}".format(self.ip, self.port)
+
     def equal(self, other: "MongoNode") -> bool:
         return self.ip == other.ip and self.port == other.port and self.bk_cloud_id == other.bk_cloud_id
 
@@ -432,14 +435,14 @@ class MongoRepository:
         return rows
 
     @classmethod
-    def fetch_one_cluster(cls, withDomain: bool, **kwargs):
+    def fetch_one_cluster(cls, withDomain: bool, **kwargs) -> MongoDBCluster:
         rows = cls.fetch_many_cluster(withDomain, **kwargs)
         if len(rows) > 0:
             return rows[0]
         return None
 
     @classmethod
-    def fetch_many_cluster_dict(cls, withDomain: bool = False, **kwargs):
+    def fetch_many_cluster_dict(cls, withDomain: bool = False, **kwargs) -> dict[int, MongoDBCluster]:
         clusters = cls.fetch_many_cluster(withDomain, **kwargs)
         clusters_map = {}
         for cluster in clusters:
