@@ -67,6 +67,7 @@
       cluster_id: number;
       ip: string;
       master_domain: string;
+      role: string;
     };
   }
 
@@ -106,6 +107,7 @@
       cluster_id: 0,
       ip: '',
       master_domain: '',
+      role: 'proxy',
     },
   });
 
@@ -157,6 +159,7 @@
                     cluster_id: clusterInfo.id,
                     ip: host.ip,
                     master_domain: clusterInfo.immute_domain,
+                    role: 'proxy',
                   },
                 }),
               );
@@ -181,6 +184,7 @@
               cluster_id: item.related_clusters[0].id,
               ip: item.ip,
               master_domain: item.related_clusters[0].immute_domain,
+              role: item.role,
             },
           }),
         );
