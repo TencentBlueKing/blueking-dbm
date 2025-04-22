@@ -47,27 +47,40 @@ func GetTwemProxyBackendsMd5Sum(addr string) (string, error) {
 	})
 
 	x, _ := json.Marshal(segList)
-	return fmt.Sprintf("%x", md5.Sum(x)), nil
+	return fmt.Sprintf("%s||%x", addr, md5.Sum(x)), nil
 }
 
 // DoSwitchTwemproxyBackends "change nosqlproxy $mt:$mp $st:$sp"
 func DoSwitchTwemproxyBackends(ip string, port int, from, to string) (rst string, err error) {
 	addr := fmt.Sprintf("%s:%d", ip, port+1000)
-	nc, err := net.DialTimeout("tcp", addr, time.Second)
-	if err != nil {
-		return "nil", err
+	for range 10 {
+		var nc net.Conn
+		nc, err = net.DialTimeout("tcp", addr, time.Second*10)
+		if err != nil {
+			fmt.Printf("dail with proxy:%s:%d failed:+%v\n", ip, port, err)
+			continue
+		}
+		//server xxxxx:30000 xxxx:30000 already exits in server pool nosqlproxy
+		//cannot find svr xxxx:30000 in server pool nosqlproxy
+		//change 1 banckends from ' xxxx:30000 ' to  ' xxxx:30000 ' success.
+		_, err = nc.Write([]byte(fmt.Sprintf("change nosqlproxy %s %s", from, to)))
+		if err != nil {
+			fmt.Printf("write changeInfo 2 proxy:%s:%d failed:+%v\n", ip, port, err)
+			continue
+		}
+		rst, err = bufio.NewReader(nc).ReadString('\n')
+		if strings.Contains(rst, "success") || strings.Contains(rst, "in server pool nosqlproxy") {
+			fmt.Printf("do switch twemproxy with result [%s:%d]:%s:%+v\n", ip, port, rst, err)
+			break
+		}
 	}
-	_, err = nc.Write([]byte(fmt.Sprintf("change nosqlproxy %s %s", from, to)))
-	if err != nil {
-		return "nil", err
-	}
-	return bufio.NewReader(nc).ReadString('\n')
+	return
 }
 
 // GetTwemproxyBackends get nosqlproxy servers
 func GetTwemproxyBackends(ip string, port int) (segs map[string]string, err error) {
 	addr := fmt.Sprintf("%s:%d", ip, port+1000)
-	nc, err := net.DialTimeout("tcp", addr, time.Second)
+	nc, err := net.DialTimeout("tcp", addr, time.Second*10)
 	if err != nil {
 		return nil, err
 	}
