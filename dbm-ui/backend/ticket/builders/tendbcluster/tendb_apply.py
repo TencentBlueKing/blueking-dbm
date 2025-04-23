@@ -40,6 +40,7 @@ class TenDBClusterApplyDetailSerializer(serializers.Serializer):
     disaster_tolerance_level = serializers.ChoiceField(
         help_text=_("容灾级别"), choices=AffinityEnum.get_choices(), required=False, default=AffinityEnum.NONE.value
     )
+    nodes = serializers.JSONField(help_text=_("部署节点"), required=False)
     resource_spec = serializers.JSONField(help_text=_("部署规格"))
     spider_port = serializers.IntegerField(help_text=_("集群访问端口"))
     cluster_shard_num = serializers.IntegerField(help_text=_("集群分片数"))
