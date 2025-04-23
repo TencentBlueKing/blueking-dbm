@@ -83,7 +83,7 @@ interface IDryRunData {
   shard_name: string;
 }
 // 分区策略前置执行
-export const dryRun = function (params: { cluster_id: number; cluster_type: string; config_id: number }) {
+export const dryRun = function (params: { cluster_id: number; config_id: number }) {
   const { currentBizId } = useGlobalBizs();
   return http.post<Record<number, IDryRunData[]>>('/apis/partition/dry_run/', {
     bk_biz_id: currentBizId,

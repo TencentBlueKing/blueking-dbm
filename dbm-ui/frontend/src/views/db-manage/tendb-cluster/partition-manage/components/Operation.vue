@@ -22,6 +22,7 @@
           required>
           <BkSelect
             :disabled="isEditMode"
+            filterable
             :loading="isCluserListLoading"
             :model-value="formData.cluster_id || undefined"
             @change="handleClusterChange">
@@ -119,7 +120,7 @@
         @cancel="handleVerifyCancel"
         @confirm="handleVerifyConfirm">
         <BkButton
-          :loading="warnConfirming"
+          :loading="warnConfirming || confirmLoading"
           style="width: 100px"
           theme="primary"
           @click="handleSubmit">
@@ -183,6 +184,7 @@
   const formRef = ref();
   const isEditMode = ref(false);
   const isTblikePopShow = ref(false);
+  const confirmLoading = ref(false);
   const warnConfirming = ref(false);
   const verifyWarnTip = ref('');
 
@@ -375,12 +377,17 @@
       return;
     }
 
+    confirmLoading.value = true;
     createParitition({
       ...formData,
-    }).then((data) => {
-      emits('createSuccess', data, formData.cluster_id);
-      handleCancel();
-    });
+    })
+      .then((data) => {
+        emits('createSuccess', data, formData.cluster_id);
+        handleCancel();
+      })
+      .finally(() => {
+        confirmLoading.value = false;
+      });
   };
 
   const handleVerifyConfirm = () => {
