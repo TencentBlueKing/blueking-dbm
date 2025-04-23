@@ -108,7 +108,7 @@
   const formRef = ref();
   const formData = ref({
     instance: '',
-    queryType: 'master_slave',
+    queryType: '',
   });
   const invalidInstanceList = ref<string[]>([]);
 
@@ -116,9 +116,16 @@
   const instanceList = computed(() =>
     formData.value.instance.split(batchInputSplitRegex).filter((item) => ipPort.test(item)),
   );
-  const alertTip = computed(() =>
-    isMysql.value ? t('执行常用管理命令，支持 Proxy 和 Backend 操作') : t('执行常用管理命令，支持spider、Backend'),
-  );
+  const alertTip = computed(() => {
+    if (isMysql.value) {
+      return t('执行常用管理命令，支持 Proxy 和 Backend 操作');
+    }
+    if (props.dbType === DBTypes.SQLSERVER) {
+      return t('执行常用管理命令');
+    }
+
+    return t('执行常用管理命令，支持spider、Backend');
+  });
 
   const autoSizeConf = {
     maxRows: 8,
@@ -145,10 +152,6 @@
         message: t('存在无效实例'),
         trigger: 'blur',
         validator: async (value: string) => {
-          if (!isMysql.value) {
-            return true;
-          }
-
           const instanceList = value.split(batchInputSplitRegex).filter((item) => ipPort.test(item));
           const instancesResult = await checkInstance({ instance_addresses: instanceList });
           const resultList = instancesResult.map((item) => item.instance_address);
@@ -190,6 +193,21 @@
       },
     ],
   };
+
+  watch(
+    isMysql,
+    () => {
+      if (isMysql.value) {
+        formData.value.queryType = 'master_slave';
+        return;
+      }
+
+      formData.value.queryType = '';
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleInitInvalidValue = () => {
     console.log('change = ', invalidInstanceList.value);
