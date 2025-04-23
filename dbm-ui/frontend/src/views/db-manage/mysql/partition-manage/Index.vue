@@ -92,10 +92,8 @@
   const isShowOperation = ref(false);
   const isShowExecuteLog = ref(false);
   const executeLoadingMap = ref<Record<number, boolean>>({});
-  const operationDryRunDataClusterId = ref(0);
 
   const operationData = shallowRef<PartitionModel>();
-  const operationDryRunData = shallowRef<DryRunData>();
   const selectionList = shallowRef<number[]>([]);
 
   const serachData = [
@@ -448,7 +446,7 @@
           cluster_id: data.cluster_id,
           partition_objects: dryRunData,
         });
-        ticketMessage(executeResult.map((item) => item.id).join(','));
+        ticketMessage(executeResult[0].id);
       }
     } finally {
       executeLoadingMap.value[data.id] = false;
@@ -463,7 +461,6 @@
   const handleShowExecuteLog = (payload: PartitionModel) => {
     isShowExecuteLog.value = true;
     operationData.value = payload;
-    operationDryRunData.value = undefined;
   };
 
   // 编辑成功
@@ -471,16 +468,9 @@
     fetchData();
   };
   // 新建成功
-  const handleOperationCreateSuccess = async (payload: DryRunData, clusterId: number) => {
-    fetchData();
-    operationDryRunData.value = payload;
-    operationDryRunDataClusterId.value = clusterId;
+  const handleOperationCreateSuccess = () => {
     operationData.value = undefined;
-    const executeResult = await execute({
-      cluster_id: clusterId,
-      partition_objects: payload,
-    });
-    ticketMessage(executeResult.map((item) => item.id).join(','));
+    fetchData();
   };
 
   const handleDisable = (payload: PartitionModel) => {
