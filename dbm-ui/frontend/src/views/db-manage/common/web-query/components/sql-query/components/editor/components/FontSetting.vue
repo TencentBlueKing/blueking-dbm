@@ -1,6 +1,7 @@
 <template>
   <BkPopover
     ext-cls="font-change-popover"
+    hide-ignore-reference
     placement="bottom"
     theme="dark">
     <div

@@ -70,7 +70,7 @@
             width="340"
             @confirm="() => handleClickRename(rowIndex)">
             <template #content>
-              <div class="editor-collect-main">
+              <div class="my-collection-rename-main">
                 <div class="collect-title">
                   {{ t('条件名称') }}
                 </div>
@@ -383,6 +383,20 @@
       text-overflow: ellipsis;
       white-space: nowrap;
       flex: 1;
+    }
+  }
+
+  .my-collection-rename-main {
+    .collect-title {
+      position: relative;
+
+      &::after {
+        position: absolute;
+        top: 2px;
+        left: 54px;
+        color: #ea3636;
+        content: '*';
+      }
     }
   }
 </style>
