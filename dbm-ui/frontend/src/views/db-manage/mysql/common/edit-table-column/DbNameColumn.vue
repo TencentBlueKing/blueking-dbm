@@ -1,13 +1,28 @@
 <template>
-  <Column
+  <EditableColumn
     :disabled-method="disabledMethod"
-    field="databases"
-    :label="t('目标 DB')"
+    :field="field"
+    :label="label"
     :min-width="180"
-    required
+    :required="required"
     :rules="rules">
-    <EditTagInput
+    <template #headAppend>
+      <BatchEditColumn
+        v-model="showBatchEdit"
+        :title="label"
+        type="taginput"
+        @change="handleBatchEditChange">
+        <span
+          v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
+          class="batch-edit-btn"
+          @click="handleBatchEditShow">
+          <DbIcon type="bulk-edit" />
+        </span>
+      </BatchEditColumn>
+    </template>
+    <EditableTagInput
       v-model="modelValue"
+      :max-data="single ? 1 : -1"
       :placeholder="t('请输入DB 名称，支持通配符“%”，含通配符的仅支持单个')" />
     <template #tips>
       <div class="mysql-db-name-tips">
@@ -34,7 +49,7 @@
         </div>
       </div>
     </template>
-  </Column>
+  </EditableColumn>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
@@ -42,19 +57,36 @@
 
   import { checkClusterDatabase } from '@services/source/dbbase';
 
-  import { Column, TagInput as EditTagInput } from '@components/editable-table/Index.vue';
+  import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
 
   interface Props {
+    allowAsterisk?: boolean;
+    checkExist?: boolean;
+    checkNotExist?: boolean;
     clusterId?: number;
+    field: string;
+    label: string;
+    required?: boolean;
+    single?: boolean;
   }
 
-  const props = defineProps<Props>();
+  type Emits = (e: 'batch-edit', value: string[], field: string) => void;
+
+  const props = withDefaults(defineProps<Props>(), {
+    allowAsterisk: true,
+    checkExist: false,
+    checkNotExist: false,
+    required: true,
+    single: false,
+  });
+
+  const emits = defineEmits<Emits>();
+
+  const modelValue = defineModel<string[]>();
 
   const { t } = useI18n();
 
-  const disabledMethod = () => (props.clusterId ? false : t('请先选择集群'));
-
-  const modelValue = defineModel<string[]>();
+  const showBatchEdit = ref(false);
 
   const rules = [
     {
@@ -82,7 +114,13 @@
     {
       message: t('不允许为 *'),
       trigger: 'blur',
-      validator: (value: string[]) => _.every(value, (item) => item !== '*'),
+      validator: (value: string[]) => {
+        if (props.allowAsterisk) {
+          return true;
+        }
+
+        return _.every(value, (item) => item !== '*');
+      },
     },
     {
       message: t('* 只能独立使用'),
@@ -96,16 +134,59 @@
       validator: (value: string[]) => _.every(value, (item) => !/^[%?]$/.test(item)),
     },
     {
-      message: t('DB 不存在'),
+      message: t('DB 已存在'),
       trigger: 'blur',
       validator: (value: string[]) => {
+        if (!props.checkExist) {
+          return true;
+        }
+        if (!props.clusterId) {
+          return false;
+        }
+        // % 通配符不需要校验存在
+        if (value[0].endsWith('%') || value[0] === '*') {
+          return true;
+        }
         const clearDbList = _.filter(value, (item) => !/[*%]/.test(item));
         if (clearDbList.length < 1) {
           return true;
         }
         return checkClusterDatabase({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_id: props.clusterId as number,
+          cluster_id: props.clusterId,
+          db_list: value,
+        }).then((data) => {
+          const existDbList = Object.keys(data).reduce<string[]>((result, dbName) => {
+            if (data[dbName]) {
+              result.push(dbName);
+            }
+            return result;
+          }, []);
+          if (existDbList.length > 0) {
+            return t('n 已存在', { n: existDbList.join('、') });
+          }
+
+          return true;
+        });
+      },
+    },
+    {
+      message: t('DB 不存在'),
+      trigger: 'blur',
+      validator: (value: string[]) => {
+        if (!props.checkNotExist) {
+          return true;
+        }
+        if (!props.clusterId) {
+          return false;
+        }
+        const clearDbList = _.filter(value, (item) => !/[*%]/.test(item));
+        if (clearDbList.length < 1) {
+          return true;
+        }
+        return checkClusterDatabase({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_id: props.clusterId,
           db_list: value,
         }).then((data) => {
           const notExistDbList = Object.keys(data).reduce<string[]>((result, dbName) => {
@@ -123,6 +204,16 @@
       },
     },
   ];
+
+  const disabledMethod = () => (props.clusterId ? false : t('请先选择集群'));
+
+  const handleBatchEditShow = () => {
+    showBatchEdit.value = true;
+  };
+
+  const handleBatchEditChange = (value: string[] | string) => {
+    emits('batch-edit', value as string[], props.field);
+  };
 </script>
 <style lang="less">
   .mysql-db-name-tips {
