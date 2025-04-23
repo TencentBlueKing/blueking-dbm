@@ -129,10 +129,9 @@
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import TagDbNameColumn from '@views/db-manage/sqlserver/common/tag-db-name-column/Index.vue';
-
-  import DstClusterColumn from './components/DstClusterColumn.vue';
-  import RenameColumn from './components/RenameColumn.vue';
-  import SrcClusterColumn from './components/SrcClusterColumn.vue';
+  import DstClusterColumn from '@views/db-manage/sqlserver/SQLSERVER_FULL_MIGRATE/components/DstClusterColumn.vue';
+  import RenameColumn from '@views/db-manage/sqlserver/SQLSERVER_FULL_MIGRATE/components/RenameColumn.vue';
+  import SrcClusterColumn from '@views/db-manage/sqlserver/SQLSERVER_FULL_MIGRATE/components/SrcClusterColumn.vue';
 
   interface RowData {
     dbIgnoreName: string[];
@@ -178,7 +177,7 @@
     need_auto_rename: false,
     payload: createTickePayload(),
     tableData: [createTableRow()],
-    ticketType: TicketTypes.SQLSERVER_FULL_MIGRATE,
+    ticketType: TicketTypes.SQLSERVER_INCR_MIGRATE,
   });
 
   const formData = reactive(defaultData());
@@ -189,13 +188,13 @@
     Object.fromEntries(formData.tableData.map((cur) => [cur.srcCluster.master_domain, true])),
   );
 
-  useTicketDetail<Sqlserver.DataMigrate>(TicketTypes.SQLSERVER_FULL_MIGRATE, {
+  useTicketDetail<Sqlserver.DataMigrate>(TicketTypes.SQLSERVER_INCR_MIGRATE, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { clusters, infos } = details;
       Object.assign(formData, {
         need_auto_rename: details.need_auto_rename,
-        ticketType: TicketTypes.SQLSERVER_FULL_MIGRATE,
+        ticketType: TicketTypes.SQLSERVER_INCR_MIGRATE,
         ...createTickePayload(ticketDetail),
         tableData: infos.map((item) => {
           const srcCluster = clusters[item.src_cluster];
@@ -243,7 +242,7 @@
       src_cluster: number;
     }[];
     need_auto_rename: boolean;
-  }>(TicketTypes.SQLSERVER_FULL_MIGRATE);
+  }>(TicketTypes.SQLSERVER_INCR_MIGRATE);
 
   const handleSubmit = async () => {
     const result = await tableRef.value!.validate();
