@@ -288,6 +288,10 @@ func (task *ReplicaTask) CreateReplicaREL() {
 			}
 			task.runtime.Logger.Info("slave(%s) 'slaveof %s %d' ok ",
 				task.SlaveAddr(), task.MasterIP, task.MasterPort)
+			// 集群模式下不需要这个参数;cluster_enabled:1
+			task.slaveofInConfigFile()
+			task.runtime.Logger.Info("instance(%s) cluster not enable ; need check slaveof config:%+v ",
+				task.SlaveAddr(), task.Err.Error())
 		} else {
 			// cluster-enabled=yes
 			// 先获取masterID
@@ -329,10 +333,6 @@ func (task *ReplicaTask) CreateReplicaREL() {
 	}
 	task.runtime.Logger.Info("slave(%s) 'confxx rewrite' ok ", task.SlaveAddr())
 
-	task.slaveofInConfigFile()
-	if task.Err != nil {
-		return
-	}
 }
 
 func (task *ReplicaTask) slaveofInConfigFile() {
