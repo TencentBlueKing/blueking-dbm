@@ -13,82 +13,58 @@
 
 <template>
   <div class="switch-event-details">
-    <BkLog ref="logRef" />
+    <DbLog
+      ref="logRef"
+      :loading="contentLoading" />
   </div>
 </template>
 
 <script setup lang="ts">
-  import { format } from 'date-fns';
+  import { useRequest } from 'vue-request';
 
   import { getEventSwitchLog } from '@services/source/dbha';
 
-  import BkLog from '@components/vue2/bk-log/index.vue';
-
-  type EventSwitchLogItem = ServiceReturnType<typeof getEventSwitchLog>[number];
+  import DbLog from '@components/db-log/index.vue';
 
   interface Props {
+    isActive: boolean;
     uid: number;
   }
 
   const props = defineProps<Props>();
 
-  const logRef = ref();
-  const isLoading = ref(false);
+  const logRef = ref<InstanceType<typeof DbLog>>();
 
-  const formatLogData = (data: EventSwitchLogItem[] = []) => {
-    const regex = /^##\[[a-z]+]/;
-
-    return data.map((item) => {
-      const { levelname, message, timestamp } = item;
-      const time = format(new Date(Number(timestamp)), 'yyyy-MM-dd HH:mm:ss');
-      return {
-        ...item,
-        message: regex.test(message)
-          ? message.replace(regex, (match: string) => `${match}[${time} ${levelname}]`)
-          : `[${time} ${levelname}] ${message}`,
-      };
-    });
-  };
-
-  /**
-   * 清空日志
-   */
-  const handleClearLog = () => {
-    logRef.value.handleLogClear();
-  };
-
-  /**
-   * 设置日志
-   */
-  const handleSetLog = (data: EventSwitchLogItem[] = []) => {
-    logRef.value.handleLogAdd(data);
-  };
-
-  const fetchEventSwitchLog = () => {
-    isLoading.value = true;
-    getEventSwitchLog({ sw_id: props.uid })
-      .then((res) => {
-        handleClearLog();
-        handleSetLog(formatLogData(res));
-      })
-      .finally(() => {
-        isLoading.value = false;
-      });
-  };
+  const { loading: contentLoading, run: fetchEventSwitchLog } = useRequest(getEventSwitchLog, {
+    manual: true,
+    onSuccess(data) {
+      logRef.value?.setLog(data);
+    },
+  });
 
   watch(
-    () => props.uid,
+    () => props.isActive,
     () => {
-      props.uid && fetchEventSwitchLog();
+      if (props.isActive) {
+        if (props.uid) {
+          fetchEventSwitchLog({ sw_id: props.uid });
+        }
+        setTimeout(() => {
+          logRef.value?.init();
+        });
+      } else {
+        logRef.value!.destroy();
+      }
     },
-    { immediate: true },
+    {
+      immediate: true,
+    },
   );
 </script>
 
 <style lang="less" scoped>
   .switch-event-details {
-    height: calc(100vh - 52px);
-    max-height: calc(100vh - 52px);
-    padding: 16px;
+    height: calc(100vh - 90px);
+    padding: 16px 16px 0;
   }
 </style>
