@@ -1,3 +1,4 @@
+import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
 import { computed, onBeforeUnmount, shallowRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRequest } from 'vue-request';
@@ -7,11 +8,9 @@ import { getTicketTypes } from '@services/source/ticket';
 
 import { useGlobalBizs } from '@stores';
 
-import type { SearchValue } from '@components/vue2/search-select/index.vue';
-
 import { getSearchSelectorParams, makeMap } from '@utils';
 
-const value = ref<SearchValue[]>([]);
+const value = ref<ISearchValue[]>([]);
 
 const ticketTypeList = shallowRef<{ id: string; name: string }[]>([]);
 

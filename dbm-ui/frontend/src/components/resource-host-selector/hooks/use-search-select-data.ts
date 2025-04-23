@@ -1,3 +1,4 @@
+import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRequest } from 'vue-request';
@@ -8,15 +9,13 @@ import { getCloudList } from '@services/source/ipchooser';
 
 import { useGlobalBizs } from '@stores';
 
-import type { SearchValue } from '@components/vue2/search-select/index.vue';
-
 import { getSearchSelectorParams } from '@utils';
 
 export default (props: any) => {
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
 
-  const value = ref<SearchValue[]>([]);
+  const value = ref<ISearchValue[]>([]);
   const columnFilterValue = reactive<Record<string, string>>({});
 
   const searchSelectData = computed(() => {

@@ -108,7 +108,7 @@
         <div class="log-tools">
           <span class="log-tools-title">
             {{ t('执行日志') }}
-            <span> {{ t('日志保留7天_如需要请下载保存') }}</span>
+            <span> {{ t('日志保留30天_如需要请下载保存') }}</span>
           </span>
           <div class="log-tools-bar">
             <i
@@ -125,46 +125,27 @@
               @click="toggle" />
           </div>
         </div>
-        <div
-          class="log-details"
-          :style="{ height: isFullscreen ? 'calc(100% - 42px)' : '100%' }">
-          <div id="nodeLogLineNumbers"></div>
-          <div id="nodeLogTermContent"></div>
-          <div class="quick-switch">
-            <div
-              class="icon-box"
-              :class="{ 'is-disabled': isTermAtTop }"
-              @click="handleTermToTop">
-              <DbIcon type="top-huidaodingbu" />
-            </div>
-            <div
-              class="icon-box"
-              :class="{ 'is-disabled': isTermAtBottom }"
-              @click="handleTermToBottom">
-              <DbIcon type="top-huidaodibu" />
-            </div>
-          </div>
-        </div>
+        <DbLog
+          ref="dbLogRef"
+          :loading="logState.loading"
+          :style="{ height: isFullscreen ? 'calc(100% - 42px)' : '100%' }" />
       </div>
     </template>
   </BkSideslider>
 </template>
 
 <script setup lang="tsx">
-  import { format } from 'date-fns';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
-  import { FitAddon } from 'xterm-addon-fit';
-  import { WebLinksAddon } from 'xterm-addon-web-links';
 
   import { getNodeLog, getRetryNodeHistories, retryTaskflowNode } from '@services/source/taskflow';
 
   import CostTimer from '@components/cost-timer/CostTimer.vue';
+  import DbLog from '@components/db-log/index.vue';
 
   import { downloadText, execCopy, messageSuccess } from '@utils';
 
   import { useFullscreen, useTimeoutPoll } from '@vueuse/core';
-  import { Terminal } from '@xterm/xterm';
 
   import { NODE_STATUS_TEXT } from '../common/graphRender';
   import type { GraphNode } from '../common/utils';
@@ -194,75 +175,12 @@
     default: false,
   });
 
-  const initTerm = () => {
-    terminal = new Terminal({
-      convertEol: false,
-      disableStdin: true,
-      fontFamily: 'Consolas, monospace',
-      fontSize: 12,
-      lineHeight: 1,
-      scrollback: 1000,
-      theme: {
-        background: '#1A1A1A', // 背景色
-        foreground: '#C4C6CC', // 默认字体颜色
-      },
-      windowsMode: false,
-    });
-    fitAddon = new FitAddon();
-    const linkAddon = new WebLinksAddon();
-    terminal.loadAddon(fitAddon);
-    terminal.loadAddon(linkAddon);
-    terminal.open(document.getElementById('nodeLogTermContent')!);
-    const viewport = terminal.element!.querySelector('.xterm-viewport')!;
-    lastScrollPosition = terminal.buffer.active.viewportY;
-
-    const originalWrite = terminal.write;
-    terminal.write = function (data) {
-      originalWrite.call(this, data);
-      // 仅当用户未手动滚动时自动跳转到底部
-      if (isAutoScrollEnabled) {
-        terminal.scrollToBottom();
-      } else {
-        // 维持用户手动定位的位置
-        setTimeout(() => {
-          terminal.scrollToLine(lastScrollPosition);
-        });
-      }
-    };
-
-    // 劫持键盘事件
-    terminal.attachCustomKeyEventHandler((e) => {
-      if ((e.ctrlKey || e.metaKey) && e.code === 'KeyC' && e.type === 'keydown') {
-        const selection = terminal.getSelection();
-        if (selection) {
-          execCopy(selection);
-          return false; // 阻止默认
-        }
-      }
-      return true;
-    });
-
-    terminal.attachCustomWheelEventHandler(() => {
-      setTimeout(() => {
-        lastScrollPosition = isScrollDown ? terminal.buffer.active.viewportY + 7 : terminal.buffer.active.viewportY - 7;
-      });
-      return true;
-    });
-
-    terminal.element!.querySelector('.xterm-viewport')!.addEventListener('scroll', () => {
-      isScrollDown = terminal.buffer.active.viewportY > currentScrollPosition;
-      currentScrollPosition = terminal.buffer.active.viewportY;
-      isAutoScrollEnabled = viewport.scrollTop >= viewport.scrollHeight - viewport.clientHeight;
-      updateLineNumbers();
-      checkTermScroll();
-    });
-  };
-
   const getNodeLogRequest = (isInit?: boolean) => {
     if (!currentData.value.version) {
       return;
     }
 
+    logState.loading = true;
     const params = {
       node_id: nodeData.value.id,
       root_id: rootId,
@@ -271,8 +189,8 @@
     getNodeLog(params)
       .then((data) => {
         logState.data = data;
-        handleClearLog();
-        handleSetLog(formatLogData(data));
+        dbLogRef.value!.clearLog();
+        dbLogRef.value!.setLog(data);
       })
       .finally(() => {
         logState.loading = false;
@@ -286,17 +204,10 @@
   const route = useRoute();
 
   const rootId = route.params.root_id as string;
-  let terminal: Terminal;
-  let fitAddon: FitAddon;
-  let isAutoScrollEnabled = true; // 默认开启自动滚动
-  let lastScrollPosition = 0; // 记录上次滚动位置
-  let currentScrollPosition = 0; // 用来判断滚动条的滚动方向
-  let isScrollDown = false;
 
+  const dbLogRef = ref<InstanceType<typeof DbLog>>();
   const refreshShow = ref(false);
   const logContentRef = ref<HTMLDivElement>();
-  const isTermAtTop = ref(false);
-  const isTermAtBottom = ref(false);
   /** 当前选中日志版本的信息 */
   const currentData = ref({ version: '' });
 
@@ -367,17 +278,13 @@
     if (isShow.value) {
       getNodeLogRequest();
       setTimeout(() => {
-        initTerm();
+        dbLogRef.value?.init();
       });
     }
   });
 
   watch(isFullscreen, () => {
-    if (isFullscreen.value) {
-      setTimeout(() => {
-        fitAddon.fit();
-      });
-    } else {
+    if (!isFullscreen.value) {
       isShow.value = false;
       setTimeout(() => {
         isShow.value = true;
@@ -385,86 +292,15 @@
     }
   });
 
-  // 更新行号函数
-  const updateLineNumbers = () => {
-    const lineNumbers = document.getElementById('nodeLogLineNumbers')!;
-    const buffer = terminal.buffer.active;
-    const startLine = buffer.viewportY + 1;
-    const endLine = startLine + terminal.rows - 1;
-
-    let numbersHtml = '';
-    for (let i = startLine; i <= endLine; i++) {
-      numbersHtml += `<div class="line-num">${i}</div>`;
-    }
-    lineNumbers.innerHTML = numbersHtml;
-  };
-
-  const checkTermScroll = () => {
-    isTermAtTop.value = terminal.buffer.active.viewportY === 0;
-    const buffer = terminal.buffer.active;
-    isTermAtBottom.value = buffer.viewportY + terminal.rows >= buffer.length;
-  };
-
   const handleClearLog = () => {
-    terminal.clear();
-  };
-
-  const formatLogData = (data: NodeLog[] = [], isSetColor = true) => {
-    const regex = /^##\[[a-z]+]/;
-    return data.map((item) => {
-      const { levelname, message, timestamp } = item;
-      const time = format(new Date(Number(timestamp)), 'yyyy-MM-dd HH:mm:ss');
-      let rowText = regex.test(message)
-        ? message.replace(regex, (match: string) => `${match}[${time} ${levelname}]`)
-        : `[${time} ${levelname}] ${message}`;
-      rowText = rowText.replace(/\n/g, '\r\n');
-      if (!isSetColor) {
-        return rowText;
-      }
-
-      if (/\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} info\]/.test(rowText)) {
-        return `\x1b[32m${rowText}\x1b[0m`;
-      }
-
-      if (/\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} warn\]/.test(rowText)) {
-        return `\x1b[33m${rowText}\x1b[0m`;
-      }
-
-      if (/\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} error\]/.test(rowText)) {
-        return `\x1b[31m${rowText}\x1b[0m`;
-      }
-
-      return rowText;
-    });
-  };
-
-  const handleTermToTop = () => {
-    terminal.scrollToTop();
-    lastScrollPosition = 0;
-  };
-
-  const handleTermToBottom = () => {
-    terminal.scrollToBottom();
-  };
-
-  /**
-   * 设置日志
-   */
-  const handleSetLog = (list: string[]) => {
-    const str = list.join('\r\n');
-    terminal.write(str);
-    setTimeout(() => {
-      fitAddon.fit();
-      updateLineNumbers();
-      checkTermScroll();
-    });
+    dbLogRef.value?.clearLog();
   };
 
   /**
    * 下载日志
    */
   const handleDownLoaderLog = () => {
-    const messageList = formatLogData(logState.data, false);
+    const messageList = dbLogRef.value!.getValue();
     downloadText(`${nodeData.value.id}.log`, messageList.join('\n'));
   };
 
@@ -475,14 +311,13 @@
     currentData.value = data;
     pause();
     nextTick(() => {
-      logState.loading = true;
       handleClearLog();
       getNodeLogRequest(true);
     });
   };
 
   const handleCopyLog = () => {
-    const messageList = formatLogData(logState.data, false);
+    const messageList = dbLogRef.value!.getValue();
     execCopy(messageList.join('\n'));
   };
 
@@ -499,27 +334,10 @@
   };
 
   const handleClose = () => {
-    isAutoScrollEnabled = true;
-    terminal.clear();
-    terminal.dispose();
-    fitAddon.dispose();
+    dbLogRef.value!.destroy();
     emits('close');
     pause();
   };
-
-  const handleWindowResize = () => {
-    fitAddon.fit();
-    updateLineNumbers();
-    checkTermScroll();
-  };
-
-  onMounted(() => {
-    window.addEventListener('resize', handleWindowResize);
-  });
-
-  onUnmounted(() => {
-    window.removeEventListener('resize', handleWindowResize);
-  });
 </script>
 
 <style lang="less" scoped>
@@ -587,6 +405,7 @@
   }
 
   .log-content {
+    width: 100%;
     height: 100%;
   }
 
@@ -621,63 +440,5 @@
         cursor: pointer;
       }
     }
-  }
-
-  .log-details {
-    position: relative;
-    display: flex;
-    width: 100%;
-    background-color: #1a1a1a;
-
-    #nodeLogLineNumbers {
-      width: 64px;
-      overflow: hidden;
-      font-family: Consolas, monospace;
-      font-size: 12px;
-      color: #979ba5;
-      user-select: none;
-
-      :deep(.line-num) {
-        width: 100%;
-        height: 14px;
-        text-align: center;
-      }
-    }
-
-    #nodeLogTermContent {
-      flex: 1;
-      height: 100%;
-    }
-
-    .quick-switch {
-      position: absolute;
-      right: 6px;
-      bottom: 4px;
-      display: flex;
-      width: 24px;
-      flex-direction: column;
-      cursor: pointer;
-      gap: 4px;
-
-      .icon-box {
-        display: flex;
-        width: 24px;
-        height: 24px;
-        color: #c4c6cc;
-        background-color: #4d4d4d;
-        align-items: center;
-        justify-content: center;
-
-        &.is-disabled {
-          color: #c4c6cc33;
-        }
-      }
-    }
-  }
-</style>
-<style lang="less">
-  .xterm .xterm-rows > div:hover {
-    cursor: pointer;
-    background: rgb(255 215 0 / 30%);
   }
 </style>
