@@ -123,7 +123,7 @@ export default class Flow<
   update_at: string;
   url: string;
 
-  constructor(payload = {} as Flow<D, S>) {
+  constructor(payload = {} as Flow<D, S, TD>) {
     this.context = payload.context;
     this.cost_time = payload.cost_time;
     this.create_at = payload.create_at;
