@@ -275,7 +275,7 @@ class BkJobService(BaseService, metaclass=ABCMeta):
         return JobApi.get_job_instance_ip_log({**payload, **ip_dict}, raw=True)
 
     @staticmethod
-    def __url__(job_instance_id: int, link: bool = True):
+    def __url__(job_instance_id: int, link: bool = False):
         """
         获取job任务链接
         """

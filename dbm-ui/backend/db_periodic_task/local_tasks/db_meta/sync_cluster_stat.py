@@ -12,6 +12,7 @@ import copy
 import datetime
 import json
 import logging
+import time
 from collections import defaultdict
 
 from celery import current_app
@@ -26,6 +27,7 @@ from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.local_tasks import register_periodic_task, start_new_span
 from backend.db_periodic_task.local_tasks.db_meta.constants import (
+    EXPORTER_UP_QUERY_TEMPLATE,
     QUERY_TEMPLATE,
     SAME_QUERY_TEMPLATE_CLUSTER_TYPE_MAP,
     UNIFY_QUERY_PARAMS,
@@ -33,6 +35,29 @@ from backend.db_periodic_task.local_tasks.db_meta.constants import (
 from backend.db_periodic_task.utils import TimeUnit, calculate_countdown
 
 logger = logging.getLogger("celery")
+
+
+def query_cluster_exporter_up(db_type, exporter):
+    """查询某类集群的 exporter 是否正常"""
+    # 获取查询模板
+    query_template = EXPORTER_UP_QUERY_TEMPLATE.get(db_type)
+    if not query_template:
+        logger.error("No query template for cluster type: %s and exporter: %s", db_type, exporter)
+        return {}
+
+    # 查询业务固定为DBA，查询时间取模板range
+    params = copy.deepcopy(UNIFY_QUERY_PARAMS)
+    params["bk_biz_id"] = env.DBA_APP_BK_BIZ_ID
+    params["end_time"] = int(time.time())
+    params["start_time"] = params["end_time"] - int(query_template["range"]) * 60
+    params["query_configs"][0]["promql"] = query_template[exporter]
+
+    # 查询exporter up指标
+    series = BKMonitorV3Api.unify_query(params)["series"]
+    cluster_exporter_up_map = {
+        data["dimensions"]["cluster_domain"]: data["datapoints"][0][0] for data in series if data["datapoints"]
+    }
+    return cluster_exporter_up_map
 
 
 def query_cap(bk_biz_id, cluster_type, cap_key="used"):

@@ -17,11 +17,11 @@ from blueapps.core.celery.celery import app
 from django.db import transaction
 
 from backend import env
-from backend.components import BKMonitorV3Api, CCApi
+from backend.components import BKLogApi, BKMonitorV3Api, CCApi
 from backend.configuration.models import BizSettings, DBAdministrator
 from backend.db_meta.enums import ClusterType, ClusterTypeMachineTypeDefine
 from backend.db_meta.models import AppMonitorTopo, Cluster, ClusterMonitorTopo, Machine, ProxyInstance, StorageInstance
-from backend.db_meta.models.cluster_monitor import INSTANCE_MONITOR_PLUGINS, SET_NAME_TEMPLATE
+from backend.db_meta.models.cluster_monitor import INSTANCE_BKLOG_PLUGINS, INSTANCE_MONITOR_PLUGINS, SET_NAME_TEMPLATE
 from backend.db_monitor.models import CollectInstance, MonitorPolicy
 from backend.db_monitor.utils import create_bklog_collector
 from backend.db_services.cmdb.biz import get_or_create_cmdb_module_with_name, get_or_create_set_with_name
@@ -581,12 +581,17 @@ def operate_collector(bk_biz_id: int, db_type: str, machine_type: str, bk_instan
     if not bk_instance_ids:
         return
 
-    logger.error(
+    logger.info(
         "operate_collector: {db_type} {machine_type} {bk_instance_ids} {action}".format(
             db_type=db_type, machine_type=machine_type, bk_instance_ids=bk_instance_ids, action=action
         )
     )
 
+    # 获取下发的实例和采集范围
+    nodes = [{"id": bk_instance_id, "bk_biz_id": bk_biz_id} for bk_instance_id in bk_instance_ids]
+    scope = {"bk_biz_id": bk_biz_id, "object_type": "SERVICE", "node_type": "INSTANCE", "nodes": nodes}
+
+    # --- 下发监控采集器 ---
     plugin_id = INSTANCE_MONITOR_PLUGINS[db_type][machine_type]["plugin_id"]
     collect_instances = CollectInstance.objects.filter(db_type=db_type, plugin_id=plugin_id)
     for collect_ins in collect_instances:
@@ -595,22 +600,31 @@ def operate_collector(bk_biz_id: int, db_type: str, machine_type: str, bk_instan
             continue
         # 下发采集器
         try:
-            nodes = [{"id": bk_instance_id, "bk_biz_id": bk_biz_id} for bk_instance_id in bk_instance_ids]
             BKMonitorV3Api.run_collect_config(
-                {
-                    "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
-                    "id": collect_ins.collect_id,
-                    "scope": {
-                        "bk_biz_id": bk_biz_id,
-                        "object_type": "SERVICE",
-                        "node_type": "INSTANCE",
-                        "nodes": nodes,
-                    },
-                    "action": action,
-                }
+                {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "id": collect_ins.collect_id, "scope": scope, "action": action},
+                use_admin=True,
             )
         except ApiError as err:
-            logger.error(f"[run_collect_config] id:{collect_ins.collect_id} error: {err}")
+            logger.error(f"[monitor] id:{collect_ins.collect_id} error: {err}")
+
+    # --- 下发日志采集器 ---
+    plugin_id = INSTANCE_BKLOG_PLUGINS[db_type][machine_type]["plugin_id"]
+    # 获取当前采集项的列表
+    data = BKLogApi.list_collectors({"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "pagesize": 500, "page": 1}, use_admin=True)
+    collectors_name__info_map = {collector["collector_config_name_en"]: collector for collector in data["list"]}
+    collect = collectors_name__info_map.get(plugin_id)
+    # 忽略不存在的采集项
+    if not collect:
+        return
+    # 下发采集器
+    collect_id = collect["collector_config_id"]
+    try:
+        BKLogApi.run_databus_collectors(
+            {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "collector_config_id": collect_id, "scope": scope, "action": action},
+            use_admin=True,
+        )
+    except ApiError as err:
+        logger.error(f"[bklog] id:{collect_id} error: {err}")
 
 
 def trigger_operate_collector(

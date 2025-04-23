@@ -25,6 +25,7 @@ from backend.db_services.redis.toolbox.serializers import (
     GetClusterCapacityInfoSerializer,
     GetClusterModuleInfoSerializer,
     GetClusterVersionSerializer,
+    ListClusterBigVersionSerializer,
     QueryByOneClusterSerializer,
     QueryClusterIpsSerializer,
 )
@@ -84,6 +85,16 @@ class ToolboxViewSet(BaseClusterViewSet):
             return Response(ToolboxHandler.get_online_cluster_versions(cluster_id, node_type))
         else:
             return Response(ToolboxHandler.get_update_cluster_versions(cluster_id, node_type))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询集群可更新大版本"),
+        query_serializer=ListClusterBigVersionSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=ListClusterBigVersionSerializer, pagination_class=None)
+    def list_cluster_big_version(self, request, bk_biz_id, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        return Response(ToolboxHandler.list_cluster_big_version(data["cluster_id"]))
 
     @common_swagger_auto_schema(
         operation_summary=_("获取集群容量变更所需信息"),

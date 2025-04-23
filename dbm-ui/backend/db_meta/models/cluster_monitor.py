@@ -114,6 +114,24 @@ INSTANCE_MONITOR_PLUGINS = {
 # mysql和tendbcluster采集器一致
 INSTANCE_MONITOR_PLUGINS[DBType.TenDBCluster] = INSTANCE_MONITOR_PLUGINS[DBType.MySQL]
 
+INSTANCE_BKLOG_PLUGINS = {
+    DBType.Redis: {
+        MachineType.PREDIXY: {"name": "predixy", "plugin_id": "redis_slowlog"},
+        MachineType.TWEMPROXY: {"name": "twemproxy", "plugin_id": "redis_slowlog"},
+        MachineType.REDIS: {"name": "redis", "plugin_id": "redis_slowlog"},
+        MachineType.TENDISCACHE: {"name": "tendiscache", "plugin_id": "redis_slowlog"},
+        MachineType.TENDISSSD: {"name": "tendisssd", "plugin_id": "redis_slowlog"},
+        MachineType.TENDISPLUS: {"name": "tendisplus", "plugin_id": "redis_slowlog"},
+    },
+    DBType.MySQL: {
+        MachineType.BACKEND: {"name": "mysql", "plugin_id": "mysql_slowlog"},
+    },
+    DBType.TenDBCluster: {
+        MachineType.SPIDER: {"name": "spider", "plugin_id": "mysql_slowlog"},
+        MachineType.REMOTE: {"name": "mysql", "plugin_id": "mysql_slowlog"},
+    },
+}
+
 SET_NAME_TEMPLATE = "db.{db_type}.{monitor_plugin_name}"
 
 SHORT_NAMES = list(

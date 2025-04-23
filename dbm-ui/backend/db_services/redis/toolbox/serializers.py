@@ -220,6 +220,10 @@ class GetClusterVersionSerializer(serializers.Serializer):
     type = serializers.ChoiceField(help_text=_("请求版本类型"), choices=RedisVersionQueryType.get_choices())
 
 
+class ListClusterBigVersionSerializer(serializers.Serializer):
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+
+
 class GetClusterCapacityInfoSerializer(serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     new_storage_version = serializers.CharField(help_text=_("存储版本"))

@@ -43,14 +43,17 @@ class _BKLogApi(BaseApi):
             description=_("创建采集项的前置检查"),
         )
         self.list_collectors = self.generate_data_api(
-            method="GET",
-            url="databus_collectors/",
-            description=_("获取采集项列表"),
+            method="GET", url="databus_collectors/", description=_("获取采集项列表"), cache_time=60 * 60
         )
         self.search_index_set = self.generate_data_api(
             method="GET",
             url="search_index_set/",
             description=_("查询索引集列表"),
+        )
+        self.run_databus_collectors = self.generate_data_api(
+            method="POST",
+            url="databus_collectors/{collector_config_id}/run/",
+            description=_("日志平台-订阅IP下发"),
         )
 
 

@@ -26,6 +26,7 @@ from backend.db_services.redis.resources.constants import SQL_QUERY_COUNT_INSTAN
 from backend.db_services.redis.resources.redis_cluster.query import RedisListRetrieveResource
 from backend.exceptions import ApiResultError
 from backend.flow.utils.base.payload_handler import PayloadHandler
+from backend.flow.utils.redis import redis_util
 from backend.flow.utils.redis.redis_proxy_util import (
     get_cluster_proxy_version,
     get_cluster_proxy_version_for_upgrade,
@@ -137,6 +138,11 @@ class ToolboxHandler(ClusterServiceHandler):
             return get_cluster_storage_versions_for_upgrade(cluster_id)
         else:
             return get_cluster_proxy_version_for_upgrade(cluster_id)
+
+    @classmethod
+    def list_cluster_big_version(cls, cluster_id: int):
+        """查询集群可更新的大版本"""
+        return redis_util.get_cluster_update_version(cluster_id)
 
     @classmethod
     def webconsole_rpc(cls, cluster_id: int, cmd: str, db_num: int = 0, raw: bool = True, **kwargs):

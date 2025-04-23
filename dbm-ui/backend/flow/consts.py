@@ -202,7 +202,7 @@ DEFAULT_INSTANCE = {"ip": "0.0.0.0", "port": 0, "bk_cloud_id": 0}
 
 
 class OperateCollectorActionEnum(str, StructuredEnum):
-    INSTALL = EnumField("install", _("安装"))
+    INSTALL = EnumField("INSTALL", _("安装"))
     UNINSTALL = EnumField("UNINSTALL", _("卸载"))
 
 
