@@ -45,7 +45,7 @@ data:
   LOGIN_URL: "{{ .Values.bk.bkLoginUrl }}"
   # 蓝鲸配置平台
   BK_CMDB_URL: "{{ .Values.bk.bkCmdbUrl }}"
-  CC_APIGW_DOMAIN: "{{ .Values.bk.bkCmdbUrl }}"
+  CC_APIGW_DOMAIN: "{{ .Values.bk.bkCmdbApiUrl }}"
   # 蓝鲸作业平台
   BK_JOB_URL: "{{ .Values.bk.bkJobUrl }}"
   JOB_APIGW_DOMAIN: "{{ .Values.bk.bkJobApiUrl }}"

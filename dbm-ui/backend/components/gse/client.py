@@ -20,7 +20,7 @@ class _GseApi(BaseApi):
     BASE = GSE_APIGW_DOMAIN
 
     class Constants:
-        GSE_AGENT_RUNNING_CODE = 2
+        GSE_AGENT_RUNNING_CODE = 1
 
     def __init__(self):
         self.get_agent_status = self.generate_data_api(

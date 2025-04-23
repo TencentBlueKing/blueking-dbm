@@ -26,7 +26,7 @@ class _ItsmApi(BaseApi):
             description=_("创建单据"),
         )
         self.get_ticket_status = self.generate_data_api(
-            method="POST",
+            method="GET",
             url="get_ticket_status/",
             description=_("单据状态查询"),
         )

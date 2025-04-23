@@ -271,10 +271,8 @@ class AppMonitorTopo(AuditedModel):
                     res = CCApi.create_set(
                         params={
                             "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
-                            "data": {
-                                "bk_parent_id": env.DBA_APP_BK_BIZ_ID,
-                                "bk_set_name": bk_set_name,
-                            },
+                            "bk_parent_id": env.DBA_APP_BK_BIZ_ID,
+                            "bk_set_name": bk_set_name,
                         }
                     )
                     bk_set_id = res["bk_set_id"]
