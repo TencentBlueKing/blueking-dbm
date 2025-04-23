@@ -346,6 +346,38 @@
     return result ? '无法操作' : '';
   });
 
+  watch(
+    () => tableContext?.props.model,
+    () => {
+      // setTimeout 确保 registerColumn 结束
+      setTimeout(() => {
+        // 判断rowspan 在当前 column生效状态
+        const allColumnList = tableContext?.getAllColumnList() || [];
+        let rowspanNum = 0;
+        isRowspanRender.value = true;
+        allColumnList.forEach((rowColumnList) => {
+          rowColumnList.forEach((columnItem, columnIndex) => {
+            if (columnItem.key === columnKey) {
+              if (columnItem.props.rowspan && columnItem.props.rowspan > 1) {
+                if (rowspanNum === 0) {
+                  rowspanNum = columnItem.props.rowspan;
+                }
+                rowspanNum = rowspanNum - 1;
+                isRowspanRender.value = rowspanNum < 1;
+              }
+              if (columnIndex > 0) {
+                isPreviousSiblingRowspan.value = Number(rowColumnList[columnIndex - 1]!.props.rowspan) > 1;
+              }
+            }
+          });
+        });
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
+
   let tippyIns: Instance;
 
   const initTipsPopover = () => {
@@ -560,27 +592,6 @@
       props,
       slots,
       validate,
-    });
-
-    // 判断rowspan 在当前 column生效状态
-    const allColumnList = tableContext?.getAllColumnList() || [];
-    let rowspanNum = 0;
-    isRowspanRender.value = true;
-    allColumnList.forEach((rowColumnList) => {
-      rowColumnList.forEach((columnItem, columnIndex) => {
-        if (columnItem.key === columnKey) {
-          if (columnItem.props.rowspan && columnItem.props.rowspan > 1) {
-            if (rowspanNum === 0) {
-              rowspanNum = columnItem.props.rowspan;
-            }
-            rowspanNum = rowspanNum - 1;
-            isRowspanRender.value = rowspanNum < 1;
-          }
-          if (columnIndex > 0) {
-            isPreviousSiblingRowspan.value = Number(rowColumnList[columnIndex - 1]!.props.rowspan) > 1;
-          }
-        }
-      });
     });
 
     // 初始化 tips 弹框
