@@ -21,7 +21,7 @@ export const getList = function (params: Record<string, any>) {
   }));
 };
 
-// 增加分区策略
+// 增加分区策略，会创建单据且只有一个
 export const create = function (params: {
   cluster_id: number;
   dblikes: string[];
@@ -32,7 +32,11 @@ export const create = function (params: {
   tblikes: string[];
 }) {
   const { currentBizId } = useGlobalBizs();
-  return http.post<Record<number, IDryRunData[]>>('/apis/partition/', {
+  return http.post<
+    {
+      id: number; // 单据id
+    }[]
+  >('/apis/partition/', {
     bk_biz_id: currentBizId,
     ...params,
   });

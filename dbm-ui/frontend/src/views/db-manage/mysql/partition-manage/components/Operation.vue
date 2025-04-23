@@ -147,6 +147,8 @@
     verifyPartitionField,
   } from '@services/source/partitionManage';
 
+  import { useTicketMessage } from '@hooks';
+
   import { dbSysExclude } from '@common/const';
   import { dbRegex } from '@common/regex';
 
@@ -156,7 +158,7 @@
 
   interface Emits {
     (e: 'editSuccess'): void;
-    (e: 'createSuccess', params: ServiceReturnType<typeof createParitition>, clusterId: number): void;
+    (e: 'createSuccess'): void;
   }
 
   const props = defineProps<Props>();
@@ -180,6 +182,7 @@
   let partionColumnVerifyErrorText = '';
 
   const { t } = useI18n();
+  const ticketMessage = useTicketMessage();
 
   const formRef = ref();
   const isEditMode = ref(false);
@@ -382,7 +385,8 @@
       ...formData,
     })
       .then((data) => {
-        emits('createSuccess', data, formData.cluster_id);
+        ticketMessage(data[0].id);
+        emits('createSuccess');
         handleCancel();
       })
       .finally(() => {
