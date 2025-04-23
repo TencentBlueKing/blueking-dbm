@@ -55,6 +55,7 @@
   </div>
 </template>
 <script setup lang="tsx">
+  import { Message } from 'bkui-vue';
   import _ from 'lodash';
   import { ref, shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
@@ -74,7 +75,7 @@
   import { ClusterTypes } from '@common/const';
   import { batchSplitRegex } from '@common/regex';
 
-  import { getSearchSelectorParams, messageError, messageSuccess } from '@utils';
+  import { getSearchSelectorParams, messageSuccess } from '@utils';
 
   import ExecuteLog from './components/ExecuteLog.vue';
   import PartitionOperation from './components/Operation.vue';
@@ -422,7 +423,26 @@
         {},
       );
       if (!dryRunData[data.id].length) {
-        messageError(t('目标分区异常'));
+        const messageConfig = {
+          actions: [
+            {
+              disabled: true,
+              id: 'assistant',
+            },
+          ],
+          message: {
+            assistant: '',
+            code: '',
+            details: {
+              message: dryRunResults[data.id][0].message,
+            },
+            overview: t('目标分区异常'),
+            suggestion: '',
+            type: 'key-value',
+          },
+          theme: 'error',
+        };
+        Message(messageConfig);
       } else {
         const executeResult = await execute({
           cluster_id: data.cluster_id,
