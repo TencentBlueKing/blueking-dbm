@@ -38,11 +38,6 @@
       @clear-search="handleClearSearch"
       @selection="handleTableSelection"
       @setting-change="handleSettingChange" />
-    <DryRun
-      v-model="isShowDryRun"
-      :cluster-id="operationData?.cluster_id || operationDryRunDataClusterId"
-      :operation-dry-run-data="operationDryRunData"
-      :partition-data="operationData" />
     <PartitionOperation
       v-model:is-show="isShowOperation"
       :data="operationData"
@@ -60,36 +55,48 @@
   </div>
 </template>
 <script setup lang="tsx">
+  import { Message } from 'bkui-vue';
+  import _ from 'lodash';
   import { ref, shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type PartitionModel from '@services/model/partition/partition';
-  import { batchRemove, disablePartition, dryRun, enablePartition, getList } from '@services/source/partitionManage';
+  import {
+    batchRemove,
+    disablePartition,
+    dryRun,
+    enablePartition,
+    execute,
+    getList,
+  } from '@services/source/partitionManage';
+
+  import { useTicketMessage } from '@hooks';
 
   import { ClusterTypes } from '@common/const';
   import { batchSplitRegex } from '@common/regex';
 
   import { getSearchSelectorParams, messageSuccess } from '@utils';
 
-  import DryRun from './components/DryRun.vue';
   import ExecuteLog from './components/ExecuteLog.vue';
   import PartitionOperation from './components/Operation.vue';
   import useTableSetting from './hooks/useTableSetting';
 
-  const { t } = useI18n();
+  type DryRunData = ServiceReturnType<typeof dryRun>;
 
+  const { t } = useI18n();
+  const ticketMessage = useTicketMessage();
   const { handleChange: handleSettingChange, setting: tableSetting } = useTableSetting();
 
   const tableRef = ref();
   const searchValues = ref([]);
   const isShowOperation = ref(false);
   const isShowExecuteLog = ref(false);
-  const isShowDryRun = ref(false);
   const executeLoadingMap = ref<Record<number, boolean>>({});
-  const selectionList = shallowRef<number[]>([]);
-  const operationData = shallowRef<PartitionModel>();
   const operationDryRunDataClusterId = ref(0);
-  const operationDryRunData = shallowRef<ServiceReturnType<typeof dryRun>>();
+
+  const operationData = shallowRef<PartitionModel>();
+  const operationDryRunData = shallowRef<DryRunData>();
+  const selectionList = shallowRef<number[]>([]);
 
   const serachData = [
     {
@@ -400,9 +407,52 @@
   };
 
   // 执行
-  const handleExecute = (payload: PartitionModel) => {
-    isShowDryRun.value = true;
-    operationData.value = payload;
+  const handleExecute = async (data: PartitionModel) => {
+    executeLoadingMap.value[data.id] = true;
+    operationData.value = data;
+    try {
+      const dryRunResults = await dryRun({
+        cluster_id: data.cluster_id,
+        config_id: data.id,
+      });
+      const dryRunData = Object.keys(dryRunResults).reduce<DryRunData>(
+        (result, configId) =>
+          Object.assign(result, {
+            [configId]: _.filter(dryRunResults[Number(configId)], (item) => !item.message),
+          }),
+        {},
+      );
+      if (!dryRunData[data.id].length) {
+        const messageConfig = {
+          actions: [
+            {
+              disabled: true,
+              id: 'assistant',
+            },
+          ],
+          message: {
+            assistant: '',
+            code: '',
+            details: {
+              message: dryRunResults[data.id][0].message,
+            },
+            overview: t('目标分区异常'),
+            suggestion: '',
+            type: 'key-value',
+          },
+          theme: 'error',
+        };
+        Message(messageConfig);
+      } else {
+        const executeResult = await execute({
+          cluster_id: data.cluster_id,
+          partition_objects: dryRunData,
+        });
+        ticketMessage(executeResult.map((item) => item.id).join(','));
+      }
+    } finally {
+      executeLoadingMap.value[data.id] = false;
+    }
   };
   // 编辑
   const handleEdit = (payload: PartitionModel) => {
@@ -421,12 +471,16 @@
     fetchData();
   };
   // 新建成功
-  const handleOperationCreateSuccess = (payload: ServiceReturnType<typeof dryRun>, clusterId: number) => {
+  const handleOperationCreateSuccess = async (payload: DryRunData, clusterId: number) => {
     fetchData();
     operationDryRunData.value = payload;
     operationDryRunDataClusterId.value = clusterId;
     operationData.value = undefined;
-    isShowDryRun.value = true;
+    const executeResult = await execute({
+      cluster_id: clusterId,
+      partition_objects: payload,
+    });
+    ticketMessage(executeResult.map((item) => item.id).join(','));
   };
 
   const handleDisable = (payload: PartitionModel) => {
@@ -450,8 +504,9 @@
   };
 
   const handleClone = (payload: PartitionModel) => {
-    operationData.value = payload;
-    operationData.value.id = 0;
+    const rowDataClone = _.cloneDeep(payload);
+    rowDataClone.id = 0;
+    operationData.value = rowDataClone;
     isShowOperation.value = true;
   };
 
