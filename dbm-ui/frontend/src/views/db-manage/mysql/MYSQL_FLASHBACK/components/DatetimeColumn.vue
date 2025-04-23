@@ -2,9 +2,24 @@
   <EditableTableColumn
     :field="field"
     :label="label"
-    :min-width="180"
+    :min-width="200"
     required
     :rules="rules">
+    <template #headAppend>
+      <BatchEditColumn
+        v-model="showBatchEdit"
+        :disable-fn="disabledDate"
+        :title="label"
+        type="datetime"
+        @change="handleBatchEditChange">
+        <span
+          v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
+          class="batch-edit-btn"
+          @click="handleBatchEditShow">
+          <DbIcon type="bulk-edit" />
+        </span>
+      </BatchEditColumn>
+    </template>
     <EditableDatePicker
       v-model="modelValue"
       :disabled-date="disabledDate"
@@ -35,6 +50,8 @@
     DatePicker as EditableDatePicker,
   } from '@components/editable-table/Index.vue';
 
+  import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
+
   interface Props {
     disabledDate?: (params: any) => boolean;
     field: string;
@@ -42,16 +59,21 @@
     nowenable?: boolean;
   }
 
+  type Emits = (e: 'batch-edit', value: string, field: string) => void;
+
   const props = withDefaults(defineProps<Props>(), {
     disabledDate: () => false,
     nowenable: false,
   });
 
-  const { t } = useI18n();
+  const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<string | Date>();
 
+  const { t } = useI18n();
+
   const isNowTime = ref(false);
+  const showBatchEdit = ref(false);
 
   const rules = [
     {
@@ -77,8 +99,22 @@
       isNowTime.value = true;
     });
   };
+
+  const handleBatchEditShow = () => {
+    showBatchEdit.value = true;
+  };
+
+  const handleBatchEditChange = (value: string[] | string) => {
+    emits('batch-edit', value as string, props.field);
+  };
 </script>
 <style lang="less">
+  .batch-edit-btn {
+    font-size: 14px;
+    color: #3a84ff;
+    cursor: pointer;
+  }
+
   .datetime-column-value-now {
     position: absolute;
     display: flex;
