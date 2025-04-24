@@ -64,7 +64,10 @@ class Spec(AuditedModel):
         默认：磁盘总容量
         """
         mount_point__size: Dict[str, int] = {disk["mount_point"]: disk["size"] for disk in self.storage_spec}
-        if self.spec_cluster_type == SpecClusterType.TenDBCluster:
+        if (
+            self.spec_cluster_type == SpecClusterType.TenDBCluster
+            and self.spec_machine_type == SpecMachineType.BACKEND.value
+        ):
             return mount_point__size.get("/data1") or mount_point__size["/data"] / 2
 
         if self.spec_machine_type in [
