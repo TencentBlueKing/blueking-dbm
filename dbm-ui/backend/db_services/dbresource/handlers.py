@@ -516,5 +516,8 @@ class ResourceHandler(object):
                 os_name=host.get("bk_os_name"),
                 os_type=host.get("bk_os_type"),
                 device_class=host.get("svr_device_class"),
+                bk_cpu=host.get("bk_cpu") or 0,
+                bk_mem=host.get("bk_mem") or 0,
+                bk_disk=host.get("bk_disk") or 0,
             )
         return hosts
