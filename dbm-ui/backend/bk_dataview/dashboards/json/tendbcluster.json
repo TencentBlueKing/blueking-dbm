@@ -24,7 +24,6 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 29949,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -44,7 +43,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "${DS_蓝鲸监控_-_指标数据}"
       },
       "fieldConfig": {
         "defaults": {
@@ -116,7 +115,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "expressionList": [],
           "format": "table",
@@ -142,7 +141,7 @@
               "method": "AVG",
               "metric_field": "mysql_version_info",
               "refId": "a",
-              "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+              "result_table_id": "exporter_dbm_mysqld_exporter",
               "result_table_label": "component",
               "time_field": "time",
               "where": [
@@ -182,7 +181,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "${DS_蓝鲸监控_-_指标数据}"
       },
       "fieldConfig": {
         "defaults": {
@@ -238,7 +237,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "expressionList": [],
           "format": "table",
@@ -261,7 +260,7 @@
               "method": "MAX",
               "metric_field": "mysql_datadir_df_usage",
               "refId": "a",
-              "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+              "result_table_id": "exporter_dbm_mysqld_exporter",
               "result_table_label": "component",
               "time_field": "time",
               "where": [
@@ -296,7 +295,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "${DS_蓝鲸监控_-_指标数据}"
       },
       "fieldConfig": {
         "defaults": {
@@ -347,7 +346,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "enableDownSampling": true,
           "expressionList": [],
@@ -374,7 +373,7 @@
               "method": "SUM",
               "metric_field": "mysql_datadir_du_used_mb",
               "refId": "a",
-              "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+              "result_table_id": "exporter_dbm_mysqld_exporter",
               "result_table_label": "component",
               "time_field": "time",
               "where": [
@@ -405,7 +404,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "enableDownSampling": true,
           "expressionList": [],
@@ -432,7 +431,7 @@
               "method": "SUM",
               "metric_field": "mysql_datadir_df_total_mb",
               "refId": "a",
-              "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+              "result_table_id": "exporter_dbm_mysqld_exporter",
               "result_table_label": "component",
               "time_field": "time",
               "where": [
@@ -467,7 +466,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "${DS_蓝鲸监控_-_指标数据}"
       },
       "description": "",
       "fieldConfig": {
@@ -549,7 +548,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -606,7 +605,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "${DS_蓝鲸监控_-_指标数据}"
       },
       "description": "select|insert|update|delete|replace|commit",
       "fieldConfig": {
@@ -691,7 +690,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -727,7 +726,7 @@
               "method": "AVG",
               "metric_field": "mysql_global_status_commands_total",
               "refId": "a",
-              "result_table_id": "exporter_dbm_mysqld_exporter.gstatus",
+              "result_table_id": "exporter_dbm_mysqld_exporter",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -793,7 +792,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "${DS_蓝鲸监控_-_指标数据}"
       },
       "fieldConfig": {
         "defaults": {
@@ -876,7 +875,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "expressionList": [
             {
@@ -919,7 +918,7 @@
               "method": "SUM",
               "metric_field": "mysql_global_status_slow_queries",
               "refId": "a",
-              "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+              "result_table_id": "exporter_dbm_mysqld_exporter",
               "result_table_label": "component",
               "time_field": "time",
               "where": [
@@ -945,7 +944,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "${DS_蓝鲸监控_-_指标数据}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1029,7 +1028,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -1056,7 +1055,7 @@
               "method": "SUM",
               "metric_field": "mysql_info_schema_processlist_threads",
               "refId": "a",
-              "result_table_id": "exporter_dbm_mysqld_exporter.plist",
+              "result_table_id": "exporter_dbm_mysqld_exporter",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -1090,7 +1089,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "${DS_蓝鲸监控_-_指标数据}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1173,7 +1172,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "expressionList": [
             {
@@ -1328,7 +1327,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -1397,7 +1396,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "${DS_蓝鲸监控_-_指标数据}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1482,7 +1481,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "expressionList": [
             {
@@ -1523,7 +1522,7 @@
               "method": "AVG",
               "metric_field": "mysql_global_status_table_open_cache_hits",
               "refId": "a",
-              "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+              "result_table_id": "exporter_dbm_mysqld_exporter",
               "result_table_label": "component",
               "time_field": "time",
               "where": [
@@ -1568,7 +1567,7 @@
               "method": "AVG",
               "metric_field": "mysql_global_status_table_open_cache_hits",
               "refId": "b",
-              "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+              "result_table_id": "exporter_dbm_mysqld_exporter",
               "result_table_label": "component",
               "time_field": "time",
               "where": [
@@ -1613,7 +1612,7 @@
               "method": "AVG",
               "metric_field": "mysql_global_status_table_open_cache_misses",
               "refId": "c",
-              "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+              "result_table_id": "exporter_dbm_mysqld_exporter",
               "result_table_label": "component",
               "time_field": "time",
               "where": [
@@ -1647,7 +1646,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "${DS_蓝鲸监控_-_指标数据}"
       },
       "description": "select|insert|update|delete|replace|commit",
       "fieldConfig": {
@@ -1732,7 +1731,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "enableDownSampling": false,
           "expressionList": [],
@@ -1769,7 +1768,7 @@
               "method": "AVG",
               "metric_field": "mysql_global_status_commands_total",
               "refId": "a",
-              "result_table_id": "exporter_dbm_mysqld_exporter.gstatus",
+              "result_table_id": "exporter_dbm_mysqld_exporter",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -1808,7 +1807,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "enableDownSampling": true,
           "expressionList": [],
@@ -1828,7 +1827,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "enableDownSampling": true,
           "expressionList": [],
@@ -1848,7 +1847,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "enableDownSampling": true,
           "expressionList": [],
@@ -1871,7 +1870,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "${DS_蓝鲸监控_-_指标数据}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1952,7 +1951,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "enableDownSampling": true,
           "expressionList": [],
@@ -1981,7 +1980,7 @@
               "method": "AVG",
               "metric_field": "mysql_slave_status_seconds_behind_master",
               "refId": "a",
-              "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+              "result_table_id": "exporter_dbm_mysqld_exporter",
               "result_table_label": "component",
               "time_field": "time",
               "where": [
@@ -2017,7 +2016,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "description": "Click link to get details for this instance",
           "fieldConfig": {
@@ -2136,7 +2135,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "expressionList": [],
               "format": "table",
@@ -2165,7 +2164,7 @@
                   "method": "MAX",
                   "metric_field": "mysql_version_info",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+                  "result_table_id": "exporter_dbm_mysqld_exporter",
                   "result_table_label": "component",
                   "time_field": "time",
                   "where": [
@@ -2207,7 +2206,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "description": "**Max Connections** is the maximum permitted number of simultaneous client connections. This is the value of the ``max_connections`` variable.\n\n**Max Used Connections** is the maximum number of connections that have been in use simultaneously since the server was started.\n\n**Connections** is the number of connection attempts (successful or not) to the MySQL server.",
           "fieldConfig": {
@@ -2290,7 +2289,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -2314,7 +2313,7 @@
                   "method": "MAX",
                   "metric_field": "mysql_global_status_threads_connected",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.gstatus",
+                  "result_table_id": "exporter_dbm_mysqld_exporter",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -2345,7 +2344,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -2364,7 +2363,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -2386,7 +2385,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "description": "**Max Connections** is the maximum permitted number of simultaneous client connections. This is the value of the ``max_connections`` variable.\n\n**Max Used Connections** is the maximum number of connections that have been in use simultaneously since the server was started.\n\n**Connections** is the number of connection attempts (successful or not) to the MySQL server.",
           "fieldConfig": {
@@ -2470,7 +2469,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "enableDownSampling": false,
               "expressionList": [],
@@ -2494,7 +2493,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "description": "**Max Connections** is the maximum permitted number of simultaneous client connections. This is the value of the ``max_connections`` variable.\n\n**Max Used Connections** is the maximum number of connections that have been in use simultaneously since the server was started.\n\n**Connections** is the number of connection attempts (successful or not) to the MySQL server.",
           "fieldConfig": {
@@ -2578,7 +2577,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -2604,7 +2603,7 @@
                   "method": "AVG",
                   "metric_field": "mysql_global_status_connection_used_percent",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+                  "result_table_id": "exporter_dbm_mysqld_exporter",
                   "result_table_label": "component",
                   "time_field": "time",
                   "where": [
@@ -2638,7 +2637,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "description": "select|insert|update|delete|replace|commit",
           "fieldConfig": {
@@ -2721,7 +2720,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -2757,7 +2756,7 @@
                   "method": "AVG",
                   "metric_field": "mysql_global_status_commands_total",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.gstatus",
+                  "result_table_id": "exporter_dbm_mysqld_exporter",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -2823,7 +2822,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "description": "**Max Connections** is the maximum permitted number of simultaneous client connections. This is the value of the ``max_connections`` variable.\n\n**Max Used Connections** is the maximum number of connections that have been in use simultaneously since the server was started.\n\n**Connections** is the number of connection attempts (successful or not) to the MySQL server.",
           "fieldConfig": {
@@ -2906,7 +2905,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "enableDownSampling": false,
               "expressionList": [],
@@ -2943,7 +2942,7 @@
                   "method": "AVG",
                   "metric_field": "mysql_global_status_threads_created",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+                  "result_table_id": "exporter_dbm_mysqld_exporter",
                   "result_table_label": "component",
                   "time_field": "time",
                   "where": [
@@ -2977,7 +2976,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "description": "The number of statements executed by the server. This includes\nonly statements sent to the server by clients and not statements executed\nwithin stored programs, unlike the Queries variable. This variable does\nnot count COM_PING, COM_STATISTICS, COM_STMT_PREPARE, COM_STMT_CLOSE, or\nCOM_STMT_RESET commands",
           "fieldConfig": {
@@ -3060,7 +3059,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -3096,7 +3095,7 @@
                   "method": "AVG",
                   "metric_field": "mysql_global_status_questions",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.gstatus",
+                  "result_table_id": "exporter_dbm_mysqld_exporter",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -3130,7 +3129,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "fieldConfig": {
             "defaults": {
@@ -3209,7 +3208,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "expressionList": [
                 {
@@ -3252,7 +3251,7 @@
                   "method": "SUM",
                   "metric_field": "mysql_global_status_slow_queries",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.gstatus",
+                  "result_table_id": "exporter_dbm_mysqld_exporter",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -3286,7 +3285,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "description": "The number of statements executed by the server. This variable\nincludes statements executed within stored programs, unlike the Questions\nvariable. It does not count COM_PING or COM_STATISTICS commands",
           "fieldConfig": {
@@ -3369,7 +3368,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -3405,7 +3404,7 @@
                   "method": "AVG",
                   "metric_field": "mysql_global_status_queries",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.gstatus",
+                  "result_table_id": "exporter_dbm_mysqld_exporter",
                   "result_table_label": "component",
                   "time_field": "time",
                   "where": [
@@ -3439,7 +3438,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "description": "",
           "fieldConfig": {
@@ -3522,7 +3521,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -3558,7 +3557,7 @@
                   "method": "SUM",
                   "metric_field": "mysql_global_status_open_tables",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.gstatus",
+                  "result_table_id": "exporter_dbm_mysqld_exporter",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -3592,7 +3591,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "description": "",
           "fieldConfig": {
@@ -3674,7 +3673,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -3710,7 +3709,7 @@
                   "method": "SUM",
                   "metric_field": "mysql_global_status_opened_files",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.gstatus",
+                  "result_table_id": "exporter_dbm_mysqld_exporter",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -3744,7 +3743,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "description": "",
           "fieldConfig": {
@@ -3828,7 +3827,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "expressionList": [
                 {
@@ -3869,7 +3868,7 @@
                   "method": "AVG",
                   "metric_field": "mysql_info_schema_query_response_time_seconds_sum",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+                  "result_table_id": "exporter_dbm_mysqld_exporter",
                   "result_table_label": "component",
                   "time_field": "time",
                   "where": [
@@ -3914,7 +3913,7 @@
                   "method": "AVG",
                   "metric_field": "mysql_info_schema_query_response_time_seconds_count",
                   "refId": "b",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+                  "result_table_id": "exporter_dbm_mysqld_exporter",
                   "result_table_label": "component",
                   "time_field": "time",
                   "where": [
@@ -3948,7 +3947,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "fieldConfig": {
             "defaults": {
@@ -4028,7 +4027,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -4053,7 +4052,7 @@
                   "method": "AVG",
                   "metric_field": "mysql_infodba_schema_heartbeat_delay_sec",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.slavestat",
+                  "result_table_id": "exporter_dbm_mysqld_exporter",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -4082,7 +4081,7 @@
                   "method": "AVG",
                   "metric_field": "mysql_infodba_schema_heartbeat_beat_sec",
                   "refId": "b",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.slavestat",
+                  "result_table_id": "exporter_dbm_mysqld_exporter",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -4108,7 +4107,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "fieldConfig": {
             "defaults": {
@@ -4188,7 +4187,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -4215,7 +4214,7 @@
                   "method": "AVG",
                   "metric_field": "mysql_slave_status_seconds_behind_master",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.slavestat",
+                  "result_table_id": "exporter_dbm_mysqld_exporter",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -4241,7 +4240,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "fieldConfig": {
             "defaults": {
@@ -4320,7 +4319,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "enableDownSampling": true,
               "expressionList": [],
@@ -4347,7 +4346,7 @@
                   "method": "MAX",
                   "metric_field": "mysql_engine_innodb_trx_idle_time_max",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+                  "result_table_id": "exporter_dbm_mysqld_exporter",
                   "result_table_label": "component",
                   "time_field": "time",
                   "where": [
@@ -4381,7 +4380,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "fieldConfig": {
             "defaults": {
@@ -4460,7 +4459,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "enableDownSampling": true,
               "expressionList": [],
@@ -4487,7 +4486,7 @@
                   "method": "MAX",
                   "metric_field": "mysql_engine_innodb_trx_long_time_max",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+                  "result_table_id": "exporter_dbm_mysqld_exporter",
                   "result_table_label": "component",
                   "time_field": "time",
                   "where": [
@@ -4535,7 +4534,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "description": "",
           "fieldConfig": {
@@ -4580,7 +4579,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -4595,7 +4595,7 @@
             "h": 5,
             "w": 12,
             "x": 0,
-            "y": 67
+            "y": 28
           },
           "id": 94,
           "options": {
@@ -4616,7 +4616,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -4675,7 +4675,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "description": "",
           "fieldConfig": {
@@ -4720,7 +4720,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -4735,7 +4736,7 @@
             "h": 5,
             "w": 12,
             "x": 12,
-            "y": 67
+            "y": 28
           },
           "id": 115,
           "options": {
@@ -4756,7 +4757,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -4815,7 +4816,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "description": "磁盘空间使用率",
           "fieldConfig": {
@@ -4860,7 +4861,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -4875,7 +4877,7 @@
             "h": 5,
             "w": 12,
             "x": 0,
-            "y": 72
+            "y": 33
           },
           "id": 11,
           "options": {
@@ -4896,7 +4898,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -4956,7 +4958,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "description": "",
           "fieldConfig": {
@@ -5001,7 +5003,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -5017,7 +5020,7 @@
             "h": 5,
             "w": 12,
             "x": 12,
-            "y": 72
+            "y": 33
           },
           "id": 77,
           "options": {
@@ -5038,7 +5041,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -5172,7 +5175,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "fieldConfig": {
             "defaults": {
@@ -5216,7 +5219,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -5232,7 +5236,7 @@
             "h": 5,
             "w": 12,
             "x": 0,
-            "y": 77
+            "y": 38
           },
           "id": 93,
           "interval": "1h",
@@ -5253,7 +5257,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -5280,7 +5284,7 @@
                   "method": "AVG",
                   "metric_field": "mysql_datadir_df_usage",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.datasize",
+                  "result_table_id": "exporter_dbm_mysqld_exporter",
                   "result_table_label": "component",
                   "time_field": "time",
                   "where": [
@@ -5314,7 +5318,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "description": "",
           "fieldConfig": {
@@ -5359,7 +5363,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -5375,7 +5380,7 @@
             "h": 5,
             "w": 12,
             "x": 12,
-            "y": 77
+            "y": 38
           },
           "id": 97,
           "options": {
@@ -5396,7 +5401,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -5491,7 +5496,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "fieldConfig": {
             "defaults": {
@@ -5554,7 +5559,7 @@
             "h": 5,
             "w": 12,
             "x": 0,
-            "y": 82
+            "y": 43
           },
           "id": 104,
           "interval": "2h",
@@ -5575,7 +5580,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -5601,7 +5606,7 @@
                   "method": "AVG",
                   "metric_field": "mysql_datadir_du_used_mb",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+                  "result_table_id": "exporter_dbm_mysqld_exporter",
                   "result_table_label": "component",
                   "time_field": "time",
                   "where": [
@@ -5635,7 +5640,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "description": "",
           "fieldConfig": {
@@ -5696,7 +5701,7 @@
             "h": 5,
             "w": 12,
             "x": 12,
-            "y": 82
+            "y": 43
           },
           "id": 128,
           "options": {
@@ -5717,7 +5722,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "enableDownSampling": true,
               "expressionList": [],
@@ -5777,7 +5782,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "description": "",
           "fieldConfig": {
@@ -5838,7 +5843,7 @@
             "h": 5,
             "w": 12,
             "x": 0,
-            "y": 87
+            "y": 48
           },
           "id": 53,
           "options": {
@@ -5859,7 +5864,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -5986,7 +5991,7 @@
         {
           "datasource": {
             "type": "mysql",
-            "uid": "bkdbm_statsdb_source"
+            "uid": "${DS_DBM-STATSDB}"
           },
           "fieldConfig": {
             "defaults": {
@@ -6041,10 +6046,10 @@
           "pluginVersion": "10.4.10",
           "targets": [
             {
-              "dataset": "",
+              "dataset": "bk_dbm_stats",
               "datasource": {
                 "type": "mysql",
-                "uid": "bkdbm_statsdb_source"
+                "uid": "${DS_DBM-STATSDB}"
               },
               "editorMode": "code",
               "format": "time_series",
@@ -6085,7 +6090,7 @@
         {
           "datasource": {
             "type": "mysql",
-            "uid": "bkdbm_statsdb_source"
+            "uid": "${DS_DBM-STATSDB}"
           },
           "fieldConfig": {
             "defaults": {
@@ -6093,50 +6098,13 @@
                 "mode": "palette-classic"
               },
               "custom": {
-                "axisBorderShow": false,
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
                 "hideFrom": {
                   "legend": false,
                   "tooltip": false,
                   "viz": false
-                },
-                "insertNulls": false,
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
                 }
               },
               "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green"
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
               "unit": "bytes"
             },
             "overrides": []
@@ -6146,96 +6114,6 @@
             "w": 12,
             "x": 12,
             "y": 29
-          },
-          "id": 131,
-          "interval": "24h",
-          "options": {
-            "legend": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "displayMode": "table",
-              "placement": "right",
-              "showLegend": true,
-              "sortBy": "Max",
-              "sortDesc": true
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "pluginVersion": "10.4.10",
-          "targets": [
-            {
-              "dataset": "",
-              "datasource": {
-                "type": "mysql",
-                "uid": "bkdbm_statsdb_source"
-              },
-              "editorMode": "code",
-              "format": "time_series",
-              "rawQuery": true,
-              "rawSql": "SELECT \n  $__time(dteventtimehour),database_name as metric,sum(database_size_max) as value FROM\n(\n  SELECT \n    dteventtimehour, \n    database_name,\n    original_database_name,\n    MAX(database_size) database_size_max \n  FROM ${dbmStatsDB}.mysql_db_table_size \n  WHERE cluster_domain = '$cluster_domain' AND \n    $__timeFilter(dteventtimehour)\n  GROUP BY database_name,original_database_name,dteventtimehour\n) as t\nGROUP BY dteventtimehour,database_name\nORDER BY dteventtimehour asc",
-              "refId": "A",
-              "sql": {
-                "columns": [
-                  {
-                    "name": "SUM",
-                    "parameters": [
-                      {
-                        "name": "database_size",
-                        "type": "functionParameter"
-                      }
-                    ],
-                    "type": "function"
-                  }
-                ],
-                "groupBy": [
-                  {
-                    "property": {
-                      "name": "database_name",
-                      "type": "string"
-                    },
-                    "type": "groupBy"
-                  }
-                ],
-                "limit": 50
-              },
-              "table": "mysql_db_table_size_5005578"
-            }
-          ],
-          "timeFrom": "7d",
-          "title": "Database Size (ibd)",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "mysql",
-            "uid": "bkdbm_statsdb_source"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                }
-              },
-              "mappings": [],
-              "unit": "bytes"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 37
           },
           "id": 133,
           "interval": "24h",
@@ -6264,10 +6142,10 @@
           "pluginVersion": "10.4.10",
           "targets": [
             {
-              "dataset": "",
+              "dataset": "bk_dbm_stats",
               "datasource": {
                 "type": "mysql",
-                "uid": "bkdbm_statsdb_source"
+                "uid": "${DS_DBM-STATSDB}"
               },
               "editorMode": "code",
               "format": "time_series",
@@ -6305,7 +6183,7 @@
               "dataset": "__internal_schema",
               "datasource": {
                 "type": "mysql",
-                "uid": "bkdbm_statsdb_source"
+                "uid": "${DS_DBM-STATSDB}"
               },
               "editorMode": "code",
               "format": "time_series",
@@ -6339,7 +6217,7 @@
         {
           "datasource": {
             "type": "mysql",
-            "uid": "bkdbm_statsdb_source"
+            "uid": "${DS_DBM-STATSDB}"
           },
           "fieldConfig": {
             "defaults": {
@@ -6383,7 +6261,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -6397,8 +6276,8 @@
           },
           "gridPos": {
             "h": 8,
-            "w": 12,
-            "x": 12,
+            "w": 24,
+            "x": 0,
             "y": 37
           },
           "id": 132,
@@ -6406,11 +6285,10 @@
           "options": {
             "legend": {
               "calcs": [
-                "lastNotNull",
-                "max"
+                "lastNotNull"
               ],
               "displayMode": "table",
-              "placement": "bottom",
+              "placement": "right",
               "showLegend": true,
               "sortBy": "Max",
               "sortDesc": true
@@ -6423,10 +6301,10 @@
           "pluginVersion": "10.4.10",
           "targets": [
             {
-              "dataset": "",
+              "dataset": "bk_dbm_stats",
               "datasource": {
                 "type": "mysql",
-                "uid": "bkdbm_statsdb_source"
+                "uid": "${DS_DBM-STATSDB}"
               },
               "editorMode": "code",
               "format": "time_series",
@@ -6481,7 +6359,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "fieldConfig": {
             "defaults": {
@@ -6565,7 +6443,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "enableDownSampling": true,
               "expressionList": [],
@@ -6592,7 +6470,7 @@
                   "method": "AVG",
                   "metric_field": "mysql_datadir_du_used_mb",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+                  "result_table_id": "exporter_dbm_mysqld_exporter",
                   "result_table_label": "component",
                   "time_field": "time",
                   "where": [
@@ -6627,7 +6505,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "fieldConfig": {
             "defaults": {
@@ -6708,7 +6586,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "enableDownSampling": true,
               "expressionList": [],
@@ -6735,7 +6613,7 @@
                   "method": "AVG",
                   "metric_field": "mysql_datadir_df_used_mb",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+                  "result_table_id": "exporter_dbm_mysqld_exporter",
                   "result_table_label": "component",
                   "time_field": "time",
                   "where": [
@@ -6773,7 +6651,7 @@
                   "method": "AVG",
                   "metric_field": "mysql_datadir_df_total_mb",
                   "refId": "b",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+                  "result_table_id": "exporter_dbm_mysqld_exporter",
                   "result_table_label": "component",
                   "time_field": "time",
                   "where": [
@@ -6808,7 +6686,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "description": "",
           "fieldConfig": {
@@ -6891,7 +6769,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -6943,7 +6821,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "fieldConfig": {
             "defaults": {
@@ -7008,7 +6886,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -7035,7 +6913,7 @@
                   "method": "AVG",
                   "metric_field": "mysql_up",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+                  "result_table_id": "exporter_dbm_mysqld_exporter",
                   "result_table_label": "component",
                   "time_field": "time",
                   "where": [
@@ -7069,7 +6947,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "description": "The number of statements executed by the server. This includes\nonly statements sent to the server by clients and not statements executed\nwithin stored programs, unlike the Queries variable. This variable does\nnot count COM_PING, COM_STATISTICS, COM_STMT_PREPARE, COM_STMT_CLOSE, or\nCOM_STMT_RESET commands",
           "fieldConfig": {
@@ -7152,7 +7030,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -7189,7 +7067,7 @@
                   "method": "AVG",
                   "metric_field": "mysql_global_status_questions",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+                  "result_table_id": "exporter_dbm_mysqld_exporter",
                   "result_table_label": "component",
                   "time_field": "time",
                   "where": [
@@ -7215,7 +7093,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "description": "**Max Connections** is the maximum permitted number of simultaneous client connections. This is the value of the ``max_connections`` variable.\n\n**Max Used Connections** is the maximum number of connections that have been in use simultaneously since the server was started.\n\n**Connections** is the number of connection attempts (successful or not) to the MySQL server.",
           "fieldConfig": {
@@ -7297,7 +7175,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -7324,7 +7202,7 @@
                   "method": "AVG",
                   "metric_field": "mysql_global_status_threads_connected",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+                  "result_table_id": "exporter_dbm_mysqld_exporter",
                   "result_table_label": "component",
                   "time_field": "time",
                   "where": [
@@ -7350,7 +7228,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "fieldConfig": {
             "defaults": {
@@ -7415,7 +7293,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -7442,7 +7320,7 @@
                   "method": "AVG",
                   "metric_field": "mysql_up",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+                  "result_table_id": "exporter_dbm_mysqld_exporter",
                   "result_table_label": "component",
                   "time_field": "time",
                   "where": [
@@ -7476,7 +7354,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "fieldConfig": {
             "defaults": {
@@ -7541,7 +7419,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -7568,7 +7446,7 @@
                   "method": "AVG",
                   "metric_field": "mysql_up",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+                  "result_table_id": "exporter_dbm_mysqld_exporter",
                   "result_table_label": "component",
                   "time_field": "time",
                   "where": [
@@ -7612,14 +7490,10 @@
   "templating": {
     "list": [
       {
-        "current": {
-          "selected": false,
-          "text": "",
-          "value": ""
-        },
+        "current": {},
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
-          "uid": "${DS_蓝鲸监控_- 指标数据}"
+          "uid": "${DS_蓝鲸监控_-_指标数据}"
         },
         "definition": "- Blueking Monitor - 维度",
         "hide": 0,
@@ -7649,14 +7523,10 @@
         "type": "query"
       },
       {
-        "current": {
-          "selected": false,
-          "text": "",
-          "value": ""
-        },
+        "current": {},
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
-          "uid": "${DS_蓝鲸监控_- 指标数据}"
+          "uid": "${DS_蓝鲸监控_-_指标数据}"
         },
         "definition": "- Blueking Monitor - 维度",
         "hide": 0,
@@ -7702,43 +7572,13 @@
         "type": "query"
       },
       {
-        "current": {
-          "selected": false,
-          "text": "spider_master",
-          "value": "spider_master"
-        },
+        "current": {},
         "hide": 0,
         "includeAll": false,
         "label": "dbrole",
         "multi": false,
         "name": "dbrole",
-        "options": [
-          {
-            "selected": true,
-            "text": "spider_master",
-            "value": "spider_master"
-          },
-          {
-            "selected": false,
-            "text": "spider_slave",
-            "value": "spider_slave"
-          },
-          {
-            "selected": false,
-            "text": "remote_master",
-            "value": "remote_master"
-          },
-          {
-            "selected": false,
-            "text": "remote_slave",
-            "value": "remote_slave"
-          },
-          {
-            "selected": false,
-            "text": "spider_mnt",
-            "value": "spider_mnt"
-          }
-        ],
+        "options": [],
         "query": "spider_master,spider_slave,remote_master,remote_slave,spider_mnt",
         "queryValue": "",
         "refresh": 1,
@@ -7746,15 +7586,10 @@
         "type": "custom"
       },
       {
-        "current": {
-          "isNone": true,
-          "selected": false,
-          "text": "None",
-          "value": ""
-        },
+        "current": {},
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
-          "uid": "${DS_蓝鲸监控_- 指标数据}"
+          "uid": "${DS_蓝鲸监控_-_指标数据}"
         },
         "definition": "- Blueking Monitor - 维度",
         "hide": 2,
@@ -7804,7 +7639,10 @@
         "name": "dbmStatsDB",
         "query": "bk_dbm_stats",
         "skipUrlSync": false,
-        "type": "constant"
+        "type": "constant",
+        "current": {},
+        "refresh": 1,
+        "options": []
       }
     ]
   },
@@ -7815,7 +7653,36 @@
   "timepicker": {},
   "timezone": "default",
   "title": "TenDBCluster",
-  "uid": "8303483841",
-  "version": 39,
-  "weekStart": ""
+  "version": 42,
+  "weekStart": "",
+  "__inputs": [
+    {
+      "name": "DS_蓝鲸监控_-_指标数据",
+      "label": "蓝鲸监控 - 指标数据",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "bkmonitor-timeseries-datasource",
+      "pluginName": "蓝鲸监控 - 指标数据"
+    },
+    {
+      "name": "DS_DBM-STATSDB",
+      "label": "DBM-StatsDB",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "mysql",
+      "pluginName": "DBM-StatsDB"
+    }
+  ],
+  "__requires": [
+    {
+      "type": "datasource",
+      "id": "bkmonitor-timeseries-datasource",
+      "name": "蓝鲸监控 - 指标数据"
+    },
+    {
+      "type": "datasource",
+      "id": "mysql",
+      "name": "DBM-StatsDB"
+    }
+  ]
 }

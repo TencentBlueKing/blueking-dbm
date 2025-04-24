@@ -199,24 +199,19 @@ func (ins *BaseSwitch) GetInfo(infoKey string) (bool, interface{}) {
 }
 
 // SingleAddressUnderDomain check whether only one address under domain
-// if only one address under dns entry, return true
-// if no dns entry found, return false
-func (ins *BaseSwitch) SingleAddressUnderDomain(entry BindEntry) (bool, error) {
-	if entry.Dns == nil {
-		return false, nil
-	}
+// if only one address under dns domain, return true
+// if no dns domain found, return false
+func (ins *BaseSwitch) SingleAddressUnderDomain(domainName string) (bool, error) {
 	conf := ins.Config
 	dnsClient := client.NewNameServiceClient(&conf.NameServices.DnsConf, conf.GetCloudId())
-	for _, dns := range entry.Dns {
-		number, err := dnsClient.GetAddressNumberByDomain(dns.DomainName)
-		if err != nil {
-			return false, err
-		}
-		ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("found %d address under domain %s",
-			number, dns.DomainName))
-		if number == 1 {
-			return true, nil
-		}
+	number, err := dnsClient.GetAddressNumberByDomain(domainName)
+	if err != nil {
+		return false, err
+	}
+	ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("found %d address under domain %s",
+		number, domainName))
+	if number == 1 {
+		return true, nil
 	}
 
 	return false, nil
@@ -235,6 +230,20 @@ func (ins *BaseSwitch) DeleteNameService(entry BindEntry) error {
 		ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("try to release dns entry [%s:%d]", ins.Ip, ins.Port))
 		dnsClient := client.NewNameServiceClient(&conf.NameServices.DnsConf, conf.GetCloudId())
 		for _, dns := range entry.Dns {
+			if ins.MetaType == constvar.TenDBProxyType || ins.MetaType == constvar.TenDBClusterProxyType {
+				isSingle, err := ins.SingleAddressUnderDomain(dns.DomainName)
+				if err != nil {
+					ins.ReportLogs(constvar.FailResult,
+						fmt.Sprintf("check whether single address under domain failed:%s", err.Error()))
+					dnsFlag = false
+					continue
+				}
+				if isSingle {
+					ins.ReportLogs(constvar.WarnResult,
+						fmt.Sprintf("only single address under this domain, skip release domain"))
+					continue
+				}
+			}
 			for _, ip := range dns.BindIps {
 				if ip == ins.Ip {
 					if err := dnsClient.DeleteDomain(dns.DomainName, ins.GetApp(), ins.Ip, dns.BindPort); err != nil {

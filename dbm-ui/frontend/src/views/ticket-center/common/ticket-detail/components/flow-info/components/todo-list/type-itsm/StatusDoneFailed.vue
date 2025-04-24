@@ -2,14 +2,19 @@
   <div>
     <div
       v-if="data.context.remark"
-      style="margin-top: 12px; line-height: 16px; color: #63656e">
+      class="mt-12"
+      style="line-height: 16px; color: #63656e">
       <I18nT
         keypath="备注：c"
         scope="global">
         <span>{{ data.context.remark }}</span>
       </I18nT>
     </div>
-    <div style="margin-top: 10px; color: #979ba5">{{ utcDisplayTime(data.done_at) }}</div>
+    <div
+      class="mt-12"
+      style="color: #979ba5">
+      {{ utcDisplayTime(data.done_at) }}
+    </div>
   </div>
 </template>
 <script setup lang="ts">

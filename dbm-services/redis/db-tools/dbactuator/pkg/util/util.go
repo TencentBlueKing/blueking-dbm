@@ -105,7 +105,7 @@ func FindFirstMountPoint(paths ...string) (string, error) {
 
 // CheckPortIsInUse 检查端口是否被占用
 func CheckPortIsInUse(ip, port string) (inUse bool, err error) {
-	timeout := time.Second
+	timeout := time.Second * 2
 	conn, err := net.DialTimeout("tcp", net.JoinHostPort(ip, port), timeout)
 	if err != nil && strings.Contains(err.Error(), "connection refused") {
 		return false, nil

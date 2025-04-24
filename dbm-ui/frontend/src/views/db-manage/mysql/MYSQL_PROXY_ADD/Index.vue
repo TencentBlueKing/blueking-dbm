@@ -171,7 +171,7 @@
       {
         message: t('IP 重复'),
         trigger: 'blur',
-        validator: (value: string, rowData?: Record<string, any>) => {
+        validator: (value: string, { rowData }: { rowData: RowData }) => {
           if (!value) {
             return true;
           }
@@ -182,7 +182,7 @@
       {
         message: t('IP 重复'),
         trigger: 'change',
-        validator: (value: string, rowData?: Record<string, any>) => {
+        validator: (value: string, { rowData }: { rowData: RowData }) => {
           if (!value) {
             return true;
           }

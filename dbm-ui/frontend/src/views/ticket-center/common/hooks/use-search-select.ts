@@ -15,7 +15,7 @@ const value = ref<SearchValue[]>([]);
 
 const ticketTypeList = shallowRef<{ id: string; name: string }[]>([]);
 
-const create = (options = {} as { exclude: string[] }) => {
+export default (options = {} as { exclude: string[] }) => {
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
 
@@ -101,6 +101,10 @@ const create = (options = {} as { exclude: string[] }) => {
     staleTime: 24 * 60 * 60 * 1000,
   });
 
+  onBeforeUnmount(() => {
+    value.value = [];
+  });
+
   return {
     formatSearchValue,
     searchFieldMap,
@@ -108,18 +112,4 @@ const create = (options = {} as { exclude: string[] }) => {
     ticketTypeList,
     value,
   };
-};
-
-let context: ReturnType<typeof create> | undefined;
-
-export default (...args: Parameters<typeof create>) => {
-  if (!context) {
-    context = create(...args);
-  }
-
-  onBeforeUnmount(() => {
-    context = undefined;
-  });
-
-  return context;
 };

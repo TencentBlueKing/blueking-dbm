@@ -114,7 +114,7 @@ func (job *RedisSyncCheck) checkReplication(ins InstanceParam) error {
 		job.runtime.Logger.Error("get redis pass from local failed,err %s:%v", addr, err)
 		return err
 	}
-	rc1, err := myredis.NewRedisClientWithTimeout(addr, pwd, 0, job.params.ClusterType, time.Second)
+	rc1, err := myredis.NewRedisClientWithTimeout(addr, pwd, 0, job.params.ClusterType, time.Second*10)
 	if err != nil {
 		return fmt.Errorf("conn redis %s failed:%+v", addr, err)
 	}

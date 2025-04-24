@@ -47,6 +47,7 @@ class MongoShardedClusterApplyDetailSerializer(serializers.Serializer):
 
     shard_machine_group = serializers.IntegerField(help_text=_("机器组数"))
     shard_num = serializers.IntegerField(help_text=_("集群分片数"))
+    nodes = serializers.JSONField(help_text=_("部署节点"), required=False)
 
     # display fields
     bk_cloud_name = serializers.SerializerMethodField(help_text=_("云区域"), read_only=True)

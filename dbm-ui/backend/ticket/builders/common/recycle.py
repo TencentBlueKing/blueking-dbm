@@ -89,14 +89,11 @@ class RecycleHostFlowBuilder(TicketFlowBuilder):
 
         # 对于独立管控的回收单，跳过空闲检查和数据清理
         if not self.check_independent_recycle():
-            # 定时执行 TODO: 暂时去掉 改为人工确认
-            # if env.HOST_RECYCLE_RETENTION_DAYS:
-            #     flows.append(
-            #         Flow(ticket=self.ticket, flow_type=FlowType.TIMER.value, flow_alias=_("定时执行")),
-            #     )
-
-            # 人工确认
-            flows.append(Flow(ticket=self.ticket, flow_type=FlowType.PAUSE.value, flow_alias=_("人工确认执行")))
+            # 定时执行
+            if env.HOST_RECYCLE_RETENTION_DAYS:
+                flows.append(
+                    Flow(ticket=self.ticket, flow_type=FlowType.TIMER.value, flow_alias=_("定时执行")),
+                )
 
             # 主机空闲检查
             if env.SA_CHECK_TEMPLATE_ID:
@@ -167,6 +164,7 @@ class RecycleHostFlowBuilder(TicketFlowBuilder):
         return list(Flow.objects.filter(ticket=self.ticket))
 
     def patch_ticket_detail(self):
+        # TODO: seconds 改成 days
         trigger_time = datetime2str(datetime.now(timezone.utc) + timedelta(days=env.HOST_RECYCLE_RETENTION_DAYS))
         self.ticket.update_details(trigger_time=trigger_time)
 

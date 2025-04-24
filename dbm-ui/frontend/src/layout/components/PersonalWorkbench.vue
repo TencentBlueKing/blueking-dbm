@@ -70,20 +70,10 @@
           {{ t('已办单据') }}
         </span>
       </BkMenuItem>
-      <!-- <BkMenuGroup>
+    </BkMenuGroup>
+    <BkMenuGroup
       v-db-console="'personalWorkbench'"
-      :name="t('单据管理')">
-      <BkMenuItem
-        key="ticketSelfManage"
-        v-db-console="'personalWorkbench.myTickets'">
-        <template #icon>
-          <DbIcon type="todos" />
-        </template>
-        <span>
-          {{ t('我负责的业务') }}
-        </span>
-      </BkMenuItem> 
-      </BkMenuGroup>-->
+      :name="t('服务申请')">
       <BkMenuItem
         key="serviceApply"
         v-db-console="'personalWorkbench.serviceApply'">

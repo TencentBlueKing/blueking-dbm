@@ -13,6 +13,7 @@ from typing import Dict, List
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
+from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
 
@@ -201,3 +202,13 @@ def decode_info_cmd(info_str: str) -> Dict:
         tmp_list[1] = tmp_list[1].strip()
         info_ret[tmp_list[0]] = tmp_list[1]
     return info_ret
+
+
+def get_cluster_update_version(cluster_id: int) -> List[str]:
+    """
+    获取集群容量变更允许的Redis大版本
+    """
+    cluster = Cluster.objects.get(id=cluster_id)
+    curr_version = cluster.major_version
+    packages = Package.objects.filter(pkg_type="redis", db_type="redis", enable=True)
+    return [p.__dict__["version"] for p in packages if version_ge(p.__dict__["version"], curr_version)]

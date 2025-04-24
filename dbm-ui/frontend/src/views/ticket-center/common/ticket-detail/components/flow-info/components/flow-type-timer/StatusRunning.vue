@@ -12,23 +12,21 @@
       </slot>
     </template>
     <template #content>
-      <I18nT
-        keypath="定时时间_m_倒计时_t"
-        scope="global">
-        <span>{{ utcDisplayTime(data.details.trigger_time) }}</span>
-        <RunCountdown :model-value="data.details.trigger_time" />
-      </I18nT>
+      <TodoList
+        v-if="data.todos.length > 0"
+        :data="data.todos"
+        :flow-data="data" />
     </template>
   </DbTimeLineItem>
 </template>
 <script setup lang="ts">
   import FlowMode from '@services/model/ticket/flow';
 
-  import { utcDisplayTime } from '@utils';
-
+  // import { utcDisplayTime } from '@utils';
   import DbTimeLineItem from '../time-line/TimeLineItem.vue';
+  import TodoList from '../todo-list/Index.vue';
 
-  import RunCountdown from './components/RunCountdown.vue';
+  // import RunCountdown from './components/RunCountdown.vue';
 
   interface Props {
     data: FlowMode<{

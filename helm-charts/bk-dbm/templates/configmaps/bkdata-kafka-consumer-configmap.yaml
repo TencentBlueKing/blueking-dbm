@@ -27,6 +27,7 @@ data:
       log_file_dir: logs
   data.mysql-db-table-size.yaml: |-
     - bk_data_id: {{ index .Values "bkdata-kafka-consumer" "mysql-db-table-size" "bk_data_id" }}
+      client_id: {{ index .Values "bkdata-kafka-consumer" "mysql-db-table-size" "group_id" }}
       group_id: {{ index .Values "bkdata-kafka-consumer" "mysql-db-table-size" "group_id" }}
       from_beginning: false
       sink_batch_size: 10
@@ -42,6 +43,7 @@ data:
 
   data.mysql-backup-result.yaml: |-
     - bk_data_id: {{ index .Values "bkdata-kafka-consumer" "mysql-backup-result" "bk_data_id" }}
+      client_id: {{ index .Values "bkdata-kafka-consumer" "mysql-backup-result" "group_id" }}
       group_id: {{ index .Values "bkdata-kafka-consumer" "mysql-backup-result" "group_id" }}
       from_beginning: false
       sink_batch_size: 1
@@ -57,6 +59,7 @@ data:
 
   data.mysql-binlog-result.yaml: |-
     - bk_data_id: {{ index .Values "bkdata-kafka-consumer" "mysql-binlog-result" "bk_data_id" }}
+      client_id: {{ index .Values "bkdata-kafka-consumer" "mysql-binlog-result" "group_id" }}
       group_id: {{ index .Values "bkdata-kafka-consumer" "mysql-binlog-result" "group_id" }}
       from_beginning: false
       sink_batch_size: 1

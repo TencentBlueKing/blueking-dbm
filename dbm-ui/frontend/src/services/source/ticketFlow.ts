@@ -82,7 +82,7 @@ export function batchProcessTicket(params: {
 
 // /apis/tickets/batch_process_todo/
 export function batchProcessTodo(params: {
-  action: 'APPROVE' | 'TERMINATE';
+  action: 'APPROVE' | 'TERMINATE' | 'SKIP' | 'CHANGE';
   operations: {
     params?: Record<string, any>;
     todo_id: number;
@@ -103,4 +103,12 @@ export function getInnerFlowInfo(params: { ticket_ids: string }) {
       }[]
     >
   >(`${path}/get_inner_flow_infos/`, params);
+}
+
+export function operateTimerFlow(params: {
+  action: 'skip' | 'terminate' | 'change';
+  flow_id: number;
+  trigger_time?: string;
+}) {
+  return http.post(`${path}/operate_timer_flow/`, params);
 }

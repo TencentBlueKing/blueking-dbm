@@ -14,7 +14,8 @@ from typing import Dict, List
 
 from django.db import IntegrityError, transaction
 
-from backend.db_meta.enums import ClusterEntryType
+from backend.db_meta.enums import ClusterEntryType, TenDBClusterSpiderRole
+from backend.db_meta.enums.cluster_entry_role import ClusterEntryRole
 from backend.db_meta.models import Cluster
 
 from ....exceptions import ClusterEntryExistException
@@ -53,3 +54,36 @@ def create(domains: List[Dict], creator: str = ""):
 
         except IntegrityError:
             raise ClusterEntryExistException(cluster=dm["domain"], clb=dm["clb_ip"])
+
+
+@transaction.atomic
+def create_by_role(clb_infos: List[Dict], role: str, creator: str = ""):
+    """
+    ToDo: 已存在校验
+    """
+
+    for clb_info in clb_infos:
+        try:
+            entry_role = ClusterEntryRole.MASTER_ENTRY
+            if role == TenDBClusterSpiderRole.SPIDER_SLAVE:
+                entry_role = ClusterEntryRole.SLAVE_ENTRY
+            c = Cluster.objects.filter(id=clb_info["cluster_id"]).get()
+            entry = c.clusterentry_set.create(
+                cluster_entry_type=ClusterEntryType.CLB, entry=clb_info["clb_ip"], creator=creator, role=entry_role
+            )
+            entry.clbentrydetail_set.create(
+                clb_ip=clb_info.get("clb_ip"),
+                clb_id=clb_info.get("clb_id", ""),
+                listener_id=clb_info.get("clb_listener_id", ""),
+                clb_region=c.region,
+                clb_port=clb_info.get("clb_port", 0),
+                creator=creator,
+            )
+            if role in [TenDBClusterSpiderRole.SPIDER_MASTER, TenDBClusterSpiderRole.SPIDER_SLAVE]:
+                proxy_objs = c.proxyinstance_set.filter(tendbclusterspiderext__spider_role=role)
+            else:
+                proxy_objs = c.proxyinstance_set.all()
+            entry.proxyinstance_set.add(*proxy_objs)
+
+        except IntegrityError:
+            raise ClusterEntryExistException(cluster=clb_info["domain"], clb=clb_info["clb_ip"])

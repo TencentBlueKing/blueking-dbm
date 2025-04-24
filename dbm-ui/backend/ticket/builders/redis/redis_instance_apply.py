@@ -44,6 +44,7 @@ class RedisInstanceApplyDetailSerializer(SkipToRepresentationMixin, serializers.
     cluster_type = serializers.CharField(help_text=_("集群类型"))
     infos = serializers.ListSerializer(help_text=_("集群信息"), child=InstanceInfoSerializer())
 
+    nodes = serializers.JSONField(help_text=_("部署节点"), required=False)
     resource_spec = serializers.JSONField(help_text=_("proxy部署方案"), required=False)
     ip_source = serializers.CharField(help_text=_("主机来源"), required=False, default=IpSource.RESOURCE_POOL)
     append_apply = serializers.BooleanField(help_text=_("是否是追加部署"))

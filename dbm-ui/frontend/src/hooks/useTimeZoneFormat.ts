@@ -18,7 +18,7 @@ const timeZone = ref({
   country: '',
   countryCode: '',
   label: '',
-  utc: '',
+  utc: dayjs().format('Z'),
 });
 
 export const useTimeZoneFormat = () => {
@@ -29,7 +29,7 @@ export const useTimeZoneFormat = () => {
 
     const targetDate = dayjs(date).format('YYYY-MM-DD HH:mm:ss');
     const prefixStr = targetDate.split(' ').join('T');
-    const suffixStr = timeZone.value.utc === '' ? '+00:00' : timeZone.value.utc;
+    const suffixStr = timeZone.value.utc === '' ? dayjs().format('Z') : timeZone.value.utc;
     return `${prefixStr}${suffixStr}`;
   };
 

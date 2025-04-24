@@ -20,7 +20,7 @@
   <BkTable
     v-if="ticketDetails.details.shrink_type === 'HOST'"
     :data="tableData"
-    :show-overflow="false">
+    :merge-cells="mergeCells">
     <BkTableColumn
       field="ip"
       :label="t('目标主机')"
@@ -80,6 +80,8 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import type { VxeTablePropTypes } from '@blueking/vxe-table';
+
   import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
@@ -107,18 +109,31 @@
     role: string;
   }
 
-  const tableData = computed(() => {
+  const mergeCells = ref<VxeTablePropTypes.MergeCells>([]);
+
+  const tableData = shallowRef<HostTableRow[]>([]);
+
+  watchEffect(() => {
     const { clusters, infos } = props.ticketDetails.details;
-    const data = infos.reduce<HostTableRow[]>((acc, item) => {
-      item.old_nodes.spider_reduced_hosts.forEach((host) => {
-        acc.push({
-          domain: clusters[item.cluster_id]?.immute_domain || '--',
-          ip: host.ip,
-          role: item.reduce_spider_role === 'spider_master' ? 'Spider Master' : 'Spider Slave',
-        });
-      });
+
+    tableData.value = infos.flatMap((item) =>
+      item.old_nodes.spider_reduced_hosts.map((host) => ({
+        domain: clusters[item.cluster_id]?.immute_domain || '--',
+        ip: host.ip,
+        role: item.reduce_spider_role === 'spider_master' ? 'Spider Master' : 'Spider Slave',
+      })),
+    );
+
+    const domainCounts = tableData.value.reduce<Record<string, number>>((acc, { domain }) => {
+      Object.assign(acc, { [domain]: (acc[domain] || 0) + 1 });
       return acc;
-    }, []);
-    return data;
+    }, {});
+
+    let rowIndex = 0;
+    mergeCells.value = Object.entries(domainCounts).map(([_key, count]) => {
+      const mergeCell = { col: 2, colspan: 1, row: rowIndex, rowspan: count };
+      rowIndex += count;
+      return mergeCell;
+    });
   });
 </script>

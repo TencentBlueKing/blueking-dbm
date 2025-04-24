@@ -1,5 +1,5 @@
 import dayjs from 'dayjs';
-import { computed, onBeforeUnmount, ref } from 'vue';
+import { computed, ref } from 'vue';
 
 import { useUrlSearch } from '@hooks';
 
@@ -7,13 +7,19 @@ interface IPicker {
   value: () => [Date, Date];
 }
 
-const create = () => {
-  const value = ref<[Date, Date] | [string, string]>(['', '']);
-  const { getSearchParams } = useUrlSearch();
+const genDefaultValue = () => ['', ''] as ['', ''];
 
+const value = ref<[Date, Date] | [string, string]>(genDefaultValue());
+
+export default () => {
+  const { getSearchParams } = useUrlSearch();
   const searchParams = getSearchParams();
   if (searchParams.create_at__gte && searchParams.create_at__lte) {
     value.value = [dayjs(searchParams.create_at__gte).toDate(), dayjs(searchParams.create_at__lte).toDate()];
+  }
+
+  if (!value.value[0]) {
+    value.value = genDefaultValue();
   }
 
   const shortcutsRange = [
@@ -65,23 +71,13 @@ const create = () => {
     return {};
   });
 
+  onBeforeUnmount(() => {
+    value.value = ['', ''];
+  });
+
   return {
     formatValue,
     shortcutsRange,
     value,
   };
-};
-
-let context: ReturnType<typeof create> | undefined;
-
-export default () => {
-  if (!context) {
-    context = create();
-  }
-
-  onBeforeUnmount(() => {
-    context = undefined;
-  });
-
-  return context;
 };

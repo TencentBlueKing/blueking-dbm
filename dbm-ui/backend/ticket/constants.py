@@ -36,6 +36,7 @@ class TodoType(str, StructuredEnum):
     INNER_FAILED = EnumField("INNER_FAILED", _("主流程-失败后待确认"))
     INNER_APPROVE = EnumField("INNER_APPROVE", _("自动化流程-人工确认"))
     RESOURCE_REPLENISH = EnumField("RESOURCE_REPLENISH", _("资源补货"))
+    TIMER = EnumField("TIMER", _("定时"))
 
 
 class CountType(str, StructuredEnum):

@@ -645,7 +645,7 @@ class InstanceOperateRecordManager(models.Manager):
 class InstanceOperateRecord(AuditedModel):
     """
     实例操作记录
-    TODO: 是否考虑定期清理记录
+    TODO: 是否考虑定期清理
     """
 
     # 如果是大数据，可以将storage_instance的id作为instance_id存入，如果是其他集群，则将bk_host_id:port存入。

@@ -69,31 +69,34 @@ class MySQLClbServiceOperation(BaseService):
             # clb绑定新ip
             # ips: {ip:port, ...}
             ClbOperationType.CLB_REGISTER_PART_TARGET.value: lambda: mysql_clb.operate_part_target(
-                cluster_id=cluster_id, ips=kwargs["ips"], bind=True
+                cluster_id=cluster_id, ips=kwargs["ips"], bind=True, role=role
             ),
             # clb解绑部分ip
             ClbOperationType.CLB_DEREGISTER_PART_TARGET.value: lambda: mysql_clb.operate_part_target(
-                cluster_id=cluster_id, ips=kwargs["ips"], bind=False
+                cluster_id=cluster_id, ips=kwargs["ips"], bind=False, role=role
             ),
             # clb删除
             ClbOperationType.DELETE_CLB.value: lambda: mysql_clb.deregister_target_and_delete_lb(
-                cluster_id=cluster_id
+                cluster_id=cluster_id, role=role
             ),
             # clb信息写入meta
             ClbOperationType.ADD_CLB_INFO_TO_META.value: lambda: mysql_clb.add_clb_info_to_meta(
-                output=trans_data, cluster_id=cluster_id, role=role, creator=creator
+                output=trans_data,
+                cluster_id=cluster_id,
+                creator=creator,
+                role=role,
             ),
             # 从meta删除clb信息
             ClbOperationType.DELETE_CLB_INFO_FROM_META.value: lambda: mysql_clb.delete_clb_info_from_meta(
-                output=trans_data, cluster_id=cluster_id
+                output=trans_data, cluster_id=cluster_id, role=role
             ),
             # 添加clb域名到dns，clb域名信息写入meta
             ClbOperationType.ADD_CLB_DOMAIN_TO_DNS.value: lambda: mysql_clb.add_clb_domain_to_dns(
-                cluster_id=cluster_id, creator=creator
+                cluster_id=cluster_id, creator=creator, role=role
             ),
             # 从dns删除clb域名，从meta中删除clb域名信息
             ClbOperationType.DELETE_CLB_DOMAIN_FROM_DNS.value: lambda: mysql_clb.delete_clb_domain_from_dns(
-                cluster_id=cluster_id
+                cluster_id=cluster_id, role=role
             ),
             # 主域名绑定clb ip
             ClbOperationType.DOMAIN_BIND_CLB_IP.value: lambda: mysql_clb.immute_domain_clb_ip(

@@ -111,6 +111,8 @@
     width?: number;
   }
 
+  export type Emits = (e: 'validate', result: boolean, message: string) => boolean;
+
   interface Slots {
     default: () => VNode;
     error?: (params: { message: string }) => VNode;
@@ -162,6 +164,7 @@
     rules: undefined,
     width: undefined,
   });
+  const emits = defineEmits<Emits>();
   const slots = defineSlots<Slots>();
 
   const tableContext = inject(tableInjectKey);
@@ -173,7 +176,7 @@
   interface IFinalRule {
     message: string | (() => string);
     trigger: string;
-    validator: (value: any, rowData?: Record<string, any>) => Promise<boolean | string> | boolean | string;
+    validator: (value: any, rowDataValue?: Record<string, any>) => Promise<boolean | string> | boolean | string;
   }
 
   let loadingValidatorTimer: ReturnType<typeof setTimeout>;
@@ -334,14 +337,46 @@
     if (!props.disabledMethod) {
       return '';
     }
-    const columnIndex = tableContext!.getColumnRelateRowIndexByInstance(currentInstance);
+    const rowIndex = rowContext!.getRowIndex();
 
-    const result = props.disabledMethod(tableContext!.props.model[columnIndex], props.field);
+    const result = props.disabledMethod(tableContext!.props.model[rowIndex], props.field);
     if (typeof result === 'string') {
       return result;
     }
     return result ? '无法操作' : '';
   });
+
+  watch(
+    () => tableContext?.props.model,
+    () => {
+      // setTimeout 确保 registerColumn 结束
+      setTimeout(() => {
+        // 判断rowspan 在当前 column生效状态
+        const allColumnList = tableContext?.getAllColumnList() || [];
+        let rowspanNum = 0;
+        isRowspanRender.value = true;
+        allColumnList.forEach((rowColumnList) => {
+          rowColumnList.forEach((columnItem, columnIndex) => {
+            if (columnItem.key === columnKey) {
+              if (columnItem.props.rowspan && columnItem.props.rowspan > 1) {
+                if (rowspanNum === 0) {
+                  rowspanNum = columnItem.props.rowspan;
+                }
+                rowspanNum = rowspanNum - 1;
+                isRowspanRender.value = rowspanNum < 1;
+              }
+              if (columnIndex > 0) {
+                isPreviousSiblingRowspan.value = Number(rowColumnList[columnIndex - 1]!.props.rowspan) > 1;
+              }
+            }
+          });
+        });
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
 
   let tippyIns: Instance;
 
@@ -423,10 +458,18 @@
 
     const doValidate = (() => {
       let stepIndex = -1;
-      return (finalRuleList: IFinalRule[], value: any, rowDataValue: Record<string, any>): Promise<boolean> => {
+      return (
+        finalRuleList: IFinalRule[],
+        value: any,
+        rowDataValue: {
+          rowData: Record<string, any>;
+          rowIndex: number;
+        },
+      ): Promise<boolean> => {
         stepIndex = stepIndex + 1;
         // 验证通过
         if (stepIndex >= finalRuleList.length) {
+          emits('validate', true, '');
           tableContext.emits('validate', props.field || '', true, '');
           return Promise.resolve(true);
         }
@@ -454,6 +497,7 @@
               (errorMessage: string) => {
                 validateState.isError = true;
                 validateState.errorMessage = errorMessage;
+                emits('validate', false, errorMessage);
                 tableContext.emits('validate', props.field || '', false, errorMessage);
                 return Promise.reject(validateState.errorMessage);
               },
@@ -504,8 +548,12 @@
           validateState.errorMessage = '';
         }
 
-        const rowDataValue = tableContext.props.model[rowContext!.getRowIndex()];
-        const value = _.get(rowDataValue, props.field || '_');
+        const rowIndex = rowContext!.getRowIndex();
+        const rowDataValue = {
+          rowData: tableContext.props.model[rowIndex],
+          rowIndex,
+        };
+        const value = _.get(rowDataValue.rowData, props.field || '_');
 
         doValidate(finalRuleList, value, rowDataValue).then(
           () => {
@@ -544,27 +592,6 @@
       props,
       slots,
       validate,
-    });
-
-    // 判断rowspan 在当前 column生效状态
-    const allColumnList = tableContext?.getAllColumnList() || [];
-    let rowspanNum = 0;
-    isRowspanRender.value = true;
-    allColumnList.forEach((rowColumnList) => {
-      rowColumnList.forEach((columnItem, columnIndex) => {
-        if (columnItem.key === columnKey) {
-          if (columnItem.props.rowspan && columnItem.props.rowspan > 1) {
-            if (rowspanNum === 0) {
-              rowspanNum = columnItem.props.rowspan;
-            }
-            rowspanNum = rowspanNum - 1;
-            isRowspanRender.value = rowspanNum < 1;
-          }
-          if (columnIndex > 0) {
-            isPreviousSiblingRowspan.value = Number(rowColumnList[columnIndex - 1]!.props.rowspan) > 1;
-          }
-        }
-      });
     });
 
     // 初始化 tips 弹框

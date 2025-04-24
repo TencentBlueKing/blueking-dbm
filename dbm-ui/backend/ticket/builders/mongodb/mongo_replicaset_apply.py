@@ -52,6 +52,7 @@ class MongoReplicaSetApplyDetailSerializer(serializers.Serializer):
     oplog_percent = serializers.IntegerField(help_text=_("oplog容量占比"))
 
     ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
+    nodes = serializers.JSONField(help_text=_("部署节点"), required=False)
 
     # display fields
     bk_cloud_name = serializers.SerializerMethodField(help_text=_("云区域"), read_only=True)

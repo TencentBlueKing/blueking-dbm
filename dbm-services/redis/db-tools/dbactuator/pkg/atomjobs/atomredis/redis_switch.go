@@ -134,8 +134,9 @@ type RedisSwitch struct {
 	runtime *jobruntime.JobGenericRuntime
 	params  *SwitchParam
 
-	SwitchRstFile string
-	SwitchFeild   map[string]*SwitchInstacne
+	HasLastSwitched bool
+	SwitchRstFile   string
+	SwitchFeild     map[string]*SwitchInstacne
 
 	errChan chan error
 }
@@ -198,6 +199,7 @@ func (job *RedisSwitch) Init(m *jobruntime.JobGenericRuntime) error {
 			job.runtime.Logger.Warn("read switch result file %s:%+v", job.SwitchRstFile, err)
 		} else {
 			if err := json.Unmarshal(fc, &job.SwitchFeild); err != nil {
+				job.HasLastSwitched = true
 				job.runtime.Logger.Warn("load switch result from file %s:%+v", job.SwitchRstFile, err)
 			}
 			x, _ := json.Marshal(job.SwitchFeild)
@@ -622,6 +624,10 @@ func (job *RedisSwitch) precheckForProxy() error {
 
 		// 3.2 检查proxy 状态一致
 		if err := job.checkProxyConsistency(); err != nil {
+			if job.HasLastSwitched {
+				job.runtime.Logger.Warn("had proxy not consistent; but retry switch !:+%v", err)
+				return nil
+			}
 			return err
 		}
 	} else {
@@ -649,12 +655,17 @@ func (job *RedisSwitch) checkProxyConsistency() error {
 	wg.Wait()
 	close(md5Ch)
 
-	proxyMd5s := map[string]struct{}{}
+	proxyMd5s := map[string][]string{}
 	for pmd5 := range md5Ch {
-		proxyMd5s[pmd5] = struct{}{}
+		rsts := strings.Split(pmd5, "||")
+		addr, md5x := rsts[0], rsts[1]
+		if _, ok := proxyMd5s[md5x]; !ok {
+			proxyMd5s[md5x] = []string{}
+		}
+		proxyMd5s[md5x] = append(proxyMd5s[md5x], addr)
 	}
 	if len(proxyMd5s) != 1 {
-		return fmt.Errorf("err mutil [proxy backends md5] got [%+v]", proxyMd5s)
+		return fmt.Errorf("err mutil [proxy backends md5(‼️后端不一致啦😭😭😭)] got [%+v]", proxyMd5s)
 	}
 	job.runtime.Logger.Info("all [proxy backends md5] consistency [%+v]", proxyMd5s)
 	return nil

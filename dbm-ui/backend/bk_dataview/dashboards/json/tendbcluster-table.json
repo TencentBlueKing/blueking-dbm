@@ -24,7 +24,6 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 44238,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -36,256 +35,6 @@
         "x": 0,
         "y": 0
       },
-      "id": 115,
-      "panels": [],
-      "title": "Database=$dbname",
-      "type": "row"
-    },
-    {
-      "datasource": {
-        "type": "mysql",
-        "uid": "bkdbm_statsdb_source"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            }
-          },
-          "mappings": [],
-          "unit": "bytes"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 10,
-        "w": 12,
-        "x": 0,
-        "y": 1
-      },
-      "id": 114,
-      "interval": "1d",
-      "options": {
-        "displayLabels": [
-          "percent"
-        ],
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true,
-          "values": [
-            "value"
-          ]
-        },
-        "pieType": "pie",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "targets": [
-        {
-          "dataset": "__internal_schema",
-          "datasource": {
-            "type": "mysql",
-            "uid": "bkdbm_statsdb_source"
-          },
-          "editorMode": "code",
-          "format": "time_series",
-          "hide": false,
-          "rawQuery": true,
-          "rawSql": "SELECT $__time(dteventtimehour), concat(database_name,\".\", table_name) as metric,value\nFROM\n(\n  SELECT\n    dteventtimehour,database_name, table_name,value,\n    dense_rank() over (partition by dteventtimehour order by value desc) as ranking\n  FROM\n  (\n    SELECT \n      dteventtimehour, database_name, table_name, sum(table_size_max) as value \n    FROM\n    (\n      SELECT \n        dteventtimehour, \n        database_name,\n        original_database_name,\n        table_name,\n        MAX(table_size) table_size_max \n      FROM $dbmStatsDB.mysql_db_table_size \n      WHERE cluster_domain = '$cluster_domain' AND \n        database_name = '$dbname' AND\n        $__timeFilter(dteventtimehour)\n      GROUP BY database_name,original_database_name,table_name,dteventtimehour\n    ) as t\n    GROUP BY dteventtimehour,database_name,table_name\n  ) as tt\n) ttt\nWHERE ranking <=10\nORDER BY dteventtimehour",
-          "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ],
-            "limit": 50
-          }
-        },
-        {
-          "dataset": "__internal_schema",
-          "datasource": {
-            "type": "mysql",
-            "uid": "bkdbm_statsdb_source"
-          },
-          "editorMode": "code",
-          "format": "table",
-          "hide": false,
-          "rawQuery": true,
-          "rawSql": "SELECT dteventtimehour, \"_OTHER._OTHER\" as metric, sum(value) as \"_OTHER._OTHER\"\nFROM\n(\n  SELECT\n    dteventtimehour,database_name, table_name,value,\n    dense_rank() over (partition by dteventtimehour order by value desc) as ranking\n  FROM\n  (\n    SELECT \n     dteventtimehour,database_name, table_name, sum(table_size_max) as value \n    FROM\n    (\n      SELECT \n        dteventtimehour, \n        database_name,\n        original_database_name,\n        table_name,\n        MAX(table_size) table_size_max \n      FROM $dbmStatsDB.mysql_db_table_size\n      WHERE cluster_domain = '$cluster_domain' AND \n        database_name = '$dbname' AND\n        $__timeFilter(dteventtimehour)\n      GROUP BY database_name,original_database_name,table_name,dteventtimehour\n    ) as t\n    GROUP BY dteventtimehour,database_name,table_name\n  ) as tt\n) ttt\nWHERE ranking >10\nGROUP BY dteventtimehour",
-          "refId": "B",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ],
-            "limit": 50
-          }
-        }
-      ],
-      "timeFrom": "2d",
-      "title": "Table Size Top20 for db=$dbname",
-      "type": "piechart"
-    },
-    {
-      "datasource": {
-        "type": "mysql",
-        "uid": "bkdbm_statsdb_source"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "bytes"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 10,
-        "w": 12,
-        "x": 12,
-        "y": 1
-      },
-      "id": 113,
-      "interval": "1d",
-      "options": {
-        "legend": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "targets": [
-        {
-          "dataset": "__internal_schema",
-          "datasource": {
-            "type": "mysql",
-            "uid": "bkdbm_statsdb_source"
-          },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "SELECT $__time(dteventtimehour), concat(database_name,\".\", table_name) as metric,value\nFROM\n(\n  SELECT\n    dteventtimehour,database_name, table_name,value,\n    dense_rank() over (partition by dteventtimehour order by value desc) as ranking\n  FROM\n  (\n    SELECT \n      dteventtimehour,database_name, table_name, sum(table_size_max) as value \n    FROM\n    (\n      SELECT \n        dteventtimehour, \n        database_name,\n        original_database_name,\n        table_name,\n        MAX(table_size) table_size_max \n      FROM $dbmStatsDB.mysql_db_table_size\n      WHERE cluster_domain = '$cluster_domain' AND \n        database_name = '$dbname' AND\n        $__timeFilter(dteventtimehour)\n      GROUP BY database_name,original_database_name,table_name,dteventtimehour\n    ) as t\n    GROUP BY dteventtimehour,database_name,table_name\n  ) as tt\n) ttt\nORDER BY dteventtimehour",
-          "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ],
-            "limit": 50
-          }
-        }
-      ],
-      "title": "Table Size for db=$dbname",
-      "type": "timeseries"
-    },
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 11
-      },
       "id": 116,
       "panels": [],
       "title": "Table=$tbname",
@@ -294,7 +43,7 @@
     {
       "datasource": {
         "type": "mysql",
-        "uid": "bkdbm_statsdb_source"
+        "uid": "${DS_DBM-STATSDB}"
       },
       "fieldConfig": {
         "defaults": {
@@ -355,7 +104,7 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 12
+        "y": 1
       },
       "id": 112,
       "interval": "1d",
@@ -375,15 +124,15 @@
       },
       "targets": [
         {
-          "dataset": "__internal_schema",
+          "dataset": "bk_dbm_stats",
           "datasource": {
             "type": "mysql",
-            "uid": "bkdbm_statsdb_source"
+            "uid": "${DS_DBM-STATSDB}"
           },
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT $__time(dteventtimehour), concat(database_name,\".\", table_name) as metric ,value\nFROM\n(\n  SELECT\n    dteventtimehour,database_name, table_name,value,\n    dense_rank() over (partition by dteventtimehour order by value desc) as ranking\n  FROM\n  (\n    SELECT \n      dteventtimehour,database_name, table_name, sum(table_size_max) as value \n    FROM\n    (\n      SELECT \n        dteventtimehour, \n        database_name,\n        original_database_name,\n        table_name,\n        MAX(table_size) table_size_max \n      FROM ${dbmStatsDB}.mysql_db_table_size \n      WHERE cluster_domain = '$cluster_domain' AND \n        database_name = '$dbname' AND\n        table_name in ($tbname) AND\n        $__timeFilter(dteventtimehour)\n      GROUP BY database_name,original_database_name,table_name,dteventtimehour\n    ) as t\n    GROUP BY dteventtimehour,database_name,table_name\n  ) as tt\n) ttt\nORDER BY dteventtimehour",
+          "rawSql": "SELECT $__time(dteventtimehour), concat(database_name,\".\", table_name) as metric ,value\nFROM\n(\n  SELECT\n    dteventtimehour,database_name, table_name,value,\n    dense_rank() over (partition by dteventtimehour order by value desc) as ranking\n  FROM\n  (\n    SELECT \n      dteventtimehour,database_name, table_name, sum(table_size_max) as value \n    FROM\n    (\n      SELECT \n        dteventtimehour, \n        database_name,\n        original_database_name,\n        table_name,\n        MAX(table_size) table_size_max \n      FROM ${dbmStatsDB}.mysql_db_table_size \n      WHERE cluster_domain = '$cluster_domain' AND \n        database_name = '$dbname' AND\n        table_name in (${tbname:sqlstring}) AND\n        $__timeFilter(dteventtimehour)\n      GROUP BY database_name,original_database_name,table_name,dteventtimehour\n    ) as t\n    GROUP BY dteventtimehour,database_name,table_name\n  ) as tt\n) ttt\nORDER BY dteventtimehour",
           "refId": "A",
           "sql": {
             "columns": [
@@ -413,297 +162,14 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 18
+        "y": 7
       },
-      "id": 22,
+      "id": 115,
       "panels": [
         {
           "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "P3XSxkgSz"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green"
-                  }
-                ]
-              },
-              "unit": "decmbytes"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 5,
-            "w": 3,
-            "x": 0,
-            "y": 19
-          },
-          "hideTimeOverride": true,
-          "id": 111,
-          "interval": "2h",
-          "options": {
-            "minVizHeight": 75,
-            "minVizWidth": 75,
-            "orientation": "auto",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "showThresholdLabels": false,
-            "showThresholdMarkers": true,
-            "sizing": "auto"
-          },
-          "pluginVersion": "10.4.10",
-          "targets": [
-            {
-              "cluster": [],
-              "datasource": {
-                "type": "bkmonitor-timeseries-datasource",
-                "uid": "HVlyYOe4z"
-              },
-              "enableDownSampling": true,
-              "expressionList": [],
-              "format": "time_series",
-              "hide": false,
-              "host": [],
-              "mode": "code",
-              "module": [],
-              "promqlAlias": "",
-              "query_configs": [
-                {
-                  "alias": "",
-                  "data_label": "exporter_dbm_mysqld_exporter",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "display": true,
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [
-                    "cluster_domain"
-                  ],
-                  "interval": 7200,
-                  "interval_unit": "s",
-                  "method": "SUM",
-                  "metric_field": "mysql_datadir_du_used_mb",
-                  "refId": "a",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
-                  "result_table_label": "component",
-                  "time_field": "time",
-                  "where": [
-                    {
-                      "key": "cluster_domain",
-                      "method": "eq",
-                      "value": [
-                        "$cluster_domain"
-                      ]
-                    },
-                    {
-                      "condition": "and",
-                      "key": "instance_role",
-                      "method": "eq",
-                      "value": [
-                        "remote_master"
-                      ]
-                    }
-                  ]
-                }
-              ],
-              "refId": "A",
-              "source": "sum by (cluster_domain) (avg by (cluster_domain,instance)(avg_over_time(bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_du_used_mb{cluster_domain=\"$cluster_domain\",instance_role=\"remote_master\"}[121m])))",
-              "step": "",
-              "type": "range"
-            },
-            {
-              "cluster": [],
-              "datasource": {
-                "type": "bkmonitor-timeseries-datasource",
-                "uid": "HVlyYOe4z"
-              },
-              "enableDownSampling": true,
-              "expressionList": [],
-              "format": "time_series",
-              "hide": true,
-              "host": [],
-              "mode": "code",
-              "module": [],
-              "promqlAlias": "",
-              "query_configs": [
-                {
-                  "alias": "",
-                  "data_label": "exporter_dbm_mysqld_exporter",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "display": true,
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [
-                    "cluster_domain"
-                  ],
-                  "interval": 7200,
-                  "interval_unit": "s",
-                  "method": "SUM",
-                  "metric_field": "mysql_datadir_df_total_mb",
-                  "refId": "a",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
-                  "result_table_label": "component",
-                  "time_field": "time",
-                  "where": [
-                    {
-                      "key": "cluster_domain",
-                      "method": "eq",
-                      "value": [
-                        "$cluster_domain"
-                      ]
-                    },
-                    {
-                      "condition": "and",
-                      "key": "instance_role",
-                      "method": "eq",
-                      "value": [
-                        "remote_master"
-                      ]
-                    }
-                  ]
-                }
-              ],
-              "refId": "B",
-              "source": "sum by (cluster_domain) (avg by (cluster_domain,ip)(avg_over_time(bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_df_total_mb{cluster_domain=\"$cluster_domain\",instance_role=\"remote_master\"}[121m])))",
-              "step": "",
-              "type": "range"
-            }
-          ],
-          "timeFrom": "24h",
-          "title": "Datasize (remote_master)",
-          "type": "gauge"
-        },
-        {
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "P3XSxkgSz"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green"
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "percentunit"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 5,
-            "w": 3,
-            "x": 3,
-            "y": 19
-          },
-          "hideTimeOverride": true,
-          "id": 14,
-          "interval": "2h",
-          "options": {
-            "minVizHeight": 75,
-            "minVizWidth": 75,
-            "orientation": "auto",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "limit": 1,
-              "values": false
-            },
-            "showThresholdLabels": false,
-            "showThresholdMarkers": true,
-            "sizing": "auto"
-          },
-          "pluginVersion": "10.4.10",
-          "targets": [
-            {
-              "cluster": [],
-              "datasource": {
-                "type": "bkmonitor-timeseries-datasource",
-                "uid": "HVlyYOe4z"
-              },
-              "expressionList": [],
-              "format": "table",
-              "host": [],
-              "mode": "ui",
-              "module": [],
-              "promqlAlias": "",
-              "query_configs": [
-                {
-                  "alias": "",
-                  "data_label": "exporter_dbm_mysqld_exporter",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "display": true,
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [],
-                  "interval": "auto",
-                  "interval_unit": "s",
-                  "method": "MAX",
-                  "metric_field": "mysql_datadir_df_usage",
-                  "refId": "a",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
-                  "result_table_label": "component",
-                  "time_field": "time",
-                  "where": [
-                    {
-                      "key": "cluster_domain",
-                      "method": "eq",
-                      "value": [
-                        "$cluster_domain"
-                      ]
-                    },
-                    {
-                      "condition": "and",
-                      "key": "instance_role",
-                      "method": "eq",
-                      "value": [
-                        "remote_master"
-                      ]
-                    }
-                  ]
-                }
-              ],
-              "refId": "A",
-              "source": "",
-              "step": "",
-              "type": "range"
-            }
-          ],
-          "timeFrom": "24h",
-          "title": "Capacity Used (remote_master)",
-          "type": "gauge"
-        },
-        {
-          "datasource": {
             "type": "mysql",
-            "uid": "bkdbm_statsdb_source"
+            "uid": "${DS_DBM-STATSDB}"
           },
           "fieldConfig": {
             "defaults": {
@@ -724,11 +190,11 @@
           },
           "gridPos": {
             "h": 10,
-            "w": 9,
-            "x": 6,
-            "y": 19
+            "w": 12,
+            "x": 0,
+            "y": 1
           },
-          "id": 117,
+          "id": 114,
           "interval": "1d",
           "options": {
             "displayLabels": [
@@ -757,16 +223,16 @@
           },
           "targets": [
             {
-              "dataset": "__internal_schema",
+              "dataset": "bk_dbm_stats",
               "datasource": {
                 "type": "mysql",
-                "uid": "bkdbm_statsdb_source"
+                "uid": "${DS_DBM-STATSDB}"
               },
               "editorMode": "code",
               "format": "time_series",
               "hide": false,
               "rawQuery": true,
-              "rawSql": "SELECT $__time(dteventtimehour), database_name as metric, value\nFROM\n(\n  SELECT\n    dteventtimehour,database_name,value,\n    dense_rank() over (partition by dteventtimehour order by value desc) as ranking\n  FROM\n  (\n    SELECT \n      dteventtimehour,database_name,sum(database_size_max) as value FROM\n    (\n      SELECT \n        dteventtimehour, \n        database_name,\n        original_database_name,\n        MAX(database_size) database_size_max \n      FROM ${dbmStatsDB}.mysql_db_table_size \n      WHERE cluster_domain = '$cluster_domain' AND \n        $__timeFilter(dteventtimehour)\n      GROUP BY database_name,original_database_name,dteventtimehour\n    ) as t\n    GROUP BY dteventtimehour,database_name\n  ) tt\n) ttt\nWHERE ranking <=20\nORDER BY dteventtimehour",
+              "rawSql": "SELECT $__time(dteventtimehour), concat(database_name,\".\", table_name) as metric,value\nFROM\n(\n  SELECT\n    dteventtimehour,database_name, table_name,value,\n    dense_rank() over (partition by dteventtimehour order by value desc) as ranking\n  FROM\n  (\n    SELECT \n      dteventtimehour, database_name, table_name, sum(table_size_max) as value \n    FROM\n    (\n      SELECT \n        dteventtimehour, \n        database_name,\n        original_database_name,\n        table_name,\n        MAX(table_size) table_size_max \n      FROM $dbmStatsDB.mysql_db_table_size \n      WHERE cluster_domain = '$cluster_domain' AND \n        database_name = '$dbname' AND\n        $__timeFilter(dteventtimehour)\n      GROUP BY database_name,original_database_name,table_name,dteventtimehour\n    ) as t\n    GROUP BY dteventtimehour,database_name,table_name\n  ) as tt\n) ttt\nWHERE ranking <=10\nORDER BY dteventtimehour",
               "refId": "A",
               "sql": {
                 "columns": [
@@ -787,16 +253,16 @@
               }
             },
             {
-              "dataset": "__internal_schema",
+              "dataset": "bk_dbm_stats",
               "datasource": {
                 "type": "mysql",
-                "uid": "bkdbm_statsdb_source"
+                "uid": "${DS_DBM-STATSDB}"
               },
               "editorMode": "code",
               "format": "table",
               "hide": false,
               "rawQuery": true,
-              "rawSql": "SELECT $__time(dteventtimehour), \"_OTHER\" as metric, sum(value) as \"_OTHER\"\nFROM\n(\n  SELECT\n    dteventtimehour,database_name,value,\n    dense_rank() over (partition by dteventtimehour order by value desc) as ranking\n  FROM\n  (\n    SELECT \n      dteventtimehour,database_name,sum(database_size_max) as value FROM\n    (\n      SELECT \n        dteventtimehour, \n        database_name,\n        original_database_name,\n        MAX(database_size) database_size_max \n      FROM ${dbmStatsDB}.mysql_db_table_size \n      WHERE cluster_domain = '$cluster_domain' AND \n        $__timeFilter(dteventtimehour)\n      GROUP BY database_name,original_database_name,dteventtimehour\n    ) as t\n    GROUP BY dteventtimehour,database_name\n  ) tt\n) ttt\nWHERE ranking >20\nGROUP BY dteventtimehour",
+              "rawSql": "SELECT dteventtimehour, \"_OTHER._OTHER\" as metric, sum(value) as \"_OTHER._OTHER\"\nFROM\n(\n  SELECT\n    dteventtimehour,database_name, table_name,value,\n    dense_rank() over (partition by dteventtimehour order by value desc) as ranking\n  FROM\n  (\n    SELECT \n     dteventtimehour,database_name, table_name, sum(table_size_max) as value \n    FROM\n    (\n      SELECT \n        dteventtimehour, \n        database_name,\n        original_database_name,\n        table_name,\n        MAX(table_size) table_size_max \n      FROM $dbmStatsDB.mysql_db_table_size\n      WHERE cluster_domain = '$cluster_domain' AND \n        database_name = '$dbname' AND\n        $__timeFilter(dteventtimehour)\n      GROUP BY database_name,original_database_name,table_name,dteventtimehour\n    ) as t\n    GROUP BY dteventtimehour,database_name,table_name\n  ) as tt\n) ttt\nWHERE ranking >10\nGROUP BY dteventtimehour",
               "refId": "B",
               "sql": {
                 "columns": [
@@ -817,13 +283,14 @@
               }
             }
           ],
-          "title": "Database Size Top20 (ibd)",
+          "timeFrom": "2d",
+          "title": "Table Size Top20 for db=$dbname",
           "type": "piechart"
         },
         {
           "datasource": {
             "type": "mysql",
-            "uid": "bkdbm_statsdb_source"
+            "uid": "${DS_DBM-STATSDB}"
           },
           "fieldConfig": {
             "defaults": {
@@ -867,7 +334,543 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "bytes"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 10,
+            "w": 12,
+            "x": 12,
+            "y": 1
+          },
+          "id": 113,
+          "interval": "1d",
+          "options": {
+            "legend": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "dataset": "bk_dbm_stats",
+              "datasource": {
+                "type": "mysql",
+                "uid": "${DS_DBM-STATSDB}"
+              },
+              "editorMode": "code",
+              "format": "time_series",
+              "rawQuery": true,
+              "rawSql": "SELECT $__time(dteventtimehour), concat(database_name,\".\", table_name) as metric,value\nFROM\n(\n  SELECT\n    dteventtimehour,database_name, table_name,value,\n    dense_rank() over (partition by dteventtimehour order by value desc) as ranking\n  FROM\n  (\n    SELECT \n      dteventtimehour,database_name, table_name, sum(table_size_max) as value \n    FROM\n    (\n      SELECT \n        dteventtimehour, \n        database_name,\n        original_database_name,\n        table_name,\n        MAX(table_size) table_size_max \n      FROM $dbmStatsDB.mysql_db_table_size\n      WHERE cluster_domain = '$cluster_domain' AND \n        database_name = '$dbname' AND\n        $__timeFilter(dteventtimehour)\n      GROUP BY database_name,original_database_name,table_name,dteventtimehour\n    ) as t\n    GROUP BY dteventtimehour,database_name,table_name\n  ) as tt\n) ttt\nORDER BY dteventtimehour",
+              "refId": "A",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            }
+          ],
+          "title": "Table Size for db=$dbname",
+          "type": "timeseries"
+        }
+      ],
+      "title": "Database=$dbname",
+      "type": "row"
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      },
+      "id": 22,
+      "panels": [
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "decmbytes"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 3,
+            "x": 0,
+            "y": 9
+          },
+          "hideTimeOverride": true,
+          "id": 111,
+          "interval": "2h",
+          "options": {
+            "minVizHeight": 75,
+            "minVizWidth": 75,
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showThresholdLabels": false,
+            "showThresholdMarkers": true,
+            "sizing": "auto"
+          },
+          "pluginVersion": "10.4.10",
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
+              },
+              "enableDownSampling": true,
+              "expressionList": [],
+              "format": "time_series",
+              "hide": false,
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "",
+              "query_configs": [
+                {
+                  "alias": "",
+                  "data_label": "exporter_dbm_mysqld_exporter",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "cluster_domain"
+                  ],
+                  "interval": 7200,
+                  "interval_unit": "s",
+                  "method": "SUM",
+                  "metric_field": "mysql_datadir_du_used_mb",
+                  "refId": "a",
+                  "result_table_id": "exporter_dbm_mysqld_exporter",
+                  "result_table_label": "component",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "instance_role",
+                      "method": "eq",
+                      "value": [
+                        "remote_master"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "source": "sum by (cluster_domain) (avg by (cluster_domain,instance)(avg_over_time(bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_du_used_mb{cluster_domain=\"$cluster_domain\",instance_role=\"remote_master\"}[121m])))",
+              "step": "",
+              "type": "range"
+            },
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
+              },
+              "enableDownSampling": true,
+              "expressionList": [],
+              "format": "time_series",
+              "hide": true,
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "",
+              "query_configs": [
+                {
+                  "alias": "",
+                  "data_label": "exporter_dbm_mysqld_exporter",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "cluster_domain"
+                  ],
+                  "interval": 7200,
+                  "interval_unit": "s",
+                  "method": "SUM",
+                  "metric_field": "mysql_datadir_df_total_mb",
+                  "refId": "a",
+                  "result_table_id": "exporter_dbm_mysqld_exporter",
+                  "result_table_label": "component",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "instance_role",
+                      "method": "eq",
+                      "value": [
+                        "remote_master"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "B",
+              "source": "sum by (cluster_domain) (avg by (cluster_domain,ip)(avg_over_time(bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_df_total_mb{cluster_domain=\"$cluster_domain\",instance_role=\"remote_master\"}[121m])))",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "timeFrom": "24h",
+          "title": "Datadir Used du",
+          "type": "gauge"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "percentunit"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 3,
+            "x": 3,
+            "y": 9
+          },
+          "hideTimeOverride": true,
+          "id": 14,
+          "interval": "2h",
+          "options": {
+            "minVizHeight": 75,
+            "minVizWidth": 75,
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "limit": 1,
+              "values": false
+            },
+            "showThresholdLabels": false,
+            "showThresholdMarkers": true,
+            "sizing": "auto"
+          },
+          "pluginVersion": "10.4.10",
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
+              },
+              "expressionList": [],
+              "format": "table",
+              "host": [],
+              "mode": "ui",
+              "module": [],
+              "promqlAlias": "",
+              "query_configs": [
+                {
+                  "alias": "",
+                  "data_label": "exporter_dbm_mysqld_exporter",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [],
+                  "interval": "auto",
+                  "interval_unit": "s",
+                  "method": "MAX",
+                  "metric_field": "mysql_datadir_df_usage",
+                  "refId": "a",
+                  "result_table_id": "exporter_dbm_mysqld_exporter",
+                  "result_table_label": "component",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "instance_role",
+                      "method": "eq",
+                      "value": [
+                        "remote_master"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "source": "",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "timeFrom": "24h",
+          "title": "Datadir Usage",
+          "type": "gauge"
+        },
+        {
+          "datasource": {
+            "type": "mysql",
+            "uid": "${DS_DBM-STATSDB}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "mappings": [],
+              "unit": "bytes"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 10,
+            "w": 9,
+            "x": 6,
+            "y": 9
+          },
+          "id": 117,
+          "interval": "1d",
+          "options": {
+            "displayLabels": [
+              "percent"
+            ],
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true,
+              "values": [
+                "value"
+              ]
+            },
+            "pieType": "pie",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "dataset": "bk_dbm_stats",
+              "datasource": {
+                "type": "mysql",
+                "uid": "${DS_DBM-STATSDB}"
+              },
+              "editorMode": "code",
+              "format": "time_series",
+              "hide": false,
+              "rawQuery": true,
+              "rawSql": "SELECT $__time(dteventtimehour), database_name as metric, value\nFROM\n(\n  SELECT\n    dteventtimehour,database_name,value,\n    dense_rank() over (partition by dteventtimehour order by value desc) as ranking\n  FROM\n  (\n    SELECT \n      dteventtimehour,database_name,sum(database_size_max) as value FROM\n    (\n      SELECT \n        dteventtimehour, \n        database_name,\n        original_database_name,\n        MAX(database_size) database_size_max \n      FROM ${dbmStatsDB}.mysql_db_table_size \n      WHERE cluster_domain = '$cluster_domain' AND \n        $__timeFilter(dteventtimehour)\n      GROUP BY database_name,original_database_name,dteventtimehour\n    ) as t\n    GROUP BY dteventtimehour,database_name\n  ) tt\n) ttt\nWHERE ranking <=20\nORDER BY dteventtimehour",
+              "refId": "A",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            },
+            {
+              "dataset": "bk_dbm_stats",
+              "datasource": {
+                "type": "mysql",
+                "uid": "${DS_DBM-STATSDB}"
+              },
+              "editorMode": "code",
+              "format": "table",
+              "hide": false,
+              "rawQuery": true,
+              "rawSql": "SELECT $__time(dteventtimehour), \"_OTHER\" as metric, sum(value) as \"_OTHER\"\nFROM\n(\n  SELECT\n    dteventtimehour,database_name,value,\n    dense_rank() over (partition by dteventtimehour order by value desc) as ranking\n  FROM\n  (\n    SELECT \n      dteventtimehour,database_name,sum(database_size_max) as value FROM\n    (\n      SELECT \n        dteventtimehour, \n        database_name,\n        original_database_name,\n        MAX(database_size) database_size_max \n      FROM ${dbmStatsDB}.mysql_db_table_size \n      WHERE cluster_domain = '$cluster_domain' AND \n        $__timeFilter(dteventtimehour)\n      GROUP BY database_name,original_database_name,dteventtimehour\n    ) as t\n    GROUP BY dteventtimehour,database_name\n  ) tt\n) ttt\nWHERE ranking >20\nGROUP BY dteventtimehour",
+              "refId": "B",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            }
+          ],
+          "title": "Database Size Top20 (ibd)",
+          "type": "piechart"
+        },
+        {
+          "datasource": {
+            "type": "mysql",
+            "uid": "${DS_DBM-STATSDB}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -883,7 +886,7 @@
             "h": 10,
             "w": 9,
             "x": 15,
-            "y": 19
+            "y": 9
           },
           "id": 118,
           "interval": "1d",
@@ -903,10 +906,10 @@
           },
           "targets": [
             {
-              "dataset": "__internal_schema",
+              "dataset": "bk_dbm_stats",
               "datasource": {
                 "type": "mysql",
-                "uid": "bkdbm_statsdb_source"
+                "uid": "${DS_DBM-STATSDB}"
               },
               "editorMode": "code",
               "format": "time_series",
@@ -938,7 +941,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "P3XSxkgSz"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "description": "磁盘空间使用率",
           "fieldConfig": {
@@ -983,7 +986,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -998,7 +1002,7 @@
             "h": 5,
             "w": 6,
             "x": 0,
-            "y": 24
+            "y": 14
           },
           "id": 11,
           "options": {
@@ -1021,7 +1025,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "HVlyYOe4z"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "enableDownSampling": true,
               "expressionList": [],
@@ -1082,7 +1086,7 @@
         {
           "datasource": {
             "type": "mysql",
-            "uid": "bkdbm_statsdb_source"
+            "uid": "${DS_DBM-STATSDB}"
           },
           "fieldConfig": {
             "defaults": {
@@ -1126,7 +1130,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -1142,7 +1147,7 @@
             "h": 6,
             "w": 24,
             "x": 0,
-            "y": 29
+            "y": 19
           },
           "id": 119,
           "interval": "1d",
@@ -1162,10 +1167,10 @@
           },
           "targets": [
             {
-              "dataset": "__internal_schema",
+              "dataset": "bk_dbm_stats",
               "datasource": {
                 "type": "mysql",
-                "uid": "bkdbm_statsdb_source"
+                "uid": "${DS_DBM-STATSDB}"
               },
               "editorMode": "code",
               "format": "time_series",
@@ -1191,10 +1196,10 @@
               }
             },
             {
-              "dataset": "__internal_schema",
+              "dataset": "bk_dbm_stats",
               "datasource": {
                 "type": "mysql",
-                "uid": "bkdbm_statsdb_source"
+                "uid": "${DS_DBM-STATSDB}"
               },
               "editorMode": "code",
               "format": "table",
@@ -1234,14 +1239,14 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 19
+        "y": 9
       },
       "id": 70,
       "panels": [
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "P3XSxkgSz"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "fieldConfig": {
             "defaults": {
@@ -1288,7 +1293,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -1304,7 +1310,7 @@
             "h": 7,
             "w": 12,
             "x": 0,
-            "y": 20
+            "y": 26
           },
           "id": 65,
           "interval": "2h",
@@ -1325,7 +1331,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "HVlyYOe4z"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "enableDownSampling": true,
               "expressionList": [],
@@ -1352,7 +1358,7 @@
                   "method": "AVG",
                   "metric_field": "mysql_datadir_du_used_mb",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+                  "result_table_id": "exporter_dbm_mysqld_exporter",
                   "result_table_label": "component",
                   "time_field": "time",
                   "where": [
@@ -1380,14 +1386,13 @@
               "type": "range"
             }
           ],
-          "timeFrom": "7d",
           "title": "datadir Size by Shard Instance",
           "type": "timeseries"
         },
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "P3XSxkgSz"
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "fieldConfig": {
             "defaults": {
@@ -1431,7 +1436,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -1447,7 +1453,7 @@
             "h": 7,
             "w": 12,
             "x": 12,
-            "y": 20
+            "y": 26
           },
           "id": 84,
           "interval": "2h",
@@ -1468,7 +1474,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "HVlyYOe4z"
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
               },
               "enableDownSampling": true,
               "expressionList": [],
@@ -1495,7 +1501,7 @@
                   "method": "AVG",
                   "metric_field": "mysql_datadir_df_used_mb",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+                  "result_table_id": "exporter_dbm_mysqld_exporter",
                   "result_table_label": "component",
                   "time_field": "time",
                   "where": [
@@ -1533,7 +1539,7 @@
                   "method": "AVG",
                   "metric_field": "mysql_datadir_df_total_mb",
                   "refId": "b",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+                  "result_table_id": "exporter_dbm_mysqld_exporter",
                   "result_table_label": "component",
                   "time_field": "time",
                   "where": [
@@ -1561,8 +1567,7 @@
               "type": "range"
             }
           ],
-          "timeFrom": "7d",
-          "title": "disk partition space by host",
+          "title": "Datadir size for df partition",
           "type": "timeseries"
         }
       ],
@@ -1573,19 +1578,16 @@
   "refresh": false,
   "schemaVersion": 39,
   "tags": [
-    "tendbcluster"
+    "tendbcluster",
+    "表容量视图"
   ],
   "templating": {
     "list": [
       {
-        "current": {
-          "selected": false,
-          "text": "",
-          "value": ""
-        },
+        "current": {},
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
-          "uid": "P3XSxkgSz"
+          "uid": "${DS_蓝鲸监控_-_指标数据}"
         },
         "definition": "- Blueking Monitor - 维度",
         "hide": 0,
@@ -1615,14 +1617,10 @@
         "type": "query"
       },
       {
-        "current": {
-          "selected": false,
-          "text": "",
-          "value": ""
-        },
+        "current": {},
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
-          "uid": "P3XSxkgSz"
+          "uid": "${DS_蓝鲸监控_-_指标数据}"
         },
         "definition": "- Blueking Monitor - 维度",
         "hide": 0,
@@ -1668,14 +1666,10 @@
         "type": "query"
       },
       {
-        "current": {
-          "selected": false,
-          "text": "",
-          "value": ""
-        },
+        "current": {},
         "datasource": {
           "type": "mysql",
-          "uid": "bkdbm_statsdb_source"
+          "uid": "${DS_DBM-STATSDB}"
         },
         "definition": "select distinct database_name \nfrom ${dbmStatsDB}.mysql_db_table_size \nwhere cluster_domain = '$cluster_domain' and \ndteventtimestamp > (UNIX_TIMESTAMP(now())-86400*2)*1000",
         "hide": 0,
@@ -1692,18 +1686,10 @@
         "type": "query"
       },
       {
-        "current": {
-          "selected": true,
-          "text": [
-            "bcs_lol_cap_progression_metrics_132"
-          ],
-          "value": [
-            "bcs_lol_cap_progression_metrics_132"
-          ]
-        },
+        "current": {},
         "datasource": {
           "type": "mysql",
-          "uid": "bkdbm_statsdb_source"
+          "uid": "${DS_DBM-STATSDB}"
         },
         "definition": "select distinct table_name \nfrom ${dbmStatsDB}.mysql_db_table_size \nwhere cluster_domain = '$cluster_domain' and \n  database_name = '$dbname' and\n  dteventtimestamp > (UNIX_TIMESTAMP(now())-86400*2)*1000 \n",
         "hide": 0,
@@ -1724,7 +1710,10 @@
         "name": "dbmStatsDB",
         "query": "bk_dbm_stats",
         "skipUrlSync": false,
-        "type": "constant"
+        "type": "constant",
+        "current": {},
+        "refresh": 1,
+        "options": []
       }
     ]
   },
@@ -1735,7 +1724,36 @@
   "timepicker": {},
   "timezone": "default",
   "title": "TenDBCluster Table Detail",
-  "uid": "dehl3dd927oxsc",
-  "version": 15,
-  "weekStart": ""
+  "version": 17,
+  "weekStart": "",
+  "__inputs": [
+    {
+      "name": "DS_蓝鲸监控_-_指标数据",
+      "label": "蓝鲸监控 - 指标数据",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "bkmonitor-timeseries-datasource",
+      "pluginName": "蓝鲸监控 - 指标数据"
+    },
+    {
+      "name": "DS_DBM-STATSDB",
+      "label": "DBM-StatsDB",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "mysql",
+      "pluginName": "DBM-StatsDB"
+    }
+  ],
+  "__requires": [
+    {
+      "type": "datasource",
+      "id": "bkmonitor-timeseries-datasource",
+      "name": "蓝鲸监控 - 指标数据"
+    },
+    {
+      "type": "datasource",
+      "id": "mysql",
+      "name": "DBM-StatsDB"
+    }
+  ]
 }

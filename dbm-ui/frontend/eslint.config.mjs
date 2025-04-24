@@ -21,6 +21,9 @@ delete tencentRule['@typescript-eslint/keyword-spacing'];
 delete tencentRule['@typescript-eslint/semi'];
 delete tencentRule['@typescript-eslint/type-annotation-spacing'];
 delete tencentRule['@typescript-eslint/space-before-function-paren'];
+delete tencentRule['@typescript-eslint/dot-notation'];
+delete tencentRule['@typescript-eslint/no-misused-promises'];
+delete tencentRule['@typescript-eslint/prefer-optional-chain'];
 
 configureVueProject({
   scriptLangs: ['ts', 'tsx'],
@@ -312,7 +315,7 @@ export default defineConfigWithVueTs(
           multiline: 'never',
         },
       ],
-      'vue/component-tags-order': ['warn', { order: ['template', 'script', 'style'] }],
+      'vue/block-order': ['warn', { order: ['template', 'script', 'style'] }],
       'vue/attributes-order': [
         'error',
         {
@@ -375,13 +378,7 @@ export default defineConfigWithVueTs(
       ],
       'vue/no-setup-props-reactivity-loss': 'off',
       'vue/no-setup-props-destructure': 'off',
-      'vue/v-on-function-call': [
-        'error',
-        'never',
-        {
-          ignoreIncludesComment: false,
-        },
-      ],
+      'vue/no-unused-vars': ['error'],
     },
   },
   {
@@ -392,6 +389,7 @@ export default defineConfigWithVueTs(
       'src/types/auto-imports.d.ts',
       'patch/*',
       'lib/*',
+      '*.d.ts',
       'auto-copyright.js',
     ],
   },
