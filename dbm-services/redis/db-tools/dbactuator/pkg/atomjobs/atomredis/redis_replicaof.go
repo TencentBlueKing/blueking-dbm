@@ -290,8 +290,7 @@ func (task *ReplicaTask) CreateReplicaREL() {
 				task.SlaveAddr(), task.MasterIP, task.MasterPort)
 			// 集群模式下不需要这个参数;cluster_enabled:1
 			task.slaveofInConfigFile()
-			task.runtime.Logger.Info("instance(%s) cluster not enable ; need check slaveof config:%+v ",
-				task.SlaveAddr(), task.Err.Error())
+			task.runtime.Logger.Info("instance(%s) cluster not enable ; need check slaveof config ", task.SlaveAddr())
 		} else {
 			// cluster-enabled=yes
 			// 先获取masterID

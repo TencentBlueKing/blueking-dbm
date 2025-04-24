@@ -285,13 +285,14 @@ func (job *RedisSwitch) Run() (err error) {
 				return err
 			}
 		} else if consts.TendisTypeRedisInstance == job.params.ClusterMeta.ClusterType {
+			job.tryShutdownMasterInstance(storagePair.MasterInfo.IP,
+				storagePair.MasterInfo.Port, job.params.ClusterMeta.StoragePassword)
+
 			if err := job.doSlaveOfNoOne4NewMaster(storagePair.SlaveInfo.IP,
 				storagePair.SlaveInfo.Port, job.params.ClusterMeta.StoragePassword); err != nil {
 				job.runtime.Logger.Error("redisswitch slaveof no one failed when do %d:[%+v];with err:%+v", idx, storagePair, err)
 				return err
 			}
-			job.tryShutdownMasterInstance(storagePair.MasterInfo.IP,
-				storagePair.MasterInfo.Port, job.params.ClusterMeta.StoragePassword)
 		} else {
 			job.runtime.Logger.Error("unsupported cluster type :%+v", job.params.ClusterMeta)
 		}
@@ -326,6 +327,8 @@ func (job *RedisSwitch) enableWrite4Slave(ip string, port int, pass string) erro
 
 func (job *RedisSwitch) doSlaveOfNoOne4NewMaster(ip string, port int, pass string) error {
 	newMasterAddr := fmt.Sprintf("%s:%d", ip, port)
+	job.runtime.Logger.Info("[%s] before exec SLAVEOF NO ONE wait 3 seconds chessing master", newMasterAddr)
+	time.Sleep(3 * time.Second)
 	newMasterConn, err := myredis.NewRedisClientWithTimeout(newMasterAddr,
 		pass, 1, job.params.ClusterMeta.ClusterType, time.Second*10)
 	if err != nil {
@@ -363,7 +366,6 @@ func (job *RedisSwitch) tryShutdownMasterInstance(ip string, port int, pass stri
 	if _, err := oldMasterConn.DoCommand([]string{"ShutDown"}, 0); err != nil {
 		job.runtime.Logger.Warn("[%s] shutdown old master failed:%+v", oldMasterAddr, err)
 	}
-	return
 }
 
 // doTendisStorageSwitch4Cluster rediscluster 类型架构切换姿势 http://redis.cn/commands/cluster-failover.html
