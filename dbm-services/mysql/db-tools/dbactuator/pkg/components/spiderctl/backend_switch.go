@@ -189,11 +189,11 @@ func (r *SpiderClusterBackendSwitchComp) Init() (err error) {
 		}
 		r.slavesConn[slaveAddr] = slaveConn
 	}
-	r.fdLock = flock.New(path.Join(cst.BK_PKG_INSTALL_PATH, LOCK_FILE_NAME))
+	r.fdLock = flock.New(path.Join(cst.BK_PKG_INSTALL_PATH, fmt.Sprintf("%s.%d", LOCK_FILE_NAME, r.Params.Port)))
 	return nil
 }
 
-// PreCheck TODO
+// PreCheck precheck
 func (r *SpiderClusterBackendSwitchComp) PreCheck() (err error) {
 	// verify whether the instance relationship in the parameters is consistent with tdbctl servers
 	logger.Info("verify whether the instance relationship in the parameters is consistent with tdbctl servers")
@@ -497,7 +497,7 @@ func (r *SpiderClusterBackendSwitchComp) CutOverSlave() (err error) {
 			if tdbctlFlushed {
 				return
 			}
-			if ferr := r.flushrouting(); ferr != nil {
+			if ferr := r.flushRoutingForce(); ferr != nil {
 				logger.Error("execute flush rollback route failed %s", err.Error())
 				return
 			}
@@ -509,8 +509,14 @@ func (r *SpiderClusterBackendSwitchComp) CutOverSlave() (err error) {
 		return err
 	}
 	// flush 到中控生效
-	logger.Info("执行:tdbctl flush routing force")
-	return r.flushrouting()
+	logger.Info("执行:tdbctl flush routing cache")
+	err = r.flushrouting()
+	if err == nil {
+		return nil
+	}
+	logger.Warn("execute flush routing cache failed %s", err.Error())
+	logger.Info("try flush routing force")
+	return r.flushRoutingForce()
 }
 
 // PersistenceRollbackFile 持久化需要回滚的切换路由的SQL文件
@@ -782,6 +788,16 @@ func (c *CutOverCtx) Unlock() (err error) {
 		if err != nil {
 			return fmt.Errorf("addr:%s,err:%w", addr, err)
 		}
+	}
+	return
+}
+
+func (c *CutOverCtx) flushRoutingForce() (err error) {
+	if err = cmutil.Retry(cmutil.RetryConfig{Times: 3, DelayTime: 1 * time.Second}, func() error {
+		_, ferr := c.tdbCtlConn.Exec("TDBCTL FLUSH ROUTING FORCE;")
+		return ferr
+	}); err != nil {
+		return err
 	}
 	return
 }

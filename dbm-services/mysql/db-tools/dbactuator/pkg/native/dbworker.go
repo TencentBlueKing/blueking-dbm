@@ -1056,7 +1056,7 @@ func (slaveConn *DbWorker) ValidateChecksum(allowDiffCount int, needCheckSumRd b
 	return err
 }
 
-// ReplicateDelayCheck TODO
+// ReplicateDelayCheck 主从延迟检查
 func (slaveConn *DbWorker) ReplicateDelayCheck(allowDelaySec int, behindExecBinLogbyte int) (err error) {
 	// 检查主从同步delay binlog size
 	total, err := slaveConn.TotalDelayBinlogSize()
@@ -1072,6 +1072,7 @@ func (slaveConn *DbWorker) ReplicateDelayCheck(allowDelaySec int, behindExecBinL
 	c := fmt.Sprintf("SELECT delay_sec, min(timestampdiff(SECOND, master_time, now())) beat_sec "+
 		"FROM %s.master_slave_heartbeat "+
 		"WHERE slave_server_id=@@server_id and slave_server_id!=master_server_id", INFODBA_SCHEMA)
+	logger.Info("query slave delay sec sql: %s", c)
 	if err = slaveConn.Db.QueryRow(c).Scan(&delaySec, &beatSec); err != nil {
 		logger.Error("查询slave delay sec: %s", err.Error())
 		return err
