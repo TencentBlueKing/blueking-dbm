@@ -95,7 +95,7 @@ class RedisAddSlaveFlowBuilder(BaseRedisTicketFlowBuilder):
         for info in self.ticket.details["infos"]:
             info["resource_spec"] = {}
             info["old_nodes"] = {}
-            info["old_nodes"]['origin_proxy'] = []
+            info["old_nodes"]["slave"] = []
             # 取第一个cluster即可，即使是多集群，也是单机多实例的情况
             cluster = id__cluster[info["cluster_ids"][0]]
             for pair in info["pairs"]:
@@ -118,11 +118,11 @@ class RedisAddSlaveFlowBuilder(BaseRedisTicketFlowBuilder):
                     pair["redis_slave"]["location_spec"].update(
                         sub_zone_ids=[master_machine.bk_sub_zone_id], include_or_exclue=True
                     )
-                machine_info = Machine.objects.filter(ip=pair["redis_slave"]['old_slave_ip'],
-                                                      bk_cloud_id=info['bk_cloud_id']
-                                                      ).values('ip', 'bk_biz_id', 'bk_host_id', 'bk_cloud_id')
+                machine_info = Machine.objects.filter(
+                    ip=pair["redis_slave"]["old_slave_ip"], bk_cloud_id=info["bk_cloud_id"]
+                ).values("ip", "bk_biz_id", "bk_host_id", "bk_cloud_id")
                 if machine_info.exists():
-                    info['old_nodes']['origin_proxy'].append(machine_info[0])
+                    info["old_nodes"]["slave"].append(machine_info[0])
                 info["resource_spec"][pair["redis_master"]["ip"]] = pair["redis_slave"]
 
         self.ticket.save(update_fields=["details"])
