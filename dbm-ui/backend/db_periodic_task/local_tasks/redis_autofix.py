@@ -104,18 +104,22 @@ def watch_autofix_flow():
     for flow in fixlists:
         try:
             ticket_obj = Ticket.objects.get(id=flow.ticket_id)
+            msgs, title = {}, ""
+            msgs["BKID"] = flow.bk_biz_id
+            msgs[_("集群类型")] = flow.cluster_type
+            msgs[_("故障机器")] = json.dumps(flow.fault_machines)
 
             if ticket_obj.status == TicketStatus.RUNNING.value:
                 flow.deal_status = AutofixStatus.AF_RUNNING.value
             elif ticket_obj.status == TicketStatus.SUCCEEDED.value:
                 flow.deal_status = AutofixStatus.AF_SUCC.value
+                title = _("{} - 自愈成功".format(flow.immute_domain))
+                msgs[_("其他说明")] = _("还有一个故障机下架单,请DBA自行处理")
+                send_msg_2_qywx(title, msgs)
             else:
                 flow.deal_status = AutofixStatus.AF_FAIL.value
                 flow.status_version = ticket_obj.status
-                msgs, title = {}, _("{} - 自愈失败☹️".format(flow.immute_domain))
-                msgs["BKID"] = flow.bk_biz_id
-                msgs[_("集群类型")] = flow.cluster_type
-                msgs[_("故障机器")] = json.dumps(flow.fault_machines)
+                title = _("{} - 自愈失败☹️".format(flow.immute_domain))
                 msgs[_("失败原因")] = flow.status_version
                 send_msg_2_qywx(title, msgs)
 
