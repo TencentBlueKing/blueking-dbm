@@ -10,12 +10,12 @@
     <EditableBlock
       style="cursor: pointer"
       @click="handleShowEditName">
-      <span v-if="noConflictDb && !hasEditRename">--</span>
       <span
-        v-else-if="noConflictDb && hasEditRename"
+        v-if="noConflictDb && hasEditRename"
         style="color: #2dcb56">
         {{ t('已更新') }}
       </span>
+      <span v-else-if="noConflictDb">--</span>
       <I18nT
         v-else
         keypath="n项待修改">
@@ -26,18 +26,15 @@
     </EditableBlock>
   </EditableColumn>
   <EditRenameInfo
-    ref="editName"
-    v-model="localValue"
     v-model:is-show="isShowEditName"
-    :conflict-db-list="conflictDbList"
     :data="data"
+    :db-conflict="!noConflictDb"
     @submit="handleSubmit" />
 </template>
 
 <script setup lang="ts">
-  import { computed, ref, watch } from 'vue';
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
   import { checkClusterDatabase } from '@services/source/dbbase';
   import { getSqlserverDbs } from '@services/source/sqlserver';
@@ -48,8 +45,17 @@
 
   interface Props {
     data: {
-      dstCluster: { id: number; master_domain: string }[];
-      srcCluster: { id: number; master_domain: string };
+      dbIgnoreName: string[];
+      dbName: string[];
+      dstCluster: {
+        id: number;
+        master_domain: string;
+      }[];
+      renameInfoList: IValue[];
+      srcCluster: {
+        id: number;
+        master_domain: string;
+      };
     };
   }
 
@@ -60,18 +66,11 @@
   const renameInfoList = defineModel<IValue[]>({ required: true });
 
   const { t } = useI18n();
-  const editRenameRef = useTemplateRef('editName');
 
   const isShowEditName = ref(false);
-  const hasEditRename = ref(false);
-  const localValue = ref<InstanceType<typeof EditRenameInfo>['modelValue']>({
-    dbIgnoreName: [],
-    dbName: [],
-    renameInfoList: [],
-  });
   const conflictDbList = ref<string[]>([]);
-  let currentSrcClusterId = 0;
-
+  const loading = ref(false);
+  const hasEditRename = ref(false);
   const noConflictDb = computed(() => conflictDbList.value.length === 0);
 
   const rules = [
@@ -98,83 +97,6 @@
     },
   ];
 
-  const { loading, run: runCheckClusterDatabase } = useRequest(checkClusterDatabase, {
-    manual: true,
-    onSuccess(data) {
-      conflictDbList.value = Object.keys(
-        Object.values(data).reduce(
-          (acc, item) => {
-            Object.entries(item).forEach(([db, isExist]) => {
-              if (isExist) {
-                Object.assign(acc, {
-                  [db]: true,
-                });
-              }
-            });
-            return acc;
-          },
-          {} as Record<string, true>,
-        ),
-      );
-    },
-  });
-
-  const { run: fetchSqlserverDbs } = useRequest(getSqlserverDbs, {
-    manual: true,
-    onSuccess(data) {
-      const renameList = data.map((item) => ({
-        db_name: item,
-        rename_cluster_list: [],
-        rename_db_name: '',
-        target_db_name: item,
-      }));
-      localValue.value.renameInfoList = renameList;
-      renameInfoList.value = renameList;
-      conflictDbList.value = data;
-
-      if (data.length > 0) {
-        runCheckClusterDatabase({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_id: props.data.srcCluster.id,
-          cluster_ids: props.data.dstCluster.map((item) => item.id),
-          db_list: data,
-        });
-      }
-    },
-  });
-
-  watch(
-    () => ({
-      dbIgnoreName: dbIgnoreName.value,
-      dbName: dbName.value,
-      dstCluster: props.data.dstCluster,
-      srcClusterId: props.data.srcCluster.id,
-    }),
-    ({ dbIgnoreName, dbName, srcClusterId }) => {
-      const dbNameChanged = dbName.join(',') !== localValue.value.dbName.join(',');
-      const dbIgnoreNameChanged = dbIgnoreName.join(',') !== localValue.value.dbIgnoreName.join(',');
-      const srcClusterChanged = currentSrcClusterId !== srcClusterId;
-
-      if (dbNameChanged || dbIgnoreNameChanged || srcClusterChanged) {
-        hasEditRename.value = false;
-      }
-
-      if (hasEditRename.value) return;
-
-      currentSrcClusterId = srcClusterId;
-      localValue.value = { dbIgnoreName, dbName, renameInfoList: [] };
-
-      if (srcClusterId && dbName.length > 0) {
-        fetchSqlserverDbs({
-          cluster_id: srcClusterId,
-          db_list: dbName,
-          ignore_db_list: dbIgnoreName,
-        });
-      }
-    },
-    { immediate: true },
-  );
-
   const disabledMethod = (rowData: any, field?: string) => {
     if (
       field === 'renameInfoList' &&
@@ -186,16 +108,83 @@
   };
 
   const handleShowEditName = () => {
-    editRenameRef.value?.updateTableKey();
     isShowEditName.value = true;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = (data: Pick<Props['data'], 'dbIgnoreName' | 'dbName' | 'renameInfoList'>) => {
     isShowEditName.value = false;
-    dbName.value = localValue.value.dbName;
-    dbIgnoreName.value = localValue.value.dbIgnoreName;
-    renameInfoList.value = localValue.value.renameInfoList;
-    hasEditRename.value = true;
+    dbName.value = data.dbName;
+    dbIgnoreName.value = data.dbIgnoreName;
+    renameInfoList.value = data.renameInfoList;
     conflictDbList.value = [];
+    hasEditRename.value = true;
   };
+
+  const fetchData = async () => {
+    try {
+      loading.value = true;
+      if (!props.data.srcCluster.id || dbName.value.length < 1) return;
+
+      const dbs = await getSqlserverDbs({
+        cluster_id: props.data.srcCluster.id,
+        db_list: dbName.value,
+        ignore_db_list: dbIgnoreName.value,
+      });
+
+      renameInfoList.value = dbs.map((item) => ({
+        db_name: item,
+        rename_cluster_list: [],
+        rename_db_name: '',
+        target_db_name: item,
+      }));
+
+      if (dbs.length < 1) return;
+
+      const result = await checkClusterDatabase({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        cluster_id: props.data.srcCluster.id,
+        cluster_ids: props.data.dstCluster.map((item) => item.id),
+        db_list: dbs,
+      });
+
+      conflictDbList.value = Object.keys(
+        Object.values(result).reduce<Record<string, true>>((acc, item) => {
+          Object.entries(item).forEach(([db, isExist]) => {
+            if (isExist) {
+              Object.assign(acc, {
+                [db]: true,
+              });
+            }
+          });
+          return acc;
+        }, {}),
+      );
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const cloneData = {};
+
+  watch(
+    () => ({
+      dbIgnoreName: dbIgnoreName.value,
+      dbName: dbName.value,
+      dstCluster: props.data.dstCluster,
+      srcClusterId: props.data.srcCluster.id,
+    }),
+    (data) => {
+      if (_.isEqual(cloneData, data)) {
+        hasEditRename.value = false;
+      }
+      if (hasEditRename.value) return;
+      Object.assign(cloneData, data);
+      fetchData();
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>

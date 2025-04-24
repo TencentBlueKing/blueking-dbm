@@ -1,5 +1,6 @@
 <template>
   <EditableTable
+    ref="table"
     class="mb-20"
     :model="tableData">
     <EditableRow
@@ -26,7 +27,6 @@
 </template>
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
   import { getSqlserverDbs } from '@services/source/sqlserver';
 
@@ -36,14 +36,17 @@
 
   interface Props {
     data: {
-      srcCluster: {
-        id: number;
-        master_domain: string;
-      };
+      dstCluster: { id: number; master_domain: string }[];
+      srcCluster: { id: number; master_domain: string };
     };
   }
 
   type Emits = (e: 'change') => void;
+
+  interface Exposes {
+    fetchData(): void;
+    validate(): Promise<boolean>;
+  }
 
   const props = defineProps<Props>();
 
@@ -58,33 +61,37 @@
   });
 
   const { t } = useI18n();
+  const tableRef = useTemplateRef('table');
 
   const tableData = computed(() => [modelValue.value]);
 
-  const { run: fetchSqlserverDbs } = useRequest(getSqlserverDbs, {
-    manual: true,
-    onSuccess(data) {
-      modelValue.value.renameInfoList = data.map((item) => ({
-        db_name: item,
-        rename_cluster_list: [],
-        rename_db_name: '',
-        target_db_name: item,
-      }));
-      emits('change');
+  const fetchData = async () => {
+    if (!props.data.srcCluster.id || modelValue.value.dbName.length < 1) {
+      return;
+    }
+
+    const dbs = await getSqlserverDbs({
+      cluster_id: props.data.srcCluster.id,
+      db_list: tableData.value[0].dbName,
+      ignore_db_list: tableData.value[0].dbIgnoreName,
+    });
+
+    modelValue.value.renameInfoList = dbs.map((item) => ({
+      db_name: item,
+      rename_cluster_list: [],
+      rename_db_name: '',
+      target_db_name: item,
+    }));
+
+    emits('change');
+  };
+
+  watch(() => [tableData.value[0].dbName, tableData.value[0].dbIgnoreName], fetchData);
+
+  defineExpose<Exposes>({
+    fetchData,
+    validate() {
+      return tableRef.value?.validate()?.then((res) => res) ?? Promise.resolve(false);
     },
   });
-
-  watch(
-    () => [tableData.value[0].dbName, tableData.value[0].dbIgnoreName],
-    ([dbName, dbIgnoreName]) => {
-      if (!props.data.srcCluster.id || dbName.length < 1) {
-        return;
-      }
-      fetchSqlserverDbs({
-        cluster_id: props.data.srcCluster.id,
-        db_list: dbName,
-        ignore_db_list: dbIgnoreName,
-      });
-    },
-  );
 </script>

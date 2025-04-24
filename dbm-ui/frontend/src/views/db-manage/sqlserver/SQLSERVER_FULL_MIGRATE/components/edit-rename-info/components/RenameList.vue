@@ -58,6 +58,10 @@
     };
   }
 
+  interface Exposes {
+    validate(): Promise<boolean>;
+  }
+
   const props = defineProps<Props>();
 
   const modelValue = defineModel<{
@@ -80,19 +84,20 @@
   const targetDbNameRules = [
     {
       message: t('跟已存在的 DB 名冲突，请修改其一'),
-      trigger: 'change',
+      trigger: 'blur',
       validator: (
         value: string,
         {
           rowData,
         }: {
           columnIndex: number;
-          rowData: IValue;
+          rowData: Record<string, any>;
           rowIndex: number;
         },
       ) => {
+        const row = rowData as IValue;
         // rename_db_name(第三列)可用时，不需要校验 target_db_name(第二列)
-        if (rowData.rename_db_name) {
+        if (row.rename_db_name) {
           return true;
         }
         if (!value) {
@@ -102,6 +107,7 @@
       },
     },
     {
+      message: '',
       trigger: 'blur',
       validator: (
         value: string,
@@ -109,12 +115,13 @@
           rowData,
         }: {
           columnIndex: number;
-          rowData: IValue;
+          rowData: Record<string, any>;
           rowIndex: number;
         },
       ) => {
+        const row = rowData as IValue;
         // rename_db_name(第三列)可用时，不需要校验 target_db_name(第二列)
-        if (rowData.rename_db_name) {
+        if (row.rename_db_name) {
           return true;
         }
         return checkClusterDatabase<{
@@ -131,10 +138,10 @@
           Object.entries(data).forEach(([clusterId, dbCheckMap]) => {
             if (dbCheckMap[value]) {
               isExist.push(dstClusterMap.value[clusterId].master_domain);
-              if (!renameClusterIds[rowData.db_name]) {
-                renameClusterIds[rowData.db_name] = [];
+              if (!renameClusterIds[row.db_name]) {
+                renameClusterIds[row.db_name] = [];
               }
-              renameClusterIds[rowData.db_name].push(Number(clusterId));
+              renameClusterIds[row.db_name].push(Number(clusterId));
             }
           });
           if (isExist.length) {
@@ -152,7 +159,7 @@
   const renameDbNameRules = [
     {
       message: t('和其它已填写数据重复'),
-      trigger: 'change',
+      trigger: 'blur',
       validator: (value: string) => {
         if (!value) {
           return true;
@@ -163,6 +170,7 @@
       },
     },
     {
+      message: '',
       trigger: 'blur',
       validator: (
         value: string,
@@ -171,13 +179,14 @@
           rowIndex,
         }: {
           columnIndex: number;
-          rowData: IValue;
+          rowData: Record<string, any>;
           rowIndex: number;
         },
       ) => {
         if (!value) {
           return true;
         }
+        const row = rowData as IValue;
         return checkClusterDatabase<{
           [clusterId: string]: {
             [dbName: string]: boolean;
@@ -201,8 +210,8 @@
             });
           }
           // rename_cluster_list依赖于第二列的校验
-          modelValue.value.renameInfoList[rowIndex] = Object.assign(rowData, {
-            rename_cluster_list: _.uniq(renameClusterIds[rowData.db_name]),
+          modelValue.value.renameInfoList[rowIndex] = Object.assign(row, {
+            rename_cluster_list: _.uniq(renameClusterIds[row.db_name]),
           });
           return true;
         });
@@ -216,6 +225,12 @@
 
   onMounted(() => {
     tableRef.value?.validateByField('target_db_name');
+  });
+
+  defineExpose<Exposes>({
+    validate() {
+      return tableRef.value?.validate()?.then((res) => res) ?? Promise.resolve(false);
+    },
   });
 </script>
 <style lang="less" scoped>
