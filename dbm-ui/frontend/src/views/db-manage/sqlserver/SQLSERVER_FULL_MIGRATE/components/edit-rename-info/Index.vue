@@ -8,28 +8,30 @@
     </template>
     <div class="edit-name-box">
       <ClusterDb
-        v-model="modelValue"
+        ref="clusterDb"
+        v-model="localValue"
         :data="data"
-        @change="updateTableKey" />
+        @change="handleChangeDbList" />
       <div style="margin-top: 24px; margin-bottom: 16px; font-size: 12px">
         <span style="font-weight: bold; color: #313238">{{ t('DB 列表') }}</span>
         <I18nT
           keypath="（共 n 个）"
           style="color: #63656e">
-          {{ modelValue.renameInfoList.length }}
+          {{ localValue.renameInfoList.length }}
         </I18nT>
         <ImportBtn
-          v-model="modelValue"
+          v-model="localValue"
           class="ml-12"
           :data="data" />
         <ExportBtn
-          v-model="modelValue"
+          v-model="localValue"
           class="ml-12"
           :data="data" />
       </div>
       <RenameList
         :key="tableKey"
-        v-model="modelValue"
+        ref="renameList"
+        v-model="localValue"
         :data="data" />
     </div>
     <template #footer>
@@ -65,24 +67,23 @@
   };
 
   interface Props {
-    conflictDbList: string[];
     data: {
+      dbIgnoreName: string[];
+      dbName: string[];
       dstCluster: {
         id: number;
         master_domain: string;
       }[];
+      renameInfoList: IValue[];
       srcCluster: {
         id: number;
         master_domain: string;
       };
     };
+    dbConflict: boolean;
   }
 
-  type Emits = (e: 'submit', data: typeof modelValue.value) => void;
-
-  interface Exposes {
-    updateTableKey(): void;
-  }
+  type Emits = (e: 'submit', data: Pick<Props['data'], 'dbIgnoreName' | 'dbName' | 'renameInfoList'>) => void;
 
   const props = defineProps<Props>();
 
@@ -92,40 +93,52 @@
     required: true,
   });
 
-  const modelValue = defineModel<{
+  const { t } = useI18n();
+
+  const tableKey = ref(Date.now().toString());
+  const clusterDbRef = useTemplateRef<InstanceType<typeof ClusterDb>>('clusterDb');
+  const renameListRef = useTemplateRef<InstanceType<typeof RenameList>>('renameList');
+  const localValue = ref<{
     dbIgnoreName: string[];
     dbName: string[];
     renameInfoList: IValue[];
   }>({
-    required: true,
+    dbIgnoreName: [],
+    dbName: [],
+    renameInfoList: [],
   });
-  const { t } = useI18n();
 
-  const tableKey = ref(Date.now().toString());
-
-  const updateTableKey = () => {
-    tableKey.value = Date.now().toString();
-  };
-
-  const handleSubmit = () => {
-    // 是否对冲突的 DB 名都重命名了
-    const noConflictDb = modelValue.value.renameInfoList.every((item) =>
-      props.conflictDbList.includes(item.db_name) ? item.rename_db_name || item.target_db_name !== item.db_name : true,
-    );
-    if (!noConflictDb) {
+  const handleSubmit = async () => {
+    try {
+      const dbListValid = await clusterDbRef.value?.validate();
+      const renameValid = await renameListRef.value?.validate();
+      if (!dbListValid || !renameValid) {
+        throw new Error();
+      }
+      emits('submit', localValue.value);
+    } catch {
       messageError(t('请修改冲突的 DB 名'));
-      return;
     }
-    emits('submit', modelValue.value);
-    isShow.value = false;
   };
 
   const handleCancel = () => {
     isShow.value = false;
   };
 
-  defineExpose<Exposes>({
-    updateTableKey,
+  const handleChangeDbList = () => {
+    tableKey.value = Date.now().toString();
+  };
+
+  watch(isShow, () => {
+    if (isShow.value && props.dbConflict) {
+      localValue.value = {
+        dbIgnoreName: props.data.dbIgnoreName,
+        dbName: props.data.dbName,
+        renameInfoList: props.data.renameInfoList,
+      };
+      clusterDbRef.value?.fetchData();
+      tableKey.value = Date.now().toString();
+    }
   });
 </script>
 <style lang="less" scoped>

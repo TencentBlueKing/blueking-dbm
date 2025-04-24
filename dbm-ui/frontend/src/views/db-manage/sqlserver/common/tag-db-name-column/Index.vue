@@ -104,7 +104,7 @@
     }[];
   }
 
-  type Emits = (e: 'batch-edit', value: string[], field: string) => void;
+  type Emits = (e: 'batch-edit', value: string | string[], field: string) => void;
 
   const props = withDefaults(defineProps<Props>(), {
     allowAsterisk: false,
@@ -256,7 +256,7 @@
     showBatchEdit.value = true;
   };
 
-  const handleBatchEditChange = (value: string[]) => {
+  const handleBatchEditChange = (value: string | string[]) => {
     emits('batch-edit', value, props.field);
   };
 
