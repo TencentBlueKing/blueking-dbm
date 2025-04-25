@@ -31,6 +31,7 @@
     "@icon-cool/bk-icon-bk-biz-components": "^0.0.4",
     "@vueuse/core": "^13.0.0",
     "axios": "^1.8.4",
+    "@xterm/xterm": "^5.5.0",
     "bkui-vue": "2.0.1-beta.104",
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
@@ -55,7 +56,9 @@
     "vue-router": "^4.5.0",
     "vue-types": "^6.0.0",
     "vuedraggable": "4.1.0",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "xterm-addon-fit": "^0.8.0",
+    "xterm-addon-web-links": "^0.9.0"
   },
   "devDependencies": {
     "@commitlint/config-conventional": "^19.8.0",

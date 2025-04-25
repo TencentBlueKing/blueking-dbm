@@ -248,7 +248,7 @@
   "执行记录": "Execution record",
   "批量操作中存在size为0的集群无法删除keys": "There are clusters with a size of 0 in the batch operation and keys cannot be deleted",
   "放大": "Enlarge",
-  "日志保留7天_如需要请下载保存": "(The log is kept for 7 days, please download and save it if necessary)",
+  "日志保留30天_如需要请下载保存": "(The log is kept for 30 days, please download and save it if necessary)",
   "最新": "Latest",
   "查看结果文件": "view result file",
   "目录": "Catalog",
@@ -1819,5 +1819,6 @@
   "暂无提示": "",
   "查询 SQL": "",
   "目标分区异常": "",
+  "日志加载中...": "",
   "这行勿动！新增翻译请在上一行添加！": ""
 }

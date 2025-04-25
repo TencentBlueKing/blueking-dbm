@@ -13,10 +13,10 @@
 
 <template>
   <BkSideslider
-    v-model:is-show="state.isShow"
-    class="log"
+    v-model:is-show="isShow"
+    class="node-log-main"
     quick-close
-    render-directive="if"
+    render-directive="show"
     :width="960"
     @hidden="handleClose">
     <template #header>
@@ -40,7 +40,7 @@
               {{ status.text }}
             </BkTag>
             <span>
-              {{ $t('总耗时') }}
+              {{ t('总耗时') }}
               <CostTimer
                 :is-timing="STATUS_RUNNING"
                 :start-time="nodeData.started_at"
@@ -60,23 +60,23 @@
               class="refresh-btn"
               :loading="retryLoading"
               @click="() => (refreshShow = true)">
-              <i class="db-icon-refresh mr5" />{{ $t('失败重试') }}
+              <i class="db-icon-refresh mr5" />{{ t('失败重试') }}
             </BkButton>
             <template #content>
               <div class="tips-content">
                 <div class="title">
-                  {{ $t('确定重试吗') }}
+                  {{ t('确定重试吗') }}
                 </div>
                 <div class="btn">
                   <span
                     class="bk-button-primary bk-button mr-8"
                     @click="handleRefresh">
-                    {{ $t('确定') }}
+                    {{ t('确定') }}
                   </span>
                   <span
                     class="bk-button"
                     @click="() => (refreshShow = false)">
-                    {{ $t('取消') }}
+                    {{ t('取消') }}
                   </span>
                 </div>
               </div>
@@ -107,16 +107,16 @@
         class="log-content">
         <div class="log-tools">
           <span class="log-tools-title">
-            {{ $t('执行日志') }}
-            <span> {{ $t('日志保留7天_如需要请下载保存') }}</span>
+            {{ t('执行日志') }}
+            <span> {{ t('日志保留30天_如需要请下载保存') }}</span>
           </span>
           <div class="log-tools-bar">
             <i
-              v-bk-tooltips="$t('复制')"
+              v-bk-tooltips="t('复制')"
               class="db-icon-copy"
               @click="handleCopyLog" />
             <i
-              v-bk-tooltips="$t('下载')"
+              v-bk-tooltips="t('下载')"
               class="db-icon-import"
               @click="handleDownLoaderLog" />
             <i
@@ -125,25 +125,25 @@
               @click="toggle" />
           </div>
         </div>
-        <div class="log-details">
-          <BkLog ref="logRef" />
-        </div>
+        <DbLog
+          ref="dbLogRef"
+          :loading="logState.loading"
+          :style="{ height: isFullscreen ? 'calc(100% - 42px)' : '100%' }" />
       </div>
     </template>
   </BkSideslider>
 </template>
 
 <script setup lang="tsx">
-  import { format } from 'date-fns';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import { getNodeLog, getRetryNodeHistories, retryTaskflowNode } from '@services/source/taskflow';
 
   import CostTimer from '@components/cost-timer/CostTimer.vue';
-  import BkLog from '@components/vue2/bk-log/index.vue';
+  import DbLog from '@components/db-log/index.vue';
 
-  import { execCopy, messageSuccess } from '@utils';
+  import { downloadText, execCopy, messageSuccess } from '@utils';
 
   import { useFullscreen, useTimeoutPoll } from '@vueuse/core';
 
@@ -156,7 +156,6 @@
 
   interface Props {
     failedNodes?: GraphNode[];
-    isShow?: boolean;
     node?: GraphNode;
   }
 
@@ -168,38 +167,62 @@
 
   const props = withDefaults(defineProps<Props>(), {
     failedNodes: () => [] as NonNullable<Props['failedNodes']>,
-    isShow: false,
     node: () => ({}) as NonNullable<Props['node']>,
   });
   const emits = defineEmits<Emits>();
+
+  const isShow = defineModel<boolean>('isShow', {
+    default: false,
+  });
+
+  const getNodeLogRequest = (isInit?: boolean) => {
+    if (!currentData.value.version) {
+      return;
+    }
+
+    logState.loading = true;
+    const params = {
+      node_id: nodeData.value.id,
+      root_id: rootId,
+      version_id: currentData.value.version,
+    };
+    getNodeLog(params)
+      .then((data) => {
+        logState.data = data;
+        dbLogRef.value!.clearLog();
+        dbLogRef.value!.setLog(data);
+      })
+      .finally(() => {
+        logState.loading = false;
+        if (isInit && nodeData.value.status === 'RUNNING' && !isActive.value) {
+          resume();
+        }
+      });
+  };
 
   const { t } = useI18n();
   const route = useRoute();
 
   const rootId = route.params.root_id as string;
 
+  const dbLogRef = ref<InstanceType<typeof DbLog>>();
   const refreshShow = ref(false);
-  const logRef = ref();
   const logContentRef = ref<HTMLDivElement>();
+  /** 当前选中日志版本的信息 */
+  const currentData = ref({ version: '' });
 
   const logState = reactive({
     data: [] as NodeLog[],
     loading: false,
   });
 
-  const state = reactive({
-    isShow: false,
-  });
-
   const currentFailNodeLogIndex = computed(() =>
     props.failedNodes.findIndex((item) => item.data.id === props.node.data.id),
   );
-
   const screenIcon = computed(() => ({
     icon: isFullscreen.value ? 'db-icon-un-full-screen' : 'db-icon-full-screen',
     text: isFullscreen.value ? t('取消全屏') : t('全屏'),
   }));
-
   const nodeData = computed(() => props.node.data || {});
   const status = computed(() => {
     const themesMap = {
@@ -215,13 +238,11 @@
 
     return {
       text: NODE_STATUS_TEXT[status],
-      theme: themesMap[status],
+      theme: themesMap[status] as '' | 'success' | 'danger' | 'info',
     };
   });
-
   const STATUS_RUNNING = computed(() => nodeData.value.status === 'RUNNING');
   const STATUS_FAILED = computed(() => nodeData.value.status === 'FAILED');
-
   const costTime = computed(() => {
     const { started_at: startedAt, updated_at: updatedAt } = nodeData.value;
     if (startedAt && updatedAt) {
@@ -238,97 +259,51 @@
       location.reload();
     },
   });
-
-  const formatLogData = (data: NodeLog[] = []) => {
-    const regex = /^##\[[a-z]+]/;
-
-    return data.map((item) => {
-      const { levelname, message, timestamp } = item;
-      const time = format(new Date(Number(timestamp)), 'yyyy-MM-dd HH:mm:ss');
-      return {
-        ...item,
-        message: regex.test(message)
-          ? message.replace(regex, (match: string) => `${match}[${time} ${levelname}]`)
-          : `[${time} ${levelname}] ${message}`,
-      };
-    });
-  };
-
-  /** 获取日志及下载日志接口  */
-  const getNodeLogRequest = (isInit?: boolean) => {
-    if (!currentData.value.version) {
-      return;
-    }
-
-    const params = {
-      node_id: nodeData.value.id,
-      root_id: rootId,
-      version_id: currentData.value.version,
-    };
-    getNodeLog(params)
-      .then((res) => {
-        logState.data = res;
-        handleClearLog();
-        handleSetLog(formatLogData(res));
-      })
-      .finally(() => {
-        logState.loading = false;
-        isInit && nodeData.value.status === 'RUNNING' && !isActive.value && resume();
-      });
-  };
-
   const { isActive, pause, resume } = useTimeoutPoll(getNodeLogRequest, 5000);
   const { isFullscreen, toggle } = useFullscreen(logContentRef);
 
   watch(
     () => STATUS_RUNNING.value,
-    (val) => {
-      val && !isActive.value && resume();
-      !val && isActive.value && pause();
+    (isRunning) => {
+      if (isRunning && !isActive.value) {
+        resume();
+      }
+      if (!isRunning && isActive.value) {
+        pause();
+      }
     },
   );
 
-  watch(
-    () => props.isShow,
-    () => {
-      state.isShow = props.isShow;
-    },
-    { immediate: true },
-  );
+  watch(isShow, () => {
+    if (isShow.value) {
+      getNodeLogRequest();
+      setTimeout(() => {
+        dbLogRef.value?.init();
+      });
+    }
+  });
 
-  /**
-   * 清空日志
-   */
+  watch(isFullscreen, () => {
+    if (!isFullscreen.value) {
+      isShow.value = false;
+      setTimeout(() => {
+        isShow.value = true;
+      });
+    }
+  });
+
   const handleClearLog = () => {
-    logRef.value?.handleLogClear();
+    dbLogRef.value?.clearLog();
   };
 
-  /**
-   * 设置日志
-   */
-  const handleSetLog = (data: NodeLog[] = []) => {
-    logRef.value?.handleLogAdd(data);
-  };
-
-  /** 当前选中日志版本的信息 */
-  const currentData = ref({ version: '' });
   /**
    * 下载日志
    */
   const handleDownLoaderLog = () => {
-    const params: any = {
-      node_id: nodeData.value.id,
-      root_id: rootId,
-      version_id: currentData.value.version,
-    };
-    const url = `/apis/taskflow/${params.root_id}/node_log/?root_id=${params.root_id}&node_id=${params.node_id}&version_id=${params.version_id}&download=1`;
-    const elt = document.createElement('a');
-    elt.setAttribute('href', url);
-    elt.style.display = 'none';
-    document.body.appendChild(elt);
-    elt.click();
-    document.body.removeChild(elt);
+    const messageList = dbLogRef.value!.getValue();
+    downloadText(`${nodeData.value.id}.log`, messageList.join('\n'));
   };
+
   /**
    * 切换日志版本
    */
@@ -336,15 +311,14 @@
     currentData.value = data;
     pause();
     nextTick(() => {
-      logState.loading = true;
       handleClearLog();
       getNodeLogRequest(true);
     });
   };
+
   const handleCopyLog = () => {
-    const logData = formatLogData(logState.data);
-    const messageList = logData.map((item) => item.message);
-    execCopy(messageList.join('\n'), t('复制成功，共n条', { n: messageList.length }));
+    const messageList = dbLogRef.value!.getValue();
+    execCopy(messageList.join('\n'));
   };
 
   const handleRefresh = () => {
@@ -359,10 +333,8 @@
     emits('quickGoto', currentFailNodeLogIndex.value, isNext);
   };
 
-  /**
-   * close slider
-   */
   const handleClose = () => {
+    dbLogRef.value!.destroy();
     emits('close');
     pause();
   };
@@ -385,7 +357,7 @@
     }
   }
 
-  .log {
+  .node-log-main {
     .log-header {
       width: 100%;
       .flex-center();
@@ -406,7 +378,6 @@
       }
 
       .log-header-btn {
-        // padding-right: 13px;
         text-align: right;
         flex-shrink: 0;
 
@@ -428,12 +399,13 @@
     }
 
     :deep(.bk-sideslider-content) {
-      height: calc(100vh - 60px);
+      height: calc(100vh - 100px);
       padding: 16px;
     }
   }
 
   .log-content {
+    width: 100%;
     height: 100%;
   }
 
@@ -468,9 +440,5 @@
         cursor: pointer;
       }
     }
-  }
-
-  .log-details {
-    height: calc(100% - 42px);
   }
 </style>
