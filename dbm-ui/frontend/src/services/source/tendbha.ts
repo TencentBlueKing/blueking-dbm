@@ -30,7 +30,7 @@ export function getTendbhaList(params: {
   dbType?: string;
   domain?: string;
   exact_domain?: string;
-  id?: string;
+  id?: number;
   limit?: number;
   master_domain?: string;
   offset?: number;

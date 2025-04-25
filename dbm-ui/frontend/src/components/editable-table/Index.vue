@@ -192,7 +192,9 @@
     const rowIndexList = Array.isArray(rowIndex) ? rowIndex : [rowIndex];
 
     const columnList = rowIndexList.reduce<IColumnContext[]>((result, index) => {
-      result.push(...rowList.value[index]);
+      if (Array.isArray(rowList.value[index])) {
+        result.push(...rowList.value[index]);
+      }
       return result;
     }, []);
 
