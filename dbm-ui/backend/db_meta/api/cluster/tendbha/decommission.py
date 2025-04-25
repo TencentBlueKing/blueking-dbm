@@ -61,6 +61,11 @@ def decommission(cluster: Cluster):
             # 删除服务实例
             cc_manage.delete_service_instance(bk_instance_ids=[storage.bk_instance_id])
 
+    # 解除自关联关系
+    for ce in ClusterEntry.objects.filter(cluster=cluster, forward_to_id__isnull=False).all():
+        ce.forward_to_id = None
+        ce.save()
+
     for ce in ClusterEntry.objects.filter(cluster=cluster).all():
         ce.delete(keep_parents=True)
 

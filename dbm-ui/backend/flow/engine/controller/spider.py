@@ -24,8 +24,8 @@ from backend.flow.engine.bamboo.scene.spider.spider_add_nodes import TenDBCluste
 from backend.flow.engine.bamboo.scene.spider.spider_checksum import SpiderChecksumFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_deploy import TenDBClusterApplyFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_destroy import TenDBClusterDestroyFlow
-from backend.flow.engine.bamboo.scene.spider.spider_cluster_disable_deploy import SpiderClusterDisableFlow
-from backend.flow.engine.bamboo.scene.spider.spider_cluster_enable_deploy import SpiderClusterEnableFlow
+from backend.flow.engine.bamboo.scene.spider.spider_cluster_disable import SpiderClusterDisableFlow
+from backend.flow.engine.bamboo.scene.spider.spider_cluster_enable import SpiderClusterEnableFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_flashback import TenDBClusterFlashbackFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_metadata_import_flow import SpiderClusterMetadataImportFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_rollback_flow import TenDBRollBackDataFlow

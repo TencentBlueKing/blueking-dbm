@@ -53,6 +53,10 @@ def decommission(cluster: Cluster):
             # 这个 api 不需要检查返回值, 转移主机到待回收模块，转移模块这里会把服务实例删除
             cc_manage.recycle_host([remote.machine.bk_host_id])
             remote.machine.delete(keep_parents=True)
+    # 解除自关联关系
+    for ce in ClusterEntry.objects.filter(cluster=cluster, forward_to_id__isnull=False).all():
+        ce.forward_to_id = None
+        ce.save()
 
     for ce in ClusterEntry.objects.filter(cluster=cluster).all():
         ce.delete(keep_parents=True)
