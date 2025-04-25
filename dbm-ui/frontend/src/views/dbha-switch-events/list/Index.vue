@@ -62,7 +62,9 @@
         </div>
       </div>
     </template>
-    <SwtichEventDetatils :uid="logState.data.uid" />
+    <SwtichEventDetatils
+      :is-active="logState.isShow"
+      :uid="logState.data.uid" />
   </BkSideslider>
 </template>
 
