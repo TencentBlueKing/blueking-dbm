@@ -42,7 +42,7 @@ func (r *ReconfigComp) ReconfigAdd() (err error) {
 	extraCmd := fmt.Sprintf(`%s/zk/bin/zkCli.sh reconfig -file %s`, cst.DefaultKafkaEnv, cst.DefaultZookeeperDynamicConf)
 	osutil.ExecShellCommand(false, extraCmd)
 
-	extraCmd = fmt.Sprintf("sleep 5m")
+	extraCmd = "sleep 5m"
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
@@ -61,7 +61,7 @@ func (r *ReconfigComp) ReconfigRemove() (err error) {
 	extraCmd := fmt.Sprintf(`%s/zk/bin/zkCli.sh reconfig -remove %s`, cst.DefaultKafkaEnv, r.Params.Host)
 	osutil.ExecShellCommand(false, extraCmd)
 
-	extraCmd = fmt.Sprintf("sleep 5m")
+	extraCmd = "sleep 5m"
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err

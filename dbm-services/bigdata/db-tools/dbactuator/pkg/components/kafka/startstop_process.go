@@ -138,7 +138,7 @@ func (d *StartStopProcessComp) RestartBroker() (err error) {
 		return err
 	}
 
-	extraCmd = fmt.Sprintf("sleep 5m")
+	extraCmd = "sleep 5m"
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err

@@ -120,8 +120,6 @@ class KafkaReplaceFlow(object):
         self.data["retention_hours"] = int(kafka_config["retention_hours"])
         self.data["replication_num"] = int(kafka_config["replication_num"])
         self.data["partition_num"] = int(kafka_config["partition_num"])
-        self.data["username"] = kafka_config["username"]
-        self.data["password"] = kafka_config["password"]
         self.data["factor"] = int(kafka_config["factor"])
         self.data["old_zookeeper_conf"] = kafka_config["zookeeper_conf"]
         self.data["zookeeper_conf"] = self.data["old_zookeeper_conf"]
