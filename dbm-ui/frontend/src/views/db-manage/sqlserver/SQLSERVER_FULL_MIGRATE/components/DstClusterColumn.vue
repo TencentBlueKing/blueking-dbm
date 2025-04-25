@@ -178,6 +178,7 @@
       validator: () => modelValue.value.every((item) => domainRegex.test(item.master_domain)),
     },
     {
+      message: '',
       trigger: 'change',
       validator: () => {
         const conflictList: string[] = [];
@@ -239,9 +240,9 @@
     }
   };
 
-  const handleBatchEditChange = (value: string) => {
+  const handleBatchEditChange = (value: string | string[]) => {
     batchEditRowCount = Object.keys(props.selectedMap).length;
-    handleInputChange(value);
+    handleInputChange(value as string);
   };
 
   const handleBatchSelectorChange = (selected: Record<string, SqlServerHaModel[]>) => {

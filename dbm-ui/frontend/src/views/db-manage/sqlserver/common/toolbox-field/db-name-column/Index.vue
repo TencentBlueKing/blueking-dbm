@@ -49,7 +49,15 @@
 
   interface Props {
     allowAsterisk?: boolean;
+    /**
+     * @description db 已存在报错
+     * @default false
+     */
     checkExist?: boolean;
+    /**
+     * @description db 不存在报错
+     * @default false
+     */
     checkNotExist?: boolean;
     clusterId?: number;
     field: string;
@@ -63,9 +71,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     allowAsterisk: true,
-    // db 已存在报错
     checkExist: false,
-    // db 不存在报错
     checkNotExist: false,
     clusterId: undefined,
     disabled: false,
@@ -136,14 +142,17 @@
       message: t('DB 已存在'),
       trigger: 'blur',
       validator: (value: string[]) => {
+        if (value.length < 1) {
+          return true;
+        }
         if (!props.checkExist) {
           return true;
         }
         // % 通配符不需要校验存在
-        if (value[0].endsWith('%') || value[0] === '*') {
+        if (value?.[0]?.endsWith('%') || value?.[0] === '*') {
           return true;
         }
-        const clearDbList = _.filter(value, (item) => !/[*%]/.test(item));
+        const clearDbList = _.filter(value || [], (item) => !/[*%]/.test(item));
         if (clearDbList.length < 1) {
           return true;
         }
@@ -173,11 +182,14 @@
       message: t('DB 不存在'),
       trigger: 'blur',
       validator: (value: string[]) => {
+        if (value.length < 1) {
+          return true;
+        }
         if (!props.checkNotExist) {
           return true;
         }
-        // % 通配符不需要校验不存在
-        if (value[0].endsWith('%') || value[0] === '*') {
+        // % 通配符不需要校验存在
+        if (value?.[0]?.endsWith('%') || value?.[0] === '*') {
           return true;
         }
         const clearDbList = _.filter(value, (item) => !/[*%]/.test(item));

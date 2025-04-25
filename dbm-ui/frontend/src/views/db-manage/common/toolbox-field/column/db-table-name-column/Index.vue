@@ -121,7 +121,7 @@
 
   onMounted(() => {
     nextTick(() => {
-      if (slots.tip && rootRef.value !== null) {
+      if (slots.tip && rootRef.value && popRef.value) {
         tippyIns = tippy(rootRef.value as SingleTarget, {
           appendTo: () => document.body,
           arrow: true,

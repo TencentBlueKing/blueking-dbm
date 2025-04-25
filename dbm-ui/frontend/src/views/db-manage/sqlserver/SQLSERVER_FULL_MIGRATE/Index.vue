@@ -53,7 +53,7 @@
             :selected-map="selectedMap"
             :src-cluster="item.srcCluster"
             @batch-edit="handleBatchEdit" />
-          <TagDbNameColumn
+          <DbNameColumn
             v-model="item.dbName"
             allow-asterisk
             check-not-exist
@@ -62,12 +62,13 @@
             :label="t('迁移 DB 名')"
             required
             @batch-edit="handleBatchEdit" />
-          <TagDbNameColumn
+          <DbNameColumn
             v-model="item.dbIgnoreName"
             check-not-exist
             :cluster-id="item.srcCluster.id"
             field="dbIgnoreName"
             :label="t('忽略 DB 名')"
+            :required="false"
             @batch-edit="handleBatchEdit" />
           <RenameColumn
             v-model="item.renameInfoList"
@@ -128,7 +129,7 @@
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
-  import TagDbNameColumn from '@views/db-manage/sqlserver/common/tag-db-name-column/Index.vue';
+  import DbNameColumn from '@views/db-manage/sqlserver/common/toolbox-field/db-name-column/Index.vue';
 
   import DstClusterColumn from './components/DstClusterColumn.vue';
   import RenameColumn from './components/RenameColumn.vue';

@@ -6,19 +6,20 @@
     <EditableRow
       v-for="(item, index) in tableData"
       :key="index">
-      <TagDbNameColumn
+      <DbNameColumn
         v-model="item.dbName"
         allow-asterisk
-        :batch-edit="false"
+        :show-batch-edit="false"
         check-not-exist
         :cluster-id="data.srcCluster.id"
         field="dbName"
         :label="t('迁移 DB 名')"
         required />
-      <TagDbNameColumn
+      <DbNameColumn
         v-model="item.dbIgnoreName"
-        :batch-edit="false"
+        :show-batch-edit="false"
         check-not-exist
+        :required="false"
         :cluster-id="data.srcCluster.id"
         field="dbIgnoreName"
         :label="t('忽略 DB 名')" />
@@ -30,7 +31,7 @@
 
   import { getSqlserverDbs } from '@services/source/sqlserver';
 
-  import TagDbNameColumn from '@views/db-manage/sqlserver/common/tag-db-name-column/Index.vue';
+  import DbNameColumn from '@views/db-manage/sqlserver/common/toolbox-field/db-name-column/Index.vue';
 
   import type { IValue } from '../Index.vue';
 
