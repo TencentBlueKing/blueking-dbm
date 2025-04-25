@@ -182,7 +182,7 @@
     [TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER]: TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER, // spider 迁移主从
     [TicketTypes.TENDBCLUSTER_NODE_REBALANCE]: TicketTypes.TENDBCLUSTER_NODE_REBALANCE, // Spider 集群remote节点扩缩容
     [TicketTypes.TENDBCLUSTER_OPEN_AREA]: 'spiderOpenareaTemplate', // Spider 开区
-    [TicketTypes.TENDBCLUSTER_RENAME_DATABASE]: 'spiderDbRename', // Spider Tendbcluster 重命名
+    [TicketTypes.TENDBCLUSTER_RENAME_DATABASE]: TicketTypes.TENDBCLUSTER_RENAME_DATABASE, // Spider Tendbcluster 重命名
     [TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE]: TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE, // spider 重建从库-原地重建
     [TicketTypes.TENDBCLUSTER_RESTORE_SLAVE]: TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE, // spider 重建从库-新机重建
     [TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER]: TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER, // Spider 定点回档
