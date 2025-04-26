@@ -45,6 +45,13 @@ class ProxyAPI(DataAPI):
         external_address = f"{host}{proxy_url}"
         return url.replace(self.base.rstrip("/"), external_address)
 
+    def _set_session_headers(self, session, local_request, headers, params, use_admin: bool = False):
+        super()._set_session_headers(session, local_request, headers, params, use_admin)
+        # ProxyAPI设置session的真实代理，用户nginx拿到客户端真实IP
+        if local_request:
+            session.headers.update({"X-Forwarded-For": local_request.META.get("HTTP_X_FORWARDED_FOR", "")})
+            session.headers.update({"X-Real-IP": local_request.META.get("REMOTE_ADDR", "")})
+
 
 class ExternalProxyAPI(DataAPI):
     """

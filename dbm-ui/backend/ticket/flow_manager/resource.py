@@ -114,6 +114,9 @@ class ResourceApplyFlow(BaseTicketFlow):
 
     def run(self):
         """执行流程并记录流程对象ID"""
+        if self.check_flow_ack():
+            return
+
         resource_flow_id = generate_root_id()
         self.run_status_handler(resource_flow_id)
 

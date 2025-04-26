@@ -15,6 +15,7 @@ from abc import ABC, abstractmethod
 from functools import reduce
 from typing import Any, Optional, Union
 
+from django.db import transaction
 from django.db.models import Q
 from django.utils.translation import gettext as _
 
@@ -116,6 +117,17 @@ class BaseTicketFlow(ABC):
 
         return ""
 
+    @transaction.atomic
+    def check_flow_ack(self):
+        """确认flow是首次执行，用于避免重复执行"""
+        flow = Flow.objects.select_for_update().get(id=self.flow_obj.id)
+        if flow.context.get("ack"):
+            logger.warning(f"[{flow.ticket.id}] this flow {flow.flow_obj_id} already run, just skip...")
+            return True
+        flow.context["ack"] = True
+        flow.save(update_fields=["context"])
+        return False
+
     def run_error_status_handler(self, err: Exception):
         """run异常处理，更新失败状态和错误信息"""
         err_code = FlowErrCode.get_err_code(err, self.flow_obj.retry_type)
@@ -141,7 +153,8 @@ class BaseTicketFlow(ABC):
         """重试刷新错误节点，更新相关状态，剔除错误信息"""
         self.flow_obj.err_msg = self.flow_obj.err_code = None
         self.flow_obj.status = TicketFlowStatus.RUNNING
-        self.flow_obj.save(update_fields=["err_msg", "status", "err_code", "update_at"])
+        self.flow_obj.context["ack"] = False
+        self.flow_obj.save(update_fields=["err_msg", "status", "err_code", "update_at", "context"])
 
     def flush_revoke_status_handler(self, operator):
         """终止节点，更新相关状态和错误信息"""
@@ -205,6 +218,8 @@ class BaseTicketFlow(ABC):
 
     def run(self):
         """执行流程并记录流程对象ID"""
+        if self.check_flow_ack():
+            return
         try:
             flow_obj_id = self._run()
         except Exception as err:  # pylint: disable=broad-except
