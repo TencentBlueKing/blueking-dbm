@@ -34,8 +34,7 @@
       <EditableColumn
         field="spider_reduced_host.master_domain"
         :label="t('关联集群')"
-        :min-width="200"
-        :rowspan="rowSpan[item.spider_reduced_host.master_domain]">
+        :min-width="200">
         <EditableBlock
           v-model="item.spider_reduced_host.master_domain"
           :placeholder="t('自动生成')" />
@@ -115,16 +114,16 @@
   const selectedMap = computed(() =>
     Object.fromEntries(tableData.value.map((cur) => [cur.spider_reduced_host.ip, true])),
   );
-  const rowSpan = computed(() =>
-    tableData.value.reduce<Record<string, number>>((acc, item) => {
-      if (item.spider_reduced_host.master_domain) {
-        Object.assign(acc, {
-          [item.spider_reduced_host.master_domain]: (acc[item.spider_reduced_host.master_domain] || 0) + 1,
-        });
-      }
-      return acc;
-    }, {}),
-  );
+  // const rowSpan = computed(() =>
+  //   tableData.value.reduce<Record<string, number>>((acc, item) => {
+  //     if (item.spider_reduced_host.master_domain) {
+  //       Object.assign(acc, {
+  //         [item.spider_reduced_host.master_domain]: (acc[item.spider_reduced_host.master_domain] || 0) + 1,
+  //       });
+  //     }
+  //     return acc;
+  //   }, {}),
+  // );
 
   /**
    * 前端展示的值
