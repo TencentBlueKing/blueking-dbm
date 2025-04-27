@@ -23,7 +23,7 @@ var (
 
 	runCmd          = root.Command("run", "start service")
 	runCmdAddress   = runCmd.Flag("address", "service listen address").Required().Envar("SQ_ADDRESS").TCP()
-	tmysqlParsePath = runCmd.Flag("tmysqlparse-bin", "tmysqlparse bin path").Required().Envar("SQ_TMYSQLPARSER_BIN").
+	tmysqlParsePath = runCmd.Flag("tmysqlparse-bin", "tmysqlparse bin path").Envar("SQ_TMYSQLPARSER_BIN").
 			ExistingFile()
 
 	versionCmd = root.Command("version", "print version")

@@ -86,6 +86,16 @@ func parse(query string) (*Response, error) {
 		return nil, err
 	}
 	cmdRet.Result[0].QueryLength = len(query)
+	if cmdRet.Result[0].TableName == "" && len(cmdRet.Result[0].TableReferences) > 0 {
+		// 优先取第一个表名
+		for _, dbt := range cmdRet.Result[0].TableReferences {
+			if cmdRet.Result[0].DbName == "" {
+				cmdRet.Result[0].DbName = dbt.DbName
+			}
+			cmdRet.Result[0].TableName = dbt.TableName
+			break
+		}
+	}
 
 	slog.Info("mysql parse unmarshal result", slog.Any("struct result", cmdRet))
 

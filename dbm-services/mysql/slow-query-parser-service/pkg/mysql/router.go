@@ -22,7 +22,7 @@ func AddRouter(r *gin.Engine) {
 
 		slog.Info("mysql", slog.Any("body", body), slog.String("path", g.BasePath()))
 
-		res, err := parse(body.Content)
+		res, err := parseByPercona("", body.Content)
 		if err != nil {
 			slog.Error("mysql", err)
 			ctx.JSON(http.StatusInternalServerError, err.Error())
