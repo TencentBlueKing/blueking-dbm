@@ -666,3 +666,15 @@ class DropProxyUsersInBackendKwargs:
 class ResetSlaveViaDRSKwargs:
     address: str
     bk_cloud_id: int
+
+
+@dataclass
+class InitiativeDownloadFileKwargs:
+    """
+    定义initiative_download_file活动节点的私有变量结构体
+    """
+
+    bk_cloud_id: int  # 对应的云区域ID
+    file_url: str
+    md5sum: str
+    exec_ip: Optional[Any] = None  # 表示执行的ip，多个ip传入list类型，当个ip传入str类型，空则传入None，针对手输ip场景

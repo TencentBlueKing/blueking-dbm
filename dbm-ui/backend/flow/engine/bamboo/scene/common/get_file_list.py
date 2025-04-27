@@ -37,6 +37,15 @@ class GetFileList(object):
             version=repo_version, pkg_type=MediumEnum.DBActuator, db_type=db_type
         )
 
+    def get_db_actuator_download_info(self) -> tuple:
+        """
+        最新的db_actuator介质包路径和MD5值
+        """
+        return (
+            f"{env.BKREPO_ENDPOINT_URL}/generic/{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
+            self.actuator_pkg.md5,
+        )
+
     def get_db_actuator_package(self):
         """
         最新的db_actuator介质包路径

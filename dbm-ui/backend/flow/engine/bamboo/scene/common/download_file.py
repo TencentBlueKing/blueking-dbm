@@ -15,12 +15,14 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
+from backend import env
 from backend.configuration.constants import DBType
 from backend.core.consts import BK_PKG_INSTALL_PATH
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.plugins.components.collections.common.initiative_download_file import InitiativeDownloadFileComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
-from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs
+from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, InitiativeDownloadFileKwargs
 
 logger = logging.getLogger("flow")
 
@@ -57,3 +59,81 @@ class DownloadFileFlow(object):
         pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         logger.info(_("构建下载文件流程成功"))
         pipeline.run_pipeline()
+
+
+def add_db_actuator_download_act(act_lists: list, bk_cloud_id: int, dest_ip_list: list):
+    """
+    Add db-actuator download action to act_lists based on initiative download setting
+
+    Args:
+        act_lists: List to store action dictionaries
+        bk_cloud_id: Cloud area ID
+        dest_ip_list: Target IP list
+    """
+    if env.INITIATIVE_DOWNLOAD:
+        file_url, md5sum = GetFileList().get_db_actuator_download_info()
+        act_lists.append(
+            {
+                "act_name": _("主动下载db-actuator介质]"),
+                "act_component_code": InitiativeDownloadFileComponent.code,
+                "kwargs": asdict(
+                    InitiativeDownloadFileKwargs(
+                        bk_cloud_id=bk_cloud_id,
+                        exec_ip=dest_ip_list,
+                        file_url=file_url,
+                        md5sum=md5sum,
+                    )
+                ),
+            }
+        )
+    else:
+        act_lists.append(
+            {
+                "act_name": _("下发db-actuator介质[云区域ID: {}]".format(bk_cloud_id)),
+                "act_component_code": TransFileComponent.code,
+                "kwargs": asdict(
+                    DownloadMediaKwargs(
+                        bk_cloud_id=bk_cloud_id,
+                        exec_ip=dest_ip_list,
+                        file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+                    )
+                ),
+            }
+        )
+
+
+def add_db_actuator_download_to_pipeline(pipeline: Builder, bk_cloud_id: int, exec_ip: str) -> None:
+    """
+    Add db-actuator download action to pipeline based on initiative download setting
+
+    Args:
+        pipeline: Pipeline builder object
+        bk_cloud_id: Cloud area ID
+        exec_ip: Target IP
+    """
+    if env.INITIATIVE_DOWNLOAD:
+        file_url, md5sum = GetFileList().get_db_actuator_download_info()
+        pipeline.add_act(
+            act_name=_("主动下载db-actuator介质"),
+            act_component_code=InitiativeDownloadFileComponent.code,
+            kwargs=asdict(
+                InitiativeDownloadFileKwargs(
+                    bk_cloud_id=bk_cloud_id,
+                    exec_ip=exec_ip,
+                    file_url=file_url,
+                    md5sum=md5sum,
+                )
+            ),
+        )
+    else:
+        pipeline.add_act(
+            act_name=_("下发db-actuator介质[云区域ID:{}]".format(bk_cloud_id)),
+            act_component_code=TransFileComponent.code,
+            kwargs=asdict(
+                DownloadMediaKwargs(
+                    bk_cloud_id=bk_cloud_id,
+                    exec_ip=exec_ip,
+                    file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+                )
+            ),
+        )

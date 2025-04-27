@@ -25,6 +25,10 @@ from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_services.mysql.sql_import.constants import BKREPO_SQLFILE_PATH
 from backend.flow.consts import LONG_JOB_TIMEOUT
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
+from backend.flow.engine.bamboo.scene.common.download_file import (
+    add_db_actuator_download_act,
+    add_db_actuator_download_to_pipeline,
+)
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.common.create_ticket import CreateTicketComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -93,19 +97,12 @@ class ImportSQLFlow(object):
             )
 
         for bk_cloud_id, ip_list in cluster_bk_cloud_id_map_list.items():
-            act_lists.append(
-                {
-                    "act_name": _("下发db-actuator介质[云区域ID:{}]".format(bk_cloud_id)),
-                    "act_component_code": TransFileComponent.code,
-                    "kwargs": asdict(
-                        DownloadMediaKwargs(
-                            bk_cloud_id=bk_cloud_id,
-                            exec_ip=list(filter(None, list(set(ip_list)))),
-                            file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
-                        )
-                    ),
-                }
-            )
+            # Remove duplicate IPs and filter out None values
+            dest_ip_list = list(filter(None, set(ip_list)))
+
+            # 使用通用方法添加db-actuator下载动作
+            add_db_actuator_download_act(act_lists, bk_cloud_id, dest_ip_list)
+            # 下发SQL文件
             act_lists.append(
                 {
                     "act_name": _("下发SQL文件[云区域ID:{}]".format(bk_cloud_id)),
@@ -113,7 +110,7 @@ class ImportSQLFlow(object):
                     "kwargs": asdict(
                         DownloadMediaKwargs(
                             bk_cloud_id=bk_cloud_id,
-                            exec_ip=list(filter(None, list(set(ip_list)))),
+                            exec_ip=dest_ip_list,
                             file_target_path=self.sql_path,
                             file_list=GetFileList(db_type=DBType.MySQL).mysql_import_sqlfile(
                                 path=base_path, filelist=sql_files
@@ -185,17 +182,9 @@ class ImportSQLFlow(object):
         semantic_check_pipeline = Builder(
             root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=[templ_cluster_id]
         )
-
-        semantic_check_pipeline.add_act(
-            act_name=_("给模板集群下发db-actuator"),
-            act_component_code=TransFileComponent.code,
-            kwargs=asdict(
-                DownloadMediaKwargs(
-                    bk_cloud_id=bk_cloud_id,
-                    exec_ip=backend_ip,
-                    file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
-                )
-            ),
+        # Add db-actuator download action to pipeline
+        add_db_actuator_download_to_pipeline(
+            pipeline=semantic_check_pipeline, bk_cloud_id=bk_cloud_id, exec_ip=backend_ip
         )
         # parse db from sqlfile
         sqlfile_list = itertools.chain(*[set(obj["sql_files"]) for obj in self.data["execute_objects"]])

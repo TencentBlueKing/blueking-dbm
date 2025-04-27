@@ -24,7 +24,7 @@ logger = logging.getLogger("flow")
 
 class SemanticCheckService(BaseService):
     __need_schedule__ = True
-    interval = StaticIntervalGenerator(5)
+    interval = StaticIntervalGenerator(2)
     """
     在执行语义分析的SQL场景的专属活动节点
     1：执行SQL(利用db-actuator组件)

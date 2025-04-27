@@ -436,6 +436,14 @@ class BkJobService(BaseService, metaclass=ABCMeta):
         return True
 
 
+class BkShortJobService(BkJobService):
+    """
+    蓝鲸短作业服务
+    """
+
+    interval = StaticIntervalGenerator(1)
+
+
 class BkSopsService(BaseService, metaclass=ABCMeta):
     __need_schedule__ = True
     interval = StaticIntervalGenerator(5)
