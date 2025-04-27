@@ -57,6 +57,7 @@
   import {
     type ComponentInternalInstance,
     type InjectionKey,
+    onBeforeUnmount,
     provide,
     type Ref,
     ref,
@@ -118,6 +119,14 @@
   > = Symbol.for('bk-editable-table');
 
   export { Block, Column, DatePicker, Input, Row, Select, TagInput, Textarea, TimePicker, useColumn, useTable };
+
+  export const getColumnCount = (() => {
+    let count = 0;
+    onBeforeUnmount(() => {
+      count = 0;
+    });
+    return () => count++;
+  })();
 </script>
 <script setup lang="ts">
   defineOptions({
