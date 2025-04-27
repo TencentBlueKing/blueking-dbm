@@ -216,7 +216,7 @@
   import { checkMongoInstances, checkMysqlInstances, checkRedisInstances } from '@services/source/instances';
   import { getMongoInstancesList, getMongoTopoList } from '@services/source/mongodb';
   import { queryClusters as queryMysqlCluster } from '@services/source/mysqlCluster';
-  import { getRedisClusterList, getRedisMachineList } from '@services/source/redis';
+  import { getRedisClusterList, getRedisInstances, getRedisMachineList } from '@services/source/redis';
   import {
     getHaClusterWholeList as getSqlServerHaCluster,
     getSqlServerInstanceList,
@@ -251,6 +251,7 @@
   import MysqlContent from './components/mysql/Index.vue';
   import RedisContent from './components/redis/Index.vue';
   import RenderRedisHost from './components/redis-host/Index.vue';
+  import RedisInstanceContent from './components/redis-instance/Index.vue';
   import SqlServerContent from './components/sqlserver/Index.vue';
   import TendbClusterContent from './components/tendb-cluster/Index.vue';
   import TendbClusterHostContent from './components/tendb-cluster-host/Index.vue';
@@ -313,6 +314,7 @@
       | 'TendbhaHost'
       | 'TendbClusterHost'
       | 'RedisHost'
+      | 'RedisInstance'
       | 'mongoCluster'
       | 'TendbSingleHost'
       | 'SpiderHost'
@@ -689,6 +691,42 @@
             role: 'redis_master',
           },
           getTableList: getRedisMachineList,
+        },
+      },
+    ],
+    RedisInstance: [
+      {
+        content: RedisInstanceContent,
+        id: 'RedisInstance',
+        name: t('Redis 实例'),
+        tableConfig: {
+          firsrColumn: {
+            field: 'instance_address',
+            label: t('实例'),
+          },
+          getTableList: getRedisInstances,
+        },
+        topoConfig: {
+          getTopoList: getRedisClusterList,
+        },
+      },
+      {
+        content: ManualInputContent,
+        id: 'manualInput',
+        manualConfig: {
+          activePanelId: 'RedisInstance',
+          checkInstances: checkRedisInstances,
+          checkKey: 'instance_address',
+          checkType: 'instance',
+        },
+        name: t('手动输入'),
+        tableConfig: {
+          firsrColumn: {
+            field: 'instance_address',
+            label: 'master',
+            role: 'master',
+          },
+          getTableList: getRedisInstances,
         },
       },
     ],
