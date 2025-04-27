@@ -11,6 +11,7 @@ export * from './datacopyCheckRepair';
 export * from './dataStructure';
 export * from './dataStructureTaskDelete';
 export * from './destroy';
+export * from './hotKeyAnalyse';
 export * from './insApply';
 export * from './instanceDestroy';
 export * from './instanceProxyClose';
