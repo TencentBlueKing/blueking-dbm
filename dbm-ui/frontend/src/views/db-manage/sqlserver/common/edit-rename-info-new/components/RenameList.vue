@@ -168,7 +168,7 @@
   };
 
   onMounted(() => {
-    nextTick(() => {
+    setTimeout(() => {
       targetDbNameRef.value!.forEach((item) => item.validate());
     });
   });

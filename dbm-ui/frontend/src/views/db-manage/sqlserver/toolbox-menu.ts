@@ -55,7 +55,6 @@ export default [
     children: [
       {
         id: TicketTypes.SQLSERVER_ROLLBACK,
-        // id: 'sqlServerDBRollback',
         name: t('定点构造'),
         parentId: 'fileback',
       },
