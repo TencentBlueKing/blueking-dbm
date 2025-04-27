@@ -85,14 +85,7 @@ const redisClusterShardUpdateRoute = {
   component: () => import('@views/db-manage/redis/cluster-shard-update/Index.vue'),
 };
 
-const redisClusterTypeUpdateRoute = {
-  path: 'cluster-type-update/:page?',
-  name: 'RedisClusterTypeUpdate',
-  meta: {
-    navName: t('集群类型变更'),
-  },
-  component: () => import('@views/db-manage/redis/cluster-type-update/Index.vue'),
-};
+const redisClusterTypeUpdateRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_TYPE_UPDATE, t('集群类型变更'));
 
 const redisDBStructureRoute = {
   path: 'db-structure/:page?',

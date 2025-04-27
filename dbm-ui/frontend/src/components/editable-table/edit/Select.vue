@@ -14,6 +14,9 @@
         :item="item"
         name="option" />
     </template>
+    <template v-if="slots.default">
+      <slot />
+    </template>
     <template
       v-if="slots.trigger"
       #trigger="{ selected }">
@@ -47,6 +50,7 @@
   }>();
 
   const slots = defineSlots<{
+    default?: () => VNode;
     option?: (value: { index: number; item: Record<string, any> }) => VNode;
     trigger?: (value: { selected: any[] }) => VNode;
   }>();
