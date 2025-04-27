@@ -273,6 +273,9 @@ class SimpleTaskFlow(InnerFlow):
         super().__init__(flow_obj=flow_obj)
 
     def run(self) -> None:
+        if self.check_flow_ack():
+            return
+        # 获取or生成inner flow的root id
         root_id = self.flow_obj.flow_obj_id or generate_root_id()
         self.run_status_handler(root_id)
         # 运行回收流程
