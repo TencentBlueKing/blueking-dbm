@@ -304,9 +304,9 @@ class MySQLMigrateClusterRemoteFlow(object):
                             },
                         ],
                         "db_patterns": ["*"],
-                        "ignore_dbs": None,
+                        "ignore_dbs": [],
                         "table_patterns": ["*"],
-                        "ignore_tables": None,
+                        "ignore_tables": [],
                     }
                 )
 

@@ -334,9 +334,9 @@ class TenDBRemoteRebalanceFlow(object):
                         "master": node["master"]["instance"],
                         "slave": node["new_master"]["instance"],
                         "db_patterns": ["*"],
-                        "ignore_dbs": None,
+                        "ignore_dbs": [],
                         "table_patterns": ["*"],
-                        "ignore_tables": None,
+                        "ignore_tables": [],
                     }
                 )
             switch_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
