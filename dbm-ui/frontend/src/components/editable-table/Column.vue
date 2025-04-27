@@ -1,6 +1,7 @@
 <template>
   <td
     v-if="isRowspanRender"
+    :key="columnKey"
     ref="rootRef"
     class="bk-editable-table-body-column"
     :class="{
@@ -83,7 +84,7 @@
     type VNode,
   } from 'vue';
 
-  import { tableInjectKey } from './Index.vue';
+  import { getColumnCount, tableInjectKey } from './Index.vue';
   import { injectKey } from './Row.vue';
   import { type IRule } from './types';
   import defaultValidator from './validator';
@@ -134,6 +135,7 @@
     key: string;
     props: Props;
     slots: Slots;
+    uniqueKey: string;
     validate: (trigger?: string) => Promise<boolean>;
   }
 
@@ -145,6 +147,21 @@
     registerRules: (params: IRule[]) => void;
     validate: (trigger?: string) => Promise<boolean>;
   }> = Symbol('EditableTableColumnKey');
+
+  const rowspanNumMap: Record<string, number> = {};
+  const calcRowspanRenderQunue: [number, () => void][] = [];
+  const pushCalcRowspanRenderTaskQunue = (task: (typeof calcRowspanRenderQunue)[number]) => {
+    calcRowspanRenderQunue.push(task);
+  };
+
+  const removeCalcRowspanRenderTaskQunue = (task: (typeof calcRowspanRenderQunue)[number][number]) => {
+    _.remove(calcRowspanRenderQunue, (item) => item[1] === task);
+  };
+
+  const runCalcRowspanRenderTaskQunue = () => {
+    const latestQueue = _.sortBy(calcRowspanRenderQunue, (item) => item[0]);
+    latestQueue.forEach((item) => item[1]());
+  };
 </script>
 <script setup lang="ts">
   const props = withDefaults(defineProps<Props>(), {
@@ -171,6 +188,9 @@
   const rowContext = inject(injectKey);
   const currentInstance = getCurrentInstance() as ComponentInternalInstance;
 
+  const getRowIndex = () => tableContext!.getColumnRelateRowIndexByInstance(currentInstance);
+
+  const uniqueKey = `${Date.now()}#${getColumnCount()}`;
   const columnKey = `bk-editable-table-column-${rowContext?.getColumnIndex()}`;
 
   interface IFinalRule {
@@ -346,35 +366,41 @@
     return result ? '无法操作' : '';
   });
 
-  watch(
-    () => tableContext?.props.model,
-    () => {
-      // setTimeout 确保 registerColumn 结束
-      setTimeout(() => {
-        // 判断rowspan 在当前 column生效状态
-        const allColumnList = tableContext?.getAllColumnList() || [];
-        let rowspanNum = 0;
-        isRowspanRender.value = true;
-        allColumnList.forEach((rowColumnList) => {
-          rowColumnList.forEach((columnItem, columnIndex) => {
-            if (columnItem.key === columnKey) {
-              if (columnItem.props.rowspan && columnItem.props.rowspan > 1) {
-                if (rowspanNum === 0) {
-                  rowspanNum = columnItem.props.rowspan;
-                }
-                rowspanNum = rowspanNum - 1;
-                isRowspanRender.value = rowspanNum < 1;
-              }
-              if (columnIndex > 0) {
-                isPreviousSiblingRowspan.value = Number(rowColumnList[columnIndex - 1]!.props.rowspan) > 1;
-              }
+  const calcRowspanRender = () => {
+    // 判断rowspan 在当前 column生效状态
+    const allColumnList = tableContext?.getAllColumnList() || [];
+    for (const rowColumnList of allColumnList) {
+      let columnIndex = 0;
+      for (const columnItem of rowColumnList) {
+        if (columnItem.uniqueKey === uniqueKey) {
+          if (columnItem.props.rowspan && columnItem.props.rowspan > 0) {
+            if (rowspanNumMap[columnKey] === 0 || rowspanNumMap[columnKey] === undefined) {
+              isRowspanRender.value = true;
+              rowspanNumMap[columnKey] = -columnItem.props.rowspan;
+            } else {
+              isRowspanRender.value = false;
             }
-          });
-        });
+            rowspanNumMap[columnKey] = rowspanNumMap[columnKey] + 1;
+          } else {
+            isRowspanRender.value = true;
+          }
+
+          if (columnIndex > 0) {
+            isPreviousSiblingRowspan.value = Number(rowColumnList[columnIndex - 1]!.props.rowspan) > 1;
+          }
+          columnIndex++;
+          return;
+        }
+      }
+    }
+  };
+
+  watch(
+    () => [tableContext?.props.model, props.rowspan],
+    () => {
+      setTimeout(() => {
+        runCalcRowspanRenderTaskQunue();
       });
-    },
-    {
-      immediate: true,
     },
   );
 
@@ -416,7 +442,6 @@
     }
   };
 
-  const getRowIndex = () => tableContext!.getColumnRelateRowIndexByInstance(currentInstance);
   const clearValidate = () => {
     validateState.isError = false;
     validateState.errorMessage = '';
@@ -591,7 +616,14 @@
       key: columnKey,
       props,
       slots,
+      uniqueKey,
       validate,
+    });
+
+    // setTimeout 确保 registerColumn 结束
+    setTimeout(() => {
+      pushCalcRowspanRenderTaskQunue([getRowIndex(), calcRowspanRender]);
+      runCalcRowspanRenderTaskQunue();
     });
 
     // 初始化 tips 弹框
@@ -604,6 +636,7 @@
     rowContext?.unregisterColumn(columnKey);
     registerRules = [];
     clearTimeout(loadingValidatorTimer);
+    removeCalcRowspanRenderTaskQunue(calcRowspanRender);
     if (tippyIns) {
       tippyIns.hide();
       tippyIns.unmount();
