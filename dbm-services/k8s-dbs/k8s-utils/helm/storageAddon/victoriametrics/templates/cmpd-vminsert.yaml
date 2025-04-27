@@ -1,0 +1,80 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentDefinition
+metadata:
+  name: {{ include "victoriametrics-insert.cmpdName" . }}
+spec:
+  serviceKind: victoriametrics
+  serviceVersion: 1.93.10
+  updateStrategy: BestEffortParallel
+  exporter:
+    scrapePath: /metrics
+    scrapePort: http
+  services:
+    - name: insert
+      spec:
+        ports:
+          - name: http
+            port: {{ .Values.vminsert.servicePort }}
+            targetPort: http
+            protocol: TCP
+  vars:
+    - name: VMSTORAGE_ENDPOINT
+      valueFrom:
+        serviceVarRef:
+          compDef: {{ include "victoriametrics-storage.cmpdName" . }}
+          optional: true
+          host: Required
+    - name: VMSTORAGE_ADDR
+      valueFrom:
+        serviceVarRef:
+          compDef: {{ include "victoriametrics-storage.cmpdName" . }}
+          port:
+            name: insert
+            option: Required
+  runtime:
+    automountServiceAccountToken: true
+    terminationGracePeriodSeconds: 60
+    containers:
+      - name: insert
+        imagePullPolicy: IfNotPresent
+        args:
+          - --storageNode=$(VMSTORAGE_ADDR)
+          {{- range $key, $value := .Values.vminsert.extraArgs }}
+          - --{{ $key }}={{ $value }}
+          {{- end }}
+          - --httpListenAddr=:{{ .Values.vminsert.servicePort }}
+          {{- if .Values.enableTCP6 }}
+          - --enableTCP6=true
+          {{- end }}
+        env:
+          - name: SERVICE_PORT
+            value: "{{ .Values.vminsert.servicePort }}"
+        ports:
+          - containerPort: {{ .Values.vminsert.servicePort }}
+            name: http
+        volumeMounts:
+          - mountPath: /cache/insert
+            name: cache-insert
+        resources:
+          limits:
+            cpu: "1"
+            memory: "2Gi"
+          requests:
+            cpu: "1"
+            memory: "2Gi"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 3
+        livenessProbe:
+          tcpSocket:
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 3

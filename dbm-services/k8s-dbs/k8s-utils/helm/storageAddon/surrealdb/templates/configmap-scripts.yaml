@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "tidb.cmScriptsName" . }}-{{ .Chart.Version}}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "tidb.labels" . | nindent 4 }}
+data:
+  {{- range $path, $_ :=  $.Files.Glob "scripts/**" }}
+  {{ $path | base }}: |-
+  {{- $.Files.Get $path | nindent 4 }}
+  {{- end }}

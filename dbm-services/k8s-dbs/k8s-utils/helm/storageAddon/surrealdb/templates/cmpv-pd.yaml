@@ -1,0 +1,22 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentVersion
+metadata:
+  name: pd-{{ .Chart.Version}}
+  labels:
+    {{- include "tidb.labels" . | nindent 4 }}
+spec:
+  releases:
+    - name: "7.5.2"
+      serviceVersion: "7.5.2"
+      images:
+        pd: {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.pd.repository }}:v7.5.2
+    - name: "7.1.5"
+      serviceVersion: "7.1.5"
+      images:
+        pd: {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.pd.repository }}:v7.1.5
+  compatibilityRules:
+    - compDefs:
+        - "pd-{{ .Chart.Version}}"
+      releases:
+        - "7.1.5"
+        - "7.5.2"

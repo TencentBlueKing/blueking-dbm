@@ -1,0 +1,112 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentDefinition
+metadata:
+  name: rw-frontend-{{ .Chart.Version}}
+spec:
+  serviceKind: risingwave
+  serviceVersion: 2.2.1
+  services:
+    - name: frontend
+      spec:
+        ports:
+          - port: 4567
+            targetPort: svc
+            name: svc
+          - port: 8080
+            targetPort: metrics
+            name: metrics
+  configs:
+    - name: risingwave-configuration
+      templateRef: {{ include "risingwave.configTplName" . }}
+      namespace: {{ .Release.Namespace }}
+      volumeName: risingwave-configuration
+  vars:
+    - name: META_SVC
+      valueFrom:
+        serviceVarRef:
+          compDef: rw-meta-{{ .Chart.Version}}
+          optional: false
+          host: Required
+  runtime:
+    containers:
+      - name: frontend
+        #image: docker.risingwave.com/risingwavelabs/risingwave:v2.2.1
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          privileged: false
+        command:
+          - /risingwave/bin/risingwave
+          - frontend-node
+        env:
+          - name: AWS_EC2_METADATA_DISABLED
+            value: "true"
+          - name: RUST_LOG
+            value: "INFO"
+          - name: RUST_BACKTRACE
+            value: "full"
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: CONTAINER_CPU_LIMIT
+            value: "node allocatable (limits.cpu)"
+          - name: CONTAINER_MEMORY_LIMIT
+            value: "node allocatable (limits.memory)"
+          - name: RUST_MIN_STACK
+            value: "4194304"
+          - name: RW_CONFIG_PATH
+            value: "/risingwave/config/risingwave.toml"
+          - name: RW_LISTEN_ADDR
+            value: "0.0.0.0:4567"
+          - name: RW_ADVERTISE_ADDR
+            value: "$(POD_IP):4567"  # 修改为使用 POD_IP
+          - name: RW_META_ADDR
+            value: "load-balance+http://$(META_SVC)-headless:5690"
+          - name: RW_PROMETHEUS_LISTENER_ADDR
+            value: "0.0.0.0:8080"
+        ports:
+          - containerPort: 4567
+            name: svc
+            protocol: TCP
+          - containerPort: 8080
+            name: metrics
+            protocol: TCP
+        volumeMounts:
+          - name: risingwave-configuration
+            mountPath: /risingwave/config
+        livenessProbe:
+          failureThreshold: 3
+          tcpSocket:
+            port: svc
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        readinessProbe:
+          failureThreshold: 3
+          tcpSocket:
+            port: svc
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        startupProbe:
+          failureThreshold: 12
+          tcpSocket:
+            port: svc
+          initialDelaySeconds: 2
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 5

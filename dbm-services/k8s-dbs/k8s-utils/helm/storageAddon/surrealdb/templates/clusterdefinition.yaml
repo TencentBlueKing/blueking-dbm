@@ -1,0 +1,30 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ClusterDefinition
+metadata:
+  name: surrealdb-{{ .Chart.Version}}
+spec:
+  topologies:
+    - name: surreal-tikv
+      default: true
+      components:
+        - name: surreal
+          compDef: surreal-tikv-{{ .Chart.Version}}
+        - name: pd
+          compDef: pd-{{ .Chart.Version}}
+        - name: tikv
+          compDef: tikv-{{ .Chart.Version}}
+      orders:
+        provision:
+          - pd
+          - tikv
+          - surreal
+    - name: surreal-rocksdb
+      default: false
+      components:
+        - name: surreal
+          compDef: surreal-rocksdb-{{ .Chart.Version}}
+    - name: surreal-memory
+      default: false
+      components:
+        - name: surreal
+          compDef: surreal-memory-{{ .Chart.Version}}

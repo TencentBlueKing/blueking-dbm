@@ -1,0 +1,28 @@
+apiVersion: v2
+name: qdrant
+description: High-performance, massive-scale Vector Database for the next generation of AI.
+
+type: application
+
+# This is the chart version.
+version: 1.0.0
+
+# This is the version number of qdrant.
+appVersion: "1.10.0"
+
+home: https://qdrant.tech/
+icon: https://qdrant.tech/images/logo_with_text.svg
+
+
+maintainers:
+  - name: ApeCloud
+    url: https://github.com/apecloud/kubeblocks/
+
+
+sources:
+  - https://github.com/apecloud/kubeblocks/
+
+annotations:
+  addon.kubeblocks.io/kubeblocks-version: ">=0.9.0"
+  addon.kubeblocks.io/model: "vector"
+  addon.kubeblocks.io/provider: "apecloud"

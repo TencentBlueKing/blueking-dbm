@@ -1,0 +1,17 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ClusterDefinition
+metadata:
+  name: risingwave-{{ .Chart.Version}}
+spec:
+  topologies:
+    - components:
+        - compDef: rw-compactor-{{ .Chart.Version}}
+          name: compactor
+        - compDef: rw-compute-{{ .Chart.Version}}
+          name: compute
+        - compDef: rw-frontend-{{ .Chart.Version}}
+          name: frontend
+        - compDef: rw-meta-{{ .Chart.Version}}
+          name: meta
+      default: true
+      name: risingwave

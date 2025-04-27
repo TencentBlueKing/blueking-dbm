@@ -1,0 +1,15 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentVersion
+metadata:
+  name: {{ include "milvus.indexcoord.cmpdName" . }}
+spec:
+  compatibilityRules:
+    - releases:
+        - indexcoord-v2.5.7
+      compDefs:
+        - {{ include "milvus.indexcoord.cmpdName" . }}
+  releases:
+    - name: indexcoord-v2.5.7
+      serviceVersion: 2.5.7
+      images:
+        indexcoord: "{{ .Values.image.all.repository }}:{{ .Values.image.all.tag }}"

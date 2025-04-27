@@ -1,0 +1,23 @@
+apiVersion: v1
+description: High Performance, Kubernetes Native Object Storage
+name: minio
+version: 1.0.0
+appVersion: 1.0.0
+keywords:
+  - storage
+  - object-storage
+  - S3
+
+home: https://min.io
+icon: https://min.io/resources/img/logo/MINIO_wordmark.png
+sources:
+  - https://github.com/minio/minio
+
+maintainers:
+  - name: ApeCloud
+    url: https://github.com/apecloud/kubeblocks/deploy
+
+annotations:
+  addon.kubeblocks.io/kubeblocks-version: ">=0.8.0"
+  addon.kubeblocks.io/model: "object-storage"
+  addon.kubeblocks.io/provider: "community"

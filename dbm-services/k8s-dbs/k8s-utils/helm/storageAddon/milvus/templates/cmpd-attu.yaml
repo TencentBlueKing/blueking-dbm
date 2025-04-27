@@ -1,0 +1,33 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentDefinition
+metadata:
+  name: {{ include "milvus.attu.cmpdName" . }}
+spec:
+  serviceKind: milvus
+  serviceVersion: {{ .Values.image.attu.tag }}
+  services:
+    - name: attu
+      spec:
+        ports:
+          - name: attu
+            protocol: TCP
+            port: 8080
+            targetPort: 3000
+  vars:
+    - name: PROXY_SVC
+      valueFrom:
+        serviceVarRef:
+          compDef: proxy
+          optional: false
+          host: Required
+  runtime:
+    containers:
+      - name: attu
+        imagePullPolicy: {{ .Values.image.all.pullPolicy }}
+        env:
+          - name: MILVUS_URL
+            value: "http://$(PROXY_SVC)-headless:19530"
+        ports:
+          - name: attu
+            containerPort: 3000
+            protocol: TCP

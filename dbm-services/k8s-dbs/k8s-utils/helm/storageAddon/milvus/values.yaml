@@ -1,0 +1,61 @@
+## Expand the name of the chart
+nameOverride: ""
+
+## Default fully qualified app name
+fullnameOverride: ""
+
+## Declare components image version
+image:
+  registry: docker.io
+  pullPolicy: IfNotPresent
+  all:
+    repository: milvusdb/milvus
+    tag: v2.5.7
+    pullPolicy: IfNotPresent
+  tools:
+    repository: milvusdb/milvus-config-tool
+    tag: v0.1.2
+    pullPolicy: IfNotPresent
+  attu:
+    repository: zilliz/attu
+    tag: v2.5.6
+    pullPolicy: IfNotPresent
+  minio:
+    registry: ""
+    repository: minio/minio
+    tag: RELEASE.2022-03-17T06-34-49Z
+  ostools:
+    registry: ""
+    repository: bitnami/os-shell
+    tag: 11-debian-11-r90
+
+metrics:
+  enabled: true
+
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 90
+  periodSeconds: 30
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 5
+
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 90
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 5
+
+
+queryNode:
+  enabled: true
+  disk:
+    enabled: true  # Enable querynode load disk index, and search on disk index
+
+
+indexNode:
+  enabled: true
+  disk:
+    enabled: true  # Enable index node build disk vector index

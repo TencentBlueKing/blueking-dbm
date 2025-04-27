@@ -1,0 +1,129 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentDefinition
+metadata:
+  name: rw-meta-{{ .Chart.Version}}
+spec:
+  serviceKind: risingwave
+  serviceVersion: 2.2.1  # 修改版本号
+  services:
+    - name: meta
+      spec:
+        ports:
+          - port: 5690
+            targetPort: svc
+            name: svc
+          - port: 5691
+            targetPort: dashboard
+            name: dashboard
+          - port: 1250
+            targetPort: metrics
+            name: metrics
+  configs:
+    - name: risingwave-configuration
+      templateRef: {{ include "risingwave.configTplName" . }}
+      namespace: {{ .Release.Namespace }}
+      volumeName: risingwave-configuration
+  updateStrategy: BestEffortParallel
+  vars:
+    - name: RISINGWAVE_META_COMPONENT_NAME
+      valueFrom:
+        componentVarRef:
+          optional: false
+          componentName: Required
+    - name: CLUSTER_DOMAIN
+      value: ".cluster.local"
+  runtime:
+    containers:
+      - name: meta
+        #image: docker.risingwave.com/risingwavelabs/risingwave:v2.2.1
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          privileged: false
+        command:
+          - /risingwave/bin/risingwave
+          - meta-node
+        env:
+          - name: AWS_EC2_METADATA_DISABLED
+            value: "true"
+          - name: RUST_LOG
+            value: "INFO"
+          - name: RUST_BACKTRACE
+            value: "full"
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: CONTAINER_CPU_LIMIT
+            value: "200m"
+          - name: CONTAINER_MEMORY_LIMIT
+            value: "2147483648"
+          - name: RUST_MIN_STACK
+            value: "4194304"
+          - name: RW_CONFIG_PATH
+            value: "/risingwave/config/risingwave.toml"
+          - name: RW_LISTEN_ADDR
+            value: "0.0.0.0:5690"
+          - name: POD_FQDN
+            value: "$(POD_NAME).$(RISINGWAVE_META_COMPONENT_NAME)-headless.$(KB_NAMESPACE).svc$(CLUSTER_DOMAIN)"
+          - name: RW_ADVERTISE_ADDR
+            value: "$(POD_FQDN):5690"
+          - name: RW_DASHBOARD_HOST
+            value: "0.0.0.0:5691"
+          - name: RW_PROMETHEUS_HOST
+            value: "0.0.0.0:1250"
+        ports:
+          - containerPort: 5690
+            name: svc
+            protocol: TCP
+          - containerPort: 5691
+            name: dashboard
+            protocol: TCP
+          - containerPort: 1250
+            name: metrics
+            protocol: TCP
+        volumeMounts:
+          - name: risingwave-configuration
+            mountPath: /risingwave/config
+        resources:
+          limits:
+            cpu: "200m"
+            memory: "2Gi"
+          requests:
+            cpu: "200m"
+            memory: "2Gi"
+        livenessProbe:
+          failureThreshold: 3
+          tcpSocket:
+            port: svc
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        readinessProbe:
+          failureThreshold: 3
+          tcpSocket:
+            port: svc
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        startupProbe:
+          failureThreshold: 12
+          tcpSocket:
+            port: svc
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds:

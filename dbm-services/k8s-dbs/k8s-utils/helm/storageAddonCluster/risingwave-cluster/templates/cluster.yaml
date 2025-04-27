@@ -1,0 +1,143 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: Cluster
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- toYaml .Values.labels | nindent 4 }}
+  annotations:
+    {{- toYaml .Values.annotations | nindent 4 }}
+spec:
+  clusterDefinitionRef: {{ include "risingwave-cdName" . }}
+  topology: risingwave
+  terminationPolicy: Delete
+  affinity:
+    topologyKeys:
+      - kubernetes.io/hostname
+  componentSpecs:
+    {{- range .Values.componentList }}
+    {{- if eq .componentName "frontend" }}
+    - name: frontend
+      serviceVersion: {{ .serviceVersion }}
+      services:
+        {{- range $serviceIndex, $service := .services }}
+        {{- if eq $service.name "frontend"}}
+        - name: frontend
+          serviceType: {{ $service.serviceType}}
+          {{- if $service.annotations }}
+          annotations:
+            {{- $service.annotations | toYaml | nindent 12 }}
+          {{- end}}
+        {{- end}}
+        {{- end}}
+      {{- with .env }}
+      env:
+        {{- range $key, $value := . }}
+        - name: {{ $key | quote }}
+          value: {{ $value | quote }}
+        {{- end }}
+      {{- end }}
+      replicas: {{ .replicas }}
+      resources:
+        limits:
+          cpu: {{ .resources.limits.cpu }}
+          memory: {{ .resources.limits.memory }}
+        requests:
+          cpu: {{ .resources.requests.cpu }}
+          memory: {{ .resources.requests.memory }}
+    {{- end}}
+
+    {{- if eq .componentName "meta" }}
+    - name: meta
+      serviceVersion: {{ .serviceVersion }}
+      services:
+        {{- range $serviceIndex, $service := .services }}
+        {{- if eq $service.name "meta"}}
+        - name: meta
+          serviceType: {{ $service.serviceType}}
+          {{- if $service.annotations }}
+          annotations:
+            {{- $service.annotations | toYaml | nindent 12 }}
+          {{- end}}
+        {{- end}}
+        {{- end}}
+      {{- with .env }}
+      env:
+        {{- range $key, $value := . }}
+        - name: {{ $key | quote }}
+          value: {{ $value | quote }}
+        {{- end }}
+      {{- end }}
+      replicas: {{ .replicas }}
+      resources:
+        limits:
+          cpu: {{ .resources.limits.cpu }}
+          memory: {{ .resources.limits.memory }}
+        requests:
+          cpu: {{ .resources.requests.cpu }}
+          memory: {{ .resources.requests.memory }}
+    {{- end}}
+
+    {{- if eq .componentName "compute" }}
+    - name: compute
+      serviceVersion: {{ .serviceVersion }}
+      services:
+        {{- range $serviceIndex, $service := .services }}
+        {{- if eq $service.name "compute"}}
+        - name: compute
+          serviceType: {{ $service.serviceType}}
+          {{- if $service.annotations }}
+          annotations:
+            {{- $service.annotations | toYaml | nindent 12 }}
+          {{- end}}
+        {{- end}}
+        {{- end}}
+      {{- with .env }}
+      env:
+        {{- range $key, $value := . }}
+        - name: {{ $key | quote }}
+          value: {{ $value | quote }}
+        {{- end }}
+      {{- end }}
+      replicas: {{ .replicas }}
+      resources:
+        limits:
+          cpu: {{ .resources.limits.cpu }}
+          memory: {{ .resources.limits.memory }}
+        requests:
+          cpu: {{ .resources.requests.cpu }}
+          memory: {{ .resources.requests.memory }}
+    {{- end}}
+
+    {{- if eq .componentName "compactor" }}
+    - name: compactor
+      serviceVersion: {{ .serviceVersion }}
+      services:
+        {{- range $serviceIndex, $service := .services }}
+        {{- if eq $service.name "compactor"}}
+        - name: compactor
+          serviceType: {{ $service.serviceType}}
+          {{- if $service.annotations }}
+          annotations:
+            {{- $service.annotations | toYaml | nindent 12 }}
+          {{- end}}
+        {{- end}}
+        {{- end}}
+      {{- with .env }}
+      env:
+        {{- range $key, $value := . }}
+        - name: {{ $key | quote }}
+          value: {{ $value | quote }}
+        {{- end }}
+      {{- end }}
+      replicas: {{ .replicas }}
+      resources:
+        limits:
+          cpu: {{ .resources.limits.cpu }}
+          memory: {{ .resources.limits.memory }}
+        requests:
+          cpu: {{ .resources.requests.cpu }}
+          memory: {{ .resources.requests.memory }}
+    {{- end}}
+
+    {{- end}}

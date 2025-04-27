@@ -1,0 +1,96 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentDefinition
+metadata:
+  name: tikv-{{ .Chart.Version}}
+  labels:
+    {{- include "tidb.labels" . | nindent 4 }}
+spec:
+  provider: kubeblocks
+  description: a distributed transactional key-value database
+  updateStrategy: BestEffortParallel
+  vars:
+    - name: PD_HOST
+      valueFrom:
+        serviceVarRef:
+          compDef: pd-{{ .Chart.Version}}
+          host: Required
+    - name: PD_PORT
+      valueFrom:
+        serviceVarRef:
+          compDef: pd-{{ .Chart.Version}}
+          port:
+            name: client
+    - name: PD_ADDRESS
+      value: "$(PD_HOST).$(KB_NAMESPACE).svc{{ .Values.clusterDomain }}:$(PD_PORT)"
+    - name: TIKV_HEADLESS_SVC_HOST
+      valueFrom:
+        serviceVarRef:
+          name: headless
+          # FIXME: this has to be optional, cause when component is reconciling,
+          # headless svc is not yet created by instanceset
+          optional: true
+          host: Required
+    - name: TIKV_HEADLESS_SVC_ADDRESS
+      value: "$(TIKV_HEADLESS_SVC_HOST).$(KB_NAMESPACE).svc{{ .Values.clusterDomain }}:20160"
+  runtime:
+    containers:
+      - name: tikv
+        imagePullPolicy: IfNotPresent
+        ports:
+          - containerPort: 20160
+            name: peer
+          - containerPort: 20180
+            name: status
+        env:
+          - name: SERVICE_PORT
+            value: "20180"
+        volumeMounts:
+          - name: data
+            mountPath: /var/lib/tikv
+          - name: config
+            mountPath: /etc/tikv
+        command:
+          - bin/sh
+          - -c
+          - |
+            echo "start tikv..."
+            DOMAIN=$KB_NAMESPACE".svc{{ .Values.clusterDomain }}"
+            exec /tikv-server --pd=http://${PD_ADDRESS} \
+            --data-dir=/var/lib/tikv \
+            --addr=0.0.0.0:20160 \
+            --advertise-addr=${KB_POD_FQDN}{{ .Values.clusterDomain }}:20160 \
+            --status-addr=0.0.0.0:20180 \
+            --config=/etc/tikv/tikv.toml
+  volumes:
+    - name: data
+      needSnapshot: true
+  configs:
+    - name: tikv-configuration
+      templateRef: {{ include "tidb.tikv.configTplName" . }}-{{ .Chart.Version}}
+      constraintRef: {{ include "tidb.tikv.configConstraintName" . }}-{{ .Chart.Version}}
+      namespace: {{ .Release.Namespace }}
+      volumeName: config
+  lifecycleActions:
+    memberLeave:
+      customHandler:
+        image: {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.pd.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}
+        exec:
+          command:
+            - bash
+            - -c
+            - |
+              {{- .Files.Get "scripts/tikv_member_leave.sh" | nindent 14 }}
+  exporter:
+    containerName: tikv
+    scrapePort: "20180"
+  services:
+    - name: tikv
+      spec:
+        ports:
+          - name: peer
+            port: 20160
+            targetPort: peer
+          - name: status
+            port: 20180
+            targetPort: status
+

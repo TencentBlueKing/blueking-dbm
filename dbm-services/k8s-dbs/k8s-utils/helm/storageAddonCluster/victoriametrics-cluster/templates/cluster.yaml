@@ -1,0 +1,119 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: Cluster
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- toYaml .Values.labels | nindent 4 }}
+  annotations:
+    {{- toYaml .Values.annotations | nindent 4 }}
+spec:
+  clusterDefinitionRef: {{ include "victoriametrics-cdName" . }}
+  topology: {{ .Values.topoName}}
+  terminationPolicy: {{ .Values.terminationPolicy}}
+  componentSpecs:
+    {{- range .Values.componentList }}
+    {{- if eq .componentName "insert" }}
+    - name: insert
+      serviceVersion: {{ .serviceVersion }}
+      services:
+        {{- range $serviceIndex, $service := .services }}
+        {{- if eq $service.name "insert"}}
+        - name: insert
+          serviceType: {{ $service.serviceType}}
+          {{- if $service.annotations }}
+          annotations:
+            {{- $service.annotations | toYaml | nindent 12 }}
+          {{- end}}
+        {{- end}}
+        {{- end}}
+      {{- with .env }}
+      env:
+        {{- range $key, $value := . }}
+        - name: {{ $key | quote }}
+          value: {{ $value | quote }}
+        {{- end }}
+      {{- end }}
+      replicas: {{ .replicas }}
+      resources:
+        limits:
+          cpu: {{ .resources.limits.cpu }}
+          memory: {{ .resources.limits.memory }}
+        requests:
+          cpu: {{ .resources.requests.cpu }}
+          memory: {{ .resources.requests.memory }}
+    {{- end}}
+
+    {{- if eq .componentName "select" }}
+    - name: select
+      serviceVersion: {{ .serviceVersion }}
+      services:
+        {{- range $serviceIndex, $service := .services }}
+        {{- if eq $service.name "select"}}
+        - name: select
+          serviceType: {{ $service.serviceType}}
+          {{- if $service.annotations }}
+          annotations:
+            {{- $service.annotations | toYaml | nindent 12 }}
+          {{- end}}
+        {{- end}}
+        {{- end}}
+      {{- with .env }}
+      env:
+        {{- range $key, $value := . }}
+        - name: {{ $key | quote }}
+          value: {{ $value | quote }}
+        {{- end }}
+      {{- end }}
+      replicas: {{ .replicas }}
+      resources:
+        limits:
+          cpu: {{ .resources.limits.cpu }}
+          memory: {{ .resources.limits.memory }}
+        requests:
+          cpu: {{ .resources.requests.cpu }}
+          memory: {{ .resources.requests.memory }}
+    {{- end}}
+
+    {{- if eq .componentName "storage" }}
+    - name: storage
+      serviceVersion: {{ .serviceVersion }}
+      services:
+        {{- range $serviceIndex, $service := .services }}
+        {{- if eq $service.name "storage"}}
+        - name: storage
+          serviceType: {{ $service.serviceType}}
+          {{- if $service.annotations }}
+          annotations:
+            {{- $service.annotations | toYaml | nindent 12 }}
+          {{- end}}
+        {{- end}}
+        {{- end}}
+      {{- with .env }}
+      env:
+        {{- range $key, $value := . }}
+        - name: {{ $key | quote }}
+          value: {{ $value | quote }}
+        {{- end }}
+      {{- end }}
+      replicas: {{ .replicas }}
+      resources:
+        limits:
+          cpu: {{ .resources.limits.cpu }}
+          memory: {{ .resources.limits.memory }}
+        requests:
+          cpu: {{ .resources.requests.cpu }}
+          memory: {{ .resources.requests.memory }}
+      volumeClaimTemplates:
+        - name: data
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: {{ .storage }}
+            #storageClassName: null
+            volumeMode: Filesystem
+    {{- end}}
+
+    {{- end}}

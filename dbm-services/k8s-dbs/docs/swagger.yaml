@@ -1,0 +1,145 @@
+basePath: /v4/dbs
+host: localhost:8000
+info:
+  contact:
+    email: support@example.com
+    name: API Support
+  description: This is the API documentation for DBS project.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: DBS API
+  version: "1.0"
+paths:
+  /api/v1/{dbType}/create:
+    post:
+      consumes:
+      - application/json
+      description: 创建数据库的操作，传入数据库相关创建参数，数据库类型通过路径参数指定
+      parameters:
+      - description: 数据库类型
+        in: path
+        name: dbType
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: 创建数据库
+      tags:
+      - DB
+  /api/v1/{dbType}/create/cluster:
+    post:
+      consumes:
+      - application/json
+      description: 根据传入的参数创建对应的集群，数据库类型通过路径参数指定，集群详细数据通过请求体传入
+      parameters:
+      - description: 数据库类型
+        in: path
+        name: dbType
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: 创建集群
+      tags:
+      - DB
+  /api/v1/{dbType}/create/clusterDefinition:
+    post:
+      consumes:
+      - application/json
+      description: 创建集群定义相关操作，需传入相应的集群定义数据，数据库类型通过路径参数指定
+      produces:
+      - application/json
+      responses: {}
+      summary: 创建集群定义
+      tags:
+      - DB
+  /api/v1/{dbType}/create/componentDefinition:
+    post:
+      consumes:
+      - application/json
+      description: 用于创建组件定义，传入对应组件定义数据，指定数据库类型作为路径参数
+      parameters:
+      - description: 数据库类型
+        in: path
+        name: dbType
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: 创建组件定义
+      tags:
+      - DB
+  /api/v1/{dbType}/create/componentVersion:
+    post:
+      consumes:
+      - application/json
+      description: 执行创建组件版本的操作，按要求传入组件版本相关数据，数据库类型通过路径参数给出
+      parameters:
+      - description: 数据库类型
+        in: path
+        name: dbType
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: 创建组件版本
+      tags:
+      - DB
+  /api/v1/{dbType}/delete:
+    post:
+      consumes:
+      - application/json
+      description: 删除指定的数据库，通过路径参数指定数据库类型，可能还需其他确认参数（根据实际情况）
+      parameters:
+      - description: 数据库类型
+        in: path
+        name: dbType
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: 删除数据库
+      tags:
+      - DB
+  /api/v1/{dbType}/horizontalScaling:
+    post:
+      consumes:
+      - application/json
+      description: 针对指定数据库类型相关资源执行水平缩放操作，传入水平缩放相关参数（按实际需求），数据库类型通过路径参数给出
+      parameters:
+      - description: 数据库类型
+        in: path
+        name: dbType
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: 水平缩放操作
+      tags:
+      - DB
+  /api/v1/{dbType}/verticalScaling:
+    post:
+      consumes:
+      - application/json
+      description: 对指定数据库类型对应的资源进行垂直缩放操作，传入垂直缩放相关参数（根据实际情况），数据库类型通过路径参数指定
+      parameters:
+      - description: 数据库类型
+        in: path
+        name: dbType
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: 垂直缩放操作
+      tags:
+      - DB
+swagger: "2.0"

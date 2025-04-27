@@ -1,0 +1,91 @@
+# 引用的addon版本
+addonVersion: 1.0.0
+
+# 元数据
+clusterName: surreal-cluster
+namespace: demo
+labels:
+  app: surreal
+annotations:
+  description: A surreal cluster
+
+# 集群规格
+terminationPolicy: Delete
+topoName: surreal-tikv
+componentList:
+  - componentName: surreal
+    serviceVersion: "2.2.1"
+    services:
+      - name: surreal
+        serviceType: ClusterIP
+        annotations:
+    # Env
+    env:
+      SURREAL_PASS: "surreal"
+      SURREAL_USER: "root"
+    replicas: 1
+    resources:
+      requests:
+        cpu: 500m
+        memory: 512Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    storage: "10Gi"
+  - componentName: pd
+    serviceVersion: "7.5.2"
+    services:
+      - name: pd
+        serviceType: ClusterIP
+        annotations:
+    env:
+    replicas: 1
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 500m
+        memory: 512Mi
+    storage: "20Gi"
+    tolerations: [ ]
+  - componentName: tikv
+    serviceVersion: "7.5.2"
+    services:
+      - name: tikv
+        serviceType: ClusterIP
+        annotations:
+    env:
+    replicas: 1
+    resources:
+      limits:
+        cpu: 2
+        memory: 2Gi
+      requests:
+        cpu: 2
+        memory: 2Gi
+    storage: "20Gi"
+    tolerations: [ ]
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: "30s"
+    scrapeTimeout: "10s"
+    additionalLabels: {}
+
+appVersionOverride: ""
+
+tolerations: []
+
+topologyKeys:
+  - kubernetes.io/hostname
+
+# The RBAC permission used by cluster component pod, now include event.create
+serviceAccount:
+  name: ""
+
+extra:
+  ## @param terminationPolicy define Cluster termination policy. One of DoNotTerminate, Halt, Delete, WipeOut.
+  terminationPolicy: Delete

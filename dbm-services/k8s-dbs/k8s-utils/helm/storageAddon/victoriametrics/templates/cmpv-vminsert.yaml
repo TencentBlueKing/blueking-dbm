@@ -1,0 +1,15 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentVersion
+metadata:
+  name: {{ include "victoriametrics-insert.cmpvName" . }}
+spec:
+  compatibilityRules:
+    - releases:
+        - vminsert-1.93.10
+      compDefs:
+        - {{ include "victoriametrics-insert.cmpdName" . }}
+  releases:
+    - name: vminsert-1.93.10
+      serviceVersion: 1.93.10
+      images:
+        insert: victoriametrics/vminsert:v1.93.10-cluster

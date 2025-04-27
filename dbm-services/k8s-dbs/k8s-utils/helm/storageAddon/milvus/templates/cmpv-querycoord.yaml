@@ -1,0 +1,15 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentVersion
+metadata:
+  name: {{ include "milvus.querycoord.cmpdName" . }}
+spec:
+  compatibilityRules:
+    - releases:
+        - querycoord-v2.5.7
+      compDefs:
+        - {{ include "milvus.querycoord.cmpdName" . }}
+  releases:
+    - name: querycoord-v2.5.7
+      serviceVersion: 2.5.7
+      images:
+        querycoord: "{{ .Values.image.all.repository }}:{{ .Values.image.all.tag }}"

@@ -1,0 +1,15 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentVersion
+metadata:
+  name: {{ include "milvus.proxy.cmpdName" . }}
+spec:
+  compatibilityRules:
+    - releases:
+        - proxy-v2.5.7
+      compDefs:
+        - {{ include "milvus.proxy.cmpdName" . }}
+  releases:
+    - name: proxy-v2.5.7
+      serviceVersion: 2.5.7
+      images:
+        proxy: "{{ .Values.image.all.repository }}:{{ .Values.image.all.tag }}"

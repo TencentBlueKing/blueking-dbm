@@ -1,0 +1,15 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentVersion
+metadata:
+  name: {{ include "milvus.rootcoord.cmpdName" . }}
+spec:
+  compatibilityRules:
+    - releases:
+        - rootcoord-v2.5.7
+      compDefs:
+        - {{ include "milvus.rootcoord.cmpdName" . }}
+  releases:
+    - name: rootcoord-v2.5.7
+      serviceVersion: 2.5.7
+      images:
+        rootcoord: "{{ .Values.image.all.repository }}:{{ .Values.image.all.tag }}"

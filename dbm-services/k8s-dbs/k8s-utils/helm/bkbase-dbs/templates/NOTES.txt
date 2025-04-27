@@ -1,0 +1,14 @@
+感谢安装 蓝鲸基础计算平台 Dbs 模块，对应的 Release 为 {{ .Release.Name }}。
+
+如需确认服务是否正常，请访问以下地址进行验证(集群内)：
+    echo "URL : http://{{ include "common.names.fullname" . }}-api:{{ .Values.server.port }}/common/health"
+
+同时也可以通过命令行来查看安装状况：
+
+$ helm status {{ .Release.Name }} -n {{ .Release.Namespace }}
+$ helm get all {{ .Release.Name }} -n {{ .Release.Namespace }}
+
+如需卸载，请执行：
+$ helm uninstall {{ .Release.Name }} -n {{ .Release.Namespace }}
+
+祝你的蓝鲸体验之旅愉快！

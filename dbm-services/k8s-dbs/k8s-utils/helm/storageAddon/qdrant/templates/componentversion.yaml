@@ -1,0 +1,42 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentVersion
+metadata:
+  name: qdrant
+  labels:
+    {{- include "qdrant.labels" . | nindent 4 }}
+spec:
+  compatibilityRules:
+  - compDefs:
+    - qdrant
+    releases:
+    - 1.5.0
+    - 1.7.3
+    - 1.8.1
+    - 1.8.4
+    - 1.10.0
+  releases:
+  - name: 1.5.0
+    serviceVersion: 1.5.0
+    images:
+      qdrant: {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.repository}}:v1.5.0
+      qdrant-tools:  {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.tools.repository }}:{{ .Values.image.tools.tag | default "latest" }}
+  - name: 1.7.3
+    serviceVersion: 1.7.3
+    images:
+      qdrant: {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.repository}}:v1.7.3
+      qdrant-tools:  {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.tools.repository }}:{{ .Values.image.tools.tag | default "latest" }}
+  - name: 1.8.1
+    serviceVersion: 1.8.1
+    images:
+      qdrant: {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.repository}}:v1.8.1
+      qdrant-tools:  {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.tools.repository }}:{{ .Values.image.tools.tag | default "latest" }}
+  - name: 1.8.4
+    serviceVersion: 1.8.4
+    images:
+      qdrant: {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.repository}}:v1.8.4
+      qdrant-tools:  {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.tools.repository }}:{{ .Values.image.tools.tag | default "latest" }}
+  - name: 1.10.0
+    serviceVersion: 1.10.0
+    images:
+      qdrant: {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.repository}}:v1.10.0
+      qdrant-tools:  {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.tools.repository }}:{{ .Values.image.tools.tag | default "latest" }}

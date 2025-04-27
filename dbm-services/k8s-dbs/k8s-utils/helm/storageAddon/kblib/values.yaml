@@ -1,0 +1,3 @@
+# Common values for charts
+# If set to true, configure the annotation "helm.sh/resource-policy: keep"
+keepResource: true

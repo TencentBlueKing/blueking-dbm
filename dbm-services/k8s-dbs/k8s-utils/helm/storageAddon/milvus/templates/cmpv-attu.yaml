@@ -1,0 +1,15 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentVersion
+metadata:
+  name: {{ include "milvus.attu.cmpdName" . }}
+spec:
+  compatibilityRules:
+    - releases:
+        - attu-v2.5.6
+      compDefs:
+        - {{ include "milvus.attu.cmpdName" . }}
+  releases:
+    - name: attu-v2.5.6
+      serviceVersion: 2.5.6
+      images:
+        attu: {{ .Values.image.attu.repository }}:{{ .Values.image.attu.tag }}
