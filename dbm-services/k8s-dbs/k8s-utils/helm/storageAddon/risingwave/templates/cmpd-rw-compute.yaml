@@ -1,0 +1,145 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentDefinition
+metadata:
+  name: rw-compute-{{ .Chart.Version}}
+spec:
+  serviceKind: risingwave
+  serviceVersion: 2.2.1  # 修改版本号
+  services:
+    - name: compute
+      spec:
+        ports:
+          - port: 5688
+            targetPort: svc
+            name: svc
+          - port: 1222
+            targetPort: metrics
+            name: metrics
+  configs:
+    - name: risingwave-configuration
+      templateRef: {{ include "risingwave.configTplName" . }}
+      namespace: {{ .Release.Namespace }}
+      volumeName: risingwave-configuration
+    - name: risingwave-compute-envs
+      templateRef: {{ include "risingwave-compute.envConfigTplName" . }}
+      namespace: {{ .Release.Namespace }}
+      volumeName: risingwave-compute-envs
+      asEnvFrom:
+        - compute
+  updateStrategy: BestEffortParallel
+  vars:
+    # - name: CONNECTOR_SVC
+    #  valueFrom:
+    #   serviceVarRef:
+    #    compDef: risingwave-connector
+    #   optional: false
+    #  host: Required
+    - name: META_SVC
+      valueFrom:
+        serviceVarRef:
+          compDef: rw-meta-{{ .Chart.Version}}
+          optional: false
+          host: Required
+    - name: RISINGWAVE_COMPUTE_COMPONENT_NAME
+      valueFrom:
+        componentVarRef:
+          optional: false
+          componentName: Required
+    - name: CLUSTER_DOMAIN
+      value: ".cluster.local"
+  runtime:
+    containers:
+      - name: compute
+        #image: docker.risingwave.com/risingwavelabs/risingwave:v2.2.1
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          privileged: false
+        command:
+          - /risingwave/bin/risingwave
+          - compute-node
+        env:
+          - name: AWS_EC2_METADATA_DISABLED
+            value: "true"
+          - name: RUST_LOG
+            value: "INFO"
+          - name: RUST_BACKTRACE
+            value: "full"
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: CONTAINER_CPU_LIMIT
+            value: "1"
+          - name: CONTAINER_MEMORY_LIMIT
+            value: "2147483648"
+          - name: RUST_MIN_STACK
+            value: "4194304"
+          - name: RW_CONFIG_PATH
+            value: "/risingwave/config/risingwave.toml"
+          - name: RW_LISTEN_ADDR
+            value: "0.0.0.0:5688"
+          - name: POD_FQDN
+            value: "$(POD_NAME).$(RISINGWAVE_COMPUTE_COMPONENT_NAME)-headless.$(KB_NAMESPACE).svc$(CLUSTER_DOMAIN)"
+          - name: RW_ADVERTISE_ADDR
+            value: "$(POD_FQDN):5688"
+          - name: RW_META_ADDR
+            value: "load-balance+http://$(META_SVC)-headless:5690"
+          - name: RW_PROMETHEUS_LISTENER_ADDR
+            value: "0.0.0.0:1222"
+          - name: RW_PARALLELISM
+            value: "$(CONTAINER_CPU_LIMIT)"
+          - name: RW_TOTAL_MEMORY_BYTES
+            value: "$(CONTAINER_MEMORY_LIMIT)"
+        ports:
+          - containerPort: 5688
+            name: svc
+            protocol: TCP
+          - containerPort: 1222
+            name: metrics
+            protocol: TCP
+        resources:
+          limits:
+            cpu: "200m"
+            memory: "2Gi"
+          requests:
+            cpu: "200m"
+            memory: "2Gi"
+        volumeMounts:
+          - name: risingwave-configuration
+            mountPath: /risingwave/config
+        livenessProbe:
+          failureThreshold: 3
+          tcpSocket:
+            port: svc
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        readinessProbe:
+          failureThreshold: 3
+          tcpSocket:
+            port: svc
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        startupProbe:
+          failureThreshold: 12
+          tcpSocket:
+            port: svc
+          initialDelaySeconds: 2
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 5

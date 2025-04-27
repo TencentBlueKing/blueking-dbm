@@ -1,0 +1,36 @@
+{{- if .Values.ingress.enabled }}
+{{- $port := .Values.server.port }}
+apiVersion: {{ include "common.capabilities.ingress.apiVersion" . }}
+kind: Ingress
+metadata:
+  name: k8s-dbs-ingress
+  {{- if .Values.ingress.annotations }}
+  annotations:
+    {{- range $key, $value := .Values.ingress.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /v1/
+            {{- if semverCompare ">=1.18-0" $.Capabilities.KubeVersion.GitVersion }}
+            pathType: Prefix
+            {{- end }}
+            backend:
+              {{- if semverCompare ">=1.19-0" $.Capabilities.KubeVersion.GitVersion }}
+              service:
+                name: k8s-dbs-api
+                port:
+                  number: {{ $port }}
+              {{- else }}
+              serviceName: k8s-dbs-api
+              servicePort: {{ $port }}
+              {{- end }}
+    {{- end }}
+  {{- if .Values.ingress.tls }}
+  tls:
+    {{- .Values.ingress.tls | toYaml | trimSuffix "\n" | nindent 4 }}
+  {{- end }}

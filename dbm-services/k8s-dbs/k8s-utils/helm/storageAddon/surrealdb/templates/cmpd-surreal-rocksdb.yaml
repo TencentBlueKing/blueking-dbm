@@ -1,0 +1,53 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentDefinition
+metadata:
+  name: surreal-rocksdb-{{ .Chart.Version}}
+spec:
+  serviceVersion: "2.2.1"
+  serviceKind: surreal
+  services:
+    - name: surreal
+      spec:
+        ports:
+          - name: http
+            port: 8000
+            targetPort: http
+  runtime:
+    securityContext:
+      fsGroup: 999
+      runAsGroup: 999
+      runAsUser: 999
+    containers:
+      - name: surreal
+        imagePullPolicy: IfNotPresent
+        args:
+          - start
+          - rocksdb:/var/lib/surrealdb
+        env:
+          - name: SURREAL_NO_BANNER
+            value: "true"
+          - name: SURREAL_LOG
+            value: "info"
+          - name: SURREAL_BIND
+            value: "0.0.0.0:8000"
+          - name: SURREAL_AUTH
+            value: "true"
+          - name: SURREAL_UNAUTHENTICATED
+            value: "false"
+          - name: SURREAL_PATH
+            value: "rocksdb:/var/lib/surrealdb"
+        volumeMounts:
+          - name: surreal-volume
+            mountPath: /var/lib
+        ports:
+          - containerPort: 8000
+            name: http
+            protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000

@@ -1,0 +1,61 @@
+# 引用的addon版本
+addonVersion: 1.0.0
+
+# 元数据
+clusterName: victoriametrics-cluster
+namespace: demo
+labels:
+annotations:
+
+# 集群规格
+terminationPolicy: Delete
+topoName: victoriametrics
+componentList:
+  - componentName: insert
+    serviceVersion: "1.93.10"
+    services:
+      - name: insert
+        serviceType: ClusterIP
+        annotations:
+    env:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+
+  - componentName: select
+    serviceVersion: "1.93.10"
+    services:
+      - name: select
+        serviceType: ClusterIP
+        annotations:
+    env:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+
+  - componentName: storage
+    serviceVersion: "1.93.10"
+    services:
+      - name: storage
+        serviceType: ClusterIP
+        annotations:
+    env:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    storage: "10Gi"

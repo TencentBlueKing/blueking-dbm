@@ -1,0 +1,31 @@
+# Default values for qdrant.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+
+nameOverride: ""
+fullnameOverride: ""
+
+
+## @param commonLabels Labels to add to all deployed objects
+##
+commonLabels: {}
+
+## @param application images
+##
+image:
+  registry: mirror.ccs.tencentyun.com
+  repository: qdrant/qdrant
+  pullPolicy: IfNotPresent
+  tag: "v1.8.4"
+  tools:
+    repository: apecloud/curl-jq
+    tag: 0.1.0
+
+## @param debugEnabled enables containers' debug logging
+##
+debugEnabled: true
+
+dataMountPath: /qdrant/storage
+
+clusterDomain: ".cluster.local"

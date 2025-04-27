@@ -1,0 +1,69 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentDefinition
+metadata:
+  name: {{ include "milvus.datanode.cmpdName" . }}
+spec:
+  serviceKind: milvus
+  serviceVersion: {{ .Values.image.all.tag }}
+  services:
+    - name: datanode
+      spec:
+        ports:
+          - name: metrics
+            protocol: TCP
+            port: 9091
+            targetPort: metrics
+  runtime:
+    containers:
+      - name: datanode
+        imagePullPolicy: {{ .Values.image.all.pullPolicy }}
+        args:
+          - milvus
+          - run
+          - datanode
+        ports:
+          - name: datanode
+            containerPort: 21124
+            protocol: TCP
+          - name: metrics
+            containerPort: 9091
+            protocol: TCP
+        {{- if .Values.livenessProbe.enabled }}
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: metrics
+          initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+          successThreshold: {{ .Values.livenessProbe.successThreshold }}
+          failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+        {{- end }}
+        {{- if .Values.readinessProbe.enabled }}
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: metrics
+          initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+          successThreshold: {{ .Values.readinessProbe.successThreshold }}
+          failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+        {{- end }}
+        volumeMounts:
+          - name: milvus-config
+            mountPath: /milvus/configs/default.yaml
+            subPath: default.yaml
+            readOnly: true
+          - name: milvus-config
+            mountPath: /milvus/configs/user.yaml
+            subPath: user.yaml
+            readOnly: true
+          - mountPath: /milvus/tools
+            name: tools
+    volumes:
+      - name: milvus-config
+        configMap:
+          name: milvus-config
+      - name: tools
+        emptyDir: {}

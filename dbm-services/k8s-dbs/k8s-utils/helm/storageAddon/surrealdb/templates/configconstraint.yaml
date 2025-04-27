@@ -1,0 +1,86 @@
+# it looks like a configconstraint must be present, 
+# so that changes to configmap will trigger a pod restart
+# 
+# TODO: support dynamically config modification for tikv
+---
+apiVersion: apps.kubeblocks.io/v1beta1
+kind: ConfigConstraint
+metadata:
+  name: {{ include "tidb.tikv.configConstraintName" . }}-{{ .Chart.Version}}
+  labels:
+    {{- include "tidb.labels" . | nindent 4 }}
+spec:
+  fileFormatConfig:
+    format: toml
+---
+# some pd's configs are stored in etcd, and must be updated dynamically 
+# https://docs.pingcap.com/tidb/stable/dynamic-config#modify-pd-configuration-dynamically
+apiVersion: apps.kubeblocks.io/v1beta1
+kind: ConfigConstraint
+metadata:
+  name: {{ include "tidb.pd.configConstraintName" . }}-{{ .Chart.Version}}
+  labels:
+    {{- include "tidb.labels" . | nindent 4 }}
+spec:
+  fileFormatConfig:
+    format: toml
+
+  reloadAction:
+    # execute action in one pod is enough
+    targetPodSelector:
+      matchLabels:
+        kubeblocks.io/role: leader
+    shellTrigger:
+      sync: true
+      command:
+        - "update-pd-config.sh"
+      scriptConfig:
+        scriptConfigMapRef: {{ include "tidb.cmScriptsName" . }}-{{ .Chart.Version}}
+        namespace: {{ .Release.Namespace }}
+      toolsSetup:
+        mountPoint: /kb-tools
+        toolConfigs:
+          - name: init-pd-ctl
+            command:
+              - cp
+              - /pd-ctl
+              - /kb-tools/pd-ctl
+            image: "{{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.pd.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+
+  dynamicParameters:
+    - log.level
+    - cluster-version
+    - schedule.max-merge-region-size
+    - schedule.max-merge-region-keys
+    - schedule.patrol-region-interval
+    - schedule.split-merge-interval
+    - schedule.max-snapshot-count
+    - schedule.max-pending-peer-count
+    - schedule.max-store-down-time
+    - schedule.leader-schedule-policy
+    - schedule.leader-schedule-limit
+    - schedule.region-schedule-limit
+    - schedule.replica-schedule-limit
+    - schedule.merge-schedule-limit
+    - schedule.hot-region-schedule-limit
+    - schedule.hot-region-cache-hits-threshold
+    - schedule.high-space-ratio
+    - schedule.low-space-ratio
+    - schedule.tolerant-size-ratio
+    - schedule.enable-remove-down-replica
+    - schedule.enable-replace-offline-replica
+    - schedule.enable-make-up-replica
+    - schedule.enable-remove-extra-replica
+    - schedule.enable-location-replacement
+    - schedule.enable-cross-table-merge
+    - schedule.enable-one-way-merge
+    - replication.max-replicas
+    - replication.location-labels
+    - replication.enable-placement-rules
+    - replication.strictly-match-label
+    - pd-server.use-region-storage
+    - pd-server.max-gap-reset-ts
+    - pd-server.key-type
+    - pd-server.metric-storage
+    - pd-server.dashboard-address
+    - replication-mode.replication-mode

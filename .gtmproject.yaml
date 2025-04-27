@@ -33,4 +33,5 @@ project:
     - sqlserver
     - dbm-services
     - helm-charts
+    - k8s-dbs
     - other

@@ -1,0 +1,38 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: Cluster
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  topology: cluster
+  clusterDefinitionRef: qdrant-{{ .Chart.Version }}
+  terminationPolicy: {{ .Values.terminationPolicy }}
+  componentSpecs:
+    {{- range .Values.componentList }}
+    - name: {{ .componentName }}
+      componentDef: {{ .componentDef }}
+      {{- with .env }}
+      env:
+        {{- range $key, $value := . }}
+        - name: {{ $key | quote }}
+          value: {{ $value | quote }}
+        {{- end }}
+      {{- end }}
+      replicas: {{ .replicas }}
+      resources:
+        limits:
+          cpu: {{ .resources.limits.cpu | quote }}
+          memory: {{ .resources.limits.memory | quote }}
+        requests:
+          cpu: {{ .resources.requests.cpu | quote }}
+          memory: {{ .resources.requests.memory | quote }}
+      volumeClaimTemplates:
+        - name: data
+          spec:
+            storageClassName: ""
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: {{ .storage }}
+    {{- end}}

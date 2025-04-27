@@ -1,0 +1,82 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentDefinition
+metadata:
+  name: {{ include "victoriametrics-storage.cmpdName" . }}
+spec:
+  serviceKind: victoriametrics
+  serviceVersion: 1.93.10
+  updateStrategy: BestEffortParallel
+  exporter:
+    scrapePath: /metrics
+    scrapePort: http
+  services:
+    - name: vmstorage
+      podService: true
+      spec:
+        ports:
+          - name: http
+            port: {{ .Values.vmstorage.servicePort }}
+            targetPort: http
+            protocol: TCP
+          - name: vmselect
+            port: {{ .Values.vmstorage.vmselectPort }}
+            targetPort: vmselect
+            protocol: TCP
+          - name: insert
+            port: {{ .Values.vmstorage.vminsertPort }}
+            targetPort: vminsert
+            protocol: TCP
+  runtime:
+    automountServiceAccountToken: true
+    terminationGracePeriodSeconds: 60
+    containers:
+      - name: storage
+        imagePullPolicy: IfNotPresent
+        args:
+          - --retentionPeriod=1
+          - --storageDataPath=/storage
+          {{- range $key, $value := .Values.vmstorage.extraArgs }}
+          - --{{ $key }}={{ $value }}
+          {{- end }}
+          - --httpListenAddr=:{{ .Values.vmstorage.servicePort }}
+          - --vminsertAddr=:{{ .Values.vmstorage.vminsertPort }}
+          - --vmselectAddr=:{{ .Values.vmstorage.vmselectPort }}
+          {{- if .Values.enableTCP6 }}
+          - --enableTCP6=true
+          {{- end }}
+        env:
+          - name: SERVICE_PORT
+            value: "{{ .Values.vmstorage.servicePort }}"
+        ports:
+          - containerPort: {{ .Values.vmstorage.servicePort }}
+            name: http
+          - containerPort: {{ .Values.vmstorage.vminsertPort }}
+            name: vminsert
+          - containerPort: {{ .Values.vmstorage.vmselectPort }}
+            name: vmselect
+        volumeMounts:
+          - mountPath: /storage
+            name: data
+        resources:
+          limits:
+            cpu: "1"
+            memory: "2Gi"
+          requests:
+            cpu: "1"
+            memory: "2Gi"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 3
+        livenessProbe:
+          tcpSocket:
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 3

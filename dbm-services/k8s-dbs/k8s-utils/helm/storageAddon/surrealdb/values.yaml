@@ -1,0 +1,27 @@
+# Default values for tidb.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+image:
+  registry: docker.io
+  br:
+    repository: apecloud/br
+  pd:
+    repository: apecloud/pd
+  tidb:
+    repository: apecloud/tidb
+  tikv:
+    repository: apecloud/tikv
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "v7.1.5"
+  helper:
+    ## if the value of image.helper.registry is not specified using `--set`, it will be set to the value of 'image.registry' by default
+    registry: ""
+    repository: "apecloud/busybox"
+    tag: 1.35
+    pullPolicy: IfNotPresent
+
+clusterVersionOverride: ""
+
+clusterDomain: ".cluster.local"

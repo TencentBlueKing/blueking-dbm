@@ -1,0 +1,19 @@
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    app: {{ .Release.Name }}
+  name: k8s-dbs-api
+  namespace: {{ .Release.Namespace }}
+spec:
+  {{- if .Values.ipFamily }}
+  {{- toYaml .Values.ipFamily | nindent 2 }}
+  {{- end }}
+  ports:
+    - port: {{ .Values.server.port }}
+      targetPort: {{ .Values.server.port }}
+      protocol: TCP
+      name: api
+  selector:
+    app: k8s-dbs
+  type: {{ .Values.server.serviceType }}

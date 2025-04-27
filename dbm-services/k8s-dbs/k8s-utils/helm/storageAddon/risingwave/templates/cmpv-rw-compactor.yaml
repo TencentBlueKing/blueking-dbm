@@ -1,0 +1,15 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentVersion
+metadata:
+  name: rw-compactor-{{ .Chart.Version}}
+spec:
+  compatibilityRules:
+    - releases:
+        - compactor-2.2.1
+      compDefs:
+        - rw-compactor-{{ .Chart.Version}}
+  releases:
+    - name: compactor-2.2.1
+      serviceVersion: 2.2.1
+      images:
+        compactor: docker.risingwave.com/risingwavelabs/risingwave:v2.2.1

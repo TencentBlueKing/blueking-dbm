@@ -1,0 +1,15 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentVersion
+metadata:
+  name: {{ include "milvus.indexnode.cmpdName" . }}
+spec:
+  compatibilityRules:
+    - releases:
+        - indexnode-v2.5.7
+      compDefs:
+        - {{ include "milvus.indexnode.cmpdName" . }}
+  releases:
+    - name: indexnode-v2.5.7
+      serviceVersion: 2.5.7
+      images:
+        indexnode: "{{ .Values.image.all.repository }}:{{ .Values.image.all.tag }}"

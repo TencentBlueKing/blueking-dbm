@@ -1,0 +1,92 @@
+/*
+TencentBlueKing is pleased to support the open source community by making
+蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+
+Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+
+Licensed under the MIT License (the "License");
+you may not use this file except in compliance with the License.
+
+You may obtain a copy of the License at
+https://opensource.org/licenses/MIT
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package client
+
+import (
+	"fmt"
+	"k8s-dbs/config"
+	"log"
+	"log/slog"
+	"os"
+	"strconv"
+	"time"
+
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
+)
+
+var Db database
+
+type database struct {
+	GormDb *gorm.DB
+}
+
+func localConfig() (*config.DatabaseConfig, error) {
+	cfg := &config.DatabaseConfig{}
+	cfg.Host = os.Getenv("HOST")
+	cfg.Port, _ = strconv.Atoi(os.Getenv("PORT"))
+	cfg.User = os.Getenv("USER")
+	cfg.Password = os.Getenv("PASSWORD")
+	cfg.Database = os.Getenv("DATABASE")
+	cfg.DBName = os.Getenv("DBNAME")
+	cfg.TLSMode = os.Getenv("TLSMODE")
+	cfg.MaxOpenConns, _ = strconv.Atoi(os.Getenv("MAX_OPEN_CONN"))
+	cfg.MaxIdleConns, _ = strconv.Atoi(os.Getenv("MAX_IDLE_CONN"))
+	cfg.MaxLifetime, _ = time.ParseDuration(os.Getenv("MAX_LIFETIME"))
+	cfg.MaxIdleTime, _ = time.ParseDuration(os.Getenv("MAX_IDLE_TIME"))
+	return cfg, nil
+}
+
+func (d *database) Init() error {
+	cfg, err := localConfig()
+	if err != nil {
+		slog.Error("Failed to load config", "err", err)
+		return err
+	}
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local&tls=%s",
+		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName, cfg.TLSMode)
+	log.Printf("MySql connector Dsn is %s\n", dsn)
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	if err != nil {
+		slog.Error("Failed to connect to database", "err", err)
+		return err
+	}
+	// 获取底层数据库对象
+	sqlDb, err := db.DB()
+	if err != nil {
+		slog.Error("failed to get database object", "error", err)
+		return err
+	}
+
+	// 设置数据库连接池参数
+	sqlDb.SetMaxOpenConns(cfg.MaxOpenConns)
+	sqlDb.SetMaxIdleConns(cfg.MaxIdleConns)
+	sqlDb.SetConnMaxLifetime(cfg.MaxLifetime)
+	sqlDb.SetConnMaxIdleTime(cfg.MaxIdleTime)
+
+	// Ping 数据库，确认连接
+	if err = sqlDb.Ping(); err != nil {
+		slog.Error("Failed to ping database", "err", err)
+		return err
+	}
+	slog.Info("Database connection established")
+	Db.GormDb = db
+	return nil
+}

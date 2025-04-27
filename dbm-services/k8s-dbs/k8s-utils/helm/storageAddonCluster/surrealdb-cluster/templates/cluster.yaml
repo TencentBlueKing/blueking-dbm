@@ -1,0 +1,164 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: Cluster
+metadata:
+  name: {{ include "kblib.clusterName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- toYaml .Values.labels | nindent 4 }}
+  annotations:
+    {{- toYaml .Values.annotations | nindent 4 }}
+spec:
+  clusterDefinitionRef: {{ include "surrealdb-cdName" . }}
+  topology: {{ .Values.topoName }}
+  affinity:
+    {{- with $.Values.topologyKeys }}
+    topologyKeys: {{ . | toYaml | nindent 6 }}
+    {{- end }}
+  {{- with $.Values.tolerations }}
+  tolerations: {{ . | toYaml | nindent 4 }}
+  {{- end }}
+  terminationPolicy: {{ .Values.terminationPolicy }}
+  componentSpecs:
+    {{- range .Values.componentList }}
+    {{- if eq .componentName "surreal" }}
+    - name: surreal
+      serviceVersion: {{ .serviceVersion }}
+      services:
+        {{- range $serviceIndex, $service := .services }}
+        {{- if eq $service.name "surreal"}}
+        - name: surreal
+          serviceType: {{ $service.serviceType}}
+          {{- if $service.annotations }}
+          annotations:
+            {{- $service.annotations | toYaml | nindent 12 }}
+          {{- end}}
+        {{- end}}
+        {{- end}}
+      env:
+        {{- range $key, $value := .env }}
+        - name: {{ $key | quote }}
+          value: {{ $value | quote }}
+        {{- end }}
+        {{- if eq $.Values.topoName "surreal-rocksdb" }}
+        - name: SURREAL_PATH
+          value: "rocksdb:/var/lib/surrealdb"
+        {{- else if eq $.Values.topoName "surreal-memory" }}
+        - name: SURREAL_PATH
+          value: "memory"
+        {{- end }}
+      replicas: {{ .replicas }}
+      resources:
+        limits:
+          cpu: {{ .resources.limits.cpu }}
+          memory: {{ .resources.limits.memory }}
+        requests:
+          cpu: {{ .resources.requests.cpu }}
+          memory: {{ .resources.requests.memory }}
+      {{- if eq $.Values.topoName "surreal-rocksdb" }}
+      volumeClaimTemplates:
+        - name: surreal-volume
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: {{ .storage }}
+            #storageClassName: null
+            volumeMode: Filesystem
+      {{- end }}
+      {{- end }}
+      {{- end }}
+
+    # TIKV组件定义
+    {{- if eq .Values.topoName "surreal-tikv" }}
+    {{- range .Values.componentList }}
+    {{- if eq .componentName "tikv" }}
+    - name: tikv
+      serviceVersion: {{ .serviceVersion }}
+      serviceAccountName: {{ include "tidb-cluster.serviceAccountName" $ }}
+      services:
+        {{- range $serviceIndex, $service := .services }}
+        {{- if eq $service.name "tikv"}}
+        - name: tikv
+          serviceType: {{ $service.serviceType}}
+          {{- if $service.annotations }}
+          annotations:
+            {{- $service.annotations | toYaml | nindent 12 }}
+          {{- end}}
+        {{- end}}
+        {{- end}}
+      {{- with .env }}
+      env:
+        {{- range $key, $value := . }}
+        - name: {{ $key | quote }}
+          value: {{ $value | quote }}
+        {{- end }}
+      {{- end }}
+      replicas: {{ .replicas }}
+      disableExporter: false
+      {{- with $.Values.tolerations }}
+      tolerations: {{ .| toYaml | nindent 8 }}
+      {{- end }}
+      resources:
+        limits:
+          cpu: {{ .resources.limits.cpu }}
+          memory: {{ .resources.limits.memory }}
+        requests:
+          cpu: {{ .resources.requests.cpu }}
+          memory: {{ .resources.requests.memory }}
+      volumeClaimTemplates:
+        - name: data
+          spec:
+            # storageClassName: ""
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: {{ .storage }}
+    {{- end }}
+    {{- end }}
+    # PD组件定义
+    {{- range .Values.componentList }}
+    {{- if eq .componentName "pd" }}
+    - name: pd
+      serviceAccountName: {{ include "tidb-cluster.serviceAccountName" $ }}
+      serviceVersion: {{ .serviceVersion }}
+      services:
+        {{- range $serviceIndex, $service := .services }}
+        {{- if eq $service.name "pd"}}
+        - name: pd
+          serviceType: {{ $service.serviceType}}
+          {{- if $service.annotations }}
+          annotations:
+            {{- $service.annotations | toYaml | nindent 12 }}
+          {{- end}}
+        {{- end}}
+        {{- end}}
+      {{- with .env }}
+      env:
+        {{- range $key, $value := . }}
+        - name: {{ $key | quote }}
+          value: {{ $value | quote }}
+        {{- end }}
+      {{- end }}
+      disableExporter: false
+      replicas: {{ .replicas }}
+      resources:
+        limits:
+          cpu: {{ .resources.limits.cpu }}
+          memory: {{ .resources.limits.memory }}
+        requests:
+          cpu: {{ .resources.requests.cpu }}
+          memory: {{ .resources.requests.memory }}
+      volumeClaimTemplates:
+        - name: data
+          spec:
+            # storageClassName: ""
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: {{ .storage }}
+    {{- end }}
+    {{- end }}
+    {{- end }}

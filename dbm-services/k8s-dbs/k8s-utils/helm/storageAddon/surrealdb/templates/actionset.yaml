@@ -1,0 +1,28 @@
+apiVersion: dataprotection.kubeblocks.io/v1alpha1
+kind: ActionSet
+metadata:
+  name: tidb-actionset-{{ .Chart.Version}}
+  labels:
+    {{- include "tidb.labels" . | nindent 4 }}
+spec:
+  backupType: Full
+  backup:
+    backupData:
+      image: {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.br.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}
+      syncProgress:
+        enabled: false
+        intervalSeconds: 5
+      command:
+      - bash
+      - -c
+      - |
+        {{- .Files.Get "dataprotection/backup.sh" | nindent 8 }}
+  restore:
+    postReady:
+    - job:
+        image: {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.br.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}
+        command:
+        - bash
+        - -c
+        - |
+          {{- .Files.Get "dataprotection/restore.sh" | nindent 12 }}

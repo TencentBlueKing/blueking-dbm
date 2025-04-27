@@ -68,5 +68,8 @@ dependencies:
 - name: db-dbha
   repository: file://charts/db-dbha
   version: 0.1.0
-digest: sha256:dc3ec328aa5118e1b1b992958c34c7f923e4fc9aea07a53889708fc1d47b04f8
-generated: "2025-04-22T18:46:15.038308679+08:00"
+- name: k8s-dbs
+  repository: file://charts/k8s-dbs
+  version: 1.0.0-alpha.1
+digest: sha256:39907c49ebf92abc25d324ca18b80d1d75b48b0d81333eaa0c31551c85021928
+generated: "2025-05-06T17:57:29.678777+08:00"

@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "tidb.tikv.configTplName" . }}-{{ .Chart.Version}}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "tidb.labels" . | nindent 4 }}
+data:
+  tikv.toml: |
+    # full example can be seen at:
+    # https://github.com/tikv/tikv/blob/release-7.5/etc/config-template.toml
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "tidb.pd.configTplName" . }}-{{ .Chart.Version}}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "tidb.labels" . | nindent 4 }}
+data:
+  pd.toml: |
+    # full example can be seen at:
+    # https://github.com/tikv/pd/blob/release-7.5/conf/config.toml
+---

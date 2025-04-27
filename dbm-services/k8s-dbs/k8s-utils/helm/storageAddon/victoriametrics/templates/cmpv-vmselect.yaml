@@ -1,0 +1,15 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentVersion
+metadata:
+  name: {{ include "victoriametrics-select.cmpvName" . }}
+spec:
+  compatibilityRules:
+    - releases:
+        - vmselect-1.93.10
+      compDefs:
+        - {{ include "victoriametrics-select.cmpdName" . }}
+  releases:
+    - name: vmselect-1.93.10
+      serviceVersion: 1.93.10
+      images:
+        select: victoriametrics/vmselect:v1.93.10-cluster

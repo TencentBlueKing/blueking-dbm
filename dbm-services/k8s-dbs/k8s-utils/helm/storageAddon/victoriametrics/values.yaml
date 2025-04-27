@@ -1,0 +1,32 @@
+enableTCP6: false
+
+vmselect:
+  # -- Service port
+  servicePort: 8481
+  # Extra command line arguments for vmselect component
+  extraArgs:
+    envflag.enable: "true"
+    envflag.prefix: VM_
+    loggerFormat: json
+
+vminsert:
+  # -- Service port
+  servicePort: 8480
+  # Extra command line arguments for vmselect component
+  extraArgs:
+    envflag.enable: "true"
+    envflag.prefix: VM_
+    loggerFormat: json
+
+vmstorage:
+  # -- Service port
+  servicePort: 8482
+  # -- Port for accepting connections from vminsert
+  vminsertPort: 8400
+  # -- Port for accepting connections from vmselect
+  vmselectPort: 8401
+  # Extra command line arguments for vmselect component
+  extraArgs:
+    envflag.enable: "true"
+    envflag.prefix: VM_
+    loggerFormat: json

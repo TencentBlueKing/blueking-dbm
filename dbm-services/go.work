@@ -1,6 +1,7 @@
 go 1.24.2
 
 use (
+	k8s-dbs
 	bigdata/db-tools/dbactuator
 	common/bkdata-kafka-consumer
 	common/celery-service

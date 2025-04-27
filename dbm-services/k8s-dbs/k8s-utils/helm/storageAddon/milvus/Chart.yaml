@@ -1,0 +1,47 @@
+#apiVersion: v2
+#name: milvus
+#description: A cloud-native vector database, storage for next generation AI applications.
+#
+#type: application
+#
+## This is the chart version
+#version: 0.9.0
+#
+## This is the version number of milvus
+#appVersion: 2.2.13
+#
+#home: https://milvus.io/
+#icon: https://github.com/milvus-io/artwork/blob/master/horizontal/color/milvus-horizontal-color.png
+#
+#maintainers:
+#  - name: ApeCloud
+#    url: https://github.com/apecloud/kubeblocks/
+#
+#sources:
+#  - https://github.com/apecloud/kubeblocks/
+#
+#annotations:
+#  addon.kubeblocks.io/kubeblocks-version: ">=0.9.0"
+#  addon.kubeblocks.io/model: "vector"
+#  addon.kubeblocks.io/provider: "community"
+
+apiVersion: v1
+name: milvus
+appVersion: 1.0.0
+kubeVersion: "^1.10.0-0"
+description: Milvus is an open-source vector database built to power AI applications and vector similarity search.
+version: 1.0.0
+keywords:
+  - milvus
+  - elastic
+  - vector
+  - search
+  - deploy
+home: https://milvus.io/
+icon: https://raw.githubusercontent.com/milvus-io/docs/master/v1.0.0/assets/milvus_logo.png
+sources:
+  - https://github.com/zilliztech/milvus
+maintainers:
+  - email: contact@milvus.io
+    name: contact
+    url: milvus.io

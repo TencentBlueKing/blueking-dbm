@@ -1,0 +1,15 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentVersion
+metadata:
+  name: {{ include "milvus.querynode.cmpdName" . }}
+spec:
+  compatibilityRules:
+    - releases:
+        - querynode-v2.5.7
+      compDefs:
+        - {{ include "milvus.querynode.cmpdName" . }}
+  releases:
+    - name: querynode-v2.5.7
+      serviceVersion: 2.5.7
+      images:
+        querynode: "{{ .Values.image.all.repository }}:{{ .Values.image.all.tag }}"

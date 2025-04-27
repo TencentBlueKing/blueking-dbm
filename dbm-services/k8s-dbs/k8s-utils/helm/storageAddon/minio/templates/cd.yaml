@@ -1,0 +1,10 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ClusterDefinition
+metadata:
+  name: {{ include "minio.cdName" . }}
+spec:
+  topologies:
+    - name: cluster
+      components:
+        - name: minio
+          compDef: {{ include "minio.cmpdName" . }}

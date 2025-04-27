@@ -1,0 +1,35 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: BackupPolicyTemplate
+metadata:
+  name: qdrant-backup-policy-template
+  labels:
+    clusterdefinition.kubeblocks.io/name: qdrant
+    service-kind/qdrant: "true"
+    {{- include "qdrant.labels" . | nindent 4 }}
+spec:
+  clusterDefinitionRef: qdrant
+  backupPolicies:
+  - componentDefRef: qdrant
+    target:
+      role: ""
+      strategy: All
+    backupMethods: &backupMethods
+    - name: datafile
+      snapshotVolumes: false
+      actionSetName: qdrant-snapshot
+      targetVolumes:
+        volumeMounts:
+        - name: data
+          mountPath: {{ .Values.dataMountPath }}
+    schedules: &backupSchedules
+    - backupMethod: datafile
+      enabled: false
+      cronExpression: "0 18 * * 0"
+      retentionPeriod: 7d
+  - componentDefs:
+    - qdrant
+    target:
+      role: ""
+      strategy: All
+    backupMethods: *backupMethods
+    schedules: *backupSchedules

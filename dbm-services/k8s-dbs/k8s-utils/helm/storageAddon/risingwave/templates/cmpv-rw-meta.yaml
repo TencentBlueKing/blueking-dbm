@@ -1,0 +1,15 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentVersion
+metadata:
+  name: rw-meta-{{ .Chart.Version}}
+spec:
+  compatibilityRules:
+    - releases:
+        - meta-2.2.1
+      compDefs:
+        - rw-meta-{{ .Chart.Version}}
+  releases:
+    - name: meta-2.2.1
+      serviceVersion: 2.2.1
+      images:
+        meta: docker.risingwave.com/risingwavelabs/risingwave:v2.2.1

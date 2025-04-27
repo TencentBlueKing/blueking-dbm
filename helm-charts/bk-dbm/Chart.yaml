@@ -92,6 +92,10 @@ dependencies:
     name: db-dbha
     repository: file://charts/db-dbha
     version: 0.1.0
+  - condition: k8s-dbs.enabled
+    name: k8s-dbs
+    repository: file://charts/k8s-dbs
+    version: 1.0.0-alpha.1
 description: A Helm chart for bk-dbm
 name: bk-dbm
 type: application

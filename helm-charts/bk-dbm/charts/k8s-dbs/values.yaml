@@ -1,0 +1,110 @@
+# @section 通用配置
+# @param api pod 副本数
+replicaCount: 1
+image:
+  # @param 镜像拉取策略
+  pullPolicy: IfNotPresent
+  # @param 镜像服务地址
+  registry: "mirrors.tencent.com"
+  # @param 仓库路径
+  repository: "build/blueking/k8s-dbs"
+  # @param 镜像 tag
+  tag: ""
+
+# @param ipFamily 配置, 可以执行policy，families等
+ipFamily: {}
+
+resources:
+  limits:
+    # @param cpu limit
+    cpu: 2
+    # @param memory limit
+    memory: 4Gi
+  requests:
+    # @param cpu request
+    cpu: 1
+    # @param memory request
+    memory: 2Gi
+
+# @param 节点选择约束配置
+nodeSelector: { }
+
+# @param 容忍配置
+tolerations: [ ]
+
+# @param 亲和性配置
+affinity: { }
+
+containerPorts:
+  # @param dbs 容器端口
+  http: 8000
+
+# @section dbs 服务配置
+server:
+  # @param service type
+  serviceType: ClusterIP
+  # @param 时区配置
+  timezone: "Asia/Shanghai"
+  port: 8000
+  datasource:
+    host: ""
+    port:
+    user: ""
+    password: ""
+    dbname: ""
+    tlsmode: "false"
+    maxOpenConns: 10
+    maxIdelConns: 5
+    maxLifeTime: "30m"
+    maxIdleTime: "30m"
+
+# @section ingress配置
+ingress:
+  # @param ingress 开关
+  enabled: false
+  # @param ingress annotations 配置
+  annotations: { }
+  # @param ingress tls 配置
+  tls: [ ]
+  independentDomain:
+    enabled: false
+    name: "bk-data.example.com"
+# @section 全局ingress是否启用
+globalIngress:
+  # @param 全局ingress开关
+  disabled: true
+
+# @section 可用性探针配置
+livenessProbe:
+  httpGet:
+    # @param dbs 服务就绪探针检查地址
+    path: /v4/dbs/common/health
+    # @param dbs 服务就绪探针检查端口
+    port: 8000
+  # @param dbs 服务存活探针初始化检查 delay 时间
+  initialDelaySeconds: 30
+  # @param dbs 服务存活探针检查周期
+  periodSeconds: 30
+  # @param dbs 服务存活探针检查超时时间
+  timeoutSeconds: 5
+  # @param dbs 服务存活探针检查成功阈值
+  successThreshold: 1
+  # @param dbs 服务存活探针检查失败阈值
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    # @param dbs 服务就绪探针检查地址
+    path: /v4/dbs/common/health
+    # @param dbs 服务就绪探针检查端口
+    port: 8000
+  # @param dbs 服务就绪探针初始化检查 delay 时间
+  initialDelaySeconds: 30
+  # @param dbs 服务就绪探针检查周期
+  periodSeconds: 30
+  # @param dbs 服务就绪探针检查超时时间
+  timeoutSeconds: 5
+  # @param dbs 服务就绪探针检查成功阈值
+  successThreshold: 1
+  # @param dbs 服务就绪探针检查失败阈值
+  failureThreshold: 3

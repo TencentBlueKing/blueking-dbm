@@ -301,6 +301,26 @@ dbpartition:
     enabled: false
     dataId: 1
 
+# k8s-dbs values
+k8s-dbs:
+  enabled: false
+  envs:
+    # apm
+    TRACE_SERVICE_NAME: k8s-dbs
+    TRACE_ENABLE: true
+    TRACE_HOST: 127.0.0.1
+    TRACE_PORT: 4317
+    TRACE_TYPE: grpc
+    TRACE_TOKEN: ""
+    TRACE_DATA_ID: ""
+  # apm
+  serviceMonitor:
+    enabled: false
+  # 容器内日志采集，APM本身不需要，配置保留为方便后期开启服务本身的日志采集
+  bkLogConfig:
+    enabled: false
+    dataId: 1
+
 # grafana配置
 # 配置可以参考 https://github.com/bitnami/charts/tree/master/bitnami/grafana
 # 镜像继承自 bitnami/grafana，加入了监控的数据源及内置panels

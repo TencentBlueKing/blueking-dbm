@@ -1,0 +1,15 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentVersion
+metadata:
+  name: {{ include "milvus.datacoord.cmpdName" . }}
+spec:
+  compatibilityRules:
+    - releases:
+        - datacoord-v2.5.7
+      compDefs:
+        - {{ include "milvus.datacoord.cmpdName" . }}
+  releases:
+    - name: datacoord-v2.5.7
+      serviceVersion: 2.5.7
+      images:
+        datacoord: "{{ .Values.image.all.repository }}:{{ .Values.image.all.tag }}"

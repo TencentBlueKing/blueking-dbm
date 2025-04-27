@@ -1,0 +1,79 @@
+# 引用的addon版本
+addonVersion: 1.0.0
+
+# 元数据
+clusterName: risingwave-cluster
+namespace: demo
+labels:
+  #app: risingwave
+annotations:
+  #description: A risingwave cluster
+
+# 集群规格
+terminationPolicy: Delete
+topoName: risingwave
+componentList:
+  - componentName: frontend
+    serviceVersion: "2.2.1"
+    services:
+      - name: frontend
+        serviceType: ClusterIP
+        annotations:
+    env:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+
+  - componentName: meta
+    serviceVersion: "2.2.1"
+    services:
+      - name: meta
+        serviceType: ClusterIP
+        annotations:
+    env:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+
+  - componentName: compute
+    serviceVersion: "2.2.1"
+    services:
+      - name: compute
+        serviceType: ClusterIP
+        annotations:
+    env:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+
+  - componentName: compactor
+    serviceVersion: "2.2.1"
+    services:
+      - name: compactor
+        serviceType: ClusterIP
+        annotations:
+    env:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+

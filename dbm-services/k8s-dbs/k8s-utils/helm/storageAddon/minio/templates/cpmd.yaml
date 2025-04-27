@@ -1,0 +1,173 @@
+{{ $scheme := .Values.tls.enabled | ternary "https" "http" }}
+
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentDefinition
+metadata:
+  name:  {{ include "minio.cdName" . }}
+  labels:
+    {{- include "minio.labels" . | nindent 4 }}
+spec:
+  provider: kubeblocks
+  description: Minio is a High Performance Object Storage.
+  serviceKind: minio
+  serviceVersion: 0.9.0
+
+  systemAccounts:
+    - name: root
+      initAccount: true
+      passwordGenerationPolicy:
+        length: 16
+        numDigits: 8
+        letterCase: MixedCases
+
+  vars:
+    - name: MINIO_ROOT_USER
+      valueFrom:
+        credentialVarRef:
+          name: root
+          optional: false
+          username: Required
+    - name: MINIO_ROOT_PASSWORD
+      valueFrom:
+        credentialVarRef:
+          name: root
+          optional: false
+          password: Required
+
+  roles:
+    - name: readwrite
+      serviceable: true
+      votable: false
+      writable: true
+
+  lifecycleActions:
+    roleProbe:
+      builtinHandler: custom
+      customHandler:
+        exec:
+          command:
+            - /bin/sh
+            - -c
+            - |
+              if mc config host add minio http://127.0.0.1:9000 $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD &>/dev/null; then
+                echo -n "readwrite"
+              fi
+
+  services:
+  - name: minio
+    spec:
+      ports:
+        - name: api
+          port: 9000
+          targetPort: api
+        - name: console
+          port: 9001
+          targetPort: console
+
+  configs:
+    - name: {{ include "minio.config" . }}
+      templateRef: {{ include "minio.config" . }}
+      namespace: {{ .Release.Namespace }}
+      volumeName: minio-config
+      defaultMode: 0777
+
+  runtime:
+    initContainers:
+    - command:
+      - /bin/sh
+      - -ce
+      - |
+        name="$KB_CLUSTER_COMP_NAME"-{{ include "minio.config" . }}
+        namespace="$KB_NAMESPACE"
+        key="MINIO_REPLICAS_HISTORY"
+        cur=$(kubectl get configmaps "$name" -n "$namespace" -o jsonpath="{.data.$key}")
+        cur=$(echo "$cur" | tr -d '[]')
+        if [[ -z "$cur" ]]; then
+          new="[$KB_COMP_REPLICAS]"
+        else
+          IFS=',' set -- $cur
+          array="$@"
+          last=$(echo $array | awk '{print $NF}')
+          if [[ "$last" == "$KB_COMP_REPLICAS" ]]; then
+            new="[$cur]"
+          else
+            new="[$cur,$KB_COMP_REPLICAS]"
+          fi
+        fi
+        kubectl patch configmap "$name" -n "$namespace" --type strategic -p "{\"data\":{\"$key\":\"$new\"}}"
+        echo "ConfigMap $name updated successfully with $key=$new"
+      image: {{ .Values.image.registry | default "docker.io" }}/apecloud/kubeblocks-tools:0.8.2
+      imagePullPolicy: {{ default "IfNotPresent" .Values.image.pullPolicy }}
+      name: init
+    containers:
+      - name: minio
+        image: {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}
+        imagePullPolicy: {{ default "IfNotPresent" .Values.image.pullPolicy }}
+        command:
+          - /bin/sh
+          - -ce
+          - |
+            FILE="/minio-config/MINIO_REPLICAS_HISTORY"
+            if [ ! -f "$FILE" ]; then
+              echo "minio config don't existed"
+              exit
+            fi
+
+            # init bucket if set 
+            buckets=$MINIO_BUCKETS
+            if [ -n "$buckets" ]; then
+                IFS=',' read -ra BUCKET_ARRAY <<< "$buckets"
+                for bucket in "${BUCKET_ARRAY[@]}"; do
+                    bucket=$(echo $bucket)
+
+                    directory="/data/$bucket"
+                    mkdir -p "$directory"
+
+                    if [ $? -eq 0 ]; then
+                        echo "Successfully init bucket: $directory"
+                    else
+                        echo "Failed to init bucket: $directory"
+                    fi
+                done
+            fi
+
+            # read the content
+            content=$(cat "$FILE")
+            content=$(echo "$content" | tr -d '[]')
+            IFS=',' read -r -a replicas <<< "$content"
+            server=""
+            for ((i=0; i < ${#replicas[@]}; i++)); do
+                if [ $i -eq 0 ]; then
+                    cur=${replicas[i]}
+                    server+="{{ $scheme }}://$KB_CLUSTER_COMP_NAME-{0...$((cur-1))}.$KB_CLUSTER_COMP_NAME-headless.$KB_NAMESPACE.svc.{{ $.Values.clusterDomain }}/data"
+                else
+                    prev=${replicas[i-1]}
+                    cur=${replicas[i]}
+                    server+=" {{ $scheme }}://$KB_CLUSTER_COMP_NAME-{$((prev))...$((cur-1))}.$KB_CLUSTER_COMP_NAME-headless.$KB_NAMESPACE.svc.{{ $.Values.clusterDomain }}/data"
+                fi
+            done
+            echo "the minio server pool is $server"
+            cmd="/usr/bin/docker-entrypoint.sh minio server "$server" -S {{ .Values.certsPath }} --address :{{ .Values.minioAPIPort }} --console-address :{{ .Values.minioConsolePort }} {{- template `minio.extraArgs` . }}"
+            $cmd
+        ports:
+          - name: api
+            protocol: TCP
+            containerPort: {{ .Values.minioAPIPort }} 
+          - name: console
+            protocol: TCP
+            containerPort: {{ .Values.minioConsolePort }}
+        env:
+          - name: MINIO_ROOT_USER
+            value: $(MINIO_ROOT_USER)
+          - name: MINIO_ROOT_PASSWORD
+            value: $(MINIO_ROOT_PASSWORD)
+          - name: MINIO_BROWSER_LOGIN_ANIMATION
+            value: "off"
+        volumeMounts:
+          - name: data
+            mountPath: /data
+          - name: minio-config
+            mountPath: /minio-config
+  volumes:
+  - name: data
+    needSnapshot: true

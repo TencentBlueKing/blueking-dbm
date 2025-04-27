@@ -1,0 +1,15 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentVersion
+metadata:
+  name: rw-frontend-{{ .Chart.Version}}
+spec:
+  compatibilityRules:
+    - releases:
+        - frontend-2.2.1
+      compDefs:
+        - rw-frontend-{{ .Chart.Version}}
+  releases:
+    - name: frontend-2.2.1
+      serviceVersion: 2.2.1
+      images:
+        frontend: docker.risingwave.com/risingwavelabs/risingwave:v2.2.1

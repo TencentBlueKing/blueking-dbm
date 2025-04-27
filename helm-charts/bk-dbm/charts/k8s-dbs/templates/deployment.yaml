@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-dbs
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: k8s-dbs
+  template:
+    metadata:
+      labels:
+        app: k8s-dbs
+    spec:
+      containers:
+        - image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Chart.AppVersion }}"
+          name: dbs
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          resources: {{- toYaml .Values.resources | nindent 12 }}
+          livenessProbe: {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe: {{- toYaml .Values.readinessProbe | nindent 12 }}
+          command: ["/app/server"]
+          ports:
+            - containerPort: {{ .Values.containerPorts.http }}
+              protocol: TCP
+          env:
+          - name: TZ
+            value: {{ .Values.server.timezone }}
+          - name: HOST
+            value: "{{ .Values.server.datasource.host }}"
+          - name: PORT
+            value: "{{ .Values.server.datasource.port }}"
+          - name: USER
+            value: "{{ .Values.server.datasource.user }}"
+          - name: PASSWORD
+            value: "{{ .Values.server.datasource.password }}"
+          - name: DBNAME
+            value: "{{ .Values.server.datasource.dbname }}"
+          - name: TLSMODE
+            value: "{{ .Values.server.datasource.tlsmode }}"
+          - name: MAX_OPEN_CONN
+            value: "{{ .Values.server.datasource.maxOpenConns }}"
+          - name: MAX_IDLE_CONN
+            value: "{{ .Values.server.datasource.maxIdelConns }}"
+          - name: MAX_LIFETIME
+            value: "{{ .Values.server.datasource.maxLifeTime }}"
+          - name: MAX_IDLE_TIME
+            value: "{{ .Values.server.datasource.maxIdleTime }}"

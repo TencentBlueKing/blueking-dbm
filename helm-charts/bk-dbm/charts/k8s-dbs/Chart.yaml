@@ -1,0 +1,14 @@
+apiVersion: v2
+description: A Helm chart for Kubernetes
+name: k8s-dbs
+home: https://github.com/TencentBlueKing/bk-base
+sources:
+  - https://github.com/TencentBlueKing/bk-base
+version: 1.0.0-alpha.1
+appVersion: "1.0.0-alpha.1"
+
+# 依赖组件
+dependencies:
+  - name: common
+    version: ~1.10.0
+    repository: https://charts.bitnami.com/bitnami

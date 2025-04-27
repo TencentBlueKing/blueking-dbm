@@ -1,0 +1,7 @@
+apiVersion: v2
+name: qdrant-cluster
+description: A Qdrant cluster Helm chart for KubeBlocks.
+type: application
+version: 1.0.0
+appVersion: "1.10.0"
+
