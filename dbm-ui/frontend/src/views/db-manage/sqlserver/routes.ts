@@ -120,15 +120,7 @@ const toolboxRouters: RouteRecordRaw[] = [
         component: () => import('@views/db-manage/sqlserver/master-failover/index.vue'),
       },
       createRouteItem(TicketTypes.SQLSERVER_CLEAR_DBS, t('清档')),
-      // {
-      //   path: 'rollback/:page?',
-      //   name: 'sqlServerDBRollback',
-      //   meta: {
-      //     navName: t('定点回档'),
-      //   },
-      //   component: () => import('@views/db-manage/sqlserver/rollback/Index.vue'),
-      // },
-      createRouteItem(TicketTypes.SQLSERVER_ROLLBACK, t('定点回档')),
+      createRouteItem(TicketTypes.SQLSERVER_ROLLBACK, t('定点构造')),
       createRouteItem(TicketTypes.SQLSERVER_BACKUP_DBS, t('数据库备份')),
       {
         path: 'data-migrate/:page?',
