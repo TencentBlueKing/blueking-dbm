@@ -19,81 +19,21 @@
                 class="ml-4"
                 text
                 theme="primary"
-                @click="(event: Event) => handleCopyIp(groupItem.data, event)">
+                @click="(event: Event) => handleCopyIp(groupItem, event)">
                 <DbIcon type="copy" />
               </BkButton>
             </div>
           </template>
           <template #content>
-            <BkTable
-              :data="groupItem.data"
-              :row-config="{
-                useKey: true,
-                keyField: 'ip',
-              }">
-              <BkTableColumn
-                field="ip"
-                fixed="left"
-                label="IP"
-                :width="200">
-                <template #default="{ data }: { data: IResouce & { tag: string } }">
-                  {{ data.ip }}
-                  <BkTag v-if="data.tag">{{ data.tag }}</BkTag>
-                </template>
-              </BkTableColumn>
-              <BkTableColumn
-                field="city"
-                :label="t('地域')"
-                :min-width="100">
-                <template #default="{ data }: { data: IResouce }">
-                  {{ data.city || '--' }}
-                </template>
-              </BkTableColumn>
-              <BkTableColumn
-                field="sub_zone"
-                :label="t('园区')"
-                :min-width="100">
-                <template #default="{ data }: { data: IResouce }">
-                  {{ data.sub_zone || '--' }}
-                </template>
-              </BkTableColumn>
-              <BkTableColumn
-                field="rack_id"
-                :label="t('机架')"
-                :min-width="100">
-                <template #default="{ data }: { data: IResouce }">
-                  {{ data.rack_id || '--' }}
-                </template>
-              </BkTableColumn>
-              <BkTableColumn
-                field="os_type"
-                :label="t('操作系统名称')"
-                :min-width="180">
-                <template #default="{ data }: { data: IResouce }">
-                  {{ data.os_type || '--' }}
-                </template>
-              </BkTableColumn>
-              <BkTableColumn
-                field="device_class"
-                :label="t('机型')"
-                :min-width="100">
-                <template #default="{ data }: { data: IResouce }">
-                  {{ data.device_class || '--' }}
-                </template>
-              </BkTableColumn>
-              <BkTableColumn
-                field="bk_cpu"
-                :label="t('CPU_核_')"
-                :min-width="100" />
-              <BkTableColumn
-                field="bk_mem"
-                :label="t('内存M')"
-                :min-width="100" />
-              <BkTableColumn
-                field="bk_disk"
-                :label="t('磁盘G')"
-                :min-width="100" />
-            </BkTable>
+            <ResourceDetailHostTable
+              v-if="groupItem.data.length"
+              :data="groupItem.data" />
+            <template v-if="groupItem.list.length">
+              <ResourceDetailHostTable
+                v-for="(item, itemIndex) in groupItem.list"
+                :key="itemIndex"
+                :data="item" />
+            </template>
           </template>
         </BkCollapsePanel>
       </template>
@@ -101,25 +41,15 @@
   </div>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
+  import { type UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import TicketModel from '@services/model/ticket/ticket';
 
   import { execCopy } from '@utils';
 
-  interface IResouce {
-    bk_cloud_id: number;
-    bk_cpu: number;
-    bk_disk: number;
-    bk_mem: number;
-    city: string;
-    device_class: string;
-    ip: string;
-    os_name: string;
-    os_type: string;
-    rack_id: string;
-    sub_zone: string;
-  }
+  import ResourceDetailHostTable, { type IResouce } from './ResourceDetailHostTable.vue';
 
   interface Props {
     ticketDetail: TicketModel<{
@@ -133,41 +63,41 @@
 
   const collapseExpandIndex = ref<number[]>([]);
 
-  const renderGroupData = shallowRef<{ data: IResouce[]; groupName: string }[]>([]);
+  const renderGroupData = shallowRef<{ data: IResouce[]; groupName: string; list: ({ tag: string } & IResouce)[][] }[]>(
+    [],
+  );
 
   watchEffect(() => {
     const nodes = props.ticketDetail.details.nodes;
     renderGroupData.value = Object.keys(nodes).map((nodeName) => {
       const nodeDataList = nodes[nodeName];
+      const groupName = _.trim(nodeName.replace(/\d/g, '').split(/_+/).join('_'), '_');
       if (nodeDataList[0].ip) {
         return {
           data: nodes[nodeName] as IResouce[],
-          groupName: nodeName,
+          groupName,
+          list: [],
         };
       }
       return {
-        data: (nodeDataList as Record<string, IResouce>[]).reduce(
-          (result, item) => {
-            Object.keys(item).forEach((itemKey) => {
-              result.push({
-                tag: itemKey,
-                ...item[itemKey],
-              });
-            });
-            return result;
-          },
-          [] as ({ tag: string } & IResouce)[],
-        ),
-        groupName: nodeName,
+        data: [],
+        groupName,
+        list: (nodeDataList as Record<string, IResouce>[]).map((item) => {
+          return Object.keys(item).map((nodeKey) => ({
+            tag: nodeKey,
+            ...item[nodeKey],
+          }));
+        }),
       };
     });
     collapseExpandIndex.value = renderGroupData.value.map((item, index) => index);
   });
 
-  const handleCopyIp = (data: IResouce[], event: Event) => {
+  const handleCopyIp = (data: UnwrapRef<typeof renderGroupData>[number], event: Event) => {
     event.stopPropagation();
     event.stopImmediatePropagation();
-    execCopy(data.map((item) => item.ip).join('\n'), t('复制成功，共n条', { n: data.length }));
+    const copyList = [...data.data, ..._.flatten(data.list)];
+    execCopy(copyList.map((item) => item.ip).join('\n'), t('复制成功，共n条', { n: copyList.length }));
   };
 </script>
 <style lang="less">
