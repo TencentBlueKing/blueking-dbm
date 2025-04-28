@@ -52,9 +52,9 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutd
     act_kwargs.cluster = {
         "bk_biz_id": sub_kwargs.cluster["bk_biz_id"],
         "bk_cloud_id": sub_kwargs.cluster["bk_cloud_id"],
-        "cluster_id": sub_kwargs.cluster["cluster_id"],
-        "immute_domain": sub_kwargs.cluster["immute_domain"],
-        "cluster_type": sub_kwargs.cluster["cluster_type"],
+        "cluster_id": sub_kwargs.cluster.get("cluster_id", "-886"),
+        "immute_domain": sub_kwargs.cluster.get("immute_domain", "x.no.imput.none"),
+        "cluster_type": sub_kwargs.cluster.get("cluster_type", "x.no.cluster.type"),
         "operate": sub_kwargs.cluster.get("operate", ""),
     }
 
