@@ -43,7 +43,7 @@ class RiakShrinkFlowParamBuilder(builders.FlowParamBuilder):
     def format_ticket_data(self):
         cluster = Cluster.objects.get(id=self.ticket_data["cluster_id"])
         self.ticket_data["bk_cloud_id"] = cluster.bk_cloud_id
-        self.ticket_data["nodes"] = self.ticket_data.pop("old_nodes")
+        self.ticket_data["nodes"] = self.ticket_data.pop("old_nodes").get("riak", [])
 
 
 @builders.BuilderFactory.register(TicketType.RIAK_CLUSTER_SCALE_IN, is_recycle=True)
