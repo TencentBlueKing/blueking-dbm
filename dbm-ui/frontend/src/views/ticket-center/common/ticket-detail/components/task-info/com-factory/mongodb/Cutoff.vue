@@ -12,13 +12,30 @@
 -->
 
 <template>
-  <DbOriginalTable
-    :columns="columns"
-    :data="tableData" />
+  <BkTable
+    :data="tableData"
+    :merge-cells="mergeCells"
+    show-overflow-tooltip>
+    <BkTableColumn
+      field="ip"
+      fixed="left"
+      :label="t('待替换的主机')" />
+    <BkTableColumn
+      field="role"
+      :label="t('角色类型')" />
+    <BkTableColumn
+      field="cluster"
+      :label="t('所属集群')" />
+    <BkTableColumn
+      field="spec"
+      :label="t('新机规格')" />
+  </BkTable>
 </template>
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
+
+  import type { VxeTablePropTypes } from '@blueking/vxe-table';
 
   import TicketModel, { type Mongodb } from '@services/model/ticket/ticket';
 
@@ -37,30 +54,9 @@
 
   const { t } = useI18n();
 
+  const mergeCells = ref<VxeTablePropTypes.MergeCells>([]);
+
   const { clusters, infos, specs } = props.ticketDetails.details;
-
-  const columns = [
-    {
-      field: 'ip',
-      label: t('待替换的主机'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'role',
-      label: t('角色类型'),
-    },
-    {
-      field: 'cluster',
-      label: t('所属集群'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'spec',
-      label: t('新机规格'),
-      showOverflowTooltip: true,
-    },
-  ];
-
   const tableData = infos.reduce(
     (results, item) => {
       const types = ['mongo_config', 'mongodb', 'mongos'] as ['mongo_config', 'mongodb', 'mongos'];
@@ -74,6 +70,12 @@
           }));
           results.push(...list);
         }
+      });
+      mergeCells.value.push({
+        col: 2,
+        colspan: 1,
+        row: mergeCells.value.length ? mergeCells.value[mergeCells.value.length - 1].rowspan : 0,
+        rowspan: item.mongo_config.length + item.mongodb.length + item.mongos.length,
       });
       return results;
     },

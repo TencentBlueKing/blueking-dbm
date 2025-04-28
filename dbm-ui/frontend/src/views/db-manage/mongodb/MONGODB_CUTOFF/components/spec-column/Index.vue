@@ -17,7 +17,8 @@
     :label="t('新机规格')"
     :loading="loading"
     :min-width="200"
-    required>
+    required
+    :rules="rules">
     <EditableSelect
       v-model="modelValue"
       filterable
@@ -76,6 +77,15 @@
   });
 
   const { t } = useI18n();
+
+  const rules = [
+    {
+      message: t('新机规格不能为空'),
+      required: true,
+      trigger: 'change',
+      validator: (value: number) => value > 0,
+    },
+  ];
 
   const specList = ref<
     {
