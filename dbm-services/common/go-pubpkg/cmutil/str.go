@@ -55,3 +55,20 @@ func StringToInt(s string) int {
 	s = strings.TrimLeft(s, "0")
 	return cast.ToInt(s)
 }
+
+// SubStringPrefix 返回字符串的前n个字符
+// 如果超过字符串长度，返回整个字符串
+func SubStringPrefix(src string, start int, end int) string {
+	var r = []rune(src)
+	length := len(r)
+	if start <= 0 && end > length {
+		return src
+	}
+	if start < 0 {
+		start = 0
+	}
+	if start > end || start > length {
+		return ""
+	}
+	return string(r[start:end])
+}

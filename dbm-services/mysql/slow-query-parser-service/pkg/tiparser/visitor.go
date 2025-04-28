@@ -8,7 +8,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package parser
+package tiparser
 
 import (
 	"fmt"
@@ -157,6 +157,61 @@ func (se *SelectStmtExtractor) Enter(in ast.Node) (node ast.Node, skipChildren b
 
 func (se *SelectStmtExtractor) Leave(in ast.Node) (node ast.Node, ok bool) {
 	return in, true
+}
+
+type SqlCommandVisitor struct {
+	CommandName []string
+	skipLater   bool
+}
+
+func (v *SqlCommandVisitor) Enter(in ast.Node) (node ast.Node, skipChildren bool) {
+	if v.skipLater {
+		return in, true
+	}
+	switch in.(type) {
+	case *ast.SelectStmt:
+		v.CommandName = append(v.CommandName, "select")
+	case *ast.InsertStmt:
+		v.CommandName = append(v.CommandName, "insert")
+	case *ast.UpdateStmt:
+		v.CommandName = append(v.CommandName, "update")
+	case *ast.DeleteStmt:
+		v.CommandName = append(v.CommandName, "delete")
+	case *ast.SetStmt:
+		v.CommandName = append(v.CommandName, "set")
+	case *ast.CreateTableStmt:
+		v.CommandName = append(v.CommandName, "create_table")
+	case *ast.AlterTableStmt:
+		v.CommandName = append(v.CommandName, "alter_table")
+	case *ast.DropTableStmt:
+		v.CommandName = append(v.CommandName, "drop_table")
+	case *ast.TruncateTableStmt:
+		v.CommandName = append(v.CommandName, "truncate_table")
+	case *ast.ExplainStmt:
+		v.CommandName = append(v.CommandName, "explain")
+	case *ast.LoadDataStmt:
+		v.CommandName = append(v.CommandName, "load_data")
+	case *ast.ShowStmt:
+		v.CommandName = append(v.CommandName, "show")
+	case *ast.BeginStmt:
+		v.CommandName = append(v.CommandName, "begin")
+	case *ast.CommitStmt:
+		v.CommandName = append(v.CommandName, "commit")
+	case *ast.RollbackStmt:
+		v.CommandName = append(v.CommandName, "rollback")
+	case *ast.GrantStmt:
+		v.CommandName = append(v.CommandName, "grant")
+	default:
+		if len(v.CommandName) == 0 {
+			v.CommandName = append(v.CommandName, "other")
+			v.skipLater = true
+		}
+	}
+	return in, false
+}
+
+func (v *SqlCommandVisitor) Leave(n ast.Node) (node ast.Node, ok bool) {
+	return n, true
 }
 
 type SubQueryMaxNestNumExtractor struct {

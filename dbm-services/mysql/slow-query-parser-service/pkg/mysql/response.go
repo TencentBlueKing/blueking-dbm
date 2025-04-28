@@ -17,3 +17,7 @@ type TableRef struct {
 	DbName    string `json:"db_name"`
 	TableName string `json:"table_name"`
 }
+
+func (t *TableRef) String() string {
+	return t.DbName + "." + t.TableName
+}
