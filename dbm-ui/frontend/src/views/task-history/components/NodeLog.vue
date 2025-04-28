@@ -32,6 +32,7 @@
           </span>
           <div class="log-header-info">
             <RetrySelector
+              v-if="isShow"
               :node-id="nodeData.id"
               @change="handleChangeDate" />
             <BkTag
