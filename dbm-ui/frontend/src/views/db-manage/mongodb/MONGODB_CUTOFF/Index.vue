@@ -40,7 +40,8 @@
       <EditableTable
         ref="table"
         class="mb-20"
-        :model="formData.tableData">
+        :model="formData.tableData"
+        :rules="rules">
         <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
@@ -61,7 +62,8 @@
           </EditableColumn>
           <EditableColumn
             :label="t('所属集群')"
-            :min-width="200">
+            :min-width="200"
+            :rowspan="item.rowspan">
             <div
               v-if="item.host.master_domain"
               class="cluster-domain">
@@ -145,6 +147,7 @@
       shard: string;
       spec_config: MongodbInstanceModel['spec_config'];
     };
+    rowspan: number;
     spec_id: number;
   }
 
@@ -164,8 +167,70 @@
       shard: '',
       spec_config: {} as MongodbInstanceModel['spec_config'],
     },
+    rowspan: data.rowspan || 1,
     spec_id: data.spec_id || 0,
   });
+
+  const getClusterNodeCount = (clusterId: number) => {
+    const countMap: Record<string, number> = {};
+    formData.tableData.forEach((tableItem) => {
+      if (tableItem.host.ip && tableItem.host.cluster_id) {
+        if (tableItem.host.cluster_id !== clusterId) {
+          return;
+        }
+        const { machine_type: machineType, shard } = tableItem.host;
+        const nodeKey =
+          tableItem.host.cluster_type === ClusterTypes.MONGO_SHARED_CLUSTER && tableItem.host.machine_type === 'mongodb'
+            ? shard
+            : machineType;
+        if (countMap[nodeKey]) {
+          countMap[nodeKey] = countMap[nodeKey] + 1;
+        } else {
+          countMap[nodeKey] = 1;
+        }
+      }
+    }, {});
+
+    const typeCountMap: Record<string, number[]> = {
+      mongo_config: [],
+      mongodb: [],
+      mongos: [],
+    };
+    Object.entries(countMap).forEach(([type, count]) => {
+      if (type in typeCountMap) {
+        typeCountMap[type].push(count);
+      } else {
+        typeCountMap.mongodb.push(count);
+      }
+    });
+    return typeCountMap;
+  };
+
+  const rules = {
+    'host.ip': [
+      {
+        message: '',
+        trigger: 'change',
+        validator: (value: string, { rowData }: { rowData: RowData }) => {
+          const nodeCountMap = getClusterNodeCount(rowData.host.cluster_id);
+
+          if (rowData.host.cluster_type === ClusterTypes.MONGO_REPLICA_SET) {
+            if (nodeCountMap.mongodb.some((mongodbItem) => mongodbItem > 1)) {
+              return t('同一个副本集，一次只能替换一个节点');
+            }
+            return true;
+          }
+          if (nodeCountMap.mongo_config.some((mongoConfigItem) => mongoConfigItem > 1)) {
+            return t('config一次只能替换一个节点');
+          }
+          if (nodeCountMap.mongodb.some((mongoConfigItem) => mongoConfigItem > 1)) {
+            return t('同一个shard，同时只能替换一个节点');
+          }
+          return true;
+        },
+      },
+    ],
+  };
 
   const formData = reactive({
     clusterType: ClusterTypes.MONGO_REPLICA_SET,
@@ -179,49 +244,23 @@
   useTicketDetail<Mongodb.Cutoff>(TicketTypes.MONGODB_CUTOFF, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
-      const { clusters, infos, specs } = details;
+      const { clusters, infos } = details;
       Object.assign(formData, {
-        payload: createTickePayload(ticketDetail),
+        ...createTickePayload(ticketDetail),
+        clusterType: clusters[infos[0].cluster_id].cluster_type,
+        tableData: infos.flatMap((infoItem) => {
+          const machineInfoList = [...infoItem.mongo_config, ...infoItem.mongodb, ...infoItem.mongos];
+          return machineInfoList.map((machineInfo) =>
+            createTableRow({
+              host: {
+                ip: machineInfo.ip,
+                master_domain: clusters[infoItem.cluster_id].immute_domain,
+              } as RowData['host'],
+              spec_id: machineInfo.spec_id,
+            }),
+          );
+        }),
       });
-      if (infos.length > 0) {
-        const dataList: RowData[] = [];
-        infos.forEach((info) => {
-          const hostList = [...info.mongo_config, ...info.mongodb, ...info.mongos];
-          let machineType = '';
-          if (info.mongo_config.length) {
-            machineType = 'mongo_config';
-          }
-          if (info.mongodb.length) {
-            machineType = 'mongodb';
-          }
-          if (info.mongos.length) {
-            machineType = 'mongos';
-          }
-          const clusterInfo = clusters[info.cluster_id];
-          hostList.forEach((item) => {
-            const specInfo = specs[info.resource_spec[`${machineType}_${item.ip}`].spec_id];
-            dataList.push(
-              createTableRow({
-                host: {
-                  bk_cloud_id: item.bk_cloud_id,
-                  bk_host_id: item.bk_host_id,
-                  cluster_id: info.cluster_id,
-                  cluster_type: clusterInfo.cluster_type,
-                  ip: item.ip,
-                  machine_type: machineType,
-                  master_domain: clusterInfo.immute_domain,
-                  related_clusters: [],
-                  shard: '',
-                  spec_config: specInfo as unknown as MongodbInstanceModel['spec_config'],
-                },
-                spec_id: specInfo.id,
-              }),
-            );
-          });
-        });
-        formData.clusterType = dataList[0].host.cluster_type;
-        formData.tableData = [...dataList];
-      }
     },
   });
 
@@ -242,6 +281,48 @@
     ip_source: 'resource_pool';
   }>(TicketTypes.MONGODB_CUTOFF);
 
+  watch(
+    () => formData.tableData.length,
+    () => {
+      sortTableByCluster();
+    },
+  );
+
+  const generateRequestParam = () => {
+    const clusterMap: Record<string, RowData[]> = {};
+    formData.tableData.forEach((item) => {
+      if (item.host.ip) {
+        const domain = item.host.master_domain;
+        if (!clusterMap[domain]) {
+          clusterMap[domain] = [item];
+        } else {
+          clusterMap[domain].push(item);
+        }
+      }
+    });
+    const domains = Object.keys(clusterMap);
+    const infos = domains.map((domain) => {
+      const sameArr = clusterMap[domain];
+      const infoItem = {
+        cluster_id: sameArr[0].host.cluster_id,
+        mongo_config: [] as SpecHostList,
+        mongodb: [] as SpecHostList,
+        mongos: [] as SpecHostList,
+      };
+      sameArr.forEach((item) => {
+        const specObj = {
+          bk_cloud_id: item.host.bk_cloud_id,
+          bk_host_id: item.host.bk_host_id,
+          ip: item.host.ip,
+          spec_id: item.spec_id,
+        };
+        infoItem[item.host.machine_type as keyof Omit<typeof infoItem, 'cluster_id'>].push(specObj);
+      });
+      return infoItem;
+    });
+    return infos;
+  };
+
   const handleSubmit = async () => {
     const result = await tableRef.value!.validate();
     if (!result) {
@@ -249,25 +330,7 @@
     }
     createTicketRun({
       details: {
-        infos: formData.tableData.map((item) => {
-          const infoItem = {
-            cluster_id: item.host.cluster_id,
-            mongo_config: [] as SpecHostList,
-            mongodb: [] as SpecHostList,
-            mongos: [] as SpecHostList,
-          };
-          Object.assign(infoItem, {
-            [item.host.machine_type]: [
-              {
-                bk_cloud_id: item.host.bk_cloud_id,
-                bk_host_id: item.host.bk_host_id,
-                ip: item.host.ip,
-                spec_id: item.spec_id,
-              },
-            ],
-          });
-          return infoItem;
-        }),
+        infos: generateRequestParam(),
         ip_source: 'resource_pool',
       },
       ...formData.payload,
@@ -316,6 +379,32 @@
       return item.host.shard;
     }
     return item.host.machine_type || '';
+  };
+
+  const sortTableByCluster = () => {
+    const clusterMap: Record<string, RowData[]> = {};
+    const emptyRowList: RowData[] = [];
+    formData.tableData.forEach((item) => {
+      Object.assign(item, { rowspan: 1 });
+      const { master_domain: domain } = item.host;
+      if (!domain) {
+        emptyRowList.push(item);
+        return;
+      }
+      if (!clusterMap[domain]) {
+        clusterMap[domain] = [item];
+      } else {
+        clusterMap[domain].push(item);
+      }
+    });
+
+    const sortedList: RowData[] = [];
+    Object.values(clusterMap).forEach((list) => {
+      Object.assign(list[0], { rowspan: list.length });
+      sortedList.push(...list);
+    });
+
+    return [...sortedList, ...emptyRowList];
   };
 </script>
 <style lang="less" scoped>
