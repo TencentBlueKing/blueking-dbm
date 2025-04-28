@@ -37,8 +37,10 @@ class MongoDBRestoreHandler(object):
         # self.cluster = Cluster.objects.get(id=cluster_id)
 
     @staticmethod
-    def _get_log_from_bklog(collector: str, start_time: datetime, end_time: datetime, query_string="*") -> List[Dict]:
-        return BKLogHandler.query_logs(collector, start_time, end_time, query_string)
+    def _get_log_from_bklog(
+        collector: str, start_time: datetime, end_time: datetime, query_string="*", size=-1
+    ) -> List[Dict]:
+        return BKLogHandler.query_logs(collector, start_time, end_time, query_string, size)
 
     def _query_latest_log_and_index(self, rollback_time: datetime, query_string: str, time_key: str, flag: int):
         """查询距离rollback_time最近的备份记录"""

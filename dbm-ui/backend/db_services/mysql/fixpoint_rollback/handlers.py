@@ -59,8 +59,10 @@ class FixPointRollbackHandler:
         return "-1" not in task_ids
 
     @staticmethod
-    def _get_log_from_bklog(collector: str, start_time: datetime, end_time: datetime, query_string="*") -> List[Dict]:
-        return BKLogHandler.query_logs(collector, start_time, end_time, query_string)
+    def _get_log_from_bklog(
+        collector: str, start_time: datetime, end_time: datetime, query_string="*", size=-1
+    ) -> List[Dict]:
+        return BKLogHandler.query_logs(collector, start_time, end_time, query_string, size)
 
     def aggregate_tendb_dbbackup_logs(self, backup_logs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """

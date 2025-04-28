@@ -80,4 +80,7 @@ class BKLogHandler(object):
             total_backup_logs.extend(backup_logs)
             search_after = resp["hits"]["hits"][-1]["sort"]
 
-        return total_backup_logs[:size]
+        if size == -1:
+            return total_backup_logs
+        else:
+            return total_backup_logs[:size]
