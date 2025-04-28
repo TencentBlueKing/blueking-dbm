@@ -187,7 +187,7 @@ class MongoDBRestoreHandler(object):
 
     @classmethod
     def query_clusters_backup_log(
-        cls, cluster_ids: List[int], cluster_type: str, start_time: datetime, end_time: datetime
+        cls, cluster_ids: List[int], cluster_type: str, start_time: datetime, end_time: datetime, cond: str = None
     ):
         """
         通过集群ID查询集群的备份记录
@@ -195,14 +195,19 @@ class MongoDBRestoreHandler(object):
         @param cluster_type: 集群类型
         @param start_time: 查询开始时间
         @param end_time: 查询结束时间
+        @param cond: 其他条件,默认为None
         """
         # 根据集群类型和集群ID过滤备份记录
         cluster_id_query = " OR ".join(map(str, cluster_ids))
+        query_string = f"cluster_type: {cluster_type} AND cluster_id: {cluster_id_query}"
+        if len(cond) > 0:
+            query_string += f" AND {cond}"
+
         backup_logs = cls._get_log_from_bklog(
             collector="mongo_backup_result",
             start_time=start_time,
             end_time=end_time,
-            query_string=f"cluster_type: {cluster_type} AND cluster_id: {cluster_id_query}",
+            query_string=query_string,
         )
 
         # 根据集群ID聚合备份记录

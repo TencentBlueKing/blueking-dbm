@@ -234,3 +234,29 @@ SQLSERVER_APP_SETTING_CHECK_DATA = {
         {"name": "is_fix", "display_name": "是否自动修复", "format": "text"},
     ],
 }
+
+# mongodb 全备份和binlog备份报告
+MONGODB_BACKUP_CHECK_DATA = {
+    "count": 1,
+    "next": None,
+    "previous": None,
+    "results": [
+        {
+            "bk_biz_id": 3,
+            "cluster": "aa.bb.cc",
+            "cluster_type": "MongoShardedCluster",
+            "instance": "aa:bb",
+            "status": True,
+            "msg": "",
+        }
+    ],
+    "name": "mongodb备份检查",
+    "title": [
+        {"name": "bk_biz_id", "display_name": "业务", "format": "text"},
+        {"name": "cluster", "display_name": "集群域名", "format": "text"},
+        {"name": "cluster_type", "display_name": "集群类型", "format": "text"},
+        {"name": "status", "display_name": "校验结果", "format": "status"},
+        {"name": "instance", "display_name": "实例节点", "format": "text"},
+        {"name": "msg", "display_name": "详情", "format": "text"},
+    ],
+}
