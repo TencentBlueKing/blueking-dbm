@@ -169,6 +169,34 @@ class ActKwargs:
             }
         )
 
+    def scale_save_conf(self, cluster_name: str, namespace: str):
+        """保存分片的oplogsize和cachesize配置到dbconfig"""
+
+        conf_type = ConfigTypeEnum.DBConf.value
+        conf_file = "{}-{}".format("Mongodb", self.db_main_version)
+        cache_size = str(self.replicaset_info["cacheSizeGB"])
+        oplog_size = str(self.replicaset_info["oplogSizeMB"])
+        conf_items = [
+            {"conf_name": "cacheSizeGB", "conf_value": cache_size, "op_type": OpType.UPDATE},
+            {"conf_name": "oplogSizeMB", "conf_value": oplog_size, "op_type": OpType.UPDATE},
+        ]
+        DBConfigApi.upsert_conf_item(
+            {
+                "conf_file_info": {
+                    "conf_file": conf_file,
+                    "conf_type": conf_type,
+                    "namespace": namespace,
+                },
+                "conf_items": conf_items,
+                "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
+                "confirm": DEFAULT_CONFIG_CONFIRM,
+                "req_type": ReqType.SAVE_AND_PUBLISH,
+                "bk_biz_id": str(self.payload["bk_biz_id"]),
+                "level_name": LevelName.CLUSTER,
+                "level_value": cluster_name,
+            }
+        )
+
     def get_conf(self, cluster_name: str) -> dict:
         """从dbconfig获取配置"""
 

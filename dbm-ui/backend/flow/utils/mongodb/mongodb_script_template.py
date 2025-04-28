@@ -46,7 +46,7 @@ mongo_init_set_js_script = """
 db = db.getSiblingDB('admin');
 var num = db.system.roles.count({'_id':'admin.applyOps'});
 if (num == 0) {
-    db.createRole({role:'applyOps',privileges:[{resource:{anyResource:true},actions:["anyAction"]}],roles:[]});
+    db.createRole({role:'applyOps',privileges:[{resource:{anyResource:true},actions:['anyAction']}],roles:['root']});
     db.grantRolesToUser('dba',[{role:'applyOps',db:'admin'}]);
     db.grantRolesToUser('appdba',[{role:'applyOps',db:'admin'}]);
 }

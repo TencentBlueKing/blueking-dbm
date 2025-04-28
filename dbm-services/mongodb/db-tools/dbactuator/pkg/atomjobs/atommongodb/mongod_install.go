@@ -197,8 +197,10 @@ func (m *MongoDBInstall) makeConfContent() error {
 		conf.Storage.DbPath = m.DbpathDir
 		conf.Storage.Engine = "wiredTiger"
 		conf.Storage.WiredTiger.EngineConfig.CacheSizeGB = m.ConfParams.DbConfig.CacheSizeGB
-		conf.Replication.OplogSizeMB = m.ConfParams.DbConfig.OplogSizeMB
-		conf.Replication.ReplSetName = m.ConfParams.SetId
+		conf.Replication = &common.Replication{
+			OplogSizeMB: m.ConfParams.DbConfig.OplogSizeMB,
+			ReplSetName: m.ConfParams.SetId,
+		}
 		conf.SystemLog.LogAppend = true
 		conf.SystemLog.Path = m.LogPath
 		conf.SystemLog.Destination = m.ConfParams.DbConfig.Destination
@@ -208,7 +210,12 @@ func (m *MongoDBInstall) makeConfContent() error {
 		conf.Net.BindIp = strings.Join([]string{"127.0.0.1", m.ConfParams.IP}, ",")
 		conf.Net.WireObjectCheck = false
 		conf.OperationProfiling.SlowOpThresholdMs = m.ConfParams.DbConfig.SlowOpThresholdMs
-		conf.Sharding.ClusterRole = m.ConfParams.ClusterRole
+		if m.ConfParams.ClusterRole != "" {
+			conf.Sharding = &common.Sharding{
+				ClusterRole: m.ConfParams.ClusterRole,
+			}
+		}
+
 		// 获取非验证配置文件内容
 		m.NoAuthConfFileContent, err = conf.GetConfContent()
 		if err != nil {
@@ -217,7 +224,9 @@ func (m *MongoDBInstall) makeConfContent() error {
 			return fmt.Errorf("version:%s make mongodb no auth config file content fail, error:%s",
 				m.ConfParams.DbVersion, err)
 		}
-		conf.Security.KeyFile = m.KeyFilePath
+		conf.Security = &common.Security{
+			KeyFile: m.KeyFilePath,
+		}
 		// 获取验证配置文件内容
 		m.AuthConfFileContent, err = conf.GetConfContent()
 		if err != nil {

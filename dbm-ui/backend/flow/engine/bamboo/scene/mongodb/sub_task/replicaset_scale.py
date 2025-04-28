@@ -67,11 +67,19 @@ def replicaset_scale(
         sub_pipeline.add_act(
             act_name=_("MongoDB-机器初始化"), act_component_code=ExecuteDBActuatorJobComponent.code, kwargs=kwargs
         )
+        # 获取大版本信息
+        sub_get_kwargs.db_main_version = info["db_version"].split("-")[1].split(".")[0]
 
+    # 计算容量变更新的 cachesize 和 oplogsize
     instance_relationships = sub_get_kwargs.payload["instance_relationships"]
     sub_get_kwargs.calc_param_replace(
         info=instance_relationships[0], instance_num=instance_relationships[0].get("node_replica_count", 0)
     )
+    if not cluster_role:
+        # 副本集在 dbconfig 设置集群的 oplogsize cachesize
+        sub_get_kwargs.scale_save_conf(
+            cluster_name=sub_get_kwargs.payload["set_id"], namespace=ClusterType.MongoReplicaSet.value
+        )
 
     # 复制集进行替换——串行
     # backup节点优先替换

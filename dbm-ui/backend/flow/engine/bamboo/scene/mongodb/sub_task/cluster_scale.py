@@ -79,6 +79,19 @@ def cluster_scale(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwar
         sub_sub_pipelines.append(sub_sub_pipeline)
     sub_pipeline.add_parallel_sub_pipeline(sub_sub_pipelines)
 
+    # 获取大版本信息
+    sub_get_kwargs.db_main_version = info["db_version"].split("-")[1].split(".")[0]
+
+    # 通过最后一个shard的实例关系进行计算每个 shard 的oplogsize cachesize
+    instance_relationships = sub_get_kwargs.payload["instance_relationships"]
+    sub_get_kwargs.calc_param_replace(
+        info=instance_relationships[0], instance_num=instance_relationships[0].get("node_replica_count", 0)
+    )
+    # 在 dbconfig 设置集群的 oplogsize cachesize
+    sub_get_kwargs.scale_save_conf(
+        cluster_name=sub_get_kwargs.payload["cluster_name"], namespace=ClusterType.MongoShardedCluster.value
+    )
+
     # 安装dbmon
     ip_list = sub_get_kwargs.payload["plugin_hosts"]
     exec_ips = [host["ip"] for host in ip_list]

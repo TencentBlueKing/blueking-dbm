@@ -62,9 +62,6 @@ type Replication struct {
 // NewYamlMongoDBConf 生成结构体
 func NewYamlMongoDBConf() *YamlMongoDBConf {
 	var conf = YamlMongoDBConf{}
-	conf.Sharding = &Sharding{}
-	conf.Replication = &Replication{}
-	conf.Security = &Security{}
 	return &conf
 }
 

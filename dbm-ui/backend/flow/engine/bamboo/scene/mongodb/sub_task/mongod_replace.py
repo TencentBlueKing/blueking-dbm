@@ -54,7 +54,8 @@ def mongod_replace(
     down = info.get("down")  # 机器是否down
     new_node = info["target"]
     sub_sub_get_kwargs.payload["app"] = sub_sub_get_kwargs.payload["bk_app_abbr"]
-    sub_sub_get_kwargs.replicaset_info = {}
+    if not mongod_scale:
+        sub_sub_get_kwargs.replicaset_info = {}
     sub_sub_get_kwargs.replicaset_info["port"] = sub_sub_get_kwargs.db_instance["port"]
     force = True
     if cluster_role:
@@ -68,7 +69,7 @@ def mongod_replace(
         sub_sub_get_kwargs.payload["config_nodes"] = []
         sub_sub_get_kwargs.payload["shards_nodes"] = []
         sub_sub_get_kwargs.payload["mongos_nodes"] = []
-        # 获取配置
+        # 整机替换获取配置
         conf = sub_sub_get_kwargs.get_conf(cluster_name=sub_sub_get_kwargs.db_instance["cluster_name"])
         if cluster_role == MongoDBClusterRole.ConfigSvr.value:
             sub_sub_get_kwargs.payload["config_nodes"] = [
@@ -93,9 +94,10 @@ def mongod_replace(
                 ]
             }
             sub_sub_get_kwargs.payload["shards_nodes"].append(shard_nodes)
-            # shard直接获取配置
-            sub_sub_get_kwargs.replicaset_info["cacheSizeGB"] = conf["cacheSizeGB"]
-            sub_sub_get_kwargs.replicaset_info["oplogSizeMB"] = conf["oplogSizeMB"]
+            if not mongod_scale:
+                # 整机替换shard直接获取configdb保存cachesize 和 oplogsize 的配置
+                sub_sub_get_kwargs.replicaset_info["cacheSizeGB"] = conf["cacheSizeGB"]
+                sub_sub_get_kwargs.replicaset_info["oplogSizeMB"] = conf["oplogSizeMB"]
     else:
         sub_sub_get_kwargs.cluster_type = ClusterType.MongoReplicaSet.value
         cluster_name = sub_sub_get_kwargs.db_instance["cluster_name"]
@@ -104,8 +106,9 @@ def mongod_replace(
         # 副本集直接获取配置
         conf = sub_sub_get_kwargs.get_conf(cluster_name=cluster_name)
         sub_sub_get_kwargs.replicaset_info["key_file"] = conf["key_file"]
-        sub_sub_get_kwargs.replicaset_info["cacheSizeGB"] = conf["cacheSizeGB"]
-        sub_sub_get_kwargs.replicaset_info["oplogSizeMB"] = conf["oplogSizeMB"]
+        if not mongod_scale:
+            sub_sub_get_kwargs.replicaset_info["cacheSizeGB"] = conf["cacheSizeGB"]
+            sub_sub_get_kwargs.replicaset_info["oplogSizeMB"] = conf["oplogSizeMB"]
     sub_sub_get_kwargs.replicaset_info["set_id"] = cluster_name
     sub_sub_get_kwargs.replicaset_info["nodes"] = [
         {

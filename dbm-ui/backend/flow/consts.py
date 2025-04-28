@@ -1539,7 +1539,7 @@ class MongoOplogSizePercent(float, StructuredEnum):
     oplog默认占机器磁盘的百分比
     """
 
-    Oplog_Percent = EnumField(0.15, _("cache_percent"))
+    Oplog_Percent = EnumField(0.10, _("oplog_percent"))
 
 
 class SqlserverBackupFileTagEnum(str, StructuredEnum):
