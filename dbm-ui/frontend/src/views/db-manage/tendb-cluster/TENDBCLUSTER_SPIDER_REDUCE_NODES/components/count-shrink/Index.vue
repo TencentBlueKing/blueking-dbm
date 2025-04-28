@@ -146,15 +146,14 @@
     {
       message: '',
       trigger: 'change',
-      validator: (value: string, rowData?: Record<string, any>) => {
+      validator: (value: string, { rowData }: Record<string, any>) => {
         if (!value) {
           return true;
         }
-        const row = rowData as RowData;
-        if (Number(value) < 2 && row.cluster.role === 'spider_master') {
+        if (Number(value) < 2 && rowData.cluster.role === 'spider_master') {
           return t('请保证缩容后的接入层 Spider Master 数量 >= 2');
         }
-        if (Number(value) < 1 && row.cluster.role === 'spider_slave') {
+        if (Number(value) < 1 && rowData.cluster.role === 'spider_slave') {
           return t('请保证缩容后的接入层 Spider Slave数量 >= 1');
         }
         return true;

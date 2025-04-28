@@ -156,23 +156,21 @@
       {
         message: t('IP 重复'),
         trigger: 'blur',
-        validator: (value: string, rowData?: Record<string, any>) => {
+        validator: (value: string, { rowData }: Record<string, any>) => {
           if (!value) {
             return true;
           }
-          const row = rowData as RowData;
-          return targetProxyRepeatMap.value[row.targetProxy.ip] === row.originProxy.ip;
+          return targetProxyRepeatMap.value[rowData.targetProxy.ip] === rowData.originProxy.ip;
         },
       },
       {
         message: t('IP 重复'),
         trigger: 'change',
-        validator: (value: string, rowData?: Record<string, any>) => {
+        validator: (value: string, { rowData }: Record<string, any>) => {
           if (!value) {
             return true;
           }
-          const row = rowData as RowData;
-          return targetProxyRepeatMap.value[row.targetProxy.ip] === row.originProxy.ip;
+          return targetProxyRepeatMap.value[rowData.targetProxy.ip] === rowData.originProxy.ip;
         },
       },
     ],
