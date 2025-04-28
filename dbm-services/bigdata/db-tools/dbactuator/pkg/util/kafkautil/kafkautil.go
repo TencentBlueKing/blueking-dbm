@@ -4,6 +4,7 @@ package kafkautil
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -165,7 +166,7 @@ func GenReassignmentJSON(conn *zk.Conn, zk string, xBrokerIds []string) error {
 	failedKeyWord := "Partitions reassignment failed"
 	if strings.Contains(s, failedKeyWord) {
 		logger.Error(s)
-		return fmt.Errorf(s)
+		return errors.New(s)
 	}
 
 	// 生成rollback.json
@@ -209,7 +210,72 @@ func GenReassignmentJSON(conn *zk.Conn, zk string, xBrokerIds []string) error {
 }
 
 // GenReplaceReassignmentJSON TODO
-func GenReplaceReassignmentJSON(oldBrokerID string, newBrokerID string, zk string) (output string, err error) {
+func GenReplaceReassignmentJSON(conn *zk.Conn, zk string, oldBrokerIds, newBrokerIds []string) error {
+	// all brokers id
+	idsArr, _ := GetBrokerIds(conn)
+	ids := strings.Join(idsArr[:], ",")
+	planJSONFile := cst.PlanJSONFile
+	extraCmd := fmt.Sprintf("%s --topics-to-move-json-file %s/topic.json --generate --zookeeper %s --broker-list %s >%s",
+		cst.DefaultReassignPartitionsBin, cst.DefaultKafkaEnv, zk, ids, planJSONFile)
+
+	logger.Info("extraCmd, %s", extraCmd)
+	output, _ := osutil.ExecShellCommand(false, extraCmd)
+	logger.Info("output: %s", output)
+	b, err := os.ReadFile(planJSONFile)
+	if err != nil {
+		logger.Error("Cant read plan.json, %s", err)
+		return err
+	}
+	// plan.json content
+	s := string(b)
+	failedKeyWord := "Partitions reassignment failed"
+	if strings.Contains(s, failedKeyWord) {
+		logger.Error(s)
+		return errors.New(s)
+	}
+	// 生成rollback.json
+	rollbackFile := cst.RollbackFile
+	// sed -n '2p' plan.json  >rollback.json
+	extraCmd = fmt.Sprintf("sed -n '2p' %s  > %s", planJSONFile, rollbackFile)
+	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+		logger.Error("sed plan.json failed, %s", err)
+		return err
+	}
+
+	// 读取 rollback.json 并解析
+	data, err := os.ReadFile(rollbackFile)
+	if err != nil {
+		logger.Error("读取 rollback.json 失败: %s", err)
+		return err
+	}
+	var plan ReassignmentPlan
+	err = json.Unmarshal(data, &plan)
+	if err != nil {
+		logger.Error("JSON 解析失败: %s", err)
+		return err
+	}
+	oldBrokers, _ := stringsToInts(oldBrokerIds)
+	newBrokers, _ := stringsToInts(newBrokerIds)
+	ReplaceBrokerIds(&plan, oldBrokers, newBrokers)
+	// 写入 plan.json
+	outData, err := json.MarshalIndent(plan, "", "  ")
+	if err != nil {
+		logger.Error("JSON 序列化失败: %s", err)
+		return err
+	}
+
+	err = os.WriteFile(cst.PlanJSONFile, outData, 0644)
+	if err != nil {
+		logger.Error("写入 plan.json 失败: %s", err)
+		return err
+	}
+	logger.Info("Generate plan.json done")
+
+	return nil
+}
+
+// GenReplaceReassignmentJSONBak TODO
+func GenReplaceReassignmentJSONBak(oldBrokerID string, newBrokerID string, zk string) (output string, err error) {
 	extraCmd := fmt.Sprintf(`
 	json="{\n"
 	json="$json  \"partitions\": [\n"
@@ -270,7 +336,7 @@ func DoReassignPartitions(zk string, jsonFile string) error {
 
 // CheckReassignPartitions TODO
 func CheckReassignPartitions(zk string, jsonFile string) (output string, err error) {
-	extraCmd := fmt.Sprintf(`%s --zookeeper %s --reassignment-json-file %s --verify|egrep -v 'Status|successfully'`,
+	extraCmd := fmt.Sprintf(`%s --zookeeper %s --reassignment-json-file %s --verify|egrep -v 'Status|successfully'|tail`,
 		cst.DefaultReassignPartitionsBin,
 		zk, jsonFile)
 	logger.Info("cmd: [%s]", extraCmd)
@@ -545,4 +611,107 @@ func KfVersionMap(version string) string {
 	default:
 		return "2.4.0"
 	}
+}
+
+// GetZookeeperConnect 从指定的Kafka配置文件中读取zookeeper.connect的值
+func GetZookeeperConnect(filePath string) (string, string, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return "", "", err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		// 跳过空行和注释行
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		if strings.HasPrefix(line, "zookeeper.connect=") {
+			// 去掉前缀，获取值
+			zkHost, zkPath := parseZkAndPath(strings.TrimPrefix(line, "zookeeper.connect="))
+			return zkHost, zkPath, nil
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return "", "", err
+	}
+
+	return "", "", fmt.Errorf("zookeeper.connect not found in file")
+}
+
+// Partition 表示JSON中的一个分区结构
+type Partition struct {
+	Topic     string   `json:"topic"`
+	Partition int      `json:"partition"`
+	Replicas  []int    `json:"replicas"`
+	LogDirs   []string `json:"log_dirs"`
+}
+
+// ReassignmentPlan 表示整个JSON结构
+type ReassignmentPlan struct {
+	Version    int         `json:"version"`
+	Partitions []Partition `json:"partitions"`
+}
+
+// ReplaceBrokerIds 替换replicas中的brokerId
+func ReplaceBrokerIds(plan *ReassignmentPlan, oldBrokerIds, newBrokerIds []int) {
+	if len(oldBrokerIds) != len(newBrokerIds) {
+		logger.Error("oldBrokerIds and newBrokerIds length mismatch")
+		return
+	}
+	replaceMap := make(map[int]int)
+	for i := range oldBrokerIds {
+		replaceMap[oldBrokerIds[i]] = newBrokerIds[i]
+	}
+
+	for i, p := range plan.Partitions {
+		for j, brokerId := range p.Replicas {
+			if newId, ok := replaceMap[brokerId]; ok {
+				plan.Partitions[i].Replicas[j] = newId
+			}
+		}
+	}
+}
+
+func stringsToInts(strs []string) ([]int, error) {
+	ints := make([]int, len(strs))
+	for i, s := range strs {
+		n, err := strconv.Atoi(s)
+		if err != nil {
+			return nil, err
+		}
+		ints[i] = n
+	}
+	return ints, nil
+}
+
+// parseZkAndPath 输入格式：多个zk地址和path部分混合的字符串
+// 返回第一个zk地址 + path部分（如果没有path，自动加上"/"）
+func parseZkAndPath(input string) (string, string) {
+	slashIndex := strings.Index(input, "/")
+
+	var zkStr, pathStr string
+	if slashIndex == -1 {
+		// 不带斜杠，全部是ZK地址
+		zkStr = input
+		pathStr = ""
+	} else {
+		// 带斜杠，拆分
+		zkStr = input[:slashIndex]
+		pathStr = input[slashIndex:]
+	}
+
+	zkAddrs := strings.Split(zkStr, ",")
+	if len(zkAddrs) == 0 {
+		return "", ""
+	}
+	firstZk := zkAddrs[0]
+
+	if pathStr == "" {
+		return firstZk, "/"
+	}
+	return firstZk, pathStr
 }

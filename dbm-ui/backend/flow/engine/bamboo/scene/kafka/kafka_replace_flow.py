@@ -120,8 +120,6 @@ class KafkaReplaceFlow(object):
         self.data["retention_hours"] = int(kafka_config["retention_hours"])
         self.data["replication_num"] = int(kafka_config["replication_num"])
         self.data["partition_num"] = int(kafka_config["partition_num"])
-        self.data["username"] = kafka_config["username"]
-        self.data["password"] = kafka_config["password"]
         self.data["factor"] = int(kafka_config["factor"])
         self.data["old_zookeeper_conf"] = kafka_config["zookeeper_conf"]
         self.data["zookeeper_conf"] = self.data["old_zookeeper_conf"]
@@ -156,7 +154,7 @@ class KafkaReplaceFlow(object):
         return exec_ip
 
     # 生成zk配置文件
-    def __get_zookeeper_conf(self) -> (str, int, str):
+    def __get_zookeeper_conf(self) -> (str, int, str):  # type: ignore
         old_zookeeper_conf = self.data["old_zookeeper_conf"]
         old_zookeeper_conf_list = old_zookeeper_conf.strip("\n").split("\n")
         """
@@ -425,6 +423,12 @@ class KafkaReplaceFlow(object):
             for broker in self.data["old_nodes"]["broker"]:
                 sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
                 act_kwargs.exec_ip = [broker]
+                act_kwargs.file_list = trans_files.kafka_dbactuator()
+
+                kafka_pipeline.add_act(
+                    act_name=_("下发dbactuator"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs)
+                )
+
                 act_kwargs.template = get_base_payload(
                     action=KafkaActuatorActionEnum.StopProcess.value, host=broker["ip"]
                 )

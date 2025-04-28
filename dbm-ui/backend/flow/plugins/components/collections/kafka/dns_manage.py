@@ -38,7 +38,7 @@ class KafkaDnsManageService(BaseService):
 
         return exec_ips
 
-    def __get_ips(self, global_data) -> (list, list):
+    def __get_ips(self, global_data) -> (list, list):  # type: ignore
         """
         获取需要执行的ip list
         """
@@ -83,12 +83,16 @@ class KafkaDnsManageService(BaseService):
                 return False
             old_instance_list = [f"{ip}#{kwargs['dns_op_exec_port']}" for ip in old_ips]
             new_instance_list = [f"{ip}#{kwargs['dns_op_exec_port']}" for ip in new_ips]
-            # 更新域名
-            result = dns_manage.batch_update_domain(
-                old_instance_list=old_instance_list,
-                new_instance_list=new_instance_list,
-                update_domain_name=kwargs["add_domain_name"],
+            # 更新域名，先加后减
+            add_result = dns_manage.create_domain(
+                instance_list=new_instance_list, add_domain_name=kwargs["add_domain_name"]
             )
+            del_result = dns_manage.remove_domain_ip(
+                del_instance_list=old_instance_list, domain=kwargs["add_domain_name"]
+            )
+            result = add_result and del_result
+            domain_re = dns_manage.get_domain(domain_name=kwargs["add_domain_name"])
+            self.log_debug(domain_re)
         else:
             self.log_error(_("无法适配到传入的域名处理类型,请联系系统管理员:{}").format(dns_op_type))
             return False

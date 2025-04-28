@@ -3,7 +3,6 @@ package kafka
 import (
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/components"
@@ -45,9 +44,14 @@ func (d *DecomBrokerComp) Init() (err error) {
 // DoReplaceBrokers TODO
 func (d *DecomBrokerComp) DoReplaceBrokers() (err error) {
 
-	const SleepInterval = 300 * time.Second
+	// 获取zk的地址
+	zkHost, zkPath, err := kafkautil.GetZookeeperConnect(cst.KafkaConfigFile)
+	logger.Info("zkHost,zkPath: %s, %s", zkHost, zkPath)
+	if err != nil {
+		logger.Error("Cant get zookeeper.connect: %s", err)
+		return err
+	}
 
-	zkHost := d.Params.ZookeeperIP + ":2181"
 	oldBrokers := d.Params.ExcludeBrokers
 	newBrokers := d.Params.NewBrokers
 
@@ -69,53 +73,50 @@ func (d *DecomBrokerComp) DoReplaceBrokers() (err error) {
 	}
 	logger.Info("newBrokerIds: %v", newBrokerIds)
 
-	for i, broker := range oldBrokers {
-		oldBrokerID, err := kafkautil.GetBrokerIDByHost(conn, broker)
-		logger.Info("oldBrokerId: [%s]", oldBrokerID)
+	var oldBrokerIds []string
+	for _, broker := range oldBrokers {
+		id, err := kafkautil.GetBrokerIDByHost(conn, broker)
 		if err != nil {
 			logger.Error("cant get %s broker id, %v", broker, err)
 			return err
 		}
-		topicJSON, err := kafkautil.GenReplaceReassignmentJSON(oldBrokerID, newBrokerIds[i], zkHost)
-		if err != nil {
-			logger.Error("GenReassignmentJson failed", err)
-			return err
-		}
-		logger.Info("topicJson, %s", topicJSON)
-		// /data/kafkaenv/host.json
-		jsonFile := fmt.Sprintf("%s/%s.json", cst.DefaultKafkaEnv, broker)
-		logger.Info("jsonfile: %s", jsonFile)
-		if err = os.WriteFile(jsonFile, []byte(topicJSON), 0644); err != nil {
-			logger.Error("write %s failed, %v", jsonFile, err)
-			return err
-		}
-		if !strings.Contains(topicJSON, "topic") {
-			logger.Info("无需搬迁数据")
-			continue
-		}
-		// do
-		if err = kafkautil.DoReassignPartitions(zkHost, jsonFile); err != nil {
-			logger.Error("DoReassignPartitions failed, %v", err)
-			return err
-		}
-		for {
-
-			out, err := kafkautil.CheckReassignPartitions(zkHost, jsonFile)
-			if err != nil {
-				logger.Error("CheckReassignPartitions failed %v", err)
-				return err
-			}
-
-			if len(out) == 0 {
-				logger.Info("数据搬迁完毕")
-				break
-			}
-
-			time.Sleep(SleepInterval)
-		}
-		logger.Info("broker [%s] 搬迁 finished", broker)
-
+		oldBrokerIds = append(oldBrokerIds, id)
 	}
+	logger.Info("oldBrokerIds: %v", oldBrokerIds)
+
+	// 获取主题并写入 JSON 文件
+	b, err := kafkautil.WriteTopicJSON(zkHost)
+	if err != nil {
+		return err
+	}
+	if len(string(b)) == 0 {
+		logger.Error("topic is empty, please check")
+		return
+	}
+	logger.Info("Creating topic.json file")
+	topicJSONFile := fmt.Sprintf("%s/topic.json", cst.DefaultKafkaEnv)
+	if err = os.WriteFile(topicJSONFile, b, 0644); err != nil {
+		logger.Error("write %s failed, %s", topicJSONFile, err)
+		return err
+	}
+
+	// 生成分区副本重分配的计划并写入 JSON 文件
+	logger.Info("Creating plan.json file")
+	err = kafkautil.GenReplaceReassignmentJSON(conn, zkHost, oldBrokerIds, newBrokerIds)
+	if err != nil {
+		logger.Error("Create plan.json failed %s", err)
+		return err
+	}
+
+	// 执行分区副本重分配
+	logger.Info("Execute the plan")
+	planJSONFile := cst.PlanJSONFile
+	err = kafkautil.DoReassignPartitions(zkHost, planJSONFile)
+	if err != nil {
+		logger.Error("Execute partitions reassignment failed %s", err)
+		return err
+	}
+	logger.Info("Execute partitions reassignment end")
 
 	return nil
 }
@@ -185,8 +186,8 @@ func (d *DecomBrokerComp) DoDecomBrokers() (err error) {
 // DoPartitionCheck 检查Kafka分区搬迁的状态。
 // 这个过程会重复检查搬迁状态，直到所有分区都成功搬迁或达到最大重试次数。
 func (d *DecomBrokerComp) DoPartitionCheck() (err error) {
-	// 定义最大重试次数为288次
-	const MaxRetry = 288
+	// 定义最大重试次数为864次
+	const MaxRetry = 864
 	count := 0                                                         // 初始化计数器
 	zkHost := d.Params.ZookeeperIP + ":2181"                           // 构建Zookeeper的连接字符串
 	jsonFile := cst.PlanJSONFile                                       // 搬迁计划文件
@@ -223,8 +224,8 @@ func (d *DecomBrokerComp) DoPartitionCheck() (err error) {
 			logger.Error("检查数据搬迁超时,可以选择重试")
 			return fmt.Errorf("检查扩容状态超时,可以选择重试")
 		}
-		// 等待5分钟后再次检查
-		time.Sleep(300 * time.Second)
+		// 等待100秒后再次检查
+		time.Sleep(100 * time.Second)
 	}
 
 	// 搬迁完成后的日志信息
@@ -255,7 +256,7 @@ func (d *DecomBrokerComp) DoEmptyCheck() (err error) {
 		return err
 	}
 	if !empty {
-		errMsg := fmt.Errorf("The broker is not empty.")
+		errMsg := fmt.Errorf("the broker is not empty")
 		return errMsg
 	}
 	return nil
