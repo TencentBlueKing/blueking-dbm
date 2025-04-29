@@ -66,8 +66,12 @@
         backup_source: 'remote';
         backupinfo?: BackupLogRecord; // 如果备份类型为REMOTE_AND_BACKUPID提供集群备份信息
         cluster_id: number;
+        databases: string[];
+        databases_ignore: string[];
         rollback_time?: string;
         rollback_type: string; // "REMOTE_AND_BACKUPID/REMOTE_AND_TIME"
+        tables: string[];
+        tables_ignore: string[];
         target_cluster_id: number;
       }[];
       rollback_cluster_type: 'BUILD_INTO_METACLUSTER';
@@ -161,8 +165,12 @@
           backup_source: 'remote',
           backupinfo: item.rollback.backupinfo,
           cluster_id: item.cluster.id,
+          databases: ['*'],
+          databases_ignore: [],
           rollback_time: item.rollback.rollback_time,
           rollback_type: item.rollback.rollback_type,
+          tables: ['*'],
+          tables_ignore: [],
           target_cluster_id: item.cluster.id,
         })),
         rollback_cluster_type: 'BUILD_INTO_METACLUSTER',
