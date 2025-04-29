@@ -43,13 +43,13 @@
     if (diff < 0) {
       return {
         isPositive: false,
-        num: diff,
+        num: diff.toFixed(2),
         rate,
       };
     }
     return {
       isPositive: true,
-      num: `+${diff}`,
+      num: `+${diff.toFixed(2)}`,
       rate: `+${rate}`,
     };
   });

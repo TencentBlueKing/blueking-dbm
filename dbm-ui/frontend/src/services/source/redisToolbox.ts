@@ -66,6 +66,13 @@ export function getClusterVersions(params: {
 }
 
 /**
+ * 查询集群可更新大版本
+ */
+export function listClusterBigVersion(params: { bk_biz_id: number; cluster_id: number }) {
+  return http.get<string[]>(`${getRootPath()}/list_cluster_big_version/`, params);
+}
+
+/**
  * 根据IP/实例查询关联对
  */
 export function queryMachineInstancePair(params: {

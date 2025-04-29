@@ -11,7 +11,7 @@ export const tagsColumn = {
   label: t('标签'),
   minWidth: 110,
   render: ({ data }: { data: ResourceItem }) => {
-    const tipList = data.tags.map((tag) => `${tag.key}: ${tag.value}`);
+    const tipList = (data.tags || []).map((tag) => `${tag.key}: ${tag.value}`);
     return <TextOverflowLayout>{tipList.join(';')}</TextOverflowLayout>;
   },
 };
