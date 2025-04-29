@@ -23,13 +23,11 @@
       </AuthButton>
       <ClusterBatchOperation
         v-db-console="'mysql.singleClusterList.batchOperation'"
-        class="ml-8"
         :cluster-type="ClusterTypes.TENDBSINGLE"
         :selected="selected"
         @success="fetchData" />
       <BkButton
         v-db-console="'mysql.singleClusterList.importAuthorize'"
-        class="ml-8"
         @click="handleShowExcelAuthorize">
         {{ t('导入授权') }}
       </BkButton>
@@ -48,9 +46,7 @@
         unique-select
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
-      <TagSearch
-        class="ml-8"
-        @search="fetchData" />
+      <TagSearch @search="fetchData" />
     </div>
     <div
       class="table-wrapper"
@@ -507,11 +503,12 @@
       display: flex;
       flex-wrap: wrap;
       margin-bottom: 16px;
+      gap: 8px;
 
       .bk-search-select {
         flex: 1;
         max-width: 500px;
-        min-width: 320px;
+        // min-width: 320px;
         margin-left: auto;
       }
     }

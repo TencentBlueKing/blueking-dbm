@@ -32,6 +32,8 @@
 
   import { listTag } from '@services/source/tag';
 
+  import { useEventBus } from '@hooks';
+
   export interface TagSearchValue {
     tag_ids?: string;
     tag_keys?: string;
@@ -49,12 +51,13 @@
   type Emits = (e: 'search', value: TagSearchValue) => void;
 
   const props = withDefaults(defineProps<Props>(), {
-    mode: 'button',
+    mode: 'select',
   });
 
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+  const eventBus = useEventBus();
 
   const isButtonMode = computed(() => props.mode === 'button');
 
@@ -63,15 +66,8 @@
 
   let localSearchValue: [string, number][] = [];
 
-  useRequest(listTag, {
-    defaultParams: [
-      {
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        limit: -1,
-        offset: 0,
-        type: 'cluster',
-      },
-    ],
+  const { run: fetchTagList } = useRequest(listTag, {
+    manual: true,
     onSuccess(data) {
       const keyValueMap = data.results.reduce<Record<string, DataTye[]>>((results, item) => {
         const keyInfo = {
@@ -100,6 +96,15 @@
     },
   });
 
+  const handleFetchTagList = () => {
+    fetchTagList({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      limit: -1,
+      offset: 0,
+      type: 'cluster',
+    });
+  };
+
   const handleSearch = () => {
     if (!localSearchValue.length && !searchValue.value.length) {
       return;
@@ -126,6 +131,14 @@
 
     handleSearch();
   };
+
+  handleFetchTagList();
+
+  eventBus.on('update-cluster-tag-list', handleFetchTagList);
+
+  onBeforeUnmount(() => {
+    eventBus.off('update-cluster-tag-list', handleFetchTagList);
+  });
 </script>
 <style lang="less" scoped>
   .tag-search-main {
@@ -147,6 +160,10 @@
     :deep(.bk-cascader) {
       border-bottom-left-radius: 0;
       border-top-left-radius: 0;
+
+      &.is-focus {
+        z-index: 99999;
+      }
     }
   }
 </style>

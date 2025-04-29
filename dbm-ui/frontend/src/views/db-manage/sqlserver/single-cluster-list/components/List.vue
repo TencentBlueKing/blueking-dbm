@@ -1,35 +1,31 @@
 <template>
   <div class="sqlserver-single-cluster-list">
-    <div class="header-action mb-16">
-      <div>
-        <BkButton
-          v-db-console="'sqlserver.singleClusterList.instanceApply'"
-          theme="primary"
-          @click="handleApply">
-          {{ t('申请实例') }}
-        </BkButton>
-        <ClusterBatchOperation
-          v-db-console="'sqlserver.singleClusterList.batchOperation'"
-          class="ml-8"
-          :cluster-type="ClusterTypes.SQLSERVER_SINGLE"
-          :selected="selected"
-          @success="fetchData" />
-        <BkButton
-          v-db-console="'sqlserver.singleClusterList.importAuthorize'"
-          class="ml-8"
-          @click="handleShowExcelAuthorize">
-          {{ t('导入授权') }}
-        </BkButton>
-        <DropdownExportExcel
-          v-db-console="'sqlserver.singleClusterList.export'"
-          export-type="cluster"
-          :has-selected="hasSelected"
-          :ids="selectedIds"
-          type="sqlserver_single" />
-        <ClusterIpCopy
-          v-db-console="'sqlserver.singleClusterList.batchCopy'"
-          :selected="selected" />
-      </div>
+    <div class="header-action">
+      <BkButton
+        v-db-console="'sqlserver.singleClusterList.instanceApply'"
+        theme="primary"
+        @click="handleApply">
+        {{ t('申请实例') }}
+      </BkButton>
+      <ClusterBatchOperation
+        v-db-console="'sqlserver.singleClusterList.batchOperation'"
+        :cluster-type="ClusterTypes.SQLSERVER_SINGLE"
+        :selected="selected"
+        @success="fetchData" />
+      <BkButton
+        v-db-console="'sqlserver.singleClusterList.importAuthorize'"
+        @click="handleShowExcelAuthorize">
+        {{ t('导入授权') }}
+      </BkButton>
+      <DropdownExportExcel
+        v-db-console="'sqlserver.singleClusterList.export'"
+        export-type="cluster"
+        :has-selected="hasSelected"
+        :ids="selectedIds"
+        type="sqlserver_single" />
+      <ClusterIpCopy
+        v-db-console="'sqlserver.singleClusterList.batchCopy'"
+        :selected="selected" />
       <DbSearchSelect
         class="header-select"
         :data="searchSelectData"
@@ -39,9 +35,7 @@
         unique-select
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
-      <TagSearch
-        class="ml-8"
-        @search="fetchData" />
+      <TagSearch @search="fetchData" />
     </div>
     <div class="table-wrapper">
       <DbTable
@@ -476,11 +470,12 @@
     .header-action {
       display: flex;
       flex-wrap: wrap;
+      margin-bottom: 16px;
+      gap: 8px;
 
       .header-select {
         flex: 1;
         max-width: 500px;
-        min-width: 320px;
         margin-left: auto;
       }
     }

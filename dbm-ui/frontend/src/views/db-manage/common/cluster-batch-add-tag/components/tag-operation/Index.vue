@@ -174,11 +174,11 @@
         font-weight: 700;
 
         &.title-key {
-          width: 210px;
+          width: 254px;
         }
 
         &.title-value {
-          width: 300px;
+          flex: 1;
         }
       }
 

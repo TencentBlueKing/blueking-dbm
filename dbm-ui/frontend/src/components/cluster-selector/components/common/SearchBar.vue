@@ -1,8 +1,6 @@
 <template>
   <div class="cluster-selector-search-main">
-    <TagSearch
-      mode="select"
-      @search="handleTagSearch" />
+    <TagSearch @search="handleTagSearch" />
     <DbSearchSelect
       class="search-select-main"
       :data="searchSelectData"

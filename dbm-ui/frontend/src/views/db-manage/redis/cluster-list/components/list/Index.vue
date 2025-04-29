@@ -14,31 +14,27 @@
 <template>
   <div class="redis-cluster-list-page">
     <div class="operation-box">
-      <div>
-        <AuthButton
-          v-db-console="'redis.clusterManage.instanceApply'"
-          action-id="redis_cluster_apply"
-          class="mb-16"
-          theme="primary"
-          @click="handleApply">
-          {{ t('申请实例') }}
-        </AuthButton>
-        <ClusterBatchOperation
-          v-db-console="'redis.clusterManage.batchOperation'"
-          class="ml-8"
-          :cluster-type="ClusterTypes.REDIS"
-          :selected="selected"
-          @success="fetchData" />
-        <DropdownExportExcel
-          v-db-console="'redis.clusterManage.export'"
-          :ids="selectedIds"
-          type="redis" />
-        <ClusterIpCopy
-          v-db-console="'redis.clusterManage.batchCopy'"
-          :selected="selected" />
-      </div>
+      <AuthButton
+        v-db-console="'redis.clusterManage.instanceApply'"
+        action-id="redis_cluster_apply"
+        theme="primary"
+        @click="handleApply">
+        {{ t('申请实例') }}
+      </AuthButton>
+      <ClusterBatchOperation
+        v-db-console="'redis.clusterManage.batchOperation'"
+        :cluster-type="ClusterTypes.REDIS"
+        :selected="selected"
+        @success="fetchData" />
+      <DropdownExportExcel
+        v-db-console="'redis.clusterManage.export'"
+        :ids="selectedIds"
+        type="redis" />
+      <ClusterIpCopy
+        v-db-console="'redis.clusterManage.batchCopy'"
+        :selected="selected" />
       <DbSearchSelect
-        class="operations-right mb-16"
+        class="operations-right"
         :data="searchSelectData"
         :get-menu-list="getMenuList"
         :model-value="searchValue"
@@ -46,9 +42,7 @@
         unique-select
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
-      <TagSearch
-        class="ml-8"
-        @search="fetchData" />
+      <TagSearch @search="fetchData" />
     </div>
     <div class="table-wrapper">
       <DbTable
@@ -817,11 +811,12 @@
     .operation-box {
       display: flex;
       flex-wrap: wrap;
+      margin-bottom: 16px;
+      gap: 8px;
 
       .bk-search-select {
         flex: 1;
         max-width: 500px;
-        min-width: 320px;
         margin-left: auto;
       }
     }

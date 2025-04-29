@@ -14,38 +14,32 @@
 <template>
   <div class="redis-cluster-list-page">
     <div class="operation-box">
-      <div>
-        <AuthButton
-          action-id="redis_cluster_apply"
-          class="mb-16"
-          theme="primary"
-          @click="handleApply">
-          {{ t('申请实例') }}
-        </AuthButton>
-        <ClusterBatchOperation
-          v-db-console="'redis.haClusterManage.batchOperation'"
-          class="ml-8"
-          :cluster-type="ClusterTypes.REDIS_INSTANCE"
-          :selected="selected"
-          @success="fetchData" />
-        <DropdownExportExcel
-          :ids="selectedIds"
-          type="redis" />
-        <ClusterIpCopy
-          v-db-console="'redis.haClusterManage.batchCopy'"
-          :selected="selected" />
-      </div>
+      <AuthButton
+        action-id="redis_cluster_apply"
+        theme="primary"
+        @click="handleApply">
+        {{ t('申请实例') }}
+      </AuthButton>
+      <ClusterBatchOperation
+        v-db-console="'redis.haClusterManage.batchOperation'"
+        :cluster-type="ClusterTypes.REDIS_INSTANCE"
+        :selected="selected"
+        @success="fetchData" />
+      <DropdownExportExcel
+        :ids="selectedIds"
+        type="redis" />
+      <ClusterIpCopy
+        v-db-console="'redis.haClusterManage.batchCopy'"
+        :selected="selected" />
       <DbSearchSelect
-        class="operations-right mb-16"
+        class="operations-right"
         :data="searchSelectData"
         :get-menu-list="getMenuList"
         :model-value="searchValue"
         :placeholder="t('请输入或选择条件搜索')"
         unique-select
         @change="handleSearchValueChange" />
-      <TagSearch
-        class="ml-8"
-        @search="fetchData" />
+      <TagSearch @search="fetchData" />
     </div>
     <DbTable
       ref="tableRef"
@@ -661,11 +655,12 @@
     .operation-box {
       display: flex;
       flex-wrap: wrap;
+      margin-bottom: 16px;
+      gap: 8px;
 
       .bk-search-select {
         flex: 1;
         max-width: 500px;
-        min-width: 320px;
         margin-left: auto;
       }
     }

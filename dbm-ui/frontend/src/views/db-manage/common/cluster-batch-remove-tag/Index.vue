@@ -121,13 +121,13 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import type ClusterBase from '@services/model/_clusterBase';
   import { removeClusterTagKeys } from '@services/source/dbbase';
+  import type { ClusterCommonInfo } from '@services/types';
 
   import { encodeRegexp, execCopy, messageSuccess } from '@utils';
 
   interface Props {
-    selected: Array<{ id: number } & ClusterBase>;
+    selected: ClusterCommonInfo[];
   }
 
   type Emits = (e: 'success') => void;

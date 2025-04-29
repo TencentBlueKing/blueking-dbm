@@ -15,6 +15,7 @@
     <div class="value-input-wraper">
       <BkTagInput
         v-model="pairInfo.value"
+        allow-auto-match
         allow-create
         class="value-input"
         :class="{ 'is-not-valid': !isValueVerifyPass }"

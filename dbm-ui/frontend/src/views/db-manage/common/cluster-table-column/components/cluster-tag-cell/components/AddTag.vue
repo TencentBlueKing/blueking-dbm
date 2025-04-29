@@ -128,7 +128,7 @@
 <style lang="less">
   .cluster-add-tag-dialog-main {
     .bk-modal-wrapper {
-      max-height: 30vh;
+      max-height: 80vh;
 
       .header-main {
         display: flex;
@@ -155,7 +155,7 @@
 
       .bk-modal-body {
         .bk-modal-content {
-          max-height: calc(30vh - 100px) !important;
+          max-height: calc(80vh - 100px) !important;
           overflow-y: auto;
         }
       }

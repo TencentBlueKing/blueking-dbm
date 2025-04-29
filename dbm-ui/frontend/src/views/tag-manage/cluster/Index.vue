@@ -118,14 +118,14 @@
         <template #default="{ data }: { data: RowData }">
           <div class="bind-cluster-column-main">
             <BkButton
-              v-if="calcKeyRelatedClusters(data.key).length"
+              v-if="calcTagClusters(data)"
               text
               theme="primary">
-              {{ isCollapsed(data.key) ? calcKeyRelatedClusters(data.key).length : data.clusters.length }}
+              {{ calcTagClusters(data) }}
             </BkButton>
             <span v-else>0</span>
             <DbIcon
-              v-if="calcKeyRelatedClusters(data.key).length"
+              v-if="calcTagClusters(data)"
               v-bk-tooltips="
                 isCollapsed(data.key)
                   ? calcKeyRelatedClusters(data.key).join('\n')
@@ -161,7 +161,7 @@
         :min-width="120">
         <template #default="{ data, rowIndex }: { data: RowData, rowIndex: number }">
           <AuthButton
-            v-if="isCollapsed(data.key) ? calcKeyRelatedClusters(data.key).length : data.clusters.length"
+            v-if="calcTagClusters(data)"
             v-bk-tooltips="{
               disabled: !data.permission.resource_tag_manage || !calcKeyRelatedClusters(data.key).length,
               content: t('绑定的集群不为 0 ，不能删除'),
@@ -345,6 +345,9 @@
       return results;
     }, []);
   };
+
+  const calcTagClusters = (data: RowData) =>
+    isCollapsed(data.key) ? calcKeyRelatedClusters(data.key).length : data.clusters.length;
 
   const generateRowsTags = (key: string) =>
     tableData.reduce<string[]>((results, item) => {
@@ -754,7 +757,7 @@
 
       .bk-modal-body {
         .bk-modal-content {
-          max-height: calc(30vh - 100px) !important;
+          max-height: calc(80vh - 100px) !important;
           overflow-y: auto;
         }
       }

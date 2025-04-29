@@ -24,7 +24,7 @@ export default class ClusterBase {
     this.id = payload.id;
     this.db_type = payload.db_type;
     this.phase = payload.phase;
-    this.tags = payload.tags;
+    this.tags = payload.tags || [];
     this.update_at = payload.update_at;
   }
 
@@ -46,6 +46,10 @@ export default class ClusterBase {
 
   get masterDomain() {
     return this.master_domain || this.domain;
+  }
+
+  get sortedTags() {
+    return _.sortBy(this.tags, (item) => item.key);
   }
 
   get updateAtDisplay() {

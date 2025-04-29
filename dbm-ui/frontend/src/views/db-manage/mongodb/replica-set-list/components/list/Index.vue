@@ -22,7 +22,6 @@
       </BkButton>
       <ClusterBatchOperation
         v-db-console="'mongodb.replicaSetList.batchOperation'"
-        class="ml-8"
         :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
         :selected="selected"
         @success="fetchData" />
@@ -33,14 +32,12 @@
         }"
         class="inline-block">
         <BkButton
-          class="ml-8 mb-8"
           :disabled="!hasData"
           @click="handleShowExcelAuthorize">
           {{ t('导入授权') }}
         </BkButton>
       </span>
       <DropdownExportExcel
-        class="ml-8 mb-8"
         :has-selected="hasSelected"
         :ids="selectedIds"
         type="mongodb" />
@@ -54,9 +51,7 @@
         unique-select
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
-      <TagSearch
-        class="ml-8"
-        @search="fetchData" />
+      <TagSearch @search="fetchData" />
     </div>
     <DbTable
       ref="tableRef"
@@ -496,10 +491,12 @@
     .header-action {
       display: flex;
       flex-wrap: wrap;
-      margin-bottom: 8px;
+      margin-bottom: 16px;
+      gap: 8px;
 
       .header-action-search-select {
-        width: 500px;
+        flex: 1;
+        max-width: 500px;
         margin-left: auto;
       }
 

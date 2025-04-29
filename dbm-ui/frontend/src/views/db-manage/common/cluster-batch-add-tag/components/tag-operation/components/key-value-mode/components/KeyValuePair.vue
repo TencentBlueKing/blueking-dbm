@@ -11,9 +11,9 @@
         :placeholder="t('请选择标签键')"
         @change="handleKeyChange">
         <BkOption
-          v-for="(item, index) in keyList"
+          v-for="item in keyList"
           :id="item.value"
-          :key="index"
+          :key="item.value"
           :name="item.label">
           <span class="mr-6">{{ item.label }}</span>
           <BkTag
@@ -100,9 +100,9 @@
         :placeholder="t('请选择标签值')"
         @change="handleValueChange">
         <BkOption
-          v-for="(item, index) in valueList"
+          v-for="item in valueList"
           :id="item.value"
-          :key="index"
+          :key="item.value"
           :name="item.label">
           <span class="mr-6">{{ item.label }}</span>
           <BkTag
@@ -177,6 +177,8 @@
 
   import { createTag } from '@services/source/tag';
 
+  import { useEventBus } from '@hooks';
+
   import { messageError } from '@utils';
 
   interface Props {
@@ -218,6 +220,7 @@
 
   const { t } = useI18n();
   const router = useRouter();
+  const eventBus = useEventBus();
 
   const pairInfo = ref({
     key: '',
@@ -332,6 +335,12 @@
       return;
     }
 
+    const keyRegex = /^[\u4e00-\u9fa5a-zA-Z0-9\s_\-\.]{1,50}$/;
+    if (!keyRegex.test(inputTagKey.value)) {
+      messageError(t('标签键为1-50个字符，支持英文字母、数字、空格或汉字，中划线(-)，下划线()，点(.)'));
+      return;
+    }
+
     pairInfo.value.key = inputTagKey.value;
     keyList.value.unshift({
       isNew: true,
@@ -350,6 +359,12 @@
 
     if (props.keyValueMap[pairInfo.value.key].some((item) => item.value === inputTagValue.value)) {
       messageError(t('标签值重复'));
+      return;
+    }
+
+    const keyRegex = /^[\u4e00-\u9fa5a-zA-Z0-9\s_\-\.]{1,100}$/;
+    if (!keyRegex.test(inputTagValue.value)) {
+      messageError(t('标签值为1-100个字符，支持英文字母、数字、空格或汉字，中划线(-)，下划线()，点(.)'));
       return;
     }
 
@@ -394,6 +409,8 @@
           type: 'cluster',
         });
         pairInfo.value.value = tagInfo[0].id;
+        // 新建标签之后，外部的标签搜索列表也要更新
+        eventBus.emit('update-cluster-tag-list');
       }
 
       return {

@@ -23,7 +23,6 @@
       </AuthButton>
       <ClusterBatchOperation
         v-db-console="'riak.clusterManage.batchOperation'"
-        class="ml-8"
         :cluster-type="ClusterTypes.RIAK"
         :selected="selected"
         @success="fetchData" />
@@ -41,9 +40,7 @@
         :placeholder="t('请输入或选择条件搜索')"
         unique-select
         @change="handleSearchValueChange" />
-      <TagSearch
-        class="ml-8"
-        @search="fetchData" />
+      <TagSearch @search="fetchData" />
       <BkDatePicker
         v-model="deployTime"
         append-to-body
@@ -504,11 +501,11 @@
       display: flex;
       flex-wrap: wrap;
       margin-bottom: 16px;
+      gap: 8px;
 
       .bk-search-select {
         flex: 1;
         max-width: 500px;
-        min-width: 320px;
         margin-left: auto;
       }
 

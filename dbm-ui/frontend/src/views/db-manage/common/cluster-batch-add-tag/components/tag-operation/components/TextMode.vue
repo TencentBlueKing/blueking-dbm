@@ -12,10 +12,12 @@
         </div>
       </template>
       <BkInput
+        ref="inputRef"
         v-model="localValue"
+        :autosize="{ minRows: 8, maxRows: 20 }"
+        :over-max-length-limit="false"
         :placeholder="placeholder"
         :resize="false"
-        :rows="8"
         type="textarea" />
     </BkPopover>
     <div
@@ -48,6 +50,7 @@
 
   const { t } = useI18n();
 
+  const inputRef = ref();
   const localValue = ref('');
   const isVerifyPassed = ref(true);
   const verifyTip = ref('');
@@ -76,7 +79,6 @@
       .trim()
       .split(/\n/)
       .filter((item) => !!item);
-    console.log('pairStrList = ', pairStrList);
     const validPairRegex = /[:：/]/;
     const pairInfo: TagsPairType = {};
 
@@ -128,6 +130,10 @@
 
     return pairInfo;
   };
+
+  onMounted(() => {
+    inputRef.value.focus();
+  });
 
   defineExpose<Exposes>({
     getValue() {

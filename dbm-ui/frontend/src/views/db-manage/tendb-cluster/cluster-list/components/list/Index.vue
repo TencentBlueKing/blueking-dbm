@@ -13,42 +13,38 @@
 <template>
   <div class="spider-manage-list-page">
     <div class="operations">
-      <div class="mb-16">
-        <AuthButton
-          v-db-console="'tendbCluster.clusterManage.instanceApply'"
-          action-id="tendbcluster_apply"
-          theme="primary"
-          @click="handleApply">
-          {{ t('申请实例') }}
-        </AuthButton>
-        <ClusterBatchOperation
-          v-db-console="'tendbCluster.clusterManage.batchOperation'"
-          class="ml-8"
-          :cluster-type="ClusterTypes.TENDBCLUSTER"
-          :selected="selected"
-          @success="fetchTableData" />
-        <span
-          v-bk-tooltips="{
-            disabled: hasData,
-            content: t('请先创建实例'),
-          }"
-          v-db-console="'tendbCluster.clusterManage.importAuthorize'"
-          class="inline-block">
-          <BkButton
-            class="ml-8"
-            :disabled="!hasData"
-            @click="handleShowExcelAuthorize">
-            {{ t('导入授权') }}
-          </BkButton>
-        </span>
-        <DropdownExportExcel
-          v-db-console="'tendbCluster.clusterManage.export'"
-          :ids="selectedIds"
-          type="spider" />
-        <ClusterIpCopy
-          v-db-console="'tendbCluster.clusterManage.batchCopy'"
-          :selected="selected" />
-      </div>
+      <AuthButton
+        v-db-console="'tendbCluster.clusterManage.instanceApply'"
+        action-id="tendbcluster_apply"
+        theme="primary"
+        @click="handleApply">
+        {{ t('申请实例') }}
+      </AuthButton>
+      <ClusterBatchOperation
+        v-db-console="'tendbCluster.clusterManage.batchOperation'"
+        :cluster-type="ClusterTypes.TENDBCLUSTER"
+        :selected="selected"
+        @success="fetchTableData" />
+      <span
+        v-bk-tooltips="{
+          disabled: hasData,
+          content: t('请先创建实例'),
+        }"
+        v-db-console="'tendbCluster.clusterManage.importAuthorize'"
+        class="inline-block">
+        <BkButton
+          :disabled="!hasData"
+          @click="handleShowExcelAuthorize">
+          {{ t('导入授权') }}
+        </BkButton>
+      </span>
+      <DropdownExportExcel
+        v-db-console="'tendbCluster.clusterManage.export'"
+        :ids="selectedIds"
+        type="spider" />
+      <ClusterIpCopy
+        v-db-console="'tendbCluster.clusterManage.batchCopy'"
+        :selected="selected" />
       <DbSearchSelect
         :data="searchSelectData"
         :get-menu-list="getMenuList"
@@ -57,9 +53,7 @@
         unique-select
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
-      <TagSearch
-        class="ml-8"
-        @search="fetchTableData" />
+      <TagSearch @search="fetchTableData" />
     </div>
     <div
       class="table-wrapper"
@@ -740,11 +734,11 @@
       display: flex;
       margin-bottom: 16px;
       flex-wrap: wrap;
+      gap: 8px;
 
       .bk-search-select {
         flex: 1;
         max-width: 500px;
-        min-width: 320px;
         margin-left: auto;
       }
     }

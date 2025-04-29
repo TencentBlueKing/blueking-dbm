@@ -31,12 +31,12 @@
       style="height: 550px">
       <template #main>
         <div class="tag-operation-main">
-          <div class="header-main">{{ t('批量添加集群标签') }}</div>
+          <div class="header-main">{{ t('批量添加标签') }}</div>
           <BkAlert
             class="alert-tip"
             closable
             theme="warning"
-            :title="t('将集群的标签统一修改为期望值，没有的标签会新添加')" />
+            :title="t('为集群添加标签，若标签键存在则新添加，已存在则忽略')" />
           <div class="operation-main">
             <TagOperation ref="tagOperationRef" />
           </div>
@@ -100,15 +100,15 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import type ClusterBase from '@services/model/_clusterBase';
   import { addClusterTagKeys } from '@services/source/dbbase';
+  import type { ClusterCommonInfo } from '@services/types';
 
   import { execCopy, messageSuccess } from '@utils';
 
   import TagOperation from './components/tag-operation/Index.vue';
 
   interface Props {
-    selected: Array<{ id: number } & ClusterBase>;
+    selected: ClusterCommonInfo[];
   }
 
   type Emits = (e: 'success') => void;

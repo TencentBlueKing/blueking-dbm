@@ -57,6 +57,9 @@
           });
           return results;
         }, []);
+        nextTick(() => {
+          handleSelectKey();
+        });
       }
     },
     { immediate: true },

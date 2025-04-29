@@ -30,21 +30,21 @@
   <ClusterAddTag
     v-model:is-show="isShowAddTag"
     :cluster-id="data.id"
-    :data="data.tags"
-    :domain="data.master_domain || data.domain"
+    :data="data.sortedTags"
+    :domain="data.masterDomain"
     @success="handleOperateSuccess" />
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import type ClusterBase from '@services/model/_clusterBase';
+  import type { ClusterCommonInfo } from '@services/types';
 
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import ClusterAddTag from './components/AddTag.vue';
 
   interface Props {
-    data: { permission: Record<string, boolean> } & ClusterBase;
+    data: { permission: Record<string, boolean> } & ClusterCommonInfo;
   }
 
   type Emits = (e: 'success') => void;
@@ -59,7 +59,7 @@
   const isShowAddTag = ref(false);
 
   const totalList = computed(() =>
-    props.data.tags.map((item) => ({
+    props.data.sortedTags.map((item) => ({
       key: item.key,
       value: [item.value],
     })),

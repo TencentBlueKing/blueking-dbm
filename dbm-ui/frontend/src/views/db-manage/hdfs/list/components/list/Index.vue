@@ -17,14 +17,12 @@
       <AuthButton
         v-db-console="'hdfs.clusterManage.instanceApply'"
         action-id="hdfs_apply"
-        class="mb16"
         theme="primary"
         @click="handleGoApply">
         {{ t('申请实例') }}
       </AuthButton>
       <ClusterBatchOperation
         v-db-console="'hdfs.clusterManage.batchOperation'"
-        class="ml-8"
         :cluster-type="ClusterTypes.HDFS"
         :selected="selected"
         @success="fetchTableData" />
@@ -36,7 +34,6 @@
         v-db-console="'hdfs.clusterManage.batchCopy'"
         :selected="selected" />
       <DbSearchSelect
-        class="mb16"
         :data="serachData"
         :get-menu-list="getMenuList"
         :model-value="searchValue"
@@ -44,9 +41,7 @@
         unique-select
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
-      <TagSearch
-        class="ml-8"
-        @search="fetchTableData" />
+      <TagSearch @search="fetchTableData" />
     </div>
     <div
       class="table-wrapper"
@@ -607,11 +602,12 @@
     .header-action {
       display: flex;
       flex-wrap: wrap;
+      margin-bottom: 16px;
+      gap: 8px;
 
       .bk-search-select {
         flex: 1;
         max-width: 500px;
-        min-width: 320px;
         margin-left: auto;
       }
     }

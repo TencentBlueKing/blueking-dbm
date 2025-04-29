@@ -1,37 +1,33 @@
 <template>
   <div class="sqlserver-ha-cluster-list-page">
     <div class="header-action">
-      <div class="mb-16">
-        <BkButton
-          v-db-console="'sqlserver.haClusterList.instanceApply'"
-          theme="primary"
-          @click="handleApply">
-          {{ t('申请实例') }}
-        </BkButton>
-        <ClusterBatchOperation
-          v-db-console="'sqlserver.haClusterList.batchOperation'"
-          class="ml-8"
-          :cluster-type="ClusterTypes.SQLSERVER_HA"
-          :selected="selected"
-          @success="fetchData" />
-        <BkButton
-          v-db-console="'sqlserver.haClusterList.importAuthorize'"
-          class="ml-8"
-          @click="handleShowExcelAuthorize">
-          {{ t('导入授权') }}
-        </BkButton>
-        <DropdownExportExcel
-          v-db-console="'sqlserver.haClusterList.export'"
-          export-type="cluster"
-          :has-selected="hasSelected"
-          :ids="selectedIds"
-          type="sqlserver_ha" />
-        <ClusterIpCopy
-          v-db-console="'sqlserver.haClusterList.batchCopy'"
-          :selected="selected" />
-      </div>
+      <BkButton
+        v-db-console="'sqlserver.haClusterList.instanceApply'"
+        theme="primary"
+        @click="handleApply">
+        {{ t('申请实例') }}
+      </BkButton>
+      <ClusterBatchOperation
+        v-db-console="'sqlserver.haClusterList.batchOperation'"
+        :cluster-type="ClusterTypes.SQLSERVER_HA"
+        :selected="selected"
+        @success="fetchData" />
+      <BkButton
+        v-db-console="'sqlserver.haClusterList.importAuthorize'"
+        @click="handleShowExcelAuthorize">
+        {{ t('导入授权') }}
+      </BkButton>
+      <DropdownExportExcel
+        v-db-console="'sqlserver.haClusterList.export'"
+        export-type="cluster"
+        :has-selected="hasSelected"
+        :ids="selectedIds"
+        type="sqlserver_ha" />
+      <ClusterIpCopy
+        v-db-console="'sqlserver.haClusterList.batchCopy'"
+        :selected="selected" />
       <DbSearchSelect
-        class="header-select mb-16"
+        class="header-select"
         :data="searchSelectData"
         :get-menu-list="getMenuList"
         :model-value="searchValue"
@@ -39,9 +35,7 @@
         unique-select
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
-      <TagSearch
-        class="ml-8"
-        @search="fetchData" />
+      <TagSearch @search="fetchData" />
     </div>
     <DbTable
       ref="tableRef"
@@ -512,11 +506,12 @@
     .header-action {
       display: flex;
       flex-wrap: wrap;
+      margin-bottom: 16px;
+      gap: 8px;
 
       .header-select {
         flex: 1;
         max-width: 500px;
-        min-width: 320px;
         margin-left: auto;
       }
     }

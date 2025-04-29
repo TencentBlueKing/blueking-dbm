@@ -23,7 +23,6 @@
       </AuthButton>
       <ClusterBatchOperation
         v-db-console="'kafka.clusterManage.batchOperation'"
-        class="ml-8"
         :cluster-type="ClusterTypes.KAFKA"
         :selected="selected"
         @success="fetchTableData" />
@@ -42,9 +41,7 @@
         unique-select
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
-      <TagSearch
-        class="ml-8"
-        @search="fetchTableData" />
+      <TagSearch @search="fetchTableData" />
     </div>
     <DbTable
       ref="tableRef"
@@ -554,11 +551,11 @@
       display: flex;
       flex-wrap: wrap;
       margin-bottom: 16px;
+      gap: 8px;
 
       .bk-search-select {
         flex: 1;
         max-width: 500px;
-        min-width: 320px;
         margin-left: auto;
       }
     }
