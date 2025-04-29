@@ -46,6 +46,7 @@
             <TableNameColumn
               v-model="rowData.clean_tables"
               :cluster-id="rowData.cluster?.id"
+              :disabled="rowData.clean_mode === CLEAR_MODE.DROP_DBS"
               field="clean_tables"
               :label="t('指定表名')"
               @batch-edit="handleColumnBatchEdit" />
@@ -53,6 +54,7 @@
               v-model="rowData.ignore_clean_tables"
               :allow-asterisk="false"
               :cluster-id="rowData.cluster?.id"
+              :disabled="rowData.clean_mode === CLEAR_MODE.DROP_DBS"
               field="ignore_clean_tables"
               :label="t('忽略表名')"
               :required="false"
@@ -109,7 +111,7 @@
   import DbNameColumn from '@views/db-manage/sqlserver/common/toolbox-field/db-name-column/Index.vue';
   import TableNameColumn from '@views/db-manage/sqlserver/common/toolbox-field/table-name-column/Index.vue';
 
-  import ClearModeColumn from './components/ClearModeColumn.vue';
+  import ClearModeColumn, { CLEAR_MODE } from './components/ClearModeColumn.vue';
   import FinalDbColumn from './components/FinalDbColumn.vue';
 
   interface IDataRow {
@@ -131,7 +133,7 @@
     clean_dbs_patterns: values.clean_dbs_patterns || ([] as string[]),
     clean_ignore_dbs_patterns: values.clean_ignore_dbs_patterns || ([] as string[]),
     clean_mode: values.clean_mode || '',
-    clean_tables: values.clean_tables || ([] as string[]),
+    clean_tables: values.clean_tables || ['*'],
     cluster: Object.assign(
       {
         cluster_type: '',

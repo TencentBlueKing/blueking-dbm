@@ -39,6 +39,13 @@
   </EditableColumn>
 </template>
 
+<script lang="ts">
+  export const CLEAR_MODE = {
+    CLEAN_TABLES: 'clean_tables',
+    DROP_DBS: 'drop_dbs',
+    DROP_TABLES: 'drop_tables',
+  };
+</script>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
@@ -59,15 +66,15 @@
   const list = [
     {
       label: t('清理表数据'),
-      value: 'clean_tables',
+      value: CLEAR_MODE.CLEAN_TABLES,
     },
     {
       label: t('删除表'),
-      value: 'drop_tables',
+      value: CLEAR_MODE.DROP_TABLES,
     },
     {
       label: t('删除整库'),
-      value: 'drop_dbs',
+      value: CLEAR_MODE.DROP_DBS,
     },
   ];
 
