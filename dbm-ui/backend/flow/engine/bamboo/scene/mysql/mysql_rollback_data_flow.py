@@ -128,7 +128,8 @@ class MySQLRollbackDataFlow(object):
             install_ticket["inst_num"] = 1
             install_ticket["ticket_type"] = self.ticket_data["ticket_type"]
             sql = """show global variables where Variable_name in ('sql_mode','max_allowed_packet','lower_case_table_names',
-            'innodb_strict_mode','max_heap_table_size','tmp_table_size','character_set_server','collation_server')"""
+            'innodb_strict_mode','max_heap_table_size','tmp_table_size','character_set_server','collation_server',
+            'default_storage_engine','default-storage-engine')"""
             old_instance_configs = get_cluster_config(cluster_class, query_cmds=sql)
             install_ticket["apply_infos"] = [
                 {
