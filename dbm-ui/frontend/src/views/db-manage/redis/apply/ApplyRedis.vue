@@ -605,11 +605,11 @@
     const specInfo = specBackendRef.value?.getData();
     return {
       backend_group: {
-        count: specInfo?.machine_pair || 0,
+        count: Number(specInfo?.machine_pair || 0),
         spec_id: state.formdata.details.resource_spec.backend_group.spec_id,
       },
       proxy: {
-        count: state.formdata.details.resource_spec.proxy.count,
+        count: Number(state.formdata.details.resource_spec.proxy.count || 0),
         spec_id: state.formdata.details.resource_spec.proxy.spec_id,
       },
     } as ComponentProps<typeof EstimatedCost>['params']['resource_spec'];
