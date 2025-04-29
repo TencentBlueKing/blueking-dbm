@@ -203,7 +203,7 @@
   );
   const isSubmitting = computed(() => haIsSubmitting.value || singleIsSubmitting.value);
 
-  const validator = async (value: string[], { rowData }: Record<string, any>) => {
+  const validator = async (value: string[], { rowData }: Record<string, any> = {}) => {
     if (!value.length) {
       return true;
     }

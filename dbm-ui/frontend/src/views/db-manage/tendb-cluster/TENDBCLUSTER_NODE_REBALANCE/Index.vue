@@ -18,9 +18,9 @@
       closable
       :title="t('集群容量变更：通过部署新集群来实现原集群的扩容或缩容（集群分片数不变）')" />
     <BkForm
-      v-model="formData"
       class="mb-20"
-      form-type="vertical">
+      form-type="vertical"
+      :model="formData">
       <EditableTable
         ref="table"
         class="mb-20"

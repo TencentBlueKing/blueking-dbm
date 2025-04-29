@@ -53,24 +53,24 @@
 
 <script setup lang="ts">
   import _ from 'lodash';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import { checkClusterDatabase } from '@services/source/dbbase';
 
   import DbNameColumn from '@views/db-manage/common/toolbox-field/column/db-table-name-column/Index.vue';
-  import type { ComponentProps } from 'vue-component-type-helpers';
 
   interface Props {
-    /**
-     * @description 允许通配符(%?*)
-     * @default true
-     */
-    allowWildcard?: boolean;
     /**
      * @description 允许 * 独立使用
      * @default true
      */
     allowAsterisk?: boolean;
+    /**
+     * @description 允许通配符(%?*)
+     * @default true
+     */
+    allowWildcard?: boolean;
     /**
      * @description DB 已存在报错
      * @default false
@@ -85,9 +85,9 @@
     field: string;
     label: string;
     required?: boolean;
+    rules?: NonNullable<ComponentProps<typeof DbNameColumn>['rules']>;
     showBatchEdit?: boolean;
     single?: boolean;
-    rules?: NonNullable<ComponentProps<typeof DbNameColumn>['rules']>;
   }
 
   type Emits = (e: 'batch-edit', value: string[], field: string) => void;
@@ -100,9 +100,9 @@
     clusterId: undefined,
     disabled: false,
     required: true,
+    rules: () => [],
     showBatchEdit: true,
     single: false,
-    rules: () => [],
   });
   const emits = defineEmits<Emits>();
 
