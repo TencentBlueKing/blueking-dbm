@@ -194,8 +194,6 @@
   };
 
   const handleShowSideslider = () => {
-    console.log(11);
-
     const {
       bk_cloud_id: bkCloudId,
       cluster_spec: spec,
@@ -255,6 +253,7 @@
   }
 
   .capacity-box {
+    width: 100%;
     overflow: hidden;
   }
 
