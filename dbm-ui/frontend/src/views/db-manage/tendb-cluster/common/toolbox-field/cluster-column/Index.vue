@@ -46,40 +46,38 @@
   import { useRequest } from 'vue-request';
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
+  import { getTendbClusterList } from '@services/source/tendbcluster';
 
   import { ClusterTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
 
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
-  import { getTendbClusterList } from '@services/source/tendbcluster';
 
   interface Props {
-    selected: Record<ClusterTypes.TENDBCLUSTER, TendbClusterModel[]>;
-    tabListConfig?: Record<ClusterTypes.TENDBCLUSTER, TabConfig>;
-    /**
-     * @description 是否支持离线数据
-     * @default false
-     */
-    supportOfflineData?: boolean;
     /**
      * @description 是否允许重复选择集群
      * @default false
      */
     allowsDuplicates?: boolean;
+    selected: Record<ClusterTypes.TENDBCLUSTER, TendbClusterModel[]>;
+    /**
+     * @description 是否支持离线数据
+     * @default false
+     */
+    supportOfflineData?: boolean;
+    tabListConfig?: Record<ClusterTypes.TENDBCLUSTER, TabConfig>;
   }
 
-  interface Emits {
-    (e: 'batch-edit', list: TendbClusterModel[]): void;
-  }
+  type Emits = (e: 'batch-edit', list: TendbClusterModel[]) => void;
 
   interface Exposes {
     fetch: (params: ServiceParameters<typeof getTendbClusterList>) => void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    tabListConfig: () => ({}) as Record<ClusterTypes.TENDBCLUSTER, TabConfig>,
-    supportOfflineData: false,
     allowsDuplicates: false,
+    supportOfflineData: false,
+    tabListConfig: () => ({}) as Record<ClusterTypes.TENDBCLUSTER, TabConfig>,
   });
 
   const emits = defineEmits<Emits>();
@@ -94,33 +92,33 @@
 
   const rules = [
     {
-      validator: (value: string) => domainRegex.test(value),
       message: t('集群域名格式不正确'),
       trigger: 'change',
+      validator: (value: string) => domainRegex.test(value),
     },
     {
+      message: t('目标集群重复'),
+      trigger: 'blur',
       validator: (value: string) => {
         if (props.allowsDuplicates) {
           return true;
         }
         return props.selected[ClusterTypes.TENDBCLUSTER].filter((item) => item.master_domain === value).length < 2;
       },
-      message: t('目标集群重复'),
-      trigger: 'blur',
     },
     {
+      message: t('目标集群不存在'),
+      trigger: 'blur',
       validator: (value: string) => {
         if (!value) {
           return true;
         }
         return Boolean(modelValue.value.id);
       },
-      message: t('目标集群不存在'),
-      trigger: 'blur',
     },
   ];
 
-  const { run: queryCluster, loading } = useRequest(getTendbClusterList, {
+  const { loading, run: queryCluster } = useRequest(getTendbClusterList, {
     manual: true,
     onSuccess: (data) => {
       const [cluster] = data.results;

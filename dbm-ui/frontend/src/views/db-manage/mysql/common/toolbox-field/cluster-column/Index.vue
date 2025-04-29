@@ -35,32 +35,25 @@
   <ClusterSelector
     v-model:is-show="showSelector"
     :cluster-types="[ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE]"
+    :only-one-type="onlyOneType"
     :selected="selected"
     :support-offline-data="supportOfflineData"
     :tab-list-config="tabListConfig"
-    :only-one-type="onlyOneType"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
+  import { getTendbhaList } from '@services/source/tendbha';
+  import { getTendbsingleList } from '@services/source/tendbsingle';
 
   import { ClusterTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
 
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
-  import { getTendbhaList } from '@services/source/tendbha';
-  import { getTendbsingleList } from '@services/source/tendbsingle';
 
   interface Props {
-    selected: Record<ClusterTypes.TENDBHA | ClusterTypes.TENDBSINGLE, TendbhaModel[]>;
-    tabListConfig?: Record<ClusterTypes.TENDBHA | ClusterTypes.TENDBSINGLE, TabConfig>;
-    /**
-     * @description 是否支持离线数据
-     * @default false
-     */
-    supportOfflineData?: boolean;
     /**
      * @description 是否允许重复选择集群
      * @default false
@@ -71,20 +64,25 @@
      * @default false
      */
     onlyOneType?: boolean;
+    selected: Record<ClusterTypes.TENDBHA | ClusterTypes.TENDBSINGLE, TendbhaModel[]>;
+    /**
+     * @description 是否支持离线数据
+     * @default false
+     */
+    supportOfflineData?: boolean;
+    tabListConfig?: Record<ClusterTypes.TENDBHA | ClusterTypes.TENDBSINGLE, TabConfig>;
   }
 
-  interface Emits {
-    (e: 'batch-edit', list: TendbhaModel[]): void;
-  }
+  type Emits = (e: 'batch-edit', list: TendbhaModel[]) => void;
 
   interface Exposes {
     fetch: (params: ServiceParameters<typeof getTendbhaList>) => void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    supportOfflineData: false,
     allowsDuplicates: false,
     onlyOneType: false,
+    supportOfflineData: false,
     tabListConfig: () =>
       ({
         [ClusterTypes.TENDBHA]: {
@@ -127,11 +125,13 @@
 
   const rules = [
     {
-      validator: (value: string) => domainRegex.test(value),
       message: t('集群域名格式不正确'),
       trigger: 'change',
+      validator: (value: string) => domainRegex.test(value),
     },
     {
+      message: t('目标集群重复'),
+      trigger: 'blur',
       validator: (value: string) => {
         if (props.allowsDuplicates) {
           return true;
@@ -142,10 +142,10 @@
           ).length < 2
         );
       },
-      message: t('目标集群重复'),
-      trigger: 'blur',
     },
     {
+      message: t('目标集群不存在'),
+      trigger: 'blur',
       validator: async (value: string) => {
         if (modelValue.value.id) {
           return true;
@@ -158,8 +158,6 @@
         });
         return Boolean(modelValue.value.id);
       },
-      message: t('目标集群不存在'),
-      trigger: 'blur',
     },
   ];
 
