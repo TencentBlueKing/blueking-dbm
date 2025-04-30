@@ -36,6 +36,24 @@ export default [
       {
         children: [
           {
+            dbConsoleValue: 'redis.toolbox.keyExtract',
+            id: TicketTypes.REDIS_KEYS_EXTRACT,
+            name: t('Key 操作'),
+            parentId: 'common-manage',
+          },
+          {
+            dbConsoleValue: 'redis.toolbox.backup',
+            id: TicketTypes.REDIS_BACKUP,
+            name: t('备份'),
+            parentId: 'common-manage',
+          },
+          {
+            dbConsoleValue: 'redis.toolbox.purge',
+            id: TicketTypes.REDIS_PURGE,
+            name: t('清档'),
+            parentId: 'common-manage',
+          },
+          {
             dbConsoleValue: 'redis.toolbox.slaveRebuild',
             id: 'RedisDBCreateSlave',
             name: t('重建从库'),

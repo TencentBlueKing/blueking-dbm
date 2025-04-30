@@ -15,12 +15,16 @@
   <BkTable
     :data="ticketDetails.details.rules"
     :show-overflow="false">
-    <BkTableColumn :label="t('集群')">
+    <BkTableColumn
+      :label="t('集群')"
+      :min-width="220">
       <template #default="{ data }: { data: IRowData }">
         {{ ticketDetails.details.clusters[data.cluster_id]?.immute_domain }}
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('架构版本')">
+    <BkTableColumn
+      :label="t('架构版本')"
+      :width="200">
       <template #default="{ data }: { data: IRowData }">
         {{ ticketDetails.details.clusters[data.cluster_id]?.cluster_type_name }}
       </template>
