@@ -77,7 +77,7 @@ export const useImportResourcePoolTooltip = (hostList?: Ref<(FaultOrRecycleMachi
       return router.resolve({
         name: 'taskHistoryList',
         query: {
-          ticket_type__in: 'RESOURCE_IMPORT',
+          root_ids: taskIds.join(','),
         },
       });
     };
