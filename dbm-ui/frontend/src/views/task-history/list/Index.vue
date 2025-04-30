@@ -32,6 +32,7 @@
     <DbTable
       ref="tableRef"
       :data-source="dataSource"
+      releate-url-query
       @clear-search="handleClearSearch"
       @column-filter="columnFilterChange">
       <BkTableColumn
@@ -236,6 +237,7 @@
   const searchData = computed(() => [
     {
       id: 'root_ids',
+      multiple: true,
       name: 'ID',
     },
     {
