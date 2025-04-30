@@ -4,14 +4,12 @@ export interface Purge extends DetailBase {
   clusters: DetailClusters;
   delete_type: string;
   rules: {
-    backup_type: string;
-    black_regex: string;
+    backup: boolean;
     cluster_id: number;
-    create_at: string;
+    cluster_type: string;
+    db_list: [];
     domain: string;
-    path: string;
-    target: string;
-    total_size: string;
-    white_regex: string;
+    flushall: true; // TODO: 目前都是 true, 后续根据后端实现调整
+    force: boolean;
   }[];
 }

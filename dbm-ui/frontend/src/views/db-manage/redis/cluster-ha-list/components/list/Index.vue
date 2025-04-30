@@ -135,7 +135,7 @@
               :resource="data.id"
               text
               theme="primary"
-              @click="handleShowExtract([data])">
+              @click="handleToToolbox(TicketTypes.REDIS_KEYS_EXTRACT, [data])">
               {{ t('提取Key') }}
             </AuthButton>
           </OperationBtnStatusTips>
@@ -155,7 +155,7 @@
               :resource="data.id"
               text
               theme="primary"
-              @click="handlShowDeleteKeys([data])">
+              @click="handleToToolbox(TicketTypes.REDIS_KEYS_DELETE, [data])">
               {{ t('删除Key') }}
             </AuthButton>
           </OperationBtnStatusTips>
@@ -186,7 +186,7 @@
                   :resource="data.id"
                   style="width: 100%; height: 32px"
                   text
-                  @click="handleShowBackup([data])">
+                  @click="handleToToolbox(TicketTypes.REDIS_BACKUP, [data])">
                   {{ t('备份') }}
                 </AuthButton>
               </OperationBtnStatusTips>
@@ -202,7 +202,7 @@
                   :resource="data.id"
                   style="width: 100%; height: 32px"
                   text
-                  @click="handleShowPurge([data])">
+                  @click="handleToToolbox(TicketTypes.REDIS_PURGE, [data])">
                   {{ t('清档') }}
                 </AuthButton>
               </OperationBtnStatusTips>
@@ -216,6 +216,7 @@
                   :disabled="data.isOffline"
                   :permission="data.permission.redis_access_entry_view"
                   :resource="data.id"
+                  style="width: 100%; height: 32px"
                   text
                   @click="handleShowPassword(data.id)">
                   {{ t('获取访问方式') }}
@@ -247,6 +248,7 @@
                   :disabled="data.isStarting"
                   :permission="data.permission.redis_open_close"
                   :resource="data.id"
+                  style="width: 100%; height: 32px"
                   text
                   @click="handleEnableCluster([data])">
                   {{ t('启用') }}
@@ -264,6 +266,7 @@
                   :disabled="data.isOnline || Boolean(data.operationTicketId)"
                   :permission="data.permission.redis_destroy"
                   :resource="data.id"
+                  style="width: 100%; height: 32px"
                   text
                   @click="handleDeleteCluster([data])">
                   {{ t('删除') }}
@@ -279,22 +282,6 @@
       v-model:is-show="passwordState.isShow"
       :fetch-params="passwordState.fetchParams"
       :show-clb="false" />
-    <!-- 提取 keys -->
-    <ExtractKeys
-      v-model:is-show="extractState.isShow"
-      :data="extractState.data" />
-    <!-- 删除 keys -->
-    <DeleteKeys
-      v-model:is-show="deleteKeyState.isShow"
-      :data="deleteKeyState.data" />
-    <!-- 备份 -->
-    <RedisBackup
-      v-model:is-show="backupState.isShow"
-      :data="backupState.data" />
-    <!-- 清档 -->
-    <RedisPurge
-      v-model:is-show="purgeState.isShow"
-      :data="purgeState.data" />
   </div>
 </template>
 <script setup lang="tsx">
@@ -305,7 +292,7 @@
   import { getRedisList } from '@services/source/redis';
   import { getUserList } from '@services/source/user';
 
-  import { useLinkQueryColumnSerach, useStretchLayout, useTableSettings, useTicketCloneInfo } from '@hooks';
+  import { useLinkQueryColumnSerach, useStretchLayout, useTableSettings } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -328,16 +315,8 @@
   import SlaveDomainColumn from '@views/db-manage/common/cluster-table-column/SlaveDomainColumn.vue';
   import StatusColumn from '@views/db-manage/common/cluster-table-column/StatusColumn.vue';
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
-  import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
+  import { useOperateClusterBasic, useRedisClusterListToToolbox } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
-  import { useShowBackup } from '@views/db-manage/common/redis-backup/hooks/useShowBackup';
-  import RedisBackup from '@views/db-manage/common/redis-backup/Index.vue';
-  import { useShowDeleteKeys } from '@views/db-manage/common/redis-delete-keys/hooks/useShowDeleteKeys';
-  import DeleteKeys from '@views/db-manage/common/redis-delete-keys/Index.vue';
-  import { useShowExtractKeys } from '@views/db-manage/common/redis-extract-keys/hooks/useShowExtractKeys';
-  import ExtractKeys from '@views/db-manage/common/redis-extract-keys/Index.vue';
-  import { useShowPurge } from '@views/db-manage/common/redis-purge/hooks/useShowPurge';
-  import RedisPurge from '@views/db-manage/common/redis-purge/Index.vue';
   import ClusterPassword from '@views/db-manage/redis/common/cluster-oprations/ClusterPassword.vue';
 
   import { getMenuListSearch, getSearchSelectorParams } from '@utils';
@@ -364,10 +343,7 @@
       onSuccess: () => fetchData(),
     },
   );
-  const { handleShow: handleShowExtract, state: extractState } = useShowExtractKeys();
-  const { handleShow: handlShowDeleteKeys, state: deleteKeyState } = useShowDeleteKeys();
-  const { handleShow: handleShowBackup, state: backupState } = useShowBackup();
-  const { handleShow: handleShowPurge, state: purgeState } = useShowPurge();
+  const { handleToToolbox } = useRedisClusterListToToolbox();
   const { isOpen: isStretchLayoutOpen, splitScreen: stretchLayoutSplitScreen } = useStretchLayout();
 
   const {
@@ -389,45 +365,6 @@
   const tableRef = ref<InstanceType<typeof DbTable>>();
 
   const getTableInstance = () => tableRef.value;
-  // 提取Key 单据克隆
-  useTicketCloneInfo({
-    onSuccess(cloneData) {
-      extractState.isShow = true;
-      extractState.data = cloneData;
-      window.changeConfirm = true;
-    },
-    type: TicketTypes.REDIS_KEYS_EXTRACT,
-  });
-
-  // 删除Key 单据克隆
-  useTicketCloneInfo({
-    onSuccess(cloneData) {
-      deleteKeyState.isShow = true;
-      deleteKeyState.data = cloneData;
-      window.changeConfirm = true;
-    },
-    type: TicketTypes.REDIS_KEYS_DELETE,
-  });
-
-  // 集群备份单据克隆
-  useTicketCloneInfo({
-    onSuccess(cloneData) {
-      backupState.isShow = true;
-      backupState.data = cloneData;
-      window.changeConfirm = true;
-    },
-    type: TicketTypes.REDIS_BACKUP,
-  });
-
-  // 清档单据克隆
-  useTicketCloneInfo({
-    onSuccess(cloneData) {
-      purgeState.isShow = true;
-      purgeState.data = cloneData;
-      window.changeConfirm = true;
-    },
-    type: TicketTypes.REDIS_PURGE,
-  });
 
   const selected = shallowRef<RedisModel[]>([]);
 

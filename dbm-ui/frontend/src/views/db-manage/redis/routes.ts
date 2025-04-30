@@ -150,7 +150,13 @@ const redisWebconsoleRoute = {
   component: () => import('@views/db-manage/redis/webconsole/Index.vue'),
 };
 
+const redisKeyExtractRoute = createRouteItem(TicketTypes.REDIS_KEYS_EXTRACT, t('Key 操作'));
+const redisKeyDeleteRoute = createRouteItem(TicketTypes.REDIS_KEYS_DELETE, t('Key 操作'));
+const redisBackupRoute = createRouteItem(TicketTypes.REDIS_BACKUP, t('备份'));
+const redisPurgeRoute = createRouteItem(TicketTypes.REDIS_PURGE, t('清档'));
+
 const toolboxDbConsoleRouteMap = {
+  'redis.toolbox.backup': redisBackupRoute,
   'redis.toolbox.capacityChange': redisCapacityChangeRoute,
   'redis.toolbox.clusterShardChange': redisClusterShardUpdateRoute,
   'redis.toolbox.clusterTypeChange': redisClusterTypeUpdateRoute,
@@ -158,10 +164,13 @@ const toolboxDbConsoleRouteMap = {
   'redis.toolbox.dataCopyRecord': redisDBDataCopyRecordRoute,
   'redis.toolbox.dbReplace': redisDBReplaceRoute,
   'redis.toolbox.installModule': redisInstallModuleRoute,
+  'redis.toolbox.keyDelete': redisKeyDeleteRoute,
+  'redis.toolbox.keyExtract': redisKeyExtractRoute,
   'redis.toolbox.masterSlaveSwap': redisMasterFailoverRoute,
   'redis.toolbox.migrate': redisMigrateRoute,
   'redis.toolbox.proxyScaleDown': redisProxyScaleDownRoute,
   'redis.toolbox.proxyScaleUp': redisProxyScaleUpRoute,
+  'redis.toolbox.purge': redisPurgeRoute,
   'redis.toolbox.recoverFromInstance': redisRecoverFromInstanceRoute,
   'redis.toolbox.rollback': redisDBStructureRoute,
   'redis.toolbox.rollbackRecord': redisStructureInstanceRoute,
