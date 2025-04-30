@@ -2,8 +2,7 @@
   <EditableTable
     ref="editableTable"
     class="mb-12"
-    :model="tableData"
-    :rules="rules">
+    :model="tableData">
     <EditableRow
       v-for="(rowData, index) in tableData"
       :key="index">
@@ -154,21 +153,21 @@
   const editableTableRef = useTemplateRef('editableTable');
   const renderModeColumnRef = useTemplateRef<Array<InstanceType<typeof RenderModeColumn>>>('renderModeColumnRef');
 
-  const rules = {
-    'cluster.master_domain': [
-      {
-        message: t('目标集群重复'),
-        trigger: 'change',
-        validator: (value: string) => {
-          if (value) {
-            const nonEmptyIdList = tableData.value.filter((row) => row.cluster.master_domain === value);
-            return nonEmptyIdList.length === 1;
-          }
-          return true;
-        },
-      },
-    ],
-  };
+  // const rules = {
+  //   'cluster.master_domain': [
+  //     {
+  //       message: t('目标集群重复'),
+  //       trigger: 'change',
+  //       validator: (value: string) => {
+  //         if (value) {
+  //           const nonEmptyIdList = tableData.value.filter((row) => row.cluster.master_domain === value);
+  //           return nonEmptyIdList.length === 1;
+  //         }
+  //         return true;
+  //       },
+  //     },
+  //   ],
+  // };
 
   const clusterSelectorTabConfig = {
     [ClusterTypes.SQLSERVER_HA]: {
