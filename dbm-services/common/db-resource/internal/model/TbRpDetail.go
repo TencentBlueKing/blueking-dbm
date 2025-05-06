@@ -18,6 +18,7 @@ import (
 
 	"dbm-services/common/db-resource/internal/svr/bk"
 	"dbm-services/common/db-resource/internal/svr/dbmapi"
+	"dbm-services/common/db-resource/internal/svr/yunti"
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 
@@ -231,7 +232,11 @@ func GetTbRpDetailAll(sqlstr string) ([]TbRpDetail, error) {
 }
 
 // SetMore TODO
-func (t *TbRpDetail) SetMore(ip string, diskMap map[string]*bk.ShellResCollection) {
+func (t *TbRpDetail) SetMore(ip string, diskMap map[string]*bk.ShellResCollection, diskList []yunti.CvmDataDisk) {
+	diskdetailMap := lo.SliceToMap(diskList, func(d yunti.CvmDataDisk) (string, yunti.CvmDataDisk) {
+		return d.DiskId, d
+	})
+	logger.Info("diskdetailMap:%v", diskdetailMap)
 	if disk, ok := diskMap[ip]; ok {
 		if t.CPUNum <= 0 {
 			t.CPUNum = disk.Cpu
@@ -243,6 +248,19 @@ func (t *TbRpDetail) SetMore(ip string, diskMap map[string]*bk.ShellResCollectio
 		if t.DeviceClassIsLocalSSD() {
 			dks = bk.SetDiskType(disk.Disk, bk.SSD)
 		}
+		if len(diskdetailMap) > 0 {
+			rebuildDks := make([]bk.DiskInfo, 0)
+			for _, dk := range dks {
+				dd := dk
+				if detail, exist := diskdetailMap[dk.DiskId]; exist {
+					dd.Size = detail.DiskSize
+					dd.DiskType = TransferCloudDiskType(detail.DiskType)
+				}
+				rebuildDks = append(rebuildDks, dd)
+			}
+			dks = rebuildDks
+		}
+		logger.Info("disk detail:%v", dks)
 		if r, err := bk.MarshalDisk(dks); err != nil {
 			logger.Warn("disk marshal failed %s", err.Error())
 		} else {
@@ -255,6 +273,23 @@ func (t *TbRpDetail) SetMore(ip string, diskMap map[string]*bk.ShellResCollectio
 			}
 			t.TotalStorageCap = totalSize
 		}
+	}
+}
+
+// TransferCloudDiskType 云硬盘类型转换
+func TransferCloudDiskType(diskType string) string {
+	switch diskType {
+	case "CLOUD_PREMIUM":
+		return "HDD"
+	case "LOCAL_NVME":
+		return "SSD"
+	// nolint
+	case "CLOUD_SSD", "CLOUD_HSSD", "CLOUD_TSSD":
+		return "CLOUD_SSD"
+	case "LOCAL_PRO":
+		return "LOCAL_HDD"
+	default:
+		return diskType
 	}
 }
 

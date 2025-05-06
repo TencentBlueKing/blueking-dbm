@@ -197,11 +197,16 @@ func Doimport(param ImportMachParam, requestId string) (resp *ImportHostResp, er
 	for _, h := range ccHostsInfo {
 		delete(hostsMap, h.InnerIP)
 		el := param.transHostInfoToDbModule(h, h.BkCloudId, lableJson)
-		el.SetMore(h.InnerIP, diskResp.IpLogContentMap)
 		bkHostIds = append(bkHostIds, h.BKHostId)
+		diskDetails := []yunti.CvmDataDisk{}
 		if v, ok := cvmInfoMap[h.InnerIP]; ok {
 			el.DramCap = v.Memory * 1000
+			for _, disk := range v.DatadiskList {
+				logger.Info("get disk info from yunti %v", disk.DiskId)
+			}
+			diskDetails = v.DatadiskList
 		}
+		el.SetMore(h.InnerIP, diskResp.IpLogContentMap, diskDetails)
 		elems = append(elems, el)
 	}
 	if err = model.DB.Self.Table(model.TbRpDetailName()).Create(elems).Error; err != nil {
@@ -392,11 +397,13 @@ func (c *MachineResourceHandler) ImportMachineWithDiffInfo(r *rf.Context) {
 			}
 			el := buildTbRpItem(h, hostInfo.ForBiz, hostInfo.BkBizId, hostInfo.BkCloudId, hostInfo.RsType, jsonRaw,
 				input.Operator)
-			el.SetMore(h.InnerIP, diskResp.IpLogContentMap)
 			bkHostIds = append(bkHostIds, h.BKHostId)
+			diskDetailInfo := []yunti.CvmDataDisk{}
 			if v, ok := cvmInfoMap[h.InnerIP]; ok {
 				el.DramCap = v.Memory * 1000
+				diskDetailInfo = v.DatadiskList
 			}
+			el.SetMore(h.InnerIP, diskResp.IpLogContentMap, diskDetailInfo)
 			elems = append(elems, el)
 		}
 	}
