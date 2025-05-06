@@ -22,6 +22,7 @@
           class="exclude-bizs-main">
           <BkSelect
             v-model="excludeBizs"
+            allow-create
             class="exclude-biz-list"
             collapse-tags
             display-key="name"
@@ -30,7 +31,9 @@
             id-key="bk_biz_id"
             :list="bizs"
             multiple
-            multiple-mode="tag" />
+            multiple-mode="tag"
+            :placeholder="t('请选择排除业务，或直接输入业务名（多业务以换行、空格、; 、| 分隔，回车完成输入）')"
+            @change="handleExcludeBizsChange" />
           <div
             class="clear-exclude-icon"
             @click="handleClearSelectedExcludes">
@@ -51,6 +54,7 @@
         <BkSelect
           v-if="modelValue === 'partial'"
           v-model="includeBizs"
+          allow-create
           collapse-tags
           display-key="name"
           enable-virtual-render
@@ -59,6 +63,7 @@
           :list="bizs"
           multiple
           multiple-mode="tag"
+          :placeholder="t('请选择轮值业务，或直接输入业务名（多业务以换行、空格、; 、| 分隔，回车完成输入）')"
           @change="handleIncludeBizsChange" />
         <div
           v-if="errorMessage"
@@ -71,10 +76,13 @@
     </div>
   </BkRadioGroup>
 </template>
-<script setup lang="tsx">
+<script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import { useGlobalBizs } from '@stores';
+
+  import { batchInputSplitRegex } from '@common/regex';
 
   interface BizConfig {
     biz_config: {
@@ -105,6 +113,14 @@
   const includeBizs = ref<number[]>([]);
   const errorMessage = ref('');
 
+  const bizNameIdMap = bizs.reduce<Record<string, number>>(
+    (resultMap, item) =>
+      Object.assign(resultMap, {
+        [item.name]: item.bk_biz_id,
+      }),
+    {},
+  );
+
   watch(
     () => props.data?.biz_config,
     (bizConfig) => {
@@ -127,10 +143,41 @@
     },
   );
 
-  const handleIncludeBizsChange = (list: number[]) => {
+  const handlePasteBizs = (list: (number | string)[]) => {
+    const bizNames: string[] = [];
+    const bizIds: number[] = [];
+    if (list.length) {
+      list.forEach((item) => {
+        if (typeof item === 'string') {
+          bizNames.push(item);
+        } else {
+          bizIds.push(item);
+        }
+      });
+      if (bizNames.length) {
+        const hadnledList = bizNames.map((item) => item.split(batchInputSplitRegex));
+        const handledBizs = _.flatMap(hadnledList).reduce<number[]>((results, item) => {
+          if (bizNameIdMap[item] !== undefined) {
+            results.push(bizNameIdMap[item]);
+          }
+          return results;
+        }, []);
+        const appendBizs = _.difference(handledBizs, bizIds);
+        bizIds.push(...appendBizs);
+      }
+    }
+    return bizIds;
+  };
+
+  const handleIncludeBizsChange = (list: (number | string)[]) => {
+    includeBizs.value = handlePasteBizs(list);
     if (list.length) {
       errorMessage.value = '';
     }
+  };
+
+  const handleExcludeBizsChange = (list: (number | string)[]) => {
+    excludeBizs.value = handlePasteBizs(list);
   };
 
   const handleAppendExcludeBizs = () => {
@@ -237,6 +284,10 @@
           }
         }
       }
+    }
+
+    :deep(.bk-select-tag-wrapper) {
+      flex: 1;
     }
   }
 </style>
