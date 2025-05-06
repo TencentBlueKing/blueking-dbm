@@ -276,7 +276,6 @@
 
   watch(isShow, () => {
     if (isShow.value) {
-      getNodeLogRequest();
       setTimeout(() => {
         dbLogRef.value?.init();
       });
