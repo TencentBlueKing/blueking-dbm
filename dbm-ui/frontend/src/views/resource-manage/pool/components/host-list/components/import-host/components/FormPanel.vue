@@ -204,6 +204,7 @@
       if (formData.for_biz) {
         runListTag({
           bk_biz_id: Number(formData.for_biz),
+          type: 'resource',
         });
       }
     },

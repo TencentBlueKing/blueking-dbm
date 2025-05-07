@@ -26,7 +26,7 @@
           class="ml-8"
           :cluster-type="ClusterTypes.TENDBCLUSTER"
           :selected="selected"
-          @success="handleBatchOperationSuccess" />
+          @success="fetchTableData" />
         <span
           v-bk-tooltips="{
             disabled: hasData,
@@ -1378,11 +1378,6 @@
 
   const handleShowExcelAuthorize = () => {
     excelAuthorizeShow.value = true;
-  };
-
-  const handleBatchOperationSuccess = () => {
-    tableRef.value!.clearSelected();
-    fetchTableData();
   };
 
   onMounted(() => {

@@ -1,11 +1,14 @@
 <template>
-  <DbSearchSelect
-    class="mb-16"
-    :data="searchSelectData"
-    :model-value="searchSelectValue"
-    :placeholder="t('请输入或选择条件搜索')"
-    unique-select
-    @change="handleSearchChange" />
+  <div class="cluster-selector-search-main">
+    <TagSearch @search="handleTagSearch" />
+    <DbSearchSelect
+      class="search-select-main"
+      :data="searchSelectData"
+      :model-value="searchSelectValue"
+      :placeholder="t('请输入或选择条件搜索')"
+      unique-select
+      @change="handleSearchChange" />
+  </div>
 </template>
 <script setup lang="ts">
   import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
@@ -14,6 +17,8 @@
   import type { SearchAttrs } from '@hooks';
 
   import { ClusterTypes } from '@common/const';
+
+  import TagSearch, { type TagSearchValue } from '@components/tag-search/index.vue';
 
   export type SearchSelectList = {
     children?: {
@@ -30,7 +35,10 @@
     searchSelectList?: SearchSelectList;
   }
 
-  type Emits = (e: 'searchValueChange', value: ISearchValue[]) => void;
+  interface Emits {
+    (e: 'searchValueChange', value: ISearchValue[]): void;
+    (e: 'tagValueChange', value: TagSearchValue): void;
+  }
 
   const props = withDefaults(defineProps<Props>(), {
     searchSelectList: undefined,
@@ -116,4 +124,20 @@
   const handleSearchChange = (value: ISearchValue[]) => {
     emits('searchValueChange', value);
   };
+
+  const handleTagSearch = (value: TagSearchValue) => {
+    emits('tagValueChange', value);
+  };
 </script>
+<style lang="less">
+  .cluster-selector-search-main {
+    display: flex;
+    width: 100%;
+    gap: 8px;
+    margin-bottom: 16px;
+
+    .search-select-main {
+      flex: 1;
+    }
+  }
+</style>

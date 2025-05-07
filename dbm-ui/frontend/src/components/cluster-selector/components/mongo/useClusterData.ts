@@ -54,7 +54,7 @@ export function useClusterData<T>(searchSelectValue: Ref<ISearchValue[]>) {
   /**
    * 获取列表
    */
-  const fetchResources = async () => {
+  const fetchResources = async (extraParams: Record<string, any> = {}) => {
     isLoading.value = true;
     return currentInstance.proxy
       .getResourceList({
@@ -62,6 +62,7 @@ export function useClusterData<T>(searchSelectValue: Ref<ISearchValue[]>) {
         limit: pagination.limit,
         offset: pagination.limit * (pagination.current - 1),
         ...getSearchSelectorParams(searchSelectValue.value),
+        ...extraParams,
       })
       .then((res) => {
         pagination.count = res.count;

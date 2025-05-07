@@ -13,42 +13,38 @@
 <template>
   <div class="spider-manage-list-page">
     <div class="operations">
-      <div class="mb-16">
-        <AuthButton
-          v-db-console="'tendbCluster.clusterManage.instanceApply'"
-          action-id="tendbcluster_apply"
-          theme="primary"
-          @click="handleApply">
-          {{ t('申请实例') }}
-        </AuthButton>
-        <ClusterBatchOperation
-          v-db-console="'tendbCluster.clusterManage.batchOperation'"
-          class="ml-8"
-          :cluster-type="ClusterTypes.TENDBCLUSTER"
-          :selected="selected"
-          @success="handleBatchOperationSuccess" />
-        <span
-          v-bk-tooltips="{
-            disabled: hasData,
-            content: t('请先创建实例'),
-          }"
-          v-db-console="'tendbCluster.clusterManage.importAuthorize'"
-          class="inline-block">
-          <BkButton
-            class="ml-8"
-            :disabled="!hasData"
-            @click="handleShowExcelAuthorize">
-            {{ t('导入授权') }}
-          </BkButton>
-        </span>
-        <DropdownExportExcel
-          v-db-console="'tendbCluster.clusterManage.export'"
-          :ids="selectedIds"
-          type="spider" />
-        <ClusterIpCopy
-          v-db-console="'tendbCluster.clusterManage.batchCopy'"
-          :selected="selected" />
-      </div>
+      <AuthButton
+        v-db-console="'tendbCluster.clusterManage.instanceApply'"
+        action-id="tendbcluster_apply"
+        theme="primary"
+        @click="handleApply">
+        {{ t('申请实例') }}
+      </AuthButton>
+      <ClusterBatchOperation
+        v-db-console="'tendbCluster.clusterManage.batchOperation'"
+        :cluster-type="ClusterTypes.TENDBCLUSTER"
+        :selected="selected"
+        @success="fetchTableData" />
+      <span
+        v-bk-tooltips="{
+          disabled: hasData,
+          content: t('请先创建实例'),
+        }"
+        v-db-console="'tendbCluster.clusterManage.importAuthorize'"
+        class="inline-block">
+        <BkButton
+          :disabled="!hasData"
+          @click="handleShowExcelAuthorize">
+          {{ t('导入授权') }}
+        </BkButton>
+      </span>
+      <DropdownExportExcel
+        v-db-console="'tendbCluster.clusterManage.export'"
+        :ids="selectedIds"
+        type="spider" />
+      <ClusterIpCopy
+        v-db-console="'tendbCluster.clusterManage.batchCopy'"
+        :selected="selected" />
       <DbSearchSelect
         :data="searchSelectData"
         :get-menu-list="getMenuList"
@@ -57,6 +53,7 @@
         unique-select
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
+      <TagSearch @search="fetchTableData" />
     </div>
     <div
       class="table-wrapper"
@@ -103,6 +100,7 @@
           :get-table-instance="getTableInstance"
           :is-filter="isFilter"
           :selected-list="selected" />
+        <ClusterTagColumn @success="fetchTableData" />
         <StatusColumn :cluster-type="ClusterTypes.TENDBCLUSTER" />
         <ClusterStatsColumn :cluster-type="ClusterTypes.TENDBCLUSTER" />
         <MasterSlaveRoleColumn
@@ -155,7 +153,9 @@
           :search-ip="searchIp"
           :selected-list="selected" />
         <ModuleNameColumn :cluster-type="ClusterTypes.TENDBCLUSTER" />
-        <CommonColumn :cluster-type="ClusterTypes.TENDBCLUSTER" />
+        <CommonColumn
+          :cluster-type="ClusterTypes.TENDBCLUSTER"
+          @refresh="fetchTableData" />
         <BkTableColumn
           :fixed="isStretchLayoutOpen ? false : 'right'"
           :label="t('操作')"
@@ -323,6 +323,7 @@
 
   import DbTable from '@components/db-table/index.vue';
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
+  import TagSearch from '@components/tag-search/index.vue';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
@@ -330,6 +331,7 @@
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import ClusterNameColumn from '@views/db-manage/common/cluster-table-column/ClusterNameColumn.vue';
   import ClusterStatsColumn from '@views/db-manage/common/cluster-table-column/ClusterStatsColumn.vue';
+  import ClusterTagColumn from '@views/db-manage/common/cluster-table-column/ClusterTagColumn.vue';
   import CommonColumn from '@views/db-manage/common/cluster-table-column/CommonColumn.vue';
   import IdColumn from '@views/db-manage/common/cluster-table-column/IdColumn.vue';
   import MasterDomainColumn from '@views/db-manage/common/cluster-table-column/MasterDomainColumn.vue';
@@ -573,20 +575,18 @@
       'region',
       'spec_name',
       'bk_cloud_id',
+      'tags',
     ],
     disabled: ['master_domain'],
   });
 
-  let isInitData = true;
-  const fetchTableData = () => {
+  const fetchTableData = (extraParams: Record<string, any> = {}) => {
     tableRef.value?.fetchData(
       {
         ...getSearchSelectorParams(searchValue.value),
       },
-      { ...sortValue },
-      isInitData,
+      { ...extraParams, ...sortValue },
     );
-    isInitData = false;
 
     return Promise.resolve([]);
   };
@@ -717,11 +717,6 @@
     excelAuthorizeShow.value = true;
   };
 
-  const handleBatchOperationSuccess = () => {
-    tableRef.value!.clearSelected();
-    fetchTableData();
-  };
-
   onMounted(() => {
     if (!clusterId.value && route.query.id) {
       handleToDetails(Number(route.query.id));
@@ -740,11 +735,11 @@
       display: flex;
       margin-bottom: 16px;
       flex-wrap: wrap;
+      gap: 8px;
 
       .bk-search-select {
         flex: 1;
         max-width: 500px;
-        min-width: 320px;
         margin-left: auto;
       }
     }

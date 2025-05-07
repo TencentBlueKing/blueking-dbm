@@ -4,15 +4,22 @@
     placement="top"
     theme="light"
     trigger="manual"
-    @after-hidden="handlePopoverShown"
-    @after-show="handlePopoverhide">
+    @after-hidden="handlePopoverhide"
+    @after-show="handlePopoverShown">
     <div
       class="cluster-alias-edit-btn"
       :class="{
         'is-active': isActive,
-      }"
-      @click="handleShowEdit">
-      <DbIcon type="edit" />
+      }">
+      <AuthButton
+        :action-id="actionId"
+        :permission="checkEditPermission(data)"
+        :resource="data.id"
+        text
+        theme="primary"
+        @click="handleShowEdit">
+        <DbIcon type="edit" />
+      </AuthButton>
     </div>
     <template #content>
       <div style="margin-bottom: 8px; font-size: 16px; font-weight: bold">
@@ -62,7 +69,9 @@
     data: {
       cluster_alias: string;
       cluster_name: string;
+      db_type: string;
       id: number;
+      permission: Record<string, boolean>;
     };
   }
 
@@ -88,12 +97,19 @@
   });
   const isShowUpdateAlias = ref(false);
 
+  const actionId = computed(() => `${props.data.db_type}_edit`);
+
+  const checkEditPermission = (data: Props['data']) => {
+    const permissionKey = `${props.data.db_type}_edit` as keyof typeof data.permission;
+    return data.permission[permissionKey];
+  };
+
   const handlePopoverShown = () => {
     formData.new_alias = props.data.cluster_alias;
     isActive.value = true;
   };
   const handlePopoverhide = () => {
-    isActive.value = true;
+    isActive.value = false;
   };
   const handleShowEdit = () => {
     isShowUpdateAlias.value = true;

@@ -14,35 +14,32 @@
 <template>
   <div class="redis-cluster-list-page">
     <div class="operation-box">
-      <div>
-        <AuthButton
-          action-id="redis_cluster_apply"
-          class="mb-16"
-          theme="primary"
-          @click="handleApply">
-          {{ t('申请实例') }}
-        </AuthButton>
-        <ClusterBatchOperation
-          v-db-console="'redis.haClusterManage.batchOperation'"
-          class="ml-8"
-          :cluster-type="ClusterTypes.REDIS_INSTANCE"
-          :selected="selected"
-          @success="handleBatchOperationSuccess" />
-        <DropdownExportExcel
-          :ids="selectedIds"
-          type="redis" />
-        <ClusterIpCopy
-          v-db-console="'redis.haClusterManage.batchCopy'"
-          :selected="selected" />
-      </div>
+      <AuthButton
+        action-id="redis_cluster_apply"
+        theme="primary"
+        @click="handleApply">
+        {{ t('申请实例') }}
+      </AuthButton>
+      <ClusterBatchOperation
+        v-db-console="'redis.haClusterManage.batchOperation'"
+        :cluster-type="ClusterTypes.REDIS_INSTANCE"
+        :selected="selected"
+        @success="fetchData" />
+      <DropdownExportExcel
+        :ids="selectedIds"
+        type="redis" />
+      <ClusterIpCopy
+        v-db-console="'redis.haClusterManage.batchCopy'"
+        :selected="selected" />
       <DbSearchSelect
-        class="operations-right mb-16"
+        class="operations-right"
         :data="searchSelectData"
         :get-menu-list="getMenuList"
         :model-value="searchValue"
         :placeholder="t('请输入或选择条件搜索')"
         unique-select
         @change="handleSearchValueChange" />
+      <TagSearch @search="fetchData" />
     </div>
     <DbTable
       ref="tableRef"
@@ -86,6 +83,7 @@
         :get-table-instance="getTableInstance"
         :is-filter="isFilter"
         :selected-list="selected" />
+      <ClusterTagColumn @success="fetchData" />
       <StatusColumn :cluster-type="ClusterTypes.REDIS_INSTANCE" />
       <ClusterStatsColumn :cluster-type="ClusterTypes.REDIS_INSTANCE" />
       <RoleColumn
@@ -112,7 +110,9 @@
           <TagBlock :data="data.module_names" />
         </template>
       </BkTableColumn>
-      <CommonColumn :cluster-type="ClusterTypes.REDIS_INSTANCE" />
+      <CommonColumn
+        :cluster-type="ClusterTypes.REDIS_INSTANCE"
+        @refresh="fetchData" />
       <BkTableColumn
         :fixed="isStretchLayoutOpen ? false : 'right'"
         :label="t('操作')"
@@ -315,11 +315,13 @@
   import DbTable from '@components/db-table/index.vue';
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
   import TagBlock from '@components/tag-block/Index.vue';
+  import TagSearch from '@components/tag-search/index.vue';
 
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import ClusterNameColumn from '@views/db-manage/common/cluster-table-column/ClusterNameColumn.vue';
   import ClusterStatsColumn from '@views/db-manage/common/cluster-table-column/ClusterStatsColumn.vue';
+  import ClusterTagColumn from '@views/db-manage/common/cluster-table-column/ClusterTagColumn.vue';
   import CommonColumn from '@views/db-manage/common/cluster-table-column/CommonColumn.vue';
   import IdColumn from '@views/db-manage/common/cluster-table-column/IdColumn.vue';
   import MasterDomainColumn from '@views/db-manage/common/cluster-table-column/MasterDomainColumn.vue';
@@ -369,8 +371,6 @@
   const { handleShow: handleShowPurge, state: purgeState } = useShowPurge();
   const { isOpen: isStretchLayoutOpen, splitScreen: stretchLayoutSplitScreen } = useStretchLayout();
 
-  let isInit = true;
-
   const {
     batchSearchIpInatanceList,
     clearSearchValue,
@@ -383,7 +383,7 @@
     sortValue,
   } = useLinkQueryColumnSerach({
     attrs: ['bk_cloud_id', 'major_version', 'region', 'time_zone'],
-    fetchDataFn: () => fetchData(isInit),
+    fetchDataFn: () => fetchData(),
     searchType: ClusterTypes.REDIS,
   });
 
@@ -536,6 +536,7 @@
       'major_version',
       'module_names',
       'region',
+      'tags',
     ],
     disabled: ['master_domain'],
   });
@@ -596,19 +597,15 @@
     return false;
   };
 
-  const fetchData = (loading?: boolean) => {
+  const fetchData = (extraParams: Record<string, any> = {}) => {
     const params = {
       ...getSearchSelectorParams(searchValue.value),
       cluster_type: ClusterTypes.REDIS_INSTANCE,
     };
-    tableRef.value!.fetchData(
-      params,
-      {
-        ...sortValue,
-      },
-      loading,
-    );
-    isInit = false;
+    tableRef.value!.fetchData(params, {
+      ...extraParams,
+      ...sortValue,
+    });
   };
 
   /**
@@ -641,11 +638,6 @@
     passwordState.fetchParams.cluster_id = id;
   };
 
-  const handleBatchOperationSuccess = () => {
-    tableRef.value!.clearSelected();
-    fetchData();
-  };
-
   onMounted(() => {
     if (!clusterId.value && route.query.id) {
       handleToDetails(Number(route.query.id));
@@ -664,11 +656,12 @@
     .operation-box {
       display: flex;
       flex-wrap: wrap;
+      margin-bottom: 16px;
+      gap: 8px;
 
       .bk-search-select {
         flex: 1;
         max-width: 500px;
-        min-width: 320px;
         margin-left: auto;
       }
     }
