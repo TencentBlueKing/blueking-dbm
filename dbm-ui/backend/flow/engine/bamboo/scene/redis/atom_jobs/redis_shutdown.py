@@ -20,6 +20,7 @@ from backend.db_meta.enums import ClusterType
 from backend.flow.consts import DEFAULT_MONITOR_TIME, DEFAULT_REDIS_SYSTEM_CMDS
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
@@ -108,6 +109,135 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutd
     sub_pipeline.add_act(
         act_name=_("清理元数据-{}").format(exec_ip),
         act_component_code=RedisDBMetaComponent.code,
+        kwargs=asdict(act_kwargs),
+    )
+
+    # 从集群踢掉
+    if act_kwargs.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster:
+        # 定点构造的节点没有加入集群，所以这里不能执行这个逻辑 ,slots 迁移缩容已经在actuator逻辑中forget了
+        if (
+            act_kwargs.cluster.get("operate", "") != TicketType.REDIS_DATA_STRUCTURE_TASK_DELETE.value
+            and act_kwargs.cluster.get("operate", "") != TicketType.REDIS_SLOTS_MIGRATE.value
+        ):
+            act_kwargs.cluster["forget_instances"] = [
+                {"ip": exec_ip, "port": port} for port in shutdown_param["ports"]
+            ]
+            act_kwargs.get_redis_payload_func = RedisActPayload.redis_cluster_forget_4_scene.__name__
+            sub_pipeline.add_act(
+                act_name=_("踢掉旧节点-{}").format(exec_ip),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
+
+    # 干掉非活跃链接
+    act_kwargs.exec_ip = exec_ip
+    act_kwargs.cluster["exec_ip"] = exec_ip
+    act_kwargs.cluster["instances"] = [{"ip": exec_ip, "port": p} for p in shutdown_param["ports"]]
+    act_kwargs.cluster["idle_time"] = 600
+    act_kwargs.cluster["ignore_kill"] = shutdown_param.get("force_shutdown", False)
+    act_kwargs.get_redis_payload_func = RedisActPayload.redis_killconn_4_scene.__name__
+    sub_pipeline.add_act(
+        act_name=_("干掉非活跃链接-{}").format(exec_ip),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(act_kwargs),
+    )
+
+    # 下架实例
+    act_kwargs.exec_ip = exec_ip
+    act_kwargs.cluster["exec_ip"] = exec_ip
+    act_kwargs.cluster["force_shutdown"] = shutdown_param.get("force_shutdown", False)
+    act_kwargs.cluster["shutdown_ports"] = shutdown_param["ports"]
+    act_kwargs.get_redis_payload_func = RedisActPayload.redis_shutdown_4_scene.__name__
+    sub_pipeline.add_act(
+        act_name=_("下架实例-{}").format(exec_ip),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(act_kwargs),
+    )
+
+    sub_name = _("Redis-{}-下架").format(exec_ip)
+    if act_kwargs.cluster["cluster_type"] == ClusterType.TendisRedisInstance.value:
+        sub_name = _("Redis-{}-{}-下架").format(exec_ip, shutdown_param["ports"])
+    return sub_pipeline.build_sub_process(sub_name=sub_name)
+
+
+def RedisFaultShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutdown_param: Dict) -> SubBuilder:
+    """
+    SubBuilder: Redis卸载原籽任务 - 故障自愈场景专用
+    Args:
+        shutdown_param (Dict): {
+            "ignore_ips":["xxx.1.2.3"],
+            "ip":"1.1.1.x",
+            "ports":[],
+            "force_shutdown":False,
+        }
+    """
+    sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
+    exec_ip = shutdown_param["ip"]
+    act_kwargs = deepcopy(sub_kwargs)
+
+    # 重置下 cluster 参数
+    act_kwargs.cluster = {
+        "bk_biz_id": sub_kwargs.cluster["bk_biz_id"],
+        "bk_cloud_id": sub_kwargs.cluster["bk_cloud_id"],
+        "cluster_id": sub_kwargs.cluster.get("cluster_id", "-886"),
+        "immute_domain": sub_kwargs.cluster.get("immute_domain", "x.no.imput.none"),
+        "cluster_type": sub_kwargs.cluster.get("cluster_type", "x.no.cluster.type"),
+        "operate": sub_kwargs.cluster.get("operate", ""),
+    }
+
+    # 清理元数据 , 先清理元数据，避免又有机器故障影响自愈任务
+    act_kwargs.cluster["meta_func_name"] = RedisDBMeta.instances_uninstall.__name__
+    act_kwargs.cluster["ports"] = shutdown_param["ports"]
+    act_kwargs.cluster["ip"] = exec_ip
+    act_kwargs.cluster["bk_cloud_id"] = act_kwargs.bk_cloud_id
+    act_kwargs.cluster["created_by"] = ticket_data["created_by"]
+    sub_pipeline.add_act(
+        act_name=_("清理元数据-{}").format(exec_ip),
+        act_component_code=RedisDBMetaComponent.code,
+        kwargs=asdict(act_kwargs),
+    )
+
+    # 在这里等着
+    sub_pipeline.add_act(act_name=_("Redis-人工确认"), act_component_code=PauseComponent.code, kwargs={})
+
+    trans_files = GetFileList(db_type=DBType.Redis)
+    act_kwargs.file_list = trans_files.redis_dbmon()
+    act_kwargs.exec_ip = exec_ip
+    sub_pipeline.add_act(
+        act_name=_("{}-下发介质包").format(exec_ip),
+        act_component_code=TransFileComponent.code,
+        kwargs=asdict(act_kwargs),
+    )
+
+    #  监听请求。集群是先关闭再下架，所以理论上这里是没请求才对
+    act_kwargs.exec_ip = exec_ip
+    act_kwargs.cluster["ip"] = exec_ip
+    act_kwargs.cluster["exec_ip"] = exec_ip
+    act_kwargs.cluster["ports"] = shutdown_param["ports"]
+    act_kwargs.cluster["monitor_time_ms"] = DEFAULT_MONITOR_TIME
+    act_kwargs.cluster["ignore_req"] = shutdown_param.get("force_shutdown", False)
+    act_kwargs.cluster["ignore_keys"] = DEFAULT_REDIS_SYSTEM_CMDS
+    if "ignore_ips" in shutdown_param:
+        act_kwargs.cluster["ignore_keys"].extend(shutdown_param["ignore_ips"])
+    act_kwargs.get_redis_payload_func = RedisActPayload.redis_capturer_4_scene.__name__
+    sub_pipeline.add_act(
+        act_name=_("请求检查-{}").format(exec_ip),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(act_kwargs),
+    )
+
+    # 停监控
+    act_kwargs.cluster["servers"] = [
+        {
+            "bk_biz_id": str(act_kwargs.cluster["bk_biz_id"]),
+            "bk_cloud_id": act_kwargs.bk_cloud_id,
+            # "domain": act_kwargs.cluster["immute_domain"],
+        }
+    ]
+    act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
+    sub_pipeline.add_act(
+        act_name=_("卸载监控-{}").format(exec_ip),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(act_kwargs),
     )
 

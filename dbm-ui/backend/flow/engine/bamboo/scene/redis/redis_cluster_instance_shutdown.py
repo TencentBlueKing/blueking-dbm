@@ -21,7 +21,7 @@ from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.redis.atom_jobs import ProxyUnInstallAtomJob, RedisBatchShutdownAtomJob
+from backend.flow.engine.bamboo.scene.redis.atom_jobs import ProxyFaultShutdownAtomJob, RedisFaultShutdownAtomJob
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 
@@ -131,7 +131,7 @@ class RedisClusterInstanceShutdownSceneFlow(object):
         # #### 下架旧实例 ############################################################################
         sub_pipelines = []
         for shutdown_ip in shutdown_params.get("redis_slave", {}):
-            sub_builder = RedisBatchShutdownAtomJob(
+            sub_builder = RedisFaultShutdownAtomJob(
                 self.root_id,
                 self.data,
                 deepcopy(sub_kwargs),
@@ -149,7 +149,7 @@ class RedisClusterInstanceShutdownSceneFlow(object):
         # #### 下架旧实例 ############################################################################
         sub_pipelines = []
         for proxy_ip in shutdown_params.get("proxy", {}):
-            sub_builder = ProxyUnInstallAtomJob(
+            sub_builder = ProxyFaultShutdownAtomJob(
                 self.root_id,
                 self.data,
                 deepcopy(sub_kwargs),

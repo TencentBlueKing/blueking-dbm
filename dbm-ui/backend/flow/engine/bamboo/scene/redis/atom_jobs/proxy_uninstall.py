@@ -22,6 +22,7 @@ from backend.db_meta.models import AppCache
 from backend.flow.consts import DBActuatorTypeEnum, RedisActuatorActionEnum
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
@@ -35,6 +36,7 @@ cluster_apply_ticket = [TicketType.REDIS_SINGLE_APPLY.value, TicketType.REDIS_CL
 logger = logging.getLogger("flow")
 
 
+# Proxy卸载原子任务
 def ProxyUnInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, param: Dict) -> SubBuilder:
     """
     ### SubBuilder: Proxy卸载原子任务
@@ -137,3 +139,100 @@ def ProxyUnInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, param: Di
     )
 
     return sub_pipeline.build_sub_process(sub_name=_("Proxy-{}-卸载原子任务").format(exec_ip))
+
+
+def ProxyFaultShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, param: Dict) -> SubBuilder:
+    """
+    ### SubBuilder: Proxy卸载原子任务 - 故障自愈专用
+    act_kwargs.cluster = {
+        "bk_biz_id": "",
+        "immute_domain":"",
+        "cluster_name":"",
+        "bk_cloud_id":"",
+        "cluster_type":"",
+    }
+
+    Args:
+        param (Dict): {
+            "ip":"1.1.1.x",
+            "proxy_port": 30000,
+    }
+    """
+    immute_domain = sub_kwargs.cluster["immute_domain"]
+
+    # 重置下 cluster 参数
+    act_kwargs = deepcopy(sub_kwargs)
+    act_kwargs.cluster = {
+        "bk_biz_id": sub_kwargs.cluster["bk_biz_id"],
+        "bk_cloud_id": sub_kwargs.cluster["bk_cloud_id"],
+        "cluster_id": sub_kwargs.cluster.get("cluster_id", "0000000000"),
+        "immute_domain": sub_kwargs.cluster["immute_domain"],
+        "cluster_type": sub_kwargs.cluster["cluster_type"],
+        "cluster_name": sub_kwargs.cluster["cluster_name"],
+        "operate": sub_kwargs.cluster.get("operate", ""),
+    }
+
+    sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
+    exec_ip = param["ip"]
+    act_kwargs.exec_ip = exec_ip
+    if act_kwargs.cluster["cluster_type"] in [
+        ClusterType.TendisPredixyTendisplusCluster.value,
+        ClusterType.TendisPredixyRedisCluster.value,
+    ]:
+        act_kwargs.cluster["machine_type"] = MachineType.PREDIXY.value
+    else:
+        act_kwargs.cluster["machine_type"] = MachineType.TWEMPROXY.value
+
+    # 先删除元数据
+    act_kwargs.cluster["proxy_ips"] = [exec_ip]
+    act_kwargs.cluster["proxy_port"] = param["proxy_port"]
+    act_kwargs.cluster["meta_func_name"] = RedisDBMeta.proxy_uninstall.__name__
+    act_kwargs.cluster["domain_name"] = immute_domain
+    sub_pipeline.add_act(
+        act_name=_("Proxy-{}-删除元数据").format(exec_ip),
+        act_component_code=RedisDBMetaComponent.code,
+        kwargs=asdict(act_kwargs),
+    )
+
+    # 在这里等着
+    sub_pipeline.add_act(act_name=_("Redis-人工确认"), act_component_code=PauseComponent.code, kwargs={})
+
+    # 下发介质包
+    trans_files = GetFileList(db_type=DBType.Redis)
+    act_kwargs.file_list = trans_files.redis_cluster_apply_proxy(act_kwargs.cluster["cluster_type"])
+    sub_pipeline.add_act(
+        act_name=_("Proxy-{}-下发介质包").format(exec_ip),
+        act_component_code=TransFileComponent.code,
+        kwargs=asdict(act_kwargs),
+    )
+
+    # 卸载bkdbmon
+    act_kwargs.cluster["servers"] = [
+        {
+            "bk_biz_id": str(act_kwargs.cluster["bk_biz_id"]),
+            "bk_cloud_id": int(act_kwargs.cluster["bk_cloud_id"]),
+            "cluster_domain": act_kwargs.cluster["immute_domain"],
+            "cluster_name": act_kwargs.cluster["cluster_name"],
+            "cluster_type": act_kwargs.cluster["cluster_type"],
+        }
+    ]
+    act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
+    sub_pipeline.add_act(
+        act_name=_("Proxy-{}-卸载监控").format(exec_ip),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(act_kwargs),
+    )
+
+    act_kwargs.cluster = {
+        "operate": DBActuatorTypeEnum.Proxy.value + "_" + RedisActuatorActionEnum.Shutdown.value,
+        "port": param["proxy_port"],
+        "ip": exec_ip,
+    }
+    act_kwargs.get_redis_payload_func = RedisActPayload.proxy_operate_payload.__name__
+    sub_pipeline.add_act(
+        act_name=_("Proxy-{}-卸载实例").format(exec_ip),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(act_kwargs),
+    )
+
+    return sub_pipeline.build_sub_process(sub_name=_("Proxy-{}-下架").format(exec_ip))
