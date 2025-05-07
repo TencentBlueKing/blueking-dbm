@@ -19,7 +19,7 @@
 
   import { TicketTypes } from '@common/const';
 
-  import DataMigrate from './common/DataMigrate.vue';
+  import DataMigrate from './common/data-migrate/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Sqlserver.DataMigrate>;

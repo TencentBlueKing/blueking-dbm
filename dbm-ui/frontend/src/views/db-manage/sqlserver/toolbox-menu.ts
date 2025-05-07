@@ -93,7 +93,7 @@ export default [
   {
     children: [
       {
-        id: 'sqlServerDataMigrate',
+        id: TicketTypes.SQLSERVER_FULL_MIGRATE,
         name: t('数据迁移'),
         parentId: 'data',
       },
