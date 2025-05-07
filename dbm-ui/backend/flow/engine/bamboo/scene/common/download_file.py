@@ -111,7 +111,7 @@ def add_db_actuator_download_to_pipeline(pipeline: Builder, bk_cloud_id: int, ex
         bk_cloud_id: Cloud area ID
         exec_ip: Target IP
     """
-    if env.INITIATIVE_DOWNLOAD:
+    if env.INITIATIVE_DOWNLOAD and bk_cloud_id == 0:
         file_url, md5sum = GetFileList().get_db_actuator_download_info()
         pipeline.add_act(
             act_name=_("主动下载db-actuator介质"),
