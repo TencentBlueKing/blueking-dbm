@@ -19,6 +19,7 @@ from django.utils.translation import ugettext as _
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.core import consts
+from backend.db_meta.enums import TenDBClusterSpiderRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.enums.instance_role import InstanceRole
 from backend.db_meta.enums.machine_type import MachineType
@@ -131,8 +132,33 @@ class ImportSQLFlow(object):
                 cluster.cluster_type,
                 cluster.bk_biz_id,
             )
+            mnt_spiders = cluster.proxyinstance_set.filter(
+                tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MNT.value
+            )
+            tdbctl_port = int(master_ctl_addr.split(IP_PORT_DIVIDER)[1])
             engine = get_engine_from_bk_mysql_config(cluster_config)
             sub_pipeline = SubBuilder(self.root_id, self.data)
+            sub_pipeline.add_act(
+                act_name=_("检查可能阻塞DDL变更的活跃查询"),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(
+                    ExecActuatorKwargs(
+                        job_timeout=LONG_JOB_TIMEOUT,
+                        exec_ip=master_ctl_addr.split(IP_PORT_DIVIDER)[0],
+                        bk_cloud_id=cluster.bk_cloud_id,
+                        cluster={
+                            "port": tdbctl_port,
+                            "just_check_ddl_block": True,
+                            "mnt_spider_instance": {
+                                tdbctl_port: [
+                                    {"host": spider.machine.ip, "port": spider.port} for spider in mnt_spiders
+                                ]
+                            },
+                        },
+                        get_mysql_payload_func=MysqlActPayload.get_check_ddl_blocking_payload.__name__,
+                    )
+                ),
+            )
             if engine.lower() == "rocksdb":
                 sub_pipeline.add_act(
                     act_name=_("使用工具在线变更DDL"),

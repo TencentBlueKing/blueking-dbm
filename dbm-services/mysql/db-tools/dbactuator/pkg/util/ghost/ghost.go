@@ -264,12 +264,21 @@ func RunMigratorClustershardNodes(masterRemoteSvrs []native.Server, billId uint,
 		shardNum := native.GetShardNumberFromMasterServerName(svr.ServerName)
 		var mgc *base.MigrationContext
 		// noop == false is execute
-		mgc, err = NewMigrationContext(buildDs(svr), flag, billId, idx, BuildShardDbName(dbName, shardNum), tbName, []string{
-			statement},
-			false)
+		mgc, err := NewMigrationContext(buildDs(svr), flag, billId, idx, BuildShardDbName(dbName, shardNum), tbName, []string{
+			statement}, false)
+		if err != nil {
+			logger.Error("Failed to create migration context for %s: %v", svr.ServerName, err)
+			errChan <- err
+			continue
+		}
+
 		wg.Add(1)
 		ctrlChan <- struct{}{}
 		go func(migrationContext *base.MigrationContext, svr native.Server) {
+			defer func() {
+				wg.Done()
+				<-ctrlChan
+			}()
 			defer func() { wg.Done(); <-ctrlChan }()
 			logger.Info("will execute sql:%s on %s", statement, svr.ServerName)
 			migrator := logic.NewMigrator(migrationContext, "dbm")

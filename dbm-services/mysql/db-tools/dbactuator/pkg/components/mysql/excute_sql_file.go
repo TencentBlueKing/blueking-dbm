@@ -15,12 +15,17 @@
 package mysql
 
 import (
+	"context"
+	"database/sql"
 	"errors"
 	"fmt"
+	"os"
 	"path"
 	"regexp"
 	"strings"
+	"sync"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/samber/lo"
 
 	"dbm-services/common/go-pubpkg/cmutil"
@@ -30,6 +35,7 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/ghost"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 )
@@ -43,17 +49,19 @@ type ExecuteSQLFileComp struct {
 
 // ExecuteSQLFileParam excute sql file param
 type ExecuteSQLFileParam struct {
-	Host           string              `json:"host"  validate:"required,ip"`             // 当前实例的主机地址
-	Ports          []int               `json:"ports"`                                    // 被监控机器的上所有需要监控的端口
-	CharSet        string              `json:"charset" validate:"required,checkCharset"` // 字符集参数
-	FilePath       string              `json:"file_path"`                                // 文件路径
-	FilePathSubfix string              `json:"file_path_suffix"`
-	FileBaseDir    string              `json:"file_base_dir"`
-	ExecuteObjects []ExecuteSQLFileObj `json:"execute_objects"`
-	Force          bool                `json:"force"`     // 是否强制执行 执行出错后，是否继续往下执行
-	IsSpider       bool                `json:"is_spider"` // 是否是spider集群
-	Engine         string              `json:"engine"`    // 引擎类型 gh-ost 需要用
-	BillId         uint                `json:"bill_id"`   // billId
+	Host              string                      `json:"host"  validate:"required,ip"`             // 当前实例的主机地址
+	Ports             []int                       `json:"ports"`                                    // 被监控机器的上所有需要监控的端口
+	CharSet           string                      `json:"charset" validate:"required,checkCharset"` // 字符集参数
+	FilePath          string                      `json:"file_path"`                                // 文件路径
+	FilePathSubfix    string                      `json:"file_path_suffix"`
+	FileBaseDir       string                      `json:"file_base_dir"`
+	ExecuteObjects    []ExecuteSQLFileObj         `json:"execute_objects"`
+	Force             bool                        `json:"force"`                // 是否强制执行 执行出错后，是否继续往下执行
+	IsSpider          bool                        `json:"is_spider"`            // 是否是spider集群
+	JustCheckDDLBlock bool                        `json:"just_check_ddl_block"` // 只检查ddl阻塞
+	MntSpiderInstance map[int][]SpiderMntInstance `json:"mnt_spider_instance"`
+	Engine            string                      `json:"engine"`  // 引擎类型 gh-ost 需要用
+	BillId            uint                        `json:"bill_id"` // billId
 }
 
 // ExecuteSQLFileObj 单个文件的执行对象
@@ -64,6 +72,12 @@ type ExecuteSQLFileObj struct {
 	SQLFiles      []string `json:"sql_files"`      // 变更文件名称
 	IgnoreDbNames []string `json:"ignore_dbnames"` // 忽略的,需要排除变更的dbName,支持模糊匹配
 	DbNames       []string `json:"dbnames"`        // 需要变更的DBNames,支持模糊匹配
+}
+
+// SpiderMntInstance spider mnt instance
+type SpiderMntInstance struct {
+	Host string `json:"host"`
+	Port int    `json:"port"`
 }
 
 // ExecuteSQLFileRunTimeCtx 运行时上下文
@@ -142,6 +156,252 @@ func (e *ExecuteSQLFileComp) CheckSQLFileExist() (err error) {
 		}
 	}
 	return errors.Join(errs...)
+}
+
+func (e *ExecuteSQLFileComp) parseBlockingTables(port int) (blockingTableMap map[string][]string, err error) {
+	blockingTableMap = make(map[string][]string)
+	alldbs, err := e.dbConns[port].ShowDatabases()
+	if err != nil {
+		logger.Error("获取实例db list失败:%s", err.Error())
+		return nil, err
+	}
+	dbsExcluesysdbs := util.FilterOutStringSlice(alldbs, computil.GetGcsSystemDatabasesIgnoreTest("5.7"))
+	for _, f := range e.Params.ExecuteObjects {
+		var realexcutedbs, intentionDbs, ignoreDbs []string
+		// 获得目标库 因为是通配符 所以需要获取完整名称
+		intentionDbs, err = e.Match(dbsExcluesysdbs, f.ParseDbParamRe())
+		if err != nil {
+			return nil, err
+		}
+		// 获得忽略库
+		ignoreDbs, err = e.Match(dbsExcluesysdbs, f.ParseIgnoreDbParamRe())
+		if err != nil {
+			return nil, err
+		}
+		// 获取最终需要执行的库
+		realexcutedbs = util.FilterOutStringSlice(intentionDbs, ignoreDbs)
+		if len(realexcutedbs) == 0 {
+			return nil, fmt.Errorf("没有适配到任何需要变更的db,可能db不存在请检查")
+		}
+		for _, dbName := range realexcutedbs {
+			for _, sqlFile := range f.SQLFiles {
+				var fileContent []byte
+				fileContent, err = os.ReadFile(path.Join(e.taskdir, sqlFile))
+				if err != nil {
+					logger.Error("读取文件%s失败:%s", path.Join(e.taskdir, sqlFile), err.Error())
+					return nil, err
+				}
+				var sqlLines []string
+				sqlLines, err = ghost.ParseSQLFile(string(fileContent))
+				if err != nil {
+					logger.Error("解析sql文件%s失败:%s", sqlFile, err.Error())
+					return nil, err
+				}
+				var realdb string
+				realdb = dbName
+				for _, sqlLine := range sqlLines {
+					var db, tb string
+					isUseDb, thedb := ghost.IsUseDb(sqlLine)
+					if isUseDb {
+						realdb = thedb
+						continue
+					}
+					isAlter, _ := ghost.IsAlterSQL(sqlLine)
+					if isAlter {
+						db, tb, err = ghost.ParseSqlSchemaInfo(sqlLine)
+						if err != nil {
+							return nil, err
+						}
+						if lo.IsNotEmpty(db) {
+							realdb = db
+						}
+						blockingTableMap[realdb] = append(blockingTableMap[realdb], tb)
+					}
+				}
+			}
+		}
+	}
+	return blockingTableMap, nil
+}
+
+// CheckBlockingDDLPcls check ddl blocking at spider
+func (e *ExecuteSQLFileComp) CheckBlockingDDLPcls() (err error) {
+	defer e.closeDb()
+	for _, port := range e.ports {
+		if err = e.checkBlockingAtSpiderOne(port); err != nil {
+			logger.Error("check ddl blocking at %s:%d failed: %s", e.Params.Host, port, err.Error())
+			return err
+		}
+	}
+	return nil
+}
+
+// checkBlockingAtSpiderOne Slave check may blocking tables at spider slave
+func (e *ExecuteSQLFileComp) checkBlockingAtSpiderOne(port int) (err error) {
+	blockingTableMap, err := e.parseBlockingTables(port)
+	if err != nil {
+		return err
+	}
+	tdbctlConn := &native.TdbctlDbWork{DbWorker: *e.dbConns[port]}
+	var svrs []native.Server
+	svrs, err = tdbctlConn.SelectServers()
+	if err != nil {
+		logger.Error("SelectServers failed:%s", err.Error())
+		return err
+	}
+	ctrl := make(chan struct{}, 10)
+	errChan := make(chan error)
+	wg := sync.WaitGroup{}
+	for _, svr := range svrs {
+		conn, errc := svr.Opendb("")
+		if errc != nil {
+			logger.Error("Connect %s failed:%s", svr.ServerName, errc.Error())
+			return errc
+		}
+		wg.Add(1)
+		ctrl <- struct{}{}
+		go func(gconn *sql.DB) {
+			defer func() { <-ctrl; wg.Done() }()
+			err = e.checkBlockingFromProcesslist(gconn, blockingTableMap)
+			if err != nil {
+				errChan <- fmt.Errorf("检查实例%s: %s:%d 存在阻塞风险:%s,手动解决后可重试", svr.ServerName, svr.Host, svr.Port, err.Error())
+			}
+		}(conn)
+	}
+	go func() {
+		wg.Wait()
+		close(errChan)
+	}()
+	errs := make([]error, 0)
+	for err := range errChan {
+		errs = append(errs, err)
+	}
+	if len(errs) > 0 {
+		return errors.Join(errs...)
+	}
+	// 对spider slave 进一步的检查
+	checkSpiderSvrs, err := tdbctlConn.GetSlaveSpiderNodes()
+	if err != nil {
+		logger.Error("GetSlaveSpiderNodes failed:%s", err.Error())
+		return err
+	}
+	// 加入检查临时节点，临时节点在中控没有特征，只能外部传入进来
+	if mntSpiders, ok := e.Params.MntSpiderInstance[port]; ok {
+		for _, mntSpider := range mntSpiders {
+			mntSvr, errx := tdbctlConn.GetSpiderNode(mntSpider.Host, mntSpider.Port)
+			if errx != nil {
+				logger.Error("Connect %s failed:%s", mntSvr.ServerName, errx.Error())
+				return errx
+			}
+			checkSpiderSvrs = append(checkSpiderSvrs, mntSvr)
+		}
+	}
+	for _, svr := range checkSpiderSvrs {
+		conn, errc := svr.Opendb("")
+		if errc != nil {
+			logger.Error("Connect %s failed:%s", svr.ServerName, errc.Error())
+			return errc
+		}
+		err = e.checkBlockingTables(conn, blockingTableMap)
+		if err != nil {
+			return fmt.Errorf("检查实例%s: %s:%d 存在阻塞风险:%s,手动解决后可重试", svr.ServerName, svr.Host, svr.Port, err.Error())
+		}
+	}
+	return err
+}
+
+func (e *ExecuteSQLFileComp) checkBlockingFromProcesslist(db *sql.DB, blockingTableMap map[string][]string) (
+	err error) {
+	var userExcluded = []string{"repl", "system user", "event_scheduler"}
+	var plcs []native.SelectProcessListResp
+
+	xdb := sqlx.NewDb(db, "mysql")
+	udb := xdb.Unsafe()
+	query, args, err := sqlx.In(
+		"select * from information_schema.processlist where  Command <> 'Sleep' and Time > ? and User Not In (?)",
+		60, userExcluded,
+	)
+	if err != nil {
+		logger.Error("查询实例%s的processlist失败:%s", e.Params.Host, err.Error())
+		return err
+	}
+	err = udb.Select(&plcs, query, args...)
+	if err != nil {
+		return err
+	}
+	var errs []error
+	for _, pl := range plcs {
+		if !pl.Info.Valid {
+			continue
+		}
+		for _, tables := range blockingTableMap {
+			for _, tb := range tables {
+				if strings.Contains(pl.Info.String, tb) {
+					errs = append(errs, fmt.Errorf("the processlist [%s] is blocking ddl, please resolve it first", pl.Info.String))
+				}
+			}
+		}
+
+	}
+	return errors.Join(errs...)
+}
+
+func (e *ExecuteSQLFileComp) checkBlockingTables(db *sql.DB, blockingTableMap map[string][]string) (err error) {
+	conn, err := db.Conn(context.Background())
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	// 设置锁超时时间
+	_, err = conn.ExecContext(context.Background(), "SET lock_wait_timeout = 1;")
+	if err != nil {
+		logger.Error("设置锁超时时间失败:%s", err.Error())
+		return err
+	}
+	// nolint
+	defer conn.ExecContext(context.Background(), "unlock tables;")
+	logger.Info("blockingTableMap %v", blockingTableMap)
+	// 首次检查
+	var errs []error
+	for db, blockingTable := range blockingTableMap {
+		chunkSize := 10
+		if len(blockingTable) >= 1000 {
+			chunkSize = 100
+		}
+		for _, tbs := range lo.Chunk(blockingTable, chunkSize) {
+			if len(tbs) == 0 {
+				continue
+			}
+			_, err = conn.ExecContext(context.Background(), buildLockMoreTables(db, tbs))
+			if err != nil {
+				if chunkSize == 100 {
+					// nolint
+					conn.ExecContext(context.Background(), "unlock tables;")
+					for _, ltbs := range lo.Chunk(tbs, 10) {
+						_, err = conn.ExecContext(context.Background(), buildLockMoreTables(db, ltbs))
+						if err != nil {
+							logger.Error("这些表%v存在活跃查询,可能会阻塞DDL的执行:%s", tbs, err.Error())
+							errs = append(errs, fmt.Errorf("这些表%v存在活跃查询,可能会阻塞DDL的执行:%s", tbs, err.Error()))
+						}
+					}
+				} else {
+					logger.Error("这些表%v存在活跃查询,可能会阻塞DDL的执行:%s", tbs, err.Error())
+					errs = append(errs, fmt.Errorf("这些表%v存在活跃查询,可能会阻塞DDL的执行:%s", tbs, err.Error()))
+				}
+			}
+		}
+	}
+	return errors.Join(errs...)
+}
+
+func buildLockMoreTables(db string, tables []string) string {
+	items := []string{}
+	for _, tb := range tables {
+		items = append(items, fmt.Sprintf("`%s`.`%s`", db, tb))
+	}
+	ql := fmt.Sprintf("flush table %s with read lock;", strings.Join(items, ","))
+	logger.Info("lock more tables:%s", ql)
+	return ql
 }
 
 // checkDuplicateObjects  判断每行变更对象，是否存在相同文件变更相同db的情况
@@ -260,7 +520,9 @@ func (e *ExecuteSQLFileComp) Execute() (err error) {
 func (e *ExecuteSQLFileComp) closeDb() {
 	for _, port := range e.ports {
 		if dbConn, ok := e.dbConns[port]; ok {
-			dbConn.Close()
+			if dbConn != nil {
+				dbConn.Close()
+			}
 		}
 	}
 }

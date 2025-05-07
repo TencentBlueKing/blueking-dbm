@@ -120,7 +120,7 @@ func (h *DbWorker) ExecMore(sqls []string) (rowsAffectedCount int64, err error) 
 	return h.ExecMoreContext(sqls, ctx)
 }
 
-// ExecMoreContext TODO
+// ExecMoreContext 在同一个连接里执行多个sql
 func (h *DbWorker) ExecMoreContext(sqls []string, ctx context.Context) (rowsAffected int64, err error) {
 	var c int64
 	db, err := h.Db.Conn(ctx)
@@ -164,6 +164,13 @@ func (h *DbWorker) Queryxs(data interface{}, query string) error {
 		return err
 	}
 	return nil
+}
+
+// Get just use sqlx get function
+func (h *DbWorker) Get(data interface{}, query string, args ...interface{}) error {
+	db := sqlx.NewDb(h.Db, "mysql")
+	udb := db.Unsafe()
+	return udb.Get(data, query, args...)
 }
 
 // QueryOneColumn query one column rows to slice

@@ -81,16 +81,25 @@ func (d *ExecSQLFileAct) Run() (err error) {
 				return nil
 			},
 		},
-		{
+	}
+	logger.Info("params: %v", d.Payload.Params)
+	msg := ""
+	if d.Payload.Params.JustCheckDDLBlock {
+		steps = append(steps, subcmd.StepFunc{
+			FunName: "执行DDL阻塞检查",
+			Func:    d.Payload.CheckBlockingDDLPcls,
+		})
+		msg = "precheck blocking ddl pcls successfully"
+	} else {
+		steps = append(steps, subcmd.StepFunc{
 			FunName: "执行导入SQL文件",
 			Func:    d.Payload.Execute,
-		},
+		})
+		msg = "import sqlfile successfully"
 	}
-
 	if err := steps.Run(); err != nil {
 		return err
 	}
-
-	logger.Info("import sqlfile successfully")
+	logger.Info(msg)
 	return nil
 }
