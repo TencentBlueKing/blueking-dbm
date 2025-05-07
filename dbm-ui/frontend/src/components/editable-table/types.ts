@@ -10,7 +10,7 @@ export interface IRule {
   validator?: (
     value: any,
     rowDataValue: {
-      rowData: Record<string, any>;
+      rowData: any;
       rowIndex: number;
     },
   ) => Promise<boolean | string> | boolean | string;

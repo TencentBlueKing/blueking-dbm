@@ -12,30 +12,60 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn :label="t('源集群')">
+  <BkTable
+    :data="ticketDetails.details.infos"
+    :show-overflow="false">
+    <BkTableColumn
+      :label="t('源集群')"
+      :min-width="200">
       <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.clusters[data.src_cluster].immute_domain }}
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('目标集群')">
+    <BkTableColumn
+      :label="t('目标集群')"
+      :min-width="200">
       <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.dst_cluster].immute_domain }}
+        <div v-if="data.dst_cluster_list.length > 0">
+          <p
+            v-for="clusterId in data.dst_cluster_list"
+            :key="clusterId">
+            {{ ticketDetails.details.clusters[clusterId].immute_domain }}
+          </p>
+        </div>
+        <span v-else>{{ ticketDetails.details.clusters[data.dst_cluster].immute_domain }}</span>
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('迁移 DB 名')">
+    <BkTableColumn
+      :label="t('迁移 DB 名')"
+      :min-width="200">
       <template #default="{ data }: { data: RowData }">
         <TagBlock :data="data.db_list" />
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('忽略 DB 名')">
+    <BkTableColumn
+      :label="t('忽略 DB 名')"
+      :min-width="200">
       <template #default="{ data }: { data: RowData }">
         <TagBlock :data="data.ignore_db_list" />
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('迁移后 DB 名')">
+    <BkTableColumn
+      :label="t('迁移后 DB 名')"
+      :min-width="200">
       <template #default="{ data }: { data: RowData }">
-        <TagBlock :data="data.rename_infos.map((item) => item.target_db_name)" />
+        <div
+          v-if="data.rename_infos.length"
+          v-bk-tooltips="t('点击查看详情')"
+          style="width: fit-content; cursor: pointer"
+          @click="() => handleShowDetail(data)">
+          <I18nT keypath="n项已修改">
+            <span style="padding-right: 4px; font-weight: bold; color: #2dcb56">
+              {{ data.rename_infos.length }}
+            </span>
+          </I18nT>
+        </div>
+        <span v-else>--</span>
       </template>
     </BkTableColumn>
   </BkTable>
@@ -46,6 +76,12 @@
       }}
     </InfoItem>
   </InfoList>
+  <RenameInfos
+    v-if="isShow"
+    :key="renameInfos.src_cluster"
+    v-model:is-show="isShow"
+    :data="renameInfos"
+    :domain="ticketDetails.details.clusters[renameInfos.src_cluster].immute_domain" />
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -54,7 +90,9 @@
 
   import TagBlock from '@components/tag-block/Index.vue';
 
-  import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
+  import InfoList, { Item as InfoItem } from '../../../components/info-list/Index.vue';
+
+  import RenameInfos from './components/rename-infos/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Sqlserver.DataMigrate>;
@@ -65,4 +103,12 @@
   defineProps<Props>();
 
   const { t } = useI18n();
+
+  const isShow = ref(false);
+  const renameInfos = reactive<RowData>({} as RowData);
+
+  const handleShowDetail = (rowData: RowData) => {
+    Object.assign(renameInfos, rowData);
+    isShow.value = true;
+  };
 </script>
