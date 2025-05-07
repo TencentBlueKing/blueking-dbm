@@ -15,8 +15,8 @@
     <template #content>
       <slot name="content">
         <TodoList
-          v-if="data.todos.length > 0"
-          :data="data.todos"
+          v-if="renderTodoList.length > 0"
+          :data="renderTodoList"
           :flow-data="data" />
         <span v-else>
           <I18nT
@@ -47,6 +47,7 @@
   </DbTimeLineItem>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import type { VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -67,7 +68,7 @@
     name: FlowMode.STATUS_RUNNING,
   });
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   defineSlots<{
     content: () => VNode;
@@ -75,4 +76,8 @@
   }>();
 
   const { t } = useI18n();
+
+  const renderTodoList = computed(() =>
+    _.filter(props.data.todos, (item) => item.type !== FlowMode.TODO_TYPE_INNER_FAILED),
+  );
 </script>
