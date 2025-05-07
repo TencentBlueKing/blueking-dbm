@@ -8,6 +8,8 @@
   </DbTimeLineItem>
 </template>
 <script setup lang="ts">
+  import { type VNode } from 'vue';
+
   import FlowMode from '@services/model/ticket/flow';
 
   import DbTimeLineItem from '../time-line/TimeLineItem.vue';
