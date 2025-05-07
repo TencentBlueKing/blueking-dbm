@@ -15,18 +15,22 @@
   <BkLoading :loading="isLoading">
     <div
       class="render-spec-box"
-      :class="{ 'default-display': !data }">
+      :class="{ 'default-display': !displayInfo }">
       <span
-        v-if="!data"
+        v-if="!displayInfo"
         style="color: #c4c6cc">
         {{ placeholder || t('输入主机后自动生成') }}
       </span>
       <span
         v-else
         class="content">
-        {{ data?.name ? `${data.name} ${isIgnoreCounts ? '' : t('((n))台', { n: data?.count })}` : '' }}
+        {{
+          displayInfo?.name
+            ? `${displayInfo.name} ${isIgnoreCounts ? '' : t('((n))台', { n: displayInfo?.count })}`
+            : ''
+        }}
         <SpecPanel
-          :data="data"
+          :data="displayInfo"
           :hide-qps="hideQps">
           <DbIcon
             class="visible-icon ml-4"
@@ -44,21 +48,23 @@
   interface Props {
     data?: {
       count?: number;
-      cpu: {
+      cpu?: {
         max: number;
         min: number;
       };
-      // id: number;
-      mem: {
+      id?: number;
+      mem?: {
         max: number;
         min: number;
       };
-      name: string;
-      qps: {
+      name?: string;
+      qps?: {
         max: number;
         min: number;
       };
-      storage_spec: {
+      spec_id?: number;
+      spec_name?: string;
+      storage_spec?: {
         mount_point: string;
         size: number;
         type: string;
@@ -70,8 +76,27 @@
     placeholder?: string;
   }
 
-  withDefaults(defineProps<Props>(), {
-    data: undefined,
+  const props = withDefaults(defineProps<Props>(), {
+    data: () => ({
+      count: 0,
+      cpu: {
+        max: 1,
+        min: 0,
+      },
+      id: 0,
+      mem: {
+        max: 1,
+        min: 0,
+      },
+      name: '',
+      qps: {
+        max: 1,
+        min: 0,
+      },
+      spec_id: 0,
+      spec_name: '',
+      storage_spec: [],
+    }),
     hideQps: true,
     isIgnoreCounts: false,
     isLoading: false,
@@ -79,6 +104,36 @@
   });
 
   const { t } = useI18n();
+
+  const displayInfo = computed(() =>
+    Object.assign(
+      {
+        count: 0,
+        cpu: {
+          max: 1,
+          min: 0,
+        },
+        id: 0,
+        mem: {
+          max: 1,
+          min: 0,
+        },
+        name: '',
+        qps: {
+          max: 1,
+          min: 0,
+        },
+        spec_id: 0,
+        spec_name: '',
+        storage_spec: [],
+      },
+      props.data,
+      {
+        id: props.data?.id || (props.data?.spec_id as number),
+        name: props.data?.name || (props.data?.spec_name as string),
+      },
+    ),
+  );
 </script>
 <style lang="less" scoped>
   .render-spec-box {
