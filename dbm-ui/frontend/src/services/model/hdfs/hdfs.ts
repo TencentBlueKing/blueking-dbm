@@ -88,6 +88,7 @@ export default class Hdfs extends ClusterBase {
     access_entry_edit: boolean;
     hdfs_access_entry_view: boolean;
     hdfs_destroy: boolean;
+    hdfs_edit: boolean;
     hdfs_enable_disable: boolean;
     hdfs_reboot: boolean;
     hdfs_replace: boolean;

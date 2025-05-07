@@ -23,13 +23,11 @@
       </AuthButton>
       <ClusterBatchOperation
         v-db-console="'mysql.haClusterList.batchOperation'"
-        class="ml-8"
         :cluster-type="ClusterTypes.TENDBHA"
         :selected="selected"
-        @success="handleBatchOperationSuccess" />
+        @success="fetchData" />
       <BkButton
         v-db-console="'mysql.haClusterList.importAuthorize'"
-        class="ml-8"
         @click="handleShowExcelAuthorize">
         {{ t('导入授权') }}
       </BkButton>
@@ -48,6 +46,7 @@
         unique-select
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
+      <TagSearch @search="fetchData" />
     </div>
     <div class="table-wrapper">
       <DbTable
@@ -90,6 +89,7 @@
           :get-table-instance="getTableInstance"
           :is-filter="isFilter"
           :selected-list="selected" />
+        <ClusterTagColumn @success="fetchData" />
         <StatusColumn :cluster-type="ClusterTypes.TENDBHA" />
         <ClusterStatsColumn :cluster-type="ClusterTypes.TENDBHA" />
         <RoleColumn
@@ -126,7 +126,9 @@
           </template>
         </RoleColumn>
         <ModuleNameColumn :cluster-type="ClusterTypes.TENDBHA" />
-        <CommonColumn :cluster-type="ClusterTypes.TENDBHA" />
+        <CommonColumn
+          :cluster-type="ClusterTypes.TENDBHA"
+          @refresh="fetchData" />
         <BkTableColumn
           :fixed="isStretchLayoutOpen ? false : 'right'"
           :label="t('操作')"
@@ -276,6 +278,7 @@
 
   import DbTable from '@components/db-table/index.vue';
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
+  import TagSearch from '@components/tag-search/index.vue';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
@@ -283,6 +286,7 @@
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import ClusterNameColumn from '@views/db-manage/common/cluster-table-column/ClusterNameColumn.vue';
   import ClusterStatsColumn from '@views/db-manage/common/cluster-table-column/ClusterStatsColumn.vue';
+  import ClusterTagColumn from '@views/db-manage/common/cluster-table-column/ClusterTagColumn.vue';
   import CommonColumn from '@views/db-manage/common/cluster-table-column/CommonColumn.vue';
   import IdColumn from '@views/db-manage/common/cluster-table-column/IdColumn.vue';
   import MasterDomainColumn from '@views/db-manage/common/cluster-table-column/MasterDomainColumn.vue';
@@ -352,7 +356,6 @@
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const isShowExcelAuthorize = ref(false);
-  const isInit = ref(false);
   const showCreateSubscribeRuleSlider = ref(false);
   const showDataExportSlider = ref(false);
   const selectedClusterList = ref<ColumnData['data'][]>([]);
@@ -461,6 +464,7 @@
       'disaster_tolerance_level',
       'region',
       'bk_cloud_id',
+      'tag',
     ],
     disabled: ['master_domain'],
   });
@@ -500,10 +504,9 @@
     return searchSelectData.value.find((set) => set.id === item.id)?.children || [];
   };
 
-  const fetchData = (loading?: boolean) => {
+  const fetchData = (extraParams: Record<string, any> = {}) => {
     const params = getSearchSelectorParams(searchValue.value);
-    tableRef.value!.fetchData(params, { ...sortValue }, loading);
-    isInit.value = false;
+    tableRef.value!.fetchData(params, { ...extraParams, ...sortValue });
   };
 
   const handleSelection = (data: any, list: TendbhaModel[]) => {
@@ -560,11 +563,6 @@
     });
   };
 
-  const handleBatchOperationSuccess = () => {
-    tableRef.value!.clearSelected();
-    fetchData();
-  };
-
   onMounted(() => {
     if (route.query.id && !clusterId.value) {
       handleToDetails(Number(route.query.id));
@@ -585,11 +583,11 @@
       display: flex;
       flex-wrap: wrap;
       margin-bottom: 16px;
+      gap: 8px;
 
       .bk-search-select {
         flex: 1;
         max-width: 500px;
-        min-width: 320px;
         margin-left: auto;
       }
     }

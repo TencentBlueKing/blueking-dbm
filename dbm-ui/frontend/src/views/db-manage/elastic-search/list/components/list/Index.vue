@@ -17,11 +17,15 @@
       <AuthButton
         v-db-console="'es.clusterManage.instanceApply'"
         action-id="es_apply"
-        class="mb16"
         theme="primary"
         @click="handleGoApply">
         {{ t('申请实例') }}
       </AuthButton>
+      <ClusterBatchOperation
+        v-db-console="'es.clusterManage.batchOperation'"
+        :cluster-type="ClusterTypes.ES"
+        :selected="selected"
+        @success="fetchTableData" />
       <DropdownExportExcel
         v-db-console="'es.clusterManage.export'"
         :has-selected="hasSelected"
@@ -31,7 +35,6 @@
         v-db-console="'es.clusterManage.batchCopy'"
         :selected="selected" />
       <DbSearchSelect
-        class="mb16"
         :data="serachData"
         :get-menu-list="getMenuList"
         :model-value="searchValue"
@@ -39,6 +42,7 @@
         unique-select
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
+      <TagSearch @search="fetchTableData" />
     </div>
     <DbTable
       ref="tableRef"
@@ -76,6 +80,7 @@
         :is-filter="isFilter"
         :selected-list="selected"
         @refresh="fetchTableData" />
+      <ClusterTagColumn @success="fetchTableData" />
       <StatusColumn :cluster-type="ClusterTypes.ES" />
       <ClusterStatsColumn :cluster-type="ClusterTypes.ES" />
       <RoleColumn
@@ -110,7 +115,9 @@
         :label="t('冷节点')"
         :search-ip="batchSearchIpInatanceList"
         :selected-list="selected" />
-      <CommonColumn :cluster-type="ClusterTypes.ES" />
+      <CommonColumn
+        :cluster-type="ClusterTypes.ES"
+        @refresh="fetchTableData" />
       <BkTableColumn
         :fixed="isStretchLayoutOpen ? false : 'right'"
         :label="t('操作')"
@@ -275,10 +282,13 @@
 
   import DbTable from '@components/db-table/index.vue';
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
+  import TagSearch from '@components/tag-search/index.vue';
 
+  import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import ClusterNameColumn from '@views/db-manage/common/cluster-table-column/ClusterNameColumn.vue';
   import ClusterStatsColumn from '@views/db-manage/common/cluster-table-column/ClusterStatsColumn.vue';
+  import ClusterTagColumn from '@views/db-manage/common/cluster-table-column/ClusterTagColumn.vue';
   import CommonColumn from '@views/db-manage/common/cluster-table-column/CommonColumn.vue';
   import IdColumn from '@views/db-manage/common/cluster-table-column/IdColumn.vue';
   import MasterDomainColumn from '@views/db-manage/common/cluster-table-column/MasterDomainColumn.vue';
@@ -397,7 +407,6 @@
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
   const isShowPassword = ref(false);
-  const isInit = ref(true);
   const selected = ref<EsModel[]>([]);
   const operationData = shallowRef<EsModel>();
 
@@ -439,6 +448,7 @@
       'es_client',
       'es_datanode_hot',
       'es_datanode_cold',
+      'tags',
     ],
     disabled: ['master_domain'],
   });
@@ -478,10 +488,9 @@
     return serachData.value.find((set) => set.id === item.id)?.children || [];
   };
 
-  const fetchTableData = (loading?: boolean) => {
+  const fetchTableData = (extraParams: Record<string, any> = {}) => {
     const searchParams = getSearchSelectorParams(searchValue.value);
-    tableRef.value?.fetchData(searchParams, { ...sortValue }, loading);
-    isInit.value = false;
+    tableRef.value?.fetchData(searchParams, { ...extraParams, ...sortValue });
   };
 
   const handleSelection = (data: any, list: EsModel[]) => {
@@ -544,11 +553,12 @@
     .header-action {
       display: flex;
       flex-wrap: wrap;
+      margin-bottom: 16px;
+      gap: 8px;
 
       .bk-search-select {
         flex: 1;
         max-width: 500px;
-        min-width: 320px;
         margin-left: auto;
       }
     }

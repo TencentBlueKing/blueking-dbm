@@ -59,6 +59,24 @@
       {{ t('清档') }}
     </BkButton>
   </BkDropdownItem>
+  <BkDropdownItem v-db-console="'redis.clusterManage.batchAddTag'">
+    <BkButton
+      class="opration-button"
+      :disabled="!isClusterTagEditable"
+      text
+      @click="() => (showClusterBatchAddTag = true)">
+      {{ t('添加标签') }}
+    </BkButton>
+  </BkDropdownItem>
+  <BkDropdownItem v-db-console="'redis.clusterManage.batchRemoveTag'">
+    <BkButton
+      class="opration-button"
+      :disabled="!isClusterTagEditable"
+      text
+      @click="() => (showClusterBatchRemoveTag = true)">
+      {{ t('移除标签') }}
+    </BkButton>
+  </BkDropdownItem>
   <!-- 提取 keys -->
   <ExtractKeys
     v-model:is-show="extractState.isShow"
@@ -79,6 +97,14 @@
     v-model:is-show="purgeState.isShow"
     :data="purgeState.data"
     @success="handlePurgeSuccess" />
+  <ClusterBatchAddTag
+    v-model:is-show="showClusterBatchAddTag"
+    :selected="selected"
+    @success="handleSuccess" />
+  <ClusterBatchRemoveTag
+    v-model:is-show="showClusterBatchRemoveTag"
+    :selected="selected"
+    @success="handleSuccess" />
 </template>
 
 <script setup lang="ts">
@@ -88,6 +114,8 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
+  import ClusterBatchAddTag from '@views/db-manage/common/cluster-batch-add-tag/Index.vue';
+  import ClusterBatchRemoveTag from '@views/db-manage/common/cluster-batch-remove-tag/Index.vue';
   import { useShowBackup } from '@views/db-manage/common/redis-backup/hooks/useShowBackup';
   import RedisBackup from '@views/db-manage/common/redis-backup/Index.vue';
   import { useShowDeleteKeys } from '@views/db-manage/common/redis-delete-keys/hooks/useShowDeleteKeys';
@@ -103,14 +131,13 @@
 
   type Emits = (e: 'success') => void;
 
+  defineOptions({
+    name: ClusterTypes.REDIS,
+  });
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
   const sideSliderShow = defineModel<boolean>('side-slider-show', {
     required: true,
-  });
-
-  defineOptions({
-    name: ClusterTypes.REDIS,
   });
 
   const { t } = useI18n();
@@ -118,6 +145,9 @@
   const { handleShow: handlShowDeleteKeys, state: deleteKeyState } = useShowDeleteKeys();
   const { handleShow: handleShowBackup, state: backupState } = useShowBackup();
   const { handleShow: handleShowPurge, state: purgeState } = useShowPurge();
+
+  const showClusterBatchAddTag = ref(false);
+  const showClusterBatchRemoveTag = ref(false);
 
   const batchOperationDisabled = computed(() =>
     props.selected.some((data) => {
@@ -136,6 +166,10 @@
     }),
   );
 
+  const isClusterTagEditable = computed(() =>
+    props.selected.every((data) => data.permission[`${data.db_type}_edit` as keyof typeof data.permission]),
+  );
+
   watch(
     () => [extractState.isShow, deleteKeyState.isShow, backupState.isShow, purgeState.isShow],
     () => {
@@ -143,27 +177,27 @@
     },
   );
 
-  const handleSucess = () => {
+  const handleSuccess = () => {
     emits('success');
   };
 
   const handleExtractKeysSuccess = () => {
     extractState.isShow = false;
-    handleSucess();
+    handleSuccess();
   };
 
   const handleDeleteKeysSuccess = () => {
     deleteKeyState.isShow = false;
-    handleSucess();
+    handleSuccess();
   };
 
   const handleBackupSuccess = () => {
     backupState.isShow = false;
-    handleSucess();
+    handleSuccess();
   };
 
   const handlePurgeSuccess = () => {
     purgeState.isShow = false;
-    handleSucess();
+    handleSuccess();
   };
 </script>

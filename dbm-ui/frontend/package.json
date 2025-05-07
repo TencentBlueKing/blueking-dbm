@@ -32,7 +32,7 @@
     "@vueuse/core": "^13.0.0",
     "axios": "^1.8.4",
     "@xterm/xterm": "^5.5.0",
-    "bkui-vue": "2.0.1-beta.104",
+    "bkui-vue": "2.0.2-beta.13",
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
     "echarts": "^5.6.0",
