@@ -140,15 +140,12 @@
           return true;
         }
         // % 通配符不需要校验存在
-        if (/%$/.test(value[0]) || value[0] === '*') {
-          return true;
-        }
         const clearDbList = _.filter(value, (item) => !/[*%]/.test(item));
         if (clearDbList.length < 1) {
           return true;
         }
         if (!props.clusterId) {
-          return false;
+          return t('请先选择集群');
         }
         return checkClusterDatabase({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -176,16 +173,13 @@
         if (!props.checkNotExist) {
           return true;
         }
-        // % 通配符不需要校验存在
-        if (/%$/.test(value[0]) || value[0] === '*') {
-          return true;
-        }
+        // % 通配符不需要校验不存在
         const clearDbList = _.filter(value, (item) => !/[*%]/.test(item));
         if (clearDbList.length < 1) {
           return true;
         }
         if (!props.clusterId) {
-          return false;
+          return t('请先选择集群');
         }
         return checkClusterDatabase({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,

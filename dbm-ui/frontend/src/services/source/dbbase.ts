@@ -103,6 +103,15 @@ export function checkClusterDatabase(params: { bk_biz_id: number; cluster_id: nu
   return http.post<Record<string, boolean>>(`${path}/check_cluster_databases/`, params);
 }
 
+// 批量查询集群的库是否存在
+export function batchCheckClusterDatabase(params: { bk_biz_id: number; cluster_ids: number[]; db_list: string[] }) {
+  return http.post<{
+    [clusterId: string]: {
+      [dbName: string]: boolean;
+    };
+  }>(`${path}/batch_check_cluster_databases/`, params);
+}
+
 // 根据用户手动输入的ip[:port]查询真实的实例
 export function checkInstance<T extends InstanceInfos>(params: { bk_biz_id?: number; instance_addresses: string[] }) {
   return http.post<T[]>(`${path}/check_instances/`, params);
