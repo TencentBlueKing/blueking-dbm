@@ -23,17 +23,10 @@
         v-model="item.cluster"
         :selected="selected"
         @batch-edit="handleBatchEdit" />
-      <EditableColumn
-        field="cluster.role"
-        :label="t('缩容节点类型')"
-        :min-width="200"
-        required>
-        <EditableSelect
-          v-model="item.cluster.role"
-          :input-search="false"
-          :list="nodeTypeOptions"
-          @change="handleChange(item)" />
-      </EditableColumn>
+      <RoleColumn
+        v-model="item.cluster.role"
+        @batch-edit="handleRoleBatchEdit"
+        @change="handleChange(item)" />
       <EditableColumn
         :label="t('当前数量（台）')"
         :min-width="200">
@@ -47,19 +40,11 @@
           }}
         </EditableBlock>
       </EditableColumn>
-      <EditableColumn
-        :append-rules="reducedCountRules"
-        field="reduced_count"
-        :label="t('缩容数量（台）')"
-        :min-width="200"
-        required>
-        <EditableInput
-          v-model="item.reduced_count"
-          :max="item.cluster.role === 'spider_master' ? item.cluster.master_count : item.cluster.slave_count"
-          :min="0"
-          type="number"
-          @change="handleChange(item)" />
-      </EditableColumn>
+      <ReducedCountColumn
+        v-model="item.reduced_count"
+        :cluster="item.cluster"
+        @batch-edit="handleRedecedCountBatchEdit"
+        @change="handleChange(item)" />
       <EditableColumn
         :append-rules="targetCountRules"
         field="spider_reduced_to_count"
@@ -83,6 +68,8 @@
   import type { TendbCluster } from '@services/model/ticket/ticket';
 
   import ClusterColumn from './components/ClusterColumn.vue';
+  import ReducedCountColumn from './components/ReducedCountColumn.vue';
+  import RoleColumn from './components/RoleColumn.vue';
 
   interface RowData {
     cluster: {
@@ -134,14 +121,6 @@
     Object.fromEntries(tableData.value.map((cur) => [cur.cluster.master_domain, true])),
   );
 
-  const reducedCountRules = [
-    {
-      message: t('缩容数量必须大于0'),
-      trigger: 'change',
-      validator: (value: string) => Number(value) > 0,
-    },
-  ];
-
   const targetCountRules = [
     {
       message: '',
@@ -158,17 +137,6 @@
         }
         return true;
       },
-    },
-  ];
-
-  const nodeTypeOptions = [
-    {
-      label: 'Spider Master',
-      value: 'spider_master',
-    },
-    {
-      label: 'Spider Slave',
-      value: 'spider_slave',
     },
   ];
 
@@ -217,6 +185,24 @@
       return acc;
     }, []);
     tableData.value = [...(tableData.value[0].cluster.id ? tableData.value : []), ...dataList];
+  };
+
+  const handleRoleBatchEdit = (value: string | string[]) => {
+    tableData.value.forEach((item) => {
+      Object.assign(item.cluster, {
+        role: value,
+      });
+      handleChange(item);
+    });
+  };
+
+  const handleRedecedCountBatchEdit = (value: string | string[]) => {
+    tableData.value.forEach((item) => {
+      Object.assign(item, {
+        reduced_count: value,
+      });
+      handleChange(item);
+    });
   };
 
   const handleChange = (row: RowData) => {
