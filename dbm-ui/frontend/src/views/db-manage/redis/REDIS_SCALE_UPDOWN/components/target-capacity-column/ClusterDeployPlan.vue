@@ -69,7 +69,7 @@
             <div class="column-content">
               <RenderSpec
                 :data="data.currentSepc"
-                :hide-qps="!data.currentSepc.qps?.max"
+                :hide-qps="!data.currentSepc?.qps?.max"
                 is-ignore-counts />
             </div>
           </div>

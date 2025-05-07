@@ -17,7 +17,7 @@
     :label="t('当前容量')"
     :min-width="200">
     <div
-      v-if="cluster?.cluster_stats?.total"
+      v-if="cluster.id"
       class="capacity-box">
       <div class="display-content">
         <div class="item">
@@ -74,6 +74,7 @@
       cluster_spec: RedisModel['cluster_spec'];
       cluster_stats: RedisModel['cluster_stats'];
       group_num: number;
+      id: number;
       shard_num: number;
     };
   }
