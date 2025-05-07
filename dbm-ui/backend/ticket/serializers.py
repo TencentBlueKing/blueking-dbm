@@ -31,6 +31,7 @@ from backend.ticket.constants import (
     TicketStatus,
     TicketType,
     TodoStatus,
+    TodoType,
 )
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.models import Flow, Ticket, Todo
@@ -171,7 +172,7 @@ class TicketFlowSerializer(TranslationSerializerMixin, serializers.ModelSerializ
         return super().to_representation(instance)
 
     def get_todos(self, obj):
-        return TodoSerializer(obj.todo_of_flow.all(), many=True).data
+        return TodoSerializer(obj.todo_of_flow.all().exclude(type=TodoType.INNER_FAILED.value), many=True).data
 
     def get_status(self, obj):
         return self.ticket_flow.status
