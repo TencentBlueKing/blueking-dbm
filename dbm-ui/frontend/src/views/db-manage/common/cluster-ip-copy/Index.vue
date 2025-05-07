@@ -12,7 +12,7 @@
         type="up-big" />
     </BkButton>
     <template #content>
-      <BkDropdownMenu ext-cls="cluster-ip-copy">
+      <BkDropdownMenu class="dropdown-menu-with-button cluster-ip-copy">
         <BkDropdownItem>
           <BkButton
             v-bk-tooltips="{
@@ -89,14 +89,11 @@
   };
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
   .cluster-ip-copy {
     .bk-dropdown-item {
-      padding: 0;
-
       .bk-button {
-        height: 100%;
-        padding: 0 16px;
+        justify-content: flex-start;
       }
     }
   }

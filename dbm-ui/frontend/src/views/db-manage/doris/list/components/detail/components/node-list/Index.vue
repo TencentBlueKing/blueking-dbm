@@ -66,7 +66,7 @@
             type="up-big" />
         </BkButton>
         <template #content>
-          <BkDropdownMenu>
+          <BkDropdownMenu class="dropdown-menu-with-button">
             <BkDropdownItem>
               <BkButton
                 :disabled="tableData.length === 0"

@@ -18,7 +18,7 @@
         type="down-shape" />
     </div>
     <template #content>
-      <BkDropdownMenu>
+      <BkDropdownMenu class="dropdown-menu-with-button">
         <slot />
       </BkDropdownMenu>
     </template>

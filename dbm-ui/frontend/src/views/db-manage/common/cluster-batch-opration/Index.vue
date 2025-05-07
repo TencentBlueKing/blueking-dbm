@@ -32,7 +32,7 @@
         type="up-big " />
     </BkButton>
     <template #content>
-      <BkDropdownMenu class="cluster-batch-operation-popover">
+      <BkDropdownMenu class="dropdown-menu-with-button">
         <Component
           :is="content"
           v-model:side-slider-show="sideSliderShow"
@@ -127,19 +127,6 @@
     emits('success');
   };
 </script>
-
-<style lang="less">
-  .cluster-batch-operation-popover {
-    .bk-dropdown-item {
-      padding: 0;
-
-      .opration-button {
-        width: 100%;
-        padding: 0 16px;
-      }
-    }
-  }
-</style>
 
 <style lang="less" scoped>
   .cluster-batch-operation {

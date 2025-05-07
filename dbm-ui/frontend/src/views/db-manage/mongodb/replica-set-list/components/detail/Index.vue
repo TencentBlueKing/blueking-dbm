@@ -43,7 +43,7 @@
             <DbIcon type="more" />
           </BkButton>
           <template #content>
-            <BkDropdownMenu>
+            <BkDropdownMenu class="dropdown-menu-with-button">
               <BkDropdownItem>
                 <BkButton
                   :disabled="Boolean(data.operationTicketId)"

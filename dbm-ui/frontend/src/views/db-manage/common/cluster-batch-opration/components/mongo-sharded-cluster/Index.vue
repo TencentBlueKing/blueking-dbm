@@ -1,7 +1,5 @@
 <template>
-  <BkDropdownItem
-    v-db-console="'mongodb.sharedClusterList.batchAuthorize'"
-    @click="clusterAuthorizeShow = true">
+  <BkDropdownItem v-db-console="'mongodb.sharedClusterList.batchAuthorize'">
     <BkButton
       v-bk-tooltips="{
         disabled: !batchAuthorizeDisabled,
@@ -10,13 +8,12 @@
       }"
       class="opration-button"
       :disabled="batchAuthorizeDisabled"
-      text>
+      text
+      @click="clusterAuthorizeShow = true">
       {{ t('批量授权') }}
     </BkButton>
   </BkDropdownItem>
-  <BkDropdownItem
-    v-db-console="'mongodb.sharedClusterList.disable'"
-    @click="handleDisableCluster(selected)">
+  <BkDropdownItem v-db-console="'mongodb.sharedClusterList.disable'">
     <BkButton
       v-bk-tooltips="{
         disabled: !batchDisabledDisabled,
@@ -25,13 +22,12 @@
       }"
       class="opration-button"
       :disabled="batchDisabledDisabled"
-      text>
+      text
+      @click="handleDisableCluster(selected)">
       {{ t('禁用') }}
     </BkButton>
   </BkDropdownItem>
-  <BkDropdownItem
-    v-db-console="'mongodb.sharedClusterList.enable'"
-    @click="handleEnableCluster(selected)">
+  <BkDropdownItem v-db-console="'mongodb.sharedClusterList.enable'">
     <BkButton
       v-bk-tooltips="{
         disabled: !batchEnableDisabled,
@@ -40,13 +36,12 @@
       }"
       class="opration-button"
       :disabled="batchEnableDisabled"
-      text>
+      text
+      @click="handleEnableCluster(selected)">
       {{ t('启用') }}
     </BkButton>
   </BkDropdownItem>
-  <BkDropdownItem
-    v-db-console="'mongodb.sharedClusterList.delete'"
-    @click="handleDeleteCluster(selected)">
+  <BkDropdownItem v-db-console="'mongodb.sharedClusterList.delete'">
     <BkButton
       v-bk-tooltips="{
         disabled: !batchDeleteDisabled,
@@ -55,7 +50,8 @@
       }"
       class="opration-button"
       :disabled="batchDeleteDisabled"
-      text>
+      text
+      @click="handleDeleteCluster(selected)">
       {{ t('删除') }}
     </BkButton>
   </BkDropdownItem>
@@ -83,14 +79,13 @@
 
   type Emits = (e: 'success') => void;
 
+  defineOptions({
+    name: ClusterTypes.MONGO_SHARED_CLUSTER,
+  });
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
   const sideSliderShow = defineModel<boolean>('side-slider-show', {
     required: true,
-  });
-
-  defineOptions({
-    name: ClusterTypes.MONGO_SHARED_CLUSTER,
   });
 
   const { t } = useI18n();
