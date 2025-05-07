@@ -59,6 +59,8 @@ func StringToInt(s string) int {
 // SubStringPrefix 返回字符串的前n个字符
 // 如果超过字符串长度，返回整个字符串
 func SubStringPrefix(src string, start int, end int) string {
+	//return lo.Substring(src, start, end)
+
 	var r = []rune(src)
 	length := len(r)
 	if start <= 0 && end > length {
@@ -71,4 +73,9 @@ func SubStringPrefix(src string, start int, end int) string {
 		return ""
 	}
 	return string(r[start:end])
+}
+
+// ICaseEqual 字符串忽略大小写比较
+func ICaseEqual(str1, str2 string) bool {
+	return strings.EqualFold(str1, str2)
 }

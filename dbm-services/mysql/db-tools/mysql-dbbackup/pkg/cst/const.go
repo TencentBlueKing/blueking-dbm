@@ -1,7 +1,11 @@
 // Package cst TODO
 package cst
 
-import "time"
+import (
+	"time"
+
+	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
+)
 
 const (
 	// BackupGrant TODO
@@ -60,7 +64,9 @@ const (
 	// WrapperTdbctl TODO
 	WrapperTdbctl = "TDBCTL"
 	// ServerNamePrefix TODO
-	ServerNamePrefix = "SPT"
+	ServerNamePrefix       = "SPT"
+	BackupRoleTdbctl       = cst.BackupRoleTdbctl
+	BackupRoleSpiderMaster = cst.BackupRoleSpiderMaster
 )
 
 // INFODBA_SCHEMA TODO

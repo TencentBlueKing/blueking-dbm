@@ -25,6 +25,7 @@ const (
 	RoleSlave        = "slave"
 	RoleRepeater     = "repeater"
 	RoleSpiderMaster = "spider_master"
+	RoleTdbctlMaster = "TDBCTL"
 )
 
 const (

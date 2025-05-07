@@ -149,8 +149,12 @@ func RunBackupTasks(cnfList []*config.Public) error {
 	var allBackupsRunning []*GlobalBackupModel
 	var errList []error
 	for _, cnf := range cnfList {
+		if strings.EqualFold(cnf.MysqlRole, cst.BackupRoleTdbctl) {
+			// tdbctl 作为备份主控，不参与备份，由 spider_master 来追加备份任务
+			continue
+		}
 		logger.Log.Infof("filterBackupTasks: cnfFile:%s", cnf.GetCnfFileName())
-		var instTask = InstBackupTask{cnfFile: cnf.GetCnfFileName()}
+		var instTask = InstBackupTask{cnfFile: cnf.GetCnfFileName(), cnfObj: *cnf}
 
 		if err := instTask.filterBackupTasks(cnf); err != nil {
 			errList = append(errList, errors.WithMessage(err, strconv.Itoa(cnf.MysqlPort)))
@@ -246,6 +250,7 @@ func runBackup(tasks []InstBackupTask) error {
 		var globalBackup = GlobalBackup{
 			GlobalBackupModel: t.earliestBackupTask,
 			localLog:          logger.Log.WithField("Port", t.instObj.Port),
+			cnfObj:            t.cnfObj,
 		}
 		logger.Log.Infof("runBackup[%s], %s:%d", globalBackup.BackupId, t.instObj.Host, t.instObj.Port)
 		if err := globalBackup.runBackup(t); err != nil {
@@ -293,9 +298,11 @@ func (g GlobalBackup) runBackup(task InstBackupTask) error {
 	}
 
 	var execCmd *exec.Cmd
-	if task.instObj.Port >= 25000 && task.instObj.Port < 26000 || g.Wrapper == cst.WrapperSpider {
+	if strings.EqualFold(g.cnfObj.MysqlRole, cst.BackupRoleSpiderMaster) || g.Wrapper == cst.WrapperSpider {
+		g.localLog.Infof("runBackup for spider master with dbbackup_main.sh for backup-id:%s", g.BackupId)
 		execCmd = buildBackupCmdForSpiderMaster(g.BackupId)
 	} else {
+		g.localLog.Infof("runBackup for remote shard %d with backup-id:%s", task.shardValue, g.BackupId)
 		execCmd = buildBackupCmdForRemote(g.BackupId, task.cnfFile, task.shardValue)
 	}
 	g.localLog.Infof("backup cmd: %s", strings.Join(execCmd.Args, " "))

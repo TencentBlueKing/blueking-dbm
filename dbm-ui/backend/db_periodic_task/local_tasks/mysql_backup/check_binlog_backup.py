@@ -69,9 +69,11 @@ def _check_binlog_backup(cluster_type, date_str):
             )
         )
         # todo 需要获取集群的 master 分片实例，或者分片数
+        # c.tendbclusterstorageset_set.all()
 
         items = backup.query_binlog_from_bklog(start_time, end_time)
         instance_binlogs = defaultdict(list)
+        # ip-port : {[不连续的值],[]}
         shard_binlog_stat = {}
         for i in items:
             instance = "{}:{}".format(i.get("mysql_host"), i.get("mysql_port"))
@@ -85,10 +87,14 @@ def _check_binlog_backup(cluster_type, date_str):
             backup.success = False
 
         for inst, binlogs in instance_binlogs.items():
-            suffixes = [f.split(".", 1)[1] for f in binlogs]
-            shard_binlog_stat[inst] = is_consecutive_strings(suffixes)
-            if not shard_binlog_stat[inst]:
+            suffixes = [int(f.split(".", 1)[1]) for f in binlogs]
+            _, shard_binlog_stat[inst] = find_discontinuous_numbers(suffixes)
+            if len(shard_binlog_stat[inst]) > 0:
                 backup.success = False
+                # 找出不连续的文件名
+                prefix, suffix = binlogs[0].split(".", 1)
+                suffix_len = len(suffix)
+                shard_binlog_stat[inst] = [prefix + "." + str(s).zfill(suffix_len) for s in shard_binlog_stat[inst]]
 
         if not backup.success:
             MysqlBackupCheckReport.objects.create(
@@ -100,6 +106,35 @@ def _check_binlog_backup(cluster_type, date_str):
                 msg="binlog is not consecutive:{}".format(shard_binlog_stat),
                 subtype=MysqlBackupCheckSubType.BinlogSeq.value,
             )
+
+
+def find_discontinuous_numbers(numbers):
+    """
+    判断数字列表是否连续，并返回所有不连续的值
+
+    参数:
+        numbers: 数字列表(需要是已排序的列表)
+
+    返回:
+        tuple: (是否连续, 不连续的值列表)
+    """
+    if not numbers:
+        return True, []
+
+    discontinuous = []
+    is_continuous = True
+
+    for i in range(1, len(numbers)):
+        # 检查当前数字是否比前一个数字大1
+        if numbers[i] != numbers[i - 1] + 1:
+            is_continuous = False
+            # 找出中间缺失的数字
+            missing = numbers[i - 1] + 1
+            while missing < numbers[i]:
+                discontinuous.append(missing)
+                missing += 1
+
+    return is_continuous, discontinuous
 
 
 def is_consecutive_strings(str_list: list):
