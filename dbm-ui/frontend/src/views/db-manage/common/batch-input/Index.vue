@@ -30,19 +30,9 @@
           v-for="(item, index) in props.config"
           :key="index"
           class="batch-input-format-item">
-          <strong
-            v-bk-tooltips="{
-              content: t('正则校验格式'),
-              disabled: !item.regExp,
-            }"
-            :class="{
-              'is-regexp': !!item.regExp,
-            }">
+          <strong>
             {{ item.label }}
           </strong>
-          <span
-            v-if="item.required"
-            class="required" />
           <p class="pt-8">{{ item.case }}</p>
         </div>
         <DbIcon
@@ -52,32 +42,15 @@
           @click="handleCopy" />
       </div>
       <BkInput
-        ref="inputRef"
-        v-model="state.values"
+        v-model="inputValue"
         class="batch-input-textarea"
         :placeholder="
           t(
             '1. 多个字段以空白符（空格、制表符）分割_2. 列留空，请输入 NULL_3. 日期时间使用T分割。如：2025-03-11T10:26:13_4. 单元格内换行，用\\n 分割。如：我是第一行\\n我是第二行_5. 枚举类型，请输入选项值',
           )
         "
-        type="textarea"
-        @input="handleInput" />
-      <div class="batch-input-errors">
-        <span
-          v-if="state.formatError.show"
-          class="mr-8">
-          <I18nT
-            keypath="n处错误_检查字段是否必填_是否符合规则"
-            tag="span">
-            <strong>{{ state.formatError.count }}</strong>
-          </I18nT>
-          <DbIcon
-            v-bk-tooltips="t('标记错误')"
-            class="batch-input-errors-icon"
-            type="audit"
-            @click="handleSelectionError" />
-        </span>
-      </div>
+        type="textarea" />
+      <BkCheckbox v-model="isClear">{{ t('清空表格已有数据') }}</BkCheckbox>
     </div>
     <template #footer>
       <BkButton
@@ -103,85 +76,45 @@
   interface Props {
     /**
      * @description 批量输入配置
-     * @example [{ regExp: RegExp // 正则表达式, key: 'db_name', label: 'DB 名称', required: true, case: 'db1 db2 db3' }]
+     * @example [{ key: 'db_name', label: 'DB 名称', case: 'db1 db2 db3' }]
      * @default []
      */
     config: {
       case: string;
       key: string;
       label: string;
-      regExp?: RegExp;
-      required: boolean;
     }[];
   }
 
-  type Emits = (e: 'change', data: Record<string, any>[]) => void;
+  type Emits = (e: 'change', data: Record<string, any>[], isClear: boolean) => void;
 
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
-  const isShow = defineModel<boolean>('isShow', {
-    default: false,
-  });
-
   const { t } = useI18n();
   const copy = useCopy();
   const route = useRoute();
 
-  const inputRef = ref();
+  const isShow = ref(false);
+  const inputValue = ref('');
+  const isClear = ref(false);
 
-  const state = reactive({
-    formatError: {
-      count: 0,
-      selectionEnd: 0,
-      selectionStart: 0,
-      show: false,
-    },
-    values: '',
-  });
-
-  /**
-   * 复制格式
-   */
-  function handleCopy() {
+  const handleCopy = () => {
     copy(props.config.map((item) => `${item.case}`).join('\t'));
-  }
+  };
 
-  /**
-   * 标记错误信息
-   */
-  function handleSelectionError() {
-    const { selectionEnd, selectionStart } = state.formatError;
-    const textarea = inputRef.value?.$el?.getElementsByTagName?.('textarea')?.[0];
-    if (textarea) {
-      (textarea as HTMLInputElement).focus();
-      (textarea as HTMLInputElement).setSelectionRange(selectionStart, selectionEnd);
-    }
-  }
-
-  function handleInput() {
-    state.formatError.show = false;
-  }
-
-  function handleClose() {
-    state.formatError = {
-      count: 0,
-      selectionEnd: 0,
-      selectionStart: 0,
-      show: false,
-    };
+  const handleClose = () => {
     isShow.value = false;
-  }
+  };
 
-  function handleConfirm() {
-    if (state.values === '') {
+  const handleConfirm = () => {
+    if (inputValue.value === '') {
       handleClose();
       return;
     }
 
-    const newLines: string[] = [];
-    const lines = state.values.split(/\n|\\n/).filter((text) => text);
+    const lines = inputValue.value.split(/\n|\\n/).filter((text) => text);
 
     const getContents = (value: string) => {
       const contents = value
@@ -191,38 +124,7 @@
       return contents;
     };
 
-    for (const [columnIndex, configItem] of props.config.entries()) {
-      const { regExp, required } = configItem;
-      for (const [rowIndex, row] of lines.entries()) {
-        const contents = getContents(row);
-        const item = contents[columnIndex];
-        // 非空校验
-        if (required && !item) {
-          const remove = lines.splice(rowIndex, 1);
-          newLines.push(...remove);
-        }
-        // 正则表达式校验
-        if (regExp && !regExp.test(item)) {
-          const remove = lines.splice(rowIndex, 1);
-          newLines.push(...remove);
-        }
-      }
-    }
-
-    state.formatError.count = newLines.length;
-    state.formatError.selectionStart = 0;
-    state.formatError.selectionEnd = newLines.join('\n').length;
-    state.formatError.show = newLines.length > 0;
-
-    // 将调整好的内容回填显示
-    newLines.push(...lines); // 没有错误内容回填
-    state.values = newLines.join('\n');
-
-    if (state.formatError.show) {
-      return;
-    }
-
-    const result = newLines.map((item) => {
+    const result = lines.map((item) => {
       const contents = getContents(item);
       return props.config.reduce<Record<string, any>>((acc, cur, index) => {
         const value = contents[index];
@@ -233,9 +135,9 @@
       }, {});
     });
 
-    emits('change', result);
+    emits('change', result, isClear.value);
     handleClose();
-  }
+  };
 </script>
 
 <style lang="less" scoped>
@@ -261,17 +163,6 @@
       }
     }
 
-    .is-regexp {
-      border-bottom: 1px dashed #666;
-    }
-
-    .required::after {
-      position: relative;
-      left: 4px;
-      color: @danger-color;
-      content: '*';
-    }
-
     .batch-input-copy {
       position: relative;
       top: 26px;
@@ -283,28 +174,11 @@
 
     .batch-input-textarea {
       height: 310px;
-      margin: 16px 0 30px;
+      margin: 16px 0;
 
       :deep(textarea) {
         &::selection {
           background-color: #fdd;
-        }
-      }
-    }
-
-    .batch-input-errors {
-      position: absolute;
-      bottom: 8px;
-      font-size: @font-size-mini;
-      color: @danger-color;
-
-      .batch-input-errors-icon {
-        font-size: @font-size-large;
-        color: @gray-color;
-        cursor: pointer;
-
-        &:hover {
-          color: @default-color;
         }
       }
     }

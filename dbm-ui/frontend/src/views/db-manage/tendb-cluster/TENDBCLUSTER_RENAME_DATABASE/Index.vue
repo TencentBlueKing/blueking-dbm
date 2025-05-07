@@ -96,7 +96,6 @@
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
-  import { domainRegex } from '@common/regex';
 
   import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
 
@@ -124,20 +123,16 @@
       case: 'spider.ecotest.dba.db',
       key: 'master_domain',
       label: t('目标集群'),
-      regExp: domainRegex,
-      required: true,
     },
     {
       case: 'db1',
       key: 'fromDatabase',
       label: t('源 DB 名'),
-      required: true,
     },
     {
       case: 'db2',
       key: 'toDatabase',
       label: t('新 DB 名'),
-      required: false,
     },
   ];
 
@@ -291,7 +286,7 @@
     });
   };
 
-  const handleBatchInput = (data: Record<string, any>[]) => {
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
     const dataList = data.map((item) =>
       createTableRow({
         cluster: {
@@ -301,7 +296,9 @@
         toDatabase: item.toDatabase ? [item.toDatabase] : [],
       }),
     );
-    formData.tableData = [...dataList];
+    formData.tableData = isClear
+      ? [...dataList] // 覆盖
+      : [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList]; // 追加
     setTimeout(() => {
       formData.tableData.forEach((item, index) => {
         clusterRef.value?.[index]
