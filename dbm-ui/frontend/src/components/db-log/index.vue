@@ -78,8 +78,6 @@
   let fitAddon: FitAddon;
   let isAutoScrollEnabled = true; // 默认开启自动滚动
   let lastScrollPosition = 0; // 记录上次滚动位置
-  let currentScrollPosition = 0; // 用来判断滚动条的滚动方向
-  let isScrollDown = false;
   let localLogList: NodeLog[] = [];
   let logicalLineNumbers: number[] = []; // 逻辑行与实际行的映射
 
@@ -105,7 +103,7 @@
     const viewport = terminal.element!.querySelector('.xterm-viewport')!;
     lastScrollPosition = terminal.buffer.active.viewportY;
 
-    const originalWrite = terminal.write;
+    const originalWrite = terminal.writeln;
     terminal.write = function (data: string) {
       originalWrite.call(this, data);
       // 仅当用户未手动滚动时自动跳转到底部
@@ -133,14 +131,12 @@
 
     terminal.attachCustomWheelEventHandler(() => {
       setTimeout(() => {
-        lastScrollPosition = isScrollDown ? terminal.buffer.active.viewportY + 7 : terminal.buffer.active.viewportY - 7;
+        lastScrollPosition = terminal.buffer.active.viewportY;
       });
       return true;
     });
 
     terminal.element!.querySelector('.xterm-viewport')!.addEventListener('scroll', () => {
-      isScrollDown = terminal.buffer.active.viewportY > currentScrollPosition;
-      currentScrollPosition = terminal.buffer.active.viewportY;
       isAutoScrollEnabled = viewport.scrollTop >= viewport.scrollHeight - viewport.clientHeight;
       updateLineNumbers();
       checkTermScroll();
