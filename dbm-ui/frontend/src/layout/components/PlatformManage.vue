@@ -37,12 +37,12 @@
         </template>
         Tendb Cluster
       </BkMenuItem>
-      <!-- <BkMenuItem key="DbaManageSQLServerWebQuery">
+      <BkMenuItem key="DbaManageSQLServerWebQuery">
         <template #icon>
           <DbIcon type="sqlserver" />
         </template>
         SQLServer
-      </BkMenuItem> -->
+      </BkMenuItem>
     </BkMenuGroup>
     <BkMenuGroup
       v-db-console="'platformManage.healthReport'"
