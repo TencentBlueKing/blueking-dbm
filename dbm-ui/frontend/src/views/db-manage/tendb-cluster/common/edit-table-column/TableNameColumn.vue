@@ -1,13 +1,28 @@
 <template>
-  <Column
+  <EditableColumn
     :disabled-method="disabledMethod"
-    field="tables"
+    :field="field"
     :label="label"
     :min-width="180"
-    required
+    :required="required"
     :rules="rules">
-    <EditTagInput
+    <template #headAppend>
+      <BatchEditColumn
+        v-model="showBatchEdit"
+        :title="label"
+        type="taginput"
+        @change="handleBatchEditChange">
+        <span
+          v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
+          class="batch-edit-btn"
+          @click="handleBatchEditShow">
+          <DbIcon type="bulk-edit" />
+        </span>
+      </BatchEditColumn>
+    </template>
+    <EditableTagInput
       v-model="modelValue"
+      :max-data="single ? 1 : -1"
       :placeholder="t('请输入表名称，支持通配符“%”，含通配符的仅支持单个')" />
     <template #tips>
       <div class="tendbcluster-table-name-tips">
@@ -34,26 +49,39 @@
         </div>
       </div>
     </template>
-  </Column>
+  </EditableColumn>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import { Column, TagInput as EditTagInput } from '@components/editable-table/Index.vue';
+  import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
 
   interface Props {
+    allowAsterisk?: boolean; // 是否允许单个 *
     clusterId?: number;
+    field: string;
     label: string;
+    required?: boolean;
+    single?: boolean;
   }
 
-  const props = defineProps<Props>();
+  type Emits = (e: 'batch-edit', value: string[], field: string) => void;
+
+  const props = withDefaults(defineProps<Props>(), {
+    allowAsterisk: true,
+    clusterId: undefined,
+    required: true,
+    single: false,
+  });
+
+  const emits = defineEmits<Emits>();
+
+  const modelValue = defineModel<string[]>();
 
   const { t } = useI18n();
 
-  const disabledMethod = () => (props.clusterId ? false : t('请先选择集群'));
-
-  const modelValue = defineModel<string[]>();
+  const showBatchEdit = ref(false);
 
   const rules = [
     {
@@ -64,7 +92,13 @@
     {
       message: t('不允许为 *'),
       trigger: 'blur',
-      validator: (value: string[]) => _.every(value, (item) => item !== '*'),
+      validator: (value: string[]) => {
+        if (props.allowAsterisk) {
+          return true;
+        }
+
+        return _.every(value, (item) => item !== '*');
+      },
     },
     {
       message: t('* 只能独立使用'),
@@ -78,6 +112,16 @@
       validator: (value: string[]) => _.every(value, (item) => !/^[%?]$/.test(item)),
     },
   ];
+
+  const disabledMethod = () => (props.clusterId ? false : t('请先选择集群'));
+
+  const handleBatchEditShow = () => {
+    showBatchEdit.value = true;
+  };
+
+  const handleBatchEditChange = (value: string[] | string) => {
+    emits('batch-edit', value as string[], props.field);
+  };
 </script>
 <style lang="less">
   .tendbcluster-table-name-tips {
