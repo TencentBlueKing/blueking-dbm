@@ -39,7 +39,7 @@
             type="up-big" />
         </BkButton>
         <template #content>
-          <BkDropdownMenu>
+          <BkDropdownMenu class="dropdown-menu-with-button">
             <BkDropdownItem @click="handleCopyAll">
               {{ t('复制所有IP') }}
             </BkDropdownItem>

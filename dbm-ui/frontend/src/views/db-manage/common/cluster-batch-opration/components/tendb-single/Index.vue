@@ -1,7 +1,5 @@
 <template>
-  <BkDropdownItem
-    v-db-console="'mysql.singleClusterList.batchAuthorize'"
-    @click="clusterAuthorizeShow = true">
+  <BkDropdownItem v-db-console="'mysql.singleClusterList.batchAuthorize'">
     <BkButton
       v-bk-tooltips="{
         disabled: !batchAuthorizeDisabled,
@@ -10,7 +8,8 @@
       }"
       class="opration-button"
       :disabled="batchAuthorizeDisabled"
-      text>
+      text
+      @click="clusterAuthorizeShow = true">
       {{ t('批量授权') }}
     </BkButton>
   </BkDropdownItem>
@@ -32,9 +31,7 @@
       {{ t('移除标签') }}
     </BkButton>
   </BkDropdownItem>
-  <BkDropdownItem
-    v-db-console="'mysql.singleClusterList.disable'"
-    @click="handleDisableCluster(selected)">
+  <BkDropdownItem v-db-console="'mysql.singleClusterList.disable'">
     <BkButton
       v-bk-tooltips="{
         disabled: !batchDisabledDisabled,
@@ -43,13 +40,12 @@
       }"
       class="opration-button"
       :disabled="batchDisabledDisabled"
-      text>
+      text
+      @click="handleDisableCluster(selected)">
       {{ t('禁用') }}
     </BkButton>
   </BkDropdownItem>
-  <BkDropdownItem
-    v-db-console="'mysql.singleClusterList.enable'"
-    @click="handleEnableCluster(selected)">
+  <BkDropdownItem v-db-console="'mysql.singleClusterList.enable'">
     <BkButton
       v-bk-tooltips="{
         disabled: !batchEnableDisabled,
@@ -58,13 +54,12 @@
       }"
       class="opration-button"
       :disabled="batchEnableDisabled"
-      text>
+      text
+      @click="handleEnableCluster(selected)">
       {{ t('启用') }}
     </BkButton>
   </BkDropdownItem>
-  <BkDropdownItem
-    v-db-console="'mysql.singleClusterList.delete'"
-    @click="handleDeleteCluster(selected)">
+  <BkDropdownItem v-db-console="'mysql.singleClusterList.delete'">
     <BkButton
       v-bk-tooltips="{
         disabled: !batchDeleteDisabled,
@@ -73,7 +68,8 @@
       }"
       class="opration-button"
       :disabled="batchDeleteDisabled"
-      text>
+      text
+      @click="handleDeleteCluster(selected)">
       {{ t('删除') }}
     </BkButton>
   </BkDropdownItem>
