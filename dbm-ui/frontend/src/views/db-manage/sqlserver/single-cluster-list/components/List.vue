@@ -126,17 +126,17 @@
               </BkButton>
             </OperationBtnStatusTips>
             <MoreActionExtend>
-              <OperationBtnStatusTips
-                v-db-console="'sqlserver.singleClusterList.disable'"
-                :data="data">
-                <BkButton
-                  :disabled="data.isOffline || Boolean(data.operationTicketId)"
-                  text
-                  theme="primary"
-                  @click="handleDisableCluster([data])">
-                  {{ t('禁用') }}
-                </BkButton>
-              </OperationBtnStatusTips>
+              <BkDropdownItem v-db-console="'sqlserver.singleClusterList.disable'">
+                <OperationBtnStatusTips :data="data">
+                  <BkButton
+                    :disabled="data.isOffline || Boolean(data.operationTicketId)"
+                    text
+                    theme="primary"
+                    @click="handleDisableCluster([data])">
+                    {{ t('禁用') }}
+                  </BkButton>
+                </OperationBtnStatusTips>
+              </BkDropdownItem>
               <BkDropdownItem v-db-console="'sqlserver.singleClusterList.delete'">
                 <OperationBtnStatusTips :data="data">
                   <BkButton
