@@ -21,6 +21,7 @@ from backend.db_meta.enums.cluster_phase import ClusterPhase
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.instance import StorageInstance
 from backend.db_services.dbbase.constants import IpSource
+from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.ticket.builders import BuilderFactory, TicketFlowBuilder
 from backend.ticket.builders.common.base import (
     BaseOperateResourceParamBuilder,
@@ -126,6 +127,18 @@ class BigDataApplyDetailsSerializer(BigDataDetailsSerializer):
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
     resource_spec = serializers.JSONField(help_text=_("资源申请规格"), required=False)
 
+    # display fields
+    bk_cloud_name = serializers.SerializerMethodField(help_text=_("云区域"), read_only=True)
+    city_name = serializers.SerializerMethodField(help_text=_("城市名"), read_only=True)
+
+    def get_bk_cloud_name(self, obj):
+        clouds = ResourceQueryHelper.search_cc_cloud(get_cache=True)
+        return clouds[str(obj["bk_cloud_id"])]["bk_cloud_name"]
+
+    def get_city_name(self, obj):
+        city_code = obj["city_code"]
+        return self.context["ticket_ctx"].city_map.get(city_code, city_code)
+
     def get_node_count(self, attrs, role):
         if attrs["ip_source"] == IpSource.MANUAL_INPUT:
             return len(attrs["nodes"].get(role) or [])
@@ -178,6 +191,12 @@ class BigDataApplyDetailsSerializer(BigDataDetailsSerializer):
         super().validate_hosts_not_in_db_meta(nodes=attrs["nodes"])
 
         return attrs
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation["bk_cloud_name"] = self.get_bk_cloud_name(instance)
+        representation["city_name"] = self.get_city_name(instance)
+        return representation
 
 
 class BigDataReplaceDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):

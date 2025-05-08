@@ -18,10 +18,11 @@ from rest_framework import serializers
 from backend.bk_web.constants import LEN_MIDDLE, SMALLEST_POSITIVE_INTEGER
 from backend.components import DBConfigApi
 from backend.components.dbconfig import constants as dbconf_const
-from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE
+from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE, AffinityEnum
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache, DBModule
 from backend.db_services.dbbase.constants import IpSource
+from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.mysql.constants import DEFAULT_ORIGIN_MYSQL_PORT, SERVER_PORT_LIMIT_MAX, SERVER_PORT_LIMIT_MIN
 from backend.exceptions import ValidationError
 from backend.flow.engine.controller.mysql import MySQLController
@@ -66,6 +67,7 @@ class MysqlSingleApplyDetailSerializer(serializers.Serializer):
     db_module_name = serializers.SerializerMethodField(help_text=_("DB模块名"))
     city_name = serializers.SerializerMethodField(help_text=_("城市名"))
     spec_display = serializers.SerializerMethodField(help_text=_("机器规格展示名"))
+    bk_cloud_name = serializers.SerializerMethodField(help_text=_("云区域"), read_only=True)
 
     start_mysql_port = serializers.IntegerField(
         help_text=_("MySQL起始端口"),
@@ -74,11 +76,19 @@ class MysqlSingleApplyDetailSerializer(serializers.Serializer):
         max_value=SERVER_PORT_LIMIT_MAX,
         default=DEFAULT_ORIGIN_MYSQL_PORT,
     )
+    disaster_tolerance_level = serializers.ChoiceField(
+        help_text=_("容灾级别"), choices=AffinityEnum.get_choices(), required=False, default=AffinityEnum.NONE.value
+    )
+
+    def get_bk_cloud_name(self, obj):
+        clouds = ResourceQueryHelper.search_cc_cloud(get_cache=True)
+        return clouds[str(obj["bk_cloud_id"])]["bk_cloud_name"]
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         self._format_domains(representation["domains"], instance)
         # TODO 缺少数据库版本和字符集，考虑封装 DBConfigHandler 来处理此类需求
+        representation["bk_cloud_name"] = self.get_bk_cloud_name(instance)
         return representation
 
     def validate(self, attrs):

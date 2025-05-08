@@ -17,6 +17,7 @@ from backend.configuration.constants import AffinityEnum, DBPrivSecurityType
 from backend.configuration.handlers.password import DBPasswordHandler
 from backend.db_meta.models import Cluster, Machine, StorageInstance
 from backend.db_services.dbbase.constants import IpSource
+from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.engine.controller.redis import RedisController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
@@ -50,6 +51,13 @@ class RedisInstanceApplyDetailSerializer(SkipToRepresentationMixin, serializers.
 
     city_name = serializers.SerializerMethodField(help_text=_("城市名"))
 
+    # display fields
+    bk_cloud_name = serializers.SerializerMethodField(help_text=_("云区域"), read_only=True)
+
+    def get_bk_cloud_name(self, obj):
+        clouds = ResourceQueryHelper.search_cc_cloud(get_cache=True)
+        return clouds[str(obj["bk_cloud_id"])]["bk_cloud_name"]
+
     def get_city_name(self, obj):
         city_code = obj["city_code"]
         return self.context["ticket_ctx"].city_map.get(city_code, city_code)
@@ -68,6 +76,11 @@ class RedisInstanceApplyDetailSerializer(SkipToRepresentationMixin, serializers.
                 raise serializers.ValidationError(_("请保证机器组数{}能整除集群数{}").format(machine_group, cluster_num))
 
         return attrs
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation["bk_cloud_name"] = self.get_bk_cloud_name(instance)
+        return representation
 
 
 class RedisInstanceApplyFlowParamBuilder(builders.FlowParamBuilder):

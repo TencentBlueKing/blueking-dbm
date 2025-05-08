@@ -16,11 +16,12 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.bk_web.constants import LEN_MIDDLE, SMALLEST_POSITIVE_INTEGER
-from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE
+from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE, AffinityEnum
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache, DBModule
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.ipchooser.constants import BkOsType
+from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.exceptions import ValidationError
 from backend.flow.consts import DEFAULT_SQLSERVER_PORT
 from backend.flow.engine.controller.sqlserver import SqlserverController
@@ -70,8 +71,20 @@ class SQLServerSingleApplyDetailSerializer(serializers.Serializer):
         help_text=_("SQLServer起始端口"), required=False, default=DEFAULT_SQLSERVER_PORT
     )
 
+    disaster_tolerance_level = serializers.ChoiceField(
+        help_text=_("容灾级别"), choices=AffinityEnum.get_choices(), required=False, default=AffinityEnum.NONE.value
+    )
+
+    # display fields
+    bk_cloud_name = serializers.SerializerMethodField(help_text=_("云区域"), read_only=True)
+
+    def get_bk_cloud_name(self, obj):
+        clouds = ResourceQueryHelper.search_cc_cloud(get_cache=True)
+        return clouds[str(obj["bk_cloud_id"])]["bk_cloud_name"]
+
     def to_representation(self, instance):
         representation = super().to_representation(instance)
+        representation["bk_cloud_name"] = self.get_bk_cloud_name(instance)
         self._format_domains(representation["domains"], instance)
         return representation
 

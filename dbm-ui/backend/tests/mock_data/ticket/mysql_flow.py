@@ -97,7 +97,7 @@ MYSQL_SINGLE_APPLY_TICKET_DATA = {
         "mysql_port": 20000,
         "proxy_port": 10000,
         "domains": [{"key": "kio"}],
-        "disaster_tolerance_level": "same_city_cross_zone",
+        "disaster_tolerance_level": "SAME_SUBZONE_CROSS_SWTICH",
         "resource_spec": {
             "backend": {
                 "affinity": "NONE",
