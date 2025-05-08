@@ -330,6 +330,12 @@ var (
 		END
 	CREATE USER ['+@username+'] FOR LOGIN ['+@username+']
 	EXEC sp_addrolemember N''db_datareader'', N'''+@username+'''
+	use [master]
+	GRANT VIEW ANY DATABASE TO ['+@username+']
+	use [master]
+	GRANT VIEW ANY DEFINITION TO ['+@username+']
+	use [master]
+	GRANT VIEW SERVER STATE TO ['+@username+']
 	'
 	exec(@sql)
 `

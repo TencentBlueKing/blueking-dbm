@@ -14,9 +14,22 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 
 	"dbm-services/common/go-pubpkg/logger"
 )
+
+// 检测驱动器是否存在且可用
+func DriveExists(drive string) (bool, error) {
+	rootPath := filepath.VolumeName(drive) + `\` // 获取驱动器根目录（如E:\）
+	_, err := os.Stat(rootPath)
+
+	if err == nil {
+		return true, nil // 驱动器存在且可访问
+	}
+
+	return false, fmt.Errorf("check drive failed: %v", err)
+}
 
 // WINSFile 定义window文件/目录的结构体
 type WINSFile struct {
@@ -25,6 +38,11 @@ type WINSFile struct {
 
 // FileExists 判断文件是否存在
 func (f *WINSFile) FileExists() (error, bool) {
+	// 先访问硬盘驱动
+	if check, err := DriveExists(filepath.VolumeName(f.FileName) + ":"); !check {
+		logger.Warn(err.Error())
+		return nil, false
+	}
 	_, err := os.Stat(f.FileName)
 	if os.IsNotExist(err) {
 		return nil, false

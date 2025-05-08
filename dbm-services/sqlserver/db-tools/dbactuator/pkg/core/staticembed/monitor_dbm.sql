@@ -290,7 +290,9 @@ SET QUOTED_IDENTIFIER ON
 GO
 
 CREATE TABLE [dbo].[BACKUP_FILTER](
-	[NAME] [varchar](100) NOT NULL
+	[NAME] [varchar](100) NOT NULL,
+	[FILTER_TYPE] [tinyint] NOT NULL,
+	[BACKUP_FREQ] [varchar](100) NOT NULL
 ) ON [PRIMARY]
 
 GO
@@ -499,7 +501,7 @@ AS
 		AND A.NAME NOT LIKE '%AUTOREST'
 		AND A.NAME NOT IN('Monitor')
 		AND NOT EXISTS(SELECT 1 FROM DBO.BACKUP_FILTER B
-			WHERE A.NAME = B.NAME)
+			WHERE A.NAME = B.NAME AND B.FILTER_TYPE=1)
 
 GO
 
@@ -879,7 +881,7 @@ BEGIN
 		WHERE A.OBJECT_NAME LIKE '%DATABASE MIRRORING%'
 				AND A.COUNTER_NAME='LOG SEND QUEUE KB'
 			AND A.INSTANCE_NAME != '_TOTAL'
-				AND A.CNTR_VALUE > B.LOG_SEND_QUEUE*10
+				AND A.CNTR_VALUE > B.LOG_SEND_QUEUE*100
 				AND EXISTS(SELECT 1 FROM MASTER.SYS.DATABASE_MIRRORING C WHERE C.MIRRORING_ROLE = 1)
 		)
 
@@ -1871,20 +1873,10 @@ create table #tmp_alwayson_info(info1 varchar(1000),info2 varchar(1000))
 
 IF EXISTS(SELECT 1  FROM [Monitor].[dbo].[APP_SETTING] WHERE SYNCHRONOUS_MODE='always_on')
 BEGIN
-	--IF NOT EXISTS(SELECT 1  FROM [Monitor].[dbo].[APP_SETTING] WHERE ROLE='slave')
-	--BEGIN
-	--	SET @msg='Must be executed on the slave'
-	--	RETURN -1
-	--END
 	SET @flag='alwayson'
 END
 ELSE IF EXISTS(SELECT 1  FROM [Monitor].[dbo].[APP_SETTING] WHERE SYNCHRONOUS_MODE='mirroring')
 BEGIN
-	--IF NOT EXISTS(SELECT 1  FROM [Monitor].[dbo].[APP_SETTING] WHERE ROLE='master')
-	--BEGIN
-	--	SET @msg='Must be executed on the master'
-	--	RETURN -1
-	--END
 	SET @flag='mirroring'
 END
 ELSE
@@ -2809,29 +2801,25 @@ DECLARE @ERR_FAILURE INT = 1
 set @dbname=''    
 
 BEGIN TRY
-	declare @version bigint,@is_alwayson_flag tinyint
-	set @version=convert(bigint,DATABASEPROPERTYEX('master','version'))
-	set @is_alwayson_flag=0
-	
-	IF OBJECT_ID('TEMPDB.DBO.#tmp_dblist','U') IS NOT NULL
-		DROP TABLE #tmp_dblist
-	create table #tmp_dblist(name varchar(200))
-	
-	IF @version>=869
-		exec('insert into #tmp_dblist select name from sys.availability_groups')
-	
-	IF exists(select 1 from #tmp_dblist)
-		set @is_alwayson_flag=1
+	declare @flag varchar(100)
 
-	IF not exists(select database_id from master.sys.database_mirroring where mirroring_guid is not null) and not exists(select 1 from #tmp_dblist)
+	IF EXISTS(SELECT 1  FROM [Monitor].[dbo].[APP_SETTING] WHERE SYNCHRONOUS_MODE='always_on')
 	BEGIN
-		set @msg='alwayson/mirroring is not exists'
-		return -1
-	END		
+		SET @flag='alwayson'
+	END
+	ELSE IF EXISTS(SELECT 1  FROM [Monitor].[dbo].[APP_SETTING] WHERE SYNCHRONOUS_MODE='mirroring')
+	BEGIN
+		SET @flag='mirroring'
+	END
+	ELSE
+	BEGIN
+		SET @msg='It must be synchronized by Alwayson/mirroring to be able to'
+		RETURN -1
+	END	
 	
 	DECLARE @SQL VARCHAR(MAX)
 	DECLARE @i INT
-	IF @is_alwayson_flag=1
+	IF @flag='alwayson'
 	BEGIN
 		IF OBJECT_ID('TEMPDB.DBO.#repl_state','U') IS NOT NULL
 			DROP TABLE #repl_state
@@ -2910,10 +2898,10 @@ BEGIN TRY
 			END
 		END
 	END
-	ELSE
+	ELSE IF @flag='mirroring'
 	BEGIN
 		--判断DR镜像状态，状态为断开可进行切换
-		if not exists(select 1 from master.sys.database_mirroring
+		IF exists(select 1 from master.sys.databases where database_id>4 and name not in('Monitor') and state=0 and is_read_only=0 and recovery_model=1) and not exists(select 1 from master.sys.database_mirroring
 		where mirroring_state=1)
 		begin
 			set @msg='GameDB state has been disconnected'
@@ -3125,6 +3113,21 @@ BEGIN
 		WAITFOR DELAY '00:03:00'
 	END
 	
+	IF DATEPART(d,getdate())=1 AND @TYPE = 1
+	BEGIN
+		BEGIN TRY
+			DECLARE @DATE int
+			SET @DATE=CONVERT(varchar(8),GETDATE(),112)
+			SET @CMD = 'd: & cd dbbak & rename backup_result.log backup_result_'+convert(varchar,@DATE)+'.log' 
+			EXEC XP_CMDSHELL @CMD
+			SET @CMD = 'd: & cd dbbak & rename binlog_result.log binlog_result_'+convert(varchar,@DATE)+'.log' 
+			EXEC XP_CMDSHELL @CMD
+		END TRY
+		BEGIN CATCH
+		PRINT '~~ skip ~~'
+		END CATCH
+	END
+	
 	SET @SQL=''
 	SELECT @SQL = ISNULL(@SQL+'','')+'ALTER DATABASE ['+NAME+'] SET RECOVERY FULL;'
 	FROM SYS.DATABASES
@@ -3177,10 +3180,26 @@ BEGIN
 	DECLARE @DBLIST VARCHAR(8000)
 
 	IF @TARGETDBNAME='%'
-		SELECT @DBLIST=STUFF((SELECT ',' + name FROM master.sys.databases where database_id>4 and name not in('Monitor') and name not in(select name from Monitor.dbo.BACKUP_FILTER) FOR XML PATH('')), 1, 1, '');
+		SELECT @DBLIST=STUFF((SELECT ',' + name FROM master.sys.databases where database_id>4 and name not in('Monitor') and name not in(select name from Monitor.dbo.BACKUP_FILTER where FILTER_TYPE=1) FOR XML PATH('')), 1, 1, '');
 	ELSE
 		SET @DBLIST=@TARGETDBNAME
 
+	IF OBJECT_ID('TEMPDB.DBO.#tmp_dblist','U') IS NOT NULL
+		DROP TABLE #tmp_dblist
+
+	CREATE TABLE #tmp_dblist(
+		name nvarchar(128)
+	)
+	
+	INSERT INTO #tmp_dblist
+	SELECT NAME FROM DBO.BACKUP_DBLIST WHERE NAME in(select RowValue from dbo.SplitStringByRow(@DBLIST,','))
+	
+	DECLARE @FILTER_NAME VARCHAR(MAX),@BACKUP_FREQ VARCHAR(100)
+	IF @TYPE = 1 AND @TARGETDBNAME='%' AND EXISTS(SELECT 1 FROM Monitor.dbo.BACKUP_FILTER WHERE FILTER_TYPE=2)
+	BEGIN
+		DELETE FROM #tmp_dblist WHERE NAME IN(select name from Monitor.dbo.BACKUP_FILTER WHERE FILTER_TYPE=2 AND (DATEPART(w,getdate())-1) NOT IN(select RowValue from dbo.SplitStringByRow(BACKUP_FREQ,',')))
+	END
+	
 	DECLARE @BACKUP_TASK_START_TIME VARCHAR(100)
 	DECLARE @BACKUP_TASK_END_TIME VARCHAR(100)
 
@@ -3208,7 +3227,7 @@ BEGIN
 		DECLARE @ENDTIME_'+replace(NAME,'-','#')+' VARCHAR(25) = CONVERT(CHAR(19),GETDATE(),120)
 		INSERT INTO DBO.BACKUP_TRACE(BACKUP_ID,DBNAME,[PATH],FILENAME,TYPE,STARTTIME,ENDTIME,FILESIZE,MD5CODE,SUCCESS,UPLOADED,WRITETIME)
 		VALUES('''+@BACKUP_ID+''','''+NAME+''','''+@BACKUP_PATH+''',@FILENAME_'+replace(NAME,'-','#')+','+LTRIM(@TYPE)+',@STARTTIME_'+replace(NAME,'-','#')+',@ENDTIME_'+replace(NAME,'-','#')+',0,0,@SUCCESS_'+replace(NAME,'-','#')+',0,GETDATE())'
-		FROM DBO.BACKUP_DBLIST WHERE NAME in(select RowValue from dbo.SplitStringByRow(@DBLIST,','))
+		FROM #tmp_dblist
 		--PRINT(@SQL)
 		EXEC (@SQL)
 	END TRY
@@ -4182,3 +4201,17 @@ EndSave:
 
 GO
 
+DECLARE @PORT INT
+DECLARE @MI INT = 1,
+                @SS INT = 10,
+                @SEED INT = 1,
+                @START_TIME INT
+EXEC Monitor.DBO.TOOL_GET_IPPORT NULL,@PORT OUT
+
+SELECT @START_TIME =LTRIM(LEFT(LTRIM(RIGHT(@PORT,2)),1))+CONVERT(CHAR,FLOOR(RAND() * (60 - 10) + 10))
+
+DECLARE @scheduleid bigint
+SELECT @scheduleid=schedule_id FROM msdb.dbo.sysjobschedules WHERE job_id in(SELECT job_id FROM msdb.dbo.sysjobs WHERE name='TC_BACKUP_LOG')
+
+EXEC msdb.dbo.sp_update_schedule @schedule_id=@scheduleid, @active_start_time=@START_TIME
+GO
