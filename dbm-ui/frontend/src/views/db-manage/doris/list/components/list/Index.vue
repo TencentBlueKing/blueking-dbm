@@ -34,6 +34,7 @@
       <ClusterIpCopy
         v-db-console="'doris.clusterManage.batchCopy'"
         :selected="selected" />
+      <TagSearch @search="fetchTableData" />
       <DbSearchSelect
         :data="serachData"
         :get-menu-list="getMenuList"
@@ -42,7 +43,6 @@
         unique-select
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
-      <TagSearch @search="fetchTableData" />
     </div>
     <DbTable
       ref="tableRef"
@@ -296,6 +296,10 @@
 
   import { getMenuListSearch, getSearchSelectorParams } from '@utils';
 
+  interface Exposes {
+    refresh: () => void;
+  }
+
   const clusterId = defineModel<number>('clusterId');
 
   const route = useRoute();
@@ -540,6 +544,10 @@
       handleToDetails(Number(route.query.id));
     }
   });
+
+  defineExpose<Exposes>({
+    refresh: fetchTableData,
+  });
 </script>
 
 <style lang="less">
@@ -555,10 +563,13 @@
       margin-bottom: 16px;
       gap: 8px;
 
+      .tag-search-main {
+        margin-left: auto;
+      }
+
       .bk-search-select {
         flex: 1;
         max-width: 500px;
-        margin-left: auto;
       }
     }
 

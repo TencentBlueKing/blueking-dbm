@@ -14,8 +14,10 @@
 <template>
   <div class="create-tag-content-main">
     <div class="title-opeartion-main">
-      <div class="title title-key">{{ t('标签键') }}</div>
-      <div class="title title-value">{{ t('标签值') }}</div>
+      <template v-if="isKeyValueMode">
+        <div class="title title-key">{{ t('标签键') }}</div>
+        <div class="title title-value">{{ t('标签值') }}</div>
+      </template>
       <div class="switch-operation">
         <DbIcon type="copy" />
         <BkButton
@@ -97,7 +99,7 @@
         font-weight: 700;
 
         &.title-key {
-          width: 210px;
+          width: 225px;
         }
 
         &.title-value {

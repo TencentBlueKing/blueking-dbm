@@ -31,6 +31,7 @@
       <ClusterIpCopy
         v-db-console="'redis.haClusterManage.batchCopy'"
         :selected="selected" />
+      <TagSearch @search="fetchData" />
       <DbSearchSelect
         class="operations-right"
         :data="searchSelectData"
@@ -39,7 +40,6 @@
         :placeholder="t('请输入或选择条件搜索')"
         unique-select
         @change="handleSearchValueChange" />
-      <TagSearch @search="fetchData" />
     </div>
     <DbTable
       ref="tableRef"
@@ -297,7 +297,6 @@
       :data="purgeState.data" />
   </div>
 </template>
-
 <script setup lang="tsx">
   import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
@@ -341,11 +340,11 @@
   import RedisPurge from '@views/db-manage/common/redis-purge/Index.vue';
   import ClusterPassword from '@views/db-manage/redis/common/cluster-oprations/ClusterPassword.vue';
 
-  import {
-    getMenuListSearch,
-    getSearchSelectorParams,
-    // messageWarn,
-  } from '@utils';
+  import { getMenuListSearch, getSearchSelectorParams } from '@utils';
+
+  interface Exposes {
+    refresh: () => void;
+  }
 
   const clusterId = defineModel<number>('clusterId');
 
@@ -643,8 +642,11 @@
       handleToDetails(Number(route.query.id));
     }
   });
-</script>
 
+  defineExpose<Exposes>({
+    refresh: fetchData,
+  });
+</script>
 <style lang="less">
   @import '@styles/mixins.less';
 
@@ -659,10 +661,13 @@
       margin-bottom: 16px;
       gap: 8px;
 
+      .tag-search-main {
+        margin-left: auto;
+      }
+
       .bk-search-select {
         flex: 1;
         max-width: 500px;
-        margin-left: auto;
       }
     }
 

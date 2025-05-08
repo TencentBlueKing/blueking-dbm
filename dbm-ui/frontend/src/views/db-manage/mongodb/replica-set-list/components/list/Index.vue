@@ -42,6 +42,7 @@
         :ids="selectedIds"
         type="mongodb" />
       <ClusterIpCopy :selected="selected" />
+      <TagSearch @search="fetchData" />
       <DbSearchSelect
         class="header-action-search-select"
         :data="searchSelectData"
@@ -51,7 +52,6 @@
         unique-select
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
-      <TagSearch @search="fetchData" />
     </div>
     <DbTable
       ref="tableRef"
@@ -243,6 +243,10 @@
   import AccessEntry from '@views/db-manage/mongodb/components/AccessEntry.vue';
 
   import { getMenuListSearch, getSearchSelectorParams } from '@utils';
+
+  interface Exposes {
+    refresh: () => void;
+  }
 
   const clusterId = defineModel<number>('clusterId');
 
@@ -480,6 +484,10 @@
       { ...extraParams, ...sortValue },
     );
   };
+
+  defineExpose<Exposes>({
+    refresh: fetchData,
+  });
 </script>
 
 <style lang="less">
@@ -495,10 +503,13 @@
       margin-bottom: 16px;
       gap: 8px;
 
+      .tag-search-main {
+        margin-left: auto;
+      }
+
       .header-action-search-select {
         flex: 1;
         max-width: 500px;
-        margin-left: auto;
       }
 
       .header-action-deploy-time {

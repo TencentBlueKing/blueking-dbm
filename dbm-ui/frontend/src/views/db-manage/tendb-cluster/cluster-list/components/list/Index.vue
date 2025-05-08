@@ -45,6 +45,7 @@
       <ClusterIpCopy
         v-db-console="'tendbCluster.clusterManage.batchCopy'"
         :selected="selected" />
+      <TagSearch @search="fetchTableData" />
       <DbSearchSelect
         :data="searchSelectData"
         :get-menu-list="getMenuList"
@@ -53,7 +54,6 @@
         unique-select
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
-      <TagSearch @search="fetchTableData" />
     </div>
     <div
       class="table-wrapper"
@@ -301,7 +301,6 @@
     :data="currentData"
     :ticket-type="TicketTypes.TENDBCLUSTER_DUMP_DATA" />
 </template>
-
 <script setup lang="tsx">
   import { Checkbox } from 'bkui-vue';
   import InfoBox from 'bkui-vue/lib/info-box';
@@ -348,6 +347,10 @@
 
   import MasterSlaveRoleColumn from './components/MasterSlaveRoleColume.vue';
   import RemoteRoleColumn from './components/RemoteRoleColumn.vue';
+
+  interface Exposes {
+    refresh: () => void;
+  }
 
   interface IColumn {
     data: TendbClusterModel;
@@ -722,8 +725,11 @@
       handleToDetails(Number(route.query.id));
     }
   });
-</script>
 
+  defineExpose<Exposes>({
+    refresh: fetchTableData,
+  });
+</script>
 <style lang="less">
   .spider-manage-list-page {
     height: 100%;
@@ -737,10 +743,13 @@
       flex-wrap: wrap;
       gap: 8px;
 
+      .tag-search-main {
+        margin-left: auto;
+      }
+
       .bk-search-select {
         flex: 1;
         max-width: 500px;
-        margin-left: auto;
       }
     }
 

@@ -140,6 +140,7 @@
       display: flex;
       width: 40px;
       height: 32px;
+      font-size: 12px;
       color: #4d4f56;
       background: #fafbfd;
       border: 1px solid #c4c6cc;

@@ -14,14 +14,14 @@
     </div>
     <div class="value-input-wraper">
       <BkTagInput
-        v-model="pairInfo.value"
         allow-auto-match
         allow-create
         class="value-input"
         :class="{ 'is-not-valid': !isValueVerifyPass }"
         collapse-tags
         has-delete-icon
-        :placeholder="t('请输入标签值，回车结束')"
+        :model-value="pairInfo.value"
+        :placeholder="t('请输入标签值（多个标签值以逗号、分号、竖线分割，回车完成输入）')"
         @change="checkInputValue" />
       <DbIcon
         v-if="!isValueVerifyPass"
@@ -42,7 +42,10 @@
   </div>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
+
+  import { tagKeyRegex, tagValueRegex } from '@common/regex';
 
   interface Props {
     data: typeof pairInfo.value;
@@ -104,9 +107,8 @@
       return;
     }
 
-    const keyRegex = /^[\u4e00-\u9fa5a-zA-Z0-9\s_\-\.]{1,50}$/;
-    if (!keyRegex.test(key)) {
-      keyVerifyTip.value = t('标签键为1-50个字符，支持英文字母、数字、空格或汉字，中划线(-)，下划线()，点(.)');
+    if (!tagKeyRegex.test(key)) {
+      keyVerifyTip.value = t('标签键为1-50个字符，支持英文字母、数字或汉字，中划线(-)，下划线(_)，点(.)');
       return;
     }
 
@@ -114,14 +116,15 @@
   };
 
   const checkInputValue = (value: string[]) => {
+    const inputList = _.flatMap(value.map((item) => item.split(/[\s,，;；|｜]/)));
+    pairInfo.value.value = inputList;
     if (!value.length) {
       valueVerifyTip.value = t('必填');
       return;
     }
 
-    const keyRegex = /^[\u4e00-\u9fa5a-zA-Z0-9\s_\-\.]{1,100}$/;
-    if (value.every((item) => !keyRegex.test(item))) {
-      valueVerifyTip.value = t('标签值为1-100个字符，支持英文字母、数字、空格或汉字，中划线(-)，下划线()，点(.)');
+    if (inputList.some((item) => !tagValueRegex.test(item))) {
+      valueVerifyTip.value = t('标签值为1-100个字符，支持英文字母、数字或汉字，中划线(-)，下划线(_)，点(.)');
       return;
     }
 
@@ -138,7 +141,6 @@
 
   defineExpose<Exposes>({
     getValue() {
-      console.log('get value = ', pairInfo.value);
       isKeyVerifyPass.value = !!pairInfo.value.key && !keyVerifyTip.value;
       isValueVerifyPass.value = !!pairInfo.value.value.length && !valueVerifyTip.value;
       if (!isKeyVerifyPass.value || !isValueVerifyPass.value) {

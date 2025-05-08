@@ -177,6 +177,8 @@
 
   import { createTag } from '@services/source/tag';
 
+  import { tagKeyRegex, tagValueRegex } from '@common/regex';
+
   import { messageError } from '@utils';
 
   interface Props {
@@ -327,14 +329,14 @@
   };
 
   const handleConfirmCreateTag = () => {
-    if (props.excludeKeys.includes(inputTagKey.value)) {
+    const selectKeyList = keyList.value.map((item) => item.value);
+    if (selectKeyList.includes(inputTagKey.value)) {
       messageError(t('标签键重复'));
       return;
     }
 
-    const keyRegex = /^[\u4e00-\u9fa5a-zA-Z0-9\s_\-\.]{1,50}$/;
-    if (!keyRegex.test(inputTagKey.value)) {
-      messageError(t('标签键为1-50个字符，支持英文字母、数字、空格或汉字，中划线(-)，下划线()，点(.)'));
+    if (!tagKeyRegex.test(inputTagKey.value)) {
+      messageError(t('标签键为1-50个字符，支持英文字母、数字或汉字，中划线(-)，下划线(_)，点(.)'));
       return;
     }
 
@@ -359,9 +361,8 @@
       return;
     }
 
-    const keyRegex = /^[\u4e00-\u9fa5a-zA-Z0-9\s_\-\.]{1,100}$/;
-    if (!keyRegex.test(inputTagValue.value)) {
-      messageError(t('标签值为1-100个字符，支持英文字母、数字、空格或汉字，中划线(-)，下划线()，点(.)'));
+    if (!tagValueRegex.test(inputTagValue.value)) {
+      messageError(t('标签值为1-100个字符，支持英文字母、数字或汉字，中划线(-)，下划线(_)，点(.)'));
       return;
     }
 

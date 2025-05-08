@@ -33,6 +33,8 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import { tagKeyRegex, tagValueRegex } from '@common/regex';
+
   import type { KeyValueMapType, TagsPairType } from '../Index.vue';
 
   interface Props {
@@ -98,9 +100,8 @@
         return null;
       }
 
-      const keyRegex = /^[\u4e00-\u9fa5a-zA-Z0-9\s_\-\.]{1,50}$/;
-      if (!keyRegex.test(key)) {
-        verifyTip.value = t('标签键为1-50个字符，支持英文字母、数字、空格或汉字，中划线(-)，下划线()，点(.)');
+      if (!tagKeyRegex.test(key)) {
+        verifyTip.value = t('标签键为1-50个字符，支持英文字母、数字或汉字，中划线(-)，下划线(_)，点(.)');
         return null;
       }
 
@@ -114,9 +115,8 @@
         return null;
       }
 
-      const valueRegex = /^[\u4e00-\u9fa5a-zA-Z0-9\s_\-\.]{1,100}$/;
-      if (!valueRegex.test(value)) {
-        verifyTip.value = t('标签值为1-100个字符，支持英文字母、数字、空格或汉字，中划线(-)，下划线()，点(.)');
+      if (!tagValueRegex.test(value)) {
+        verifyTip.value = t('标签值为1-100个字符，支持英文字母、数字或汉字，中划线(-)，下划线(_)，点(.)');
         return null;
       }
 
