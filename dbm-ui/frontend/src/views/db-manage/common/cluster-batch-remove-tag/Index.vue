@@ -97,7 +97,7 @@
     </BkResizeLayout>
     <template #footer>
       <div class="batch-remove-tag-footer-wrapper">
-        <BkCheckbox v-model="isCheckAll">{{ t('全部，将移除所有标签') }}</BkCheckbox>
+        <BkCheckbox v-model="isCheckAll">{{ t('移除全部标签') }}</BkCheckbox>
         <div>
           <BkButton
             class="mr-8 w-64"

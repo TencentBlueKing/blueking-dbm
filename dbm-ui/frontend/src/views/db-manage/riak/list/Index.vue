@@ -73,7 +73,8 @@
       <Detail
         ref="detailRef"
         :cluster-id="clusterId"
-        @detail-change="handleDetailChange" />
+        @detail-change="handleDetailChange"
+        @refresh="handleRefresh" />
     </template>
   </StretchLayout>
   <DbSideslider
@@ -84,7 +85,7 @@
     <AddNodes
       v-if="detailData"
       :data="detailData"
-      @submit-success="handleSubmitSuccess" />
+      @submit-success="handleRefresh" />
   </DbSideslider>
   <DbSideslider
     v-model:is-show="deleteNodeShow"
@@ -93,7 +94,7 @@
     <DeleteNodes
       v-if="detailData"
       :data="detailData"
-      @submit-success="handleSubmitSuccess" />
+      @submit-success="handleRefresh" />
   </DbSideslider>
 </template>
 
@@ -119,7 +120,7 @@
   const { t } = useI18n();
   const ticketMessage = useTicketMessage();
 
-  const listRef = ref();
+  const listRef = ref<InstanceType<typeof List>>();
   const detailRef = ref();
   const clusterId = ref(0);
   const detailData = ref<RiakModel>();
@@ -135,8 +136,8 @@
     headShow.value = isOpen;
   };
 
-  const handleSubmitSuccess = () => {
-    listRef.value.freshData();
+  const handleRefresh = () => {
+    listRef.value!.refresh();
   };
 
   const handleDisabled = () => {

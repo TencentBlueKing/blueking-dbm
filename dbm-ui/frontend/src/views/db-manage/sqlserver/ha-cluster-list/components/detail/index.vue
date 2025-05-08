@@ -32,7 +32,8 @@
         :db-type="DBTypes.SQLSERVER" />
       <BaseInfo
         v-if="activePanel === 'info'"
-        :ha-cluster-data="haClusterData" />
+        :ha-cluster-data="haClusterData"
+        @refresh="() => emits('refresh')" />
       <ClusterEventChange
         v-if="activePanel === 'record'"
         :id="haClusterData.clusterId" />
@@ -42,7 +43,6 @@
     </div>
   </div>
 </template>
-
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -67,6 +67,8 @@
     };
   }
 
+  type Emits = (e: 'refresh') => void;
+
   interface PanelItem {
     label: string;
     link: string;
@@ -74,6 +76,8 @@
   }
 
   const props = defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
@@ -110,7 +114,6 @@
     },
   );
 </script>
-
 <style lang="less" scoped>
   .cluster-details {
     height: 100%;

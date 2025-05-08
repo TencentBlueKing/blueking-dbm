@@ -26,6 +26,7 @@
       <ClusterIpCopy
         v-db-console="'sqlserver.singleClusterList.batchCopy'"
         :selected="selected" />
+      <TagSearch @search="fetchData" />
       <DbSearchSelect
         class="header-select"
         :data="searchSelectData"
@@ -35,7 +36,6 @@
         unique-select
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
-      <TagSearch @search="fetchData" />
     </div>
     <div class="table-wrapper">
       <DbTable
@@ -213,6 +213,10 @@
   import ClusterReset from '@views/db-manage/sqlserver/components/cluster-reset/Index.vue';
 
   import { getMenuListSearch, getSearchSelectorParams } from '@utils';
+
+  interface Exposes {
+    refresh: () => void;
+  }
 
   const singleClusterData = defineModel<{ clusterId: number }>('singleClusterData');
 
@@ -458,6 +462,10 @@
       },
     });
   };
+
+  defineExpose<Exposes>({
+    refresh: fetchData,
+  });
 </script>
 <style lang="less">
   @import '@styles/mixins.less';
@@ -474,10 +482,13 @@
       margin-bottom: 16px;
       gap: 8px;
 
+      .tag-search-main {
+        margin-left: auto;
+      }
+
       .header-select {
         flex: 1;
         max-width: 500px;
-        margin-left: auto;
       }
     }
 

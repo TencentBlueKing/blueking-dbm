@@ -33,6 +33,7 @@
       <ClusterIpCopy
         v-db-console="'redis.clusterManage.batchCopy'"
         :selected="selected" />
+      <TagSearch @search="fetchData" />
       <DbSearchSelect
         class="operations-right"
         :data="searchSelectData"
@@ -42,7 +43,6 @@
         unique-select
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
-      <TagSearch @search="fetchData" />
     </div>
     <div class="table-wrapper">
       <DbTable
@@ -437,6 +437,10 @@
 
   import MasterSlaveRoleColumn from './components/MasterSlaveRoleColume.vue';
 
+  interface Exposes {
+    refresh: () => void;
+  }
+
   const clusterId = defineModel<number>('clusterId');
 
   enum ClusterNodeKeys {
@@ -799,8 +803,11 @@
       handleToDetails(Number(route.query.id));
     }
   });
-</script>
 
+  defineExpose<Exposes>({
+    refresh: fetchData,
+  });
+</script>
 <style lang="less">
   @import '@styles/mixins.less';
 
@@ -815,10 +822,13 @@
       margin-bottom: 16px;
       gap: 8px;
 
+      .tag-search-main {
+        margin-left: auto;
+      }
+
       .bk-search-select {
         flex: 1;
         max-width: 500px;
-        margin-left: auto;
       }
     }
 

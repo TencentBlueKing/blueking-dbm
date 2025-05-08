@@ -102,7 +102,6 @@
       confirmLoading.value = true;
       const tagsInfo = await tagOperationRef.value!.getValue();
       if (tagsInfo) {
-        // console.log(tagsInfo);
         if (!props.data.length) {
           // 新增
           handleAddClusterTagKeys({

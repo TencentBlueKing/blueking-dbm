@@ -44,8 +44,9 @@
         :cluster-type="ClusterTypes.TENDBSINGLE"
         :db-type="DBTypes.MYSQL" />
       <BaseInfo
-        v-if="activePanelKey === 'info' && data"
-        :data="data" />
+        v-if="activePanelKey === 'info' && clusterData"
+        :data="clusterData"
+        @refresh="handleRefresh" />
       <ClusterEventChange
         v-if="activePanelKey === 'record'"
         :id="clusterId" />
@@ -55,12 +56,10 @@
     </div>
   </div>
 </template>
-
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import TendbsingleModel from '@services/model/mysql/tendbsingle';
   import { getMonitorUrls } from '@services/source/monitorGrafana';
   import { getTendbsingleDetail } from '@services/source/tendbsingle';
 
@@ -80,6 +79,8 @@
     clusterId: number;
   }
 
+  type Emits = (e: 'refresh') => void;
+
   interface PanelItem {
     label: string;
     link: string;
@@ -88,11 +89,12 @@
 
   const props = defineProps<Props>();
 
+  const emits = defineEmits<Emits>();
+
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
 
   const activePanelKey = ref('topo');
-  const data = ref<TendbsingleModel>();
   const monitorPanelList = ref<PanelItem[]>([]);
 
   const activePanel = computed(() => {
@@ -100,11 +102,12 @@
     return targetPanel;
   });
 
-  const { loading: isLoading, run: fetchResourceDetails } = useRequest(getTendbsingleDetail, {
+  const {
+    data: clusterData,
+    loading: isLoading,
+    run: fetchResourceDetails,
+  } = useRequest(getTendbsingleDetail, {
     manual: true,
-    onSuccess(result: TendbsingleModel) {
-      data.value = result;
-    },
   });
 
   const { run: runGetMonitorUrls } = useRequest(getMonitorUrls, {
@@ -120,15 +123,19 @@
     },
   });
 
+  const updateDetails = () => {
+    fetchResourceDetails({
+      id: props.clusterId,
+    });
+  };
+
   watch(
     () => props.clusterId,
     () => {
       if (!props.clusterId) {
         return;
       }
-      fetchResourceDetails({
-        id: props.clusterId,
-      });
+      updateDetails();
       runGetMonitorUrls({
         bk_biz_id: currentBizId,
         cluster_id: props.clusterId,
@@ -139,8 +146,12 @@
       immediate: true,
     },
   );
-</script>
 
+  const handleRefresh = () => {
+    updateDetails();
+    emits('refresh');
+  };
+</script>
 <style lang="less" scoped>
   .cluster-details {
     height: 100%;

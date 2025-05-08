@@ -66,12 +66,13 @@
         :cluster-type="ClusterTypes.RIAK"
         :db-type="DBTypes.RIAK" />
       <NodeList
-        v-if="activePanelKey === 'nodeList' && data"
+        v-if="activePanelKey === 'nodeList' && clusterData"
         :key="clusterId"
-        :data="data" />
+        :data="clusterData" />
       <BaseInfo
-        v-if="activePanelKey === 'info' && data"
-        :data="data" />
+        v-if="activePanelKey === 'info' && clusterData"
+        :data="clusterData"
+        @refresh="handleRefresh" />
       <ClusterEventChange
         v-if="activePanelKey === 'record'"
         :id="clusterId"
@@ -82,7 +83,6 @@
     </div>
   </div>
 </template>
-
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -110,7 +110,10 @@
     clusterId: number;
   }
 
-  type Emits = (e: 'detailChange', data: RiakModel) => void;
+  interface Emits {
+    (e: 'detailChange', data: RiakModel): void;
+    (e: 'refresh'): void;
+  }
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -120,7 +123,6 @@
 
   const activePanelKey = ref('topo');
   const loadingCount = ref(0);
-  const data = ref<RiakModel>();
 
   const monitorPanelList = ref<Record<'label' | 'name' | 'link', string>[]>([]);
 
@@ -128,10 +130,13 @@
     monitorPanelList.value.find((panelItem) => panelItem.name === activePanelKey.value),
   );
 
-  const { loading: isLoading, run: fetchResourceDetails } = useRequest(getRiakDetail, {
+  const {
+    data: clusterData,
+    loading: isLoading,
+    run: fetchResourceDetails,
+  } = useRequest(getRiakDetail, {
     manual: true,
     onSuccess(result) {
-      data.value = result;
       emits('detailChange', result);
     },
   });
@@ -149,15 +154,20 @@
     },
   });
 
+  const updateDetails = () => {
+    fetchResourceDetails({
+      id: props.clusterId,
+    });
+  };
+
   watch(
     () => props.clusterId,
     () => {
       if (!props.clusterId) {
         return;
       }
-      fetchResourceDetails({
-        id: props.clusterId,
-      });
+
+      updateDetails();
       runGetMonitorUrls({
         bk_biz_id: currentBizId,
         cluster_id: props.clusterId,
@@ -168,8 +178,12 @@
       immediate: true,
     },
   );
-</script>
 
+  const handleRefresh = () => {
+    updateDetails();
+    emits('refresh');
+  };
+</script>
 <style lang="less" scoped>
   .riak-cluster-details {
     height: 100%;

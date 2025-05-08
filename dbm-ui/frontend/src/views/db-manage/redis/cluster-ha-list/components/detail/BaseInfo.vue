@@ -18,18 +18,24 @@
     :data="data" />
 </template>
 
-<script setup lang="ts">
+<script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
   import RedisModel from '@services/model/redis/redis';
 
   import EditInfo, { type InfoColumn } from '@components/editable-info/index.vue';
 
+  import ClusterTagCell from '@views/db-manage/common/cluster-table-column/components/cluster-tag-cell/Index.vue';
+
   interface Props {
     data: RedisModel;
   }
 
-  defineProps<Props>();
+  type Emits = (e: 'refresh') => void;
+
+  const props = defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
@@ -46,6 +52,16 @@
       {
         key: 'master_domain',
         label: t('域名'),
+      },
+      {
+        key: 'sortedTags',
+        label: t('标签'),
+        render: () => (
+          <ClusterTagCell
+            data={props.data}
+            onSuccess={() => emits('refresh')}
+          />
+        ),
       },
     ],
     [

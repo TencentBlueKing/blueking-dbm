@@ -38,6 +38,7 @@
       <ClusterIpCopy
         v-db-console="'mysql.haClusterList.batchCopy'"
         :selected="selected" />
+      <TagSearch @search="fetchData" />
       <DbSearchSelect
         :data="searchSelectData"
         :get-menu-list="getMenuList"
@@ -46,7 +47,6 @@
         unique-select
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
-      <TagSearch @search="fetchData" />
     </div>
     <div class="table-wrapper">
       <DbTable
@@ -260,7 +260,6 @@
     :data="currentData"
     :ticket-type="TicketTypes.MYSQL_DUMP_DATA" />
 </template>
-
 <script setup lang="tsx">
   import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
@@ -301,6 +300,10 @@
   import CreateSubscribeRuleSlider from '@views/db-manage/mysql/dumper/components/create-rule/Index.vue';
 
   import { getMenuListSearch, getSearchSelectorParams } from '@utils';
+
+  interface Exposes {
+    refresh: () => void;
+  }
 
   interface ColumnData {
     cell: string;
@@ -568,8 +571,11 @@
       handleToDetails(Number(route.query.id));
     }
   });
-</script>
 
+  defineExpose<Exposes>({
+    refresh: fetchData,
+  });
+</script>
 <style lang="less">
   @import '@styles/mixins.less';
 
@@ -585,10 +591,13 @@
       margin-bottom: 16px;
       gap: 8px;
 
+      .tag-search-main {
+        margin-left: auto;
+      }
+
       .bk-search-select {
         flex: 1;
         max-width: 500px;
-        margin-left: auto;
       }
     }
 

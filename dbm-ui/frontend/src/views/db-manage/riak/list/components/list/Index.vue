@@ -33,6 +33,7 @@
       <ClusterIpCopy
         v-db-console="'riak.clusterManage.batchCopy'"
         :selected="selected" />
+      <TagSearch @search="fetchData" />
       <DbSearchSelect
         :data="serachData"
         :get-menu-list="getMenuList"
@@ -40,7 +41,6 @@
         :placeholder="t('请输入或选择条件搜索')"
         unique-select
         @change="handleSearchValueChange" />
-      <TagSearch @search="fetchData" />
       <BkDatePicker
         v-model="deployTime"
         append-to-body
@@ -247,7 +247,7 @@
   type Emits = (e: 'detailOpenChange', data: boolean) => void;
 
   interface Expose {
-    freshData: () => void;
+    refresh: () => void;
   }
 
   const emits = defineEmits<Emits>();
@@ -485,9 +485,7 @@
   });
 
   defineExpose<Expose>({
-    freshData() {
-      fetchData();
-    },
+    refresh: fetchData,
   });
 </script>
 <style lang="less">
@@ -503,10 +501,13 @@
       margin-bottom: 16px;
       gap: 8px;
 
+      .tag-search-main {
+        margin-left: auto;
+      }
+
       .bk-search-select {
         flex: 1;
         max-width: 500px;
-        margin-left: auto;
       }
 
       .bk-date-picker {

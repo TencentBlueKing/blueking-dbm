@@ -46,7 +46,8 @@
         :node-cofig="{ startX: 400 }" />
       <BaseInfo
         v-if="activePanelKey === 'info' && clusterData"
-        :data="clusterData" />
+        :data="clusterData"
+        @refresh="handleRefresh" />
       <ClusterEventChange
         v-if="activePanelKey === 'record'"
         :id="clusterId" />
@@ -56,7 +57,6 @@
     </div>
   </div>
 </template>
-
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -81,6 +81,8 @@
     clusterId: number;
   }
 
+  type Emits = (e: 'refresh') => void;
+
   interface PanelItem {
     label: string;
     link: string;
@@ -88,6 +90,8 @@
   }
 
   const props = defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
@@ -122,13 +126,17 @@
     },
   });
 
+  const updateDetails = () => {
+    fetchResourceDetails({
+      id: props.clusterId,
+    });
+  };
+
   watch(
     () => props.clusterId,
     () => {
       if (props.clusterId) {
-        fetchResourceDetails({
-          id: props.clusterId,
-        });
+        updateDetails();
         runGetMonitorUrls({
           bk_biz_id: currentBizId,
           cluster_id: props.clusterId,
@@ -140,8 +148,12 @@
       immediate: true,
     },
   );
-</script>
 
+  const handleRefresh = () => {
+    updateDetails();
+    emits('refresh');
+  };
+</script>
 <style lang="less" scoped>
   .spider-details-page {
     height: 100%;

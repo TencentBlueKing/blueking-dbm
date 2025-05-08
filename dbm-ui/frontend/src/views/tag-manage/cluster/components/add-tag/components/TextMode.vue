@@ -8,6 +8,7 @@
         <div style="line-height: 20px">
           <div style="font-weight: 700">{{ tipTitle }}</div>
           <div>{{ exampleTip1 }}</div>
+          <div>{{ exampleTip1 }}</div>
           <div>{{ exampleTip2 }}</div>
         </div>
       </template>
@@ -31,6 +32,8 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import { tagKeyRegex, tagValueRegex } from '@common/regex';
+
   import type { TagsPairType } from '../Index.vue';
 
   interface Props {
@@ -50,10 +53,10 @@
   const isVerifyPassed = ref(true);
 
   const tipTitle = t('请按照格式输入标签，如：');
-  const exampleTip1 = t('所属部门：技术部门｜设计部｜产品部；');
-  const exampleTip2 = t('所属部门：技术部门｜设计部｜产品部；多个标签值使用中英文“｜”分割');
+  const exampleTip1 = t('所属部门：技术部门｜设计部｜产品部');
+  const exampleTip2 = t('多个标签值以空格、逗号、分号、竖线分割');
   const verifyTip = ref('');
-  const placeholder = `${tipTitle}\n${exampleTip1}\n${exampleTip2}`;
+  const placeholder = `${tipTitle}\n${exampleTip1}\n${exampleTip1}\n${exampleTip2}`;
 
   watch(
     () => props.data,
@@ -61,7 +64,7 @@
       if (props.data && Object.keys(props.data).length > 0) {
         let tmpStr = '';
         Object.entries(props.data).forEach(([key, value]) => {
-          tmpStr += `${key}:${value.join('|')};\n`;
+          tmpStr += `${key}:${value.join('|')}\n`;
         });
         localValue.value = tmpStr;
       }
@@ -71,8 +74,8 @@
 
   const checkInputValue = () => {
     const pairStrList = localValue.value
-      .replace(/[\r\n\t\s]/g, '')
-      .split(/[;；]/)
+      .trim()
+      .split(/\n/)
       .filter((item) => !!item);
     const validPairRegex = /[:：]/;
     const pairInfo: Record<string, string[]> = {};
@@ -84,7 +87,7 @@
         return null;
       }
       const [key, value] = pairStr.split(validPairRegex);
-      const valueList = value.split(/[|｜]/);
+      const valueList = value.trim().split(/[\s,，;；|｜]/);
       if (!key) {
         verifyTip.value = t('键必填');
         return null;
@@ -95,9 +98,8 @@
         return null;
       }
 
-      const keyRegex = /^[\u4e00-\u9fa5a-zA-Z0-9\s_\-\.]{1,50}$/;
-      if (!keyRegex.test(key)) {
-        verifyTip.value = t('标签键为1-50个字符，支持英文字母、数字、空格或汉字，中划线(-)，下划线()，点(.)');
+      if (!tagKeyRegex.test(key)) {
+        verifyTip.value = t('标签键为1-50个字符，支持英文字母、数字或汉字，中划线(-)，下划线(_)，点(.)');
         return null;
       }
 
@@ -106,9 +108,8 @@
         return null;
       }
 
-      const valueRegex = /^[\u4e00-\u9fa5a-zA-Z0-9\s_\-\.]{1,100}$/;
-      if (valueList.every((item) => !valueRegex.test(item))) {
-        verifyTip.value = t('标签值为1-100个字符，支持英文字母、数字、空格或汉字，中划线(-)，下划线()，点(.)');
+      if (valueList.every((item) => !tagValueRegex.test(item))) {
+        verifyTip.value = t('标签值为1-100个字符，支持英文字母、数字或汉字，中划线(-)，下划线(_)，点(.)');
         return null;
       }
 

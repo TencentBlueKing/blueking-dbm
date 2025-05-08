@@ -3,12 +3,16 @@
     :left-width="368"
     name="sqlserverHaClusterList">
     <template #list>
-      <List v-model:ha-cluster-data="haClusterData" />
+      <List
+        ref="listRef"
+        v-model:ha-cluster-data="haClusterData" />
     </template>
     <template
       v-if="haClusterData"
       #right>
-      <Detail :ha-cluster-data="haClusterData" />
+      <Detail
+        :ha-cluster-data="haClusterData"
+        @refresh="handleRefresh" />
     </template>
   </StretchLayout>
 </template>
@@ -18,5 +22,10 @@
   import Detail from './components/detail/index.vue';
   import List from './components/List.vue';
 
+  const listRef = ref<InstanceType<typeof List>>();
   const haClusterData = ref<{ clusterId: number }>();
+
+  const handleRefresh = () => {
+    listRef.value!.refresh();
+  };
 </script>

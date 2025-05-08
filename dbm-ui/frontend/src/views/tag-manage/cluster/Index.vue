@@ -80,7 +80,7 @@
                   <BkInput
                     v-model="appendTagValue"
                     class="mt-6"
-                    :placeholder="t('请输入标签值')" />
+                    :placeholder="t('请输入标签值（多个标签值以逗号、分号、竖线分割，回车完成输入）')" />
                 </div>
               </template>
               <BkButton
@@ -386,14 +386,13 @@
 
   const handleConfirmAppendTagValue = () => {
     if (appendTagValue.value) {
+      const tagList = appendTagValue.value.split(/[\s,，;；|｜]/).filter((item) => !!item);
       runBatchCreate({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        tags: [
-          {
-            key: currentKey,
-            value: appendTagValue.value,
-          },
-        ],
+        tags: tagList.map((value) => ({
+          key: currentKey,
+          value,
+        })),
         type: 'cluster',
       });
       appendTagValue.value = '';

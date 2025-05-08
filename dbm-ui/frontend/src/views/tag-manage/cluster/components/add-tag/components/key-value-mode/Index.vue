@@ -59,6 +59,10 @@
   };
 
   const handleDelete = (index: number) => {
+    if (pairList.value.length === 1) {
+      return;
+    }
+
     pairList.value.splice(index, 1);
   };
 
