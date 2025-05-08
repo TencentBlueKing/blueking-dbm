@@ -58,15 +58,9 @@
           :width="150">
           <EditableBlock v-model="item.cluster.major_version" />
         </EditableColumn>
-        <EditableColumn
-          field="rollback_time"
-          :label="t('指定时间')"
-          required>
-          <EditableDatePicker
-            v-model="item.rollback_time"
-            :disabled-date="disableDate"
-            type="datetime" />
-        </EditableColumn>
+        <RollbackTimeColumn
+          v-model="item.rollback_time"
+          @batch-edit="handleBatchEdit" />
         <EditableColumn
           fixed="right"
           :label="t('操作')"
@@ -98,6 +92,8 @@
   import { ClusterTypes } from '@common/const';
 
   import ClusterSelector, { type TabItem } from '@components/cluster-selector/Index.vue';
+
+  import RollbackTimeColumn from './RollbackTimeColumn.vue';
 
   export interface RowData {
     cluster: MongoDBModel;
@@ -145,8 +141,6 @@
     ],
   };
 
-  const disableDate = (date: Date) => date && date.valueOf() > Date.now();
-
   const handleShowClusterSelector = () => {
     isShowClusterSelector.value = true;
   };
@@ -171,6 +165,14 @@
       [ClusterTypes.MONGO_SHARED_CLUSTER]: [],
     };
     tableData.value = [];
+  };
+
+  const handleBatchEdit = (value: string | string[], field: string) => {
+    tableData.value.forEach((item) => {
+      Object.assign(item, {
+        [field]: value,
+      });
+    });
   };
 
   defineExpose<Exposes>({
