@@ -28,8 +28,19 @@ class Tag(AuditedModel):
         unique_together = ["bk_biz_id", "key", "value"]
 
     @property
+    def system(self):
+        """如果是内置标签，且为平台标签，说明是系统标签"""
+        return self.is_builtin and self.bk_biz_id == 0
+
+    @property
     def desc(self):
-        return {"key": self.key, "value": self.value, "is_builtin": self.is_builtin, "id": self.id}
+        return {
+            "id": self.id,
+            "key": self.key,
+            "value": self.value,
+            "is_builtin": self.is_builtin,
+            "system": self.system,
+        }
 
     @classmethod
     def get_builtin_tag(cls, key, value, type):

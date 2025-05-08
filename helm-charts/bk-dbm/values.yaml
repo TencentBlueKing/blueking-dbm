@@ -137,6 +137,12 @@ dbm:
     className: ""
     annotations:
       nginx.ingress.kubernetes.io/proxy-body-size: 1024m
+      nginx.ingress.kubernetes.io/configuration-snippet: |
+        set_real_ip_from 0.0.0.0/0;
+        real_ip_header X-Forwarded-For;
+        real_ip_recursive on;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
     hostname: "bkdbm.example.com"
     paths:
       - path: /
@@ -146,6 +152,14 @@ dbm:
   ingressBackendApi:
     enabled: true
     className: ""
+    annotations:
+      nginx.ingress.kubernetes.io/proxy-body-size: 1024m
+      nginx.ingress.kubernetes.io/configuration-snippet: |
+        set_real_ip_from 0.0.0.0/0;
+        real_ip_header X-Forwarded-For;
+        real_ip_recursive on;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
     hostname: "bkdbm-backend-api.example.com"
     paths:
       - path: /
@@ -364,6 +378,14 @@ db-nginx:
   ingress:
     enabled: true
     className: ""
+    annotations:
+      nginx.ingress.kubernetes.io/proxy-body-size: 1024m
+      nginx.ingress.kubernetes.io/configuration-snippet: |
+        set_real_ip_from 0.0.0.0/0;
+        real_ip_header X-Forwarded-For;
+        real_ip_recursive on;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
     hosts:
       - host: bk-dbm-nginx
         paths:

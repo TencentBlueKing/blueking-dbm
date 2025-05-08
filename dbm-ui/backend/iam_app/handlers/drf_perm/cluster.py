@@ -21,11 +21,8 @@ from backend.db_meta.models import Cluster, Machine, StorageInstance
 from backend.iam_app.dataclass.actions import ActionEnum, ActionMeta
 from backend.iam_app.dataclass.resources import ResourceEnum, ResourceMeta
 from backend.iam_app.exceptions import ResourceInvalidError
-from backend.iam_app.handlers.drf_perm.base import (
-    MoreResourceActionPermission,
-    ResourceActionPermission,
-    get_request_key_id,
-)
+from backend.iam_app.handlers.drf_perm.base import MoreResourceActionPermission, ResourceActionPermission
+from backend.ticket.builders.common.base import fetch_cluster_ids
 
 
 class ClusterDetailPermission(ResourceActionPermission):
@@ -238,18 +235,16 @@ class ClusterDBConsolePermission(ResourceActionPermission):
         super().__init__(actions=None, resource_meta=None, instance_ids_getter=self.inst_ids_getter)
 
 
-class ClusterListPermission(ResourceActionPermission):
+class ClusterActionPermission(ResourceActionPermission):
     """
-    集群/实例列表相关鉴权
+    集群相关动作鉴权
     """
 
-    def inst_ids_getter(self, request, view):
-        bk_biz_id = get_request_key_id(request, key="bk_biz_id")
-        # 有业务走业务管理鉴权，否则走平台管理鉴权
-        self.actions = [ActionEnum.DB_MANAGE] if bk_biz_id else [ActionEnum.GLOBAL_MANAGE]
-        self.resource_meta = ResourceEnum.BUSINESS if bk_biz_id else None
-        inst_ids = [bk_biz_id] if bk_biz_id else []
-        return inst_ids
+    @staticmethod
+    def inst_ids_getter(request, view):
+        data = request.data or request.query_params
+        cluster_ids = fetch_cluster_ids(data)
+        return cluster_ids
 
-    def __init__(self):
-        super().__init__(actions=None, resource_meta=None, instance_ids_getter=self.inst_ids_getter)
+    def __init__(self, actions=None, resource_meta=None):
+        super().__init__(actions=actions, resource_meta=resource_meta, instance_ids_getter=self.inst_ids_getter)

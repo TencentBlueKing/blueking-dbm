@@ -226,7 +226,7 @@ class CommonQueryResourceMixin(abc.ABC):
     @classmethod
     def get_temporary_cluster_info(cls, cluster, ticket_type):
         """如果当前集群是临时集群，则补充临时集群相关信息。"""
-        tags = [tag.key for tag in cluster.tags.all()]
+        tags = [tag.key for tag in cluster.tags.all() if tag.system]
         if SystemTagEnum.TEMPORARY.value not in tags:
             return {}
         record = ClusterOperateRecord.objects.filter(cluster_id=cluster.id, ticket__ticket_type=ticket_type).first()

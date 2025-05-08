@@ -12,6 +12,10 @@ from django.utils.translation import ugettext_lazy as _
 
 from blue_krill.data_types.enum import EnumField, StructuredEnum
 
+# TCP【建立连接】状态码，【监听】状态码;
+TCP_ESTABLISHED_CODE = 1
+TCP_LISTEN_CODE = 10
+
 
 class KeyDeleteType(str, StructuredEnum):
     """Key删除方式定义"""

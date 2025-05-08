@@ -1104,6 +1104,18 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
+    REDIS_SOURCE_ACCESS_VIEW = ActionMeta(
+        id="redis_source_access_view",
+        name=_("Redis 访问来源查询"),
+        name_en="redis_access_entry_view",
+        type="view",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("Redis"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     REDIS_CLUSTER_APPLY = ActionMeta(
         id=TicketType.REDIS_CLUSTER_APPLY.lower(),
         related_actions=[DB_MANAGE.id],

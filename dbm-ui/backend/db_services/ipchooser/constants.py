@@ -49,6 +49,7 @@ class CommonEnum(EnhanceEnum):
         "rack_id",
         "svr_device_class",
         "operator",
+        "bk_bak_operator",
         "sub_zone",
         "rack_id",
         "svr_device_class",

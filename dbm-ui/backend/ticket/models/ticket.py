@@ -180,7 +180,7 @@ class Ticket(AuditedModel):
         flow = self.current_flow()
         # 系统终止
         if flow.err_code == FlowErrCode.SYSTEM_TERMINATED_ERROR:
-            return _("系统自动终止")
+            return _("超时自动终止")
         # 用户终止，获取所有失败的todo，拿到里面的备注
         fail_todo = flow.todo_of_flow.filter(status=TodoStatus.DONE_FAILED).first()
         if not fail_todo:
