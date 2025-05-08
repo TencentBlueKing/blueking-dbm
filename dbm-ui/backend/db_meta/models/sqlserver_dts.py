@@ -54,6 +54,7 @@ class SqlserverDtsInfo(AuditedModel):
     bk_biz_id = models.IntegerField(default=0, help_text=_("关联的业务id，对应cmdb"))
     source_cluster_id = models.IntegerField(default=0, help_text=_("源集群ID"))
     target_cluster_id = models.IntegerField(default=0, help_text=_("目标集群ID"))
+    target_cluster_ids = models.JSONField(default=list, help_text=_("目标集群id列表"))
     db_list = models.JSONField(default=list, blank=True, null=True, help_text=_("库正则"))
     ignore_db_list = models.JSONField(default=list, blank=True, null=True, help_text=_("忽略库正则"))
     dts_mode = models.CharField(max_length=64, choices=SqlserverDtsMode.get_choices(), help_text=_("迁移类型"))

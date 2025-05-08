@@ -27,7 +27,11 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster, DBModule, ProxyInstance, StorageInstance
 from backend.db_services.dbbase.cluster.handlers import ClusterServiceHandler
-from backend.db_services.dbbase.cluster.serializers import CheckClusterDbsResponseSerializer, CheckClusterDbsSerializer
+from backend.db_services.dbbase.cluster.serializers import (
+    BatchCheckClusterDbsSerializer,
+    CheckClusterDbsResponseSerializer,
+    CheckClusterDbsSerializer,
+)
 from backend.db_services.dbbase.instances.handlers import InstanceHandler
 from backend.db_services.dbbase.instances.yasg_slz import CheckInstancesResSLZ, CheckInstancesSLZ
 from backend.db_services.dbbase.resources import register
@@ -197,6 +201,25 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         validated_data = self.params_validate(self.get_serializer_class())
         bk_biz_id = validated_data.pop("bk_biz_id")
         return Response(ClusterServiceHandler(bk_biz_id).check_cluster_databases(**validated_data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询多个集群的库是否存在"),
+        request_body=BatchCheckClusterDbsSerializer(),
+        tags=[SWAGGER_TAG],
+        responses={status.HTTP_200_OK: CheckClusterDbsResponseSerializer()},
+    )
+    @action(methods=["POST"], detail=False, serializer_class=BatchCheckClusterDbsSerializer)
+    def batch_check_cluster_databases(self, request, *args, **kwargs):
+        validated_data = self.params_validate(self.get_serializer_class())
+        bk_biz_id = validated_data.pop("bk_biz_id")
+        cluster_ids = validated_data.pop("cluster_ids")
+        cluster_dict = {
+            cluster_id: ClusterServiceHandler(bk_biz_id).check_cluster_databases(
+                cluster_id=cluster_id, **validated_data
+            )
+            for cluster_id in cluster_ids
+        }
+        return Response(cluster_dict)
 
     @common_swagger_auto_schema(
         operation_summary=_("查询业务下集群的属性字段"),

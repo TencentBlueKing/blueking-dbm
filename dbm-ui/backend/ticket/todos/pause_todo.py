@@ -41,6 +41,12 @@ class PauseTodo(todos.TodoActor):
         """确认/终止"""
         if action == TodoActionType.TERMINATE:
             self.todo.set_terminated(username, action)
+
+            # 如果是数据迁移单据，更改迁移记录状态信息
+            if self.todo.ticket.ticket_type in [TicketType.SQLSERVER_INCR_MIGRATE, TicketType.SQLSERVER_FULL_MIGRATE]:
+                SqlserverDtsInfo.objects.filter(ticket_id=self.todo.ticket.id).update(
+                    status=DtsStatus.Terminated.value
+                )
             return
 
         self.todo.set_success(username, action)
@@ -48,12 +54,6 @@ class PauseTodo(todos.TodoActor):
         # 所有待办完成后，执行后面的flow
         if not self.todo.ticket.todo_of_ticket.exist_unfinished():
             TicketFlowManager(ticket=self.todo.ticket).run_next_flow()
-
-        # 如果是数据迁移单据，更改迁移记录状态信息
-        if self.todo.ticket.ticket_type in [TicketType.SQLSERVER_INCR_MIGRATE, TicketType.SQLSERVER_FULL_MIGRATE]:
-            dts = SqlserverDtsInfo.objects.get(ticket_id=self.todo.ticket.id)
-            dts.status = DtsStatus.Terminated.value
-            dts.save()
 
 
 @todos.TodoActorFactory.register(TodoType.RESOURCE_REPLENISH)

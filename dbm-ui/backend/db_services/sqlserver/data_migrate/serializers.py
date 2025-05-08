@@ -20,6 +20,7 @@ from backend.ticket.models import Ticket
 
 class ManualTerminateSyncSerializer(serializers.Serializer):
     ticket_id = serializers.IntegerField(help_text=_("单据ID"))
+    dts_id = serializers.IntegerField(help_text=_("迁移记录ID"))
 
     def validate(self, attrs):
         ticket = Ticket.objects.get(id=attrs["ticket_id"])

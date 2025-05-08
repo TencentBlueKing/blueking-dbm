@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import itertools
 from typing import Dict, List
 
 from django.utils.translation import ugettext as _
@@ -45,7 +44,7 @@ class SQLServerDataMigrateViewSet(viewsets.SystemViewSet):
     @action(methods=["POST"], detail=False, serializer_class=ManualTerminateSyncSerializer)
     def manual_terminate_sync(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
-        ticket = SQLServerDataMigrateHandler.manual_terminate_sync(ticket_id=data["ticket_id"])
+        ticket = SQLServerDataMigrateHandler.manual_terminate_sync(ticket_id=data["ticket_id"], dts_id=data["dts_id"])
         return Response({"ticket_id": ticket.id})
 
     @common_swagger_auto_schema(
@@ -69,22 +68,29 @@ class SQLServerDataMigrateViewSet(viewsets.SystemViewSet):
     def query_migrate_records(self, request, bk_biz_id):
         data = self.params_validate(self.get_serializer_class())
         # (不分页)获取全量的迁移记录
-        migrate_records = [
-            dts.to_dict() for dts in SqlserverDtsInfo.objects.filter(bk_biz_id=bk_biz_id).order_by("-create_at")
-        ]
-        cluster_tuple_ids = [[record["source_cluster_id"], record["target_cluster_id"]] for record in migrate_records]
-        clusters = Cluster.objects.filter(id__in=list(set(itertools.chain(*cluster_tuple_ids))))
-        cluster_id__cluster_domain = {cluster.id: cluster.immute_domain for cluster in clusters}
-        # 完善迁移记录信息
-        filter_migrate_records: List[Dict] = []
-        for record in migrate_records:
-            source_domain = cluster_id__cluster_domain.get(record["source_cluster_id"], "")
-            target_domain = cluster_id__cluster_domain.get(record["target_cluster_id"], "")
-            # 过滤集群域名
-            if data["cluster_name"] not in source_domain and data["cluster_name"] not in target_domain:
-                continue
-            filter_migrate_records.append(
-                {**record, "source_cluster_domain": source_domain, "target_cluster_domain": target_domain}
-            )
+        migrate_records = SqlserverDtsInfo.objects.filter(bk_biz_id=bk_biz_id).order_by("-create_at").values()
 
-        return Response(filter_migrate_records)
+        # 收集所有的集群 ID，避免重复
+        cluster_ids = set()
+        for record in migrate_records:
+            cluster_ids.add(record["source_cluster_id"])
+            cluster_ids.update(record["target_cluster_ids"])
+
+        # 获取所有涉及的集群，并建立 ID 到域名的映射
+        clusters = Cluster.objects.filter(id__in=cluster_ids)
+        cluster_id_to_domain = {cluster.id: cluster.immute_domain for cluster in clusters}
+
+        # 过滤符合条件的记录并添加域名信息
+        filtered_migrate_records: List[Dict] = []
+        cluster_name = data["cluster_name"]
+        for record in migrate_records:
+            source_domain = cluster_id_to_domain.get(record["source_cluster_id"], "")
+            target_domains = [cluster_id_to_domain.get(target_id, "") for target_id in record["target_cluster_ids"]]
+
+            # 过滤不符合条件的记录
+            if cluster_name in source_domain or cluster_name in target_domains:
+                filtered_migrate_records.append(
+                    {**record, "source_cluster_domain": source_domain, "target_cluster_domain": target_domains}
+                )
+
+        return Response(filtered_migrate_records)

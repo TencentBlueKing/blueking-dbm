@@ -52,6 +52,7 @@ def fetch_cluster_ids(details: Dict[str, Any]) -> List[int]:
         "target_cluster_id",
         "src_cluster",
         "dst_cluster",
+        "dst_cluster_list",
         "source_cluster",
         "source_clusters",
         "target_cluster",

@@ -12,6 +12,7 @@ import datetime
 from collections import defaultdict
 from typing import Any, Dict, List
 
+from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
@@ -32,6 +33,9 @@ class SQLServerDataMigrateDetailSerializer(SQLServerBaseOperateDetailSerializer)
             rename_db_name = serializers.CharField(
                 help_text=_("集群重命名库名"), default="", allow_blank=True, required=False
             )
+            rename_cluster_list = serializers.ListField(
+                help_text=_("重命名集群ID列表"), child=serializers.IntegerField(), required=False
+            )
 
             def validate(self, attrs):
                 # 补充源集群DB重命名的格式
@@ -42,7 +46,7 @@ class SQLServerDataMigrateDetailSerializer(SQLServerBaseOperateDetailSerializer)
                 return attrs
 
         src_cluster = serializers.IntegerField(help_text=_("源集群ID"))
-        dst_cluster = serializers.IntegerField(help_text=_("目标集群ID"))
+        dst_cluster_list = serializers.ListField(help_text=_("目标集群ID列表"), child=serializers.IntegerField())
         db_list = serializers.ListField(help_text=_("库正则"), child=serializers.CharField(), required=False)
         ignore_db_list = serializers.ListField(help_text=_("忽略库正则"), child=serializers.CharField(), required=False)
         rename_infos = serializers.ListSerializer(help_text=_("迁移DB信息"), child=RenameInfoSerializer())
@@ -102,11 +106,19 @@ class SQLServerRenameFlowParamBuilder(builders.FlowParamBuilder):
     def format_db_rename_infos(self, cluster_key, from_key, to_key):
         """填充db重命名信息"""
         dbrename_infos_dict = defaultdict(list)
+        rename_cluster_list = defaultdict(list)
         for info in self.ticket_data["infos"]:
-            cluster_id = info[cluster_key]
+            if isinstance(info[cluster_key], int) or self.ticket_data["need_auto_rename"]:
+                rename_cluster_list = [info[cluster_key]]
             for db in info["rename_infos"]:
-                if db.get(from_key) and db.get(to_key):
-                    dbrename_infos_dict[cluster_id].append({"db_name": db[from_key], "target_db_name": db[to_key]})
+                from_db = db.get(from_key)
+                to_db = db.get(to_key)
+                if cluster_key == "dst_cluster_list":
+                    rename_cluster_list = db.get("rename_cluster_list", [])
+                if from_db and to_db:
+                    rename_info = {"db_name": from_db, "target_db_name": to_db}
+                    for cluster_id in rename_cluster_list:
+                        dbrename_infos_dict[cluster_id].append(rename_info)
 
         # 以集群为维度 将字典转换为所需的列表格式
         dbrename_infos = [
@@ -117,7 +129,13 @@ class SQLServerRenameFlowParamBuilder(builders.FlowParamBuilder):
 
     def format_target_cluster_rename_infos(self):
         """对目标集群进行DB重命名"""
-        dbrename_infos = self.format_db_rename_infos("dst_cluster", "target_db_name", "rename_db_name")
+        dst_cluster_mapping = {
+            TicketType.SQLSERVER_FULL_MIGRATE.value: "dst_cluster_list",
+            TicketType.SQLSERVER_INCR_MIGRATE.value: "dst_cluster_list",
+        }
+        # 获取目标集群变量，默认为 "dst_cluster"
+        dst_cluster = dst_cluster_mapping.get(self.ticket.ticket_type, "dst_cluster")
+        dbrename_infos = self.format_db_rename_infos(dst_cluster, "target_db_name", "rename_db_name")
         self.ticket_data["infos"] = dbrename_infos
 
     def format_source_cluster_rename_infos(self):
@@ -153,7 +171,7 @@ class SQLServerDataMigrateFlowBuilder(BaseSQLServerTicketFlowBuilder):
             dts_info = SqlserverDtsInfo(
                 bk_biz_id=self.ticket.bk_biz_id,
                 source_cluster_id=info["src_cluster"],
-                target_cluster_id=info["dst_cluster"],
+                target_cluster_ids=info["dst_cluster_list"],
                 dts_mode=self.ticket.details["dts_mode"],
                 ticket_id=self.ticket.id,
                 status=DtsStatus.ToDo,
@@ -166,21 +184,19 @@ class SQLServerDataMigrateFlowBuilder(BaseSQLServerTicketFlowBuilder):
         SqlserverDtsInfo.objects.bulk_create(dts_infos)
         dts_infos = SqlserverDtsInfo.objects.filter(ticket_id=self.ticket.id)
         # 构造源集群--目标集群--单据ID的记录映射
-        dts_info_map: Dict[Any, Dict[Any, Dict[Any, Any]]] = defaultdict(
-            lambda: defaultdict(lambda: defaultdict(dict))
-        )
+        dts_info_map: Dict[Any, Dict[Any, Any]] = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
         for dts_info in dts_infos:
-            dts_info_map[dts_info.source_cluster_id][dts_info.target_cluster_id][dts_info.ticket_id] = dts_info.id
+            dts_info_map[dts_info.source_cluster_id][dts_info.ticket_id] = dts_info.id
         # 填充每条迁移信息的迁移记录id
         for info in self.ticket.details["infos"]:
-            dts_info_id = dts_info_map[info["src_cluster"]][info["dst_cluster"]][self.ticket.id]
+            dts_info_id = dts_info_map[info["src_cluster"]][self.ticket.id]
             info["dts_id"] = dts_info_id
 
     def update_dts_infos(self):
         # 更新迁移记录，更新关联的ticket_id和断开中的状态
         dts_ids = [info["dts_id"] for info in self.ticket.details["infos"]]
         SqlserverDtsInfo.objects.filter(id__in=dts_ids).update(
-            ticket_id=self.ticket.id, status=DtsStatus.Disconnecting
+            ticket_id=self.ticket.id, status=DtsStatus.Disconnecting, create_at=timezone.now()
         )
 
     def patch_ticket_detail(self):

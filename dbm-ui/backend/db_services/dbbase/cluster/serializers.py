@@ -57,6 +57,12 @@ class CheckClusterDbsSerializer(serializers.Serializer):
     db_list = serializers.ListField(help_text=_("db列表"), child=serializers.CharField())
 
 
+class BatchCheckClusterDbsSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
+    db_list = serializers.ListField(help_text=_("db列表"), child=serializers.CharField())
+
+
 class CheckClusterDbsResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": {"db1": True, "db2": False}}

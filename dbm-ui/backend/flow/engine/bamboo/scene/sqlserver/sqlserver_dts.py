@@ -555,7 +555,9 @@ class SqlserverDTSFlow(BaseFlow):
 
         for info in self.data["infos"]:
             # 计算源集群和目标集群的master
-            info["dst_cluster_list"] = [info["dst_cluster"]]
+            info["dst_cluster_list"] = (
+                info["dst_cluster_list"] if isinstance(info["dst_cluster_list"], list) else [info["dst_cluster_list"]]
+            )
             cluster = Cluster.objects.get(id=info["src_cluster"])
             target_clusters = Cluster.objects.filter(id__in=info["dst_cluster_list"])
 
@@ -719,7 +721,9 @@ class SqlserverDTSFlow(BaseFlow):
 
         for info in self.data["infos"]:
             # 计算源集群和目标集群的master
-            info["dst_cluster_list"] = [info["dst_cluster"]]
+            info["dst_cluster_list"] = (
+                info["dst_cluster_list"] if isinstance(info["dst_cluster_list"], list) else [info["dst_cluster_list"]]
+            )
             cluster = Cluster.objects.get(id=info["src_cluster"])
             target_clusters = Cluster.objects.filter(id__in=info["dst_cluster_list"])
 

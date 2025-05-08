@@ -21,7 +21,7 @@ class SQLServerDataMigrateHandler(object):
     """
 
     @classmethod
-    def manual_terminate_sync(cls, ticket_id: int):
+    def manual_terminate_sync(cls, ticket_id: int, dts_id: int):
         """
         手动断开同步，需要发起一个断开同步的数据迁移单据
         @param ticket_id: 单据ID
@@ -29,6 +29,7 @@ class SQLServerDataMigrateHandler(object):
         ticket = Ticket.objects.get(id=ticket_id)
         # 直接沿用源单据details,标记手动终止
         ticket.details["manual_terminate"] = True
+        ticket.details["infos"] = [info for info in ticket.details["infos"] if info["dts_id"] == dts_id]
         return Ticket.create_ticket(
             ticket_type=TicketType.SQLSERVER_INCR_MIGRATE,
             creator=ticket.creator,
