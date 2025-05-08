@@ -24,7 +24,7 @@ class RedisAutofixCtl(AuditedModel):
     bk_cloud_id = models.IntegerField(verbose_name=_("云区域 ID"), db_index=True)
     bk_biz_id = models.IntegerField(verbose_name=_("业务 ID"), db_index=True)
     ctl_name = models.CharField(verbose_name=_("模块名"), max_length=LEN_NORMAL)
-    ctl_value = models.CharField(verbose_name=_("取值范围"), max_length=LEN_NORMAL)
+    ctl_value = models.CharField(verbose_name=_("取值范围"), max_length=LEN_XX_LONG)
 
     class Meta:
         db_table = "tb_tendis_autofix_ctl"
