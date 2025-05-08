@@ -33,16 +33,10 @@
           v-model="item.proxy_reduced_host.master_domain"
           :placeholder="t('自动生成')" />
       </EditableColumn>
-      <EditableColumn
-        field="online_switch_type"
-        :label="t('切换模式')"
-        :min-width="150"
-        :rowspan="rowSpan[item.proxy_reduced_host.master_domain]">
-        <EditableSelect
-          v-model="item.online_switch_type"
-          :input-search="false"
-          :list="switchModeOptions" />
-      </EditableColumn>
+      <OnlineSwitchTypeColumn
+        v-model="item.online_switch_type"
+        :rowspan="rowSpan[item.proxy_reduced_host.master_domain]"
+        @batch-edit="handleOnlineSwitchTypeBatchEdit" />
       <OperationColumn
         v-model:table-data="tableData"
         :create-row-method="createTableRow" />
@@ -55,6 +49,8 @@
   import { useI18n } from 'vue-i18n';
 
   import type { Redis } from '@services/model/ticket/ticket';
+
+  import OnlineSwitchTypeColumn, { ONLINE_SWITCH_TYPE } from '../OnlineSwitchTypeColumn.vue';
 
   import HostColumn, { type SelectorHost } from './components/HostColumn.vue';
 
@@ -99,7 +95,7 @@
   const tableRef = useTemplateRef('table');
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
-    online_switch_type: data.online_switch_type || 'user_confirm',
+    online_switch_type: data.online_switch_type || ONLINE_SWITCH_TYPE.USER_CONFIRM,
     proxy_reduced_host: data.proxy_reduced_host || {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
@@ -128,17 +124,6 @@
       return acc;
     }, {}),
   );
-
-  const switchModeOptions = [
-    {
-      label: t('需人工确认'),
-      value: 'user_confirm',
-    },
-    {
-      label: t('无需确认'),
-      value: 'no_confirm',
-    },
-  ];
 
   watch(
     () => props.ticketDetails,
@@ -192,6 +177,14 @@
       return acc;
     }, []);
     tableData.value = [...(tableData.value[0].proxy_reduced_host.bk_host_id ? tableData.value : []), ...dataList];
+  };
+
+  const handleOnlineSwitchTypeBatchEdit = (value: string | string[]) => {
+    tableData.value.forEach((item) => {
+      Object.assign(item, {
+        online_switch_type: value,
+      });
+    });
   };
 
   defineExpose<Exposes>({
