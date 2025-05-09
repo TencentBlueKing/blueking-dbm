@@ -111,6 +111,7 @@
 
   defineOptions({
     name: ClusterTypes.TENDBSINGLE,
+    inheritAttrs: false,
   });
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();

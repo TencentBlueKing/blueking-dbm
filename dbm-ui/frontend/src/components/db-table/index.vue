@@ -26,6 +26,7 @@
         :max-height="tableMaxHeight"
         :pagination="pagination"
         :remote-pagination="remotePagination"
+        :settings="settings"
         show-overflow
         :show-settings="showSettings"
         v-bind="$attrs"
@@ -36,7 +37,7 @@
         <BkTableColumn
           v-if="columns.length < 1 && selectable"
           fixed="left"
-          width="80">
+          width="70">
           <template #header>
             <div class="db-table-select-cell">
               <div
@@ -156,6 +157,11 @@
     remoteSort?: boolean;
     // 是否开启远程分页
     selectable?: boolean;
+    settings?: {
+      checked?: string[];
+      disabled?: string[];
+      size?: string;
+    };
     // 是否开启跨页全选
     showSelectAllPage?: boolean;
     showSettings?: boolean;
@@ -194,6 +200,7 @@
     remotePagination: true,
     remoteSort: false,
     selectable: false,
+    settings: undefined,
     showSelectAllPage: true,
     showSettings: false,
     sortType: 'default',
@@ -285,7 +292,7 @@
         </span>
       );
     },
-    width: 80,
+    width: 70,
   });
 
   const { t } = useI18n();
@@ -716,6 +723,7 @@
     position: relative;
     display: flex;
     align-items: center;
+    width: 64px;
 
     .db-table-whole-check {
       position: relative;

@@ -81,14 +81,14 @@
   }
 </script>
 <script setup lang="ts" generic="T extends keyof ClusterModelMap">
-  interface Props {
+  export interface Props<T extends keyof ClusterModelMap> {
     clusterType: T;
     selected: ClusterModelMap[T][];
   }
 
   type Emits = (e: 'success') => void;
 
-  const props = defineProps<Props>();
+  const props = defineProps<Props<T>>();
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();

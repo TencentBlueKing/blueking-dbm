@@ -53,7 +53,7 @@
   };
 </script>
 <style lang="less">
-  .db-cluster-status {
+  .db-cluster-instance-status {
     display: flex;
     align-items: center;
   }

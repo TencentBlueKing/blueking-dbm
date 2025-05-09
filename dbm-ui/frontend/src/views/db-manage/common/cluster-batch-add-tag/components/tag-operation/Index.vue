@@ -44,7 +44,7 @@
   import { getBuiltinLabels } from '@services/source/systemSettings';
   import { listTag } from '@services/source/tag';
 
-  import type { ClusterModel, ISupportClusterType } from '@views/db-manage/common/cluster-table-column/types';
+  import type { ClusterModel, ISupportClusterType } from '@views/db-manage/common/cluster-table/types';
 
   import KeyValueMode from './components/key-value-mode/Index.vue';
   import TextMode from './components/TextMode.vue';

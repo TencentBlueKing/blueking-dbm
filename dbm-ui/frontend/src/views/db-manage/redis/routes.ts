@@ -262,13 +262,36 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@views/db-manage/redis/Index.vue'),
     children: [
       {
-        path: 'cluster-list',
-        name: 'DatabaseRedisList',
+        path: 'cluster',
+        name: 'redisCluster',
         meta: {
           fullscreen: true,
           navName: t('Redis_集群管理'),
         },
-        component: () => import('@views/db-manage/redis/cluster-list/Index.vue'),
+        redirect: {
+          name: 'DatabaseRedisList',
+        },
+        component: () => import('@/views/db-manage/redis/Index.vue'),
+        children: [
+          {
+            path: 'list/:clusterId?',
+            name: 'DatabaseRedisList',
+            meta: {
+              fullscreen: true,
+              navName: t('Redis_集群管理'),
+            },
+            component: () => import('@/views/db-manage/redis/cluster-list/Index.vue'),
+          },
+          {
+            path: 'detail/:clusterId',
+            name: 'redisClusterDetail',
+            meta: {
+              fullscreen: true,
+              navName: t('Redis_集群详情'),
+            },
+            component: () => import('@/views/db-manage/redis/cluster-detail/Index.vue'),
+          },
+        ],
       },
     ],
   },

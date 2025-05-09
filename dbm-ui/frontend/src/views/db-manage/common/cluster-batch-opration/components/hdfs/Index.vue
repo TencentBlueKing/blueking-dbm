@@ -45,6 +45,7 @@
 
   defineOptions({
     name: ClusterTypes.HDFS,
+    inheritAttrs: false,
   });
 
   const props = defineProps<Props>();

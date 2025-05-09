@@ -49,7 +49,24 @@ export const useUrlSearch = () => {
   };
 
   const replaceSearchParams = (params: Record<string, any>) => {
-    window.history.replaceState({}, '', `?${buildURLParams(params)}`);
+    const latestParams = getSearchParams();
+
+    // 全部替换时忽略 _ 开头的 key, 此类可以作为页面状态存储用
+    Object.keys(latestParams).forEach((key) => {
+      if (/^__(.+)__$/.test(key)) {
+        return;
+      }
+      delete latestParams[key];
+    });
+
+    window.history.replaceState(
+      {},
+      '',
+      `?${buildURLParams({
+        ...params,
+        ...latestParams,
+      })}`,
+    );
   };
 
   return {
