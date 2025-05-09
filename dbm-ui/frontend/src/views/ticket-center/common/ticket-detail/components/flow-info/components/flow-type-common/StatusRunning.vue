@@ -43,6 +43,7 @@
         style="padding: 12px; margin-top: 12px; background: #f5f7fa; border: 2px">
         {{ data.err_msg }}
       </div>
+      <Abstract :data="data" />
     </template>
   </DbTimeLineItem>
 </template>
@@ -59,6 +60,8 @@
 
   import DbTimeLineItem from '../time-line/TimeLineItem.vue';
   import TodoList from '../todo-list/Index.vue';
+
+  import Abstract from './components/Abstract.vue';
 
   interface Props {
     data: FlowMode<unknown, any>;
