@@ -111,6 +111,7 @@
 
   defineOptions({
     name: ClusterTypes.MONGO_SHARED_CLUSTER,
+    inheritAttrs: false,
   });
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();

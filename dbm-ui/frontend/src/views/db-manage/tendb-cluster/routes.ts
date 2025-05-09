@@ -270,22 +270,23 @@ const renderRoutes = [
     },
     component: () => import('@views/db-manage/tendb-cluster/Index.vue'),
     children: [
-      // {
-      //   name: 'createSpiderModule',
-      //   path: 'create-module/:bizId(\\d+)',
-      //   meta: {
-      //     navName: t('新建模块'),
-      //   },
-      //   component: () => import('@views/db-manage/tendb-cluster/apply/CreateModule.vue'),
-      // },
       {
-        path: 'cluster-list',
+        path: 'cluster-list/:clusterId?',
         name: 'tendbClusterList',
         meta: {
           fullscreen: true,
           navName: t('TendbCluster分布式集群_集群管理'),
         },
         component: () => import('@views/db-manage/tendb-cluster/cluster-list/Index.vue'),
+      },
+      {
+        path: 'cluster-detail/:clusterId',
+        name: 'tendbClusterDetail',
+        meta: {
+          fullscreen: true,
+          navName: t('TendbCluster分布式集群_集群详情'),
+        },
+        component: () => import('@views/db-manage/tendb-cluster/cluster-detail/Index.vue'),
       },
       {
         path: 'openarea-template-create',

@@ -45,6 +45,7 @@
 
   defineOptions({
     name: ClusterTypes.KAFKA,
+    inheritAttrs: false,
   });
 
   const props = defineProps<Props>();

@@ -30,22 +30,23 @@ const routes: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/elastic-search/Index.vue'),
     children: [
-      // {
-      //   name: 'EsApply',
-      //   path: 'apply',
-      //   meta: {
-      //     navName: t('申请ES集群部署'),
-      //   },
-      //   component: () => import('@views/db-manage/elastic-search/apply/Index.vue'),
-      // },
       {
-        path: 'list',
+        path: 'list/:clusterId?',
         name: 'EsList',
         meta: {
           fullscreen: true,
           navName: t('ES_集群管理'),
         },
         component: () => import('@views/db-manage/elastic-search/list/Index.vue'),
+      },
+      {
+        path: 'detail/:clusterId',
+        name: 'esDetail',
+        meta: {
+          fullscreen: true,
+          navName: t('ES_集群详情'),
+        },
+        component: () => import('@views/db-manage/elastic-search/detail/Index.vue'),
       },
     ],
   },

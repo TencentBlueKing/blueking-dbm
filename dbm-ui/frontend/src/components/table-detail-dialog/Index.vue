@@ -27,7 +27,7 @@
 <script setup lang="ts">
   import { onBeforeUnmount, onMounted, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { onBeforeRouteLeave, useRoute } from 'vue-router';
+  import { onBeforeRouteLeave } from 'vue-router';
 
   import useResize from './hooks/use-resize';
 
@@ -50,8 +50,6 @@
     default: false,
   });
 
-  const route = useRoute();
-
   const { t } = useI18n();
 
   let isRouteChange = false;
@@ -60,10 +58,6 @@
   const resizeHandleRef = useTemplateRef('resizeHandleRef');
 
   useResize(rootRef, resizeHandleRef);
-
-  watch(route, () => {
-    console.log('route = ', route);
-  });
 
   const handleClose = () => {
     modelValue.value = false;
