@@ -14,7 +14,7 @@
 <template>
   <EditableColumn
     field="db_version"
-    :label="t('目标版本')"
+    :label="t('新集群版本')"
     required
     :width="200">
     <BkLoading

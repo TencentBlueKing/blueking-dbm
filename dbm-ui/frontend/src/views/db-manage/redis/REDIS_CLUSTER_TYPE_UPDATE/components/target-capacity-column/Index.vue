@@ -16,7 +16,7 @@
     :append-rules="rules"
     :disabled-method="disabledMethod"
     field="target_capacity.spec_id"
-    :label="t('部署方案')"
+    :label="t('新集群部署方案')"
     required
     :width="200">
     <template #head>
@@ -24,7 +24,7 @@
         :content="t('将会部署新的集群以进行集群变更')"
         placement="top"
         theme="dark">
-        <span class="edit-target-spec-label-tip">{{ t('部署方案') }}</span>
+        <span class="edit-target-spec-label-tip">{{ t('新集群部署方案') }}</span>
       </BkPopover>
     </template>
     <EditableBlock
