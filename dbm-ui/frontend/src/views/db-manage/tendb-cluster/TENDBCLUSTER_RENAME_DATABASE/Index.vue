@@ -25,6 +25,7 @@
       form-type="vertical"
       :model="formData">
       <EditableTable
+        :key="tableKey"
         ref="table"
         class="mb-20"
         :model="formData.tableData">
@@ -61,7 +62,9 @@
             :create-row-method="createTableRow" />
         </EditableTableRow>
       </EditableTable>
-      <IgnoreBiz v-model="formData.force" />
+      <IgnoreBiz
+        v-model="formData.force"
+        v-bk-tooltips="t('如忽略_有连接的情况下也会执行')" />
       <TicketPayload v-model="formData.payload" />
     </BkForm>
     <template #action>
@@ -117,10 +120,11 @@
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
   const clusterRef = ref<InstanceType<typeof ClusterColumn>[]>();
+  const tableKey = ref(Date.now());
 
   const batchInputConfig = [
     {
-      case: 'spider.ecotest.dba.db',
+      case: 'spider.test.dba.db',
       key: 'master_domain',
       label: t('目标集群'),
     },
@@ -296,9 +300,12 @@
         toDatabase: item.toDatabase ? [item.toDatabase] : [],
       }),
     );
-    formData.tableData = isClear
-      ? [...dataList] // 覆盖
-      : [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList]; // 追加
+    if (isClear) {
+      tableKey.value = Date.now();
+      formData.tableData = [...dataList]; // 覆盖
+    } else {
+      formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList]; // 追加
+    }
     setTimeout(() => {
       formData.tableData.forEach((item, index) => {
         clusterRef.value?.[index]

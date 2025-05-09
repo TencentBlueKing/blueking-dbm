@@ -50,7 +50,7 @@
           )
         "
         type="textarea" />
-      <BkCheckbox v-model="isClear">{{ t('清空表格已有数据') }}</BkCheckbox>
+      <BkCheckbox v-model="isClear">{{ t('覆盖表格已有数据') }}</BkCheckbox>
     </div>
     <template #footer>
       <BkButton
