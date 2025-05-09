@@ -87,7 +87,7 @@
         return null;
       }
       const [key, value] = pairStr.split(validPairRegex);
-      const valueList = value.trim().split(/[\s,，;；|｜]/);
+      const valueList = value.trim().split(/[,，;；|｜]/);
       if (!key) {
         verifyTip.value = t('键必填');
         return null;

@@ -15,7 +15,7 @@
 
   import type { TagsPairType } from '../../Index.vue';
 
-  import KeyValuePair from './components/KeyValuePair.vue';
+  import KeyValuePair from './components/key-value-pair/Index.vue';
 
   interface Props {
     data?: TagsPairType;

@@ -77,10 +77,9 @@
               <template #content>
                 <div class="append-tag-main">
                   <div class="title-main">{{ t('标签值') }}</div>
-                  <BkInput
-                    v-model="appendTagValue"
-                    class="mt-6"
-                    :placeholder="t('请输入标签值（多个标签值以逗号、分号、竖线分割，回车完成输入）')" />
+                  <TagValueInput
+                    v-model="appendTagValues"
+                    class="mt-6" />
                 </div>
               </template>
               <BkButton
@@ -245,10 +244,13 @@
 
   import { batchCreateTags, deleteTag, listClusterTag, updateTag } from '@services/source/tag';
 
+  import { tagValueRegex } from '@common/regex';
+
   import RenderTagOverflow from '@components/render-tag-overflow/Index.vue';
 
-  import { execCopy, getSearchSelectorParams, messageSuccess } from '@utils';
+  import { execCopy, getSearchSelectorParams, messageError, messageSuccess } from '@utils';
 
+  import TagValueInput from './components/add-tag/components/key-value-mode/components/key-value-pair/components/TagValueInput.vue';
   import CreateTag from './components/add-tag/Index.vue';
   import EditableCell from './components/EditableCell.vue';
 
@@ -261,7 +263,7 @@
   const isCreateTagDialogShow = ref(false);
   const searchValue = ref([]);
   const selectedMap = ref<Record<string, boolean>>({});
-  const appendTagValue = ref('');
+  const appendTagValues = ref<string[]>([]);
   const toggleInfoMap = ref<Record<string, boolean>>({});
   const existedKeyList = ref<Set<string>>(new Set());
   const appendTagVisableMap = ref<Record<number, boolean>>({});
@@ -385,22 +387,28 @@
   };
 
   const handleConfirmAppendTagValue = () => {
-    if (appendTagValue.value) {
-      const tagList = appendTagValue.value.split(/[\s,，;；|｜]/).filter((item) => !!item);
-      runBatchCreate({
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        tags: tagList.map((value) => ({
-          key: currentKey,
-          value,
-        })),
-        type: 'cluster',
-      });
-      appendTagValue.value = '';
+    if (!appendTagValues.value.length) {
+      return;
     }
+
+    if (appendTagValues.value.some((item) => !tagValueRegex.test(item))) {
+      messageError(t('标签值为1-100个字符，支持英文字母、数字或汉字，中划线(-)，下划线(_)，点(.)'));
+      return;
+    }
+
+    runBatchCreate({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      tags: appendTagValues.value.map((value) => ({
+        key: currentKey,
+        value,
+      })),
+      type: 'cluster',
+    });
+    appendTagValues.value = [];
   };
 
   const handlecancelAppendTagValue = () => {
-    appendTagValue.value = '';
+    appendTagValues.value = [];
     appendTagVisableMap.value = {};
   };
 

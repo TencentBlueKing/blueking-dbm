@@ -6,6 +6,7 @@
     <template #default="{ data }: { data: IRowData }">
       <ClusterTagCell
         :data="data"
+        mode="vertical"
         @success="handleOperateSuccess" />
     </template>
   </BkTableColumn>
