@@ -21,7 +21,7 @@ from backend.components.mysql_backup.client import SQLServerBackupApi
 from backend.db_meta.enums import ClusterPhase, ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_report.models.sqlserver_check_report import SqlserverFullBackupInfoReport, SqlserverLogBackupInfoReport
-from backend.flow.utils.sqlserver.sqlserver_db_function import get_dbs_for_drs
+from backend.flow.utils.sqlserver.sqlserver_db_function import get_routine_backup_dbs
 
 logger = logging.getLogger("root")
 
@@ -29,7 +29,7 @@ logger = logging.getLogger("root")
 class CheckBackupInfo(object):
     """
     已dbm元数据为准
-    检查实例的app_setting表的信息是否符合预期，如果存在信息不一致，则需要已某种方式输出告知相关DBA
+    检查集群的备份是否正常
     """
 
     def __init__(self):
@@ -75,7 +75,7 @@ class CheckBackupInfo(object):
                 continue
 
             # 如果集群是空集群，则跳过这次的巡检
-            if len(get_dbs_for_drs(cluster_id=cluster.id, db_list=["*"], ignore_db_list=[])) == 0:
+            if len(get_routine_backup_dbs(cluster_id=cluster.id)) == 0:
                 continue
 
             self.check_full_backup_info_cluster(cluster)

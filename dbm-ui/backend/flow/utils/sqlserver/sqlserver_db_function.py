@@ -206,6 +206,39 @@ and name NOT IN (SELECT NAME FROM {SQLSERVER_CUSTOM_SYS_DB}.DBO.MIRRORING_FILTER
     return no_sync_db
 
 
+def get_routine_backup_dbs(cluster_id: int) -> list:
+    """
+    获取例行备份的数据库列表
+    @param cluster_id 集群id
+    """
+
+    cluster = Cluster.objects.get(id=cluster_id)
+    # 获取当前cluster的主节点,每个集群有且只有一个master/orphan 实例
+    master_instance = cluster.storageinstance_set.get(
+        instance_role__in=[InstanceRole.ORPHAN, InstanceRole.BACKEND_MASTER]
+    )
+
+    check_sql = f"""select name from  master.sys.databases
+where state=0 and is_read_only=0 and database_id > 4
+and name != '{SQLSERVER_CUSTOM_SYS_DB}' and
+name not in (select name from {SQLSERVER_CUSTOM_SYS_DB}.dbo.BACKUP_FILTER (NOLOCK) where FILTER_TYPE = 1 )"""
+
+    ret = DRSApi.sqlserver_rpc(
+        {
+            "bk_cloud_id": cluster.bk_cloud_id,
+            "addresses": [master_instance.ip_port],
+            "cmds": [check_sql],
+            "force": False,
+        }
+    )
+    if ret[0]["error_msg"]:
+        raise Exception(f"[{master_instance.ip_port}] get routine_backup_dbs failed: {ret[0]['error_msg']}")
+    # 获取所有db名称
+    routine_backup_dbs = [i["name"] for i in ret[0]["cmd_results"][0]["table_data"]]
+
+    return routine_backup_dbs
+
+
 def get_restoring_dbs(instance: StorageInstance, bk_cloud_id: int) -> List[str]:
     """
     获取实例上存在的restoring状态的数据库
