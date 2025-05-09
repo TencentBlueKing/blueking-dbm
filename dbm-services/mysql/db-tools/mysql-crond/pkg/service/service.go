@@ -317,7 +317,7 @@ func Start(version string, buildStamp string, gitHash string, quit chan struct{}
 		"/beat/metrics", func(context *gin.Context) {
 			body := struct {
 				Name      string                 `json:"name" binding:"required"`
-				Value     int64                  `json:"value" binding:"required"`
+				Value     *int64                 `json:"value" binding:"required"`
 				Dimension map[string]interface{} `json:"dimension,omitempty"`
 			}{}
 			err := context.BindJSON(&body)
@@ -325,13 +325,17 @@ func Start(version string, buildStamp string, gitHash string, quit chan struct{}
 				_ = context.AbortWithError(http.StatusBadRequest, err)
 				return
 			}
-			slog.Debug("api beat event", slog.Any("body", body))
-			err = config.SendMetrics(body.Name, body.Value, body.Dimension)
-			if err != nil {
-				_ = context.AbortWithError(http.StatusInternalServerError, err)
-				return
+			slog.Info("api beat event", slog.Any("body", body))
+			if body.Value == nil {
+				context.AbortWithStatus(http.StatusBadRequest)
+			} else {
+				err = config.SendMetrics(body.Name, *body.Value, body.Dimension)
+				if err != nil {
+					_ = context.AbortWithError(http.StatusInternalServerError, err)
+					return
+				}
+				context.JSON(http.StatusOK, gin.H{})
 			}
-			context.JSON(http.StatusOK, gin.H{})
 		},
 	)
 	r.GET(

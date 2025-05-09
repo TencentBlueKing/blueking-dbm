@@ -196,3 +196,6 @@ REPO_VERSION_FOR_DEV = get_type_env(key="REPO_VERSION_FOR_DEV", _type=str, defau
 
 # 机器主动下载文件
 INITIATIVE_DOWNLOAD = get_type_env(key="INITIATIVE_DOWNLOAD", _type=bool, default=False)
+
+# 反向查询接口禁用安全检查
+DEBUG_REVERSE_API = get_type_env(key="DEBUG_REVERSE_API", _type=bool, default=False)

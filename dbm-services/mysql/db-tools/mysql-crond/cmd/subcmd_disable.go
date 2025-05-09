@@ -62,7 +62,7 @@ func disableEntry(cmd *cobra.Command, jobNames []string, permanent bool) error {
 	apiUrl := ""
 	configFile, _ := cmd.Flags().GetString("config")
 	if apiUrl, err = config.GetApiUrlFromConfig(configFile); err != nil {
-		fmt.Fprintln(os.Stderr, "read config error", err.Error())
+		_, _ = fmt.Fprintln(os.Stderr, "read config error", err.Error())
 		os.Exit(1)
 	}
 	manager := api.NewManager(apiUrl)

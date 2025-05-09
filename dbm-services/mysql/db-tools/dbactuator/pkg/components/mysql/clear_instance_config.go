@@ -70,21 +70,21 @@ func (c *ClearInstanceConfigComp) clearBackend() (err error) {
 	err = c.clearChecksum()
 	if err != nil {
 		logger.Error("clear backend checksum failed: %s", err.Error())
-		return err
+		//return err
 	}
 	logger.Info("clear backend checksum success")
 
 	err = c.clearRotateBinlog()
 	if err != nil {
 		logger.Error("clear backend rotate binlog failed: %s", err.Error())
-		return err
+		//return err
 	}
 	logger.Info("clear backend rotate binlog success")
 
 	err = c.clearDbBackup()
 	if err != nil {
 		logger.Error("clear backend dbbackup failed: %s", err.Error())
-		return err
+		//return err
 	}
 	logger.Info("clear backend dbbackup success")
 

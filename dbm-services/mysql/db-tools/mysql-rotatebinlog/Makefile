@@ -20,8 +20,12 @@ release-bin: build
 	cp main.example.yaml ${OUTPUT_DIR}/${PROJ}/main.yaml.example
 	# 为了保证 tar 压缩得到的包的 md5 一致，这里修改文件的时间戳，同时把 tar -zcf 拆为 tar -cf && gzip
 	find ${OUTPUT_DIR} -exec touch -t ${GITDATE} {} +
-	tar -C ${OUTPUT_DIR} -cf ${OUTPUT_DIR}/${TAR_PKG} ${PROJ}/
+	tar --no-xattrs -C ${OUTPUT_DIR} -cf ${OUTPUT_DIR}/${TAR_PKG} ${PROJ}/
 	gzip -n -f ${OUTPUT_DIR}/${TAR_PKG}
+
+.PHONY: dev-bin
+dev-bin:
+	go build -gcflags="all=-trimpath=${PWD}" -asmflags="all=-trimpath=${PWD}" -ldflags ${RELEASE_BUILD_FLAG} -o ${OUTPUT_DIR}/${PROJ}/${PROJ_BIN}
 
 .PHONY: beta
 beta:

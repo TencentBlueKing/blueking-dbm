@@ -1,33 +1,27 @@
-package internal
+package core
 
 import (
-	"bufio"
-	"dbm-services/common/reverse-api/config"
+	"fmt"
+
 	"encoding/json"
 	errs "errors"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
-	"os"
-	"path/filepath"
 	"strconv"
-	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/spf13/viper"
 )
 
-func ReverseCall(api config.ReverseApiName, bkCloudId int, ports ...int) (data []byte, err error) {
-	addrs, err := readNginxProxyAddrs()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to read nginx proxy addresses")
-	}
-	slog.Info("reserve call", slog.String("nginx addrs", strings.Join(addrs, ",")))
+const reverseApiBase = "apis/proxypass/reverse_api"
 
+func (c *Core) ReverseCall(apiEndPoint string, ports ...int) (data []byte, err error) {
 	var errCollect []error
-	for _, addr := range addrs {
+	for _, addr := range c.nginxAddrs {
 		slog.Info("reserve call", slog.String("on addr", addr))
-		apiPath, _ := url.JoinPath(config.ReverseApiBase, api.String(), "/")
+		apiPath, _ := url.JoinPath(reverseApiBase, apiEndPoint, "/")
 		ep := url.URL{
 			Scheme: "http",
 			Host:   addr,
@@ -43,7 +37,11 @@ func ReverseCall(api config.ReverseApiName, bkCloudId int, ports ...int) (data [
 		}
 
 		q := req.URL.Query()
-		q.Add("bk_cloud_id", strconv.Itoa(bkCloudId))
+		// 调试代码
+		if viper.GetString("debug-ip") != "" {
+			q.Add("ip", viper.GetString("debug-ip"))
+		}
+		q.Add("bk_cloud_id", fmt.Sprintf("%d", c.bkCloudId))
 		for _, port := range ports {
 			q.Add("port", strconv.Itoa(port))
 		}
@@ -91,23 +89,4 @@ func do(request *http.Request) (data []byte, err error) {
 	}
 
 	return r.Data, nil
-}
-
-func readNginxProxyAddrs() (addrs []string, err error) {
-	f, err := os.Open(filepath.Join(config.CommonConfigDir, config.NginxProxyAddrsFileName))
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to open nginx proxy addrs")
-	}
-	defer func() {
-		_ = f.Close()
-	}()
-
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		addrs = append(addrs, scanner.Text())
-	}
-	if err := scanner.Err(); err != nil {
-		return nil, errors.Wrap(err, "failed to read nginx proxy addrs")
-	}
-	return addrs, nil
 }

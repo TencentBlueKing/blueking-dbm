@@ -133,7 +133,11 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         return {
             "db_type": DBActuatorTypeEnum.Default.value,
             "action": DBActuatorActionEnum.Sysinit.value,
-            "payload": {"user": self.account["os_mysql_user"], "pwd": self.account["os_mysql_pwd"]},
+            "payload": {
+                "user": self.account["os_mysql_user"],
+                "pwd": self.account["os_mysql_pwd"],
+                "nginx_addrs": list_nginx_addrs(bk_cloud_id=self.bk_cloud_id),
+            },
         }
 
     def deal_with_upgrade_to_mysql57(self, cfg: dict) -> dict:
@@ -3005,7 +3009,6 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "beat_path": env.MYSQL_CROND_BEAT_PATH,
                     "agent_address": env.MYSQL_CROND_AGENT_ADDRESS,
                     "bk_biz_id": int(self.cluster["bk_biz_id"]),
-                    "nginx_addrs": list_nginx_addrs(bk_cloud_id=self.bk_cloud_id),
                 },
             },
         }

@@ -152,21 +152,39 @@ func (c *Checker) reportHeartbeatDelay() error {
 	slog.Info(name, slog.Any("master server id", masterServerId))
 
 	var timeDelay int64
+
+	var uptime int64
 	err = c.db.QueryRowx(
-		`select convert((unix_timestamp(now())-unix_timestamp(master_time)),UNSIGNED) as time_delay 
-					from infodba_schema.master_slave_heartbeat 
-					where master_server_id = ? and slave_server_id != master_server_id`,
-		masterServerId,
-	).Scan(&timeDelay)
+		`select VARIABLE_VALUE as uptime from information_schema.GLOBAL_STATUS where VARIABLE_NAME='Uptime';`,
+	).Scan(&uptime)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			timeDelay = 99999999
-		} else {
-			return err
-		}
+		slog.Error(name, slog.String("error", err.Error()))
+		return err
 	}
 
-	slog.Info("master_slave_heartbeat delay", slog.Int64("delay", timeDelay))
+	if uptime < 3600 {
+		timeDelay = 0
+		slog.Info(name,
+			slog.String("uptime", fmt.Sprintf("%v", uptime)),
+			slog.String("force report time_delay", fmt.Sprintf("%v", timeDelay)),
+		)
+	} else {
+		err = c.db.QueryRowx(
+			`select convert((unix_timestamp(now())-unix_timestamp(master_time)),UNSIGNED) as time_delay 
+					from infodba_schema.master_slave_heartbeat 
+					where master_server_id = ? and slave_server_id != master_server_id`,
+			masterServerId,
+		).Scan(&timeDelay)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				timeDelay = 99999999
+			} else {
+				return err
+			}
+		}
+
+		slog.Info("master_slave_heartbeat delay", slog.Int64("delay", timeDelay))
+	}
 
 	utils.SendMonitorMetrics(
 		strings.Replace(name, "-", "_", -1),

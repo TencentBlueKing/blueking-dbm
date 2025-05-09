@@ -17,9 +17,6 @@ import (
 type jobsConfig struct {
 	Jobs    []*ExternalJob `yaml:"jobs"`
 	BkBizId int            `yaml:"bk_biz_id"`
-	// ImmuteDomain string         `yaml:"immute_domain"`
-	// MachineType  string         `yaml:"machine_type"`
-	// Role         *string        `yaml:"role,omitempty"`
 }
 
 // ExternalJob TODO

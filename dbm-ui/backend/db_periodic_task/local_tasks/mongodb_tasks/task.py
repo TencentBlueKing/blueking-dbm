@@ -14,8 +14,8 @@ from celery.schedules import crontab
 
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
 
-from .check_full_backup import check_full_backup
 from .check_exporter import check_metric
+from .check_full_backup import check_full_backup
 
 logger = logging.getLogger("celery")
 

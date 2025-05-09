@@ -1,8 +1,7 @@
 package nginx_updater
 
 import (
-	"dbm-services/common/reverse-api/apis/common"
-	rconfig "dbm-services/common/reverse-api/config"
+	"dbm-services/common/reverseapi"
 	"dbm-services/mysql/db-tools/mysql-crond/pkg/config"
 	"log/slog"
 	"math/rand"
@@ -44,19 +43,21 @@ func updater() error {
 }
 
 func Updater() error {
-	err := os.MkdirAll(rconfig.CommonConfigDir, 0777)
+
+	rvApi, err := reverseapi.NewReverseApi(int64(*config.RuntimeConfig.BkCloudID))
 	if err != nil {
-		return errors.Wrap(err, "can't create config directory")
+		slog.Error("create reverse api", slog.String("err", err.Error()))
+		return err
 	}
 
-	addrs, err := common.ListNginxAddrs(*config.RuntimeConfig.BkCloudID)
+	addrs, err := rvApi.Common.ListNginxAddrs()
 	if err != nil {
 		return errors.Wrap(err, "list nginx addrs failed")
 	}
 	slog.Info("list nginx addrs", slog.String("addrs", strings.Join(addrs, ",")))
 
 	f, err := os.OpenFile(
-		filepath.Join(rconfig.CommonConfigDir, rconfig.NginxProxyAddrsFileName),
+		filepath.Join(reverseapi.DefaultCommonConfigDir, reverseapi.DefaultNginxProxyAddrsFileName),
 		os.O_TRUNC|os.O_CREATE|os.O_WRONLY,
 		0777,
 	)

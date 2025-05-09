@@ -3,7 +3,6 @@ go 1.24.2
 use (
 	k8s-dbs
 	bigdata/db-tools/dbactuator
-	common/bkdata-kafka-consumer
 	common/celery-service
 	common/db-config
 	common/db-dns/dns-api
@@ -13,7 +12,9 @@ use (
 	common/dbha/ha-module
 	common/dbha/hadb-api
 	common/go-pubpkg
-	common/reverse-api
+	common/reverseapi
+	common/bkdata-kafka-consumer
+	oracle/db-tools/dbactuator
 	mongodb/db-tools/dbactuator
 	mongodb/db-tools/dbmon
 	mongodb/db-tools/mongo-toolkit-go
@@ -29,7 +30,6 @@ use (
 	mysql/db-tools/mysql-rotatebinlog
 	mysql/db-tools/mysql-table-checksum
 	mysql/slow-query-parser-service
-	oracle/db-tools/dbactuator
 	redis/db-tools/dbactuator
 	redis/db-tools/dbmon
 	redis/redis-dts

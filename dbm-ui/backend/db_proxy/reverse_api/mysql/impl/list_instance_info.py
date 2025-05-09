@@ -12,7 +12,7 @@ from typing import List, Optional
 
 from django.db.models import Q
 
-from backend.db_meta.enums import AccessLayer
+from backend.db_meta.enums import AccessLayer, MachineType, TenDBClusterSpiderRole
 from backend.db_meta.models import Machine, ProxyInstance, StorageInstance
 
 
@@ -68,6 +68,10 @@ def list_storageinstance_info(q: Q) -> List:
                 "instance_inner_role": i.instance_inner_role,
                 "receivers": receivers,
                 "ejectors": ejectors,
+                "bk_instance_id": i.instance_id,
+                "bk_biz_id": i.bk_biz_id,
+                "bk_cloud_id": i.machine.bk_cloud_id,
+                "cluster_type": i.cluster_type,
             }
         )
 
@@ -77,6 +81,14 @@ def list_storageinstance_info(q: Q) -> List:
 def list_proxyinstance_info(q: Q) -> List:
     res = []
     for i in ProxyInstance.objects.filter(q).prefetch_related("machine", "storageinstance__machine", "cluster"):
+        if i.machine_type == MachineType.SPIDER and i.tendbclusterspiderext.spider_role in [
+            TenDBClusterSpiderRole.SPIDER_MNT,
+            TenDBClusterSpiderRole.SPIDER_SLAVE_MNT,
+        ]:
+            bk_instance_id = 0
+        else:
+            bk_instance_id = i.bk_instance_id
+
         storageinstance_list = []
         for si in i.storageinstance.all():
             storageinstance_list.append(
@@ -96,6 +108,10 @@ def list_proxyinstance_info(q: Q) -> List:
                 "access_layer": i.access_layer,
                 "machine_type": i.machine_type,
                 "storageinstance_list": storageinstance_list,
+                "bk_instance_id": bk_instance_id,
+                "bk_biz_id": i.bk_biz_id,
+                "bk_cloud_id": i.machine.bk_cloud_id,
+                "cluster_type": i.cluster_type,
             }
         )
 

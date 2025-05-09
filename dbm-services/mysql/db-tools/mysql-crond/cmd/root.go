@@ -58,12 +58,14 @@ var rootCmd = &cobra.Command{
 			return err
 		}
 
-		slog.Info("start crond start third party update")
-		err = third_party.Updater()
-		if err != nil {
-			slog.Error("start crond", slog.String("error", err.Error()))
-		}
-		slog.Info("start crond init third party update finish")
+		go func() {
+			slog.Info("start crond start third party update")
+			err = third_party.Updater()
+			if err != nil {
+				slog.Error("start crond", slog.String("error", err.Error()))
+			}
+			slog.Info("start crond init third party update finish")
+		}()
 
 		quit := make(chan struct{})
 

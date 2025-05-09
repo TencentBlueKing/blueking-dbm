@@ -1,8 +1,7 @@
 package instance_info_updater
 
 import (
-	"dbm-services/common/reverse-api/apis/mysql"
-	rconfig "dbm-services/common/reverse-api/config"
+	"dbm-services/common/reverseapi"
 	"dbm-services/mysql/db-tools/mysql-crond/pkg/config"
 	"log/slog"
 	"math/rand"
@@ -43,13 +42,14 @@ func updater() error {
 }
 
 func Updater() error {
-	err := os.MkdirAll(rconfig.CommonConfigDir, 0777)
+	rvApi, err := reverseapi.NewReverseApi(int64(*config.RuntimeConfig.BkCloudID))
 	if err != nil {
-		return errors.Wrap(err, "can't create config directory")
+		slog.Error("create reverse api", slog.String("err", err.Error()))
+		return err
 	}
 
 	slog.Info("call reverse api", slog.Any("runtime config", config.RuntimeConfig))
-	info, layer, err := mysql.ListInstanceInfo(*config.RuntimeConfig.BkCloudID)
+	info, layer, err := rvApi.MySQL.ListInstanceInfo()
 	if err != nil {
 		slog.Error("list instance info failed", slog.String("err", err.Error()))
 		return errors.Wrap(err, "list instance info failed")
@@ -61,7 +61,7 @@ func Updater() error {
 	)
 
 	f, err := os.OpenFile(
-		filepath.Join(rconfig.CommonConfigDir, rconfig.InstanceInfoFileName),
+		filepath.Join(reverseapi.DefaultCommonConfigDir, reverseapi.DefaultInstanceInfoFileName),
 		os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0777,
 	)
 	if err != nil {

@@ -2,8 +2,9 @@
 package config
 
 import (
-	"dbm-services/common/reverse-api/apis/mysql"
-	rconfig "dbm-services/common/reverse-api/config"
+	"dbm-services/common/reverseapi"
+	"dbm-services/common/reverseapi/define/mysql"
+
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/db_table_filter"
 	"encoding/json"
 	"fmt"
@@ -137,8 +138,8 @@ func InitConfig(configPath string) error {
 
 func getSelfInfo() (sii *mysql.StorageInstanceInfo, err error) {
 	filePath := filepath.Join(
-		rconfig.CommonConfigDir,
-		rconfig.InstanceInfoFileName,
+		reverseapi.DefaultCommonConfigDir,
+		reverseapi.DefaultInstanceInfoFileName,
 	)
 	f, err := os.OpenFile(filePath, os.O_RDONLY, os.ModePerm)
 	if err != nil {

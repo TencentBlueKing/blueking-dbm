@@ -42,6 +42,7 @@ func SendMonitorMetrics(name string, value int64, customDimension map[string]int
 			slog.String("error", err.Error()),
 			slog.String("name", name), slog.Int64("value", value),
 		)
+		return
 	}
 
 	slog.Info(

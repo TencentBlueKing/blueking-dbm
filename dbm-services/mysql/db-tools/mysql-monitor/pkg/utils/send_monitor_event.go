@@ -39,6 +39,7 @@ func SendMonitorEvent(name string, msg string) {
 			slog.String("error", err.Error()),
 			slog.String("name", name), slog.String("msg", msg),
 		)
+		return
 	}
 
 	slog.Info(

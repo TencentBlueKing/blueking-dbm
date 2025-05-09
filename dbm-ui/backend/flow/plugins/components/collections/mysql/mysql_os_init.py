@@ -17,6 +17,7 @@ from pipeline.component_framework.component import Component
 
 from backend import env
 from backend.components import DBPrivManagerApi, JobApi
+from backend.db_proxy.reverse_api.common.impl import list_nginx_addrs
 from backend.flow.consts import DBA_ROOT_USER, DEFAULT_INSTANCE, MySQLPrivComponent, UserName
 from backend.flow.plugins.components.collections.common.base_service import BkJobService
 from backend.flow.utils.script_template import fast_execute_script_common_kwargs
@@ -145,7 +146,8 @@ os_sysctl_init = """
             chmod 755 /home/mysql
             usermod -d /home/mysql mysql
     fi
-    # if there is a mysql user an error will be reported in the previous step and home mysql will not be created so make a judgment and create home mysql
+    # if there is a mysql user an error will be reported in the previous step
+    # and home mysql will not be created so make a judgment and create home mysql
     if [ ! -d /data ];
     then
         mkdir -p /data1/data/
@@ -160,9 +162,6 @@ os_sysctl_init = """
     chown -R mysql /data1/dbha
     mkdir -p /data/dbha
     chown -R mysql /data/dbha
-    #mkdir -p /home/mysql/install
-    #chown -R mysql /home/mysql
-    #chmod -R a+rwx /home/mysql/install
     mkdir -p /data/install
     chown -R mysql /home/mysql
     chown -R mysql /data/install
@@ -170,6 +169,8 @@ os_sysctl_init = """
     rm -rf /home/mysql/install
     ln -s /data/install /home/mysql/install
     chown -R mysql /home/mysql/install
+    mkdir -p /home/mysql/common_config
+    chown -R mysql /home/mysql/common_config
     echo "mysql:{{mysql_os_password}}" | chpasswd
     FOUND=$(grep 'ulimit -n' /etc/profile)
     if [ -z "$FOUND" ]; then
@@ -224,9 +225,16 @@ class SysInit(BkJobService):
         except Exception:
             pass
 
+        nginx_addrs_init = """
+        echo '{}' >> /home/mysql/common_config/nginx_proxy.list
+        chown mysql /home/mysql/common_config/nginx_proxy.list
+        """.format(
+            "\n".join(list_nginx_addrs(kwargs["bk_cloud_id"]))
+        )
+
         # 脚本内容
         jinja_env = Environment()
-        template = jinja_env.from_string(os_sysctl_init)
+        template = jinja_env.from_string(os_sysctl_init + nginx_addrs_init)
         script_content = template.render(
             max_open_file=max_open_file, aio_max_nr=aio_max_nr, mysql_os_password=self._get_os_mysql_password()
         )

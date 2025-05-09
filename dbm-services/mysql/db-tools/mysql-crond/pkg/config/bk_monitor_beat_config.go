@@ -9,14 +9,8 @@ type bkCustom struct {
 
 // BkMonitorBeat TODO
 type BkMonitorBeat struct {
-	// CustomEvent struct {
-	//	bkCustom `yaml:",inline"`
-	//	//Name     string `yaml:"name" validate:"required"`
-	// } `yaml:"custom_event" validate:"required"`
 	CustomMetrics bkCustom `yaml:"custom_metrics" validate:"required"`
 	CustomEvent   bkCustom `yaml:"custom_event" validate:"required"`
-	// InnerEventName   string   `yaml:"inner_event_name" validate:"required"`
-	// InnerMetricsName string   `yaml:"inner_metrics_name" validate:"required"`
-	BeatPath     string `yaml:"beat_path" validate:"required,file"`
-	AgentAddress string `yaml:"agent_address" validate:"required,file"`
+	BeatPath      string   `yaml:"beat_path" validate:"required,file"`
+	AgentAddress  string   `yaml:"agent_address" validate:"required,file"`
 }

@@ -81,7 +81,7 @@ func initLogger(cfg *config.LogConfig, mode config.CheckMode) {
 			}
 		}
 
-		ioWriters = append(ioWriters, &lumberjack.Logger{Filename: logFile})
+		ioWriters = append(ioWriters, &lumberjack.Logger{Filename: logFile, MaxAge: 2, Compress: true})
 	}
 
 	handleOpt := slog.HandlerOptions{AddSource: cfg.Source}

@@ -49,7 +49,7 @@ func listEntries(cmd *cobra.Command, status string) []*api.SimpleEntry {
 	apiUrl := ""
 	configFile, _ := cmd.Flags().GetString("config")
 	if apiUrl, err = config.GetApiUrlFromConfig(configFile); err != nil {
-		fmt.Fprintln(os.Stderr, "read config error", err.Error())
+		_, _ = fmt.Fprintln(os.Stderr, "read config error", err.Error())
 		os.Exit(1)
 	}
 	queryParam := url.Values{}
@@ -65,7 +65,7 @@ func listEntries(cmd *cobra.Command, status string) []*api.SimpleEntry {
 	manager := api.NewManager(apiUrl)
 	entries, err := manager.EntriesWithParam(queryParam)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "fail to list entries", err.Error())
+		_, _ = fmt.Fprintln(os.Stderr, "fail to list entries", err.Error())
 		os.Exit(1)
 	}
 	return entries

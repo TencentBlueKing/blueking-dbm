@@ -140,7 +140,8 @@ func (c *DbConsoleDumpComp) Init() (err error) {
 	if len(tbls) <= 0 {
 		tbls = []string{"*"}
 	}
-	if len(c.Params.DumpDetail.TablesIgnore) <= 0 && !(len(tbls) == 1 && tbls[0] == "*") {
+	logger.Info("ignore: %v, tbls: %v", c.Params.DumpDetail.TablesIgnore, tbls)
+	if len(c.Params.DumpDetail.TablesIgnore) <= 0 /*&& !(len(tbls) == 1 && tbls[0] == "*")*/ {
 		dbTablefiler, err = db_table_filter.NewFilter(c.Params.DumpDetail.Databases, tbls, nil, nil)
 		if err != nil {
 			return err
@@ -173,6 +174,8 @@ func (c *DbConsoleDumpComp) Init() (err error) {
 				c.realIgnoreTables = append(c.realIgnoreTables, fmt.Sprintf("%s.%s", k, tb))
 			}
 		}
+	} else {
+		logger.Error("unexpected input")
 	}
 	logger.Info("special tables %v", c.realTables)
 	logger.Info("ignore tables %v", c.realIgnoreTables)

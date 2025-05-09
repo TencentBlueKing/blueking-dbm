@@ -74,7 +74,7 @@ func (c *MySQLMonitorComp) generateRuntimeConfigIns(port int, bkInstanceId int64
 		return err
 	}
 
-	if bkInstanceId <= 0 {
+	if bkInstanceId < 0 {
 		err = errors.Errorf(
 			"%s:%d invalid bk_instance_id: %d",
 			c.Params.IP, port, bkInstanceId,

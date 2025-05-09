@@ -1,8 +1,8 @@
 package update_monitor_config
 
 import (
-	"dbm-services/common/reverse-api/apis/mysql"
-	rconfig "dbm-services/common/reverse-api/config"
+	"dbm-services/common/reverseapi"
+	"dbm-services/common/reverseapi/define/mysql"
 	acst "dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"encoding/json"
@@ -115,8 +115,8 @@ func (c *Checker) updateConfigFile(sii *mysql.StorageInstanceInfo) (err error) {
 
 func (c *Checker) getSelfInfo() (sii *mysql.StorageInstanceInfo, err error) {
 	filePath := filepath.Join(
-		rconfig.CommonConfigDir,
-		rconfig.InstanceInfoFileName,
+		reverseapi.DefaultCommonConfigDir,
+		reverseapi.DefaultNginxProxyAddrsFileName,
 	)
 	f, err := os.OpenFile(filePath, os.O_RDONLY, os.ModePerm)
 	if err != nil {

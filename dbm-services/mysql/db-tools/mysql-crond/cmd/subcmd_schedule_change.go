@@ -38,9 +38,9 @@ func init() {
 	changeJobCmd.Flags().StringP("name", "n", "", "full job name")
 	changeJobCmd.Flags().StringP("schedule", "s", "", "schedule format like crontab")
 	changeJobCmd.Flags().Bool("permanent", false, "permanent schedule to config file, default false")
-	changeJobCmd.MarkFlagRequired("name")
-	changeJobCmd.MarkFlagRequired("schedule")
-	changeJobCmd.MarkFlagRequired("permanent")
+	_ = changeJobCmd.MarkFlagRequired("name")
+	_ = changeJobCmd.MarkFlagRequired("schedule")
+	_ = changeJobCmd.MarkFlagRequired("permanent")
 	rootCmd.AddCommand(changeJobCmd)
 }
 
@@ -52,7 +52,7 @@ func changeEntry(cmd *cobra.Command, jobName string) error {
 	permanent, _ := cmd.Flags().GetBool("permanent")
 	configFile, _ := cmd.Flags().GetString("config")
 	if apiUrl, err = config.GetApiUrlFromConfig(configFile); err != nil {
-		fmt.Fprintln(os.Stderr, "read config error", err.Error())
+		_, _ = fmt.Fprintln(os.Stderr, "read config error", err.Error())
 		os.Exit(1)
 	}
 	manager := api.NewManager(apiUrl)

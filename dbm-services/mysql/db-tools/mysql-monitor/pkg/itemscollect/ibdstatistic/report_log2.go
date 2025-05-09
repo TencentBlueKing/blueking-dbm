@@ -9,6 +9,7 @@
 package ibdstatistic
 
 import (
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/internal/identifiertrans"
 	"fmt"
 	"log/slog"
 	"os"
@@ -72,6 +73,19 @@ func reportLog2(dbPort int, dbTableSize map[string]int64, dbSize map[string]int6
 			}
 		}
 
+		readableOriginalDBName, err := identifiertrans.FilenameToTableName(originalDBName)
+		if err != nil {
+			return errors.Wrap(err, "failed to translate original dbname")
+		}
+		readableDBName, err := identifiertrans.FilenameToTableName(dbName)
+		if err != nil {
+			return errors.Wrap(err, "failed to translate dbname")
+		}
+		readableTableName, err := identifiertrans.FilenameToTableName(tableName)
+		if err != nil {
+			return errors.Wrap(err, "failed to translate tablename")
+		}
+
 		oneTableInfo := tableSizeStruct{
 			BkCloudId:         *config.MonitorConfig.BkCloudID,
 			BkBizId:           config.MonitorConfig.BkBizId,
@@ -82,10 +96,10 @@ func reportLog2(dbPort int, dbTableSize map[string]int64, dbSize map[string]int6
 			Port:              config.MonitorConfig.Port,
 			Role:              *config.MonitorConfig.Role,
 			ServiceInstanceId: config.MonitorConfig.BkInstanceId,
-			OriginalDBName:    originalDBName,
-			DBName:            dbName,
+			OriginalDBName:    readableOriginalDBName,
+			DBName:            readableDBName,
 			DBSize:            dbSize[originalDBName], // 每个表都会跟随上报一份 database size
-			TableName:         tableName,
+			TableName:         readableTableName,
 			TableSize:         tableSize,
 			ReportTime:        reportTs,
 		}

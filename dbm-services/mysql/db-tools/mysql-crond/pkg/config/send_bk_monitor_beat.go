@@ -97,7 +97,7 @@ func SendEvent(name string, content string, additionDimension map[string]interfa
 		},
 		Data: []eventData{
 			{
-				EventName: name, // RuntimeConfig.BkMonitorBeat.CustomEvent.Name,
+				EventName: name,
 				Event: map[string]interface{}{
 					"content": content,
 				},
@@ -171,13 +171,6 @@ func buildDimension(addition map[string]interface{}) map[string]interface{} {
 	dimension["server_ip"] = RuntimeConfig.Ip
 	dimension["bk_target_ip"] = RuntimeConfig.Ip
 	dimension["bk_target_cloud_id"] = strconv.Itoa(*RuntimeConfig.BkCloudID)
-
-	// dimension["immute_domain"] = JobsConfig.ImmuteDomain
-	// dimension["machine_type"] = JobsConfig.MachineType
-	//
-	// if JobsConfig.Role != nil {
-	//	dimension["role"] = *JobsConfig.Role
-	// }
 
 	for k, v := range addition {
 		dimension[k] = v

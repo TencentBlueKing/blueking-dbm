@@ -29,7 +29,7 @@ dev-bin:
 	cp -r lib ${OUTPUT_DIR}/
 	cp -a pt-table-checksum ${OUTPUT_DIR}/
 	cp -a pt-table-sync ${OUTPUT_DIR}/
-	cp -a checksum_history ${OUTPUT_DIR}/
+	cp -a checksum_history.sql ${OUTPUT_DIR}/
 	tar -C ${OUTPUT_DIR} -zcf ${OUTPUT_DIR}/${PKG} ${PROJ} pt-table-checksum pt-table-sync lib
 
 .PHONY: clean

@@ -17,6 +17,13 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_proxy.reverse_api.base_reverse_api_view import BaseReverseApiView
 from backend.db_proxy.reverse_api.decorators import reverse_api
 from backend.db_proxy.reverse_api.mysql.impl import list_instance_info
+from backend.db_proxy.reverse_api.mysql.impl.checksum_config import checksum_config
+from backend.db_proxy.reverse_api.mysql.impl.dbbackup_config import dbbackup_config
+from backend.db_proxy.reverse_api.mysql.impl.expoter_cnf import exporter_config
+from backend.db_proxy.reverse_api.mysql.impl.monitor_items_config import monitor_items_config
+from backend.db_proxy.reverse_api.mysql.impl.monitor_runtime_config import monitor_runtime_config
+from backend.db_proxy.reverse_api.mysql.impl.mysql_crond_config import mysql_crond_config
+from backend.db_proxy.reverse_api.mysql.impl.roatebinlog_config import rotatebinlog_config
 
 logger = logging.getLogger("root")
 
@@ -29,6 +36,125 @@ class MySQLReverseApiView(BaseReverseApiView):
         logger.info(f"bk_cloud_id: {bk_cloud_id}, ip: {ip}, port:{port_list}")
         res = list_instance_info(bk_cloud_id=bk_cloud_id, ip=ip, port_list=port_list)
         logger.info(f"instance info: {res}")
+        return JsonResponse(
+            {
+                "result": True,
+                "code": 0,
+                "data": res,
+                "message": "",
+                "errors": None,
+            }
+        )
+
+    @common_swagger_auto_schema(operation_summary=_("获取实例监控 runtime 配置"))
+    @reverse_api(url_path="monitor_runtime_config")
+    def monitor_runtime_config(self, request, *args, **kwargs):
+        bk_cloud_id, ip, port_list = self.get_api_params()
+        logger.info(f"bk_cloud_id: {bk_cloud_id}, ip: {ip}, port:{port_list}")
+        res = monitor_runtime_config(bk_cloud_id=bk_cloud_id, ip=ip, port_list=port_list)
+        logger.info(f"runtime config: {res}")
+        return JsonResponse(
+            {
+                "result": True,
+                "code": 0,
+                "data": res,
+                "message": "",
+                "errors": None,
+            }
+        )
+
+    @common_swagger_auto_schema(operation_summary=_("获取实例监控项配置"))
+    @reverse_api(url_path="monitor_items_config")
+    def monitor_items_config(self, request, *args, **kwargs):
+        bk_cloud_id, ip, port_list = self.get_api_params()
+        logger.info(f"bk_cloud_id: {bk_cloud_id}, ip: {ip}, port:{port_list}")
+        res = monitor_items_config(bk_cloud_id=bk_cloud_id, ip=ip, port_list=port_list)
+        logger.info(f"items config: {res}")
+        return JsonResponse(
+            {
+                "result": True,
+                "code": 0,
+                "data": res,
+                "message": "",
+                "errors": None,
+            }
+        )
+
+    @common_swagger_auto_schema(operation_summary=_("获取 mysql-crond 配置"))
+    @reverse_api(url_path="mysql_crond_config")
+    def mysql_crond_config(self, request, *args, **kwargs):
+        bk_cloud_id, ip, port_list = self.get_api_params()
+        logger.info(f"bk_cloud_id: {bk_cloud_id}, ip: {ip}, port:{port_list}")
+        res = mysql_crond_config(bk_cloud_id=bk_cloud_id, ip=ip)
+        logger.info(f"mysql-crond config: {res}")
+        return JsonResponse(
+            {
+                "result": True,
+                "code": 0,
+                "data": res,
+                "message": "",
+                "errors": None,
+            }
+        )
+
+    @common_swagger_auto_schema(operation_summary=_("获取备份配置"))
+    @reverse_api(url_path="dbbackup_config")
+    def dbbackup_config(self, request, *args, **kwargs):
+        bk_cloud_id, ip, port_list = self.get_api_params()
+        logger.info(f"bk_cloud_id: {bk_cloud_id}, ip: {ip}, port:{port_list}")
+        res = dbbackup_config(bk_cloud_id=bk_cloud_id, ip=ip, port_list=port_list)
+        logger.info(f"dbbackup config: {res}")
+        return JsonResponse(
+            {
+                "result": True,
+                "code": 0,
+                "data": res,
+                "message": "",
+                "errors": None,
+            }
+        )
+
+    @common_swagger_auto_schema(operation_summary=_("获取 rotatebinlog 配置"))
+    @reverse_api(url_path="rotatebinlog_config")
+    def rotatebinlog_config(self, request, *args, **kwargs):
+        bk_cloud_id, ip, port_list = self.get_api_params()
+        logger.info(f"bk_cloud_id: {bk_cloud_id}, ip: {ip}, port:{port_list}")
+        res = rotatebinlog_config(bk_cloud_id=bk_cloud_id, ip=ip, port_list=port_list)
+        logger.info(f"rotatebinlog config: {res}")
+        return JsonResponse(
+            {
+                "result": True,
+                "code": 0,
+                "data": res,
+                "message": "",
+                "errors": None,
+            }
+        )
+
+    @common_swagger_auto_schema(operation_summary=_("获取数据校验配置"))
+    @reverse_api(url_path="checksum_config")
+    def checksum_config(self, request, *args, **kwargs):
+        bk_cloud_id, ip, port_list = self.get_api_params()
+        logger.info(f"bk_cloud_id: {bk_cloud_id}, ip: {ip}, port:{port_list}")
+        res = checksum_config(bk_cloud_id=bk_cloud_id, ip=ip, port_list=port_list)
+        logger.info(f"checksum config: {res}")
+        return JsonResponse(
+            {
+                "result": True,
+                "code": 0,
+                "data": res,
+                "message": "",
+                "errors": None,
+            }
+        )
+
+    @common_swagger_auto_schema(operation_summary=_("获取 exporter 配置"))
+    @reverse_api(url_path="exporter_config")
+    def exporter_config(self, request, *args, **kwargs):
+        bk_cloud_id, ip, port_list = self.get_api_params()
+        logger.info(f"bk_cloud_id: {bk_cloud_id}, ip: {ip}, port:{port_list}")
+        res = exporter_config(bk_cloud_id=bk_cloud_id, ip=ip, port_list=port_list)
+        logger.info(f"exporter config: {res}")
         return JsonResponse(
             {
                 "result": True,

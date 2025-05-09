@@ -16,17 +16,14 @@ func SyncAddJob(newJob *ExternalJob) error {
 		return err
 	}
 
-	// var jobs []*ExternalJob
 	err = yaml.Unmarshal(content, &JobsConfig)
 	if err != nil {
 		slog.Error("sync add encode config", slog.String("error", err.Error()))
 		return err
 	}
 
-	// jobs = append(jobs, newJob)
 	JobsConfig.Jobs = append(JobsConfig.Jobs, newJob)
 
-	// output, err := yaml.Marshal(jobs)
 	output, err := yaml.Marshal(JobsConfig)
 	if err != nil {
 		slog.Error("sync add decode updated config", slog.String("error", err.Error()))
@@ -49,7 +46,6 @@ func SyncJobEnable(name string, enable bool) error {
 		return err
 	}
 
-	// var jobs []*ExternalJob
 	err = yaml.Unmarshal(content, &JobsConfig)
 	if err != nil {
 		slog.Error("sync job enable encode config", slog.String("error", err.Error()))
@@ -94,7 +90,6 @@ func SyncDelete(name string) error {
 		return err
 	}
 
-	// var jobs []*ExternalJob
 	err = yaml.Unmarshal(content, &JobsConfig)
 	if err != nil {
 		slog.Error("sync job enable encode config", slog.String("error", err.Error()))

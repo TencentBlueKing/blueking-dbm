@@ -18,11 +18,11 @@ from django.utils import timezone
 
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
-from backend.db_periodic_task.local_tasks.mongodb_tasks.report_op import create_failed_record, addr
+from backend.db_periodic_task.local_tasks.mongodb_tasks.report_op import addr, create_failed_record
 from backend.db_report.enums.mongodb_check_sub_type import MongodbBackupCheckSubType
 from backend.db_report.models.monogdb_check_report import MongodbBackupCheckReport
 from backend.db_services.mongodb.restore.handlers import MongoDBRestoreHandler
-from backend.flow.utils.mongodb.mongodb_repo import MongoRepository, MongoDBCluster
+from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster, MongoRepository
 
 logger = logging.getLogger("root")
 

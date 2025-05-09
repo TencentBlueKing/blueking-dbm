@@ -340,7 +340,12 @@ class BkJobService(BaseService, metaclass=ABCMeta):
             kwargs[f"{node_name}_ext_result_cached"] = True
             self.log_info(f"[{node_name}] ext_result: {ext_result}")
             # 打印job链接
-            if ext_result["data"] and "job_instance_id" in ext_result["data"]:
+            if (
+                isinstance(ext_result, dict)
+                and ext_result["data"]
+                and isinstance(ext_result["data"], dict)
+                and "job_instance_id" in ext_result["data"]
+            ):
                 self.log_info(f"job url: {self.__url__(ext_result['data']['job_instance_id'])}")
 
         if isinstance(ext_result, bool):

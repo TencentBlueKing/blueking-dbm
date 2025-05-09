@@ -16,6 +16,7 @@ from typing import List, Tuple
 from django.utils.translation import ugettext as _
 from rest_framework import permissions
 
+from backend import env
 from backend.bk_web.viewsets import SystemViewSet
 from backend.db_meta.models import Machine
 from backend.db_proxy.reverse_api.get_ip_from_request import get_bk_cloud_id, get_client_ip, get_nginx_ip
@@ -26,6 +27,9 @@ logger = logging.getLogger("root")
 
 class IPHasRegisteredPermission(permissions.BasePermission):
     def has_permission(self, request, view):
+        if env.DEBUG_REVERSE_API:
+            return True
+
         logger.info(
             f"[checking reverse-api-perm] request path: {request.path},"
             f"REMOTE_ADDR: {request.META.get('REMOTE_ADDR')},"
