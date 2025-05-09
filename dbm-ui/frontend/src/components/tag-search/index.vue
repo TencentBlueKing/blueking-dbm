@@ -11,6 +11,7 @@
       float-mode
       :list="dataList"
       multiple
+      :scroll-height="392"
       :style="{ width: isButtonMode ? '108px' : '400px' }"
       trigger="click"
       @change="handleValueChange"
@@ -27,6 +28,7 @@
   </div>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -62,11 +64,12 @@
   const searchValue = ref<[string, number][]>([]);
 
   let localSearchValue: [string, number][] = [];
+  let keyValueMap: Record<string, DataTye[]> = {};
 
   const { run: fetchTagList } = useRequest(listTag, {
     manual: true,
     onSuccess(data) {
-      const keyValueMap = data.results.reduce<Record<string, DataTye[]>>((results, item) => {
+      keyValueMap = data.results.reduce<Record<string, DataTye[]>>((results, item) => {
         const keyInfo = {
           id: item.id,
           name: item.value,
@@ -107,10 +110,40 @@
       return;
     }
 
-    const tagsIds = searchValue.value.map((item) => item[1]);
-    const queryObj = {
-      tag_ids: tagsIds.join(','),
-    };
+    const searchKeyValueMap = searchValue.value.reduce<Record<string, Set<number>>>((dataMap, item) => {
+      const [key, value] = item;
+      if (dataMap[key]) {
+        dataMap[key].add(value);
+      } else {
+        Object.assign(dataMap, {
+          [key]: new Set<number>([value]),
+        });
+      }
+      return dataMap;
+    }, {});
+    const keyList: string[] = [];
+    Object.entries(searchKeyValueMap).forEach(([key, idList]) => {
+      if (keyValueMap[key].every((item) => idList.has(item.id as number))) {
+        keyList.push(key);
+      }
+    });
+    if (keyList.length) {
+      keyList.forEach((key) => {
+        delete searchKeyValueMap[key];
+      });
+    }
+    const tagsIds = _.flatMap(Object.values(searchKeyValueMap).map((idSet) => Array.from(idSet)));
+    const queryObj = {};
+    if (tagsIds.length) {
+      Object.assign(queryObj, {
+        tag_ids: tagsIds.join(','),
+      });
+    }
+    if (keyList.length) {
+      Object.assign(queryObj, {
+        tag_keys: keyList.join(','),
+      });
+    }
     emits('search', queryObj);
     localSearchValue = searchValue.value;
   };

@@ -163,10 +163,11 @@
     </div>
     <div class="operation-icon-main">
       <DbIcon
+        class="add-icon"
         type="plus-fill"
         @click="handleAdd" />
       <DbIcon
-        class="ml-10"
+        class="delete-icon ml-10"
         type="minus-fill"
         @click="handleDelete" />
     </div>
@@ -432,8 +433,8 @@
         width: 238px;
 
         &.is-key-verify-failed {
-          :deep(.bk-input--text) {
-            background-color: #fff0f1;
+          :deep(.bk-input) {
+            border-color: #ea3636;
           }
 
           :deep(.angle-down) {
@@ -450,12 +451,12 @@
       margin-left: 14px;
 
       &.is-key-verify-failed {
-        :deep(.bk-input--text) {
-          background-color: #fff0f1;
+        :deep(.bk-input) {
+          border-color: #ea3636;
         }
 
         :deep(.bk-tag-input-trigger) {
-          background-color: #fff0f1;
+          border-color: #ea3636;
         }
 
         :deep(.angle-down) {
@@ -481,15 +482,12 @@
       font-size: 14px;
       color: #979ba5;
       cursor: pointer;
-    }
 
-    .is-not-valid {
-      :deep(.bk-input--text) {
-        background-color: #fff0f1;
-      }
-
-      :deep(.bk-tag-input-trigger) {
-        background-color: #fff0f1;
+      .add-icon,
+      .delete-icon {
+        &:hover {
+          color: #63656e;
+        }
       }
     }
   }

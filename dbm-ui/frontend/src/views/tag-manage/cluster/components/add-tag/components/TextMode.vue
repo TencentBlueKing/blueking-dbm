@@ -58,6 +58,10 @@
   const verifyTip = ref('');
   const placeholder = `${tipTitle}\n${exampleTip1}\n${exampleTip1}\n${exampleTip2}`;
 
+  watch(verifyTip, () => {
+    isVerifyPassed.value = !verifyTip.value;
+  });
+
   watch(
     () => props.data,
     () => {
@@ -83,7 +87,6 @@
     for (const pairStr of pairStrList) {
       if (!validPairRegex.test(pairStr)) {
         verifyTip.value = t('格式错误');
-        isVerifyPassed.value = false;
         return null;
       }
       const [key, value] = pairStr.split(validPairRegex);

@@ -38,7 +38,9 @@
             theme="warning"
             :title="t('为集群添加标签，若标签键存在则新添加，已存在则忽略')" />
           <div class="operation-main">
-            <TagOperation ref="tagOperationRef" />
+            <TagOperation
+              ref="tagOperationRef"
+              :allow-key-value-empty="false" />
           </div>
         </div>
       </template>

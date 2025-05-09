@@ -1,18 +1,32 @@
 <template>
   <div class="key-value-mode-main">
-    <KeyValuePair
-      v-for="(item, index) in pairList"
-      :key="item.id"
-      ref="keyValuePairsRef"
-      :data="item"
-      :exclude-keys="excludeKeyList"
-      :key-value-map="keyValueMap"
-      @add="() => handleAdd(index)"
-      @delete="() => handleDelete(index)"
-      @select-key="handleSelectKey" />
+    <BkButton
+      v-if="!pairList.length"
+      class="add-default"
+      size="small"
+      text
+      theme="primary"
+      @click="handleAddDefaultRow">
+      <DbIcon type="add" />
+      <span class="ml-4">{{ t('添加') }}</span>
+    </BkButton>
+    <template v-else>
+      <KeyValuePair
+        v-for="(item, index) in pairList"
+        :key="item.id"
+        ref="keyValuePairsRef"
+        :data="item"
+        :exclude-keys="excludeKeyList"
+        :key-value-map="keyValueMap"
+        @add="() => handleAdd(index)"
+        @delete="() => handleDelete(index)"
+        @select-key="handleSelectKey" />
+    </template>
   </div>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import { random } from '@utils';
 
   import type { KeyValueMapType, TagsPairType } from '../../Index.vue';
@@ -20,6 +34,7 @@
   import KeyValuePair from './components/KeyValuePair.vue';
 
   interface Props {
+    allowEmpty?: boolean;
     data?: TagsPairType;
     keyValueMap: KeyValueMapType;
   }
@@ -29,6 +44,7 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    allowEmpty: true,
     data: undefined,
   });
 
@@ -38,6 +54,8 @@
     label: '',
     value: '' as string | number,
   });
+
+  const { t } = useI18n();
 
   const pairList = ref([generateRowData()]);
   const keyValuePairsRef = ref<InstanceType<typeof KeyValuePair>[]>();
@@ -73,6 +91,10 @@
     { deep: true },
   );
 
+  const handleAddDefaultRow = () => {
+    pairList.value.push(generateRowData());
+  };
+
   const handleSelectKey = () => {
     excludeKeyList.value = keyValuePairsRef.value!.reduce<string[]>((results, item) => {
       const key = item.getSelectedKey();
@@ -91,6 +113,10 @@
   };
 
   const handleDelete = (index: number) => {
+    if (pairList.value.length === 1 && !props.allowEmpty) {
+      return;
+    }
+
     pairList.value.splice(index, 1);
     nextTick(() => {
       handleSelectKey();
@@ -118,5 +144,12 @@
     width: 100%;
     flex-direction: column;
     gap: 16px;
+
+    .add-default {
+      width: 64px;
+      margin-top: 8px;
+      margin-left: -12px;
+      font-size: 12px;
+    }
   }
 </style>

@@ -1,31 +1,48 @@
 <template>
   <div class="cluster-tag-list-box">
-    <div
-      v-if="isVertical"
-      class="list-display-main">
-      <TextOverflowLayout
-        v-for="(item, index) in renderList"
-        :key="index">
-        {{ item.key }} : {{ item.value.join(' , ') }}
-      </TextOverflowLayout>
-      <template v-if="!totalList.length"> -- </template>
-      <template v-if="isShowMore">
-        <BkButton
-          v-bk-tooltips="tooltip"
-          text
-          theme="primary">
-          {{ t('共n个', [totalList.length]) }}
-        </BkButton>
-      </template>
-    </div>
-    <div
-      v-else
-      class="list-display-main">
-      <TextOverflowLayout>
-        {{ renderList.map((item) => `${item.key} : ${item.value.join(' , ')}`).join(' , ') }}
-      </TextOverflowLayout>
-    </div>
+    <span v-if="!totalList.length">--</span>
+    <template v-else>
+      <div
+        v-if="isVertical"
+        class="list-display-main">
+        <TextOverflowLayout
+          v-for="(item, index) in renderList"
+          :key="index">
+          {{ item.key }} : {{ item.value.join(' , ') }}
+          <template
+            v-if="index === 0"
+            #append>
+            <AuthButton
+              :action-id="actionId"
+              class="edit-main"
+              :permission="checkEditPermission(data)"
+              :resource="data.id"
+              text
+              theme="primary"
+              @click="handleOpenAddTag">
+              <DbIcon type="edit" />
+            </AuthButton>
+          </template>
+        </TextOverflowLayout>
+        <template v-if="isShowMore">
+          <BkButton
+            v-bk-tooltips="tooltip"
+            text
+            theme="primary">
+            {{ t('共n个', [totalList.length]) }}
+          </BkButton>
+        </template>
+      </div>
+      <div
+        v-else
+        class="list-display-main">
+        <TextOverflowLayout>
+          {{ renderList.map((item) => `${item.key} : ${item.value.join(' , ')}`).join(' , ') }}
+        </TextOverflowLayout>
+      </div>
+    </template>
     <AuthButton
+      v-if="!isVertical || (isVertical && !totalList.length)"
       :action-id="actionId"
       class="edit-main"
       :permission="checkEditPermission(data)"
@@ -106,6 +123,11 @@
       .edit-main {
         display: block;
       }
+    }
+
+    .empty-main {
+      display: flex;
+      align-items: center;
     }
 
     .list-display-main {
