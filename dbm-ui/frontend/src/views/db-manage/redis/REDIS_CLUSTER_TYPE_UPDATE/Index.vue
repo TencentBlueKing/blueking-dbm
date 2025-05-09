@@ -35,38 +35,38 @@
               v-model="item.cluster"
               :cluster-types="[ClusterTypes.REDIS]"
               field="cluster.master_domain"
-              :label="t('目标集群')"
+              :label="t('源集群')"
               :selected="selected"
               :tab-list-config="tabListConfig"
               @batch-edit="handleClusterBatchEdit" />
             <EditableColumn
-              :label="t('原集群类型')"
+              :label="t('源集群类型')"
               :width="200">
               <EditableBlock :placeholder="t('选择集群后自动生成')">
                 {{ item.cluster.cluster_type_name }}
               </EditableBlock>
             </EditableColumn>
-            <TargetClusterTypeColumn
-              v-model="item.target_cluster_type"
-              :cluster="item.cluster" />
             <EditableColumn
-              :label="t('当前集群容量/QPS')"
+              :label="t('源集群容量')"
               :width="200">
               <EditableBlock :placeholder="t('选择集群后自动生成')">
                 {{
                   item.cluster.id
-                    ? `${item.cluster.cluster_capacity}G${item.cluster.cluster_spec?.qps?.max ? `${item.cluster.cluster_spec?.qps?.max}_/s` : ''}（${item.cluster.cluster_shard_num} 分片）`
+                    ? `${item.cluster.cluster_capacity}G${item.cluster.cluster_spec?.qps?.max ? `_${item.cluster.cluster_spec?.qps?.max}/s` : ''}（${item.cluster.cluster_shard_num} 分片）`
                     : ''
                 }}
               </EditableBlock>
             </EditableColumn>
+            <TargetClusterTypeColumn
+              v-model="item.target_cluster_type"
+              :cluster="item.cluster" />
+            <TargetVersionSelectColumn
+              v-model="item.db_version"
+              :target-cluster-type="item.target_cluster_type" />
             <TargetCapacityColumn
               v-model="item.target_capacity"
               :cluster="item.cluster"
               :title="t('选择集群类型变更部署方案')" />
-            <TargetVersionSelectColumn
-              v-model="item.db_version"
-              :target-cluster-type="item.target_cluster_type" />
             <EditableColumn
               :label="t('切换模式')"
               :width="200">
