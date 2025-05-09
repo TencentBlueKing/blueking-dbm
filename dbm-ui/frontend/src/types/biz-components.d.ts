@@ -8,7 +8,6 @@ declare module 'vue' {
     BkTable: typeof import('@blueking/table/typings/BkTable.vue');
     BkTable: typeof import('@blueking/table/typings/BkTable.vue');
     BkTableColumn: typeof import('@blueking/table/typings/BkTableColumn.vue');
-    BkTableColumn: typeof import('@blueking/table/typings/BkTableColumn.vue');
     DbCard: typeof import('@components/db-card/index.vue').default;
     DbForm: typeof import('@components/db-form/index.vue').default;
     DbIcon: typeof import('@components/db-icon/index.ts').default;
