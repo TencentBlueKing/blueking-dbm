@@ -63,6 +63,7 @@ func (b *BackupRecord) AppendMetaLabel(meta *config.BkDbmLabel) error {
 		return nil
 	}
 	b.BkDbmLabel = *meta
+	b.BkDbmLabel.AppName = "" // AppName 带有中文. 此处不需要它
 	b.ServerIp = b.BkDbmLabel.IP
 	b.ServerPort = b.BkDbmLabel.Port
 	return nil

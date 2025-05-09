@@ -40,7 +40,8 @@ type backupParams struct {
 	SkipBackupSystemDb    bool              `json:"skipBackupSysDb"`
 	WaitBackupSysTaskDone bool              `json:"waitBackupSysTaskDone"`
 	BsTag                 string            `json:"bs_tag"`
-	BackupType            string            `json:"backupType"` // 只能是 logical
+	BackupType            string            `json:"backupType"`     // 只能是 logical
+	MaxConcurrency        int               `json:"maxConcurrency"` // 最大并发数，默认为4
 	Args                  struct {
 		BackupNode string      `json:"backupNode"`
 		IsPartial  bool        `json:"isPartial"` // 为true时，备份指定库和表
@@ -76,6 +77,14 @@ func (s *backupJob) Name() string {
 
 // Run 运行原子任务
 func (s *backupJob) Run() error {
+	// fetch concurrency lock
+	lock, err := s.GetConcurrentLock(s.ConfParams.MaxConcurrency)
+	if err != nil {
+		s.runtime.Logger.Error("GetConcurrentLock failed, err:%s", err)
+		return errors.Wrap(err, "GetConcurrentLock")
+	}
+	defer lock.Unlock()
+
 	switch s.ConfParams.BackupType {
 	case backupTypeLogical:
 		return s.doLogicalBackup()

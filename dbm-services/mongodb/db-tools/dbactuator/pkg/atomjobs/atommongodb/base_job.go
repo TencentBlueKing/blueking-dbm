@@ -2,10 +2,15 @@ package atommongodb
 
 import (
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/jobruntime"
+	"dbm-services/mongodb/db-tools/dbactuator/pkg/util"
 	"fmt"
 	"os"
 	"os/user"
+	"path"
 	"path/filepath"
+	"time"
+
+	"github.com/gofrs/flock"
 
 	"github.com/pkg/errors"
 )
@@ -91,4 +96,41 @@ func (job *BaseJob) removeDir(dstDir string) error {
 		job.runtime.Logger.Info("removeDir %s absPath:%s", dstDir, absPath)
 	}
 	return nil
+}
+
+// GetConcurrentLock 获取并发锁
+func (job *BaseJob) GetConcurrentLock(maxConncurrency int) (lock *flock.Flock, err error) {
+	exePath, err := os.Executable()
+	if err != nil {
+		return nil, errors.Wrap(err, "os.executable")
+	}
+	exePath, err = filepath.Abs(exePath)
+	if err != nil {
+		return nil, errors.Wrap(err, "filepath.Abs")
+	}
+
+	if maxConncurrency <= 0 {
+		maxConncurrency = 4
+	}
+	lockFile := path.Join(path.Dir(exePath), "mongojob_tmp.lock")
+	i := 0
+	for {
+		i++
+
+		lock, err = util.GetFileLock(lockFile, maxConncurrency)
+		// success
+		if err == nil {
+			return lock, nil
+		}
+
+		if errors.Is(err, util.ErrAcquireLock) {
+			// try aagin
+			if i%60 == 1 {
+				job.runtime.Logger.Info("GetConcurrentLock failed, try again, lockFile:%s", lockFile)
+			}
+			time.Sleep(1 * time.Second)
+		} else {
+			return nil, errors.Wrap(err, "GetConcurrentLock")
+		}
+	}
 }
