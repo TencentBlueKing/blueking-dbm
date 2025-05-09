@@ -101,6 +101,16 @@ export default class Flow<
   flow_type: string;
   flow_type_display: string;
   id: number;
+  output_data: {
+    hidden: boolean; // 为true则不展示，适用于excel下载的上下文
+    table_name: string;
+    titles: {
+      display_name: string;
+      id: string;
+    }[];
+
+    values: Record<string, any>[];
+  }[];
   retry_type: string;
   start_time: string;
   status: string;
@@ -137,6 +147,7 @@ export default class Flow<
     this.flow_type = payload.flow_type;
     this.flow_type_display = payload.flow_type_display;
     this.id = payload.id;
+    this.output_data = payload.output_data || [];
     this.retry_type = payload.retry_type;
     this.start_time = payload.start_time;
     this.status = payload.status;

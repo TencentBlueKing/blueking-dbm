@@ -57,6 +57,7 @@
           {{ utcDisplayTime(data.update_at) }}
         </div>
       </template>
+      <Abstract :data="data" />
     </template>
     <template #desc>
       {{ utcDisplayTime(data.update_at) }}
@@ -79,6 +80,8 @@
   import { utcDisplayTime, utcTimeToSeconds } from '@utils';
 
   import DbTimeLineItem from '../time-line/TimeLineItem.vue';
+
+  import Abstract from './components/Abstract.vue';
 
   interface Props {
     data: FlowMode<unknown, any>;
