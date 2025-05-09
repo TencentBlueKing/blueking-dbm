@@ -22,15 +22,14 @@
       </template>
     </BkTableColumn>
     <BkTableColumn
-      field="current_cluster_type"
-      :label="t('原集群类型')"
-      :min-width="130" />
+      :label="t('源集群类型')"
+      :min-width="130">
+      <template #default="{ data }: { data: RowData }">
+        {{ ticketDetails.details.clusters[data.src_cluster].cluster_type_name }}
+      </template>
+    </BkTableColumn>
     <BkTableColumn
-      field="target_cluster_type"
-      :label="t('目标集群类型')"
-      :min-width="130" />
-    <BkTableColumn
-      :label="t('当前集群容量/QPS')"
+      :label="t('源集群容量')"
       :min-width="150">
       <template #default="{ data }: { data: RowData }">
         {{
@@ -39,21 +38,25 @@
       </template>
     </BkTableColumn>
     <BkTableColumn
+      field="target_cluster_type"
+      :label="t('新集群类型')"
+      :min-width="130" />
+    <!-- <BkTableColumn
       field="capacity"
       :label="t('当前容量需求')" />
     <BkTableColumn
       field="future_capacity"
-      :label="t('未来容量需求')" />
+      :label="t('未来容量需求')" /> -->
     <BkTableColumn
-      :label="t('部署方案')"
+      field="db_version"
+      :label="t('新集群版本')" />
+    <BkTableColumn
+      :label="t('新集群部署方案')"
       :min-width="150">
       <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.specs[data.resource_spec.backend_group.spec_id].name }}
       </template>
     </BkTableColumn>
-    <BkTableColumn
-      field="db_version"
-      :label="t('版本')" />
     <BkTableColumn
       :label="t('切换模式')"
       :width="100">
