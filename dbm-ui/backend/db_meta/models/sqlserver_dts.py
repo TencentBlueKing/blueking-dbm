@@ -67,12 +67,6 @@ class SqlserverDtsInfo(AuditedModel):
 
     class Meta:
         verbose_name = verbose_name_plural = _("sqlserver数据迁移记录表")
-        # 单据ID-源集群-目标集群组成唯一键
-        unique_together = (
-            "ticket_id",
-            "source_cluster_id",
-            "target_cluster_id",
-        )
 
     def to_dict(self):
         """重写model_to_dict()方法转字典"""

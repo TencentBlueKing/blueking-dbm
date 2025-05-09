@@ -12,7 +12,7 @@ import importlib
 import operator
 from collections import defaultdict
 from functools import reduce
-from typing import Any, Dict, List, Set
+from typing import Any, Callable, Dict, List, Set
 
 from django.db.models import F, Prefetch, Q
 from django.utils.translation import ugettext_lazy as _
@@ -23,6 +23,7 @@ from backend.db_meta.exceptions import ClusterNotExistException, InstanceNotExis
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.db_meta.models.machine import Machine
 from backend.db_services.dbbase.dataclass import DBInstance
+from backend.db_services.mysql.sqlparse.handlers import SQLParseHandler
 from backend.utils.basic import remove_duplicated_dict
 
 
@@ -356,6 +357,42 @@ class ClusterServiceHandler:
             ),
         ]
         return instance_objs
+
+    @staticmethod
+    def console_rpc(instances: list, cmd: str, db_query: bool, rpc_function: Callable, is_check: bool = True):
+        """
+        通用的RPC命令执行器，只支持select语句
+        @param instances: 实例信息
+        @param cmd: 执行命令
+        @param db_query: 是否只允许查询系统库 -- DB自助查询
+        @param rpc_function: 用于执行RPC请求的函数
+        """
+        # 校验select语句
+        if is_check:
+            SQLParseHandler().parse_select_statement(sql=cmd, db_query=db_query)
+
+        # 按云区域对instance分组
+        bk_cloud__instances_map: Dict[int, List] = defaultdict(list)
+        for info in instances:
+            bk_cloud__instances_map[info["bk_cloud_id"]].append(info["instance"])
+
+        # 获取rpc结果
+        instance_rpc_results: List = []
+        for bk_cloud_id, addresses in bk_cloud__instances_map.items():
+            # 使用传入的rpc_function进行rpc调用
+            rpc_results = rpc_function({"bk_cloud_id": bk_cloud_id, "addresses": addresses, "cmds": [cmd]})
+
+            cmd_results = [
+                {
+                    "instance": res["address"],
+                    "table_data": res["cmd_results"][0]["table_data"] if not res["error_msg"] else None,
+                    "error_msg": res["error_msg"],
+                }
+                for res in rpc_results
+            ]
+            instance_rpc_results.extend(cmd_results)
+
+        return instance_rpc_results
 
 
 def get_cluster_service_handler(bk_biz_id: int, db_type: str = "dbbase"):

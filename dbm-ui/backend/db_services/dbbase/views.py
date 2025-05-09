@@ -22,7 +22,7 @@ from backend import env
 from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import ResponseSwaggerAutoSchema, common_swagger_auto_schema
-from backend.components import BKBaseApi
+from backend.components import BKBaseApi, DRSApi
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster, DBModule, ProxyInstance, StorageInstance
@@ -341,7 +341,15 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         db_type = data.pop("db_type")
         # mysql / tendbcluster
         if db_type in [DBType.MySQL, DBType.TenDBCluster]:
-            return Response(RemoteServiceHandler.dbconsole_rpc(**data))
+            return Response(
+                ClusterServiceHandler.console_rpc(**data, db_query=True, rpc_function=DRSApi.webconsole_rpc)
+            )
+        if db_type == DBType.Sqlserver:
+            return Response(
+                ClusterServiceHandler.console_rpc(
+                    **data, db_query=False, rpc_function=DRSApi.sqlserver_sys_read_rpc, is_check=False
+                )
+            )
 
     @common_swagger_auto_schema(
         operation_summary=_("根据db类型查询ip列表"),
