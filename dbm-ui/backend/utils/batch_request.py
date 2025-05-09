@@ -10,7 +10,6 @@ specific language governing permissions and limitations under the License.
 """
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from copy import deepcopy
-from multiprocessing.pool import ThreadPool
 from typing import Callable
 
 import wrapt
@@ -99,28 +98,22 @@ def batch_request(
         final_request_params = format_params(params, get_count, func, start_key, limit_key)
 
     data = []
-
-    # 根据请求总数并发请求
-    pool = ThreadPool(settings.CONCURRENT_NUMBER)
     futures = []
 
-    for req in final_request_params:
-        start = 0
-        while start < req["count"]:
-            request_params = {"page": {limit_key: limit, start_key: start}}
-            if sort:
-                request_params["page"]["sort"] = sort
-            request_params.update(req["params"])
-            futures.append(pool.apply_async(inject_request(func), args=(request_params,), kwds=kwargs))
+    with ThreadPoolExecutor(max_workers=settings.CONCURRENT_NUMBER) as ex:
+        for req in final_request_params:
+            start = 0
+            while start < req["count"]:
+                request_params = {"page": {limit_key: limit, start_key: start}}
+                if sort:
+                    request_params["page"]["sort"] = sort
+                request_params.update(req["params"])
+                # 提交任务到线程池
+                futures.append(ex.submit(inject_request(func), params=request_params, **kwargs))
+                start += limit
 
-            start += limit
-
-    pool.close()
-    pool.join()
-
-    # 取值
     for future in futures:
-        data.extend(get_data(future.get()))
+        data.extend(get_data(future.result()))
 
     return data
 

@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import json
 import logging
 import operator
 from collections import defaultdict
@@ -22,12 +21,11 @@ from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
-from backend import env
-from backend.components import BKLogApi
+from backend.components.bklog.handler import BKLogHandler
 from backend.configuration.constants import PLAT_BIZ_ID, DBType
 from backend.constants import DEFAULT_SYSTEM_USER
 from backend.core import notify
-from backend.db_meta.enums import ClusterType, InstanceInnerRole
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.ticket.builders.common.constants import MYSQL_CHECKSUM_TABLE, MySQLDataRepairTriggerMode
 from backend.ticket.constants import (
@@ -43,7 +41,7 @@ from backend.ticket.constants import (
 )
 from backend.ticket.exceptions import TicketTaskTriggerException
 from backend.ticket.models.ticket import Flow, Ticket, TicketFlowsConfig
-from backend.utils.time import date2str, datetime2str
+from backend.utils.time import date2str
 
 logger = logging.getLogger("root")
 
@@ -86,24 +84,16 @@ class TicketTask(object):
         # 例行时间校验默认间隔一天
         now = datetime.now(timezone.utc).astimezone()
         start_time, end_time = now - timedelta(days=1), now
-        # TODO: 目前这个esquery_search最多支持10000条查询，后续可以改造成scroll进行查询
-        resp = BKLogApi.esquery_search(
-            {
-                "indices": f"{env.DBA_APP_BK_BIZ_ID}_bklog.mysql_checksum_result",
-                "start_time": datetime2str(start_time),
-                "end_time": datetime2str(end_time),
-                "query_string": "*",
-                "start": 0,
-                "size": 10000,
-                "sort_list": [["dtEventTimeStamp", "asc"], ["gseIndex", "asc"], ["iterationIndex", "asc"]],
-            }
-        )
 
-        # 根据集群ID聚合日志
+        total_checksum_logs = BKLogHandler.query_logs(
+            collector="mysql_checksum_result", start_time=start_time, end_time=end_time, query_string="*", size=-1
+        )
+        # 根据集群ID聚合日志，提前跳过校验一致的log
         cluster__checksum_logs_map: Dict[int, List[Dict]] = defaultdict(list)
-        for hit in resp["hits"]["hits"]:
-            checksum_log = json.loads(hit["_source"]["log"])
-            cluster__checksum_logs_map[checksum_log["cluster_id"]].append(checksum_log)
+        for log in total_checksum_logs:
+            if log["master_crc"] == log["this_crc"] and log["master_cnt"] == log["this_cnt"]:
+                continue
+            cluster__checksum_logs_map[log["cluster_id"]].append(log)
 
         cluster_map = {c.id: c for c in Cluster.objects.filter(id__in=list(cluster__checksum_logs_map.keys()))}
         biz__db_type__repair_infos: Dict[int, Dict[DBType, List]] = defaultdict(lambda: defaultdict(list))
@@ -116,29 +106,18 @@ class TicketTask(object):
                 continue
 
             cluster = cluster_map[cluster_id]
+            logger.info(_("为集群{}生成修复单据信息".format(cluster.immute_domain)))
 
-            # 根据logs获取ip:port和实例的映射
-            inst_filter_list = [
-                (
-                    Q(
-                        cluster=cluster,
-                        machine__ip=log["ip"],
-                        port=log["port"],
-                        instance_inner_role=InstanceInnerRole.SLAVE,
-                    )
-                    | Q(
-                        cluster=cluster,
-                        machine__ip=log["master_ip"],
-                        port=log["master_port"],
-                        instance_inner_role=InstanceInnerRole.MASTER,
-                    )
-                )
-                for log in checksum_logs
-            ]
-            inst_filters = reduce(operator.or_, inst_filter_list)
+            # 获取logs中的ip:port实例
+            inst_filter_list = []
+            for log in checksum_logs:
+                inst_filter_list.append(f"{log['ip']}:{log['port']}")
+                inst_filter_list.append(f"{log['master_ip']}:{log['master_port']}")
+            # 过滤需要进行修复的实例
             ip_port__instance_id_map: Dict[str, StorageInstance] = {
                 f"{inst.machine.ip}:{inst.port}": inst
-                for inst in StorageInstance.objects.select_related("machine").filter(inst_filters)
+                for inst in StorageInstance.objects.select_related("machine").filter(cluster=cluster_id)
+                if f"{inst.machine.ip}:{inst.port}" in inst_filter_list
             }
 
             data_repair_infos: List[Dict[str, Any]] = []

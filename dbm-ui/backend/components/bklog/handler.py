@@ -55,7 +55,7 @@ class BKLogHandler(object):
                     "end_time": datetime2str(end_time),
                     "query_string": query_string,
                     "start": 0,
-                    "size": 1000,
+                    "size": 10000,
                     "sort_list": [
                         ["dtEventTimeStamp", sorting_rule],
                         ["gseIndex", sorting_rule],

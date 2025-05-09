@@ -92,5 +92,5 @@ data:
   BK_APIGW_RESOURCE_DOCS_ARCHIVE_FILE: "{{ .Values.bk.bkApigwResourceDocsArchiveFile }}"
   BK_APIGATEWAY_DOMAIN : "{{ .Values.bk.bkApigatewayDomain | default .Values.bk.bkComponentApiUrl }}"
   DBM_STATSDB_URL: "{{ $dbmStatsDB.host }}:{{ $dbmStatsDB.port }}"
-  DBM_STATSDB_USER: "{{ $dbmStatsDB.username }}"
+  DBM_STATSDB_USER: "{{ $dbmStatsDB.user }}"
   DBM_STATSDB_PASSWORD: "{{ $dbmStatsDB.password }}"

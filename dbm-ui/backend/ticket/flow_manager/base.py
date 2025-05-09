@@ -278,9 +278,9 @@ class BaseTicketFlow(ABC):
         self.run()
 
     def _revoke(self, operator) -> Any:
-        # 停止相关联的todo
         from backend.ticket.todos import TodoActionType, TodoActorFactory
 
+        # 停止相关联的todo
         todos = Todo.objects.filter(ticket=self.ticket, flow=self.flow_obj, status=TodoStatus.TODO)
         for todo in todos:
             TodoActorFactory.actor(todo).process(operator, TodoActionType.TERMINATE, params={})
