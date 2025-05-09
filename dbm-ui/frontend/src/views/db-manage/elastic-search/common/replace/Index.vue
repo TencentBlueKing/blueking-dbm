@@ -25,7 +25,7 @@
         </BkRadioButton>
       </BkRadioGroup>
       <div
-        v-show="nodeInfoMap.hot.nodeList.length > 0"
+        v-show="nodeInfoMap.hot.oldHostList.length > 0"
         class="item">
         <div class="item-label">
           {{ t('热节点') }}
@@ -33,7 +33,7 @@
         <EsHostReplace
           ref="hotRef"
           v-model:host-list="nodeInfoMap.hot.hostList"
-          v-model:node-list="nodeInfoMap.hot.nodeList"
+          v-model:old-host-list="nodeInfoMap.hot.oldHostList"
           v-model:resource-spec="nodeInfoMap.hot.resourceSpec"
           :cloud-info="{
             id: data.bk_cloud_id,
@@ -45,7 +45,7 @@
           @remove-node="handleRemoveNode" />
       </div>
       <div
-        v-show="nodeInfoMap.cold.nodeList.length > 0"
+        v-show="nodeInfoMap.cold.oldHostList.length > 0"
         class="item">
         <div class="item-label">
           {{ t('冷节点') }}
@@ -53,7 +53,7 @@
         <EsHostReplace
           ref="coldRef"
           v-model:host-list="nodeInfoMap.cold.hostList"
-          v-model:node-list="nodeInfoMap.cold.nodeList"
+          v-model:old-host-list="nodeInfoMap.cold.oldHostList"
           v-model:resource-spec="nodeInfoMap.cold.resourceSpec"
           :cloud-info="{
             id: data.bk_cloud_id,
@@ -65,7 +65,7 @@
           @remove-node="handleRemoveNode" />
       </div>
       <div
-        v-show="nodeInfoMap.client.nodeList.length > 0"
+        v-show="nodeInfoMap.client.oldHostList.length > 0"
         class="item">
         <div class="item-label">
           {{ t('Client 节点') }}
@@ -73,7 +73,7 @@
         <EsHostReplace
           ref="clientRef"
           v-model:host-list="nodeInfoMap.client.hostList"
-          v-model:node-list="nodeInfoMap.client.nodeList"
+          v-model:old-host-list="nodeInfoMap.client.oldHostList"
           v-model:resource-spec="nodeInfoMap.client.resourceSpec"
           :cloud-info="{
             id: data.bk_cloud_id,
@@ -85,13 +85,13 @@
           @remove-node="handleRemoveNode" />
       </div>
       <div
-        v-show="nodeInfoMap.master.nodeList.length > 0"
+        v-show="nodeInfoMap.master.oldHostList.length > 0"
         class="item">
         <div class="item-label">Master</div>
         <EsHostReplace
           ref="masterRef"
           v-model:host-list="nodeInfoMap.master.hostList"
-          v-model:node-list="nodeInfoMap.master.nodeList"
+          v-model:old-host-list="nodeInfoMap.master.oldHostList"
           v-model:resource-spec="nodeInfoMap.master.resourceSpec"
           :cloud-info="{
             id: data.bk_cloud_id,
@@ -122,7 +122,8 @@
   import { computed, reactive, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type EsModel from '@services/model/es/es';
+  import EsModel from '@services/model/es/es';
+  import EsMachineModel from '@services/model/es/es-machine';
   import { createTicket } from '@services/source/ticket';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
@@ -133,7 +134,7 @@
 
   interface Props {
     data: EsModel;
-    nodeList: TReplaceNode['nodeList'];
+    machineList: EsMachineModel[];
   }
 
   interface Emits {
@@ -170,7 +171,7 @@
     client: {
       clusterId: props.data.id,
       hostList: [],
-      nodeList: [],
+      oldHostList: [],
       resourceSpec: {
         count: 0,
         instance_num: 1,
@@ -183,7 +184,7 @@
     cold: {
       clusterId: props.data.id,
       hostList: [],
-      nodeList: [],
+      oldHostList: [],
       resourceSpec: {
         count: 0,
         instance_num: 1,
@@ -196,7 +197,7 @@
     hot: {
       clusterId: props.data.id,
       hostList: [],
-      nodeList: [],
+      oldHostList: [],
       resourceSpec: {
         count: 0,
         instance_num: 1,
@@ -209,7 +210,7 @@
     master: {
       clusterId: props.data.id,
       hostList: [],
-      nodeList: [],
+      oldHostList: [],
       resourceSpec: {
         count: 0,
         instance_num: 1,
@@ -224,7 +225,10 @@
   const isEmpty = computed(() => {
     const { client, cold, hot, master } = nodeInfoMap;
     return (
-      hot.nodeList.length < 1 && cold.nodeList.length < 1 && client.nodeList.length < 1 && master.nodeList.length < 1
+      hot.oldHostList.length < 1 &&
+      cold.oldHostList.length < 1 &&
+      client.oldHostList.length < 1 &&
+      master.oldHostList.length < 1
     );
   });
 
@@ -236,14 +240,14 @@
   };
 
   watch(
-    () => props.nodeList,
+    () => props.machineList,
     () => {
-      const hotList: TReplaceNode['nodeList'] = [];
-      const coldList: TReplaceNode['nodeList'] = [];
-      const clientList: TReplaceNode['nodeList'] = [];
-      const masterList: TReplaceNode['nodeList'] = [];
+      const hotList: TReplaceNode['oldHostList'] = [];
+      const coldList: TReplaceNode['oldHostList'] = [];
+      const clientList: TReplaceNode['oldHostList'] = [];
+      const masterList: TReplaceNode['oldHostList'] = [];
 
-      props.nodeList.forEach((nodeItem) => {
+      props.machineList.forEach((nodeItem) => {
         if (nodeItem.isHot) {
           hotList.push(nodeItem);
         } else if (nodeItem.isCold) {
@@ -255,10 +259,10 @@
         }
       });
 
-      nodeInfoMap.hot.nodeList = hotList;
-      nodeInfoMap.cold.nodeList = coldList;
-      nodeInfoMap.client.nodeList = clientList;
-      nodeInfoMap.master.nodeList = masterList;
+      nodeInfoMap.hot.oldHostList = hotList;
+      nodeInfoMap.cold.oldHostList = coldList;
+      nodeInfoMap.client.oldHostList = clientList;
+      nodeInfoMap.master.oldHostList = masterList;
     },
     {
       immediate: true,
@@ -279,7 +283,7 @@
     return false;
   };
 
-  const handleRemoveNode = (node: TReplaceNode['nodeList'][0]) => {
+  const handleRemoveNode = (node: TReplaceNode['oldHostList'][0]) => {
     emits('removeNode', node.bk_host_id);
   };
 
@@ -330,7 +334,7 @@
           }
           return Object.values(nodeInfoMap).reduce((result, nodeData) => {
             if (nodeData.resourceSpec.spec_id > 0) {
-              return result + nodeData.nodeList.length;
+              return result + nodeData.oldHostList.length;
             }
             return result;
           }, 0);
@@ -410,7 +414,9 @@
               });
           },
           subTitle: t('替换后原节点 IP 将不在可用，资源将会被释放'),
-          title: t('确认替换n台节点IP', { n: getReplaceNodeNums() }),
+          title: t('确认替换n台节点IP', {
+            n: getReplaceNodeNums(),
+          }),
         });
       });
     },

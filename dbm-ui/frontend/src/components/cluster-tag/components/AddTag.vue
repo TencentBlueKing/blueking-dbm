@@ -55,11 +55,13 @@
 
   import TagOperation from '@views/db-manage/common/cluster-batch-add-tag/components/tag-operation/Index.vue';
 
-  import type { ClusterModel, ISupportClusterType } from '../../../types';
-
   interface Props {
     clusterId: number;
-    data: ClusterModel<ISupportClusterType>['tags'];
+    data: {
+      id: number;
+      key: string;
+      value: string;
+    }[];
     domain: string;
   }
 

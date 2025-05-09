@@ -190,7 +190,7 @@ export default class Redis extends ClusterBase {
   }
 
   get masterDomainDisplayName() {
-    const port = this.proxy[0]?.port;
+    const port = this.cluster_type === ClusterTypes.REDIS_INSTANCE ? this.redis_master[0]?.port : this.proxy[0]?.port;
     const displayName = port ? `${this.master_domain}:${port}` : this.master_domain;
     return displayName;
   }

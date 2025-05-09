@@ -58,7 +58,7 @@
   const activePanel = ref('info');
   const data = ref<TendbclusterInstanceModel>();
   const queryConfigInfos = computed(() => ({
-    clusterId: props.instanceData?.clusterId,
+    clusterId: props.instanceData?.clusterId ?? 0,
     dbModuleId: data.value?.db_module_id ?? 0,
     version: data.value?.version ?? '',
   }));
@@ -78,7 +78,7 @@
       }
       fetchInstDetails({
         cluster_id: props.instanceData.clusterId,
-        instance_address: props.instanceData.instanceAddress,
+        instance: props.instanceData.instanceAddress,
       });
     },
     {

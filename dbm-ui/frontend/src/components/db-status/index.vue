@@ -27,17 +27,16 @@
     <slot />
   </span>
 </template>
-<script lang="ts">
-  export default {
-    name: 'DbStatus',
-  };
-</script>
 
 <script setup lang="ts">
   interface Props {
     theme?: 'default' | 'warning' | 'success' | 'danger' | 'loading' | string;
     type?: 'fill' | 'linear' | string;
   }
+
+  defineOptions({
+    name: 'DbStatus',
+  });
 
   const props = withDefaults(defineProps<Props>(), {
     theme: 'default',

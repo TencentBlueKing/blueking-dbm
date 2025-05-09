@@ -27,7 +27,7 @@
 <script setup lang="ts">
   import { onBeforeUnmount, onMounted, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { onBeforeRouteLeave, useRoute } from 'vue-router';
+  import { onBeforeRouteLeave } from 'vue-router';
 
   import useResize from './hooks/use-resize';
 
@@ -50,8 +50,6 @@
     default: false,
   });
 
-  const route = useRoute();
-
   const { t } = useI18n();
 
   let isRouteChange = false;
@@ -61,13 +59,10 @@
 
   useResize(rootRef, resizeHandleRef);
 
-  watch(route, () => {
-    console.log('route = ', route);
-  });
-
   const handleClose = () => {
     modelValue.value = false;
     emits('close');
+    return true;
   };
 
   const handleExpandMax = () => {
@@ -76,7 +71,7 @@
 
   const handleClickClose = (event: Event) => {
     if (!modelValue.value) {
-      return;
+      return true;
     }
 
     const eventPath = event.composedPath() as HTMLElement[];
@@ -86,7 +81,8 @@
         ele.classList?.contains('bk-modal') ||
         ele.classList?.contains('dbm-table-detail-dialog') ||
         ele.classList?.contains('bk-popper') ||
-        ele.classList?.contains('tippy-box')
+        ele.classList?.contains('tippy-box') ||
+        ele.classList?.contains('db-navigation-side-menu')
       ) {
         return true;
       }
@@ -95,6 +91,7 @@
     if (!isRouteChange) {
       handleClose();
     }
+    return true;
   };
 
   onBeforeRouteLeave(() => {

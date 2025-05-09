@@ -45,6 +45,7 @@
 
   defineOptions({
     name: ClusterTypes.PULSAR,
+    inheritAttrs: false,
   });
 
   const props = defineProps<Props>();

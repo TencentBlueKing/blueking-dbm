@@ -44,11 +44,13 @@ export default class PulsarInstance {
   id: number;
   instance_address: string;
   instance_name: string;
+  ip: string;
   operations: InstanceListOperation[];
   related_clusters: InstanceRelatedCluster[];
   restart_at: string;
   role: string;
   status: string;
+  version: string;
 
   constructor(payload = {} as PulsarInstance) {
     this.bk_cloud_id = payload.bk_cloud_id;
@@ -67,11 +69,13 @@ export default class PulsarInstance {
     this.host_info = payload.host_info;
     this.id = payload.id;
     this.instance_address = payload.instance_address;
+    this.ip = payload.ip;
     this.instance_name = payload.instance_name;
     this.operations = payload.operations || [];
     this.related_clusters = payload.related_clusters || [];
     this.role = payload.role;
     this.status = payload.status;
+    this.version = payload.version;
   }
 
   get operationDisabled() {

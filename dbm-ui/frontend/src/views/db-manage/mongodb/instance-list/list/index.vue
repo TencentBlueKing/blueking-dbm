@@ -13,13 +13,14 @@
           content: t('请选择操作实例'),
         }">
         <BkButton
-          class="w-88 ml-6"
+          class="w-88 ml-12"
           :disabled="!hasSelected"
           @click="handleChangeInstanceOnline(selected)">
           {{ t('批量重启') }}
         </BkButton>
       </span>
       <DropdownExportExcel
+        class="ml-12"
         export-type="instance"
         :has-selected="hasSelected"
         :ids="selectedIds"

@@ -31,13 +31,22 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@views/db-manage/doris/Index.vue'),
     children: [
       {
-        path: 'list',
+        path: 'list/:clusterId?',
         name: 'DorisList',
         meta: {
           fullscreen: true,
           navName: t('【Doris】集群管理'),
         },
         component: () => import('@views/db-manage/doris/list/Index.vue'),
+      },
+      {
+        path: 'detail/:clusterId',
+        name: 'DorisDetail',
+        meta: {
+          fullscreen: true,
+          navName: t('【Doris】集群详情'),
+        },
+        component: () => import('@views/db-manage/doris/detail/Index.vue'),
       },
     ],
   },

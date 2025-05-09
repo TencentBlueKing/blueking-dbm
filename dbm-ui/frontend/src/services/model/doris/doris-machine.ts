@@ -58,6 +58,10 @@ export default class DorisMachine {
     return this.instance_role.includes('cold');
   }
 
+  get isFollower() {
+    return this.machine_type === MachineTypes.DORIS_FOLLOWER;
+  }
+
   get isHot() {
     return this.instance_role.includes('hot');
   }

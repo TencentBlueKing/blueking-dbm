@@ -43,6 +43,20 @@ export interface ClbPolarisTargetDetails {
   url: string;
 }
 
+export interface ClbTargetDetails {
+  clb_domain: string;
+  clb_id: string;
+  clb_ip: string;
+  clb_port: number;
+  clb_region: string;
+  creator: string;
+  entry: number;
+  id: number;
+  listener_id: string;
+  port: number;
+  updater: string;
+}
+
 export default class ClusterEntryDetail<T extends unknown | DnsTargetDetails | ClbPolarisTargetDetails = unknown> {
   cluster_entry_type: string; // 'dns' | 'clb' | 'polaris' | 'clbDns'
   entry: string;

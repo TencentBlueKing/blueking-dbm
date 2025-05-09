@@ -220,6 +220,12 @@ export default class SqlServerSingleCluster extends ClusterBase {
     return operation.ticket_id;
   }
 
+  get roleFailedInstanceInfo() {
+    return {
+      Master: ClusterBase.getRoleFaildInstanceList(this.storages),
+    };
+  }
+
   get runningOperation() {
     const operateTicketTypes = Object.keys(SqlServerSingleCluster.operationTextMap);
     return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');

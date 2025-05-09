@@ -21,7 +21,6 @@
           <td>{{ t('磁盘') }}:</td>
           <td>
             <BkTable
-              :border="['outer']"
               :columns="tableColumns"
               :data="data.storage_spec"
               :max-height="200"

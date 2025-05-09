@@ -88,7 +88,7 @@
 
   import BaseRoleColumn, {
     type Props,
-  } from '@views/db-manage/common/cluster-table-column/components/base-role-column/Index.vue';
+  } from '@views/db-manage/common/cluster-table/components/base-role-column/Index.vue';
 
   import { execCopy, messageWarn } from '@utils';
 

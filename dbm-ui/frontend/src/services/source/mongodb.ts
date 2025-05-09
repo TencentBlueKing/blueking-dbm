@@ -16,6 +16,7 @@ import MongodbModel from '@services/model/mongodb/mongodb';
 import MongodbDetailModel from '@services/model/mongodb/mongodb-detail';
 import MongodbInstanceModel from '@services/model/mongodb/mongodb-instance';
 import MongodbInstanceDetailModel from '@services/model/mongodb/mongodb-instance-detail';
+import MongodbMachineModel from '@services/model/mongodb/mongodb-machine';
 import type { ListBase } from '@services/types';
 
 import { useGlobalBizs } from '@stores';
@@ -135,15 +136,15 @@ export function getMongoTableFields(params: { limit?: number; offset?: number })
  * 查询Mongo集群实例列表
  */
 export function getMongoInstancesList(params: {
+  address?: string;
   cluster_id?: number;
   cluster_type?: string;
   domain?: string;
   extra?: number;
-  instance_address?: string;
   ip?: string;
   limit?: number;
   offset?: number;
-  port?: string;
+  port?: number;
   role?: string;
   status?: string;
 }) {
@@ -158,7 +159,7 @@ export function getMongoInstancesList(params: {
  */
 export function retrieveMongoInstanceDetail(params: {
   cluster_id?: number;
-  instance_address: string;
+  instance?: string;
   ip?: string;
   limit?: number;
   offset?: number;
@@ -186,13 +187,15 @@ export function getMongodbMachineList(params: {
   bk_os_name?: string;
   cluster_type?: string;
   creator?: string;
-  instance_role?: string;
   ip?: string;
   limit?: number;
   machine_type?: string;
   offset?: number;
 }) {
-  return http.get<string[]>(`${getRootPath()}/list_machines/`, params);
+  return http.get<ListBase<MongodbMachineModel[]>>(`${getRootPath()}/list_machines/`, params).then((data) => ({
+    ...data,
+    results: data.results.map((item) => new MongodbMachineModel(item)),
+  }));
 }
 
 /**

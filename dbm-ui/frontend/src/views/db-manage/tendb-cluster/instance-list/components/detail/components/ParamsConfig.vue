@@ -28,7 +28,8 @@
 
   import { getLevelConfig } from '@services/source/configs';
 
-  import { ClusterTypes } from '@/common/const';
+  import { ClusterTypes } from '@common/const';
+
   import { useGlobalBizs } from '@/stores';
 
   interface Props {

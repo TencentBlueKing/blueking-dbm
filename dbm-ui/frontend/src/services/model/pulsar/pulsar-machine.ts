@@ -54,7 +54,7 @@ export default class PulsarMachine {
     this.spec_id = payload.spec_id;
   }
 
-  get isBookKeeper() {
+  get isBookkeeper() {
     return this.machine_type === MachineTypes.PULSAR_BOOKKEEPER;
   }
 
@@ -64,5 +64,9 @@ export default class PulsarMachine {
 
   get isUnvailable() {
     return this.host_info?.alive !== 1;
+  }
+
+  get isZookeeper() {
+    return this.machine_type === MachineTypes.PULSAR_ZOOKEEPER;
   }
 }

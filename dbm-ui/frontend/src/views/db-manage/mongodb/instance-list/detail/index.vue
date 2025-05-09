@@ -59,7 +59,7 @@
     () => {
       fetchInstDetails({
         cluster_id: props.instanceData.clusterId,
-        instance_address: props.instanceData.instanceAddress,
+        instance: props.instanceData.instanceAddress,
       });
     },
     {

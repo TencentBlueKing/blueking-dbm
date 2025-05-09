@@ -45,6 +45,7 @@
 
   defineOptions({
     name: ClusterTypes.DORIS,
+    inheritAttrs: false,
   });
 
   const props = defineProps<Props>();

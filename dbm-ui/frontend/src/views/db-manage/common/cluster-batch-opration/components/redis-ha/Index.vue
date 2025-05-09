@@ -146,6 +146,7 @@
 
   defineOptions({
     name: ClusterTypes.REDIS_INSTANCE,
+    inheritAttrs: false,
   });
 
   const props = defineProps<Props>();

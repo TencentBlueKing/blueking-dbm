@@ -86,6 +86,7 @@ export function getRedisInstances(params: {
   cluster_id?: number;
   cluster_type?: string;
   domain?: string;
+  extra?: number;
   instance_address?: string;
   ip?: string;
   limit?: number;
@@ -104,10 +105,10 @@ export function getRedisInstances(params: {
  * 获取集群实例详情
  */
 export function retrieveRedisInstance(params: {
-  bk_biz_id: number;
   cluster_id?: number;
-  instance_address: string;
-  type: string;
+  dbType?: string;
+  instance?: string;
+  type?: string;
 }) {
   return http
     .get<RedisInstanceModel>(`${getRootPath()}/retrieve_instance/`, params)

@@ -19,7 +19,7 @@ export default (rootRef: Ref<HTMLDivElement | null>, resizeHandleRef: Ref<HTMLDi
         return;
       }
       const resizeWidth = Math.max(rootWidth + startClientX - event.clientX, currentInstance?.props.minWidth as number);
-      const latestWidth = resizeWidth > rootParentWidth * 0.9 ? '90%' : `${resizeWidth}px`;
+      const latestWidth = resizeWidth > rootParentWidth * 0.9 ? '90%' : `${Math.max(resizeWidth, 900)}px`;
 
       rootEle.style.width = latestWidth;
     }, 60);

@@ -14,16 +14,13 @@
 import RiakModel from '@services/model/riak/riak';
 import RiakDetailModel from '@services/model/riak/riak-detail';
 import RiakInstanceModel from '@services/model/riak/riak-instance';
+import RiakMachineModel from '@services/model/riak/riak-machine';
 import RiakNodeModel from '@services/model/riak/riak-node';
 import type { ListBase, ResourceTopo } from '@services/types';
 
-import { useGlobalBizs } from '@stores';
-
 import http from '../http';
 
-const { currentBizId } = useGlobalBizs();
-
-const path = `/apis/bigdata/bizs/${currentBizId}/riak/riak_resources`;
+const getRootPath = () => `/apis/bigdata/bizs/${window.PROJECT_CONFIG.BIZ_ID}/riak/riak_resources`;
 
 /**
  * 查询资源列表
@@ -40,7 +37,7 @@ export function getRiakList(params: {
   offset: number;
   type: string;
 }) {
-  return http.get<ListBase<RiakModel[]>>(`${path}/`, params).then((res) => ({
+  return http.get<ListBase<RiakModel[]>>(`${getRootPath()}/`, params).then((res) => ({
     ...res,
     results: res.results.map(
       (item) =>
@@ -57,13 +54,19 @@ export function getRiakList(params: {
  * 获取集群实例列表
  */
 export function getRiakInstanceList(params: {
-  bk_biz_id: number;
-  cluster_id: number;
+  cluster_id?: number;
+  cluster_type?: string;
+  domain?: string;
+  extra?: number;
+  instance_address?: string;
+  ip?: string;
   limit?: number;
   offset?: number;
-  role: string;
+  port?: number;
+  role?: string;
+  status?: string;
 }) {
-  return http.get<ListBase<RiakInstanceModel[]>>(`${path}/list_instances/`, params).then((res) => ({
+  return http.get<ListBase<RiakInstanceModel[]>>(`${getRootPath()}/list_instances/`, params).then((res) => ({
     ...res,
     results: res.results.map((item) => new RiakInstanceModel(item)),
   }));
@@ -73,26 +76,26 @@ export function getRiakInstanceList(params: {
  * 获取集群实例详情
  */
 export function retrieveRiakInstance(params: {
-  bk_biz_id: number;
   cluster_id?: number;
-  instance_address: string;
-  type: string;
+  dbType: string;
+  instance?: string;
+  type?: string;
 }) {
-  return http.get<RiakInstanceModel>(`${path}/retrieve_instance/`, params);
+  return http.get<RiakInstanceModel>(`${getRootPath()}/retrieve_instance/`, params);
 }
 
 /**
  * 获取集群详情
  */
 export function getRiakDetail(params: { id: number }) {
-  return http.get<RiakDetailModel>(`${path}/${params.id}/`).then((res) => new RiakDetailModel(res));
+  return http.get<RiakDetailModel>(`${getRootPath()}/${params.id}/`).then((res) => new RiakDetailModel(res));
 }
 
 /**
  * 获取集群拓扑
  */
 export function getRiakTopoGraph(params: { cluster_id: number }) {
-  return http.get<ResourceTopo>(`${path}/${params.cluster_id}/get_topo_graph/`);
+  return http.get<ResourceTopo>(`${getRootPath()}/${params.cluster_id}/get_topo_graph/`);
 }
 
 /**
@@ -104,22 +107,45 @@ export function getRiakNodeList(
     cluster_id: number;
   } & Record<string, any>,
 ) {
-  return http.get<ListBase<Array<RiakNodeModel>>>(`${path}/${params.cluster_id}/list_nodes/`, params).then((data) => ({
-    ...data,
-    results: data.results.map((item: RiakNodeModel) => new RiakNodeModel(item)),
-  }));
+  return http
+    .get<ListBase<Array<RiakNodeModel>>>(`${getRootPath()}/${params.cluster_id}/list_nodes/`, params)
+    .then((data) => ({
+      ...data,
+      results: data.results.map((item: RiakNodeModel) => new RiakNodeModel(item)),
+    }));
 }
 
 /**
  * 导出集群数据为 excel 文件
  */
 export function exportRiakClusterToExcel(params: { cluster_ids?: number[] }) {
-  return http.post<string>(`${path}/export_cluster/`, params, { responseType: 'blob' });
+  return http.post<string>(`${getRootPath()}/export_cluster/`, params, { responseType: 'blob' });
 }
 
 /**
  * 导出实例数据为 excel 文件
  */
 export function exportRiakInstanceToExcel(params: { bk_host_ids?: number[] }) {
-  return http.post<string>(`${path}/export_instance/`, params, { responseType: 'blob' });
+  return http.post<string>(`${getRootPath()}/export_instance/`, params, { responseType: 'blob' });
+}
+
+/**
+ * 查询主机列表
+ */
+export function getMachineList(params: {
+  bk_agent_id?: string;
+  bk_cloud_id?: number;
+  bk_host_id?: number;
+  bk_os_name?: string;
+  creator?: string;
+  instance_role?: string;
+  ip?: string;
+  limit?: number;
+  machine_type?: string;
+  offset?: number;
+}) {
+  return http.get<ListBase<RiakMachineModel[]>>(`${getRootPath()}/list_machines/`, params).then((data) => ({
+    ...data,
+    results: data.results.map((item) => new RiakMachineModel(item)),
+  }));
 }

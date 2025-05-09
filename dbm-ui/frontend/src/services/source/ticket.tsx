@@ -168,6 +168,7 @@ export function getClusterOperateRecords(params: { cluster_id: number } & Record
     ListBase<
       {
         create_at: string;
+        creator: string;
         op_status: 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'REVOKED';
         op_type: string;
         ticket_id: number;

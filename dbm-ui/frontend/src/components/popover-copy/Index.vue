@@ -30,6 +30,10 @@
 <script setup lang="ts">
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
 
+  type Emits = (e: 'toogle-show', value: boolean) => void;
+
+  const emits = defineEmits<Emits>();
+
   let tippyIns: Instance;
   const isActive = ref(false);
   const copyRootRef = ref();
@@ -40,21 +44,22 @@
       tippyIns = tippy(copyRootRef.value.$el as SingleTarget, {
         allowHTML: true,
         appendTo: () => document.body,
-        arrow: false,
         content: popRef.value,
         hideOnClick: true,
         interactive: true,
         maxWidth: 'none',
         onHide() {
           isActive.value = false;
+          emits('toogle-show', false);
         },
         onShow() {
           isActive.value = true;
+          emits('toogle-show', true);
         },
         placement: 'top',
         theme: 'light',
         trigger: 'mouseenter click',
-        zIndex: 999999,
+        zIndex: 999,
       });
     });
   });

@@ -6,12 +6,12 @@
       <div>
         <div
           v-for="hostItem in data.hostList"
-          :key="hostItem.host_id"
+          :key="hostItem.bk_host_id"
           class="data-row">
           <div>{{ hostItem.ip }}</div>
           <div class="data-row-edit-instance">
             <EditHostInstance
-              :model-value="hostItem.instance_num"
+              :model-value="hostItem.instance_num || 0"
               @change="(value) => handleInstanceNumChange(value, hostItem)" />
           </div>
           <div
@@ -42,7 +42,7 @@
             <span
               class="number"
               style="color: #2dcb56">
-              {{ data.nodeList.length }}
+              {{ data.oldHostList.length }}
             </span>
             <span
               class="number"
@@ -94,14 +94,8 @@
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
-  const formatIpDataWidthInstance = (data: HostInfo[]) =>
-    data.map((item) => ({
-      instance_num: 1,
-      ...item,
-    }));
-
   const cloudInfo = computed(() => {
-    const [firstItem] = props.data.nodeList;
+    const [firstItem] = props.data.oldHostList;
     if (firstItem) {
       return {
         id: firstItem.bk_cloud_id,
@@ -112,7 +106,7 @@
   });
 
   const disableDialogSubmitMethod = (hostList: HostInfo[]) =>
-    hostList.length === props.data.nodeList.length ? false : t('需n台', { n: props.data.nodeList.length });
+    hostList.length === props.data.oldHostList.length ? false : t('需n台', { n: props.data.oldHostList.length });
 
   const isShowIpSelector = ref(false);
 
@@ -123,13 +117,20 @@
 
   // 添加新IP
   const handleHostChange = (hostList: HostInfo[]) => {
-    modelValue.value = formatIpDataWidthInstance(hostList);
+    modelValue.value = hostList.map((item) => ({
+      bk_biz_id: item.biz.id,
+      bk_cloud_id: item.cloud_id,
+      bk_disk: item.bk_disk || 0,
+      bk_host_id: item.host_id,
+      instance_num: 1,
+      ip: item.ip,
+    }));
   };
 
   const handleInstanceNumChange = (value: number, hostData: Props['data']['hostList'][0]) => {
     modelValue.value = modelValue.value.reduce(
       (result, item) => {
-        if (item.host_id === hostData.host_id) {
+        if (item.bk_host_id === hostData.bk_host_id) {
           result.push({
             ...item,
             instance_num: Number(value),
@@ -147,7 +148,7 @@
   const handleRemoveHost = (host: Props['data']['hostList'][0]) => {
     modelValue.value = modelValue.value.reduce(
       (result, item) => {
-        if (item.host_id !== host.host_id) {
+        if (item.bk_host_id !== host.bk_host_id) {
           result.push(item);
         }
         return result;

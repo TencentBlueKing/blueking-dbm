@@ -45,6 +45,7 @@
 
   defineOptions({
     name: ClusterTypes.ES,
+    inheritAttrs: false,
   });
 
   const props = defineProps<Props>();

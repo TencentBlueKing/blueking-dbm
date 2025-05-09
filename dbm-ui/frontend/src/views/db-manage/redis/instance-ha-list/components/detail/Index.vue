@@ -43,8 +43,6 @@
 
   import { retrieveRedisInstance } from '@services/source/redis';
 
-  import { useGlobalBizs } from '@stores';
-
   import { DBTypes } from '@common/const';
 
   import BaseInfo from './components/BaseInfo.vue';
@@ -60,7 +58,6 @@
 
   const props = defineProps<Props>();
 
-  const globalBizsStore = useGlobalBizs();
   const { t } = useI18n();
 
   const activePanel = ref('info');
@@ -83,10 +80,9 @@
     () => {
       if (props.instanceData) {
         fetchInstDetails({
-          bk_biz_id: globalBizsStore.currentBizId,
           cluster_id: props.instanceData.clusterId,
           dbType: DBTypes.REDIS,
-          instance_address: props.instanceData.instanceAddress,
+          instance: props.instanceData.instanceAddress,
           type: props.instanceData.clusterType,
         });
       }

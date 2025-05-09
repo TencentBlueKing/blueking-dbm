@@ -103,6 +103,7 @@
 
   defineOptions({
     name: ClusterTypes.REDIS,
+    inheritAttrs: false,
   });
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
