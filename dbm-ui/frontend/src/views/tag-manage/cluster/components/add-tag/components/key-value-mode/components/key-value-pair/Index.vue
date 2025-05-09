@@ -12,24 +12,10 @@
         class="error-icon"
         type="exclamation-fill" />
     </div>
-    <div class="value-input-wraper">
-      <BkTagInput
-        allow-auto-match
-        allow-create
-        class="value-input"
-        :class="{ 'is-not-valid': !isValueVerifyPass }"
-        collapse-tags
-        has-delete-icon
-        :model-value="pairInfo.value"
-        :placeholder="t('请输入标签值（多个标签值以逗号、分号、竖线分割，回车完成输入）')"
-        @change="checkInputValue" />
-      <DbIcon
-        v-if="!isValueVerifyPass"
-        v-bk-tooltips="valueVerifyTip"
-        class="error-icon"
-        style="right: 18px"
-        type="exclamation-fill" />
-    </div>
+    <TagValueInput
+      ref="valueInputRef"
+      v-model="pairInfo.value"
+      class="value-input-wraper" />
     <div class="operation-main">
       <DbIcon
         type="plus-fill"
@@ -42,10 +28,11 @@
   </div>
 </template>
 <script setup lang="ts">
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import { tagKeyRegex, tagValueRegex } from '@common/regex';
+  import { tagKeyRegex } from '@common/regex';
+
+  import TagValueInput from './components/TagValueInput.vue';
 
   interface Props {
     data: typeof pairInfo.value;
@@ -66,14 +53,13 @@
 
   const { t } = useI18n();
 
+  const valueInputRef = ref<InstanceType<typeof TagValueInput>>();
   const pairInfo = ref({
     key: '',
     value: [] as string[],
   });
   const isKeyVerifyPass = ref(true);
-  const isValueVerifyPass = ref(true);
   const keyVerifyTip = ref(t('必填'));
-  const valueVerifyTip = ref(t('必填'));
 
   watch(
     () => props.data,
@@ -82,7 +68,6 @@
         pairInfo.value.key = props.data.key;
         pairInfo.value.value = props.data.value;
         keyVerifyTip.value = '';
-        valueVerifyTip.value = '';
       }
     },
     { immediate: true },
@@ -90,10 +75,6 @@
 
   watch(keyVerifyTip, () => {
     isKeyVerifyPass.value = !keyVerifyTip.value;
-  });
-
-  watch(valueVerifyTip, () => {
-    isValueVerifyPass.value = !valueVerifyTip.value;
   });
 
   const checkInputKey = (key: string) => {
@@ -115,22 +96,6 @@
     keyVerifyTip.value = '';
   };
 
-  const checkInputValue = (value: string[]) => {
-    const inputList = _.flatMap(value.map((item) => item.split(/[\s,，;；|｜]/)));
-    pairInfo.value.value = inputList;
-    if (!value.length) {
-      valueVerifyTip.value = t('必填');
-      return;
-    }
-
-    if (inputList.some((item) => !tagValueRegex.test(item))) {
-      valueVerifyTip.value = t('标签值为1-100个字符，支持英文字母、数字或汉字，中划线(-)，下划线(_)，点(.)');
-      return;
-    }
-
-    valueVerifyTip.value = '';
-  };
-
   const handleAdd = () => {
     emits('add');
   };
@@ -142,8 +107,7 @@
   defineExpose<Exposes>({
     getValue() {
       isKeyVerifyPass.value = !!pairInfo.value.key && !keyVerifyTip.value;
-      isValueVerifyPass.value = !!pairInfo.value.value.length && !valueVerifyTip.value;
-      if (!isKeyVerifyPass.value || !isValueVerifyPass.value) {
+      if (!isKeyVerifyPass.value || !valueInputRef.value!.getValue()) {
         return null;
       }
 
@@ -167,9 +131,7 @@
     }
 
     .value-input-wraper {
-      position: relative;
-
-      .value-input {
+      :deep(.value-input) {
         width: 340px;
         margin-right: 8px;
         margin-left: 14px;
@@ -194,14 +156,6 @@
     .is-not-valid {
       :deep(.bk-input--text) {
         background-color: #fff0f1;
-      }
-
-      :deep(.bk-tag-input-trigger) {
-        background-color: #fff0f1;
-
-        .clear-icon {
-          display: none !important;
-        }
       }
     }
   }

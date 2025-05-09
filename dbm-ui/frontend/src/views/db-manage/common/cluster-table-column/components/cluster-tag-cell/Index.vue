@@ -1,6 +1,8 @@
 <template>
   <div class="cluster-tag-list-box">
-    <div class="list-display-main">
+    <div
+      v-if="isVertical"
+      class="list-display-main">
       <TextOverflowLayout
         v-for="(item, index) in renderList"
         :key="index">
@@ -15,6 +17,13 @@
           {{ t('共n个', [totalList.length]) }}
         </BkButton>
       </template>
+    </div>
+    <div
+      v-else
+      class="list-display-main">
+      <TextOverflowLayout>
+        {{ renderList.map((item) => `${item.key} : ${item.value.join(' , ')}`).join(' , ') }}
+      </TextOverflowLayout>
     </div>
     <AuthButton
       :action-id="actionId"
@@ -45,11 +54,14 @@
 
   interface Props {
     data: { permission: Record<string, boolean> } & ClusterCommonInfo;
+    mode?: 'horizontal' | 'vertical';
   }
 
   type Emits = (e: 'success') => void;
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    mode: 'horizontal',
+  });
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
@@ -57,6 +69,8 @@
   const renderInstanceCount = 6;
 
   const isShowAddTag = ref(false);
+
+  const isVertical = computed(() => props.mode === 'vertical');
 
   const totalList = computed(() =>
     props.data.sortedTags.map((item) => ({
