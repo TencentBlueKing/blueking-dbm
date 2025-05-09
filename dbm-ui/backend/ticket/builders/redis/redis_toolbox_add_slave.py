@@ -70,7 +70,7 @@ class RedisAddSlaveResourceParamBuilder(BaseOperateResourceParamBuilder):
         super().post_callback()
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_ADD_SLAVE, is_apply=True)
+@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_ADD_SLAVE, is_apply=True, is_recycle=True)
 class RedisAddSlaveFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisAddSlaveDetailSerializer
     inner_flow_builder = RedisAddSlaveParamBuilder
