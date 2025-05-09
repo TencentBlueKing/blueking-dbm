@@ -35,7 +35,7 @@
   const { t } = useI18n();
 
   const isValueVerifyPass = ref(true);
-  const valueVerifyTip = ref(t('必填'));
+  const valueVerifyTip = ref('');
 
   watch(valueVerifyTip, () => {
     isValueVerifyPass.value = !valueVerifyTip.value;
@@ -83,7 +83,7 @@
 
     .is-not-valid {
       :deep(.bk-tag-input-trigger) {
-        background-color: #fff0f1;
+        border-color: #ea3636;
 
         .clear-icon {
           display: none !important;

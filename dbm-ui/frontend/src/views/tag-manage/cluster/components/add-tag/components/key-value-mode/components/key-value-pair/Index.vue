@@ -18,10 +18,11 @@
       class="value-input-wraper" />
     <div class="operation-main">
       <DbIcon
+        class="add-icon"
         type="plus-fill"
         @click="handleAdd" />
       <DbIcon
-        class="ml-10"
+        class="delete-icon ml-10"
         type="minus-fill"
         @click="handleDelete" />
     </div>
@@ -124,6 +125,7 @@
 
     .key-input-wraper {
       position: relative;
+      align-self: flex-start;
 
       .key-input {
         width: 210px;
@@ -151,12 +153,17 @@
       font-size: 14px;
       color: #979ba5;
       cursor: pointer;
+
+      .add-icon,
+      .delete-icon {
+        &:hover {
+          color: #63656e;
+        }
+      }
     }
 
     .is-not-valid {
-      :deep(.bk-input--text) {
-        background-color: #fff0f1;
-      }
+      border-color: #ea3636;
     }
   }
 </style>

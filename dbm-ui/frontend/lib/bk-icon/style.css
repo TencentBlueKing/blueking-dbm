@@ -719,3 +719,6 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-top-huidaodingbu:before {
 	content: "\e218";
 }
+.db-icon-hebingdanyuange:before {
+	content: "\e219";
+}

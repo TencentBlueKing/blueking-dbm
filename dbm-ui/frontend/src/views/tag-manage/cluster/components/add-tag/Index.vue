@@ -19,7 +19,7 @@
         <div class="title title-value">{{ t('标签值') }}</div>
       </template>
       <div class="switch-operation">
-        <DbIcon type="copy" />
+        <DbIcon type="qiehuan" />
         <BkButton
           text
           theme="primary"
@@ -73,11 +73,10 @@
     const inputData = modeRef.value!.getValue(true);
     if (inputData) {
       tagsPairData.value = inputData;
+      nextTick(() => {
+        editMode.value = isKeyValueMode.value ? 'text' : 'key_value';
+      });
     }
-
-    nextTick(() => {
-      editMode.value = isKeyValueMode.value ? 'text' : 'key_value';
-    });
   };
 
   defineExpose<Exposes>({

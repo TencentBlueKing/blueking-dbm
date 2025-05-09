@@ -31,6 +31,7 @@
     <Component
       :is="renderMode"
       ref="modeRef"
+      :allow-empty="allowKeyValueEmpty"
       :data="tagsPairData"
       :key-value-map="keyValueMap" />
   </div>
@@ -69,10 +70,12 @@
   }
 
   interface Props {
+    allowKeyValueEmpty?: boolean;
     data?: ClusterModel<ISupportClusterType>['tags'];
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    allowKeyValueEmpty: true,
     data: () => [],
   });
 

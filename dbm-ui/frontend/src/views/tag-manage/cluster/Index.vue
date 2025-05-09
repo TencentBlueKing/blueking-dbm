@@ -47,57 +47,66 @@
       <BkTableColumn
         field="key"
         :label="t('标签键')"
-        :min-width="160"
+        :min-width="350"
         show-overflow="tooltip">
         <template #default="{ data, rowIndex }: { data: RowData, rowIndex: number }">
-          <div class="tag-key-column-main">
-            <BkCheckbox
-              v-bk-tooltips="{
-                disabled: !isKeyApplied(data.key),
-                content: t('已被应用，无法删除'),
-              }"
-              class="mr-8"
-              :disabled="isKeyApplied(data.key)"
-              :model-value="selectedMap[data.key]"
-              @change="(checked: boolean) => handleChooseKey(checked, data.key)" />
-            <DbIcon
-              v-if="rowMergeCountMap[data.key]?.count > 1"
-              class="toggle-icon"
-              :class="{ 'is-open': toggleInfoMap[data.key] }"
-              type="down-shape"
-              @click="() => handleToggleRowExpand(rowIndex, data.key)" />
-            <span>{{ data.key }}</span>
-            <BkPopConfirm
-              ext-cls="append-tag-pop-confirm-main"
-              :title="t('追加标签')"
-              trigger="click"
-              :width="430"
-              @after-hidden="handlecancelAppendTagValue"
-              @confirm="handleConfirmAppendTagValue">
-              <template #content>
-                <div class="append-tag-main">
-                  <div class="title-main">{{ t('标签值') }}</div>
-                  <TagValueInput
-                    v-model="appendTagValues"
-                    class="mt-6" />
-                </div>
+          <div
+            class="tag-key-column-main"
+            @click="() => handleToggleRowExpand(rowIndex, data.key)">
+            <TextOverflowLayout>
+              <template #prepend>
+                <BkCheckbox
+                  v-bk-tooltips="{
+                    disabled: !isKeyApplied(data.key),
+                    content: t('已被应用，无法删除'),
+                  }"
+                  class="mr-8"
+                  :disabled="isKeyApplied(data.key)"
+                  :model-value="selectedMap[data.key]"
+                  @change="(checked: boolean) => handleChooseKey(checked, data.key)" />
+                <DbIcon
+                  v-if="rowMergeCountMap[data.key]?.count > 1"
+                  class="toggle-icon"
+                  :class="{ 'is-open': toggleInfoMap[data.key] }"
+                  type="down-shape" />
               </template>
-              <BkButton
-                class="append-btn"
-                :class="{ 'is-always-show': appendTagVisableMap[data.id] }"
-                size="small"
-                @click="() => handleClickAppend(data.key, data.id)">
-                {{ t('追加标签值') }}
-              </BkButton>
-            </BkPopConfirm>
+              <span :style="{ paddingLeft: rowMergeCountMap[data.key]?.count > 1 ? '0px' : '20px' }">{{
+                data.key
+              }}</span>
+              <template #append>
+                <BkPopConfirm
+                  ext-cls="append-tag-pop-confirm-main"
+                  :title="t('追加标签')"
+                  trigger="click"
+                  :width="430"
+                  @after-hidden="handlecancelAppendTagValue"
+                  @confirm="handleConfirmAppendTagValue">
+                  <template #content>
+                    <div class="append-tag-main">
+                      <div class="title-main">{{ t('标签值') }}</div>
+                      <TagValueInput
+                        v-model="appendTagValues"
+                        class="mt-6" />
+                    </div>
+                  </template>
+                  <BkButton
+                    class="append-btn"
+                    :class="{ 'is-always-show': appendTagVisableMap[data.id] }"
+                    size="small"
+                    @click.stop="() => handleClickAppend(data.key, data.id)">
+                    {{ t('追加标签值') }}
+                  </BkButton>
+                </BkPopConfirm>
+              </template>
+            </TextOverflowLayout>
           </div>
         </template>
       </BkTableColumn>
       <BkTableColumn
         field="value"
         :label="t('标签值')"
-        show-overflow="tooltip"
-        :width="220">
+        :min-width="450"
+        show-overflow="tooltip">
         <template #default="{ data, rowIndex }: { data: RowData, rowIndex: number }">
           <RenderTagOverflow
             v-if="isCollapsed(data.key)"
@@ -112,8 +121,8 @@
       <BkTableColumn
         field="clusters"
         :label="t('绑定的集群')"
-        show-overflow="tooltip"
-        :width="380">
+        :min-width="300"
+        show-overflow="tooltip">
         <template #default="{ data }: { data: RowData }">
           <div class="bind-cluster-column-main">
             <BkButton
@@ -247,6 +256,7 @@
   import { tagValueRegex } from '@common/regex';
 
   import RenderTagOverflow from '@components/render-tag-overflow/Index.vue';
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { execCopy, getSearchSelectorParams, messageError, messageSuccess } from '@utils';
 
@@ -686,6 +696,7 @@
   .tag-key-column-main {
     display: flex;
     align-items: center;
+    cursor: pointer;
 
     &:hover {
       .append-btn {
@@ -704,7 +715,6 @@
 
     .toggle-icon {
       margin-right: 8px;
-      cursor: pointer;
       transform: rotate(-90deg);
 
       &.is-open {

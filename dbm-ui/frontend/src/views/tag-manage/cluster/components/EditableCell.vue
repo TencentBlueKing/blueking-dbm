@@ -46,8 +46,21 @@
   const emits = defineEmits<Emits>();
 
   const inputRef = ref();
-  const editVal = ref(props.data);
+  const editVal = ref('');
   const isEdit = ref(false);
+
+  let rawValue = '';
+
+  watch(
+    () => props.data,
+    () => {
+      editVal.value = props.data;
+      rawValue = props.data;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   watch(
     isEdit,
@@ -65,7 +78,9 @@
 
   const handleInputBlur = () => {
     isEdit.value = false;
-    emits('success', editVal.value);
+    if (rawValue !== editVal.value) {
+      emits('success', editVal.value);
+    }
   };
 
   const handleEdit = () => {
@@ -88,7 +103,7 @@
       display: none;
       margin-left: 8px;
       font-size: 12px;
-      color: #c4c6cc;
+      color: #979ba5;
       cursor: pointer;
     }
   }
