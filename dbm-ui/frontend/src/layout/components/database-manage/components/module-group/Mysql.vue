@@ -14,7 +14,7 @@
               :cluster-type="ClusterTypes.TENDBHA"
               role="cluster" />
           </template>
-          <BkMenuItem key="DatabaseTendbha">
+          <BkMenuItem key="tendbha">
             <span
               v-overflow-tips.right
               class="text-overflow">
@@ -42,7 +42,7 @@
         controller-id="tendbsingle"
         module-id="mysql">
         <BkMenuItem
-          key="DatabaseTendbsingle"
+          key="tendbsingle"
           v-db-console="'mysql.singleClusterList'">
           <template #icon>
             <DbIcon type="node" />

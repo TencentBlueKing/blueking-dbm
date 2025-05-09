@@ -34,7 +34,7 @@
             :resource="data.id"
             text
             theme="primary"
-            @click="handleToDetails(data.id)">
+            @click="(event: MouseEvent) => handleToDetails(data.id, event)">
             {{ data.masterDomainDisplayName }}
           </AuthButton>
           <template #append>
@@ -111,7 +111,7 @@
   }
 
   export interface Emits {
-    (e: 'go-detail', params: number): void;
+    (e: 'go-detail', params: number, event: MouseEvent): void;
     (e: 'refresh'): void;
   }
 
@@ -182,8 +182,11 @@
     execCopy(data, t('复制成功，共n条', { n: 1 }));
   };
 
-  const handleToDetails = (id: number) => {
-    emits('go-detail', id);
+  const handleToDetails = (id: number, event: MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    emits('go-detail', id, event);
+    return false;
   };
 
   const handleRefresh = () => {

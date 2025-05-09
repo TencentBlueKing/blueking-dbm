@@ -3,7 +3,7 @@
     field="id"
     fixed="left"
     label="ID"
-    :width="140" />
+    :width="80" />
 </template>
 <script setup lang="ts">
   import type { ISupportClusterType } from './types';

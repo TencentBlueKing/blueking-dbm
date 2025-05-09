@@ -50,11 +50,11 @@
 
   import { execCopy } from '@utils';
 
-  interface Props {
+  export interface Props<T> {
     selected: T[];
   }
 
-  const props = defineProps<Props>();
+  const props = defineProps<Props<T>>();
 
   const { t } = useI18n();
 
