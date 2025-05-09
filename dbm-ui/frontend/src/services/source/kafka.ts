@@ -62,7 +62,19 @@ export function getKafkaTableFields() {
 /**
  * 获取实例列表
  */
-export function getKafkaInstanceList(params: { bk_biz_id: number } & Record<string, any>) {
+export function getKafkaInstanceList(params: {
+  cluster_id?: number;
+  cluster_type?: string;
+  domain?: string;
+  extra?: number;
+  instance_address?: string;
+  ip?: string;
+  limit?: number;
+  offset?: number;
+  port?: number;
+  role?: string;
+  status?: string;
+}) {
   return http.get<ListBase<KafkaInstanceModel[]>>(`${path}/list_instances/`, params).then((data) => ({
     ...data,
     results: data.results.map((item: KafkaInstanceModel) => new KafkaInstanceModel(item)),
@@ -72,7 +84,12 @@ export function getKafkaInstanceList(params: { bk_biz_id: number } & Record<stri
 /**
  * 获取实例详情
  */
-export function retrieveKafkaInstance(params: { bk_biz_id: number }) {
+export function retrieveKafkaInstance(params: {
+  cluster_id?: number;
+  dbType: string;
+  instance?: string;
+  type?: string;
+}) {
   return http.get<ListBase<KafkaModel[]>>(`${path}/retrieve_instance/`, params);
 }
 

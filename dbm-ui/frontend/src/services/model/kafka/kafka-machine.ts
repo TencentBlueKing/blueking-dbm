@@ -13,9 +13,12 @@
 
 import type { HostInfo, MachineRelatedCluster, MachineRelatedInstance, MachineSpecConfig } from '@services/types';
 
-import { MachineTypes } from '@common/const';
+import { utcDisplayTime } from '@utils';
 
 export default class kafkaMachine {
+  static ROLE_BROKER = 'broker';
+  static ROLE_ZOOKEEPER = 'zookeeper';
+
   bk_cloud_id: number;
   bk_cloud_name: string;
   bk_host_id: number;
@@ -54,11 +57,19 @@ export default class kafkaMachine {
     this.spec_id = payload.spec_id;
   }
 
+  get createAtDisplay() {
+    return utcDisplayTime(this.create_at);
+  }
+
   get isBroker() {
-    return this.machine_type === MachineTypes.KAFKA_BROKER;
+    return this.instance_role === kafkaMachine.ROLE_BROKER;
   }
 
   get isUnvailable() {
     return this.host_info?.alive !== 1;
+  }
+
+  get isZookeeper() {
+    return this.instance_role === kafkaMachine.ROLE_ZOOKEEPER;
   }
 }

@@ -147,7 +147,10 @@
   const { currentBizId } = useGlobalBizs();
   const { isOpen: isStretchLayoutOpen } = useStretchLayout();
   const { handleDisableCluster } = useOperateClusterBasic(ClusterTypes.MONGODB, {
-    onSuccess: () => fetchResourceDetails({ cluster_id: props.clusterId }),
+    onSuccess: () =>
+      fetchResourceDetails({
+        cluster_id: props.clusterId,
+      }),
   });
 
   const activePanelKey = ref('topo');

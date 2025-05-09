@@ -1,14 +1,18 @@
 <template>
   <span class="inline-block">
     <BkDropdown
-      @hide="() => (isCopyDropdown = false)"
-      @show="() => (isCopyDropdown = true)">
-      <BkButton
-        class="export-dropdown-button"
-        :class="{ active: isCopyDropdown }">
-        {{ t('导出') }}
-        <DbIcon type="up-big dropdown-button-icon" />
-      </BkButton>
+      :popover-options="{
+        clickContentAutoHide: true,
+        hideIgnoreReference: true,
+      }">
+      <template #default="{ popoverShow }">
+        <BkButton
+          class="export-dropdown-button"
+          :class="{ active: popoverShow }">
+          {{ t('导出') }}
+          <DbIcon type="up-big dropdown-button-icon" />
+        </BkButton>
+      </template>
       <template #content>
         <BkDropdownMenu>
           <BkDropdownItem @click="() => handleExport('all')">
@@ -76,8 +80,6 @@
   });
 
   const { t } = useI18n();
-
-  const isCopyDropdown = ref(false);
 
   const hasSelected = computed(() => props.ids && props.ids.length > 0);
 

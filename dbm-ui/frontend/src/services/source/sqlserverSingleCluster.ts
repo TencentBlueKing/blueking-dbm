@@ -12,6 +12,7 @@
  */
 
 import SqlServerInstanceModel from '@services/model/sqlserver/sqlserver-ha-instance';
+import SqlserverMachineModel from '@services/model/sqlserver/sqlserver-machine';
 import SqlServerSingleModel from '@services/model/sqlserver/sqlserver-single';
 import SqlServerSingleDetailModel from '@services/model/sqlserver/sqlserver-single-detail';
 import type { ListBase, ResourceTopo } from '@services/types';
@@ -68,11 +69,17 @@ export function exportSqlServerSingleClusterToExcel(params: { bk_host_ids?: numb
  * 获取集群实例列表
  */
 export function getSqlServerInstanceList(params: {
-  bk_biz_id?: number;
   cluster_id?: number;
+  cluster_type?: string;
+  domain?: string;
+  extra?: number;
+  instance_address?: string;
+  ip?: string;
   limit?: number;
   offset?: number;
+  port?: number;
   role?: string;
+  status?: string;
 }) {
   return http.get<ListBase<SqlServerInstanceModel[]>>(`${getPath()}/list_instances/`, params).then((data) => ({
     ...data,
@@ -84,13 +91,32 @@ export function getSqlServerInstanceList(params: {
  * 获取集群实例详情
  */
 export function retrieveSqlserverSingleInstance(params: {
-  bk_biz_id: number;
   cluster_id?: number;
-  dbType: string;
-  instance_address: string;
-  type: string;
+  dbType?: string;
+  instance?: string;
+  type?: string;
 }) {
   return http
     .get<SqlServerInstanceModel>(`${getPath()}/retrieve_instance/`, params)
     .then((res) => new SqlServerInstanceModel(res));
+}
+/**
+ * 查询主机列表
+ */
+export function getMachineList(params: {
+  bk_agent_id?: string;
+  bk_cloud_id?: number;
+  bk_host_id?: number;
+  bk_os_name?: string;
+  creator?: string;
+  instance_role?: string;
+  ip?: string;
+  limit?: number;
+  machine_type?: string;
+  offset?: number;
+}) {
+  return http.get<ListBase<SqlserverMachineModel[]>>(`${getPath()}/list_machines/`, params).then((data) => ({
+    ...data,
+    results: data.results.map((item) => new SqlserverMachineModel(item)),
+  }));
 }

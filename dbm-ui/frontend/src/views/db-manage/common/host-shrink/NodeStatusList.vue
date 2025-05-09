@@ -24,9 +24,9 @@
       </div>
       <template v-if="validateStatusMemo[nodeItem.key]">
         <div
-          v-if="nodeItem.key === 'observer' && nodeInfo[nodeItem.key].nodeList.length > 0"
+          v-if="nodeItem.key === 'observer' && nodeInfo[nodeItem.key].hostList.length > 0"
           class="disk-tips">
-          <span class="number">{{ nodeInfo[nodeItem.key].nodeList.length }}</span>
+          <span class="number">{{ nodeInfo[nodeItem.key].hostList.length }}</span>
           <span>{{ t('台') }}</span>
         </div>
         <div
@@ -44,17 +44,8 @@
     </div>
   </div>
 </template>
-<script
-  setup
-  lang="ts"
-  generic="T extends EsNodeModel | HdfsNodeModel | KafkaNodeModel | PulsarNodeModel | DorisNodeModel">
+<script setup lang="ts">
   import { useI18n } from 'vue-i18n';
-
-  import DorisNodeModel from '@services/model/doris/doris-node';
-  import EsNodeModel from '@services/model/es/es-node';
-  import HdfsNodeModel from '@services/model/hdfs/hdfs-node';
-  import KafkaNodeModel from '@services/model/kafka/kafka-node';
-  import PulsarNodeModel from '@services/model/pulsar/pulsar-node';
 
   import type { TShrinkNode } from './Index.vue';
 
@@ -63,7 +54,7 @@
       key: string;
       label: string;
     }>;
-    nodeInfo: Record<string, TShrinkNode<T>>;
+    nodeInfo: Record<string, TShrinkNode>;
   }
   interface Exposes {
     validate: () => boolean;
@@ -95,7 +86,7 @@
   defineExpose<Exposes>({
     validate() {
       Object.keys(validateStatusMemo).forEach((key) => (validateStatusMemo[key] = true));
-      return Object.values(props.nodeInfo).some((nodeData) => nodeData.nodeList.length > 0);
+      return Object.values(props.nodeInfo).some((nodeData) => nodeData.hostList.length > 0);
     },
   });
 </script>

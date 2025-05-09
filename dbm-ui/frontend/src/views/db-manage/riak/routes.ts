@@ -31,13 +31,22 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@views/db-manage/riak/Index.vue'),
     children: [
       {
-        path: 'list',
+        path: 'list/:clusterId?',
         name: 'RiakList',
         meta: {
           fullscreen: true,
           navName: t('Riak_集群管理'),
         },
         component: () => import('@views/db-manage/riak/list/Index.vue'),
+      },
+      {
+        path: 'detail/:clusterId',
+        name: 'riakDetail',
+        meta: {
+          fullscreen: true,
+          navName: t('Riak_集群详情'),
+        },
+        component: () => import('@views/db-manage/riak/detail/Index.vue'),
       },
     ],
   },

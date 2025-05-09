@@ -4,17 +4,20 @@
     placement="top"
     theme="light"
     :width="panelWidth"
-    :z-index="10"
+    :z-index="999"
     @after-show="handlePanelAfterShow">
-    <BkTag
-      class="ml-4"
-      :class="[tagInfoMap[entryType].className]"
+    <div
+      class="cluster-entry-panel"
+      :class="{
+        [tagInfoMap[entryType].className]: true,
+        'is-size-big': size === 'big',
+      }"
       size="small">
       {{ tagInfoMap[entryType].text }}
-    </BkTag>
+    </div>
     <template #content>
       <BkLoading :loading="loading">
-        <div class="cluster-entry-panel">
+        <div class="wrapper">
           <template v-if="entryInfo">
             <div class="panel-title">
               {{ entryInfo.title }}
@@ -38,11 +41,12 @@
                   class="icon"
                   type="copy"
                   @click="() => execCopy(item.value, t('复制成功，共n条', { n: 1 }))" />
-                <DbIcon
-                  v-if="item.shareLink"
-                  class="icon"
-                  type="link"
-                  @click="() => handleNavigateTo(item.shareLink)" />
+                <template v-if="item.shareLink">
+                  <DbIcon
+                    class="icon"
+                    type="link"
+                    @click="() => handleNavigateTo(item.shareLink as string)" />
+                </template>
               </div>
             </div>
           </template>
@@ -51,7 +55,6 @@
     </template>
   </BkPopover>
 </template>
-
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -67,10 +70,12 @@
     clusterId: number;
     entryType: 'clb' | 'polaris';
     panelWidth?: number;
+    size?: 'defalut' | 'big';
   }
 
   const props = withDefaults(defineProps<Props>(), {
     panelWidth: 250,
+    size: 'defalut',
   });
 
   const { t } = useI18n();
@@ -84,13 +89,7 @@
     title: string;
   }>();
 
-  const tagInfoMap: Record<
-    string,
-    {
-      className: string;
-      text: string;
-    }
-  > = {
+  const tagInfoMap = {
     clb: {
       className: 'cluster-entry-panel-tag-clb',
       text: 'CLB',
@@ -156,24 +155,39 @@
     window.open(url);
   };
 </script>
+<style lang="less">
+  .cluster-entry-panel {
+    display: flex;
+    height: 16px;
+    padding: 0 4px;
+    font-size: 10px;
+    line-height: 1;
+    white-space: nowrap;
+    border: 1px solid currentcolor;
+    border-radius: 2px;
+    align-items: center;
 
-<style lang="less" scoped>
+    &.is-size-big {
+      height: 22px;
+      padding: 0 8px;
+      font-size: 12px;
+    }
+  }
+
   .cluster-entry-panel-tag-clb {
     color: #8e3aff;
-    background-color: #f2edff;
+    background-color: #ebe1f9;
   }
 
   .cluster-entry-panel-tag-polaris {
-    color: #3a84ff;
-    background-color: #edf4ff;
+    color: #1e9eba;
+    background-color: #dcecf8;
   }
-</style>
 
-<style lang="less">
   .cluster-entry-panel-popover {
     padding: 12px 16px !important;
 
-    .cluster-entry-panel {
+    .wrapper {
       min-height: 80px;
 
       .panel-title {

@@ -16,6 +16,8 @@ import { ClusterTypes } from '@common/const';
 
 import { isRecentDays, utcDisplayTime } from '@utils';
 
+import { t } from '@locales/index';
+
 export default class TendbInstance {
   bk_cloud_id: number;
   bk_cloud_name: string;
@@ -38,6 +40,7 @@ export default class TendbInstance {
   host_info: HostInfo;
   id: number;
   instance_address: string;
+  instance_name: string;
   ip: string;
   machine_type: string;
   master_domain: string;
@@ -74,6 +77,7 @@ export default class TendbInstance {
     this.host_info = payload.host_info || {};
     this.id = payload.id;
     this.instance_address = payload.instance_address;
+    this.instance_name = payload.instance_name;
     this.ip = payload.ip;
     this.machine_type = payload.machine_type;
     this.master_domain = payload.master_domain;
@@ -93,5 +97,17 @@ export default class TendbInstance {
 
   get isNew() {
     return isRecentDays(this.create_at, 24 * 3);
+  }
+
+  get roleDisplay() {
+    const roleMap = {
+      remote_master: 'RemoteDB',
+      remote_slave: 'RemoteDR',
+      spider_master: 'Spider Master',
+      spider_mnt: t('运维节点'),
+      spider_slave: 'Spider Slave',
+    };
+
+    return roleMap[this.role as keyof typeof roleMap];
   }
 }

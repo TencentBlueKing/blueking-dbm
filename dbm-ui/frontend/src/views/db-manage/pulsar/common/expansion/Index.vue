@@ -170,7 +170,7 @@
         let brokerDiskTotal = 0;
 
         data.results.forEach((hostItem) => {
-          if (hostItem.isBookKeeper) {
+          if (hostItem.isBookkeeper) {
             bookkeeperDiskTotal += Math.floor(Number(hostItem.host_info.bk_disk));
             bookkeeperOriginalHostList.push(hostItem);
           } else if (hostItem.isBroker) {

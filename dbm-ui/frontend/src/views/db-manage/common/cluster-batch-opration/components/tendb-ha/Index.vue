@@ -131,6 +131,7 @@
 
   defineOptions({
     name: ClusterTypes.TENDBHA,
+    inheritAttrs: false,
   });
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();

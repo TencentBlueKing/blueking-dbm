@@ -14,7 +14,7 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
 
-import { affinityMap, ClusterTypes } from '@common/const';
+import { Affinity, affinityMap, ClusterTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
@@ -57,7 +57,7 @@ export default class Kafka extends ClusterBase {
 
   access_url: string;
   bk_biz_id: number;
-  bk_biz_name: number;
+  bk_biz_name: string;
   bk_cloud_id: number;
   bk_cloud_name: string;
   broker: Array<ClusterListNode>;

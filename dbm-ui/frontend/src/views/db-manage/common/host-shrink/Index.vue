@@ -63,8 +63,39 @@
           </div>
           <BkTable
             v-if="nodeTableData.length > 0"
-            :columns="tableColumns"
-            :data="nodeTableData" />
+            :data="nodeTableData">
+            <BkTableColumn
+              field="ip"
+              label="IP" />
+            <BkTableColumn
+              field="host_info"
+              :label="t('状态')">
+              <template #default="{ data: hostItem }: { data: TShrinkNode['hostList'][number] }">
+                <HostAgentStatus :data="hostItem.alive || 0" />
+              </template>
+            </BkTableColumn>
+            <BkTableColumn
+              field="host_info.bk_disk"
+              :label="t('磁盘G')">
+              <template #default="{ data: hostItem }: { data: TShrinkNode['hostList'][number] }">
+                {{ hostItem.bk_disk || '--' }}
+              </template>
+            </BkTableColumn>
+            <BkTableColumn
+              field=""
+              fixed="right"
+              :label="t('操作')"
+              :width="120">
+              <template #default="{ data: hostItem }: { data: TShrinkNode['hostList'][number] }">
+                <BkButton
+                  text
+                  theme="primary"
+                  @click="() => handleRemoveHost(hostItem)">
+                  {{ t('删除') }}
+                </BkButton>
+              </template>
+            </BkTableColumn>
+          </BkTable>
         </div>
       </BkFormItem>
       <div
@@ -86,36 +117,44 @@
     <SelectOriginalHost
       v-model:is-show="isShowHostDialog"
       :min-host="data.minHost"
-      :model-value="data.nodeList"
+      :model-value="data.hostList"
       :original-node-list="data.originalNodeList"
       @change="handleSelectChange" />
   </div>
 </template>
-<script
-  setup
-  lang="tsx"
-  generic="T extends EsNodeModel | HdfsNodeModel | KafkaNodeModel | PulsarNodeModel | DorisNodeModel">
+<script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import DorisNodeModel from '@services/model/doris/doris-node';
-  import EsNodeModel from '@services/model/es/es-node';
-  import HdfsNodeModel from '@services/model/hdfs/hdfs-node';
-  import KafkaNodeModel from '@services/model/kafka/kafka-node';
-  import PulsarNodeModel from '@services/model/pulsar/pulsar-node';
-
-  import RenderHostStatus from '@components/render-host-status/Index.vue';
+  import HostAgentStatus from '@components/host-agent-status/Index.vue';
 
   import SelectOriginalHost from './components/SelectOriginalHost.vue';
 
-  export interface TShrinkNode<N> {
+  export interface TShrinkNode {
+    // 缩容后的主机列表
+    hostList: {
+      alive: number;
+      bk_cloud_id: number;
+      bk_disk: number;
+      bk_host_id: number;
+      ip: string;
+    }[];
     // 节点显示名称
     label: string;
     // 改节点所需的最少主机数
     minHost: number;
-    // 缩容后的节点列表
-    nodeList: N[];
-    // 原始节点列表
-    originalNodeList: N[];
+    // 原始实例节点列表
+    originalNodeList: {
+      bk_cloud_id: number;
+      bk_host_id: number;
+      cpu: number;
+      disk: number;
+      ip: string;
+      mem: number;
+      node_count: number;
+      role?: string;
+      role_set?: string[];
+      status: number;
+    }[];
     // 缩容目标磁盘大小
     // targetDisk: number,
     // 选择节点后实际的缩容磁盘大小
@@ -126,13 +165,13 @@
     totalDisk: number;
   }
 
-  interface Props {
-    data: TShrinkNode<T>;
+  export interface Props {
+    data: TShrinkNode;
   }
 
-  interface Emits {
-    (e: 'change', value: Props['data']['nodeList']): void;
-    (e: 'target-disk-change', value: Props['data']['totalDisk']): void;
+  export interface Emits {
+    (e: 'change', value: TShrinkNode['hostList']): void;
+    (e: 'target-disk-change', value: TShrinkNode['totalDisk']): void;
   }
 
   const props = defineProps<Props>();
@@ -140,41 +179,10 @@
 
   const { t } = useI18n();
 
-  // const localTargetDisk = ref(props.data.targetDisk);
-  const nodeTableData = shallowRef<Props['data']['nodeList']>(props.data.nodeList || []);
+  const nodeTableData = shallowRef(props.data.hostList || []);
   const isShowHostDialog = ref(false);
 
   const isDisabled = computed(() => props.data.originalNodeList.length <= props.data.minHost);
-
-  const tableColumns = [
-    {
-      field: 'ip',
-      label: t('节点 IP'),
-      render: ({ data }: { data: Props['data']['nodeList'][0] }) => data.ip || '--',
-    },
-    {
-      field: 'alive',
-      label: t('Agent状态'),
-      render: ({ data }: { data: Props['data']['nodeList'][0] }) => <RenderHostStatus data={data.status} />,
-    },
-    {
-      field: 'disk',
-      label: t('磁盘_GB'),
-      render: ({ data }: { data: Props['data']['nodeList'][0] }) => data.disk || '--',
-    },
-    {
-      label: t('操作'),
-      render: ({ data }: { data: Props['data']['nodeList'][0] }) => (
-        <bk-button
-          theme='primary'
-          text
-          onClick={() => handleRemoveHost(data)}>
-          {t('删除')}
-        </bk-button>
-      ),
-      width: 100,
-    },
-  ];
 
   // 资源池预估容量
   const estimateCapacity = computed(() => {
@@ -187,27 +195,33 @@
   };
 
   // 添加节点
-  const handleSelectChange = (nodeList: Props['data']['nodeList']) => {
-    nodeTableData.value = nodeList;
+  const handleSelectChange = (originalNodeList: TShrinkNode['originalNodeList']) => {
+    nodeTableData.value = originalNodeList.map((item) => ({
+      alive: item.status,
+      bk_cloud_id: item.bk_cloud_id,
+      bk_disk: item.disk,
+      bk_host_id: item.bk_host_id,
+      ip: item.ip,
+    }));
     window.changeConfirm = true;
-    emits('change', nodeList);
+    emits('change', [...nodeTableData.value]);
   };
 
   // 删除选择的节点
-  const handleRemoveHost = (data: Props['data']['nodeList'][0]) => {
-    const nodeList = nodeTableData.value.reduce(
+  const handleRemoveHost = (data: TShrinkNode['hostList'][0]) => {
+    const hostList = nodeTableData.value.reduce(
       (result, item) => {
         if (item.bk_host_id !== data.bk_host_id) {
           result.push(item);
         }
         return result;
       },
-      [] as Props['data']['nodeList'],
+      [] as TShrinkNode['hostList'],
     );
 
-    nodeTableData.value = nodeList;
+    nodeTableData.value = hostList;
     window.changeConfirm = true;
-    emits('change', nodeList);
+    emits('change', hostList);
   };
 </script>
 <style lang="less">

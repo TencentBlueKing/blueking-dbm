@@ -20,17 +20,16 @@
     }"
     class="cluster-batch-operation"
     :disabled="disabled"
-    :popover-options="popoverOptions"
-    @click.stop
-    @hide="() => (isShowDropdown = false)"
-    @show="() => (isShowDropdown = true)">
-    <BkButton :disabled="disabled">
-      {{ t('批量操作') }}
-      <DbIcon
-        class="cluster-batch-operation-icon ml-4"
-        :class="[{ 'cluster-batch-operation-icon-active': isShowDropdown }]"
-        type="up-big " />
-    </BkButton>
+    :popover-options="popoverOptions">
+    <template #default="{ popoverShow }">
+      <BkButton :disabled="disabled">
+        {{ t('批量操作') }}
+        <DbIcon
+          class="cluster-batch-operation-icon ml-4"
+          :class="[{ 'cluster-batch-operation-icon-active': popoverShow }]"
+          type="up-big " />
+      </BkButton>
+    </template>
     <template #content>
       <BkDropdownMenu class="dropdown-menu-with-button">
         <Component
@@ -81,14 +80,14 @@
   }
 </script>
 <script setup lang="ts" generic="T extends keyof ClusterModelMap">
-  interface Props {
+  export interface Props<T extends keyof ClusterModelMap> {
     clusterType: T;
     selected: ClusterModelMap[T][];
   }
 
   type Emits = (e: 'success') => void;
 
-  const props = defineProps<Props>();
+  const props = defineProps<Props<T>>();
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
@@ -101,7 +100,6 @@
     eager: true,
   });
 
-  const isShowDropdown = ref(false);
   const sideSliderShow = ref(false);
   const renderKey = ref(new Date().getTime());
 
@@ -124,6 +122,7 @@
     boundary: 'body',
     clickContentAutoHide: true,
     disableOutsideClick: sideSliderShow.value,
+    hideIgnoreReference: true,
     renderDirective: 'show',
   }));
 

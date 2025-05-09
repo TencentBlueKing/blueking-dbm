@@ -14,6 +14,9 @@
 <template>
   <div class="db-cluster-instance-status">
     <DbIcon
+      :class="{
+        'rotate-loading': clusterInstStatus[data as keyof typeof clusterInstStatus].icon === 'sync-pending',
+      }"
       svg
       :type="clusterInstStatus[data as keyof typeof clusterInstStatus].icon" />
     <span
@@ -40,20 +43,24 @@
   const clusterInstStatus = {
     restoring: {
       icon: 'sync-pending',
-      text: t('重建中'),
+      text: t('恢复中'),
     },
     running: {
       icon: 'normal',
-      text: t('正常'),
+      text: t('运行中'),
     },
     unavailable: {
       icon: 'abnormal',
-      text: t('异常'),
+      text: t('不可用'),
+    },
+    upgrading: {
+      icon: 'sync-pending',
+      text: t('升级中'),
     },
   };
 </script>
 <style lang="less">
-  .db-cluster-status {
+  .db-cluster-instance-status {
     display: flex;
     align-items: center;
   }

@@ -256,36 +256,6 @@
   min-width: 0;
 }
 
-.bk-vxe-table {
-  .vxe-body--row {
-    &.is-new-row {
-      td {
-        background-color: #f3fcf5 !important;
-      }
-    }
-
-    &.is-selected-row {
-      td {
-        background-color: #e1ecff !important;
-      }
-    }
-
-    &.is-offline {
-      td {
-        .cell,
-        .vxe-cell {
-          color: @disable-color;
-
-          .bk-tag {
-            color: #c4c6cc;
-            background-color: #f0f1f5;
-          }
-        }
-      }
-    }
-  }
-}
-
 /** BkSideslider 嵌套 BkTable，表格的 z-index 过低导致页面无效果，先暂时全局设置 */
 .vxe-table--tooltip-wrapper {
   z-index: 999999 !important;

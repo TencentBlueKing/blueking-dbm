@@ -22,63 +22,6 @@ const TABLE_COLUMN_CACHE = 'resource_pool_list_columns';
 export default function () {
   const cache = listColumnsCache.getItem(TABLE_COLUMN_CACHE) || {};
   const setting = shallowRef({
-    fields: [
-      {
-        label: 'IP',
-        field: 'ip',
-        disabled: true,
-      },
-      {
-        label: t('管控区域'),
-        field: 'bk_cloud_name',
-      },
-      {
-        label: t('Agent 状态'),
-        field: 'agent_status',
-      },
-      {
-        label: t('所属业务'),
-        field: 'for_biz',
-        disabled: true,
-      },
-      {
-        label: t('所属DB类型'),
-        field: 'resource_type',
-        disabled: true,
-      },
-      {
-        label: t('机架'),
-        field: 'rack_id',
-      },
-      {
-        label: t('机型'),
-        field: 'device_class',
-      },
-      {
-        label: t('操作系统类型'),
-        field: 'os_type',
-      },
-      {
-        label: t('地域'),
-        field: 'city',
-      },
-      {
-        label: t('园区'),
-        field: 'sub_zone',
-      },
-      {
-        label: t('CPU(核)'),
-        field: 'bk_cpu',
-      },
-      {
-        label: t('内存(G)'),
-        field: 'bk_mem',
-      },
-      {
-        label: t('磁盘容量(G)'),
-        field: 'bk_disk',
-      },
-    ],
     checked: cache.columns || [
       'ip',
       'bk_cloud_name',
@@ -93,6 +36,63 @@ export default function () {
       'bk_mem',
       'bk_disk',
       'os_type',
+    ],
+    fields: [
+      {
+        disabled: true,
+        field: 'ip',
+        label: 'IP',
+      },
+      {
+        field: 'bk_cloud_name',
+        label: t('管控区域'),
+      },
+      {
+        field: 'agent_status',
+        label: t('Agent 状态'),
+      },
+      {
+        disabled: true,
+        field: 'for_biz',
+        label: t('所属业务'),
+      },
+      {
+        disabled: true,
+        field: 'resource_type',
+        label: t('所属DB类型'),
+      },
+      {
+        field: 'rack_id',
+        label: t('机架'),
+      },
+      {
+        field: 'device_class',
+        label: t('机型'),
+      },
+      {
+        field: 'os_type',
+        label: t('操作系统类型'),
+      },
+      {
+        field: 'city',
+        label: t('地域'),
+      },
+      {
+        field: 'sub_zone',
+        label: t('园区'),
+      },
+      {
+        field: 'bk_cpu',
+        label: t('CPU(核)'),
+      },
+      {
+        field: 'bk_mem',
+        label: t('内存(G)'),
+      },
+      {
+        field: 'bk_disk',
+        label: t('磁盘容量(G)'),
+      },
     ],
     size: cache.size || 'small',
   });
@@ -111,7 +111,7 @@ export default function () {
   };
 
   return {
-    setting,
     handleChange,
+    setting,
   };
 }

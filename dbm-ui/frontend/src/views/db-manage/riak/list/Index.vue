@@ -12,189 +12,465 @@
 -->
 
 <template>
-  <Teleport to="#dbContentHeaderAppend">
-    <div
-      v-if="headShow && detailData"
-      class="riak-breadcrumbs-box">
-      <BkTag>{{ detailData.cluster_name }}</BkTag>
-      <div class="riak-breadcrumbs-box-status">
-        <span>{{ t('状态') }} :</span>
-        <RenderClusterStatus
-          class="ml-8"
-          :data="detailData.status" />
-      </div>
-      <div class="riak-breadcrumbs-box-button">
-        <BkButton
-          size="small"
-          @click="addNodeShow = true">
-          {{ t('添加节点') }}
-        </BkButton>
-        <BkButton
-          class="ml-4"
-          size="small"
-          @click="deleteNodeShow = true">
-          {{ t('删除节点') }}
-        </BkButton>
-        <BkDropdown class="ml-4">
-          <BkButton
-            class="more-button"
-            size="small">
-            <DbIcon type="more" />
-          </BkButton>
-          <template #content>
-            <BkDropdownMenu class="dropdown-menu-with-button">
-              <BkDropdownItem>
-                <BkButton
-                  :disabled="Boolean(detailData.operationTicketId)"
-                  text
-                  @click="handleDisabled">
-                  {{ t('禁用集群') }}
-                </BkButton>
-              </BkDropdownItem>
-            </BkDropdownMenu>
-          </template>
-        </BkDropdown>
-      </div>
+  <div class="riak-cluster-list-page">
+    <div class="header-action">
+      <AuthButton
+        v-db-console="'riak.clusterManage.instanceApply'"
+        action-id="riak_cluster_apply"
+        theme="primary"
+        @click="toApply">
+        {{ t('申请实例') }}
+      </AuthButton>
+      <ClusterBatchOperation
+        v-db-console="'riak.clusterManage.batchOperation'"
+        :cluster-type="ClusterTypes.RIAK"
+        :selected="selected"
+        @success="fetchData" />
+      <DropdownExportExcel
+        v-db-console="'riak.clusterManage.export'"
+        :ids="selectedIds"
+        type="riak" />
+      <ClusterIpCopy
+        v-db-console="'riak.clusterManage.batchCopy'"
+        :selected="selected" />
+      <TagSearch @search="handleTagSearch" />
+      <DbSearchSelect
+        :data="serachData"
+        :get-menu-list="getMenuList"
+        :model-value="searchValue"
+        :placeholder="t('请输入或选择条件搜索')"
+        unique-select
+        @change="handleSearchValueChange" />
+      <BkDatePicker
+        v-model="deployTime"
+        append-to-body
+        clearable
+        :placeholder="t('请选择xx', [t('部署时间')])"
+        type="daterange"
+        @change="fetchData" />
     </div>
-  </Teleport>
-  <StretchLayout
-    :left-width="368"
-    name="riakClusterList">
-    <template #list>
-      <List
-        ref="listRef"
-        v-model:cluster-id="clusterId"
-        show-add-nodes
-        @detail-open-change="handleOpenChange" />
-    </template>
-    <template
-      v-if="clusterId"
-      #right>
-      <Detail
-        ref="detailRef"
-        :cluster-id="clusterId"
-        @detail-change="handleDetailChange"
-        @refresh="handleRefresh" />
-    </template>
-  </StretchLayout>
-  <DbSideslider
-    v-model:is-show="addNodeShow"
-    quick-close
-    :title="t('添加节点【xx】', [detailData?.cluster_name])"
-    :width="960">
-    <AddNodes
+    <ClusterTable
+      ref="tableRef"
+      :cluster-id="clusterId"
+      :cluster-type="ClusterTypes.RIAK"
+      :data-source="getRiakList"
+      :settings="tableSetting"
+      @clear-search="clearSearchValue"
+      @column-filter="columnFilterChange"
+      @column-sort="columnSortChange"
+      @selection="handleSelection"
+      @setting-change="updateTableSettings">
+      <template #operation>
+        <OperationColumn :cluster-type="ClusterTypes.RIAK">
+          <template #default="{ data }">
+            <div v-db-console="'riak.clusterManage.addNodes'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  action-id="riak_cluster_scale_in"
+                  class="mr-8"
+                  :disabled="data.isOffline"
+                  :permission="data.permission.riak_cluster_scale_in"
+                  :resource="data.id"
+                  text
+                  @click="handleAddNodes(data)">
+                  {{ t('添加节点') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <div v-db-console="'riak.clusterManage.deleteNodes'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  action-id="riak_cluster_scale_out"
+                  class="mr-8"
+                  :disabled="data.isOffline"
+                  :permission="data.permission.riak_cluster_scale_out"
+                  :resource="data.id"
+                  text
+                  @click="handleDeleteNodes(data)">
+                  {{ t('删除节点') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <div v-db-console="'riak.clusterManage.disable'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  action-id="riak_enable_disable"
+                  class="mr-8"
+                  :disabled="data.isOffline || Boolean(data.operationTicketId)"
+                  :permission="data.permission.riak_enable_disable"
+                  :resource="data.id"
+                  text
+                  @click="handleDisableCluster([data])">
+                  {{ t('禁用') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <div v-db-console="'riak.clusterManage.enable'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  action-id="riak_enable_disable"
+                  :disabled="data.isOnline || data.isStarting"
+                  :permission="data.permission.riak_enable_disable"
+                  :resource="data.id"
+                  text
+                  @click="handleEnableCluster([data])">
+                  {{ t('启用') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <div v-db-console="'riak.clusterManage.delete'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  v-bk-tooltips="{
+                    disabled: data.isOffline,
+                    content: t('请先禁用集群'),
+                  }"
+                  action-id="riak_cluster_destroy"
+                  :disabled="data.isOnline || Boolean(data.operationTicketId)"
+                  :permission="data.permission.riak_cluster_destroy"
+                  :resource="data.id"
+                  text
+                  @click="handleDeleteCluster([data])">
+                  {{ t('删除') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <ClusterDomainDnsRelation :data="data" />
+          </template>
+        </OperationColumn>
+      </template>
+      <template #masterDomain>
+        <MasterDomainColumn
+          :cluster-type="ClusterTypes.RIAK"
+          field="master_domain"
+          :get-table-instance="getTableInstance"
+          :is-filter="isFilter"
+          :label="t('主访问入口')"
+          :selected-list="selected"
+          @go-detail="handleToDetails"
+          @refresh="fetchData" />
+      </template>
+      <template #role>
+        <RoleColumn
+          :cluster-type="ClusterTypes.RIAK"
+          field="riak_node"
+          :get-table-instance="getTableInstance"
+          :is-filter="isFilter"
+          :label="t('节点')"
+          :search-ip="batchSearchIpInatanceList"
+          :selected-list="selected"
+          @go-detail="handleToDetails" />
+      </template>
+      <template #moduleNames>
+        <ModuleNameColumn :cluster-type="ClusterTypes.RIAK" />
+      </template>
+    </ClusterTable>
+    <DbSideslider
       v-if="detailData"
-      :data="detailData"
-      @submit-success="handleRefresh" />
-  </DbSideslider>
-  <DbSideslider
-    v-model:is-show="deleteNodeShow"
-    :title="t('删除节点【xx】', [detailData?.cluster_name])"
-    :width="960">
-    <DeleteNodes
+      v-model:is-show="addNodeShow"
+      quick-close
+      :title="t('添加节点【xx】', [detailData.cluster_name])"
+      :width="960">
+      <AddNodes
+        :data="detailData"
+        @submit-success="fetchData" />
+    </DbSideslider>
+    <DbSideslider
       v-if="detailData"
-      :data="detailData"
-      @submit-success="handleRefresh" />
-  </DbSideslider>
+      v-model:is-show="deleteNodeShow"
+      :title="t('删除节点【xx】', [detailData.cluster_name])"
+      :width="960">
+      <DeleteNodes
+        :data="detailData"
+        @submit-success="fetchData" />
+    </DbSideslider>
+    <TableDetailDialog
+      v-model="isShowDetail"
+      :default-offset-left="300"
+      @close="handleDetailClose">
+      <ClusterDetail
+        v-if="clusterId"
+        :cluster-id="clusterId" />
+    </TableDetailDialog>
+  </div>
 </template>
-
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
+  import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
+  import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
+  import { useRouter } from 'vue-router';
 
   import RiakModel from '@services/model/riak/riak';
-  import { createTicket } from '@services/source/ticket';
+  import { getRiakList } from '@services/source/riak';
+  import { getUserList } from '@services/source/user';
 
-  import { useTicketMessage } from '@hooks';
+  import { useLinkQueryColumnSerach, useTableSettings } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
+  import { ClusterTypes, UserPersonalSettings } from '@common/const';
 
-  import RenderClusterStatus from '@components/cluster-status/Index.vue';
-  import StretchLayout from '@components/stretch-layout/StretchLayout.vue';
+  import DbTable from '@components/db-table/index.vue';
+  import TagSearch from '@components/tag-search/index.vue';
 
-  import AddNodes from './components/components/AddNodes.vue';
-  import DeleteNodes from './components/components/DeleteNodes.vue';
-  import Detail from './components/detail/Index.vue';
-  import List from './components/list/Index.vue';
+  import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
+  import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
+  import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
+  import ClusterTable, {
+    MasterDomainColumn,
+    ModuleNameColumn,
+    OperationColumn,
+    RoleColumn,
+  } from '@views/db-manage/common/cluster-table/Index.vue';
+  import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
+  import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
+  import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
+  import useGoClusterDetail from '@views/db-manage/hooks/useGoClusterDetail';
+  import ClusterDetail from '@views/db-manage/riak/common/cluster-detail/Index.vue';
 
+  import { getMenuListSearch, getSearchSelectorParams } from '@utils';
+
+  import AddNodes from './components/AddNodes.vue';
+  import DeleteNodes from './components/DeleteNodes.vue';
+
+  const router = useRouter();
   const { t } = useI18n();
-  const ticketMessage = useTicketMessage();
+  const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(ClusterTypes.RIAK, {
+    onSuccess: () => fetchData(),
+  });
+  const {
+    batchSearchIpInatanceList,
+    clearSearchValue,
+    columnFilterChange,
+    columnSortChange,
+    handleSearchValueChange,
+    isFilter,
+    searchAttrs,
+    searchValue,
+    sortValue,
+  } = useLinkQueryColumnSerach({
+    attrs: ['bk_cloud_id', 'db_module_id', 'major_version', 'region', 'time_zone'],
+    defaultSearchItem: {
+      id: 'domain',
+      name: t('访问入口'),
+    },
+    fetchDataFn: () => fetchData(),
+    searchType: ClusterTypes.RIAK,
+  });
 
-  const listRef = ref<InstanceType<typeof List>>();
-  const detailRef = ref();
-  const clusterId = ref(0);
-  const detailData = ref<RiakModel>();
+  const {
+    clusterDetailClose: handleDetailClose,
+    clusterId,
+    goClusterDetail: handleToDetails,
+    showDetail: isShowDetail,
+  } = useGoClusterDetail('riakDetail');
+
+  const tableRef = ref<InstanceType<typeof DbTable>>();
+  const deployTime = ref<[string, string]>(['', '']);
   const addNodeShow = ref(false);
   const deleteNodeShow = ref(false);
-  const headShow = ref(false);
+  const detailData = ref<RiakModel>();
+  const selected = ref<RiakModel[]>([]);
+  const tagSearchValue = ref<Record<string, any>>({});
 
-  const handleDetailChange = (data: RiakModel) => {
-    detailData.value = data;
+  const getTableInstance = () => tableRef.value;
+
+  const serachData = computed(
+    () =>
+      [
+        {
+          async: false,
+          id: 'name',
+          multiple: true,
+          name: t('集群名称'),
+        },
+        {
+          async: false,
+          id: 'instance',
+          multiple: true,
+          name: t('IP 或 IP:Port'),
+        },
+        {
+          id: 'id',
+          name: 'ID',
+        },
+        {
+          id: 'creator',
+          name: t('创建人'),
+        },
+        {
+          children: searchAttrs.value.db_module_id,
+          id: 'db_module_id',
+          multiple: true,
+          name: t('模块'),
+        },
+        {
+          children: searchAttrs.value.bk_cloud_id,
+          id: 'bk_cloud_id',
+          multiple: true,
+          name: t('管控区域'),
+        },
+        {
+          children: [
+            {
+              id: 'normal',
+              name: t('正常'),
+            },
+            {
+              id: 'abnormal',
+              name: t('异常'),
+            },
+          ],
+          id: 'status',
+          multiple: true,
+          name: t('状态'),
+        },
+        {
+          children: searchAttrs.value.major_version,
+          id: 'major_version',
+          multiple: true,
+          name: t('版本'),
+        },
+        {
+          children: searchAttrs.value.region,
+          id: 'region',
+          multiple: true,
+          name: t('地域'),
+        },
+        {
+          children: searchAttrs.value.time_zone,
+          id: 'time_zone',
+          multiple: true,
+          name: t('时区'),
+        },
+      ] as ISearchItem[],
+  );
+
+  const selectedIds = computed(() => selected.value.map((item) => item.id));
+
+  const { settings: tableSetting, updateTableSettings } = useTableSettings(UserPersonalSettings.RIAK_TABLE_SETTINGS, {
+    checked: [
+      'cluster_name',
+      'major_version',
+      'disaster_tolerance_level',
+      'region',
+      'bk_cloud_id',
+      'db_module_id',
+      'status',
+      'cluster_stats',
+      'riak_node',
+      'tag',
+    ],
+    disabled: ['master_domain'],
+  });
+
+  watch(searchValue, () => {
+    tableRef.value!.clearSelected();
+  });
+
+  const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
+    if (item?.id !== 'creator' && keyword) {
+      return getMenuListSearch(item, keyword, serachData.value, searchValue.value);
+    }
+
+    // 没有选中过滤标签
+    if (!item) {
+      // 过滤掉已经选过的标签
+      const selected = (searchValue.value || []).map((value) => value.id);
+      return serachData.value.filter((item) => !selected.includes(item.id));
+    }
+
+    // 远程加载执行人
+    if (item.id === 'creator') {
+      if (!keyword) {
+        return [];
+      }
+      return getUserList({
+        fuzzy_lookups: keyword,
+      }).then((res) =>
+        res.results.map((item) => ({
+          id: item.username,
+          name: item.username,
+        })),
+      );
+    }
+
+    // 不需要远层加载
+    return serachData.value.find((set) => set.id === item.id)?.children || [];
   };
 
-  const handleOpenChange = (isOpen: boolean) => {
-    headShow.value = isOpen;
-  };
-
-  const handleRefresh = () => {
-    listRef.value!.refresh();
-  };
-
-  const handleDisabled = () => {
-    const { cluster_name: clusterName } = detailData.value as RiakModel;
-    InfoBox({
-      cancelText: t('取消'),
-      confirmText: t('禁用'),
-      content: (
-        <>
-          <p>
-            {t('集群')}：<span class='info-box-cluster-name'>{clusterName}</span>
-          </p>
-          <p>{t('被禁用后将无法访问，如需恢复访问，可以再次「启用」')}</p>
-        </>
-      ),
-      contentAlign: 'center',
-      footerAlign: 'center',
-      headerAlign: 'center',
-      onConfirm: () => {
-        createTicket({
-          bk_biz_id: detailData.value!.bk_biz_id,
-          details: {
-            cluster_id: clusterId.value,
-          },
-          ticket_type: TicketTypes.RIAK_CLUSTER_DISABLE,
-        }).then((createTicketResult) => {
-          ticketMessage(createTicketResult.id);
-        });
+  const toApply = () => {
+    router.push({
+      name: 'RiakApply',
+      query: {
+        bizId: window.PROJECT_CONFIG.BIZ_ID,
       },
-      title: t('确定禁用该集群', { name: clusterName }),
-      type: 'warning',
     });
   };
-</script>
 
-<style lang="less">
-  .riak-breadcrumbs-box {
-    display: flex;
-    width: 100%;
-    margin-left: 8px;
-    font-size: 12px;
-    align-items: center;
+  const handleSelection = (key: unknown, list: RiakModel[]) => {
+    selected.value = list;
+  };
 
-    .riak-breadcrumbs-box-status {
-      display: flex;
-      margin-left: 30px;
-      align-items: center;
+  const handleAddNodes = (data: RiakModel) => {
+    detailData.value = data;
+    addNodeShow.value = true;
+  };
+
+  const handleDeleteNodes = (data: RiakModel) => {
+    detailData.value = data;
+    deleteNodeShow.value = true;
+  };
+
+  const handleTagSearch = (params: Record<string, any>) => {
+    tagSearchValue.value = params;
+    fetchData();
+  };
+
+  const fetchData = () => {
+    const params = {
+      ...getSearchSelectorParams(searchValue.value),
+      ...tagSearchValue.value,
+      ...sortValue,
+    };
+    const [startTime, endTime] = deployTime.value;
+    if (startTime && endTime) {
+      Object.assign(params, {
+        end_time: dayjs(endTime).format('YYYY-MM-DD '),
+        start_time: dayjs(startTime).format('YYYY-MM-DD'),
+      });
     }
+    tableRef.value!.fetchData(params);
+  };
+</script>
+<style lang="less">
+  .riak-cluster-list-page {
+    height: 100%;
+    padding: 24px 0;
+    margin: 0 24px;
+    overflow: hidden;
 
-    .riak-breadcrumbs-box-button {
+    .header-action {
       display: flex;
-      margin-left: auto;
-      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+      gap: 8px;
 
-      .more-button {
-        padding: 3px 6px;
+      .tag-search-main {
+        margin-left: auto;
+      }
+
+      .bk-search-select {
+        flex: 1;
+        max-width: 500px;
+      }
+
+      .bk-date-picker {
+        width: 300px;
+        margin-left: 8px;
       }
     }
+  }
+
+  .info-box-cluster-name {
+    color: #313238;
   }
 </style>

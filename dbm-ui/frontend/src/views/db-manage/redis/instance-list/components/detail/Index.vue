@@ -75,9 +75,8 @@
     () => {
       if (props.instanceData) {
         fetchInstDetails({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           cluster_id: props.instanceData.clusterId,
-          instance_address: props.instanceData.instanceAddress,
+          instance: props.instanceData.instanceAddress,
           type: props.instanceData.clusterType,
         });
       }

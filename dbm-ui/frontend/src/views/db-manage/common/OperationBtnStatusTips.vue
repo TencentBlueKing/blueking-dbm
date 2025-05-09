@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <span>
+  <span style="display: inline-block">
     <span
       v-if="data?.operationTicketId && !disabled"
       ref="rootRef"
@@ -122,6 +122,7 @@
 <style lang="less">
   .cluster-operation-status-tips {
     display: inline-block;
+    width: 100%;
 
     & > * {
       pointer-events: none;

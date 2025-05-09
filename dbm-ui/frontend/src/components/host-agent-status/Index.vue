@@ -17,19 +17,26 @@
       svg
       :type="statusIcon" />
     <span style="margin-left: 4px">
-      {{ statusText }}
+      <slot>
+        {{ statusText }}
+      </slot>
     </span>
   </div>
 </template>
 <script setup lang="ts">
-  import { computed } from 'vue';
+  import { computed, type VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   interface Props {
     data: number;
   }
 
+  interface Slot {
+    default: () => VNode;
+  }
+
   const props = defineProps<Props>();
+  defineSlots<Slot>();
 
   const { t } = useI18n();
 

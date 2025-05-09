@@ -43,20 +43,8 @@
       :selected="modelValue" />
   </div>
 </template>
-<script
-  setup
-  lang="ts"
-  generic="
-    T extends EsNodeModel | HdfsNodeModel | KafkaNodeModel | PulsarNodeModel | InfluxdbInstanceModel | DorisNodeModel
-  ">
+<script setup lang="ts">
   import { useI18n } from 'vue-i18n';
-
-  import type DorisNodeModel from '@services/model/doris/doris-node';
-  import type EsNodeModel from '@services/model/es/es-node';
-  import type HdfsNodeModel from '@services/model/hdfs/hdfs-node';
-  import type InfluxdbInstanceModel from '@services/model/influxdb/influxdbInstance';
-  import type KafkaNodeModel from '@services/model/kafka/kafka-node';
-  import type PulsarNodeModel from '@services/model/pulsar/pulsar-node';
 
   import { DBTypes } from '@common/const';
 
@@ -65,7 +53,7 @@
   import type { TReplaceNode } from '../Index.vue';
 
   interface Props {
-    data: TReplaceNode<T>;
+    data: TReplaceNode;
     dbType: DBTypes;
     placehoderId: string;
   }
