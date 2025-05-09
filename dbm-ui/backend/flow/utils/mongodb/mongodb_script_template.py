@@ -16,13 +16,11 @@ mongodb_fast_execute_script_common_kwargs = {
     "is_param_sensitive": 0,
 }
 
-
 mongodb_create_actuator_dir_template = """
 find {{file_path}}/install -mtime +30  -type d -name "dbactuator-*"  |xargs rm -rf
 mkdir -p {{file_path}}/install/dbactuator-{{uid}}/logs
 cp {{file_path}}/install/mongo-dbactuator {{file_path}}/install/dbactuator-{{uid}}
 """
-
 
 mongodb_actuator_template = """
 cd {{file_path}}/install/dbactuator-{{uid}}
@@ -30,7 +28,6 @@ chmod +x mongo-dbactuator
 ./mongo-dbactuator --uid {{uid}} --root_id {{root_id}} --node_id {{node_id}} \
 --version_id {{version_id}} --payload {{payload}} --atom-job-list {{action}}
 """
-
 
 mongodb_script_template = {"mongodb_actuator_template": mongodb_actuator_template}
 mongodb_os_init_actuator_template = """
@@ -40,7 +37,6 @@ chmod +x mongo-dbactuator
 --version_id {{version_id}} --payload {{payload}} --atom-job-list {{action}}  \
 --data_dir={{data_dir}}  --backup_dir={{backup_dir}} --user={{user}}  --group={{group}}
 """
-
 
 mongo_init_set_js_script = """
 db = db.getSiblingDB('admin');
@@ -61,7 +57,6 @@ if (v.match(/^3\\./)) {
     db.system.version.insert({ '_id' : 'authSchema', 'currentVersion' : 3 });
 }
 """
-
 
 mongo_extra_manager_user_create_js_script = """
 db = db.getSiblingDB('admin');
@@ -107,28 +102,98 @@ if (num == 0) {
 mongodb_actuator_template2 = """
 #!/bin/sh
 # mongodb actuator script
-mkdir -p {{file_path}}/install/dbactuator-{{uid}}/logs
-# debug
-exe={{file_path}}/install/mongo-dbactuator
-debug_exe={{file_path}}/install/mongo-dbactuator.cyc
-if [ -f "$debug_exe" ];then
-    cp $debug_exe {{file_path}}/install/dbactuator-{{uid}}/mongo-dbactuator
-    echo "using debug version $debug_exe"
-else
-    cp $exe {{file_path}}/install/dbactuator-{{uid}}
+
+# safe_remove_dbactuator_dir
+function safe_remove_dbactuator_dir() {
+    local install_dir=$1
+    if [ ! -d $install_dir ];then
+        echo "Error install_dir $install_dir not exist"
+        return
+    fi
+    for old_dir in `find $install_dir -maxdepth 1  -type d -name "dbactuator-*"  -mtime +3  -print`
+    do
+        if [  "${old_dir/dbactuator//}" = "$old_dir" ];then
+            echo "Error bad dir $old_dir"
+            continue
+        fi
+        if [ -d $old_dir ];then
+            echo "Removing old dbactuator dir $old_dir"
+            rm -rf $old_dir || {echo Error Removing old dbactuator dir $old_dir}
+        fi
+    done
+}
+
+# safe_cpfile function.
+function safe_cpfile() {
+    local src_file=$1
+    local dst_file=$2
+    local lock_file=$3
+    if [ ! -f "$src_file" ];then
+         echo "Source file $src_file does not exist. Exiting."
+         exit 1
+    fi
+    (
+       flock -w 30 200 || { echo "Another process is holding the lock. Exiting."; exit 1; }
+       if [[ ! -f "$dst_file" ]];then
+          echo "Copying $src_file to $dst_file"
+          cp $src_file $dst_file
+          if [[ $? -ne 0 ]];then
+                echo "Error copying $src_file to $dst_file"
+                exit 1
+          fi
+       else
+          diff $src_file $dst_file > /dev/null
+          if [[ $? -ne 0 ]];then
+             echo "Copying $src_file to $dst_file"
+             cp $src_file $dst_file
+             if [[ $? -ne 0 ]];then
+                echo "Error copying $src_file to $dst_file"
+                exit 1
+             fi
+          else
+             echo "$src_file and $dst_file are the same. No need to copy."
+          fi
+       fi
+    )  200>"$lock_file"
+}
+
+# replace var
+sudo_account={{sudo_account}}
+file_path={{file_path}}
+uid={{uid}}
+root_id={{root_id}}
+node_id={{node_id}}
+version_id={{version_id}}
+payload='{{payload}}'
+action={{action}}
+
+if [ -z "$file_path" -o "$file_path" == "/" ];then
+    echo "Error file_path is empty or /"
+    exit 1
 fi
 
-cd {{file_path}}/install/dbactuator-{{uid}}
-chmod +x mongo-dbactuator
+install_dir=$file_path/install
+workdir=$install_dir/dbactuator-$uid
+exe=mongo-dbactuator
+exe_path=$workdir/$exe
+lock_file="$workdir/$exe.cp.lock"
+mkdir -p $workdir/logs
 
-if [ "{{sudo_account}}" != "root" ];then
-  chown {{sudo_account}} {{file_path}}/install/dbactuator-{{uid}} -R
-  su {{sudo_account}} -c "./mongo-dbactuator --uid {{uid}} --root_id {{root_id}} --node_id {{node_id}} \
---version_id {{version_id}} --payload {{payload}} --atom-job-list {{action}}"
+safe_remove_dbactuator_dir $install_dir
+safe_cpfile $install_dir/$exe $exe_path $lock_file
+
+common_args="--uid $uid --root_id $root_id --node_id $node_id --version_id $version_id"
+cmd="./mongo-dbactuator $common_args --payload $payload --atom-job-list $action"
+
+cd $workdir || { echo "Error cd $workdir"; exit 1; }
+chmod +x $exe
+if [ "$sudo_account" != "root" ];then
+   echo "user == $sudo_account"
+   chown $sudo_account $workdir -R
+   su $sudo_account -c "$cmd"
 else
-   echo "warning: user == root"
-  ./mongo-dbactuator --uid {{uid}} --root_id {{root_id}} --node_id {{node_id}} \
---version_id {{version_id}} --payload {{payload}} --atom-job-list {{action}}
+   echo "user == root"
+   $cmd
 fi
 """
 
@@ -167,7 +232,6 @@ source /home/mysql/.bash_profile
 /home/mysql/filebeat-deploy/stop_filebeat
 killall -9 prome_exporter_manager | echo true
 """
-
 
 # 分片集群初始化设置
 mongodb_cluster_inti_js_script = """
