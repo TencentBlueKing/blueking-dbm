@@ -15,7 +15,7 @@
   <EditableColumn
     ref="editableTableColumn"
     field="target_cluster_type"
-    :label="t('目标集群类型')"
+    :label="t('新集群类型')"
     required
     :width="200">
     <EditableSelect
