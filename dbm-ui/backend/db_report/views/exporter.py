@@ -22,11 +22,16 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import StorageInstance
 from backend.db_report.enums import SWAGGER_TAG
+from backend.iam_app.dataclass import ActionEnum
+from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission
 
 logger = logging.getLogger("root")
 
 
 class ClusterExporterUpViewSet(SystemViewSet):
+
+    default_permission_class = [ResourceActionPermission([ActionEnum.GLOBAL_MANAGE])]
+
     @common_swagger_auto_schema(
         operation_summary=_("获取redis集群的exporter数与分片数不一致的报表"),
         tags=[SWAGGER_TAG],
