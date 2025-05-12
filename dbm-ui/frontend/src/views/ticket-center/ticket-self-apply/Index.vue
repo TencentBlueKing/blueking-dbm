@@ -64,6 +64,7 @@
   });
 
   const isPreChecking = useDetailPreCheck({
+    creator: username,
     id: Number(route.params.ticketId),
   });
 

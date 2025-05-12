@@ -87,6 +87,7 @@
 
   const isPreChecking = useDetailPreCheck({
     id: Number(route.params.ticketId),
+    todo: 'running',
   });
 
   const dataSource = (params: ServiceParameters<typeof getTickets>) =>
