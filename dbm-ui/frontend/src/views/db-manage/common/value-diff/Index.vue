@@ -22,7 +22,13 @@
 <script setup lang="ts">
   interface Props {
     currentValue: number;
+    /**
+     * 单位
+     */
     numUnit?: string;
+    /**
+     * 是否展示百分数
+     */
     showRate?: boolean;
     targetValue: number;
   }
@@ -40,16 +46,18 @@
     if (diff !== 0 && currentValue > 0 && showRate) {
       rate = ((diff / currentValue) * 100).toFixed(2);
     }
+    // 负数
     if (diff < 0) {
       return {
         isPositive: false,
-        num: diff.toFixed(2),
+        num: diff,
         rate,
       };
     }
+    // 非负数
     return {
       isPositive: true,
-      num: `+${diff.toFixed(2)}`,
+      num: `+${diff}`,
       rate: `+${rate}`,
     };
   });

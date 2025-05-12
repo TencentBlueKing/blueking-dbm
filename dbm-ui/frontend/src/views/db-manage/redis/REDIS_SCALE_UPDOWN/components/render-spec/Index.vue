@@ -12,33 +12,18 @@
 -->
 
 <template>
-  <BkLoading :loading="isLoading">
-    <div
-      class="render-spec-box"
-      :class="{ 'default-display': !displayInfo }">
-      <span
-        v-if="!displayInfo"
-        style="color: #c4c6cc">
-        {{ placeholder || t('输入主机后自动生成') }}
-      </span>
-      <span
-        v-else
-        class="content">
-        {{
-          displayInfo?.name
-            ? `${displayInfo.name} ${isIgnoreCounts ? '' : t('((n))台', { n: displayInfo?.count })}`
-            : ''
-        }}
-        <SpecPanel
-          :data="displayInfo"
-          :hide-qps="hideQps">
-          <DbIcon
-            class="visible-icon ml-4"
-            type="visible1" />
-        </SpecPanel>
-      </span>
-    </div>
-  </BkLoading>
+  <div class="render-spec-box">
+    {{
+      displayInfo?.name ? `${displayInfo.name} ${isIgnoreCounts ? '' : t('((n))台', { n: displayInfo?.count })}` : ''
+    }}
+    <SpecPanel
+      :data="displayInfo"
+      :hide-qps="hideQps">
+      <DbIcon
+        class="visible-icon ml-4"
+        type="visible1" />
+    </SpecPanel>
+  </div>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -117,20 +102,12 @@
 </script>
 <style lang="less" scoped>
   .render-spec-box {
-    height: 42px;
-    padding: 10px 16px;
     overflow: hidden;
     line-height: 20px;
-    color: #63656e;
+    color: #313238;
     text-overflow: ellipsis;
     white-space: nowrap;
-
-    .content {
-      color: #313238;
-      // padding-bottom: 2px;
-      cursor: pointer;
-      // border-bottom: 1px dotted #979ba5;
-    }
+    cursor: pointer;
   }
 
   .default-display {

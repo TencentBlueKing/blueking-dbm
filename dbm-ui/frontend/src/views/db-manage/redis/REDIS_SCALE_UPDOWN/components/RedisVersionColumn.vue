@@ -50,13 +50,11 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import RedisModel from '@services/model/redis/redis';
   import { listClusterBigVersion } from '@services/source/redisToolbox';
 
   interface Props {
-    cluster: {
-      id: number;
-      major_version: string;
-    };
+    cluster: RedisModel;
   }
 
   const props = defineProps<Props>();
