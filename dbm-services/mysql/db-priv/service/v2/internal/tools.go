@@ -26,7 +26,8 @@ func UniqueStringSlice(s []string) []string {
 var mysqlErrPattern *regexp.Regexp
 
 func init() {
-	mysqlErrPattern = regexp.MustCompile(`^Error ([0-9]+) \(([0-9]+)\): (.*)$`)
+	mysqlErrPattern = regexp.MustCompile(`^Error ([0-9]+) \((.*)\): (.*)$`)
+	//mysqlErrPattern = regexp.MustCompile(`^Error ([0-9]+) \(([0-9]+)\): (.*)$`)
 }
 
 func ParseMySQLErrStr(s string) (int, int, string, bool) {
