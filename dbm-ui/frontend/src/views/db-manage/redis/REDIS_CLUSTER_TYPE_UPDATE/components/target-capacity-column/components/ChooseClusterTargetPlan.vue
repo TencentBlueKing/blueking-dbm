@@ -174,9 +174,10 @@
       cluster_capacity: number;
       cluster_shard_num: number;
       cluster_spec: RedisModel['cluster_spec'];
-      cluster_type: string;
+      // cluster_type: string;
       master_domain: string;
     };
+    targetClusterType: string;
     targetSpec: {
       capacity: number;
       cluster_shard_num: number;
@@ -258,7 +259,7 @@
 
   const isMemoryType = computed(() =>
     [ClusterTypes.PREDIXY_REDIS_CLUSTER, ClusterTypes.TWEMPROXY_REDIS_INSTANCE].includes(
-      props.cluster.cluster_type as ClusterTypes,
+      props.targetClusterType as ClusterTypes,
     ),
   );
   const targetCapacityTitle = computed(() =>
@@ -329,7 +330,7 @@
   let rawTableData: FilterClusterSpecItem[] = [];
 
   watch(
-    () => props.cluster,
+    () => [props.cluster, props.targetClusterType],
     () => {
       targetCapacity.value.current = props.cluster.cluster_capacity;
       Object.assign(specInfo, {
@@ -340,8 +341,8 @@
       Object.assign(clusterInfo, {
         bizId: window.PROJECT_CONFIG.BIZ_ID,
         cloudId: props.cluster.bk_cloud_id,
-        clusterType: props.cluster.cluster_type,
-        machineType: specClusterMachineMap[props.cluster.cluster_type],
+        clusterType: props.targetClusterType,
+        machineType: specClusterMachineMap[props.targetClusterType],
       });
     },
     {
@@ -395,7 +396,7 @@
     }
     if (specInfo.capacityNeed > 0 && specInfo.capacityFutureNeed > 0) {
       isTableLoading.value = true;
-      const clusterType = props.cluster?.cluster_type ?? ClusterTypes.TWEMPROXY_REDIS_INSTANCE;
+      const clusterType = props.targetClusterType ?? ClusterTypes.TWEMPROXY_REDIS_INSTANCE;
       const machineType =
         clusterType === ClusterTypes.PREDIXY_REDIS_CLUSTER
           ? ClusterTypes.PREDIXY_REDIS_CLUSTER
