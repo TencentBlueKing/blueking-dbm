@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from deprecated import deprecated
 
 from backend.db_meta.enums import ClusterType
 from backend.flow.engine.bamboo.scene.common.account_rule_manage import AccountRulesFlows
@@ -358,6 +359,7 @@ class MySQLController(BaseController):
         flow = MySQLFakeSemanticCheck(root_id=self.root_id, data=self.ticket_data)
         flow.fake_semantic_check()
 
+    @deprecated
     def mysql_ha_rename_database_scene(self):
         """
         TenDBHA 重命名数据库
@@ -526,6 +528,7 @@ class MySQLController(BaseController):
         )
         flow.truncate_flow()
 
+    @deprecated
     def mysql_single_rename_database_scene(self):
         """
         TenDBHA 重命名数据库
@@ -718,3 +721,12 @@ class MySQLController(BaseController):
         """
         flow = ProxyInplaceAutofixFlow(root_id=self.root_id, data=self.ticket_data)
         flow.autofix()
+
+    def mysql_rename_database_scene(self):
+        """
+        tendbsingle 和 tendbha db 重命名
+        """
+        flow = MySQLRenameDatabaseFlow(
+            root_id=self.root_id, data=self.ticket_data  # , cluster_type=ClusterType.TenDBSingle.value
+        )
+        flow.rename_database()

@@ -36,7 +36,7 @@ class MySQLRenameDatabaseFlow(object):
     增加单据临时ADMIN账号的添加和删除逻辑
     """
 
-    def __init__(self, root_id: str, cluster_type: str, data: Optional[Dict]):
+    def __init__(self, root_id: str, cluster_type: Optional[str] = None, data: Optional[Dict] = None):
         self.root_id = root_id
         self.data = data
         self.cluster_type = cluster_type
@@ -48,7 +48,7 @@ class MySQLRenameDatabaseFlow(object):
         "uid": "2022051612120001",
         "created_by": "xxx",
         "bk_biz_id": "152",
-        "ticket_type": "[MYSQL_HA_RENAME_DATABASE, MYSQL_SINGLE_RENAME_DATABASE]",
+        "ticket_type": "MYSQL_RENAME_DATABASE",
         "infos": [
             {
                 "cluster_id": int,
@@ -63,7 +63,9 @@ class MySQLRenameDatabaseFlow(object):
         """
         cluster_ids = [i["cluster_id"] for i in self.data["infos"]]
 
-        cluster_objects = Cluster.objects.filter(id__in=cluster_ids, cluster_type=self.cluster_type)
+        force = self.data["force"]
+
+        cluster_objects = Cluster.objects.filter(id__in=cluster_ids)
         machine_group_by_bk_cloud_id = defaultdict(list)
         [
             machine_group_by_bk_cloud_id[cluster_obj.bk_cloud_id].append(
@@ -93,12 +95,10 @@ class MySQLRenameDatabaseFlow(object):
 
         rename_pipeline.add_parallel_acts(acts_list=trans_actuator_acts)
 
-        force = False
         # 按集群聚合rename需求
         merged_jobs = defaultdict(list)
         for ticket_detail_row in self.data["infos"]:
             cluster_id = ticket_detail_row["cluster_id"]
-            force = ticket_detail_row["force"]
             merged_jobs[cluster_id].append(
                 {"from_database": ticket_detail_row["from_database"], "to_database": ticket_detail_row["to_database"]}
             )
@@ -107,9 +107,7 @@ class MySQLRenameDatabaseFlow(object):
         for cluster_id in merged_jobs:
             requests = merged_jobs[cluster_id]  # 这东西是个 List [{from, to}, {from, to}]
 
-            cluster_obj = Cluster.objects.get(
-                pk=cluster_id, bk_biz_id=self.data["bk_biz_id"], cluster_type=self.cluster_type
-            )
+            cluster_obj = Cluster.objects.get(pk=cluster_id, bk_biz_id=self.data["bk_biz_id"])
             instance = cluster_obj.main_storage_instances().first()
 
             cluster_pipe = SubBuilder(
