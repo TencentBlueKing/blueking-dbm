@@ -42,11 +42,14 @@
         </div>
       </slot>
       <slot name="contentPreppend" />
-      <div
+      <FlowCollapse
         v-if="data.err_msg"
-        style="padding: 12px; margin-top: 12px; background: #f5f7fa; border: 2px">
-        {{ data.err_msg }}
-      </div>
+        danger
+        :title="t('失败原因')">
+        <div style="padding-left: 16px">
+          {{ data.err_msg }}
+        </div>
+      </FlowCollapse>
       <Abstract :data="data" />
     </template>
     <template
@@ -70,7 +73,8 @@
   import DbTimeLineItem from '../time-line/TimeLineItem.vue';
   import TodoList from '../todo-list/Index.vue';
 
-  import Abstract from './components/Abstract.vue';
+  import Abstract from './components/abstract/Index.vue';
+  import FlowCollapse from './components/FlowCollapse.vue';
 
   interface Props {
     data: FlowMode<unknown, any>;
