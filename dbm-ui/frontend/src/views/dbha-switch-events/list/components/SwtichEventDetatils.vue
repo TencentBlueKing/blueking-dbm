@@ -64,7 +64,7 @@
 
 <style lang="less" scoped>
   .switch-event-details {
-    height: calc(100vh - 90px);
+    height: calc(100vh - var(--notice-height) - 90px);
     padding: 16px 16px 0;
   }
 </style>

@@ -123,7 +123,7 @@
     }
 
     .content-wrapper {
-      height: calc(100vh - 168px);
+      height: calc(100vh - var(--notice-height) - 168px);
       padding: 0 24px;
       overflow: auto;
     }

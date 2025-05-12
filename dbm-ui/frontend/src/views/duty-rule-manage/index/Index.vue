@@ -32,7 +32,7 @@
 </script>
 <style lang="less">
   .duty-rule-manage-content {
-    height: calc(100vh - 150px);
+    height: calc(100vh - var(--notice-height) - 150px);
     padding: 24px;
   }
 </style>

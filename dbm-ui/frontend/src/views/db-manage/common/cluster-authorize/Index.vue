@@ -79,13 +79,13 @@
     }) => void;
   }
 
-  const props = defineProps<Props>();
-
-  const emits = defineEmits<Emits>();
-
   defineOptions({
     name: 'ClusterAuthorize',
   });
+
+  const props = defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
 
   const isShow = defineModel<boolean>({
     default: false,

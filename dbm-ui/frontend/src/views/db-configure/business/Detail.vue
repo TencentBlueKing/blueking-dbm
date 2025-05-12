@@ -154,7 +154,7 @@
     }
 
     .details-content {
-      height: calc(100vh - 152px);
+      height: calc(100vh - var(--notice-height) - 152px);
       padding: 24px;
 
       .details-base {

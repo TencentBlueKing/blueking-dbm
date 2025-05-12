@@ -70,7 +70,7 @@
 </script>
 <style lang="less">
   .sqlserver-manage-toolbox-page {
-    height: calc(100vh - 105px);
+    height: calc(100vh - var(--notice-height) - 105px);
 
     & > .bk-resize-layout-aside {
       z-index: 100;
