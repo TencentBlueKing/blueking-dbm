@@ -118,6 +118,7 @@ class SQLParseHandler:
                 "show index",
                 "show variables",
                 "explain",
+                "show mysql configurations",
             ]
             tokens = [token.value.lower() for token in tokens if not token.is_whitespace]
             for allowed in allowed_statements:

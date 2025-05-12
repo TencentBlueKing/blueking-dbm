@@ -17,6 +17,7 @@ from typing import Any, Callable, Dict, List, Set
 from django.db.models import F, Prefetch, Q
 from django.utils.translation import ugettext_lazy as _
 
+from backend.components import DRSApi
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import AccessLayer, ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.exceptions import ClusterNotExistException, InstanceNotExistException
@@ -378,14 +379,65 @@ class ClusterServiceHandler:
 
         # 获取rpc结果
         instance_rpc_results: List = []
-        for bk_cloud_id, addresses in bk_cloud__instances_map.items():
-            # 使用传入的rpc_function进行rpc调用
-            rpc_results = rpc_function({"bk_cloud_id": bk_cloud_id, "addresses": addresses, "cmds": [cmd]})
 
+        if ClusterServiceHandler.__check_special_sql(cmd):
+            instance_rpc_results = ClusterServiceHandler.__dbconsole_special_query(bk_cloud__instances_map, cmd)
+        else:
+            for bk_cloud_id, addresses in bk_cloud__instances_map.items():
+                # 使用传入的rpc_function进行rpc调用
+                rpc_results = rpc_function({"bk_cloud_id": bk_cloud_id, "addresses": addresses, "cmds": [cmd]})
+
+                cmd_results = [
+                    {
+                        "instance": res["address"],
+                        "table_data": res["cmd_results"][0]["table_data"] if not res["error_msg"] else None,
+                        "error_msg": res["error_msg"],
+                    }
+                    for res in rpc_results
+                ]
+                instance_rpc_results.extend(cmd_results)
+
+        return instance_rpc_results
+
+    @classmethod
+    def __dbconsole_special_query(cls, bk_cloud__instances_map, cmd):
+        """
+        用于dbaconsole的特殊查询，目前复用webconsole，因此不支持单次多条查询
+        webconsole账户也不支持查询主从同步信息
+        当前这个函数主要用于处理：
+        1. mysql配置信息查询（多条查询合并）
+        2. mysql主从同步信息查询
+
+        @param bk_cloud__instances_map:
+        @param cmd:
+        @return:
+        """
+        special_sql = {
+            "show mysql configurations": [
+                "show variables like 'version';",
+                "show variables like 'character_set_server';",
+                "show variables like 'character_set_database';",
+                "show variables like 'max_connections';",
+                "show variables like 'log_bin';",
+                "show variables like 'binlog_format';",
+                "show variables like 'long_query_time';",
+                "show variables like 'innodb_buffer_pool_size';",
+                "show variables like 'innodb_data_file_path';",
+            ],
+            "show slave status": ["show slave status;"],
+        }
+        cmds = []
+        for special in special_sql:
+            if " ".join(cmd.split()).lower().startswith(special):
+                cmds = special_sql[special]
+
+        instance_rpc_results: List = []
+        for bk_cloud_id, addresses in bk_cloud__instances_map.items():
+            rpc_results = DRSApi.rpc({"bk_cloud_id": bk_cloud_id, "addresses": addresses, "cmds": cmds})
             cmd_results = [
                 {
                     "instance": res["address"],
-                    "table_data": res["cmd_results"][0]["table_data"] if not res["error_msg"] else None,
+                    "table_data": cls.__merge_drs_result(res),
                     "error_msg": res["error_msg"],
                 }
                 for res in rpc_results
@@ -393,6 +445,34 @@ class ClusterServiceHandler:
             instance_rpc_results.extend(cmd_results)
 
         return instance_rpc_results
+
+    @classmethod
+    def __check_special_sql(cls, cmd):
+        """
+        检查是否是特殊sql查询
+        @param cmd:
+        @return:
+        """
+        special_sql = ["show mysql configurations", "show slave status"]
+
+        for specila in special_sql:
+            if " ".join(cmd.split()).lower().startswith(specila):
+                return True
+
+        return False
+
+    @classmethod
+    def __merge_drs_result(cls, res):
+        """
+        用于合并单个实例查询多条sql的结果合并
+        @param res:
+        @return:
+        """
+        table_data = []
+        for cmd_result in res["cmd_results"]:
+            table_data.extend(cmd_result["table_data"] if not res["error_msg"] else None)
+
+        return table_data
 
 
 def get_cluster_service_handler(bk_biz_id: int, db_type: str = "dbbase"):

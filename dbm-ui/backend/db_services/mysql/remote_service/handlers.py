@@ -325,3 +325,25 @@ class RemoteServiceHandler:
                     raise RemoteServiceBaseException(
                         _("数据库【{}】表【{}】中不存在字段{}".format(db_name, table_name, no_file_name))
                     )
+
+    @classmethod
+    def dbconsole_proxy_rpc(
+        cls,
+        instances: list,
+        cmd: str,
+    ):
+        """
+        DB自助查询 用于proxy管理端查询
+        proxy严格填写指定的查询sql
+        @param instances: 实例信息
+        @param cmd: 执行命令
+        """
+        proxy_statements = ["SELECT * FROM backends;", "SELECT * FROM user;", "show processlist;", "select version;"]
+        if cmd not in proxy_statements:
+            return {"query": [], "error_msg": _("请严格输入proxy允许的标准sql，且每次只能查询一条！")}
+
+        rpc_results = ClusterServiceHandler.console_rpc(
+            instances, cmd, db_query=True, rpc_function=DRSApi.proxyrpc, is_check=False
+        )
+
+        return rpc_results
