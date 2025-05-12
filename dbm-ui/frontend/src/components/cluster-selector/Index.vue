@@ -335,6 +335,7 @@
       multiple: true,
       name: t('主从集群'),
       resultContent: ResultPreview,
+      showPreviewResultTitle: true,
       tableContent: TendbhaTable,
     },
     [ClusterTypes.TENDBSINGLE]: {
@@ -349,6 +350,7 @@
       multiple: true,
       name: t('单节点集群'),
       resultContent: ResultPreview,
+      showPreviewResultTitle: true,
       tableContent: TendbSingleTable,
     },
     tendbclusterSlave: {

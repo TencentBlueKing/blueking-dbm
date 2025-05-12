@@ -74,5 +74,5 @@ export interface InstanceInfos {
       type: string;
     }[];
   };
-  status: 'running' | 'unavailable';
+  status: string;
 }
