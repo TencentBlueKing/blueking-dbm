@@ -48,7 +48,7 @@
         {{ data.err_msg }}
       </div>
       <!-- 系统自动终止 -->
-      <template v-if="data.err_code === 3 && data.context.expire_time && data.todos.length === 0">
+      <template v-if="data.err_code === 3 && data.context.expire_time && renderTodoList.length === 0">
         <div style="margin-top: 8px; color: #ea3636">
           <span>{{ t('system已处理') }}</span>
           <span> ({{ t('超过n天未处理，自动终止', { n: data.context.expire_time }) }}) </span>
@@ -64,6 +64,7 @@
   </DbTimeLineItem>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { type VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -106,4 +107,7 @@
       props.ticketDetail.todo_helpers.includes(username),
   );
   const isNeedOperation = computed(() => [0, 2].includes(props.data.err_code));
+  const renderTodoList = computed(() =>
+    _.filter(props.data.todos, (item) => item.type !== FlowMode.TODO_TYPE_INNER_FAILED),
+  );
 </script>
