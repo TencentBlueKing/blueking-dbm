@@ -76,6 +76,7 @@ export default class ResourceSpec {
     this.instance_num = payload.instance_num ?? 0;
     this.qps = payload.qps || {};
     this.permission = payload.permission || {};
+    this.capacity = payload.capacity || 0;
   }
 
   get isRecentSeconds() {

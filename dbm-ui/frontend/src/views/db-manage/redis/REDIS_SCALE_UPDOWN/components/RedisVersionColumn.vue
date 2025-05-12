@@ -49,13 +49,11 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getClusterVersions } from '@services/source/redisToolbox';
+  import RedisModel from '@services/model/redis/redis';
+  import { listClusterBigVersion } from '@services/source/redisToolbox';
 
   interface Props {
-    cluster: {
-      id: number;
-      major_version: string;
-    };
+    cluster: RedisModel;
   }
 
   const props = defineProps<Props>();
@@ -73,23 +71,14 @@
     }[]
   >([]);
 
-  const { run: fetchVersions } = useRequest(getClusterVersions, {
+  const { run: fetchVersions } = useRequest(listClusterBigVersion, {
     manual: true,
     onSuccess(versions) {
-      if (!versions.length) {
-        return;
-      }
       versionList.value = versions.map((item) => ({
         label: item,
         value: item,
       }));
-      let currentVersion = '';
-      versions.forEach((item) => {
-        if (item.indexOf(props.cluster.major_version.toLocaleLowerCase()) > -1) {
-          currentVersion = item;
-        }
-      });
-      modelValue.value = currentVersion || versions[0];
+      modelValue.value = versions.includes(props.cluster.major_version) ? props.cluster.major_version : '';
     },
   });
 
@@ -98,9 +87,8 @@
     () => {
       if (props.cluster.id) {
         fetchVersions({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           cluster_id: props.cluster.id,
-          node_type: 'Backend',
-          type: 'update',
         });
       }
     },
