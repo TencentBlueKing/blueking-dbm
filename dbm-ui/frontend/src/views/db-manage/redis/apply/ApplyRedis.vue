@@ -494,7 +494,7 @@
         backend_group: {
           affinity: '',
           capacity: '' as number | string,
-          count: 1,
+          count: 3,
           future_capacity: '' as number | string,
           location_spec: {
             city: '',
