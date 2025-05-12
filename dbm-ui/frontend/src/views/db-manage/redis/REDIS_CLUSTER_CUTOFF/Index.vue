@@ -42,8 +42,7 @@
           </EditableColumn>
           <EditableColumn
             :label="t('所属集群')"
-            :min-width="150"
-            :rowspan="rowSpan[item.host.cluster_domain]">
+            :min-width="150">
             <EditableBlock
               v-model="item.host.cluster_domain"
               :placeholder="t('自动生成')" />
@@ -135,16 +134,6 @@
 
   const selected = computed(() => formData.tableData.filter((item) => item.host.bk_host_id).map((item) => item.host));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
-  const rowSpan = computed(() =>
-    formData.tableData.reduce<Record<string, number>>((acc, item) => {
-      if (item.host.cluster_domain) {
-        Object.assign(acc, {
-          [item.host.cluster_domain]: (acc[item.host.cluster_domain] || 0) + 1,
-        });
-      }
-      return acc;
-    }, {}),
-  );
 
   useTicketDetail<Redis.ResourcePool.ClusterCutoff>(TicketTypes.REDIS_CLUSTER_CUTOFF, {
     onSuccess(ticketDetail) {
