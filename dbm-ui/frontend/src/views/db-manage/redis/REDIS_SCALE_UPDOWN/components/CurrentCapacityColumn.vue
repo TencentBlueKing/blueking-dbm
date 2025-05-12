@@ -16,45 +16,9 @@
     field="cluster_capacity"
     :label="t('当前容量')"
     :min-width="200">
-    <div
-      v-if="cluster?.cluster_stats?.total"
-      class="capacity-box">
-      <div class="display-content">
-        <div class="item">
-          <div class="item-title">{{ t('当前容量') }}：</div>
-          <div class="item-content">
-            <ClusterCapacityUsageRate :cluster-stats="cluster?.cluster_stats" />
-          </div>
-        </div>
-        <div class="item">
-          <div class="item-title">{{ t('资源规格') }}：</div>
-          <div class="item-content">
-            <RenderSpec
-              :data="cluster?.cluster_spec"
-              :hide-qps="!cluster?.cluster_spec?.qps?.max"
-              is-ignore-counts />
-          </div>
-        </div>
-        <div class="item">
-          <div class="item-title">{{ t('机器组数') }}：</div>
-          <div class="item-content">
-            {{ cluster.group_num }}
-          </div>
-        </div>
-        <div class="item">
-          <div class="item-title">{{ t('机器数量') }}：</div>
-          <div class="item-content">
-            {{ cluster.group_num * 2 }}
-          </div>
-        </div>
-        <div class="item">
-          <div class="item-title">{{ t('分片数') }}：</div>
-          <div class="item-content">
-            {{ cluster.shard_num }}
-          </div>
-        </div>
-      </div>
-    </div>
+    <CapacityCell
+      v-if="cluster.id"
+      :data="currentCapacity" />
     <EditableBlock
       v-else
       :placeholder="t('自动生成')" />
@@ -65,66 +29,20 @@
 
   import RedisModel from '@services/model/redis/redis';
 
-  import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
-
-  import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue';
+  import CapacityCell from './CapacityCell.vue';
 
   interface Props {
-    cluster: {
-      cluster_spec: RedisModel['cluster_spec'];
-      cluster_stats: RedisModel['cluster_stats'];
-      group_num: number;
-      shard_num: number;
-    };
+    cluster: RedisModel;
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
+
+  const currentCapacity = computed(() => ({
+    capacity: props.cluster.cluster_capacity,
+    groupNum: props.cluster.machine_pair_cnt,
+    shardNum: props.cluster.cluster_shard_num,
+    spec: props.cluster.cluster_spec,
+  }));
 </script>
-
-<style lang="less" scoped>
-  .capacity-box {
-    overflow: hidden;
-  }
-
-  .display-content {
-    padding: 11px 16px;
-    line-height: 20px;
-    white-space: nowrap;
-
-    .item {
-      display: flex;
-      width: 100%;
-
-      .item-title {
-        width: 64px;
-        text-align: right;
-      }
-
-      .item-content {
-        flex: 1;
-        display: flex;
-        align-items: center;
-
-        .percent {
-          margin-left: 4px;
-          font-size: 12px;
-          font-weight: bold;
-          color: #313238;
-        }
-
-        .spec {
-          margin-left: 2px;
-          font-size: 12px;
-          color: #979ba5;
-        }
-
-        :deep(.render-spec-box) {
-          height: 22px;
-          padding: 0;
-        }
-      }
-    }
-  }
-</style>

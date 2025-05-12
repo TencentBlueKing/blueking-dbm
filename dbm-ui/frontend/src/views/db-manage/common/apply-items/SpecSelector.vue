@@ -121,7 +121,7 @@
   interface Expose {
     getData: () => {
       instance_num?: number;
-    } & Pick<ResourceSpecModel, 'spec_name' | 'cpu' | 'mem' | 'storage_spec' | 'qps' | 'capacity'>;
+    } & Pick<ResourceSpecModel, 'spec_id' | 'spec_name' | 'cpu' | 'mem' | 'storage_spec' | 'qps' | 'capacity'>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -202,7 +202,10 @@
       list.value = list.value.map((item) => ({
         ...item,
         count: data[item.spec_id],
+        isRecentSeconds: item.isRecentSeconds ?? false,
         name: item.spec_name,
+        qpsText: item.qpsText ?? '',
+        updateAtDisplay: item.updateAtDisplay ?? '',
       }));
     });
   }, 100);
@@ -233,6 +236,7 @@
           instance_num: instanceNum && instanceNum > 0 ? instanceNum : undefined,
           mem: item.mem,
           qps: item.qps,
+          spec_id: item.spec_id,
           spec_name: item.spec_name,
           storage_spec: item.storage_spec,
         };
