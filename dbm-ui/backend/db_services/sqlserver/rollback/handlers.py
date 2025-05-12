@@ -29,7 +29,7 @@ class SQLServerRollbackHandler(object):
 
     @staticmethod
     def _get_log_from_bklog(
-        collector: str, start_time: datetime, end_time: datetime, query_string="*", size=1000, sort_rule="asc"
+        collector: str, start_time: datetime, end_time: datetime, query_string="*", size=-1, sort_rule="asc"
     ) -> List[Dict]:
         return BKLogHandler.query_logs(collector, start_time, end_time, query_string, size, sort_rule)
 

@@ -608,6 +608,9 @@ def operate_collector(bk_biz_id: int, db_type: str, machine_type: str, bk_instan
             logger.error(f"[monitor] id:{collect_ins.collect_id} error: {err}")
 
     # --- 下发日志采集器 ---
+    if db_type not in INSTANCE_BKLOG_PLUGINS or machine_type not in INSTANCE_BKLOG_PLUGINS[db_type]:
+        return
+
     plugin_id = INSTANCE_BKLOG_PLUGINS[db_type][machine_type]["plugin_id"]
     # 获取当前采集项的列表
     data = BKLogApi.list_collectors({"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "pagesize": 500, "page": 1}, use_admin=True)

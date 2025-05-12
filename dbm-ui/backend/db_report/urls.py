@@ -13,11 +13,13 @@ from rest_framework.routers import DefaultRouter
 from backend.db_report.register import db_report_maps
 from backend.db_report.report_baseview import ReportCommonViewSet
 from backend.db_report.views.checksum_instance_view import ChecksumInstanceViewSet
+from backend.db_report.views.exporter import ClusterExporterUpViewSet
 
 routers = DefaultRouter(trailing_slash=True)
 
 routers.register(r"", ReportCommonViewSet, basename="report_common")
 routers.register(r"checksum_instance", ChecksumInstanceViewSet, basename="checksum_instance")
+routers.register(r"exporter", ClusterExporterUpViewSet, basename="exporter")
 
 # 自动添加注册的巡检视图
 for db_type, reports in db_report_maps.items():
