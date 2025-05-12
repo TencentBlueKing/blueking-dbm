@@ -36,13 +36,6 @@ type Request struct {
 	Spec           `json:",omitempty"`
 }
 
-// ExternalEndpoint 定义 ExternalEndpoint 结构体
-type ExternalEndpoint struct {
-	ServiceType string            `json:"serviceType,omitempty"`
-	Annotations map[string]string `json:"annotations,omitempty"`
-	Entries     []string          `json:"entries,omitempty"`
-}
-
 // OpsService 定义 OpsService 结构体
 type OpsService struct {
 	ComponentName string         `json:"componentName,omitempty"`
@@ -57,4 +50,5 @@ type ClusterService struct {
 	Annotations  map[string]string  `json:"annotations,omitempty"`
 	Ports        []int32            `json:"ports,omitempty"`
 	RoleSelector string             `json:"roleSelector,omitempty"`
+	PodSelect    map[string]string  `json:"podSelector,omitempty"`
 }

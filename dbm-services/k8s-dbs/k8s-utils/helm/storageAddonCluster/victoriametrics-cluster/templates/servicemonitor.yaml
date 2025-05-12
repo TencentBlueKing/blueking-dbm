@@ -15,7 +15,7 @@ spec:
     - interval: {{ .Values.observeConfig.svcMonitor.interval }}
       params: {}
       path: /metrics
-      port: metrics
+      port: http
   namespaceSelector:
     matchNames:
       - {{ .Release.Namespace }}
@@ -24,7 +24,6 @@ spec:
       app.kubernetes.io/instance: {{ .Release.Name }}
       app.kubernetes.io/managed-by: kubeblocks
   targetLabels:
-    - app.kubernetes.io/name
     - app.kubernetes.io/instance
     - app.kubernetes.io/managed-by
     - apps.kubeblocks.io/component-name

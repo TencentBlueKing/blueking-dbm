@@ -15,7 +15,7 @@ spec:
   rules:
     - http:
         paths:
-          - path: /v1/
+          - path: /v4/dbs/
             {{- if semverCompare ">=1.18-0" $.Capabilities.KubeVersion.GitVersion }}
             pathType: Prefix
             {{- end }}

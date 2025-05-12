@@ -13,20 +13,9 @@ spec:
   terminationPolicy: {{ .Values.terminationPolicy}}
   componentSpecs:
     {{- range .Values.componentList }}
-    {{- if eq .componentName "insert" }}
-    - name: insert
+    {{- if and (eq .componentName "vminsert") (eq $.Values.topoName "cluster") }}
+    - name: vminsert
       serviceVersion: {{ .serviceVersion }}
-      services:
-        {{- range $serviceIndex, $service := .services }}
-        {{- if eq $service.name "insert"}}
-        - name: insert
-          serviceType: {{ $service.serviceType}}
-          {{- if $service.annotations }}
-          annotations:
-            {{- $service.annotations | toYaml | nindent 12 }}
-          {{- end}}
-        {{- end}}
-        {{- end}}
       {{- with .env }}
       env:
         {{- range $key, $value := . }}
@@ -44,20 +33,9 @@ spec:
           memory: {{ .resources.requests.memory }}
     {{- end}}
 
-    {{- if eq .componentName "select" }}
-    - name: select
+    {{- if eq .componentName "vmselect" }}
+    - name: vmselect
       serviceVersion: {{ .serviceVersion }}
-      services:
-        {{- range $serviceIndex, $service := .services }}
-        {{- if eq $service.name "select"}}
-        - name: select
-          serviceType: {{ $service.serviceType}}
-          {{- if $service.annotations }}
-          annotations:
-            {{- $service.annotations | toYaml | nindent 12 }}
-          {{- end}}
-        {{- end}}
-        {{- end}}
       {{- with .env }}
       env:
         {{- range $key, $value := . }}
@@ -75,20 +53,9 @@ spec:
           memory: {{ .resources.requests.memory }}
     {{- end}}
 
-    {{- if eq .componentName "storage" }}
-    - name: storage
+    {{- if and (eq .componentName "vmstorage") (eq $.Values.topoName "cluster") }}
+    - name: vmstorage
       serviceVersion: {{ .serviceVersion }}
-      services:
-        {{- range $serviceIndex, $service := .services }}
-        {{- if eq $service.name "storage"}}
-        - name: storage
-          serviceType: {{ $service.serviceType}}
-          {{- if $service.annotations }}
-          annotations:
-            {{- $service.annotations | toYaml | nindent 12 }}
-          {{- end}}
-        {{- end}}
-        {{- end}}
       {{- with .env }}
       env:
         {{- range $key, $value := . }}

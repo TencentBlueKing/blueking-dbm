@@ -17,14 +17,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package constant
+package entity
 
-const APIVersion = "apps.kubeblocks.io/v1alpha1"
-const DataProAPIVersion = "dataprotection.kubeblocks.io/v1alpha1"
+import corev1 "k8s.io/api/core/v1"
 
-// KubeBlocks_Labels
-const (
-	InstanceName  = "app.kubernetes.io/instance"
-	ComponentName = "apps.kubeblocks.io/component-name"
-	PodName       = "apps.kubeblocks.io/pod-name"
-)
+// ComponentDetail Component details, including component metadata
+type ComponentDetail struct {
+	Metadata `json:",inline"`
+	Pods     []Pod           `json:"pods,omitempty"`
+	Env      []corev1.EnvVar `json:"env,omitempty"`
+}
+
+// Pod represents the Pod instance information in Kubernetes
+type Pod struct {
+	PodName      string          `json:"podName,omitempty"`
+	Role         string          `json:"role,omitempty"`
+	Status       corev1.PodPhase `json:"status,omitempty"`
+	Node         string          `json:"node,omitempty"`
+	CreateedTime string          `json:"createedTime,omitempty"`
+}

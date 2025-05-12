@@ -75,6 +75,16 @@ metrics:
     scrapeTimeout: "10s"
     additionalLabels: {}
 
+observeConfig:
+  bkLogConfig:
+    enabled: false
+    labels: {}
+    dataId:
+  svcMonitor:
+    enabled: false
+    labels: {}
+    interval: "15s"
+
 appVersionOverride: ""
 
 tolerations: []

@@ -30,20 +30,26 @@ spec:
     automountServiceAccountToken: true
     terminationGracePeriodSeconds: 60
     containers:
-      - name: storage
+      - name: vmstorage
         imagePullPolicy: IfNotPresent
+        command:
+          - /bin/sh
+          - -c
         args:
-          - --retentionPeriod=1
-          - --storageDataPath=/storage
-          {{- range $key, $value := .Values.vmstorage.extraArgs }}
-          - --{{ $key }}={{ $value }}
-          {{- end }}
-          - --httpListenAddr=:{{ .Values.vmstorage.servicePort }}
-          - --vminsertAddr=:{{ .Values.vmstorage.vminsertPort }}
-          - --vmselectAddr=:{{ .Values.vmstorage.vmselectPort }}
-          {{- if .Values.enableTCP6 }}
-          - --enableTCP6=true
-          {{- end }}
+          - |
+            exec /vmstorage-prod \
+            --retentionPeriod=1 \
+            --storageDataPath=/storage \
+            --httpListenAddr=:{{ .Values.vmstorage.servicePort }} \
+            --vminsertAddr=:{{ .Values.vmstorage.vminsertPort }} \
+            --vmselectAddr=:{{ .Values.vmstorage.vmselectPort }} \
+            {{- range $key, $value := .Values.vmstorage.extraArgs }}
+            --{{ $key }}={{ $value }} \
+            {{- end }}
+            {{- if .Values.enableTCP6 }}
+            --enableTCP6=true \
+            {{- end }}
+            ${EXTRA_ARGS}
         env:
           - name: SERVICE_PORT
             value: "{{ .Values.vmstorage.servicePort }}"

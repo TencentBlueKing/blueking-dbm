@@ -18,16 +18,11 @@ spec:
             targetPort: http
             protocol: TCP
   vars:
-    - name: VMSTORAGE_ENDPOINT
-      valueFrom:
-        serviceVarRef:
-          compDef: {{ include "victoriametrics-storage.cmpdName" . }}
-          optional: true
-          host: Required
     - name: VMSTORAGE_ADDR
       valueFrom:
         serviceVarRef:
           compDef: {{ include "victoriametrics-storage.cmpdName" . }}
+          optional: false
           port:
             name: insert
             option: Required
@@ -35,17 +30,23 @@ spec:
     automountServiceAccountToken: true
     terminationGracePeriodSeconds: 60
     containers:
-      - name: insert
+      - name: vminsert
         imagePullPolicy: IfNotPresent
+        command:
+          - /bin/sh
+          - -c
         args:
-          - --storageNode=$(VMSTORAGE_ADDR)
-          {{- range $key, $value := .Values.vminsert.extraArgs }}
-          - --{{ $key }}={{ $value }}
-          {{- end }}
-          - --httpListenAddr=:{{ .Values.vminsert.servicePort }}
-          {{- if .Values.enableTCP6 }}
-          - --enableTCP6=true
-          {{- end }}
+          - |
+            exec /vminsert-prod \
+            --storageNode=${VMSTORAGE_ADDR} \
+            --httpListenAddr=:{{ .Values.vminsert.servicePort }} \
+            {{- range $key, $value := .Values.vminsert.extraArgs }}
+            --{{ $key }}={{ $value }} \
+            {{- end }}
+            {{- if .Values.enableTCP6 }}
+            --enableTCP6=true \
+            {{- end }}
+            ${EXTRA_ARGS}
         env:
           - name: SERVICE_PORT
             value: "{{ .Values.vminsert.servicePort }}"

@@ -21,10 +21,12 @@ package types
 
 // response success
 const (
+	DescribeComponentSuccess   = "查询组件成功"
 	DescribeClusterSuccess     = "查询集群成功"
 	CreateClusterSuccess       = "申请创建集群成功"
+	UpdateClusterSuccess       = "申请更新集群成功"
 	DeleteClusterSuccess       = "申请删除集群成功"
-	GetClusterStatsuSuccess    = "查询集群状态成功"
+	GetClusterStatusSuccess    = "查询集群状态成功"
 	VerticalScalingSuccess     = "申请集群垂直扩缩容成功"
 	HorizontalScalingSuccess   = "申请集群水平扩缩容成功"
 	StartClusterSuccess        = "申请集群启动成功"

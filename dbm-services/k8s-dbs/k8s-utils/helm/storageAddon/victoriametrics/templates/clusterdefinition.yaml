@@ -4,12 +4,19 @@ metadata:
   name: {{ include "victoriametrics-cdName" . }}
 spec:
   topologies:
-    - components:
-        - compDef: {{ include "victoriametrics-insert.cmpdName" . }}
-          name: insert
-        - compDef: {{ include "victoriametrics-select.cmpdName" . }}
-          name: select
-        - compDef: {{ include "victoriametrics-storage.cmpdName" . }}
-          name: storage
+    - name: cluster
       default: true
-      name: victoriametrics
+      components:
+        - compDef: {{ include "victoriametrics-insert.cmpdName" . }}
+          name: vminsert
+        - compDef: {{ include "victoriametrics-select.cmpdName" . }}
+          name: vmselect
+        - compDef: {{ include "victoriametrics-storage.cmpdName" . }}
+          name: vmstorage
+    - name: select
+      default: false
+      components:
+        - compDef: {{ include "victoriametrics-select.cmpdName" . }}
+          name: vmselect
+
+

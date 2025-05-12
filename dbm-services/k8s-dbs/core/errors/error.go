@@ -46,6 +46,7 @@ const (
 	GetMetaDataErr     = 1532111
 	DeleteMetaDataErr  = 1532112
 
+	DescribeComponentError   = 1532200
 	DescribeClusterError     = 1532201
 	CreateClusterError       = 1532202
 	DeleteClusterError       = 1532203
@@ -60,6 +61,7 @@ const (
 	ExposeClusterError       = 1532214
 	DescribeOpsRequestError  = 1532212
 	GetOpsRequestStatusError = 1532213
+	UpdateClusterError       = 1532214
 )
 
 // Define the text information corresponding to errorCode
@@ -77,6 +79,7 @@ var codeTag = map[int]string{
 	GetMetaDataErr:     "获取元数据失败",
 	DeleteMetaDataErr:  "删除元数据失败",
 
+	DescribeComponentError:   "查询组件失败",
 	DescribeClusterError:     "查询集群失败",
 	CreateClusterError:       "创建集群失败",
 	DeleteClusterError:       "删除集群失败",

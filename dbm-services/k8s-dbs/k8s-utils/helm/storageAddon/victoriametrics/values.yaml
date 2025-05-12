@@ -8,6 +8,16 @@ vmselect:
     envflag.enable: "true"
     envflag.prefix: VM_
     loggerFormat: json
+    search.maxUniqueTimeseries: 990000
+    search.maxPointsPerTimeseries: 500000
+    search.maxSeries: 200000
+    search.maxConcurrentRequests: 8
+    memory.allowedPercent: 50
+    search.logSlowQueryDuration: 15s
+    search.queryStats.lastQueriesCount: 50000
+    search.queryStats.minQueryDuration: 5s
+    search.maxQueryLen: 1MB
+    dedup.minScrapeInterval: 1ms
 
 vminsert:
   # -- Service port

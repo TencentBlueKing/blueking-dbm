@@ -11,12 +11,8 @@ annotations:
 terminationPolicy: Delete
 topoName: victoriametrics
 componentList:
-  - componentName: insert
+  - componentName: vminsert
     serviceVersion: "1.93.10"
-    services:
-      - name: insert
-        serviceType: ClusterIP
-        annotations:
     env:
     replicas: 1
     resources:
@@ -26,13 +22,11 @@ componentList:
       limits:
         cpu: 1
         memory: 1Gi
+    args:
 
-  - componentName: select
+
+  - componentName: vmselect
     serviceVersion: "1.93.10"
-    services:
-      - name: select
-        serviceType: ClusterIP
-        annotations:
     env:
     replicas: 1
     resources:
@@ -42,13 +36,9 @@ componentList:
       limits:
         cpu: 1
         memory: 1Gi
-
-  - componentName: storage
+    args:
+  - componentName: vmstorage
     serviceVersion: "1.93.10"
-    services:
-      - name: storage
-        serviceType: ClusterIP
-        annotations:
     env:
     replicas: 1
     resources:
@@ -59,3 +49,14 @@ componentList:
         cpu: 1
         memory: 1Gi
     storage: "10Gi"
+    args:
+
+observeConfig:
+  bkLogConfig:
+    enabled: false
+    labels: {}
+    dataId:
+  svcMonitor:
+    enabled: false
+    labels: {}
+    interval: "15s"

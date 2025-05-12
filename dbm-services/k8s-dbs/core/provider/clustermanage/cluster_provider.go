@@ -22,33 +22,38 @@ package clustermanage
 import (
 	"context"
 	"fmt"
-	client2 "k8s-dbs/core/client"
-	entity2 "k8s-dbs/core/entity"
-	provider2 "k8s-dbs/metadata/provider"
-	"k8s-dbs/metadata/provider/entity"
+	coreclient "k8s-dbs/core/client"
+	clientconst "k8s-dbs/core/client/constants"
+	coreconst "k8s-dbs/core/constant"
+	coreentity "k8s-dbs/core/entity"
+	metaprovider "k8s-dbs/metadata/provider"
+	providerentity "k8s-dbs/metadata/provider/entity"
+	"slices"
 
 	kbtypes "github.com/apecloud/kbcli/pkg/types"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // ClusterProvider 集群管理核心服务
 type ClusterProvider struct {
-	clusterMetaProvider          provider2.K8sCrdClusterProvider
-	componentMetaProvider        provider2.K8sCrdComponentProvider
-	cdMetaProvider               provider2.K8sCrdClusterDefinitionProvider
-	cmpdMetaProvider             provider2.K8sCrdCmpdProvider
-	cmpvMetaProvider             provider2.K8sCrdCmpvProvider
-	k8sClusterConfigMetaProvider provider2.K8sClusterConfigProvider
+	clusterMetaProvider          metaprovider.K8sCrdClusterProvider
+	componentMetaProvider        metaprovider.K8sCrdComponentProvider
+	cdMetaProvider               metaprovider.K8sCrdClusterDefinitionProvider
+	cmpdMetaProvider             metaprovider.K8sCrdCmpdProvider
+	cmpvMetaProvider             metaprovider.K8sCrdCmpvProvider
+	k8sClusterConfigMetaProvider metaprovider.K8sClusterConfigProvider
 }
 
 // NewClusterService 创建 ClusterProvider 实例
 func NewClusterService(
-	clusterMetaProvider provider2.K8sCrdClusterProvider,
-	componentMetaProvider provider2.K8sCrdComponentProvider,
-	cdMetaProvider provider2.K8sCrdClusterDefinitionProvider,
-	cmpdMetaProvider provider2.K8sCrdCmpdProvider,
-	cmpvMetaProvider provider2.K8sCrdCmpvProvider,
-	k8sClusterConfigMetaProvider provider2.K8sClusterConfigProvider,
+	clusterMetaProvider metaprovider.K8sCrdClusterProvider,
+	componentMetaProvider metaprovider.K8sCrdComponentProvider,
+	cdMetaProvider metaprovider.K8sCrdClusterDefinitionProvider,
+	cmpdMetaProvider metaprovider.K8sCrdCmpdProvider,
+	cmpvMetaProvider metaprovider.K8sCrdCmpvProvider,
+	k8sClusterConfigMetaProvider metaprovider.K8sClusterConfigProvider,
 ) *ClusterProvider {
 	return &ClusterProvider{
 		clusterMetaProvider:          clusterMetaProvider,
@@ -61,13 +66,13 @@ func NewClusterService(
 }
 
 // CreateCluster 创建集群
-func (c *ClusterProvider) CreateCluster(request *entity2.Request) error {
+func (c *ClusterProvider) CreateCluster(request *coreentity.Request) error {
 	k8sClusterConfig, err := c.k8sClusterConfigMetaProvider.FindConfigByName(request.K8sClusterName)
 	if err != nil {
 		return fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
 
-	k8sClient, err := client2.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return fmt.Errorf("failed to create k8sClient: %w", err)
 	}
@@ -95,19 +100,50 @@ func (c *ClusterProvider) CreateCluster(request *entity2.Request) error {
 		}
 	}
 
-	if err = client2.CreateStorageAddonCluster(k8sClient, request); err != nil {
+	if err = coreclient.CreateStorageAddonCluster(k8sClient, request); err != nil {
 		return fmt.Errorf("failed to create cluster: %w", err)
 	}
 	return nil
 }
 
-// DeleteCluster 删除集群
-func (c *ClusterProvider) DeleteCluster(request *entity2.Request) error {
+// UpdateCluster 更新集群
+func (c *ClusterProvider) UpdateCluster(request *coreentity.Request) error {
 	k8sClusterConfig, err := c.k8sClusterConfigMetaProvider.FindConfigByName(request.K8sClusterName)
 	if err != nil {
 		return fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := client2.NewK8sClient(k8sClusterConfig)
+
+	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create k8sClient: %w", err)
+	}
+
+	if err = verifyAddonExists(request, k8sClient); err != nil {
+		return fmt.Errorf("failed to verify addon exists: %w", err)
+	}
+
+	clusterEntity, _, err := c.getEntityFromReq(request)
+	if err != nil {
+		return fmt.Errorf("failed to get cluster entity: %w", err)
+	}
+
+	clusterEntity.K8sClusterConfigID = k8sClusterConfig.ID
+
+	// TODO 元数据变更记录
+
+	if err = coreclient.UpdateStorageAddonCluster(k8sClient, request); err != nil {
+		return fmt.Errorf("failed to update cluster: %w", err)
+	}
+	return nil
+}
+
+// DeleteCluster 删除集群
+func (c *ClusterProvider) DeleteCluster(request *coreentity.Request) error {
+	k8sClusterConfig, err := c.k8sClusterConfigMetaProvider.FindConfigByName(request.K8sClusterName)
+	if err != nil {
+		return fmt.Errorf("failed to get k8sClusterConfig: %w", err)
+	}
+	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
 
 	if err != nil {
 		return fmt.Errorf("failed to create k8sClient: %w", err)
@@ -124,7 +160,7 @@ func (c *ClusterProvider) DeleteCluster(request *entity2.Request) error {
 	if err != nil {
 		return err
 	}
-	err = client2.DeleteStorageAddonCluster(k8sClient, request.ClusterName, request.Namespace)
+	err = coreclient.DeleteStorageAddonCluster(k8sClient, request.ClusterName, request.Namespace)
 	if err != nil {
 		return err
 	}
@@ -132,12 +168,12 @@ func (c *ClusterProvider) DeleteCluster(request *entity2.Request) error {
 }
 
 // DescribeCluster 获取集群详情
-func (c *ClusterProvider) DescribeCluster(request *entity2.Request) (*entity2.ClusterResponseData, error) {
+func (c *ClusterProvider) DescribeCluster(request *coreentity.Request) (*coreentity.ClusterResponseData, error) {
 	k8sClusterConfig, err := c.k8sClusterConfigMetaProvider.FindConfigByName(request.K8sClusterName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := client2.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
@@ -149,7 +185,7 @@ func (c *ClusterProvider) DescribeCluster(request *entity2.Request) (*entity2.Cl
 	if err != nil {
 		return nil, err
 	}
-	dataResponse, err := entity2.GetClusterResponseData(cluster)
+	dataResponse, err := coreentity.GetClusterResponseData(cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -157,12 +193,12 @@ func (c *ClusterProvider) DescribeCluster(request *entity2.Request) (*entity2.Cl
 }
 
 // GetClusterStatus 获取集群状态
-func (c *ClusterProvider) GetClusterStatus(request *entity2.Request) (*entity2.ClusterStatus, error) {
+func (c *ClusterProvider) GetClusterStatus(request *coreentity.Request) (*coreentity.ClusterStatus, error) {
 	k8sClusterConfig, err := c.k8sClusterConfigMetaProvider.FindConfigByName(request.K8sClusterName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := client2.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
@@ -175,29 +211,102 @@ func (c *ClusterProvider) GetClusterStatus(request *entity2.Request) (*entity2.C
 	if err != nil {
 		return nil, err
 	}
-	dataResponse, err := entity2.GetClusterResponseData(cluster)
+	dataResponse, err := coreentity.GetClusterResponseData(cluster)
 	if err != nil {
 		return nil, err
 	}
 	return dataResponse.ClusterStatus, nil
 }
 
-func (c *ClusterProvider) getEntityFromReq(request *entity2.Request) (
-	*entity.K8sCrdClusterEntity,
-	[]*entity.K8sCrdComponentEntity,
+// DescribeComponent 获取组件详情
+func (c *ClusterProvider) DescribeComponent(request *coreentity.Request) (*coreentity.ComponentDetail, error) {
+	k8sClusterConfig, err := c.k8sClusterConfigMetaProvider.FindConfigByName(request.K8sClusterName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
+	}
+	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
+	}
+
+	crd := &coreentity.CustomResourceDefinition{
+		GroupVersionResource: kbtypes.PodGVR(),
+		Namespace:            request.Namespace,
+		Labels: map[string]string{
+			coreconst.InstanceName:  request.ClusterName,
+			coreconst.ComponentName: request.ComponentName,
+		},
+	}
+	podList, err := coreclient.ListCRD(k8sClient, crd)
+	if err != nil {
+		return nil, err
+	}
+
+	if podList.Items != nil && len(podList.Items) == 0 {
+		return nil, fmt.Errorf("the pod of the component %s currently being queried is empty", request.ComponentName)
+	}
+
+	var pods []coreentity.Pod
+	var env []corev1.EnvVar
+	for _, item := range podList.Items {
+		// Try converting Unstructured to Pod type
+		pod := &corev1.Pod{}
+		err := runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, pod)
+		if err != nil {
+			return nil, fmt.Errorf("cannot be converted to Pod format, raw data will be displayed: %v", err)
+		}
+		var role string
+		if podRole, exits := pod.Labels["kubeblocks.io/role"]; exits {
+			role = podRole
+		}
+		pods = append(pods, coreentity.Pod{
+			PodName:      pod.Name,
+			Status:       pod.Status.Phase,
+			Node:         pod.Spec.NodeName,
+			Role:         role,
+			CreateedTime: pod.CreationTimestamp.String(),
+		})
+		if env == nil {
+			env = pod.Spec.Containers[0].Env
+		}
+
+	}
+
+	// Remove kb specific environment variables
+	env = slices.DeleteFunc(env, func(envVar corev1.EnvVar) bool {
+		_, exists := clientconst.KbEnvVar[envVar.Name]
+		return exists
+	})
+
+	componentDetail := &coreentity.ComponentDetail{
+		Metadata: coreentity.Metadata{
+			ClusterName:   crd.Labels[coreconst.InstanceName],
+			Namespace:     crd.Namespace,
+			ComponentName: crd.Labels[coreconst.ComponentName],
+		},
+		Pods: pods,
+		Env:  env,
+	}
+
+	return componentDetail, nil
+}
+
+func (c *ClusterProvider) getEntityFromReq(request *coreentity.Request) (
+	*providerentity.K8sCrdClusterEntity,
+	[]*providerentity.K8sCrdComponentEntity,
 	error,
 ) {
-	clusterEntity := &entity.K8sCrdClusterEntity{
+	clusterEntity := &providerentity.K8sCrdClusterEntity{
 		ClusterName: request.ClusterName,
 		Namespace:   request.Namespace,
 		//Metadata:    string(metaDataJSON),
 		//Spec:        string(specJson),
 	}
 
-	var compEntityList []*entity.K8sCrdComponentEntity
+	var compEntityList []*providerentity.K8sCrdComponentEntity
 	for compTopoName := range request.ComponentMap {
 		compName := request.Metadata.ClusterName + "-" + compTopoName
-		componentEntity := &entity.K8sCrdComponentEntity{
+		componentEntity := &providerentity.K8sCrdComponentEntity{
 			ComponentName: compName,
 			//Metadata:      string(metaDataJSON),
 			//Spec:          string(specJson),
@@ -208,9 +317,9 @@ func (c *ClusterProvider) getEntityFromReq(request *entity2.Request) (
 	return clusterEntity, compEntityList, nil
 }
 
-func verifyAddonExists(request *entity2.Request, k8sClient *client2.K8sClient) error {
+func verifyAddonExists(request *coreentity.Request, k8sClient *coreclient.K8sClient) error {
 	targetChartFullName := request.StorageAddonType + "-" + request.StorageAddonVersion
-	isCreated, err := client2.StorageAddonIsCreated(k8sClient, targetChartFullName)
+	isCreated, err := coreclient.StorageAddonIsCreated(k8sClient, targetChartFullName)
 	if err != nil {
 		return fmt.Errorf("failed to verify existence of storage addon chart %q: %w", targetChartFullName, err)
 	}

@@ -111,7 +111,15 @@ componentList:
         cpu: 1
         memory: 1Gi
 
-
+observeConfig:
+  bkLogConfig:
+    enabled: false
+    labels: {}
+    dataId:
+  svcMonitor:
+    enabled: false
+    labels: {}
+    interval: "15s"
 
 
 
@@ -236,7 +244,7 @@ service:
   loadBalancerSourceRanges:
     - 0.0.0.0/0
   # Optionally assign a known public LB IP
-  # loadBalancerIP: 1.2.3.4
+  # loadBalancerIP: x.x.x.x
 
 ingress:
   enabled: false

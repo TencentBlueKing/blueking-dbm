@@ -18,16 +18,11 @@ spec:
             targetPort: http
             protocol: TCP
   vars:
-    - name: VMSTORAGE_ENDPOINT
-      valueFrom:
-        serviceVarRef:
-          compDef: {{ include "victoriametrics-storage.cmpdName" . }}
-          optional: true
-          host: Required
     - name: VMSTORAGE_ADDR
       valueFrom:
         serviceVarRef:
           compDef: {{ include "victoriametrics-storage.cmpdName" . }}
+          optional: true
           port:
             name: vmselect
             option: Required
@@ -35,18 +30,29 @@ spec:
     automountServiceAccountToken: true
     terminationGracePeriodSeconds: 60
     containers:
-      - name: select
+      - name: vmselect
         imagePullPolicy: IfNotPresent
+        command:
+          - /bin/sh
+          - -c
         args:
-          - --storageNode=$(VMSTORAGE_ADDR)
-          - --cacheDataPath=/cache
-          {{- range $key, $value := .Values.vmstorage.extraArgs }}
-          - --{{ $key }}={{ $value }}
-          {{- end }}
-          - --httpListenAddr=:{{ .Values.vmselect.servicePort }}
-          {{- if .Values.enableTCP6 }}
-          - --enableTCP6=true
-          {{- end }}
+          - |
+            storage_node_arg=""
+            if [ -n "${VMSTORAGE_ADDR}" ]; then
+              storage_node_arg="--storageNode=${VMSTORAGE_ADDR} "
+            fi
+
+            exec /vmselect-prod \
+            ${storage_node_arg} \
+            --cacheDataPath=/cache \
+            --httpListenAddr=:{{ .Values.vmselect.servicePort }} \
+            {{- range $key, $value := .Values.vmselect.extraArgs }}
+            --{{ $key }}={{ $value }} \
+            {{- end }}
+            {{- if .Values.enableTCP6 }}
+            --enableTCP6=true \
+            {{- end }}
+            ${EXTRA_ARGS}
         env:
           - name: SERVICE_PORT
             value: "{{ .Values.vmselect.servicePort }}"

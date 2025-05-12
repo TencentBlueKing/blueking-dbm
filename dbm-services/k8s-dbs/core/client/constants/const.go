@@ -36,3 +36,37 @@ const (
 	HelmDefaultNamespace = "kb-system"
 	HelmDriver           = "secrets"
 )
+
+const (
+	KbPodName   = "KB_POD_NAME"
+	KbPodUID    = "KB_POD_UID"
+	KbNamespace = "KB_NAMESPACE"
+	KbSaName    = "KB_SA_NAME"
+	KbNodename  = "KB_NODENAME"
+	KbHostIP    = "KB_HOST_IP"
+	KbPodIP     = "KB_POD_IP"
+	KbPodIps    = "KB_POD_IPS"
+	KbHostip    = "KB_HOSTIP"
+	KbPodip     = "KB_PODIP"
+	KbPodips    = "KB_PODIPS"
+)
+
+var KbEnvVar = map[string]struct{}{
+	KbPodName:   {},
+	KbPodUID:    {},
+	KbNamespace: {},
+	KbSaName:    {},
+	KbNodename:  {},
+	KbHostIP:    {},
+	KbPodIP:     {},
+	KbPodIps:    {},
+	KbHostip:    {},
+	KbPodip:     {},
+	KbPodips:    {},
+}
+
+var PodSelectLabel = map[string]string{
+	"pod-name":  "apps.kubeblocks.io/pod-name",
+	"component": "app.kubernetes.io/component",
+	"role":      "kubeblocks.io/role",
+}

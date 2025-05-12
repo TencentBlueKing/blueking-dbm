@@ -31,4 +31,5 @@ type CustomResourceDefinition struct {
 	ResourceName         string
 	GroupVersionResource schema.GroupVersionResource
 	ResourceObject       *unstructured.Unstructured
+	Labels               map[string]string
 }

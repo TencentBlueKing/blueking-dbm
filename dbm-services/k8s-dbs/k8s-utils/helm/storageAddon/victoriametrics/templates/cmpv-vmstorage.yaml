@@ -6,10 +6,16 @@ spec:
   compatibilityRules:
     - releases:
         - vmstorage-1.93.10
+        - vmstorage-1.115.0
       compDefs:
         - {{ include "victoriametrics-storage.cmpdName" . }}
   releases:
     - name: vmstorage-1.93.10
       serviceVersion: 1.93.10
       images:
-        storage: victoriametrics/vmstorage:v1.93.10-cluster
+        vmstorage: victoriametrics/vmstorage:v1.93.10-cluster
+    - name: vmstorage-1.115.0
+      serviceVersion: 1.115.0
+      images:
+        vmstorage: victoriametrics/vmstorage:v1.115.0-cluster
+

@@ -22,21 +22,23 @@ package helper
 import (
 	"encoding/json"
 	"fmt"
-	utils2 "k8s-dbs/common/utils"
-	"k8s-dbs/core/constant"
-	entity2 "k8s-dbs/core/entity"
-	provider2 "k8s-dbs/metadata/provider"
-	models "k8s-dbs/metadata/provider/entity"
+	"k8s-dbs/common/utils"
+	clientconst "k8s-dbs/core/client/constants"
+	coreconst "k8s-dbs/core/constant"
+	"k8s-dbs/core/entity"
+	metaprovider "k8s-dbs/metadata/provider"
+	metaentity "k8s-dbs/metadata/provider/entity"
+
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	kbtypes "github.com/apecloud/kbcli/pkg/types"
 	kbv1 "github.com/apecloud/kubeblocks/apis/apps/v1alpha1"
 	opv1 "github.com/apecloud/kubeblocks/apis/operations/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 // opsrequest 定义操作请求相关的常量
@@ -51,12 +53,15 @@ const (
 // key: 组件名称
 // value: 组件暴露的端口列表
 var componentTargetPortsMap = map[string][]string{
-	"surreal": {"http"},
-	"tikv":    {"peer", "status"},
-	"pd":      {"client", "peer"},
-	"attu":    {"attu"},
-	"proxy":   {"milvus"},
-	"minio":   {"console"},
+	"surreal":   {"http"},
+	"tikv":      {"peer", "status"},
+	"pd":        {"client", "peer"},
+	"attu":      {"attu"},
+	"proxy":     {"milvus"},
+	"minio":     {"console"},
+	"vmstorage": {"vmselect"},
+	"vminsert":  {"http"},
+	"vmselect":  {"http"},
 }
 
 // switchTypeMap 暴露开关类型映射表
@@ -76,13 +81,13 @@ var switchTypeMap = map[bool]opv1.ExposeSwitch{
 //
 //	*entity.CustomResourceDefinition - 创建的CRD对象
 //	error - 错误信息(如果有)
-func CreateVerticalScalingObject(request *entity2.Request) (*entity2.CustomResourceDefinition, error) {
-	objectName := utils2.ResourceName("ops-vscaling-", OpsNameSuffixLength)
+func CreateVerticalScalingObject(request *entity.Request) (*entity.CustomResourceDefinition, error) {
+	objectName := utils.ResourceName("ops-vscaling-", OpsNameSuffixLength)
 
 	verticalScaling := &opv1.OpsRequest{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: constant.APIVersion,
-			Kind:       constant.OpsRequest,
+			APIVersion: coreconst.APIVersion,
+			Kind:       coreconst.OpsRequest,
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      objectName,
@@ -90,10 +95,10 @@ func CreateVerticalScalingObject(request *entity2.Request) (*entity2.CustomResou
 		},
 		Spec: opv1.OpsRequestSpec{
 			ClusterName:                 request.Metadata.ClusterName,
-			Type:                        constant.VerticalScaling,
+			Type:                        coreconst.VerticalScaling,
 			TTLSecondsAfterSucceed:      TTLSecondsAfterSucceed,
-			PreConditionDeadlineSeconds: utils2.Int32Ptr(PreConditionDeadlineSeconds),
-			TimeoutSeconds:              utils2.Int32Ptr(TimeoutSeconds),
+			PreConditionDeadlineSeconds: utils.Int32Ptr(PreConditionDeadlineSeconds),
+			TimeoutSeconds:              utils.Int32Ptr(TimeoutSeconds),
 			SpecificOpsRequest: opv1.SpecificOpsRequest{
 				VerticalScalingList: request.Spec.VerticalScalingList,
 			},
@@ -108,9 +113,9 @@ func CreateVerticalScalingObject(request *entity2.Request) (*entity2.CustomResou
 	Obj := &unstructured.Unstructured{
 		Object: unstructuredClusterDef,
 	}
-	crd := &entity2.CustomResourceDefinition{
+	crd := &entity.CustomResourceDefinition{
 		Namespace:            request.Metadata.Namespace,
-		ResourceType:         constant.VerticalScaling,
+		ResourceType:         coreconst.VerticalScaling,
 		ResourceName:         objectName,
 		GroupVersionResource: kbtypes.OpsGVR(),
 		ResourceObject:       Obj,
@@ -120,13 +125,13 @@ func CreateVerticalScalingObject(request *entity2.Request) (*entity2.CustomResou
 
 // CreateHorizontalScalingObject 创建水平伸缩操作请求对象
 // 参数和返回值同CreateVerticalScalingObject
-func CreateHorizontalScalingObject(request *entity2.Request) (*entity2.CustomResourceDefinition, error) {
-	objectName := utils2.ResourceName("ops-hs-", OpsNameSuffixLength)
+func CreateHorizontalScalingObject(request *entity.Request) (*entity.CustomResourceDefinition, error) {
+	objectName := utils.ResourceName("ops-hs-", OpsNameSuffixLength)
 
 	horizontalScaling := &opv1.OpsRequest{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: constant.APIVersion,
-			Kind:       constant.OpsRequest,
+			APIVersion: coreconst.APIVersion,
+			Kind:       coreconst.OpsRequest,
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      objectName,
@@ -134,10 +139,10 @@ func CreateHorizontalScalingObject(request *entity2.Request) (*entity2.CustomRes
 		},
 		Spec: opv1.OpsRequestSpec{
 			ClusterName:                 request.Metadata.ClusterName,
-			Type:                        constant.HorizontalScaling,
+			Type:                        coreconst.HorizontalScaling,
 			TTLSecondsAfterSucceed:      TTLSecondsAfterSucceed,
-			PreConditionDeadlineSeconds: utils2.Int32Ptr(PreConditionDeadlineSeconds),
-			TimeoutSeconds:              utils2.Int32Ptr(TimeoutSeconds),
+			PreConditionDeadlineSeconds: utils.Int32Ptr(PreConditionDeadlineSeconds),
+			TimeoutSeconds:              utils.Int32Ptr(TimeoutSeconds),
 			SpecificOpsRequest: opv1.SpecificOpsRequest{
 				HorizontalScalingList: request.Spec.HorizontalScalingList,
 			},
@@ -152,9 +157,9 @@ func CreateHorizontalScalingObject(request *entity2.Request) (*entity2.CustomRes
 	Obj := &unstructured.Unstructured{
 		Object: unstructuredClusterDef,
 	}
-	crd := &entity2.CustomResourceDefinition{
+	crd := &entity.CustomResourceDefinition{
 		Namespace:            request.Metadata.Namespace,
-		ResourceType:         constant.HorizontalScaling,
+		ResourceType:         coreconst.HorizontalScaling,
 		ResourceName:         objectName,
 		GroupVersionResource: kbtypes.OpsGVR(),
 		ResourceObject:       Obj,
@@ -164,13 +169,13 @@ func CreateHorizontalScalingObject(request *entity2.Request) (*entity2.CustomRes
 
 // CreateStopClusterObject 创建停止集群操作请求对象
 // 参数和返回值同CreateVerticalScalingObject
-func CreateStopClusterObject(request *entity2.Request) (*entity2.CustomResourceDefinition, error) {
-	objectName := utils2.ResourceName("ops-stop-", OpsNameSuffixLength)
+func CreateStopClusterObject(request *entity.Request) (*entity.CustomResourceDefinition, error) {
+	objectName := utils.ResourceName("ops-stop-", OpsNameSuffixLength)
 
 	stop := &opv1.OpsRequest{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: constant.APIVersion,
-			Kind:       constant.OpsRequest,
+			APIVersion: coreconst.APIVersion,
+			Kind:       coreconst.OpsRequest,
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      objectName,
@@ -178,10 +183,10 @@ func CreateStopClusterObject(request *entity2.Request) (*entity2.CustomResourceD
 		},
 		Spec: opv1.OpsRequestSpec{
 			ClusterName:                 request.Metadata.ClusterName,
-			Type:                        constant.Stop,
+			Type:                        coreconst.Stop,
 			TTLSecondsAfterSucceed:      TTLSecondsAfterSucceed,
-			PreConditionDeadlineSeconds: utils2.Int32Ptr(PreConditionDeadlineSeconds),
-			TimeoutSeconds:              utils2.Int32Ptr(TimeoutSeconds),
+			PreConditionDeadlineSeconds: utils.Int32Ptr(PreConditionDeadlineSeconds),
+			TimeoutSeconds:              utils.Int32Ptr(TimeoutSeconds),
 			SpecificOpsRequest: opv1.SpecificOpsRequest{
 				StopList: request.Spec.StopList,
 			},
@@ -196,9 +201,9 @@ func CreateStopClusterObject(request *entity2.Request) (*entity2.CustomResourceD
 	Obj := &unstructured.Unstructured{
 		Object: unstructuredClusterDef,
 	}
-	crd := &entity2.CustomResourceDefinition{
+	crd := &entity.CustomResourceDefinition{
 		Namespace:            request.Metadata.Namespace,
-		ResourceType:         constant.Stop,
+		ResourceType:         coreconst.Stop,
 		ResourceName:         objectName,
 		GroupVersionResource: kbtypes.OpsGVR(),
 		ResourceObject:       Obj,
@@ -208,13 +213,13 @@ func CreateStopClusterObject(request *entity2.Request) (*entity2.CustomResourceD
 
 // CreateStartClusterObject 创建启动集群操作请求对象
 // 参数和返回值同CreateVerticalScalingObject
-func CreateStartClusterObject(request *entity2.Request) (*entity2.CustomResourceDefinition, error) {
-	objectName := utils2.ResourceName("ops-start-", OpsNameSuffixLength)
+func CreateStartClusterObject(request *entity.Request) (*entity.CustomResourceDefinition, error) {
+	objectName := utils.ResourceName("ops-start-", OpsNameSuffixLength)
 
 	start := &opv1.OpsRequest{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: constant.APIVersion,
-			Kind:       constant.OpsRequest,
+			APIVersion: coreconst.APIVersion,
+			Kind:       coreconst.OpsRequest,
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      objectName,
@@ -222,10 +227,10 @@ func CreateStartClusterObject(request *entity2.Request) (*entity2.CustomResource
 		},
 		Spec: opv1.OpsRequestSpec{
 			ClusterName:                 request.Metadata.ClusterName,
-			Type:                        constant.Start,
+			Type:                        coreconst.Start,
 			TTLSecondsAfterSucceed:      TTLSecondsAfterSucceed,
-			PreConditionDeadlineSeconds: utils2.Int32Ptr(PreConditionDeadlineSeconds),
-			TimeoutSeconds:              utils2.Int32Ptr(TimeoutSeconds),
+			PreConditionDeadlineSeconds: utils.Int32Ptr(PreConditionDeadlineSeconds),
+			TimeoutSeconds:              utils.Int32Ptr(TimeoutSeconds),
 			SpecificOpsRequest: opv1.SpecificOpsRequest{
 				StartList: request.Spec.StartList,
 			},
@@ -240,9 +245,9 @@ func CreateStartClusterObject(request *entity2.Request) (*entity2.CustomResource
 	Obj := &unstructured.Unstructured{
 		Object: unstructuredClusterDef,
 	}
-	crd := &entity2.CustomResourceDefinition{
+	crd := &entity.CustomResourceDefinition{
 		Namespace:            request.Metadata.Namespace,
-		ResourceType:         constant.Start,
+		ResourceType:         coreconst.Start,
 		ResourceName:         objectName,
 		GroupVersionResource: kbtypes.OpsGVR(),
 		ResourceObject:       Obj,
@@ -252,13 +257,13 @@ func CreateStartClusterObject(request *entity2.Request) (*entity2.CustomResource
 
 // CreateRestartClusterObject 创建重启集群操作请求对象
 // 参数和返回值同CreateVerticalScalingObject
-func CreateRestartClusterObject(request *entity2.Request) (*entity2.CustomResourceDefinition, error) {
-	objectName := utils2.ResourceName("ops-restart-", OpsNameSuffixLength)
+func CreateRestartClusterObject(request *entity.Request) (*entity.CustomResourceDefinition, error) {
+	objectName := utils.ResourceName("ops-restart-", OpsNameSuffixLength)
 
 	restart := &opv1.OpsRequest{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: constant.APIVersion,
-			Kind:       constant.OpsRequest,
+			APIVersion: coreconst.APIVersion,
+			Kind:       coreconst.OpsRequest,
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      objectName,
@@ -266,10 +271,10 @@ func CreateRestartClusterObject(request *entity2.Request) (*entity2.CustomResour
 		},
 		Spec: opv1.OpsRequestSpec{
 			ClusterName:                 request.Metadata.ClusterName,
-			Type:                        constant.Restart,
+			Type:                        coreconst.Restart,
 			TTLSecondsAfterSucceed:      TTLSecondsAfterSucceed,
-			PreConditionDeadlineSeconds: utils2.Int32Ptr(PreConditionDeadlineSeconds),
-			TimeoutSeconds:              utils2.Int32Ptr(TimeoutSeconds),
+			PreConditionDeadlineSeconds: utils.Int32Ptr(PreConditionDeadlineSeconds),
+			TimeoutSeconds:              utils.Int32Ptr(TimeoutSeconds),
 			SpecificOpsRequest: opv1.SpecificOpsRequest{
 				RestartList: request.Spec.RestartList,
 			},
@@ -284,9 +289,9 @@ func CreateRestartClusterObject(request *entity2.Request) (*entity2.CustomResour
 	Obj := &unstructured.Unstructured{
 		Object: unstructuredClusterDef,
 	}
-	crd := &entity2.CustomResourceDefinition{
+	crd := &entity.CustomResourceDefinition{
 		Namespace:            request.Metadata.Namespace,
-		ResourceType:         constant.Restart,
+		ResourceType:         coreconst.Restart,
 		ResourceName:         objectName,
 		GroupVersionResource: kbtypes.OpsGVR(),
 		ResourceObject:       Obj,
@@ -304,10 +309,10 @@ func CreateRestartClusterObject(request *entity2.Request) (*entity2.CustomResour
 //
 //	*entity.CustomResourceDefinition - 创建的CRD对象
 //	error - 错误信息(如果有)
-func CreateUpgradeClusterObject(request *entity2.Request, clusterObject *kbv1.Cluster) (
-	*entity2.CustomResourceDefinition, error,
+func CreateUpgradeClusterObject(request *entity.Request, clusterObject *kbv1.Cluster) (
+	*entity.CustomResourceDefinition, error,
 ) {
-	objectName := utils2.ResourceName("ops-upgrade-", OpsNameSuffixLength)
+	objectName := utils.ResourceName("ops-upgrade-", OpsNameSuffixLength)
 	var upgradeComponents []opv1.UpgradeComponent
 	for _, compFromReq := range request.ComponentList {
 		for _, compFromCluster := range clusterObject.Spec.ComponentSpecs {
@@ -323,8 +328,8 @@ func CreateUpgradeClusterObject(request *entity2.Request, clusterObject *kbv1.Cl
 					ComponentOps: opv1.ComponentOps{
 						ComponentName: compFromReq.ComponentName,
 					},
-					ComponentDefinitionName: utils2.StringPtr(cmpdName),
-					ServiceVersion:          utils2.StringPtr(compFromReq.Version),
+					ComponentDefinitionName: utils.StringPtr(cmpdName),
+					ServiceVersion:          utils.StringPtr(compFromReq.Version),
 				})
 			}
 		}
@@ -332,8 +337,8 @@ func CreateUpgradeClusterObject(request *entity2.Request, clusterObject *kbv1.Cl
 
 	upgrade := &opv1.OpsRequest{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: constant.APIVersion,
-			Kind:       constant.OpsRequest,
+			APIVersion: coreconst.APIVersion,
+			Kind:       coreconst.OpsRequest,
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      objectName,
@@ -341,10 +346,10 @@ func CreateUpgradeClusterObject(request *entity2.Request, clusterObject *kbv1.Cl
 		},
 		Spec: opv1.OpsRequestSpec{
 			ClusterName:                 request.Metadata.ClusterName,
-			Type:                        constant.Upgrade,
+			Type:                        coreconst.Upgrade,
 			TTLSecondsAfterSucceed:      TTLSecondsAfterSucceed,
-			PreConditionDeadlineSeconds: utils2.Int32Ptr(PreConditionDeadlineSeconds),
-			TimeoutSeconds:              utils2.Int32Ptr(TimeoutSeconds),
+			PreConditionDeadlineSeconds: utils.Int32Ptr(PreConditionDeadlineSeconds),
+			TimeoutSeconds:              utils.Int32Ptr(TimeoutSeconds),
 			SpecificOpsRequest: opv1.SpecificOpsRequest{
 				Upgrade: &opv1.Upgrade{
 					Components: upgradeComponents,
@@ -361,9 +366,9 @@ func CreateUpgradeClusterObject(request *entity2.Request, clusterObject *kbv1.Cl
 	Obj := &unstructured.Unstructured{
 		Object: unstructuredClusterDef,
 	}
-	crd := &entity2.CustomResourceDefinition{
+	crd := &entity.CustomResourceDefinition{
 		Namespace:            request.Metadata.Namespace,
-		ResourceType:         constant.Upgrade,
+		ResourceType:         coreconst.Upgrade,
 		ResourceName:         objectName,
 		GroupVersionResource: kbtypes.OpsGVR(),
 		ResourceObject:       Obj,
@@ -381,10 +386,10 @@ func CreateUpgradeClusterObject(request *entity2.Request, clusterObject *kbv1.Cl
 //
 //	*entity.CustomResourceDefinition - 创建的CRD对象
 //	error - 错误信息(如果有)
-func CreateVolumeExpansionObject(request *entity2.Request, clusterObject *kbv1.Cluster) (
-	*entity2.CustomResourceDefinition, error,
+func CreateVolumeExpansionObject(request *entity.Request, clusterObject *kbv1.Cluster) (
+	*entity.CustomResourceDefinition, error,
 ) {
-	objectName := utils2.ResourceName("ops-vexpansion-", OpsNameSuffixLength)
+	objectName := utils.ResourceName("ops-vexpansion-", OpsNameSuffixLength)
 	var volumeExpansionList []opv1.VolumeExpansion
 	for _, compFromReq := range request.ComponentList {
 		// get component names
@@ -411,8 +416,8 @@ func CreateVolumeExpansionObject(request *entity2.Request, clusterObject *kbv1.C
 
 	volumeExpansion := &opv1.OpsRequest{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: constant.APIVersion,
-			Kind:       constant.OpsRequest,
+			APIVersion: coreconst.APIVersion,
+			Kind:       coreconst.OpsRequest,
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      objectName,
@@ -420,10 +425,10 @@ func CreateVolumeExpansionObject(request *entity2.Request, clusterObject *kbv1.C
 		},
 		Spec: opv1.OpsRequestSpec{
 			ClusterName:                 request.Metadata.ClusterName,
-			Type:                        constant.VolumeExpansion,
+			Type:                        coreconst.VolumeExpansion,
 			TTLSecondsAfterSucceed:      TTLSecondsAfterSucceed,
-			PreConditionDeadlineSeconds: utils2.Int32Ptr(PreConditionDeadlineSeconds),
-			TimeoutSeconds:              utils2.Int32Ptr(TimeoutSeconds),
+			PreConditionDeadlineSeconds: utils.Int32Ptr(PreConditionDeadlineSeconds),
+			TimeoutSeconds:              utils.Int32Ptr(TimeoutSeconds),
 			SpecificOpsRequest: opv1.SpecificOpsRequest{
 				VolumeExpansionList: volumeExpansionList,
 			},
@@ -438,9 +443,9 @@ func CreateVolumeExpansionObject(request *entity2.Request, clusterObject *kbv1.C
 	Obj := &unstructured.Unstructured{
 		Object: unstructuredClusterDef,
 	}
-	crd := &entity2.CustomResourceDefinition{
+	crd := &entity.CustomResourceDefinition{
 		Namespace:            request.Metadata.Namespace,
-		ResourceType:         constant.VolumeExpansion,
+		ResourceType:         coreconst.VolumeExpansion,
 		ResourceName:         objectName,
 		GroupVersionResource: kbtypes.OpsGVR(),
 		ResourceObject:       Obj,
@@ -457,8 +462,17 @@ func CreateVolumeExpansionObject(request *entity2.Request, clusterObject *kbv1.C
 //
 //	*entity.CustomResourceDefinition - 创建的CRD对象
 //	error - 错误信息(如果有)
-func CreateExposeClusterObject(request *entity2.Request) (*entity2.CustomResourceDefinition, error) {
-	objectName := utils2.ResourceName("ops-expose-", OpsNameSuffixLength)
+func CreateExposeClusterObject(request *entity.Request) (*entity.CustomResourceDefinition, error) {
+	objectName := utils.ResourceName("ops-expose-", 10)
+
+	// Convert selector key about kb
+	podSelect := request.Service.PodSelect
+	for key, value := range podSelect {
+		if newKey, exists := clientconst.PodSelectLabel[key]; exists {
+			delete(podSelect, key)
+			podSelect[newKey] = value
+		}
+	}
 
 	service := opv1.OpsService{
 		Name:         request.Service.Name,
@@ -466,6 +480,7 @@ func CreateExposeClusterObject(request *entity2.Request) (*entity2.CustomResourc
 		Annotations:  request.Service.Annotations,
 		Ports:        []corev1.ServicePort{},
 		RoleSelector: request.Service.RoleSelector,
+		PodSelector:  podSelect,
 	}
 
 	if ports, exists := componentTargetPortsMap[request.ComponentName]; exists {
@@ -487,8 +502,8 @@ func CreateExposeClusterObject(request *entity2.Request) (*entity2.CustomResourc
 
 	expose := &opv1.OpsRequest{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: constant.APIVersion,
-			Kind:       constant.OpsRequest,
+			APIVersion: coreconst.APIVersion,
+			Kind:       coreconst.OpsRequest,
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      objectName,
@@ -496,10 +511,10 @@ func CreateExposeClusterObject(request *entity2.Request) (*entity2.CustomResourc
 		},
 		Spec: opv1.OpsRequestSpec{
 			ClusterName:                 request.Metadata.ClusterName,
-			Type:                        constant.Expose,
+			Type:                        coreconst.Expose,
 			TTLSecondsAfterSucceed:      TTLSecondsAfterSucceed,
-			PreConditionDeadlineSeconds: utils2.Int32Ptr(PreConditionDeadlineSeconds),
-			TimeoutSeconds:              utils2.Int32Ptr(TimeoutSeconds),
+			PreConditionDeadlineSeconds: utils.Int32Ptr(PreConditionDeadlineSeconds),
+			TimeoutSeconds:              utils.Int32Ptr(TimeoutSeconds),
 			SpecificOpsRequest: opv1.SpecificOpsRequest{
 				ExposeList: []opv1.Expose{
 					ExposeObject,
@@ -516,9 +531,9 @@ func CreateExposeClusterObject(request *entity2.Request) (*entity2.CustomResourc
 	Obj := &unstructured.Unstructured{
 		Object: unstructuredClusterDef,
 	}
-	crd := &entity2.CustomResourceDefinition{
+	crd := &entity.CustomResourceDefinition{
 		Namespace:            request.Metadata.Namespace,
-		ResourceType:         constant.Expose,
+		ResourceType:         coreconst.Expose,
 		ResourceName:         objectName,
 		GroupVersionResource: kbtypes.OpsGVR(),
 		ResourceObject:       Obj,
@@ -528,10 +543,10 @@ func CreateExposeClusterObject(request *entity2.Request) (*entity2.CustomResourc
 
 // CreateOpsRequestMetaData 构建 opsRequest 元数据
 func CreateOpsRequestMetaData(
-	opsRequestProvider provider2.K8sCrdOpsRequestProvider,
-	crdClusterProvider provider2.K8sCrdClusterProvider,
-	request *entity2.Request,
-	crd *entity2.CustomResourceDefinition,
+	opsRequestProvider metaprovider.K8sCrdOpsRequestProvider,
+	crdClusterProvider metaprovider.K8sCrdClusterProvider,
+	request *entity.Request,
+	crd *entity.CustomResourceDefinition,
 ) error {
 	opsReqEntity, err := getEntityFromReq(crd)
 	if err != nil {
@@ -554,7 +569,7 @@ func CreateOpsRequestMetaData(
 }
 
 // getEntityFromReq 解析 request 构建 K8sCrdOpsRequestEntity
-func getEntityFromReq(crd *entity2.CustomResourceDefinition) (*models.K8sCrdOpsRequestEntity, error) {
+func getEntityFromReq(crd *entity.CustomResourceDefinition) (*metaentity.K8sCrdOpsRequestEntity, error) {
 	var opsRequestObject opv1.OpsRequest
 	err := runtime.DefaultUnstructuredConverter.FromUnstructured(crd.ResourceObject.Object, &opsRequestObject)
 	if err != nil {
@@ -570,7 +585,7 @@ func getEntityFromReq(crd *entity2.CustomResourceDefinition) (*models.K8sCrdOpsR
 		return nil, fmt.Errorf("failed to marshal spec to JSON: %w", err)
 	}
 
-	opsReqEntity := &models.K8sCrdOpsRequestEntity{
+	opsReqEntity := &metaentity.K8sCrdOpsRequestEntity{
 		OpsRequestName: opsRequestObject.Name,
 		OpsRequestType: crd.ResourceType,
 		Metadata:       string(metaDataJSON),

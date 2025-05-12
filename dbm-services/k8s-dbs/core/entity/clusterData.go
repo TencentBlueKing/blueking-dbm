@@ -37,6 +37,7 @@ type ClusterResponseData struct {
 // Metadata the metadata of request and response
 type Metadata struct {
 	ClusterName         string            `json:"clusterName,omitempty"`
+	ComponentName       string            `json:"componentName,omitempty"`
 	OpsRequestName      string            `json:"opsRequestName,omitempty"`
 	Namespace           string            `json:"namespace,omitempty"`
 	StorageAddonType    string            `json:"storageAddonType,omitempty"`
@@ -55,6 +56,7 @@ type Spec struct {
 	Dependencies            *Dependencies                `json:"dependencies,omitempty"`
 	opv1.SpecificOpsRequest `json:",inline"`
 	OpsService              `json:",inline"`
+	ObserveConfig           *ObserveConfig `json:"observeConfig,omitempty"`
 }
 
 // ClusterStatus cluster status
@@ -76,15 +78,15 @@ type Connect struct {
 // ComponentResource component info
 type ComponentResource struct {
 	// Current request
-	ComponentName    string            `json:"componentName,omitempty"`
-	ComponentDef     string            `json:"componentDef,omitempty"`
-	Version          string            `json:"version,omitempty"`
-	Replicas         int32             `json:"replicas,omitempty"`
-	ExternalEndpoint ExternalEndpoint  `json:"externalEndpoint,omitempty"`
-	Env              map[string]string `json:"env,omitempty"`
-	Request          *Resource         `json:"request,omitempty"`
-	Limit            *Resource         `json:"limit,omitempty"`
-	Storage          string            `json:"storage,omitempty"`
+	ComponentName string                 `json:"componentName,omitempty"`
+	ComponentDef  string                 `json:"componentDef,omitempty"`
+	Version       string                 `json:"version,omitempty"`
+	Replicas      int32                  `json:"replicas,omitempty"`
+	Env           map[string]interface{} `json:"env,omitempty"`
+	Request       *Resource              `json:"request,omitempty"`
+	Limit         *Resource              `json:"limit,omitempty"`
+	Storage       string                 `json:"storage,omitempty"`
+	Args          map[string]interface{} `json:"args,omitempty"`
 
 	// Deleted in the future
 	Connect *Connect `json:"connect,omitempty"`
@@ -122,39 +124,29 @@ func GetClusterResponseData(cluster *unstructured.Unstructured) (*ClusterRespons
 	spec := Spec{
 		//Version: data.Spec.ComponentSpecs[0].ServiceVersion,
 	}
+
 	// get src
 	servicePortMap := make(map[string]int32)
 	for _, service := range data.Spec.Services {
 		servicePortMap[service.Name] = service.Spec.Ports[0].Port
 	}
+
 	var componentList []ComponentResource
 	for _, componentSpec := range data.Spec.ComponentSpecs {
+
 		var connect *Connect
-		var user, password string
-		for _, env := range componentSpec.Env {
-			if env.Name == "SURREAL_USER" {
-				user = env.Value
-			} else if env.Name == "SURREAL_PASS" {
-				password = env.Value
-			}
-		}
 		if componentSpec.Services != nil {
 			connect = &Connect{
 				Host: data.Name + "-" + componentSpec.Services[0].Name + "." + data.Namespace + ".svc.cluster.local",
 				Port: servicePortMap[componentSpec.Services[0].Name],
 			}
 		}
-		if user != "" && password != "" {
-			if connect == nil {
-				connect = &Connect{}
-			}
-			connect.User = user
-			connect.Password = password
-		}
+
 		var storage string
 		if componentSpec.VolumeClaimTemplates != nil {
 			storage = componentSpec.VolumeClaimTemplates[0].Spec.Resources.Requests.Storage().String()
 		}
+
 		componentResource := ComponentResource{
 			ComponentName: componentSpec.Name,
 			Version:       componentSpec.ServiceVersion,
@@ -170,6 +162,7 @@ func GetClusterResponseData(cluster *unstructured.Unstructured) (*ClusterRespons
 			},
 			Storage: storage,
 		}
+
 		componentList = append(componentList, componentResource)
 	}
 	spec.ComponentList = componentList

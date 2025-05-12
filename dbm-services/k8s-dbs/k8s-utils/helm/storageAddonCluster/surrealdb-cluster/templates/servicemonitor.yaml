@@ -1,3 +1,5 @@
+{{- if .Values.observeConfig.svcMonitor.enabled }}
+
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
@@ -5,9 +7,12 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     app: {{ .Release.Name }}-servicemonitor
+    {{- if .Values.observeConfig.svcMonitor.labels }}
+    {{- toYaml .Values.observeConfig.svcMonitor.labels | nindent 4 }}
+    {{- end }}
 spec:
   endpoints:
-    - interval: {{ .Values.metrics.serviceMonitor.interval }}
+    - interval: {{ .Values.observeConfig.svcMonitor.interval }}
       params: {}
       path: /metrics
       port: status
@@ -22,3 +27,5 @@ spec:
     - app.kubernetes.io/instance
     - app.kubernetes.io/managed-by
     - apps.kubeblocks.io/component-name
+
+{{- end }}
