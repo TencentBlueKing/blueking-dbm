@@ -122,26 +122,7 @@
       spec_id: number;
       update_mode: string;
     };
-    cluster: {
-      group_num: RedisModel['machine_pair_cnt'];
-      shard_num: RedisModel['cluster_shard_num'];
-    } & Pick<
-      RedisModel,
-      | 'cluster_stats'
-      | 'cluster_spec'
-      | 'id'
-      | 'master_domain'
-      | 'cluster_type'
-      | 'cluster_type_name'
-      | 'bk_cloud_id'
-      | 'major_version'
-      | 'cluster_capacity'
-      | 'disaster_tolerance_level'
-    >;
-    cluster_capacity: {
-      total: number;
-      used: number;
-    };
+    cluster: RedisModel;
     db_version: string;
     online_switch_type: string;
   }
@@ -161,24 +142,22 @@
       spec_id: 0,
       update_mode: '',
     },
-    cluster: data.cluster || {
-      bk_cloud_id: 0,
-      cluster_capacity: 0,
-      cluster_spec: {} as RedisModel['cluster_spec'],
-      cluster_stats: {} as RedisModel['cluster_stats'],
-      cluster_type: ClusterTypes.REDIS_CLUSTER,
-      cluster_type_name: '',
-      disaster_tolerance_level: Affinity.CROS_SUBZONE,
-      group_num: 0,
-      id: 0,
-      major_version: '',
-      master_domain: '',
-      shard_num: 0,
-    },
-    cluster_capacity: data.cluster_capacity || {
-      total: 1,
-      used: 0,
-    },
+    cluster:
+      data.cluster ||
+      ({
+        bk_cloud_id: 0,
+        cluster_capacity: 0,
+        cluster_shard_num: 0,
+        cluster_spec: {} as RedisModel['cluster_spec'],
+        cluster_stats: {} as RedisModel['cluster_stats'],
+        cluster_type: ClusterTypes.REDIS_CLUSTER,
+        cluster_type_name: '',
+        disaster_tolerance_level: Affinity.CROS_SUBZONE,
+        id: 0,
+        machine_pair_cnt: 0,
+        major_version: '',
+        master_domain: '',
+      } as RedisModel),
     db_version: data.db_version || '',
     online_switch_type: data.online_switch_type || '',
   });
@@ -227,21 +206,17 @@
             cluster: {
               bk_cloud_id: clusterInfo.bk_cloud_id,
               cluster_capacity: item.display_info.cluster_capacity,
+              cluster_shard_num: item.shard_num,
               cluster_spec: item.display_info.cluster_spec,
               cluster_stats: item.display_info.cluster_stats,
               cluster_type: clusterInfo.cluster_type,
               cluster_type_name: clusterInfo.cluster_type_name,
               disaster_tolerance_level: clusterInfo.disaster_tolerance_level as Affinity,
-              group_num: item.group_num,
               id: clusterInfo.id,
+              machine_pair_cnt: item.group_num,
               major_version: clusterInfo.major_version,
               master_domain: clusterInfo.immute_domain,
-              shard_num: item.shard_num,
-            },
-            cluster_capacity: {
-              total: item.display_info.cluster_capacity,
-              used: 0,
-            },
+            } as RedisModel,
             db_version: item.db_version,
             online_switch_type: item.online_switch_type,
           });
@@ -296,11 +271,11 @@
           cluster_id: item.cluster.id,
           db_version: item.db_version,
           display_info: {
-            cluster_capacity: item.cluster_capacity.total,
-            cluster_shard_num: item.cluster.shard_num,
+            cluster_capacity: item.cluster.cluster_capacity,
+            cluster_shard_num: item.cluster.cluster_shard_num,
             cluster_spec: item.cluster.cluster_spec,
             cluster_stats: item.cluster.cluster_stats,
-            machine_pair_cnt: item.cluster.group_num,
+            machine_pair_cnt: item.cluster.machine_pair_cnt,
           },
           future_capacity: item.backend_group.future_capacity,
           group_num: item.backend_group.group_num,
@@ -333,20 +308,7 @@
       if (!selectedMap.value[item.master_domain]) {
         acc.push(
           createTableRow({
-            cluster: {
-              bk_cloud_id: item.bk_cloud_id,
-              cluster_capacity: item.cluster_capacity,
-              cluster_spec: item.cluster_spec,
-              cluster_stats: item.cluster_stats,
-              cluster_type: item.cluster_type,
-              cluster_type_name: item.cluster_type_name,
-              disaster_tolerance_level: item.disaster_tolerance_level,
-              group_num: item.machine_pair_cnt,
-              id: item.id,
-              major_version: item.major_version,
-              master_domain: item.master_domain,
-              shard_num: item.cluster_shard_num,
-            },
+            cluster: item,
             online_switch_type: 'user_confirm',
           }),
         );
