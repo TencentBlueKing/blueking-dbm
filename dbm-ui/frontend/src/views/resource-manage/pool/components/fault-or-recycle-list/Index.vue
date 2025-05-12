@@ -1,5 +1,13 @@
 <template>
   <div class="fault-pool-container">
+    <BkAlert
+      class="mb-12"
+      closable
+      :title="
+        isFaultPool
+          ? t('用来暂存故障主机，已下架的主机若检测有关联uwork、xwork单据将自动转入故障池等待后续处理')
+          : t('集中存放待回收的主机，已下架的主机若检测为Windows、待裁撤主机将自动转入待回收池以便执行回收操作')
+      " />
     <div class="operation-wrapper">
       <template v-if="isFaultPool">
         <AuthButton
@@ -446,19 +454,35 @@
       const { BK_HCM_URL, DBA_APP_BK_BIZ_ID } = systemEnvironStore.urls;
       const targetHref = `${BK_HCM_URL}/#/business/applications?bizs=${DBA_APP_BK_BIZ_ID}&filter=order_id=${data.hcm_recycle_id}&type=host_recycle`;
       Message({
+        actions: [
+          {
+            disabled: true,
+            id: 'details',
+          },
+          {
+            disabled: true,
+            id: 'fix',
+          },
+          {
+            id: 'assistant',
+            render: () =>
+              h(
+                'a',
+                {
+                  href: targetHref,
+                  target: '_blank',
+                },
+                ` ${t('查看详情')}`,
+              ),
+          },
+        ],
         delay: 6000,
         dismissable: false,
-        message: h('p', {}, [
-          data.message,
-          h(
-            'a',
-            {
-              href: targetHref,
-              target: '_blank',
-            },
-            ` "${t('查看详情')}" `,
-          ),
-        ]),
+        message: {
+          code: '',
+          overview: data.message,
+          suggestion: '',
+        },
         theme: 'success',
       });
     } else {
