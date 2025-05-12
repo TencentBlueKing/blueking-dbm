@@ -31,6 +31,9 @@ from backend.flow.engine.bamboo.scene.spider.common.exceptions import (
 from backend.flow.engine.bamboo.scene.spider.spider_recover import remote_node_rollback, spider_recover_sub_flow
 from backend.flow.plugins.components.collections.mysql.mysql_crond_control import MysqlCrondMonitorControlComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
+from backend.flow.plugins.components.collections.spider.remotedb_node_priv_recover import (
+    RemoteNodePrivRecoverComponent,
+)
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
 from backend.flow.utils.mysql.mysql_act_dataclass import CrondMonitorKwargs, DBMetaOPKwargs, DownloadMediaKwargs
@@ -127,6 +130,8 @@ class TenDBRollBackDataFlow(object):
             )
 
             ins_sub_pipeline_list = []
+            # rds先抽取出spider spider_slave 实例列表
+            spider_instance_list = []
             for spider_node in clusters_info["target_spiders"]:
                 if "spider_node" not in backup_info:
                     raise TendbGetBackupInfoFailedException(message=_("获取spider节点备份信息不存在"))
@@ -137,6 +142,7 @@ class TenDBRollBackDataFlow(object):
                     raise NormalSpiderFlowException(
                         message=_("回档集群 {} 空闲检查不通过，请确认回档集群是否存在非系统数据库".format(target_cluster.id))
                     )
+                spider_instance_list.append(spider_node["instance"])
                 target_spider = target_cluster.proxyinstance_set.get(
                     machine__ip=spider_node["ip"], port=spider_node["port"]
                 )
@@ -342,6 +348,11 @@ class TenDBRollBackDataFlow(object):
                     ins_sub_pipeline.build_sub_process(sub_name=_("{} 分片主从恢复".format(shard_id)))
                 )
             tendb_rollback_pipeline.add_parallel_sub_pipeline(sub_flow_list=ins_sub_pipeline_list)
+            tendb_rollback_pipeline.add_act(
+                act_name=_("恢复所有remoteDB->spider的权限"),
+                act_component_code=RemoteNodePrivRecoverComponent.code,
+                kwargs={"spider_instance_list": spider_instance_list, "bk_cloud_id": target_cluster.bk_cloud_id},
+            )
             tendb_rollback_list.append(
                 tendb_rollback_pipeline.build_sub_process(
                     sub_name=_("集群回档: src:{} desc:{}".format(source_cluster.id, target_cluster.id))
