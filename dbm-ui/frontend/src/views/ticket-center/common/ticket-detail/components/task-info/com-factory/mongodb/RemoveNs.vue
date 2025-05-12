@@ -29,14 +29,15 @@
     <BkTableColumn
       field="drop_type"
       :label="t('清档类型')"
-      :width="300">
+      :width="270">
       <template #default="{data}: {data: RowData}">
         {{ data.drop_type === 'drop_collection' ? t('直接删除表') : t('将表暂时重命名，用于需要快速恢复的情况') }}
       </template>
     </BkTableColumn>
     <BkTableColumn
       field="drop_index"
-      :label="t('索引处理')">
+      :label="t('索引处理')"
+      :width="90">
       <template #default="{data}: {data: RowData}">
         {{ data.drop_index ? t('删除索引') : t('保留索引') }}
       </template>

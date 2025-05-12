@@ -36,12 +36,12 @@ export default [
   {
     children: [
       {
-        id: 'MongoShardScaleUp',
+        id: TicketTypes.MONGODB_ADD_SHARD_NODES,
         name: t('扩容Shard节点数'),
         parentId: 'mongo_manage',
       },
       {
-        id: 'MongoShardScaleDown',
+        id: TicketTypes.MONGODB_REDUCE_SHARD_NODES,
         name: t('缩容Shard节点数'),
         parentId: 'mongo_manage',
       },
@@ -51,7 +51,7 @@ export default [
         parentId: 'mongo_manage',
       },
       {
-        id: 'MongoProxyScaleUp',
+        id: TicketTypes.MONGODB_ADD_MONGOS,
         name: t('扩容接入层'),
         parentId: 'mongo_manage',
       },
@@ -90,12 +90,12 @@ export default [
   {
     children: [
       {
-        id: 'MongoDbTableBackup',
+        id: TicketTypes.MONGODB_BACKUP,
         name: t('库表备份'),
         parentId: 'mongo_backup',
       },
       {
-        id: 'MongoDbBackup',
+        id: TicketTypes.MONGODB_FULL_BACKUP,
         name: t('全库备份'),
         parentId: 'mongo_backup',
       },
@@ -107,7 +107,7 @@ export default [
   {
     children: [
       {
-        id: 'MongoDbClear',
+        id: TicketTypes.MONGODB_REMOVE_NS,
         name: t('清档'),
         parentId: 'mongo_data',
       },

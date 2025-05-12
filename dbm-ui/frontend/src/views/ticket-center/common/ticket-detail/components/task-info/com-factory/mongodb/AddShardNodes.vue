@@ -12,18 +12,46 @@
 -->
 
 <template>
-  <DbOriginalTable
-    class="details-backup__table"
-    :columns="columns"
-    :data="tableData" />
-  <div class="ticket-details-list">
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('忽略业务连接') }}：</span>
-      <span class="ticket-details-item-value">
-        {{ ticketDetails.details.is_safe ? t('否') : t('是') }}
-      </span>
-    </div>
-  </div>
+  <BkTable :data="ticketDetails.details.infos">
+    <BkTableColumn
+      field="cluster_ids"
+      fixed="left"
+      :label="t('目标集群')"
+      :min-width="250">
+      <template #default="{data}: {data: RowData}">
+        <div
+          v-for="item in data.cluster_ids"
+          :key="item">
+          {{ ticketDetails.details.clusters[item].immute_domain }}
+        </div>
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      field="cluster_type"
+      :label="t('集群类型')"
+      :width="200">
+      <template #default="{data}: {data: RowData}">
+        {{ ticketDetails.details.clusters[data.cluster_ids[0]].cluster_type_name }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      field="current_shard_nodes_num"
+      :label="t('当前Shard的节点数')">
+    </BkTableColumn>
+    <BkTableColumn
+      field="add_shard_nodes_num"
+      :label="t('扩容至（节点数）')"
+      :min-width="120">
+      <template #default="{data}: {data: RowData}">
+        {{ data.current_shard_nodes_num + data.add_shard_nodes_num }}
+      </template>
+    </BkTableColumn>
+  </BkTable>
+  <InfoList>
+    <InfoItem :label="t('忽略业务连接')">
+      {{ ticketDetails.details.is_safe ? t('否') : t('是') }}
+    </InfoItem>
+  </InfoList>
 </template>
 
 <script setup lang="tsx">
@@ -32,6 +60,10 @@
   import TicketModel, { type Mongodb } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
+
+  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+
+  type RowData = Props['ticketDetails']['details']['infos'][number];
 
   interface Props {
     ticketDetails: TicketModel<Mongodb.AddShardNodes>;
@@ -42,58 +74,7 @@
     inheritAttrs: false,
   });
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
 
   const { t } = useI18n();
-
-  const { clusters, infos } = props.ticketDetails.details;
-  const columns = [
-    {
-      field: 'immute_domain',
-      label: t('目标集群'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'cluster_type',
-      label: t('集群类型'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'current_nodes',
-      label: t('当前Shard的节点数'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'add_shard_nodes_num',
-      label: t('扩容至（节点数）'),
-      showOverflowTooltip: true,
-    },
-  ];
-
-  const tableData = infos.map((item) => ({
-    add_shard_nodes_num: item.current_shard_nodes_num + item.add_shard_nodes_num,
-    cluster_type: clusters[item.cluster_ids[0]].cluster_type_name,
-    current_nodes: item.current_shard_nodes_num,
-    immute_domain: clusters[item.cluster_ids[0]].immute_domain,
-  }));
 </script>
-<style lang="less" scoped>
-  .ticket-details {
-    &__info {
-      padding-left: 80px;
-    }
-
-    &__item {
-      &-label {
-        min-width: 0;
-        text-align: left;
-      }
-    }
-  }
-
-  .details-backup {
-    &__table {
-      padding-left: 80px;
-    }
-  }
-</style>

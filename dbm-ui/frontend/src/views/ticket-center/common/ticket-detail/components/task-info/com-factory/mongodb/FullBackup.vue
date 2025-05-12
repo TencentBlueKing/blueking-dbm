@@ -12,20 +12,30 @@
 -->
 
 <template>
-  <DbOriginalTable
-    class="details-backup__table"
-    :columns="columns"
-    :data="dataList" />
-  <div class="ticket-details-list">
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('备份保存时间') }}：</span>
-      <span class="ticket-details-item-value">{{ fileTagText }}</span>
-    </div>
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('是否备份 Oplog') }}：</span>
-      <span class="ticket-details-item-value">{{ oplogType }}</span>
-    </div>
-  </div>
+  <BkTable :data="ticketDetails.details.infos">
+    <BkTableColumn
+      :label="t('目标集群')"
+      :min-width="220">
+      <template #default="{data}: {data: RowData}">
+        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      :label="t('集群类型')"
+      :min-width="220">
+      <template #default="{data}: {data: RowData}">
+        {{ ticketDetails.details.clusters[data.cluster_id].cluster_type_name }}
+      </template>
+    </BkTableColumn>
+  </BkTable>
+  <InfoList>
+    <InfoItem :label="t('备份保存时间')">
+      {{ fileTagMap[ticketDetails.details.file_tag] }}
+    </InfoItem>
+    <InfoItem :label="t('是否备份 Oplog')">
+      {{ ticketDetails.details.oplog ? t('是') : t('否') }}
+    </InfoItem>
+  </InfoList>
 </template>
 
 <script setup lang="tsx">
@@ -34,6 +44,10 @@
   import TicketModel, { type Mongodb } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
+
+  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+
+  type RowData = Props['ticketDetails']['details']['infos'][number];
 
   interface Props {
     ticketDetails: TicketModel<Mongodb.FullBackup>;
@@ -44,11 +58,9 @@
     inheritAttrs: false,
   });
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
 
   const { t } = useI18n();
-
-  const { clusters, file_tag: fileTag, infos, oplog } = props.ticketDetails.details;
 
   const fileTagMap: Record<string, string> = {
     a_year_backup: t('1年'),
@@ -56,25 +68,4 @@
     half_year_backup: t('6个月'),
     normal_backup: t('25天'),
   };
-
-  const fileTagText = fileTagMap[fileTag];
-  const oplogType = oplog ? t('是') : t('否');
-
-  const columns = [
-    {
-      field: 'immute_domain',
-      label: t('目标集群'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'cluster_type_name',
-      label: t('集群类型'),
-      showOverflowTooltip: true,
-    },
-  ];
-
-  const dataList = infos.map((item) => ({
-    cluster_type_name: clusters[item.cluster_id].cluster_type_name,
-    immute_domain: clusters[item.cluster_id].immute_domain,
-  }));
 </script>

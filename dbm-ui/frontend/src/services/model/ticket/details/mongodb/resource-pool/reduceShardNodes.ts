@@ -1,7 +1,8 @@
 import type { ResourcePoolDetailBase } from '../../common';
 
 type MongoInstanceInfo = {
-  cluster_ids: number[];
+  cluster_id?: number; // 分片集群
+  cluster_ids?: number[]; // 副本集集群
   current_shard_nodes_num: number;
   db_version: string;
   machine_instance_num: number;

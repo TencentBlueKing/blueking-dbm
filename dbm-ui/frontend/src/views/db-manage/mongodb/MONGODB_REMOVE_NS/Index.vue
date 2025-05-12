@@ -13,10 +13,13 @@
 
 <template>
   <SmartAction>
-    <div class="mongo-db-table-backup-page">
+    <div class="mongo-db-clear-page">
       <BkAlert
+        closable
         theme="info"
-        :title="t('库表备份：指定库表备份，支持模糊匹配')" />
+        :title="
+          t('清档：删除目标数据库数据, 数据会暂存在不可见的备份库中，只有在执行删除备份库后, 才会真正的删除数据。')
+        " />
       <DbForm
         ref="form"
         class="toolbox-form"
@@ -39,21 +42,8 @@
             </BkRadioButton>
           </BkRadioGroup>
         </BkFormItem>
-        <BkFormItem
-          v-if="isShardCluster"
-          :label="t('备份位置')"
-          property="backup_type"
-          required>
-          <BkRadioGroup
-            v-model="formData.backup_type"
-            style="width: 400px"
-            type="card">
-            <BkRadioButton label="shard"> Shard </BkRadioButton>
-            <BkRadioButton label="mongos"> Mongs </BkRadioButton>
-          </BkRadioGroup>
-        </BkFormItem>
         <EditableTable
-          :key="renderKey"
+          :key="formData.cluster_type"
           ref="editableTable"
           class="mt16 mb16"
           :model="formData.tableData"
@@ -77,60 +67,44 @@
               :label="t('目标分片集群')"
               :selected="selected"
               @batch-edit="handleClusterBatchEdit" />
-            <EditTargetHostColumn
-              v-if="isShowHostColumn"
-              v-model="item.target_host"
-              :cluster-id="item.cluster[0].id" />
+            <DropTypeColumn
+              v-model="item.drop_type"
+              @batch-edit="handleBatchEdit" />
+            <DropIndexColumn
+              v-model="item.drop_index"
+              @batch-edit="handleBatchEdit" />
             <DbNameColumn
               v-model="item.db_patterns"
               field="db_patterns"
               :label="t('备份DB名')"
-              @batch-edit="handleDbTableBatchEdit" />
+              @batch-edit="handleBatchEdit" />
             <DbNameColumn
               v-model="item.ignore_dbs"
               :compare-data="item.ignore_tables"
               field="ignore_dbs"
               :label="t('忽略 DB 名')"
               :required="false"
-              @batch-edit="handleDbTableBatchEdit" />
+              @batch-edit="handleBatchEdit" />
             <TableNameColumn
               v-model="item.table_patterns"
               field="table_patterns"
               :label="t('备份表名')"
-              @batch-edit="handleDbTableBatchEdit" />
+              @batch-edit="handleBatchEdit" />
             <TableNameColumn
               v-model="item.ignore_tables"
               :compare-data="item.ignore_dbs"
               field="ignore_tables"
               :label="t('忽略表名')"
               :required="false"
-              @batch-edit="handleDbTableBatchEdit" />
+              @batch-edit="handleBatchEdit" />
             <OperationColumn
               :create-row-method="createRowData"
               :table-data="formData.tableData" />
           </EditableRow>
         </EditableTable>
-        <BkFormItem
-          :label="t('备份保存时间')"
-          property="file_tag"
-          required>
-          <BkRadioGroup
-            v-model="formData.file_tag"
-            size="small">
-            <BkRadio label="normal_backup">
-              {{ t('25天') }}
-            </BkRadio>
-            <BkRadio label="half_year_backup">
-              {{ t('6个月') }}
-            </BkRadio>
-            <BkRadio label="a_year_backup">
-              {{ t('1年') }}
-            </BkRadio>
-            <BkRadio label="forever_backup">
-              {{ t('3年') }}
-            </BkRadio>
-          </BkRadioGroup>
-        </BkFormItem>
+        <IgnoreBiz
+          v-model="formData.ignore_business_access"
+          v-bk-tooltips="t('如忽略_有连接的情况下也会执行')" />
         <TicketPayload v-model="formData.payload" />
       </DbForm>
     </div>
@@ -155,8 +129,7 @@
     </template>
   </SmartAction>
 </template>
-
-<script setup lang="ts">
+<script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
   import MongodbModel from '@services/model/mongodb/mongodb';
@@ -166,6 +139,8 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
+  import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
+  import IgnoreBiz from '@views/db-manage/common/toolbox-field/form-item/ignore-biz/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
@@ -174,58 +149,55 @@
   import DbNameColumn from '@views/db-manage/mongodb/common/toolbox-field/db-name-column/Index.vue';
   import TableNameColumn from '@views/db-manage/mongodb/common/toolbox-field/table-name-column/Index.vue';
 
-  import EditTargetHostColumn from './components/TargetHostColumn.vue';
+  import DropTypeColumn from './components/DropTypeColumn.vue';
+  import DropIndexColumn from './components/DropTypeIndex.vue';
 
-  interface IDataRow {
+  export interface IDataRow {
     cluster: {
       cluster_type: string;
-      cluster_type_name: string;
       id: number;
       master_domain: string;
     }[];
     db_patterns: string[];
+    drop_index: string;
+    drop_type: string;
     ignore_dbs: string[];
     ignore_tables: string[];
     table_patterns: string[];
-    target_host: string;
   }
 
   const createRowData = (values = {} as Partial<IDataRow>) => ({
-    cluster: values.cluster
-      ? values.cluster
-      : [
-          {
-            cluster_type: '',
-            cluster_type_name: '',
-            id: 0,
-            master_domain: '',
-          },
-        ],
+    cluster: values.cluster || [
+      {
+        cluster_type: '',
+        id: 0,
+        master_domain: '',
+      },
+    ],
     db_patterns: values.db_patterns || [],
+    drop_index: values.drop_index || '',
+    drop_type: values.drop_type || '',
     ignore_dbs: values.ignore_dbs || [],
     ignore_tables: values.ignore_tables || [],
     table_patterns: values.table_patterns || [],
-    target_host: values.target_host || '',
   });
 
   const createDefaultFormData = () => ({
-    backup_type: 'shard',
     cluster_type: ClusterTypes.MONGO_REPLICA_SET,
-    file_tag: 'normal_backup',
+    ignore_business_access: false,
     payload: createTickePayload(),
     tableData: [createRowData()],
   });
 
   const { t } = useI18n();
 
-  useTicketDetail<Mongodb.Backup>(TicketTypes.MONGODB_BACKUP, {
+  useTicketDetail<Mongodb.RemoveNs>(TicketTypes.MONGODB_REMOVE_NS, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
-      const { backup_type: backupType, clusters, file_tag: fileTag, infos } = details;
+      const { clusters, infos, is_safe: isSafe } = details;
       Object.assign(formData, {
-        backup_type: backupType || 'shard',
         cluster_type: clusters[infos[0].cluster_ids[0]].cluster_type,
-        file_tag: fileTag,
+        ignore_business_access: !isSafe,
         payload: createTickePayload(ticketDetail),
       });
 
@@ -236,10 +208,11 @@
               master_domain: clusters[clusterId].immute_domain,
             })) as IDataRow['cluster'],
             db_patterns: item.ns_filter.db_patterns,
+            drop_index: item.drop_index ? 'delete' : 'keep',
+            drop_type: item.drop_type,
             ignore_dbs: item.ns_filter.ignore_dbs,
             ignore_tables: item.ns_filter.ignore_tables,
             table_patterns: item.ns_filter.table_patterns,
-            target_host: item.backup_host,
           }),
         );
       });
@@ -247,12 +220,10 @@
   });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
-    backup_type?: string;
-    file_tag: string;
     infos: {
-      backup_host?: string;
       cluster_ids: number[];
-      cluster_type: string;
+      drop_index: boolean;
+      drop_type: string;
       ns_filter: {
         db_patterns: string[];
         ignore_dbs: string[];
@@ -260,7 +231,8 @@
         table_patterns: string[];
       };
     }[];
-  }>(TicketTypes.MONGODB_BACKUP);
+    is_safe: boolean;
+  }>(TicketTypes.MONGODB_REMOVE_NS);
 
   const formRef = useTemplateRef('form');
   const editableTableRef = useTemplateRef('editableTable');
@@ -297,10 +269,6 @@
 
   const formData = reactive(createDefaultFormData());
 
-  const renderKey = computed(() => `${formData.cluster_type}-${formData.backup_type}`);
-  const isShardCluster = computed(() => formData.cluster_type === ClusterTypes.MONGO_SHARED_CLUSTER);
-  const isShowHostColumn = computed(() => isShardCluster.value && formData.backup_type === 'mongos');
-
   const selected = computed(() => formData.tableData.flatMap((item) => item.cluster).filter((item) => item.id));
   const selectedMap = computed(() =>
     selected.value.reduce<Record<string, number>>(
@@ -319,44 +287,6 @@
     },
   );
 
-  const handleSubmit = async () => {
-    await formRef.value!.validate();
-    const validateResult = await editableTableRef.value!.validate();
-    if (validateResult) {
-      const details = {
-        file_tag: formData.file_tag,
-        infos: formData.tableData.map((tableRow) => {
-          const result = {
-            cluster_ids: tableRow.cluster.map((item) => item.id),
-            cluster_type: formData.cluster_type,
-            ns_filter: {
-              db_patterns: tableRow.db_patterns,
-              ignore_dbs: tableRow.ignore_dbs,
-              ignore_tables: tableRow.ignore_tables,
-              table_patterns: tableRow.table_patterns,
-            },
-          };
-          if (isShowHostColumn.value) {
-            Object.assign(result, {
-              backup_host: tableRow.target_host,
-            });
-          }
-          return result;
-        }),
-      };
-      if (isShardCluster.value) {
-        Object.assign(details, {
-          backup_type: formData.backup_type,
-        });
-      }
-
-      createTicketRun({
-        details,
-        ...formData.payload,
-      });
-    }
-  };
-
   const handleClusterBatchEdit = (clusterList: MongodbModel[]) => {
     const newList: IDataRow[] = [];
     clusterList.forEach((item) => {
@@ -366,7 +296,6 @@
             cluster: [
               {
                 cluster_type: item.cluster_type,
-                cluster_type_name: item.cluster_type_name,
                 id: item.id,
                 master_domain: item.master_domain,
               },
@@ -380,11 +309,36 @@
     window.changeConfirm = true;
   };
 
-  const handleDbTableBatchEdit = (value: string[], field: string) => {
+  const handleBatchEdit = (value: string[] | string, field: string) => {
     formData.tableData.forEach((item) => {
       Object.assign(item, { [field]: value });
     });
     window.changeConfirm = true;
+  };
+
+  const handleSubmit = async () => {
+    await formRef.value!.validate();
+    const validateResult = await editableTableRef.value!.validate();
+    if (validateResult) {
+      createTicketRun({
+        details: {
+          infos: formData.tableData.map((tableRow) => ({
+            cluster_ids: tableRow.cluster.map((item) => item.id),
+            cluster_type: formData.cluster_type,
+            drop_index: tableRow.drop_index !== 'keep',
+            drop_type: tableRow.drop_type,
+            ns_filter: {
+              db_patterns: tableRow.db_patterns,
+              ignore_dbs: tableRow.ignore_dbs,
+              ignore_tables: tableRow.ignore_tables,
+              table_patterns: tableRow.table_patterns,
+            },
+          })),
+          is_safe: !formData.ignore_business_access,
+        },
+        ...formData.payload,
+      });
+    }
   };
 
   const handleReset = () => {
@@ -393,8 +347,19 @@
   };
 </script>
 
-<style lang="less" scoped>
-  .mongo-db-table-backup-page {
+<style lang="less">
+  .mongo-db-clear-page {
     padding-bottom: 20px;
+
+    .page-action-box {
+      display: flex;
+      align-items: center;
+      margin-top: 20px;
+
+      .safe-action-text {
+        padding-bottom: 2px;
+        border-bottom: 1px dashed #979ba5;
+      }
+    }
   }
 </style>
