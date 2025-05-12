@@ -55,10 +55,7 @@
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
 
   interface Props {
-    selected: {
-      id: number;
-      master_domain: string;
-    }[];
+    selected: RedisModel[];
   }
 
   type Emits = (e: 'batch-edit', list: RedisModel[]) => void;
@@ -67,37 +64,10 @@
 
   const emits = defineEmits<Emits>();
 
-  const modelValue = defineModel<
-    {
-      cluster_spec?: RedisModel['cluster_spec'];
-      cluster_stats?: RedisModel['cluster_stats'];
-      group_num: RedisModel['machine_pair_cnt'];
-      id?: number;
-      shard_num: RedisModel['cluster_shard_num'];
-    } & Pick<
-      RedisModel,
-      | 'master_domain'
-      | 'cluster_type'
-      | 'cluster_type_name'
-      | 'bk_cloud_id'
-      | 'major_version'
-      | 'cluster_capacity'
-      | 'disaster_tolerance_level'
-    >
-  >({
+  const modelValue = defineModel<RedisModel>({
     default: () => ({
-      bk_cloud_id: 0,
-      cluster_capacity: 0,
-      cluster_spec: {},
-      cluster_stats: {},
-      cluster_type: '',
-      cluster_type_name: '',
-      disaster_tolerance_level: 'CROS_SUBZONE',
-      group_num: 0,
-      id: undefined,
-      major_version: '',
+      id: 0,
       master_domain: '',
-      shard_num: 0,
     }),
   });
 
@@ -105,13 +75,7 @@
 
   const showSelector = ref(false);
   const selectedClusters = computed<Record<string, RedisModel[]>>(() => ({
-    [ClusterTypes.REDIS]: props.selected.map(
-      (currentCluster) =>
-        ({
-          id: currentCluster.id,
-          master_domain: currentCluster.master_domain,
-        }) as RedisModel,
-    ),
+    [ClusterTypes.REDIS]: props.selected as RedisModel[],
   }));
 
   const tabListConfig = {
@@ -155,22 +119,9 @@
   const { loading, run: queryCluster } = useRequest(filterClusters<RedisModel>, {
     manual: true,
     onSuccess: (data) => {
-      if (data.length) {
-        const [currentCluster] = data;
-        modelValue.value = {
-          bk_cloud_id: currentCluster.bk_cloud_id,
-          cluster_capacity: currentCluster.cluster_capacity,
-          cluster_spec: currentCluster.cluster_spec,
-          cluster_stats: currentCluster.cluster_stats,
-          cluster_type: currentCluster.cluster_type,
-          cluster_type_name: currentCluster.cluster_type_name,
-          disaster_tolerance_level: currentCluster.disaster_tolerance_level,
-          group_num: currentCluster.machine_pair_cnt,
-          id: currentCluster.id,
-          major_version: currentCluster.major_version,
-          master_domain: currentCluster.master_domain,
-          shard_num: currentCluster.cluster_shard_num,
-        };
+      const [currentCluster] = data;
+      if (currentCluster) {
+        modelValue.value = currentCluster;
       }
     },
   });
@@ -181,19 +132,8 @@
 
   const handleInputChange = (value: string) => {
     modelValue.value = {
-      bk_cloud_id: 0,
-      cluster_capacity: 0,
-      cluster_spec: {} as RedisModel['cluster_spec'],
-      cluster_stats: {} as RedisModel['cluster_stats'],
-      cluster_type: '',
-      cluster_type_name: '',
-      disaster_tolerance_level: 'CROS_SUBZONE',
-      group_num: 0,
-      id: undefined,
-      major_version: '',
-      master_domain: value,
-      shard_num: 0,
-    };
+      id: 0,
+    } as RedisModel;
     if (value) {
       queryCluster({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
