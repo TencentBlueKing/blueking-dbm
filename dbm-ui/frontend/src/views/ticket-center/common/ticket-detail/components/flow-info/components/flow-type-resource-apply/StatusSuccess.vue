@@ -42,6 +42,8 @@
   import FlowMode from '@services/model/ticket/flow';
   import TicketModel from '@services/model/ticket/ticket';
 
+  import { useEventBus } from '@hooks';
+
   import CostTimer from '@components/cost-timer/CostTimer.vue';
 
   import { utcTimeToSeconds } from '@utils';
@@ -63,10 +65,13 @@
   defineProps<Props>();
 
   const { t } = useI18n();
+  const eventBus = useEventBus();
 
   const isShowResourceDetail = ref(false);
 
   const handleToggleResourceDetail = () => {
     isShowResourceDetail.value = !isShowResourceDetail.value;
   };
+
+  eventBus.emit('refreshTicketData');
 </script>
