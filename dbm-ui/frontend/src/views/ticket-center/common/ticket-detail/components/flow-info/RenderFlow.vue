@@ -33,7 +33,7 @@
     </DbTimeLine>
     <RelatedTicketFlow
       v-if="releateTicketFlow?.details.related_ticket"
-      class="mt-16"
+      class="mt-16 ml-24"
       :ticket-id="releateTicketFlow.details.related_ticket" />
   </BkLoading>
 </template>
