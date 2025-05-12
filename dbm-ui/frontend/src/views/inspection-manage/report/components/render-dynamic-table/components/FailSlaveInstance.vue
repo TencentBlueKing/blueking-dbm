@@ -52,6 +52,10 @@
 
   const props = defineProps<Props>();
 
+  const modelValue = defineModel<boolean>({
+    default: false,
+  });
+
   const { t } = useI18n();
 
   interface IDataRow {
@@ -62,10 +66,6 @@
   interface Props {
     id: number;
   }
-  const modelValue = defineModel<boolean>({
-    default: false,
-  });
-
   const isTextOverflow = ref<Record<string, boolean>>({});
   const searchKey = useDebouncedRef('');
   const activeKey = ref(0);

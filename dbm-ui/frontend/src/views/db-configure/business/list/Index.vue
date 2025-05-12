@@ -49,8 +49,8 @@
 </script>
 <style lang="less">
   .business-db-configure-list-page {
-    height: calc(100vh - 105px);
     display: flex;
+    height: calc(100vh - var(--notice-height) - 105px);
     flex-direction: column;
 
     .content-main {
