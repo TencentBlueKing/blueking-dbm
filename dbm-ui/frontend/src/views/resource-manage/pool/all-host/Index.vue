@@ -3,7 +3,7 @@
     <BkAlert
       class="mb-12"
       closable
-      :title="t('有导入资源池的主机都会记录在这里，直到在待回收池执行回收操作')" />
+      :title="t('外部主机导入资源池后将在此被记录。直至在待回收池完成回收操作，相关记录才会被删除')" />
     <div class="operation-wrapper">
       <BkDropdown>
         <BkButton>
