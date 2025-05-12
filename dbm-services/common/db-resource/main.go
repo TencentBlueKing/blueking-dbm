@@ -118,8 +118,9 @@ func registerCrontab(localcron *cron.Cron) {
 	localCrontabs := []LocalCron{
 		{
 			Name: "定时更新gse状态",
-			Spec: "@every 1h",
+			Spec: "20 */1 * * *",
 			Func: func() {
+				logger.Info("Start update gse status .....")
 				if err := task.UpdateResourceGseAgentStatus(); err != nil {
 					logger.Error("update gse status %s", err.Error())
 				}
@@ -127,17 +128,20 @@ func registerCrontab(localcron *cron.Cron) {
 		},
 		{
 			Name: "扫描检查主机是否被手动拿去用了",
-			Spec: "@every 1h",
+			Spec: "@every 2h",
 			Func: func() {
+				logger.Info("Start scan check resource .....")
 				if err := task.InspectCheckResource(); err != nil {
 					logger.Error("inspect check resource %s", err.Error())
 				}
+				logger.Info("scan check resource end")
 			},
 		},
 		{
 			Name: "同步主机硬件信息",
-			Spec: "@every 12h",
+			Spec: "20 */12 * * *",
 			Func: func() {
+				logger.Info("Start sync machine hardinfo .....")
 				if err := task.AsyncResourceHardInfo(); err != nil {
 					logger.Error("async machine hardinfo failed:%s", err.Error())
 				}

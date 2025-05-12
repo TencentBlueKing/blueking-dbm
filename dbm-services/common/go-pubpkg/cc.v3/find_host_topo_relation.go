@@ -42,7 +42,9 @@ type FindHostTopoRelationResponeData struct {
 func NewFindHostTopoRelation(client *Client) *FindHostTopoRelation {
 	return &FindHostTopoRelation{
 		client: client,
-		url:    "/api/c/compapi/v2/cc/find_host_topo_relation/",
+		// url:    "/api/c/compapi/v2/cc/find_host_topo_relation/",
+		// trans to apigw url
+		url: "/host/topo/relation/read",
 	}
 }
 

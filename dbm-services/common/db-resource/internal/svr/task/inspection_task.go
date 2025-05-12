@@ -11,6 +11,8 @@
 package task
 
 import (
+	"slices"
+
 	"dbm-services/common/db-resource/internal/model"
 	"dbm-services/common/db-resource/internal/svr/bk"
 	"dbm-services/common/db-resource/internal/svr/dbmapi"
@@ -42,13 +44,13 @@ func InspectCheckResource() (err error) {
 		hostIdMap[machine.BkBizId] = append(hostIdMap[machine.BkBizId], machine.BkHostID)
 	}
 	for bkBizId, hostIds := range hostIdMap {
-		for _, hostgp := range cmutil.SplitGroup(hostIds, 100) {
+		for _, hostgp := range cmutil.SplitGroup(hostIds, 200) {
 			resp, ori, err := cc.NewFindHostTopoRelation(bk.BkCmdbClient).Query(&cc.FindHostTopoRelationParam{
 				BkBizID:   bkBizId,
 				BkHostIds: hostgp,
 				Page: cc.BKPage{
 					Start: 0,
-					Limit: 100,
+					Limit: len(hostgp),
 				},
 			})
 			if err != nil {
@@ -59,9 +61,26 @@ func InspectCheckResource() (err error) {
 				continue
 				// return err
 			}
+			logger.Info("get host topo relation success %v", resp.Data)
+			// filter all exist bkhostId
+			bkhostIds := []int{}
 			for _, m := range resp.Data {
-				if m.BKModuleId == allowCCMouduleInfo.CC_IDLE_MODULE_ID ||
-					m.BKSetId == allowCCMouduleInfo.CC_MANAGE_TOPO.SetId {
+				bkhostIds = append(bkhostIds, m.BKHostId)
+			}
+			if len(bkhostIds) == 0 {
+				err = model.DB.Self.Table(model.TbRpDetailName()).Where("bk_biz_id = ? and bk_host_id in (?) and  status = ? ",
+					bkBizId,
+					hostIds, model.Unused).
+					Update("status", model.UsedByOther).Error
+				if err != nil {
+					logger.Error("update machine status failed %s", err.Error())
+					return err
+				}
+				return nil
+			}
+			for _, m := range resp.Data {
+				if (m.BKModuleId == allowCCMouduleInfo.CC_IDLE_MODULE_ID || m.BKSetId == allowCCMouduleInfo.CC_MANAGE_TOPO.SetId) &&
+					slices.Contains(bkhostIds, m.BKHostId) {
 					continue
 				}
 				err = model.DB.Self.Table(model.TbRpDetailName()).Where("bk_biz_id = ? and bk_host_id = ? and  status = ? ",
