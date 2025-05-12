@@ -34,6 +34,14 @@ module.exports = {
         ignorePseudoClasses: ['/deep/'],
       },
     ],
+    'declaration-property-value-no-unknown': [
+      true,
+      {
+        ignoreProperties: {
+          '/.+/': ['/v-bind\\(.*\\)/', '/.*@.+/'],
+        },
+      },
+    ],
     'import-notation': 'string',
     'selector-class-pattern': '^[a-z][a-z0-9_-]+$',
     'alpha-value-notation': 'percentage',

@@ -119,18 +119,14 @@
     },
   );
 
-  const refreshTicketData = () => {
-    refreshTicketStatus();
-  };
-
   const { start: loopFetchTicketStatus } = useTimeoutFn(() => {
     refreshTicketStatus();
   }, 3000);
 
-  eventBus.on('refreshTicketStatus', refreshTicketData);
+  eventBus.on('refreshTicketStatus', refreshTicketStatus);
 
   onBeforeUnmount(() => {
-    eventBus.off('refreshTicketStatus', refreshTicketData);
+    eventBus.off('refreshTicketStatus', refreshTicketStatus);
   });
 </script>
 <style lang="less">

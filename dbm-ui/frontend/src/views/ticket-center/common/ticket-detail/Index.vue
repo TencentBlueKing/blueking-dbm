@@ -55,6 +55,8 @@
   import TicketModel from '@services/model/ticket/ticket';
   import { getTicketDetails } from '@services/source/ticket';
 
+  import { useEventBus } from '@hooks';
+
   import PermissionCatch from '@components/apply-permission/Catch.vue';
 
   import TicketClone from '@views/ticket-center/common/TicketClone.vue';
@@ -74,6 +76,7 @@
   });
 
   const route = useRoute();
+  const eventBus = useEventBus();
 
   const getOffsetTarget = () => document.body.querySelector('.ticket-details-box .db-card');
 
@@ -115,6 +118,18 @@
       immediate: true,
     },
   );
+
+  const refreshTicketData = () => {
+    fetchTicketDetails({
+      id: props.ticketId,
+    });
+  };
+
+  eventBus.on('refreshTicketData', refreshTicketData);
+
+  onBeforeUnmount(() => {
+    eventBus.off('refreshTicketData', refreshTicketData);
+  });
 </script>
 
 <style lang="less">
