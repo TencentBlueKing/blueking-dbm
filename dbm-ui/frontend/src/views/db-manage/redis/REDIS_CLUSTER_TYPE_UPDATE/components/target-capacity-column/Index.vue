@@ -47,6 +47,7 @@
     <ChooseClusterTargetPlan
       v-model:disabled-confirm="disabledConfirm"
       :cluster="cluster"
+      :target-cluster-type="targetClusterType"
       :target-spec="modelValue"
       :title="t('选择集群分片变更部署方案')"
       @click-cancel="() => (showChooseClusterTargetPlan = false)"
@@ -70,11 +71,12 @@
       cluster_capacity: number;
       cluster_shard_num: number;
       cluster_spec: RedisModel['cluster_spec'];
-      cluster_type: string;
+      // cluster_type: string;
       id: number;
       machine_pair_cnt: number;
       master_domain: string;
     };
+    targetClusterType: string;
     title: string;
   }
 
@@ -119,7 +121,15 @@
     modelValue.value.count = props.cluster.machine_pair_cnt || 0;
   });
 
-  const disabledMethod = () => (props.cluster.id ? false : t('请先选择集群'));
+  const disabledMethod = () => {
+    if (!props.cluster.id) {
+      return t('请先选择集群');
+    }
+    if (!props.targetClusterType) {
+      return t('请先选择新集群类型');
+    }
+    return false;
+  };
 
   // 从侧边窗点击确认后触发
   const handleChoosedTargetCapacity = (choosedObj: SpecResultInfo, capacity: CapacityNeed) => {
