@@ -12,29 +12,18 @@
 -->
 
 <template>
-  <BkLoading :loading="isLoading">
-    <div
-      class="render-spec-box"
-      :class="{ 'default-display': !data }">
-      <span
-        v-if="!data"
-        style="color: #c4c6cc">
-        {{ placeholder || t('输入主机后自动生成') }}
-      </span>
-      <span
-        v-else
-        class="content">
-        {{ data?.name ? `${data.name} ${isIgnoreCounts ? '' : t('((n))台', { n: data?.count })}` : '' }}
-        <SpecPanel
-          :data="data"
-          :hide-qps="hideQps">
-          <DbIcon
-            class="visible-icon ml-4"
-            type="visible1" />
-        </SpecPanel>
-      </span>
-    </div>
-  </BkLoading>
+  <div class="render-spec-box">
+    {{
+      displayInfo?.name ? `${displayInfo.name} ${isIgnoreCounts ? '' : t('((n))台', { n: displayInfo?.count })}` : ''
+    }}
+    <SpecPanel
+      :data="displayInfo"
+      :hide-qps="hideQps">
+      <DbIcon
+        class="visible-icon ml-4"
+        type="visible1" />
+    </SpecPanel>
+  </div>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -44,21 +33,23 @@
   interface Props {
     data: {
       count?: number;
-      cpu: {
+      cpu?: {
         max: number;
         min: number;
       };
-      // id: number;
-      mem: {
+      id?: number;
+      mem?: {
         max: number;
         min: number;
       };
-      name: string;
-      qps: {
+      name?: string;
+      qps?: {
         max: number;
         min: number;
       };
-      storage_spec: {
+      spec_id?: number;
+      spec_name?: string;
+      storage_spec?: {
         mount_point: string;
         size: number;
         type: string;
@@ -78,23 +69,45 @@
   });
 
   const { t } = useI18n();
+
+  const displayInfo = computed(() =>
+    Object.assign(
+      {
+        count: 0,
+        cpu: {
+          max: 1,
+          min: 0,
+        },
+        id: 0,
+        mem: {
+          max: 1,
+          min: 0,
+        },
+        name: '',
+        qps: {
+          max: 1,
+          min: 0,
+        },
+        spec_id: 0,
+        spec_name: '',
+        storage_spec: [],
+      },
+      props.data,
+      {
+        id: props.data?.id || (props.data?.spec_id as number),
+        name: props.data?.name || (props.data?.spec_name as string),
+      },
+    ),
+  );
 </script>
 <style lang="less" scoped>
   .render-spec-box {
-    height: 42px;
-    padding: 10px 16px;
     overflow: hidden;
     line-height: 20px;
-    color: #63656e;
+    color: #313238;
     text-overflow: ellipsis;
     white-space: nowrap;
-
-    .content {
-      color: #313238;
-      // padding-bottom: 2px;
-      cursor: pointer;
-      // border-bottom: 1px dotted #979ba5;
-    }
+    cursor: pointer;
   }
 
   .default-display {

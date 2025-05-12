@@ -31,15 +31,16 @@
     model?: Record<string, any>;
   }
 
+  defineOptions({
+    name: 'DbForm',
+  });
+
   const props = withDefaults(defineProps<Props>(), {
     autoLabelWidth: false,
     formType: 'default',
     model: () => ({}),
   });
 
-  defineOptions({
-    name: 'DbForm',
-  });
   const dbFormRef = ref();
 
   watch(

@@ -73,10 +73,7 @@
 
   import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
 
-  import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue';
   import ValueDiff from '@views/db-manage/common/value-diff/Index.vue';
-
-  import { convertStorageUnits } from '@utils';
 
   import TableGroupContent from '../components/TableGroupContent.vue';
 
@@ -97,13 +94,8 @@
 
   const getCurrentColunms = (data: RowData) => [
     {
-      render: () => {
-        if (_.isEmpty(data.display_info?.cluster_stats)) {
-          return '--';
-        }
-        return <ClusterCapacityUsageRate clusterStats={data.display_info.cluster_stats} />;
-      },
-      title: t('当前容量'),
+      render: () => (data.display_info?.cluster_capacity ? `${data.display_info.cluster_capacity} G` : '--'),
+      title: t('容量'),
     },
     {
       render: () => {
@@ -142,29 +134,21 @@
   const getTargetColunms = (data: RowData) => [
     {
       render: () => {
-        if (_.isEmpty(data.display_info?.cluster_stats)) {
+        if (!data.future_capacity) {
           return '--';
         }
-        const { total = 0, used = 0 } = data.display_info.cluster_stats;
-        const targetTotal = convertStorageUnits(data.future_capacity, 'GB', 'B');
-        const currentValue = data.display_info.cluster_capacity || convertStorageUnits(total, 'B', 'GB');
-        const stats = {
-          in_use: Number(((used / targetTotal) * 100).toFixed(2)),
-          total: targetTotal,
-          used,
-        };
         return (
           <>
-            <ClusterCapacityUsageRate clusterStats={stats} />
+            {`${data.future_capacity} G`}
             <ValueDiff
-              currentValue={currentValue}
+              currentValue={data.display_info.cluster_capacity}
               num-unit='G'
               targetValue={data.future_capacity}
             />
           </>
         );
       },
-      title: t('目标容量'),
+      title: t('容量'),
     },
     {
       render: () => {
