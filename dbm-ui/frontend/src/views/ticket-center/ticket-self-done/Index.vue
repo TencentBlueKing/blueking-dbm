@@ -41,15 +41,16 @@
 
   const { searchSelectData, value: searachSelectValue } = useSearchSelect();
 
+  const isPreChecking = useDetailPreCheck({
+    id: Number(route.params.ticketId),
+    todo: 'done',
+  });
+
   const dataSource = (params: ServiceParameters<typeof getTickets>) =>
     getTickets({
       ...params,
       todo: 'done',
     });
-
-  const isPreChecking = useDetailPreCheck({
-    id: Number(route.params.ticketId),
-  });
 </script>
 <style lang="less">
   .ticket-self-done-page {

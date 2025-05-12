@@ -61,6 +61,7 @@
   });
 
   const isPreChecking = useDetailPreCheck({
+    bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
     id: Number(route.params.ticketId),
   });
 
