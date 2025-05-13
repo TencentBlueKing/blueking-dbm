@@ -14,12 +14,15 @@
 <template>
   <EditableColumn
     field="backup"
-    :label="t('强制清档')"
+    :label="t('清档前备份')"
+    required
     :width="200">
     <template #headAppend>
       <BatchEditColumn
         v-model="isShowBatchEdit"
-        :title="t('强制清档')"
+        :data-list="selectList"
+        :title="t('清档前备份')"
+        type="select"
         @change="handleBatchEditChange">
         <span
           v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
@@ -29,27 +32,44 @@
         </span>
       </BatchEditColumn>
     </template>
-    <BkCheckbox
+    <EditableSelect
       v-model="modelValue"
-      class="ml-12"
-      :false-label="false" />
+      :clearable="false"
+      :list="selectList" />
   </EditableColumn>
 </template>
 
+<script lang="ts">
+  export const BackupType = {
+    NO: '0',
+    YES: '1',
+  };
+</script>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Checkbox.vue';
+  import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
 
-  type Emits = (e: 'batch-edit', value: boolean, field: string) => void;
+  type Emits = (e: 'batch-edit', value: string, field: string) => void;
 
   const emits = defineEmits<Emits>();
 
-  const modelValue = defineModel<boolean>({
+  const modelValue = defineModel<string>({
     required: true,
   });
 
   const { t } = useI18n();
+
+  const selectList = [
+    {
+      label: t('是'),
+      value: BackupType.YES,
+    },
+    {
+      label: t('否'),
+      value: BackupType.NO,
+    },
+  ];
 
   const isShowBatchEdit = ref(false);
 
@@ -57,8 +77,8 @@
     isShowBatchEdit.value = true;
   };
 
-  const handleBatchEditChange = (value: boolean) => {
-    emits('batch-edit', value, 'backup');
+  const handleBatchEditChange = (value: string | string[]) => {
+    emits('batch-edit', value as string, 'backup');
   };
 </script>
 

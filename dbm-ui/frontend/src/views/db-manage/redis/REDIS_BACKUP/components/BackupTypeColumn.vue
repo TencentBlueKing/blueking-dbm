@@ -14,14 +14,14 @@
 <template>
   <EditableColumn
     field="backup_type"
-    :label="t('备份类型')"
+    :label="t('备份保存时间')"
     required
     :width="200">
     <template #headAppend>
       <BatchEditColumn
         v-model="isShowBatchEdit"
         :data-list="selectList"
-        :title="t('备份类型')"
+        :title="t('备份保存时间')"
         type="select"
         @change="handleBatchEditChange">
         <span
@@ -62,11 +62,11 @@
 
   const selectList = [
     {
-      label: t('常规备份'),
+      label: t('1个月'),
       value: BackupType.NORMAL_BACKUP,
     },
     {
-      label: t('长期备份'),
+      label: t('3年'),
       value: BackupType.FOREVER_BACKUP,
     },
   ];

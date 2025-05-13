@@ -29,14 +29,14 @@
         {{ ticketDetails.details.clusters[data.cluster_id]?.cluster_type_name }}
       </template>
     </BkTableColumn>
+    <BkTableColumn :label="t('清档前备份')">
+      <template #default="{ data }: { data: IRowData }">
+        <span>{{ data.backup ? t('是') : t('否') }}</span>
+      </template>
+    </BkTableColumn>
     <BkTableColumn :label="t('强制清档')">
       <template #default="{ data }: { data: IRowData }">
         <span>{{ data.force ? t('是') : t('否') }}</span>
-      </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('排除Key')">
-      <template #default="{ data }: { data: IRowData }">
-        <span>{{ data.backup ? t('是') : t('否') }}</span>
       </template>
     </BkTableColumn>
   </BkTable>

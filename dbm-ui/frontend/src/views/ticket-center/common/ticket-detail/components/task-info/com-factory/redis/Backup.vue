@@ -32,7 +32,7 @@
       :label="t('备份目标')"
       :min-width="130" />
     <BkTableColumn
-      :label="t('备份类型')"
+      :label="t('备份保存时间')"
       :min-width="130">
       <template #default="{ data }: { data: IRowData }">
         {{ backupTypeMap[data.backup_type] }}
@@ -64,7 +64,7 @@
   const { t } = useI18n();
 
   const backupTypeMap = {
-    forever_backup: t('长期备份'),
-    normal_backup: t('常规备份'),
+    forever_backup: t('3年'),
+    normal_backup: t('1个月'),
   };
 </script>
