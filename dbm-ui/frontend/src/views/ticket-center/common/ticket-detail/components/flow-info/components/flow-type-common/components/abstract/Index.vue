@@ -1,8 +1,8 @@
 <template>
-  <FlowCollapse :title="t('执行摘要')">
-    <div
-      v-if="abstractList.length"
-      class="flow-abstract-main">
+  <FlowCollapse
+    v-if="abstractList.length"
+    :title="t('执行摘要')">
+    <div class="flow-abstract-main">
       <TableCollapse
         v-for="(item, index) in abstractList"
         :key="index"
