@@ -18,11 +18,11 @@
       <div class="spec-box mb-24">
         <div class="table">
           <div class="row">
-            <div class="cell">{{ t('当前规格') }}： {{ cluster.cluster_spec.spec_name }}</div>
+            <div class="cell">{{ t('当前规格') }}： {{ cluster.cluster_spec?.spec_name || '--' }}</div>
             <div class="cell">{{ t('变更后规格') }}： {{ futureSpec.spec_name || '--' }}</div>
           </div>
           <div class="row">
-            <div class="cell">{{ t('当前机器组数') }}： {{ cluster.machine_pair_cnt }}</div>
+            <div class="cell">{{ t('当前机器组数') }}： {{ cluster.machine_pair_cnt || '--' }}</div>
             <div class="cell">{{ t('变更后机器组数') }}： {{ futureSpec.machine_pair || '--' }}</div>
           </div>
           <div class="row">
@@ -32,7 +32,13 @@
           </div>
           <div class="row">
             <div class="cell">
-              {{ t('当前容量') }}： <span class="text-bold">{{ cluster.cluster_capacity }} G</span>
+              {{ t('当前容量') }}：
+              <span
+                v-if="cluster.cluster_capacity"
+                class="text-bold">
+                {{ cluster.cluster_capacity }} G
+              </span>
+              <span v-else>--</span>
             </div>
             <div class="cell">
               {{ t('变更后容量') }}： <span class="text-bold">{{ futureSpec.cluster_capacity }} G</span>
