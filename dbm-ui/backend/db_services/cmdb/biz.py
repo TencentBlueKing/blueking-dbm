@@ -21,7 +21,7 @@ from backend.db_meta.models import AppCache, DBModule
 from backend.db_services.cmdb.exceptions import BkAppAttrAlreadyExistException
 from backend.db_services.dbconfig.dataclass import DBBaseConfig, DBConfigLevelData
 from backend.db_services.dbconfig.handlers import DBConfigHandler
-from backend.db_services.ipchooser.constants import DB_MANAGE_SET, RESOURCE_MODULE
+from backend.db_services.ipchooser.constants import DB_MANAGE_SET, PENDING_MODULE, RESOURCE_MODULE
 from backend.dbm_init.constants import CC_APP_ABBR_ATTR
 from backend.exceptions import ApiError
 from backend.iam_app.dataclass.actions import ActionEnum
@@ -227,16 +227,24 @@ def get_or_create_set_with_name(bk_biz_id: int, bk_set_name: str) -> int:
             return bk_set_id
 
 
-def get_or_create_resource_module():
+def get_or_create_dbm_module(module_name: str):
     """
-    获取/创建资源池模块
+    获取/创建DBM模块
     """
-    topo = SystemSettings.get_setting_value(key=SystemSettingsEnum.MANAGE_TOPO.value)
-    if topo:
-        return topo["resource_module_id"]
+    topo = SystemSettings.get_setting_value(key=SystemSettingsEnum.MANAGE_TOPO.value, default={})
+    if topo.get(module_name):
+        return topo[module_name]
 
     manage_set_id = get_or_create_set_with_name(env.DBA_APP_BK_BIZ_ID, DB_MANAGE_SET)
-    module_id = get_or_create_cmdb_module_with_name(env.DBA_APP_BK_BIZ_ID, manage_set_id, RESOURCE_MODULE)
-    topo = {"set_id": manage_set_id, "resource_module_id": module_id}
+    module_id = get_or_create_cmdb_module_with_name(env.DBA_APP_BK_BIZ_ID, manage_set_id, module_name)
+    topo.update({"set_id": manage_set_id, module_name: module_id})
     SystemSettings.insert_setting_value(key=SystemSettingsEnum.MANAGE_TOPO.value, value=topo, value_type="dict")
     return module_id
+
+
+def get_or_create_resource_module():
+    return get_or_create_dbm_module(RESOURCE_MODULE)
+
+
+def get_or_create_pending_module():
+    return get_or_create_dbm_module(PENDING_MODULE)

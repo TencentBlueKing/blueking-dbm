@@ -24,7 +24,11 @@ from backend.db_meta.models import AppMonitorTopo, Cluster, ClusterMonitorTopo, 
 from backend.db_meta.models.cluster_monitor import INSTANCE_BKLOG_PLUGINS, INSTANCE_MONITOR_PLUGINS, SET_NAME_TEMPLATE
 from backend.db_monitor.models import CollectInstance, MonitorPolicy
 from backend.db_monitor.utils import create_bklog_collector
-from backend.db_services.cmdb.biz import get_or_create_cmdb_module_with_name, get_or_create_set_with_name
+from backend.db_services.cmdb.biz import (
+    get_or_create_cmdb_module_with_name,
+    get_or_create_pending_module,
+    get_or_create_set_with_name,
+)
 from backend.db_services.ipchooser.constants import IDLE_HOST_MODULE
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.dbm_init.constants import CC_HOST_DBM_ATTR
@@ -380,7 +384,7 @@ class CcManage(object):
 
     def recycle_host(self, bk_host_ids: list):
         """
-        转移到待回收模块
+        转移到pending模块(管控业务则回到待回收)
         转移主机后会自动删除服务实例，无需额外操作
         """
         bk_host_ids = list(set(bk_host_ids))
@@ -390,6 +394,14 @@ class CcManage(object):
         CCApi.transfer_host_to_recyclemodule(
             params={"bk_biz_id": self.hosting_biz_id, "bk_host_id": bk_host_ids}, use_admin=True
         )
+        # 如果非独立管控业务，则将主机转移到自定义的pending模块
+        if self.hosting_biz_id == env.DBA_APP_BK_BIZ_ID:
+            pending_module = [get_or_create_pending_module()]
+            CCApi.transfer_host_module(
+                {"bk_biz_id": self.hosting_biz_id, "bk_host_id": bk_host_ids, "bk_module_id": pending_module},
+                use_admin=True,
+            )
+
         self.update_host_properties(bk_host_ids, need_monitor=False, dbm_meta=[])
 
     def add_service_instance(

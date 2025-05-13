@@ -157,7 +157,7 @@ RECYCLE_HOST_MODULE = 3  # 待回收
 # DBM管理的CC集群名
 DB_MANAGE_SET = "db.manage.set"
 RESOURCE_MODULE = "resource.idle.module"
-DIRTY_MODULE = "dirty.module"
+PENDING_MODULE = "pending.module"
 
 # 操作系统代码与操作系统类型映射
 BK_OS_CODE__TYPE = {BkOsTypeCode.LINUX: BkOsType.LINUX, BkOsTypeCode.WINDOWS: BkOsType.WINDOWS}

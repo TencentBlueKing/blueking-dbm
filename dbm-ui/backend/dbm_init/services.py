@@ -32,7 +32,7 @@ from backend.core.storages.file_source import BkJobFileSourceManager
 from backend.core.storages.storage import get_storage
 from backend.db_meta.models import AppMonitorTopo
 from backend.db_monitor.utils import create_bklog_collector, create_bkmonitor_action
-from backend.db_services.cmdb.biz import get_or_create_resource_module
+from backend.db_services.cmdb.biz import get_or_create_pending_module, get_or_create_resource_module
 from backend.db_services.ipchooser.constants import DEFAULT_CLOUD
 from backend.dbm_init.constants import CC_APP_ABBR_ATTR, CC_HOST_DBM_ATTR
 from backend.exceptions import ApiError
@@ -179,6 +179,7 @@ class Services:
 
         # 初始化db的管理集群和相关模块
         get_or_create_resource_module()
+        get_or_create_pending_module()
 
         # 初始化主机自定义属性，用于system数据拷贝
         Services.init_cc_dbm_meta()
