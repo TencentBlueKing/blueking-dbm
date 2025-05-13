@@ -111,7 +111,7 @@
       }
 
       if (!props.keyValueMap[key].find((item) => item.value === value)) {
-        verifyTip.value = t('标签值不存在');
+        verifyTip.value = t('标签值m不存在', { m: `${key} : ${value}` });
         return null;
       }
 

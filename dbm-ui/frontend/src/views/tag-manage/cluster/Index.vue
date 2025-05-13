@@ -126,6 +126,7 @@
           <div class="bind-cluster-column-main">
             <BkButton
               v-if="calcTagClusters(data)"
+              v-bk-tooltips="tagClustersToolTip(data)"
               text
               theme="primary">
               {{ calcTagClusters(data) }}
@@ -133,21 +134,10 @@
             <span v-else>0</span>
             <DbIcon
               v-if="calcTagClusters(data)"
-              v-bk-tooltips="
-                isCollapsed(data.key)
-                  ? calcKeyRelatedClusters(data.key).join('\n')
-                  : data.clusters.map((item) => item.domain).join('\n')
-              "
+              v-bk-tooltips="tagClustersToolTip(data)"
               class="copy-icon"
               type="copy"
-              @click="
-                () =>
-                  execCopy(
-                    isCollapsed(data.key)
-                      ? calcKeyRelatedClusters(data.key).join('\n')
-                      : data.clusters.map((item) => item.domain).join('\n'),
-                  )
-              " />
+              @click="() => execCopy(tagClustersToolTip(data))" />
           </div>
         </template>
       </BkTableColumn>
@@ -186,7 +176,7 @@
               theme: 'danger',
             }"
             ext-cls="delete-tag-pop-confirm-main"
-            :title="isCollapsed(data.key) ? t('确认删除该标签键？') : t('确认删除该标签值？')"
+            :title="isTagKey(data.key) ? t('确认删除该标签键？') : t('确认删除该标签值？')"
             trigger="click"
             :width="280"
             @confirm="handleConfirmDeleteTag">
@@ -194,11 +184,13 @@
               <div class="delete-tag-main">
                 <div class="content-main">
                   <div class="key-main">
-                    <span>{{ isCollapsed(data.key) ? t('标签键') : t('标签值') }}</span>
+                    <span>{{ isTagKey(data.key) ? t('标签键') : t('标签值') }}</span>
                     <span class="ml-4 mr-4">:</span>
                   </div>
                   <div class="value-main">
-                    {{ isCollapsed(data.key) ? data.key : data.value }}
+                    <span v-if="isTagKey(data.key)">{{ data.key }}</span>
+                    <BkTag v-else>{{ `${data.key} : ${data.value}` }}</BkTag>
+                    <!-- {{ isTagKey(data.key) ? data.key : data.value }} -->
                   </div>
                 </div>
                 <div>{{ t('删除操作无法撤回，请谨慎操作！') }}</div>
@@ -347,7 +339,14 @@
     return !!sameKeyList.find((item) => item.clusters.length > 0);
   };
 
+  const tagClustersToolTip = (data: RowData) =>
+    isCollapsed(data.key)
+      ? calcKeyRelatedClusters(data.key).join('\n')
+      : data.clusters.map((item) => item.domain).join('\n');
+
   const isCollapsed = (key: string) => !toggleInfoMap.value[key] && rowMergeCountMap.value[key]?.count > 1;
+
+  const isTagKey = (key: string) => isCollapsed(key) || rowMergeCountMap.value[key]?.count === 1;
 
   const calcKeyRelatedClusters = (key: string) => {
     const sameKeyList = tableData.filter((item) => item.key === key);
@@ -750,6 +749,7 @@
       .content-main {
         display: flex;
         margin-bottom: 4px;
+        align-items: center;
 
         .value-main {
           color: #313238;
