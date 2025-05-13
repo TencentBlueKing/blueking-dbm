@@ -107,44 +107,6 @@
           :min-width="120">
           {{ ticketDetails.details.charset }}
         </BkTableColumn>
-        <BkTableColumn
-          v-if="ticketDetails.details.nodes?.proxy"
-          field="proxy"
-          label="Proxy IP"
-          :min-width="180">
-          <template #default="{ rowIndex }">
-            <BkTag
-              size="small"
-              theme="info">
-              P
-            </BkTag>
-            {{ ticketDetails.details.nodes.proxy[rowIndex].ip }}
-          </template>
-        </BkTableColumn>
-        <BkTableColumn
-          v-if="ticketDetails.details.nodes?.backend"
-          field="backend"
-          label="Master / Slave IP"
-          :min-width="180">
-          <template #default="{ rowIndex }">
-            <div>
-              <BkTag
-                size="small"
-                theme="info">
-                M
-              </BkTag>
-              {{ ticketDetails.details.nodes.backend[rowIndex * 2].ip }}
-            </div>
-            <div>
-              <BkTag
-                size="small"
-                theme="success">
-                S
-              </BkTag>
-              {{ ticketDetails.details.nodes.backend[rowIndex * 2 + 1].ip }}
-            </div>
-          </template>
-        </BkTableColumn>
       </BkTable>
     </InfoItem>
   </InfoList>
