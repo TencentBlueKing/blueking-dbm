@@ -8,8 +8,8 @@
         <div style="line-height: 20px">
           <div style="font-weight: 700">{{ tipTitle }}</div>
           <div>{{ exampleTip1 }}</div>
-          <div>{{ exampleTip1 }}</div>
           <div>{{ exampleTip2 }}</div>
+          <div>{{ exampleTip3 }}</div>
         </div>
       </template>
       <BkInput
@@ -54,9 +54,10 @@
 
   const tipTitle = t('请按照格式输入标签，如：');
   const exampleTip1 = t('所属部门：技术部门｜设计部｜产品部');
-  const exampleTip2 = t('多个标签值以空格、逗号、分号、竖线分割');
+  const exampleTip2 = t('产品质量：优秀｜中等｜不及格');
+  const exampleTip3 = t('多个标签值以空格、逗号、分号、竖线分割');
   const verifyTip = ref('');
-  const placeholder = `${tipTitle}\n${exampleTip1}\n${exampleTip1}\n${exampleTip2}`;
+  const placeholder = `${tipTitle}\n${exampleTip1}\n${exampleTip2}\n${exampleTip3}`;
 
   watch(verifyTip, () => {
     isVerifyPassed.value = !verifyTip.value;
@@ -97,7 +98,7 @@
       }
 
       if (props.existedKeys.has(key)) {
-        verifyTip.value = t('标签键已存在');
+        verifyTip.value = t('标签键m已存在', { m: key });
         return null;
       }
 

@@ -47,8 +47,7 @@
       <BkTableColumn
         field="key"
         :label="t('标签键')"
-        :min-width="350"
-        show-overflow="tooltip">
+        :min-width="350">
         <template #default="{ data, rowIndex }: { data: RowData, rowIndex: number }">
           <div
             class="tag-key-column-main"
@@ -484,10 +483,10 @@
     );
   };
 
-  const handleToggleRowExpand = async (rowIndex: number, key: string) => {
+  const handleToggleRowExpand = (rowIndex: number, key: string) => {
     const merges = mergeCells.value.filter((item) => item.row === rowIndex);
     const rowSpan = merges[0].rowspan;
-    await tableRef.value.bkTableRef.getVxeTableInstance().removeMergeCells(merges);
+    tableRef.value.bkTableRef.getVxeTableInstance().removeMergeCells(merges);
     if (toggleInfoMap.value[key]) {
       merges.forEach((item) => {
         Object.assign(item, { rowspan: rowSpan });
@@ -497,13 +496,14 @@
         tableRef.value.updateTableKey();
       });
     } else {
+      // TODO: 收起很慢，怀疑是底层实现有问题
       merges.forEach((item) => {
         if (item.col !== 0) {
           Object.assign(item, { rowspan: 1 });
         }
       });
     }
-    await tableRef.value.bkTableRef.getVxeTableInstance().setMergeCells(merges);
+    tableRef.value.bkTableRef.getVxeTableInstance().setMergeCells(merges);
     toggleInfoMap.value[key] = !toggleInfoMap.value[key];
   };
 

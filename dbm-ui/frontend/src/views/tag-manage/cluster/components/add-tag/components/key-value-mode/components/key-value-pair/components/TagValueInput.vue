@@ -5,7 +5,6 @@
       allow-create
       class="value-input"
       :class="{ 'is-not-valid': !isValueVerifyPass }"
-      collapse-tags
       has-delete-icon
       :model-value="modelValue"
       :placeholder="t('请输入标签值（多个标签值以逗号、分号、竖线分割，回车完成输入）')"
@@ -42,12 +41,13 @@
   });
 
   const checkInputValue = (value: string[]) => {
-    const inputList = _.flatMap(value.map((item) => item.split(/[,，;；|｜]/))).filter((item) => !!item.trim());
-    modelValue.value = inputList;
     if (!value.length) {
       valueVerifyTip.value = t('必填');
       return;
     }
+
+    const inputList = _.flatMap(value.map((item) => item.split(/[,，;；|｜]/))).filter((item) => !!item.trim());
+    modelValue.value = inputList;
 
     const inputValueMap: Record<string, boolean> = {};
     for (const item of inputList) {
@@ -68,6 +68,7 @@
 
   defineExpose<Exposes>({
     getValue() {
+      checkInputValue(modelValue.value);
       isValueVerifyPass.value = !!modelValue.value.length && !valueVerifyTip.value;
       if (!isValueVerifyPass.value) {
         return null;
