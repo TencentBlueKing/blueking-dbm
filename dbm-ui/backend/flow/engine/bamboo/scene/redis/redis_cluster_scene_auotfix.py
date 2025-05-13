@@ -548,7 +548,6 @@ class RedisClusterAutoFixSceneFlow(object):
         return sub_pipeline.build_sub_process(sub_name=_("Slave替换-{}").format(sub_kwargs.cluster["cluster_type"]))
 
     # 存在性检查
-
     def precheck_for_instance_fix(self):
         for cluster_fix in self.data["infos"]:
             for cluster_id in cluster_fix["cluster_ids"]:

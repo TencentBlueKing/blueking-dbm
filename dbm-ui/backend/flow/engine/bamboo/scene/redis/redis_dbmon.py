@@ -16,10 +16,15 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.api.cluster.apis import query_cluster_by_hosts
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, Machine
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.redis.atom_jobs import ClusterDbmonInstallAtomJob, ClusterIPsDbmonInstallAtomJob
+from backend.flow.engine.bamboo.scene.redis.atom_jobs import (
+    ClusterDbmonInstallAtomJob,
+    ClusterIPsDbmonInstallAtomJob,
+    SingleClusterDbmonInstallAtomJob,
+)
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
@@ -123,8 +128,30 @@ class RedisDbmonSceneFlow(object):
         act_kwargs.is_update_trans_data = True
         act_kwargs.bk_cloud_id = self.data["bk_cloud_id"]
 
+        single_clusters, other_clusters = [], []
+        for c in clusters:
+            if c.cluster_type == ClusterType.TendisRedisInstance.value:
+                single_clusters.append(c)
+            else:
+                other_clusters.append(c)
+
+        # 有主从的实例，需要按机器聚合下
         sub_pipelines = []
-        for cluster in clusters:
+        if len(single_clusters) > 0:
+            reinstall_dbmon = SingleClusterDbmonInstallAtomJob(
+                self.root_id,
+                self.data,
+                act_kwargs,
+                single_clusters,
+                {
+                    "is_stop": self.data.get("is_stop", False),
+                    "restart_exporter": self.data.get("restart_exporter", False),
+                },
+            )
+            sub_pipelines.append(reinstall_dbmon)
+
+        # 集群架构
+        for cluster in other_clusters:
             sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
 
             passwd_ret = PayloadHandler.redis_get_password_by_domain(cluster.immute_domain)
@@ -152,7 +179,7 @@ class RedisDbmonSceneFlow(object):
                 )
 
             sub_pipelines.append(
-                sub_pipeline.build_sub_process(sub_name=_("REDIS集群标准化-{}").format(cluster.immute_domain))
+                sub_pipeline.build_sub_process(sub_name=_("集群架构-{}-重新标准化").format(cluster.immute_domain))
             )
         redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         redis_pipeline.run_pipeline()

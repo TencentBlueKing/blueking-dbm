@@ -14,11 +14,13 @@ import (
 
 // ExporterParams
 type ExporterParams struct {
-	IP           string `json:"ip" validate:"required"`
-	MetaRole     string `json:"role" validate:"required"`
-	Ports        []int  `json:"ports" validate:"required"`
-	Password     string `json:"password"`
-	ImmuteDomain string `json:"cluster_domain"`
+	IP           string         `json:"ip" validate:"required"`
+	MetaRole     string         `json:"role" validate:"required"`
+	Ports        []int          `json:"ports"`
+	Password     string         `json:"password"`
+	ImmuteDomain string         `json:"cluster_domain"`
+	PasswordMap  map[int]string `json:"password_map"`
+	ClusterType  string         `json:"cluster_type"`
 }
 
 // ChangePwd atomjob
@@ -77,22 +79,43 @@ func (job *RestartExporter) Run() (err error) {
 		exporterProcessName = "dbm_twemproxy_exporter"
 	}
 
-	// send kill exporter
-	for _, port := range job.params.Ports {
-		job.runtime.Logger.Info("regenerate exporter config 4 instance :%d", port)
-		// del first .
-		common.DeleteExporterConfigFile(port)
-		// re generate it .
-		common.CreateLocalExporterConfigFile(job.params.IP, port, job.params.MetaRole, job.params.Password)
+	if job.params.ClusterType == consts.TendisTypeRedisInstance {
+		for port, password := range job.params.PasswordMap {
+			job.runtime.Logger.Info("regenerate exporter config 4 instance :%d", port)
+			// del first .
+			common.DeleteExporterConfigFile(port)
+			// re generate it .
+			common.CreateLocalExporterConfigFile(job.params.IP, port, job.params.MetaRole, password)
+		}
+	} else {
+		// send kill exporter
+		for _, port := range job.params.Ports {
+			job.runtime.Logger.Info("regenerate exporter config 4 instance :%d", port)
+			// del first .
+			common.DeleteExporterConfigFile(port)
+			// re generate it .
+			common.CreateLocalExporterConfigFile(job.params.IP, port, job.params.MetaRole, job.params.Password)
+		}
 	}
 
 	// kill all exporter .
 	job.runtime.Logger.Info("try restart exporter by running killall exporter.")
-	if _, err := util.RunBashCmd(fmt.Sprintf("killall -9 %s", exporterProcessName), "", nil, 10*time.Second); err != nil {
+	if _, err := util.RunBashCmd(fmt.Sprintf("killall -9 %s", exporterProcessName), "",
+		nil, 10*time.Second); err != nil {
 		job.runtime.Logger.Warn("kill all %s maybe failed : %+v", exporterProcessName, err)
 	}
 
-	job.runtime.Logger.Info("job done.")
+	job.runtime.Logger.Info("try reload bkmonitorbeat;bkunifylogbeat plugin...")
+	if _, err := util.RunBashCmd("/usr/local/gse2_bkte/plugins/bin/reload.sh bkmonitorbeat",
+		"", nil, 10*time.Second); err != nil {
+		job.runtime.Logger.Warn("reload bkmonitorbeat maybe failed : %+v", err)
+	}
+
+	if _, err := util.RunBashCmd("/usr/local/gse2_bkte/plugins/bin/reload.sh bkunifylogbeat",
+		"", nil, 10*time.Second); err != nil {
+		job.runtime.Logger.Warn("reload bkunifylogbeat maybe failed : %+v", err)
+	}
+	job.runtime.Logger.Info("job done.^_^")
 	return nil
 }
 
