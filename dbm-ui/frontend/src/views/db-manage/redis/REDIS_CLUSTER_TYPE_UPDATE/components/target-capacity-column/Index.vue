@@ -60,6 +60,8 @@
 
   import RedisModel from '@services/model/redis/redis';
 
+  import { ClusterTypes } from '@common/const';
+
   import ChooseClusterTargetPlan, {
     type CapacityNeed,
     type SpecResultInfo,
@@ -113,13 +115,20 @@
     },
   ];
 
-  watchEffect(() => {
-    modelValue.value.cluster_shard_num = props.cluster.cluster_shard_num || 0;
-  });
+  // watchEffect(() => {
+  //   modelValue.value.cluster_shard_num = props.cluster.cluster_shard_num || 0;
+  // });
 
-  watchEffect(() => {
-    modelValue.value.count = props.cluster.machine_pair_cnt || 0;
-  });
+  watch(
+    () => props.targetClusterType,
+    () => {
+      modelValue.value.count = [ClusterTypes.PREDIXY_REDIS_CLUSTER, ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER].includes(
+        props.targetClusterType as ClusterTypes,
+      )
+        ? 3
+        : 1;
+    },
+  );
 
   const disabledMethod = () => {
     if (!props.cluster.id) {
