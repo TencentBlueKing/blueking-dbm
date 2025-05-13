@@ -27,7 +27,8 @@ func InspectCheckResource() (err error) {
 	//  获取空闲机器
 	var machines []model.TbRpDetail
 	var allowCCMouduleInfo dbmapi.DbmEnvData
-	err = model.DB.Self.Table(model.TbRpDetailName()).Find(&machines, "status = ?", model.Unused).Error
+	err = model.DB.Self.Table(model.TbRpDetailName()).Find(&machines,
+		"status = ? and create_time < date_sub(now(), interval 30 minute) ", model.Unused).Error
 	if err != nil {
 		logger.Error("get unused machines failed %s", err.Error())
 		return err
