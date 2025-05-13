@@ -176,7 +176,13 @@
               theme: 'danger',
             }"
             ext-cls="delete-tag-pop-confirm-main"
-            :title="isTagKey(data.key) ? t('确认删除该标签键下所有标签？') : t('确认删除该标签值？')"
+            :title="
+              rowMergeCountMap[data.key]?.count === 1
+                ? t('确定删除该标签？')
+                : isCollapsed(data.key)
+                  ? t('确认删除该标签键下所有标签？')
+                  : t('确认删除该标签值？')
+            "
             trigger="click"
             :width="280"
             @confirm="handleConfirmDeleteTag">
@@ -184,13 +190,18 @@
               <div class="delete-tag-main">
                 <div class="content-main">
                   <div class="key-main">
-                    <span>{{ isTagKey(data.key) ? t('标签键') : t('标签值') }}</span>
+                    <span>{{
+                      rowMergeCountMap[data.key]?.count === 1
+                        ? t('标签')
+                        : isTagKey(data.key)
+                          ? t('标签键')
+                          : t('标签值')
+                    }}</span>
                     <span class="ml-4 mr-4">:</span>
                   </div>
                   <div class="value-main">
-                    <span v-if="isTagKey(data.key)">{{ data.key }}</span>
+                    <span v-if="isCollapsed(data.key)">{{ data.key }}</span>
                     <BkTag v-else>{{ `${data.key} : ${data.value}` }}</BkTag>
-                    <!-- {{ isTagKey(data.key) ? data.key : data.value }} -->
                   </div>
                 </div>
                 <div>{{ t('删除操作无法撤回，请谨慎操作！') }}</div>
