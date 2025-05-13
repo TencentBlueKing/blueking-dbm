@@ -132,7 +132,6 @@
     .visible-content {
       position: absolute;
       display: flex;
-      gap: 4px;
     }
   }
 </style>

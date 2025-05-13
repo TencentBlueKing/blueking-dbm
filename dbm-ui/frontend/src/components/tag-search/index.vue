@@ -7,10 +7,12 @@
     </div>
     <BkCascader
       v-model="searchValue"
+      check-any-level
       filterable
       float-mode
       :list="dataList"
       multiple
+      :placeholder="t('请选择或输入关键字搜索')"
       :scroll-height="392"
       :style="{ width: isButtonMode ? '108px' : '400px' }"
       trigger="click"
@@ -28,7 +30,6 @@
   </div>
 </template>
 <script setup lang="ts">
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -109,39 +110,28 @@
     if (!localSearchValue.length && !searchValue.value.length) {
       return;
     }
-
-    const searchKeyValueMap = searchValue.value.reduce<Record<string, Set<number>>>((dataMap, item) => {
+    const keySet = new Set<string>();
+    const tagsIds: number[] = [];
+    searchValue.value.forEach((item) => {
       const [key, value] = item;
-      if (dataMap[key]) {
-        dataMap[key].add(value);
-      } else {
-        Object.assign(dataMap, {
-          [key]: new Set<number>([value]),
-        });
+      if (key && value === undefined) {
+        keySet.add(key);
+        return;
       }
-      return dataMap;
-    }, {});
-    const keyList: string[] = [];
-    Object.entries(searchKeyValueMap).forEach(([key, idList]) => {
-      if (keyValueMap[key].every((item) => idList.has(item.id as number))) {
-        keyList.push(key);
+
+      if (!keySet.has(key)) {
+        tagsIds.push(value);
       }
     });
-    if (keyList.length) {
-      keyList.forEach((key) => {
-        delete searchKeyValueMap[key];
-      });
-    }
-    const tagsIds = _.flatMap(Object.values(searchKeyValueMap).map((idSet) => Array.from(idSet)));
     const queryObj = {};
     if (tagsIds.length) {
       Object.assign(queryObj, {
         tag_ids: tagsIds.join(','),
       });
     }
-    if (keyList.length) {
+    if (keySet.size) {
       Object.assign(queryObj, {
-        tag_keys: keyList.join(','),
+        tag_keys: Array.from(keySet).join(','),
       });
     }
     emits('search', queryObj);
