@@ -391,8 +391,8 @@ func (job *RedisSwitch) doTendisStorageSwitch4Cluster(storagePair InstanceSwitch
 					newMasterAddr, job.params.SyncCondition.SwitchOpt, err)
 			}
 		}
-
-		time.Sleep(time.Second * 5) // 预留足够的投票时间
+		job.runtime.Logger.Info("sleep 60s, witing vote :%s", newMasterAddr)
+		time.Sleep(time.Second * 60) // 预留足够的投票时间
 		infomap := map[string]string{}
 		if infomap, err = newMasterConn.Info("replication"); err != nil {
 			job.runtime.Logger.Error("exec info replication for %s failed:%s", newMasterAddr, err)
