@@ -336,7 +336,7 @@
       Object.assign(specInfo, {
         clusterShardNum: props.targetSpec.cluster_shard_num,
         count: props.targetSpec.count,
-        shardNum: props.targetSpec.cluster_shard_num / props.targetSpec.count,
+        // shardNum: props.targetSpec.cluster_shard_num / props.targetSpec.count,
       });
       Object.assign(clusterInfo, {
         bizId: window.PROJECT_CONFIG.BIZ_ID,
