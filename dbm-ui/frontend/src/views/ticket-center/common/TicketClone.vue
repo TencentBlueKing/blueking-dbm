@@ -142,7 +142,7 @@
     [TicketTypes.REDIS_INS_APPLY]: 'SelfServiceApplyRedisHa',
     [TicketTypes.REDIS_KEYS_DELETE]: TicketTypes.REDIS_KEYS_DELETE, // Redis 删除 key
     [TicketTypes.REDIS_KEYS_EXTRACT]: TicketTypes.REDIS_KEYS_EXTRACT, // Redis 提取 Key
-    [TicketTypes.REDIS_MASTER_SLAVE_SWITCH]: 'RedisMasterFailover', // Redis 主从切换
+    [TicketTypes.REDIS_MASTER_SLAVE_SWITCH]: TicketTypes.REDIS_MASTER_SLAVE_SWITCH, // Redis 主从切换
     [TicketTypes.REDIS_PLUGIN_CREATE_CLB]: 'DatabaseRedisList', // Redis 创建CLB
     [TicketTypes.REDIS_PLUGIN_CREATE_POLARIS]: 'DatabaseRedisList', // Redis 删除构造任务
     [TicketTypes.REDIS_PLUGIN_DELETE_CLB]: 'DatabaseRedisList', // Redis 删除CLB
