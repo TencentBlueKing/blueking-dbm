@@ -17,14 +17,18 @@ export interface HaApply extends DetailBase {
   }[];
   inst_num: number;
   ip_source: string;
-  nodes?: {
-    backend: { bk_cloud_id: number; bk_host_id: number; ip: string }[];
-    proxy: { bk_cloud_id: number; bk_host_id: number; ip: string }[];
+  nodes: {
+    backend?: { bk_cloud_id: number; bk_host_id: number; ip: string }[];
+    backend_group?: {
+      master: { bk_cloud_id: number; bk_host_id: number; ip: string };
+      slave: { bk_cloud_id: number; bk_host_id: number; ip: string };
+    }[];
+    proxy?: { bk_cloud_id: number; bk_host_id: number; ip: string }[];
   };
-  resource_spec?: {
-    backend: SpecInfo;
-    backend_group: SpecInfo;
-    proxy: SpecInfo;
+  resource_spec: {
+    backend?: SpecInfo;
+    backend_group?: SpecInfo;
+    proxy?: SpecInfo;
   };
   spec: string;
   spec_display: string;
