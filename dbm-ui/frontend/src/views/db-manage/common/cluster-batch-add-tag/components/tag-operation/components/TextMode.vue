@@ -83,6 +83,10 @@
       .filter((item) => !!item);
     const validPairRegex = /[:：/]/;
     const pairInfo: TagsPairType = {};
+    const notExistValues: {
+      key: string;
+      value: string;
+    }[] = [];
 
     for (const pairStr of pairStrList) {
       if (!validPairRegex.test(pairStr)) {
@@ -111,8 +115,10 @@
       }
 
       if (!props.keyValueMap[key].find((item) => item.value === value)) {
-        verifyTip.value = t('标签值m不存在', { m: `${key} : ${value}` });
-        return null;
+        notExistValues.push({
+          key,
+          value,
+        });
       }
 
       if (!tagValueRegex.test(value)) {
@@ -126,6 +132,13 @@
           value: props.keyValueMap[key].find((item) => item.value === value)?.id,
         },
       });
+    }
+
+    if (notExistValues.length) {
+      verifyTip.value = t('标签m不存在', {
+        m: notExistValues.map((item) => `${item.key} : ${item.value}`).join(' , '),
+      });
+      return null;
     }
 
     return pairInfo;
@@ -145,11 +158,8 @@
 </script>
 <style lang="less" scoped>
   .text-mode-main {
-    position: relative;
-
     .error-tip {
-      position: absolute;
-      bottom: -18px;
+      margin-top: 8px;
       font-size: 12px;
       color: #ea3636;
     }
