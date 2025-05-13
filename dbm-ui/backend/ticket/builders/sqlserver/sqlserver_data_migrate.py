@@ -155,12 +155,6 @@ class SQLServerDataMigrateFlowBuilder(BaseSQLServerTicketFlowBuilder):
     inner_flow_name = _("SQLServer 全备迁移执行")
     retry_type = FlowRetryType.MANUAL_RETRY
 
-    def need_itsm(self):
-        super().need_itsm()
-
-    def need_manual_confirm(self):
-        super().need_manual_confirm()
-
     def create_dts_infos(self):
         # 创建迁移记录
         dts_infos: List[SqlserverDtsInfo] = []
