@@ -55,7 +55,7 @@ export default [
           },
           {
             dbConsoleValue: 'redis.toolbox.slaveRebuild',
-            id: 'RedisDBCreateSlave',
+            id: TicketTypes.REDIS_CLUSTER_ADD_SLAVE,
             name: t('重建从库'),
             parentId: 'common-manage',
           },

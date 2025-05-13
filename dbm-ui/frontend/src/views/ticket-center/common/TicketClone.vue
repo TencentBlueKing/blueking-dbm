@@ -127,7 +127,7 @@
     [TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA]: 'MySQLDBClear', // Mysql 单节点清档
     [TicketTypes.PULSAR_APPLY]: 'PulsarApply',
     [TicketTypes.REDIS_BACKUP]: TicketTypes.REDIS_BACKUP, // Redis 集群备份
-    [TicketTypes.REDIS_CLUSTER_ADD_SLAVE]: 'RedisDBCreateSlave', // Redis 重建从库
+    [TicketTypes.REDIS_CLUSTER_ADD_SLAVE]: TicketTypes.REDIS_CLUSTER_ADD_SLAVE, // Redis 重建从库
     [TicketTypes.REDIS_CLUSTER_APPLY]: 'SelfServiceApplyRedis', // Redis 申请部署
     [TicketTypes.REDIS_CLUSTER_CUTOFF]: TicketTypes.REDIS_CLUSTER_CUTOFF, // Redis 整机替换
     [TicketTypes.REDIS_CLUSTER_DATA_COPY]: 'RedisDBDataCopy', // Redis 数据复制

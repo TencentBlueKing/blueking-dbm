@@ -46,15 +46,7 @@ const redisProxyScaleUpRoute = {
 };
 
 const redisProxyScaleDownRoute = createRouteItem(TicketTypes.REDIS_PROXY_SCALE_DOWN, t('缩容接入层'));
-
-const redisDBCreateSlaveRoute = {
-  path: 'db-create-slave/:page?',
-  name: 'RedisDBCreateSlave',
-  meta: {
-    navName: t('重建从库'),
-  },
-  component: () => import('@views/db-manage/redis/db-create-slave/Index.vue'),
-};
+const redisDBCreateSlaveRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_ADD_SLAVE, t('重建从库'));
 
 const redisMasterFailoverRoute = {
   path: 'master-failover/:page?',
@@ -300,7 +292,7 @@ export default function getRoutes(funControllerData: FunctionControllModel) {
     });
 
     if (!toolboxRoutes[0].redirect!.name) {
-      toolboxRoutes[0].redirect!.name = 'RedisDBCreateSlave';
+      toolboxRoutes[0].redirect!.name = TicketTypes.REDIS_CLUSTER_ADD_SLAVE;
     }
     routes[0].children?.push(...toolboxRoutes);
   }

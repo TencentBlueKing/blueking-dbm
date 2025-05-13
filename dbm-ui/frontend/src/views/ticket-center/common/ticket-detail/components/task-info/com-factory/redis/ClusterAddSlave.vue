@@ -12,9 +12,23 @@
 -->
 
 <template>
-  <DbOriginalTable
-    :columns="columns"
-    :data="tableData" />
+  <BkTable :data="tableData">
+    <BkTableColumn
+      field="slaveIp"
+      :label="t('待重建从库主机')" />
+    <BkTableColumn
+      field="hostIp"
+      :label="t('关联主库主机')" />
+    <BkTableColumn
+      field="clusterName"
+      :label="t('所属集群')" />
+    <BkTableColumn
+      field="sepcName"
+      :label="t('规格需求')" />
+    <BkTableColumn
+      field="targetNum"
+      :label="t('新增从库主机数量')" />
+  </BkTable>
 </template>
 
 <script setup lang="tsx">
@@ -32,10 +46,8 @@
     clusterName: string;
     clusterType: string;
     hostIp: string;
-    sepc: {
-      id: number;
-      name: string;
-    };
+    sepcName: string;
+    slaveIp: string;
     targetNum: number;
   }
 
@@ -48,39 +60,9 @@
 
   const { t } = useI18n();
 
-  const tableData = ref<RowData[]>([]);
-
   const { clusters, infos, specs } = props.ticketDetails.details;
 
-  const columns = [
-    {
-      field: 'slaveIp',
-      label: t('待重建从库主机'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'hostIp',
-      label: t('目标主库主机'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'clusterName',
-      label: t('所属集群'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'sepc',
-      label: t('规格需求'),
-      render: ({ data }: { data: RowData }) => <span>{data.sepc.name}</span>,
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'targetNum',
-      label: t('新增从库主机数量'),
-    },
-  ];
-
-  tableData.value = infos.reduce((results, item) => {
+  const tableData = infos.reduce((results, item) => {
     item.pairs.forEach((pair) => {
       const specInfo = specs[pair.redis_slave.spec_id];
       const obj = {
@@ -89,10 +71,7 @@
           : item.cluster_ids.map((id) => clusters[id].immute_domain).join(','),
         clusterType: clusters[item.cluster_ids[0]].cluster_type,
         hostIp: pair.redis_master.ip,
-        sepc: {
-          id: pair.redis_slave.spec_id,
-          name: specInfo ? specInfo.name : '',
-        },
+        sepcName: specInfo ? specInfo.name : '--',
         slaveIp: pair.redis_slave.old_slave_ip,
         targetNum: pair.redis_slave.count,
       };
