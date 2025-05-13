@@ -30,7 +30,8 @@
     <DbFormItem
       :label="t('单机分片数')"
       property="shardNum"
-      required>
+      required
+      :rules="shardNumRules">
       <BkInput
         v-model="modelValue.shardNum"
         clearable
@@ -120,6 +121,14 @@
         }
         return true;
       },
+    },
+  ];
+
+  const shardNumRules = [
+    {
+      message: t('请输入单机分片数'),
+      trigger: 'change',
+      validator: (value: number) => value > 0,
     },
   ];
 
