@@ -151,12 +151,12 @@
   const updateLogicalLineNumbers = () => {
     const buffer = terminal.buffer.active;
     logicalLineNumbers = [];
-    let currentLogicalLine = 1;
+    let currentLogicalLine = 0;
 
     for (let i = 0; i < buffer.length; i++) {
       const line = buffer.getLine(i);
       if (line && !line.isWrapped) {
-        currentLogicalLine = i + 1; // 行号从1开始
+        currentLogicalLine = currentLogicalLine + 1; // 行号从1开始
       }
       logicalLineNumbers[i] = currentLogicalLine;
     }
@@ -252,6 +252,8 @@
     terminal.clear();
     terminal.dispose();
     fitAddon.dispose();
+    const lineNumbers = document.getElementById('nodeLogLineNumbers')!;
+    lineNumbers.innerHTML = '';
   };
 
   const handleWindowResize = () => {
