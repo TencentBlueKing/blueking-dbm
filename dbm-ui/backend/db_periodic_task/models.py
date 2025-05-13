@@ -166,3 +166,15 @@ class MySQLBackupRecoverTask(AuditedModel):
             .values_list("cluster_id", flat=True)
             .distinct()
         )
+
+
+class FailoverDrillConfig(AuditedModel):
+    bk_biz_id = models.IntegerField(default=0, help_text=_("业务的 cmdb id"))
+    bk_cloud_id = models.IntegerField(default=0, help_text=_("云区域 id"))
+    db_module_id = models.IntegerField(default=0, help_text=_("db模块 id"))
+    labels = models.JSONField(help_text=_("资源标签"))
+    cluster_type = models.CharField(max_length=64, choices=ClusterType.get_choices(), default="")
+    city_map = models.JSONField(help_text=_("城市缩写映射表"), default=dict)
+    switch_flag = models.BooleanField(help_text=_("是否启用任务"), default=False)
+    max_retry = models.IntegerField(default=6, help_text=_("最大重试次数"))
+    interval = models.IntegerField(default=10, help_text=_("重试间隔 分钟"))

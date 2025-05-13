@@ -366,3 +366,12 @@ class MysqlDataMigrateContext:
     @staticmethod
     def get_file_list_var_name() -> str:
         return "file_list_info"
+
+
+@dataclass()
+class FailoverDrillContext:
+    """
+    容灾演练相关上下文参数
+    """
+
+    schedule_count: int = 1

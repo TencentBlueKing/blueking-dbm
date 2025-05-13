@@ -26,6 +26,7 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_checksum import MysqlChecksumF
 from backend.flow.engine.bamboo.scene.mysql.mysql_data_migrate_flow import MysqlDataMigrateFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_db_table_backup import MySQLDBTableBackupFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_edit_config_flow import MysqlEditConfigFlow
+from backend.flow.engine.bamboo.scene.mysql.mysql_failover_drill_flow import MysqlFailoverDrill
 from backend.flow.engine.bamboo.scene.mysql.mysql_fake_sql_semantic_check import MySQLFakeSemanticCheck
 from backend.flow.engine.bamboo.scene.mysql.mysql_flashback_flow import MysqlFlashbackFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_full_backup_flow import MySQLFullBackupFlow
@@ -721,3 +722,7 @@ class MySQLController(BaseController):
             root_id=self.root_id, data=self.ticket_data  # , cluster_type=ClusterType.TenDBSingle.value
         )
         flow.rename_database()
+
+    def mysql_failover_scene(self):
+        flow = MysqlFailoverDrill(root_id=self.root_id, data=self.ticket_data)
+        flow.mysql_failover_drill_flow()

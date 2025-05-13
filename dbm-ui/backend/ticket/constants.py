@@ -291,6 +291,8 @@ class TicketType(str, StructuredEnum):
     MYSQL_CLB_BIND_DOMAIN = TicketEnumField("MYSQL_CLB_BIND_DOMAIN", _("MySQL 主域名指向 CLB"))
     MYSQL_CLB_UNBIND_DOMAIN = TicketEnumField("MYSQL_CLB_UNBIND_DOMAIN", _("MySQL 主域名解绑 CLB"))
 
+    MYSQL_FAILOVER_DRILL = TicketEnumField("MYSQL_FAILOVER_DRILL", _("Mysql容灾演练"), register_iam=False)
+
     # SPIDER(TenDB Cluster)
     TENDBCLUSTER_OPEN_AREA = TicketEnumField("TENDBCLUSTER_OPEN_AREA", _("TenDB Cluster 开区"), _("克隆开区"), register_iam=False)  # noqa
     TENDBCLUSTER_CHECKSUM = TicketEnumField("TENDBCLUSTER_CHECKSUM", _("TenDB Cluster 数据校验修复"), _("数据处理"))

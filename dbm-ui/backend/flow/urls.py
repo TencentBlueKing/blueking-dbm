@@ -124,6 +124,7 @@ from backend.flow.views.mysql_clb_operation import (
 )
 from backend.flow.views.mysql_data_migrate import MysqlDataMigrateSceneApiView
 from backend.flow.views.mysql_edit_config import MysqlEditConfigSceneApiView
+from backend.flow.views.mysql_failover_drill import MysqlFailoverDrillSceneApiView
 from backend.flow.views.mysql_flashback import MysqlFlashbackSceneApiView
 from backend.flow.views.mysql_ha_apply import InstallMySQLHASceneApiView
 from backend.flow.views.mysql_ha_db_table_backup import MySQLHADBTableBackup
@@ -456,6 +457,7 @@ urlpatterns = [
     url(r"^scene/import_sqlfile$", ImportSQLFileSceneApiView.as_view()),
     url(r"^scene/switch_mysql_proxy$", SwitchMySQLProxySceneApiView.as_view()),
     url(r"^scene/add_mysql_proxy$", AddMySQLProxySceneApiView.as_view()),
+    url(r"^scene/mysql_failover_drill$", MysqlFailoverDrillSceneApiView.as_view()),
     # 从节点数据恢复(接入备份系统)
     url(r"^scene/restore_slave_remote$", RestoreMysqlSlaveRemoteSceneApiView.as_view()),
     url(r"^scene/add_slave_remote$", AddMysqlSlaveRemoteSceneApiView.as_view()),

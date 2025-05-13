@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
 Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
@@ -8,18 +7,21 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from .checksum_check_report import ChecksumCheckReport, ChecksumInstance
-from .dbmon_heartbeat_report import DbmonHeartbeatReport
-from .failover_drill_report import FailoverDrillReport
-from .meta_check_report import MetaCheckReport
-from .mysqlbackup_check_report import MysqlBackupCheckReport
-from .redisbackup_check_report import RedisBackupCheckReport
-from .sqlserver_check_report import (
-    SqlserverCheckAppSettingReport,
-    SqlserverCheckJobSyncReport,
-    SqlserverCheckLinkServerReport,
-    SqlserverCheckSysJobStatuReport,
-    SqlserverCheckUserSyncReport,
-    SqlserverFullBackupInfoReport,
-    SqlserverLogBackupInfoReport,
-)
+from rest_framework.response import Response
+
+from backend.flow.engine.controller.mysql import MySQLController
+from backend.flow.views.base import FlowTestView
+from backend.utils.basic import generate_root_id
+
+
+class MysqlFailoverDrillSceneApiView(FlowTestView):
+    """
+    api: /apis/v1/flow/scene/mysql_failover_drill
+    params:
+    """
+
+    def post(self, request):
+        root_id = generate_root_id()
+        test = MySQLController(root_id=root_id, ticket_data=request.data)
+        test.mysql_failover_scene()
+        return Response({"root_id": root_id})
