@@ -176,7 +176,7 @@
               theme: 'danger',
             }"
             ext-cls="delete-tag-pop-confirm-main"
-            :title="isTagKey(data.key) ? t('确认删除该标签键？') : t('确认删除该标签值？')"
+            :title="isTagKey(data.key) ? t('确认删除该标签键下所有标签？') : t('确认删除该标签值？')"
             trigger="click"
             :width="280"
             @confirm="handleConfirmDeleteTag">
