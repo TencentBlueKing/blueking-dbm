@@ -176,6 +176,8 @@
           bk_biz_id: props.data.bk_biz_id,
           cluster_id: props.data.id,
         });
+      } else {
+        entryInfo.value = undefined;
       }
     },
     {

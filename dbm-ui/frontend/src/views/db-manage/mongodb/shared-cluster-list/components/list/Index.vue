@@ -133,7 +133,7 @@
         <template #default="{data}: {data: MongodbModel}">
           <BkButton
             v-db-console="'mongodb.sharedClusterList.getAccess'"
-            class="ml-8 mr-8"
+            class="mr-8"
             :disabled="data.isOffline"
             text
             theme="primary"
