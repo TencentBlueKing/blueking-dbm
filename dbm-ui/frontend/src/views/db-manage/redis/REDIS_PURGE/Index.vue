@@ -25,14 +25,14 @@
                 :placeholder="t('自动生成')">
               </EditableBlock>
             </EditableColumn>
-            <ForceColumn
-              v-model="rowData.force"
-              @batch-edit="handleBatchEdit">
-            </ForceColumn>
             <BackupColumn
               v-model="rowData.backup"
               @batch-edit="handleBatchEdit">
             </BackupColumn>
+            <ForceColumn
+              v-model="rowData.force"
+              @batch-edit="handleBatchEdit">
+            </ForceColumn>
             <OperationColumn
               :create-row-method="createRowData"
               :table-data="formData.tableData" />
@@ -76,23 +76,23 @@
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
-  import BackupColumn from './components/BackupColumn.vue';
+  import BackupColumn, { BackupType } from './components/BackupColumn.vue';
   import ClusterColumn from './components/ClusterColumn.vue';
-  import ForceColumn from './components/ForceColumn.vue';
+  import ForceColumn, { ForceType } from './components/ForceColumn.vue';
 
   interface IDataRow {
-    backup: boolean;
+    backup: string;
     cluster: {
       cluster_type: string;
       cluster_type_name: string;
       id: number;
       master_domain: string;
     };
-    force: boolean;
+    force: string;
   }
 
   const createRowData = (values = {} as Partial<IDataRow>) => ({
-    backup: values.backup || false,
+    backup: values.backup || BackupType.YES,
     cluster: Object.assign(
       {
         cluster_type: '',
@@ -102,7 +102,7 @@
       },
       values.cluster,
     ),
-    force: values.force || false,
+    force: values.force || ForceType.NO,
   });
 
   const createDefaultFormData = () => ({
@@ -121,11 +121,11 @@
         payload: createTickePayload(ticketDetail),
         tableData: details.rules.map((item) =>
           createRowData({
-            backup: item.backup,
+            backup: item.backup ? BackupType.YES : BackupType.NO,
             cluster: {
               master_domain: item.domain,
             } as IDataRow['cluster'],
-            force: item.force,
+            force: item.force ? ForceType.YES : ForceType.NO,
           }),
         ),
       });
@@ -189,7 +189,7 @@
     window.changeConfirm = true;
   };
 
-  const handleBatchEdit = (value: boolean, field: string) => {
+  const handleBatchEdit = (value: string, field: string) => {
     formData.tableData.forEach((item) => {
       Object.assign(item, { [field]: value });
     });
@@ -203,13 +203,13 @@
       createTicketRun({
         details: {
           rules: formData.tableData.map((item) => ({
-            backup: item.backup,
+            backup: item.backup == BackupType.YES,
             cluster_id: item.cluster.id,
             cluster_type: item.cluster.cluster_type,
             db_list: [],
             domain: item.cluster.master_domain,
             flushall: true, // TODO: 目前都是 true, 后续根据后端实现调整
-            force: item.force,
+            force: item.force == ForceType.YES,
           })),
         },
         ...formData.payload,
