@@ -76,7 +76,7 @@
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
-  import BackupTypeColumn from './components/BackupTypeColumn.vue';
+  import BackupTypeColumn, { BackupType } from './components/BackupTypeColumn.vue';
   import ClusterColumn from './components/ClusterColumn.vue';
   import TargetColumn from './components/TargetColumn.vue';
 
@@ -92,7 +92,7 @@
   }
 
   const createRowData = (values = {} as Partial<IDataRow>) => ({
-    backup_type: values.backup_type || '',
+    backup_type: values.backup_type || BackupType.NORMAL_BACKUP,
     cluster: Object.assign(
       {
         cluster_type: '',
