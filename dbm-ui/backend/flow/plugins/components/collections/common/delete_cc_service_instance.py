@@ -20,10 +20,13 @@ class DelCCServiceInstService(BaseService):
         根据cluster_id、ip:port删除对应服务实例
         """
         kwargs = data.get_one_of_inputs("kwargs")
-        cluster_id = kwargs["cluster_id"]
         del_instance_list = kwargs["del_instance_list"]
 
-        cluster = Cluster.objects.get(id=cluster_id)
+        if kwargs["domain"]:
+            cluster = Cluster.objects.get(immute_domain=kwargs["domain"])
+        else:
+            cluster_id = kwargs["cluster_id"]
+            cluster = Cluster.objects.get(id=cluster_id)
         for instance in del_instance_list:
             if cluster.proxyinstance_set.filter(machine__ip=instance["ip"], port=instance["port"]).exists():
                 # 一个集群有却只有一个proxy类型实例

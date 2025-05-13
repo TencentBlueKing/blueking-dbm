@@ -71,7 +71,7 @@ class MySQLSingleApplyFlow(object):
         pipeline.add_sub_pipeline(sub_flow=self.deploy_mysql_single_flow())
         pipeline.run_pipeline(init_trans_data_class=SingleApplyManualContext())
 
-    def deploy_mysql_single_flow(self):
+    def deploy_mysql_single_flow(self, origin_cluster_domian: str = "") -> SubBuilder:
         """
         定义部署单节点集群的流程，资源是通过手动录入方式，兼容单机多实例的部署
         目前资源池已经在saas层适配，目前flow统一为手动模式即可
@@ -115,7 +115,6 @@ class MySQLSingleApplyFlow(object):
                 cluster={"old_instance_configs": info.get("old_instance_configs", {})},
             )
 
-            # 初始新机器
             # 初始新机器
             sub_pipeline.add_sub_pipeline(
                 sub_flow=init_machine_sub_flow(
@@ -199,4 +198,4 @@ class MySQLSingleApplyFlow(object):
             )
         )
 
-        return mysql_single_pipeline.build_sub_process(sub_name=_("部署子流程"))
+        return mysql_single_pipeline.build_sub_process(sub_name=_("【{}】模版集群的演练部署流程".format(origin_cluster_domian)))

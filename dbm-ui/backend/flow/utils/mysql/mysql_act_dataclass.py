@@ -392,6 +392,16 @@ class DelServiceInstKwargs:
 
 
 @dataclass()
+class DelServiceInstByDomainKwargs:
+    """
+    删除集群内服务实例的专属私有变量
+    """
+
+    domain: str  # 对应的cluster的域名
+    del_instance_list: list  # 删除对应的实例信息
+
+
+@dataclass()
 class DownloadBackupFileKwargs:
     """
     定义下载mysql备份文件的变量结构体

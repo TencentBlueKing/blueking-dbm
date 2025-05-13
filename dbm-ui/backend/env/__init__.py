@@ -213,3 +213,7 @@ DEBUG_REVERSE_API = get_type_env(key="DEBUG_REVERSE_API", _type=bool, default=Fa
 REVERSE_REPORT_KAFKA_OPTIONS = get_type_env(
     key="REVERSE_REPORT_KAFKA_OPTIONS", _type=dict, default={"bootstrap_servers": ":9092"}
 )
+# mysql备份恢复演习业务
+MYSQL_BACKUPRECOVER_BIZ_ID = get_type_env(key="MYSQL_BACKUPRECOVER_BIZ_ID", _type=int, default=20)
+# 演习业务获取资源的标签ID
+MYSQL_BACKUPRECOVER_MCH_LABELS_ID = get_type_env(key="MYSQL_BACKUPRECOVER_MCH_LABELS_ID", _type=str, default="10")

@@ -19,8 +19,9 @@ from backend.utils.redis import check_set_member_in_redis
 
 
 def get_client_ip(request: Request):
+    # DEBUG模式下支持从参数获取ip
     if env.DEBUG_REVERSE_API:
-        return request.query_params.get("ip")
+        return request.query_params.get("ip") or request.data.get("ip")
 
     x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
     if x_forwarded_for:

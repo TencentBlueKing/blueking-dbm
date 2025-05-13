@@ -243,6 +243,27 @@ class FixPointRollbackHandler:
 
         return list(backup_id__valid_backup_logs.values())
 
+    def query_recover_backup_logs(self, start_time: datetime, end_time: datetime, **kwargs) -> List[Dict]:
+        """
+        Query backup logs from log platform for recovery exercise
+        For TenDBCluster, only query backup logs of shard 0
+
+        Args:
+            start_time: Start time of query range
+            end_time: End time of query range
+        """
+        query_string = f'log: "cluster_id: \\"{self.cluster.id}\\""'
+        if self.cluster.cluster_type == ClusterType.TenDBCluster:
+            query_string = f'log: "cluster_id: \\"{self.cluster.id}\\"" and "shard_value: 0 "'
+        backup_logs = self._get_log_from_bklog(
+            collector="mysql_dbbackup_result",
+            start_time=start_time,
+            end_time=end_time,
+            query_string=query_string,
+            size=1,
+        )
+        return self.aggregate_tendb_dbbackup_logs(backup_logs)
+
     def query_backup_log_from_bklog(self, start_time: datetime, end_time: datetime, **kwargs) -> List[Dict]:
         """
         通过日志平台查询集群的时间范围内的备份记录

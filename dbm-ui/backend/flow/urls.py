@@ -114,6 +114,7 @@ from backend.flow.views.mongodb_scene import (
 )
 from backend.flow.views.mysql import MysqlMachineClearApiView
 from backend.flow.views.mysql_add_slave_remote import AddMysqlSlaveRemoteSceneApiView
+from backend.flow.views.mysql_backup_data_recovery_exercise import MySQLBackupDataRecoveryExerciseSceneApiView
 from backend.flow.views.mysql_checksum import MysqlChecksumSceneApiView
 from backend.flow.views.mysql_clb_operation import (
     MysqlClbCreateSceneApiView,
@@ -397,6 +398,8 @@ urlpatterns = [
     url(r"^scene/mysql/clb_delete$", MysqlClbDeleteSceneApiView.as_view()),
     url(r"^scene/mysql/domain_bind_clb_ip$", MysqlDomainBindClbIpSceneApiView.as_view()),
     url(r"^scene/mysql/domain_unbind_clb_ip$", MysqlDomainUnBindClbIpSceneApiView.as_view()),
+    # mysql backup file recovery exercise
+    url(r"^scene/mysql/backup/recovery/exercise$", MySQLBackupDataRecoveryExerciseSceneApiView.as_view()),
     # mysql
     url(r"^scene/dbconsole_dump$", DbConsoleDumpApiView.as_view()),
     url(r"^scene/install_mysql_apply$", InstallMySQLSingleSceneApiView.as_view()),

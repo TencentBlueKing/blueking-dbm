@@ -226,7 +226,7 @@ func (r *RestoreDRComp) Example() interface{} {
 					"index": {"10_123_x.x.x.x_3306_20241030030300_logical.index"},
 				},
 			},
-			//Tools:       *tools.NewToolSetWithPickNoValidate(tools.ToolMload, tools.ToolXLoad, tools.ToolMysqlclient),
+			// Tools:       *tools.NewToolSetWithPickNoValidate(tools.ToolMload, tools.ToolXLoad, tools.ToolMysqlclient),
 			TgtInstance: common.InstanceObjExample,
 			SrcInstance: common.InstanceExample,
 			WorkID:      "",

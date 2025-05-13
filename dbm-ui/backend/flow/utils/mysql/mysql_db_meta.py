@@ -108,6 +108,14 @@ class MySQLDBMeta(object):
         TenDBSingleClusterHandler(bk_biz_id=self.bk_biz_id, cluster_id=self.cluster["id"]).decommission()
         return True
 
+    def mysql_single_destroy_by_domain(self) -> bool:
+        """
+        下架mysql单节点版集群，删除元信息
+        """
+        cluster = Cluster.objects.get(immute_domain=self.cluster["domain"], bk_biz_id=self.cluster["bk_biz_id"])
+        TenDBSingleClusterHandler(bk_biz_id=self.bk_biz_id, cluster_id=cluster.id).decommission()
+        return True
+
     def mysql_ha_destroy(self) -> bool:
         """
         下架mysql主从版集群，删除元信息

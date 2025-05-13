@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
 from backend.db_periodic_task.local_tasks.check_checksum import *
 from backend.db_periodic_task.local_tasks.check_expired_job_users import *
 from backend.db_periodic_task.local_tasks.db_meta import *
@@ -18,6 +17,7 @@ from backend.db_periodic_task.local_tasks.dbmon_heartbeat import *
 from backend.db_periodic_task.local_tasks.mongodb_tasks import mongodb_backup_check_task, mongodb_metric_check_task
 from backend.db_periodic_task.local_tasks.mysql_autofix import mysql_autofix
 from backend.db_periodic_task.local_tasks.mysql_backup import *
+from backend.db_periodic_task.local_tasks.mysql_backup_rollback import backup_data_recovry_task
 from backend.db_periodic_task.local_tasks.mysql_check_partition import *
 from backend.db_periodic_task.local_tasks.randomize_password import *
 from backend.db_periodic_task.local_tasks.redis_autofix import *
