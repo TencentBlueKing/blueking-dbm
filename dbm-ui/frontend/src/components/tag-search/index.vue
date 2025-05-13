@@ -14,6 +14,7 @@
       multiple
       :placeholder="t('请选择或输入关键字搜索')"
       :scroll-height="392"
+      separator=" : "
       :style="{ width: isButtonMode ? '108px' : '400px' }"
       trigger="click"
       @change="handleValueChange"

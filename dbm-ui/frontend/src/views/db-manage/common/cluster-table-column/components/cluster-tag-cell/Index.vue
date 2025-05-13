@@ -36,9 +36,7 @@
       <div
         v-else
         class="list-display-main">
-        <TextOverflowLayout>
-          {{ renderList.map((item) => `${item.key} : ${item.value.join(' , ')}`).join(' , ') }}
-        </TextOverflowLayout>
+        <RenderTagOverflow :data="horizontalTagList" />
       </div>
     </template>
     <AuthButton
@@ -65,6 +63,7 @@
 
   import type { ClusterCommonInfo } from '@services/types';
 
+  import RenderTagOverflow from '@components/render-tag-overflow/Index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import ClusterAddTag from './components/AddTag.vue';
@@ -99,6 +98,7 @@
   const isShowMore = computed(() => totalList.value.length > renderInstanceCount);
   const tooltip = computed(() => totalList.value.map((item) => `${item.key}: ${item.value.join(',')}`).join('\n'));
   const actionId = computed(() => `${props.data.db_type}_edit`);
+  const horizontalTagList = computed(() => renderList.value.map((item) => `${item.key} : ${item.value.join(' , ')}`));
 
   const checkEditPermission = (data: Props['data']) => {
     const permissionKey = `${props.data.db_type}_edit`;
