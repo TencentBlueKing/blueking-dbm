@@ -862,6 +862,9 @@ func (task *RedisInsKeyPatternTask) tendisSSDAllKeys() {
 	}
 	task.runtime.Logger.Info("grepCommand:%s success", grepCmd)
 	util.RunLocalCmd("bash", []string{"-c", fmt.Sprintf("chown -R mysql.mysql %s", task.SaveDir)}, "", nil, 10*time.Second)
+
+	// 清理task.KeysFile
+	task.ClearKeysFile()
 }
 
 // tendisCacheVersionGe7AllKeys 获取redis7版本以上的所有key
@@ -1259,6 +1262,22 @@ func (task *RedisInsKeyPatternTask) TransferToBkrepo() {
 	resmsg := fmt.Sprintf("response  %s", bodyBytes)
 	task.runtime.Logger.Info(resmsg)
 
+}
+
+// ClearKeysFile 删除本地keys file
+func (task *RedisInsKeyPatternTask) ClearKeysFile() {
+	if strings.Contains(task.KeysFile, task.IP) == false {
+		return
+	}
+	rmCmd := fmt.Sprintf("cd %s && rm %s_%d.keys", task.SaveDir, task.IP, task.Port)
+	task.runtime.Logger.Info("ClearKeysFile: %s", rmCmd)
+	_, err := util.RunLocalCmd("bash", []string{"-c", rmCmd}, "", nil, 10*time.Minute)
+	if err != nil {
+		err = fmt.Errorf("删除keys file失败,err:%v", err)
+		task.runtime.Logger.Error(err.Error())
+		task.Err = err
+		return
+	}
 }
 
 // ClearTmpKeysFile 删除本地keys file

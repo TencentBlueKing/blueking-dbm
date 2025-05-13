@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from backend.flow.engine.bamboo.scene.cloud.redis_machine_clear_flow import ClearRedisMachineFlow
 from backend.flow.engine.bamboo.scene.redis.dirty_machine_clear import DirtyMachineClearFlow
+from backend.flow.engine.bamboo.scene.redis.ins_hotkey_analysis import HotkeyAnalysisFlow
 from backend.flow.engine.bamboo.scene.redis.redis_add_dts_server import RedisAddDtsServerFlow
 from backend.flow.engine.bamboo.scene.redis.redis_backend_scale import RedisBackendScaleFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_add_slave import RedisClusterAddSlaveFlow
@@ -433,3 +434,10 @@ class RedisController(BaseController):
         """
         flow = ClearRedisMachineFlow(root_id=self.root_id, data=self.ticket_data)
         flow.run_flow()
+
+    def redis_hotkey_analysis(self):
+        """
+        redis 分析热key流程
+        """
+        flow = HotkeyAnalysisFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.ins_hotkey_analysis_flow()

@@ -2534,3 +2534,13 @@ class RedisActPayload(object):
                 obj.module_names = updated_module_names
                 obj.save()
         return True
+
+    def hotkey_analysis_payload(self, **kwargs) -> dict:
+        """
+        分析热key
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": RedisActuatorActionEnum.HOTKEY_ANALYSIS.value,
+            "payload": {},
+        }

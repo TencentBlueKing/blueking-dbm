@@ -743,3 +743,44 @@ class RedisReuploadOldBackupRecordsSceneApiView(FlowTestView):
         root_id = generate_root_id()
         RedisController(root_id=root_id, ticket_data=request.data).redis_reupload_old_backup_records()
         return Response({"root_id": root_id})
+
+
+class RedisHotkeyAnalysisApiView(FlowTestView):
+    """
+         api: /apis/v1/flow/scene/redis_hotkey_analysis
+        params:
+         {
+            "uid": "2022051612120001",
+            "ticket_id": "1111",
+            "bk_biz_id":2005000194,
+            "bk_cloud_id":0,
+            "ticket_type": "REDIS_HOTKEY_ANALYSIS",
+            "created_by":"xxx",
+            "analysis_time": "20",
+            "infos": [
+                  {
+                         "cluster_id": "111",
+                         "ins": [
+                                          "1.1.1.1:50000",
+                                          "1.1.1.2:50000"
+                                            ],
+                                             "record_id": 1
+                  },
+                 {
+                         "cluster_id": "112",
+                         "ins": [
+                                          "2.2.2.2:50000",
+                                          "2.2.2.3:50000"
+                                            ],
+                                             "record_id": 2
+                  },
+                 ...
+            ],
+    }
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = generate_root_id()
+        RedisController(root_id=root_id, ticket_data=request.data).redis_hotkey_analysis()
+        return Response({"root_id": root_id})
