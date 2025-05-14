@@ -108,14 +108,7 @@ const redisDBDataCopyRecordRoute = {
   component: () => import('@views/db-manage/redis/db-data-copy-record/Index.vue'),
 };
 
-const redisVersionUpgradeRoute = {
-  path: 'version-upgrade/:page?',
-  name: 'RedisVersionUpgrade',
-  meta: {
-    navName: t('版本升级'),
-  },
-  component: () => import('@views/db-manage/redis/version-upgrade/Index.vue'),
-};
+const redisVersionUpgradeRoute = createRouteItem(TicketTypes.REDIS_VERSION_UPDATE_ONLINE, t('版本升级'));
 
 const redisWebconsoleRoute = {
   path: 'webconsole',

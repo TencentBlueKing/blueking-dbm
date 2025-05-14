@@ -12,9 +12,44 @@
 -->
 
 <template>
-  <DbOriginalTable
-    :columns="columns"
-    :data="dataList" />
+  <BkTable :data="dataList">
+    <BkTableColumn
+      fixed="left"
+      :label="t('源集群')"
+      :min-width="250">
+      <template #default="{ data }: { data: RowData }">
+        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      :label="t('架构版本')"
+      :width="200">
+      <template #default="{ data }: { data: RowData }">
+        {{ ticketDetails.details.clusters[data.cluster_id].cluster_type_name }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      field="node_type"
+      :label="t('节点类型')"
+      :width="150">
+    </BkTableColumn>
+    <BkTableColumn
+      :label="t('当前使用的版本')"
+      :min-width="250">
+      <template #default="{ data }: { data: RowData }">
+        <div
+          v-for="item in data.current_versions"
+          :key="item">
+          {{ item }}
+        </div>
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      field="target_version"
+      :label="t('目标版本')"
+      :min-width="250">
+    </BkTableColumn>
+  </BkTable>
 </template>
 
 <script setup lang="tsx">
@@ -23,6 +58,8 @@
   import TicketModel, { type Redis } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
+
+  type RowData = { cluster_id: number } & Omit<Props['ticketDetails']['details']['infos'][number], 'cluster_ids'>;
 
   interface Props {
     ticketDetails: TicketModel<Redis.VersionUpdateOnline>;
@@ -37,45 +74,10 @@
 
   const { t } = useI18n();
 
-  const { clusters, infos } = props.ticketDetails.details;
-  const dataList: (Props['ticketDetails']['details']['clusters'][number] &
-    Props['ticketDetails']['details']['infos'][number])[] = [];
-  infos.forEach((infoItem) => {
-    infoItem.cluster_ids.forEach((clusterId) => {
-      dataList.push(Object.assign({}, infoItem, clusters[clusterId]));
-    });
-  });
-
-  const columns = [
-    {
-      field: 'immute_domain',
-      label: t('目标集群'),
-      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'cluster_type_name',
-      label: t('架构版本'),
-      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'node_type',
-      label: t('节点类型'),
-      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'current_versions',
-      label: t('当前使用的版本'),
-      render: ({ cell }: { cell: string[] }) => <span>{cell.length > 0 ? cell.join(',') : '--'}</span>,
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'target_version',
-      label: t('目标版本'),
-      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-      showOverflowTooltip: true,
-    },
-  ];
+  const dataList: RowData[] = props.ticketDetails.details.infos.flatMap((infoItem) =>
+    infoItem.cluster_ids.map((clusterId) => ({
+      ...infoItem,
+      cluster_id: clusterId,
+    })),
+  );
 </script>

@@ -156,7 +156,7 @@
     [TicketTypes.REDIS_PURGE]: TicketTypes.REDIS_PURGE, // Redis 集群清档
     [TicketTypes.REDIS_SCALE_UPDOWN]: TicketTypes.REDIS_SCALE_UPDOWN, // Redis 集群容量变更
     [TicketTypes.REDIS_SINGLE_INS_MIGRATE]: TicketTypes.REDIS_SINGLE_INS_MIGRATE, // Redis 主从迁移
-    [TicketTypes.REDIS_VERSION_UPDATE_ONLINE]: 'RedisVersionUpgrade', // redis 版本升级
+    [TicketTypes.REDIS_VERSION_UPDATE_ONLINE]: TicketTypes.REDIS_VERSION_UPDATE_ONLINE, // redis 版本升级
     [TicketTypes.RIAK_CLUSTER_APPLY]: 'RiakApply',
     [TicketTypes.SQLSERVER_ADD_SLAVE]: TicketTypes.SQLSERVER_ADD_SLAVE, // sqlserver 添加从库
     [TicketTypes.SQLSERVER_BACKUP_DBS]: TicketTypes.SQLSERVER_BACKUP_DBS, // sqlserver 库备份
