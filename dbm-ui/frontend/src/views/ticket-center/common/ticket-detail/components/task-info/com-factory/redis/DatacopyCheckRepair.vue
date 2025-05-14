@@ -12,57 +12,80 @@
 -->
 
 <template>
-  <DbOriginalTable
-    :columns="columns"
-    :data="ticketDetails.details.infos" />
-  <div class="ticket-details-list">
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('执行模式') }}：</span>
-      <span class="ticket-details-item-value">{{ executeModesMap[ticketDetails.details.execute_mode] }}</span>
-    </div>
-    <div
+  <BkTable
+    :data="ticketDetails.details.infos"
+    show-overflow-tooltip>
+    <BkTableColumn
+      field="bill_id"
+      :label="t('关联单据')"
+      :min-width="130" />
+    <BkTableColumn
+      field="src_cluster"
+      :label="t('源集群')"
+      :min-width="220" />
+    <BkTableColumn
+      field="src_instances"
+      :label="t('源实例')"
+      :min-width="200">
+      <template #default="{ data }: { data: RowData }">
+        <span v-if="_.isEqual(['all'], data.src_instances)">{{ t('全部') }}</span>
+        <TagBlock
+          v-else
+          :data="data.src_instances" />
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      field="dst_cluster"
+      :label="t('目标集群')"
+      :min-width="220" />
+    <BkTableColumn :label="t('包含 Key')">
+      <template #default="{ data }: { data: RowData }">
+        <TagBlock :data="generateSplitList(data.key_white_regex)" />
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('排除 Key')">
+      <template #default="{ data }: { data: RowData }">
+        <TagBlock :data="generateSplitList(data.key_black_regex)" />
+      </template>
+    </BkTableColumn>
+  </BkTable>
+  <InfoList>
+    <InfoItem :label="t('执行模式:')">
+      {{ executeModesMap[ticketDetails.details.execute_mode] }}
+    </InfoItem>
+    <InfoItem
       v-if="ticketDetails.details.execute_mode === 'scheduled_execution'"
-      class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('指定执行时间') }}：</span>
-      <span class="ticket-details-item-value">
-        {{ utcDisplayTime(ticketDetails.details.specified_execution_time) }}
-      </span>
-    </div>
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('指定停止时间') }}：</span>
-      <span class="ticket-details-item-value">
-        {{ utcDisplayTime(ticketDetails.details.check_stop_time) }}
-      </span>
-    </div>
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('一直保持校验修复') }}：</span>
-      <span class="ticket-details-item-value">
-        {{ ticketDetails.details.keep_check_and_repair ? t('是') : t('否') }}
-      </span>
-    </div>
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('修复数据') }}：</span>
-      <span class="ticket-details-item-value">
-        {{ ticketDetails.details.data_repair_enabled ? t('是') : t('否') }}
-      </span>
-    </div>
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('修复模式') }}：</span>
-      <span class="ticket-details-item-value">
-        {{ repairModesMap[ticketDetails.details.repair_mode] }}
-      </span>
-    </div>
-  </div>
+      :label="t('指定执行时间')">
+      {{ utcDisplayTime(ticketDetails.details.specified_execution_time) }}
+    </InfoItem>
+    <InfoItem :label="t('指定停止时间')">
+      {{ utcDisplayTime(ticketDetails.details.check_stop_time) }}
+    </InfoItem>
+    <InfoItem :label="t('一直保持校验修复')">
+      {{ ticketDetails.details.keep_check_and_repair ? t('是') : t('否') }}
+    </InfoItem>
+    <InfoItem :label="t('修复数据')">
+      {{ ticketDetails.details.data_repair_enabled ? t('是') : t('否') }}
+    </InfoItem>
+    <InfoItem :label="t('修复模式')">
+      {{ repairModesMap[ticketDetails.details.repair_mode] }}
+    </InfoItem>
+  </InfoList>
 </template>
 
 <script setup lang="tsx">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Redis } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
 
+  import TagBlock from '@components/tag-block/Index.vue';
+
   import { utcDisplayTime } from '@utils';
+
+  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Redis.DatacopyCheckRepair>;
@@ -79,69 +102,15 @@
 
   const { t } = useI18n();
 
-  const executeModesMap = {
+  const executeModesMap: Record<string, string> = {
     auto_execution: t('自动执行'),
     scheduled_execution: t('定时执行'),
   };
 
-  const repairModesMap = {
+  const repairModesMap: Record<string, string> = {
     auto_repair: t('自动修复'),
     manual_confirm: t('人工确认'),
   };
 
-  const columns = [
-    {
-      field: 'bill_id',
-      label: t('关联单据'),
-    },
-    {
-      field: 'src_cluster',
-      label: t('源集群'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'src_instances',
-      label: t('源实例'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'taregtClusterName',
-      label: t('目标集群'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'targetNum',
-      label: t('包含 Key'),
-      render: ({ data }: { data: RowData }) => {
-        if (data.key_white_regex.length > 0) {
-          return data.key_white_regex.split('\n').map((key, index) => (
-            <bk-tag
-              key={index}
-              type='stroke'>
-              {key}
-            </bk-tag>
-          ));
-        }
-        return <span>--</span>;
-      },
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'time',
-      label: t('排除 Key'),
-      render: ({ data }: { data: RowData }) => {
-        if (data.key_black_regex.length > 0) {
-          return data.key_black_regex.split('\n').map((key, index) => (
-            <bk-tag
-              key={index}
-              type='stroke'>
-              {key}
-            </bk-tag>
-          ));
-        }
-        return <span>--</span>;
-      },
-      showOverflowTooltip: true,
-    },
-  ];
+  const generateSplitList = (str: string) => (str ? str.split('\n') : []);
 </script>

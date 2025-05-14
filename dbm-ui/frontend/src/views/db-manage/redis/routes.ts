@@ -154,14 +154,7 @@ const toolboxRoutes = [
       },
     ] as RouteRecordRaw[],
   },
-  {
-    path: 'data-check-repair/:page?',
-    name: 'RedisToolboxDataCheckRepair',
-    meta: {
-      navName: t('数据校验修复'),
-    },
-    component: () => import('@views/db-manage/redis/data-check-repair/Index.vue'),
-  },
+  createRouteItem(TicketTypes.REDIS_DATACOPY_CHECK_REPAIR, t('数据校验修复')),
 ];
 
 const redisInstanceListRoute = {

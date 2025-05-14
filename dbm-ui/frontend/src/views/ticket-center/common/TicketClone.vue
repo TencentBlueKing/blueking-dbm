@@ -138,7 +138,7 @@
     [TicketTypes.REDIS_CLUSTER_TYPE_UPDATE]: TicketTypes.REDIS_CLUSTER_TYPE_UPDATE, // Redis 集群类型变更
     [TicketTypes.REDIS_DATA_STRUCTURE]: 'RedisDBStructure', // Redis 定点构造
     [TicketTypes.REDIS_DATA_STRUCTURE_TASK_DELETE]: 'RedisStructureInstance', // Redis 删除构造任务
-    [TicketTypes.REDIS_DATACOPY_CHECK_REPAIR]: 'RedisToolboxDataCheckRepair', // Redis 数据校验修复
+    [TicketTypes.REDIS_DATACOPY_CHECK_REPAIR]: TicketTypes.REDIS_DATACOPY_CHECK_REPAIR, // Redis 数据校验修复
     [TicketTypes.REDIS_DESTROY]: 'DatabaseRedisList', // Redis 集群删除
     [TicketTypes.REDIS_INS_APPLY]: 'SelfServiceApplyRedisHa',
     [TicketTypes.REDIS_KEYS_DELETE]: TicketTypes.REDIS_KEYS_DELETE, // Redis 删除 key
