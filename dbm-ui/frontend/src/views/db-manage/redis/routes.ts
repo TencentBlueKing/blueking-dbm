@@ -27,16 +27,7 @@ const { createRouteItem } = createToolboxRoute(DBTypes.REDIS);
 
 const redisInstallModuleRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_LOAD_MODULES, t('安装 Module'));
 const redisCapacityChangeRoute = createRouteItem(TicketTypes.REDIS_SCALE_UPDOWN, t('集群容量变更'));
-
-const redisProxyScaleUpRoute = {
-  path: 'proxy-scale-up/:page?',
-  name: 'RedisProxyScaleUp',
-  meta: {
-    navName: t('扩容接入层'),
-  },
-  component: () => import('@views/db-manage/redis/proxy-scale-up/Index.vue'),
-};
-
+const redisProxyScaleUpRoute = createRouteItem(TicketTypes.REDIS_PROXY_SCALE_UP, t('扩容接入层'));
 const redisProxyScaleDownRoute = createRouteItem(TicketTypes.REDIS_PROXY_SCALE_DOWN, t('缩容接入层'));
 const redisDBCreateSlaveRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_ADD_SLAVE, t('重建从库'));
 const redisMasterFailoverRoute = createRouteItem(TicketTypes.REDIS_MASTER_SLAVE_SWITCH, t('主从切换'));

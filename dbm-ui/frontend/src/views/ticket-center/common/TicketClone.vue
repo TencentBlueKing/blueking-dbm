@@ -153,7 +153,7 @@
     [TicketTypes.REDIS_PROXY_CLOSE]: 'DatabaseRedisList', // Redis 集群禁用
     [TicketTypes.REDIS_PROXY_OPEN]: 'DatabaseRedisList', // Redis 集群启用
     [TicketTypes.REDIS_PROXY_SCALE_DOWN]: TicketTypes.REDIS_PROXY_SCALE_DOWN, // Redis 缩容接入层
-    [TicketTypes.REDIS_PROXY_SCALE_UP]: 'RedisProxyScaleUp', // Redis 扩容接入层
+    [TicketTypes.REDIS_PROXY_SCALE_UP]: TicketTypes.REDIS_PROXY_SCALE_UP, // Redis 扩容接入层
     [TicketTypes.REDIS_PURGE]: TicketTypes.REDIS_PURGE, // Redis 集群清档
     [TicketTypes.REDIS_SCALE_UPDOWN]: TicketTypes.REDIS_SCALE_UPDOWN, // Redis 集群容量变更
     [TicketTypes.REDIS_SINGLE_INS_MIGRATE]: TicketTypes.REDIS_SINGLE_INS_MIGRATE, // Redis 主从迁移
