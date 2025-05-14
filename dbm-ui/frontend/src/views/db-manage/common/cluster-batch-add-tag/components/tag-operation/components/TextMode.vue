@@ -83,7 +83,6 @@
       .filter((item) => !!item);
     const validPairRegex = /[:：/]/;
     const pairInfo: TagsPairType = {};
-    const notExistKeys: string[] = [];
     const notExistValues: {
       key: string;
       value: string;
@@ -101,7 +100,10 @@
       }
 
       if (!props.keyValueMap[key]) {
-        notExistKeys.push(key);
+        notExistValues.push({
+          key,
+          value,
+        });
       }
 
       if (!tagKeyRegex.test(key)) {
@@ -134,13 +136,6 @@
           },
         });
       }
-    }
-
-    if (notExistKeys.length) {
-      verifyTip.value = t('标签键m不存在', {
-        m: notExistKeys.join(' , '),
-      });
-      return null;
     }
 
     if (notExistValues.length) {
