@@ -132,6 +132,7 @@
     [TicketTypes.REDIS_CLUSTER_CUTOFF]: TicketTypes.REDIS_CLUSTER_CUTOFF, // Redis 整机替换
     [TicketTypes.REDIS_CLUSTER_DATA_COPY]: 'RedisDBDataCopy', // Redis 数据复制
     [TicketTypes.REDIS_CLUSTER_INS_MIGRATE]: TicketTypes.REDIS_CLUSTER_INS_MIGRATE, // Redis 集群迁移
+    [TicketTypes.REDIS_CLUSTER_LOAD_MODULES]: TicketTypes.REDIS_CLUSTER_LOAD_MODULES, // 安装 Module
     [TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY]: 'RedisRecoverFromInstance', // Redis 以构造实例恢复
     [TicketTypes.REDIS_CLUSTER_SHARD_NUM_UPDATE]: 'RedisClusterShardUpdate', // Redis 集群分片变更
     [TicketTypes.REDIS_CLUSTER_TYPE_UPDATE]: TicketTypes.REDIS_CLUSTER_TYPE_UPDATE, // Redis 集群类型变更

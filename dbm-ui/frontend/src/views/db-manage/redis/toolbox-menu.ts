@@ -85,7 +85,7 @@ export default [
           },
           {
             dbConsoleValue: 'redis.toolbox.installModule',
-            id: 'RedisInstallModule',
+            id: TicketTypes.REDIS_CLUSTER_LOAD_MODULES,
             name: t('安装 Module'),
             parentId: 'cluster-manage',
           },

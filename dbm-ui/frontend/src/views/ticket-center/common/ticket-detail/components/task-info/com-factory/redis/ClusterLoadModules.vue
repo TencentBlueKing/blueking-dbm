@@ -16,6 +16,7 @@
     :data="ticketDetails.details.infos"
     show-overflow>
     <BkTableColumn
+      fixed="left"
       :label="t('源集群')"
       :min-width="220">
       <template #default="{ data }: { data: RowData }">
@@ -24,7 +25,7 @@
     </BkTableColumn>
     <BkTableColumn
       :label="t('架构版本')"
-      :min-width="130">
+      :width="150">
       <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].cluster_type_name }}
       </template>
@@ -32,11 +33,15 @@
     <BkTableColumn
       field="db_version"
       :label="t('版本')"
-      :min-width="130" />
+      :width="200" />
     <BkTableColumn
       field="load_modules"
       :label="t('Module')"
-      :min-width="130" />
+      :min-width="200">
+      <template #default="{ data }: { data: RowData }">
+        <TagBlock :data="data.load_modules" />
+      </template>
+    </BkTableColumn>
   </BkTable>
 </template>
 
@@ -46,6 +51,8 @@
   import TicketModel, { type Redis } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
+
+  import TagBlock from '@components/tag-block/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Redis.ClusterLoadModules>;
