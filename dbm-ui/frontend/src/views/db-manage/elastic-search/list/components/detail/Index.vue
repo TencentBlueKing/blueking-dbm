@@ -50,7 +50,8 @@
         :node-cofig="{ startX: 400 }" />
       <BaseInfo
         v-if="activePanelKey === 'baseInfo' && clusterData"
-        :data="clusterData" />
+        :data="clusterData"
+        @refresh="handleRefresh" />
       <NodeList
         v-if="activePanelKey === 'nodeList'"
         :key="clusterId"
@@ -79,15 +80,17 @@
   import ClusterTopo from '@views/db-manage/common/cluster-details/ClusterTopo.vue';
   import ClusterEventChange from '@views/db-manage/common/cluster-event-change/EventChange.vue';
   import MonitorDashboard from '@views/db-manage/common/cluster-monitor/MonitorDashboard.vue';
+  import BaseInfo from '@views/db-manage/common/RenderBaseInfo.vue';
 
   import { checkDbConsole } from '@utils';
 
-  import BaseInfo from './components/BaseInfo.vue';
   import NodeList from './components/node-list/Index.vue';
 
   interface Props {
     clusterId: number;
   }
+
+  type Emits = (e: 'refresh') => void;
 
   interface PanelItem {
     label: string;
@@ -96,6 +99,8 @@
   }
 
   const props = defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
@@ -129,13 +134,17 @@
     },
   });
 
+  const updateDetails = () => {
+    fetchResourceDetails({
+      id: props.clusterId,
+    });
+  };
+
   watch(
     () => props.clusterId,
     () => {
       if (props.clusterId) {
-        fetchResourceDetails({
-          id: props.clusterId,
-        });
+        updateDetails();
         runGetMonitorUrls({
           bk_biz_id: currentBizId,
           cluster_id: props.clusterId,
@@ -147,6 +156,11 @@
       immediate: true,
     },
   );
+
+  const handleRefresh = () => {
+    updateDetails();
+    emits('refresh');
+  };
 </script>
 <style lang="less">
   .es-detail-page {

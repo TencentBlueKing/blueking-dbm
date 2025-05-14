@@ -73,3 +73,8 @@ export function getCommonSqls(params: { db_type: string }) {
     }[]
   >(`${path}/common_sqls/`, params);
 }
+
+// 查询内置标签
+export function getBuiltinLabels() {
+  return http.get<string[]>(`${path}/builtin_labels/`);
+}

@@ -16,12 +16,16 @@
     :left-width="368"
     name="esClusterList">
     <template #list>
-      <List v-model:cluster-id="clusterId" />
+      <List
+        ref="listRef"
+        v-model:cluster-id="clusterId" />
     </template>
     <template
       v-if="clusterId"
       #right>
-      <Detail :cluster-id="clusterId" />
+      <Detail
+        :cluster-id="clusterId"
+        @refresh="handleRefresh" />
     </template>
   </StretchLayout>
 </template>
@@ -34,5 +38,10 @@
   import Detail from './components/detail/Index.vue';
   import List from './components/list/Index.vue';
 
+  const listRef = ref<InstanceType<typeof List>>();
   const clusterId = ref(0);
+
+  const handleRefresh = () => {
+    listRef.value!.refresh();
+  };
 </script>

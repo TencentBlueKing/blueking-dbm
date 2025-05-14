@@ -153,6 +153,7 @@
     defaultParams: [
       {
         bk_biz_id: props.bizId,
+        type: 'resource',
       },
     ],
     onSuccess(data) {

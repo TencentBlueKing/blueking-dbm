@@ -145,6 +145,20 @@
             </span>
           </BkMenuItem>
         </BkMenuGroup>
+        <BkMenuGroup :name="t('其他')">
+          <BkMenuItem
+            key="businessClusterTag"
+            v-db-console="'bizConfigManage.businessClusterTag'">
+            <template #icon>
+              <DbIcon type="tag-3" />
+            </template>
+            <span
+              v-overflow-tips.right
+              class="text-overflow">
+              {{ t('集群标签管理') }}
+            </span>
+          </BkMenuItem>
+        </BkMenuGroup>
       </BkMenu>
     </ScrollFaker>
   </div>

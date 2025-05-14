@@ -44,7 +44,7 @@
             v-for="(item, index) in overflowData"
             :key="index"
             v-bk-tooltips="item"
-            class="render-row-item"
+            class="render-row-popover-item"
             style="max-width: 400px">
             {{ item }}
           </BkTag>
@@ -132,11 +132,14 @@
     .visible-content {
       position: absolute;
       display: flex;
-      gap: 4px;
     }
-
-    .render-row-item {
-      padding: 0 10px 0 4px;
+  }
+</style>
+<style lang="less">
+  .render-row-popover-item {
+    & ~ .render-row-popover-item {
+      margin-bottom: 4px;
+      margin-left: 4px;
     }
   }
 </style>

@@ -1,6 +1,5 @@
 <template>
   <BkDropdown
-    class="ml-8"
     @hide="() => (isCopyDropdown = false)"
     @show="() => (isCopyDropdown = true)">
     <BkButton

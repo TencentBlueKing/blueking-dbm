@@ -1,37 +1,34 @@
 <template>
   <div class="sqlserver-ha-cluster-list-page">
     <div class="header-action">
-      <div class="mb-16">
-        <BkButton
-          v-db-console="'sqlserver.haClusterList.instanceApply'"
-          theme="primary"
-          @click="handleApply">
-          {{ t('申请实例') }}
-        </BkButton>
-        <ClusterBatchOperation
-          v-db-console="'sqlserver.haClusterList.batchOperation'"
-          class="ml-8"
-          :cluster-type="ClusterTypes.SQLSERVER_HA"
-          :selected="selected"
-          @success="handleBatchOperationSuccess" />
-        <BkButton
-          v-db-console="'sqlserver.haClusterList.importAuthorize'"
-          class="ml-8"
-          @click="handleShowExcelAuthorize">
-          {{ t('导入授权') }}
-        </BkButton>
-        <DropdownExportExcel
-          v-db-console="'sqlserver.haClusterList.export'"
-          export-type="cluster"
-          :has-selected="hasSelected"
-          :ids="selectedIds"
-          type="sqlserver_ha" />
-        <ClusterIpCopy
-          v-db-console="'sqlserver.haClusterList.batchCopy'"
-          :selected="selected" />
-      </div>
+      <BkButton
+        v-db-console="'sqlserver.haClusterList.instanceApply'"
+        theme="primary"
+        @click="handleApply">
+        {{ t('申请实例') }}
+      </BkButton>
+      <ClusterBatchOperation
+        v-db-console="'sqlserver.haClusterList.batchOperation'"
+        :cluster-type="ClusterTypes.SQLSERVER_HA"
+        :selected="selected"
+        @success="fetchData" />
+      <BkButton
+        v-db-console="'sqlserver.haClusterList.importAuthorize'"
+        @click="handleShowExcelAuthorize">
+        {{ t('导入授权') }}
+      </BkButton>
+      <DropdownExportExcel
+        v-db-console="'sqlserver.haClusterList.export'"
+        export-type="cluster"
+        :has-selected="hasSelected"
+        :ids="selectedIds"
+        type="sqlserver_ha" />
+      <ClusterIpCopy
+        v-db-console="'sqlserver.haClusterList.batchCopy'"
+        :selected="selected" />
+      <TagSearch @search="fetchData" />
       <DbSearchSelect
-        class="header-select mb-16"
+        class="header-select"
         :data="searchSelectData"
         :get-menu-list="getMenuList"
         :model-value="searchValue"
@@ -80,6 +77,7 @@
         :get-table-instance="getTableInstance"
         :is-filter="isFilter"
         :selected-list="selected" />
+      <ClusterTagColumn @success="fetchData" />
       <StatusColumn :cluster-type="ClusterTypes.SQLSERVER_HA" />
       <ClusterStatsColumn :cluster-type="ClusterTypes.SQLSERVER_HA" />
       <RoleColumn
@@ -107,7 +105,9 @@
         </template>
       </BkTableColumn>
       <ModuleNameColumn :cluster-type="ClusterTypes.SQLSERVER_HA" />
-      <CommonColumn :cluster-type="ClusterTypes.SQLSERVER_HA" />
+      <CommonColumn
+        :cluster-type="ClusterTypes.SQLSERVER_HA"
+        @refresh="fetchData" />
       <BkTableColumn
         :fixed="isStretchLayoutOpen ? false : 'right'"
         :label="t('操作')"
@@ -213,12 +213,14 @@
 
   import DbTable from '@components/db-table/index.vue';
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
+  import TagSearch from '@components/tag-search/index.vue';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import ClusterNameColumn from '@views/db-manage/common/cluster-table-column/ClusterNameColumn.vue';
   import ClusterStatsColumn from '@views/db-manage/common/cluster-table-column/ClusterStatsColumn.vue';
+  import ClusterTagColumn from '@views/db-manage/common/cluster-table-column/ClusterTagColumn.vue';
   import CommonColumn from '@views/db-manage/common/cluster-table-column/CommonColumn.vue';
   import IdColumn from '@views/db-manage/common/cluster-table-column/IdColumn.vue';
   import MasterDomainColumn from '@views/db-manage/common/cluster-table-column/MasterDomainColumn.vue';
@@ -233,6 +235,10 @@
   import ClusterReset from '@views/db-manage/sqlserver/components/cluster-reset/Index.vue';
 
   import { getMenuListSearch, getSearchSelectorParams } from '@utils';
+
+  interface Exposes {
+    refresh: () => void;
+  }
 
   const haClusterData = defineModel<{
     clusterId: number;
@@ -270,7 +276,7 @@
       id: 'domain',
       name: t('访问入口'),
     },
-    fetchDataFn: () => fetchData(isInit),
+    fetchDataFn: () => fetchData(),
     searchType: ClusterTypes.SQLSERVER_HA,
   });
 
@@ -384,6 +390,7 @@
       'disaster_tolerance_level',
       'region',
       'spec_name',
+      'tags',
     ],
     disabled: ['master_domain'],
   });
@@ -423,17 +430,14 @@
     return searchSelectData.value.find((set) => set.id === item.id)?.children || [];
   };
 
-  let isInit = true;
-  const fetchData = (loading?: boolean) => {
+  const fetchData = (extraParams: Record<string, any> = {}) => {
     tableRef.value!.fetchData(
       { ...getSearchSelectorParams(searchValue.value) },
       {
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        ...extraParams,
         ...sortValue,
       },
-      loading,
     );
-    isInit = false;
   };
 
   const handleResetCluster = (data: SqlServerHaModel) => {
@@ -495,10 +499,9 @@
     });
   };
 
-  const handleBatchOperationSuccess = () => {
-    tableRef.value!.clearSelected();
-    fetchData();
-  };
+  defineExpose<Exposes>({
+    refresh: fetchData,
+  });
 </script>
 <style lang="less">
   @import '@styles/mixins.less';
@@ -512,12 +515,16 @@
     .header-action {
       display: flex;
       flex-wrap: wrap;
+      margin-bottom: 16px;
+      gap: 8px;
+
+      .tag-search-main {
+        margin-left: auto;
+      }
 
       .header-select {
         flex: 1;
         max-width: 500px;
-        min-width: 320px;
-        margin-left: auto;
       }
     }
 

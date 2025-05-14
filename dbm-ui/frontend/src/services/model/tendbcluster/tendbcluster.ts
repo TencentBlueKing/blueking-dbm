@@ -79,6 +79,7 @@ export default class TendbCluster extends ClusterBase {
     tendb_spider_slave_destroy: boolean;
     tendbcluster_destroy: boolean;
     tendbcluster_dump_data: boolean;
+    tendbcluster_edit: boolean;
     tendbcluster_enable_disable: boolean;
     tendbcluster_node_rebalance: boolean;
     tendbcluster_spider_add_nodes: boolean;

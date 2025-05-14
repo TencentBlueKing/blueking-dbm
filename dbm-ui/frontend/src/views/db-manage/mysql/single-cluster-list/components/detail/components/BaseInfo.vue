@@ -18,18 +18,24 @@
     :data="data" />
 </template>
 
-<script setup lang="ts">
+<script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
   import TendbsingleModel from '@services/model/mysql/tendbsingle';
 
   import EditInfo, { type InfoColumn } from '@components/editable-info/index.vue';
 
+  import ClusterTagCell from '@views/db-manage/common/cluster-table-column/components/cluster-tag-cell/Index.vue';
+
   interface Props {
     data: TendbsingleModel;
   }
 
+  type Emits = (e: 'refresh') => void;
+
   const props = defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
@@ -46,6 +52,16 @@
       {
         key: 'bk_cloud_name',
         label: t('管控区域'),
+      },
+      {
+        key: 'sortedTags',
+        label: t('标签'),
+        render: () => (
+          <ClusterTagCell
+            data={props.data}
+            onSuccess={() => emits('refresh')}
+          />
+        ),
       },
     ],
     [

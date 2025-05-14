@@ -1,5 +1,5 @@
 <template>
-  <span class="inline-block ml-8">
+  <span class="inline-block">
     <BkDropdown
       @hide="() => (isCopyDropdown = false)"
       @show="() => (isCopyDropdown = true)">

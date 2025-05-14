@@ -21,6 +21,11 @@
         @click="toApply">
         {{ t('申请实例') }}
       </AuthButton>
+      <ClusterBatchOperation
+        v-db-console="'riak.clusterManage.batchOperation'"
+        :cluster-type="ClusterTypes.RIAK"
+        :selected="selected"
+        @success="fetchData" />
       <DropdownExportExcel
         v-db-console="'riak.clusterManage.export'"
         :ids="selectedIds"
@@ -28,6 +33,7 @@
       <ClusterIpCopy
         v-db-console="'riak.clusterManage.batchCopy'"
         :selected="selected" />
+      <TagSearch @search="fetchData" />
       <DbSearchSelect
         :data="serachData"
         :get-menu-list="getMenuList"
@@ -78,6 +84,7 @@
         :is-filter="isFilter"
         :selected-list="selected"
         @refresh="fetchData" />
+      <ClusterTagColumn @success="fetchData" />
       <StatusColumn :cluster-type="ClusterTypes.RIAK" />
       <ClusterStatsColumn :cluster-type="ClusterTypes.RIAK" />
       <RoleColumn
@@ -216,10 +223,13 @@
 
   import DbTable from '@components/db-table/index.vue';
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
+  import TagSearch from '@components/tag-search/index.vue';
 
+  import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import ClusterNameColumn from '@views/db-manage/common/cluster-table-column/ClusterNameColumn.vue';
   import ClusterStatsColumn from '@views/db-manage/common/cluster-table-column/ClusterStatsColumn.vue';
+  import ClusterTagColumn from '@views/db-manage/common/cluster-table-column/ClusterTagColumn.vue';
   import CommonColumn from '@views/db-manage/common/cluster-table-column/CommonColumn.vue';
   import IdColumn from '@views/db-manage/common/cluster-table-column/IdColumn.vue';
   import MasterDomainColumn from '@views/db-manage/common/cluster-table-column/MasterDomainColumn.vue';
@@ -237,7 +247,7 @@
   type Emits = (e: 'detailOpenChange', data: boolean) => void;
 
   interface Expose {
-    freshData: () => void;
+    refresh: () => void;
   }
 
   const emits = defineEmits<Emits>();
@@ -364,6 +374,7 @@
       'status',
       'cluster_stats',
       'riak_node',
+      'tags',
     ],
     disabled: ['master_domain'],
   });
@@ -451,11 +462,7 @@
     deleteNodeShow.value = true;
   };
 
-  const fetchData = (
-    otherParamas: {
-      status?: string;
-    } = {},
-  ) => {
+  const fetchData = (otherParamas: Record<string, any> = {}) => {
     const params = {
       ...otherParamas,
       ...getSearchSelectorParams(searchValue.value),
@@ -478,9 +485,7 @@
   });
 
   defineExpose<Expose>({
-    freshData() {
-      fetchData();
-    },
+    refresh: fetchData,
   });
 </script>
 <style lang="less">
@@ -494,12 +499,15 @@
       display: flex;
       flex-wrap: wrap;
       margin-bottom: 16px;
+      gap: 8px;
+
+      .tag-search-main {
+        margin-left: auto;
+      }
 
       .bk-search-select {
         flex: 1;
         max-width: 500px;
-        min-width: 320px;
-        margin-left: auto;
       }
 
       .bk-date-picker {
