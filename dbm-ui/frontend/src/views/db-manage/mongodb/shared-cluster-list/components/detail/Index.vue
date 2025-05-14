@@ -14,18 +14,18 @@
 <template>
   <Teleport to="#dbContentHeaderAppend">
     <div
-      v-if="isStretchLayoutOpen && data"
+      v-if="isStretchLayoutOpen && clusterData"
       class="shared-cluster-breadcrumbs-box">
-      <BkTag>{{ data.cluster_name }}</BkTag>
+      <BkTag>{{ clusterData.cluster_name }}</BkTag>
       <div class="shared-cluster-breadcrumbs-box-status">
         <span>{{ t('状态') }} :</span>
         <RenderClusterStatus
           class="ml-8"
-          :data="data.status" />
+          :data="clusterData.status" />
       </div>
       <div class="shared-cluster-breadcrumbs-box-button">
         <BkButton
-          :disabled="data.isOffline"
+          :disabled="clusterData.isOffline"
           size="small"
           @click="handleShowAccessEntry">
           {{ t('获取访问方式') }}
@@ -46,9 +46,9 @@
             <BkDropdownMenu class="dropdown-menu-with-button">
               <BkDropdownItem>
                 <BkButton
-                  :disabled="Boolean(data.operationTicketId)"
+                  :disabled="Boolean(clusterData.operationTicketId)"
                   text
-                  @click="handleDisableCluster([data])">
+                  @click="handleDisableCluster([clusterData])">
                   {{ t('禁用集群') }}
                 </BkButton>
               </BkDropdownItem>
@@ -90,8 +90,9 @@
         :cluster-type="ClusterTypes.MONGODB"
         :db-type="DBTypes.MONGODB" />
       <BaseInfo
-        v-if="activePanelKey === 'info' && data"
-        :data="data" />
+        v-if="activePanelKey === 'info' && clusterData"
+        :data="clusterData"
+        @refresh="handleRefresh" />
       <ClusterEventChange
         v-if="activePanelKey === 'record'"
         :id="clusterId" />
@@ -101,9 +102,9 @@
     </div>
   </div>
   <AccessEntry
-    v-if="data"
+    v-if="clusterData"
     v-model:is-show="accessEntryInfoShow"
-    :data="data" />
+    :data="clusterData" />
 </template>
 
 <script setup lang="ts">
@@ -135,7 +136,11 @@
     clusterId: number;
   }
 
+  type Emits = (e: 'refresh') => void;
+
   const props = defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
   const router = useRouter();
@@ -158,7 +163,7 @@
   const activePanel = computed(() => monitorPanelList.value.find((item) => item.name === activePanelKey.value));
 
   const {
-    data,
+    data: clusterData,
     loading: isLoading,
     run: fetchResourceDetails,
   } = useRequest(getMongoClusterDetails, {
@@ -178,15 +183,20 @@
     },
   });
 
+  const updateDetails = () => {
+    fetchResourceDetails({
+      cluster_id: props.clusterId,
+    });
+  };
+
   watch(
     () => props.clusterId,
     () => {
       if (!props.clusterId) {
         return;
       }
-      fetchResourceDetails({
-        cluster_id: props.clusterId,
-      });
+
+      updateDetails();
       runGetMonitorUrls({
         bk_biz_id: currentBizId,
         cluster_id: props.clusterId,
@@ -206,10 +216,15 @@
     const routeInfo = router.resolve({
       name: TicketTypes.MONGODB_SCALE_UPDOWN,
       query: {
-        masterDomain: data.value?.master_domain,
+        masterDomain: clusterData.value?.master_domain,
       },
     });
     window.open(routeInfo.href, '_blank');
+  };
+
+  const handleRefresh = () => {
+    updateDetails();
+    emits('refresh');
   };
 </script>
 

@@ -16,26 +16,38 @@ import { checkDbConsole } from '@utils';
 
 import { t } from '@locales/index';
 
-const routes: RouteRecordRaw[] = [
-  {
-    path: 'pool/:page?',
-    name: 'BizResourcePool',
-    meta: {
-      fullscreen: true,
-      navName: t('资源池'),
-    },
-    component: () => import('@views/resource-manage/pool/business/Index.vue'),
+const bizResourceTagRoute = {
+  path: 'resource',
+  name: 'BizResourceTag',
+  meta: {
+    navName: t('资源标签'),
   },
-  {
-    path: 'business-resource-tag',
-    name: 'BizResourceTag',
-    meta: {
-      navName: t('资源标签'),
-    },
-    component: () => import('@views/tag-manage/Index.vue'),
+  component: () => import('@/views/tag-manage/resource/Index.vue'),
+};
+
+const bizClusterTagRoute = {
+  path: 'cluster',
+  name: 'businessClusterTag',
+  meta: {
+    navName: t('集群标签管理'),
   },
-];
+  component: () => import('@/views/tag-manage/cluster/Index.vue'),
+};
 
 export default function getRoutes() {
-  return checkDbConsole('bizConfigManage.businessResourceTag') ? routes : [];
+  const routes: RouteRecordRaw[] = [
+    {
+      path: 'tag-manage',
+      name: 'TagManage',
+      component: () => import('@views/tag-manage/Index.vue'),
+      children: [],
+    },
+  ];
+  if (checkDbConsole('bizConfigManage.businessResourceTag')) {
+    routes[0].children!.push(bizResourceTagRoute);
+  }
+  if (checkDbConsole('bizConfigManage.businessClusterTag')) {
+    routes[0].children!.push(bizClusterTagRoute);
+  }
+  return routes;
 }

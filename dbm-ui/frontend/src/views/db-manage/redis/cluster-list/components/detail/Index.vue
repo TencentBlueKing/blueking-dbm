@@ -44,8 +44,9 @@
         :cluster-type="DBTypes.REDIS"
         :db-type="DBTypes.REDIS" />
       <BaseInfo
-        v-if="activePanelKey === 'info' && data"
-        :data="data" />
+        v-if="activePanelKey === 'info' && clusterData"
+        :data="clusterData"
+        @refresh="handleRefresh" />
       <ClusterEventChange
         v-if="activePanelKey === 'record'"
         :id="clusterId" />
@@ -55,12 +56,10 @@
     </div>
   </div>
 </template>
-
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import RedisModel from '@services/model/redis/redis';
   import { getMonitorUrls } from '@services/source/monitorGrafana';
   import { getRedisDetail } from '@services/source/redis';
 
@@ -80,6 +79,8 @@
     clusterId: number;
   }
 
+  type Emits = (e: 'refresh') => void;
+
   interface PanelItem {
     label: string;
     link: string;
@@ -88,11 +89,12 @@
 
   const props = defineProps<Props>();
 
+  const emits = defineEmits<Emits>();
+
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
 
   const activePanelKey = ref('topo');
-  const data = ref<RedisModel>();
   const currentClusterType = ref('');
 
   const monitorPanelList = ref<PanelItem[]>([]);
@@ -102,10 +104,13 @@
     return targetPanel;
   });
 
-  const { loading: isLoading, run: fetchResourceDetails } = useRequest(getRedisDetail, {
+  const {
+    data: clusterData,
+    loading: isLoading,
+    run: fetchResourceDetails,
+  } = useRequest(getRedisDetail, {
     manual: true,
     onSuccess(result) {
-      data.value = result;
       currentClusterType.value = result.cluster_type;
     },
   });
@@ -123,15 +128,20 @@
     },
   });
 
+  const updateDetails = () => {
+    fetchResourceDetails({
+      id: props.clusterId,
+    });
+  };
+
   watch(
     () => [props.clusterId, currentClusterType.value],
     () => {
       if (!props.clusterId) {
         return;
       }
-      fetchResourceDetails({
-        id: props.clusterId,
-      });
+
+      updateDetails();
       if (!currentClusterType.value) {
         return;
       }
@@ -145,8 +155,12 @@
       immediate: true,
     },
   );
-</script>
 
+  const handleRefresh = () => {
+    updateDetails();
+    emits('refresh');
+  };
+</script>
 <style lang="less" scoped>
   .cluster-details {
     z-index: 99;

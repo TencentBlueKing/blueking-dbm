@@ -32,7 +32,8 @@
         :db-type="DBTypes.SQLSERVER" />
       <BaseInfo
         v-if="activePanel === 'info'"
-        :single-cluster-data="singleClusterData" />
+        :single-cluster-data="singleClusterData"
+        @refresh="() => emits('refresh')" />
       <ClusterEventChange
         v-if="activePanel === 'record'"
         :id="singleClusterData.clusterId" />
@@ -67,6 +68,8 @@
     };
   }
 
+  type Emits = (e: 'refresh') => void;
+
   interface PanelItem {
     label: string;
     link: string;
@@ -74,6 +77,8 @@
   }
 
   const props = defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
@@ -108,7 +113,6 @@
     { immediate: true },
   );
 </script>
-
 <style lang="less" scoped>
   .cluster-details {
     height: 100%;

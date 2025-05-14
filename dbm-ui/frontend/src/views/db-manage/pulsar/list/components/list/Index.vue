@@ -21,6 +21,11 @@
         @click="handleGoApply">
         {{ t('申请实例') }}
       </AuthButton>
+      <ClusterBatchOperation
+        v-db-console="'pulsar.clusterManage.batchOperation'"
+        :cluster-type="ClusterTypes.PULSAR"
+        :selected="selected"
+        @success="fetchTableData" />
       <DropdownExportExcel
         v-db-console="'pulsar.clusterManage.export'"
         :ids="selectedIds"
@@ -28,6 +33,7 @@
       <ClusterIpCopy
         v-db-console="'pulsar.clusterManage.batchCopy'"
         :selected="selected" />
+      <TagSearch @search="fetchTableData" />
       <DbSearchSelect
         :data="serachData"
         :get-menu-list="getMenuList"
@@ -73,6 +79,7 @@
         :is-filter="isFilter"
         :selected-list="selected"
         @refresh="fetchTableData" />
+      <ClusterTagColumn @success="fetchTableData" />
       <StatusColumn :cluster-type="ClusterTypes.PULSAR" />
       <ClusterStatsColumn :cluster-type="ClusterTypes.PULSAR" />
       <RoleColumn
@@ -99,7 +106,9 @@
         label="Broker"
         :search-ip="batchSearchIpInatanceList"
         :selected-list="selected" />
-      <CommonColumn :cluster-type="ClusterTypes.PULSAR" />
+      <CommonColumn
+        :cluster-type="ClusterTypes.PULSAR"
+        @refresh="fetchTableData" />
       <BkTableColumn
         :fixed="isStretchLayoutOpen ? false : 'right'"
         :label="t('操作')"
@@ -265,10 +274,13 @@
 
   import DbTable from '@components/db-table/index.vue';
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
+  import TagSearch from '@components/tag-search/index.vue';
 
+  import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import ClusterNameColumn from '@views/db-manage/common/cluster-table-column/ClusterNameColumn.vue';
   import ClusterStatsColumn from '@views/db-manage/common/cluster-table-column/ClusterStatsColumn.vue';
+  import ClusterTagColumn from '@views/db-manage/common/cluster-table-column/ClusterTagColumn.vue';
   import CommonColumn from '@views/db-manage/common/cluster-table-column/CommonColumn.vue';
   import IdColumn from '@views/db-manage/common/cluster-table-column/IdColumn.vue';
   import MasterDomainColumn from '@views/db-manage/common/cluster-table-column/MasterDomainColumn.vue';
@@ -282,6 +294,10 @@
   import ClusterShrink from '@views/db-manage/pulsar/common/shrink/Index.vue';
 
   import { getMenuListSearch, getSearchSelectorParams } from '@utils';
+
+  interface Exposes {
+    refresh: () => void;
+  }
 
   const clusterId = defineModel<number>('clusterId');
 
@@ -338,7 +354,6 @@
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
   const isShowPassword = ref(false);
-  const isInit = ref(true);
   const selected = ref<PulsarModel[]>([]);
   const operationData = shallowRef<PulsarModel>();
 
@@ -435,6 +450,7 @@
       'pulsar_bookkeeper',
       'pulsar_zookeeper',
       'pulsar_broker',
+      'tags',
     ],
     disabled: ['master_domain'],
   });
@@ -478,10 +494,9 @@
     selected.value = list;
   };
 
-  const fetchTableData = (loading?: boolean) => {
+  const fetchTableData = (extraParams: Record<string, any> = {}) => {
     const searchParams = getSearchSelectorParams(searchValue.value);
-    tableRef.value?.fetchData(searchParams, { ...sortValue }, loading);
-    isInit.value = false;
+    tableRef.value?.fetchData(searchParams, { ...extraParams, ...sortValue });
   };
 
   const handleGoApply = () => {
@@ -528,6 +543,10 @@
       handleToDetails(Number(route.query.id));
     }
   });
+
+  defineExpose<Exposes>({
+    refresh: fetchTableData,
+  });
 </script>
 <style lang="less">
   .pulsar-list-page {
@@ -540,12 +559,15 @@
       display: flex;
       flex-wrap: wrap;
       margin-bottom: 16px;
+      gap: 8px;
+
+      .tag-search-main {
+        margin-left: auto;
+      }
 
       .bk-search-select {
         flex: 1;
         max-width: 500px;
-        min-width: 320px;
-        margin-left: auto;
       }
     }
 

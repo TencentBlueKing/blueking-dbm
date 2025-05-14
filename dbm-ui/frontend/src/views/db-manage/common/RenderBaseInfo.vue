@@ -18,7 +18,7 @@
         <tr>
           <td>ID：</td>
           <td>{{ data.id }}</td>
-          <td>{{ $t('状态') }}：</td>
+          <td>{{ t('状态') }}：</td>
           <td>
             <RenderClusterStatus
               v-if="data.status"
@@ -26,7 +26,7 @@
           </td>
         </tr>
         <tr>
-          <td>{{ $t('集群名称') }}：</td>
+          <td>{{ t('集群名称') }}：</td>
           <td>
             {{ data.cluster_name }}
             <span
@@ -35,43 +35,59 @@
               ({{ data.cluster_alias }})
             </span>
           </td>
-          <td>{{ $t('域名') }}：</td>
+          <td>{{ t('域名') }}：</td>
           <td>{{ data.domain }}</td>
         </tr>
         <tr>
-          <td>{{ $t('所属业务') }}：</td>
+          <td>{{ t('所属业务') }}：</td>
           <td>{{ displayBizName }}</td>
-          <td>{{ $t('数据版本') }}：</td>
+          <td>{{ t('数据版本') }}：</td>
           <td>{{ data.major_version }}</td>
         </tr>
         <tr>
-          <td>{{ $t('创建时间') }}：</td>
+          <td>{{ t('创建时间') }}：</td>
           <td>{{ data.create_at }}</td>
-          <td>{{ $t('容灾要求') }}：</td>
+          <td>{{ t('容灾要求') }}：</td>
           <td>{{ data.disasterToleranceLevelName || '--' }}</td>
         </tr>
         <tr>
-          <td>{{ $t('地域') }}：</td>
+          <td>{{ t('地域') }}：</td>
           <td>{{ data.region || '--' }}</td>
-          <td>{{ $t('规格') }}：</td>
+          <td>{{ t('规格') }}：</td>
           <td>{{ data.cluster_spec.spec_name || '--' }}</td>
         </tr>
         <tr>
-          <td>{{ $t('管控区域') }}：</td>
+          <td>{{ t('管控区域') }}：</td>
           <td>{{ data.bk_cloud_name ? `${data.bk_cloud_name}[${data.bk_cloud_id}]` : '--' }}</td>
+          <td>{{ t('标签') }}：</td>
+          <td>
+            <ClusterTagCell
+              :data="data"
+              @success="() => emits('refresh')" />
+          </td>
         </tr>
       </tbody>
     </table>
   </div>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import RenderClusterStatus from '@components/cluster-status/Index.vue';
+
+  import ClusterTagCell from '@views/db-manage/common/cluster-table-column/components/cluster-tag-cell/Index.vue';
 
   interface Props {
     data: { id: number } & Record<any, any>;
   }
 
+  type Emits = (e: 'refresh') => void;
+
   const props = defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   const displayBizName = computed(() => {
     const { bk_biz_id: id, bk_biz_name: name } = props.data;
@@ -84,6 +100,7 @@
 </script>
 <style lang="less">
   .render-cluster-base-info {
+    width: 100%;
     padding-top: 20px;
 
     table {

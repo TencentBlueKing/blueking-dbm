@@ -18,18 +18,24 @@
     :data="data" />
 </template>
 
-<script setup lang="ts">
+<script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
   import type TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
 
   import EditInfo, { type InfoColumn } from '@components/editable-info/index.vue';
 
+  import ClusterTagCell from '@views/db-manage/common/cluster-table-column/components/cluster-tag-cell/Index.vue';
+
   interface Props {
     data: TendbClusterModel;
   }
 
+  type Emits = (e: 'refresh') => void;
+
   const props = defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
@@ -68,6 +74,16 @@
         key: 'spec_name',
         label: t('规格'),
         render: () => props.data.cluster_spec.spec_name || '--',
+      },
+      {
+        key: 'sortedTags',
+        label: t('标签'),
+        render: () => (
+          <ClusterTagCell
+            data={props.data}
+            onSuccess={() => emits('refresh')}
+          />
+        ),
       },
     ],
     [

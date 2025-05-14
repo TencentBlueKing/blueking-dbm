@@ -45,12 +45,12 @@
     }[]
   >([]);
   const pagination = reactive({
-    offset: 0,
-    limit: 10,
     count: 0,
+    limit: 10,
+    offset: 0,
   });
 
-  const { run: runList, loading: isFetchingTagsList } = useRequest(listTag, {
+  const { loading: isFetchingTagsList, run: runList } = useRequest(listTag, {
     manual: true,
     onSuccess(data) {
       pagination.count = data.count;
@@ -73,17 +73,17 @@
       return;
     }
     pagination.offset += pagination.limit;
-    runList(pagination);
+    runList({ ...pagination, type: 'resource' });
   };
 
   onMounted(() => {
-    runList(pagination);
+    runList({ ...pagination, type: 'resource' });
   });
 </script>
 
 <style scoped lang="less">
   .tag-research-selector {
-    width: 150;
+    width: 150px;
 
     .trigger-btn {
       width: 150px;

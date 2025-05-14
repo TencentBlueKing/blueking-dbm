@@ -73,3 +73,13 @@ export const batchInputSplitRegex = /\s*[｜|，,；;、\t/\s]\s*/g;
  * 版本号正则，格式为 x.x.x 或 x.x
  */
 export const versionRegex = /\b(\d+\.\d+(\.\d+)?)\b/;
+
+/**
+ * 标签值正则，支持中文、英文、数字、下划线、中划线、英文句号，长度不能超过100个字符
+ */
+export const tagValueRegex = /^[\u4e00-\u9fa5a-zA-Z0-9_\-\.]{1,100}$/;
+
+/**
+ * 标签键正则，支持中文、英文、数字、下划线、中划线、英文句号，长度不能超过50个字符
+ */
+export const tagKeyRegex = /^[\u4e00-\u9fa5a-zA-Z0-9_\-\.]{1,50}$/;

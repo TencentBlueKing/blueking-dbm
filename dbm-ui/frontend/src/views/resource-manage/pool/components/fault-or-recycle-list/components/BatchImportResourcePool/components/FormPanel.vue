@@ -72,9 +72,9 @@
 
   interface Expose {
     getValue: () => Promise<{
+      for_biz: number;
       labels: number[];
       resource_type: string;
-      for_biz: number;
     }>;
   }
 
@@ -85,8 +85,8 @@
 
   const formData = reactive({
     for_biz: 0,
-    resource_type: '',
     labels: [] as number[],
+    resource_type: '',
   });
 
   const dbTypeList = shallowRef<ServiceReturnType<typeof fetchDbTypeList>>([]);
@@ -116,6 +116,7 @@
     defaultParams: [
       {
         bk_biz_id: 0,
+        type: 'resource',
       },
     ],
     onSuccess(data) {
@@ -127,8 +128,8 @@
     getValue() {
       return formRef.value!.validate().then(() => ({
         for_biz: Number(formData.for_biz),
-        resource_type: formData.resource_type,
         labels: formData.labels,
+        resource_type: formData.resource_type,
       }));
     },
   });

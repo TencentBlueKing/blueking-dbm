@@ -21,6 +21,11 @@
         @click="handleGoApply">
         {{ t('申请实例') }}
       </AuthButton>
+      <ClusterBatchOperation
+        v-db-console="'kafka.clusterManage.batchOperation'"
+        :cluster-type="ClusterTypes.KAFKA"
+        :selected="selected"
+        @success="fetchTableData" />
       <DropdownExportExcel
         v-db-console="'kafka.clusterManage.export'"
         :ids="selectedIds"
@@ -28,6 +33,7 @@
       <ClusterIpCopy
         v-db-console="'kafka.clusterManage.batchCopy'"
         :selected="selected" />
+      <TagSearch @search="fetchTableData" />
       <DbSearchSelect
         :data="serachData"
         :get-menu-list="getMenuList"
@@ -73,6 +79,7 @@
         :is-filter="isFilter"
         :selected-list="selected"
         @refresh="fetchTableData" />
+      <ClusterTagColumn @success="fetchTableData" />
       <StatusColumn :cluster-type="ClusterTypes.KAFKA" />
       <ClusterStatsColumn :cluster-type="ClusterTypes.KAFKA" />
       <RoleColumn
@@ -91,7 +98,9 @@
         label="Broker"
         :search-ip="batchSearchIpInatanceList"
         :selected-list="selected" />
-      <CommonColumn :cluster-type="ClusterTypes.KAFKA" />
+      <CommonColumn
+        :cluster-type="ClusterTypes.KAFKA"
+        @refresh="fetchTableData" />
       <BkTableColumn
         :fixed="isStretchLayoutOpen ? false : 'right'"
         :label="t('操作')"
@@ -260,10 +269,13 @@
 
   import DbTable from '@components/db-table/index.vue';
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
+  import TagSearch from '@components/tag-search/index.vue';
 
+  import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import ClusterNameColumn from '@views/db-manage/common/cluster-table-column/ClusterNameColumn.vue';
   import ClusterStatsColumn from '@views/db-manage/common/cluster-table-column/ClusterStatsColumn.vue';
+  import ClusterTagColumn from '@views/db-manage/common/cluster-table-column/ClusterTagColumn.vue';
   import CommonColumn from '@views/db-manage/common/cluster-table-column/CommonColumn.vue';
   import IdColumn from '@views/db-manage/common/cluster-table-column/IdColumn.vue';
   import MasterDomainColumn from '@views/db-manage/common/cluster-table-column/MasterDomainColumn.vue';
@@ -277,6 +289,10 @@
   import ClusterShrink from '@views/db-manage/kafka/common/shrink/Index.vue';
 
   import { getMenuListSearch, getSearchSelectorParams, isRecentDays } from '@utils';
+
+  interface Exposes {
+    refresh: () => void;
+  }
 
   const clusterId = defineModel<number>('clusterId');
 
@@ -328,7 +344,6 @@
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
   const isShowPassword = ref(false);
-  const isInit = ref(true);
   const selected = ref<KafkaModel[]>([]);
   const operationData = shallowRef<KafkaModel>();
 
@@ -424,6 +439,7 @@
       'region',
       'zookeeper',
       'broker',
+      'tags',
     ],
     disabled: ['master_domain'],
   });
@@ -467,10 +483,9 @@
     selected.value = list;
   };
 
-  const fetchTableData = (loading?: boolean) => {
+  const fetchTableData = (extraParams: Record<string, any> = {}) => {
     const searchParams = getSearchSelectorParams(searchValue.value);
-    tableRef.value?.fetchData(searchParams, { ...sortValue }, loading);
-    isInit.value = false;
+    tableRef.value?.fetchData(searchParams, { ...extraParams, ...sortValue });
   };
 
   // 申请实例
@@ -518,6 +533,10 @@
       handleToDetails(Number(route.query.id));
     }
   });
+
+  defineExpose<Exposes>({
+    refresh: fetchTableData,
+  });
 </script>
 <style lang="less">
   .kafka-list-page {
@@ -530,12 +549,15 @@
       display: flex;
       flex-wrap: wrap;
       margin-bottom: 16px;
+      gap: 8px;
+
+      .tag-search-main {
+        margin-left: auto;
+      }
 
       .bk-search-select {
         flex: 1;
         max-width: 500px;
-        min-width: 320px;
-        margin-left: auto;
       }
     }
 

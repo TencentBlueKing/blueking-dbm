@@ -27,7 +27,27 @@
       {{ t('批量授权') }}
     </BkButton>
   </BkDropdownItem>
-  <BkDropdownItem v-db-console="'mysql.haClusterList.disable'">
+  <BkDropdownItem v-db-console="'mysql.haClusterList.batchAddTag'">
+    <BkButton
+      class="opration-button"
+      :disabled="!isClusterTagEditable"
+      text
+      @click="() => (showClusterBatchAddTag = true)">
+      {{ t('添加标签') }}
+    </BkButton>
+  </BkDropdownItem>
+  <BkDropdownItem v-db-console="'mysql.haClusterList.batchRemoveTag'">
+    <BkButton
+      class="opration-button"
+      :disabled="!isClusterTagEditable"
+      text
+      @click="() => (showClusterBatchRemoveTag = true)">
+      {{ t('移除标签') }}
+    </BkButton>
+  </BkDropdownItem>
+  <BkDropdownItem
+    v-db-console="'mysql.haClusterList.disable'"
+    @click="handleDisableCluster(selected)">
     <BkButton
       v-bk-tooltips="{
         disabled: !batchDisabledDisabled,
@@ -80,6 +100,14 @@
     :cluster-types="[ClusterTypes.TENDBHA, 'tendbhaSlave']"
     :selected="selected"
     @success="handleAuthorizeSuccess" />
+  <ClusterBatchAddTag
+    v-model:is-show="showClusterBatchAddTag"
+    :selected="selected"
+    @success="handleSuccess" />
+  <ClusterBatchRemoveTag
+    v-model:is-show="showClusterBatchRemoveTag"
+    :selected="selected"
+    @success="handleSuccess" />
 </template>
 
 <script setup lang="ts">
@@ -90,6 +118,8 @@
   import { AccountTypes, ClusterTypes } from '@common/const';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
+  import ClusterBatchAddTag from '@views/db-manage/common/cluster-batch-add-tag/Index.vue';
+  import ClusterBatchRemoveTag from '@views/db-manage/common/cluster-batch-remove-tag/Index.vue';
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import CreateSubscribeRuleSlider from '@views/db-manage/mysql/dumper/components/create-rule/Index.vue';
 
@@ -118,6 +148,8 @@
 
   const showCreateSubscribeRuleSlider = ref(false);
   const clusterAuthorizeShow = ref(false);
+  const showClusterBatchAddTag = ref(false);
+  const showClusterBatchRemoveTag = ref(false);
 
   const batchSubscriptionDisabled = computed(() => props.selected.some((data) => data.isOffline));
   const batchAuthorizeDisabled = computed(() => props.selected.some((data) => data.isOffline));
@@ -127,6 +159,9 @@
   const batchEnableDisabled = computed(() => props.selected.some((data) => data.isOnline || data.isStarting));
   const batchDeleteDisabled = computed(() =>
     props.selected.some((data) => data.isOnline || Boolean(data.operationTicketId)),
+  );
+  const isClusterTagEditable = computed(() =>
+    props.selected.every((data) => data.permission[`${data.db_type}_edit` as keyof typeof data.permission]),
   );
 
   watch([showCreateSubscribeRuleSlider, clusterAuthorizeShow], () => {

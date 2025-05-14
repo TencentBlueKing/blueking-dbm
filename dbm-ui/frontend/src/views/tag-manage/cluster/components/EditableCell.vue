@@ -12,81 +12,98 @@
 -->
 
 <template>
-  <div class="tag-box">
+  <div class="edit-cell-main">
     <BkInput
-      v-if="editId === data.id"
+      v-if="isEdit"
       ref="inputRef"
       v-bind="$attrs"
       v-model="editVal"
       :clearable="false"
-      @blur="handleBlur(data)" />
-    <span
-      v-else
-      class="tag-content">
-      {{ data.value }}
-      <AuthButton
-        :action-id="actionId"
-        :resource="resource"
-        text
-        @click="handleEdit(data)">
-        <DbIcon
-          class="operation-icon"
-          type="edit" />
-      </AuthButton>
-    </span>
+      @blur="handleInputBlur" />
+    <template v-else>
+      <span>{{ editVal }}</span>
+      <DbIcon
+        v-if="showEdit"
+        class="operation-icon"
+        type="edit"
+        @click="handleEdit" />
+    </template>
   </div>
 </template>
-
 <script setup lang="ts">
-  import { defineEmits, defineProps } from 'vue';
-
-  import ResourceTagModel from '@services/model/db-resource/ResourceTag';
-
   interface Props {
-    actionId: string;
-    data: ResourceTagModel;
-    editId: number;
-    resource?: number;
+    data?: string;
+    showEdit?: boolean;
   }
 
-  interface Emits {
-    (event: 'blur', data: ResourceTagModel, val: string): void;
-    (event: 'edit', data: ResourceTagModel): void;
-  }
+  type Emits = (e: 'success', value: string) => void;
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    data: '',
+    showEdit: true,
+  });
 
   const emits = defineEmits<Emits>();
 
-  const inputRef = useTemplateRef('inputRef');
-
+  const inputRef = ref();
   const editVal = ref('');
+  const isEdit = ref(false);
+
+  let rawValue = '';
 
   watch(
-    () => [props.data, props.editId],
+    () => props.data,
     () => {
-      if (props.data.id === props.editId) {
-        editVal.value = props.data.value;
+      editVal.value = props.data;
+      rawValue = props.data;
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  watch(
+    isEdit,
+    () => {
+      if (isEdit.value) {
         nextTick(() => {
           inputRef.value!.focus();
         });
       }
     },
+    {
+      immediate: true,
+    },
   );
 
-  const handleBlur = (data: ResourceTagModel) => {
-    emits('blur', data, editVal.value);
+  const handleInputBlur = () => {
+    isEdit.value = false;
+    if (rawValue !== editVal.value) {
+      emits('success', editVal.value);
+    }
   };
 
-  const handleEdit = (data: ResourceTagModel) => {
-    emits('edit', data);
+  const handleEdit = () => {
+    isEdit.value = true;
   };
 </script>
 
 <style lang="less" scoped>
-  .tag-box {
+  .edit-cell-main {
+    display: flex;
+    align-items: center;
+
+    &:hover {
+      .operation-icon {
+        display: block;
+      }
+    }
+
     .operation-icon {
-      font-size: 18px;
+      display: none;
+      margin-left: 8px;
+      font-size: 12px;
+      color: #979ba5;
       cursor: pointer;
     }
   }

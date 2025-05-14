@@ -22,10 +22,9 @@
       </BkButton>
       <ClusterBatchOperation
         v-db-console="'mongodb.replicaSetList.batchOperation'"
-        class="ml-8"
         :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
         :selected="selected"
-        @success="handleBatchOperationSuccess" />
+        @success="fetchData" />
       <span
         v-bk-tooltips="{
           disabled: hasData,
@@ -33,18 +32,17 @@
         }"
         class="inline-block">
         <BkButton
-          class="ml-8 mb-8"
           :disabled="!hasData"
           @click="handleShowExcelAuthorize">
           {{ t('导入授权') }}
         </BkButton>
       </span>
       <DropdownExportExcel
-        class="ml-8 mb-8"
         :has-selected="hasSelected"
         :ids="selectedIds"
         type="mongodb" />
       <ClusterIpCopy :selected="selected" />
+      <TagSearch @search="fetchData" />
       <DbSearchSelect
         class="header-action-search-select"
         :data="searchSelectData"
@@ -91,6 +89,7 @@
         :is-filter="isFilter"
         :selected-list="selected"
         @refresh="fetchData" />
+      <ClusterTagColumn @success="fetchData" />
       <StatusColumn :cluster-type="ClusterTypes.MONGO_REPLICA_SET" />
       <ClusterStatsColumn :cluster-type="ClusterTypes.MONGO_REPLICA_SET" />
       <RoleColumn
@@ -101,7 +100,9 @@
         :label="t('节点')"
         :search-ip="batchSearchIpInatanceList"
         :selected-list="selected" />
-      <CommonColumn :cluster-type="ClusterTypes.MONGO_REPLICA_SET" />
+      <CommonColumn
+        :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
+        @refresh="fetchData" />
       <BkTableColumn
         :fixed="isStretchLayoutOpen ? false : 'right'"
         :label="t('操作')"
@@ -222,12 +223,14 @@
 
   import DbTable from '@components/db-table/index.vue';
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
+  import TagSearch from '@components/tag-search/index.vue';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import ClusterNameColumn from '@views/db-manage/common/cluster-table-column/ClusterNameColumn.vue';
   import ClusterStatsColumn from '@views/db-manage/common/cluster-table-column/ClusterStatsColumn.vue';
+  import ClusterTagColumn from '@views/db-manage/common/cluster-table-column/ClusterTagColumn.vue';
   import CommonColumn from '@views/db-manage/common/cluster-table-column/CommonColumn.vue';
   import IdColumn from '@views/db-manage/common/cluster-table-column/IdColumn.vue';
   import MasterDomainColumn from '@views/db-manage/common/cluster-table-column/MasterDomainColumn.vue';
@@ -240,6 +243,10 @@
   import AccessEntry from '@views/db-manage/mongodb/components/AccessEntry.vue';
 
   import { getMenuListSearch, getSearchSelectorParams } from '@utils';
+
+  interface Exposes {
+    refresh: () => void;
+  }
 
   const clusterId = defineModel<number>('clusterId');
 
@@ -271,7 +278,7 @@
       id: 'domain',
       name: t('访问入口'),
     },
-    fetchDataFn: () => fetchData(isInit),
+    fetchDataFn: () => fetchData(),
     searchType: ClusterTypes.MONGO_REPLICA_SET,
   });
 
@@ -370,6 +377,7 @@
         'region',
         'disaster_tolerance_level',
         'mongodb',
+        'tags',
       ],
       disabled: ['master_domain'],
     },
@@ -467,23 +475,19 @@
     clusterId.value = id;
   };
 
-  let isInit = true;
-  const fetchData = (loading?: boolean) => {
+  const fetchData = (extraParams: Record<string, any> = {}) => {
     tableRef.value!.fetchData(
       {
         ...getSearchSelectorParams(searchValue.value),
         cluster_type: ClusterTypes.MONGO_REPLICA_SET,
       },
-      { ...sortValue },
-      loading,
+      { ...extraParams, ...sortValue },
     );
-    isInit = false;
   };
 
-  const handleBatchOperationSuccess = () => {
-    tableRef.value!.clearSelected();
-    fetchData();
-  };
+  defineExpose<Exposes>({
+    refresh: fetchData,
+  });
 </script>
 
 <style lang="less">
@@ -496,11 +500,16 @@
     .header-action {
       display: flex;
       flex-wrap: wrap;
-      margin-bottom: 8px;
+      margin-bottom: 16px;
+      gap: 8px;
+
+      .tag-search-main {
+        margin-left: auto;
+      }
 
       .header-action-search-select {
-        width: 500px;
-        margin-left: auto;
+        flex: 1;
+        max-width: 500px;
       }
 
       .header-action-deploy-time {

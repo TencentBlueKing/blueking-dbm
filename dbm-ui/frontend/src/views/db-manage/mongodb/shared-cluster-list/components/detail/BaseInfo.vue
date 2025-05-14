@@ -18,18 +18,24 @@
     :data="data" />
 </template>
 
-<script setup lang="ts">
+<script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
   import MongodbDetailModel from '@services/model/mongodb/mongodb-detail';
 
   import EditInfo, { type InfoColumn } from '@components/editable-info/index.vue';
 
+  import ClusterTagCell from '@views/db-manage/common/cluster-table-column/components/cluster-tag-cell/Index.vue';
+
   interface Props {
     data: MongodbDetailModel;
   }
 
+  type Emits = (e: 'refresh') => void;
+
   const props = defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
@@ -63,6 +69,16 @@
       {
         key: 'creator',
         label: t('创建人'),
+      },
+      {
+        key: 'sortedTags',
+        label: t('标签'),
+        render: () => (
+          <ClusterTagCell
+            data={props.data}
+            onSuccess={() => emits('refresh')}
+          />
+        ),
       },
     ],
     [
