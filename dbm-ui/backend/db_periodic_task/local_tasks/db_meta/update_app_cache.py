@@ -84,6 +84,8 @@ def bulk_update_app_cache():
     REGEX_APP_ABBR = re.compile("^[A-Za-z0-9_-]+$")
 
     def format_app_abbr(app_abbr):
+        if app_abbr is None:
+            app_abbr = ""
         return app_abbr.lower().replace(" ", "-").replace("_", "-")
 
     def get_app_abbr(biz):
