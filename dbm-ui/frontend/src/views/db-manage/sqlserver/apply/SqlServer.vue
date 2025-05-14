@@ -228,8 +228,6 @@
 
   import { useApplyBase, useTicketDetail } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
-
   import { Affinity, ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
@@ -247,7 +245,6 @@
   const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
-  const { currentBizId } = useGlobalBizs();
   const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
 
   useTicketDetail<Sqlserver.SingleApply>(TicketTypes.SQLSERVER_SINGLE_APPLY, {
@@ -341,7 +338,7 @@
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
   const getDefaultformData = () => ({
-    bk_biz_id: currentBizId,
+    bk_biz_id: '' as '' | number,
     details: {
       bk_cloud_id: 0,
       city_code: '',
