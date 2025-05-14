@@ -52,7 +52,7 @@ class _XworkApi(BaseApi):
         检查主机是否有xwork单据
         @param host_ip_map: 主机ip和主机ID的映射
         """
-        if not XWORK_APIGW_DOMAIN:
+        if not XWORK_APIGW_DOMAIN or not host_ip_map:
             return {}
 
         # 查询xwork单据，默认查询一年以内
