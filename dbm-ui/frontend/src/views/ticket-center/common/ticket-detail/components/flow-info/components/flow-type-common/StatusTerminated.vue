@@ -36,7 +36,7 @@
         </div>
       </slot>
       <!-- 系统自动终止 -->
-      <template v-if="data.err_code === 3 && data.context.expire_time">
+      <template v-if="data.err_code === 3">
         <div class="mt-8">
           <span style="color: #ea3636">
             {{ t('系统自动终止（超过 n 天未处理）', { n: data.context.expire_time }) }}
@@ -50,9 +50,6 @@
             </a>
           </template>
         </div>
-        <div class="mt-8">
-          {{ data.updateAtDisplay }}
-        </div>
       </template>
       <div
         v-if="data.err_msg"
@@ -61,7 +58,7 @@
       </div>
     </template>
     <template
-      v-if="renderTodoList.length < 1"
+      v-if="data.err_code === 3 || renderTodoList.length < 1"
       #desc>
       {{ data.updateAtDisplay }}
     </template>
