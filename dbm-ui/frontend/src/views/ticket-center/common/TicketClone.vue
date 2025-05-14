@@ -178,7 +178,7 @@
     [TicketTypes.TENDBCLUSTER_CHECKSUM]: 'spiderChecksum', // Spider checksum
     [TicketTypes.TENDBCLUSTER_CLIENT_CLONE_RULES]: 'spiderPrivilegeCloneClient', // Spider 客户端权限克隆
     [TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP]: 'spiderDbTableBackup', // Spider TenDBCluster 库表备份
-    [TicketTypes.TENDBCLUSTER_FLASHBACK]: TicketTypes.TENDBCLUSTER_FLASHBACK, // Spider 闪回
+    [TicketTypes.TENDBCLUSTER_FLASHBACK]: 'spiderFlashback', // Spider 闪回
     [TicketTypes.TENDBCLUSTER_FULL_BACKUP]: 'spiderDbBackup', // Spider TenDBCluster 全备单据
     [TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE]: 'spiderSqlExecute', // Spider SQL变更执行
     [TicketTypes.TENDBCLUSTER_INSTANCE_CLONE_RULES]: 'spiderPrivilegeCloneInst', // Spider DB 实例权限克隆

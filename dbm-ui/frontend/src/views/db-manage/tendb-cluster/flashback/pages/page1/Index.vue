@@ -110,18 +110,18 @@
   useTicketCloneInfo({
     onSuccess(cloneData) {
       const { tableDataList } = cloneData;
-      tableData.value = tableDataList;
-      remark.value = cloneData.remark;
-      window.changeConfirm = true;
       if (cloneData.flashbackType === 'RECORD_FLASHBACK') {
         router.push({
-          name: 'TENDBCLUSTER_FLASHBACK',
+          name: TicketTypes.TENDBCLUSTER_FLASHBACK,
           query: {
             ticketId: cloneData.id,
             ticketType: cloneData.ticketType,
           },
         });
       }
+      tableData.value = tableDataList;
+      remark.value = cloneData.remark;
+      window.changeConfirm = true;
     },
     type: TicketTypes.TENDBCLUSTER_FLASHBACK,
   });

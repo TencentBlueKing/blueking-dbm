@@ -59,7 +59,10 @@
     nowenable?: boolean;
   }
 
-  type Emits = (e: 'batch-edit', value: string, field: string) => void;
+  interface Emits {
+    (e: 'batch-edit', value: string, field: string): void;
+    (e: 'change'): void;
+  }
 
   const props = withDefaults(defineProps<Props>(), {
     disabledDate: () => false,
@@ -91,6 +94,7 @@
 
   watch(modelValue, () => {
     isNowTime.value = false;
+    emits('change');
   });
 
   const handleNowTime = () => {

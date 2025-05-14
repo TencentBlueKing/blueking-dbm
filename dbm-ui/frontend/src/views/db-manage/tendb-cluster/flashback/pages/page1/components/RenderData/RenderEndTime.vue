@@ -78,7 +78,7 @@
   watch(
     () => props.startTime,
     () => {
-      modelValue.value = props.startTime;
+      modelValue.value = dayjs(Date.now()).format('YYYY-MM-DD HH:mm:ss');
     },
   );
 
