@@ -45,8 +45,10 @@
               @batch-edit="handleBatchEdit" />
             <DatetimeColumn
               v-model="rowData.start_time"
+              :disabled-date="(date) => handleStartTimeDisableCallback(date, getDateNow())"
               field="start_time"
-              :label="t('回档时间')" />
+              :label="t('回档时间')"
+              @change="() => handleDateChange(rowData)" />
             <DatetimeColumn
               v-model="rowData.end_time"
               :disabled-date="(date) => handleEditTimeDisableCallback(date, rowData.start_time)"
@@ -167,6 +169,12 @@
   useTicketDetail<TendbCluster.FlashBack>(TicketTypes.TENDBCLUSTER_FLASHBACK, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
+      if (details.flashback_type === 'TABLE_FLASHBACK') {
+        router.push({
+          name: 'spiderFlashback',
+        });
+        return;
+      }
       formData.flashback_type = details.flashback_type;
       formData.payload.remark = ticketDetail.remark;
       formData.direct_write_back = details.infos[0].direct_write_back;
@@ -213,8 +221,20 @@
     }
   };
 
+  const getDateNow = () => dayjs(Date.now()).format('YYYY-MM-DD HH:mm:ss');
+
+  const handleStartTimeDisableCallback = (date: Date | number, endDate: string) => dayjs(date).isAfter(dayjs(endDate));
+
   const handleEditTimeDisableCallback = (date: Date | number, startDate: string) =>
     dayjs(date).isBefore(dayjs(startDate));
+
+  const handleDateChange = (row: IRowData) => {
+    if (row.start_time) {
+      Object.assign(row, {
+        end_time: getDateNow(),
+      });
+    }
+  };
 
   const handleBatchEdit = (list: TendbclusterModel[]) => {
     const dataList = list.reduce<ReturnType<typeof createTableData>[]>((acc, item) => {

@@ -65,8 +65,7 @@
   const editRef = ref();
   const isNowTime = ref(false);
 
-  const disableDate = (date: Date) =>
-    date && (date.valueOf() > Date.now() || date.valueOf() < dayjs(props.startTime).valueOf());
+  const disableDate = (date: Date) => dayjs(date).isBefore(dayjs(props.startTime));
 
   const rules = [
     {
@@ -78,7 +77,7 @@
   watch(
     () => props.startTime,
     () => {
-      modelValue.value = props.startTime;
+      modelValue.value = dayjs(Date.now()).format('YYYY-MM-DD HH:mm:ss');
     },
   );
 
