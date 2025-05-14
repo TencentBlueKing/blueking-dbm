@@ -34,12 +34,12 @@
         }}
       </template>
     </BkTableColumn>
-    <BkTableColumn
+    <!-- <BkTableColumn
       field="capacity"
       :label="t('当前容量需求')" />
     <BkTableColumn
       field="future_capacity"
-      :label="t('未来容量需求')" />
+      :label="t('未来容量需求')" /> -->
     <BkTableColumn
       :label="t('部署方案')"
       :min-width="150">

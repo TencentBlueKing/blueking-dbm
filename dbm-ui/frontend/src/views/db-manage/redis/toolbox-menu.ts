@@ -180,7 +180,7 @@ export default [
           },
           {
             dbConsoleValue: 'redis.toolbox.clusterShardChange',
-            id: 'RedisClusterShardUpdate',
+            id: TicketTypes.REDIS_CLUSTER_SHARD_NUM_UPDATE,
             name: t('集群分片变更'),
             parentId: 'cluster-manage',
           },

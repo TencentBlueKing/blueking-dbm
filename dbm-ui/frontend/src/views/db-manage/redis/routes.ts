@@ -34,16 +34,7 @@ const redisMasterFailoverRoute = createRouteItem(TicketTypes.REDIS_MASTER_SLAVE_
 const redisDBReplaceRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_CUTOFF, t('整机替换'));
 const redisClusterMigrateRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_INS_MIGRATE, t('迁移'));
 const redisSingleMigrateRoute = createRouteItem(TicketTypes.REDIS_SINGLE_INS_MIGRATE, t('迁移'));
-
-const redisClusterShardUpdateRoute = {
-  path: 'cluster-shard-update/:page?',
-  name: 'RedisClusterShardUpdate',
-  meta: {
-    navName: t('集群分片变更'),
-  },
-  component: () => import('@views/db-manage/redis/cluster-shard-update/Index.vue'),
-};
-
+const redisClusterShardUpdateRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_SHARD_NUM_UPDATE, t('集群分片变更'));
 const redisClusterTypeUpdateRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_TYPE_UPDATE, t('集群类型变更'));
 
 const redisDBStructureRoute = {
