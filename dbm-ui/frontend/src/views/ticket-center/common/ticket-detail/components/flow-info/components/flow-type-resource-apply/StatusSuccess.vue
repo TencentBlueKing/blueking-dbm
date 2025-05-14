@@ -18,19 +18,8 @@
             :start-time="utcTimeToSeconds(data.start_time)"
             :value="data.cost_time" />
         </I18nT>
-        <span>，</span>
-        <BkButton
-          text
-          theme="primary"
-          @click="handleToggleResourceDetail">
-          {{ t('资源明细') }}
-          <DbIcon
-            class="ml-4"
-            type="down-big" />
-        </BkButton>
       </span>
       <ResourceDetail
-        v-if="isShowResourceDetail"
         class="mt-16"
         :ticket-detail="ticketDetail" />
     </template>
@@ -66,12 +55,6 @@
 
   const { t } = useI18n();
   const eventBus = useEventBus();
-
-  const isShowResourceDetail = ref(false);
-
-  const handleToggleResourceDetail = () => {
-    isShowResourceDetail.value = !isShowResourceDetail.value;
-  };
 
   eventBus.emit('refreshTicketData');
 </script>

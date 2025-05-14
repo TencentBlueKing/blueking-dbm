@@ -17,16 +17,12 @@
       {{ ticketDetails.details.group }}
     </InfoItem>
     <InfoItem :label="t('前置单据')">
-      <RouterLink
-        target="_blank"
-        :to="{
-          name: 'bizTicketManage',
-          params: {
-            ticketId: `${ticketDetails.details.parent_ticket}`,
-          },
-        }">
+      <BkButton
+        text
+        theme="primary"
+        @click="handleGoTicketDetail">
         {{ ticketDetails.details.parent_ticket }}
-      </RouterLink>
+      </BkButton>
     </InfoItem>
   </InfoList>
   <RecycleHostCard
@@ -44,10 +40,13 @@
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+  import { useRouter } from 'vue-router';
 
   import TicketModel, { type Common } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
+
+  import { getBusinessHref } from '@utils';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
 
@@ -62,7 +61,18 @@
     inheritAttrs: false,
   });
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
+  const router = useRouter();
+
+  const handleGoTicketDetail = () => {
+    const { href } = router.resolve({
+      name: 'bizTicketManage',
+      params: {
+        ticketId: props.ticketDetails.details.parent_ticket,
+      },
+    });
+    window.open(getBusinessHref(href, props.ticketDetails.bk_biz_id), '_blank');
+  };
 </script>

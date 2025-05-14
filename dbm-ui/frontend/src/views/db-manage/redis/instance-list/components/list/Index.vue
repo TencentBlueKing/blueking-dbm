@@ -125,17 +125,17 @@
     {
       children: [
         {
-          id: 'running',
-          name: t('正常'),
+          text: t('正常'),
+          value: 'running',
         },
         {
-          id: 'unavailable',
-          name: t('异常'),
+          text: t('异常'),
+          value: 'unavailable',
         },
-        // {
-        //   id: 'loading',
-        //   name: t('重建中'),
-        // },
+        {
+          text: t('重建中'),
+          value: 'restoring',
+        },
       ],
       id: 'status',
       multiple: true,
@@ -238,10 +238,10 @@
               text: t('异常'),
               value: 'unavailable',
             },
-            // {
-            //   value: 'restoring',
-            //   text: t('重建中'),
-            // },
+            {
+              text: t('重建中'),
+              value: 'restoring',
+            },
           ],
         },
         label: t('状态'),
