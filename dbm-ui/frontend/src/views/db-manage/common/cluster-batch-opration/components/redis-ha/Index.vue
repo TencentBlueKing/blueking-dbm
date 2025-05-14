@@ -1,7 +1,5 @@
 <template>
-  <BkDropdownItem
-    v-db-console="'redis.haClusterManage.extractKey'"
-    @click="handleShowExtract(selected)">
+  <BkDropdownItem v-db-console="'redis.haClusterManage.extractKey'">
     <BkButton
       v-bk-tooltips="{
         disabled: !batchOperationDisabled,
@@ -10,13 +8,12 @@
       }"
       class="opration-button"
       :disabled="batchOperationDisabled"
-      text>
+      text
+      @click="handleToToolbox(TicketTypes.REDIS_KEYS_EXTRACT, selected)">
       {{ t('提取Key') }}
     </BkButton>
   </BkDropdownItem>
-  <BkDropdownItem
-    v-db-console="'redis.haClusterManage.deleteKey'"
-    @click="handlShowDeleteKeys(selected)">
+  <BkDropdownItem v-db-console="'redis.haClusterManage.deleteKey'">
     <BkButton
       v-bk-tooltips="{
         disabled: !batchOperationDisabled,
@@ -25,13 +22,12 @@
       }"
       class="opration-button"
       :disabled="batchOperationDisabled"
-      text>
+      text
+      @click="handleToToolbox(TicketTypes.REDIS_KEYS_DELETE, selected)">
       {{ t('删除Key') }}
     </BkButton>
   </BkDropdownItem>
-  <BkDropdownItem
-    v-db-console="'redis.haClusterManage.backup'"
-    @click="handleShowBackup(selected)">
+  <BkDropdownItem v-db-console="'redis.haClusterManage.backup'">
     <BkButton
       v-bk-tooltips="{
         disabled: !batchOperationDisabled,
@@ -40,13 +36,12 @@
       }"
       class="opration-button"
       :disabled="batchOperationDisabled"
-      text>
+      text
+      @click="handleToToolbox(TicketTypes.REDIS_BACKUP, selected)">
       {{ t('备份') }}
     </BkButton>
   </BkDropdownItem>
-  <BkDropdownItem
-    v-db-console="'redis.haClusterManage.dbClear'"
-    @click="handleShowPurge(selected)">
+  <BkDropdownItem v-db-console="'redis.haClusterManage.dbClear'">
     <BkButton
       v-bk-tooltips="{
         disabled: !batchOperationDisabled,
@@ -55,7 +50,8 @@
       }"
       class="opration-button"
       :disabled="batchOperationDisabled"
-      text>
+      text
+      @click="handleToToolbox(TicketTypes.REDIS_PURGE, selected)">
       {{ t('清档') }}
     </BkButton>
   </BkDropdownItem>
@@ -121,26 +117,6 @@
       {{ t('删除') }}
     </BkButton>
   </BkDropdownItem>
-  <!-- 提取 keys -->
-  <ExtractKeys
-    v-model:is-show="extractState.isShow"
-    :data="extractState.data"
-    @success="handleExtractKeysSuccess" />
-  <!-- 删除 keys -->
-  <DeleteKeys
-    v-model:is-show="deleteKeyState.isShow"
-    :data="deleteKeyState.data"
-    @success="handleDeleteKeysSuccess" />
-  <!-- 备份 -->
-  <RedisBackup
-    v-model:is-show="backupState.isShow"
-    :data="backupState.data"
-    @success="handleBackupSuccess" />
-  <!-- 清档 -->
-  <RedisPurge
-    v-model:is-show="purgeState.isShow"
-    :data="purgeState.data"
-    @success="handlePurgeSuccess" />
   <ClusterBatchAddTag
     v-model:is-show="showClusterBatchAddTag"
     :selected="selected"
@@ -160,15 +136,7 @@
 
   import ClusterBatchAddTag from '@views/db-manage/common/cluster-batch-add-tag/Index.vue';
   import ClusterBatchRemoveTag from '@views/db-manage/common/cluster-batch-remove-tag/Index.vue';
-  import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
-  import { useShowBackup } from '@views/db-manage/common/redis-backup/hooks/useShowBackup';
-  import RedisBackup from '@views/db-manage/common/redis-backup/Index.vue';
-  import { useShowDeleteKeys } from '@views/db-manage/common/redis-delete-keys/hooks/useShowDeleteKeys';
-  import DeleteKeys from '@views/db-manage/common/redis-delete-keys/Index.vue';
-  import { useShowExtractKeys } from '@views/db-manage/common/redis-extract-keys/hooks/useShowExtractKeys';
-  import ExtractKeys from '@views/db-manage/common/redis-extract-keys/Index.vue';
-  import { useShowPurge } from '@views/db-manage/common/redis-purge/hooks/useShowPurge';
-  import RedisPurge from '@views/db-manage/common/redis-purge/Index.vue';
+  import { useOperateClusterBasic, useRedisClusterListToToolbox } from '@views/db-manage/common/hooks';
 
   interface Props {
     selected: RedisModel[];
@@ -179,17 +147,13 @@
   defineOptions({
     name: ClusterTypes.REDIS_INSTANCE,
   });
+
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
-  const sideSliderShow = defineModel<boolean>('side-slider-show', {
-    required: true,
-  });
 
   const { t } = useI18n();
-  const { handleShow: handleShowExtract, state: extractState } = useShowExtractKeys();
-  const { handleShow: handlShowDeleteKeys, state: deleteKeyState } = useShowDeleteKeys();
-  const { handleShow: handleShowBackup, state: backupState } = useShowBackup();
-  const { handleShow: handleShowPurge, state: purgeState } = useShowPurge();
+  const { handleToToolbox } = useRedisClusterListToToolbox();
+
   const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(
     ClusterTypes.REDIS_INSTANCE,
     {
@@ -228,34 +192,7 @@
     props.selected.every((data) => data.permission[`${data.db_type}_edit` as keyof typeof data.permission]),
   );
 
-  watch(
-    () => [extractState.isShow, deleteKeyState.isShow, backupState.isShow, purgeState.isShow],
-    () => {
-      sideSliderShow.value = extractState.isShow || deleteKeyState.isShow || backupState.isShow || purgeState.isShow;
-    },
-  );
-
   const handleSuccess = () => {
     emits('success');
-  };
-
-  const handleExtractKeysSuccess = () => {
-    extractState.isShow = false;
-    handleSuccess();
-  };
-
-  const handleDeleteKeysSuccess = () => {
-    deleteKeyState.isShow = false;
-    handleSuccess();
-  };
-
-  const handleBackupSuccess = () => {
-    backupState.isShow = false;
-    handleSuccess();
-  };
-
-  const handlePurgeSuccess = () => {
-    purgeState.isShow = false;
-    handleSuccess();
   };
 </script>

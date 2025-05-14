@@ -161,7 +161,7 @@
                   :resource="data.id"
                   text
                   theme="primary"
-                  @click="handleShowExtract([data])">
+                  @click="handleToToolbox(TicketTypes.REDIS_KEYS_EXTRACT, [data])">
                   {{ t('提取Key') }}
                 </AuthButton>
               </span>
@@ -182,7 +182,7 @@
                 :resource="data.id"
                 text
                 theme="primary"
-                @click="handlShowDeleteKeys([data])">
+                @click="handleToToolbox(TicketTypes.REDIS_KEYS_DELETE, [data])">
                 {{ t('删除Key') }}
               </AuthButton>
             </OperationBtnStatusTips>
@@ -213,7 +213,7 @@
                     :resource="data.id"
                     style="width: 100%; height: 32px"
                     text
-                    @click="handleShowBackup([data])">
+                    @click="handleToToolbox(TicketTypes.REDIS_BACKUP, [data])">
                     {{ t('备份') }}
                   </AuthButton>
                 </OperationBtnStatusTips>
@@ -229,7 +229,7 @@
                     :resource="data.id"
                     style="width: 100%; height: 32px"
                     text
-                    @click="handleShowPurge([data])">
+                    @click="handleToToolbox(TicketTypes.REDIS_PURGE, [data])">
                     {{ t('清档') }}
                   </AuthButton>
                 </OperationBtnStatusTips>
@@ -364,22 +364,6 @@
   <ClusterPassword
     v-model:is-show="passwordState.isShow"
     :fetch-params="passwordState.fetchParams" />
-  <!-- 提取 keys -->
-  <ExtractKeys
-    v-model:is-show="extractState.isShow"
-    :data="extractState.data" />
-  <!-- 删除 keys -->
-  <DeleteKeys
-    v-model:is-show="deleteKeyState.isShow"
-    :data="deleteKeyState.data" />
-  <!-- 备份 -->
-  <RedisBackup
-    v-model:is-show="backupState.isShow"
-    :data="backupState.data" />
-  <!-- 清档 -->
-  <RedisPurge
-    v-model:is-show="purgeState.isShow"
-    :data="purgeState.data" />
 </template>
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
@@ -392,13 +376,7 @@
   import { createTicket } from '@services/source/ticket';
   import { getUserList } from '@services/source/user';
 
-  import {
-    useLinkQueryColumnSerach,
-    useStretchLayout,
-    useTableSettings,
-    useTicketCloneInfo,
-    useTicketMessage,
-  } from '@hooks';
+  import { useLinkQueryColumnSerach, useStretchLayout, useTableSettings, useTicketMessage } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -421,16 +399,8 @@
   import RoleColumn from '@views/db-manage/common/cluster-table-column/RoleColumn.vue';
   import StatusColumn from '@views/db-manage/common/cluster-table-column/StatusColumn.vue';
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
-  import { useOperateClusterBasic, useSwitchClb } from '@views/db-manage/common/hooks';
+  import { useOperateClusterBasic, useRedisClusterListToToolbox, useSwitchClb } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
-  import { useShowBackup } from '@views/db-manage/common/redis-backup/hooks/useShowBackup';
-  import RedisBackup from '@views/db-manage/common/redis-backup/Index.vue';
-  import { useShowDeleteKeys } from '@views/db-manage/common/redis-delete-keys/hooks/useShowDeleteKeys';
-  import DeleteKeys from '@views/db-manage/common/redis-delete-keys/Index.vue';
-  import { useShowExtractKeys } from '@views/db-manage/common/redis-extract-keys/hooks/useShowExtractKeys';
-  import ExtractKeys from '@views/db-manage/common/redis-extract-keys/Index.vue';
-  import { useShowPurge } from '@views/db-manage/common/redis-purge/hooks/useShowPurge';
-  import RedisPurge from '@views/db-manage/common/redis-purge/Index.vue';
   import ClusterPassword from '@views/db-manage/redis/common/cluster-oprations/ClusterPassword.vue';
 
   import { getMenuListSearch, getSearchSelectorParams } from '@utils';
@@ -455,16 +425,13 @@
   const globalBizsStore = useGlobalBizs();
   const ticketMessage = useTicketMessage();
 
-  const { handleShow: handleShowExtract, state: extractState } = useShowExtractKeys();
-  const { handleShow: handlShowDeleteKeys, state: deleteKeyState } = useShowDeleteKeys();
-  const { handleShow: handleShowBackup, state: backupState } = useShowBackup();
-  const { handleShow: handleShowPurge, state: purgeState } = useShowPurge();
   const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(
     ClusterTypes.REDIS,
     {
       onSuccess: () => fetchData(),
     },
   );
+  const { handleToToolbox } = useRedisClusterListToToolbox();
   const { handleSwitchClb } = useSwitchClb(ClusterTypes.REDIS_CLUSTER);
   const { isOpen: isStretchLayoutOpen, splitScreen: stretchLayoutSplitScreen } = useStretchLayout();
 
@@ -488,48 +455,6 @@
     fetchDataFn: () => fetchData(),
     searchType: ClusterTypes.REDIS,
   });
-
-  // 提取Key 单据克隆
-  useTicketCloneInfo({
-    onSuccess(cloneData) {
-      extractState.isShow = true;
-      extractState.data = cloneData;
-      window.changeConfirm = true;
-    },
-    type: TicketTypes.REDIS_KEYS_EXTRACT,
-  });
-
-  // 删除Key 单据克隆
-  useTicketCloneInfo({
-    onSuccess(cloneData) {
-      deleteKeyState.isShow = true;
-      deleteKeyState.data = cloneData;
-      window.changeConfirm = true;
-    },
-    type: TicketTypes.REDIS_KEYS_DELETE,
-  });
-
-  // 集群备份单据克隆
-  useTicketCloneInfo({
-    onSuccess(cloneData) {
-      backupState.isShow = true;
-      backupState.data = cloneData;
-      window.changeConfirm = true;
-    },
-    type: TicketTypes.REDIS_BACKUP,
-  });
-
-  // 清档单据克隆
-  useTicketCloneInfo({
-    onSuccess(cloneData) {
-      purgeState.isShow = true;
-      purgeState.data = cloneData;
-      window.changeConfirm = true;
-    },
-    type: TicketTypes.REDIS_PURGE,
-  });
-
-  // const disabledOperations: string[] = [TicketTypes.REDIS_DESTROY, TicketTypes.REDIS_PROXY_CLOSE];
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const selected = ref<RedisModel[]>([]);

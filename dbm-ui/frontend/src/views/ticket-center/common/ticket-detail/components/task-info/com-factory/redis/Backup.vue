@@ -16,15 +16,15 @@
     <BkTableColumn
       :label="t('集群')"
       :min-width="220">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+      <template #default="{ data }: { data: IRowData }">
+        {{ ticketDetails.details.clusters[data.cluster_id]?.immute_domain }}
       </template>
     </BkTableColumn>
     <BkTableColumn
       :label="t('架构版本')"
-      :min-width="130">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].cluster_type_name }}
+      :width="200">
+      <template #default="{ data }: { data: IRowData }">
+        {{ ticketDetails.details.clusters[data.cluster_id]?.cluster_type_name }}
       </template>
     </BkTableColumn>
     <BkTableColumn
@@ -32,9 +32,9 @@
       :label="t('备份目标')"
       :min-width="130" />
     <BkTableColumn
-      :label="t('备份类型')"
+      :label="t('备份保存时间')"
       :min-width="130">
-      <template #default="{ data }: { data: RowData }">
+      <template #default="{ data }: { data: IRowData }">
         {{ backupTypeMap[data.backup_type] }}
       </template>
     </BkTableColumn>
@@ -52,7 +52,7 @@
     ticketDetails: TicketModel<Redis.Backup>;
   }
 
-  type RowData = Props['ticketDetails']['details']['rules'][number];
+  type IRowData = Props['ticketDetails']['details']['rules'][number];
 
   defineOptions({
     name: TicketTypes.REDIS_BACKUP,
@@ -64,7 +64,7 @@
   const { t } = useI18n();
 
   const backupTypeMap = {
-    forever_backup: t('长期备份'),
-    normal_backup: t('常规备份'),
+    forever_backup: t('3年'),
+    normal_backup: t('1个月'),
   };
 </script>

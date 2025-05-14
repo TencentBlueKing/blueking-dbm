@@ -32,9 +32,9 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import TicketModel, { type Redis } from '@services/model/ticket/ticket';
+  import TicketModel from '@services/model/ticket/ticket';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { TicketTypes } from '@common/const';
 
   import { getBusinessHref } from '@utils';
 
@@ -113,7 +113,7 @@
     [TicketTypes.MYSQL_SINGLE_ENABLE]: 'DatabaseTendbsingle', // Mysql 单节点启用
     [TicketTypes.MYSQL_SINGLE_RENAME_DATABASE]: 'MySQLDBRename', // Mysql DB重命名
     [TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA]: 'MySQLDBClear', // Mysql 单节点清档
-    [TicketTypes.REDIS_BACKUP]: 'DatabaseRedisList', // Redis 集群备份
+    [TicketTypes.REDIS_BACKUP]: TicketTypes.REDIS_BACKUP, // Redis 集群备份
     [TicketTypes.REDIS_CLUSTER_ADD_SLAVE]: 'RedisDBCreateSlave', // Redis 重建从库
     [TicketTypes.REDIS_CLUSTER_APPLY]: 'SelfServiceApplyRedis', // Redis 申请部署
     [TicketTypes.REDIS_CLUSTER_CUTOFF]: TicketTypes.REDIS_CLUSTER_CUTOFF, // Redis 整机替换
@@ -126,8 +126,8 @@
     [TicketTypes.REDIS_DATA_STRUCTURE_TASK_DELETE]: 'RedisStructureInstance', // Redis 删除构造任务
     [TicketTypes.REDIS_DATACOPY_CHECK_REPAIR]: 'RedisToolboxDataCheckRepair', // Redis 数据校验修复
     [TicketTypes.REDIS_DESTROY]: 'DatabaseRedisList', // Redis 集群删除
-    [TicketTypes.REDIS_KEYS_DELETE]: 'DatabaseRedisList', // Redis 删除 key
-    [TicketTypes.REDIS_KEYS_EXTRACT]: 'DatabaseRedisList', // Redis 提取 Key
+    [TicketTypes.REDIS_KEYS_DELETE]: TicketTypes.REDIS_KEYS_DELETE, // Redis 删除 key
+    [TicketTypes.REDIS_KEYS_EXTRACT]: TicketTypes.REDIS_KEYS_EXTRACT, // Redis 提取 Key
     [TicketTypes.REDIS_MASTER_SLAVE_SWITCH]: 'RedisMasterFailover', // Redis 主从切换
     [TicketTypes.REDIS_PLUGIN_CREATE_CLB]: 'DatabaseRedisList', // Redis 创建CLB
     [TicketTypes.REDIS_PLUGIN_CREATE_POLARIS]: 'DatabaseRedisList', // Redis 删除构造任务
@@ -139,7 +139,7 @@
     [TicketTypes.REDIS_PROXY_OPEN]: 'DatabaseRedisList', // Redis 集群启用
     [TicketTypes.REDIS_PROXY_SCALE_DOWN]: TicketTypes.REDIS_PROXY_SCALE_DOWN, // Redis 缩容接入层
     [TicketTypes.REDIS_PROXY_SCALE_UP]: 'RedisProxyScaleUp', // Redis 扩容接入层
-    [TicketTypes.REDIS_PURGE]: 'DatabaseRedisList', // Redis 集群清档
+    [TicketTypes.REDIS_PURGE]: TicketTypes.REDIS_PURGE, // Redis 集群清档
     [TicketTypes.REDIS_SCALE_UPDOWN]: TicketTypes.REDIS_SCALE_UPDOWN, // Redis 集群容量变更
     [TicketTypes.REDIS_SINGLE_INS_MIGRATE]: 'RedisMigrate', // Redis 主从迁移
     [TicketTypes.REDIS_VERSION_UPDATE_ONLINE]: 'RedisVersionUpgrade', // redis 版本升级
@@ -196,25 +196,26 @@
   });
 
   const handleResubmitTicket = async () => {
-    let name = '';
-    if (
-      [
-        TicketTypes.REDIS_BACKUP,
-        TicketTypes.REDIS_KEYS_DELETE,
-        TicketTypes.REDIS_KEYS_EXTRACT,
-        TicketTypes.REDIS_PURGE,
-      ].includes(props.data.ticket_type)
-    ) {
-      const clusterInfo = Object.values((props.data.details as Redis.ClusterRollbackDataCopy).clusters)[0];
-      if (clusterInfo.cluster_type === ClusterTypes.REDIS_INSTANCE) {
-        name = 'DatabaseRedisHaList';
-      } else {
-        name = 'DatabaseRedisList';
-      }
-    } else {
-      name = ticketTypeRouteNameMap[props.data.ticket_type];
-    }
+    // let name = '';
+    // if (
+    //   [
+    //     TicketTypes.REDIS_BACKUP,
+    //     TicketTypes.REDIS_KEYS_DELETE,
+    //     TicketTypes.REDIS_KEYS_EXTRACT,
+    //     TicketTypes.REDIS_PURGE,
+    //   ].includes(props.data.ticket_type)
+    // ) {
+    //   const clusterInfo = Object.values((props.data.details as Redis.ClusterRollbackDataCopy).clusters)[0];
+    //   if (clusterInfo.cluster_type === ClusterTypes.REDIS_INSTANCE) {
+    //     name = 'DatabaseRedisHaList';
+    //   } else {
+    //     name = 'DatabaseRedisList';
+    //   }
+    // } else {
+    //   name = ticketTypeRouteNameMap[props.data.ticket_type];
+    // }
 
+    const name = ticketTypeRouteNameMap[props.data.ticket_type];
     if (name) {
       const { href } = router.resolve({
         name,
