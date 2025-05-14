@@ -84,7 +84,7 @@
     [TicketTypes.MYSQL_CLIENT_CLONE_RULES]: 'MySQLPrivilegeCloneClient', // Mysql 客户端权限克隆
     [TicketTypes.MYSQL_DATA_MIGRATE]: 'MySQLDataMigrate', // Mysql DB克隆
     [TicketTypes.MYSQL_EXCEL_AUTHORIZE_RULES]: '', // Mysql excel 授权
-    [TicketTypes.MYSQL_FLASHBACK]: TicketTypes.MYSQL_FLASHBACK, // Mysql 闪回
+    [TicketTypes.MYSQL_FLASHBACK]: 'MySQLDBFlashback', // Mysql 闪回
     [TicketTypes.MYSQL_HA_APPLY]: 'SelfServiceApplyHa', // Mysql 主从部署
     [TicketTypes.MYSQL_HA_DB_TABLE_BACKUP]: 'MySQLDBTableBackup', // Mysql 库表备份
     [TicketTypes.MYSQL_HA_DESTROY]: 'DatabaseTendbha', // Mysql 删除
@@ -161,7 +161,7 @@
     [TicketTypes.TENDBCLUSTER_CHECKSUM]: 'spiderChecksum', // Spider checksum
     [TicketTypes.TENDBCLUSTER_CLIENT_CLONE_RULES]: 'spiderPrivilegeCloneClient', // Spider 客户端权限克隆
     [TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP]: 'spiderDbTableBackup', // Spider TenDBCluster 库表备份
-    [TicketTypes.TENDBCLUSTER_FLASHBACK]: TicketTypes.TENDBCLUSTER_FLASHBACK, // Spider 闪回
+    [TicketTypes.TENDBCLUSTER_FLASHBACK]: 'spiderFlashback', // Spider 闪回
     [TicketTypes.TENDBCLUSTER_FULL_BACKUP]: 'spiderDbBackup', // Spider TenDBCluster 全备单据
     [TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE]: 'spiderSqlExecute', // Spider SQL变更执行
     [TicketTypes.TENDBCLUSTER_INSTANCE_CLONE_RULES]: 'spiderPrivilegeCloneInst', // Spider DB 实例权限克隆

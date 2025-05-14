@@ -42,14 +42,18 @@
     nowenable?: boolean;
   }
 
+  type Emits = (e: 'change') => void;
+
   const props = withDefaults(defineProps<Props>(), {
     disabledDate: () => false,
     nowenable: false,
   });
 
-  const { t } = useI18n();
+  const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<string | Date>();
+
+  const { t } = useI18n();
 
   const isNowTime = ref(false);
 
@@ -69,6 +73,7 @@
 
   watch(modelValue, () => {
     isNowTime.value = false;
+    emits('change');
   });
 
   const handleNowTime = () => {

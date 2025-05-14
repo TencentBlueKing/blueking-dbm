@@ -62,11 +62,6 @@
       validator: (value: string[]) => _.every(value, (item) => /^[-_a-zA-Z0-9*?%]{0,64}$/.test(item)),
     },
     {
-      message: t('不允许为 *'),
-      trigger: 'blur',
-      validator: (value: string[]) => _.every(value, (item) => item !== '*'),
-    },
-    {
       message: t('* 只能独立使用'),
       trigger: 'blur',
       validator: (value: string[]) =>
