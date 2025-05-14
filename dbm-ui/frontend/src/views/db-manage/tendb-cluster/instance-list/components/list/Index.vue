@@ -165,11 +165,15 @@
           list: [
             {
               text: t('正常'),
-              value: 'normal',
+              value: 'running',
             },
             {
               text: t('异常'),
-              value: 'abnormal',
+              value: 'unavailable',
+            },
+            {
+              text: t('重建中'),
+              value: 'restoring',
             },
           ],
         },
@@ -299,12 +303,16 @@
     {
       children: [
         {
-          id: 'normal',
-          name: t('正常'),
+          text: t('正常'),
+          value: 'running',
         },
         {
-          id: 'abnormal',
-          name: t('异常'),
+          text: t('异常'),
+          value: 'unavailable',
+        },
+        {
+          text: t('重建中'),
+          value: 'restoring',
         },
       ],
       id: 'status',
