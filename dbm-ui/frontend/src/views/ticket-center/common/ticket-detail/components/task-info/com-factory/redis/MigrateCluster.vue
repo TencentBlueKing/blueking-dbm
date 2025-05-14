@@ -12,16 +12,16 @@
 -->
 
 <template>
-  <BkTable
-    :data="ticketDetails.details.infos"
-    :merge-cells="mergeCells">
+  <BkTable :data="ticketDetails.details.infos">
     <BkTableColumn
       field="display_info.instance"
-      :label="t('目标 Master 实例')">
+      :label="t('目标 Master 实例')"
+      :min-width="200">
     </BkTableColumn>
     <BkTableColumn
       field="cluster_id"
       :label="t('所属集群')"
+      :min-width="300"
       :rowspan="3">
       <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
@@ -29,7 +29,8 @@
     </BkTableColumn>
     <BkTableColumn
       field="resource_spec"
-      :label="t('规格')">
+      :label="t('规格')"
+      :width="200">
       <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.specs[data.resource_spec.backend_group.spec_id].name }}
       </template>
@@ -49,11 +50,10 @@
   </BkTable>
 </template>
 <script setup lang="ts">
-  import type { UnwrapRef } from 'vue';
+  // import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type { VxeTablePropTypes } from '@blueking/vxe-table';
-
+  // import type { VxeTablePropTypes } from '@blueking/vxe-table';
   import TicketModel, { type Redis } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
@@ -69,25 +69,23 @@
     inheritAttrs: false,
   });
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
 
   const { t } = useI18n();
 
-  const mergeCells = ref<VxeTablePropTypes.MergeCells>([]);
+  // const mergeCells = ref<VxeTablePropTypes.MergeCells>([]);
 
-  watchEffect(() => {
-    const { clusters, infos } = props.ticketDetails.details;
-    const domainMap = infos.reduce<Record<string, number>>((prevMap, infoItem) => {
-      const domain = clusters[infoItem.cluster_id].immute_domain;
-      if (prevMap[domain]) {
-        return Object.assign({}, prevMap, { [domain]: prevMap[domain] + 1 });
-      }
-      return Object.assign({}, prevMap, { [domain]: 1 });
-    }, {});
-    mergeCells.value = Object.values(domainMap).reduce<UnwrapRef<typeof mergeCells>>((prevMergeCells, count) => {
-      const row = prevMergeCells.length ? prevMergeCells[prevMergeCells.length - 1].rowspan : 0;
-      const item = { col: 1, colspan: 1, row, rowspan: count };
-      return prevMergeCells.concat(item);
-    }, []);
-  });
+  // const { clusters, infos } = props.ticketDetails.details;
+  // const domainMap = infos.reduce<Record<string, number>>((prevMap, infoItem) => {
+  //   const domain = clusters[infoItem.cluster_id].immute_domain;
+  //   if (prevMap[domain]) {
+  //     return Object.assign({}, prevMap, { [domain]: prevMap[domain] + 1 });
+  //   }
+  //   return Object.assign({}, prevMap, { [domain]: 1 });
+  // }, {});
+  // mergeCells.value = Object.values(domainMap).reduce<UnwrapRef<typeof mergeCells>>((prevMergeCells, count) => {
+  //   const row = prevMergeCells.length ? prevMergeCells[prevMergeCells.length - 1].rowspan : 0;
+  //   const item = { col: 1, colspan: 1, row, rowspan: count };
+  //   return prevMergeCells.concat(item);
+  // }, []);
 </script>

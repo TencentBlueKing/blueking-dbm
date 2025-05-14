@@ -73,7 +73,7 @@ export default [
           },
           {
             dbConsoleValue: 'redis.toolbox.migrate',
-            id: 'RedisMigrate',
+            id: TicketTypes.REDIS_CLUSTER_INS_MIGRATE,
             name: t('迁移'),
             parentId: 'common-manage',
           },

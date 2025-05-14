@@ -49,15 +49,8 @@ const redisProxyScaleDownRoute = createRouteItem(TicketTypes.REDIS_PROXY_SCALE_D
 const redisDBCreateSlaveRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_ADD_SLAVE, t('重建从库'));
 const redisMasterFailoverRoute = createRouteItem(TicketTypes.REDIS_MASTER_SLAVE_SWITCH, t('主从切换'));
 const redisDBReplaceRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_CUTOFF, t('整机替换'));
-
-const redisMigrateRoute = {
-  path: 'db-migrate/:page?',
-  name: 'RedisMigrate',
-  meta: {
-    navName: t('迁移'),
-  },
-  component: () => import('@views/db-manage/redis/migrate/Index.vue'),
-};
+const redisClusterMigrateRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_INS_MIGRATE, t('迁移'));
+const redisSingleMigrateRoute = createRouteItem(TicketTypes.REDIS_SINGLE_INS_MIGRATE, t('迁移'));
 
 const redisClusterShardUpdateRoute = {
   path: 'cluster-shard-update/:page?',
@@ -141,6 +134,7 @@ const redisPurgeRoute = createRouteItem(TicketTypes.REDIS_PURGE, t('清档'));
 const toolboxDbConsoleRouteMap = {
   'redis.toolbox.backup': redisBackupRoute,
   'redis.toolbox.capacityChange': redisCapacityChangeRoute,
+  'redis.toolbox.clusterMigrate': redisClusterMigrateRoute,
   'redis.toolbox.clusterShardChange': redisClusterShardUpdateRoute,
   'redis.toolbox.clusterTypeChange': redisClusterTypeUpdateRoute,
   'redis.toolbox.dataCopy': redisDBDataCopyRoute,
@@ -150,13 +144,13 @@ const toolboxDbConsoleRouteMap = {
   'redis.toolbox.keyDelete': redisKeyDeleteRoute,
   'redis.toolbox.keyExtract': redisKeyExtractRoute,
   'redis.toolbox.masterSlaveSwap': redisMasterFailoverRoute,
-  'redis.toolbox.migrate': redisMigrateRoute,
   'redis.toolbox.proxyScaleDown': redisProxyScaleDownRoute,
   'redis.toolbox.proxyScaleUp': redisProxyScaleUpRoute,
   'redis.toolbox.purge': redisPurgeRoute,
   'redis.toolbox.recoverFromInstance': redisRecoverFromInstanceRoute,
   'redis.toolbox.rollback': redisDBStructureRoute,
   'redis.toolbox.rollbackRecord': redisStructureInstanceRoute,
+  'redis.toolbox.singleMigrate': redisSingleMigrateRoute,
   'redis.toolbox.slaveRebuild': redisDBCreateSlaveRoute,
   'redis.toolbox.versionUpgrade': redisVersionUpgradeRoute,
   'redis.toolbox.webconsole': redisWebconsoleRoute,

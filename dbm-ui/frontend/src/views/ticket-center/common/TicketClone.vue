@@ -131,7 +131,7 @@
     [TicketTypes.REDIS_CLUSTER_APPLY]: 'SelfServiceApplyRedis', // Redis 申请部署
     [TicketTypes.REDIS_CLUSTER_CUTOFF]: TicketTypes.REDIS_CLUSTER_CUTOFF, // Redis 整机替换
     [TicketTypes.REDIS_CLUSTER_DATA_COPY]: 'RedisDBDataCopy', // Redis 数据复制
-    [TicketTypes.REDIS_CLUSTER_INS_MIGRATE]: 'RedisMigrate', // Redis 集群迁移
+    [TicketTypes.REDIS_CLUSTER_INS_MIGRATE]: TicketTypes.REDIS_CLUSTER_INS_MIGRATE, // Redis 集群迁移
     [TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY]: 'RedisRecoverFromInstance', // Redis 以构造实例恢复
     [TicketTypes.REDIS_CLUSTER_SHARD_NUM_UPDATE]: 'RedisClusterShardUpdate', // Redis 集群分片变更
     [TicketTypes.REDIS_CLUSTER_TYPE_UPDATE]: TicketTypes.REDIS_CLUSTER_TYPE_UPDATE, // Redis 集群类型变更
@@ -155,7 +155,7 @@
     [TicketTypes.REDIS_PROXY_SCALE_UP]: 'RedisProxyScaleUp', // Redis 扩容接入层
     [TicketTypes.REDIS_PURGE]: TicketTypes.REDIS_PURGE, // Redis 集群清档
     [TicketTypes.REDIS_SCALE_UPDOWN]: TicketTypes.REDIS_SCALE_UPDOWN, // Redis 集群容量变更
-    [TicketTypes.REDIS_SINGLE_INS_MIGRATE]: 'RedisMigrate', // Redis 主从迁移
+    [TicketTypes.REDIS_SINGLE_INS_MIGRATE]: TicketTypes.REDIS_SINGLE_INS_MIGRATE, // Redis 主从迁移
     [TicketTypes.REDIS_VERSION_UPDATE_ONLINE]: 'RedisVersionUpgrade', // redis 版本升级
     [TicketTypes.RIAK_CLUSTER_APPLY]: 'RiakApply',
     [TicketTypes.SQLSERVER_ADD_SLAVE]: TicketTypes.SQLSERVER_ADD_SLAVE, // sqlserver 添加从库
