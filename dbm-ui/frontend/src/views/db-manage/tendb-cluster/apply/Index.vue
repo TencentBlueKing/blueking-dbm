@@ -229,6 +229,7 @@
       if (details.ip_source === 'resource_pool') {
         const { spider } = details.resource_spec!;
         const resourceSpec = {
+          backend_group: formdata.details.resource_spec.backend_group,
           spider: {
             count: spider.count,
             spec_id: spider.spec_id,
