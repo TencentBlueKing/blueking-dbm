@@ -53,11 +53,11 @@
 
   const props = defineProps<Props>();
 
+  const modelValue = defineModel<string>();
+
   const { t } = useI18n();
 
   const disabledMethod = () => (props.clusterId ? false : t('请先选择集群'));
-
-  const modelValue = defineModel<string>();
 
   const rules = [
     {

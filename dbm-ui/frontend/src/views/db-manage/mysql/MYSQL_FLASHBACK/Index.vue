@@ -52,11 +52,9 @@
               nowenable />
             <DbNameColumn
               v-model="rowData.databases"
-              allow-asterisk
               :cluster-id="rowData.cluster?.id" />
             <TableNameColumn
               v-model="rowData.tables"
-              allow-asterisk
               :cluster-id="rowData.cluster?.id"
               :label="t('目标表')" />
             <RecordColumn
