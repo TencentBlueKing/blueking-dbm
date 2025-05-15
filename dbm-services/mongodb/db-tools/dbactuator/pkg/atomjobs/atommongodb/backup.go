@@ -96,9 +96,14 @@ func (s *backupJob) Run() error {
 
 // getBackupPath return path Like /data/dbbak
 func getBackupPath() (string, error) {
-	backupPath := path.Join(consts.GetMongoBackupDir(), "dbbak")
-	if !util.FileExists(backupPath) {
-		return "", errors.Errorf("Dir Not Exists, Dir:%s", backupPath)
+	dbbakPath := path.Join(consts.GetMongoBackupDir(), "dbbak")
+	if !util.FileExists(dbbakPath) {
+		return "", errors.Errorf("Dir Not Exists, Dir:%s", dbbakPath)
+	}
+	backupPath := path.Join(dbbakPath, "billdump")
+	err := util.MkDirsIfNotExists([]string{backupPath})
+	if err != nil {
+		return "", errors.Wrap(err, "MkDirsIfNotExists")
 	}
 	return backupPath, nil
 }

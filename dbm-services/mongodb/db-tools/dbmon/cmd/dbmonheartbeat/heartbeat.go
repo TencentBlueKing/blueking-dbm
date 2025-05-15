@@ -51,6 +51,7 @@ func loggerMemInfo(logger *zap.Logger) {
 
 // Run 执行例行心跳metric上报 会带第一个实例的维度信息
 func (job *Job) Run() {
+	job.LoopTimes++
 	job.Logger.Info("start", zap.Uint64("loopTimes", job.LoopTimes))
 	loggerMemInfo(job.Logger)
 

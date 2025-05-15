@@ -72,6 +72,7 @@ func (job *installDbmonJob) Name() string {
 func (job *installDbmonJob) Run() error {
 	// 生成配置文件 updateDbTool updateDbmon startDbmon
 	return job.runSteps([]stepFunc{
+		{"deleteBadLink", job.deleteBadLink},
 		{"mkExporterConfigFile", job.mkExporterConfigFile},
 		{"updateConfigFile", job.updateConfigFile},
 		{"updateDbTool", job.updateDbTool},
@@ -79,6 +80,22 @@ func (job *installDbmonJob) Run() error {
 		{"updateDbmon", job.updateDbmon},
 		{"startDbmon", job.startDbmon},
 	})
+}
+
+// DeleteBadLink 删除坏链接
+func (job *installDbmonJob) deleteBadLink() error {
+	for _, dir := range []string{
+		"/home/mysql/bk-dbmon",
+		"/home/mysql/dbtools",
+		"/home/mysql/dbareport",
+	} {
+		if deleted, err := util.TryDeleteBadLink(dir); err != nil {
+			return errors.Wrap(err, fmt.Sprintf("delete badlink %s", dir))
+		} else if deleted {
+			job.runtime.Logger.Info("delete badlink %s", dir)
+		}
+	}
+	return nil
 }
 
 // Init 初始化

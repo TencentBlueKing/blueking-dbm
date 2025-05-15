@@ -19,7 +19,7 @@ class MongoUtil:
     @staticmethod
     def _get_define_config(bk_biz_id, namespace, conf_file, conf_type: str):
         """获取一些全局的参数配置"""
-        """ bk_biz_id 为"0"时，表示平台级别配置"""
+        """ bk_biz_id 为"0"时, 表示平台级别配置"""
         data = DBConfigApi.query_conf_item(
             params={
                 "bk_biz_id": bk_biz_id,
@@ -100,24 +100,33 @@ class MongoUtil:
         """
         获取mongodb webconsole参数
         @param cluster_id: 集群id
-        @param session: session，用于标识一个请求，请务必保证带有用户id信息.
-        @param command: 命令，如：show dbs, 首次连接可以为空
-        @param timeout: 超时时间，单位秒
+        @param session: session, 用于标识一个请求, 请务必保证带有用户id信息.
+        @param command: 命令, 如: show dbs, 首次连接可以为空
+        @param timeout: 超时时间, 单位秒
         """
         cluster = MongoRepository().fetch_one_cluster(withDomain=False, id=cluster_id)
         if not cluster:
             raise Exception("cluster_id:{} not found".format(cluster_id))
 
         # 获得连接的节点, 集群为mongos节点，副本集优先使用backup节点，没有backup节点则为m1节点
+        SECONDARY_PREFERRED = "secondaryPreferred"
+        SECONDARY = "secondary"
+        read_preference = SECONDARY
         connect_nodes = []
         if cluster.is_sharded_cluster():
             connect_nodes = cluster.get_mongos()[:2]  # 取两个mongos就行
+            # 如果集群没有backup节点，则使用primary节点
+            for shard in cluster.get_shards(with_config=True):
+                if len(shard.members) < 3:
+                    read_preference = SECONDARY_PREFERRED
+                    break
         else:
             shard = cluster.get_shards()[0]
             node = shard.get_backup_node()
             if node:
                 connect_nodes.append(node)
             else:
+                read_preference = SECONDARY_PREFERRED  # primary
                 connect_nodes.append(shard.get_not_backup_nodes()[0])
 
         if len(connect_nodes) == 0:
@@ -160,6 +169,7 @@ class MongoUtil:
             "username": user,
             "password": pwd,
             "session": "{}:{}".format(cluster_id, session),
+            "read_preference": read_preference,
         }
 
     @staticmethod

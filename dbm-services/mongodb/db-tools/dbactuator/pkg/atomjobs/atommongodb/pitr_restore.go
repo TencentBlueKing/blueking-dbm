@@ -74,6 +74,7 @@ func (s *pitrRecoverJob) Run() error {
 		{"checkDstMongo", s.checkDstMongo},
 		//	{"checkSrcFileReady", s.checkSrcFileReady},
 		{"dropConfigDb", s.dropConfigDb},
+		{"restartAsStandAlone", s.restartAsStandAlone},
 		{"doPitrRecover", s.doPitrRecover},
 	} {
 		s.runtime.Logger.Info("Run %s start", f.name)
@@ -86,6 +87,26 @@ func (s *pitrRecoverJob) Run() error {
 	return nil
 }
 
+// restartAsStandAlone
+func (s *pitrRecoverJob) restartAsStandAlone() error {
+	op := common.NewInstanceOp(s.param.IP,
+		s.param.Port,
+		s.param.AdminUsername,
+		s.param.AdminPassword,
+		s.runtime.Logger,
+	)
+	err := op.DoStop()
+	if err != nil {
+		return errors.New("stop config server failed")
+	}
+	err = op.DoStartAsStandAlone()
+	if err != nil {
+		return errors.New("start config server failed")
+	}
+	return nil
+}
+
+// dropConfigDb 删除configsvr的数据库表
 func (s *pitrRecoverJob) dropConfigDb() error {
 	client, err := s.MongoInst.Connect()
 	if err != nil {
