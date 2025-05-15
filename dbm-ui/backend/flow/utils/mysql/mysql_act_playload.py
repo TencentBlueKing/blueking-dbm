@@ -879,7 +879,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         """
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
-            "action": DBActuatorActionEnum.ImportSQLFile.value,
+            "action": DBActuatorActionEnum.CheckPlsExecSQLFile.value,
             "payload": {
                 "general": {"runtime_account": self.account},
                 "extend": {
@@ -889,7 +889,6 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "file_path_suffix": self.ticket_data["file_path_suffix"],
                     "file_base_dir": self.ticket_data["file_base_dir"],
                     "charset": self.ticket_data["charset"],
-                    "just_check_ddl_block": self.cluster.get("just_check_ddl_block", False),
                     "mnt_spider_instance": self.cluster.get("mnt_spider_instance", {}),
                     "execute_objects": self.ticket_data["execute_objects"],
                 },
