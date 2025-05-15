@@ -35,6 +35,13 @@
         }})
       </InfoItem>
       <InfoItem
+        v-if="!item.isManulSelect"
+        :label="t('匹配规格')">
+        {{ item.specName }}
+      </InfoItem>
+    </InfoList>
+    <InfoList>
+      <InfoItem
         v-if="item.isManulSelect"
         :label="t('已选IP')">
         <BkTable :data="item.hostList">
@@ -45,11 +52,6 @@
             field="bk_disk"
             :label="t('磁盘容量(G)')" />
         </BkTable>
-      </InfoItem>
-      <InfoItem
-        v-else
-        :label="t('匹配规格')">
-        {{ item.specName }}
       </InfoItem>
     </InfoList>
   </div>
@@ -120,13 +122,13 @@
           clusterId,
           clusterName: clusters[clusterId]?.immute_domain || '--',
           count: currentResourceSpec.count,
-          expectDisk: extInfoData.expansion_disk,
+          expectDisk: extInfoData?.expansion_disk || 0,
           hostList: isManulSelect ? currentResourceSpec.hosts : [],
           isManulSelect,
           nodeText: nodeTypeText[node] || '--',
           specName: specs[currentResourceSpec.spec_id]?.name || '--',
-          totalDisk: extInfoData.total_disk,
-          totalHost: extInfoData.total_hosts,
+          totalDisk: extInfoData?.total_disk || 0,
+          totalHost: extInfoData?.total_hosts || 0,
         });
       }
     });
