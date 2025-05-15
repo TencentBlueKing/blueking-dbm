@@ -73,6 +73,11 @@ def RedisBatchInstallAtomJob(
         }
     """
     act_kwargs = deepcopy(sub_kwargs)
+    act_kwargs.cluster.pop("ins_pair_map", None)
+    act_kwargs.cluster.pop("slave_ins_map", None)
+    act_kwargs.cluster.pop("proxy_ips", None)
+    act_kwargs.cluster.pop("slave_ports", None)
+    act_kwargs.cluster.pop("master_ports", None)
     app = AppCache.get_app_attr(act_kwargs.cluster["bk_biz_id"], "db_app_abbr")
     app_name = AppCache.get_app_attr(act_kwargs.cluster["bk_biz_id"], "bk_biz_name")
     atom_name = ""
@@ -152,7 +157,7 @@ def RedisBatchInstallAtomJob(
         else:
             act_kwargs.get_redis_payload_func = RedisActPayload.get_redis_install_4_scene.__name__
         sub_pipeline.add_act(
-            act_name=_("{}-{}-安装实例").format(exec_ip, param.get("ports", [])),
+            act_name=_("{}-{}-安装实例").format(exec_ip, str(param.get("ports", []))[:17]),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(act_kwargs),
         )
@@ -170,7 +175,7 @@ def RedisBatchInstallAtomJob(
         else:
             raise Exception("unkown instance role {}:{}", param["meta_role"], exec_ip)
         sub_pipeline.add_act(
-            act_name=_("{}-{}-写入元数据").format(exec_ip, param.get("ports", [])),
+            act_name=_("{}-{}-写入元数据").format(exec_ip, str(param.get("ports", []))[:17]),
             act_component_code=RedisDBMetaComponent.code,
             kwargs=asdict(act_kwargs),
         )
