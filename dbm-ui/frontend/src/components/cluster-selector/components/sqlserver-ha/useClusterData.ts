@@ -14,15 +14,13 @@
 import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
 import { type ComponentInternalInstance, getCurrentInstance, reactive, type Ref, ref, shallowRef } from 'vue';
 
-import { useGlobalBizs } from '@stores';
-
 import { getSearchSelectorParams } from '@utils';
 
 /**
  * 处理集群列表数据
  */
 export function useClusterData<T>(searchSelectValue: Ref<ISearchValue[]>) {
-  const globalBizsStore = useGlobalBizs();
+  let baseExtraParamsMemo = {};
   const currentInstance = getCurrentInstance() as {
     proxy: {
       getResourceList: (params: any) => Promise<any>;
@@ -37,6 +35,7 @@ export function useClusterData<T>(searchSelectValue: Ref<ISearchValue[]>) {
     current: 1,
     limit: 10,
     limitList: [10, 20, 50, 100, 500],
+    remote: true,
     small: true,
   });
 
@@ -58,13 +57,14 @@ export function useClusterData<T>(searchSelectValue: Ref<ISearchValue[]>) {
    */
   const fetchResources = async (extraParams: Record<string, any> = {}) => {
     isLoading.value = true;
+    baseExtraParamsMemo = { ...extraParams };
     return currentInstance.proxy
       .getResourceList({
-        bk_biz_id: globalBizsStore.currentBizId,
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         limit: pagination.limit,
         offset: pagination.limit * (pagination.current - 1),
         ...getSearchSelectorParams(searchSelectValue.value),
-        ...extraParams,
+        ...baseExtraParamsMemo,
       })
       .then((res) => {
         pagination.count = res.count;
@@ -83,7 +83,7 @@ export function useClusterData<T>(searchSelectValue: Ref<ISearchValue[]>) {
 
   const handleChangePage = (value: number) => {
     pagination.current = value;
-    return fetchResources();
+    return fetchResources(baseExtraParamsMemo);
   };
 
   const handeChangeLimit = (value: number) => {

@@ -79,7 +79,9 @@
         :is-filter="isFilter"
         :selected-list="selected"
         @refresh="fetchTableData" />
-      <ClusterTagColumn @success="fetchTableData" />
+      <ClusterTagColumn
+        :cluster-type="ClusterTypes.PULSAR"
+        @success="fetchTableData" />
       <StatusColumn :cluster-type="ClusterTypes.PULSAR" />
       <ClusterStatsColumn :cluster-type="ClusterTypes.PULSAR" />
       <RoleColumn

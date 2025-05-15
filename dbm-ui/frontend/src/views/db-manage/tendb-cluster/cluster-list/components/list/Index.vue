@@ -100,7 +100,9 @@
           :get-table-instance="getTableInstance"
           :is-filter="isFilter"
           :selected-list="selected" />
-        <ClusterTagColumn @success="fetchTableData" />
+        <ClusterTagColumn
+          :cluster-type="ClusterTypes.TENDBCLUSTER"
+          @success="fetchTableData" />
         <StatusColumn :cluster-type="ClusterTypes.TENDBCLUSTER" />
         <ClusterStatsColumn :cluster-type="ClusterTypes.TENDBCLUSTER" />
         <MasterSlaveRoleColumn

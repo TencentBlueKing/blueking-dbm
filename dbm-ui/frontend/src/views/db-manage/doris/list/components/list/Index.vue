@@ -80,7 +80,9 @@
         :is-filter="isFilter"
         :selected-list="selected"
         @refresh="fetchTableData" />
-      <ClusterTagColumn @success="fetchTableData" />
+      <ClusterTagColumn
+        :cluster-type="ClusterTypes.DORIS"
+        @success="fetchTableData" />
       <StatusColumn :cluster-type="ClusterTypes.DORIS" />
       <ClusterStatsColumn :cluster-type="ClusterTypes.DORIS" />
       <RoleColumn

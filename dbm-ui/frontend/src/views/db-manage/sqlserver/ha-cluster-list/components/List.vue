@@ -77,7 +77,9 @@
         :get-table-instance="getTableInstance"
         :is-filter="isFilter"
         :selected-list="selected" />
-      <ClusterTagColumn @success="fetchData" />
+      <ClusterTagColumn
+        :cluster-type="ClusterTypes.SQLSERVER_HA"
+        @success="fetchData" />
       <StatusColumn :cluster-type="ClusterTypes.SQLSERVER_HA" />
       <ClusterStatsColumn :cluster-type="ClusterTypes.SQLSERVER_HA" />
       <RoleColumn

@@ -79,7 +79,9 @@
         :is-filter="isFilter"
         :selected-list="selected"
         @refresh="fetchTableData" />
-      <ClusterTagColumn @success="fetchTableData" />
+      <ClusterTagColumn
+        :cluster-type="ClusterTypes.KAFKA"
+        @success="fetchTableData" />
       <StatusColumn :cluster-type="ClusterTypes.KAFKA" />
       <ClusterStatsColumn :cluster-type="ClusterTypes.KAFKA" />
       <RoleColumn

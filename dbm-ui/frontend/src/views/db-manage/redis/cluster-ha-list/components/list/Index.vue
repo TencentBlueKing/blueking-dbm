@@ -83,7 +83,9 @@
         :get-table-instance="getTableInstance"
         :is-filter="isFilter"
         :selected-list="selected" />
-      <ClusterTagColumn @success="fetchData" />
+      <ClusterTagColumn
+        :cluster-type="ClusterTypes.REDIS_INSTANCE"
+        @success="fetchData" />
       <StatusColumn :cluster-type="ClusterTypes.REDIS_INSTANCE" />
       <ClusterStatsColumn :cluster-type="ClusterTypes.REDIS_INSTANCE" />
       <RoleColumn
