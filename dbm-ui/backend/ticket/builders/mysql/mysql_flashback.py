@@ -97,6 +97,13 @@ class MySQLFlashbackDetailSerializer(MySQLBaseOperateDetailSerializer):
                 raise serializers.ValidationError(_("输入内容不符合csv格式"))
 
     def check_flashback_database_result(self, attrs):
+        # 校验库表不能为*
+        for info in attrs["infos"]:
+            if "*" in info["databases"]:
+                raise serializers.ValidationError(_("集群[{}] 目标DB不能为*").format(info["cluster_id"]))
+            if "*" in info["tables"]:
+                raise serializers.ValidationError(_("集群[{}] 目标表不能为*").format(info["cluster_id"]))
+
         # 校验flash的库表选择器
         RemoteServiceHandler(bk_biz_id=self.context["bk_biz_id"]).check_flashback_database(attrs["infos"])
 
