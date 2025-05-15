@@ -16,6 +16,7 @@ spec:
     {{- if and (eq .componentName "vminsert") (eq $.Values.topoName "cluster") }}
     - name: vminsert
       serviceVersion: {{ .serviceVersion }}
+      serviceAccountName: {{ include "victoriametrics.serviceAccountName" $ }}
       {{- with .env }}
       env:
         {{- range $key, $value := . }}
@@ -36,6 +37,7 @@ spec:
     {{- if eq .componentName "vmselect" }}
     - name: vmselect
       serviceVersion: {{ .serviceVersion }}
+      serviceAccountName: {{ include "victoriametrics.serviceAccountName" $ }}
       {{- with .env }}
       env:
         {{- range $key, $value := . }}

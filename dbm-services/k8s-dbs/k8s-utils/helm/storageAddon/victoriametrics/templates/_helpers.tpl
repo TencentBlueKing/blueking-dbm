@@ -46,3 +46,10 @@ Define victoriametrics storage component definition name
 {{- define "victoriametrics-storage.cmpvName" -}}
 vmstorage-{{ .Chart.Version}}
 {{- end -}}
+
+{{/*
+Define sidecar script
+*/}}
+{{- define "vm.cmScriptsName" -}}
+vm-scripts-{{ .Chart.Version}}
+{{- end -}}
