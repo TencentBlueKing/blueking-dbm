@@ -28,4 +28,5 @@ uninstall.sh
 worker-agent.jar
 preci.port
 build.yml
+build/
 tests/dbactuator-test

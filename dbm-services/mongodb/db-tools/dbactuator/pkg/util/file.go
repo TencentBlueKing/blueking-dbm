@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+
+	"github.com/pkg/errors"
 )
 
 // FileExists 检查path是否已经存在
@@ -93,4 +95,44 @@ func GetLastLine(filename string, n int) (lines []string, err error) {
 	}
 	err = scanner.Err()
 	return
+}
+
+// TryDeleteBadLink 删除不存在的软链接
+// 如果软链接不存在，直接返回 nil
+// 如果软链接存在，检查软链接指向的文件是否存在, 不存在时删除软链接
+func TryDeleteBadLink(linkPath string) (deleted bool, err error) {
+	fileInfo, err := os.Lstat(linkPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// 链接不存在，直接返回true
+			return true, nil
+		}
+		return false, err
+	}
+
+	// 2. 检查文件类型，如果不是软链接，直接返回ok
+	if fileInfo.Mode()&os.ModeSymlink == 0 {
+		return false, nil
+	}
+
+	// 3. 检查链接指向的目标是否存在
+	targetPath, err := os.Readlink(linkPath)
+	if err != nil {
+		return false, fmt.Errorf("failed to read link: %v", err)
+	}
+
+	// 4. 判断目标文件是否存在
+	if _, err := os.Stat(targetPath); os.IsNotExist(err) {
+		// 目标不存在，删除链接
+		if err := os.Remove(linkPath); err != nil {
+			return false, errors.Wrap(err, "remove")
+		} else {
+			return true, nil
+		}
+	} else if err != nil {
+		return false, errors.Wrap(err, "readlink")
+	} else {
+		// target exists，ok
+		return false, nil
+	}
 }

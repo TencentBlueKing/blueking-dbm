@@ -94,7 +94,7 @@ func delMetaMain() {
 			if s.Addr() == server.Addr() {
 				deletedPortList = append(deletedPortList, s.Port)
 				mylog.Logger.Info("delete server", zap.String("server", s.Addr()))
-				dbmonConf.Config.Servers = slices.Delete(dbmonConf.Config.Servers, j, j)
+				dbmonConf.Config.Servers = slices.Delete(dbmonConf.Config.Servers, j, j+1)
 				break
 			}
 		}
