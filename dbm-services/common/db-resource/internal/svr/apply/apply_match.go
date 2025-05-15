@@ -20,6 +20,7 @@ import (
 	"github.com/samber/lo"
 
 	"dbm-services/common/db-resource/internal/model"
+	"dbm-services/common/db-resource/internal/svr/meta"
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 )
@@ -72,51 +73,85 @@ func (c *PickerObject) PickerSameSubZone(cross_switch bool) {
 
 // PickerCrossSubzone 跨园区匹配
 func (c *PickerObject) PickerCrossSubzone(cross_subzone, cross_swicth bool) {
-	campKeys := c.sortSubZoneNum(cross_subzone)
-	if len(campKeys) == 0 {
-		return
+	sortFuncs := []func(cross_subzone bool) []string{
+		c.sortSubZoneByPriority,
+		c.sortSubZoneNum,
 	}
-	subzoneChan := make(chan subzone, len(campKeys))
-	for _, v := range campKeys {
-		subzoneChan <- v
-	}
-	for subzone := range subzoneChan {
-		pq, ok := c.PriorityElements[subzone]
-		if !ok {
-			logger.Warn("%s is queue is nil", subzone)
-			continue
-		}
-		if pq.Len() == 0 {
-			delete(c.PriorityElements, subzone)
-		}
-		if len(c.sortSubZoneNum(cross_subzone)) == 0 {
-			logger.Info("go out here")
-			close(subzoneChan)
+	for _, sfc := range sortFuncs {
+		campKeys := sfc(cross_subzone)
+		if len(campKeys) == 0 {
 			return
 		}
-		logger.Info(fmt.Sprintf("surplus %s,%d", subzone, pq.Len()))
-		logger.Info(fmt.Sprintf("%s,%d,%d", subzone, c.Count, len(c.SatisfiedHostIds)))
-		if c.pickerOneByPriority(subzone, cross_swicth) {
-			if cross_subzone {
+		subzoneChan := make(chan subzone, len(campKeys))
+		for _, v := range campKeys {
+			subzoneChan <- v
+		}
+		for subzone := range subzoneChan {
+			pq, ok := c.PriorityElements[subzone]
+			if !ok {
+				logger.Warn("%s is queue is nil", subzone)
+				continue
+			}
+			if pq.Len() == 0 {
 				delete(c.PriorityElements, subzone)
 			}
-		}
-		// 匹配资源完成
-		if c.PickerDone() {
-			close(subzoneChan)
-			return
-		}
-		// 非跨园区循环读取
-		if !cross_subzone {
-			subzoneChan <- subzone
-			continue
-		}
-		// 跨园区
-		if len(subzoneChan) == 0 {
-			close(subzoneChan)
-			return
+			if len(sfc(cross_subzone)) == 0 {
+				logger.Info("go out here")
+				close(subzoneChan)
+				return
+			}
+			logger.Info(fmt.Sprintf("surplus %s,%d", subzone, pq.Len()))
+			logger.Info(fmt.Sprintf("%s,%d,%d", subzone, c.Count, len(c.SatisfiedHostIds)))
+			if c.pickerOneByPriority(subzone, cross_swicth) {
+				if cross_subzone {
+					delete(c.PriorityElements, subzone)
+				}
+			}
+			// 匹配资源完成
+			if c.PickerDone() {
+				close(subzoneChan)
+				return
+			}
+			// 非跨园区循环读取
+			if !cross_subzone {
+				subzoneChan <- subzone
+				continue
+			}
+			// 跨园区
+			if len(subzoneChan) == 0 {
+				close(subzoneChan)
+				return
+			}
 		}
 	}
+}
+
+// sortSubZoneByPriority 按照SubZonePrioritySumMap的value值从大到小排序
+func (c *PickerObject) sortSubZoneByPriority(cross_subzone bool) []string {
+	type subZonePriority struct {
+		subZone  string
+		priority int64
+	}
+	var sorted []subZonePriority
+	for subZone, priority := range c.SubZonePrioritySumMap {
+		if cross_subzone && slices.Contains(c.ExistSubZone, subZone) {
+			continue
+		}
+		sorted = append(sorted, subZonePriority{subZone, priority})
+	}
+
+	// Sort by priority in descending order
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].priority > sorted[j].priority
+	})
+
+	// Extract just the subZone names
+	result := make([]string, 0, len(sorted))
+	for _, item := range sorted {
+		result = append(result, item.subZone)
+	}
+
+	return result
 }
 
 // sortSubZoneNum 根据排序剩下有效的园区
@@ -194,9 +229,11 @@ const (
 	// PriorityP1 priority 1
 	PriorityP1 = 10000
 	// PriorityP2 priority 2
-	PriorityP2 = 10
+	PriorityP2 = 100
 	// PriorityP3 priority 3
-	PriorityP3 = 1
+	PriorityP3 = 10
+	// PriorityP4  priority 3
+	PriorityP4 = 1
 )
 
 const (
@@ -204,11 +241,14 @@ const (
 	RsRedis = "redis"
 )
 
-func (o *SearchContext) setResourcePriority(ins model.TbRpDetail, ele *Item) {
+func (o *SearchContext) setResourcePriority(ins model.TbRpDetail, ele *Item, deviceClass string) {
 	if err := ins.UnmarshalDiskInfo(); err != nil {
 		logger.Error("%s umarshal disk failed %s", ins.IP, err.Error())
 	}
-
+	// 如果请求参数请求了专属业务资源，则标记了专用业务的资源优先级更高
+	if o.IntetionBkBizId > 0 && ins.DedicatedBiz == o.IntetionBkBizId {
+		ele.Priority += PriorityP0
+	}
 	// 如果请求的磁盘为空，尽量匹配没有磁盘的机器
 	// 请求参数需要几块盘，如果机器盘数量预制相等，则优先级更高
 	if len(o.StorageSpecs) == len(ins.Storages) {
@@ -216,21 +256,41 @@ func (o *SearchContext) setResourcePriority(ins model.TbRpDetail, ele *Item) {
 	}
 	// 如果请求参数包含规格，如果机器机型匹配,则高优先级
 	if len(o.DeviceClass) > 0 && lo.Contains(o.DeviceClass, ins.DeviceClass) {
-		ele.Priority += PriorityP0
+		ele.Priority += PriorityP2
 	}
-	// 如果请求参数请求了专属业务资源，则标记了专用业务的资源优先级更高
-	if o.IntetionBkBizId > 0 && ins.DedicatedBiz == o.IntetionBkBizId {
-		ele.Priority += PriorityP0
+	if ins.DeviceClass == deviceClass {
+		ele.Priority += PriorityP2
 	}
-
+	// 当请求参数请求了磁盘,则匹配磁盘大小相近的机器优先级更高
+	if len(o.StorageSpecs) > 0 {
+		storageSpecMap := lo.SliceToMap(o.StorageSpecs, func(item meta.DiskSpec) (string, meta.DiskSpec) {
+			return item.MountPoint, item
+		})
+		for mp, disk := range ins.Storages {
+			if spec, ok := storageSpecMap[mp]; ok {
+				// 已经匹配到的资源，磁盘一定是大于等于请求的磁盘最小的值的
+				// 倾向匹配磁盘小的机器
+				ele.Priority += int64((1 - float32(disk.Size-spec.MinSize)/float32(disk.Size)) * PriorityP2)
+			}
+		}
+	} else {
+		// 如果请求参数没有磁盘规格，尽量匹配没有磁盘的机器
+		if len(ins.Storages) == 0 {
+			for _, disk := range ins.Storages {
+				// 已经匹配到的资源，磁盘一定是大于等于请求的磁盘最小的值的
+				// 倾向匹配磁盘小的机器
+				ele.Priority += int64(100 - disk.Size/100)
+			}
+		}
+	}
 	//  如果请求参数请求了专属db类型，机器的资源类型标签只有一个，且等于请求的资源的类中，则优先级更高
 	if lo.IsNotEmpty(o.RsType) && (ins.RsType == o.RsType) {
-		ele.Priority += PriorityP3
+		ele.Priority += PriorityP2
 	}
 	// 如果是匹配的资源是redis资源
 	// 在内存满足的条件下，偏向取cpu核心小的机器
 	if lo.Contains([]string{RsRedis}, o.RsType) {
-		ele.Priority += int64((1.0 - float32(ins.CPUNum-o.Spec.Cpu.Min)/float32(ins.CPUNum)) * PriorityP3)
+		ele.Priority += int64((1.0 - float32(ins.CPUNum-o.Spec.Cpu.Min)/float32(ins.CPUNum)) * PriorityP2)
 	}
 }
 
@@ -239,12 +299,13 @@ func (o *SearchContext) AnalysisResourcePriority(insList []model.TbRpDetail, isr
 	map[string]int64,
 	error) {
 	result := make(map[string]*PriorityQueue)
+	maxMumDeviceClass := getMaxNumDeviceClass(insList)
 	subZonePrioritySumMap := make(map[string]int64)
 	itemsMap := make(map[string][]Item)
 	for _, ins := range insList {
 		ele := Item{
 			Key:      strconv.Itoa(ins.BkHostID),
-			Priority: 0,
+			Priority: 1,
 			Value: InstanceObject{
 				BkHostId:        ins.BkHostID,
 				Equipment:       ins.RackID,
@@ -253,7 +314,7 @@ func (o *SearchContext) AnalysisResourcePriority(insList []model.TbRpDetail, isr
 				InsDetail:       &ins,
 			},
 		}
-		o.setResourcePriority(ins, &ele)
+		o.setResourcePriority(ins, &ele, maxMumDeviceClass)
 		if israndom {
 			itemsMap[RANDOM] = append(itemsMap[RANDOM], ele)
 		} else {
@@ -274,5 +335,21 @@ func (o *SearchContext) AnalysisResourcePriority(insList []model.TbRpDetail, isr
 			}
 		}
 	}
+	logger.Info("sub zone priority sum map %v", subZonePrioritySumMap)
 	return result, subZonePrioritySumMap, nil
+}
+
+// getMaxNumDeviceClass 获取机型数量最多的机型
+func getMaxNumDeviceClass(items []model.TbRpDetail) string {
+	maxNum := 0
+	maxType := ""
+	dclCountMap := make(map[string]int)
+	for _, item := range items {
+		dclCountMap[item.DeviceClass]++
+		if dclCountMap[item.DeviceClass] > maxNum {
+			maxNum = dclCountMap[item.DeviceClass]
+			maxType = item.DeviceClass
+		}
+	}
+	return maxType
 }
