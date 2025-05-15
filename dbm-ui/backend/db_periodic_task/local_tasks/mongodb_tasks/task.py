@@ -14,23 +14,29 @@ from celery.schedules import crontab
 
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
 
-from .check_exporter import check_metric
-from .check_full_backup import check_full_backup
+from .check_exporter import CheckMongodbUpMetricTask
+from .check_full_backup import CheckMongoBackupRecordTask
 
 logger = logging.getLogger("celery")
 
+"""
+    register_periodic_task 注册新的周期任务注意
+    1. 通过装饰器注册周期任务
+    2. import到 ../__init__.py
+"""
 
-@register_periodic_task(run_every=crontab(minute=0, hour=0))
+
+@register_periodic_task(run_every=crontab(minute=1, hour=7))
 def mongodb_backup_check_task():
     """
-    mongodb 备份巡检， 每天8点执行一次
+    mongodb 备份巡检.
     """
-    check_full_backup()
+    CheckMongoBackupRecordTask().start()
 
 
-@register_periodic_task(run_every=crontab(minute=0, hour=0))
+@register_periodic_task(run_every=crontab(minute=1, hour="*/2"))
 def mongodb_metric_check_task():
     """
-    mongodb exporter巡检， 每天8点执行一次
+    mongodb exporter巡检
     """
-    check_metric()
+    CheckMongodbUpMetricTask().start()

@@ -24,6 +24,7 @@ from backend.db_periodic_task.local_tasks.redis_backup import *
 from backend.db_periodic_task.local_tasks.redis_clusternodes_update import *
 from backend.db_periodic_task.local_tasks.sqlserver import *
 from backend.db_periodic_task.local_tasks.ticket import *
+from backend.db_periodic_task.local_tasks.mongodb_tasks import mongodb_backup_check_task, mongodb_metric_check_task
 from backend.db_periodic_task.models import DBPeriodicTask
 
 from ..constants import PeriodicTaskType

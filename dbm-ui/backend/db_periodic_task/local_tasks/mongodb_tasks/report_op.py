@@ -13,10 +13,22 @@ import logging
 
 from django.utils.translation import ugettext as _
 
+from backend import env
 from backend.db_report.models.monogdb_check_report import MongodbBackupCheckReport
 from backend.flow.utils.mongodb.mongodb_repo import MongoNode
 
 logger = logging.getLogger("root")
+
+dev_env = str(env.REPO_VERSION_FOR_DEV)
+
+
+def dev_debug(msg: str):
+    """
+    A simple logging function to log debug messages.
+    """
+    if dev_env != "":
+        # Only log in dev environment
+        logger.debug("env:{} msg:{}".format(dev_env, msg))
 
 
 def create_failed_record(c, shard, instance, status, msg, subtype):

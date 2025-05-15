@@ -11,14 +11,13 @@ specific language governing permissions and limitations under the License.
 import logging
 from collections import defaultdict
 from datetime import timedelta
-from importlib.resources import _
 
 from django.db.models import Q
 from django.utils import timezone
 
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
-from backend.db_periodic_task.local_tasks.mongodb_tasks.report_op import addr, create_failed_record
+from backend.db_periodic_task.local_tasks.mongodb_tasks.report_op import addr, create_failed_record, dev_debug
 from backend.db_report.enums.mongodb_check_sub_type import MongodbBackupCheckSubType
 from backend.db_report.models.monogdb_check_report import MongodbBackupCheckReport
 from backend.db_services.mongodb.restore.handlers import MongoDBRestoreHandler
@@ -27,12 +26,7 @@ from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster, MongoReposit
 logger = logging.getLogger("root")
 
 
-def check_full_backup():
-    r = CheckMongoBackupRecord()
-    r.start()
-
-
-class CheckMongoBackupRecord:
+class CheckMongoBackupRecordTask:
     def __init__(self):
         pass
 
@@ -54,19 +48,21 @@ class CheckMongoBackupRecord:
             create_at__lt=timezone.now() - timedelta(hours=8)
         )
         cluster_list = Cluster.objects.filter(query)
-        logger.debug(cluster_list.query)
-        # 这里的cluster_list是一个QuerySet对象，包含了所有符合条件的Cluster对象
-
+        batch_size = 100
         for c in cluster_list:
             cluster = MongoRepository.fetch_one_cluster(withDomain=False, id=c.id)
             ret = self.check_one(cluster)
             failed_records.extend(ret)
+            if len(failed_records) > batch_size:
+                dev_debug("cluster {} failed_records {}".format(cluster.cluster_id, len(failed_records)))
+                # 批量插入备份失败记录
+                MongodbBackupCheckReport.objects.bulk_create(failed_records)
+                failed_records = []
 
-        for record in failed_records:
-            logger.debug(record.cluster, record.instance, record.msg, record.subtype)
-
-        # 批量插入备份失败记录
-        MongodbBackupCheckReport.objects.bulk_create(failed_records)
+        if len(failed_records) > 0:
+            dev_debug("cluster {} failed_records {}".format(cluster.cluster_id, len(failed_records)))
+            # 批量插入备份失败记录
+            MongodbBackupCheckReport.objects.bulk_create(failed_records)
 
     @staticmethod
     def check_one(cluster: MongoDBCluster):
@@ -77,7 +73,7 @@ class CheckMongoBackupRecord:
         4. 检查所有的分片的backup节点是否存在全备文件记录
         5. 检查所有的分片的backup节点的增量备份记录是否连续 todo
         """
-        print(f"=== check_one {cluster.cluster_id} {cluster.immute_domain} === ")
+        dev_debug(f"=== check_one {cluster.cluster_id} {cluster.immute_domain} === ")
         failed_records = []
         backup_records = fetch_backup_record_by_cluster(cluster)
         full_backup = MongodbBackupCheckSubType.FullBackup.value
@@ -101,9 +97,7 @@ class CheckMongoBackupRecord:
                 else:
                     msg = "ok"
 
-            failed_records.append(
-                create_failed_record(cluster, shard_id, addr(node), msg == "ok", _(msg), full_backup)
-            )
+            failed_records.append(create_failed_record(cluster, shard_id, addr(node), msg == "ok", msg, full_backup))
 
         return failed_records
 

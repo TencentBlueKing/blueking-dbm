@@ -22,7 +22,7 @@ from backend.components import BKMonitorV3Api
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.local_tasks.db_meta.constants import UNIFY_QUERY_PARAMS
-from backend.db_periodic_task.local_tasks.mongodb_tasks.report_op import addr, create_failed_record
+from backend.db_periodic_task.local_tasks.mongodb_tasks.report_op import addr, create_failed_record, dev_debug
 from backend.db_report.enums.mongodb_check_sub_type import MongodbExporterCheckSubType
 from backend.db_report.models.monogdb_check_report import MongodbBackupCheckReport
 from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster, MongoRepository
@@ -30,12 +30,7 @@ from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster, MongoReposit
 logger = logging.getLogger("root")
 
 
-def check_metric():
-    r = CheckMongodbUpMetric()
-    r.start()
-
-
-class CheckMongodbUpMetric:
+class CheckMongodbUpMetricTask:
     def __init__(self):
         pass
 
@@ -115,8 +110,6 @@ class CheckMongodbUpMetric:
                 msg = "metric not found"
             elif item["value"] != 1:
                 msg = "metric value not 1 ({})".format(item["value"])
-            elif item["instance_role"] != node.set_name:
-                msg = "bad label: instance_role (required: {}, found: {})".format(node.set_name, item["instance_role"])
             else:
                 msg = "ok"
 
@@ -181,7 +174,7 @@ def fetch_metric_by_cluster(cluster_domain):
     params["end_time"] = int(end_time.timestamp())
     # 设置要查询的 cluster_domain 变量
     params["query_configs"][0]["promql"] = query_template["up"].format(cluster_domain=cluster_domain)
-    logger.debug("params: {}".format(params["query_configs"][0]["promql"]))
+    dev_debug("params: {}".format(params["query_configs"][0]["promql"]))
 
     metric_result = defaultdict(dict)
     try:
@@ -190,7 +183,7 @@ def fetch_metric_by_cluster(cluster_domain):
     except Exception as e:
         logger.error("query metric error: {}".format(e))
         return None
-    logger.debug("cluster_domain: {} series: {}".format(cluster_domain, series))
+    dev_debug("cluster_domain: {} series: {}".format(cluster_domain, series))
     for item in series:
         logger.info("cluster_domain: {} item: {}".format(cluster_domain, item))
         ip_port = item["dimensions"]["bk_target_ip"] + ":" + str(item["dimensions"]["instance_port"])
