@@ -84,7 +84,9 @@
         :is-filter="isFilter"
         :selected-list="selected"
         @refresh="fetchData" />
-      <ClusterTagColumn @success="fetchData" />
+      <ClusterTagColumn
+        :cluster-type="ClusterTypes.RIAK"
+        @success="fetchData" />
       <StatusColumn :cluster-type="ClusterTypes.RIAK" />
       <ClusterStatsColumn :cluster-type="ClusterTypes.RIAK" />
       <RoleColumn

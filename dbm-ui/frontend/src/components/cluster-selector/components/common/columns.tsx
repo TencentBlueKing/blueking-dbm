@@ -12,7 +12,7 @@ export const tagsColumn = {
   minWidth: 110,
   render: ({ data }: { data: ResourceItem }) => {
     const tipList = data.tags.map((tag) => `${tag.key}: ${tag.value}`);
-    return <TextOverflowLayout>{tipList.join(' , ')}</TextOverflowLayout>;
+    return tipList.length ? <TextOverflowLayout>{tipList.join(' , ')}</TextOverflowLayout> : '--';
   },
 };
 

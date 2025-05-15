@@ -73,7 +73,9 @@
           :is-filter="isFilter"
           :selected-list="selected"
           @refresh="fetchData" />
-        <ClusterTagColumn @success="fetchData" />
+        <ClusterTagColumn
+          :cluster-type="ClusterTypes.SQLSERVER_SINGLE"
+          @success="fetchData" />
         <StatusColumn :cluster-type="ClusterTypes.SQLSERVER_SINGLE" />
         <ClusterStatsColumn :cluster-type="ClusterTypes.SQLSERVER_SINGLE" />
         <RoleColumn

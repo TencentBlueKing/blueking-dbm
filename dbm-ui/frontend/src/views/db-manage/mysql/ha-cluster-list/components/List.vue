@@ -89,7 +89,9 @@
           :get-table-instance="getTableInstance"
           :is-filter="isFilter"
           :selected-list="selected" />
-        <ClusterTagColumn @success="fetchData" />
+        <ClusterTagColumn
+          :cluster-type="ClusterTypes.TENDBHA"
+          @success="fetchData" />
         <StatusColumn :cluster-type="ClusterTypes.TENDBHA" />
         <ClusterStatsColumn :cluster-type="ClusterTypes.TENDBHA" />
         <RoleColumn

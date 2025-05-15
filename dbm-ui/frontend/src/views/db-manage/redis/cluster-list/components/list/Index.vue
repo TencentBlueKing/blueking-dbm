@@ -94,7 +94,9 @@
           :is-filter="isFilter"
           :selected-list="selected"
           @refresh="fetchData" />
-        <ClusterTagColumn @success="fetchData" />
+        <ClusterTagColumn
+          :cluster-type="ClusterTypes.REDIS"
+          @success="fetchData" />
         <StatusColumn :cluster-type="ClusterTypes.REDIS" />
         <ClusterStatsColumn :cluster-type="ClusterTypes.REDIS" />
         <RoleColumn

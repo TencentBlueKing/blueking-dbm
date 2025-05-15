@@ -86,7 +86,9 @@
           :is-filter="isFilter"
           :selected-list="selected"
           @refresh="fetchData" />
-        <ClusterTagColumn @success="fetchData" />
+        <ClusterTagColumn
+          :cluster-type="ClusterTypes.TENDBSINGLE"
+          @success="fetchData" />
         <StatusColumn :cluster-type="ClusterTypes.TENDBSINGLE" />
         <ClusterStatsColumn :cluster-type="ClusterTypes.TENDBSINGLE" />
         <RoleColumn

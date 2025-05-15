@@ -95,7 +95,9 @@
         :is-filter="isFilter"
         :selected-list="selected"
         @refresh="fetchData" />
-      <ClusterTagColumn @success="fetchData" />
+      <ClusterTagColumn
+        :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
+        @success="fetchData" />
       <StatusColumn :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER" />
       <ClusterStatsColumn :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER" />
       <RoleColumn

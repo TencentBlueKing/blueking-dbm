@@ -89,7 +89,9 @@
         :is-filter="isFilter"
         :selected-list="selected"
         @refresh="fetchData" />
-      <ClusterTagColumn @success="fetchData" />
+      <ClusterTagColumn
+        :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
+        @success="fetchData" />
       <StatusColumn :cluster-type="ClusterTypes.MONGO_REPLICA_SET" />
       <ClusterStatsColumn :cluster-type="ClusterTypes.MONGO_REPLICA_SET" />
       <RoleColumn
