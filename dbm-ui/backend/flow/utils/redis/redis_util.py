@@ -13,6 +13,7 @@ from typing import Dict, List
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
+from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
@@ -212,3 +213,34 @@ def get_cluster_update_version(cluster_id: int) -> List[str]:
     curr_version = cluster.major_version
     packages = Package.objects.filter(pkg_type="redis", db_type="redis", enable=True)
     return [p.__dict__["version"] for p in packages if version_ge(p.__dict__["version"], curr_version)]
+
+
+def get_tendisplus_shutdown_hosts(cluster_id, target_group_num: int):
+    """
+    获取tendisplus缩容时需要下架的hosts
+    """
+    cluster = Cluster.objects.get(id=cluster_id)
+    cluster_masters = cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value)
+    current_group_num = len(cluster_masters)
+    # 如果不是缩容，返回空数组
+    if current_group_num <= target_group_num:
+        return []
+    master_ips = set()
+    slave_ips = set()
+    master_slave_dict = {}
+    contraction_group = current_group_num - target_group_num
+    for master_obj in cluster_masters:
+        master_ips.add(master_obj.machine.ip)
+        if master_obj.as_ejector and master_obj.as_ejector.first():
+            my_slave_obj = master_obj.as_ejector.get().receiver
+            slave_ips.add(my_slave_obj.machine.ip)
+            master_slave_dict[master_obj.machine.ip] = my_slave_obj.machine.ip
+    shutdown_master_hosts = []
+    shutdown_slave_hosts = []
+    for master_ip in list(master_ips):
+        if contraction_group <= 0:
+            break
+        contraction_group -= 1
+        shutdown_master_hosts.append(master_ip)
+        shutdown_slave_hosts.append(master_slave_dict[master_ip])
+    return shutdown_master_hosts, shutdown_slave_hosts

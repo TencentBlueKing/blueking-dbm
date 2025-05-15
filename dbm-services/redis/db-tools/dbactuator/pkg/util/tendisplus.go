@@ -90,7 +90,7 @@ func GetTendisplusExeThreadNum() int {
 	if cpuCoresNum <= 4 {
 		return cpuCoresNum
 	}
-	ret = cpuCoresNum * 3 / 4
+	ret = cpuCoresNum * 3 / 2
 	ret = mustBetweenMinAndMax(ret, minVal, maxVal)
 	return ret
 }

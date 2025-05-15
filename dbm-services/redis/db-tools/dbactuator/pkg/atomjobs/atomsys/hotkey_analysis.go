@@ -31,7 +31,7 @@ type AnalysisHotkeyParams struct {
 	InsList      []Ins  `json:"ins_list"`
 	AnalysisTime int    `json:"analysis_time" validate:"required" `
 	ClusterId    int64  `json:"cluster_id" validate:"required"`
-	TicketId     string `json:"ticket_id" validate:"required"`
+	TicketId     int64  `json:"ticket_id" validate:"required"`
 	BkBizId      int64  `json:"bk_biz_id" validate:"required"`
 	ApiServer    string `json:"api_server" validate:"required"`
 	BkCloudId    int    `json:"bk_cloud_id"`
@@ -299,10 +299,9 @@ func (job *HotkeyAnalysis) Analysis(port, recordId int) {
 		// 去掉最后一个逗号
 		cmdStr := sb.String()
 
-		ticketId, _ := strconv.Atoi(job.params.TicketId)
 		// 调用api插入分析记录
 		hotkey := HotkeyInsert{
-			TicketId:  int64(ticketId),
+			TicketId:  job.params.TicketId,
 			RecordId:  recordId,
 			BkBizId:   job.params.BkBizId,
 			ClusterId: job.params.ClusterId,

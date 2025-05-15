@@ -363,6 +363,8 @@ class RedisBackendScaleFlow(object):
         elif new_info["target_group_num"] < new_info["current_group_num"]:
             # 缩容
             new_info["is_delete_node"] = True
+            new_info["shutdown_master_hosts"] = info.get("shutdown_master_hosts", [])
+            new_info["shutdown_slave_hosts"] = info.get("shutdown_slave_hosts", [])
             sub_pipeline = redis_migrate_slots_4_contraction(self.root_id, self.data, None, new_info)
         return sub_pipeline
 

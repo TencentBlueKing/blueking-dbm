@@ -140,7 +140,9 @@ def redis_migrate_slots_4_contraction(root_id: str, flow_data: dict, act_kwargs:
              "bk_cloud_id": 0,
              "is_delete_node":true,
              "current_group_num": 2,
-             "target_group_num": 1
+             "target_group_num": 1,
+             "shutdown_master_hosts": [1.1.1.1,2.2.2.2],
+             "shutdown_slave_hosts": [1.1.1.1,2.2.2.2],
              }
          ]
      }
@@ -172,17 +174,40 @@ def redis_migrate_slots_4_contraction(root_id: str, flow_data: dict, act_kwargs:
     # 获取缩容实例（master)
     to_shutdown_master_inst = []
     to_shutdown_master_ips = set()
-    for ip in cluster_info["master_ips"][:contraction_group]:
-        to_shutdown_master_ips.add(ip)
-        for port in cluster_info["master_ports"][ip]:
-            to_shutdown_master_inst.append(f"{ip}:{port}")
+    # saas通过单据传入了下架的机器
+    if len(info.get("shutdown_master_hosts", [])) != 0:
+        logger.info(_("shutdown_master_hosts:{}".format(info["shutdown_master_hosts"])))
+        for ip in info["shutdown_master_hosts"]:
+            if ip not in cluster_info["master_ips"]:
+                raise Exception(_("shutdown master hosts:[{}] 不属于集群[{}]".format(ip, info["cluster_id"])))
+            slave_ip = cluster_info["master_ip_to_slave_ip"][ip]
+            if slave_ip not in info["shutdown_slave_hosts"]:
+                raise Exception(_("shutdown slave hosts:[{}] 不属于集群[{}]".format(slave_ip, info["cluster_id"])))
+
+            to_shutdown_master_ips.add(ip)
+            for port in cluster_info["master_ports"][ip]:
+                to_shutdown_master_inst.append(f"{ip}:{port}")
+    else:
+        for ip in cluster_info["master_ips"][:contraction_group]:
+            to_shutdown_master_ips.add(ip)
+            for port in cluster_info["master_ports"][ip]:
+                to_shutdown_master_inst.append(f"{ip}:{port}")
     logger.info(_("+===+++++===缩容节点 contraction_instance: {} +++++===++++ ".format(to_shutdown_master_inst)))
     # 待下架的ip_ports
     shutdown_ip_ports = {}
+    shutdown_slave_ips = []
     for master_ip in to_shutdown_master_ips:
         shutdown_ip_ports[master_ip] = cluster_info["master_ports"][master_ip]
         slave_ip = cluster_info["master_ip_to_slave_ip"][master_ip]
+        shutdown_slave_ips.append(slave_ip)
         shutdown_ip_ports[slave_ip] = cluster_info["slave_ports"][slave_ip]
+
+    # 反向校验slave ip,避免误回收
+    if len(info.get("shutdown_slave_hosts", [])) != 0:
+        for slave_ip in info["shutdown_slave_hosts"]:
+            if slave_ip not in shutdown_slave_ips:
+                raise Exception(_("需移入待回收主机:[{}] 不在下架slave列表中，请检查元数据关系".format(slave_ip)))
+
     logger.info(_("+===+++++===下架实例shutdown_ip_ports: {} +++++===++++ ".format(shutdown_ip_ports)))
 
     # 获取第一个master机器的地址

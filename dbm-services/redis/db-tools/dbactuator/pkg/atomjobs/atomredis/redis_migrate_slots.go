@@ -119,6 +119,10 @@ func (job *TendisPlusMigrateSlots) Run() error {
 	if job.Err != nil {
 		return job.Err
 	}
+	// tendisplus迁移前设置这个参数，避免发生slave漂移情况
+	job.TendisplusConfigSetParams("slave-reconf-enabled", "no")
+	defer job.TendisplusConfigSetParams("slave-reconf-enabled", "yes")
+
 	// 缩容
 	if job.params.IsDeleteNode {
 		// 传入多个节点信息
@@ -1223,5 +1227,63 @@ func (job *TendisPlusMigrateSlots) areTenplusMigrating(tenplusAddrs []string) (
 			return true, addr01, srcSetSlotInfo.MigratingSlotList, nil
 		}
 	}
+	return
+}
+
+// TendisplusConfigSetParams 在迁移前后需要设置plus参数，避免触发特殊逻辑
+func (job *TendisPlusMigrateSlots) TendisplusConfigSetParams(configName, configValue string) {
+	// 获取源节点连接&信息
+	job.params.SrcNode.redisCli, job.Err = myredis.NewRedisClient(job.srcNodeAddr(),
+		job.params.SrcNode.Password, 0, consts.TendisTypeRedisInstance)
+	if job.Err != nil {
+		job.Err = fmt.Errorf("checkNodeInfo src NewRedisClient Err:%v", job.Err)
+		job.runtime.Logger.Error(job.Err.Error())
+		return
+	}
+
+	job.params.SrcNode.TendisType, job.Err = job.params.SrcNode.redisCli.GetTendisType()
+	if job.Err != nil {
+		job.Err = fmt.Errorf("checkNodeInfo src GetTendisType Err:%v", job.Err)
+		job.runtime.Logger.Error(job.Err.Error())
+		return
+	}
+	// 由于迁移slot逻辑不一样，所以只有tendisplus需要处理参数
+	if job.params.SrcNode.TendisType != consts.TendisTypeTendisplusInsance || job.params.DstNode.TendisType !=
+		consts.TendisTypeTendisplusInsance {
+		msg := fmt.Sprintf("node tendisType != TendisplusInstance ,please check ! srcNodeTendisType is %s"+
+			" dsrNodeTendisType is %s", job.params.SrcNode.TendisType, job.params.DstNode.TendisType)
+		job.runtime.Logger.Info(msg)
+		return
+	}
+
+	job.runtime.Logger.Info("checkNodeInfo tendisType success: DstNode tendisType %s",
+		job.params.DstNode.TendisType)
+
+	// tendisplus 所有nodes config 设置参数
+	allNodes, err := job.params.SrcNode.redisCli.GetClusterNodes()
+	if err != nil {
+		job.runtime.Logger.Warn(fmt.Sprintf("get cluster nodes error:%s", err.Error()))
+		return
+	}
+
+	for _, node := range allNodes {
+		nodeCli, err := myredis.NewRedisClient(node.Addr,
+			job.params.SrcNode.Password, 0, consts.TendisTypeRedisInstance)
+		if err != nil {
+			job.runtime.Logger.Warn(fmt.Sprintf("get %s redis cli error:%s", node.Addr, err.Error()))
+			continue
+		}
+
+		ret, err := nodeCli.ConfigSet(configName, configValue)
+		if err != nil {
+			job.runtime.Logger.Warn(fmt.Sprintf("node %s config set[%s:%s] error:%s, ret:%s",
+				node.Addr, configName, configValue, err.Error(), ret))
+		}
+		nodeCli.Close()
+
+		job.runtime.Logger.Info("node %s config set[%s:%s] success ",
+			node.Addr, configName, configValue)
+	}
+
 	return
 }
