@@ -45,6 +45,7 @@
   interface Props {
     clusterId?: number;
     label: string;
+    allowAsterisk?: boolean;
   }
 
   const props = defineProps<Props>();
@@ -60,6 +61,16 @@
       message: t('库表名支持数字、字母、中划线、下划线，最大64字符'),
       trigger: 'blur',
       validator: (value: string[]) => _.every(value, (item) => /^[-_a-zA-Z0-9*?%]{0,64}$/.test(item)),
+    },
+    {
+      message: t('不允许为 *'),
+      trigger: 'blur',
+      validator: (value: string[]) => {
+        if (props.allowAsterisk) {
+          return true;
+        }
+        return _.every(value, (item) => item !== '*');
+      },
     },
     {
       message: t('* 只能独立使用'),

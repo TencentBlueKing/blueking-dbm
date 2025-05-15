@@ -57,9 +57,11 @@
               nowenable />
             <DbNameColumn
               v-model="rowData.databases"
+              allow-asterisk
               :cluster-id="rowData.cluster?.id" />
             <TableNameColumn
               v-model="rowData.tables"
+              allow-asterisk
               :cluster-id="rowData.cluster?.id"
               :label="t('目标表')" />
             <RecordColumn
@@ -226,12 +228,12 @@
   const handleStartTimeDisableCallback = (date: Date | number, endDate: string) => dayjs(date).isAfter(dayjs(endDate));
 
   const handleEditTimeDisableCallback = (date: Date | number, startDate: string) =>
-    dayjs(date).isBefore(dayjs(startDate));
+    dayjs(date).isBefore(dayjs(startDate).startOf('day'));
 
   const handleDateChange = (row: IRowData) => {
     if (row.start_time) {
       Object.assign(row, {
-        end_time: getDateNow(),
+        end_time: 'now',
       });
     }
   };
@@ -264,7 +266,7 @@
             databases: item.databases,
             databases_ignore: [],
             direct_write_back: formData.direct_write_back,
-            end_time: formatDateToUTC(item.end_time),
+            end_time: formatDateToUTC(item.end_time === 'now' ? '' : item.end_time),
             rows_filter: item.rows_filter,
             start_time: formatDateToUTC(item.start_time),
             tables: item.tables,
