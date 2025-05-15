@@ -46,7 +46,6 @@
 
   interface Props {
     clusterId?: number;
-    allowAsterisk?: boolean;
   }
 
   const props = defineProps<Props>();
@@ -83,12 +82,7 @@
     {
       message: t('不允许为 *'),
       trigger: 'blur',
-      validator: (value: string[]) => {
-        if (props.allowAsterisk) {
-          return true;
-        }
-        return _.every(value, (item) => item !== '*');
-      },
+      validator: (value: string[]) => _.every(value, (item) => item !== '*'),
     },
     {
       message: t('* 只能独立使用'),
