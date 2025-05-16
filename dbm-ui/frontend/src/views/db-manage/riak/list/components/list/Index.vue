@@ -33,7 +33,7 @@
       <ClusterIpCopy
         v-db-console="'riak.clusterManage.batchCopy'"
         :selected="selected" />
-      <TagSearch @search="fetchData" />
+      <TagSearch @search="handleTagSearch" />
       <DbSearchSelect
         :data="serachData"
         :get-menu-list="getMenuList"
@@ -283,6 +283,16 @@
     searchType: ClusterTypes.RIAK,
   });
 
+  const tableRef = ref<InstanceType<typeof DbTable>>();
+  const deployTime = ref<[string, string]>(['', '']);
+  const addNodeShow = ref(false);
+  const deleteNodeShow = ref(false);
+  const detailData = ref<RiakModel>();
+  const selected = ref<RiakModel[]>([]);
+  const tagSearchValue = ref<Record<string, any>>({});
+
+  const getTableInstance = () => tableRef.value;
+
   const serachData = computed(
     () =>
       [
@@ -354,15 +364,6 @@
       ] as ISearchItem[],
   );
 
-  const tableRef = ref<InstanceType<typeof DbTable>>();
-  const deployTime = ref<[string, string]>(['', '']);
-  const addNodeShow = ref(false);
-  const deleteNodeShow = ref(false);
-  const detailData = ref<RiakModel>();
-  const selected = ref<RiakModel[]>([]);
-
-  const getTableInstance = () => tableRef.value;
-
   const selectedIds = computed(() => selected.value.map((item) => item.id));
 
   const { settings: tableSetting, updateTableSettings } = useTableSettings(UserPersonalSettings.RIAK_TABLE_SETTINGS, {
@@ -376,7 +377,7 @@
       'status',
       'cluster_stats',
       'riak_node',
-      'tags',
+      'tag',
     ],
     disabled: ['master_domain'],
   });
@@ -464,10 +465,16 @@
     deleteNodeShow.value = true;
   };
 
-  const fetchData = (otherParamas: Record<string, any> = {}) => {
+  const handleTagSearch = (params: Record<string, any>) => {
+    tagSearchValue.value = params;
+    fetchData();
+  };
+
+  const fetchData = () => {
     const params = {
-      ...otherParamas,
       ...getSearchSelectorParams(searchValue.value),
+      ...tagSearchValue.value,
+      ...sortValue,
     };
     const [startTime, endTime] = deployTime.value;
     if (startTime && endTime) {
@@ -476,8 +483,7 @@
         start_time: dayjs(startTime).format('YYYY-MM-DD'),
       });
     }
-
-    tableRef.value!.fetchData({ ...params }, sortValue);
+    tableRef.value!.fetchData(params);
   };
 
   onMounted(() => {

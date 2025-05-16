@@ -33,7 +33,7 @@
       <ClusterIpCopy
         v-db-console="'hdfs.clusterManage.batchCopy'"
         :selected="selected" />
-      <TagSearch @search="fetchTableData" />
+      <TagSearch @search="handleTagSearch" />
       <DbSearchSelect
         :data="serachData"
         :get-menu-list="getMenuList"
@@ -382,8 +382,10 @@
   const isShowShrink = ref(false);
   const isShowPassword = ref(false);
   const isShowSettings = ref(false);
-  const operationData = shallowRef<HdfsModel>();
+  const tagSearchValue = ref<Record<string, any>>({});
   const selected = ref<HdfsModel[]>([]);
+
+  const operationData = shallowRef<HdfsModel>();
 
   const getTableInstance = () => tableRef.value;
 
@@ -488,7 +490,7 @@
       'hdfs_zookeeper',
       'hdfs_journalnode',
       'hdfs_datanode',
-      'tags',
+      'tag',
     ],
     disabled: ['master_domain'],
   });
@@ -528,9 +530,18 @@
     return serachData.value.find((set) => set.id === item.id)?.children || [];
   };
 
-  const fetchTableData = (extraParams: Record<string, any> = {}) => {
+  const handleTagSearch = (params: Record<string, any>) => {
+    tagSearchValue.value = params;
+    fetchData();
+  };
+
+  const fetchTableData = () => {
     const searchParams = getSearchSelectorParams(searchValue.value);
-    tableRef.value?.fetchData(searchParams, { ...extraParams, ...sortValue });
+    tableRef.value?.fetchData({
+      ...searchParams,
+      ...tagSearchValue.value,
+      ...sortValue,
+    });
   };
 
   const handleSelection = (data: any, list: HdfsModel[]) => {

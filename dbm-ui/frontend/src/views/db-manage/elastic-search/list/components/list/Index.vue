@@ -34,7 +34,7 @@
       <ClusterIpCopy
         v-db-console="'es.clusterManage.batchCopy'"
         :selected="selected" />
-      <TagSearch @search="fetchTableData" />
+      <TagSearch @search="handleTagSearch" />
       <DbSearchSelect
         :data="serachData"
         :get-menu-list="getMenuList"
@@ -341,6 +341,18 @@
     searchType: ClusterTypes.ES,
   });
 
+  const dataSource = getEsList;
+  const tableRef = ref<InstanceType<typeof DbTable>>();
+  const isShowExpandsion = ref(false);
+  const isShowShrink = ref(false);
+  const isShowPassword = ref(false);
+  const selected = ref<EsModel[]>([]);
+  const tagSearchValue = ref<Record<string, any>>({});
+
+  const operationData = shallowRef<EsModel>();
+
+  const getTableInstance = () => tableRef.value;
+
   const serachData = computed(() => [
     {
       async: false,
@@ -407,17 +419,6 @@
       name: t('时区'),
     },
   ]);
-
-  const dataSource = getEsList;
-  const tableRef = ref<InstanceType<typeof DbTable>>();
-  const isShowExpandsion = ref(false);
-  const isShowShrink = ref(false);
-  const isShowPassword = ref(false);
-  const selected = ref<EsModel[]>([]);
-  const operationData = shallowRef<EsModel>();
-
-  const getTableInstance = () => tableRef.value;
-
   const hasSelected = computed(() => selected.value.length > 0);
   const selectedIds = computed(() => selected.value.map((item) => item.id));
 
@@ -454,7 +455,7 @@
       'es_client',
       'es_datanode_hot',
       'es_datanode_cold',
-      'tags',
+      'tag',
     ],
     disabled: ['master_domain'],
   });
@@ -494,9 +495,18 @@
     return serachData.value.find((set) => set.id === item.id)?.children || [];
   };
 
-  const fetchTableData = (extraParams: Record<string, any> = {}) => {
+  const handleTagSearch = (params: Record<string, any>) => {
+    tagSearchValue.value = params;
+    fetchTableData();
+  };
+
+  const fetchTableData = () => {
     const searchParams = getSearchSelectorParams(searchValue.value);
-    tableRef.value?.fetchData(searchParams, { ...extraParams, ...sortValue });
+    tableRef.value?.fetchData({
+      ...searchParams,
+      ...tagSearchValue.value,
+      ...sortValue,
+    });
   };
 
   const handleSelection = (data: any, list: EsModel[]) => {

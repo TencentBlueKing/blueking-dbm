@@ -38,7 +38,7 @@
       <ClusterIpCopy
         v-db-console="'mysql.haClusterList.batchCopy'"
         :selected="selected" />
-      <TagSearch @search="fetchData" />
+      <TagSearch @search="handleTagSearch" />
       <DbSearchSelect
         :data="searchSelectData"
         :get-menu-list="getMenuList"
@@ -365,8 +365,9 @@
   const showDataExportSlider = ref(false);
   const selectedClusterList = ref<ColumnData['data'][]>([]);
   const currentData = ref<ColumnData['data']>();
-
   const selected = ref<TendbhaModel[]>([]);
+  const tagSearchValue = ref<Record<string, any>>({});
+
   /** 集群授权 */
   const authorizeState = reactive({
     isShow: false,
@@ -509,9 +510,17 @@
     return searchSelectData.value.find((set) => set.id === item.id)?.children || [];
   };
 
-  const fetchData = (extraParams: Record<string, any> = {}) => {
-    const params = getSearchSelectorParams(searchValue.value);
-    tableRef.value!.fetchData(params, { ...extraParams, ...sortValue });
+  const handleTagSearch = (params: Record<string, any>) => {
+    tagSearchValue.value = params;
+    fetchData();
+  };
+
+  const fetchData = () => {
+    tableRef.value!.fetchData({
+      ...getSearchSelectorParams(searchValue.value),
+      ...tagSearchValue.value,
+      ...sortValue,
+    });
   };
 
   const handleSelection = (data: any, list: TendbhaModel[]) => {

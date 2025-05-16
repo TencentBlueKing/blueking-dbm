@@ -34,7 +34,7 @@
       <ClusterIpCopy
         v-db-console="'doris.clusterManage.batchCopy'"
         :selected="selected" />
-      <TagSearch @search="fetchTableData" />
+      <TagSearch @search="handleTagSearch" />
       <DbSearchSelect
         :data="serachData"
         :get-menu-list="getMenuList"
@@ -341,6 +341,7 @@
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
   const isShowPassword = ref(false);
+  const tagSearchValue = ref<Record<string, any>>({});
 
   const selected = shallowRef<DorisModel[]>([]);
   const operationData = shallowRef<DorisModel>();
@@ -453,7 +454,7 @@
       'doris_backend_hot',
       'doris_backend_cold',
       'cluster_time_zone',
-      'tags',
+      'tag',
     ],
     disabled: ['domain'],
   });
@@ -493,8 +494,13 @@
     return serachData.value.find((set) => set.id === item.id)?.children || [];
   };
 
-  const fetchTableData = (extraParams: Record<string, any> = {}) => {
-    tableRef.value!.fetchData({ ...getSearchSelectorParams(searchValue.value) }, { ...extraParams, ...sortValue });
+  const handleTagSearch = (params: Record<string, any>) => {
+    tagSearchValue.value = params;
+    fetchTableData();
+  };
+
+  const fetchTableData = () => {
+    tableRef.value!.fetchData({ ...getSearchSelectorParams(searchValue.value), ...tagSearchValue.value, ...sortValue });
   };
 
   const handleSelection = (key: any, list: Record<number, DorisModel>[]) => {

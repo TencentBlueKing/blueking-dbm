@@ -42,7 +42,7 @@
         :ids="selectedIds"
         type="mongodb" />
       <ClusterIpCopy :selected="selected" />
-      <TagSearch @search="fetchData" />
+      <TagSearch @search="handleTagSearch" />
       <DbSearchSelect
         class="header-action-search-select"
         :data="searchSelectData"
@@ -284,6 +284,16 @@
     searchType: ClusterTypes.MONGO_REPLICA_SET,
   });
 
+  const tableRef = ref<InstanceType<typeof DbTable>>();
+  const clusterAuthorizeShow = ref(false);
+  const excelAuthorizeShow = ref(false);
+  const selected = ref<MongodbModel[]>([]);
+  const accessEntryInfoShow = ref(false);
+  const accessEntryInfo = ref<MongodbModel | undefined>();
+  const tagSearchValue = ref<Record<string, any>>({});
+
+  const getTableInstance = () => tableRef.value;
+
   const searchSelectData = computed(() => [
     {
       async: false,
@@ -352,16 +362,6 @@
       name: t('时区'),
     },
   ]);
-
-  const tableRef = ref<InstanceType<typeof DbTable>>();
-  const clusterAuthorizeShow = ref(false);
-  const excelAuthorizeShow = ref(false);
-  const selected = ref<MongodbModel[]>([]);
-  const accessEntryInfoShow = ref(false);
-  const accessEntryInfo = ref<MongodbModel | undefined>();
-
-  const getTableInstance = () => tableRef.value;
-
   const tableDataList = computed(() => tableRef.value?.getData<MongodbModel>() || []);
   const hasData = computed(() => tableDataList.value.length > 0);
   const hasSelected = computed(() => selected.value.length > 0);
@@ -379,7 +379,7 @@
         'region',
         'disaster_tolerance_level',
         'mongodb',
-        'tags',
+        'tag',
       ],
       disabled: ['master_domain'],
     },
@@ -477,14 +477,18 @@
     clusterId.value = id;
   };
 
-  const fetchData = (extraParams: Record<string, any> = {}) => {
-    tableRef.value!.fetchData(
-      {
-        ...getSearchSelectorParams(searchValue.value),
-        cluster_type: ClusterTypes.MONGO_REPLICA_SET,
-      },
-      { ...extraParams, ...sortValue },
-    );
+  const handleTagSearch = (params: Record<string, any>) => {
+    tagSearchValue.value = params;
+    fetchData();
+  };
+
+  const fetchData = () => {
+    tableRef.value!.fetchData({
+      ...getSearchSelectorParams(searchValue.value),
+      cluster_type: ClusterTypes.MONGO_REPLICA_SET,
+      ...tagSearchValue.value,
+      ...sortValue,
+    });
   };
 
   defineExpose<Exposes>({

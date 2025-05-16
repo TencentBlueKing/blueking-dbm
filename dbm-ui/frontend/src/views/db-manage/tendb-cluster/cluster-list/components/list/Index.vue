@@ -45,7 +45,7 @@
       <ClusterIpCopy
         v-db-console="'tendbCluster.clusterManage.batchCopy'"
         :selected="selected" />
-      <TagSearch @search="fetchTableData" />
+      <TagSearch @search="handleTagSearch" />
       <DbSearchSelect
         :data="searchSelectData"
         :get-menu-list="getMenuList"
@@ -400,6 +400,7 @@
   const currentData = ref<IColumn['data']>();
   const selected = ref<TendbClusterModel[]>([]);
   const clusterPrimaryMap = ref<Record<string, boolean>>({});
+  const tagSearchValue = ref<Record<string, any>>({});
 
   const getTableInstance = () => tableRef.value;
 
@@ -580,18 +581,22 @@
       'region',
       'spec_name',
       'bk_cloud_id',
-      'tags',
+      'tag',
     ],
     disabled: ['master_domain'],
   });
 
-  const fetchTableData = (extraParams: Record<string, any> = {}) => {
-    tableRef.value?.fetchData(
-      {
-        ...getSearchSelectorParams(searchValue.value),
-      },
-      { ...extraParams, ...sortValue },
-    );
+  const handleTagSearch = (params: Record<string, any>) => {
+    tagSearchValue.value = params;
+    fetchTableData();
+  };
+
+  const fetchTableData = () => {
+    tableRef.value?.fetchData({
+      ...getSearchSelectorParams(searchValue.value),
+      ...tagSearchValue.value,
+      ...sortValue,
+    });
 
     return Promise.resolve([]);
   };

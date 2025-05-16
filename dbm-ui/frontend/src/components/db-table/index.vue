@@ -386,7 +386,6 @@
   };
 
   const fetchListData = (loading = true) => {
-    isReady = true;
     Promise.resolve().then(() => {
       isLoading.value = loading;
       const params = {
@@ -438,7 +437,6 @@
           isAnomalies.value = true;
         })
         .finally(() => {
-          isReady = false;
           isLoading.value = false;
           emits('requestFinished', tableData.value.results);
         });
@@ -474,7 +472,7 @@
         order_type: orderType,
       };
     }
-    isReady = false;
+    isReady = true;
   };
 
   // 全选当前页
