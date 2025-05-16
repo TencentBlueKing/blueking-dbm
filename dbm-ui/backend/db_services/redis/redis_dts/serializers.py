@@ -23,6 +23,7 @@ class TbTendisDTSJobSerializer(serializers.ModelSerializer):
 
 
 class TendisDtsHistoryJobSLZ(serializers.Serializer):
+    id = serializers.IntegerField(help_text=_("id"), required=False)
     cluster_name = serializers.CharField(help_text=_("集群名"), required=False, allow_blank=True)
     start_time = DBTimezoneField(help_text=_("开始时间"), required=False)
     end_time = DBTimezoneField(help_text=_("结束时间"), required=False)

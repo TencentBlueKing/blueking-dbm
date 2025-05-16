@@ -49,6 +49,8 @@ def get_dts_history_jobs(payload: dict) -> dict:
     """获取迁移任务列表以及其对应task cnt"""
 
     where = Q()
+    if "id" in payload:
+        where &= Q(id=payload["id"])
     if "bk_biz_id" in payload and payload["bk_biz_id"]:
         where &= Q(app=payload["bk_biz_id"])
     if "cluster_name" in payload:

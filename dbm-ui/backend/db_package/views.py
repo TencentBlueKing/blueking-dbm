@@ -14,6 +14,7 @@ from typing import Dict, Tuple
 
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db.transaction import atomic
+from django.utils import timezone
 from django.utils.translation import ugettext as _
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser
@@ -73,7 +74,15 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
         tags=[DB_PACKAGE_TAG],
     )
     def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
+        data = self.params_validate(self.get_serializer_class())
+        data.update(update_at=timezone.now())
+        package, created = Package.objects.update_or_create(
+            defaults=data,
+            name=data["name"],
+            version=data["version"],
+            pkg_type=data["pkg_type"],
+        )
+        return Response(PackageSerializer(package).data)
 
     @common_swagger_auto_schema(
         operation_summary=_("同步制品库的文件信息(适用于medium初始化)"),
