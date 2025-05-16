@@ -25,6 +25,7 @@
         ref="inputRef"
         class="input-main"
         :disabled="Boolean(selectedText)"
+        :spellcheck="false"
         :style="{ height: realHeight }"
         :value="command"
         @input="handleInputChange"

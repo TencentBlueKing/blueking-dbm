@@ -234,6 +234,7 @@
     padding: 0 !important;
 
     .clusters-select {
+      height: 200px;
       margin: 8px;
 
       .cluster-select-search {
@@ -250,7 +251,10 @@
       }
 
       .cluster-select-warpper {
+        height: 100%;
+        padding-left: 6px;
         margin-top: 4px;
+        overflow-y: scroll;
       }
 
       .cluster-select-option {
