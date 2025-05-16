@@ -28,27 +28,28 @@
       <div class="deploy-box">
         <div class="title-spot">{{ t('集群部署方案') }}<span class="required" /></div>
         <DbForm
+          ref="formRef"
           class="mt-16"
           :model="targetInfo">
           <ApplySchema v-model="applySchema" />
           <AutoSchema
             v-if="applySchema === APPLY_SCHEME.AUTO"
-            ref="schemaRef"
+            ref="autoSchemaRef"
             v-model="targetInfo"
             v-bind="props"
-            @change="getAutoUpdateInfo" />
+            @change="handleAutoUpdate" />
           <CustomSchema
             v-else
             v-model="targetInfo"
             v-bind="props"
-            @change="getCustomUpdateInfo" />
+            @change="handleCustomUpdate" />
         </DbForm>
       </div>
     </div>
     <template #footer>
       <BkButton
         class="mr-8"
-        :disabled="updateInfoError"
+        :disabled="sumbitDisable"
         theme="primary"
         @click="handleConfirm">
         {{ t('确定') }}
@@ -107,8 +108,8 @@
 
   const { t } = useI18n();
   const handleBeforeClose = useBeforeClose();
-  const schemaRef = ref<InstanceType<typeof AutoSchema>>();
-
+  const autoSchemaRef = ref<InstanceType<typeof AutoSchema>>();
+  const formRef = ref();
   const applySchema = ref(APPLY_SCHEME.AUTO);
   const targetInfo = reactive<TargetInfo>({
     capacity: 0,
@@ -144,7 +145,7 @@
     require_machine_group_num: 0,
     require_spec_id: 0,
   });
-  const updateInfoError = ref(false);
+  const sumbitDisable = ref(false);
 
   const title = computed(() => {
     if (props.type === 'typeChange') {
@@ -168,7 +169,7 @@
     },
   );
 
-  const getAutoUpdateInfo = (row: ClusterSpecModel) => {
+  const handleAutoUpdate = (row: ClusterSpecModel) => {
     getRedisClusterCapacityUpdateInfo({
       cluster_id: props.cluster.id!,
       new_machine_group_num: row.machine_pair,
@@ -177,13 +178,13 @@
       new_storage_version: props.dbVersion!,
     }).then((data) => {
       if (data.err_msg) {
-        updateInfoError.value = true;
+        sumbitDisable.value = true;
         messageError(data.err_msg);
-        schemaRef.value?.disable(row.spec_id);
+        autoSchemaRef.value?.disable(row.spec_id);
         return;
       }
-      updateInfoError.value = false;
-      schemaRef.value?.choose(row.spec_id);
+      sumbitDisable.value = false;
+      autoSchemaRef.value?.choose(row.spec_id);
       Object.assign(targetInfo, {
         capacity: row.cluster_capacity,
         clusterStats: props.cluster.cluster_stats,
@@ -202,20 +203,21 @@
     });
   };
 
-  const getCustomUpdateInfo = (data: { groupNum: number; shardNum: number; specId: number }) => {
+  const handleCustomUpdate = (payload: TargetInfo) => {
     getRedisClusterCapacityUpdateInfo({
       cluster_id: props.cluster.id!,
-      new_machine_group_num: data.groupNum,
-      new_shards_num: data.shardNum,
-      new_spec_id: Number(data.specId),
+      new_machine_group_num: payload.groupNum,
+      new_shards_num: payload.shardNum,
+      new_spec_id: Number(payload.spec.spec_id),
       new_storage_version: props.dbVersion!,
     }).then((data) => {
       if (data.err_msg) {
-        updateInfoError.value = true;
+        sumbitDisable.value = true;
         messageError(data.err_msg);
         return;
       }
-      updateInfoError.value = false;
+      sumbitDisable.value = false;
+      Object.assign(targetInfo, payload);
       Object.assign(updateInfo, data);
     });
   };
@@ -230,10 +232,15 @@
   };
 
   const handleConfirm = async () => {
+    const result = await formRef.value.validate();
+    if (!result) {
+      return;
+    }
     emits('change', {
       targetInfo,
       updateInfo,
     });
+    window.changeConfirm = true;
     isShow.value = false;
   };
 </script>

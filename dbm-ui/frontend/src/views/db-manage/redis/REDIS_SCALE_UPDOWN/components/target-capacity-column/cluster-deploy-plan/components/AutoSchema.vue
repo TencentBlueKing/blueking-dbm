@@ -1,7 +1,9 @@
 <template>
   <DbFormItem
     :label="t('目标容量')"
-    required>
+    property="capacity"
+    required
+    :rules="rules">
     <div class="input-box">
       <BkInput
         ref="capacityInputRef"
@@ -10,9 +12,7 @@
         :model-value="capacity"
         style="width: 314px"
         type="number"
-        @blur="handleSearchClusterSpec"
-        @change="(value) => (capacity = Number(value))"
-        @enter="handleCapacityNeedEnter" />
+        @change="handleChange" />
       <div class="uint-text ml-12">
         <span>{{ t('当前') }}</span>
         <span class="spec-text">{{ cluster.cluster_capacity }}</span>
@@ -80,7 +80,7 @@
 
   const { t } = useI18n();
   const capacityInputRef = ref();
-  const capacity = ref();
+  const capacity = ref('');
   const tableData = ref<ClusterSpecModel[]>([]);
   const radioValue = ref(-1);
   const radioChoosedId = ref(-1); // 标记，sort重新定位index用
@@ -96,6 +96,14 @@
       specDisabledMap.value = {};
     },
   });
+
+  const rules = [
+    {
+      message: t('容量不能为空'),
+      trigger: 'change',
+      validator: () => !!capacity.value,
+    },
+  ];
 
   const columns = [
     {
@@ -131,11 +139,13 @@
     },
   ];
 
-  const handleSearchClusterSpec = async () => {
-    if (capacity.value > 0) {
+  const handleChange = (value: string) => {
+    capacity.value = value;
+    const capacityNum = Number(value);
+    if (capacityNum > 0) {
       const params = {
-        capacity: capacity.value,
-        future_capacity: capacity.value,
+        capacity: capacityNum,
+        future_capacity: capacityNum,
         shard_num: props.cluster.cluster_shard_num === 0 ? undefined : props.cluster.cluster_shard_num,
         spec_cluster_type: 'redis',
         spec_machine_type: specClusterMachineMap[props.cluster?.cluster_type ?? ClusterTypes.TWEMPROXY_REDIS_INSTANCE],
@@ -147,15 +157,10 @@
     }
   };
 
-  const handleCapacityNeedEnter = () => {
-    capacityInputRef.value.blur();
-  };
-
   const handleRowClick = (_event: PointerEvent, row: ClusterSpecModel, index: number) => {
     if (index === radioValue.value || specDisabledMap.value[row.spec_id]) {
       return;
     }
-
     radioValue.value = index;
   };
 
