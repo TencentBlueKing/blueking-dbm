@@ -324,6 +324,7 @@ class MySQLRollbackDataFlow(object):
             rollback_class = Cluster.objects.get(id=self.data["rollback_cluster_id"])
             storages = rollback_class.storageinstance_set.all()
             rollback_pipeline_list = []
+            change_master_pipeline_list = []
             for rollback_storage in storages:
                 if not check_storage_database(
                     rollback_class.bk_cloud_id, rollback_storage.machine.ip, rollback_storage.port
@@ -462,9 +463,14 @@ class MySQLRollbackDataFlow(object):
                 else:
                     raise NormalTenDBFlowException(message=_("rollback_type不存在"))
 
+                rollback_pipeline_list.append(
+                    rollback_pipeline.build_sub_process(
+                        sub_name=_("定点回档到{}:{}".format(rollback_storage.machine.ip, rollback_storage.port))
+                    )
+                )
                 # 针对slave repeater角色的从库。建立复制链路。重置slave>添加复制账号和获取位点>建立主从关系
                 backup_type = backupinfo.get("backup_type", "")
-                # backup_type = MySQLBackupTypeEnum.PHYSICAL.value
+                change_master_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
                 if rollback_storage.instance_role in (InstanceRole.BACKEND_SLAVE, InstanceRole.BACKEND_REPEATER):
                     repl_master = StorageInstanceTuple.objects.get(receiver=rollback_storage)
                     if backup_type == MySQLBackupTypeEnum.PHYSICAL.value:
@@ -482,7 +488,7 @@ class MySQLRollbackDataFlow(object):
                         exec_act_kwargs.get_mysql_payload_func = (
                             MysqlActPayload.tendb_grant_remotedb_repl_user.__name__
                         )
-                        rollback_pipeline.add_act(
+                        change_master_pipeline.add_act(
                             act_name=_("新增repl帐户{}".format(exec_act_kwargs.exec_ip)),
                             act_component_code=ExecuteDBActuatorScriptComponent.code,
                             kwargs=asdict(exec_act_kwargs),
@@ -490,13 +496,13 @@ class MySQLRollbackDataFlow(object):
                         )
                         exec_act_kwargs.exec_ip = rollback_storage.machine.ip
                         exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_remotedb_change_master.__name__
-                        rollback_pipeline.add_act(
+                        change_master_pipeline.add_act(
                             act_name=_("建立原主从关系{}".format(rollback_storage.ip_port)),
                             act_component_code=ExecuteDBActuatorScriptComponent.code,
                             kwargs=asdict(exec_act_kwargs),
                         )
                     elif backup_type == MySQLBackupTypeEnum.LOGICAL.value:
-                        rollback_pipeline.add_act(
+                        change_master_pipeline.add_act(
                             act_name=_("从库start slave {}").format(rollback_storage.ip_port),
                             act_component_code=MySQLExecuteRdsComponent.code,
                             kwargs=asdict(
@@ -508,7 +514,7 @@ class MySQLRollbackDataFlow(object):
                                 )
                             ),
                         )
-                rollback_pipeline.add_act(
+                change_master_pipeline.add_act(
                     act_name=_("解除监控屏蔽 {}").format(rollback_storage.ip_port),
                     act_component_code=MysqlCrondMonitorControlComponent.code,
                     kwargs=asdict(
@@ -520,12 +526,14 @@ class MySQLRollbackDataFlow(object):
                         )
                     ),
                 )
-                rollback_pipeline_list.append(
-                    rollback_pipeline.build_sub_process(
-                        sub_name=_("定点回档到{}:{}".format(rollback_storage.machine.ip, rollback_storage.port))
+                change_master_pipeline_list.append(
+                    change_master_pipeline.build_sub_process(
+                        sub_name=_("恢复复制链 {}:{}".format(rollback_storage.machine.ip, rollback_storage.port))
                     )
                 )
+
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=rollback_pipeline_list)
+            sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=change_master_pipeline_list)
             sub_pipeline_list.append(
                 sub_pipeline.build_sub_process(sub_name=_("定点回档到{}".format(rollback_class.immute_domain)))
             )
