@@ -26,7 +26,7 @@
       <ClusterIpCopy
         v-db-console="'sqlserver.haClusterList.batchCopy'"
         :selected="selected" />
-      <TagSearch @search="fetchData" />
+      <TagSearch @search="handleTagSearch" />
       <DbSearchSelect
         class="header-select"
         :data="searchSelectData"
@@ -392,7 +392,7 @@
       'disaster_tolerance_level',
       'region',
       'spec_name',
-      'tags',
+      'tag',
     ],
     disabled: ['master_domain'],
   });
@@ -432,14 +432,13 @@
     return searchSelectData.value.find((set) => set.id === item.id)?.children || [];
   };
 
-  const fetchData = (extraParams: Record<string, any> = {}) => {
-    tableRef.value!.fetchData(
-      { ...getSearchSelectorParams(searchValue.value) },
-      {
-        ...extraParams,
-        ...sortValue,
-      },
-    );
+  const handleTagSearch = (params: Record<string, any>) => {
+    tagSearchValue.value = params;
+    fetchData();
+  };
+
+  const fetchData = () => {
+    tableRef.value!.fetchData({ ...getSearchSelectorParams(searchValue.value), ...tagSearchValue.value, ...sortValue });
   };
 
   const handleResetCluster = (data: SqlServerHaModel) => {

@@ -20,7 +20,7 @@ import { getSearchSelectorParams } from '@utils';
  * 处理集群列表数据
  */
 export function useClusterData<T>(searchSelectValue: Ref<ISearchValue[]>) {
-  let baseExtraParamsMemo = {};
+  let baseExtraParamsMemo: Record<string, any> = {};
   const currentInstance = getCurrentInstance() as {
     proxy: {
       getResourceList: (params: any) => Promise<any>;
@@ -34,7 +34,7 @@ export function useClusterData<T>(searchSelectValue: Ref<ISearchValue[]>) {
     count: 0,
     current: 1,
     limit: 10,
-    limitList: [2, 10, 20, 50, 100, 500],
+    limitList: [10, 20, 50, 100, 500],
     remote: true,
     small: true,
   });
@@ -55,9 +55,12 @@ export function useClusterData<T>(searchSelectValue: Ref<ISearchValue[]>) {
   /**
    * 获取列表
    */
-  const fetchResources = async (extraParams: Record<string, any> = {}) => {
+  const fetchResources = async (extraParams?: Record<string, any>) => {
     isLoading.value = true;
-    baseExtraParamsMemo = { ...extraParams };
+    baseExtraParamsMemo = extraParams ? extraParams : baseExtraParamsMemo;
+    if (extraParams) {
+      pagination.current = 1;
+    }
     return currentInstance.proxy
       .getResourceList({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -83,7 +86,7 @@ export function useClusterData<T>(searchSelectValue: Ref<ISearchValue[]>) {
 
   const handleChangePage = (value: number) => {
     pagination.current = value;
-    return fetchResources(baseExtraParamsMemo);
+    return fetchResources();
   };
 
   const handeChangeLimit = (value: number) => {

@@ -38,7 +38,7 @@
       <ClusterIpCopy
         v-db-console="'mysql.singleClusterList.batchCopy'"
         :selected="selected" />
-      <TagSearch @search="fetchData" />
+      <TagSearch @search="handleTagSearch" />
       <DbSearchSelect
         :data="searchSelectData"
         :get-menu-list="getMenuList"
@@ -304,6 +304,7 @@
   const showDataExportSlider = ref(false);
   const selected = ref<TendbsingleModel[]>([]);
   const currentData = ref<ColumnData['data']>();
+  const tagSearchValue = ref<Record<string, any>>({});
 
   const getTableInstance = () => tableRef.value;
 
@@ -389,7 +390,7 @@
 
   // 设置用户个人表头信息
   const { settings, updateTableSettings } = useTableSettings(UserPersonalSettings.TENDBSINGLE_TABLE_SETTINGS, {
-    checked: ['master_domain', 'status', 'cluster_stats', 'masters', 'db_module_id', 'major_version', 'region', 'tags'],
+    checked: ['master_domain', 'status', 'cluster_stats', 'masters', 'db_module_id', 'major_version', 'region', 'tag'],
     disabled: ['master_domain'],
   });
 
@@ -428,9 +429,17 @@
     return searchSelectData.value.find((set) => set.id === item.id)?.children || [];
   };
 
-  const fetchData = (extraParams: Record<string, any> = {}) => {
-    const params = getSearchSelectorParams(searchValue.value);
-    tableRef.value!.fetchData(params, { ...extraParams, ...sortValue });
+  const handleTagSearch = (params: Record<string, any>) => {
+    tagSearchValue.value = params;
+    fetchData();
+  };
+
+  const fetchData = () => {
+    tableRef.value!.fetchData({
+      ...getSearchSelectorParams(searchValue.value),
+      ...tagSearchValue.value,
+      ...sortValue,
+    });
   };
 
   // 设置行样式

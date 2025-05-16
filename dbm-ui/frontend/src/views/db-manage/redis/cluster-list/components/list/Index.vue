@@ -33,7 +33,7 @@
       <ClusterIpCopy
         v-db-console="'redis.clusterManage.batchCopy'"
         :selected="selected" />
-      <TagSearch @search="fetchData" />
+      <TagSearch @search="handleTagSearch" />
       <DbSearchSelect
         class="operations-right"
         :data="searchSelectData"
@@ -460,6 +460,7 @@
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const selected = ref<RedisModel[]>([]);
+  const tagSearchValue = ref<Record<string, any>>({});
 
   const getTableInstance = () => tableRef.value;
 
@@ -574,7 +575,7 @@
       'disaster_tolerance_level',
       'region',
       'spec_name',
-      'tags',
+      'tag',
     ],
     disabled: ['master_domain'],
   });
@@ -624,7 +625,12 @@
     return classList.filter((cls) => cls).join(' ');
   };
 
-  const fetchData = (extraParams: Record<string, any> = {}) => {
+  const handleTagSearch = (params: Record<string, any>) => {
+    tagSearchValue.value = params;
+    fetchData();
+  };
+
+  const fetchData = () => {
     const params = {
       cluster_type: [
         ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
@@ -633,12 +639,11 @@
         ClusterTypes.PREDIXY_REDIS_CLUSTER,
       ].join(','),
       ...getSearchSelectorParams(searchValue.value),
+      ...tagSearchValue.value,
+      ...sortValue,
     };
 
-    tableRef.value!.fetchData(params, {
-      ...extraParams,
-      ...sortValue,
-    });
+    tableRef.value!.fetchData(params);
   };
 
   /**

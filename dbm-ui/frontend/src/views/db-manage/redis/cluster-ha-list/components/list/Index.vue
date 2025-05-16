@@ -31,7 +31,7 @@
       <ClusterIpCopy
         v-db-console="'redis.haClusterManage.batchCopy'"
         :selected="selected" />
-      <TagSearch @search="fetchData" />
+      <TagSearch @search="handleTagSearch" />
       <DbSearchSelect
         class="operations-right"
         :data="searchSelectData"
@@ -365,6 +365,7 @@
   });
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
+  const tagSearchValue = ref<Record<string, any>>({});
 
   const getTableInstance = () => tableRef.value;
 
@@ -474,7 +475,7 @@
       'major_version',
       'module_names',
       'region',
-      'tags',
+      'tag',
     ],
     disabled: ['master_domain'],
   });
@@ -535,15 +536,19 @@
     return false;
   };
 
-  const fetchData = (extraParams: Record<string, any> = {}) => {
+  const handleTagSearch = (params: Record<string, any>) => {
+    tagSearchValue.value = params;
+    fetchData();
+  };
+
+  const fetchData = () => {
     const params = {
       ...getSearchSelectorParams(searchValue.value),
       cluster_type: ClusterTypes.REDIS_INSTANCE,
-    };
-    tableRef.value!.fetchData(params, {
-      ...extraParams,
+      ...tagSearchValue.value,
       ...sortValue,
-    });
+    };
+    tableRef.value!.fetchData(params);
   };
 
   /**

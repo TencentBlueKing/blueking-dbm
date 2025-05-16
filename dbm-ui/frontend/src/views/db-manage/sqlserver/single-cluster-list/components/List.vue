@@ -26,7 +26,7 @@
       <ClusterIpCopy
         v-db-console="'sqlserver.singleClusterList.batchCopy'"
         :selected="selected" />
-      <TagSearch @search="fetchData" />
+      <TagSearch @search="handleTagSearch" />
       <DbSearchSelect
         class="header-select"
         :data="searchSelectData"
@@ -275,6 +275,7 @@
       master_domain: string;
     }[]
   >([]);
+  const tagSearchValue = ref<Record<string, any>>({});
 
   const getTableInstance = () => tableRef.value;
 
@@ -356,16 +357,7 @@
   ]);
 
   const { settings, updateTableSettings } = useTableSettings(UserPersonalSettings.SQLSERVER_SINGLE_TABLE_SETTINGS, {
-    checked: [
-      'master_domain',
-      'status',
-      'cluster_stats',
-      'storages',
-      'db_module_id',
-      'major_version',
-      'region',
-      'tags',
-    ],
+    checked: ['master_domain', 'status', 'cluster_stats', 'storages', 'db_module_id', 'major_version', 'region', 'tag'],
     disabled: ['master_domain'],
   });
 
@@ -414,8 +406,13 @@
     isShowExcelAuthorize.value = true;
   };
 
-  const fetchData = (extraParams: Record<string, any> = {}) => {
-    tableRef.value!.fetchData({ ...getSearchSelectorParams(searchValue.value) }, { ...extraParams, ...sortValue });
+  const handleTagSearch = (params: Record<string, any>) => {
+    tagSearchValue.value = params;
+    fetchData();
+  };
+
+  const fetchData = () => {
+    tableRef.value!.fetchData({ ...getSearchSelectorParams(searchValue.value), ...tagSearchValue.value, ...sortValue });
   };
 
   // 设置行样式

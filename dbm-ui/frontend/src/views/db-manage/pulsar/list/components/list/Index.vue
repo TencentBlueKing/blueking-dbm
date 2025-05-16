@@ -33,7 +33,7 @@
       <ClusterIpCopy
         v-db-console="'pulsar.clusterManage.batchCopy'"
         :selected="selected" />
-      <TagSearch @search="fetchTableData" />
+      <TagSearch @search="handleTagSearch" />
       <DbSearchSelect
         :data="serachData"
         :get-menu-list="getMenuList"
@@ -357,6 +357,8 @@
   const isShowShrink = ref(false);
   const isShowPassword = ref(false);
   const selected = ref<PulsarModel[]>([]);
+  const tagSearchValue = ref<Record<string, any>>({});
+
   const operationData = shallowRef<PulsarModel>();
 
   const getTableInstance = () => tableRef.value;
@@ -452,7 +454,7 @@
       'pulsar_bookkeeper',
       'pulsar_zookeeper',
       'pulsar_broker',
-      'tags',
+      'tag',
     ],
     disabled: ['master_domain'],
   });
@@ -496,9 +498,18 @@
     selected.value = list;
   };
 
-  const fetchTableData = (extraParams: Record<string, any> = {}) => {
+  const handleTagSearch = (params: Record<string, any>) => {
+    tagSearchValue.value = params;
+    fetchTableData();
+  };
+
+  const fetchTableData = () => {
     const searchParams = getSearchSelectorParams(searchValue.value);
-    tableRef.value?.fetchData(searchParams, { ...extraParams, ...sortValue });
+    tableRef.value?.fetchData({
+      ...searchParams,
+      ...tagSearchValue.value,
+      ...sortValue,
+    });
   };
 
   const handleGoApply = () => {
