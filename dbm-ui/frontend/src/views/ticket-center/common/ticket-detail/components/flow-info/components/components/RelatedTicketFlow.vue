@@ -2,28 +2,27 @@
   <BkLoading
     :loading="isLoading"
     style="min-height: 60px">
-    <div class="ticket-details-relate-ticket-flow">
-      <div class="wrapper">
-        <div class="title">
-          <div class="flag">
-            <DbIcon type="links" />
-          </div>
-          <span>{{ t('关联单据') }} - {{ ticketData?.ticket_type_display }}</span>
+    <FlowCollapse>
+      <template #header>
+        <div class="related-ticket-title-main">
+          <span class="pre-title">{{ t('关联单据') }}</span>
           <BkButton
             v-bk-tooltips="t('跳转查看单据')"
             class="ml-4"
             text
             theme="primary"
-            @click="handleGoTicketDetail">
-            ({{ ticketId }})
+            @click.stop="handleGoTicketDetail">
+            - {{ ticketData?.ticket_type_display }}({{ ticketId }})
           </BkButton>
         </div>
+      </template>
+      <div class="ticket-details-relate-ticket-flow">
         <RenderFlow
           v-if="ticketData"
           style="margin-left: 25px"
           :ticket-detail="ticketData" />
       </div>
-    </div>
+    </FlowCollapse>
   </BkLoading>
 </template>
 <script setup lang="ts">
@@ -36,6 +35,8 @@
   import RenderFlow from '@views/ticket-center/common/ticket-detail/components/flow-info/RenderFlow.vue';
 
   import { getBusinessHref } from '@utils';
+
+  import FlowCollapse from '../flow-type-common/components/FlowCollapse.vue';
 
   interface Props {
     ticketId: number;
@@ -67,42 +68,39 @@
   };
 </script>
 <style lang="less">
+  .related-ticket-title-main {
+    font-weight: bold;
+    color: #313238;
+
+    .pre-title {
+      margin-left: 8px;
+      font-weight: 700;
+    }
+  }
+
   .ticket-details-relate-ticket-flow {
     position: relative;
     padding-bottom: 20px;
-    padding-left: 24px;
     font-size: 12px;
     line-height: 19px;
     color: #63656e;
 
-    .wrapper {
-      width: 550px;
-      padding: 12px 16px;
+    .flag {
+      display: inline-flex;
+      width: 24px;
+      height: 24px;
+      margin-right: 4px;
+      font-size: 14px;
+      font-weight: bold;
+      color: #3a84ff;
+      background: #e1ecff;
+      border-radius: 50%;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .db-time-line-icon {
       background-color: #ebf2ff;
-
-      .flag {
-        display: inline-flex;
-        width: 24px;
-        height: 24px;
-        margin-right: 4px;
-        font-size: 14px;
-        font-weight: bold;
-        color: #3a84ff;
-        background: #e1ecff;
-        border-radius: 50%;
-        align-items: center;
-        justify-content: center;
-      }
-
-      .title {
-        margin-bottom: 12px;
-        font-weight: bold;
-        color: #313238;
-      }
-
-      .db-time-line-icon {
-        background-color: #ebf2ff;
-      }
     }
   }
 </style>

@@ -38,6 +38,14 @@
           {{ t('去处理') }}
         </a>
       </template>
+      <FlowCollapse
+        v-if="data.err_msg"
+        danger
+        :title="t('失败原因')">
+        <div style="padding-left: 16px">
+          {{ data.err_msg }}
+        </div>
+      </FlowCollapse>
       <div
         v-if="isCanOperation && isNeedOperation"
         class="mt-12">
@@ -81,6 +89,7 @@
 
   import { utcTimeToSeconds } from '@utils';
 
+  import FlowCollapse from '../flow-type-common/components/FlowCollapse.vue';
   import StatusFailed from '../flow-type-common/StatusFailed.vue';
 
   import MongodbExecScriptDownloadFile from './components/MongodbExecScriptDownloadFile.vue';

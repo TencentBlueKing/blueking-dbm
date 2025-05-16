@@ -1,9 +1,5 @@
 <template>
-  <DbTimeLineItem>
-    <template #icon>
-      <div style="width: 10px; height: 10px; background: #2dcb56; border-radius: 50%" />
-    </template>
-    <template #title> {{ data.flow_type_display }} </template>
+  <StatusSucceeded :data="data">
     <template #content>
       <I18nT
         keypath="m_耗时_t"
@@ -38,10 +34,7 @@
         </a>
       </template>
     </template>
-    <template #desc>
-      {{ data.updateAtDisplay }}
-    </template>
-  </DbTimeLineItem>
+  </StatusSucceeded>
 </template>
 <script setup lang="ts">
   import type { ComponentProps } from 'vue-component-type-helpers';
@@ -56,7 +49,7 @@
 
   import { utcTimeToSeconds } from '@utils';
 
-  import DbTimeLineItem from '../time-line/TimeLineItem.vue';
+  import StatusSucceeded from '../flow-type-common/StatusSucceeded.vue';
 
   import MongodbExecScriptDownloadFile from './components/MongodbExecScriptDownloadFile.vue';
   import MysqlDumpDataDownload from './components/MysqlDumpDataDownload.vue';

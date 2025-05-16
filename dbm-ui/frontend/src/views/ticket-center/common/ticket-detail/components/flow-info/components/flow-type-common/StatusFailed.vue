@@ -28,6 +28,14 @@
             {{ t('查看详情') }}
           </a>
         </template>
+        <FlowCollapse
+          v-if="data.err_msg"
+          danger
+          :title="t('失败原因')">
+          <div style="padding-left: 16px">
+            {{ data.err_msg }}
+          </div>
+        </FlowCollapse>
         <div
           v-if="isCanOperation && isNeedOperation"
           class="mt-12">
@@ -42,11 +50,6 @@
           </ProcessRetry>
         </div>
       </slot>
-      <div
-        v-if="data.err_msg"
-        style="padding: 12px; margin-top: 12px; background: #f5f7fa; border: 2px">
-        {{ data.err_msg }}
-      </div>
       <!-- 系统自动终止 -->
       <template v-if="data.err_code === 3 && data.context.expire_time && renderTodoList.length === 0">
         <div style="margin-top: 8px; color: #ea3636">
@@ -57,6 +60,7 @@
           {{ utcDisplayTime(data.update_at) }}
         </div>
       </template>
+      <Abstract :data="data" />
     </template>
     <template #desc>
       {{ utcDisplayTime(data.update_at) }}
@@ -80,6 +84,9 @@
   import { utcDisplayTime, utcTimeToSeconds } from '@utils';
 
   import DbTimeLineItem from '../time-line/TimeLineItem.vue';
+
+  import Abstract from './components/abstract/Index.vue';
+  import FlowCollapse from './components/FlowCollapse.vue';
 
   interface Props {
     data: FlowMode<unknown, any>;
