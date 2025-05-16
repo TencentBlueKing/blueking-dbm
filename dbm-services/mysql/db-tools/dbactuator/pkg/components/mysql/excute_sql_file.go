@@ -364,11 +364,12 @@ func (e *ExecuteSQLFileComp) checkBlockingTables(db *sql.DB, blockingTableMap ma
 	// 首次检查
 	var errs []error
 	for db, blockingTable := range blockingTableMap {
+		checkTables := lo.Uniq(blockingTable)
 		chunkSize := 10
-		if len(blockingTable) >= 1000 {
+		if len(checkTables) >= 1000 {
 			chunkSize = 100
 		}
-		for _, tbs := range lo.Chunk(blockingTable, chunkSize) {
+		for _, tbs := range lo.Chunk(checkTables, chunkSize) {
 			if len(tbs) == 0 {
 				continue
 			}
@@ -389,6 +390,8 @@ func (e *ExecuteSQLFileComp) checkBlockingTables(db *sql.DB, blockingTableMap ma
 					errs = append(errs, fmt.Errorf("这些表%v存在活跃查询,可能会阻塞DDL的执行:%s", tbs, err.Error()))
 				}
 			}
+			// nolint 解锁
+			conn.ExecContext(context.Background(), "unlock tables;")
 		}
 	}
 	return errors.Join(errs...)
@@ -396,7 +399,7 @@ func (e *ExecuteSQLFileComp) checkBlockingTables(db *sql.DB, blockingTableMap ma
 
 func buildLockMoreTables(db string, tables []string) string {
 	items := []string{}
-	for _, tb := range tables {
+	for _, tb := range lo.Uniq(tables) {
 		items = append(items, fmt.Sprintf("`%s`.`%s`", db, tb))
 	}
 	ql := fmt.Sprintf("flush table %s with read lock;", strings.Join(items, ","))
