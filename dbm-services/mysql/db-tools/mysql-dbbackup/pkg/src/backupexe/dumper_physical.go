@@ -23,14 +23,15 @@ import (
 
 // PhysicalDumper TODO
 type PhysicalDumper struct {
-	cnf                         *config.BackupConfig
-	dbbackupHome                string
-	mysqlVersion                string // parsed
-	isOfficial                  bool
-	innodbCmd                   InnodbCommand
-	storageEngine               string
-	backupStartTime             time.Time
-	backupEndTime               time.Time
+	cnf           *config.BackupConfig
+	metaInfo      *dbareport.IndexContent
+	dbbackupHome  string
+	mysqlVersion  string // parsed
+	isOfficial    bool
+	innodbCmd     InnodbCommand
+	storageEngine string
+	//backupStartTime             time.Time
+	//backupEndTime               time.Time
 	tmpDisableSlaveMultiThreads bool
 }
 
@@ -53,6 +54,11 @@ func (p *PhysicalDumper) initConfig(mysqlVerStr string) error {
 	p.mysqlVersion, p.isOfficial = util.VersionParser(mysqlVerStr)
 	p.storageEngine, err = mysqlconn.GetStorageEngine(db)
 	if err != nil {
+		return err
+	}
+	if !strings.EqualFold(p.storageEngine, "innodb") {
+		logger.Log.Error(fmt.Sprintf("This is a unknown StorageEngine: %s", p.storageEngine))
+		err := fmt.Errorf("unknown StorageEngine: %s", p.storageEngine)
 		return err
 	}
 	p.storageEngine = strings.ToLower(p.storageEngine)
@@ -161,10 +167,6 @@ func (p *PhysicalDumper) buildArgs() []string {
 
 // Execute excute dumping backup with physical backup tool
 func (p *PhysicalDumper) Execute(ctx context.Context) error {
-	p.backupStartTime = time.Now()
-	defer func() {
-		p.backupEndTime = time.Now()
-	}()
 	if p.storageEngine != "innodb" {
 		err := fmt.Errorf("%s engine not support", p.storageEngine)
 		logger.Log.Error(err.Error())
@@ -173,6 +175,14 @@ func (p *PhysicalDumper) Execute(ctx context.Context) error {
 
 	binPath := filepath.Join(p.dbbackupHome, p.innodbCmd.innobackupexBin)
 	args := p.buildArgs()
+	if p.cnf.BackupToRemote.EnableRemote {
+		if ncSender, err := checkNcSenderVersion(); err != nil {
+			return err
+		} else {
+			args = append(args, "--stream=xbstream", "|", fmt.Sprintf("%s %s %d",
+				ncSender, p.cnf.BackupToRemote.SshHost, p.cnf.BackupToRemote.NcPort))
+		}
+	}
 
 	// DisableSlaveMultiThreads 这个选项要在主函数里设置，备份结束(成功/失败)后 defer 关闭
 	if p.tmpDisableSlaveMultiThreads {
@@ -214,6 +224,10 @@ func (p *PhysicalDumper) Execute(ctx context.Context) error {
 	cmd.Stderr = outFile // xtrabackup 的运行日志都是打印在 stderr ... unbelievable
 	logger.Log.Info("xtrabackup command: ", cmd.String())
 
+	p.metaInfo.BackupBeginTime = cmutil.TimeToSecondPrecision(time.Now())
+	defer func() {
+		p.metaInfo.BackupEndTime = cmutil.TimeToSecondPrecision(time.Now())
+	}()
 	err = cmd.Run()
 	if err != nil {
 		errStrPrefix := fmt.Sprintf("tail 5 error from %s", xtrabackupLogFile)
@@ -233,61 +247,44 @@ func (p *PhysicalDumper) Execute(ctx context.Context) error {
 
 // PrepareBackupMetaInfo prepare the backup result of Physical Backup(innodb)
 // xtrabackup备份完成后，解析 xtrabackup_info 等文件
-func (p *PhysicalDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig) (*dbareport.IndexContent, error) {
-	db, err := mysqlconn.InitConn(&cnf.Public)
-	if err != nil {
-		return nil, errors.WithMessage(err, "IndexContent")
-	}
-	defer func() {
-		_ = db.Close()
-	}()
-	storageEngine, err := mysqlconn.GetStorageEngine(db)
-	if err != nil {
-		return nil, err
-	}
-	if strings.ToLower(storageEngine) != "innodb" {
-		logger.Log.Error(fmt.Sprintf("This is a unknown StorageEngine: %s", storageEngine))
-		err := fmt.Errorf("unknown StorageEngine: %s", storageEngine)
-		return nil, err
-	}
+func (p *PhysicalDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig, metaInfo *dbareport.IndexContent) error {
+	metaInfo.JudgeIsFullBackup(&cnf.Public)
+	// 物理备份，在 tarball 阶段再获取binlog info
+	//return nil
 
-	xtrabackupInfoFileName := filepath.Join(cnf.Public.BackupDir, cnf.Public.TargetName(),
-		"xtrabackup_info")
-	xtrabackupTimestampFileName := filepath.Join(cnf.Public.BackupDir, cnf.Public.TargetName(),
-		"xtrabackup_timestamp_info")
-	xtrabackupBinlogInfoFileName := filepath.Join(cnf.Public.BackupDir, cnf.Public.TargetName(),
-		"xtrabackup_binlog_info")
-	xtrabackupSlaveInfoFileName := filepath.Join(cnf.Public.BackupDir, cnf.Public.TargetName(),
-		"xtrabackup_slave_info")
+	backupTargetDir := filepath.Join(cnf.Public.BackupDir, cnf.Public.TargetName())
+	xtrabackupInfoFileName := filepath.Join(backupTargetDir, "xtrabackup_info")
+	xtrabackupTimestampFileName := filepath.Join(backupTargetDir, "xtrabackup_timestamp_info")
+	xtrabackupBinlogInfoFileName := filepath.Join(backupTargetDir, "xtrabackup_binlog_info")
+	xtrabackupSlaveInfoFileName := filepath.Join(backupTargetDir, "xtrabackup_slave_info")
 
-	tmpFileName := filepath.Join(cnf.Public.BackupDir, cnf.Public.TargetName(), "tmp_dbbackup_go.txt")
+	tmpFileName := filepath.Join(backupTargetDir, "tmp_dbbackup_go.txt")
 
 	exepath, err := os.Executable()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	exepath = filepath.Dir(exepath)
 	qpressPath := filepath.Join(exepath, "bin", "qpress")
 
-	var metaInfo = dbareport.IndexContent{
-		BinlogInfo: dbareport.BinlogStatusInfo{},
-	}
 	// parse xtrabackup_info
-	if err = parseXtraInfo(qpressPath, xtrabackupInfoFileName, tmpFileName, &metaInfo); err != nil {
+	if err = parseXtraInfo(qpressPath, xtrabackupInfoFileName, tmpFileName, metaInfo); err != nil {
 		logger.Log.Warnf("xtrabackup_info file not found, use current time as BackupEndTime, err: %s", err.Error())
-		metaInfo.BackupBeginTime = cmutil.TimeToSecondPrecision(p.backupStartTime)
-		metaInfo.BackupEndTime = cmutil.TimeToSecondPrecision(p.backupEndTime)
+		//metaInfo.BackupBeginTime = cmutil.TimeToSecondPrecision(p.backupStartTime)
+		//metaInfo.BackupEndTime = cmutil.TimeToSecondPrecision(p.backupEndTime)
 	}
 	// parse xtrabackup_timestamp_info
-	if err := parseXtraTimestamp(qpressPath, xtrabackupTimestampFileName, tmpFileName, &metaInfo); err != nil {
+	if err := parseXtraTimestamp(qpressPath, xtrabackupTimestampFileName, tmpFileName, metaInfo); err != nil {
 		// 此时刚备份完成，还没有开始打包，这里把当前时间认为是 consistent_time，不完善！
 		logger.Log.Warnf("xtrabackup_timestamp_info file not found, "+
 			"use current time as Consistent Time, err: %s", err.Error())
-		metaInfo.BackupConsistentTime = cmutil.TimeToSecondPrecision(p.backupEndTime)
+		metaInfo.BackupConsistentTime = cmutil.TimeToSecondPrecision(metaInfo.BackupEndTime)
 	}
 	// parse xtrabackup_binlog_info 本机的 binlog file,pos
 	if masterStatus, err := parseXtraBinlogInfo(qpressPath, xtrabackupBinlogInfoFileName, tmpFileName); err != nil {
-		return nil, err
+		logger.Log.Warnf("xtrabackup_binlog_info file not found, "+
+			"cannot read binlog position, err: %s", err.Error())
+		//return err
 	} else {
 		metaInfo.BinlogInfo.ShowMasterStatus = masterStatus
 		metaInfo.BinlogInfo.ShowMasterStatus.MasterHost = cnf.Public.MysqlHost
@@ -300,18 +297,50 @@ func (p *PhysicalDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig) (*dbare
 			logger.Log.Warnf("parse xtrabackup_slave_info with error for role=%s %s:%d , err: %s",
 				cnf.Public.MysqlRole, cnf.Public.MysqlHost, cnf.Public.MysqlPort, err.Error())
 		} else {
-			metaInfo.BinlogInfo.ShowSlaveStatus = slaveStatus
-			masterHost, masterPort, err := mysqlconn.ShowMysqlSlaveStatus(db)
-			if err != nil {
-				return nil, err
+			if metaInfo.BinlogInfo.ShowSlaveStatus == nil {
+				metaInfo.BinlogInfo.ShowSlaveStatus = &dbareport.StatusInfo{}
 			}
-			metaInfo.BinlogInfo.ShowSlaveStatus.MasterHost = masterHost
-			metaInfo.BinlogInfo.ShowSlaveStatus.MasterPort = masterPort
+			metaInfo.BinlogInfo.ShowSlaveStatus.BinlogFile = slaveStatus.BinlogFile
+			metaInfo.BinlogInfo.ShowSlaveStatus.BinlogPos = slaveStatus.BinlogPos
+			// 需要在外层补充 master ip:port
 		}
 	}
-	metaInfo.JudgeIsFullBackup(&cnf.Public)
 	if err = os.Remove(tmpFileName); err != nil {
-		return &metaInfo, err
+		//return err
 	}
-	return &metaInfo, nil
+	return nil
+}
+
+// checkNcSenderVersion nc 有不同版本的实现，参数不通。这里要区分一下
+/*
+### nc -> ncat
+## receiver
+# ncat -l 6666 > aaa
+## sender
+# cat xxx | ncat --send-only x.x.x.x 6666
+
+### nc -> netcat
+## receiver
+# netcat -l 6666 > aaa
+## sender
+# cat xxx | netcat -N x.x.x.x 6666
+*/
+func checkNcSenderVersion() (netCat string, err error) {
+	// nc -N -l x.x.x.x 6666    or    nc --send-only x.x.x.x 6666
+	if netCat, err = exec.LookPath("nc"); netCat == "" {
+		return "", errors.WithMessage(err, "nc not found in local")
+	}
+
+	ncCmd := exec.Command(netCat, "-N", "-h")
+	if err = ncCmd.Run(); err == nil {
+		netCat = netCat + " -N"
+	} else {
+		ncCmd = exec.Command("nc", "--send-only", "-h")
+		if err = ncCmd.Run(); err == nil {
+			netCat = netCat + " --send-only"
+		} else {
+			return "", errors.WithMessage(err, "nc version not supported")
+		}
+	}
+	return netCat, nil
 }

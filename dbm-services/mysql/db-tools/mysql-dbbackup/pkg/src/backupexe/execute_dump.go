@@ -10,7 +10,13 @@ package backupexe
 
 import (
 	"context"
+	"strings"
+	"time"
 
+	"github.com/pkg/errors"
+	"github.com/samber/lo"
+
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
@@ -32,18 +38,21 @@ func ExecuteBackup(ctx context.Context, cnf *config.BackupConfig) (*dbareport.In
 	if err != nil {
 		return nil, err
 	}
-
 	mysqlVersion, isOfficial := util.VersionParser(versionStr)
 	XbcryptBin = GetXbcryptBin(mysqlVersion, isOfficial)
 
-	dumper, err := BuildDumper(cnf, db) // 会在里面确定备份方式
+	metaInfo := &dbareport.IndexContent{}
+	dumper, err := BuildDumper(cnf, metaInfo, db) // 会在里面确定备份方式
 	if err != nil {
 		return nil, err
 	}
 	if err := dumper.initConfig(versionStr); err != nil {
 		return nil, err
 	}
-
+	if cnf.BackupToRemote.EnableRemote && cnf.Public.BackupType != cst.BackupPhysical {
+		return nil, errors.Errorf("backup stream to remote only support physical but got %s for port=%d",
+			cnf.Public.BackupType, cnf.Public.MysqlPort)
+	}
 	// BuildDumper 里面会修正备份方式，所以 SetEnv 要放在后面执行
 	if envErr := SetEnv(cnf.Public.BackupType, versionStr); envErr != nil {
 		return nil, envErr
@@ -53,12 +62,73 @@ func ExecuteBackup(ctx context.Context, cnf *config.BackupConfig) (*dbareport.In
 	if err = dumper.Execute(ctx); err != nil {
 		return nil, err
 	}
-
-	metaInfo, err := dumper.PrepareBackupMetaInfo(cnf)
-	if err != nil {
+	if err = dumper.PrepareBackupMetaInfo(cnf, metaInfo); err != nil {
 		return nil, err
 	}
+	// 如果是 slave 节点，提前获取他的 master_host, master_port
+	if lo.Contains([]string{cst.RoleSlave, cst.RoleRepeater}, strings.ToLower(cnf.Public.MysqlRole)) {
+		masterHost, masterPort, err := mysqlconn.ShowMysqlSlaveStatus(db)
+		if err != nil {
+			return nil, err
+		}
+		if metaInfo.BinlogInfo.ShowSlaveStatus == nil {
+			metaInfo.BinlogInfo.ShowSlaveStatus = &dbareport.StatusInfo{}
+		}
+		metaInfo.BinlogInfo.ShowSlaveStatus.MasterHost = masterHost
+		metaInfo.BinlogInfo.ShowSlaveStatus.MasterPort = masterPort
+	}
 
+	if err = buildMetaInfo(cnf, metaInfo); err != nil {
+		return nil, err
+	}
 	metaInfo.BackupTool = BackupTool
 	return metaInfo, nil
+}
+
+func buildMetaInfo(cnf *config.BackupConfig, metaInfo *dbareport.IndexContent) error {
+	cnfPub := &cnf.Public
+	db, err := mysqlconn.InitConn(cnfPub)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = db.Close()
+	}()
+
+	versionStr, err := mysqlconn.GetMysqlVersion(db)
+	if err != nil {
+		return err
+	}
+	metaInfo.MysqlVersion = versionStr
+	storageEngineStr, err := mysqlconn.GetStorageEngine(db)
+	if err != nil {
+		return err
+	}
+	binlogFormat, rowImage := mysqlconn.GetBinlogFormat(db)
+	sqlMode, _ := mysqlconn.GetSingleGlobalVar("sql_mode", db)
+
+	metaInfo.BackupType = cnfPub.BackupType
+	metaInfo.BackupHost = cnfPub.MysqlHost
+	metaInfo.BackupPort = cnfPub.MysqlPort
+	metaInfo.MysqlRole = cnfPub.MysqlRole
+	metaInfo.DataSchemaGrant = cnfPub.DataSchemaGrant
+	metaInfo.BillId = cnfPub.BillId
+	metaInfo.ClusterId = cnfPub.ClusterId
+	metaInfo.ClusterAddress = cnfPub.ClusterAddress
+	metaInfo.ShardValue = cnfPub.ShardValue
+	metaInfo.BkBizId = cnfPub.BkBizId
+	metaInfo.BkCloudId = cnfPub.BkCloudId
+	metaInfo.BackupCharset = cnfPub.MysqlCharset
+	metaInfo.StorageEngine = storageEngineStr
+	metaInfo.BinlogFormat = binlogFormat
+	metaInfo.BinlogRowImage = rowImage
+	metaInfo.SqlMode = sqlMode
+	metaInfo.TimeZone, _ = time.Now().Zone()
+	metaInfo.ConsistentBackupTime = metaInfo.BackupConsistentTime
+	// BeginTime, EndTime, ConsistentTime, BinlogInfo,storageEngineStr build in PrepareBackupMetaInfo
+
+	metaInfo.BackupId = cnfPub.BackupId
+	metaInfo.EncryptEnable = cnfPub.EncryptOpt.EncryptEnable
+	metaInfo.FileRetentionTag = cnf.BackupClient.FileTag
+	return nil
 }

@@ -1,5 +1,0 @@
-- infodba_schema 在最后导入
-- force 导入(insert ignore)
-- 解决并发问题（表多）
-- mysql 客户端和read line 两种模式，read line 模式支持单文件并发导入
-- drop if exists

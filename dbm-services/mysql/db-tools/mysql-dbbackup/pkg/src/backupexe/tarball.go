@@ -147,10 +147,11 @@ func (p *PackageFile) LogicalTarParts() (string, error) {
 	for _, tarFile := range tarFiles {
 		p.indexFile.FileList = append(p.indexFile.FileList, tarFile)
 	}
-	return "", nil
+	return p.indexFilePath, nil
 }
 
-// LogicalTarSplit Firstly, put all backup files into the tar file. Secondly, split the tar file to multiple parts
+// LogicalTarSplit for mysqldump (output is a single file)
+// Firstly, put all backup files into the tar file. Secondly, split the tar file to multiple parts
 // will save index meta info to file
 func (p *PackageFile) LogicalTarSplit() (string, error) {
 	// tar srcDir to tar
@@ -167,26 +168,7 @@ func (p *PackageFile) LogicalTarSplit() (string, error) {
 	if err := p.splitTarFile(p.dstTarFile); err != nil {
 		return "", err
 	}
-	return "", nil
-}
-
-// SaveIndexFile add priv file and save .index to disk
-func (p *PackageFile) SaveIndexFile() (string, error) {
-	p.indexFile.AddPrivFileItem(p.dstDir)
-	if indexFilePath, err := p.indexFile.SaveIndexContent(&p.cnf.Public); err != nil {
-		return "", err
-	} else {
-		p.indexFilePath = indexFilePath
-		return p.indexFilePath, nil
-	}
-}
-
-// PhysicalTarSplit Firstly, put all backup files into the tar file. Secondly, split the tar file to multiple parts
-// will save index meta info to file
-func (p *PackageFile) PhysicalTarSplit() (string, error) {
-	return p.tarAndSplit()
-
-	// tar -rf - /xxx | openssl... | split
+	return p.indexFilePath, nil
 }
 
 // tarballDir tar srcDir to dstTarFile
@@ -242,20 +224,34 @@ func (p *PackageFile) tarballDir() error {
 	return nil
 }
 
-// tarAndSplit 只 tar，不 zip
-func (p *PackageFile) tarAndSplit() (string, error) {
-	logger.Log.Infof("Tarball Package: src dir %s, iolimit %d MB/s", p.srcDir, p.cnf.Public.IOLimitMBPerSec)
+// PhysicalTarSplit Firstly, put all backup files into the tar file. Secondly, split the tar file to multiple parts
+// will save index meta info to file
+func (p *PackageFile) PhysicalTarSplit(cnfPublic *config.Public) (string, error) {
+	// read backup binlog position
+	dumper := PhysicalDumper{} // only innodb???
+	if err := dumper.PrepareBackupMetaInfo(p.cnf, p.indexFile); err != nil {
+		return "", err
+	}
+	return p.tarAndSplit(cnfPublic)
 
-	var tarUtil = util.TarWriter{IOLimitMB: p.cnf.Public.IOLimitMBPerSec}
-	var dstTarName = fmt.Sprintf(`%s.tar`, p.dstDir)
-	if p.cnf.Public.EncryptOpt.EncryptEnable {
-		logger.Log.Infof("tar file encrypt enabled for port: %d", p.cnf.Public.MysqlPort)
+	// tar -rf - /xxx | openssl... | split
+}
+
+// tarAndSplit 物理备份打包，切分
+// 只 tar，不 zip
+func (p *PackageFile) tarAndSplit(cnfPublic *config.Public) (string, error) {
+	logger.Log.Infof("Tarball Package: src dir %s, iolimit %d MB/s", p.srcDir, cnfPublic.IOLimitMBPerSec)
+
+	var tarUtil = util.TarWriter{IOLimitMB: cnfPublic.IOLimitMBPerSec}
+	var dstTarName = fmt.Sprintf(`%s.tar`, p.dstDir) // full path
+	if cnfPublic.EncryptOpt.EncryptEnable {
+		logger.Log.Infof("tar file encrypt enabled for port: %d", cnfPublic.MysqlPort)
 		tarUtil.Encrypt = true
-		tarUtil.EncryptTool = p.cnf.Public.EncryptOpt.GetEncryptTool()
+		tarUtil.EncryptTool = cnfPublic.EncryptOpt.GetEncryptTool()
 		dstTarName = fmt.Sprintf(`%s.tar.%s`, p.dstDir, tarUtil.EncryptTool.DefaultSuffix())
 	}
 
-	if err := tarUtil.NewSplit(dstTarName, int(p.cnf.Public.TarSizeThreshold*1024*1024)); err != nil {
+	if err := tarUtil.NewSplit(dstTarName, int(cnfPublic.TarSizeThreshold*1024*1024)); err != nil {
 		return "", err
 	}
 	defer func() {
@@ -275,7 +271,8 @@ func (p *PackageFile) tarAndSplit() (string, error) {
 		if err != nil {
 			return err
 		}
-		header.Name = filepath.Join(p.cnf.Public.TargetName(), strings.TrimPrefix(filename, p.srcDir))
+
+		header.Name = filepath.Join(filepath.Base(p.dstDir), strings.TrimPrefix(filename, p.srcDir))
 		isFile, written, err := tarUtil.WriteTar(header, filename)
 		if err != nil {
 			return err
@@ -297,19 +294,18 @@ func (p *PackageFile) tarAndSplit() (string, error) {
 		tarFileName := filepath.Base(filename)
 		tarFile := &dbareport.TarFileItem{FileName: tarFileName, FileType: cst.FilePart, FileSize: int64(filesize)}
 		p.indexFile.FileList = append(p.indexFile.FileList, tarFile)
-
 	}
 	//logger.Log.Infof("need to tar file, accumulated tar size: %d bytes, dstFile: %s", tarSize, dstTarName)
 	//p.indexFile.TotalSizeKBUncompress = totalSizeUncompress / 1024
 	p.indexFile.TotalFilesize = backupTotalFileSize
 
-	logger.Log.Infof("old srcDir removing io is limited to: %d MB/s", p.cnf.Public.IOLimitMBPerSec)
-	if err := cmutil.TruncateDir(p.srcDir, p.cnf.Public.IOLimitMBPerSec); err != nil {
+	logger.Log.Infof("old srcDir removing io is limited to: %d MB/s", cnfPublic.IOLimitMBPerSec)
+	if err := cmutil.TruncateDir(p.srcDir, cnfPublic.IOLimitMBPerSec); err != nil {
 		// if err := os.RemoveAll(p.srcDir); err != nil {
 		logger.Log.Error("failed to remove useless backup files")
 		return "", err
 	}
-	return "", nil
+	return p.indexFilePath, nil
 }
 
 // splitTarFile split Tar file into multiple part_file
@@ -385,20 +381,25 @@ func (p *PackageFile) splitTarFile(destFile string) error {
 // backupReport 里面还只有 base 信息，没有文件信息
 func PackageBackupFiles(cnf *config.BackupConfig, metaInfo *dbareport.IndexContent) (indexFilePath string, err error) {
 	targetDir := path.Join(cnf.Public.BackupDir, cnf.Public.TargetName())
+	indexFilePath = path.Join(cnf.Public.BackupDir, cnf.Public.TargetName()+".index")
+
 	var packageFile = &PackageFile{
-		srcDir:     targetDir,
-		dstDir:     targetDir,
-		dstTarFile: targetDir + ".tar",
-		cnf:        cnf,
-		indexFile:  metaInfo,
+		srcDir:        targetDir,
+		dstDir:        targetDir,
+		dstTarFile:    targetDir + ".tar",
+		cnf:           cnf,
+		indexFile:     metaInfo,
+		indexFilePath: indexFilePath,
 	}
 	logger.Log.Infof("Index BackupMetaInfo:%+v", metaInfo)
 	if cnf.Public.IfBackupGrantOnly() {
-		return packageFile.SaveIndexFile()
+		metaInfo.AddPrivFileItem(packageFile.dstDir)
+		return metaInfo.SaveIndexContent(indexFilePath)
 	}
-
+	//backupType := cnf.Public.BackupType
+	backupType := metaInfo.BackupType
 	// package files, and produce the index file at the same time
-	if strings.ToLower(cnf.Public.BackupType) == cst.BackupLogical {
+	if strings.EqualFold(backupType, cst.BackupLogical) {
 		if cnf.LogicalBackup.UseMysqldump == cst.LogicalMysqldumpYes {
 			if indexFilePath, err = packageFile.LogicalTarSplit(); err != nil {
 				return "", err
@@ -408,12 +409,15 @@ func PackageBackupFiles(cnf *config.BackupConfig, metaInfo *dbareport.IndexConte
 				return "", err
 			}
 		}
-	} else if strings.ToLower(cnf.Public.BackupType) == cst.BackupPhysical {
-		if indexFilePath, err = packageFile.PhysicalTarSplit(); err != nil {
+	} else if strings.EqualFold(backupType, cst.BackupPhysical) {
+		if indexFilePath, err = packageFile.PhysicalTarSplit(&cnf.Public); err != nil {
 			return "", err
 		}
+	} else {
+		return "", errors.New("backup type not support")
 	}
-	return packageFile.SaveIndexFile()
+	metaInfo.AddPrivFileItem(packageFile.dstDir)
+	return metaInfo.SaveIndexContent(indexFilePath)
 }
 
 // readUncompressSizeForZstd godoc

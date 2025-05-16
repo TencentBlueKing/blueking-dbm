@@ -22,7 +22,7 @@ import (
 
 // PhysicalTokudbDumper physical tokudb dumper
 type PhysicalTokudbDumper struct {
-	cfg              *config.BackupConfig
+	cnf              *config.BackupConfig
 	backupLogfile    string
 	dbbackupHome     string
 	flushWaitTimeout int
@@ -42,13 +42,13 @@ type PhysicalTokudbDumper struct {
 func (p *PhysicalTokudbDumper) buildArgs() []string {
 	// p.backupTargetPath is initialized in initConfig
 	args := []string{
-		fmt.Sprintf("-u%s", p.cfg.Public.MysqlUser),
-		fmt.Sprintf("-p%s", p.cfg.Public.MysqlPasswd),
-		fmt.Sprintf("-h%s", p.cfg.Public.MysqlHost),
-		fmt.Sprintf("-P%d", p.cfg.Public.MysqlPort),
+		fmt.Sprintf("-u%s", p.cnf.Public.MysqlUser),
+		fmt.Sprintf("-p%s", p.cnf.Public.MysqlPasswd),
+		fmt.Sprintf("-h%s", p.cnf.Public.MysqlHost),
+		fmt.Sprintf("-P%d", p.cnf.Public.MysqlPort),
 		fmt.Sprintf("--flush-wait-timeout=%d", p.flushWaitTimeout),
 	}
-	if strings.ToLower(p.cfg.Public.MysqlRole) == cst.RoleSlave {
+	if strings.ToLower(p.cnf.Public.MysqlRole) == cst.RoleSlave {
 		args = append(args, "--dump-slave")
 	}
 	args = append(args, fmt.Sprintf("%s", p.backupTargetPath))
@@ -57,7 +57,7 @@ func (p *PhysicalTokudbDumper) buildArgs() []string {
 
 // initConfig init config
 func (p *PhysicalTokudbDumper) initConfig(mysqlVersion string) error {
-	if p.cfg == nil {
+	if p.cnf == nil {
 		return errors.New("tokudb physical dumper config missed")
 	}
 	if p.flushWaitTimeout == 0 {
@@ -71,10 +71,10 @@ func (p *PhysicalTokudbDumper) initConfig(mysqlVersion string) error {
 	p.dbbackupHome = filepath.Dir(cmdPath)
 
 	// connect to the mysql and obtain the base information
-	db, err := mysqlconn.InitConn(&p.cfg.Public)
+	db, err := mysqlconn.InitConn(&p.cnf.Public)
 	if err != nil {
 		logger.Log.Errorf("can not connect to the mysql, host:%s, port:%d, errmsg:%s",
-			p.cfg.Public.MysqlHost, p.cfg.Public.MysqlPort, err)
+			p.cnf.Public.MysqlHost, p.cnf.Public.MysqlPort, err)
 		return err
 	}
 	defer func() {
@@ -86,25 +86,25 @@ func (p *PhysicalTokudbDumper) initConfig(mysqlVersion string) error {
 
 	if err != nil {
 		logger.Log.Errorf("can not get the storage engine from the mysql, host:%s, port:%d, errmsg:%s",
-			p.cfg.Public.MysqlHost, p.cfg.Public.MysqlPort, err)
+			p.cnf.Public.MysqlHost, p.cnf.Public.MysqlPort, err)
 		return err
 	}
 
 	// keep the storage engine name is lower
 	p.storageEngine = strings.ToLower(p.storageEngine)
-	p.mysqlRole = strings.ToLower(p.cfg.Public.MysqlRole)
+	p.mysqlRole = strings.ToLower(p.cnf.Public.MysqlRole)
 
 	// if the current node is slave, obtain the master ip and port
 	if p.mysqlRole == cst.RoleSlave || p.mysqlRole == cst.RoleRepeater {
 		p.masterHost, p.masterPort, err = mysqlconn.ShowMysqlSlaveStatus(db)
 		if err != nil {
 			logger.Log.Errorf("can not get the master host and port from the mysql, host:%s, port:%d, errmsg:%s",
-				p.cfg.Public.MysqlHost, p.cfg.Public.MysqlPort, err)
+				p.cnf.Public.MysqlHost, p.cnf.Public.MysqlPort, err)
 			return err
 		}
 	}
 
-	p.backupTargetPath = filepath.Join(p.cfg.Public.BackupDir, p.cfg.Public.TargetName())
+	p.backupTargetPath = filepath.Join(p.cnf.Public.BackupDir, p.cnf.Public.TargetName())
 	p.tokudbCmd = filepath.Join("bin", cst.ToolTokudbBackup)
 	BackupTool = cst.ToolTokudbBackup
 	return nil
@@ -112,22 +112,19 @@ func (p *PhysicalTokudbDumper) initConfig(mysqlVersion string) error {
 
 // Execute Perform data recovery operations.
 func (p *PhysicalTokudbDumper) Execute(ctx context.Context) error {
-	p.backupStartTime = cmutil.TimeToSecondPrecision(time.Now())
-	defer func() {
-		p.backupEndTime = cmutil.TimeToSecondPrecision(time.Now())
-	}()
-
 	// the storage engine must be tokudb
 	if p.storageEngine != cst.StorageEngineTokudb {
 		err := fmt.Errorf("unsupported engine:%s, host:%s, port:%d", p.storageEngine,
-			p.cfg.Public.MysqlHost, p.cfg.Public.MysqlPort)
+			p.cnf.Public.MysqlHost, p.cnf.Public.MysqlPort)
 		logger.Log.Error(err)
 		return err
 	}
 
 	binPath := filepath.Join(p.dbbackupHome, p.tokudbCmd)
 	args := p.buildArgs()
-
+	if p.cnf.BackupToRemote.EnableRemote {
+		return errors.Errorf("remote backup not support tokudb")
+	}
 	// perform the dump operation
 	var cmd *exec.Cmd
 	backupCmd := fmt.Sprintf(`%s %s`, binPath, strings.Join(args, " "))
@@ -135,7 +132,7 @@ func (p *PhysicalTokudbDumper) Execute(ctx context.Context) error {
 
 	// create a dumper log file to store the log of the dumper command
 	p.backupLogfile = fmt.Sprintf("dumper_%s_%d_%d.log",
-		p.storageEngine, p.cfg.Public.MysqlPort, int(time.Now().Weekday()))
+		p.storageEngine, p.cnf.Public.MysqlPort, int(time.Now().Weekday()))
 	p.backupLogfile = filepath.Join(p.dbbackupHome, "logs", p.backupLogfile)
 
 	// pre-created dump log file
@@ -155,9 +152,9 @@ func (p *PhysicalTokudbDumper) Execute(ctx context.Context) error {
 	cmd.Stderr = outFile
 
 	// perform the dump command
-	p.backupStartTime = time.Now()
+	p.backupStartTime = cmutil.TimeToSecondPrecision(time.Now())
 	defer func() {
-		p.backupEndTime = time.Now()
+		p.backupEndTime = cmutil.TimeToSecondPrecision(time.Now())
 	}()
 	err = cmd.Run()
 	if err != nil {
@@ -171,8 +168,7 @@ func (p *PhysicalTokudbDumper) Execute(ctx context.Context) error {
 }
 
 // PrepareBackupMetaInfo generate the metadata of database backup
-func (p *PhysicalTokudbDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig) (*dbareport.IndexContent, error) {
-
+func (p *PhysicalTokudbDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig, metaInfo *dbareport.IndexContent) error {
 	// parse the binlog position
 	binlogInfoFileName := filepath.Join(p.backupTargetPath, "xtrabackup_binlog_info")
 	slaveInfoFileName := filepath.Join(p.backupTargetPath, "xtrabackup_slave_info")
@@ -181,20 +177,16 @@ func (p *PhysicalTokudbDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig) (
 	// obtain the qpress command path
 	exepath, err := os.Executable()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	exepath = filepath.Dir(exepath)
-
-	var metaInfo = dbareport.IndexContent{
-		BinlogInfo: dbareport.BinlogStatusInfo{},
-	}
 
 	// parse the binlog
 	masterStatus, err := parseXtraBinlogInfo("", binlogInfoFileName, tmpFileName)
 	if err != nil {
 		logger.Log.Errorf("do not parse xtrabackup binlog file, file name:%s, errmsg:%s",
 			slaveInfoFileName, err)
-		return nil, err
+		return err
 	}
 
 	// save the master node status
@@ -209,12 +201,19 @@ func (p *PhysicalTokudbDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig) (
 		if err != nil {
 			logger.Log.Errorf("do not parse xtrabackup slave information, xtrabackup file:%s, errmsg:%s",
 				slaveInfoFileName, err)
-			return nil, err
+			return err
 		}
-
-		metaInfo.BinlogInfo.ShowSlaveStatus = slaveStatus
-		metaInfo.BinlogInfo.ShowSlaveStatus.MasterHost = p.masterHost
-		metaInfo.BinlogInfo.ShowSlaveStatus.MasterPort = p.masterPort
+		if metaInfo.BinlogInfo.ShowSlaveStatus == nil {
+			metaInfo.BinlogInfo.ShowSlaveStatus = &dbareport.StatusInfo{}
+		}
+		metaInfo.BinlogInfo.ShowSlaveStatus.BinlogFile = slaveStatus.BinlogFile
+		metaInfo.BinlogInfo.ShowSlaveStatus.BinlogPos = slaveStatus.BinlogPos
+		if p.masterHost != "" {
+			metaInfo.BinlogInfo.ShowSlaveStatus.MasterHost = p.masterHost
+		}
+		if p.masterPort != 0 {
+			metaInfo.BinlogInfo.ShowSlaveStatus.MasterPort = p.masterPort
+		}
 	}
 
 	// parse xtrabackup_info
@@ -236,8 +235,8 @@ func (p *PhysicalTokudbDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig) (
 	metaInfo.JudgeIsFullBackup(&cnf.Public)
 	if err = os.Remove(tmpFileName); err != nil {
 		logger.Log.Errorf("do not delete the tmp file, file name:%s, errmsg:%s", tmpFileName, err)
-		return &metaInfo, err
+		return err
 	}
 
-	return &metaInfo, nil
+	return nil
 }

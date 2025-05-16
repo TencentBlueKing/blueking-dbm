@@ -62,7 +62,7 @@ func (e *EncryptOpt) Init() (err error) {
 	if _, err = exec.LookPath(e.EncryptCmd); err != nil {
 		return err
 	}
-	e.passPhrase = RandomString(32) // symmetric encrypt key to encrypt files
+	e.passPhrase = RandomString(32) // symmetric encrypt key to encrypt files // use lo.RandomString
 	if e.EncryptPublicKey == "" {
 		e.encryptedPassPhrase = e.passPhrase // not encrypted actually, just for report
 	} else {

@@ -34,7 +34,7 @@ var loadPhysicalCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		defer func() {
-			cmutil.ExecCommand(false, "", "chown", "-R", "mysql.mysql", cst.DbbackupGoInstallPath)
+			cmutil.ExecCommand(false, "", "chown", "-R", "mysql:mysql", cst.DbbackupGoInstallPath)
 		}()
 		cnf, err := initLoadCmd(cmd)
 		if err != nil {

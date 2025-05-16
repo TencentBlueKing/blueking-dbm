@@ -9,9 +9,9 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/jmoiron/sqlx"
-	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 	_ "modernc.org/sqlite" // sqlite TODO
 

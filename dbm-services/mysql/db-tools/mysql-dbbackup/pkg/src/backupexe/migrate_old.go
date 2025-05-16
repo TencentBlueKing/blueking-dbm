@@ -181,7 +181,8 @@ func MigrateInstanceBackupInfo(infoFilePath string, cnf *config.BackupConfig) (s
 		cnf.Public.BkBizId, cnf.Public.ClusterId, cnf.Public.MysqlHost, cnf.Public.MysqlPort,
 		beginTime.Format("20060102150405"), backupTool)
 	cnf.Public.SetTargetName(newTargetName)
-	indexFilePath, err := indexObj.SaveIndexContent(&cnf.Public)
+	indexFilePath := filepath.Join(cnf.Public.BackupDir, newTargetName+".index")
+	indexFilePath, err = indexObj.SaveIndexContent(indexFilePath)
 	if err != nil {
 		return "", nil, err
 	}

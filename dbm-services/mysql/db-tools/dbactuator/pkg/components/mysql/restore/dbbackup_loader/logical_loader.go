@@ -67,7 +67,7 @@ func (l *LogicalLoader) CreateConfigFile() error {
 	if err = section.ReflectFrom(&loaderConfig); err != nil {
 		return err
 	}
-	cfgFilePath := filepath.Join(p.TaskDir, fmt.Sprintf("dbloader_%d.cfg", p.TgtInstance.Port))
+	cfgFilePath := filepath.Join(p.TaskDir, fmt.Sprintf("dbloader_%d.ini", p.TgtInstance.Port))
 	if err = f.SaveTo(cfgFilePath); err != nil {
 		return errors.Wrap(err, "create config")
 	}

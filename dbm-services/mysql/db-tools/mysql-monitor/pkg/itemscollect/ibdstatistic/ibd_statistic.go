@@ -17,8 +17,8 @@ import (
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/internal/cst"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/jmoiron/sqlx"
-	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 )
 

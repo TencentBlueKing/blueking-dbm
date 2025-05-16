@@ -217,7 +217,7 @@ func (l *LogicalLoader) Execute() (err error) {
 		// 尝试读取 myloader.log 里 CRITICAL 关键字
 		errStrPrefix := fmt.Sprintf("head 5 error from %s", logfile)
 		errStrDetail, _ := cmutil.NewGrepLines(logfile, true, true).
-			MatchWords([]string{"CRITICAL", "not found", "fatal"}, 5)
+			MatchWords([]string{"CRITICAL", "not found", "fatal", "No such file"}, 5)
 		if len(errStrDetail) > 0 {
 			logger.Log.Info(errStrPrefix)
 			logger.Log.Error(errStrDetail)

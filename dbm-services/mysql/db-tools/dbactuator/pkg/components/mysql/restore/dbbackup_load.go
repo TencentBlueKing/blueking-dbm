@@ -178,7 +178,7 @@ func (m *DBLoader) Start() error {
 		return errors.Errorf("dbloader taskDir error")
 	}
 	defer func() {
-		cmutil.ExecCommand(false, "", "chown", "-R", "mysql.mysql", m.taskDir)
+		cmutil.ExecCommand(false, "", "chown", "-R", "mysql:mysql", m.taskDir)
 	}()
 
 	logger.Info("开始解压 untarDir=%s", m.untarDir)

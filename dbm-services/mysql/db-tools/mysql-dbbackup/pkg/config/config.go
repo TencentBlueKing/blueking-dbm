@@ -12,6 +12,9 @@ type BackupConfig struct {
 	LogicalLoadMysqldump   LogicalLoadMysqldump   `ini:"LogicalLoadMysqldump"`
 	PhysicalBackup         PhysicalBackup         `ini:"PhysicalBackup"`
 	PhysicalLoad           PhysicalLoad           `ini:"PhysicalLoad"`
+	BackupToRemote         SSHConfig              `ini:"BackupToRemote"`
+
+	configFilePath string `ini:"-"`
 }
 
 type LoaderConfig struct {
@@ -29,4 +32,11 @@ type LogicalLoaderConfig struct {
 type PhysicalLoaderConfig struct {
 	Public       Public       `ini:"Public"`
 	PhysicalLoad PhysicalLoad `ini:"PhysicalLoad"`
+}
+
+func (c *BackupConfig) SetConfigFilePath(path string) {
+	c.configFilePath = path
+}
+func (c *BackupConfig) GetConfigFilePath() string {
+	return c.configFilePath
 }

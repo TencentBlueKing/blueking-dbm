@@ -114,6 +114,7 @@ func NewBackupLogReport(cfg *config.BackupConfig) (logReport *BackupLogReport, e
 		if err != nil {
 			return nil, err
 		}
+		cfg.Public.BackupId = logReport.BackupId // 反向赋值
 	}
 	if cfg.Public.EncryptOpt.EncryptEnable {
 		if ekey := cfg.Public.EncryptOpt.GetEncryptedKey(); len(ekey) <= 32 {
@@ -372,6 +373,7 @@ func (r *BackupLogReport) ReportBackupResult(indexFilePath string, index, upload
 			backupTaskResult.FileRetentionTag = metaInfo.FileRetentionTag
 			Report().Files.Println(backupTaskResult)
 		}
+		metaInfo.SaveIndexContent(indexFilePath)
 	}
 
 	// report backup record
@@ -385,7 +387,8 @@ func (r *BackupLogReport) ReportBackupResult(indexFilePath string, index, upload
 	Report().Result.Println(metaInfo)
 
 	if err = r.ReportToLocalBackup(indexFilePath, metaInfo); err != nil {
-		return err
+		logger.Log.Warnf("failed to write %d local_backup_report, err: %s. ignore", metaInfo.BackupPort, err)
+		// return err
 	}
 	if err2 != nil {
 		return err2

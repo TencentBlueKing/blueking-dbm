@@ -3,7 +3,6 @@ package dbareport
 import (
 	"encoding/json"
 	"os"
-	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -12,7 +11,6 @@ import (
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
 )
 
@@ -154,52 +152,7 @@ func (i *IndexContent) JudgeIsFullBackup(cnf *config.Public) bool {
 	return true
 }
 
-func (r *BackupLogReport) BuildMetaInfo(cnf *config.Public, metaInfo *IndexContent) error {
-	db, err := mysqlconn.InitConn(cnf)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		_ = db.Close()
-	}()
-
-	versionStr, err := mysqlconn.GetMysqlVersion(db)
-	if err != nil {
-		return err
-	}
-	metaInfo.MysqlVersion = versionStr
-	storageEngineStr, err := mysqlconn.GetStorageEngine(db)
-	if err != nil {
-		return err
-	}
-	binlogFormat, rowImage := mysqlconn.GetBinlogFormat(db)
-	sqlMode, _ := mysqlconn.GetSingleGlobalVar("sql_mode", db)
-
-	metaInfo.BackupType = cnf.BackupType
-	metaInfo.BackupHost = cnf.MysqlHost
-	metaInfo.BackupPort = cnf.MysqlPort
-	metaInfo.MysqlRole = cnf.MysqlRole
-	metaInfo.DataSchemaGrant = cnf.DataSchemaGrant
-	metaInfo.BillId = cnf.BillId
-	metaInfo.ClusterId = cnf.ClusterId
-	metaInfo.ClusterAddress = cnf.ClusterAddress
-	metaInfo.ShardValue = cnf.ShardValue
-	metaInfo.BkBizId = cnf.BkBizId
-	metaInfo.BkCloudId = cnf.BkCloudId
-	metaInfo.BackupCharset = cnf.MysqlCharset
-	metaInfo.StorageEngine = storageEngineStr
-	metaInfo.BinlogFormat = binlogFormat
-	metaInfo.BinlogRowImage = rowImage
-	metaInfo.SqlMode = sqlMode
-	metaInfo.TimeZone, _ = time.Now().Zone()
-	metaInfo.ConsistentBackupTime = metaInfo.BackupConsistentTime
-	// BeginTime, EndTime, ConsistentTime, BinlogInfo,storageEngineStr build in PrepareBackupMetaInfo
-
-	metaInfo.BackupId = r.BackupId
-	if r.EncryptedKey != "" {
-		metaInfo.EncryptEnable = true
-	}
-
+func (r *BackupLogReport) BuildMetaInfo(cnf *config.BackupConfig, metaInfo *IndexContent) error {
 	metaInfo.reData = regexp.MustCompile(ReData)
 	metaInfo.reSchema = regexp.MustCompile(ReSchema)
 	metaInfo.reSchemaDb = regexp.MustCompile(ReSchemaDb)
@@ -243,13 +196,12 @@ func (i *IndexContent) parseTableSchema(f *IndexFileItem) {
 
 // SaveIndexContent record some server info and fileIndex info,
 // and then write these content to [targetName].index
-func (i *IndexContent) SaveIndexContent(cnf *config.Public) (string, error) {
+func (i *IndexContent) SaveIndexContent(indexFilePath string) (string, error) {
 	contentJson, err := json.Marshal(i)
 	if err != nil {
 		logger.Log.Error("Failed to marshal json encoding data from IndexContent, err: ", err)
 		return "", err
 	}
-	indexFilePath := path.Join(cnf.BackupDir, cnf.TargetName()+".index")
 	indexFile, err := os.OpenFile(indexFilePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		logger.Log.Error("failed to create index file: ", indexFilePath)

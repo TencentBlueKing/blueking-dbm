@@ -13,6 +13,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/github/gh-ost v1.1.6
 	github.com/go-sql-driver/mysql v1.7.1
+	github.com/go-viper/mapstructure/v2 v2.2.1
 	github.com/gofrs/flock v0.12.1
 	github.com/jaypipes/ghw v0.12.0
 	github.com/jmoiron/sqlx v1.3.5
@@ -108,7 +109,6 @@ require (
 	github.com/hashicorp/go-version v1.7.0
 	github.com/hokaccha/go-prettyjson v0.0.0-20211117102719-0474bc63780f // indirect
 	github.com/jinzhu/copier v0.4.0
-	github.com/mitchellh/mapstructure v1.5.0
 	github.com/pkg/sftp v1.13.6
 	github.com/smartystreets/goconvey v1.8.1
 	github.com/spf13/cast v1.7.0

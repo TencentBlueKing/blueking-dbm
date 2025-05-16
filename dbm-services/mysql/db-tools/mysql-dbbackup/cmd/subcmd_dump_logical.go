@@ -89,6 +89,7 @@ var dumpLogicalCmd = &cobra.Command{
 				logger.Log.Error("Create Dbbackup: fail to parse ", configFile)
 				return errors.WithMessagef(err, "fail to parse %s", configFile)
 			}
+			cnf.SetConfigFilePath(configFile)
 			if cnf.LogicalBackup.GetFilterType() == config.FilterTypeForm {
 				logger.Log.Info("set Regex/TablesList to empty for form filter type ", configFile)
 				cnf.LogicalBackup.Regex = ""

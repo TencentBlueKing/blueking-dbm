@@ -16,7 +16,7 @@ import (
 	"os"
 )
 
-// SplitWriter split src io to splited files
+// SplitWriter split src io to split files
 type SplitWriter struct {
 	// FileName used to build target filename, usually absolute path
 	FileName  string

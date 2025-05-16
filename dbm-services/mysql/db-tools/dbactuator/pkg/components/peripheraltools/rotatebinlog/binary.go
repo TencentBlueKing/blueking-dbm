@@ -1,12 +1,13 @@
 package rotatebinlog
 
 import (
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 )
 
 func (c *MySQLRotateBinlogComp) DeployBinary() (err error) {
@@ -26,7 +27,7 @@ func (c *MySQLRotateBinlogComp) DeployBinary() (err error) {
 		return err
 	}
 
-	chownCmd := fmt.Sprintf(`chown -R mysql.mysql %s && chmod +x %s`, c.installPath, c.binPath)
+	chownCmd := fmt.Sprintf(`chown -R mysql:mysql %s && chmod +x %s`, c.installPath, c.binPath)
 	_, err = osutil.ExecShellCommand(false, chownCmd)
 	if err != nil {
 		logger.Error("chown %s to mysql failed: %s", c.installPath, err.Error())

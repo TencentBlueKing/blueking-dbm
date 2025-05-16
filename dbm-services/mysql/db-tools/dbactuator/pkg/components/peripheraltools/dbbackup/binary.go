@@ -1,11 +1,12 @@
 package dbbackup
 
 import (
+	"fmt"
+	"path/filepath"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
-	"fmt"
-	"path/filepath"
 )
 
 func (c *NewDbBackupComp) DeployBinary() (err error) {
@@ -13,7 +14,7 @@ func (c *NewDbBackupComp) DeployBinary() (err error) {
 		return err
 	}
 	cmd := fmt.Sprintf(
-		"tar zxf %s -C %s && mkdir -p %s &&  chown -R mysql.mysql %s", c.Params.Medium.GetAbsolutePath(),
+		"tar zxf %s -C %s && mkdir -p %s &&  chown -R mysql:mysql %s", c.Params.Medium.GetAbsolutePath(),
 		filepath.Dir(c.installPath), filepath.Join(c.installPath, "logs"), c.installPath,
 	)
 	output, err := osutil.ExecShellCommand(false, cmd)
@@ -40,7 +41,7 @@ func (c *NewDbBackupComp) ChownGroup() (err error) {
 	}
 
 	cmd := fmt.Sprintf(
-		" chown -R mysql.mysql %s ; chmod +x %s/*.sh ; chmod +x %s/dbbackup",
+		" chown -R mysql:mysql %s ; chmod +x %s/*.sh ; chmod +x %s/dbbackup",
 		filepath.Dir(c.installPath), c.installPath, c.installPath,
 	)
 	output, err := osutil.ExecShellCommand(false, cmd)

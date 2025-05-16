@@ -1,0 +1,51 @@
+#!/bin/bash
+# start nc receiver
+
+ncHost=$1
+ncPort=$2
+targetDir=$3
+
+dbbackupHome={{ .dbbackupHome }}
+xbstreamPath=${dbbackupHome}/bin/xtrabackup:${dbbackupHome}/bin/xtrabackup_official/xtrabackup_80
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH:$xbstreamPath
+#xbstream=${dbbackupHome}/bin/xtrabackup_official/xtrabackup_80/xbstream
+
+# check xbstream
+checkXbstream=$(xbstream --help 2>&1 |grep -E 'unknown option|not found')
+if [ -n "$checkXbstream" ]; then
+	echo "check xbstream cmd>> $checkXbstream" >&2
+	exit 1
+fi
+
+# check netcat, expect return empty
+checkNetcat=$(nc -l -h 2>&1 |grep -E 'invalid option|not found')
+if [ -n "$checkNetcat" ]; then
+	echo "check nc cmd>> $checkNetcat" >&2
+	exit 1
+fi
+# nc x.x.x.x port -l, one port can be bind duplicate, we avoid this
+ncCount=$(ps -ef|grep "nc $ncHost $ncPort -l" |grep -v grep |wc -l)
+if [ $ncCount -gt 0 ]; then
+	echo "nc port $ncPort: Address already in use" >&2
+	exit 1
+fi
+
+mkdir -p $targetDir
+cd ${dbbackupHome}/bin > /dev/null
+source ${dbbackupHome}/bin/export.sh
+cd - > /dev/null
+
+nc $ncHost $ncPort -l | xbstream -x -C $targetDir &
+sleep 1
+ncCount=$(ps -ef|grep "nc $ncHost $ncPort -l" |grep -v grep |wc -l)
+if [ $ncCount -eq 0 ]; then
+	echo "nc port $ncPort is not listening" >&2
+	exit 1
+fi
+xbstreamCount=$(ps -ef|grep -E "xbstream.*$targetDir" |grep -v grep |wc -l)
+if [ $xbstreamCount -eq 0 ]; then
+	echo "xbstream to $targetDir is not running" >&2
+	exit 1
+fi
+# echo "nc | xbstream is running"
+exit 0

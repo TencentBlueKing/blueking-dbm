@@ -26,7 +26,7 @@ func (c *NewDbBackupComp) InitBackupDir() (err error) {
 			return fmt.Errorf("execute [%s] get an error:%s,%w", cmd, output, err)
 		}
 	}
-	cmd := fmt.Sprintf("chown -R mysql.mysql %s", backupdir)
+	cmd := fmt.Sprintf("chown -R mysql:mysql %s", backupdir)
 	output, err := osutil.ExecShellCommand(false, cmd)
 	if err != nil {
 		return fmt.Errorf("execute [%s] get an error:%s,%w", cmd, output, err)
@@ -50,7 +50,7 @@ func (c *NewDbBackupComp) initReportDir() (err error) {
 			return errors.WithMessagef(err, "execute [mkdir -p %s]", reportDir)
 		}
 	}
-	cmd := fmt.Sprintf("chown -R mysql.mysql %s", reportDir)
+	cmd := fmt.Sprintf("chown -R mysql:mysql %s", reportDir)
 	output, err := osutil.ExecShellCommand(false, cmd)
 	if err != nil {
 		return fmt.Errorf("execute [%s] get an error:%s,%w", cmd, output, err)

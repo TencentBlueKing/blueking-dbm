@@ -1,18 +1,19 @@
 package cmd
 
 import (
-	"dbm-services/common/reverseapi"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
-	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/backup"
-	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/rotate"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
 
+	"dbm-services/common/reverseapi"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
+	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/backup"
+	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/rotate"
+
 	gyaml "github.com/ghodss/yaml"
-	"github.com/mitchellh/mapstructure"
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 	"github.com/spf13/cobra"

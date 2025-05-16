@@ -22,7 +22,7 @@ import (
 
 // PhysicalRocksdbDumper physical rocksdb dumper
 type PhysicalRocksdbDumper struct {
-	cfg             *config.BackupConfig
+	cnf             *config.BackupConfig
 	backupLogfile   string
 	dbbackupHome    string
 	checkpointDir   string
@@ -40,13 +40,13 @@ type PhysicalRocksdbDumper struct {
 // buildArgs construct the instruction parameters for data recovery.
 func (p *PhysicalRocksdbDumper) buildArgs() []string {
 
-	targetPath := filepath.Join(p.cfg.Public.BackupDir, p.cfg.Public.TargetName())
+	targetPath := filepath.Join(p.cnf.Public.BackupDir, p.cnf.Public.TargetName())
 
 	args := []string{
-		fmt.Sprintf("--user=%s", p.cfg.Public.MysqlUser),
-		fmt.Sprintf("--password=%s", p.cfg.Public.MysqlPasswd),
-		fmt.Sprintf("--host=%s", p.cfg.Public.MysqlHost),
-		fmt.Sprintf("--port=%d", p.cfg.Public.MysqlPort),
+		fmt.Sprintf("--user=%s", p.cnf.Public.MysqlUser),
+		fmt.Sprintf("--password=%s", p.cnf.Public.MysqlPasswd),
+		fmt.Sprintf("--host=%s", p.cnf.Public.MysqlHost),
+		fmt.Sprintf("--port=%d", p.cnf.Public.MysqlPort),
 		fmt.Sprintf("--checkpoint_dir=%s", p.checkpointDir),
 		fmt.Sprintf("--backup_dir=%s", targetPath),
 		"--slave_info",
@@ -59,7 +59,7 @@ func (p *PhysicalRocksdbDumper) buildArgs() []string {
 
 // initConfig init config
 func (p *PhysicalRocksdbDumper) initConfig(mysqlVersion string) error {
-	if p.cfg == nil {
+	if p.cnf == nil {
 		return errors.New("rocksdb physical dumper config missed")
 	}
 
@@ -72,10 +72,10 @@ func (p *PhysicalRocksdbDumper) initConfig(mysqlVersion string) error {
 	p.dbbackupHome = filepath.Dir(cmdPath)
 
 	// connect to the mysql and obtain the base information
-	db, err := mysqlconn.InitConn(&p.cfg.Public)
+	db, err := mysqlconn.InitConn(&p.cnf.Public)
 	if err != nil {
 		logger.Log.Errorf("can not connect to the mysql, host:%s, port:%d, errmsg:%s",
-			p.cfg.Public.MysqlHost, p.cfg.Public.MysqlPort, err)
+			p.cnf.Public.MysqlHost, p.cnf.Public.MysqlPort, err)
 		return err
 	}
 
@@ -88,26 +88,26 @@ func (p *PhysicalRocksdbDumper) initConfig(mysqlVersion string) error {
 
 	if err != nil {
 		logger.Log.Errorf("can not get the storage engine from the mysql, host:%s, port:%d, errmsg:%s",
-			p.cfg.Public.MysqlHost, p.cfg.Public.MysqlPort, err)
+			p.cnf.Public.MysqlHost, p.cnf.Public.MysqlPort, err)
 		return err
 	}
 
 	// keep the storage engine name is lower
 	p.storageEngine = strings.ToLower(p.storageEngine)
-	p.mysqlRole = strings.ToLower(p.cfg.Public.MysqlRole)
+	p.mysqlRole = strings.ToLower(p.cnf.Public.MysqlRole)
 
 	// if the current node is slave, obtain the master ip and port
 	if p.mysqlRole == cst.RoleSlave || p.mysqlRole == cst.RoleRepeater {
 		p.masterHost, p.masterPort, err = mysqlconn.ShowMysqlSlaveStatus(db)
 		if err != nil {
 			logger.Log.Errorf("can not get the master host and port from the mysql, host:%s, port:%d, errmsg:%s",
-				p.cfg.Public.MysqlHost, p.cfg.Public.MysqlPort, err)
+				p.cnf.Public.MysqlHost, p.cnf.Public.MysqlPort, err)
 			return err
 		}
 	}
 
 	// set the base config
-	p.checkpointDir = filepath.Join(p.cfg.Public.BackupDir, "MyRocks_checkpoint")
+	p.checkpointDir = filepath.Join(p.cnf.Public.BackupDir, "MyRocks_checkpoint")
 	p.rocksdbCmd = filepath.Join("bin", cst.ToolMyrocksHotbackup)
 	BackupTool = cst.ToolMyrocksHotbackup
 	return nil
@@ -115,15 +115,10 @@ func (p *PhysicalRocksdbDumper) initConfig(mysqlVersion string) error {
 
 // Execute Perform data recovery operations.
 func (p *PhysicalRocksdbDumper) Execute(ctx context.Context) error {
-	p.backupStartTime = cmutil.TimeToSecondPrecision(time.Now())
-	defer func() {
-		p.backupEndTime = cmutil.TimeToSecondPrecision(time.Now())
-	}()
-
 	// the storage engine must be rocksdb
 	if p.storageEngine != cst.StorageEngineRocksdb {
 		err := fmt.Errorf("unsupported engine:%s, host:%s, port:%d", p.storageEngine,
-			p.cfg.Public.MysqlHost, p.cfg.Public.MysqlPort)
+			p.cnf.Public.MysqlHost, p.cnf.Public.MysqlPort)
 		logger.Log.Error(err)
 		return err
 	}
@@ -142,7 +137,9 @@ func (p *PhysicalRocksdbDumper) Execute(ctx context.Context) error {
 
 	binPath := filepath.Join(p.dbbackupHome, p.rocksdbCmd)
 	args := p.buildArgs()
-
+	if p.cnf.BackupToRemote.EnableRemote {
+		return errors.Errorf("remote backup not support rocksdb")
+	}
 	// perform the dump operation
 	var cmd *exec.Cmd
 	backupCmd := fmt.Sprintf(`%s %s`, binPath, strings.Join(args, " "))
@@ -150,7 +147,7 @@ func (p *PhysicalRocksdbDumper) Execute(ctx context.Context) error {
 
 	// create a dumper log file to store the log of the dumper command
 	p.backupLogfile = fmt.Sprintf("dumper_%s_%s_%d_%d.log", p.storageEngine,
-		cst.ToolMyrocksHotbackup, p.cfg.Public.MysqlPort, int(time.Now().Weekday()))
+		cst.ToolMyrocksHotbackup, p.cnf.Public.MysqlPort, int(time.Now().Weekday()))
 
 	p.backupLogfile = filepath.Join(p.dbbackupHome, "logs", p.backupLogfile)
 
@@ -171,6 +168,10 @@ func (p *PhysicalRocksdbDumper) Execute(ctx context.Context) error {
 	cmd.Stderr = outFile
 
 	// perform the dump command
+	p.backupStartTime = cmutil.TimeToSecondPrecision(time.Now())
+	defer func() {
+		p.backupEndTime = cmutil.TimeToSecondPrecision(time.Now())
+	}()
 	err = cmd.Run()
 	if err != nil {
 		logger.Log.Errorf("can not run the rocksdb physical dumper command:%s, engine:%s, errmsg:%s",
@@ -183,7 +184,11 @@ func (p *PhysicalRocksdbDumper) Execute(ctx context.Context) error {
 }
 
 // PrepareBackupMetaInfo generate the metadata of database backup
-func (p *PhysicalRocksdbDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig) (*dbareport.IndexContent, error) {
+func (p *PhysicalRocksdbDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig, metaInfo *dbareport.IndexContent) error {
+	metaInfo.BackupMetaFileBase = dbareport.BackupMetaFileBase{
+		BackupBeginTime: p.backupStartTime,
+		BackupEndTime:   p.backupEndTime,
+	}
 	backupTargetDir := filepath.Join(cnf.Public.BackupDir, cnf.Public.TargetName())
 	xtrabackupBinlogInfoFileName := filepath.Join(backupTargetDir, "xtrabackup_binlog_info")
 	xtrabackupSlaveInfoFileName := filepath.Join(backupTargetDir, "xtrabackup_slave_info")
@@ -193,24 +198,17 @@ func (p *PhysicalRocksdbDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig) 
 	// obtain the qpress command path
 	exepath, err := os.Executable()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	exepath = filepath.Dir(exepath)
 	qpressPath := filepath.Join(exepath, "bin", "qpress")
-	var metaInfo = dbareport.IndexContent{
-		BinlogInfo: dbareport.BinlogStatusInfo{},
-		BackupMetaFileBase: dbareport.BackupMetaFileBase{
-			BackupBeginTime: p.backupStartTime,
-			BackupEndTime:   p.backupEndTime,
-		},
-	}
 
 	// parse xtrabackup_timestamp_info
-	if err := parseXtraTimestamp(qpressPath, xtrabackupTimestampFileName, tmpFileName, &metaInfo); err != nil {
+	if err := parseXtraTimestamp(qpressPath, xtrabackupTimestampFileName, tmpFileName, metaInfo); err != nil {
 		// 此时刚备份完成，还没有开始打包，这里把当前时间认为是 consistent_time，不完善！
 		logger.Log.Warnf("xtrabackup_timestamp_info file not found, "+
 			"use current time as Consistent Time, err: %s", err.Error())
-		metaInfo.BackupConsistentTime = metaInfo.BackupEndTime
+		metaInfo.BackupConsistentTime = cmutil.TimeToSecondPrecision(metaInfo.BackupEndTime)
 	}
 	// parse the binlog
 	masterStatus, err := parseXtraBinlogInfo(qpressPath, xtrabackupBinlogInfoFileName, tmpFileName)
@@ -233,20 +231,27 @@ func (p *PhysicalRocksdbDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig) 
 		if err != nil {
 			logger.Log.Errorf("do not parse xtrabackup slave information, xtrabackup file:%s, errmsg:%s",
 				xtrabackupSlaveInfoFileName, err)
-			return nil, err
+			return err
 		}
-
-		metaInfo.BinlogInfo.ShowSlaveStatus = slaveStatus
-		metaInfo.BinlogInfo.ShowSlaveStatus.MasterHost = p.masterHost
-		metaInfo.BinlogInfo.ShowSlaveStatus.MasterPort = p.masterPort
+		if metaInfo.BinlogInfo.ShowSlaveStatus == nil {
+			metaInfo.BinlogInfo.ShowSlaveStatus = &dbareport.StatusInfo{}
+		}
+		metaInfo.BinlogInfo.ShowSlaveStatus.BinlogFile = slaveStatus.BinlogFile
+		metaInfo.BinlogInfo.ShowSlaveStatus.BinlogPos = slaveStatus.BinlogPos
+		if p.masterHost != "" {
+			metaInfo.BinlogInfo.ShowSlaveStatus.MasterHost = p.masterHost
+		}
+		if p.masterPort != 0 {
+			metaInfo.BinlogInfo.ShowSlaveStatus.MasterPort = p.masterPort
+		}
 	}
 
 	// teh mark indicating whether the update is a full backup or not
 	metaInfo.JudgeIsFullBackup(&cnf.Public)
 	if err = os.Remove(tmpFileName); err != nil {
 		logger.Log.Errorf("do not delete the tmp file, file name:%s, errmsg:%s", tmpFileName, err)
-		return &metaInfo, err
+		return err
 	}
 
-	return &metaInfo, nil
+	return nil
 }

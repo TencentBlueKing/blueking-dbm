@@ -1,14 +1,15 @@
 package rotatebinlog
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
+
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
-	"fmt"
-	"os"
-	"path/filepath"
 )
 
 func DeployBinary(medium *components.Medium) (err error) {
@@ -29,7 +30,7 @@ func DeployBinary(medium *components.Medium) (err error) {
 	}
 
 	chownCmd := fmt.Sprintf(
-		`chown -R mysql.mysql %s && chmod +x %s`,
+		`chown -R mysql:mysql %s && chmod +x %s`,
 		cst.MysqlRotateBinlogInstallPath,
 		filepath.Join(cst.MysqlRotateBinlogInstallPath, string(tools.ToolMysqlRotatebinlog)),
 	)

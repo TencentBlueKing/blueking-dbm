@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/go-viper/encoding/ini"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -45,29 +46,34 @@ func init() {
 	rootCmd.AddCommand(spiderCmd)
 	rootCmd.AddCommand(migrateOldCmd)
 	rootCmd.AddCommand(dumpLogicalCmd)
+	rootCmd.AddCommand(uploadCmd)
 }
 
 // initConfig parse the configuration file of dbbackup to init a cfg
 // confFile 可以是文件名，也可以带目录
 func initConfig(confFile string, v interface{}) error {
 	// logger.Log.Info("parse config file: begin")
-	viper.SetConfigType("ini")
+	codecRegistry := viper.NewCodecRegistry()
+	codecRegistry.RegisterCodec("ini", ini.Codec{})
+	myViper := viper.NewWithOptions(
+		viper.WithCodecRegistry(codecRegistry),
+	)
+	myViper.SetConfigType("ini")
 	if confFile != "" {
-		viper.SetConfigFile(confFile)
+		myViper.SetConfigFile(confFile)
 	} else {
-		viper.SetConfigName("config")
-
+		myViper.SetConfigName("config")
 		// default: current run work_dir
-		viper.AddConfigPath(".") // 搜索路径可以设置多个，viper 会根据设置顺序依次查找
+		myViper.AddConfigPath(".") // 搜索路径可以设置多个，viper 会根据设置顺序依次查找
 
 		// default: exe relative dir
 		executable, _ := os.Executable()
 		executableDir := filepath.Dir(executable)
 		defaultConfigDir := filepath.Join(executableDir, "./")
-		viper.AddConfigPath(defaultConfigDir)
+		myViper.AddConfigPath(defaultConfigDir)
 	}
-	if err := viper.ReadInConfig(); err != nil {
-		log.Fatalf("read config failed: %v", err)
+	if err := myViper.ReadInConfig(); err != nil {
+		log.Fatalf("dbbackup read config failed: %v", err)
 	}
 	/*
 		viper.AutomaticEnv() // read in environment variables that match
@@ -77,7 +83,7 @@ func initConfig(confFile string, v interface{}) error {
 			log.Fatal(err)
 		}
 	*/
-	err := viper.Unmarshal(v)
+	err := myViper.Unmarshal(v)
 	if err != nil {
 		log.Fatalf("parse config failed: %v", err)
 	}

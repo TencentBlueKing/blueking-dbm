@@ -13,7 +13,7 @@ func (c *MySQLRotateBinlogComp) RunMigrateOld() (err error) {
 	cmdArgs := []string{"migrate-old", "-c", c.configFile}
 	_, stdErr, err := cmutil.ExecCommand(false, c.installPath, c.binPath, cmdArgs...)
 
-	chownCmd := fmt.Sprintf(`chown -R mysql.mysql %s ; mkdir -p %s ;chown -R mysql.mysql %s`, c.installPath,
+	chownCmd := fmt.Sprintf(`chown -R mysql:mysql %s ; mkdir -p %s ;chown -R mysql:mysql %s`, c.installPath,
 		cst.DBAReportBase, cst.DBAReportBase)
 	_, err = osutil.ExecShellCommand(false, chownCmd)
 

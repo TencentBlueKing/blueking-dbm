@@ -43,7 +43,7 @@ var loadCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		defer func() {
-			cmutil.ExecCommand(false, "", "chown", "-R", "mysql.mysql", cst.DbbackupGoInstallPath)
+			cmutil.ExecCommand(false, "", "chown", "-R", "mysql:mysql", cst.DbbackupGoInstallPath)
 		}()
 		cnf, err := initLoadCmd(cmd)
 		if err != nil {
@@ -100,7 +100,7 @@ func initLoadCmd(cmd *cobra.Command) (cnf *config.BackupConfig, err error) {
 		if err = viper.Unmarshal(&cnf); err != nil {
 			return nil, errors.WithMessage(err, "parse params")
 		}
-	} else if configFile != "" {
+	} else {
 		if err = cmutil.FileExistsErr(configFile); err != nil {
 			return nil, err
 		}

@@ -23,11 +23,11 @@ import (
 type Dumper interface {
 	initConfig(mysqlVersion string) error
 	Execute(ctx context.Context) error
-	PrepareBackupMetaInfo(cnf *config.BackupConfig) (*dbareport.IndexContent, error)
+	PrepareBackupMetaInfo(cnf *config.BackupConfig, metaInfo *dbareport.IndexContent) error
 }
 
 // BuildDumper return logical or physical dumper
-func BuildDumper(cnf *config.BackupConfig, db *sql.DB) (dumper Dumper, err error) {
+func BuildDumper(cnf *config.BackupConfig, metaInfo *dbareport.IndexContent, db *sql.DB) (dumper Dumper, err error) {
 	if cnf.Public.IfBackupGrantOnly() {
 		logger.Log.Infof("only backup grants for %d", cnf.Public.MysqlPort)
 		cnf.Public.BackupType = cst.BackupLogical
@@ -44,7 +44,7 @@ func BuildDumper(cnf *config.BackupConfig, db *sql.DB) (dumper Dumper, err error
 		return nil, err
 	}
 
-	if strings.ToLower(cnf.Public.BackupType) == cst.BackupLogical {
+	if strings.EqualFold(cnf.Public.BackupType, cst.BackupLogical) {
 		if cnf.LogicalBackup.UseMysqldump == cst.LogicalMysqldumpAuto || cnf.LogicalBackup.UseMysqldump == "" {
 			if glibcVer, err := cmutil.GetGlibcVersion(); err != nil {
 				logger.Log.Warn("failed to glibc version, err:", err)
@@ -82,22 +82,23 @@ func BuildDumper(cnf *config.BackupConfig, db *sql.DB) (dumper Dumper, err error
 		if err := cnf.LogicalBackup.ValidateFilter(); err != nil {
 			return nil, err
 		}
-	} else if strings.ToLower(cnf.Public.BackupType) == cst.BackupPhysical {
+	} else if strings.EqualFold(cnf.Public.BackupType, cst.BackupPhysical) {
 		if err := validate.GoValidateStructTag(cnf.PhysicalBackup, "ini"); err != nil {
 			return nil, err
 		}
 
 		if cst.StorageEngineRocksdb == storageEngine {
 			dumper = &PhysicalRocksdbDumper{
-				cfg: cnf,
+				cnf: cnf,
 			}
 		} else if storageEngine == cst.StorageEngineTokudb {
 			dumper = &PhysicalTokudbDumper{
-				cfg: cnf,
+				cnf: cnf,
 			}
 		} else {
 			dumper = &PhysicalDumper{
-				cnf: cnf,
+				cnf:      cnf,
+				metaInfo: metaInfo,
 			}
 		}
 	} else {

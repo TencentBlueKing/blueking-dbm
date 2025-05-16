@@ -106,15 +106,15 @@ func (p *PhysicalRocksdbLoader) load() error {
 
 	logger.Log.Infof("run load rocksdb success, command:%s", cmd.String())
 
-	// convert to root user and group to mysql.mysql, the mysql server was started by user mysql
-	cmutil.ExecCommand(false, "", "chown", "-R", "mysql.mysql", p.dataDir)
-	cmutil.ExecCommand(false, "", "chown", "-R", "mysql.mysql", p.innodbLogGroupHomeDir)
-	cmutil.ExecCommand(false, "", "chown", "-R", "mysql.mysql", p.innodbDataHomeDir)
-	cmutil.ExecCommand(false, "", "chown", "-R", "mysql.mysql", p.logbinDir)
-	cmutil.ExecCommand(false, "", "chown", "-R", "mysql.mysql", p.relaylogDir)
-	cmutil.ExecCommand(false, "", "chown", "-R", "mysql.mysql", p.slowQueryLogFile)
-	cmutil.ExecCommand(false, "", "chown", "-R", "mysql.mysql", p.tmpDir)
-	cmutil.ExecCommand(false, "", "chown", "-R", "mysql.mysql", p.rocksdbDataDir)
+	// convert to root user and group to mysql:mysql, the mysql server was started by user mysql
+	cmutil.ExecCommand(false, "", "chown", "-R", "mysql:mysql", p.dataDir)
+	cmutil.ExecCommand(false, "", "chown", "-R", "mysql:mysql", p.innodbLogGroupHomeDir)
+	cmutil.ExecCommand(false, "", "chown", "-R", "mysql:mysql", p.innodbDataHomeDir)
+	cmutil.ExecCommand(false, "", "chown", "-R", "mysql:mysql", p.logbinDir)
+	cmutil.ExecCommand(false, "", "chown", "-R", "mysql:mysql", p.relaylogDir)
+	cmutil.ExecCommand(false, "", "chown", "-R", "mysql:mysql", p.slowQueryLogFile)
+	cmutil.ExecCommand(false, "", "chown", "-R", "mysql:mysql", p.tmpDir)
+	cmutil.ExecCommand(false, "", "chown", "-R", "mysql:mysql", p.rocksdbDataDir)
 
 	return nil
 }

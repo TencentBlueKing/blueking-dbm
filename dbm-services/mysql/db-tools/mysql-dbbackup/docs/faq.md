@@ -182,6 +182,38 @@ grep xxx-xxx-xxx ~/dbareport/mysql/dbbackup/backup_result.log > /data/dbbak/xxx-
 cat /data/dbbak/xxx-xxx-xxx.backup_result.log >> ~/dbareport/mysql/dbbackup/backup_result.log
 ```
 
+### 11. 备份空间确认不足，可使用物理备份流式传输到另外一台机器
+当一台机器确认备份空间不足时，可以借助另外一台机器，把备份实时传输过去，在远程机器上完成打包/切分/上传。
+
+前提条件：
+1. 要求远程机器能够使用 backup_client 正常上传备份文件
+2. 远程机器和本地机器上安装 nc 命令
+3. 物理备份，只限 innodb 引擎
+
+在 dbbackup.xxx.ini 里面加入如下配置，并设置成物理备份：
+```
+[BackupToRemote]
+EnableRemote = true
+SshHost = <remote_host>
+SshPort = <remote_port>
+SshUser = <user>
+SshPass = <pass>
+SshPrivateKey =
+SaveDir = /data/dbbak
+NcPort = 0
+```
+
+也可以命令行式：
+```
+dumpbackup -c dbbackup.20000.ini \
+ --backup-type physical \
+ --data-schema-grant all \
+ --backup-to-remote="ssh://user:pass@remote_host:remote_port//data/dbbak"`
+```
+
+原理是利用 xtrabackup 流式备份，结合 netcat + xbstream 把备份文件实时传输到远程机器的指定目录，再在远程机器在执行`dbbackup tar-upload` 命令。
+然后将文件信息，上传的 task_id 信息通过 index 备份元数据文件，传回给 db 机器，上报备份记录到备份系统中。
+
 ### 19. 常见备份失败处理
 
 #### 1. log copying being too slow
@@ -237,3 +269,7 @@ mydumper 备份发起的时候，检测到长 sql 执行中（但还没超过`--
 处理方法;
 - 可通过调整 `Public.AcquireLockWaitTimeout` 来调整 mydumper `--lock-wait-timeout` 值。
 - 调整备份时间段
+
+#### 5. Couldn't acquire global lock, snapshots will not be consistent
+> CRITICAL **: Couldn't acquire global lock, snapshots will not be consistent: 
+> Lock wait timeout exceeded; try restarting transaction

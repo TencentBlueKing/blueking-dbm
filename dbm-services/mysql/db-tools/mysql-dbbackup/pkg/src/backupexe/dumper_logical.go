@@ -213,21 +213,26 @@ func (l *LogicalDumper) Execute(ctx context.Context) error {
 
 // PrepareBackupMetaInfo prepare the backup result of Logical Backup
 // mydumper 备份完成后，解析 metadata 文件
-func (l *LogicalDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig) (*dbareport.IndexContent, error) {
-	var metaInfo = dbareport.IndexContent{BinlogInfo: dbareport.BinlogStatusInfo{}}
+func (l *LogicalDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig, metaInfo *dbareport.IndexContent) error {
+	if metaInfo.BinlogInfo.ShowSlaveStatus == nil {
+		metaInfo.BinlogInfo.ShowSlaveStatus = &dbareport.StatusInfo{}
+	}
+	if metaInfo.BinlogInfo.ShowMasterStatus == nil {
+		metaInfo.BinlogInfo.ShowMasterStatus = &dbareport.StatusInfo{}
+	}
 	metaFileName := filepath.Join(cnf.Public.BackupDir, cnf.Public.TargetName(), "metadata")
 	metadata, err := parseMydumperMetadata(metaFileName)
 	if err != nil {
-		return nil, errors.WithMessage(err, "parse mydumper metadata")
+		return errors.WithMessage(err, "parse mydumper metadata")
 	}
 	logger.Log.Infof("metadata file:%+v", metadata)
 	metaInfo.BackupBeginTime, err = time.ParseInLocation(cst.MydumperTimeLayout, metadata.DumpStarted, time.Local)
 	if err != nil {
-		return nil, errors.Wrapf(err, "parse BackupBeginTime %s", metadata.DumpStarted)
+		return errors.Wrapf(err, "parse BackupBeginTime %s", metadata.DumpStarted)
 	}
 	metaInfo.BackupEndTime, err = time.ParseInLocation(cst.MydumperTimeLayout, metadata.DumpFinished, time.Local)
 	if err != nil {
-		return nil, errors.Wrapf(err, "parse BackupEndTime %s", metadata.DumpFinished)
+		return errors.Wrapf(err, "parse BackupEndTime %s", metadata.DumpFinished)
 	}
 	metaInfo.BackupConsistentTime = metaInfo.BackupBeginTime // 逻辑备份开始时间认为是一致性位点时间
 	metaInfo.BinlogInfo.ShowMasterStatus = &dbareport.StatusInfo{
@@ -248,7 +253,7 @@ func (l *LogicalDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig) (*dbarep
 	}
 	metaInfo.JudgeIsFullBackup(&cnf.Public)
 
-	return &metaInfo, nil
+	return nil
 }
 
 // MydumperHasOption check mydumper has --xxx or not
