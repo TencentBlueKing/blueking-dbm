@@ -42,8 +42,10 @@ class DropTempUserForClusterService(BaseService):
         """
         # 拼接临时用户的名称
         user = generate_mysql_tmp_user(root_id)
-        err_num = 0
+        is_drop_success = True
         # 删除localhost和 local_ip用户
+        payloads = []
+        not_running_status_instances = []
         for instance in get_instance_with_random_job(cluster=cluster, ticket_type=ticket_type):
             # 默认先关闭binlog记录， 最后统一打开
             cmd = ["set session sql_log_bin = 0 ;"]
@@ -61,7 +63,7 @@ class DropTempUserForClusterService(BaseService):
                 ]
             # 最后统一打开binlog, 避免复用异常
             cmd.append("set session sql_log_bin = 1 ;")
-            resp = DRSApi.rpc(
+            payloads.append(
                 {
                     "addresses": [instance["instance"]],
                     "cmds": cmd,
@@ -69,40 +71,47 @@ class DropTempUserForClusterService(BaseService):
                     "bk_cloud_id": cluster.bk_cloud_id,
                 }
             )
-            for info in resp[0]["cmd_results"]:
-                # 其实只是一行
-                if info["error_msg"]:
-                    if instance["cmdb_status"] == InstanceStatus.RUNNING.value or (
-                        instance["cmdb_status"] != InstanceStatus.RUNNING and ticket_type in TICKET_TYPE_SENSITIVE_LIST
-                    ):
-                        # 如果实例是running状态，应该记录错误，并且返回异常
-                        # 如果实例非running状态，且单据类型加入敏感队列，则需要记录错误，并且返回异常
-                        self.log_error(
-                            f"The result [drop user `{user}`] in {instance['instance']}" f" is [{info['error_msg']}]"
-                        )
-                        err_num = err_num + 1
-                    else:
-                        # 如果是非running状态，标记warning信息，但不作异常处理
-                        self.log_warning(info["error_msg"])
-                        self.log_warning(
-                            f"[{instance['instance']} is not running in dbm [{instance['cmdb_status']}],ignore]"
-                        )
-                        continue
+            if instance["cmdb_status"] != InstanceStatus.RUNNING:
+                not_running_status_instances.append(instance["instance"])
 
-            if err_num == 0:
-                self.log_info(f"The result [drop user if exists `{user}`] in {instance['instance']} is [success]")
+        resp = DRSApi.mysql_complex_rpc(
+            {
+                "payloads": payloads,
+                "bk_cloud_id": cluster.bk_cloud_id,
+            }
+        )
+        for result in resp:
+            err_list = []
+            if result["cmd_results"]:
+                err_list = [i["error_msg"] for i in result["cmd_results"] if i["error_msg"]]
 
-        if err_num > 0:
-            self.log_error(f"drop user error in cluster [{cluster.name}]")
+            if result["error_msg"] or err_list:
+                # 如果是执行失败，则判断下面，同时输出日志
+                error_log = "\n".join([result["error_msg"]] + err_list)
+                if result["address"] in not_running_status_instances and ticket_type not in TICKET_TYPE_SENSITIVE_LIST:
+                    # 如果是非running状态，标记warning信息，但不作异常处理
+                    self.log_error(error_log)
+                    self.log_warning(f"[{result['address']} is not running in dbm ,ignore]")
+                    continue
+
+                # 如果实例是running状态，应该记录错误，并且返回异常
+                # 如果实例非running状态，且单据类型加入敏感队列，则需要记录错误，并且返回异常
+                self.log_error(f"The result [drop user `{user}`] in {result['address']} error is: [{error_log}]")
+                is_drop_success = False
+
+            self.log_info(f"The result [drop user `{user}`] in {result['address']} is [success]")
+
+        if not is_drop_success:
+            self.log_error(f"drop user error in cluster [{cluster.immute_domain}]")
             return False
 
-        self.log_info(f"drop user finish in cluster [{cluster.name}]")
+        self.log_info(f"drop user finish in cluster [{cluster.immute_domain}]")
         return True
 
     def _execute(self, data, parent_data, callback=None) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
         global_data = data.get_one_of_inputs("global_data")
-
+        is_err = False
         for cluster_id in kwargs["cluster_ids"]:
             # 获取每个cluster_id对应的对象
             try:
@@ -111,9 +120,14 @@ class DropTempUserForClusterService(BaseService):
                 raise ClusterNotExistException(
                     cluster_id=cluster_id, bk_biz_id=global_data["bk_biz_id"], message=_("集群不存在")
                 )
-            self.drop_jor_user(
+            if not self.drop_jor_user(
                 cluster=cluster, root_id=global_data["job_root_id"], ticket_type=global_data.get("ticket_type", "test")
-            )
+            ):
+                # 删除账号不成功
+                is_err = True
+
+        if is_err:
+            return False
 
         return True
 

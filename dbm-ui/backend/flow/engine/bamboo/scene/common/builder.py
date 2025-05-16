@@ -118,7 +118,7 @@ class Builder(object):
         流程串联回收临时账号的活动节点
         """
         act = self.add_act(
-            act_name="reduce job user",
+            act_name="drop temp job account",
             act_component_code=DropTempUserForClusterComponent.code,
             kwargs={"cluster_ids": self.need_random_pass_cluster_ids},
         )

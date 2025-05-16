@@ -176,6 +176,24 @@ func (c *DumpSchemaComp) ModifyEngine() (err error) {
 	if err != nil {
 		return fmt.Errorf("execte get an error:%s,%w", output, err)
 	}
+	// 再去掉comment信息
+	DeleteCommentCmd := fmt.Sprintf(
+		"sed -i -E \"s/COMMENT '((\\\\'|[^'])*)'/COMMENT ''/g\" %s", path.Join(c.BackupDir, c.BackupFileName),
+	)
+	logger.Info("DeleteCommentCmd cmd:%s", DeleteCommentCmd)
+	output, err = osutil.ExecShellCommand(false, DeleteCommentCmd)
+	if err != nil {
+		return fmt.Errorf("execte get an error:%s,%w", output, err)
+	}
+	// 再去掉comment信息
+	DeleteCommentCmd2 := fmt.Sprintf(
+		"sed -i -E \"s/COMMENT='((\\\\'|[^'])*)'/COMMENT ''/g\" %s", path.Join(c.BackupDir, c.BackupFileName),
+	)
+	logger.Info("DeleteCommentCmd2 cmd:%s", DeleteCommentCmd2)
+	output, err = osutil.ExecShellCommand(false, DeleteCommentCmd2)
+	if err != nil {
+		return fmt.Errorf("execte get an error:%s,%w", output, err)
+	}
 	return nil
 }
 
