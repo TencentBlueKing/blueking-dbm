@@ -18,12 +18,13 @@
     required
     :rules="rules">
     <BkInput
-      v-model="targetInfo.groupNum"
+      v-model="groupNum"
       clearable
       :min="1"
       show-clear-only-hover
       style="width: 314px"
-      type="number" />
+      type="number"
+      @change="handleChange" />
     <span class="input-desc">{{ t('组') }}</span>
   </DbFormItem>
   <DbFormItem
@@ -79,14 +80,7 @@
   interface Props {
     cluster: RedisModel;
   }
-  type Emits = (
-    e: 'change',
-    data: {
-      groupNum: number;
-      shardNum: number;
-      specId: number;
-    },
-  ) => void;
+  type Emits = (e: 'change', data: typeof targetInfo.value) => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -95,11 +89,17 @@
   const { t } = useI18n();
 
   const specSelectorRef = ref<ComponentExposed<typeof SpecSelector>>();
+  const groupNum = ref('');
 
   const shardNumDisabled = computed(() => props.cluster.cluster_type !== ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER);
   const clusterShardNum = computed(() => props.cluster.cluster_shard_num);
 
   const rules = [
+    {
+      message: t('组数不能为空'),
+      trigger: 'change',
+      validator: () => !!groupNum.value,
+    },
     {
       message: t('必须要能除尽总分片数'),
       trigger: 'change',
@@ -113,46 +113,51 @@
     },
   ];
 
-  watch(
-    targetInfo,
-    _.debounce(() => {
-      if (!targetInfo.value.spec.spec_id) {
-        return;
-      }
-      const data = specSelectorRef.value!.getData();
-      if (_.isEmpty(data)) {
-        return;
-      }
-      let specCapacity = data.mem.min;
-      if (
-        [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER, ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE].includes(
-          props.cluster.cluster_type,
-        )
-      ) {
-        specCapacity = (data.storage_spec || []).find((item) => item.mount_point === '/data1')?.size || 0;
-      }
-      targetInfo.value.capacity = targetInfo.value.groupNum * specCapacity;
+  /**
+   * 计算当前容量
+   */
+  const calculateCapacity = () => {
+    if (!targetInfo.value.spec.spec_id) {
+      return;
+    }
+    const data = specSelectorRef.value!.getData();
+    if (_.isEmpty(data)) {
+      return;
+    }
+    let specCapacity = data.mem.min;
+    if (
+      [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER, ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE].includes(
+        props.cluster.cluster_type,
+      )
+    ) {
+      specCapacity = (data.storage_spec || []).find((item) => item.mount_point === '/data1')?.size || 0;
+    }
+    targetInfo.value.capacity = targetInfo.value.groupNum * specCapacity;
+  };
+
+  const fetchUpdateInfo = () => {
+    setTimeout(() => {
       // 单机分片数是否为整数
       if (targetInfo.value.shardNum % 1 !== 0) {
         return;
       }
-      const oldData = {
-        groupNum: props.cluster.machine_pair_cnt,
-        shardNum: props.cluster.cluster_shard_num,
-        specId: props.cluster.cluster_spec.spec_id,
-      };
-      const newData = {
-        groupNum: targetInfo.value.groupNum,
-        shardNum: targetInfo.value.shardNum,
-        specId: targetInfo.value.spec.spec_id,
-      };
-      if (JSON.stringify(oldData) === JSON.stringify(newData)) {
-        return;
-      }
-      emits('change', newData);
-    }, 200),
-    {
-      deep: true,
+      calculateCapacity();
+      emits('change', targetInfo.value);
+    });
+  };
+
+  const handleChange = (value: string) => {
+    if (!value) {
+      return;
+    }
+    targetInfo.value.groupNum = Number(value);
+    fetchUpdateInfo();
+  };
+
+  watch(
+    () => targetInfo.value.spec.spec_id,
+    () => {
+      fetchUpdateInfo();
     },
   );
 </script>
