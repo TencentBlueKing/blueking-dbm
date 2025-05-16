@@ -14,20 +14,20 @@
 <template>
   <div class="task-history-list-page">
     <div class="header-action">
+      <BkDatePicker
+        v-model="state.filter.daterange"
+        :placeholder="t('选择日期范围')"
+        style="width: 300px; margin-left: auto"
+        type="daterange"
+        @change="fetchTableData" />
       <DbSearchSelect
+        class="ml-8"
         :data="searchData"
         :get-menu-list="getMenuList"
         :model-value="searchValue"
         :placeholder="t('ID_任务类型_状态_关联单据')"
         style="width: 500px"
         @change="handleSearchValueChange" />
-      <BkDatePicker
-        v-model="state.filter.daterange"
-        class="ml-8"
-        :placeholder="t('选择日期范围')"
-        style="width: 300px"
-        type="daterange"
-        @change="fetchTableData" />
     </div>
     <DbTable
       ref="tableRef"
