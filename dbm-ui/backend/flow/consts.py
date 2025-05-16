@@ -1531,15 +1531,6 @@ class MongoDBDropType(str, StructuredEnum):
     RENAME_COLLECTION = EnumField("rename_collection", _("将表暂时重命名"))
 
 
-class MongoShardedClusterBackupType(str, StructuredEnum):
-    """
-    定义mongodb分片集群备份方式
-    """
-
-    MONGOS = EnumField("mongos", _("mongos"))
-    SHARD = EnumField("shard", _("shard"))
-
-
 class MongoOplogSizePercent(float, StructuredEnum):
     """
     oplog默认占机器磁盘的百分比
