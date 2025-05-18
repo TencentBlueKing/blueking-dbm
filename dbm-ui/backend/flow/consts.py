@@ -668,6 +668,8 @@ class SqlserverActuatorActionEnum(str, StructuredEnum):
     CloneLoginUsers = EnumField("CloneLoginUsers", _("实例间克隆用户"))
     CloneJobs = EnumField("CloneJobs", _("实例间克隆定时作业"))
     CloneLinkservers = EnumField("CloneLinkservers", _("实例间克隆linkservers"))
+    CloneBackupFilter = EnumField("CloneBackupFilter", _("实例间克隆backup忽略配置"))
+    CloneMirroringFilter = EnumField("CloneMirroringFilter", _("实例间克隆同步忽略配置"))
     BuildDBMirroring = EnumField("BuildDBMirroring", _("建立数据库的镜像库关系"))
     InitForAlwaysOn = EnumField("InitForAlwaysOn", _("为Always-on做别名初始化"))
     BuildAlwaysOn = EnumField("BuildAlwaysOn", _("建立Always-on通信"))

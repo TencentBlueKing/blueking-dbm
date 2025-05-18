@@ -417,6 +417,44 @@ class SqlserverActPayload(PayloadHandler):
         }
 
     @wrap_sqlserver_act_return
+    def get_clone_backup_filter_payload(self, **kwargs) -> dict:
+        """
+        实例之间克隆backup_filter配置
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Sqlserver.value,
+            "action": SqlserverActuatorActionEnum.CloneBackupFilter.value,
+            "payload": {
+                "general": {"runtime_account": self.get_sqlserver_account()},
+                "extend": {
+                    "host": kwargs["ips"][0]["ip"],
+                    "port": self.global_data["port"],
+                    "source_host": self.global_data["source_host"],
+                    "source_port": self.global_data["source_port"],
+                },
+            },
+        }
+
+    @wrap_sqlserver_act_return
+    def get_clone_mirroring_filter_payload(self, **kwargs) -> dict:
+        """
+        实例之间克隆mirroring_backup配置
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Sqlserver.value,
+            "action": SqlserverActuatorActionEnum.CloneMirroringFilter.value,
+            "payload": {
+                "general": {"runtime_account": self.get_sqlserver_account()},
+                "extend": {
+                    "host": kwargs["ips"][0]["ip"],
+                    "port": self.global_data["port"],
+                    "source_host": self.global_data["source_host"],
+                    "source_port": self.global_data["source_port"],
+                },
+            },
+        }
+
+    @wrap_sqlserver_act_return
     def get_restore_full_dbs_payload(self, **kwargs) -> dict:
         """
         恢复全量备份的payload

@@ -41,6 +41,8 @@ func NewSQLserverCommand() *cobra.Command {
 				CloneLoginUsersCommand(),
 				CloneLinkserversCommand(),
 				CloneJobsCommand(),
+				CloneBackupFilterCommand(),
+				CloneMirroringFilterCommand(),
 				// backup dbs
 				BackupDBSCommand(),
 				// restore dbs

@@ -379,6 +379,8 @@ def clone_configs_sub_flow(
     is_clone_user: bool = True,
     is_clone_jobs: bool = True,
     is_clone_linkserver: bool = True,
+    is_clone_backup_filter: bool = True,
+    is_clone_mirroring_filter: bool = True,
     sub_flow_name: str = _("克隆实例周边配置"),
 ):
     """
@@ -392,6 +394,8 @@ def clone_configs_sub_flow(
     @param is_clone_user: 是否选择克隆实例用户权限
     @param is_clone_jobs: 是否选择克隆实例的作业
     @param is_clone_linkserver: 是否选择克隆实例的linkserver配置
+    @param is_clone_backup_filter: 是否选择克隆实例backup_filter配置
+    @param is_clone_mirroring_filter: 是否选择克隆实例mirroring_filter配置
     @param sub_flow_name: 子流程名称
     """
     if not is_clone_user and not is_clone_jobs and not is_clone_linkserver:
@@ -445,6 +449,36 @@ def clone_configs_sub_flow(
                     ExecActuatorKwargs(
                         exec_ips=[target_host],
                         get_payload_func=SqlserverActPayload.get_clone_jobs_payload.__name__,
+                    )
+                ),
+            }
+        )
+
+    # 并发克隆backup_filter
+    if is_clone_backup_filter:
+        acts_list.append(
+            {
+                "act_name": _("克隆备份忽略表"),
+                "act_component_code": SqlserverActuatorScriptComponent.code,
+                "kwargs": asdict(
+                    ExecActuatorKwargs(
+                        exec_ips=[target_host],
+                        get_payload_func=SqlserverActPayload.get_clone_backup_filter_payload.__name__,
+                    )
+                ),
+            }
+        )
+
+    # 并发克隆mirroring_filter
+    if is_clone_mirroring_filter:
+        acts_list.append(
+            {
+                "act_name": _("克隆同步忽略表"),
+                "act_component_code": SqlserverActuatorScriptComponent.code,
+                "kwargs": asdict(
+                    ExecActuatorKwargs(
+                        exec_ips=[target_host],
+                        get_payload_func=SqlserverActPayload.get_clone_mirroring_filter_payload.__name__,
                     )
                 ),
             }
