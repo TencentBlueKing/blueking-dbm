@@ -39,19 +39,6 @@
             only-one-type
             :selected="selected"
             @batch-edit="handleBatchEditCluster" />
-          <EditableColumn
-            :label="t('集群类型')"
-            :min-width="80">
-            <EditableBlock :placeholder="t('选择集群后自动生成')">
-              {{
-                item.cluster.cluster_type
-                  ? item.cluster.cluster_type === ClusterTypes.TENDBHA
-                    ? t('主从')
-                    : t('单节点')
-                  : ''
-              }}
-            </EditableBlock>
-          </EditableColumn>
           <DbNameColumn
             v-model="item.fromDatabase"
             :allow-wildcard="false"
@@ -124,8 +111,6 @@
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import ClusterColumn from '@views/db-manage/mysql/common/toolbox-field/cluster-column/Index.vue';
   import DbNameColumn from '@views/db-manage/mysql/common/toolbox-field/db-name-column/Index.vue';
-
-  import { messageError } from '@utils';
 
   interface RowData {
     cluster: TendbhaModel;
@@ -200,7 +185,6 @@
       return acc;
     }, {}),
   );
-  const isSubmitting = computed(() => haIsSubmitting.value || singleIsSubmitting.value);
 
   const validator = async (value: string[], { rowData }: Record<string, any>) => {
     if (!value.length) {
@@ -241,7 +225,7 @@
     ],
   };
 
-  useTicketDetail<Mysql.HaRenameDatabase>(TicketTypes.MYSQL_HA_RENAME_DATABASE, {
+  useTicketDetail<Mysql.RenameDataBase>(TicketTypes.MYSQL_RENAME_DATABASE, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { clusters } = details;
@@ -249,25 +233,6 @@
         payload: createTickePayload(ticketDetail),
         tableData: details.infos.map((item) => ({
           cluster: {
-            cluster_type: clusters[item.cluster_id].cluster_type,
-            id: item.cluster_id,
-            master_domain: clusters[item.cluster_id].immute_domain,
-          },
-          fromDatabase: item.from_database ? [item.from_database] : [],
-          toDatabase: item.to_database ? [item.to_database] : [],
-        })),
-      });
-    },
-  });
-  useTicketDetail<Mysql.SingleRenameDatabase>(TicketTypes.MYSQL_SINGLE_RENAME_DATABASE, {
-    onSuccess(ticketDetail) {
-      const { details } = ticketDetail;
-      const { clusters } = details;
-      Object.assign(formData, {
-        payload: createTickePayload(ticketDetail),
-        tableData: details.infos.map((item) => ({
-          cluster: {
-            cluster_type: clusters[item.cluster_id].cluster_type,
             id: item.cluster_id,
             master_domain: clusters[item.cluster_id].immute_domain,
           },
@@ -278,64 +243,31 @@
     },
   });
 
-  const { loading: haIsSubmitting, run: haCreateTicketRun } = useCreateTicket<{
+  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     force: boolean;
     infos: {
       cluster_id: number;
       from_database: string;
       to_database: string;
     }[];
-  }>(TicketTypes.MYSQL_HA_RENAME_DATABASE);
-
-  const { loading: singleIsSubmitting, run: singleCreateTicketRun } = useCreateTicket<{
-    force: boolean;
-    infos: {
-      cluster_id: number;
-      from_database: string;
-      to_database: string;
-    }[];
-  }>(TicketTypes.MYSQL_SINGLE_RENAME_DATABASE);
+  }>(TicketTypes.MYSQL_RENAME_DATABASE);
 
   const handleSubmit = async () => {
     const result = await tableRef.value!.validate();
     if (!result) {
       return;
     }
-    const onlyOneType = _.every(
-      formData.tableData,
-      (item) => item.cluster.cluster_type === formData.tableData[0].cluster.cluster_type,
-    );
-    if (!onlyOneType) {
-      messageError(t('仅支持同一集群类型提单'));
-      return;
-    }
-    const clusterType = formData.tableData[0].cluster.cluster_type;
-    if (clusterType === ClusterTypes.TENDBHA) {
-      haCreateTicketRun({
-        details: {
-          force: formData.force,
-          infos: formData.tableData.map((item) => ({
-            cluster_id: item.cluster.id,
-            from_database: item.fromDatabase[0],
-            to_database: item.toDatabase[0],
-          })),
-        },
-        ...formData.payload,
-      });
-    }
-    if (clusterType === ClusterTypes.TENDBSINGLE) {
-      singleCreateTicketRun({
-        details: {
-          force: formData.force,
-          infos: formData.tableData.map((item) => ({
-            cluster_id: item.cluster.id,
-            from_database: item.fromDatabase[0],
-            to_database: item.toDatabase[0],
-          })),
-        },
-        ...formData.payload,
-      });
-    }
+    createTicketRun({
+      details: {
+        force: formData.force,
+        infos: formData.tableData.map((item) => ({
+          cluster_id: item.cluster.id,
+          from_database: item.fromDatabase[0],
+          to_database: item.toDatabase[0],
+        })),
+      },
+      ...formData.payload,
+    });
   };
 
   const handleReset = () => {
