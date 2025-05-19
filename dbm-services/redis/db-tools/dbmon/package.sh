@@ -38,6 +38,7 @@ fi
 
 cp ./bk-dbmon $targetDir/
 cp ../start.sh $targetDir/
+cp ../restart.sh $targetDir/
 cp ../stop.sh $targetDir/
 cp ../dbmon-config.yaml $targetDir/
 
