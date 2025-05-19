@@ -33,7 +33,7 @@ export default [
       },
       {
         dbConsoleValue: 'mysql.toolbox.dbRename',
-        id: TicketTypes.MYSQL_HA_RENAME_DATABASE,
+        id: TicketTypes.MYSQL_RENAME_DATABASE,
         name: t('DB重命名'),
         parentId: 'sql',
       },
