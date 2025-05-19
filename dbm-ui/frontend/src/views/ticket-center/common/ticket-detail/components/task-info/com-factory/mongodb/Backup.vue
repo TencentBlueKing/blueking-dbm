@@ -25,10 +25,12 @@
       </template>
     </BkTableColumn>
     <BkTableColumn
-      v-if="isShowBackupHost"
-      field="backup_host"
-      :label="t('目标主机')"
-      :width="130">
+      field="drop_type"
+      :label="t('集群类型')"
+      :width="150">
+      <template #default="{data}: {data: RowData}">
+        {{ ticketDetails.details.clusters[data.cluster_ids[0]].cluster_type_name }}
+      </template>
     </BkTableColumn>
     <BkTableColumn :label="t('备份DB名')">
       <template #default="{ data }: { data: RowData }">
@@ -53,12 +55,7 @@
   </BkTable>
   <InfoList>
     <InfoItem :label="t('备份保存时间')">
-      {{ fileTagMap[fileTag] }}
-    </InfoItem>
-    <InfoItem
-      v-if="backupType"
-      :label="t('备份位置')">
-      {{ backupType }}
+      {{ fileTagMap[ticketDetails.details.file_tag] }}
     </InfoItem>
   </InfoList>
 </template>
@@ -85,13 +82,9 @@
     inheritAttrs: false,
   });
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
 
   const { t } = useI18n();
-
-  const { backup_type: backupType, file_tag: fileTag, infos } = props.ticketDetails.details;
-
-  const isShowBackupHost = infos[0].backup_host;
 
   const fileTagMap: Record<string, string> = {
     a_year_backup: t('1年'),

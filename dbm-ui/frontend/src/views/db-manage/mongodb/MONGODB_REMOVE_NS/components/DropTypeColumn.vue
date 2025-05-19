@@ -49,7 +49,6 @@
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<string>({
-    default: 'drop_collection',
     required: true,
   });
 

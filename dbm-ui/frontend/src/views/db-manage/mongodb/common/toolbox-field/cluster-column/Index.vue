@@ -42,7 +42,7 @@
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
 
   interface Props {
-    clusterTypes: string[];
+    clusterTypes?: string[];
     field?: string;
     label?: string;
     selected: {
@@ -56,6 +56,7 @@
   type Emits = (e: 'batch-edit', value: MongodbModel[]) => void;
 
   const props = withDefaults(defineProps<Props>(), {
+    clusterTypes: () => [ClusterTypes.MONGO_REPLICA_SET, ClusterTypes.MONGO_SHARED_CLUSTER],
     field: 'cluster.master_domain',
     label: '',
     tabListConfig: undefined,
