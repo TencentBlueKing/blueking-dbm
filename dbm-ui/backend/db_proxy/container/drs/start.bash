@@ -23,8 +23,10 @@ export DRS_PROXY_ADMIN_USER="proxy"
 export DRS_PROXY_ADMIN_PASSWORD=$(echo $data |  jq -r '.data.proxy_password')
 export DRS_WEBCONSOLE_USER=$(echo $data | jq -r '.data.webconsole_account.user')
 export DRS_WEBCONSOLE_PASSWORD=$(echo $data | jq -r '.data.webconsole_account.password')
-export MSSQL_DATA_READ_DRS_USER="mssql_data_read_drs"
-export MSSQL_DATA_READ_DRS_PASSWORD=$DRS_MYSQL_ADMIN_PASSWORD
+export SQLSERVER_DATA_READ_USER="mssql_data_read_drs"
+export SQLSERVER_DATA_READ_PASSWORD=$DRS_MYSQL_ADMIN_PASSWORD
+export SQLSERVER_SYS_READ_USER="mssql_sys_read_drs"
+export SQLSERVER_SYS_READ_PASSWORD=$DRS_MYSQL_ADMIN_PASSWORD
 
 # 将dns ip添加到nameserver
 awk -F, '{for(i=1; i<=NF; i++) print "nameserver " $i}' shard_env/dns_ip > dns_nameserver.conf

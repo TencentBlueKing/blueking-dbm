@@ -35,8 +35,10 @@ export DRS_LOG_JSON=true # 是否使用 json 格式日志
 export DRS_LOG_CONSOLE=false # 是否在 stdout 打印日志
 export DRS_LOG_DEBUG=true # 启用 debug 日志级别
 export DRS_KEY_FILE="/home/mysql/db-remote-service/server.key"
-export MSSQL_DATA_READ_DRS_USER="mssql_data_read_drs"
-export MSSQL_DATA_READ_DRS_PASSWORD="{{drs_password}}"
+export SQLSERVER_DATA_READ_USER="mssql_data_read_drs"
+export SQLSERVER_DATA_READ_PASSWORD="{{drs_password}}"
+export SQLSERVER_SYS_READ_USER="mssql_sys_read_drs"
+export SQLSERVER_SYS_READ_PASSWORD="{{drs_password}}"
 
 
 # 容器环境不要使用
