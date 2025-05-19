@@ -13,6 +13,7 @@ import (
 )
 
 func DeployBinary(medium *components.Medium) (err error) {
+	logger.Info("deploy rotate-binlog")
 	err = os.MkdirAll(filepath.Join(cst.MysqlRotateBinlogInstallPath, "logs"), 0755)
 	if err != nil {
 		logger.Error("mkdir %s failed: %s", cst.MysqlRotateBinlogInstallPath, err.Error())

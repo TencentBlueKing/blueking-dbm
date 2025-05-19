@@ -23,6 +23,7 @@ type MySQLRotateBinlogComp struct {
 }
 
 type MySQLRotateBinlogParam struct {
+	BkCloudId     int           `json:"bk_cloud_id"`
 	Configs       rotate.Config `json:"configs" validate:"required"`
 	IP            string        `json:"ip"`
 	Ports         []int         `json:"port_list"`

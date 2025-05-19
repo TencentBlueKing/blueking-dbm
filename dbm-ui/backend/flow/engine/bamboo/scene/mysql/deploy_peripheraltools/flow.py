@@ -17,6 +17,7 @@ from django.utils.translation import ugettext as _
 
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import ALLDEPARTS
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
 from backend.flow.utils.mysql.mysql_context_dataclass import SystemInfoContext
 
@@ -75,14 +76,14 @@ class MySQLStandardizeFlow(object):
                     bk_biz_id=bk_biz_id,
                     cluster_type=self.data.get("cluster_type"),
                     clusters_detail=cluster_details,
-                    departs=self.data.get("departs"),
-                    with_deploy_binary=self.data.get("with_deploy_binary"),
-                    with_push_config=self.data.get("with_push_config"),
-                    with_collect_sysinfo=self.data.get("with_collect_sysinfo"),
+                    departs=self.data.get("departs", ALLDEPARTS),
+                    with_deploy_binary=self.data.get("with_deploy_binary", True),
+                    with_push_config=self.data.get("with_push_config", True),
+                    with_collect_sysinfo=self.data.get("with_collect_sysinfo", True),
                     with_actuator=True,
-                    with_bk_plugin=self.data.get("with_bk_plugin"),
-                    with_cc_standardize=self.data.get("with_cc_standardize"),
-                    with_instance_standardize=self.data.get("with_instance_standardize"),
+                    with_bk_plugin=self.data.get("with_bk_plugin", True),
+                    with_cc_standardize=self.data.get("with_cc_standardize", True),
+                    with_instance_standardize=self.data.get("with_instance_standardize", True),
                 )
             )
 

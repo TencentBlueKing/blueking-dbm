@@ -28,6 +28,7 @@ func (c *MySQLChecksumComp) Init() (err error) {
 
 type MySQLChecksumParam struct {
 	//components.Medium
+	BkCloudId    int64    `json:"bk_cloud_id"`
 	BkBizId      int      `json:"bk_biz_id"`
 	IP           string   `json:"ip"`
 	Ports        []int    `json:"port_list"`

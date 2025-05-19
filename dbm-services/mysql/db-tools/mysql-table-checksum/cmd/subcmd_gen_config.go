@@ -83,7 +83,7 @@ func generateOneRuntimeConfig(cfg *mysql.ChecksumConfig) error {
 	}
 
 	logDir := filepath.Join(checksumInstallPath, "logs")
-	tl := tools.NewToolSetWithPickNoValidate(tools.ToolMysqlTableChecksum, tools.ToolMysqlTableChecksum)
+	tl := tools.NewToolSetWithPickNoValidate(tools.ToolMysqlTableChecksum, tools.ToolPtTableChecksum)
 
 	var ptChecksumPath string
 	if viper.GetString("debug-pt-path") != "" {

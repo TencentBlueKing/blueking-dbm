@@ -13,15 +13,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-const (
-	DepartDBAToolKit         = "dba-toolkit"
-	DepartMySQLCrond         = "mysql-crond"
-	DepartMySQLMonitor       = "mysql-monitor"
-	DepartMySQLDBBackup      = "mysql-dbbackup"
-	DepartMySQLRotateBinlog  = "rotate-binlog"
-	DepartMySQLTableChecksum = "mysql-checksum"
-)
-
 type PrepareBinary struct {
 	GeneralParam *components.GeneralParam `json:"general"`
 	Params       *PrepareBinaryParams     `json:"extend"`
@@ -51,6 +42,7 @@ func (c *PrepareBinary) Run() (err error) {
 }
 
 func (c *PrepareBinary) prepareOne(depart string) (err error) {
+	logger.Info("enter deploy binary %s", depart)
 	switch depart {
 	case DepartMySQLCrond:
 		return crond.DeployBinary(c.Params.Departs[DepartMySQLCrond])

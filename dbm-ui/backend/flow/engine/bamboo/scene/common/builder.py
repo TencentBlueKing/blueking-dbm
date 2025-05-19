@@ -58,7 +58,13 @@ class Builder(object):
 
     """
 
-    def __init__(self, root_id: str, data: Optional[Dict] = None, need_random_pass_cluster_ids: list = None):
+    def __init__(
+        self,
+        root_id: str,
+        data: Optional[Dict] = None,
+        need_random_pass_cluster_ids: list = None,
+        need_random_pass_instances: list = None,
+    ):
         """
         声明builder类的属性
         @param root_id: 流程id
@@ -68,6 +74,7 @@ class Builder(object):
         self.root_id = root_id
         self.data = data
         self.need_random_pass_cluster_ids = need_random_pass_cluster_ids
+        self.need_random_pass_instances = need_random_pass_instances
         self.start_act = EmptyStartEvent()
         self.end_act = EmptyEndEvent()
         if not self.data:
@@ -101,7 +108,7 @@ class Builder(object):
         act = self.add_act(
             act_name="create temp job account",
             act_component_code=AddTempUserForClusterComponent.code,
-            kwargs={"cluster_ids": self.need_random_pass_cluster_ids},
+            kwargs={"cluster_ids": self.need_random_pass_cluster_ids, "instances": self.need_random_pass_instances},
         )
         # 提出上下文的映射，这里存在bamboo的 bug
         self.rewritable_node_source_keys = [i for i in self.rewritable_node_source_keys if i["source_act"] != act.id]

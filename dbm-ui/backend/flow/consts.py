@@ -474,6 +474,11 @@ class DBActuatorActionEnum(str, StructuredEnum):
     PushMySQLRotatebinlogConfig = EnumField("push-mysql-rotatebinlog-config", _("推送rotatebinlog配置"))
     PushExporterCnf = EnumField("push-exporter-cnf", _("push-exporter-cnf"))
     ProxyInplaceAutofix = EnumField("proxy-inplace-autofix", _("原地启动 proxy"))
+    # use reverse api
+    GenPeripheralToolsConfig = EnumField("gen-peripheraltools-config", _("生成周边配置"))
+    ReloadPeripheralToolsConfig = EnumField("reload-peripheraltools-config", _("重载周边配置"))
+    DeployPeripheralToolsBinary = EnumField("prepare-peripheraltools-binary", _("prepare-peripheraltools-binary"))
+    InitNginxAddresses = EnumField("init-nginx-addresses", _("初始化 nginx 地址"))
 
 
 class RedisActuatorActionEnum(str, StructuredEnum):

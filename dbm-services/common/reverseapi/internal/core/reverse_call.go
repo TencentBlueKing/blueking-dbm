@@ -46,6 +46,7 @@ func (c *Core) ReverseCall(apiEndPoint string, ports ...int) (data []byte, err e
 			q.Add("port", strconv.Itoa(port))
 		}
 		req.URL.RawQuery = q.Encode()
+		slog.Info("reserve call", slog.String("req", req.URL.String()))
 
 		data, err = do(req)
 		if err == nil {
@@ -72,6 +73,7 @@ func do(request *http.Request) (data []byte, err error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read response body")
 	}
+	slog.Info("reserve call", slog.String("response body", string(b)))
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, errors.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(b))

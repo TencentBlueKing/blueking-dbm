@@ -91,6 +91,9 @@ func NewMysqlCommand() *cobra.Command {
 				v2.NewPushMySQLRotateBinlogConfigCommand(),
 				v2.NewPushChecksumConfigCommand(),
 				v2.NewPushExporterCnfCommand(),
+				v2.NewGenPeripheralToolsConfigCommand(),
+				v2.NewReloadPeripheralToolsConfigCommand(),
+				v2.NewInitNginxAddressesCommand(),
 			},
 		},
 		{

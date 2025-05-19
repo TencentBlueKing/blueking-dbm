@@ -100,7 +100,7 @@ class CloneRules(BaseService):
             operator,
             clone_data,
             inst_machine_type_map,
-            global_data.get("uid", "0"),
+            global_data.get("uid", "0"),  # 保持是字符串
         )
         # 实例化权限克隆记录，后续存到数据库中
         record = MySQLPermissionCloneRecord(

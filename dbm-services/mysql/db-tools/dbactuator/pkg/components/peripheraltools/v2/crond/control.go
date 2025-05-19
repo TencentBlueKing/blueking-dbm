@@ -4,7 +4,9 @@ import (
 	"dbm-services/common/go-pubpkg/cmutil"
 	"fmt"
 	"os/exec"
+	"os/user"
 	"path"
+	"path/filepath"
 
 	"github.com/pkg/errors"
 
@@ -14,15 +16,28 @@ import (
 )
 
 func (c *MySQLCrondComp) Stop() (err error) {
-	cmd := exec.Command(
-		"su", []string{
-			"-", "mysql", "-c",
-			fmt.Sprintf(
-				`/bin/sh %s`,
-				path.Join(cst.MySQLCrondInstallPath, "stop.sh"),
-			),
-		}...,
-	)
+	return Stop()
+}
+
+func Stop() (err error) {
+	var cmd *exec.Cmd
+
+	cu, _ := user.Current()
+	if cu.Uid == "0" {
+		cmd = exec.Command(
+			"su", []string{
+				"-", "mysql", "-c",
+				fmt.Sprintf(
+					`/bin/sh %s`,
+					path.Join(cst.MySQLCrondInstallPath, "stop.sh"),
+				),
+			}...,
+		)
+	} else {
+		cmd = exec.Command(
+			"sh", "-c", filepath.Join(cst.MySQLCrondInstallPath, "stop.sh"),
+		)
+	}
 
 	err = cmd.Run()
 	if err != nil {

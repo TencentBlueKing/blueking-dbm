@@ -8,15 +8,16 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import Dict, List, Optional, Union
+from typing import List, Optional, Union
 
 from django.db.models import Q
 
-from backend.db_meta.enums import AccessLayer
+from backend.db_meta.enums import AccessLayer, MachineType
 from backend.db_meta.models import Machine, ProxyInstance, StorageInstance
+from backend.flow.utils.base.payload_handler import PayloadHandler
 
 
-def exporter_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int]]) -> Dict[int, Dict]:
+def exporter_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int]]) -> List:
     m = Machine.objects.get(ip=ip, bk_cloud_id=bk_cloud_id)
     q = Q()
     q |= Q(**{"machine": m})
@@ -29,10 +30,19 @@ def exporter_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int]]) -
     else:
         qs = StorageInstance.objects.filter(q).prefetch_related("cluster")
 
-    res = {}
+    res = []
 
     i: Union[StorageInstance, ProxyInstance]
     for i in qs.all():
-        res[i.port] = {"ip": ip, "port": i.port, "machine_type": i.machine_type}
+        if i.machine_type == MachineType.PROXY:
+            usermap = PayloadHandler.get_proxy_account()
+            user = usermap["proxy_admin_user"]
+            password = usermap["proxy_admin_pwd"]
+        else:
+            usermap = PayloadHandler.get_mysql_static_account()
+            user = usermap["monitor_user"]
+            password = usermap["monitor_pwd"]
+
+        res.append({"ip": ip, "port": i.port, "machine_type": i.machine_type, "user": user, "password": password})
 
     return res

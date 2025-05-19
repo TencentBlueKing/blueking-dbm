@@ -61,7 +61,7 @@ class CloneUserService(BaseService):
                         "gcs_dba",
                     ],
                     **self.extra_log,
-                    "uid": "{}".format(global_data.get("uid", "0")),
+                    "uid": "{}".format(global_data.get("uid", "0")),  # 保持是字符串
                 }
                 params.update(
                     {

@@ -10,6 +10,7 @@ import (
 )
 
 func DeployBinary(medium *components.Medium) (err error) {
+	logger.Info("deploy mysql-crond")
 	err = os.MkdirAll(cst.MySQLCrondInstallPath, 0755)
 	if err != nil {
 		logger.Error("mkdir %s failed: %s", cst.MySQLCrondInstallPath, err.Error())

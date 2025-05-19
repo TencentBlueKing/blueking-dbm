@@ -11,7 +11,7 @@ type CloneInstancePrivPara struct {
 	sourceMySQLVersion int
 	targetMySQLVersion int
 	SystemUsers        []string `json:"system_users"`
-	Uid                int64    `json:"uid"`
+	Uid                string   `json:"uid"`
 	NodeId             string   `json:"node_id"`
 	RootId             string   `json:"root_id"`
 	VersionId          string   `json:"version_id"`

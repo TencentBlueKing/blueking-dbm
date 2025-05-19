@@ -7,7 +7,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func readNginxProxyAddrs(fp string) (addrs []string, err error) {
+func ReadNginxProxyAddrs(fp string) (addrs []string, err error) {
 	f, err := os.Open(fp)
 
 	if err != nil {

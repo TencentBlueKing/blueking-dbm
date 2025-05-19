@@ -24,6 +24,7 @@ class DeployPeripheralToolsDepart(str, StructuredEnum):
     MySQLMonitor = EnumField("mysql-monitor", _("mysql-monitor"))
     MySQLRotateBinlog = EnumField("rotate-binlog", _("rotate-binlog"))
     MySQLTableChecksum = EnumField("mysql-checksum", _("mysql-checksum"))
+    Exporter = EnumField("exporter", _("exporter"))
 
 
 ALLDEPARTS = [
@@ -37,6 +38,10 @@ ALLDEPARTS = [
 ]
 
 
-def remove_depart(d: DeployPeripheralToolsDepart, departs: List[DeployPeripheralToolsDepart]):
+def remove_depart(
+    d: DeployPeripheralToolsDepart, departs: List[DeployPeripheralToolsDepart]
+) -> List[DeployPeripheralToolsDepart]:
     if d in departs:
         departs.remove(d)
+
+    return departs

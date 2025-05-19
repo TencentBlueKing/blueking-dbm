@@ -11,6 +11,7 @@ import (
 )
 
 func DeployBinary(medium *components.Medium) (err error) {
+	logger.Info("deploy mysql-checksum")
 	err = os.MkdirAll(cst.ChecksumInstallPath, 0755)
 	if err != nil {
 		logger.Error("mkdir %s failed: %s", cst.ChecksumInstallPath, err.Error())

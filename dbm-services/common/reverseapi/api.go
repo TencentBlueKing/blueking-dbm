@@ -30,7 +30,7 @@ func NewReverseApiWithAddrsFile(bkCloudId int64, alterNginxAddrsFile string) (*R
 		cwd, _ := os.Getwd()
 		alterNginxAddrsFile = filepath.Join(cwd, alterNginxAddrsFile)
 	}
-	addrs, err := readNginxProxyAddrs(alterNginxAddrsFile)
+	addrs, err := ReadNginxProxyAddrs(alterNginxAddrsFile)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read nginx proxy addrs")
 	}

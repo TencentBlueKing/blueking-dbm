@@ -19,6 +19,8 @@ type PushMySQLRotateBinlogConfigAct struct {
 
 const PushMySQLRotatebinlogConfig = "push-mysql-rotatebinlog-config"
 
+// NewPushMySQLRotateBinlogConfigCommand
+// Deprecated
 func NewPushMySQLRotateBinlogConfigCommand() *cobra.Command {
 	act := PushMySQLRotateBinlogConfigAct{
 		BaseOptions: subcmd.GBaseOptions,

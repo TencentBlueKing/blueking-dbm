@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
+import importlib
 import json
 import logging
 import re
@@ -84,8 +85,16 @@ class ExecuteDBActuatorScriptService(BkJobService):
 
         target_ip_info = [{"bk_cloud_id": kwargs["bk_cloud_id"], "ip": ip} for ip in exec_ips]
 
+        payload_class_path = kwargs.get("payload_class")
+        if not payload_class_path:
+            payload_class = MysqlActPayload
+        else:
+            plist = payload_class_path.split(".")
+            module = importlib.import_module(".".join(plist[0:-1]))
+            payload_class = getattr(module, plist[-1])
+
         # 获取mysql actuator 组件所需要执行的参数
-        mysql_act_payload = MysqlActPayload(
+        mysql_act_payload = payload_class(
             bk_cloud_id=kwargs["bk_cloud_id"],
             ticket_data=global_data,
             cluster=kwargs.get("cluster", None),

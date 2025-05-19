@@ -88,9 +88,9 @@ jobs_config: {{ .InstallPath }}/jobs-config.yaml`,
 			EventDataToken   string `json:"event_data_token"`
 			MetricsDataId    int    `json:"metrics_data_id"`
 			MetricsDataToken string `json:"metrics_data_token"`
-			LogPath          string `json:"log_path"`
-			PidPath          string `json:"pid_path"`
-			InstallPath      string `json:"install_path"`
+			LogPath          string `json:"-"`
+			PidPath          string `json:"-"`
+			InstallPath      string `json:"-"`
 			BeatPath         string `json:"beat_path"`
 			AgentAddress     string `json:"agent_address"`
 		}{}

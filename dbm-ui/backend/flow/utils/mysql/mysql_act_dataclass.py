@@ -41,6 +41,7 @@ class ExecActuatorBaseKwargs:
 
     bk_cloud_id: int  # 对应的云区域ID
     run_as_system_user: str = None  # 表示执行job的api的操作用户, None 默认是用root用户
+    payload_class: str = None
     get_mysql_payload_func: str = None  # 上下文中MysqlActPayload类的获取参数方法名称。空则传入None
     cluster_type: str = None  # 表示操作的集群类型,如果过程中不需要这个变量，则可以传None
     cluster: dict = field(default_factory=dict)  # 表示单据执行的集群信息，比如集群名称，集群域名等

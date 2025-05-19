@@ -2,7 +2,6 @@ package tools
 
 import (
 	"fmt"
-	"path"
 	"path/filepath"
 
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
@@ -22,7 +21,7 @@ const (
 	ToolXLoad ExternalTool = "xload"
 	// ToolQPress qpress
 	ToolQPress ExternalTool = "qpress"
-	// ToolPv TODO
+	// ToolPv pv
 	ToolPv ExternalTool = "pv"
 	// ToolMysqlbinlogRollback mysqlbinlog_rollback
 	ToolMysqlbinlogRollback ExternalTool = "mysqlbinlog_rollback"
@@ -56,12 +55,13 @@ var defaultPath = map[ExternalTool]string{
 	ToolGoMysqlbinlog:         filepath.Join(cst.DBAToolkitPath, string(ToolGoMysqlbinlog)),
 	ToolMysqlbinlogRollback:   filepath.Join(cst.DBAToolkitPath, string(ToolMysqlbinlogRollback)),
 	ToolMysqlbinlogRollback80: filepath.Join(cst.DBAToolkitPath, "mysqlbinlog_rollback_80"),
-	ToolMysqlTableChecksum:    path.Join(cst.ChecksumInstallPath, string(ToolMysqlTableChecksum)),
-	ToolPtTableChecksum:       path.Join(cst.ChecksumInstallPath, string(ToolPtTableChecksum)),
-	ToolPtTableSync:           path.Join(cst.ChecksumInstallPath, string(ToolPtTableSync)),
-	ToolDbbackupGo:            path.Join(cst.DbbackupGoInstallPath, string(ToolDbbackupGo)),
-	ToolMySQLCrond:            path.Join(cst.MySQLCrondInstallPath, string(ToolMySQLCrond)),
-	ToolMySQLMonitor:          path.Join(cst.MySQLMonitorInstallPath, string(ToolMySQLMonitor)),
+	ToolMysqlTableChecksum:    filepath.Join(cst.ChecksumInstallPath, string(ToolMysqlTableChecksum)),
+	ToolPtTableChecksum:       filepath.Join(cst.ChecksumInstallPath, string(ToolPtTableChecksum)),
+	ToolPtTableSync:           filepath.Join(cst.ChecksumInstallPath, string(ToolPtTableSync)),
+	ToolDbbackupGo:            filepath.Join(cst.DbbackupGoInstallPath, string(ToolDbbackupGo)),
+	ToolMySQLCrond:            filepath.Join(cst.MySQLCrondInstallPath, string(ToolMySQLCrond)),
+	ToolMySQLMonitor:          filepath.Join(cst.MySQLMonitorInstallPath, string(ToolMySQLMonitor)),
+	ToolMysqlRotatebinlog:     filepath.Join(cst.MysqlRotateBinlogInstallPath, string(ToolMysqlRotatebinlog)),
 }
 
 // ToolPath 基本结构

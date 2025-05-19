@@ -1,62 +1,58 @@
 package dbbackup
 
 import (
+	"bytes"
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/common/reverseapi"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
 	"fmt"
+	"os/exec"
 	"path/filepath"
-	"text/template"
-
-	"dbm-services/common/go-pubpkg/mysqlcomm"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
+	"strings"
 
 	"github.com/pkg/errors"
-	"gopkg.in/ini.v1"
 )
 
 func (c *NewDbBackupComp) GenerateRuntimeConfig() (err error) {
-	// 先渲染模版配置文件
-	templatePath := filepath.Join(cst.DbbackupGoInstallPath, fmt.Sprintf("%s.tpl", cst.BackupFile))
-	if err := saveTplConfigfile(c.Params.Configs, templatePath); err != nil {
+	nginxAddrs, err := reverseapi.ReadNginxProxyAddrs(
+		filepath.Join(reverseapi.DefaultCommonConfigDir, reverseapi.DefaultNginxProxyAddrsFileName),
+	)
+	if err != nil {
+		logger.Error(err.Error())
 		return err
 	}
 
-	cnfTemp, err := template.ParseFiles(templatePath)
+	return GenConfig(int64(c.Params.BkCloudId), nginxAddrs, c.Params.Ports)
+}
+
+func GenConfig(bkCloudId int64, nginxAddrs []string, ports []int) error {
+	t, err := tools.NewToolSetWithPick(tools.ToolDbbackupGo)
 	if err != nil {
-		return errors.WithMessage(err, "template ParseFiles failed")
+		logger.Error(err.Error())
+		return err
 	}
 
-	for _, port := range c.Params.Ports {
-		_, err := writeCnf(port, cst.DbbackupGoInstallPath, c.renderCnf, cnfTemp)
-		if err != nil {
-			return err
-		}
-		if c.Params.Role == cst.BackupRoleSpiderMaster {
-			cnfPath, err := writeCnf(mysqlcomm.GetTdbctlPortBySpider(port), cst.DbbackupGoInstallPath, c.renderCnf, cnfTemp)
-			if err != nil {
-				return err
-			}
-
-			tdbCtlCnfIni, err := ini.Load(cnfPath)
-			if err != nil {
-				return err
-			}
-
-			var tdbCtlCnf config.BackupConfig
-			err = tdbCtlCnfIni.MapTo(&tdbCtlCnf)
-			if err != nil {
-				return err
-			}
-
-			tdbCtlCnf.LogicalBackup.DefaultsFile = filepath.Join(cst.DbbackupGoInstallPath, "mydumper_for_tdbctl.cnf")
-			err = tdbCtlCnfIni.ReflectFrom(&tdbCtlCnf)
-			if err != nil {
-				return err
-			}
-			err = tdbCtlCnfIni.SaveTo(cnfPath)
-			if err != nil {
-				return err
-			}
-		}
+	genCmdStr := fmt.Sprintf(
+		"%s gen-config --bk-cloud-id %d --nginx-address %s",
+		t.MustGet(tools.ToolDbbackupGo),
+		bkCloudId,
+		strings.Join(nginxAddrs, ","),
+	)
+	for _, port := range ports {
+		genCmdStr += fmt.Sprintf(" --port %d", port)
 	}
+	logger.Info(genCmdStr)
+
+	cmd := exec.Command("sh", "-c", genCmdStr)
+	logger.Info(cmd.String())
+
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	err = cmd.Run()
+	if err != nil {
+		logger.Error("%s: %s", err, stderr.String())
+		return errors.Wrap(err, stderr.String())
+	}
+
 	return nil
 }

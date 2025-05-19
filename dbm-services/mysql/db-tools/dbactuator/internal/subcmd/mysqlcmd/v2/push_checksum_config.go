@@ -17,6 +17,8 @@ type PushChecksumConfigAct struct {
 
 const PushChecksumConfig = `push-checksum-config`
 
+// NewPushChecksumConfigCommand
+// Deprecated
 func NewPushChecksumConfigCommand() *cobra.Command {
 	act := PushChecksumConfigAct{
 		BaseOptions: subcmd.GBaseOptions,

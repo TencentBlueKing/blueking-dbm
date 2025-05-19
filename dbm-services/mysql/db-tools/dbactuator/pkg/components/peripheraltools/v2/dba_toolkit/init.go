@@ -9,6 +9,7 @@ import (
 )
 
 func DeployBinary(medium *components.Medium) (err error) {
+	logger.Info("deploy dba-toolkit")
 	decompressCmd := fmt.Sprintf(
 		`tar zxf %s -C %s`,
 		medium.GetAbsolutePath(), cst.MYSQL_TOOL_INSTALL_PATH,

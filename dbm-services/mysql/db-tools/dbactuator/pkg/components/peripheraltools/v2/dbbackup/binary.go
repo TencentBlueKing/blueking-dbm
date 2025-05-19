@@ -12,6 +12,7 @@ import (
 )
 
 func DeployBinary(medium *components.Medium) (err error) {
+	logger.Info("deploy mysql-dbbackup")
 	if err = medium.Check(); err != nil {
 		return err
 	}

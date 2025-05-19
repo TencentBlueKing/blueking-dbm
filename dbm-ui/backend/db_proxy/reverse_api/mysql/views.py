@@ -19,7 +19,7 @@ from backend.db_proxy.reverse_api.decorators import reverse_api
 from backend.db_proxy.reverse_api.mysql.impl import list_instance_info
 from backend.db_proxy.reverse_api.mysql.impl.checksum_config import checksum_config
 from backend.db_proxy.reverse_api.mysql.impl.dbbackup_config import dbbackup_config
-from backend.db_proxy.reverse_api.mysql.impl.expoter_cnf import exporter_config
+from backend.db_proxy.reverse_api.mysql.impl.expoter_config import exporter_config
 from backend.db_proxy.reverse_api.mysql.impl.monitor_items_config import monitor_items_config
 from backend.db_proxy.reverse_api.mysql.impl.monitor_runtime_config import monitor_runtime_config
 from backend.db_proxy.reverse_api.mysql.impl.mysql_crond_config import mysql_crond_config

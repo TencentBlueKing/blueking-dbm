@@ -1,54 +1,59 @@
 package checksum
 
 import (
+	"bytes"
+	"dbm-services/common/reverseapi"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
 	"fmt"
+	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/internal"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 
-	"gopkg.in/yaml.v2"
+	"github.com/pkg/errors"
 )
 
 func (c *MySQLChecksumComp) GenerateRuntimeConfig() (err error) {
-	for _, port := range c.Params.Ports {
-		logger.Info("generating runtime config on %v", port)
-		err = c.generateRuntimeConfigIns(port)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (c *MySQLChecksumComp) generateRuntimeConfigIns(port int) (err error) {
-	logDir := filepath.Join(cst.ChecksumInstallPath, "logs")
-
-	var ignoreDbs []string
-	ignoreDbs = append(ignoreDbs, c.Params.SystemDbs...)
-	ignoreDbs = append(ignoreDbs, fmt.Sprintf(`%s%%`, c.Params.StageDBHeader))
-	ignoreDbs = append(ignoreDbs, `bak_%`) // gcs/scr truncate header
-	ignoreDbs = append(ignoreDbs, fmt.Sprintf(`%%%s`, c.Params.RollbackDBTail))
-
-	cfg := NewRuntimeConfig(
-		c.Params.BkBizId, c.Params.ClusterId, port,
-		c.Params.Role, c.Params.Schedule, c.Params.ImmuteDomain, c.Params.IP,
-		c.GeneralParam.RuntimeAccountParam.MonitorUser, c.GeneralParam.RuntimeAccountParam.MonitorPwd,
-		c.Params.ApiUrl, logDir, 2, c.tools,
+	nginxAddrs, err := reverseapi.ReadNginxProxyAddrs(
+		filepath.Join(reverseapi.DefaultCommonConfigDir, reverseapi.DefaultNginxProxyAddrsFileName),
 	)
-	cfg.SetFilter(nil, ignoreDbs, nil, nil)
-
-	b, err := yaml.Marshal(&cfg)
 	if err != nil {
 		logger.Error(err.Error())
 		return err
 	}
 
-	logger.Info(string(b))
+	return GenConfig(c.Params.BkCloudId, nginxAddrs, c.Params.Ports)
+}
 
-	cfgFilePath := filepath.Join(cst.ChecksumInstallPath, fmt.Sprintf("checksum_%d.yaml", port))
-	logger.Info(cfgFilePath)
+func GenConfig(bkCloudId int64, nginxAddrs []string, ports []int) error {
+	t, err := tools.NewToolSetWithPick(tools.ToolMysqlTableChecksum)
+	if err != nil {
+		logger.Error(err.Error())
+		return err
+	}
 
-	return internal.WriteConfig(cfgFilePath, b)
+	genCmdStr := fmt.Sprintf(
+		"%s gen-config --bk-cloud-id %d --nginx-address %s",
+		t.MustGet(tools.ToolMysqlTableChecksum),
+		bkCloudId,
+		strings.Join(nginxAddrs, ","),
+	)
+	for _, port := range ports {
+		genCmdStr += fmt.Sprintf(" --port %d", port)
+	}
+	logger.Info(genCmdStr)
+
+	cmd := exec.Command("sh", "-c", genCmdStr)
+	logger.Info(cmd.String())
+
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	err = cmd.Run()
+	if err != nil {
+		logger.Error("%s: %s", err, stderr.String())
+		return errors.Wrap(err, stderr.String())
+	}
+
+	return nil
 }

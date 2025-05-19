@@ -1,52 +1,54 @@
 package crond
 
 import (
+	"bytes"
 	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
-	"os"
-	"path"
+	"dbm-services/common/reverseapi"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
+	"fmt"
+	"os/exec"
 	"path/filepath"
-	"text/template"
+	"strings"
+
+	"github.com/pkg/errors"
 )
 
 func (c *MySQLCrondComp) GenerateRuntimeConfig() (err error) {
-	t, err := template.ParseFiles(path.Join(cst.MySQLCrondInstallPath, "mysql-crond.conf.go.tpl"))
-	if err != nil {
-		logger.Error("read mysql-crond runtime config template failed: %s", err.Error())
-		return err
-	}
-
-	f, err := os.OpenFile(
-		filepath.Join(cst.MySQLCrondInstallPath, "runtime.yaml"),
-		os.O_CREATE|os.O_TRUNC|os.O_WRONLY,
-		0644,
+	nginxAddrs, err := reverseapi.ReadNginxProxyAddrs(
+		filepath.Join(reverseapi.DefaultCommonConfigDir, reverseapi.DefaultNginxProxyAddrsFileName),
 	)
 	if err != nil {
-		logger.Error("create mysql-crond runtime.yaml failed: %s", err.Error())
+		logger.Error(err.Error())
 		return err
 	}
-	defer func() {
-		_ = f.Close()
-	}()
 
-	cfg := runtimeConfig{
-		IP:               c.Params.Ip,
-		BkCloudId:        c.Params.BkCloudId,
-		EventDataId:      c.Params.EventDataId,
-		EventDataToken:   c.Params.EventDataToken,
-		MetricsDataId:    c.Params.MetricsDataId,
-		MetricsDataToken: c.Params.MetricsDataToken,
-		LogPath:          path.Join(cst.MySQLCrondInstallPath, "logs"),
-		PidPath:          cst.MySQLCrondInstallPath,
-		InstallPath:      cst.MySQLCrondInstallPath,
-		BeatPath:         c.Params.BeatPath,
-		AgentAddress:     c.Params.AgentAddress,
-	}
+	return GenConfig(int64(c.Params.BkCloudId), nginxAddrs)
+}
 
-	err = t.Execute(f, cfg)
+func GenConfig(bkCloudId int64, nginxAddrs []string) error {
+	t, err := tools.NewToolSetWithPick(tools.ToolMySQLCrond)
 	if err != nil {
-		logger.Error("execute template for mysql-crond failed: %s", err.Error())
+		logger.Error(err.Error())
 		return err
 	}
+
+	genCmdStr := fmt.Sprintf(
+		"%s gen-config --bk-cloud-id %d --nginx-address %s",
+		t.MustGet(tools.ToolMySQLCrond),
+		bkCloudId,
+		strings.Join(nginxAddrs, ","),
+	)
+
+	cmd := exec.Command("sh", "-c", genCmdStr)
+	logger.Info(genCmdStr)
+
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	err = cmd.Run()
+	if err != nil {
+		logger.Error("%s: %s", err, stderr.String())
+		return errors.Wrap(err, stderr.String())
+	}
+
 	return nil
 }

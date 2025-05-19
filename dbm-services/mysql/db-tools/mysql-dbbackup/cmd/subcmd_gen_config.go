@@ -4,6 +4,7 @@ import (
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/common/reverseapi"
+	"dbm-services/common/reverseapi/define/mysql"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/v2/dbbackup"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
@@ -24,22 +25,6 @@ import (
 	"golang.org/x/exp/maps"
 )
 
-type dbbackupConfigS struct {
-	ConfigsTemplate map[string]map[string]string `json:"configs"`
-	Options         json.RawMessage              `json:"options"`
-	Ip              string                       `json:"ip"`
-	Port            int                          `json:"port"`
-	Role            string                       `json:"role"`
-	ClusterType     string                       `json:"cluster_type"`
-	ImmuteDomain    string                       `json:"immute_domain"`
-	ClusterId       int                          `json:"cluster_id"`
-	ShardId         int                          `json:"shard_id"`
-	User            string                       `json:"user"`
-	Password        string                       `json:"password"`
-	BkBizId         int                          `json:"bk_biz_id"`
-	BkCloudId       int                          `json:"bk_cloud_id"`
-}
-
 var subCmdGenConfig = &cobra.Command{
 	Use:   "gen-config",
 	Short: "generate runtime config for dbbackup",
@@ -55,7 +40,7 @@ var subCmdGenConfig = &cobra.Command{
 			return err
 		}
 
-		var dbbackupConfigs []dbbackupConfigS
+		var dbbackupConfigs []mysql.DBBackupConfig
 		err = json.Unmarshal(data, &dbbackupConfigs)
 		if err != nil {
 			return errors.Wrap(err, "failed to unmarshal dbbackup configs")
@@ -93,7 +78,7 @@ func init() {
 	rootCmd.AddCommand(subCmdGenConfig)
 }
 
-func generateOneDbbackupConfig(cfg *dbbackupConfigS) error {
+func generateOneDbbackupConfig(cfg *mysql.DBBackupConfig) error {
 	backupOptions, err := generateOneBackupOptions(cfg)
 	if err != nil {
 		return err
@@ -117,7 +102,7 @@ func generateOneDbbackupConfig(cfg *dbbackupConfigS) error {
 	return nil
 }
 
-func generateOneBackupOptions(cfg *dbbackupConfigS) (*dbbackup.BackupOptions, error) {
+func generateOneBackupOptions(cfg *mysql.DBBackupConfig) (*dbbackup.BackupOptions, error) {
 	var opt dbbackup.BackupOptions
 	err := json.Unmarshal(cfg.Options, &opt)
 	if err != nil {
@@ -138,7 +123,7 @@ func generateOneFilter(opt *dbbackup.BackupOptions) (*db_table_filter.DbTableFil
 	return db_table_filter.NewFilter([]string{"*"}, []string{"*"}, ignoreDbs, ignoreTbls)
 }
 
-func generateOneDSGString(cfg *dbbackupConfigS, opt *dbbackup.BackupOptions) (string, error) {
+func generateOneDSGString(cfg *mysql.DBBackupConfig, opt *dbbackup.BackupOptions) (string, error) {
 	switch strings.ToUpper(cfg.Role) {
 	case cst.BackupRoleMaster, cst.BackupRoleRepeater, cst.BackupRoleOrphan:
 		return opt.Master.DataSchemaGrant, nil
@@ -151,7 +136,7 @@ func generateOneDSGString(cfg *dbbackupConfigS, opt *dbbackup.BackupOptions) (st
 	}
 }
 
-func generateOneIniConfig(cfg *dbbackupConfigS, opt *dbbackup.BackupOptions, dsg string, filter *db_table_filter.DbTableFilter) error {
+func generateOneIniConfig(cfg *mysql.DBBackupConfig, opt *dbbackup.BackupOptions, dsg string, filter *db_table_filter.DbTableFilter) error {
 	iniData := config.BackupConfig{
 		Public: config.Public{
 			MysqlHost:       cfg.Ip,
@@ -200,7 +185,7 @@ func generateOneIniConfig(cfg *dbbackupConfigS, opt *dbbackup.BackupOptions, dsg
 	return nil
 }
 
-func writeIniFile(cfg *dbbackupConfigS, iniData *config.BackupConfig) error {
+func writeIniFile(cfg *mysql.DBBackupConfig, iniData *config.BackupConfig) error {
 	buf := new(strings.Builder)
 
 	// 这种别扭的遍历写法是为了保持稳定遍历

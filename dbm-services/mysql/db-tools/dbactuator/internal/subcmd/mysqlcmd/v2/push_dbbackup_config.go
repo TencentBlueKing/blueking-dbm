@@ -18,6 +18,8 @@ type PushNewDbBackupConfigAct struct {
 
 const PushNewDbBackupConfig = `push-new-db-backup-config`
 
+// NewPushNewDbBackupConfigCommand
+// Deprecated
 func NewPushNewDbBackupConfigCommand() *cobra.Command {
 	act := PushNewDbBackupConfigAct{
 		BaseOptions: subcmd.GBaseOptions,

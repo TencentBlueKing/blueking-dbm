@@ -40,7 +40,7 @@ import "github.com/pkg/errors"
 `
 */
 func (c *MySQL) MonitorItemsConfig(ports ...int) ([]byte, error) {
-	data, err := c.core.ReverseCall("mysql/monitor_items_config", ports...)
+	data, err := c.core.ReverseCall("mysql/monitor_items_config/", ports...)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to call monitor_items_config")
 	}

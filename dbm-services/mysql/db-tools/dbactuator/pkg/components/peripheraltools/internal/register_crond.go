@@ -14,14 +14,14 @@ func RegisterCrond(toolPath, configPath, user string) error {
 			fmt.Sprintf("%s reschedule --staff %s --config %s", toolPath, user, configPath),
 		}...,
 	)
+	logger.Info(command.String())
 
-	var stdout, stderr bytes.Buffer
-	command.Stdout = &stdout
+	var stderr bytes.Buffer
 	command.Stderr = &stderr
 
 	err := command.Run()
 	if err != nil {
-		logger.Error(err.Error())
+		logger.Error("%s: %s", err.Error(), stderr.String())
 		return err
 	}
 	return nil

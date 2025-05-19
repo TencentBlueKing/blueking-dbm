@@ -30,6 +30,23 @@ func (c *Checker) backupToBackend(users []string) error {
 		return err
 	}
 
+	_, err = conn.ExecContext(
+		context.Background(),
+		`CREATE TABLE IF NOT EXISTS infodba_schema.proxy_user_list(
+					proxy_ip varchar(32) NOT NULL,
+					username varchar(64) NOT NULL,
+					host varchar(32) NOT NULL,
+					create_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+					PRIMARY KEY (proxy_ip, username, host),
+					KEY IDX_USERNAME_HOST(username, host, create_at),
+					KEY IDX_HOST(host, create_at),
+					KEY IDX_IP_HOST(proxy_ip, host, create_at)
+				) ENGINE=InnoDB;`,
+	)
+	if err != nil {
+		return err
+	}
+
 	stmt, err := conn.PreparexContext(
 		context.Background(),
 		`REPLACE INTO infodba_schema.proxy_user_list 

@@ -10,19 +10,33 @@ import (
 )
 
 func (c *MySQLMonitorComp) AddToCrond() (err error) {
-	mysqlMonitor, err := c.tools.Get(tools.ToolMySQLMonitor)
+	var ports []int
+	for _, ele := range c.Params.PortBkInstanceList {
+		ports = append(ports, ele.Port)
+	}
+	return AddCrond(ports)
+}
+
+func AddCrond(ports []int) (err error) {
+	tl, err := tools.NewToolSetWithPick(tools.ToolMySQLMonitor)
+	if err != nil {
+		logger.Error(err.Error())
+		return err
+	}
+
+	mysqlMonitor, err := tl.Get(tools.ToolMySQLMonitor)
 	if err != nil {
 		logger.Error("get %s failed: %s", tools.ToolMySQLMonitor, err.Error())
 		return err
 	}
 
-	for _, ele := range c.Params.PortBkInstanceList {
+	for _, port := range ports {
 		configPath := filepath.Join(
 			cst.MySQLMonitorInstallPath,
-			fmt.Sprintf("monitor-config_%d.yaml", ele.Port),
+			fmt.Sprintf("monitor-config_%d.yaml", port),
 		)
 
-		err = internal.RegisterCrond(mysqlMonitor, configPath, c.Params.ExecUser)
+		err = internal.RegisterCrond(mysqlMonitor, configPath, "system")
 		if err != nil {
 			logger.Error("register %s failed: %s", mysqlMonitor, err.Error())
 			return err

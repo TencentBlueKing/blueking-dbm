@@ -17,6 +17,8 @@ type PushExporterCnfAct struct {
 
 const PushExporterCnf = `push-exporter-cnf`
 
+// NewPushExporterCnfCommand
+// Deprecated
 func NewPushExporterCnfCommand() *cobra.Command {
 	act := PushExporterCnfAct{
 		BaseOptions: subcmd.GBaseOptions,

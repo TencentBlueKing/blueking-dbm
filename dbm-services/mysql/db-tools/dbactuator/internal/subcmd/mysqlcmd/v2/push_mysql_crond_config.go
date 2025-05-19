@@ -18,6 +18,8 @@ type PushMySQLCrondConfigAct struct {
 
 const PushMySQLCrondConfig = "push-mysql-crond-config"
 
+// NewPushMySQLCrondConfigCommand
+// Deprecated
 func NewPushMySQLCrondConfigCommand() *cobra.Command {
 	act := PushMySQLCrondConfigAct{
 		BaseOptions: subcmd.GBaseOptions,

@@ -18,6 +18,8 @@ type PushMySQLMonitorConfigAct struct {
 
 const PushMySQLMonitorConfig = "push-mysql-monitor-config"
 
+// NewPushMySQLMonitorConfigCommand
+// Deprecated
 func NewPushMySQLMonitorConfigCommand() *cobra.Command {
 	act := PushMySQLMonitorConfigAct{
 		BaseOptions: subcmd.GBaseOptions,
@@ -61,12 +63,8 @@ func (c *PushMySQLMonitorConfigAct) Run() (err error) {
 			Func:    c.Service.Init,
 		},
 		{
-			FunName: "生成二进制程序配置",
-			Func:    c.Service.GenerateRuntimeConfig,
-		},
-		{
-			FunName: "生成监控项配置",
-			Func:    c.Service.GenerateItemsConfig,
+			FunName: "生成监控配置",
+			Func:    c.Service.GenConfig,
 		},
 		{
 			FunName: "重载配置",
