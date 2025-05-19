@@ -31,9 +31,7 @@
             v-for="(item, index) in formData.tableData"
             :key="index">
             <ClusterColumn
-              ref="editClusterColumn"
               v-model="item.cluster"
-              :cluster-types="[ClusterTypes.MONGO_REPLICA_SET, ClusterTypes.MONGO_SHARED_CLUSTER]"
               :selected="selected"
               @batch-edit="handleClusterBatchEdit" />
             <EditableColumn
@@ -118,7 +116,7 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { TicketTypes } from '@common/const';
 
   import TicketPayload, {
     createTickePayload,

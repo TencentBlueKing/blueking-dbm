@@ -28,6 +28,14 @@
     </BkTableColumn>
     <BkTableColumn
       field="drop_type"
+      :label="t('集群类型')"
+      :width="150">
+      <template #default="{data}: {data: RowData}">
+        {{ ticketDetails.details.clusters[data.cluster_ids[0]].cluster_type_name }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      field="drop_type"
       :label="t('清档类型')"
       :width="270">
       <template #default="{data}: {data: RowData}">

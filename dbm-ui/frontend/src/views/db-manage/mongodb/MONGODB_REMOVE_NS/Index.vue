@@ -26,47 +26,25 @@
         form-type="vertical"
         :model="formData"
         style="margin-top: 16px">
-        <BkFormItem
-          :label="t('集群类型')"
-          property="cluster_type"
-          required>
-          <BkRadioGroup
-            v-model="formData.cluster_type"
-            style="width: 400px"
-            type="card">
-            <BkRadioButton :label="ClusterTypes.MONGO_REPLICA_SET">
-              {{ t('副本集集群') }}
-            </BkRadioButton>
-            <BkRadioButton :label="ClusterTypes.MONGO_SHARED_CLUSTER">
-              {{ t('分片集群') }}
-            </BkRadioButton>
-          </BkRadioGroup>
-        </BkFormItem>
         <EditableTable
-          :key="formData.cluster_type"
           ref="editableTable"
           class="mt16 mb16"
-          :model="formData.tableData"
-          :rules="rules">
+          :model="formData.tableData">
           <EditableRow
             v-for="(item, index) in formData.tableData"
             :key="index">
-            <ClusterWithSelectorColumn
-              v-if="formData.cluster_type === ClusterTypes.MONGO_REPLICA_SET"
-              v-model="item.cluster"
-              :cluster-types="[formData.cluster_type]"
-              :label="t('副本集')"
-              :selected="selected"
-              :selected-count-map="selectedMap"
-              @batch-edit="handleClusterBatchEdit" />
             <ClusterColumn
-              v-if="formData.cluster_type === ClusterTypes.MONGO_SHARED_CLUSTER"
-              v-model="item.cluster[0]"
-              :cluster-types="[formData.cluster_type]"
-              field="cluster.0.master_domain"
-              :label="t('目标分片集群')"
+              v-model="item.cluster"
               :selected="selected"
               @batch-edit="handleClusterBatchEdit" />
+            <EditableColumn
+              field="cluster.cluster_type_name"
+              :label="t('集群类型')"
+              :width="150">
+              <EditableBlock
+                v-model="item.cluster.cluster_type_name"
+                :placeholder="t('输入集群后自动生成')" />
+            </EditableColumn>
             <DropTypeColumn
               v-model="item.drop_type"
               @batch-edit="handleBatchEdit" />
@@ -137,7 +115,7 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { TicketTypes } from '@common/const';
 
   import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
   import IgnoreBiz from '@views/db-manage/common/toolbox-field/form-item/ignore-biz/Index.vue';
@@ -145,19 +123,19 @@
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import ClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/cluster-column/Index.vue';
-  import ClusterWithSelectorColumn from '@views/db-manage/mongodb/common/toolbox-field/cluster-with-selector-column/Index.vue';
   import DbNameColumn from '@views/db-manage/mongodb/common/toolbox-field/db-name-column/Index.vue';
   import TableNameColumn from '@views/db-manage/mongodb/common/toolbox-field/table-name-column/Index.vue';
 
+  import DropIndexColumn, { DropIndex } from './components/DropIndexColumn.vue';
   import DropTypeColumn from './components/DropTypeColumn.vue';
-  import DropIndexColumn from './components/DropTypeIndex.vue';
 
   export interface IDataRow {
     cluster: {
       cluster_type: string;
+      cluster_type_name: string;
       id: number;
       master_domain: string;
-    }[];
+    };
     db_patterns: string[];
     drop_index: string;
     drop_type: string;
@@ -167,13 +145,15 @@
   }
 
   const createRowData = (values = {} as Partial<IDataRow>) => ({
-    cluster: values.cluster || [
+    cluster: Object.assign(
       {
         cluster_type: '',
+        cluster_type_name: '',
         id: 0,
         master_domain: '',
       },
-    ],
+      values.cluster,
+    ),
     db_patterns: values.db_patterns || [],
     drop_index: values.drop_index || '',
     drop_type: values.drop_type || '',
@@ -183,7 +163,6 @@
   });
 
   const createDefaultFormData = () => ({
-    cluster_type: ClusterTypes.MONGO_REPLICA_SET,
     ignore_business_access: false,
     payload: createTickePayload(),
     tableData: [createRowData()],
@@ -196,25 +175,21 @@
       const { details } = ticketDetail;
       const { clusters, infos, is_safe: isSafe } = details;
       Object.assign(formData, {
-        cluster_type: clusters[infos[0].cluster_ids[0]].cluster_type,
         ignore_business_access: !isSafe,
         payload: createTickePayload(ticketDetail),
-      });
-
-      nextTick(() => {
-        formData.tableData = infos.map((item) =>
+        tableData: infos.map((item) =>
           createRowData({
-            cluster: item.cluster_ids.map((clusterId) => ({
-              master_domain: clusters[clusterId].immute_domain,
-            })) as IDataRow['cluster'],
+            cluster: {
+              master_domain: clusters[item.cluster_ids[0]].immute_domain,
+            } as IDataRow['cluster'],
             db_patterns: item.ns_filter.db_patterns,
-            drop_index: item.drop_index ? 'delete' : 'keep',
+            drop_index: item.drop_index ? DropIndex.DELETE : DropIndex.KEEP,
             drop_type: item.drop_type,
             ignore_dbs: item.ns_filter.ignore_dbs,
             ignore_tables: item.ns_filter.ignore_tables,
             table_patterns: item.ns_filter.table_patterns,
           }),
-        );
+        ),
       });
     },
   });
@@ -237,55 +212,10 @@
   const formRef = useTemplateRef('form');
   const editableTableRef = useTemplateRef('editableTable');
 
-  const rules = {
-    cluster: [
-      {
-        message: t('目标集群重复'),
-        trigger: 'change',
-        validator: (value: IDataRow['cluster']) => {
-          const currentRowDomainMap = value.reduce<Record<string, number>>((prevMap, item) => {
-            if (item.master_domain) {
-              return Object.assign({}, prevMap, { [item.master_domain]: 0 });
-            }
-            return prevMap;
-          }, {});
-          formData.tableData.forEach((rowItem) => {
-            rowItem.cluster.forEach((clusterItem) => {
-              if (clusterItem.master_domain && currentRowDomainMap[clusterItem.master_domain] !== undefined) {
-                currentRowDomainMap[clusterItem.master_domain] = currentRowDomainMap[clusterItem.master_domain] + 1;
-              }
-            });
-          });
-          const unValidRowDomainMapList = Object.entries(currentRowDomainMap).filter((mapItem) => mapItem[1] > 1);
-          const unValidRowDomainList = unValidRowDomainMapList.map((item) => item[0]);
-          if (unValidRowDomainList.length > 0) {
-            return t('目标集群n重复', { n: unValidRowDomainList.join('，') });
-          }
-          return true;
-        },
-      },
-    ],
-  };
-
   const formData = reactive(createDefaultFormData());
 
-  const selected = computed(() => formData.tableData.flatMap((item) => item.cluster).filter((item) => item.id));
-  const selectedMap = computed(() =>
-    selected.value.reduce<Record<string, number>>(
-      (prev, item) =>
-        Object.assign(prev, {
-          [item.master_domain]: (prev[item.master_domain] ?? 0) + 1,
-        }),
-      {},
-    ),
-  );
-
-  watch(
-    () => formData.cluster_type,
-    () => {
-      formData.tableData = [createRowData()];
-    },
-  );
+  const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
+  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
   const handleClusterBatchEdit = (clusterList: MongodbModel[]) => {
     const newList: IDataRow[] = [];
@@ -293,13 +223,12 @@
       if (!selectedMap.value[item.master_domain]) {
         newList.push(
           createRowData({
-            cluster: [
-              {
-                cluster_type: item.cluster_type,
-                id: item.id,
-                master_domain: item.master_domain,
-              },
-            ],
+            cluster: {
+              cluster_type: item.cluster_type,
+              cluster_type_name: item.cluster_type_name,
+              id: item.id,
+              master_domain: item.master_domain,
+            },
           }),
         );
       }
@@ -323,9 +252,9 @@
       createTicketRun({
         details: {
           infos: formData.tableData.map((tableRow) => ({
-            cluster_ids: tableRow.cluster.map((item) => item.id),
-            cluster_type: formData.cluster_type,
-            drop_index: tableRow.drop_index !== 'keep',
+            cluster_ids: [tableRow.cluster.id],
+            cluster_type: tableRow.cluster.cluster_type,
+            drop_index: tableRow.drop_index !== DropIndex.KEEP,
             drop_type: tableRow.drop_type,
             ns_filter: {
               db_patterns: tableRow.db_patterns,

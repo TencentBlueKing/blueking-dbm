@@ -39,6 +39,12 @@
   </EditableColumn>
 </template>
 
+<script lang="ts">
+  export const DropIndex = {
+    DELETE: 'delete',
+    KEEP: 'keep',
+  };
+</script>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
@@ -49,7 +55,6 @@
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<string>({
-    default: 'keep',
     required: true,
   });
 
@@ -58,11 +63,11 @@
   const list = [
     {
       label: t('保留索引'),
-      value: 'keep',
+      value: DropIndex.KEEP,
     },
     {
       label: t('删除索引'),
-      value: 'delete',
+      value: DropIndex.DELETE,
     },
   ];
   const showBatchEdit = ref(false);

@@ -33,7 +33,6 @@
             :key="index">
             <ClusterColumn
               v-model="item.cluster"
-              :cluster-types="[ClusterTypes.MONGO_REPLICA_SET, ClusterTypes.MONGO_SHARED_CLUSTER]"
               :selected="selected"
               @batch-edit="handleClusterBatchEdit" />
             <CurrentCapacityColumn v-model="item.cluster" />
@@ -78,7 +77,7 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { TicketTypes } from '@common/const';
 
   import TicketPayload, {
     createTickePayload,

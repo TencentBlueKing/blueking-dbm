@@ -87,6 +87,7 @@
     [TicketTypes.MONGODB_FULL_BACKUP]: TicketTypes.MONGODB_FULL_BACKUP, // mongodb 全库备份
     [TicketTypes.MONGODB_PITR_RESTORE]: TicketTypes.MONGODB_PITR_RESTORE, // mongo 定点构造
     [TicketTypes.MONGODB_REDUCE_SHARD_NODES]: TicketTypes.MONGODB_REDUCE_SHARD_NODES, // 缩容 Shard 节点数
+    [TicketTypes.MONGODB_REMOVE_NS]: TicketTypes.MONGODB_REMOVE_NS,
     [TicketTypes.MONGODB_REPLICASET_APPLY]: 'MongoDBReplicaSetApply',
     [TicketTypes.MONGODB_SCALE_UPDOWN]: TicketTypes.MONGODB_SCALE_UPDOWN, // mongodb 集群容量变更
     [TicketTypes.MONGODB_SHARD_APPLY]: 'MongoDBSharedClusterApply',
