@@ -8,10 +8,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 from pipeline.core.flow import StaticIntervalGenerator
 
+from backend import env
 from backend.components import CCApi
 from backend.components.bknodeman.client import BKNodeManApi
 from backend.flow.plugins.components.collections.common.base_service import BaseService
@@ -53,6 +54,7 @@ class InstallNodemanPluginService(BaseService):
             {"job_type": "MAIN_INSTALL_PLUGIN", "plugin_params": {"name": plugin_name}, "bk_host_id": bk_host_ids}
         )
         data.outputs.job_id = job["job_id"]
+        self.log_info(_("安装插件任务: {}/#/task-list/detail/{}").format(env.BK_NODEMAN_URL, data.outputs.job_id))
 
     def _schedule(self, data, parent_data, callback_data=None):
         job_id = data.get_one_of_outputs("job_id")
