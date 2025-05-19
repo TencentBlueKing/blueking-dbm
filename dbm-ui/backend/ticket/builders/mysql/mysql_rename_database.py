@@ -37,7 +37,7 @@ class MySQLRenameDatabaseSerializer(MySQLBaseOperateDetailSerializer):
     def validate(self, attrs):
         super().validate_cluster_can_access(attrs)
 
-        cluster_ids = [info["cluster_id"] for info in attrs["info"]]
+        cluster_ids = [info["cluster_id"] for info in attrs["infos"]]
         bad_cluster = []
 
         for cluster_obj in Cluster.objects.filter(id__in=cluster_ids):
@@ -49,8 +49,10 @@ class MySQLRenameDatabaseSerializer(MySQLBaseOperateDetailSerializer):
 
         self.validate_db(attrs)
 
+        return attrs
+
     def validate_db(self, attrs):
-        cluster_ids = [info["cluster_id"] for info in attrs["info"]]
+        cluster_ids = [info["cluster_id"] for info in attrs["infos"]]
         database_info = RemoteServiceHandler(self.context["bk_biz_id"]).show_databases(cluster_ids)
         cluster__databases = {info["cluster_id"]: info["databases"] for info in database_info}
         # DB重命名校验
