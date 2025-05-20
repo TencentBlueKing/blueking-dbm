@@ -295,7 +295,7 @@
     },
     {
       field: 'bk_cpu',
-      label: t('CPU'),
+      label: 'CPU',
       render: ({ data }: DataRow) => data.host_info.bk_cpu || '--',
       showOverflow: true,
     },

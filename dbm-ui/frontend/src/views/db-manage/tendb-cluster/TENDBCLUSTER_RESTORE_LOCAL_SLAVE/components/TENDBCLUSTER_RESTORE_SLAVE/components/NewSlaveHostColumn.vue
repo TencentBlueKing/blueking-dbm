@@ -15,23 +15,21 @@
   <EditableColumn
     field="slave.spec_id"
     :label="t('新从库主机')"
-    :loading="loading"
     :min-width="150"
     required>
-    <div class="table-cell">
-      <TableEditSelect
-        v-model="localValue"
-        :input-search="false"
-        :list="optionList"
-        :placeholder="t('请选择')">
-        <template #option="{ optionItem }">
-          <div class="spec-display">
-            {{ optionItem.name }}
-            <span class="spec-display-count">{{ count }}</span>
-          </div>
-        </template>
-      </TableEditSelect>
-    </div>
+    <EditableSelect
+      v-model="localValue"
+      display-key="name"
+      id-key="id"
+      :list="optionList"
+      :placeholder="t('请选择')">
+      <template #option="{ item }">
+        <div class="tendbcluster-restore-spec">
+          {{ item.name }}
+          <span class="spec-count">{{ count }}</span>
+        </div>
+      </template>
+    </EditableSelect>
   </EditableColumn>
 </template>
 
@@ -40,8 +38,6 @@
   import { useRequest } from 'vue-request';
 
   import { getSpecResourceCount } from '@services/source/dbresourceResource';
-
-  import TableEditSelect from '@views/db-manage/tendb-cluster/common/edit/SelectInput.vue';
 
   interface Props {
     slave: {
@@ -65,7 +61,7 @@
     },
   ];
 
-  const { loading, run: fetchSpecResourceCount } = useRequest(getSpecResourceCount, {
+  const { run: fetchSpecResourceCount } = useRequest(getSpecResourceCount, {
     manual: true,
     onSuccess(countResult) {
       count.value = countResult[props.slave.spec_id] ?? 0;
@@ -86,22 +82,15 @@
   );
 </script>
 
-<style lang="less" scoped>
-  .table-cell {
-    flex: 1;
-    padding: 1px;
-  }
-</style>
-
 <style lang="less">
-  .spec-display {
+  .tendbcluster-restore-spec {
     display: flex;
     width: 100%;
     flex: 1;
     align-items: center;
     justify-content: space-between;
 
-    .spec-display-count {
+    .spec-count {
       height: 16px;
       min-width: 20px;
       font-size: 12px;
