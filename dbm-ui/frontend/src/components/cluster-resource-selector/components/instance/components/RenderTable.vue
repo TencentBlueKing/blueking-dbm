@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="global-instance-selector-render-table">
+  <div class="cluster-resource-selector-render-table">
     <DbSearchSelect
       v-model="searchSelectValue"
       class="mb-12"
@@ -161,7 +161,7 @@
 </script>
 
 <style lang="less">
-  .global-instance-selector-render-table {
+  .cluster-resource-selector-render-table {
     padding: 0 24px;
 
     .bk-table-body {

@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="global-instance-selector-collapse-mini">
+  <div class="cluster-resource-selector-collapse-mini">
     <div
       class="collapse-mini-header"
       @click="handleToggle">
@@ -72,7 +72,7 @@
 <style lang="less" scoped>
   @import '@styles/mixins.less';
 
-  .global-instance-selector-collapse-mini {
+  .cluster-resource-selector-collapse-mini {
     margin-top: 16px;
 
     .collapse-mini:first-child {

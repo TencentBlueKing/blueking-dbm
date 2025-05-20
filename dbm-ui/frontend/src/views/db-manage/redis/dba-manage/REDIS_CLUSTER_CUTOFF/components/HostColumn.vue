@@ -33,7 +33,7 @@
       :placeholder="t('请输入如: 192.168.10.2')"
       @change="handleInputChange" />
   </EditableColumn>
-  <GlobalInstanceSelector
+  <ClusterResourceSelector
     v-model:is-show="showSelector"
     v-model:selected="dataList"
     :cluster-type="queryClusterTypes[DBTypes.REDIS]"
@@ -48,9 +48,9 @@
   import { DBTypes, queryClusterTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
-  import GlobalInstanceSelector, { type InstanceItem } from '@components/global-instance-selector/Index.vue';
+  import ClusterResourceSelector, { type Item } from '@components/cluster-resource-selector/Index.vue';
 
-  export type IValue = InstanceItem;
+  export type IValue = Item;
 
   interface Props {
     selected: (typeof modelValue.value)[];

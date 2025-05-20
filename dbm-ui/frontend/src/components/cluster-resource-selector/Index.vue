@@ -13,7 +13,7 @@
 
 <template>
   <BkDialog
-    class="cluster-resource-selector"
+    class="dbm-cluster-resource-selector"
     :close-icon="false"
     :draggable="false"
     :esc-close="false"
@@ -71,19 +71,17 @@
 
   export type Item = IValue;
 
-  type PanelTabKey = 'manual-instance' | 'topo-instance';
-
   interface Props {
     clusterType: ClusterTypes[];
-    panelList?: PanelTabKey[];
     role?: string;
+    target?: 'instance';
   }
 
   type Emits = (e: 'change', data: IValue[]) => void;
 
   const props = withDefaults(defineProps<Props>(), {
-    panelList: () => ['topo-instance', 'manual-instance'],
     role: 'backend_master',
+    target: 'instance',
   });
 
   const emits = defineEmits<Emits>();
@@ -101,34 +99,31 @@
   const activeTab = ref<string>('');
 
   const panelConfig = {
-    'manual-instance': {
+    instance: {
       asideComponent: InstancePreviewResult,
-      id: 'manual-instance',
-      mainComponent: InstanceManualInput,
-      name: t('手动输入'),
-    },
-    // 'manual-machine': {
-    //   id: 'manual-machine',
-    //   name: t('手动输入'),
-    // },
-    'topo-instance': {
-      asideComponent: InstancePreviewResult,
-      id: 'topo-instance',
+      id: 'instance',
       mainComponent: InstanceTopoSelect,
       name: t('选择实例'),
     },
-    // 'topo-machine': {
+    'instance-manual': {
+      asideComponent: InstancePreviewResult,
+      id: 'instance-manual',
+      mainComponent: InstanceManualInput,
+      name: t('手动输入'),
+    },
+    // 'machine': {
     //   id: 'topo-machine',
     //   name: t('选择主机'),
     // },
   };
 
-  const panels = computed(() => props.panelList.map((item) => panelConfig[item]));
+  const panels = computed(() => [panelConfig[props.target], panelConfig[`${props.target}-manual`]]);
 
   const config = computed(() => panelConfig[activeTab.value as keyof typeof panelConfig]);
 
   const params = computed(() => ({
     cluster_type: props.clusterType.join(','),
+    count_type: props.target,
     db_type: clusterTypeInfos[props.clusterType[0] as keyof typeof clusterTypeInfos]?.dbType,
     role: props.role,
   }));
@@ -149,7 +144,7 @@
   };
 </script>
 <style lang="less">
-  .cluster-resource-selector {
+  .dbm-cluster-resource-selector {
     display: block;
     width: 80%;
     max-width: 1600px;

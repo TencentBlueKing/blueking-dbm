@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="global-instance-selector-panel-tab">
+  <div class="cluster-resource-selector-panel-tab">
     <div
       v-for="item in panelList"
       :key="item.id"
@@ -26,31 +26,25 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { useI18n } from 'vue-i18n';
+  interface Props {
+    panelList: {
+      id: string;
+      name: string;
+    }[];
+  }
+
+  defineProps<Props>();
 
   const modelValue = defineModel<string>({
     required: true,
   });
-
-  const { t } = useI18n();
-
-  const panelList = [
-    {
-      id: 'TopoTree',
-      name: t('选择实例'),
-    },
-    {
-      id: 'ManualInput',
-      name: t('手动输入'),
-    },
-  ];
 
   const handleClick = (id: string) => {
     modelValue.value = id;
   };
 </script>
 <style lang="less" scoped>
-  .global-instance-selector-panel-tab {
+  .cluster-resource-selector-panel-tab {
     display: flex;
     margin-bottom: 16px;
 
