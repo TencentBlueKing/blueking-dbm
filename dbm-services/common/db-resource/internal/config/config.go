@@ -25,9 +25,10 @@ var AppConfig Config
 
 // Config config tpl
 type Config struct {
-	Gormlog       bool   `yaml:"gormlog"`
-	RunMode       string `yaml:"runMode"`
-	ListenAddress string `yaml:"listenAddress"`
+	Gormlog             bool   `yaml:"gormlog"`
+	RunMode             string `yaml:"runMode"`
+	ListenAddress       string `yaml:"listenAddress"`
+	NotInspectionBizids string `yaml:"notInspectionBizids"`
 	//	dbmeta: http://bk-dbm
 	DbMeta           string            `yaml:"dbmeta"`
 	BkCmdbApiUrl     string            `yaml:"bkCmdbApiUrl"`

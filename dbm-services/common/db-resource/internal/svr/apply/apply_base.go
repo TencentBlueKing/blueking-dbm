@@ -313,9 +313,9 @@ func (a *ObjectDetail) GetMessage() (message string) {
 		message += fmt.Sprintf("city: %s \n\r", a.LocationSpec.City)
 		if len(a.LocationSpec.SubZoneIds) > 0 {
 			if a.LocationSpec.IsExclude() {
-				message += fmt.Sprintf("subzoneId must not exist in the  %v", a.LocationSpec.SubZoneIds)
+				message += fmt.Sprintf("subzoneId 必须不能存在这些园区中: %v", a.LocationSpec.SubZoneIds)
 			} else {
-				message += fmt.Sprintf("subzoneId  must exist in the %v", a.LocationSpec.SubZoneIds)
+				message += fmt.Sprintf("subzoneId 必须存在一下这些园区中： %v", a.LocationSpec.SubZoneIds)
 			}
 		}
 	}

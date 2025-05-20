@@ -362,6 +362,21 @@ func (o *SearchContext) predictResourceNoMatchReason() (reason string) {
 			desc: fmt.Sprintf("在匹配云区域%d,gse_agent 状态为ok的资源的时候没有匹配到资源", o.BkCloudId),
 		},
 		{
+			name: "spec",
+			fn:   o.MatchSpec,
+			desc: "在匹配规格信息[cpu/mem或机型]的时候没有匹配到资源",
+		},
+		{
+			name: "location",
+			fn:   o.MatchLocationSpec,
+			desc: "在匹配地域信息的时候没有匹配到资源",
+		},
+		{
+			name: "storage",
+			fn:   o.MatchStorage,
+			desc: "在匹配磁盘信息的时候没有匹配到资源",
+		},
+		{
 			name: "biz",
 			fn:   o.MatchIntetionBkBiz,
 			desc: "在匹配专用业务和公共业务的时候没有匹配到资源",
@@ -385,21 +400,6 @@ func (o *SearchContext) predictResourceNoMatchReason() (reason string) {
 			name: "labels",
 			fn:   o.MatchLabels,
 			desc: "在匹配标签的时候没有匹配到资源",
-		},
-		{
-			name: "location",
-			fn:   o.MatchLocationSpec,
-			desc: "在匹配地域信息的时候没有匹配到资源",
-		},
-		{
-			name: "storage",
-			fn:   o.MatchStorage,
-			desc: "在匹配磁盘信息的时候没有匹配到资源",
-		},
-		{
-			name: "spec",
-			fn:   o.MatchSpec,
-			desc: "在匹配规格信息[cpu/mem或机型]的时候没有匹配到资源",
 		},
 	}
 

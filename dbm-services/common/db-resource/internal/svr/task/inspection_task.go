@@ -12,24 +12,47 @@ package task
 
 import (
 	"slices"
+	"strconv"
+	"strings"
+	"time"
 
+	"dbm-services/common/db-resource/internal/config"
 	"dbm-services/common/db-resource/internal/model"
 	"dbm-services/common/db-resource/internal/svr/bk"
 	"dbm-services/common/db-resource/internal/svr/dbmapi"
+
+	"github.com/samber/lo"
 
 	"dbm-services/common/go-pubpkg/cc.v3"
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 )
 
-// InspectCheckResource TODO
+// InspectCheckResource inspection resource
+// nolint
 func InspectCheckResource() (err error) {
 	//  获取空闲机器
 	var machines []model.TbRpDetail
 	var allowCCMouduleInfo dbmapi.DbmEnvData
-	err = model.DB.Self.Table(model.TbRpDetailName()).Find(&machines,
-		"status = ? and create_time < date_sub(now(), interval 30 minute) ", model.Unused).Error
-	if err != nil {
+	// 获取不需要要检查的业务
+	nocheckBizIds := []int{}
+	logger.Info("apply not inspection bizids %s", config.AppConfig.NotInspectionBizids)
+	if lo.IsNotEmpty(config.AppConfig.NotInspectionBizids) {
+		for _, v := range strings.Split(config.AppConfig.NotInspectionBizids, ",") {
+			bizid, errx := strconv.Atoi(v)
+			if errx != nil {
+				logger.Error("strconv.Atoi failed %s", errx.Error())
+				continue
+			}
+			nocheckBizIds = append(nocheckBizIds, bizid)
+		}
+	}
+	qy := model.DB.Self.Table(model.TbRpDetailName()).Where(
+		"status = ? and create_time < date_sub(now(), interval 30 minute) ", model.Unused)
+	if len(nocheckBizIds) > 0 {
+		qy = qy.Where("dedicated_biz not in (?)", nocheckBizIds)
+	}
+	if err = qy.Find(&machines).Error; err != nil {
 		logger.Error("get unused machines failed %s", err.Error())
 		return err
 	}
@@ -69,6 +92,7 @@ func InspectCheckResource() (err error) {
 				bkhostIds = append(bkhostIds, m.BKHostId)
 			}
 			if len(bkhostIds) == 0 {
+				logger.Info("没差查询到host ids:[%v]任何模块信息", hostgp)
 				err = model.DB.Self.Table(model.TbRpDetailName()).Where("bk_biz_id = ? and bk_host_id in (?) and  status = ? ",
 					bkBizId,
 					hostIds, model.Unused).
@@ -84,10 +108,11 @@ func InspectCheckResource() (err error) {
 					slices.Contains(bkhostIds, m.BKHostId) {
 					continue
 				}
+				logger.Info("the host is not idle %v", m.BKHostId)
 				err = model.DB.Self.Table(model.TbRpDetailName()).Where("bk_biz_id = ? and bk_host_id = ? and  status = ? ",
 					bkBizId,
-					m.BKHostId, model.Unused).
-					Update("status", model.UsedByOther).Error
+					m.BKHostId, model.Unused).Updates(map[string]interface{}{"status": model.UsedByOther, "update_time": time.Now()}).
+					Error
 				if err != nil {
 					logger.Error("update machine status failed %s", err.Error())
 					return err
