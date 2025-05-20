@@ -580,6 +580,8 @@ func CreateOpsRequestMetaData(
 	crdClusterProvider metaprovider.K8sCrdClusterProvider,
 	request *entity.Request,
 	crd *entity.CustomResourceDefinition,
+	requestID string,
+	k8sClusterConfigID uint64,
 ) error {
 	opsReqEntity, err := getEntityFromReq(crd)
 	if err != nil {
@@ -593,7 +595,11 @@ func CreateOpsRequestMetaData(
 	if err != nil {
 		return err
 	}
+
 	opsReqEntity.CrdClusterID = clusterEntity.ID
+	opsReqEntity.RequestID = requestID
+	opsReqEntity.K8sClusterConfigID = k8sClusterConfigID
+
 	_, err = opsRequestProvider.CreateOpsRequest(opsReqEntity)
 	if err != nil {
 		return err

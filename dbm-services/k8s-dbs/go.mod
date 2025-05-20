@@ -6,6 +6,7 @@ require (
 	github.com/apecloud/kbcli v0.9.2
 	github.com/apecloud/kubeblocks v1.0.0-beta.12
 	github.com/gin-gonic/gin v1.10.0
+	github.com/google/uuid v1.6.0
 	github.com/imdario/mergo v0.3.16
 	github.com/jinzhu/copier v0.4.0
 	github.com/pkg/errors v0.9.1
@@ -81,7 +82,6 @@ require (
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/gosuri/uitable v0.0.4 // indirect

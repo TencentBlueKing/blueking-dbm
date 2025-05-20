@@ -22,6 +22,8 @@ package utils
 import (
 	"math/rand"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
@@ -36,4 +38,9 @@ func ResourceName(originalStr string, length int) string {
 
 	randomSuffix := string(result)
 	return originalStr + randomSuffix
+}
+
+// RequestID 生成无连字符的压缩版UUID (32位)
+func RequestID() string {
+	return uuid.New().String()
 }

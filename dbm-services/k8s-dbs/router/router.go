@@ -242,6 +242,7 @@ func buildService(db *gorm.DB) (*clustermanage.ClusterProvider, *opsmanage.OpsRe
 	componentVersionDbAccess := metadbaccess.NewK8sCrdCmpvDbAccess(db)
 	opsReqDbAccess := metadbaccess.NewK8sCrdOpsRequestDbAccess(db)
 	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
+	requestRecordDbAccess := metadbaccess.NewClusterRequestRecordDbAccess(db)
 
 	clusterProvider := metaprovider.NewK8sCrdClusterProvider(clusterDbAccess)
 	clusterDefinitionProvider := metaprovider.NewK8sCrdClusterDefinitionProvider(clusterDefinitionDbAccess)
@@ -250,6 +251,7 @@ func buildService(db *gorm.DB) (*clustermanage.ClusterProvider, *opsmanage.OpsRe
 	componentVersionProvider := metaprovider.NewK8sCrdCmpvProvider(componentVersionDbAccess)
 	opsReqProvider := metaprovider.NewK8sCrdOpsRequestProvider(opsReqDbAccess)
 	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(k8sClusterConfigDbAccess)
+	requestRecordProvider := metaprovider.NewClusterRequestRecordProvider(requestRecordDbAccess)
 
 	clusterService := clustermanage.NewClusterService(
 		clusterProvider,
@@ -258,9 +260,15 @@ func buildService(db *gorm.DB) (*clustermanage.ClusterProvider, *opsmanage.OpsRe
 		componentDefinitionProvider,
 		componentVersionProvider,
 		k8sClusterConfigProvider,
+		requestRecordProvider,
 	)
-	opsReqService := opsmanage.NewOpsRequestService(opsReqProvider, clusterProvider, clusterService,
-		k8sClusterConfigProvider)
+	opsReqService := opsmanage.NewOpsRequestService(
+		opsReqProvider,
+		clusterProvider,
+		clusterService,
+		k8sClusterConfigProvider,
+		requestRecordProvider,
+	)
 	return clusterService, opsReqService
 }
 

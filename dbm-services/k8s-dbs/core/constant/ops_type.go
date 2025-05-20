@@ -19,7 +19,27 @@ limitations under the License.
 
 package constant
 
-// OpsTypes
+// These constants define all supported cluster-level or component-level operation types
+const (
+	CreateCluster = "CreateCluster"
+	DeleteCluster = "DeleteCluster"
+	UpdateCluster = "UpdateCluster"
+
+	StartCluster   = "StartCluster"
+	StopCluster    = "StopCluster"
+	RestartCluster = "RestartCluster"
+	StartComp      = "StartComponent"
+	StopComp       = "StopComponent"
+	RestartComp    = "RestartComponent"
+	VScaling       = "VerticalScaling"
+	HScaling       = "HorizontalScaling"
+	VExpansion     = "VolumeExpansion"
+	UpgradeComp    = "UpgradeComp"
+	ExposeService  = "ExposeService"
+)
+
+// OpsRequest operation types
+// These constants define the types of operations that can be performed through OpsRequest
 const (
 	Start             = "Start"
 	Stop              = "Stop"
