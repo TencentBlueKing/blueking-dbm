@@ -122,16 +122,16 @@
       name: t('实例（IP、IP:Port）'),
     },
     {
+      id: 'machine',
+      name: t('主机'),
+    },
+    {
       id: 'task',
       name: t('任务ID'),
     },
     {
       id: 'ticket',
       name: t('单据'),
-    },
-    {
-      id: 'resource_pool',
-      name: t('主机（资源池、故障池、待回收池）'),
     },
   ];
 
