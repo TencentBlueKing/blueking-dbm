@@ -50,7 +50,7 @@ class CloneRules(BaseService):
                 "gcs_dba",
             ],
             **self.extra_log,
-            "uid": uid,
+            "uid": "{}".format(uid),
         }
         try:
             # 调用客户端克隆/实例克隆
@@ -100,7 +100,7 @@ class CloneRules(BaseService):
             operator,
             clone_data,
             inst_machine_type_map,
-            global_data.get("uid"),
+            global_data.get("uid", "0"),
         )
         # 实例化权限克隆记录，后续存到数据库中
         record = MySQLPermissionCloneRecord(

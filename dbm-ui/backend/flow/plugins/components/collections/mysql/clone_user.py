@@ -61,7 +61,7 @@ class CloneUserService(BaseService):
                         "gcs_dba",
                     ],
                     **self.extra_log,
-                    "uid": global_data.get("uid"),
+                    "uid": "{}".format(global_data.get("uid", "0")),
                 }
                 params.update(
                     {
