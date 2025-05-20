@@ -81,6 +81,7 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
             name=data["name"],
             version=data["version"],
             pkg_type=data["pkg_type"],
+            db_type=data["db_type"],
         )
         return Response(PackageSerializer(package).data)
 
