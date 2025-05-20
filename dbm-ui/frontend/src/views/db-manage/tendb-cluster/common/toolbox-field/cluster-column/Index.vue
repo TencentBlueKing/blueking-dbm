@@ -29,7 +29,7 @@
       </span>
     </template>
     <EditableInput
-      v-model="modelValue.master_domain"
+      v-model="localValue"
       :placeholder="t('请输入集群域名')"
       @change="handleChange" />
   </EditableColumn>
@@ -43,6 +43,7 @@
 </template>
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import { getTendbClusterList } from '@services/source/tendbcluster';
@@ -70,7 +71,7 @@
   type Emits = (e: 'batch-edit', list: TendbClusterModel[]) => void;
 
   interface Exposes {
-    fetch: (params: ServiceParameters<typeof getTendbClusterList>) => Promise<void>;
+    fetch: typeof queryCluster;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -88,27 +89,12 @@
   const { t } = useI18n();
 
   const showSelector = ref(false);
-  const loading = ref(false);
-
-  const queryCluster = async (params: ServiceParameters<typeof getTendbClusterList>) => {
-    try {
-      loading.value = true;
-      const { results } = await getTendbClusterList(params);
-      const [cluster] = results;
-      if (cluster) {
-        modelValue.value = cluster;
-      }
-    } catch (error) {
-      console.error('Error fetching cluster data:', error);
-    } finally {
-      loading.value = false;
-    }
-  };
+  const localValue = ref(modelValue.value.master_domain);
 
   const rules = [
     {
       message: t('集群域名格式不正确'),
-      trigger: 'change',
+      trigger: 'blur',
       validator: (value: string) => domainRegex.test(value),
     },
     {
@@ -124,28 +110,28 @@
     {
       message: t('目标集群不存在'),
       trigger: 'blur',
-      validator: async (value: string) => {
-        if (modelValue.value.id) {
-          return true;
-        }
-        if (!value) {
-          return true;
-        }
-        await queryCluster({
-          exact_domain: value,
-        });
-        return Boolean(modelValue.value.id);
-      },
+      validator: () => Boolean(modelValue.value.id),
     },
   ];
+
+  const { loading, runAsync: queryCluster } = useRequest(getTendbClusterList, {
+    manual: true,
+    onSuccess(data) {
+      const [cluster] = data.results;
+      if (cluster) {
+        modelValue.value = cluster;
+      }
+    },
+  });
 
   const handleShowSelector = () => {
     showSelector.value = true;
   };
 
   const handleChange = (value: string) => {
+    modelValue.value.id = 0;
+    modelValue.value.master_domain = value;
     if (value) {
-      modelValue.value.id = 0;
       queryCluster({
         exact_domain: value,
       });
@@ -155,6 +141,10 @@
   const handleSelectorChange = (selected: Record<string, TendbClusterModel[]>) => {
     emits('batch-edit', selected[ClusterTypes.TENDBCLUSTER]);
   };
+
+  watch(modelValue, () => {
+    localValue.value = modelValue.value.master_domain;
+  });
 
   defineExpose<Exposes>({
     fetch: queryCluster,

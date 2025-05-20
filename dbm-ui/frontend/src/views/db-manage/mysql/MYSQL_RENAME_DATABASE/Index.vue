@@ -36,7 +36,6 @@
             ref="clusterRef"
             v-model="item.cluster"
             allows-duplicates
-            only-one-type
             :selected="selected"
             @batch-edit="handleBatchEditCluster" />
           <DbNameColumn
@@ -147,6 +146,7 @@
       ({
         id: 0,
         master_domain: '',
+        cluster_type: ClusterTypes.TENDBHA,
       } as TendbhaModel),
     fromDatabase: data.fromDatabase || [],
     toDatabase: data.toDatabase || [],
@@ -235,6 +235,7 @@
           cluster: {
             id: item.cluster_id,
             master_domain: clusters[item.cluster_id].immute_domain,
+            cluster_type: clusters[item.cluster_id].cluster_type,
           },
           fromDatabase: item.from_database ? [item.from_database] : [],
           toDatabase: item.to_database ? [item.to_database] : [],
