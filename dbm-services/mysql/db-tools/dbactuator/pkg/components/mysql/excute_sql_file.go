@@ -15,6 +15,7 @@
 package mysql
 
 import (
+	"bufio"
 	"context"
 	"database/sql"
 	"errors"
@@ -186,7 +187,7 @@ func (e *ExecuteSQLFileComp) parseBlockingTables(port int) (blockingTableMap map
 		for _, dbName := range realexcutedbs {
 			for _, sqlFile := range f.SQLFiles {
 				var fileContent []byte
-				fileContent, err = os.ReadFile(path.Join(e.taskdir, sqlFile))
+				fileContent, err = readFile(path.Join(e.taskdir, sqlFile))
 				if err != nil {
 					logger.Error("读取文件%s失败:%s", path.Join(e.taskdir, sqlFile), err.Error())
 					return nil, err
@@ -222,6 +223,30 @@ func (e *ExecuteSQLFileComp) parseBlockingTables(port int) (blockingTableMap map
 		}
 	}
 	return blockingTableMap, nil
+}
+
+// readFile 按行读取并过滤--开头的行
+func readFile(file string) (content []byte, err error) {
+	f, err := os.Open(file)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	var filtered []string
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Text()
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || strings.HasPrefix(trimmed, "/*") || strings.HasPrefix(trimmed, "--") {
+			continue
+		}
+		filtered = append(filtered, line)
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+	return []byte(strings.Join(filtered, "\n")), nil
 }
 
 // CheckBlockingDDLPcls check ddl blocking at spider
