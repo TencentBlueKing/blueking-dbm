@@ -22,7 +22,12 @@ import { useSystemEnviron } from '@stores';
 
 import { getBusinessHref } from '@utils';
 
-export const useImportResourcePoolTooltip = (hostList?: Ref<(FaultOrRecycleMachineModel | HostInfo)[]>) => {
+export const useImportResourcePoolTooltip = (
+  params: {
+    hostList?: Ref<(FaultOrRecycleMachineModel | HostInfo)[]>;
+    isCurrentBiz?: boolean;
+  } = {},
+) => {
   const { t } = useI18n();
   const router = useRouter();
   const systemEnvironStore = useSystemEnviron();
@@ -33,7 +38,9 @@ export const useImportResourcePoolTooltip = (hostList?: Ref<(FaultOrRecycleMachi
       ticket_type__in: 'RESOURCE_IMPORT',
     },
   });
-  const taskHistoryListHref = getBusinessHref(taskHistoryListRoute.href, systemEnvironStore.urls.DBA_APP_BK_BIZ_ID);
+  const taskHistoryListHref = params.isCurrentBiz
+    ? taskHistoryListRoute.href
+    : getBusinessHref(taskHistoryListRoute.href, systemEnvironStore.urls.DBA_APP_BK_BIZ_ID);
 
   const tooltip = computed(() => {
     const content = {
@@ -51,15 +58,15 @@ export const useImportResourcePoolTooltip = (hostList?: Ref<(FaultOrRecycleMachi
       theme: 'light',
     };
 
-    if (hostList?.value === undefined) {
+    if (params.hostList?.value === undefined) {
       return content;
     }
 
-    return hostList.value.length
+    return params.hostList.value.length
       ? content
       : {
           content: t('请选择主机'),
-          disabled: !!hostList.value.length,
+          disabled: !!params.hostList.value.length,
         };
   });
 
@@ -83,6 +90,9 @@ export const useImportResourcePoolTooltip = (hostList?: Ref<(FaultOrRecycleMachi
     };
 
     const routeInfo = getRouteInfo(taskIds);
+    if (params.isCurrentBiz) {
+      return routeInfo.href;
+    }
     return getBusinessHref(routeInfo.href, systemEnvironStore.urls.DBA_APP_BK_BIZ_ID);
   };
 

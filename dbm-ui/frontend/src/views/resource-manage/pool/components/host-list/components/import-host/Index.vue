@@ -71,8 +71,15 @@
   import FormPanel from './components/FormPanel.vue';
   import SelectHostPanel from './components/select-host-panel/Index.vue';
 
+  interface Props {
+    type?: 'business' | 'global';
+  }
+
   type Emits = (e: 'change') => void;
 
+  const props = withDefaults(defineProps<Props>(), {
+    type: 'global',
+  });
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<boolean>('isShow', {
@@ -87,7 +94,10 @@
   const isSubmitting = ref(false);
   const hostSelectList = shallowRef<HostInfo[]>([]);
 
-  const { successMessage, tooltip } = useImportResourcePoolTooltip(hostSelectList);
+  const { successMessage, tooltip } = useImportResourcePoolTooltip({
+    hostList: hostSelectList,
+    isCurrentBiz: props.type === 'business',
+  });
 
   const width = Math.ceil(window.innerWidth * 0.8);
   const contentHeight = Math.ceil(window.innerHeight * 0.8 - 48);
