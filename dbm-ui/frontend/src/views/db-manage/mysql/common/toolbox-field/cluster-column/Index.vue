@@ -29,8 +29,9 @@
       </span>
     </template>
     <EditableInput
-      v-model="modelValue.master_domain"
-      :placeholder="t('请输入集群域名')" />
+      v-model="localValue"
+      :placeholder="t('请输入集群域名')"
+      @change="handleChange" />
   </EditableColumn>
   <ClusterSelector
     v-model:is-show="showSelector"
@@ -104,29 +105,12 @@
 
   const showSelector = ref(false);
   const loading = ref(false);
-
-  const queryCluster = async (params: ServiceParameters<typeof getTendbhaList>) => {
-    try {
-      loading.value = true;
-      const [haData, singleData] = await Promise.all([getTendbhaList(params), getTendbsingleList(params)]);
-      const [haCluster] = haData.results;
-      const [singleCluster] = singleData.results;
-      if (haCluster) {
-        modelValue.value = haCluster;
-      } else if (singleCluster) {
-        modelValue.value = singleCluster as unknown as TendbhaModel;
-      }
-    } catch (error) {
-      console.error('Error fetching cluster data:', error);
-    } finally {
-      loading.value = false;
-    }
-  };
+  const localValue = ref(modelValue.value.master_domain);
 
   const rules = [
     {
       message: t('集群域名格式不正确'),
-      trigger: 'change',
+      trigger: 'blur',
       validator: (value: string) => domainRegex.test(value),
     },
     {
@@ -146,18 +130,7 @@
     {
       message: t('目标集群不存在'),
       trigger: 'blur',
-      validator: async (value: string) => {
-        if (modelValue.value.id) {
-          return true;
-        }
-        if (!value) {
-          return true;
-        }
-        await queryCluster({
-          exact_domain: value,
-        });
-        return Boolean(modelValue.value.id);
-      },
+      validator: () => Boolean(modelValue.value.id),
     },
   ];
 
@@ -165,9 +138,39 @@
     showSelector.value = true;
   };
 
+  const queryCluster = async (params: ServiceParameters<typeof getTendbhaList>) => {
+    try {
+      loading.value = true;
+      const [haData, singleData] = await Promise.all([getTendbhaList(params), getTendbsingleList(params)]);
+      const [haCluster] = haData.results;
+      const [singleCluster] = singleData.results;
+      if (haCluster) {
+        modelValue.value = haCluster;
+      } else if (singleCluster) {
+        modelValue.value = singleCluster as unknown as TendbhaModel;
+      }
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const handleChange = (value: string) => {
+    modelValue.value.id = 0;
+    modelValue.value.master_domain = value;
+    if (value) {
+      queryCluster({
+        exact_domain: value,
+      });
+    }
+  };
+
   const handleSelectorChange = (selected: Props['selected']) => {
     emits('batch-edit', [...selected[ClusterTypes.TENDBHA], ...selected[ClusterTypes.TENDBSINGLE]]);
   };
+
+  watch(modelValue, () => {
+    localValue.value = modelValue.value.master_domain;
+  });
 
   defineExpose<Exposes>({
     fetch: queryCluster,
