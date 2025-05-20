@@ -10,12 +10,13 @@ specific language governing permissions and limitations under the License.
 """
 from django.db.models import CharField, F, Q, Value
 from django.db.models.functions import Concat
-from django.forms import model_to_dict
 
 from backend.configuration.models import DBAdministrator
+from backend.db_dirty.models import DirtyMachine
+from backend.db_dirty.serializers import ListMachinePoolSerializer
 from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import Cluster, ClusterEntry, Machine, ProxyInstance, StorageInstance
-from backend.db_services.dbresource.handlers import ResourceHandler
+from backend.db_meta.models import Cluster, ClusterEntry, ProxyInstance, StorageInstance
+from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.quick_search import constants
 from backend.db_services.quick_search.constants import FilterType, ResourceType
 from backend.flow.models import FlowTree
@@ -262,50 +263,13 @@ class QSearchHandler(object):
 
     def filter_machine(self, keyword_list: list):
         """过滤主机"""
-        bk_host_ids = [int(keyword) for keyword in keyword_list if isinstance(keyword, int) or keyword.isdigit()]
-        if self.filter_type == FilterType.EXACT.value:
-            qs = Q(ip__in=keyword_list)
-            if bk_host_ids:
-                qs = qs | Q(bk_host_id__in=bk_host_ids)
-        else:
-            qs = Q()
-            for keyword in keyword_list:
-                qs |= Q(ip__contains=keyword)
+        qs = self.generate_filter_for_ip_port("ip", keyword_list)
+        objs = DirtyMachine.objects.filter(qs)[: self.limit]
+        machine_data = ListMachinePoolSerializer(objs, many=True).data
+        # 补充主机agent状态
+        ResourceQueryHelper.fill_agent_status(machine_data, fill_key="agent_status")
 
-        if self.bk_biz_ids:
-            qs = qs & Q(bk_biz_id__in=self.bk_biz_ids)
-
-        if self.db_types:
-            qs = qs & Q(cluster_type__in=self.cluster_types)
-
-        objs = Machine.objects.filter(qs).prefetch_related(
-            "storageinstance_set", "storageinstance_set__cluster", "proxyinstance_set", "proxyinstance_set__cluster"
-        )
-
-        # 解析cluster
-        machines = []
-        for obj in objs[: self.limit]:
-            machine = model_to_dict(
-                obj, ["bk_biz_id", "bk_host_id", "ip", "cluster_type", "spec_id", "bk_cloud_id", "bk_city"]
-            )
-
-            # 兼容实例未绑定集群的情况
-            cluster_info = None
-            for instances in [obj.storageinstance_set.all(), obj.proxyinstance_set.all()]:
-                if cluster_info:
-                    break
-                for inst in instances:
-                    if cluster_info:
-                        break
-                    for cluster in inst.cluster.all():
-                        cluster_info = {"cluster_id": cluster.id, "cluster_domain": cluster.immute_domain}
-
-            if cluster_info is None:
-                cluster_info = {"cluster_id": None, "cluster_domain": None}
-            machine.update(cluster_info)
-            machines.append(machine)
-
-        return machines
+        return machine_data
 
     def filter_ticket(self, keyword_list: list):
         """过滤单据，单号为递增数字，采用startswith过滤"""
@@ -332,6 +296,3 @@ class QSearchHandler(object):
         for ticket in results:
             ticket["ticket_type_display"] = TicketType.get_choice_label(ticket["ticket_type"])
         return results
-
-    def filter_resource_pool(self, keyword_list: list):
-        return ResourceHandler().resource_list({"hosts": keyword_list, "limit": self.limit, "offset": 0})["results"]
