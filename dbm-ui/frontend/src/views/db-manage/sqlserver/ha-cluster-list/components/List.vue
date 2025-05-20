@@ -287,6 +287,7 @@
   const isShowClusterReset = ref(false);
   const currentData = ref<SqlServerHaModel>();
   const selected = ref<SqlServerHaModel[]>([]);
+  const tagSearchValue = ref<Record<string, any>>({});
 
   /** 集群授权 */
   const authorizeShow = ref(false);
