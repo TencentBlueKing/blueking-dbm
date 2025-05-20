@@ -100,6 +100,7 @@ class DBResourceViewSet(viewsets.SystemViewSet):
             "list_dba_hosts",
             "query_dba_hosts",
             "resource_import_urls",
+            "get_os_types",
         ): [],
     }
     default_permission_class = [ResourceActionPermission([ActionEnum.RESOURCE_MANAGE])]

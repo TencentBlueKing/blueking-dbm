@@ -46,7 +46,7 @@ logger = logging.getLogger("root")
 
 
 class DBPackageViewSet(viewsets.AuditedModelViewSet):
-    queryset = Package.objects.all()
+    queryset = Package.objects.all().order_by("-update_at")
     filter_class = PackageListFilter
     serializer_class = PackageSerializer
 
@@ -75,6 +75,7 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
     )
     def create(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
+        data["updater"] = request.user.username
         data.update(update_at=timezone.now())
         package, created = Package.objects.update_or_create(
             defaults=data,
