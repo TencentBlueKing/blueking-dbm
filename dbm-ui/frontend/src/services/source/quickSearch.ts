@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import DbResourceModel from '@services/model/db-resource/DbResource';
+import FaultOrRecycleMachineModel from '@services/model/db-resource/FaultOrRecycleMachine';
 import QuickSearchEntryModel from '@services/model/quiker-search/quick-search-entry';
 import QuickSearchInstanceModel from '@services/model/quiker-search/quick-search-instance';
 import TaskFlowModel from '@services/model/taskflow/taskflow';
@@ -38,7 +38,7 @@ export function quickSearch(params: {
       entry: QuickSearchEntryModel[];
       instance: QuickSearchInstanceModel[];
       keyword: string;
-      resource_pool: DbResourceModel[];
+      machine: FaultOrRecycleMachineModel[];
       short_code: string;
       task: TaskFlowModel[];
       ticket: TicketModel<unknown>[];
@@ -47,7 +47,7 @@ export function quickSearch(params: {
       ...res,
       entry: (res.entry || []).map((item) => new QuickSearchEntryModel(item)),
       instance: (res.instance || []).map((item) => new QuickSearchInstanceModel(item)),
-      resource_pool: (res.resource_pool || []).map((item) => new DbResourceModel(item)),
+      machine: (res.machine || []).map((item) => new FaultOrRecycleMachineModel(item)),
       task: (res.task || []).map((item) => new TaskFlowModel(item)),
       ticket: (res.ticket || []).map((item) => new TicketModel(item)),
     }));

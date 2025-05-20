@@ -10,14 +10,14 @@
           :key-word="keyWord"
           :text="item.ip" />
       </div>
-      <div class="biz-text">
-        {{ t('资源池') }}
-      </div>
+      <!-- <div class="biz-text">
+        {{ t('主机') }}
+      </div> -->
     </div>
   </div>
 </template>
 <script setup lang="ts">
-  import { useI18n } from 'vue-i18n';
+  // import { useI18n } from 'vue-i18n';
 
   import { useLocation } from '@hooks';
 
@@ -34,19 +34,16 @@
 
   defineProps<Props>();
 
-  const { t } = useI18n();
+  // const { t } = useI18n();
   const location = useLocation();
 
   const handleGo = (data: Props['data'][number]) => {
     systemSearchCache.appendItem(data.ip);
 
     location({
-      name: 'resourcePool',
-      params: {
-        page: 'host-list',
-      },
+      name: 'allHost',
       query: {
-        hosts: data.ip,
+        ips: data.ip,
       },
     });
   };

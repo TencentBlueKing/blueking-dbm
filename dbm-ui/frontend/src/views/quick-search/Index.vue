@@ -13,6 +13,7 @@
           <SearchInput
             v-model="keyword"
             v-model:filter-type="formData.filter_type"
+            :form-data="formData"
             @search="handleSearch" />
         </div>
         <BkTab
@@ -79,7 +80,7 @@
 
   import Entry from './components/Entry.vue';
   import Instance from './components/Instance.vue';
-  import ResourcePool from './components/ResourcePool.vue';
+  import Machine from './components/Machine.vue';
   import SearchInput from './components/SearchInput.vue';
   import Task from './components/Task.vue';
   import Ticket from './components/Ticket.vue';
@@ -100,7 +101,7 @@
   const comMap = {
     entry: Entry,
     instance: Instance,
-    resource_pool: ResourcePool,
+    machine: Machine,
     task: Task,
     ticket: Ticket,
   };
@@ -115,7 +116,7 @@
   const dataMap = ref<Omit<ServiceReturnType<typeof quickSearch>, 'keyword' | 'short_code'>>({
     entry: [],
     instance: [],
-    resource_pool: [],
+    machine: [],
     task: [],
     ticket: [],
   });
@@ -140,6 +141,11 @@
     },
     {
       count: 0,
+      label: t('主机'),
+      name: 'machine',
+    },
+    {
+      count: 0,
       label: t('历史任务'),
       name: 'task',
     },
@@ -147,11 +153,6 @@
       count: 0,
       label: t('单据'),
       name: 'ticket',
-    },
-    {
-      count: 0,
-      label: t('主机（资源池、故障池、待回收池）'),
-      name: 'resource_pool',
     },
   ]);
 
@@ -198,15 +199,15 @@
       Object.assign(dataMap.value, {
         entry: data.entry,
         instance: data.instance,
-        resource_pool: data.resource_pool,
+        machine: data.machine,
         task: data.task,
         ticket: data.ticket,
       });
       panelList[0].count = data.entry.length;
       panelList[1].count = data.instance.length;
-      panelList[2].count = data.task.length;
-      panelList[3].count = data.ticket.length;
-      panelList[4].count = data.resource_pool.length;
+      panelList[2].count = data.machine.length;
+      panelList[3].count = data.task.length;
+      panelList[4].count = data.ticket.length;
 
       const panelItem = panelList.find((panel) => panel.count > 0);
       if (panelItem) {
