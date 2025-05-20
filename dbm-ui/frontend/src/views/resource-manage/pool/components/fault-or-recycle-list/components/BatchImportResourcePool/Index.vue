@@ -74,7 +74,7 @@
   const systemEnvironStore = useSystemEnviron();
 
   const formPanelRef = useTemplateRef('formPanelRef');
-  const { successMessage, tooltip } = useImportResourcePoolTooltip(hostList);
+  const { successMessage, tooltip } = useImportResourcePoolTooltip({ hostList });
 
   const width = Math.ceil(window.innerWidth * 0.8);
   const contentHeight = Math.ceil(window.innerHeight * 0.8 - 48);

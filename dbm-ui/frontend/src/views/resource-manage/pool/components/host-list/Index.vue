@@ -196,7 +196,7 @@
   import useTableSetting from './hooks/useTableSetting';
 
   interface Props {
-    type: ResourcePool;
+    type?: ResourcePool;
   }
 
   const props = withDefaults(defineProps<Props>(), {
