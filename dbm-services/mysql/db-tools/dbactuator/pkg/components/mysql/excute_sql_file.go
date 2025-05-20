@@ -238,7 +238,7 @@ func readFile(file string) (content []byte, err error) {
 	for scanner.Scan() {
 		line := scanner.Text()
 		trimmed := strings.TrimSpace(line)
-		if trimmed == "" || strings.HasPrefix(trimmed, "/*") || strings.HasPrefix(trimmed, "--") {
+		if trimmed == "" || strings.HasPrefix(trimmed, "/*!") || strings.HasPrefix(trimmed, "--") {
 			continue
 		}
 		filtered = append(filtered, line)

@@ -248,7 +248,7 @@ func (i *InstallMySQLComp) InitDefaultParam() (err error) {
 		// 如果 loose_log_bin_compress 与 log_bin_compress 都存在，则以 log_bin_compress 为准
 		// 将 loose_log_bin_compress 设置为 log_bin_compress 的值，并删除 log_bin_compress
 		for looseKey, _ := range mycnf.Mysqld {
-			//looseKey = strings.Replace(looseKey, "-", "_", -1)
+			// looseKey = strings.Replace(looseKey, "-", "_", -1)
 			if strings.HasPrefix(looseKey, "mysqld.loose_") {
 				key := strings.Replace(looseKey, "mysqld.loose_", "mysqld.", 1)
 				if cnftpl.Cfg.Section("mysqld").HasKey(key) {
@@ -815,9 +815,9 @@ func (i *InstallMySQLComp) RegisterOtherEngine() (err error) {
 		if err = comp.Init(); err != nil {
 			return err
 		}
-		if err = comp.ReWriteMyCnf(); err != nil {
-			return err
-		}
+		// if err = comp.ReWriteMyCnf(); err != nil {
+		// 	return err
+		// }
 		if err = comp.Install(); err != nil {
 			return err
 		}
