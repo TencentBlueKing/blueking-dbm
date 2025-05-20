@@ -192,6 +192,7 @@ export function dbConsole(params: {
     bk_cloud_id: number;
     instance: string;
   }[];
+  is_proxy?: boolean;
 }) {
   return http.post<
     {

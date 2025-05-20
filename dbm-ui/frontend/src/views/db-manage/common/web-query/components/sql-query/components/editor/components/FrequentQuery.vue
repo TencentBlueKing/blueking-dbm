@@ -10,7 +10,7 @@
         @enter="handleSearch" />
     </div>
     <div class="query-list-wraper">
-      <ScrollFaker>
+      <ScrollFaker theme="dark">
         <div class="query-list">
           <div
             v-for="(item, index) in recordList"
@@ -35,6 +35,7 @@
 
   interface Props {
     dbType?: DBTypes;
+    isProxy?: boolean;
   }
 
   type Emits = (e: 'chooseSql', sql: string) => void;
@@ -43,6 +44,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     dbType: DBTypes.MYSQL,
+    isProxy: false,
   });
 
   const emits = defineEmits<Emits>();
@@ -52,17 +54,26 @@
   const searchValue = ref('');
   const recordList = shallowRef<IDataRow[]>([]);
 
-  useRequest(getCommonSqls, {
-    defaultParams: [
-      {
-        db_type: props.dbType,
-      },
-    ],
+  const { run: fetchCommonSqls } = useRequest(getCommonSqls, {
+    manual: true,
     onSuccess(data) {
       recordListRaw = data;
       recordList.value = data;
     },
   });
+
+  watch(
+    () => [props.dbType, props.isProxy],
+    () => {
+      fetchCommonSqls({
+        db_type: props.dbType,
+        is_proxy: props.isProxy,
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleChooseRecord = (sql: string) => {
     emits('chooseSql', sql);

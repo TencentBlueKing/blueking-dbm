@@ -52,6 +52,7 @@
         <FrequentQuery
           v-if="currentOperation === 'query'"
           :db-type="dbType"
+          :is-proxy="isProxy"
           @choose-sql="handleChooseSql" />
         <MyCollection
           v-if="currentOperation === 'collect'"
@@ -133,6 +134,7 @@
     hideMyCollection?: boolean;
     isExecutDisabled?: boolean;
     isExecutLoading?: boolean;
+    isProxy?: boolean;
     readOnly?: boolean;
   }
 
@@ -147,6 +149,7 @@
     hideMyCollection: false,
     isExecutDisabled: false,
     isExecutLoading: false,
+    isProxy: false,
     readOnly: false,
   });
 

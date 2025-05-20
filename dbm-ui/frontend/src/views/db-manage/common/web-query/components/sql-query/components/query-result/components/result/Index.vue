@@ -161,7 +161,7 @@
     () => props.data,
     () => {
       if (props.data.length) {
-        const firstValidTableData = props.data.find((item) => !!item.table_data);
+        const firstValidTableData = props.data.find((item) => !!item.table_data && item.table_data.length);
         if (firstValidTableData) {
           const dataKeys = Object.keys(firstValidTableData.table_data[0]).map((key) => ({
             field: key,
