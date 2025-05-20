@@ -33,7 +33,7 @@
       :placeholder="t('请输入如: 192.168.10.2:1000')"
       @change="handleInputChange" />
   </EditableColumn>
-  <GlobalInstanceSelector
+  <ClusterResourceSelector
     v-model:is-show="showSelector"
     v-model:selected="dataList"
     :cluster-type="[ClusterTypes.TENDBHA]"
@@ -49,9 +49,9 @@
   import { ClusterTypes, DBTypes } from '@common/const';
   import { ipPort } from '@common/regex';
 
-  import GlobalInstanceSelector, { type InstanceItem } from '@components/global-instance-selector/Index.vue';
+  import ClusterResourceSelector, { type Item } from '@components/cluster-resource-selector/Index.vue';
 
-  export type IValue = InstanceItem;
+  export type IValue = Item;
 
   interface Props {
     selected: (typeof modelValue.value)[];

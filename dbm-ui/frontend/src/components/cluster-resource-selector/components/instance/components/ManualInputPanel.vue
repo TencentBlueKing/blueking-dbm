@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="global-instance-selector-manual-input">
+  <div class="cluster-resource-selector-manual-input">
     <BkInput
       ref="inputRef"
       v-model.trim="inputState.values"
@@ -209,7 +209,7 @@
 </script>
 
 <style lang="less">
-  .global-instance-selector-manual-input {
+  .cluster-resource-selector-manual-input {
     height: 570px;
     padding: 0 16px;
 

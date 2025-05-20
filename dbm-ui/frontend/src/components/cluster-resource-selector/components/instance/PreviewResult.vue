@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="global-instance-selector-preview-result">
+  <div class="cluster-resource-selector-preview-result">
     <div class="header">
       <span>{{ t('结果预览') }}</span>
       <BkDropdown class="result-dropdown">
@@ -74,34 +74,26 @@
 
   import { execCopy, messageWarn } from '@utils';
 
-  import CollapseMini from './CollapseMini.vue';
+  import CollapseMini from '../common/CollapseMini.vue';
 
-  type IValue = ServiceReturnType<typeof getGlobalInstance>['results'][0];
+  export type IValue = ServiceReturnType<typeof getGlobalInstance>['results'][0];
 
-  interface Props {
-    selected: IValue[];
-  }
-
-  type Emits = (e: 'change', value: Props['selected']) => void;
-
-  const props = defineProps<Props>();
-  const emits = defineEmits<Emits>();
+  const selected = defineModel<IValue[]>('selected', {
+    required: true,
+  });
 
   const { t } = useI18n();
   const { getBizInfoById } = useGlobalBizs();
 
-  const groupByBiz = computed(() => _.groupBy([...props.selected], 'bk_biz_id'));
-  const isEmpty = computed(() => props.selected.length === 0);
+  const groupByBiz = computed(() => _.groupBy([...selected.value], 'bk_biz_id'));
+  const isEmpty = computed(() => selected.value.length === 0);
 
   const handleClear = () => {
-    emits('change', []);
+    selected.value = [];
   };
 
   const handleRemove = (item: IValue) => {
-    emits(
-      'change',
-      props.selected.filter((cur) => cur.instance_address !== item.instance_address),
-    );
+    selected.value = selected.value.filter((cur) => cur.instance_address !== item.instance_address);
   };
 
   const handleCopy = () => {
@@ -110,12 +102,12 @@
       return;
     }
 
-    const copyData = props.selected.map((item) => item.instance_address);
+    const copyData = selected.value.map((item) => item.instance_address);
     execCopy(copyData.join('\n'), t('复制成功，共n条', { n: copyData.length }));
   };
 </script>
 <style lang="less">
-  .global-instance-selector-preview-result {
+  .cluster-resource-selector-preview-result {
     display: flex;
     height: 100%;
     max-height: 625px;

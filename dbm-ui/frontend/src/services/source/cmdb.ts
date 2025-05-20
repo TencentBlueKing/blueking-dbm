@@ -134,7 +134,7 @@ export function createAppAbbr(params: { db_app_abbr: string; id: number }) {
 export const getBizModuleTopoTree = (params: {
   bk_biz_name?: string;
   cluster_type: string; // 逗号分隔
-  count_type?: 'cluster' | 'instance'; // 以cluster/instance为维度 统计业务模块对应的数量信息
+  count_type?: string; // 以cluster/instance为维度 统计业务模块对应的数量信息
   limit?: number;
   module_name?: string;
   offset?: number;

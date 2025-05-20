@@ -13,7 +13,7 @@
 
 <template>
   <BkLoading
-    class="global-instance-selector-topo-tree"
+    class="cluster-resource-selector-topo-tree"
     :loading="loading">
     <BkInput
       v-model="treeSearch"
@@ -100,7 +100,7 @@
     defaultParams: [
       {
         cluster_type: props.params.cluster_type,
-        count_type: 'instance',
+        count_type: props.params.count_type,
         role: props.params.role,
       },
     ],
@@ -185,7 +185,7 @@
   };
 </script>
 <style lang="less">
-  .global-instance-selector-topo-tree {
+  .cluster-resource-selector-topo-tree {
     height: 570px;
     padding: 0 16px;
 
