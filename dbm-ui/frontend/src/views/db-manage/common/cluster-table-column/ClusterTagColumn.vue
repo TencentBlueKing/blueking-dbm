@@ -4,7 +4,7 @@
     :label="t('标签')"
     :width="200">
     <template #default="{ data }: { data: IRowData }">
-      <ClusterTagCell
+      <ClusterTag
         :data="data"
         mode="vertical"
         @success="handleOperateSuccess" />
@@ -14,7 +14,8 @@
 <script setup lang="ts" generic="T extends ISupportClusterType">
   import { useI18n } from 'vue-i18n';
 
-  import ClusterTagCell from './components/cluster-tag-cell/Index.vue';
+  import ClusterTag from '@components/cluster-tag/index.vue';
+
   import type { ClusterModel, ISupportClusterType } from './types';
 
   export interface Props {
