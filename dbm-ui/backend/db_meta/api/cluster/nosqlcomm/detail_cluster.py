@@ -26,12 +26,16 @@ def scan_cluster(cluster: Cluster) -> Graphic:
     """
     graph = Graphic(node_id=Graphic.generate_graphic_id(cluster))
 
-    for tr in StorageInstanceTuple.objects.prefetch_related(
-        "ejector__cluster",
-        "receiver__cluster",
-        "ejector__machine",
-        "receiver__machine",
-    ).filter(receiver__cluster=cluster, ejector__cluster=cluster):
+    for tr in (
+        StorageInstanceTuple.objects.prefetch_related(
+            "ejector__cluster",
+            "receiver__cluster",
+            "ejector__machine",
+            "receiver__machine",
+        )
+        .filter(receiver__cluster=cluster, ejector__cluster=cluster)
+        .order_by("-create_at")
+    ):
         ejector_instance = tr.ejector
         receiver_instance = tr.receiver
         ejector_instance_node, ejector_instance_group = graph.add_node(ejector_instance)

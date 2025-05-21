@@ -110,8 +110,14 @@ class RedisListRetrieveResource(query.ListRetrieveResource):
             "instance", "seg_range"
         )
         seg_range_map = {t[0]: t[1] for t in seg_ranges}
+        # 获取实例的主从对应关系元组列表
+        instance_tuple = (
+            StorageInstanceTuple.objects.filter(ejector__in=storage_ids)
+            .order_by("-create_at")
+            .values_list("ejector", "receiver")
+        )
         # 获取实例id对应的分片信息
-        for t in StorageInstanceTuple.objects.filter(ejector__in=storage_ids).values_list("ejector", "receiver"):
+        for t in instance_tuple:
             if t[0] in seg_range_map:
                 seg_range_map[t[1]] = seg_range_map[t[0]]
         return super()._filter_cluster_hook(
@@ -122,6 +128,7 @@ class RedisListRetrieveResource(query.ListRetrieveResource):
             limit,
             offset,
             seg_range_map=seg_range_map,
+            instance_tuple=list(instance_tuple),
             **kwargs,
         )
 
@@ -140,18 +147,31 @@ class RedisListRetrieveResource(query.ListRetrieveResource):
     ) -> Dict[str, Any]:
         """集群序列化"""
         seg_range_map = kwargs["seg_range_map"]
-
+        instance_tuple = kwargs["instance_tuple"]
         # 填充分片信息
         remote_infos = {InstanceRole.REDIS_MASTER.value: [], InstanceRole.REDIS_SLAVE.value: []}
         for inst in cluster.storages:
             seg_range = seg_range_map.get(inst.id, "")
-            remote_infos[inst.instance_role].append({**inst.simple_desc, "seg_range": seg_range})
+            remote_infos[inst.instance_role].append({**inst.simple_desc, "seg_range": seg_range, "id": inst.id})
 
         # 对 master 和 slave 的 seg_range 进行排序
         machine_list = []
         for role in [InstanceRole.REDIS_MASTER.value, InstanceRole.REDIS_SLAVE.value]:
             remote_infos[role].sort(key=lambda x: int(x["seg_range"].split("-")[0]) if x["seg_range"] else -1)
             machine_list.extend([inst["bk_host_id"] for inst in remote_infos[role]])
+
+        # 集群类型Tendisplus、RedisCluster无分片信息 需特殊处理主从对应关系
+        if cluster.cluster_type in [ClusterType.TendisPredixyRedisCluster, ClusterType.TendisPredixyTendisplusCluster]:
+            result = {InstanceRole.REDIS_MASTER.value: [], InstanceRole.REDIS_SLAVE.value: []}
+            master_index = {master["id"]: master for master in remote_infos[InstanceRole.REDIS_MASTER.value]}
+            slave_index = {slave["id"]: slave for slave in remote_infos[InstanceRole.REDIS_SLAVE.value]}
+
+            for master_id, slave_id in instance_tuple:
+                if master_id in master_index:
+                    result[InstanceRole.REDIS_MASTER.value].append(master_index[master_id])
+                if slave_id in slave_index:
+                    result[InstanceRole.REDIS_SLAVE.value].append(slave_index[slave_id])
+            remote_infos = result
 
         machine_list = list(set(machine_list))
         machine_pair_cnt = len(machine_list) / 2
