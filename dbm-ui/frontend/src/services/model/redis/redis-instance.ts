@@ -13,7 +13,6 @@
 
 import type { HostInfo, InstanceListSpecConfig, InstanceRelatedCluster } from '@services/types';
 
-import { ClusterTypes } from '@common/const';
 import { type ClusterInstStatus, clusterInstStatus } from '@common/const';
 
 import { isRecentDays, utcDisplayTime } from '@utils';
@@ -29,7 +28,7 @@ export default class RedisInstance {
   bk_svr_device_cls_name: string;
   cluster_id: number;
   cluster_name: string;
-  cluster_type: ClusterTypes;
+  cluster_type: string;
   cluster_type_name: string;
   create_at: string;
   db_module_id: number;
