@@ -1,6 +1,10 @@
 <template>
   <div class="system-serach-box">
-    <div class="result-list">
+    <div
+      v-bkloading="{
+        loading: quickSearchLoading,
+      }"
+      class="result-list">
       <slot>
         <BkAlert
           v-if="showAlert"
@@ -77,8 +81,12 @@
   import useKeyboard from './hooks/use-keyboard';
   import RenderResult from './render-result/Index.vue';
 
+  type ResultKeys = keyof Omit<ServiceReturnType<typeof quickSearch>, 'keyword' | 'short_code'>;
+
   interface Props {
     filterType: string;
+    // eslint-disable-next-line vue/require-default-prop
+    getSearchOptions?: () => UnwrapRef<typeof formData>;
     showOptions?: boolean;
   }
 
@@ -103,10 +111,10 @@
 
   const QUICK_SEARCH_NO_LONGER_PROMPT = 'QUICK_SEARCH_NO_LONGER_PROMPT';
 
-  const resultTypeTextMap: Record<string, string> = {
+  const resultTypeTextMap: Record<ResultKeys, string> = {
     entry: t('访问入口'),
     instance: t('实例（IP、IP:Port）'),
-    resource_pool: t('主机（资源池、故障池、待回收池）'),
+    machine: t('主机'),
     task: t('任务ID'),
     ticket: t('单据'),
   };
@@ -129,7 +137,9 @@
     if (!serachResult.value) {
       return [];
     }
-    return Object.keys(serachResult.value) as (keyof typeof serachResult.value)[];
+    return Object.keys(serachResult.value).filter(
+      (keyItem) => !['keyword', 'short_code'].includes(keyItem),
+    ) as ResultKeys[];
   });
 
   const showAlert = computed(() => showUnsubscribeButton.value && !firstSearch.value && !isDataEmpty.value);
@@ -139,7 +149,11 @@
     return _.every(Object.values(dataItemList), (item) => item.length < 1);
   });
 
-  const { data: serachResult, run: handleSerach } = useRequest(quickSearch, {
+  const {
+    data: serachResult,
+    loading: quickSearchLoading,
+    run: handleSerach,
+  } = useRequest(quickSearch, {
     manual: true,
     onSuccess(data) {
       const dataItemList = Object.values(data).filter((item) => Array.isArray(item));
@@ -166,10 +180,17 @@
         return;
       }
 
-      handleSerachDebounce({
-        ...formData.value,
-        keyword: modelValue.value.replace(batchSplitRegex, ' '),
-      });
+      if (props.getSearchOptions) {
+        handleSerachDebounce({
+          ...props.getSearchOptions(),
+          keyword: modelValue.value.replace(batchSplitRegex, ' '),
+        });
+      } else {
+        handleSerachDebounce({
+          ...formData.value,
+          keyword: modelValue.value.replace(batchSplitRegex, ' '),
+        });
+      }
     },
     {
       deep: true,
