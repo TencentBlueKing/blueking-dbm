@@ -31,15 +31,15 @@
       <template #main>
         <PanelTab
           v-model="activeTab"
-          :panel-list="panels" />
+          :target="target" />
         <Component
-          :is="config.mainComponent"
+          :is="mainComponent[activeTab]"
           v-model:selected="selected"
           :params="params" />
       </template>
       <template #aside>
         <Component
-          :is="config.asideComponent"
+          :is="asideComponent[target]"
           v-model:selected="selected" />
       </template>
     </BkResizeLayout>
@@ -96,30 +96,16 @@
 
   const { t } = useI18n();
 
-  const activeTab = ref<string>('');
-
-  const panelConfig = {
-    instance: {
-      asideComponent: InstancePreviewResult,
-      id: 'instance',
-      mainComponent: InstanceTopoSelect,
-      name: t('选择实例'),
-    },
-    'instance-manual': {
-      asideComponent: InstancePreviewResult,
-      id: 'instance-manual',
-      mainComponent: InstanceManualInput,
-      name: t('手动输入'),
-    },
-    // 'machine': {
-    //   id: 'topo-machine',
-    //   name: t('选择主机'),
-    // },
+  const mainComponent = {
+    instance: InstanceTopoSelect,
+    'instance-manual': InstanceManualInput,
   };
 
-  const panels = computed(() => [panelConfig[props.target], panelConfig[`${props.target}-manual`]]);
+  const asideComponent = {
+    instance: InstancePreviewResult,
+  };
 
-  const config = computed(() => panelConfig[activeTab.value as keyof typeof panelConfig]);
+  const activeTab = ref<keyof typeof mainComponent>('instance');
 
   const params = computed(() => ({
     cluster_type: props.clusterType.join(','),
@@ -130,7 +116,7 @@
 
   watch(isShow, () => {
     if (isShow.value) {
-      activeTab.value = panels.value[0].id;
+      activeTab.value = props.target;
     }
   });
 
