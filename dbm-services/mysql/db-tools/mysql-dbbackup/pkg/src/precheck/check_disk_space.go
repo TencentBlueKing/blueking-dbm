@@ -53,7 +53,10 @@ func DeleteOldBackup(cnf *config.Public, expireDays int) error {
 
 	for _, fi := range dir {
 		fileMatchOld := fmt.Sprintf("%s_%s", hostName, cnf.MysqlHost)
-		fileMatch := fmt.Sprintf("_%d_%s", cnf.ClusterId, cnf.MysqlHost) // cnf.BkBizId 转业务了历史的也要删除
+		// 这里安装实例来删，还是安装主机来删，有争议
+		// 按照主机来删，可能会把刚备份出来的另外一个实例备份给删掉，释放的空间多，能提高下一个实例的成功率
+		// 按照实例来删，逻辑上更合理，但可能删除的空间小，下一个实例可能失败
+		fileMatch := fmt.Sprintf("_%s_%d_", cnf.MysqlHost, cnf.MysqlPort)
 		if fi.ModTime().Compare(expireTime) <= 0 {
 			if strings.Contains(fi.Name(), fileMatch) || strings.Contains(fi.Name(), fileMatchOld) {
 				fileName := filepath.Join(cnf.BackupDir, fi.Name())
