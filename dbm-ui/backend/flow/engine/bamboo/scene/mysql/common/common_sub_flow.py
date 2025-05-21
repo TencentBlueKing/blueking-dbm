@@ -979,13 +979,27 @@ def authorize_sub_flow_v2(root_id: str, uid: str, bk_biz_id: int, operator: str,
     # 获得用户规则字典
     db_type = ClusterType.cluster_type_to_db_type(rules_set[0]["cluster_type"])
     user_db_rules_map = AccountHandler.aggregate_user_db_rules(bk_biz_id, db_type, rule_key="")
-    # 构造授权并行网关流程
-    act_lists = []
+    # act_lists = []
     for authorize_data in rules_set:
-        act = {
-            "act_name": _("{} 进行授权".format(authorize_data["user"])),
-            "act_component_code": AuthorizeRulesV2Component.code,
-            "kwargs": asdict(
+        # act = {
+        #     "act_name": _("{} 进行授权".format(authorize_data["user"])),
+        #     "act_component_code": AuthorizeRulesV2Component.code,
+        #     "kwargs": asdict(
+        #         AuthorizeKwargs(
+        #             uid=uid,
+        #             root_id=root_id,
+        #             bk_biz_id=bk_biz_id,
+        #             operator=operator,
+        #             db_type=db_type,
+        #             authorize_data=authorize_data,
+        #             user_db_rules_map=dict(user_db_rules_map),
+        #         )
+        #     ),
+        # }
+        sub_pipeline.add_act(
+            act_name=_("{} 进行授权".format(authorize_data["user"])),
+            act_component_code=AuthorizeRulesV2Component.code,
+            kwargs=asdict(
                 AuthorizeKwargs(
                     uid=uid,
                     root_id=root_id,
@@ -996,7 +1010,8 @@ def authorize_sub_flow_v2(root_id: str, uid: str, bk_biz_id: int, operator: str,
                     user_db_rules_map=dict(user_db_rules_map),
                 )
             ),
-        }
-        act_lists.append(act)
-    sub_pipeline.add_parallel_acts(acts_list=act_lists)
+        )
+        # act_lists.append(act)
+
+    # sub_pipeline.add_parallel_acts(acts_list=act_lists)
     return sub_pipeline.build_sub_process(sub_name=_("授权执行"))
