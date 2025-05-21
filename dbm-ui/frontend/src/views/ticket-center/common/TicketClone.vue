@@ -131,6 +131,7 @@
     [TicketTypes.REDIS_DATA_STRUCTURE_TASK_DELETE]: 'RedisStructureInstance', // Redis 删除构造任务
     [TicketTypes.REDIS_DATACOPY_CHECK_REPAIR]: 'RedisToolboxDataCheckRepair', // Redis 数据校验修复
     [TicketTypes.REDIS_DESTROY]: 'DatabaseRedisList', // Redis 集群删除
+    [TicketTypes.REDIS_HOT_KEY_ANALYSIS]: TicketTypes.REDIS_HOT_KEY_ANALYSIS,
     [TicketTypes.REDIS_KEYS_DELETE]: TicketTypes.REDIS_KEYS_DELETE, // Redis 删除 key
     [TicketTypes.REDIS_KEYS_EXTRACT]: TicketTypes.REDIS_KEYS_EXTRACT, // Redis 提取 Key
     [TicketTypes.REDIS_MASTER_SLAVE_SWITCH]: 'RedisMasterFailover', // Redis 主从切换

@@ -141,6 +141,25 @@ export default [
       {
         children: [
           {
+            dbConsoleValue: 'redis.toolbox.hotKey',
+            id: TicketTypes.REDIS_HOT_KEY_ANALYSIS,
+            name: t('热 Key 分析'),
+            parentId: 'redis_data_query',
+          },
+          {
+            dbConsoleValue: 'redis.toolbox.hotKeyList',
+            id: 'RedisHotKeyList',
+            name: t('热 Key 分析报告'),
+            parentId: 'redis_data_query',
+          },
+        ],
+        icon: 'db-icon-search',
+        id: 'redis_analyse',
+        name: t('分析'),
+      },
+      {
+        children: [
+          {
             dbConsoleValue: 'redis.toolbox.queryAccessSource',
             id: 'RedisQueryAccessSource',
             name: t('查询访问来源'),

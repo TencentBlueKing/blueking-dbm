@@ -299,7 +299,7 @@
     });
   };
 
-  async function getMenuList(item: ISearchItem | undefined, keyword: string) {
+  const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
     if (item?.id !== 'created_by' && keyword) {
       return getMenuListSearch(item, keyword, searchData.value, searchValue.value);
     }
@@ -328,7 +328,7 @@
 
     // 不需要远层加载
     return searchData.value.find((set) => set.id === item.id)?.children || [];
-  }
+  };
 
   const handleClearSearch = () => {
     state.filter.daterange = ['', ''];
