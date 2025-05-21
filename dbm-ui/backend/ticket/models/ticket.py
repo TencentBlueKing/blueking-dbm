@@ -89,7 +89,8 @@ class Flow(models.Model):
 
     @property
     def flow_output_v2(self):
-        flow_output = self.context.get("__flow_output_v2", {})
+        context = self.context or {}
+        flow_output = context.get("__flow_output_v2", {})
         return flow_output
 
     def update_details(self, **kwargs):

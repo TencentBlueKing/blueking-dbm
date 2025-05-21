@@ -9,10 +9,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
-import operator
 from collections import defaultdict
 from datetime import datetime, timedelta
-from functools import reduce
 from typing import Any, Dict, List, Union
 
 from celery import shared_task
@@ -224,49 +222,53 @@ class TicketTask(object):
         now = datetime.now(timezone.utc)
         # 只考虑平台级别的过期配置，暂不考虑业务和集群粒度
         ticket_configs = TicketFlowsConfig.objects.filter(bk_biz_id=PLAT_BIZ_ID)
+        ticket_type__config = {config.ticket_type: config for config in ticket_configs}
 
-        def filter_tickets(filters, expire_type):
+        def filter_tickets(expire_type):
             ticket_ids = []
             # itsm: 审批中的流程
             if expire_type == TicketExpireType.ITSM:
-                filters &= Q(flow_type=FlowType.BK_ITSM, status=TicketFlowStatus.RUNNING)
+                filters = Q(flow_type=FlowType.BK_ITSM, status=TicketFlowStatus.RUNNING)
                 ticket_ids = list(Flow.objects.filter(filters).values_list("ticket", flat=True))
             # inner flow / pipeline: 失败的流程和pipeline暂停节点(防止重试)
             elif expire_type == TicketExpireType.INNER_FLOW:
-                f = filters & Q(flow_type=FlowType.INNER_FLOW, status=TicketFlowStatus.FAILED)
-                ticket_ids = list(Flow.objects.filter(f).values_list("ticket", flat=True))
-                f = filters & Q(type=TodoType.INNER_APPROVE, status__in=TODO_RUNNING_STATUS)
-                ticket_ids.extend(list(Todo.objects.filter(f).values_list("ticket", flat=True)))
+                filters = Q(flow_type=FlowType.INNER_FLOW, status=TicketFlowStatus.FAILED)
+                ticket_ids = list(Flow.objects.filter(filters).values_list("ticket", flat=True))
+
+                filters = Q(type=TodoType.INNER_APPROVE, status__in=TODO_RUNNING_STATUS)
+                ticket_ids.extend(list(Todo.objects.filter(filters).values_list("ticket", flat=True)))
             # flow-pause: 流程中的暂定节点
             elif expire_type == TicketExpireType.FLOW_TODO:
-                filters &= Q(type__in=[TodoType.APPROVE, TodoType.RESOURCE_REPLENISH], status__in=TODO_RUNNING_STATUS)
+                filters = Q(type__in=[TodoType.APPROVE, TodoType.RESOURCE_REPLENISH], status__in=TODO_RUNNING_STATUS)
                 ticket_ids = list(Todo.objects.filter(filters).values_list("ticket", flat=True))
 
             return ticket_ids
 
-        def get_expire_flow_tickets(expire_type):
+        def find_expire_flow_tickets(expire_type):
             """获取超时过期的单据"""
-            qs = []
-            for cnf in ticket_configs:
+            ticket_ids = filter_tickets(expire_type)
+            tickets = Ticket.objects.filter(id__in=ticket_ids).values("id", "ticket_type", "update_at")
+
+            for ticket in tickets:
+                if ticket["ticket_type"] not in ticket_type__config:
+                    continue
+                cnf = ticket_type__config[ticket["ticket_type"]]
                 expire = cnf.configs.get(FlowTypeConfig.EXPIRE_CONFIG, TICKET_EXPIRE_DEFAULT_CONFIG)[expire_type]
                 # -1表示无限制，不参与终止
-                if expire < 0:
-                    continue
-                qs.append(Q(update_at__lt=now - timedelta(days=expire), ticket__ticket_type=cnf.ticket_type))
+                if expire > 0 and ticket["update_at"] < now - timedelta(days=expire):
+                    expire_ticket_ids.append(ticket["id"])
 
-            # 如果设置为无限制过期，则不进行过滤
-            if not qs:
-                return []
-
-            ticket_ids = filter_tickets(reduce(operator.or_, qs), expire_type)
-            return ticket_ids
-
-        def remind_expire_tickets(expire_type):
+        def notify_expire_tickets(expire_type):
             """获取即将超时需要提醒的单据"""
+            ticket_ids = filter_tickets(expire_type)
+            tickets = Ticket.objects.filter(id__in=ticket_ids).values("id", "ticket_type", "update_at")
             deadline_hours = [3, 72]
+
             for hour in deadline_hours:
-                qs = []
-                for cnf in ticket_configs:
+                for ticket in tickets:
+                    if ticket["ticket_type"] not in ticket_type__config:
+                        continue
+                    cnf = ticket_type__config[ticket["ticket_type"]]
                     expire = cnf.configs.get(FlowTypeConfig.EXPIRE_CONFIG, TICKET_EXPIRE_DEFAULT_CONFIG)[expire_type]
                     # -1表示无限制，不参与提醒
                     if expire < 0:
@@ -275,25 +277,14 @@ class TicketTask(object):
                     # 即 terminate - hour - 1 <= now < terminate - hour; terminate = update_at + expire_days
                     st = now - timedelta(days=expire) + timedelta(hours=hour)
                     ed = now - timedelta(days=expire) + timedelta(hours=hour + 1)
-                    qs.append(Q(update_at__gte=st, update_at__lt=ed, ticket__ticket_type=cnf.ticket_type))
-
-                if not qs:
-                    continue
-
-                ticket_ids = filter_tickets(reduce(operator.or_, qs), expire_type)
-                for ticket_id in ticket_ids:
-                    notify.send_msg.apply_async(
-                        args=(
-                            ticket_id,
-                            hour,
-                        )
-                    )
+                    if st <= ticket["update_at"] < ed:
+                        notify.send_msg.apply_async(args=(ticket["id"], hour))
 
         # 根据超时保护类型，获取需要过期处理的单据
         expire_ticket_ids = []
         for expire_type in TicketExpireType.get_values():
-            expire_ticket_ids.extend(get_expire_flow_tickets(expire_type))
-            remind_expire_tickets(expire_type)
+            find_expire_flow_tickets(expire_type)
+            notify_expire_tickets(expire_type)
 
         # 终止单据
         TicketHandler.revoke_ticket(ticket_ids=expire_ticket_ids[:batch], operator=DEFAULT_SYSTEM_USER)
