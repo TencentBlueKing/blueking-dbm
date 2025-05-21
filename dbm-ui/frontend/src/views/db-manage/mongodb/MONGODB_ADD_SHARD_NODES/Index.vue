@@ -33,7 +33,6 @@
             :key="index">
             <ClusterWithRelatedClustersColumn
               v-model="item.cluster"
-              :cluster-types="[ClusterTypes.MONGO_REPLICA_SET, ClusterTypes.MONGO_SHARED_CLUSTER]"
               :selected="selected"
               @batch-edit="handleClusterBatchEdit" />
             <EditableColumn
