@@ -55,6 +55,7 @@
       v-if="isPopMenuShow"
       v-model="modelValue"
       :filter-type="filterType"
+      :get-search-options="getSearchOptions"
       :show-options="false"
       style="height: 506px">
       <SearchHistory
@@ -75,8 +76,18 @@
   import SearchHistory from '@components/system-search/components/SearchHistory.vue';
   import useKeyboard from '@components/system-search/hooks/useKeyboard';
 
+  interface Props {
+    formData: {
+      bk_biz_ids: number[];
+      db_types: string[];
+      filter_type: string;
+      resource_types: string[];
+    };
+  }
+
   type Emits = (e: 'search', value: string) => void;
 
+  const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
   const modelValue = defineModel<string>({
     default: '',
@@ -107,6 +118,8 @@
       }
     });
   });
+
+  const getSearchOptions = () => props.formData;
 
   const getTippyInsOffset = (): [number, number] => {
     const textareaList = rootRef.value!.getElementsByTagName('textarea');
@@ -165,7 +178,7 @@
   // 关闭弹层
   const handleOutClick = (event: MouseEvent) => {
     const eventPath = event.composedPath();
-    // esline-disable-next-lines @typescript-eslint/prefer-for-of
+    // eslint-disable-next-line @typescript-eslint/prefer-for-of
     for (let i = 0; i < eventPath.length; i++) {
       const target = eventPath[i] as HTMLElement;
       if (target.parentElement) {
