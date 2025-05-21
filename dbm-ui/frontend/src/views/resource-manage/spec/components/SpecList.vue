@@ -205,6 +205,7 @@
         minWidth: 400,
         render: ({ data }: { data: ResourceSpecModel }) => (
           <bk-popover
+            max-width={600}
             placement='top'
             popover-delay={[300, 0]}
             theme='light'
@@ -231,7 +232,7 @@
                       <strong>{t('机型')}: </strong>
                       <div class='resource-machine-info__values mb-10'>
                         {data.device_class.map((item) => (
-                          <bk-tag>{item}</bk-tag>
+                          <bk-tag class='mb-4'>{item}</bk-tag>
                         ))}
                       </div>
                     </>
@@ -241,7 +242,7 @@
                     {data.storage_spec.length > 0
                       ? data.storage_spec.map((item) => (
                           <p>
-                            <bk-tag>
+                            <bk-tag class='mb-4'>
                               {`(${t('挂载点')}: ${item.mount_point}, ${t('最小容量')}: ${item.size} G, ${item.type})`}
                             </bk-tag>
                           </p>
