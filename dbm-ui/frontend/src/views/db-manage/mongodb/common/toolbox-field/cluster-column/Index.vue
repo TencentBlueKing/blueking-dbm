@@ -23,7 +23,7 @@
       :key="clusterTypes.join(',')"
       v-model:is-show="isShowClusterSelector"
       :cluster-types="clusterTypes"
-      :selected="selected"
+      :selected="selectedClusters"
       :tab-list-config="tabListConfig"
       @change="handelClusterChange" />
   </EditableColumn>
@@ -36,27 +36,27 @@
   import MongodbModel from '@services/model/mongodb/mongodb';
   import { filterClusters } from '@services/source/dbbase';
 
+  import { ClusterTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
 
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
 
   interface Props {
-    clusterTypes: string[];
+    clusterTypes?: string[];
     field?: string;
     label?: string;
-    selected: Record<
-      string,
-      {
-        id: number;
-        master_domain: string;
-      }[]
-    >;
+    selected: {
+      cluster_type: string;
+      id: number;
+      master_domain: string;
+    }[];
     tabListConfig?: Record<string, TabConfig>;
   }
 
   type Emits = (e: 'batch-edit', value: MongodbModel[]) => void;
 
-  withDefaults(defineProps<Props>(), {
+  const props = withDefaults(defineProps<Props>(), {
+    clusterTypes: () => [ClusterTypes.MONGO_REPLICA_SET, ClusterTypes.MONGO_SHARED_CLUSTER],
     field: 'cluster.master_domain',
     label: '',
     tabListConfig: undefined,
@@ -80,9 +80,23 @@
       trigger: 'blur',
       validator: () => Boolean(modelValue.value.id),
     },
+    {
+      message: t('目标集群重复'),
+      trigger: 'blur',
+      validator: (value: string) => props.selected.filter((item) => item.master_domain === value).length < 2,
+    },
   ];
 
   const isShowClusterSelector = ref(false);
+
+  const selectedClusters = computed(() => ({
+    [ClusterTypes.MONGO_REPLICA_SET]: props.selected.filter(
+      (item) => item.cluster_type === ClusterTypes.MONGO_REPLICA_SET,
+    ) as MongodbModel[],
+    [ClusterTypes.MONGO_SHARED_CLUSTER]: props.selected.filter(
+      (item) => item.cluster_type === ClusterTypes.MONGO_SHARED_CLUSTER,
+    ) as MongodbModel[],
+  }));
 
   const { loading: isLoading, run: runFilterClusters } = useRequest(filterClusters<MongodbModel>, {
     manual: true,

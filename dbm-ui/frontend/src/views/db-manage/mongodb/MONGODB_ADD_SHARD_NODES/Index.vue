@@ -13,10 +13,11 @@
 
 <template>
   <SmartAction>
-    <div class="mongo-db-table-backup-page">
+    <div class="proxy-scale-down-page">
       <BkAlert
+        closable
         theme="info"
-        :title="t('库表备份：指定库表备份，支持模糊匹配')" />
+        :title="t('扩容Shard节点数：xxx')" />
       <DbForm
         ref="form"
         class="toolbox-form"
@@ -30,70 +31,39 @@
           <EditableRow
             v-for="(item, index) in formData.tableData"
             :key="index">
-            <ClusterColumn
+            <ClusterWithRelatedClustersColumn
               v-model="item.cluster"
               :selected="selected"
               @batch-edit="handleClusterBatchEdit" />
             <EditableColumn
-              field="cluster.cluster_type_name"
               :label="t('集群类型')"
-              :width="150">
+              :width="200">
               <EditableBlock
                 v-model="item.cluster.cluster_type_name"
                 :placeholder="t('输入集群后自动生成')" />
             </EditableColumn>
-            <DbNameColumn
-              v-model="item.db_patterns"
-              :cluster-id="item.cluster.id"
-              field="db_patterns"
-              :label="t('备份DB名')"
-              @batch-edit="handleDbTableBatchEdit" />
-            <DbNameColumn
-              v-model="item.ignore_dbs"
-              :cluster-id="item.cluster.id"
-              :compare-data="item.ignore_tables"
-              field="ignore_dbs"
-              :label="t('忽略 DB 名')"
-              :required="false"
-              @batch-edit="handleDbTableBatchEdit" />
-            <TableNameColumn
-              v-model="item.table_patterns"
-              field="table_patterns"
-              :label="t('备份表名')"
-              @batch-edit="handleDbTableBatchEdit" />
-            <TableNameColumn
-              v-model="item.ignore_tables"
-              :compare-data="item.ignore_dbs"
-              field="ignore_tables"
-              :label="t('忽略表名')"
-              :required="false"
-              @batch-edit="handleDbTableBatchEdit" />
+            <EditableColumn
+              :label="t('当前 Shard 的节点数')"
+              :width="200">
+              <EditableBlock
+                v-model="item.cluster.cluster_type_name"
+                :placeholder="t('输入集群后自动生成')">
+                {{ item.cluster.shard_node_count }}
+              </EditableBlock>
+            </EditableColumn>
+            <TargetNumColumn
+              v-model="item.target_num"
+              :disabled="!item.cluster.id"
+              :min="item.cluster.shard_node_count"
+              @batch-edit="handleBatchEdit" />
             <OperationColumn
               :create-row-method="createRowData"
               :table-data="formData.tableData" />
           </EditableRow>
         </EditableTable>
-        <BkFormItem
-          :label="t('备份保存时间')"
-          property="file_tag"
-          required>
-          <BkRadioGroup
-            v-model="formData.file_tag"
-            size="small">
-            <BkRadio label="normal_backup">
-              {{ t('25天') }}
-            </BkRadio>
-            <BkRadio label="half_year_backup">
-              {{ t('6个月') }}
-            </BkRadio>
-            <BkRadio label="a_year_backup">
-              {{ t('1年') }}
-            </BkRadio>
-            <BkRadio label="forever_backup">
-              {{ t('3年') }}
-            </BkRadio>
-          </BkRadioGroup>
-        </BkFormItem>
+        <IgnoreBiz
+          v-model="formData.is_ignore_business_access"
+          v-bk-tooltips="t('如忽略_有连接的情况下也会执行')" />
         <TicketPayload v-model="formData.payload" />
       </DbForm>
     </div>
@@ -110,7 +80,7 @@
         :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
         :title="t('确认重置页面')">
         <BkButton
-          class="ml8 w-88"
+          class="ml-8 w-88"
           :disabled="isSubmitting">
           {{ t('重置') }}
         </BkButton>
@@ -119,7 +89,7 @@
   </SmartAction>
 </template>
 
-<script setup lang="ts">
+<script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
   import MongodbModel from '@services/model/mongodb/mongodb';
@@ -127,26 +97,32 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
+  import IgnoreBiz from '@views/db-manage/common/toolbox-field/form-item/ignore-biz/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
-  import ClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/cluster-column/Index.vue';
-  import DbNameColumn from '@views/db-manage/mongodb/common/toolbox-field/db-name-column/Index.vue';
-  import TableNameColumn from '@views/db-manage/mongodb/common/toolbox-field/table-name-column/Index.vue';
+  import ClusterWithRelatedClustersColumn from '@views/db-manage/mongodb/common/toolbox-field/cluster-with-related-clusters-column/Index.vue';
 
-  interface IDataRow {
+  import TargetNumColumn from './components/TargetNumColumn.vue';
+
+  export interface IDataRow {
     cluster: {
       cluster_type: string;
       cluster_type_name: string;
       id: number;
+      machine_instance_num: number;
       master_domain: string;
+      mongodb: MongodbModel['mongos'];
+      related_clusters: {
+        domain: string;
+        id: number;
+      }[];
+      shard_node_count: number;
+      shard_num: number;
     };
-    db_patterns: string[];
-    ignore_dbs: string[];
-    ignore_tables: string[];
-    table_patterns: string[];
+    target_num: string;
   }
 
   const createRowData = (values = {} as Partial<IDataRow>) => ({
@@ -155,61 +131,64 @@
         cluster_type: '',
         cluster_type_name: '',
         id: 0,
+        machine_instance_num: 0,
         master_domain: '',
+        mongodb: [] as MongodbModel['mongos'],
+        related_clusters: [] as IDataRow['cluster']['related_clusters'],
+        shard_node_count: 0,
+        shard_num: 0,
       },
       values.cluster,
     ),
-    db_patterns: values.db_patterns || [],
-    ignore_dbs: values.ignore_dbs || [],
-    ignore_tables: values.ignore_tables || [],
-    table_patterns: values.table_patterns || [],
+    target_num: values.target_num || '',
   });
 
   const createDefaultFormData = () => ({
-    file_tag: 'normal_backup',
+    is_ignore_business_access: false,
     payload: createTickePayload(),
     tableData: [createRowData()],
   });
 
   const { t } = useI18n();
 
-  useTicketDetail<Mongodb.Backup>(TicketTypes.MONGODB_BACKUP, {
+  useTicketDetail<Mongodb.AddShardNodes>(TicketTypes.MONGODB_ADD_SHARD_NODES, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
-      const { clusters, file_tag: fileTag, infos } = details;
+      const { clusters, infos, is_safe: isSafe } = details;
+
       Object.assign(formData, {
-        file_tag: fileTag,
+        is_ignore_business_access: !isSafe,
         payload: createTickePayload(ticketDetail),
-        tableData: infos.map((item) =>
-          createRowData({
+        tableData: infos.map((item) => {
+          const clusterItem = clusters[item.cluster_ids[0]];
+          return createRowData({
             cluster: {
-              master_domain: clusters[item.cluster_ids[0]].immute_domain,
+              master_domain: clusterItem.immute_domain,
             } as IDataRow['cluster'],
-            db_patterns: item.ns_filter.db_patterns,
-            ignore_dbs: item.ns_filter.ignore_dbs,
-            ignore_tables: item.ns_filter.ignore_tables,
-            table_patterns: item.ns_filter.table_patterns,
-          }),
-        ),
+            target_num: `${item.current_shard_nodes_num + item.add_shard_nodes_num}`,
+          });
+        }),
       });
     },
   });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
-    file_tag: string;
     infos: {
+      add_shard_nodes_num: number; // 增加shard节点数
       cluster_ids: number[];
-      cluster_type: string;
-      ns_filter: {
-        db_patterns: string[];
-        ignore_dbs: string[];
-        ignore_tables: string[];
-        table_patterns: string[];
+      current_shard_nodes_num: number; // 当前shard节点数
+      node_replica_count: number; // 单机部署实例
+      resource_spec: {
+        shard_nodes: {
+          count: number; // 分片数 / 每台机器的实例数 * 增加的节点数
+          spec_id: number;
+        };
       };
+      shards_num: number; // 分片数
     }[];
-  }>(TicketTypes.MONGODB_BACKUP);
+    is_safe: boolean;
+  }>(TicketTypes.MONGODB_ADD_SHARD_NODES);
 
-  const formRef = useTemplateRef('form');
   const editableTableRef = useTemplateRef('editableTable');
 
   const formData = reactive(createDefaultFormData());
@@ -218,22 +197,32 @@
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
   const handleSubmit = async () => {
-    await formRef.value!.validate();
     const validateResult = await editableTableRef.value!.validate();
     if (validateResult) {
       createTicketRun({
         details: {
-          file_tag: formData.file_tag,
-          infos: formData.tableData.map((tableRow) => ({
-            cluster_ids: [tableRow.cluster.id],
-            cluster_type: tableRow.cluster.cluster_type,
-            ns_filter: {
-              db_patterns: tableRow.db_patterns,
-              ignore_dbs: tableRow.ignore_dbs,
-              ignore_tables: tableRow.ignore_tables,
-              table_patterns: tableRow.table_patterns,
-            },
-          })),
+          infos: formData.tableData.map((tableRow) => {
+            const cluster = tableRow.cluster as Required<IDataRow['cluster']>;
+            const targerNum = tableRow.target_num!;
+            return {
+              add_shard_nodes_num: Number(targerNum) - cluster.shard_node_count, // 增加shard节点数
+              cluster_ids:
+                cluster.cluster_type === ClusterTypes.MONGO_REPLICA_SET
+                  ? [cluster.id, ...cluster.related_clusters.map((relatedItem) => relatedItem.id)]
+                  : [cluster.id],
+              current_shard_nodes_num: cluster.shard_node_count, // 当前shard节点数
+              node_replica_count: cluster.machine_instance_num, // 单机部署实例
+              resource_spec: {
+                shard_nodes: {
+                  count:
+                    (cluster.shard_num / cluster.machine_instance_num) * (Number(targerNum) - cluster.shard_node_count), // 分片数 / 每台机器的实例数 * 增加的节点数
+                  spec_id: cluster.mongodb[0].spec_config.id,
+                },
+              },
+              shards_num: cluster.shard_num, // 分片数
+            };
+          }),
+          is_safe: !formData.is_ignore_business_access,
         },
         ...formData.payload,
       });
@@ -250,22 +239,27 @@
               cluster_type: item.cluster_type,
               cluster_type_name: item.cluster_type_name,
               id: item.id,
+              machine_instance_num: item.machine_instance_num,
               master_domain: item.master_domain,
+              mongodb: item.mongodb,
+              related_clusters: [],
+              shard_node_count: item.shard_node_count,
+              shard_num: item.shard_num,
             },
           }),
         );
       }
     });
-
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...newList];
     window.changeConfirm = true;
   };
 
-  const handleDbTableBatchEdit = (value: string[], field: string) => {
+  const handleBatchEdit = (value: string | string[], field: string) => {
     formData.tableData.forEach((item) => {
-      Object.assign(item, { [field]: value });
+      Object.assign(item, {
+        [field]: value,
+      });
     });
-    window.changeConfirm = true;
   };
 
   const handleReset = () => {
@@ -275,7 +269,22 @@
 </script>
 
 <style lang="less" scoped>
-  .mongo-db-table-backup-page {
+  .proxy-scale-down-page {
     padding-bottom: 20px;
+
+    .page-action-box {
+      display: flex;
+      align-items: center;
+      margin-top: 16px;
+
+      .safe-action {
+        margin-left: auto;
+
+        .safe-action-text {
+          padding-bottom: 2px;
+          border-bottom: 1px dashed #979ba5;
+        }
+      }
+    }
   }
 </style>

@@ -76,7 +76,13 @@
    */
   const ticketTypeRouteNameMap: Record<string, string> = {
     ...resourcePoolTickets,
+    [TicketTypes.MONGODB_ADD_MONGOS]: TicketTypes.MONGODB_ADD_MONGOS, // mongodb 扩容接入层
+    [TicketTypes.MONGODB_ADD_SHARD_NODES]: TicketTypes.MONGODB_ADD_SHARD_NODES, // 扩容 Shard 节点数
+    [TicketTypes.MONGODB_BACKUP]: TicketTypes.MONGODB_BACKUP, // mongodb 库表备份
+    [TicketTypes.MONGODB_FULL_BACKUP]: TicketTypes.MONGODB_FULL_BACKUP, // mongodb 全库备份
     [TicketTypes.MONGODB_PITR_RESTORE]: TicketTypes.MONGODB_PITR_RESTORE, // mongo 定点构造
+    [TicketTypes.MONGODB_REDUCE_SHARD_NODES]: TicketTypes.MONGODB_REDUCE_SHARD_NODES, // 缩容 Shard 节点数
+    [TicketTypes.MONGODB_REMOVE_NS]: TicketTypes.MONGODB_REMOVE_NS,
     [TicketTypes.MONGODB_SCALE_UPDOWN]: TicketTypes.MONGODB_SCALE_UPDOWN, // mongodb 集群容量变更
     [TicketTypes.MYSQL_ADD_SLAVE]: TicketTypes.MYSQL_ADD_SLAVE, // Mysql 添加从库
     [TicketTypes.MYSQL_AUTHORIZE_RULES]: 'PermissionRules', // Mysql 授权

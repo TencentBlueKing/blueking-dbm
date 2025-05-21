@@ -21,31 +21,10 @@ export const mongoToolboxChildrenRoutes: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/mongodb/script-execute/Index.vue'),
   },
-  {
-    path: 'shard-scale-up/:page?',
-    name: 'MongoShardScaleUp',
-    meta: {
-      navName: t('扩容Shard节点数'),
-    },
-    component: () => import('@views/db-manage/mongodb/shard-scale-up/Index.vue'),
-  },
-  {
-    path: 'shard-scale-down/:page?',
-    name: 'MongoShardScaleDown',
-    meta: {
-      navName: t('缩容Shard节点数'),
-    },
-    component: () => import('@views/db-manage/mongodb/shard-scale-down/Index.vue'),
-  },
+  createRouteItem(TicketTypes.MONGODB_ADD_SHARD_NODES, t('扩容Shard节点数')),
+  createRouteItem(TicketTypes.MONGODB_REDUCE_SHARD_NODES, t('缩容Shard节点数')),
   createRouteItem(TicketTypes.MONGODB_SCALE_UPDOWN, t('集群容量变更')),
-  {
-    path: 'proxy-scale-up/:page?',
-    name: 'MongoProxyScaleUp',
-    meta: {
-      navName: t('扩容接入层'),
-    },
-    component: () => import('@views/db-manage/mongodb/proxy-scale-up/Index.vue'),
-  },
+  createRouteItem(TicketTypes.MONGODB_ADD_MONGOS, t('扩容接入层')),
   createRouteItem(TicketTypes.MONGODB_REDUCE_MONGOS, t('缩容接入层')),
   createRouteItem(TicketTypes.MONGODB_CUTOFF, t('整机替换')),
   createRouteItem(TicketTypes.MONGODB_PITR_RESTORE, t('定点构造')),
@@ -57,30 +36,17 @@ export const mongoToolboxChildrenRoutes: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/mongodb/structure-instance/Index.vue'),
   },
-  {
-    path: 'db-data-copy/:page?',
-    name: 'MongoDbTableBackup',
-    meta: {
-      navName: t('库表备份'),
-    },
-    component: () => import('@views/db-manage/mongodb/db-table-backup/Index.vue'),
-  },
-  {
-    path: 'db-data-copy-record/:page?',
-    name: 'MongoDbBackup',
-    meta: {
-      navName: t('全库备份'),
-    },
-    component: () => import('@views/db-manage/mongodb/db-backup/Index.vue'),
-  },
-  {
-    path: 'db-clear/:page?',
-    name: 'MongoDbClear',
-    meta: {
-      navName: t('清档'),
-    },
-    component: () => import('@views/db-manage/mongodb/db-clear/Index.vue'),
-  },
+  createRouteItem(TicketTypes.MONGODB_BACKUP, t('库表备份')),
+  // {
+  //   name: 'MongoDbBackup',
+  //   path: 'db-data-copy-record/:page?',
+  //   meta: {
+  //     navName: t('全库备份'),
+  //   },
+  //   component: () => import('@views/db-manage/mongodb/db-backup/Index.vue'),
+  // },
+  createRouteItem(TicketTypes.MONGODB_FULL_BACKUP, t('全库备份')),
+  createRouteItem(TicketTypes.MONGODB_REMOVE_NS, t('清档')),
   {
     path: 'webconsole',
     name: 'MongodbWebconsole',

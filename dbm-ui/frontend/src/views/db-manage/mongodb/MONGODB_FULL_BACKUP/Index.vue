@@ -13,11 +13,10 @@
 
 <template>
   <SmartAction>
-    <div class="master-failover-page">
+    <div class="db-backup-page">
       <BkAlert
-        closable
         theme="info"
-        :title="t('集群容量变更：通过部署新集群来实现原集群的扩容或缩容（集群分片数不变），可以指定新的版本')" />
+        :title="t('全库备份：所有库表备份, 除 MySQL 系统库和 DBA 专用库外')" />
       <DbForm
         ref="form"
         class="toolbox-form"
@@ -35,15 +34,55 @@
               v-model="item.cluster"
               :selected="selected"
               @batch-edit="handleClusterBatchEdit" />
-            <CurrentCapacityColumn v-model="item.cluster" />
-            <TargetCapacityColumn
-              v-model="item.target_capacity"
-              :cluster="item.cluster" />
+            <EditableColumn
+              field="cluster.cluster_type_name"
+              :label="t('集群类型')"
+              :width="200">
+              <EditableBlock
+                v-model="item.cluster.cluster_type_name"
+                :placeholder="t('输入集群后自动生成')" />
+            </EditableColumn>
             <OperationColumn
               :create-row-method="createRowData"
               :table-data="formData.tableData" />
           </EditableRow>
         </EditableTable>
+        <BkFormItem
+          :label="t('备份保存时间')"
+          property="file_tag"
+          required>
+          <BkRadioGroup
+            v-model="formData.file_tag"
+            size="small">
+            <BkRadio label="normal_backup">
+              {{ t('25天') }}
+            </BkRadio>
+            <BkRadio label="half_year_backup">
+              {{ t('6个月') }}
+            </BkRadio>
+            <BkRadio label="a_year_backup">
+              {{ t('1年') }}
+            </BkRadio>
+            <BkRadio label="forever_backup">
+              {{ t('3年') }}
+            </BkRadio>
+          </BkRadioGroup>
+        </BkFormItem>
+        <BkFormItem
+          :label="t('是否备份 Oplog')"
+          property="oplog"
+          required>
+          <BkRadioGroup
+            v-model="formData.oplog"
+            size="small">
+            <BkRadio label="1">
+              {{ t('是') }}
+            </BkRadio>
+            <BkRadio label="0">
+              {{ t('否') }}
+            </BkRadio>
+          </BkRadioGroup>
+        </BkFormItem>
         <TicketPayload v-model="formData.payload" />
       </DbForm>
     </div>
@@ -60,7 +99,7 @@
         :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
         :title="t('确认重置页面')">
         <BkButton
-          class="ml-8 w-88"
+          class="ml8 w-88"
           :disabled="isSubmitting">
           {{ t('重置') }}
         </BkButton>
@@ -69,7 +108,7 @@
   </SmartAction>
 </template>
 
-<script setup lang="tsx">
+<script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
   import MongodbModel from '@services/model/mongodb/mongodb';
@@ -84,84 +123,43 @@
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import ClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/cluster-column/Index.vue';
 
-  import CurrentCapacityColumn from './components/CurrentCapacityColumn.vue';
-  import TargetCapacityColumn from './components/target-capacity-column/Index.vue';
-
   export interface IDataRow {
     cluster: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      cluster_name: string;
       cluster_type: string;
+      cluster_type_name: string;
       id: number;
       master_domain: string;
-      mongodb: MongodbModel['mongodb'];
-      mongodb_machine_num: number;
-      mongodb_machine_pair: number;
-      shard_node_count: number;
-      shard_num: number;
-      shard_spec: string;
-    };
-    target_capacity: {
-      resource_spec: {
-        mongodb: {
-          count: number;
-          spec_id: number;
-        };
-      };
-      shard_machine_group: number;
-      shard_node_count: number;
-      shards_num: number;
     };
   }
 
   const createRowData = (values = {} as Partial<IDataRow>) => ({
     cluster: Object.assign(
       {
-        bk_biz_id: 0,
-        bk_cloud_id: 0,
-        cluster_name: '',
         cluster_type: '',
+        cluster_type_name: '',
         id: 0,
         master_domain: '',
-        mongodb: [] as MongodbModel['mongodb'],
-        mongodb_machine_num: 0,
-        mongodb_machine_pair: 0,
-        shard_node_count: 0,
-        shard_num: 0,
-        shard_spec: '',
       },
-      values?.cluster,
-    ),
-    target_capacity: Object.assign(
-      {
-        resource_spec: {
-          mongodb: {
-            count: 0,
-            spec_id: 0,
-          },
-        },
-        shard_machine_group: 0,
-        shard_node_count: 0,
-        shards_num: 0,
-      },
-      values.target_capacity,
+      values.cluster,
     ),
   });
 
   const createDefaultFormData = () => ({
+    file_tag: 'normal_backup',
+    oplog: '0',
     payload: createTickePayload(),
     tableData: [createRowData()],
   });
 
   const { t } = useI18n();
-  const route = useRoute();
 
-  useTicketDetail<Mongodb.ScaleUpdown>(TicketTypes.MONGODB_SCALE_UPDOWN, {
+  useTicketDetail<Mongodb.FullBackup>(TicketTypes.MONGODB_FULL_BACKUP, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
-      const { clusters, infos } = details;
+      const { clusters, file_tag: fileTag, infos, oplog } = details;
       Object.assign(formData, {
+        file_tag: fileTag,
+        oplog: oplog ? '1' : '0',
         payload: createTickePayload(ticketDetail),
         tableData: infos.map((item) => {
           const clusterItem = clusters[item.cluster_id];
@@ -176,39 +174,17 @@
   });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
+    file_tag: string;
     infos: {
       cluster_id: number;
-      resource_spec: {
-        mongodb: {
-          count: number;
-          spec_id: number;
-        };
-      };
-      shard_machine_group: number;
-      shard_node_count: number;
-      shards_num: number;
     }[];
-    ip_source: string;
-  }>(TicketTypes.MONGODB_SCALE_UPDOWN);
+    oplog: boolean;
+  }>(TicketTypes.MONGODB_FULL_BACKUP);
 
   const formRef = useTemplateRef('form');
   const editableTableRef = useTemplateRef('editableTable');
 
   const formData = reactive(createDefaultFormData());
-
-  // 集群列表及详情跳转
-  const { masterDomain } = route.query;
-  if (masterDomain) {
-    Object.assign(formData, {
-      tableData: [
-        createRowData({
-          cluster: {
-            master_domain: masterDomain,
-          } as IDataRow['cluster'],
-        }),
-      ],
-    });
-  }
 
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
@@ -220,24 +196,16 @@
         newList.push(
           createRowData({
             cluster: {
-              bk_biz_id: item.bk_biz_id,
-              bk_cloud_id: item.bk_cloud_id,
-              cluster_name: item.cluster_name,
               cluster_type: item.cluster_type,
+              cluster_type_name: item.cluster_type_name,
               id: item.id,
               master_domain: item.master_domain,
-              mongodb: item.mongodb,
-              mongodb_machine_num: item.mongodb_machine_num,
-              mongodb_machine_pair: item.mongodb_machine_pair,
-              shard_node_count: item.shard_node_count,
-              shard_num: item.shard_num,
-              shard_spec: item.shard_spec,
             },
           }),
         );
       }
     });
-    formData.tableData = [...(formData.tableData[0].cluster.master_domain ? formData.tableData : []), ...newList];
+    formData.tableData = [...(selected.value.length ? formData.tableData : []), ...newList];
     window.changeConfirm = true;
   };
 
@@ -247,11 +215,11 @@
     if (validateResult) {
       createTicketRun({
         details: {
-          infos: formData.tableData.map((tableRow) => ({
-            cluster_id: tableRow.cluster.id,
-            ...tableRow.target_capacity,
+          file_tag: formData.file_tag,
+          infos: formData.tableData.map((tableItem) => ({
+            cluster_id: tableItem.cluster.id,
           })),
-          ip_source: 'resource_pool',
+          oplog: formData.oplog === '1',
         },
         ...formData.payload,
       });
@@ -265,7 +233,7 @@
 </script>
 
 <style lang="less" scoped>
-  .master-failover-page {
+  .db-backup-page {
     padding-bottom: 20px;
   }
 </style>
