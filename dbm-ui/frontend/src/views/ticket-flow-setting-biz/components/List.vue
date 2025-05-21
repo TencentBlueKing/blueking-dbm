@@ -39,6 +39,7 @@
       <BkLoading :loading="loading">
         <BkTable
           :data="tableData"
+          :max-height="tableMaxHeight"
           :pagination="pagination"
           remote-pagination
           :row-config="{
@@ -259,7 +260,7 @@
   import TicketFlowDescribeModel from '@services/model/ticket-flow-describe/TicketFlowDescribe';
   import { getTicketTypes, queryTicketFlowDescribe } from '@services/source/ticket';
 
-  import { useDefaultPagination } from '@hooks';
+  import { useDefaultPagination, useTableMaxHeight } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -287,6 +288,7 @@
 
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
+  const tableMaxHeight = useTableMaxHeight(240);
 
   const ticketTypeList = shallowRef<ISearchItem[]>([]);
   const searchValue = ref<Array<{ values: ISearchItem[] } & ISearchItem>>([]);
