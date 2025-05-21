@@ -298,33 +298,40 @@
                   <>
                     {data.isOnline && (
                       <bk-dropdown-item>
-                        <auth-template
+                        <auth-button
                           action-id='mysql_partition_enable_disable'
                           permission={data.permission.mysql_partition_enable_disable}
-                          resource={data.cluster_id}>
-                          <div onClick={() => handleDisable(data)}>{t('禁用')}</div>
-                        </auth-template>
+                          resource={data.cluster_id}
+                          text
+                          onClick={() => handleDisable(data)}>
+                          {t('禁用')}
+                        </auth-button>
                       </bk-dropdown-item>
                     )}
                     <bk-dropdown-item>
-                      <auth-template
+                      <auth-button
                         action-id='mysql_partition_create'
-                        permission={data.permission.mysql_partition_create}>
-                        <div onClick={() => handleClone(data)}>{t('克隆')}</div>
-                      </auth-template>
+                        permission={data.permission.mysql_partition_create}
+                        text
+                        onClick={() => handleClone(data)}>
+                        {t('克隆')}
+                      </auth-button>
                     </bk-dropdown-item>
                     <bk-dropdown-item>
-                      <auth-template
-                        action-id='mysql_partition_delete'
-                        permission={data.permission.mysql_partition_delete}
-                        resource={data.cluster_id}>
-                        <db-popconfirm
-                          confirm-handler={() => handleRemove(data)}
-                          content={t('删除操作无法撤回，请谨慎操作！')}
-                          title={t('确认删除该分区策略？')}>
-                          <div>{t('删除')}</div>
-                        </db-popconfirm>
-                      </auth-template>
+                      <db-popconfirm
+                        confirm-handler={() => handleRemove(data)}
+                        content={t('删除操作无法撤回，请谨慎操作！')}
+                        title={t('确认删除该分区策略？')}>
+                        <div style='height: 100%'>
+                          <auth-button
+                            action-id='mysql_partition_delete'
+                            permission={data.permission.mysql_partition_delete}
+                            resource={data.cluster_id}
+                            text>
+                            {t('删除')}
+                          </auth-button>
+                        </div>
+                      </db-popconfirm>
                     </bk-dropdown-item>
                   </>
                 ),
