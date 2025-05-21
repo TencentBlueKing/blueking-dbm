@@ -20,7 +20,7 @@
     <BkInput
       v-model="groupNum"
       clearable
-      :min="1"
+      :min="minGroupNum"
       show-clear-only-hover
       style="width: 314px"
       type="number"
@@ -93,6 +93,13 @@
 
   const shardNumDisabled = computed(() => props.cluster.cluster_type !== ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER);
   const clusterShardNum = computed(() => props.cluster.cluster_shard_num);
+  const minGroupNum = computed(() => {
+    // RedisCluster/ tendisplus 机器组数需要最少3组。
+    if ([ClusterTypes.REDIS_CLUSTER, ClusterTypes.TENDIS_PLUS_CLUSTER].includes(props.cluster.cluster_type)) {
+      return 3;
+    }
+    return 1;
+  });
 
   const rules = [
     {
