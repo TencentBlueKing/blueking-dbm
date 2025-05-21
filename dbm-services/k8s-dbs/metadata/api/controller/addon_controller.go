@@ -24,8 +24,10 @@ import (
 	"k8s-dbs/core/errors"
 	"k8s-dbs/metadata/api/vo/req"
 	"k8s-dbs/metadata/api/vo/resp"
+	metaconst "k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/provider"
 	entitys "k8s-dbs/metadata/provider/entity"
+	"k8s-dbs/metadata/utils"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -40,6 +42,28 @@ type AddonController struct {
 // NewAddonController creates a new instance of AddonController.
 func NewAddonController(addonProvider provider.K8sCrdStorageAddonProvider) *AddonController {
 	return &AddonController{addonProvider}
+}
+
+// ListAddons 获取当前系统支持的 addon 列表
+func (a *AddonController) ListAddons(ctx *gin.Context) {
+	sizeStr := ctx.DefaultQuery("size", metaconst.DefaultAddonsFetchSizeStr)
+	fetchSize, err := strconv.Atoi(sizeStr)
+	if err != nil {
+		fetchSize = metaconst.DefaultAddonsFetchSize // 如果转换失败，使用默认值
+	}
+	fetchSize = min(fetchSize, metaconst.MaxAddonsFetchSize)
+	pagination := utils.Pagination{Limit: fetchSize}
+	addons, err := a.addonProvider.ListStorageAddons(pagination)
+	if err != nil {
+		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		return
+	}
+	var data []resp.K8sCrdAddonRespVo
+	if err := copier.Copy(&data, addons); err != nil {
+		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		return
+	}
+	entity.SuccessResponse(ctx, data, "OK")
 }
 
 // GetAddon retrieves an addon by its ID.

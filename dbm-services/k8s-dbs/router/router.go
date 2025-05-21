@@ -191,6 +191,7 @@ func buildAddonMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
 	addonMetaController := metacontroller.NewAddonController(addonMetaProvider)
 	addonMetaGroup := metaRouter.Group("/addon")
 	{
+		addonMetaGroup.GET("", addonMetaController.ListAddons)
 		addonMetaGroup.GET("/:id", addonMetaController.GetAddon)
 		addonMetaGroup.DELETE("/:id", addonMetaController.DeleteAddon)
 		addonMetaGroup.POST("", addonMetaController.CreateAddon)

@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"k8s-dbs/metadata/api/controller"
 	"k8s-dbs/metadata/api/vo/req"
+	"k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/dbaccess"
 	"k8s-dbs/metadata/dbaccess/model"
 	"k8s-dbs/metadata/provider"
@@ -40,7 +41,7 @@ import (
 )
 
 func initOpsTable() (*gorm.DB, error) {
-	db, err := gorm.Open(mysql.Open("root:123456@tcp(127.0.0.1:3306)/bkbase_dbs?charset=utf8mb4&parseTime=True&loc=Local"), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(constant.MySQLTestURL), &gorm.Config{})
 	if err != nil {
 		fmt.Println("Failed to connect to database")
 		return nil, err
@@ -57,7 +58,7 @@ func initOpsTable() (*gorm.DB, error) {
 }
 
 func AddSampleOps() error {
-	db, err := gorm.Open(mysql.Open("root:123456@tcp(127.0.0.1:3306)/bkbase_dbs?charset=utf8mb4&parseTime=True&loc=Local"), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(constant.MySQLTestURL), &gorm.Config{})
 	if err != nil {
 		fmt.Println("Failed to connect to database")
 		return err

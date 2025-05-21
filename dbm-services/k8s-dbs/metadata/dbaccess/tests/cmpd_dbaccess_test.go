@@ -33,7 +33,7 @@ import (
 )
 
 func SetUpTestDBForCmpd() (*gorm.DB, error) {
-	db, err := gorm.Open(mysql.Open(constant.MysqlURL), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(constant.MySQLTestURL), &gorm.Config{})
 	if err != nil {
 		fmt.Println("Failed to connect to database")
 		return nil, err

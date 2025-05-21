@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"k8s-dbs/metadata/api/controller"
 	"k8s-dbs/metadata/api/vo/req"
+	"k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/dbaccess"
 	"k8s-dbs/metadata/dbaccess/model"
 	"k8s-dbs/metadata/provider"
@@ -40,7 +41,7 @@ import (
 )
 
 func initAddonTable() (*gorm.DB, error) {
-	db, err := gorm.Open(mysql.Open("root:123456@tcp(127.0.0.1:3306)/bkbase_dbs?charset=utf8mb4&parseTime=True&loc=Local"), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(constant.MySQLTestURL), &gorm.Config{})
 	if err != nil {
 		fmt.Println("Failed to connect to database")
 		return nil, err
@@ -57,7 +58,7 @@ func initAddonTable() (*gorm.DB, error) {
 }
 
 func AddSampleAddon() error {
-	db, err := gorm.Open(mysql.Open("root:123456@tcp(127.0.0.1:3306)/bkbase_dbs?charset=utf8mb4&parseTime=True&loc=Local"), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(constant.MySQLTestURL), &gorm.Config{})
 	if err != nil {
 		fmt.Println("Failed to connect to database")
 		return err
@@ -87,6 +88,52 @@ func AddSampleAddon() error {
 	return nil
 }
 
+func AddSampleAddons() error {
+	db, err := gorm.Open(mysql.Open(constant.MySQLTestURL), &gorm.Config{})
+	if err != nil {
+		fmt.Println("Failed to connect to database")
+		return err
+	}
+	dbAccess := dbaccess.NewK8sCrdStorageAddonDbAccess(db)
+
+	addDateTime := "2025-01-01 12:00:00"
+	layout := "2006-01-02 15:04:05"
+	parsedTime, _ := time.Parse(layout, addDateTime)
+
+	addons := []model.K8sCrdStorageAddonModel{
+		{
+			AddonName:     "surreal",
+			AddonCategory: "Graph",
+			AddonType:     "SurrealDB",
+			Metadata:      "{\"namespace\":\"default\"}",
+			Spec:          "{\"replicas\":1}",
+			Active:        true,
+			Description:   "just for test",
+			CreatedBy:     "admin",
+			CreatedAt:     parsedTime,
+			UpdatedAt:     parsedTime,
+			UpdatedBy:     "admin",
+		},
+		{
+			AddonName:     "vm",
+			AddonCategory: "Time-Series",
+			AddonType:     "VictoriaMetric",
+			Metadata:      "{\"namespace\":\"default\"}",
+			Spec:          "{\"replicas\":1}",
+			Active:        true,
+			Description:   "just for test",
+			CreatedBy:     "admin",
+			CreatedAt:     parsedTime,
+			UpdatedAt:     parsedTime,
+			UpdatedBy:     "admin",
+		},
+	}
+	for _, addon := range addons {
+		_, _ = dbAccess.Create(&addon)
+	}
+	return nil
+}
+
 func SetupAddonRouter() *gin.Engine {
 	r := gin.Default()
 	routerGroup := r.Group("/metadata")
@@ -95,6 +142,7 @@ func SetupAddonRouter() *gin.Engine {
 	addonProvider := provider.NewK8sCrdStorageAddonProvider(addonDbaccess)
 	addonController := controller.NewAddonController(addonProvider)
 	{
+		routerGroup.GET("/addon", addonController.ListAddons)
 		routerGroup.GET("/addon/:id", addonController.GetAddon)
 		routerGroup.DELETE("/addon/:id", addonController.DeleteAddon)
 		routerGroup.POST("/addon", addonController.CreateAddon)
@@ -259,6 +307,56 @@ func TestUpdateAddon(t *testing.T) {
 		"data": {
 			"rows":1
 		},
+		"message": "OK",
+		"error": null
+	}
+	`
+	assert.JSONEq(t, expected, w.Body.String())
+}
+
+func TestListAddons(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := SetupAddonRouter()
+	err := AddSampleAddons()
+	assert.NoError(t, err)
+	request, _ := http.NewRequest("GET", "/metadata/addon?size=10", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, request)
+	assert.Equal(t, http.StatusOK, w.Code)
+	expected := `
+	{
+		"result": true,
+		"code": 200,
+		"data": [
+			{
+				"id": 1,
+				"addon_name": "surreal",
+				"addon_type": "SurrealDB",
+				"addon_category": "Graph",
+				"metadata": "{\"namespace\":\"default\"}",
+				"spec": "{\"replicas\":1}",
+				"active": true,
+				"description": "just for test",
+				"created_by": "admin",
+				"created_at": "2025-01-01T20:00:00+08:00",
+				"updated_by": "admin",
+				"updated_at": "2025-01-01T20:00:00+08:00"
+			},
+			{
+				"id": 2,
+				"addon_name": "vm",
+				"addon_type": "VictoriaMetric",
+				"addon_category": "Time-Series",
+				"metadata": "{\"namespace\":\"default\"}",
+				"spec": "{\"replicas\":1}",
+				"active": true,
+				"description": "just for test",
+				"created_by": "admin",
+				"created_at": "2025-01-01T20:00:00+08:00",
+				"updated_by": "admin",
+				"updated_at": "2025-01-01T20:00:00+08:00"
+			}
+		],
 		"message": "OK",
 		"error": null
 	}

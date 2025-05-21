@@ -89,13 +89,17 @@ func (k *K8sCrdStorageAddonDbAccessImpl) Update(storageAddonModel *models.K8sCrd
 }
 
 // ListByPage 分页查询 addon 元数据接口实现
-func (k *K8sCrdStorageAddonDbAccessImpl) ListByPage(_ utils.Pagination) (
+func (k *K8sCrdStorageAddonDbAccessImpl) ListByPage(pagination utils.Pagination) (
 	[]models.K8sCrdStorageAddonModel,
 	int64,
 	error,
 ) {
-	// TODO implement me
-	panic("implement me")
+	var addonModels []models.K8sCrdStorageAddonModel
+	if err := k.db.Offset(pagination.Page).Limit(pagination.Limit).Where("active=1").Find(&addonModels).Error; err != nil {
+		slog.Error("List storageAddon error", "error", err.Error())
+		return nil, 0, err
+	}
+	return addonModels, int64(len(addonModels)), nil
 }
 
 // NewK8sCrdStorageAddonDbAccess 创建 K8sCrdStorageAddonDbAccess 接口实现实例

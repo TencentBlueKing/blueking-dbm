@@ -19,6 +19,11 @@ limitations under the License.
 
 package constant
 
+// addon 列表默认拉取行数
+const DefaultAddonsFetchSizeStr = "50"
+const DefaultAddonsFetchSize = 50
+const MaxAddonsFetchSize = 100
+
 const (
 	TbK8sCrdStorageaddon        = "tb_k8s_crd_storageaddon"
 	TbK8sCrdClusterdefinition   = "tb_k8s_crd_clusterdefinition"
@@ -32,7 +37,7 @@ const (
 	TbK8sClusterService         = "tb_k8s_cluster_service"
 )
 
-// mysql connection credentials for test
+// MySQLTestURL mysql connection credentials for test
 const (
-	MysqlURL = "test_user:teat_pwd@tcp(127.0.0.1:3306)/bkbase_dbs?charset=utf8mb4&parseTime=True&loc=Local"
+	MySQLTestURL = "root:root@tcp(localhost:3306)/bkbase_dbs?charset=utf8mb4&parseTime=True&loc=Local"
 )

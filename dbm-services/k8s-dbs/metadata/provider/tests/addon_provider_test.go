@@ -26,6 +26,7 @@ import (
 	"k8s-dbs/metadata/dbaccess/model"
 	"k8s-dbs/metadata/provider"
 	entitys "k8s-dbs/metadata/provider/entity"
+	"k8s-dbs/metadata/utils"
 	"testing"
 	"time"
 
@@ -35,7 +36,7 @@ import (
 )
 
 func initAddonTable() (*gorm.DB, error) {
-	db, err := gorm.Open(mysql.Open(constant.MysqlURL), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(constant.MySQLTestURL), &gorm.Config{})
 	if err != nil {
 		fmt.Println("Failed to connect to database")
 		return nil, err
@@ -179,4 +180,60 @@ func TestGetStorageAddon(t *testing.T) {
 	assert.Equal(t, storageAddon.Metadata, foundStorageAddon.Metadata)
 	assert.Equal(t, storageAddon.Spec, foundStorageAddon.Spec)
 	assert.Equal(t, storageAddon.Active, foundStorageAddon.Active)
+}
+
+func TestListStorageAddons(t *testing.T) {
+	db, err := initAddonTable()
+	assert.NoError(t, err)
+
+	dbAccess := dbaccess.NewK8sCrdStorageAddonDbAccess(db)
+
+	addonProvider := provider.NewK8sCrdStorageAddonProvider(dbAccess)
+
+	// 创建测试数据
+	testAddons := []entitys.K8sCrdStorageAddonEntity{
+		{
+			AddonName:     "surreal",
+			AddonCategory: "Graph",
+			AddonType:     "SurrealDB",
+			Metadata:      "{\"namespace\":\"default\"}",
+			Spec:          "{\"replicas\":3}",
+			Active:        true,
+			Description:   "desc",
+		},
+		{
+			AddonName:     "vm",
+			AddonCategory: "Time-Series",
+			AddonType:     "VictoriaMetric",
+			Metadata:      "{\"namespace\":\"default\"}",
+			Spec:          "{\"replicas\":3}",
+			Active:        true,
+			Description:   "desc",
+		},
+	}
+
+	for _, addon := range testAddons {
+		createdAddon, err := addonProvider.CreateStorageAddon(&addon)
+		assert.NoError(t, err, "Failed to create storage addon: %v", addon.AddonName)
+		assert.NotNil(t, createdAddon, "Created addon should not be nil")
+		assert.Equal(t, addon.AddonName, createdAddon.AddonName, "Addon name mismatch")
+	}
+
+	pagination := utils.Pagination{
+		Page:  0,
+		Limit: 10,
+	}
+
+	addons, err := addonProvider.ListStorageAddons(pagination)
+	assert.NoError(t, err, "Failed to list storage addons")
+	assert.Equal(t, len(testAddons), len(addons))
+
+	addonNames := make(map[string]bool)
+	for _, addon := range addons {
+		addonNames[addon.AddonName] = true
+	}
+
+	for _, expectedAddon := range testAddons {
+		assert.True(t, addonNames[expectedAddon.AddonName], "Expected addon %s not found in the result", expectedAddon.AddonName)
+	}
 }
