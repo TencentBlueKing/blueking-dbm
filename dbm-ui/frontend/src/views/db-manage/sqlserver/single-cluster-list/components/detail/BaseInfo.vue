@@ -11,9 +11,8 @@
 
   import { getSingleClusterDetail } from '@services/source/sqlserverSingleCluster';
 
+  import ClusterTag from '@components/cluster-tag/index.vue';
   import EditInfo, { type InfoColumn } from '@components/editable-info/index.vue';
-
-  import ClusterTagCell from '@views/db-manage/common/cluster-table-column/components/cluster-tag-cell/Index.vue';
 
   interface Props {
     singleClusterData: {
@@ -78,10 +77,10 @@
     ];
     if (data.value) {
       baseColumns[0].push({
-        key: 'sortedTags',
+        key: 'availableTags',
         label: t('标签'),
         render: () => (
-          <ClusterTagCell
+          <ClusterTag
             data={data.value!}
             onSuccess={handleRefresh}
           />

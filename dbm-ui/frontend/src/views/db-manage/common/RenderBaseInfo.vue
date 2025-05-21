@@ -61,7 +61,7 @@
           <td>{{ data.bk_cloud_name ? `${data.bk_cloud_name}[${data.bk_cloud_id}]` : '--' }}</td>
           <td>{{ t('标签') }}：</td>
           <td>
-            <ClusterTagCell
+            <ClusterTag
               :data="data"
               @success="() => emits('refresh')" />
           </td>
@@ -74,8 +74,7 @@
   import { useI18n } from 'vue-i18n';
 
   import RenderClusterStatus from '@components/cluster-status/Index.vue';
-
-  import ClusterTagCell from '@views/db-manage/common/cluster-table-column/components/cluster-tag-cell/Index.vue';
+  import ClusterTag from '@components/cluster-tag/index.vue';
 
   interface Props {
     data: { id: number } & Record<any, any>;

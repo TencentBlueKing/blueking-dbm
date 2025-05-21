@@ -23,9 +23,8 @@
 
   import RedisModel from '@services/model/redis/redis';
 
+  import ClusterTag from '@components/cluster-tag/index.vue';
   import EditInfo, { type InfoColumn } from '@components/editable-info/index.vue';
-
-  import ClusterTagCell from '@views/db-manage/common/cluster-table-column/components/cluster-tag-cell/Index.vue';
 
   interface Props {
     data: RedisModel;
@@ -54,10 +53,10 @@
         label: t('域名'),
       },
       {
-        key: 'sortedTags',
+        key: 'availableTags',
         label: t('标签'),
         render: () => (
-          <ClusterTagCell
+          <ClusterTag
             data={props.data}
             onSuccess={() => emits('refresh')}
           />

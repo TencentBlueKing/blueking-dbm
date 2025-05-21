@@ -15,6 +15,7 @@ export default class ClusterBase {
     id: number;
     is_builtin: boolean;
     key: string;
+    system: boolean;
     value: string;
   }[];
   update_at: string;
@@ -26,6 +27,10 @@ export default class ClusterBase {
     this.phase = payload.phase;
     this.tags = payload.tags || [];
     this.update_at = payload.update_at;
+  }
+
+  get availableTags() {
+    return _.sortBy(this.tags, (item) => item.key).filter((item) => !item.system);
   }
 
   get createAtDisplay() {
@@ -46,10 +51,6 @@ export default class ClusterBase {
 
   get masterDomain() {
     return this.master_domain || this.domain;
-  }
-
-  get sortedTags() {
-    return _.sortBy(this.tags, (item) => item.key);
   }
 
   get updateAtDisplay() {
