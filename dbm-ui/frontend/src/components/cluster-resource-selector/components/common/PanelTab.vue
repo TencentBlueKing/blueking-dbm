@@ -26,17 +26,34 @@
   </div>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   interface Props {
-    panelList: {
-      id: string;
-      name: string;
-    }[];
+    target: 'instance';
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const modelValue = defineModel<string>({
     required: true,
+  });
+
+  const { t } = useI18n();
+
+  const panelList = computed(() => {
+    if (props.target === 'instance') {
+      return [
+        {
+          id: 'instance',
+          name: t('选择实例'),
+        },
+        {
+          id: 'instance-manual',
+          name: t('手动输入'),
+        },
+      ];
+    }
+    return [];
   });
 
   const handleClick = (id: string) => {
