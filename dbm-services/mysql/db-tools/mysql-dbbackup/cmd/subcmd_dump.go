@@ -391,13 +391,14 @@ func prepareBackupToRemote(cnf *config.BackupConfig, sshClient *sshgo.Client) (e
 		return err
 	}
 	// 如果目标机器 dbbackup-go 介质不存在，传输过去
-	dbbackupBin := filepath.Join(backupexe.ExecuteHome, "dbbackup")
-	if output, err := sshClient.Run("ls " + dbbackupBin); err != nil {
+	remoteDbbackupHome := backupexe.ExecuteHome + "-remote" // /home/mysql/dbbackup-go-remote
+	remoteDbbackupBin := filepath.Join(remoteDbbackupHome, "dbbackup")
+	if output, err := sshClient.Run("ls " + remoteDbbackupBin); err != nil {
 		if !strings.Contains(string(output), "No such file or directory") {
-			return errors.WithMessage(err, string(output))
+			return errors.WithMessagef(err, "check bin exists %s, output: %s", remoteDbbackupBin, string(output))
 		}
 		logger.Log.Infof("dbbackup not found, try to send it to remote")
-		// 下发 /home/mysql/dbbackup-go
+		// 打包下发 /home/mysql/dbbackup-go
 		mysqlHome := filepath.Dir(backupexe.ExecuteHome)
 		dbbackupPkg := filepath.Join(mysqlHome, "dbbackup-go.tar.gz")
 		sendDbbackup := []string{"tar", "-zcf", dbbackupPkg, "dbbackup-go", "--exclude", "dbbackup-go/logs"}
@@ -407,11 +408,17 @@ func prepareBackupToRemote(cnf *config.BackupConfig, sshClient *sshgo.Client) (e
 		if err = sshClient.Upload(dbbackupPkg, dbbackupPkg); err != nil {
 			return err
 		}
-		if output, err = sshClient.Run(fmt.Sprintf("tar -zxf %s -C %s", dbbackupPkg, mysqlHome)); err != nil {
-			return errors.WithMessage(err, string(output))
+		untarDbbackup := fmt.Sprintf("tar -zxf %s -C %s", dbbackupPkg, cnf.BackupToRemote.SaveDir)
+		if output, err = sshClient.Run(untarDbbackup); err != nil {
+			return errors.WithMessagef(err, "untar dbbackup-go.tar.gz failed, output: %s", string(output))
 		}
-		if output, err = sshClient.Run("ls " + dbbackupBin); err != nil {
-			return errors.WithMessage(err, string(output))
+		renameDbbackup := fmt.Sprintf("mv %s %s; rm -f %s",
+			filepath.Join(cnf.BackupToRemote.SaveDir, "dbbackup-go"), remoteDbbackupHome, dbbackupPkg)
+		if output, err = sshClient.Run(fmt.Sprintf("bash -c '%s'", renameDbbackup)); err != nil {
+			return errors.WithMessagef(err, "rename to dbbackup-go-remote failed, output: %s", string(output))
+		}
+		if output, err = sshClient.Run("ls " + remoteDbbackupBin); err != nil {
+			return errors.WithMessagef(err, "check bin exists %s, output: %s", remoteDbbackupBin, string(output))
 		}
 	}
 
@@ -547,11 +554,15 @@ func backupTarAndUpload(
 	if err = logReport.ReportBackupStatus("Report"); err != nil {
 		return err
 	}
-	// run backup_client
-	fmt.Printf("backup_index_file:%s\n", indexFilePath)
-	if err = logReport.ReportBackupResult(indexFilePath, true, true); err != nil {
-		logger.Log.Error("failed to report backup result, err: ", err)
-		return err
+
+	if isStandby := true; isStandby {
+		// run backup_client
+		fmt.Printf("backup_index_file:%s\n", indexFilePath)
+		// 预留，只有 standby 实例 才需要上报
+		if err = logReport.ReportBackupResult(indexFilePath, true, true); err != nil {
+			logger.Log.Error("failed to report backup result, err: ", err)
+			return err
+		}
 	}
 	logger.Log.Info("report backup info: end")
 	return nil

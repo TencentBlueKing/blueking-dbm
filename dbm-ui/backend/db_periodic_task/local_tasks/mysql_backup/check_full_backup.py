@@ -60,12 +60,12 @@ class BackupFile:
 
 
 class MysqlBackup:
-    def __init__(self, cluster_id: int, cluster_domain: str, backup_id="", backup_role=""):
+    def __init__(self, cluster_id: int, cluster_domain: str, backup_id="", mysql_role=""):
         self.cluster_id = cluster_id
         self.cluster_domain = cluster_domain
         self.backup_id = backup_id
+        self.mysql_role = mysql_role
         self.backup_type = ""
-        self.backup_role = backup_role
         self.shard_value = -1
         self.is_full_backup = 0
         self.data_schema_grant = ""
@@ -171,8 +171,8 @@ def _check_tendbcluster_full_backup(date_str: str):
             backup_id_stat = defaultdict(dict)
             for bid, bk in backup.backups.items():
                 backup_id, shard_id, mysql_role = bid.split("#", 2)
-                if bk.backup_role == "spider_master" or bk.backup_role == "TDBCTL":
-                    backup_id_stat[backup_id][bk.backup_role] = True
+                if mysql_role == "spider_master" or mysql_role == "TDBCTL":
+                    backup_id_stat[backup_id][bk.mysql_role] = True
                 elif bk.is_full_backup == 1:
                     if "remote" not in backup_id_stat[backup_id]:
                         backup_id_stat[backup_id]["remote"] = {}

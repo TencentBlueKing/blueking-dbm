@@ -273,3 +273,5 @@ mydumper 备份发起的时候，检测到长 sql 执行中（但还没超过`--
 #### 5. Couldn't acquire global lock, snapshots will not be consistent
 > CRITICAL **: Couldn't acquire global lock, snapshots will not be consistent: 
 > Lock wait timeout exceeded; try restarting transaction
+
+执行逻辑备份的时候刚开始的时候，有慢查询没结束

@@ -982,6 +982,7 @@ MysqlVersionToDBBackupForMap = {
     "MySQL-8.0-Community": MediumEnum.DbBackup,
     "Spider-1": MediumEnum.DbBackup,
     "Spider-3": MediumEnum.DbBackup,
+    "Spider-4": MediumEnum.DbBackup,
 }
 
 

@@ -74,7 +74,7 @@ func (l *LogicalDumper) Execute(ctx context.Context) error {
 		fmt.Sprintf("--threads=%d", l.cnf.LogicalBackup.Threads),
 		// "--disk-limits=1GB:5GB",
 	}
-	if *l.cnf.LogicalBackup.TrxConsistencyOnly {
+	if l.cnf.LogicalBackup.TrxConsistencyOnly != nil && *l.cnf.LogicalBackup.TrxConsistencyOnly {
 		args = append(args, "--trx-consistency-only")
 	}
 	if l.cnf.Public.KillLongQueryTime > 0 {

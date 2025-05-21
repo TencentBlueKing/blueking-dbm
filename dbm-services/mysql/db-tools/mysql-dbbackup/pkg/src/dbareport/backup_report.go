@@ -393,5 +393,11 @@ func (r *BackupLogReport) ReportBackupResult(indexFilePath string, index, upload
 	if err2 != nil {
 		return err2
 	}
+
+	privFile := strings.Replace(indexFilePath, ".index", ".priv", 1)
+	if cmutil.FileExists(privFile) {
+		_ = reportGrants(privFile, r.cfg.Public.ReportPath, metaInfo.BackupPort)
+	}
+
 	return nil
 }
