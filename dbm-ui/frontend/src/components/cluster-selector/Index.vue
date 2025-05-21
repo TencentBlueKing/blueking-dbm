@@ -250,6 +250,7 @@
       multiple: true,
       name: t('副本集'),
       resultContent: ResultPreview,
+      showPreviewResultTitle: true,
       tableContent: MongoTable,
     },
     [ClusterTypes.MONGO_SHARED_CLUSTER]: {
@@ -264,6 +265,7 @@
       multiple: true,
       name: t('分片集群'),
       resultContent: ResultPreview,
+      showPreviewResultTitle: true,
       tableContent: MongoTable,
     },
     [ClusterTypes.REDIS]: {

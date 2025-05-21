@@ -1,6 +1,7 @@
 <template>
   <EditableColumn
     v-model="modelValue"
+    :disabled-method="disabledMethod"
     :field="field"
     :label="label"
     :min-width="200"
@@ -26,7 +27,6 @@
       allow-auto-match
       allow-create
       clearable
-      :disabled="disabled"
       has-delete-icon
       :max-data="single ? 1 : -1"
       :paste-fn="tagInputPasteFn"
@@ -60,13 +60,15 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
+  import { checkClusterDatabase } from '@services/source/dbbase';
+
   import { batchSplitRegex } from '@common/regex';
 
   import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
 
   interface Props {
+    clusterId: number;
     compareData?: string[];
-    disabled?: boolean;
     field: string;
     label: string;
     required?: boolean;
@@ -80,7 +82,6 @@
 
   const props = withDefaults(defineProps<Props>(), {
     compareData: undefined,
-    disabled: false,
     required: true,
     single: false,
   });
@@ -119,11 +120,41 @@
         return true;
       },
     },
+    {
+      message: t('DB 不存在'),
+      trigger: 'blur',
+      validator: (value: string[]) => {
+        const clearDbList = _.filter(value, (item) => !/[*%]/.test(item));
+        if (clearDbList.length < 1) {
+          return true;
+        }
+
+        return checkClusterDatabase({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_id: props.clusterId as number,
+          db_list: value,
+        }).then((data) => {
+          const notExistDbList = Object.keys(data).reduce<string[]>((result, dbName) => {
+            if (!data[dbName]) {
+              result.push(dbName);
+            }
+            return result;
+          }, []);
+          if (notExistDbList.length > 0) {
+            return t('n 不存在', { n: notExistDbList.join('、') });
+          }
+
+          return true;
+        });
+      },
+    },
   ];
 
   const isShowBatchEdit = ref(false);
 
   const tagInputPasteFn = (value: string) => value.split(batchSplitRegex).map((item) => ({ id: item }));
+
+  const disabledMethod = () => (!props.clusterId ? t('请先选择集群') : false);
 
   const handleBatchEditShow = () => {
     isShowBatchEdit.value = true;

@@ -53,11 +53,13 @@
               @batch-edit="handleBatchEdit" />
             <DbNameColumn
               v-model="item.db_patterns"
+              :cluster-id="item.cluster.id"
               field="db_patterns"
               :label="t('备份DB名')"
               @batch-edit="handleBatchEdit" />
             <DbNameColumn
               v-model="item.ignore_dbs"
+              :cluster-id="item.cluster.id"
               :compare-data="item.ignore_tables"
               field="ignore_dbs"
               :label="t('忽略 DB 名')"

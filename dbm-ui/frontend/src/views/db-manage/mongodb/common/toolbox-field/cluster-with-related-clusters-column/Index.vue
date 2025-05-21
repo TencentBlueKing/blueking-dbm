@@ -67,7 +67,7 @@
   import ClusterSelector from '@components/cluster-selector/Index.vue';
 
   interface Props {
-    clusterTypes: string[];
+    clusterTypes?: string[];
     selected: {
       cluster_type: string;
       id: number;
@@ -77,8 +77,9 @@
 
   type Emits = (e: 'batch-edit', value: MongodbModel[]) => void;
 
-  const props = defineProps<Props>();
-
+  const props = withDefaults(defineProps<Props>(), {
+    clusterTypes: () => [ClusterTypes.MONGO_REPLICA_SET, ClusterTypes.MONGO_SHARED_CLUSTER],
+  });
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
