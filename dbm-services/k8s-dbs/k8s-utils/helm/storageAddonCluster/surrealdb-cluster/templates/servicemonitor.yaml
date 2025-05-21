@@ -20,6 +20,8 @@ spec:
     matchNames:
       - {{ .Release.Namespace }}
   selector:
+    matchExpressions:
+      - { key: apps.kubeblocks.io/component-name, operator: In, values: [ tikv ] }
     matchLabels:
       app.kubernetes.io/instance: {{ .Release.Name }}
       app.kubernetes.io/managed-by: kubeblocks

@@ -15,18 +15,17 @@ spec:
     - interval: {{ .Values.observeConfig.svcMonitor.interval }}
       params: {}
       path: /metrics
-      port: metrics
+      port: tcp-metrics
   namespaceSelector:
-    matchNames:
+       matchNames:
       - {{ .Release.Namespace }}
   selector:
     matchExpressions:
-      - { key: apps.kubeblocks.io/component-name, operator: In, values: [ datacoord, datanode, indexcoord, indexnode, proxy, querycoord, querynode, rootcoord ] }
+      - { key: apps.kubeblocks.io/component-name, operator: In, values: [ qdrant ] }
     matchLabels:
       app.kubernetes.io/instance: {{ .Release.Name }}
       app.kubernetes.io/managed-by: kubeblocks
   targetLabels:
-    - app.kubernetes.io/name
     - app.kubernetes.io/instance
     - app.kubernetes.io/managed-by
     - apps.kubeblocks.io/component-name

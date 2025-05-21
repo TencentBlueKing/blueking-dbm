@@ -21,6 +21,9 @@ spec:
       - name: grpc-qdrant
         port: 6334
         targetPort: grpc-qdrant
+      - name: tcp-metrics
+        port: 9091
+        targetPort: tcp-metrics
   lifecycleActions:
     memberLeave:
       customHandler:

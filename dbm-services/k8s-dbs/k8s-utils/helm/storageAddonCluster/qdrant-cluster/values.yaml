@@ -22,3 +22,13 @@ componentList:
         cpu: "0.5"
         memory: "0.5Gi"
     storage: "10Gi"
+
+observeConfig:
+  bkLogConfig:
+    enabled: false
+    labels: {}
+    dataId:
+  svcMonitor:
+    enabled: false
+    labels: {}
+    interval: "15s"

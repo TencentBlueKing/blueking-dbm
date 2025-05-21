@@ -77,3 +77,13 @@ componentList:
         cpu: 1
         memory: 1Gi
 
+observeConfig:
+  bkLogConfig:
+    enabled: false
+    labels: {}
+    dataId:
+  svcMonitor:
+    enabled: false
+    labels: {}
+    interval: "15s"
+

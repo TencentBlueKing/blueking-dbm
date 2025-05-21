@@ -1,0 +1,25 @@
+{{- if .Values.observeConfig.bkLogConfig.enabled }}
+
+apiVersion: bk.tencent.com/v1alpha1
+kind: BkLogConfig
+metadata:
+  name: {{ .Release.Name }}-bklogconfig
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- if .Values.observeConfig.bkLogConfig.labels }}
+    {{- toYaml .Values.observeConfig.bkLogConfig.labels | nindent 4 }}
+    {{- end }}
+spec:
+  dataId: {{ .Values.observeConfig.bkLogConfig.dataId}}
+  logConfigType: std_log_config
+  containerNameMatch:
+    - surreal
+    - pd
+    - tikv
+  encoding: 'utf-8'
+  labelSelector:
+    matchExpressions:
+      - {key: app.kubernetes.io/instance, operator: In, values: [{{ .Release.Name }}]}
+
+{{- end }}

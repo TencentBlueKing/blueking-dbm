@@ -21,12 +21,11 @@ spec:
       - {{ .Release.Namespace }}
   selector:
     matchExpressions:
-      - { key: apps.kubeblocks.io/component-name, operator: In, values: [ datacoord, datanode, indexcoord, indexnode, proxy, querycoord, querynode, rootcoord ] }
+      - { key: apps.kubeblocks.io/component-name, operator: In, values: [ compactor, compute, frontend, meta ] }
     matchLabels:
       app.kubernetes.io/instance: {{ .Release.Name }}
       app.kubernetes.io/managed-by: kubeblocks
   targetLabels:
-    - app.kubernetes.io/name
     - app.kubernetes.io/instance
     - app.kubernetes.io/managed-by
     - apps.kubeblocks.io/component-name
