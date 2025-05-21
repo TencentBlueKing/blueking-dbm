@@ -127,6 +127,8 @@
     minRows: 5,
   };
 
+  let invalidList: string[] = [];
+
   const rules = {
     instance: [
       {
@@ -144,46 +146,15 @@
         },
       },
       {
-        message: t('存在无效实例'),
+        message: () => t('无效实例：m', { m: invalidList.join(' , ') }),
         trigger: 'blur',
         validator: async (value: string) => {
+          invalidList = [];
           const instanceList = value.split(batchInputSplitRegex).filter((item) => ipPort.test(item));
           const instancesResult = await checkInstance({ instance_addresses: instanceList });
           const resultList = instancesResult.map((item) => item.instance_address);
-          const invalidList = _.difference(instanceList, resultList);
-          if (formData.value.queryType === 'proxy') {
-            const notMatchlist = instancesResult.reduce<string[]>((results, item) => {
-              if (item.role === 'proxy') {
-                return results;
-              }
-
-              results.push(item.instance_address);
-              return results;
-            }, []);
-            if (!notMatchlist.length && !invalidList.length) {
-              invalidInstanceList.value = [];
-              return true;
-            }
-
-            invalidInstanceList.value = [...invalidList, ...notMatchlist];
-            return false;
-          }
-
-          const notMatchlist = instancesResult.reduce<string[]>((results, item) => {
-            if (['master', 'orphan', 'repeater', 'slave'].includes(item.role)) {
-              return results;
-            }
-
-            results.push(item.instance_address);
-            return results;
-          }, []);
-          if (!notMatchlist.length && !invalidList.length) {
-            invalidInstanceList.value = [];
-            return true;
-          }
-
-          invalidInstanceList.value = [...invalidList, ...notMatchlist];
-          return false;
+          invalidList = _.difference(instanceList, resultList);
+          return !invalidList.length;
         },
       },
     ],
