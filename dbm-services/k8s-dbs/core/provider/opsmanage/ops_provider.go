@@ -499,7 +499,10 @@ func (o *OpsRequestProvider) DescribeOpsRequest(request *coreentity.Request) (*c
 }
 
 // createRequestEntity Save and return the request instance
-func (o *OpsRequestProvider) createRequestEntity(request *coreentity.Request, requestType string) (*providerentity.ClusterRequestRecordEntity, error) {
+func (o *OpsRequestProvider) createRequestEntity(
+	request *coreentity.Request,
+	requestType string,
+) (*providerentity.ClusterRequestRecordEntity, error) {
 	// Serialize request
 	requestBytes, err := json.Marshal(request)
 	if err != nil {

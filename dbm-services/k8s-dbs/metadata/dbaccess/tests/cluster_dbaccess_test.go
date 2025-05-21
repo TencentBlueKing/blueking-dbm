@@ -58,7 +58,7 @@ func TestCreateCluster(t *testing.T) {
 	cluster := &model.K8sCrdClusterModel{
 		ClusterName:        "mycluster",
 		K8sClusterConfigID: 1,
-		RequestID:          1,
+		RequestID:          "1",
 		Namespace:          "default",
 		Status:             "Enable",
 		Description:        "desc",
@@ -86,7 +86,7 @@ func TestDeleteCluster(t *testing.T) {
 		ClusterName:        "mycluster",
 		Namespace:          "default",
 		K8sClusterConfigID: 1,
-		RequestID:          1,
+		RequestID:          "1",
 		Status:             "Enable",
 		Description:        "desc",
 	}
@@ -108,7 +108,7 @@ func TestUpdateCluster(t *testing.T) {
 		ClusterName:        "mycluster",
 		Namespace:          "default",
 		K8sClusterConfigID: 1,
-		RequestID:          1,
+		RequestID:          "1",
 		Status:             "Enable",
 		Description:        "desc",
 	}
@@ -138,7 +138,7 @@ func TestGetCluster(t *testing.T) {
 		ClusterName:        "mycluster",
 		Namespace:          "default",
 		K8sClusterConfigID: 1,
-		RequestID:          1,
+		RequestID:          "1",
 		Status:             "Enable",
 		Description:        "desc",
 	}
@@ -163,7 +163,7 @@ func TestGetClusterByParams(t *testing.T) {
 		ClusterName:        "mycluster",
 		Namespace:          "default",
 		K8sClusterConfigID: 1,
-		RequestID:          1,
+		RequestID:          "1",
 		Status:             "Enable",
 		Description:        "desc",
 	}

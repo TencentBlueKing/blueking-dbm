@@ -263,7 +263,10 @@ func (c *ClusterProvider) DescribeComponent(request *coreentity.Request) (*coree
 }
 
 // createRequestEntity Save the request instance
-func (c *ClusterProvider) createRequestEntity(request *coreentity.Request, requestType string) (*providerentity.ClusterRequestRecordEntity, error) {
+func (c *ClusterProvider) createRequestEntity(
+	request *coreentity.Request,
+	requestType string,
+) (*providerentity.ClusterRequestRecordEntity, error) {
 	requestBytes, err := json.Marshal(request)
 	if err != nil {
 		return nil, fmt.Errorf("serialization request failed: %v", err)
@@ -283,7 +286,11 @@ func (c *ClusterProvider) createRequestEntity(request *coreentity.Request, reque
 }
 
 // createClusterEntity Save and return the cluster instance
-func (c *ClusterProvider) createClusterEntity(request *coreentity.Request, requestID string, k8sClusterConfigID uint64) (*providerentity.K8sCrdClusterEntity, error) {
+func (c *ClusterProvider) createClusterEntity(
+	request *coreentity.Request,
+	requestID string,
+	k8sClusterConfigID uint64,
+) (*providerentity.K8sCrdClusterEntity, error) {
 	clusterEntity := &providerentity.K8sCrdClusterEntity{
 		ClusterName:        request.ClusterName,
 		Namespace:          request.Namespace,
@@ -299,7 +306,10 @@ func (c *ClusterProvider) createClusterEntity(request *coreentity.Request, reque
 }
 
 // createComponentEntity Save and return an array of component instances
-func (c *ClusterProvider) createComponentEntity(request *coreentity.Request, crdClusterID uint64) ([]*providerentity.K8sCrdComponentEntity, error) {
+func (c *ClusterProvider) createComponentEntity(
+	request *coreentity.Request,
+	crdClusterID uint64,
+) ([]*providerentity.K8sCrdComponentEntity, error) {
 	var compEntityList []*providerentity.K8sCrdComponentEntity
 	for compTopoName := range request.ComponentMap {
 		compName := request.Metadata.ClusterName + "-" + compTopoName
