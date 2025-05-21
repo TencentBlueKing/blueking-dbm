@@ -314,10 +314,9 @@ class MySQLStorageLocalUpgradeFlow(object):
                             )
                         ),
                     )
-
-                switch_sub_pipeline_list.append(
-                    switch_sub_pipeline.build_sub_process(sub_name=_("集群 {} 切换".format(cluster_model.id)))
-                )
+                    switch_sub_pipeline_list.append(
+                        switch_sub_pipeline.build_sub_process(sub_name=_("集群 {} 切换".format(cluster_model.id)))
+                    )
 
                 sub_pipeline.add_act(act_name=_("人工确认切换"), act_component_code=PauseComponent.code, kwargs={})
                 sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=switch_sub_pipeline_list)

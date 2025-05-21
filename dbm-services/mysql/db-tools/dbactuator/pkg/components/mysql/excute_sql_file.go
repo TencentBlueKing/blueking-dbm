@@ -315,7 +315,7 @@ func (e *ExecuteSQLFileComp) checkBlockingAtSpiderOne(port int) (err error) {
 		for _, mntSpider := range mntSpiders {
 			mntSvr, errx := tdbctlConn.GetSpiderNode(mntSpider.Host, mntSpider.Port)
 			if errx != nil {
-				logger.Error("Connect %s failed:%s", mntSvr.ServerName, errx.Error())
+				logger.Error("查询运维节点[%s:%d]路由失败:%s", mntSpider.Host, mntSpider.Port, errx.Error())
 				return errx
 			}
 			checkSpiderSvrs = append(checkSpiderSvrs, mntSvr)
