@@ -81,7 +81,7 @@ spec:
             resources:
               requests:
                 storage: {{ .storage }}
-            #storageClassName: null
+            storageClassName: cbs
             volumeMode: Filesystem
     {{- end}}
 

@@ -21,10 +21,13 @@ package controller
 
 import (
 	coreconst "k8s-dbs/core/api/constants"
+	"k8s-dbs/core/api/vo/resp"
 	coreentity "k8s-dbs/core/entity"
 	"k8s-dbs/core/errors"
 	"k8s-dbs/core/provider/clustermanage"
 	"k8s-dbs/core/provider/opsmanage"
+
+	"github.com/jinzhu/copier"
 
 	"github.com/gin-gonic/gin"
 )
@@ -249,7 +252,12 @@ func (c *ClusterController) DescribeCluster(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.DescribeClusterError, err))
 		return
 	}
-	coreentity.SuccessResponse(ctx, clusterData, coreconst.DescribeClusterSuccess)
+	var data []resp.ClusterDetailRespVo
+	if err := copier.Copy(&data, clusterData); err != nil {
+		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetClusterStatusError, err))
+		return
+	}
+	coreentity.SuccessResponse(ctx, data, coreconst.DescribeClusterSuccess)
 }
 
 // GetClusterStatus 获取 cluster 状态
@@ -265,7 +273,12 @@ func (c *ClusterController) GetClusterStatus(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetClusterStatusError, err))
 		return
 	}
-	coreentity.SuccessResponse(ctx, clusterStatus, coreconst.GetClusterStatusSuccess)
+	var data []resp.ClusterStatusRespVo
+	if err := copier.Copy(&data, clusterStatus); err != nil {
+		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetClusterStatusError, err))
+		return
+	}
+	coreentity.SuccessResponse(ctx, data, coreconst.GetClusterStatusSuccess)
 }
 
 // ExposeCluster 暴露 cluster 服务
