@@ -74,6 +74,7 @@ export default class GraphCanvas {
       },
       mode: 'readonly',
       nodeConfig: [
+        { height: 48, radius: '50%', tpl: 'gateway', width: 48 },
         { height: 48, radius: '50%', tpl: 'round', width: 48 },
         { height: 48, radius: '4px', tpl: 'ractangle', width: 280 },
       ],
