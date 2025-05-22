@@ -30,9 +30,9 @@ type K8sCrdClusterModel struct {
 	AddonID            uint64    `gorm:"not null;column:addon_id" json:"addon_id"`
 	K8sClusterConfigID uint64    `gorm:"not null;column:k8s_cluster_config_id" json:"k_8_s_cluster_config_id"`
 	RequestID          string    `gorm:"not null;column:request_id" json:"request_id"`
-	ClusterName        string    `gorm:"size:100;not null;column:cluster_name" json:"cluster_name"`
-	Namespace          string    `gorm:"size:100;not null;column:namespace" json:"namespace"`
-	Status             string    `gorm:"size:100;column:status" json:"status"`
+	ClusterName        string    `gorm:"size:32;not null;column:cluster_name" json:"cluster_name"`
+	Namespace          string    `gorm:"size:32;not null;column:namespace" json:"namespace"`
+	Status             string    `gorm:"size:32;column:status" json:"status"`
 	Description        string    `gorm:"size:100;column:description" json:"description"`
 	CreatedBy          string    `gorm:"size:50;not null;column:created_by" json:"created_by"`
 	CreatedAt          time.Time `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP;column:created_at" json:"created_at"` //nolint:lll

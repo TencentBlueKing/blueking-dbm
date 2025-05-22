@@ -38,30 +38,29 @@ type database struct {
 	GormDb *gorm.DB
 }
 
-func localConfig() (*config.DatabaseConfig, error) {
-	cfg := &config.DatabaseConfig{}
-	cfg.Host = os.Getenv("HOST")
-	cfg.Port, _ = strconv.Atoi(os.Getenv("PORT"))
-	cfg.User = os.Getenv("USER")
-	cfg.Password = os.Getenv("PASSWORD")
-	cfg.Database = os.Getenv("DATABASE")
-	cfg.DBName = os.Getenv("DBNAME")
-	cfg.TLSMode = os.Getenv("TLSMODE")
-	cfg.MaxOpenConns, _ = strconv.Atoi(os.Getenv("MAX_OPEN_CONN"))
-	cfg.MaxIdleConns, _ = strconv.Atoi(os.Getenv("MAX_IDLE_CONN"))
-	cfg.MaxLifetime, _ = time.ParseDuration(os.Getenv("MAX_LIFETIME"))
-	cfg.MaxIdleTime, _ = time.ParseDuration(os.Getenv("MAX_IDLE_TIME"))
-	return cfg, nil
+func dbConfig() (*config.DatabaseConfig, error) {
+	dbCfg := &config.DatabaseConfig{}
+	dbCfg.Host = os.Getenv("MYSQL_HOST")
+	dbCfg.Port, _ = strconv.Atoi(os.Getenv("MYSQL_PORT"))
+	dbCfg.User = os.Getenv("MYSQL_USER")
+	dbCfg.Password = os.Getenv("MYSQL_PASSWORD")
+	dbCfg.DBName = os.Getenv("MYSQL_DBNAME")
+	dbCfg.TLSMode = os.Getenv("MYSQL_TLSMODE")
+	dbCfg.MaxOpenConns, _ = strconv.Atoi(os.Getenv("MYSQL_MAX_OPEN_CONN"))
+	dbCfg.MaxIdleConns, _ = strconv.Atoi(os.Getenv("MYSQL_MAX_IDLE_CONN"))
+	dbCfg.MaxLifetime, _ = time.ParseDuration(os.Getenv("MYSQL_MAX_LIFETIME"))
+	dbCfg.MaxIdleTime, _ = time.ParseDuration(os.Getenv("MYSQL_MAX_IDLE_TIME"))
+	return dbCfg, nil
 }
 
 func (d *database) Init() error {
-	cfg, err := localConfig()
+	dbCfg, err := dbConfig()
 	if err != nil {
 		slog.Error("Failed to load config", "err", err)
 		return err
 	}
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local&tls=%s",
-		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName, cfg.TLSMode)
+		dbCfg.User, dbCfg.Password, dbCfg.Host, dbCfg.Port, dbCfg.DBName, dbCfg.TLSMode)
 	log.Printf("MySql connector Dsn is %s\n", dsn)
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
@@ -76,10 +75,10 @@ func (d *database) Init() error {
 	}
 
 	// 设置数据库连接池参数
-	sqlDb.SetMaxOpenConns(cfg.MaxOpenConns)
-	sqlDb.SetMaxIdleConns(cfg.MaxIdleConns)
-	sqlDb.SetConnMaxLifetime(cfg.MaxLifetime)
-	sqlDb.SetConnMaxIdleTime(cfg.MaxIdleTime)
+	sqlDb.SetMaxOpenConns(dbCfg.MaxOpenConns)
+	sqlDb.SetMaxIdleConns(dbCfg.MaxIdleConns)
+	sqlDb.SetConnMaxLifetime(dbCfg.MaxLifetime)
+	sqlDb.SetConnMaxIdleTime(dbCfg.MaxIdleTime)
 
 	// Ping 数据库，确认连接
 	if err = sqlDb.Ping(); err != nil {

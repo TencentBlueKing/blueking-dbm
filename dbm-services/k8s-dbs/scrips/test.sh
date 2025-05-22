@@ -1,0 +1,10 @@
+export MYSQL_HOST="localhost"
+export MYSQL_PORT=3306
+export MYSQL_USER="root"
+export MYSQL_PASSWORD="root"
+export MYSQL_DBNAME="bkbase_dbs"
+export MYSQL_TLSMODE=false
+export MYSQL_MAX_OPEN_CONN=10
+export MYSQL_MAX_IDLE_CONN=5
+export MYSQL_MAX_LIFETIME="30m"
+export MYSQL_MAX_IDLE_TIME="30m"

@@ -17,20 +17,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package config
+package req
 
 import "time"
 
-// DatabaseConfig 元数据库配置信息
-type DatabaseConfig struct {
-	Host         string        `env:"MYSQL_HOST"`
-	Port         int           `env:"MYSQL_PORT"`
-	User         string        `env:"MYSQL_USER"`
-	Password     string        `env:"MYSQL_PASSWORD"`
-	DBName       string        `env:"MYSQL_DBNAME"`
-	TLSMode      string        `env:"MYSQL_TLSMODE"`
-	MaxOpenConns int           `env:"MYSQL_MAX_OPEN_CONN"`
-	MaxIdleConns int           `env:"MYSQL_MAX_IDLE_CONN"`
-	MaxLifetime  time.Duration `env:"MYSQL_MAX_LIFETIME"`
-	MaxIdleTime  time.Duration `env:"MYSQL_MAX_IDLE_TIME"`
+// OperationDefinitionReqVo represents the ReqVo structure of addon meta.
+type OperationDefinitionReqVo struct {
+	OperationName   string    `json:"operation_name" binding:"required"`
+	OperationTarget string    `json:"operation_target" binding:"required"`
+	Description     string    `json:"description" binding:"required"`
+	CreatedBy       string    `json:"created_by"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedBy       string    `json:"updated_by"`
+	UpdatedAt       time.Time `json:"updated_at"`
 }

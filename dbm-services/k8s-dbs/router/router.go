@@ -91,6 +91,13 @@ func buildMetaRouter(db *gorm.DB, router *gin.Engine) {
 		buildComponentMetaRouter(db, metaRouter)
 
 		buildClusterConfigMetaRouter(db, metaRouter)
+
+		buildOperationMetaRouter(db, metaRouter)
+
+		buildClusterOpMetaRouter(db, metaRouter)
+
+		buildComponentOpMetaRouter(db, metaRouter)
+
 	}
 }
 
@@ -196,6 +203,44 @@ func buildAddonMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
 		addonMetaGroup.DELETE("/:id", addonMetaController.DeleteAddon)
 		addonMetaGroup.POST("", addonMetaController.CreateAddon)
 		addonMetaGroup.PUT("/:id", addonMetaController.UpdateAddon)
+	}
+}
+
+// buildOperationMetaRouter operation definition 管理路由构建
+func buildOperationMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
+	metaDbAccess := metadbaccess.NewOperationDefinitionDbAccess(db)
+	metaProvider := metaprovider.NewOperationDefinitionProvider(metaDbAccess)
+	metaController := metacontroller.NewOperationDefinitionController(metaProvider)
+	addonMetaGroup := metaRouter.Group("/operation_definition")
+	{
+		addonMetaGroup.GET("", metaController.ListOperationDefinitions)
+		addonMetaGroup.POST("", metaController.CreateOperationDefinition)
+	}
+}
+
+// buildClusterOpMetaRouter cluster operation 管理路由构建
+func buildClusterOpMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
+	clusterOpDbAccess := metadbaccess.NewClusterOperationDbAccess(db)
+	opDefDbAccess := metadbaccess.NewOperationDefinitionDbAccess(db)
+	metaProvider := metaprovider.NewClusterOperationProvider(clusterOpDbAccess, opDefDbAccess)
+	metaController := metacontroller.NewClusterOperationController(metaProvider)
+	addonMetaGroup := metaRouter.Group("/cluster_operation")
+	{
+		addonMetaGroup.GET("", metaController.ListClusterOperations)
+		addonMetaGroup.POST("", metaController.CreateClusterOperation)
+	}
+}
+
+// buildComponentOpMetaRouter component operation 管理路由构建
+func buildComponentOpMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
+	componentOpDbAccess := metadbaccess.NewComponentOperationDbAccess(db)
+	opDefDbAccess := metadbaccess.NewOperationDefinitionDbAccess(db)
+	metaProvider := metaprovider.NewComponentOperationProvider(componentOpDbAccess, opDefDbAccess)
+	metaController := metacontroller.NewComponentOperationController(metaProvider)
+	addonMetaGroup := metaRouter.Group("/component_operation")
+	{
+		addonMetaGroup.GET("", metaController.ListComponentOperations)
+		addonMetaGroup.POST("", metaController.CreateComponentOperation)
 	}
 }
 

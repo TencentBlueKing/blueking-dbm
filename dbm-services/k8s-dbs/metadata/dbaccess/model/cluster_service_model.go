@@ -28,8 +28,8 @@ import (
 type K8sClusterServiceModel struct {
 	ID            uint64    `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
 	CrdClusterID  uint64    `gorm:"not null;column:crd_cluster_id" json:"crd_cluster_id"`
-	ComponentName string    `gorm:"type:varchar(100);not null;column:component_name" json:"component_name"`
-	ServiceName   string    `gorm:"type:varchar(100);not null;column:service_name" json:"service_name"`
+	ComponentName string    `gorm:"type:varchar(32);not null;column:component_name" json:"component_name"`
+	ServiceName   string    `gorm:"type:varchar(32);not null;column:service_name" json:"service_name"`
 	ServiceType   string    `gorm:"type:varchar(32);not null;column:service_type" json:"service_type"`
 	Annotations   string    `gorm:"type:varchar(512);column:annotations" json:"annotations"`
 	InternalAddrs string    `gorm:"type:varchar(255);column:internal_addrs" json:"internal_addrs"`

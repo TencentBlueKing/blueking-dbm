@@ -19,22 +19,25 @@ limitations under the License.
 
 package constant
 
-// addon 列表默认拉取行数
-const DefaultAddonsFetchSizeStr = "50"
-const DefaultAddonsFetchSize = 50
-const MaxAddonsFetchSize = 100
+// DefaultFetchSizeStr 列表默认拉取行数
+const DefaultFetchSizeStr = "50"
+const DefaultFetchSize = 50
+const MaxFetchSize = 100
 
 const (
-	TbK8sCrdStorageaddon        = "tb_k8s_crd_storageaddon"
-	TbK8sCrdClusterdefinition   = "tb_k8s_crd_clusterdefinition"
-	TbK8sCrdComponentdefinition = "tb_k8s_crd_componentdefinition"
-	TbK8sCrdComponentversion    = "tb_k8s_crd_componentversion"
+	TbK8sCrdStorageAddon        = "tb_k8s_crd_storageaddon"
+	TbK8sCrdClusterDefinition   = "tb_k8s_crd_clusterdefinition"
+	TbK8sCrdComponentDefinition = "tb_k8s_crd_componentdefinition"
+	TbK8sCrdComponentVersion    = "tb_k8s_crd_componentversion"
 	TbK8sCrdCluster             = "tb_k8s_crd_cluster"
 	TbK8sCrdComponent           = "tb_k8s_crd_component"
-	TbK8sCrdOpsrequest          = "tb_k8s_crd_opsrequest"
+	TbK8sCrdOpsRequest          = "tb_k8s_crd_opsrequest"
 	TbK8sClusterConfig          = "tb_k8s_cluster_config"
 	TbClusterRequestRecord      = "tb_cluster_request_record"
 	TbK8sClusterService         = "tb_k8s_cluster_service"
+	TbOperationDefinition       = "tb_operation_definition"
+	TbComponentOperation        = "tb_component_operation"
+	TbClusterOperation          = "tb_cluster_operation"
 )
 
 // MySQLTestURL mysql connection credentials for test

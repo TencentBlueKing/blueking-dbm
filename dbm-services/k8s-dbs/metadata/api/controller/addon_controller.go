@@ -46,12 +46,12 @@ func NewAddonController(addonProvider provider.K8sCrdStorageAddonProvider) *Addo
 
 // ListAddons 获取当前系统支持的 addon 列表
 func (a *AddonController) ListAddons(ctx *gin.Context) {
-	sizeStr := ctx.DefaultQuery("size", metaconst.DefaultAddonsFetchSizeStr)
+	sizeStr := ctx.DefaultQuery("size", metaconst.DefaultFetchSizeStr)
 	fetchSize, err := strconv.Atoi(sizeStr)
 	if err != nil {
-		fetchSize = metaconst.DefaultAddonsFetchSize // 如果转换失败，使用默认值
+		fetchSize = metaconst.DefaultFetchSize // 如果转换失败，使用默认值
 	}
-	fetchSize = min(fetchSize, metaconst.MaxAddonsFetchSize)
+	fetchSize = min(fetchSize, metaconst.MaxFetchSize)
 	pagination := utils.Pagination{Limit: fetchSize}
 	addons, err := a.addonProvider.ListStorageAddons(pagination)
 	if err != nil {

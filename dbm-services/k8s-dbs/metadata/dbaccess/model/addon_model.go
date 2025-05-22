@@ -27,9 +27,9 @@ import (
 // K8sCrdStorageAddonModel represents the database model of addon
 type K8sCrdStorageAddonModel struct {
 	ID            uint64    `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
-	AddonName     string    `gorm:"size:100;not null;column:addon_name" json:"addon_name"`
-	AddonCategory string    `gorm:"size:100;not null;column:addon_category" json:"addon_category"`
-	AddonType     string    `gorm:"size:100;not null;column:addon_type" json:"addon_type"`
+	AddonName     string    `gorm:"size:32;not null;column:addon_name" json:"addon_name"`
+	AddonCategory string    `gorm:"size:32;not null;column:addon_category" json:"addon_category"`
+	AddonType     string    `gorm:"size:32;not null;column:addon_type" json:"addon_type"`
 	Metadata      string    `gorm:"type:text;column:metadata" json:"metadata"`
 	Spec          string    `gorm:"type:text;column:spec" json:"spec"`
 	Active        bool      `gorm:"type:tinyint(1);not null;default:1;column:active" json:"active"`
@@ -42,5 +42,5 @@ type K8sCrdStorageAddonModel struct {
 
 // TableName 获取 model 对应的数据库表名
 func (K8sCrdStorageAddonModel) TableName() string {
-	return constant.TbK8sCrdStorageaddon
+	return constant.TbK8sCrdStorageAddon
 }

@@ -30,8 +30,8 @@ type K8sCrdOpsRequestModel struct {
 	CrdClusterID       uint64    `gorm:"not null;column:crd_cluster_id" json:"crd_cluster_id"`
 	K8sClusterConfigID uint64    `gorm:"not null;column:k8s_cluster_config_id" json:"k_8_s_cluster_config_id"`
 	RequestID          string    `gorm:"not null;column:request_id" json:"request_id"`
-	OpsRequestName     string    `gorm:"size:100;not null;column:opsrequest_name" json:"opsrequest_name"`
-	OpsRequestType     string    `gorm:"size:100;column:opsrequest_type" json:"opsrequest_type"`
+	OpsRequestName     string    `gorm:"size:32;not null;column:opsrequest_name" json:"opsrequest_name"`
+	OpsRequestType     string    `gorm:"size:32;column:opsrequest_type" json:"opsrequest_type"`
 	Metadata           string    `gorm:"type:text;column:metadata" json:"metadata"`
 	Spec               string    `gorm:"type:text;column:spec" json:"spec"`
 	Status             string    `gorm:"size:100;column:status" json:"status"`
@@ -44,5 +44,5 @@ type K8sCrdOpsRequestModel struct {
 
 // TableName 获取 model 对应的数据库表名
 func (K8sCrdOpsRequestModel) TableName() string {
-	return constant.TbK8sCrdOpsrequest
+	return constant.TbK8sCrdOpsRequest
 }

@@ -28,7 +28,7 @@ import (
 type K8sCrdComponentVersionModel struct {
 	ID                   uint64    `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
 	AddonID              uint64    `gorm:"not null;column:addon_id" json:"addon_id"`
-	ComponentVersionName string    `gorm:"size:100;not null;column:componentversion_name" json:"componentversion_name"`
+	ComponentVersionName string    `gorm:"size:32;not null;column:componentversion_name" json:"componentversion_name"`
 	Metadata             string    `gorm:"type:text;column:metadata" json:"metadata"`
 	Spec                 string    `gorm:"type:text;column:spec" json:"spec"`
 	Active               bool      `gorm:"type:tinyint(1);not null;default:1;column:active" json:"active"`
@@ -41,5 +41,5 @@ type K8sCrdComponentVersionModel struct {
 
 // TableName 获取 model 对应的数据库表名
 func (K8sCrdComponentVersionModel) TableName() string {
-	return constant.TbK8sCrdComponentversion
+	return constant.TbK8sCrdComponentVersion
 }

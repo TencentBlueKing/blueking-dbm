@@ -28,8 +28,8 @@ import (
 type K8sCrdComponentDefinitionModel struct {
 	ID                      uint64    `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
 	AddonID                 uint64    `gorm:"not null;column:addon_id" json:"addon_id"`
-	ComponentDefinitionName string    `gorm:"size:100;not null;column:componentdefinition_name" json:"componentdefinition_name"` //nolint:lll
-	DefaultVersion          string    `gorm:"size:100;not null;column:default_version" json:"default_version"`
+	ComponentDefinitionName string    `gorm:"size:32;not null;column:componentdefinition_name" json:"componentdefinition_name"` //nolint:lll
+	DefaultVersion          string    `gorm:"size:32;not null;column:default_version" json:"default_version"`
 	Metadata                string    `gorm:"type:text;column:metadata" json:"metadata"`
 	Spec                    string    `gorm:"type:text;column:spec" json:"spec"`
 	Active                  bool      `gorm:"type:tinyint(1);not null;default:1;column:active" json:"active"`
@@ -42,5 +42,5 @@ type K8sCrdComponentDefinitionModel struct {
 
 // TableName 获取 model 对应的数据库表名
 func (K8sCrdComponentDefinitionModel) TableName() string {
-	return constant.TbK8sCrdComponentdefinition
+	return constant.TbK8sCrdComponentDefinition
 }

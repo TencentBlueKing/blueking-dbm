@@ -27,23 +27,23 @@ spec:
           env:
           - name: TZ
             value: {{ .Values.server.timezone }}
-          - name: HOST
+          - name: MYSQL_HOST
             value: "{{ .Values.server.datasource.host }}"
-          - name: PORT
+          - name: MYSQL_PORT
             value: "{{ .Values.server.datasource.port }}"
-          - name: USER
+          - name: MYSQL_USER
             value: "{{ .Values.server.datasource.user }}"
-          - name: PASSWORD
+          - name: MYSQL_PASSWORD
             value: "{{ .Values.server.datasource.password }}"
-          - name: DBNAME
+          - name: MYSQL_DBNAME
             value: "{{ .Values.server.datasource.dbname }}"
-          - name: TLSMODE
+          - name: MYSQL_TLSMODE
             value: "{{ .Values.server.datasource.tlsmode }}"
-          - name: MAX_OPEN_CONN
+          - name: MYSQL_MAX_OPEN_CONN
             value: "{{ .Values.server.datasource.maxOpenConns }}"
-          - name: MAX_IDLE_CONN
+          - name: MYSQL_MAX_IDLE_CONN
             value: "{{ .Values.server.datasource.maxIdelConns }}"
-          - name: MAX_LIFETIME
+          - name: MYSQL_MAX_LIFETIME
             value: "{{ .Values.server.datasource.maxLifeTime }}"
-          - name: MAX_IDLE_TIME
+          - name: MYSQL_MAX_IDLE_TIME
             value: "{{ .Values.server.datasource.maxIdleTime }}"

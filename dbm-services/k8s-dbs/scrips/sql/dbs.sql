@@ -143,42 +143,50 @@ CREATE TABLE IF NOT EXISTS tb_cluster_request_record (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT '记录用户集群操作记录（排查检索）';
 
 --
--- Table structure for table tb_k8s_crd_opsrequest
+-- Table structure for table tb_cluster_operation
 --
-CREATE TABLE IF NOT EXISTS tb_k8s_crd_opsrequest (
-    id bigint PRIMARY KEY AUTO_INCREMENT COMMENT '主键 id',
-    crd_cluster_id bigint NOT NULL COMMENT '关联 k8s_crd_cluster 主键 id',
-    k8s_cluster_config_id bigint NOT NULL COMMENT '关联 tb_k8s_cluster_config 主键 id',
-    request_id varchar(50) NOT NULL COMMENT 'tb_cluster_request_record 表的请求 Id',
-    opsrequest_name varchar(100) NOT NULL COMMENT '操作请求名称',
-    opsrequest_type varchar(100) COMMENT '操作类型 Restart/Start/Stop/Switchover/Upgrade/HorizontalScaling/VerticalScaling/VolumeExpansion',
-    metadata text DEFAULT NULL COMMENT 'metadata定义',
-    spec text DEFAULT NULL COMMENT 'spec定义',
-    status varchar(100) COMMENT '操作请求状态 Cancelled/Cancelling/Creating/Failed/Pending/Running/Succeed',
-    description varchar(100) COMMENT '操作请求描述',
-    created_by varchar(50) NOT NULL COMMENT '创建者',
-    created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    updated_by varchar(50) NOT NULL COMMENT '更新者',
-    updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT '存储操作请求相关信息的表';
+CREATE TABLE IF NOT EXISTS tb_cluster_operation (
+     id bigint PRIMARY KEY AUTO_INCREMENT COMMENT '主键 id',
+     addon_type varchar(32) NOT NULL COMMENT '存储插件种类 MySql/Oracle/Redis...',
+     addon_version varchar(32) NOT NULL COMMENT '存储插件版本',
+     operation_id bigint NOT NULL COMMENT '操作id 关联 tb_operation_definition 主键 id',
+     active tinyint(1) NOT NULL DEFAULT 1 COMMENT '0:无效，1:有效',
+     description varchar(100) COMMENT '存储插件操作描述',
+     created_by varchar(50) NOT NULL COMMENT '创建者',
+     created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+     updated_by varchar(50) NOT NULL COMMENT '更新者',
+     updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT '集群支持的操作列表';
 
 --
--- Table structure for table tb_k8s_cluster_config
+-- Table structure for table tb_component_operation
 --
-CREATE TABLE IF NOT EXISTS tb_k8s_cluster_config (
+CREATE TABLE IF NOT EXISTS tb_component_operation (
     id bigint PRIMARY KEY AUTO_INCREMENT COMMENT '主键 id',
-    cluster_name VARCHAR(255) NOT NULL UNIQUE COMMENT 'k8s 集群名称',
-    api_server_url VARCHAR(255) NOT NULL COMMENT 'k8s API Server 的 URL',
-    ca_cert text COMMENT 'k8s API Server CA 证书-base64 encode',
-    client_cert text COMMENT '客户端证书-base64 encode',
-    client_key text COMMENT '客户端密钥-base64 encode',
-    token text COMMENT 'Token 认证的 Bearer Token',
-    username VARCHAR(255) COMMENT 'Basic Auth 的 username',
-    password VARCHAR(255) COMMENT 'Basic Auth 的 password',
+    addon_type varchar(32) NOT NULL COMMENT '存储插件种类 MySql/Oracle/Redis...',
+    addon_version varchar(32) NOT NULL COMMENT '存储插件版本',
+    component_name varchar(32) NOT NULL COMMENT '存储组件名称',
+    component_version varchar(32) NOT NULL COMMENT '存储组件版本',
+    operation_id bigint NOT NULL COMMENT '操作id 关联 tb_operation_definition 主键 id',
     active tinyint(1) NOT NULL DEFAULT 1 COMMENT '0:无效，1:有效',
-    description varchar(100) COMMENT '描述',
+    description varchar(100) COMMENT '存储插件操作描述',
     created_by varchar(50) NOT NULL COMMENT '创建者',
     created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_by varchar(50) NOT NULL COMMENT '更新者',
     updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT 'k8s 集群连接信息';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT '组件支持的操作列表';
+
+--
+-- Table structure for table tb_operation_definition
+--
+CREATE TABLE IF NOT EXISTS tb_operation_definition (
+     id bigint PRIMARY KEY AUTO_INCREMENT COMMENT '主键 id',
+     operation_name varchar(32) NOT NULL COMMENT '操作名称',
+     operation_target varchar(32) NOT NULL COMMENT '操作适用目标（如：cluster-集群, component-组件）',
+     active tinyint(1) NOT NULL DEFAULT 1 COMMENT '0:无效，1:有效',
+     description varchar(100) COMMENT '操作定义描述',
+     created_by varchar(50) NOT NULL COMMENT '创建者',
+     created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+     updated_by varchar(50) NOT NULL COMMENT '更新者',
+     updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT '操作列表';
