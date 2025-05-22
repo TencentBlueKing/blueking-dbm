@@ -224,7 +224,7 @@ def get_tendisplus_shutdown_hosts(cluster_id, target_group_num: int):
     current_group_num = len(cluster_masters)
     # 如果不是缩容，返回空数组
     if current_group_num <= target_group_num:
-        return []
+        return [], []
     master_ips = set()
     slave_ips = set()
     master_slave_dict = {}
