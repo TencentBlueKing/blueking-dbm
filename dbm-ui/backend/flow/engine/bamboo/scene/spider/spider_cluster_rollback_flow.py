@@ -20,7 +20,7 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import InstanceStatus
 from backend.db_meta.models import Cluster
 from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
-from backend.flow.consts import RollbackType
+from backend.flow.consts import MySQLBackupTypeEnum, RollbackType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.get_local_backup import check_storage_database
@@ -243,7 +243,10 @@ class TenDBRollBackDataFlow(object):
                     ins_sub_pipeline_list.insert(
                         0, ctl_sub_pipeline.build_sub_process(sub_name=_("{} 中控节点恢复".format(ctl_cluster["instance"])))
                     )
-
+            # 记录实例的版本,用于权限恢复
+            instance_version = ""
+            # 用其中一个备份类型确定是否需要恢复账号
+            backup_type = ""
             for shard_id, remote_node in clusters_info["shards"].items():
                 if int(shard_id) not in backup_info["remote_node"]:
                     raise TendbGetBackupInfoFailedException(message=_("获取remotedb分片 {} 的备份信息不存在".format(shard_id)))
@@ -253,6 +256,8 @@ class TenDBRollBackDataFlow(object):
                 shard = target_cluster.tendbclusterstorageset_set.get(shard_id=shard_id)
                 target_slave = target_cluster.storageinstance_set.get(id=shard.storage_instance_tuple.receiver.id)
                 target_master = target_cluster.storageinstance_set.get(id=shard.storage_instance_tuple.ejector.id)
+                if instance_version == "":
+                    instance_version = target_master.version
 
                 shd_cluster = {
                     "charset": charset,
@@ -282,6 +287,10 @@ class TenDBRollBackDataFlow(object):
                     "change_master": False,
                     "all_database_rollback": self.data["all_database_rollback"],
                 }
+                if backup_type == "":
+                    backup_type = shd_cluster["backupinfo"].get("backup_type", "")
+                elif backup_type != shd_cluster["backupinfo"].get("backup_type", ""):
+                    logger.error("remote分片备份类型不一致")
 
                 ins_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
                 cluster = {
@@ -348,11 +357,18 @@ class TenDBRollBackDataFlow(object):
                     ins_sub_pipeline.build_sub_process(sub_name=_("{} 分片主从恢复".format(shard_id)))
                 )
             tendb_rollback_pipeline.add_parallel_sub_pipeline(sub_flow_list=ins_sub_pipeline_list)
-            tendb_rollback_pipeline.add_act(
-                act_name=_("恢复所有remoteDB->spider的权限"),
-                act_component_code=RemoteNodePrivRecoverComponent.code,
-                kwargs={"spider_instance_list": spider_instance_list, "bk_cloud_id": target_cluster.bk_cloud_id},
-            )
+            # 区分是否物理备份
+            if backup_type == MySQLBackupTypeEnum.PHYSICAL.value:
+                tendb_rollback_pipeline.add_act(
+                    act_name=_("恢复所有remoteDB->spider的权限"),
+                    act_component_code=RemoteNodePrivRecoverComponent.code,
+                    kwargs={
+                        "spider_instance_list": spider_instance_list,
+                        "bk_cloud_id": target_cluster.bk_cloud_id,
+                        "instance_version": instance_version,
+                    },
+                )
+
             tendb_rollback_list.append(
                 tendb_rollback_pipeline.build_sub_process(
                     sub_name=_("集群回档: src:{} desc:{}".format(source_cluster.id, target_cluster.id))
