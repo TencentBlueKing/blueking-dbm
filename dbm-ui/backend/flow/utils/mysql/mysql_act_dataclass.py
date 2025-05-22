@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from typing import Any, List, Optional
 
 from backend import env
+from backend.db_dirty.constants import MachineEventType
 from backend.env import BACKUP_DOWNLOAD_USER, BACKUP_DOWNLOAD_USER_PWD
 from backend.flow.consts import (
     BIGFILE_JOB_SCP_TIMEOUT,
@@ -535,12 +536,10 @@ class ImportMachinePollKwargs:
 
     bk_biz_id: int
     db_type: str
-    recycle_hosts: list
     operator: str
-    ips: list
-    ip_dest: str
     ticket_id: int
-    remark: str
+    event: MachineEventType = ""
+    hosts: list = None
 
 
 @dataclass()

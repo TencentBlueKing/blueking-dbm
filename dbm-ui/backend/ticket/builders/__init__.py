@@ -260,7 +260,7 @@ class ResourceApplyParamBuilder(CallBackBuilderMixin):
                 resource_spec[role]["location_spec"].update(sub_zone_ids=[bk_sub_zone_id], include_or_exclude=True)
 
 
-class RecycleParamBuilder(FlowParamBuilder):
+class RecycleCleanMachineParamBuilder(FlowParamBuilder):
     """
     回收清理主机流程 参数构建器
     职责：获取单据中的下架机器，并走回收流程
@@ -297,92 +297,13 @@ class RecycleParamBuilder(FlowParamBuilder):
         return super().build_controller_info()
 
     def format_ticket_data(self):
-        data = self.ticket_data
-        # 汇总四类回收机器，都需要进行数据清理
-        hosts = [*data["fault_hosts"], *data["recycle_hosts"], *data["resource_hosts"], *data["recycled_hosts"]]
+        hosts = self.ticket_data["recycle_hosts"]
         self.ticket_data.update(
             {
                 "hosts": hosts,
                 # 一批机器的操作系统类型一致，任取一个即可
                 "os_name": hosts[0]["os_name"],
                 "os_type": hosts[0]["os_type"],
-                "db_type": self.ticket_data["group"],
-            }
-        )
-
-
-class ImportResourceParamBuilder(FlowParamBuilder):
-    """
-    资源重导入流程 参数构造器 - 此流程目前仅用于回收后/终止部署使用
-    职责：获取单据中下架/新上架机器的机器，并走资源池导入流程
-    """
-
-    controller = BaseController.import_resource_init_step
-
-    def __init__(self, ticket: Ticket):
-        super().__init__(ticket)
-
-    def format_ticket_data(self):
-        hosts = self.ticket_data["resource_hosts"]
-        # 我们认为，在资源申请的情况下，不会混用多个集群类型
-        self.ticket_data.update(
-            {
-                "ticket_id": self.ticket.id,
-                # 固定回收到公共资源池
-                "for_biz": 0,
-                "bk_biz_id": hosts[0]["bk_biz_id"],
-                "resource_type": self.ticket_data["group"],
-                "os_type": hosts[0]["os_type"],
-                "hosts": hosts,
-                "operator": self.ticket.creator,
-                # 标记为退回
-                "return_resource": True,
-                # 是否资源重导入
-                "reimport": self.ticket.ticket_type == TicketType.RECYCLE_APPLY_HOST,
-            }
-        )
-        # 如果单据类型是，新主机退回，则需要拿到申请的主机信息
-        if self.ticket_data["reimport"]:
-            from backend.ticket.builders.common.base import fetch_apply_hosts
-
-            parent_ticket = Ticket.objects.get(id=self.ticket_data["parent_ticket"])
-            apply_hosts = fetch_apply_hosts(parent_ticket.details)
-            host_ids = [host["bk_host_id"] for host in self.ticket_data["hosts"]]
-            self.ticket_data["hosts"] = [host for host in apply_hosts if host["bk_host_id"] in host_ids]
-
-    def pre_callback(self):
-        # 在run的时候才会生成task id，此时要更新到资源池参数里面
-        flow = self.ticket.current_flow()
-        flow.update_details(task_id=flow.flow_obj_id)
-        # 添加导入记录
-        hosts = flow.details["ticket_data"]["hosts"]
-        import_record = {"task_id": flow.flow_obj_id, "operator": self.ticket.creator, "hosts": hosts}
-        DBResourceApi.import_operation_create(params=import_record)
-
-
-class ImportPoolParamBuilder(FlowParamBuilder):
-    """
-    主机导入故障池/待回收池 参数构造器 - 此流程目前仅用于回收后使用
-    职责：获取单据中下架的机器，并走故障池导入
-    """
-
-    controller = BaseController.import_machine_pool
-
-    def __init__(self, ticket: Ticket, host_key: str, ip_dest: PoolType):
-        super().__init__(ticket)
-        self.host_key = host_key
-        self.ip_recycle = {"for_biz": self.ticket.bk_biz_id, "ip_dest": ip_dest}
-
-    def format_ticket_data(self):
-        self.ticket_data.update(
-            {
-                "ticket_id": self.ticket.id,
-                "bk_biz_id": self.ip_recycle["for_biz"],
-                "hosts": self.ticket_data[self.host_key],
-                "sa_check_ips": [recycle["ip"] for recycle in self.ticket_data["recycle_hosts"]],
-                "operator": self.ticket.creator,
-                "ip_dest": self.ip_recycle["ip_dest"],
-                "remark": self.ticket_data.get("remark", ""),
                 "db_type": self.ticket_data["group"],
             }
         )

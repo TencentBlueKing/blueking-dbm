@@ -20,10 +20,8 @@ from django.utils.translation import gettext as _
 from backend import env
 from backend.bk_web.constants import LEN_L_LONG, LEN_LONG, LEN_NORMAL, LEN_SHORT
 from backend.bk_web.models import AuditedModel
-from backend.components.hcm.client import HCMApi
-from backend.components.xwork.client import XworkApi
 from backend.configuration.constants import PLAT_BIZ_ID, DBType, SystemSettingsEnum
-from backend.configuration.models import BizSettings, DBAdministrator, SystemSettings
+from backend.configuration.models import DBAdministrator, SystemSettings
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_monitor.exceptions import AutofixException
@@ -287,76 +285,23 @@ class Ticket(AuditedModel):
         :param hosts: 回收机器列表
         :param ticket_type: 回收单据类型
         """
-        from backend.db_meta.models import Machine
+        revoke_ticket = Ticket.objects.get(id=revoke_ticket_id)
 
-        # 校验元数据，主机存在元数据的情况跳过回收
-        host_ids = [host["bk_host_id"] for host in hosts]
-        exist_hosts = Machine.objects.filter(bk_host_id__in=host_ids).values_list("bk_host_id", flat=True)
-        hosts = [host for host in hosts if host["bk_host_id"] not in exist_hosts]
-
-        if not hosts:
-            return
-
-        revoke_ticket = cls.objects.get(id=revoke_ticket_id)
-
-        fault_hosts: List = []
-        recycle_hosts: List = []
-        resource_hosts: List = []
-        recycled_hosts: List = []
-
-        def add_host_remark(add_hosts, remark):
-            for h in add_hosts:
-                h.update(remark=remark)
-            return add_hosts
-
-        # 如果是独立业务下架，则直接转移到待回收
-        hosting_biz = BizSettings.get_exact_hosting_biz(revoke_ticket.bk_biz_id, revoke_ticket.group)
-        if ticket_type == TicketType.RECYCLE_OLD_HOST and hosting_biz != env.DBA_APP_BK_BIZ_ID:
-            recycled_hosts.extend(hosts)
-            hosts = []
-        add_host_remark(recycled_hosts, _("检测该业务为独立管控业务"))
-
-        # sqlserver机器直接转移到待回收
-        if ticket_type == TicketType.RECYCLE_OLD_HOST and revoke_ticket.group == DBType.Sqlserver:
-            recycle_hosts.extend(hosts)
-            hosts = []
-        add_host_remark(recycle_hosts, _("检测主机为Windows机器"))
-
-        # 存在uwork的主机需要回到故障池，存在裁撤单的主机需要回到待回收池，否则退回资源池
-        dissolved_hosts = HCMApi.check_host_is_dissolved(host_ids)
-        uwork_hosts = HCMApi.check_host_has_uwork(host_ids)
-        host_ip__host_id_map = {host["ip"]: host["bk_host_id"] for host in hosts}
-        xwork_hosts = XworkApi.check_xwork_list(host_ip__host_id_map)
-        for host in hosts:
-            if host["bk_host_id"] in uwork_hosts.keys():
-                host.update(remark=_("检测主机有关联的uwork单据"))
-                fault_hosts.append(host)
-            elif host["bk_host_id"] in xwork_hosts.keys():
-                host.update(remark=_("检测主机有关联的xwork单据"))
-                fault_hosts.append(host)
-            elif host["bk_host_id"] in dissolved_hosts:
-                host.update(remark=_("检测主机为待裁撤主机"))
-                recycle_hosts.append(host)
-            else:
-                resource_hosts.append(host)
-
-        # 回收单的创建者为业务第一DBA，如果没有dba则取原单据创建者
-        dba, __, __ = DBAdministrator.get_dba_for_db_type(revoke_ticket.bk_biz_id, revoke_ticket.group)
+        # 回收单的创建者为业务第一DBA，协助人为其他DBA，如果没有dba则取原单据创建者
+        dba, second_dba, other_dba = DBAdministrator.get_dba_for_db_type(revoke_ticket.bk_biz_id, revoke_ticket.group)
         creator = dba[0] if dba else revoke_ticket.creator
-
+        helpers = [*second_dba, *other_dba]
         # 创建回收单据流程
         recycle_ticket = Ticket.create_ticket(
             ticket_type=ticket_type,
             creator=creator,
+            helpers=helpers,
             bk_biz_id=revoke_ticket.bk_biz_id,
             remark=_("单据{}结束后自动发起{}单据").format(revoke_ticket.id, TicketType.get_choice_label(ticket_type)),
             details={
                 "parent_ticket": revoke_ticket_id,
                 "group": revoke_ticket.group,
-                "fault_hosts": fault_hosts,
-                "recycle_hosts": recycle_hosts,
-                "resource_hosts": resource_hosts,
-                "recycled_hosts": recycled_hosts,
+                "recycle_hosts": hosts,
             },
         )
 

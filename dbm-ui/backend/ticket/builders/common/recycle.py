@@ -17,16 +17,9 @@ from rest_framework import serializers
 from backend import env
 from backend.configuration.constants import DBType
 from backend.configuration.models import BizSettings
-from backend.db_dirty.constants import PoolType
 from backend.flow.engine.controller.base import BaseController
 from backend.ticket import builders
-from backend.ticket.builders import (
-    FlowParamBuilder,
-    ImportPoolParamBuilder,
-    ImportResourceParamBuilder,
-    RecycleParamBuilder,
-    TicketFlowBuilder,
-)
+from backend.ticket.builders import FlowParamBuilder, RecycleCleanMachineParamBuilder, TicketFlowBuilder
 from backend.ticket.constants import FlowType, TicketType
 from backend.ticket.models import Flow
 from backend.utils.time import datetime2str
@@ -35,25 +28,16 @@ logger = logging.getLogger("root")
 
 
 class RecycleHostDetailSerializer(serializers.Serializer):
-    fault_hosts = serializers.JSONField(help_text=_("故障机器回收信息"), default=[])
-    recycle_hosts = serializers.JSONField(help_text=_("待回收机器回收信息"), default=[])
-    resource_hosts = serializers.JSONField(help_text=_("资源机器回收信息"), default=[])
-    recycled_hosts = serializers.JSONField(help_text=_("下架机器的回收信息"), default=[])
+    recycle_hosts = serializers.JSONField(help_text=_("下架机器的回收信息"), default=[])
     group = serializers.ChoiceField(help_text=_("所属组件"), choices=DBType.get_choices())
     parent_ticket = serializers.IntegerField(help_text=_("发起单据号"))
-
-
-class RecycleHostParamBuilder(RecycleParamBuilder):
-    def format_ticket_data(self):
-        super().format_ticket_data()
 
 
 class MachineIdleCheckParamBuilder(FlowParamBuilder):
     controller = BaseController.machine_idle_check_flow
 
     def format_ticket_data(self):
-        data = self.ticket_data
-        hosts = [*data["fault_hosts"], *data["recycle_hosts"], *data["resource_hosts"], *data["recycled_hosts"]]
+        hosts = self.ticket_data["recycle_hosts"]
         self.ticket_data.update(
             {
                 "ticket_id": self.ticket.id,
@@ -66,16 +50,18 @@ class MachineIdleCheckParamBuilder(FlowParamBuilder):
         )
 
 
-class RecycleHostResourceParamBuilder(ImportResourceParamBuilder):
+class RecycleHostParamBuilder(FlowParamBuilder):
+    controller = BaseController.machine_recycle_flow
+
     def format_ticket_data(self):
-        super().format_ticket_data()
+        self.ticket_data.update(db_type=self.ticket_data["group"], operator=self.ticket.creator)
 
 
 class RecycleHostFlowBuilder(TicketFlowBuilder):
     serializer = RecycleHostDetailSerializer
-    import_resource_flow_builder = RecycleHostResourceParamBuilder
-    recycle_flow_builder = RecycleHostParamBuilder
+    machine_clean_flow_builder = RecycleCleanMachineParamBuilder
     machine_idle_check_flow_builder = MachineIdleCheckParamBuilder
+    recycle_flow_builder = RecycleHostParamBuilder
     # 此单据不属于任何db，暂定为common
     group = "common"
     editable = False
@@ -111,60 +97,25 @@ class RecycleHostFlowBuilder(TicketFlowBuilder):
                 Flow(
                     ticket=self.ticket,
                     flow_type=FlowType.HOST_RECYCLE.value,
-                    details=self.recycle_flow_builder(self.ticket).get_params(),
+                    details=self.machine_clean_flow_builder(self.ticket).get_params(),
                     flow_alias=_("主机数据清理"),
                 ),
             )
 
-        # 导入故障池
-        if self.ticket.details["fault_hosts"]:
-            flows.append(
-                Flow(
-                    ticket=self.ticket,
-                    flow_type=FlowType.HOST_RECYCLE.value,
-                    details=ImportPoolParamBuilder(self.ticket, "fault_hosts", PoolType.Fault).get_params(),
-                    flow_alias=_("主机转入故障池"),
-                ),
-            )
-
-        # 导入待回收池
-        if self.ticket.details["recycle_hosts"]:
-            flows.append(
-                Flow(
-                    ticket=self.ticket,
-                    flow_type=FlowType.HOST_RECYCLE.value,
-                    details=ImportPoolParamBuilder(self.ticket, "recycle_hosts", PoolType.Recycle).get_params(),
-                    flow_alias=_("主机转入待回收池"),
-                ),
-            )
-
-        # 导入CC待回收
-        if self.ticket.details["recycled_hosts"]:
-            flows.append(
-                Flow(
-                    ticket=self.ticket,
-                    flow_type=FlowType.HOST_RECYCLE.value,
-                    details=ImportPoolParamBuilder(self.ticket, "recycled_hosts", PoolType.Recycled).get_params(),
-                    flow_alias=_("主机回收到CMDB待回收"),
-                ),
-            )
-
-        # 导入资源池
-        if self.ticket.details["resource_hosts"]:
-            flows.append(
-                Flow(
-                    ticket=self.ticket,
-                    flow_type=FlowType.HOST_RECYCLE.value,
-                    details=self.import_resource_flow_builder(self.ticket).get_params(),
-                    flow_alias=_("主机退回资源池"),
-                ),
-            )
+        # 主机分池处理
+        flows.append(
+            Flow(
+                ticket=self.ticket,
+                flow_type=FlowType.HOST_RECYCLE.value,
+                details=self.recycle_flow_builder(self.ticket).get_params(),
+                flow_alias=_("主机分池处理"),
+            ),
+        )
 
         Flow.objects.bulk_create(flows)
         return list(Flow.objects.filter(ticket=self.ticket))
 
     def patch_ticket_detail(self):
-        # TODO: seconds 改成 days
         trigger_time = datetime2str(datetime.now(timezone.utc) + timedelta(days=env.HOST_RECYCLE_RETENTION_DAYS))
         self.ticket.update_details(trigger_time=trigger_time)
 

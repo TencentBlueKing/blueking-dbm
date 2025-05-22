@@ -28,7 +28,7 @@ class TransferHostToPoolService(BaseService):
     def _execute(self, data, parent_data):
         kwargs = data.get_one_of_inputs("kwargs")
         bk_biz_id = kwargs["bk_biz_id"]
-        recycle_hosts = kwargs["recycle_hosts"]
+        recycle_hosts = kwargs["hosts"]
         operator = kwargs["operator"]
         event = kwargs["event"]
         ticket = Ticket.objects.get(id=kwargs["ticket_id"])
