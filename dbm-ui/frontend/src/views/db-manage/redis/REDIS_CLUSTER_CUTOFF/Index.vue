@@ -300,27 +300,26 @@
     const taskList = host.cluster_ids.map((clusterId) => queryMasterSlavePairs({ cluster_id: clusterId }));
 
     const results = await Promise.all(taskList);
-    const newRows = results.flatMap((data) =>
-      data
-        .filter((item) => item.master_ip === host.ip)
-        .map(({ slaves }) =>
-          createTableRow({
-            host: {
-              bk_biz_id: slaves.bk_biz_id,
-              bk_cloud_id: slaves.bk_cloud_id,
-              bk_host_id: slaves.bk_host_id,
-              cluster_domain: host.cluster_domain,
-              cluster_ids: host.cluster_ids,
-              ip: slaves.ip,
-              role: 'redis_slave',
-              spec_config: host.spec_config,
-            },
-          }),
-        ),
-    );
+    // 返回的是分片主机（可能多个重复），只取一个
+    const [{ slaves }] = results.flatMap((data) => data.filter((item) => item.master_ip === host.ip));
 
-    if (newRows.length) {
-      formData.tableData.splice(index + 1, 0, ...newRows);
+    if (slaves) {
+      formData.tableData.splice(
+        index + 1,
+        0,
+        createTableRow({
+          host: {
+            bk_biz_id: slaves.bk_biz_id,
+            bk_cloud_id: slaves.bk_cloud_id,
+            bk_host_id: slaves.bk_host_id,
+            cluster_domain: host.cluster_domain,
+            cluster_ids: host.cluster_ids,
+            ip: slaves.ip,
+            role: 'redis_slave',
+            spec_config: host.spec_config,
+          },
+        }),
+      );
     }
   };
 </script>
