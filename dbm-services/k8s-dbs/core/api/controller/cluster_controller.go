@@ -188,7 +188,12 @@ func (c *ClusterController) DescribeOpsRequest(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.DescribeOpsRequestError, err))
 		return
 	}
-	coreentity.SuccessResponse(ctx, opsRequestData, coreconst.DescribeOpsRequestSuccess)
+	var data resp.OpsRequestDetailRespVo
+	if err := copier.Copy(&data, opsRequestData); err != nil {
+		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetClusterStatusError, err))
+		return
+	}
+	coreentity.SuccessResponse(ctx, data, coreconst.DescribeOpsRequestSuccess)
 }
 
 // GetOpsRequestStatus 获取 opsRequest 状态
@@ -204,7 +209,12 @@ func (c *ClusterController) GetOpsRequestStatus(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetOpsRequestStatusError, err))
 		return
 	}
-	coreentity.SuccessResponse(ctx, opsRequestStatus, coreconst.GetOpsRequestStatusSuccess)
+	var data resp.OpsRequestStatusRespVo
+	if err := copier.Copy(&data, opsRequestStatus); err != nil {
+		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetClusterStatusError, err))
+		return
+	}
+	coreentity.SuccessResponse(ctx, data, coreconst.GetOpsRequestStatusSuccess)
 }
 
 // CreateCluster 创建集群
@@ -252,7 +262,7 @@ func (c *ClusterController) DescribeCluster(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.DescribeClusterError, err))
 		return
 	}
-	var data []resp.ClusterDetailRespVo
+	var data resp.ClusterDetailRespVo
 	if err := copier.Copy(&data, clusterData); err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetClusterStatusError, err))
 		return
@@ -273,7 +283,7 @@ func (c *ClusterController) GetClusterStatus(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetClusterStatusError, err))
 		return
 	}
-	var data []resp.ClusterStatusRespVo
+	var data resp.ClusterStatusRespVo
 	if err := copier.Copy(&data, clusterStatus); err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetClusterStatusError, err))
 		return
