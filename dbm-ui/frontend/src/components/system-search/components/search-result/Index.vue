@@ -1,6 +1,10 @@
 <template>
   <div class="system-serach-box">
-    <div class="result-list">
+    <div
+      v-bkloading="{
+        loading: quickSearchLoading,
+      }"
+      class="result-list">
       <slot>
         <BkAlert
           v-if="showAlert"
@@ -145,7 +149,11 @@
     return _.every(Object.values(dataItemList), (item) => item.length < 1);
   });
 
-  const { data: serachResult, run: handleSerach } = useRequest(quickSearch, {
+  const {
+    data: serachResult,
+    loading: quickSearchLoading,
+    run: handleSerach,
+  } = useRequest(quickSearch, {
     manual: true,
     onSuccess(data) {
       const dataItemList = Object.values(data).filter((item) => Array.isArray(item));
