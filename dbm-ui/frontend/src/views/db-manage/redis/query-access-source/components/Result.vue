@@ -72,6 +72,7 @@
   </div>
 </template>
 <script setup lang="tsx">
+  import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -90,7 +91,7 @@
     }[];
   }
 
-  type Emits = (event: 'success') => void;
+  type Emits = (event: 'finish') => void;
 
   interface Exposes {
     reset(): void;
@@ -278,58 +279,65 @@
   };
 
   const queryTableData = async () => {
-    const tcpResult = await getClusterNetTcpResult({ job_instance_id: clusterTcpCmdData.value!.job_instance_id });
-    if (tcpResult.finished) {
-      emits('success');
-      pauseQueryTableData();
+    try {
+      const tcpResult = await getClusterNetTcpResult({ job_instance_id: clusterTcpCmdData.value!.job_instance_id });
+      if (tcpResult.finished) {
+        emits('finish');
+        pauseQueryTableData();
+        isTableLoading.value = false;
+        queryEndTime = Date.now();
+        querySeconds.value = (queryEndTime - querySatrtTime) / 1000;
+        tcpResult.data.forEach((clusterItem) => {
+          if (!clusterItem.error.length) {
+            successCount.value += 1;
+          }
+          if (!clusterItem.success.length) {
+            failedCount.value += 1;
+          }
+          if (clusterItem.error.length && clusterItem.success.length) {
+            partialFailedCount.value += 1;
+          }
+          if (!clusterItem.report.length) {
+            // 插入占位行
+            const emptyRow = generateEmptyRow();
+            emptyRow.error_list = clusterItem.error;
+            emptyRow.cluster_domain = clusterItem.cluster_domain;
+            emptyRow.success_list = clusterItem.success;
+            tableData.value.push(emptyRow);
+          } else {
+            const newRows = clusterItem.report.map((item) =>
+              Object.assign(item, {
+                error_list: clusterItem.error,
+                success_list: clusterItem.success,
+              }),
+            );
+            mergeCells.value.push(
+              ...[
+                {
+                  col: 0,
+                  colspan: 1,
+                  row: tableData.value.length,
+                  rowspan: newRows.length,
+                },
+                {
+                  col: 1,
+                  colspan: 1,
+                  row: tableData.value.length,
+                  rowspan: newRows.length,
+                },
+              ],
+            );
+            tableData.value.push(...newRows);
+          }
+        });
+      } else {
+        resumeQueryTableData();
+      }
+    } catch (error) {
       isTableLoading.value = false;
-      queryEndTime = Date.now();
-      querySeconds.value = (queryEndTime - querySatrtTime) / 1000;
-      tcpResult.data.forEach((clusterItem) => {
-        if (!clusterItem.error.length) {
-          successCount.value += 1;
-        }
-        if (!clusterItem.success.length) {
-          failedCount.value += 1;
-        }
-        if (clusterItem.error.length && clusterItem.success.length) {
-          partialFailedCount.value += 1;
-        }
-        if (!clusterItem.report.length) {
-          // 插入占位行
-          const emptyRow = generateEmptyRow();
-          emptyRow.error_list = clusterItem.error;
-          emptyRow.cluster_domain = clusterItem.cluster_domain;
-          emptyRow.success_list = clusterItem.success;
-          tableData.value.push(emptyRow);
-        } else {
-          const newRows = clusterItem.report.map((item) =>
-            Object.assign(item, {
-              error_list: clusterItem.error,
-              success_list: clusterItem.success,
-            }),
-          );
-          mergeCells.value.push(
-            ...[
-              {
-                col: 0,
-                colspan: 1,
-                row: tableData.value.length,
-                rowspan: newRows.length,
-              },
-              {
-                col: 1,
-                colspan: 1,
-                row: tableData.value.length,
-                rowspan: newRows.length,
-              },
-            ],
-          );
-          tableData.value.push(...newRows);
-        }
-      });
-    } else {
-      resumeQueryTableData();
+      pauseQueryTableData();
+      emits('finish');
+      throw error;
     }
   };
 
@@ -354,7 +362,8 @@
     const colsWidths = Array(8)
       .fill('')
       .map(() => ({ width: 40 }));
-    exportExcelFile(formatData, colsWidths, 'Sheet1', `${t('查询访问来源')}.xlsx`);
+    const fileName = `Redis${t('查询访问来源')}${dayjs().format('YYYYMMDDHHmm')}.xlsx`;
+    exportExcelFile(formatData, colsWidths, 'Sheet1', fileName);
   };
 
   onMounted(() => {

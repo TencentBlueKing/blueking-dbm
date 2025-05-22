@@ -43,18 +43,23 @@
           @click="handleQuery">
           {{ t('查询') }}
         </BkButton>
-        <BkButton
-          class="w-88 ml-8"
-          outline
-          @click="handleReset">
-          {{ t('重置') }}
-        </BkButton>
+        <DbPopconfirm
+          :confirm-handler="handleReset"
+          :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
+          :title="t('确认重置页面')">
+          <BkButton
+            class="w-88 ml-8"
+            :disabled="!formData.clusters"
+            outline>
+            {{ t('重置') }}
+          </BkButton>
+        </DbPopconfirm>
       </div>
       <BkFormItem :label="t('查询结果')">
         <Result
           ref="resultRef"
           :clusters="clusterList"
-          @success="handleQuerySuccess" />
+          @finish="handleQueryFinish" />
       </BkFormItem>
     </BkForm>
   </div>
@@ -190,7 +195,7 @@
     }));
   };
 
-  const handleQuerySuccess = () => {
+  const handleQueryFinish = () => {
     queryLoading.value = false;
   };
 
