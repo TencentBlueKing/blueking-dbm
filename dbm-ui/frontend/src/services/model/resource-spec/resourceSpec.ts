@@ -17,6 +17,7 @@ import type { ClusterTypes, DBTypes, MachineTypes } from '@common/const';
 import { utcDisplayTime } from '@utils';
 
 export default class ResourceSpec {
+  capacity: number;
   cpu: {
     max: number;
     min: number;
@@ -74,6 +75,7 @@ export default class ResourceSpec {
     this.instance_num = payload.instance_num ?? 0;
     this.qps = payload.qps || {};
     this.permission = payload.permission || {};
+    this.capacity = payload.capacity || 0;
   }
 
   get isRecentSeconds() {

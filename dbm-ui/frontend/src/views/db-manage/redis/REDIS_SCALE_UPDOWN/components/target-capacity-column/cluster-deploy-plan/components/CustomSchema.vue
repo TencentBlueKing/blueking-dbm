@@ -10,7 +10,8 @@
       :cloud-id="cluster.bk_cloud_id"
       cluster-type="redis"
       :machine-type="specClusterMachineMap[cluster.cluster_type]"
-      style="width: 314px" />
+      style="width: 314px"
+      @update:model-value="handleChangeSpec" />
   </DbFormItem>
   <DbFormItem
     :label="t('数量')"
@@ -24,7 +25,7 @@
       show-clear-only-hover
       style="width: 314px"
       type="number"
-      @change="handleChange" />
+      @change="handleChangeGroupNum" />
     <span class="input-desc">{{ t('组') }}</span>
   </DbFormItem>
   <DbFormItem
@@ -95,7 +96,9 @@
   const clusterShardNum = computed(() => props.cluster.cluster_shard_num);
   const minGroupNum = computed(() => {
     // RedisCluster/ tendisplus 机器组数需要最少3组。
-    if ([ClusterTypes.REDIS_CLUSTER, ClusterTypes.TENDIS_PLUS_CLUSTER].includes(props.cluster.cluster_type)) {
+    if (
+      [ClusterTypes.PREDIXY_REDIS_CLUSTER, ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER].includes(props.cluster.cluster_type)
+    ) {
       return 3;
     }
     return 1;
@@ -120,40 +123,30 @@
     },
   ];
 
-  /**
-   * 计算当前容量
-   */
-  const calculateCapacity = () => {
-    if (!targetInfo.value.spec.spec_id) {
-      return;
-    }
-    const data = specSelectorRef.value!.getData();
-    if (_.isEmpty(data)) {
-      return;
-    }
-    let specCapacity = data.mem.min;
-    if (
-      [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER, ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE].includes(
-        props.cluster.cluster_type,
-      )
-    ) {
-      specCapacity = (data.storage_spec || []).find((item) => item.mount_point === '/data1')?.size || 0;
-    }
-    targetInfo.value.capacity = targetInfo.value.groupNum * specCapacity;
-  };
-
   const fetchUpdateInfo = () => {
     setTimeout(() => {
       // 单机分片数是否为整数
       if (targetInfo.value.shardNum % 1 !== 0) {
         return;
       }
-      calculateCapacity();
+      const data = specSelectorRef.value!.getData();
+      if (_.isEmpty(data)) {
+        return;
+      }
+      targetInfo.value.spec = data;
+      targetInfo.value.capacity = Math.floor(targetInfo.value.groupNum * data.capacity);
       emits('change', targetInfo.value);
     });
   };
 
-  const handleChange = (value: string) => {
+  const handleChangeSpec = (value: number | string) => {
+    if (!value) {
+      return;
+    }
+    fetchUpdateInfo();
+  };
+
+  const handleChangeGroupNum = (value: string) => {
     if (!value) {
       return;
     }
@@ -161,12 +154,17 @@
     fetchUpdateInfo();
   };
 
-  watch(
-    () => targetInfo.value.spec.spec_id,
-    () => {
-      fetchUpdateInfo();
-    },
-  );
+  onMounted(() => {
+    if (props.cluster.id) {
+      Object.assign(targetInfo.value, {
+        capacity: props.cluster.cluster_capacity,
+        clusterStats: props.cluster.cluster_stats,
+        groupNum: props.cluster.machine_pair_cnt,
+        shardNum: props.cluster.cluster_shard_num,
+        spec: props.cluster.cluster_spec,
+      });
+    }
+  });
 </script>
 
 <style lang="less" scoped>
