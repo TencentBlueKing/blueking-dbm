@@ -297,27 +297,30 @@
   };
 
   const handleAppendRow = async (host: RowData['host'], index: number) => {
-    const taskList = host.cluster_ids.map((clusterId) =>
-      queryMasterSlavePairs({
-        cluster_id: clusterId,
-      }),
-    );
+    const taskList = host.cluster_ids.map((clusterId) => queryMasterSlavePairs({ cluster_id: clusterId }));
+
     const results = await Promise.all(taskList);
-    const rows = results.map((data) => {
-      const { slaves } = data[0];
-      return createTableRow({
-        host: {
-          bk_biz_id: slaves.bk_biz_id,
-          bk_cloud_id: slaves.bk_cloud_id,
-          bk_host_id: slaves.bk_host_id,
-          cluster_domain: host.cluster_domain,
-          cluster_ids: host.cluster_ids,
-          ip: slaves.ip,
-          role: 'redis_slave',
-          spec_config: host.spec_config,
-        },
-      });
-    });
-    formData.tableData.splice(index + 1, 0, ...rows);
+    const newRows = results.flatMap((data) =>
+      data
+        .filter((item) => item.master_ip === host.ip)
+        .map(({ slaves }) =>
+          createTableRow({
+            host: {
+              bk_biz_id: slaves.bk_biz_id,
+              bk_cloud_id: slaves.bk_cloud_id,
+              bk_host_id: slaves.bk_host_id,
+              cluster_domain: host.cluster_domain,
+              cluster_ids: host.cluster_ids,
+              ip: slaves.ip,
+              role: 'redis_slave',
+              spec_config: host.spec_config,
+            },
+          }),
+        ),
+    );
+
+    if (newRows.length) {
+      formData.tableData.splice(index + 1, 0, ...newRows);
+    }
   };
 </script>
