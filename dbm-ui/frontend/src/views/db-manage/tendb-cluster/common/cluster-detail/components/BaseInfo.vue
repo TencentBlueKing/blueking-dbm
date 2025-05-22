@@ -23,8 +23,7 @@
       {{ data.disasterToleranceLevelName }}
     </InfoItem>
     <InfoItem :label="t('地域园区')">
-      <div>{{ data.region || '--' }}</div>
-      <div>{{ data.cluster_subzons.join('，') || '--' }}</div>
+      {{ data.region || '--' }}
     </InfoItem>
     <InfoItem :label="t('规格')">
       {{ data.cluster_spec.spec_name || '--' }}
@@ -46,35 +45,13 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import TendbhaModel from '@services/model/mysql/tendbha';
+  import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
 
+  import BaseInfo, { InfoItem } from '@views/db-manage/common/cluster-details/base-info/Index.vue';
   import ClusterRoleStatus from '@views/db-manage/common/cluster-role-status/Index.vue';
 
-  import BaseInfo, { InfoItem } from '../base-info/Index.vue';
-
   interface Props {
-    data: Pick<
-      TendbhaModel,
-      | 'id'
-      | 'cluster_name'
-      | 'master_domain'
-      | 'slave_domain'
-      | 'db_module_name'
-      | 'major_version'
-      | 'disasterToleranceLevelName'
-      | 'region'
-      | 'cluster_spec'
-      | 'bk_cloud_name'
-      | 'bk_cloud_id'
-      | 'bk_biz_name'
-      | 'cluster_subzons'
-      | 'creator'
-      | 'createAtDisplay'
-      | 'cluster_time_zone'
-      | 'roleFailedInstanceInfo'
-      | 'status'
-      | 'cluster_type'
-    >;
+    data: TendbClusterModel;
   }
 
   defineProps<Props>();

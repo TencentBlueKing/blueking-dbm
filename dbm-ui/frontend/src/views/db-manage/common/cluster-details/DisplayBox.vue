@@ -12,9 +12,11 @@
       <slot />
     </div>
     <div class="row-item">
-      <div class="item-label">{{ t('集群别名：') }}</div>
+      <div class="item-label pr-4">ID:</div>
+      <div>{{ data.id || '--' }}</div>
+      <div class="item-label ml-16 pr-4">{{ t('集群别名') }}:</div>
       <div>{{ data.cluster_alias || '--' }}</div>
-      <div class="item-label ml-16">{{ t('地域：') }}</div>
+      <div class="item-label ml-16 pr-4">{{ t('地域') }}:</div>
       <div>{{ data.region || '--' }}</div>
     </div>
   </div>
@@ -27,7 +29,7 @@
   import RenderOperationTag from '@views/db-manage/common/RenderOperationTagNew.vue';
 
   interface Props {
-    data: Pick<TendbhaModel, 'masterDomain' | 'cluster_alias' | 'region' | 'operationTagTips'>;
+    data: Pick<TendbhaModel, 'masterDomain' | 'cluster_alias' | 'region' | 'operationTagTips' | 'id'>;
   }
 
   defineProps<Props>();

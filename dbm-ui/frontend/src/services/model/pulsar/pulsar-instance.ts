@@ -44,6 +44,7 @@ export default class PulsarInstance {
   id: number;
   instance_address: string;
   instance_name: string;
+  ip: string;
   operations: InstanceListOperation[];
   related_clusters: InstanceRelatedCluster[];
   restart_at: string;
@@ -67,6 +68,7 @@ export default class PulsarInstance {
     this.host_info = payload.host_info;
     this.id = payload.id;
     this.instance_address = payload.instance_address;
+    this.ip = payload.ip;
     this.instance_name = payload.instance_name;
     this.operations = payload.operations || [];
     this.related_clusters = payload.related_clusters || [];

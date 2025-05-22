@@ -27,6 +27,7 @@
 <script setup lang="ts">
   import { onBeforeUnmount, onMounted, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { onBeforeRouteLeave, useRoute } from 'vue-router';
 
   import useResize from './hooks/use-resize';
 
@@ -45,17 +46,24 @@
   });
 
   const emits = defineEmits<Emits>();
-
   const modelValue = defineModel<boolean>({
     default: false,
   });
 
+  const route = useRoute();
+
   const { t } = useI18n();
+
+  let isRouteChange = false;
 
   const rootRef = useTemplateRef('rootRef');
   const resizeHandleRef = useTemplateRef('resizeHandleRef');
 
   useResize(rootRef, resizeHandleRef);
+
+  watch(route, () => {
+    console.log('route = ', route);
+  });
 
   const handleClose = () => {
     modelValue.value = false;
@@ -70,6 +78,7 @@
     if (!modelValue.value) {
       return;
     }
+
     const eventPath = event.composedPath() as HTMLElement[];
 
     for (const ele of eventPath) {
@@ -82,8 +91,15 @@
         return true;
       }
     }
-    handleClose();
+
+    if (!isRouteChange) {
+      handleClose();
+    }
   };
+
+  onBeforeRouteLeave(() => {
+    isRouteChange = true;
+  });
 
   onMounted(() => {
     document.body.addEventListener('click', handleClickClose);
