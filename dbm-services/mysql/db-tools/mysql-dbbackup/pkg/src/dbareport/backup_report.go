@@ -345,10 +345,9 @@ func (r *BackupLogReport) ReportBackupResult(indexFilePath string, index, upload
 		}
 	}
 	if index {
-		// index file 里面不会包含自身信息，这里上报时添加
+		// index file 里面不会包含自身信息(如 task_id)
 		metaInfo.AddIndexFileItem(indexFilePath)
 	}
-
 	var err2 error // 是否备份上传出错
 	if upload {
 		// 上传、上报备份文件
@@ -373,7 +372,14 @@ func (r *BackupLogReport) ReportBackupResult(indexFilePath string, index, upload
 			backupTaskResult.FileRetentionTag = metaInfo.FileRetentionTag
 			Report().Files.Println(backupTaskResult)
 		}
-		metaInfo.SaveIndexContent(indexFilePath)
+		if r.cfg.BackupToRemote.EnableRemote {
+			// 注意：在执行 backup_client 上传之后，.index 文件的内容就不能再修改，也就是 .index 文件里不能记录自身的 task_id
+			// 上面修改的是 metaInfo 内存里面的数据，转存到文件系统 .index.remote，这个文件不上传
+			// .index.remote 会比 .index 多 task_id 信息。远程备份的发起方，需要这个 task_id 去上报备份记录
+			if _, err := metaInfo.SaveIndexContent(indexFilePath + ".remote"); err != nil {
+				return err
+			}
+		}
 	}
 
 	// report backup record

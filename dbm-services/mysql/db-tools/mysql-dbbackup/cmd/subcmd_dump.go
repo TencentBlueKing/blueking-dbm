@@ -498,7 +498,9 @@ func runBackupToRemote(cnf *config.BackupConfig, indexFilePath string,
 	if err = remoteCmd.Run(); err != nil {
 		return err
 	}
-	if err = sshClient.Download(remoteIndexFile, indexFilePath); err != nil {
+
+	// .index.remote 里面肯定会补充备份文件列表
+	if err = sshClient.Download(remoteIndexFile+".remote", indexFilePath); err != nil {
 		return err
 	}
 	newIndexFileMd5, err := cmutil.GetFileMd5(indexFilePath)

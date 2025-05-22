@@ -43,7 +43,7 @@
     {
       "datasource": {
         "type": "mysql",
-        "uid": "${DS_DBM-STATSDB}"
+        "uid": "${DS_DBM-StatsDB}"
       },
       "fieldConfig": {
         "defaults": {
@@ -127,12 +127,12 @@
           "dataset": "bk_dbm_stats",
           "datasource": {
             "type": "mysql",
-            "uid": "${DS_DBM-STATSDB}"
+            "uid": "${DS_DBM-StatsDB}"
           },
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT $__time(dteventtimehour), concat(database_name,\".\", table_name) as metric ,value\nFROM\n(\n  SELECT\n    dteventtimehour,database_name, table_name,value,\n    dense_rank() over (partition by dteventtimehour order by value desc) as ranking\n  FROM\n  (\n    SELECT \n      dteventtimehour,database_name, table_name, sum(table_size_max) as value \n    FROM\n    (\n      SELECT \n        dteventtimehour, \n        database_name,\n        original_database_name,\n        table_name,\n        MAX(table_size) table_size_max \n      FROM ${dbmStatsDB}.mysql_db_table_size \n      WHERE cluster_domain = '$cluster_domain' AND \n        database_name = '$dbname' AND\n        table_name in (${tbname:sqlstring}) AND\n        $__timeFilter(dteventtimehour)\n      GROUP BY database_name,original_database_name,table_name,dteventtimehour\n    ) as t\n    GROUP BY dteventtimehour,database_name,table_name\n  ) as tt\n) ttt\nORDER BY dteventtimehour",
+          "rawSql": "SELECT $__time(dteventtimehour), concat(database_name,\".\", table_name) as metric ,value\nFROM\n(\n  SELECT\n    dteventtimehour,database_name, table_name,value,\n    dense_rank() over (partition by dteventtimehour order by value desc) as ranking\n  FROM\n  (\n    SELECT \n      dteventtimehour,database_name, table_name, sum(table_size_max) as value \n    FROM\n    (\n      SELECT \n        dteventtimehour, \n        database_name,\n        original_database_name,\n        table_name,\n        MAX(table_size) table_size_max \n      FROM ${statsDbName}.mysql_db_table_size \n      WHERE cluster_domain = '$cluster_domain' AND \n        database_name = '$dbname' AND\n        table_name in (${tbname:sqlstring}) AND\n        $__timeFilter(dteventtimehour)\n      GROUP BY database_name,original_database_name,table_name,dteventtimehour\n    ) as t\n    GROUP BY dteventtimehour,database_name,table_name\n  ) as tt\n) ttt\nORDER BY dteventtimehour",
           "refId": "A",
           "sql": {
             "columns": [
@@ -169,7 +169,7 @@
         {
           "datasource": {
             "type": "mysql",
-            "uid": "${DS_DBM-STATSDB}"
+            "uid": "${DS_DBM-StatsDB}"
           },
           "fieldConfig": {
             "defaults": {
@@ -226,13 +226,13 @@
               "dataset": "bk_dbm_stats",
               "datasource": {
                 "type": "mysql",
-                "uid": "${DS_DBM-STATSDB}"
+                "uid": "${DS_DBM-StatsDB}"
               },
               "editorMode": "code",
               "format": "time_series",
               "hide": false,
               "rawQuery": true,
-              "rawSql": "SELECT $__time(dteventtimehour), concat(database_name,\".\", table_name) as metric,value\nFROM\n(\n  SELECT\n    dteventtimehour,database_name, table_name,value,\n    dense_rank() over (partition by dteventtimehour order by value desc) as ranking\n  FROM\n  (\n    SELECT \n      dteventtimehour, database_name, table_name, sum(table_size_max) as value \n    FROM\n    (\n      SELECT \n        dteventtimehour, \n        database_name,\n        original_database_name,\n        table_name,\n        MAX(table_size) table_size_max \n      FROM $dbmStatsDB.mysql_db_table_size \n      WHERE cluster_domain = '$cluster_domain' AND \n        database_name = '$dbname' AND\n        $__timeFilter(dteventtimehour)\n      GROUP BY database_name,original_database_name,table_name,dteventtimehour\n    ) as t\n    GROUP BY dteventtimehour,database_name,table_name\n  ) as tt\n) ttt\nWHERE ranking <=10\nORDER BY dteventtimehour",
+              "rawSql": "SELECT $__time(dteventtimehour), concat(database_name,\".\", table_name) as metric,value\nFROM\n(\n  SELECT\n    dteventtimehour,database_name, table_name,value,\n    dense_rank() over (partition by dteventtimehour order by value desc) as ranking\n  FROM\n  (\n    SELECT \n      dteventtimehour, database_name, table_name, sum(table_size_max) as value \n    FROM\n    (\n      SELECT \n        dteventtimehour, \n        database_name,\n        original_database_name,\n        table_name,\n        MAX(table_size) table_size_max \n      FROM $statsDbName.mysql_db_table_size \n      WHERE cluster_domain = '$cluster_domain' AND \n        database_name = '$dbname' AND\n        $__timeFilter(dteventtimehour)\n      GROUP BY database_name,original_database_name,table_name,dteventtimehour\n    ) as t\n    GROUP BY dteventtimehour,database_name,table_name\n  ) as tt\n) ttt\nWHERE ranking <=10\nORDER BY dteventtimehour",
               "refId": "A",
               "sql": {
                 "columns": [
@@ -256,13 +256,13 @@
               "dataset": "bk_dbm_stats",
               "datasource": {
                 "type": "mysql",
-                "uid": "${DS_DBM-STATSDB}"
+                "uid": "${DS_DBM-StatsDB}"
               },
               "editorMode": "code",
               "format": "table",
               "hide": false,
               "rawQuery": true,
-              "rawSql": "SELECT dteventtimehour, \"_OTHER._OTHER\" as metric, sum(value) as \"_OTHER._OTHER\"\nFROM\n(\n  SELECT\n    dteventtimehour,database_name, table_name,value,\n    dense_rank() over (partition by dteventtimehour order by value desc) as ranking\n  FROM\n  (\n    SELECT \n     dteventtimehour,database_name, table_name, sum(table_size_max) as value \n    FROM\n    (\n      SELECT \n        dteventtimehour, \n        database_name,\n        original_database_name,\n        table_name,\n        MAX(table_size) table_size_max \n      FROM $dbmStatsDB.mysql_db_table_size\n      WHERE cluster_domain = '$cluster_domain' AND \n        database_name = '$dbname' AND\n        $__timeFilter(dteventtimehour)\n      GROUP BY database_name,original_database_name,table_name,dteventtimehour\n    ) as t\n    GROUP BY dteventtimehour,database_name,table_name\n  ) as tt\n) ttt\nWHERE ranking >10\nGROUP BY dteventtimehour",
+              "rawSql": "SELECT dteventtimehour, \"_OTHER._OTHER\" as metric, sum(value) as \"_OTHER._OTHER\"\nFROM\n(\n  SELECT\n    dteventtimehour,database_name, table_name,value,\n    dense_rank() over (partition by dteventtimehour order by value desc) as ranking\n  FROM\n  (\n    SELECT \n     dteventtimehour,database_name, table_name, sum(table_size_max) as value \n    FROM\n    (\n      SELECT \n        dteventtimehour, \n        database_name,\n        original_database_name,\n        table_name,\n        MAX(table_size) table_size_max \n      FROM $statsDbName.mysql_db_table_size\n      WHERE cluster_domain = '$cluster_domain' AND \n        database_name = '$dbname' AND\n        $__timeFilter(dteventtimehour)\n      GROUP BY database_name,original_database_name,table_name,dteventtimehour\n    ) as t\n    GROUP BY dteventtimehour,database_name,table_name\n  ) as tt\n) ttt\nWHERE ranking >10\nGROUP BY dteventtimehour",
               "refId": "B",
               "sql": {
                 "columns": [
@@ -290,7 +290,7 @@
         {
           "datasource": {
             "type": "mysql",
-            "uid": "${DS_DBM-STATSDB}"
+            "uid": "${DS_DBM-StatsDB}"
           },
           "fieldConfig": {
             "defaults": {
@@ -374,12 +374,12 @@
               "dataset": "bk_dbm_stats",
               "datasource": {
                 "type": "mysql",
-                "uid": "${DS_DBM-STATSDB}"
+                "uid": "${DS_DBM-StatsDB}"
               },
               "editorMode": "code",
               "format": "time_series",
               "rawQuery": true,
-              "rawSql": "SELECT $__time(dteventtimehour), concat(database_name,\".\", table_name) as metric,value\nFROM\n(\n  SELECT\n    dteventtimehour,database_name, table_name,value,\n    dense_rank() over (partition by dteventtimehour order by value desc) as ranking\n  FROM\n  (\n    SELECT \n      dteventtimehour,database_name, table_name, sum(table_size_max) as value \n    FROM\n    (\n      SELECT \n        dteventtimehour, \n        database_name,\n        original_database_name,\n        table_name,\n        MAX(table_size) table_size_max \n      FROM $dbmStatsDB.mysql_db_table_size\n      WHERE cluster_domain = '$cluster_domain' AND \n        database_name = '$dbname' AND\n        $__timeFilter(dteventtimehour)\n      GROUP BY database_name,original_database_name,table_name,dteventtimehour\n    ) as t\n    GROUP BY dteventtimehour,database_name,table_name\n  ) as tt\n) ttt\nORDER BY dteventtimehour",
+              "rawSql": "SELECT $__time(dteventtimehour), concat(database_name,\".\", table_name) as metric,value\nFROM\n(\n  SELECT\n    dteventtimehour,database_name, table_name,value,\n    dense_rank() over (partition by dteventtimehour order by value desc) as ranking\n  FROM\n  (\n    SELECT \n      dteventtimehour,database_name, table_name, sum(table_size_max) as value \n    FROM\n    (\n      SELECT \n        dteventtimehour, \n        database_name,\n        original_database_name,\n        table_name,\n        MAX(table_size) table_size_max \n      FROM $statsDbName.mysql_db_table_size\n      WHERE cluster_domain = '$cluster_domain' AND \n        database_name = '$dbname' AND\n        $__timeFilter(dteventtimehour)\n      GROUP BY database_name,original_database_name,table_name,dteventtimehour\n    ) as t\n    GROUP BY dteventtimehour,database_name,table_name\n  ) as tt\n) ttt\nORDER BY dteventtimehour",
               "refId": "A",
               "sql": {
                 "columns": [
@@ -705,7 +705,7 @@
         {
           "datasource": {
             "type": "mysql",
-            "uid": "${DS_DBM-STATSDB}"
+            "uid": "${DS_DBM-StatsDB}"
           },
           "fieldConfig": {
             "defaults": {
@@ -762,13 +762,13 @@
               "dataset": "bk_dbm_stats",
               "datasource": {
                 "type": "mysql",
-                "uid": "${DS_DBM-STATSDB}"
+                "uid": "${DS_DBM-StatsDB}"
               },
               "editorMode": "code",
               "format": "time_series",
               "hide": false,
               "rawQuery": true,
-              "rawSql": "SELECT $__time(dteventtimehour), database_name as metric, value\nFROM\n(\n  SELECT\n    dteventtimehour,database_name,value,\n    dense_rank() over (partition by dteventtimehour order by value desc) as ranking\n  FROM\n  (\n    SELECT \n      dteventtimehour,database_name,sum(database_size_max) as value FROM\n    (\n      SELECT \n        dteventtimehour, \n        database_name,\n        original_database_name,\n        MAX(database_size) database_size_max \n      FROM ${dbmStatsDB}.mysql_db_table_size \n      WHERE cluster_domain = '$cluster_domain' AND \n        $__timeFilter(dteventtimehour)\n      GROUP BY database_name,original_database_name,dteventtimehour\n    ) as t\n    GROUP BY dteventtimehour,database_name\n  ) tt\n) ttt\nWHERE ranking <=20\nORDER BY dteventtimehour",
+              "rawSql": "SELECT $__time(dteventtimehour), database_name as metric, value\nFROM\n(\n  SELECT\n    dteventtimehour,database_name,value,\n    dense_rank() over (partition by dteventtimehour order by value desc) as ranking\n  FROM\n  (\n    SELECT \n      dteventtimehour,database_name,sum(database_size_max) as value FROM\n    (\n      SELECT \n        dteventtimehour, \n        database_name,\n        original_database_name,\n        MAX(database_size) database_size_max \n      FROM ${statsDbName}.mysql_db_table_size \n      WHERE cluster_domain = '$cluster_domain' AND \n        $__timeFilter(dteventtimehour)\n      GROUP BY database_name,original_database_name,dteventtimehour\n    ) as t\n    GROUP BY dteventtimehour,database_name\n  ) tt\n) ttt\nWHERE ranking <=20\nORDER BY dteventtimehour",
               "refId": "A",
               "sql": {
                 "columns": [
@@ -792,13 +792,13 @@
               "dataset": "bk_dbm_stats",
               "datasource": {
                 "type": "mysql",
-                "uid": "${DS_DBM-STATSDB}"
+                "uid": "${DS_DBM-StatsDB}"
               },
               "editorMode": "code",
               "format": "table",
               "hide": false,
               "rawQuery": true,
-              "rawSql": "SELECT $__time(dteventtimehour), \"_OTHER\" as metric, sum(value) as \"_OTHER\"\nFROM\n(\n  SELECT\n    dteventtimehour,database_name,value,\n    dense_rank() over (partition by dteventtimehour order by value desc) as ranking\n  FROM\n  (\n    SELECT \n      dteventtimehour,database_name,sum(database_size_max) as value FROM\n    (\n      SELECT \n        dteventtimehour, \n        database_name,\n        original_database_name,\n        MAX(database_size) database_size_max \n      FROM ${dbmStatsDB}.mysql_db_table_size \n      WHERE cluster_domain = '$cluster_domain' AND \n        $__timeFilter(dteventtimehour)\n      GROUP BY database_name,original_database_name,dteventtimehour\n    ) as t\n    GROUP BY dteventtimehour,database_name\n  ) tt\n) ttt\nWHERE ranking >20\nGROUP BY dteventtimehour",
+              "rawSql": "SELECT $__time(dteventtimehour), \"_OTHER\" as metric, sum(value) as \"_OTHER\"\nFROM\n(\n  SELECT\n    dteventtimehour,database_name,value,\n    dense_rank() over (partition by dteventtimehour order by value desc) as ranking\n  FROM\n  (\n    SELECT \n      dteventtimehour,database_name,sum(database_size_max) as value FROM\n    (\n      SELECT \n        dteventtimehour, \n        database_name,\n        original_database_name,\n        MAX(database_size) database_size_max \n      FROM ${statsDbName}.mysql_db_table_size \n      WHERE cluster_domain = '$cluster_domain' AND \n        $__timeFilter(dteventtimehour)\n      GROUP BY database_name,original_database_name,dteventtimehour\n    ) as t\n    GROUP BY dteventtimehour,database_name\n  ) tt\n) ttt\nWHERE ranking >20\nGROUP BY dteventtimehour",
               "refId": "B",
               "sql": {
                 "columns": [
@@ -825,7 +825,7 @@
         {
           "datasource": {
             "type": "mysql",
-            "uid": "${DS_DBM-STATSDB}"
+            "uid": "${DS_DBM-StatsDB}"
           },
           "fieldConfig": {
             "defaults": {
@@ -909,12 +909,12 @@
               "dataset": "bk_dbm_stats",
               "datasource": {
                 "type": "mysql",
-                "uid": "${DS_DBM-STATSDB}"
+                "uid": "${DS_DBM-StatsDB}"
               },
               "editorMode": "code",
               "format": "time_series",
               "rawQuery": true,
-              "rawSql": "SELECT $__time(dteventtimehour),database_name as metric,sum(database_size_max) as value FROM\n(\n  SELECT \n    dteventtimehour, \n    database_name,\n    original_database_name,\n    MAX(database_size) database_size_max \n  FROM ${dbmStatsDB}.mysql_db_table_size \n  WHERE cluster_domain = '$cluster_domain' AND \n    $__timeFilter(dteventtimehour)\n  GROUP BY database_name,original_database_name,dteventtimehour\n) as t\nGROUP BY dteventtimehour,database_name\nORDER BY dteventtimehour asc",
+              "rawSql": "SELECT $__time(dteventtimehour),database_name as metric,sum(database_size_max) as value FROM\n(\n  SELECT \n    dteventtimehour, \n    database_name,\n    original_database_name,\n    MAX(database_size) database_size_max \n  FROM ${statsDbName}.mysql_db_table_size \n  WHERE cluster_domain = '$cluster_domain' AND \n    $__timeFilter(dteventtimehour)\n  GROUP BY database_name,original_database_name,dteventtimehour\n) as t\nGROUP BY dteventtimehour,database_name\nORDER BY dteventtimehour asc",
               "refId": "A",
               "sql": {
                 "columns": [
@@ -1086,7 +1086,7 @@
         {
           "datasource": {
             "type": "mysql",
-            "uid": "${DS_DBM-STATSDB}"
+            "uid": "${DS_DBM-StatsDB}"
           },
           "fieldConfig": {
             "defaults": {
@@ -1170,12 +1170,12 @@
               "dataset": "bk_dbm_stats",
               "datasource": {
                 "type": "mysql",
-                "uid": "${DS_DBM-STATSDB}"
+                "uid": "${DS_DBM-StatsDB}"
               },
               "editorMode": "code",
               "format": "time_series",
               "rawQuery": true,
-              "rawSql": "SELECT $__time(dteventtimehour),concat(database_name,\".\", table_name) as metric,value\nFROM\n(\n  SELECT\n    dteventtimehour,database_name, table_name,value,\n    dense_rank() over (partition by dteventtimehour order by value desc) as ranking\n  FROM\n  (\n    SELECT \n      dteventtimehour,database_name, table_name, sum(table_size_max) as value \n    FROM\n    (\n      SELECT \n        dteventtimehour, \n        database_name,\n        original_database_name,\n        table_name,\n        MAX(table_size) table_size_max \n      FROM ${dbmStatsDB}.mysql_db_table_size \n      WHERE cluster_domain = '$cluster_domain' AND \n        $__timeFilter(dteventtimehour)\n      GROUP BY database_name,original_database_name,table_name,dteventtimehour\n    ) as t\n    GROUP BY dteventtimehour,database_name,table_name\n  ) as tt\n) ttt\nWHERE ranking <=20\nORDER BY dteventtimehour",
+              "rawSql": "SELECT $__time(dteventtimehour),concat(database_name,\".\", table_name) as metric,value\nFROM\n(\n  SELECT\n    dteventtimehour,database_name, table_name,value,\n    dense_rank() over (partition by dteventtimehour order by value desc) as ranking\n  FROM\n  (\n    SELECT \n      dteventtimehour,database_name, table_name, sum(table_size_max) as value \n    FROM\n    (\n      SELECT \n        dteventtimehour, \n        database_name,\n        original_database_name,\n        table_name,\n        MAX(table_size) table_size_max \n      FROM ${statsDbName}.mysql_db_table_size \n      WHERE cluster_domain = '$cluster_domain' AND \n        $__timeFilter(dteventtimehour)\n      GROUP BY database_name,original_database_name,table_name,dteventtimehour\n    ) as t\n    GROUP BY dteventtimehour,database_name,table_name\n  ) as tt\n) ttt\nWHERE ranking <=20\nORDER BY dteventtimehour",
               "refId": "A",
               "sql": {
                 "columns": [
@@ -1199,13 +1199,13 @@
               "dataset": "bk_dbm_stats",
               "datasource": {
                 "type": "mysql",
-                "uid": "${DS_DBM-STATSDB}"
+                "uid": "${DS_DBM-StatsDB}"
               },
               "editorMode": "code",
               "format": "table",
               "hide": false,
               "rawQuery": true,
-              "rawSql": "SELECT $__time(dteventtimehour),\"_OTHER._OTHER\" as metric, sum(value) as \"_OTHER._OTHER\"\nFROM\n(\n  SELECT\n    dteventtimehour,database_name, table_name,value,\n    dense_rank() over (partition by dteventtimehour order by value desc) as ranking\n  FROM\n  (\n    SELECT \n      dteventtimehour,database_name, table_name, sum(table_size_max) as value \n    FROM\n    (\n      SELECT \n        dteventtimehour, \n        database_name,\n        original_database_name,\n        table_name,\n        MAX(table_size) table_size_max \n      FROM ${dbmStatsDB}.mysql_db_table_size \n      WHERE cluster_domain = '$cluster_domain' AND \n        $__timeFilter(dteventtimehour)\n      GROUP BY database_name,original_database_name,table_name,dteventtimehour\n    ) as t\n    GROUP BY dteventtimehour,database_name,table_name\n  ) as tt\n) ttt\nWHERE ranking >20\nGROUP BY dteventtimehour",
+              "rawSql": "SELECT $__time(dteventtimehour),\"_OTHER._OTHER\" as metric, sum(value) as \"_OTHER._OTHER\"\nFROM\n(\n  SELECT\n    dteventtimehour,database_name, table_name,value,\n    dense_rank() over (partition by dteventtimehour order by value desc) as ranking\n  FROM\n  (\n    SELECT \n      dteventtimehour,database_name, table_name, sum(table_size_max) as value \n    FROM\n    (\n      SELECT \n        dteventtimehour, \n        database_name,\n        original_database_name,\n        table_name,\n        MAX(table_size) table_size_max \n      FROM ${statsDbName}.mysql_db_table_size \n      WHERE cluster_domain = '$cluster_domain' AND \n        $__timeFilter(dteventtimehour)\n      GROUP BY database_name,original_database_name,table_name,dteventtimehour\n    ) as t\n    GROUP BY dteventtimehour,database_name,table_name\n  ) as tt\n) ttt\nWHERE ranking >20\nGROUP BY dteventtimehour",
               "refId": "B",
               "sql": {
                 "columns": [
@@ -1669,16 +1669,16 @@
         "current": {},
         "datasource": {
           "type": "mysql",
-          "uid": "${DS_DBM-STATSDB}"
+          "uid": "${DS_DBM-StatsDB}"
         },
-        "definition": "select distinct database_name \nfrom ${dbmStatsDB}.mysql_db_table_size \nwhere cluster_domain = '$cluster_domain' and \ndteventtimestamp > (UNIX_TIMESTAMP(now())-86400*2)*1000",
+        "definition": "select distinct database_name \nfrom ${statsDbName}.mysql_db_table_size \nwhere cluster_domain = '$cluster_domain' and \ndteventtimestamp > (UNIX_TIMESTAMP(now())-86400*2)*1000",
         "hide": 0,
         "includeAll": false,
         "label": "dbname",
         "multi": false,
         "name": "dbname",
         "options": [],
-        "query": "select distinct database_name \nfrom ${dbmStatsDB}.mysql_db_table_size \nwhere cluster_domain = '$cluster_domain' and \ndteventtimestamp > (UNIX_TIMESTAMP(now())-86400*2)*1000",
+        "query": "select distinct database_name \nfrom ${statsDbName}.mysql_db_table_size \nwhere cluster_domain = '$cluster_domain' and \ndteventtimestamp > (UNIX_TIMESTAMP(now())-86400*2)*1000",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
@@ -1689,16 +1689,16 @@
         "current": {},
         "datasource": {
           "type": "mysql",
-          "uid": "${DS_DBM-STATSDB}"
+          "uid": "${DS_DBM-StatsDB}"
         },
-        "definition": "select distinct table_name \nfrom ${dbmStatsDB}.mysql_db_table_size \nwhere cluster_domain = '$cluster_domain' and \n  database_name = '$dbname' and\n  dteventtimestamp > (UNIX_TIMESTAMP(now())-86400*2)*1000 \n",
+        "definition": "select distinct table_name \nfrom ${statsDbName}.mysql_db_table_size \nwhere cluster_domain = '$cluster_domain' and \n  database_name = '$dbname' and\n  dteventtimestamp > (UNIX_TIMESTAMP(now())-86400*2)*1000 \n",
         "hide": 0,
         "includeAll": false,
         "label": "tbname",
         "multi": false,
         "name": "tbname",
         "options": [],
-        "query": "select distinct table_name \nfrom ${dbmStatsDB}.mysql_db_table_size \nwhere cluster_domain = '$cluster_domain' and \n  database_name = '$dbname' and\n  dteventtimestamp > (UNIX_TIMESTAMP(now())-86400*2)*1000 \n",
+        "query": "select distinct table_name \nfrom ${statsDbName}.mysql_db_table_size \nwhere cluster_domain = '$cluster_domain' and \n  database_name = '$dbname' and\n  dteventtimestamp > (UNIX_TIMESTAMP(now())-86400*2)*1000 \n",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
@@ -1707,7 +1707,7 @@
       },
       {
         "hide": 2,
-        "name": "dbmStatsDB",
+        "name": "statsDbName",
         "query": "bk_dbm_stats",
         "skipUrlSync": false,
         "type": "constant",
@@ -1736,7 +1736,7 @@
       "pluginName": "蓝鲸监控 - 指标数据"
     },
     {
-      "name": "DS_DBM-STATSDB",
+      "name": "DS_DBM-StatsDB",
       "label": "DBM-StatsDB",
       "description": "",
       "type": "datasource",

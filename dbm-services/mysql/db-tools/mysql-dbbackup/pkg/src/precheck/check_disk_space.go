@@ -16,7 +16,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -34,6 +33,7 @@ import (
 )
 
 // DeleteOldBackup Delete expired backup file
+// expireDays =0  时表示删除所有备份，但依然会保留其它端口的 12h 内的备份
 func DeleteOldBackup(cnf *config.Public, expireDays int) error {
 	expireTime := time.Now().AddDate(0, 0, -1*expireDays)
 	logger.Log.Infof("try to remove old backup files before '%s'", expireTime)
@@ -43,40 +43,43 @@ func DeleteOldBackup(cnf *config.Public, expireDays int) error {
 		return err
 	}
 
-	// old backup file targetName has hostname
-	output, err := exec.Command("hostname").CombinedOutput()
-	if err != nil {
-		logger.Log.Warn("failed to get hostname")
-		return err
-	}
-	hostName := strings.Replace(string(output), "\n", "", -1)
-
 	for _, fi := range dir {
-		fileMatchOld := fmt.Sprintf("%s_%s", hostName, cnf.MysqlHost)
-		// 这里安装实例来删，还是安装主机来删，有争议
-		// 按照主机来删，可能会把刚备份出来的另外一个实例备份给删掉，释放的空间多，能提高下一个实例的成功率
-		// 按照实例来删，逻辑上更合理，但可能删除的空间小，下一个实例可能失败
-		fileMatch := fmt.Sprintf("_%s_%d_", cnf.MysqlHost, cnf.MysqlPort)
-		if fi.ModTime().Compare(expireTime) <= 0 {
-			if strings.Contains(fi.Name(), fileMatch) || strings.Contains(fi.Name(), fileMatchOld) {
-				fileName := filepath.Join(cnf.BackupDir, fi.Name())
-				if fi.Size() > 4*1024*1024*1024 {
-					// remove 速度适度放大一点
-					removeLimit := cnf.IOLimitMBPerSec + 300
-					logger.Log.Infof("remove old backup file %s limit %dMB/s ", fileName, removeLimit)
-					if err2 := cmutil.TruncateFile(fileName, removeLimit); err2 != nil {
-						// 尽可能清理，记录最后一个错误
-						err = err2
-						continue
-					}
-				} else {
-					logger.Log.Info("remove old backup file ", fileName)
-					if err2 := os.RemoveAll(fileName); err2 != nil {
-						err = err2
-						continue
-					}
+		fileMatchHost := fmt.Sprintf("_%s_", cnf.MysqlHost)
+		fileMatchPort := fmt.Sprintf("_%s_%d_", cnf.MysqlHost, cnf.MysqlPort)
+		// 按照实例端口来删除，指定时间(可能是 now)之前的全部删掉
+		// 按照主机来删除，可能会删除别的端口备份，限制只能删除 12h 之前的
+		canRemove := false
+		if strings.Contains(fi.Name(), fileMatchPort) && expireTime.Compare(fi.ModTime()) > 0 {
+			canRemove = true
+		} else if strings.Contains(fi.Name(), fileMatchHost) && !strings.Contains(fi.Name(), fileMatchPort) {
+			if expireDays > 0 && expireTime.Compare(fi.ModTime()) > 0 {
+				canRemove = true
+			} else if expireDays <= 0 && time.Now().Sub(fi.ModTime()).Hours() > 12 {
+				canRemove = true
+			}
+		}
+
+		if canRemove {
+			fileName := filepath.Join(cnf.BackupDir, fi.Name())
+			if fi.Size() > 4*1024*1024*1024 {
+				// remove 速度适度放大一点
+				removeLimit := cnf.IOLimitMBPerSec + 300
+				logger.Log.Infof("remove old backup file %s limit %dMB/s ", fileName, removeLimit)
+				if err2 := cmutil.TruncateFile(fileName, removeLimit); err2 != nil {
+					// 尽可能清理，记录最后一个错误
+					err = err2
+					continue
+				}
+			} else {
+				logger.Log.Info("remove old backup file ", fileName)
+				if err2 := os.RemoveAll(fileName); err2 != nil {
+					err = err2
+					continue
 				}
 			}
+		}
+		if fi.ModTime().Compare(expireTime) <= 0 {
+
 		}
 	}
 	return err

@@ -266,6 +266,8 @@ mydumper 备份发起的时候，检测到长 sql 执行中（但还没超过`--
 
 `FLUSH NO_WRITE_TO_BINLOG TABLES` 或者 `FLUSH TABLE WITH READ LOCK` 被锁住，如果有其它读写请求则会被全部阻塞住。
 
+如果备份是在从库上，从库当前正常回放一个超大的事务，也会无法成功执行 FTWRL，从而导致上面的错误。 
+
 处理方法;
 - 可通过调整 `Public.AcquireLockWaitTimeout` 来调整 mydumper `--lock-wait-timeout` 值。
 - 调整备份时间段
