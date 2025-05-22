@@ -847,8 +847,6 @@ class RedisDataStructureFlow(object):
         for new_temp_ip in [host["ip"] for host in info["redis"]]:
             source_ports = []
             new_temp_ports = []
-            full_backupinfo = []
-            binlog_backupinfo = []
             # 遍历所有
             new_temp_node_pairs = []
             source_ip_map = set()
@@ -866,6 +864,7 @@ class RedisDataStructureFlow(object):
                 for source_temp_ip in source_ip_map:
                     source_ports = []
                     new_temp_ports = []
+                    full_backupinfo, binlog_backupinfo = [], []
                     source_ip = ""
                     for temp_pair in new_temp_node_pairs:
                         # 找到新机器相同的对应关系,source_ip只有一个
@@ -895,9 +894,12 @@ class RedisDataStructureFlow(object):
                     )
                     acts_list.append(acts_list_new_ip)
                     acts_list_push_json.append(acts_list_push_json_new_ip)
+                    logger.info(_("redis_data_structure_flow_full_backupinfo: {}".format(full_backupinfo)))
+                    logger.info(_("redis_data_structure_flow_binlog_backupinfo: {}".format(binlog_backupinfo)))
             elif len(source_ip_map) == 1:
                 logger.info(_("get_prod_temp_instance_pairs len(source_ip_map) = 1"))
                 source_ip = next(iter(source_ip_map))
+                full_backupinfo, binlog_backupinfo = [], []
                 for source_port in source_ports:
                     full_backup, binlog_backup = self.get_backupfile(
                         info["cluster_id"], rollback_time, source_ip, source_port, tendis_type, kvstorecount
@@ -919,8 +921,8 @@ class RedisDataStructureFlow(object):
                 )
                 acts_list.append(acts_list_new_ip)
                 acts_list_push_json.append(acts_list_push_json_new_ip)
-        logger.info(_("redis_data_structure_flow_full_backupinfo: {}".format(full_backupinfo)))
-        logger.info(_("redis_data_structure_flow_binlog_backupinfo: {}".format(binlog_backupinfo)))
+                logger.info(_("redis_data_structure_flow_full_backupinfo: {}".format(full_backupinfo)))
+                logger.info(_("redis_data_structure_flow_binlog_backupinfo: {}".format(binlog_backupinfo)))
         return acts_list, acts_list_push_json
 
     @staticmethod
