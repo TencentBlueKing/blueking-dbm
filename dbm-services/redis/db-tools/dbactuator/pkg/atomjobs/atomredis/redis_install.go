@@ -153,6 +153,10 @@ func (job *RedisInstall) Run() (err error) {
 	}
 	defer fl.ReleaseFileLock()
 
+	if err := job.DelShutdownFiles(); err != nil {
+		job.runtime.Logger.Warn("try del shutdown backuo files failed")
+	}
+
 	err = job.UntarMedia()
 	if err != nil {
 		return
@@ -170,6 +174,29 @@ func (job *RedisInstall) Run() (err error) {
 		return
 	}
 	return job.newExporterConfig()
+}
+
+func (job *RedisInstall) DelShutdownFiles() error {
+	var dirs []string
+	if err := filepath.Walk("/data/dbbak/", func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+
+		if info.IsDir() && strings.HasPrefix(info.Name(), "force.shutdown.") {
+			dirs = append(dirs, path)
+		}
+		return nil
+	}); err != nil {
+		job.runtime.Logger.Warn("find /data/dbbak force.shutdown dirs failed :%+v", err)
+		return nil
+	}
+	for _, dir := range dirs {
+		if err := os.RemoveAll(dir); err != nil {
+			job.runtime.Logger.Warn("try del dir [%s] failed :%+v", dir, err)
+		}
+	}
+	return nil
 }
 
 // UntarMedia 解压介质

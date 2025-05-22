@@ -124,6 +124,11 @@ func (r *RedisLocalDoDR) Run() error {
 			return err
 		}
 		r.runtime.Logger.Info("done local redo dr %d:%s ^_^ \n", idx, addr)
+
+		// 清理MV 数据文件 - mv rdb, aof .
+		if err := r.delBackupFiles(addr, instance); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -218,6 +223,20 @@ func (r *RedisLocalDoDR) backupFiles(addr string, instance ReplicaItem) error {
 		return err
 	}
 
+	return nil
+}
+
+func (r *RedisLocalDoDR) delBackupFiles(addr string, instance ReplicaItem) error {
+	bkRdb := filepath.Join("/data/dbbak", fmt.Sprintf("backup.%s.%d.%d.dump.rdb",
+		r.runtime.UID, r.startTime, instance.SlavePort))
+	bkAof := filepath.Join("/data/dbbak", fmt.Sprintf("backup.%s.%d.%d.appendonly.aof",
+		r.runtime.UID, r.startTime, instance.SlavePort))
+	if err := os.Remove(bkAof); err != nil {
+		r.runtime.Logger.Warn("del backup aoffile %s failed :%+v", bkAof, err)
+	}
+	if err := os.Remove(bkRdb); err != nil {
+		r.runtime.Logger.Warn("del backup rdbfile %s failed :%+v", bkRdb, err)
+	}
 	return nil
 }
 

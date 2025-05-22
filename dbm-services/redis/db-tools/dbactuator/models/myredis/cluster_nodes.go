@@ -28,12 +28,12 @@ type ClusterNodeData struct {
 	LinkState      string         `json:"link_state"` // connected or disconnected
 	MasterID       string         `json:"master_iD"`
 	FailStatus     []string       `json:"fail_status"`
-	PingSent       int64          `json:"ping_sent"`
-	PongRecv       int64          `json:"pong_recv"`
+	PingSent       int64          `json:"-"`
+	PongRecv       int64          `json:"-"`
 	ConfigEpoch    int64          `json:"config_epoch"`
 	SlotSrcStr     string         `json:"slot_src_str"`
-	Slots          []int          `json:"slots"`
-	SlotsMap       map[int]bool   `json:"slots_map"`       // convenient to know whether certain slots belong to the node
+	Slots          []int          `json:"-"`
+	SlotsMap       map[int]bool   `json:"-"`               // convenient to know whether certain slots belong to the node
 	MigratingSlots map[int]string `json:"migrating_slots"` // key:slot,value:dst redis ID
 	ImportingSlots map[int]string `json:"importing_slots"` // key:slot.value:src redis ID
 
