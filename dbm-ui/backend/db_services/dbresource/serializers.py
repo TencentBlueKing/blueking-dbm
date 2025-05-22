@@ -159,7 +159,10 @@ class ResourceListSerializer(serializers.Serializer):
                 }
                 for storage_spec in spec.storage_spec
             ]
-            attrs["cpu"], attrs["mem"], attrs["device_class"] = spec.cpu, spec.mem, spec.device_class
+            if spec.device_class:
+                attrs["device_class"] = spec.device_class
+            else:
+                attrs["cpu"], attrs["mem"] = spec.cpu, spec.mem
 
         # 转换内存查询单位, GB --> MB
         if attrs.get("mem"):
