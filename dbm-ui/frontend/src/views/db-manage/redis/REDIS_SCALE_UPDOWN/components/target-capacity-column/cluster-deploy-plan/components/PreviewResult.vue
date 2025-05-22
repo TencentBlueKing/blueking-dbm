@@ -22,7 +22,7 @@
         </template>
       </template>
       <template #right>
-        <span v-if="!diffState.target.capacity">--</span>
+        <span v-if="!updateMode">--</span>
         <template v-else>
           <span class="number-style">{{ diffState.target.capacity }}</span>
           G
@@ -44,7 +44,7 @@
         </template>
       </template>
       <template #right>
-        <span v-if="!diffState.target.spec.spec_id">--</span>
+        <span v-if="!updateMode">--</span>
         <template v-else>
           <RenderSpec
             :data="diffState.target.spec"
@@ -61,7 +61,7 @@
         </template>
       </template>
       <template #right>
-        <span v-if="!diffState.target.groupNum">--</span>
+        <span v-if="!updateMode">--</span>
         <template v-else>
           <span class="number-style">{{ diffState.target.groupNum }}</span>
           <ValueDiff
@@ -79,7 +79,7 @@
         </template>
       </template>
       <template #right>
-        <span v-if="!diffState.target.groupNum">--</span>
+        <span v-if="!updateMode">--</span>
         <template v-else>
           <span class="number-style">{{ diffState.target.groupNum * 2 }}</span>
           <ValueDiff
@@ -97,7 +97,7 @@
         </template>
       </template>
       <template #right>
-        <span v-if="!diffState.target.shardNum">--</span>
+        <span v-if="!updateMode">--</span>
         <template v-else>
           <span class="number-style">{{ diffState.target.shardNum }}</span>
           <ValueDiff
@@ -191,14 +191,14 @@
   );
 
   watch(
-    () => [props.targetInfo, props.updateInfo.capacity_update_type],
+    () => props.updateInfo.capacity_update_type,
     () => {
-      diffState.target = props.targetInfo;
+      if (props.updateInfo.capacity_update_type === '') {
+        diffState.target = init();
+      } else {
+        diffState.target = props.targetInfo;
+      }
       updateMode.value = props.updateInfo.capacity_update_type;
-    },
-    {
-      deep: true,
-      immediate: true,
     },
   );
 </script>

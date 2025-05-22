@@ -217,10 +217,6 @@
               major_version: clusterInfo.major_version,
               master_domain: clusterInfo.immute_domain,
             } as RedisModel,
-            // cluster_capacity: {
-            //   total: item.display_info.cluster_capacity,
-            //   used: 0,
-            // },
             db_version: item.db_version,
             online_switch_type: item.online_switch_type,
           });

@@ -31,11 +31,12 @@
           ref="formRef"
           class="mt-16"
           :model="targetInfo">
-          <ApplySchema v-model="applySchema" />
+          <ApplySchema
+            v-model="applySchema"
+            @change="handleChange" />
           <AutoSchema
             v-if="applySchema === APPLY_SCHEME.AUTO"
             ref="autoSchemaRef"
-            v-model="targetInfo"
             v-bind="props"
             @change="handleAutoUpdate" />
           <CustomSchema
@@ -111,7 +112,7 @@
   const autoSchemaRef = ref<InstanceType<typeof AutoSchema>>();
   const formRef = ref();
   const applySchema = ref(APPLY_SCHEME.AUTO);
-  const targetInfo = reactive<TargetInfo>({
+  const defaultTargetInfo = () => ({
     capacity: 0,
     clusterStats: {
       in_use: 0,
@@ -138,13 +139,15 @@
       storage_spec: [] as ComponentProps<typeof RenderSpec>['data']['storage_spec'],
     },
   });
-  const updateInfo = reactive<UpdateInfo>({
+  const targetInfo = reactive<TargetInfo>(defaultTargetInfo());
+  const defaultUpdateInfo = () => ({
     capacity_update_type: '',
     err_msg: '',
     old_machine_info: [],
     require_machine_group_num: 0,
     require_spec_id: 0,
   });
+  const updateInfo = reactive<UpdateInfo>(defaultUpdateInfo());
   const sumbitDisable = ref(false);
 
   const title = computed(() => {
@@ -154,20 +157,11 @@
     return t('选择集群容量变更部署方案');
   });
 
-  watch(
-    () => props.cluster,
-    () => {
-      if (props.cluster.id) {
-        Object.assign(targetInfo, {
-          capacity: props.cluster.cluster_capacity,
-          clusterStats: props.cluster.cluster_stats,
-          groupNum: props.cluster.machine_pair_cnt,
-          shardNum: props.cluster.cluster_shard_num,
-          spec: props.cluster.cluster_spec,
-        });
-      }
-    },
-  );
+  const handleChange = () => {
+    Object.assign(targetInfo, defaultTargetInfo());
+    Object.assign(updateInfo, defaultUpdateInfo());
+    sumbitDisable.value = false;
+  };
 
   const handleAutoUpdate = (row: ClusterSpecModel) => {
     getRedisClusterCapacityUpdateInfo({
