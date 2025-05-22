@@ -230,6 +230,7 @@ def dts_job_tasks_failed_retry(payload: dict):
         task.retry_times = task.retry_times + 1
         task.update_time = datetime.now(timezone.utc)
         task.dts_server = "1.1.1.1"  # 失败重试的时候， 重新分配新的DTS Server
+        task.task_type = ""  # get_job_to_schedule_tasks
         task.save(
             update_fields=[
                 "task_type",
