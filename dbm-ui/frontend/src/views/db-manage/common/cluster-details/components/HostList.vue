@@ -217,7 +217,6 @@
   };
 
   const handleSearchValueChange = (payload: any) => {
-    console.log('handleSearchValueChange = ', getSearchSelectorParams(payload));
     dbTable.value?.fetchData(getSearchSelectorParams(payload));
   };
 

@@ -151,14 +151,14 @@ const singleRoutes: RouteRecordRaw[] = [
     component: () => import('@views/db-manage/mysql/Index.vue'),
     children: [
       {
-        path: 'list',
+        path: 'list/:clusterId?/:detailPanel?',
         name: 'DatabaseTendbsingle',
         meta: {
           fullscreen: true,
           navName: t('MySQL单节点_集群管理'),
           skeleton: 'clusterList',
         },
-        component: () => import('@views/db-manage/mysql/single-cluster-list/Index.vue'),
+        component: () => import('@/views/db-manage/mysql/single-cluster-list/Index.vue'),
       },
       {
         path: 'detail/:clusterId',
@@ -167,7 +167,7 @@ const singleRoutes: RouteRecordRaw[] = [
           fullscreen: true,
           navName: t('MySQL单节点_集群详情'),
         },
-        component: () => import('@views/db-manage/mysql/cluster-detail/Index.vue'),
+        component: () => import('@views/db-manage/mysql/single-cluster-detail/Index.vue'),
       },
     ],
   },
@@ -188,7 +188,7 @@ const haRoutes: RouteRecordRaw[] = [
     component: () => import('@views/db-manage/mysql/Index.vue'),
     children: [
       {
-        path: 'list',
+        path: 'list/:clusterId?/:detailPanel?',
         name: 'DatabaseTendbha',
         meta: {
           fullscreen: true,
@@ -204,7 +204,7 @@ const haRoutes: RouteRecordRaw[] = [
           fullscreen: true,
           navName: t('MySQL主从集群_集群详情'),
         },
-        component: () => import('@views/db-manage/mysql/cluster-detail/Index.vue'),
+        component: () => import('@views/db-manage/mysql/ha-cluster-detail/Index.vue'),
       },
       {
         path: 'instance-list',

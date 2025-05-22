@@ -69,7 +69,111 @@
         @column-sort="columnSortChange"
         @selection="handleSelection"
         @setting-change="updateTableSettings">
-        <IdColumn :cluster-type="ClusterTypes.TENDBHA" />
+        <OperationColumn :cluster-type="ClusterTypes.TENDBHA">
+          <template #default="{ data }">
+            <div v-db-console="'mysql.haClusterList.authorize'">
+              <BkButton
+                :disabled="data.isOffline"
+                text
+                @click="handleShowAuthorize([data])">
+                {{ t('授权') }}
+              </BkButton>
+            </div>
+            <div v-db-console="'mysql.haClusterList.webconsole'">
+              <AuthRouterLink
+                action-id="mysql_webconsole"
+                :disabled="data.isOffline"
+                :permission="data.permission.mysql_webconsole"
+                :resource="data.id"
+                target="_blank"
+                :to="{
+                  name: 'MySQLWebconsole',
+                  query: {
+                    clusterId: data.id,
+                  },
+                }">
+                Webconsole
+              </AuthRouterLink>
+            </div>
+            <div v-db-console="'mysql.haClusterList.exportData'">
+              <AuthButton
+                action-id="mysql_dump_data"
+                :disabled="data.isOffline"
+                :permission="data.permission.mysql_dump_data"
+                :resource="data.id"
+                text
+                @click="handleShowDataExportSlider(data)">
+                {{ t('导出数据') }}
+              </AuthButton>
+            </div>
+            <div
+              v-if="isShowDumperEntry"
+              v-db-console="'mysql.dataSubscription'">
+              <AuthButton
+                action-id="tbinlogdumper_install"
+                :disabled="data.isOffline"
+                :permission="data.permission.tbinlogdumper_install"
+                :resource="data.id"
+                text
+                @click="handleShowCreateSubscribeRuleSlider(data)">
+                {{ t('数据订阅') }}
+              </AuthButton>
+            </div>
+            <div
+              v-if="data.isOnline"
+              v-db-console="'mysql.haClusterList.disable'">
+              <OperationBtnStatusTips
+                :data="data"
+                style="width: 100%">
+                <AuthButton
+                  action-id="mysql_enable_disable"
+                  :disabled="Boolean(data.operationTicketId)"
+                  :permission="data.permission.mysql_enable_disable"
+                  :resource="data.id"
+                  text
+                  @click="handleDisableCluster([data])">
+                  {{ t('禁用') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <div
+              v-if="data.isOffline"
+              v-db-console="'mysql.haClusterList.enable'">
+              <OperationBtnStatusTips
+                :data="data"
+                style="width: 100%">
+                <AuthButton
+                  action-id="mysql_enable_disable"
+                  :disabled="data.isStarting"
+                  :permission="data.permission.mysql_enable_disable"
+                  :resource="data.id"
+                  text
+                  @click="handleEnableCluster([data])">
+                  {{ t('启用') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <div v-db-console="'mysql.haClusterList.delete'">
+              <OperationBtnStatusTips
+                :data="data"
+                style="width: 100%">
+                <AuthButton
+                  v-bk-tooltips="{
+                    disabled: data.isOffline,
+                    content: t('请先禁用集群'),
+                  }"
+                  action-id="mysql_destroy"
+                  :disabled="data.isOnline || Boolean(data.operationTicketId)"
+                  :permission="data.permission.mysql_destroy"
+                  :resource="data.id"
+                  text
+                  @click="handleDeleteCluster([data])">
+                  {{ t('删除') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+          </template>
+        </OperationColumn>
         <MasterDomainColumn
           :cluster-type="ClusterTypes.TENDBHA"
           field="master_domain"
@@ -128,6 +232,7 @@
         <ModuleNameColumn :cluster-type="ClusterTypes.TENDBHA" />
         <CommonColumn :cluster-type="ClusterTypes.TENDBHA" />
         <BkTableColumn
+          v-if="false"
           fixed="right"
           :label="t('操作')"
           :min-width="220"
@@ -259,7 +364,8 @@
     :ticket-type="TicketTypes.MYSQL_DUMP_DATA" />
   <TableDetailDialog
     v-model="isShowDetail"
-    :default-offset-left="300">
+    :default-offset-left="300"
+    @close="handleDetailClose">
     <ClusterDetail
       v-if="clusterId"
       :cluster-id="clusterId" />
@@ -275,7 +381,7 @@
   import { getTendbhaList } from '@services/source/tendbha';
   import { getUserList } from '@services/source/user';
 
-  import { useLinkQueryColumnSerach, useTableSettings } from '@hooks';
+  import { useLinkQueryColumnSerach, useTableSettings, useUrlSearch } from '@hooks';
 
   import { useFunController, useGlobalBizs } from '@stores';
 
@@ -291,9 +397,9 @@
   import ClusterNameColumn from '@views/db-manage/common/cluster-table-column/ClusterNameColumn.vue';
   import ClusterStatsColumn from '@views/db-manage/common/cluster-table-column/ClusterStatsColumn.vue';
   import CommonColumn from '@views/db-manage/common/cluster-table-column/CommonColumn.vue';
-  import IdColumn from '@views/db-manage/common/cluster-table-column/IdColumn.vue';
   import MasterDomainColumn from '@views/db-manage/common/cluster-table-column/MasterDomainColumn.vue';
   import ModuleNameColumn from '@views/db-manage/common/cluster-table-column/ModuleNameColumn.vue';
+  import OperationColumn from '@views/db-manage/common/cluster-table-column/OperationColumn.vue';
   import RoleColumn from '@views/db-manage/common/cluster-table-column/RoleColumn.vue';
   import SlaveDomainColumn from '@views/db-manage/common/cluster-table-column/SlaveDomainColumn.vue';
   import StatusColumn from '@views/db-manage/common/cluster-table-column/StatusColumn.vue';
@@ -301,7 +407,7 @@
   import ExcelAuthorize from '@views/db-manage/common/ExcelAuthorize.vue';
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
-  import ClusterDetail from '@views/db-manage/mysql/common/cluster-detail/Index.vue';
+  import ClusterDetail from '@views/db-manage/mysql/common/ha-cluster-detail/Index.vue';
   import CreateSubscribeRuleSlider from '@views/db-manage/mysql/dumper/components/create-rule/Index.vue';
 
   import { getMenuListSearch, getSearchSelectorParams } from '@utils';
@@ -329,6 +435,7 @@
   const globalBizsStore = useGlobalBizs();
   const funControllerStore = useFunController();
   const { t } = useI18n();
+  const { getSearchParams } = useUrlSearch();
   const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(
     ClusterTypes.TENDBHA,
     {
@@ -558,11 +665,26 @@
           clusterId: id,
         },
       });
-      window.open(href, '_blank');
+      window.open(href);
       return true;
     }
     clusterId.value = id;
     isShowDetail.value = true;
+    router.replace({
+      params: {
+        clusterId: id,
+      },
+      query: getSearchParams(),
+    });
+  };
+
+  const handleDetailClose = () => {
+    router.replace({
+      params: {
+        clusterId: 0,
+      },
+      query: getSearchParams(),
+    });
   };
 
   /**
@@ -584,8 +706,8 @@
   };
 
   onMounted(() => {
-    if (Number(route.query.id)) {
-      clusterId.value = Number(route.query.id);
+    if (Number(route.params.clusterId)) {
+      clusterId.value = Number(route.params.clusterId);
       isShowDetail.value = true;
     }
   });

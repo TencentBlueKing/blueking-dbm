@@ -12,30 +12,31 @@
 -->
 
 <template>
-  <div
-    ref="monitorRef"
-    v-bkloading="{ loading: isLoading }"
-    class="cluster-detail-monitor-dashboard-box">
+  <BkLoading :loading="isLoading">
     <div
-      class="action-box"
-      @click.stop>
-      <i
-        v-bk-tooltips="screenIcon.text"
-        class="action-btn"
-        :class="[screenIcon.icon]"
-        @click.stop="toggle" />
+      ref="monitorRef"
+      class="cluster-detail-monitor-dashboard-box">
+      <div
+        class="action-box"
+        @click.stop>
+        <i
+          v-bk-tooltips="screenIcon.text"
+          class="action-btn"
+          :class="[screenIcon.icon]"
+          @click.stop="toggle" />
+      </div>
+      <BkException
+        v-if="url === '#'"
+        class="exception-wrap-item"
+        :description="$t('监控组件初始化中_紧急情况请联系平台管理员')"
+        type="building" />
+      <div
+        v-else
+        ref="iframeContainer">
+        <iframe :src="url" />
+      </div>
     </div>
-    <BkException
-      v-if="url === '#'"
-      class="exception-wrap-item"
-      :description="$t('监控组件初始化中_紧急情况请联系平台管理员')"
-      type="building" />
-    <div
-      v-else
-      ref="iframeContainer">
-      <iframe :src="url" />
-    </div>
-  </div>
+  </BkLoading>
 </template>
 
 <script setup lang="ts">
@@ -51,9 +52,11 @@
     url: '',
   });
 
+  const { t } = useI18n();
+
   const monitorRef = ref<HTMLIFrameElement>();
   const iframeContainerRef = useTemplateRef('iframeContainer');
-  const { t } = useI18n();
+
   const { isFullscreen, toggle } = useFullscreen(monitorRef);
 
   const isLoading = ref(false);
