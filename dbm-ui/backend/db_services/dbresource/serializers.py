@@ -333,6 +333,7 @@ class ResourceSummaryResponseSerializer(serializers.Serializer):
 
 class SpecSerializer(serializers.ModelSerializer):
     spec_db_type = serializers.SerializerMethodField(help_text=_("规格组件类型"))
+    capacity = serializers.SerializerMethodField(help_text=_("规格容量"))
 
     class Meta:
         model = Spec
@@ -343,6 +344,9 @@ class SpecSerializer(serializers.ModelSerializer):
     def get_spec_db_type(self, obj):
         db_type = obj.spec_cluster_type
         return db_type
+
+    def get_capacity(self, obj):
+        return obj.capacity
 
     def validate_valid_cpu_mem(self, attrs):
         # 校验cpu,mem的值是int

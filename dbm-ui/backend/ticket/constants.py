@@ -116,6 +116,7 @@ TICKET_TODO_STATUS_SET = [
 ]
 # 单据[失败]的状态合集
 TICKET_FAILED_STATUS_SET = [TicketStatus.REVOKED, TicketStatus.TERMINATED, TicketStatus.FAILED]
+TICKET_FINISHED_STATUS_SET = [TicketStatus.SUCCEEDED, TicketStatus.REVOKED, TicketStatus.TERMINATED]
 
 
 class TicketFlowStatus(str, StructuredEnum):

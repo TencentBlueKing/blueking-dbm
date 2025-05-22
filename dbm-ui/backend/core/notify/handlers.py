@@ -299,9 +299,9 @@ class NotifyAdapter:
 
         # 渲染通知内容
         jinja_env = Environment()
-        if self.phase in [TicketStatus.SUCCEEDED]:
+        if self.phase == TicketStatus.SUCCEEDED:
             template = jinja_env.from_string(FINISHED_TEMPLATE)
-        elif self.phase in [TicketStatus.FAILED]:
+        elif self.phase == TicketStatus.FAILED:
             template = jinja_env.from_string(FAILED_TEMPLATE)
         elif self.phase == TicketStatus.TERMINATED:
             template = jinja_env.from_string(TERMINATE_TEMPLATE)

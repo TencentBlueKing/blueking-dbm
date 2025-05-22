@@ -102,10 +102,9 @@ class TicketFlowManager(object):
         # 原子更新单据状态
         with transaction.atomic():
             ticket = Ticket.objects.select_for_update().get(id=self.ticket.id)
-            if ticket.status == target_status:
-                return
             origin_status, ticket.status = ticket.status, target_status
-            ticket.save(update_fields=["status", "update_at"])
+            if origin_status != target_status:
+                ticket.save(update_fields=["status", "update_at"])
 
         # 执行状态更新钩子函数
         self.ticket_status_trigger(origin_status, target_status)
@@ -119,8 +118,8 @@ class TicketFlowManager(object):
         if target_status not in [TicketStatus.RUNNING, TicketStatus.RESOURCE_REPLENISH]:
             notify.send_msg.apply_async(args=(self.ticket.id,))
 
-        # 如果是inner flow的终止，要联动回收主机。TODO: 暂时去掉，改为flow独立决定回收机器
         # 如果是待下架单据，正常结束要联动回收主机
-        if target_status == TicketStatus.SUCCEEDED and self.ticket.ticket_type in BuilderFactory.recycle_ticket_type:
+        is_recycle = self.ticket.ticket_type in BuilderFactory.recycle_ticket_type
+        if origin_status != target_status and target_status == TicketStatus.SUCCEEDED and is_recycle:
             recycle_old_hosts = self.ticket.details.get("recycle_hosts", [])
             create_recycle_ticket.apply_async(args=(self.ticket.id, recycle_old_hosts, TicketType.RECYCLE_OLD_HOST))
