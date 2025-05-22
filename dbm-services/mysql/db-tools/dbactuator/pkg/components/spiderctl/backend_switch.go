@@ -330,7 +330,7 @@ func checkReplicationStatus(conns map[IPPORT]*native.DbWorker) (err error) {
 			return err
 		}
 		if !slaveStatus.ReplSyncIsOk() {
-			return fmt.Errorf("%s replication status is abnormal ,IO Thread: %s,SQL Thread:%s", addr,
+			return fmt.Errorf("[%s] replication status is abnormal ,IO Thread: %s,SQL Thread:%s", addr,
 				slaveStatus.SlaveIORunning,
 				slaveStatus.SlaveSQLRunning)
 		}
@@ -341,7 +341,7 @@ func checkReplicationStatus(conns map[IPPORT]*native.DbWorker) (err error) {
 			return conn.ReplicateDelayCheck(1, 1024)
 		})
 		if err != nil {
-			logger.Error("delay check failed %s", err.Error())
+			logger.Error("[%s]心跳表延迟检查失败: %s", addr, err.Error())
 			return err
 		}
 	}

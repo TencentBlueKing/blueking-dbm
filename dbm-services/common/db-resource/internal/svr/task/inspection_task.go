@@ -11,7 +11,6 @@
 package task
 
 import (
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -104,11 +103,11 @@ func InspectCheckResource() (err error) {
 				return nil
 			}
 			for _, m := range resp.Data {
-				if (m.BKModuleId == allowCCMouduleInfo.CC_IDLE_MODULE_ID || m.BKSetId == allowCCMouduleInfo.CC_MANAGE_TOPO.SetId) &&
-					slices.Contains(bkhostIds, m.BKHostId) {
+				if m.BKModuleId == allowCCMouduleInfo.CC_IDLE_MODULE_ID || (m.BKSetId == allowCCMouduleInfo.CC_MANAGE_TOPO.SetId &&
+					m.BKModuleId == allowCCMouduleInfo.CC_MANAGE_TOPO.ResourceModuleId) {
 					continue
 				}
-				logger.Info("the host is not idle %v", m.BKHostId)
+				logger.Info("host %d,set %d  module %d,not allow", m.BKHostId, m.BKSetId, m.BKModuleId)
 				err = model.DB.Self.Table(model.TbRpDetailName()).Where("bk_biz_id = ? and bk_host_id = ? and  status = ? ",
 					bkBizId,
 					m.BKHostId, model.Unused).Updates(map[string]interface{}{"status": model.UsedByOther, "update_time": time.Now()}).
