@@ -29,7 +29,7 @@
       </span>
     </template>
     <EditableInput
-      v-model="localValue"
+      v-model="modelValue.master_domain"
       :placeholder="t('请输入集群域名')"
       @change="handleChange" />
   </EditableColumn>
@@ -105,7 +105,6 @@
 
   const showSelector = ref(false);
   const loading = ref(false);
-  const localValue = ref(modelValue.value.master_domain);
 
   const rules = [
     {
@@ -167,10 +166,6 @@
   const handleSelectorChange = (selected: Props['selected']) => {
     emits('batch-edit', [...selected[ClusterTypes.TENDBHA], ...selected[ClusterTypes.TENDBSINGLE]]);
   };
-
-  watch(modelValue, () => {
-    localValue.value = modelValue.value.master_domain;
-  });
 
   defineExpose<Exposes>({
     fetch: queryCluster,

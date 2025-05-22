@@ -578,7 +578,7 @@
       }),
       {},
     );
-    emits('change', result);
+    emits('change', _.cloneDeep(result));
     handleClose();
   };
 
