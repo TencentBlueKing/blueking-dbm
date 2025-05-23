@@ -48,8 +48,12 @@ class SQLServerDataMigrateHandler(object):
         dts = SqlserverDtsInfo.objects.get(id=dts_id)
         dts.status = DtsStatus.Terminated.value
         dts.save()
+
+        # 合并源集群及目标集群列表
+        combined_ids = [dts.source_cluster_id] + dts.target_cluster_ids
+        # 预防存在迁移记录已被删除集群为0的情况， 过滤已删除的集群
         data = {
-            "cluster_ids": list(set([dts.source_cluster_id, dts.target_cluster_id])),
+            "cluster_ids": list(set(filter(lambda x: x != 0, combined_ids))),
             "bk_biz_id": dts.bk_biz_id,
             "ticket_type": TicketType.SQLSERVER_INCR_MIGRATE.value,
             "created_by": dts.creator,
