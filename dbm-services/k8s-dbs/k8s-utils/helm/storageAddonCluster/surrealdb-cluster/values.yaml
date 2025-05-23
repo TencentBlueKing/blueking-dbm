@@ -47,7 +47,11 @@ componentList:
       requests:
         cpu: 500m
         memory: 512Mi
-    storage: "20Gi"
+    volumeClaimTemplates:
+      accessModes: ["ReadWriteOnce"]
+      storage: "20Gi"
+      storageClassName: "cbs"
+      volumeMode: "Filesystem"
     tolerations: [ ]
   - componentName: tikv
     serviceVersion: "7.5.2"
@@ -64,7 +68,11 @@ componentList:
       requests:
         cpu: 2
         memory: 2Gi
-    storage: "20Gi"
+    volumeClaimTemplates:
+      accessModes: ["ReadWriteOnce"]
+      storage: "20Gi"
+      storageClassName: "cbs"
+      volumeMode: "Filesystem"
     tolerations: [ ]
 
 metrics:

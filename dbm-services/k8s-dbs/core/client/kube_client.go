@@ -343,9 +343,12 @@ func mergeComponentList(values map[string]interface{}, compListFromReq []entity.
 				compFromVal, ok := itemFromVal.(map[string]interface{})
 				if ok && compFromVal["componentName"] == compFromReq.ComponentName {
 
-					compFromVal["serviceVersion"] = compFromReq.Version
-					compFromVal["replicas"] = int(compFromReq.Replicas)
-					compFromVal["storage"] = compFromReq.Storage
+					if compFromReq.Version != "" {
+						compFromVal["serviceVersion"] = compFromReq.Version
+					}
+					if compFromReq.Replicas != 0 {
+						compFromVal["replicas"] = int(compFromReq.Replicas)
+					}
 
 					resources, resOk := compFromVal["resources"].(map[string]interface{})
 					if !resOk {
@@ -360,7 +363,7 @@ func mergeComponentList(values map[string]interface{}, compListFromReq []entity.
 					if err != nil {
 						return err
 					}
-					err = mergeObjectToVal(compFromVal, compFromReq.Args, "args")
+					err = mergeObjectToVal(compFromVal, compFromReq.VolumeClaimTemplates, "volumeClaimTemplates")
 					if err != nil {
 						return err
 					}

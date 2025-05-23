@@ -29,10 +29,13 @@ spec:
       volumeClaimTemplates:
         - name: data
           spec:
-            storageClassName: ""
             accessModes:
-              - ReadWriteOnce
+              {{- range .volumeClaimTemplates.accessModes }}
+              - {{ . }}
+              {{- end }}
             resources:
               requests:
-                storage: {{ .storage }}
+                storage: {{ .volumeClaimTemplates.storage }}
+            storageClassName: {{ .volumeClaimTemplates.storageClassName }}
+            volumeMode: {{ .volumeClaimTemplates.volumeMode }}
     {{- end}}

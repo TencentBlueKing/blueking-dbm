@@ -21,7 +21,11 @@ componentList:
       limits:
         cpu: "0.5"
         memory: "0.5Gi"
-    storage: "10Gi"
+    volumeClaimTemplates:
+      accessModes: ["ReadWriteOnce"]
+      storage: "20Gi"
+      storageClassName: "cbs"
+      volumeMode: "Filesystem"
 
 observeConfig:
   bkLogConfig:

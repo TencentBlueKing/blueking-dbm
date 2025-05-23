@@ -77,12 +77,14 @@ spec:
         - name: data
           spec:
             accessModes:
-              - ReadWriteOnce
+              {{- range .volumeClaimTemplates.accessModes }}
+              - {{ . }}
+              {{- end }}
             resources:
               requests:
-                storage: {{ .storage }}
-            storageClassName: cbs
-            volumeMode: Filesystem
+                storage: {{ .volumeClaimTemplates.storage }}
+            storageClassName: {{ .volumeClaimTemplates.storageClassName }}
+            volumeMode: {{ .volumeClaimTemplates.volumeMode }}
     {{- end}}
 
     {{- end}}

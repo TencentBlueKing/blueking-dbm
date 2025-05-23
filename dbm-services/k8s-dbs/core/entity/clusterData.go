@@ -78,17 +78,17 @@ type Connect struct {
 // ComponentResource component info
 type ComponentResource struct {
 	// Current request
-	ComponentName string                 `json:"componentName,omitempty"`
-	ComponentDef  string                 `json:"componentDef,omitempty"`
-	Version       string                 `json:"version,omitempty"`
-	Replicas      int32                  `json:"replicas,omitempty"`
-	Env           map[string]interface{} `json:"env,omitempty"`
-	Request       *Resource              `json:"request,omitempty"`
-	Limit         *Resource              `json:"limit,omitempty"`
-	Storage       string                 `json:"storage,omitempty"`
-	Args          map[string]interface{} `json:"args,omitempty"`
+	ComponentName        string                 `json:"componentName,omitempty"`
+	ComponentDef         string                 `json:"componentDef,omitempty"`
+	Version              string                 `json:"version,omitempty"`
+	Replicas             int32                  `json:"replicas,omitempty"`
+	Env                  map[string]interface{} `json:"env,omitempty"`
+	Request              *Resource              `json:"request,omitempty"`
+	Limit                *Resource              `json:"limit,omitempty"`
+	VolumeClaimTemplates *VolumeClaimTemplates  `json:"volumeClaimTemplates,omitempty"`
 
 	// Deleted in the future
+	Storage string   `json:"storage,omitempty"`
 	Connect *Connect `json:"connect,omitempty"`
 }
 
@@ -96,6 +96,15 @@ type ComponentResource struct {
 type Resource struct {
 	CPU    string `json:"cpu,omitempty"`
 	Memory string `json:"memory,omitempty"`
+}
+
+// VolumeClaimTemplates defines persistent storage requirements for Component pods.
+// Equivalent to Kubernetes cluster.spec.volumeClaimTemplates field.
+type VolumeClaimTemplates struct {
+	AccessModes      []string `json:"accessModes,omitempty"`
+	Storage          string   `json:"storage,omitempty"`
+	StorageClassName string   `json:"storageClassName,omitempty"`
+	VolumeMode       string   `json:"volumeMode,omitempty"`
 }
 
 // GetClusterResponseData 获取 cluster 集群详情

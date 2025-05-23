@@ -22,8 +22,6 @@ componentList:
       limits:
         cpu: 1
         memory: 1Gi
-    args:
-
 
   - componentName: vmselect
     serviceVersion: "1.93.10"
@@ -36,7 +34,7 @@ componentList:
       limits:
         cpu: 1
         memory: 1Gi
-    args:
+
   - componentName: vmstorage
     serviceVersion: "1.93.10"
     env:
@@ -48,8 +46,11 @@ componentList:
       limits:
         cpu: 1
         memory: 1Gi
-    storage: "10Gi"
-    args:
+    volumeClaimTemplates:
+      accessModes: ["ReadWriteOnce"]
+      storage: "20Gi"
+      storageClassName: "cbs"
+      volumeMode: "Filesystem"
 
 observeConfig:
   bkLogConfig:
