@@ -578,6 +578,15 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-saoba:before {
 	content: "\e1f4";
 }
+.db-icon-parallel-gateway:before {
+	content: "\e21c";
+}
+.db-icon-branch-gateway:before {
+	content: "\e21a";
+}
+.db-icon-converge-gateway:before {
+	content: "\e21b";
+}
 .db-icon-dongzuo-xiazai:before {
 	content: "\e1f3";
 }
