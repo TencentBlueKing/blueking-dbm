@@ -33,14 +33,7 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/mysql/sql-execute/index.vue'),
   },
-  {
-    path: 'db-rename/:page?',
-    name: 'MySQLDBRename',
-    meta: {
-      navName: t('DB重命名'),
-    },
-    component: () => import('@views/db-manage/mysql/db-rename/Index.vue'),
-  },
+  createRouteItem(TicketTypes.MYSQL_RENAME_DATABASE, t('DB重命名')),
   {
     path: 'privilege-clone-client/:page?',
     name: 'MySQLPrivilegeCloneClient',
