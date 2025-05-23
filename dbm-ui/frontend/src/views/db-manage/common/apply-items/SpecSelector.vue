@@ -121,7 +121,7 @@
   interface Expose {
     getData: () => {
       instance_num?: number;
-    } & Pick<ResourceSpecModel, 'spec_name' | 'cpu' | 'mem' | 'storage_spec' | 'qps'>;
+    } & Pick<ResourceSpecModel, 'spec_name' | 'cpu' | 'mem' | 'storage_spec' | 'qps' | 'capacity'>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -228,6 +228,7 @@
       if (item) {
         const { instance_num: instanceNum } = item;
         return {
+          capacity: item.capacity,
           cpu: item.cpu,
           instance_num: instanceNum && instanceNum > 0 ? instanceNum : undefined,
           mem: item.mem,

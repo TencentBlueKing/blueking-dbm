@@ -17,6 +17,7 @@ import type { ClusterTypes, DBTypes, MachineTypes } from '@common/const';
 import { utcDisplayTime } from '@utils';
 
 export default class ResourceSpec {
+  capacity: number;
   cpu: {
     max: number;
     min: number;
@@ -55,6 +56,7 @@ export default class ResourceSpec {
   updater: string;
 
   constructor(payload = {} as ResourceSpec) {
+    this.capacity = payload.capacity;
     this.cpu = payload.cpu;
     this.mem = payload.mem;
     this.storage_spec = payload.storage_spec;
