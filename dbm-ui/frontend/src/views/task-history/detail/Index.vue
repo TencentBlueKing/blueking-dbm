@@ -349,6 +349,7 @@
   </div>
 </template>
 <script setup lang="tsx">
+  import dayjs from 'dayjs';
   import _ from 'lodash';
   import type { Instance } from 'tippy.js';
   import type { Ref } from 'vue';
@@ -982,6 +983,8 @@
     flowState.instance && renderNodes(true);
   };
 
+  let lasteQueryTime: number | dayjs.Dayjs = 0;
+
   /**
    * 获取任务详情数据
    */
@@ -994,6 +997,14 @@
       },
     )
       .then((res) => {
+        const nowTime = dayjs();
+        const firstLevelNodesCount = Object.values(res.activities).length;
+        const firstLevelFlowsCount = Object.values(res.flows).length;
+        const queryTimeDiff = nowTime.diff(lasteQueryTime, 'second');
+        if (firstLevelNodesCount > 500 && firstLevelFlowsCount > 500 && lasteQueryTime && queryTimeDiff < 60) {
+          return;
+        }
+        lasteQueryTime = nowTime;
         flowState.details = res;
         retryRenderFailedTips();
       })
@@ -1008,7 +1019,7 @@
       });
   };
 
-  const { isActive, pause, resume } = useTimeoutPoll(fetchTaskflowDetails, 10000);
+  const { isActive, pause, resume } = useTimeoutPoll(fetchTaskflowDetails, 15000);
 
   /**
    * 重试节点
