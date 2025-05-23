@@ -84,7 +84,7 @@ class MongoDBCutoffResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder):
             "port": instance.port,
             "cluster_id": cluster.id,
             "db_version": cluster.major_version,
-            "domain": cluster.immute_domain,
+            "domain": instance.bind_entry.first().entry if instance.bind_entry.exists() else "",
             "cluster_name": cluster.name,
         }
         if storage_id__shard.get(instance.id):
