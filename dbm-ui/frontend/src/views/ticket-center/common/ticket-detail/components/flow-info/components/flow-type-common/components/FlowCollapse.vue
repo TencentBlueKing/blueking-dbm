@@ -58,7 +58,7 @@
     }
 
     width: 100%;
-    max-width: 580px;
+    max-width: 900px;
     margin-top: 12px;
 
     .bk-collapse-item {
