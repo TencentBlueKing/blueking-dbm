@@ -19,7 +19,7 @@ import { getCostTimeDisplay } from '@utils';
 
 import { t } from '@locales/index';
 
-import type { GraphNode } from './utils';
+import { type GraphNode } from './utils';
 
 enum NODE_ICON {
   actuator_script = 'db-icon-deploy',
@@ -42,10 +42,11 @@ interface RenderCollectionItem {
 }
 interface RenderCollection {
   empty: RenderCollectionItem;
+  gateway: RenderCollectionItem;
   ractangle: RenderCollectionItem;
   round: RenderCollectionItem;
 }
-export type RenderCollectionKey = 'round' | 'ractangle' | 'empty';
+export type RenderCollectionKey = 'round' | 'ractangle' | 'empty' | 'gateway';
 
 export default class GraphRender {
   renderCollection: RenderCollection;
@@ -57,11 +58,15 @@ export default class GraphRender {
         render: this.renderEmpty,
       },
 
+      // 网关节点渲染
+      gateway: {
+        render: this.renderGateway,
+      },
+
       // 长方形渲染
       ractangle: {
         render: this.renderRactangle,
       },
-
       // 圆形渲染
       round: {
         render: this.renderRound,
@@ -82,6 +87,23 @@ export default class GraphRender {
   renderEmpty(args: any[] = []) {
     const [node] = args;
     return <span data-node-id={node.id}></span>;
+  }
+
+  renderGateway(args: any[] = []) {
+    const node: GraphNode = args[0];
+    const gatewayIconMap = {
+      [FlowTypes.ConditionalParallelGateway]: 'bk-dbm-icon db-icon-branch-gateway',
+      [FlowTypes.ConvergeGateway]: 'bk-dbm-icon db-icon-converge-gateway',
+      [FlowTypes.ParallelGateway]: 'bk-dbm-icon db-icon-parallel-gateway',
+    };
+
+    return (
+      <div class='node-gateway-layout'>
+        <div class='icon-box'>
+          <i class={gatewayIconMap[node.data.type as keyof typeof gatewayIconMap]} />
+        </div>
+      </div>
+    );
   }
 
   renderRactangle(args: any[] = []) {
@@ -151,7 +173,17 @@ export default class GraphRender {
     const nodeClickType = type === 'ServiceActivity' && !createdStatus ? 'log' : '';
     const isShowTime = status !== 'CREATED' && updatedAt && startedAt && updatedAt - startedAt >= 0;
     const diffSeconds = status === 'RUNNING' ? Math.floor(Date.now() / 1000) - startedAt : updatedAt - startedAt;
-    return (
+    const isConditionalGateway = type === FlowTypes.ConditionalParallelGateway;
+    return isConditionalGateway ? (
+      <div class='node-conditional-gateway-layout'>
+        <div class='icon-box'>
+          <i class='bk-dbm-icon db-icon-branch-gateway' />
+        </div>
+        <div class='display-name'>
+          <strong title={node.data.name}>{node.data.name}</strong>
+        </div>
+      </div>
+    ) : (
       <div class={['node-ractangle-layout', { 'node-hover': node.children || nodeClickType }]}>
         {node.children ? (
           <div class='node-ractangle-collapse'>
@@ -296,7 +328,9 @@ export default class GraphRender {
 
     if (Array.isArray(children)) {
       for (const childVNode of children) {
-        el.append(this.vNodeToHtml(childVNode as VNode));
+        if (childVNode) {
+          el.append(this.vNodeToHtml(childVNode as VNode));
+        }
       }
     }
 

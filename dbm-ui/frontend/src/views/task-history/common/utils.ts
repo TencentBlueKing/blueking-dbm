@@ -17,7 +17,7 @@ import { FlowTypes, getTaskflowDetails } from '@services/source/taskflow';
 
 import type { RenderCollectionKey } from './graphRender';
 
-type FlowDetail = ServiceReturnType<typeof getTaskflowDetails>;
+type FlowDetail = { type?: string } & ServiceReturnType<typeof getTaskflowDetails>;
 type FlowLine = FlowDetail['flows'][string];
 type FlowType = FlowDetail['end_event']['type'];
 
@@ -43,8 +43,18 @@ export interface GraphLine {
   target: { id: string; x?: number; y?: number };
 }
 
-const getewayTypes: FlowType[] = [FlowTypes.ParallelGateway, FlowTypes.ConvergeGateway];
+export const getewayTypes: FlowType[] = [
+  FlowTypes.ParallelGateway,
+  FlowTypes.ConvergeGateway,
+  // FlowTypes.ConditionalParallelGateway, // 条件网关由 rectangle 去绘制
+];
 const bothEndTypes: FlowType[] = [FlowTypes.EmptyStartEvent, FlowTypes.EmptyEndEvent];
+
+const config = {
+  chidlOffset: 66, // 子节点 x 偏移量
+  horizontalSep: 100, // 节点水平间距
+  verticalSep: 36, // 节点垂直间距
+};
 
 /**
  * 获取节点连线目标
@@ -61,8 +71,9 @@ const getLineTargets = (
   flows: { [key: string]: FlowLine },
   isCurrent = false,
   targets: string[] = [],
+  isStartNode = false,
 ): string[] => {
-  const { outgoing, type } = node;
+  const { id, outgoing, type } = node;
   // 返回当前节点
   if (isCurrent && !getewayTypes.includes(type)) {
     targets.push(node.id);
@@ -73,19 +84,24 @@ const getLineTargets = (
     return targets;
   }
 
+  if (isStartNode && type === FlowTypes.ParallelGateway) {
+    return [id];
+  }
+
   if (Array.isArray(outgoing)) {
     outgoing.forEach((id: string) => {
-      getLineTargets(nodeMap[flows[id].target], nodeMap, flows, true, targets);
+      getLineTargets(nodeMap[flows[id].target], nodeMap, flows, true, targets, isStartNode);
     });
 
     return targets;
   }
 
   const targetNode = nodeMap[flows[outgoing].target];
-
   if (getewayTypes.includes(targetNode.type)) {
-    return getLineTargets(targetNode, nodeMap, flows, false, targets);
+    targets.push(targetNode.id);
+    return targets;
   }
+
   targets.push(targetNode.id);
   return targets;
 };
@@ -119,7 +135,7 @@ const formartLines = (data: FlowDetail, level = 0, lines: GraphLine[] = []) => {
      * 1. 如果是 geteway 节点则不处理
      * 2. 子流程 end 节点不处理
      */
-    if (getewayTypes.includes(node.type) || (node.type === FlowTypes.EmptyEndEvent && level > 0)) {
+    if (node.type === FlowTypes.EmptyEndEvent && level > 0) {
       continue;
     }
 
@@ -128,7 +144,7 @@ const formartLines = (data: FlowDetail, level = 0, lines: GraphLine[] = []) => {
       const { outgoing } = node;
       const addLine = (lineId: string) => {
         const { target } = flows[lineId];
-        const targets = getLineTargets(nodesMap[target] as any, nodesMap, flows, true);
+        const targets = getLineTargets(nodesMap[target] as any, nodesMap, flows, true, [], true);
         for (const id of targets) {
           lines.push({
             id: flows[lineId].id,
@@ -196,14 +212,22 @@ export const formatGraphData = (data: FlowDetail, expandNodes: string[] = [], to
   getFlagNodes(rootNodes, flagNodes, expandNodes);
   // 计算结束节点 x 值
   calcEndNodeLocationX(flagNodes);
+  const availableNodes: GraphNode[] = [];
+  const nodesCountMap: Record<string, number> = {};
+  flagNodes.forEach((node) => {
+    nodesCountMap[node.id] = nodesCountMap[node.id] ? nodesCountMap[node.id] + 1 : 1;
+    if (nodesCountMap[node.id] === 1) {
+      availableNodes.push(node);
+    }
+  });
 
   // 处理连线坐标
   const lines = formartLines(data);
-  const renderLines = getRenderLines(lines, flagNodes);
+  const renderLines = getRenderLines(lines, availableNodes);
 
   return reactive({
     lines: renderLines,
-    locations: flagNodes, // 渲染根节点
+    locations: availableNodes, // 渲染根节点
   });
 };
 
@@ -218,16 +242,17 @@ function getRenderLines(lines: GraphLine[], nodes: GraphNode[]) {
     if (sourceNode && targetNode) {
       const isLowerLevel = sourceNode.level !== targetNode.level; // 节点不属于同一层
       const { width: sourceWidth, x: sourceX = 0, y: sourceY = 0 } = sourceNode;
-      const { height: targetHeight, width: targetWidth, x: targetX = 0, y: targetY = 0 } = targetNode;
+      const { data: targetData, height: targetHeight, width: targetWidth, x: targetX = 0, y: targetY = 0 } = targetNode;
       const sourceOffsetX = sourceWidth / 2 - 14 - 24;
       const targetOffsetX = targetWidth / 2;
+      const isParallelGateway = targetData.type === FlowTypes.ParallelGateway;
       Object.assign(source, {
         x: isLowerLevel ? sourceX - sourceOffsetX : sourceX,
         y: sourceY,
       });
       Object.assign(target, {
-        x: isLowerLevel ? targetX - targetOffsetX : targetX,
-        y: isLowerLevel ? targetY + targetHeight / 2 : targetY,
+        x: isLowerLevel ? (isParallelGateway ? targetX : targetX - targetOffsetX) : targetX,
+        y: isLowerLevel ? (isParallelGateway ? targetY : targetY + targetHeight / 2) : targetY,
       });
       renderLines.push(newLine);
     }
@@ -262,12 +287,6 @@ function getFlagNodes(nodes: GraphNode[][], flagNodes: GraphNode[] = [], expandN
   }
 }
 
-const config = {
-  chidlOffset: 66, // 子节点 x 偏移量
-  horizontalSep: 100, // 节点水平间距
-  verticalSep: 36, // 节点垂直间距
-};
-
 /**
  * 添加节点到当前层级的列中
  * @param node 当前节点信息
@@ -285,7 +304,8 @@ function addNode(
   expandNodes: string[] = [],
   todoNodeIdList: string[] = [],
 ) {
-  const isRoundType = bothEndTypes.includes(node.type);
+  const isRoundType = bothEndTypes.includes(node.type as FlowTypes);
+  const isGatewayType = getewayTypes.includes(node.type as FlowTypes);
   const len = nodes[index].length;
   const graphNode: GraphNode = {
     data: node,
@@ -296,7 +316,7 @@ function addNode(
     isTodoNode: todoNodeIdList.includes(node.id),
     level,
     parent,
-    tpl: isRoundType ? 'round' : 'ractangle',
+    tpl: isRoundType ? 'round' : isGatewayType ? 'gateway' : 'ractangle',
     width: isRoundType ? 48 : 280,
   };
   nodes[index].push(graphNode);
@@ -353,10 +373,7 @@ function getLevelNodes(
         const targets = Array.isArray(node.outgoing) ? node.outgoing : [node.outgoing];
         for (const targetId of targets) {
           const targetNode = nodesMap[flows[targetId].target];
-          // 网关节点不处理
-          const isGetewaysType = getewayTypes.includes(targetNode.type);
-          !isGetewaysType &&
-            addNode(targetNode as any as FlowDetail, parent, nodes, index, level, expandNodes, todoNodeIdList);
+          addNode(targetNode as any as FlowDetail, parent, nodes, index, level, expandNodes, todoNodeIdList);
           nextColumnNodes.push(targetNode);
         }
       }

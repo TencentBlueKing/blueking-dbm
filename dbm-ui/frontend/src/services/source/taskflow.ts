@@ -29,6 +29,7 @@ const path = '/apis/taskflow';
  * EmptyEndEvent 结束节点
  */
 export enum FlowTypes {
+  ConditionalParallelGateway = 'ConditionalParallelGateway',
   ConvergeGateway = 'ConvergeGateway',
   EmptyEndEvent = 'EmptyEndEvent',
   EmptyStartEvent = 'EmptyStartEvent',
@@ -128,7 +129,7 @@ interface FlowsDetail {
     id: string;
     incoming: string[];
     name?: string;
-    outgoing: string;
+    outgoing: string | string[];
     type: keyof typeof FlowTypes;
   };
   flow_info: {
