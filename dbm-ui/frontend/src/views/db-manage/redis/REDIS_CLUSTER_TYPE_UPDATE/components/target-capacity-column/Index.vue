@@ -108,11 +108,11 @@
       trigger: 'change',
       validator: (value: number) => value > 0,
     },
-    {
-      message: t('目标分片数不能与当前分片数相同'),
-      trigger: 'change',
-      validator: () => props.cluster.cluster_shard_num !== modelValue.value.cluster_shard_num,
-    },
+    // {
+    //   message: t('目标分片数不能与当前分片数相同'),
+    //   trigger: 'change',
+    //   validator: () => props.cluster.cluster_shard_num !== modelValue.value.cluster_shard_num,
+    // },
   ];
 
   // watchEffect(() => {
