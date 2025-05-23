@@ -13,17 +13,16 @@
 
 <template>
   <SmartAction>
-    <div class="master-failover-page">
+    <div class="proxy-scale-down-page">
       <BkAlert
         closable
         theme="info"
-        :title="t('集群容量变更：通过部署新集群来实现原集群的扩容或缩容（集群分片数不变），可以指定新的版本')" />
+        :title="t('缩容Shard节点数：xxx')" />
       <DbForm
         ref="form"
-        class="toolbox-form"
+        class="toolbox-form mt-16"
         form-type="vertical"
-        :model="formData"
-        style="margin-top: 16px">
+        :model="formData">
         <EditableTable
           ref="editableTable"
           class="mt16 mb16"
@@ -31,19 +30,37 @@
           <EditableRow
             v-for="(item, index) in formData.tableData"
             :key="index">
-            <ClusterColumn
+            <ClusterWithRelatedClustersColumn
               v-model="item.cluster"
               :selected="selected"
               @batch-edit="handleClusterBatchEdit" />
-            <CurrentCapacityColumn v-model="item.cluster" />
-            <TargetCapacityColumn
-              v-model="item.target_capacity"
-              :cluster="item.cluster" />
+            <EditableColumn
+              :label="t('集群类型')"
+              :width="200">
+              <EditableBlock
+                v-model="item.cluster.cluster_type_name"
+                :placeholder="t('输入集群后自动生成')" />
+            </EditableColumn>
+            <EditableColumn
+              :label="t('当前 Shard 的节点数')"
+              :width="200">
+              <EditableBlock :placeholder="t('输入集群后自动生成')">
+                {{ item.cluster.shard_node_count }}
+              </EditableBlock>
+            </EditableColumn>
+            <TargetNumColumn
+              v-model="item.target_num"
+              :disabled="!item.cluster.id"
+              :max="item.cluster.shard_node_count"
+              @batch-edit="handleBatchEdit" />
             <OperationColumn
               :create-row-method="createRowData"
               :table-data="formData.tableData" />
           </EditableRow>
         </EditableTable>
+        <IgnoreBiz
+          v-model="formData.is_ignore_business_access"
+          v-bk-tooltips="t('如忽略_有连接的情况下也会执行')" />
         <TicketPayload v-model="formData.payload" />
       </DbForm>
     </div>
@@ -77,98 +94,79 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
+  import IgnoreBiz from '@views/db-manage/common/toolbox-field/form-item/ignore-biz/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
-  import ClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/cluster-column/Index.vue';
+  import ClusterWithRelatedClustersColumn from '@views/db-manage/mongodb/common/toolbox-field/cluster-with-related-clusters-column/Index.vue';
 
-  import CurrentCapacityColumn from './components/CurrentCapacityColumn.vue';
-  import TargetCapacityColumn from './components/target-capacity-column/Index.vue';
+  import TargetNumColumn from './components/TargetNumColumn.vue';
 
   export interface IDataRow {
     cluster: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      cluster_name: string;
       cluster_type: string;
+      cluster_type_name: string;
       id: number;
+      machine_instance_num: number;
       master_domain: string;
-      mongodb: MongodbModel['mongodb'];
-      mongodb_machine_num: number;
-      mongodb_machine_pair: number;
+      related_clusters: {
+        domain: string;
+        id: number;
+      }[];
       shard_node_count: number;
       shard_num: number;
-      shard_spec: string;
     };
-    target_capacity: {
-      resource_spec: {
-        mongodb: {
-          count: number;
-          spec_id: number;
-        };
-      };
-      shard_machine_group: number;
-      shard_node_count: number;
-      shards_num: number;
-    };
+    target_num: string;
   }
 
   const createRowData = (values = {} as Partial<IDataRow>) => ({
     cluster: Object.assign(
       {
-        bk_biz_id: 0,
-        bk_cloud_id: 0,
-        cluster_name: '',
         cluster_type: '',
+        cluster_type_name: '',
         id: 0,
+        machine_instance_num: 0,
         master_domain: '',
-        mongodb: [] as MongodbModel['mongodb'],
-        mongodb_machine_num: 0,
-        mongodb_machine_pair: 0,
+        related_clusters: [] as IDataRow['cluster']['related_clusters'],
         shard_node_count: 0,
         shard_num: 0,
-        shard_spec: '',
       },
-      values?.cluster,
+      values.cluster,
     ),
-    target_capacity: Object.assign(
-      {
-        resource_spec: {
-          mongodb: {
-            count: 0,
-            spec_id: 0,
-          },
-        },
-        shard_machine_group: 0,
-        shard_node_count: 0,
-        shards_num: 0,
-      },
-      values.target_capacity,
-    ),
+    target_num: values.target_num || '',
   });
 
   const createDefaultFormData = () => ({
+    is_ignore_business_access: false,
     payload: createTickePayload(),
     tableData: [createRowData()],
   });
 
   const { t } = useI18n();
-  const route = useRoute();
 
-  useTicketDetail<Mongodb.ScaleUpdown>(TicketTypes.MONGODB_SCALE_UPDOWN, {
+  useTicketDetail<Mongodb.ResourcePool.ReduceShardNodes>(TicketTypes.MONGODB_REDUCE_SHARD_NODES, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
-      const { clusters, infos } = details;
+      const { clusters, infos, is_safe: isSafe } = details;
+      const tableInfos = [
+        ...infos.MongoReplicaSet,
+        ...infos.MongoShardedCluster.map((item) => ({
+          ...item,
+          cluster_ids: [item.cluster_id!],
+        })),
+      ];
       Object.assign(formData, {
+        is_ignore_business_access: !isSafe,
         payload: createTickePayload(ticketDetail),
-        tableData: infos.map((item) => {
-          const clusterItem = clusters[item.cluster_id];
+        tableData: tableInfos.map((item) => {
+          const clusterItem = clusters[item.cluster_ids![0]];
           return createRowData({
             cluster: {
               master_domain: clusterItem.immute_domain,
             } as IDataRow['cluster'],
+            target_num: `${item.current_shard_nodes_num - item.reduce_shard_nodes}`,
           });
         }),
       });
@@ -177,38 +175,19 @@
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     infos: {
-      cluster_id: number;
-      resource_spec: {
-        mongodb: {
-          count: number;
-          spec_id: number;
-        };
-      };
-      shard_machine_group: number;
-      shard_node_count: number;
-      shards_num: number;
+      cluster_ids: number[];
+      current_shard_nodes_num: number; // 当前shard节点数
+      machine_instance_num: number; // 单机部署实例
+      reduce_shard_nodes: number; // 当前 - 缩容至
+      shard_num: number; // 分片数
     }[];
-    ip_source: string;
-  }>(TicketTypes.MONGODB_SCALE_UPDOWN);
+    is_safe: boolean;
+  }>(TicketTypes.MONGODB_REDUCE_SHARD_NODES);
 
   const formRef = useTemplateRef('form');
   const editableTableRef = useTemplateRef('editableTable');
 
   const formData = reactive(createDefaultFormData());
-
-  // 集群列表及详情跳转
-  const { masterDomain } = route.query;
-  if (masterDomain) {
-    Object.assign(formData, {
-      tableData: [
-        createRowData({
-          cluster: {
-            master_domain: masterDomain,
-          } as IDataRow['cluster'],
-        }),
-      ],
-    });
-  }
 
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
@@ -220,25 +199,29 @@
         newList.push(
           createRowData({
             cluster: {
-              bk_biz_id: item.bk_biz_id,
-              bk_cloud_id: item.bk_cloud_id,
-              cluster_name: item.cluster_name,
               cluster_type: item.cluster_type,
+              cluster_type_name: item.cluster_type_name,
               id: item.id,
+              machine_instance_num: item.machine_instance_num,
               master_domain: item.master_domain,
-              mongodb: item.mongodb,
-              mongodb_machine_num: item.mongodb_machine_num,
-              mongodb_machine_pair: item.mongodb_machine_pair,
+              related_clusters: [],
               shard_node_count: item.shard_node_count,
               shard_num: item.shard_num,
-              shard_spec: item.shard_spec,
             },
           }),
         );
       }
     });
-    formData.tableData = [...(formData.tableData[0].cluster.master_domain ? formData.tableData : []), ...newList];
+    formData.tableData = [...(selected.value.length ? formData.tableData : []), ...newList];
     window.changeConfirm = true;
+  };
+
+  const handleBatchEdit = (value: string | string[], field: string) => {
+    formData.tableData.forEach((item) => {
+      Object.assign(item, {
+        [field]: value,
+      });
+    });
   };
 
   const handleSubmit = async () => {
@@ -247,11 +230,21 @@
     if (validateResult) {
       createTicketRun({
         details: {
-          infos: formData.tableData.map((tableRow) => ({
-            cluster_id: tableRow.cluster.id,
-            ...tableRow.target_capacity,
-          })),
-          ip_source: 'resource_pool',
+          infos: formData.tableData.map((tableRow) => {
+            const cluster = tableRow.cluster as Required<IDataRow['cluster']>;
+            const targerNum = tableRow.target_num;
+            return {
+              cluster_ids:
+                cluster.cluster_type === ClusterTypes.MONGO_REPLICA_SET
+                  ? [cluster.id, ...cluster.related_clusters.map((relatedItem) => relatedItem.id)]
+                  : [cluster.id],
+              current_shard_nodes_num: cluster.shard_node_count, // 当前shard节点数
+              machine_instance_num: cluster.machine_instance_num, // 单机部署实例
+              reduce_shard_nodes: cluster.shard_node_count - Number(targerNum), // 当前 - 缩容至
+              shard_num: cluster.shard_num, // 分片数
+            };
+          }),
+          is_safe: !formData.is_ignore_business_access,
         },
         ...formData.payload,
       });
@@ -265,7 +258,22 @@
 </script>
 
 <style lang="less" scoped>
-  .master-failover-page {
+  .proxy-scale-down-page {
     padding-bottom: 20px;
+
+    .page-action-box {
+      display: flex;
+      align-items: center;
+      margin-top: 16px;
+
+      .safe-action {
+        margin-left: auto;
+
+        .safe-action-text {
+          padding-bottom: 2px;
+          border-bottom: 1px dashed #979ba5;
+        }
+      }
+    }
   }
 </style>

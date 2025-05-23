@@ -17,8 +17,12 @@
       fixed="left"
       :label="t('目标集群')"
       :min-width="200">
-      <template #default="{ row }: { row: RowData }">
-        {{ ticketDetails.details.clusters[row.cluster_ids[0]].immute_domain }}
+      <template #default="{data}: {data: RowData}">
+        <div
+          v-for="item in data.cluster_ids"
+          :key="item">
+          {{ ticketDetails.details.clusters[item].immute_domain }}
+        </div>
       </template>
     </BkTableColumn>
     <BkTableColumn
@@ -38,7 +42,7 @@
     </BkTableColumn>
   </BkTable>
   <InfoList>
-    <InfoItem :label="t('忽略业务连接:')">
+    <InfoItem :label="t('忽略业务连接')">
       {{ !ticketDetails.details.is_safe ? t('是') : t('否') }}
     </InfoItem>
   </InfoList>
@@ -52,6 +56,8 @@
   import { TicketTypes } from '@common/const';
 
   import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
+
+  type RowData = Props['ticketDetails']['details']['infos']['MongoReplicaSet' | 'MongoShardedCluster'][number];
 
   interface Props {
     ticketDetails: TicketModel<Mongodb.ResourcePool.ReduceShardNodes>;
@@ -70,11 +76,10 @@
     return [
       ...props.ticketDetails.details.infos.MongoShardedCluster.map((item) => ({
         ...item,
+        cluster_ids: [item.cluster_id],
         cluster_type_text: t('分片'),
       })),
       ...props.ticketDetails.details.infos.MongoReplicaSet.map((item) => ({ ...item, cluster_type_text: t('副本集') })),
     ];
   });
-
-  type RowData = (typeof tableData.value)[0];
 </script>
