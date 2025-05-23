@@ -141,6 +141,12 @@ export default [
       {
         children: [
           {
+            dbConsoleValue: 'redis.toolbox.queryAccessSource',
+            id: 'RedisQueryAccessSource',
+            name: t('查询访问来源'),
+            parentId: 'redis_data_query',
+          },
+          {
             dbConsoleValue: 'redis.toolbox.webconsole',
             id: 'RedisWebconsole',
             name: 'Webconsole',
