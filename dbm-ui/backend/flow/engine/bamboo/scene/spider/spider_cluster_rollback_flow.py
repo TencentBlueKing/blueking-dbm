@@ -13,7 +13,7 @@ import logging
 from dataclasses import asdict
 from typing import Dict, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
@@ -290,7 +290,7 @@ class TenDBRollBackDataFlow(object):
                 if backup_type == "":
                     backup_type = shd_cluster["backupinfo"].get("backup_type", "")
                 elif backup_type != shd_cluster["backupinfo"].get("backup_type", ""):
-                    logger.error("remote分片备份类型不一致")
+                    logger.error(_("remote分片备份类型不一致"))
 
                 ins_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
                 cluster = {
