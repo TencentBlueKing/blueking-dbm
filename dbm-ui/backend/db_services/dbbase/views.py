@@ -214,7 +214,8 @@ class DBBaseViewSet(viewsets.SystemViewSet):
     def check_cluster_databases(self, request, *args, **kwargs):
         validated_data = self.params_validate(self.get_serializer_class())
         bk_biz_id = validated_data.pop("bk_biz_id")
-        return Response(ClusterServiceHandler(bk_biz_id).check_cluster_databases(**validated_data))
+        user_id = request.user.id
+        return Response(ClusterServiceHandler(bk_biz_id).check_cluster_databases(user_id=user_id, **validated_data))
 
     @common_swagger_auto_schema(
         operation_summary=_("查询多个集群的库是否存在"),

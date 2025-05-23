@@ -12,10 +12,12 @@ specific language governing permissions and limitations under the License.
 from datetime import datetime
 
 from django.utils import timezone
+from django.utils.translation import ugettext as _
 
 from backend.components import DRSApi
 from backend.db_meta.exceptions import ClusterNotExistException, InstanceNotExistException
 from backend.db_services.dbbase.cluster.handlers import ClusterServiceHandler as BaseClusterServiceHandler
+from backend.db_services.mysql.remote_service.exceptions import RemoteServiceBaseException
 from backend.exceptions import ApiResultError
 from backend.flow.utils.mongodb.mongodb_util import MongoUtil
 
@@ -39,3 +41,19 @@ class ClusterServiceHandler(BaseClusterServiceHandler):
             return {"query": "", "error_msg": err.message}
 
         return {"query": rpc_results, "error_msg": ""}
+
+    @classmethod
+    def check_cluster_database(cls, cluster_id: int, db_list: list, user_id: int = 0):
+        """根据存入的db名称，判断库名是否在集群存在"""
+        cluster_database_infos = cls.webconsole_rpc(cluster_id=cluster_id, cmd="show dbs;", user_id=user_id)
+
+        if cluster_database_infos["error_msg"]:
+            raise RemoteServiceBaseException(_("DRS调用失败，错误信息: {}").format(cluster_database_infos["error_msg"]))
+
+        # 拆分字符串为行，并去掉空行, 提取数据库名称
+        exist_dbs = {line.split()[0].lower() for line in cluster_database_infos["query"].strip().split("\n")}
+        # 判断库是否存在
+        check_dbs_map = [{"name": db, "is_exists": db.lower() in exist_dbs} for db in db_list]
+
+        result = {info["name"]: info["is_exists"] for info in check_dbs_map}
+        return result
