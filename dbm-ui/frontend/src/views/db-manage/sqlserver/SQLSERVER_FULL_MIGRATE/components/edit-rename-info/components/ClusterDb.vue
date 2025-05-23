@@ -8,41 +8,37 @@
       <DbNameColumn
         v-model="item.dbName"
         allow-asterisk
-        :show-batch-edit="false"
         check-not-exist
         :cluster-id="data.srcCluster.id"
         field="dbName"
         :label="t('迁移 DB 名')"
-        required />
+        required
+        :show-batch-edit="false" />
       <DbNameColumn
         v-model="item.dbIgnoreName"
-        :show-batch-edit="false"
         check-not-exist
-        :required="false"
         :cluster-id="data.srcCluster.id"
         field="dbIgnoreName"
-        :label="t('忽略 DB 名')" />
+        :label="t('忽略 DB 名')"
+        :required="false"
+        :show-batch-edit="false" />
     </EditableRow>
   </EditableTable>
 </template>
-<script setup lang="tsx">
+<script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
   import { getSqlserverDbs } from '@services/source/sqlserver';
 
   import DbNameColumn from '@views/db-manage/sqlserver/common/toolbox-field/db-name-column/Index.vue';
 
-  import type { IValue } from '../Index.vue';
+  import { type IValue } from '../Index.vue';
 
   interface Props {
     data: {
       dstCluster: { id: number; master_domain: string }[];
       srcCluster: { id: number; master_domain: string };
     };
-  }
-
-  interface Exposes {
-    fetchData(): Promise<void>;
   }
 
   const props = defineProps<Props>();
@@ -80,7 +76,5 @@
 
   watch(() => [tableData.value[0].dbName, tableData.value[0].dbIgnoreName], fetchData);
 
-  defineExpose<Exposes>({
-    fetchData,
-  });
+  onMounted(fetchData);
 </script>
