@@ -402,7 +402,7 @@
 
   const handleExport = (row?: RedisHotKeyModel) => {
     const data = row ? [row] : selected.value;
-    exportHotKeyAnalysis({ record_ids: data.map((item) => item.id) }).then(() => {
+    exportHotKeyAnalysis({ record_ids: data.map((item) => item.id).join(',') }).then(() => {
       tableRef.value!.clearSelected();
     });
   };
