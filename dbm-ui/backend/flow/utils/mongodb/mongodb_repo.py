@@ -290,19 +290,25 @@ class ShardedCluster(MongoDBCluster):
         self.config = configsvr
 
     def get_shards(self, with_config: bool = False, sort_by_set_name: bool = False) -> List[ReplicaSet]:
-        """返回 shards 列表，可以选择是否包含configsvr， 是否按照set_name排序."""
+        """返回 shards 列表
+        @param with_config: 是否包含configsvr. configsvr会排在shards列表的最前面.
+        @param sort_by_set_name: 是否按照set_name排序。
+        @return: 返回shards列表
+
+        """
 
         def __get_shard_idx(set_name: str):
             matches = re.findall("[0-9]+$", set_name)
             return int(matches[-1]) if matches else 0
+
+        if sort_by_set_name:
+            self.shards = self.shards.sort(key=lambda x: __get_shard_idx(x.set_name))
 
         shards = []
         if with_config:
             shards.append(self.config)
         shards.extend(self.shards)
 
-        if sort_by_set_name:
-            shards.sort(key=lambda x: __get_shard_idx(x.set_name))
         return shards
 
     def get_config(self) -> ReplicaSet:
@@ -473,7 +479,7 @@ class MongoRepository:
         return list(set(cluster_list))
 
     @classmethod
-    def get_cluster_id_by_domain(cls, cluster_domain: [str]) -> List[int]:
+    def get_cluster_id_by_domain(cls, cluster_domain: List[str]) -> List[int]:
         cluster_domain = request_validator.validated_str_list(cluster_domain)
         cluster_list = []
         rows = Cluster.objects.filter(immute_domain__in=cluster_domain)
@@ -512,10 +518,10 @@ class MongoDBNsFilter(object):
     """
     MongoDBNsFilter
     """
-    db_patterns: [str] = None
-    ignore_dbs: [str] = None
-    table_patterns: [str] = None
-    ignore_tables: [str] = None
+    db_patterns: List[str] = None
+    ignore_dbs: List[str] = None
+    table_patterns: List[str] = None
+    ignore_tables: List[str] = None
 
     def __init__(self):
         pass
