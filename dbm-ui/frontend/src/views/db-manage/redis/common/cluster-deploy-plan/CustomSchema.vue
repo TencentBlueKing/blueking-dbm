@@ -21,7 +21,7 @@
       <BkInput
         v-model="modelValue.count"
         clearable
-        :min="1"
+        :min="countMin"
         show-clear-only-hover
         style="width: 314px"
         type="number" />
@@ -99,7 +99,7 @@
       cluster_capacity: number;
       cluster_shard_num: number;
       machine_pair: number;
-    } & ReturnType<ComponentExposed<typeof SpecSelector>['getData']>;
+    } & Omit<ReturnType<ComponentExposed<typeof SpecSelector>['getData']>, 'capacity'>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -131,6 +131,14 @@
       validator: (value: number) => value > 0,
     },
   ];
+
+  const countMin = computed(() =>
+    [ClusterTypes.PREDIXY_REDIS_CLUSTER, ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER].includes(
+      props.clusterInfo.clusterType as ClusterTypes,
+    )
+      ? 3
+      : 1,
+  );
 
   watch(
     () => [modelValue.value.count, modelValue.value.shardNum],
@@ -170,7 +178,7 @@
           return '';
         }
 
-        modelValue.value.totalCapcity = modelValue.value.count * getSpecCapacity(data);
+        modelValue.value.totalCapcity = Math.floor(modelValue.value.count * data.capacity);
       });
     },
     {
@@ -178,17 +186,17 @@
     },
   );
 
-  const getSpecCapacity = (resourceSpec: ReturnType<ComponentExposed<typeof SpecSelector>['getData']>) => {
-    if (
-      [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER, ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE].includes(
-        props.clusterInfo.clusterType as ClusterTypes,
-      )
-    ) {
-      const specItem = resourceSpec.storage_spec.find((storageSpecItem) => storageSpecItem.mount_point === '/data1');
-      return specItem?.size || 0;
-    }
-    return resourceSpec.mem.min;
-  };
+  // const getSpecCapacity = (resourceSpec: ReturnType<ComponentExposed<typeof SpecSelector>['getData']>) => {
+  //   if (
+  //     [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER, ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE].includes(
+  //       props.clusterInfo.clusterType as ClusterTypes,
+  //     )
+  //   ) {
+  //     const specItem = resourceSpec.storage_spec.find((storageSpecItem) => storageSpecItem.mount_point === '/data1');
+  //     return specItem?.size || 0;
+  //   }
+  //   return resourceSpec.mem.min;
+  // };
 
   defineExpose<Expose>({
     getInfo() {
