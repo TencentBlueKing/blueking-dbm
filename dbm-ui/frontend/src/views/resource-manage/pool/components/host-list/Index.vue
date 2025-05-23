@@ -207,7 +207,9 @@
   const { currentBizId } = useGlobalBizs();
 
   const { handleChange: handleSettingChange, setting: tableSetting } = useTableSetting();
-  const { taskHistoryListHref } = useImportResourcePoolTooltip();
+  const { taskHistoryListHref } = useImportResourcePoolTooltip({
+    isCurrentBiz: props.type !== ResourcePool.global,
+  });
 
   const searchBoxRef = useTemplateRef('searchBoxRef');
   const tableRef = useTemplateRef('tableRef');

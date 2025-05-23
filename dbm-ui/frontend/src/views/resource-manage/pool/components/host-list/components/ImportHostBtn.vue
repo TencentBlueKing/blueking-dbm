@@ -39,12 +39,21 @@
 
   import { useImportResourcePoolTooltip } from '../../hooks/useImportResourcePoolTip';
 
+  interface Props {
+    type?: 'business' | 'global';
+  }
+
   type Emits = (e: 'exportHost') => void;
 
+  const props = withDefaults(defineProps<Props>(), {
+    type: 'global',
+  });
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-  const { getImportTaskHref } = useImportResourcePoolTooltip();
+  const { getImportTaskHref } = useImportResourcePoolTooltip({
+    isCurrentBiz: props.type === 'business',
+  });
 
   const taskNumber = computed(() => (taskInfo.value ? taskInfo.value.task_ids.length : 0));
 
