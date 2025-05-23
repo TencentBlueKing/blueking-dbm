@@ -38,6 +38,7 @@ export function filterClusters<
     cluster_type: string;
     db_module_id: number;
     db_module_name: string;
+    db_type: string;
     id: number;
     major_version: string;
     master_domain: string;

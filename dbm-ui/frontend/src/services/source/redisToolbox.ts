@@ -139,3 +139,37 @@ export function getRedisClusterModuleInfo(params: { cluster_id: number; version:
     results: Record<string, boolean>;
   }>(`${getRootPath()}/get_cluster_module_info/`, params);
 }
+
+/**
+ * 执行集群来源指令
+ */
+export function executeClusterTcpCmd(params: { cluster_ids: number[] }) {
+  return http.post<{
+    job_instance_id: number;
+    job_instance_name: string;
+    step_instance_id: number;
+  }>(`${getRootPath()}/execute_cluster_tcp_cmd/`, params);
+}
+
+/**
+ * 查询集群来源结果
+ */
+export function getClusterNetTcpResult(params: { job_instance_id: number }) {
+  return http.post<{
+    data: {
+      cluster_domain: string;
+      error: string[];
+      report: {
+        all_connections: number;
+        bak_operator: string;
+        cluster_domain: string;
+        establish: number;
+        operator: string;
+        remote_ip: string;
+        topo: string[];
+      }[];
+      success: string[];
+    }[];
+    finished: boolean;
+  }>(`${getRootPath()}/get_cluster_net_tcp_result/`, params);
+}
