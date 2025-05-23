@@ -27,7 +27,7 @@ export function getTendbsingleList(params: {
   cluster_ids?: string;
   creator?: string;
   domain?: string;
-  id?: number;
+  id?: string;
   ip?: string;
   limit?: number;
   name?: string;

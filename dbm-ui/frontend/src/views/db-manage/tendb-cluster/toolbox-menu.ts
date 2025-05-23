@@ -33,7 +33,7 @@ export default [
       },
       {
         dbConsoleValue: 'tendbCluster.toolbox.dbRename',
-        id: 'spiderDbRename',
+        id: TicketTypes.TENDBCLUSTER_RENAME_DATABASE,
         name: t('DB 重命名'),
         parentId: 'spider_sql',
       },
