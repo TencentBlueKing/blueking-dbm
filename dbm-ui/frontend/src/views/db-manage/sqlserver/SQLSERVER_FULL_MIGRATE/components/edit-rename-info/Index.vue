@@ -8,7 +8,6 @@
     </template>
     <div class="edit-name-box">
       <ClusterDb
-        ref="clusterDb"
         v-model="localValue"
         :data="data" />
       <div style="margin-top: 24px; margin-bottom: 16px; font-size: 12px">
@@ -78,7 +77,6 @@
         master_domain: string;
       };
     };
-    dbConflict: boolean;
   }
 
   type Emits = (e: 'submit', data: Pick<Props['data'], 'dbIgnoreName' | 'dbName' | 'renameInfoList'>) => void;
@@ -93,7 +91,6 @@
 
   const { t } = useI18n();
 
-  const clusterDbRef = useTemplateRef<InstanceType<typeof ClusterDb>>('clusterDb');
   const renameListRef = useTemplateRef<InstanceType<typeof RenameList>>('renameList');
   const localValue = ref<{
     dbIgnoreName: string[];
@@ -122,15 +119,12 @@
   };
 
   watch(isShow, () => {
-    if (isShow.value && props.dbConflict) {
+    if (isShow.value) {
       localValue.value = {
         dbIgnoreName: props.data.dbIgnoreName,
         dbName: props.data.dbName,
         renameInfoList: props.data.renameInfoList,
       };
-      setTimeout(() => {
-        clusterDbRef.value?.fetchData();
-      });
     }
   });
 </script>

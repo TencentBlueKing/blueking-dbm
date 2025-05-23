@@ -65,8 +65,6 @@
   const props = defineProps<Props>();
 
   const modelValue = defineModel<{
-    dbIgnoreName: string[];
-    dbName: string[];
     renameInfoList: IValue[];
   }>({
     required: true,

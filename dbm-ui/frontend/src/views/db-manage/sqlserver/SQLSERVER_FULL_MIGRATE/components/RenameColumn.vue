@@ -28,7 +28,6 @@
   <EditRenameInfo
     v-model:is-show="isShowEditName"
     :data="data"
-    :db-conflict="!noConflictDb"
     @submit="handleSubmit" />
 </template>
 
@@ -99,13 +98,13 @@
 
   const disabledMethod = (
     rowData: {
-      srcCluster: {
-        id: number;
-      };
+      dbName: string[];
       dstCluster: {
         id: number;
       }[];
-      dbName: string[];
+      srcCluster: {
+        id: number;
+      };
     },
     field?: string,
   ) => {
