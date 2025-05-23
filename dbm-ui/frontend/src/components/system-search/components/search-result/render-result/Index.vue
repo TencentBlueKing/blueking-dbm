@@ -8,7 +8,7 @@
 
   import RenderEntry from './entry.vue';
   import RenderInstance from './Instance.vue';
-  import ResourcePool from './ResourcePool.vue';
+  import Machine from './Machine.vue';
   import RenderTask from './Task.vue';
   import RenderTicket from './Ticket.vue';
 
@@ -23,7 +23,7 @@
   const comMap = {
     entry: RenderEntry,
     instance: RenderInstance,
-    resource_pool: ResourcePool,
+    machine: Machine,
     task: RenderTask,
     ticket: RenderTicket,
   };
