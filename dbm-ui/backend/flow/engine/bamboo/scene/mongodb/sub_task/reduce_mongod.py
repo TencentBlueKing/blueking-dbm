@@ -14,7 +14,7 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
-from backend.flow.consts import MongoDBInstanceType, MongoDBManagerUser
+from backend.flow.consts import MongoDBInstanceType, MongoDBManagerUser, MongoInstanceDbmonType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.plugins.components.collections.mongodb.delete_domain_from_dns import (
     ExecDeleteDomainFromDnsOperationComponent,
@@ -23,6 +23,7 @@ from backend.flow.plugins.components.collections.mongodb.delete_password_from_db
     ExecDeletePasswordFromDBOperationComponent,
 )
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
+from backend.flow.plugins.components.collections.mongodb.fast_exec_script import MongoFastExecScriptComponent
 from backend.flow.plugins.components.collections.mongodb.mongodb_scale_repls_meta import MongoScaleReplsMetaComponent
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 
@@ -40,6 +41,7 @@ def reduce_mongod(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwar
 
     # 设置参数
     node = sub_get_kwargs.db_instance
+    sub_get_kwargs.payload["bk_cloud_id"] = node["bk_cloud_id"]
     sub_get_kwargs.replicaset_info = {}
     sub_get_kwargs.replicaset_info["nodes"] = [
         {
@@ -80,6 +82,15 @@ def reduce_mongod(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwar
         act_name=_("MongoDB-移除node"),
         act_component_code=ExecuteDBActuatorJobComponent.code,
         kwargs=kwargs,
+    )
+    # 下架mongod关闭dbmon
+    kwargs_delete_dbmon = sub_get_kwargs.get_dbmon_operation_kwargs(
+        node_info=node, operation_type=MongoInstanceDbmonType.DeleteDbmon
+    )
+    sub_pipeline.add_act(
+        act_name=_("MongoDB-{}:{}-删除dbmon".format(node["ip"], str(node["port"]))),
+        act_component_code=MongoFastExecScriptComponent.code,
+        kwargs=kwargs_delete_dbmon,
     )
 
     # mongod下架

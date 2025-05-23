@@ -39,6 +39,7 @@ type InitiateReplicaset struct {
 	ConfParams      *InitConfParams
 	ClusterId       string
 	StatusChan      chan int
+	PrimaryPriority int
 }
 
 // NewInitiateReplicaset 实例化结构体
@@ -139,6 +140,12 @@ func (i *InitiateReplicaset) makeConfContent() error {
 		member := common.NewMember()
 		member.Id = index
 		member.Host = i.ConfParams.Ips[index]
+		if index == 0 {
+			member.Priority = i.ConfParams.Priority[value] + 1
+			i.PrimaryPriority = i.ConfParams.Priority[value] + 1
+		} else {
+			member.Priority = i.ConfParams.Priority[value]
+		}
 		member.Priority = i.ConfParams.Priority[value]
 		member.Hidden = i.ConfParams.Hidden[value]
 		jsonConfReplicaset.Members = append(jsonConfReplicaset.Members, member)
@@ -204,7 +211,6 @@ func (i *InitiateReplicaset) checkStatus() {
 		result, err := common.NoAuthGetPrimaryInfo(i.Mongo, i.ConfParams.IP, i.ConfParams.Port)
 		if err != nil {
 			i.runtime.Logger.Error("check replicaset status fail, error:%s", err)
-			fmt.Sprintf("check replicaset status fail, error:%s\n", err)
 			panic(fmt.Sprintf("check replicaset status fail, error:%s\n", err.Error()))
 		}
 		if result != "" {

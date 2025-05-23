@@ -171,7 +171,7 @@ func (m *MongoDBInstall) Init(runtime *jobruntime.JobGenericRuntime) error {
 	m.PidFilePath = filepath.Join(m.DataDir, "mongodata", strPort, PidFileName)
 	m.KeyFilePath = filepath.Join(m.DataDir, "mongodata", strPort, "key_of_mongo")
 	m.DbTypeFilePath = filepath.Join(m.DataDir, "mongodata", strPort, "dbtype")
-	m.LockFilePath = filepath.Join(m.DataDir, "mongoinstall.lock")
+	m.LockFilePath = filepath.Join("/tmp", "mongoinstall.lock")
 
 	m.runtime.Logger.Info("init successfully")
 

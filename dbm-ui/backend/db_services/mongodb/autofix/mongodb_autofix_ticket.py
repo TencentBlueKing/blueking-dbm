@@ -40,7 +40,7 @@ def mongos_get_resource_spec(cluster_id: int, mongos_list: list) -> dict:
     health_mongos_number = len(all_mongos) - len(mongos_list)  # 所有健康mongos的数量
     health_mongos_sub_zone = {}  # 健康mongos在每个园区的数量
     for mongos in all_mongos:
-        if mongos.machine.ip in [host("ip") for host in mongos_list]:
+        if mongos.machine.ip in [host["ip"] for host in mongos_list]:
             continue
         if health_mongos_sub_zone.get(str(mongos.machine.bk_sub_zone_id)):
             health_mongos_sub_zone[str(mongos.machine.bk_sub_zone_id)] = 0

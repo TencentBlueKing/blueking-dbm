@@ -15,7 +15,7 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.flow.consts import MongoDBClusterRole, MongoDBInstanceType, MongoDBManagerUser
+from backend.flow.consts import MongoDBClusterRole, MongoDBInstanceType, MongoDBManagerUser, MongoInstanceDbmonType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.plugins.components.collections.mongodb.add_domain_to_dns import ExecAddDomainToDnsOperationComponent
 from backend.flow.plugins.components.collections.mongodb.add_password_to_db import (
@@ -28,6 +28,7 @@ from backend.flow.plugins.components.collections.mongodb.delete_password_from_db
     ExecDeletePasswordFromDBOperationComponent,
 )
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
+from backend.flow.plugins.components.collections.mongodb.fast_exec_script import MongoFastExecScriptComponent
 from backend.flow.plugins.components.collections.mongodb.mongodb_capcity_chgs_meta import MongoDBCapcityMetaComponent
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 
@@ -198,6 +199,21 @@ def mongod_replace(
 
     if not down:
         # 下架老实例
+        # 老实例关闭 dbmon
+        kwargs_delete_dbmon = sub_sub_get_kwargs.get_dbmon_operation_kwargs(
+            node_info=sub_sub_get_kwargs.payload["nodes"][0], operation_type=MongoInstanceDbmonType.DeleteDbmon
+        )
+        sub_sub_pipeline.add_act(
+            act_name=_(
+                "MongoDB-{}:{}-删除dbmon".format(
+                    sub_sub_get_kwargs.payload["nodes"][0]["ip"], str(sub_sub_get_kwargs.payload["nodes"][0]["port"])
+                )
+            ),
+            act_component_code=MongoFastExecScriptComponent.code,
+            kwargs=kwargs_delete_dbmon,
+        )
+
+        # 下架
         kwargs = sub_sub_get_kwargs.get_mongo_deinstall_kwargs(
             node_info=sub_sub_get_kwargs.payload["nodes"][0],
             instance_type=MongoDBInstanceType.MongoD.value,

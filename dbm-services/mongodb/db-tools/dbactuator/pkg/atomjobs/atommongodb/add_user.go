@@ -112,14 +112,9 @@ func (u *AddUser) Init(runtime *jobruntime.JobGenericRuntime) error {
 			u.PrimaryIP = getInfo[0]
 			u.PrimaryPort, _ = strconv.Atoi(getInfo[1])
 		} else if u.ConfParams.AdminUsername == "" && u.ConfParams.AdminPassword == "" {
-			info, err = common.CreateDBAUserGetPrimaryInfo(u.Mongo, u.ConfParams.Port)
-			if err != nil {
-				u.runtime.Logger.Error("get primary db info of addUser fail, error:%s", err)
-				return fmt.Errorf("get primary db info of addUser fail, error:%s", err)
-			}
-			getInfo := strings.Split(info, ":")
-			u.PrimaryIP = getInfo[0]
-			u.PrimaryPort, _ = strconv.Atoi(getInfo[1])
+			// 创建dba用户，必须在primary上执行，host为127.0.0.1，确保执行主机为primary
+			u.PrimaryIP = "127.0.0.1"
+			u.PrimaryPort = u.ConfParams.Port
 		}
 	}
 	u.runtime.Logger.Info("init successfully")
@@ -201,6 +196,24 @@ func (u *AddUser) checkUser() (bool, error) {
 	return flag, err
 }
 
+// changePrimaryPriority 修改复制集主节点优先级
+func (u *AddUser) changePrimaryPriority() error {
+	u.runtime.Logger.Info("start to execute changePrimaryPriority script")
+	// 修改优先级
+	cmd := fmt.Sprintf("%s --host %s --port %d -u %s -p '%s' --quiet --eval 'cfg = rs.conf();\ncfg.members[0].priority=%d;\nrs.reconfig(cfg);' admin",
+		u.Mongo, u.PrimaryIP, u.PrimaryPort, u.ConfParams.Username, u.ConfParams.Password, 1)
+	if _, err := util.RunBashCmd(
+		cmd,
+		"", nil,
+		60*time.Second); err != nil {
+		u.runtime.Logger.Error("execute changePrimaryPriority script fail, error:%s", err)
+		return fmt.Errorf("execute changePrimaryPriority script fail, error:%s", err)
+	}
+	u.runtime.Logger.Info("execute changePrimaryPriority script successfully")
+
+	return nil
+}
+
 // execScript 执行脚本
 func (u *AddUser) execScript() error {
 	var cmd string
@@ -223,10 +236,7 @@ func (u *AddUser) execScript() error {
 		time.Sleep(time.Second * 3)
 		cmd = fmt.Sprintf(
 			"%s  --host %s --port %d  --quiet --eval '%s' %s",
-			u.Mongo, "127.0.0.1", u.ConfParams.Port, u.ScriptContent, u.ConfParams.AuthDb)
-		if u.ConfParams.AdminUsername != "" && u.ConfParams.AdminPassword != "" {
-
-		}
+			u.Mongo, u.PrimaryIP, u.PrimaryPort, u.ScriptContent, u.ConfParams.AuthDb)
 	}
 
 	// 执行脚本
@@ -248,6 +258,13 @@ func (u *AddUser) execScript() error {
 	if flag == false {
 		u.runtime.Logger.Error("add user:%s fail, error:%s", u.ConfParams.Username, err)
 		return fmt.Errorf("add user:%s fail, error:%s", u.ConfParams.Username, err)
+	}
+
+	// 创建dba用户后，修改primary优先级
+	if u.ConfParams.AdminUsername == "" && u.ConfParams.AdminPassword == "" {
+		if err := u.changePrimaryPriority(); err != nil {
+			return err
+		}
 	}
 
 	return nil

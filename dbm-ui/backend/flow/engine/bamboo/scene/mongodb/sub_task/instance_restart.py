@@ -14,8 +14,10 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
+from backend.flow.consts import MongoInstanceDbmonType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
+from backend.flow.plugins.components.collections.mongodb.fast_exec_script import MongoFastExecScriptComponent
 from backend.flow.plugins.components.collections.mongodb.send_media import ExecSendMediaOperationComponent
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 
@@ -36,6 +38,8 @@ def instance_restart(
     # 介质下发
     sub_get_kwargs.get_file_path()
     sub_get_kwargs.payload["hosts"] = instances_info["hosts"]
+    # 设置bk_cloud_id
+    sub_get_kwargs.payload["bk_cloud_id"] = instances_info["hosts"][0]["bk_cloud_id"]
     kwargs = sub_get_kwargs.get_send_media_kwargs(media_type="actuator")
     sub_pipeline.add_act(
         act_name=_("MongoDB-介质下发"), act_component_code=ExecSendMediaOperationComponent.code, kwargs=kwargs
@@ -49,6 +53,21 @@ def instance_restart(
 
     # 重启实例
     for instance in instances_info["instances"]:
+        # 实例信息
+        node = {
+            "ip": instances_info["hosts"][0]["ip"],
+            "port": instance["port"],
+        }
+        # 禁用dbmon
+        kwargs_stop_dbmon = sub_get_kwargs.get_dbmon_operation_kwargs(
+            node_info=node, operation_type=MongoInstanceDbmonType.ShieldDbmon
+        )
+        sub_pipeline.add_act(
+            act_name=_("MongoDB-{}:{}-mongod禁用dbmon".format(node["ip"], str(node["port"]))),
+            act_component_code=MongoFastExecScriptComponent.code,
+            kwargs=kwargs_stop_dbmon,
+        )
+
         kwargs = sub_get_kwargs.get_instance_restart_kwargs(
             host=instances_info["hosts"][0],
             instance=instance,
@@ -66,6 +85,15 @@ def instance_restart(
             ),
             act_component_code=ExecuteDBActuatorJobComponent.code,
             kwargs=kwargs,
+        )
+        # 解禁dbmon
+        kwargs_start_dbmon = sub_get_kwargs.get_dbmon_operation_kwargs(
+            node_info=node, operation_type=MongoInstanceDbmonType.UnblockDbmon
+        )
+        sub_pipeline.add_act(
+            act_name=_("MongoDB-{}:{}-mongos解禁dbmon".format(node["ip"], str(node["port"]))),
+            act_component_code=MongoFastExecScriptComponent.code,
+            kwargs=kwargs_start_dbmon,
         )
 
     return sub_pipeline.build_sub_process(sub_name=_("MongoDB--重启实例--ip:{}".format(instances_info["hosts"][0]["ip"])))

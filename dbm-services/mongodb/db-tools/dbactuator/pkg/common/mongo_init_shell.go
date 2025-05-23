@@ -51,9 +51,9 @@ then
 fi
 
 #添加mongo安装锁文件
-if [ ! -f $MONGO_DATA_DIR/mongoinstall.lock ]
+if [ ! -f /tmp/mongoinstall.lock ]
 then
-        touch $MONGO_DATA_DIR/mongoinstall.lock
+        touch /tmp/mongoinstall.lock
 fi
 
 #如果存在mysql用户,上面那一步会报错，也不会创建/home/mysql，所以判断下并创建/home/mysql

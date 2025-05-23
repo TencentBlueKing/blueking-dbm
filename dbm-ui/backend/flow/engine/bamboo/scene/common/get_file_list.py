@@ -727,3 +727,12 @@ class GetFileList(object):
         vm的dbactuator包
         """
         return self.get_db_actuator_package()
+
+    def oracle_actuator_pkg(self) -> list:
+        """
+        oracle的actuator包
+        """
+
+        return [
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
+        ]

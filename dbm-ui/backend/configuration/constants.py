@@ -92,6 +92,7 @@ class DBType(str, StructuredEnum):
     Sqlserver = EnumField("sqlserver", _("SQLServer"))
     Doris = EnumField("doris", _("Doris"))
     Vm = EnumField("vm", _("Vm"))
+    Oracle = EnumField("oracle", _("Oracle"))
 
     # 不属于DB类型，仅用于云区域组件的单据部署的分组
     Cloud = EnumField("cloud", _("Cloud"))

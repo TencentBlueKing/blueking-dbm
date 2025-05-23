@@ -1,6 +1,6 @@
 package common
 
-// ExecuteScriptTemplate TODO
+// ExecuteScriptTemplate 执行sql脚本模板
 var ExecuteScriptTemplate = `
 #!/bin/sh
 . $HOME/.bash_profile
