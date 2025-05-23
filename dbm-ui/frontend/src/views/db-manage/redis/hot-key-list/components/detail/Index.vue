@@ -181,7 +181,7 @@
     exportHotKeyAnalysis({
       instance_addresses: selectedInstanceList.value.join(','),
       key: key.value,
-      record_ids: [currentRecord.value.id],
+      record_ids: `${currentRecord.value.id}`,
     });
   };
 </script>

@@ -68,7 +68,7 @@ export function exportHotKeyAnalysis(params: {
   key?: string;
   limit?: number;
   offset?: number;
-  record_ids: number[];
+  record_ids: string;
 }) {
   return http.get<string>(`${getDetailRootPath()}/export_hot_key_analysis/`, params, { responseType: 'blob' });
 }
