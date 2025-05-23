@@ -150,6 +150,15 @@ const redisWebconsoleRoute = {
   component: () => import('@views/db-manage/redis/webconsole/Index.vue'),
 };
 
+const redisQueryAccessSourceRoute = {
+  path: 'query-access-source',
+  name: 'RedisQueryAccessSource',
+  meta: {
+    navName: t('查询访问来源'),
+  },
+  component: () => import('@views/db-manage/redis/query-access-source/Index.vue'),
+};
+
 const redisKeyExtractRoute = createRouteItem(TicketTypes.REDIS_KEYS_EXTRACT, t('Key 操作'));
 const redisKeyDeleteRoute = createRouteItem(TicketTypes.REDIS_KEYS_DELETE, t('Key 操作'));
 const redisBackupRoute = createRouteItem(TicketTypes.REDIS_BACKUP, t('备份'));
@@ -171,6 +180,7 @@ const toolboxDbConsoleRouteMap = {
   'redis.toolbox.proxyScaleDown': redisProxyScaleDownRoute,
   'redis.toolbox.proxyScaleUp': redisProxyScaleUpRoute,
   'redis.toolbox.purge': redisPurgeRoute,
+  'redis.toolbox.queryAccessSource': redisQueryAccessSourceRoute,
   'redis.toolbox.recoverFromInstance': redisRecoverFromInstanceRoute,
   'redis.toolbox.rollback': redisDBStructureRoute,
   'redis.toolbox.rollbackRecord': redisStructureInstanceRoute,
