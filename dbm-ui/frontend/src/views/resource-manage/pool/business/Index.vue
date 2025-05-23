@@ -20,6 +20,7 @@
       </BkTag>
       <ImportHostBtn
         class="w-88"
+        type="business"
         @export-host="handleImportHost" />
     </Teleport>
     <BkTab
