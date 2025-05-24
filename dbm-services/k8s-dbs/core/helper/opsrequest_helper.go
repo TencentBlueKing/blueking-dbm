@@ -566,7 +566,7 @@ func createOpsService(request *entity.Request, podSelect map[string]string) (opv
 					Name:       ports[i],
 					Port:       request.Service.Ports[i],
 					TargetPort: intstr.FromString(ports[i]),
-					Protocol:   request.Service.Protocols[i],
+					Protocol:   protocol,
 				})
 			}
 		}

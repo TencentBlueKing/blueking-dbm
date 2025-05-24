@@ -25,6 +25,7 @@ import (
 	"k8s-dbs/core/client/constants"
 	"k8s-dbs/core/entity"
 	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -175,44 +176,68 @@ func StorageAddonIsCreated(k8sClient *K8sClient, targetChartFullName string) (bo
 	return false, nil
 }
 
-// CreateStorageAddonCluster helm install Storage Addon Cluster with request
-func CreateStorageAddonCluster(k8sClient *K8sClient, request *entity.Request) error {
-
-	// init helm client
+// CreateStorageAddonCluster installs a Storage Addon Cluster using Helm with the given request.
+func CreateStorageAddonCluster(k8sClient *K8sClient, request *entity.Request) (map[string]interface{}, error) {
+	// Initialize Helm client configuration
 	actionConfig, err := k8sClient.buildHelmConfig(request.Namespace)
 	if err != nil {
-		return err
+		slog.Error("failed to build Helm configuration",
+			"namespace", request.Namespace,
+			"error", err,
+		)
+		return nil, fmt.Errorf("failed to build Helm configuration for namespace %q: %w", request.Namespace, err)
+
 	}
 
-	// install helm chart
+	// Define the chart path based on storage addon type
 	chartPath := filepath.Join("k8s-utils", "helm", "storageAddonCluster", request.StorageAddonType+"-cluster")
+
+	// Create Helm install action
 	install := action.NewInstall(actionConfig)
 	install.ReleaseName = request.ClusterName
 	install.Namespace = request.Namespace
 
-	// Reading the values.yaml file
+	// Read values.yaml file from the chart
 	values, err := readValuesYaml(chartPath)
 	if err != nil {
-		return fmt.Errorf("failed to read values.yaml: %v", err)
+		slog.Error("failed to read values.yaml file",
+			"chartPath", chartPath,
+			"error", err,
+		)
+		return nil, fmt.Errorf("failed to read values.yaml from chart %q: %w", chartPath, err)
 	}
 
-	// merge dynamic values
+	// Merge dynamic values from the request
 	err = mergeValues(values, request)
 	if err != nil {
-		return err
+		slog.Error("failed to merge dynamic values",
+			"error", err,
+		)
+		return nil, fmt.Errorf("failed to merge dynamic values  %w", err)
 	}
 
+	// Load the Helm chart
 	chart, err := loader.Load(chartPath)
 	if err != nil {
-		return fmt.Errorf("failed to load chart: %v", err)
+		slog.Error("failed to load Helm chart",
+			"chartPath", chartPath,
+			"error", err,
+		)
+		return nil, fmt.Errorf("failed to load Helm chart from %q: %w", chartPath, err)
 	}
 
-	release, err := install.Run(chart, values)
+	// Execute the Helm install
+	_, err = install.Run(chart, values)
 	if err != nil {
-		return fmt.Errorf("install failed (chart=%s, ns=%s): %v", request.StorageAddonType, request.Namespace, err)
+		slog.Error("Helm install failed",
+			"chart", request.StorageAddonType+"-cluster",
+			"namespace", request.Namespace,
+			"error", err,
+		)
+		return nil, fmt.Errorf("helm install failed for chart %q in namespace %q: %w",
+			request.StorageAddonType+"-cluster", request.Namespace, err)
 	}
-	log.Printf("Helm release %s installed successfully", release.Name)
-	return nil
+	return values, nil
 }
 
 // UpdateStorageAddonCluster helm upgrade Storage Addon Cluster with request

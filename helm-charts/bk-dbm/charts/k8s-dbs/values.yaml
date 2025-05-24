@@ -9,7 +9,7 @@ image:
   # @param 仓库路径
   repository: "build/blueking/k8s-dbs"
   # @param 镜像 tag
-  tag: "1.0.0-alpha.16"
+  tag: ""
 
 # @param ipFamily 配置, 可以执行policy，families等
 ipFamily: {}

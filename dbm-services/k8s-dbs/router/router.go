@@ -25,12 +25,12 @@ import (
 	"dbm-services/common/go-pubpkg/apm/trace"
 	"k8s-dbs/common/api"
 	"k8s-dbs/core/api/controller"
-	"k8s-dbs/core/provider/clustermanage"
-	"k8s-dbs/core/provider/opsmanage"
+	"k8s-dbs/core/provider"
 	metacontroller "k8s-dbs/metadata/api/controller"
 	metadbaccess "k8s-dbs/metadata/dbaccess"
 	metaprovider "k8s-dbs/metadata/provider"
 	"log"
+	"log/slog"
 
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 
@@ -279,7 +279,7 @@ func buildClusterRouter(db *gorm.DB, router *gin.Engine) {
 }
 
 // buildService 总路由规则构建
-func buildService(db *gorm.DB) (*clustermanage.ClusterProvider, *opsmanage.OpsRequestProvider) {
+func buildService(db *gorm.DB) (*provider.ClusterProvider, *provider.OpsRequestProvider) {
 	clusterDbAccess := metadbaccess.NewCrdClusterDbAccess(db)
 	clusterDefinitionDbAccess := metadbaccess.NewK8sCrdClusterDefinitionDbAccess(db)
 	componentDbAccess := metadbaccess.NewK8sCrdComponentAccess(db)
@@ -288,6 +288,7 @@ func buildService(db *gorm.DB) (*clustermanage.ClusterProvider, *opsmanage.OpsRe
 	opsReqDbAccess := metadbaccess.NewK8sCrdOpsRequestDbAccess(db)
 	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
 	requestRecordDbAccess := metadbaccess.NewClusterRequestRecordDbAccess(db)
+	clusterReleaseDbAccess := metadbaccess.NewAddonClusterReleaseDbAccess(db)
 
 	clusterProvider := metaprovider.NewK8sCrdClusterProvider(clusterDbAccess)
 	clusterDefinitionProvider := metaprovider.NewK8sCrdClusterDefinitionProvider(clusterDefinitionDbAccess)
@@ -297,17 +298,23 @@ func buildService(db *gorm.DB) (*clustermanage.ClusterProvider, *opsmanage.OpsRe
 	opsReqProvider := metaprovider.NewK8sCrdOpsRequestProvider(opsReqDbAccess)
 	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(k8sClusterConfigDbAccess)
 	requestRecordProvider := metaprovider.NewClusterRequestRecordProvider(requestRecordDbAccess)
+	clusterReleaseProvider := metaprovider.NewAddonClusterReleaseProvider(clusterReleaseDbAccess)
 
-	clusterService := clustermanage.NewClusterService(
-		clusterProvider,
-		componentProvider,
-		clusterDefinitionProvider,
-		componentDefinitionProvider,
-		componentVersionProvider,
-		k8sClusterConfigProvider,
-		requestRecordProvider,
-	)
-	opsReqService := opsmanage.NewOpsRequestService(
+	clusterService, err := provider.NewClusterProviderBuilder().
+		WithClusterMetaProvider(clusterProvider).
+		WithComponentMetaProvider(componentProvider).
+		WithCdMetaProvider(clusterDefinitionProvider).
+		WithCmpdMetaProvider(componentDefinitionProvider).
+		WithCmpvMetaProvider(componentVersionProvider).
+		WithClusterConfigMetaProvider(k8sClusterConfigProvider).
+		WithReqRecordProvider(requestRecordProvider).
+		WithReleaseMetaProvider(clusterReleaseProvider).Build()
+	if err != nil {
+		slog.Error("build cluster provider error", "error", err.Error())
+		panic(err)
+	}
+
+	opsReqService := provider.NewOpsRequestService(
 		opsReqProvider,
 		clusterProvider,
 		clusterService,

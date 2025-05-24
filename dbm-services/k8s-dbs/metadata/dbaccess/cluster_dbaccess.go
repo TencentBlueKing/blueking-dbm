@@ -110,7 +110,7 @@ func (k *K8sCrdClusterDbAccessImpl) Update(model *models.K8sCrdClusterModel) (ui
 
 // ListByPage 分页查询 cluster 元数据接口实现
 func (k *K8sCrdClusterDbAccessImpl) ListByPage(_ utils.Pagination) ([]models.K8sCrdStorageAddonModel, int64, error) {
-	panic("implement me")
+	return nil, 0, fmt.Errorf("not implemented yet")
 }
 
 // NewCrdClusterDbAccess 创建 K8sCrdClusterDbAccess 接口实现实例

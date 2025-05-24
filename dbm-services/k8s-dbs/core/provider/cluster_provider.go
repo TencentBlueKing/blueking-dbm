@@ -17,7 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package clustermanage
+package provider
 
 import (
 	"context"
@@ -30,7 +30,10 @@ import (
 	coreentity "k8s-dbs/core/entity"
 	metaprovider "k8s-dbs/metadata/provider"
 	providerentity "k8s-dbs/metadata/provider/entity"
+	"log/slog"
 	"slices"
+
+	"github.com/pkg/errors"
 
 	kbtypes "github.com/apecloud/kbcli/pkg/types"
 	corev1 "k8s.io/api/core/v1"
@@ -47,62 +50,188 @@ type ClusterProvider struct {
 	cmpvMetaProvider      metaprovider.K8sCrdCmpvProvider
 	clusterConfigProvider metaprovider.K8sClusterConfigProvider
 	reqRecordProvider     metaprovider.ClusterRequestRecordProvider
+	releaseMetaProvider   metaprovider.AddonClusterReleaseProvider
 }
 
-// NewClusterService 创建 ClusterProvider 实例
-func NewClusterService(
-	clusterMetaProvider metaprovider.K8sCrdClusterProvider,
-	componentMetaProvider metaprovider.K8sCrdComponentProvider,
-	cdMetaProvider metaprovider.K8sCrdClusterDefinitionProvider,
-	cmpdMetaProvider metaprovider.K8sCrdCmpdProvider,
-	cmpvMetaProvider metaprovider.K8sCrdCmpvProvider,
-	clusterConfigProvider metaprovider.K8sClusterConfigProvider,
-	reqRecordProvider metaprovider.ClusterRequestRecordProvider,
-) *ClusterProvider {
-	return &ClusterProvider{
-		clusterMetaProvider:   clusterMetaProvider,
-		componentMetaProvider: componentMetaProvider,
-		cdMetaProvider:        cdMetaProvider,
-		cmpdMetaProvider:      cmpdMetaProvider,
-		cmpvMetaProvider:      cmpvMetaProvider,
-		clusterConfigProvider: clusterConfigProvider,
-		reqRecordProvider:     reqRecordProvider,
+// ClusterProviderBuilder ClusterProvider builder
+type ClusterProviderBuilder struct {
+	clusterMetaProvider   metaprovider.K8sCrdClusterProvider
+	componentMetaProvider metaprovider.K8sCrdComponentProvider
+	cdMetaProvider        metaprovider.K8sCrdClusterDefinitionProvider
+	cmpdMetaProvider      metaprovider.K8sCrdCmpdProvider
+	cmpvMetaProvider      metaprovider.K8sCrdCmpvProvider
+	clusterConfigProvider metaprovider.K8sClusterConfigProvider
+	reqRecordProvider     metaprovider.ClusterRequestRecordProvider
+	releaseMetaProvider   metaprovider.AddonClusterReleaseProvider
+}
+
+// NewClusterProviderBuilder 创建 ClusterProviderBuilder 实例
+func NewClusterProviderBuilder() *ClusterProviderBuilder {
+	return &ClusterProviderBuilder{}
+}
+
+// WithClusterMetaProvider 设置 ClusterMetaProvider
+func (c *ClusterProviderBuilder) WithClusterMetaProvider(p metaprovider.K8sCrdClusterProvider) *ClusterProviderBuilder {
+	c.clusterMetaProvider = p
+	return c
+}
+
+// WithComponentMetaProvider 设置 ComponentMetaProvider
+func (c *ClusterProviderBuilder) WithComponentMetaProvider(
+	p metaprovider.K8sCrdComponentProvider,
+) *ClusterProviderBuilder {
+	c.componentMetaProvider = p
+	return c
+}
+
+// WithCdMetaProvider 设置 CdMetaProvider
+func (c *ClusterProviderBuilder) WithCdMetaProvider(
+	p metaprovider.K8sCrdClusterDefinitionProvider,
+) *ClusterProviderBuilder {
+	c.cdMetaProvider = p
+	return c
+}
+
+// WithCmpdMetaProvider 设置 CmpdMetaProvider
+func (c *ClusterProviderBuilder) WithCmpdMetaProvider(p metaprovider.K8sCrdCmpdProvider) *ClusterProviderBuilder {
+	c.cmpdMetaProvider = p
+	return c
+}
+
+// WithCmpvMetaProvider 设置 CmpvMetaProvider
+func (c *ClusterProviderBuilder) WithCmpvMetaProvider(p metaprovider.K8sCrdCmpvProvider) *ClusterProviderBuilder {
+	c.cmpvMetaProvider = p
+	return c
+}
+
+// WithClusterConfigMetaProvider 设置 ClusterConfigMetaProvider
+func (c *ClusterProviderBuilder) WithClusterConfigMetaProvider(
+	p metaprovider.K8sClusterConfigProvider,
+) *ClusterProviderBuilder {
+	c.clusterConfigProvider = p
+	return c
+}
+
+// WithReqRecordProvider 设置 ReqRecordProvider
+func (c *ClusterProviderBuilder) WithReqRecordProvider(
+	p metaprovider.ClusterRequestRecordProvider,
+) *ClusterProviderBuilder {
+	c.reqRecordProvider = p
+	return c
+}
+
+// WithReleaseMetaProvider 设置 ReleaseMetaProvider
+func (c *ClusterProviderBuilder) WithReleaseMetaProvider(
+	p metaprovider.AddonClusterReleaseProvider,
+) *ClusterProviderBuilder {
+	c.releaseMetaProvider = p
+	return c
+}
+
+// Build 构建并返回 ClusterProvider 实例
+func (c *ClusterProviderBuilder) Build() (*ClusterProvider, error) {
+	if c.clusterMetaProvider == nil {
+		return nil, errors.New("clusterMetaProvider is required")
 	}
+	if c.componentMetaProvider == nil {
+		return nil, errors.New("componentMetaProvider is required")
+	}
+	if c.cdMetaProvider == nil {
+		return nil, errors.New("cdMetaProvider is required")
+	}
+	if c.cmpdMetaProvider == nil {
+		return nil, errors.New("cmpdMetaProvider is required")
+	}
+	if c.cmpvMetaProvider == nil {
+		return nil, errors.New("cmpvMetaProvider is required")
+	}
+	if c.clusterConfigProvider == nil {
+		return nil, errors.New("clusterConfigProvider is required")
+	}
+	if c.reqRecordProvider == nil {
+		return nil, errors.New("reqRecordProvider is required")
+	}
+	if c.releaseMetaProvider == nil {
+		return nil, errors.New("releaseMetaProvider is required")
+	}
+	return &ClusterProvider{
+		clusterMetaProvider:   c.clusterMetaProvider,
+		componentMetaProvider: c.componentMetaProvider,
+		cdMetaProvider:        c.cdMetaProvider,
+		cmpdMetaProvider:      c.cmpdMetaProvider,
+		cmpvMetaProvider:      c.cmpvMetaProvider,
+		clusterConfigProvider: c.clusterConfigProvider,
+		reqRecordProvider:     c.reqRecordProvider,
+		releaseMetaProvider:   c.releaseMetaProvider,
+	}, nil
 }
 
 // CreateCluster 创建集群
 func (c *ClusterProvider) CreateCluster(request *coreentity.Request) error {
 	addedRequestEntity, err := c.createRequestEntity(request, coreconst.CreateCluster)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create request entity: %w", err)
 	}
 
 	k8sClusterConfig, err := c.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
 	if err != nil {
-		return fmt.Errorf("failed to get k8sClusterConfig: %w", err)
+		return fmt.Errorf("failed to get k8s cluster config for name %q: %w", request.K8sClusterName, err)
+
 	}
 
 	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
 	if err != nil {
-		return fmt.Errorf("failed to create k8sClient: %w", err)
+		return fmt.Errorf("failed to create k8s client for cluster %q: %w", request.K8sClusterName, err)
+
 	}
 
 	if err = verifyAddonExists(request, k8sClient); err != nil {
-		return fmt.Errorf("failed to verify addon exists: %w", err)
+		return fmt.Errorf("addon verification failed for cluster %q: %w", request.ClusterName, err)
+
 	}
 
 	addedClusterEntity, err := c.createClusterEntity(request, addedRequestEntity.RequestID, k8sClusterConfig.ID)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create cluster entity: %w", err)
 	}
 
 	_, err = c.createComponentEntity(request, addedClusterEntity.ID)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create component entity for cluster %q: %w", request.ClusterName, err)
+
 	}
 
-	if err = coreclient.CreateStorageAddonCluster(k8sClient, request); err != nil {
-		return fmt.Errorf("failed to create cluster: %w", err)
+	releaseValues, err := coreclient.CreateStorageAddonCluster(k8sClient, request)
+	if err != nil {
+		slog.Error("failed to create storage addon cluster",
+			"cluster_name", request.ClusterName,
+			"namespace", request.Namespace,
+			"error", err,
+		)
+		return fmt.Errorf("failed to create storage addon cluster: %w", err)
+	}
+
+	// 7. 构建并保存 release 实体
+	clusterRelease, err := buildClusterReleaseEntity(
+		k8sClusterConfig.ID,
+		request,
+		coreconst.DefaultUserName,
+		coreconst.DefaultRepoName,
+		coreconst.DefaultRepoRepository,
+		releaseValues,
+	)
+	if err != nil {
+		slog.Error("create cluster release entity error", "error", err.Error())
+		return err
+	}
+	_, err = c.releaseMetaProvider.CreateClusterRelease(clusterRelease)
+	if err != nil {
+		slog.Error("failed to save cluster release",
+			"release_name", request.ClusterName,
+			"namespace", request.Namespace,
+			"error", err,
+		)
+		return fmt.Errorf("failed to save cluster release: %w", err)
 	}
 	return nil
 }
@@ -362,4 +491,42 @@ func (c *ClusterProvider) getClusterDataResp(request *coreentity.Request) (*core
 		return nil, err
 	}
 	return dataResponse, nil
+}
+
+// buildClusterReleaseEntity 构建 ClusterRelease 实体
+func buildClusterReleaseEntity(
+	k8sClusterConfigID uint64,
+	request *coreentity.Request,
+	createdBy string,
+	repoName string,
+	repoRepository string,
+	releaseValues map[string]interface{},
+) (*providerentity.AddonClusterReleaseEntity, error) {
+	releaseName := request.ClusterName
+	namespace := request.Namespace
+	chartName := request.StorageAddonType + "-cluster"
+	chartVersion := request.StorageAddonVersion
+
+	jsonData, err := json.Marshal(releaseValues)
+	if err != nil {
+		slog.Error("failed to marshal release values",
+			"release_name", releaseName,
+			"error", err,
+		)
+		return nil, fmt.Errorf("failed to marshal release values: %w", err)
+	}
+
+	jsonStr := string(jsonData)
+
+	return &providerentity.AddonClusterReleaseEntity{
+		K8sClusterConfigID: k8sClusterConfigID,
+		ReleaseName:        releaseName,
+		CreatedBy:          createdBy,
+		Namespace:          namespace,
+		ChartName:          chartName,
+		ChartVersion:       chartVersion,
+		RepoName:           repoName,
+		RepoRepository:     repoRepository,
+		ChartValues:        jsonStr,
+	}, nil
 }

@@ -24,16 +24,17 @@ import (
 	"time"
 )
 
-// K8sCrdClusterModel represents the database model of cluster
-type K8sCrdClusterModel struct {
-	ID                 uint64    `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
-	AddonID            uint64    `gorm:"not null;column:addon_id" json:"addon_id"`
-	K8sClusterConfigID uint64    `gorm:"not null;column:k8s_cluster_config_id" json:"k8s_cluster_config_id"`
-	RequestID          string    `gorm:"not null;column:request_id" json:"request_id"`
-	ClusterName        string    `gorm:"size:32;not null;column:cluster_name" json:"cluster_name"`
+// AddonClusterReleaseModel 对应 tb_addoncluster_release 表
+type AddonClusterReleaseModel struct {
+	ID                 int64     `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
+	RepoName           string    `gorm:"type:varchar(32);not null;column:repo_name" json:"repo_name"`
+	RepoRepository     string    `gorm:"type:varchar(255);not null;column:repo_repository" json:"repo_repository"`
+	ChartVersion       string    `gorm:"type:varchar(32);not null;column:chart_version" json:"chart_version"`
+	ChartName          string    `gorm:"type:varchar(32);not null;column:chart_name" json:"chart_name"`
 	Namespace          string    `gorm:"size:32;not null;column:namespace" json:"namespace"`
-	Status             string    `gorm:"size:32;column:status" json:"status"`
-	Description        string    `gorm:"size:100;column:description" json:"description"`
+	K8sClusterConfigID uint64    `gorm:"not null;column:k8s_cluster_config_id" json:"k8s_cluster_config_id"`
+	ReleaseName        string    `gorm:"type:varchar(32);not null;column:release_name" json:"release_name"`
+	ChartValues        string    `gorm:"type:text;not null;column:chart_values" json:"chart_values"`
 	CreatedBy          string    `gorm:"size:50;not null;column:created_by" json:"created_by"`
 	CreatedAt          time.Time `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP;column:created_at" json:"created_at"` //nolint:lll
 	UpdatedBy          string    `gorm:"size:50;not null;column:updated_by" json:"updated_by"`
@@ -41,6 +42,6 @@ type K8sCrdClusterModel struct {
 }
 
 // TableName 获取 model 对应的数据库表名
-func (K8sCrdClusterModel) TableName() string {
-	return constant.TbK8sCrdCluster
+func (AddonClusterReleaseModel) TableName() string {
+	return constant.TbAddonClusterRelease
 }

@@ -38,6 +38,7 @@ const (
 	TbOperationDefinition       = "tb_operation_definition"
 	TbComponentOperation        = "tb_component_operation"
 	TbClusterOperation          = "tb_cluster_operation"
+	TbAddonClusterRelease       = "tb_addoncluster_release"
 )
 
 // MySQLTestURL mysql connection credentials for test

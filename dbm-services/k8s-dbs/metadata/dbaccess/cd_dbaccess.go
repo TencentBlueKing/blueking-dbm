@@ -20,6 +20,7 @@ limitations under the License.
 package dbaccess
 
 import (
+	"fmt"
 	models "k8s-dbs/metadata/dbaccess/model"
 	"k8s-dbs/metadata/utils"
 	"log/slog"
@@ -93,8 +94,7 @@ func (k *K8sCrdClusterDefinitionDbAccessImpl) ListByPage(_ utils.Pagination) (
 	int64,
 	error,
 ) {
-	// TODO implement me
-	panic("implement me")
+	return nil, 0, fmt.Errorf("not implemented yet")
 }
 
 // NewK8sCrdClusterDefinitionDbAccess 创建 K8sCrdClusterDefinitionDbAccess 接口实现实例

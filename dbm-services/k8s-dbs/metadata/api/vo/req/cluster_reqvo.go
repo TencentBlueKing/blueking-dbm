@@ -24,7 +24,7 @@ import "time"
 // K8sCrdClusterReqVo represents the request data structure of cluster meta.
 type K8sCrdClusterReqVo struct {
 	AddonID            uint64    `json:"addon_id" binding:"required"`
-	K8sClusterConfigID uint64    `json:"k_8_s_cluster_config_id"`
+	K8sClusterConfigID uint64    `json:"k8s_cluster_config_id"`
 	RequestID          uint64    `json:"request_id"`
 	ClusterName        string    `json:"cluster_name" binding:"required"`
 	Description        string    `json:"description" binding:"required"`

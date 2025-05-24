@@ -21,6 +21,12 @@ package constant
 
 const APIVersion = "apps.kubeblocks.io/v1alpha1"
 const DataProAPIVersion = "dataprotection.kubeblocks.io/v1alpha1"
+const DefaultUserName = "admin"
+
+const (
+	DefaultRepoName       = "mapleleaf"
+	DefaultRepoRepository = ""
+)
 
 // KubeBlocks_Labels
 const (

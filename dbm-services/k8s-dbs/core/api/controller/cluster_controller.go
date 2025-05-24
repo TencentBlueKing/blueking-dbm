@@ -24,8 +24,7 @@ import (
 	"k8s-dbs/core/api/vo/resp"
 	coreentity "k8s-dbs/core/entity"
 	"k8s-dbs/core/errors"
-	"k8s-dbs/core/provider/clustermanage"
-	"k8s-dbs/core/provider/opsmanage"
+	"k8s-dbs/core/provider"
 
 	"github.com/jinzhu/copier"
 
@@ -34,13 +33,13 @@ import (
 
 // ClusterController 集群管理 Controller
 type ClusterController struct {
-	clusterService    *clustermanage.ClusterProvider
-	opsRequestService *opsmanage.OpsRequestProvider
+	clusterService    *provider.ClusterProvider
+	opsRequestService *provider.OpsRequestProvider
 }
 
 // NewClusterController 创建 ClusterController 实例
-func NewClusterController(clusterService *clustermanage.ClusterProvider,
-	opsRequestService *opsmanage.OpsRequestProvider) *ClusterController {
+func NewClusterController(clusterService *provider.ClusterProvider,
+	opsRequestService *provider.OpsRequestProvider) *ClusterController {
 	return &ClusterController{
 		clusterService:    clusterService,
 		opsRequestService: opsRequestService,

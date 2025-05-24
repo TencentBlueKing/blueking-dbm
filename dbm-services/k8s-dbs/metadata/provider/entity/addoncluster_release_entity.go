@@ -17,20 +17,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package req
+package entity
 
-import "time"
+import (
+	"time"
+)
 
-// K8sCrdOpsRequestReqVo represents the request data structure of opsRequest meta.
-type K8sCrdOpsRequestReqVo struct {
-	CrdClusterID       uint64    `json:"crd_cluster_id" binding:"required"`
+// AddonClusterReleaseEntity addon cluster release 定义
+type AddonClusterReleaseEntity struct {
+	ID                 int64     `json:"id"`
+	RepoName           string    `json:"repo_name"`
+	RepoRepository     string    `json:"repo_repository"`
+	ChartVersion       string    `json:"chart_version"`
+	ChartName          string    `json:"chart_name"`
+	Namespace          string    `json:"namespace"`
 	K8sClusterConfigID uint64    `json:"k8s_cluster_config_id"`
-	RequestID          uint64    `json:"request_id"`
-	OpsRequestName     string    `json:"opsrequest_name" binding:"required"`
-	OpsRequestType     string    `json:"opsrequest_type" binding:"required"`
-	Metadata           string    `json:"metadata"`
-	Spec               string    `json:"spec"`
-	Description        string    `json:"description" binding:"required"`
+	ReleaseName        string    `json:"release_name"`
+	ChartValues        string    `json:"chart_values"`
 	CreatedBy          string    `json:"created_by"`
 	CreatedAt          time.Time `json:"created_at"`
 	UpdatedBy          string    `json:"updated_by"`

@@ -25,7 +25,7 @@ import "time"
 type K8sCrdClusterRespVo struct {
 	ID                 uint64    `json:"id"`
 	AddonID            uint64    `json:"addon_id"`
-	K8sClusterConfigID uint64    `json:"k_8_s_cluster_config_id"`
+	K8sClusterConfigID uint64    `json:"k8s_cluster_config_id"`
 	RequestID          uint64    `json:"request_id"`
 	ClusterName        string    `json:"cluster_name"`
 	Status             string    `json:"status"`

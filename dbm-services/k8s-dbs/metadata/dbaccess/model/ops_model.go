@@ -28,7 +28,7 @@ import (
 type K8sCrdOpsRequestModel struct {
 	ID                 uint64    `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
 	CrdClusterID       uint64    `gorm:"not null;column:crd_cluster_id" json:"crd_cluster_id"`
-	K8sClusterConfigID uint64    `gorm:"not null;column:k8s_cluster_config_id" json:"k_8_s_cluster_config_id"`
+	K8sClusterConfigID uint64    `gorm:"not null;column:k8s_cluster_config_id" json:"k8s_cluster_config_id"`
 	RequestID          string    `gorm:"not null;column:request_id" json:"request_id"`
 	OpsRequestName     string    `gorm:"size:32;not null;column:opsrequest_name" json:"opsrequest_name"`
 	OpsRequestType     string    `gorm:"size:32;column:opsrequest_type" json:"opsrequest_type"`

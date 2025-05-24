@@ -17,7 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package opsmanage
+package provider
 
 import (
 	"encoding/json"
@@ -27,7 +27,6 @@ import (
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
 	serviceHelper "k8s-dbs/core/helper"
-	"k8s-dbs/core/provider/clustermanage"
 	metaprovider "k8s-dbs/metadata/provider"
 	providerentity "k8s-dbs/metadata/provider/entity"
 
@@ -41,7 +40,7 @@ import (
 type OpsRequestProvider struct {
 	opsRequestMetaProvider metaprovider.K8sCrdOpsRequestProvider
 	clusterMetaProvider    metaprovider.K8sCrdClusterProvider
-	clusterMetaService     *clustermanage.ClusterProvider
+	clusterMetaService     *ClusterProvider
 	clusterConfigProvider  metaprovider.K8sClusterConfigProvider
 	reqRecordProvider      metaprovider.ClusterRequestRecordProvider
 }
@@ -49,7 +48,7 @@ type OpsRequestProvider struct {
 // NewOpsRequestService create a new OpsRequest src
 func NewOpsRequestService(opsRequestMetaProvider metaprovider.K8sCrdOpsRequestProvider,
 	clusterMetaProvider metaprovider.K8sCrdClusterProvider,
-	clusterMetaService *clustermanage.ClusterProvider,
+	clusterMetaService *ClusterProvider,
 	clusterConfigProvider metaprovider.K8sClusterConfigProvider,
 	reqRecordProvider metaprovider.ClusterRequestRecordProvider,
 ) *OpsRequestProvider {
