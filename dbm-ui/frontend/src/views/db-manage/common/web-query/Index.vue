@@ -21,12 +21,7 @@
           v-model="formData.queryType"
           style="width: 300px"
           type="card">
-          <BkRadioButton
-            v-bk-tooltips="t('暂不支持，敬请期待')"
-            disabled
-            label="proxy">
-            Proxy
-          </BkRadioButton>
+          <BkRadioButton label="proxy"> Proxy </BkRadioButton>
           <BkRadioButton label="master_slave">Master/Slave</BkRadioButton>
         </BkRadioGroup>
       </BkFormItem>
@@ -164,7 +159,7 @@
     isMysql,
     () => {
       if (isMysql.value) {
-        formData.value.queryType = 'master_slave';
+        formData.value.queryType = 'proxy';
         return;
       }
 
