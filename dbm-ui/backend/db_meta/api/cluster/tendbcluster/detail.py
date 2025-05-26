@@ -89,9 +89,9 @@ def scan_cluster(cluster: Cluster) -> Graphic:
     if spider_master_group:
         graph.add_line(source=spider_master_group, target=remote_db_group, label=LineLabel.Access)
 
-    # 建立spider_master和remote dr的关系
+    # 建立spider_slaver和remote dr的关系
     if spider_slave_group:
-        graph.add_line(source=spider_master_group, target=remote_dr_group, label=LineLabel.Access)
+        graph.add_line(source=spider_slave_group, target=remote_dr_group, label=LineLabel.Access)
 
     # 建立remote dr与remote db的数据同步关系
     graph.add_line(source=remote_db_group, target=remote_dr_group, label=LineLabel.Rep)

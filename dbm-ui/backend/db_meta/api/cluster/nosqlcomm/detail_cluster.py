@@ -52,7 +52,9 @@ def scan_cluster(cluster: Cluster) -> Graphic:
     graph.add_line(source=proxy_instance_group, target=master_backend_instance_grp, label=LineLabel.Access)
 
     master_bind_entry_group = Group(node_id="master_bind_entry_group", group_name=_("访问入口（主）"))
-    for bind_entry in proxy_instance.bind_entry.filter(role=ClusterEntryRole.MASTER_ENTRY.value):
+    for bind_entry in proxy_instance.bind_entry.filter(
+        role__in=[ClusterEntryRole.MASTER_ENTRY.value, ClusterEntryRole.PROXY_ENTRY.value]
+    ):
         dummy_be_node, master_bind_entry_group = graph.add_node(bind_entry, to_group=master_bind_entry_group)
         graph.add_line(source=master_bind_entry_group, target=proxy_instance_group, label=LineLabel.Bind)
 
