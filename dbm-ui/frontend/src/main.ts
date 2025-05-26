@@ -42,6 +42,8 @@ import { subEnv } from '@blueking/sub-saas';
 import('tippy.js/dist/tippy.css');
 import('tippy.js/themes/light.css');
 
+console.log('🥕 当前环境:', process.env.NODE_ENV);
+
 dayjs.extend(utc);
 dayjs.extend(tz);
 dayjs.extend(duration);
