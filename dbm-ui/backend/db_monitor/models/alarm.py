@@ -135,6 +135,7 @@ class NoticeGroup(AuditedModel):
                 "name": bk_monitor_group_name,
                 "alert_notice": self.details.get("alert_notice") or DEFAULT_ALERT_NOTICE,
                 "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+                "channels": self.details.get("channels") or BK_MONITOR_SAVE_USER_GROUP_TEMPLATE["channels"],
             }
         )
         if self.is_built_in:
