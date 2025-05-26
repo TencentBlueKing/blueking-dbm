@@ -1107,7 +1107,7 @@ class ActionEnum:
     REDIS_SOURCE_ACCESS_VIEW = ActionMeta(
         id="redis_source_access_view",
         name=_("Redis 访问来源查询"),
-        name_en="redis_access_entry_view",
+        name_en="redis_source_access_view",
         type="view",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.REDIS],

@@ -15,6 +15,7 @@ from django.utils.translation import gettext as _
 
 from backend.components import ItsmApi
 from backend.components.itsm.constants import ItsmTicketStatus
+from backend.core import notify
 from backend.exceptions import ApiResultError
 from backend.ticket.constants import TicketFlowStatus, TicketStatus, TodoStatus, TodoType
 from backend.ticket.flow_manager.base import BaseTicketFlow
@@ -132,6 +133,7 @@ class ItsmFlow(BaseTicketFlow):
         )
         # 创建单据
         data = ItsmApi.create_ticket(self.flow_obj.details)
+        notify.send_msg.apply_async(args=(self.ticket.id,))
         return data["sn"]
 
     def _revoke(self, operator) -> Any:

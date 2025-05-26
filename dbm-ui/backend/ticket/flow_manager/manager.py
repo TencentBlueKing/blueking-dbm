@@ -103,8 +103,9 @@ class TicketFlowManager(object):
         with transaction.atomic():
             ticket = Ticket.objects.select_for_update().get(id=self.ticket.id)
             origin_status, ticket.status = ticket.status, target_status
-            if origin_status != target_status:
-                ticket.save(update_fields=["status", "update_at"])
+            if origin_status == target_status:
+                return
+            ticket.save(update_fields=["status", "update_at"])
 
         # 执行状态更新钩子函数
         self.ticket_status_trigger(origin_status, target_status)
@@ -115,11 +116,12 @@ class TicketFlowManager(object):
         # 单据状态变更后，发送通知。
         # 忽略运行中：流转到内置任务无需通知，待继续在todo创建时才触发通知
         # 忽略待补货：到资源申请节点，单据状态总会流转为待补货，但是只有待补货todo创建才触发通知
-        if target_status not in [TicketStatus.RUNNING, TicketStatus.RESOURCE_REPLENISH]:
+        # 忽略待审批，可能存在连续审批的节点，在审批运行的时候触发通知
+        if target_status not in [TicketStatus.RUNNING, TicketStatus.RESOURCE_REPLENISH, TicketStatus.APPROVE]:
             notify.send_msg.apply_async(args=(self.ticket.id,))
 
         # 如果是待下架单据，正常结束要联动回收主机
         is_recycle = self.ticket.ticket_type in BuilderFactory.recycle_ticket_type
-        if origin_status != target_status and target_status == TicketStatus.SUCCEEDED and is_recycle:
+        if target_status == TicketStatus.SUCCEEDED and is_recycle:
             recycle_old_hosts = self.ticket.details.get("recycle_hosts", [])
             create_recycle_ticket.apply_async(args=(self.ticket.id, recycle_old_hosts, TicketType.RECYCLE_OLD_HOST))
