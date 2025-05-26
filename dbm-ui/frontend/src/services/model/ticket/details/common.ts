@@ -190,12 +190,9 @@ export interface ResourcePoolRecycleHost {
  * 已下架主机再利用
  */
 export interface ResourcePoolRecycle extends DetailBase {
-  fault_hosts: ResourcePoolRecycleHost[]; // 转移到故障池机器
   group: string; // 回收机器的组件类型
   parent_ticket: number; // 关联的父单
-  recycle_hosts: ResourcePoolRecycleHost[]; // 转移到待回收的机器
-  recycled_hosts: ResourcePoolRecycleHost[]; // 转移到CC待回收的机器
-  resource_hosts: ResourcePoolRecycleHost[]; // 退回到资源池的机器
+  recycle_hosts: ResourcePoolRecycleHost[]; // 已下架主机
 }
 
 export interface ResourcePoolDetailBase extends DetailBase, Omit<ResourcePoolRecycle, 'group' | 'parent_ticket'> {
