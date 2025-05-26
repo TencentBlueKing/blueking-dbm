@@ -21,10 +21,15 @@ spec:
       - {{ .Release.Namespace }}
   selector:
     matchExpressions:
-      - { key: apps.kubeblocks.io/component-name, operator: In, values: [ vmselect, vmstorage, vminsert ] }
+      - key: workloads.kubeblocks.io/instance
+        operator: In
+        values:
+          - "{{ .Release.Name }}-vmselect"
+          - "{{ .Release.Name }}-vmstorage"
+          - "{{ .Release.Name }}-vminsert"
     matchLabels:
-      app.kubernetes.io/instance: {{ .Release.Name }}
       app.kubernetes.io/managed-by: kubeblocks
+      workloads.kubeblocks.io/managed-by: InstanceSet
   targetLabels:
     - app.kubernetes.io/instance
     - app.kubernetes.io/managed-by
