@@ -64,7 +64,10 @@ func initLog() {
 				},
 			))
 	} else {
-		log.SetReportCaller(true)
+		// set report caller to true, so that logrus will print the file and line number.
+		// but it will print the file and line number for every log, which is not what we want.
+		// so we need to set report caller to false when logLevel is not debug.
+		log.SetReportCaller(logLevel == "debug")
 		log.SetOutput(
 			io.MultiWriter(
 				os.Stdout,
@@ -75,11 +78,7 @@ func initLog() {
 }
 
 // Execute rootCmd Main
-func Execute(version, buildDate, commitSha1, goVersion string) {
-	Version = version       // Version is global variable.
-	BuildDate = buildDate   // BuildDate is global variable
-	CommitSha1 = commitSha1 // CommitSha1 is global variable
-	BuildGolang = goVersion //	GoVersion is global variable
+func Execute() {
 	rootCmd.ParseFlags(os.Args)
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)

@@ -1,6 +1,5 @@
 export GO111MODULE=on
 SRV_NAME:= mongo-toolkit-go
-bscli:=bs-cli
 OS:= $(shell uname -s)
 
 # default values for BUILD, VERSION and GITHASH
@@ -34,7 +33,6 @@ all: check build
 	@echo "all"
 check:
 	@echo "  >  Check by golangci-lint..."
-	golangci-lint run cmd/bscli/main.go
 	golangci-lint run cmd/mongo-toolkit-go/main.go
 
 build:

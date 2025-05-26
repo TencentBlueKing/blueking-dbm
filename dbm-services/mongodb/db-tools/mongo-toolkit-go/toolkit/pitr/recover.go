@@ -104,23 +104,34 @@ func SendErrorProcessLog(logChan chan *ProcessLog, msg string) {
 	logChan <- NewProcessLog(msg, true)
 }
 
-// UntarFull 解压全量备份
-func UntarFull(backupFileDir string, file *BackupFileName) (fullTmpDir, subDirName string, gzip bool, err error) {
+// UntarFull 解压全量备份到临时目录, 如果file是archive, 则直接返回, 不进行解压. 返回值: 临时目录, 子目录名, 是否gzip, 是否archive, 错误
+func UntarFull(backupFileDir string, file *BackupFileName) (fullTmpDir, subDirName string, gzip bool, archive bool, err error) {
 	if err = os.Chdir(backupFileDir); err != nil {
 		err = errors.Wrap(err, "Cannot chdir to %s")
+		return
 	}
+
+	archive = strings.HasSuffix(file.FileName, ".archive") || strings.HasSuffix(file.FileName, ".archive.gz")
 
 	subDirName = strings.TrimSuffix(file.FileName, ".gz")
 	subDirName = strings.TrimSuffix(subDirName, ".tar")
+	subDirName = strings.TrimSuffix(subDirName, ".archive")
+	subDirName = strings.TrimSuffix(subDirName, ".archive.gz")
 	fullTmpDir = path.Join("tmp", subDirName, "full")
 
 	if _, err = os.Stat(fullTmpDir); err == nil {
 		err = fmt.Errorf("tmpDir:[%s] already exists, please delete it first", fullTmpDir)
 		return
 	}
+
 	if err = os.MkdirAll(fullTmpDir, os.FileMode(0755)); err != nil {
 		err = fmt.Errorf("mkdir %s err:%v", fullTmpDir, err)
 		return
+	}
+
+	if archive {
+		// if archive, just return. no need to untar.
+		return fullTmpDir, subDirName, gzip, archive, nil
 	}
 
 	var tarArg string
@@ -145,30 +156,37 @@ func UntarFull(backupFileDir string, file *BackupFileName) (fullTmpDir, subDirNa
 // DoMongoRestoreFULL 导入全量备份
 func DoMongoRestoreFULL(bin string, conn *mymongo.MongoHost, file *BackupFileName, backupFileDir string, logChan chan *ProcessLog) (string, error) {
 	// fmt.Printf("DoMongoRestore: %s %s to %s:%s\n", file.Type, file.FileName, conn.Host, conn.Port)
+
 	SendProcessLog(logChan, fmt.Sprintf("start to untar %s ", file.FileName))
-	fullTmpDir, subDirName, gzip, err := UntarFull(backupFileDir, file)
+
+	fullTmpDir, subDirName, gzip, archive, err := UntarFull(backupFileDir, file)
 	if err != nil {
 		SendErrorProcessLog(logChan, fmt.Sprintf("UntarFull return %s", err.Error()))
 		return "", errors.Wrap(err, "UntarFull")
 	}
 	SendProcessLog(logChan, fmt.Sprintf("untar %s end. dir:%s", file.FileName, path.Join(fullTmpDir, subDirName)))
-	adminDbDir := filepath.Join(fullTmpDir, subDirName, "dump", "admin")
-	adminFileList, err := os.ReadDir(adminDbDir)
-	if err != nil {
-		return "", fmt.Errorf("no admin database:%s %v", adminDbDir, err)
-	}
-	var deletedFileNames []string
-	for _, fi := range adminFileList {
-		if !fi.IsDir() && strings.HasPrefix(fi.Name(), "system.") {
-			fullName := filepath.Join(adminDbDir, fi.Name())
-			if err2 := os.Remove(fullName); err2 != nil {
-				return "", fmt.Errorf("rm %q faild: %w", fullName, err2)
-			}
-			deletedFileNames = append(deletedFileNames, fi.Name())
+
+	// 如果file是archive, 则不需要删除admin数据库.
+	if !archive {
+		adminDbDir := filepath.Join(fullTmpDir, subDirName, "dump", "admin")
+		adminFileList, err := os.ReadDir(adminDbDir)
+		if err != nil {
+			return "", fmt.Errorf("no admin database:%s %v", adminDbDir, err)
 		}
+		var deletedFileNames []string
+		for _, fi := range adminFileList {
+			if !fi.IsDir() && strings.HasPrefix(fi.Name(), "system.") {
+				fullName := filepath.Join(adminDbDir, fi.Name())
+				if err2 := os.Remove(fullName); err2 != nil {
+					return "", fmt.Errorf("rm %q faild: %w", fullName, err2)
+				}
+				deletedFileNames = append(deletedFileNames, fi.Name())
+			}
+		}
+		SendProcessLog(logChan, fmt.Sprintf("rm system files at dump/admin/ %s", deletedFileNames))
+		SendProcessLog(logChan, fmt.Sprintf("start to mongorestore %s", file.FileName))
 	}
-	SendProcessLog(logChan, fmt.Sprintf("rm system files at dump/admin/ %s", deletedFileNames))
-	SendProcessLog(logChan, fmt.Sprintf("start to mongorestore %s", file.FileName))
+
 	dumpDir := path.Join(fullTmpDir, subDirName, "dump")
 	restoreLogfile := path.Join(fullTmpDir, subDirName, "restore.log")
 
@@ -183,7 +201,11 @@ func DoMongoRestoreFULL(bin string, conn *mymongo.MongoHost, file *BackupFileNam
 	if gzip {
 		restoreCmd.Append("--gzip")
 	}
-	restoreCmd.Append("--dir", mycmd.Val(dumpDir))
+	if archive {
+		restoreCmd.Append("--archive=" + file.FileName)
+	} else {
+		restoreCmd.Append("--dir", mycmd.Val(dumpDir))
+	}
 	errReader, errWriter := io.Pipe()
 	var outBuf, errBuf bytes.Buffer
 	bgCmd := mycmd.NewExecCmdBg()

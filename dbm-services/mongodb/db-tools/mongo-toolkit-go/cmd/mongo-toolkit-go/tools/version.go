@@ -7,18 +7,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var Version = ""
-var BuildDate = ""
-var CommitSha1 = ""
-var BuildGolang = ""
-
 // printVersion print version info
 func printVersion() {
-	fmt.Printf(`Version     : %s
-build_date  : %s
-commit_sha1 : %s
-go : %s
-`, Version, BuildDate, CommitSha1, BuildGolang)
+	fmt.Printf("mongo-toolkit-go\n%s\n", buildinfo.VersionInfo())
 }
 
 // versionCmd version

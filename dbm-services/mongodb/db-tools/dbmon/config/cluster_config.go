@@ -76,6 +76,7 @@ func GetAllClusterConfigRows() []ClusterConfigItem {
 		{Segment: "backup", Key: "incr-enable", Value: "true"},           // 是否开启增量备份
 		{Segment: "backup", Key: "incr-tag", Value: "MONGO_INCR_BACKUP"}, // incr_tag
 		{Segment: "backup", Key: "incr-freq", Value: "3600"},             // 增量备份时间间隔，单位秒
+		{Segment: "backup", Key: "archive", Value: "false"},              // mongodump --archive 方式备份，默认为false
 		// monitor.loginTimeout: checkService 登录超时时间，单位秒。默认10秒，有效值为[5,120]
 		{Segment: "monitor", Key: "loginTimeout", Value: "10"},
 		{Segment: "alarm", Key: "shield", Value: "false"},                   // 是否屏蔽事件产生

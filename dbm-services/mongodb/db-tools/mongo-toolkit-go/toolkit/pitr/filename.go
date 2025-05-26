@@ -156,8 +156,9 @@ func DecodeFileV0FULL(filename string) (*BackupFileName, error) {
 	bfn.FileName = filename
 
 	filename = strings.TrimPrefix(filename, "mongodump-")
-	filename = strings.TrimSuffix(filename, ".gz")
-	filename = strings.TrimSuffix(filename, ".tar")
+	for _, validSuffix := range []string{".gz", ".tar", ".archive", ".archive.gz"} {
+		filename = strings.TrimSuffix(filename, validSuffix)
+	}
 
 	fields := strings.Split(filename, "-")
 	fn := len(fields)
@@ -193,9 +194,9 @@ func DecodeFileV0INCR(filename string) (*BackupFileName, error) {
 	bfn.FileName = filename
 
 	filename = strings.TrimPrefix(filename, "mongodump-")
-	filename = strings.TrimSuffix(filename, ".gz")
-	filename = strings.TrimSuffix(filename, ".oplog.rs.bson")
-	filename = strings.TrimSuffix(filename, "-oplog.rs.bson")
+	for _, validSuffix := range []string{".gz", ".oplog.rs.bson", "-oplog.rs.bson", ".archive", ".archive.gz"} {
+		filename = strings.TrimSuffix(filename, validSuffix)
+	}
 	fields := strings.Split(filename, "-")
 	fn := len(fields)
 
@@ -327,7 +328,8 @@ func DecodeFilename(filename string) (*BackupFileName, error) {
 	} else if strings.HasPrefix(filename, "mongodump-") {
 		if strings.HasSuffix(filename, "oplog.rs.bson.gz") || strings.HasSuffix(filename, "oplog.rs.bson") {
 			return DecodeFileV0INCR(filename)
-		} else if strings.HasSuffix(filename, ".tar") || strings.HasSuffix(filename, ".tar.gz") {
+		} else if strings.HasSuffix(filename, ".tar") || strings.HasSuffix(filename, ".tar.gz") ||
+			strings.HasSuffix(filename, ".archive") || strings.HasSuffix(filename, ".archive.gz") {
 			return DecodeFileV0FULL(filename)
 		}
 		return nil, fmt.Errorf("bad format: Suffix")

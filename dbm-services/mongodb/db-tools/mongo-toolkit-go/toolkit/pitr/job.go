@@ -26,6 +26,7 @@ type BackupOption struct {
 	RemoveOldFileFirst bool
 	ReportFile         string
 	BkDbmLabel         *config.BkDbmLabel
+	Archive            bool
 	DryRun             bool
 }
 
@@ -63,7 +64,8 @@ func DoJob(option *BackupOption) {
 	}
 
 	log.Printf("lastBackup %+v", lastBackup)
-	currBackup, err := DoBackup(option.MongoHost, option.BackupType, option.Dir, option.Zip, lastBackup, nil)
+	currBackup, err := DoBackup(option.MongoHost, option.BackupType, option.Dir, option.Zip, option.Archive,
+		lastBackup, nil)
 	if err != nil || currBackup == nil {
 		log.Errorf("backup failed %v %v", currBackup, err)
 		return
@@ -89,7 +91,10 @@ func backupIncrForPrevFull(option *BackupOption, bm *BackupMetaV2,
 		lastIncr = prevFull
 		log.Warnf("set lastInc to lastFull %+v", lastIncr)
 	}
-	incrResult, err := DoBackup(option.MongoHost, BackupTypeIncr, option.Dir, option.Zip, lastIncr, &currBackup.LastTs)
+
+	incrResult, err := DoBackup(option.MongoHost, BackupTypeIncr, option.Dir, option.Zip, option.Archive,
+		lastIncr, &currBackup.LastTs)
+
 	if incrResult != nil {
 		bm.Append(incrResult)
 		uploadFileAndAppendToReportFile(option, incrResult)

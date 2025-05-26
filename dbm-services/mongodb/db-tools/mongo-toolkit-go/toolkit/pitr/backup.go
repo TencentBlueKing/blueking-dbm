@@ -3,6 +3,7 @@ package pitr
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mycmd"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mymongo"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/util"
@@ -202,12 +203,13 @@ func GetVersion(conn *mymongo.MongoHost) (*mymongo.MongoVersion, error) {
 
 // DoBackup 执行备份
 func DoBackup(connInfo *mymongo.MongoHost, backupType, dir string, zip bool,
+	archive bool,
 	lastBackup *BackupFileName, maxTs *TS) (*BackupFileName, error) {
 	dbConn, err := connInfo.Connect()
 	if err != nil {
 		return nil, errors.Wrap(err, "conn")
 	}
-	defer dbConn.Disconnect(nil)
+	defer dbConn.Disconnect(context.TODO())
 
 	//upsert一行数据到admin.gcs.backup表中，让备份中oplog至少有一条数据，允许Insert失败.
 	mymongo.InsertBackupHeartbeat(dbConn, *connInfo, backupType, dir)
@@ -217,12 +219,12 @@ func DoBackup(connInfo *mymongo.MongoHost, backupType, dir string, zip bool,
 	if err != nil {
 		return nil, err
 	} else if isMasterOut.Primary == "" {
-		log.Printf("Get primary err:%v", err)
-		return nil, fmt.Errorf("Get primary err:%v", err)
+		log.Printf("get primary err:%v", err)
+		return nil, fmt.Errorf("get primary err:%v", err)
 	}
 
 	if backupType == BackupTypeFull {
-		return DoBackupFull(connInfo, backupType, dir, zip, lastBackup)
+		return DoBackupFull(connInfo, backupType, dir, zip, archive, lastBackup)
 	} else if backupType == BackupTypeIncr {
 		return DoBackupIncr(connInfo, backupType, dir, zip, lastBackup, maxTs)
 	} else {
@@ -265,8 +267,9 @@ func GetMongoDumpBin(version *mymongo.MongoVersion) (bin string, err error) {
 }
 
 // DoBackupFull 执行全量备份
-func DoBackupFull(connInfo *mymongo.MongoHost, backupType, dir string, zip bool, lastBackup *BackupFileName) (*BackupFileName, error) {
-	dumpCmd, err := buildDumpFullCmd(connInfo, zip, lastBackup, nil)
+func DoBackupFull(connInfo *mymongo.MongoHost, backupType, dir string, zip bool, archive bool, lastBackup *BackupFileName) (*BackupFileName, error) {
+	archiveFile := "dump.archive"
+	dumpCmd, err := buildDumpFullCmd(connInfo, zip, archive, archiveFile, lastBackup, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -305,45 +308,89 @@ func DoBackupFull(connInfo *mymongo.MongoHost, backupType, dir string, zip bool,
 		return nil, errors.Wrap(err, "MakeFileName")
 	}
 
-	log.Infof("MakeFileName return %s", outputDirname)
+	// 如果使用archive，则将dump.archive文件移动到outputDirname目录下.
+	if archive {
+		// now is in workdir
+		if _, err := os.Stat(archiveFile); os.IsNotExist(err) {
+			return nil, errors.Wrap(err, "get archiveFile")
+		}
+		fNameObj.FileName = outputDirname + ".archive"
+		fNameObj.SetSuffix(".archive")
+		if zip {
+			fNameObj.FileName = fNameObj.FileName + ".gz"
+			fNameObj.SetSuffix(".archive.gz")
+		}
+		log.Infof("archiveFile: %s", fNameObj.FileName)
+		err = os.Rename(archiveFile, path.Join(dir, fNameObj.FileName))
+		if err != nil {
+			log.Fatalf("rename %s to %s failed, err: %v", archiveFile, fNameObj.FileName, err)
+		}
 
-	//chdir to *dir && do do tar czvf
-	if err := os.Chdir(dir); err != nil {
-		log.Fatalf("Cannot chdir to %s", dir)
-	}
-	cwd, _ := os.Getwd()
-	//	2019-12-17T18:01:40.883+0800	firstTS=(1576576891 1)
-	//	2019-12-17T18:01:40.883+0800	lastTS=(1576576891 1)
-	if exitCode, o, e, err := mycmd.NewCmdBuilder().Append("mv", workdir, outputDirname).
-		Run(cmdMaxTimeout); exitCode != 0 || err != nil {
-		log.Fatalf("chdir %s, Rename %s %s, o: %s, e: %s err: %v", cwd, workdir, outputDirname, o, e, err)
-	}
+		fNameObj.Dir = dir
+		fNameObj.FileSize, _ = util.GetFileSize(fNameObj.FileName)
 
-	// $output_dir = "mongodump-$name-FULL-$nodeip-$port-$ymdh-$suffix";
+		// 将dump.log文件移动到outputDirname目录下.
+		err = os.Rename("dump.log", path.Join(dir, outputDirname+".dump.log"))
+		if err != nil {
+			log.Errorf("rename %s to %s failed, err: %v", archiveFile, fNameObj.FileName, err)
+		}
+		log.Infof("rename %s to %s succ", archiveFile, fNameObj.FileName)
+		// delete workdir
+		if err := os.Chdir(dir); err != nil {
+			log.Fatalf("Cannot chdir to %s", dir)
+		}
 
-	var tarBin, tarArg, tarSuffix = "tar", "cf", "tar"
-	if !zip {
-		tarBin, tarArg, tarSuffix = "tar", "czf", "tar.gz"
-	}
+		// remove workdir if empty
+		if err := os.Remove(workdir); err != nil {
+			log.Printf("Remove %s error", workdir)
+		} else {
+			log.Printf("Remove %s succ", workdir)
+		}
 
-	fNameObj.SetSuffix(fmt.Sprintf(".%s", tarSuffix))
-	tarFile := strings.Join([]string{outputDirname, tarSuffix}, ".")
-	tarCmd := mycmd.NewCmdBuilder().Append(tarBin, tarArg, tarFile, outputDirname)
-	_, _, _, err = tarCmd.Run(cmdMaxTimeout)
-	if err != nil {
-		log.Warnf("DoCommand %s return err %v", tarCmd.GetCmdLine("", true), err)
+		return fNameObj, err
 	} else {
-		log.Infof("DoCommand Succ: %s", tarCmd.GetCmdLine("", true))
+		// 如果使用tar，则将dump目录移动到outputDirname目录下.
+		log.Infof("MakeFileName return %s", outputDirname)
+
+		//chdir to *dir && do do tar czvf
+		if err := os.Chdir(dir); err != nil {
+			log.Fatalf("Cannot chdir to %s", dir)
+		}
+		cwd, _ := os.Getwd()
+		//	2019-12-17T18:01:40.883+0800	firstTS=(1576576891 1)
+		//	2019-12-17T18:01:40.883+0800	lastTS=(1576576891 1)
+		if exitCode, o, e, err := mycmd.NewCmdBuilder().Append("mv", workdir, outputDirname).
+			Run(cmdMaxTimeout); exitCode != 0 || err != nil {
+			log.Fatalf("chdir %s, Rename %s %s, o: %s, e: %s err: %v", cwd, workdir, outputDirname, o, e, err)
+		}
+
+		// $output_dir = "mongodump-$name-FULL-$nodeip-$port-$ymdh-$suffix";
+
+		var tarBin, tarArg, tarSuffix = "tar", "cf", "tar"
+		if !zip {
+			tarBin, tarArg, tarSuffix = "tar", "czf", "tar.gz"
+		}
+
+		fNameObj.SetSuffix(fmt.Sprintf(".%s", tarSuffix))
+		tarFile := strings.Join([]string{outputDirname, tarSuffix}, ".")
+		tarCmd := mycmd.NewCmdBuilder().Append(tarBin, tarArg, tarFile, outputDirname)
+		_, _, _, err = tarCmd.Run(cmdMaxTimeout)
+		if err != nil {
+			log.Warnf("DoCommand %s return err %v", tarCmd.GetCmdLine("", true), err)
+		} else {
+			log.Infof("DoCommand Succ: %s", tarCmd.GetCmdLine("", true))
+		}
+		if err = os.RemoveAll(outputDirname); err != nil {
+			log.Printf("RemoveAll %s  error", outputDirname)
+		} else {
+			log.Printf("RemoveAll %s  succ", outputDirname)
+		}
+		fNameObj.FileName = tarFile
+		fNameObj.Dir = dir
+		fNameObj.FileSize, _ = util.GetFileSize(tarFile)
+		return fNameObj, err
 	}
-	if err = os.RemoveAll(outputDirname); err != nil {
-		log.Printf("RemoveAll %s  error", outputDirname)
-	} else {
-		log.Printf("RemoveAll %s  succ", outputDirname)
-	}
-	fNameObj.FileName = tarFile
-	fNameObj.Dir = dir
-	fNameObj.FileSize, _ = util.GetFileSize(tarFile)
-	return fNameObj, err
+
 }
 
 // DoBackupIncr 执行增量备份
@@ -411,15 +458,32 @@ func DoBackupIncr(connInfo *mymongo.MongoHost, backupType, dir string, zip bool,
 	}
 	log.Debugf("DoCommand %s %s %s", "mv", originFile, oplogFile)
 
-	mvCmd := mycmd.New("mv", originFile, oplogFile)
-	if exitCode, _, stderr, err := mvCmd.Run(cmdMaxTimeout); exitCode != 0 || err != nil {
-		log.Fatalf("DoCommand Failed. cmd:%v stderr %s err %s", mvCmd.GetCmdLine("", false), stderr, err)
+	err = os.Rename(originFile, oplogFile)
+	if err != nil {
+		log.Errorf("rename %s to %s failed, err: %v", originFile, oplogFile, err)
+		return nil, errors.Wrap(err, "rename oplog.rs.bson")
+	} else {
+		log.Infof("rename %s to %s succ", originFile, oplogFile)
+	}
+
+	// 将dump.log文件移动到outputDirname目录下.
+	dumpLogFile := path.Join(workdir, "dump.log")
+	dumpLogFileNew := path.Join(dir, outputDirname+".dump.log")
+	err = os.Rename(dumpLogFile, dumpLogFileNew)
+	if err != nil {
+		log.Errorf("rename %s to %s failed, err: %v", dumpLogFile, dumpLogFileNew, err)
+	} else {
+		log.Infof("rename %s to %s succ", dumpLogFile, dumpLogFileNew)
 	}
 
 	if err := os.RemoveAll(workdir); err != nil {
 		log.Printf("RemoveAll %s error", workdir)
 	} else {
 		log.Printf("RemoveAll %s succ", workdir)
+	}
+
+	if err := os.Chdir(dir); err != nil {
+		log.Fatalf("Cannot chdir to %s", dir)
 	}
 
 	fNameObj.FileName = oplogFile
@@ -468,9 +532,15 @@ func buildDumpIncrCmd(connInfo *mymongo.MongoHost, zip bool, lastBackup *BackupF
 	return dumpCmd, nil
 }
 
-func buildDumpFullCmd(connInfo *mymongo.MongoHost, zip bool, lastBackup *BackupFileName, maxTs *TS) (*mycmd.CmdBuilder, error) {
+func buildDumpFullCmd(connInfo *mymongo.MongoHost, zip bool, archive bool, archiveFile string,
+	lastBackup *BackupFileName, maxTs *TS) (*mycmd.CmdBuilder, error) {
 	// ./mongotools/mongodump.2.4  mongodump.3.0  mongodump.3.2  mongodump.3.4
 	// mongodump.3.6  mongodump.4.0  mongodump.4.2
+
+	// unused lastBackup
+	_ = lastBackup
+	_ = maxTs
+
 	version, err := GetVersion(connInfo)
 	if err != nil {
 		return nil, errors.Wrap(err, "get version")
@@ -499,5 +569,8 @@ func buildDumpFullCmd(connInfo *mymongo.MongoHost, zip bool, lastBackup *BackupF
 		dumpCmd.Append("--gzip")
 	}
 	dumpCmd.Append("--oplog")
+	if archive {
+		dumpCmd.Append("--archive=" + archiveFile)
+	}
 	return dumpCmd, nil
 }

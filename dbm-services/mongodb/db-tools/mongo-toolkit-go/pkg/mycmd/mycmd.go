@@ -24,7 +24,7 @@ type CmdBuilder struct {
 }
 
 // New NewCmdBuilder and append v
-func New(v ...interface{}) *CmdBuilder {
+func New(v ...any) *CmdBuilder {
 	return NewCmdBuilder().Append(v...)
 }
 

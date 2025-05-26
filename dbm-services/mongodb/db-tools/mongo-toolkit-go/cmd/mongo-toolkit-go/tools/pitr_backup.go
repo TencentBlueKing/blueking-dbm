@@ -33,6 +33,7 @@ var incrTag string          //增量备份文件的Tag，表示保存天数
 var removeOldFileFirst bool
 var reportFile string
 var labelsStr string
+var archive bool
 
 func init() {
 	backupCmd.Flags().StringVar(&host, "host", "127.0.0.1", "host")
@@ -54,6 +55,7 @@ func init() {
 	backupCmd.Flags().BoolVar(&removeOldFileFirst, "remove-old-file-first", false, "if remove old file first")
 	backupCmd.Flags().StringVar(&reportFile, "report-file", "", "report file") // 将备份文件详细信息写入到Report文件中. 格式是固定的.
 	backupCmd.Flags().StringVar(&labelsStr, "labels", "", "bkdbm server labels, json, allow empty")
+	backupCmd.Flags().BoolVar(&archive, "archive", false, "use mongodump --archive")
 	rootCmd.AddCommand(backupCmd)
 }
 
@@ -105,6 +107,7 @@ func backupMain() {
 		ReportFile:         reportFile,
 		BkDbmLabel:         dbmLabel,
 		DryRun:             dryRun,
+		Archive:            archive,
 	}
 	pitr.DoJob(&backupOpt)
 }

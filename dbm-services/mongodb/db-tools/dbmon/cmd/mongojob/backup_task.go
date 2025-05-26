@@ -28,6 +28,7 @@ type BackupTaskOption struct {
 	IncrFreq           int    `json:"incr_freq"`
 	Labels             string `json:"labels"`
 	Zip                bool   `json:"zip"`
+	Archive            bool   `json:"archive"`
 }
 
 // BackupTask 备份任务
@@ -64,6 +65,10 @@ func (task *BackupTask) Do(option *BackupTaskOption, logger *zap.Logger) error {
 
 	if option.Zip {
 		cb.Append("--zip")
+	}
+
+	if option.Archive {
+		cb.Append("--archive")
 	}
 
 	// dbmon的日志不上传Es，可以打印密码.
