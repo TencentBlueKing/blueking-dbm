@@ -218,15 +218,6 @@
         },
       },
       {
-        message: t('不允许为 *'),
-        required: true,
-        trigger: 'blur',
-        validator: (value: string) => {
-          const dbs = value.split(/[\n;,]/);
-          return _.every(dbs, (item) => (!item ? true : !/^\*$/.test(item)));
-        },
-      },
-      {
         message: t('% 不能单独使用'),
         required: true,
         trigger: 'blur',
@@ -240,6 +231,9 @@
         required: true,
         trigger: 'blur',
         validator: (value: string) => {
+          if (/^\*$/.test(value)) {
+            return true;
+          }
           const dbs = value.split(/[\n;,]/);
           return _.every(dbs, (item) =>
             !item
