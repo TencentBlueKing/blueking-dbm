@@ -143,6 +143,27 @@ CREATE TABLE IF NOT EXISTS tb_cluster_request_record (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT '记录用户集群操作记录（排查检索）';
 
 --
+-- Table structure for table tb_k8s_cluster_config
+--
+CREATE TABLE IF NOT EXISTS tb_k8s_cluster_config (
+    id bigint PRIMARY KEY AUTO_INCREMENT COMMENT '主键 id',
+    cluster_name VARCHAR(255) NOT NULL UNIQUE COMMENT 'k8s 集群名称',
+    api_server_url VARCHAR(255) NOT NULL COMMENT 'k8s API Server 的 URL',
+    ca_cert text COMMENT 'k8s API Server CA 证书-base64 encode',
+    client_cert text COMMENT '客户端证书-base64 encode',
+    client_key text COMMENT '客户端密钥-base64 encode',
+    token text COMMENT 'Token 认证的 Bearer Token',
+    username VARCHAR(255) COMMENT 'Basic Auth 的 username',
+    password VARCHAR(255) COMMENT 'Basic Auth 的 password',
+    active tinyint(1) NOT NULL DEFAULT 1 COMMENT '0:无效，1:有效',
+    description varchar(100) COMMENT '描述',
+    created_by varchar(50) NOT NULL COMMENT '创建者',
+    created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_by varchar(50) NOT NULL COMMENT '更新者',
+    updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT 'k8s 集群连接信息';
+
+--
 -- Table structure for table tb_cluster_operation
 --
 CREATE TABLE IF NOT EXISTS tb_cluster_operation (
