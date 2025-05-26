@@ -98,6 +98,7 @@ func buildMetaRouter(db *gorm.DB, router *gin.Engine) {
 
 		buildComponentOpMetaRouter(db, metaRouter)
 
+		buildClusterReleaseMetaRouter(db, metaRouter)
 	}
 }
 
@@ -113,6 +114,19 @@ func buildClusterConfigMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
 		k8sClusterConfigMetaGroup.DELETE("/:id", k8sClusterConfigController.DeleteK8sClusterConfig)
 		k8sClusterConfigMetaGroup.POST("", k8sClusterConfigController.CreateK8sClusterConfig)
 		k8sClusterConfigMetaGroup.PUT("/:id", k8sClusterConfigController.UpdateK8sClusterConfig)
+	}
+}
+
+// buildClusterReleaseMetaRouter clusterReleaseMeta 管理路由构建
+func buildClusterReleaseMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
+	addonClusterReleaseDbAccess := metadbaccess.NewAddonClusterReleaseDbAccess(db)
+	addonClusterReleaseProvider := metaprovider.NewAddonClusterReleaseProvider(addonClusterReleaseDbAccess)
+	clusterReleaseController := metacontroller.NewClusterReleaseController(addonClusterReleaseProvider)
+	k8sClusterConfigMetaGroup := metaRouter.Group("/cluster_release")
+	{
+		k8sClusterConfigMetaGroup.GET("/id/:id", clusterReleaseController.GetClusterRelease)
+		k8sClusterConfigMetaGroup.GET("/name/:release_name/namespace/:namespace",
+			clusterReleaseController.GetClusterReleaseByParam)
 	}
 }
 
@@ -314,13 +328,18 @@ func buildService(db *gorm.DB) (*provider.ClusterProvider, *provider.OpsRequestP
 		panic(err)
 	}
 
-	opsReqService := provider.NewOpsRequestService(
-		opsReqProvider,
-		clusterProvider,
-		clusterService,
-		k8sClusterConfigProvider,
-		requestRecordProvider,
-	)
+	opsReqService, err := provider.NewOpsReqProviderBuilder().
+		WithopsRequestMetaProvider(opsReqProvider).
+		WithClusterMetaProvider(clusterProvider).
+		WithClusterConfigMetaProvider(k8sClusterConfigProvider).
+		WithReqRecordProvider(requestRecordProvider).
+		WithReleaseMetaProvider(clusterReleaseProvider).
+		WithClusterProvider(clusterService).Build()
+	if err != nil {
+		slog.Error("build cluster provider error", "error", err.Error())
+		panic(err)
+	}
+
 	return clusterService, opsReqService
 }
 

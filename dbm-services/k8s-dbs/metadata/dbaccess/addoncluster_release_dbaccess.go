@@ -20,8 +20,11 @@ limitations under the License.
 package dbaccess
 
 import (
+	"errors"
+	"fmt"
 	models "k8s-dbs/metadata/dbaccess/model"
 	"k8s-dbs/metadata/utils"
+	"log"
 	"log/slog"
 
 	"gorm.io/gorm"
@@ -32,6 +35,7 @@ type AddonClusterReleaseDbAccess interface {
 	Create(model *models.AddonClusterReleaseModel) (*models.AddonClusterReleaseModel, error)
 	DeleteByID(id uint64) (uint64, error)
 	FindByID(id uint64) (*models.AddonClusterReleaseModel, error)
+	FindByParams(params map[string]interface{}) (*models.AddonClusterReleaseModel, error)
 	Update(model *models.AddonClusterReleaseModel) (uint64, error)
 	ListByPage(pagination utils.Pagination) ([]models.AddonClusterReleaseModel, int64, error)
 }
@@ -77,6 +81,27 @@ func (a *AddonClusterReleaseDbAccessImpl) FindByID(id uint64) (*models.AddonClus
 		return nil, result.Error
 	}
 	return &model, nil
+}
+
+// FindByParams 根据参数查找 addon cluster release 元数据接口实现
+func (a *AddonClusterReleaseDbAccessImpl) FindByParams(params map[string]interface{}) (
+	*models.AddonClusterReleaseModel,
+	error,
+) {
+	var clusterRelease models.AddonClusterReleaseModel
+
+	// 动态条件查询
+	result := a.db.Where(params).First(&clusterRelease)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, fmt.Errorf("cluster release not found")
+	}
+	if result.Error != nil {
+		log.Printf("Query cluster release error: %v", result.Error)
+		return nil, result.Error
+	}
+
+	return &clusterRelease, nil
 }
 
 // Update 更新 AddonCluster Release 元数据接口实现

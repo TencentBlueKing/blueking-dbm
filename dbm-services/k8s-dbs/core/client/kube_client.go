@@ -241,12 +241,12 @@ func CreateStorageAddonCluster(k8sClient *K8sClient, request *entity.Request) (m
 }
 
 // UpdateStorageAddonCluster helm upgrade Storage Addon Cluster with request
-func UpdateStorageAddonCluster(k8sClient *K8sClient, request *entity.Request) error {
+func UpdateStorageAddonCluster(k8sClient *K8sClient, request *entity.Request) (map[string]interface{}, error) {
 
 	// init helm client
 	actionConfig, err := k8sClient.buildHelmConfig(request.Namespace)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// install helm chart
@@ -258,26 +258,26 @@ func UpdateStorageAddonCluster(k8sClient *K8sClient, request *entity.Request) er
 	// Reading the values.yaml file
 	values, err := readValuesYaml(chartPath)
 	if err != nil {
-		return fmt.Errorf("failed to read values.yaml: %v", err)
+		return nil, fmt.Errorf("failed to read values.yaml: %v", err)
 	}
 
 	// merge dynamic values
 	err = mergeValues(values, request)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	chart, err := loader.Load(chartPath)
 	if err != nil {
-		return fmt.Errorf("failed to load chart: %v", err)
+		return nil, fmt.Errorf("failed to load chart: %v", err)
 	}
 
 	release, err := upgrade.Run(request.ClusterName, chart, values)
 	if err != nil {
-		return fmt.Errorf("update failed (chart=%s, ns=%s): %v", request.StorageAddonType, request.Namespace, err)
+		return nil, fmt.Errorf("update failed (chart=%s, ns=%s): %v", request.StorageAddonType, request.Namespace, err)
 	}
 	log.Printf("Helm release %s installed successfully", release.Name)
-	return nil
+	return values, nil
 }
 
 // DeleteStorageAddonCluster helm uninstall storage addon cluster
@@ -350,7 +350,7 @@ func mergeMetaData(values map[string]interface{}, request *entity.Request) error
 		"annotations": request.Annotations,
 	}
 	for configKey, depPtr := range metaDataMap {
-		err := mergeObjectToVal(values, depPtr, configKey)
+		err := MergeObjectToVal(values, depPtr, configKey)
 		if err != nil {
 			return err
 		}
@@ -380,15 +380,15 @@ func mergeComponentList(values map[string]interface{}, compListFromReq []entity.
 						resources = make(map[string]interface{})
 						compFromVal["resources"] = resources
 					}
-					err := mergeObjectToVal(resources, compFromReq.Request, "requests")
+					err := MergeObjectToVal(resources, compFromReq.Request, "requests")
 					if err != nil {
 						return err
 					}
-					err = mergeObjectToVal(resources, compFromReq.Limit, "limits")
+					err = MergeObjectToVal(resources, compFromReq.Limit, "limits")
 					if err != nil {
 						return err
 					}
-					err = mergeObjectToVal(compFromVal, compFromReq.VolumeClaimTemplates, "volumeClaimTemplates")
+					err = MergeObjectToVal(compFromVal, compFromReq.VolumeClaimTemplates, "volumeClaimTemplates")
 					if err != nil {
 						return err
 					}
@@ -412,7 +412,7 @@ func mergeComponentList(values map[string]interface{}, compListFromReq []entity.
 						compFromReq.Env["EXTRA_ARGS"] = joinedArgs
 
 					}
-					err = mergeObjectToVal(compFromVal, compFromReq.Env, "env")
+					err = MergeObjectToVal(compFromVal, compFromReq.Env, "env")
 					if err != nil {
 						return err
 					}
@@ -436,7 +436,7 @@ func mergeDependencies(values map[string]interface{}, dependencies *entity.Depen
 		"externalKafka": dependencies.ExternalKafka,
 	}
 	for configKey, depPtr := range dependencyMap {
-		err := mergeObjectToVal(values, depPtr, configKey)
+		err := MergeObjectToVal(values, depPtr, configKey)
 		if err != nil {
 			return err
 		}
@@ -448,14 +448,16 @@ func mergeObserveConfig(values map[string]interface{}, observeConfig *entity.Obs
 	if observeConfig == nil {
 		return nil
 	}
-	err := mergeObjectToVal(values, observeConfig, "observeConfig")
+	// TODO 对BkLogConfig和SvcMonitor分开merge，避免报空指针
+	err := MergeObjectToVal(values, observeConfig, "observeConfig")
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func mergeObjectToVal(values map[string]interface{}, object interface{}, objectName string) error {
+// MergeObjectToVal merges a given object into the target values map under the specified key.
+func MergeObjectToVal(values map[string]interface{}, object interface{}, objectName string) error {
 	if object == nil || reflect.ValueOf(object).IsNil() {
 		return nil
 	}

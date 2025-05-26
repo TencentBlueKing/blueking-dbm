@@ -21,6 +21,7 @@ package provider
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"k8s-dbs/common/utils"
 	coreclient "k8s-dbs/core/client"
@@ -40,25 +41,99 @@ import (
 type OpsRequestProvider struct {
 	opsRequestMetaProvider metaprovider.K8sCrdOpsRequestProvider
 	clusterMetaProvider    metaprovider.K8sCrdClusterProvider
-	clusterMetaService     *ClusterProvider
+	clusterProvider        *ClusterProvider
 	clusterConfigProvider  metaprovider.K8sClusterConfigProvider
 	reqRecordProvider      metaprovider.ClusterRequestRecordProvider
+	releaseMetaProvider    metaprovider.AddonClusterReleaseProvider
 }
 
-// NewOpsRequestService create a new OpsRequest src
-func NewOpsRequestService(opsRequestMetaProvider metaprovider.K8sCrdOpsRequestProvider,
-	clusterMetaProvider metaprovider.K8sCrdClusterProvider,
-	clusterMetaService *ClusterProvider,
-	clusterConfigProvider metaprovider.K8sClusterConfigProvider,
-	reqRecordProvider metaprovider.ClusterRequestRecordProvider,
-) *OpsRequestProvider {
-	return &OpsRequestProvider{
-		opsRequestMetaProvider: opsRequestMetaProvider,
-		clusterMetaProvider:    clusterMetaProvider,
-		clusterMetaService:     clusterMetaService,
-		clusterConfigProvider:  clusterConfigProvider,
-		reqRecordProvider:      reqRecordProvider,
+// NewOpsReqProviderBuilder 创建 OpsReqProviderBuilder 实例
+func NewOpsReqProviderBuilder() *OpsReqProviderBuilder {
+	return &OpsReqProviderBuilder{}
+}
+
+// OpsReqProviderBuilder ClusterProvider builder
+type OpsReqProviderBuilder struct {
+	opsRequestMetaProvider metaprovider.K8sCrdOpsRequestProvider
+	clusterMetaProvider    metaprovider.K8sCrdClusterProvider
+	clusterConfigProvider  metaprovider.K8sClusterConfigProvider
+	reqRecordProvider      metaprovider.ClusterRequestRecordProvider
+	releaseMetaProvider    metaprovider.AddonClusterReleaseProvider
+	clusterProvider        *ClusterProvider
+}
+
+// WithopsRequestMetaProvider 设置 opsRequestMetaProvider
+func (o *OpsReqProviderBuilder) WithopsRequestMetaProvider(
+	p metaprovider.K8sCrdOpsRequestProvider,
+) *OpsReqProviderBuilder {
+	o.opsRequestMetaProvider = p
+	return o
+}
+
+// WithClusterMetaProvider 设置 ClusterMetaProvider
+func (o *OpsReqProviderBuilder) WithClusterMetaProvider(p metaprovider.K8sCrdClusterProvider) *OpsReqProviderBuilder {
+	o.clusterMetaProvider = p
+	return o
+}
+
+// WithClusterConfigMetaProvider 设置 ClusterConfigMetaProvider
+func (o *OpsReqProviderBuilder) WithClusterConfigMetaProvider(
+	p metaprovider.K8sClusterConfigProvider,
+) *OpsReqProviderBuilder {
+	o.clusterConfigProvider = p
+	return o
+}
+
+// WithReqRecordProvider 设置 ReqRecordProvider
+func (o *OpsReqProviderBuilder) WithReqRecordProvider(
+	p metaprovider.ClusterRequestRecordProvider,
+) *OpsReqProviderBuilder {
+	o.reqRecordProvider = p
+	return o
+}
+
+// WithReleaseMetaProvider 设置 ReleaseMetaProvider
+func (o *OpsReqProviderBuilder) WithReleaseMetaProvider(
+	p metaprovider.AddonClusterReleaseProvider,
+) *OpsReqProviderBuilder {
+	o.releaseMetaProvider = p
+	return o
+}
+
+// WithClusterProvider 设置 ClusterProvider
+func (o *OpsReqProviderBuilder) WithClusterProvider(p *ClusterProvider) *OpsReqProviderBuilder {
+	o.clusterProvider = p
+	return o
+}
+
+// Build 构建并返回 OpsRequestProvider 实例
+func (o *OpsReqProviderBuilder) Build() (*OpsRequestProvider, error) {
+	if o.opsRequestMetaProvider == nil {
+		return nil, errors.New("opsRequestMetaProvider is required")
 	}
+	if o.clusterMetaProvider == nil {
+		return nil, errors.New("clusterMetaProvider is required")
+	}
+	if o.clusterConfigProvider == nil {
+		return nil, errors.New("clusterConfigProvider is required")
+	}
+	if o.reqRecordProvider == nil {
+		return nil, errors.New("reqRecordProvider is required")
+	}
+	if o.releaseMetaProvider == nil {
+		return nil, errors.New("releaseMetaProvider is required")
+	}
+	if o.clusterProvider == nil {
+		return nil, errors.New("clusterProvider is required")
+	}
+	return &OpsRequestProvider{
+		opsRequestMetaProvider: o.opsRequestMetaProvider,
+		clusterMetaProvider:    o.clusterMetaProvider,
+		clusterConfigProvider:  o.clusterConfigProvider,
+		reqRecordProvider:      o.reqRecordProvider,
+		releaseMetaProvider:    o.releaseMetaProvider,
+		clusterProvider:        o.clusterProvider,
+	}, nil
 }
 
 // GetOpsRequestStatus get opsRequest status
@@ -109,6 +184,11 @@ func (o *OpsRequestProvider) VerticalScaling(request *coreentity.Request) (*core
 		return nil, err
 	}
 
+	_, err = serviceHelper.UpdateValWithCompList(o.releaseMetaProvider, request)
+	if err != nil {
+		return nil, err
+	}
+
 	responseData, err := coreentity.GetOpsRequestData(verticalScaling.ResourceObject)
 	if err != nil {
 		return nil, err
@@ -150,6 +230,23 @@ func (o *OpsRequestProvider) HorizontalScaling(request *coreentity.Request) (*co
 	}
 
 	err = coreclient.CreateCRD(k8sClient, horizontalScaling)
+	if err != nil {
+		return nil, err
+	}
+
+	paramsRelease := map[string]interface{}{
+		"release_name": request.ClusterName,
+		"namespace":    request.Namespace,
+	}
+	releaseEntity, err := o.releaseMetaProvider.FindByParams(paramsRelease)
+	if err != nil {
+		return nil, err
+	}
+	newReleaseEntity, err := serviceHelper.UpdateValWithHScaling(request, releaseEntity)
+	if err != nil {
+		return nil, err
+	}
+	_, err = o.releaseMetaProvider.UpdateClusterRelease(newReleaseEntity)
 	if err != nil {
 		return nil, err
 	}
@@ -201,6 +298,11 @@ func (o *OpsRequestProvider) VolumeExpansion(request *coreentity.Request) (*core
 	}
 
 	err = coreclient.CreateCRD(k8sClient, volumeExpansion)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = serviceHelper.UpdateValWithCompList(o.releaseMetaProvider, request)
 	if err != nil {
 		return nil, err
 	}
@@ -285,7 +387,7 @@ func (o *OpsRequestProvider) RestartCluster(request *coreentity.Request) (*coree
 	}
 
 	if request.RestartList == nil {
-		clusterResponseData, err := o.clusterMetaService.DescribeCluster(request)
+		clusterResponseData, err := o.clusterProvider.DescribeCluster(request)
 		if err != nil {
 			return nil, err
 		}
@@ -412,6 +514,11 @@ func (o *OpsRequestProvider) UpgradeCluster(request *coreentity.Request) (*coree
 	}
 
 	err = coreclient.CreateCRD(k8sClient, upgrade)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = serviceHelper.UpdateValWithCompList(o.releaseMetaProvider, request)
 	if err != nil {
 		return nil, err
 	}

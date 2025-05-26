@@ -214,3 +214,38 @@ func TestListRelease(t *testing.T) {
 		assert.True(t, releaseNames[expected.ReleaseName], "Expected release %s not found in the result", expected.ReleaseName)
 	}
 }
+
+func TestGetClusterReleaseByParams(t *testing.T) {
+	db, err := initClusterTable()
+	assert.NoError(t, err)
+
+	dbAccess := dbaccess.NewAddonClusterReleaseDbAccess(db)
+	release := &model.AddonClusterReleaseModel{
+		RepoName:           "test-reponame",
+		RepoRepository:     "test-repository",
+		ChartVersion:       "test-chartversion",
+		ChartName:          "test-chartname",
+		Namespace:          "test-namespace",
+		K8sClusterConfigID: 1,
+		ReleaseName:        "test-release",
+		ChartValues:        "test-chart-values",
+	}
+	addedClusterRelease, err := dbAccess.Create(release)
+	assert.NoError(t, err, "Failed to create addon cluster release")
+	fmt.Printf("Created addon cluster release %+v\n", addedClusterRelease)
+
+	params := map[string]interface{}{
+		"release_name": "test-release",
+		"namespace":    "test-namespace",
+	}
+	findClusterRelease, err := dbAccess.FindByParams(params)
+	assert.NoError(t, err, "Failed to find addon cluster release")
+	assert.Equal(t, release.RepoName, findClusterRelease.RepoName)
+	assert.Equal(t, release.RepoRepository, findClusterRelease.RepoRepository)
+	assert.Equal(t, release.ChartVersion, findClusterRelease.ChartVersion)
+	assert.Equal(t, release.ChartName, findClusterRelease.ChartName)
+	assert.Equal(t, release.Namespace, findClusterRelease.Namespace)
+	assert.Equal(t, release.K8sClusterConfigID, findClusterRelease.K8sClusterConfigID)
+	assert.Equal(t, release.ReleaseName, findClusterRelease.ReleaseName)
+	assert.Equal(t, release.ChartValues, findClusterRelease.ChartValues)
+}

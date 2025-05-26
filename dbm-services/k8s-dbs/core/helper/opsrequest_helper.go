@@ -23,11 +23,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"k8s-dbs/common/utils"
+	"k8s-dbs/core/client"
 	clientconst "k8s-dbs/core/client/constants"
 	coreconst "k8s-dbs/core/constant"
 	"k8s-dbs/core/entity"
 	metaprovider "k8s-dbs/metadata/provider"
 	metaentity "k8s-dbs/metadata/provider/entity"
+	"log/slog"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -84,6 +86,39 @@ var switchTypeMap = map[bool]opv1.ExposeSwitch{
 //	error - 错误信息(如果有)
 func CreateVerticalScalingObject(request *entity.Request) (*entity.CustomResourceDefinition, error) {
 	objectName := utils.ResourceName("ops-vscaling-", OpsNameSuffixLength)
+	verticalScalingList := []opv1.VerticalScaling{}
+	for _, comp := range request.ComponentList {
+		// Initializes the container for resource requests and limits
+		requests := make(corev1.ResourceList)
+		limits := make(corev1.ResourceList)
+
+		if comp.Request != nil && comp.Request.CPU != "" {
+			requests[corev1.ResourceCPU] = resource.MustParse(comp.Request.CPU)
+		}
+
+		if comp.Request != nil && comp.Request.Memory != "" {
+			requests[corev1.ResourceMemory] = resource.MustParse(comp.Request.Memory)
+		}
+
+		if comp.Limit != nil && comp.Limit.CPU != "" {
+			limits[corev1.ResourceCPU] = resource.MustParse(comp.Limit.CPU)
+		}
+
+		if comp.Limit != nil && comp.Limit.Memory != "" {
+			limits[corev1.ResourceMemory] = resource.MustParse(comp.Limit.Memory)
+		}
+
+		vscaling := opv1.VerticalScaling{
+			ComponentOps: opv1.ComponentOps{
+				ComponentName: comp.ComponentName,
+			},
+			ResourceRequirements: corev1.ResourceRequirements{
+				Requests: requests,
+				Limits:   limits,
+			},
+		}
+		verticalScalingList = append(verticalScalingList, vscaling)
+	}
 
 	verticalScaling := &opv1.OpsRequest{
 		TypeMeta: metav1.TypeMeta{
@@ -101,7 +136,7 @@ func CreateVerticalScalingObject(request *entity.Request) (*entity.CustomResourc
 			PreConditionDeadlineSeconds: utils.Int32Ptr(PreConditionDeadlineSeconds),
 			TimeoutSeconds:              utils.Int32Ptr(TimeoutSeconds),
 			SpecificOpsRequest: opv1.SpecificOpsRequest{
-				VerticalScalingList: request.Spec.VerticalScalingList,
+				VerticalScalingList: verticalScalingList,
 			},
 		},
 	}
@@ -631,4 +666,138 @@ func getEntityFromReq(crd *entity.CustomResourceDefinition) (*metaentity.K8sCrdO
 		Spec:           string(specJSON),
 	}
 	return opsReqEntity, nil
+}
+
+// UpdateValWithHScaling updates the release entity's chart values with horizontal scaling configurations.
+func UpdateValWithHScaling(
+	request *entity.Request,
+	releaseEntity *metaentity.AddonClusterReleaseEntity,
+) (*metaentity.AddonClusterReleaseEntity, error) {
+	values, err := stringToMap(releaseEntity.ChartValues)
+	if err != nil {
+		return nil, err
+	}
+
+	compListFromVal, _ := values["componentList"].([]interface{})
+	for _, hscaling := range request.HorizontalScalingList {
+		for i, itemFromVal := range compListFromVal {
+			compFromVal, ok := itemFromVal.(map[string]interface{})
+			if ok && compFromVal["componentName"] == hscaling.ComponentName {
+
+				// modify the replica according to different status
+				currentReplicas := int(compFromVal["replicas"].(float64))
+				if hscaling.ScaleOut != nil && hscaling.ScaleOut.ReplicaChanges != nil {
+					scaleOutValue := *hscaling.ScaleOut.ReplicaChanges
+					compFromVal["replicas"] = currentReplicas + int(scaleOutValue)
+				}
+				if hscaling.ScaleIn != nil && hscaling.ScaleIn.ReplicaChanges != nil {
+					scaleInValue := *hscaling.ScaleIn.ReplicaChanges
+					compFromVal["replicas"] = currentReplicas - int(scaleInValue)
+				}
+				compListFromVal[i] = compFromVal
+			}
+		}
+	}
+	values["componentList"] = compListFromVal
+
+	jsonStr, err := mapToString(values, request)
+	if err != nil {
+		return nil, err
+	}
+	releaseEntity.ChartValues = jsonStr
+	return releaseEntity, nil
+}
+
+// UpdateValWithCompList updates the release entity's chart values with component configurations.
+func UpdateValWithCompList(
+	releaseMetaProvider metaprovider.AddonClusterReleaseProvider,
+	request *entity.Request,
+) (*metaentity.AddonClusterReleaseEntity, error) {
+	paramsRelease := map[string]interface{}{
+		"release_name": request.ClusterName,
+		"namespace":    request.Namespace,
+	}
+	releaseEntity, err := releaseMetaProvider.FindByParams(paramsRelease)
+	if err != nil {
+		return nil, err
+	}
+
+	values, err := stringToMap(releaseEntity.ChartValues)
+	if err != nil {
+		return nil, err
+	}
+
+	compListFromVal, _ := values["componentList"].([]interface{})
+	for _, compFromReq := range request.ComponentList {
+		for i, itemFromVal := range compListFromVal {
+			compFromVal, ok := itemFromVal.(map[string]interface{})
+			if ok && compFromVal["componentName"] == compFromReq.ComponentName {
+
+				if compFromReq.Version != "" {
+					compFromVal["serviceVersion"] = compFromReq.Version
+				}
+
+				volumeClaimTemplates, vctOk := compFromVal["volumeClaimTemplates"].(map[string]interface{})
+				if vctOk && compFromReq.Storage != "" {
+					volumeClaimTemplates["storage"] = compFromReq.Storage
+					compFromVal["volumeClaimTemplates"] = volumeClaimTemplates
+				}
+
+				resources, resOk := compFromVal["resources"].(map[string]interface{})
+				if !resOk {
+					resources = make(map[string]interface{})
+					compFromVal["resources"] = resources
+				}
+				err = client.MergeObjectToVal(resources, compFromReq.Request, "requests")
+				if err != nil {
+					return nil, err
+				}
+				err = client.MergeObjectToVal(resources, compFromReq.Limit, "limits")
+				if err != nil {
+					return nil, err
+				}
+
+				compListFromVal[i] = compFromVal
+			}
+		}
+	}
+	values["componentList"] = compListFromVal
+
+	jsonStr, err := mapToString(values, request)
+	if err != nil {
+		return nil, err
+	}
+	releaseEntity.ChartValues = jsonStr
+
+	_, err = releaseMetaProvider.UpdateClusterRelease(releaseEntity)
+	if err != nil {
+		return nil, err
+	}
+	return releaseEntity, nil
+}
+
+func stringToMap(value string) (map[string]interface{}, error) {
+	var result map[string]interface{}
+	// convert string to byte array and then parse
+	if err := json.Unmarshal([]byte(value), &result); err != nil {
+		slog.Error("Failed to unmarshal chart values",
+			"error", err,
+			"value", value,
+		)
+		return nil, fmt.Errorf("unmarshal failed: %w", err)
+	}
+	return result, nil
+}
+
+func mapToString(value map[string]interface{}, request *entity.Request) (string, error) {
+	jsonData, err := json.Marshal(value)
+	if err != nil {
+		slog.Error("failed to marshal release values",
+			"release_name", request.ClusterName,
+			"error", err,
+		)
+		return "", fmt.Errorf("failed to marshal release values: %w", err)
+	}
+
+	return string(jsonData), nil
 }

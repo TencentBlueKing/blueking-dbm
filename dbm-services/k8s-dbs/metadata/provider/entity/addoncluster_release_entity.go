@@ -25,7 +25,7 @@ import (
 
 // AddonClusterReleaseEntity addon cluster release 定义
 type AddonClusterReleaseEntity struct {
-	ID                 int64     `json:"id"`
+	ID                 uint64    `json:"id"`
 	RepoName           string    `json:"repo_name"`
 	RepoRepository     string    `json:"repo_repository"`
 	ChartVersion       string    `json:"chart_version"`

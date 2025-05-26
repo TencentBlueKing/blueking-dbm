@@ -257,10 +257,39 @@ func (c *ClusterProvider) UpdateCluster(request *coreentity.Request) error {
 		return fmt.Errorf("failed to verify addon exists: %w", err)
 	}
 
-	// TODO 元数据变更记录
-
-	if err = coreclient.UpdateStorageAddonCluster(k8sClient, request); err != nil {
+	// get updated value
+	updatedValue, err := coreclient.UpdateStorageAddonCluster(k8sClient, request)
+	if err != nil {
 		return fmt.Errorf("failed to update cluster: %w", err)
+	}
+	jsonData, err := json.Marshal(updatedValue)
+	if err != nil {
+		slog.Error("failed to marshal release values",
+			"release_name", request.ClusterName,
+			"error", err,
+		)
+		return fmt.Errorf("failed to marshal release values: %w", err)
+	}
+
+	// replace with the updated value
+	paramsRelease := map[string]interface{}{
+		"release_name": request.ClusterName,
+		"namespace":    request.Namespace,
+	}
+	releaseEntity, err := c.releaseMetaProvider.FindByParams(paramsRelease)
+	if err != nil {
+		return err
+	}
+	releaseEntity.ChartValues = string(jsonData)
+
+	_, err = c.releaseMetaProvider.UpdateClusterRelease(releaseEntity)
+	if err != nil {
+		slog.Error("failed to update cluster release",
+			"release_name", request.ClusterName,
+			"namespace", request.Namespace,
+			"error", err,
+		)
+		return fmt.Errorf("failed to update cluster release: %w", err)
 	}
 	return nil
 }
@@ -281,6 +310,8 @@ func (c *ClusterProvider) DeleteCluster(request *coreentity.Request) error {
 	if err != nil {
 		return fmt.Errorf("failed to create k8sClient: %w", err)
 	}
+
+	// delete record about cluster meta in db
 	params := map[string]interface{}{
 		"cluster_name": request.ClusterName,
 		"namespace":    request.Namespace,
@@ -293,6 +324,21 @@ func (c *ClusterProvider) DeleteCluster(request *coreentity.Request) error {
 	if err != nil {
 		return err
 	}
+
+	// delete record about addon cluster release in db
+	paramsRelease := map[string]interface{}{
+		"release_name": request.ClusterName,
+		"namespace":    request.Namespace,
+	}
+	releaseEntity, err := c.releaseMetaProvider.FindByParams(paramsRelease)
+	if err != nil {
+		return err
+	}
+	_, err = c.releaseMetaProvider.DeleteClusterReleaseByID(releaseEntity.ID)
+	if err != nil {
+		return err
+	}
+
 	err = coreclient.DeleteStorageAddonCluster(k8sClient, request.ClusterName, request.Namespace)
 	if err != nil {
 		return err
