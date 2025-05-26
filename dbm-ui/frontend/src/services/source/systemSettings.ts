@@ -65,7 +65,7 @@ export const getMachineProperty = function () {
 };
 
 // 查询平台常用SQL语句
-export function getCommonSqls(params: { db_type: string }) {
+export function getCommonSqls(params: { db_type: string; is_proxy?: boolean }) {
   return http.get<
     {
       name: string;
