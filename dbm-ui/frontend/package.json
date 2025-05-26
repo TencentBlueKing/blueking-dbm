@@ -57,8 +57,8 @@
     "vue-types": "6.0.0",
     "vuedraggable": "4.1.0",
     "xlsx": "0.18.5",
-    "xterm-addon-fit": "0.8.0",
-    "xterm-addon-web-links": "0.9.0"
+    "@xterm/addon-fit": "0.10.0",
+    "@xterm/addon-web-links": "0.11.0"
   },
   "devDependencies": {
     "@commitlint/config-conventional": "19.8.1",

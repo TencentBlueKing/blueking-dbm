@@ -44,11 +44,11 @@
 <script setup lang="tsx">
   import { format } from 'date-fns';
   import { useI18n } from 'vue-i18n';
-  import { FitAddon } from 'xterm-addon-fit';
-  import { WebLinksAddon } from 'xterm-addon-web-links';
 
   import { execCopy } from '@utils';
 
+  import { FitAddon } from '@xterm/addon-fit';
+  import { WebLinksAddon } from '@xterm/addon-web-links';
   import { Terminal } from '@xterm/xterm';
 
   interface Props {
