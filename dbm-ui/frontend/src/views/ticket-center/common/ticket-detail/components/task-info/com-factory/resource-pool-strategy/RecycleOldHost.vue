@@ -30,17 +30,8 @@
     </InfoItem>
   </InfoList>
   <RecycleHostCard
-    :data="ticketDetails.details.fault_hosts"
-    :title="t('转入故障池')" />
-  <RecycleHostCard
     :data="ticketDetails.details.recycle_hosts"
-    :title="t('转入待回收池')" />
-  <RecycleHostCard
-    :data="ticketDetails.details.resource_hosts"
-    :title="t('退回资源池')" />
-  <RecycleHostCard
-    :data="ticketDetails.details.recycled_hosts"
-    :title="t('回收')" />
+    :title="t('已下架主机')" />
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
