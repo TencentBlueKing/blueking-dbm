@@ -29,7 +29,6 @@
         :is-execut-disabled="!executable || instances.length === 0"
         :is-execut-loading="isExecuting"
         :is-proxy="isMysqlProxy"
-        :read-only="isMysqlProxy"
         @execute="handleExecute" />
     </template>
     <template #aside>
