@@ -180,41 +180,64 @@ func (job *RedisBackup) Run() (err error) {
 
 	// 如果是永久备份，那么需要检查上传结果情况
 	// 结束时间依赖上传时间最长的那个，所以没必要去并发探测
-	if job.params.BackupType == consts.ForeverBackupType {
-		job.runtime.Logger.Info(fmt.Sprintf("backup type is[%s], check upload status, task ids %+v",
-			job.params.BackupType, bakTaskIDs))
-		for _, taskId := range bakTaskIDs {
-			if strings.TrimSpace(taskId) == "" {
-				continue
-			}
-			// 半个小时还没上传成功则认为失败了
-			for i := 0; i < 60; i++ {
-				// taskStatus>4,上传失败;
-				// taskStatus==4,上传成功;
-				// taskStatus<4,上传中;
-				taskStatus, statusMsg, err := job.backupClient.TaskStatus(taskId)
-				// 查询接口失败
-				if err != nil {
-					job.runtime.Logger.Error(fmt.Sprintf("taskid(%+v) upload error, err:%+v", taskId, err))
-					break
-				}
-				if taskStatus > 4 {
-					job.runtime.Logger.Error(fmt.Sprintf("上传失败,statusCode:%d,err:%s", taskStatus, statusMsg))
-					break
-				} else if taskStatus < 4 {
-					job.runtime.Logger.Info(fmt.Sprintf("taskid(%+v)上传中.... statusCode:%d", taskId, taskStatus))
-					// 每30s去探测一次
-					time.Sleep(30 * time.Second)
-					continue
-				} else if taskStatus == 4 {
-					job.runtime.Logger.Info(fmt.Sprintf("taskid(%+v)上传成功", taskId))
-					break
-				}
-			}
+	// waiting all backup status (4 recover need backup )
+	job.runtime.Logger.Info(fmt.Sprintf(
+		"waiting backup system , backup type is[%s], check upload status, task ids %+v",
+		job.params.BackupType, bakTaskIDs))
+
+	for _, task := range bakTasks {
+		task.CheckBackupStatus()
+	}
+
+	job.runtime.Logger.Info(fmt.Sprintf("backup type is[%s], all check upload status, end",
+		job.params.BackupType))
+	return nil
+}
+
+// 检查CheckBackupStatus ， 上报备份状态 会等 120*30 seconds.
+func (task *BackupTask) CheckBackupStatus() {
+	taskID := task.BackupTaskID
+	if strings.TrimSpace(taskID) == "" {
+		mylog.Logger.Error(fmt.Sprintf("taskid(%+v) upload error, err: Noting ???", taskID))
+		return
+	}
+
+	// 半个小时还没上传成功则认为失败了
+	for i := 0; i < 120; i++ {
+		// taskStatus>4,上传失败;
+		// taskStatus==4,上传成功;
+		// taskStatus<4,上传中;
+		taskStatus, statusMsg, err := task.backupClient.TaskStatus(taskID)
+		// 查询接口失败
+		if err != nil {
+			task.Status = consts.BackupStatusFailed
+			task.Message = fmt.Sprintf("备份系统调用失败:%d", i)
+			mylog.Logger.Warn(fmt.Sprintf("taskid(%+v) upload error, err:%+v", taskID, err))
+			time.Sleep(time.Second * 10)
+			continue
+		}
+		if taskStatus > 4 {
+			task.Status = consts.BackupStatusToBakSystemFailed
+			task.Message = "上传备份系统失败"
+			mylog.Logger.Error(fmt.Sprintf("上传失败,statusCode:%d,err:%s", taskStatus, statusMsg))
+			break
+		} else if taskStatus < 4 {
+			task.Status = consts.BackupStatusRunning
+			task.Message = fmt.Sprintf("上传备份系统中:%d", i)
+			mylog.Logger.Info(fmt.Sprintf("taskid(%+v)上传中.... statusCode:%d", taskID, taskStatus))
+			// 每30s去探测一次
+			time.Sleep(30 * time.Second)
+			continue
+		} else if taskStatus == 4 {
+			task.Status = consts.BackupStatusToBakSysSuccess
+			task.Message = "上传备份系统成功"
+			mylog.Logger.Info(fmt.Sprintf("taskid(%+v)上传成功", taskID))
+			break
 		}
 	}
 
-	return nil
+	task.EndTime = time.Now().Local()
+	task.BackupRecordReport(task.reporter)
 }
 
 // Retry times
