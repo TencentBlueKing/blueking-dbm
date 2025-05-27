@@ -247,7 +247,7 @@ class ToolboxHandler(ClusterServiceHandler):
             "script_language": 1,
             "target_server": {"host_id_list": execute_host_ids},
         }
-        resp = JobApi.fast_execute_script(body)
+        resp = JobApi.fast_execute_script(body, use_admin=True)
         return resp
 
     @classmethod
@@ -256,7 +256,7 @@ class ToolboxHandler(ClusterServiceHandler):
         通过作用平台查询集群proc/net/tcp信息执行信息
         """
         payload = {"bk_biz_id": env.JOB_BLUEKING_BIZ_ID, "job_instance_id": job_instance_id, "return_ip_result": True}
-        resp = JobApi.get_job_instance_status(payload)
+        resp = JobApi.get_job_instance_status(payload, use_admin=True)
 
         # job 未完成
         if not resp["finished"]:
@@ -273,7 +273,8 @@ class ToolboxHandler(ClusterServiceHandler):
                 "job_instance_id": job_instance_id,
                 "step_instance_id": step_instance_id,
                 "host_id_list": bk_host_ids,
-            }
+            },
+            use_admin=True,
         )
         script_task_logs = resp["script_task_logs"] or []
 
