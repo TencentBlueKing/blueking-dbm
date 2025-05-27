@@ -20,10 +20,10 @@
     required
     :rule="rules">
     <div
-      class="capacity-box"
+      style="width: 100%"
       @click="handleShowSideslider">
       <EditableInput
-        v-if="!modelValue.spec_id || !activeRowData || !targetObj"
+        v-if="!modelValue.spec_id"
         :placeholder="t('请选择')">
         <template #append>
           <DbIcon
@@ -31,120 +31,34 @@
             type="down-big" />
         </template>
       </EditableInput>
-      <div
+      <CapacityCell
         v-else
-        class="display-content">
-        <div class="content-item">
-          <div class="item-title">{{ t('目标容量') }}：</div>
-          <div class="item-content">
-            <ClusterCapacityUsageRate :cluster-stats="targetClusterStats" />
-            <ValueDiff
-              :current-value="currentCapacity"
-              num-unit="G"
-              :target-value="targetObj.capacity" />
-          </div>
-        </div>
-        <div class="content-item">
-          <div class="item-title">{{ t('资源规格') }}：</div>
-          <div class="item-content">
-            <RenderSpec
-              :data="targetObj.spec"
-              :hide-qps="!targetObj.spec.qps.max"
-              is-ignore-counts />
-          </div>
-        </div>
-        <div class="content-item">
-          <div class="item-title">{{ t('机器组数') }}：</div>
-          <div class="item-content">
-            {{ targetObj.groupNum }}
-            <ValueDiff
-              :current-value="activeRowData.groupNum"
-              :show-rate="false"
-              :target-value="targetObj.groupNum" />
-          </div>
-        </div>
-        <div class="content-item">
-          <div class="item-title">{{ t('机器数量') }}：</div>
-          <div class="item-content">
-            {{ targetObj.groupNum * 2 }}
-            <ValueDiff
-              :current-value="activeRowData.groupNum * 2"
-              :show-rate="false"
-              :target-value="targetObj.groupNum * 2" />
-          </div>
-        </div>
-        <div class="content-item">
-          <div class="item-title">{{ t('分片数') }}：</div>
-          <div class="item-content">
-            {{ targetObj.shardNum }}
-            <ValueDiff
-              :current-value="activeRowData.shardNum"
-              :show-rate="false"
-              :target-value="targetObj.shardNum" />
-          </div>
-        </div>
-        <div class="content-item">
-          <div class="item-title">{{ t('变更方式') }}：</div>
-          <div class="item-content">
-            {{ targetObj.updateMode === 'keep_current_machines' ? t('原地变更') : t('替换变更') }}
-          </div>
-        </div>
-      </div>
+        :data="localTargetInfo" />
     </div>
   </EditableColumn>
   <ClusterTargetPlan
-    v-if="rowData.cluster?.cluster_stats"
-    :cluster-id="rowData.cluster.id"
-    :cluster-stats="rowData.cluster.cluster_stats"
-    :data="activeRowData"
-    hide-shard-column
-    :is-show="showClusterTargetPlan"
-    :target-object="targetObj"
-    :target-verison="rowData.db_version"
-    :title="t('选择集群容量变更部署方案')"
-    @click-cancel="() => (showClusterTargetPlan = false)"
-    @click-confirm="handleChoosedTargetCapacity"
-    @target-stats-change="handleTargetStatsChange" />
+    v-model:is-show="showClusterTargetPlan"
+    :cluster="rowData.cluster"
+    :db-version="rowData.db_version"
+    @change="handleChangeTargetPlan" />
 </template>
 <script lang="ts" setup>
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import RedisModel from '@services/model/redis/redis';
 
-  import { ClusterTypes } from '@common/const';
+  import CapacityCell from '../CapacityCell.vue';
 
-  import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
-
-  import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue';
-  import ValueDiff from '@views/db-manage/common/value-diff/Index.vue';
-
-  import { convertStorageUnits } from '@utils';
-
-  import ClusterTargetPlan, {
-    type Props as TargetPlanProps,
-    type SpecResultInfo,
-    type TargetInfo,
-  } from './ClusterDeployPlan.vue';
+  import ClusterTargetPlan, { type TargetInfo, type UpdateInfo } from './cluster-deploy-plan/Index.vue';
 
   interface Props {
     rowData: {
-      cluster: {
-        group_num: RedisModel['machine_pair_cnt'];
-        shard_num: RedisModel['cluster_shard_num'];
-      } & Pick<
-        RedisModel,
-        'id' | 'master_domain' | 'cluster_type' | 'cluster_type_name' | 'bk_cloud_id' | 'cluster_spec' | 'cluster_stats'
-      >;
-      cluster_capacity: {
-        total: number;
-        used: number;
-      };
+      cluster: RedisModel;
       db_version: string;
     };
   }
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
 
   const modelValue = defineModel<{
     affinity: string;
@@ -168,15 +82,26 @@
   const { t } = useI18n();
 
   const showClusterTargetPlan = ref(false);
-  const activeRowData = ref<TargetPlanProps['data']>();
-  const futureCapacity = ref(1);
-  const targetObj = ref<TargetInfo>();
-  const targetClusterStats = ref<RedisModel['cluster_stats']>();
-  const currentCapacity = computed(() => {
-    if (_.isEmpty(props.rowData.cluster?.cluster_stats)) {
-      return props.rowData.cluster_capacity?.total ?? 0;
-    }
-    return convertStorageUnits(props.rowData.cluster.cluster_stats.total, 'B', 'GB');
+  const localTargetInfo = reactive<TargetInfo>({
+    capacity: 0,
+    clusterStats: { in_use: 0, total: 0, used: 0 },
+    groupNum: 0,
+    shardNum: 0,
+    spec: {
+      cpu: { max: 0, min: 0 },
+      mem: { max: 0, min: 0 },
+      qps: { max: 0, min: 0 },
+      spec_id: 0,
+      spec_name: '',
+      storage_spec: undefined,
+    },
+  });
+  const localUpdateInfo = reactive<UpdateInfo>({
+    capacity_update_type: '',
+    err_msg: '',
+    old_machine_info: [],
+    require_machine_group_num: 0,
+    require_spec_id: 0,
   });
 
   const rules = [
@@ -194,57 +119,27 @@
   };
 
   const handleShowSideslider = () => {
-    console.log(11);
-
-    const {
-      bk_cloud_id: bkCloudId,
-      cluster_spec: spec,
-      cluster_type: clusterType,
-      master_domain: domain,
-      shard_num: shardNum,
-    } = props.rowData.cluster;
-    if (spec) {
-      activeRowData.value = {
-        bkCloudId,
-        capacity: props.rowData.cluster_capacity,
-        cloudId: bkCloudId,
-        clusterType: clusterType ?? ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-        currentSepc: {
-          cpu: spec.cpu,
-          id: spec.spec_id,
-          mem: spec.mem,
-          name: spec.spec_name || '',
-          qps: spec.qps,
-          storage_spec: spec.storage_spec,
-        },
-        groupNum: props.rowData.cluster.group_num,
-        shardNum,
-        targetCluster: domain,
-      };
-      showClusterTargetPlan.value = true;
-    }
+    showClusterTargetPlan.value = true;
   };
 
-  // 从侧边窗点击确认后触发
-  const handleChoosedTargetCapacity = (specResultInfo: SpecResultInfo, capacity: number, targetInfo: TargetInfo) => {
-    futureCapacity.value = capacity;
-    targetObj.value = targetInfo;
+  const handleChangeTargetPlan = (payload: {
+    targetInfo: typeof localTargetInfo;
+    updateInfo: typeof localUpdateInfo;
+  }) => {
+    const { targetInfo, updateInfo } = payload;
+    Object.assign(localTargetInfo, targetInfo);
+    Object.assign(localUpdateInfo, updateInfo);
     modelValue.value = {
       affinity: modelValue.value.affinity,
-      capacity: capacity || 1,
-      count: targetObj.value.requireMachineGroupNum,
-      future_capacity: capacity || 1,
-      group_num: specResultInfo.machine_pair,
-      old_machine_info: targetInfo.oldMachineInfo,
-      shard_num: specResultInfo.cluster_shard_num,
-      spec_id: specResultInfo.spec_id,
-      update_mode: targetObj.value.updateMode,
+      capacity: targetInfo.capacity || 1,
+      count: updateInfo.require_machine_group_num,
+      future_capacity: targetInfo.capacity || 1,
+      group_num: targetInfo.groupNum,
+      old_machine_info: updateInfo.old_machine_info,
+      shard_num: targetInfo.shardNum,
+      spec_id: targetInfo.spec.spec_id,
+      update_mode: updateInfo.capacity_update_type,
     };
-    showClusterTargetPlan.value = false;
-  };
-
-  const handleTargetStatsChange = (value: RedisModel['cluster_stats']) => {
-    targetClusterStats.value = value;
   };
 </script>
 
@@ -252,49 +147,5 @@
   .down-icon {
     font-size: 15px;
     color: #979ba5;
-  }
-
-  .capacity-box {
-    overflow: hidden;
-  }
-
-  .display-content {
-    padding: 11px 16px;
-    line-height: 20px;
-    white-space: nowrap;
-
-    .content-item {
-      display: flex;
-      width: 100%;
-
-      .item-title {
-        width: 64px;
-        text-align: right;
-      }
-
-      .item-content {
-        flex: 1;
-        display: flex;
-        align-items: center;
-
-        .percent {
-          margin-left: 4px;
-          font-size: 12px;
-          font-weight: bold;
-          color: #313238;
-        }
-
-        .spec {
-          margin-left: 2px;
-          font-size: 12px;
-          color: #979ba5;
-        }
-
-        :deep(.render-spec-box) {
-          height: 22px;
-          padding: 0;
-        }
-      }
-    }
   }
 </style>
