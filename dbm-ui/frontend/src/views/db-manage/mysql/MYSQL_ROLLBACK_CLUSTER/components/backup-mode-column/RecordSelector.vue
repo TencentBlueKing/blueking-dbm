@@ -110,6 +110,7 @@
           <BkDatePicker
             ref="datePickerRef"
             :clearable="false"
+            :disabled-date="disableDate"
             :open="open"
             type="datetime"
             :value="localValue"
@@ -154,11 +155,14 @@
   }
 
   interface Props {
-    backupid?: string;
     backupSource?: string;
     clearable?: boolean;
     clusterId: number;
     disabled?: boolean;
+  }
+
+  interface Exposes {
+    getData: (backupid: string) => Promise<BackupLogRecord>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -283,8 +287,6 @@
       nextTick(() => {
         dateTriggerRef.value.click();
       });
-    } else {
-      fetchLogData();
     }
   };
 
@@ -312,8 +314,13 @@
     });
   };
 
+  const disableDate = (date: number | Date) => {
+    const parsedDate = typeof date === 'number' ? new Date(date) : date;
+    return dayjs(parsedDate).isAfter();
+  };
+
   const handleDatePickerChange = (date: string) => {
-    localValue.value = date;
+    validator(date);
   };
 
   // 选择日期回调
@@ -328,21 +335,6 @@
         return;
       }
       fetchLogData();
-    },
-    {
-      immediate: true,
-    },
-  );
-
-  watch(
-    () => props.backupid,
-    (backupid) => {
-      if (backupid) {
-        validator(backupid);
-        const currentRecordType = isDateType(backupid) ? OperateType.MATCH : OperateType.MANUAL;
-        hanldeChangeTab(currentRecordType);
-        localValue.value = backupid;
-      }
     },
     {
       immediate: true,
@@ -381,6 +373,25 @@
       tippyIns.unmount();
       tippyIns.destroy();
     }
+  });
+
+  defineExpose<Exposes>({
+    getData(backupid: string) {
+      return queryLatesBackupLog({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        cluster_id: props.clusterId,
+        rollback_time: backupid,
+      }).then((data) => {
+        if (!data) {
+          localValue.value = '';
+          errorMessage.value = t('暂无与指定时间最近的备份记录');
+          return Promise.reject(new Error(t('暂无与指定时间最近的备份记录')));
+        }
+        logRecordList.value.push(data);
+        localValue.value = data.backup_id;
+        return data;
+      });
+    },
   });
 </script>
 <style lang="less">

@@ -37,7 +37,7 @@
         @batch-edit="handleBatchEdit" />
       <BackupModeColumn
         v-model="item.rollback"
-        :cluster="item.cluster"
+        :row-data="item"
         @batch-edit="handleBatchEdit" />
       <TagDbNameColumn
         v-model="item.databases"
@@ -76,6 +76,7 @@
   </EditableTable>
 </template>
 <script lang="ts" setup>
+  import _ from 'lodash';
   import { useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -241,7 +242,7 @@
   const handleBatchEdit = (value: any, field: string) => {
     tableData.value.forEach((item) => {
       Object.assign(item, {
-        [field as keyof RowData]: value,
+        [field as keyof RowData]: _.cloneDeep(value),
       });
     });
   };

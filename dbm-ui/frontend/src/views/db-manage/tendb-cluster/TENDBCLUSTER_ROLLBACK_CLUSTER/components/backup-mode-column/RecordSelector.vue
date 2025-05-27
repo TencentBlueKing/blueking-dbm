@@ -110,6 +110,7 @@
           <BkDatePicker
             ref="datePickerRef"
             :clearable="false"
+            :disabled-date="disableDate"
             :open="open"
             type="datetime"
             :value="localValue"
@@ -154,20 +155,25 @@
   }
 
   interface Props {
-    clusterId: number;
-    backupid?: string;
     backupSource?: string;
-    disabled?: boolean;
     clearable?: boolean;
+    clusterId: number;
+    disabled?: boolean;
+  }
+
+  interface Exposes {
+    getData: (backupid: string) => Promise<BackupLogRecord>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     backupid: '',
     backupSource: '',
-    modelValue: '',
-    disabled: false,
     clearable: false,
+    disabled: false,
+    modelValue: '',
   });
+
+  const backupinfo = defineModel<BackupLogRecord>('backupinfo');
 
   const { t } = useI18n();
 
@@ -175,8 +181,6 @@
     MANUAL = 'maunal',
     MATCH = 'match',
   }
-
-  const backupinfo = defineModel<BackupLogRecord>('backupinfo');
 
   const { timeZone } = useTimeZoneFormat();
   const searchKey = useDebouncedRef('');
@@ -187,9 +191,9 @@
       name: OperateType.MANUAL,
     },
     {
+      hoverText: t('自动匹配指定日期前的最新全库备份'),
       label: t('指定时间自动匹配'),
       name: OperateType.MATCH,
-      hoverText: t('自动匹配指定日期前的最新全库备份'),
     },
   ];
   let tippyIns: Instance;
@@ -215,10 +219,11 @@
 
   const rules: Rules = [
     {
-      validator: (value: string) => !!value,
       message: t('备份记录不能为空'),
+      validator: (value: string) => !!value,
     },
     {
+      message: t('暂无与指定时间最近的备份记录'),
       validator: (value: string) => {
         // 非日期输入无需调接口匹配最近记录，跳过该校验
         if (!isDateType(value)) {
@@ -238,7 +243,6 @@
           return true;
         });
       },
-      message: t('暂无与指定时间最近的备份记录'),
     },
   ];
 
@@ -283,8 +287,6 @@
       nextTick(() => {
         dateTriggerRef.value.click();
       });
-    } else {
-      fetchLogData();
     }
   };
 
@@ -312,8 +314,13 @@
     });
   };
 
+  const disableDate = (date: number | Date) => {
+    const parsedDate = typeof date === 'number' ? new Date(date) : date;
+    return dayjs(parsedDate).isAfter();
+  };
+
   const handleDatePickerChange = (date: string) => {
-    localValue.value = date;
+    validator(date);
   };
 
   // 选择日期回调
@@ -334,36 +341,14 @@
     },
   );
 
-  watch(
-    () => props.backupid,
-    (backupid) => {
-      if (backupid) {
-        validator(backupid);
-        const currentRecordType = isDateType(backupid) ? OperateType.MATCH : OperateType.MANUAL;
-        hanldeChangeTab(currentRecordType);
-        localValue.value = backupid;
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
-
   onMounted(() => {
     tippyIns = tippy(rootRef.value as SingleTarget, {
-      content: popRef.value,
-      placement: 'bottom',
       appendTo: () => document.body,
-      theme: 'rollback-mode-select light',
-      maxWidth: 'none',
-      trigger: 'click',
-      interactive: true,
       arrow: false,
+      content: popRef.value,
+      interactive: true,
+      maxWidth: 'none',
       offset: [0, 8],
-      onShow: () => {
-        isShowPop.value = true;
-        isError.value = false;
-      },
       onHide: () => {
         isShowPop.value = false;
         searchKey.value = '';
@@ -372,6 +357,13 @@
           (item) => item.backup_id === localValue.value,
         ) as BackupLogRecord;
       },
+      onShow: () => {
+        isShowPop.value = true;
+        isError.value = false;
+      },
+      placement: 'bottom',
+      theme: 'rollback-mode-select light',
+      trigger: 'click',
     });
   });
 
@@ -381,6 +373,25 @@
       tippyIns.unmount();
       tippyIns.destroy();
     }
+  });
+
+  defineExpose<Exposes>({
+    getData(backupid: string) {
+      return queryLatesBackupLog({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        cluster_id: props.clusterId,
+        rollback_time: backupid,
+      }).then((data) => {
+        if (!data) {
+          localValue.value = '';
+          errorMessage.value = t('暂无与指定时间最近的备份记录');
+          return Promise.reject(new Error(t('暂无与指定时间最近的备份记录')));
+        }
+        logRecordList.value.push(data);
+        localValue.value = data.backup_id;
+        return data;
+      });
+    },
   });
 </script>
 <style lang="less">
