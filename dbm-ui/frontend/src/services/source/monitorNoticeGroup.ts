@@ -72,7 +72,7 @@ export function updateAlarmGroup(params: {
  * 编辑告警组(部分)
  */
 export function patchAlarmGroup(params: {
-  details: NoticGroupModel['details'];
+  details: { channels: string[] } & NoticGroupModel['details'];
   id: number;
   name: string;
   receivers: NoticGroupModel['receivers'][];
