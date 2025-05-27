@@ -53,6 +53,15 @@ func NewRiakDetectInstanceForAgent(ins *RiakDetectInstanceInfoFromCmDB, conf *co
 			ReportInterval: conf.AgentConf.ReportInterval + rand.Intn(20),
 			Status:         constvar.DBCheckSuccess,
 			Cluster:        ins.Cluster,
+			ClusterType:    ins.ClusterType,
+			SshInfo: dbutil.Ssh{
+				Port:      conf.SSH.Port,
+				User:      conf.SSH.User,
+				Pass:      conf.SSH.Pass,
+				Dest:      conf.SSH.Dest,
+				Timeout:   conf.SSH.Timeout,
+				MaxUptime: conf.SSH.MaxUptime,
+			},
 		},
 		Timeout: conf.DBConf.Riak.Timeout,
 	}
