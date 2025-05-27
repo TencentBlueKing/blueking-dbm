@@ -133,7 +133,9 @@ class ItsmFlow(BaseTicketFlow):
         )
         # 创建单据
         data = ItsmApi.create_ticket(self.flow_obj.details)
-        notify.send_msg.apply_async(args=(self.ticket.id,))
+        # 如果此时单据处于待审批状态，说明存在连续审批节点，需主动触发一次消息发送
+        if self.ticket.status == TicketStatus.APPROVE:
+            notify.send_msg.apply_async(args=(self.ticket.id,))
         return data["sn"]
 
     def _revoke(self, operator) -> Any:

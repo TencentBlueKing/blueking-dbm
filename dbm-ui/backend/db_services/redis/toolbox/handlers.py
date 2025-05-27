@@ -389,7 +389,7 @@ class ToolboxHandler(ClusterServiceHandler):
         cc_map = __format_cc_info()
         for remote_ip, domain_map in remote_ip__report_map.items():
             for domain, tcp_info in domain_map.items():
-                data = {"remote_ip": remote_ip, "cluster_domain": domain, **tcp_info, **cc_map.get(remote_ip)}
+                data = {"remote_ip": remote_ip, "cluster_domain": domain, **tcp_info, **cc_map.get(remote_ip, {})}
                 cluster_domain__tcp_report[domain]["report"].append(data)
 
         # 统计集群正确和错误主机信息

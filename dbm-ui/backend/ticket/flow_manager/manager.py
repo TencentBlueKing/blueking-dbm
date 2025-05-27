@@ -116,8 +116,7 @@ class TicketFlowManager(object):
         # 单据状态变更后，发送通知。
         # 忽略运行中：流转到内置任务无需通知，待继续在todo创建时才触发通知
         # 忽略待补货：到资源申请节点，单据状态总会流转为待补货，但是只有待补货todo创建才触发通知
-        # 忽略待审批，可能存在连续审批的节点，在审批运行的时候触发通知
-        if target_status not in [TicketStatus.RUNNING, TicketStatus.RESOURCE_REPLENISH, TicketStatus.APPROVE]:
+        if target_status not in [TicketStatus.RUNNING, TicketStatus.RESOURCE_REPLENISH]:
             notify.send_msg.apply_async(args=(self.ticket.id,))
 
         # 如果是待下架单据，正常结束要联动回收主机

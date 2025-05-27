@@ -194,8 +194,37 @@ fi
 " > $clear_script_path;
 
 chmod +x $clear_script_path;
-# 每小时定时探测执行
-(crontab -l ; echo "0 * * * * $clear_script_path") 2>&1 | grep -v "no crontab" | sort | uniq | crontab -
+
+# 增加对nginx进程自动重启
+monitor_script_path="$path/nginx-portable/monitor.sh";
+echo -e "
+NGINX_BIN="$path/nginx-portable"
+LOG_PATH="$path/nginx-portable/logs/monitor.log"
+
+# 检测进程是否存在
+check_nginx() {
+    # 精确匹配master进程
+    pgrep -f 'nginx: master process' >/dev/null 2>&1
+    return \$?
+}
+# 重启nginx服务
+restart_nginx() {
+    now=\$(date +'%Y-%m-%d %H:%M:%S')
+    echo "[\$now]检测到Nginx未运行，尝试重启Nginx..." >> \$LOG_PATH
+    cd \$NGINX_BIN && ./nginx-portable start
+}
+
+if ! check_nginx; then
+    restart_nginx
+    exit \$?
+fi
+" > $monitor_script_path;
+
+chmod +x $monitor_script_path;
+
+# 每分钟定时探测执行
+(crontab -l ; echo "* * * * * $clear_script_path") 2>&1 | grep -v "no crontab" | sort | uniq | crontab -
+(crontab -l ; echo "* * * * * $monitor_script_path") 2>&1 | grep -v "no crontab" | sort | uniq | crontab -
 """
 
 nginx_stop_template = """
