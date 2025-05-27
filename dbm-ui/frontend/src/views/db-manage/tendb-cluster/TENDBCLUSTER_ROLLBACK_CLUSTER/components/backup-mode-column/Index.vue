@@ -93,6 +93,8 @@
           @change="handleChangeRollbackTime" />
         <div v-else>
           <RecordSelector
+            :key="cluster.id"
+            ref="recordSelector"
             v-model:backupinfo="modelValue.backupinfo"
             backup-source="remote"
             :backupid="modelValue.backupid"
@@ -109,6 +111,7 @@
   }
 </script>
 <script lang="ts" setup>
+  import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
 
   import type { BackupLogRecord } from '@services/source/fixpointRollback';
@@ -125,19 +128,17 @@
     };
   }
 
-  interface Emits {
-    (e: 'batch-edit', data: typeof modelValue.value, field: string): void;
-  }
+  type Emits = (e: 'batch-edit', data: typeof modelValue.value, field: string) => void;
 
   defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
-    rollback_type: string;
     backupid?: string;
     backupinfo?: BackupLogRecord;
     rollback_time?: string;
+    rollback_type: string;
   }>({
     default: () => ({
       rollback_type: ROLLBACK_TYPE.REMOTE_AND_BACKUPID,
@@ -146,15 +147,16 @@
 
   const { format: formatDateToUTC } = useTimeZoneFormat();
   const { t } = useI18n();
+  const recordSelector = useTemplateRef('recordSelector');
 
   const backupTypeList = [
     {
-      value: ROLLBACK_TYPE.REMOTE_AND_BACKUPID,
       label: t('备份记录'),
+      value: ROLLBACK_TYPE.REMOTE_AND_BACKUPID,
     },
     {
-      value: ROLLBACK_TYPE.REMOTE_AND_TIME,
       label: t('回档到指定时间'),
+      value: ROLLBACK_TYPE.REMOTE_AND_TIME,
     },
   ];
 
@@ -162,7 +164,21 @@
   const checkedModeType = ref(ROLLBACK_TYPE.REMOTE_AND_BACKUPID);
   const datePickerValue = ref('');
 
-  const disableDate = (date: Date) => date && date.valueOf() > Date.now();
+  watch(
+    () => modelValue.value.backupid,
+    (backupid) => {
+      if (backupid) {
+        recordSelector.value?.getData(backupid).then((data) => {
+          modelValue.value.backupinfo = data;
+        });
+      }
+    },
+  );
+
+  const disableDate = (date: number | Date) => {
+    const parsedDate = typeof date === 'number' ? new Date(date) : date;
+    return dayjs(parsedDate).isAfter();
+  };
 
   const handleShowBatchEdit = () => {
     isShowBatchEdit.value = true;
@@ -181,8 +197,8 @@
       emits(
         'batch-edit',
         {
-          rollback_type: ROLLBACK_TYPE.REMOTE_AND_TIME,
           rollback_time: formatDateToUTC(datePickerValue.value),
+          rollback_type: ROLLBACK_TYPE.REMOTE_AND_TIME,
         },
         'rollback',
       );
@@ -190,8 +206,8 @@
       emits(
         'batch-edit',
         {
-          rollback_type: ROLLBACK_TYPE.REMOTE_AND_BACKUPID,
           backupid: datePickerValue.value,
+          rollback_type: ROLLBACK_TYPE.REMOTE_AND_BACKUPID,
         },
         'rollback',
       );
@@ -200,10 +216,10 @@
 
   const handleChangeType = (value: string) => {
     modelValue.value = {
-      rollback_type: value,
       backupid: undefined,
       backupinfo: undefined,
       rollback_time: undefined,
+      rollback_type: value,
     };
   };
 

@@ -93,11 +93,12 @@
           @change="handleChangeRollbackTime" />
         <div v-else>
           <RecordSelector
-            :key="cluster.id"
+            :key="rowData.cluster.id"
+            ref="recordSelector"
             v-model:backupinfo="modelValue.backupinfo"
-            backup-source="remote"
+            :backup-source="rowData.backup_source"
             :backupid="modelValue.backupid"
-            :cluster-id="cluster.id" />
+            :cluster-id="rowData.cluster.id" />
         </div>
       </div>
     </div>
@@ -110,6 +111,7 @@
   }
 </script>
 <script lang="ts" setup>
+  import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
 
   import type { BackupLogRecord } from '@services/source/fixpointRollback';
@@ -121,8 +123,11 @@
   import RecordSelector from './RecordSelector.vue';
 
   interface Props {
-    cluster: {
-      id: number;
+    rowData: {
+      backup_source: string;
+      cluster: {
+        id: number;
+      };
     };
   }
 
@@ -145,6 +150,7 @@
 
   const { format: formatDateToUTC } = useTimeZoneFormat();
   const { t } = useI18n();
+  const recordSelector = useTemplateRef('recordSelector');
 
   const backupTypeList = [
     {
@@ -162,9 +168,20 @@
   const datePickerValue = ref('');
   const logDate = ref('');
 
+  watch(
+    () => modelValue.value.backupid,
+    (backupid) => {
+      if (backupid) {
+        recordSelector.value?.getData(backupid).then((data) => {
+          modelValue.value.backupinfo = data;
+        });
+      }
+    },
+  );
+
   const disableDate = (date: number | Date) => {
     const parsedDate = typeof date === 'number' ? new Date(date) : date;
-    return parsedDate && parsedDate.valueOf() > Date.now();
+    return dayjs(parsedDate).isAfter();
   };
 
   const handleShowBatchEdit = () => {
@@ -198,7 +215,6 @@
         'batch-edit',
         {
           backupid: logDate.value,
-          backupinfo: modelValue.value.backupinfo,
           rollback_type: ROLLBACK_TYPE.BACKUPID,
         },
         'rollback',

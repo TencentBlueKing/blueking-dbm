@@ -67,6 +67,7 @@
   </EditableTable>
 </template>
 <script lang="ts" setup>
+  import _ from 'lodash';
   import { useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -209,7 +210,7 @@
   const handleBatchEdit = (value: any, field: string) => {
     tableData.value.forEach((item) => {
       Object.assign(item, {
-        [field]: value,
+        [field as keyof RowData]: _.cloneDeep(value),
       });
     });
   };
