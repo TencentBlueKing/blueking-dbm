@@ -180,23 +180,27 @@
     await formRef.value.validate();
 
     const { name } = formData;
-    const params = {
-      details: {
-        alert_notice: noticeMethodRef.value.getSubmitData(),
-      },
-      name,
-      receivers: receiversSelectorRef.value.getSelectedReceivers(),
-    };
+    const { alertNotice, channels } = noticeMethodRef.value.getSubmitData();
+    const receivers = receiversSelectorRef.value.getSelectedReceivers();
 
     if (props.type === 'edit') {
       patchAlarmGroupRun({
-        ...params,
+        details: {
+          alert_notice: alertNotice,
+          channels,
+        },
         id: props.detailData.id,
+        name,
+        receivers,
       });
     } else {
       insertAlarmGroupRun({
-        ...params,
         bk_biz_id: props.bizId,
+        details: {
+          alert_notice: alertNotice,
+        },
+        name,
+        receivers,
       });
     }
   };
