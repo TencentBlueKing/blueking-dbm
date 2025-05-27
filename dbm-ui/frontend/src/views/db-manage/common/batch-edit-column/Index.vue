@@ -59,7 +59,6 @@
             <BkDatePicker
               v-else-if="type === 'datetime'"
               :clearable="false"
-              :disabled="disabled"
               :disabled-date="disableFn"
               :model-value="localValue"
               style="width: 100%"
