@@ -36,6 +36,8 @@ const (
 	VExpansion     = "VolumeExpansion"
 	UpgradeComp    = "UpgradeComp"
 	ExposeService  = "ExposeService"
+
+	CreateK8sNs = "CreateK8sNamespace"
 )
 
 // OpsRequest operation types

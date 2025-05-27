@@ -92,12 +92,6 @@ type ComponentResource struct {
 	Connect *Connect `json:"connect,omitempty"`
 }
 
-// Resource the resource of component need
-type Resource struct {
-	CPU    string `json:"cpu,omitempty"`
-	Memory string `json:"memory,omitempty"`
-}
-
 // VolumeClaimTemplates defines persistent storage requirements for Component pods.
 // Equivalent to Kubernetes cluster.spec.volumeClaimTemplates field.
 type VolumeClaimTemplates struct {

@@ -37,7 +37,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// OpsRequestProvider the OpsRequest src struct
+// OpsRequestProvider the OpsRequest provider struct
 type OpsRequestProvider struct {
 	opsRequestMetaProvider metaprovider.K8sCrdOpsRequestProvider
 	clusterMetaProvider    metaprovider.K8sCrdClusterProvider

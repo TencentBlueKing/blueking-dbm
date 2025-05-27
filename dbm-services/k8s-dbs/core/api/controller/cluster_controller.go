@@ -31,7 +31,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// ClusterController 集群管理 Controller
+// ClusterController 存储集群管理 Controller
 type ClusterController struct {
 	clusterService    *provider.ClusterProvider
 	opsRequestService *provider.OpsRequestProvider

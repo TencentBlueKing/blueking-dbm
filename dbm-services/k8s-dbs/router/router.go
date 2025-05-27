@@ -69,6 +69,8 @@ func NewRouter(db *gorm.DB) *Router {
 
 	buildMetaRouter(db, router)
 
+	buildK8sClusterRouter(db, router)
+
 	return &Router{Engine: router}
 }
 
@@ -290,6 +292,24 @@ func buildClusterRouter(db *gorm.DB, router *gin.Engine) {
 		opsRequestGroup.POST("/describe", clusterController.DescribeOpsRequest)
 		opsRequestGroup.POST("/status", clusterController.GetOpsRequestStatus)
 	}
+}
+
+// buildK8sClusterRouter k8s集群管理路由构建
+func buildK8sClusterRouter(db *gorm.DB, router *gin.Engine) {
+	requestRecordDbAccess := metadbaccess.NewClusterRequestRecordDbAccess(db)
+	requestRecordProvider := metaprovider.NewClusterRequestRecordProvider(requestRecordDbAccess)
+
+	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
+	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(k8sClusterConfigDbAccess)
+
+	k8cClusterProvider := provider.NewK8sProvider(requestRecordProvider, k8sClusterConfigProvider)
+
+	k8sClusterController := controller.NewK8sController(k8cClusterProvider)
+	k8sClusterGroup := router.Group(basePath + "/k8s_cluster")
+	{
+		k8sClusterGroup.POST("/namespace", k8sClusterController.CreateNamespace)
+	}
+
 }
 
 // buildService 总路由规则构建

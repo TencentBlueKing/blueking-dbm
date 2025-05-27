@@ -17,16 +17,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package resp
+package req
 
-import (
-	kbv1 "github.com/apecloud/kubeblocks/apis/apps/v1alpha1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
+import "k8s-dbs/core/entity"
 
-// ClusterStatusRespVo cluster status response
-type ClusterStatusRespVo struct {
-	Phase      kbv1.ClusterPhase `json:"phase,omitempty"`
-	CreateTime metav1.Time       `json:"createTime,omitempty"`
-	UpdateTime metav1.Time       `json:"updateTime,omitempty"`
+// K8sNsReqVo k8s 的 namespace 创建请求结构体
+type K8sNsReqVo struct {
+	K8sClusterName string                `json:"k8sClusterName,omitempty"`
+	Name           string                `json:"name" binding:"required"`
+	Annotations    map[string]string     `json:"annotations,omitempty"`   // 可选注解
+	Labels         map[string]string     `json:"labels,omitempty"`        // 可选标签
+	ResourceQuota  *entity.ResourceQuota `json:"resourceQuota,omitempty"` // 可选资源配额
 }

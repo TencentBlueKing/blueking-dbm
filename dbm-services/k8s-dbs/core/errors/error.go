@@ -62,6 +62,8 @@ const (
 	DescribeOpsRequestError  = 1532212
 	GetOpsRequestStatusError = 1532213
 	UpdateClusterError       = 1532214
+
+	CreateK8sNsError = 1532215
 )
 
 // Define the text information corresponding to errorCode
@@ -79,6 +81,7 @@ var codeTag = map[int]string{
 	GetMetaDataErr:     "获取元数据失败",
 	DeleteMetaDataErr:  "删除元数据失败",
 
+	// 集群操作失败错误概要
 	DescribeComponentError:   "查询组件失败",
 	DescribeClusterError:     "查询集群失败",
 	CreateClusterError:       "创建集群失败",
@@ -94,6 +97,9 @@ var codeTag = map[int]string{
 	ExposeClusterError:       "集群暴露服务失败",
 	DescribeOpsRequestError:  "查询操作请求失败",
 	GetOpsRequestStatusError: "查询操作请求状态失败",
+
+	// K8s api server 调用失败错误概要
+	CreateK8sNsError: "创建命名空间失败",
 }
 
 // NewGlobalError Create a new custom error instantiation
