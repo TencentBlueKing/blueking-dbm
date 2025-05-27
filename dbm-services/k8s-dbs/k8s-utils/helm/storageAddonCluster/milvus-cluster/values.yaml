@@ -1389,6 +1389,7 @@ externalEtcd:
   ## the endpoints of the external etcd
   ##
   endpoints: []
+  rootPath: ""
 
 ###################################
 # External pulsar

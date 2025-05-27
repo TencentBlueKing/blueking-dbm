@@ -47,6 +47,7 @@ type ExternalS3 struct {
 type ExternalEtcd struct {
 	Enabled   bool     `json:"enabled,omitempty"`
 	Endpoints []string `json:"endpoints,omitempty"`
+	RootPath  string   `json:"rootPath,omitempty"`
 }
 
 // ExternalKafka 定义外部 Kafka 消息队列的连接配置

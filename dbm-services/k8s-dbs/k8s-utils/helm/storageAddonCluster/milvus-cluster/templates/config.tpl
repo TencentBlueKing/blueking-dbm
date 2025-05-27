@@ -28,6 +28,9 @@ etcd:
   {{- range .Values.externalEtcd.endpoints }}
     - {{ . }}
   {{- end }}
+  {{- if .Values.externalEtcd.rootPath}}
+  rootPath: {{ .Values.externalEtcd.rootPath }}
+  {{- end }}
 {{- else }}
   endpoints:
 {{- range $i := until ( .Values.etcd.replicaCount | int ) }}
