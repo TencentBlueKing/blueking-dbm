@@ -48,20 +48,21 @@ func getPool() (*slog.Logger, *session.Pool) {
 
 // QueryParams redis请求参数
 type QueryParams struct {
-	ClusterId     int      `json:"cluster_id"`     // 集群id
-	ClusterType   string   `json:"cluster_type"`   // 集群类型
-	ClusterDomain string   `json:"cluster_domain"` // 集群名称
-	Addresses     []string `json:"addresses"`      // ip:port列表
-	SetName       string   `json:"set_name"`       // 如果是集群，指定为空
-	OaUser        string   `json:"oa_user"`        // OA用户名
-	AdminUsername string   `json:"admin_username"` // 管理员用户名
-	AdminPassword string   `json:"admin_password"` // 管理员密码
-	UserName      string   `json:"username"`       // 用户名
-	Password      string   `json:"password"`       // 密码  MongodbRepo().getPassword()
-	Token         string   `json:"session"`        // session token, 一个随机字符串
-	Command       string   `json:"command"`        // 命令. 例如: "db.stats()". 必须是一个完整的命令
-	Timeout       int      `json:"timeout"`        // 超时时间，单位秒，预留参数，现在默认1分钟
-	Version       string   `json:"version"`        // 版本号，如果 4.4 以上，会使用新的mongoshell
+	ClusterId      int      `json:"cluster_id"`      // 集群id
+	ClusterType    string   `json:"cluster_type"`    // 集群类型
+	ClusterDomain  string   `json:"cluster_domain"`  // 集群名称
+	Addresses      []string `json:"addresses"`       // ip:port列表
+	SetName        string   `json:"set_name"`        // 如果是集群，指定为空
+	OaUser         string   `json:"oa_user"`         // OA用户名
+	AdminUsername  string   `json:"admin_username"`  // 管理员用户名
+	AdminPassword  string   `json:"admin_password"`  // 管理员密码
+	UserName       string   `json:"username"`        // 用户名
+	Password       string   `json:"password"`        // 密码  MongodbRepo().getPassword()
+	Token          string   `json:"session"`         // session token, 一个随机字符串
+	Command        string   `json:"command"`         // 命令. 例如: "db.stats()". 必须是一个完整的命令
+	Timeout        int      `json:"timeout"`         // 超时时间，单位秒，预留参数，现在默认1分钟
+	Version        string   `json:"version"`         // 版本号，如果 4.4 以上，会使用新的mongoshell
+	ReadPreference string   `json:"read_preference"` // 优先连接的host，primary,secondary,nearest
 }
 
 // StringWithoutPasswd 打印参数，不打印密码
@@ -133,7 +134,7 @@ func (r *MongoRPCEmbed) DoCommand(c *gin.Context) {
 	resp := NewRespHandle(c, param, logger)
 
 	// 同一个session只能同时运行一个命令，否则会出现输出混乱
-	if false == session.RunningLock.TryLock() {
+	if !session.RunningLock.TryLock() {
 		resp.SendError(fmt.Sprintf("session %s is busy", param.Token))
 		return
 	}
@@ -142,7 +143,7 @@ func (r *MongoRPCEmbed) DoCommand(c *gin.Context) {
 	defer session.RunningLock.Unlock()
 
 	if !session.IsStopped() && len(param.Command) == 0 {
-		resp.SendError(fmt.Sprintf("bad param, empty command"))
+		resp.SendError("bad param, empty command")
 		return
 	}
 

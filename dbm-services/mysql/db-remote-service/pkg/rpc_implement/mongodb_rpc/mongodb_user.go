@@ -46,7 +46,7 @@ func createReadOnlyUser(host string, adminUser, adminPwd,
 		return errors.Wrap(ErrConnectFail, "ismaster failed")
 	}
 
-	if isMaster.IsMaster == false {
+	if !isMaster.IsMaster {
 		master := isMaster.Primary
 		if master == "" {
 			return errors.Wrap(ErrConnectFail, "no primary found")

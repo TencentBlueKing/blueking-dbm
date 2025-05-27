@@ -61,6 +61,7 @@ type MongoShell struct {
 	MongoHost     MongoHost
 	MongoVersion  string
 	ShellBin      string // mongo or mongosh
+	ReadPref      string // primary,secondary,nearest
 }
 
 // NewMongoShellFromParm create a new MongoShell instance
@@ -82,6 +83,7 @@ func NewMongoShellFromParm(p *QueryParams) *MongoShell {
 			AdminPassword: p.AdminPassword,
 			RealRtxId:     p.OaUser,
 		},
+		ReadPref: p.ReadPreference,
 	}
 }
 
@@ -114,14 +116,14 @@ func parseMongoVersion(version string) (major, minor int, err error) {
 // buildArgs builds the arguments for the MongoShell process.
 // 不同的版本，shell和参数都不同
 func buildArgs(r *MongoShell) (argv []string, err error) {
-	major, minor, err := parseMongoVersion(r.MongoVersion)
+	_, _, err = parseMongoVersion(r.MongoVersion)
 	if err != nil {
 		return nil, fmt.Errorf("invalid version string")
 	}
 
 	// 4.2 之前的版本，使用 mongo
-	isLowerVersion := major < 4 || (minor < 2 && major == 4)
-	isLowerVersion = true // 高版本打算用mongosh的，但搭配mongosh跑不起来. 就先用mongo
+	// isLowerVersion := major < 4 || (minor < 2 && major == 4)
+	isLowerVersion := true // 高版本打算用mongosh的，但搭配mongosh跑不起来. 就先用mongo
 
 	if isLowerVersion {
 		r.ShellBin = "mongo"
@@ -132,15 +134,36 @@ func buildArgs(r *MongoShell) (argv []string, err error) {
 	evalJs := ""
 	isMongos := r.MongoHost.SetName == ""
 
-	if isMongos {
-		// 分片集群，总是先执行一次 setReadPref secondary
-		evalJs = fmt.Sprintf("db.getMongo().setReadPref('secondary');")
-	} else {
-		// 副本集，4.2 之前的版本，使用 setSlaveOk
-		if isLowerVersion {
-			evalJs = fmt.Sprintf("db.getMongo().setSecondaryOk(true);")
+	/*
+		ReadPref:
+		- "" 默认 secondary
+		- secondary = "secondary" >=3节点
+		- secondaryPreferred = "secondaryPreferred" <3节点在primary上执行
+	*/
+	if r.ReadPref == "secondary" || r.ReadPref == "" {
+		if isMongos {
+			// 分片集群，总是先执行一次 setReadPref secondary
+			evalJs = "db.getMongo().setReadPref('secondary');"
 		} else {
-			evalJs = fmt.Sprintf("db.getMongo().setReadPref('secondary');")
+			// 副本集，4.2 之前的版本，使用 setSlaveOk
+			if isLowerVersion {
+				evalJs = "db.getMongo().setSecondaryOk(true);"
+			} else {
+				evalJs = "db.getMongo().setReadPref('secondary');"
+			}
+		}
+	} else { // secondaryPreferred, < 3节点, 允许在primary上执行
+
+		// 分片集群: setReadPref secondaryPreferred
+		if isMongos {
+			evalJs = "db.getMongo().setReadPref('secondaryPreferred');"
+		} else {
+			// 副本集: 4.2 之前的版本，使用 setSecondaryOk
+			if isLowerVersion {
+				evalJs = "if (! db.isMaster().ismaster) {db.getMongo().setSecondaryOk(true);}"
+			} else {
+				evalJs = "if (! db.isMaster().ismaster) {db.getMongo().setReadPref('secondary');}"
+			}
 		}
 	}
 
@@ -196,6 +219,7 @@ func (r *MongoShell) Run(startWg *sync.WaitGroup, logger *slog.Logger) error {
 	// 如果进程退出，关闭 BufChan
 	pidChan := make(chan int)
 	procCtx, procCancel := context.WithCancel(context.Background())
+	_ = procCancel
 
 	argv, err := buildArgs(r)
 	if err != nil {
@@ -227,10 +251,9 @@ func (r *MongoShell) Run(startWg *sync.WaitGroup, logger *slog.Logger) error {
 
 	}(pidChan)
 
-	var pid int
-	pid = <-pidChan
+	pid := <-pidChan
 	r.Pid = pid
-	time.Sleep(2)
+	time.Sleep(2 * time.Second)
 	r.logger.Info("startProcess",
 		slog.String("cmdPath", argv[0]), slog.Any("argv", argv),
 		slog.Int("pid", r.Pid), slog.Any("err", err))
@@ -286,7 +309,8 @@ func (r *MongoShell) Run(startWg *sync.WaitGroup, logger *slog.Logger) error {
 func (r *MongoShell) ReceiveMsg(timeout int64) (out []byte, err error) {
 	buf := make([]byte, 0, maxRespSize)
 	msg := bytes.NewBuffer(buf)
-	ctxTimeout, _ := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
+	ctxTimeout, procTimeout := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
+	_ = procTimeout // 暂时不用
 	checkCone := time.Tick(100 * time.Millisecond)
 	checkConeCount := 0
 	bytesTotal := 0
@@ -323,7 +347,8 @@ func (r *MongoShell) ReceiveMsg(timeout int64) (out []byte, err error) {
 		}
 	}
 
-	return msg.Bytes(), nil
+	// not reach here
+	// return msg.Bytes(), nil
 }
 
 func (r *MongoShell) Stop() {
