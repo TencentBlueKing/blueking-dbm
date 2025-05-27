@@ -1,7 +1,7 @@
 {
   "bk_biz_id": 0,
   "name": "MongoDB dbha切换mongos成功策略",
-  "db_type": "mongos",
+  "db_type": "mongodb",
   "details": {
     "bk_biz_id": "",
     "name": "MongoDB dbha切换mongos成功策略",

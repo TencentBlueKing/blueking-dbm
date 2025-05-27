@@ -1,7 +1,7 @@
 {
   "bk_biz_id": 0,
-  "name": "MONGODB dbha切换mongos失败策略",
-  "db_type": "mongos",
+  "name": "MongoDB dbha切换mongos失败策略",
+  "db_type": "mongodb",
   "details": {
     "bk_biz_id": "",
     "name": "MONGODB dbha切换mongos失败策略",
