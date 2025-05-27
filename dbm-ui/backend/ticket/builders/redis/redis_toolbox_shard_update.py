@@ -42,6 +42,10 @@ class RedisShardUpdateDetailSerializer(SkipToRepresentationMixin, serializers.Se
             proxy = SpecSerializer(help_text=_("申请proxy资源"))
             backend_group = SpecSerializer(help_text=_("申请redis主从资源"))
 
+        cluster_spec = serializers.JSONField(help_text=_("当前后端规格"), required=False)
+        cluster_stats = serializers.JSONField(help_text=_("当前使用率"), required=False)
+        proxy = serializers.JSONField(help_text=_("当前proxy规格和数量"), required=False)
+        machine_pair_cnt = serializers.IntegerField(help_text=_("集群ID"), required=False)
         src_cluster = serializers.IntegerField(help_text=_("集群ID"))
         current_spec_id = serializers.IntegerField(help_text=_("当前规格ID"))
         current_shard_num = serializers.IntegerField(help_text=_("当前分片数"))
