@@ -118,10 +118,10 @@
 
   type Emits = (e: 'update:modelValue', value: number | string) => void;
 
-  interface Expose {
+  interface Exposes {
     getData: () => {
       instance_num?: number;
-    } & Pick<ResourceSpecModel, 'spec_name' | 'cpu' | 'mem' | 'storage_spec' | 'qps' | 'capacity'>;
+    } & Pick<ResourceSpecModel, 'spec_name' | 'cpu' | 'mem' | 'storage_spec' | 'qps' | 'capacity' | 'spec_id'>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -222,7 +222,7 @@
     { deep: true, immediate: true },
   );
 
-  defineExpose<Expose>({
+  defineExpose<Exposes>({
     getData() {
       const item = list.value.find((item) => item.spec_id === props.modelValue);
       if (item) {
@@ -233,11 +233,12 @@
           instance_num: instanceNum && instanceNum > 0 ? instanceNum : undefined,
           mem: item.mem,
           qps: item.qps,
+          spec_id: item.spec_id,
           spec_name: item.spec_name,
           storage_spec: item.storage_spec,
         };
       }
-      return {} as ReturnType<Expose['getData']>;
+      return {} as ReturnType<Exposes['getData']>;
     },
   });
 </script>
