@@ -168,7 +168,10 @@
   }
 
   interface Exposes {
-    getSubmitData: () => AlarmGroupNotice[];
+    getSubmitData: () => {
+      alertNotice: AlarmGroupNotice[];
+      channels: string[];
+    };
   }
 
   type TimePickerRef = ComponentPublicInstance<typeof BkTimePicker>;
@@ -606,6 +609,7 @@
 
   defineExpose<Exposes>({
     getSubmitData() {
+      let isRobotExist = false;
       const submitData = panelList.value.map((item) => {
         const { dataList, timeRange } = item;
 
@@ -631,6 +635,9 @@
             const noticeWaysInput = inputArr.reduce(
               (prev, current) => {
                 if (current.value !== '') {
+                  if (current.type === MessageTypes.WECOM_ROBOT) {
+                    isRobotExist = true;
+                  }
                   prev.push({
                     name: InputMessageTypeMap[current.type] || current.type, // 转为映射值
                     receivers: current.value.split(','),
@@ -654,7 +661,10 @@
         };
       });
 
-      return submitData;
+      return {
+        alertNotice: submitData,
+        channels: isRobotExist ? ['user', 'wxwork-bot'] : ['user'],
+      };
     },
   });
 </script>
