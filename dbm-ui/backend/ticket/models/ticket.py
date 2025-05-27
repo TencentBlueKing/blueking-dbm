@@ -582,9 +582,10 @@ class ClusterOperateRecord(AuditedModel):
         判断当前单据类型与集群正在进行中的单据是否互斥
         这里判断流程是否在暂停节点的状态
         如果没有产生互斥，则暂停节点可以运行，同时记录的is_pause=False
+        排除自身的单据id
         """
         exclusive_infos = self.__class__.objects.has_exclusive_operations_with_lock(
-            self.ticket.ticket_type, self.cluster_id, is_pause=False
+            self.ticket.ticket_type, self.cluster_id, is_pause=False, exclude_ticket_ids=[self.ticket.id]
         )
         if not exclusive_infos:
             # 表示当前没有互斥单据, 可以运行

@@ -190,17 +190,6 @@ class MySQLMasterFailOverFlow(object):
                         )
                     cluster_switch_sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
-                # 阶段4 更改旧master 和 新master 的域名映射关系，并发执行
-                cluster_switch_sub_pipeline.add_parallel_acts(
-                    acts_list=MySQLMasterSlaveSwitchFlow.get_handle_domain_act_list(
-                        master_ip=info["master_ip"]["ip"],
-                        slave_ip=info["slave_ip"]["ip"],
-                        mysql_port=int(cluster["mysql_port"]),
-                        slave_dns_list=cluster["slave_dns_list"],
-                        bk_cloud_id=cluster["bk_cloud_id"],
-                    )
-                )
-
                 # 增加tbinlogdumper实例部署切换联动
                 if ExtraProcessInstance.objects.filter(cluster_id=cluster_id).exists():
                     cluster_switch_sub_pipeline.add_act(
@@ -238,7 +227,6 @@ class MySQLMasterFailOverFlow(object):
                 sub_flow=build_surrounding_apps_sub_flow(
                     bk_cloud_id=info["slave_ip"]["bk_cloud_id"],
                     master_ip_list=[info["slave_ip"]["ip"]],
-                    # slave_ip_list=[info["master_ip"]["ip"]], # 故障机器不需要再部署
                     root_id=self.root_id,
                     parent_global_data=copy.deepcopy(sub_flow_context),
                     is_init=False,

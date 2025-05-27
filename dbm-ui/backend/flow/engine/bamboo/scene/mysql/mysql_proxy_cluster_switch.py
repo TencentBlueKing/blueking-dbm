@@ -256,36 +256,6 @@ class MySQLProxyClusterSwitchFlow(object):
                     ),
                 )
 
-                # acts_list = []
-                # for dns_name in cluster["add_domain_list"]:
-                #     # 这里的添加域名的方式根据目前集群对应proxy dns域名进行循环添加，这样保证某个域名添加异常时其他域名添加成功
-                #     acts_list.append(
-                #         {
-                #             "act_name": _("增加新proxy域名映射"),
-                #             "act_component_code": MySQLDnsManageComponent.code,
-                #             "kwargs": asdict(
-                #                 CreateDnsKwargs(
-                #                     bk_cloud_id=cluster["bk_cloud_id"],
-                #                     add_domain_name=dns_name,
-                #                     dns_op_exec_port=cluster["proxy_port"],
-                #                     exec_ip=info["target_proxy_ip"]["ip"],
-                #                 )
-                #             ),
-                #         }
-                #     )
-                # switch_proxy_sub_pipeline.add_parallel_acts(acts_list=acts_list)
-
-                # switch_proxy_sub_pipeline.add_act(
-                #     act_name=_("回收旧proxy集群映射"),
-                #     act_component_code=MySQLDnsManageComponent.code,
-                #     kwargs=asdict(
-                #         RecycleDnsRecordKwargs(
-                #             bk_cloud_id=cluster["bk_cloud_id"],
-                #             dns_op_exec_port=cluster["proxy_port"],
-                #             exec_ip=info["origin_proxy_ip"]["ip"],
-                #         ),
-                #     ),
-                # )
                 create_entrysub_process = BuildEntrysManageSubflow(
                     root_id=self.root_id,
                     ticket_data=self.data,

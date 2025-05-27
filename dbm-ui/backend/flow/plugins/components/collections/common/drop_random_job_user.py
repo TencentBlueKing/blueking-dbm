@@ -24,7 +24,6 @@ from backend.flow.utils.mysql.common.random_job_with_ticket_map import (
     get_instance_with_random_job,
 )
 from backend.flow.utils.mysql.get_mysql_sys_user import generate_mysql_tmp_user
-from backend.flow.utils.mysql.mysql_version_parse import mysql_version_parse
 from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
@@ -48,21 +47,13 @@ class DropTempUserForClusterService(BaseService):
         not_running_status_instances = []
         for instance in get_instance_with_random_job(cluster=cluster, ticket_type=ticket_type):
             # 默认先关闭binlog记录， 最后统一打开
-            cmd = ["set session sql_log_bin = 0 ;"]
-
-            self.log_info(f"the cluster version is {cluster.major_version}")
-            if mysql_version_parse(cluster.major_version) >= mysql_version_parse("5.7"):
-                cmd += [
-                    f"drop user if exists `{user}`@`localhost`;",
-                    f"drop user if exists `{user}`@`{instance['instance'].split(':')[0]}`;",
-                ]
-            else:
-                cmd += [
-                    f"drop user `{user}`@`localhost`;",
-                    f"drop user `{user}`@`{instance['instance'].split(':')[0]}`;",
-                ]
+            cmd = [
+                "set session sql_log_bin = 0 ;",
+                f"drop user `{user}`@`localhost`;",
+                f"drop user `{user}`@`{instance['instance'].split(':')[0]}`;",
+                "set session sql_log_bin = 1 ;",
+            ]
             # 最后统一打开binlog, 避免复用异常
-            cmd.append("set session sql_log_bin = 1 ;")
             payloads.append(
                 {
                     "addresses": [instance["instance"]],
@@ -71,6 +62,7 @@ class DropTempUserForClusterService(BaseService):
                     "bk_cloud_id": cluster.bk_cloud_id,
                 }
             )
+            # 收集非running状态的实例信息
             if instance["cmdb_status"] != InstanceStatus.RUNNING:
                 not_running_status_instances.append(instance["instance"])
 
@@ -81,23 +73,27 @@ class DropTempUserForClusterService(BaseService):
             }
         )
         for result in resp:
-            err_list = []
-            if result["cmd_results"]:
-                err_list = [i["error_msg"] for i in result["cmd_results"] if i["error_msg"]]
-
-            if result["error_msg"] or err_list:
-                # 如果是执行失败，则判断下面，同时输出日志
-                error_log = "\n".join([result["error_msg"]] + err_list)
-                if result["address"] in not_running_status_instances and ticket_type not in TICKET_TYPE_SENSITIVE_LIST:
-                    # 如果是非running状态，标记warning信息，但不作异常处理
-                    self.log_error(error_log)
-                    self.log_warning(f"[{result['address']} is not running in dbm ,ignore]")
-                    continue
-
+            if result["error_msg"]:
+                # 如果是实例级别的失败，则判断下面，同时输出日志
+                self.log_error(
+                    f"The result [drop user `{user}`] in {result['address']} error is: [{result['error_msg']}]"
+                )
                 # 如果实例是running状态，应该记录错误，并且返回异常
                 # 如果实例非running状态，且单据类型加入敏感队列，则需要记录错误，并且返回异常
-                self.log_error(f"The result [drop user `{user}`] in {result['address']} error is: [{error_log}]")
+                if result["address"] in not_running_status_instances and ticket_type not in TICKET_TYPE_SENSITIVE_LIST:
+                    # 如果是非running状态，标记warning信息，但不作异常处理
+                    self.log_warning(f"[{result['address']} is not running in dbm ,ignore]")
+
                 is_drop_success = False
+                continue
+
+            # 如果drop user 过程中出现异常，先打印，但不报错，这里只是为打印命令异常的内容。
+            # 一般情况基本都是账号不存在才有异常。
+            if result["cmd_results"]:
+                err_list = [i["error_msg"] for i in result["cmd_results"] if i["error_msg"]]
+                if err_list:
+                    error_log = "\n".join(err_list)
+                    self.log_warning(f"The result [drop user `{user}`] in {result['address']} error is: [{error_log}]")
 
             self.log_info(f"The result [drop user `{user}`] in {result['address']} is [success]")
 
