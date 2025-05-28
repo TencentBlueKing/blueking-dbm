@@ -16,6 +16,7 @@ from typing import List
 from django.utils.translation import ugettext as _
 
 from backend import env
+from backend.components import CCApi
 from backend.components.dbresource.client import DBResourceApi
 from backend.components.hcm.client import HCMApi
 from backend.db_dirty.constants import MachineEventType, PoolType
@@ -23,7 +24,6 @@ from backend.db_dirty.exceptions import PoolTransferException
 from backend.db_dirty.models import DirtyMachine, MachineEvent
 from backend.db_meta.models import Machine
 from backend.env import HCM_APIGW_DOMAIN
-from backend.flow.utils.cc_manage import CcManage
 
 logger = logging.getLogger("root")
 
@@ -57,17 +57,17 @@ class DBDirtyMachineHandler(object):
         hosts = [{"bk_host_id": host.bk_host_id} for host in recycle_hosts]
         recycle_id = None
 
-        # 待回收 ---> 回收
+        # 待回收池 ---> CC待回收
         if source == PoolType.Recycle and target == PoolType.Recycled:
             message = _("主机删除成功！")
-            CcManage(bk_biz_id, "").recycle_host(bk_host_ids)
+            CCApi.transfer_host_to_recyclemodule({"bk_biz_id": bk_biz_id, "bk_host_id": bk_host_ids}, use_admin=True)
             # 如果配置了hcm，并且确认在hcm回收，则自动创建回收单据
             if HCM_APIGW_DOMAIN and hcm_recycle:
                 recycle_id = HCMApi.create_recycle(bk_host_ids)
                 remark = _("已自动在「海垒」创建回收单据(单号：{})").format(recycle_id)
                 message += remark
             MachineEvent.host_event_trigger(bk_biz_id, hosts, MachineEventType.Recycled, operator, remark=remark)
-        # 故障池 ---> 待回收
+        # 故障池 ---> 待回收池
         elif source == PoolType.Fault and target == PoolType.Recycle:
             message = _("主机转移成功！")
             MachineEvent.host_event_trigger(bk_biz_id, hosts, MachineEventType.ToRecycle, operator, remark=remark)
