@@ -18,8 +18,9 @@
     :title="t('需求信息')">
     <ComFactory
       class="ticket-details-page"
-      :data="data" />
-    <InfoList>
+      :data="data"
+      @hide-remark="handleHideRemark" />
+    <InfoList v-if="!remarkHidden">
       <Item
         :label="t('备注')"
         style="width: 100%">
@@ -54,6 +55,11 @@
   const route = useRoute();
 
   const isTaskInfoCardCollapse = ref(true);
+  const remarkHidden = ref(false);
+
+  const handleHideRemark = () => {
+    remarkHidden.value = true;
+  };
 
   watch(
     route,
