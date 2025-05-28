@@ -51,7 +51,7 @@
   </EditableColumn>
   <ClusterSelector
     v-model:is-show="showSelector"
-    :cluster-types="[ClusterTypes.TENDBHA]"
+    :cluster-types="localClusterTypes"
     :selected="selectedClusters"
     @change="handleSelectorChange" />
 </template>
@@ -70,22 +70,29 @@
 
   interface Props {
     /**
-     * 在添加proxy，proxy升级的场景，多加一个请求参数role: proxy  表示以proxy维度查询关联集群
+     * 选择器tab集群类型，不传默认 TENDBHA
      */
-    role?: 'proxy';
+    clusterTypes?: (ClusterTypes.TENDBHA | ClusterTypes.TENDBSINGLE)[];
+    /**
+     * @example proxy升级的场景，多加一个请求参数role: proxy  表示以proxy维度查询关联集群
+     * @example 单节点升级的场景，多加一个请求参数role: orphan  表示以orphan维度查询关联集群
+     */
+    role?: 'proxy' | 'orphan';
     selected: {
+      cluster_type: ClusterTypes;
       id: number;
       master_domain: string;
     }[];
   }
 
-  type Emits = (e: 'batch-edit', list: TendbhaModel[]) => void;
+  type Emits = (e: 'batch-edit', list: any[]) => void;
 
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
+    cluster_type: ClusterTypes;
     id?: number;
     master_domain: string;
     related_clusters: {
@@ -94,6 +101,7 @@
     }[];
   }>({
     default: () => ({
+      cluster_type: ClusterTypes.TENDBHA,
       id: undefined,
       master_domain: '',
       related_clusters: [],
@@ -103,8 +111,19 @@
   const { t } = useI18n();
 
   const showSelector = ref(false);
+  const localClusterTypes = computed<string[]>(() => {
+    if (props.clusterTypes) {
+      return props.clusterTypes;
+    }
+    return [ClusterTypes.TENDBHA];
+  });
   const selectedClusters = computed<Record<string, TendbhaModel[]>>(() => ({
-    [ClusterTypes.TENDBHA]: props.selected as TendbhaModel[],
+    [ClusterTypes.TENDBHA]: props.selected.filter(
+      (item) => item.cluster_type === ClusterTypes.TENDBHA,
+    ) as TendbhaModel[],
+    [ClusterTypes.TENDBSINGLE]: props.selected.filter(
+      (item) => item.cluster_type === ClusterTypes.TENDBSINGLE,
+    ) as TendbhaModel[],
   }));
 
   const rules = [
@@ -178,7 +197,8 @@
   };
 
   const handleSelectorChange = (selected: Record<string, TendbhaModel[]>) => {
-    emits('batch-edit', selected[ClusterTypes.TENDBHA]);
+    const dataList = localClusterTypes.value.map((type) => selected[type] || []).flat() || [];
+    emits('batch-edit', dataList);
   };
 </script>
 <style lang="less" scoped>

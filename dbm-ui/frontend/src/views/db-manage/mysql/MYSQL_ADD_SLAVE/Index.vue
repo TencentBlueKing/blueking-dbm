@@ -80,7 +80,7 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { DBTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
   import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
@@ -91,6 +91,7 @@
 
   interface RowData {
     cluster: {
+      cluster_type: ClusterTypes;
       id: number;
       master_domain: string;
       related_clusters: {
@@ -113,6 +114,7 @@
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
     cluster: data.cluster || {
+      cluster_type: ClusterTypes.TENDBHA,
       id: 0,
       master_domain: '',
       related_clusters: [],
@@ -207,6 +209,7 @@
           const clusterInfo = clusters[item.cluster_ids[0]];
           return createTableRow({
             cluster: {
+              cluster_type: clusterInfo.cluster_type,
               id: clusterInfo.id,
               master_domain: clusterInfo.immute_domain,
               related_clusters: [],
@@ -270,6 +273,7 @@
         acc.push(
           createTableRow({
             cluster: {
+              cluster_type: item.cluster_type,
               id: item.id,
               master_domain: item.master_domain,
               related_clusters: [],
