@@ -55,7 +55,7 @@
               v-model="item.db_patterns"
               :cluster-id="item.cluster.id"
               field="db_patterns"
-              :label="t('备份DB名')"
+              :label="t('指定 DB 名')"
               @batch-edit="handleBatchEdit" />
             <DbNameColumn
               v-model="item.ignore_dbs"
@@ -68,7 +68,7 @@
             <TableNameColumn
               v-model="item.table_patterns"
               field="table_patterns"
-              :label="t('备份表名')"
+              :label="t('指定表名')"
               @batch-edit="handleBatchEdit" />
             <TableNameColumn
               v-model="item.ignore_tables"
