@@ -67,6 +67,7 @@
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="100"
+          :required="false"
           :width="190">
           <template #append>
             <BatchEditColumn

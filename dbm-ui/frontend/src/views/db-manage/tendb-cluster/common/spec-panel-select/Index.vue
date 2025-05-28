@@ -17,7 +17,6 @@
       <TableEditSelect
         ref="selectRef"
         v-model="localValue"
-        :disabled="!localValue"
         :list="selectList"
         :placeholder="t('输入集群后自动生成')"
         :rules="rules"
