@@ -172,8 +172,9 @@ func TestGetClusterByParams(t *testing.T) {
 	fmt.Printf("Created cluster %+v\n", addedCluster)
 
 	params := map[string]interface{}{
-		"cluster_name": "mycluster",
-		"namespace":    "default",
+		"k8s_cluster_config_id": 1,
+		"cluster_name":          "mycluster",
+		"namespace":             "default",
 	}
 	findCluster, err := dbAccess.FindByParams(params)
 	assert.NoError(t, err, "Failed to find cluster")

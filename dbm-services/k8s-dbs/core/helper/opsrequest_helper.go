@@ -712,10 +712,12 @@ func UpdateValWithHScaling(
 func UpdateValWithCompList(
 	releaseMetaProvider metaprovider.AddonClusterReleaseProvider,
 	request *entity.Request,
+	k8sClusterConfigID uint64,
 ) (*metaentity.AddonClusterReleaseEntity, error) {
 	paramsRelease := map[string]interface{}{
-		"release_name": request.ClusterName,
-		"namespace":    request.Namespace,
+		"k8s_cluster_config_id": k8sClusterConfigID,
+		"release_name":          request.ClusterName,
+		"namespace":             request.Namespace,
 	}
 	releaseEntity, err := releaseMetaProvider.FindByParams(paramsRelease)
 	if err != nil {

@@ -184,7 +184,7 @@ func (o *OpsRequestProvider) VerticalScaling(request *coreentity.Request) (*core
 		return nil, err
 	}
 
-	_, err = serviceHelper.UpdateValWithCompList(o.releaseMetaProvider, request)
+	_, err = serviceHelper.UpdateValWithCompList(o.releaseMetaProvider, request, k8sClusterConfig.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -235,8 +235,9 @@ func (o *OpsRequestProvider) HorizontalScaling(request *coreentity.Request) (*co
 	}
 
 	paramsRelease := map[string]interface{}{
-		"release_name": request.ClusterName,
-		"namespace":    request.Namespace,
+		"k8s_cluster_config_id": k8sClusterConfig.ID,
+		"release_name":          request.ClusterName,
+		"namespace":             request.Namespace,
 	}
 	releaseEntity, err := o.releaseMetaProvider.FindByParams(paramsRelease)
 	if err != nil {
@@ -302,7 +303,7 @@ func (o *OpsRequestProvider) VolumeExpansion(request *coreentity.Request) (*core
 		return nil, err
 	}
 
-	_, err = serviceHelper.UpdateValWithCompList(o.releaseMetaProvider, request)
+	_, err = serviceHelper.UpdateValWithCompList(o.releaseMetaProvider, request, k8sClusterConfig.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -518,7 +519,7 @@ func (o *OpsRequestProvider) UpgradeCluster(request *coreentity.Request) (*coree
 		return nil, err
 	}
 
-	_, err = serviceHelper.UpdateValWithCompList(o.releaseMetaProvider, request)
+	_, err = serviceHelper.UpdateValWithCompList(o.releaseMetaProvider, request, k8sClusterConfig.ID)
 	if err != nil {
 		return nil, err
 	}

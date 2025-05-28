@@ -273,8 +273,9 @@ func (c *ClusterProvider) UpdateCluster(request *coreentity.Request) error {
 
 	// replace with the updated value
 	paramsRelease := map[string]interface{}{
-		"release_name": request.ClusterName,
-		"namespace":    request.Namespace,
+		"k8s_cluster_config_id": k8sClusterConfig.ID,
+		"release_name":          request.ClusterName,
+		"namespace":             request.Namespace,
 	}
 	releaseEntity, err := c.releaseMetaProvider.FindByParams(paramsRelease)
 	if err != nil {
@@ -313,8 +314,9 @@ func (c *ClusterProvider) DeleteCluster(request *coreentity.Request) error {
 
 	// delete record about cluster meta in db
 	params := map[string]interface{}{
-		"cluster_name": request.ClusterName,
-		"namespace":    request.Namespace,
+		"k8s_cluster_config_id": k8sClusterConfig.ID,
+		"cluster_name":          request.ClusterName,
+		"namespace":             request.Namespace,
 	}
 	clusterEntity, err := c.clusterMetaProvider.FindByParams(params)
 	if err != nil {
@@ -327,8 +329,9 @@ func (c *ClusterProvider) DeleteCluster(request *coreentity.Request) error {
 
 	// delete record about addon cluster release in db
 	paramsRelease := map[string]interface{}{
-		"release_name": request.ClusterName,
-		"namespace":    request.Namespace,
+		"k8s_cluster_config_id": k8sClusterConfig.ID,
+		"release_name":          request.ClusterName,
+		"namespace":             request.Namespace,
 	}
 	releaseEntity, err := c.releaseMetaProvider.FindByParams(paramsRelease)
 	if err != nil {

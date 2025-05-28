@@ -193,7 +193,7 @@ func TestListClusterRelease(t *testing.T) {
 }
 
 func TestGetClusterReleaseByParams(t *testing.T) {
-	db, err := initClusterTable()
+	db, err := InitClusterReleaseTb()
 	assert.NoError(t, err)
 
 	dbAccess := dbaccess.NewAddonClusterReleaseDbAccess(db)
@@ -216,8 +216,9 @@ func TestGetClusterReleaseByParams(t *testing.T) {
 	fmt.Printf("Created addon cluster release %+v\n", addedCluster)
 
 	params := map[string]interface{}{
-		"release_name": "test-release",
-		"namespace":    "test-namespace",
+		"k8s_cluster_config_id": 1,
+		"release_name":          "test-release",
+		"namespace":             "test-namespace",
 	}
 	foundClusterRelease, err := dbAccess.FindByParams(params)
 	assert.NoError(t, err, "Failed to find addon cluster release")
