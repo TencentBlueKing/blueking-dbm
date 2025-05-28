@@ -68,7 +68,7 @@
 
   import { useCreateTicket } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import IgnoreBiz from '@views/db-manage/common/toolbox-field/form-item/ignore-biz/Index.vue';
   import TicketPayload, {
@@ -83,7 +83,7 @@
   interface RowData {
     cluster: {
       bk_cloud_id: number;
-      cluster_type: string;
+      cluster_type: ClusterTypes;
       current_version: string;
       db_module_id: number;
       db_module_name: string;
@@ -115,7 +115,7 @@
   const createTableRow = (data = {} as Partial<RowData>) => ({
     cluster: data.cluster || {
       bk_cloud_id: 0,
-      cluster_type: '',
+      cluster_type: ClusterTypes.TENDBHA,
       current_version: '',
       db_module_id: 0,
       db_module_name: '',

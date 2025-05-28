@@ -20,8 +20,10 @@
       <EditableRow
         v-for="(item, index) in formData.tableData"
         :key="index">
-        <SingleClusterColumn
+        <WithRelatedClustersColumn
           v-model="item.cluster"
+          :cluster-types="[ClusterTypes.TENDBSINGLE]"
+          role="orphan"
           :selected="selected"
           @batch-edit="handleBatchEdit" />
         <CurrentVersionColumn :cluster="item.cluster" />
@@ -68,21 +70,21 @@
 
   import { useCreateTicket } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import IgnoreBiz from '@views/db-manage/common/toolbox-field/form-item/ignore-biz/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+  import WithRelatedClustersColumn from '@views/db-manage/mysql/common/edit-table-column/WithRelatedClustersColumn.vue';
 
   import CurrentVersionColumn from '../components/CurrentVersionColumn.vue';
-  import SingleClusterColumn from '../components/SingleClusterColumn.vue';
   import TargetVersionColumn from '../components/TargetVersionColumn.vue';
 
   interface RowData {
     cluster: {
       bk_cloud_id: number;
-      cluster_type: string;
+      cluster_type: ClusterTypes;
       current_version: string;
       db_module_id: number;
       db_module_name: string;
@@ -116,7 +118,7 @@
   const createTableRow = (data = {} as Partial<RowData>) => ({
     cluster: data.cluster || {
       bk_cloud_id: 0,
-      cluster_type: '',
+      cluster_type: ClusterTypes.TENDBSINGLE,
       current_version: '',
       db_module_id: 0,
       db_module_name: '',
@@ -245,7 +247,7 @@
         details: {
           force: formData.force,
           infos: formData.tableData.map((item) => ({
-            cluster_ids: [item.cluster.id],
+            cluster_ids: [item.cluster.id, ...item.cluster.related_clusters.map((item) => item.id)],
             display_info: {
               charset: item.target_version.charset,
               cluster_type: item.cluster.cluster_type,
