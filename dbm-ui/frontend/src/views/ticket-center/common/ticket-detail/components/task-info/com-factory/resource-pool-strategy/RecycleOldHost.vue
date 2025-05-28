@@ -24,19 +24,77 @@
         {{ ticketDetails.details.parent_ticket }}
       </BkButton>
     </InfoItem>
+    <InfoItem :label="t('已下架主机')">
+      <BkTable :data="ticketDetails.details.recycle_hosts">
+        <BkTableColumn
+          field="ip"
+          fixed="left"
+          label="IP"
+          :min-width="150">
+          <template #header>
+            <div class="ip-header">
+              IP
+              <DbIcon
+                type="copy"
+                @click="copyAllIp" />
+            </div>
+          </template>
+        </BkTableColumn>
+        <BkTableColumn
+          field="bk_cloud_name"
+          :label="t('管控区域')"
+          :min-width="120" />
+        <BkTableColumn
+          field="status"
+          :label="t('Agent 状态')"
+          :min-width="120">
+          <template #default="{ data }: { data: RowData }">
+            <HostAgentStatus :data="data.status" />
+          </template>
+        </BkTableColumn>
+        <BkTableColumn
+          field="city"
+          :label="t('地域')"
+          :min-width="120">
+          <template #default="{ data }: { data: RowData }">
+            {{ data.city || '--' }}
+          </template>
+        </BkTableColumn>
+        <BkTableColumn
+          field="sub_zone"
+          :label="t('园区')"
+          :min-width="120">
+          <template #default="{ data }: { data: RowData }">
+            {{ data.sub_zone || '--' }}
+          </template>
+        </BkTableColumn>
+        <BkTableColumn
+          field="rack_id"
+          :label="t('机架')"
+          :min-width="120">
+          <template #default="{ data }: { data: RowData }">
+            {{ data.rack_id || '--' }}
+          </template>
+        </BkTableColumn>
+        <BkTableColumn
+          field="bk_os_name"
+          :label="t('操作系统')"
+          :min-width="120">
+          <template #default="{ data }: { data: RowData }">
+            {{ data.bk_os_name || '--' }}
+          </template>
+        </BkTableColumn>
+        <BkTableColumn
+          field="device_class"
+          :label="t('机型')"
+          :min-width="120">
+          <template #default="{ data }: { data: RowData }">
+            {{ data.device_class || '--' }}
+          </template>
+        </BkTableColumn>
+      </BkTable>
+    </InfoItem>
   </InfoList>
-  <RecycleHostCard
-    :data="ticketDetails.details.fault_hosts"
-    :title="t('转入故障池')" />
-  <RecycleHostCard
-    :data="ticketDetails.details.recycle_hosts"
-    :title="t('转入待回收池')" />
-  <RecycleHostCard
-    :data="ticketDetails.details.resource_hosts"
-    :title="t('退回资源池')" />
-  <RecycleHostCard
-    :data="ticketDetails.details.recycled_hosts"
-    :title="t('回收')" />
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -46,15 +104,17 @@
 
   import { TicketTypes } from '@common/const';
 
-  import { getBusinessHref } from '@utils';
+  import HostAgentStatus from '@components/host-agent-status/Index.vue';
+
+  import { execCopy, getBusinessHref } from '@utils';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
-
-  import RecycleHostCard from './RecycleHostCard.vue';
 
   interface Props {
     ticketDetails: TicketModel<Common.ResourcePoolRecycle>;
   }
+
+  type RowData = Props['ticketDetails']['details']['recycle_hosts'][number];
 
   defineOptions({
     name: TicketTypes.RECYCLE_OLD_HOST,
@@ -75,4 +135,28 @@
     });
     window.open(getBusinessHref(href, props.ticketDetails.bk_biz_id), '_blank');
   };
+
+  const copyAllIp = () => {
+    const ips = props.ticketDetails.details.recycle_hosts.map((item) => item.ip);
+    if (ips.length > 0) {
+      execCopy(ips.join('\n'), t('复制成功，共n条', { n: ips.length }));
+    }
+  };
 </script>
+<style lang="less" scoped>
+  .ip-header {
+    &:hover {
+      [class*='db-icon'] {
+        display: inline !important;
+      }
+    }
+
+    [class*='db-icon'] {
+      display: none;
+      margin-top: 1px;
+      margin-left: 4px;
+      color: @primary-color;
+      cursor: pointer;
+    }
+  }
+</style>
