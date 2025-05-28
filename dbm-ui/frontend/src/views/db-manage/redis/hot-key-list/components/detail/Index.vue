@@ -66,8 +66,9 @@
               :name="item" />
           </BkSelect>
           <BkInput
-            v-model="key"
+            v-model="serachKey"
             class="ml-8"
+            clearable
             :placeholder="t('请输入关键字')"
             style="flex: 1"
             type="search"
@@ -100,6 +101,8 @@
   import RedisHotKeyModel from '@services/model/redis/redis-hot-key';
   import { exportHotKeyAnalysis, getAnalysisDetails } from '@services/source/redisAnalysis';
 
+  import { useDebouncedRef } from '@hooks';
+
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
   import Info from './components/Info.vue';
@@ -118,8 +121,8 @@
 
   const { t } = useI18n();
 
+  const serachKey = useDebouncedRef('');
   const selectedInstanceList = ref<string[]>([]);
-  const key = ref('');
 
   const currentRecord = computed(() => props.recordList[currentIndex.value]);
   const instanceList = computed(() => currentRecord.value.ins_list);
@@ -145,13 +148,17 @@
     currentRecord,
     () => {
       selectedInstanceList.value = currentRecord.value.ins_list;
-      key.value = '';
+      serachKey.value = '';
       fetchData();
     },
     // {
     //   immediate: true,
     // },
   );
+
+  watch(serachKey, () => {
+    fetchData();
+  });
 
   const handleCurrentIndexChange = (isNext = true) => {
     if (isNext) {
@@ -163,14 +170,14 @@
 
   const handleClearSearch = () => {
     selectedInstanceList.value = [];
-    key.value = '';
+    serachKey.value = '';
     fetchData();
   };
 
   const fetchData = () => {
     runGetAnalysisDetails({
       instance_addresses: selectedInstanceList.value.join(','),
-      key: key.value,
+      key: serachKey.value,
       limit: -1,
       offset: 0,
       record_id: currentRecord.value.id,
@@ -180,7 +187,7 @@
   const handleExport = () => {
     exportHotKeyAnalysis({
       instance_addresses: selectedInstanceList.value.join(','),
-      key: key.value,
+      key: serachKey.value,
       record_ids: `${currentRecord.value.id}`,
     });
   };

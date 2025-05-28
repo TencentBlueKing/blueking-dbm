@@ -33,7 +33,7 @@
       </BkTableColumn>
       <BkTableColumn
         field="cpu"
-        :label="t('内存占比')"
+        :label="t('执行占比')"
         :width="200">
         <template #default="{ data }: { data: Props['info']['infos'][number] }">
           <div class="detail-ratio">
@@ -47,7 +47,7 @@
               :stroke-width="14"
               type="circle"
               :width="20" />
-            <span class="detail-ratio">{{ Number(data.ratio) }} %</span>
+            <span class="detail-ratio">{{ data.ratio }} %</span>
           </div>
         </template>
       </BkTableColumn>

@@ -14,7 +14,7 @@
 <template>
   <div class="redis-hot-key-list">
     <div class="header-action">
-      <span
+      <!-- <span
         v-bk-tooltips="{
           disabled: selected.length > 0,
           content: t('请选择任务'),
@@ -24,7 +24,7 @@
           @click="() => handleExport()">
           {{ t('批量导出') }}
         </BkButton>
-      </span>
+      </span> -->
       <BkDatePicker
         v-model="daterange"
         :placeholder="t('选择日期范围')"
@@ -44,11 +44,9 @@
       ref="tableRef"
       :data-source="queryAnalysisRecords"
       releate-url-query
-      selectable
       :show-overflow="false"
       @clear-search="handleClearSearch"
-      @column-filter="columnFilterChange"
-      @selection="handleSelection">
+      @column-filter="columnFilterChange">
       <BkTableColumn
         field="root_id"
         fixed="left"
@@ -203,8 +201,8 @@
       </BkTableColumn>
     </DbTable>
     <Detail
+      v-model:current-index="currentDetailIndex"
       v-model:is-show="isDetailShow"
-      :current-index="currentDetailIndex"
       :record-list="recordList"
       @refresh="fetchTableData" />
   </div>
@@ -262,7 +260,7 @@
   const daterange = ref(initDate());
 
   const ticketTypes = ref<{ id: string; name: string }[]>([]);
-  const selected = shallowRef<RedisHotKeyModel[]>([]);
+  // const selected = shallowRef<RedisHotKeyModel[]>([]);
   const recordList = shallowRef<RedisHotKeyModel[]>([]);
 
   const searchData = computed(() => [
@@ -345,9 +343,9 @@
     return searchData.value.find((set) => set.id === item.id)?.children || [];
   };
 
-  const handleSelection = (key: any, list: Record<number, RedisHotKeyModel>[]) => {
-    selected.value = list as unknown as RedisHotKeyModel[];
-  };
+  // const handleSelection = (key: any, list: Record<number, RedisHotKeyModel>[]) => {
+  //   selected.value = list as unknown as RedisHotKeyModel[];
+  // };
 
   const handleClearSearch = () => {
     daterange.value = ['', ''];
@@ -400,11 +398,15 @@
     window.open(getBusinessHref(href), '_blank');
   };
 
-  const handleExport = (row?: RedisHotKeyModel) => {
-    const data = row ? [row] : selected.value;
-    exportHotKeyAnalysis({ record_ids: data.map((item) => item.id).join(',') }).then(() => {
-      tableRef.value!.clearSelected();
-    });
+  // const handleExport = (row?: RedisHotKeyModel) => {
+  //   const data = row ? [row] : selected.value;
+  //   exportHotKeyAnalysis({ record_ids: data.map((item) => item.id).join(',') }).then(() => {
+  //     tableRef.value!.clearSelected();
+  //   });
+  // };
+
+  const handleExport = (row: RedisHotKeyModel) => {
+    exportHotKeyAnalysis({ record_ids: `${row.id}` });
   };
 </script>
 
