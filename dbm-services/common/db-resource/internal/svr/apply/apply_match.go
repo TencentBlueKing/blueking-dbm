@@ -87,9 +87,15 @@ func (c *PickerObject) PickerCrossSubzone(cross_subzone, cross_swicth bool) {
 			subzoneChan <- v
 		}
 		for subzone := range subzoneChan {
+			if len(c.PriorityElements) == 0 {
+				logger.Info("go out")
+				close(subzoneChan)
+				return
+			}
 			pq, ok := c.PriorityElements[subzone]
 			if !ok {
 				logger.Warn("%s is queue is nil", subzone)
+				delete(c.PriorityElements, subzone)
 				continue
 			}
 			if pq.Len() == 0 {
