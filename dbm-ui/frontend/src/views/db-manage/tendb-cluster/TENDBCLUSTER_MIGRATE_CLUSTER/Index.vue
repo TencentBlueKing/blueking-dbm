@@ -185,7 +185,7 @@
   });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
-    backup_resource: BackupSourceType;
+    backup_source: BackupSourceType;
     infos: {
       cluster_id: number;
       old_nodes: {
@@ -209,7 +209,7 @@
     }
     createTicketRun({
       details: {
-        backup_resource: formData.backupSource,
+        backup_source: formData.backupSource,
         infos: formData.tableData.map((item) => ({
           cluster_id: item.oldMaster.cluster_id,
           old_nodes: {
