@@ -1,11 +1,11 @@
 package atommongodb
 
 import (
-	"dbm-services/mongodb/db-tools/dbactuator/pkg/consts"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/jobruntime"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/util"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mymongo"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/toolkit/logical"
+	"dbm-services/mongodb/db-tools/mongo-toolkit-go/toolkit/pitr"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -290,7 +290,7 @@ func (s *restoreJob) Init(runtime *jobruntime.JobGenericRuntime) error {
 		return err
 	}
 
-	if util.FileExists(s.param.Args.RecoverDir) == false {
+	if !util.FileExists(s.param.Args.RecoverDir) {
 		return errors.New("recover dir is empty")
 	}
 
@@ -308,14 +308,13 @@ func (s *restoreJob) Init(runtime *jobruntime.JobGenericRuntime) error {
 	if err != nil {
 		return errors.Wrap(err, "GetMongoServerVersion")
 	}
+
 	// Set Tools Path
-	s.MongoRestoreBin, err = consts.GetMongorestoreBin(version)
+	s.MongoRestoreBin, err = pitr.GetMongoRestoreBin(version)
 	if err != nil {
-		return errors.Wrap(err, "get mongodump")
+		return errors.Wrap(err, "get mongorestore")
 	}
-	if !util.FileExists(s.MongoRestoreBin) {
-		return errors.Errorf("mongorestore not exists, path:%s", s.MongoRestoreBin)
-	}
+
 	return nil
 }
 

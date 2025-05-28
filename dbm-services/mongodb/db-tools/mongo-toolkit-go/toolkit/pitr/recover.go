@@ -1,12 +1,11 @@
 package pitr
 
 import (
-	"bufio"
 	"bytes"
+	"dbm-services/mongodb/db-tools/dbmon/pkg/consts"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mycmd"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mymongo"
 	"fmt"
-	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -18,12 +17,6 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
-
-var BinDir string
-
-func getToolPath(name string) string {
-	return path.Join(BinDir, "bin", name)
-}
 
 // Output 如果有别的程序调用mongo-recover，可以根据type == OUTPUT/SUCC/FAIL 过滤到有用的日志
 func Output(format string, a ...interface{}) {
@@ -44,22 +37,27 @@ func ExitFailed(format string, a ...interface{}) {
 
 }
 
-func saveLog(commandLine, restoreLogfile string, stdout, stderr string, err error) {
+func appendLog(commandLine, restoreLogfile string, stdout, stderr string, err error) {
 	buf1 := bytes.NewBufferString(stdout)
 	buf2 := bytes.NewBufferString(stderr)
-	SaveRestoreLog(commandLine, restoreLogfile, *buf1, *buf2, err)
+	SaveRestoreLog(commandLine, restoreLogfile, *buf1, *buf2, true, err)
 }
 
 // SaveRestoreLog 保存恢复日志
-func SaveRestoreLog(commandLine, restoreLogfile string, outBuf, errBuf bytes.Buffer, err error) {
-	if f, err2 := os.Create(restoreLogfile); err2 == nil {
+func SaveRestoreLog(commandLine, restoreLogfile string, outBuf, errBuf bytes.Buffer, appendFlag bool, err error) {
+	flag := os.O_CREATE | os.O_WRONLY
+	if appendFlag {
+		flag = os.O_APPEND | os.O_WRONLY
+	}
+
+	if f, err2 := os.OpenFile(restoreLogfile, flag, 0644); err2 == nil {
 		defer f.Close()
 		f.WriteString("cmd: " + commandLine + "\n")
 		f.WriteString("stdout begin:\n")
 		f.Write(outBuf.Bytes())
 		f.WriteString("\nstdout end\n")
 
-		f.WriteString("stderr begin\n")
+		f.WriteString("stderr begin:\n")
 		f.Write(errBuf.Bytes())
 		f.WriteString("\nstderr end\n")
 
@@ -105,18 +103,22 @@ func SendErrorProcessLog(logChan chan *ProcessLog, msg string) {
 }
 
 // UntarFull 解压全量备份到临时目录, 如果file是archive, 则直接返回, 不进行解压. 返回值: 临时目录, 子目录名, 是否gzip, 是否archive, 错误
-func UntarFull(backupFileDir string, file *BackupFileName) (fullTmpDir, subDirName string, gzip bool, archive bool, err error) {
+func UntarFull(backupFileDir string, file *BackupFileName) (
+	fullTmpDir, subDirName string, gzip bool, zstd bool, archive bool, err error) {
 	if err = os.Chdir(backupFileDir); err != nil {
 		err = errors.Wrap(err, "Cannot chdir to %s")
 		return
 	}
 
-	archive = strings.HasSuffix(file.FileName, ".archive") || strings.HasSuffix(file.FileName, ".archive.gz")
+	archive = strings.HasSuffix(file.FileName, ".archive") ||
+		strings.HasSuffix(file.FileName, ".archive.zstd")
+	// 如果file是archive.zstd, 则zstd为true. 不存在没有archive的zstd文件.
+	zstd = strings.HasSuffix(file.FileName, ".archive.zstd")
 
 	subDirName = strings.TrimSuffix(file.FileName, ".gz")
 	subDirName = strings.TrimSuffix(subDirName, ".tar")
 	subDirName = strings.TrimSuffix(subDirName, ".archive")
-	subDirName = strings.TrimSuffix(subDirName, ".archive.gz")
+	subDirName = strings.TrimSuffix(subDirName, ".archive.zstd")
 	fullTmpDir = path.Join("tmp", subDirName, "full")
 
 	if _, err = os.Stat(fullTmpDir); err == nil {
@@ -131,7 +133,7 @@ func UntarFull(backupFileDir string, file *BackupFileName) (fullTmpDir, subDirNa
 
 	if archive {
 		// if archive, just return. no need to untar.
-		return fullTmpDir, subDirName, gzip, archive, nil
+		return fullTmpDir, subDirName, gzip, zstd, archive, nil
 	}
 
 	var tarArg string
@@ -154,12 +156,13 @@ func UntarFull(backupFileDir string, file *BackupFileName) (fullTmpDir, subDirNa
 }
 
 // DoMongoRestoreFULL 导入全量备份
-func DoMongoRestoreFULL(bin string, conn *mymongo.MongoHost, file *BackupFileName, backupFileDir string, logChan chan *ProcessLog) (string, error) {
+func DoMongoRestoreFULL(bin string, conn *mymongo.MongoHost, file *BackupFileName,
+	backupFileDir string, logChan chan *ProcessLog) (string, error) {
 	// fmt.Printf("DoMongoRestore: %s %s to %s:%s\n", file.Type, file.FileName, conn.Host, conn.Port)
 
 	SendProcessLog(logChan, fmt.Sprintf("start to untar %s ", file.FileName))
 
-	fullTmpDir, subDirName, gzip, archive, err := UntarFull(backupFileDir, file)
+	fullTmpDir, subDirName, gzip, zstd, archive, err := UntarFull(backupFileDir, file)
 	if err != nil {
 		SendErrorProcessLog(logChan, fmt.Sprintf("UntarFull return %s", err.Error()))
 		return "", errors.Wrap(err, "UntarFull")
@@ -188,7 +191,7 @@ func DoMongoRestoreFULL(bin string, conn *mymongo.MongoHost, file *BackupFileNam
 	}
 
 	dumpDir := path.Join(fullTmpDir, subDirName, "dump")
-	restoreLogfile := path.Join(fullTmpDir, subDirName, "restore.log")
+	restoreLogfile := path.Join(fullTmpDir, "restore.log")
 
 	restoreCmd := mycmd.New(bin, "--host", conn.Host, "--port", conn.Port,
 		"--authenticationDatabase", conn.AuthDb, "--oplogReplay")
@@ -198,85 +201,90 @@ func DoMongoRestoreFULL(bin string, conn *mymongo.MongoHost, file *BackupFileNam
 	if len(conn.Pass) > 0 {
 		restoreCmd.Append("-p", mycmd.Password(conn.Pass))
 	}
-	if gzip {
-		restoreCmd.Append("--gzip")
-	}
-	if archive {
-		restoreCmd.Append("--archive=" + file.FileName)
-	} else {
+
+	var zstdcatExec *mycmd.MyExec
+
+	// 4种情况
+	// 1. zstd && archive
+	// 2. zstd && !archive -- 不存在
+	// 3. !zstd && !archive --
+	// 4. !zstd && archive
+	if zstd && archive {
+		// zstdcat file.archive.zstd | mongorestore --archive=-
+
+		zstdcatExec, err = mycmd.NewMyExec(mycmd.New(
+			MustFindBinPath("zstd", consts.GetDbTool("mongotools")),
+			"-dcf", file.FileName), 7*24*time.Hour, nil, os.DevNull)
+		if err != nil {
+			return "", errors.Wrap(err, "NewMyExec")
+		}
+		defer zstdcatExec.CancelFunc()
+		restoreCmd.Append("--archive=-")
+	} else if zstd && !archive {
+		// 现在不存在这种场景
+		log.Fatalf("zstd && !archive is not supported")
+	} else if !zstd && !archive {
+		// mongorestore --dir dump
 		restoreCmd.Append("--dir", mycmd.Val(dumpDir))
+		if gzip {
+			restoreCmd.Append("--gzip")
+		}
+	} else if !zstd && archive {
+		// mongorestore --archive=file.archive
+		restoreCmd.Append("--archive=" + file.FileName)
+		if gzip {
+			restoreCmd.Append("--gzip")
+		}
 	}
-	errReader, errWriter := io.Pipe()
-	var outBuf, errBuf bytes.Buffer
-	bgCmd := mycmd.NewExecCmdBg()
-	bgCmd.SetOutput(io.Writer(&outBuf), errWriter)
-	bin, args := restoreCmd.GetCmd()
-	bgCmd.Run(86400*7, bin, args)
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	// 后台读取errReader，
-	go func() {
-		defer wg.Done()
-		scanner := bufio.NewScanner(errReader)
-		// optionally, resize scanner's capacity for lines over 64K, see next example
-		for scanner.Scan() {
-			newLine := scanner.Text()
-			errBuf.WriteString(newLine)
-			errBuf.Write([]byte("\n"))
-			SendProcessLog(logChan, newLine)
-		}
-		if err = scanner.Err(); err != nil {
-			SendProcessLog(logChan, fmt.Sprintf("scanner.Err() %s", scanner.Err()))
-		}
-	}()
-	bgCmd.Wait()      // 等待命令完成
-	errWriter.Close() // 关闭管道，让scanner退出
-	wg.Wait()         // 等待scanner退出
 
-	exitCode := 0
-	stdout := outBuf.String()
-
-	saveLog(restoreCmd.GetCmdLine("", true), restoreLogfile, stdout, errBuf.String(), err)
-	// todo 检查日志中是否有一些异常字串 比如Duplicate keys
-	// todo 隐患 当出现大量Duplicate日志时，obuf/ebuf需要相应的内存存储引起oom，要改为直接写入文件
+	exec2, err := mycmd.NewMyExec(restoreCmd, 7*24*time.Hour, os.DevNull, restoreLogfile)
 	if err != nil {
-		SendErrorProcessLog(logChan,
-			fmt.Sprintf("return code %d error %s, stdout:%s stderr:%s", exitCode, err, stdout, cutString(errBuf.String(), 1024)))
-		return "", fmt.Errorf("mongorestore return error %v", err)
+		return "", errors.Wrap(err, "NewMyExec")
 	}
+	defer exec2.CancelFunc()
+
+	// 如果zstdcatExec不为nil，则将zstdcatExec的输出作为mongorestore的输入
+	if zstdcatExec != nil {
+		out1, err := zstdcatExec.ExecHandle.StdoutPipe()
+		if err != nil {
+			return "", errors.Wrap(err, "StdoutPipe")
+		}
+		exec2.SetStdin(out1)
+	}
+
+	for _, cmd := range []*mycmd.MyExec{zstdcatExec, exec2} {
+		if cmd != nil {
+			SendProcessLog(logChan, fmt.Sprintf("DoMongoRestoreFULL cmd: %s", cmd.CmdBuilder.GetCmdLine("", true)))
+		}
+	}
+	SendProcessLog(logChan, fmt.Sprintf("mongorestore logFile:%s", restoreLogfile))
+
+	errorsList := runCmdList([]*mycmd.MyExec{zstdcatExec, exec2})
+	if len(errorsList) > 0 {
+		for _, err := range errorsList {
+			log.Warnf("DoMongoRestoreFULL error: %v", err)
+		}
+		SendErrorProcessLog(logChan, fmt.Sprintf("DoMongoRestoreFULL return %s", errorsList[0].Error()))
+		return "", errors.Wrap(errorsList[0], "DoMongoRestoreFULL")
+	}
+
 	return dumpDir, nil
 }
 
-func cutString(s string, maxLen int) string {
-	if len(s) > maxLen+20 {
-		cuttedLen := len(s) - maxLen
-		return fmt.Sprintf("(%d bytes before)... ", cuttedLen) + s[:maxLen]
-	}
-	return s
-}
-
 // DoReplayOplog oplog dir/oplog.bson
-func DoReplayOplog(bin string, conn *mymongo.MongoHost, backupFilePath string, recoverTime uint32, gzip bool) error {
+func DoReplayOplog(bin string, conn *mymongo.MongoHost, backupFilePath string, tmpDirPath string, recoverTime uint32,
+	gzip bool, archive bool, logChan chan *ProcessLog) error {
 	fmt.Printf("DoReplayOplog: %s to %s:%s\n", backupFilePath, conn.Host, conn.Port)
-
-	if filepath.Base(backupFilePath) != "oplog.bson" {
-		return fmt.Errorf("bad oplog name:%s", filepath.Base(backupFilePath))
-	}
-
 	oplogDir := filepath.Dir(backupFilePath)
 
-	args := []string{"--host", conn.Host, "--port", conn.Port, "--authenticationDatabase", conn.AuthDb}
+	args := []interface{}{"--host", conn.Host, "--port", conn.Port, "--authenticationDatabase", conn.AuthDb}
 	if len(conn.User) > 0 {
 		args = append(args, "-u", conn.User)
 	}
 	if len(conn.Pass) > 0 {
 		args = append(args, "-p", conn.Pass)
 	}
-
 	//mongodump --oplog --gzip 产生的oplog.bson文件，虽然文件名为oplog.bson，但实际是gz压缩文件
-	if gzip {
-		args = append(args, "--gzip")
-	}
 	args = append(args, "--oplogReplay")
 
 	//--oplogLimit $recovery_time_epoch:0
@@ -284,92 +292,162 @@ func DoReplayOplog(bin string, conn *mymongo.MongoHost, backupFilePath string, r
 		args = append(args, "--oplogLimit", fmt.Sprintf("%d:999", recoverTime))
 	}
 
-	//最后一个参数必须是
-	args = append(args, "--dir", oplogDir)
+	var exec1, exec2 *mycmd.MyExec
+	var err error
 
-	obuf, ebuf, err := DoCommand(bin, args...)
-	commandLine := fmt.Sprintf("%s %s", bin, strings.Join(args, " "))
-	logFile := path.Join(path.Dir(path.Dir(backupFilePath)), "restore.log")
-	SaveRestoreLog(commandLine, logFile, obuf, ebuf, err)
-	log.Printf("Exec commandLine: %s err:%v", commandLine, err)
-	log.Printf("SaveRestoreLog: %s", logFile)
-	return err
-}
-
-// FileExists https://stackoverflow.com/questions/12518876/how-to-check-if-a-file-exists-in-go
-func FileExists(filePath string) (bool, error) {
-	if _, err := os.Stat(filePath); err == nil {
-		// path/to/whatever exists
-		return true, nil
-
-	} else if os.IsNotExist(err) {
-		// path/to/whatever does *not* exist
-		return false, nil
+	if archive { // archive 场景
+		panic("not supported")
+		/*
+			if gzip { // zstdcat file.archive.zstd | mongorestore --archive=-
+				zstdBin, err := FindBinPath("zstd", consts.GetDbTool("mongotools"))
+				if err != nil {
+					return errors.Wrap(err, "zstdBin")
+				}
+				args = append(args, "--archive=-")
+				exec1, err = mycmd.NewMyExec(mycmd.New(zstdBin, "--rm", "-d", backupFilePath), 7*24*time.Hour, nil, os.DevNull)
+				if err != nil {
+					return errors.Wrap(err, "NewMyExec zstdBin")
+				}
+				defer exec1.CancelFunc()
+			} else { // mongorestore --archive=file.archive
+				args = append(args, "--archive="+backupFilePath)
+			}
+		*/
 	} else {
-		return false, err
-		// Schrodinger: file may or may not exist. See err for details.
-
-		// Therefore, do *NOT* use !os.IsNotExist(err) to test for file existence
+		if filepath.Base(backupFilePath) != "oplog.bson" {
+			return fmt.Errorf("bad oplog name:%s", filepath.Base(backupFilePath))
+		}
+		// 这里的gzip是.gz
+		if gzip {
+			args = append(args, "--gzip")
+		}
+		//最后一个参数必须是
+		args = append(args, "--dir", oplogDir)
 	}
+
+	restoreLogfile := path.Join(tmpDirPath, "restore.log")
+	restoreCmd := mycmd.New(bin).Append(args...)
+	exec2, err = mycmd.NewMyExec(restoreCmd, 7*24*time.Hour, os.DevNull, restoreLogfile)
+	if err != nil {
+		return errors.Wrap(err, "NewMyExec")
+	}
+	defer exec2.CancelFunc()
+
+	currDir, _ := os.Getwd()
+
+	defer os.Chdir(currDir)
+
+	cmdList := []*mycmd.MyExec{exec1, exec2}
+	for _, cmd := range cmdList {
+		if cmd != nil {
+			SendProcessLog(logChan, fmt.Sprintf("DoReplayOplog cwd: %s, cmd: %s",
+				currDir, cmd.CmdBuilder.GetCmdLine("", true)))
+		}
+	}
+
+	errorsList := runCmdList(cmdList)
+	if len(errorsList) > 0 {
+		for _, err := range errorsList {
+			log.Warnf("DoReplayOplog error: %v", err)
+		}
+		return errors.Wrap(errorsList[0], "DoReplayOplog")
+	}
+
+	return nil
 }
 
-/*
-DoMongoRestoreINCR 导入INCR.
-*/
+// DoMongoRestoreINCR 导入INCR. zstd 场景下，需要先解压，再导入.
 func DoMongoRestoreINCR(bin string, conn *mymongo.MongoHost, full *BackupFileName, incrList []*BackupFileName,
-	recoverTime uint32, backupFileDir string, idx int) error {
+	recoverTime uint32, backupFileDir string, idx int, logChan chan *ProcessLog) error {
 	file := incrList[idx]
 	// fmt.Printf("DoMongoRestoreINCR: %s [%d] %s to %s:%s\n", file.Type, idx, file.FileName, conn.Host, conn.Port)
 
+	archive := strings.HasSuffix(file.FileName, ".archive") ||
+		strings.HasSuffix(file.FileName, ".archive.zstd")
+
 	subDirName := full.FileName
-	subDirName = strings.TrimSuffix(subDirName, ".gz")
-	subDirName = strings.TrimSuffix(subDirName, ".tar")
+	for _, suffix := range []string{".gz", ".zst", ".tar", ".archive", ".archive.zstd"} {
+		subDirName = strings.TrimSuffix(subDirName, suffix)
+	}
+
 	incrTmpDir := path.Join("tmp", subDirName, fmt.Sprintf("incr-%d", idx), "oplog")
 
 	if err := os.Chdir(backupFileDir); err != nil {
-		return fmt.Errorf("Cannot chdir to %s", backupFileDir)
+		return fmt.Errorf("cannot chdir to %s", backupFileDir)
 	}
 	if stat, err := os.Stat(incrTmpDir); err != nil {
 		if err := os.MkdirAll(incrTmpDir, os.FileMode(0755)); err != nil {
-			return fmt.Errorf("Cannot make dir %s", incrTmpDir)
+			return fmt.Errorf("cannot make dir %s", incrTmpDir)
 		} else {
 			log.Printf("[%s] mkdir [%s] succ", backupFileDir, incrTmpDir)
 		}
 	} else if !stat.IsDir() {
-		return fmt.Errorf("Cannot make dir %s, because a same-name-file exists", incrTmpDir)
+		return fmt.Errorf("cannot make dir %s, because a same-name-file exists", incrTmpDir)
 	}
-
 	gzip := false
-	oplogNewName := "oplog.bson"
-	// oplog Relay
-	if strings.HasSuffix(file.FileName, ".gz") {
-		gzip = true
-		DoCommand("cp", file.FileName, path.Join(incrTmpDir, oplogNewName))
+	if archive {
+		// 这种方式不存在
+		zstd := strings.HasSuffix(file.FileName, ".zstd")
+		return DoReplayOplog(bin, conn, file.FileName, incrTmpDir, recoverTime, zstd, archive, logChan)
 	} else {
-		gzip = false
-		DoCommand("cp", file.FileName, path.Join(incrTmpDir, oplogNewName))
+		oplogNewName := "oplog.bson"
+		// oplog Relay
+		if strings.HasSuffix(file.FileName, ".gz") {
+			gzip = true
+			DoCommand("cp", file.FileName, path.Join(incrTmpDir, oplogNewName))
+		} else if strings.HasSuffix(file.FileName, ".zst") {
+			gzip = false
+			err := ZstdCmd("-k", "-d", file.FileName, "-o", path.Join(incrTmpDir, oplogNewName))
+			if err != nil {
+				log.Errorf("zstd decompress %s to %s failed, err: %v",
+					file.FileName, path.Join(incrTmpDir, oplogNewName), err)
+				SendErrorProcessLog(logChan,
+					fmt.Sprintf("zstd decompress %s to %s failed, err: %v",
+						file.FileName, path.Join(incrTmpDir, oplogNewName), err))
+				return errors.Wrap(err, "zstdcat")
+			}
+		} else {
+			gzip = false
+			DoCommand("cp", file.FileName, path.Join(incrTmpDir, oplogNewName))
+		}
+		//DoCommand("gzip", "-d", path.Join(incrTmpDir,oplog_newname +".gz"))
+		// V1版本:
+		// 全量备份和增量备份是分别2个线程，全量只管做全量备份，增量备份只需要和它上一个增量备份衔接。
+		// 这导致全量备份导入后，下一个增量备份文件里有和全量备份oplog重叠的部分
+		// Deprecated: 已经没有v1版本了，所以这个功能已经废弃
+		if idx == 0 && file.Version == BackupFileVersionV1 {
+			minTs := fmt.Sprintf("%d", full.LastTs.Sec)
+			// Output("This is the First oplog after FULL")
+			// Output("Delete First oplog.bson where time < %s (full time)", minTs)
+			///bsonfilter --bsonFile ./path/to/oplog.bson  --outFile x.bson.new --min-ts 1576990774:1
+			oldPath := path.Join(incrTmpDir, oplogNewName)
+			newPath := path.Join(incrTmpDir, oplogNewName) + ".new"
+			result, err := DoCommandV2("bsonfilter", "--bsonFile", oldPath, "--outFile", newPath, "--min-ts", minTs)
+			logFile := path.Join(path.Dir(incrTmpDir), "bsonfilter.log")
+			os.Rename(newPath, oldPath)
+			SaveRestoreLog(result.Cmdline, logFile, result.Stdout, result.Stderr, false, err)
+			//gzip is false after bsonfilter ...
+			gzip = false
+		}
+		return DoReplayOplog(bin, conn, path.Join(incrTmpDir, oplogNewName),
+			incrTmpDir, recoverTime, gzip, archive, logChan)
 	}
 
-	//DoCommand("gzip", "-d", path.Join(incrTmpDir,oplog_newname +".gz"))
-	// V1版本:
-	// 全量备份和增量备份是分别2个线程，全量只管做全量备份，增量备份只需要和它上一个增量备份衔接。
-	// 这导致全量备份导入后，下一个增量备份文件里有和全量备份oplog重叠的部分
-	if idx == 0 && file.Version == BackupFileVersionV1 {
-		minTs := fmt.Sprintf("%d", full.LastTs.Sec)
-		// Output("This is the First oplog after FULL")
-		// Output("Delete First oplog.bson where time < %s (full time)", minTs)
-		///bsonfilter --bsonFile ./path/to/oplog.bson  --outFile x.bson.new --min-ts 1576990774:1
-		oldPath := path.Join(incrTmpDir, oplogNewName)
-		newPath := path.Join(incrTmpDir, oplogNewName) + ".new"
-		result, err := DoCommandV2("bsonfilter", "--bsonFile", oldPath, "--outFile", newPath, "--min-ts", minTs)
-		logFile := path.Join(path.Dir(incrTmpDir), "bsonfilter.log")
-		os.Rename(newPath, oldPath)
-		SaveRestoreLog(result.Cmdline, logFile, result.Stdout, result.Stderr, err)
-		//gzip is false after bsonfilter ...
-		gzip = false
-	}
+}
 
-	return DoReplayOplog(bin, conn, path.Join(incrTmpDir, oplogNewName), recoverTime, gzip)
+func ZstdCmd(args ...any) error {
+	zstdBin, err := FindBinPath("zstd", consts.GetDbTool("mongotools"))
+	if err != nil {
+		return errors.Wrap(err, "GetDbToolsBin")
+	}
+	exec1, err := mycmd.NewMyExec(
+		mycmd.New(zstdBin).Append(args...),
+		7*24*time.Hour, nil, os.DevNull)
+	if err != nil {
+		return errors.Wrap(err, "NewMyExec zstdcat")
+	}
+	defer exec1.CancelFunc()
+	return exec1.Run()
 }
 
 func receiveLogBg() (*sync.WaitGroup, chan *ProcessLog) {
@@ -379,16 +457,14 @@ func receiveLogBg() (*sync.WaitGroup, chan *ProcessLog) {
 	go func() {
 		defer wg.Done()
 		for {
-			select {
-			case log, ok := <-logChan:
-				if !ok {
-					return
-				}
-				if log.IsErr {
-					ExitFailed("%s", log.Msg)
-				} else {
-					Output("%s", log.Msg)
-				}
+			log, ok := <-logChan
+			if !ok {
+				return
+			}
+			if log.IsErr {
+				ExitFailed("%s", log.Msg)
+			} else {
+				Output("%s", log.Msg)
 			}
 		}
 	}()
@@ -396,35 +472,35 @@ func receiveLogBg() (*sync.WaitGroup, chan *ProcessLog) {
 }
 
 // DoRecover 从全量和增量文件中恢复到指定时间点.
-func DoRecover(conn *mymongo.MongoHost, full *BackupFileName, incrList []*BackupFileName, recoverTime uint32, backupFileDir string) error {
+func DoRecover(mongorestoreBin string, conn *mymongo.MongoHost, full *BackupFileName, incrList []*BackupFileName,
+	recoverTime uint32, backupFileDir string) error {
 	wd, _ := os.Getwd()
 	log.Printf("WorkDir %s", wd)
 	Output("WorkDir is %s", wd)
 
-	// 处理日志
+	// 处理日志 日志会通过logChan发送到主进程
 	wg, logChan := receiveLogBg()
 
 	var err error
 	// 导入日志时间可能比较长.
-	_, err = DoMongoRestoreFULL("mongorestore", conn, full, backupFileDir, logChan)
-	// ExitFailed("DoMongoRestoreFULL return %s", err.Error())
+	_, err = DoMongoRestoreFULL(mongorestoreBin, conn, full, backupFileDir, logChan)
 
 	if err != nil {
 		SendErrorProcessLog(logChan, fmt.Sprintf("DoMongoRestoreFULL return %s", err.Error()))
 		goto End
 	}
 
-	for idx, _ := range incrList {
+	for idx := range incrList {
 		os.Chdir(wd)
 		SendProcessLog(logChan, fmt.Sprintf("DoMongoRestoreINCR %s start", incrList[idx].FileName))
-		if err = DoMongoRestoreINCR("mongorestore", conn, full, incrList, recoverTime, backupFileDir, idx); err != nil {
-			// ExitFailed("DoMongoRestoreINCR %s return %s", incrList[idx].FileName, err.Error())
-			SendErrorProcessLog(logChan, fmt.Sprintf("DoMongoRestoreINCR %s return %s", incrList[idx].FileName, err.Error()))
+		if err = DoMongoRestoreINCR(mongorestoreBin, conn, full, incrList,
+			recoverTime, backupFileDir, idx, logChan); err != nil {
+			SendErrorProcessLog(logChan, fmt.Sprintf("DoMongoRestoreINCR %s return %s",
+				incrList[idx].FileName, err.Error()))
 			goto End
 		}
 		SendProcessLog(logChan, fmt.Sprintf("DoMongoRestoreINCR %s end", incrList[idx].FileName))
 	}
-
 End:
 	close(logChan)
 	wg.Wait()
@@ -471,9 +547,8 @@ func FindIncrList(full *BackupFileName, recoverTime uint32, fileObjList []*Backu
 	} else if full.Version == BackupFileVersionV1 {
 		return findIncrListV1(full, recoverTime, fileObjList)
 	} else {
-		return nil, fmt.Errorf("Backup Version:%s", full.Version)
+		return nil, fmt.Errorf("backup version: %s", full.Version)
 	}
-
 }
 
 // findIncrListV0 找到增量文件列表
@@ -516,22 +591,22 @@ func findIncrListV0(full *BackupFileName, recoverTime uint32, fileObjList []*Bac
 
 	lastIncr := incrList[len(incrList)-1]
 	checkTsOk = lastIncr.LastTs.Sec >= recoverTime
-	log.Debugf("Check Max LastTs %d is >= recoverTime %d ? %v\n", lastIncr.LastTs.Sec, recoverTime, checkTsOk)
+	log.Debugf("Check Max LastTs %d is gte recoverTime %d ? %v\n", lastIncr.LastTs.Sec, recoverTime, checkTsOk)
 
 	if lastIncr.V0IncrSeq != uint32(len(incrList)) {
 		checkSeqOk = false
-		log.Debugf("Debug Bad Seq for INCR %s %d\n", lastIncr.FileName, lastIncr.V0IncrSeq)
+		log.Debugf("Debug Bad Seq for INCR %s idx:%d seq:%d\n", lastIncr.FileName, len(incrList), lastIncr.V0IncrSeq)
 	}
 
 	for i := 0; i < len(incrList); i++ {
 		if incrList[i].V0IncrSeq != uint32(i+1) {
 			checkSeqOk = false
-			log.Debugf("Debug Bad Seq for INCR %s %d\n", incrList[i].FileName, incrList[i].V0IncrSeq)
+			log.Debugf("Debug Bad Seq for INCR %s idx:%d seq:%d\n", incrList[i].FileName, i, incrList[i].V0IncrSeq)
 		}
 	}
 
 	if !checkSeqOk {
-		return nil, fmt.Errorf("Bad Oplog FileList")
+		return nil, fmt.Errorf("bad oplog file list")
 	}
 
 	if !checkTsOk {
@@ -576,7 +651,7 @@ func findIncrListV1(full *BackupFileName, recoverTime uint32, fileObjList []*Bac
 		}
 
 		incrList = append(incrList, file)
-		fmt.Printf("append  INCR %s %+v %+v\n", file.FileName, file.FirstTs, file.LastTs)
+		fmt.Printf("append INCR %s %+v %+v\n", file.FileName, file.FirstTs, file.LastTs)
 
 	}
 

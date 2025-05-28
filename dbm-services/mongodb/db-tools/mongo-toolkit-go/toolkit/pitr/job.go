@@ -72,7 +72,8 @@ func DoJob(option *BackupOption) {
 	}
 	bm.Append(currBackup) // 保存一次.meta文件，给result.FileName赋值
 	// backup success. filename: 这是给dbmon接收的，格式不能改.
-	log.Printf("do %s backup success. filename:'%s'", option.BackupType, currBackup.GetFullPath())
+	log.Printf("do %s backup success. filename:'%s'. size:%d",
+		option.BackupType, currBackup.GetFullPath(), currBackup.FileSize)
 	// todo 如果备份系统返回TaskId失败怎么办？ 要写入另外一个文件。另外一段时间后再尝试重试.
 	// todo 提前检查 ReportFile 是否存在，是否可写
 	uploadFileAndAppendToReportFile(option, currBackup)

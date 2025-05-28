@@ -137,6 +137,7 @@ func (job *installDbmonJob) checkParams() error {
 	return nil
 }
 
+// loadConfigFile deprecated
 func loadConfigFile(configFile string) (*config.Configuration, error) {
 	// 如果文件存在，对比文件内容，如果不一样，就更新文件.
 	if !util.FileExists(configFile) {

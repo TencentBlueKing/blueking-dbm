@@ -156,7 +156,7 @@ func DecodeFileV0FULL(filename string) (*BackupFileName, error) {
 	bfn.FileName = filename
 
 	filename = strings.TrimPrefix(filename, "mongodump-")
-	for _, validSuffix := range []string{".gz", ".tar", ".archive", ".archive.gz"} {
+	for _, validSuffix := range []string{".gz", ".tar", ".archive", ".archive.gz", ".archive.zst", ".archive.zstd"} {
 		filename = strings.TrimSuffix(filename, validSuffix)
 	}
 
@@ -194,7 +194,7 @@ func DecodeFileV0INCR(filename string) (*BackupFileName, error) {
 	bfn.FileName = filename
 
 	filename = strings.TrimPrefix(filename, "mongodump-")
-	for _, validSuffix := range []string{".gz", ".oplog.rs.bson", "-oplog.rs.bson", ".archive", ".archive.gz"} {
+	for _, validSuffix := range []string{".gz", ".archive.zstd", ".zst", ".oplog.rs.bson", "-oplog.rs.bson"} {
 		filename = strings.TrimSuffix(filename, validSuffix)
 	}
 	fields := strings.Split(filename, "-")
@@ -318,6 +318,7 @@ func DecodeFileV1INCR(filename string) (*BackupFileName, error) {
 
 // DecodeFilename Parse FileName
 func DecodeFilename(filename string) (*BackupFileName, error) {
+
 	if strings.HasPrefix(filename, "mongodump-v1") {
 		if strings.HasSuffix(filename, "oplog.rs.bson.gz") || strings.HasSuffix(filename, "oplog.rs.bson") {
 			return DecodeFileV1INCR(filename)
@@ -326,10 +327,17 @@ func DecodeFilename(filename string) (*BackupFileName, error) {
 		}
 		return nil, fmt.Errorf("bad format: Suffix")
 	} else if strings.HasPrefix(filename, "mongodump-") {
-		if strings.HasSuffix(filename, "oplog.rs.bson.gz") || strings.HasSuffix(filename, "oplog.rs.bson") {
+		if strings.HasSuffix(filename, "oplog.rs.bson.gz") ||
+			strings.HasSuffix(filename, "oplog.rs.bson") ||
+			strings.HasSuffix(filename, "oplog.rs.bson.zst") ||
+			strings.HasSuffix(filename, "oplog.rs.bson.archive.zstd") {
 			return DecodeFileV0INCR(filename)
-		} else if strings.HasSuffix(filename, ".tar") || strings.HasSuffix(filename, ".tar.gz") ||
-			strings.HasSuffix(filename, ".archive") || strings.HasSuffix(filename, ".archive.gz") {
+		} else if strings.HasSuffix(filename, ".tar") ||
+			strings.HasSuffix(filename, ".tar.gz") ||
+			strings.HasSuffix(filename, ".archive") ||
+			strings.HasSuffix(filename, ".archive.gz") ||
+			strings.HasSuffix(filename, ".archive.zst") ||
+			strings.HasSuffix(filename, ".archive.zstd") {
 			return DecodeFileV0FULL(filename)
 		}
 		return nil, fmt.Errorf("bad format: Suffix")

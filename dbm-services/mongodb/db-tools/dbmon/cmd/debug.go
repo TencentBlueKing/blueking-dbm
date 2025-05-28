@@ -6,6 +6,7 @@ import (
 	"dbm-services/mongodb/db-tools/dbmon/cmd/mongojob"
 	"dbm-services/mongodb/db-tools/dbmon/config"
 	"dbm-services/mongodb/db-tools/dbmon/mylog"
+	"dbm-services/mongodb/db-tools/dbmon/pkg/linuxproc"
 	"fmt"
 	"os"
 	"slices"
@@ -32,12 +33,22 @@ var (
 			sendmsgCmdMain()
 		},
 	}
+
 	ParseMongoLogCmd = &cobra.Command{
 		Use:   "parselog",
 		Short: "parselog",
 		Long:  `parselog`,
 		Run: func(cmd *cobra.Command, args []string) {
 			parseMongoLog()
+		},
+	}
+
+	checkPortInUseCmd = &cobra.Command{
+		Use:   "checkportinuse",
+		Short: "checkportinuse",
+		Long:  `checkportinuse`,
+		Run: func(cmd *cobra.Command, args []string) {
+			checkPortInUse()
 		},
 	}
 )
@@ -63,8 +74,10 @@ func init() {
 	ParseMongoLogCmd.Flags().StringVar(&outputDir, "output", "", "output dir")
 	ParseMongoLogCmd.Flags().StringVar(&outputFile, "outputFile", "", "output fileName prefix")
 	ParseMongoLogCmd.Flags().BoolVar(&follow, "follow", false, "tail -f logFile")
+	checkPortInUseCmd.Flags().IntVar(&instancePort, "port", 27017, "port")
 	debugCmd.AddCommand(sendMsgCmd)
 	debugCmd.AddCommand(ParseMongoLogCmd)
+	debugCmd.AddCommand(checkPortInUseCmd)
 }
 
 // debugCmdMain go run main.go debug
@@ -114,4 +127,18 @@ func parseMongoLog() {
 	succ, fail, err := logparserjob.ParseFile(logFilePattern, outputDir, outputFile, follow,
 		context.TODO(), context.TODO(), nil, mylog.Logger)
 	fmt.Printf("succ %d fail %d err %v\n", succ, fail, err)
+}
+
+func checkPortInUse() {
+	tcpRows, err := linuxproc.ProcNetTcp(nil)
+	fmt.Printf("ProcNetTcp %d return %d rows\n", instancePort, len(tcpRows))
+	if err != nil {
+		log.Fatalf("ProcNetTcp failed: %v", err)
+	}
+
+	idx := slices.IndexFunc(tcpRows, func(row linuxproc.NetTcp) bool {
+		return row.LocalPort == instancePort && row.St == linuxproc.LISTEN
+	})
+
+	fmt.Printf("checkPortInUse %d return idx:%d idx >= 0 ? %v\n", instancePort, idx, idx >= 0)
 }

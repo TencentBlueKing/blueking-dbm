@@ -5,7 +5,12 @@ import (
 	"dbm-services/mongodb/db-tools/dbmon/config"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mymongo"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/toolkit/pitr"
+	"errors"
+	"fmt"
+	osuser "os/user"
+	"path/filepath"
 
+	"github.com/gofrs/flock"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -47,15 +52,16 @@ func init() {
 	backupCmd.Flags().Uint64Var(&incrFreq, "incrFreq", 3600, "增量备份时间间隔，单位秒，仅在type=auto或incr时有效")
 	backupCmd.Flags().StringVar(&dir, "dir", ".", "")
 	backupCmd.Flags().StringVar(&nodeIp, "nodeip", "", "nodeip, need in k8s")
-	backupCmd.Flags().BoolVar(&gzip, "zip", false, "use mongodump -- zip")
+	backupCmd.Flags().BoolVar(&gzip, "zip", false, "use mongodump -- zip. if archive is true, use zstd instead of gzip")
 	backupCmd.Flags().StringVar(&addr, "addr", "127.0.0.1:6997", "用于确保只有一个mongotoolkit在运行")
 	backupCmd.Flags().BoolVar(&sendToBackupSystem, "send-to-bs", false, "if send to backup system")
 	backupCmd.Flags().StringVar(&fullTag, "full-tag", "MONGO_FULL_BACKUP", "full backup tag")
 	backupCmd.Flags().StringVar(&incrTag, "incr-tag", "MONGO_INCR_BACKUP", "incr backup tag")
 	backupCmd.Flags().BoolVar(&removeOldFileFirst, "remove-old-file-first", false, "if remove old file first")
-	backupCmd.Flags().StringVar(&reportFile, "report-file", "", "report file") // 将备份文件详细信息写入到Report文件中. 格式是固定的.
+	backupCmd.Flags().StringVar(&reportFile, "report-file", "", "report file") // 将备份文件详细信息写入到Report文件中
 	backupCmd.Flags().StringVar(&labelsStr, "labels", "", "bkdbm server labels, json, allow empty")
-	backupCmd.Flags().BoolVar(&archive, "archive", false, "use mongodump --archive")
+	backupCmd.Flags().BoolVar(&archive, "archive", false,
+		"use mongodump --archive. if zip is true, use zstd instead of gzip")
 	rootCmd.AddCommand(backupCmd)
 }
 
@@ -93,6 +99,13 @@ func backupMain() {
 		log.Fatalf("parseLabel error: %v", err)
 	}
 
+	lockHandle, err := getLock("pit_backup", port)
+	if err != nil {
+		log.Fatalf("get lock failed, err: %v, opType: %s, port: %s", err, "pit_backup", port)
+	} else {
+		log.Infof("get lock success, opType: %s, port: %s", "pit_backup", port)
+	}
+
 	var backupOpt = pitr.BackupOption{
 		MongoHost:          connObj,
 		BackupType:         backupType,
@@ -110,4 +123,34 @@ func backupMain() {
 		Archive:            archive,
 	}
 	pitr.DoJob(&backupOpt)
+
+	err = lockHandle.Unlock()
+	if err != nil {
+		log.Warnf("unlock failed, err: %v, opType: %s, port: %s", err, "pit_backup", port)
+	} else {
+		log.Infof("unlock success, opType: %s, port: %s", "pit_backup", port)
+	}
+}
+
+// getLock 获取文件锁. 如果获取失败, 则返回错误. 如果获取成功, 则返回文件锁句柄.
+func getLock(opType string, port string) (lockHandle *flock.Flock, err error) {
+	userName, err := osuser.Current()
+	if err != nil {
+		return nil, errors.New("get user name failed, err: " + err.Error())
+	}
+	lockDir := "/tmp"
+	lockFile := fmt.Sprintf("lock.%s.%s.%s", userName.Username, opType, port)
+	lockFilePath := filepath.Join(lockDir, lockFile)
+	log.Infof("lockFilePath: %s", lockFilePath)
+
+	lockHandle = flock.New(lockFilePath)
+	locked, err := lockHandle.TryLock()
+	log.Infof("lockPath: %s, locked: %v, err: %v", lockFilePath, locked, err)
+	if err != nil {
+		return nil, err
+	}
+	if !locked {
+		return nil, errors.New("lock failed, lockFilePath: " + lockFilePath)
+	}
+	return lockHandle, nil
 }
