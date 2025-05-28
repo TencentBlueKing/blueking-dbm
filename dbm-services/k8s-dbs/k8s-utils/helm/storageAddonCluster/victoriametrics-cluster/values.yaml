@@ -13,6 +13,8 @@ topoName: victoriametrics
 componentList:
   - componentName: vminsert
     serviceVersion: "1.93.10"
+    instanceUpdateStrategy:
+      maxUnavailable: 25%
     env:
     replicas: 1
     resources:
@@ -25,6 +27,8 @@ componentList:
 
   - componentName: vmselect
     serviceVersion: "1.93.10"
+    instanceUpdateStrategy:
+      maxUnavailable: 25%
     env:
     replicas: 1
     resources:

@@ -14,9 +14,7 @@ spec:
       serviceVersion: 1.93.10
       images:
         vminsert: victoriametrics/vminsert:v1.93.10-cluster
-        sidecar: bitnami/kubectl:1.29
     - name: vminsert-1.115.0
       serviceVersion: 1.115.0
       images:
         vminsert: victoriametrics/vminsert:v1.115.0-cluster
-        sidecar: bitnami/kubectl:1.29

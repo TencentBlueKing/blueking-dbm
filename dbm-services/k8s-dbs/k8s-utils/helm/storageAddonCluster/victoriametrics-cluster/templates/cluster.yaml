@@ -17,6 +17,8 @@ spec:
     - name: vminsert
       serviceVersion: {{ .serviceVersion }}
       serviceAccountName: {{ include "victoriametrics.serviceAccountName" $ }}
+      instanceUpdateStrategy:
+        maxUnavailable: {{ .instanceUpdateStrategy.maxUnavailable }}
       {{- with .env }}
       env:
         {{- range $key, $value := . }}
@@ -38,6 +40,8 @@ spec:
     - name: vmselect
       serviceVersion: {{ .serviceVersion }}
       serviceAccountName: {{ include "victoriametrics.serviceAccountName" $ }}
+      instanceUpdateStrategy:
+        maxUnavailable: {{ .instanceUpdateStrategy.maxUnavailable }}
       {{- with .env }}
       env:
         {{- range $key, $value := . }}

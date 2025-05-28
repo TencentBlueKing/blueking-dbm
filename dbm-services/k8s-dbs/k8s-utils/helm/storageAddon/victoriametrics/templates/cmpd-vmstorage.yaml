@@ -5,7 +5,7 @@ metadata:
 spec:
   serviceKind: victoriametrics
   serviceVersion: 1.93.10
-  updateStrategy: BestEffortParallel
+  updateStrategy: Serial
   exporter:
     scrapePath: /metrics
     scrapePort: http
