@@ -124,7 +124,7 @@ class CloudDBProxy:
                 host_infos=self.kwargs["host_infos"],
                 extension_type=ExtensionType.NGINX,
                 detail_class=CloudNginxDetail,
-                transfer_module=CloudServiceModuleName.Nginx,
+                transfer_module=CloudServiceModuleName.NGINX,
             )
             DBCloudProxy.objects.create(
                 bk_cloud_id=self.bk_cloud_id, internal_address=host["ip"], external_address=host["bk_outer_ip"]
@@ -148,7 +148,7 @@ class CloudDBProxy:
                 internal_address=nginx_host["ip"], external_address=nginx_host["bk_outer_ip"]
             )
             self.cloud_base_replace(
-                new_host=nginx_host, old_host=old_nginx_host, change_module=CloudServiceModuleName.Nginx
+                new_host=nginx_host, old_host=old_nginx_host, change_module=CloudServiceModuleName.NGINX
             )
 
         return True
@@ -235,18 +235,20 @@ class CloudDBProxy:
             host_infos=self.kwargs["host_infos"],
             extension_type=ExtensionType.REDIS_DTS,
             detail_class=CloudRedisDTSDetail,
-            transfer_module=CloudServiceModuleName.RedisDTS,
+            transfer_module=CloudServiceModuleName.REDIS_DTS,
         )
         return res
 
     def cloud_redis_dts_server_reduce(self) -> bool:
-        res = self.cloud_base_reduce(host_infos=self.kwargs["host_infos"], move_module=CloudServiceModuleName.RedisDTS)
+        res = self.cloud_base_reduce(
+            host_infos=self.kwargs["host_infos"], move_module=CloudServiceModuleName.REDIS_DTS
+        )
         return res
 
     def cloud_redis_dts_server_replace(self) -> bool:
         res = self.cloud_base_replace(
             new_host=self.kwargs["host_infos"][0],
             old_host=self.kwargs["details"]["old_redis_dts"][0],
-            change_module=CloudServiceModuleName.RedisDTS,
+            change_module=CloudServiceModuleName.REDIS_DTS,
         )
         return res
