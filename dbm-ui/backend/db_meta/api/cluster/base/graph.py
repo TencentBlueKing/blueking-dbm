@@ -141,8 +141,16 @@ class LineEndpointType(StructuredEnum):
 class LineLabel(StructuredEnum):
     Rep = EnumField("rep", _("同步"))
     Access = EnumField("access", _("访问"))
-    Bind = EnumField("bind", _("域名绑定"))
+    Bind = EnumField("bind", _("绑定"))
+    Forward = EnumField("forward", _("转发"))
     ReadWrite = EnumField("readwrite", _("读写"))
+
+
+class GroupNameType(StructuredEnum):
+    DNS = EnumField("dns", _("主域名"))
+    CLB = EnumField("clb", _("CLB IP"))
+    POLARIS = EnumField("polaris", _("北极星"))
+    CLBDNS = EnumField("clbDns", _("CLB域名"))
 
 
 @dataclass
