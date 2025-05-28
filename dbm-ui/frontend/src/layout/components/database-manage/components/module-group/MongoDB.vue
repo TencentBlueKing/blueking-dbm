@@ -32,7 +32,7 @@
             role="cluster" />
         </BkMenuItem>
       </BkSubmenu>
-      <BkSubmenu key="mongodb-permission">
+      <BkSubmenu>
         <template #icon>
           <DbIcon type="history" />
         </template>
