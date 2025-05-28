@@ -55,7 +55,9 @@ func (c *StandardizeProxyComp) addOnePort(port int) error {
 		pc.Stop()
 	}()
 
-	_, err = pc.Exec(fmt.Sprintf(`refresh_users('%s@%%', '+')`, c.Params.DBHAAccount))
+	refreshStr := fmt.Sprintf(`refresh_users('%s@%%', '+')`, c.Params.DBHAAccount)
+	logger.Info("refresh command: %s", refreshStr)
+	_, err = pc.Exec(refreshStr)
 	if err != nil {
 		logger.Error("add dbha account failed %s", err.Error())
 		return err

@@ -14,8 +14,8 @@ from typing import Dict
 
 from django.db.models import Min
 
-from backend.db_meta.enums import InstanceStatus
-from backend.db_meta.models import ProxyInstance
+from backend.db_meta.enums import InstanceInnerRole, InstanceStatus
+from backend.db_meta.models import StorageInstance, StorageInstanceTuple
 from backend.db_monitor.models import MySQLAutofixTicketStatus, MySQLAutofixTodo
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
@@ -23,7 +23,7 @@ from backend.ticket.models import Ticket
 logger = logging.getLogger("celery")
 
 
-def autofix_proxy(r: Dict):
+def autofix_standardize(r: Dict):
     bk_cloud_id = r["bk_cloud_id"]
     bk_biz_id = r["bk_biz_id"]  # 这里其实是个隐式约束, 只能有一个业务id
     ip = r["ip"]
@@ -31,12 +31,16 @@ def autofix_proxy(r: Dict):
 
     # 必须是不可用实例
     port_list = list(
-        ProxyInstance.objects.filter(
-            machine__bk_cloud_id=bk_cloud_id, bk_biz_id=bk_biz_id, machine__ip=ip, status=InstanceStatus.UNAVAILABLE
+        StorageInstance.objects.filter(
+            machine__bk_cloud_id=bk_cloud_id,
+            bk_biz_id=bk_biz_id,
+            machine__ip=ip,
+            status=InstanceStatus.UNAVAILABLE,
+            instance_inner_role=InstanceInnerRole.SLAVE,
         ).values_list("port", flat=True)
     )
 
-    logger.info("proxy {}:{} {} dbha events found: {}".format(ip, port_list, r["port__count"], r))
+    logger.info("storage {}:{} {} dbha events found: {}".format(ip, port_list, r["port__count"], r))
 
     # 机器的所有端口 dbha 事件都上报了才会触发自愈
     # 否则会轮空
@@ -60,18 +64,20 @@ def autofix_proxy(r: Dict):
             raise Exception(msg)  # ToDo
         return
 
+    # ip 肯定是 slave
+    # 给对端 ip 重新下发周边配置
+    peer_ip = StorageInstanceTuple.objects.filter(receiver__machine__ip=ip).first().ejector.machine.ip
+
     tk = Ticket.create_ticket(
-        ticket_type=TicketType.MYSQL_PROXY_INPLACE_AUTOFIX,
+        ticket_type=TicketType.MYSQL_STORAGE_STANDARDIZE_AUTOFIX,
         creator="system",
         bk_biz_id=bk_biz_id,
-        remark=TicketType.MYSQL_PROXY_INPLACE_AUTOFIX,
+        remark=TicketType.MYSQL_STORAGE_STANDARDIZE_AUTOFIX,
         details={
             "bk_cloud_id": bk_cloud_id,
             "bk_biz_id": bk_biz_id,
-            "ip": ip,
-            "port_list": port_list,
-            "check_id": check_id,
-            "machine_type": "proxy",
+            "ip": peer_ip,
+            "cluster_id": StorageInstance.objects.filter(machine__ip=ip).first().cluster.first().id,
         },
     )
 

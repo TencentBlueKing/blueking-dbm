@@ -95,7 +95,7 @@ func reportLog2(dbPort int, dbTableSize map[string]int64, dbSize map[string]int6
 			Ip:                config.MonitorConfig.Ip,
 			Port:              config.MonitorConfig.Port,
 			Role:              *config.MonitorConfig.Role,
-			ServiceInstanceId: config.MonitorConfig.BkInstanceId,
+			ServiceInstanceId: *config.MonitorConfig.BkInstanceId,
 			OriginalDBName:    readableOriginalDBName,
 			DBName:            readableDBName,
 			DBSize:            dbSize[originalDBName], // 每个表都会跟随上报一份 database size

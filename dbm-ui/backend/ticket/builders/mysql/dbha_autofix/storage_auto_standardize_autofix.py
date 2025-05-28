@@ -18,27 +18,28 @@ from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 
-class ProxyInplaceAutofixDetailSerializer(serializers.Serializer):
+class StorageAutoStandardizeAutofixDetailSerializer(serializers.Serializer):
     bk_cloud_id = serializers.IntegerField()
     bk_biz_id = serializers.IntegerField()
     ip = serializers.IPAddressField()
-    port_list = serializers.ListField(serializers.IntegerField())
-    check_id = serializers.IntegerField()
-    machine_type = serializers.CharField()
+    cluster_id = serializers.IntegerField()
+    # port_list = serializers.ListField(serializers.IntegerField())
+    # check_id = serializers.IntegerField()
+    # machine_type = serializers.CharField()
 
 
-class ProxyInplaceAutofixInnerFlowBuilder(builders.FlowParamBuilder):
-    controller = MySQLController.proxy_inplace_autofix_scene
+class StorageAutoStandardizeAutofixInnerFlowBuilder(builders.FlowParamBuilder):
+    controller = MySQLController.storage_auto_standardize_autofix_scene
 
     def format_ticket_data(self):
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_PROXY_INPLACE_AUTOFIX, is_apply=True)
-class ProxyInplaceAutofixFlowBuilder(BaseMySQLTicketFlowBuilder):
-    serializer = ProxyInplaceAutofixDetailSerializer
-    inner_flow_builder = ProxyInplaceAutofixInnerFlowBuilder
-    inner_flow_name = _("MySQL Proxy 原地自愈")
+@builders.BuilderFactory.register(TicketType.MYSQL_STORAGE_STANDARDIZE_AUTOFIX, is_apply=True)
+class StorageAutoStandardizeAutofixFlowBuilder(BaseMySQLTicketFlowBuilder):
+    serializer = StorageAutoStandardizeAutofixDetailSerializer
+    inner_flow_builder = StorageAutoStandardizeAutofixInnerFlowBuilder
+    inner_flow_name = _("MySQL 存储自愈自动重标准化")
     default_need_itsm = False
     default_need_manual_confirm = False
 

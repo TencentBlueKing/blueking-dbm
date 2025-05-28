@@ -49,7 +49,7 @@ func (c *PreparePeripheralToolsBinaryAct) Init() (err error) {
 		logger.Error("DeserializeAndValidate err %s", err.Error())
 		return err
 	}
-	c.Service.GeneralParam = subcmd.GeneralRuntimeParam
+	//c.Service.GeneralParam = subcmd.GeneralRuntimeParam
 	logger.Info("extend params: %s", c.Service.Params)
 	return nil
 }

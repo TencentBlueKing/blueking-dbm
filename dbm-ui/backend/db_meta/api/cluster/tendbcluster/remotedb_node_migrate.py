@@ -220,6 +220,7 @@ class TenDBClusterMigrateRemoteDb:
         slave_obj.status = InstanceStatus.RUNNING.value
         master_obj.save()
         slave_obj.save()
+
         StorageInstanceTuple.objects.create(ejector=master_obj, receiver=slave_obj)
 
     @classmethod

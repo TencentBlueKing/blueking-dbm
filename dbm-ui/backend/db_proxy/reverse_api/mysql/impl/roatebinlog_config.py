@@ -14,9 +14,9 @@ from django.db.models import Q
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
-from backend.db_meta.enums import AccessLayer
+from backend.db_meta.enums import AccessLayer, MachineType
 from backend.db_meta.models import Machine, ProxyInstance, StorageInstance
-from backend.flow.utils.base.payload_handler import PayloadHandler
+from backend.flow.utils.mysql.act_payload.mixed.account_mixed.mysql_account_mixed import MySQLAccountMixed
 
 
 def rotatebinlog_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int]] = None) -> List:
@@ -32,12 +32,22 @@ def rotatebinlog_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int]
     else:
         qs = StorageInstance.objects.filter(q).prefetch_related("cluster")
 
-    usermap = PayloadHandler.get_mysql_static_account()
+    usermap = MySQLAccountMixed.mysql_static_account()
 
     res = []
 
     i: Union[StorageInstance, ProxyInstance]
     for i in qs.all():
+        if not i.cluster.exists():
+            continue
+
+        if i.machine_type not in [
+            MachineType.BACKEND,
+            MachineType.REMOTE,
+            MachineType.SINGLE,
+        ]:  # , MachineType.SPIDER]:
+            continue
+
         res.append(
             {
                 "ip": ip,

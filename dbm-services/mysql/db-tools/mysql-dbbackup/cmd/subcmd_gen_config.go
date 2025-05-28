@@ -1,19 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
-	"fmt"
-	"os"
-	"path/filepath"
-	"slices"
-	"strings"
-	"text/template"
-
-	"github.com/pkg/errors"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"golang.org/x/exp/maps"
-
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/common/reverseapi"
@@ -23,7 +10,21 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/db_table_filter"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
+	"encoding/json"
+	"fmt"
+	"os"
+	"os/user"
+	"path/filepath"
+	"slices"
+	"strings"
+	"text/template"
+
+	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"golang.org/x/exp/maps"
 )
 
 var subCmdGenConfig = &cobra.Command{
@@ -170,7 +171,7 @@ func generateOneIniConfig(cfg *mysql.DBBackupConfig, opt *dbbackup.BackupOptions
 	}
 
 	// 中控配置
-	if cfg.Role == cst.BackupRoleSpiderMaster {
+	if strings.ToLower(cfg.Role) == strings.ToLower(cst.BackupRoleSpiderMaster) {
 		tdbCtlPort := mysqlcomm.GetTdbctlPortBySpider(cfg.Port)
 		tdbCtlIniData := iniData
 		tdbCtlIniData.Public.MysqlPort = tdbCtlPort
@@ -247,6 +248,14 @@ func writeIniFile(cfg *mysql.DBBackupConfig, iniData *config.BackupConfig) error
 	err = tpl.Execute(f, iniData)
 	if err != nil {
 		return err
+	}
+
+	cu, _ := user.Current()
+	if cu.Uid == "0" {
+		_, err = osutil.ExecShellCommand(false, fmt.Sprintf(`chown mysql %s`, fp))
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

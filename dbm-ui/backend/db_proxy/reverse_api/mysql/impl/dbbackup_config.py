@@ -13,12 +13,19 @@ from typing import List, Optional, Union
 from django.db.models import Q
 
 from backend.db_meta.enums import AccessLayer, InstanceInnerRole, MachineType
-from backend.db_meta.models import Machine, ProxyInstance, StorageInstance, StorageInstanceTuple
-from backend.flow.utils.base.payload_handler import PayloadHandler
+from backend.db_meta.models import (
+    Machine,
+    ProxyInstance,
+    StorageInstance,
+    StorageInstanceTuple,
+    TenDBClusterStorageSet,
+)
+from backend.flow.consts import UserName
+from backend.flow.utils.mysql.act_payload.mixed.account_mixed.mysql_account_mixed import MySQLAccountMixed
 from backend.flow.utils.mysql.mysql_bk_config import get_backup_ini_config, get_backup_options_config
 
 
-def dbbackup_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int]]) -> List:
+def dbbackup_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int]] = None) -> List:
     m = Machine.objects.get(ip=ip, bk_cloud_id=bk_cloud_id)
 
     if m.machine_type not in [MachineType.REMOTE, MachineType.BACKEND, MachineType.SINGLE, MachineType.SPIDER]:
@@ -35,12 +42,14 @@ def dbbackup_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int]]) -
     else:
         qs = StorageInstance.objects.filter(q).prefetch_related("cluster")
 
-    usermap = PayloadHandler.get_mysql_static_account()
-
+    usermap = MySQLAccountMixed.mysql_static_account(UserName.BACKUP)
     res = []
 
     i: Union[StorageInstance, ProxyInstance]
     for i in qs.all():
+        if not i.cluster.exists():
+            continue
+
         ini = get_backup_ini_config(bk_biz_id=i.bk_biz_id, db_module_id=i.db_module_id, cluster_type=i.cluster_type)
         backup_options = get_backup_options_config(
             bk_biz_id=i.bk_biz_id,
@@ -54,12 +63,35 @@ def dbbackup_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int]]) -
         else:
             role = i.instance_inner_role
 
+        # shard_id = 0
+        # if m.machine_type == MachineType.REMOTE:
+        #     if i.instance_inner_role == InstanceInnerRole.MASTER:
+        #         shard_id = StorageInstanceTuple.objects.filter(ejector=i).first().tendbclusterstorageset.shard_id
+        #     else:
+        #         shard_id = StorageInstanceTuple.objects.get(receiver=i).tendbclusterstorageset.shard_id
+
         shard_id = 0
-        if m.machine_type == MachineType.REMOTE:
+        if i.machine_type == MachineType.REMOTE:
             if i.instance_inner_role == InstanceInnerRole.MASTER:
-                shard_id = StorageInstanceTuple.objects.filter(ejector=i).first().tendbclusterstorageset.shard_id
+                if TenDBClusterStorageSet.objects.filter(storage_instance_tuple__ejector=i).exists():
+                    shard_id = (
+                        TenDBClusterStorageSet.objects.filter(storage_instance_tuple__ejector=i).first().shard_id
+                    )
+                else:
+                    # 作为 master, 查不到 shard id 应该是个严重错误
+                    pass
             else:
-                shard_id = StorageInstanceTuple.objects.get(receiver=i).tendbclusterstorageset.shard_id
+                # 作为 receiver 应该是唯一的
+                tp = StorageInstanceTuple.objects.get(receiver=i)
+                # 找这个实例的 master 的shard id, 也应该必须存在
+                if TenDBClusterStorageSet.objects.filter(storage_instance_tuple__ejector=tp.ejector).exists():
+                    shard_id = (
+                        TenDBClusterStorageSet.objects.filter(storage_instance_tuple__ejector=tp.ejector)
+                        .first()
+                        .shard_id
+                    )
+                else:
+                    pass
 
         res.append(
             {

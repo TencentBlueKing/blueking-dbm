@@ -60,22 +60,6 @@ def trans_common_files(
             },
         )
 
-    # acts.append(
-    #     {
-    #         "act_name": _("初始化 nginx 地址"),
-    #         "act_component_code": ExecuteDBActuatorScriptComponent.code,
-    #         "kwargs": asdict(
-    #             ExecActuatorKwargs(
-    #                 bk_cloud_id=bk_cloud_id,
-    #                 exec_ip=ips,
-    #                 run_as_system_user=DBA_ROOT_USER,
-    #                 payload_class=PeripheralToolsPayload.payload_class_path(),
-    #                 get_mysql_payload_func=PeripheralToolsPayload.init_nginx_addresses.__name__,
-    #             )
-    #         )
-    #     }
-    # )
-
     if with_backup_client:
         acts.append(
             {
@@ -104,10 +88,12 @@ def trans_common_files(
             )
 
     sp = SubBuilder(root_id=root_id, data=data)
-    sp.add_parallel_acts(acts_list=acts)
+
+    if acts:
+        sp.add_parallel_acts(acts_list=acts)
 
     sp.add_act(
-        act_name=_("初始化 nginx 地址"),
+        act_name=_("初始化公共配置"),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(
             ExecActuatorKwargs(
@@ -115,7 +101,7 @@ def trans_common_files(
                 exec_ip=ips,
                 run_as_system_user=DBA_ROOT_USER,
                 payload_class=PeripheralToolsPayload.payload_class_path(),
-                get_mysql_payload_func=PeripheralToolsPayload.init_nginx_addresses.__name__,
+                get_mysql_payload_func=PeripheralToolsPayload.init_common_config.__name__,
             )
         ),
     )

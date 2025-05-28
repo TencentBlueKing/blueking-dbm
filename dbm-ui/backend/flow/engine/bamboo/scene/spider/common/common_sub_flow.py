@@ -167,14 +167,14 @@ def add_spider_slaves_sub_flow(
             ),
         )
 
-    # 阶段2 安装mysql-crond组件
-    exec_act_kwargs.exec_ip = [ip_info["ip"] for ip_info in add_spider_slaves]
-    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_deploy_mysql_crond_payload.__name__
-    sub_pipeline.add_act(
-        act_name=_("部署mysql-crond"),
-        act_component_code=ExecuteDBActuatorScriptComponent.code,
-        kwargs=asdict(exec_act_kwargs),
-    )
+    # # 阶段2 安装mysql-crond组件
+    # exec_act_kwargs.exec_ip = [ip_info["ip"] for ip_info in add_spider_slaves]
+    # exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_deploy_mysql_crond_payload.__name__
+    # sub_pipeline.add_act(
+    #     act_name=_("部署mysql-crond"),
+    #     act_component_code=ExecuteDBActuatorScriptComponent.code,
+    #     kwargs=asdict(exec_act_kwargs),
+    # )
 
     # 阶段3 安装spider-slave实例，目前spider-slave机器属于单机单实例部署方式，专属一套集群
     acts_list = []
@@ -356,14 +356,14 @@ def add_spider_masters_sub_flow(
             ),
         )
 
-    # 阶段3 安装mysql-crond组件
-    exec_act_kwargs.exec_ip = [ip_info["ip"] for ip_info in add_spider_masters]
-    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_deploy_mysql_crond_payload.__name__
-    sub_pipeline.add_act(
-        act_name=_("部署mysql-crond"),
-        act_component_code=ExecuteDBActuatorScriptComponent.code,
-        kwargs=asdict(exec_act_kwargs),
-    )
+    # # 阶段3 安装mysql-crond组件
+    # exec_act_kwargs.exec_ip = [ip_info["ip"] for ip_info in add_spider_masters]
+    # exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_deploy_mysql_crond_payload.__name__
+    # sub_pipeline.add_act(
+    #     act_name=_("部署mysql-crond"),
+    #     act_component_code=ExecuteDBActuatorScriptComponent.code,
+    #     kwargs=asdict(exec_act_kwargs),
+    # )
 
     # 阶段4 安装spider-master实例，目前spider-master机器属于单机单实例部署方式，专属一套集群
     acts_list = []

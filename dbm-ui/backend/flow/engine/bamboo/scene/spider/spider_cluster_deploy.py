@@ -17,16 +17,16 @@ from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import ClusterType, TenDBClusterSpiderRole
+from backend.db_meta.enums import ClusterType
 from backend.flow.consts import TDBCTL_USER, PrivRole
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
     build_repl_by_manual_input_sub_flow,
-    build_surrounding_apps_sub_flow,
     init_machine_sub_flow,
 )
-from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import build_apps_for_spider_sub_flow
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import DeployPeripheralToolsDepart
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.sync_master import SyncMasterComponent
@@ -243,19 +243,6 @@ class TenDBClusterApplyFlow(object):
             ]
         )
 
-        acts_list = []
-        for ip_info in self.data["mysql_ip_list"] + self.data["spider_ip_list"]:
-            exec_act_kwargs.exec_ip = ip_info["ip"]
-            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_deploy_mysql_crond_payload.__name__
-            acts_list.append(
-                {
-                    "act_name": _("部署mysql-crond"),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(exec_act_kwargs),
-                }
-            )
-        deploy_pipeline.add_parallel_acts(acts_list=acts_list)
-
         # 阶段3 并发安装mysql实例(一个活动节点部署多实例)
         acts_list = []
         for mysql_ip in self.data["mysql_ip_list"]:
@@ -402,27 +389,26 @@ class TenDBClusterApplyFlow(object):
         )
         # 阶段10 remote安装周边组件
         deploy_pipeline.add_sub_pipeline(
-            sub_flow=build_surrounding_apps_sub_flow(
-                bk_cloud_id=int(self.data["bk_cloud_id"]),
-                master_ip_list=list(set([info.instance_tuple.master_ip for info in shard_infos])),
-                slave_ip_list=list(set([info.instance_tuple.slave_ip for info in shard_infos])),
+            sub_flow=standardize_mysql_cluster_subflow(
                 root_id=self.root_id,
-                parent_global_data=copy.deepcopy(self.data),
-                is_init=True,
-                collect_sysinfo=True,
-                cluster_type=ClusterType.TenDBCluster.value,
-            )
-        )
-
-        # 阶段11 spider安装周边组件
-        deploy_pipeline.add_sub_pipeline(
-            sub_flow=build_apps_for_spider_sub_flow(
+                data=copy.deepcopy(self.data),
                 bk_cloud_id=int(self.data["bk_cloud_id"]),
-                spiders=[spider["ip"] for spider in self.data["spider_ip_list"]],
-                root_id=self.root_id,
-                is_collect_sysinfo=True,
-                parent_global_data=copy.deepcopy(self.data),
-                spider_role=TenDBClusterSpiderRole.SPIDER_MASTER,
+                bk_biz_id=self.data["bk_biz_id"],
+                instances=[
+                    "{}:{}".format(ip["ip"], port)
+                    for ip in self.data["mysql_ip_list"]
+                    for port in self.data["mysql_ports"]
+                ]
+                + [
+                    "{}:{}".format(ip["ip"], port)
+                    for ip in self.data["spider_ip_list"]
+                    for port in self.data["spider_ports"]
+                ],
+                with_actuator=False,
+                with_bk_plugin=False,
+                with_collect_sysinfo=False,
+                with_cc_standardize=False,
+                with_instance_standardize=False,
             )
         )
 
@@ -635,30 +621,31 @@ class TenDBClusterApplyFlow(object):
         )
         # 阶段10 remote安装周边组件
         deploy_pipeline.add_sub_pipeline(
-            sub_flow=build_surrounding_apps_sub_flow(
-                bk_cloud_id=int(self.data["bk_cloud_id"]),
-                master_ip_list=list(set([info.instance_tuple.master_ip for info in shard_infos])),
+            sub_flow=standardize_mysql_cluster_subflow(
                 root_id=self.root_id,
-                parent_global_data=copy.deepcopy(self.data),
-                is_init=True,
-                collect_sysinfo=True,
-                is_install_checksum=False,
-                is_install_monitor=False,
-                is_install_rotate_binlog=False,
-                cluster_type=ClusterType.TenDBCluster.value,
-            )
-        )
-
-        # 阶段11 spider安装周边组件
-        deploy_pipeline.add_sub_pipeline(
-            sub_flow=build_apps_for_spider_sub_flow(
+                data=copy.deepcopy(self.data),
                 bk_cloud_id=int(self.data["bk_cloud_id"]),
-                spiders=[spider["ip"] for spider in self.data["spider_ip_list"]],
-                root_id=self.root_id,
-                is_collect_sysinfo=True,
-                is_install_monitor=False,
-                parent_global_data=copy.deepcopy(self.data),
-                spider_role=TenDBClusterSpiderRole.SPIDER_MASTER,
+                bk_biz_id=int(self.data["bk_biz_id"]),
+                instances=[
+                    "{}:{}".format(ip["ip"], port)
+                    for ip in self.data["mysql_ip_list"]
+                    for port in self.data["mysql_ports"]
+                ]
+                + [
+                    "{}:{}".format(ip["ip"], port)
+                    for ip in self.data["spider_ip_list"]
+                    for port in self.data["spider_ports"]
+                ],
+                with_actuator=False,
+                with_bk_plugin=False,
+                with_cc_standardize=False,
+                with_collect_sysinfo=False,
+                with_backup_client=True,
+                with_instance_standardize=False,
+                departs=[
+                    DeployPeripheralToolsDepart.DBAToolKit,
+                    DeployPeripheralToolsDepart.MySQLCrond,
+                ],
             )
         )
 

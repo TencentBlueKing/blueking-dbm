@@ -15,14 +15,11 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
-from backend.db_meta.enums import TenDBClusterSpiderRole
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
-from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import (
-    add_spider_masters_sub_flow,
-    build_apps_for_spider_sub_flow,
-)
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
+from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import add_spider_masters_sub_flow
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs
 from backend.flow.utils.mysql.mysql_context_dataclass import SystemInfoContext
@@ -88,15 +85,22 @@ class TenDBClusterAddSpiderMNTFlow(object):
                 kwargs=asdict(DBMetaOPKwargs(db_meta_class_func=SpiderDBMeta.add_spider_mnt.__name__)),
             )
 
-            # 阶段3 安装周边程序
             sub_pipeline.add_sub_pipeline(
-                sub_flow=build_apps_for_spider_sub_flow(
-                    bk_cloud_id=cluster.bk_cloud_id,
-                    spiders=[spider["ip"] for spider in sub_flow_context["spider_ip_list"]],
+                sub_flow=standardize_mysql_cluster_subflow(
                     root_id=self.root_id,
-                    parent_global_data=copy.deepcopy(sub_flow_context),
-                    spider_role=TenDBClusterSpiderRole.SPIDER_MNT,
-                    is_collect_sysinfo=True,
+                    data=copy.deepcopy(sub_flow_context),
+                    bk_cloud_id=cluster.bk_cloud_id,
+                    bk_biz_id=cluster.bk_biz_id,
+                    instances=[
+                        "{}:{}".format(spider["ip"], cluster.proxyinstance_set.first().port)
+                        for spider in sub_flow_context["spider_ip_list"]
+                    ],
+                    with_actuator=False,
+                    with_bk_plugin=False,
+                    with_instance_standardize=False,
+                    with_cc_standardize=False,
+                    with_collect_sysinfo=False,
+                    with_backup_client=True,
                 )
             )
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("{}添加spider_mnt节点流程".format(cluster.name))))

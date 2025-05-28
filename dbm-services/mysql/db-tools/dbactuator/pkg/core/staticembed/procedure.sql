@@ -100,8 +100,12 @@ CREATE PROCEDURE infodba_schema.check_all(
 SQL SECURITY INVOKER
 BEGIN
     -- 全量检查入口
-    CALL check_password(uuid, grant_time, username, ip_list, long_psw, short_psw, is_check_failed);
-    CALL check_db_conflict(uuid, grant_time, username, ip_list, db_list, is_check_failed);
+    SET @is_password_check_failed = 0;
+    SET @is_db_conflict_check_failed = 0;
+    CALL check_password(uuid, grant_time, username, ip_list, long_psw, short_psw, @is_password_check_failed);
+    CALL check_db_conflict(uuid, grant_time, username, ip_list, db_list, @is_db_conflict_check_failed);
+
+    SET is_check_failed = @is_password_check_failed OR @is_db_conflict_check_failed;
 END #
 
 
@@ -149,6 +153,7 @@ BEGIN
                 SET is_check_failed = NOT @psw_match;
                 INSERT INTO dba_grant_result(id, grant_time, username, client_ip, long_psw, short_psw, msg)
                     VALUES (uuid, grant_time, username, @ip, long_psw, short_psw, 'password not match');
+--                 SIGNAL SQLSTATE '32401' SET MESSAGE_TEXT = "PASSWORD NOT MATCH";
             END IF;     
         END IF;
     END WHILE;

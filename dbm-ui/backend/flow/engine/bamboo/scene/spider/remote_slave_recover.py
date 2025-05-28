@@ -18,18 +18,21 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType, MySQLMonitorPauseTime
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceStatus
+from backend.db_meta.enums import InstanceInnerRole, InstanceStatus
 from backend.db_meta.exceptions import MasterInstanceNotExistException
 from backend.db_meta.models import Cluster, StorageInstance, StorageInstanceTuple
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
-    build_surrounding_apps_sub_flow,
-    install_mysql_in_cluster_sub_flow,
-)
+from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import install_mysql_in_cluster_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_instance_config
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import mysql_restore_data_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.recover_slave_instance import slave_recover_sub_flow
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import (
+    ALLDEPARTS,
+    DeployPeripheralToolsDepart,
+    remove_departs,
+)
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
 from backend.flow.engine.bamboo.scene.spider.spider_remote_node_migrate import remote_node_uninstall_sub_flow
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
@@ -315,18 +318,24 @@ class TenDBRemoteSlaveRecoverFlow(object):
             # 阶段5: 新机器安装周边组件
             surrounding_sub_pipeline_list = []
             re_surrounding_sub_pipeline_list = []
+            instances = ["{}:{}".format(self.data["target_ip"], port) for port in cluster_info["ports"]]
             surrounding_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
             surrounding_sub_pipeline.add_sub_pipeline(
-                sub_flow=build_surrounding_apps_sub_flow(
-                    bk_cloud_id=cluster_class.bk_cloud_id,
-                    slave_ip_list=[self.data["target_ip"]],
+                sub_flow=standardize_mysql_cluster_subflow(
                     root_id=self.root_id,
-                    parent_global_data=copy.deepcopy(self.data),
-                    collect_sysinfo=True,
-                    cluster_type=ClusterType.TenDBCluster.value,
-                    is_install_backup=False,
+                    data=copy.deepcopy(self.data),
+                    bk_cloud_id=cluster_class.bk_cloud_id,
+                    bk_biz_id=self.data["bk_biz_id"],
+                    instances=instances,
+                    departs=remove_departs(ALLDEPARTS, DeployPeripheralToolsDepart.MySQLDBBackup),
+                    with_bk_plugin=False,
+                    with_actuator=False,
+                    with_instance_standardize=False,
+                    with_collect_sysinfo=False,
+                    with_cc_standardize=False,
                 )
             )
+
             surrounding_sub_pipeline.add_act(
                 act_name=_("屏蔽监控 {}").format(self.data["target_ip"]),
                 act_component_code=MysqlCrondMonitorControlComponent.code,
@@ -342,17 +351,28 @@ class TenDBRemoteSlaveRecoverFlow(object):
             surrounding_sub_pipeline_list.append(surrounding_sub_pipeline.build_sub_process(sub_name=_("新机器安装周边组件")))
 
             re_surrounding_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+
             re_surrounding_sub_pipeline.add_sub_pipeline(
-                sub_flow=build_surrounding_apps_sub_flow(
-                    bk_cloud_id=cluster_class.bk_cloud_id,
-                    master_ip_list=[master.machine.ip],
-                    slave_ip_list=[self.data["target_ip"]],
+                sub_flow=standardize_mysql_cluster_subflow(
                     root_id=self.root_id,
-                    parent_global_data=copy.deepcopy(self.data),
-                    is_init=False,
-                    cluster_type=ClusterType.TenDBCluster.value,
+                    data=copy.deepcopy(self.data),
+                    bk_cloud_id=cluster_class.bk_cloud_id,
+                    bk_biz_id=self.data["bk_biz_id"],
+                    instances=instances,
+                    departs=[
+                        DeployPeripheralToolsDepart.MySQLTableChecksum,
+                        DeployPeripheralToolsDepart.MySQLRotateBinlog,
+                        DeployPeripheralToolsDepart.MySQLDBBackup,
+                        DeployPeripheralToolsDepart.MySQLMonitor,
+                    ],
+                    with_actuator=False,
+                    with_collect_sysinfo=False,
+                    with_bk_plugin=False,
+                    with_instance_standardize=False,
+                    with_cc_standardize=False,
                 )
             )
+
             re_surrounding_sub_pipeline.add_act(
                 act_name=_("解除屏蔽监控 {}").format(self.data["target_ip"]),
                 act_component_code=MysqlCrondMonitorControlComponent.code,

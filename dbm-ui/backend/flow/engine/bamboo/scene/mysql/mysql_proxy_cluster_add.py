@@ -122,13 +122,8 @@ class MySQLProxyClusterAddFlow(object):
         mysql_proxy_cluster_add_pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_pipelines = []
 
-        bk_cloud_id_clusters_detail = {}
         # 多集群操作时循环加入集群proxy下架子流程
         for info in self.data["infos"]:
-            current_bk_cloud_id = info["proxy_ip"]["bk_cloud_id"]
-            if current_bk_cloud_id not in bk_cloud_id_clusters_detail:
-                bk_cloud_id_clusters_detail[current_bk_cloud_id] = {}
-
             # 拼接子流程需要全局参数
             sub_flow_context = copy.deepcopy(self.data)
             sub_flow_context.pop("infos")
@@ -176,6 +171,7 @@ class MySQLProxyClusterAddFlow(object):
                 kwargs=asdict(exec_act_kwargs),
             )
 
+            instances = []
             # 阶段2 根据需要添加的proxy的集群，依次添加
             add_proxy_sub_list = []
             for cluster_id in info["cluster_ids"]:
@@ -185,12 +181,7 @@ class MySQLProxyClusterAddFlow(object):
 
                 # 获取对应的集群信息
                 cluster = self.__get_proxy_instance_info(cluster_id=cluster_id, proxy_ip=info["proxy_ip"]["ip"])
-
-                # 给后面标准化用
-                immute_domain = cluster["immute_domain"]
-                bk_cloud_id_clusters_detail[current_bk_cloud_id][immute_domain] = {
-                    "proxy": ["{}:{}".format(cluster["target_proxy_ip"], cluster["proxy_port"])]
-                }
+                instances.append("{}:{}".format(info["proxy_ip"]["ip"], cluster["proxy_port"]))
 
                 # 针对集群维度声明子流程
                 add_proxy_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_sub_flow_context))
@@ -248,6 +239,7 @@ class MySQLProxyClusterAddFlow(object):
                 #         ),
                 #     }
                 # )
+
                 entrysub_process = BuildEntrysManageSubflow(
                     root_id=self.root_id,
                     ticket_data=self.data,
@@ -258,7 +250,13 @@ class MySQLProxyClusterAddFlow(object):
                         "add_ips": [info["proxy_ip"]["ip"]],
                     },
                 )
-                add_proxy_sub_list.append(entrysub_process)
+                add_proxy_sub_pipeline.add_sub_pipeline(entrysub_process)
+
+                add_proxy_sub_list.append(
+                    add_proxy_sub_pipeline.build_sub_process(
+                        sub_name=_("添加{}:{}".format(info["proxy_ip"]["ip"], cluster["proxy_port"]))
+                    )
+                )
 
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=add_proxy_sub_list)
 
@@ -274,24 +272,14 @@ class MySQLProxyClusterAddFlow(object):
                 ),
             )
 
-            exec_act_kwargs.exec_ip = info["proxy_ip"]["ip"]
-
-            sub_pipelines.append(
-                sub_pipeline.build_sub_process(sub_name=_("添加proxy子流程[{}]".format(info["proxy_ip"]["ip"])))
-            )
-
-        mysql_proxy_cluster_add_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-
-        standardize_pipes = []
-        for bk_cloud_id, clusters_detail in bk_cloud_id_clusters_detail.items():
-            standardize_pipes.append(
-                standardize_mysql_cluster_subflow(
+            sub_pipeline.add_sub_pipeline(
+                sub_flow=standardize_mysql_cluster_subflow(
                     root_id=self.root_id,
                     data=copy.deepcopy(self.data),
-                    bk_cloud_id=bk_cloud_id,
+                    bk_cloud_id=info["proxy_ip"]["bk_cloud_id"],
                     bk_biz_id=self.data["bk_biz_id"],
-                    cluster_type=ClusterType.TenDBHA,
-                    clusters_detail=clusters_detail,
+                    # ips=[info["proxy_ip"]["ip"]],
+                    instances=instances,
                     departs=[
                         DeployPeripheralToolsDepart.DBAToolKit,
                         DeployPeripheralToolsDepart.MySQLCrond,
@@ -299,9 +287,13 @@ class MySQLProxyClusterAddFlow(object):
                     ],
                     with_actuator=False,
                     with_bk_plugin=False,
+                    with_collect_sysinfo=False,
                 )
             )
 
-        mysql_proxy_cluster_add_pipeline.add_parallel_sub_pipeline(sub_flow_list=standardize_pipes)
+            sub_pipelines.append(
+                sub_pipeline.build_sub_process(sub_name=_("添加proxy子流程[{}]".format(info["proxy_ip"]["ip"])))
+            )
 
+        mysql_proxy_cluster_add_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         mysql_proxy_cluster_add_pipeline.run_pipeline(init_trans_data_class=SystemInfoContext())

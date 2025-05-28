@@ -24,14 +24,11 @@ from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_package.models import Package
 from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
-from backend.flow.consts import MediumEnum, MysqlVersionToDBBackupForMap
+from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.cluster_entrys import get_tendb_ha_entry
-from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
-    build_surrounding_apps_sub_flow,
-    install_mysql_in_cluster_sub_flow,
-)
+from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import install_mysql_in_cluster_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_instance_config
 from backend.flow.engine.bamboo.scene.mysql.common.master_and_slave_switch import master_and_slave_switch_v2
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import (
@@ -41,6 +38,12 @@ from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow i
 from backend.flow.engine.bamboo.scene.mysql.common.recover_slave_instance import slave_recover_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.slave_recover_switch import slave_migrate_switch_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.uninstall_instance import uninstall_instance_sub_flow
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import (
+    ALLDEPARTS,
+    DeployPeripheralToolsDepart,
+    remove_departs,
+)
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
 from backend.flow.engine.bamboo.scene.mysql.mysql_upgrade import upgrade_version_check
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetBackupInfoFailedException
 from backend.flow.engine.bamboo.scene.spider.spider_remote_node_migrate import remote_instance_migrate_sub_flow
@@ -464,6 +467,26 @@ def tendbha_cluster_upgrade_subflow(
         sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=[ms_process] + ro_sub_piplelines)
     else:
         sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=[ms_process])
+
+    sub_pipeline.add_sub_pipeline(
+        sub_flow=standardize_mysql_cluster_subflow(
+            root_id=root_id,
+            data=copy.deepcopy(parent_global_data),
+            bk_cloud_id=cluster_cls.bk_cloud_id,
+            bk_biz_id=cluster_cls.bk_biz_id,
+            instances=[
+                "{}:{}".format(ip, port) for ip in [new_master_ip, new_slave_ip] + new_ro_slave_ips for port in ports
+            ],
+            departs=remove_departs(ALLDEPARTS, DeployPeripheralToolsDepart.MySQLDBBackup),
+            with_actuator=False,
+            with_bk_plugin=False,
+            with_backup_client=False,
+            with_collect_sysinfo=False,
+            with_cc_standardize=False,
+            with_instance_standardize=False,
+        )
+    )
+
     sub_pipeline.add_act(act_name=_("人工确认切换"), act_component_code=PauseComponent.code, kwargs={})
     # 先切ro slaves
     if len(ro_slaves) > 0:
@@ -483,6 +506,26 @@ def tendbha_cluster_upgrade_subflow(
         check_client_conn=check_client_conn,
     )
     sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=ms_switch_subflows)
+
+    # 重新安装备份,监控等
+    sub_pipeline.add_sub_pipeline(
+        sub_flow=standardize_mysql_cluster_subflow(
+            root_id=root_id,
+            data=copy.deepcopy(parent_global_data),
+            bk_cloud_id=cluster_cls.bk_cloud_id,
+            bk_biz_id=cluster_cls.bk_biz_id,
+            instances=[
+                "{}:{}".format(ip, port) for ip in [new_master_ip, new_slave_ip] + new_ro_slave_ips for port in ports
+            ],
+            with_actuator=False,
+            with_bk_plugin=False,
+            with_backup_client=False,
+            with_collect_sysinfo=False,
+            with_cc_standardize=False,
+            with_instance_standardize=False,
+        )
+    )
+
     # 清理实例级别周边配置
     uninstall_surrounding_sub_pipeline = build_uninstall_surrounding_sub_pipeline(
         root_id=root_id,
@@ -508,24 +551,7 @@ def tendbha_cluster_upgrade_subflow(
             )
         ),
     )
-    # 重新安装备份,监控等
-    sub_pipeline.add_sub_pipeline(
-        sub_flow=build_surrounding_apps_sub_flow(
-            bk_cloud_id=cluster_cls.bk_cloud_id,
-            master_ip_list=[new_master_ip],
-            slave_ip_list=new_ro_slave_ips + [new_slave_ip],
-            root_id=root_id,
-            parent_global_data=copy.deepcopy(parent_global_data),
-            collect_sysinfo=True,
-            is_init=True,
-            is_install_backup=True,
-            is_install_monitor=True,
-            is_install_rotate_binlog=True,
-            is_install_checksum=True,
-            cluster_type=ClusterType.TenDBHA.value,
-            db_backup_pkg_type=MysqlVersionToDBBackupForMap[db_version],
-        )
-    )
+
     # 下架确认节点
     sub_pipeline.add_act(act_name=_("人工确认下架旧节点"), act_component_code=PauseComponent.code, kwargs={})
     # 下架被替换的机器

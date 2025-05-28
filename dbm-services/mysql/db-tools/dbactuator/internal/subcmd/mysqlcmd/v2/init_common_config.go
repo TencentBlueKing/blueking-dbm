@@ -10,23 +10,23 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const InitNginxAddressesCommand = `init-nginx-addresses`
+const InitCommonConfigCommand = `init-common-config`
 
-type InitNginxAddressesAct struct {
+type InitCommonConfigAct struct {
 	*subcmd.BaseOptions
-	Service peripheraltools.InitNginxAddresses
+	Service peripheraltools.InitCommonConfig
 }
 
 func NewInitNginxAddressesCommand() *cobra.Command {
-	act := InitNginxAddressesAct{
+	act := InitCommonConfigAct{
 		BaseOptions: subcmd.GBaseOptions,
 	}
 	cmd := &cobra.Command{
-		Use:   InitNginxAddressesCommand,
+		Use:   InitCommonConfigCommand,
 		Short: "Initialize the Nginx addresses for peripheral",
 		Example: fmt.Sprintf(
 			`dbactuator mysql %s %s %s`,
-			InitNginxAddressesCommand, subcmd.CmdBaseExampleStr, subcmd.ToPrettyJson(act.Service.Example())),
+			InitCommonConfigCommand, subcmd.CmdBaseExampleStr, subcmd.ToPrettyJson(act.Service.Example())),
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(act.Validate())
 			util.CheckErr(act.Init())
@@ -36,24 +36,24 @@ func NewInitNginxAddressesCommand() *cobra.Command {
 	return cmd
 }
 
-func (c *InitNginxAddressesAct) Validate() error {
+func (c *InitCommonConfigAct) Validate() error {
 	return c.BaseOptions.Validate()
 }
 
-func (c *InitNginxAddressesAct) Init() error {
+func (c *InitCommonConfigAct) Init() error {
 	if err := c.Deserialize(&c.Service.Param); err != nil {
 		logger.Error("DeserializeAndValidate err %s", err.Error())
 		return err
 	}
-	//c.Service.GeneralParam = subcmd.GeneralRuntimeParam
+
 	logger.Info("extend params: %s", c.Service.Param)
 	return nil
 }
 
-func (c *InitNginxAddressesAct) Run() error {
+func (c *InitCommonConfigAct) Run() error {
 	steps := subcmd.Steps{
 		{
-			FunName: "初始化 nginx 地址",
+			FunName: "初始化公共配置",
 			Func:    c.Service.Run,
 		},
 	}
@@ -62,6 +62,6 @@ func (c *InitNginxAddressesAct) Run() error {
 		return err
 	}
 
-	logger.Info("初始化 nginx 地址完成")
+	logger.Info("初始化公共配置")
 	return nil
 }

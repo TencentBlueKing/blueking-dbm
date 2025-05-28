@@ -479,7 +479,7 @@ class DBActuatorActionEnum(str, StructuredEnum):
     GenPeripheralToolsConfig = EnumField("gen-peripheraltools-config", _("生成周边配置"))
     ReloadPeripheralToolsConfig = EnumField("reload-peripheraltools-config", _("重载周边配置"))
     DeployPeripheralToolsBinary = EnumField("prepare-peripheraltools-binary", _("prepare-peripheraltools-binary"))
-    InitNginxAddresses = EnumField("init-nginx-addresses", _("初始化 nginx 地址"))
+    InitCommonConfig = EnumField("init-common-config", _("初始化公共配置"))
 
 
 class RedisActuatorActionEnum(str, StructuredEnum):

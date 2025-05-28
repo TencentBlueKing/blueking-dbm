@@ -11,19 +11,19 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging
 from dataclasses import asdict
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import ProxyInstance
 from backend.db_monitor.models import MySQLAutofixTicketStatus, MySQLAutofixTodo
 from backend.flow.consts import DBA_ROOT_USER
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import DeployPeripheralToolsDepart
-from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import (
+    standardize_mysql_cluster_by_ip_subflow,
+)
 from backend.flow.plugins.components.collections.mysql.autofix.fix_dns import FixDnsComponent
 from backend.flow.plugins.components.collections.mysql.autofix.fix_proxy_inplace_dbmeta import (
     FixProxyInplaceDBMetaComponent,
@@ -133,19 +133,20 @@ class ProxyInplaceAutofixFlow(object):
             },
         )
 
-        clusters_detail: Dict[str, Dict[str, List[str]]] = {}
-        for p in ProxyInstance.objects.filter(machine__ip=ip, machine__bk_cloud_id=bk_cloud_id):
-            cluster_obj = p.cluster.first()
-            clusters_detail[cluster_obj.immute_domain] = {"proxy": [p.ip_port]}
+        # clusters_detail: Dict[str, Dict[str, List[str]]] = {}
+        # for p in ProxyInstance.objects.filter(machine__ip=ip, machine__bk_cloud_id=bk_cloud_id):
+        #     cluster_obj = p.cluster.first()
+        #     clusters_detail[cluster_obj.immute_domain] = {"proxy": [p.ip_port]}
 
         autofix_pipeline.add_sub_pipeline(
-            sub_flow=standardize_mysql_cluster_subflow(
+            sub_flow=standardize_mysql_cluster_by_ip_subflow(
                 root_id=self.root_id,
                 data=copy.deepcopy(self.data),
                 bk_cloud_id=bk_cloud_id,
                 bk_biz_id=bk_biz_id,
-                cluster_type=ClusterType.TenDBHA,
-                clusters_detail=clusters_detail,
+                # cluster_type=ClusterType.TenDBHA,
+                # clusters_detail=clusters_detail,
+                ips=[ip],
                 departs=[DeployPeripheralToolsDepart.MySQLMonitor],
                 with_deploy_binary=False,
                 with_collect_sysinfo=False,

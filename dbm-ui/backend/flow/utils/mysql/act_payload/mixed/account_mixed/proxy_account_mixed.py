@@ -8,17 +8,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from .inplace_status import update_inplace_status
+
+from backend.flow.consts import MySQLPrivComponent, UserName
+from backend.flow.utils.mysql.act_payload.mixed.account_mixed.account_mixed_base import AccountMixedBase
 
 
-def trans_records_status():
-    # 更新原地自愈记录的状态
-    update_inplace_status()
-    # 原地自愈失败的, 流转到替换自愈
-    # 禁用 replace 自愈
-    # trans_to_replace()
-    # 原地自愈成功的, 结束自愈, 跳过替换自愈步骤
-    # replace ticket status 写入时就是 SKIPPED, 不用载改
-    # skip_replace()
-    # 更新替换自愈状态
-    # update_replace_status()
+class ProxyAccountMixed(AccountMixedBase):
+    @staticmethod
+    def proxy_admin_account():
+        user_map = AccountMixedBase._query_user(MySQLPrivComponent.PROXY, UserName.PROXY)
+
+        return {"proxy_admin_pwd": user_map["proxy_pwd"], "proxy_admin_user": user_map["proxy_user"]}

@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 
 
 class PayloadBase(object):
@@ -22,6 +23,7 @@ class PayloadBase(object):
         self.ticket_data = ticket_data
         self.cluster = cluster
         self.cluster_type = cluster_type
+        self.logger = logging.getLogger("flow")
 
         # todo 后面可能优化这个问题
         if self.ticket_data.get("module"):

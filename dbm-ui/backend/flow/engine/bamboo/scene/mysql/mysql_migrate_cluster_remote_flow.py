@@ -25,13 +25,10 @@ from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
 from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
-from backend.flow.consts import MediumEnum, MysqlVersionToDBBackupForMap
+from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
-    build_surrounding_apps_sub_flow,
-    install_mysql_in_cluster_sub_flow,
-)
+from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import install_mysql_in_cluster_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_instance_config
 from backend.flow.engine.bamboo.scene.mysql.common.master_and_slave_switch import master_and_slave_switch_v2
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import (
@@ -39,6 +36,12 @@ from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow i
 )
 from backend.flow.engine.bamboo.scene.mysql.common.recover_slave_instance import priv_recover_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.uninstall_instance import uninstall_instance_sub_flow
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import (
+    ALLDEPARTS,
+    DeployPeripheralToolsDepart,
+    remove_departs,
+)
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetBackupInfoFailedException
 from backend.flow.engine.bamboo.scene.spider.spider_remote_node_migrate import remote_instance_migrate_sub_flow
 from backend.flow.plugins.components.collections.common.add_unlock_ticket_type_config import (
@@ -117,6 +120,7 @@ class MySQLMigrateClusterRemoteFlow(object):
 
         # 按照传入的infos信息，循环拼接子流程
         tendb_migrate_pipeline_list = []
+        # 一个循环一对机器
         for info in self.ticket_data["infos"]:
             self.data = copy.deepcopy(info)
             cluster_class = Cluster.objects.get(id=self.data["cluster_ids"][0])
@@ -530,20 +534,28 @@ class MySQLMigrateClusterRemoteFlow(object):
             # tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=sync_mycnf_sub_pipeline_list)
             # 数据同步
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=sync_data_sub_pipeline_list)
-            #  新机器安装周边组件
+            # 新机器安装周边组件
+            # 这时候新机器一个是repeater, 一个是slave
+            instances = [
+                "{}:{}".format(ip, port)
+                for ip in [self.data["new_master_ip"], self.data["new_slave_ip"]]
+                for port in self.data["ports"]
+            ]
+            # 不能部署备份
+            # 不然这些未启用机器的备份可能会污染正式集群
             tendb_migrate_pipeline.add_sub_pipeline(
-                sub_flow=build_surrounding_apps_sub_flow(
-                    bk_cloud_id=cluster_class.bk_cloud_id,
-                    master_ip_list=None,
-                    slave_ip_list=[self.data["new_slave_ip"], self.data["new_master_ip"]],
+                sub_flow=standardize_mysql_cluster_subflow(
                     root_id=self.root_id,
-                    parent_global_data=copy.deepcopy(self.data),
-                    collect_sysinfo=True,
-                    is_install_backup=False,
-                    cluster_type=ClusterType.TenDBHA.value,
-                    db_backup_pkg_type=MysqlVersionToDBBackupForMap[self.data["db_version"]],
+                    data=copy.deepcopy(self.data),
+                    bk_cloud_id=cluster_class.bk_cloud_id,
+                    bk_biz_id=cluster_class.bk_biz_id,
+                    departs=remove_departs(ALLDEPARTS, DeployPeripheralToolsDepart.MySQLDBBackup),
+                    instances=instances,
+                    with_actuator=False,
+                    with_bk_plugin=False,
                 )
             )
+
             tendb_migrate_pipeline.add_act(
                 act_name=_("屏蔽监控 {} {}").format(self.data["new_master_ip"], self.data["new_slave_ip"]),
                 act_component_code=MysqlCrondMonitorControlComponent.code,
@@ -570,19 +582,28 @@ class MySQLMigrateClusterRemoteFlow(object):
             )
             # 切换迁移实例
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=switch_sub_pipeline_list)
+
             tendb_migrate_pipeline.add_sub_pipeline(
-                sub_flow=build_surrounding_apps_sub_flow(
-                    bk_cloud_id=cluster_class.bk_cloud_id,
-                    master_ip_list=[self.data["new_master_ip"]],
-                    slave_ip_list=[self.data["new_slave_ip"]],
+                sub_flow=standardize_mysql_cluster_subflow(
                     root_id=self.root_id,
-                    parent_global_data=copy.deepcopy(self.data),
-                    is_init=True,
-                    collect_sysinfo=True,
-                    cluster_type=ClusterType.TenDBHA.value,
-                    db_backup_pkg_type=MysqlVersionToDBBackupForMap[self.data["db_version"]],
+                    data=copy.deepcopy(self.data),
+                    bk_cloud_id=cluster_class.bk_cloud_id,
+                    bk_biz_id=cluster_class.bk_biz_id,
+                    instances=instances,
+                    departs=[
+                        DeployPeripheralToolsDepart.MySQLMonitor,
+                        DeployPeripheralToolsDepart.MySQLDBBackup,
+                        DeployPeripheralToolsDepart.MySQLRotateBinlog,
+                        DeployPeripheralToolsDepart.MySQLTableChecksum,
+                    ],
+                    with_actuator=False,
+                    with_bk_plugin=False,
+                    with_instance_standardize=False,
+                    with_collect_sysinfo=False,
+                    with_cc_standardize=False,
                 )
             )
+
             tendb_migrate_pipeline.add_act(
                 act_name=_("解除屏蔽监控 {} {}").format(self.data["new_master_ip"], self.data["new_slave_ip"]),
                 act_component_code=MysqlCrondMonitorControlComponent.code,

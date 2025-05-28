@@ -19,10 +19,10 @@ from backend.db_meta.enums import TenDBClusterSpiderRole
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
 from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import (
     add_spider_masters_sub_flow,
     add_spider_slaves_sub_flow,
-    build_apps_for_spider_sub_flow,
 )
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import NormalSpiderFlowException
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
@@ -151,13 +151,18 @@ class TenDBClusterAddNodesFlow(object):
 
         # 阶段3 安装周边程序
         sub_pipeline.add_sub_pipeline(
-            sub_flow=build_apps_for_spider_sub_flow(
+            sub_flow=standardize_mysql_cluster_subflow(
                 bk_cloud_id=cluster.bk_cloud_id,
-                spiders=[spider["ip"] for spider in sub_flow_context["spider_ip_list"]],
+                bk_biz_id=cluster.bk_biz_id,
+                instances=[
+                    "{}:{}".format(spider["ip"], cluster.proxyinstance_set.first().port)
+                    for spider in sub_flow_context["spider_ip_list"]
+                ],
                 root_id=self.root_id,
-                parent_global_data=copy.deepcopy(sub_flow_context),
-                spider_role=TenDBClusterSpiderRole.SPIDER_MASTER,
-                is_collect_sysinfo=True,
+                data=copy.deepcopy(sub_flow_context),
+                with_actuator=False,
+                # spider_role=TenDBClusterSpiderRole.SPIDER_MASTER,
+                # is_collect_sysinfo=True,
             )
         )
         return sub_pipeline.build_sub_process(sub_name=_("[{}]添加spider-master节点流程".format(cluster.name)))
@@ -193,13 +198,20 @@ class TenDBClusterAddNodesFlow(object):
 
         # 阶段3 安装周边程序
         sub_pipeline.add_sub_pipeline(
-            sub_flow=build_apps_for_spider_sub_flow(
+            sub_flow=standardize_mysql_cluster_subflow(
                 bk_cloud_id=cluster.bk_cloud_id,
-                spiders=[spider["ip"] for spider in sub_flow_context["spider_ip_list"]],
+                bk_biz_id=cluster.bk_biz_id,
+                instances=[
+                    "{}:{}".format(spider["ip"], cluster.proxyinstance_set.first().port)
+                    for spider in sub_flow_context["spider_ip_list"]
+                ],
                 root_id=self.root_id,
-                parent_global_data=copy.deepcopy(sub_flow_context),
-                spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE,
-                is_collect_sysinfo=True,
+                data=copy.deepcopy(sub_flow_context),
+                with_actuator=False,
+                with_bk_plugin=False,
+                with_instance_standardize=False,
+                with_cc_standardize=False,
+                with_collect_sysinfo=False,
             )
         )
         return sub_pipeline.build_sub_process(sub_name=_("[{}]添加spider-slave节点流程".format(cluster.name)))

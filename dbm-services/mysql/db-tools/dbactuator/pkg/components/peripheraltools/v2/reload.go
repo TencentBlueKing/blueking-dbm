@@ -2,8 +2,6 @@ package peripheraltools
 
 import (
 	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/common"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/v2/checksum"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/v2/crond"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/v2/dbbackup"
@@ -13,14 +11,16 @@ import (
 )
 
 type Reload struct {
-	GeneralParam *components.GeneralParam `json:"general"`
-	Param        *ReloadParam             `json:"extend"`
+	//GeneralParam *components.GeneralParam `json:"general"`
+	Param *ReloadParam `json:"extend"`
 }
 
 type ReloadParam struct {
-	IP      string   `json:"ip"`
-	Ports   []int    `json:"ports"`
-	Departs []string `json:"departs"`
+	IP         string   `json:"ip"`
+	Ports      []int    `json:"ports"`
+	Departs    []string `json:"departs"`
+	BKCloudId  int64    `json:"bk_cloud_id"`
+	NginxAddrs []string `json:"nginx_addrs"`
 }
 
 func (c *Reload) Run() (err error) {
@@ -85,11 +85,6 @@ func (c *Reload) reloadDepart(depart string) (err error) {
 
 func (c *Reload) Example() interface{} {
 	return Reload{
-		GeneralParam: &components.GeneralParam{
-			RuntimeAccountParam: components.RuntimeAccountParam{
-				MySQLAccountParam: common.AccountMonitorExample,
-			},
-		},
 		Param: &ReloadParam{
 			IP:      "127.0.0.1",
 			Ports:   []int{20000},

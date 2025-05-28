@@ -34,6 +34,9 @@ def monitor_items_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int
 
     i: Union[StorageInstance, ProxyInstance]
     for i in qs.all():
+        if not i.cluster.exists():
+            continue
+
         res[i.port] = DBConfigApi.query_conf_item(
             {
                 "bk_biz_id": f"{i.bk_biz_id}",

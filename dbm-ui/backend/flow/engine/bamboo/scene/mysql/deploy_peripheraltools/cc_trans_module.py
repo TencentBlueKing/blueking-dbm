@@ -109,7 +109,14 @@ def push_exporter_cnf(
     return sp.build_sub_process(sub_name=_("{} 生成 exporter 配置".format(machine_type)))
 
 
-def cc_standardize(root_id: str, data: Dict, bk_cloud_id: int, instances: List[str]) -> SubProcess:
+def cc_standardize(
+    root_id: str,
+    data: Dict,
+    bk_cloud_id: int,
+    instances: List[str],
+    with_cc_standardize: bool,
+    with_exporter_config: bool,
+) -> SubProcess:
     """
     生成 exporter 配置
     cc 模块移动

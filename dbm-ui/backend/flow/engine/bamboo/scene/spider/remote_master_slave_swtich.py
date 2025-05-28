@@ -15,14 +15,14 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import ClusterType, InstanceStatus
+from backend.db_meta.enums import InstanceStatus
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster, StorageInstanceTuple
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
-    build_surrounding_apps_sub_flow,
-    check_sub_flow,
+from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import check_sub_flow
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import (
+    standardize_mysql_cluster_by_ip_subflow,
 )
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
@@ -161,16 +161,37 @@ class RemoteMasterSlaveSwitchFlow(object):
 
             # 阶段7 切换后重建备份程序和数据校验程序
             # 如果旧master机器故障，则重建失败（主故障切换场景）
-            sub_pipeline.add_sub_pipeline(
-                sub_flow=build_surrounding_apps_sub_flow(
-                    bk_cloud_id=cluster.bk_cloud_id,
-                    master_ip_list=[info["slave"]["ip"] for info in info["switch_tuples"]],
-                    slave_ip_list=[info["master"]["ip"] for info in info["switch_tuples"]],
-                    root_id=self.root_id,
-                    parent_global_data=copy.deepcopy(sub_flow_context),
-                    is_init=False,
-                    cluster_type=ClusterType.TenDBCluster.value,
-                )
+            # 两台机器分开做, 故障机器的才有机会跳过忽略
+            # tendbha 那边分开成2个flow了, 故障切换根本就没管, 所以有点不一样
+            sub_pipeline.add_parallel_sub_pipeline(
+                sub_flow_list=[
+                    standardize_mysql_cluster_by_ip_subflow(
+                        root_id=self.root_id,
+                        data=copy.deepcopy(sub_flow_context),
+                        bk_cloud_id=cluster.bk_cloud_id,
+                        bk_biz_id=cluster.bk_biz_id,
+                        ips=[info["master"]["ip"] for info in info["switch_tuples"]],
+                        with_actuator=False,
+                        with_cc_standardize=False,
+                        with_instance_standardize=False,
+                        with_bk_plugin=False,
+                        with_deploy_binary=False,
+                        with_collect_sysinfo=False,
+                    ),
+                    standardize_mysql_cluster_by_ip_subflow(
+                        root_id=self.root_id,
+                        data=copy.deepcopy(sub_flow_context),
+                        bk_cloud_id=cluster.bk_cloud_id,
+                        bk_biz_id=cluster.bk_biz_id,
+                        ips=[info["slave"]["ip"] for info in info["switch_tuples"]],
+                        with_actuator=False,
+                        with_cc_standardize=False,
+                        with_instance_standardize=False,
+                        with_bk_plugin=False,
+                        with_deploy_binary=False,
+                        with_collect_sysinfo=False,
+                    ),
+                ]
             )
 
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("[{}]集群后端切换".format(cluster.name))))

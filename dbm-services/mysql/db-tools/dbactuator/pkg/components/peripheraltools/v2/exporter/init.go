@@ -3,6 +3,7 @@ package exporter
 import (
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/reverseapi"
+	"dbm-services/common/reverseapi/define/mysql"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/common"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
@@ -129,6 +130,24 @@ func GenConfig(bkCloudId int64, nginxAddrs []string, ports ...int) error {
 	}
 	logger.Info("exporter config: %s", string(data))
 
+	b, l, err := rvApi.MySQL.ListInstanceInfo()
+	if err != nil {
+		logger.Error(err.Error())
+		return err
+	}
+
+	isSpiderMaster := false
+	if l == "proxy" {
+		var pis []mysql.ProxyInstanceInfo
+		err = json.Unmarshal(b, &pis)
+		if err != nil {
+			logger.Error(err.Error())
+			return err
+		}
+
+		isSpiderMaster = pis[0].MachineType == "spider" && pis[0].SpiderRole == "spider_master"
+	}
+
 	var exporterConfigs []exporterConfig
 	err = json.Unmarshal(data, &exporterConfigs)
 	if err != nil {
@@ -141,6 +160,15 @@ func GenConfig(bkCloudId int64, nginxAddrs []string, ports ...int) error {
 		if err != nil {
 			logger.Error(err.Error())
 			return err
+		}
+
+		if isSpiderMaster {
+			cfg.Port += 1000
+			err = genOne(&cfg)
+			if err != nil {
+				logger.Error(err.Error())
+				return err
+			}
 		}
 	}
 

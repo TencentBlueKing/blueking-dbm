@@ -28,7 +28,7 @@ from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.clusters_deta
 )
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import (
     DeployPeripheralToolsDepart,
-    remove_depart,
+    remove_departs,
 )
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
@@ -88,10 +88,12 @@ def prepare_departs_binary(
         )
 
     if cluster_type != ClusterType.TenDBSingle and proxy_ips:
-        departs_on_proxy = deepcopy(departs)
-        remove_depart(DeployPeripheralToolsDepart.MySQLTableChecksum, departs_on_proxy)
-        remove_depart(DeployPeripheralToolsDepart.MySQLRotateBinlog, departs_on_proxy)
-        remove_depart(DeployPeripheralToolsDepart.MySQLDBBackup, departs_on_proxy)
+        departs_on_proxy = remove_departs(
+            deepcopy(departs),
+            DeployPeripheralToolsDepart.MySQLTableChecksum,
+            DeployPeripheralToolsDepart.MySQLRotateBinlog,
+            DeployPeripheralToolsDepart.MySQLDBBackup,
+        )
 
         logger.info("{} proxy push departs binary {}".format(cluster_type, departs_on_proxy))
         acts.append(
@@ -158,7 +160,7 @@ def deploy_binary(
     for ip in ips:
         acts.append(
             {
-                "act_name": "{}".format(ip),
+                "act_name": _("部署二进制 {}".format(ip)),
                 "act_component_code": ExecuteDBActuatorScriptComponent.code,
                 "kwargs": asdict(
                     ExecActuatorKwargs(

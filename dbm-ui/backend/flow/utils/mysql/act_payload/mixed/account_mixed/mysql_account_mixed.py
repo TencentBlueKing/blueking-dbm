@@ -8,25 +8,24 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import base64
 import re
 from typing import Dict, Optional
 
 from backend import env
-from backend.components import DBPrivManagerApi
 from backend.constants import IP_RE_PATTERN
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_proxy.constants import ExtensionType
 from backend.db_proxy.models import DBExtension
-from backend.flow.consts import DBM_MYSQL_JOB_TMP_USER_PREFIX, DEFAULT_INSTANCE, MySQLPrivComponent, UserName
+from backend.flow.consts import DBM_MYSQL_JOB_TMP_USER_PREFIX, MySQLPrivComponent, UserName
+from backend.flow.utils.mysql.act_payload.mixed.account_mixed.account_mixed_base import AccountMixedBase
 from backend.ticket.constants import TicketType
 
 
-class MySQLAccountMixed(object):
+class MySQLAccountMixed(AccountMixedBase):
     @staticmethod
-    def all_account(ticket_data):
-        res = MySQLAccountMixed.static_account()
+    def mysql_all_account(ticket_data):
+        res = MySQLAccountMixed.mysql_static_account()
         if ticket_data.get("ticket_type", None) in [
             TicketType.MYSQL_SINGLE_APPLY,
             TicketType.MYSQL_HA_APPLY,
@@ -41,44 +40,43 @@ class MySQLAccountMixed(object):
         return res
 
     @staticmethod
-    def static_account(*users: UserName):
+    def mysql_admin_account(ticket_data):
+        res = {}
+        if ticket_data.get("ticket_type", None) in [
+            TicketType.MYSQL_SINGLE_APPLY,
+            TicketType.MYSQL_HA_APPLY,
+            TicketType.TENDBCLUSTER_APPLY,
+            TicketType.TENDBCLUSTER_APPEND_DEPLOY_CTL,
+        ]:
+            res["admin_user"] = "ADMIN"
+        else:
+            res["admin_user"] = "{}{}".format(DBM_MYSQL_JOB_TMP_USER_PREFIX, ticket_data["job_root_id"])
+
+        res["admin_pwd"] = ticket_data["job_root_id"]
+        return res
+
+    @staticmethod
+    def mysql_static_account(*users: UserName):
         if not users:
             users = [
                 UserName.BACKUP,
                 UserName.MONITOR,
                 UserName.MONITOR_ACCESS_ALL,
-                UserName.OS_MYSQL,
+                # UserName.OS_MYSQL,
                 UserName.REPL,
                 UserName.YW,
                 UserName.PARTITION_YW,
             ]
 
-        user_map = {}
-        value_to_name = {member.value: member.name.lower() for member in UserName}
-
-        data = DBPrivManagerApi.get_password(
-            {
-                "instances": [DEFAULT_INSTANCE],
-                "users": [
-                    {"username": username.value, "component": MySQLPrivComponent.MYSQL.value} for username in users
-                ],
-            }
-        )
-        for user in data["items"]:
-            user_map[value_to_name[user["username"]] + "_user"] = (
-                "MONITOR" if user["username"] == UserName.MONITOR_ACCESS_ALL else user["username"]
-            )
-            user_map[value_to_name[user["username"]] + "_pwd"] = base64.b64decode(user["password"]).decode("utf-8")
-
-        return user_map
+        return AccountMixedBase._query_user(MySQLPrivComponent.MYSQL, *users)
 
     @staticmethod
-    def partition_yw_account():
-        res = MySQLAccountMixed.static_account(UserName.PARTITION_YW)
+    def mysql_partition_yw_account():
+        res = MySQLAccountMixed.mysql_static_account(UserName.PARTITION_YW)
         return {k.removeprefix("partition_yw_"): v for k, v in res.items()}
 
     @staticmethod
-    def drs_account(bk_cloud_id) -> Dict:
+    def mysql_drs_account(bk_cloud_id) -> Dict:
         if env.DRS_USERNAME:
             access_hosts = env.TEST_ACCESS_HOSTS or re.compile(IP_RE_PATTERN).findall(env.DRS_APIGW_DOMAIN)
             return {
@@ -90,7 +88,7 @@ class MySQLAccountMixed(object):
             return MySQLAccountMixed.__extension_account(bk_cloud_id=bk_cloud_id, et=ExtensionType.DRS)
 
     @staticmethod
-    def dbha_account(bk_cloud_id: int) -> Dict:
+    def mysql_dbha_account(bk_cloud_id: int) -> Dict:
         if env.DBHA_USERNAME:
             access_hosts = env.TEST_ACCESS_HOSTS or re.compile(IP_RE_PATTERN).findall(env.DBHA_APIGW_DOMAIN_LIST)
             return {
@@ -102,7 +100,7 @@ class MySQLAccountMixed(object):
             return MySQLAccountMixed.__extension_account(bk_cloud_id=bk_cloud_id, et=ExtensionType.DBHA)
 
     @staticmethod
-    def webconsole_account(bk_cloud_id: int):
+    def mysql_webconsole_account(bk_cloud_id: int):
         if env.WEBCONSOLE_USERNAME:
             access_hosts = env.TEST_ACCESS_HOSTS or re.compile(IP_RE_PATTERN).findall(env.DRS_APIGW_DOMAIN)
             return {

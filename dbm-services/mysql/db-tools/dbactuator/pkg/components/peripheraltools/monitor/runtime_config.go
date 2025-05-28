@@ -68,16 +68,16 @@ func createUserListBackupTable(instance *internal.InstanceInfo, rtap *components
 }
 
 func generateRuntimeConfigIns(mmp *MySQLMonitorParam, instance *internal.InstanceInfo, rtap *components.RuntimeAccountParam) (err error) {
-	if instance.BkInstanceId <= 0 {
-		err = errors.Errorf(
-			"%s:%d invalid bk_instance_id: %d",
-			instance.Ip,
-			instance.Port,
-			instance.BkInstanceId,
-		)
-		logger.Error(err.Error())
-		return err
-	}
+	//if instance.BkInstanceId <= 0 {
+	//	err = errors.Errorf(
+	//		"%s:%d invalid bk_instance_id: %d",
+	//		instance.Ip,
+	//		instance.Port,
+	//		instance.BkInstanceId,
+	//	)
+	//	logger.Error(err.Error())
+	//	return err
+	//}
 
 	logDir := filepath.Join(cst.MySQLMonitorInstallPath, "logs")
 
@@ -111,6 +111,10 @@ func generateRuntimeConfigIns(mmp *MySQLMonitorParam, instance *internal.Instanc
 		DBASysDbs:       mmp.SystemDbs,
 		InteractTimeout: 5 * time.Second,
 		DefaultSchedule: "@every 1m",
+	}
+	if cfg.BkInstanceId == nil {
+		var fakeId int64 = 0
+		cfg.BkInstanceId = &fakeId
 	}
 
 	b, err := yaml.Marshal(cfg)

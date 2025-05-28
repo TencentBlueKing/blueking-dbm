@@ -21,6 +21,8 @@ type CommonInstanceInfo struct {
 	BkBizId      int    `json:"bk_biz_id"`
 	BkCloudId    int    `json:"bk_cloud_id"`
 	ClusterType  string `json:"cluster_type"`
+	ClusterId    int64  `json:"cluster_id"`
+	DbModuleId   int64  `json:"db_module_id"`
 }
 
 type StorageInstanceInfo struct {
@@ -30,9 +32,11 @@ type StorageInstanceInfo struct {
 	InstanceInnerRole string         `json:"instance_inner_role"`
 	Receivers         []InstanceAddr `json:"receivers"`
 	Ejectors          []InstanceAddr `json:"ejectors"`
+	ShardId           int            `json:"shard_id"`
 }
 
 type ProxyInstanceInfo struct {
 	CommonInstanceInfo
 	StorageInstanceList []InstanceAddr `json:"storage_instance_list"`
+	SpiderRole          string         `json:"spider_role"`
 }

@@ -17,8 +17,14 @@ from django.utils.translation import ugettext as _
 
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder
-from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import ALLDEPARTS
-from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import (
+    ALLDEPARTS,
+    DeployPeripheralToolsDepart,
+)
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import (
+    standardize_mysql_cluster_by_ip_subflow,
+    standardize_mysql_cluster_subflow,
+)
 from backend.flow.utils.mysql.mysql_context_dataclass import SystemInfoContext
 
 logger = logging.getLogger("flow")
@@ -28,6 +34,47 @@ class MySQLStandardizeFlow(object):
     def __init__(self, root_id: str, data: Optional[Dict]):
         self.root_id = root_id
         self.data = deepcopy(data)
+
+    def standardize_by_ip(self):
+        """
+        目前特化给自愈用
+        """
+        cluster_id = self.data["cluster_id"]
+        ip = self.data["ip"]
+        bk_biz_id = self.data["bk_biz_id"]
+        bk_cloud_id = self.data["bk_cloud_id"]
+
+        pipe = Builder(
+            root_id=self.root_id,
+            data=copy.deepcopy(self.data),
+            need_random_pass_cluster_ids=[cluster_id],
+        )
+        pipe.add_sub_pipeline(
+            sub_flow=standardize_mysql_cluster_by_ip_subflow(
+                root_id=self.root_id,
+                data=copy.deepcopy(self.data),
+                bk_cloud_id=bk_cloud_id,
+                bk_biz_id=bk_biz_id,
+                ips=[ip],
+                departs=[
+                    DeployPeripheralToolsDepart.MySQLCrond,
+                    DeployPeripheralToolsDepart.MySQLMonitor,
+                    DeployPeripheralToolsDepart.MySQLRotateBinlog,
+                    DeployPeripheralToolsDepart.MySQLDBBackup,
+                    DeployPeripheralToolsDepart.MySQLTableChecksum,
+                ],
+                with_cc_standardize=False,
+                with_instance_standardize=False,
+                with_collect_sysinfo=False,
+                with_deploy_binary=True,
+                with_bk_plugin=False,
+                with_actuator=True,
+                with_push_config=True,
+                with_backup_client=False,
+            )
+        )
+        logger.info(_("构建MySQL存储自愈自动重标准化流程成功"))
+        pipe.run_pipeline(is_drop_random_user=True, init_trans_data_class=SystemInfoContext())
 
     def new_bill(self):
         """

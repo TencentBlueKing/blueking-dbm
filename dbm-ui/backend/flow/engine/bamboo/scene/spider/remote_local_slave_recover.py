@@ -23,9 +23,11 @@ from backend.db_meta.exceptions import InstanceNotExistException
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import build_surrounding_apps_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import mysql_restore_data_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.recover_slave_instance import slave_recover_sub_flow
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import (
+    standardize_mysql_cluster_by_ip_subflow,
+)
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_check_binlog_dump import MySQLCheckBinlogDumpComponent
@@ -291,13 +293,18 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
 
             #  安装周边
             tendb_migrate_pipeline.add_sub_pipeline(
-                sub_flow=build_surrounding_apps_sub_flow(
-                    bk_cloud_id=cluster_class.bk_cloud_id,
-                    master_ip_list=[self.data["master_ip"]],
-                    slave_ip_list=[self.data["slave_ip"]],
+                sub_flow=standardize_mysql_cluster_by_ip_subflow(
                     root_id=self.root_id,
-                    parent_global_data=copy.deepcopy(self.data),
-                    cluster_type=cluster_class.cluster_type,
+                    data=copy.deepcopy(self.data),
+                    bk_cloud_id=cluster_class.bk_cloud_id,
+                    bk_biz_id=self.data["bk_biz_id"],
+                    ips=[self.data["master_ip"], self.data["slave_ip"]],
+                    with_actuator=False,
+                    with_cc_standardize=False,
+                    with_collect_sysinfo=False,
+                    with_instance_standardize=False,
+                    with_bk_plugin=False,
+                    with_deploy_binary=False,
                 )
             )
             tendb_migrate_pipeline.add_act(

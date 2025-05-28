@@ -65,6 +65,7 @@ class MySQLDBHAAutofixRegisterDetailSerializer(SkipToRepresentationMixin, serial
                 )
 
             self.__validate_cluster_type(cluster_type=cluster_obj.cluster_type, attrs=attrs)
+            self.__validate_only_allow_storage(cluster_type=cluster_obj.cluster_type, attrs=attrs)
             self.__validate_machine_type_match(cluster_type=cluster_obj.cluster_type, attrs=attrs)
             self.__validate_consistency_instance_status(attrs=attrs)
             self.__validate_consistency_instance_inner_role(attrs=attrs)
@@ -83,6 +84,15 @@ class MySQLDBHAAutofixRegisterDetailSerializer(SkipToRepresentationMixin, serial
                 raise serializers.ValidationError("{} not a mysql cluster type".format(cluster_type))
 
             return attrs
+
+        @staticmethod
+        def __validate_only_allow_storage(cluster_type, attrs):
+            """
+            目前只注册存储类的 dbha 事件
+            """
+            machine_type = attrs.get("machine_type")
+            if machine_type not in [MachineType.REMOTE, MachineType.BACKEND]:
+                raise serializers.ValidationError("{} not support".format(machine_type))
 
         @staticmethod
         def __validate_machine_type_match(cluster_type, attrs):
