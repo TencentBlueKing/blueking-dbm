@@ -182,7 +182,7 @@
 
   const handleInstanceBatchEdit = (list: RedisInstanceModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!selectedMap.value[item.master_domain]) {
+      if (!selectedMap.value[item.instance_address]) {
         acc.push(
           createTableRow({
             instance: item,
