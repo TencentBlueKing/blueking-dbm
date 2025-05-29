@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 
 	"dbm-services/common/go-pubpkg/cmutil"
 )
@@ -59,12 +60,14 @@ func UniqueSlice[T string | int](slice []T) []T {
 
 // UniqueStrings Returns unique items in a slice
 func UniqueStrings(slice []string) []string {
-	return UniqueSlice(slice)
+	return lo.Uniq(slice)
+	//return UniqueSlice(slice)
 }
 
 // UniqueInts Returns unique items in a slice
 func UniqueInts(slice []int) []int {
-	return UniqueSlice(slice)
+	return lo.Uniq(slice)
+	//return UniqueSlice(slice)
 }
 
 // IsConsecutiveStrings 是否是连续数字

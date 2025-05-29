@@ -104,7 +104,7 @@ func initLoadCmd(cmd *cobra.Command) (cnf *config.BackupConfig, err error) {
 		if err = cmutil.FileExistsErr(configFile); err != nil {
 			return nil, err
 		}
-		if err = initConfig(configFile, &cnf); err != nil {
+		if err = initConfig(configFile, cnf, logger.Log); err != nil {
 			return nil, errors.WithMessagef(err, "fail to parse %s", configFile)
 		}
 	}

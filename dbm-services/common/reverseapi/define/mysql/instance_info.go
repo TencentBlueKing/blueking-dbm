@@ -25,7 +25,7 @@ type CommonInstanceInfo struct {
 
 type StorageInstanceInfo struct {
 	CommonInstanceInfo
-	IsStandBy         bool           `json:"is_stand_by"`
+	IsStandBy         bool           `json:"is_standby"`
 	InstanceRole      string         `json:"instance_role"`
 	InstanceInnerRole string         `json:"instance_inner_role"`
 	Receivers         []InstanceAddr `json:"receivers"`

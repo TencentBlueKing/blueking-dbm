@@ -14,6 +14,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/samber/lo"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/filecontext"
 	"dbm-services/common/go-pubpkg/logger"
@@ -45,6 +47,7 @@ type BackupIndexFile struct {
 }
 
 // ParseBackupIndexFile read index file: fileDir/fileName
+// 注意这里不依赖于 index content 里面的 index file，而是使用传入的 index file
 func ParseBackupIndexFile(indexFilePath string, indexObj *BackupIndexFile) error {
 	fileDir, fileName := filepath.Split(indexFilePath)
 	bodyBytes, err := os.ReadFile(indexFilePath)
@@ -77,13 +80,13 @@ func (f *BackupIndexFile) GetTarFileList(fileType string) []string {
 		for _, fileItem := range f.FileList {
 			fileNamelist = append(fileNamelist, fileItem.FileName)
 		}
-		return util.UniqueStrings(fileNamelist)
+		return lo.Uniq(fileNamelist)
 	} else {
 		fileList := f.backupFiles[fileType]
 		for _, f := range fileList {
 			fileNamelist = append(fileNamelist, f.FileName)
 		}
-		return util.UniqueStrings(fileNamelist)
+		return lo.Uniq(fileNamelist)
 	}
 }
 

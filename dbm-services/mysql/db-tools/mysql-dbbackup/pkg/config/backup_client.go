@@ -10,8 +10,10 @@ package config
 
 // BackupClient the config of backup_client
 type BackupClient struct {
-	// Enable 是否启用备份
-	Enable bool `ini:"Enable"`
+	// EnableBackupClient 是否启用备份上传，默认为 auto，自动根据 is_standby 判断
+	// is_standby 为 true 则为 yes，否则为 no
+	// 如果手动指定 yes/no，则忽略 is_standby 判断
+	EnableBackupClient string `ini:"EnableBackupClient" enum:",auto,yes,no"`
 	// FileTag 启用备份时上报文件使用哪个 FileTag
 	FileTag     string `ini:"FileTag"`
 	StorageType string `ini:"StorageType"`

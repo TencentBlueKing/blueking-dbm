@@ -10,12 +10,9 @@ package cmd
 
 import (
 	errs "errors"
-	"math"
 	"path/filepath"
 
 	"github.com/pkg/errors"
-	"github.com/spf13/viper"
-
 	"github.com/spf13/cobra"
 
 	"dbm-services/common/go-pubpkg/cmutil"
@@ -28,13 +25,9 @@ import (
 )
 
 func init() {
-	uploadCmd.PersistentFlags().String("backup-index-file", "", "read backup info from this index file")
-	uploadCmd.PersistentFlags().String("backup-target-dir", "", "backup target dir that has exported before")
-
-	uploadCmd.PersistentFlags().String("backup-id", "", "overwrite Public.BackupId")
-	_ = viper.BindPFlag("Public.BackupId", uploadCmd.PersistentFlags().Lookup("backup-id"))
-
-	uploadCmd.PersistentFlags().StringSliceP("config", "c",
+	uploadCmd.Flags().String("backup-index-file", "", "read backup info from this index file")
+	uploadCmd.Flags().String("backup-target-dir", "", "backup target dir that has exported before")
+	uploadCmd.Flags().StringSliceP("config", "c",
 		[]string{}, "config files to backup, comma separated. (required)")
 	_ = uploadCmd.MarkFlagRequired("config")
 	_ = uploadCmd.MarkFlagRequired("backup-index-file")
@@ -60,7 +53,7 @@ func tarAndUpload(cmd *cobra.Command, args []string) (err error) {
 	if err = logger.InitLog("dbbackup_tar.log"); err != nil {
 		return err
 	}
-	cnfFiles, _ := cmd.PersistentFlags().GetStringSlice("config") // PersistentFlags global flags
+	cnfFiles, _ := cmd.Flags().GetStringSlice("config") // PersistentFlags global flags
 	if len(cnfFiles) == 0 {
 		if cnfFiles, err = filepath.Glob("dbbackup.*.ini"); err != nil {
 			return err
@@ -74,18 +67,11 @@ func tarAndUpload(cmd *cobra.Command, args []string) (err error) {
 	var errList error
 	config.SetDefaults()
 	var cnf = config.BackupConfig{}
-	if err := initConfig(f, &cnf); err != nil {
+	if err := initConfig(f, &cnf, logger.Log); err != nil {
 		errList = errs.Join(errList, errors.WithMessagef(err, "init failed for %d", cnf.Public.MysqlPort))
 		logger.Log.Error("Create Dbbackup: fail to parse ", f)
 	}
-	// 如果本机是 master 且设置了 master 限速，则覆盖默认限速
-	if cnf.Public.IOLimitMasterFactor > 0.0001 && cnf.Public.MysqlRole == cst.RoleMaster {
-		cnf.Public.IOLimitMBPerSec = int(math.Max(10,
-			cnf.Public.IOLimitMasterFactor*float64(cnf.Public.IOLimitMBPerSec)))
-		cnf.PhysicalBackup.Throttle = int(math.Max(1,
-			cnf.Public.IOLimitMasterFactor*float64(cnf.PhysicalBackup.Throttle)))
-	}
-	indexFilePath, _ := cmd.PersistentFlags().GetString("backup-index-file")
+	indexFilePath, _ := cmd.Flags().GetString("backup-index-file")
 	return tarBackupData(indexFilePath, &cnf)
 }
 

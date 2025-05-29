@@ -142,7 +142,7 @@ func (c *Component) GenerateBackupConfig() error {
 	backupConfig.Public.BackupId = c.Params.BackupId
 	backupConfig.Public.DataSchemaGrant = strings.Join(c.Params.BackupGSD, ",")
 	backupConfig.Public.ShardValue = c.Params.ShardID
-	if backupConfig.BackupClient.Enable && c.Params.BackupFileTag != "" {
+	if backupConfig.BackupClient.EnableBackupClient != "no" && c.Params.BackupFileTag != "" {
 		backupConfig.BackupClient.FileTag = c.Params.BackupFileTag
 	}
 

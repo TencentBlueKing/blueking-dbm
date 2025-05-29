@@ -111,7 +111,7 @@ var spiderScheduleCmd = &cobra.Command{
 			return err
 		}
 		var cnf = config.BackupConfig{}
-		if err := initConfig(configFile, &cnf); err != nil {
+		if err := initConfig(configFile, &cnf, logger.Log); err != nil {
 			return err
 		}
 		cnf.Public.BackupId, _ = cmd.Flags().GetString("backup-id")
@@ -168,7 +168,7 @@ var spiderQueryCmd = &cobra.Command{
 			return err
 		}
 		var cnf = config.BackupConfig{}
-		if err := initConfig(configFile, &cnf); err != nil {
+		if err := initConfig(configFile, &cnf, logger.Log); err != nil {
 			return err
 		}
 		cnf.Public.BackupId, _ = cmd.Flags().GetString("BackupId")
@@ -200,7 +200,7 @@ func batchParseCnfFiles(cnfFiles []string) ([]*config.Public, error) {
 	var backupId = viper.GetString("backup-id")
 	for _, cnfFilename := range cnfFiles {
 		var backupConfig = config.BackupConfig{}
-		if err := initConfig(cnfFilename, &backupConfig); err != nil {
+		if err := initConfig(cnfFilename, &backupConfig, logger.Log); err != nil {
 			return nil, err
 		}
 		backupConfig.Public.BackupId = backupId

@@ -152,6 +152,18 @@ func RunBackupTasks(cnfList []*config.Public) error {
 		if strings.EqualFold(cnf.MysqlRole, cst.BackupRoleTdbctl) {
 			// tdbctl 作为备份主控，不参与备份，由 spider_master 来追加备份任务
 			continue
+		} else if strings.EqualFold(cnf.MysqlRole, cst.BackupRoleSpiderMaster) {
+			// 如果是 spider，确认是 primary 节点才执行
+			spiderInst := mysqlconn.InsObject{
+				Host: cnf.MysqlHost,
+				Port: cnf.MysqlPort,
+				User: cnf.MysqlUser,
+				Pwd:  cnf.MysqlPasswd,
+			}
+			isPrimary, _ := mysqlconn.IsPrimarySpider(spiderInst)
+			if !isPrimary {
+				continue
+			}
 		}
 		logger.Log.Infof("filterBackupTasks: cnfFile:%s", cnf.GetCnfFileName())
 		var instTask = InstBackupTask{cnfFile: cnf.GetCnfFileName(), cnfObj: *cnf}
