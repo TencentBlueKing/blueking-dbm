@@ -45,22 +45,25 @@ def get_rollback_clusters_info(
     target_obj = Cluster.objects.get(id=target_cluster_id)
     source_spiders = source_obj.proxyinstance_set.filter()
     target_spiders = target_obj.proxyinstance_set.filter()
+    cluster_info["bk_cloud_id"] = source_obj.bk_cloud_id
+    cluster_info["source"] = source_obj.to_dict()
+    cluster_info["target"] = target_obj.to_dict()
     primary_map = Cluster.get_cluster_id__primary_address_map([source_obj.id, target_obj.id])
     for spider in source_spiders:
         cluster_info["source_spiders"].append(spider.simple_desc)
-
     for spider in target_spiders:
         spider_info = spider.simple_desc
         if f'{spider_info["ip"]}{IP_PORT_DIVIDER}{spider_info["admin_port"]}' == primary_map[target_obj.id]:
             spider_info["is_admin"] = True
+            cluster_info["target"]["dbctl_ip"] = spider_info["ip"]
+            cluster_info["target"]["dbctl_port"] = spider_info["admin_port"]
+            cluster_info["target"]["spider_port"] = spider_info["port"]
+
         else:
             spider_info["is_admin"] = False
         cluster_info["target_spiders"].append(spider_info)
         ip_list.append(spider.machine.ip)
 
-    cluster_info["bk_cloud_id"] = source_obj.bk_cloud_id
-    cluster_info["source"] = source_obj.to_dict()
-    cluster_info["target"] = target_obj.to_dict()
     shards = source_obj.tendbclusterstorageset_set.filter()
     new_shards = target_obj.tendbclusterstorageset_set.filter()
     if len(shards) != len(new_shards):

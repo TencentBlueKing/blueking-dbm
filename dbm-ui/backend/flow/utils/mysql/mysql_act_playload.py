@@ -45,6 +45,8 @@ from backend.flow.consts import (
     DBActuatorTypeEnum,
     InstanceStatus,
     MediumEnum,
+    MySQLBackupFileTagEnum,
+    MySQLBackupTypeEnum,
     MysqlChangeMasterType,
     MysqlVersionToDBBackupForMap,
 )
@@ -1861,6 +1863,30 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "ignore_dbs": self.ticket_data.get("ignore_dbs", []),
                     "table_patterns": self.ticket_data.get("table_patterns", ["*"]),
                     "ignore_tables": self.ticket_data.get("ignore_tables", []),
+                },
+            },
+        }
+
+    def spider_priv_backup_demand_payload(self, **kwargs):
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.MySQLBackupDemand.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": self.cluster["host"],
+                    "port": self.cluster["port"],
+                    "backup_id": self.cluster["backup_id"],
+                    "role": TenDBClusterSpiderRole.SPIDER_MASTER.value,
+                    "backup_type": MySQLBackupTypeEnum.LOGICAL.value,
+                    "backup_gsd": ["grant"],
+                    "bill_id": str(self.ticket_data["uid"]),
+                    "custom_backup_dir": "",
+                    "backup_file_tag": MySQLBackupFileTagEnum.DBFILE1M.value,
+                    "db_patterns": ["*"],
+                    "ignore_dbs": [],
+                    "table_patterns": ["*"],
+                    "ignore_tables": [],
                 },
             },
         }
