@@ -156,6 +156,14 @@
         <template #infoContent>
           <BaseInfo :data="data" />
         </template>
+        <template #hostContent>
+          <HostList :cluster-data="data" />
+        </template>
+        <template #instanceContent>
+          <BigDataInstanceList
+            :cluster-data="data"
+            :cluster-type="ClusterTypes.DORIS" />
+        </template>
       </ActionPanel>
       <DbSideslider
         v-model:is-show="isShowExpandsion"
@@ -194,15 +202,14 @@
   import { useRequest } from 'vue-request';
   import { useRoute, useRouter } from 'vue-router';
 
-  import DorisModel from '@services/model/doris/doris';
+  import DorisDetailModel from '@services/model/doris/doris-detail';
   import { getDorisDetail } from '@services/source/doris';
 
   import { ClusterTypes, DBTypes } from '@common/const';
 
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
 
-  import ActionPanel from '@views/db-manage/common/cluster-details/ActionPanel.vue';
-  import DisplayBox from '@views/db-manage/common/cluster-details/DisplayBox.vue';
+  import { ActionPanel, BigDataInstanceList, DisplayBox } from '@views/db-manage/common/cluster-details';
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import RenderPassword from '@views/db-manage/common/RenderPassword.vue';
@@ -212,6 +219,7 @@
   import { execCopy, getSelfDomain } from '@utils';
 
   import BaseInfo from './components/BaseInfo.vue';
+  import HostList from './components/HostList.vue';
 
   interface Props {
     clusterId: number;
@@ -228,7 +236,7 @@
 
   const isDetailPage = 'DorisDetail' === (route.name as string);
 
-  const data = ref<DorisModel>();
+  const data = ref<DorisDetailModel>();
 
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
@@ -247,13 +255,13 @@
 
   const { loading: isLoading, run: fetchClusterDetail } = useRequest(getDorisDetail, {
     manual: true,
-    onSuccess(result: DorisModel) {
+    onSuccess(result) {
       data.value = result;
     },
   });
 
   const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(
-    ClusterTypes.TENDBHA,
+    ClusterTypes.DORIS,
     {
       onSuccess: () => {
         fetchClusterDetail({

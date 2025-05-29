@@ -111,7 +111,7 @@
       if (recommendSpecList.length > 0) {
         const [currentSpec] = recommendSpecList;
         modelValue.value = {
-          count: props.data.nodeList.length,
+          count: props.data.oldHostList.length,
           instance_num: currentSpec.instance_num,
           spec_id: currentSpec.spec_id,
         };
@@ -121,7 +121,7 @@
 
   const handleChange = (value: number) => {
     modelValue.value = {
-      count: props.data.nodeList.length,
+      count: props.data.oldHostList.length,
       instance_num: resourceSpecList.value?.results.find((item) => item.spec_id === value)?.instance_num ?? 1,
       spec_id: value,
     };

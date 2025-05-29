@@ -135,7 +135,20 @@ export function getTendbhaTableFields() {
 /**
  * 获取集群实例列表
  */
-export const getTendbhaInstanceList = function (params: { role_exclude?: string } & Record<string, any>) {
+export const getTendbhaInstanceList = function (params: {
+  cluster_id?: number;
+  cluster_type?: string;
+  domain?: string;
+  extra?: number;
+  instance_address?: string;
+  ip?: string;
+  limit?: number;
+  offset?: number;
+  port?: number;
+  role?: string;
+  role_exclude?: string;
+  status?: string;
+}) {
   return http.get<ListBase<TendbhaInstanceModel[]>>(`${getRootPath()}/list_instances/`, params).then((data) => ({
     ...data,
     results: data.results.map((item) => new TendbhaInstanceModel(item)),

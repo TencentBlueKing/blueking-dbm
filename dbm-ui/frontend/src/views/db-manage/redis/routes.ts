@@ -240,13 +240,36 @@ const redisHaInstanceListRoute = {
 };
 
 const redisDatabaseHaList = {
-  path: 'cluster-ha-list',
-  name: 'DatabaseRedisHaList',
+  path: 'cluster-ha',
+  name: 'DatabaseRedisHa',
   meta: {
     fullscreen: true,
     navName: t('Redis 主从管理'),
   },
-  component: () => import('@views/db-manage/redis/cluster-ha-list/Index.vue'),
+  redirect: {
+    name: 'DatabaseRedisHaList',
+  },
+  component: () => import('@views/db-manage/redis/Index.vue'),
+  children: [
+    {
+      path: 'list/:clusterId?',
+      name: 'DatabaseRedisHaList',
+      meta: {
+        fullscreen: true,
+        navName: t('Redis 主从管理'),
+      },
+      component: () => import('@views/db-manage/redis/cluster-ha-list/Index.vue'),
+    },
+    {
+      path: 'detail/:clusterId',
+      name: 'redisClusterHaDetail',
+      meta: {
+        fullscreen: true,
+        navName: t('Redis_主从集群详情'),
+      },
+      component: () => import('@/views/db-manage/redis/cluster-ha-detail/Index.vue'),
+    },
+  ],
 };
 
 const routes: RouteRecordRaw[] = [

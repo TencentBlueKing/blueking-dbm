@@ -45,22 +45,11 @@
     </div>
   </div>
 </template>
-<script
-  setup
-  lang="ts"
-  generic="
-    T extends EsNodeModel | HdfsNodeModel | KafkaNodeModel | PulsarNodeModel | InfluxdbInstanceModel | DorisNodeModel
-  ">
+<script setup lang="ts">
   import { shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import type DorisNodeModel from '@services/model/doris/doris-node';
-  import type EsNodeModel from '@services/model/es/es-node';
-  import type HdfsNodeModel from '@services/model/hdfs/hdfs-node';
-  import InfluxdbInstanceModel from '@services/model/influxdb/influxdbInstance';
-  import type KafkaNodeModel from '@services/model/kafka/kafka-node';
-  import type PulsarNodeModel from '@services/model/pulsar/pulsar-node';
   import { getSpecResourceCount } from '@services/source/dbresourceResource';
   import { fetchRecommendSpec, getResourceSpecList } from '@services/source/dbresourceSpec';
 
@@ -73,7 +62,7 @@
       id: number;
       name: string;
     };
-    data: TReplaceNode<T>;
+    data: TReplaceNode;
     error: boolean;
   }
 
@@ -122,13 +111,11 @@
       } => {
     // influxdb 没有 cluster_id 需要通过 instance_id 查询
     if (props.data.role === 'influxdb') {
-      const [firstNode] = props.data.nodeList;
-      if (firstNode instanceof InfluxdbInstanceModel) {
-        return {
-          instance_id: firstNode.id,
-          role: props.data.role,
-        };
-      }
+      const [firstNode] = props.data.oldHostList;
+      return {
+        instance_id: firstNode.related_instances[0]?.bk_instance_id,
+        role: 'influxdb',
+      };
     }
     // 大数据集群同步 cluster_id 查询
     return {
@@ -142,7 +129,7 @@
     onSuccess(recommendSpecList) {
       if (recommendSpecList.length > 0) {
         modelValue.value = {
-          count: props.data.nodeList.length,
+          count: props.data.oldHostList.length,
           spec_id: recommendSpecList[0].spec_id,
         };
       }
@@ -151,7 +138,7 @@
 
   const handleChange = (value: number) => {
     modelValue.value = {
-      count: props.data.nodeList.length,
+      count: props.data.oldHostList.length,
       spec_id: value,
     };
   };

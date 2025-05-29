@@ -22,10 +22,10 @@
               keypath="(共n台_磁盘容量nG)"
               tag="span">
               <span style="padding: 0 4px">
-                {{ nodeList.length }}
+                {{ oldHostList.length }}
               </span>
               <span style="padding: 0 4px">
-                {{ nodeDiskTotal }}
+                {{ oldHostDiskTotal }}
               </span>
             </I18nT>
           </th>
@@ -35,21 +35,21 @@
               <span>(</span>
               <template v-if="ipSource === 'manual_input' && (isValidated || hostList.length > 0)">
                 <I18nT
-                  v-if="nodeList.length > hostList.length"
+                  v-if="oldHostList.length > hostList.length"
                   keypath="已选n台_少n台_共nG"
                   style="color: #ea3636"
                   tag="span">
                   <span>{{ hostList.length }}</span>
-                  <span>{{ Math.abs(nodeList.length - hostList.length) }}</span>
+                  <span>{{ Math.abs(oldHostList.length - hostList.length) }}</span>
                   <span>{{ localHostDisk }}</span>
                 </I18nT>
                 <I18nT
-                  v-else-if="nodeList.length < hostList.length"
+                  v-else-if="oldHostList.length < hostList.length"
                   keypath="已选n台_多n台_共nG"
                   style="color: #ea3636"
                   tag="span">
                   <span>{{ hostList.length }}</span>
-                  <span>{{ Math.abs(nodeList.length - hostList.length) }}</span>
+                  <span>{{ Math.abs(oldHostList.length - hostList.length) }}</span>
                   <span>{{ localHostDisk }}</span>
                 </I18nT>
                 <I18nT
@@ -60,7 +60,7 @@
                 </I18nT>
               </template>
               <span v-else>
-                {{ t('需n台', { n: nodeList.length }) }}
+                {{ t('需n台', { n: oldHostList.length }) }}
               </span>
               <span>)</span>
             </span>
@@ -75,7 +75,7 @@
           <td>
             <div class="original-ip-box">
               <div
-                v-for="nodeItem in nodeList"
+                v-for="nodeItem in oldHostList"
                 :key="nodeItem.bk_host_id"
                 class="ip-tag">
                 <span>{{ nodeItem.ip }}</span>
@@ -109,12 +109,19 @@
 </template>
 <script lang="tsx">
   import DbResourceModel from '@services/model/db-resource/DbResource';
+  import type { HostInfo } from '@services/types';
 
-  export interface TReplaceNode<N> {
+  export interface TReplaceNode {
     // 集群id
     clusterId: number;
     hostList: DbResourceModel[];
-    nodeList: N[];
+    oldHostList: {
+      bk_cloud_id: number;
+      bk_host_id: number;
+      host_info: HostInfo;
+      ip: string;
+      related_instances: { bk_instance_id: number }[];
+    }[];
     // 扩容资源池
     resourceSpec: {
       count: number;
@@ -127,22 +134,16 @@
     // 资源池规格集群类型
     specMachineType: string;
   }
+
+  interface Ivalue {
+    bk_cloud_id: number;
+    bk_host_id: number;
+    ip: string;
+  }
 </script>
-<script
-  setup
-  lang="tsx"
-  generic="
-    T extends EsNodeModel | HdfsNodeModel | KafkaNodeModel | PulsarNodeModel | InfluxDBInstanceModel | DorisNodeModel
-  ">
+<script setup lang="tsx">
   import { computed } from 'vue';
   import { useI18n } from 'vue-i18n';
-
-  import type DorisNodeModel from '@services/model/doris/doris-node';
-  import type EsNodeModel from '@services/model/es/es-node';
-  import type HdfsNodeModel from '@services/model/hdfs/hdfs-node';
-  import type InfluxDBInstanceModel from '@services/model/influxdb/influxdbInstance';
-  import type KafkaNodeModel from '@services/model/kafka/kafka-node';
-  import type PulsarNodeModel from '@services/model/pulsar/pulsar-node';
 
   import { DBTypes } from '@common/const';
 
@@ -151,29 +152,23 @@
   import ResourceHostSelect from './components/ResourceHostSelect.vue';
   import ResourcePoolSelector from './components/ResourcePoolSelector.vue';
 
-  interface Ivalue {
-    bk_cloud_id: number;
-    bk_host_id: number;
-    ip: string;
-  }
-
-  interface Props {
+  export interface Props {
     cloudInfo: {
       id: number;
       name: string;
     };
-    data: TReplaceNode<T>;
+    data: TReplaceNode;
     dbType: DBTypes;
     ipSource: string;
   }
 
-  type Emits = (e: 'removeNode', node: T) => void;
+  export type Emits = (e: 'removeNode', node: TReplaceNode['oldHostList'][number]) => void;
 
-  interface Exposes {
+  export interface Exposes {
     getValue: () => Promise<{
       new_nodes: Ivalue[];
       old_nodes: Ivalue[];
-      resource_spec: Props['data']['resourceSpec'];
+      resource_spec: TReplaceNode;
     }>;
   }
 
@@ -181,13 +176,13 @@
 
   const emits = defineEmits<Emits>();
 
-  const nodeList = defineModel<Props['data']['nodeList']>('nodeList', {
+  const oldHostList = defineModel<TReplaceNode['oldHostList']>('oldHostList', {
     required: true,
   });
-  const hostList = defineModel<Props['data']['hostList']>('hostList', {
+  const hostList = defineModel<TReplaceNode['hostList']>('hostList', {
     required: true,
   });
-  const resourceSpec = defineModel<Props['data']['resourceSpec']>('resourceSpec', {
+  const resourceSpec = defineModel<TReplaceNode['resourceSpec']>('resourceSpec', {
     required: true,
   });
 
@@ -196,15 +191,17 @@
   const hostEditBtnPlaceholderId = `replaceHostEditBtn${random()}`;
   const isValidated = ref(false);
 
-  const nodeDiskTotal = computed(() => nodeList.value.reduce((result, item) => result + item.disk, 0));
+  const oldHostDiskTotal = computed(() =>
+    oldHostList.value.reduce((result, item) => result + (item.host_info?.bk_disk || 0), 0),
+  );
   const localHostDisk = computed(() => hostList.value.reduce((result, item) => result + ~~Number(item.bk_disk), 0));
 
   const isError = computed(() => {
-    if (nodeList.value.length < 1) {
+    if (oldHostList.value.length < 1) {
       return false;
     }
     if (props.ipSource === 'manual_input') {
-      return hostList.value.length > 0 && hostList.value.length !== nodeList.value.length;
+      return hostList.value.length > 0 && hostList.value.length !== oldHostList.value.length;
     }
 
     return resourceSpec.value.spec_id < 1;
@@ -218,16 +215,13 @@
   );
 
   // 移除节点
-  const handleRemoveNode = (node: Props['data']['nodeList'][0]) => {
-    nodeList.value = nodeList.value.reduce(
-      (result, item) => {
-        if (item.bk_host_id !== node.bk_host_id) {
-          result.push(item);
-        }
-        return result;
-      },
-      [] as Props['data']['nodeList'],
-    );
+  const handleRemoveNode = (node: TReplaceNode['oldHostList'][number]) => {
+    oldHostList.value = oldHostList.value.reduce<TReplaceNode['oldHostList']>((result, item) => {
+      if (item.bk_host_id !== node.bk_host_id) {
+        result.push(item);
+      }
+      return result;
+    }, []);
     window.changeConfirm = true;
     emits('removeNode', node);
   };
@@ -238,13 +232,13 @@
     window.changeConfirm = true;
   };
 
-  defineExpose<Exposes>({
+  defineExpose({
     getValue() {
       isValidated.value = true;
       if (isError.value) {
         return Promise.reject();
       }
-      if (nodeList.value.length < 1) {
+      if (oldHostList.value.length < 1) {
         return Promise.resolve({
           new_nodes: [],
           old_nodes: [],
@@ -260,14 +254,14 @@
           bk_host_id: hostItem.bk_host_id,
           ip: hostItem.ip,
         })),
-        old_nodes: nodeList.value.map((nodeItem) => ({
+        old_nodes: oldHostList.value.map((nodeItem) => ({
           bk_cloud_id: nodeItem.bk_cloud_id,
           bk_host_id: nodeItem.bk_host_id,
           ip: nodeItem.ip,
         })),
         resource_spec: {
           ...resourceSpec.value,
-          count: nodeList.value.length,
+          count: oldHostList.value.length,
         },
       });
     },

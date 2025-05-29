@@ -200,7 +200,7 @@
   });
 
   const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(
-    ClusterTypes.TENDBHA,
+    ClusterTypes.SQLSERVER,
     {
       onSuccess: () => {
         fetchClusterDetail({

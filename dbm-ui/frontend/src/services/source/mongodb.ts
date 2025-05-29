@@ -144,7 +144,7 @@ export function getMongoInstancesList(params: {
   ip?: string;
   limit?: number;
   offset?: number;
-  port?: string;
+  port?: number;
   role?: string;
   status?: string;
 }) {

@@ -557,7 +557,9 @@
   });
 
   watch(searchValue, () => {
-    tableRef.value!.clearSelected();
+    setTimeout(() => {
+      tableRef.value!.clearSelected();
+    });
   });
 
   const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {

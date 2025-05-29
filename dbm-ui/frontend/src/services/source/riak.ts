@@ -54,11 +54,17 @@ export function getRiakList(params: {
  * 获取集群实例列表
  */
 export function getRiakInstanceList(params: {
-  bk_biz_id: number;
-  cluster_id: number;
+  cluster_id?: number;
+  cluster_type?: string;
+  domain?: string;
+  extra?: number;
+  instance_address?: string;
+  ip?: string;
   limit?: number;
   offset?: number;
-  role: string;
+  port?: number;
+  role?: string;
+  status?: string;
 }) {
   return http.get<ListBase<RiakInstanceModel[]>>(`${getRootPath()}/list_instances/`, params).then((res) => ({
     ...res,

@@ -15,7 +15,7 @@ export default function (clusterDetailRouteName: string) {
       const { href } = router.resolve({
         name: clusterDetailRouteName,
         params: {
-          clusterId: clusterId.value,
+          clusterId: id,
         },
       });
       window.open(href);

@@ -86,6 +86,7 @@ export function getRedisInstances(params: {
   cluster_id?: number;
   cluster_type?: string;
   domain?: string;
+  extra?: number;
   instance_address?: string;
   ip?: string;
   limit?: number;

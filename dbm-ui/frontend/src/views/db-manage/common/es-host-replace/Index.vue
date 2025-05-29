@@ -22,7 +22,7 @@
               keypath="(共n台_磁盘容量nG)"
               tag="span">
               <span style="padding: 0 4px">
-                {{ nodeList.length }}
+                {{ oldHostList.length }}
               </span>
               <span style="padding: 0 4px">
                 {{ nodeDiskTotal }}
@@ -37,21 +37,21 @@
                   <span>(</span>
                   <template v-if="ipSource === 'manual_input' && (isValidated || hostList.length > 0)">
                     <I18nT
-                      v-if="nodeList.length > hostList.length"
+                      v-if="oldHostList.length > hostList.length"
                       keypath="已选n台_少n台_共nG"
                       style="color: #ea3636"
                       tag="span">
                       <span>{{ hostList.length }}</span>
-                      <span>{{ Math.abs(nodeList.length - hostList.length) }}</span>
+                      <span>{{ Math.abs(oldHostList.length - hostList.length) }}</span>
                       <span>{{ localHostDisk }}</span>
                     </I18nT>
                     <I18nT
-                      v-else-if="nodeList.length < hostList.length"
+                      v-else-if="oldHostList.length < hostList.length"
                       keypath="已选n台_多n台_共nG"
                       style="color: #ea3636"
                       tag="span">
                       <span>{{ hostList.length }}</span>
-                      <span>{{ Math.abs(nodeList.length - hostList.length) }}</span>
+                      <span>{{ Math.abs(oldHostList.length - hostList.length) }}</span>
                       <span>{{ localHostDisk }}</span>
                     </I18nT>
                     <I18nT
@@ -62,7 +62,7 @@
                     </I18nT>
                   </template>
                   <span v-else>
-                    {{ t('需n台', { n: nodeList.length }) }}
+                    {{ t('需n台', { n: oldHostList.length }) }}
                   </span>
                   <span>)</span>
                 </span>
@@ -84,7 +84,7 @@
           <td>
             <div class="original-ip-box">
               <div
-                v-for="nodeItem in nodeList"
+                v-for="nodeItem in oldHostList"
                 :key="nodeItem.bk_host_id"
                 class="ip-tag">
                 <span>{{ nodeItem.ip }}</span>
@@ -120,7 +120,7 @@
   import { computed } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type EsNodeModel from '@services/model/es/es-node';
+  import type { HostInfo } from '@services/types';
 
   import { random } from '@utils';
 
@@ -138,7 +138,16 @@
       instance_num?: number;
       ip: string;
     }[];
-    nodeList: EsNodeModel[];
+    oldHostList: {
+      bk_cloud_id: number;
+      bk_cloud_name: string;
+      bk_host_id: number;
+      host_info: HostInfo;
+      ip: string;
+      related_instances: {
+        bk_instance_id: number;
+      }[];
+    }[];
     // 扩容资源池
     resourceSpec: {
       count: number;
@@ -169,7 +178,7 @@
     ipSource: string;
   }
 
-  type Emits = (e: 'removeNode', node: EsNodeModel) => void;
+  type Emits = (e: 'removeNode', node: TReplaceNode['oldHostList'][number]) => void;
 
   interface Exposes {
     getValue: () => Promise<{
@@ -183,7 +192,7 @@
 
   const emits = defineEmits<Emits>();
 
-  const nodeList = defineModel<TReplaceNode['nodeList']>('nodeList', {
+  const oldHostList = defineModel<TReplaceNode['oldHostList']>('oldHostList', {
     required: true,
   });
   const hostList = defineModel<TReplaceNode['hostList']>('hostList', {
@@ -198,15 +207,17 @@
   const hostEditBtnPlaceholderId = `replaceHostEditBtn${random()}`;
   const isValidated = ref(false);
 
-  const nodeDiskTotal = computed(() => nodeList.value.reduce((result, item) => result + item.disk, 0));
+  const nodeDiskTotal = computed(() =>
+    oldHostList.value.reduce((result, item) => result + (item.host_info?.bk_disk || 0), 0),
+  );
   const localHostDisk = computed(() => hostList.value.reduce((result, item) => result + ~~Number(item.bk_disk), 0));
 
   const isError = computed(() => {
-    if (nodeList.value.length < 1) {
+    if (oldHostList.value.length < 1) {
       return false;
     }
     if (props.ipSource === 'manual_input') {
-      return hostList.value.length > 0 && hostList.value.length !== nodeList.value.length;
+      return hostList.value.length > 0 && hostList.value.length !== oldHostList.value.length;
     }
 
     return resourceSpec.value.spec_id < 1;
@@ -220,15 +231,15 @@
   );
 
   // 移除节点
-  const handleRemoveNode = (node: TReplaceNode['nodeList'][0]) => {
-    nodeList.value = nodeList.value.reduce(
+  const handleRemoveNode = (node: TReplaceNode['oldHostList'][0]) => {
+    oldHostList.value = oldHostList.value.reduce(
       (result, item) => {
         if (item.bk_host_id !== node.bk_host_id) {
           result.push(item);
         }
         return result;
       },
-      [] as TReplaceNode['nodeList'],
+      [] as TReplaceNode['oldHostList'],
     );
     window.changeConfirm = true;
     emits('removeNode', node);
@@ -247,9 +258,7 @@
         return Promise.reject();
       }
 
-      console.log(hostList.value, 'hostList.value');
-
-      if (nodeList.value.length < 1) {
+      if (oldHostList.value.length < 1) {
         return Promise.resolve({
           new_nodes: [],
           old_nodes: [],
@@ -268,14 +277,14 @@
           instance_num: hostItem.instance_num,
           ip: hostItem.ip,
         })),
-        old_nodes: nodeList.value.map((nodeItem) => ({
+        old_nodes: oldHostList.value.map((nodeItem) => ({
           bk_cloud_id: nodeItem.bk_cloud_id,
           bk_host_id: nodeItem.bk_host_id,
           ip: nodeItem.ip,
         })),
         resource_spec: {
           ...resourceSpec.value,
-          count: nodeList.value.length,
+          count: oldHostList.value.length,
         },
       });
     },

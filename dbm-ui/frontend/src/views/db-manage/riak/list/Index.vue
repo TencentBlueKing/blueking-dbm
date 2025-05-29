@@ -255,7 +255,7 @@
     clusterId,
     goClusterDetail: handleToDetails,
     showDetail: isShowDetail,
-  } = useGoClusterDetail('redisClusterDetail');
+  } = useGoClusterDetail('riakDetail');
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const deployTime = ref<[string, string]>(['', '']);

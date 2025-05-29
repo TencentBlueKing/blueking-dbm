@@ -40,76 +40,19 @@
       }"
       selectable
       @selection="handleSelectChange">
-      <BkTableColumn
-        field="ip"
-        label="IP" />
-      <BkTableColumn
-        field="host_info"
-        :label="t('状态')">
-        <template #default="{ data }: { data: IData }">
-          <HostAgentStatus :data="data?.host_info?.alive || 0" />
-        </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="host_info.bk_idc_city_name"
-        :label="t('地域')">
-        <template #default="{ data }: { data: IData }">
-          {{ data.host_info.bk_idc_city_name || '--' }}
-        </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="bk_sub_zone"
-        :label="t('园区')">
-        <template #default="{ data }: { data: IData }">
-          {{ data.bk_sub_zone || '--' }}
-        </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="bk_os_name"
-        :label="t('操作系统')">
-        <template #default="{ data }: { data: IData }">
-          {{ data.bk_os_name || '--' }}
-        </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="bk_svr_device_cls_name"
-        :label="t('机型')">
-        <template #default="{ data }: { data: IData }">
-          {{ data.bk_svr_device_cls_name || '--' }}
-        </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="host_info.bk_cpu_architecture"
-        :label="t('CPU_核_')">
-        <template #default="{ data }: { data: IData }">
-          {{ data.host_info.bk_cpu_architecture || '--' }}
-        </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="host_info.bk_mem"
-        :label="t('内存M')">
-        <template #default="{ data }: { data: IData }">
-          {{ data.host_info.bk_mem || '--' }}
-        </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="host_info.bk_disk"
-        :label="t('磁盘G')">
-        <template #default="{ data }: { data: IData }">
-          {{ data.host_info.bk_disk || '--' }}
-        </template>
-      </BkTableColumn>
+      <HostListFieldColumn />
     </DbTable>
   </div>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import HostAgentStatus from '@components/host-agent-status/Index.vue';
-
   import useClusterMachineList from '@views/db-manage/hooks/useClusterMachineList';
 
-  import { execCopy, getSearchSelectorParams } from '@utils';
+  import { getSearchSelectorParams } from '@utils';
+
+  import { useCopyMachineIp } from '../hooks';
+  import HostListFieldColumn from '../HostListFieldColumn.vue';
 
   interface Props {
     clusterId: number;
@@ -121,6 +64,7 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
+  const { copyAllIp, copyNotAliveIp } = useCopyMachineIp();
   const requestHandler = useClusterMachineList(props.clusterType);
 
   const dataSource = (params: ServiceParameters<typeof requestHandler>) =>
@@ -181,39 +125,15 @@
   };
 
   const handleSelectedHostIp = () => {
-    const ipList = selectedHostList.value.map((item) => item.ip);
-
-    execCopy(
-      ipList.join('\n'),
-      t('复制成功，共n条', {
-        n: ipList.length,
-      }),
-    );
+    copyAllIp(selectedHostList.value);
   };
 
   const handleNotAliveHostIp = () => {
-    const ipList = (dbTable.value?.getData<IData>() || []).reduce<string[]>((result, item) => {
-      if (!item.host_info.alive) {
-        result.push(item.ip);
-      }
-      return result;
-    }, []);
-    execCopy(
-      ipList.join('\n'),
-      t('复制成功，共n条', {
-        n: ipList.length,
-      }),
-    );
+    copyNotAliveIp(dbTable.value?.getData<IData>() || []);
   };
 
   const handleAllHostIp = () => {
-    const ipList = dbTable.value?.getData<IData>().map((item) => item.ip) || [];
-    execCopy(
-      ipList.join('\n'),
-      t('复制成功，共n条', {
-        n: ipList.length,
-      }),
-    );
+    copyAllIp(dbTable.value?.getData<IData>() || []);
   };
 
   const handleSearchValueChange = (payload: any) => {

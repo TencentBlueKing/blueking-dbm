@@ -4,7 +4,7 @@
 <script setup lang="ts">
   import { useRoute, useRouter } from 'vue-router';
 
-  import ClusterDetail from '@views/db-manage/redis/common/cluster-detail/Index.vue';
+  import ClusterDetail from '@views/db-manage/riak/common/cluster-detail/Index.vue';
 
   const route = useRoute();
   const router = useRouter();
@@ -14,7 +14,7 @@
   defineExpose({
     routerBack() {
       router.push({
-        name: 'RiakDetail',
+        name: 'RiakList',
       });
     },
   });

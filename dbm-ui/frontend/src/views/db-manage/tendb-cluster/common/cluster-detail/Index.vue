@@ -259,7 +259,7 @@
   });
 
   const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(
-    ClusterTypes.TENDBHA,
+    ClusterTypes.TENDBCLUSTER,
     {
       onSuccess: () => {
         fetchClusterDetail({
