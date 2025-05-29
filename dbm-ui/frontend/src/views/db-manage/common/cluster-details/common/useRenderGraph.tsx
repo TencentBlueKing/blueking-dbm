@@ -446,16 +446,13 @@ function renderLineLabels(
       .style('position', 'absolute')
       .style('left', (line: GraphLine) => {
         const { source, target } = line;
+        const sourceNode = nodes.find((node) => node.id === source.id);
         const targetNode = nodes.find((node) => node.id === target.id);
-        const offsetX = nodeConfig.offsetX === undefined ? 0 : nodeConfig.offsetX;
-        const width = targetNode ? targetNode.width : 0;
-        const targetNodeOffset = (width + offsetX) / 2;
-        let { x } = target;
-        if (source.x > target.x) {
-          x = source.x - targetNodeOffset;
-        } else if (source.x < target.x) {
-          x = target.x - targetNodeOffset;
-        }
+        const sWidth = sourceNode ? sourceNode.width : 0;
+        const sourceEndX = source.x + sWidth / 2;
+        const tWidth = targetNode ? targetNode.width : 0;
+        const targetStartX = target.x - tWidth / 2;
+        const x = source.x === target.x ? target.x : sourceEndX + (targetStartX - sourceEndX) / 2;
         return `${x}px`;
       })
       .style('top', (line: GraphLine) => {
