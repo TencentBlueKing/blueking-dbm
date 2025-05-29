@@ -63,14 +63,15 @@ func NewK8sClient(k8sConfig *entitys.K8sClusterConfigEntity) (*K8sClient, error)
 		ClientSet:     clientSet,
 		DynamicClient: dynamicClient,
 	}
-	err = k8sClient.verifyConnection()
+	err = k8sClient.VerifyConnection()
 	if err != nil {
 		return nil, err
 	}
 	return &k8sClient, nil
 }
 
-func (k *K8sClient) verifyConnection() error {
+// VerifyConnection 连通验证
+func (k *K8sClient) VerifyConnection() error {
 	_, err := k.ClientSet.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to connect to the k8sClient: %v", err)
@@ -78,7 +79,8 @@ func (k *K8sClient) verifyConnection() error {
 	return nil
 }
 
-func (k *K8sClient) buildHelmConfig(namespace string) (*action.Configuration, error) {
+// BuildHelmConfig 构建 helm Configuration
+func (k *K8sClient) BuildHelmConfig(namespace string) (*action.Configuration, error) {
 	configFlags := genericclioptions.NewConfigFlags(true)
 	configFlags.WrapConfigFn = func(_ *rest.Config) *rest.Config {
 		return k.RestConfig

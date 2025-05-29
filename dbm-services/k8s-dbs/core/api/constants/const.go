@@ -37,4 +37,6 @@ const (
 	ExposeClusterSuccess       = "申请集群暴露服务成功"
 	DescribeOpsRequestSuccess  = "查询操作成功"
 	GetOpsRequestStatusSuccess = "查询操作状态成功"
+
+	Success = "success"
 )

@@ -19,6 +19,8 @@ limitations under the License.
 
 package constants
 
+import "time"
+
 // Kind
 const (
 	ClusterDefinition   = "ClusterDefinition"
@@ -33,8 +35,9 @@ var ResourceInGlobal = map[string]struct{}{
 }
 
 const (
-	HelmDefaultNamespace = "kb-system"
-	HelmDriver           = "secrets"
+	AddonDefaultNamespace   = "kb-system"
+	HelmRepoDownloadTimeout = 30 * time.Second
+	HelmDriver              = "secrets"
 )
 
 const (

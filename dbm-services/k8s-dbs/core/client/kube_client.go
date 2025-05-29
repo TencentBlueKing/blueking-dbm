@@ -152,7 +152,7 @@ func ListCRD(k8sClient *K8sClient, crd *entity.CustomResourceDefinition) (*unstr
 // StorageAddonIsCreated 检查 addon 是否已安装
 func StorageAddonIsCreated(k8sClient *K8sClient, targetChartFullName string) (bool, error) {
 	// init helm client
-	actionConfig, err := k8sClient.buildHelmConfig(constants.HelmDefaultNamespace)
+	actionConfig, err := k8sClient.BuildHelmConfig(constants.AddonDefaultNamespace)
 	if err != nil {
 		return false, err
 	}
@@ -179,7 +179,7 @@ func StorageAddonIsCreated(k8sClient *K8sClient, targetChartFullName string) (bo
 // CreateStorageAddonCluster installs a Storage Addon Cluster using Helm with the given request.
 func CreateStorageAddonCluster(k8sClient *K8sClient, request *entity.Request) (map[string]interface{}, error) {
 	// Initialize Helm client configuration
-	actionConfig, err := k8sClient.buildHelmConfig(request.Namespace)
+	actionConfig, err := k8sClient.BuildHelmConfig(request.Namespace)
 	if err != nil {
 		slog.Error("failed to build Helm configuration",
 			"namespace", request.Namespace,
@@ -244,7 +244,7 @@ func CreateStorageAddonCluster(k8sClient *K8sClient, request *entity.Request) (m
 func UpdateStorageAddonCluster(k8sClient *K8sClient, request *entity.Request) (map[string]interface{}, error) {
 
 	// init helm client
-	actionConfig, err := k8sClient.buildHelmConfig(request.Namespace)
+	actionConfig, err := k8sClient.BuildHelmConfig(request.Namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -284,7 +284,7 @@ func UpdateStorageAddonCluster(k8sClient *K8sClient, request *entity.Request) (m
 func DeleteStorageAddonCluster(k8sClient *K8sClient, clusterName, namespace string) error {
 
 	// init helm client
-	actionConfig, err := k8sClient.buildHelmConfig(namespace)
+	actionConfig, err := k8sClient.BuildHelmConfig(namespace)
 	if err != nil {
 		return err
 	}

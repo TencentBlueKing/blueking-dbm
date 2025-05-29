@@ -63,11 +63,14 @@ const (
 	GetOpsRequestStatusError = 1532213
 	UpdateClusterError       = 1532214
 
-	CreateK8sNsError = 1532215
+	CreateK8sNsError = 1532300
+
+	DeployAddonError = 1532400
 )
 
 // Define the text information corresponding to errorCode
 var codeTag = map[int]string{
+	// 纳管系统内置异常
 	AuthErr:            "权限不足，请联系管理员",
 	ServerError:        "内部服务器出现错误",
 	EngineTypeError:    "数据库引擎类型有误",
@@ -81,7 +84,7 @@ var codeTag = map[int]string{
 	GetMetaDataErr:     "获取元数据失败",
 	DeleteMetaDataErr:  "删除元数据失败",
 
-	// 集群操作失败错误概要
+	// 存储集群操作异常
 	DescribeComponentError:   "查询组件失败",
 	DescribeClusterError:     "查询集群失败",
 	CreateClusterError:       "创建集群失败",
@@ -98,8 +101,11 @@ var codeTag = map[int]string{
 	DescribeOpsRequestError:  "查询操作请求失败",
 	GetOpsRequestStatusError: "查询操作请求状态失败",
 
-	// K8s api server 调用失败错误概要
+	// k8s apiserver 调用异常
 	CreateK8sNsError: "创建命名空间失败",
+
+	// 存储插件管理操作异常
+	DeployAddonError: "插件部署失败",
 }
 
 // NewGlobalError Create a new custom error instantiation

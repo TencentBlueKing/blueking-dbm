@@ -43,7 +43,6 @@ type K8sProvider struct {
 
 // CreateNamespace 创建命名空间
 func (k *K8sProvider) CreateNamespace(entity *pventity.K8sNamespaceEntity) (*pventity.K8sNamespaceEntity, error) {
-
 	_, err := helper.CreateRequestRecord(entity, coreconst.CreateK8sNs, k.reqRecordProvider)
 	if err != nil {
 		return nil, err
@@ -160,7 +159,7 @@ func (k *K8sProvider) buildNsFromEntity(entity *pventity.K8sNamespaceEntity) cor
 	return ns
 }
 
-// NewK8sProvider 创建 K8sProviderImpl 实例
+// NewK8sProvider 创建 K8sProvider 实例
 func NewK8sProvider(reqRecordProvider metaprovider.ClusterRequestRecordProvider,
 	clusterConfigProvider metaprovider.K8sClusterConfigProvider,
 ) *K8sProvider {

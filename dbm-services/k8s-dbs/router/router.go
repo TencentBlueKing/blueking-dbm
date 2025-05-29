@@ -71,6 +71,8 @@ func NewRouter(db *gorm.DB) *Router {
 
 	buildK8sClusterRouter(db, router)
 
+	buildAddonRouter(db, router)
+
 	return &Router{Engine: router}
 }
 
@@ -148,7 +150,7 @@ func buildOpsMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
 	opsMetaDbAccess := metadbaccess.NewK8sCrdOpsRequestDbAccess(db)
 	opsMetaProvider := metaprovider.NewK8sCrdOpsRequestProvider(opsMetaDbAccess)
 	opsMetaController := metacontroller.NewOpsController(opsMetaProvider)
-	opsMetaGroup := metaRouter.Group("/ops")
+	opsMetaGroup := metaRouter.Group("/metadata/ops")
 	{
 		opsMetaGroup.GET("/:id", opsMetaController.GetOps)
 	}
@@ -159,18 +161,18 @@ func buildClusterMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
 	clusterMetaDbAccess := metadbaccess.NewCrdClusterDbAccess(db)
 	clusterMetaProvider := metaprovider.NewK8sCrdClusterProvider(clusterMetaDbAccess)
 	clusterMetaController := metacontroller.NewClusterController(clusterMetaProvider)
-	clusterMetaGroup := metaRouter.Group("/cluster")
+	clusterMetaGroup := metaRouter.Group("/metadata/cluster")
 	{
 		clusterMetaGroup.GET("/:id", clusterMetaController.GetCluster)
 	}
 }
 
-// buildCmpvMetaRouter cmpv 管理路由构建
+// buildCmpvMetaRouter cmpv 元数据管理路由构建
 func buildCmpvMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
 	cmpvMetaDbAccess := metadbaccess.NewK8sCrdCmpvDbAccess(db)
 	cmpvMetaProvider := metaprovider.NewK8sCrdCmpvProvider(cmpvMetaDbAccess)
 	cmpvMetaController := metacontroller.NewCmpvController(cmpvMetaProvider)
-	cmpvMetaGroup := metaRouter.Group("/cmpv")
+	cmpvMetaGroup := metaRouter.Group("/metadata/cmpv")
 	{
 		cmpvMetaGroup.GET("/:id", cmpvMetaController.GetCmpv)
 		cmpvMetaGroup.DELETE("/:id", cmpvMetaController.DeleteCmpv)
@@ -179,12 +181,12 @@ func buildCmpvMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
 	}
 }
 
-// buildCmpdMetaRouter cmpd 管理路由构建
+// buildCmpdMetaRouter cmpd 元数据管理路由构建
 func buildCmpdMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
 	cmpdMetaDbAccess := metadbaccess.NewK8sCrdCmpdDbAccess(db)
 	cmpdMetaProvider := metaprovider.NewK8sCrdCmpdProvider(cmpdMetaDbAccess)
 	cmpdMetaController := metacontroller.NewCmpdController(cmpdMetaProvider)
-	cmpdMetaGroup := metaRouter.Group("/cmpd")
+	cmpdMetaGroup := metaRouter.Group("/metadata/cmpd")
 	{
 		cmpdMetaGroup.GET("/:id", cmpdMetaController.GetCmpd)
 		cmpdMetaGroup.DELETE("/:id", cmpdMetaController.DeleteCmpd)
@@ -193,12 +195,12 @@ func buildCmpdMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
 	}
 }
 
-// buildCdMetaRouter cd 管理路由构建
+// buildCdMetaRouter cd 元数据管理路由构建
 func buildCdMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
 	cdMetaDbAccess := metadbaccess.NewK8sCrdClusterDefinitionDbAccess(db)
 	cdMetaProvider := metaprovider.NewK8sCrdClusterDefinitionProvider(cdMetaDbAccess)
 	cdMetaController := metacontroller.NewCdController(cdMetaProvider)
-	cdMetaGroup := metaRouter.Group("/cd")
+	cdMetaGroup := metaRouter.Group("/metadata/cd")
 	{
 		cdMetaGroup.GET("/:id", cdMetaController.GetCd)
 		cdMetaGroup.DELETE("/:id", cdMetaController.DeleteCd)
@@ -207,12 +209,12 @@ func buildCdMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
 	}
 }
 
-// buildAddonMetaRouter addon 管理路由构建
+// buildAddonMetaRouter addon 元数据管理路由构建
 func buildAddonMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
 	addonMetaDbAccess := metadbaccess.NewK8sCrdStorageAddonDbAccess(db)
 	addonMetaProvider := metaprovider.NewK8sCrdStorageAddonProvider(addonMetaDbAccess)
 	addonMetaController := metacontroller.NewAddonController(addonMetaProvider)
-	addonMetaGroup := metaRouter.Group("/addon")
+	addonMetaGroup := metaRouter.Group("/metadata/addon")
 	{
 		addonMetaGroup.GET("", addonMetaController.ListAddons)
 		addonMetaGroup.GET("/:id", addonMetaController.GetAddon)
@@ -309,7 +311,23 @@ func buildK8sClusterRouter(db *gorm.DB, router *gin.Engine) {
 	{
 		k8sClusterGroup.POST("/namespace", k8sClusterController.CreateNamespace)
 	}
+}
 
+// buildAddonRouter 存储插件管理路由构建
+func buildAddonRouter(db *gorm.DB, router *gin.Engine) {
+	requestRecordDbAccess := metadbaccess.NewClusterRequestRecordDbAccess(db)
+	requestRecordProvider := metaprovider.NewClusterRequestRecordProvider(requestRecordDbAccess)
+
+	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
+	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(k8sClusterConfigDbAccess)
+
+	addonProvider := provider.NewAddonProvider(requestRecordProvider, k8sClusterConfigProvider)
+
+	addonController := controller.NewAddonController(addonProvider)
+	addonGroup := router.Group(basePath + "/addon")
+	{
+		addonGroup.POST("/deploy", addonController.DeployAddon)
+	}
 }
 
 // buildService 总路由规则构建
