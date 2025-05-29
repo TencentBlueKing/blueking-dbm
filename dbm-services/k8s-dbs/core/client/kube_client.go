@@ -343,6 +343,8 @@ func mergeValues(values map[string]interface{}, request *entity.Request) error {
 
 func mergeMetaData(values map[string]interface{}, request *entity.Request) error {
 	values["addonVersion"] = request.StorageAddonVersion
+	values["clusterName"] = request.ClusterName
+	values["namespace"] = request.Namespace
 	values["topoName"] = request.TopoName
 
 	metaDataMap := map[string]interface{}{
