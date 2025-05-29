@@ -9,7 +9,7 @@ annotations:
 
 # 集群规格
 terminationPolicy: Delete
-topoName: victoriametrics
+topoName: cluster
 componentList:
   - componentName: vminsert
     serviceVersion: "1.93.10"

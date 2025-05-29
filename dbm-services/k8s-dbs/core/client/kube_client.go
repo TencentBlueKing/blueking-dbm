@@ -29,6 +29,8 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/labels"
@@ -40,6 +42,20 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
+
+// minStorageForSC 定义各存储类(StorageClass)允许的最小存储配额
+// key: 存储类名称
+// value: 存储容量字符串，单位建议使用二进制单位（Gi）
+var minStorageForSC = map[string]string{
+	"cbs": "20Gi",
+}
+
+// maxStorageForSC 定义各存储类(StorageClass)允许的最大存储配额
+// key: 存储类名称
+// value: 存储容量字符串，单位建议使用二进制单位（Gi）
+var maxStorageForSC = map[string]string{
+	"cbs": "1000Gi",
+}
 
 // CreateCRD create crd by k8sClient client
 func CreateCRD(k8sClient *K8sClient, crd *entity.CustomResourceDefinition) error {
@@ -388,6 +404,12 @@ func mergeComponentList(values map[string]interface{}, compListFromReq []entity.
 					if err != nil {
 						return err
 					}
+
+					// Check whether the storage corresponding to sc meets expectations
+					err = checkStorageBySC(&compFromReq)
+					if err != nil {
+						return fmt.Errorf("check component %s storage by SC failed: %v", compFromReq.ComponentName, err)
+					}
 					err = MergeObjectToVal(compFromVal, compFromReq.VolumeClaimTemplates, "volumeClaimTemplates")
 					if err != nil {
 						return err
@@ -524,4 +546,74 @@ func getJSONTagName(field reflect.StructField) string {
 		return tag[:idx]
 	}
 	return tag
+}
+
+func checkStorageBySC(comp *entity.ComponentResource) error {
+	if comp.VolumeClaimTemplates == nil {
+		return nil
+	}
+	storageClassName := comp.VolumeClaimTemplates.StorageClassName
+	currentStorage := comp.VolumeClaimTemplates.Storage
+
+	currentBytes, err := parseK8sStorage(currentStorage)
+	if err != nil {
+		return fmt.Errorf("invalid current storage: %w", err)
+	}
+
+	// Get the minimum/maximum limit configuration
+	minStorageStr, minExists := minStorageForSC[storageClassName]
+	maxStorageStr, maxExists := maxStorageForSC[storageClassName]
+	if !minExists && !maxExists {
+		return nil
+	}
+
+	// minimum restriction check
+	if minExists {
+		minBytes, err := parseK8sStorage(minStorageStr)
+		if err != nil {
+			return fmt.Errorf("invalid min storage config: %w", err)
+		}
+		if currentBytes < minBytes {
+			comp.VolumeClaimTemplates.Storage = minStorageStr
+			slog.Info("storage adjusted to minimum",
+				"storageClass", storageClassName,
+				"original", currentStorage,
+				"adjusted", minStorageStr)
+			return nil
+		}
+	}
+
+	// maximum limit check
+	if maxExists {
+		maxBytes, err := parseK8sStorage(maxStorageStr)
+		if err != nil {
+			return fmt.Errorf("invalid max storage config: %w", err)
+		}
+		if currentBytes > maxBytes {
+			comp.VolumeClaimTemplates.Storage = maxStorageStr
+			slog.Info("storage adjusted to maximum",
+				"storageClass", storageClassName,
+				"original", currentStorage,
+				"adjusted", maxStorageStr)
+		}
+	}
+	return nil
+}
+
+func parseK8sStorage(s string) (int, error) {
+	// Matches pure Gi format
+	re := regexp.MustCompile(`^(\d+)Gi$`)
+	matches := re.FindStringSubmatch(s)
+
+	// Format check
+	if len(matches) != 2 {
+		return 0, fmt.Errorf("invalid Gi format, expected <number>Gi (e.g. 20Gi), got %q", s)
+	}
+
+	// Numerical analysis directly returns the integer value of Gi
+	quantity, err := strconv.Atoi(matches[1])
+	if err != nil || quantity <= 0 {
+		return 0, fmt.Errorf("invalid quantity in %q: must be positive integer", s)
+	}
+	return quantity, nil
 }
