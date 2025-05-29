@@ -135,6 +135,8 @@ class Builder(object):
         error_ignorable: bool = False,
         extend: bool = True,
         is_remote_rewritable: bool = False,
+        skippable: bool = True,
+        retryable: bool = True,
     ):
         """
         add_act 方法：为流程加入活动节点，并加入流程数字典
@@ -148,9 +150,17 @@ class Builder(object):
         @param error_ignorable：节点是否忽略错误继续往下执行
         @param extend: extend
         @param is_remote_rewritable, 目前版本有bug，在有设置上下文的流程中，部分场景加入上下文交互列表会有导致上下文失效，参数设置为了避免出现这个bug，默认False即可
+        @param skippable：节点是否可以跳过，默认可跳过
+        @param retryable：节点是否可以重试，默认可以重试
         """
 
-        act = ServiceActivity(name=act_name, component_code=act_component_code, error_ignorable=error_ignorable)
+        act = ServiceActivity(
+            name=act_name,
+            component_code=act_component_code,
+            error_ignorable=error_ignorable,
+            skippable=skippable,
+            retryable=retryable,
+        )
         kwargs.update({"root_id": self.root_id, "node_id": act.id, "node_name": act_name})
         act.component.inputs.kwargs = Var(type=Var.PLAIN, value=kwargs)
         act.component.inputs.trans_data = Var(type=Var.SPLICE, value="${trans_data}")
@@ -184,7 +194,13 @@ class Builder(object):
             if isinstance(act_info, SubProcess):
                 acts.append(act_info)
                 continue
-            act = ServiceActivity(name=act_info["act_name"], component_code=act_info["act_component_code"])
+            act = ServiceActivity(
+                name=act_info["act_name"],
+                component_code=act_info["act_component_code"],
+                error_ignorable=act_info.get("error_ignorable", False),
+                retryable=act_info.get("retryable", True),
+                skippable=act_info.get("skippable", True),
+            )
             act_info["kwargs"].update({"root_id": self.root_id, "node_id": act.id, "node_name": act_info["act_name"]})
             act.component.inputs.kwargs = Var(type=Var.PLAIN, value=act_info["kwargs"])
             act.component.inputs.trans_data = Var(type=Var.SPLICE, value="${trans_data}")
