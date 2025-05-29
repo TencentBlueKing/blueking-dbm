@@ -31,7 +31,6 @@
         ref="specRef"
         :cloud-id="data.bkCloudId"
         :cluster-type="data.clusterType"
-        :current-spec-ids="currentSpecIds"
         :data="data.specId" />
     </td>
     <td style="padding: 0">
@@ -143,19 +142,11 @@
   const hostTypeRef = ref<InstanceType<typeof RenderHostType>>();
   const specRef = ref<InstanceType<typeof RenderSpec>>();
   const hostType = ref('auto');
-  const currentSpecIds = shallowRef<number[]>(
-    props.data.spiderMasterList.map((masterItem) => masterItem.spec_config.id),
-  );
 
   const counts = computed(() => ({ master: props.data.masterCount, slave: props.data.slaveCount }));
-  // const targetMax = computed(() => 37 - props.data.mntCount);
 
   const handleChangeNodeType = (choosedLabel: string) => {
     emits('nodeTypeChoosed', choosedLabel);
-
-    const { spiderMasterList, spiderSlaveList } = props.data;
-    const nodeList = choosedLabel === NodeType.MASTER ? spiderMasterList : spiderMasterList;
-    currentSpecIds.value = nodeList.map((nodeItem) => nodeItem.spec_config.id);
   };
 
   const handleIpListChange = (ipList: string[]) => {

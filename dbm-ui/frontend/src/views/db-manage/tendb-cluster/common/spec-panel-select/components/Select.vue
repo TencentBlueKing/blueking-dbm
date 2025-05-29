@@ -55,10 +55,6 @@
               }"
               @click="handleSelect(item)">
               <span>{{ item.name }}</span>
-              <MiniTag
-                v-if="item.isCurrent"
-                :content="t('当前规格')"
-                theme="info" />
               <span
                 class="spec-display-count"
                 :class="{ 'count-active': item.id === localValue }">
@@ -72,11 +68,8 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { useI18n } from 'vue-i18n';
-
   import { useDebouncedRef } from '@hooks';
 
-  import MiniTag from '@components/mini-tag/index.vue';
   import useValidtor, { type Rules } from '@components/render-table/hooks/useValidtor';
 
   import { encodeRegexp } from '@utils';
@@ -88,7 +81,6 @@
 
   export interface IListItem {
     id: number;
-    isCurrent: boolean;
     name: string;
     specData: SpecInfo;
   }
@@ -116,8 +108,6 @@
   const modelValue = defineModel<IKey>({
     default: '',
   });
-
-  const { t } = useI18n();
 
   const localValue = ref<IKey>('');
   const isShowPop = ref(false);
