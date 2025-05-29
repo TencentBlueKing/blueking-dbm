@@ -444,14 +444,30 @@ func mergeDependencies(values map[string]interface{}, dependencies *entity.Depen
 	return nil
 }
 
+/*
+mergeObserveConfig merges the observation configuration into the target map
+Function:
+- Merges the BkLogConfig and SvcMonitor configurations in the observeConfig object into values["observeConfig"]
+- If the observeConfig key does not exist in the target map, an empty map will be automatically created
+*/
 func mergeObserveConfig(values map[string]interface{}, observeConfig *entity.ObserveConfig) error {
 	if observeConfig == nil {
 		return nil
 	}
-	// TODO 对BkLogConfig和SvcMonitor分开merge，避免报空指针
-	err := MergeObjectToVal(values, observeConfig, "observeConfig")
-	if err != nil {
-		return err
+	observeConfigMap := map[string]interface{}{
+		"bkLogConfig": observeConfig.BkLogConfig,
+		"svcMonitor":  observeConfig.SvcMonitor,
+	}
+	observeConfigFromVal, ok := values["observeConfig"].(map[string]interface{})
+	if !ok {
+		observeConfigFromVal = make(map[string]interface{})
+		values["observeConfig"] = observeConfigFromVal
+	}
+	for configKey, depPtr := range observeConfigMap {
+		err := MergeObjectToVal(observeConfigFromVal, depPtr, configKey)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
