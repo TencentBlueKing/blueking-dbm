@@ -50,7 +50,8 @@ export default class ClusterBase {
   }
 
   get masterDomain() {
-    return this.master_domain || this.domain;
+    // @ts-expect-error 兼容多种集群读取访问入口信息
+    return this.master_domain || this.domain || '';
   }
 
   get updateAtDisplay() {

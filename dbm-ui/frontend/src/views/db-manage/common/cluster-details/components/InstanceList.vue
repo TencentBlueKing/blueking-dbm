@@ -21,37 +21,45 @@
         @change="handleSearchValueChange" />
     </div>
     <DbTable
-      :dataSource="dataSource"
-      ref="dbTable">
+      ref="dbTable"
+      :data-source="dataSource">
       <BkTableColumn
-        :title="t('实例')"
-        field="instance_address" />
+        field="instance_address"
+        :title="t('实例')" />
       <BkTableColumn
-        :title="t('状态')"
-        field="status">
+        field="status"
+        :title="t('状态')">
         <template #default="{ data }: { data: IColumnData }">
           <ClusterInstanceStatus :data="data.status" />
         </template>
       </BkTableColumn>
       <BkTableColumn
-        :title="t('部署角色')"
-        field="role" />
+        field="role"
+        :title="t('部署角色')">
+        <template #default="{ data }: { data: IColumnData }">
+          <RenderClusterRole :data="[data.role]" />
+        </template>
+      </BkTableColumn>
       <BkTableColumn
-        :title="t('版本')"
-        field="version" />
+        field="version"
+        :title="t('版本')" />
       <BkTableColumn
-        :title="t('部署时间')"
-        field="create_at" />
+        field="create_at"
+        :title="t('部署时间')" />
     </DbTable>
   </div>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import useClusterInstanceList from '@views/db-manage/hooks/useClusterInstaceList';
-  import ClusterInstanceStatus from '@components/cluster-instance-status/Index.vue';
-  import { execCopy, getSearchSelectorParams, messageWarn } from '@utils';
   import { ClusterInstStatusKeys } from '@common/const';
+
+  import ClusterInstanceStatus from '@components/cluster-instance-status/Index.vue';
+
+  import RenderClusterRole from '@views/db-manage/common/RenderRole.vue';
+  import useClusterInstanceList from '@views/db-manage/hooks/useClusterInstaceList';
+
+  import { execCopy, getSearchSelectorParams, messageWarn } from '@utils';
 
   interface Props {
     clusterId: number;
@@ -102,8 +110,8 @@
   const dataSource = (params: ServiceParameters<typeof requestHandler>) =>
     requestHandler({
       ...params,
-      cluster_id: props.clusterId,
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      cluster_id: props.clusterId,
     });
 
   const dbTable = useTemplateRef('dbTable');

@@ -4,7 +4,7 @@
 <script setup lang="ts">
   import { useRoute, useRouter } from 'vue-router';
 
-  import ClusterDetail from '@views/db-manage/mysql/common/ha-cluster-detail/Index.vue';
+  import ClusterDetail from '@views/db-manage/sqlserver/common/single-cluster-detail/Index.vue';
 
   const route = useRoute();
   const router = useRouter();
@@ -14,7 +14,7 @@
   defineExpose({
     routerBack() {
       router.push({
-        name: 'DatabaseTendbha',
+        name: 'SqlServerSingleClusterList',
       });
     },
   });

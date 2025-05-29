@@ -228,7 +228,7 @@
   });
 
   const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(
-    ClusterTypes.TENDBHA,
+    ClusterTypes.MONGODB,
     {
       onSuccess: () => {
         fetchClusterDetail({

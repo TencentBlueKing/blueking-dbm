@@ -40,8 +40,8 @@
   import { reactive, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type EsModel from '@services/model/es/es';
-  import type EsNodeModel from '@services/model/es/es-node';
+  import EsModel from '@services/model/es/es';
+  import EsMachineModel from '@services/model/es/es-machine';
   import { getEsNodeList } from '@services/source/es';
   import { createTicket } from '@services/source/ticket';
 
@@ -54,11 +54,9 @@
 
   import { messageError } from '@utils';
 
-  type TNodeInfo = TShrinkNode<EsNodeModel>;
-
   interface Props {
     data: EsModel;
-    nodeList?: TNodeInfo['nodeList'];
+    machineList?: EsMachineModel[];
   }
 
   type Emits = (e: 'change') => void;
@@ -68,7 +66,7 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    nodeList: () => [],
+    machineList: () => [],
   });
   const emits = defineEmits<Emits>();
 
@@ -91,33 +89,30 @@
   ];
 
   const nodeStatusListRef = ref();
-  const nodeInfoMap = reactive<Record<string, TNodeInfo>>({
+  const nodeInfoMap = reactive<Record<string, TShrinkNode>>({
     client: {
+      hostList: [],
       label: 'Client',
       minHost: 0,
-      nodeList: [],
       originalNodeList: [],
-      // targetDisk: 0,
       shrinkDisk: 0,
       tagText: t('接入层'),
       totalDisk: 0,
     },
     cold: {
+      hostList: [],
       label: t('冷节点'),
       minHost: 0,
-      nodeList: [],
       originalNodeList: [],
-      // targetDisk: 0,
       shrinkDisk: 0,
       tagText: t('存储层'),
       totalDisk: 0,
     },
     hot: {
+      hostList: [],
       label: t('热节点'),
       minHost: 0,
-      nodeList: [],
       originalNodeList: [],
-      // targetDisk: 0,
       shrinkDisk: 0,
       tagText: t('存储层'),
       totalDisk: 0,
@@ -128,9 +123,9 @@
   const nodeType = ref('cold');
 
   const fetchListNode = () => {
-    const hotOriginalNodeList: TNodeInfo['nodeList'] = [];
-    const coldOriginalNodeList: TNodeInfo['nodeList'] = [];
-    const clientOriginalNodeList: TNodeInfo['nodeList'] = [];
+    const hotOriginalList: TShrinkNode['originalNodeList'] = [];
+    const coldOriginalList: TShrinkNode['originalNodeList'] = [];
+    const clientOriginalList: TShrinkNode['originalNodeList'] = [];
 
     isLoading.value = true;
     getEsNodeList({
@@ -146,23 +141,23 @@
         data.results.forEach((nodeItem) => {
           if (nodeItem.isHot) {
             hotDiskTotal += nodeItem.disk;
-            hotOriginalNodeList.push(nodeItem);
+            hotOriginalList.push(nodeItem);
           } else if (nodeItem.isCold) {
             coldDiskTotal += nodeItem.disk;
-            coldOriginalNodeList.push(nodeItem);
+            coldOriginalList.push(nodeItem);
           } else if (nodeItem.isClient) {
             clientDiskTotal += nodeItem.disk;
-            clientOriginalNodeList.push(nodeItem);
+            clientOriginalList.push(nodeItem);
           }
         });
 
-        nodeInfoMap.hot.originalNodeList = hotOriginalNodeList;
+        nodeInfoMap.hot.originalNodeList = hotOriginalList;
         nodeInfoMap.hot.totalDisk = hotDiskTotal;
 
-        nodeInfoMap.cold.originalNodeList = coldOriginalNodeList;
+        nodeInfoMap.cold.originalNodeList = coldOriginalList;
         nodeInfoMap.cold.totalDisk = coldDiskTotal;
 
-        nodeInfoMap.client.originalNodeList = clientOriginalNodeList;
+        nodeInfoMap.client.originalNodeList = clientOriginalList;
         nodeInfoMap.client.totalDisk = clientDiskTotal;
       })
       .finally(() => {
@@ -174,40 +169,48 @@
 
   // 默认选中的缩容节点
   watch(
-    () => props.nodeList,
+    () => props.machineList,
     () => {
-      const hotNodeList: TNodeInfo['nodeList'] = [];
-      const coldNodeList: TNodeInfo['nodeList'] = [];
-      const clientNodeList: TNodeInfo['nodeList'] = [];
+      const hotHostList: TShrinkNode['hostList'] = [];
+      const coldHostList: TShrinkNode['hostList'] = [];
+      const clientHostList: TShrinkNode['hostList'] = [];
 
       let hotShrinkDisk = 0;
       let coldShrinkDisk = 0;
       let clientShrinkDisk = 0;
 
-      props.nodeList.forEach((nodeItem) => {
-        if (nodeItem.isHot) {
-          hotShrinkDisk += nodeItem.disk;
-          hotNodeList.push(nodeItem);
-        } else if (nodeItem.isCold) {
-          coldShrinkDisk += nodeItem.disk;
-          coldNodeList.push(nodeItem);
-        } else if (nodeItem.isClient) {
-          clientShrinkDisk += nodeItem.disk;
-          clientNodeList.push(nodeItem);
+      props.machineList.forEach((machineItem) => {
+        const machineDisk = machineItem.host_info?.bk_disk || 0;
+        const machineHost = {
+          alive: machineItem.host_info?.alive || 0,
+          bk_cloud_id: machineItem.bk_cloud_id,
+          bk_disk: machineDisk,
+          bk_host_id: machineItem.bk_host_id,
+          ip: machineItem.ip,
+        };
+        if (machineItem.isHot) {
+          hotShrinkDisk += machineDisk;
+          hotHostList.push(machineHost);
+        } else if (machineItem.isCold) {
+          coldShrinkDisk += machineDisk;
+          coldHostList.push(machineHost);
+        } else if (machineItem.isClient) {
+          clientShrinkDisk += machineDisk;
+          clientHostList.push(machineHost);
         }
       });
-      nodeInfoMap.hot.nodeList = hotNodeList;
+      nodeInfoMap.hot.hostList = hotHostList;
       nodeInfoMap.hot.shrinkDisk = hotShrinkDisk;
-      nodeInfoMap.cold.nodeList = coldNodeList;
+      nodeInfoMap.cold.hostList = coldHostList;
       nodeInfoMap.cold.shrinkDisk = coldShrinkDisk;
-      nodeInfoMap.client.nodeList = clientNodeList;
+      nodeInfoMap.client.hostList = clientHostList;
       nodeInfoMap.client.shrinkDisk = clientShrinkDisk;
 
-      if (coldNodeList.length) {
+      if (coldHostList.length) {
         nodeType.value = 'cold';
-      } else if (hotNodeList.length) {
+      } else if (hotHostList.length) {
         nodeType.value = 'hot';
-      } else if (clientNodeList.length) {
+      } else if (clientHostList.length) {
         nodeType.value = 'client';
       }
     },
@@ -217,16 +220,14 @@
   );
 
   // 缩容节点主机修改
-  const handleNodeHostChange = (nodeList: TNodeInfo['nodeList']) => {
-    console.log(nodeList, 'nodeList');
-
-    const shrinkDisk = nodeList.reduce((result, hostItem) => result + hostItem.disk, 0);
-    nodeInfoMap[nodeType.value].nodeList = nodeList;
+  const handleNodeHostChange = (hostList: TShrinkNode['hostList']) => {
+    const shrinkDisk = hostList.reduce((result, hostItem) => result + (hostItem.bk_disk || 0), 0);
+    nodeInfoMap[nodeType.value].hostList = hostList;
     nodeInfoMap[nodeType.value].shrinkDisk = shrinkDisk;
-    if (nodeInfoMap.hot.nodeList.length === nodeInfoMap.hot.originalNodeList.length) {
+    if (nodeInfoMap.hot.hostList.length === nodeInfoMap.hot.originalNodeList.length) {
       // 热节点全缩容后，限制冷节点至少留1台
       nodeInfoMap.cold.minHost = 1;
-    } else if (nodeInfoMap.cold.nodeList.length === nodeInfoMap.cold.originalNodeList.length) {
+    } else if (nodeInfoMap.cold.hostList.length === nodeInfoMap.cold.originalNodeList.length) {
       // 冷节点全缩容后，限制热节点至少留1台
       nodeInfoMap.hot.minHost = 1;
     } else {
@@ -272,8 +273,8 @@
           headerAlign: 'center',
           onCancel: () => reject(),
           onConfirm: () => {
-            const fomatHost = (nodeList: TNodeInfo['nodeList'] = []) =>
-              nodeList.map((hostItem) => ({
+            const fomatHost = (hostList: TShrinkNode['hostList'] = []) =>
+              hostList.map((hostItem) => ({
                 bk_cloud_id: hostItem.bk_cloud_id,
                 bk_host_id: hostItem.bk_host_id,
                 ip: hostItem.ip,
@@ -291,7 +292,7 @@
                   });
                   return results;
                 },
-                {} as Record<string, TNodeInfo>,
+                {} as Record<string, TShrinkNode>,
               );
 
             return createTicket({
@@ -301,9 +302,9 @@
                 ext_info: generateExtInfo(),
                 ip_source: 'resource_pool',
                 old_nodes: {
-                  client: fomatHost(nodeInfoMap.client.nodeList),
-                  cold: fomatHost(nodeInfoMap.cold.nodeList),
-                  hot: fomatHost(nodeInfoMap.hot.nodeList),
+                  client: fomatHost(nodeInfoMap.client.hostList),
+                  cold: fomatHost(nodeInfoMap.cold.hostList),
+                  hot: fomatHost(nodeInfoMap.hot.hostList),
                 },
               },
               ticket_type: TicketTypes.ES_SHRINK,

@@ -3,6 +3,7 @@
     ref="tableRef"
     class="db-cluster-table"
     :data-source="dataSource"
+    :disable-select-method="disableSelectMethod"
     releate-url-query
     :row-class="getRowClass"
     :row-config="{
@@ -78,6 +79,7 @@
   export interface Props<C extends ISupportClusterType> {
     clusterId: number;
     clusterType: C;
+    disableSelectMethod?: (data: any) => boolean;
   }
 
   export interface Emits<C extends ISupportClusterType> {
@@ -104,7 +106,9 @@
     syncMode: () => VNode;
   }
 
-  const props = defineProps<DbTableProps & Props<T>>();
+  const props = withDefaults(defineProps<DbTableProps & Props<T>>(), {
+    disableSelectMethod: () => false,
+  });
 
   const emits = defineEmits<Emits<T>>();
 

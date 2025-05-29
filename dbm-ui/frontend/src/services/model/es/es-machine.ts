@@ -13,6 +13,8 @@
 
 import type { HostInfo, MachineRelatedCluster, MachineRelatedInstance, MachineSpecConfig } from '@services/types';
 
+import { MachineTypes } from '@common/const';
+
 export default class EsMachine {
   bk_cloud_id: number;
   bk_cloud_name: string;
@@ -52,12 +54,20 @@ export default class EsMachine {
     this.spec_id = payload.spec_id;
   }
 
+  get isClient() {
+    return this.machine_type === MachineTypes.ES_CLIENT;
+  }
+
   get isCold() {
     return this.instance_role.includes('cold');
   }
 
   get isHot() {
     return this.instance_role.includes('hot');
+  }
+
+  get isMaster() {
+    return this.machine_type === MachineTypes.ES_MASTER;
   }
 
   get isUnvailable() {

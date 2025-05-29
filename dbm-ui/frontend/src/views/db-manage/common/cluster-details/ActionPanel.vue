@@ -34,22 +34,28 @@
         <BkTabPanel
           :label="t('主机信息')"
           name="host">
-          <HostList
+          <slot
             v-if="activePanel === 'host'"
-            :key="clusterData.id"
-            :cluster-id="clusterData.id"
-            :cluster-type="clusterType" />
+            name="hostContent">
+            <HostList
+              :key="clusterData.id"
+              :cluster-id="clusterData.id"
+              :cluster-type="clusterType" />
+          </slot>
         </BkTabPanel>
       </slot>
       <slot name="instance">
         <BkTabPanel
           :label="t('集群实例')"
           name="instance">
-          <Instancelist
+          <slot
             v-if="activePanel === 'instance'"
-            :key="clusterData.id"
-            :cluster-id="clusterData.id"
-            :cluster-type="clusterType" />
+            name="instanceContent">
+            <Instancelist
+              :key="clusterData.id"
+              :cluster-id="clusterData.id"
+              :cluster-type="clusterType" />
+          </slot>
         </BkTabPanel>
       </slot>
       <template v-if="monitorPanelList && monitorPanelList.urls.length > 0">
@@ -113,7 +119,6 @@
 </script>
 <script setup lang="ts" generic="T extends keyof ClusterTypeRelateClusterModel">
   import type { VNode } from 'vue';
-  // import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
   import { useRoute } from 'vue-router';
@@ -135,20 +140,19 @@
   export interface Props<C extends keyof ClusterTypeRelateClusterModel> {
     clusterData: ClusterTypeRelateClusterModel[C];
     clusterRoleNodeGroup: Record<string, ClusterListNode[]>;
-
     clusterType: C;
   }
 
   export interface Slots {
     host: () => VNode;
+    hostContent: () => VNode;
     info: () => VNode;
     infoContent: () => VNode;
     instance: () => VNode;
+    instanceContent: () => VNode;
     record: () => VNode;
     topo: () => VNode;
   }
-
-  // type ISupportClusterType = ComponentProps<typeof ClusterTopo>['clusterType'];
 
   const props = defineProps<Props<T>>();
   defineSlots<Slots>();
@@ -159,17 +163,14 @@
   const route = useRoute();
   const { appendSearchParams } = useUrlSearch();
 
-  const activePanel = ref('');
+  const activePanel = ref(String(route.query[URL_MEMO_KEY]) || '');
 
   const dbType = computed(() => clusterTypeInfos[props.clusterData.cluster_type].dbType);
 
   watch(
     () => props.clusterData,
     () => {
-      activePanel.value = String(route.query[URL_MEMO_KEY] || '');
-    },
-    {
-      immediate: true,
+      activePanel.value = '';
     },
   );
 

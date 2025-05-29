@@ -92,7 +92,7 @@ export default defineConfig(({ mode }) => {
       monacoEditorPlugin.default({}),
     ].concat(isHttps ? [basicSsl()] : []),
     optimizeDeps: {
-      exclude: ['@blueking/ip-selector/dist/vue3.x.js'],
+      exclude: ['@blueking/tdesign-ui/vue3/index.es.min.js'],
     },
     server: {
       strictPort: true,

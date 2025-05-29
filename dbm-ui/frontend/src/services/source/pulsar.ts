@@ -58,7 +58,19 @@ export function getPulsarTableFields() {
 /**
  * 获取实例列表
  */
-export function getPulsarInstanceList(params: { bk_biz_id: number } & Record<string, any>) {
+export function getPulsarInstanceList(params: {
+  cluster_id?: number;
+  cluster_type?: string;
+  domain?: string;
+  extra?: number;
+  instance_address?: string;
+  ip?: string;
+  limit?: number;
+  offset?: number;
+  port?: number;
+  role?: string;
+  status?: string;
+}) {
   return http.get<ListBase<PulsarInstanceModel[]>>(`${getRootPath()}/list_instances/`, params).then((data) => ({
     ...data,
     results: data.results.map((item: PulsarInstanceModel) => new PulsarInstanceModel(item)),

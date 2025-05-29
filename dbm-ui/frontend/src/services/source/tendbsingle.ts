@@ -89,7 +89,19 @@ export function getTendbsingleTableFields() {
 /**
  * 获取集群实例列表
  */
-export function getTendbsingleInstanceList(params: Record<string, any>) {
+export function getTendbsingleInstanceList(params: {
+  cluster_id?: number;
+  cluster_type?: string;
+  domain?: string;
+  extra?: number;
+  instance_address?: string;
+  ip?: string;
+  limit?: number;
+  offset?: number;
+  port?: number;
+  role?: string;
+  status?: string;
+}) {
   return http.get<ListBase<TendbsingleInstanceModel[]>>(`${getRootPath()}/list_instances/`, params).then((data) => ({
     ...data,
     results: data.results.map((item: TendbsingleInstanceModel) => new TendbsingleInstanceModel(item)),

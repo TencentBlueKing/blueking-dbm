@@ -69,11 +69,17 @@ export function exportSqlServerSingleClusterToExcel(params: { bk_host_ids?: numb
  * 获取集群实例列表
  */
 export function getSqlServerInstanceList(params: {
-  bk_biz_id?: number;
   cluster_id?: number;
+  cluster_type?: string;
+  domain?: string;
+  extra?: number;
+  instance_address?: string;
+  ip?: string;
   limit?: number;
   offset?: number;
+  port?: number;
   role?: string;
+  status?: string;
 }) {
   return http.get<ListBase<SqlServerInstanceModel[]>>(`${getPath()}/list_instances/`, params).then((data) => ({
     ...data,

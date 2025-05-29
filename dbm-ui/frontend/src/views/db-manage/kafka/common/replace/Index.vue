@@ -25,13 +25,13 @@
         </BkRadioButton>
       </BkRadioGroup>
       <div
-        v-show="nodeInfoMap.broker.nodeList.length > 0"
+        v-show="nodeInfoMap.broker.oldHostList.length > 0"
         class="item">
         <div class="item-label">Broker</div>
         <HostReplace
           ref="brokerRef"
           v-model:host-list="nodeInfoMap.broker.hostList"
-          v-model:node-list="nodeInfoMap.broker.nodeList"
+          v-model:old-host-list="nodeInfoMap.broker.oldHostList"
           v-model:resource-spec="nodeInfoMap.broker.resourceSpec"
           :cloud-info="{
             id: data.bk_cloud_id,
@@ -39,18 +39,17 @@
           }"
           :data="nodeInfoMap.broker"
           :db-type="DBTypes.KAFKA"
-          :disable-host-method="brokerDisableHostMethod"
           :ip-source="ipSource"
           @remove-node="handleRemoveNode" />
       </div>
       <div
-        v-show="nodeInfoMap.zookeeper.nodeList.length > 0"
+        v-show="nodeInfoMap.zookeeper.oldHostList.length > 0"
         class="item">
         <div class="item-label">Zookeeper</div>
         <HostReplace
           ref="zookeeperRef"
           v-model:host-list="nodeInfoMap.zookeeper.hostList"
-          v-model:node-list="nodeInfoMap.zookeeper.nodeList"
+          v-model:old-host-list="nodeInfoMap.zookeeper.oldHostList"
           v-model:resource-spec="nodeInfoMap.zookeeper.resourceSpec"
           :cloud-info="{
             id: data.bk_cloud_id,
@@ -58,7 +57,6 @@
           }"
           :data="nodeInfoMap.zookeeper"
           :db-type="DBTypes.KAFKA"
-          :disable-host-method="zookeeperDisableHostMethod"
           :ip-source="ipSource"
           @remove-node="handleRemoveNode" />
       </div>
@@ -82,8 +80,8 @@
   import { computed, reactive, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type KafkaModel from '@services/model/kafka/kafka';
-  import type KafkaNodeModel from '@services/model/kafka/kafka-node';
+  import KafkaModel from '@services/model/kafka/kafka';
+  import KafkaMachineModel from '@services/model/kafka/kafka-machine';
   import { createTicket } from '@services/source/ticket';
 
   import { useGlobalBizs } from '@stores';
@@ -94,11 +92,9 @@
 
   import { messageError } from '@utils';
 
-  type TNodeInfo = TReplaceNode<KafkaNodeModel>;
-
   interface Props {
     data: KafkaModel;
-    nodeList: TNodeInfo['nodeList'];
+    machineList: KafkaMachineModel[];
   }
 
   interface Emits {
@@ -114,14 +110,14 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const makeMapByHostId = (hostList: TNodeInfo['hostList']) =>
-    hostList.reduce(
-      (result, item) => ({
-        ...result,
-        [item.bk_host_id]: true,
-      }),
-      {} as Record<number, boolean>,
-    );
+  // const makeMapByHostId = (hostList: TReplaceNode['hostList']) =>
+  //   hostList.reduce(
+  //     (result, item) => ({
+  //       ...result,
+  //       [item.bk_host_id]: true,
+  //     }),
+  //     {} as Record<number, boolean>,
+  //   );
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
@@ -130,11 +126,11 @@
   const zookeeperRef = ref();
 
   const ipSource = ref('resource_pool');
-  const nodeInfoMap = reactive<Record<string, TNodeInfo>>({
+  const nodeInfoMap = reactive<Record<string, TReplaceNode>>({
     broker: {
       clusterId: props.data.id,
       hostList: [],
-      nodeList: [],
+      oldHostList: [],
       resourceSpec: {
         count: 3,
         spec_id: 0,
@@ -146,7 +142,7 @@
     zookeeper: {
       clusterId: props.data.id,
       hostList: [],
-      nodeList: [],
+      oldHostList: [],
       resourceSpec: {
         count: 0,
         spec_id: 0,
@@ -159,49 +155,32 @@
 
   const isEmpty = computed(() => {
     const { broker, zookeeper } = nodeInfoMap;
-    return broker.nodeList.length < 1 && zookeeper.nodeList.length < 1;
+    return broker.oldHostList.length < 1 && zookeeper.oldHostList.length < 1;
   });
 
   watch(
-    () => props.nodeList,
+    () => props.machineList,
     () => {
-      const brokerList: TNodeInfo['nodeList'] = [];
-      const zookeeperList: TNodeInfo['nodeList'] = [];
+      const brokerList: TReplaceNode['oldHostList'] = [];
+      const zookeeperList: TReplaceNode['oldHostList'] = [];
 
-      props.nodeList.forEach((nodeItem) => {
-        if (nodeItem.isBroker) {
-          brokerList.push(nodeItem);
-        } else if (nodeItem.isZookeeper) {
-          zookeeperList.push(nodeItem);
+      props.machineList.forEach((machineItem) => {
+        if (machineItem.isBroker) {
+          brokerList.push(machineItem);
+        } else if (machineItem.isZookeeper) {
+          zookeeperList.push(machineItem);
         }
       });
 
-      nodeInfoMap.broker.nodeList = brokerList;
-      nodeInfoMap.zookeeper.nodeList = zookeeperList;
+      nodeInfoMap.broker.oldHostList = brokerList;
+      nodeInfoMap.zookeeper.oldHostList = zookeeperList;
     },
     {
       immediate: true,
     },
   );
 
-  // 节点主机互斥
-  const brokerDisableHostMethod = (hostData: TNodeInfo['hostList'][0]) => {
-    const zookeeperHostIdMap = makeMapByHostId(nodeInfoMap.zookeeper.hostList);
-    if (zookeeperHostIdMap[hostData.bk_host_id]) {
-      return t('主机已被xx节点使用', ['Zookeeper']);
-    }
-    return false;
-  };
-  // 节点主机互斥
-  const zookeeperDisableHostMethod = (hostData: TNodeInfo['hostList'][0]) => {
-    const brokerHostIdMap = makeMapByHostId(nodeInfoMap.broker.hostList);
-    if (brokerHostIdMap[hostData.bk_host_id]) {
-      return t('主机已被xx节点使用', ['Broker']);
-    }
-    return false;
-  };
-
-  const handleRemoveNode = (node: TNodeInfo['nodeList'][0]) => {
+  const handleRemoveNode = (node: TReplaceNode['oldHostList'][number]) => {
     emits('removeNode', node.bk_host_id);
   };
 
@@ -240,7 +219,7 @@
               }
               return Object.values(nodeInfoMap).reduce((result, nodeData) => {
                 if (nodeData.resourceSpec.spec_id > 0) {
-                  return result + nodeData.nodeList.length;
+                  return result + nodeData.oldHostList.length;
                 }
                 return result;
               }, 0);
@@ -256,7 +235,7 @@
               onConfirm: () => {
                 const nodeData = {};
                 if (ipSource.value === 'manual_input') {
-                  const formatHost = (hostList: TNodeInfo['hostList'] = []) => {
+                  const formatHost = (hostList: TReplaceNode['hostList'] = []) => {
                     const hosts = hostList.map((hostItem) => ({
                       bk_biz_id: hostItem.dedicated_biz,
                       bk_cloud_id: hostItem.bk_cloud_id,

@@ -155,6 +155,14 @@
         <template #infoContent>
           <BaseInfo :data="data" />
         </template>
+        <template #hostContent>
+          <HostList :cluster-data="data" />
+        </template>
+        <template #instanceContent>
+          <BigDataInstanceList
+            :cluster-data="data"
+            :cluster-type="ClusterTypes.ES" />
+        </template>
       </ActionPanel>
       <DbSideslider
         v-model:is-show="isShowExpandsion"
@@ -209,16 +217,17 @@
 
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
 
-  import ActionPanel from '@views/db-manage/common/cluster-details/ActionPanel.vue';
-  import DisplayBox from '@views/db-manage/common/cluster-details/DisplayBox.vue';
+  import { ActionPanel, BigDataInstanceList, DisplayBox } from '@views/db-manage/common/cluster-details';
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import RenderPassword from '@views/db-manage/common/RenderPassword.vue';
   import ClusterExpansion from '@views/db-manage/elastic-search/common/expansion/Index.vue';
+  import ClusterShrink from '@views/db-manage/elastic-search/common/shrink/Index.vue';
 
   import { execCopy, getSelfDomain } from '@utils';
 
   import BaseInfo from './components/BaseInfo.vue';
+  import HostList from './components/HostList.vue';
 
   interface Props {
     clusterId: number;
@@ -259,17 +268,14 @@
     },
   });
 
-  const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(
-    ClusterTypes.TENDBHA,
-    {
-      onSuccess: () => {
-        fetchClusterDetail({
-          id: props.clusterId,
-        });
-        emits('change');
-      },
+  const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(ClusterTypes.ES, {
+    onSuccess: () => {
+      fetchClusterDetail({
+        id: props.clusterId,
+      });
+      emits('change');
     },
-  );
+  });
 
   watch(
     () => props.clusterId,

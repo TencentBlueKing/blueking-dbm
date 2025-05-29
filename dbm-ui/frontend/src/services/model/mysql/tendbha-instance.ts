@@ -36,6 +36,7 @@ export default class TendbhaInstance {
   host_info: HostInfo;
   id: number;
   instance_address: string;
+  instance_name: string;
   ip: string;
   machine_type: string;
   master_domain: string;
@@ -69,6 +70,7 @@ export default class TendbhaInstance {
     this.host_info = payload.host_info || {};
     this.id = payload.id || 0;
     this.instance_address = payload.instance_address || '';
+    this.instance_name = payload.instance_name || '';
     this.ip = payload.ip || '';
     this.machine_type = payload.machine_type;
     this.master_domain = payload.master_domain || '';
