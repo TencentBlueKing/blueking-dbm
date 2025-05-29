@@ -160,6 +160,9 @@
           :selected-list="selected"
           @go-detail="handleToDetails" />
       </template>
+      <template #moduleNames>
+        <ModuleNameColumn :cluster-type="ClusterTypes.RIAK" />
+      </template>
     </ClusterTable>
     <DbSideslider
       v-if="detailData"
@@ -211,6 +214,7 @@
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import ClusterTable, {
     MasterDomainColumn,
+    ModuleNameColumn,
     OperationColumn,
     RoleColumn,
   } from '@views/db-manage/common/cluster-table/Index.vue';

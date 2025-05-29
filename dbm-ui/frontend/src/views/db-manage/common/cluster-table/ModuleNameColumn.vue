@@ -18,6 +18,7 @@
       | ClusterTypes.TENDBSINGLE
       | ClusterTypes.SQLSERVER_HA
       | ClusterTypes.SQLSERVER_SINGLE
+      | ClusterTypes.RIAK
   ">
   import { useI18n } from 'vue-i18n';
 

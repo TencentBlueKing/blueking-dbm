@@ -4,15 +4,27 @@
       {{ data.cluster_name }}
     </InfoItem>
     <InfoItem :label="t('主访问入口')">
-      {{ data.master_domain }}
+      {{ data.masterDomainDisplayName }}
     </InfoItem>
     <InfoItem :label="t('从访问入口')">
-      {{ data.slave_domain }}
+      <SlaveDomain
+        :cluster-type="ClusterTypes.SQLSERVER_HA"
+        :data="data.slaveEntryList" />
+    </InfoItem>
+    <InfoItem :label="t('标签')">
+      <TagBlock :data="tagList" />
     </InfoItem>
     <InfoItem :label="t('状态')">
       <ClusterRoleStatus :data="data" />
     </InfoItem>
-    <InfoItem :label="t('容量使用率')"> -- </InfoItem>
+    <InfoItem :label="t('容量使用率')">
+      <ClusterStatsCell
+        :cluster-id="data.id"
+        :cluster-type="ClusterTypes.SQLSERVER_HA" />
+    </InfoItem>
+    <InfoItem :label="t('同步模式')">
+      {{ data.sync_mode || '--' }}
+    </InfoItem>
     <InfoItem :label="t('模块')">
       {{ data.db_module_name || '--' }}
     </InfoItem>
@@ -23,7 +35,8 @@
       {{ data.disasterToleranceLevelName }}
     </InfoItem>
     <InfoItem :label="t('地域园区')">
-      {{ data.region || '--' }}
+      <div>{{ data.region || '--' }}</div>
+      <div>{{ data.cluster_subzons.join('，') || '--' }}</div>
     </InfoItem>
     <InfoItem :label="t('规格')">
       {{ data.cluster_spec.spec_name || '--' }}
@@ -45,16 +58,24 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import TendbhaModel from '@services/model/mysql/tendbha';
+  import SqlserverHaModel from '@services/model/sqlserver/sqlserver-ha';
+
+  import { ClusterTypes } from '@common/const';
+
+  import TagBlock from '@components/tag-block/Index.vue';
 
   import BaseInfo, { InfoItem } from '@views/db-manage/common/cluster-details/base-info/Index.vue';
+  import SlaveDomain from '@views/db-manage/common/cluster-details/SlaveDomain.vue';
   import ClusterRoleStatus from '@views/db-manage/common/cluster-role-status/Index.vue';
+  import ClusterStatsCell from '@views/db-manage/common/cluster-stats-cell/Index.vue';
 
   interface Props {
-    data: TendbhaModel;
+    data: SqlserverHaModel;
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
+
+  const tagList = computed(() => props.data.availableTags.map((item) => `${item.key} : ${item.value}`));
 </script>

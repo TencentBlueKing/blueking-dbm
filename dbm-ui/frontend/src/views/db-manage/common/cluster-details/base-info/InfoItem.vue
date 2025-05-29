@@ -28,9 +28,11 @@
       padding-right: 8px;
       color: #4d4f56;
       text-align: right;
+      flex-shrink: 0;
     }
 
     .value {
+      width: 100%;
       padding-top: 6px;
     }
   }

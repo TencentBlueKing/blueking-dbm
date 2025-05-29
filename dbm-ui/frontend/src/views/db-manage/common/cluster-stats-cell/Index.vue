@@ -24,7 +24,7 @@
 
   import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue';
 
-  import type { ISupportClusterType } from '../types';
+  import type { ISupportClusterType } from '../cluster-table/types';
 
   interface Props {
     clusterId: number;

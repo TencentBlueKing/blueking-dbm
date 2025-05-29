@@ -128,6 +128,9 @@
             :selected-list="selected"
             @go-detail="handleToDetails" />
         </template>
+        <template #moduleNames>
+          <ModuleNameColumn :cluster-type="ClusterTypes.SQLSERVER_SINGLE" />
+        </template>
       </ClusterTable>
     </div>
   </div>
@@ -179,6 +182,7 @@
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import ClusterTable, {
     MasterDomainColumn,
+    ModuleNameColumn,
     OperationColumn,
     RoleColumn,
   } from '@views/db-manage/common/cluster-table/Index.vue';
