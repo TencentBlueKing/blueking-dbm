@@ -23,6 +23,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"k8s-dbs/common"
 	"k8s-dbs/common/utils"
 	coreclient "k8s-dbs/core/client"
 	clientconst "k8s-dbs/core/client/constants"
@@ -32,6 +33,8 @@ import (
 	providerentity "k8s-dbs/metadata/provider/entity"
 	"log/slog"
 	"slices"
+
+	"github.com/gin-gonic/gin"
 
 	"github.com/pkg/errors"
 
@@ -167,30 +170,14 @@ func (c *ClusterProviderBuilder) Build() (*ClusterProvider, error) {
 }
 
 // CreateCluster 创建集群
-func (c *ClusterProvider) CreateCluster(request *coreentity.Request) error {
-	addedRequestEntity, err := c.createRequestEntity(request, coreconst.CreateCluster)
-	if err != nil {
-		return fmt.Errorf("failed to create request entity: %w", err)
-	}
+func (c *ClusterProvider) CreateCluster(ctx *gin.Context, request *coreentity.Request) error {
+	reqCtx := ctx.MustGet("requestCtx").(*common.RequestContext)
 
-	k8sClusterConfig, err := c.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
-	if err != nil {
-		return fmt.Errorf("failed to get k8s cluster config for name %q: %w", request.K8sClusterName, err)
-
-	}
-
-	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
-	if err != nil {
-		return fmt.Errorf("failed to create k8s client for cluster %q: %w", request.K8sClusterName, err)
-
-	}
-
-	if err = verifyAddonExists(request, k8sClient); err != nil {
+	if err := verifyAddonExists(request, reqCtx.K8sClient); err != nil {
 		return fmt.Errorf("addon verification failed for cluster %q: %w", request.ClusterName, err)
-
 	}
 
-	addedClusterEntity, err := c.createClusterEntity(request, addedRequestEntity.RequestID, k8sClusterConfig.ID)
+	addedClusterEntity, err := c.createClusterEntity(request, reqCtx.RequestID, reqCtx.K8sClusterConfig.ID)
 	if err != nil {
 		return fmt.Errorf("failed to create cluster entity: %w", err)
 	}
@@ -198,10 +185,9 @@ func (c *ClusterProvider) CreateCluster(request *coreentity.Request) error {
 	_, err = c.createComponentEntity(request, addedClusterEntity.ID)
 	if err != nil {
 		return fmt.Errorf("failed to create component entity for cluster %q: %w", request.ClusterName, err)
-
 	}
 
-	releaseValues, err := coreclient.CreateStorageAddonCluster(k8sClient, request)
+	releaseValues, err := coreclient.CreateStorageAddonCluster(reqCtx.K8sClient, request)
 	if err != nil {
 		slog.Error("failed to create storage addon cluster",
 			"cluster_name", request.ClusterName,
@@ -213,7 +199,7 @@ func (c *ClusterProvider) CreateCluster(request *coreentity.Request) error {
 
 	// 7. 构建并保存 release 实体
 	clusterRelease, err := buildClusterReleaseEntity(
-		k8sClusterConfig.ID,
+		reqCtx.K8sClusterConfig.ID,
 		request,
 		coreconst.DefaultUserName,
 		coreconst.DefaultRepoName,

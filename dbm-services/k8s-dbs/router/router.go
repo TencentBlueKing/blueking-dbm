@@ -65,9 +65,16 @@ func NewRouter(db *gorm.DB) *Router {
 
 	router.GET(basePath+api.HealthCheckURL, api.HealthCheck)
 
-	buildClusterRouter(db, router)
-
 	buildMetaRouter(db, router)
+
+	// 全局Request中间件拦截器
+	reqRecordDbAccess := metadbaccess.NewClusterRequestRecordDbAccess(db)
+	reqRecordProvider := metaprovider.NewClusterRequestRecordProvider(reqRecordDbAccess)
+	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
+	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(k8sClusterConfigDbAccess)
+	router.Use(GlobalRequestMiddleware(reqRecordProvider, k8sClusterConfigProvider))
+
+	buildClusterRouter(db, router)
 
 	buildK8sClusterRouter(db, router)
 

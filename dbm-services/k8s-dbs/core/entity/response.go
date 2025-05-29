@@ -72,4 +72,5 @@ func ErrorResponse(ctx *gin.Context, err error) {
 	ctx.JSON(http.StatusOK, resp)
 	response, _ := json.Marshal(resp)
 	ctx.Set("response", string(response))
+	ctx.Abort()
 }

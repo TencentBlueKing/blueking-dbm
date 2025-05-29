@@ -224,7 +224,7 @@ func (c *ClusterController) CreateCluster(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateClusterError, err))
 		return
 	}
-	err = c.clusterService.CreateCluster(request)
+	err = c.clusterService.CreateCluster(ctx, request)
 	if err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateClusterError, err))
 		return

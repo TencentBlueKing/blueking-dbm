@@ -66,6 +66,9 @@ const (
 	CreateK8sNsError = 1532300
 
 	DeployAddonError = 1532400
+
+	ReadRequestBodyError = 1532216
+	CreateK8sClientError = 1532217
 )
 
 // Define the text information corresponding to errorCode
@@ -106,6 +109,9 @@ var codeTag = map[int]string{
 
 	// 存储插件管理操作异常
 	DeployAddonError: "插件部署失败",
+	// 中间件拦截器
+	ReadRequestBodyError: "读取请求Body失败",
+	CreateK8sClientError: "初始化k8s客户端失败",
 }
 
 // NewGlobalError Create a new custom error instantiation
