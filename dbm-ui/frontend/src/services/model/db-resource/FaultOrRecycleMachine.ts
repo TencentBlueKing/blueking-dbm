@@ -86,7 +86,7 @@ export default class FaultOrRecycleMachine {
   }
 
   get poolDispaly() {
-    return FaultOrRecycleMachine.poolTextMap[this.pool] || [];
+    return FaultOrRecycleMachine.poolTextMap[this.pool] || '--';
   }
 
   get updateAtDisplay() {
