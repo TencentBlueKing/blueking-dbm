@@ -399,13 +399,13 @@ func (e *ExecuteSQLFileComp) checkBlockingTables(db *sql.DB, blockingTableMap ma
 				continue
 			}
 			_, err = conn.ExecContext(context.Background(), buildLockMoreTables(db, tbs))
-			if err != nil {
+			if err != nil && cmutil.NewMySQLError(err).Code != 1146 { // Table xxx  doesn't exist 忽略
 				if chunkSize == 100 {
 					// nolint
 					conn.ExecContext(context.Background(), "unlock tables;")
 					for _, ltbs := range lo.Chunk(tbs, 10) {
 						_, err = conn.ExecContext(context.Background(), buildLockMoreTables(db, ltbs))
-						if err != nil {
+						if err != nil && cmutil.NewMySQLError(err).Code != 1146 { // Table xxx  doesn't exist 忽略
 							logger.Error("这些表%v存在活跃查询,可能会阻塞DDL的执行:%s", tbs, err.Error())
 							errs = append(errs, fmt.Errorf("这些表%v存在活跃查询,可能会阻塞DDL的执行:%s", tbs, err.Error()))
 						}

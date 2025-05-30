@@ -10,10 +10,12 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/db_table_filter"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/user"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -57,23 +59,23 @@ var subCmdGenConfig = &cobra.Command{
 }
 
 func init() {
-	subCmdGenConfig.PersistentFlags().StringSliceP("nginx-address", "", nil, "nginx-address")
-	subCmdGenConfig.PersistentFlags().IntP("bk-cloud-id", "", 0, "bk-cloud-id")
-	subCmdGenConfig.PersistentFlags().IntSliceP("port", "", nil, "port")
+	subCmdGenConfig.Flags().StringSliceP("nginx-address", "", nil, "nginx-address")
+	subCmdGenConfig.Flags().IntP("bk-cloud-id", "", 0, "bk-cloud-id")
+	subCmdGenConfig.Flags().IntSliceP("port", "", nil, "port")
 	_ = subCmdGenConfig.MarkFlagRequired("nginx-address")
 	_ = subCmdGenConfig.MarkFlagRequired("bk-cloud-id")
 	_ = subCmdGenConfig.MarkFlagRequired("port")
 
 	// 调试代码
-	subCmdGenConfig.PersistentFlags().StringP("debug-ip", "", "", "debug ip")
-	subCmdGenConfig.PersistentFlags().StringP("debug-dbbackup-root", "", "", "debug dbbackup-root")
+	subCmdGenConfig.Flags().StringP("debug-ip", "", "", "debug ip")
+	subCmdGenConfig.Flags().StringP("debug-dbbackup-root", "", "", "debug dbbackup-root")
 
-	_ = viper.BindPFlag("nginx-address", subCmdGenConfig.PersistentFlags().Lookup("nginx-address"))
-	_ = viper.BindPFlag("bk-cloud-id", subCmdGenConfig.PersistentFlags().Lookup("bk-cloud-id"))
-	_ = viper.BindPFlag("port", subCmdGenConfig.PersistentFlags().Lookup("port"))
+	_ = viper.BindPFlag("nginx-address", subCmdGenConfig.Flags().Lookup("nginx-address"))
+	_ = viper.BindPFlag("bk-cloud-id", subCmdGenConfig.Flags().Lookup("bk-cloud-id"))
+	_ = viper.BindPFlag("port", subCmdGenConfig.Flags().Lookup("port"))
 
-	_ = viper.BindPFlag("debug-ip", subCmdGenConfig.PersistentFlags().Lookup("debug-ip"))
-	_ = viper.BindPFlag("debug-dbbackup-root", subCmdGenConfig.PersistentFlags().Lookup("debug-dbbackup-root"))
+	_ = viper.BindPFlag("debug-ip", subCmdGenConfig.Flags().Lookup("debug-ip"))
+	_ = viper.BindPFlag("debug-dbbackup-root", subCmdGenConfig.Flags().Lookup("debug-dbbackup-root"))
 
 	rootCmd.AddCommand(subCmdGenConfig)
 }
@@ -169,7 +171,7 @@ func generateOneIniConfig(cfg *mysql.DBBackupConfig, opt *dbbackup.BackupOptions
 	}
 
 	// 中控配置
-	if cfg.Role == cst.BackupRoleSpiderMaster {
+	if strings.ToLower(cfg.Role) == strings.ToLower(cst.BackupRoleSpiderMaster) {
 		tdbCtlPort := mysqlcomm.GetTdbctlPortBySpider(cfg.Port)
 		tdbCtlIniData := iniData
 		tdbCtlIniData.Public.MysqlPort = tdbCtlPort
@@ -246,6 +248,14 @@ func writeIniFile(cfg *mysql.DBBackupConfig, iniData *config.BackupConfig) error
 	err = tpl.Execute(f, iniData)
 	if err != nil {
 		return err
+	}
+
+	cu, _ := user.Current()
+	if cu.Uid == "0" {
+		_, err = osutil.ExecShellCommand(false, fmt.Sprintf(`chown mysql %s`, fp))
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

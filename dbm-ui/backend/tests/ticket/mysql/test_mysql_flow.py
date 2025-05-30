@@ -18,19 +18,29 @@ import pytest
 from django.conf import settings
 from django.core.cache import cache
 
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import Cluster, Machine, Spec, StorageInstance
 from backend.flow.models import FlowNode, FlowTree
 from backend.tests.mock_data.components.cc import CCApiMock
 from backend.tests.mock_data.components.dbconfig import DBConfigApiMock
+from backend.tests.mock_data.components.drs import DRSApiMock
 from backend.tests.mock_data.components.mysql_priv_manager import DBPrivManagerApiMock
 from backend.tests.mock_data.components.sql_import import SQLSimulationApiMock
 from backend.tests.mock_data.flow.engine.bamboo.engine import BambooEngineMock
 from backend.tests.mock_data.ticket.mysql_flow import (
+    MYSQL_ADD_SLAVE_DATA,
     MYSQL_AUTHORIZE_TICKET_DATA,
+    MYSQL_CHECKSUM_DATA,
+    MYSQL_CLUSTER_DATA,
+    MYSQL_DATA_MIGRATE_DATA,
     MYSQL_DUMP_DATA,
+    MYSQL_HA_FULL_BACKUP_DATA,
     MYSQL_ITSM_AUTHORIZE_TICKET_DATA,
+    MYSQL_MACHINE_DATA,
     MYSQL_SINGLE_APPLY_TICKET_DATA,
+    MYSQL_SPEC_DATA,
+    MYSQL_STORAGE_INSTANCE,
     MYSQL_TENDBHA_TICKET_DATA,
     SQL_IMPORT_FLOW_NODE_DATA,
     SQL_IMPORT_TICKET_DATA,
@@ -47,9 +57,23 @@ pytestmark = pytest.mark.django_db
 @pytest.fixture(scope="class", autouse=True)
 def setup_mysql_database(django_db_setup, django_db_blocker):
     with django_db_blocker.unblock():
+        clusters = Cluster.objects.bulk_create([Cluster(**data) for data in MYSQL_CLUSTER_DATA])
+        Machine.objects.bulk_create([Machine(**data) for data in MYSQL_MACHINE_DATA])
+        storage_instances = StorageInstance.objects.bulk_create(
+            [StorageInstance(**data) for data in MYSQL_STORAGE_INSTANCE]
+        )
+        storage_instances[0].cluster.add(clusters[0])
+        storage_instances[1].cluster.add(clusters[0])
+        storage_instances[2].cluster.add(clusters[1])
+        Spec.objects.bulk_create([Spec(**data) for data in MYSQL_SPEC_DATA])
         FlowTree.objects.create(**FLOW_TREE_DATA)
         FlowNode.objects.create(**SQL_IMPORT_FLOW_NODE_DATA)
         yield
+        mysql_cluster_types = ClusterType.db_type_to_cluster_types(DBType.MySQL)
+        Cluster.objects.filter(cluster_type__in=mysql_cluster_types).delete()
+        StorageInstance.objects.filter(cluster_type__in=mysql_cluster_types).delete()
+        Machine.objects.filter(cluster_type__in=mysql_cluster_types).delete()
+        Spec.objects.filter(spec_cluster_type=DBType.Redis).delete()
         FlowTree.objects.all().delete()
         FlowNode.objects.all().delete()
 
@@ -74,6 +98,9 @@ class TestMySQLTicket(BaseTicketTest):
             "backend.ticket.builders.mysql.mysql_import_sqlfile.BambooEngine", BambooEngineMock
         )
         mock_cc_api_patch = patch("backend.db_meta.models.app.CCApi", CCApiMock())
+        mock_drs_api_patch = patch(
+            "backend.db_services.mysql.remote_service.handlers.DRSApi", new_callable=lambda: DRSApiMock()
+        )
         cls.patches.extend(
             [
                 mock_list_account_rules_patch,
@@ -81,6 +108,7 @@ class TestMySQLTicket(BaseTicketTest):
                 mock_simulation_api_patch,
                 mock_bamboo_api_patch,
                 mock_cc_api_patch,
+                mock_drs_api_patch,
             ]
         )
         super().apply_patches()
@@ -92,6 +120,18 @@ class TestMySQLTicket(BaseTicketTest):
         authorize_data["details"]["authorize_uid"] = authorize_uid
         self.flow_test(authorize_data)
         cache.delete(authorize_uid)
+
+    def test_mysql_add_slave_flow(self):
+        self.flow_test(MYSQL_ADD_SLAVE_DATA)
+
+    def test_mysql_checksum_flow(self):
+        self.flow_test(MYSQL_CHECKSUM_DATA)
+
+    def test_mysql_full_backup_flow(self):
+        self.flow_test(MYSQL_HA_FULL_BACKUP_DATA)
+
+    def test_mysql_data_migrate_flow(self):
+        self.flow_test(MYSQL_DATA_MIGRATE_DATA)
 
     def test_mysql_single_apply_flow(self):
         self.flow_test(MYSQL_SINGLE_APPLY_TICKET_DATA)

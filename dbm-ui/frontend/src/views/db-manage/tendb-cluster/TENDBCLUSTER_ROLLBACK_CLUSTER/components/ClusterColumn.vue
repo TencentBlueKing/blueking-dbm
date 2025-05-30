@@ -52,6 +52,10 @@
   import ClusterSelector from '@components/cluster-selector/Index.vue';
 
   interface Props {
+    /**
+     * 是否允许重复
+     */
+    allowsDuplicates?: boolean;
     selected: {
       id: number;
       master_domain: string;
@@ -60,7 +64,9 @@
 
   type Emits = (e: 'batch-edit', list: TendbClusterModel[]) => void;
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    allowsDuplicates: false,
+  });
 
   const emits = defineEmits<Emits>();
 
@@ -96,7 +102,12 @@
     {
       message: t('目标集群重复'),
       trigger: 'blur',
-      validator: (value: string) => props.selected.filter((item) => item.master_domain === value).length < 2,
+      validator: (value: string) => {
+        if (props.allowsDuplicates) {
+          return true;
+        }
+        return props.selected.filter((item) => item.master_domain === value).length < 2;
+      },
     },
     {
       message: t('目标集群不存在'),

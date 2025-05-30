@@ -43,12 +43,14 @@ def create(tpls: List, creator: str = ""):
         if ejector_obj.instance_inner_role not in [
             InstanceInnerRole.MASTER,
             InstanceInnerRole.REPEATER,
+            InstanceInnerRole.PRIMARY,
         ]:
             raise Exception("""{} can't be ejector""".format(ejector_obj.instance_inner_role))
 
         if receiver_obj.instance_inner_role not in [
             InstanceInnerRole.SLAVE,
             InstanceInnerRole.REPEATER,
+            InstanceInnerRole.STANDBY,
         ]:
             raise Exception("""{} can't be receiver""".format(receiver_obj.instance_inner_role))
 

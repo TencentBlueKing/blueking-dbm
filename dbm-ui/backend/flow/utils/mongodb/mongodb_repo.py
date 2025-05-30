@@ -302,7 +302,7 @@ class ShardedCluster(MongoDBCluster):
             return int(matches[-1]) if matches else 0
 
         if sort_by_set_name:
-            self.shards = self.shards.sort(key=lambda x: __get_shard_idx(x.set_name))
+            self.shards.sort(key=lambda x: __get_shard_idx(x.set_name))
 
         shards = []
         if with_config:

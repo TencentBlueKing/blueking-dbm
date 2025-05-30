@@ -63,6 +63,9 @@ class MachineType(str, StructuredEnum):
     # 仅用于TBinlogDumper实例的管控
     TBinlogDumper = EnumField("tbinlogdumper", _("TBinlogDumper"))
 
+    # Oracle
+    ORACLE = EnumField("oracle", _("oracle"))
+
 
 class MongoSetType(str, StructuredEnum):
     Mongos = EnumField("mongos", _("mongos"))

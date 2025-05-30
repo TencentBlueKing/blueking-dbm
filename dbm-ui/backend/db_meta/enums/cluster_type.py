@@ -56,6 +56,7 @@ class ClusterType(str, StructuredEnum):
     Riak = EnumField("riak", _("Riak集群"))
     SqlserverSingle = EnumField("sqlserver_single", _("sqlserver单节点版"))
     SqlserverHA = EnumField("sqlserver_ha", _("sqlserver主从版"))
+    OraclePrimaryStandby = EnumField("oracle_primary_standby", _("oracle主从版"))
 
     @classmethod
     def db_type_cluster_types_map(cls) -> Dict[str, List]:
@@ -91,6 +92,7 @@ class ClusterType(str, StructuredEnum):
             DBType.Sqlserver.value: [cls.SqlserverHA, cls.SqlserverSingle],
             DBType.Doris.value: [cls.Doris],
             DBType.Vm.value: [cls.Vm],
+            DBType.Oracle.value: [cls.OraclePrimaryStandby],
         }
 
     @classmethod

@@ -202,6 +202,23 @@ class DBConsoleSerializer(serializers.Serializer):
     cmd = serializers.CharField(help_text=_("sql语句"))
     db_type = serializers.ChoiceField(help_text=_("组件类型"), choices=DBType.get_choices())
 
+    # mysql 额外参数
+    is_proxy = serializers.BooleanField(help_text=_("是否是proxy类型"), default=False, required=False)
+
+    def validate(self, attrs):
+        # 如果是proxy类型，则将端口号加1000
+        if attrs["is_proxy"]:
+            updated_instances = []
+            for instance_data in attrs["instances"]:
+                instance_str = instance_data["instance"]
+                ip, port = instance_str.split(":")
+                port = int(port) + 1000
+                instance_data["instance"] = f"{ip}:{port}"
+                updated_instances.append(instance_data)
+
+            attrs["instances"] = updated_instances
+        return attrs
+
 
 class WebConsoleResponseSerializer(serializers.Serializer):
     class Meta:

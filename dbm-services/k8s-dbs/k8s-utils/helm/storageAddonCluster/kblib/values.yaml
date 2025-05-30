@@ -1,3 +1,45 @@
-# Common values for charts
-# If set to true, configure the annotation "helm.sh/resource-policy: keep"
-keepResource: true
+# Common values for cluster charts
+
+## @param monitoring interval, 0 is no monitoring
+##
+disableExporter: true
+
+## @param terminationPolicy
+terminationPolicy: Delete
+
+## @param availablePolicy
+##
+availabilityPolicy: node
+
+## @param affinityNodeLabels
+##
+## It accepts a map with label keys and values
+## Example:
+## ```
+## affinityNodeLabels:
+##   key1: val1
+##   key2: val2
+## ```
+## This map will then be set to `cluster.spec.affinity.nodeLabels`
+##
+affinityNodeLabels: {}
+
+## @param podAntiAffinity
+##
+podAntiAffinity: Preferred
+
+## @param tenancy dedicated or shared
+##
+tenancy: SharedNode
+
+## @param hostNetworkAccessible if true, expose the vpc service
+##
+hostNetworkAccessible: false
+
+## @param publiclyAccessible if true, expose the internet service
+##
+publiclyAccessible: false
+
+## @param rbacEnabled if true, rbac resources will be created
+##
+rbacEnabled: false

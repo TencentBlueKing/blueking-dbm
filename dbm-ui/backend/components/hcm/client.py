@@ -44,7 +44,7 @@ class _HCMApi(BaseApi):
         )
 
     def check_host_is_dissolved(self, bk_host_ids: list):
-        if not HCM_APIGW_DOMAIN:
+        if not HCM_APIGW_DOMAIN or not bk_host_ids:
             return []
 
         # 查询主机的业务信息，这里查询的主机必须为同一业务
@@ -55,7 +55,7 @@ class _HCMApi(BaseApi):
         return dissolved_hosts
 
     def check_host_has_uwork(self, bk_host_ids: list):
-        if not HCM_APIGW_DOMAIN:
+        if not HCM_APIGW_DOMAIN or not bk_host_ids:
             return {}
 
         # 查询主机的业务信息，这里查询的主机必须为同一业务

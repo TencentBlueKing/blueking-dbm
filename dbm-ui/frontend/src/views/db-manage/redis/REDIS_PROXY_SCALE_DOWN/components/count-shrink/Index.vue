@@ -39,19 +39,12 @@
           {{ item.cluster.id ? item.cluster.proxyCount : '' }}
         </EditableBlock>
       </EditableColumn>
-      <EditableColumn
-        :append-rules="reducedCountRules"
-        field="reduced_count"
-        :label="t('缩容数量（台）')"
-        :min-width="200"
-        required>
-        <EditableInput
-          v-model="item.reduced_count"
-          :max="item.cluster.proxyCount"
-          :min="0"
-          type="number"
-          @change="handleChange(item)" />
-      </EditableColumn>
+      <ReducedCountColumn
+        v-model="item.reduced_count"
+        :cluster="item.cluster"
+        :max="item.cluster.proxyCount"
+        @batch-edit="handleRedecedCountBatchEdit"
+        @change="handleChange(item)" />
       <EditableColumn
         :append-rules="targetCountRules"
         field="target_proxy_count"
@@ -67,15 +60,10 @@
           }}
         </EditableBlock>
       </EditableColumn>
-      <EditableColumn
-        field="online_switch_type"
-        :label="t('切换模式')"
-        :min-width="150">
-        <EditableSelect
-          v-model="item.online_switch_type"
-          :input-search="false"
-          :list="switchModeOptions" />
-      </EditableColumn>
+      <OnlineSwitchTypeColumn
+        v-model="item.online_switch_type"
+        :rowspan="1"
+        @batch-edit="handleOnlineSwitchTypeBatchEdit" />
       <OperationColumn
         v-model:table-data="tableData"
         :create-row-method="createTableRow" />
@@ -89,7 +77,10 @@
   import RedisModel from '@services/model/redis/redis';
   import type { Redis } from '@services/model/ticket/ticket';
 
+  import OnlineSwitchTypeColumn, { ONLINE_SWITCH_TYPE } from '../OnlineSwitchTypeColumn.vue';
+
   import ClusterColumn from './components/ClusterColumn.vue';
+  import ReducedCountColumn from './components/ReducedCountColumn.vue';
 
   interface RowData {
     cluster: {
@@ -130,7 +121,7 @@
       master_domain: '',
       proxyCount: 0,
     },
-    online_switch_type: data.online_switch_type || 'user_confirm',
+    online_switch_type: data.online_switch_type || ONLINE_SWITCH_TYPE.USER_CONFIRM,
     reduced_count: data.reduced_count || '',
     target_proxy_count: data.target_proxy_count || '',
   });
@@ -141,30 +132,11 @@
     Object.fromEntries(tableData.value.map((cur) => [cur.cluster.master_domain, true])),
   );
 
-  const reducedCountRules = [
-    {
-      message: t('缩容数量必须大于0'),
-      trigger: 'change',
-      validator: (value: string) => Number(value) > 0,
-    },
-  ];
-
   const targetCountRules = [
     {
       message: t('剩余数量必须大于等于2'),
       trigger: 'change',
       validator: (value: string) => Number(value) >= 2,
-    },
-  ];
-
-  const switchModeOptions = [
-    {
-      label: t('需人工确认'),
-      value: 'user_confirm',
-    },
-    {
-      label: t('无需确认'),
-      value: 'no_confirm',
     },
   ];
 
@@ -211,6 +183,23 @@
       return acc;
     }, []);
     tableData.value = [...(tableData.value[0].cluster.id ? tableData.value : []), ...dataList];
+  };
+
+  const handleRedecedCountBatchEdit = (value: string | string[]) => {
+    tableData.value.forEach((item) => {
+      Object.assign(item, {
+        reduced_count: value,
+      });
+      handleChange(item);
+    });
+  };
+
+  const handleOnlineSwitchTypeBatchEdit = (value: string | string[]) => {
+    tableData.value.forEach((item) => {
+      Object.assign(item, {
+        online_switch_type: value,
+      });
+    });
   };
 
   const handleChange = (row: RowData) => {

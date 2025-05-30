@@ -14,8 +14,8 @@ import (
 )
 
 type PrepareBinary struct {
-	GeneralParam *components.GeneralParam `json:"general"`
-	Params       *PrepareBinaryParams     `json:"extend"`
+	//GeneralParam *components.GeneralParam `json:"general"`
+	Params *PrepareBinaryParams `json:"extend"`
 }
 
 type PrepareBinaryParams struct {
@@ -27,11 +27,13 @@ type PrepareBinaryParams struct {
 		    MySQLRotateBinlog = EnumField("rotate-binlog", _("rotate-binlog"))
 		    MySQLTableChecksum = EnumField("mysql-checksum", _("mysql-checksum"))
 	*/
-	Departs map[string]*components.Medium `json:"departs"`
+	Departs    map[string]*components.Medium `json:"departs"`
+	BKCloudId  int64                         `json:"bk_cloud_id"`
+	NginxAddrs []string                      `json:"nginx_addrs"`
 }
 
 func (c *PrepareBinary) Run() (err error) {
-	for k, _ := range c.Params.Departs {
+	for k := range c.Params.Departs {
 		err = c.prepareOne(k)
 		if err != nil {
 			logger.Error(err.Error())
@@ -43,6 +45,7 @@ func (c *PrepareBinary) Run() (err error) {
 
 func (c *PrepareBinary) prepareOne(depart string) (err error) {
 	logger.Info("enter deploy binary %s", depart)
+
 	switch depart {
 	case DepartMySQLCrond:
 		return crond.DeployBinary(c.Params.Departs[DepartMySQLCrond])

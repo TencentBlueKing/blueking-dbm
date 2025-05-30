@@ -236,6 +236,7 @@ func (c *RotateBinlogComp) decideSizeToFree(servers []*ServerObj) error {
 		return err
 	} else {
 		for _, inst := range servers {
+			// inst.rotate 会是 nil ???
 			inst.rotate.sizeToFreeMB = requestSizeToFree / 1024 / 1024
 		}
 	}

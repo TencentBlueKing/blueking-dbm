@@ -48,7 +48,7 @@ class MySQLAutofixTodoRegisterService(BaseService):
                 "inplace_ticket_id": 0,
                 "inplace_ticket_status": MySQLAutofixTicketStatus.UNSUBMITTED.value,
                 "replace_ticket_id": 0,
-                "replace_ticket_status": MySQLAutofixTicketStatus.UNSUBMITTED.value,
+                "replace_ticket_status": MySQLAutofixTicketStatus.SKIPPED.value,  # 禁用replace 自愈
                 "current_step": MySQLAutofixStep.IN_PLACE_AUTOFIX.value,
             }
 

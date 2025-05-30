@@ -19,19 +19,21 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType, MySQLMonitorPauseTime
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
-    build_surrounding_apps_sub_flow,
-    install_mysql_in_cluster_sub_flow,
-)
+from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import install_mysql_in_cluster_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_instance_config
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import (
     mysql_restore_master_slave_sub_flow,
 )
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import (
+    ALLDEPARTS,
+    DeployPeripheralToolsDepart,
+    remove_departs,
+)
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
 from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import remote_migrate_switch_sub_flow
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetBackupInfoFailedException
 from backend.flow.engine.bamboo.scene.spider.spider_remote_node_migrate import (
@@ -241,6 +243,7 @@ class TenDBRemoteRebalanceFlow(object):
                 )
                 install_sub_pipeline_list.append(install_sub_pipeline.build_sub_process(sub_name=_("安装remote主从节点")))
 
+            instances = []
             # 阶段3 逐个实例同步数据到新主从库
             sync_data_sub_pipeline_list = []
             for shard_id, node in cluster_info["shards"].items():
@@ -257,6 +260,13 @@ class TenDBRemoteRebalanceFlow(object):
                 ins_cluster["file_target_path"] = f"{self.backup_target_path}/{node['new_master']['port']}"
                 ins_cluster["shard_id"] = shard_id
                 ins_cluster["change_master_force"] = False
+
+                instances.extend(
+                    [
+                        "{}:{}".format(ins_cluster["new_slave_ip"], ins_cluster["slave_port"]),
+                        "{}:{}".format(ins_cluster["new_master_ip"], ins_cluster["master_port"]),
+                    ]
+                )
 
                 sync_data_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
                 if self.ticket_data["backup_source"] == MySQLBackupSource.REMOTE.value:
@@ -368,17 +378,22 @@ class TenDBRemoteRebalanceFlow(object):
             for node in self.data["remote_group"]:
                 surrounding_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
                 surrounding_sub_pipeline.add_sub_pipeline(
-                    sub_flow=build_surrounding_apps_sub_flow(
-                        bk_cloud_id=cluster_class.bk_cloud_id,
-                        master_ip_list=[node["master"]["ip"]],
-                        slave_ip_list=[node["slave"]["ip"]],
+                    sub_flow=standardize_mysql_cluster_subflow(
                         root_id=self.root_id,
-                        parent_global_data=copy.deepcopy(self.data),
-                        collect_sysinfo=True,
-                        cluster_type=ClusterType.TenDBCluster.value,
-                        is_install_backup=False,
+                        data=copy.deepcopy(self.data),
+                        bk_cloud_id=cluster_class.bk_cloud_id,
+                        bk_biz_id=self.data["bk_biz_id"],
+                        # ips=[node["master"]["ip"], node["slave"]["ip"]],
+                        instances=instances,
+                        with_actuator=False,
+                        with_bk_plugin=False,
+                        with_collect_sysinfo=False,
+                        with_instance_standardize=False,
+                        with_cc_standardize=False,
+                        departs=remove_departs(ALLDEPARTS, DeployPeripheralToolsDepart.MySQLDBBackup),
                     )
                 )
+
                 surrounding_sub_pipeline.add_act(
                     act_name=_("屏蔽监控 {} {}").format(node["master"]["ip"], node["slave"]["ip"]),
                     act_component_code=MysqlCrondMonitorControlComponent.code,
@@ -397,16 +412,20 @@ class TenDBRemoteRebalanceFlow(object):
 
                 re_surrounding_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
                 re_surrounding_sub_pipeline.add_sub_pipeline(
-                    sub_flow=build_surrounding_apps_sub_flow(
-                        bk_cloud_id=cluster_class.bk_cloud_id,
-                        master_ip_list=[node["master"]["ip"]],
-                        slave_ip_list=[node["slave"]["ip"]],
+                    sub_flow=standardize_mysql_cluster_subflow(
                         root_id=self.root_id,
-                        parent_global_data=copy.deepcopy(self.data),
-                        is_init=True,
-                        cluster_type=ClusterType.TenDBCluster.value,
+                        data=copy.deepcopy(self.data),
+                        bk_cloud_id=cluster_class.bk_cloud_id,
+                        bk_biz_id=self.data["bk_biz_id"],
+                        instances=instances,
+                        with_actuator=False,
+                        with_collect_sysinfo=False,
+                        with_instance_standardize=False,
+                        with_bk_plugin=False,
+                        with_cc_standardize=False,
                     )
                 )
+
                 re_surrounding_sub_pipeline.add_act(
                     act_name=_("解除屏蔽监控 {} {}").format(node["master"]["ip"], node["slave"]["ip"]),
                     act_component_code=MysqlCrondMonitorControlComponent.code,

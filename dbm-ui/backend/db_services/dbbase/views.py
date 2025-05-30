@@ -354,8 +354,11 @@ class DBBaseViewSet(viewsets.SystemViewSet):
     def dbconsole(self, request):
         data = self.params_validate(self.get_serializer_class())
         db_type = data.pop("db_type")
+        is_proxy = data.pop("is_proxy")
         # mysql / tendbcluster
         if db_type in [DBType.MySQL, DBType.TenDBCluster]:
+            if db_type == DBType.MySQL and is_proxy:
+                return Response(RemoteServiceHandler.dbconsole_proxy_rpc(**data))
             return Response(
                 ClusterServiceHandler.console_rpc(**data, db_query=True, rpc_function=DRSApi.webconsole_rpc)
             )

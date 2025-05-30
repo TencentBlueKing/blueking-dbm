@@ -76,7 +76,7 @@ func reportLog(result map[string]map[string]int64) error {
 				Ip:                config.MonitorConfig.Ip,
 				Port:              config.MonitorConfig.Port,
 				Role:              *config.MonitorConfig.Role,
-				ServiceInstanceId: config.MonitorConfig.BkInstanceId,
+				ServiceInstanceId: *config.MonitorConfig.BkInstanceId,
 				OriginalDBName:    originalDBName,
 				DBName:            dbName,
 				DBSize:            0,

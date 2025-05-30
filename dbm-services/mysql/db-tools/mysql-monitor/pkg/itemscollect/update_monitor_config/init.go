@@ -26,7 +26,8 @@ type Checker struct {
 func (c *Checker) Run() (msg string, err error) {
 	sii, err := c.getSelfInfo()
 	if err != nil {
-		return "", err
+		slog.Error("get self info failed", slog.String("err", err.Error()))
+		return "", nil
 	}
 	slog.Info(name, slog.Any("sii", sii))
 

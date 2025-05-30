@@ -429,7 +429,12 @@ func (s *SpiderClusterBackendMigrateCutoverComp) CutOver() (err error) {
 	// release the lock until after performing the rollback routing
 	defer func() {
 		rollbackSqls := slices.Concat(s.primaryShardrollbackSqls, s.slaveShardrollbackSqls)
-		if err != nil && len(rollbackSqls) > 0 {
+		if err == nil {
+			if uerr := s.fdLock.Unlock(); uerr != nil {
+				logger.Error("switch success but unlock file lock failed %s", uerr.Error())
+				return
+			}
+		} else if err != nil && len(rollbackSqls) > 0 {
 			_, xerr := s.tdbCtlConn.ExecMore(rollbackSqls)
 			if xerr != nil {
 				logger.Error("rollbackup tdbctl router failed %s", xerr.Error())

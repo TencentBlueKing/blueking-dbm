@@ -1,0 +1,36 @@
+{
+  "bk_biz_id": 0,
+  "name": "DBHA",
+  "details": {
+    "name": "DBHA",
+    "collect_type": "Process",
+    "label": "host_process",
+    "target_object_type": "HOST",
+    "target_node_type": "TOPO",
+    "target_nodes": [],
+    "params": {
+      "collector": {
+        "period": 60,
+        "timeout": 60,
+        "metric_relabel_configs": []
+      },
+      "plugin": {},
+      "process": {
+        "match_type": "command",
+        "pid_path": "",
+        "process_name": "",
+        "match_pattern": "dbha",
+        "exclude_pattern": "",
+        "port_detect": true,
+        "labels": {}
+      },
+      "target_node_type": "TOPO",
+      "target_object_type": "HOST"
+    },
+    "plugin_id": "bkprocessbeat"
+  },
+  "db_type": "cloud",
+  "version": 1,
+  "machine_types": [],
+  "plugin_id": "bkprocessbeat"
+}

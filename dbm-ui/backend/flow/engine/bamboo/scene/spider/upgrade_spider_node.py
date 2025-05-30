@@ -143,6 +143,7 @@ class UpgradeSpiderFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNodesFlow):
         spider_slave_ip_list: list,
         new_db_module_id: int,
         new_pkg_id: int,
+        resource_spec: dict,
     ):
         """
         根据集群维度，并发处理每个集群的替换节点信息
@@ -182,6 +183,7 @@ class UpgradeSpiderFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNodesFlow):
                 add_spider_hosts=spider_master_ip_list,
                 new_db_module_id=new_db_module_id,
                 new_pkg_id=new_pkg_id,
+                resource_spec=resource_spec,
             )
         )
 
@@ -194,6 +196,7 @@ class UpgradeSpiderFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNodesFlow):
                     add_spider_hosts=spider_slave_ip_list,
                     new_db_module_id=new_db_module_id,
                     new_pkg_id=new_pkg_id,
+                    resource_spec=resource_spec,
                 )
             )
 
@@ -255,6 +258,7 @@ class UpgradeSpiderFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNodesFlow):
                     spider_slave_ip_list=info["spider_slave_ip_list"],
                     new_db_module_id=info["new_db_module_id"],
                     new_pkg_id=info["pkg_id"],
+                    resource_spec=info.get("resource_spec", {}),
                 )
             )
 

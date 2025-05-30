@@ -110,7 +110,6 @@ class CheckExpiredJobUserForMysql(object):
                 "addresses": [address],
                 "cmds": [
                     "set session sql_log_bin = 0;",
-                    "set tc_admin = 0;",
                     f"drop user `{user_info['user']}`@`{user_info['host']}`;",
                     "set session sql_log_bin = 1;",
                 ],

@@ -17,7 +17,6 @@ import (
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 )
 
 // Public 公共配置
@@ -155,7 +154,7 @@ func (c *Public) TargetName() string {
 		c.targetName = fmt.Sprintf("%d_%d_%s_%d_%s_%s",
 			c.BkBizId, c.ClusterId, c.MysqlHost, c.MysqlPort, currentTime, c.BackupType) // rocksdb/tokudb
 
-		logger.Log.Info("generate target name: ", c.targetName)
+		//logger.Log.Info("generate target name: ", c.targetName)
 	}
 	return c.targetName
 }

@@ -1,5 +1,5 @@
 <template>
-  <Column
+  <EditableColumn
     :description="t('通过列与列值确定记录')"
     :disabled-method="disabledMethod"
     field="rows_filter"
@@ -7,7 +7,21 @@
     :min-width="380"
     required
     :rules="rules">
-    <EditTextarea v-model="modelValue" />
+    <template #headAppend>
+      <BatchEditColumn
+        v-model="showBatchEdit"
+        :title="t('待闪回的记录')"
+        type="textarea"
+        @change="handleBatchEditChange">
+        <span
+          v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
+          class="batch-edit-btn"
+          @click="handleBatchEditShow">
+          <DbIcon type="bulk-edit" />
+        </span>
+      </BatchEditColumn>
+    </template>
+    <EditableTextarea v-model="modelValue" />
     <template #tips>
       <div class="tendbcluster-flashback-record-tips">
         <div style="font-weight: 700">{{ t('待闪回的记录') }}：</div>
@@ -39,25 +53,30 @@
         </div>
       </div>
     </template>
-  </Column>
+  </EditableColumn>
 </template>
+
 <script setup lang="ts">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import { Column, Textarea as EditTextarea } from '@components/editable-table/Index.vue';
+  import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
 
   interface Props {
     clusterId?: number;
   }
 
+  type Emits = (e: 'batch-edit', value: string, field: string) => void;
+
   const props = defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
+
+  const modelValue = defineModel<string>();
 
   const { t } = useI18n();
 
-  const disabledMethod = () => (props.clusterId ? false : t('请先选择集群'));
-
-  const modelValue = defineModel<string>();
+  const showBatchEdit = ref(false);
 
   const rules = [
     {
@@ -73,6 +92,16 @@
       },
     },
   ];
+
+  const disabledMethod = () => (props.clusterId ? false : t('请先选择集群'));
+
+  const handleBatchEditShow = () => {
+    showBatchEdit.value = true;
+  };
+
+  const handleBatchEditChange = (value: string[] | string) => {
+    emits('batch-edit', value as string, 'rows_filter');
+  };
 </script>
 <style lang="less">
   .tendbcluster-flashback-record-tips {

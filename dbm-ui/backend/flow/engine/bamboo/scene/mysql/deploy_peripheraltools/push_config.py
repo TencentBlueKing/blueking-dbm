@@ -26,7 +26,7 @@ from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.clusters_deta
 )
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import (
     DeployPeripheralToolsDepart,
-    remove_depart,
+    remove_departs,
 )
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.utils.mysql.act_payload.mysql.peripheraltools import PeripheralToolsPayload
@@ -143,14 +143,16 @@ def push_departs_config_for_cluster(
     # TenDBSingle 没有 proxy, 不用跑这个分支
     # 但是有人提过想要有 proxy 的 TenDBSingle
     if cluster_type != ClusterType.TenDBSingle and proxy_ip_port_dict:
-        departs_on_proxy = deepcopy(departs)
         # 接入层不跑校验, 强制删除
-        remove_depart(DeployPeripheralToolsDepart.MySQLTableChecksum, departs_on_proxy)
-        remove_depart(DeployPeripheralToolsDepart.MySQLRotateBinlog, departs_on_proxy)
+        departs_on_proxy = remove_departs(
+            deepcopy(departs),
+            DeployPeripheralToolsDepart.MySQLTableChecksum,
+            DeployPeripheralToolsDepart.MySQLRotateBinlog,
+        )
 
         if cluster_type == ClusterType.TenDBHA:
             # proxy 不 rotate 和 备份
-            remove_depart(DeployPeripheralToolsDepart.MySQLDBBackup, departs_on_proxy)
+            departs_on_proxy = remove_departs(departs_on_proxy, DeployPeripheralToolsDepart.MySQLDBBackup)
 
         logger.info("{} proxy push departs config {}".format(cluster_type, departs_on_proxy))
 

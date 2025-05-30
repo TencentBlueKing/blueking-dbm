@@ -14,7 +14,6 @@ import (
 	errs "errors"
 	"fmt"
 	"log"
-	"math"
 	"os"
 	"path"
 	"path/filepath"
@@ -45,14 +44,15 @@ import (
 )
 
 func init() {
-	dumpCmd.Flags().StringP("backup-type", "t", cst.BackupTypeAuto, "overwrite Public.BackupType")
-	_ = viper.BindPFlag("Public.BackupType", dumpCmd.Flags().Lookup("backup-type"))
+	dumpCmd.PersistentFlags().StringP("backup-type", "t", cst.BackupTypeAuto, "overwrite Public.BackupType")
+	_ = viper.BindPFlag("Public.BackupType", dumpCmd.PersistentFlags().Lookup("backup-type"))
 
 	dumpCmd.PersistentFlags().String("backup-id", "", "overwrite Public.BackupId")
 	dumpCmd.PersistentFlags().String("bill-id", "", "overwrite Public.BillId")
 	dumpCmd.PersistentFlags().Int("shard-value", -1, "overwrite Public.ShardValue")
 	dumpCmd.PersistentFlags().Bool("nocheck-diskspace", false, "overwrite Public.NoCheckDiskSpace")
-	dumpCmd.PersistentFlags().Bool("backup-client", false, "enable backup-client, overwrite BackupClient.Enable")
+	dumpCmd.PersistentFlags().String("enable-backup-client", "auto",
+		"enable backup-client, auto means check if this machine is standby role")
 	dumpCmd.PersistentFlags().String("backup-file-tag", "", "overwrite BackupClient.FileTag")
 	dumpCmd.PersistentFlags().String("backup-to-remote", "", "backup to remote using ssh with netcat, "+
 		"format: ssh://user:pass@remote_host:remote_port//data/dbbak")
@@ -60,7 +60,7 @@ func init() {
 	_ = viper.BindPFlag("Public.BillId", dumpCmd.PersistentFlags().Lookup("bill-id"))
 	_ = viper.BindPFlag("Public.ShardValue", dumpCmd.PersistentFlags().Lookup("shard-value"))
 	_ = viper.BindPFlag("Public.NoCheckDiskSpace", dumpCmd.PersistentFlags().Lookup("nocheck-diskspace"))
-	_ = viper.BindPFlag("BackupClient.Enable", dumpCmd.PersistentFlags().Lookup("backup-client"))
+	_ = viper.BindPFlag("BackupClient.EnableBackupClient", dumpCmd.PersistentFlags().Lookup("backup-client"))
 	_ = viper.BindPFlag("BackupClient.FileTag", dumpCmd.PersistentFlags().Lookup("backup-file-tag"))
 
 	dumpCmd.PersistentFlags().String("backup-dir", "/data/dbbak",
@@ -161,7 +161,7 @@ func dumpExecute(cmd *cobra.Command, args []string) (err error) {
 	for _, f := range cnfFiles {
 		config.SetDefaults()
 		var cnf = config.BackupConfig{}
-		if err := initConfig(f, &cnf); err != nil {
+		if err := initConfig(f, &cnf, logger.Log); err != nil {
 			errList = errs.Join(errList, errors.WithMessagef(err, "init failed for %d", cnf.Public.MysqlPort))
 			logger.Log.Error("Create Dbbackup: fail to parse ", f)
 			continue
@@ -169,14 +169,7 @@ func dumpExecute(cmd *cobra.Command, args []string) (err error) {
 		if remoteConfig.EnableRemote {
 			cnf.BackupToRemote = *remoteConfig
 		}
-		cnf.SetConfigFilePath(f)
-		// 如果本机是 master 且设置了 master 限速，则覆盖默认限速
-		if cnf.Public.IOLimitMasterFactor > 0.0001 && cnf.Public.MysqlRole == cst.RoleMaster {
-			cnf.Public.IOLimitMBPerSec = int(math.Max(10,
-				cnf.Public.IOLimitMasterFactor*float64(cnf.Public.IOLimitMBPerSec)))
-			cnf.PhysicalBackup.Throttle = int(math.Max(1,
-				cnf.Public.IOLimitMasterFactor*float64(cnf.PhysicalBackup.Throttle)))
-		}
+		cnf.SetConfigFilePath(f) // 给 remote backup 用的
 
 		var maxTimeoutSeconds int64 = 10 * 24 * 86400 // 最大允许单个备份任务跑 10 天
 		if strings.ToLower(cnf.Public.MysqlRole) == cst.RoleMaster && cnf.Public.BackupTimeOut != "" {
@@ -191,7 +184,6 @@ func dumpExecute(cmd *cobra.Command, args []string) (err error) {
 				cnf.Public.MysqlPort, cnf.Public.BackupTimeOut))
 			continue
 		}
-
 		ctx := context.Background()
 		done := make(chan error, 1)
 		go func() {
@@ -324,7 +316,7 @@ func backupData(ctx context.Context, cnf *config.BackupConfig) (err error) {
 			return err
 		}
 	}
-
+	fmt.Printf("backup_index_file:%s\n", indexFilePath)
 	err = logReport.ReportBackupStatus("Success")
 	if err != nil {
 		logger.Log.Error("report success failed: ", err)
@@ -399,7 +391,7 @@ func prepareBackupToRemote(cnf *config.BackupConfig, sshClient *sshgo.Client) (e
 		}
 		logger.Log.Infof("dbbackup not found, try to send it to remote")
 		// 打包下发 /home/mysql/dbbackup-go
-		mysqlHome := filepath.Dir(backupexe.ExecuteHome)
+		mysqlHome := filepath.Dir(backupexe.ExecuteHome) // /home/mysql
 		dbbackupPkg := filepath.Join(mysqlHome, "dbbackup-go.tar.gz")
 		sendDbbackup := []string{"tar", "-zcf", dbbackupPkg, "dbbackup-go", "--exclude", "dbbackup-go/logs"}
 		if _, _, err = cmutil.ExecCommand(false, mysqlHome, sendDbbackup[0], sendDbbackup[1:]...); err != nil {
@@ -419,6 +411,11 @@ func prepareBackupToRemote(cnf *config.BackupConfig, sshClient *sshgo.Client) (e
 		}
 		if output, err = sshClient.Run("ls " + remoteDbbackupBin); err != nil {
 			return errors.WithMessagef(err, "check bin exists %s, output: %s", remoteDbbackupBin, string(output))
+		}
+	} else {
+		// 如果目标机器 dbbackup-go 存在，只更新 dbbackup bin
+		if err = sshClient.Upload(filepath.Join(backupexe.ExecuteHome, "dbbackup"), remoteDbbackupBin); err != nil {
+			return err
 		}
 	}
 
@@ -460,6 +457,7 @@ func prepareBackupToRemote(cnf *config.BackupConfig, sshClient *sshgo.Client) (e
 	return nil
 }
 
+// runBackupToRemote 上远程机器打包
 func runBackupToRemote(cnf *config.BackupConfig, indexFilePath string,
 	logReport *dbareport.BackupLogReport, sshClient *sshgo.Client) (err error) {
 	remoteIndexFile := filepath.Join(cnf.BackupToRemote.SaveDir, filepath.Base(indexFilePath))
@@ -491,7 +489,8 @@ func runBackupToRemote(cnf *config.BackupConfig, indexFilePath string,
 	}
 
 	// tar and split by remote
-	remoteCmd, _ := sshClient.Command(filepath.Join(backupexe.ExecuteHome, "dbbackup"), "tar-upload",
+	remoteDbbackupBin := filepath.Join(backupexe.ExecuteHome+"-remote", "dbbackup")
+	remoteCmd, _ := sshClient.Command(remoteDbbackupBin, "tar-upload",
 		"--config", remoteConfigFile,
 		"--backup-index-file", remoteIndexFile)
 	logger.Log.Infof("run command in remote:%s ", remoteCmd.String())
@@ -544,23 +543,38 @@ func backupTarAndUpload(
 	if err = logReport.BuildMetaInfo(cnf, metaInfo); err != nil {
 		return err
 	}
-	// PackageBackupFiles 会把打包后的文件信息，更新到 metaInfo
-	indexFilePath, tarErr := backupexe.PackageBackupFiles(cnf, metaInfo)
-	if tarErr != nil {
-		logger.Log.Error("Failed to tar the backup file, error: ", tarErr)
-		return tarErr
-	}
 
+	// 如果 index 里面的文件列表全都存在，说明已经完成了打包切分，不需要再执行 PackageBackupFiles
+	allFileExists := true
+	if len(metaInfo.FileList) == 0 {
+		allFileExists = false
+	} else {
+		for _, tarFile := range metaInfo.FileList {
+			if f := filepath.Join(cnf.Public.BackupDir, tarFile.FileName); !cmutil.FileExists(f) {
+				allFileExists = false
+				logger.Log.Warnf("file not exists %s from index file", f)
+			} else {
+				logger.Log.Infof("file exists %s from index file", f)
+			}
+		}
+	}
+	if !allFileExists {
+		// PackageBackupFiles 会把打包后的文件信息，更新到 metaInfo
+		logger.Log.Infof("start to tar files, Index BackupMetaInfo:%+v", metaInfo)
+		_, tarErr := backupexe.PackageBackupFiles(cnf, metaInfo)
+		if tarErr != nil {
+			logger.Log.Error("Failed to tar the backup file, error: ", tarErr)
+			return tarErr
+		}
+	}
 	// report backup info to dba
 	logger.Log.Info("report backup info: begin")
 	if err = logReport.ReportBackupStatus("Report"); err != nil {
 		return err
 	}
-
-	if isStandby := true; isStandby {
+	// 只有 standby 实例 才需要上报（非 standby 默认是不 report, 不 upload）
+	if cnf.BackupClient.EnableBackupClient == "yes" {
 		// run backup_client
-		fmt.Printf("backup_index_file:%s\n", indexFilePath)
-		// 预留，只有 standby 实例 才需要上报
 		if err = logReport.ReportBackupResult(indexFilePath, true, true); err != nil {
 			logger.Log.Error("failed to report backup result, err: ", err)
 			return err

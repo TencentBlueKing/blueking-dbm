@@ -164,16 +164,17 @@ func (c *ApplyHandler) ApplyBase(r *gin.Context, mode string) {
 	// get the resource lock if it is dry run you do not need to acquire it
 	if !param.DryRun {
 		lock := newLocker(param.LockKey(), c.RequestId)
-		if err = lock.Lock(); err != nil {
-			c.SendResponse(r, errno.ErrResourceLock.AddErr(err), err.Error())
-			return
-		}
 		defer func() {
+			logger.Info("defer unlock in contorller")
 			if err = lock.Unlock(); err != nil {
 				logger.Error(fmt.Sprintf("unlock failed %s", err.Error()))
 				return
 			}
 		}()
+		if err = lock.Lock(); err != nil {
+			c.SendResponse(r, errno.ErrResourceLock.AddErr(err), err.Error())
+			return
+		}
 	}
 	defer func() {
 		if err != nil {

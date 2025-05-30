@@ -631,18 +631,18 @@ def install_mysql_in_cluster_sub_flow(
             ]
         )
 
-    acts_list = []
-    for mysql_ip in new_mysql_list:
-        exec_act_kwargs.exec_ip = mysql_ip
-        exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_deploy_mysql_crond_payload.__name__
-        acts_list.append(
-            {
-                "act_name": _("部署mysql-crond {}".format(exec_act_kwargs.exec_ip)),
-                "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                "kwargs": asdict(exec_act_kwargs),
-            }
-        )
-    sub_pipeline.add_parallel_acts(acts_list=acts_list)
+    # acts_list = []
+    # for mysql_ip in new_mysql_list:
+    #     exec_act_kwargs.exec_ip = mysql_ip
+    #     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_deploy_mysql_crond_payload.__name__
+    #     acts_list.append(
+    #         {
+    #             "act_name": _("部署mysql-crond {}".format(exec_act_kwargs.exec_ip)),
+    #             "act_component_code": ExecuteDBActuatorScriptComponent.code,
+    #             "kwargs": asdict(exec_act_kwargs),
+    #         }
+    #     )
+    # sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
     # 阶段3 并发安装mysql实例(一个活动节点部署多实例)
     acts_list = []

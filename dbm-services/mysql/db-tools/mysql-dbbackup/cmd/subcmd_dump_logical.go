@@ -85,7 +85,7 @@ var dumpLogicalCmd = &cobra.Command{
 			if err = cmutil.FileExistsErr(configFile); err != nil {
 				return err
 			}
-			if err = initConfig(configFile, &cnf); err != nil {
+			if err = initConfig(configFile, &cnf, logger.Log); err != nil {
 				logger.Log.Error("Create Dbbackup: fail to parse ", configFile)
 				return errors.WithMessagef(err, "fail to parse %s", configFile)
 			}

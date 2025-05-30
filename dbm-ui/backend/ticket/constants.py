@@ -272,8 +272,8 @@ class TicketType(str, StructuredEnum):
     MYSQL_HA_TRANSFER_TO_OTHER_BIZ = TicketEnumField("MYSQL_HA_TRANSFER_TO_OTHER_BIZ", _("TendbHA集群迁移至其他业务"), register_iam=False)  # noqa
     MYSQL_PUSH_PERIPHERAL_CONFIG = TicketEnumField("MYSQL_PUSH_PERIPHERAL_CONFIG", _("推送周边配置"), register_iam=False)
     MYSQL_AUTOFIX_TODO_REGISTER = TicketEnumField("MYSQL_AUTOFIX_TODO_REGISTER", _("MySQL DBHA 故障自愈任务注册"))
-    MYSQL_PROXY_INPLACE_AUTOFIX = TicketEnumField(
-        "MYSQL_PROXY_INPLACE_AUTOFIX", _("MySQL Proxy 原地自愈"), register_iam=False)
+    MYSQL_STORAGE_STANDARDIZE_AUTOFIX = TicketEnumField(
+        "MYSQL_STORAGE_STANDARDIZE_AUTOFIX", _("MySQL 存储自愈自动重标准化"), register_iam=False)
     MYSQL_ACCOUNT_RULE_CHANGE = TicketEnumField("MYSQL_ACCOUNT_RULE_CHANGE", _("MySQL 授权规则变更"), register_iam=False)
     MYSQL_RENAME_DATABASE = TicketEnumField("MYSQL_RENAME_DATABASE", _("MySQL DB重命名"))
 

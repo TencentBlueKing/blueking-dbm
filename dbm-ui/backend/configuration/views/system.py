@@ -18,7 +18,7 @@ from backend import env
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components import BKBaseApi
-from backend.configuration.common_sqls import DB_TYPE__COMMON_SQL_MAP
+from backend.configuration.common_sqls import DB_TYPE__COMMON_SQL_MAP, PROXY_COMMON_SQL_STATEMENTS
 from backend.configuration.constants import DEFAULT_MACHINE_PROPERTY, DISK_CLASSES, SystemSettingsEnum
 from backend.configuration.models.system import BizSettings, SystemSettings
 from backend.configuration.serializers import (
@@ -72,6 +72,9 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
     @action(methods=["GET"], detail=False, serializer_class=GetCommonSQLSerializer)
     def common_sqls(self, request, *args, **kwargs):
         db_type = self.validated_data["db_type"]
+        is_proxy = self.validated_data["is_proxy"]
+        if is_proxy:
+            return Response(PROXY_COMMON_SQL_STATEMENTS)
         return Response(DB_TYPE__COMMON_SQL_MAP.get(db_type, []))
 
     @common_swagger_auto_schema(

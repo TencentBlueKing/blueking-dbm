@@ -95,6 +95,11 @@ func loadData(cnf *config.BackupConfig, backupType string) error {
 }
 
 func initLoadCmd(cmd *cobra.Command) (cnf *config.BackupConfig, err error) {
+	loadLogFile := fmt.Sprintf("dbloader_%d.log", viper.GetInt("LogicalLoad.MysqlPort"))
+	if err = logger.InitLog(loadLogFile); err != nil {
+		return nil, err
+	}
+	cnf = &config.BackupConfig{}
 	configFile, _ := cmd.Flags().GetString("config") // loadbackup sub_command will call, so use Flags
 	if configFile == "" {
 		if err = viper.Unmarshal(&cnf); err != nil {
@@ -104,13 +109,9 @@ func initLoadCmd(cmd *cobra.Command) (cnf *config.BackupConfig, err error) {
 		if err = cmutil.FileExistsErr(configFile); err != nil {
 			return nil, err
 		}
-		if err = initConfig(configFile, &cnf); err != nil {
+		if err = initConfig(configFile, cnf, logger.Log); err != nil {
 			return nil, errors.WithMessagef(err, "fail to parse %s", configFile)
 		}
-	}
-	loadLogFile := fmt.Sprintf("dbloader_%d.log", viper.GetInt("LogicalLoad.MysqlPort"))
-	if err = logger.InitLog(loadLogFile); err != nil {
-		return nil, err
 	}
 	return cnf, nil
 }

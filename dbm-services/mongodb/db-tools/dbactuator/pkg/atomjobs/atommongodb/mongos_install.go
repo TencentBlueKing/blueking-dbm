@@ -140,7 +140,7 @@ func (s *MongoSInstall) Init(runtime *jobruntime.JobGenericRuntime) error {
 	s.PidFilePath = filepath.Join(s.DataDir, "mongodata", strPort, PidFileName)
 	s.KeyFilePath = filepath.Join(s.DataDir, "mongodata", strPort, "key_of_mongo")
 	s.DbTypeFilePath = filepath.Join(s.DataDir, "mongodata", strPort, "dbtype")
-	s.LockFilePath = filepath.Join(s.DataDir, "mongoinstall.lock")
+	s.LockFilePath = filepath.Join("/tmp", "mongoinstall.lock")
 
 	// 生成配置文件内容
 	s.runtime.Logger.Info("make mongos config file content")

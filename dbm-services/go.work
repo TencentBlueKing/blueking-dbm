@@ -39,3 +39,4 @@ use (
 )
 
 replace github.com/go-sql-driver/mysql => github.com/go-sql-driver/mysql v1.7.1
+replace github.com/spf13/viper => github.com/spf13/viper v1.18.2

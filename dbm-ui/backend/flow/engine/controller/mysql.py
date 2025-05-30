@@ -18,7 +18,6 @@ from backend.flow.engine.bamboo.scene.common.transfer_cluster_to_other_biz impor
 from backend.flow.engine.bamboo.scene.mysql.autofix.mysql_autofix_todo_register_flow import (
     MySQLAutofixTodoRegisterFlow,
 )
-from backend.flow.engine.bamboo.scene.mysql.autofix.mysql_proxy_inplace_autofix_flow import ProxyInplaceAutofixFlow
 from backend.flow.engine.bamboo.scene.mysql.dbconsole import DbConsoleDumpSqlFlow
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.flow import MySQLStandardizeFlow
 from backend.flow.engine.bamboo.scene.mysql.import_sqlfile_flow import ImportSQLFlow
@@ -714,13 +713,12 @@ class MySQLController(BaseController):
         flow = MySQLAutofixTodoRegisterFlow(root_id=self.root_id, data=self.ticket_data)
         flow.autofix_register()
 
-    def proxy_inplace_autofix_scene(self):
+    def storage_auto_standardize_autofix_scene(self):
         """
         mysql 自愈
-        原地启动 proxy
         """
-        flow = ProxyInplaceAutofixFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.autofix()
+        flow = MySQLStandardizeFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.standardize_by_ip()
 
     def mysql_rename_database_scene(self):
         """

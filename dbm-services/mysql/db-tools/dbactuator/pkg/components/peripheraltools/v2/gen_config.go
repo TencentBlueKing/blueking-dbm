@@ -2,8 +2,6 @@ package peripheraltools
 
 import (
 	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/common"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/v2/checksum"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/v2/crond"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/v2/dbbackup"
@@ -15,8 +13,8 @@ import (
 )
 
 type GenConfig struct {
-	GeneralParam *components.GeneralParam `json:"general"`
-	Param        *GenConfigParam          `json:"extend"`
+	//GeneralParam *components.GeneralParam `json:"general"`
+	Param *GenConfigParam `json:"extend"`
 }
 
 type GenConfigParam struct {
@@ -63,11 +61,6 @@ func (c *GenConfig) genOne(depart string) (err error) {
 
 func (c *GenConfig) Example() interface{} {
 	return GenConfig{
-		GeneralParam: &components.GeneralParam{
-			RuntimeAccountParam: components.RuntimeAccountParam{
-				MySQLAccountParam: common.AccountMonitorExample,
-			},
-		},
 		Param: &GenConfigParam{
 			BKCloudId:  0,
 			IP:         "1.1.1.1",

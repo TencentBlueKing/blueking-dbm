@@ -45,7 +45,7 @@ func (c *GenPeripheralToolsConfigAct) Init() error {
 		logger.Error("DeserializeAndValidate err %s", err.Error())
 		return err
 	}
-	c.Service.GeneralParam = subcmd.GeneralRuntimeParam
+	//c.Service.GeneralParam = subcmd.GeneralRuntimeParam
 	logger.Info("extend params: %s", c.Service.Param)
 	return nil
 }

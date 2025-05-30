@@ -23,11 +23,11 @@ import { ClusterTypes, TicketTypes } from '@common/const';
 const ticketTypeMap = {
   [ClusterTypes.MONGO_SHARED_CLUSTER]: {
     create: TicketTypes.MONGODB_PLUGIN_CREATE_CLB,
-    delete: TicketTypes.MONGODB_PLUGIN_DELETE_CLB,
+    // delete: TicketTypes.MONGODB_PLUGIN_DELETE_CLB,
   },
   [ClusterTypes.REDIS_CLUSTER]: {
     create: TicketTypes.REDIS_PLUGIN_CREATE_CLB,
-    delete: TicketTypes.REDIS_PLUGIN_DELETE_CLB,
+    // delete: TicketTypes.REDIS_PLUGIN_DELETE_CLB,
   },
 } as const;
 
@@ -35,12 +35,10 @@ export const useSwitchClb = (clusterType: keyof typeof ticketTypeMap) => {
   const { t } = useI18n();
   const ticketMessage = useTicketMessage();
 
-  const handleSwitchClb = (data: { id: number; isOnlineCLB: boolean }) => {
-    const title = data.isOnlineCLB ? t('确定禁用CLB？') : t('确定启用CLB？');
-    const content = data.isOnlineCLB
-      ? t('禁用 CLB 之后，该集群仍可通过域名来访问')
-      : t('启用 CLB 之后，该集群可以通过 CLB 来访问');
-    const ticketType = data.isOnlineCLB ? ticketTypeMap[clusterType].delete : ticketTypeMap[clusterType].create;
+  const handleSwitchClb = (data: { id: number }) => {
+    const title = t('确定启用CLB？');
+    const content = t('启用 CLB 之后，该集群可以通过 CLB 来访问');
+    const ticketType = ticketTypeMap[clusterType].create;
 
     InfoBox({
       content,

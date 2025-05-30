@@ -46,6 +46,7 @@ MachineTypeAccessLayerMap = {
     MachineType.VM_INSERT: AccessLayer.STORAGE,
     MachineType.VM_SELECT: AccessLayer.STORAGE,
     MachineType.VM_AUTH: AccessLayer.STORAGE,
+    MachineType.ORACLE: AccessLayer.STORAGE,
 }
 
 ClusterTypeMachineTypeDefine = {
@@ -75,6 +76,7 @@ ClusterTypeMachineTypeDefine = {
     ClusterType.Doris: [MachineType.DORIS_BACKEND, MachineType.DORIS_FOLLOWER, MachineType.DORIS_OBSERVER],
     ClusterType.TBinlogDumper: [MachineType.TBinlogDumper],
     ClusterType.Vm: [MachineType.VM_STORAGE, MachineType.VM_SELECT, MachineType.VM_INSERT, MachineType.VM_AUTH],
+    ClusterType.OraclePrimaryStandby: [MachineType.ORACLE],
 }
 
 ClusterMachineAccessTypeDefine = {
@@ -221,6 +223,7 @@ MachineTypeInstanceRoleMap = {
     MachineType.VM_INSERT: [InstanceRole.VM_INSERT],
     MachineType.VM_SELECT: [InstanceRole.VM_SELECT],
     MachineType.VM_AUTH: [InstanceRole.VM_AUTH],
+    MachineType.ORACLE: [InstanceRole.PRIMARY, InstanceRole.STANDBY],
 }
 
 InstanceRoleInstanceInnerRoleMap = {
@@ -267,6 +270,8 @@ InstanceRoleInstanceInnerRoleMap = {
     InstanceRole.VM_INSERT: InstanceInnerRole.ORPHAN,
     InstanceRole.VM_SELECT: InstanceInnerRole.ORPHAN,
     InstanceRole.VM_AUTH: InstanceInnerRole.ORPHAN,
+    InstanceRole.PRIMARY: InstanceInnerRole.PRIMARY,
+    InstanceRole.STANDBY: InstanceInnerRole.STANDBY,
 }
 
 

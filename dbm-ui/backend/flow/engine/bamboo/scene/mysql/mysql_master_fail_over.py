@@ -17,15 +17,12 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_meta.models.extra_process import ExtraProcessInstance
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
-    build_surrounding_apps_sub_flow,
-    check_sub_flow,
-)
+from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import check_sub_flow
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
 from backend.flow.engine.bamboo.scene.mysql.mysql_master_slave_switch import MySQLMasterSlaveSwitchFlow
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
@@ -104,6 +101,7 @@ class MySQLMasterFailOverFlow(object):
             # 根据需要切换的集群，依次添加
             cluster_switch_sub_list = []
 
+            instances = []
             for cluster_id in info["cluster_ids"]:
 
                 # 拼接子流程需要全局参数
@@ -123,6 +121,8 @@ class MySQLMasterFailOverFlow(object):
                     new_master_ip=info["slave_ip"]["ip"],
                     old_master_ip=info["master_ip"]["ip"],
                 )
+
+                instances.append("{}:{}".format(info["slave_ip"]["ip"], cluster["mysql_port"]))
 
                 # 拼接执行原子任务的活动节点需要的通用的私有参数
                 cluster_sw_kwargs = ExecActuatorKwargs(cluster=cluster, bk_cloud_id=cluster["bk_cloud_id"])
@@ -190,17 +190,6 @@ class MySQLMasterFailOverFlow(object):
                         )
                     cluster_switch_sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
-                # 阶段4 更改旧master 和 新master 的域名映射关系，并发执行
-                cluster_switch_sub_pipeline.add_parallel_acts(
-                    acts_list=MySQLMasterSlaveSwitchFlow.get_handle_domain_act_list(
-                        master_ip=info["master_ip"]["ip"],
-                        slave_ip=info["slave_ip"]["ip"],
-                        mysql_port=int(cluster["mysql_port"]),
-                        slave_dns_list=cluster["slave_dns_list"],
-                        bk_cloud_id=cluster["bk_cloud_id"],
-                    )
-                )
-
                 # 增加tbinlogdumper实例部署切换联动
                 if ExtraProcessInstance.objects.filter(cluster_id=cluster_id).exists():
                     cluster_switch_sub_pipeline.add_act(
@@ -234,15 +223,21 @@ class MySQLMasterFailOverFlow(object):
             )
 
             # 阶段6 切换后重新部署周边
+            # 老 master 直接放弃了
             sub_pipeline.add_sub_pipeline(
-                sub_flow=build_surrounding_apps_sub_flow(
-                    bk_cloud_id=info["slave_ip"]["bk_cloud_id"],
-                    master_ip_list=[info["slave_ip"]["ip"]],
-                    # slave_ip_list=[info["master_ip"]["ip"]], # 故障机器不需要再部署
+                sub_flow=standardize_mysql_cluster_subflow(
                     root_id=self.root_id,
-                    parent_global_data=copy.deepcopy(sub_flow_context),
-                    is_init=False,
-                    cluster_type=ClusterType.TenDBHA.value,
+                    data=copy.deepcopy(self.data),
+                    bk_cloud_id=info["slave_ip"]["bk_cloud_id"],
+                    bk_biz_id=self.data["bk_biz_id"],
+                    instances=instances,
+                    with_actuator=False,
+                    with_bk_plugin=False,
+                    with_instance_standardize=False,
+                    with_collect_sysinfo=False,
+                    with_cc_standardize=False,
+                    with_deploy_binary=False,
+                    with_backup_client=False,
                 )
             )
 

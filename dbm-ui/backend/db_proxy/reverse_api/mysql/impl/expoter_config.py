@@ -14,10 +14,12 @@ from django.db.models import Q
 
 from backend.db_meta.enums import AccessLayer, MachineType
 from backend.db_meta.models import Machine, ProxyInstance, StorageInstance
-from backend.flow.utils.base.payload_handler import PayloadHandler
+from backend.flow.consts import UserName
+from backend.flow.utils.mysql.act_payload.mixed.account_mixed.mysql_account_mixed import MySQLAccountMixed
+from backend.flow.utils.mysql.act_payload.mixed.account_mixed.proxy_account_mixed import ProxyAccountMixed
 
 
-def exporter_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int]]) -> List:
+def exporter_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int]] = None) -> List:
     m = Machine.objects.get(ip=ip, bk_cloud_id=bk_cloud_id)
     q = Q()
     q |= Q(**{"machine": m})
@@ -35,11 +37,11 @@ def exporter_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int]]) -
     i: Union[StorageInstance, ProxyInstance]
     for i in qs.all():
         if i.machine_type == MachineType.PROXY:
-            usermap = PayloadHandler.get_proxy_account()
+            usermap = ProxyAccountMixed.proxy_admin_account()
             user = usermap["proxy_admin_user"]
             password = usermap["proxy_admin_pwd"]
         else:
-            usermap = PayloadHandler.get_mysql_static_account()
+            usermap = MySQLAccountMixed.mysql_static_account(UserName.MONITOR)
             user = usermap["monitor_user"]
             password = usermap["monitor_pwd"]
 

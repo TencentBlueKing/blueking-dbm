@@ -18,21 +18,23 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType, MySQLMonitorPauseTime
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
 from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
-    build_surrounding_apps_sub_flow,
-    install_mysql_in_cluster_sub_flow,
-)
+from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import install_mysql_in_cluster_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_instance_config
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import (
     mysql_restore_master_slave_sub_flow,
 )
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import (
+    ALLDEPARTS,
+    DeployPeripheralToolsDepart,
+    remove_departs,
+)
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
 from backend.flow.engine.bamboo.scene.mysql.mysql_ha_upgrade import adapt_mycnf_for_upgrade
 from backend.flow.engine.bamboo.scene.mysql.mysql_upgrade import upgrade_version_check
 from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import remote_migrate_switch_sub_flow
@@ -172,6 +174,8 @@ class UpgradeRemoteFlow(object):
             for port in range(self.data["start_port"], self.data["start_port"] + self.data["remote_shard_num"]):
                 cluster_info["ports"].append(port)
             shard_ids = copy.deepcopy(cluster_info["shard_ids"])
+
+            instances = []
             for idx, node in enumerate(copy.deepcopy(self.data["remote_group"])):
                 db_config = {}
                 for port in cluster_info["ports"]:
@@ -187,6 +191,11 @@ class UpgradeRemoteFlow(object):
                         "bk_cloud_id": self.data["bk_cloud_id"],
                         "instance": "{}{}{}".format(node["slave"]["ip"], IP_PORT_DIVIDER, port),
                     }
+
+                    instances.extend(
+                        ["{}:{}".format(master["ip"], master["port"]), "{}:{}".format(slave["ip"], slave["port"])]
+                    )
+
                     shard_id = shard_ids.pop(0)
                     cluster_info["shards"][shard_id]["new_master"] = master
                     cluster_info["shards"][shard_id]["new_slave"] = slave
@@ -270,15 +279,17 @@ class UpgradeRemoteFlow(object):
             for node in self.data["remote_group"]:
                 surrounding_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
                 surrounding_sub_pipeline.add_sub_pipeline(
-                    sub_flow=build_surrounding_apps_sub_flow(
-                        bk_cloud_id=cluster_class.bk_cloud_id,
-                        master_ip_list=[node["master"]["ip"]],
-                        slave_ip_list=[node["slave"]["ip"]],
+                    sub_flow=standardize_mysql_cluster_subflow(
                         root_id=self.root_id,
-                        parent_global_data=copy.deepcopy(self.data),
-                        collect_sysinfo=True,
-                        cluster_type=ClusterType.TenDBCluster.value,
-                        is_install_backup=False,
+                        data=copy.deepcopy(self.data),
+                        bk_cloud_id=cluster_class.bk_cloud_id,
+                        bk_biz_id=cluster_class.bk_biz_id,
+                        # ips=[node["master"]["ip"], node["slave"]["ip"]],
+                        instances=instances,
+                        with_bk_plugin=False,
+                        with_actuator=False,
+                        with_instance_standardize=False,
+                        departs=remove_departs(ALLDEPARTS, DeployPeripheralToolsDepart.MySQLDBBackup),
                     )
                 )
                 surrounding_sub_pipeline.add_act(
@@ -299,14 +310,17 @@ class UpgradeRemoteFlow(object):
 
                 re_surrounding_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
                 re_surrounding_sub_pipeline.add_sub_pipeline(
-                    sub_flow=build_surrounding_apps_sub_flow(
-                        bk_cloud_id=cluster_class.bk_cloud_id,
-                        master_ip_list=[node["master"]["ip"]],
-                        slave_ip_list=[node["slave"]["ip"]],
+                    sub_flow=standardize_mysql_cluster_subflow(
                         root_id=self.root_id,
-                        parent_global_data=copy.deepcopy(self.data),
-                        is_init=True,
-                        cluster_type=ClusterType.TenDBCluster.value,
+                        data=copy.deepcopy(self.data),
+                        bk_cloud_id=cluster_class.bk_cloud_id,
+                        bk_biz_id=cluster_class.bk_biz_id,
+                        instances=instances,
+                        with_actuator=False,
+                        with_collect_sysinfo=False,
+                        with_instance_standardize=False,
+                        with_cc_standardize=False,
+                        with_bk_plugin=False,
                     )
                 )
                 re_surrounding_sub_pipeline.add_act(

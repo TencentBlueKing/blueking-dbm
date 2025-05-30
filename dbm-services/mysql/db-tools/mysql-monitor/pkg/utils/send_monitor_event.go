@@ -21,7 +21,7 @@ func SendMonitorEvent(name string, msg string) {
 		// "server_ip":                     config.MonitorConfig.Ip,   // 监控插件服务实例维度和自定义上报维度统一
 		"instance_port":                 config.MonitorConfig.Port,
 		"instance_host":                 config.MonitorConfig.Ip,
-		"bk_target_service_instance_id": strconv.FormatInt(config.MonitorConfig.BkInstanceId, 10),
+		"bk_target_service_instance_id": strconv.FormatInt(*config.MonitorConfig.BkInstanceId, 10),
 	}
 
 	if config.MonitorConfig.Role != nil {

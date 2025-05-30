@@ -228,7 +228,7 @@ func (i *ServerObj) RegisterBinlog(lastFileBefore *models.BinlogFileModel) error
 
 	fLen := len(i.binlogFiles)
 	lastFileNameRegistered := filepath.Base(lastFileBefore.Filename)
-	if i.binlogFiles[fLen-1].Filename < lastFileNameRegistered { // 本地最大的 binlog 文件，不应该小于 local db 记录的
+	if fLen >= 1 && i.binlogFiles[fLen-1].Filename < lastFileNameRegistered { // 本地最大的 binlog 文件，不应该小于 local db 记录的
 		logger.Warn("the last registered file %s is greater than the max binlog file %s in local",
 			lastFileNameRegistered, i.binlogFiles[fLen-1].Filename)
 		// reset binlog files

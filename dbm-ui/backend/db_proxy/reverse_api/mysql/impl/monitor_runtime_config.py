@@ -15,7 +15,8 @@ from django.db.models import Q
 from backend.db_meta.enums import AccessLayer, MachineType, TenDBClusterSpiderRole
 from backend.db_meta.models import Machine, ProxyInstance, StorageInstance
 from backend.flow.consts import SYSTEM_DBS
-from backend.flow.utils.base.payload_handler import PayloadHandler
+from backend.flow.utils.mysql.act_payload.mixed.account_mixed.mysql_account_mixed import MySQLAccountMixed
+from backend.flow.utils.mysql.act_payload.mixed.account_mixed.proxy_account_mixed import ProxyAccountMixed
 
 
 def monitor_runtime_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int]] = None) -> List[Dict]:
@@ -31,9 +32,9 @@ def monitor_runtime_config(bk_cloud_id: int, ip: str, port_list: Optional[List[i
     else:
         qs = StorageInstance.objects.filter(q).prefetch_related("cluster")
 
-    usermap = PayloadHandler.get_mysql_static_account()
+    usermap = MySQLAccountMixed.mysql_static_account()
     if m.machine_type == MachineType.PROXY:
-        proxyusermap = PayloadHandler.get_proxy_account()
+        proxyusermap = ProxyAccountMixed.proxy_admin_account()
         ac = {
             "proxy": {"user": usermap["monitor_access_all_user"], "password": usermap["monitor_access_all_pwd"]},
             "proxy_admin": {"user": proxyusermap["proxy_admin_user"], "password": proxyusermap["proxy_admin_pwd"]},
@@ -45,6 +46,9 @@ def monitor_runtime_config(bk_cloud_id: int, ip: str, port_list: Optional[List[i
 
     i: Union[StorageInstance, ProxyInstance]
     for i in qs.all():
+        if not i.cluster.exists():
+            continue
+
         if m.machine_type == MachineType.SPIDER and i.tendbclusterspiderext.spider_role in [
             TenDBClusterSpiderRole.SPIDER_SLAVE,
             TenDBClusterSpiderRole.SPIDER_SLAVE_MNT,
@@ -54,7 +58,10 @@ def monitor_runtime_config(bk_cloud_id: int, ip: str, port_list: Optional[List[i
             bk_instance_id = i.bk_instance_id
 
         if m.access_layer == AccessLayer.PROXY:
-            role = ""
+            if m.machine_type == MachineType.PROXY:
+                role = ""
+            else:
+                role = i.tendbclusterspiderext.spider_role
         else:
             role = i.instance_inner_role
 

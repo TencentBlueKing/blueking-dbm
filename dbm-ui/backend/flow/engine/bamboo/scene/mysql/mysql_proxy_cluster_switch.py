@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging.config
 from dataclasses import asdict
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
@@ -137,6 +137,9 @@ class MySQLProxyClusterSwitchFlow(object):
             sub_flow_context.pop("infos")
 
             sub_flow_context["proxy_ports"] = self.__get_proxy_install_ports(cluster_ids=info["cluster_ids"])
+            instances = [
+                "{}:{}".format(info["target_proxy_ip"]["ip"], port) for port in sub_flow_context["proxy_ports"]
+            ]
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
 
             # 拼接执行原子任务活动节点需要的通用的私有参数结构体, 减少代码重复率，但引用时注意内部参数值传递的问题
@@ -205,7 +208,6 @@ class MySQLProxyClusterSwitchFlow(object):
             # 阶段2 根据需要替换的proxy的集群，依次添加
             switch_proxy_sub_list = []
             for cluster_id in info["cluster_ids"]:
-
                 # 拼接子流程需要全局参数
                 sub_sub_flow_context = copy.deepcopy(self.data)
                 sub_sub_flow_context.pop("infos")
@@ -256,36 +258,6 @@ class MySQLProxyClusterSwitchFlow(object):
                     ),
                 )
 
-                # acts_list = []
-                # for dns_name in cluster["add_domain_list"]:
-                #     # 这里的添加域名的方式根据目前集群对应proxy dns域名进行循环添加，这样保证某个域名添加异常时其他域名添加成功
-                #     acts_list.append(
-                #         {
-                #             "act_name": _("增加新proxy域名映射"),
-                #             "act_component_code": MySQLDnsManageComponent.code,
-                #             "kwargs": asdict(
-                #                 CreateDnsKwargs(
-                #                     bk_cloud_id=cluster["bk_cloud_id"],
-                #                     add_domain_name=dns_name,
-                #                     dns_op_exec_port=cluster["proxy_port"],
-                #                     exec_ip=info["target_proxy_ip"]["ip"],
-                #                 )
-                #             ),
-                #         }
-                #     )
-                # switch_proxy_sub_pipeline.add_parallel_acts(acts_list=acts_list)
-
-                # switch_proxy_sub_pipeline.add_act(
-                #     act_name=_("回收旧proxy集群映射"),
-                #     act_component_code=MySQLDnsManageComponent.code,
-                #     kwargs=asdict(
-                #         RecycleDnsRecordKwargs(
-                #             bk_cloud_id=cluster["bk_cloud_id"],
-                #             dns_op_exec_port=cluster["proxy_port"],
-                #             exec_ip=info["origin_proxy_ip"]["ip"],
-                #         ),
-                #     ),
-                # )
                 create_entrysub_process = BuildEntrysManageSubflow(
                     root_id=self.root_id,
                     ticket_data=self.data,
@@ -331,26 +303,13 @@ class MySQLProxyClusterSwitchFlow(object):
             # 不然一直不点确认就不会安装监控, 有危险
             # 这里所在的循环是按 ip 来发起 subflow
             # 所以肯定只有一个 bk cloud id
-            clusters_detail: Dict[str, Dict[str, List[str]]] = {}
-            for cluster_id in info["cluster_ids"]:
-                cluster = self.__get_switch_cluster_info(
-                    cluster_id=cluster_id,
-                    target_proxy_ip=info["target_proxy_ip"]["ip"],
-                    origin_proxy_ip=info["origin_proxy_ip"]["ip"],
-                )
-
-                cluster_detail = {"proxy": ["{}:{}".format(cluster["target_proxy_ip"], cluster["proxy_port"])]}
-                immute_domain = cluster["immute_domain"]
-                clusters_detail[immute_domain] = cluster_detail
-
             sub_pipeline.add_sub_pipeline(
                 sub_flow=standardize_mysql_cluster_subflow(
                     root_id=self.root_id,
                     data=copy.deepcopy(self.data),
                     bk_cloud_id=info["target_proxy_ip"]["bk_cloud_id"],
                     bk_biz_id=self.data["bk_biz_id"],
-                    cluster_type=ClusterType.TenDBHA,
-                    clusters_detail=clusters_detail,
+                    instances=instances,
                     departs=[
                         DeployPeripheralToolsDepart.DBAToolKit,
                         DeployPeripheralToolsDepart.MySQLCrond,
@@ -358,6 +317,7 @@ class MySQLProxyClusterSwitchFlow(object):
                     ],
                     with_actuator=False,
                     with_bk_plugin=False,
+                    with_collect_sysinfo=False,
                 )
             )
 

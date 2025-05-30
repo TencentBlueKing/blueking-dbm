@@ -1,0 +1,38 @@
+{
+  "bk_biz_id": 0,
+  "name": "drs",
+  "details": {
+    "name": "db-remote-service",
+    "collect_type": "Process",
+    "label": "host_process",
+    "target_object_type": "HOST",
+    "target_node_type": "TOPO",
+    "target_nodes": [],
+    "params": {
+      "collector": {
+        "period": 60,
+        "timeout": 60,
+        "metric_relabel_configs": []
+      },
+      "plugin": {},
+      "process": {
+        "match_type": "command",
+        "pid_path": "",
+        "process_name": "db-remote-service",
+        "match_pattern": "db-remote-service",
+        "exclude_pattern": "",
+        "extract_pattern": "",
+        "port_detect": true,
+        "labels": {}
+      },
+      "target_node_type": "TOPO",
+      "target_object_type": "HOST"
+    },
+    "plugin_id": "bkprocessbeat"
+  },
+  "db_type": "cloud",
+  "version": 1,
+  "machine_types": [],
+  "plugin_id": "bkprocessbeat",
+  "export_at": "2025-05-29T11:07:57+08:00"
+}

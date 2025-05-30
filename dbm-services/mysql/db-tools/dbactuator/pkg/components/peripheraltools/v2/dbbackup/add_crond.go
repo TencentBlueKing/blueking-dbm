@@ -12,6 +12,7 @@ import (
 	"path"
 	"path/filepath"
 	"slices"
+	"strings"
 
 	"gopkg.in/ini.v1"
 )
@@ -50,9 +51,10 @@ func addCrontabLegacy(cm *ma.Manager, schedule string) (err error) {
 }
 
 func addCrontabSpider(cm *ma.Manager, role string, port int, schedule string) (err error) {
-	logger.Info("spider")
+	logger.Info("add dbbackup crond for spider, role: %s, port: %d", role, port)
 	var jobItem ma.JobDefine
-	if role == cst.BackupRoleSpiderMaster {
+	if strings.ToLower(role) == strings.ToLower(cst.BackupRoleSpiderMaster) {
+		logger.Info("add schedule")
 		dbbackupConfFile := fmt.Sprintf("dbbackup.%d.ini", port)
 		jobItem = ma.JobDefine{
 			Name:     "spiderbackup-schedule",
@@ -64,11 +66,16 @@ func addCrontabSpider(cm *ma.Manager, role string, port int, schedule string) (e
 			Enable:   true,
 		}
 		logger.Info("adding job_item to crond: %+v", jobItem)
-		if _, err = cm.CreateOrReplace(jobItem, true); err != nil {
+		id, err := cm.CreateOrReplace(jobItem, true)
+		if err != nil {
+			logger.Error(err.Error())
 			return err
 		}
+		logger.Info("adding job_item to crond: id: %s", id)
 	}
-	if !(role == cst.BackupRoleSpiderMnt || role == cst.BackupRoleSpiderSlave) { // MASTER,SLAVE,REPEATER
+	if !(strings.ToLower(role) == strings.ToLower(cst.BackupRoleSpiderMnt) ||
+		strings.ToLower(role) == strings.ToLower(cst.BackupRoleSpiderSlave)) { // MASTER,SLAVE,REPEATER
+		logger.Info("add check")
 		jobItem = ma.JobDefine{
 			Name:     "spiderbackup-check",
 			Command:  filepath.Join(cst.DbbackupGoInstallPath, "dbbackup"),
@@ -79,78 +86,20 @@ func addCrontabSpider(cm *ma.Manager, role string, port int, schedule string) (e
 			Enable:   true,
 		}
 		logger.Info("adding job_item to crond: %+v", jobItem)
-		if _, err = cm.CreateOrReplace(jobItem, true); err != nil {
+		id, err := cm.CreateOrReplace(jobItem, true)
+		if err != nil {
+			logger.Error(err.Error())
 			return err
 		}
+		logger.Info("adding job_item to crond: id: %s", id)
 	}
 	return nil
 }
 
 func (c *NewDbBackupComp) addCrontabSpider() (err error) {
-
 	crondManager := ma.NewManager("http://127.0.0.1:9999")
 	return addCrontabSpider(crondManager, c.Params.Role, c.Params.Ports[0], c.Params.Options.CrontabTime)
-
-	//var jobItem ma.JobDefine
-	//if c.Params.Role == cst.BackupRoleSpiderMaster {
-	//	dbbackupConfFile := fmt.Sprintf("dbbackup.%d.ini", c.Params.Ports[0])
-	//	jobItem = ma.JobDefine{
-	//		Name:     "spiderbackup-schedule",
-	//		Command:  filepath.Join(cst.DbbackupGoInstallPath, "dbbackup"),
-	//		WorkDir:  cst.DbbackupGoInstallPath,
-	//		Args:     []string{"spiderbackup", "schedule", "--config", dbbackupConfFile},
-	//		Schedule: c.Params.Options.CrontabTime, //c.getInsHostCrontabTime(),
-	//		Creator:  c.Params.ExecUser,
-	//		Enable:   true,
-	//	}
-	//	logger.Info("adding job_item to crond: %+v", jobItem)
-	//	if _, err = crondManager.CreateOrReplace(jobItem, true); err != nil {
-	//		return err
-	//	}
-	//}
-	//if !(c.Params.Role == cst.BackupRoleSpiderMnt || c.Params.Role == cst.BackupRoleSpiderSlave) { // MASTER,SLAVE,REPEATER
-	//	jobItem = ma.JobDefine{
-	//		Name:     "spiderbackup-check",
-	//		Command:  filepath.Join(cst.DbbackupGoInstallPath, "dbbackup"),
-	//		WorkDir:  cst.DbbackupGoInstallPath,
-	//		Args:     []string{"spiderbackup", "check", "--run"},
-	//		Schedule: "*/1 * * * *",
-	//		Creator:  c.Params.ExecUser,
-	//		Enable:   true,
-	//	}
-	//	logger.Info("adding job_item to crond: %+v", jobItem)
-	//	if _, err = crondManager.CreateOrReplace(jobItem, true); err != nil {
-	//		return err
-	//	}
-	//}
-	//return nil
 }
-
-//func (c *NewDbBackupComp) addCrontabOld() (err error) {
-//	var newCrontab []string
-//	err = osutil.RemoveSystemCrontab("dbbackup")
-//	if err != nil {
-//		return fmt.Errorf(`删除原备份crontab任务失败("dbbackup") get an error:%w`, err)
-//	}
-//	entryShell := path.Join(cst.DbbackupGoInstallPath, "dbbackup_main.sh")
-//	logfile := path.Join(cst.DbbackupGoInstallPath, "dbbackup.log")
-//	newCrontab = append(
-//		newCrontab,
-//		fmt.Sprintf(
-//			"#dbbackup/dbbackup_main.sh: backup database every day, distribute at %s by %s",
-//			time.Now().Format(cst.TIMELAYOUT), c.Params.ExecUser,
-//		),
-//	)
-//	newCrontab = append(
-//		newCrontab,
-//		fmt.Sprintf(
-//			"%s %s 1>>%s 2>&1\n",
-//			c.Params.Options.CrontabTime, entryShell, logfile,
-//		),
-//	)
-//	crontabStr := strings.Join(newCrontab, "\n")
-//	return osutil.AddCrontab(crontabStr)
-//}
 
 func AddCrond(ports []int) (err error) {
 	for _, port := range ports {

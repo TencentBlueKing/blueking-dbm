@@ -20,7 +20,7 @@ from backend.db_report.enums import MysqlBackupCheckSubType
 from backend.db_report.models import MysqlBackupCheckReport
 
 from .bklog_query import ClusterBackup
-from .check_full_backup import get_query_date_time
+from .check_full_backup import find_discontinuous_numbers, get_query_date_time
 
 logger = logging.getLogger("root")
 
@@ -85,6 +85,7 @@ def _check_binlog_backup(cluster_type, date_str):
         backup.success = True
         if not instance_binlogs:
             backup.success = False
+            shard_binlog_stat = "no any binlog found"
 
         for inst, binlogs in instance_binlogs.items():
             suffixes = [int(f.split(".", 1)[1]) for f in binlogs]
@@ -106,49 +107,3 @@ def _check_binlog_backup(cluster_type, date_str):
                 msg="binlog is not consecutive:{}".format(shard_binlog_stat),
                 subtype=MysqlBackupCheckSubType.BinlogSeq.value,
             )
-
-
-def find_discontinuous_numbers(numbers):
-    """
-    判断数字列表是否连续，并返回所有不连续的值
-
-    参数:
-        numbers: 数字列表(需要是已排序的列表)
-
-    返回:
-        tuple: (是否连续, 不连续的值列表)
-    """
-    if not numbers:
-        return True, []
-
-    discontinuous = []
-    is_continuous = True
-
-    for i in range(1, len(numbers)):
-        # 检查当前数字是否比前一个数字大1
-        if numbers[i] != numbers[i - 1] + 1:
-            is_continuous = False
-            # 找出中间缺失的数字
-            missing = numbers[i - 1] + 1
-            while missing < numbers[i]:
-                discontinuous.append(missing)
-                missing += 1
-
-    return is_continuous, discontinuous
-
-
-def is_consecutive_strings(str_list: list):
-    """
-    判断字符串数字是否连续
-    """
-    int_list = [int(s) for s in str_list]
-    int_sorted = list(set(int_list))
-    int_sorted.sort()
-    if len(int_sorted) == 0:
-        return False
-    if len(int_sorted) == 1:
-        return True
-    if len(int_sorted) == int_sorted[-1] - int_sorted[0] + 1:
-        return True
-    else:
-        return False

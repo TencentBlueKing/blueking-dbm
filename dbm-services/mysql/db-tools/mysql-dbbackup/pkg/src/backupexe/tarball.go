@@ -391,7 +391,6 @@ func PackageBackupFiles(cnf *config.BackupConfig, metaInfo *dbareport.IndexConte
 		indexFile:     metaInfo,
 		indexFilePath: indexFilePath,
 	}
-	logger.Log.Infof("Index BackupMetaInfo:%+v", metaInfo)
 	if cnf.Public.IfBackupGrantOnly() {
 		metaInfo.AddPrivFileItem(packageFile.dstDir)
 		return metaInfo.SaveIndexContent(indexFilePath)

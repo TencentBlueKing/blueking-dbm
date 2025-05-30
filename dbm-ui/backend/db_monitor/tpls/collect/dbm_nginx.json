@@ -1,0 +1,37 @@
+{
+  "bk_biz_id": 0,
+  "name": "nginx",
+  "details": {
+    "name": "nginx",
+    "collect_type": "Process",
+    "label": "host_process",
+    "target_object_type": "HOST",
+    "target_node_type": "TOPO",
+    "target_nodes": [],
+    "params": {
+      "collector": {
+        "period": 30,
+        "timeout": 30,
+        "metric_relabel_configs": []
+      },
+      "plugin": {},
+      "process": {
+        "match_type": "command",
+        "pid_path": "",
+        "process_name": "nginx",
+        "match_pattern": "nginx",
+        "exclude_pattern": "",
+        "extract_pattern": "",
+        "port_detect": true,
+        "labels": {}
+      },
+      "target_node_type": "TOPO",
+      "target_object_type": "HOST"
+    },
+    "plugin_id": "bkprocessbeat"
+  },
+  "db_type": "cloud",
+  "version": 1,
+  "machine_types": [],
+  "plugin_id": "bkprocessbeat"
+}

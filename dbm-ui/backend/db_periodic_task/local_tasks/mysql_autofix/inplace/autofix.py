@@ -17,7 +17,7 @@ from backend.db_meta.enums import ClusterType, MachineType
 from backend.db_monitor.constants import MySQLAutofixStep
 from backend.db_monitor.models import MySQLAutofixTicketStatus, MySQLAutofixTodo
 
-from .proxy import autofix_proxy
+from .auto_standardize import autofix_standardize
 
 logger = logging.getLogger("celery")
 
@@ -31,8 +31,8 @@ def autofix():
         MySQLAutofixTodo.objects.filter(
             current_step=MySQLAutofixStep.IN_PLACE_AUTOFIX,
             inplace_ticket_status=MySQLAutofixTicketStatus.UNSUBMITTED,
-            cluster_type__in=[ClusterType.TenDBHA],
-            machine_type__in=[MachineType.PROXY],
+            cluster_type__in=[ClusterType.TenDBHA, ClusterType.TenDBCluster],
+            machine_type__in=[MachineType.BACKEND, MachineType.REMOTE],
             create_at__gte=datetime.now(timezone.utc) - timedelta(minutes=30),
         )
         .values(
@@ -46,4 +46,4 @@ def autofix():
 
     # 按 ip 调度自愈
     for r in rs:
-        autofix_proxy(r)
+        autofix_standardize(r)

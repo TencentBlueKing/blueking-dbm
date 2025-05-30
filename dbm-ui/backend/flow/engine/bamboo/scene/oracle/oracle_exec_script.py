@@ -68,7 +68,7 @@ class OracleExecuteScriptFlow(object):
         )
 
         # 分发sql文件
-        kwargs = self.get_kwargs.get_send_media_kwargs()
+        kwargs = self.get_kwargs.get_send_sql_kwargs()
         pipeline.add_act(
             act_name=_("Oracle-sql文件下发"), act_component_code=OracleExecSendMediaOperationComponent.code, kwargs=kwargs
         )

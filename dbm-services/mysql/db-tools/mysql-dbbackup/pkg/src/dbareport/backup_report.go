@@ -207,7 +207,7 @@ func (r *BackupLogReport) ReportBackupStatus(status string) error {
 
 // ExecuteBackupClient execute backup_client which sends files to backup system
 func (r *BackupLogReport) ExecuteBackupClient(fileName string) (taskid string, err error) {
-	if r.cfg.BackupClient.Enable {
+	if r.cfg.BackupClient.EnableBackupClient == "yes" {
 		backupClient, err := backupclient.New(
 			r.cfg.BackupClient.BackupClientBin,
 			"",

@@ -133,8 +133,8 @@ class MysqlMigrateUpgradeResourceParamBuilder(BaseOperateResourceParamBuilder):
         for info_index, info in enumerate(ticket_data["infos"]):
             # 兼容资源池手动输入和自动匹配的协议
             cluster = id_cluster_map[info["cluster_ids"][0]]
-            # self.auto_patch_info(info, info_index, nodes, cluster)
-            self.manual_patch_info(info, info_index, cluster, nodes)
+            self.auto_patch_info(info, info_index, nodes, cluster)
+            # self.manual_patch_info(info, info_index, cluster, nodes)
             ticket_data["infos"][info_index] = info
 
         next_flow.save(update_fields=["details"])
@@ -197,8 +197,8 @@ class MysqlMigrateUpgradeFlowBuilder(MysqlMasterSlaveSwitchFlowBuilder):
         # 补充下架机器的信息
         MysqlMigrateClusterFlowBuilder.get_old_master_slave_host(self.ticket.details["infos"], id_cluster_map)
         # 补充自动匹配的资源池信息
-        # self.patch_auto_match_resource_spec(id_cluster_map)
+        self.patch_auto_match_resource_spec(id_cluster_map)
         # 兼容方案，先走资源池手动匹配协议
-        self.patch_manual_match_resource_spec(id_cluster_map)
+        # self.patch_manual_match_resource_spec(id_cluster_map)
         # 补充通用单据信息
         super().patch_ticket_detail()

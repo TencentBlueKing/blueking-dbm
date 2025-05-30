@@ -37,6 +37,9 @@ def checksum_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int]] = 
 
     i: Union[StorageInstance, ProxyInstance]
     for i in qs.all():
+        if not i.cluster.exists():
+            continue
+
         res.append(
             {
                 "bk_biz_id": i.bk_biz_id,

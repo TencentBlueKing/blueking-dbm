@@ -72,7 +72,7 @@ class MySQLHAApplyFlow(object):
         mysql_ha_pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_pipelines = []
 
-        clusters_detail = {}
+        instances = []
         for info in self.data["apply_infos"]:
             # 以机器维度并发处理 内容：比如获取对应节点资源、先发介质、初始化机器、安装实例、安装备份进程
 
@@ -83,6 +83,21 @@ class MySQLHAApplyFlow(object):
             # 计算机器需要部署的proxy、mysql的端口列表，集群的依据：MIN(多实例上限,映射的cluster集群数量)
             sub_flow_context["proxy_ports"], sub_flow_context["mysql_ports"] = self.__calc_install_ports(
                 min(int(sub_flow_context["inst_num"]), len(info["clusters"]))
+            )
+
+            instances.extend(
+                [
+                    "{}:{}".format(ip["ip"], port)
+                    for ip in info["proxy_ip_list"]
+                    for port in sub_flow_context["proxy_ports"]
+                ]
+            )
+            instances.extend(
+                [
+                    "{}:{}".format(ip["ip"], port)
+                    for ip in info["mysql_ip_list"]
+                    for port in sub_flow_context["mysql_ports"]
+                ]
             )
 
             clusters = []
@@ -102,16 +117,6 @@ class MySQLHAApplyFlow(object):
                 bk_host_ids.append(info["proxy_ip_list"][0]["bk_host_id"])
                 bk_host_ids.append(info["proxy_ip_list"][1]["bk_host_id"])
 
-                clusters_detail[cluster["master"]] = {
-                    "storage": [
-                        "{}:{}".format(cluster["new_master_ip"], cluster["mysql_port"]),
-                        "{}:{}".format(cluster["new_slave_ip"], cluster["mysql_port"]),
-                    ],
-                    "proxy": [
-                        "{}:{}".format(cluster["new_proxy_1_ip"], cluster["proxy_port"]),
-                        "{}:{}".format(cluster["new_proxy_2_ip"], cluster["proxy_port"]),
-                    ],
-                }
             sub_flow_context["clusters"] = clusters
 
             # 声明子流程
@@ -294,14 +299,14 @@ class MySQLHAApplyFlow(object):
 
         mysql_ha_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
+        # 所有集群部署完成后集中标准化
         mysql_ha_pipeline.add_sub_pipeline(
             sub_flow=standardize_mysql_cluster_subflow(
                 root_id=self.root_id,
                 data=copy.deepcopy(self.data),
                 bk_cloud_id=self.data["bk_cloud_id"],
                 bk_biz_id=self.data["bk_biz_id"],
-                cluster_type=ClusterType.TenDBHA,
-                clusters_detail=clusters_detail,
+                instances=instances,
                 with_actuator=False,
                 with_bk_plugin=False,
             )

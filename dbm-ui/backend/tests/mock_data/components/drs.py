@@ -16,6 +16,32 @@ class DRSApiMock(object):
     """
 
     @classmethod
+    def rpc(cls, *args, **kwargs):
+        source_data = [
+            {
+                "address": "5.5.5.5:20001",
+                "cmd_results": [
+                    {"cmd": "", "table_data": [{"Database": "source_test_db1"}], "rows_affected": 0, "error_msg": ""}
+                ],
+                "error_msg": "",
+            },
+            {
+                "address": "5.5.5.4:20001",
+                "cmd_results": [
+                    {"cmd": "", "table_data": [{"Database": "test_db1"}], "rows_affected": 0, "error_msg": ""}
+                ],
+                "error_msg": "",
+            },
+        ]
+        response_data = []
+
+        for address in args[0]["addresses"]:
+            for data in source_data:
+                if address == data.get("address"):
+                    response_data.append(data)
+        return response_data
+
+    @classmethod
     def sqlserver_rpc(cls, *args, **kwargs):
         response_data = [
             {

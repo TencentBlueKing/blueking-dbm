@@ -11,14 +11,98 @@ specific language governing permissions and limitations under the License.
 import uuid
 
 from backend.configuration.constants import DBType
+from backend.db_meta.enums.cluster_type import ClusterType
+from backend.db_meta.enums.machine_type import MachineType
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.models import StateType
 from backend.tests.mock_data import constant
 from backend.tests.mock_data.ticket.ticket_flow import BK_BIZ_ID, ROOT_ID
 from backend.ticket.constants import TicketType
 
+BK_USERNAME = "admin"
+CLUSTER_ID = 125
 SQL_IMPORT_NODE_ID = "a651615616516dwqd156dq6616516qd"
 SQL_IMPORT_VERSION_ID = "d516156156qwd161651665161656"
+
+
+MYSQL_ADD_SLAVE_DATA = {
+    "bk_biz_id": BK_BIZ_ID,
+    "details": {
+        "backup_source": "remote",
+        "infos": [
+            {
+                "cluster_ids": [CLUSTER_ID],
+                "resource_spec": {
+                    "new_slave": {
+                        "hosts": [{"bk_biz_id": BK_BIZ_ID, "bk_cloud_id": 0, "bk_host_id": 1, "ip": "1.1.2.2"}],
+                        "spec_id": 0,
+                    }
+                },
+            }
+        ],
+        "ip_source": "resource_pool",
+    },
+    "remark": "",
+    "ticket_type": "MYSQL_ADD_SLAVE",
+}
+
+MYSQL_CHECKSUM_DATA = {
+    "bk_biz_id": BK_BIZ_ID,
+    "details": {
+        "data_repair": {"is_repair": True, "mode": "manual"},
+        "remark": "",
+        "runtime_hour": 48,
+        "timing": "2099-05-21T00:00:00+08:00",
+        "infos": [
+            {
+                "cluster_id": CLUSTER_ID,
+                "master": {
+                    "bk_biz_id": BK_BIZ_ID,
+                    "bk_cloud_id": 0,
+                    "bk_host_id": 599,
+                    "ip": "1.1.3.3",
+                    "port": 20000,
+                },
+                "slaves": [
+                    {"bk_biz_id": BK_BIZ_ID, "bk_cloud_id": 0, "bk_host_id": 604, "ip": "1.1.3.5", "port": 20000}
+                ],
+                "db_patterns": ["source_test_db1"],
+                "ignore_dbs": [],
+                "table_patterns": ["*"],
+                "ignore_tables": [],
+            }
+        ],
+    },
+    "remark": "",
+    "ticket_type": "MYSQL_CHECKSUM",
+}
+
+MYSQL_HA_FULL_BACKUP_DATA = {
+    "bk_biz_id": BK_BIZ_ID,
+    "details": {
+        "backup_type": "logical",
+        "file_tag": "DBFILE1M",
+        "infos": [{"cluster_id": CLUSTER_ID, "backup_local": "master"}],
+    },
+    "remark": "",
+    "ticket_type": "MYSQL_HA_FULL_BACKUP",
+}
+
+MYSQL_DATA_MIGRATE_DATA = {
+    "bk_biz_id": BK_BIZ_ID,
+    "details": {
+        "infos": [
+            {
+                "db_list": ["source_test_db1"],
+                "source_cluster": CLUSTER_ID,
+                "target_clusters": [99],
+                "data_schema_grant": "data,schema",
+            }
+        ]
+    },
+    "remark": "",
+    "ticket_type": "MYSQL_DATA_MIGRATE",
+}
 
 MYSQL_AUTHORIZE_TICKET_DATA = {
     "bk_biz_id": constant.BK_BIZ_ID,
@@ -198,3 +282,267 @@ MYSQL_DUMP_DATA = {
         "dump_schema": True,
     },
 }
+
+MYSQL_CLUSTER_DATA = [
+    {
+        "id": CLUSTER_ID,
+        "creator": BK_USERNAME,
+        "updater": BK_USERNAME,
+        "name": "fre4",
+        "alias": "",
+        "bk_biz_id": BK_BIZ_ID,
+        "cluster_type": ClusterType.TenDBHA,
+        "db_module_id": 2,
+        "immute_domain": "tendbha57db.fre4.dba.db",
+        "major_version": "MySQL-5.7",
+        "phase": "online",
+        "status": "normal",
+        "bk_cloud_id": 0,
+        "region": "default",
+        "time_zone": "+08:00",
+        "disaster_tolerance_level": "NONE",
+    },
+    {
+        "id": 99,
+        "creator": BK_USERNAME,
+        "updater": BK_USERNAME,
+        "name": "9527",
+        "alias": "",
+        "bk_biz_id": BK_BIZ_ID,
+        "cluster_type": ClusterType.TenDBSingle,
+        "db_module_id": 1,
+        "immute_domain": "test1db.9527.1.db",
+        "major_version": "MySQL-5.7",
+        "phase": "online",
+        "status": "normal",
+        "bk_cloud_id": 0,
+        "region": "default",
+        "time_zone": "+08:00",
+        "disaster_tolerance_level": "NONE",
+    },
+]
+
+MYSQL_STORAGE_INSTANCE = [
+    {
+        "id": 935,
+        "creator": BK_USERNAME,
+        "create_at": "2024-03-13 11:14:48.433116",
+        "updater": "",
+        "update_at": "2024-03-13 11:14:48.433116",
+        "version": "5.7.20",
+        "port": 20001,
+        "machine_id": 552,
+        "db_module_id": 2,
+        "bk_biz_id": BK_BIZ_ID,
+        "access_layer": "storage",
+        "machine_type": "backend",
+        "instance_role": "backend_master",
+        "instance_inner_role": "master",
+        "cluster_type": "tendbha",
+        "status": "running",
+        "phase": "online",
+        "name": "",
+        "time_zone": "+08:00",
+        "bk_instance_id": 7878,
+        "is_stand_by": "1",
+    },
+    {
+        "id": 936,
+        "creator": BK_USERNAME,
+        "create_at": "2024-03-13 11:14:48.433116",
+        "updater": "",
+        "update_at": "2024-03-13 11:14:48.433116",
+        "version": "5.7.20",
+        "port": 20001,
+        "machine_id": 556,
+        "db_module_id": 0,
+        "bk_biz_id": BK_BIZ_ID,
+        "access_layer": "storage",
+        "machine_type": "backend",
+        "instance_role": "backend_slave",
+        "instance_inner_role": "slave",
+        "cluster_type": "tendbha",
+        "status": "running",
+        "phase": "online",
+        "name": "",
+        "time_zone": "+08:00",
+        "bk_instance_id": 7879,
+        "is_stand_by": "1",
+    },
+    {
+        "id": 966,
+        "creator": BK_USERNAME,
+        "create_at": "2024-03-13 11:14:48.433116",
+        "updater": "",
+        "update_at": "2024-03-13 11:14:48.433116",
+        "version": "5.7.20",
+        "port": 20001,
+        "machine_id": 182,
+        "db_module_id": 0,
+        "bk_biz_id": BK_BIZ_ID,
+        "access_layer": "storage",
+        "machine_type": "single",
+        "instance_role": "orphan",
+        "instance_inner_role": "orphan",
+        "cluster_type": "tendbsingle",
+        "status": "running",
+        "phase": "online",
+        "name": "",
+        "time_zone": "+08:00",
+        "bk_instance_id": 6272,
+        "is_stand_by": "1",
+    },
+]
+
+MYSQL_MACHINE_DATA = [
+    {
+        "creator": BK_USERNAME,
+        "create_at": "2024-03-13 11:14:48.433116",
+        "updater": "",
+        "update_at": "2024-03-13 11:14:48.433116",
+        "ip": "5.5.5.5",
+        "bk_biz_id": BK_BIZ_ID,
+        "db_module_id": 0,
+        "access_layer": "storage",
+        "machine_type": MachineType.BACKEND.value,
+        "cluster_type": ClusterType.TenDBHA,
+        "bk_host_id": 552,
+        "bk_os_name": "linux centos",
+        "bk_idc_area": "",
+        "bk_idc_area_id": 0,
+        "bk_sub_zone": "",
+        "bk_sub_zone_id": 0,
+        "bk_rack": "",
+        "bk_rack_id": 0,
+        "bk_svr_device_cls_name": "",
+        "bk_idc_name": "",
+        "bk_idc_id": 0,
+        "bk_cloud_id": 0,
+        "net_device_id": "",
+        "bk_city_id": 0,
+        "spec_config": '{"id": 3, "cpu": {"max": 256, "min": 1}, "mem": {"max": 256, "min": 1}, '
+        '"qps": {"max": 0, "min": 0}, "name": "1核_1G_10G", "count": 1, "device_class": [],'
+        ' "storage_spec": [{"size": 10, "type": "ALL", "mount_point": "/data"}]}',
+        "spec_id": 445,
+        "bk_agent_id": "",
+    },
+    {
+        "creator": BK_USERNAME,
+        "create_at": "2024-03-13 11:14:48.433116",
+        "updater": "",
+        "update_at": "2024-03-13 11:14:48.433116",
+        "ip": "5.5.5.3",
+        "bk_biz_id": BK_BIZ_ID,
+        "db_module_id": 0,
+        "access_layer": "storage",
+        "machine_type": MachineType.BACKEND.value,
+        "cluster_type": ClusterType.TenDBHA,
+        "bk_host_id": 556,
+        "bk_os_name": "linux centos",
+        "bk_idc_area": "",
+        "bk_idc_area_id": 0,
+        "bk_sub_zone": "",
+        "bk_sub_zone_id": 0,
+        "bk_rack": "",
+        "bk_rack_id": 0,
+        "bk_svr_device_cls_name": "",
+        "bk_idc_name": "",
+        "bk_idc_id": 0,
+        "bk_cloud_id": 0,
+        "net_device_id": "",
+        "bk_city_id": 0,
+        "spec_config": '{"id": 3, "cpu": {"max": 256, "min": 1}, "mem": {"max": 256, "min": 1}, '
+        '"qps": {"max": 0, "min": 0}, "name": "1核_1G_10G", "count": 1, "device_class": [],'
+        ' "storage_spec": [{"size": 10, "type": "ALL", "mount_point": "/data"}]}',
+        "spec_id": 444,
+        "bk_agent_id": "",
+    },
+    {
+        "creator": BK_USERNAME,
+        "create_at": "2024-03-13 11:14:48.433116",
+        "updater": "",
+        "update_at": "2024-03-13 11:14:48.433116",
+        "ip": "5.5.5.4",
+        "bk_biz_id": BK_BIZ_ID,
+        "db_module_id": 0,
+        "access_layer": "storage",
+        "machine_type": MachineType.SINGLE.value,
+        "cluster_type": ClusterType.TenDBSingle,
+        "bk_host_id": 182,
+        "bk_os_name": "linux centos",
+        "bk_idc_area": "",
+        "bk_idc_area_id": 0,
+        "bk_sub_zone": "",
+        "bk_sub_zone_id": 0,
+        "bk_rack": "",
+        "bk_rack_id": 0,
+        "bk_svr_device_cls_name": "",
+        "bk_idc_name": "",
+        "bk_idc_id": 0,
+        "bk_cloud_id": 0,
+        "net_device_id": "",
+        "bk_city_id": 0,
+        "spec_config": '{"id": 3, "cpu": {"max": 256, "min": 1}, "mem": {"max": 256, "min": 1}, '
+        '"qps": {"max": 0, "min": 0}, "name": "1核_1G_10G", "count": 1, "device_class": [],'
+        ' "storage_spec": [{"size": 10, "type": "ALL", "mount_point": "/data"}]}',
+        "spec_id": 336,
+        "bk_agent_id": "",
+    },
+]
+
+MYSQL_SPEC_DATA = [
+    {
+        "creator": BK_USERNAME,
+        "create_at": "2024-03-13 11:14:48.433116",
+        "updater": "",
+        "update_at": "2024-03-13 11:14:48.433116",
+        "spec_id": 444,
+        "spec_name": "无限制",
+        "spec_cluster_type": "mysql",
+        "spec_machine_type": "backend",
+        "cpu": {"max": 256, "min": 1},
+        "mem": {"max": 256, "min": 1},
+        "device_class": [],
+        "storage_spec": [{"size": 10, "type": "ALL", "mount_point": "/data"}],
+        "desc": "111",
+        "enable": True,
+        "instance_num": 0,
+        "qps": {},
+    },
+    {
+        "creator": BK_USERNAME,
+        "create_at": "2024-03-15 11:14:48.433116",
+        "updater": "",
+        "update_at": "2024-03-15 11:14:48.433116",
+        "spec_id": 445,
+        "spec_name": "2c_4g_50g",
+        "spec_cluster_type": "mysql",
+        "spec_machine_type": "backend",
+        "cpu": {"max": 2, "min": 2},
+        "mem": {"max": 4, "min": 3},
+        "device_class": ["S5.MEDIUM4", "SA2.MEDIUM4", "S5t.MEDIUM4"],
+        "storage_spec": [{"size": 50, "type": "ALL", "mount_point": "/data"}],
+        "desc": "",
+        "enable": True,
+        "instance_num": 0,
+        "qps": {},
+    },
+    {
+        "creator": BK_USERNAME,
+        "create_at": "2024-03-13 11:14:48.433116",
+        "updater": "",
+        "update_at": "2024-03-13 11:14:48.433116",
+        "spec_id": 336,
+        "spec_name": "无限制",
+        "spec_cluster_type": "mysql",
+        "spec_machine_type": "backend",
+        "cpu": {"max": 256, "min": 1},
+        "mem": {"max": 256, "min": 1},
+        "device_class": [],
+        "storage_spec": [{"size": 10, "type": "ALL", "mount_point": "/data"}],
+        "desc": "111",
+        "enable": True,
+        "instance_num": 0,
+        "qps": {},
+    },
+]

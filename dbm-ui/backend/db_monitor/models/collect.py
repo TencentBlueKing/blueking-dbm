@@ -23,14 +23,15 @@ from backend.bk_web.constants import LEN_MIDDLE, LEN_NORMAL
 from backend.bk_web.models import AuditedModel
 from backend.components import BKMonitorV3Api
 from backend.configuration.constants import PLAT_BIZ_ID, DBType
+from backend.db_meta.models import AppMonitorTopo
+from backend.db_monitor.constants import TPLS_COLLECT_DIR
+from backend.db_services.cmdb.biz import get_or_create_dbm_module
+from backend.flow.consts import CloudServiceModuleName
 
 __all__ = [
     "CollectTemplate",
     "CollectInstance",
 ]
-
-from backend.db_meta.models import AppMonitorTopo
-from backend.db_monitor.constants import TPLS_COLLECT_DIR
 
 logger = logging.getLogger("root")
 
@@ -137,6 +138,13 @@ class CollectInstance(CollectTemplateBase):
                         )
                     ],
                 )
+                # 如果是云区域组件，则固定模块拓扑
+                if template.db_type == DBType.Cloud:
+                    module_id = get_or_create_dbm_module(getattr(CloudServiceModuleName, template.name.upper()))
+                    collect_params.update(
+                        target_nodes=[{"bk_inst_id": module_id, "bk_obj_id": "module", "bk_biz_id": bk_biz_id}]
+                    )
+
                 res = BKMonitorV3Api.save_collect_config(collect_params, use_admin=True)
 
                 # 实例化Rule

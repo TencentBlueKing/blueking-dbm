@@ -8,56 +8,79 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from backend.db_meta.enums import MachineType
-from backend.db_meta.models import Cluster, Machine
+import copy
+from typing import List
+
+from backend.db_meta.enums import AccessLayer, MachineType, TenDBClusterSpiderRole
+from backend.db_meta.models import Cluster, Machine, ProxyInstance
 from backend.db_package.models import Package
 from backend.db_proxy.reverse_api.common.impl import list_nginx_addrs
 from backend.flow.consts import DBActuatorActionEnum, DBActuatorTypeEnum, MediumEnum, MysqlVersionToDBBackupForMap
-from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import DeployPeripheralToolsDepart
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import (
+    DeployPeripheralToolsDepart,
+    remove_departs,
+)
 from backend.flow.utils.mysql.act_payload.base.payload_base import PayloadBase
-from backend.flow.utils.mysql.act_payload.mixed.mysql_account_mixed import MySQLAccountMixed
+from backend.flow.utils.mysql.act_payload.mixed.account_mixed.mysql_account_mixed import MySQLAccountMixed
+from backend.flow.utils.mysql.act_payload.mixed.account_mixed.proxy_account_mixed import ProxyAccountMixed
 
 
-class PeripheralToolsPayload(PayloadBase, MySQLAccountMixed):
+class PeripheralToolsPayload(PayloadBase, MySQLAccountMixed, ProxyAccountMixed):
+    def __filter_departs(
+        self, ip: str, departs: List[DeployPeripheralToolsDepart]
+    ) -> List[DeployPeripheralToolsDepart]:
+        m = Machine.objects.get(bk_cloud_id=self.bk_cloud_id, ip=ip)
+        res = copy.deepcopy(departs)
+
+        # 接入层进一步修饰 departs
+        if m.access_layer == AccessLayer.PROXY:
+            # 所有接入层都不用校验
+            res = remove_departs(
+                res, DeployPeripheralToolsDepart.MySQLTableChecksum, DeployPeripheralToolsDepart.MySQLRotateBinlog
+            )
+
+            # tendbha proxy 不用备份, rotate
+            if m.machine_type == MachineType.PROXY:
+                res = remove_departs(res, DeployPeripheralToolsDepart.MySQLDBBackup)
+            else:  # spider
+                ins = ProxyInstance.objects.filter(machine=m).first()
+                # spider slave, spider mnt 不用备份
+                if not ins.tendbclusterspiderext.spider_role == TenDBClusterSpiderRole.SPIDER_MASTER:
+                    res = remove_departs(res, DeployPeripheralToolsDepart.MySQLDBBackup)
+
+        self.logger.info("{} departs: {}".format(ip, res))
+        return res
+
     def gen_config(self, **kwargs):
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.GenPeripheralToolsConfig.value,
             "payload": {
-                "general": {"runtime_account": self.static_account()},
                 "extend": {
                     "ip": kwargs["ip"],
                     "bk_cloud_id": self.bk_cloud_id,
                     "ports": self.cluster["ports"],
-                    "departs": self.cluster["departs"],
+                    "departs": self.__filter_departs(kwargs["ip"], self.cluster["departs"]),
                     "nginx_addrs": list_nginx_addrs(bk_cloud_id=self.bk_cloud_id),
                 },
             },
         }
 
     def reload_config(self, **kwargs):
-        return {
-            "db_type": DBActuatorTypeEnum.MySQL.value,
-            "action": DBActuatorActionEnum.ReloadPeripheralToolsConfig.value,
-            "payload": {
-                "general": {"runtime_account": self.static_account()},
-                "extend": {
-                    "ip": kwargs["ip"],
-                    "bk_cloud_id": self.bk_cloud_id,
-                    "ports": self.cluster["ports"],
-                    "departs": self.cluster["departs"],
-                },
-            },
-        }
+        p = self.gen_config(**kwargs)
+        p["action"] = DBActuatorActionEnum.ReloadPeripheralToolsConfig.value
+        return p
 
     def deploy_binary(self, **kwargs):
         departs = self.cluster["departs"]
         ip = kwargs["ip"]
+        # departs = self.__filter_departs(ip, departs)
+
         m = Machine.objects.get(ip=ip, bk_cloud_id=self.bk_cloud_id)
         depart_pkgs = {}
 
         if DeployPeripheralToolsDepart.MySQLDBBackup in departs:
-            departs.remove(DeployPeripheralToolsDepart.MySQLDBBackup)
+            departs = remove_departs(departs, DeployPeripheralToolsDepart.MySQLDBBackup)
             if m.machine_type == MachineType.PROXY:
                 pass
             else:
@@ -84,11 +107,10 @@ class PeripheralToolsPayload(PayloadBase, MySQLAccountMixed):
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.DeployPeripheralToolsBinary.value,
             "payload": {
-                "general": {
-                    "runtime_account": self.static_account(),
-                },
                 "extend": {
                     "ip": ip,
+                    "bk_cloud_id": self.bk_cloud_id,
+                    "nginx_addrs": list_nginx_addrs(bk_cloud_id=self.bk_cloud_id),
                     "departs": depart_pkgs,
                 },
             },
@@ -103,9 +125,9 @@ class PeripheralToolsPayload(PayloadBase, MySQLAccountMixed):
                 "db_type": DBActuatorTypeEnum.Proxy.value,
                 "action": DBActuatorActionEnum.StandardizeTenDBHAProxy.value,
                 "payload": {
-                    "general": {"runtime_account": self.all_account(self.ticket_data)},
+                    "general": {"runtime_account": self.proxy_admin_account()},
                     "extend": {
-                        "dbha_account": "",
+                        "dbha_account": self.mysql_dbha_account(self.bk_cloud_id)["user"],
                         "port_list": self.cluster["ports"],
                         "ip": ip,
                     },
@@ -124,7 +146,10 @@ class PeripheralToolsPayload(PayloadBase, MySQLAccountMixed):
                 "action": DBActuatorActionEnum.StandardizeMySQLInstance.value,
                 "payload": {
                     "general": {
-                        "runtime_account": self.all_account(self.ticket_data),
+                        "runtime_account": {
+                            **self.mysql_static_account(),
+                            **self.mysql_admin_account(self.ticket_data),
+                        },
                     },
                     "extend": {
                         "pkg": pkg.name,
@@ -132,17 +157,22 @@ class PeripheralToolsPayload(PayloadBase, MySQLAccountMixed):
                         "ip": ip,
                         "ports": self.cluster["ports"],
                         "mysql_version": major_version,
-                        "super_account": self.drs_account(self.bk_cloud_id),
-                        "dbha_account": self.dbha_account(self.bk_cloud_id),
-                        "webconsolers_account": self.webconsole_account(self.bk_cloud_id),
-                        "partition_yw_account": self.partition_yw_account(),
+                        "super_account": self.mysql_drs_account(self.bk_cloud_id),
+                        "dbha_account": self.mysql_dbha_account(self.bk_cloud_id),
+                        "webconsolers_account": self.mysql_webconsole_account(self.bk_cloud_id),
+                        "partition_yw_account": self.mysql_partition_yw_account(),
                     },
                 },
             }
 
-    def init_nginx_addresses(self, **kwargs):
+    def init_common_config(self, **kwargs):
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
-            "action": DBActuatorActionEnum.InitNginxAddresses.value,
-            "payload": {"extend": {"nginx_addrs": list_nginx_addrs(bk_cloud_id=self.bk_cloud_id)}},
+            "action": DBActuatorActionEnum.InitCommonConfig.value,
+            "payload": {
+                "extend": {
+                    "nginx_addrs": list_nginx_addrs(bk_cloud_id=self.bk_cloud_id),
+                    "bk_cloud_id": self.bk_cloud_id,
+                }
+            },
         }

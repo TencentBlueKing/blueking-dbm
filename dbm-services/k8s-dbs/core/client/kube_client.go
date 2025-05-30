@@ -30,6 +30,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -377,75 +378,86 @@ func mergeMetaData(values map[string]interface{}, request *entity.Request) error
 }
 
 func mergeComponentList(values map[string]interface{}, compListFromReq []entity.ComponentResource) error {
-	if compListFromReq != nil {
-		compListFromVal, _ := values["componentList"].([]interface{})
-		for _, compFromReq := range compListFromReq {
-
-			for i, itemFromVal := range compListFromVal {
-
-				compFromVal, ok := itemFromVal.(map[string]interface{})
-				if ok && compFromVal["componentName"] == compFromReq.ComponentName {
-
-					if compFromReq.Version != "" {
-						compFromVal["serviceVersion"] = compFromReq.Version
-					}
-					if compFromReq.Replicas != 0 {
-						compFromVal["replicas"] = int(compFromReq.Replicas)
-					}
-
-					resources, resOk := compFromVal["resources"].(map[string]interface{})
-					if !resOk {
-						resources = make(map[string]interface{})
-						compFromVal["resources"] = resources
-					}
-					err := MergeObjectToVal(resources, compFromReq.Request, "requests")
-					if err != nil {
-						return err
-					}
-					err = MergeObjectToVal(resources, compFromReq.Limit, "limits")
-					if err != nil {
-						return err
-					}
-
-					// Check whether the storage corresponding to sc meets expectations
-					err = checkStorageBySC(&compFromReq)
-					if err != nil {
-						return fmt.Errorf("check component %s storage by SC failed: %v", compFromReq.ComponentName, err)
-					}
-					err = MergeObjectToVal(compFromVal, compFromReq.VolumeClaimTemplates, "volumeClaimTemplates")
-					if err != nil {
-						return err
-					}
-
-					// Extract EXTRA_ARGS and type assert
-					extraArgsRaw, exists := compFromReq.Env["EXTRA_ARGS"]
-					if exists {
-						extraArgsMap, ok := extraArgsRaw.(map[string]interface{})
-						if !ok {
-							return fmt.Errorf("EXTRA_ARGS is not a valid key-value map")
-						}
-
-						// Convert to a single string with spaces in between
-						args := make([]string, 0, len(extraArgsMap))
-						for key, value := range extraArgsMap {
-							strValue := fmt.Sprintf("%v", value)
-							args = append(args, fmt.Sprintf("--%s=%s", key, strValue))
-						}
-
-						joinedArgs := strings.Join(args, " ")
-						compFromReq.Env["EXTRA_ARGS"] = joinedArgs
-
-					}
-					err = MergeObjectToVal(compFromVal, compFromReq.Env, "env")
-					if err != nil {
-						return err
-					}
-
-					compListFromVal[i] = compFromVal
+	if compListFromReq == nil {
+		return nil
+	}
+	compListFromVal, _ := values["componentList"].([]interface{})
+	for _, compFromReq := range compListFromReq {
+		for i, itemFromVal := range compListFromVal {
+			compFromVal, ok := itemFromVal.(map[string]interface{})
+			if ok && compFromVal["componentName"] == compFromReq.ComponentName {
+				if compFromReq.Version != "" {
+					compFromVal["serviceVersion"] = compFromReq.Version
 				}
+				if compFromReq.Replicas != 0 {
+					compFromVal["replicas"] = int(compFromReq.Replicas)
+				}
+				if err := mergeResources(compFromVal, compFromReq); err != nil {
+					slog.Error("failed to merge component Resources", "err", err)
+					return err
+				}
+				if err := checkStorageBySC(&compFromReq); err != nil {
+					slog.Error("failed to check storage by SC", "err", err)
+					return err
+				}
+				if err := MergeObjectToVal(compFromVal, compFromReq.VolumeClaimTemplates, "volumeClaimTemplates"); err != nil {
+					slog.Error("failed to merge volume claim templates", "err", err)
+					return err
+				}
+				if err := mergeExtraArgs(compFromReq); err != nil {
+					slog.Error("failed to merge extra args", "err", err)
+					return err
+				}
+				if err := MergeObjectToVal(compFromVal, compFromReq.Env, "env"); err != nil {
+					slog.Error("failed to merge env", "err", err)
+					return err
+				}
+				compListFromVal[i] = compFromVal
 			}
 		}
-		values["componentList"] = compListFromVal
+	}
+	values["componentList"] = compListFromVal
+	return nil
+}
+
+func mergeExtraArgs(compFromReq entity.ComponentResource) error {
+	// Extract EXTRA_ARGS and type assert
+	extraArgsRaw, exists := compFromReq.Env["EXTRA_ARGS"]
+	if exists {
+		extraArgsMap, ok := extraArgsRaw.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("EXTRA_ARGS is not a valid key-value map")
+		}
+		sortedKeys := make([]string, 0, len(extraArgsMap))
+		for k := range extraArgsMap {
+			sortedKeys = append(sortedKeys, k)
+		}
+		sort.Strings(sortedKeys)
+		args := make([]string, 0, len(extraArgsMap))
+		for _, k := range sortedKeys {
+			strValue := fmt.Sprintf("%v", extraArgsMap[k])
+			args = append(args, fmt.Sprintf("--%s=%s", k, strValue))
+		}
+		joinedArgs := strings.Join(args, " ")
+		compFromReq.Env["EXTRA_ARGS"] = joinedArgs
+
+	}
+	return nil
+}
+
+func mergeResources(compFromVal map[string]interface{}, compFromReq entity.ComponentResource) error {
+	resources, resOk := compFromVal["resources"].(map[string]interface{})
+	if !resOk {
+		resources = make(map[string]interface{})
+		compFromVal["resources"] = resources
+	}
+	if err := MergeObjectToVal(resources, compFromReq.Request, "requests"); err != nil {
+		slog.Error("failed to merge requests", "err", err)
+		return err
+	}
+	if err := MergeObjectToVal(resources, compFromReq.Limit, "limits"); err != nil {
+		slog.Error("failed to merge limits", "err", err)
+		return err
 	}
 	return nil
 }

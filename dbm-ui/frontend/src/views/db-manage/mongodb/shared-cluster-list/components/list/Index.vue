@@ -167,7 +167,9 @@
                 </BkButton>
               </OperationBtnStatusTips>
             </BkDropdownItem>
-            <BkDropdownItem v-db-console="'mongodb.sharedClusterList.enableCLB'">
+            <BkDropdownItem
+              v-if="!data.isOnlineCLB"
+              v-db-console="'mongodb.sharedClusterList.enableCLB'">
               <OperationBtnStatusTips
                 :data="data"
                 :disabled="!data.isOffline">
@@ -179,7 +181,7 @@
                   text
                   theme="primary"
                   @click="handleSwitchClb(data)">
-                  {{ data.isOnlineCLB ? t('禁用CLB') : t('启用CLB') }}
+                  {{ t('启用CLB') }}
                 </AuthButton>
               </OperationBtnStatusTips>
             </BkDropdownItem>

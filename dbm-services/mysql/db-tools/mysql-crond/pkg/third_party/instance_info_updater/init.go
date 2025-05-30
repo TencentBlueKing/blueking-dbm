@@ -15,7 +15,7 @@ import (
 
 func Register(cj *cron.Cron) {
 	id, err := cj.AddFunc(
-		"@every 30m",
+		"@every 10m",
 		func() {
 			err := updater()
 			if err != nil {

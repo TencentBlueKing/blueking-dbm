@@ -99,6 +99,9 @@ func InitConfig(confFile string) (*Config, error) {
 		servers = deduplicateServers(servers)
 		configObj.Servers = servers
 	}
+	if configObj.Public.MaxOldDaysToUpload == 0 {
+		configObj.Public.MaxOldDaysToUpload = 7
+	}
 	//logger.Debug("ConfigObj: %+v", ConfigObj)
 	return configObj, nil
 }

@@ -18,6 +18,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"math/big"
+	"strings"
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
@@ -81,6 +82,7 @@ type TableInfo struct {
 	DbName    string `db:"TABLE_SCHEMA"`
 	TableName string `db:"TABLE_NAME"`
 	Engine    string `db:"ENGINE"`
+	Collation string `db:"TABLE_COLLATION"`
 }
 
 // Example TODO
@@ -212,7 +214,8 @@ func (c *PtTableSyncComp) ExecPtTableSync() (err error) {
 
 	for _, syncTable := range c.tableSyncMap {
 		// 先在master实例判断表是否符合修复条件
-		if !c.checkTable(syncTable.DbName, syncTable.TableName) {
+		isExist, tableCharSet := c.checkTable(syncTable.DbName, syncTable.TableName)
+		if !isExist {
 			skipTableCount++
 			logger.Warn(
 				fmt.Sprintf(
@@ -240,7 +243,7 @@ func (c *PtTableSyncComp) ExecPtTableSync() (err error) {
 			"%s --replicate=%s.%s --sync-to-master --no-buffer-to-client --no-check-child-tables "+
 				"--chunk-size=%s --databases=%s --tables=%s --charset=%s h=%s,P=%d,u=%s,p=%s --execute --algorithms=Nibble ",
 			PtTableSyncPath, checkSumDB, getChecksumName, chunkSize, syncTable.DbName,
-			syncTable.TableName, Charset, c.Params.Host, c.Params.Port, c.Params.SyncUser, c.Params.SyncPass,
+			syncTable.TableName, tableCharSet, c.Params.Host, c.Params.Port, c.Params.SyncUser, c.Params.SyncPass,
 		)
 
 		logger.Info("executing %s", syncCmd)
@@ -320,25 +323,25 @@ func (c *PtTableSyncComp) isExistCheckSumTable() bool {
 }
 
 // checkTable 在master实例检验表是否符合修复规格: 检测表是否在主库存在；表的引擎是否事务引擎
-func (c *PtTableSyncComp) checkTable(dbName string, tableName string) bool {
+func (c *PtTableSyncComp) checkTable(dbName string, tableName string) (bool, string) {
 
 	var tableInfo []TableInfo
 
 	checkSumSql := fmt.Sprintf(
-		"select TABLE_SCHEMA, TABLE_NAME, ENGINE from information_schema.tables where TABLE_SCHEMA = '%s' and TABLE_NAME = '%s' ;",
+		"select TABLE_SCHEMA, TABLE_NAME, ENGINE, TABLE_COLLATION from information_schema.tables where TABLE_SCHEMA = '%s' and TABLE_NAME = '%s' ;",
 		dbName, tableName,
 	)
 	err := c.masterDbConn.Queryx(&tableInfo, checkSumSql)
 	if err != nil {
 		logger.Error(err.Error())
-		return false
+		return false, ""
 	}
 	// 检测是否是非事务引擎表，目前事务引擎只有 innodb和tokudb
 	if !c.Params.IsSyncNonInnodbTbls && !(tableInfo[0].Engine == "InnoDB" || tableInfo[0].Engine == "TokuDB") {
 		logger.Error(fmt.Sprintf("The table [%s.%s] is not a transaction engine table", dbName, tableName))
-		return false
+		return false, ""
 	}
-	return true
+	return true, getFirstSubstring(tableInfo[0].Collation)
 }
 
 // DropSyncUser 修复后删除主从节点的临时数据修复账号
@@ -462,4 +465,11 @@ func (c *PtTableSyncComp) UpdateOldRecords(dbName string, tableName string) (err
 	}
 	logger.Info("update-old-records [%s.%s] has been executed successfully", dbName, tableName)
 	return nil
+}
+
+func getFirstSubstring(s string) string {
+	if idx := strings.Index(s, "_"); idx != -1 {
+		return s[:idx] // 找到第一个 _ 前的内容
+	}
+	return s // 未找到则返回原字符串
 }

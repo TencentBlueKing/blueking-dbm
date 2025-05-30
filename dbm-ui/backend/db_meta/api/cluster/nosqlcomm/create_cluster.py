@@ -230,7 +230,11 @@ def pkg_create_twemproxy_cluster(
 
 @transaction.atomic
 def update_storage_cluster_type(ins_obj: StorageInstance, cluster_type: str):
-    if cluster_type not in (ClusterType.MongoReplicaSet.value, ClusterType.MongoShardedCluster.value):
+    if cluster_type not in (
+        ClusterType.MongoReplicaSet.value,
+        ClusterType.MongoShardedCluster.value,
+        ClusterType.OraclePrimaryStandby.value,
+    ):
         slave_obj = ins_obj.as_ejector.get().receiver
         slave_obj.cluster_type = cluster_type
         slave_obj.save(update_fields=["cluster_type"])

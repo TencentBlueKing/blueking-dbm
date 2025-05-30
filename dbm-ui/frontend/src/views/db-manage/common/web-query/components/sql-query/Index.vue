@@ -28,7 +28,7 @@
         :hide-my-collection="isMysqlProxy"
         :is-execut-disabled="!executable || instances.length === 0"
         :is-execut-loading="isExecuting"
-        :read-only="isMysqlProxy"
+        :is-proxy="isMysqlProxy"
         @execute="handleExecute" />
     </template>
     <template #aside>
@@ -71,10 +71,10 @@
   const isExecuting = ref(false);
   const queryResult = ref<DbConsoleResults>([]);
   const querySeconds = ref(0);
-
   const isMysqlProxy = computed(() => props.dbType === DBTypes.MYSQL && props.queryType === 'proxy');
 
   const handleExecute = async (sql: string) => {
+    queryResult.value = [];
     const startTime = dayjs();
     isExecuting.value = true;
     try {
@@ -87,6 +87,7 @@
         cmd: sql,
         db_type: props.dbType,
         instances: instanceInfoList,
+        is_proxy: isMysqlProxy.value,
       });
     } finally {
       isExecuting.value = false;

@@ -24,8 +24,10 @@ from backend.db_package.models import Package
 from backend.flow.consts import InstanceStatus, MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import build_surrounding_apps_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.master_and_slave_switch import master_and_slave_switch_v2
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import (
+    standardize_mysql_cluster_by_ip_subflow,
+)
 from backend.flow.engine.bamboo.scene.mysql.mysql_migrate_cluster_remote_flow import MySQLMigrateClusterRemoteFlow
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -392,14 +394,17 @@ class MySQLStorageLocalUpgradeFlow(object):
         mysql_upgrade_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         # 升级周边应用
         mysql_upgrade_pipeline.add_sub_pipeline(
-            sub_flow=build_surrounding_apps_sub_flow(
-                bk_cloud_id=int(bk_cloud_id),
-                master_ip_list=reinstall_ip_list,
+            sub_flow=standardize_mysql_cluster_by_ip_subflow(
                 root_id=self.root_id,
-                parent_global_data=copy.deepcopy(sub_flow_context),
-                is_init=True,
-                collect_sysinfo=False,
-                cluster_type=cluster_type,
+                data=copy.deepcopy(self.data),
+                bk_cloud_id=int(bk_cloud_id),
+                bk_biz_id=self.data["bk_biz_id"],
+                ips=reinstall_ip_list,
+                with_collect_sysinfo=False,
+                with_actuator=False,
+                with_bk_plugin=False,
+                with_deploy_binary=False,
+                # departs=remove_departs(ALLDEPARTS, DeployPeripheralToolsDepart.BackupClient),
             )
         )
         mysql_upgrade_pipeline.run_pipeline(is_drop_random_user=True)

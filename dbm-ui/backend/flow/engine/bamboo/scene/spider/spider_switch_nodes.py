@@ -69,6 +69,7 @@ class TenDBClusterSwitchNodesFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNo
         old_spider_hosts: list,
         new_spider_hosts: list,
         sub_flow_context: dict,
+        resource_spec: dict,
     ):
         """
         根据集群维度，并发处理每个集群的替换节点信息
@@ -94,6 +95,7 @@ class TenDBClusterSwitchNodesFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNo
                 cluster_id=cluster_id,
                 add_spider_role=spider_role,
                 add_spider_hosts=new_spider_hosts,
+                resource_spec=resource_spec,
             )
         )
 
@@ -126,6 +128,7 @@ class TenDBClusterSwitchNodesFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNo
                     spider_role=info["switch_spider_role"],
                     old_spider_hosts=info["spider_old_ip_list"],
                     new_spider_hosts=info["spider_new_ip_list"],
+                    resource_spec=info.get("resource_spec", {}),
                     sub_flow_context={"uid": self.data["uid"]},
                 )
             )

@@ -342,11 +342,11 @@ CLOUD_NGINX_MANAGE_DEFAULT_HOST = 8080
 
 
 class CloudServiceModuleName(str, StructuredEnum):
-    Nginx = EnumField("nginx.service.module", _("nginx服务模块"))
+    NGINX = EnumField("nginx.service.module", _("nginx服务模块"))
     DNS = EnumField("dns.service.module", _("dns服务模块"))
     DRS = EnumField("drs.service.module", _("drs服务模块"))
     DBHA = EnumField("dbha.service.module", _("dbha服务模块"))
-    RedisDTS = EnumField("redis_dts.service.module", _("redis_dts服务模块"))
+    REDIS_DTS = EnumField("redis_dts.service.module", _("redis_dts服务模块"))
 
 
 class MediumFileTypeEnum(int, StructuredEnum):
@@ -479,7 +479,7 @@ class DBActuatorActionEnum(str, StructuredEnum):
     GenPeripheralToolsConfig = EnumField("gen-peripheraltools-config", _("生成周边配置"))
     ReloadPeripheralToolsConfig = EnumField("reload-peripheraltools-config", _("重载周边配置"))
     DeployPeripheralToolsBinary = EnumField("prepare-peripheraltools-binary", _("prepare-peripheraltools-binary"))
-    InitNginxAddresses = EnumField("init-nginx-addresses", _("初始化 nginx 地址"))
+    InitCommonConfig = EnumField("init-common-config", _("初始化公共配置"))
 
 
 class RedisActuatorActionEnum(str, StructuredEnum):

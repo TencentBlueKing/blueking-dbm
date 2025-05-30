@@ -18,3 +18,5 @@ class InstanceInnerRole(str, StructuredEnum):
     SLAVE = EnumField("slave", _("slave"))
     REPEATER = EnumField("repeater", _("repeater"))
     ORPHAN = EnumField("orphan", _("orphan"))
+    PRIMARY = EnumField("primary", _("primary"))
+    STANDBY = EnumField("standby", _("standby"))

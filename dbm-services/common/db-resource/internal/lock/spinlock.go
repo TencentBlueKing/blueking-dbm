@@ -46,7 +46,7 @@ func (l *SpinLock) Lock() (err error) {
 		if err = l.lock.TryLock(); err == nil {
 			return nil
 		}
-		logger.Warn("%d: lock %s failed %s", i, err.Error())
+		logger.Error("%d: lock failed %s", i, err.Error())
 		time.Sleep(l.spinInterval)
 		time.Sleep(time.Duration(rand.Intn(1000)) * time.Millisecond)
 	}
