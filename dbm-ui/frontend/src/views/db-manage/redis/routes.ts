@@ -25,66 +25,16 @@ import { t } from '@locales/index';
 
 const { createRouteItem } = createToolboxRoute(DBTypes.REDIS);
 
-const redisInstallModuleRoute = {
-  path: 'install-module/:page?',
-  name: 'RedisInstallModule',
-  meta: {
-    navName: t('安装 Module'),
-  },
-  component: () => import('@views/db-manage/redis/install-module/Index.vue'),
-};
-
+const redisInstallModuleRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_LOAD_MODULES, t('安装 Module'));
 const redisCapacityChangeRoute = createRouteItem(TicketTypes.REDIS_SCALE_UPDOWN, t('集群容量变更'));
-
-const redisProxyScaleUpRoute = {
-  path: 'proxy-scale-up/:page?',
-  name: 'RedisProxyScaleUp',
-  meta: {
-    navName: t('扩容接入层'),
-  },
-  component: () => import('@views/db-manage/redis/proxy-scale-up/Index.vue'),
-};
-
+const redisProxyScaleUpRoute = createRouteItem(TicketTypes.REDIS_PROXY_SCALE_UP, t('扩容接入层'));
 const redisProxyScaleDownRoute = createRouteItem(TicketTypes.REDIS_PROXY_SCALE_DOWN, t('缩容接入层'));
-
-const redisDBCreateSlaveRoute = {
-  path: 'db-create-slave/:page?',
-  name: 'RedisDBCreateSlave',
-  meta: {
-    navName: t('重建从库'),
-  },
-  component: () => import('@views/db-manage/redis/db-create-slave/Index.vue'),
-};
-
-const redisMasterFailoverRoute = {
-  path: 'master-failover/:page?',
-  name: 'RedisMasterFailover',
-  meta: {
-    navName: t('主从切换'),
-  },
-  component: () => import('@views/db-manage/redis/master-failover/Index.vue'),
-};
-
+const redisDBCreateSlaveRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_ADD_SLAVE, t('重建从库'));
+const redisMasterFailoverRoute = createRouteItem(TicketTypes.REDIS_MASTER_SLAVE_SWITCH, t('主从切换'));
 const redisDBReplaceRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_CUTOFF, t('整机替换'));
-
-const redisMigrateRoute = {
-  path: 'db-migrate/:page?',
-  name: 'RedisMigrate',
-  meta: {
-    navName: t('迁移'),
-  },
-  component: () => import('@views/db-manage/redis/migrate/Index.vue'),
-};
-
-const redisClusterShardUpdateRoute = {
-  path: 'cluster-shard-update/:page?',
-  name: 'RedisClusterShardUpdate',
-  meta: {
-    navName: t('集群分片变更'),
-  },
-  component: () => import('@views/db-manage/redis/cluster-shard-update/Index.vue'),
-};
-
+const redisClusterMigrateRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_INS_MIGRATE, t('迁移'));
+const redisSingleMigrateRoute = createRouteItem(TicketTypes.REDIS_SINGLE_INS_MIGRATE, t('迁移'));
+const redisClusterShardUpdateRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_SHARD_NUM_UPDATE, t('集群分片变更'));
 const redisClusterTypeUpdateRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_TYPE_UPDATE, t('集群类型变更'));
 
 const redisDBStructureRoute = {
@@ -114,14 +64,7 @@ const redisRecoverFromInstanceRoute = {
   component: () => import('@views/db-manage/redis/recover-from-instance/Index.vue'),
 };
 
-const redisDBDataCopyRoute = {
-  path: 'db-data-copy/:page?',
-  name: 'RedisDBDataCopy',
-  meta: {
-    navName: t('数据复制'),
-  },
-  component: () => import('@views/db-manage/redis/db-data-copy/Index.vue'),
-};
+const redisDBDataCopyRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_DATA_COPY, t('数据复制'));
 
 const redisDBDataCopyRecordRoute = {
   path: 'db-data-copy-record/:page?',
@@ -132,14 +75,7 @@ const redisDBDataCopyRecordRoute = {
   component: () => import('@views/db-manage/redis/db-data-copy-record/Index.vue'),
 };
 
-const redisVersionUpgradeRoute = {
-  path: 'version-upgrade/:page?',
-  name: 'RedisVersionUpgrade',
-  meta: {
-    navName: t('版本升级'),
-  },
-  component: () => import('@views/db-manage/redis/version-upgrade/Index.vue'),
-};
+const redisVersionUpgradeRoute = createRouteItem(TicketTypes.REDIS_VERSION_UPDATE_ONLINE, t('版本升级'));
 
 const redisWebconsoleRoute = {
   path: 'webconsole',
@@ -177,6 +113,7 @@ const redisHotKeyListRoute = {
 const toolboxDbConsoleRouteMap = {
   'redis.toolbox.backup': redisBackupRoute,
   'redis.toolbox.capacityChange': redisCapacityChangeRoute,
+  'redis.toolbox.clusterMigrate': redisClusterMigrateRoute,
   'redis.toolbox.clusterShardChange': redisClusterShardUpdateRoute,
   'redis.toolbox.clusterTypeChange': redisClusterTypeUpdateRoute,
   'redis.toolbox.dataCopy': redisDBDataCopyRoute,
@@ -188,7 +125,6 @@ const toolboxDbConsoleRouteMap = {
   'redis.toolbox.keyDelete': redisKeyDeleteRoute,
   'redis.toolbox.keyExtract': redisKeyExtractRoute,
   'redis.toolbox.masterSlaveSwap': redisMasterFailoverRoute,
-  'redis.toolbox.migrate': redisMigrateRoute,
   'redis.toolbox.proxyScaleDown': redisProxyScaleDownRoute,
   'redis.toolbox.proxyScaleUp': redisProxyScaleUpRoute,
   'redis.toolbox.purge': redisPurgeRoute,
@@ -196,6 +132,7 @@ const toolboxDbConsoleRouteMap = {
   'redis.toolbox.recoverFromInstance': redisRecoverFromInstanceRoute,
   'redis.toolbox.rollback': redisDBStructureRoute,
   'redis.toolbox.rollbackRecord': redisStructureInstanceRoute,
+  'redis.toolbox.singleMigrate': redisSingleMigrateRoute,
   'redis.toolbox.slaveRebuild': redisDBCreateSlaveRoute,
   'redis.toolbox.versionUpgrade': redisVersionUpgradeRoute,
   'redis.toolbox.webconsole': redisWebconsoleRoute,
@@ -221,14 +158,7 @@ const toolboxRoutes = [
       },
     ] as RouteRecordRaw[],
   },
-  {
-    path: 'data-check-repair/:page?',
-    name: 'RedisToolboxDataCheckRepair',
-    meta: {
-      navName: t('数据校验修复'),
-    },
-    component: () => import('@views/db-manage/redis/data-check-repair/Index.vue'),
-  },
+  createRouteItem(TicketTypes.REDIS_DATACOPY_CHECK_REPAIR, t('数据校验修复')),
 ];
 
 const redisInstanceListRoute = {
@@ -322,7 +252,7 @@ export default function getRoutes(funControllerData: FunctionControllModel) {
     });
 
     if (!toolboxRoutes[0].redirect!.name) {
-      toolboxRoutes[0].redirect!.name = 'RedisDBCreateSlave';
+      toolboxRoutes[0].redirect!.name = TicketTypes.REDIS_CLUSTER_ADD_SLAVE;
     }
     routes[0].children?.push(...toolboxRoutes);
   }
