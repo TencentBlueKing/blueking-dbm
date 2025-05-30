@@ -121,14 +121,14 @@
 
   type Emits = (e: 'success') => void;
 
-  const props = defineProps<Props>();
-
-  const emits = defineEmits<Emits>();
-
   defineOptions({
     name: 'ClusterEntryConfig',
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
 
   const isShow = defineModel<boolean>('isShow', {
     default: false,
