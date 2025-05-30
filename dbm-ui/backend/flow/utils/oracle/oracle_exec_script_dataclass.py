@@ -13,6 +13,7 @@ from dataclasses import dataclass
 
 from backend import env
 from backend.configuration.constants import DBType
+from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import AppCache, Cluster
 from backend.flow.consts import ExecuteShellScriptUser, OracleDBActuatorActionEnum
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -28,8 +29,8 @@ class ExecuteScriptActKwargs:
         self.db_info: list = None
         self.work_path: str = "/data"
         self.app: str = None
-        self.manager_user: str = ""
-        self.execute_user: str = ""
+        self.manager_user: str = "perfstat"
+        self.execute_user: str = "execute_user"
 
     @staticmethod
     def get_password(ip: str, port: int, bk_cloud_id: int, username: str) -> str:
@@ -47,11 +48,13 @@ class ExecuteScriptActKwargs:
 
         # 获取app名字
         self.app = AppCache.objects.get(bk_biz_id=self.payload["bk_biz_id"]).db_app_abbr
+        # db信息
+        self.db_info = []
         # 获取集群信息
         for cluster in self.payload["cluster_info"]:
             cluster_info = Cluster.objects.get(id=cluster["id"])
             domain = cluster_info.immute_domain
-            instance = cluster_info.storageinstance_set.filter(instance_inner_role="master")[0]
+            instance = cluster_info.storageinstance_set.filter(instance_role=InstanceRole.PRIMARY)[0]
             self.db_info.append(
                 {
                     "ip": instance.machine.ip,
@@ -69,8 +72,8 @@ class ExecuteScriptActKwargs:
         return {
             "exec_account": ExecuteShellScriptUser.Root.value,
             "file_list": GetFileList(db_type=DBType.Oracle).oracle_actuator_pkg(),
-            "ip_list": self.hosts,
-            "exec_ips": [host["ip"] for host in self.hosts],
+            "ip_list": self.db_info,
+            "exec_ips": [host["ip"] for host in self.db_info],
             "file_target_path": self.work_path + "/install",
         }
 
@@ -82,8 +85,8 @@ class ExecuteScriptActKwargs:
             "set_trans_data_dataclass": CommonContext.__name__,
             "get_trans_data_ip_var": None,
             "exec_account": ExecuteShellScriptUser.Root.value,
-            "bk_cloud_id": self.self.hosts[0]["bk_cloud_id"],
-            "exec_ip": self.hosts,
+            "bk_cloud_id": self.db_info[0]["bk_cloud_id"],
+            "exec_ip": self.db_info,
             "db_act_template": {
                 "action": OracleDBActuatorActionEnum.OsInit,
                 "file_path": self.work_path,
@@ -99,8 +102,8 @@ class ExecuteScriptActKwargs:
             "set_trans_data_dataclass": CommonContext.__name__,
             "get_trans_data_ip_var": None,
             "exec_account": ExecuteShellScriptUser.Root.value,
-            "bk_cloud_id": self.payload["hosts"][0]["bk_cloud_id"],
-            "exec_ip": self.hosts,
+            "bk_cloud_id": self.db_info[0]["bk_cloud_id"],
+            "exec_ip": self.db_info,
             "db_act_template": {
                 "file_path": self.work_path,
                 "payload": {},
@@ -110,17 +113,16 @@ class ExecuteScriptActKwargs:
     def get_send_sql_kwargs(self):
         """获取分发sql文件的kwargs"""
 
-        bk_biz_id = self.payload["bk_biz_id"]
         uid = self.payload["uid"]
         sql_files_full_path_list = [
-            "{}/{}/oracle/sqlfile/{}/{}/{}".format(env.BKREPO_PROJECT, env.BKREPO_BUCKET, str(bk_biz_id), uid, file)
+            "{}/{}/{}/{}".format(env.BKREPO_PROJECT, env.BKREPO_BUCKET, self.payload["script_path"], file)
             for file in self.payload["script_files"]
         ]
-        exec_ips = [host["ip"] for host in self.hosts]
+        exec_ips = [host["ip"] for host in self.db_info]
         return {
             "exec_account": ExecuteShellScriptUser.Oracle.value,
             "file_list": sql_files_full_path_list,
-            "ip_list": self.hosts,
+            "ip_list": self.db_info,
             "exec_ips": exec_ips,
             "file_target_path": "{}/install/dbactuator-{}".format(self.work_path, uid),
         }
@@ -129,27 +131,33 @@ class ExecuteScriptActKwargs:
         """获取执行脚本的kwargs"""
 
         # 获取cluster密码管理员密码 执行脚本用户密码
+        ip = info["ip"]
+        port = info["port"]
         manager_user_password = self.get_password(
-            ip="0.0.0.0", port=0, bk_cloud_id=info["bk_cloud_id"], username=self.manager_user
+            ip=ip, port=port, bk_cloud_id=info["bk_cloud_id"], username=self.manager_user
+        )
+        execute_user_password = self.get_password(
+            ip=ip, port=port, bk_cloud_id=info["bk_cloud_id"], username=self.execute_user
         )
         return {
             "set_trans_data_dataclass": CommonContext.__name__,
             "get_trans_data_ip_var": None,
             "exec_account": ExecuteShellScriptUser.Oracle.value,
             "bk_cloud_id": info["bk_cloud_id"],
-            "exec_ip": info["ip"],
+            "exec_ip": ip,
             "db_act_template": {
+                "action": OracleDBActuatorActionEnum.OracleExecuteScript,
                 "file_path": self.work_path,
                 "payload": {
                     "app": self.app,
                     "taskid": self.payload["uid"],
-                    "ip": info["ip"],
-                    "port": info["port"],
+                    "ip": ip,
+                    "port": str(port),
                     "servicename": info["service_name"],
                     "blurdb": info["execute_db"],
-                    "manageruser": "",
+                    "manageruser": self.manager_user,
                     "manageruserpassword": manager_user_password,
-                    "executeuserpassword": "",
+                    "executeuserpassword": execute_user_password,
                     "scriptfiles": self.payload["script_files"],
                 },
             },

@@ -163,6 +163,7 @@ from backend.flow.views.name_service import (
     PolarisCreateSceneApiView,
     PolarisDeleteSceneApiView,
 )
+from backend.flow.views.oracle_scene import MultiOracleExecuteScriptApiView
 from backend.flow.views.pulsar_apply import InstallPulsarSceneApiView
 from backend.flow.views.pulsar_destroy import DestroyPulsarSceneApiView
 from backend.flow.views.pulsar_disable import DisablePulsarSceneApiView
@@ -192,7 +193,6 @@ from backend.flow.views.redis_cluster import (
     RedisDataStructureSceneApiView,
     RedisDataStructureTaskDeleteSceneApiView,
     RedisFlushDataSceneApiView,
-    RedisHotkeyAnalysisApiView,
     RedisInsShutdownSceneApiView,
     RedisProxyScaleSceneApiView,
     RedisRemoveDtsServerSceneApiView,
@@ -326,7 +326,6 @@ urlpatterns = [
     url(r"^scene/redis_cluster_version_update_online$", RedisClusterVersionUpdateOnlineApiView.as_view()),
     url(r"^scene/redis_cluster_proxys_upgrade$", RedisClusterProxysUpgradeApiView.as_view()),
     url(r"^scene/redis_slots_migrate_for_hotkey$", RedisSlotsMigrateForHotkeySceneApiView.as_view()),
-    url(r"^scene/redis_hotkey_analysis$", RedisHotkeyAnalysisApiView.as_view()),
     # redis api url end
     # dns api
     url(r"^scene/client_set_dns_server$", ClientSetDnsServerSceneApiView.as_view()),
@@ -365,6 +364,9 @@ urlpatterns = [
     url(r"^scene/multi_cluster_migrate_meta$", MongoDBClusterMigrateView.as_view()),
     url(r"^scene/multi_instance_deinstall$", MongoDBInstanceDeInstallView.as_view()),
     # mongodb end
+    # oracle start
+    url(r"^scene/multi_oracle_execute_script$", MultiOracleExecuteScriptApiView.as_view()),
+    # oracle end
     # mysql upgrade
     url(r"^scene/upgrade_mysql_proxy$", UpgradeMySQLProxySceneApiView.as_view()),
     url(r"^scene/upgrade_mysql$", UpgradeMySQLSceneApiView.as_view()),

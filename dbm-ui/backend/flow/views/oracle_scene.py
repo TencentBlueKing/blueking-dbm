@@ -8,15 +8,22 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import gettext_lazy as _
+import logging
+import uuid
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from rest_framework.response import Response
+
+from backend.flow.engine.controller.oracle import OracleController
+from backend.flow.views.base import FlowTestView
+
+logger = logging.getLogger("root")
 
 
-class InstanceInnerRole(str, StructuredEnum):
-    MASTER = EnumField("master", _("master"))
-    SLAVE = EnumField("slave", _("slave"))
-    REPEATER = EnumField("repeater", _("repeater"))
-    ORPHAN = EnumField("orphan", _("orphan"))
-    PRIMARY = EnumField("primary", _("primary"))
-    STANDBY = EnumField("standby", _("standby"))
+class MultiOracleExecuteScriptApiView(FlowTestView):
+    """执行脚本"""
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        OracleController(root_id=root_id, ticket_data=request.data).multi_oracle_execute_script()
+        return Response({"root_id": root_id})

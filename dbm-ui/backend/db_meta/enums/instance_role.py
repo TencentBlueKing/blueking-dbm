@@ -86,6 +86,10 @@ class InstanceRole(str, StructuredEnum):
     VM_SELECT = EnumField("vmselect", _("vmselect"))
     VM_AUTH = EnumField("vmauth", _("vmauth"))
 
+    # Oracle
+    PRIMARY = EnumField("primary", _("primary"))
+    STANDBY = EnumField("standby", _("standby"))
+
 
 class TenDBClusterSpiderRole(str, StructuredEnum):
     # 主集群的接入层

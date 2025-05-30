@@ -136,7 +136,7 @@ func (e *ExecuteScript) GetDbUserName() error {
 	// []string装换成[]any
 	var dbBlurName []any
 	for _, db := range e.ConfParams.BlurDb {
-		dbBlurName = append(dbBlurName, "%"+db+"%")
+		dbBlurName = append(dbBlurName, "%"+strings.ToUpper(db)+"%")
 	}
 	db, rows, err := common.GetInfoFromOracle(e.ConfParams.ManagerUser,
 		e.ConfParams.ManagerUserPassword,

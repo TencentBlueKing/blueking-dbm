@@ -79,6 +79,7 @@ def mongo_create_ticket(cluster: RedisAutofixCore, cluster_ids: list, mongos_lis
 
     # 获取dba
     mongodb_dba = DBAdministrator.get_biz_db_type_admins(bk_biz_id=cluster.bk_biz_id, db_type=DBType.MongoDB.value)
+    logger.info("mongodb autofix get dba:{}".format(mongodb_dba))
 
     # 申请机器规格信息
     resource_spec = {}
@@ -88,6 +89,7 @@ def mongo_create_ticket(cluster: RedisAutofixCore, cluster_ids: list, mongos_lis
         cluster_type = mongos_list[0]["cluster_type"]
         # mongos的资源规格
         mongos_resource_spec = mongos_get_resource_spec(cluster_ids[0], mongos_list)
+        logger.info("mongodb autofix mongos resource_spec:{}".format(mongos_resource_spec))
         resource_spec.update(mongos_resource_spec)
     if mongod_list:
         cluster_type = mongod_list[0]["cluster_type"]
@@ -114,25 +116,31 @@ def mongo_create_ticket(cluster: RedisAutofixCore, cluster_ids: list, mongos_lis
             }
         ],
     }
+    logger.info("mongodb autofix ticket details:{}".format(details))
 
     # 创建单据
-    ticket = Ticket.create_ticket(
-        ticket_type=TicketType.MONGODB_AUTOFIX.value,
-        creator=mongodb_dba[0],
-        bk_biz_id=cluster.bk_biz_id,
-        remark=_("自动发起-自愈任务-{}".format(cluster.immute_domain)),
-        details=details,
-    )
+    try:
+        ticket = Ticket.create_ticket(
+            ticket_type=TicketType.MONGODB_AUTOFIX.value,
+            creator=mongodb_dba[0],
+            bk_biz_id=cluster.bk_biz_id,
+            remark=_("自动发起-自愈任务-{}".format(cluster.immute_domain)),
+            details=details,
+        )
 
-    # 发送自愈消息提醒
-    ip_list = []
-    for host in mongos_list + mongod_list:
-        ip_list.append(host["ip"])
-    notify.send_msg.apply_async(args=(ticket.id,))
+        # 发送自愈消息提醒
+        ip_list = []
+        for host in mongos_list + mongod_list:
+            ip_list.append(host["ip"])
+        notify.send_msg.apply_async(args=(ticket.id,))
+        cluster.deal_status = AutofixStatus.AF_WFLOW.value
+        cluster.status_version = get_random_string(12)
+    except Exception as e:
+        cluster.deal_status = AutofixStatus.AF_FAIL.value
+        cluster.status_version = str(e)
+        logger.info("mongodb autofix create ticket fail:{}".format(e))
 
     # 回写tb_tendis_autofix_core表
     cluster.ticket_id = ticket.id
-    cluster.status_version = get_random_string(12)
-    cluster.deal_status = AutofixStatus.AF_WFLOW.value
     cluster.update_at = datetime2str(datetime.datetime.now(timezone.utc))
     cluster.save(update_fields=["ticket_id", "status_version", "deal_status", "update_at"])

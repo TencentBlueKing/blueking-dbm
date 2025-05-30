@@ -8,15 +8,19 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import gettext_lazy as _
+from backend.flow.engine.bamboo.scene.oracle.oracle_exec_script import OracleExecuteScriptFlow
+from backend.flow.engine.controller.base import BaseController
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
 
+class OracleController(BaseController):
+    """
+    oracle相关控制器
+    """
 
-class InstanceInnerRole(str, StructuredEnum):
-    MASTER = EnumField("master", _("master"))
-    SLAVE = EnumField("slave", _("slave"))
-    REPEATER = EnumField("repeater", _("repeater"))
-    ORPHAN = EnumField("orphan", _("orphan"))
-    PRIMARY = EnumField("primary", _("primary"))
-    STANDBY = EnumField("standby", _("standby"))
+    def multi_oracle_execute_script(self):
+        """
+        执行脚本
+        """
+
+        flow = OracleExecuteScriptFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.multi_oracle_execute_script_flow()
