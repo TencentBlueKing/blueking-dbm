@@ -1,3 +1,6 @@
-import type { DetailBase } from '../common';
+import type { DetailBase, DetailClusters } from '../common';
 
-export type PluginCreatePolaris = DetailBase;
+export interface PluginCreatePolaris extends DetailBase {
+  cluster_id: number;
+  clusters: DetailClusters;
+}
