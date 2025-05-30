@@ -10,7 +10,9 @@
           :key-word="keyWord"
           :text="item.ip" />
       </div>
-      <div class="biz-text">
+      <div
+        v-if="item.pool"
+        class="biz-text">
         {{ item.poolDispaly }}
       </div>
     </div>
@@ -26,6 +28,7 @@
   interface Props {
     data: {
       ip: string;
+      pool: string;
       poolDispaly: string;
     }[];
     keyWord: string;
