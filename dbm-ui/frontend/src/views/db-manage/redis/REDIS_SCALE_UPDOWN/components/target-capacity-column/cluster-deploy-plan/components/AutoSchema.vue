@@ -148,7 +148,7 @@
         future_capacity: capacityNum,
         shard_num: props.cluster.cluster_shard_num === 0 ? undefined : props.cluster.cluster_shard_num,
         spec_cluster_type: 'redis',
-        spec_machine_type: specClusterMachineMap[props.cluster?.cluster_type ?? ClusterTypes.TWEMPROXY_REDIS_INSTANCE],
+        spec_machine_type: props.cluster.cluster_type,
       };
       if (props.type === 'typeChange') {
         delete params.shard_num;
