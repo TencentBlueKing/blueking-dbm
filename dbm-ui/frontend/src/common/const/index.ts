@@ -1,7 +1,8 @@
 export * from './accountTypes';
 export * from './clusterAffinity';
 export * from './clusterInsStatus';
-export * from './clusterTypeInfos';
+// export * from './clusterTypeInfos';
+export * from './clusterTypeInfos/index';
 export * from './clusterTypes';
 export * from './confLevels';
 export * from './dbSysExclude';
