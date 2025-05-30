@@ -271,7 +271,9 @@
               <FunController
                 controller-id="redis_nameservice"
                 module-id="addons">
-                <BkDropdownItem v-db-console="'redis.clusterManage.enableCLB'">
+                <BkDropdownItem
+                  v-if="!data.isOnlineCLB"
+                  v-db-console="'redis.clusterManage.enableCLB'">
                   <OperationBtnStatusTips
                     :data="data"
                     :disabled="!data.isOffline">
@@ -283,7 +285,7 @@
                       style="width: 100%; height: 32px"
                       text
                       @click="handleSwitchClb(data)">
-                      {{ data.isOnlineCLB ? t('禁用CLB') : t('启用CLB') }}
+                      {{ t('启用CLB') }}
                     </AuthButton>
                   </OperationBtnStatusTips>
                 </BkDropdownItem>
@@ -305,7 +307,9 @@
                   </OperationBtnStatusTips>
                 </BkDropdownItem>
 
-                <BkDropdownItem v-db-console="'redis.clusterManage.enablePolaris'">
+                <BkDropdownItem
+                  v-if="!data.isOnlinePolaris"
+                  v-db-console="'redis.clusterManage.enablePolaris'">
                   <OperationBtnStatusTips
                     :data="data"
                     :disabled="!data.isOffline">
@@ -317,7 +321,7 @@
                       style="width: 100%; height: 32px"
                       text
                       @click="handleSwitchPolaris(data)">
-                      {{ data.isOnlinePolaris ? t('禁用北极星') : t('启用北极星') }}
+                      {{ t('启用北极星') }}
                     </AuthButton>
                   </OperationBtnStatusTips>
                 </BkDropdownItem>
@@ -720,14 +724,9 @@
   };
 
   /**
-   * 集群 北极星启用/禁用
+   * 集群 北极星启用
    */
   const handleSwitchPolaris = (data: RedisModel) => {
-    const ticketType = data.isOnlinePolaris
-      ? TicketTypes.REDIS_PLUGIN_DELETE_POLARIS
-      : TicketTypes.REDIS_PLUGIN_CREATE_POLARIS;
-
-    const title = ticketType === TicketTypes.REDIS_PLUGIN_CREATE_POLARIS ? t('确定启用北极星') : t('确定禁用北极星');
     InfoBox({
       onConfirm: async () => {
         const params = {
@@ -735,13 +734,13 @@
           details: {
             cluster_id: data.id,
           },
-          ticket_type: ticketType,
+          ticket_type: TicketTypes.REDIS_PLUGIN_CREATE_POLARIS,
         };
         await createTicket(params).then((res) => {
           ticketMessage(res.id);
         });
       },
-      title,
+      title: t('确定启用北极星'),
       type: 'warning',
     });
   };
