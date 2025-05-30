@@ -10,7 +10,7 @@ def get_cluster_instance_info(cluster_id: int) -> dict:
     """获取集群实例信息"""
 
     cluster_instance_info = {}
-    cluster_info = MongoRepository().fetch_one_cluster(withDomain=True, id=cluster_id)
+    cluster_info = MongoRepository().fetch_one_cluster(with_domain=True, id=cluster_id)
     cluster_instance_info["bk_cloud_id"] = cluster_info.bk_cloud_id
     nodes = []
     if cluster_info.cluster_type == ClusterType.MongoReplicaSet.value:

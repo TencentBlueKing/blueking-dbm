@@ -936,7 +936,7 @@ class ActKwargs:
         """创建/删除用户获取cluster信息"""
 
         # 获取集群信息
-        cluster_info = MongoRepository().fetch_one_cluster(withDomain=False, id=cluster_id)
+        cluster_info = MongoRepository().fetch_one_cluster(id=cluster_id)
         bk_cloud_id = cluster_info.bk_cloud_id
         self.cluster_type = cluster_info.cluster_type
         exec_ip: str = None
@@ -1063,7 +1063,7 @@ class ActKwargs:
         hosts = set()
         bk_cloud_id: int = None
         for cluster_id in self.payload["cluster_ids"]:
-            cluster_info = MongoRepository().fetch_one_cluster(withDomain=False, id=cluster_id)
+            cluster_info = MongoRepository().fetch_one_cluster(id=cluster_id)
             if not cluster_info:
                 raise ValueError("cluster_id:{} not found".format(cluster_id))
 
@@ -1094,7 +1094,7 @@ class ActKwargs:
     def get_cluster_info_deinstall(self, cluster_id: int):
         """卸载流程获取cluster信息"""
 
-        cluster_info = MongoRepository().fetch_one_cluster(withDomain=True, id=cluster_id)
+        cluster_info = MongoRepository().fetch_one_cluster(with_domain=True, id=cluster_id)
         self.payload["cluster_type"] = cluster_info.cluster_type
         self.payload["set_id"] = cluster_info.name
         self.payload["cluster_name"] = cluster_info.name
@@ -1397,7 +1397,7 @@ class ActKwargs:
     def get_config_set_name_replace(cluster_id) -> str:
         """获取分片集群的configDB的set_id"""
 
-        return MongoRepository().fetch_one_cluster(withDomain=False, id=cluster_id).get_config().set_name
+        return MongoRepository().fetch_one_cluster(id=cluster_id).get_config().set_name
 
     def calc_param_replace(self, info: dict, instance_num: int):
         """ "计算参数"""
@@ -1982,7 +1982,7 @@ class ActKwargs:
         hosts = set()
         bk_cloud_id: int = None
         for cluster_id in self.payload["cluster_ids"]:
-            cluster_info = MongoRepository().fetch_one_cluster(withDomain=False, id=cluster_id)
+            cluster_info = MongoRepository().fetch_one_cluster(id=cluster_id)
             if cluster_info.cluster_type == ClusterType.MongoReplicaSet.value:
                 shard = cluster_info.get_shards()[0]
                 bk_cloud_id = shard.members[0].bk_cloud_id

@@ -192,7 +192,7 @@ class MongoInstallDBMonFlow(MongoBaseFlow):
 
         if cluster_id_list:
             cluster_id_list = list(set(cluster_id_list))  # unique
-            clusters = MongoRepository.fetch_many_cluster(with_domain=False, id__in=cluster_id_list)
+            clusters = MongoRepository.fetch_many_cluster(id__in=cluster_id_list)
             for cluster in clusters:
                 if cluster.bk_cloud_id == bk_cloud_id:
                     iplist.extend(cluster.get_iplist())

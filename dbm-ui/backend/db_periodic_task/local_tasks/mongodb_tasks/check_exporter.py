@@ -56,15 +56,26 @@ class CheckMongodbUpMetricTask:
         logger.info(cluster_list.query)
 
         for c in cluster_list:
-            cluster = MongoRepository.fetch_one_cluster(withDomain=False, id=c.id)
+            cluster = MongoRepository.fetch_one_cluster(with_tags=True, id=c.id)
             rows = self.check_one(cluster)
             failed_records.extend(rows)
 
         # 批量插入备份失败记录
         MongodbBackupCheckReport.objects.bulk_create(failed_records)
 
-    @staticmethod
-    def check_one(cluster: MongoDBCluster):
+    def is_skip_check(self, cluster: MongoDBCluster) -> tuple[bool, str]:
+        """
+        检查集群的tags是否为skip_check=true
+        如果为true，则返回True, "skipped by skip_check:true"
+        如果为false，则返回False, ""
+        """
+        tags = {tag.key: tag.value for tag in cluster.tags} if cluster.tags else {}
+        v = tags.get("temporary", "")
+        if v in ["true", "yes", "True", "Yes", "1"]:
+            return True, "skipped by temporary:{}".format(v)
+        return False, ""
+
+    def check_one(self, cluster: MongoDBCluster):
         """
         1. 获得所有的mongodb_up的metric.
         2. 对比instance, instance_role 是否一致
@@ -76,6 +87,12 @@ class CheckMongodbUpMetricTask:
         """
         failed_records = []
         mongodb_up = MongodbExporterCheckSubType.Up.value
+
+        skipped, reason = self.is_skip_check(cluster)
+        if skipped:
+            dev_debug(f"=== check_one {cluster.cluster_id} {cluster.immute_domain} {reason} === ")
+            failed_records.append(create_failed_record(cluster, "all", "all", True, reason, mongodb_up))
+            return failed_records
 
         metric_val = fetch_metric_by_cluster(cluster.immute_domain)
         all_node = get_all_nodes(cluster)

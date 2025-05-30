@@ -104,7 +104,7 @@ class MongoUtil:
         @param command: 命令, 如: show dbs, 首次连接可以为空
         @param timeout: 超时时间, 单位秒
         """
-        cluster = MongoRepository().fetch_one_cluster(withDomain=False, id=cluster_id)
+        cluster = MongoRepository().fetch_one_cluster(id=cluster_id)
         if not cluster:
             raise Exception("cluster_id:{} not found".format(cluster_id))
 
