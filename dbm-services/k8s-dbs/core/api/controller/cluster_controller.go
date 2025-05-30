@@ -33,16 +33,16 @@ import (
 
 // ClusterController 存储集群管理 Controller
 type ClusterController struct {
-	clusterService    *provider.ClusterProvider
-	opsRequestService *provider.OpsRequestProvider
+	clusterProvider    *provider.ClusterProvider
+	opsRequestProvider *provider.OpsRequestProvider
 }
 
 // NewClusterController 创建 ClusterController 实例
-func NewClusterController(clusterService *provider.ClusterProvider,
-	opsRequestService *provider.OpsRequestProvider) *ClusterController {
+func NewClusterController(clusterProvider *provider.ClusterProvider,
+	opsRequestProvider *provider.OpsRequestProvider) *ClusterController {
 	return &ClusterController{
-		clusterService:    clusterService,
-		opsRequestService: opsRequestService,
+		clusterProvider:    clusterProvider,
+		opsRequestProvider: opsRequestProvider,
 	}
 }
 
@@ -54,7 +54,7 @@ func (c *ClusterController) VerticalScaling(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.VerticalScalingError, err))
 		return
 	}
-	responseData, err := c.opsRequestService.VerticalScaling(request)
+	responseData, err := c.opsRequestProvider.VerticalScaling(request)
 	if err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.VerticalScalingError, err))
 		return
@@ -70,7 +70,7 @@ func (c *ClusterController) HorizontalScaling(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.HorizontalScalingError, err))
 		return
 	}
-	responseData, err := c.opsRequestService.HorizontalScaling(request)
+	responseData, err := c.opsRequestProvider.HorizontalScaling(request)
 	if err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.HorizontalScalingError, err))
 		return
@@ -86,7 +86,7 @@ func (c *ClusterController) StartCluster(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.StartClusterError, err))
 		return
 	}
-	responseData, err := c.opsRequestService.StartCluster(request)
+	responseData, err := c.opsRequestProvider.StartCluster(request)
 	if err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.StartClusterError, err))
 		return
@@ -102,7 +102,7 @@ func (c *ClusterController) RestartCluster(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.RestartClusterError, err))
 		return
 	}
-	responseData, err := c.opsRequestService.RestartCluster(request)
+	responseData, err := c.opsRequestProvider.RestartCluster(request)
 	if err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.RestartClusterError, err))
 		return
@@ -118,7 +118,7 @@ func (c *ClusterController) StopCluster(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.StopClusterError, err))
 		return
 	}
-	responseData, err := c.opsRequestService.StopCluster(request)
+	responseData, err := c.opsRequestProvider.StopCluster(request)
 	if err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.StopClusterError, err))
 		return
@@ -134,7 +134,7 @@ func (c *ClusterController) UpgradeCluster(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpgradeClusterError, err))
 		return
 	}
-	responseData, err := c.opsRequestService.UpgradeCluster(request)
+	responseData, err := c.opsRequestProvider.UpgradeCluster(request)
 	if err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpgradeClusterError, err))
 		return
@@ -150,7 +150,7 @@ func (c *ClusterController) UpdateCluster(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpdateClusterError, err))
 		return
 	}
-	err = c.clusterService.UpdateCluster(request)
+	err = c.clusterProvider.UpdateCluster(request)
 	if err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpdateClusterError, err))
 		return
@@ -166,7 +166,7 @@ func (c *ClusterController) VolumeExpansion(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.VolumeExpansionError, err))
 		return
 	}
-	responseData, err := c.opsRequestService.VolumeExpansion(request)
+	responseData, err := c.opsRequestProvider.VolumeExpansion(request)
 	if err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.VolumeExpansionError, err))
 		return
@@ -182,7 +182,7 @@ func (c *ClusterController) DescribeOpsRequest(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.DescribeOpsRequestError, err))
 		return
 	}
-	opsRequestData, err := c.opsRequestService.DescribeOpsRequest(request)
+	opsRequestData, err := c.opsRequestProvider.DescribeOpsRequest(request)
 	if err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.DescribeOpsRequestError, err))
 		return
@@ -203,7 +203,7 @@ func (c *ClusterController) GetOpsRequestStatus(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetOpsRequestStatusError, err))
 		return
 	}
-	opsRequestStatus, err := c.opsRequestService.GetOpsRequestStatus(request)
+	opsRequestStatus, err := c.opsRequestProvider.GetOpsRequestStatus(request)
 	if err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetOpsRequestStatusError, err))
 		return
@@ -224,7 +224,7 @@ func (c *ClusterController) CreateCluster(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateClusterError, err))
 		return
 	}
-	err = c.clusterService.CreateCluster(request)
+	err = c.clusterProvider.CreateCluster(request)
 	if err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateClusterError, err))
 		return
@@ -240,7 +240,7 @@ func (c *ClusterController) DeleteCluster(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.DeleteClusterError, err))
 		return
 	}
-	err = c.clusterService.DeleteCluster(request)
+	err = c.clusterProvider.DeleteCluster(request)
 	if err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.DeleteClusterError, err))
 		return
@@ -256,7 +256,7 @@ func (c *ClusterController) DescribeCluster(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.DescribeClusterError, err))
 		return
 	}
-	clusterData, err := c.clusterService.DescribeCluster(request)
+	clusterData, err := c.clusterProvider.DescribeCluster(request)
 	if err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.DescribeClusterError, err))
 		return
@@ -277,7 +277,7 @@ func (c *ClusterController) GetClusterStatus(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetClusterStatusError, err))
 		return
 	}
-	clusterStatus, err := c.clusterService.GetClusterStatus(request)
+	clusterStatus, err := c.clusterProvider.GetClusterStatus(request)
 	if err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetClusterStatusError, err))
 		return
@@ -298,7 +298,7 @@ func (c *ClusterController) ExposeCluster(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.ExposeClusterError, err))
 		return
 	}
-	responseData, err := c.opsRequestService.ExposeCluster(request)
+	responseData, err := c.opsRequestProvider.ExposeCluster(request)
 	if err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.ExposeClusterError, err))
 		return
@@ -314,7 +314,7 @@ func (c *ClusterController) DescribeComponent(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.DescribeComponentError, err))
 		return
 	}
-	responseData, err := c.clusterService.DescribeComponent(request)
+	responseData, err := c.clusterProvider.DescribeComponent(request)
 	if err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.DescribeComponentError, err))
 		return

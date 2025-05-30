@@ -215,7 +215,7 @@ func CreateStorageAddonCluster(k8sClient *K8sClient, request *entity.Request) (m
 	install.Namespace = request.Namespace
 
 	// Read values.yaml file from the chart
-	values, err := readValuesYaml(chartPath)
+	values, err := ReadValuesYaml(chartPath)
 	if err != nil {
 		slog.Error("failed to read values.yaml file",
 			"chartPath", chartPath,
@@ -225,7 +225,7 @@ func CreateStorageAddonCluster(k8sClient *K8sClient, request *entity.Request) (m
 	}
 
 	// Merge dynamic values from the request
-	err = mergeValues(values, request)
+	err = MergeValues(values, request)
 	if err != nil {
 		slog.Error("failed to merge dynamic values",
 			"error", err,
@@ -273,13 +273,13 @@ func UpdateStorageAddonCluster(k8sClient *K8sClient, request *entity.Request) (m
 	upgrade.Namespace = request.Namespace
 
 	// Reading the values.yaml file
-	values, err := readValuesYaml(chartPath)
+	values, err := ReadValuesYaml(chartPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read values.yaml: %v", err)
 	}
 
 	// merge dynamic values
-	err = mergeValues(values, request)
+	err = MergeValues(values, request)
 	if err != nil {
 		return nil, err
 	}
@@ -316,8 +316,8 @@ func DeleteStorageAddonCluster(k8sClient *K8sClient, clusterName, namespace stri
 	return nil
 }
 
-// readValuesYaml 读取 values.yaml 文件并解析为 map[string]interface{}
-func readValuesYaml(chartPath string) (map[string]interface{}, error) {
+// ReadValuesYaml 读取 values.yaml 文件并解析为 map[string]interface{}
+func ReadValuesYaml(chartPath string) (map[string]interface{}, error) {
 	valuesPath := filepath.Join(chartPath, "values.yaml")
 	data, err := os.ReadFile(valuesPath)
 	if err != nil {
@@ -333,8 +333,8 @@ func readValuesYaml(chartPath string) (map[string]interface{}, error) {
 	return values, nil
 }
 
-// mergeValues 将 request 中的参数合并到 values 映射中
-func mergeValues(values map[string]interface{}, request *entity.Request) error {
+// MergeValues 将 request 中的参数合并到 values 映射中
+func MergeValues(values map[string]interface{}, request *entity.Request) error {
 	err := mergeMetaData(values, request)
 	if err != nil {
 		return err

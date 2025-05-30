@@ -230,3 +230,21 @@ CREATE TABLE IF NOT EXISTS tb_addoncluster_release (
     updated_by varchar(50) NOT NULL COMMENT '更新者',
     updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT 'AddonCluster 的 release信息';
+
+
+--
+-- Table structure for table tb_addoncluster_helm_repository
+--
+CREATE TABLE IF NOT EXISTS tb_addoncluster_helm_repository (
+   id bigint PRIMARY KEY AUTO_INCREMENT COMMENT '主键 id',
+   repo_name  varchar(32) NOT NULL COMMENT 'helm 仓库名称',
+   repo_repository  varchar(255) NOT NULL COMMENT 'helm 仓库地址',
+   repo_username  varchar(255) NOT NULL COMMENT 'helm 仓库用户名',
+   repo_password  varchar(255) NOT NULL COMMENT 'helm 仓库用户密码',
+   chart_name  varchar(32) NOT NULL COMMENT 'AddonCluster helm 名称',
+   chart_version  varchar(32) NOT NULL COMMENT 'AddonCluster helm chart 版本',
+   created_by varchar(50) NOT NULL COMMENT '创建者',
+   created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+   updated_by varchar(50) NOT NULL COMMENT '更新者',
+   updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT 'AddonCluster 的 helm 仓库信息';

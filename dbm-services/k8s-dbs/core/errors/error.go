@@ -66,6 +66,8 @@ const (
 	CreateK8sNsError = 1532300
 
 	DeployAddonError = 1532400
+
+	DeployAddonClusterError = 1532500
 )
 
 // Define the text information corresponding to errorCode

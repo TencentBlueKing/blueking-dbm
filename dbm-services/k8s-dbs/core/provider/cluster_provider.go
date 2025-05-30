@@ -33,6 +33,10 @@ import (
 	"log/slog"
 	"slices"
 
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/chart/loader"
+	helmcli "helm.sh/helm/v3/pkg/cli"
+
 	"github.com/pkg/errors"
 
 	kbtypes "github.com/apecloud/kbcli/pkg/types"
@@ -43,26 +47,28 @@ import (
 
 // ClusterProvider 集群管理核心服务
 type ClusterProvider struct {
-	clusterMetaProvider   metaprovider.K8sCrdClusterProvider
-	componentMetaProvider metaprovider.K8sCrdComponentProvider
-	cdMetaProvider        metaprovider.K8sCrdClusterDefinitionProvider
-	cmpdMetaProvider      metaprovider.K8sCrdCmpdProvider
-	cmpvMetaProvider      metaprovider.K8sCrdCmpvProvider
-	clusterConfigProvider metaprovider.K8sClusterConfigProvider
-	reqRecordProvider     metaprovider.ClusterRequestRecordProvider
-	releaseMetaProvider   metaprovider.AddonClusterReleaseProvider
+	clusterMetaProvider     metaprovider.K8sCrdClusterProvider
+	componentMetaProvider   metaprovider.K8sCrdComponentProvider
+	cdMetaProvider          metaprovider.K8sCrdClusterDefinitionProvider
+	cmpdMetaProvider        metaprovider.K8sCrdCmpdProvider
+	cmpvMetaProvider        metaprovider.K8sCrdCmpvProvider
+	clusterConfigProvider   metaprovider.K8sClusterConfigProvider
+	reqRecordProvider       metaprovider.ClusterRequestRecordProvider
+	releaseMetaProvider     metaprovider.AddonClusterReleaseProvider
+	clusterHelmRepoProvider metaprovider.AddonClusterHelmRepoProvider
 }
 
 // ClusterProviderBuilder ClusterProvider builder
 type ClusterProviderBuilder struct {
-	clusterMetaProvider   metaprovider.K8sCrdClusterProvider
-	componentMetaProvider metaprovider.K8sCrdComponentProvider
-	cdMetaProvider        metaprovider.K8sCrdClusterDefinitionProvider
-	cmpdMetaProvider      metaprovider.K8sCrdCmpdProvider
-	cmpvMetaProvider      metaprovider.K8sCrdCmpvProvider
-	clusterConfigProvider metaprovider.K8sClusterConfigProvider
-	reqRecordProvider     metaprovider.ClusterRequestRecordProvider
-	releaseMetaProvider   metaprovider.AddonClusterReleaseProvider
+	clusterMetaProvider     metaprovider.K8sCrdClusterProvider
+	componentMetaProvider   metaprovider.K8sCrdComponentProvider
+	cdMetaProvider          metaprovider.K8sCrdClusterDefinitionProvider
+	cmpdMetaProvider        metaprovider.K8sCrdCmpdProvider
+	cmpvMetaProvider        metaprovider.K8sCrdCmpvProvider
+	clusterConfigProvider   metaprovider.K8sClusterConfigProvider
+	reqRecordProvider       metaprovider.ClusterRequestRecordProvider
+	releaseMetaProvider     metaprovider.AddonClusterReleaseProvider
+	clusterHelmRepoProvider metaprovider.AddonClusterHelmRepoProvider
 }
 
 // NewClusterProviderBuilder 创建 ClusterProviderBuilder 实例
@@ -128,6 +134,14 @@ func (c *ClusterProviderBuilder) WithReleaseMetaProvider(
 	return c
 }
 
+// WithClusterHelmRepoProvider 设置 ClusterProviderBuilder
+func (c *ClusterProviderBuilder) WithClusterHelmRepoProvider(
+	p metaprovider.AddonClusterHelmRepoProvider,
+) *ClusterProviderBuilder {
+	c.clusterHelmRepoProvider = p
+	return c
+}
+
 // Build 构建并返回 ClusterProvider 实例
 func (c *ClusterProviderBuilder) Build() (*ClusterProvider, error) {
 	if c.clusterMetaProvider == nil {
@@ -154,75 +168,68 @@ func (c *ClusterProviderBuilder) Build() (*ClusterProvider, error) {
 	if c.releaseMetaProvider == nil {
 		return nil, errors.New("releaseMetaProvider is required")
 	}
+	if c.clusterHelmRepoProvider == nil {
+		return nil, errors.New("clusterHelmRepoProvider is required")
+	}
 	return &ClusterProvider{
-		clusterMetaProvider:   c.clusterMetaProvider,
-		componentMetaProvider: c.componentMetaProvider,
-		cdMetaProvider:        c.cdMetaProvider,
-		cmpdMetaProvider:      c.cmpdMetaProvider,
-		cmpvMetaProvider:      c.cmpvMetaProvider,
-		clusterConfigProvider: c.clusterConfigProvider,
-		reqRecordProvider:     c.reqRecordProvider,
-		releaseMetaProvider:   c.releaseMetaProvider,
+		clusterMetaProvider:     c.clusterMetaProvider,
+		componentMetaProvider:   c.componentMetaProvider,
+		cdMetaProvider:          c.cdMetaProvider,
+		cmpdMetaProvider:        c.cmpdMetaProvider,
+		cmpvMetaProvider:        c.cmpvMetaProvider,
+		clusterConfigProvider:   c.clusterConfigProvider,
+		reqRecordProvider:       c.reqRecordProvider,
+		releaseMetaProvider:     c.releaseMetaProvider,
+		clusterHelmRepoProvider: c.clusterHelmRepoProvider,
 	}, nil
 }
 
 // CreateCluster 创建集群
 func (c *ClusterProvider) CreateCluster(request *coreentity.Request) error {
+	// 记录 request record
 	addedRequestEntity, err := c.createRequestEntity(request, coreconst.CreateCluster)
 	if err != nil {
 		return fmt.Errorf("failed to create request entity: %w", err)
 	}
-
+	// 获取 k8s 集群配置
 	k8sClusterConfig, err := c.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
 	if err != nil {
 		return fmt.Errorf("failed to get k8s cluster config for name %q: %w", request.K8sClusterName, err)
-
 	}
-
+	// 获取 K8sClient
 	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return fmt.Errorf("failed to create k8s client for cluster %q: %w", request.K8sClusterName, err)
-
 	}
-
 	if err = verifyAddonExists(request, k8sClient); err != nil {
 		return fmt.Errorf("addon verification failed for cluster %q: %w", request.ClusterName, err)
-
 	}
-
+	// 记录 cluster 和 component 元数据
 	addedClusterEntity, err := c.createClusterEntity(request, addedRequestEntity.RequestID, k8sClusterConfig.ID)
 	if err != nil {
 		return fmt.Errorf("failed to create cluster entity: %w", err)
 	}
-
 	_, err = c.createComponentEntity(request, addedClusterEntity.ID)
 	if err != nil {
 		return fmt.Errorf("failed to create component entity for cluster %q: %w", request.ClusterName, err)
-
 	}
-
-	releaseValues, err := coreclient.CreateStorageAddonCluster(k8sClient, request)
+	values, err := c.installHelmRelease(request, k8sClient)
 	if err != nil {
-		slog.Error("failed to create storage addon cluster",
-			"cluster_name", request.ClusterName,
-			"namespace", request.Namespace,
-			"error", err,
-		)
-		return fmt.Errorf("failed to create storage addon cluster: %w", err)
+		slog.Error("failed to install helm release", "error", err)
+		return err
 	}
-
-	// 7. 构建并保存 release 实体
+	// 保存 addon cluster release
 	clusterRelease, err := buildClusterReleaseEntity(
 		k8sClusterConfig.ID,
 		request,
 		coreconst.DefaultUserName,
 		coreconst.DefaultRepoName,
 		coreconst.DefaultRepoRepository,
-		releaseValues,
+		values,
 	)
 	if err != nil {
-		slog.Error("create cluster release entity error", "error", err.Error())
-		return err
+		slog.Error("build cluster release entity error", "error", err.Error())
+		return fmt.Errorf("failed to build cluster release entity: %w", err)
 	}
 	_, err = c.releaseMetaProvider.CreateClusterRelease(clusterRelease)
 	if err != nil {
@@ -257,12 +264,13 @@ func (c *ClusterProvider) UpdateCluster(request *coreentity.Request) error {
 		return fmt.Errorf("failed to verify addon exists: %w", err)
 	}
 
-	// get updated value
-	updatedValue, err := coreclient.UpdateStorageAddonCluster(k8sClient, request)
+	values, err := c.updateHelmRelease(request, k8sClient)
 	if err != nil {
-		return fmt.Errorf("failed to update cluster: %w", err)
+		slog.Error("failed to update helm release", "error", err)
+		return err
 	}
-	jsonData, err := json.Marshal(updatedValue)
+
+	jsonData, err := json.Marshal(values)
 	if err != nil {
 		slog.Error("failed to marshal release values",
 			"release_name", request.ClusterName,
@@ -282,7 +290,6 @@ func (c *ClusterProvider) UpdateCluster(request *coreentity.Request) error {
 		return err
 	}
 	releaseEntity.ChartValues = string(jsonData)
-
 	_, err = c.releaseMetaProvider.UpdateClusterRelease(releaseEntity)
 	if err != nil {
 		slog.Error("failed to update cluster release",
@@ -578,4 +585,133 @@ func buildClusterReleaseEntity(
 		RepoRepository:     repoRepository,
 		ChartValues:        jsonStr,
 	}, nil
+}
+
+// installHelmRelease 安装 chart
+func (c *ClusterProvider) installHelmRelease(
+	request *coreentity.Request,
+	k8sClient *coreclient.K8sClient,
+) (map[string]interface{}, error) {
+	actionConfig, err := c.buildHelmActionConfig(request, k8sClient)
+	if err != nil {
+		slog.Error("failed to build helm action config", "error", err)
+		return nil, err
+	}
+	helmRepo, err := c.getHelmRepository(request)
+	if err != nil {
+		slog.Error("failed to get helm repo", "error", err)
+		return nil, err
+	}
+	install := action.NewInstall(actionConfig)
+	install.ReleaseName = request.ClusterName
+	install.Namespace = request.Namespace
+	install.RepoURL = helmRepo.RepoRepository
+	install.Version = request.StorageAddonVersion
+	install.Timeout = clientconst.HelmRepoDownloadTimeout
+	install.CreateNamespace = true
+	install.Wait = true
+	install.Username = helmRepo.RepoUsername
+	install.Password = helmRepo.RepoPassword
+	chartRequested, err := install.ChartPathOptions.LocateChart(request.StorageAddonType+"-cluster", helmcli.New())
+	if err != nil {
+		slog.Error("failed to locate helm chart requested", "error", err)
+		return nil, fmt.Errorf("failed to locate helm chart requested\n%s", err)
+	}
+	chart, err := loader.Load(chartRequested)
+	if err != nil {
+		slog.Error("failed to load helm chart requested", "error", err)
+		return nil, fmt.Errorf("failed to load helm chart requested\n%s", err)
+	}
+	values := chart.Values
+	err = coreclient.MergeValues(values, request)
+	if err != nil {
+		slog.Error("failed to merge dynamic values", "error", err)
+		return nil, fmt.Errorf("failed to merge dynamic values  %w", err)
+	}
+	_, err = install.Run(chart, values)
+	if err != nil {
+		slog.Error("cluster install failed", "clusterName", request.ClusterName, "error", err)
+		return nil, fmt.Errorf("failed to install cluster %s: %w", request.ClusterName, err)
+	}
+	return values, nil
+}
+
+// updateHelmRelease 更新 chart
+func (c *ClusterProvider) updateHelmRelease(
+	request *coreentity.Request,
+	k8sClient *coreclient.K8sClient,
+) (map[string]interface{}, error) {
+	actionConfig, err := c.buildHelmActionConfig(request, k8sClient)
+	if err != nil {
+		slog.Error("failed to build helm action config", "error", err)
+		return nil, err
+	}
+
+	helmRepo, err := c.getHelmRepository(request)
+	if err != nil {
+		slog.Error("failed to get helm repo", "error", err)
+		return nil, err
+	}
+
+	upgrade := action.NewUpgrade(actionConfig)
+	upgrade.Namespace = request.Namespace
+	upgrade.RepoURL = helmRepo.RepoRepository
+	upgrade.Version = request.StorageAddonVersion
+	upgrade.Timeout = clientconst.HelmRepoDownloadTimeout
+	upgrade.Wait = true
+	upgrade.Username = helmRepo.RepoUsername
+	upgrade.Password = helmRepo.RepoPassword
+	chartRequested, err := upgrade.ChartPathOptions.LocateChart(request.StorageAddonType+"-cluster", helmcli.New())
+	if err != nil {
+		return nil, fmt.Errorf("下载失败\n%s", err)
+	}
+	chart, err := loader.Load(chartRequested)
+	if err != nil {
+		return nil, fmt.Errorf("加载失败\n%s", err)
+	}
+	values := chart.Values
+	err = coreclient.MergeValues(values, request)
+	if err != nil {
+		slog.Error("failed to merge dynamic values", "error", err)
+		return nil, fmt.Errorf("failed to merge dynamic values  %w", err)
+	}
+	_, err = upgrade.Run(request.ClusterName, chart, values)
+	if err != nil {
+		slog.Error("cluster install failed", "clusterName", request.ClusterName, "error", err)
+		return nil, fmt.Errorf("failed to install cluster %s: %w", request.ClusterName, err)
+	}
+	return values, nil
+}
+
+// getHelmRepository 获取 helm repository
+func (c *ClusterProvider) getHelmRepository(
+	request *coreentity.Request,
+) (*providerentity.AddonClusterHelmRepoEntity, error) {
+	repoParams := make(map[string]interface{})
+	repoParams["chart_name"] = request.StorageAddonType + "-cluster"
+	repoParams["chart_version"] = request.StorageAddonVersion
+
+	helmRepo, err := c.clusterHelmRepoProvider.FindByParams(repoParams)
+	if err != nil {
+		slog.Error("failed to find helm repo for cluster", "clusterName", request.ClusterName, "error", err)
+		return nil, err
+	}
+	return helmRepo, nil
+}
+
+// buildHelmActionConfig 构建 helm action config
+func (c *ClusterProvider) buildHelmActionConfig(
+	request *coreentity.Request,
+	k8sClient *coreclient.K8sClient,
+) (*action.Configuration, error) {
+	actionConfig, err := k8sClient.BuildHelmConfig(request.Namespace)
+	if err != nil {
+		slog.Error("failed to build Helm configuration",
+			"namespace", request.Namespace,
+			"error", err,
+		)
+		return nil, fmt.Errorf("failed to build Helm configuration for namespace %q: %w",
+			request.Namespace, err)
+	}
+	return actionConfig, nil
 }

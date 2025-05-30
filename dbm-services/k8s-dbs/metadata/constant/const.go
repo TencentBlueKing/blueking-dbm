@@ -39,9 +39,10 @@ const (
 	TbComponentOperation        = "tb_component_operation"
 	TbClusterOperation          = "tb_cluster_operation"
 	TbAddonClusterRelease       = "tb_addoncluster_release"
+	TbAddonClusterHelmRepo      = "tb_addoncluster_helm_repository"
 )
 
 // MySQLTestURL mysql connection credentials for test
 const (
-	MySQLTestURL = "root:root@tcp(localhost:3306)/bkbase_dbs?charset=utf8mb4&parseTime=True&loc=Local"
+	MySQLTestURL = "root:TestPwd123@tcp(localhost:3306)/bkbase_dbs?charset=utf8mb4&parseTime=True&loc=Local"
 )

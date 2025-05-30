@@ -33,13 +33,13 @@ import (
 	pventity "k8s-dbs/core/provider/entity"
 )
 
-// AddonController  插件管理 controller
+// AddonController  addon controller
 type AddonController struct {
 	addonProvider *provider.AddonProvider
 }
 
 // DeployAddon 安装 addon 插件
-func (k *AddonController) DeployAddon(ctx *gin.Context) {
+func (a *AddonController) DeployAddon(ctx *gin.Context) {
 	var addonDeployReqVo reqvo.AddonDeployReqVo
 	if err := ctx.ShouldBindJSON(&addonDeployReqVo); err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.DeployAddonError, err))
@@ -50,7 +50,7 @@ func (k *AddonController) DeployAddon(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.DeployAddonError, err))
 		return
 	}
-	err := k.addonProvider.DeployAddon(&addonEntity)
+	err := a.addonProvider.DeployAddon(&addonEntity)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.DeployAddonError, err))
 		return
@@ -58,7 +58,7 @@ func (k *AddonController) DeployAddon(ctx *gin.Context) {
 	entity.SuccessResponse(ctx, nil, coreconst.Success)
 }
 
-// NewAddonController 构建 AddonProvider
+// NewAddonController 构建 AddonController
 func NewAddonController(addonProvider *provider.AddonProvider) *AddonController {
 	return &AddonController{
 		addonProvider,

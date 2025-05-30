@@ -51,7 +51,7 @@ func InitClusterReleaseTb() (*gorm.DB, error) {
 	return db, nil
 }
 
-func TestClusterRelease(t *testing.T) {
+func TestCreateRelease(t *testing.T) {
 	db, err := InitClusterReleaseTb()
 	assert.NoError(t, err)
 	dbAccess := dbaccess.NewAddonClusterReleaseDbAccess(db)
@@ -65,7 +65,7 @@ func TestClusterRelease(t *testing.T) {
 		K8sClusterConfigID: 1,
 		ReleaseName:        "test-release",
 		ChartValues:        "test-chart-values",
-		CreatedBy:          "alex",
+		CreatedBy:          "test-user",
 	}
 
 	addedRelease, err := releaseProvider.CreateClusterRelease(release)
@@ -89,7 +89,7 @@ func TestDeleteClusterRelease(t *testing.T) {
 		K8sClusterConfigID: 1,
 		ReleaseName:        "test-release",
 		ChartValues:        "test-chart-values",
-		CreatedBy:          "alex",
+		CreatedBy:          "test-user",
 	}
 
 	_, err = releaseProvider.CreateClusterRelease(release)
@@ -115,13 +115,13 @@ func TestUpdateClusterRelease(t *testing.T) {
 		K8sClusterConfigID: 1,
 		ReleaseName:        "test-release",
 		ChartValues:        "test-chart-values",
-		CreatedBy:          "alex",
+		CreatedBy:          "test-user",
 	}
 
 	_, err = releaseProvider.CreateClusterRelease(release)
 	assert.NoError(t, err, "Failed to create")
 
-	updatedRelease := &entitys.AddonClusterReleaseEntity{
+	updateRelease := &entitys.AddonClusterReleaseEntity{
 		ID:                 1,
 		RepoName:           "test-reponame2",
 		RepoRepository:     "test-repository2",
@@ -131,9 +131,9 @@ func TestUpdateClusterRelease(t *testing.T) {
 		K8sClusterConfigID: 1,
 		ReleaseName:        "test-release2",
 		ChartValues:        "test-chart-values2",
-		CreatedBy:          "alex",
+		CreatedBy:          "test-user2",
 	}
-	rows, err := releaseProvider.UpdateClusterRelease(updatedRelease)
+	rows, err := releaseProvider.UpdateClusterRelease(updateRelease)
 	assert.NoError(t, err, "Failed to update")
 	assert.Equal(t, uint64(1), rows)
 }
@@ -153,7 +153,7 @@ func TestListClusterRelease(t *testing.T) {
 			K8sClusterConfigID: 1,
 			ReleaseName:        "test-release",
 			ChartValues:        "test-chart-values",
-			CreatedBy:          "alex",
+			CreatedBy:          "test-user",
 		},
 		{
 			RepoName:           "test-reponame2",
@@ -164,7 +164,7 @@ func TestListClusterRelease(t *testing.T) {
 			K8sClusterConfigID: 1,
 			ReleaseName:        "test-release2",
 			ChartValues:        "test-chart-values2",
-			CreatedBy:          "alex2",
+			CreatedBy:          "test-user2",
 		},
 	}
 
@@ -220,7 +220,7 @@ func TestGetClusterReleaseByParams(t *testing.T) {
 		"release_name":          "test-release",
 		"namespace":             "test-namespace",
 	}
-	foundClusterRelease, err := dbAccess.FindByParams(params)
+	foundClusterRelease, err := releaseProvider.FindByParams(params)
 	assert.NoError(t, err, "Failed to find addon cluster release")
 	assert.Equal(t, release.RepoName, foundClusterRelease.RepoName)
 	assert.Equal(t, release.RepoRepository, foundClusterRelease.RepoRepository)

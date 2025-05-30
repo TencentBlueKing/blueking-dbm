@@ -102,6 +102,8 @@ func buildMetaRouter(db *gorm.DB, router *gin.Engine) {
 
 		buildComponentOpMetaRouter(db, metaRouter)
 
+		buildHelmRepoMetaRouter(db, metaRouter)
+
 		buildClusterReleaseMetaRouter(db, metaRouter)
 	}
 }
@@ -262,6 +264,18 @@ func buildComponentOpMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
 	}
 }
 
+// buildHelmRepoMetaRouter Helm repository 管理路由构建
+func buildHelmRepoMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
+	dbAccess := metadbaccess.NewAddonClusterHelmRepoDbAccess(db)
+	metaProvider := metaprovider.NewAddonClusterHelmRepoProvider(dbAccess)
+	metaController := metacontroller.NewClusterHelmRepoController(metaProvider)
+	repoMetaGroup := metaRouter.Group("/helm_repo")
+	{
+		repoMetaGroup.GET("", metaController.GetClusterHelmRepoByID)
+		repoMetaGroup.POST("", metaController.CreateClusterHelmRepo)
+	}
+}
+
 // buildClusterRouter cluster 管理路由构建
 func buildClusterRouter(db *gorm.DB, router *gin.Engine) {
 	clusterController := initClusterController(db)
@@ -341,6 +355,7 @@ func buildService(db *gorm.DB) (*provider.ClusterProvider, *provider.OpsRequestP
 	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
 	requestRecordDbAccess := metadbaccess.NewClusterRequestRecordDbAccess(db)
 	clusterReleaseDbAccess := metadbaccess.NewAddonClusterReleaseDbAccess(db)
+	helmRepoDbAccess := metadbaccess.NewAddonClusterHelmRepoDbAccess(db)
 
 	clusterProvider := metaprovider.NewK8sCrdClusterProvider(clusterDbAccess)
 	clusterDefinitionProvider := metaprovider.NewK8sCrdClusterDefinitionProvider(clusterDefinitionDbAccess)
@@ -351,6 +366,7 @@ func buildService(db *gorm.DB) (*provider.ClusterProvider, *provider.OpsRequestP
 	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(k8sClusterConfigDbAccess)
 	requestRecordProvider := metaprovider.NewClusterRequestRecordProvider(requestRecordDbAccess)
 	clusterReleaseProvider := metaprovider.NewAddonClusterReleaseProvider(clusterReleaseDbAccess)
+	helmRepoMetaProvider := metaprovider.NewAddonClusterHelmRepoProvider(helmRepoDbAccess)
 
 	clusterService, err := provider.NewClusterProviderBuilder().
 		WithClusterMetaProvider(clusterProvider).
@@ -360,6 +376,7 @@ func buildService(db *gorm.DB) (*provider.ClusterProvider, *provider.OpsRequestP
 		WithCmpvMetaProvider(componentVersionProvider).
 		WithClusterConfigMetaProvider(k8sClusterConfigProvider).
 		WithReqRecordProvider(requestRecordProvider).
+		WithClusterHelmRepoProvider(helmRepoMetaProvider).
 		WithReleaseMetaProvider(clusterReleaseProvider).Build()
 	if err != nil {
 		slog.Error("build cluster provider error", "error", err.Error())
@@ -374,7 +391,7 @@ func buildService(db *gorm.DB) (*provider.ClusterProvider, *provider.OpsRequestP
 		WithReleaseMetaProvider(clusterReleaseProvider).
 		WithClusterProvider(clusterService).Build()
 	if err != nil {
-		slog.Error("build cluster provider error", "error", err.Error())
+		slog.Error("build ops request provider error", "error", err.Error())
 		panic(err)
 	}
 
