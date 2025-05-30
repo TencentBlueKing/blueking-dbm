@@ -17,6 +17,7 @@ MYSQL_COMMON_SQL_STATEMENTS = [
     {"name": _("查询链接信息"), "sql": "select * from information_schema.processlist limit 1;"},
     {"name": _("查看主从信息"), "sql": "show slave status;"},
     {"name": _("当前连接线程"), "sql": "show processlist;"},
+    {"name": _("mysql配置信息查询"), "sql": "show mysql configurations;"},
     {"name": _("查询版本"), "sql": "show variables like 'version';"},
     {"name": _("查询字符集"), "sql": "show variables like 'character_set%';"},
     {"name": _("查询最大连接数"), "sql": "show variables like 'max_connections';"},
@@ -33,6 +34,13 @@ MYSQL_COMMON_SQL_STATEMENTS = [
         "sql": "select count(*) from infodba_schema.checksum "
         "where this_crc<>master_crc or this_cnt<>master_cnt limit 1;",
     },
+]
+
+PROXY_COMMON_SQL_STATEMENTS = [
+    {"name": _("当前连接线程"), "sql": "show processlist;"},
+    {"name": _("查询当前版本"), "sql": "select version;"},
+    {"name": _("查询user"), "sql": "SELECT * FROM user;"},
+    {"name": _("查询后端"), "sql": "SELECT * FROM backends;"},
 ]
 
 SQLSERVER__COMMON_SQL_STATEMENTS = [

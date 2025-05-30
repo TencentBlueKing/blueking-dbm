@@ -340,8 +340,15 @@ class RemoteServiceHandler:
         """
         proxy_statements = ["SELECT * FROM backends;", "SELECT * FROM user;", "show processlist;", "select version;"]
         if cmd not in proxy_statements:
-            return {"query": [], "error_msg": _("请严格输入proxy允许的标准sql，且每次只能查询一条！")}
-
+            results = [
+                {
+                    "error_msg": _("查询实例[{}]失败 请严格输入proxy允许的标准sql，且每次只能查询一条！").format(instance["instance"]),
+                    "instance": instance["instance"],
+                    "table_data": [],
+                }
+                for instance in instances
+            ]
+            return results
         rpc_results = ClusterServiceHandler.console_rpc(
             instances, cmd, db_query=True, rpc_function=DRSApi.proxyrpc, is_check=False
         )

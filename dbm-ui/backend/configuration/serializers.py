@@ -267,3 +267,5 @@ class FunctionControllerSerializer(serializers.Serializer):
 
 class GetCommonSQLSerializer(serializers.Serializer):
     db_type = serializers.ChoiceField(help_text=_("组件类型"), choices=DBType.get_choices())
+    # mysql 额外参数
+    is_proxy = serializers.BooleanField(help_text=_("是否是proxy类型"), default=False, required=False)
