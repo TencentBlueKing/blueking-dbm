@@ -13,6 +13,7 @@ export * from './dataStructureTaskDelete';
 export * from './destroy';
 export * from './hotKeyAnalyse';
 export * from './insApply';
+export * from './installModule';
 export * from './instanceDestroy';
 export * from './instanceProxyClose';
 export * from './instanceProxyOpen';
