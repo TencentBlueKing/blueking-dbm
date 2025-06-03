@@ -45,6 +45,7 @@ export default function getRoutes() {
           component: () => import('@views/db-manage/tendb-cluster/dba-manage/web-query/Index.vue'),
         },
         createRouteItem(TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER, t('主库故障切换')),
+        createRouteItem(TicketTypes.TENDBCLUSTER_INSTANCE_FAIL_OVER, t('主库故障切换')),
       ],
     },
   ];

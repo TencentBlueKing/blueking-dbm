@@ -28,7 +28,7 @@
       <CardCheckbox
         v-model="operaObjectType"
         class="ml-8"
-        :desc="t('用于强制主机上所有实例切换')"
+        :desc="t('用于强制执行主机级别切换')"
         icon="host"
         :title="t('主机切换')"
         :true-value="OperaObejctType.MACHINE" />
@@ -132,14 +132,18 @@
       bk_cloud_id: number;
       bk_host_id: number;
       cluster_id: number;
+      instance_address: string;
       ip: string;
       master_domain: string;
+      port: number;
     };
     slave: {
       bk_biz_id: number;
       bk_cloud_id: number;
       bk_host_id: number;
+      instance_address: string;
       ip: string;
+      port: number;
     };
   }
 
@@ -150,8 +154,8 @@
 
   const batchInputConfig = [
     {
-      case: '192.168.10.2',
-      key: 'ip',
+      case: '192.168.10.2:2000',
+      key: 'instance_address',
       label: 'Master',
     },
   ];
@@ -162,14 +166,18 @@
       bk_cloud_id: 0,
       bk_host_id: 0,
       cluster_id: 0,
+      instance_address: '',
       ip: '',
       master_domain: '',
+      port: 0,
     },
     slave: data.slave || {
       bk_biz_id: 0,
       bk_cloud_id: 0,
       bk_host_id: 0,
+      instance_address: '',
       ip: '',
+      port: 0,
     },
   });
 
@@ -179,23 +187,23 @@
     ticketPayload: createTickePayload(),
   });
 
-  const operaObjectType = ref(OperaObejctType.MACHINE);
+  const operaObjectType = ref(OperaObejctType.INSTANCE);
   const formData = reactive(defaultData());
 
   const selected = computed(() =>
     formData.tableData.filter((item) => item.master.bk_host_id).map((item) => item.master),
   );
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
+  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.instance_address, true])));
 
   watch(operaObjectType, () => {
-    if (operaObjectType.value === OperaObejctType.INSTANCE) {
+    if (operaObjectType.value === OperaObejctType.MACHINE) {
       router.push({
-        name: `DBA_${TicketTypes.MYSQL_INSTANCE_FAIL_OVER}`,
+        name: `DBA_${TicketTypes.MYSQL_MASTER_FAIL_OVER}`,
       });
     }
   });
 
-  useTicketDetail<Mysql.MasterFailOver>(TicketTypes.MYSQL_MASTER_FAIL_OVER, {
+  useTicketDetail<Mysql.InstanceFailOver>(TicketTypes.MYSQL_INSTANCE_FAIL_OVER, {
     async onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { clusters, infos } = details;
@@ -207,9 +215,14 @@
             master: {
               ...item.master_ip,
               cluster_id: item.cluster_ids[0],
+              instance_address: `${item.master_ip.ip}:${item.master_ip.port}`,
               master_domain: clusters[item.cluster_ids[0]].immute_domain,
+              port: item.master_ip.port as number,
             },
-            slave: item.slave_ip,
+            slave: {
+              ...item.slave_ip,
+              instance_address: `${item.slave_ip.ip}:${item.slave_ip.port}`,
+            },
           }),
         ),
       });
@@ -224,18 +237,20 @@
         bk_cloud_id: number;
         bk_host_id: number;
         ip: string;
+        port?: number;
       };
       slave_ip: {
         bk_biz_id: number;
         bk_cloud_id: number;
         bk_host_id: number;
         ip: string;
+        port?: number;
       };
     }[];
     is_check_delay: boolean;
     is_check_process: boolean;
     is_verify_checksum: boolean;
-  }>(TicketTypes.MYSQL_MASTER_FAIL_OVER);
+  }>(TicketTypes.MYSQL_INSTANCE_FAIL_OVER);
 
   const handleSubmit = async () => {
     const result = await tableRef.value!.validate();
@@ -266,16 +281,18 @@
 
   const handleBatchEdit = (list: IValue[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!selectedMap.value[item.ip]) {
+      if (!selectedMap.value[item.instance_address]) {
         acc.push(
           createTableRow({
             master: {
               bk_biz_id: item.bk_biz_id,
               bk_cloud_id: item.bk_cloud_id,
               bk_host_id: item.bk_host_id,
-              cluster_id: item.related_clusters?.[0]?.id || 0,
+              cluster_id: item.cluster_id,
+              instance_address: item.instance_address,
               ip: item.ip,
-              master_domain: item.related_clusters?.[0]?.immute_domain || '',
+              master_domain: item.master_domain,
+              port: item.port,
             },
           }),
         );
@@ -295,8 +312,10 @@
               bk_cloud_id: 0,
               bk_host_id: 0,
               cluster_id: 0,
-              ip: item.master,
+              instance_address: item.master,
+              ip: '',
               master_domain: '',
+              port: 0,
             },
           }),
         );

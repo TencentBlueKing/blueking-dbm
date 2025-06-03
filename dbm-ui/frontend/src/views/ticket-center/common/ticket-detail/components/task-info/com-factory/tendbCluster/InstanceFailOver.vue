@@ -13,14 +13,14 @@
 
 <template>
   <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn :label="t('故障主库主机')">
+    <BkTableColumn :label="t('故障主库实例')">
       <template #default="{ data }: { data: RowData }">
-        {{ data.switch_tuples[0]?.master?.ip }}
+        {{ `${data.switch_tuples[0]?.master?.ip}:${data.switch_tuples[0]?.master?.port}` }}
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('从库主机')">
+    <BkTableColumn :label="t('从库实例')">
       <template #default="{ data }: { data: RowData }">
-        {{ data.switch_tuples[0]?.slave?.ip }}
+        {{ `${data.switch_tuples[0]?.slave?.ip}:${data.switch_tuples[0]?.slave?.port}` }}
       </template>
     </BkTableColumn>
     <BkTableColumn :label="t('所属集群')">
@@ -51,13 +51,13 @@
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
 
   interface Props {
-    ticketDetails: TicketModel<TendbCluster.MasterFailOver>;
+    ticketDetails: TicketModel<TendbCluster.InstanceFailOver>;
   }
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
   defineOptions({
-    name: TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER,
+    name: TicketTypes.TENDBCLUSTER_INSTANCE_FAIL_OVER,
     inheritAttrs: false,
   });
 

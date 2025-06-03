@@ -25,6 +25,13 @@
         icon="rebuild"
         :title="t('实例切换')"
         :true-value="OperaObejctType.INSTANCE" />
+      <CardCheckbox
+        v-model="operaObjectType"
+        class="ml-8"
+        :desc="t('用于强制主机上所有实例切换')"
+        icon="host"
+        :title="t('主机切换')"
+        :true-value="OperaObejctType.MACHINE" />
     </div>
     <BatchInput
       :config="batchInputConfig"
@@ -125,23 +132,20 @@
       bk_cloud_id: number;
       bk_host_id: number;
       cluster_id: number;
-      instance_address: string;
       ip: string;
       master_domain: string;
-      port: number;
     };
     slave: {
       bk_biz_id: number;
       bk_cloud_id: number;
       bk_host_id: number;
-      instance_address: string;
       ip: string;
-      port: number;
     };
   }
 
   const { t } = useI18n();
   const { getBizInfoById } = useGlobalBizs();
+  const router = useRouter();
   const tableRef = useTemplateRef('table');
 
   const batchInputConfig = [
@@ -158,18 +162,14 @@
       bk_cloud_id: 0,
       bk_host_id: 0,
       cluster_id: 0,
-      instance_address: '',
       ip: '',
       master_domain: '',
-      port: 0,
     },
     slave: data.slave || {
       bk_biz_id: 0,
       bk_cloud_id: 0,
       bk_host_id: 0,
-      instance_address: '',
       ip: '',
-      port: 0,
     },
   });
 
@@ -179,13 +179,21 @@
     ticketPayload: createTickePayload(),
   });
 
-  const operaObjectType = ref(OperaObejctType.INSTANCE);
+  const operaObjectType = ref(OperaObejctType.MACHINE);
   const formData = reactive(defaultData());
 
   const selected = computed(() =>
     formData.tableData.filter((item) => item.master.bk_host_id).map((item) => item.master),
   );
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.instance_address, true])));
+  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
+
+  watch(operaObjectType, () => {
+    if (operaObjectType.value === OperaObejctType.INSTANCE) {
+      router.push({
+        name: `DBA_${TicketTypes.TENDBCLUSTER_INSTANCE_FAIL_OVER}`,
+      });
+    }
+  });
 
   useTicketDetail<TendbCluster.MasterFailOver>(TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER, {
     async onSuccess(ticketDetail) {
@@ -200,13 +208,10 @@
             master: {
               ...master,
               cluster_id: item.cluster_id,
-              instance_address: `${master.ip}:${master.port}`,
               master_domain: clusters[item.cluster_id].immute_domain,
-              port: master.port as number,
             },
             slave: {
               ...slave,
-              instance_address: `${slave.ip}:${slave.port}`,
             },
           });
         }),
@@ -223,14 +228,12 @@
           bk_cloud_id: number;
           bk_host_id: number;
           ip: string;
-          port?: number;
         };
         slave: {
           bk_biz_id: number;
           bk_cloud_id: number;
           bk_host_id: number;
           ip: string;
-          port?: number;
         };
       }[];
     }[];
@@ -272,18 +275,16 @@
 
   const handleBatchEdit = (list: IValue[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!selectedMap.value[item.instance_address]) {
+      if (!selectedMap.value[item.ip]) {
         acc.push(
           createTableRow({
             master: {
               bk_biz_id: item.bk_biz_id,
               bk_cloud_id: item.bk_cloud_id,
               bk_host_id: item.bk_host_id,
-              cluster_id: item.cluster_id,
-              instance_address: item.instance_address,
+              cluster_id: item.related_clusters?.[0]?.id || 0,
               ip: item.ip,
-              master_domain: item.master_domain,
-              port: item.port,
+              master_domain: item.related_clusters?.[0]?.immute_domain || '',
             },
           }),
         );
@@ -303,10 +304,8 @@
               bk_cloud_id: 0,
               bk_host_id: 0,
               cluster_id: 0,
-              instance_address: item.master,
-              ip: '',
+              ip: item.master,
               master_domain: '',
-              port: 0,
             },
           }),
         );

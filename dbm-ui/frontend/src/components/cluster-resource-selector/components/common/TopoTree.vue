@@ -33,15 +33,11 @@
         virtual-render
         @node-click="handleNodeClick">
         <template #node="item">
-          <div
-            class="custom-tree-node"
-            :class="{
-              'is-leaf': !item.children,
-            }">
+          <div class="custom-tree-node">
             <span
-              v-if="item.nodeType"
+              v-if="item.nodeType !== 'all'"
               class="custom-tree-node-tag">
-              {{ item.nodeType === 'biz' ? t('业') : t('模') }}
+              {{ t('业') }}
             </span>
             <span
               v-overflow-tips
@@ -69,7 +65,7 @@
     count: number;
     id: number;
     name: string;
-    nodeType: 'biz' | 'module' | 'all';
+    nodeType: 'biz' | 'all';
     parentId?: number;
   }
 
@@ -109,13 +105,6 @@
       const children = data.reduce<TopoTreeNode[]>((acc, biz) => {
         count += biz.count;
         acc.push({
-          children: biz.modules.map((module) => ({
-            count: module.count,
-            id: module.module_id,
-            name: module.module_name,
-            nodeType: 'module',
-            parentId: biz.bk_biz_id,
-          })),
           count: biz.count,
           id: biz.bk_biz_id,
           name: biz.bk_biz_name,
@@ -156,15 +145,9 @@
       emits('change', {
         bk_biz_id: node.id,
       });
-    } else if (node.nodeType === 'module') {
-      emits('change', {
-        bk_biz_id: node.parentId,
-        db_module_id: node.id,
-      });
     } else {
       emits('change', {
         bk_biz_id: undefined,
-        db_module_id: undefined,
       });
     }
 
@@ -235,10 +218,6 @@
             border-radius: 2px;
             flex-shrink: 0;
           }
-        }
-
-        .is-leaf {
-          padding-left: 10px;
         }
 
         &.is-selected {

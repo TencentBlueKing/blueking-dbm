@@ -14,7 +14,7 @@
 <template>
   <EditableColumn
     :append-rules="rules"
-    field="master.ip"
+    field="master.instance_address"
     fixed="left"
     label="Master"
     :loading="loading"
@@ -29,33 +29,33 @@
       </span>
     </template>
     <EditableInput
-      v-model="modelValue.ip"
-      :placeholder="t('请输入如: 192.168.10.2')"
+      v-model="modelValue.instance_address"
+      :placeholder="t('请输入如: 192.168.10.2:1000')"
       @change="handleInputChange" />
   </EditableColumn>
   <ClusterResourceSelector
     v-model:is-show="showSelector"
     v-model:selected="dataList"
-    :cluster-type="[ClusterTypes.TENDBCLUSTER]"
-    role="remote_master"
-    target="machine"
+    :cluster-type="[ClusterTypes.TENDBHA]"
+    role="backend_master"
+    target="instance"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getGlobalMachine } from '@services/source/dbbase';
+  import { getGlobalInstance } from '@services/source/dbbase';
 
   import { ClusterTypes, DBTypes } from '@common/const';
-  import { ipv4 } from '@common/regex';
+  import { ipPort } from '@common/regex';
 
   import ClusterResourceSelector, {
     type ItemType,
     type Selected,
   } from '@components/cluster-resource-selector/Index.vue';
 
-  export type IValue = ItemType['machine'];
+  export type IValue = ItemType['instance'];
 
   interface Props {
     selected: (typeof modelValue.value)[];
@@ -72,8 +72,10 @@
     bk_cloud_id: number;
     bk_host_id: number;
     cluster_id: number;
+    instance_address: string;
     ip: string;
     master_domain: string;
+    port: number;
   }>({
     required: true,
   });
@@ -85,23 +87,23 @@
 
   const rules = [
     {
-      message: t('目标主机输入格式有误'),
+      message: t('目标实例输入格式有误'),
       trigger: 'change',
-      validator: (value: string) => ipv4.test(value),
+      validator: (value: string) => ipPort.test(value),
     },
     {
-      message: t('目标主机重复'),
+      message: t('目标实例重复'),
       trigger: 'blur',
-      validator: (value: string) => props.selected.filter((item) => item.ip === value).length < 2,
+      validator: (value: string) => props.selected.filter((item) => item.instance_address === value).length < 2,
     },
     {
-      message: t('目标主机不存在'),
+      message: t('目标实例不存在'),
       trigger: 'blur',
       validator: () => Boolean(modelValue.value.bk_host_id),
     },
   ];
 
-  const { loading, run: queryMachine } = useRequest(getGlobalMachine, {
+  const { loading, run: queryInstance } = useRequest(getGlobalInstance, {
     manual: true,
     onSuccess: (data) => {
       const [item] = data.results;
@@ -110,9 +112,11 @@
           bk_biz_id: item.bk_biz_id,
           bk_cloud_id: item.bk_cloud_id,
           bk_host_id: item.bk_host_id,
-          cluster_id: item.related_clusters?.[0]?.id || 0,
+          cluster_id: item.cluster_id,
+          instance_address: item.instance_address,
           ip: item.ip,
-          master_domain: item.related_clusters?.[0]?.immute_domain || '',
+          master_domain: item.master_domain,
+          port: item.port,
         };
       }
     },
@@ -128,8 +132,10 @@
       bk_cloud_id: 0,
       bk_host_id: 0,
       cluster_id: 0,
-      ip: value,
+      instance_address: value,
+      ip: '',
       master_domain: '',
+      port: 0,
     };
   };
 
@@ -140,12 +146,12 @@
   watch(
     modelValue,
     () => {
-      if (modelValue.value.ip && !modelValue.value.bk_host_id) {
-        queryMachine({
-          cluster_type: ClusterTypes.TENDBCLUSTER,
-          db_type: DBTypes.TENDBCLUSTER,
-          ip: modelValue.value.ip,
-          role: 'remote_master',
+      if (modelValue.value.instance_address && !modelValue.value.bk_host_id) {
+        queryInstance({
+          cluster_type: ClusterTypes.TENDBHA,
+          db_type: DBTypes.MYSQL,
+          instance_address: modelValue.value.instance_address,
+          role: 'backend_master',
         });
       }
     },

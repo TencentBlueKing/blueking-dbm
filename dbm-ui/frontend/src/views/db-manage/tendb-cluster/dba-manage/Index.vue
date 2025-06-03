@@ -32,8 +32,8 @@
       name: t('管理控制台'),
     },
     {
-      dbConsoleValue: 'dbaManage.tendbcluster.masterFailOver',
-      id: `DBA_${TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER}`,
+      dbConsoleValue: 'dbaManage.tendbcluster.instanceFailOver',
+      id: `DBA_${TicketTypes.TENDBCLUSTER_INSTANCE_FAIL_OVER}`,
       name: t('主库故障切换'),
     },
   ];

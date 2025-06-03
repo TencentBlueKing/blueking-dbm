@@ -13,12 +13,12 @@
 
 <template>
   <EditableColumn
-    field="slave.ip"
+    field="slave.instance_address"
     label="Slave"
     :loading="loading"
     :min-width="150">
     <EditableBlock
-      v-model="modelValue.ip"
+      v-model="modelValue.instance_address"
       :placeholder="t('自动生成')" />
   </EditableColumn>
 </template>
@@ -32,6 +32,7 @@
     master: {
       bk_biz_id: number;
       cluster_id: number;
+      port: number;
     };
   }
 
@@ -41,7 +42,9 @@
     bk_biz_id: number;
     bk_cloud_id: number;
     bk_host_id?: number;
+    instance_address: string;
     ip: string;
+    port: number;
   }>({
     required: true,
   });
@@ -57,7 +60,9 @@
           bk_biz_id: item.bk_biz_id,
           bk_cloud_id: item.bk_cloud_id,
           bk_host_id: item.bk_host_id,
+          instance_address: `${item.ip}:${props.master.port}`,
           ip: item.ip,
+          port: props.master.port,
         };
       }
     },

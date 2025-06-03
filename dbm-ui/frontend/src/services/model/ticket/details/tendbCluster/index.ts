@@ -16,6 +16,7 @@ export * from './flashBack';
 export * from './fullBackup';
 export * from './importSqlFile';
 export * from './instanceCloneRules';
+export * from './instanceFailOver';
 export * from './masterFailOver';
 export * from './masterSlaveSwitch';
 export * from './migrateCluster';
