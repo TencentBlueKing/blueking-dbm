@@ -183,7 +183,7 @@ func (task *MakeCacheSyncTask) Execute() {
 
 // GetSrcRedisVersion 获取源redis的版本
 func (task *MakeCacheSyncTask) GetSrcRedisVersion() {
-	if task.SrcVersion != "" {
+	if task.SrcVersion != "" && task.SrcBigVersion != 0 {
 		return
 	}
 
@@ -512,7 +512,7 @@ func (task *MakeCacheSyncTask) createShakeV4ConfigFile() {
 	if task.RowData.WriteMode == constvar.WriteModeKeepAndAppendToRedis {
 		// 设置这两个参数后,redis-shake将通过 hset/rpush等命令同步数据
 		// 而不是restore 命令同步数据
-		keyExists = "ignore"
+		keyExists = "skip"
 	}
 
 	// V4更新下log file，只需要文件名。最终文件是：PID_PATH/LOG_FILE
@@ -624,7 +624,9 @@ func (task *MakeCacheSyncTask) createShakeConfigFile() {
 	// WriteMode=delete_and_write_to_redis/flushall_and_write_to_redis
 	// 都需要用 restore [replace]
 	keyExists := "rewrite"
-	bigKeyThreshold := 524288000
+	// 如果目标集群是ssd或者plus，需要将bigKeyThreshold设置成1。
+	// 可能还得考虑低版本proxy问题，直接简化处理，所有架构都不用restore
+	bigKeyThreshold := 1
 	if task.RowData.WriteMode == constvar.WriteModeKeepAndAppendToRedis {
 		// 设置这两个参数后,redis-shake将通过 hset/rpush等命令同步数据
 		// 而不是restore 命令同步数据
@@ -970,6 +972,9 @@ func (task *MakeCacheSyncTask) GetShakeMerics() *RedisShakeMetric {
 	}
 
 	// redis 大版本大于7，使用的是redis-shakeV4
+	if task.SrcBigVersion == 0 {
+		task.GetSrcRedisVersion()
+	}
 	if task.SrcBigVersion >= 7 {
 		shakeMetric := RedisShakeV4Metric{}
 		task.Err = json.Unmarshal(resp, &shakeMetric)
