@@ -44,7 +44,6 @@
   import { useRequest } from 'vue-request';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
-  import TendbsingleModel from '@services/model/mysql/tendbsingle';
   import { filterClusters } from '@services/source/dbbase';
 
   import { ClusterTypes } from '@common/const';
@@ -53,6 +52,10 @@
   import ClusterSelector from '@components/cluster-selector/Index.vue';
 
   interface Props {
+    /**
+     * 是否允许重复
+     */
+    allowsDuplicates?: boolean;
     selected: {
       cluster_type: ClusterTypes;
       id: number;
@@ -62,7 +65,9 @@
 
   type Emits = (e: 'batch-edit', list: TendbhaModel[]) => void;
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    allowsDuplicates: false,
+  });
 
   const emits = defineEmits<Emits>();
 
@@ -81,13 +86,13 @@
   const { t } = useI18n();
 
   const showSelector = ref(false);
-  const selectedClusters = computed<Record<string, TendbhaModel[] | TendbsingleModel[]>>(() => ({
+  const selectedClusters = computed<Record<string, TendbhaModel[]>>(() => ({
     [ClusterTypes.TENDBHA]: props.selected.filter(
       (item) => item.cluster_type === ClusterTypes.TENDBHA,
     ) as TendbhaModel[],
     [ClusterTypes.TENDBSINGLE]: props.selected.filter(
       (item) => item.cluster_type === ClusterTypes.TENDBSINGLE,
-    ) as TendbsingleModel[],
+    ) as TendbhaModel[],
   }));
 
   const rules = [
@@ -99,7 +104,12 @@
     {
       message: t('目标集群重复'),
       trigger: 'blur',
-      validator: (value: string) => props.selected.filter((item) => item.master_domain === value).length < 2,
+      validator: (value: string) => {
+        if (props.allowsDuplicates) {
+          return true;
+        }
+        return props.selected.filter((item) => item.master_domain === value).length < 2;
+      },
     },
     {
       message: t('目标集群不存在'),

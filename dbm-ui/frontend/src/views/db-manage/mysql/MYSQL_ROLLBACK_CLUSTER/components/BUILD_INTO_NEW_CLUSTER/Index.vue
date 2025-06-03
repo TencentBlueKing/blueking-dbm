@@ -15,12 +15,14 @@
   <EditableTable
     ref="table"
     class="mb-20"
-    :model="tableData">
+    :model="tableData"
+    :rules="rules">
     <EditableRow
       v-for="(item, index) in tableData"
       :key="index">
       <ClusterColumn
         v-model="item.cluster"
+        allows-duplicates
         :selected="selected"
         @batch-edit="handleBatchEditCluster" />
       <SingleResourceHostColumn
@@ -187,6 +189,17 @@
 
   const selected = computed(() => tableData.value.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
+
+  const rules = {
+    'rollback_host.ip': [
+      {
+        message: t('主机IP重复'),
+        trigger: 'change',
+        validator: (value: string) =>
+          tableData.value.filter((item) => item.rollback_host.bk_host_id && item.rollback_host.ip === value).length < 2,
+      },
+    ],
+  };
 
   watch(
     () => props.ticketDetails,

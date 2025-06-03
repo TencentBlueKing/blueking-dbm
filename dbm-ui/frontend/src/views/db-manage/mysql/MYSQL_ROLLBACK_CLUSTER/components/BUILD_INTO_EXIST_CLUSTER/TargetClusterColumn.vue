@@ -50,12 +50,16 @@
   import { ClusterTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
 
-  import ClusterSelector, { type TabListType } from '@components/cluster-selector/Index.vue';
+  import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
 
   interface Props {
     cluster: {
       id: number;
     };
+    selected: {
+      id: number;
+      master_domain: string;
+    }[];
   }
 
   const props = defineProps<Props>();
@@ -93,7 +97,7 @@
       ],
       multiple: false,
     },
-  } as unknown as Record<string, TabListType>;
+  } as unknown as Record<string, TabConfig>;
 
   const showSelector = ref(false);
   const selectedClusters = shallowRef<{ [key: string]: TendbhaModel[] }>({
@@ -106,6 +110,11 @@
       message: t('集群域名格式不正确'),
       trigger: 'change',
       validator: (value: string) => domainRegex.test(value),
+    },
+    {
+      message: t('目标集群重复'),
+      trigger: 'change',
+      validator: (value: string) => props.selected.filter((item) => item.master_domain === value).length < 2,
     },
     {
       message: t('目标集群不存在'),
