@@ -122,6 +122,8 @@ class SimpleProvisioning(BaseProvisioning):
             uid = "bkmonitor_timeseries"
         elif datasource_type == "bk_log_datasource":
             uid = "bklog"
+        elif datasource_type == "mysql":
+            uid = "bkdbm_statsdb_source"
         else:
             uid = "unknown"
         return datasource_type, uid
