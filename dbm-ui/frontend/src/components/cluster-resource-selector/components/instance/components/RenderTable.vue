@@ -55,6 +55,13 @@
         </template>
       </BkTableColumn>
       <BkTableColumn
+        :label="t('所属业务')"
+        :min-width="120">
+        <template #default="{ data }">
+          {{ getBizInfoById(data.bk_biz_id)?.name || '--' }}
+        </template>
+      </BkTableColumn>
+      <BkTableColumn
         field="master_domain"
         :label="t('所属集群')"
         :min-width="220" />
@@ -66,6 +73,8 @@
   import { useI18n } from 'vue-i18n';
 
   import { getGlobalInstance } from '@services/source/dbbase';
+
+  import { useGlobalBizs } from '@stores';
 
   import { getSearchSelectorParams } from '@utils';
 
@@ -86,6 +95,7 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+  const { getBizInfoById } = useGlobalBizs();
 
   const searchSelectData = [
     {

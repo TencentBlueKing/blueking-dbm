@@ -32,8 +32,8 @@
       name: t('管理控制台'),
     },
     {
-      dbConsoleValue: 'dbaManage.mysql.masterFailOver',
-      id: `DBA_${TicketTypes.MYSQL_MASTER_FAIL_OVER}`,
+      dbConsoleValue: 'dbaManage.mysql.instanceFailOver',
+      id: `DBA_${TicketTypes.MYSQL_INSTANCE_FAIL_OVER}`,
       name: t('主库故障切换'),
     },
   ];

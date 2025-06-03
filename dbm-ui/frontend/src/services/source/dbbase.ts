@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { InstanceInfos, ListBase } from '@services/types';
+import type { InstanceInfos, ListBase, MachineInfos } from '@services/types';
 
 import { ClusterTypes, DBTypes } from '@common/const';
 
@@ -265,5 +265,5 @@ export function getGlobalMachine(params: {
   role?: string; // 过滤的实例角色
   spider_role?: string; // spider角色
 }) {
-  return http.get<ListBase<InstanceInfos[]>>(`${path}/get_global_machine/`, params);
+  return http.get<ListBase<MachineInfos[]>>(`${path}/get_global_machine/`, params);
 }

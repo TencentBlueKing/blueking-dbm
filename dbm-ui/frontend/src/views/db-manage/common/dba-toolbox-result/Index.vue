@@ -64,9 +64,9 @@
           <RouterLink
             target="_blank"
             :to="{
-              name: 'bizTicketManage',
+              name: 'SelfServiceMyTickets',
               params: {
-                ticketId: `${rowData.id}`,
+                ticketId: rowData.id,
               },
             }">
             {{ rowData.id }}

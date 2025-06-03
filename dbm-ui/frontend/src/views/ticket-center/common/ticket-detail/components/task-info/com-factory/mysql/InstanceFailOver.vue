@@ -12,20 +12,27 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn :label="t('故障主库主机')">
+  <BkTable
+    :data="ticketDetails.details.infos"
+    :show-overflow="false">
+    <BkTableColumn :label="t('故障主库实例')">
       <template #default="{ data }: { data: RowData }">
-        {{ data.switch_tuples[0]?.master?.ip }}
+        {{ `${data.master_ip.ip}:${data.master_ip.port}` }}
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('从库主机')">
+    <BkTableColumn :label="t('从库实例')">
       <template #default="{ data }: { data: RowData }">
-        {{ data.switch_tuples[0]?.slave?.ip }}
+        {{ `${data.slave_ip.ip}:${data.slave_ip.port}` }}
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('所属集群')">
+    <BkTableColumn :label="t('同机关联的集群')">
       <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+        <div
+          v-for="clusterId in data.cluster_ids"
+          :key="clusterId"
+          style="line-height: 20px">
+          {{ ticketDetails.details.clusters[clusterId].immute_domain }}
+        </div>
       </template>
     </BkTableColumn>
   </BkTable>
@@ -44,20 +51,20 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
+  import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
 
   interface Props {
-    ticketDetails: TicketModel<TendbCluster.MasterFailOver>;
+    ticketDetails: TicketModel<Mysql.InstanceFailOver>;
   }
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
   defineOptions({
-    name: TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER,
+    name: TicketTypes.MYSQL_INSTANCE_FAIL_OVER,
     inheritAttrs: false,
   });
 

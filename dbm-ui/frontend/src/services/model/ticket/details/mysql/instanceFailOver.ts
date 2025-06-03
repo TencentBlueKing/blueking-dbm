@@ -1,10 +1,10 @@
 import type { DetailBase, DetailClusters } from '../common';
 
 /**
- * MySQL 主库故障主机切换
+ * MySQL 主库故障实例切换
  */
 
-export interface MasterFailOver extends DetailBase {
+export interface InstanceFailOver extends DetailBase {
   clusters: DetailClusters;
   infos: {
     cluster_ids: number[];
@@ -13,12 +13,14 @@ export interface MasterFailOver extends DetailBase {
       bk_cloud_id: number;
       bk_host_id: number;
       ip: string;
+      port: number;
     };
     slave_ip: {
       bk_biz_id: number;
       bk_cloud_id: number;
       bk_host_id: number;
       ip: string;
+      port: number;
     };
   }[];
   is_check_delay: boolean;
