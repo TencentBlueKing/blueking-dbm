@@ -218,7 +218,7 @@ def _check_tendbcluster_full_backup(date_str: str):
             for bid, bk in backup.backups.items():
                 backup_id, shard_id, mysql_role = bid.split("#", 2)
                 if mysql_role == "spider_master" or mysql_role == "TDBCTL":
-                    backup_id_stat[backup_id][bk.mysql_role] = True
+                    backup_id_stat[backup_id][mysql_role] = True
                 elif bk.is_full_backup == 1:
                     if "remote" not in backup_id_stat[backup_id]:
                         backup_id_stat[backup_id]["remote"] = {}
