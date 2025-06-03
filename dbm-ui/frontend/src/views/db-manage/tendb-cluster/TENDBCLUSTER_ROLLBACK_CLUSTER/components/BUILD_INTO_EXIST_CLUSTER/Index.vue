@@ -21,11 +21,13 @@
       :key="index">
       <ClusterColumn
         v-model="item.cluster"
+        allows-duplicates
         :selected="selected"
         @batch-edit="handleBatchEditCluster" />
       <TargetClusterColumn
         v-model="item.target_cluster"
-        :cluster="item.cluster" />
+        :cluster="item.cluster"
+        :selected="selectedTargetClusters" />
       <BackupModeColumn
         v-model="item.rollback"
         :cluster="item.cluster"
@@ -154,6 +156,9 @@
 
   const selected = computed(() => tableData.value.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
+  const selectedTargetClusters = computed(() =>
+    tableData.value.filter((item) => item.target_cluster.id).map((item) => item.target_cluster),
+  );
 
   watch(
     () => props.ticketDetails,
