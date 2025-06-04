@@ -45,6 +45,11 @@ class BaseRedisInstanceTicketFlowBuilder(RedisTicketFlowBuilderPatchMixin, Ticke
     ]
 
 
+class RedisALLInstanceTicketFlowBuilder(RedisTicketFlowBuilderPatchMixin, TicketFlowBuilder):
+    group = DBType.Redis.value
+    cluster_types = ClusterType.db_type_to_cluster_types(DBType.Redis)
+
+
 class RedisSingleOpsBaseDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
 

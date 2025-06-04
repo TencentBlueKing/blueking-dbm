@@ -18,8 +18,9 @@ from django.utils.translation import ugettext as _
 from backend.configuration.constants import DBType
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
+from backend.db_meta.models import RedisHotKeyInfo
 from backend.db_proxy.models import DBCloudProxy
-from backend.flow.consts import AUTH_ADDRESS_DIVIDER
+from backend.flow.consts import AUTH_ADDRESS_DIVIDER, StateType
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -113,5 +114,9 @@ class HotkeyAnalysisFlow(object):
                 }
             )
 
+        # 更新热key记录表的root_id及状态
+        RedisHotKeyInfo.objects.filter(ticket_id=self.data["uid"]).update(
+            root_id=self.root_id, status=StateType.RUNNING
+        )
         redis_pipeline.add_parallel_acts(acts_list=acts_list)
         redis_pipeline.run_pipeline()

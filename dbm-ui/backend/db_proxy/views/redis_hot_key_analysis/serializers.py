@@ -8,13 +8,20 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.urls import include, path
+from rest_framework import serializers
 
-urlpatterns = [
-    path("bizs/<int:bk_biz_id>/", include("backend.db_services.redis.resources.urls")),
-    path("bizs/<int:bk_biz_id>/", include("backend.db_services.redis.toolbox.urls")),
-    path("bizs/<int:bk_biz_id>/", include("backend.db_services.redis.instance.urls")),
-    path("bizs/<int:bk_biz_id>/", include("backend.db_services.redis.rollback.urls")),
-    path("bizs/<int:bk_biz_id>/", include("backend.db_services.redis.redis_dts.urls")),
-    path("bizs/<int:bk_biz_id>/", include("backend.db_services.redis.hot_key_analysis.urls")),
-]
+from backend.db_meta.models import RedisHotKeyDetail
+from backend.db_proxy.views.serialiers import BaseProxyPassSerializer
+
+
+class CreateHotKeyDetailSerializer(serializers.ModelSerializer):
+    creator = serializers.CharField(read_only=True)
+    updater = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = RedisHotKeyDetail
+        fields = "__all__"
+
+
+class RedisHotKeyDetailSerializer(BaseProxyPassSerializer):
+    hot_key_infos = CreateHotKeyDetailSerializer(many=True)

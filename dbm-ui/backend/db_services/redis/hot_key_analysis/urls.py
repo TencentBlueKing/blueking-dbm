@@ -8,13 +8,15 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.urls import include, path
 
-urlpatterns = [
-    path("bizs/<int:bk_biz_id>/", include("backend.db_services.redis.resources.urls")),
-    path("bizs/<int:bk_biz_id>/", include("backend.db_services.redis.toolbox.urls")),
-    path("bizs/<int:bk_biz_id>/", include("backend.db_services.redis.instance.urls")),
-    path("bizs/<int:bk_biz_id>/", include("backend.db_services.redis.rollback.urls")),
-    path("bizs/<int:bk_biz_id>/", include("backend.db_services.redis.redis_dts.urls")),
-    path("bizs/<int:bk_biz_id>/", include("backend.db_services.redis.hot_key_analysis.urls")),
-]
+from rest_framework.routers import DefaultRouter
+
+from backend.db_services.redis.hot_key_analysis.views import RedisHotKeyAnalysisViewSet, RedisHotKeyDetailsViewSet
+
+router = DefaultRouter(trailing_slash=True)
+
+router.register(r"analysis", RedisHotKeyAnalysisViewSet, basename="analysis")
+router.register(r"analysis_details", RedisHotKeyDetailsViewSet, basename="analysis_details")
+
+urlpatterns = []
+urlpatterns += router.urls
