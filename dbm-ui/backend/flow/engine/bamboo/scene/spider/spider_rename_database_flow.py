@@ -111,11 +111,10 @@ class SpiderRenameDatabaseFlow(object):
 
         rename_pipeline.add_parallel_acts(acts_list=trans_actuator_acts)
 
-        force = False
+        force = self.data.get("force", False)
         merged_jobs = defaultdict(list)
         for job in self.data["infos"]:
             cluster_id = job["cluster_id"]
-            force = job["force"]
             merged_jobs[cluster_id].append({"from_database": job["from_database"], "to_database": job["to_database"]})
 
         cluster_pipes = []
