@@ -58,10 +58,10 @@ const (
 	RestartClusterError      = 1532209
 	UpgradeClusterError      = 1532210
 	VolumeExpansionError     = 1532211
-	ExposeClusterError       = 1532214
-	DescribeOpsRequestError  = 1532212
-	GetOpsRequestStatusError = 1532213
-	UpdateClusterError       = 1532214
+	ExposeClusterError       = 1532212
+	DescribeOpsRequestError  = 1532213
+	GetOpsRequestStatusError = 1532214
+	UpdateClusterError       = 1532215
 
 	CreateK8sNsError = 1532300
 
@@ -102,12 +102,16 @@ var codeTag = map[int]string{
 	ExposeClusterError:       "集群暴露服务失败",
 	DescribeOpsRequestError:  "查询操作请求失败",
 	GetOpsRequestStatusError: "查询操作请求状态失败",
+	UpdateClusterError:       "更新集群失败",
 
 	// k8s apiserver 调用异常
 	CreateK8sNsError: "创建命名空间失败",
 
-	// 存储插件管理操作异常
+	// 存储插件部署操作异常
 	DeployAddonError: "插件部署失败",
+
+	// 存储集群部署操作异常
+	DeployAddonClusterError: "存储集群部署失败",
 }
 
 // NewGlobalError Create a new custom error instantiation

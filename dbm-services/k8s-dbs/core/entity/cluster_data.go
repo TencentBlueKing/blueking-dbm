@@ -51,6 +51,7 @@ type Metadata struct {
 type Spec struct {
 	Version                 string                       `json:"version,omitempty"`
 	TopoName                string                       `json:"topoName,omitempty"`
+	TerminationPolicy       string                       `json:"terminationPolicy,omitempty"`
 	ComponentMap            map[string]ComponentResource `json:"componentMap,omitempty"`
 	ComponentList           []ComponentResource          `json:"componentList,omitempty"`
 	Dependencies            *Dependencies                `json:"dependencies,omitempty"`

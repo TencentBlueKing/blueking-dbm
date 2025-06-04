@@ -663,11 +663,13 @@ func (c *ClusterProvider) updateHelmRelease(
 	upgrade.Password = helmRepo.RepoPassword
 	chartRequested, err := upgrade.ChartPathOptions.LocateChart(request.StorageAddonType+"-cluster", helmcli.New())
 	if err != nil {
-		return nil, fmt.Errorf("下载失败\n%s", err)
+		slog.Error("failed to locate helm chart requested", "error", err)
+		return nil, fmt.Errorf("failed to locate helm chart requested\n%s", err)
 	}
 	chart, err := loader.Load(chartRequested)
 	if err != nil {
-		return nil, fmt.Errorf("加载失败\n%s", err)
+		slog.Error("failed to load helm chart requested", "error", err)
+		return nil, fmt.Errorf("failed to load helm chart requested\n%s", err)
 	}
 	values := chart.Values
 	err = coreclient.MergeValues(values, request)
@@ -677,8 +679,8 @@ func (c *ClusterProvider) updateHelmRelease(
 	}
 	_, err = upgrade.Run(request.ClusterName, chart, values)
 	if err != nil {
-		slog.Error("cluster install failed", "clusterName", request.ClusterName, "error", err)
-		return nil, fmt.Errorf("failed to install cluster %s: %w", request.ClusterName, err)
+		slog.Error("cluster update failed", "clusterName", request.ClusterName, "error", err)
+		return nil, fmt.Errorf("failed to update cluster %s: %w", request.ClusterName, err)
 	}
 	return values, nil
 }

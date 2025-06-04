@@ -363,7 +363,9 @@ func mergeMetaData(values map[string]interface{}, request *entity.Request) error
 	values["clusterName"] = request.ClusterName
 	values["namespace"] = request.Namespace
 	values["topoName"] = request.TopoName
-
+	if request.TerminationPolicy != "" {
+		values["terminationPolicy"] = request.TerminationPolicy
+	}
 	metaDataMap := map[string]interface{}{
 		"labels":      request.Labels,
 		"annotations": request.Annotations,
