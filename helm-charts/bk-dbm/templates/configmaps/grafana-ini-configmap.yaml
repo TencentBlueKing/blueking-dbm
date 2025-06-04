@@ -51,6 +51,7 @@ data:
     enabled = false
     [unified_alerting]
     enabled = false
+    alertmanager_config_poll_interval = 200y
     [explore]
     # Enable the Explore section
     enabled = false
