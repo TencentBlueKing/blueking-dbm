@@ -559,14 +559,28 @@ export class GraphData {
       return [roots[0]];
     }
     if (dbType === DBTypes.REDIS) {
-      const rootMap = roots.reduce<Record<string, GraphNode>>((prevMap, rootItem) => {
-        if (prevMap[rootItem.id]) {
-          return prevMap;
-        }
+      const clbDnsItem = roots.find((rootItem) => rootItem.id === 'clb_dns_entry_group');
+      if (clbDnsItem) {
+        const extractedRoots = roots.filter((item) => item.id !== 'clb_dns_entry_group');
+        const rootMap = extractedRoots.reduce<Record<string, GraphNode>>((prevMap, rootItem) => {
+          if (prevMap[rootItem.id]) {
+            return prevMap;
+          }
 
-        return Object.assign({}, prevMap, { [rootItem.id]: rootItem });
-      }, {});
-      roots = Object.values(rootMap);
+          return Object.assign({}, prevMap, { [rootItem.id]: rootItem });
+        }, {});
+        roots = [clbDnsItem, ...Object.values(rootMap)];
+        return roots;
+      } else {
+        const rootMap = roots.reduce<Record<string, GraphNode>>((prevMap, rootItem) => {
+          if (prevMap[rootItem.id]) {
+            return prevMap;
+          }
+
+          return Object.assign({}, prevMap, { [rootItem.id]: rootItem });
+        }, {});
+        roots = Object.values(rootMap);
+      }
     }
     // 排序根节点
     roots.sort((a) => (a.children.find((node) => node.id === nodeId) ? -1 : 0));
