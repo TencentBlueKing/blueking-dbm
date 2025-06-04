@@ -278,7 +278,6 @@ class MySQLProxyClusterAddFlow(object):
                     data=copy.deepcopy(self.data),
                     bk_cloud_id=info["proxy_ip"]["bk_cloud_id"],
                     bk_biz_id=self.data["bk_biz_id"],
-                    # ips=[info["proxy_ip"]["ip"]],
                     instances=instances,
                     departs=[
                         DeployPeripheralToolsDepart.DBAToolKit,
