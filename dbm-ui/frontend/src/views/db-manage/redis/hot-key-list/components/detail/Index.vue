@@ -69,7 +69,7 @@
             v-model="serachKey"
             class="ml-8"
             clearable
-            :placeholder="t('请输入关键字')"
+            :placeholder="t('请输入 Key 进行搜索')"
             style="flex: 1"
             type="search"
             @clear="() => fetchData()"
