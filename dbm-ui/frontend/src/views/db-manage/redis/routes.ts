@@ -163,6 +163,16 @@ const redisKeyExtractRoute = createRouteItem(TicketTypes.REDIS_KEYS_EXTRACT, t('
 const redisKeyDeleteRoute = createRouteItem(TicketTypes.REDIS_KEYS_DELETE, t('Key 操作'));
 const redisBackupRoute = createRouteItem(TicketTypes.REDIS_BACKUP, t('备份'));
 const redisPurgeRoute = createRouteItem(TicketTypes.REDIS_PURGE, t('清档'));
+const redisHotKey = createRouteItem(TicketTypes.REDIS_HOT_KEY_ANALYSIS, t('热 Key 分析'));
+
+const redisHotKeyListRoute = {
+  path: 'hot-key-list',
+  name: 'RedisHotKeyList',
+  meta: {
+    navName: t('热 Key 分析报告'),
+  },
+  component: () => import('@views/db-manage/redis/hot-key-list/Index.vue'),
+};
 
 const toolboxDbConsoleRouteMap = {
   'redis.toolbox.backup': redisBackupRoute,
@@ -172,6 +182,8 @@ const toolboxDbConsoleRouteMap = {
   'redis.toolbox.dataCopy': redisDBDataCopyRoute,
   'redis.toolbox.dataCopyRecord': redisDBDataCopyRecordRoute,
   'redis.toolbox.dbReplace': redisDBReplaceRoute,
+  'redis.toolbox.hotKey': redisHotKey,
+  'redis.toolbox.hotKeyList': redisHotKeyListRoute,
   'redis.toolbox.installModule': redisInstallModuleRoute,
   'redis.toolbox.keyDelete': redisKeyDeleteRoute,
   'redis.toolbox.keyExtract': redisKeyExtractRoute,
