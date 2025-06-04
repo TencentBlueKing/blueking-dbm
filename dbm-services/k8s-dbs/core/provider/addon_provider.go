@@ -25,8 +25,10 @@ import (
 	clientconst "k8s-dbs/core/client/constants"
 	coreconst "k8s-dbs/core/constant"
 	"k8s-dbs/core/helper"
+	corehelper "k8s-dbs/core/helper"
 	pventity "k8s-dbs/core/provider/entity"
 	metaprovider "k8s-dbs/metadata/provider"
+	provderentity "k8s-dbs/metadata/provider/entity"
 	"log/slog"
 
 	helmcli "helm.sh/helm/v3/pkg/cli"
@@ -39,6 +41,7 @@ import (
 type AddonProvider struct {
 	reqRecordProvider     metaprovider.ClusterRequestRecordProvider
 	clusterConfigProvider metaprovider.K8sClusterConfigProvider
+	addonHelmRepoProvider metaprovider.AddonHelmRepoProvider
 }
 
 // DeployAddon 安装 addon 插件
@@ -57,34 +60,76 @@ func (a *AddonProvider) DeployAddon(entity *pventity.AddonEntity) error {
 		return fmt.Errorf("failed to create k8sClient: %w", err)
 	}
 
-	actionConfig, err := k8sClient.BuildHelmConfig(clientconst.AddonDefaultNamespace)
+	if err = a.installAddonHelmRelease(entity, k8sClient); err != nil {
+		return fmt.Errorf("failed to install helm release: %w", err)
+	}
+	return nil
+}
+
+// NewAddonProvider 创建 AddonProvider 实例
+func NewAddonProvider(reqRecordProvider metaprovider.ClusterRequestRecordProvider,
+	clusterConfigProvider metaprovider.K8sClusterConfigProvider,
+	addonHelmRepoProvider metaprovider.AddonHelmRepoProvider,
+) *AddonProvider {
+	return &AddonProvider{
+		reqRecordProvider,
+		clusterConfigProvider,
+		addonHelmRepoProvider,
+	}
+}
+
+// getAddonHelmRepository 获取 addon helm repository
+func (a *AddonProvider) getAddonHelmRepository(
+	entity *pventity.AddonEntity,
+) (*provderentity.AddonHelmRepoEntity, error) {
+	repoParams := make(map[string]interface{})
+	repoParams["chart_name"] = entity.AddonType
+	repoParams["chart_version"] = entity.AddonVersion
+
+	helmRepo, err := a.addonHelmRepoProvider.FindByParams(repoParams)
 	if err != nil {
-		slog.Error("failed to build Helm configuration",
-			"namespace", clientconst.AddonDefaultNamespace,
-			"error", err,
-		)
-		return fmt.Errorf("failed to build Helm configuration for namespace %q: %w", clientconst.AddonDefaultNamespace, err)
+		slog.Error("failed to find helm repo for addon", "addon_type",
+			entity.AddonType, "addon_version", entity.AddonVersion, "error", err)
+		return nil, err
+	}
+	return helmRepo, nil
+}
+
+// installAddonHelmRelease 安装 chart
+func (a *AddonProvider) installAddonHelmRelease(
+	entity *pventity.AddonEntity,
+	k8sClient *coreclient.K8sClient,
+) error {
+	actionConfig, err := corehelper.BuildHelmActionConfig(clientconst.AddonDefaultNamespace, k8sClient)
+	if err != nil {
+		slog.Error("failed to build helm action config", "error", err)
+		return err
+	}
+	helmRepo, err := a.getAddonHelmRepository(entity)
+	if err != nil {
+		slog.Error("failed to get helm repo", "error", err)
+		return err
 	}
 
 	install := action.NewInstall(actionConfig)
 	install.ReleaseName = entity.AddonType
 	install.Namespace = clientconst.AddonDefaultNamespace
-	install.RepoURL = entity.AddonRepoURL
+	install.RepoURL = helmRepo.RepoRepository
 	install.Version = entity.AddonVersion
 	install.Timeout = clientconst.HelmRepoDownloadTimeout
 	install.CreateNamespace = true
 	install.Wait = true
-	install.Username = entity.AddonRepoUserName
-	install.Password = entity.AddonRepoPassword
-
+	install.Username = helmRepo.RepoUsername
+	install.Password = helmRepo.RepoPassword
 	chartRequested, err := install.ChartPathOptions.LocateChart(install.ReleaseName, helmcli.New())
 	if err != nil {
-		return fmt.Errorf("下载失败\n%s", err)
+		slog.Error("failed to locate helm chart requested", "error", err)
+		return fmt.Errorf("failed to locate helm chart requested\n%s", err)
 	}
-
 	chart, err := loader.Load(chartRequested)
 	if err != nil {
-		return fmt.Errorf("加载失败\n%s", err)
+		slog.Error("failed to load helm chart requested", "error", err)
+		return fmt.Errorf("failed to load helm chart requested\n%s", err)
 	}
 
 	_, err = install.Run(chart, nil)
@@ -98,14 +143,4 @@ func (a *AddonProvider) DeployAddon(entity *pventity.AddonEntity) error {
 			entity.AddonType, clientconst.AddonDefaultNamespace, err)
 	}
 	return nil
-}
-
-// NewAddonProvider 创建 AddonProvider 实例
-func NewAddonProvider(reqRecordProvider metaprovider.ClusterRequestRecordProvider,
-	clusterConfigProvider metaprovider.K8sClusterConfigProvider,
-) *AddonProvider {
-	return &AddonProvider{
-		reqRecordProvider,
-		clusterConfigProvider,
-	}
 }

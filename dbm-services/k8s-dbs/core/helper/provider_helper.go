@@ -23,8 +23,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"k8s-dbs/common/utils"
+	coreclient "k8s-dbs/core/client"
 	metaprovider "k8s-dbs/metadata/provider"
 	providerentity "k8s-dbs/metadata/provider/entity"
+	"log/slog"
+
+	"helm.sh/helm/v3/pkg/action"
 )
 
 // CreateRequestRecord Save request
@@ -55,4 +59,21 @@ func CreateRequestRecord(
 		return nil, fmt.Errorf("failed to create request record entity: %w", err)
 	}
 	return addedRequestRecord, nil
+}
+
+// BuildHelmActionConfig 构建 helm action config
+func BuildHelmActionConfig(
+	namespace string,
+	k8sClient *coreclient.K8sClient,
+) (*action.Configuration, error) {
+	actionConfig, err := k8sClient.BuildHelmConfig(namespace)
+	if err != nil {
+		slog.Error("failed to build Helm configuration",
+			"namespace", namespace,
+			"error", err,
+		)
+		return nil, fmt.Errorf("failed to build Helm configuration for namespace %q: %w",
+			namespace, err)
+	}
+	return actionConfig, nil
 }

@@ -28,8 +28,9 @@ import (
 	clientconst "k8s-dbs/core/client/constants"
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
+	corehelper "k8s-dbs/core/helper"
 	metaprovider "k8s-dbs/metadata/provider"
-	providerentity "k8s-dbs/metadata/provider/entity"
+	provderentity "k8s-dbs/metadata/provider/entity"
 	"log/slog"
 	"slices"
 
@@ -451,13 +452,13 @@ func (c *ClusterProvider) DescribeComponent(request *coreentity.Request) (*coree
 func (c *ClusterProvider) createRequestEntity(
 	request *coreentity.Request,
 	requestType string,
-) (*providerentity.ClusterRequestRecordEntity, error) {
+) (*provderentity.ClusterRequestRecordEntity, error) {
 	requestBytes, err := json.Marshal(request)
 	if err != nil {
 		return nil, fmt.Errorf("serialization request failed: %v", err)
 	}
 
-	requestRecord := &providerentity.ClusterRequestRecordEntity{
+	requestRecord := &provderentity.ClusterRequestRecordEntity{
 		RequestID:     utils.RequestID(),
 		RequestType:   requestType,
 		RequestParams: string(requestBytes),
@@ -475,8 +476,8 @@ func (c *ClusterProvider) createClusterEntity(
 	request *coreentity.Request,
 	requestID string,
 	k8sClusterConfigID uint64,
-) (*providerentity.K8sCrdClusterEntity, error) {
-	clusterEntity := &providerentity.K8sCrdClusterEntity{
+) (*provderentity.K8sCrdClusterEntity, error) {
+	clusterEntity := &provderentity.K8sCrdClusterEntity{
 		ClusterName:        request.ClusterName,
 		Namespace:          request.Namespace,
 		RequestID:          requestID,
@@ -494,11 +495,11 @@ func (c *ClusterProvider) createClusterEntity(
 func (c *ClusterProvider) createComponentEntity(
 	request *coreentity.Request,
 	crdClusterID uint64,
-) ([]*providerentity.K8sCrdComponentEntity, error) {
-	var compEntityList []*providerentity.K8sCrdComponentEntity
+) ([]*provderentity.K8sCrdComponentEntity, error) {
+	var compEntityList []*provderentity.K8sCrdComponentEntity
 	for compTopoName := range request.ComponentMap {
 		compName := request.Metadata.ClusterName + "-" + compTopoName
-		componentEntity := &providerentity.K8sCrdComponentEntity{
+		componentEntity := &provderentity.K8sCrdComponentEntity{
 			ComponentName: compName,
 			CrdClusterID:  crdClusterID,
 		}
@@ -557,7 +558,7 @@ func buildClusterReleaseEntity(
 	repoName string,
 	repoRepository string,
 	releaseValues map[string]interface{},
-) (*providerentity.AddonClusterReleaseEntity, error) {
+) (*provderentity.AddonClusterReleaseEntity, error) {
 	releaseName := request.ClusterName
 	namespace := request.Namespace
 	chartName := request.StorageAddonType + "-cluster"
@@ -574,7 +575,7 @@ func buildClusterReleaseEntity(
 
 	jsonStr := string(jsonData)
 
-	return &providerentity.AddonClusterReleaseEntity{
+	return &provderentity.AddonClusterReleaseEntity{
 		K8sClusterConfigID: k8sClusterConfigID,
 		ReleaseName:        releaseName,
 		CreatedBy:          createdBy,
@@ -592,12 +593,12 @@ func (c *ClusterProvider) installHelmRelease(
 	request *coreentity.Request,
 	k8sClient *coreclient.K8sClient,
 ) (map[string]interface{}, error) {
-	actionConfig, err := c.buildHelmActionConfig(request, k8sClient)
+	actionConfig, err := corehelper.BuildHelmActionConfig(request.Namespace, k8sClient)
 	if err != nil {
 		slog.Error("failed to build helm action config", "error", err)
 		return nil, err
 	}
-	helmRepo, err := c.getHelmRepository(request)
+	helmRepo, err := c.getClusterHelmRepository(request)
 	if err != nil {
 		slog.Error("failed to get helm repo", "error", err)
 		return nil, err
@@ -641,13 +642,13 @@ func (c *ClusterProvider) updateHelmRelease(
 	request *coreentity.Request,
 	k8sClient *coreclient.K8sClient,
 ) (map[string]interface{}, error) {
-	actionConfig, err := c.buildHelmActionConfig(request, k8sClient)
+	actionConfig, err := corehelper.BuildHelmActionConfig(request.Namespace, k8sClient)
 	if err != nil {
 		slog.Error("failed to build helm action config", "error", err)
 		return nil, err
 	}
 
-	helmRepo, err := c.getHelmRepository(request)
+	helmRepo, err := c.getClusterHelmRepository(request)
 	if err != nil {
 		slog.Error("failed to get helm repo", "error", err)
 		return nil, err
@@ -685,10 +686,10 @@ func (c *ClusterProvider) updateHelmRelease(
 	return values, nil
 }
 
-// getHelmRepository 获取 helm repository
-func (c *ClusterProvider) getHelmRepository(
+// getClusterHelmRepository 获取 cluster helm repository
+func (c *ClusterProvider) getClusterHelmRepository(
 	request *coreentity.Request,
-) (*providerentity.AddonClusterHelmRepoEntity, error) {
+) (*provderentity.AddonClusterHelmRepoEntity, error) {
 	repoParams := make(map[string]interface{})
 	repoParams["chart_name"] = request.StorageAddonType + "-cluster"
 	repoParams["chart_version"] = request.StorageAddonVersion
@@ -699,21 +700,4 @@ func (c *ClusterProvider) getHelmRepository(
 		return nil, err
 	}
 	return helmRepo, nil
-}
-
-// buildHelmActionConfig 构建 helm action config
-func (c *ClusterProvider) buildHelmActionConfig(
-	request *coreentity.Request,
-	k8sClient *coreclient.K8sClient,
-) (*action.Configuration, error) {
-	actionConfig, err := k8sClient.BuildHelmConfig(request.Namespace)
-	if err != nil {
-		slog.Error("failed to build Helm configuration",
-			"namespace", request.Namespace,
-			"error", err,
-		)
-		return nil, fmt.Errorf("failed to build Helm configuration for namespace %q: %w",
-			request.Namespace, err)
-	}
-	return actionConfig, nil
 }

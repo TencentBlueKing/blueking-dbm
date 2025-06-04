@@ -102,7 +102,9 @@ func buildMetaRouter(db *gorm.DB, router *gin.Engine) {
 
 		buildComponentOpMetaRouter(db, metaRouter)
 
-		buildHelmRepoMetaRouter(db, metaRouter)
+		buildClusterHelmRepoMetaRouter(db, metaRouter)
+
+		buildAddonHelmRepoMetaRouter(db, metaRouter)
 
 		buildClusterReleaseMetaRouter(db, metaRouter)
 	}
@@ -264,15 +266,27 @@ func buildComponentOpMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
 	}
 }
 
-// buildHelmRepoMetaRouter Helm repository 管理路由构建
-func buildHelmRepoMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
+// buildClusterHelmRepoMetaRouter Helm repository 管理路由构建
+func buildClusterHelmRepoMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
 	dbAccess := metadbaccess.NewAddonClusterHelmRepoDbAccess(db)
 	metaProvider := metaprovider.NewAddonClusterHelmRepoProvider(dbAccess)
 	metaController := metacontroller.NewClusterHelmRepoController(metaProvider)
-	repoMetaGroup := metaRouter.Group("/helm_repo")
+	repoMetaGroup := metaRouter.Group("/addoncluster_helm_repo")
 	{
 		repoMetaGroup.GET("", metaController.GetClusterHelmRepoByID)
 		repoMetaGroup.POST("", metaController.CreateClusterHelmRepo)
+	}
+}
+
+// buildAddonHelmRepoMetaRouter addon Helm repository 管理路由构建
+func buildAddonHelmRepoMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
+	dbAccess := metadbaccess.NewAddonHelmRepoDbAccess(db)
+	metaProvider := metaprovider.NewAddonHelmRepoProvider(dbAccess)
+	metaController := metacontroller.NewAddonHelmRepoController(metaProvider)
+	repoMetaGroup := metaRouter.Group("/addon_helm_repo")
+	{
+		repoMetaGroup.GET("", metaController.GetAddonHelmRepoByID)
+		repoMetaGroup.POST("", metaController.CreateAddonHelmRepo)
 	}
 }
 
@@ -335,7 +349,10 @@ func buildAddonRouter(db *gorm.DB, router *gin.Engine) {
 	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
 	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(k8sClusterConfigDbAccess)
 
-	addonProvider := provider.NewAddonProvider(requestRecordProvider, k8sClusterConfigProvider)
+	addonHelmRepoDbAccess := metadbaccess.NewAddonHelmRepoDbAccess(db)
+	addonHelmRepoProvider := metaprovider.NewAddonHelmRepoProvider(addonHelmRepoDbAccess)
+
+	addonProvider := provider.NewAddonProvider(requestRecordProvider, k8sClusterConfigProvider, addonHelmRepoProvider)
 
 	addonController := controller.NewAddonController(addonProvider)
 	addonGroup := router.Group(basePath + "/addon")

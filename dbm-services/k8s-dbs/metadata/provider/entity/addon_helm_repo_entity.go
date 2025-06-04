@@ -17,11 +17,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package req
+package entity
 
-// AddonDeployReqVo Addon 创建请求结构体
-type AddonDeployReqVo struct {
-	K8sClusterName string `json:"k8sClusterName,omitempty"`
-	AddonType      string `json:"addonType,omitempty"`
-	AddonVersion   string `json:"addonVersion,omitempty"`
+import (
+	"time"
+)
+
+// AddonHelmRepoEntity AddonHelmRepo entity 定义
+type AddonHelmRepoEntity struct {
+	ID             int64     `json:"id"`
+	RepoName       string    `json:"repo_name"`
+	RepoRepository string    `json:"repo_repository"`
+	RepoUsername   string    `json:"repo_username"`
+	RepoPassword   string    `json:"repo_password"`
+	ChartName      string    `json:"chart_name"`
+	ChartVersion   string    `json:"chart_version"`
+	CreatedBy      string    `json:"created_by"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedBy      string    `json:"updated_by"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }

@@ -33,32 +33,32 @@ import (
 	"github.com/jinzhu/copier"
 )
 
-// ClusterHelmRepoController manages metadata for cluster helm repo.
-type ClusterHelmRepoController struct {
-	clusterHelmRepoProvider provider.AddonClusterHelmRepoProvider
+// AddonHelmRepoController manages metadata for addon helm repo.
+type AddonHelmRepoController struct {
+	addonHelmRepoProvider provider.AddonHelmRepoProvider
 }
 
-// NewClusterHelmRepoController creates a new instance of cluster helm repo..
-func NewClusterHelmRepoController(
-	clusterHelmRepoProvider provider.AddonClusterHelmRepoProvider,
-) *ClusterHelmRepoController {
-	return &ClusterHelmRepoController{clusterHelmRepoProvider}
+// NewAddonHelmRepoController creates a new instance of addon helm repo.
+func NewAddonHelmRepoController(
+	addonHelmRepoProvider provider.AddonHelmRepoProvider,
+) *AddonHelmRepoController {
+	return &AddonHelmRepoController{addonHelmRepoProvider}
 }
 
-// GetClusterHelmRepoByID retrieves a cluster helm repo by its ID.
-func (c *ClusterHelmRepoController) GetClusterHelmRepoByID(ctx *gin.Context) {
+// GetAddonHelmRepoByID retrieves a addon helm repo by its ID.
+func (c *AddonHelmRepoController) GetAddonHelmRepoByID(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
-	repo, err := c.clusterHelmRepoProvider.FindHelmRepoByID(id)
+	repo, err := c.addonHelmRepoProvider.FindHelmRepoByID(id)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
-	var data resp.AddonClusterHelmRepoRespVo
+	var data resp.AddonHelmRepoRespVo
 	if err := copier.Copy(&data, repo); err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
@@ -66,24 +66,24 @@ func (c *ClusterHelmRepoController) GetClusterHelmRepoByID(ctx *gin.Context) {
 	entity.SuccessResponse(ctx, data, "OK")
 }
 
-// CreateClusterHelmRepo create cluster helm repo
-func (c *ClusterHelmRepoController) CreateClusterHelmRepo(ctx *gin.Context) {
-	var reqVo req.AddonClusterHelmRepoRespVo
+// CreateAddonHelmRepo create addon helm repo
+func (c *AddonHelmRepoController) CreateAddonHelmRepo(ctx *gin.Context) {
+	var reqVo req.AddonHelmRepoRespVo
 	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
 		return
 	}
-	var repoEntity entitys.AddonClusterHelmRepoEntity
+	var repoEntity entitys.AddonHelmRepoEntity
 	if err := copier.Copy(&repoEntity, &reqVo); err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
 		return
 	}
-	addedRepo, err := c.clusterHelmRepoProvider.CreateHelmRepo(&repoEntity)
+	addedRepo, err := c.addonHelmRepoProvider.CreateHelmRepo(&repoEntity)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
 		return
 	}
-	var data resp.AddonClusterHelmRepoRespVo
+	var data resp.AddonHelmRepoRespVo
 	if err := copier.Copy(&data, addedRepo); err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
 		return
@@ -91,8 +91,8 @@ func (c *ClusterHelmRepoController) CreateClusterHelmRepo(ctx *gin.Context) {
 	entity.SuccessResponse(ctx, data, "OK")
 }
 
-// GetClusterHelmRepoByParam get addon cluster helm repo by its Param.
-func (c *ClusterHelmRepoController) GetClusterHelmRepoByParam(ctx *gin.Context) {
+// GetAddonHelmRepoByParam get addon helm repo by its Param.
+func (c *AddonHelmRepoController) GetAddonHelmRepoByParam(ctx *gin.Context) {
 	chartName := ctx.Param("chart_name")
 	chartVersion := ctx.Param("chart_version")
 	if chartName == "" || chartVersion == "" {
@@ -104,12 +104,12 @@ func (c *ClusterHelmRepoController) GetClusterHelmRepoByParam(ctx *gin.Context) 
 		"chart_name":    chartName,
 		"chart_version": chartVersion,
 	}
-	repo, err := c.clusterHelmRepoProvider.FindByParams(params)
+	repo, err := c.addonHelmRepoProvider.FindByParams(params)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
-	var respVo resp.AddonClusterHelmRepoRespVo
+	var respVo resp.AddonHelmRepoRespVo
 	if err = copier.Copy(&respVo, repo); err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
