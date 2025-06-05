@@ -26,8 +26,7 @@
         <EditableTable
           ref="editableTable"
           class="mt16 mb16"
-          :model="formData.tableData"
-          :rules="rules">
+          :model="formData.tableData">
           <EditableRow
             v-for="(item, index) in formData.tableData"
             :key="index">
@@ -158,7 +157,6 @@
 </template>
 
 <script setup lang="ts">
-  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import RedisModel from '@services/model/redis/redis';
@@ -313,22 +311,6 @@
 
   const editableTableRef = useTemplateRef('editableTable');
 
-  const rules = {
-    'cluster.master_domain': [
-      {
-        message: t('目标集群重复'),
-        trigger: 'change',
-        validator: (value: string) => {
-          if (value) {
-            const nonEmptyIdList = formData.tableData.filter((row) => row.cluster.master_domain === value);
-            return nonEmptyIdList.length === 1;
-          }
-          return true;
-        },
-      },
-    ],
-  };
-
   const formData = reactive(createDefaultFormData());
 
   const tabListConfig = {
@@ -346,55 +328,31 @@
     },
   } as unknown as Record<ClusterTypes, TabItem>;
 
-  const selected = computed(() => {
-    const selectedClusters: ComponentProps<typeof ClusterColumn>['selected'] = {
-      [ClusterTypes.REDIS]: [],
-    };
-    formData.tableData.forEach((tableRow) => {
-      const { id, master_domain: masterDomain } = tableRow.cluster;
-      if (id && masterDomain) {
-        selectedClusters[ClusterTypes.REDIS].push({
-          id,
-          master_domain: masterDomain,
-        });
-      }
-    });
-    return selectedClusters;
-  });
-
-  const clusterMemo = computed(() =>
-    Object.fromEntries(
-      Object.values(selected.value).flatMap((clusters) =>
-        clusters.filter((cluster) => cluster.master_domain).map((cluster) => [cluster.master_domain, true]),
-      ),
-    ),
-  );
+  const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
+  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
   const handleClusterBatchEdit = (clusterList: RedisModel[]) => {
     const newList: IDataRow[] = [];
     clusterList.forEach((item) => {
-      if (!clusterMemo.value[item.master_domain]) {
-        const domain = item.master_domain;
-        if (!clusterMemo.value[domain]) {
-          newList.push(
-            createRowData({
-              cluster: {
-                bk_cloud_id: item.bk_cloud_id,
-                cluster_capacity: item.cluster_capacity,
-                cluster_shard_num: item.cluster_shard_num,
-                cluster_spec: item.cluster_spec,
-                cluster_type: item.cluster_type,
-                cluster_type_name: item.cluster_type_name,
-                disaster_tolerance_level: item.disaster_tolerance_level,
-                id: item.id,
-                machine_pair_cnt: item.machine_pair_cnt,
-                major_version: item.major_version,
-                master_domain: item.master_domain,
-                proxy: item.proxy,
-              },
-            }),
-          );
-        }
+      if (!selectedMap.value[item.master_domain]) {
+        newList.push(
+          createRowData({
+            cluster: {
+              bk_cloud_id: item.bk_cloud_id,
+              cluster_capacity: item.cluster_capacity,
+              cluster_shard_num: item.cluster_shard_num,
+              cluster_spec: item.cluster_spec,
+              cluster_type: item.cluster_type,
+              cluster_type_name: item.cluster_type_name,
+              disaster_tolerance_level: item.disaster_tolerance_level,
+              id: item.id,
+              machine_pair_cnt: item.machine_pair_cnt,
+              major_version: item.major_version,
+              master_domain: item.master_domain,
+              proxy: item.proxy,
+            },
+          }),
+        );
       }
     });
     formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...newList];

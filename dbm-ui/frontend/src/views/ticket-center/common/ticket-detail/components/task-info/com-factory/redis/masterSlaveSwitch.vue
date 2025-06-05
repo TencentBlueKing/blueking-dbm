@@ -13,12 +13,16 @@
 
 <template>
   <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn :label="t('主库主机')">
+    <BkTableColumn
+      :label="t('主库主机')"
+      :min-width="200">
       <template #default="{ data }: { data: RowData }">
         {{ data.pairs[0].redis_master }}
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('所属集群')">
+    <BkTableColumn
+      :label="t('所属集群')"
+      :min-width="300">
       <template #default="{ data }: { data: RowData }">
         <p
           v-for="item in data.cluster_ids"
