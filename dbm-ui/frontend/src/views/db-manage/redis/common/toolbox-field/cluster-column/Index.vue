@@ -22,7 +22,7 @@
     <ClusterSelector
       v-model:is-show="isShowClusterSelector"
       :cluster-types="[ClusterTypes.REDIS]"
-      :selected="selected as MappedProps"
+      :selected="selectedClusters"
       :tab-list-config="tabListConfig"
       @change="handelClusterChange" />
   </EditableColumn>
@@ -39,26 +39,20 @@
 
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
 
-  type MappedProps = {
-    [K in keyof Props['selected']]: RedisModel[];
-  };
-
   interface Props {
     field?: string;
     label?: string;
-    selected: Record<
-      string,
-      {
-        id: number;
-        master_domain: string;
-      }[]
-    >;
+    selected: {
+      cluster_type: string;
+      id: number;
+      master_domain: string;
+    }[];
     tabListConfig?: Record<string, TabConfig>;
   }
 
   type Emits = (e: 'batch-edit', value: RedisModel[]) => void;
 
-  withDefaults(defineProps<Props>(), {
+  const props = withDefaults(defineProps<Props>(), {
     field: 'cluster.master_domain',
     label: '',
     tabListConfig: undefined,
@@ -78,6 +72,11 @@
       validator: (value: string) => domainRegex.test(value),
     },
     {
+      message: t('目标集群重复'),
+      trigger: 'blur',
+      validator: (value: string) => props.selected.filter((item) => item.master_domain === value).length < 2,
+    },
+    {
       message: t('目标集群不存在'),
       trigger: 'blur',
       validator: () => Boolean(modelValue.value.id),
@@ -88,19 +87,23 @@
   const isShowClusterSelector = ref(false);
   const isLoading = ref(false);
 
+  const selectedClusters = computed(() => ({
+    [ClusterTypes.REDIS]: props.selected as RedisModel[],
+  }));
+
   watch(
     () => modelValue.value.master_domain,
     () => {
+      modelValue.value.id = undefined;
       if (!modelValue.value.id && modelValue.value.master_domain) {
         isLoading.value = true;
-        modelValue.value.id = undefined;
         filterClusters<RedisModel>({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           exact_domain: modelValue.value.master_domain,
         })
           .then((data) => {
             if (data.length > 0) {
-              [modelValue.value] = data;
+              modelValue.value = new RedisModel(data[0]);
             }
           })
           .finally(() => {
