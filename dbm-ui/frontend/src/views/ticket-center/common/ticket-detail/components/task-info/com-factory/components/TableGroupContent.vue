@@ -4,7 +4,11 @@
       v-for="(column, index) in columns"
       :key="index"
       class="content-item">
-      <div class="item-title">{{ column.title }}：</div>
+      <div
+        class="item-title"
+        :style="{ width: `${titleWidth}px` }">
+        {{ column.title }}：
+      </div>
       <div class="item-content">
         <Component :is="column.render" />
       </div>
@@ -13,14 +17,19 @@
 </template>
 
 <script setup lang="ts">
+  import type { VNode } from 'vue';
+
   interface Props {
     columns: {
       render: () => VNode | string | number | null;
       title: string;
     }[];
+    titleWidth?: number;
   }
 
-  defineProps<Props>();
+  withDefaults(defineProps<Props>(), {
+    titleWidth: 72,
+  });
 </script>
 
 <style lang="less" scoped>
@@ -35,7 +44,7 @@
       line-height: 20px;
 
       .item-title {
-        width: 72px;
+        // width: 72px;
         text-align: right;
       }
 

@@ -55,13 +55,13 @@ export default [
           },
           {
             dbConsoleValue: 'redis.toolbox.slaveRebuild',
-            id: 'RedisDBCreateSlave',
+            id: TicketTypes.REDIS_CLUSTER_ADD_SLAVE,
             name: t('重建从库'),
             parentId: 'common-manage',
           },
           {
             dbConsoleValue: 'redis.toolbox.masterSlaveSwap',
-            id: 'RedisMasterFailover',
+            id: TicketTypes.REDIS_MASTER_SLAVE_SWITCH,
             name: t('主从切换'),
             parentId: 'common-manage',
           },
@@ -73,19 +73,19 @@ export default [
           },
           {
             dbConsoleValue: 'redis.toolbox.migrate',
-            id: 'RedisMigrate',
+            id: TicketTypes.REDIS_CLUSTER_INS_MIGRATE,
             name: t('迁移'),
             parentId: 'common-manage',
           },
           {
             dbConsoleValue: 'redis.toolbox.versionUpgrade',
-            id: 'RedisVersionUpgrade',
+            id: TicketTypes.REDIS_VERSION_UPDATE_ONLINE,
             name: t('版本升级'),
             parentId: 'common-manage',
           },
           {
             dbConsoleValue: 'redis.toolbox.installModule',
-            id: 'RedisInstallModule',
+            id: TicketTypes.REDIS_CLUSTER_LOAD_MODULES,
             name: t('安装 Module'),
             parentId: 'cluster-manage',
           },
@@ -123,7 +123,7 @@ export default [
         children: [
           {
             dbConsoleValue: 'redis.toolbox.dataCopy',
-            id: 'RedisDBDataCopy',
+            id: TicketTypes.REDIS_CLUSTER_DATA_COPY,
             name: t('数据复制'),
             parentId: 'common-dts',
           },
@@ -187,7 +187,7 @@ export default [
         children: [
           {
             dbConsoleValue: 'redis.toolbox.proxyScaleUp',
-            id: 'RedisProxyScaleUp',
+            id: TicketTypes.REDIS_PROXY_SCALE_UP,
             name: t('扩容接入层'),
             parentId: 'cluster-manage',
           },
@@ -205,7 +205,7 @@ export default [
           },
           {
             dbConsoleValue: 'redis.toolbox.clusterShardChange',
-            id: 'RedisClusterShardUpdate',
+            id: TicketTypes.REDIS_CLUSTER_SHARD_NUM_UPDATE,
             name: t('集群分片变更'),
             parentId: 'cluster-manage',
           },

@@ -8,11 +8,11 @@ export interface ClusterDataCopy extends DetailBase {
   };
   dts_copy_type: 'copy_to_other_system' | 'diff_app_diff_cluster' | 'one_app_diff_cluster' | 'user_built_to_dbm';
   infos: {
-    dst_bk_biz_id: number;
-    dst_cluster: number;
+    dst_bk_biz_id: number | string;
+    dst_cluster: number | string;
     key_black_regex: string; // 排除key
     key_white_regex: string; // 包含key
-    src_cluster: number;
+    src_cluster: number | string;
     src_cluster_password: string;
     src_cluster_type: string;
   }[];
