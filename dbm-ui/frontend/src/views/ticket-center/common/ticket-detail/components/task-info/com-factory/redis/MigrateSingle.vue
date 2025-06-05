@@ -14,17 +14,12 @@
 <template>
   <BkTable
     class="single-migrate-table"
-    :data="ticketDetails.details.infos"
+    :data="tableData"
     :show-overflow="false">
     <BkTableColumn
-      v-if="isDomain"
-      field="display_info.domain"
-      :label="t('目标集群')">
-    </BkTableColumn>
-    <BkTableColumn
-      v-else
-      field="display_info.ip"
-      :label="t('目标 Master 主机')">
+      field="primary_key"
+      fixed="left"
+      :label="isDomain ? t('目标集群') : t('目标 Master 主机')">
     </BkTableColumn>
     <BkTableColumn
       field="old_nodes"
@@ -32,7 +27,7 @@
       min-width="400">
       <template #default="{ data }: { data: RowData }">
         <div
-          v-for="(item, index) in instanceMap[data.display_info[rowKey]]"
+          v-for="(item, index) in data.instances"
           :key="index"
           class="host-item">
           <div class="host-tag host-tag-master">M</div>
@@ -44,11 +39,8 @@
       </template>
     </BkTableColumn>
     <BkTableColumn
-      field="resource_spec"
+      field="spec_name"
       :label="t('规格')">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.specs[data.resource_spec.backend_group.spec_id].name }}
-      </template>
     </BkTableColumn>
     <BkTableColumn
       field="db_version"
@@ -67,7 +59,7 @@
     ticketDetails: TicketModel<Redis.MigrateSingle>;
   }
 
-  type RowData = Props['ticketDetails']['details']['infos'][number];
+  type RowData = (typeof tableData)[number];
 
   defineOptions({
     name: TicketTypes.REDIS_SINGLE_INS_MIGRATE,
@@ -78,22 +70,46 @@
 
   const { t } = useI18n();
 
-  const isDomain = props.ticketDetails.details.infos[0].display_info.migrate_type === 'domain';
-  const rowKey = isDomain ? 'domain' : 'ip';
+  const { infos, specs } = props.ticketDetails.details;
+  const isDomain = infos[0].display_info.migrate_type === 'domain';
 
-  const instanceMap = props.ticketDetails.details.infos.reduce<Record<string, string[][]>>((prevMap, item) => {
+  const infoMap = props.ticketDetails.details.infos.reduce<
+    Record<
+      string,
+      {
+        db_version: string;
+        instances: string[][];
+        primary_key: string;
+        spec_name: number;
+      }
+    >
+  >((prevMap, item) => {
+    const primaryKey = isDomain ? item.display_info.domain : item.display_info.ip;
+    const specName = specs[item.resource_spec.backend_group.spec_id].name;
+
     const masterItem = item.old_nodes.master[0];
     const slaveItem = item.old_nodes.slave[0];
-    const instanceList = [`${masterItem.ip}:${masterItem.port}`, `${slaveItem.ip}:${slaveItem.port}`];
-    if (prevMap[item.display_info[rowKey]]) {
+    const instances = [`${masterItem.ip}:${masterItem.port}`, `${slaveItem.ip}:${slaveItem.port}`];
+
+    if (prevMap[primaryKey]) {
       return Object.assign({}, prevMap, {
-        [item.display_info[rowKey]]: prevMap[item.display_info[rowKey]].concat(instanceList),
+        [primaryKey]: {
+          ...prevMap[primaryKey],
+          instances: prevMap[primaryKey].instances.concat([instances]),
+        },
       });
     }
     return Object.assign({}, prevMap, {
-      [item.display_info[rowKey]]: [instanceList],
+      [primaryKey]: {
+        db_version: item.db_version,
+        instances: [instances],
+        primary_key: primaryKey,
+        spec_name: specName,
+      },
     });
   }, {});
+
+  const tableData = Object.values(infoMap);
 </script>
 
 <style lang="less" scoped>

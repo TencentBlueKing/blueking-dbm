@@ -102,7 +102,7 @@
 
   import { useDefaultPagination } from '@hooks';
 
-  import { LocalStorageKeys } from '@common/const';
+  import { LocalStorageKeys, TicketTypes } from '@common/const';
 
   import useResetTableHeight from '@views/db-manage/redis/common/hooks/useResetTableHeight';
 
@@ -480,14 +480,19 @@
     }
     localStorage.setItem(LocalStorageKeys.REDIS_DATA_CHECK_AND_REPAIR, JSON.stringify(row));
     router.push({
-      name: 'RedisToolboxDataCheckRepair',
+      name: TicketTypes.REDIS_DATACOPY_CHECK_REPAIR,
+      query: {
+        historyJobId: row.id,
+      },
     });
   };
 
   const handleClickRecopy = (row: RedisDSTHistoryJobModel) => {
-    localStorage.setItem(LocalStorageKeys.REDIS_DB_DATA_RECORD_RECOPY, JSON.stringify(row));
     router.push({
-      name: 'RedisDBDataCopy',
+      name: TicketTypes.REDIS_CLUSTER_DATA_COPY,
+      query: {
+        historyJobId: row.id,
+      },
     });
   };
 
