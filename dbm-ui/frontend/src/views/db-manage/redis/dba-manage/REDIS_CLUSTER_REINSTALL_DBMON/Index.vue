@@ -16,7 +16,7 @@
     <BkAlert
       class="mb-20"
       closable
-      :title="t('用于批量执行整机替换')" />
+      :title="t('用于批量为集群重新标准化')" />
     <BatchInput
       :config="batchInputConfig"
       @change="handleBatchInput" />
@@ -31,29 +31,15 @@
         <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
-          <HostColumn
-            v-model="item.host"
+          <ClusterColumn
+            v-model="item.cluster"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
           <EditableColumn
-            :label="t('角色类型')"
-            :min-width="150">
-            <EditableBlock
-              v-model="item.host.role"
-              :placeholder="t('自动生成')" />
-          </EditableColumn>
-          <EditableColumn
-            :label="t('所属集群')"
-            :min-width="150">
-            <EditableBlock
-              v-model="item.host.master_domain"
-              :placeholder="t('自动生成')" />
-          </EditableColumn>
-          <EditableColumn
             :label="t('所属业务')"
             :min-width="150">
-            <EditableBlock v-if="item.host.bk_biz_id">
-              {{ getBizInfoById(item.host.bk_biz_id)?.name || item.host.bk_biz_id }}
+            <EditableBlock v-if="item.cluster.bk_biz_id">
+              {{ getBizInfoById(item.cluster.bk_biz_id)?.name || item.cluster.bk_biz_id }}
             </EditableBlock>
             <EditableBlock
               v-else
@@ -64,6 +50,11 @@
             :create-row-method="createTableRow" />
         </EditableRow>
       </EditableTable>
+      <BkCheckbox
+        v-model="formData.restart_exporter"
+        class="mb-16">
+        {{ t('重新下发GSE配置') }}
+      </BkCheckbox>
       <TicketPayload v-model="formData.ticketPayload" />
     </BkForm>
     <template #action>
@@ -91,9 +82,7 @@
   import { reactive, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type { Redis } from '@services/model/ticket/ticket';
-
-  import { useBatchCreateTicket, useTicketDetail } from '@hooks';
+  import { useBatchCreateTicket } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -104,18 +93,14 @@
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
-  import HostColumn, { type IValue } from './components/HostColumn.vue';
+  import ClusterColumn, { type IValue } from './components/ClusterColumn.vue';
 
   interface RowData {
-    host: {
+    cluster: {
       bk_biz_id: number;
       bk_cloud_id: number;
-      bk_host_id: number;
-      cluster_id: number;
-      ip: string;
+      id: number;
       master_domain: string;
-      role: string;
-      spec_id: number;
     };
   }
 
@@ -125,75 +110,39 @@
 
   const batchInputConfig = [
     {
-      case: '192.168.10.2',
-      key: 'ip',
-      label: t('待替换主机'),
+      case: 'redis.test.dba.db',
+      key: 'master_domain',
+      label: t('目标集群'),
     },
   ];
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
-    host: data.host || {
+    cluster: data.cluster || {
       bk_biz_id: 0,
       bk_cloud_id: 0,
-      bk_host_id: 0,
-      cluster_id: 0,
-      ip: '',
+      id: 0,
       master_domain: '',
-      role: '',
-      spec_id: 0,
     },
   });
 
   const defaultData = () => ({
+    restart_exporter: false,
     tableData: [createTableRow()],
     ticketPayload: createTickePayload(),
   });
 
   const formData = reactive(defaultData());
 
-  const selected = computed(() => formData.tableData.filter((item) => item.host.bk_host_id).map((item) => item.host));
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
-
-  useTicketDetail<Redis.ResourcePool.ClusterCutoff>(TicketTypes.REDIS_CLUSTER_CUTOFF, {
-    async onSuccess(ticketDetail) {
-      const { details } = ticketDetail;
-
-      const { infos } = details;
-      if (!infos.length) {
-        return;
-      }
-    },
-  });
-
-  interface TicketDetail {
-    infos: {
-      bk_cloud_id: number;
-      cluster_ids: number[];
-      proxy: TicketDetail['infos'][0]['redis_master'];
-      redis_master: {
-        bk_host_id: number;
-        ip: string;
-        spec_id: number;
-      }[];
-      redis_slave: TicketDetail['infos'][0]['redis_master'];
-    }[];
-    ip_source: 'resource_pool';
-  }
+  const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
+  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
   const { loading: isSubmitting, run: createTicketRun } = useBatchCreateTicket<{
-    infos: {
-      bk_cloud_id: number;
-      cluster_ids: number[];
-      proxy: TicketDetail['infos'][0]['redis_master'];
-      redis_master: {
-        bk_host_id: number;
-        ip: string;
-        spec_id: number;
-      }[];
-      redis_slave: TicketDetail['infos'][0]['redis_master'];
-    }[];
-    ip_source: 'resource_pool';
-  }>(TicketTypes.REDIS_CLUSTER_CUTOFF);
+    bk_biz_id: number;
+    bk_cloud_id: number;
+    cluster_ids: number[];
+    is_stop: boolean;
+    restart_exporter: boolean;
+  }>(TicketTypes.REDIS_CLUSTER_REINSTALL_DBMON);
 
   const handleSubmit = async () => {
     const result = await tableRef.value!.validate();
@@ -201,19 +150,14 @@
       return;
     }
     createTicketRun({
-      bizIdExtractor: (item) => item.host.bk_biz_id,
+      bizIdExtractor: (item) => item.cluster.bk_biz_id,
       data: formData.tableData,
       detailsExtractor: (item) => ({
-        infos: [
-          {
-            bk_cloud_id: item.host.bk_cloud_id,
-            cluster_ids: [item.host.cluster_id],
-            proxy: item.host.role === 'proxy' ? [item.host] : [],
-            redis_master: item.host.role === 'redis_master' ? [item.host] : [],
-            redis_slave: item.host.role === 'redis_slave' ? [item.host] : [],
-          },
-        ],
-        ip_source: 'resource_pool',
+        bk_biz_id: item.cluster.bk_biz_id,
+        bk_cloud_id: item.cluster.bk_cloud_id,
+        cluster_ids: [item.cluster.id],
+        is_stop: false,
+        restart_exporter: formData.restart_exporter,
       }),
       ticketPayload: formData.ticketPayload,
     });
@@ -225,18 +169,14 @@
 
   const handleBatchEdit = (list: IValue[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!selectedMap.value[item.ip]) {
+      if (!selectedMap.value[item.master_domain]) {
         acc.push(
           createTableRow({
-            host: {
+            cluster: {
               bk_biz_id: item.bk_biz_id,
               bk_cloud_id: item.bk_cloud_id,
-              bk_host_id: item.bk_host_id,
-              cluster_id: item.related_clusters[0]?.id || 0,
-              ip: item.ip,
-              master_domain: item.related_clusters[0]?.immute_domain || '--',
-              role: item.instance_role,
-              spec_id: item.spec_id || 0,
+              id: item.id,
+              master_domain: item.master_domain,
             },
           }),
         );
@@ -248,18 +188,14 @@
 
   const handleBatchInput = (data: Record<string, any>[]) => {
     const dataList = data.reduce<RowData[]>((acc, item) => {
-      if (!selectedMap.value[item.ip]) {
+      if (!selectedMap.value[item.master_domain]) {
         acc.push(
           createTableRow({
-            host: {
+            cluster: {
               bk_biz_id: 0,
               bk_cloud_id: 0,
-              bk_host_id: 0,
-              cluster_id: 0,
-              ip: item.ip,
-              master_domain: '',
-              role: '',
-              spec_id: 0,
+              id: 0,
+              master_domain: item.master_domain,
             },
           }),
         );

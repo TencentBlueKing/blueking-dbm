@@ -12,29 +12,38 @@
 -->
 
 <template>
-  <DbaManageMenu
-    :routes="routes"
-    sub-title="Redis" />
+  <InfoList>
+    <InfoItem :label="t('集群域名')">
+      {{ ticketDetails?.details?.clusters?.[ticketDetails.details.cluster_ids[0]]?.immute_domain || '--' }}
+    </InfoItem>
+    <InfoItem :label="t('所属业务')">
+      {{ ticketDetails?.bk_biz_name || '--' }}
+    </InfoItem>
+    <InfoItem :label="t('重新下发GSE配置')">
+      {{ ticketDetails.details.restart_exporter ? t('是') : t('否') }}
+    </InfoItem>
+  </InfoList>
 </template>
+
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import TicketModel, { type Redis } from '@services/model/ticket/ticket';
+
   import { TicketTypes } from '@common/const';
 
-  import DbaManageMenu from '@views/db-manage/common/dba-manage-menu/Index.vue';
+  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+
+  interface Props {
+    ticketDetails: TicketModel<Redis.ClusterReinstallDbmon>;
+  }
+
+  defineOptions({
+    name: TicketTypes.REDIS_CLUSTER_REINSTALL_DBMON,
+    inheritAttrs: false,
+  });
+
+  defineProps<Props>();
 
   const { t } = useI18n();
-
-  const routes = [
-    {
-      dbConsoleValue: 'dbaManage.redis.clusterCutoff',
-      id: `DBA_${TicketTypes.REDIS_CLUSTER_CUTOFF}`,
-      name: t('整机替换'),
-    },
-    {
-      dbConsoleValue: 'dbaManage.redis.clusterReinstallDbmon',
-      id: `DBA_${TicketTypes.REDIS_CLUSTER_REINSTALL_DBMON}`,
-      name: t('集群标准化'),
-    },
-  ];
 </script>

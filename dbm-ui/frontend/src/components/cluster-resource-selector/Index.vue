@@ -64,33 +64,24 @@
 
   import { clusterTypeInfos, ClusterTypes } from '@common/const';
 
+  import ClusterPreviewResult, { type IValue as Cluster } from './components/cluster/PreviewResult.vue';
+  import ClusterTopoSelect from './components/cluster/TopoSelect.vue';
   import PanelTab from './components/common/PanelTab.vue';
-  // import InstanceManualInput from './components/instance/ManualInput.vue';
   import InstancePreviewResult, { type IValue as Instance } from './components/instance/PreviewResult.vue';
   import InstanceTopoSelect from './components/instance/TopoSelect.vue';
-  // import MachineManualInput from './components/machine/ManualInput.vue';
   import MachinePreviewResult, { type IValue as Machine } from './components/machine/PreviewResult.vue';
   import MachineTopoSelect from './components/machine/TopoSelect.vue';
 
   export type ItemType = {
+    cluster: Cluster;
     instance: Instance;
     machine: Machine;
   };
 
-  export interface Selected {
-    bk_biz_id: number;
-    bk_cloud_id: number;
-    bk_host_id: number;
-    cluster_type: string;
-    db_module_id: number;
-    instance_address?: string;
-    ip: string;
-  }
-
   interface Props {
     clusterType: ClusterTypes[];
     role?: string;
-    target: 'instance' | 'machine';
+    target: keyof ItemType;
   }
 
   type Emits = (e: 'change', data: any[]) => void;
@@ -103,20 +94,20 @@
     required: true,
   });
 
-  const selected = defineModel<Selected[]>('selected', {
+  const selected = defineModel<ItemType[Props['target']][]>('selected', {
     required: true,
   });
 
   const { t } = useI18n();
 
   const mainComponent = {
+    cluster: ClusterTopoSelect,
     instance: InstanceTopoSelect,
-    // 'instance-manual': InstanceManualInput,
     machine: MachineTopoSelect,
-    // 'machine-manual': InstanceManualInput,
   };
 
   const asideComponent = {
+    cluster: ClusterPreviewResult,
     instance: InstancePreviewResult,
     machine: MachinePreviewResult,
   };

@@ -37,6 +37,7 @@ export default function getRoutes() {
           component: () => import('@views/db-manage/common/dba-toolbox-result/Index.vue'),
         },
         createRouteItem(TicketTypes.REDIS_CLUSTER_CUTOFF, t('整机替换')),
+        createRouteItem(TicketTypes.REDIS_CLUSTER_REINSTALL_DBMON, t('集群标准化')),
       ],
     },
   ];

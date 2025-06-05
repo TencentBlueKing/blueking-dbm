@@ -115,20 +115,6 @@
       list: { text: string; value: string }[];
     }
   > = {
-    // role: {
-    //   key: 'role',
-    //   checked: [],
-    //   list: [
-    //     {
-    //       text: 'master',
-    //       value: 'master',
-    //     },
-    //     {
-    //       text: 'slave',
-    //       value: 'slave',
-    //     },
-    //   ].filter((item) => item.value === props.params.role),
-    // },
     status: {
       checked: [],
       key: 'status',
@@ -145,10 +131,6 @@
     },
   };
 
-  // 首字母大写
-  // const capitalize = (str: string) => str.toLowerCase().replace(/^\w/, (match) => match.toUpperCase());
-
-  // const instanceRoleText = t('xx实例', { role: props.params?.role ? capitalize(props.params.role) : '' });
   const searchSelectValue = ref<NonNullable<SearchSelectProps['modelValue']>>([]);
   const dbTableRef = useTemplateRef('table');
 

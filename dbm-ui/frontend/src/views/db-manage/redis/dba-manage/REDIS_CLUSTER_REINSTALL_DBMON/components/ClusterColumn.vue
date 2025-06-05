@@ -14,9 +14,9 @@
 <template>
   <EditableColumn
     :append-rules="rules"
-    field="master.instance_address"
+    field="cluster.master_domain"
     fixed="left"
-    label="Master"
+    :label="t('目标集群')"
     :loading="loading"
     :min-width="150"
     required>
@@ -29,30 +29,30 @@
       </span>
     </template>
     <EditableInput
-      v-model="modelValue.instance_address"
-      :placeholder="t('请输入如: 192.168.10.2:1000')"
+      v-model="modelValue.master_domain"
+      :placeholder="t('请输入集群域名')"
       @change="handleInputChange" />
   </EditableColumn>
   <ClusterResourceSelector
     v-model:is-show="showSelector"
     v-model:selected="dataList"
-    :cluster-type="[ClusterTypes.TENDBHA]"
-    role="backend_master"
-    target="instance"
+    :cluster-type="queryClusterTypes[DBTypes.REDIS]"
+    target="cluster"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getGlobalInstance } from '@services/source/dbbase';
+  import type RedisModel from '@services/model/redis/redis';
+  import { getGlobalCluster } from '@services/source/dbbase';
 
-  import { ClusterTypes, DBTypes } from '@common/const';
-  import { ipPort } from '@common/regex';
+  import { DBTypes, queryClusterTypes } from '@common/const';
+  import { domainRegex } from '@common/regex';
 
   import ClusterResourceSelector, { type ItemType } from '@components/cluster-resource-selector/Index.vue';
 
-  export type IValue = ItemType['instance'];
+  export type IValue = ItemType['cluster'];
 
   interface Props {
     selected: (typeof modelValue.value)[];
@@ -67,14 +67,15 @@
   const modelValue = defineModel<{
     bk_biz_id: number;
     bk_cloud_id: number;
-    bk_host_id: number;
-    cluster_id: number;
-    instance_address: string;
-    ip: string;
+    id: number;
     master_domain: string;
-    port: number;
   }>({
-    required: true,
+    default: () => ({
+      bk_biz_id: 0,
+      bk_cloud_id: 0,
+      id: 0,
+      master_domain: '',
+    }),
   });
 
   const { t } = useI18n();
@@ -84,23 +85,28 @@
 
   const rules = [
     {
-      message: t('目标实例输入格式有误'),
+      message: t('集群域名格式不正确'),
       trigger: 'change',
-      validator: (value: string) => ipPort.test(value),
+      validator: (value: string) => domainRegex.test(value),
     },
     {
-      message: t('目标实例重复'),
+      message: t('目标集群重复'),
       trigger: 'blur',
-      validator: (value: string) => props.selected.filter((item) => item.instance_address === value).length < 2,
+      validator: (value: string) => props.selected.filter((item) => item.master_domain === value).length < 2,
     },
     {
-      message: t('目标实例不存在'),
+      message: t('目标集群不存在'),
       trigger: 'blur',
-      validator: () => Boolean(modelValue.value.bk_host_id),
+      validator: (value: string) => {
+        if (!value) {
+          return true;
+        }
+        return Boolean(modelValue.value.id);
+      },
     },
   ];
 
-  const { loading, run: queryInstance } = useRequest(getGlobalInstance, {
+  const { loading, run: queryCluster } = useRequest(getGlobalCluster<RedisModel>, {
     manual: true,
     onSuccess: (data) => {
       const [item] = data.results;
@@ -108,12 +114,8 @@
         modelValue.value = {
           bk_biz_id: item.bk_biz_id,
           bk_cloud_id: item.bk_cloud_id,
-          bk_host_id: item.bk_host_id,
-          cluster_id: item.cluster_id,
-          instance_address: item.instance_address,
-          ip: item.ip,
+          id: item.id,
           master_domain: item.master_domain,
-          port: item.port,
         };
       }
     },
@@ -127,12 +129,8 @@
     modelValue.value = {
       bk_biz_id: 0,
       bk_cloud_id: 0,
-      bk_host_id: 0,
-      cluster_id: 0,
-      instance_address: value,
-      ip: '',
-      master_domain: '',
-      port: 0,
+      id: 0,
+      master_domain: value,
     };
   };
 
@@ -143,12 +141,11 @@
   watch(
     modelValue,
     () => {
-      if (modelValue.value.instance_address && !modelValue.value.bk_host_id) {
-        queryInstance({
-          cluster_type: ClusterTypes.TENDBHA,
-          db_type: DBTypes.MYSQL,
-          instance_address: modelValue.value.instance_address,
-          role: 'backend_master',
+      if (modelValue.value.master_domain && !modelValue.value.id) {
+        queryCluster({
+          cluster_type: queryClusterTypes[DBTypes.REDIS].join(','),
+          db_type: DBTypes.REDIS,
+          master_domain: modelValue.value.master_domain,
         });
       }
     },

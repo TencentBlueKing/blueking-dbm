@@ -267,3 +267,54 @@ export function getGlobalMachine(params: {
 }) {
   return http.get<ListBase<MachineInfos[]>>(`${path}/get_global_machine/`, params);
 }
+
+// 查询全局集群
+export function getGlobalCluster<
+  T extends {
+    bk_biz_id: number;
+    bk_biz_name: string;
+    bk_cloud_id: number;
+    bk_cloud_name: string;
+    cluster_type: string;
+    cluster_type_name: string;
+    db_module_id: number;
+    db_module_name: string;
+    db_type: string;
+    id: number;
+    master_domain: string;
+    phase: string;
+    phase_name: string;
+    region: string;
+    slave_domain: string;
+    status: string;
+  },
+>(params: {
+  bk_biz_id?: number; // 业务ID
+  bk_cloud_id?: number; // 云区域ID
+  city?: string; // 城市
+  cluster_ids?: string; // 集群ID列表
+  cluster_type?: string; // 集群类型
+  creator?: string; // 创建人
+  db_module_id?: number; // 模块ID
+  db_type: DBTypes; // 数据库类型
+  domain?: string; // 域名
+  domains?: string; // 域名列表
+  exact_domain?: string; // 精确域名查询
+  id?: number; // 集群ID
+  instance?: string; // 实例地址
+  limit?: number; // 分页限制
+  major_version?: string; // 主版本
+  master_domain?: string; // 主域名
+  name?: string; // 集群名称
+  offset?: number;
+  ordering?: string; // 排序字段
+  region?: string; // 区域
+  slave_domain?: string; // 从域名
+  spider_slave_exist?: boolean; // 是否存在spider从节点
+  status?: string; // 集群状态
+  sys_mode?: string; // 系统模式
+  tag_ids?: string; // 标签ID列表
+  tag_keys?: string; // 标签键列表
+}) {
+  return http.get<ListBase<T[]>>(`${path}/get_global_cluster/`, params);
+}

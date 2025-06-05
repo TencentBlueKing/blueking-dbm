@@ -49,10 +49,7 @@
   import { DBTypes, queryClusterTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
-  import ClusterResourceSelector, {
-    type ItemType,
-    type Selected,
-  } from '@components/cluster-resource-selector/Index.vue';
+  import ClusterResourceSelector, { type ItemType } from '@components/cluster-resource-selector/Index.vue';
 
   export type IValue = ItemType['machine'];
 
@@ -82,7 +79,7 @@
   const { t } = useI18n();
 
   const showSelector = ref(false);
-  const dataList = shallowRef<Selected[]>([]);
+  const dataList = shallowRef<IValue[]>([]);
 
   const rules = [
     {
@@ -113,8 +110,8 @@
           bk_host_id: item.bk_host_id,
           cluster_id: item.related_clusters[0]?.id || 0,
           ip: item.ip,
-          master_domain: item.master_domain,
-          role: item.role,
+          master_domain: item.related_clusters[0]?.immute_domain || '',
+          role: item.instance_role,
           spec_id: item.spec_id,
         };
       }

@@ -29,7 +29,7 @@
   import { useI18n } from 'vue-i18n';
 
   interface Props {
-    target: 'instance' | 'machine';
+    target: 'instance' | 'machine' | 'cluster';
   }
 
   const props = defineProps<Props>();
@@ -41,24 +41,29 @@
   const { t } = useI18n();
 
   const panelList = computed(() => {
-    if (props.target === 'instance') {
-      return [
-        {
-          id: 'instance',
-          name: t('选择实例'),
-        },
-        // {
-        //   id: 'instance-manual',
-        //   name: t('手动输入'),
-        // },
-      ];
+    switch (props.target) {
+      case 'machine':
+        return [
+          {
+            id: 'machine',
+            name: t('选择主机'),
+          },
+        ];
+      case 'cluster':
+        return [
+          {
+            id: 'cluster',
+            name: t('选择集群'),
+          },
+        ];
+      default:
+        return [
+          {
+            id: 'instance',
+            name: t('选择实例'),
+          },
+        ];
     }
-    return [
-      {
-        id: 'machine',
-        name: t('选择主机'),
-      },
-    ];
   });
 
   const handleClick = (id: string) => {

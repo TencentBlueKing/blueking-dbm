@@ -244,10 +244,9 @@
     }
 
     createTicketRun({
-      array: formData.tableData,
-      keyExtractor: (item) => item.master.bk_biz_id,
-      ticketPayload: formData.ticketPayload,
-      translate: (item) => ({
+      bizIdExtractor: (item) => item.master.bk_biz_id,
+      data: formData.tableData,
+      detailsExtractor: (item) => ({
         infos: [
           {
             cluster_ids: [item.master.cluster_id],
@@ -257,6 +256,7 @@
         ],
         ...formData.checkPayload,
       }),
+      ticketPayload: formData.ticketPayload,
     });
   };
 

@@ -103,43 +103,39 @@ export function useBatchCreateTicket<T>(ticketType: TicketTypes) {
   };
 
   const run = <U,>({
-    array = [],
-    keyExtractor,
+    bizIdExtractor,
+    data = [],
+    detailsExtractor,
     ticketPayload = {
       remark: '',
     },
-    translate,
   }: {
-    array: U[];
     /**
      * 指定获取业务id的方法
      */
-    keyExtractor: (item: U) => string | number;
-    ticketPayload: { remark: string };
+    bizIdExtractor: (item: U) => number;
+    data: U[];
     /**
      * 转成提单的details
      */
-    translate: (item: U) => T;
+    detailsExtractor: (item: U) => T;
+    ticketPayload: { remark: string };
   }) => {
-    const detailsByBiz = array.reduce<Record<string, T>>(
-      (acc, item) => {
-        const key = keyExtractor(item);
-        Object.assign(acc, {
-          [key]: translate(item),
-        });
-        return acc;
-      },
-      {} as Record<string, T>,
-    );
+    const detailsByBiz = data.reduce<Record<string, { bk_biz_id: number; details: T }>>((acc, item, index) => {
+      Object.assign(acc, {
+        [index]: {
+          bk_biz_id: bizIdExtractor(item),
+          details: detailsExtractor(item),
+        },
+      });
+      return acc;
+    }, {});
 
-    const ticketParams = Object.entries(detailsByBiz).map(([bizId, details]) => {
-      return {
-        bk_biz_id: Number(bizId),
-        details,
-        ...ticketPayload,
-        ticket_type: ticketType,
-      };
-    });
+    const ticketParams = Object.values(detailsByBiz).map((item) => ({
+      ...item,
+      ...ticketPayload,
+      ticket_type: ticketType,
+    }));
 
     doRequest(ticketParams);
   };

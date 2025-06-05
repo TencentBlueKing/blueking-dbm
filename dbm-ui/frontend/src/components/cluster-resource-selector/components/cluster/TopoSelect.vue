@@ -19,44 +19,46 @@
     :max="420"
     :min="320">
     <template #aside>
-      <ManualInputPanel
+      <TopoTree
         :params="params"
         @change="handleChangeParams" />
     </template>
     <template #main>
       <RenderTable
-        :params="localParams"
+        :params="tableParmas"
         :selected="selected"
         @change="handleChange" />
     </template>
   </BkResizeLayout>
 </template>
 <script setup lang="ts">
-  import { DBTypes } from '@common/const';
+  import { ClusterTypes, DBTypes } from '@common/const';
 
-  import ManualInputPanel from './components/ManualInputPanel.vue';
+  import TopoTree from '../common/TopoTree.vue';
+
   import RenderTable, { type IValue, type Parameters } from './components/RenderTable.vue';
 
   interface Props {
     params: {
       cluster_type: string;
+      count_type: string;
       db_type: DBTypes;
-      role: string;
+      role?: string;
     };
   }
 
   const props = defineProps<Props>();
 
-  const selected = defineModel<IValue[]>('selected', {
+  const selected = defineModel<Partial<IValue>[]>('selected', {
     required: true,
   });
 
-  const localParams = ref<Parameters>({
+  const tableParmas = ref<Parameters>({
     db_type: DBTypes.MYSQL,
   });
 
   const handleChangeParams = (params: { bk_biz_id?: number; db_module_id?: number; instance?: string }) => {
-    localParams.value = {
+    tableParmas.value = {
       ...props.params,
       ...params,
     };
@@ -65,4 +67,13 @@
   const handleChange = (data: IValue[]) => {
     selected.value = data;
   };
+
+  onMounted(() => {
+    tableParmas.value = props.params;
+    // Redis 集群需要特殊处理
+    if (props.params.cluster_type.indexOf(ClusterTypes.REDIS) > -1) {
+      tableParmas.value.cluster_type = undefined;
+      tableParmas.value.db_type = DBTypes.REDIS;
+    }
+  });
 </script>
