@@ -22,6 +22,7 @@ const getRootPath = () => `/apis/redis/bizs/${window.PROJECT_CONFIG.BIZ_ID}/dts`
 export function getRedisDTSHistoryJobs(params: {
   cluster_name?: string;
   end_time?: string;
+  id?: number;
   page?: number;
   page_size?: number;
   start_time?: string;

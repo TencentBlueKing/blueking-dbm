@@ -12,45 +12,50 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
+  <BkTable
+    :data="ticketDetails.details.infos"
+    :show-overflow="false">
     <BkTableColumn
+      fixed="left"
       :label="t('源集群')"
-      :min-width="180">
+      :min-width="220">
       <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.clusters[data.src_cluster].immute_domain }}
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('架构版本')">
+    <BkTableColumn
+      :label="t('架构版本')"
+      :width="150">
       <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.clusters[data.src_cluster].cluster_type_name }}
       </template>
     </BkTableColumn>
     <BkTableColumn
-      :label="t('当前集群容量/QPS')"
-      :min-width="150">
-      <template #default="{ data }: { data: RowData }">
-        {{
-          `${data.capacity}G_${ticketDetails.details.specs[data.resource_spec.backend_group.spec_id].qps.max}/s(${data.current_shard_num}片)`
-        }}
-      </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="capacity"
-      :label="t('当前容量需求')" />
-    <BkTableColumn
-      field="future_capacity"
-      :label="t('未来容量需求')" />
-    <BkTableColumn
-      :label="t('部署方案')"
-      :min-width="150">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.specs[data.resource_spec.backend_group.spec_id].name }}
-      </template>
-    </BkTableColumn>
-    <BkTableColumn
       field="db_version"
-      :label="t('版本')" />
-    <BkTableColumn :label="t('切换模式')">
+      :label="t('Redis 版本')" />
+    <BkTableColumn
+      :label="t('当前方案')"
+      :min-width="400">
+      <template #default="{ data }: { data: RowData }">
+        <TableGroupContent
+          v-if="data"
+          :columns="getCurrentColunms(data)"
+          :title-width="90" />
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      :label="t('新部署方案')"
+      :min-width="400">
+      <template #default="{ data }: { data: RowData }">
+        <TableGroupContent
+          v-if="data"
+          :columns="getTargetColunms(data)"
+          :title-width="90" />
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      :label="t('切换模式')"
+      :width="150">
       <template #default="{ data }: { data: RowData }">
         {{ data.online_switch_type === 'user_confirm' ? t('需人工确认') : t('无需确认') }}
       </template>
@@ -68,16 +73,24 @@
   </InfoList>
 </template>
 
-<script setup lang="ts">
+<script setup lang="tsx">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Redis } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
 
+  import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
+
+  import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue';
+  import ValueDiff from '@views/db-manage/common/value-diff/Index.vue';
   import { repairAndVerifyFrequencyList, repairAndVerifyTypeList } from '@views/db-manage/redis/common/const';
 
+  import { convertStorageUnits } from '@utils';
+
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  import TableGroupContent from '../components/TableGroupContent.vue';
 
   interface Props {
     ticketDetails: TicketModel<Redis.ClusterShardNumUpdate>;
@@ -90,19 +103,209 @@
     inheritAttrs: false,
   });
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 
-  const repairAndVerifyTypesMap = generateMap(repairAndVerifyTypeList);
-
-  const repairAndVerifyFrequencyMap = generateMap(repairAndVerifyFrequencyList);
-
   // 生成映射表
-  function generateMap(arr: { label: string; value: string }[]) {
+  const generateMap = (arr: { label: string; value: string }[]) => {
     return arr.reduce<Record<string, string>>((obj, item) => {
       Object.assign(obj, { [item.value]: item.label });
       return obj;
     }, {});
-  }
+  };
+
+  const repairAndVerifyTypesMap = generateMap(repairAndVerifyTypeList);
+  const repairAndVerifyFrequencyMap = generateMap(repairAndVerifyFrequencyList);
+
+  const getCurrentColunms = (data: RowData) => [
+    {
+      render: () => {
+        if (data.proxy) {
+          const targetSpec = data.proxy[0].spec_config;
+          return (
+            <RenderSpec
+              data={targetSpec}
+              hide-qps={!targetSpec.qps.max}
+              is-ignore-counts
+            />
+          );
+        }
+        return '--';
+      },
+      title: t('Proxy 规格'),
+    },
+    {
+      render: () => {
+        if (data.proxy) {
+          return <span style='font-weight: bolder'>{data.proxy.length}</span>;
+        }
+        return '--';
+      },
+      title: t('Proxy 数量'),
+    },
+    {
+      render: () => {
+        if (data.cluster_stats) {
+          return <ClusterCapacityUsageRate clusterStats={data.cluster_stats} />;
+        }
+        return '--';
+      },
+      title: t('使用率'),
+    },
+    {
+      render: () => {
+        if (data.cluster_spec) {
+          const targetSpec = { ...data.cluster_spec, name: data.cluster_spec.spec_name };
+          return (
+            <RenderSpec
+              data={targetSpec}
+              hide-qps={!targetSpec.qps.max}
+              is-ignore-counts
+            />
+          );
+        }
+        return '--';
+      },
+      title: t('后端存储规格'),
+    },
+    {
+      render: () => {
+        if (data.machine_pair_cnt) {
+          return <span style='font-weight: bolder'>{data.machine_pair_cnt || '--'}</span>;
+        }
+        return '--';
+      },
+      title: t('机器组数'),
+    },
+    {
+      render: () => {
+        if (data.machine_pair_cnt) {
+          return <span style='font-weight: bolder'>{data.machine_pair_cnt * 2 || '--'}</span>;
+        }
+        return '--';
+      },
+      title: t('机器数量'),
+    },
+    {
+      render: () => <span style='font-weight: bolder'>{data.current_shard_num || '--'}</span>,
+      title: t('分片数'),
+    },
+  ];
+
+  const getTargetColunms = (data: RowData) => [
+    {
+      render: () => {
+        const targetSpec = props.ticketDetails.details.specs[data.resource_spec.proxy.spec_id];
+        return (
+          <RenderSpec
+            data={targetSpec}
+            hide-qps={!targetSpec.qps.max}
+            is-ignore-counts
+          />
+        );
+      },
+      title: t('Proxy 规格'),
+    },
+    {
+      render: () => (
+        <>
+          <span style='font-weight: bolder'>{data.resource_spec.proxy.count}</span>
+          <ValueDiff
+            v-if={data.proxy}
+            currentValue={data.proxy?.length ?? 0}
+            showRate={false}
+            targetValue={data.resource_spec.proxy.count}
+          />
+        </>
+      ),
+      title: t('Proxy 数量'),
+    },
+    {
+      render: () => {
+        if (_.isEmpty(data.cluster_stats)) {
+          return '--';
+        }
+        const { used = 0 } = data.cluster_stats;
+        const targetTotal = convertStorageUnits(data.future_capacity ?? 0, 'GB', 'B');
+
+        const stats = {
+          in_use: Number(((used / targetTotal) * 100).toFixed(2)),
+          total: targetTotal,
+          used,
+        };
+        return (
+          <>
+            <ClusterCapacityUsageRate clusterStats={stats} />
+            <ValueDiff
+              currentValue={convertStorageUnits(data.cluster_stats.total, 'B', 'GB')}
+              num-unit='G'
+              targetValue={data.future_capacity}
+            />
+          </>
+        );
+      },
+      title: t('使用率'),
+    },
+    {
+      render: () => {
+        const targetSpec = props.ticketDetails.details.specs[data.resource_spec.backend_group.spec_id];
+        return (
+          <RenderSpec
+            data={targetSpec}
+            hide-qps={!targetSpec.qps.max}
+            is-ignore-counts
+          />
+        );
+      },
+      title: t('后端存储规格'),
+    },
+    {
+      render: () => (
+        <>
+          <span style='font-weight: bolder'>{data.resource_spec.backend_group.count}</span>
+          <ValueDiff
+            v-if={data.machine_pair_cnt}
+            currentValue={data?.machine_pair_cnt ?? 0}
+            showRate={false}
+            targetValue={data.resource_spec.backend_group.count}
+          />
+        </>
+      ),
+      title: t('机器组数'),
+    },
+    {
+      render: () => (
+        <>
+          <span style='font-weight: bolder'>{data.resource_spec.backend_group.count * 2}</span>
+          <ValueDiff
+            v-if={data.machine_pair_cnt}
+            currentValue={(data?.machine_pair_cnt ?? 0) * 2}
+            showRate={false}
+            targetValue={data.resource_spec.backend_group.count * 2}
+          />
+        </>
+      ),
+      title: t('机器数量'),
+    },
+    {
+      render: () => (
+        <>
+          <span style='font-weight: bolder'>{data.cluster_shard_num}</span>
+          <ValueDiff
+            currentValue={data.current_shard_num}
+            showRate={false}
+            targetValue={data.cluster_shard_num}
+          />
+        </>
+      ),
+      title: t('分片数'),
+    },
+  ];
 </script>
+<style lang="less" scoped>
+  :deep(.render-spec-box) {
+    height: auto;
+    padding: 0;
+  }
+</style>

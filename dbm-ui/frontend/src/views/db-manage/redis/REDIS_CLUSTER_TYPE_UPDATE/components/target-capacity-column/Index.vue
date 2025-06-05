@@ -122,11 +122,16 @@
   watch(
     () => props.targetClusterType,
     () => {
-      modelValue.value.count = [ClusterTypes.PREDIXY_REDIS_CLUSTER, ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER].includes(
-        props.targetClusterType as ClusterTypes,
-      )
-        ? 3
-        : 1;
+      if (props.targetClusterType) {
+        modelValue.value.count = [ClusterTypes.PREDIXY_REDIS_CLUSTER, ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER].includes(
+          props.targetClusterType as ClusterTypes,
+        )
+          ? 3
+          : 1;
+      }
+    },
+    {
+      immediate: true,
     },
   );
 
