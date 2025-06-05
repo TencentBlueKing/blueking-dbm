@@ -244,7 +244,7 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource):
             "create_at",
             "shard",
             "cluster__id",
-            "cluster__major_version",
+            "version",
             "cluster__cluster_type",
             "cluster__db_module_id",
             "cluster__name",

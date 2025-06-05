@@ -66,6 +66,11 @@ class ResourceViewSet(SystemViewSet):
             return [ClusterDetailPermission()]
         return [DBManagePermission()]
 
+    @Permission.decorator_permission_field(
+        id_field=lambda d: d["id"],
+        data_field=lambda d: [d],
+        action_filed=lambda d: d["view_class"].list_perm_actions,
+    )
     def retrieve(self, request, bk_biz_id: int, cluster_id: int):
         """查询集群详情"""
         return Response(self.query_class.retrieve_cluster(bk_biz_id, cluster_id))
