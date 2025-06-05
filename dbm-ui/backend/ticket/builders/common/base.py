@@ -36,6 +36,7 @@ from backend.flow.utils.mysql.db_table_filter.tools import contain_glob
 from backend.ticket import builders
 from backend.ticket.builders.common.constants import MAX_DOMAIN_LEN_LIMIT
 from backend.ticket.constants import TicketType
+from backend.ticket.exceptions import TicketParamsVerifyException
 from backend.utils.basic import get_target_items_from_details
 
 
@@ -160,6 +161,26 @@ class SkipToRepresentationMixin(object):
 
     def to_representation(self, instance):
         return instance
+
+
+class ParamValidateSerializerMixin(object):
+    """所有单据的公共校校验入口"""
+
+    validator = None
+
+    def validated_params(self, attrs):
+        ticket_type = self.context["ticket_type"]
+        ticket_flow_builder = builders.BuilderFactory.registry[ticket_type]
+        if hasattr(ticket_flow_builder.inner_flow_builder, "validator"):
+            self.validator = ticket_flow_builder.inner_flow_builder.validator
+
+        if not self.validator:
+            return attrs
+
+        errors = self.validator(attrs)
+        if errors:
+            raise TicketParamsVerifyException(errors=errors, ticket_type=self.context["ticket_type"])
+        return attrs
 
 
 class CommonValidate(object):

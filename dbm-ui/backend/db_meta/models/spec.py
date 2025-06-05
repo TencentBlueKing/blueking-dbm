@@ -84,7 +84,7 @@ class Spec(AuditedModel):
         return sum(map(lambda x: int(x), mount_point__size.values()))
 
     def _get_apply_params_detail(
-        self, group_mark, count, bk_cloud_id, affinity=AffinityEnum.NONE.value, location_spec=None
+        self, group_mark, count, bk_cloud_id, affinity=AffinityEnum.NONE.value, labels=None, location_spec=None
     ):
         # 如果没有城市信息，default表示无城市信息
         if location_spec and location_spec["city"] == "default":
@@ -107,6 +107,7 @@ class Spec(AuditedModel):
             ],
             "count": count,
             "affinity": affinity,
+            "labels": labels,
         }
         # 对于机型和规格，优先以机型为准，机型不存在则用规格申请
         if self.device_class:
@@ -130,7 +131,14 @@ class Spec(AuditedModel):
         return apply_params
 
     def get_group_apply_params(
-        self, bk_cloud_id, group_mark, count, group_count, affinity=AffinityEnum.NONE.value, location_spec=None
+        self,
+        bk_cloud_id,
+        group_mark,
+        count,
+        group_count,
+        affinity=AffinityEnum.NONE.value,
+        labels=None,
+        location_spec=None,
     ):
         """
         根据规格和分组要求，获取资源申请参数
@@ -144,6 +152,7 @@ class Spec(AuditedModel):
         @param bk_cloud_id: 云区域ID
         @param affinity: 亲和性
         @param location_spec: 位置参数
+        @param labels: 位置参数
         """
         group_count_list = [group_count] * (count // group_count)
         if count % group_count:
@@ -155,6 +164,7 @@ class Spec(AuditedModel):
                 count=num,
                 bk_cloud_id=bk_cloud_id,
                 affinity=affinity,
+                labels=labels,
                 location_spec=location_spec,
             )
             for index, num in enumerate(group_count_list)
