@@ -50,10 +50,7 @@
   import { ClusterTypes, DBTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
-  import ClusterResourceSelector, {
-    type ItemType,
-    type Selected,
-  } from '@components/cluster-resource-selector/Index.vue';
+  import ClusterResourceSelector, { type ItemType } from '@components/cluster-resource-selector/Index.vue';
 
   export type IValue = ItemType['machine'];
 
@@ -81,7 +78,7 @@
   const { t } = useI18n();
 
   const showSelector = ref(false);
-  const dataList = shallowRef<Selected[]>([]);
+  const dataList = shallowRef<IValue[]>([]);
 
   const rules = [
     {

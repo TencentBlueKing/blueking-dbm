@@ -22,28 +22,28 @@
       :data-source="dataSource"
       :height="500"
       ignore-biz
-      primary-key="instance_address"
+      primary-key="id"
       selectable
       :selected="selected"
       show-select-all-page
       @column-filter="handleFilter"
       @selection="handleSelect">
       <BkTableColumn
-        field="instance_address"
-        :label="t('目标实例')"
-        :min-width="150" />
+        field="master_domain"
+        :label="t('目标集群')"
+        :min-width="240" />
       <BkTableColumn
-        field="role"
-        :label="t('角色类型')"
+        field="cluster_type_name"
+        :label="t('集群类型')"
         :min-width="120" />
       <BkTableColumn
-        field="status"
+        field="phase"
         :filter="filterOption.status"
         :label="t('状态')"
         :min-width="120">
         <template #default="{ data }">
           <DbStatus
-            v-if="data.status === 'running'"
+            v-if="data.phase === 'online'"
             theme="success">
             {{ t('正常') }}
           </DbStatus>
@@ -61,10 +61,6 @@
           {{ getBizInfoById(data.bk_biz_id)?.name || '--' }}
         </template>
       </BkTableColumn>
-      <BkTableColumn
-        field="master_domain"
-        :label="t('所属集群')"
-        :min-width="220" />
     </DbTable>
   </div>
 </template>
@@ -72,7 +68,7 @@
   import type { SearchSelect } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
-  import { getGlobalInstance } from '@services/source/dbbase';
+  import { getGlobalCluster } from '@services/source/dbbase';
 
   import { useGlobalBizs } from '@stores';
 
@@ -80,8 +76,8 @@
 
   type SearchSelectProps = InstanceType<typeof SearchSelect>['$props'];
 
-  export type IValue = ServiceReturnType<typeof getGlobalInstance>['results'][0];
-  export type Parameters = ServiceParameters<typeof getGlobalInstance>;
+  export type IValue = ServiceReturnType<typeof getGlobalCluster>['results'][0];
+  export type Parameters = ServiceParameters<typeof getGlobalCluster>;
 
   interface Props {
     params: Parameters;
@@ -99,8 +95,8 @@
 
   const searchSelectData = [
     {
-      id: 'instance',
-      name: 'IP:Port',
+      id: 'master_domain',
+      name: t('域名'),
     },
   ];
 
@@ -136,7 +132,7 @@
   });
 
   const dataSource = (params: Props['params']) =>
-    getGlobalInstance({
+    getGlobalCluster({
       ...props.params,
       ...params,
     });
