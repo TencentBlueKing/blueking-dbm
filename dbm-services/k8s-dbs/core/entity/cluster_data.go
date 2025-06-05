@@ -79,14 +79,15 @@ type Connect struct {
 // ComponentResource component info
 type ComponentResource struct {
 	// Current request
-	ComponentName        string                 `json:"componentName,omitempty"`
-	ComponentDef         string                 `json:"componentDef,omitempty"`
-	Version              string                 `json:"version,omitempty"`
-	Replicas             int32                  `json:"replicas,omitempty"`
-	Env                  map[string]interface{} `json:"env,omitempty"`
-	Request              *Resource              `json:"request,omitempty"`
-	Limit                *Resource              `json:"limit,omitempty"`
-	VolumeClaimTemplates *VolumeClaimTemplates  `json:"volumeClaimTemplates,omitempty"`
+	ComponentName          string                  `json:"componentName,omitempty"`
+	ComponentDef           string                  `json:"componentDef,omitempty"`
+	Version                string                  `json:"version,omitempty"`
+	Replicas               int32                   `json:"replicas,omitempty"`
+	Env                    map[string]interface{}  `json:"env,omitempty"`
+	Request                *Resource               `json:"request,omitempty"`
+	Limit                  *Resource               `json:"limit,omitempty"`
+	VolumeClaimTemplates   *VolumeClaimTemplates   `json:"volumeClaimTemplates,omitempty"`
+	InstanceUpdateStrategy *InstanceUpdateStrategy `json:"instanceUpdateStrategy,omitempty"`
 
 	// Deleted in the future
 	Storage string   `json:"storage,omitempty"`
@@ -100,6 +101,11 @@ type VolumeClaimTemplates struct {
 	Storage          string   `json:"storage,omitempty"`
 	StorageClassName string   `json:"storageClassName,omitempty"`
 	VolumeMode       string   `json:"volumeMode,omitempty"`
+}
+
+// InstanceUpdateStrategy Provides fine-grained control over the spec update process of all instances.
+type InstanceUpdateStrategy struct {
+	MaxUnavailable string `json:"maxUnavailable,omitempty"`
 }
 
 // GetClusterResponseData 获取 cluster 集群详情

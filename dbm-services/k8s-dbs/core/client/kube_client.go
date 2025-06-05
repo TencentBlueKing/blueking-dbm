@@ -414,6 +414,11 @@ func mergeComponentList(values map[string]interface{}, compListFromReq []entity.
 					slog.Error("failed to merge env", "err", err)
 					return err
 				}
+
+				if err := MergeObjectToVal(compFromVal, compFromReq.InstanceUpdateStrategy, "instanceUpdateStrategy"); err != nil {
+					slog.Error("failed to merge instance update strategy", "err", err)
+					return err
+				}
 				compListFromVal[i] = compFromVal
 			}
 		}
