@@ -3,7 +3,7 @@ module k8s-dbs
 go 1.24.2
 
 require (
-	github.com/apecloud/kbcli v1.0.0
+	github.com/apecloud/kbcli v0.9.3
 	github.com/apecloud/kubeblocks v1.0.0
 	github.com/gin-gonic/gin v1.10.0
 	github.com/google/uuid v1.6.0
