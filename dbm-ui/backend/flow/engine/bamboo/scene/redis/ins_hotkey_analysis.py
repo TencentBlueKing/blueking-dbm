@@ -101,7 +101,7 @@ class HotkeyAnalysisFlow(object):
                 "bk_biz_id": self.data["bk_biz_id"],
                 "ins_list": ip_job_map[ip],
                 "cluster_id": int(ip_cluster_map[ip]),
-                "api_server": nginx_ip,
+                "api_server": "http://" + nginx_ip,
                 "bk_cloud_id": bk_cloud_id,
                 "db_cloud_token": db_cloud_token,
             }

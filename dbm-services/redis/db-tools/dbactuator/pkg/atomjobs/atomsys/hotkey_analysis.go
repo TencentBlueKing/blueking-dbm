@@ -154,6 +154,10 @@ func (job *HotkeyAnalysis) Run() (err error) {
 		errMsg = fmt.Sprintf("%s\n%s", errMsg, err.Error())
 	}
 
+	if errMsg != "" {
+		return fmt.Errorf("分析热key失败：%s", errMsg)
+	}
+
 	return nil
 }
 
@@ -313,6 +317,13 @@ func (job *HotkeyAnalysis) Analysis(port, recordId int) {
 		}
 		hotkeyList = append(hotkeyList, hotkey)
 		job.runtime.Logger.Info(fmt.Sprintf("hotKey: %+v", hotKeyT))
+	}
+	// 数组翻转
+	left, right := 0, len(hotkeyList)-1
+	for left < right {
+		hotkeyList[left], hotkeyList[right] = hotkeyList[right], hotkeyList[left]
+		left++
+		right--
 	}
 	ret, err := cli.Do(http.MethodPost, ReportUrl, HotkeyParams{HotKeyInfos: hotkeyList})
 	if err != nil {
