@@ -28,11 +28,12 @@
   import { ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { checkMysqlInstances } from '@services/source/instances';
+  import { checkInstance } from '@services/source/dbbase';
   import type { InstanceInfos } from '@services/types';
 
   import { useGlobalBizs } from '@stores';
 
+  import { ClusterTypes, DBTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
   import TableEditInput from '@components/render-table/columns/input/index.vue';
@@ -81,8 +82,10 @@
     {
       message: t('目标主库不存在'),
       validator: () =>
-        checkMysqlInstances({
-          bizId: currentBizId,
+        checkInstance({
+          bk_biz_id: currentBizId,
+          cluster_type: [ClusterTypes.TENDBCLUSTER],
+          db_type: DBTypes.TENDBCLUSTER,
           instance_addresses: [localValue.value],
         }).then((data) => {
           if (data.length > 0) {

@@ -28,7 +28,9 @@
     <td style="padding: 0">
       <RenderCluster
         ref="clusterRef"
+        :cluster-type="[ClusterTypes.TENDBHA]"
         :data="localMasterData"
+        :db-type="DBTypes.MYSQL"
         @change="handleClusterChange" />
     </td>
     <OperateColumn
@@ -42,6 +44,8 @@
 <script lang="ts">
   import { ref, shallowRef, watch } from 'vue';
   import type { ComponentExposed } from 'vue-component-type-helpers';
+
+  import { ClusterTypes, DBTypes } from '@common/const';
 
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';

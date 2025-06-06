@@ -13,7 +13,7 @@
 
 import type { InstanceInfos, ListBase, MachineInfos } from '@services/types';
 
-import { ClusterTypes } from '@common/const';
+import { ClusterTypes, DBTypes } from '@common/const';
 
 import http, { type IRequestPayload } from '../http';
 
@@ -43,7 +43,14 @@ export function filterClusters<
     major_version: string;
     master_domain: string;
   },
->(params: { bk_biz_id: number; cluster_ids?: string; domain?: string; exact_domain?: string }) {
+>(params: {
+  bk_biz_id: number;
+  cluster_ids?: string;
+  cluster_type?: string;
+  db_type?: DBTypes;
+  domain?: string;
+  exact_domain?: string;
+}) {
   return http.get<T[]>(`${path}/filter_clusters/`, params);
 }
 
@@ -117,7 +124,10 @@ export function batchCheckClusterDatabase(params: { bk_biz_id: number; cluster_i
 export function checkInstance<T extends InstanceInfos>(params: {
   bk_biz_id?: number;
   cluster_ids?: number[];
+  cluster_type?: ClusterTypes[];
+  db_type?: DBTypes;
   instance_addresses: string[];
+  instance_role?: string[];
 }) {
   return http.post<T[]>(`${path}/check_instances/`, params);
 }

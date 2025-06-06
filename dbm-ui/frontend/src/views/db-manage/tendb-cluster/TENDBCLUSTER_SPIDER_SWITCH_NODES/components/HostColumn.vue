@@ -14,9 +14,9 @@
 <template>
   <EditableColumn
     :append-rules="rules"
-    field="oldMaster.ip"
+    field="host.ip"
     fixed="left"
-    :label="t('目标主库主机')"
+    :label="t('目标主机')"
     :loading="loading"
     :min-width="150"
     required>
@@ -34,23 +34,32 @@
       @change="handleInputChange" />
   </EditableColumn>
   <EditableColumn
-    :label="t('主库主机关联实例')"
+    :label="t('关联实例')"
     :loading="loading"
     :min-width="150">
-    <EditableBlock v-if="modelValue.related_instances.length">
-      <p
-        v-for="item in modelValue.related_instances"
-        :key="item">
-        {{ item }}
-      </p>
+    <EditableBlock :placeholder="t('自动生成')">
+      {{ modelValue.instance_address }}
     </EditableBlock>
-    <EditableBlock
-      v-else
-      :placeholder="t('自动生成')" />
+  </EditableColumn>
+  <EditableColumn
+    :label="t('实例角色')"
+    :loading="loading"
+    :min-width="150">
+    <EditableBlock :placeholder="t('自动生成')">
+      {{ modelValue.role }}
+    </EditableBlock>
+  </EditableColumn>
+  <EditableColumn
+    :label="t('关联集群')"
+    :loading="loading"
+    :min-width="150">
+    <EditableBlock :placeholder="t('自动生成')">
+      {{ modelValue.master_domain }}
+    </EditableBlock>
   </EditableColumn>
   <InstanceSelector
     v-model:is-show="showSelector"
-    :cluster-types="['TendbClusterHost']"
+    :cluster-types="['SpiderHost']"
     :selected="selectedHosts"
     @change="handleSelectorChange" />
 </template>
@@ -69,9 +78,6 @@
 
   interface Props {
     selected: {
-      bk_biz_id?: number;
-      bk_cloud_id?: number;
-      bk_host_id?: number;
       ip: string;
     }[];
   }
@@ -83,32 +89,24 @@
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
-    bk_biz_id: number;
     bk_cloud_id: number;
-    bk_host_id?: number;
+    bk_host_id: number;
     cluster_id: number;
+    instance_address: string;
     ip: string;
     master_domain: string;
-    related_instances: string[];
+    port: number;
+    role: string;
     spec_id: number;
   }>({
-    default: () => ({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: undefined,
-      cluster_id: 0,
-      ip: '',
-      master_domain: '',
-      related_instances: [],
-      spec_id: 0,
-    }),
+    required: true,
   });
 
   const { t } = useI18n();
 
   const showSelector = ref(false);
   const selectedHosts = computed<InstanceSelectorValues<IValue>>(() => ({
-    TendbClusterHost: props.selected.map(
+    SpiderHost: props.selected.map(
       (item) =>
         ({
           ip: item.ip,
@@ -119,44 +117,37 @@
   const rules = [
     {
       message: t('IP 格式不符合IPv4标准'),
-      trigger: 'change',
-      validator: (value: string) => ipv4.test(value),
-    },
-    {
-      message: t('目标主机重复'),
-      trigger: 'change',
-      validator: (value: string) => props.selected.filter((item) => item.ip === value).length < 2,
+      trigger: 'blur',
+      validator: (value: string) => !value || ipv4.test(value),
     },
     {
       message: t('目标主机不存在'),
       trigger: 'blur',
-      validator: (value: string) => {
-        if (!value) {
-          return true;
-        }
-        return Boolean(modelValue.value.bk_host_id);
-      },
+      validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
+    },
+    {
+      message: t('非接入层 IP'),
+      trigger: 'blur',
+      validator: (value: string) =>
+        !value || modelValue.value.role === 'spider_master' || modelValue.value.role === 'spider_slave',
     },
   ];
 
   const { loading, run: queryHost } = useRequest(checkInstance, {
     manual: true,
     onSuccess: (data) => {
-      if (data.length) {
-        const currentHost = data[0];
-        const relatedInstances: string[] = [];
-        data.forEach((item) => {
-          relatedInstances.push(item.instance_address);
-        });
+      const [item] = data;
+      if (item) {
         modelValue.value = {
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          bk_cloud_id: currentHost.bk_cloud_id,
-          bk_host_id: currentHost.bk_host_id,
-          cluster_id: currentHost.cluster_id,
-          ip: currentHost.ip,
-          master_domain: currentHost.master_domain,
-          related_instances: relatedInstances,
-          spec_id: currentHost.spec_config.id,
+          bk_cloud_id: item.bk_cloud_id,
+          bk_host_id: item.bk_host_id,
+          cluster_id: item.cluster_id,
+          instance_address: item.instance_address,
+          ip: item.ip,
+          master_domain: item.master_domain,
+          port: item.port,
+          role: item.role,
+          spec_id: item.spec_config.id,
         };
       }
     },
@@ -166,43 +157,38 @@
     showSelector.value = true;
   };
 
-  const handleInputChange = (value: string) => {
-    modelValue.value = {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: undefined,
-      cluster_id: 0,
-      ip: value,
-      master_domain: '',
-      related_instances: [],
-      spec_id: 0,
-    };
-    if (value) {
-      queryHost({
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        instance_addresses: [value],
-      });
-    }
+  const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
+    emits('batch-edit', selected.SpiderHost);
   };
 
-  const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
-    emits('batch-edit', selected.TendbClusterHost);
+  const handleInputChange = (value: string) => {
+    modelValue.value = {
+      bk_cloud_id: 0,
+      bk_host_id: 0,
+      cluster_id: 0,
+      instance_address: '',
+      ip: value,
+      master_domain: '',
+      port: 0,
+      role: '',
+      spec_id: 0,
+    };
   };
 
   watch(
-    () => modelValue.value.ip,
+    modelValue,
     () => {
-      handleInputChange(modelValue.value.ip);
+      if (modelValue.value.ip && !modelValue.value.bk_host_id) {
+        queryHost({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_type: [ClusterTypes.TENDBCLUSTER],
+          db_type: DBTypes.TENDBCLUSTER,
+          instance_addresses: [modelValue.value.ip],
+        });
+      }
     },
     {
       immediate: true,
     },
   );
 </script>
-<style lang="less" scoped>
-  .batch-host-select {
-    font-size: 14px;
-    color: #3a84ff;
-    cursor: pointer;
-  }
-</style>

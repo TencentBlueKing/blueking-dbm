@@ -17,7 +17,6 @@ import type { HostInfo } from '@services/types';
  * 实例详细信息（包含主机、集群）
  */
 export interface InstanceInfos {
-  bk_biz_id: number;
   bk_cloud_id: number;
   bk_cloud_name: string;
   bk_host_id: number;
@@ -26,10 +25,8 @@ export interface InstanceInfos {
   cluster_type: string;
   create_at: string;
   db_module_id: number;
-  db_module_name: string;
   host_info: HostInfo;
   instance_address: string;
-  instance_role: string;
   ip: string;
   master_domain: string;
   port: number;
