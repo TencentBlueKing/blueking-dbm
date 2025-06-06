@@ -1,3 +1,4 @@
 *.swp
 build
 etc
+pkg/proto/*.pb.go

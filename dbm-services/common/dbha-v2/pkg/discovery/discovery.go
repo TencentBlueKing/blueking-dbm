@@ -79,7 +79,6 @@ func (d *Discovery) Watch(ctx context.Context, key string) (chan *WatchEvent, er
 
 		defer d.wg.Done()
 		defer close(watchEventChan)
-
 		for {
 			select {
 			case <-d.quit:
@@ -227,4 +226,5 @@ func (d *Discovery) Close() {
 	close(d.quit) // NOTE: Notify all goroutines by closing this channel.
 	d.wg.Wait()
 	d.quit = nil
+
 }
