@@ -45,7 +45,7 @@
     modelValue?: IHostData;
   }
 
-  type Emits = (e: 'change', value: IHostData) => void;
+  type Emits = (e: 'change', value: InstanceInfos) => void;
 
   interface IValue {
     bk_biz_id: number;
@@ -90,9 +90,13 @@
           bizId: currentBizId,
           instance_addresses: [localValue.value],
         }).then((data) => {
+          console.log(data, 'data');
+
           if (data.length > 0) {
             const [currentInstanceData] = data;
             localProxyData = currentInstanceData;
+            console.log(currentInstanceData);
+
             singleHostSelectMemo[instanceKey] = { [genHostKey(currentInstanceData)]: true };
             return true;
           }
@@ -114,6 +118,7 @@
         if (otherAllSelectHostMap[genHostKey(localProxyData)]) {
           return false;
         }
+        console.log(localProxyData, 'localProxyData');
         emits('change', localProxyData);
         return true;
       },

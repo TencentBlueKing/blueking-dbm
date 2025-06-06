@@ -28,7 +28,9 @@
     <td style="padding: 0">
       <RenderCluster
         ref="clusterRef"
-        :data="localMasterData" />
+        :cluster-type="[ClusterTypes.TENDBCLUSTER]"
+        :data="localMasterData"
+        :db-type="DBTypes.TENDBCLUSTER" />
     </td>
     <OperateColumn
       :removeable="removeable"
@@ -40,6 +42,8 @@
 </template>
 <script lang="ts">
   import type { ComponentExposed } from 'vue-component-type-helpers';
+
+  import { ClusterTypes, DBTypes } from '@common/const';
 
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 

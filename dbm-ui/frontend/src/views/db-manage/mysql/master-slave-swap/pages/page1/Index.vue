@@ -90,7 +90,6 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import TendbhaInstanceModel from '@services/model/mysql/tendbha-instance';
   import { createTicket } from '@services/source/ticket';
 
   import { useTicketCloneInfo } from '@hooks';
@@ -101,6 +100,7 @@
 
   import InstanceSelector, {
     type InstanceSelectorValues,
+    type IValue,
     type PanelListType,
   } from '@components/instance-selector/Index.vue';
   import TicketRemark from '@components/ticket-remark/Index.vue';
@@ -142,7 +142,7 @@
   const isSubmitting = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
-  const selectedIps = shallowRef<InstanceSelectorValues<TendbhaInstanceModel>>({ [ClusterTypes.TENDBHA]: [] });
+  const selectedIps = shallowRef<InstanceSelectorValues<IValue>>({ [ClusterTypes.TENDBHA]: [] });
 
   const formData = reactive({
     is_check_delay: true,
@@ -180,7 +180,7 @@
     isShowMasterInstanceSelector.value = true;
   };
   // Master 批量选择
-  const handelMasterProxyChange = (data: InstanceSelectorValues<TendbhaInstanceModel>) => {
+  const handelMasterProxyChange = (data: InstanceSelectorValues<IValue>) => {
     selectedIps.value = data;
     const newList = [] as IDataRow[];
     data.tendbha.forEach((proxyData) => {

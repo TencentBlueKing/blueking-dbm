@@ -13,7 +13,7 @@
 
 <template>
   <SmartAction>
-    <div class="mongo-db-clear-page">
+    <div class="mongo-db-clear-page db-toolbox">
       <BkAlert
         closable
         theme="info"
@@ -82,9 +82,16 @@
               :table-data="formData.tableData" />
           </EditableRow>
         </EditableTable>
-        <IgnoreBiz
-          v-model="formData.ignore_business_access"
-          v-bk-tooltips="t('如忽略_有连接的情况下也会执行')" />
+        <BkFormItem
+          v-bk-tooltips="t('如忽略_有连接的情况下也会执行')"
+          class="fit-content">
+          <BkCheckbox
+            v-model="formData.ignore_business_access"
+            :false-label="false"
+            true-label>
+            <span class="safe-action-text">{{ t('忽略业务连接') }}</span>
+          </BkCheckbox>
+        </BkFormItem>
         <TicketPayload v-model="formData.payload" />
       </DbForm>
     </div>
@@ -120,7 +127,6 @@
   import { TicketTypes } from '@common/const';
 
   import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
-  import IgnoreBiz from '@views/db-manage/common/toolbox-field/form-item/ignore-biz/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';

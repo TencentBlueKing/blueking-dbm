@@ -538,11 +538,12 @@
           firsrColumn: {
             field: 'instance_address',
             label: 'master',
-            role: 'master',
+            role: 'backend_master',
           },
           getTableList: getTendbhaInstanceList,
         },
         topoConfig: {
+          countFunc: (item: ServiceReturnType<typeof getTendbhaList>[number]) => item.masters.length,
           getTopoList: getTendbhaList,
         },
       },
@@ -560,7 +561,7 @@
           firsrColumn: {
             field: 'instance_address',
             label: 'master',
-            role: 'master',
+            role: 'backend_master',
           },
           getTableList: getTendbhaInstanceList,
         },

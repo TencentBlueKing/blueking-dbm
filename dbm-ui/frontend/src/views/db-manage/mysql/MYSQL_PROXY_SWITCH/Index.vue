@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <SmartAction>
+  <SmartAction class="db-toolbox">
     <BkAlert
       class="mb-20"
       closable
@@ -44,9 +44,16 @@
         :key="operaObjectType"
         ref="table"
         :ticket-details="ticketDetails" />
-      <IgnoreBiz
-        v-model="formData.force"
-        v-bk-tooltips="t('如忽略_在有连接的情况下Proxy也会执行替换')" />
+      <BkFormItem
+        v-bk-tooltips="t('存在业务连接时需要人工确认')"
+        class="fit-content">
+        <BkCheckbox
+          v-model="formData.force"
+          :false-label="false"
+          true-label>
+          <span class="safe-action-text">{{ t('检查业务连接') }}</span>
+        </BkCheckbox>
+      </BkFormItem>
       <TicketPayload v-model="formData.payload" />
     </BkForm>
     <template #action>
@@ -83,7 +90,6 @@
 
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
 
-  import IgnoreBiz from '@views/db-manage/common/toolbox-field/form-item/ignore-biz/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
@@ -95,7 +101,7 @@
   const tableRef = useTemplateRef('table');
 
   const defaultData = () => ({
-    force: false,
+    force: true,
     payload: createTickePayload(),
   });
 
