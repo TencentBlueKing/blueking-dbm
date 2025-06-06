@@ -58,7 +58,7 @@
 
   import { checkInstance } from '@services/source/dbbase';
 
-  import type { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
   import InstanceSelector, {
