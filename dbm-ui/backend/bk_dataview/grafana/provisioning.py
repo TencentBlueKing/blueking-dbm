@@ -163,7 +163,7 @@ class SimpleProvisioning(BaseProvisioning):
             if datasource_type:
                 dashboard["templating"]["list"][tpl_index]["datasource"]["uid"] = tpl_uid
             # 集群监控视图，隐藏掉 app（业务）选择器
-            if tpl["name"] == "app" and "business" not in dashboard["tags"]:
+            if tpl["name"] == "app":
                 dashboard["templating"]["list"][tpl_index]["hide"] = 2
 
         return dashboard
