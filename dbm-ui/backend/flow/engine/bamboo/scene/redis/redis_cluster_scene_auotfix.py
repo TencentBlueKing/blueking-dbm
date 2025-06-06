@@ -89,6 +89,7 @@ class RedisClusterAutoFixSceneFlow(object):
         """
         self.root_id = root_id
         self.data = data
+        self.shutdown_clusters = []
         self.precheck_for_instance_fix()
 
     @staticmethod
@@ -218,6 +219,25 @@ class RedisClusterAutoFixSceneFlow(object):
                 sub_pipelines.append(self.cluster_fix(flow_data, cluster_kwargs, cluster_fix))
 
             redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+
+            # 主从的， 是以机器维度发起的自愈， 那么也以机器维度发起下架，方便主机回收
+            # # #### 下架旧实例 （生产Ticket单据） ################################################## 完毕 ###
+            if len(self.shutdown_clusters) > 0:
+                redis_pipeline.add_act(
+                    act_name=_("提交下架单-{}".format(str(cluster_fix["immute_domain"])[:60])),
+                    act_component_code=RedisTicketComponent.code,
+                    kwargs={
+                        "bk_biz_id": cluster_fix["bk_biz_id"],
+                        "cluster_ids": cluster_fix["cluster_ids"],
+                        "immute_domain": cluster_fix["immute_domain"],
+                        "ticket_type": TicketType.REDIS_CLUSTER_INSTANCE_SHUTDOWN.value,
+                        "ticket_details": {
+                            "infos": self.shutdown_clusters,
+                        },
+                    },
+                )
+            # # #### 下架旧实例 ###################################################################### 完毕 ###
+
         return redis_pipeline.run_pipeline()
 
     # 组装&控制 集群替换流程
@@ -522,27 +542,37 @@ class RedisClusterAutoFixSceneFlow(object):
             # 刷新slave域名 在《新节点加入集群》节点修改
 
         # # #### 下架旧实例 （生产Ticket单据） ################################################## 完毕 ###
-        old_slaves = [fix_link["ip"] for fix_link in slave_fix_detail]
-        sub_pipeline.add_act(
-            act_name=_("提交Redis下架单-{}".format(old_slaves)),
-            act_component_code=RedisTicketComponent.code,
-            kwargs={
-                "bk_biz_id": sub_kwargs.cluster["bk_biz_id"],
-                "cluster_id": sub_kwargs.cluster["cluster_id"],
-                "immute_domain": sub_kwargs.cluster["immute_domain"],
-                "ticket_type": TicketType.REDIS_CLUSTER_INSTANCE_SHUTDOWN.value,
-                "ticket_details": {
-                    "infos": [
-                        {
-                            "cluster_id": sub_kwargs.cluster["cluster_id"],
-                            "immute_domain": sub_kwargs.cluster["immute_domain"],
-                            "bk_cloud_id": sub_kwargs.cluster["bk_cloud_id"],
-                            "redis_slave": old_slaves,
-                        }
-                    ],
+        if sub_kwargs.cluster["cluster_type"] != ClusterType.RedisInstance.value:
+            old_slaves = [fix_link["ip"] for fix_link in slave_fix_detail]
+            sub_pipeline.add_act(
+                act_name=_("提交Redis下架单-{}".format(old_slaves)),
+                act_component_code=RedisTicketComponent.code,
+                kwargs={
+                    "bk_biz_id": sub_kwargs.cluster["bk_biz_id"],
+                    "cluster_id": sub_kwargs.cluster["cluster_id"],
+                    "immute_domain": sub_kwargs.cluster["immute_domain"],
+                    "ticket_type": TicketType.REDIS_CLUSTER_INSTANCE_SHUTDOWN.value,
+                    "ticket_details": {
+                        "infos": [
+                            {
+                                "cluster_id": sub_kwargs.cluster["cluster_id"],
+                                "immute_domain": sub_kwargs.cluster["immute_domain"],
+                                "bk_cloud_id": sub_kwargs.cluster["bk_cloud_id"],
+                                "redis_slave": old_slaves,
+                            }
+                        ],
+                    },
                 },
-            },
-        )
+            )
+        else:
+            self.shutdown_clusters.append(
+                {
+                    "cluster_id": sub_kwargs.cluster["cluster_id"],
+                    "immute_domain": sub_kwargs.cluster["immute_domain"],
+                    "bk_cloud_id": sub_kwargs.cluster["bk_cloud_id"],
+                    "redis_slave": old_slaves,
+                }
+            )
         # # #### 下架旧实例 ###################################################################### 完毕 ###
 
         return sub_pipeline.build_sub_process(sub_name=_("Slave替换-{}").format(sub_kwargs.cluster["cluster_type"]))

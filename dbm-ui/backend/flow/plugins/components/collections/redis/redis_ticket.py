@@ -16,10 +16,8 @@ from pipeline.core.flow.activity import Service
 
 from backend.configuration.constants import DBType
 from backend.configuration.models.dba import DBAdministrator
+from backend.db_services.redis.autofix.bill import get_ticket_heplers
 from backend.flow.plugins.components.collections.common.base_service import BaseService
-from backend.ticket.builders import BuilderFactory
-from backend.ticket.constants import TicketStatus
-from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.models import Ticket
 
 
@@ -36,22 +34,20 @@ class RedisTicketService(BaseService):
 
         redisDBA = DBAdministrator.get_biz_db_type_admins(bk_biz_id=kwargs["bk_biz_id"], db_type=DBType.Redis.value)
 
-        ticket = Ticket.objects.create(
+        ticket = Ticket.create_ticket(
             creator=redisDBA[0],
             bk_biz_id=kwargs["bk_biz_id"],
             ticket_type=kwargs["ticket_type"],
-            group=DBType.Redis.value,
-            status=TicketStatus.PENDING.value,
-            remark=_("自愈发起-实例下架-{}".format(kwargs["immute_domain"])),
+            remark=_("自动发起-{}".format(kwargs["immute_domain"])),
             details=kwargs["ticket_details"],
-            is_reviewed=False,
+            helpers=get_ticket_heplers(),
         )
 
-        # 初始化builder类
-        builder = BuilderFactory.create_builder(ticket)
-        builder.patch_ticket_detail()
-        builder.init_ticket_flows()
-        TicketFlowManager(ticket=ticket).run_next_flow()
+        # # 初始化builder类
+        # builder = BuilderFactory.create_builder(ticket)
+        # builder.patch_ticket_detail()
+        # builder.init_ticket_flows()
+        # TicketFlowManager(ticket=ticket).run_next_flow()
 
         self.log_info("succ create ticket for cluster {} : {}".format(kwargs["immute_domain"], ticket))
 

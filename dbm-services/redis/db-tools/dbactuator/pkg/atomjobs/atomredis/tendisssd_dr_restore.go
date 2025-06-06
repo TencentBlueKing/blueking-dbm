@@ -501,10 +501,17 @@ export LD_LIBRARY_PATH=LD_LIBRARY_PATH:%s
 	}
 	task.runtime.Logger.Info(fmt.Sprintf("su %s -c \"%s\"", consts.MysqlAaccount,
 		startScript+"  "+strconv.Itoa(task.SlavePort)))
-	time.Sleep(2 * time.Second)
-
-	task.SlaveCli, task.Err = myredis.NewRedisClient(task.SlaveAddr(), task.SlavePassword, 0,
-		consts.TendisTypeRedisInstance)
+	// here should wating more times.
+	for i := 0; i < 5*30; i++ {
+		task.SlaveCli, task.Err = myredis.NewRedisClient(task.SlaveAddr(), task.SlavePassword, 0,
+			consts.TendisTypeRedisInstance)
+		if task.Err != nil {
+			task.runtime.Logger.Warn("waiting redis load data [%d:%s]:%#v", i, task.SlaveAddr(), task.Err)
+			time.Sleep(2 * time.Second)
+			continue
+		}
+		break
+	}
 	if task.Err != nil {
 		return
 	}

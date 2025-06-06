@@ -53,3 +53,17 @@ def send_msg_2_qywx(sub_title: str, msgs):
             content += _("{} : {}\n".format(k, v))
     content += _("消息时间 : {}\n".format(date2str(datetime.datetime.now(), "%Y-%m-%d %H:%M:%S")))
     CmsiHandler(_("Tendis自愈"), content, msg_ids).send_wecom_robot()
+
+
+# 自愈单据级的Helpers
+def get_ticket_heplers():
+    helpers = []
+    try:
+        item = RedisAutofixCtl.objects.filter(ctl_name=AutofixItem.REDIS_HELPERS.value).get()
+        if item:
+            helpers = json.loads(item.ctl_value)
+    except RedisAutofixCtl.DoesNotExist:
+        RedisAutofixCtl.objects.create(
+            bk_cloud_id=0, bk_biz_id=0, ctl_value=json.dumps("[]"), ctl_name=AutofixItem.REDIS_HELPERS.value
+        ).save()
+    return helpers

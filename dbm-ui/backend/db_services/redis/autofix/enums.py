@@ -28,6 +28,7 @@ class AutofixItem(str, StructuredEnum):
     AUTOFIX_ENABLE = EnumField("enable", _("自愈开关"))
     DBHA_ID = EnumField("last_id", _("监控到的id"))
     CHAT_IDS = EnumField("chat_ids", _("群消息IDS"))
+    REDIS_HELPERS = EnumField("redis_helpers", _("Redis自愈协助人列表"))
     IGNORE_APPS = EnumField("ignore_apps", _("忽略自愈的APP列表"))
     IGNORE_DOMAINS = EnumField("ignore_domains", _("忽略自愈的集群列表"))
 

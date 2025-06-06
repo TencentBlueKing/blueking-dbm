@@ -26,14 +26,12 @@ from backend.db_meta.models import Machine
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.mongodb.autofix.mongodb_autofix_ticket import mongo_create_ticket
 from backend.db_services.redis.util import is_support_redis_auotfix
-from backend.ticket.builders import BuilderFactory
-from backend.ticket.constants import TicketStatus, TicketType
-from backend.ticket.flow_manager.manager import TicketFlowManager
+from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
 from backend.utils.time import datetime2str
 
 from .enums import AutofixStatus
-from .message import send_msg_2_qywx
+from .message import get_ticket_heplers, send_msg_2_qywx
 from .models import RedisAutofixCore
 
 logger = logging.getLogger("root")
@@ -145,23 +143,21 @@ def create_ticket(cluster: RedisAutofixCore, cluster_ids: list, redis_proxies: l
         # 如果不存在，则取默认值
         redisDBA = DBAdministrator.objects.get(bk_biz_id=0, db_type=DBType.Redis.value)
 
-    ticket = Ticket.objects.create(
-        creator=redisDBA.users[0],
-        bk_biz_id=cluster.bk_biz_id,
-        ticket_type=TicketType.REDIS_CLUSTER_AUTOFIX.value,
-        group=DBType.Redis.value,
-        status=TicketStatus.PENDING.value,
-        remark=_("自动发起-{}".format(ips)),
-        details=details,
-        is_reviewed=True,
-    )
-
-    cluster.ticket_id = ticket.id
-    cluster.status_version = get_random_string(12)
-    cluster.deal_status = AutofixStatus.AF_WFLOW.value
-
     # 初始化builder类
     try:
+        ticket = Ticket.create_ticket(
+            bk_biz_id=cluster.bk_biz_id,
+            ticket_type=TicketType.REDIS_CLUSTER_AUTOFIX.value,
+            creator=redisDBA.users[0],
+            remark=_("自动发起-{}".format(ips)),
+            details=details,
+            helpers=get_ticket_heplers(),
+        )
+
+        cluster.ticket_id = ticket.id
+        cluster.status_version = get_random_string(12)
+        cluster.deal_status = AutofixStatus.AF_WFLOW.value
+
         msgs, title = {}, _("{} - 发起自愈".format(cluster.immute_domain))
         msgs[_("BKID")] = cluster.bk_biz_id
         msgs[_("流程ID")] = ticket.id
@@ -169,11 +165,6 @@ def create_ticket(cluster: RedisAutofixCore, cluster_ids: list, redis_proxies: l
         msgs[_("集群类型")] = cluster.cluster_type
         msgs[_("故障机S")] = json.dumps(ips)
         send_msg_2_qywx(title, msgs)
-
-        builder = BuilderFactory.create_builder(ticket)
-        builder.patch_ticket_detail()
-        builder.init_ticket_flows()
-        TicketFlowManager(ticket=ticket).run_next_flow()
     except Exception as e:
         cluster.deal_status = AutofixStatus.AF_FAIL.value
         cluster.status_version = str(e)
