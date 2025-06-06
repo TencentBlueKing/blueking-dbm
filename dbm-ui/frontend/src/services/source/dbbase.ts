@@ -117,6 +117,8 @@ export function batchCheckClusterDatabase(params: { bk_biz_id: number; cluster_i
 export function checkInstance<T extends InstanceInfos>(params: {
   bk_biz_id?: number;
   cluster_ids?: number[];
+  cluster_type: string;
+  db_type: DBTypes;
   instance_addresses: string[];
 }) {
   return http.post<T[]>(`${path}/check_instances/`, params);
