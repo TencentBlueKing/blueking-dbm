@@ -1,0 +1,4 @@
+export DBHA_ETCD_ENDPOINTS=http://etcd-server:2379
+export DBHA_ETCD_USER=root
+export DBHA_ETCD_PASSWORD=dbhatest
+
