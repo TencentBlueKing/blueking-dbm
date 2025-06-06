@@ -11,6 +11,7 @@ use (
 	common/db-resource
 	common/dbha/ha-module
 	common/dbha/hadb-api
+	common/dbha-v2
 	common/go-pubpkg
 	common/reverseapi
 	common/bkdata-kafka-consumer
