@@ -34,7 +34,8 @@
           "instance_role": "instance_role",
           "instance_host": "instance_host",
           "instance_port": "instance_port",
-          "appid": "appid"
+          "appid": "appid",
+          "shard": "shard"
         }
       },
       "target_node_type": "TOPO",
