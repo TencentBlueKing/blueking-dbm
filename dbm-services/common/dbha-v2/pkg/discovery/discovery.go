@@ -77,9 +77,6 @@ func (d *Discovery) Watch(ctx context.Context, key string) (chan *WatchEvent, er
 
 	go func() {
 
-		defer d.wg.Done()
-		defer close(watchEventChan)
-
 		for {
 			select {
 			case <-d.quit:
@@ -139,7 +136,6 @@ func (d *Discovery) WatchWithPrefix(ctx context.Context, key string) (chan *Watc
 
 	go func() {
 
-		defer d.wg.Done()
 		defer close(watchEventChan)
 
 		for {
@@ -222,9 +218,8 @@ func (d *Discovery) GetWithPrefix(ctx context.Context, key string) (map[string][
 	return kvs, nil
 }
 
-// Close Discovery instance
 func (d *Discovery) Close() {
 	close(d.quit) // NOTE: Notify all goroutines by closing this channel.
-	d.wg.Wait()
 	d.quit = nil
+	d.wg.Wait()
 }

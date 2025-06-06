@@ -50,14 +50,13 @@ PROTO_FILES = $(wildcard $(PROTO_DIR)/*.proto)
 # generate go code files
 GO_GEN_FILES=$(PROTO_FILES:$(PROTO_DIR)/%.proto=$(GEN_DIR)/%.pb.go)
 
-.PHONY: all proto admin analysis receiver clean format
+.PHONY: all proto admin analysis receiver clean
 
 # build target
 
 all: proto admin analysis receiver probe
 
 proto: $(GO_GEN_FILES)
-	@goimports -w .
 
 admin:
 	@mkdir -p $(BUILD_DIR)
@@ -83,9 +82,6 @@ probe:
 $(GEN_DIR)/%.pb.go: $(PROTO_DIR)/%.proto
 	@mkdir -p $(GEN_DIR)
 	$(PROTOC) $(GO_FLAGS) -I$(PROTO_DIR) $<
-
-format:
-	@goimports -w . && find . -name go.mod -execdir go mod tidy \;
 
 clean:
 	rm -rf $(GEN_DIR)/*.go
