@@ -13,31 +13,49 @@
 
 <template>
   <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn :label="t('目标集群')">
+    <BkTableColumn
+      :label="t('目标主机')"
+      :min-width="150">
+      <template #default="{ data }: { data: RowData }">
+        {{ data.spider_old_ip_list[0].ip }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      :label="t('关联实例')"
+      :min-width="150">
+      <template #default="{ data }: { data: RowData }">
+        {{ `${data.spider_old_ip_list[0].ip}:${data.spider_old_ip_list[0].port}` }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      :label="t('实例角色')"
+      :min-width="150">
+      <template #default="{ data }: { data: RowData }">
+        {{ data.switch_spider_role }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      :label="t('关联集群')"
+      :min-width="150">
       <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('源DB名')">
+    <BkTableColumn
+      :label="t('规格')"
+      :min-width="150">
       <template #default="{ data }: { data: RowData }">
-        <BkTag v-if="data.from_database">
-          {{ data.from_database }}
-        </BkTag>
-        <span v-else>--</span>
-      </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('新DB名')">
-      <template #default="{ data }: { data: RowData }">
-        <BkTag v-if="data.to_database">
-          {{ data.to_database }}
-        </BkTag>
-        <span v-else>--</span>
+        {{
+          ticketDetails.details.specs[
+            data.resource_spec[`${data.switch_spider_role}_${data.spider_old_ip_list[0].ip}`].spec_id
+          ].name
+        }}
       </template>
     </BkTableColumn>
   </BkTable>
   <InfoList>
     <InfoItem :label="t('检查业务连接')">
-      {{ ticketDetails.details.force ? t('是') : t('否') }}
+      {{ ticketDetails.details.is_safe ? t('是') : t('否') }}
     </InfoItem>
   </InfoList>
 </template>
@@ -48,20 +66,20 @@
 
   import { TicketTypes } from '@common/const';
 
-  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
 
   interface Props {
-    ticketDetails: TicketModel<TendbCluster.RenameDataBase>;
+    ticketDetails: TicketModel<TendbCluster.ResourcePool.SpiderSwitchNodes>;
   }
 
-  type RowData = Props['ticketDetails']['details']['infos'][number];
-
   defineOptions({
-    name: TicketTypes.TENDBCLUSTER_RENAME_DATABASE,
+    name: TicketTypes.TENDBCLUSTER_SPIDER_SWITCH_NODES,
     inheritAttrs: false,
   });
 
   defineProps<Props>();
 
   const { t } = useI18n();
+
+  type RowData = Props['ticketDetails']['details']['infos'][number];
 </script>

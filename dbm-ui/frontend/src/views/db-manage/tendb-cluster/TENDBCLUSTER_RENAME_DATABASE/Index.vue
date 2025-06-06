@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <SmartAction>
+  <SmartAction class="db-toolbox">
     <BkAlert
       class="mb-20"
       closable
@@ -62,9 +62,16 @@
             :create-row-method="createTableRow" />
         </EditableTableRow>
       </EditableTable>
-      <IgnoreBiz
-        v-model="formData.force"
-        v-bk-tooltips="t('如忽略_有连接的情况下也会执行')" />
+      <BkFormItem
+        v-bk-tooltips="t('存在业务连接时需要人工确认')"
+        class="fit-content">
+        <BkCheckbox
+          v-model="formData.force"
+          :false-label="false"
+          true-label>
+          <span class="safe-action-text">{{ t('检查业务连接') }}</span>
+        </BkCheckbox>
+      </BkFormItem>
       <TicketPayload v-model="formData.payload" />
     </BkForm>
     <template #action>
@@ -104,7 +111,6 @@
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
-  import IgnoreBiz from '@views/db-manage/common/toolbox-field/form-item/ignore-biz/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
@@ -152,7 +158,7 @@
   });
 
   const defaultData = () => ({
-    force: false,
+    force: true,
     payload: createTickePayload(),
     tableData: [createTableRow()],
   });
@@ -222,8 +228,9 @@
   useTicketDetail<TendbCluster.RenameDataBase>(TicketTypes.TENDBCLUSTER_RENAME_DATABASE, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
-      const { clusters } = details;
+      const { clusters, force } = details;
       Object.assign(formData, {
+        force,
         payload: createTickePayload(ticketDetail),
         tableData: details.infos.map((item) => ({
           cluster: {
