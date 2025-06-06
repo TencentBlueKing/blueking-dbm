@@ -13,9 +13,7 @@ func QueryUserList(bkCloudId int64, addr string, excludeUsers []string, targetAd
 
 	excludeUsersStr := fmt.Sprintf("'%s'", strings.Join(append(systemUsers, excludeUsers...), "', '"))
 	logger.Info(
-		"query user list",
-		slog.String("addr", addr),
-		slog.String("excludeUsers", excludeUsersStr),
+		fmt.Sprintf("query user list, address: %s, execlude users: %s", addr, excludeUsersStr),
 	)
 	// 必须排除掉 host = targetIp 的账号
 	// account@source 克隆后会变成 account@target
@@ -31,30 +29,23 @@ func QueryUserList(bkCloudId int64, addr string, excludeUsers []string, targetAd
 	)
 	if err != nil {
 		logger.Error(
-			"query mysql user list",
-			slog.String("address", addr),
-			slog.String("sql", sql),
-			slog.String("error", err.Error()),
+			fmt.Sprintf("query mysql user list, address: %s, sql: %s, err: %s", addr, sql, err.Error()),
 		)
 		return nil, err
 	}
 
 	if drsRes[0].ErrorMsg != "" {
 		logger.Error(
-			"query mysql user list",
-			slog.String("address", addr),
-			slog.String("sql", sql),
-			slog.String("error", drsRes[0].ErrorMsg),
+			fmt.Sprintf("query mysql user list, address: %s, sql: %s, err: %s", addr, sql, drsRes[0].ErrorMsg),
 		)
 		return nil, errors.New(drsRes[0].ErrorMsg)
 	}
 
 	if drsRes[0].CmdResults[0].ErrorMsg != "" {
 		logger.Error(
-			"query mysql user list",
-			slog.String("address", addr),
-			slog.String("sql", sql),
-			slog.String("error", drsRes[0].CmdResults[0].ErrorMsg),
+			fmt.Sprintf(
+				"query mysql user list, address: %s, sql: %s, err: %s",
+				addr, sql, drsRes[0].CmdResults[0].ErrorMsg),
 		)
 		return nil, errors.New(drsRes[0].CmdResults[0].ErrorMsg)
 	}

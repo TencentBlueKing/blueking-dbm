@@ -164,3 +164,20 @@ class MySQLReverseApiView(BaseReverseApiView):
                 "errors": None,
             }
         )
+
+    # @common_swagger_auto_schema(operation_summary=_("获取实例管理账号密码"))
+    # @reverse_api(url_path="admin_password")
+    # def admin_password(self, request, *args, **kwargs):
+    #     bk_cloud_id, ip, port_list = self.get_api_params()
+    #     logger.info(f"bk_cloud_id: {bk_cloud_id}, ip: {ip}, port:{port_list}")
+    #     res = admin_password(bk_cloud_id=bk_cloud_id, ip=ip, port_list=port_list)
+    #     logger.info(f"admin password: {res}")
+    #     return JsonResponse(
+    #         {
+    #             "result": True,
+    #             "code": 0,
+    #             "data": res,
+    #             "message": "",
+    #             "errors": None,
+    #         }
+    #     )

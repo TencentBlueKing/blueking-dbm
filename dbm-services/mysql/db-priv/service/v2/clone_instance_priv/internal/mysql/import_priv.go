@@ -3,6 +3,7 @@ package mysql
 import (
 	"dbm-services/mysql/priv-service/service/v2/internal/drs"
 	"errors"
+	"fmt"
 	"log/slog"
 	"strings"
 )
@@ -14,8 +15,7 @@ func ImportPriv(bkCloudId int64, address string, privs []string, logger *slog.Lo
 	e := importSqls(bkCloudId, address, createSqls, logger)
 	if e != nil {
 		logger.Error(
-			"import mysql priv create user sql",
-			slog.String("error", e.Error()),
+			fmt.Sprintf("import mysql priv create user sql, err: %s", e.Error()),
 		)
 		err = errors.Join(err, e)
 	} else {
@@ -25,8 +25,7 @@ func ImportPriv(bkCloudId int64, address string, privs []string, logger *slog.Lo
 	e = importSqls(bkCloudId, address, privSqls, logger)
 	if e != nil {
 		logger.Error(
-			"import mysql priv import grant sql",
-			slog.String("error", e.Error()),
+			fmt.Sprintf("import mysql priv import grant sql, err: %s", e.Error()),
 		)
 		err = errors.Join(err, e)
 	}
@@ -55,9 +54,7 @@ func importSqls(bkCloudId int64, address string, sqls []string, logger *slog.Log
 	var bulkSqls []string
 
 	logger.Info(
-		"import mysql priv sql",
-		slog.Int("buck size", privSqlBuckSize),
-		slog.Int("total sqls", len(sqls)),
+		fmt.Sprintf("import mysql priv sql, buck size: %d, total sqls: %d", privSqlBuckSize, len(sqls)),
 	)
 	leftCount := len(sqls)
 	for _, sql := range sqls {
@@ -66,15 +63,13 @@ func importSqls(bkCloudId int64, address string, sqls []string, logger *slog.Log
 			e := doImport(bkCloudId, address, bulkSqls, logger)
 			if e != nil {
 				logger.Error(
-					"import mysql priv sql one buck",
-					slog.String("error", e.Error()),
+					fmt.Sprintf("import mysql priv sql one buck, err: %s", e.Error()),
 				)
 				err = errors.Join(err, e)
 			}
 			leftCount -= privSqlBuckSize
 			logger.Info(
-				"import mysql priv sql one buck success",
-				slog.Int("sql left", leftCount),
+				fmt.Sprintf("import mysql priv sql one buck success, sql left: %d", leftCount),
 			)
 			bulkSqls = []string{}
 		}
@@ -84,8 +79,7 @@ func importSqls(bkCloudId int64, address string, sqls []string, logger *slog.Log
 		e := doImport(bkCloudId, address, bulkSqls, logger)
 		if e != nil {
 			logger.Error(
-				"import mysql priv sql last buck",
-				slog.String("error", e.Error()),
+				fmt.Sprintf("import mysql priv sql last buck, err: %s", e.Error()),
 			)
 			err = errors.Join(err, e)
 		}
@@ -112,17 +106,13 @@ func doImport(bkCloudId int64, address string, sqls []string, logger *slog.Logge
 	)
 	if err != nil {
 		logger.Error(
-			"import priv",
-			slog.String("address", address),
-			slog.String("error", err.Error()),
+			fmt.Sprintf("import priv, address %s, err: %s", address, err.Error()),
 		)
 		return err
 	}
 	if drsRes[0].ErrorMsg != "" {
 		logger.Error(
-			"import priv",
-			slog.String("address", address),
-			slog.String("error", drsRes[0].ErrorMsg),
+			fmt.Sprintf("import priv, address %s, err: %s", address, drsRes[0].ErrorMsg),
 		)
 		return errors.New(drsRes[0].ErrorMsg)
 	}
@@ -130,10 +120,7 @@ func doImport(bkCloudId int64, address string, sqls []string, logger *slog.Logge
 	for _, cr := range drsRes[0].CmdResults {
 		if cr.ErrorMsg != "" {
 			logger.Error(
-				"import priv",
-				slog.String("address", address),
-				slog.String("error", cr.ErrorMsg),
-				slog.String("cms", cr.Cmd),
+				fmt.Sprintf("import priv, address %s, cmd: %s, err: %s", address, cr.Cmd, cr.ErrorMsg),
 			)
 			err = errors.Join(err, errors.New(cr.ErrorMsg))
 		}

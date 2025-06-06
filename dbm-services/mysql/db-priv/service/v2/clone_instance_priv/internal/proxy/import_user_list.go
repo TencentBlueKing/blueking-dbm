@@ -19,9 +19,7 @@ func ImportUserList(bkCloudId int64, addr string, userList []string, logger *slo
 	var errCollect error
 
 	logger.Info(
-		"import proxy users",
-		slog.Int("buck size", proxyUserImportBuckSize),
-		slog.Int("total users", len(userList)),
+		fmt.Sprintf("import proxy users, buck size: %d, total users: %d", proxyUserImportBuckSize, len(userList)),
 	)
 
 	leftCount := len(userList)
@@ -36,16 +34,14 @@ func ImportUserList(bkCloudId int64, addr string, userList []string, logger *slo
 			err := doProxyUserImport(bkCloudId, adminAddr, refreshSql, logger)
 			if err != nil {
 				slog.Error(
-					"clone proxy users one buck",
-					slog.String("error", err.Error()),
+					fmt.Sprintf("clone proxy users one buck, err: %s", err.Error()),
 				)
 				errCollect = errors.Join(errCollect, err)
 			}
 
 			leftCount -= proxyUserImportBuckSize
 			logger.Info(
-				"clone proxy users one buck success",
-				slog.Int("user left", leftCount),
+				fmt.Sprintf("clone proxy users one buck success, user left: %d", leftCount),
 			)
 			oneBuckUsers = []string{}
 		}
@@ -58,8 +54,7 @@ func ImportUserList(bkCloudId int64, addr string, userList []string, logger *slo
 		err := doProxyUserImport(bkCloudId, adminAddr, refreshSql, logger)
 		if err != nil {
 			logger.Error(
-				"clone proxy users last buck",
-				slog.String("error", err.Error()),
+				fmt.Sprintf("clone proxy users last buck, err: %s", err.Error()),
 			)
 			errCollect = errors.Join(errCollect, err)
 		}
@@ -89,28 +84,21 @@ func doProxyUserImport(bkCloudId int64, address string, sql string, logger *slog
 	)
 	if err != nil {
 		logger.Error(
-			"import proxy user",
-			slog.String("address", address),
-			slog.String("sql", sql),
-			slog.String("error", err.Error()),
+			fmt.Sprintf("import proxy user, address: %s, sql: %s, err: %s", address, sql, err),
 		)
 		return pe.Wrap(err, "failed to import proxy user")
 	}
 	if drsRes[0].ErrorMsg != "" {
 		logger.Error(
-			"import proxy user",
-			slog.String("address", address),
-			slog.String("sql", sql),
-			slog.String("error", drsRes[0].ErrorMsg),
+			fmt.Sprintf("import proxy user, address: %s, sql: %s, err: %s", address, sql, drsRes[0].ErrorMsg),
 		)
 		return errors.New(drsRes[0].ErrorMsg)
 	}
 	if drsRes[0].CmdResults[0].ErrorMsg != "" {
 		logger.Error(
-			"import proxy user",
-			slog.String("address", address),
-			slog.String("sql", sql),
-			slog.String("error", drsRes[0].CmdResults[0].ErrorMsg),
+			fmt.Sprintf(
+				"import proxy user, address: %s, sql: %s, err: %s",
+				address, sql, drsRes[0].CmdResults[0].ErrorMsg),
 		)
 		return errors.New(drsRes[0].CmdResults[0].ErrorMsg)
 	}

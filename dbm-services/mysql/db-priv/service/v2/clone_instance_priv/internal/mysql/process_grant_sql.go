@@ -70,11 +70,9 @@ func ProcessGrantSql(privs []string, sourceAddr, targetAddr string, sourceVersio
 	// 但是, spider 3 不能使用 /*!57xx / 这样的 version hint
 	// 所以不能加 if not exists
 	// 等到后面 spider 4 这里会贼麻烦
-	logger.Info("process grant sql",
-		slog.Bool("isStorage", isStorage),
-		slog.Int("source version", sourceVersion),
-		slog.Int("target version", targetVersion),
-		slog.Int("privs count", len(privs)),
+	logger.Info(fmt.Sprintf(
+		"process grant sql, is storage: %t, source version: %d, target version: %d, privs count: %d",
+		isStorage, sourceVersion, targetVersion, len(privs)),
 	)
 	if isStorage {
 		if sourceVersion <= 56 && targetVersion >= 57 {
@@ -92,9 +90,9 @@ func ProcessGrantSql(privs []string, sourceAddr, targetAddr string, sourceVersio
 	} else {
 		res = privs
 	}
-	logger.Info("process grant sql", slog.Int("priv count after trans", len(res)))
+	logger.Info(fmt.Sprintf("process grant sql, priv count after trans: %d", len(res)))
 	res = replaceHost(res, sourceAddr, targetAddr)
-	logger.Info("process grant sql", slog.Int("priv count after replace", len(res)))
+	logger.Info(fmt.Sprintf("process grant sql, priv count after replace: %d", len(res)))
 
 	return res, nil
 }
@@ -151,8 +149,7 @@ func trans56To57(grantSqls56 []string, logger *slog.Logger) (createUserSqls []st
 			// 这里的概率非常非常低, 除非用错了
 			err = fmt.Errorf("invalid grant sql: %s", trimGrantSql)
 			logger.Error(
-				"trans grant 56 to 57",
-				slog.String("err", err.Error()),
+				fmt.Sprintf("trans grant 56 to 57, err: %s", err.Error()),
 			)
 			return nil, nil, err
 		}

@@ -31,9 +31,26 @@ RunCheckLabel:
 		return err
 	}
 
+	isEmptyResultTbl, err := r.isEmptyResultTbl()
+	if err != nil {
+		return err
+	}
+	if r.Mode == config.GeneralMode && isEmptyResultTbl {
+		slog.Info("result table is empty")
+		err := r.writeFakeResult(roundStartStr, roundStartStr)
+		if err != nil {
+			slog.Error("write round start", slog.String("error", err.Error()))
+			return err
+		}
+		slog.Info("round start")
+	}
+
 	output, err, pterr := r.run()
 	if err != nil {
 		return err
+	}
+	if output == nil {
+		return fmt.Errorf("output is nil")
 	}
 
 	if r.Mode == config.GeneralMode {
@@ -48,24 +65,13 @@ RunCheckLabel:
 		}
 		slog.Info("run in general mode delete 10 days ago history")
 
-		err = r.writeFakeResult(dailyStr, dailyStr)
-		if err != nil {
-			slog.Error("write daily fake", slog.String("error", err.Error()))
-			return err
-		}
-		slog.Info("write daily fake success")
-
-		isEmptyResultTbl, err := r.isEmptyResultTbl()
-		if err != nil {
-			return err
-		}
-		if isEmptyResultTbl {
-			err := r.writeFakeResult(roundStartStr, roundStartStr)
+		if stackDepth == 1 {
+			err = r.writeFakeResult(dailyStr, dailyStr)
 			if err != nil {
-				slog.Error("write round start", slog.String("error", err.Error()))
+				slog.Error("write daily fake", slog.String("error", err.Error()))
 				return err
 			}
-			slog.Info("round start")
+			slog.Info("write daily fake success")
 		}
 
 		// 校验摘要是空的, 有两种可能
@@ -75,7 +81,7 @@ RunCheckLabel:
 			slog.Info("run got empty summary")
 
 			var cnt int
-			err := r.db.QueryRow(fmt.Sprintf("SELECT count(*) FROM %s.%s", r.resultDB, r.resultTbl)).Scan(&cnt)
+			err = r.db.QueryRow(fmt.Sprintf("SELECT count(*) FROM %s.%s", r.resultDB, r.resultTbl)).Scan(&cnt)
 			if err != nil {
 				slog.Error("query result table rows count", slog.String("error", err.Error()))
 				return err
