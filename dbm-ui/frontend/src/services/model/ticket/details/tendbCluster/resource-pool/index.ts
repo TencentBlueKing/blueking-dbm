@@ -5,3 +5,4 @@ export * from './rollBackCluster';
 export * from './spiderMntApply';
 export * from './spiderMntDestroy';
 export * from './spiderReduceNodes';
+export * from './spiderSwitchNodes';
