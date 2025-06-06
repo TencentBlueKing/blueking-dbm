@@ -34,6 +34,7 @@ import SubApp from './SubApp.vue';
 import '@blueking/ip-selector/dist/styles/vue2.6.x.css';
 import '@lib/bk-icon/iconcool';
 import '@styles/common.less';
+import '@styles/toolbox.less';
 import '@xterm/xterm/css/xterm.css';
 import 'bkui-vue/dist/style.variable.css';
 import { setGlobalDirectives } from '@/directives/index';

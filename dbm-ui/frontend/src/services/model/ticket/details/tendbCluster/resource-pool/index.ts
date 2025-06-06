@@ -6,5 +6,6 @@ export * from './spiderAddNodes';
 export * from './spiderMntApply';
 export * from './spiderMntDestroy';
 export * from './spiderReduceNodes';
+export * from './spiderSwitchNodes';
 export * from './spiderSlaveApply';
 export * from './spiderSwitchNodes';
