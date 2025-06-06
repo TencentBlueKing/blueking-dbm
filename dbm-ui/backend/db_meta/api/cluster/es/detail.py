@@ -44,7 +44,7 @@ def scan_cluster(cluster: Cluster) -> Graphic:
         # 获得访问入口节点组
         _dummy, entry_group = graph.add_node(entry)
         # 访问入口 ---> Client节点，关系为：访问
-        graph.add_line(source=entry_group, target=client_group, label=LineLabel.Access)
+        graph.add_line(source=entry_group, target=client_group, label=LineLabel.Bind)
         # Client节点 ---> Master/冷/热节点，关系为：访问
         graph.add_line(source=client_group, target=master_group, label=LineLabel.Access)
         if hot_node_group:
@@ -54,7 +54,7 @@ def scan_cluster(cluster: Cluster) -> Graphic:
     elif hot_node_group:
         _dummy, entry_group = graph.add_node(entry)
         hub_group = hot_node_group
-        graph.add_line(source=entry_group, target=hot_node_group, label=LineLabel.Access)
+        graph.add_line(source=entry_group, target=hot_node_group, label=LineLabel.Bind)
         graph.add_line(source=hot_node_group, target=master_group, label=LineLabel.Access)
     else:
         hub_group = master_group

@@ -58,7 +58,7 @@ def scan_cluster(cluster: Cluster) -> Graphic:
     __, entry_group = graph.add_node(entry)
 
     # 访问入口 ----> m1 primary
-    graph.add_line(source=entry_group, target=m1_primary_group, label=LineLabel.Access)
+    graph.add_line(source=entry_group, target=m1_primary_group, label=LineLabel.Bind)
     # m1 primary ----> backup
     graph.add_line(source=m1_primary_group, target=backup_group, label=LineLabel.Rep)
 
