@@ -38,7 +38,8 @@ class OracleCCTopoOperator(CCTopoOperator):
 
 @transaction.atomic
 def create_oracle_instances(bk_biz_id, bk_cloud_id, machine_type, storages, spec_id: int = 0, spec_config: str = ""):
-    """打包创建 MongoShard/MongoConfig 类型实例， 一主N从
+    """
+    创建实例， 一主N从
 
     Args:
         bk_biz_id (_type_): _description_

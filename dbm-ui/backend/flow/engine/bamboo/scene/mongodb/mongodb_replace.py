@@ -35,6 +35,7 @@ class MongoReplaceFlow(object):
         self.get_kwargs = ActKwargs()
         self.get_kwargs.payload = data
         self.get_kwargs.get_file_path()
+        self.get_kwargs.replace_check_instance_domain()
 
     def multi_host_replace_flow(self):
         """
