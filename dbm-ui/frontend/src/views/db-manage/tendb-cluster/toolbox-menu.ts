@@ -75,6 +75,12 @@ export default [
         parentId: 'spider_cluster_maintain',
       },
       {
+        dbConsoleValue: 'tendbCluster.toolbox.switchNodes',
+        id: TicketTypes.TENDBCLUSTER_SPIDER_SWITCH_NODES,
+        name: t('替换接入层'),
+        parentId: 'spider_cluster_maintain',
+      },
+      {
         dbConsoleValue: 'tendbCluster.toolbox.masterSlaveClone',
         id: TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER,
         name: t('迁移主从'),
