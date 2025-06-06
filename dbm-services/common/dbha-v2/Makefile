@@ -57,6 +57,7 @@ GO_GEN_FILES=$(PROTO_FILES:$(PROTO_DIR)/%.proto=$(GEN_DIR)/%.pb.go)
 all: proto admin analysis receiver probe
 
 proto: $(GO_GEN_FILES)
+	@goimports -w .
 
 admin:
 	@mkdir -p $(BUILD_DIR)
