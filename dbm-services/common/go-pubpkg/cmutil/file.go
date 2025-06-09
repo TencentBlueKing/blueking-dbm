@@ -119,3 +119,22 @@ func SafeRmDir(dir string) (err error) {
 	}
 	return os.RemoveAll(dir)
 }
+
+// RemoveFileMatch remove files match pattern
+func RemoveFileMatch(filePattern string, force bool) error {
+	files, err := filepath.Glob(filePattern)
+	if err != nil {
+		return fmt.Errorf("error getting files: %w", err)
+	}
+
+	for _, file := range files {
+		err := os.Remove(file)
+		if force {
+			continue
+		}
+		if err != nil {
+			return fmt.Errorf("error removing file %s: %w", file, err)
+		}
+	}
+	return nil
+}

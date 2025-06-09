@@ -13,6 +13,8 @@ import (
 	"github.com/spf13/viper"
 
 	"dbm-services/common/go-pubpkg/logger"
+	meta "dbm-services/common/reverseapi/define/mysql"
+	"dbm-services/common/reverseapi/infolocal"
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/cst"
 )
 
@@ -185,6 +187,14 @@ func readInstanceConfig(mainConfFile string) ([]*ServerObj, error) {
 		if err = viperServer.Unmarshal(&s); err != nil {
 			logger.Error("readInstanceConfig %s unmarshal failed: %v", f, err)
 			continue
+		}
+		if instInfo, err := infolocal.GetSelfInfo(s.Host, s.Port); err == nil {
+			logger.Info("use role from common_config:%s, config:%s", instInfo.InstanceInnerRole, s.Tags.DBRole)
+			if instInfo.AccessLayer == meta.AccessLayerStorage && instInfo.InstanceInnerRole != "" {
+				s.Tags.DBRole = instInfo.InstanceInnerRole
+			}
+		} else {
+			logger.Warn("get instance info from common_config failed: %v", err)
 		}
 		servers = append(servers, &s)
 	}

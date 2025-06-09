@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/viper"
 
 	meta "dbm-services/common/reverseapi/define/mysql"
+	"dbm-services/common/reverseapi/infolocal"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 )
@@ -79,7 +80,7 @@ func initConfig(confFile string, cnf *config.BackupConfig, log *logrus.Logger) e
 		log.Fatalf("parse config failed: %v", err)
 	}
 	// 如果是在 remote 上执行，common_config 中一般获取不到 is_standby，会忽略错误
-	if instInfo, err := config.GetSelfInfo(cnf.Public.MysqlHost, cnf.Public.MysqlPort); err == nil {
+	if instInfo, err := infolocal.GetSelfInfo(cnf.Public.MysqlHost, cnf.Public.MysqlPort); err == nil {
 		if instInfo.AccessLayer == meta.AccessLayerStorage && instInfo.InstanceInnerRole != "" {
 			cnf.Public.MysqlRole = instInfo.InstanceInnerRole
 			log.Infof("use role from common_config:%s, config:%s",
