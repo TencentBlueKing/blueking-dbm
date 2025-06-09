@@ -33,7 +33,6 @@
             "agg_interval": 60,
             "agg_dimension": [
               "app",
-              "app_name",
               "cluster_domain",
               "cluster_type",
               "bk_target_ip",

@@ -88,7 +88,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -103,7 +104,7 @@
             "y": 1
           },
           "id": 58,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -225,7 +226,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -240,7 +242,7 @@
             "y": 1
           },
           "id": 72,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -362,7 +364,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -377,7 +380,7 @@
             "y": 9
           },
           "id": 91,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -459,7 +462,7 @@
           "type": "timeseries"
         }
       ],
-      "title": "Rocksdb",
+      "title": "RocksDB",
       "type": "row"
     },
     {
@@ -521,7 +524,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -536,7 +540,7 @@
             "y": 2
           },
           "id": 55,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -666,7 +670,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -681,7 +686,7 @@
             "y": 2
           },
           "id": 93,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -811,7 +816,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -826,7 +832,7 @@
             "y": 10
           },
           "id": 57,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -956,7 +962,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -971,7 +978,7 @@
             "y": 10
           },
           "id": 94,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -1101,7 +1108,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -1116,7 +1124,7 @@
             "y": 18
           },
           "id": 67,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -1711,7 +1719,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -1726,7 +1735,7 @@
             "y": 18
           },
           "id": 68,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -2336,7 +2345,7 @@
             "y": 26
           },
           "id": 59,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -2537,7 +2546,7 @@
             "y": 26
           },
           "id": 60,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -2738,7 +2747,7 @@
             "y": 34
           },
           "id": 61,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -2939,7 +2948,7 @@
             "y": 34
           },
           "id": 63,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -3140,7 +3149,7 @@
             "y": 42
           },
           "id": 62,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -3431,7 +3440,7 @@
             "y": 42
           },
           "id": 65,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -3722,7 +3731,7 @@
             "y": 50
           },
           "id": 64,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -3868,7 +3877,7 @@
             "y": 50
           },
           "id": 66,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -4014,7 +4023,7 @@
             "y": 58
           },
           "id": 70,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -4216,7 +4225,7 @@
             "y": 58
           },
           "id": 71,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -4412,6 +4421,7 @@
         "y": 3
       },
       "id": 75,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -4521,6 +4531,7 @@
         "y": 3
       },
       "id": 26,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -4624,6 +4635,7 @@
         "y": 3
       },
       "id": 14,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -4726,6 +4738,7 @@
       },
       "hideTimeOverride": true,
       "id": 27,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -4842,6 +4855,7 @@
         "y": 3
       },
       "id": 35,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -4956,6 +4970,7 @@
         "y": 3
       },
       "id": 36,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -5070,6 +5085,7 @@
         "y": 3
       },
       "id": 77,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -5189,6 +5205,7 @@
         "y": 3
       },
       "id": 38,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -5302,6 +5319,7 @@
         "y": 6
       },
       "id": 85,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -5430,6 +5448,7 @@
         "y": 6
       },
       "id": 90,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -5555,6 +5574,7 @@
         "y": 6
       },
       "id": 17,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -5663,6 +5683,7 @@
         "y": 6
       },
       "id": 28,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -5791,6 +5812,7 @@
         "y": 6
       },
       "id": 84,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -5903,6 +5925,7 @@
         "y": 6
       },
       "id": 81,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -6019,6 +6042,7 @@
         "y": 6
       },
       "id": 79,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -6136,6 +6160,7 @@
         "y": 6
       },
       "id": 37,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -6280,7 +6305,7 @@
         "y": 9
       },
       "id": 87,
-      "interval": "2m",
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -6489,7 +6514,7 @@
         "y": 9
       },
       "id": 51,
-      "interval": "2m",
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -6662,6 +6687,7 @@
         "y": 17
       },
       "id": 89,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -6857,7 +6883,7 @@
         "y": 17
       },
       "id": 50,
-      "interval": "2m",
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -6884,6 +6910,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "bkmonitor_timeseries"
           },
+          "enableDownSampling": true,
           "expressionList": [
             {
               "active": true,
@@ -6901,6 +6928,7 @@
           "query_configs": [
             {
               "alias": "",
+              "data_label": "exporter_dbm_redis_exporter",
               "data_source_label": "bk_monitor",
               "data_type_label": "time_series",
               "display": false,
@@ -6926,7 +6954,7 @@
               "refId": "a",
               "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
-              "time_field": "",
+              "time_field": "time",
               "where": [
                 {
                   "key": "cluster_domain",
@@ -6939,6 +6967,7 @@
             },
             {
               "alias": "",
+              "data_label": "exporter_dbm_redis_exporter",
               "data_source_label": "bk_monitor",
               "data_type_label": "time_series",
               "display": false,
@@ -6964,13 +6993,21 @@
               "refId": "b",
               "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
-              "time_field": "",
+              "time_field": "time",
               "where": [
                 {
                   "key": "cluster_domain",
                   "method": "eq",
                   "value": [
                     "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "redis_master"
                   ]
                 }
               ]
@@ -7051,6 +7088,7 @@
         "y": 25
       },
       "id": 96,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -7709,7 +7747,7 @@
               }
             ]
           },
-          "unit": "mbytes"
+          "unit": "kbytes"
         },
         "overrides": []
       },
@@ -7720,7 +7758,7 @@
         "y": 25
       },
       "id": 5,
-      "interval": "2m",
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -7753,9 +7791,9 @@
           "format": "time_series",
           "hide": false,
           "host": [],
-          "mode": "ui",
+          "mode": "code",
           "module": [],
-          "promqlAlias": "$tag_ip",
+          "promqlAlias": "$tag_instance",
           "query_configs": [
             {
               "alias": "$tag_instance",
@@ -7797,7 +7835,7 @@
             }
           ],
           "refId": "B",
-          "source": "sum by(cluster_domain) (bkmonitor:exporter_dbm_redis_exporter:__default__:redis_memory_used_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
+          "source": "sum by (cluster_domain, instance) (bkmonitor:exporter_dbm_redis_exporter:redis_rocksdb_datadir_size_kb{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
           "step": "2m",
           "type": "range"
         }
@@ -7869,6 +7907,7 @@
         "y": 33
       },
       "id": 22,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -8064,7 +8103,7 @@
         "y": 33
       },
       "id": 54,
-      "interval": "2m",
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -8261,6 +8300,7 @@
         "y": 41
       },
       "id": 33,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -8410,6 +8450,7 @@
         "y": 41
       },
       "id": 46,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -8625,6 +8666,7 @@
         "y": 49
       },
       "id": 34,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -8769,7 +8811,7 @@
         "y": 49
       },
       "id": 20,
-      "interval": "2m",
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -8939,7 +8981,7 @@
         "y": 58
       },
       "id": 39,
-      "interval": "2m",
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -9098,6 +9140,7 @@
         "y": 58
       },
       "id": 45,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -9245,6 +9288,7 @@
         "y": 66
       },
       "id": 49,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -9452,6 +9496,7 @@
         "y": 66
       },
       "id": 95,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -9597,6 +9642,7 @@
         "y": 74
       },
       "id": 98,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -9751,6 +9797,7 @@
         "y": 74
       },
       "id": 99,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -9889,8 +9936,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -9905,6 +9951,7 @@
         "y": 82
       },
       "id": 47,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -10210,7 +10257,7 @@
   "timezone": "",
   "title": "tendis-PredixyTendisplusCluster",
   "uid": "BBo1yt0Vk",
-  "version": 37,
+  "version": 46,
   "weekStart": "",
   "__inputs": [
     {
