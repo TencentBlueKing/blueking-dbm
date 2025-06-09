@@ -150,6 +150,13 @@ def get_monitor_plugin(db_type, machine_type):
     return INSTANCE_MONITOR_PLUGINS[db_type][machine_type]
 
 
+def get_monitor_set_name(db_type, monitor_plugin_name):
+    """获取监控采集模块"""
+    # 目前tendbcluster主机都放在mysql模块
+    db_type = DBType.MySQL if db_type == DBType.TenDBCluster else db_type
+    return SET_NAME_TEMPLATE.format(db_type=db_type, monitor_plugin_name=monitor_plugin_name)
+
+
 class AppMonitorTopo(AuditedModel):
     """
     业务监控顶层拓扑配置 -> INSTANCE_MONITOR_PLUGINS
@@ -237,7 +244,8 @@ class AppMonitorTopo(AuditedModel):
                     obj.save()
                     continue
 
-                bk_set_name = SET_NAME_TEMPLATE.format(db_type=db_type, monitor_plugin_name=monitor_plugin_name)
+                # tendbcluster的主机
+                bk_set_name = get_monitor_set_name(db_type, monitor_plugin_name)
 
                 # 本地没有 -> 远程没有 -> 创建远程   |
                 #        ->  远程有               |---> 更新本地
