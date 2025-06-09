@@ -22,6 +22,7 @@
   "links": [],
   "panels": [
     {
+      "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -29,6 +30,7 @@
         "y": 0
       },
       "id": 12,
+      "panels": [],
       "title": "汇总",
       "type": "row"
     },
@@ -58,7 +60,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
+        "h": 5,
         "w": 4,
         "x": 0,
         "y": 1
@@ -336,14 +338,15 @@
         }
       ],
       "title": "日志数量",
-      "type": "stat"
+      "type": "stat",
+      "interval": "1m"
     },
     {
       "datasource": {
         "type": "bk_log_datasource",
         "uid": "${DS_日志平台}"
       },
-      "description": "所选时间内，慢日志数量总量",
+      "description": "慢日志数量总量 id=51803",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -368,7 +371,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
+        "h": 5,
         "w": 4,
         "x": 4,
         "y": 1
@@ -646,7 +649,288 @@
         }
       ],
       "title": "慢日志数量",
-      "type": "stat"
+      "type": "stat",
+      "interval": "1m"
+    },
+    {
+      "datasource": {
+        "type": "bk_log_datasource",
+        "uid": "${DS_日志平台}"
+      },
+      "description": "",
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 12,
+        "y": 1
+      },
+      "id": 18,
+      "options": {
+        "code": {
+          "language": "markdown",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "- 所有: * (默认)\n- 包含独立单词abc: abc \n- 包含单词的一部分: abc.*  .*abc .*abc.*\n- 查询大于200ms的慢日志: attr.durationMillis > 200\n- 查询某分片上的慢日志: app-cluster-s1 and attr.durationMillis > 200\n- 文档: https://bk.tencent.com/docs/markdown/ZH/LogSearch/4.7/UserGuide/ProductFeatures/data-visualization/query_string.md",
+        "mode": "markdown"
+      },
+      "pluginVersion": "10.4.10",
+      "targets": [
+        {
+          "data": {
+            "alias": "",
+            "conditions": [
+              [
+                {
+                  "key": "p0ckeg1ldw",
+                  "list": [
+                    {
+                      "id": "meta.cluster_domain",
+                      "name": "meta.cluster_domain"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "meta.cluster_domain"
+                },
+                {
+                  "key": "ucxacsv8xq",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "gvrpeuh27t",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ],
+              [
+                {
+                  "key": "qfv9b6t0e1",
+                  "list": [
+                    {
+                      "id": "and",
+                      "name": "AND"
+                    },
+                    {
+                      "id": "or",
+                      "name": "OR"
+                    }
+                  ],
+                  "type": "condition",
+                  "value": "and"
+                },
+                {
+                  "key": "i45cj1flfd",
+                  "list": [
+                    {
+                      "id": "meta.instance_role",
+                      "name": "meta.instance_role"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "meta.instance_role"
+                },
+                {
+                  "key": "hl5xd6hgk3",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is not"
+                },
+                {
+                  "key": "sk5o5712xw",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "backup"
+                  ]
+                }
+              ],
+              [
+                {
+                  "key": "v5xqctckrz",
+                  "list": [
+                    {
+                      "id": "and",
+                      "name": "AND"
+                    },
+                    {
+                      "id": "or",
+                      "name": "OR"
+                    }
+                  ],
+                  "type": "condition",
+                  "value": "and"
+                },
+                {
+                  "key": "zz213iri9i",
+                  "list": [
+                    {
+                      "id": "attr.error",
+                      "name": "attr.error"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "attr.error"
+                },
+                {
+                  "key": "8s4gk15gpc",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "gt"
+                },
+                {
+                  "key": "t3jijzfdpj",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "0"
+                  ]
+                }
+              ]
+            ],
+            "dimensions": [],
+            "index": {
+              "id": [
+                "service_module",
+                18387
+              ],
+              "labels": [
+                "服务模块",
+                "[采集项]mongodb_log"
+              ]
+            },
+            "indexSetString": "",
+            "method": "value_count",
+            "metric": "attr.docsExamined",
+            "period": 120,
+            "periodUnitSet": {
+              "periodUnit": "min",
+              "timeNum": 2
+            },
+            "queryString": "$query_string",
+            "size": 50,
+            "target": {
+              "expandKeys": [],
+              "realValues": [],
+              "treeData": [],
+              "values": []
+            }
+          },
+          "datasource": {
+            "type": "bk_log_datasource",
+            "uid": "${DS_日志平台}"
+          },
+          "refId": "A"
+        }
+      ],
+      "title": "query_string 使用指引",
+      "type": "text"
     },
     {
       "collapsed": true,
@@ -654,7 +938,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 5
+        "y": 6
       },
       "id": 13,
       "panels": [
@@ -706,8 +990,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -719,10 +1002,10 @@
             "overrides": []
           },
           "gridPos": {
-            "h": 6,
-            "w": 18,
+            "h": 8,
+            "w": 24,
             "x": 0,
-            "y": 6
+            "y": 7
           },
           "id": 1,
           "options": {
@@ -946,7 +1229,356 @@
               }
             }
           ],
-          "type": "timeseries"
+          "type": "timeseries",
+          "interval": "1m"
+        },
+        {
+          "datasource": {
+            "type": "bk_log_datasource",
+            "uid": "${DS_日志平台}"
+          },
+          "description": "ErrorLog count by (instance)",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 7,
+            "w": 24,
+            "x": 0,
+            "y": 15
+          },
+          "id": 16,
+          "options": {
+            "legend": {
+              "calcs": [
+                "lastNotNull",
+                "max",
+                "sum"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true,
+              "sortBy": "Total",
+              "sortDesc": true,
+              "width": 600
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "data": {
+                "alias": "$tag_meta.instance $tag_meta.instance_role $tag_meta.instance_set_name",
+                "conditions": [
+                  [
+                    {
+                      "key": "p0ckeg1ldw",
+                      "list": [
+                        {
+                          "id": "meta.cluster_domain",
+                          "name": "meta.cluster_domain"
+                        }
+                      ],
+                      "open": false,
+                      "type": "key",
+                      "value": "meta.cluster_domain"
+                    },
+                    {
+                      "key": "ucxacsv8xq",
+                      "list": [
+                        {
+                          "id": "is",
+                          "name": "is"
+                        },
+                        {
+                          "id": "is one of",
+                          "name": "is one of"
+                        },
+                        {
+                          "id": "is not",
+                          "name": "is not"
+                        },
+                        {
+                          "id": "is not one of",
+                          "name": "is not one of"
+                        },
+                        {
+                          "id": "gt",
+                          "name": ">"
+                        },
+                        {
+                          "id": "gte",
+                          "name": ">="
+                        },
+                        {
+                          "id": "lt",
+                          "name": "<"
+                        },
+                        {
+                          "id": "lte",
+                          "name": "<="
+                        }
+                      ],
+                      "type": "method",
+                      "value": "is"
+                    },
+                    {
+                      "key": "gvrpeuh27t",
+                      "list": [],
+                      "type": "value",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    }
+                  ],
+                  [
+                    {
+                      "key": "qfv9b6t0e1",
+                      "list": [
+                        {
+                          "id": "and",
+                          "name": "AND"
+                        },
+                        {
+                          "id": "or",
+                          "name": "OR"
+                        }
+                      ],
+                      "type": "condition",
+                      "value": "and"
+                    },
+                    {
+                      "key": "i45cj1flfd",
+                      "list": [
+                        {
+                          "id": "meta.instance_role",
+                          "name": "meta.instance_role"
+                        }
+                      ],
+                      "open": false,
+                      "type": "key",
+                      "value": "meta.instance_role"
+                    },
+                    {
+                      "key": "hl5xd6hgk3",
+                      "list": [
+                        {
+                          "id": "is",
+                          "name": "is"
+                        },
+                        {
+                          "id": "is one of",
+                          "name": "is one of"
+                        },
+                        {
+                          "id": "is not",
+                          "name": "is not"
+                        },
+                        {
+                          "id": "is not one of",
+                          "name": "is not one of"
+                        },
+                        {
+                          "id": "gt",
+                          "name": ">"
+                        },
+                        {
+                          "id": "gte",
+                          "name": ">="
+                        },
+                        {
+                          "id": "lt",
+                          "name": "<"
+                        },
+                        {
+                          "id": "lte",
+                          "name": "<="
+                        }
+                      ],
+                      "type": "method",
+                      "value": "is not"
+                    },
+                    {
+                      "key": "sk5o5712xw",
+                      "list": [],
+                      "type": "value",
+                      "value": [
+                        "backup"
+                      ]
+                    }
+                  ],
+                  [
+                    {
+                      "key": "w4cuhyilzo",
+                      "list": [
+                        {
+                          "id": "and",
+                          "name": "AND"
+                        },
+                        {
+                          "id": "or",
+                          "name": "OR"
+                        }
+                      ],
+                      "type": "condition",
+                      "value": "and"
+                    },
+                    {
+                      "key": "79wk4px517",
+                      "list": [
+                        {
+                          "id": "attr.error",
+                          "name": "attr.error"
+                        }
+                      ],
+                      "open": false,
+                      "type": "key",
+                      "value": "attr.error"
+                    },
+                    {
+                      "key": "yj5ldzrj33",
+                      "list": [
+                        {
+                          "id": "is",
+                          "name": "is"
+                        },
+                        {
+                          "id": "is one of",
+                          "name": "is one of"
+                        },
+                        {
+                          "id": "is not",
+                          "name": "is not"
+                        },
+                        {
+                          "id": "is not one of",
+                          "name": "is not one of"
+                        },
+                        {
+                          "id": "gt",
+                          "name": ">"
+                        },
+                        {
+                          "id": "gte",
+                          "name": ">="
+                        },
+                        {
+                          "id": "lt",
+                          "name": "<"
+                        },
+                        {
+                          "id": "lte",
+                          "name": "<="
+                        }
+                      ],
+                      "type": "method",
+                      "value": "gte"
+                    },
+                    {
+                      "key": "5omfo1fohw",
+                      "list": [],
+                      "type": "value",
+                      "value": [
+                        "0"
+                      ]
+                    }
+                  ]
+                ],
+                "dimensions": [
+                  "meta.instance_set_name",
+                  "meta.instance_role",
+                  "meta.instance",
+                  "id"
+                ],
+                "index": {
+                  "id": [
+                    "service_module",
+                    18387
+                  ],
+                  "labels": [
+                    "服务模块",
+                    "[采集项]mongodb_log"
+                  ]
+                },
+                "indexSetString": "",
+                "method": "value_count",
+                "metric": "attr.docsExamined",
+                "period": 120,
+                "periodUnitSet": {
+                  "periodUnit": "min",
+                  "timeNum": 2
+                },
+                "queryString": "$query_string",
+                "size": 50,
+                "target": {
+                  "expandKeys": [],
+                  "realValues": [],
+                  "treeData": [],
+                  "values": []
+                }
+              },
+              "datasource": {
+                "type": "bk_log_datasource",
+                "uid": "${DS_日志平台}"
+              },
+              "refId": "A"
+            }
+          ],
+          "title": "ErrorLog count by (instance)",
+          "type": "timeseries",
+          "interval": "1m"
         },
         {
           "datasource": {
@@ -996,12 +1628,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
+                    "color": "green"
                   }
                 ]
               }
@@ -1009,10 +1636,10 @@
             "overrides": []
           },
           "gridPos": {
-            "h": 6,
-            "w": 18,
+            "h": 7,
+            "w": 24,
             "x": 0,
-            "y": 12
+            "y": 22
           },
           "id": 9,
           "options": {
@@ -1291,7 +1918,8 @@
             }
           ],
           "title": "SlowLog count by (ns)",
-          "type": "timeseries"
+          "type": "timeseries",
+          "interval": "1m"
         },
         {
           "datasource": {
@@ -1341,8 +1969,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1354,10 +1981,10 @@
             "overrides": []
           },
           "gridPos": {
-            "h": 6,
-            "w": 18,
+            "h": 8,
+            "w": 24,
             "x": 0,
-            "y": 18
+            "y": 29
           },
           "id": 8,
           "options": {
@@ -1638,7 +2265,8 @@
             }
           ],
           "title": "SlowLog count by (instance)",
-          "type": "timeseries"
+          "type": "timeseries",
+          "interval": "1m"
         },
         {
           "datasource": {
@@ -1688,8 +2316,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1702,9 +2329,9 @@
           },
           "gridPos": {
             "h": 6,
-            "w": 18,
+            "w": 24,
             "x": 0,
-            "y": 24
+            "y": 37
           },
           "id": 7,
           "options": {
@@ -1984,564 +2611,601 @@
             }
           ],
           "title": "SlowLog count by (queryHash)",
-          "type": "timeseries"
+          "type": "timeseries",
+          "interval": "1m"
         }
       ],
       "title": "按时间分布",
       "type": "row"
     },
     {
-      "collapsed": true,
+      "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 6
+        "y": 7
       },
       "id": 3,
-      "panels": [
+      "panels": [],
+      "title": "SlowLog",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "bk_log_datasource",
+        "uid": "${DS_日志平台}"
+      },
+      "description": "SlowQuery id:51803 and role!=backup",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true,
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "msg"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "s"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 48
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "id"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 60
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "c"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 91
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "attr.planSummary"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 162
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "meta.instance_role"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 155
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "meta.instance_set_name"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 186
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "role"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 84
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "attr.locks"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 173
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "durationMillis"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 131
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ctx"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 93
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "shard"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 104
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "attr.ns"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 259
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "attr.durationMillis"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 141
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      },
+      "id": 6,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": []
+      },
+      "pluginVersion": "10.4.10",
+      "targets": [
         {
+          "data": {
+            "alias": "",
+            "conditions": [
+              [
+                {
+                  "key": "w8mjohfadw",
+                  "list": [
+                    {
+                      "id": "meta.cluster_domain",
+                      "name": "meta.cluster_domain"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "meta.cluster_domain"
+                },
+                {
+                  "key": "rd9blqk2ax",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "prdna0q6dn",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ],
+              [
+                {
+                  "key": "akfvko4ipn",
+                  "list": [
+                    {
+                      "id": "and",
+                      "name": "AND"
+                    },
+                    {
+                      "id": "or",
+                      "name": "OR"
+                    }
+                  ],
+                  "type": "condition",
+                  "value": "and"
+                },
+                {
+                  "key": "ioa9b3nrwd",
+                  "list": [
+                    {
+                      "id": "id",
+                      "name": "id"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "id"
+                },
+                {
+                  "key": "3n1jhhh4a0",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "r75ykwlwov",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "51803"
+                  ]
+                }
+              ],
+              [
+                {
+                  "key": "flih8ict4b",
+                  "list": [
+                    {
+                      "id": "and",
+                      "name": "AND"
+                    },
+                    {
+                      "id": "or",
+                      "name": "OR"
+                    }
+                  ],
+                  "type": "condition",
+                  "value": "and"
+                },
+                {
+                  "key": "8ix1690x5v",
+                  "list": [
+                    {
+                      "id": "meta.instance_role",
+                      "name": "meta.instance_role"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "meta.instance_role"
+                },
+                {
+                  "key": "ojhrrofjw9",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is not"
+                },
+                {
+                  "key": "to7z6pi6k9",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "backup"
+                  ]
+                }
+              ]
+            ],
+            "dimensions": [],
+            "index": {
+              "id": [
+                "service_module",
+                18387
+              ],
+              "labels": [
+                "服务模块",
+                "[采集项]mongodb_log"
+              ]
+            },
+            "indexSetString": "",
+            "method": "logs",
+            "metric": "attr.docsExamined",
+            "period": 120,
+            "periodUnitSet": {
+              "periodUnit": "min",
+              "timeNum": 2
+            },
+            "queryString": "$query_string",
+            "size": 500,
+            "target": {
+              "expandKeys": [],
+              "realValues": [],
+              "treeData": [],
+              "values": []
+            }
+          },
           "datasource": {
             "type": "bk_log_datasource",
             "uid": "${DS_日志平台}"
           },
-          "description": "SlowQuery id:51803 and role!=backup",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "custom": {
-                "align": "left",
-                "cellOptions": {
-                  "type": "auto"
-                },
-                "filterable": true,
-                "inspect": false
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  }
-                ]
-              }
-            },
-            "overrides": [
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "msg"
-                },
-                "properties": [
-                  {
-                    "id": "custom.width",
-                    "value": 83
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "s"
-                },
-                "properties": [
-                  {
-                    "id": "custom.width",
-                    "value": 48
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "id"
-                },
-                "properties": [
-                  {
-                    "id": "custom.width",
-                    "value": 60
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "c"
-                },
-                "properties": [
-                  {
-                    "id": "custom.width",
-                    "value": 91
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "attr.planSummary"
-                },
-                "properties": [
-                  {
-                    "id": "custom.width",
-                    "value": 162
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "meta.instance_role"
-                },
-                "properties": [
-                  {
-                    "id": "custom.width",
-                    "value": 138
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "meta.instance_set_name"
-                },
-                "properties": [
-                  {
-                    "id": "custom.width",
-                    "value": 143
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "role"
-                },
-                "properties": [
-                  {
-                    "id": "custom.width",
-                    "value": 84
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "attr.locks"
-                },
-                "properties": [
-                  {
-                    "id": "custom.width",
-                    "value": 223
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "durationMillis"
-                },
-                "properties": [
-                  {
-                    "id": "custom.width",
-                    "value": 116
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "ctx"
-                },
-                "properties": [
-                  {
-                    "id": "custom.width",
-                    "value": 93
-                  }
-                ]
-              }
-            ]
-          },
-          "gridPos": {
-            "h": 12,
-            "w": 24,
-            "x": 0,
-            "y": 7
-          },
-          "id": 6,
-          "options": {
-            "cellHeight": "sm",
-            "footer": {
-              "countRows": false,
-              "enablePagination": false,
-              "fields": "",
-              "reducer": [
-                "sum"
-              ],
-              "show": false
-            },
-            "showHeader": true,
-            "sortBy": []
-          },
-          "pluginVersion": "10.4.10",
-          "targets": [
-            {
-              "data": {
-                "alias": "",
-                "conditions": [
-                  [
-                    {
-                      "key": "w8mjohfadw",
-                      "list": [
-                        {
-                          "id": "meta.cluster_domain",
-                          "name": "meta.cluster_domain"
-                        }
-                      ],
-                      "open": false,
-                      "type": "key",
-                      "value": "meta.cluster_domain"
-                    },
-                    {
-                      "key": "rd9blqk2ax",
-                      "list": [
-                        {
-                          "id": "is",
-                          "name": "is"
-                        },
-                        {
-                          "id": "is one of",
-                          "name": "is one of"
-                        },
-                        {
-                          "id": "is not",
-                          "name": "is not"
-                        },
-                        {
-                          "id": "is not one of",
-                          "name": "is not one of"
-                        },
-                        {
-                          "id": "gt",
-                          "name": ">"
-                        },
-                        {
-                          "id": "gte",
-                          "name": ">="
-                        },
-                        {
-                          "id": "lt",
-                          "name": "<"
-                        },
-                        {
-                          "id": "lte",
-                          "name": "<="
-                        }
-                      ],
-                      "type": "method",
-                      "value": "is"
-                    },
-                    {
-                      "key": "prdna0q6dn",
-                      "list": [],
-                      "type": "value",
-                      "value": [
-                        "$cluster_domain"
-                      ]
-                    }
-                  ],
-                  [
-                    {
-                      "key": "akfvko4ipn",
-                      "list": [
-                        {
-                          "id": "and",
-                          "name": "AND"
-                        },
-                        {
-                          "id": "or",
-                          "name": "OR"
-                        }
-                      ],
-                      "type": "condition",
-                      "value": "and"
-                    },
-                    {
-                      "key": "ioa9b3nrwd",
-                      "list": [
-                        {
-                          "id": "id",
-                          "name": "id"
-                        }
-                      ],
-                      "open": false,
-                      "type": "key",
-                      "value": "id"
-                    },
-                    {
-                      "key": "3n1jhhh4a0",
-                      "list": [
-                        {
-                          "id": "is",
-                          "name": "is"
-                        },
-                        {
-                          "id": "is one of",
-                          "name": "is one of"
-                        },
-                        {
-                          "id": "is not",
-                          "name": "is not"
-                        },
-                        {
-                          "id": "is not one of",
-                          "name": "is not one of"
-                        },
-                        {
-                          "id": "gt",
-                          "name": ">"
-                        },
-                        {
-                          "id": "gte",
-                          "name": ">="
-                        },
-                        {
-                          "id": "lt",
-                          "name": "<"
-                        },
-                        {
-                          "id": "lte",
-                          "name": "<="
-                        }
-                      ],
-                      "type": "method",
-                      "value": "is"
-                    },
-                    {
-                      "key": "r75ykwlwov",
-                      "list": [],
-                      "type": "value",
-                      "value": [
-                        "51803"
-                      ]
-                    }
-                  ],
-                  [
-                    {
-                      "key": "flih8ict4b",
-                      "list": [
-                        {
-                          "id": "and",
-                          "name": "AND"
-                        },
-                        {
-                          "id": "or",
-                          "name": "OR"
-                        }
-                      ],
-                      "type": "condition",
-                      "value": "and"
-                    },
-                    {
-                      "key": "8ix1690x5v",
-                      "list": [
-                        {
-                          "id": "meta.instance_role",
-                          "name": "meta.instance_role"
-                        }
-                      ],
-                      "open": false,
-                      "type": "key",
-                      "value": "meta.instance_role"
-                    },
-                    {
-                      "key": "ojhrrofjw9",
-                      "list": [
-                        {
-                          "id": "is",
-                          "name": "is"
-                        },
-                        {
-                          "id": "is one of",
-                          "name": "is one of"
-                        },
-                        {
-                          "id": "is not",
-                          "name": "is not"
-                        },
-                        {
-                          "id": "is not one of",
-                          "name": "is not one of"
-                        },
-                        {
-                          "id": "gt",
-                          "name": ">"
-                        },
-                        {
-                          "id": "gte",
-                          "name": ">="
-                        },
-                        {
-                          "id": "lt",
-                          "name": "<"
-                        },
-                        {
-                          "id": "lte",
-                          "name": "<="
-                        }
-                      ],
-                      "type": "method",
-                      "value": "is not"
-                    },
-                    {
-                      "key": "to7z6pi6k9",
-                      "list": [],
-                      "type": "value",
-                      "value": [
-                        "backup"
-                      ]
-                    }
-                  ]
-                ],
-                "dimensions": [],
-                "index": {
-                  "id": [
-                    "service_module",
-                    18387
-                  ],
-                  "labels": [
-                    "服务模块",
-                    "[采集项]mongodb_log"
-                  ]
-                },
-                "indexSetString": "",
-                "method": "logs",
-                "metric": "attr.docsExamined",
-                "period": 120,
-                "periodUnitSet": {
-                  "periodUnit": "min",
-                  "timeNum": 2
-                },
-                "queryString": "$query_string",
-                "size": 500,
-                "target": {
-                  "expandKeys": [],
-                  "realValues": [],
-                  "treeData": [],
-                  "values": []
-                }
-              },
-              "datasource": {
-                "type": "bk_log_datasource",
-                "uid": "${DS_日志平台}"
-              },
-              "refId": "A"
-            }
-          ],
-          "title": "SlowQuery",
-          "transformations": [
-            {
-              "id": "filterFieldsByName",
-              "options": {
-                "byVariable": false,
-                "include": {
-                  "names": [
-                    "log",
-                    "msg",
-                    "ctx",
-                    "attr.reslen",
-                    "attr.type",
-                    "attr.ns",
-                    "attr.remote",
-                    "attr.protocol",
-                    "attr.storage",
-                    "attr.readConcern",
-                    "attr.numYields",
-                    "attr.locks",
-                    "attr.command",
-                    "attr.durationMillis",
-                    "s",
-                    "dt",
-                    "meta.instance_set_name",
-                    "meta.instance",
-                    "meta.instance_role",
-                    "c",
-                    "id",
-                    "attr.planCacheKey",
-                    "attr.queryHash",
-                    "attr.keysExamined",
-                    "attr.docsExamined",
-                    "attr.nreturned",
-                    "attr.planSummary",
-                    "attr.queryFramework",
-                    "attr.cursorExhausted",
-                    "attr.flowControl",
-                    "attr.writeConcern",
-                    "attr.appName"
-                  ]
-                }
-              }
-            },
-            {
-              "id": "organize",
-              "options": {
-                "excludeByName": {
-                  "id": true
-                },
-                "includeByName": {},
-                "indexByName": {
-                  "attr.appName": 31,
-                  "attr.command": 20,
-                  "attr.cursorExhausted": 28,
-                  "attr.docsExamined": 13,
-                  "attr.durationMillis": 10,
-                  "attr.flowControl": 30,
-                  "attr.keysExamined": 25,
-                  "attr.locks": 15,
-                  "attr.nreturned": 26,
-                  "attr.ns": 11,
-                  "attr.numYields": 17,
-                  "attr.planCacheKey": 24,
-                  "attr.planSummary": 14,
-                  "attr.protocol": 23,
-                  "attr.queryFramework": 27,
-                  "attr.queryHash": 12,
-                  "attr.readConcern": 18,
-                  "attr.remote": 21,
-                  "attr.reslen": 19,
-                  "attr.storage": 22,
-                  "attr.type": 16,
-                  "attr.writeConcern": 29,
-                  "c": 7,
-                  "ctx": 6,
-                  "dt": 0,
-                  "id": 8,
-                  "log": 1,
-                  "meta.instance": 2,
-                  "meta.instance_role": 3,
-                  "meta.instance_set_name": 4,
-                  "msg": 5,
-                  "s": 9
-                },
-                "renameByName": {
-                  "attr.durationMillis": "durationMillis",
-                  "dt": "",
-                  "log": "originLog",
-                  "meta.instance": "instance",
-                  "meta.instance_role": "role",
-                  "meta.instance_set_name": "shard"
-                }
-              }
-            }
-          ],
-          "type": "table"
+          "refId": "A"
         }
       ],
-      "title": "SlowLog",
-      "type": "row"
+      "title": "SlowQuery",
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "byVariable": false,
+            "include": {
+              "names": [
+                "log",
+                "msg",
+                "ctx",
+                "attr.reslen",
+                "attr.type",
+                "attr.ns",
+                "attr.remote",
+                "attr.protocol",
+                "attr.storage",
+                "attr.readConcern",
+                "attr.numYields",
+                "attr.locks",
+                "attr.command",
+                "attr.durationMillis",
+                "s",
+                "dt",
+                "meta.instance_set_name",
+                "meta.instance",
+                "meta.instance_role",
+                "c",
+                "id",
+                "attr.planCacheKey",
+                "attr.queryHash",
+                "attr.keysExamined",
+                "attr.docsExamined",
+                "attr.nreturned",
+                "attr.planSummary",
+                "attr.queryFramework",
+                "attr.cursorExhausted",
+                "attr.flowControl",
+                "attr.writeConcern",
+                "attr.appName"
+              ]
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "id": true
+            },
+            "includeByName": {},
+            "indexByName": {
+              "attr.appName": 31,
+              "attr.command": 20,
+              "attr.cursorExhausted": 28,
+              "attr.docsExamined": 13,
+              "attr.durationMillis": 10,
+              "attr.flowControl": 30,
+              "attr.keysExamined": 25,
+              "attr.locks": 15,
+              "attr.nreturned": 26,
+              "attr.ns": 11,
+              "attr.numYields": 17,
+              "attr.planCacheKey": 24,
+              "attr.planSummary": 14,
+              "attr.protocol": 23,
+              "attr.queryFramework": 27,
+              "attr.queryHash": 12,
+              "attr.readConcern": 18,
+              "attr.remote": 21,
+              "attr.reslen": 19,
+              "attr.storage": 22,
+              "attr.type": 16,
+              "attr.writeConcern": 29,
+              "c": 7,
+              "ctx": 6,
+              "dt": 0,
+              "id": 8,
+              "log": 1,
+              "meta.instance": 2,
+              "meta.instance_role": 3,
+              "meta.instance_set_name": 4,
+              "msg": 5,
+              "s": 9
+            },
+            "renameByName": {
+              "attr.durationMillis": "",
+              "dt": "",
+              "log": "",
+              "meta.instance": "",
+              "meta.instance_role": "",
+              "meta.instance_set_name": ""
+            }
+          }
+        }
+      ],
+      "type": "table",
+      "interval": "1m"
     },
     {
       "collapsed": true,
@@ -2549,7 +3213,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 7
+        "y": 20
       },
       "id": 4,
       "panels": [
@@ -2697,7 +3361,7 @@
             "h": 12,
             "w": 24,
             "x": 0,
-            "y": 8
+            "y": 10
           },
           "id": 2,
           "options": {
@@ -3024,7 +3688,8 @@
               }
             }
           ],
-          "type": "table"
+          "type": "table",
+          "interval": "1m"
         }
       ],
       "title": "Log",
@@ -3042,8 +3707,8 @@
       {
         "current": {
           "selected": false,
-          "text": "rmcn",
-          "value": "rmcn"
+          "text": "",
+          "value": ""
         },
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
@@ -3051,7 +3716,7 @@
         },
         "definition": "- Blueking Monitor - 维度",
         "description": "app",
-        "hide": 0,
+        "hide": 2,
         "includeAll": false,
         "label": "app",
         "multi": false,
@@ -3130,7 +3795,7 @@
           "value": "*"
         },
         "description": "按关键字搜索",
-        "hide": 1,
+        "hide": 0,
         "label": "",
         "name": "query_string",
         "options": [
@@ -3147,14 +3812,14 @@
     ]
   },
   "time": {
-    "from": "now-6h",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
   "title": "MongoLog",
   "uid": "aeeenn4wm49ogc",
-  "version": 59,
+  "version": 87,
   "weekStart": "",
   "__inputs": [
     {

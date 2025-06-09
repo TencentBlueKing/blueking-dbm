@@ -88,7 +88,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -103,7 +104,7 @@
             "y": 1
           },
           "id": 56,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -233,7 +234,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -248,7 +250,7 @@
             "y": 1
           },
           "id": 58,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -378,7 +380,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -393,7 +396,7 @@
             "y": 9
           },
           "id": 60,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -579,7 +582,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -594,7 +598,7 @@
             "y": 9
           },
           "id": 68,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -1189,7 +1193,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -1204,7 +1209,7 @@
             "y": 17
           },
           "id": 65,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -1480,7 +1485,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -1495,7 +1501,7 @@
             "y": 17
           },
           "id": 63,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -1696,7 +1702,7 @@
             "y": 25
           },
           "id": 71,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -1898,7 +1904,7 @@
             "y": 25
           },
           "id": 66,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -2038,6 +2044,7 @@
         "y": 2
       },
       "id": 73,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -2163,6 +2170,7 @@
         "y": 2
       },
       "id": 26,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -2272,6 +2280,7 @@
         "y": 2
       },
       "id": 28,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -2393,6 +2402,7 @@
         "y": 2
       },
       "id": 17,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -2495,6 +2505,7 @@
         "y": 2
       },
       "id": 86,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -2615,6 +2626,7 @@
         "y": 2
       },
       "id": 36,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -2729,6 +2741,7 @@
         "y": 2
       },
       "id": 72,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -2839,6 +2852,7 @@
         "y": 2
       },
       "id": 37,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -2960,6 +2974,7 @@
         "y": 5
       },
       "id": 84,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -3075,6 +3090,7 @@
         "y": 5
       },
       "id": 82,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -3189,6 +3205,7 @@
         "y": 5
       },
       "id": 35,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -3314,6 +3331,7 @@
         "y": 5
       },
       "id": 85,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -3424,6 +3442,7 @@
         "y": 5
       },
       "id": 74,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -3584,6 +3603,7 @@
         "y": 5
       },
       "id": 29,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -3698,6 +3718,7 @@
         "y": 5
       },
       "id": 75,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -3843,7 +3864,7 @@
         "y": 8
       },
       "id": 51,
-      "interval": "2m",
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -4067,7 +4088,7 @@
         "y": 8
       },
       "id": 5,
-      "interval": "2m",
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -4269,6 +4290,7 @@
         "y": 16
       },
       "id": 49,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -4482,6 +4504,7 @@
         "y": 16
       },
       "id": 40,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -4775,8 +4798,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -4791,6 +4813,7 @@
         "y": 24
       },
       "id": 81,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -5092,8 +5115,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -5108,6 +5130,7 @@
         "y": 24
       },
       "id": 46,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -5307,8 +5330,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -5323,7 +5345,7 @@
         "y": 32
       },
       "id": 50,
-      "interval": "2m",
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -5350,6 +5372,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "bkmonitor_timeseries"
           },
+          "enableDownSampling": true,
           "expressionList": [
             {
               "active": true,
@@ -5367,6 +5390,7 @@
           "query_configs": [
             {
               "alias": "",
+              "data_label": "exporter_dbm_redis_exporter",
               "data_source_label": "bk_monitor",
               "data_type_label": "time_series",
               "display": false,
@@ -5392,7 +5416,7 @@
               "refId": "a",
               "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
-              "time_field": "",
+              "time_field": "time",
               "where": [
                 {
                   "key": "cluster_domain",
@@ -5405,6 +5429,7 @@
             },
             {
               "alias": "",
+              "data_label": "exporter_dbm_redis_exporter",
               "data_source_label": "bk_monitor",
               "data_type_label": "time_series",
               "display": false,
@@ -5430,13 +5455,21 @@
               "refId": "b",
               "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
-              "time_field": "",
+              "time_field": "time",
               "where": [
                 {
                   "key": "cluster_domain",
                   "method": "eq",
                   "value": [
                     "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "redis_master"
                   ]
                 }
               ]
@@ -5500,8 +5533,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -5516,6 +5548,7 @@
         "y": 32
       },
       "id": 52,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -5668,6 +5701,7 @@
         "y": 40
       },
       "id": 47,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -5886,6 +5920,7 @@
         "y": 40
       },
       "id": 83,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -6024,6 +6059,7 @@
         "y": 48
       },
       "id": 79,
+      "interval": "1m",
       "options": {
         "cellHeight": "sm",
         "footer": {
@@ -6424,6 +6460,7 @@
         "y": 48
       },
       "id": 80,
+      "interval": "1m",
       "options": {
         "cellHeight": "sm",
         "footer": {
@@ -6852,7 +6889,7 @@
   "timezone": "",
   "title": "tendis-RedisInstance",
   "uid": "RedisInstance",
-  "version": 42,
+  "version": 49,
   "weekStart": "",
   "__inputs": [
     {

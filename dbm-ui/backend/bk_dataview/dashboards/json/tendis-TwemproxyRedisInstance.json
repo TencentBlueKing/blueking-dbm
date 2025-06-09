@@ -88,7 +88,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -100,10 +101,10 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 9
+            "y": 1
           },
           "id": 55,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -233,7 +234,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -245,10 +247,10 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 9
+            "y": 1
           },
           "id": 56,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -378,7 +380,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -390,10 +393,10 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 17
+            "y": 9
           },
           "id": 57,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -523,7 +526,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -535,10 +539,10 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 17
+            "y": 9
           },
           "id": 58,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -668,7 +672,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -680,10 +685,10 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 25
+            "y": 17
           },
           "id": 67,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -1278,7 +1283,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -1290,10 +1296,10 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 25
+            "y": 17
           },
           "id": 68,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -1900,10 +1906,10 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 33
+            "y": 25
           },
           "id": 59,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -2101,10 +2107,10 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 33
+            "y": 25
           },
           "id": 60,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -2302,10 +2308,10 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 41
+            "y": 33
           },
           "id": 61,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -2503,10 +2509,10 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 41
+            "y": 33
           },
           "id": 63,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -2704,10 +2710,10 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 49
+            "y": 41
           },
           "id": 62,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -2995,10 +3001,10 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 49
+            "y": 41
           },
           "id": 65,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -3286,10 +3292,10 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 57
+            "y": 49
           },
           "id": 64,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -3432,10 +3438,10 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 57
+            "y": 49
           },
           "id": 66,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -3578,10 +3584,10 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 65
+            "y": 57
           },
           "id": 70,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -3780,10 +3786,10 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 65
+            "y": 57
           },
           "id": 71,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -3979,6 +3985,7 @@
         "y": 2
       },
       "id": 77,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -4092,6 +4099,7 @@
         "y": 2
       },
       "id": 26,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -4195,6 +4203,7 @@
         "y": 2
       },
       "id": 14,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -4298,6 +4307,7 @@
       },
       "hideTimeOverride": true,
       "id": 27,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -4414,6 +4424,7 @@
         "y": 2
       },
       "id": 29,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -4528,6 +4539,7 @@
         "y": 2
       },
       "id": 36,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -4642,6 +4654,7 @@
         "y": 2
       },
       "id": 72,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -4761,6 +4774,7 @@
         "y": 2
       },
       "id": 38,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -4873,6 +4887,7 @@
         "y": 5
       },
       "id": 73,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -5001,6 +5016,7 @@
         "y": 5
       },
       "id": 82,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -5126,6 +5142,7 @@
         "y": 5
       },
       "id": 17,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -5235,6 +5252,7 @@
         "y": 5
       },
       "id": 28,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -5363,6 +5381,7 @@
         "y": 5
       },
       "id": 74,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -5523,6 +5542,7 @@
         "y": 5
       },
       "id": 75,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -5638,6 +5658,7 @@
         "y": 5
       },
       "id": 35,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -5748,6 +5769,7 @@
         "y": 5
       },
       "id": 37,
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -5895,7 +5917,7 @@
         "y": 8
       },
       "id": 20,
-      "interval": "2m",
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -6104,7 +6126,7 @@
         "y": 8
       },
       "id": 51,
-      "interval": "2m",
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -6326,6 +6348,7 @@
         "y": 16
       },
       "id": 85,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -6995,7 +7018,7 @@
         "y": 16
       },
       "id": 5,
-      "interval": "2m",
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -7180,8 +7203,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -7196,6 +7218,7 @@
         "y": 24
       },
       "id": 22,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -7372,8 +7395,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -7388,7 +7410,7 @@
         "y": 24
       },
       "id": 50,
-      "interval": "2m",
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -7564,8 +7586,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -7580,6 +7601,7 @@
         "y": 32
       },
       "id": 53,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -7756,8 +7778,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -7772,7 +7793,7 @@
         "y": 32
       },
       "id": 54,
-      "interval": "2m",
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -7949,8 +7970,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -7969,6 +7989,7 @@
         "y": 40
       },
       "id": 33,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -8100,8 +8121,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -8116,6 +8136,7 @@
         "y": 40
       },
       "id": 34,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -8244,8 +8265,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -8260,7 +8280,7 @@
         "y": 48
       },
       "id": 41,
-      "interval": "2m",
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -8392,8 +8412,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -8408,7 +8427,7 @@
         "y": 48
       },
       "id": 81,
-      "interval": "2m",
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -8502,8 +8521,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -8522,6 +8540,7 @@
         "y": 56
       },
       "id": 40,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -8828,8 +8847,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -8844,6 +8862,7 @@
         "y": 65
       },
       "id": 49,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -9034,8 +9053,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -9050,7 +9068,7 @@
         "y": 65
       },
       "id": 39,
-      "interval": "2m",
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -9191,8 +9209,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -9207,6 +9224,7 @@
         "y": 73
       },
       "id": 45,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -9334,8 +9352,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -9350,6 +9367,7 @@
         "y": 73
       },
       "id": 46,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -9549,8 +9567,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -9569,6 +9586,7 @@
         "y": 81
       },
       "id": 44,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -9696,8 +9714,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -9712,6 +9729,7 @@
         "y": 81
       },
       "id": 52,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -9849,8 +9867,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -9865,6 +9882,7 @@
         "y": 89
       },
       "id": 47,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -10068,8 +10086,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -10084,7 +10101,7 @@
         "y": 89
       },
       "id": 86,
-      "interval": "2m",
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -10238,8 +10255,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -10282,6 +10298,7 @@
         "y": 97
       },
       "id": 79,
+      "interval": "1m",
       "options": {
         "cellHeight": "sm",
         "footer": {
@@ -10569,8 +10586,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -10683,6 +10699,7 @@
         "y": 97
       },
       "id": 80,
+      "interval": "1m",
       "options": {
         "cellHeight": "sm",
         "footer": {
@@ -11111,7 +11128,7 @@
   "timezone": "",
   "title": "tendis-TwemproxyRedisInstance",
   "uid": "6nXM8aF42",
-  "version": 16,
+  "version": 25,
   "weekStart": "",
   "__inputs": [
     {
