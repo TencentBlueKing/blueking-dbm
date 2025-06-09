@@ -41,6 +41,7 @@
       form-type="vertical"
       :model="formData">
       <EditableTable
+        :key="tableKey"
         ref="table"
         class="mb-20"
         :model="formData.tableData">
@@ -49,7 +50,6 @@
           :key="index">
           <MasterColumn
             v-model="item.master"
-            :selected="selected"
             @batch-edit="handleBatchEdit" />
           <SlaveColumn
             v-model="item.slave"
@@ -102,12 +102,12 @@
 </template>
 <script lang="ts" setup>
   import { reactive, useTemplateRef } from 'vue';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
-  import type { Mysql } from '@services/model/ticket/ticket';
-  import { OperaObejctType } from '@services/types';
+  import { type DeepPartial, OperaObejctType } from '@services/types';
 
-  import { useBatchCreateTicket, useTicketDetail } from '@hooks';
+  import { useBatchCreateTicket } from '@hooks';
 
   import { TicketTypes } from '@common/const';
 
@@ -127,20 +127,8 @@
   import SlaveColumn from './components/SlaveColumn.vue';
 
   interface RowData {
-    master: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      cluster_id: number;
-      ip: string;
-      master_domain: string;
-    };
-    slave: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      ip: string;
-    };
+    master: ComponentProps<typeof MasterColumn>['modelValue'];
+    slave: ComponentProps<typeof SlaveColumn>['modelValue'];
   }
 
   const { t } = useI18n();
@@ -156,20 +144,22 @@
     },
   ];
 
-  const createTableRow = (data = {} as Partial<RowData>) => ({
-    master: data.master || {
+  const createTableRow = (data: DeepPartial<RowData> = {}) => ({
+    master: {
       bk_biz_id: 0,
       bk_cloud_id: 0,
       bk_host_id: 0,
       cluster_id: 0,
       ip: '',
       master_domain: '',
+      ...data.master,
     },
-    slave: data.slave || {
+    slave: {
       bk_biz_id: 0,
       bk_cloud_id: 0,
       bk_host_id: 0,
       ip: '',
+      ...data.slave,
     },
   });
 
@@ -181,6 +171,7 @@
 
   const operaObjectType = ref(OperaObejctType.MACHINE);
   const formData = reactive(defaultData());
+  const tableKey = ref(Date.now());
 
   const selected = computed(() =>
     formData.tableData.filter((item) => item.master.bk_host_id).map((item) => item.master),
@@ -193,27 +184,6 @@
         name: `DBA_${TicketTypes.MYSQL_INSTANCE_FAIL_OVER}`,
       });
     }
-  });
-
-  useTicketDetail<Mysql.MasterFailOver>(TicketTypes.MYSQL_MASTER_FAIL_OVER, {
-    async onSuccess(ticketDetail) {
-      const { details } = ticketDetail;
-      const { clusters, infos } = details;
-      Object.assign(formData, {
-        ...createCheckPayload(details),
-        ...createTickePayload(ticketDetail),
-        tableData: infos.map((item) =>
-          createTableRow({
-            master: {
-              ...item.master_ip,
-              cluster_id: item.cluster_ids[0],
-              master_domain: clusters[item.cluster_ids[0]].immute_domain,
-            },
-            slave: item.slave_ip,
-          }),
-        ),
-      });
-    },
   });
 
   const { loading: isSubmitting, run: createTicketRun } = useBatchCreateTicket<{
@@ -270,39 +240,32 @@
         acc.push(
           createTableRow({
             master: {
-              bk_biz_id: item.bk_biz_id,
-              bk_cloud_id: item.bk_cloud_id,
-              bk_host_id: item.bk_host_id,
-              cluster_id: item.related_clusters?.[0]?.id || 0,
               ip: item.ip,
-              master_domain: item.related_clusters?.[0]?.immute_domain || '',
             },
           }),
         );
       }
       return acc;
     }, []);
-    formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    formData.tableData = [...(formData.tableData[0].master.bk_host_id ? formData.tableData : []), ...dataList]; // 追加
   };
 
-  const handleBatchInput = (data: Record<string, any>[]) => {
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
     const dataList = data.reduce<RowData[]>((acc, item) => {
-      if (!selectedMap.value[item.master]) {
-        acc.push(
-          createTableRow({
-            master: {
-              bk_biz_id: 0,
-              bk_cloud_id: 0,
-              bk_host_id: 0,
-              cluster_id: 0,
-              ip: item.master,
-              master_domain: '',
-            },
-          }),
-        );
-      }
+      acc.push(
+        createTableRow({
+          master: {
+            ip: item.ip,
+          },
+        }),
+      );
       return acc;
     }, []);
-    formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    if (isClear) {
+      tableKey.value = Date.now();
+      formData.tableData = [...dataList]; // 覆盖
+    } else {
+      formData.tableData = [...(formData.tableData[0].master.bk_host_id ? formData.tableData : []), ...dataList]; // 追加
+    }
   };
 </script>

@@ -36,7 +36,7 @@
   <ClusterResourceSelector
     v-model:is-show="showSelector"
     v-model:selected="dataList"
-    :cluster-type="queryClusterTypes[DBTypes.REDIS]"
+    :cluster-type="ClusterTypes.REDIS"
     target="cluster"
     @change="handleSelectorChange" />
 </template>
@@ -47,20 +47,14 @@
   import type RedisModel from '@services/model/redis/redis';
   import { getGlobalCluster } from '@services/source/dbbase';
 
-  import { DBTypes, queryClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, queryClusterTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
 
   import ClusterResourceSelector, { type ItemType } from '@components/cluster-resource-selector/Index.vue';
 
   export type IValue = ItemType['cluster'];
 
-  interface Props {
-    selected: (typeof modelValue.value)[];
-  }
-
   type Emits = (e: 'batch-edit', list: IValue[]) => void;
-
-  const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
@@ -86,13 +80,8 @@
   const rules = [
     {
       message: t('集群域名格式不正确'),
-      trigger: 'change',
-      validator: (value: string) => domainRegex.test(value),
-    },
-    {
-      message: t('目标集群重复'),
       trigger: 'blur',
-      validator: (value: string) => props.selected.filter((item) => item.master_domain === value).length < 2,
+      validator: (value: string) => domainRegex.test(value),
     },
     {
       message: t('目标集群不存在'),

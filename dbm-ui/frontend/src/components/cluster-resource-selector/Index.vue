@@ -33,13 +33,13 @@
           v-model="activeTab"
           :target="target" />
         <Component
-          :is="mainComponent[activeTab]"
+          :is="tableComponent[activeTab]"
           v-model:selected="selected"
           :params="params" />
       </template>
       <template #aside>
         <Component
-          :is="asideComponent[target]"
+          :is="previewComponent[activeTab]"
           v-model:selected="selected" />
       </template>
     </BkResizeLayout>
@@ -62,15 +62,14 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { clusterTypeInfos, ClusterTypes } from '@common/const';
-
-  import ClusterPreviewResult, { type IValue as Cluster } from './components/cluster/PreviewResult.vue';
-  import ClusterTopoSelect from './components/cluster/TopoSelect.vue';
+  import comFactory from './com-factory';
+  import ClusterPreviewResult from './components/cluster/PreviewResult.vue';
+  import ClusterRenderTable, { type IValue as Cluster } from './components/cluster/RenderTable.vue';
   import PanelTab from './components/common/PanelTab.vue';
-  import InstancePreviewResult, { type IValue as Instance } from './components/instance/PreviewResult.vue';
-  import InstanceTopoSelect from './components/instance/TopoSelect.vue';
-  import MachinePreviewResult, { type IValue as Machine } from './components/machine/PreviewResult.vue';
-  import MachineTopoSelect from './components/machine/TopoSelect.vue';
+  import InstancePreviewResult from './components/instance/PreviewResult.vue';
+  import InstanceRenderTable, { type IValue as Instance } from './components/instance/RenderTable.vue';
+  import MachinePreviewResult from './components/machine/PreviewResult.vue';
+  import MachineRenderTable, { type IValue as Machine } from './components/machine/RenderTable.vue';
 
   export type ItemType = {
     cluster: Cluster;
@@ -79,7 +78,7 @@
   };
 
   interface Props {
-    clusterType: ClusterTypes[];
+    clusterType: keyof typeof comFactory;
     role?: string;
     target: keyof ItemType;
   }
@@ -100,24 +99,21 @@
 
   const { t } = useI18n();
 
-  const mainComponent = {
-    cluster: ClusterTopoSelect,
-    instance: InstanceTopoSelect,
-    machine: MachineTopoSelect,
+  const tableComponent = {
+    cluster: ClusterRenderTable,
+    instance: InstanceRenderTable,
+    machine: MachineRenderTable,
   };
 
-  const asideComponent = {
+  const previewComponent = {
     cluster: ClusterPreviewResult,
     instance: InstancePreviewResult,
     machine: MachinePreviewResult,
   };
 
-  const activeTab = ref<keyof typeof mainComponent>('instance');
-
+  const activeTab = ref<keyof typeof tableComponent>('instance');
   const params = computed(() => ({
-    cluster_type: props.clusterType.join(','),
-    count_type: props.target,
-    db_type: clusterTypeInfos[props.clusterType[0] as keyof typeof clusterTypeInfos]?.dbType,
+    ...comFactory[props.clusterType],
     role: props.role,
   }));
 

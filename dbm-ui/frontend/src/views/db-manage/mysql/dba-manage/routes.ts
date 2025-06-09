@@ -44,8 +44,12 @@ export default function getRoutes() {
           },
           component: () => import('@views/db-manage/mysql/dba-manage/web-query/Index.vue'),
         },
-        createRouteItem(TicketTypes.MYSQL_MASTER_FAIL_OVER, t('主库故障切换')),
-        createRouteItem(TicketTypes.MYSQL_INSTANCE_FAIL_OVER, t('主库故障切换')),
+        createRouteItem(TicketTypes.MYSQL_MASTER_FAIL_OVER, t('主库故障切换'), {
+          tabName: t('主库主机故障切换'),
+        }),
+        createRouteItem(TicketTypes.MYSQL_INSTANCE_FAIL_OVER, t('主库故障切换'), {
+          tabName: t('主机实例故障切换'),
+        }),
       ],
     },
   ];
