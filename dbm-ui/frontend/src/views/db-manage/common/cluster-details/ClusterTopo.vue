@@ -13,38 +13,41 @@
 
 <template>
   <BkLoading
-    :loading="topoState.loading"
+    :loading="pageLoading"
     style="width: 100%; height: 100%">
     <DbCard
       ref="clusterTopoRef"
-      class="cluster-details__topo"
+      class="cluster-details-topo"
       title="">
       <template #header-right>
         <div
           class="flow-tools"
           @click.stop>
-          <i
-            v-bk-tooltips="$t('放大')"
-            class="flow-tools__icon db-icon-plus-circle"
+          <DbIcon
+            v-bk-tooltips="t('放大')"
+            class="flow-tools-icon"
+            type="plus-circle"
             @click.stop="handleZoomIn" />
-          <i
-            v-bk-tooltips="$t('缩小')"
-            class="flow-tools__icon db-icon-minus-circle"
+          <DbIcon
+            v-bk-tooltips="t('缩小')"
+            class="flow-tools-icon"
+            type="minus-circle"
             @click.stop="handleZoomOut" />
-          <i
-            v-bk-tooltips="$t('还原')"
-            class="flow-tools__icon db-icon-position"
+          <DbIcon
+            v-bk-tooltips="t('还原')"
+            class="flow-tools-icon"
+            type="position"
             @click.stop="handleZoomReset" />
-          <i
+          <DbIcon
             v-bk-tooltips="screenIcon.text"
-            class="flow-tools__icon"
-            :class="[screenIcon.icon]"
+            class="flow-tools-icon"
+            :type="screenIcon.icon"
             @click.stop="toggle" />
         </div>
       </template>
       <div
-        :id="graphState.topoId"
-        class="cluster-details__graph" />
+        id="clusterTopoGraphMain"
+        class="cluster-details-graph" />
     </DbCard>
   </BkLoading>
   <div
@@ -59,9 +62,9 @@
           <div
             v-for="item of detailColumns"
             :key="item.key"
-            class="node-details__item">
-            <span class="node-details__label">{{ item.label }}：</span>
-            <span class="node-details__value">
+            class="node-details-item">
+            <span class="node-details-label">{{ item.label }}：</span>
+            <span class="node-details-value">
               <Component
                 :is="item.render(instDetails[item.key])"
                 v-if="item.render" />
@@ -69,11 +72,11 @@
             </span>
           </div>
           <a
-            v-if="instState.nodeData && showMore"
-            class="node-details__link"
+            v-if="instState.nodeData?.url && showMore"
+            class="node-details-link"
             :href="instState.nodeData.url"
             target="_blank">
-            {{ $t('更多详情') }}
+            {{ t('更多详情') }}
             <i class="db-icon-link" />
           </a>
         </template>
@@ -81,8 +84,7 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
+<script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
   import { getDorisTopoGraph } from '@services/source/doris';
@@ -98,31 +100,102 @@
   import { getTendbclusterTopoGraph } from '@services/source/tendbcluster';
   import { getTendbhaTopoGraph } from '@services/source/tendbha';
   import { getTendbsingleTopoGraph } from '@services/source/tendbsingle';
+  import { type ResourceTopo } from '@services/types';
 
   import { ClusterTypes } from '@common/const';
 
+  import DbStatus from '@components/db-status/index.vue';
+
   import { useFullscreen } from '@vueuse/core';
 
-  import { GraphData, type GraphLine, type GraphNode, type NodeConfig } from './common/graphData';
-  import { detailColumns, useRenderGraph } from './common/useRenderGraph';
-
-  interface TopoState {
-    lines: GraphLine[];
-    loading: boolean;
-    locations: GraphNode[];
-  }
+  import { type NodeConfig } from './common/graphData';
+  import { useRenderGraph } from './common/useRenderGraph';
 
   interface Props {
     clusterType: string;
+    // eslint-disable-next-line vue/no-unused-properties
     dbType: string;
     id: number;
-    nodeCofig?: NodeConfig;
+    // eslint-disable-next-line vue/no-unused-properties
+    nodeConfig?: NodeConfig;
   }
 
   const props = defineProps<Props>();
 
   const { t } = useI18n();
+
+  const { handleZoomIn, handleZoomOut, handleZoomReset, instDetails, instState, renderDraph } = useRenderGraph(props);
+
+  const clusterTopoRef = ref<HTMLDivElement>();
+  const pageLoading = ref(false);
+
+  const { isFullscreen, toggle } = useFullscreen(clusterTopoRef);
+
   const showMore = computed(() => props.clusterType === ClusterTypes.TENDBHA);
+  const screenIcon = computed(() => ({
+    icon: isFullscreen.value ? 'un-full-screen' : 'full-screen',
+    text: isFullscreen.value ? t('取消全屏') : t('全屏'),
+  }));
+
+  const detailColumns = [
+    {
+      key: 'role',
+      label: t('部署角色'),
+    },
+    {
+      key: 'db_version',
+      label: t('版本'),
+    },
+    {
+      key: 'status',
+      label: t('状态'),
+      render: (status: 'running' | 'unavailable') => {
+        if (!status) {
+          return <span>--</span>;
+        }
+
+        const statusMap = {
+          running: {
+            text: t('运行中'),
+            theme: 'success',
+          },
+          unavailable: {
+            text: t('异常'),
+            theme: 'danger',
+          },
+        };
+        const info = statusMap[status] || statusMap.unavailable;
+        return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
+      },
+    },
+    {
+      key: 'ip',
+      label: t('主机IP'),
+    },
+    {
+      key: 'bk_idc_city_name',
+      label: t('地域'),
+    },
+    {
+      key: 'bk_sub_zone',
+      label: t('园区'),
+    },
+    {
+      key: 'bk_cpu',
+      label: 'CPU',
+      render: (value: number) => <span>{Number.isFinite(value) ? `${value}${t('核')}` : '--'}</span>,
+    },
+    {
+      key: 'bk_mem',
+      label: t('内存'),
+      render: (value: number) => <span>{Number.isFinite(value) ? `${value}MB` : '--'}</span>,
+    },
+    {
+      key: 'bk_disk',
+      label: t('硬盘'),
+      render: (value: number) => <span>{Number.isFinite(value) ? `${value}GB` : '--'}</span>,
+    },
+  ] as any;
 
   const apiMap: Record<string, (params: { cluster_id: number }) => Promise<any>> = {
     doris: getDorisTopoGraph,
@@ -140,72 +213,44 @@
     tendbsingle: getTendbsingleTopoGraph,
   };
 
-  /** 拓扑功能 */
-  const topoState = reactive<TopoState>({
-    lines: [],
-    loading: false,
-    locations: [],
-  });
-  const graphDataInst = new GraphData(props.clusterType, props.nodeCofig);
-  const { graphState, handleZoomIn, handleZoomOut, handleZoomReset, instDetails, instState, renderDraph } =
-    useRenderGraph(props, graphDataInst.nodeConfig);
+  let topoData: ResourceTopo | null = null;
 
-  /**
-   * 获取拓扑数据
-   */
   watch(
     () => props.id,
-    (id) => {
-      if (id) {
-        fetchResourceTopo(id).then(() => {
-          renderDraph(topoState.locations, topoState.lines);
+    () => {
+      if (props.id) {
+        setTimeout(() => {
+          fetchResourceTopo(props.id);
         });
       }
     },
     { immediate: true },
   );
 
-  /**
-   * 拓扑全屏切换
-   */
-  const clusterTopoRef = ref<HTMLDivElement>();
-  const { isFullscreen, toggle } = useFullscreen(clusterTopoRef);
-  const screenIcon = computed(() => ({
-    icon: isFullscreen.value ? 'db-icon-un-full-screen' : 'db-icon-full-screen',
-    text: isFullscreen.value ? t('取消全屏') : t('全屏'),
-  }));
+  watch(isFullscreen, () => {
+    if (topoData) {
+      setTimeout(() => {
+        renderDraph(topoData!);
+      });
+    }
+  });
 
-  /**
-   * 获取集群拓扑
-   * @param id 集群资源ID
-   */
-  function fetchResourceTopo(id: number) {
-    topoState.loading = true;
+  const fetchResourceTopo = (id: number) => {
+    pageLoading.value = true;
     return apiMap[props.clusterType]({ cluster_id: id })
-      .then((res) => {
-        try {
-          const { lines, locations } = graphDataInst.formatGraphData(res, props.dbType);
-          topoState.locations = locations;
-          topoState.lines = lines;
-        } catch {
-          topoState.locations = [];
-          topoState.lines = [];
-        }
-      })
-      .catch(() => {
-        topoState.locations = [];
-        topoState.lines = [];
+      .then((data: ResourceTopo) => {
+        topoData = data;
+        renderDraph(data);
       })
       .finally(() => {
-        topoState.loading = false;
+        pageLoading.value = false;
       });
-  }
+  };
 </script>
-
 <style lang="less" scoped>
   @import '@styles/mixins.less';
 
-  .cluster-details__topo {
+  .cluster-details-topo {
     height: 100%;
     padding: 14px 0 0;
 
@@ -221,7 +266,7 @@
     .flow-tools {
       .flex-center();
 
-      &__icon {
+      .flow-tools-icon {
         display: block;
         margin-left: 16px;
         font-size: @font-size-large;
@@ -235,116 +280,8 @@
     }
   }
 
-  .cluster-details__graph {
+  .cluster-details-graph {
     height: 100%;
-
-    :deep(.bk-graph-svg) {
-      path {
-        pointer-events: none;
-      }
-    }
-
-    :deep(.cluster-group) {
-      width: 100%;
-      height: 100%;
-      font-size: @font-size-mini;
-      cursor: default;
-      background: @bg-white;
-      border-radius: 4px;
-      box-shadow: 0 2px 4px 0 rgb(25 25 41 / 5%);
-
-      &__title {
-        padding: 12px 14px 8px;
-        .flex-center();
-      }
-
-      &__icon {
-        width: 24px;
-        margin-right: 8px;
-        font-weight: bold;
-        line-height: 24px;
-        color: @white-color;
-        text-align: center;
-        background-color: #4bc7ad;
-        border-radius: 2px;
-        flex-shrink: 0;
-
-        &--round {
-          border-radius: 50%;
-        }
-      }
-
-      &__label {
-        font-size: @font-size-mini;
-      }
-    }
-
-    :deep(.db-graph-label) {
-      height: 20px;
-      padding: 0 8px;
-      font-size: @font-size-mini;
-      line-height: 18px;
-      color: @default-color;
-      white-space: nowrap;
-      background-color: #fafbfd;
-      border: 1px solid rgb(151 155 165 / 30%);
-      border-radius: 2px;
-    }
-
-    :deep(.cluster-node) {
-      padding: 0 14px 0 46px;
-      font-size: @font-size-mini;
-      line-height: 28px;
-      cursor: default;
-
-      &.has-link {
-        cursor: pointer;
-
-        &:hover {
-          background-color: @bg-dark-gray;
-        }
-      }
-
-      &:hover {
-        .cluster-node__link {
-          display: block;
-        }
-      }
-
-      &__tag {
-        height: 20px;
-        padding: 0 8px;
-        margin: 0 4px;
-        line-height: 18px;
-        background-color: #fafbfd;
-        border: 1px solid #979ba5;
-        border-radius: 2px;
-        flex-shrink: 0;
-      }
-
-      &__link {
-        display: none;
-      }
-    }
-
-    :deep(.riak-node) {
-      display: flex;
-      height: 100%;
-      padding: 0 14px 0 20px;
-      background: #fff;
-      border-radius: 4px;
-      box-shadow: 0 2px 4px 0 #1919290d;
-      align-items: center;
-
-      .db-svg-icon {
-        margin-top: 1px;
-        font-size: 16px;
-      }
-
-      .riak-node-content {
-        line-height: 44px;
-      }
-    }
   }
 
   .node-details {
@@ -352,24 +289,24 @@
     min-height: 240px;
     padding: 6px 8px;
 
-    &__item {
+    .node-details-item {
       display: flex;
       padding-bottom: 8px;
     }
 
-    &__label {
+    .node-details-label {
       width: 90px;
       padding-right: 4px;
       text-align: right;
       flex-shrink: 0;
     }
 
-    &__value {
+    .node-details-value {
       flex: 1;
       color: @title-color;
     }
 
-    &__link {
+    .node-details-link {
       display: block;
       padding-top: 8px;
       text-align: center;

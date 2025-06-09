@@ -19,7 +19,11 @@ import { isRecentDays, utcDisplayTime } from '@utils';
 export default class TendbInstance {
   bk_cloud_id: number;
   bk_cloud_name: string;
+  bk_cpu: number;
+  bk_disk: number;
   bk_host_id: number;
+  bk_idc_city_name: string;
+  bk_mem: number;
   bk_os_name: string;
   bk_rack_id: number;
   bk_sub_zone: string;
@@ -59,6 +63,10 @@ export default class TendbInstance {
     this.bk_svr_device_cls_name = payload.bk_svr_device_cls_name;
     this.cluster_id = payload.cluster_id;
     this.cluster_name = payload.cluster_name;
+    this.bk_idc_city_name = payload.bk_idc_city_name || '';
+    this.bk_cpu = payload.bk_cpu || 0;
+    this.bk_mem = payload.bk_mem || 0;
+    this.bk_disk = payload.bk_disk || 0;
     this.cluster_type = payload.cluster_type;
     this.create_at = payload.create_at;
     this.db_module_id = payload.db_module_id;
