@@ -497,8 +497,8 @@ func (c *ClusterProvider) createComponentEntity(
 	crdClusterID uint64,
 ) ([]*provderentity.K8sCrdComponentEntity, error) {
 	var compEntityList []*provderentity.K8sCrdComponentEntity
-	for compTopoName := range request.ComponentMap {
-		compName := request.Metadata.ClusterName + "-" + compTopoName
+	for _, comp := range request.ComponentList {
+		compName := request.Metadata.ClusterName + "-" + comp.ComponentName
 		componentEntity := &provderentity.K8sCrdComponentEntity{
 			ComponentName: compName,
 			CrdClusterID:  crdClusterID,
