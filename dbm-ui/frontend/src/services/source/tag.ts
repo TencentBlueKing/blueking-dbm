@@ -62,10 +62,12 @@ export function updateTag(params: { bk_biz_id: number; id: number; type: string;
  */
 export function validateTag(params: {
   bk_biz_id: number;
+  is_builtin?: boolean;
   tags: {
     key: string;
     value: string;
   }[];
+  type: 'resource' | 'cluster';
 }) {
   return http.post<{ key: string; value: string }[]>(`${path}/verify_duplicated/`, params);
 }

@@ -129,6 +129,7 @@
       runValidate({
         bk_biz_id: curBizId.value,
         tags: tags.map((tag) => ({ key: 'dbresource', value: tag })),
+        type: 'resource',
       });
     },
   );
