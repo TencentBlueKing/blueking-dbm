@@ -39,6 +39,7 @@ class QuickSearchViewSet(viewsets.SystemViewSet):
         params = self.params_validate(self.get_serializer_class())
         keyword = params.pop("keyword", "")
         short_code = params.pop("short_code", "")
+        params["user"] = request.user.username
         # 优先使用短码
         if short_code:
             keyword = cache.get(f"shot_code_{short_code}")

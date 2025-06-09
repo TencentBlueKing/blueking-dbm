@@ -15,29 +15,33 @@ from backend.configuration.models import DBAdministrator
 from backend.db_dirty.models import DirtyMachine
 from backend.db_dirty.serializers import ListMachinePoolSerializer
 from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import Cluster, ClusterEntry, ProxyInstance, StorageInstance
+from backend.db_meta.models import AppCache, Cluster, ClusterEntry, ProxyInstance, StorageInstance
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.quick_search import constants
 from backend.db_services.quick_search.constants import FilterType, ResourceType
 from backend.flow.models import FlowTree
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.permission import Permission
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
 from backend.utils.string import split_str_to_list
 
 
 class QSearchHandler(object):
-    def __init__(self, bk_biz_ids=None, db_types=None, resource_types=None, filter_type=None, limit=None):
-        self.bk_biz_ids = bk_biz_ids
+    def __init__(self, bk_biz_ids=None, db_types=None, resource_types=None, filter_type=None, limit=None, user=None):
         self.db_types = db_types
         self.resource_types = resource_types
         self.filter_type = filter_type
         self.limit = limit or constants.DEFAULT_LIMIT
+        self.user = user
 
         # db_type -> cluster_type
         self.cluster_types = []
         if self.db_types:
             for db_type in self.db_types:
                 self.cluster_types.extend(ClusterType.db_type_to_cluster_types(db_type))
+
+        self.bk_biz_ids, self.permission = self.get_permission_biz_ids(bk_biz_ids)
 
     def search(self, keyword: str):
         result = {}
@@ -49,10 +53,25 @@ class QSearchHandler(object):
 
         for target_resource_type in target_resource_types:
             filter_func = getattr(self, f"filter_{target_resource_type}", None)
-            if callable(filter_func):
+            if not self.permission and target_resource_type != ResourceType.MACHINE.value:
+                result[target_resource_type] = []
+            elif callable(filter_func):
                 result[target_resource_type] = filter_func(keyword_list)
 
         return result
+
+    def get_permission_biz_ids(self, bk_biz_ids):
+        """获取有权限的业务id"""
+        bk_biz_ids = bk_biz_ids or []
+        all_bk_biz_ids = AppCache.objects.all().values_list("bk_biz_id", flat=True)
+        permission = Permission(username=self.user, request={}).policy_query(
+            action=ActionEnum.DB_MANAGE, obj_list=all_bk_biz_ids
+        )
+        if len(permission) != len(all_bk_biz_ids):
+            bk_biz_ids = (
+                list(set(bk_biz_ids) & set(permission)) if bk_biz_ids and permission else bk_biz_ids or permission
+            )
+        return bk_biz_ids, permission
 
     def generate_filter_for_str(self, filter_key, keyword_list):
         """
