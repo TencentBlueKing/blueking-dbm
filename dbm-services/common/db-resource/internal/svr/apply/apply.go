@@ -636,13 +636,12 @@ func (o *SearchContext) MatchOsName(db *gorm.DB) {
 
 // MatchLabels match labels
 func (o *SearchContext) MatchLabels(db *gorm.DB) {
-	// ignore labels tmp
-	// if len(o.Labels) > 0 {
-	// 	db.Where(model.JSONQuery("labels").JointOrContains(o.Labels))
-	// } else {
-	// 	// 如果请求没有标签, 只能匹配没有标签的资源
-	// 	db.Where(" JSON_TYPE(labels) = 'NULL' or JSON_TYPE(labels) is null OR JSON_LENGTH(labels) < 1 ")
-	// }
+	if len(o.Labels) > 0 {
+		db.Where(model.JSONQuery("labels").JointOrContains(o.Labels))
+	} else {
+		// 如果请求没有标签, 只能匹配没有标签的资源
+		db.Where(" JSON_TYPE(labels) = 'NULL' or JSON_TYPE(labels) is null OR JSON_LENGTH(labels) < 1 ")
+	}
 }
 
 // MatchLocationSpec match location parameter
