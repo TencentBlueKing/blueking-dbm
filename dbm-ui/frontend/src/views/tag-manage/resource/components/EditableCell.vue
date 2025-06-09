@@ -24,15 +24,13 @@
       v-else
       class="tag-content">
       {{ data.value }}
-      <AuthButton
-        :action-id="actionId"
-        :resource="resource"
+      <BkButton
         text
         @click="handleEdit(data)">
         <DbIcon
           class="operation-icon"
           type="edit" />
-      </AuthButton>
+      </BkButton>
     </span>
   </div>
 </template>
@@ -43,10 +41,8 @@
   import ResourceTagModel from '@services/model/db-resource/ResourceTag';
 
   interface Props {
-    actionId: string;
     data: ResourceTagModel;
     editId: number;
-    resource?: number;
   }
 
   interface Emits {

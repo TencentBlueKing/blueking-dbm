@@ -292,6 +292,7 @@
       validateTag({
         bk_biz_id: curBiz.value.bk_biz_id,
         tags: [{ key: 'dbresource', value: val }],
+        type: 'resource',
       }).then((existData) => {
         if (existData.length === 0) {
           runUpdate({
