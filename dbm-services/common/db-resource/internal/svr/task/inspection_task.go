@@ -60,62 +60,63 @@ func InspectCheckResource() (err error) {
 		logger.Error("get dbm env failed %s", err.Error())
 		return err
 	}
+	logger.Info("dba bk bizid %v", allowCCMouduleInfo.DBA_APP_BK_BIZ_ID)
 	logger.Info("空闲模块id %v", allowCCMouduleInfo.CC_IDLE_MODULE_ID)
 	logger.Info("资源模块信息 %v", allowCCMouduleInfo.CC_MANAGE_TOPO)
-	hostIdMap := make(map[int][]int)
+	// hostIdMap := make(map[int][]int)
+	// for _, machine := range machines {
+	// 	hostIdMap[machine.BkBizId] = append(hostIdMap[machine.BkBizId], machine.BkHostID)
+	// }
+	hostIds := []int{}
 	for _, machine := range machines {
-		hostIdMap[machine.BkBizId] = append(hostIdMap[machine.BkBizId], machine.BkHostID)
+		hostIds = append(hostIds, machine.BkHostID)
 	}
-	for bkBizId, hostIds := range hostIdMap {
-		for _, hostgp := range cmutil.SplitGroup(hostIds, 200) {
-			resp, ori, err := cc.NewFindHostTopoRelation(bk.BkCmdbClient).Query(&cc.FindHostTopoRelationParam{
-				BkBizID:   bkBizId,
-				BkHostIds: hostgp,
-				Page: cc.BKPage{
-					Start: 0,
-					Limit: len(hostgp),
-				},
-			})
+	for _, hostgp := range cmutil.SplitGroup(hostIds, 200) {
+		resp, ori, err := cc.NewFindHostTopoRelation(bk.BkCmdbClient).Query(&cc.FindHostTopoRelationParam{
+			BkBizID:   allowCCMouduleInfo.DBA_APP_BK_BIZ_ID,
+			BkHostIds: hostgp,
+			Page: cc.BKPage{
+				Start: 0,
+				Limit: len(hostgp),
+			},
+		})
+		if err != nil {
+			logger.Error("get host topo relation failed %s", err.Error())
+			if ori != nil {
+				logger.Error("requesty id:%s,code:%d,messgae:%s", ori.RequestId, ori.Code, ori.Message)
+			}
+			continue
+			// return err
+		}
+		logger.Info("get host topo relation success %v", resp.Data)
+		// filter all exist bkhostId
+		bkhostIds := []int{}
+		for _, m := range resp.Data {
+			bkhostIds = append(bkhostIds, m.BKHostId)
+		}
+		if len(bkhostIds) == 0 {
+			logger.Info("没差查询到host ids:[%v]任何模块信息", hostgp)
+			err = model.DB.Self.Table(model.TbRpDetailName()).Where("bk_host_id in (?) and  status = ? ",
+				hostIds, model.Unused).
+				Update("status", model.UsedByOther).Error
 			if err != nil {
-				logger.Error("get host topo relation failed %s", err.Error())
-				if ori != nil {
-					logger.Error("requesty id:%s,code:%d,messgae:%s", ori.RequestId, ori.Code, ori.Message)
-				}
+				logger.Error("update machine status failed %s", err.Error())
+				return err
+			}
+			return nil
+		}
+		for _, m := range resp.Data {
+			if m.BKModuleId == allowCCMouduleInfo.CC_IDLE_MODULE_ID || (m.BKSetId == allowCCMouduleInfo.CC_MANAGE_TOPO.SetId &&
+				m.BKModuleId == allowCCMouduleInfo.CC_MANAGE_TOPO.ResourceModuleId) {
 				continue
-				// return err
 			}
-			logger.Info("get host topo relation success %v", resp.Data)
-			// filter all exist bkhostId
-			bkhostIds := []int{}
-			for _, m := range resp.Data {
-				bkhostIds = append(bkhostIds, m.BKHostId)
-			}
-			if len(bkhostIds) == 0 {
-				logger.Info("没差查询到host ids:[%v]任何模块信息", hostgp)
-				err = model.DB.Self.Table(model.TbRpDetailName()).Where("bk_biz_id = ? and bk_host_id in (?) and  status = ? ",
-					bkBizId,
-					hostIds, model.Unused).
-					Update("status", model.UsedByOther).Error
-				if err != nil {
-					logger.Error("update machine status failed %s", err.Error())
-					return err
-				}
-				return nil
-			}
-			for _, m := range resp.Data {
-				if m.BKModuleId == allowCCMouduleInfo.CC_IDLE_MODULE_ID || (m.BKSetId == allowCCMouduleInfo.CC_MANAGE_TOPO.SetId &&
-					m.BKModuleId == allowCCMouduleInfo.CC_MANAGE_TOPO.ResourceModuleId) {
-					continue
-				}
-				logger.Info("host %d,set %d  module %d,not allow", m.BKHostId, m.BKSetId, m.BKModuleId)
-				err = model.DB.Self.Table(model.TbRpDetailName()).Where("bk_biz_id = ? and bk_host_id = ? and  status = ? ",
-					bkBizId,
-					m.BKHostId, model.Unused).Updates(map[string]interface{}{"status": model.UsedByOther, "update_time": time.Now()}).
-					Error
-				if err != nil {
-					logger.Error("update machine status failed %s", err.Error())
-					return err
-				}
+			logger.Info("host %d,set %d  module %d,not allow", m.BKHostId, m.BKSetId, m.BKModuleId)
+			err = model.DB.Self.Table(model.TbRpDetailName()).Where(" bk_host_id = ? and  status = ? ",
+				m.BKHostId, model.Unused).Updates(map[string]interface{}{"status": model.UsedByOther, "update_time": time.Now()}).
+				Error
+			if err != nil {
+				logger.Error("update machine status failed %s", err.Error())
+				return err
 			}
 		}
 	}

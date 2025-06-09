@@ -24,6 +24,7 @@ import (
 // DbmEnvData TODO
 type DbmEnvData struct {
 	BK_DOMAIN         string `json:"BK_DOMAIN"`
+	DBA_APP_BK_BIZ_ID int    `json:"DBA_APP_BK_BIZ_ID"`
 	CC_IDLE_MODULE_ID int    `json:"CC_IDLE_MODULE_ID"`
 	CC_MANAGE_TOPO    struct {
 		SetId            int `json:"set_id"`
