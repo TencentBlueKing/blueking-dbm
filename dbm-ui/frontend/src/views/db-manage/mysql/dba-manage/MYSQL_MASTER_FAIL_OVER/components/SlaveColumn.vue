@@ -40,7 +40,7 @@
   const modelValue = defineModel<{
     bk_biz_id: number;
     bk_cloud_id: number;
-    bk_host_id?: number;
+    bk_host_id: number;
     ip: string;
   }>({
     required: true,

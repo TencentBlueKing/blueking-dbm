@@ -262,7 +262,6 @@ export function getGlobalMachine(params: {
   limit?: number; // 分页限制
   machine_type?: string; // 机器类型
   offset?: number;
-  role?: string; // 过滤的实例角色
   spider_role?: string; // spider角色
 }) {
   return http.get<ListBase<MachineInfos[]>>(`${path}/get_global_machine/`, params);

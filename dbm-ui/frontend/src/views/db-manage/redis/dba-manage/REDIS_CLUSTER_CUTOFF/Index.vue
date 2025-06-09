@@ -25,6 +25,7 @@
       form-type="vertical"
       :model="formData">
       <EditableTable
+        :key="tableKey"
         ref="table"
         class="mb-20"
         :model="formData.tableData">
@@ -33,7 +34,6 @@
           :key="index">
           <HostColumn
             v-model="item.host"
-            :selected="selected"
             @batch-edit="handleBatchEdit" />
           <EditableColumn
             :label="t('角色类型')"
@@ -91,9 +91,9 @@
   import { reactive, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type { Redis } from '@services/model/ticket/ticket';
+  import type { DeepPartial } from '@services/types';
 
-  import { useBatchCreateTicket, useTicketDetail } from '@hooks';
+  import { useBatchCreateTicket } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -131,8 +131,8 @@
     },
   ];
 
-  const createTableRow = (data = {} as Partial<RowData>) => ({
-    host: data.host || {
+  const createTableRow = (data: DeepPartial<RowData> = {}) => ({
+    host: {
       bk_biz_id: 0,
       bk_cloud_id: 0,
       bk_host_id: 0,
@@ -141,6 +141,7 @@
       master_domain: '',
       role: '',
       spec_id: 0,
+      ...data.host,
     },
   });
 
@@ -150,20 +151,10 @@
   });
 
   const formData = reactive(defaultData());
+  const tableKey = ref(Date.now());
 
   const selected = computed(() => formData.tableData.filter((item) => item.host.bk_host_id).map((item) => item.host));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
-
-  useTicketDetail<Redis.ResourcePool.ClusterCutoff>(TicketTypes.REDIS_CLUSTER_CUTOFF, {
-    async onSuccess(ticketDetail) {
-      const { details } = ticketDetail;
-
-      const { infos } = details;
-      if (!infos.length) {
-        return;
-      }
-    },
-  });
 
   interface TicketDetail {
     infos: {
@@ -229,43 +220,32 @@
         acc.push(
           createTableRow({
             host: {
-              bk_biz_id: item.bk_biz_id,
-              bk_cloud_id: item.bk_cloud_id,
-              bk_host_id: item.bk_host_id,
-              cluster_id: item.related_clusters[0]?.id || 0,
               ip: item.ip,
-              master_domain: item.related_clusters[0]?.immute_domain || '--',
-              role: item.instance_role,
-              spec_id: item.spec_id || 0,
             },
           }),
         );
       }
       return acc;
     }, []);
-    formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    formData.tableData = [...(formData.tableData[0].host.bk_host_id ? formData.tableData : []), ...dataList]; // 追加
   };
 
-  const handleBatchInput = (data: Record<string, any>[]) => {
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
     const dataList = data.reduce<RowData[]>((acc, item) => {
-      if (!selectedMap.value[item.ip]) {
-        acc.push(
-          createTableRow({
-            host: {
-              bk_biz_id: 0,
-              bk_cloud_id: 0,
-              bk_host_id: 0,
-              cluster_id: 0,
-              ip: item.ip,
-              master_domain: '',
-              role: '',
-              spec_id: 0,
-            },
-          }),
-        );
-      }
+      acc.push(
+        createTableRow({
+          host: {
+            ip: item.ip,
+          },
+        }),
+      );
       return acc;
     }, []);
-    formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    if (isClear) {
+      tableKey.value = Date.now();
+      formData.tableData = [...dataList]; // 覆盖
+    } else {
+      formData.tableData = [...(formData.tableData[0].host.bk_host_id ? formData.tableData : []), ...dataList]; // 追加
+    }
   };
 </script>

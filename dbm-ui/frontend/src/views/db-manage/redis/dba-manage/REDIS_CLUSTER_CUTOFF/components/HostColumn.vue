@@ -36,7 +36,7 @@
   <ClusterResourceSelector
     v-model:is-show="showSelector"
     v-model:selected="dataList"
-    :cluster-type="queryClusterTypes[DBTypes.REDIS]"
+    :cluster-type="ClusterTypes.REDIS"
     target="machine"
     @change="handleSelectorChange" />
 </template>
@@ -46,20 +46,14 @@
 
   import { getGlobalMachine } from '@services/source/dbbase';
 
-  import { DBTypes, queryClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, queryClusterTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
   import ClusterResourceSelector, { type ItemType } from '@components/cluster-resource-selector/Index.vue';
 
   export type IValue = ItemType['machine'];
 
-  interface Props {
-    selected: (typeof modelValue.value)[];
-  }
-
   type Emits = (e: 'batch-edit', list: IValue[]) => void;
-
-  const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
@@ -84,13 +78,8 @@
   const rules = [
     {
       message: t('IP 格式不符合IPv4标准'),
-      trigger: 'change',
-      validator: (value: string) => ipv4.test(value),
-    },
-    {
-      message: t('目标主机重复'),
       trigger: 'blur',
-      validator: (value: string) => props.selected.filter((item) => item.ip === value).length < 2,
+      validator: (value: string) => ipv4.test(value),
     },
     {
       message: t('目标主机不存在'),

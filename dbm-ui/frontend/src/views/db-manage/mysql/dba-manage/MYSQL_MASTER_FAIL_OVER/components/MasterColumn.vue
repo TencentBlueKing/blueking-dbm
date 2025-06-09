@@ -36,7 +36,7 @@
   <ClusterResourceSelector
     v-model:is-show="showSelector"
     v-model:selected="dataList"
-    :cluster-type="[ClusterTypes.TENDBHA]"
+    :cluster-type="ClusterTypes.TENDBHA"
     role="backend_master"
     target="machine"
     @change="handleSelectorChange" />
@@ -54,13 +54,7 @@
 
   export type IValue = ItemType['machine'];
 
-  interface Props {
-    selected: (typeof modelValue.value)[];
-  }
-
   type Emits = (e: 'batch-edit', list: IValue[]) => void;
-
-  const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
@@ -83,13 +77,8 @@
   const rules = [
     {
       message: t('目标主机输入格式有误'),
-      trigger: 'change',
-      validator: (value: string) => ipv4.test(value),
-    },
-    {
-      message: t('目标主机重复'),
       trigger: 'blur',
-      validator: (value: string) => props.selected.filter((item) => item.ip === value).length < 2,
+      validator: (value: string) => ipv4.test(value),
     },
     {
       message: t('目标主机不存在'),
@@ -141,8 +130,8 @@
         queryMachine({
           cluster_type: ClusterTypes.TENDBHA,
           db_type: DBTypes.MYSQL,
+          instance_role: 'backend_master',
           ip: modelValue.value.ip,
-          role: 'backend_master',
         });
       }
     },

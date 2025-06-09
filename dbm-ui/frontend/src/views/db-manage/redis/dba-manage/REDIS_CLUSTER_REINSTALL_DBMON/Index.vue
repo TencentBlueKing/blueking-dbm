@@ -25,6 +25,7 @@
       form-type="vertical"
       :model="formData">
       <EditableTable
+        :key="tableKey"
         ref="table"
         class="mb-20"
         :model="formData.tableData">
@@ -33,7 +34,6 @@
           :key="index">
           <ClusterColumn
             v-model="item.cluster"
-            :selected="selected"
             @batch-edit="handleBatchEdit" />
           <EditableColumn
             :label="t('所属业务')"
@@ -82,6 +82,8 @@
   import { reactive, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import type { DeepPartial } from '@services/types';
+
   import { useBatchCreateTicket } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
@@ -116,12 +118,13 @@
     },
   ];
 
-  const createTableRow = (data = {} as Partial<RowData>) => ({
-    cluster: data.cluster || {
+  const createTableRow = (data: DeepPartial<RowData> = {}) => ({
+    cluster: {
       bk_biz_id: 0,
       bk_cloud_id: 0,
       id: 0,
       master_domain: '',
+      ...data.cluster,
     },
   });
 
@@ -132,6 +135,7 @@
   });
 
   const formData = reactive(defaultData());
+  const tableKey = ref(Date.now());
 
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
@@ -186,22 +190,22 @@
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
   };
 
-  const handleBatchInput = (data: Record<string, any>[]) => {
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
     const dataList = data.reduce<RowData[]>((acc, item) => {
-      if (!selectedMap.value[item.master_domain]) {
-        acc.push(
-          createTableRow({
-            cluster: {
-              bk_biz_id: 0,
-              bk_cloud_id: 0,
-              id: 0,
-              master_domain: item.master_domain,
-            },
-          }),
-        );
-      }
+      acc.push(
+        createTableRow({
+          cluster: {
+            master_domain: item.master_domain,
+          },
+        }),
+      );
       return acc;
     }, []);
-    formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    if (isClear) {
+      tableKey.value = Date.now();
+      formData.tableData = [...dataList]; // 覆盖
+    } else {
+      formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList]; // 追加
+    }
   };
 </script>

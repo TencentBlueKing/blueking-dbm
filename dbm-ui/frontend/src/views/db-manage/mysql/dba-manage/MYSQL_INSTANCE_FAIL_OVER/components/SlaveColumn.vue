@@ -41,7 +41,7 @@
   const modelValue = defineModel<{
     bk_biz_id: number;
     bk_cloud_id: number;
-    bk_host_id?: number;
+    bk_host_id: number;
     instance_address: string;
     ip: string;
     port: number;

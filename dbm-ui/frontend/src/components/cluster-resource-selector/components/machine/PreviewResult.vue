@@ -76,9 +76,9 @@
 
   import CollapseMini from '../common/CollapseMini.vue';
 
-  export type IValue = ServiceReturnType<typeof getGlobalMachine>['results'][0];
+  type IValue = ServiceReturnType<typeof getGlobalMachine>['results'][0];
 
-  const selected = defineModel<Partial<IValue>[]>('selected', {
+  const selected = defineModel<IValue[]>('selected', {
     required: true,
   });
 

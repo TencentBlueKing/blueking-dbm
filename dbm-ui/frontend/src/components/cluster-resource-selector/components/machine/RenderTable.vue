@@ -79,23 +79,26 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import { DBTypes } from '@common/const';
+
   import { getSearchSelectorParams } from '@utils';
 
   type SearchSelectProps = InstanceType<typeof SearchSelect>['$props'];
-
+  type Parameters = ServiceParameters<typeof getGlobalMachine>;
   export type IValue = ServiceReturnType<typeof getGlobalMachine>['results'][0];
-  export type Parameters = ServiceParameters<typeof getGlobalMachine>;
 
   interface Props {
-    params: Parameters;
-    selected: Partial<IValue>[];
+    params: {
+      db_type: DBTypes;
+      role: string;
+    };
   }
-
-  type Emits = (e: 'change', value: IValue[]) => void;
 
   const props = defineProps<Props>();
 
-  const emits = defineEmits<Emits>();
+  const selected = defineModel<Partial<IValue>[]>('selected', {
+    required: true,
+  });
 
   const { t } = useI18n();
   const { getBizInfoById } = useGlobalBizs();
@@ -138,11 +141,16 @@
     dbTableRef.value?.fetchData(getSearchSelectorParams(searchSelectValue.value), props.params);
   });
 
-  const dataSource = (params: Props['params']) =>
-    getGlobalMachine({
-      ...props.params,
+  const dataSource = (params: Parameters) => {
+    const formatParmas: Parameters = {
+      db_type: props.params.db_type,
+      instance_role: props.params.role,
+    };
+    return getGlobalMachine({
+      ...formatParmas,
       ...params,
     });
+  };
 
   const handleFilter = ({ checked, field }: { checked: string[]; field: string }) => {
     dbTableRef.value?.fetchData({
@@ -150,8 +158,8 @@
     });
   };
 
-  const handleSelect = (_instances: string[], rows: IValue[]) => {
-    emits('change', rows);
+  const handleSelect = (_machines: string[], rows: IValue[]) => {
+    selected.value = rows;
   };
 </script>
 

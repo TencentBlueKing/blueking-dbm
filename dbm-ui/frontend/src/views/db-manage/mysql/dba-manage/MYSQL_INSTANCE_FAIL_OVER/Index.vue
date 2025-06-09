@@ -41,6 +41,7 @@
       form-type="vertical"
       :model="formData">
       <EditableTable
+        :key="tableKey"
         ref="table"
         class="mb-20"
         :model="formData.tableData">
@@ -49,7 +50,6 @@
           :key="index">
           <MasterColumn
             v-model="item.master"
-            :selected="selected"
             @batch-edit="handleBatchEdit" />
           <SlaveColumn
             v-model="item.slave"
@@ -102,12 +102,12 @@
 </template>
 <script lang="ts" setup>
   import { reactive, useTemplateRef } from 'vue';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
-  import type { Mysql } from '@services/model/ticket/ticket';
-  import { OperaObejctType } from '@services/types';
+  import { type DeepPartial, OperaObejctType } from '@services/types';
 
-  import { useBatchCreateTicket, useTicketDetail } from '@hooks';
+  import { useBatchCreateTicket } from '@hooks';
 
   import { TicketTypes } from '@common/const';
 
@@ -127,24 +127,8 @@
   import SlaveColumn from './components/SlaveColumn.vue';
 
   interface RowData {
-    master: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      cluster_id: number;
-      instance_address: string;
-      ip: string;
-      master_domain: string;
-      port: number;
-    };
-    slave: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      instance_address: string;
-      ip: string;
-      port: number;
-    };
+    master: ComponentProps<typeof MasterColumn>['modelValue'];
+    slave: ComponentProps<typeof SlaveColumn>['modelValue'];
   }
 
   const { t } = useI18n();
@@ -160,8 +144,8 @@
     },
   ];
 
-  const createTableRow = (data = {} as Partial<RowData>) => ({
-    master: data.master || {
+  const createTableRow = (data: DeepPartial<RowData> = {}) => ({
+    master: {
       bk_biz_id: 0,
       bk_cloud_id: 0,
       bk_host_id: 0,
@@ -170,14 +154,16 @@
       ip: '',
       master_domain: '',
       port: 0,
+      ...data.master,
     },
-    slave: data.slave || {
+    slave: {
       bk_biz_id: 0,
       bk_cloud_id: 0,
       bk_host_id: 0,
       instance_address: '',
       ip: '',
       port: 0,
+      ...data.slave,
     },
   });
 
@@ -189,6 +175,7 @@
 
   const operaObjectType = ref(OperaObejctType.INSTANCE);
   const formData = reactive(defaultData());
+  const tableKey = ref(Date.now());
 
   const selected = computed(() =>
     formData.tableData.filter((item) => item.master.bk_host_id).map((item) => item.master),
@@ -203,32 +190,6 @@
     }
   });
 
-  useTicketDetail<Mysql.InstanceFailOver>(TicketTypes.MYSQL_INSTANCE_FAIL_OVER, {
-    async onSuccess(ticketDetail) {
-      const { details } = ticketDetail;
-      const { clusters, infos } = details;
-      Object.assign(formData, {
-        ...createCheckPayload(details),
-        ...createTickePayload(ticketDetail),
-        tableData: infos.map((item) =>
-          createTableRow({
-            master: {
-              ...item.master_ip,
-              cluster_id: item.cluster_ids[0],
-              instance_address: `${item.master_ip.ip}:${item.master_ip.port}`,
-              master_domain: clusters[item.cluster_ids[0]].immute_domain,
-              port: item.master_ip.port as number,
-            },
-            slave: {
-              ...item.slave_ip,
-              instance_address: `${item.slave_ip.ip}:${item.slave_ip.port}`,
-            },
-          }),
-        ),
-      });
-    },
-  });
-
   const { loading: isSubmitting, run: createTicketRun } = useBatchCreateTicket<{
     infos: {
       cluster_ids: number[];
@@ -237,14 +198,14 @@
         bk_cloud_id: number;
         bk_host_id: number;
         ip: string;
-        port?: number;
+        port: number;
       };
       slave_ip: {
         bk_biz_id: number;
         bk_cloud_id: number;
         bk_host_id: number;
         ip: string;
-        port?: number;
+        port: number;
       };
     }[];
     is_check_delay: boolean;
@@ -285,43 +246,32 @@
         acc.push(
           createTableRow({
             master: {
-              bk_biz_id: item.bk_biz_id,
-              bk_cloud_id: item.bk_cloud_id,
-              bk_host_id: item.bk_host_id,
-              cluster_id: item.cluster_id,
               instance_address: item.instance_address,
-              ip: item.ip,
-              master_domain: item.master_domain,
-              port: item.port,
             },
           }),
         );
       }
       return acc;
     }, []);
-    formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    formData.tableData = [...(formData.tableData[0].master.bk_host_id ? formData.tableData : []), ...dataList]; // 追加
   };
 
-  const handleBatchInput = (data: Record<string, any>[]) => {
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
     const dataList = data.reduce<RowData[]>((acc, item) => {
-      if (!selectedMap.value[item.master]) {
-        acc.push(
-          createTableRow({
-            master: {
-              bk_biz_id: 0,
-              bk_cloud_id: 0,
-              bk_host_id: 0,
-              cluster_id: 0,
-              instance_address: item.master,
-              ip: '',
-              master_domain: '',
-              port: 0,
-            },
-          }),
-        );
-      }
+      acc.push(
+        createTableRow({
+          master: {
+            instance_address: item.instance_address,
+          },
+        }),
+      );
       return acc;
     }, []);
-    formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    if (isClear) {
+      tableKey.value = Date.now();
+      formData.tableData = [...dataList]; // 覆盖
+    } else {
+      formData.tableData = [...(formData.tableData[0].master.bk_host_id ? formData.tableData : []), ...dataList]; // 追加
+    }
   };
 </script>

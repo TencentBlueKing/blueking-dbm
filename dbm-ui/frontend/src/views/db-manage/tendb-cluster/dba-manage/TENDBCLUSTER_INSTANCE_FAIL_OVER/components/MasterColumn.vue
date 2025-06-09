@@ -36,7 +36,7 @@
   <ClusterResourceSelector
     v-model:is-show="showSelector"
     v-model:selected="dataList"
-    :cluster-type="[ClusterTypes.TENDBCLUSTER]"
+    :cluster-type="ClusterTypes.TENDBCLUSTER"
     role="remote_master"
     target="instance"
     @change="handleSelectorChange" />
@@ -54,13 +54,7 @@
 
   export type IValue = ItemType['instance'];
 
-  interface Props {
-    selected: (typeof modelValue.value)[];
-  }
-
   type Emits = (e: 'batch-edit', list: IValue[]) => void;
-
-  const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
@@ -85,13 +79,8 @@
   const rules = [
     {
       message: t('目标实例输入格式有误'),
-      trigger: 'change',
-      validator: (value: string) => ipPort.test(value),
-    },
-    {
-      message: t('目标实例重复'),
       trigger: 'blur',
-      validator: (value: string) => props.selected.filter((item) => item.instance_address === value).length < 2,
+      validator: (value: string) => ipPort.test(value),
     },
     {
       message: t('目标实例不存在'),
