@@ -135,6 +135,10 @@
       name: t('域名'),
     },
     {
+      id: 'name',
+      name: t('集群名称'),
+    },
+    {
       children: [
         {
           text: t('正常'),
@@ -195,7 +199,7 @@
         showOverflowTooltip: false,
       },
       {
-        field: 'master_domain',
+        field: 'instance_domain',
         fixed: 'left',
         label: t('域名'),
         minWidth: 200,
@@ -206,9 +210,29 @@
             <router-link
               to={{
                 name: data.cluster_type === 'MongoReplicaSet' ? 'MongoDBReplicaSetList' : 'MongoDBSharedClusterList',
-                query: { domain: data.master_domain },
+                query: { domain: data.instance_domain },
               }}>
-              {data.master_domain}
+              {data.instance_domain}
+            </router-link>
+          </div>
+        ),
+        showOverflowTooltip: false,
+      },
+      {
+        field: 'cluster_name',
+        fixed: 'left',
+        label: t('所属集群'),
+        minWidth: 200,
+        render: ({ data }: { data: MongodbInstanceModel }) => (
+          <div
+            v-overflow-tips
+            class='text-overflow'>
+            <router-link
+              to={{
+                name: data.cluster_type === 'MongoReplicaSet' ? 'MongoDBReplicaSetList' : 'MongoDBSharedClusterList',
+                query: { name: data.cluster_name },
+              }}>
+              {data.cluster_name}
             </router-link>
           </div>
         ),
