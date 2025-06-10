@@ -236,7 +236,7 @@
   const handleStartTimeDisableCallback = (date: Date | number, endDate: string) => dayjs(date).isAfter(dayjs(endDate));
 
   const handleEditTimeDisableCallback = (date: Date | number, startDate: string) =>
-    dayjs(date).isBefore(dayjs(startDate).startOf('day'));
+    dayjs(date).isBefore(dayjs(startDate));
 
   const handleDateChange = (row: IRowData) => {
     if (row.start_time) {

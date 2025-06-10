@@ -65,7 +65,7 @@
   const editRef = ref();
   const isNowTime = ref(false);
 
-  const disableDate = (date: Date) => dayjs(date).isBefore(dayjs(props.startTime).startOf('day'));
+  const disableDate = (date: Date) => dayjs(date).isBefore(dayjs(props.startTime));
 
   const rules = [
     {
