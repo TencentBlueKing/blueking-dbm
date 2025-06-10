@@ -7,16 +7,7 @@ import (
 )
 
 func (c *CloneInstancePrivPara) cloneMySQLPriv(isStorage bool) error {
-	userList, err := mysql.QueryUserList(*c.BkCloudId, c.Source.Address, c.SystemUsers, c.Target.Address, c.logger)
-	if err != nil {
-		return err
-	}
-
-	c.logger.Info(
-		fmt.Sprintf("query mysql user list, users count: %d", len(userList)),
-	)
-
-	v, err := internal.QueryMySQLVersion(*c.BkCloudId, c.Source.Address)
+	v, isSpider, err := internal.QueryMySQLVersion(*c.BkCloudId, c.Source.Address)
 	if err != nil {
 		c.logger.Error(
 			fmt.Sprintf("query source mysql version, address: %s, err: %s", c.Source.Address, err.Error()),
@@ -28,7 +19,22 @@ func (c *CloneInstancePrivPara) cloneMySQLPriv(isStorage bool) error {
 		fmt.Sprintf("source mysql version: %d", v),
 	)
 
-	v, err = internal.QueryMySQLVersion(*c.BkCloudId, c.Target.Address)
+	if isSpider {
+		if v == 80 { // spider-4
+			c.SystemUsers = append(c.SystemUsers, []string{"mariadb.sys", "PUBLIC"}...) // 这个是目前发现 spider 4 特有的
+		}
+	}
+
+	userList, err := mysql.QueryUserList(*c.BkCloudId, c.Source.Address, c.SystemUsers, c.Target.Address, c.logger)
+	if err != nil {
+		return err
+	}
+
+	c.logger.Info(
+		fmt.Sprintf("query mysql user list, users count: %d", len(userList)),
+	)
+
+	v, _, err = internal.QueryMySQLVersion(*c.BkCloudId, c.Target.Address)
 	if err != nil {
 		c.logger.Error(
 			fmt.Sprintf("query target mysql version, address: %s, err: %s", c.Target.Address, err.Error()),

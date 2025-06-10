@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+from typing import List
 
 from django.http import JsonResponse
 from django.utils.translation import ugettext_lazy as _
@@ -31,8 +32,7 @@ logger = logging.getLogger("root")
 class MySQLReverseApiView(BaseReverseApiView):
     @common_swagger_auto_schema(operation_summary=_("获取实例基本信息"))
     @reverse_api(url_path="list_instance_info")
-    def list_instance_info(self, request, *args, **kwargs):
-        bk_cloud_id, ip, port_list = self.get_api_params()
+    def list_instance_info(self, bk_cloud_id: int, ip: str, port_list: List[int]):
         logger.info(f"bk_cloud_id: {bk_cloud_id}, ip: {ip}, port:{port_list}")
         res = list_instance_info(bk_cloud_id=bk_cloud_id, ip=ip, port_list=port_list)
         logger.info(f"instance info: {res}")
@@ -48,8 +48,7 @@ class MySQLReverseApiView(BaseReverseApiView):
 
     @common_swagger_auto_schema(operation_summary=_("获取实例监控 runtime 配置"))
     @reverse_api(url_path="monitor_runtime_config")
-    def monitor_runtime_config(self, request, *args, **kwargs):
-        bk_cloud_id, ip, port_list = self.get_api_params()
+    def monitor_runtime_config(self, bk_cloud_id: int, ip: str, port_list: List[int]):
         logger.info(f"bk_cloud_id: {bk_cloud_id}, ip: {ip}, port:{port_list}")
         res = monitor_runtime_config(bk_cloud_id=bk_cloud_id, ip=ip, port_list=port_list)
         logger.info(f"runtime config: {res}")
@@ -65,8 +64,7 @@ class MySQLReverseApiView(BaseReverseApiView):
 
     @common_swagger_auto_schema(operation_summary=_("获取实例监控项配置"))
     @reverse_api(url_path="monitor_items_config")
-    def monitor_items_config(self, request, *args, **kwargs):
-        bk_cloud_id, ip, port_list = self.get_api_params()
+    def monitor_items_config(self, bk_cloud_id: int, ip: str, port_list: List[int]):
         logger.info(f"bk_cloud_id: {bk_cloud_id}, ip: {ip}, port:{port_list}")
         res = monitor_items_config(bk_cloud_id=bk_cloud_id, ip=ip, port_list=port_list)
         logger.info(f"items config: {res}")
@@ -82,8 +80,7 @@ class MySQLReverseApiView(BaseReverseApiView):
 
     @common_swagger_auto_schema(operation_summary=_("获取 mysql-crond 配置"))
     @reverse_api(url_path="mysql_crond_config")
-    def mysql_crond_config(self, request, *args, **kwargs):
-        bk_cloud_id, ip, port_list = self.get_api_params()
+    def mysql_crond_config(self, bk_cloud_id: int, ip: str, port_list: List[int]):
         logger.info(f"bk_cloud_id: {bk_cloud_id}, ip: {ip}, port:{port_list}")
         res = mysql_crond_config(bk_cloud_id=bk_cloud_id, ip=ip)
         logger.info(f"mysql-crond config: {res}")
@@ -99,8 +96,7 @@ class MySQLReverseApiView(BaseReverseApiView):
 
     @common_swagger_auto_schema(operation_summary=_("获取备份配置"))
     @reverse_api(url_path="dbbackup_config")
-    def dbbackup_config(self, request, *args, **kwargs):
-        bk_cloud_id, ip, port_list = self.get_api_params()
+    def dbbackup_config(self, bk_cloud_id: int, ip: str, port_list: List[int]):
         logger.info(f"bk_cloud_id: {bk_cloud_id}, ip: {ip}, port:{port_list}")
         res = dbbackup_config(bk_cloud_id=bk_cloud_id, ip=ip, port_list=port_list)
         logger.info(f"dbbackup config: {res}")
@@ -116,8 +112,7 @@ class MySQLReverseApiView(BaseReverseApiView):
 
     @common_swagger_auto_schema(operation_summary=_("获取 rotatebinlog 配置"))
     @reverse_api(url_path="rotatebinlog_config")
-    def rotatebinlog_config(self, request, *args, **kwargs):
-        bk_cloud_id, ip, port_list = self.get_api_params()
+    def rotatebinlog_config(self, bk_cloud_id: int, ip: str, port_list: List[int]):
         logger.info(f"bk_cloud_id: {bk_cloud_id}, ip: {ip}, port:{port_list}")
         res = rotatebinlog_config(bk_cloud_id=bk_cloud_id, ip=ip, port_list=port_list)
         logger.info(f"rotatebinlog config: {res}")
@@ -133,8 +128,7 @@ class MySQLReverseApiView(BaseReverseApiView):
 
     @common_swagger_auto_schema(operation_summary=_("获取数据校验配置"))
     @reverse_api(url_path="checksum_config")
-    def checksum_config(self, request, *args, **kwargs):
-        bk_cloud_id, ip, port_list = self.get_api_params()
+    def checksum_config(self, bk_cloud_id: int, ip: str, port_list: List[int]):
         logger.info(f"bk_cloud_id: {bk_cloud_id}, ip: {ip}, port:{port_list}")
         res = checksum_config(bk_cloud_id=bk_cloud_id, ip=ip, port_list=port_list)
         logger.info(f"checksum config: {res}")
@@ -150,8 +144,7 @@ class MySQLReverseApiView(BaseReverseApiView):
 
     @common_swagger_auto_schema(operation_summary=_("获取 exporter 配置"))
     @reverse_api(url_path="exporter_config")
-    def exporter_config(self, request, *args, **kwargs):
-        bk_cloud_id, ip, port_list = self.get_api_params()
+    def exporter_config(self, bk_cloud_id: int, ip: str, port_list: List[int]):
         logger.info(f"bk_cloud_id: {bk_cloud_id}, ip: {ip}, port:{port_list}")
         res = exporter_config(bk_cloud_id=bk_cloud_id, ip=ip, port_list=port_list)
         logger.info(f"exporter config: {res}")

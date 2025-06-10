@@ -2,18 +2,11 @@
 package config
 
 import (
-	"dbm-services/common/reverseapi"
-	"dbm-services/common/reverseapi/define/mysql"
-
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/db_table_filter"
-	"encoding/json"
-	"fmt"
-	"io"
 	"log/slog"
 	"os"
 	"path"
 	"path/filepath"
-	"slices"
 	"strings"
 
 	"gopkg.in/yaml.v2"
@@ -77,6 +70,7 @@ type Config struct {
 	Log        *LogConfig    `yaml:"log"`
 	Schedule   string        `yaml:"schedule"`
 	ApiUrl     string        `yaml:"api_url"`
+	Enable     bool          `yaml:"enable"`
 }
 
 // InitConfig 初始化配置
@@ -96,94 +90,16 @@ func InitConfig(configPath string) error {
 		return err
 	}
 
-	ChecksumConfig = &Config{}
+	ChecksumConfig = &Config{
+		Enable: true,
+	}
 	err = yaml.UnmarshalStrict(content, ChecksumConfig)
 	if err != nil {
 		slog.Error("init config", slog.String("error", err.Error()))
 		return err
 	}
 
-	sii, err := getSelfInfo()
-	if err != nil {
-		slog.Error("init config", slog.String("error", err.Error()))
-		return nil
-	}
-	slog.Info("init config", slog.Any("sii", sii))
-
-	ChecksumConfig.InnerRole = InnerRoleEnum(sii.InstanceInnerRole)
-
-	cf, err := os.OpenFile(configPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0777)
-	if err != nil {
-		slog.Error("init config", slog.String("error", err.Error()))
-		return err
-	}
-	defer func() {
-		_ = cf.Close()
-	}()
-
-	b, err := yaml.Marshal(ChecksumConfig)
-	if err != nil {
-		slog.Error("init config", slog.String("error", err.Error()))
-		return err
-	}
-
-	_, err = cf.WriteString(string(b) + "\n")
-	if err != nil {
-		slog.Error("init config", slog.String("error", err.Error()))
-		return err
-	}
-	slog.Info("init config", slog.String("config", string(b)))
 	return nil
-}
-
-func getSelfInfo() (sii *mysql.StorageInstanceInfo, err error) {
-	filePath := filepath.Join(
-		reverseapi.DefaultCommonConfigDir,
-		reverseapi.DefaultInstanceInfoFileName,
-	)
-	f, err := os.OpenFile(filePath, os.O_RDONLY, os.ModePerm)
-	if err != nil {
-		slog.Error(
-			"init config",
-			slog.String("err", err.Error()),
-			slog.String("filePath", filePath),
-		)
-		return nil, err
-	}
-
-	b, err := io.ReadAll(f)
-	if err != nil {
-		slog.Error(
-			"init config",
-			slog.String("err", err.Error()),
-		)
-		return nil, err
-	}
-
-	var siis []mysql.StorageInstanceInfo
-	err = json.Unmarshal(b, &siis)
-	if err != nil {
-		slog.Error(
-			"init config",
-			slog.String("err", err.Error()),
-		)
-		return nil, err
-	}
-	slog.Info("init config", slog.String("instance info", string(b)))
-
-	idx := slices.IndexFunc(siis, func(ele mysql.StorageInstanceInfo) bool {
-		return ele.Ip == ChecksumConfig.Ip && ele.Port == ChecksumConfig.Port
-	})
-	if idx < 0 {
-		err := fmt.Errorf("can't find %s:%d in %v", ChecksumConfig.Ip, ChecksumConfig.Port, siis)
-		slog.Error(
-			"init config",
-			slog.String("err", err.Error()),
-		)
-		return nil, err
-	}
-
-	return &siis[idx], nil
 }
 
 func (c *Config) SetFilter(dbPatterns, ignoreDbPatterns, tablePatterns, ignoreTablesPatterns []string) {

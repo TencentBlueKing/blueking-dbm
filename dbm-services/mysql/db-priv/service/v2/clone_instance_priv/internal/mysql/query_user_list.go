@@ -18,7 +18,11 @@ func QueryUserList(bkCloudId int64, addr string, excludeUsers []string, targetAd
 	// 必须排除掉 host = targetIp 的账号
 	// account@source 克隆后会变成 account@target
 	// 如果源上已经存在 account@target, 而且和 account@source 密码不一样, 就可能出问题
-	sql := fmt.Sprintf(`SELECT user, host FROM mysql.user WHERE user NOT in (%s) AND host <> '%s'`, excludeUsersStr, targetIp)
+	// spider 4 基于 mariadb, 不写成 user as user 这样, 返回的是 User 这样的大写
+	sql := fmt.Sprintf(
+		`SELECT user as user, host as host FROM mysql.user WHERE user NOT in (%s) AND host <> '%s'`,
+		excludeUsersStr, targetIp,
+	)
 
 	drsRes, err := drs.RPCMySQL(
 		bkCloudId,

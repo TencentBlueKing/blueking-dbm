@@ -134,6 +134,11 @@ func generateOneRuntimeConfig(cfg *mysql.ChecksumConfig) error {
 		},
 		Schedule: cfg.Schedule,
 		ApiUrl:   cfg.ApiUrl,
+		Enable:   true, //cfg.Enable,
+	}
+
+	if cfg.Enable != nil && *cfg.Enable == false {
+		rcfg.Enable = false
 	}
 
 	rcfg.SetFilter(nil, ignoreDbs, nil, nil)

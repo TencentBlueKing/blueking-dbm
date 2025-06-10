@@ -8,10 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from rest_framework import serializers
+from typing import Dict, List
 
 
-class ReverseApiParamSerializer(serializers.Serializer):
-    port = serializers.ListField(child=serializers.IntegerField(), required=False)
-    bk_cloud_id = serializers.IntegerField()
-    ip = serializers.IPAddressField()
+def sync_report(bk_cloud_id: int, ip: str, port_list: List[int], data: Dict):
+    """
+    写入 kafka
+    ToDo
+    1. 按什么规则确定 kafka topic
+    """
+    pass

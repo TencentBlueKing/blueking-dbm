@@ -11,33 +11,36 @@ specific language governing permissions and limitations under the License.
 
 import logging
 from types import FunctionType
-from typing import List, Tuple
 
 from django.utils.translation import ugettext as _
 from rest_framework import permissions
+from rest_framework.request import Request
 
 from backend import env
 from backend.bk_web.viewsets import SystemViewSet
 from backend.db_meta.models import Machine
-from backend.db_proxy.reverse_api.get_ip_from_request import get_bk_cloud_id, get_client_ip, get_nginx_ip
-from backend.db_proxy.reverse_api.serializers import ReverseApiParamSerializer
+from backend.db_proxy.reverse_api.helper import get_client_ip, validate_nginx_ip
 
 logger = logging.getLogger("root")
 
 
 class IPHasRegisteredPermission(permissions.BasePermission):
-    def has_permission(self, request, view):
+    def has_permission(self, request: Request, view):
         if env.DEBUG_REVERSE_API:
-            return True
+            logger.info("in debug mode")
+        else:
+            logger.info(
+                f"[checking reverse-api-perm] request path: {request.path},"
+                f"REMOTE_ADDR: {request.META.get('REMOTE_ADDR')},"
+                f"HTTP_X_FORWARDED_FOR: {request.META.get('HTTP_X_FORWARDED_FOR')}"
+            )
 
-        logger.info(
-            f"[checking reverse-api-perm] request path: {request.path},"
-            f"REMOTE_ADDR: {request.META.get('REMOTE_ADDR')},"
-            f"HTTP_X_FORWARDED_FOR: {request.META.get('HTTP_X_FORWARDED_FOR')}"
-        )
         try:
-            get_nginx_ip(request)
-            bk_cloud_id = get_bk_cloud_id(request)
+            bk_cloud_id = request.query_params.get("bk_cloud_id")
+
+            if not env.DEBUG_REVERSE_API:
+                validate_nginx_ip(bk_cloud_id, request)
+
             client_ip = get_client_ip(request)
             Machine.objects.get(ip=client_ip, bk_cloud_id=bk_cloud_id)
 
@@ -52,29 +55,19 @@ class IPHasRegisteredPermission(permissions.BasePermission):
 
 
 class BaseReverseApiView(SystemViewSet):
-    serializer_class = ReverseApiParamSerializer
-
     @classmethod
     def _get_login_exempt_view_func(cls):
-        return {
-            "get": [
-                x
-                for x, y in cls.__dict__.items()
-                if isinstance(y, FunctionType) and getattr(y, "is_reverse_api", False)
-            ]
-        }
+        r = {}
+        for x, y in cls.__dict__.items():
+            if isinstance(y, FunctionType):
+                m = getattr(y, "reverse_api_method", None)
+                if m in ["get", "post"]:
+                    if m in r:
+                        r[m].append(x)
+                    else:
+                        r[m] = [x]
+
+        return r
 
     def get_permissions(self):
         return [IPHasRegisteredPermission()]
-
-    def get_api_params(self) -> Tuple[int, str, List[int]]:
-        """
-        return request bk_cloud_id, ip, port param
-        """
-        data = self.params_validate(self.get_serializer_class())
-
-        ip = data.get("ip")
-        bk_cloud_id = data.get("bk_cloud_id")
-        port = data.get("port")
-
-        return bk_cloud_id, ip, port

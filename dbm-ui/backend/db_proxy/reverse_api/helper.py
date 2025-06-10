@@ -9,12 +9,17 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.db.models import Q
+from rest_framework.request import Request
 
+from backend import env
 from backend.db_proxy.constants import ExtensionType
 from backend.db_proxy.models import DBExtension
 
 
-def get_client_ip(request):
+def get_client_ip(request: Request):
+    if env.DEBUG_REVERSE_API:
+        return request.query_params.get("ip")
+
     x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
     if x_forwarded_for:
         ip = x_forwarded_for.split(",")[0]
@@ -23,25 +28,18 @@ def get_client_ip(request):
         raise Exception("client ip in HTTP_X_FORWARDED_FOR not found")
 
 
-def get_nginx_ip(request):
+def validate_nginx_ip(bk_cloud_id: int, request: Request):
     # TODO: 在容器化场景会有问题，因为此时nginx ip是一个域名
     x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
     if x_forwarded_for:
-        ip = x_forwarded_for.split(", ")[1]
-        return ip
+        nginx_ip = x_forwarded_for.split(", ")[1]
     else:
         raise Exception("nginx ip in HTTP_X_FORWARDED_FOR not found")
 
-
-def get_bk_cloud_id(request):
-    nginx_ip = get_nginx_ip(request)
-    bk_cloud_id = request.GET.get("bk_cloud_id")
-
     try:
-        proxy = DBExtension.objects.get(
+        DBExtension.objects.get(
             Q(bk_cloud_id=bk_cloud_id, extension=ExtensionType.NGINX)
             & (Q(details__ip=nginx_ip) | Q(details__bk_outer_ip=nginx_ip))
         )
     except DBExtension.DoesNotExist:
         raise DBExtension.DoesNotExist(f"DBCloudProxy not found for ip {nginx_ip}, bk_cloud_id {bk_cloud_id}")
-    return proxy.bk_cloud_id

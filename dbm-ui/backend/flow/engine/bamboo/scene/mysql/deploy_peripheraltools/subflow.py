@@ -40,7 +40,7 @@ def standardize_mysql_cluster_subflow(
     with_collect_sysinfo: bool = True,
     with_actuator: bool = True,
     with_bk_plugin: bool = True,
-    with_cc_standardize: bool = True,
+    with_cc_standardize: bool = False,
     with_instance_standardize: bool = True,
     with_backup_client: bool = True,
     with_exporter_config: bool = True,
@@ -88,7 +88,6 @@ def standardize_mysql_cluster_subflow(
         )
 
     # cc 模块标准化, 推送 exporter 配置
-    # ToDo cc 模块移动没做的
     if with_cc_standardize or with_exporter_config:
         pipe.add_sub_pipeline(
             sub_flow=cc_standardize(
@@ -166,7 +165,7 @@ def standardize_mysql_cluster_by_ip_subflow(
     with_collect_sysinfo: bool = True,
     with_actuator: bool = True,
     with_bk_plugin: bool = True,
-    with_cc_standardize: bool = True,
+    with_cc_standardize: bool = False,
     with_instance_standardize: bool = True,
     with_backup_client: bool = True,
 ) -> SubProcess:
@@ -206,13 +205,20 @@ def standardize_mysql_cluster_by_cluster_subflow(
     with_collect_sysinfo: bool = True,
     with_actuator: bool = True,
     with_bk_plugin: bool = True,
-    with_cc_standardize: bool = True,
+    with_cc_standardize: bool = False,
     with_instance_standardize: bool = True,
 ) -> SubProcess:
     instances = []
     for cluster_obj in Cluster.objects.filter(bk_cloud_id=bk_cloud_id, pk__in=cluster_ids):
         instances.extend([e.ip_port for e in cluster_obj.storageinstance_set.all()])
         instances.extend([e.ip_port for e in cluster_obj.proxyinstance_set.all()])
+
+    if with_cc_standardize:
+        d = {
+            **copy.deepcopy(data),
+            "cluster_ids": cluster_ids,
+        }
+        data = d
 
     return standardize_mysql_cluster_subflow(
         root_id=root_id,

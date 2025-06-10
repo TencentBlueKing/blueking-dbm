@@ -11,39 +11,38 @@ specific language governing permissions and limitations under the License.
 import logging
 from functools import wraps
 
-from django.http import HttpRequest
 from rest_framework.decorators import action
+from rest_framework.request import Request
 
-from backend import env
-from backend.db_proxy.reverse_api.get_ip_from_request import get_bk_cloud_id, get_client_ip
+from backend.db_proxy.reverse_api.helper import get_client_ip
 
 logger = logging.getLogger("root")
 
 
-def reverse_api(url_path):
+def reverse_api(url_path, method=None):
+    if method is None:
+        method = "GET"
+
     def actual_decorator(func):
         setattr(func, "is_reverse_api", True)
+        setattr(func, "reverse_api_method", method.lower())
 
-        @action(url_path=url_path, detail=False, methods=["GET"])
+        @action(url_path=url_path, detail=False, methods=[method.upper()])
         @wraps(func)
-        def wrapped_func(obj, request: HttpRequest, *args, **kwargs):
-            if env.DEBUG_REVERSE_API:
-                return func(obj, request, *args, **kwargs)
-
-            if not request.GET._mutable:
-                request.GET._mutable = True
-
-            bk_cloud_id = get_bk_cloud_id(request)
+        def wrapped_func(obj, request: Request, *args, **kwargs):
+            bk_cloud_id = request.query_params.get("bk_cloud_id")
+            port_list = request.query_params.getlist("port")
             client_ip = get_client_ip(request)
 
-            for k, v in list(request.GET.items()):
-                if k != "port":
-                    request.GET.pop(key=k)
+            wrapped_param = {
+                "bk_cloud_id": bk_cloud_id,
+                "ip": client_ip,
+                "port_list": port_list,
+            }
+            if method.lower() == "post":
+                wrapped_param["data"] = request.data
 
-            request.GET["bk_cloud_id"] = bk_cloud_id
-            request.GET["ip"] = client_ip
-            request.GET._mutable = False
-            return func(obj, request, *args, **kwargs)
+            return func(obj, **wrapped_param)
 
         return wrapped_func
 

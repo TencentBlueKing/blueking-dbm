@@ -15,4 +15,5 @@ type ChecksumConfig struct {
 	RollbackDBTail string   `json:"rollback_db_tail"`
 	User           string   `json:"user"`
 	Password       string   `json:"password"`
+	Enable         *bool    `json:"enable"`
 }
