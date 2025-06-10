@@ -135,6 +135,13 @@ class NoticeWayEnum(str, StructuredEnum):
     ONLY_NOTICE = EnumField("only_notice", _("基于告警组直接通知"))
 
 
+class DashboardType(str, StructuredEnum):
+    """仪表盘类型"""
+
+    CLUSTER = EnumField("cluster", _("集群仪表盘"))
+    BUSINESS = EnumField("business", _("业务仪表盘"))
+
+
 # 非ui方式监控策略模板占位符
 PROMQL_FILTER_TPL = "__COND__"
 

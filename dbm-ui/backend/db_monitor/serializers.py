@@ -43,6 +43,10 @@ class GetDashboardSerializer(serializers.Serializer):
     instance_id = serializers.IntegerField(help_text=_("节点实例ID"), required=False)
 
 
+class GetBusinessDashboardSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+
+
 class DashboardUrlSerializer(serializers.Serializer):
     url = serializers.URLField(help_text=_("监控仪表盘地址"))
 

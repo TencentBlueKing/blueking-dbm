@@ -21,15 +21,16 @@ from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 
-from backend.configuration.constants import SystemSettingsEnum
+from backend.configuration.constants import DBType, SystemSettingsEnum
 from backend.configuration.models import SystemSettings
 from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import AppCache, Cluster
 from backend.db_monitor.models import Dashboard as MonitorDash
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.drf_perm.base import IAMPermission
 
+from ...db_monitor.constants import DashboardType
 from . import client
 from .constants import DEFAULT_ORG_ID, DEFAULT_ORG_NAME
 from .promsql import extract_condition_from_promql
@@ -204,16 +205,35 @@ class ProxyBaseView(View):
                 logger.error("provision dashboard skipped for empty tags: %s", tags)
                 return
 
-            # 支持多个仪表盘
+            # 集群仪表盘支持多个集群维度，组件仪表盘只支持一个组件
+            db_type, dash_type = None, None
             cluster_types = []
             view = _("集群监控视图")
             for tag in tags:
-                if tag in ClusterType.get_values():
+                # 标签代表的集群/组件类型
+                if tag in ClusterType.get_values() or tag in DBType.get_values():
                     cluster_types.append(tag)
+                    db_type = tag
+                # 标签代表的仪表盘类型
+                elif tag in DashboardType.get_values():
+                    dash_type, view = tag, DashboardType.get_choice_label(tag)
+                # 其他标签默认作为仪表盘名字
                 else:
                     view = tag
 
+            update_dashes = []
+
+            # 创建或更新组件监控仪表盘
+            if db_type and dash_type == DashboardType.BUSINESS:
+                cluster_types = []
+                view = f"{db_type}-{view}"
+                update_dashes.append({"db_type": db_type, "type": DashboardType.BUSINESS, "view": view})
+
+            # 创建或更新集群监控仪表盘
             for cluster_type in cluster_types:
+                update_dashes.append({"cluster_type": cluster_type, "type": DashboardType.CLUSTER, "view": view})
+
+            for info in update_dashes:
                 MonitorDash.objects.update_or_create(
                     defaults={
                         "name": db.title,
@@ -223,9 +243,9 @@ class ProxyBaseView(View):
                     },
                     org_id=DEFAULT_ORG_ID,
                     org_name=DEFAULT_ORG_NAME,
-                    cluster_type=cluster_type,
-                    view=view,
+                    **info,
                 )
+
             _ORG_DASHBOARDS_CACHE[org_name][db.title] = resp.json()
             # logger.info("provision dashboard success, %s", resp)
         else:
@@ -381,6 +401,23 @@ class ProxyBaseView(View):
         response = self.get_django_response(proxy_response)
         return response
 
+    @staticmethod
+    def __check_iam_permission(request, actions, resources, resource_meta):
+        resources = [[resource] for resource in resource_meta.batch_create_instances(resources)]
+        result = IAMPermission(actions, resources).has_permission(request, "")
+        return result
+
+    def __check_cluster_permission(self, request, cluster_domain):
+        cluster = Cluster.objects.get(immute_domain=cluster_domain)
+        actions = [ActionEnum.cluster_type_to_action(cluster.cluster_type, action_key="VIEW")]
+        resource_meta = ResourceEnum.cluster_type_to_resource_meta(cluster.cluster_type)
+        return self.__check_iam_permission(request, actions, [cluster.id], resource_meta)
+
+    def __check_app_permission(self, request, app):
+        app = AppCache.objects.get(db_app_abbr=app)
+        actions, resource_meta = [ActionEnum.DB_MANAGE], ResourceEnum.BUSINESS
+        return self.__check_iam_permission(request, actions, [app.bk_biz_id], resource_meta)
+
     def _auth(self, request):
         url = self.get_request_url(request)
         if url.endswith("/timeseries/time_series/unify_query/"):
@@ -393,27 +430,23 @@ class ProxyBaseView(View):
             # promql 查询
             condition = extract_condition_from_promql(json.loads(request.body.decode())["promql"])
         elif url.endswith("/timeseries/grafana/query/") or url.endswith("/timeseries/grafana/query_log/"):
+            log_field_map = {"cluster_domain": ["domain", "__ext.cluster_domain"], "app": ["__ext.app"]}
+            log_field_map = {value: key for key, values in log_field_map.items() for value in values}
             # 日志仪表盘查询
             condition = {
-                "cluster_domain"
-                if match["key"] in ["domain", "__ext.cluster_domain"]
-                else match["key"]: match["value"][0]
+                match["key"]: log_field_map.get(match["value"][0], match["value"][0])
                 for match in json.loads(request.body.decode())["where"]
             }
         else:
             return True
 
-        cluster_domain = condition.get("cluster_domain")
-        if not cluster_domain:
-            # TODO review 其他 promql 查询条件
-            return True
-        cluster = Cluster.objects.get(immute_domain=cluster_domain)
-        actions = [ActionEnum.cluster_type_to_action(cluster.cluster_type, action_key="VIEW")]
-        resource_meta = ResourceEnum.cluster_type_to_resource_meta(cluster.cluster_type)
-        resources = [[resource] for resource in resource_meta.batch_create_instances([cluster.id])]
-        result = IAMPermission(actions, resources).has_permission(request, "")
+        check = True
+        if "app" in condition:
+            check = self.__check_app_permission(request, condition["app"])
+        elif "cluster_domain" in condition:
+            check = self.__check_cluster_permission(request, condition["cluster_domain"])
 
-        if not result:
+        if not check:
             raise PermissionError
 
 

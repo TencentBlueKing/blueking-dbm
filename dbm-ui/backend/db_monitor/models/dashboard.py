@@ -16,10 +16,13 @@ from django.utils.translation import gettext_lazy as _
 from backend import env
 from backend.bk_web.constants import LEN_LONG, LEN_MIDDLE, LEN_NORMAL
 from backend.bk_web.models import AuditedModel
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache, Cluster
 
 __all__ = ["Dashboard"]
+
+from backend.db_monitor.constants import DashboardType
 
 
 class Dashboard(AuditedModel):
@@ -28,10 +31,13 @@ class Dashboard(AuditedModel):
     name = models.CharField(verbose_name=_("名称"), max_length=LEN_MIDDLE, default="")
     view = models.CharField(verbose_name=_("视图类型"), max_length=LEN_MIDDLE, default=_("集群监控视图"))
 
+    # cluster_type针对集群仪表盘，db_type针对组件仪表盘
     cluster_type = models.CharField(max_length=LEN_NORMAL, choices=ClusterType.get_choices(), default="")
+    db_type = models.CharField(max_length=LEN_NORMAL, choices=DBType.get_choices(), default="")
 
     details = models.JSONField(verbose_name=_("详情"), default=dict)
     variables = models.JSONField(verbose_name=_("变量"), default=dict)
+    type = models.CharField(help_text=_("仪表盘类型"), max_length=LEN_NORMAL, choices=DashboardType.get_choices())
 
     # grafana相关
     org_id = models.BigIntegerField(verbose_name=_("grafana-org_id"))
@@ -61,4 +67,16 @@ class Dashboard(AuditedModel):
             # "kiosk": 1,
         }
 
+        return env.BK_SAAS_HOST + f"{self.url}?" + urllib.parse.urlencode(params)
+
+    def get_business_url(self, bk_biz_id):
+        from backend.bk_dataview.grafana.constants import DEFAULT_ORG_ID, DEFAULT_ORG_NAME
+
+        params = {
+            "orgId": DEFAULT_ORG_ID,
+            "orgName": DEFAULT_ORG_NAME,
+            "var-app_id": bk_biz_id,
+            "var-appid": bk_biz_id,
+            "var-app": AppCache.get_app_attr(bk_biz_id, default=bk_biz_id),
+        }
         return env.BK_SAAS_HOST + f"{self.url}?" + urllib.parse.urlencode(params)
