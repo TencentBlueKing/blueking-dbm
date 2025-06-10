@@ -72,6 +72,14 @@
         </span>
       </BkMenuItem>
     </BkMenuGroup>
+    <BkMenuGroup :name="t('平台观测')">
+      <BkMenuItem key="ServiceStatus">
+        <template #icon>
+          <DbIcon type="ticket" />
+        </template>
+        {{ t('服务状态') }}
+      </BkMenuItem>
+    </BkMenuGroup>
   </BkMenu>
 </template>
 <script setup lang="ts">

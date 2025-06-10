@@ -19,13 +19,13 @@
     type="500">
     <div>
       <div class="mb-8">
-        {{ $t('数据获取异常') }}
+        {{ t('数据获取异常') }}
       </div>
       <BkButton
         text
         theme="primary"
         @click="handleRefresh">
-        {{ $t('刷新') }}
+        {{ t('刷新') }}
       </BkButton>
     </div>
   </BkException>
@@ -35,27 +35,29 @@
     style="font-size: 12px"
     type="search-empty">
     <div>
-      <div>{{ $t('搜索结果为空') }}</div>
+      <div>{{ t('搜索结果为空') }}</div>
       <div style="margin-top: 8px; color: #979ba5">
-        {{ $t('可以尝试调整关键词或') }}
+        {{ t('可以尝试调整关键词或') }}
         <BkButton
           text
           theme="primary"
           @click="handleClearSearch">
-          {{ $t('清空搜索条件') }}
+          {{ t('清空搜索条件') }}
         </BkButton>
       </div>
     </div>
   </BkException>
   <BkException
     v-else
-    :description="$t('暂无数据')"
+    :description="t('暂无数据')"
     scene="part"
     style="font-size: 12px"
     type="empty" />
 </template>
 
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   interface Emits {
     (e: 'refresh'): void;
     (e: 'clearSearch'): void;
@@ -68,6 +70,8 @@
 
   defineProps<Props>();
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   const handleRefresh = () => emits('refresh');
   const handleClearSearch = () => emits('clearSearch');
