@@ -29,6 +29,7 @@ import getPlatformDbConfigureRoutes from '@views/platform-db-configure/routes';
 import getQuickSearchRoutes from '@views/quick-search/routes';
 import getResourceManageRoutes, { getBizResourcePoolRoute } from '@views/resource-manage/routes';
 import getServiceApplyRoutes from '@views/service-apply/routes';
+import getServiceStatusRoutes from '@views/service-status/routes';
 import getStaffManageRoutes from '@views/staff-manage/routes';
 import getResourceTagRoutes from '@views/tag-manage/routes';
 import getTaskHistoryRoutes from '@views/task-history/routes';
@@ -117,6 +118,7 @@ export default () => {
         ...getServiceApplyRoutes(),
         ...getQuickSearchRoutes(),
         ...getDutyRuleManageRoutes(),
+        ...getServiceStatusRoutes(),
         ...moduleList,
       ],
       name: 'index',
