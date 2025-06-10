@@ -166,7 +166,7 @@ export function getClusterNetTcpResult(params: { job_instance_id: number }) {
         establish: number;
         operator: string;
         remote_ip: string;
-        topo: string[];
+        topo?: string[];
       }[];
       success: string[];
     }[];
