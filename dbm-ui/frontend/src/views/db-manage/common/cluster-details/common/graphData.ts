@@ -368,6 +368,7 @@ export class GraphData {
     const spiderMasterNode = nodeMap[nodeTypes.TENDBCLUSTER_MASTER];
     if (controllerNode && spiderMasterNode) {
       controllerNode.style.y = spiderMasterNode.style.y;
+      controllerNode.style.x = -controllerNode.style.width;
       this.calcChildrenNodeLocations(controllerNode);
     }
 
