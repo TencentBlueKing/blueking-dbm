@@ -47,6 +47,14 @@
         ref="table"
         :ticket-details="ticketDetails" />
       <BackupSource v-model="formData.backupSource" />
+      <BkFormItem
+        :label="t('数据校验')"
+        property="need_checksum"
+        required>
+        <BkSwitcher
+          v-model="formData.need_checksum"
+          theme="primary" />
+      </BkFormItem>
       <TicketPayload v-model="formData.payload" />
     </BkForm>
     <template #action>
@@ -101,6 +109,7 @@
 
   const defaultData = () => ({
     backupSource: BackupSourceType.REMOTE,
+    need_checksum: true,
     payload: createTickePayload(),
   });
 
@@ -114,6 +123,7 @@
       const { backup_source: backupSource, opera_object: operaObject } = details;
       Object.assign(formData, {
         backupSource,
+        need_checksum: details.need_checksum,
         payload: createTickePayload(ticketDetail),
       });
       operaObjectType.value = operaObject;
@@ -149,6 +159,7 @@
       };
     }[];
     ip_source: 'resource_pool';
+    need_checksum: boolean;
     opera_object: OperaObejctType;
   }>(TicketTypes.MYSQL_MIGRATE_CLUSTER);
 
@@ -160,6 +171,7 @@
           backup_source: formData.backupSource,
           infos,
           ip_source: 'resource_pool',
+          need_checksum: formData.need_checksum,
           opera_object: operaObjectType.value,
         },
         ...formData.payload,

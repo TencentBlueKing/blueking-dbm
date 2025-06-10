@@ -27,4 +27,5 @@ export interface MigrateCluster extends ResourcePoolDetailBase {
   }[];
   is_safe: boolean;
   machine_infos: DetailMachines;
+  need_checksum: boolean;
 }
