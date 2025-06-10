@@ -225,12 +225,12 @@
         })),
         ip_source: 'resource_pool',
         old_nodes: {
-          spider_master: oldNodes['spider_master'].map((item) => ({
+          spider_master: (oldNodes['spider_master'] || []).map((item) => ({
             bk_cloud_id: item.host.bk_cloud_id,
             bk_host_id: item.host.bk_host_id,
             ip: item.host.ip,
           })),
-          spider_slave: oldNodes['spider_slave'].map((item) => ({
+          spider_slave: (oldNodes['spider_slave'] || []).map((item) => ({
             bk_cloud_id: item.host.bk_cloud_id,
             bk_host_id: item.host.bk_host_id,
             ip: item.host.ip,
