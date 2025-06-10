@@ -253,6 +253,11 @@ const (
 	SAME_SUBZONE = "SAME_SUBZONE"
 	// CROS_SUBZONE 同城跨园区
 	CROS_SUBZONE = "CROS_SUBZONE"
+	// MAJORITY_ELECTION_DISTRI 最少跨2个园区，园区内跨机架
+	// 	1）不能超过ceil(n/2）的机器在同一个园区
+	// 2）同一个机架上不能超过1个机器
+	// 3）申请到的机器的园区分布要尽量平均（根据资源情况平均给到）
+	MAJORITY_ELECTION_DISTRI = "MAJORITY_ELECTION_DISTRI"
 	// MAX_EACH_ZONE_EQUAL 尽量每个zone分配数量相等
 	MAX_EACH_ZONE_EQUAL = "MAX_EACH_ZONE_EQUAL"
 	// CROSS_RACK 跨机架

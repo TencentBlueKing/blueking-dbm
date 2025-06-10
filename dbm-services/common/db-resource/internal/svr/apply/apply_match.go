@@ -12,6 +12,7 @@ package apply
 
 import (
 	"fmt"
+	"math"
 	"slices"
 	"sort"
 	"strconv"
@@ -472,6 +473,60 @@ func (c *PickerObject) pickerCrossSubzoneOriginal(campKeys []string, cross_subzo
 	}
 }
 
+// PickerMajorityElectionCrossSubzone mongo跨园区匹配
+func (c *PickerObject) PickerMajorityElectionCrossSubzone() {
+	sortFuncs := []func(cross_subzone bool) []string{
+		c.sortSubZoneNum,
+		c.sortSubZoneByPriority,
+	}
+	subZoneMaxCount := int(math.Ceil(float64(c.Count) / 2))
+	for _, sfc := range sortFuncs {
+		campKeys := sfc(true)
+		if len(campKeys) == 0 {
+			return
+		}
+		subzoneChan := make(chan subZone, len(campKeys))
+		for _, v := range campKeys {
+			subzoneChan <- v
+		}
+		for subzone := range subzoneChan {
+			if len(c.PriorityElements) == 0 {
+				logger.Info("go out")
+				close(subzoneChan)
+				return
+			}
+			pq, ok := c.PriorityElements[subzone]
+			if !ok {
+				logger.Warn("%s is queue is nil", subzone)
+				delete(c.PriorityElements, subzone)
+				continue
+			}
+			if pq.Len() == 0 {
+				delete(c.PriorityElements, subzone)
+			}
+			logger.Info(fmt.Sprintf("surplus %s,%d", subzone, pq.Len()))
+			logger.Info(fmt.Sprintf("total demand count:%d,当前满足总数有 %s:%d", c.Count, subzone, len(c.SatisfiedHostIds)))
+			needCrossSwitchCheck := false
+			if len(c.SatisfiedHostIdsMap[subzone]) >= 1 {
+				needCrossSwitchCheck = true
+			}
+			if c.pickerOneByPriority(subzone, needCrossSwitchCheck) {
+				if len(c.SatisfiedHostIdsMap[subzone]) >= subZoneMaxCount {
+					delete(c.PriorityElements, subzone)
+				}
+			}
+			// 匹配资源完成
+			if c.PickerDone() {
+				logger.Info("资源分布:%v", c.SatisfiedHostIdsMap)
+				close(subzoneChan)
+				return
+			}
+			logger.Info("subzoneChan <- %s", subzone)
+			subzoneChan <- subzone
+		}
+	}
+}
+
 // sortSubZoneByPriority 按照SubZonePrioritySumMap的value值从大到小排序
 func (c *PickerObject) sortSubZoneByPriority(cross_subzone bool) []string {
 	type subZonePriority struct {
@@ -661,6 +716,7 @@ func (c *PickerObject) pickerOneByPriorityWithoutTolerance(key string, cross_swi
 		}
 
 		c.ExistRackIds = append(c.ExistRackIds, v.RackId)
+		c.SatisfiedHostIdsMap[key] = append(c.SatisfiedHostIdsMap[key], v.BkHostId)
 		c.SatisfiedHostIds = append(c.SatisfiedHostIds, v.BkHostId)
 		c.ExistLinkNetdeviceIds = append(c.ExistLinkNetdeviceIds, v.LinkNetdeviceId...)
 		c.PickDistribute[key]++
@@ -819,7 +875,7 @@ func (o *SearchContext) AnalysisResourcePriority(insList []model.TbRpDetail, isr
 			subZonePrioritySumMap[ins.SubZone] += ele.Priority
 		}
 	}
-	logger.Info("items map %v", itemsMap)
+	logger.Debug("items map %v", itemsMap)
 	for subZoneName, items := range itemsMap {
 		// init priority queue
 		if _, exist := result[subZoneName]; !exist {
