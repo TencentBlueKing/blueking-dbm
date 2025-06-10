@@ -48,6 +48,14 @@
         </EditableRow>
       </EditableTable>
       <BackupSource v-model="formData.backupSource" />
+      <BkFormItem
+        :label="t('数据校验')"
+        property="need_checksum"
+        required>
+        <BkSwitcher
+          v-model="formData.need_checksum"
+          theme="primary" />
+      </BkFormItem>
       <TicketPayload v-model="formData.payload" />
     </BkForm>
     <template #action>
@@ -137,6 +145,7 @@
 
   const defaultData = () => ({
     backupSource: BackupSourceType.REMOTE,
+    need_checksum: true,
     payload: createTickePayload(),
     tableData: [createTableRow()],
   });
@@ -164,6 +173,7 @@
       const { backup_source: backupSource, infos } = details;
       Object.assign(formData, {
         backupSource,
+        need_checksum: details.need_checksum,
         payload: createTickePayload(ticketDetail),
         tableData: infos.map((item) =>
           createTableRow({
@@ -200,6 +210,7 @@
       };
     }[];
     ip_source: 'resource_pool';
+    need_checksum: boolean;
   }>(TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER);
 
   const handleSubmit = async () => {
@@ -224,6 +235,7 @@
           },
         })),
         ip_source: 'resource_pool',
+        need_checksum: formData.need_checksum,
       },
       ...formData.payload,
     });

@@ -49,31 +49,6 @@
           v-model="formData.need_checksum"
           theme="primary" />
       </BkFormItem>
-      <template v-if="formData.need_checksum">
-        <BkFormItem
-          :label="t('校验时间')"
-          property="trigger_checksum_type"
-          required>
-          <BkRadioGroup v-model="formData.trigger_checksum_type">
-            <BkRadio label="now">
-              {{ t('立即执行') }}
-            </BkRadio>
-            <BkRadio label="timer">
-              {{ t('定时执行') }}
-            </BkRadio>
-          </BkRadioGroup>
-        </BkFormItem>
-        <BkFormItem
-          v-if="formData.trigger_checksum_type === 'timer'"
-          :label="t('定时执行')"
-          property="trigger_checksum_time"
-          required>
-          <BkDatePicker
-            v-model="formData.trigger_checksum_time"
-            style="width: 360px"
-            type="datetime" />
-        </BkFormItem>
-      </template>
       <TicketPayload v-model="formData.payload" />
     </BkForm>
     <template #action>
@@ -98,7 +73,6 @@
   </SmartAction>
 </template>
 <script lang="ts" setup>
-  import dayjs from 'dayjs';
   import { reactive, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -166,11 +140,9 @@
 
   const defaultData = () => ({
     backup_source: BackupSourceType.REMOTE,
-    need_checksum: false,
+    need_checksum: true,
     payload: createTickePayload(),
     tableData: [createTableRow()],
-    trigger_checksum_time: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-    trigger_checksum_type: 'timer',
   });
 
   const formData = reactive(defaultData());
@@ -210,8 +182,6 @@
             },
           });
         }),
-        trigger_checksum_time: details.trigger_checksum_time,
-        trigger_checksum_type: details.trigger_checksum_type,
       });
     },
   });
@@ -238,8 +208,6 @@
       spec_id: number;
     }[];
     need_checksum: boolean;
-    trigger_checksum_time: string;
-    trigger_checksum_type: string;
   }>(TicketTypes.TENDBCLUSTER_NODE_REBALANCE);
 
   const handleSubmit = async () => {
@@ -247,34 +215,6 @@
     if (!result) {
       return;
     }
-    console.log({
-      details: {
-        backup_source: formData.backup_source,
-        infos: formData.tableData.map((item) => ({
-          bk_cloud_id: item.cluster.bk_cloud_id,
-          cluster_id: item.cluster.id,
-          cluster_shard_num: item.cluster.cluster_shard_num,
-          db_module_id: item.cluster.db_module_id,
-          prev_cluster_spec_name: item.cluster.cluster_spec.spec_name,
-          prev_machine_pair: item.cluster.machine_pair_cnt,
-          remote_shard_num: Math.ceil(item.cluster.cluster_shard_num / item.targetCapacity.machine_pair),
-          resource_spec: {
-            backend_group: {
-              affinity: item.cluster.disaster_tolerance_level,
-              count: item.targetCapacity.machine_pair,
-              futureCapacity: item.targetCapacity.cluster_capacity,
-              spec_id: item.targetCapacity.spec_id,
-              specName: item.targetCapacity.spec_name,
-            },
-          },
-          spec_id: item.cluster.cluster_spec.spec_id,
-        })),
-        need_checksum: formData.need_checksum,
-        trigger_checksum_time: formData.trigger_checksum_time,
-        trigger_checksum_type: formData.trigger_checksum_type,
-      },
-      remark: formData.payload.remark,
-    });
 
     createTicketRun({
       details: {
@@ -299,8 +239,6 @@
           spec_id: item.cluster.cluster_spec.spec_id,
         })),
         need_checksum: formData.need_checksum,
-        trigger_checksum_time: formData.trigger_checksum_time,
-        trigger_checksum_type: formData.trigger_checksum_type,
       },
       remark: formData.payload.remark,
     });
