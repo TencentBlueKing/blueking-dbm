@@ -13,7 +13,7 @@
 
 <template>
   <SmartAction>
-    <div class="redis-master-failover-page">
+    <div class="redis-master-failover-page db-toolbox">
       <BkAlert
         closable
         theme="info"
@@ -79,9 +79,16 @@
               :table-data="formData.tableData" />
           </EditableRow>
         </EditableTable>
-        <IgnoreBiz
-          v-model="formData.force"
-          v-bk-tooltips="t('强制切换，将忽略同步连接')" />
+        <BkFormItem
+          v-bk-tooltips="t('强制切换，将忽略同步连接')"
+          class="fit-content">
+          <BkCheckbox
+            v-model="formData.force"
+            :false-label="false"
+            true-label>
+            <span class="safe-action-text">{{ t('强制切换') }}</span>
+          </BkCheckbox>
+        </BkFormItem>
         <TicketPayload v-model="formData.payload" />
       </DbForm>
     </div>
@@ -120,7 +127,6 @@
 
   import { type IValue } from '@components/instance-selector/Index.vue';
 
-  import IgnoreBiz from '@views/db-manage/common/toolbox-field/form-item/ignore-biz/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';

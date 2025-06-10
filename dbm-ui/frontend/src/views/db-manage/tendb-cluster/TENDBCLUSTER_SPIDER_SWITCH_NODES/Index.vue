@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <SmartAction>
+  <SmartAction class="db-toolbox">
     <BkAlert
       class="mb-20"
       closable
@@ -42,6 +42,16 @@
             :create-row-method="createTableRow" />
         </EditableTableRow>
       </EditableTable>
+      <BkFormItem
+        class="fit-content"
+        v-bk-tooltips="t('存在业务连接时需要人工确认')">
+        <BkCheckbox
+          v-model="formData.is_safe"
+          :false-label="false"
+          true-label>
+          <span class="safe-action-text">{{ t('检查业务连接') }}</span>
+        </BkCheckbox>
+      </BkFormItem>
       <TicketPayload v-model="formData.payload" />
     </BkForm>
     <template #action>
@@ -71,7 +81,6 @@
   import { useI18n } from 'vue-i18n';
 
   import type { TendbCluster } from '@services/model/ticket/ticket';
-
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { TicketTypes } from '@common/const';
@@ -86,8 +95,11 @@
 
   import HostColumn, { type SelectorHost } from './components/HostColumn.vue';
   import SpecColumn from './components/SpecColumn.vue';
+  import { random } from '@utils';
+  import type { DeepPartial } from '@services/types';
 
   interface RowData {
+    row_key: string;
     host: {
       bk_biz_id: number;
       bk_cloud_id: number;
@@ -114,8 +126,9 @@
     },
   ];
 
-  const createTableRow = (data = {} as Partial<RowData>) => ({
-    host: data.host || {
+  const createTableRow = (data: DeepPartial<RowData> = {}) => ({
+    row_key: random(),
+    host: {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: 0,
@@ -126,10 +139,12 @@
       port: 0,
       role: '',
       spec_id: 0,
+      ...data.host,
     },
   });
 
   const defaultData = () => ({
+    is_safe: true,
     payload: createTickePayload(),
     tableData: [createTableRow()],
   });
@@ -179,8 +194,10 @@
         ip: string;
         port: number;
       }[];
+      row_key: string;
       switch_spider_role: string;
     }[];
+    is_safe: boolean;
     ip_source: 'resource_pool';
     old_nodes: {
       spider_master: {
@@ -204,7 +221,9 @@
     const oldNodes = _.groupBy(formData.tableData, (item) => item.host.role);
     createTicketRun({
       details: {
+        is_safe: formData.is_safe,
         infos: formData.tableData.map((item) => ({
+          row_key: item.row_key,
           cluster_id: item.host.cluster_id,
           resource_spec: {
             [`${item.host.role}_${item.host.ip}`]: {
@@ -225,12 +244,12 @@
         })),
         ip_source: 'resource_pool',
         old_nodes: {
-          spider_master: oldNodes['spider_master'].map((item) => ({
+          spider_master: (oldNodes['spider_master'] || []).map((item) => ({
             bk_cloud_id: item.host.bk_cloud_id,
             bk_host_id: item.host.bk_host_id,
             ip: item.host.ip,
           })),
-          spider_slave: oldNodes['spider_slave'].map((item) => ({
+          spider_slave: (oldNodes['spider_slave'] || []).map((item) => ({
             bk_cloud_id: item.host.bk_cloud_id,
             bk_host_id: item.host.bk_host_id,
             ip: item.host.ip,
@@ -251,16 +270,7 @@
         acc.push(
           createTableRow({
             host: {
-              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-              bk_cloud_id: item.bk_cloud_id,
-              bk_host_id: item.bk_host_id,
-              cluster_id: item.cluster_id,
-              instance_address: item.instance_address,
               ip: item.ip,
-              master_domain: item.master_domain,
-              port: item.port,
-              role: item.role,
-              spec_id: item.spec_config.id,
             },
           }),
         );
@@ -274,16 +284,7 @@
     const dataList = data.map((item) =>
       createTableRow({
         host: {
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          bk_cloud_id: 0,
-          bk_host_id: 0,
-          cluster_id: 0,
-          instance_address: '',
           ip: item.ip,
-          master_domain: '',
-          port: 0,
-          role: '',
-          spec_id: 0,
         },
       }),
     );

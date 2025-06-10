@@ -22,6 +22,7 @@ export interface SpiderSwitchNodes extends ResourcePoolDetailBase {
     }[];
     switch_spider_role: string;
   }[];
+  is_safe: boolean;
   old_nodes: {
     spider_master: {
       bk_cloud_id: number;
