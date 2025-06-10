@@ -853,8 +853,8 @@ func (i *InstallMySQLComp) generateDefaultMysqlAccount(realVersion string) (init
 		}.GetAccountPrivs(i.Params.Host))
 
 	}
-	privPairs = append(privPairs, runp.MySQLMonitorAccessAllAccount.GetAccountPrivs())
-	privPairs = append(privPairs, runp.MySQLMonitorAccount.GetAccountPrivs(i.Params.Host))
+	privPairs = append(privPairs, runp.MySQLMonitorAccessAllAccount.GetAccountPrivs(realVersion))
+	privPairs = append(privPairs, runp.MySQLMonitorAccount.GetAccountPrivs(realVersion, i.Params.Host))
 	privPairs = append(privPairs, runp.MySQLYwAccount.GetAccountPrivs())
 	privPairs = append(privPairs, runp.MySQLDbBackupAccount.GetAccountPrivs(realVersion, i.Params.Host))
 	for _, v := range privPairs {
@@ -1075,8 +1075,11 @@ func (i *InstallMySQLComp) InitDefaultPrivAndSchemaWithResetMaster() (err error)
 		switch {
 		case strings.Contains(version, "tspider"):
 			// 对spider 初始化授权
-			if err := i.createSpiderTable(i.InsSockets[port]); err != nil {
-				return err
+			// spider4.0以下版本做初始化spider脚本处理。
+			if cmutil.SpiderVersionParse(version) < cmutil.SpiderVersionParse("tspider-4.0.0") {
+				if err := i.createSpiderTable(i.InsSockets[port]); err != nil {
+					return err
+				}
 			}
 			initAccountSqls = i.generateDefaultSpiderAccount(version)
 			i.AvoidReset = true // spider 有可能没开 binlog，reset master 会报错
@@ -1253,7 +1256,10 @@ func (i *InstallMySQLComp) TdbctlStartup() (err error) {
  * @return {*}
  */
 func (i *InstallMySQLComp) generateDefaultSpiderAccount(realVersion string) (initAccountsql []string) {
-	initAccountsql = i.getSuperUserAccountForSpider()
+	// 对DBM平台需要的账号做处理
+	initAccountsql = i.getSuperUserAccountForSpider(realVersion)
+
+	// admin账号初始化
 	runp := i.GeneralParam.RuntimeAccountParam
 	var privPairs []components.MySQLAccountPrivs
 	privPairs = append(privPairs, runp.MySQLAdminAccount.GetAccountPrivs(i.Params.Host))
@@ -1265,19 +1271,21 @@ func (i *InstallMySQLComp) generateDefaultSpiderAccount(realVersion string) (ini
 		}.GetAccountPrivs(i.Params.Host))
 
 	}
-	privPairs = append(privPairs, runp.MySQLMonitorAccessAllAccount.GetAccountPrivs())
-	privPairs = append(privPairs, runp.MySQLMonitorAccount.GetAccountPrivs(i.Params.Host))
+	// 做系统账号的添加处理
+	privPairs = append(privPairs, runp.MySQLMonitorAccessAllAccount.GetAccountPrivs(realVersion))
+	privPairs = append(privPairs, runp.MySQLMonitorAccount.GetAccountPrivs(realVersion, i.Params.Host))
 	privPairs = append(privPairs, runp.MySQLYwAccount.GetAccountPrivs())
 	privPairs = append(privPairs, runp.MySQLDbBackupAccount.GetAccountPrivs(realVersion, i.Params.Host))
 	for _, v := range privPairs {
 		initAccountsql = append(initAccountsql, v.GenerateInitSql(realVersion)...)
 	}
-	if cmutil.MySQLVersionParse(realVersion) <= cmutil.MySQLVersionParse("5.6") {
+	// 对spider1.x做 general_log表的优化处理
+	if cmutil.SpiderVersionParse(realVersion) < cmutil.SpiderVersionParse("tspider-2.0.0") {
+		logger.Info("spider version < 2.0, exec alter table mysql.general_log")
 		s := `alter table mysql.general_log change thread_id thread_id bigint(21) unsigned NOT NULL;`
 		initAccountsql = append(initAccountsql, s)
 	}
-	// 不知道这里为什么执行不了source命令，暂时用执行shell命令代替
-	// initAccountsql = append(initAccountsql, fmt.Sprintf("source %s/scripts/install_spider.sql;", i.MysqlInstallDir))
+	// 其他处理
 	initAccountsql = append(initAccountsql, "delete from mysql.user where user='root' or user='';")
 	initAccountsql = append(initAccountsql, "update mysql.db set Insert_priv = 'Y' where db = 'test';")
 	initAccountsql = append(initAccountsql, "flush privileges;")
@@ -1285,11 +1293,16 @@ func (i *InstallMySQLComp) generateDefaultSpiderAccount(realVersion string) (ini
 }
 
 // getSuperUserAccountForSpider TODO
+// 如果是 spider4.x  针对带有super权限的账号，都需要添加CONNECTION ADMIN 权限
 /**
  * @description: 为spider创建DRS、DBHA服务访问的账号白名单
  * @return {*}
  */
-func (i *InstallMySQLComp) getSuperUserAccountForSpider() (initAccountsql []string) {
+func (i *InstallMySQLComp) getSuperUserAccountForSpider(ver string) (initAccountsql []string) {
+	var exptendGrant = ""
+	if cmutil.SpiderVersionParse(ver) >= cmutil.SpiderVersionParse("tspider-4.0.0") {
+		exptendGrant = "CONNECTION ADMIN,"
+	}
 	for _, host := range i.Params.SuperAccount.AccessHosts {
 		initAccountsql = append(initAccountsql,
 			fmt.Sprintf("GRANT ALL PRIVILEGES ON *.* TO '%s'@'%s' IDENTIFIED BY '%s' WITH GRANT OPTION;",
@@ -1298,9 +1311,9 @@ func (i *InstallMySQLComp) getSuperUserAccountForSpider() (initAccountsql []stri
 	for _, host := range i.Params.DBHAAccount.AccessHosts {
 		initAccountsql = append(initAccountsql,
 			fmt.Sprintf(
-				"GRANT RELOAD, PROCESS, SHOW DATABASES, SUPER, REPLICATION CLIENT, SHOW VIEW "+
+				"GRANT RELOAD, PROCESS, SHOW DATABASES, SUPER, %s REPLICATION CLIENT, SHOW VIEW "+
 					"ON *.* TO '%s'@'%s' IDENTIFIED BY '%s' WITH GRANT OPTION;",
-				i.Params.DBHAAccount.User, host, i.Params.DBHAAccount.Pwd))
+				exptendGrant, i.Params.DBHAAccount.User, host, i.Params.DBHAAccount.Pwd))
 		initAccountsql = append(initAccountsql,
 			fmt.Sprintf(
 				"GRANT SELECT ON mysql.servers TO '%s'@'%s' ;", i.Params.DBHAAccount.User, host))
@@ -1319,8 +1332,8 @@ func (i *InstallMySQLComp) getSuperUserAccountForSpider() (initAccountsql []stri
 			fmt.Sprintf(
 				`GRANT SELECT, INSERT, UPDATE, DELETE, 
 								CREATE, DROP, ALTER, TRIGGER, 
-								PROCESS, SUPER, REPLICATION SLAVE ON *.* TO '%s'@'%s' IDENTIFIED BY '%s';`,
-				i.Params.PartitionYWAccount.User, host, i.Params.PartitionYWAccount.Pwd,
+								PROCESS, SUPER, %s REPLICATION SLAVE ON *.* TO '%s'@'%s' IDENTIFIED BY '%s';`,
+				exptendGrant, i.Params.PartitionYWAccount.User, host, i.Params.PartitionYWAccount.Pwd,
 			),
 		)
 	}
@@ -1328,6 +1341,7 @@ func (i *InstallMySQLComp) getSuperUserAccountForSpider() (initAccountsql []stri
 }
 
 func (i *InstallMySQLComp) createSpiderTable(socket string) (err error) {
+	logger.Info("exec scripts/install_spider.sql ")
 	return mysqlutil.ExecuteSqlAtLocal{
 		User:     i.WorkUser,     // "root",
 		Password: i.WorkPassword, // "",

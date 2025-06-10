@@ -64,3 +64,17 @@ func MysqlCliHasOption(mysqlCmd string, option string) error {
 	}
 	return errors.Errorf("check option error for %s %s", mysqlCmd, option)
 }
+
+// MysqlAdminHasOption test mysqladmin has option or not
+func MysqlAdminHasOption(mysqlCmd string, option string) (bool, error) {
+	cmdStdout, cmdStderr, err := cmutil.ExecCommand(false, "", mysqlCmd, option, "--help")
+	out := cmdStderr + cmdStdout
+	//unknown option
+	if strings.Contains(out, "unknown option") {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}

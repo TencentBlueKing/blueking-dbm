@@ -21,6 +21,7 @@ import (
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
@@ -211,7 +212,13 @@ type ShutdownMySQLParam struct {
 //  1. 可能还需要考虑 shutdown 超时问题。
 //  2. 可能需要通过 expect 方式，避免暴露密码。
 func (param ShutdownMySQLParam) ShutdownMySQLBySocket() (err error) {
-	shellCMD := fmt.Sprintf("mysqladmin -u%s -p%s -S %s shutdown", param.MySQLUser, param.MySQLPwd, param.Socket)
+	var addSkipSSLOpt = ""
+	if ok, _ := mysqlcomm.MysqlAdminHasOption("mysqladmin", "--skip-ssl"); ok {
+		addSkipSSLOpt = "--skip-ssl"
+	}
+	shellCMD := fmt.Sprintf(
+		"mysqladmin -u%s -p%s %s -S %s shutdown", param.MySQLUser, param.MySQLPwd, addSkipSSLOpt, param.Socket,
+	)
 	output, err := mysqlutil.ExecCommandMySQLShell(shellCMD)
 	if err != nil {
 		if !strings.Contains(err.Error(), "Can't connect to local MySQL server") {
