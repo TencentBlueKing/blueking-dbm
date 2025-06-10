@@ -14,8 +14,8 @@ from celery.schedules import crontab
 
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
 
-from .check_exporter import CheckMongodbUpMetricTask
 from .check_backup import CheckMongoBackupRecordTask
+from .check_exporter import CheckMongodbUpMetricTask
 
 logger = logging.getLogger("celery")
 
