@@ -25,7 +25,7 @@ export interface NodeRebalance extends DetailBase {
     };
   }[];
   ip_source: string;
-  need_checksum: true;
+  need_checksum: boolean;
   nodes: Record<
     string,
     {
@@ -35,6 +35,4 @@ export interface NodeRebalance extends DetailBase {
   >;
   resource_request_id: string;
   specs: Record<number, SpecInfo>;
-  trigger_checksum_time: string;
-  trigger_checksum_type: string;
 }
