@@ -184,6 +184,7 @@
       'inspectionReportGlobal',
       'DbaManage',
       'AlarmEventsGlobal',
+      'ServiceStatus',
     ],
     [menuEnum.resourceManage]: ['ResourceSpec', 'resourceManage', 'resourcePoolDirtyMachines'],
   } as Record<string, string[]>;
