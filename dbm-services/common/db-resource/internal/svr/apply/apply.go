@@ -648,6 +648,9 @@ func (o *SearchContext) PickInstanceBase(picker *PickerObject, items []model.TbR
 		picker.InitRackToleranceConfig(o.Tolerance, o.CurrentHosts, o.Count)
 		picker.PriorityElements, picker.SubZonePrioritySumMap, err = o.AnalysisResourcePriority(items, true)
 		picker.PickerSameSubZone(true)
+	case MAJORITY_ELECTION_DISTRI:
+		picker.PriorityElements, picker.SubZonePrioritySumMap, err = o.AnalysisResourcePriority(items, false)
+		picker.PickerMajorityElectionCrossSubzone()
 	}
 	return
 }

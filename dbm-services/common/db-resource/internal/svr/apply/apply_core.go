@@ -45,8 +45,9 @@ type PickerObject struct {
 	Count          int
 	PickDistribute map[string]int
 	// 已存在的园区
-	ExistSubZone     []subZone
-	SatisfiedHostIds []int
+	ExistSubZone        []subZone
+	SatisfiedHostIds    []int
+	SatisfiedHostIdsMap map[subZone][]int
 	// SelectedResources []*model.TbRpDetail
 	// 待选择实例
 	// 具备优先级的待选实例列表
@@ -209,6 +210,7 @@ func NewPicker(count int, item string) *PickerObject {
 		ExistRackIds:          make([]string, 0),
 		ExistLinkNetdeviceIds: make([]string, 0),
 		SatisfiedHostIds:      make([]int, 0),
+		SatisfiedHostIdsMap:   make(map[subZone][]int),
 		PickDistribute:        make(map[string]int),
 		CurrentHostsBySubZone: make(map[subZone]int),
 		CurrentHostsByRack:    make(map[string]int),
