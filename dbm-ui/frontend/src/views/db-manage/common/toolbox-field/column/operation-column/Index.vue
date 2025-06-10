@@ -50,6 +50,8 @@
 
   import { Column, useTable } from '@components/editable-table/Index.vue';
 
+  import { random } from '@utils';
+
   const props = defineProps<{
     createRowMethod?: () => T;
   }>();
@@ -90,7 +92,13 @@
     const newRowIndex = rowIndex + 1;
 
     if (newRowIndex > 0) {
-      tableData.value.splice(newRowIndex, 0, _.cloneDeep(tableData.value[rowIndex]));
+      tableData.value.splice(
+        newRowIndex,
+        0,
+        Object.assign(_.cloneDeep(tableData.value[rowIndex]), {
+          row_key: random(),
+        }),
+      );
       editTableContext!.validateByRowIndex(newRowIndex);
     }
   };
