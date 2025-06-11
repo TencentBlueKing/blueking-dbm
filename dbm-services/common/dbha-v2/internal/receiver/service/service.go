@@ -25,12 +25,18 @@
 package service
 
 import (
+	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/proto"
 	"io"
+	"net"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 )
 
 type Receiver struct {
 	proto.UnimplementedReceiverServiceServer
+	address string
 }
 
 func (r *Receiver) PushData(stream proto.ReceiverService_PushDataServer) error {
@@ -51,4 +57,30 @@ func (r *Receiver) PushData(stream proto.ReceiverService_PushDataServer) error {
 			_ = req
 		}
 	}
+}
+
+func (r *Receiver) Run() error {
+	kasp := keepalive.ServerParameters{
+		Time:    constant.DefaultServerPingTime,
+		Timeout: constant.DefaultPingTimeout,
+	}
+
+	kacp := keepalive.EnforcementPolicy{
+		MinTime:             constant.DefaultKeepAliveMiniTime,
+		PermitWithoutStream: true,
+	}
+
+	svr := grpc.NewServer(
+		grpc.KeepaliveParams(kasp),
+		grpc.KeepaliveEnforcementPolicy(kacp),
+		grpc.MaxRecvMsgSize(constant.DefaultMaxReceiveMessageSize),
+		grpc.MaxSendMsgSize(constant.DefaultMaxSendMessageSize),
+	)
+
+	proto.RegisterReceiverServiceServer(svr, r)
+	listen, err := net.Listen("tcp", r.address)
+	if err != nil {
+	}
+
+	return svr.Serve(listen)
 }
