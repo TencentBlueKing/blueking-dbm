@@ -17,16 +17,6 @@ import type { ResourceTopo } from '@services/types';
 
 import { ClusterTypes, DBTypes } from '@common/const';
 
-const defaultNodeConfig = {
-  groupTitle: 44,
-  itemHeight: 28,
-  minHeight: 54,
-  offsetX: 140,
-  offsetY: 62,
-  startX: 100,
-  startY: 100,
-  width: 296,
-};
 export type NodeConfig = Partial<typeof defaultNodeConfig>;
 
 // 节点连线结构
@@ -34,8 +24,8 @@ export interface GraphLine {
   id: string;
   isSameY: boolean;
   label: string;
-  source: { id: string; x: number; y: number };
-  target: { id: string; x: number; y: number };
+  source: string;
+  target: string;
 }
 
 // graph node types
@@ -43,20 +33,21 @@ export enum GroupTypes {
   GROUP = 'group',
   NODE = 'node',
 }
-type GroupTypesStrings = `${GroupTypes}`;
 
 // 节点返回数据结构
 export interface GraphNode {
   belong: string; // 节点所属组 ID
   children: GraphNode[];
   data: ResourceTopo['nodes'][number] | ResourceTopo['groups'][number];
-  height: number;
   id: string;
-  label: string;
+  name: string;
+  style: {
+    height: number;
+    width: number;
+    x: number;
+    y: number;
+  };
   type: GroupTypesStrings; // 节点类型 group | node
-  width: number;
-  x: number;
-  y: number;
 }
 
 export interface GraphInstance {
@@ -98,6 +89,19 @@ export const nodeTypes = {
   TENDISSSD_SLAVE: 'tendisssd::redis_slave',
 };
 
+type GroupTypesStrings = `${GroupTypes}`;
+
+const defaultNodeConfig = {
+  groupTitle: 44,
+  itemHeight: 28,
+  minHeight: 54,
+  offsetX: 140,
+  offsetY: 62,
+  startX: 100,
+  startY: 100,
+  width: 296,
+};
+
 // 特殊逻辑：控制节点水平对齐
 const sameSources = [
   nodeTypes.MASTER,
@@ -122,12 +126,82 @@ const sameTargets = [
   nodeTypes.MONGODB_CONFIG,
 ];
 
+/**
+ * 获取 group 间连线
+ */
+const getGroupLines = (data: ResourceTopo) => {
+  const { groups, lines } = data;
+  const results: GraphLine[] = [];
+
+  for (const line of lines) {
+    const { label_name: labelName, source, source_type: sourceType, target, target_type: targetType } = line;
+    let sourceId = source;
+    let targetId = target;
+
+    // 如果 source 和 taget 均为 node 类型
+    if (sourceType === 'node' && targetType === 'node') {
+      for (const group of groups) {
+        if (group.children_id.includes(source)) {
+          sourceId = group.node_id;
+          continue;
+        }
+        if (group.children_id.includes(target)) {
+          targetId = group.node_id;
+          continue;
+        }
+      }
+    } else if (sourceType === 'node') {
+      // 处理 source 为 node 的情况
+      const sourceGroup = groups.find((group) => group.children_id.includes(source));
+      sourceGroup && (sourceId = sourceGroup.node_id);
+    } else if (targetType === 'node') {
+      // 处理 target 为 node 的情况
+      const targetGroup = groups.find((group) => group.children_id.includes(target));
+      targetGroup && (targetId = targetGroup.node_id);
+    }
+    results.push({
+      id: `${sourceId}__${targetId}`,
+      // source 为 master 且 target 为 slave 则 y 值相等
+      isSameY: sameSources.includes(sourceId) && sameTargets.includes(targetId), // TODO: 这里是节点并列特殊逻辑
+      label: labelName,
+      source: sourceId,
+      target: targetId,
+    });
+  }
+  return results;
+};
+
+/**
+ * 获取实际画图连线
+ */
+const getLines = (data: ResourceTopo) => {
+  const { lines } = data;
+  const results = [];
+
+  for (const line of lines) {
+    const { label_name: labelName, source, target } = line;
+    const sourceId = source;
+    const targetId = target;
+
+    results.push({
+      id: `${sourceId}__${targetId}`,
+      // source为master且target为slave 则 y 值相等
+      isSameY: sameSources.includes(sourceId) && sameTargets.includes(targetId), // TODO: 这里是节点并列特殊逻辑
+      label: labelName,
+      source: sourceId,
+      target: targetId,
+    });
+  }
+  return _.uniqBy(results, 'id');
+};
+
 export class GraphData {
   clusterType: string;
   graphData: {
-    lines: GraphLine[];
-    locations: GraphNode[];
-  } = { lines: [], locations: [] };
+    edges: GraphLine[];
+    nodes: GraphNode[];
+  } = { edges: [], nodes: [] };
+
   nodeConfig: typeof defaultNodeConfig = { ...defaultNodeConfig };
 
   constructor(clusterType: string, nodeConfig: NodeConfig = {}) {
@@ -141,11 +215,12 @@ export class GraphData {
   calcChildrenNodeLocations(targetNode: GraphNode) {
     const { groupTitle, itemHeight } = this.nodeConfig;
     targetNode.children.forEach((childNode, index) => {
-      const offet = (targetNode.height - childNode.height) / 2;
+      const offet = (targetNode.style.height - childNode.style.height) / 2;
       // eslint-disable-next-line no-param-reassign
-      childNode.x = targetNode.x;
+      childNode.style.x = targetNode.style.x;
       // eslint-disable-next-line no-param-reassign
-      childNode.y = index === 0 ? targetNode.y + groupTitle - offet : targetNode.children[index - 1].y + itemHeight;
+      childNode.style.y =
+        index === 0 ? targetNode.style.y + groupTitle - offet : targetNode.children[index - 1].style.y + itemHeight;
     });
   }
 
@@ -169,14 +244,14 @@ export class GraphData {
     // 水平排列
     for (let i = 0; i < moveNodes.length; i++) {
       const node = moveNodes[i];
-      const { width, x } = referenceNode;
-      node.x = x + (width + this.nodeConfig.offsetX) * (i + 1);
+      const { width, x } = referenceNode.style;
+      node.style.x = x + (width + this.nodeConfig.offsetX) * (i + 1);
     }
     // 整体向左偏移，让中间节点垂直对齐
     for (const node of targetNodes) {
-      node.x = node.x - node.width - this.nodeConfig.offsetX;
+      node.style.x = node.style.x - node.style.width - this.nodeConfig.offsetX;
       for (const childNode of node.children) {
-        childNode.x = node.x;
+        childNode.style.x = node.style.x;
       }
     }
   }
@@ -188,19 +263,19 @@ export class GraphData {
    */
   calcLines(lines: GraphLine[], nodes: GraphNode[]) {
     for (const line of lines) {
-      const source = nodes.find((node) => node.id === line.source.id);
-      const target = nodes.find((node) => node.id === line.target.id);
+      const source = nodes.find((node) => node.id === line.source);
+      const target = nodes.find((node) => node.id === line.target);
 
       if (source) {
         Object.assign(line.source, {
-          x: source.x || 0,
-          y: source.y || 0,
+          x: source.style.x || 0,
+          y: source.style.y || 0,
         });
       }
       if (target) {
         Object.assign(line.target, {
-          x: target.x || 0,
-          y: target.y || 0,
+          x: target.style.x || 0,
+          y: target.style.y || 0,
         });
       }
     }
@@ -213,42 +288,46 @@ export class GraphData {
    * @param lines 连线列表
    * @param calculatedNodes 存储已经计算过的节点
    */
-  calcNodeLocations(
-    startNode: GraphNode,
-    nodes: GraphNode[],
-    lines: GraphLine[],
-    calculatedNodes = new Map<string, GraphNode>(),
-  ) {
-    if (!startNode) {
-      return;
-    }
-    const startLines = lines.filter((line) => line.source.id === startNode.id);
-    calculatedNodes.set(startNode.id, startNode);
+  calcNodeLocations(startNode: GraphNode, nodes: GraphNode[], lines: GraphLine[]) {
+    const calculatedNodes: Map<string, GraphNode> = new Map<string, GraphNode>();
 
-    for (const startLine of startLines) {
-      const { isSameY, target } = startLine;
-      const targetNode = nodes.find((node) => node.id === target.id);
-
-      if (targetNode && !calculatedNodes.get(targetNode.id)) {
-        const { height, width, x, y } = startNode;
-        const { groupTitle, itemHeight, offsetX, offsetY } = this.nodeConfig;
-        const heightDifference = (targetNode.height - height) / 2; // 渲染节点是以y值为中心，所以需要计算两个节点高度差的一半
-        targetNode.x = isSameY ? x + width + offsetX : x;
-        targetNode.y = isSameY ? y : y + height + offsetY + heightDifference;
-
-        // 计算 children nodes 坐标
-        targetNode.children.forEach((childNode, index) => {
-          const offet = (targetNode.height - childNode.height) / 2;
-          // eslint-disable-next-line no-param-reassign
-          childNode.x = targetNode.x;
-          // eslint-disable-next-line no-param-reassign
-          childNode.y = index === 0 ? targetNode.y + groupTitle - offet : targetNode.children[index - 1].y + itemHeight;
-        });
-
-        calculatedNodes.set(targetNode.id, targetNode);
-        this.calcNodeLocations(targetNode, nodes, lines, calculatedNodes);
+    const updateNodeLocation = (startNode: GraphNode, nodes: GraphNode[], lines: GraphLine[]) => {
+      if (!startNode) {
+        return;
       }
-    }
+
+      calculatedNodes.set(startNode.id, startNode);
+      const startLines = lines.filter((line) => line.source === startNode.id);
+      for (const startLine of startLines) {
+        const { isSameY, target } = startLine;
+        const targetNode = nodes.find((node) => node.id === target);
+
+        if (targetNode && !calculatedNodes.get(targetNode.id)) {
+          const { height, width, x, y } = startNode.style;
+          const { groupTitle, itemHeight, offsetX, offsetY } = this.nodeConfig;
+          const heightDifference = (targetNode.style.height - height) / 2; // 渲染节点是以y值为中心，所以需要计算两个节点高度差的一半
+          targetNode.style.x = isSameY ? x + width + offsetX : x;
+          targetNode.style.y = isSameY ? y : y + height + offsetY + heightDifference;
+
+          // 计算 children nodes 坐标
+          targetNode.children.forEach((childNode, index) => {
+            const offet = (targetNode.style.height - childNode.style.height) / 2;
+            // eslint-disable-next-line no-param-reassign
+            childNode.style.x = targetNode.style.x;
+            // eslint-disable-next-line no-param-reassign
+            childNode.style.y =
+              index === 0
+                ? targetNode.style.y + groupTitle - offet
+                : targetNode.children[index - 1].style.y + itemHeight;
+          });
+
+          calculatedNodes.set(targetNode.id, targetNode);
+          updateNodeLocation(targetNode, nodes, lines);
+        }
+      }
+    };
+
+    updateNodeLocation(startNode, nodes, lines);
   }
 
   /**
@@ -259,16 +338,17 @@ export class GraphData {
     const { groupTitle, itemHeight, offsetX, startX, startY } = this.nodeConfig;
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i];
-      node.x = (node.width + offsetX) * i + startX;
-      node.y = startY;
+      node.style.x = (node.style.width + offsetX) * i + startX;
+      node.style.y = startY;
 
       // 计算 children nodes 坐标
       node.children.forEach((childNode, index) => {
-        const offet = (node.height - childNode.height) / 2;
+        const offet = (node.style.height - childNode.style.height) / 2;
         // eslint-disable-next-line no-param-reassign
-        childNode.x = node.x;
+        childNode.style.x = node.style.x;
         // eslint-disable-next-line no-param-reassign
-        childNode.y = index === 0 ? node.y + groupTitle - offet : node.children[index - 1].y + itemHeight;
+        childNode.style.y =
+          index === 0 ? node.style.y + groupTitle - offet : node.children[index - 1].style.y + itemHeight;
       });
     }
   }
@@ -287,17 +367,18 @@ export class GraphData {
     const controllerNode = nodeMap[nodeTypes.TENDBCLUSTER_CONTROLLER];
     const spiderMasterNode = nodeMap[nodeTypes.TENDBCLUSTER_MASTER];
     if (controllerNode && spiderMasterNode) {
-      controllerNode.y = spiderMasterNode.y;
+      controllerNode.style.y = spiderMasterNode.style.y;
+      controllerNode.style.x = -controllerNode.style.width;
       this.calcChildrenNodeLocations(controllerNode);
     }
 
     const mntNode = nodeMap[nodeTypes.TENDBCLUSTER_MNT];
     const referenceNode = nodeMap[nodeTypes.TENDBCLUSTER_REMOTE_MASTER];
     if (mntNode && referenceNode) {
-      const { height, y } = referenceNode;
-      const heightDifference = (mntNode.height - height) / 2;
-      mntNode.y = y + height + this.nodeConfig.offsetY + heightDifference + 40;
-      mntNode.x = referenceNode.x;
+      const { height, y } = referenceNode.style;
+      const heightDifference = (mntNode.style.height - height) / 2;
+      mntNode.style.y = y + height + this.nodeConfig.offsetY + heightDifference + 40;
+      mntNode.style.x = referenceNode.style.x;
       this.calcChildrenNodeLocations(mntNode);
     }
   }
@@ -309,26 +390,28 @@ export class GraphData {
    * @returns graph data
    */
   formatGraphData(data: ResourceTopo, dbType: string) {
-    let locations: GraphNode[] = [];
-    let lines: GraphLine[] = [];
-
+    let edges: GraphLine[] = [];
+    let nodes: GraphNode[] = [];
     if (dbType === DBTypes.RIAK) {
-      locations = data.nodes.map((item, index) => ({
+      nodes = data.nodes.map((item, index) => ({
         belong: '', // 节点所属组 ID
         children: [],
         data: item,
-        height: 44,
         id: item.node_id,
-        label: item.node_id,
+        name: item.node_id,
+        style: {
+          height: 44,
+          width: 192,
+          x: 100 + (index % 4) * 208,
+          y: 100 + Math.floor(index / 4) * 56,
+        },
+
         type: 'node', // 节点类型 group | node
-        width: 192,
-        x: 100 + (index % 4) * 208,
-        y: 100 + Math.floor(index / 4) * 56,
       }));
     } else {
       const rootGroups = this.getRootGroups(data, dbType);
       const groups = this.getGroups(data, rootGroups);
-      const groupLines = this.getGroupLines(data);
+      const groupLines = getGroupLines(data);
       this.calcRootLocations(rootGroups);
       const [firstRoot] = rootGroups;
       this.calcNodeLocations(firstRoot, groups, groupLines);
@@ -340,66 +423,19 @@ export class GraphData {
         this.calcSpiderNodeLocations(rootGroups, groups);
       }
 
-      lines = this.getLines(data);
-      locations = [...rootGroups, ...groups].reduce(
-        (nodes: GraphNode[], node) => nodes.concat([node], node.children),
+      edges = getLines(data);
+      nodes = [...rootGroups, ...groups].reduce<GraphNode[]>(
+        (results, node) => results.concat([node], node.children),
         [],
       );
-      this.calcLines(lines, locations);
+      this.calcLines(edges, nodes);
     }
     this.graphData = {
-      lines,
-      locations,
+      edges,
+      nodes,
     };
 
     return this.graphData;
-  }
-
-  /**
-   * group lines
-   * @param data 集群拓扑数据
-   * @returns 获取 group 间连线
-   */
-  getGroupLines(data: ResourceTopo): GraphLine[] {
-    const { groups, lines } = data;
-    const results: GraphLine[] = [];
-
-    for (const line of lines) {
-      const { label_name: labelName, source, source_type: sourceType, target, target_type: targetType } = line;
-      let sourceId = source;
-      let targetId = target;
-
-      // 如果 source 和 taget 均为 node 类型
-      if (sourceType === 'node' && targetType === 'node') {
-        for (const group of groups) {
-          if (group.children_id.includes(source)) {
-            sourceId = group.node_id;
-            continue;
-          }
-          if (group.children_id.includes(target)) {
-            targetId = group.node_id;
-            continue;
-          }
-        }
-      } else if (sourceType === 'node') {
-        // 处理 source 为 node 的情况
-        const sourceGroup = groups.find((group) => group.children_id.includes(source));
-        sourceGroup && (sourceId = sourceGroup.node_id);
-      } else if (targetType === 'node') {
-        // 处理 target 为 node 的情况
-        const targetGroup = groups.find((group) => group.children_id.includes(target));
-        targetGroup && (targetId = targetGroup.node_id);
-      }
-      results.push({
-        id: `${sourceId}__${targetId}`,
-        // source 为 master 且 target 为 slave 则 y 值相等
-        isSameY: sameSources.includes(sourceId) && sameTargets.includes(targetId), // TODO: 这里是节点并列特殊逻辑
-        label: labelName,
-        source: { id: sourceId, x: 0, y: 0 },
-        target: { id: targetId, x: 0, y: 0 },
-      });
-    }
-    return results;
   }
 
   /**
@@ -426,13 +462,15 @@ export class GraphData {
               belong: group.node_id,
               children: [],
               data: node,
-              height: this.nodeConfig.itemHeight,
               id: node.node_id,
-              label: '',
+              name: node.node_id,
+              style: {
+                height: this.nodeConfig.itemHeight,
+                width: this.nodeConfig.width,
+                x: 0,
+                y: 0,
+              },
               type: GroupTypes.NODE,
-              width: this.nodeConfig.width,
-              x: 0,
-              y: 0,
             };
           })
           .filter((item) => item !== null) as GraphNode[];
@@ -441,43 +479,19 @@ export class GraphData {
           belong: '',
           children,
           data: group,
-          height: this.getNodeHeight(children),
           id: nodeId,
-          label: groupName || nodeId,
+          name: groupName || nodeId,
+          style: {
+            height: this.getNodeHeight(children),
+            width: this.nodeConfig.width,
+            x: 0,
+            y: 0,
+          },
           type: GroupTypes.GROUP,
-          width: this.nodeConfig.width,
-          x: 0,
-          y: 0,
         });
       }
     }
     return results;
-  }
-
-  /**
-   * 获取实际画图连线
-   * @param data 集群拓扑数据
-   * @returns GraphLines
-   */
-  getLines(data: ResourceTopo): GraphLine[] {
-    const { lines } = data;
-    const results = [];
-
-    for (const line of lines) {
-      const { label_name: labelName, source, target } = line;
-      const sourceId = source;
-      const targetId = target;
-
-      results.push({
-        id: `${sourceId}__${targetId}`,
-        // source为master且target为slave 则 y 值相等
-        isSameY: sameSources.includes(sourceId) && sameTargets.includes(targetId), // TODO: 这里是节点并列特殊逻辑
-        label: labelName,
-        source: { id: sourceId, x: 0, y: 0 },
-        target: { id: targetId, x: 0, y: 0 },
-      });
-    }
-    return _.uniqBy(results, 'id');
   }
 
   /**
@@ -529,13 +543,15 @@ export class GraphData {
               belong: group.node_id,
               children: [],
               data: node,
-              height: this.nodeConfig.itemHeight,
               id: node.node_id,
-              label: '',
+              name: node.node_id,
+              style: {
+                height: this.nodeConfig.itemHeight,
+                width: this.nodeConfig.width,
+                x: 0,
+                y: 0,
+              },
               type: GroupTypes.NODE,
-              width: this.nodeConfig.width,
-              x: 0,
-              y: 0,
             };
           })
           .filter((item) => item !== null);
@@ -544,13 +560,15 @@ export class GraphData {
           belong: '',
           children,
           data: group,
-          height: this.getNodeHeight(children as GraphNode[]),
           id: group.node_id,
-          label: group.group_name,
+          name: group.group_name || group.node_id,
+          style: {
+            height: this.getNodeHeight(children as GraphNode[]),
+            width: this.nodeConfig.width,
+            x: 0,
+            y: 0,
+          },
           type: GroupTypes.GROUP,
-          width: this.nodeConfig.width,
-          x: 0,
-          y: 0,
         };
       })
       .filter((item) => item !== null) as GraphNode[];
