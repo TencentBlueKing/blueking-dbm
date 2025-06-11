@@ -15,7 +15,7 @@
   <DbCard :title="t('地域要求')">
     <DisasterToleranceLevelItem
       v-model="modelValue.disaster_tolerance_level"
-      type="bigdata" />
+      :type="type" />
     <CityCodeItem v-model="modelValue" />
     <SubzonesItem
       v-if="showSubZoneItem"
@@ -27,6 +27,7 @@
 </template>
 
 <script setup lang="ts">
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import { Affinity } from '@common/const';
@@ -34,6 +35,10 @@
   import CityCodeItem from './components/CityCode.vue';
   import DisasterToleranceLevelItem from './components/DisasterToleranceLevel.vue';
   import SubzonesItem from './components/subzones/Index.vue';
+
+  interface Props {
+    type?: ComponentProps<typeof DisasterToleranceLevelItem>['type'];
+  }
 
   interface Expose {
     getValue: () => {
@@ -46,6 +51,8 @@
     };
     setInitSubzone: (subzoneIds: number[]) => void;
   }
+
+  defineProps<Props>();
 
   const modelValue = defineModel<{
     city_code: string;
@@ -65,9 +72,12 @@
   defineExpose<Expose>({
     getValue() {
       const { city_code: city, disaster_tolerance_level: affinity, sub_zone_ids: subZoneIds } = modelValue.value;
-
-      // 无容灾要求-指定地域-指定园区
-      if (affinity === Affinity.NONE && city !== 'default' && subZoneIds.length > 0) {
+      // 跨园区 / 指定园区 / 无容灾要求-指定地域-指定园区
+      if (
+        affinity === Affinity.CROS_SUBZONE ||
+        affinity === Affinity.SAME_SUBZONE_CROSS_SWTICH ||
+        (affinity === Affinity.NONE && city !== 'default' && subZoneIds.length > 0)
+      ) {
         return {
           affinity,
           location_spec: {
@@ -78,7 +88,7 @@
         };
       }
 
-      // 尽量分散 / 无容灾要求-随机地域-随机园区
+      // 不限园区 / 无容灾要求-随机地域 / 无容灾要求-指定地域-随机园区
       return {
         affinity,
         location_spec: {

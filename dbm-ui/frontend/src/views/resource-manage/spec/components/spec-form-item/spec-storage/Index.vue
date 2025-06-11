@@ -108,7 +108,7 @@
   useRequest(searchDeviceClass, {
     onSuccess(data) {
       diskTypeList.value = data.map((item) => ({
-        label: item === 'ALL' ? t('无限制') : item,
+        label: item === 'ALL' ? t('随机') : item,
         value: item,
       }));
     },

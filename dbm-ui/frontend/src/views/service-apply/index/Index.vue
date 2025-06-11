@@ -109,7 +109,7 @@
     FunctionKeys,
   } from '@services/model/function-controller/functionController';
 
-  import { useUserProfile } from '@stores';
+  import { useGlobalBizs, useUserProfile } from '@stores';
 
   import {
     bigDataType,
@@ -150,6 +150,7 @@
   const router = useRouter();
   const { t } = useI18n();
   const userProfile = useUserProfile();
+  const { currentBizId } = useGlobalBizs();
 
   const localHistroyKey = 'SERVICE_APPLY_HISTORY';
 
@@ -343,6 +344,7 @@
     router.push({
       name: item.routeName,
       query: {
+        bizId: currentBizId,
         from: route.name as string,
       },
     });

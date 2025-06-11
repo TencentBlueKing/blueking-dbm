@@ -328,7 +328,7 @@
     }
 
     :deep(.spec-radio) {
-      display: flex;
+      display: flex !important;
       max-width: 100%;
 
       .bk-radio-input {
