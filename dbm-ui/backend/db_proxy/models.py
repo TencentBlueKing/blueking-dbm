@@ -19,7 +19,8 @@ from django.utils.translation import gettext_lazy as _
 
 from backend.bk_web.constants import LEN_LONG, LEN_NORMAL, LEN_SHORT
 from backend.bk_web.models import AuditedModel
-from backend.configuration.constants import DBType
+from backend.configuration.constants import DBType, SystemSettingsEnum
+from backend.configuration.models.system import SystemSettings
 from backend.db_proxy.constants import (
     CLUSTER__SERVICE_MAP,
     DB_CLOUD_PROXY_EXPIRE_TIME,
@@ -189,6 +190,13 @@ class ClusterExtension(AuditedModel):
         return flush_extension
 
     def save_access_url(self, nginx_url):
+        dbm_manage_address = SystemSettings.get_setting_value(key=SystemSettingsEnum.DBM_MANAGE_ADDRESS, default={})
+        domain = dbm_manage_address.get(str(self.bk_cloud_id), "")
+        if domain:
+            if ":" in nginx_url:
+                nginx_url = domain + ":" + nginx_url.split(":")[-1]
+            else:
+                nginx_url = domain
         slash = (
             "" if self.service_type in [ClusterServiceType.KAFKA_MANAGER, ClusterServiceType.PULSAR_MANAGER] else "/"
         )

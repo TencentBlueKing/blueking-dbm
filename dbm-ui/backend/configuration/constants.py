@@ -139,6 +139,8 @@ class SystemSettingsEnum(str, StructuredEnum):
     BUILTIN_LABELS = EnumField("BUILTIN_LABELS", _("内置标签列表"))
     # 反向上报事件类型
     REVERSE_REPORT_EVENT_TYPES = EnumField("REVERSE_REPORT_EVENT_TYPES", _("反向上报事件类型"))
+    # 大数据管理端域名映射
+    DBM_MANAGE_ADDRESS = EnumField("DBM_MANAGE_ADDRESS", _("大数据管理端域名映射"))
 
 
 class BizSettingsEnum(str, StructuredEnum):

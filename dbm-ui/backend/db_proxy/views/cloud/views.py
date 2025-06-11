@@ -132,6 +132,7 @@ class CloudProxyPassViewSet(BaseProxyPassViewSet):
         # 目前子配置只有大数据转发，并且考虑社区化部署集群量较少，这里就全量拉去更新
         cluster_extensions = ClusterExtension.objects.filter(bk_cloud_id=bk_cloud_id)
         proxy_external_address = DBCloudProxy.get_cloud_proxy_external_address(bk_cloud_id=bk_cloud_id)
+
         file_list: List[Dict[str, Any]] = []
         for extension in cluster_extensions:
             conf_tpl = getattr(nginxconf_tpl, f"{extension.db_type}_conf_tpl", None)
