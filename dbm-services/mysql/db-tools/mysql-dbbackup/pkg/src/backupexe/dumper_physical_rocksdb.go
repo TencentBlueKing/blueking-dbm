@@ -107,7 +107,8 @@ func (p *PhysicalRocksdbDumper) initConfig(mysqlVersion string) error {
 	}
 
 	// set the base config
-	p.checkpointDir = filepath.Join(p.cnf.Public.BackupDir, "MyRocks_checkpoint")
+	port := fmt.Sprintf("%d", p.cnf.Public.MysqlPort)
+	p.checkpointDir = filepath.Join(p.cnf.Public.BackupDir, port, "MyRocks_checkpoint")
 	p.rocksdbCmd = filepath.Join("bin", cst.ToolMyrocksHotbackup)
 	BackupTool = cst.ToolMyrocksHotbackup
 	return nil
