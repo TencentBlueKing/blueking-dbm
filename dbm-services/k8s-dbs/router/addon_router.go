@@ -40,7 +40,19 @@ func buildAddonRouter(db *gorm.DB, router *gin.Engine) {
 	addonHelmRepoDbAccess := metadbaccess.NewAddonHelmRepoDbAccess(db)
 	addonHelmRepoProvider := metaprovider.NewAddonHelmRepoProvider(addonHelmRepoDbAccess)
 
-	addonProvider := provider.NewAddonProvider(requestRecordProvider, k8sClusterConfigProvider, addonHelmRepoProvider)
+	addonMetaDbAccess := metadbaccess.NewK8sCrdStorageAddonDbAccess(db)
+	addonMetaProvider := metaprovider.NewK8sCrdStorageAddonProvider(addonMetaDbAccess)
+
+	clusterAddonsMetaDbAccess := metadbaccess.NewK8sClusterAddonsDbAccess(db)
+	clusterAddonsMetaProvider := metaprovider.NewK8sClusterAddonsProvider(clusterAddonsMetaDbAccess, addonMetaDbAccess)
+
+	addonProvider := provider.NewAddonProvider(
+		requestRecordProvider,
+		k8sClusterConfigProvider,
+		addonHelmRepoProvider,
+		clusterAddonsMetaProvider,
+		addonMetaProvider,
+	)
 
 	addonController := controller.NewAddonController(addonProvider)
 	addonGroup := router.Group(basePath + "/addon")

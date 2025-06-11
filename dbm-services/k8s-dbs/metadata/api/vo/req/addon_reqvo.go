@@ -29,6 +29,7 @@ type K8sCrdAddonReqVo struct {
 	AddonVersion       string    `json:"addon_version" binding:"required"`
 	Topologies         string    `json:"topologies"`
 	RecommendedVersion string    `json:"recommended_version"`
+	SupportedVersions  string    `json:"supported_versions"`
 	Releases           string    `json:"releases"`
 	Description        string    `json:"description" binding:"required"`
 	CreatedBy          string    `json:"created_by"`

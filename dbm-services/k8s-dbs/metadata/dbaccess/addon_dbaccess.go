@@ -20,6 +20,9 @@ limitations under the License.
 package dbaccess
 
 import (
+	"errors"
+	"fmt"
+	mconst "k8s-dbs/metadata/constant"
 	models "k8s-dbs/metadata/dbaccess/model"
 	"k8s-dbs/metadata/utils"
 	"log/slog"
@@ -32,6 +35,7 @@ type K8sCrdStorageAddonDbAccess interface {
 	Create(model *models.K8sCrdStorageAddonModel) (*models.K8sCrdStorageAddonModel, error)
 	DeleteByID(id uint64) (uint64, error)
 	FindByID(id uint64) (*models.K8sCrdStorageAddonModel, error)
+	FindByParams(params map[string]interface{}) ([]models.K8sCrdStorageAddonModel, error)
 	Update(model *models.K8sCrdStorageAddonModel) (uint64, error)
 	ListByPage(pagination utils.Pagination) ([]models.K8sCrdStorageAddonModel, int64, error)
 }
@@ -39,6 +43,25 @@ type K8sCrdStorageAddonDbAccess interface {
 // K8sCrdStorageAddonDbAccessImpl K8sCrdStorageAddonDbAccess 的具体实现
 type K8sCrdStorageAddonDbAccessImpl struct {
 	db *gorm.DB
+}
+
+// FindByParams 参数查询实现
+func (k *K8sCrdStorageAddonDbAccessImpl) FindByParams(params map[string]interface{}) (
+	[]models.K8sCrdStorageAddonModel,
+	error,
+) {
+	var saModels []models.K8sCrdStorageAddonModel
+	if err := k.db.
+		Where(params).
+		Limit(mconst.MaxFetchSize).
+		Find(&saModels).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return []models.K8sCrdStorageAddonModel{}, nil
+		}
+		slog.Error("failed to find by params", "error", err)
+		return nil, fmt.Errorf("database query failed: %w", err)
+	}
+	return saModels, nil
 }
 
 // Create 创建 addon 元数据接口实现
@@ -104,5 +127,5 @@ func (k *K8sCrdStorageAddonDbAccessImpl) ListByPage(pagination utils.Pagination)
 
 // NewK8sCrdStorageAddonDbAccess 创建 K8sCrdStorageAddonDbAccess 接口实现实例
 func NewK8sCrdStorageAddonDbAccess(db *gorm.DB) K8sCrdStorageAddonDbAccess {
-	return &K8sCrdStorageAddonDbAccessImpl{db: db}
+	return &K8sCrdStorageAddonDbAccessImpl{db}
 }

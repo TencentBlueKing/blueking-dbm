@@ -33,6 +33,7 @@ type K8sCrdStorageAddonModel struct {
 	AddonVersion       string    `gorm:"size:32;not null;column:addon_version" json:"addon_version"`
 	Topologies         string    `gorm:"type:text;column:topologies" json:"topologies"`
 	RecommendedVersion string    `gorm:"size:32;not null;column:recommended_version" json:"recommended_version"`
+	SupportedVersions  string    `gorm:"size:1000;not null;column:supported_versions" json:"supported_versions"`
 	Releases           string    `gorm:"type:text;column:releases" json:"releases"`
 	Active             bool      `gorm:"type:tinyint(1);not null;default:1;column:active" json:"active"`
 	Description        string    `gorm:"size:100;column:description" json:"description"`

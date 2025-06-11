@@ -29,6 +29,7 @@ type K8sCrdAddonRespVo struct {
 	AddonType          string    `json:"addon_type"`
 	AddonVersion       string    `json:"addon_version"`
 	RecommendedVersion string    `json:"recommended_version"`
+	SupportedVersions  string    `json:"supported_versions"`
 	Topologies         string    `json:"topologies"`
 	Releases           string    `json:"releases"`
 	Active             bool      `json:"active"`

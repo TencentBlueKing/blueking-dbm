@@ -108,7 +108,7 @@ func buildOpsMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
 	opsMetaDbAccess := metadbaccess.NewK8sCrdOpsRequestDbAccess(db)
 	opsMetaProvider := metaprovider.NewK8sCrdOpsRequestProvider(opsMetaDbAccess)
 	opsMetaController := metacontroller.NewOpsController(opsMetaProvider)
-	opsMetaGroup := metaRouter.Group("/metadata/ops")
+	opsMetaGroup := metaRouter.Group("/ops")
 	{
 		opsMetaGroup.GET("/:id", opsMetaController.GetOps)
 	}
@@ -119,7 +119,7 @@ func buildClusterMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
 	clusterMetaDbAccess := metadbaccess.NewCrdClusterDbAccess(db)
 	clusterMetaProvider := metaprovider.NewK8sCrdClusterProvider(clusterMetaDbAccess)
 	clusterMetaController := metacontroller.NewClusterController(clusterMetaProvider)
-	clusterMetaGroup := metaRouter.Group("/metadata/cluster")
+	clusterMetaGroup := metaRouter.Group("/cluster")
 	{
 		clusterMetaGroup.GET("/:id", clusterMetaController.GetCluster)
 	}
@@ -130,7 +130,7 @@ func buildCmpvMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
 	cmpvMetaDbAccess := metadbaccess.NewK8sCrdCmpvDbAccess(db)
 	cmpvMetaProvider := metaprovider.NewK8sCrdCmpvProvider(cmpvMetaDbAccess)
 	cmpvMetaController := metacontroller.NewCmpvController(cmpvMetaProvider)
-	cmpvMetaGroup := metaRouter.Group("/metadata/cmpv")
+	cmpvMetaGroup := metaRouter.Group("/cmpv")
 	{
 		cmpvMetaGroup.GET("/:id", cmpvMetaController.GetCmpv)
 		cmpvMetaGroup.DELETE("/:id", cmpvMetaController.DeleteCmpv)
@@ -144,7 +144,7 @@ func buildCmpdMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
 	cmpdMetaDbAccess := metadbaccess.NewK8sCrdCmpdDbAccess(db)
 	cmpdMetaProvider := metaprovider.NewK8sCrdCmpdProvider(cmpdMetaDbAccess)
 	cmpdMetaController := metacontroller.NewCmpdController(cmpdMetaProvider)
-	cmpdMetaGroup := metaRouter.Group("/metadata/cmpd")
+	cmpdMetaGroup := metaRouter.Group("/cmpd")
 	{
 		cmpdMetaGroup.GET("/:id", cmpdMetaController.GetCmpd)
 		cmpdMetaGroup.DELETE("/:id", cmpdMetaController.DeleteCmpd)
@@ -158,7 +158,7 @@ func buildCdMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
 	cdMetaDbAccess := metadbaccess.NewK8sCrdClusterDefinitionDbAccess(db)
 	cdMetaProvider := metaprovider.NewK8sCrdClusterDefinitionProvider(cdMetaDbAccess)
 	cdMetaController := metacontroller.NewCdController(cdMetaProvider)
-	cdMetaGroup := metaRouter.Group("/metadata/cd")
+	cdMetaGroup := metaRouter.Group("/cd")
 	{
 		cdMetaGroup.GET("/:id", cdMetaController.GetCd)
 		cdMetaGroup.DELETE("/:id", cdMetaController.DeleteCd)
@@ -172,7 +172,7 @@ func buildAddonMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
 	addonMetaDbAccess := metadbaccess.NewK8sCrdStorageAddonDbAccess(db)
 	addonMetaProvider := metaprovider.NewK8sCrdStorageAddonProvider(addonMetaDbAccess)
 	addonMetaController := metacontroller.NewAddonController(addonMetaProvider)
-	addonMetaGroup := metaRouter.Group("/metadata/addon")
+	addonMetaGroup := metaRouter.Group("/addon")
 	{
 		addonMetaGroup.GET("", addonMetaController.ListAddons)
 		addonMetaGroup.GET("/:id", addonMetaController.GetAddon)
@@ -246,8 +246,6 @@ func buildAddonHelmRepoMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
 
 // buildK8sClusterAddonsRouter cluster addons 管理路由构建
 func buildK8sClusterAddonsRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
-	/*kcaDbAccess dbaccess.K8sClusterAddonsDbAccess
-	saDbaAccess dbaccess.K8sCrdStorageAddonDbAccess*/
 	kcaDbAccess := metadbaccess.NewK8sClusterAddonsDbAccess(db)
 	saDbAccess := metadbaccess.NewK8sCrdStorageAddonDbAccess(db)
 

@@ -30,6 +30,7 @@ type K8sCrdStorageAddonEntity struct {
 	AddonVersion       string    `json:"addon_version"`
 	Topologies         string    `json:"topologies"`
 	RecommendedVersion string    `json:"recommended_version"`
+	SupportedVersions  string    `json:"supported_versions"`
 	Releases           string    `json:"releases"`
 	Active             bool      `json:"active"`
 	Description        string    `json:"description"`

@@ -10,10 +10,11 @@ SET NAMES utf8;
 CREATE TABLE IF NOT EXISTS tb_k8s_crd_storageaddon (
     id bigint PRIMARY KEY AUTO_INCREMENT COMMENT '主键 id',
     addon_name varchar(32) NOT NULL UNIQUE COMMENT '存储插件名称',
-    addon_category varchar(32) NOT NULL COMMENT '存储插件类型 Kv/Document/Oltp/Olap/Graph/Time-Series/Vector/Full-Text',
+    addon_category varchar(32) NOT NULL COMMENT '存储插件类型 KeyValue/Document/RDBMS/OLAP/Graph/TimeSeries/Vector/FullText/ObjectStorage',
     addon_type varchar(32) NOT NULL COMMENT '存储插件种类 MySql/Oracle/Redis...',
     addon_version varchar(32) NOT NULL COMMENT '存储插件大版本',
     recommended_version varchar(32) NOT NULL COMMENT '推荐存储插件小版本',
+    supported_versions varchar(1000) NOT NULL COMMENT '存储插件已经支持的版本',
     topologies text NOT NULL COMMENT '集群组件拓扑定义',
     releases text NOT NULL COMMENT '集群组件版本定义',
     active tinyint(1) NOT NULL DEFAULT 1 COMMENT '0:无效，1:有效',

@@ -42,39 +42,55 @@ type AddonProvider struct {
 	reqRecordProvider     metaprovider.ClusterRequestRecordProvider
 	clusterConfigProvider metaprovider.K8sClusterConfigProvider
 	addonHelmRepoProvider metaprovider.AddonHelmRepoProvider
+	clusterAddonsProvider metaprovider.K8sClusterAddonsProvider
+	addonMetaProvider     metaprovider.K8sCrdStorageAddonProvider
 }
 
 // DeployAddon 安装 addon 插件
 func (a *AddonProvider) DeployAddon(entity *pventity.AddonEntity) error {
 	_, err := helper.CreateRequestRecord(entity, coreconst.CreateK8sNs, a.reqRecordProvider)
 	if err != nil {
+		slog.Error("Failed to create request record", "error", err)
 		return fmt.Errorf("failed to create request record for addon: %w", err)
 	}
 	k8sClusterConfig, err := a.clusterConfigProvider.FindConfigByName(entity.K8sClusterName)
 	if err != nil {
+		slog.Error("Failed to find k8s cluster config", "error", err)
 		return fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
 
 	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
 	if err != nil {
+		slog.Error("Failed to create k8s client", "error", err)
 		return fmt.Errorf("failed to create k8sClient: %w", err)
 	}
 
 	if err = a.installAddonHelmRelease(entity, k8sClient); err != nil {
+		slog.Error("Failed to install helm release", "error", err)
 		return fmt.Errorf("failed to install helm release: %w", err)
+	}
+	_, err = a.createClusterAddon(entity)
+	if err != nil {
+		slog.Error("Failed to create cluster addon record", "error", err)
+		return err
 	}
 	return nil
 }
 
 // NewAddonProvider 创建 AddonProvider 实例
-func NewAddonProvider(reqRecordProvider metaprovider.ClusterRequestRecordProvider,
+func NewAddonProvider(
+	reqRecordProvider metaprovider.ClusterRequestRecordProvider,
 	clusterConfigProvider metaprovider.K8sClusterConfigProvider,
 	addonHelmRepoProvider metaprovider.AddonHelmRepoProvider,
+	clusterAddonsMetaProvider metaprovider.K8sClusterAddonsProvider,
+	addonMetaProvider metaprovider.K8sCrdStorageAddonProvider,
 ) *AddonProvider {
 	return &AddonProvider{
 		reqRecordProvider,
 		clusterConfigProvider,
 		addonHelmRepoProvider,
+		clusterAddonsMetaProvider,
+		addonMetaProvider,
 	}
 }
 
@@ -143,4 +159,41 @@ func (a *AddonProvider) installAddonHelmRelease(
 			entity.AddonType, clientconst.AddonDefaultNamespace, err)
 	}
 	return nil
+}
+
+// createClusterAddon 记录 k8s 集群 addon 的安装信息
+func (a *AddonProvider) createClusterAddon(entity *pventity.AddonEntity) (
+	*provderentity.K8sClusterAddonsEntity,
+	error,
+) {
+	saParams := map[string]interface{}{
+		"addon_type":    entity.AddonType,
+		"addon_version": entity.AddonVersion,
+	}
+	saEntities, err := a.addonMetaProvider.FindStorageAddonByParams(saParams)
+	if err != nil {
+		slog.Error("failed to find addon meta data", "error", err,
+			"addon_type", entity.AddonType, "addon_version", entity.AddonVersion)
+		return nil, err
+	}
+	if len(saEntities) == 0 {
+		slog.Error("no matching addon meta data found",
+			"addon_type", entity.AddonType, "addon_version", entity.AddonVersion)
+		return nil, err
+	}
+
+	clusterAddon := provderentity.K8sClusterAddonsEntity{
+		K8sClusterName: entity.K8sClusterName,
+		AddonID:        saEntities[0].ID,
+	}
+
+	addedClusterAddon, err := a.clusterAddonsProvider.CreateClusterAddon(&clusterAddon)
+	if err != nil {
+		slog.Error("failed to save cluster addon record",
+			"error", err,
+			"cluster_name", entity.K8sClusterName,
+			"addon_id", saEntities[0].ID)
+		return nil, err
+	}
+	return addedClusterAddon, nil
 }

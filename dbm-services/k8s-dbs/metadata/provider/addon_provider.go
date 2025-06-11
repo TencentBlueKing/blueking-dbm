@@ -34,6 +34,7 @@ type K8sCrdStorageAddonProvider interface {
 	CreateStorageAddon(entity *entitys.K8sCrdStorageAddonEntity) (*entitys.K8sCrdStorageAddonEntity, error)
 	DeleteStorageAddonByID(id uint64) (uint64, error)
 	FindStorageAddonByID(id uint64) (*entitys.K8sCrdStorageAddonEntity, error)
+	FindStorageAddonByParams(params map[string]interface{}) ([]entitys.K8sCrdStorageAddonEntity, error)
 	UpdateStorageAddon(entity *entitys.K8sCrdStorageAddonEntity) (uint64, error)
 	ListStorageAddons(pagination utils.Pagination) ([]entitys.K8sCrdStorageAddonEntity, error)
 }
@@ -41,6 +42,23 @@ type K8sCrdStorageAddonProvider interface {
 // K8sCrdStorageAddonProviderImpl K8sCrdStorageAddonProvider 具体实现
 type K8sCrdStorageAddonProviderImpl struct {
 	dbAccess dbaccess.K8sCrdStorageAddonDbAccess
+}
+
+// FindStorageAddonByParams 按照参数进行查询
+func (k *K8sCrdStorageAddonProviderImpl) FindStorageAddonByParams(
+	params map[string]interface{},
+) ([]entitys.K8sCrdStorageAddonEntity, error) {
+	saModels, err := k.dbAccess.FindByParams(params)
+	if err != nil {
+		slog.Error("failed to find storage addon by params.", "params", params, "err", err)
+		return nil, err
+	}
+	var saEntities []entitys.K8sCrdStorageAddonEntity
+	if err := copier.Copy(&saEntities, saModels); err != nil {
+		slog.Error("failed to copy models", "error", err)
+		return nil, err
+	}
+	return saEntities, nil
 }
 
 // CreateStorageAddon 创建 addon
@@ -71,7 +89,7 @@ func (k *K8sCrdStorageAddonProviderImpl) DeleteStorageAddonByID(id uint64) (uint
 	return k.dbAccess.DeleteByID(id)
 }
 
-// FindStorageAddonByID 查找 addon
+// FindStorageAddonByID 按照 ID 进行查询
 func (k *K8sCrdStorageAddonProviderImpl) FindStorageAddonByID(id uint64) (*entitys.K8sCrdStorageAddonEntity, error) {
 	storageAddonModel, err := k.dbAccess.FindByID(id)
 	if err != nil {
