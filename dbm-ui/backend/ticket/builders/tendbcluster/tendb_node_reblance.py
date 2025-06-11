@@ -18,13 +18,12 @@ from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import HostRecycleSerializer
 from backend.ticket.builders.common.constants import MySQLBackupSource
-from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.builders.tendbcluster.base import (
     BaseTendbTicketFlowBuilder,
     TendbBaseOperateDetailSerializer,
     TendbBaseOperateResourceParamBuilder,
 )
-from backend.ticket.constants import TicketType, TriggerChecksumType
+from backend.ticket.constants import TicketType
 
 
 class TendbNodeRebalanceDetailSerializer(TendbBaseOperateDetailSerializer):
@@ -48,8 +47,6 @@ class TendbNodeRebalanceDetailSerializer(TendbBaseOperateDetailSerializer):
     )
     ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
     need_checksum = serializers.BooleanField(help_text=_("执行前是否需要数据校验"))
-    trigger_checksum_type = serializers.ChoiceField(help_text=_("数据校验触发类型"), choices=TriggerChecksumType.get_choices())
-    trigger_checksum_time = DBTimezoneField(help_text=_("数据校验 触发时间"))
 
     def validate(self, attrs):
         super().validate(attrs)
