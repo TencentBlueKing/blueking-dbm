@@ -168,6 +168,7 @@ def standardize_mysql_cluster_by_ip_subflow(
     with_cc_standardize: bool = False,
     with_instance_standardize: bool = True,
     with_backup_client: bool = True,
+    with_exporter_config: bool = True,
 ) -> SubProcess:
     instances = [
         ele.ip_port for ele in StorageInstance.objects.filter(machine__bk_cloud_id=bk_cloud_id, machine__ip__in=ips)
@@ -190,6 +191,7 @@ def standardize_mysql_cluster_by_ip_subflow(
         with_cc_standardize=with_cc_standardize,
         with_instance_standardize=with_instance_standardize,
         with_backup_client=with_backup_client,
+        with_exporter_config=with_exporter_config,
     )
 
 
@@ -207,6 +209,8 @@ def standardize_mysql_cluster_by_cluster_subflow(
     with_bk_plugin: bool = True,
     with_cc_standardize: bool = False,
     with_instance_standardize: bool = True,
+    with_backup_client: bool = False,
+    with_exporter_config: bool = False,
 ) -> SubProcess:
     instances = []
     for cluster_obj in Cluster.objects.filter(bk_cloud_id=bk_cloud_id, pk__in=cluster_ids):
@@ -233,5 +237,7 @@ def standardize_mysql_cluster_by_cluster_subflow(
         with_actuator=with_actuator,
         with_bk_plugin=with_bk_plugin,
         with_cc_standardize=with_cc_standardize,
+        with_backup_client=with_backup_client,
         with_instance_standardize=with_instance_standardize,
+        with_exporter_config=with_exporter_config,
     )

@@ -263,8 +263,8 @@ class TenDBRemoteRebalanceFlow(object):
 
                 instances.extend(
                     [
-                        "{}:{}".format(ins_cluster["new_slave_ip"], ins_cluster["slave_port"]),
-                        "{}:{}".format(ins_cluster["new_master_ip"], ins_cluster["master_port"]),
+                        "{}:{}".format(ins_cluster["new_slave_ip"], ins_cluster["new_slave_port"]),
+                        "{}:{}".format(ins_cluster["new_master_ip"], ins_cluster["new_master_port"]),
                     ]
                 )
 
