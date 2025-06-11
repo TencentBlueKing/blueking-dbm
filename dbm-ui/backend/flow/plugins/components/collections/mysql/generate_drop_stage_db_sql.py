@@ -17,8 +17,8 @@ from pipeline.component_framework.component import Component
 from backend.db_services.mysql.sql_import.constants import BKREPO_SQLFILE_PATH, SQLCharset, SQLExecuteTicketMode
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.ticket.builders.common.base import fetch_cluster_ids
-from backend.ticket.constants import FlowType, TicketType
-from backend.ticket.models import Flow, Ticket
+from backend.ticket.constants import TicketType
+from backend.ticket.models import Ticket
 from backend.utils.time import datetime2str
 
 
@@ -88,12 +88,7 @@ class GenerateDropStageDBSqlService(BaseService):
             details=details,
         )
         # 原单据创建flow，关联清档单据
-        Flow.objects.create(
-            ticket=ticket,
-            flow_type=FlowType.DELIVERY.value,
-            details={"related_ticket": clear_ticket.id},
-            flow_alias=_("关联删除清档备份库单据"),
-        )
+        ticket.add_related_ticket(clear_ticket, desc=_("关联删除清档备份库单据"))
 
 
 class GenerateDropStageDBSqlComponent(Component):
