@@ -23,15 +23,16 @@ import "time"
 
 // K8sCrdCdRespVo defines the response data structure of cd meta.
 type K8sCrdCdRespVo struct {
-	ID                    uint64    `json:"id"`
-	AddonID               uint64    `json:"addon_id"`
-	ClusterDefinitionName string    `json:"clusterdefinition_name"`
-	Metadata              string    `json:"metadata"`
-	Spec                  string    `json:"spec"`
-	Active                bool      `json:"active"`
-	Description           string    `json:"description"`
-	CreatedBy             string    `json:"created_by"`
-	CreatedAt             time.Time `json:"created_at"`
-	UpdatedBy             string    `json:"updated_by"`
-	UpdatedAt             time.Time `json:"updated_at"`
+	ID                 uint64    `json:"id"`
+	AddonID            uint64    `json:"addon_id"`
+	CdName             string    `json:"cd_name"`
+	Topologies         string    `json:"topologies"`
+	RecommendedVersion string    `json:"recommended_version"`
+	Releases           string    `json:"releases"`
+	Active             bool      `json:"active"`
+	Description        string    `json:"description"`
+	CreatedBy          string    `json:"created_by"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedBy          string    `json:"updated_by"`
+	UpdatedAt          time.Time `json:"updated_at"`
 }

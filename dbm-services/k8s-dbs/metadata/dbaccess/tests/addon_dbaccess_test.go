@@ -57,13 +57,15 @@ func TestCreateStorageAddon(t *testing.T) {
 	dbAccess := dbaccess.NewK8sCrdStorageAddonDbAccess(db)
 
 	storageAddon := &model.K8sCrdStorageAddonModel{
-		AddonName:     "myaddon",
-		AddonCategory: "Graph",
-		AddonType:     "surrealdb",
-		Metadata:      "{\"namespace\":\"default\"}",
-		Spec:          "{\"replicas\":3}",
-		Active:        true,
-		Description:   "desc",
+		AddonName:          "myaddon",
+		AddonCategory:      "Graph",
+		AddonType:          "surrealdb",
+		AddonVersion:       "1.0.0",
+		RecommendedVersion: "1.0.0",
+		Topologies:         "[{\"name\":\"cluster\",\"default\":true,\"components\":[{\"name\":\"vminsert\"},{\"name\":\"vmselect\"},{\"name\":\"vmstorage\"}]},{\"name\":\"select\",\"default\":false,\"vmselect-1.0.0\",\"name\":\"vmselect\"}]}]",
+		Releases:           "[{\"name\":\"vmstorage-1.93.10\",\"serviceVersion\":\"1.93.10\",\"images\":{\"vmstorage\":\"victoriametrics/vmstorage:v1.93.10-cluster\"}},{\"name\":\"vmstorage-1.115.0\",\"serviceVersion\":\"1.115.0\",\"images\":{\"vmstorage\":\"victoriametrics/vmstorage:v1.115.0-cluster\"}}]",
+		Active:             true,
+		Description:        "desc",
 	}
 
 	addedStorageAddon, err := dbAccess.Create(storageAddon)
@@ -76,8 +78,10 @@ func TestCreateStorageAddon(t *testing.T) {
 	assert.Equal(t, storageAddon.AddonName, foundStorageAddon.AddonName)
 	assert.Equal(t, storageAddon.AddonCategory, foundStorageAddon.AddonCategory)
 	assert.Equal(t, storageAddon.AddonType, foundStorageAddon.AddonType)
-	assert.Equal(t, storageAddon.Metadata, foundStorageAddon.Metadata)
-	assert.Equal(t, storageAddon.Spec, foundStorageAddon.Spec)
+	assert.Equal(t, storageAddon.AddonVersion, foundStorageAddon.AddonVersion)
+	assert.Equal(t, storageAddon.RecommendedVersion, foundStorageAddon.RecommendedVersion)
+	assert.Equal(t, storageAddon.Topologies, foundStorageAddon.Topologies)
+	assert.Equal(t, storageAddon.Releases, foundStorageAddon.Releases)
 	assert.Equal(t, storageAddon.Active, foundStorageAddon.Active)
 }
 
@@ -88,18 +92,19 @@ func TestDeleteStorageAddon(t *testing.T) {
 	dbAccess := dbaccess.NewK8sCrdStorageAddonDbAccess(db)
 
 	storageAddon := &model.K8sCrdStorageAddonModel{
-		AddonName:     "myaddon",
-		AddonCategory: "Graph",
-		AddonType:     "surrealdb",
-		Metadata:      "{\"namespace\":\"default\"}",
-		Spec:          "{\"replicas\":3}",
-		Active:        true,
-		Description:   "desc",
+		AddonName:          "myaddon",
+		AddonCategory:      "Graph",
+		AddonType:          "surrealdb",
+		AddonVersion:       "1.0.0",
+		RecommendedVersion: "1.0.0",
+		Topologies:         "[{\"name\":\"cluster\",\"default\":true,\"components\":[{\"name\":\"vminsert\"},{\"name\":\"vmselect\"},{\"name\":\"vmstorage\"}]},{\"name\":\"select\",\"default\":false,\"vmselect-1.0.0\",\"name\":\"vmselect\"}]}]",
+		Releases:           "[{\"name\":\"vmstorage-1.93.10\",\"serviceVersion\":\"1.93.10\",\"images\":{\"vmstorage\":\"victoriametrics/vmstorage:v1.93.10-cluster\"}},{\"name\":\"vmstorage-1.115.0\",\"serviceVersion\":\"1.115.0\",\"images\":{\"vmstorage\":\"victoriametrics/vmstorage:v1.115.0-cluster\"}}]",
+		Active:             true,
+		Description:        "desc",
 	}
 
-	addedstorageAddon, err := dbAccess.Create(storageAddon)
+	_, err = dbAccess.Create(storageAddon)
 	assert.NoError(t, err, "Failed to create storageAddon")
-	fmt.Printf("Created storageAddon %+v\n", addedstorageAddon)
 
 	rows, err := dbAccess.DeleteByID(1)
 	assert.NoError(t, err, "Failed to delete storageAddon")
@@ -113,13 +118,15 @@ func TestUpdateStorageAddon(t *testing.T) {
 	dbAccess := dbaccess.NewK8sCrdStorageAddonDbAccess(db)
 
 	storageAddon := &model.K8sCrdStorageAddonModel{
-		AddonName:     "myaddon",
-		AddonCategory: "Graph",
-		AddonType:     "surrealdb",
-		Metadata:      "{\"namespace\":\"default\"}",
-		Spec:          "{\"replicas\":3}",
-		Active:        true,
-		Description:   "desc",
+		AddonName:          "myaddon",
+		AddonCategory:      "Graph",
+		AddonType:          "surrealdb",
+		AddonVersion:       "1.0.0",
+		RecommendedVersion: "1.0.0",
+		Topologies:         "[{\"name\":\"cluster\",\"default\":true,\"components\":[{\"name\":\"vminsert\"},{\"name\":\"vmselect\"},{\"name\":\"vmstorage\"}]},{\"name\":\"select\",\"default\":false,\"vmselect-1.0.0\",\"name\":\"vmselect\"}]}]",
+		Releases:           "[{\"name\":\"vmstorage-1.93.10\",\"serviceVersion\":\"1.93.10\",\"images\":{\"vmstorage\":\"victoriametrics/vmstorage:v1.93.10-cluster\"}},{\"name\":\"vmstorage-1.115.0\",\"serviceVersion\":\"1.115.0\",\"images\":{\"vmstorage\":\"victoriametrics/vmstorage:v1.115.0-cluster\"}}]",
+		Active:             true,
+		Description:        "desc",
 	}
 
 	addedstorageAddon, err := dbAccess.Create(storageAddon)
@@ -127,15 +134,17 @@ func TestUpdateStorageAddon(t *testing.T) {
 	fmt.Printf("Created cluster %+v\n", addedstorageAddon)
 
 	updateStorageAddon := &model.K8sCrdStorageAddonModel{
-		ID:            1,
-		AddonName:     "myaddon2",
-		AddonCategory: "Graph",
-		AddonType:     "surrealdb2",
-		Metadata:      "{\"namespace\":\"default\"}",
-		Spec:          "{\"replicas\":1}",
-		Active:        false,
-		Description:   "desc",
-		UpdatedAt:     time.Now(),
+		ID:                 1,
+		AddonName:          "myaddon2",
+		AddonCategory:      "Graph",
+		AddonType:          "surrealdb2",
+		AddonVersion:       "1.0.0",
+		RecommendedVersion: "1.0.0",
+		Topologies:         "[{\"name\":\"cluster\",\"default\":true,\"components\":[{\"name\":\"vminsert\"},{\"name\":\"vmselect\"},{\"name\":\"vmstorage\"}]},{\"name\":\"select\",\"default\":false,\"vmselect-1.0.0\",\"name\":\"vmselect\"}]}]",
+		Releases:           "[{\"name\":\"vmstorage-1.93.10\",\"serviceVersion\":\"1.93.10\",\"images\":{\"vmstorage\":\"victoriametrics/vmstorage:v1.93.10-cluster\"}},{\"name\":\"vmstorage-1.115.0\",\"serviceVersion\":\"1.115.0\",\"images\":{\"vmstorage\":\"victoriametrics/vmstorage:v1.115.0-cluster\"}}]",
+		Active:             false,
+		Description:        "desc",
+		UpdatedAt:          time.Now(),
 	}
 	rows, err := dbAccess.Update(updateStorageAddon)
 	assert.NoError(t, err, "Failed to update storageAddon")
@@ -152,8 +161,7 @@ func TestGetStorageAddon(t *testing.T) {
 		AddonName:     "myaddon",
 		AddonCategory: "Graph",
 		AddonType:     "surrealdb",
-		Metadata:      "{\"namespace\":\"default\"}",
-		Spec:          "{\"replicas\":3}",
+		AddonVersion:  "1.0.0",
 		Active:        true,
 		Description:   "desc",
 	}
@@ -167,8 +175,7 @@ func TestGetStorageAddon(t *testing.T) {
 	assert.Equal(t, storageAddon.AddonName, foundStorageAddon.AddonName)
 	assert.Equal(t, storageAddon.AddonCategory, foundStorageAddon.AddonCategory)
 	assert.Equal(t, storageAddon.AddonType, foundStorageAddon.AddonType)
-	assert.Equal(t, storageAddon.Metadata, foundStorageAddon.Metadata)
-	assert.Equal(t, storageAddon.Spec, foundStorageAddon.Spec)
+	assert.Equal(t, storageAddon.AddonVersion, foundStorageAddon.AddonVersion)
 	assert.Equal(t, storageAddon.Active, foundStorageAddon.Active)
 }
 
@@ -181,22 +188,26 @@ func TestListStorageAddon(t *testing.T) {
 	// 创建测试数据
 	testAddons := []model.K8sCrdStorageAddonModel{
 		{
-			AddonName:     "surreal",
-			AddonCategory: "Graph",
-			AddonType:     "SurrealDB",
-			Metadata:      "{\"namespace\":\"default\"}",
-			Spec:          "{\"replicas\":3}",
-			Active:        true,
-			Description:   "desc",
+			AddonName:          "surreal",
+			AddonCategory:      "Graph",
+			AddonType:          "SurrealDB",
+			AddonVersion:       "1.0.0",
+			RecommendedVersion: "1.0.0",
+			Topologies:         "{}",
+			Releases:           "{}",
+			Active:             true,
+			Description:        "desc",
 		},
 		{
-			AddonName:     "vm",
-			AddonCategory: "Time-Series",
-			AddonType:     "VictoriaMetric",
-			Metadata:      "{\"namespace\":\"default\"}",
-			Spec:          "{\"replicas\":3}",
-			Active:        true,
-			Description:   "desc",
+			AddonName:          "vm",
+			AddonCategory:      "Time-Series",
+			AddonType:          "VictoriaMetric",
+			AddonVersion:       "1.0.0",
+			RecommendedVersion: "1.0.0",
+			Topologies:         "[{\"name\":\"cluster\",\"default\":true,\"components\":[{\"name\":\"vminsert\"},{\"name\":\"vmselect\"},{\"name\":\"vmstorage\"}]},{\"name\":\"select\",\"default\":false,\"vmselect-1.0.0\",\"name\":\"vmselect\"}]}]",
+			Releases:           "[{\"name\":\"vmstorage-1.93.10\",\"serviceVersion\":\"1.93.10\",\"images\":{\"vmstorage\":\"victoriametrics/vmstorage:v1.93.10-cluster\"}},{\"name\":\"vmstorage-1.115.0\",\"serviceVersion\":\"1.115.0\",\"images\":{\"vmstorage\":\"victoriametrics/vmstorage:v1.115.0-cluster\"}}]",
+			Active:             true,
+			Description:        "desc",
 		},
 	}
 

@@ -9,11 +9,13 @@ SET NAMES utf8;
 --
 CREATE TABLE IF NOT EXISTS tb_k8s_crd_storageaddon (
     id bigint PRIMARY KEY AUTO_INCREMENT COMMENT '主键 id',
-    addon_name varchar(100) NOT NULL UNIQUE COMMENT '存储插件名称',
-    addon_category varchar(100) NOT NULL COMMENT '存储插件类型 Kv/Document/Oltp/Olap/Graph/Time-Series/Vector/Full-Text',
-    addon_type varchar(100) NOT NULL COMMENT '存储插件种类 MySql/Oracle/Redis...',
-    metadata text DEFAULT NULL COMMENT 'metadata定义',
-    spec text DEFAULT NULL COMMENT 'spec定义',
+    addon_name varchar(32) NOT NULL UNIQUE COMMENT '存储插件名称',
+    addon_category varchar(32) NOT NULL COMMENT '存储插件类型 Kv/Document/Oltp/Olap/Graph/Time-Series/Vector/Full-Text',
+    addon_type varchar(32) NOT NULL COMMENT '存储插件种类 MySql/Oracle/Redis...',
+    addon_version varchar(32) NOT NULL COMMENT '存储插件大版本',
+    recommended_version varchar(32) NOT NULL COMMENT '推荐存储插件小版本',
+    topologies text NOT NULL COMMENT '集群组件拓扑定义',
+    releases text NOT NULL COMMENT '集群组件版本定义',
     active tinyint(1) NOT NULL DEFAULT 1 COMMENT '0:无效，1:有效',
     description varchar(100) Null COMMENT '存储插件描述',
     created_by varchar(50) NOT NULL COMMENT '创建者',
@@ -21,57 +23,6 @@ CREATE TABLE IF NOT EXISTS tb_k8s_crd_storageaddon (
     updated_by varchar(50) NOT NULL COMMENT '更新者',
     updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT '存储插件相关信息的表';
-
---
--- Table structure for table tb_k8s_crd_clusterdefinition
---
-CREATE TABLE IF NOT EXISTS tb_k8s_crd_clusterdefinition (
-    id bigint PRIMARY KEY AUTO_INCREMENT COMMENT '主键 id',
-    addon_id bigint NOT NULL COMMENT '关联 k8s_crd_storageaddon 主键 id',
-    clusterdefinition_name varchar(100) NOT NULL COMMENT '集群定义名称',
-    metadata text DEFAULT NULL COMMENT 'metadata定义',
-    spec text DEFAULT NULL COMMENT 'spec定义',
-    active tinyint(1) NOT NULL DEFAULT 1 COMMENT '0:无效，1:有效',
-    description varchar(100) COMMENT '集群定义描述',
-    created_by varchar(50) NOT NULL COMMENT '创建者',
-    created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    updated_by varchar(50) NOT NULL COMMENT '更新者',
-    updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT '存储集群定义相关信息的表';
-
---
--- Table structure for table tb_k8s_crd_componentdefinition
---
-CREATE TABLE IF NOT EXISTS tb_k8s_crd_componentdefinition (
-    id bigint PRIMARY KEY AUTO_INCREMENT COMMENT '主键 id',
-    componentdefinition_name varchar(100) NOT NULL COMMENT '组件定义名称',
-    default_version varchar(100) NOT NULL COMMENT '默认版本',
-    metadata text DEFAULT NULL COMMENT 'metadata定义',
-    spec text DEFAULT NULL COMMENT 'spec定义',
-    active tinyint(1) NOT NULL DEFAULT 1 COMMENT '0:无效，1:有效',
-    description varchar(100) COMMENT '组件定义描述',
-    created_by varchar(50) NOT NULL COMMENT '创建者',
-    created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    updated_by varchar(50) NOT NULL COMMENT '更新者',
-    updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT '存储组件定义相关信息的表';
-
---
--- Table structure for table tb_k8s_crd_componentversion
---
-CREATE TABLE IF NOT EXISTS tb_k8s_crd_componentversion (
-    id bigint PRIMARY KEY AUTO_INCREMENT COMMENT '主键 id',
-    componentdefinition_id bigint COMMENT '关联 tb_k8s_crd_componentdefinition 主键 id',
-    componentversion_name varchar(100) NOT NULL COMMENT '组件版本名称',
-    metadata text DEFAULT NULL COMMENT 'metadata定义',
-    spec text DEFAULT NULL COMMENT 'spec定义',
-    active tinyint(1) NOT NULL DEFAULT 1 COMMENT '0:无效，1:有效',
-    description varchar(100) COMMENT '组件版本描述',
-    created_by varchar(50) NOT NULL COMMENT '创建者',
-    created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    updated_by varchar(50) NOT NULL COMMENT '更新者',
-    updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT '存储组件版本相关信息的表';
 
 --
 -- Table structure for table tb_k8s_crd_cluster

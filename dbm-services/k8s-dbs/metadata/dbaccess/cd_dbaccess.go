@@ -50,7 +50,7 @@ func (k *K8sCrdClusterDefinitionDbAccessImpl) Create(model *models.K8sCrdCluster
 		return nil, err
 	}
 	var created models.K8sCrdClusterDefinitionModel
-	if err := k.db.First(&created, "clusterdefinition_name = ?", model.ClusterDefinitionName).Error; err != nil {
+	if err := k.db.First(&created, "cd_name = ?", model.CdName).Error; err != nil {
 		slog.Error("Find clusterdefinition error", "error", err)
 		return nil, err
 	}

@@ -56,12 +56,13 @@ func TestCreateClusterDefinition(t *testing.T) {
 	dbAccess := dbaccess.NewK8sCrdClusterDefinitionDbAccess(db)
 
 	cd := &model.K8sCrdClusterDefinitionModel{
-		ClusterDefinitionName: "cd1",
-		AddonID:               uint64(1),
-		Metadata:              "{\"namespace\":\"default\"}",
-		Spec:                  "{\"replicas\":3}",
-		Active:                true,
-		Description:           "desc",
+		CdName:             "cd1",
+		AddonID:            uint64(1),
+		RecommendedVersion: "1.0.0",
+		Topologies:         "[{\"name\":\"cluster\",\"default\":true,\"components\":[{\"name\":\"vminsert\"},{\"name\":\"vmselect\"},{\"name\":\"vmstorage\"}]},{\"name\":\"select\",\"default\":false,\"vmselect-1.0.0\",\"name\":\"vmselect\"}]}]",
+		Releases:           "[{\"name\":\"vmstorage-1.93.10\",\"serviceVersion\":\"1.93.10\",\"images\":{\"vmstorage\":\"victoriametrics/vmstorage:v1.93.10-cluster\"}},{\"name\":\"vmstorage-1.115.0\",\"serviceVersion\":\"1.115.0\",\"images\":{\"vmstorage\":\"victoriametrics/vmstorage:v1.115.0-cluster\"}}]",
+		Active:             true,
+		Description:        "desc",
 	}
 
 	addedCd, err := dbAccess.Create(cd)
@@ -69,28 +70,30 @@ func TestCreateClusterDefinition(t *testing.T) {
 	fmt.Printf("Created componentVersion %+v\n", addedCd)
 
 	var foundCd model.K8sCrdClusterDefinitionModel
-	err = db.First(&foundCd, "clusterdefinition_name=?", "cd1").Error
+	err = db.First(&foundCd, "cd_name=?", "cd1").Error
 	assert.NoError(t, err, "Failed to query clusterDefinition")
-	assert.Equal(t, cd.ClusterDefinitionName, foundCd.ClusterDefinitionName)
+	assert.Equal(t, cd.CdName, foundCd.CdName)
 	assert.Equal(t, cd.AddonID, foundCd.AddonID)
-	assert.Equal(t, cd.Metadata, foundCd.Metadata)
-	assert.Equal(t, cd.Spec, foundCd.Spec)
+	assert.Equal(t, cd.RecommendedVersion, foundCd.RecommendedVersion)
+	assert.Equal(t, cd.Topologies, foundCd.Topologies)
+	assert.Equal(t, cd.Releases, foundCd.Releases)
 	assert.Equal(t, cd.Active, foundCd.Active)
 }
 
-func TestDeletClusterDefinition(t *testing.T) {
+func TestDeleteClusterDefinition(t *testing.T) {
 	db, err := SetUpTestDBForCd()
 	assert.NoError(t, err)
 
 	dbAccess := dbaccess.NewK8sCrdClusterDefinitionDbAccess(db)
 
 	cd := &model.K8sCrdClusterDefinitionModel{
-		ClusterDefinitionName: "cd1",
-		AddonID:               uint64(1),
-		Metadata:              "{\"namespace\":\"default\"}",
-		Spec:                  "{\"replicas\":3}",
-		Active:                true,
-		Description:           "desc",
+		CdName:             "cd1",
+		AddonID:            uint64(1),
+		RecommendedVersion: "1.0.0",
+		Topologies:         "[{\"name\":\"cluster\",\"default\":true,\"components\":[{\"name\":\"vminsert\"},{\"name\":\"vmselect\"},{\"name\":\"vmstorage\"}]},{\"name\":\"select\",\"default\":false,\"vmselect-1.0.0\",\"name\":\"vmselect\"}]}]",
+		Releases:           "[{\"name\":\"vmstorage-1.93.10\",\"serviceVersion\":\"1.93.10\",\"images\":{\"vmstorage\":\"victoriametrics/vmstorage:v1.93.10-cluster\"}},{\"name\":\"vmstorage-1.115.0\",\"serviceVersion\":\"1.115.0\",\"images\":{\"vmstorage\":\"victoriametrics/vmstorage:v1.115.0-cluster\"}}]",
+		Active:             true,
+		Description:        "desc",
 	}
 
 	addedCd, err := dbAccess.Create(cd)
@@ -109,12 +112,13 @@ func TestUpdateClusterDefinition(t *testing.T) {
 	dbAccess := dbaccess.NewK8sCrdClusterDefinitionDbAccess(db)
 
 	cd := &model.K8sCrdClusterDefinitionModel{
-		ClusterDefinitionName: "cd1",
-		AddonID:               uint64(1),
-		Metadata:              "{\"namespace\":\"default\"}",
-		Spec:                  "{\"replicas\":3}",
-		Active:                true,
-		Description:           "desc",
+		CdName:             "cd1",
+		AddonID:            uint64(1),
+		RecommendedVersion: "1.0.0",
+		Topologies:         "[{\"name\":\"cluster\",\"default\":true,\"components\":[{\"name\":\"vminsert\"},{\"name\":\"vmselect\"},{\"name\":\"vmstorage\"}]},{\"name\":\"select\",\"default\":false,\"vmselect-1.0.0\",\"name\":\"vmselect\"}]}]",
+		Releases:           "[{\"name\":\"vmstorage-1.93.10\",\"serviceVersion\":\"1.93.10\",\"images\":{\"vmstorage\":\"victoriametrics/vmstorage:v1.93.10-cluster\"}},{\"name\":\"vmstorage-1.115.0\",\"serviceVersion\":\"1.115.0\",\"images\":{\"vmstorage\":\"victoriametrics/vmstorage:v1.115.0-cluster\"}}]",
+		Active:             true,
+		Description:        "desc",
 	}
 
 	addedCd, err := dbAccess.Create(cd)
@@ -122,14 +126,15 @@ func TestUpdateClusterDefinition(t *testing.T) {
 	fmt.Printf("Created componentVersion %+v\n", addedCd)
 
 	updatedCd := &model.K8sCrdClusterDefinitionModel{
-		ID:                    1,
-		ClusterDefinitionName: "cd2",
-		AddonID:               uint64(1),
-		Metadata:              "{\"namespace\":\"default2\"}",
-		Spec:                  "{\"replicas\":2}",
-		Active:                false,
-		Description:           "desc",
-		UpdatedAt:             time.Now(),
+		ID:                 1,
+		CdName:             "cd2",
+		AddonID:            uint64(1),
+		RecommendedVersion: "2.0.0",
+		Topologies:         "[{\"name\":\"cluster\",\"default\":true,\"components\":[{\"name\":\"vminsert\"},{\"name\":\"vmselect\"},{\"name\":\"vmstorage\"}]},{\"name\":\"select\",\"default\":false,\"vmselect-1.0.0\",\"name\":\"vmselect\"}]}]",
+		Releases:           "[{\"name\":\"vmstorage-1.93.10\",\"serviceVersion\":\"1.93.10\",\"images\":{\"vmstorage\":\"victoriametrics/vmstorage:v1.93.10-cluster\"}},{\"name\":\"vmstorage-1.115.0\",\"serviceVersion\":\"1.115.0\",\"images\":{\"vmstorage\":\"victoriametrics/vmstorage:v1.115.0-cluster\"}}]",
+		Active:             false,
+		Description:        "desc",
+		UpdatedAt:          time.Now(),
 	}
 	rows, err := dbAccess.Update(updatedCd)
 	assert.NoError(t, err, "Failed to update clusterDefinition")
@@ -143,12 +148,13 @@ func TestGetClusterDefinition(t *testing.T) {
 	dbAccess := dbaccess.NewK8sCrdClusterDefinitionDbAccess(db)
 
 	cd := &model.K8sCrdClusterDefinitionModel{
-		ClusterDefinitionName: "cd1",
-		AddonID:               uint64(1),
-		Metadata:              "{\"namespace\":\"default\"}",
-		Spec:                  "{\"replicas\":3}",
-		Active:                true,
-		Description:           "desc",
+		CdName:             "cd1",
+		AddonID:            uint64(1),
+		RecommendedVersion: "1.0.0",
+		Topologies:         "[{\"name\":\"cluster\",\"default\":true,\"components\":[{\"name\":\"vminsert\"},{\"name\":\"vmselect\"},{\"name\":\"vmstorage\"}]},{\"name\":\"select\",\"default\":false,\"vmselect-1.0.0\",\"name\":\"vmselect\"}]}]",
+		Releases:           "[{\"name\":\"vmstorage-1.93.10\",\"serviceVersion\":\"1.93.10\",\"images\":{\"vmstorage\":\"victoriametrics/vmstorage:v1.93.10-cluster\"}},{\"name\":\"vmstorage-1.115.0\",\"serviceVersion\":\"1.115.0\",\"images\":{\"vmstorage\":\"victoriametrics/vmstorage:v1.115.0-cluster\"}}]",
+		Active:             true,
+		Description:        "desc",
 	}
 
 	addedCd, err := dbAccess.Create(cd)
@@ -157,9 +163,10 @@ func TestGetClusterDefinition(t *testing.T) {
 
 	foundCd, err := dbAccess.FindByID(1)
 	assert.NoError(t, err, "Failed to find clusterDefinition")
-	assert.Equal(t, cd.ClusterDefinitionName, foundCd.ClusterDefinitionName)
+	assert.Equal(t, cd.CdName, foundCd.CdName)
 	assert.Equal(t, cd.AddonID, foundCd.AddonID)
-	assert.Equal(t, cd.Metadata, foundCd.Metadata)
-	assert.Equal(t, cd.Spec, foundCd.Spec)
+	assert.Equal(t, cd.RecommendedVersion, foundCd.RecommendedVersion)
+	assert.Equal(t, cd.Topologies, foundCd.Topologies)
+	assert.Equal(t, cd.Releases, foundCd.Releases)
 	assert.Equal(t, cd.Active, foundCd.Active)
 }

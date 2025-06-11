@@ -23,16 +23,18 @@ import "time"
 
 // K8sCrdAddonRespVo defines the response data structure of addon meta.
 type K8sCrdAddonRespVo struct {
-	ID            uint64    `json:"id"`
-	AddonName     string    `json:"addon_name"`
-	AddonCategory string    `json:"addon_category"`
-	AddonType     string    `json:"addon_type"`
-	Metadata      string    `json:"metadata"`
-	Spec          string    `json:"spec"`
-	Active        bool      `json:"active"`
-	Description   string    `json:"description"`
-	CreatedBy     string    `json:"created_by"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedBy     string    `json:"updated_by"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	ID                 uint64    `json:"id"`
+	AddonName          string    `json:"addon_name"`
+	AddonCategory      string    `json:"addon_category"`
+	AddonType          string    `json:"addon_type"`
+	AddonVersion       string    `json:"addon_version"`
+	RecommendedVersion string    `json:"recommended_version"`
+	Topologies         string    `json:"topologies"`
+	Releases           string    `json:"releases"`
+	Active             bool      `json:"active"`
+	Description        string    `json:"description"`
+	CreatedBy          string    `json:"created_by"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedBy          string    `json:"updated_by"`
+	UpdatedAt          time.Time `json:"updated_at"`
 }

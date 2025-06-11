@@ -60,12 +60,13 @@ func TestCreateClusterDefinition(t *testing.T) {
 	cdProvider := provider.NewK8sCrdClusterDefinitionProvider(dbAccess)
 
 	cd := &entitys.K8sCrdClusterDefinitionEntity{
-		ClusterDefinitionName: "cd1",
-		AddonID:               uint64(1),
-		Metadata:              "{\"namespace\":\"default\"}",
-		Spec:                  "{\"replicas\":3}",
-		Active:                true,
-		Description:           "desc",
+		CdName:             "cd1",
+		AddonID:            uint64(1),
+		RecommendedVersion: "1.0.0",
+		Topologies:         "{}",
+		Releases:           "{}",
+		Active:             true,
+		Description:        "desc",
 	}
 
 	addedCd, err := cdProvider.CreateClusterDefinition(cd)
@@ -73,12 +74,12 @@ func TestCreateClusterDefinition(t *testing.T) {
 	fmt.Printf("Created componentVersion %+v\n", addedCd)
 
 	var foundCd model.K8sCrdClusterDefinitionModel
-	err = db.First(&foundCd, "clusterdefinition_name=?", "cd1").Error
+	err = db.First(&foundCd, "cd_name=?", "cd1").Error
 	assert.NoError(t, err, "Failed to query clusterDefinition")
-	assert.Equal(t, cd.ClusterDefinitionName, foundCd.ClusterDefinitionName)
+	assert.Equal(t, cd.CdName, foundCd.CdName)
 	assert.Equal(t, cd.AddonID, foundCd.AddonID)
-	assert.Equal(t, cd.Metadata, foundCd.Metadata)
-	assert.Equal(t, cd.Spec, foundCd.Spec)
+	assert.Equal(t, cd.Topologies, foundCd.Topologies)
+	assert.Equal(t, cd.Releases, foundCd.Releases)
 	assert.Equal(t, cd.Active, foundCd.Active)
 }
 
@@ -91,12 +92,13 @@ func TestDeletClusterDefinition(t *testing.T) {
 	cdProvider := provider.NewK8sCrdClusterDefinitionProvider(dbAccess)
 
 	cd := &entitys.K8sCrdClusterDefinitionEntity{
-		ClusterDefinitionName: "cd1",
-		AddonID:               uint64(1),
-		Metadata:              "{\"namespace\":\"default\"}",
-		Spec:                  "{\"replicas\":3}",
-		Active:                true,
-		Description:           "desc",
+		CdName:             "cd1",
+		AddonID:            uint64(1),
+		RecommendedVersion: "1.0.0",
+		Topologies:         "{}",
+		Releases:           "{}",
+		Active:             true,
+		Description:        "desc",
 	}
 
 	addedCd, err := cdProvider.CreateClusterDefinition(cd)
@@ -117,12 +119,13 @@ func TestUpdateClusterDefinition(t *testing.T) {
 	cdProvider := provider.NewK8sCrdClusterDefinitionProvider(dbAccess)
 
 	cd := &entitys.K8sCrdClusterDefinitionEntity{
-		ClusterDefinitionName: "cd1",
-		AddonID:               uint64(1),
-		Metadata:              "{\"namespace\":\"default\"}",
-		Spec:                  "{\"replicas\":3}",
-		Active:                true,
-		Description:           "desc",
+		CdName:             "cd1",
+		AddonID:            uint64(1),
+		RecommendedVersion: "1.0.0",
+		Topologies:         "{}",
+		Releases:           "{}",
+		Active:             true,
+		Description:        "desc",
 	}
 
 	addedCd, err := cdProvider.CreateClusterDefinition(cd)
@@ -130,14 +133,15 @@ func TestUpdateClusterDefinition(t *testing.T) {
 	fmt.Printf("Created componentVersion %+v\n", addedCd)
 
 	updatedCd := &entitys.K8sCrdClusterDefinitionEntity{
-		ID:                    1,
-		ClusterDefinitionName: "cd2",
-		AddonID:               uint64(1),
-		Metadata:              "{\"namespace\":\"default2\"}",
-		Spec:                  "{\"replicas\":2}",
-		Active:                false,
-		Description:           "desc",
-		UpdatedAt:             time.Now(),
+		ID:                 1,
+		CdName:             "cd2",
+		AddonID:            uint64(1),
+		RecommendedVersion: "1.0.0",
+		Topologies:         "{}",
+		Releases:           "{}",
+		Active:             false,
+		Description:        "desc",
+		UpdatedAt:          time.Now(),
 	}
 	rows, err := cdProvider.UpdateClusterDefinition(updatedCd)
 	assert.NoError(t, err, "Failed to update clusterDefinition")
@@ -153,12 +157,13 @@ func TestGetClusterDefinition(t *testing.T) {
 	cdProvider := provider.NewK8sCrdClusterDefinitionProvider(dbAccess)
 
 	cd := &entitys.K8sCrdClusterDefinitionEntity{
-		ClusterDefinitionName: "cd1",
-		AddonID:               uint64(1),
-		Metadata:              "{\"namespace\":\"default\"}",
-		Spec:                  "{\"replicas\":3}",
-		Active:                true,
-		Description:           "desc",
+		CdName:             "cd1",
+		AddonID:            uint64(1),
+		RecommendedVersion: "1.0.0",
+		Topologies:         "{}",
+		Releases:           "{}",
+		Active:             true,
+		Description:        "desc",
 	}
 
 	addedCd, err := cdProvider.CreateClusterDefinition(cd)
@@ -167,9 +172,9 @@ func TestGetClusterDefinition(t *testing.T) {
 
 	foundCd, err := cdProvider.FindClusterDefinitionByID(1)
 	assert.NoError(t, err, "Failed to find clusterDefinition")
-	assert.Equal(t, cd.ClusterDefinitionName, foundCd.ClusterDefinitionName)
+	assert.Equal(t, cd.CdName, foundCd.CdName)
 	assert.Equal(t, cd.AddonID, foundCd.AddonID)
-	assert.Equal(t, cd.Metadata, foundCd.Metadata)
-	assert.Equal(t, cd.Spec, foundCd.Spec)
+	assert.Equal(t, cd.Topologies, foundCd.Topologies)
+	assert.Equal(t, cd.Releases, foundCd.Releases)
 	assert.Equal(t, cd.Active, foundCd.Active)
 }

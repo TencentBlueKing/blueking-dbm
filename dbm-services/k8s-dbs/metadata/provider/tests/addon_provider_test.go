@@ -64,8 +64,7 @@ func TestCreateStorageAddon(t *testing.T) {
 		AddonName:     "myaddon",
 		AddonCategory: "Graph",
 		AddonType:     "surrealdb",
-		Metadata:      "{\"namespace\":\"default\"}",
-		Spec:          "{\"replicas\":3}",
+		AddonVersion:  "1.0.0",
 		Active:        true,
 		Description:   "desc",
 	}
@@ -80,8 +79,7 @@ func TestCreateStorageAddon(t *testing.T) {
 	assert.Equal(t, storageAddon.AddonName, foundStorageAddon.AddonName)
 	assert.Equal(t, storageAddon.AddonCategory, foundStorageAddon.AddonCategory)
 	assert.Equal(t, storageAddon.AddonType, foundStorageAddon.AddonType)
-	assert.Equal(t, storageAddon.Metadata, foundStorageAddon.Metadata)
-	assert.Equal(t, storageAddon.Spec, foundStorageAddon.Spec)
+	assert.Equal(t, storageAddon.AddonVersion, foundStorageAddon.AddonVersion)
 	assert.Equal(t, storageAddon.Active, foundStorageAddon.Active)
 }
 
@@ -97,8 +95,7 @@ func TestDeleteStorageAddon(t *testing.T) {
 		AddonName:     "myaddon",
 		AddonCategory: "Graph",
 		AddonType:     "surrealdb",
-		Metadata:      "{\"namespace\":\"default\"}",
-		Spec:          "{\"replicas\":3}",
+		AddonVersion:  "1.0.0",
 		Active:        true,
 		Description:   "desc",
 	}
@@ -124,8 +121,7 @@ func TestUpdateStorageAddon(t *testing.T) {
 		AddonName:     "myaddon",
 		AddonCategory: "Graph",
 		AddonType:     "surrealdb",
-		Metadata:      "{\"namespace\":\"default\"}",
-		Spec:          "{\"replicas\":3}",
+		AddonVersion:  "1.0.0",
 		Active:        true,
 		Description:   "desc",
 	}
@@ -139,8 +135,7 @@ func TestUpdateStorageAddon(t *testing.T) {
 		AddonName:     "myaddon2",
 		AddonCategory: "Graph",
 		AddonType:     "surrealdb2",
-		Metadata:      "{\"namespace\":\"default\"}",
-		Spec:          "{\"replicas\":1}",
+		AddonVersion:  "1.0.0",
 		Active:        false,
 		Description:   "desc",
 		UpdatedAt:     time.Now(),
@@ -162,8 +157,7 @@ func TestGetStorageAddon(t *testing.T) {
 		AddonName:     "myaddon",
 		AddonCategory: "Graph",
 		AddonType:     "surrealdb",
-		Metadata:      "{\"namespace\":\"default\"}",
-		Spec:          "{\"replicas\":3}",
+		AddonVersion:  "1.0.0",
 		Active:        true,
 		Description:   "desc",
 	}
@@ -177,8 +171,7 @@ func TestGetStorageAddon(t *testing.T) {
 	assert.Equal(t, storageAddon.AddonName, foundStorageAddon.AddonName)
 	assert.Equal(t, storageAddon.AddonCategory, foundStorageAddon.AddonCategory)
 	assert.Equal(t, storageAddon.AddonType, foundStorageAddon.AddonType)
-	assert.Equal(t, storageAddon.Metadata, foundStorageAddon.Metadata)
-	assert.Equal(t, storageAddon.Spec, foundStorageAddon.Spec)
+	assert.Equal(t, storageAddon.AddonVersion, foundStorageAddon.AddonVersion)
 	assert.Equal(t, storageAddon.Active, foundStorageAddon.Active)
 }
 
@@ -196,8 +189,7 @@ func TestListStorageAddons(t *testing.T) {
 			AddonName:     "surreal",
 			AddonCategory: "Graph",
 			AddonType:     "SurrealDB",
-			Metadata:      "{\"namespace\":\"default\"}",
-			Spec:          "{\"replicas\":3}",
+			AddonVersion:  "1.0.0",
 			Active:        true,
 			Description:   "desc",
 		},
@@ -205,8 +197,7 @@ func TestListStorageAddons(t *testing.T) {
 			AddonName:     "vm",
 			AddonCategory: "Time-Series",
 			AddonType:     "VictoriaMetric",
-			Metadata:      "{\"namespace\":\"default\"}",
-			Spec:          "{\"replicas\":3}",
+			AddonVersion:  "1.0.0",
 			Active:        true,
 			Description:   "desc",
 		},
