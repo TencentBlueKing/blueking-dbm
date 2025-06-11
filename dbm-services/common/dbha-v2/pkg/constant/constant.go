@@ -28,7 +28,7 @@ import "time"
 
 const (
 	DefaultClientPingTime             = 5 * time.Second
-	DefaultServerPintTime             = 5 * time.Minute
+	DefaultServerPingTime             = 5 * time.Minute
 	DefaultPingTimeout                = 10 * time.Second
 	DefaultKeepAliveMiniTime          = 5 * time.Minute
 	DefaultMaxReceiveMessageSize      = 1024 * 1024 * 10
