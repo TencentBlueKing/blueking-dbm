@@ -30,7 +30,7 @@
           :type="isSingleType ? 'single' : 'common'" />
         <DbCard :title="t('数据库部署信息')">
           <BkFormItem
-            :label="t('SQLServer起始端口')"
+            :label="t('SQLServer 起始端口')"
             property="details.start_mssql_port"
             required>
             <BkInput
@@ -223,11 +223,10 @@
   import { useI18n } from 'vue-i18n';
   import { useRoute } from 'vue-router';
 
+  import type { Sqlserver } from '@services/model/ticket/ticket';
   import type { BizItem, HostInfo } from '@services/types';
 
-  import { useApplyBase } from '@hooks';
-
-  import { useGlobalBizs } from '@stores';
+  import { useApplyBase, useTicketDetail } from '@hooks';
 
   import { Affinity, ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
@@ -237,7 +236,7 @@
   import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
   import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
   import ModuleItem from '@views/db-manage/common/apply-items/ModuleItem.vue';
-  import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/Common.vue';
+  import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/Index.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
 
   import DomainTable from './components/DomainTable.vue';
@@ -246,8 +245,99 @@
   const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
-  const { currentBizId } = useGlobalBizs();
   const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+
+  useTicketDetail<Sqlserver.SingleApply>(TicketTypes.SQLSERVER_SINGLE_APPLY, {
+    onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+
+      Object.assign(formData, {
+        bk_biz_id: ticketDetail.bk_biz_id,
+        remark: ticketDetail.remark,
+      });
+      Object.assign(formData.details, {
+        bk_cloud_id: details.bk_cloud_id,
+        city_code: details.city_code,
+        cluster_count: details.domains.length,
+        db_version: details.db_version,
+        disaster_tolerance_level: details.disaster_tolerance_level,
+        domains: details.domains,
+        ip_source: details.ip_source,
+        start_mssql_port: details.start_mssql_port,
+      });
+
+      if (details.ip_source === 'resource_pool') {
+        const { backend } = details.resource_spec!;
+        const resourceSpec = {
+          backend_group: {
+            count: backend.count,
+            spec_id: backend.spec_id,
+          },
+        };
+        const subzoneIds = details.resource_spec!.backend.location_spec.sub_zone_ids || [];
+        Object.assign(formData.details, {
+          inst_num: details.domains.length / backend.count,
+          resource_spec: resourceSpec,
+          sub_zone_ids: subzoneIds,
+        });
+        nextTick(() => {
+          regionRequirementsRef.value!.setInitSubzone(subzoneIds);
+        });
+      }
+
+      nextTick(() => {
+        Object.assign(formData.details, {
+          db_module_id: details.db_module_id,
+        });
+      });
+    },
+  });
+
+  useTicketDetail<Sqlserver.HaApply>(TicketTypes.SQLSERVER_HA_APPLY, {
+    onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+
+      Object.assign(formData, {
+        bk_biz_id: ticketDetail.bk_biz_id,
+        remark: ticketDetail.remark,
+      });
+      Object.assign(formData.details, {
+        bk_cloud_id: details.bk_cloud_id,
+        city_code: details.city_code,
+        cluster_count: details.domains.length,
+        db_version: details.db_version,
+        disaster_tolerance_level: details.disaster_tolerance_level,
+        domains: details.domains,
+        ip_source: details.ip_source,
+        start_mssql_port: details.start_mssql_port,
+      });
+
+      if (details.ip_source === 'resource_pool') {
+        const { backend_group: backendGroup } = details.resource_spec!;
+        const resourceSpec = {
+          backend_group: {
+            count: backendGroup.count,
+            spec_id: backendGroup.spec_id,
+          },
+        };
+        const subzoneIds = details.resource_spec!.backend_group.location_spec.sub_zone_ids || [];
+        Object.assign(formData.details, {
+          inst_num: details.domains.length / backendGroup.count,
+          resource_spec: resourceSpec,
+          sub_zone_ids: subzoneIds,
+        });
+        nextTick(() => {
+          regionRequirementsRef.value!.setInitSubzone(subzoneIds);
+        });
+      }
+
+      nextTick(() => {
+        Object.assign(formData.details, {
+          db_module_id: details.db_module_id,
+        });
+      });
+    },
+  });
 
   const isSingleType = route.name === 'SqlServiceSingleApply';
 
@@ -256,7 +346,7 @@
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
   const getDefaultformData = () => ({
-    bk_biz_id: currentBizId,
+    bk_biz_id: '' as '' | number,
     details: {
       bk_cloud_id: 0,
       city_code: '',

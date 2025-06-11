@@ -13,27 +13,14 @@
 
 <template>
   <DbCard :title="t('地域要求')">
-    <DisasterToleranceLevelItem
-      v-model="modelValue.disaster_tolerance_level"
-      type="bigdata" />
     <CityCodeItem v-model="modelValue" />
-    <SubzonesItem
-      v-if="showSubZoneItem"
-      ref="subzoneRef"
-      v-model="modelValue.sub_zone_ids"
-      :city-code="modelValue.city_code"
-      :disaster-tolerance-level="modelValue.disaster_tolerance_level" />
   </DbCard>
 </template>
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { Affinity } from '@common/const';
-
   import CityCodeItem from './components/CityCode.vue';
-  import DisasterToleranceLevelItem from './components/DisasterToleranceLevel.vue';
-  import SubzonesItem from './components/subzones/Index.vue';
 
   interface Expose {
     getValue: () => {
@@ -44,50 +31,27 @@
         sub_zone_ids?: number[];
       };
     };
-    setInitSubzone: (subzoneIds: number[]) => void;
   }
 
   const modelValue = defineModel<{
     city_code: string;
     city_name?: string;
     disaster_tolerance_level: string;
-    sub_zone_ids: number[];
   }>({
     required: true,
   });
 
   const { t } = useI18n();
 
-  const subzoneRef = useTemplateRef('subzoneRef');
-
-  const showSubZoneItem = computed(() => modelValue.value.disaster_tolerance_level && modelValue.value.city_code);
-
   defineExpose<Expose>({
     getValue() {
-      const { city_code: city, disaster_tolerance_level: affinity, sub_zone_ids: subZoneIds } = modelValue.value;
-
-      // 无容灾要求-指定地域-指定园区
-      if (affinity === Affinity.NONE && city !== 'default' && subZoneIds.length > 0) {
-        return {
-          affinity,
-          location_spec: {
-            city,
-            // include_or_exclue: true,
-            sub_zone_ids: subZoneIds,
-          },
-        };
-      }
-
-      // 尽量分散 / 无容灾要求-随机地域-随机园区
+      const { city_code: city, disaster_tolerance_level: affinity } = modelValue.value;
       return {
         affinity,
         location_spec: {
           city,
         },
       };
-    },
-    setInitSubzone(subzoneIds: number[]) {
-      subzoneRef.value?.setInitSubzone(subzoneIds);
     },
   });
 </script>
