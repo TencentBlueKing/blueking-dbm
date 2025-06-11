@@ -41,6 +41,7 @@ const (
 	TbAddonClusterRelease       = "tb_addoncluster_release"
 	TbAddonClusterHelmRepo      = "tb_addoncluster_helm_repository"
 	TbAddonHelmRepo             = "tb_addon_helm_repository"
+	TbK8sClusterAddons          = "tb_k8s_cluster_addons"
 )
 
 // MySQLTestURL mysql connection credentials for test

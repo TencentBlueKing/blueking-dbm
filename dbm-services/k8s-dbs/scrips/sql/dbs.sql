@@ -216,3 +216,16 @@ CREATE TABLE IF NOT EXISTS tb_addon_helm_repository (
    updated_by varchar(50) NOT NULL COMMENT '更新者',
    updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT 'Addon 的 helm 仓库信息';
+
+--
+-- Table structure for table tb_k8s_cluster_addons
+--
+CREATE TABLE IF NOT EXISTS tb_k8s_cluster_addons (
+    id bigint PRIMARY KEY AUTO_INCREMENT COMMENT '主键 id',
+    addon_id bigint NOT NULL COMMENT '关联 k8s_crd_storageaddon 主键 id',
+    k8s_cluster_name VARCHAR(32) NOT NULL UNIQUE COMMENT 'k8s 集群名称',
+    created_by varchar(50) NOT NULL COMMENT '创建者',
+    created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_by varchar(50) NOT NULL COMMENT '更新者',
+    updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT 'k8s 集群安装的 addon 列表';
