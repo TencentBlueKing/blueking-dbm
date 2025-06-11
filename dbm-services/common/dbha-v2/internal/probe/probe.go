@@ -33,8 +33,8 @@ import (
 // Probe probe main framework
 type Probe struct {
 	ClientId string
-	recvCli  *client.Receiver
-	adminCli *client.Admin
+	recvCli  *client.ReceiverClient
+	adminCli *client.AdminClient
 }
 
 func (p *Probe) Run(ctx context.Context) error {
@@ -50,6 +50,18 @@ func (p *Probe) Run(ctx context.Context) error {
 
 	p.recvCli = receiver
 	p.adminCli = admin
+
+	if err = p.recvCli.Run(); err != nil {
+		return err
+	}
+
+	if err = p.adminCli.Run(); err != nil {
+		return err
+	}
+
+	select {
+	case <-ctx.Done():
+	}
 
 	return nil
 }
