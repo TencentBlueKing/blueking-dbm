@@ -79,3 +79,18 @@ export function getSqlServerInstanceList(params: {
     results: data.results.map((item) => new SqlServerInstanceModel(item)),
   }));
 }
+
+/**
+ * 获取集群实例详情
+ */
+export function retrieveSqlserverSingleInstance(params: {
+  bk_biz_id: number;
+  cluster_id?: number;
+  dbType: string;
+  instance_address: string;
+  type: string;
+}) {
+  return http
+    .get<SqlServerInstanceModel>(`${getPath()}/retrieve_instance/`, params)
+    .then((res) => new SqlServerInstanceModel(res));
+}

@@ -18,6 +18,7 @@
     "prettier": "prettier --write ./src"
   },
   "dependencies": {
+    "@antv/g6": "5.0.48",
     "@blueking/app-select": "0.0.1-beta.18",
     "@blueking/bk-trace-core": "0.0.2",
     "@blueking/bk-weweb": "0.0.26",
