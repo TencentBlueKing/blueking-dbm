@@ -20,6 +20,7 @@ from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.instance import ProxyInstance, StorageInstance
 from backend.db_services.dbbase.resources import query
 from backend.db_services.dbbase.resources.query import ResourceList
+from backend.db_services.dbbase.resources.query_base import build_q_for_domain_by_mongo_instance
 from backend.db_services.dbbase.resources.register import register_resource_decorator
 from backend.db_services.dbresource.handlers import MongoDBShardSpecFilter
 from backend.ticket.constants import TicketType
@@ -259,7 +260,13 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource):
             "machine__bk_rack_id",
             "machine__bk_svr_device_cls_name",
             "shard",
+            "bind_entry__entry",
         ]
+
+        # 过滤实例域名
+        if "domain" in query_params:
+            query_filters &= build_q_for_domain_by_mongo_instance(query_params)
+
         storage_instance = (
             StorageInstance.objects.annotate(
                 role=F("instance_role"),
@@ -305,6 +312,7 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource):
         instance_extra_info = {
             "shard": instance["shard"],
             "operations": instance_operator_record_map.get(f"{bk_host_id}:{port}", []),
+            "instance_domain": instance["bind_entry__entry"] if instance["bind_entry__entry"] else "",
         }
         instance_info = super()._to_instance_representation(instance, cluster_entry_map, db_module_names_map, **kwargs)
         instance_info.update(instance_extra_info)

@@ -36,6 +36,21 @@ def build_q_for_domain_by_instance(query_params):
     return base_query & query
 
 
+def build_q_for_domain_by_mongo_instance(query_params):
+    # 从查询参数中提取域
+    domains = query_params.get("domain", "").split(",")
+    # 基础查询条件
+    base_query = Q(cluster__clusterentry__cluster_entry_type=ClusterEntryType.DNS.value)
+
+    if len(domains) == 1:  # 单个域，执行模糊查询
+        query = Q(bind_entry__entry=domains[0].strip())
+    else:
+        domains = [domain.strip() for domain in domains if domain.strip()]
+        query = Q(bind_entry__entry__in=domains)
+
+    return base_query & query
+
+
 def build_q_for_instance_filter(params_data: dict) -> Q:
     instance_list = params_data.get("instance", "").split(",")
     # 初始化两个空的Q对象，稍后用于构造过滤条件
