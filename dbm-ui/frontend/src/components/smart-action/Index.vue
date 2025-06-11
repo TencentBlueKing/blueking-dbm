@@ -131,7 +131,7 @@
     right: 0;
     bottom: 0;
     left: 0;
-    z-index: 1;
+    z-index: 2;
     display: flex;
     height: 52px;
     background: #fff;

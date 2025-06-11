@@ -26,6 +26,9 @@
     <InfoItem :label="t('集群别名')">
       {{ ticketDetails.details.cluster_alias || '--' }}
     </InfoItem>
+    <InfoItem :label="t('管控区域')">
+      {{ ticketDetails.details.bk_cloud_name || '--' }}
+    </InfoItem>
   </InfoList>
   <RegionRequirements :details="ticketDetails.details" />
   <div
@@ -65,7 +68,7 @@
       </BkPopover>
     </InfoItem>
     <InfoItem
-      :label="t('集群部署方案：')"
+      :label="t('集群部署方案')"
       style="width: 100%">
       <BkTable :data="[ticketDetails.details.resource_spec.backend_group.spec_info]">
         <BkTableColumn

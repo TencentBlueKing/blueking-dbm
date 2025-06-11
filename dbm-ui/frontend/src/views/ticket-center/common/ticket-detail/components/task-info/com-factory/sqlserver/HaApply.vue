@@ -23,8 +23,17 @@
     <InfoItem :label="t('DB模块名')">
       {{ ticketDetails.details.db_module_name || '--' }}
     </InfoItem>
+    <InfoItem :label="t('管控区域')">
+      {{ ticketDetails.details.bk_cloud_name || '--' }}
+    </InfoItem>
   </InfoList>
   <RegionRequirements :details="ticketDetails.details" />
+  <div class="info-title mt-20">{{ t('数据库部署信息') }}</div>
+  <InfoList>
+    <InfoItem :label="t('SQLServer 起始端口')">
+      {{ ticketDetails.details.start_mssql_port || '--' }}
+    </InfoItem>
+  </InfoList>
   <div class="info-title mt-20">{{ t('需求信息') }}</div>
   <InfoList>
     <InfoItem :label="t('集群数量')">
@@ -53,8 +62,8 @@
       </BkPopover>
     </InfoItem>
     <InfoItem
-      :label="t('集群设置：')"
-      style="width: 100%">
+      :label="t('域名设置')"
+      whole-line>
       <BkTable
         :data="ticketDetails.details.domains"
         :show-overflow="false">

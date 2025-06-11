@@ -379,10 +379,11 @@
   import { useRoute, useRouter } from 'vue-router';
 
   import type { RedisFunctions } from '@services/model/function-controller/functionController';
+  import type { Redis } from '@services/model/ticket/ticket';
   import { getCapSpecs } from '@services/source/infras';
   import type { BizItem, HostInfo } from '@services/types';
 
-  import { useApplyBase, useTicketCloneInfo } from '@hooks';
+  import { useApplyBase, useTicketDetail } from '@hooks';
 
   import { useFunController } from '@stores';
 
@@ -397,7 +398,7 @@
   import ClusterName from '@views/db-manage/common/apply-items/ClusterName.vue';
   import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
   import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
-  import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/Common.vue';
+  import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/Index.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
   import { APPLY_SCHEME } from '@views/db-manage/common/apply-schema/Index.vue';
   import PasswordInput from '@views/db-manage/common/password-input/Index.vue';
@@ -425,13 +426,45 @@
   const route = useRoute();
   const router = useRouter();
 
-  // 单据克隆
-  useTicketCloneInfo({
-    onSuccess(formdata) {
-      state.formdata = formdata;
-      bizState.hasEnglishName = !!formdata.details.db_app_abbr;
+  useTicketDetail<Redis.ClusterApply>(TicketTypes.REDIS_CLUSTER_APPLY, {
+    onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+
+      Object.assign(state.formdata, {
+        bk_biz_id: ticketDetail.bk_biz_id,
+        remark: ticketDetail.remark,
+      });
+      Object.assign(state.formdata.details, {
+        bk_cloud_id: details.bk_cloud_id,
+        city_code: details.city_code,
+        cluster_alias: details.cluster_alias,
+        cluster_name: details.cluster_name,
+        cluster_type: details.cluster_type,
+        db_version: details.db_version,
+        disaster_tolerance_level: details.disaster_tolerance_level,
+        ip_source: details.ip_source,
+        proxy_port: details.proxy_port,
+      });
+
+      if (details.ip_source === 'resource_pool') {
+        const { proxy } = details.resource_spec!;
+        const resourceSpec = {
+          backend_group: state.formdata.details.resource_spec.backend_group,
+          proxy: {
+            count: proxy.count,
+            spec_id: proxy.spec_id,
+          },
+        };
+        const subzoneIds = details.resource_spec!.backend_group.location_spec.sub_zone_ids || [];
+        Object.assign(state.formdata.details, {
+          resource_spec: resourceSpec,
+          sub_zone_ids: subzoneIds,
+        });
+        nextTick(() => {
+          regionRequirementsRef.value!.setInitSubzone(subzoneIds);
+        });
+      }
     },
-    type: TicketTypes.REDIS_CLUSTER_APPLY,
   });
 
   const renderRedisClusterTypes = computed(() => {
@@ -466,7 +499,7 @@
         backend_group: {
           affinity: '',
           capacity: '' as number | string,
-          count: 3,
+          count: '' as number | string,
           future_capacity: '' as number | string,
           location_spec: {
             city: '',
@@ -668,17 +701,17 @@
   };
 
   const handleChangeClusterType = () => {
-    const count = [ClusterTypes.PREDIXY_REDIS_CLUSTER, ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER].includes(
-      state.formdata.details.cluster_type,
-    )
-      ? 3
-      : 1;
+    // const count = [ClusterTypes.PREDIXY_REDIS_CLUSTER, ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER].includes(
+    //   state.formdata.details.cluster_type,
+    // )
+    //   ? 3
+    //   : 1;
     state.formdata.details.db_version = '';
     state.formdata.details.resource_spec.proxy.spec_id = '';
     state.formdata.details.resource_spec.backend_group = {
       ...state.formdata.details.resource_spec.backend_group,
       capacity: '',
-      count,
+      count: '',
       future_capacity: '',
       spec_id: '',
     };

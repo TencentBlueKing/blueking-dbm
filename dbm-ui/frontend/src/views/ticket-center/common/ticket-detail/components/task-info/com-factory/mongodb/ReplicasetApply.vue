@@ -61,12 +61,12 @@
       </BkPopover>
       <span v-else>--</span>
     </InfoItem>
-    <InfoItem :label="t('每台主机oplog容量占比')">
-      {{ ticketDetails.details.oplog_percent || '--' }}
+    <InfoItem :label="t('每台主机 oplog 容量占比')">
+      {{ ticketDetails.details.oplog_percent ? `${ticketDetails.details.oplog_percent} %` : '--' }}
     </InfoItem>
     <InfoItem
       :label="t('域名设置')"
-      style="width: 100%">
+      whole-line>
       <BkTable :data="tableData">
         <BkTableColumn
           field="mainDomain"
@@ -93,7 +93,7 @@
   import { TicketTypes } from '@common/const';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
-  import RegionRequirements from '../components/RegionRequirements.vue';
+  import RegionRequirements from '../components/RegionRequirementsMongodb.vue';
   import SpecInfos from '../components/SpecInfos.vue';
 
   interface Props {

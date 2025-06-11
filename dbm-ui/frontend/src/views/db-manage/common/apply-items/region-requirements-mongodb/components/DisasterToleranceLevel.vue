@@ -35,11 +35,6 @@
   import { Affinity, affinityMap } from '@common/const';
 
   interface Props {
-    /**
-     *   -common:  默认情况
-     *   -bigdata: 尽量分散 + 无容灾
-     *   -single： mysql、sqlserver 的单节点只有无容灾
-     */
     type?: 'common' | 'bigdata' | 'single';
   }
 
