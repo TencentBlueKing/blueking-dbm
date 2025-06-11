@@ -44,7 +44,7 @@ func main() {
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 	rootCmd.AddCommand(probe.VersionCmd)
 	if err := rootCmd.Execute(); err != nil {
-		logger.Error("failed to start probe. errmsg:%s", err.Error())
+		logger.Error("failed to start probe. errmsg(%s)", err.Error())
 		return
 	}
 
