@@ -40,7 +40,7 @@ import (
 	"google.golang.org/grpc/keepalive"
 )
 
-type Admin struct {
+type AdminClient struct {
 	conn                 *grpc.ClientConn
 	client               proto.AdminServiceClient
 	stream               proto.AdminService_WatchConfigClient
@@ -56,7 +56,7 @@ type Admin struct {
 	mutex                sync.RWMutex
 }
 
-func NewAdminClient(ctx context.Context, endpoint string, clientId string) (*Admin, error) {
+func NewAdminClient(ctx context.Context, endpoint string, clientId string) (*AdminClient, error) {
 	kacp := keepalive.ClientParameters{
 		Time:                constant.DefaultClientPingTime,
 		Timeout:             constant.DefaultPingTimeout,
@@ -73,12 +73,13 @@ func NewAdminClient(ctx context.Context, endpoint string, clientId string) (*Adm
 	)
 
 	if err != nil {
-		return nil, err
+		logger.Error("create admin grpc client failed. errmsg(%v)", err)
+		return nil, gerrors.New(gerrors.ComponentFailure, err.Error())
 	}
 
 	ctxBase, cancel := context.WithCancel(ctx)
 
-	r := &Admin{
+	r := &AdminClient{
 		conn:                 conn,
 		client:               proto.NewAdminServiceClient(conn),
 		ctx:                  ctxBase,
@@ -90,11 +91,11 @@ func NewAdminClient(ctx context.Context, endpoint string, clientId string) (*Adm
 	return r, nil
 }
 
-func (a *Admin) connect() error {
+func (a *AdminClient) connect() error {
 	a.mutex.Lock()
 	if a.closed {
 		a.mutex.Unlock()
-		return gerrors.New(gerrors.Failure, "client is closed")
+		return gerrors.New(gerrors.Failure, "admin client is closed")
 	}
 	a.mutex.Unlock()
 
@@ -114,7 +115,7 @@ func (a *Admin) connect() error {
 	return nil
 }
 
-func (a *Admin) handleDisconnect() {
+func (a *AdminClient) handleDisconnect() {
 	defer a.wg.Done()
 
 	a.mutex.Unlock()
@@ -139,7 +140,7 @@ func (a *Admin) handleDisconnect() {
 	a.mutex.Unlock()
 
 	if maxAttempts > 0 && reconnectAttempts > maxAttempts {
-		logger.Warn("max reconnect attempts(%d) reached, giving up.", maxAttempts)
+		logger.Warn("admin client max reconnect attempts(%d) reached, giving up.", maxAttempts)
 		return
 	}
 
@@ -151,20 +152,20 @@ func (a *Admin) handleDisconnect() {
 	time.Sleep(backoffInterval)
 
 	// retry
-	logger.Info("attempting to reconnect...")
+	logger.Info("admin client attempting to reconnect...")
 	err := a.connect()
 	if err != nil {
-		logger.Warn("reconnect failed. errmsg(%v)", err)
+		logger.Warn("admin client reconnect failed. errmsg(%v)", err)
 		a.wg.Add(1)
 		go a.handleDisconnect()
 		return
 	}
 
-	logger.Info("reconnect successful")
+	logger.Info("admin client reconnect successful")
 }
 
-func (a *Admin) getConnectionState() connectivity.State {
-	a.mutex.RLocker()
+func (a *AdminClient) getConnectionState() connectivity.State {
+	a.mutex.RLock()
 	defer a.mutex.RUnlock()
 
 	if a.conn == nil {
@@ -174,7 +175,7 @@ func (a *Admin) getConnectionState() connectivity.State {
 	return a.conn.GetState()
 }
 
-func (a *Admin) monitorConnection() {
+func (a *AdminClient) monitorConnection() {
 	defer a.wg.Done()
 
 	ticker := time.NewTicker(5 * time.Second)
@@ -204,7 +205,7 @@ func (a *Admin) monitorConnection() {
 	}
 }
 
-func (a *Admin) register() {
+func (a *AdminClient) register() {
 	msg := &proto.ProbeConfigRequest{}
 
 	a.mutex.RLock()
@@ -220,7 +221,7 @@ func (a *Admin) register() {
 	}
 }
 
-func (a *Admin) SendMessage(content []byte) error {
+func (a *AdminClient) SendMessage(content []byte) error {
 	a.mutex.RLock()
 	defer a.mutex.RUnlock()
 
@@ -237,33 +238,33 @@ func (a *Admin) SendMessage(content []byte) error {
 	return a.stream.Send(msg)
 }
 
-func (a *Admin) Run(ctx context.Context) error {
+func (a *AdminClient) Run() error {
 	err := a.connect()
 	if err != nil {
-		logger.Error("failed to connect the remote server. errmsg(%v)", err)
+		logger.Error("admin client connect the remote server failed. errmsg(%v)", err)
 		return err
 	}
 
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		}
-	}
+	return nil
 }
 
-func (a *Admin) Close() {
+func (a *AdminClient) Close() {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
 
 	if a.closed {
 		return
 	}
-
 	a.closed = true
 
 	if a.cancel != nil {
+		a.cancel()
+		a.cancel = nil
+	}
+
+	if a.conn != nil {
 		a.conn.Close()
+		a.conn = nil
 	}
 
 	a.wg.Wait()

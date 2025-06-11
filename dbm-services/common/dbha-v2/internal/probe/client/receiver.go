@@ -40,7 +40,7 @@ import (
 	"google.golang.org/grpc/keepalive"
 )
 
-type Receiver struct {
+type ReceiverClient struct {
 	conn                 *grpc.ClientConn
 	client               proto.ReceiverServiceClient
 	stream               proto.ReceiverService_PushDataClient
@@ -56,7 +56,7 @@ type Receiver struct {
 	mutex                sync.RWMutex
 }
 
-func NewReceiverClient(ctx context.Context, endpoints string, clientId string) (*Receiver, error) {
+func NewReceiverClient(ctx context.Context, endpoints string, clientId string) (*ReceiverClient, error) {
 	kacp := keepalive.ClientParameters{
 		Time:                constant.DefaultClientPingTime,
 		Timeout:             constant.DefaultPingTimeout,
@@ -73,12 +73,13 @@ func NewReceiverClient(ctx context.Context, endpoints string, clientId string) (
 	)
 
 	if err != nil {
-		return nil, err
+		logger.Error("failed to new grpc client. errmsg(%v)", err)
+		return nil, gerrors.New(gerrors.ComponentFailure, err.Error())
 	}
 
 	ctxBase, cancel := context.WithCancel(ctx)
 
-	r := &Receiver{
+	r := &ReceiverClient{
 		conn:                 conn,
 		client:               proto.NewReceiverServiceClient(conn),
 		ctx:                  ctxBase,
@@ -90,11 +91,11 @@ func NewReceiverClient(ctx context.Context, endpoints string, clientId string) (
 	return r, nil
 }
 
-func (r *Receiver) connect() error {
+func (r *ReceiverClient) connect() error {
 	r.mutex.Lock()
 	if r.closed {
 		r.mutex.Unlock()
-		return gerrors.New(gerrors.Failure, "client is closed")
+		return gerrors.New(gerrors.Failure, "the grpc client is closed")
 	}
 	r.mutex.Unlock()
 
@@ -114,10 +115,10 @@ func (r *Receiver) connect() error {
 	return nil
 }
 
-func (r *Receiver) handleDisconnect() {
+func (r *ReceiverClient) handleDisconnect() {
 	defer r.wg.Done()
 
-	r.mutex.Unlock()
+	r.mutex.Lock()
 	if r.closed || r.reconnecting {
 		r.mutex.Unlock()
 		return
@@ -151,19 +152,19 @@ func (r *Receiver) handleDisconnect() {
 	time.Sleep(backoffInterval)
 
 	// retry
-	logger.Info("attempting to reconnect...")
+	logger.Info("receiver client attempting to reconnect...")
 	err := r.connect()
 	if err != nil {
-		logger.Warn("reconnect failed. errmsg(%v)", err)
+		logger.Warn("receiver client reconnect failed. errmsg(%v)", err)
 		r.wg.Add(1)
 		go r.handleDisconnect()
 		return
 	}
 
-	logger.Info("reconnect successful")
+	logger.Info("receiver client reconnect successful")
 }
 
-func (r *Receiver) getConnectionState() connectivity.State {
+func (r *ReceiverClient) getConnectionState() connectivity.State {
 	r.mutex.RLocker()
 	defer r.mutex.RUnlock()
 
@@ -174,7 +175,7 @@ func (r *Receiver) getConnectionState() connectivity.State {
 	return r.conn.GetState()
 }
 
-func (r *Receiver) monitorConnection() {
+func (r *ReceiverClient) monitorConnection() {
 	defer r.wg.Done()
 
 	ticker := time.NewTicker(5 * time.Second)
@@ -204,7 +205,7 @@ func (r *Receiver) monitorConnection() {
 	}
 }
 
-func (r *Receiver) register() {
+func (r *ReceiverClient) register() {
 	msg := &proto.ReceiverRequest{}
 
 	r.mutex.RLock()
@@ -216,11 +217,11 @@ func (r *Receiver) register() {
 	}
 
 	if err := r.stream.Send(msg); err != nil {
-		logger.Error("receiver register failed. errmsg(%v)", err)
+		logger.Error("receiver client register failed. errmsg(%v)", err)
 	}
 }
 
-func (r *Receiver) SendMessage(content []byte) error {
+func (r *ReceiverClient) SendMessage(content []byte) error {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
@@ -237,32 +238,32 @@ func (r *Receiver) SendMessage(content []byte) error {
 	return r.stream.Send(msg)
 }
 
-func (r *Receiver) Run(ctx context.Context) error {
+func (r *ReceiverClient) Run() error {
 	err := r.connect()
 	if err != nil {
 		logger.Error("failed to connect the remote server. errmsg(%v)", err)
 		return err
 	}
 
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		}
-	}
+	return nil
 }
 
-func (r *Receiver) Close() {
+func (r *ReceiverClient) Close() {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
 	if r.closed {
 		return
 	}
-
 	r.closed = true
 
 	if r.cancel != nil {
+		r.cancel()
+		r.cancel = nil
+	}
+
+	if r.conn != nil {
 		r.conn.Close()
+		r.conn = nil
 	}
 }
