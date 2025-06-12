@@ -237,7 +237,7 @@ func (e *ExecScript) creatScriptFile() error {
 	// 修改配置文件属主
 	e.runtime.Logger.Info("start to execute chown command for script file")
 	if _, err = util.RunBashCmd(
-		fmt.Sprintf("chown -R %s.%s %s", e.OsUser, e.OsGroup, e.ScriptDir),
+		fmt.Sprintf("chown -R %s:%s %s", e.OsUser, e.OsGroup, e.ScriptDir),
 		"", nil,
 		60*time.Second); err != nil {
 		e.runtime.Logger.Error(fmt.Sprintf("chown script file fail, error:%s", err))

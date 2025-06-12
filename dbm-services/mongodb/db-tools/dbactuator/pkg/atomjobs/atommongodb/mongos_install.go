@@ -384,14 +384,14 @@ func (s *MongoSInstall) mkdir() error {
 	// 修改目录属主
 	s.runtime.Logger.Info("start to execute chown command for dbPath, logPath and backupPath")
 	if _, err := util.RunBashCmd(
-		fmt.Sprintf("chown -R %s.%s %s", s.OsUser, s.OsGroup, filepath.Join(logPathDir, "../")),
+		fmt.Sprintf("chown -R %s:%s %s", s.OsUser, s.OsGroup, filepath.Join(logPathDir, "../")),
 		"", nil,
 		60*time.Second); err != nil {
 		s.runtime.Logger.Error(fmt.Sprintf("chown log directory fail, error:%s", err))
 		return fmt.Errorf("chown log directory fail, error:%s", err)
 	}
 	if _, err := util.RunBashCmd(
-		fmt.Sprintf("chown -R %s.%s %s", s.OsUser, s.OsGroup, filepath.Join(confFilePathDir, "../")),
+		fmt.Sprintf("chown -R %s:%s %s", s.OsUser, s.OsGroup, filepath.Join(confFilePathDir, "../")),
 		"", nil,
 		60*time.Second); err != nil {
 		s.runtime.Logger.Error(fmt.Sprintf("chown data directory fail, error:%s", err))
