@@ -41,7 +41,7 @@ type LogicalDumper struct {
 	backupEndTime   time.Time
 }
 
-func (l *LogicalDumper) initConfig(mysqlVerStr string) error {
+func (l *LogicalDumper) initConfig(mysqlVerStr string, logBinDisabled bool) error {
 	if l.cnf == nil {
 		return errors.New("logical dumper params is nil")
 	}

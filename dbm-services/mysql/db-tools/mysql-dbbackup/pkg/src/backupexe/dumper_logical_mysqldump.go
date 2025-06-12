@@ -28,6 +28,7 @@ import (
 	"github.com/spf13/cast"
 
 	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/db_table_filter"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
@@ -38,17 +39,18 @@ import (
 
 // LogicalDumperMysqldump logical dumper using mysqldump tool
 type LogicalDumperMysqldump struct {
-	cnf          *config.BackupConfig
-	backupInfo   dbareport.IndexContent // for mysqldump backup
-	dbConn       *sqlx.Conn
-	dbbackupHome string
+	cnf            *config.BackupConfig
+	backupInfo     dbareport.IndexContent // for mysqldump backup
+	dbConn         *sqlx.Conn
+	dbbackupHome   string
+	logBinDisabled bool
 
 	masterStatus *dbareport.StatusInfo
 	slaveStatus  *dbareport.StatusInfo
 }
 
 // initConfig initializes the configuration for the logical dumper[mysqldump]
-func (l *LogicalDumperMysqldump) initConfig(mysqlVerStr string) error {
+func (l *LogicalDumperMysqldump) initConfig(mysqlVerStr string, logBinDisabled bool) error {
 	if l.cnf == nil {
 		return errors.New("logical dumper[mysqldump] params is nil")
 	}
@@ -58,6 +60,8 @@ func (l *LogicalDumperMysqldump) initConfig(mysqlVerStr string) error {
 		l.dbbackupHome = filepath.Dir(cmdPath)
 	}
 	BackupTool = cst.ToolMysqldump
+
+	l.logBinDisabled = logBinDisabled
 	return nil
 }
 
@@ -159,21 +163,7 @@ func (l *LogicalDumperMysqldump) buildArgsObjectFilter() (args []string) {
 	return args
 }
 
-// MysqldumpHasOption check mysqldump has --xxx or not
-func MysqldumpHasOption(bin string, option string) (bool, error) {
-	// 注意 --help 要在后面
-	_, cmdStderr, err := cmutil.ExecCommand(false, "", bin, option, "--help")
-	if err == nil {
-		return true, nil
-	}
-	if strings.Contains(cmdStderr, "unknown option") {
-		return false, nil
-	} else {
-		return false, err
-	}
-}
-
-// Execute execute dumping backup with logical backup tool[mysqldump]
+// Execute  dumping backup with logical backup tool[mysqldump]
 func (l *LogicalDumperMysqldump) Execute(ctx context.Context) (err error) {
 	var binPath string
 	if l.cnf.LogicalBackupMysqldump.BinPath != "" {
@@ -201,15 +191,21 @@ func (l *LogicalDumperMysqldump) Execute(ctx context.Context) (err error) {
 		"-u" + l.cnf.Public.MysqlUser,
 		"-p" + l.cnf.Public.MysqlPasswd,
 		"--skip-opt", "--create-options", "--extended-insert", "--quick",
-		"--master-data=2",
+		// "--master-data=2",
 		"--max-allowed-packet=1G", "--no-autocommit",
 		"--hex-blob",
+	}
+	if !l.logBinDisabled {
+		args = append(args, "--master-data=2")
 	}
 	if *l.cnf.LogicalBackup.TrxConsistencyOnly {
 		args = append(args, "--single-transaction")
 	}
-	if ok, _ := MysqldumpHasOption(binPath, "--set-gtid-purged"); ok { // // 5.7 需要off 如果支持
+	if ok, _ := mysqlcomm.MysqldumpHasOption(binPath, "--set-gtid-purged"); ok { // // 5.7 需要off 如果支持
 		args = append(args, "--set-gtid-purged=off")
+	}
+	if ok, _ := mysqlcomm.MysqldumpHasOption(binPath, "--skip-ssl"); ok { // // spider-4 默认开启了 ssl，这里关掉
+		args = append(args, "--skip-ssl")
 	}
 	args = append(args, "--default-character-set", l.cnf.Public.MysqlCharset)
 	if l.cnf.Public.MysqlRole == cst.RoleSlave {
@@ -284,7 +280,9 @@ func (l *LogicalDumperMysqldump) Execute(ctx context.Context) (err error) {
 	}()
 	// 屏蔽本地 mysql-monitor slave-status 监控
 	if showMasterStatus, err := mysqlconn.ShowMysqlMasterStatus(false, db); err != nil {
-		return err
+		logger.Log.Warnf("can not get show master status, host:%s, port:%d, errmsg:%s",
+			l.cnf.Public.MysqlHost, l.cnf.Public.MysqlPort, err)
+		//return err
 	} else {
 		l.masterStatus = &dbareport.StatusInfo{
 			BinlogFile: showMasterStatus.File,
@@ -296,7 +294,9 @@ func (l *LogicalDumperMysqldump) Execute(ctx context.Context) (err error) {
 	}
 	masterHost, masterPort, err := mysqlconn.ShowMysqlSlaveStatus(db)
 	if err != nil {
-		return err
+		logger.Log.Warnf("can not get show slave status, host:%s, port:%d, errmsg:%s",
+			l.cnf.Public.MysqlHost, l.cnf.Public.MysqlPort, err)
+		//return err
 	}
 	l.slaveStatus = &dbareport.StatusInfo{
 		MasterHost: masterHost,
@@ -348,7 +348,7 @@ func (l *LogicalDumperMysqldump) PrepareBackupMetaInfo(cnf *config.BackupConfig,
 	metaInfo.BackupBeginTime = l.backupInfo.BackupBeginTime
 	metaInfo.BackupEndTime = l.backupInfo.BackupEndTime
 	metaInfo.BackupConsistentTime = metaInfo.BackupBeginTime
-	if strings.ToLower(l.cnf.Public.MysqlRole) != cst.RoleSlave { // master / repeater
+	if strings.ToLower(l.cnf.Public.MysqlRole) != cst.RoleSlave && l.masterStatus != nil { // master / repeater
 		// 如果是 master, sql里面的 CHANGE MASTER TO 是本机位点
 		metaInfo.BinlogInfo.ShowMasterStatus = &dbareport.StatusInfo{
 			BinlogFile: metadata.MasterStatus["File"],
@@ -356,7 +356,7 @@ func (l *LogicalDumperMysqldump) PrepareBackupMetaInfo(cnf *config.BackupConfig,
 			MasterHost: l.masterStatus.MasterHost,
 			MasterPort: l.masterStatus.MasterPort,
 		}
-	} else { // slave
+	} else if l.slaveStatus != nil { // slave
 		// show_master_status
 		metaInfo.BinlogInfo.ShowMasterStatus = l.masterStatus
 		// show slave status

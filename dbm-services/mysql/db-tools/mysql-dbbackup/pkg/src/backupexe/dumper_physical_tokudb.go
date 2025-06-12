@@ -56,7 +56,7 @@ func (p *PhysicalTokudbDumper) buildArgs() []string {
 }
 
 // initConfig init config
-func (p *PhysicalTokudbDumper) initConfig(mysqlVersion string) error {
+func (p *PhysicalTokudbDumper) initConfig(mysqlVersion string, logBinDisabled bool) error {
 	if p.cnf == nil {
 		return errors.New("tokudb physical dumper config missed")
 	}

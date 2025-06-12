@@ -11,6 +11,8 @@
 package precheck
 
 import (
+	"strings"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
@@ -25,7 +27,8 @@ func CheckBackupType(cnf *config.BackupConfig, storageEngine string) error {
 		return err
 	}
 	if cnf.Public.BackupType == cst.BackupTypeAuto {
-		if storageEngine == cst.StorageEngineTokudb || storageEngine == cst.StorageEngineRocksdb {
+		if strings.EqualFold(storageEngine, cst.StorageEngineTokudb) ||
+			strings.EqualFold(storageEngine, cst.StorageEngineRocksdb) {
 			logger.Log.Infof("BackupType auto with engine=%s, use physical", storageEngine)
 			cnf.Public.BackupType = cst.BackupPhysical
 			return nil

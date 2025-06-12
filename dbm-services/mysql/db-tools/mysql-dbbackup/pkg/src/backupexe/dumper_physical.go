@@ -35,7 +35,7 @@ type PhysicalDumper struct {
 	tmpDisableSlaveMultiThreads bool
 }
 
-func (p *PhysicalDumper) initConfig(mysqlVerStr string) error {
+func (p *PhysicalDumper) initConfig(mysqlVerStr string, logBinDisabled bool) error {
 	if p.cnf == nil {
 		return errors.New("logical dumper params is nil")
 	}

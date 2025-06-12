@@ -513,6 +513,7 @@ func runBackupToRemote(cnf *config.BackupConfig, indexFilePath string,
 		logger.Log.Error("failed to report backup result, err: ", err)
 		return err
 	}
+	// 备份文件被传输到远程，不调用 ReportToLocalBackup
 	return nil
 }
 
@@ -580,6 +581,11 @@ func backupTarAndUpload(
 			return err
 		}
 	}
+	if err = logReport.ReportToLocalBackup(indexFilePath); err != nil {
+		logger.Log.Warnf("failed to write %d local_backup_report, err: %s. ignore", metaInfo.BackupPort, err)
+		// return err
+	}
+
 	logger.Log.Info("report backup info: end")
 	return nil
 }

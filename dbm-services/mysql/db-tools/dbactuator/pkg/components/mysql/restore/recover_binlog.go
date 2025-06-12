@@ -352,7 +352,7 @@ func (r *RecoverBinlog) buildMysqlOptions() error {
 		r.TgtInstance.Options += fmt.Sprintf(" --max-allowed-packet=%d", mysqlOpt.MaxAllowedPacket)
 	}
 	mysqlClient := r.ToolSet.MustGet(tools.ToolMysqlclient)
-	if mysqlOpt.BinaryMode && mysqlCliHasOpt(mysqlClient, "--binary-mode") == nil {
+	if mysqlOpt.BinaryMode && mysqlCliHasOption(mysqlClient, "--binary-mode") == nil {
 		r.TgtInstance.Options += " --binary-mode"
 	}
 	r.mysqlCli = r.TgtInstance.MySQLClientCmd(mysqlClient)
@@ -410,7 +410,7 @@ func (r *RecoverBinlog) buildBinlogOptions() error {
 	} else {
 		binlogTool = r.ToolSet.MustGet(tools.ToolMysqlbinlog)
 	}
-	if b.IdempotentMode && mysqlbinlogHasOpt(binlogTool, "--idempotent") == nil {
+	if b.IdempotentMode && mysqlcomm.MysqlbinlogHasOpt(binlogTool, "--idempotent") == nil {
 		b.options += fmt.Sprintf(" --idempotent")
 	} else if r.QuickMode {
 		logger.Warn("idempotent=false and quick_mode=true may lead binlog-recover fail")
