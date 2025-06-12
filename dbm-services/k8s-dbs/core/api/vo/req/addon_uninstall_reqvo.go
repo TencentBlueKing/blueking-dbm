@@ -19,8 +19,8 @@ limitations under the License.
 
 package req
 
-// AddonDeployReqVo Addon 创建请求结构体
-type AddonDeployReqVo struct {
+// AddonUninstallReqVo Addon 卸载请求结构体
+type AddonUninstallReqVo struct {
 	K8sClusterName string `json:"k8sClusterName,omitempty"`
 	AddonType      string `json:"addonType,omitempty"`
 	AddonVersion   string `json:"addonVersion,omitempty"`

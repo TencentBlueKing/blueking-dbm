@@ -67,7 +67,9 @@ const (
 
 	CreateK8sNsError = 1532300
 
-	DeployAddonError = 1532400
+	InstallAddonError   = 1532400
+	UninstallAddonError = 1532401
+	UpgradeAddonError   = 1532402
 
 	DeployAddonClusterError = 1532500
 )
@@ -111,7 +113,9 @@ var codeTag = map[int]string{
 	CreateK8sNsError: "创建命名空间失败",
 
 	// 存储插件部署操作异常
-	DeployAddonError: "插件部署失败",
+	InstallAddonError:   "插件安装失败",
+	UninstallAddonError: "插件卸载失败",
+	UpgradeAddonError:   "插件更新失败",
 
 	// 存储集群部署操作异常
 	DeployAddonClusterError: "存储集群部署失败",

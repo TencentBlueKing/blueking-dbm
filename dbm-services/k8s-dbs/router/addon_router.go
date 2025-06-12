@@ -57,6 +57,8 @@ func buildAddonRouter(db *gorm.DB, router *gin.Engine) {
 	addonController := controller.NewAddonController(addonProvider)
 	addonGroup := router.Group(basePath + "/addon")
 	{
-		addonGroup.POST("/deploy", addonController.DeployAddon)
+		addonGroup.POST("/install", addonController.InstallAddon)
+		addonGroup.POST("/uninstall", addonController.UninstallAddon)
+		addonGroup.POST("/upgrade", addonController.UpgradeAddon)
 	}
 }

@@ -608,7 +608,7 @@ func (c *ClusterProvider) installHelmRelease(
 	install.Namespace = request.Namespace
 	install.RepoURL = helmRepo.RepoRepository
 	install.Version = request.StorageAddonVersion
-	install.Timeout = clientconst.HelmRepoDownloadTimeout
+	install.Timeout = clientconst.HelmOperationTimeout
 	install.CreateNamespace = true
 	install.Wait = true
 	install.Username = helmRepo.RepoUsername
@@ -658,7 +658,7 @@ func (c *ClusterProvider) updateHelmRelease(
 	upgrade.Namespace = request.Namespace
 	upgrade.RepoURL = helmRepo.RepoRepository
 	upgrade.Version = request.StorageAddonVersion
-	upgrade.Timeout = clientconst.HelmRepoDownloadTimeout
+	upgrade.Timeout = clientconst.HelmOperationTimeout
 	upgrade.Wait = true
 	upgrade.Username = helmRepo.RepoUsername
 	upgrade.Password = helmRepo.RepoPassword
