@@ -1,4 +1,4 @@
-package mongojob
+package checkhealthjob
 
 import (
 	"bytes"

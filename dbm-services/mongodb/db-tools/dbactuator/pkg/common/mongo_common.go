@@ -39,7 +39,7 @@ func UnTarAndCreateSoftLinkAndChown(runtime *jobruntime.JobGenericRuntime, binDi
 		// 修改属主
 		runtime.Logger.Info("start to execute chown command for unTar directory")
 		if _, err := util.RunBashCmd(
-			fmt.Sprintf("chown -R %s.%s %s", user, group, unTarPath),
+			fmt.Sprintf("chown -R %s:%s %s", user, group, unTarPath),
 			"", nil,
 			60*time.Second); err != nil {
 			runtime.Logger.Error(fmt.Sprintf("chown untar directory fail, error:%s", err))
@@ -63,7 +63,7 @@ func UnTarAndCreateSoftLinkAndChown(runtime *jobruntime.JobGenericRuntime, binDi
 		// 修改属主
 		runtime.Logger.Info("start to execute chown command for softLink directory")
 		if _, err := util.RunBashCmd(
-			fmt.Sprintf("chown -R %s.%s %s", user, group, installPath),
+			fmt.Sprintf("chown -R %s:%s %s", user, group, installPath),
 			"", nil,
 			60*time.Second); err != nil {
 			runtime.Logger.Error(fmt.Sprintf("chown softlink directory fail, error:%s", err))
@@ -133,7 +133,7 @@ func CreateFileAndChown(runtime *jobruntime.JobGenericRuntime, filePath string,
 	// 修改配置文件属主
 	runtime.Logger.Info("start to execute chown command for %s file", filePath)
 	if _, err = util.RunBashCmd(
-		fmt.Sprintf("chown -R %s.%s %s", user, group, filePath),
+		fmt.Sprintf("chown -R %s:%s %s", user, group, filePath),
 		"", nil,
 		60*time.Second); err != nil {
 		runtime.Logger.Error("chown %s file fail, error:%s", filePath, err)

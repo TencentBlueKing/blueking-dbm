@@ -1,4 +1,4 @@
-package mongojob
+package backupjob
 
 import (
 	"dbm-services/mongodb/db-tools/dbmon/cmd/basejob"
@@ -89,12 +89,12 @@ func (job *BackupJob) Run() {
 			svrItem.MetaRole == consts.MetaRoleShardsvrBackupNewName {
 
 			// 如果屏蔽告警，也不发起备份.
-			if isAlaramShield(&svrItem,
+			if config.IsAlaramShield(&svrItem,
 				"skip backup because Shielded", job.Logger) {
 				continue
 			}
 
-			backupEnable, err := config.ClusterConfig.GetOne(&svrItem, "backup", "enable")
+			backupEnable, err := config.ClusterConfig.GetOne(&svrItem, "backup", config.KeyEnable)
 			job.Logger.Debug(fmt.Sprintf("get backup.enable : %s", backupEnable),
 				zap.String("instance", svrItem.Addr()), zap.Error(err))
 			if backupEnable == "false" {
@@ -104,9 +104,9 @@ func (job *BackupJob) Run() {
 				continue
 			}
 
-			zipEnable, _ := config.ClusterConfig.GetOne(&svrItem, "backup", "zip")
+			zipEnable, _ := config.ClusterConfig.GetOne(&svrItem, "backup", config.KeyZip)
 			job.Logger.Debug(fmt.Sprintf("get backup.zip : %s", zipEnable))
-			archiveEnable, _ := config.ClusterConfig.GetOne(&svrItem, "backup", "archive")
+			archiveEnable, _ := config.ClusterConfig.GetOne(&svrItem, "backup", config.KeyArchive)
 			job.Logger.Debug(fmt.Sprintf("get backup.archive : %s", archiveEnable))
 			job.runOneServer(&svrItem, zipEnable == "true", archiveEnable == "true")
 		} else {
@@ -127,21 +127,32 @@ func (job *BackupJob) runOneServer(svrItem *config.ConfServerItem, zipEnable boo
 	// backupTask := NewBackupTask(job.Conf, svrItem, job.RealBackupDir, job.Reporter)
 	var logger = job.Logger.With(
 		zap.String("instance", svrItem.Addr()))
+	maxDiskUsage, _ := config.ClusterConfig.GetInt64(svrItem, "backup", config.KeyMaxDiskUsage, 50)
+	minDiskUsage, _ := config.ClusterConfig.GetInt64(svrItem, "backup", config.KeyMinDiskUsage, 25)
+	numParallelCollections, _ := config.ClusterConfig.GetInt64(svrItem, "backup", config.KeyNumParallelCollections, 0)
+	if numParallelCollections < 0 {
+		numParallelCollections = 0
+	} else if numParallelCollections > 10 {
+		numParallelCollections = 10
+	}
 	option := &BackupTaskOption{
-		TaskName:           "",
-		BackupDir:          job.getBackupDir(),
-		BackupType:         "AUTO",
-		Host:               svrItem.IP,
-		Port:               strconv.Itoa(svrItem.Port),
-		User:               svrItem.UserName,
-		Password:           svrItem.Password,
-		SendToBs:           true,
-		RemoveOldFileFirst: true,
-		FullFreq:           3600 * 24,
-		IncrFreq:           3600,
-		Labels:             getBkSvrLabels(svrItem),
-		Zip:                zipEnable,
-		Archive:            archiveEnable,
+		TaskName:               "",
+		BackupDir:              job.getBackupDir(),
+		BackupType:             "AUTO",
+		Host:                   svrItem.IP,
+		Port:                   strconv.Itoa(svrItem.Port),
+		User:                   svrItem.UserName,
+		Password:               svrItem.Password,
+		SendToBs:               true,
+		RemoveOldFileFirst:     true,
+		MaxDiskUsage:           strconv.FormatInt(maxDiskUsage, 10),
+		MinDiskUsage:           strconv.FormatInt(minDiskUsage, 10),
+		FullFreq:               3600 * 24,
+		IncrFreq:               3600,
+		Labels:                 getBkSvrLabels(svrItem),
+		Zip:                    zipEnable,
+		Archive:                archiveEnable,
+		NumParallelCollections: int(numParallelCollections),
 	}
 	backupTask := NewBackupTask()
 	backupTask.Do(option, logger)

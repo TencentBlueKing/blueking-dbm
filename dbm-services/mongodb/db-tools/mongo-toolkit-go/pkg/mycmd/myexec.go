@@ -24,11 +24,11 @@ type MyExec struct {
 // stdout: standard output
 // stderr: standard error
 // returns MyExec object and error
-func NewMyExec(cmdBuilder *CmdBuilder, timeout time.Duration, stdout, stderr any) (*MyExec, error) {
+func NewMyExec(cmdBuilder *CmdBuilder, timeout time.Duration, stdout, stderr any, appendLog bool) (*MyExec, error) {
 	e := &MyExec{
 		CmdBuilder: cmdBuilder,
 	}
-	err := e.Prepare(timeout, stdout, stderr)
+	err := e.Prepare(timeout, stdout, stderr, appendLog)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +40,7 @@ func NewMyExec(cmdBuilder *CmdBuilder, timeout time.Duration, stdout, stderr any
 // stdout: standard output
 // stderr: standard error
 // returns error
-func (e *MyExec) Prepare(timeout time.Duration, stdout, stderr any) error {
+func (e *MyExec) Prepare(timeout time.Duration, stdout, stderr any, appendLog bool) error {
 	cmd, args := e.CmdBuilder.GetCmd()
 	e.ExecHandle = exec.Command(cmd, args...)
 	if timeout > 0 {
@@ -48,8 +48,8 @@ func (e *MyExec) Prepare(timeout time.Duration, stdout, stderr any) error {
 		e.CancelFunc = cancel
 		e.ExecHandle = exec.CommandContext(ctx, cmd, args...)
 	}
-	e.SetStdout(stdout)
-	e.SetStderr(stderr)
+	e.SetStdout(stdout, appendLog)
+	e.SetStderr(stderr, appendLog)
 	return nil
 }
 
@@ -57,17 +57,22 @@ func (e *MyExec) Prepare(timeout time.Duration, stdout, stderr any) error {
 // stdout: standard output
 // supports string(filePath), io.Writer, nil
 // returns error
-func (e *MyExec) SetStdout(stdout any) error {
+func (e *MyExec) SetStdout(stdout any, appendLog bool) error {
 	if stdout == nil {
 		return errors.New("stdout is nil")
 	}
 	switch v := stdout.(type) {
 	case string:
-		stdoutFile, err := os.OpenFile(v, os.O_CREATE|os.O_WRONLY, 0644)
+		oFlag := os.O_CREATE | os.O_WRONLY
+		if appendLog {
+			oFlag |= os.O_APPEND
+		}
+		stdoutFile, err := os.OpenFile(v, oFlag, 0644)
 		if err != nil {
 			return err
 		}
 		e.ExecHandle.Stdout = stdoutFile
+
 	case io.Writer:
 		e.ExecHandle.Stdout = v
 	default:
@@ -80,13 +85,17 @@ func (e *MyExec) SetStdout(stdout any) error {
 // stderr: standard error
 // supports string(filePath), io.Writer, nil
 // returns error
-func (e *MyExec) SetStderr(stderr any) error {
+func (e *MyExec) SetStderr(stderr any, appendLog bool) error {
 	if stderr == nil {
 		return errors.New("stderr is nil")
 	}
 	switch v := stderr.(type) {
 	case string:
-		stderrFile, err := os.OpenFile(v, os.O_CREATE|os.O_WRONLY, 0644)
+		oFlag := os.O_CREATE | os.O_WRONLY
+		if appendLog {
+			oFlag |= os.O_APPEND
+		}
+		stderrFile, err := os.OpenFile(v, oFlag, 0644)
 		if err != nil {
 			return err
 		}

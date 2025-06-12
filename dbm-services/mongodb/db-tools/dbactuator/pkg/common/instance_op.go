@@ -127,7 +127,6 @@ func (inst *InstanceOp) DoStop() error {
 			}
 		}
 		time.Sleep(5 * time.Second)
-
 	}
 	return nil
 }
@@ -284,6 +283,10 @@ func (inst *InstanceOp) GrantRolesToUser(user string, roles []string) error {
 	rolesVal := strings.Join(roles, ",")
 	err := inst.ExecJs(fmt.Sprintf(`db.grantRolesToUser('%s', [%s]);`, user, rolesVal), 60)
 	return errors.Wrap(err, "GrantRolesToUser")
+}
+
+func (inst *InstanceOp) DoFlushRouterConfig() error {
+	return inst.ExecJs("db.adminCommand({flushRouterConfig: 1});", 300)
 }
 
 func checkPortInUse(port int) (bool, error) {

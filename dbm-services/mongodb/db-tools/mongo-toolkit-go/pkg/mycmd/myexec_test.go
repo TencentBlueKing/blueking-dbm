@@ -11,7 +11,7 @@ import (
 func TestMyExec(t *testing.T) {
 	os.Remove("test.zst")
 	tmpContent := "hello" + time.Now().Format("2006-01-02 15:04:05")
-	exec, err := NewMyExec(NewCmdBuilder().Append("echo", "-n", tmpContent), 10*time.Second, nil, os.Stdout)
+	exec, err := NewMyExec(NewCmdBuilder().Append("echo", "-n", tmpContent), 10*time.Second, nil, os.Stdout, false)
 	if err != nil {
 		t.Errorf("NewMyExec failed: %v", err)
 		return
@@ -20,7 +20,7 @@ func TestMyExec(t *testing.T) {
 	// cancel() if timeout > 0
 	defer exec.CancelFunc()
 
-	exec2, err := NewMyExec(NewCmdBuilder().Append("zstd", "-", "-o", "test.zst"), 0, os.DevNull, os.Stderr)
+	exec2, err := NewMyExec(NewCmdBuilder().Append("zstd", "-", "-o", "test.zst"), 0, os.DevNull, os.Stderr, false)
 	if err != nil {
 		t.Errorf("NewMyExec failed: %v", err)
 		return
@@ -57,7 +57,7 @@ func TestMyExec(t *testing.T) {
 	}
 
 	outBuffer := bytes.NewBuffer(nil)
-	exec3, err := NewMyExec(NewCmdBuilder().Append("zstdcat", "test.zst"), 0, outBuffer, os.Stdout)
+	exec3, err := NewMyExec(NewCmdBuilder().Append("zstdcat", "test.zst"), 0, outBuffer, os.Stdout, false)
 	if err != nil {
 		t.Errorf("NewMyExec failed: %v", err)
 		return
@@ -96,7 +96,7 @@ func TestDump(t *testing.T) {
 		"-proot",
 		"--authenticationDatabase", "admin",
 		"--archive",
-	), 7*24*time.Hour, nil, dumpLogPath)
+	), 7*24*time.Hour, nil, dumpLogPath, false)
 	if err != nil {
 		t.Errorf("NewMyExec failed: %v", err)
 		return
@@ -104,7 +104,7 @@ func TestDump(t *testing.T) {
 	defer exec.CancelFunc()
 
 	exec2, err := NewMyExec(NewCmdBuilder().Append("zstd", "-", "-o", archivePath),
-		7*24*time.Hour, os.DevNull, os.Stderr)
+		7*24*time.Hour, os.DevNull, os.Stderr, false)
 	if err != nil {
 		t.Errorf("NewMyExec failed: %v", err)
 		return
@@ -152,7 +152,7 @@ func TestRestore(t *testing.T) {
 	exec1, err := NewMyExec(NewCmdBuilder().Append(
 		"zstd",
 		"-dcf", archivePath,
-	), 80*24*time.Hour, nil, zstdErrPath)
+	), 80*24*time.Hour, nil, zstdErrPath, false)
 	if err != nil {
 		t.Errorf("NewMyExec failed: %v", err)
 		return
@@ -166,7 +166,7 @@ func TestRestore(t *testing.T) {
 		"-uroot",
 		"-proot",
 		"--authenticationDatabase", "admin",
-		"--archive"), 80*24*time.Hour, nil, restoreLogPath)
+		"--archive"), 80*24*time.Hour, nil, restoreLogPath, false)
 	if err != nil {
 		t.Errorf("NewMyExec failed: %v", err)
 		return

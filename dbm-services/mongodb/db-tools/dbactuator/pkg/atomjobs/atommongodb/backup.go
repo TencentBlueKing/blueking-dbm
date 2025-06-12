@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -109,14 +110,14 @@ func getBackupPath() (string, error) {
 }
 
 // getMongoDumpOutPath return path Like /data/dbbak/mongodump-$unixtime
-func getMongoDumpOutPath() (string, string, error) {
+func getMongoDumpOutPath(ip string, port int) (string, string, error) {
 	backupDir, err := getBackupPath()
 	if err != nil {
 		return "", "", err
 	}
 
 	for i := 0; i < 10; i++ {
-		tmpName := fmt.Sprintf("mongodump-%d", time.Now().Unix())
+		tmpName := fmt.Sprintf("mongodump-%s-%d-%d", ip, port, time.Now().Unix())
 		tmpDir := path.Join(backupDir, tmpName)
 		if util.FileExists(tmpDir) {
 			time.Sleep(time.Second)
@@ -135,7 +136,7 @@ func getMongoDumpOutPath() (string, string, error) {
 
 // doLogicalBackup backup by mongodump
 func (s *backupJob) doLogicalBackup() error {
-	tmpPath, tmpDir, err := getMongoDumpOutPath()
+	tmpPath, tmpDir, err := getMongoDumpOutPath(s.ConfParams.IP, s.ConfParams.Port)
 	if err != nil {
 		return errors.Wrap(err, "getMongoDumpOutPath")
 	}
@@ -143,25 +144,56 @@ func (s *backupJob) doLogicalBackup() error {
 		s.ConfParams.AdminUsername, s.ConfParams.AdminPassword, "admin", s.OsUser)
 	var startTime, endTime time.Time
 	startTime = time.Now()
+	isEmptyBackup := 0
+
+	// 规则. setName为-conf的，认为是configsvr
+	isConfigBackup := 0
+	if strings.HasSuffix(s.ConfParams.BkDbmInstance.SetName, "-conf") {
+		isConfigBackup = 1
+	}
+
 	if s.ConfParams.Args.IsPartial {
 		// backupType = "dumpPartial"
 		partialArgs := s.ConfParams.Args.NsFilter
 		filter := logical.NewNsFilter(
 			partialArgs.DbList, partialArgs.IgnoreDbList,
 			partialArgs.ColList, partialArgs.IgnoreColList)
-
-		cmdLineList, cmdLine, err, _ := helper.DumpPartial(tmpPath, "dump.log", filter)
+		_, lastCmdLine, dbColList, _, err := helper.DumpPartial(tmpPath, "dump.log", filter)
 
 		if err != nil {
-			if errors.Is(err, logical.ErrorNoMatchDb) {
-				s.runtime.Logger.Warn("NoMatchDb")
-				return nil
-			} else {
-				s.runtime.Logger.Error("exec cmd fail, cmd: %s, error:%s", cmdLine, err)
-				return errors.Wrap(err, "LogicalDumpPartial")
+			s.runtime.Logger.Error("exec cmd fail, cmd: %s, error:%s", lastCmdLine, err)
+			return errors.Wrap(err, "LogicalDumpPartial")
+		}
+
+		dbCount, colCount := 0, 0
+		for _, ns := range dbColList {
+			if len(ns.Col) > 0 {
+				dbCount++
+				colCount += len(ns.Col)
 			}
 		}
-		s.runtime.Logger.Info("exec cmd success, cmd: %+v", cmdLineList)
+		for _, ns := range dbColList {
+			if len(ns.Col) == 0 {
+				s.runtime.Logger.Info(fmt.Sprintf("db %q has no matched collection", ns.Db))
+			} else {
+				s.runtime.Logger.Info(fmt.Sprintf("db %q has %d matched collection: %q", ns.Db,
+					len(ns.Col), strings.Join(ns.Col, ",")))
+			}
+		}
+
+		if dbCount == 0 {
+			isEmptyBackup = 1
+			s.runtime.Logger.Warn("no matched db and collection, will create a empty backup record")
+			os.MkdirAll(tmpPath, 0755)
+			err = os.WriteFile(path.Join(tmpPath, "dump.log"),
+				[]byte("no matched db and collection, will create a empty backup record"), 0644)
+			if err != nil {
+				s.runtime.Logger.Error("create empty backup record failed, err:%v", err)
+				return errors.Wrap(err, "create empty backup record")
+			}
+		}
+
+		s.runtime.Logger.Info("exec cmd success,  db:%d collection:%d", dbCount, colCount)
 	} else {
 		cmdLine, err := helper.LogicalDumpAll(tmpPath, "dump.log")
 		if err != nil {
@@ -176,6 +208,15 @@ func (s *backupJob) doLogicalBackup() error {
 				s.runtime.Logger.Error("remove %s/admin failed, err %v", tmpPath, err)
 				return errors.Wrap(err, "RemoveAdminDir")
 			}
+		}
+
+	}
+
+	// 非configsvr 不备份config
+	if isConfigBackup == 0 {
+		err = helper.RemoveConfigDir(tmpPath)
+		if err == nil {
+			s.runtime.Logger.Info("remove %s/config success", tmpPath)
 		}
 	}
 
@@ -221,25 +262,27 @@ func (s *backupJob) doLogicalBackup() error {
 		return errors.Wrap(err, "SaveToFile")
 	}
 
-	return s.appendToReportFile(startTime, endTime, task, tarPath, tarFile, fSize)
+	return s.appendToReportFile(startTime, endTime, task, tarPath, tarFile, fSize, isEmptyBackup, isConfigBackup)
 }
 
 func (s *backupJob) appendToReportFile(
 	startTime, endTime time.Time, task *backupsys.TaskInfo,
-	tarPath, tarFile string, fSize int64) error {
+	tarPath, tarFile string, fSize int64, isEmptyBackup, isConfigBackup int) error {
 	rec := report.NewBackupRecord()
 	rec.AppendFileInfo(startTime.Local().Format(time.RFC3339),
 		endTime.Local().Format(time.RFC3339),
 		tarPath, tarFile, fSize)
 	rec.AppendMetaLabel(&s.ConfParams.BkDbmInstance)
-	rec.AppendBillSrc(s.runtime.UID, "todo", 1, 1)
+	rec.AppendBillSrc(s.runtime.UID, "todo", 1, 1, isEmptyBackup, isConfigBackup)
 	rec.AppendBsInfo(task.TaskId, task.Tag)
 	err := report.AppendObjectToFile(s.ReportFilePath, rec)
 	if err != nil {
 		s.runtime.Logger.Error("Add Record to BackupReport Failedreport file:%s, record %+v", s.ReportFilePath, err)
 		return errors.Wrap(err, "Add Record to BackupReport")
 	} else {
-		s.runtime.Logger.Info("Add Record to BackupReport Success, report file:%s, record %+v", s.ReportFilePath, rec)
+		json, _ := json.Marshal(rec)
+		s.runtime.Logger.Info("Add Record to BackupReport Success, report file:%s, labels:%s", s.ReportFilePath,
+			string(json))
 	}
 	return nil
 

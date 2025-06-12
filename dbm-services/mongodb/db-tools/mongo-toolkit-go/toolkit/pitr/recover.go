@@ -111,14 +111,16 @@ func UntarFull(backupFileDir string, file *BackupFileName) (
 	}
 
 	archive = strings.HasSuffix(file.FileName, ".archive") ||
-		strings.HasSuffix(file.FileName, ".archive.zstd")
+		strings.HasSuffix(file.FileName, ".archive.zstd") ||
+		strings.HasSuffix(file.FileName, ".archive.zst")
 	// 如果file是archive.zstd, 则zstd为true. 不存在没有archive的zstd文件.
-	zstd = strings.HasSuffix(file.FileName, ".archive.zstd")
+	zstd = strings.HasSuffix(file.FileName, ".archive.zstd") || strings.HasSuffix(file.FileName, ".archive.zst")
 
-	subDirName = strings.TrimSuffix(file.FileName, ".gz")
-	subDirName = strings.TrimSuffix(subDirName, ".tar")
-	subDirName = strings.TrimSuffix(subDirName, ".archive")
-	subDirName = strings.TrimSuffix(subDirName, ".archive.zstd")
+	subDirName = file.FileName
+	for _, suffix := range []string{".gz", ".tar", ".archive", ".archive.zstd", ".archive.zst"} {
+		subDirName = strings.TrimSuffix(subDirName, suffix)
+	}
+
 	fullTmpDir = path.Join("tmp", subDirName, "full")
 
 	if _, err = os.Stat(fullTmpDir); err == nil {
@@ -214,7 +216,7 @@ func DoMongoRestoreFULL(bin string, conn *mymongo.MongoHost, file *BackupFileNam
 
 		zstdcatExec, err = mycmd.NewMyExec(mycmd.New(
 			MustFindBinPath("zstd", consts.GetDbTool("mongotools")),
-			"-dcf", file.FileName), 7*24*time.Hour, nil, os.DevNull)
+			"-dcf", file.FileName), 7*24*time.Hour, nil, os.DevNull, false)
 		if err != nil {
 			return "", errors.Wrap(err, "NewMyExec")
 		}
@@ -237,7 +239,7 @@ func DoMongoRestoreFULL(bin string, conn *mymongo.MongoHost, file *BackupFileNam
 		}
 	}
 
-	exec2, err := mycmd.NewMyExec(restoreCmd, 7*24*time.Hour, os.DevNull, restoreLogfile)
+	exec2, err := mycmd.NewMyExec(restoreCmd, 7*24*time.Hour, os.DevNull, restoreLogfile, false)
 	if err != nil {
 		return "", errors.Wrap(err, "NewMyExec")
 	}
@@ -327,7 +329,7 @@ func DoReplayOplog(bin string, conn *mymongo.MongoHost, backupFilePath string, t
 
 	restoreLogfile := path.Join(tmpDirPath, "restore.log")
 	restoreCmd := mycmd.New(bin).Append(args...)
-	exec2, err = mycmd.NewMyExec(restoreCmd, 7*24*time.Hour, os.DevNull, restoreLogfile)
+	exec2, err = mycmd.NewMyExec(restoreCmd, 7*24*time.Hour, os.DevNull, restoreLogfile, false)
 	if err != nil {
 		return errors.Wrap(err, "NewMyExec")
 	}
@@ -442,7 +444,7 @@ func ZstdCmd(args ...any) error {
 	}
 	exec1, err := mycmd.NewMyExec(
 		mycmd.New(zstdBin).Append(args...),
-		7*24*time.Hour, nil, os.DevNull)
+		7*24*time.Hour, nil, os.DevNull, false)
 	if err != nil {
 		return errors.Wrap(err, "NewMyExec zstdcat")
 	}

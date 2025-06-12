@@ -3,7 +3,6 @@ package dbmonheartbeat
 
 import (
 	"dbm-services/mongodb/db-tools/dbmon/cmd/basejob"
-	"dbm-services/mongodb/db-tools/dbmon/cmd/mongojob"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/buildinfo"
 	"fmt"
 	"runtime"
@@ -76,7 +75,7 @@ func (job *Job) Run() {
 
 // sendHeartBeat 发送心跳 会带第一个实例的维度信息
 func (job *Job) sendHeartBeat(conf *config.BkMonitorBeatConfig, serverConf *config.ConfServerItem) error {
-	msgH, err := mongojob.GetBkMonitorBeatSender(conf, serverConf)
+	msgH, err := config.GetBkMonitorBeatSender(conf, serverConf)
 	if err != nil {
 		return err
 	}

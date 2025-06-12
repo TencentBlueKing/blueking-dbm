@@ -135,7 +135,7 @@ func InsertBackupHeartbeat(db *mongo.Client, connObj MongoHost, backupType, dir 
 			log.Errorf("InsertBackupHeartbeat: Connect to MasterHost %s:%s failed, err:%v ", connObj.Host, connObj.Port, err)
 			return nil, err
 		}
-		defer masterConn.Disconnect(nil)
+		defer masterConn.Disconnect(context.TODO())
 	} else {
 		masterConn = db
 	}

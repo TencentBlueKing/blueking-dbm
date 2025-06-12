@@ -100,6 +100,9 @@ func (s *instOpJob) Run() error {
 	case "show_tables":
 		// 列出db简单信息. 未实现
 		return errors.New("not implemented")
+	case "flush_router_config":
+		// 刷新router的配置
+		return op.DoFlushRouterConfig()
 	}
 
 	return errors.New("unknown op " + s.ConfParams.Op)

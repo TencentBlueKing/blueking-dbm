@@ -1,4 +1,4 @@
-package mongojob
+package backupjob
 
 import (
 	"dbm-services/mongodb/db-tools/dbmon/pkg/consts"
@@ -17,18 +17,21 @@ type BackupTaskOption struct {
 	// BackupDir 备份目录
 	BackupDir string `json:"backup_dir"`
 	// BackupType 备份类型
-	BackupType         string `json:"backup_type"`
-	Host               string `json:"host"`
-	Port               string `json:"port"`
-	User               string `json:"user"`
-	Password           string `json:"password"`
-	SendToBs           bool   `json:"send_to_bs"`
-	RemoveOldFileFirst bool   `json:"remove_old_file_first"`
-	FullFreq           int    `json:"full_freq"`
-	IncrFreq           int    `json:"incr_freq"`
-	Labels             string `json:"labels"`
-	Zip                bool   `json:"zip"`
-	Archive            bool   `json:"archive"`
+	BackupType             string `json:"backup_type"`
+	Host                   string `json:"host"`
+	Port                   string `json:"port"`
+	User                   string `json:"user"`
+	Password               string `json:"password"`
+	SendToBs               bool   `json:"send_to_bs"`
+	RemoveOldFileFirst     bool   `json:"remove_old_file_first"`
+	MaxDiskUsage           string `json:"max_disk_usage"`
+	MinDiskUsage           string `json:"min_disk_usage"`
+	FullFreq               int    `json:"full_freq"`
+	IncrFreq               int    `json:"incr_freq"`
+	Labels                 string `json:"labels"`
+	Zip                    bool   `json:"zip"`
+	Archive                bool   `json:"archive"`
+	NumParallelCollections int    `json:"num_parallel_collections"`
 }
 
 // BackupTask 备份任务
@@ -61,6 +64,12 @@ func (task *BackupTask) Do(option *BackupTaskOption, logger *zap.Logger) error {
 
 	if option.RemoveOldFileFirst {
 		cb.Append("--remove-old-file-first")
+		if option.MaxDiskUsage != "" {
+			cb.Append("--max-disk-usage", option.MaxDiskUsage)
+		}
+		if option.MinDiskUsage != "" {
+			cb.Append("--min-disk-usage", option.MinDiskUsage)
+		}
 	}
 
 	if option.Zip {
@@ -69,6 +78,10 @@ func (task *BackupTask) Do(option *BackupTaskOption, logger *zap.Logger) error {
 
 	if option.Archive {
 		cb.Append("--archive")
+	}
+
+	if option.NumParallelCollections > 0 {
+		cb.Append("--numParallelCollections", strconv.Itoa(option.NumParallelCollections))
 	}
 
 	// dbmon的日志不上传Es，可以打印密码.

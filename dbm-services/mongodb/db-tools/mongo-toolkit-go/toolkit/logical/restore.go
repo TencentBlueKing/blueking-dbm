@@ -53,7 +53,7 @@ func Restore(option *RestoreOption) {
 
 	if option.Args.IsPartial {
 		host := option.MongoHost
-		dbColList, err := GetDbCollectionWithFilter(host.Host, host.Port, host.User, host.Pass, host.AuthDb, filter)
+		dbColList, err := GetDbCollectionWithFilter(host.Host, host.Port, host.User, host.Pass, host.AuthDb, filter, true)
 		if err != nil {
 			log.Errorf("GetDbCollectionWithFilter failed %v", err)
 			return
@@ -354,15 +354,8 @@ func RemoveFileNotInFilter(dirName string, filter *NsFilter) ([]DbCollection, er
 	}
 	var left []DbCollection
 	for _, row := range dbRows {
-		if !filter.IsDbMatched(row.Db) {
-			err = os.RemoveAll(path.Join(dirName, row.Db))
-			if err != nil {
-				return nil, err
-			}
-			continue
-		}
-
-		matchList, notMatchList := filter.FilterTb(row.Col)
+		// 如果过滤后没有表，则删除整个库
+		matchList, notMatchList := filter.FilterTbV2(row.Db, row.Col)
 		if len(matchList) == 0 {
 			err = os.RemoveAll(path.Join(dirName, row.Db))
 			if err != nil {
@@ -370,7 +363,7 @@ func RemoveFileNotInFilter(dirName string, filter *NsFilter) ([]DbCollection, er
 			}
 			continue
 		}
-
+		// 删除掉不需要的表
 		for _, col := range notMatchList {
 			var toDelFileList = []string{}
 			toDelFileList = append(toDelFileList,
@@ -388,10 +381,11 @@ func RemoveFileNotInFilter(dirName string, filter *NsFilter) ([]DbCollection, er
 				}
 			}
 		}
-		var newRow DbCollection
-		newRow.Db = row.Db
-		newRow.Col = matchList
-		left = append(left, row)
+
+		left = append(left, DbCollection{
+			Db:  row.Db,
+			Col: matchList,
+		})
 	}
 	return left, nil
 }

@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-playground/validator/v10"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -20,7 +19,7 @@ import (
 // 删除库表.
 // 1. 分析参数，确定要删除的库和表
 // 2. 如果是删除库，先删除库下的所有表
-// 3. 检查oplog
+// 3. 检查oplog (todo 需要实现)
 // 4. 执行删除
 
 // 如果在mongos中执行.
@@ -36,7 +35,7 @@ type removeNsParams struct {
 		DropIndex        bool        `json:"dropIndex"`        // 是否同时删除索引
 		RenameCollectoin bool        `json:"renameCollection"` // 是否用renameCollection方式删除
 		IsPartial        bool        `json:"isPartial"`        // 为true时，NsFilter生效
-		NsFilter         NsFilterArg `json:"nsFilter"`
+		NsFilter         NsFilterArg `json:"nsFilter"`         //
 	} `json:"args"`
 }
 
@@ -87,6 +86,10 @@ func (s *removeNsJob) Run() error {
 func connectPrimary(host *mymongo.MongoHost) (client *mongo.Client, err error) {
 	// drop Index
 	client, err = host.Connect()
+	if err != nil {
+		return nil, err
+	}
+
 	isMasterOut, err := mymongo.IsMaster(client, 10)
 	if err != nil {
 		err = errors.Wrap(err, "IsMaster")
@@ -101,6 +104,7 @@ func connectPrimary(host *mymongo.MongoHost) (client *mongo.Client, err error) {
 		err = errors.Errorf("bad primary:%s", isMasterOut.Primary)
 		return
 	}
+	client.Disconnect(context.TODO())
 	masterInst := mymongo.NewMongoHost(fs[0], fs[1], "admin", host.User, host.Pass, "", fs[0])
 	return masterInst.Connect()
 }
@@ -120,7 +124,7 @@ func (s *removeNsJob) dropCollection() (err error) {
 	if err != nil {
 		return errors.Wrap(err, "connectPrimary")
 	}
-	defer primaryConn.Disconnect(nil)
+	defer primaryConn.Disconnect(context.TODO())
 	for _, ns := range s.tmp.NsList {
 		for _, col := range ns.Col {
 			err = primaryConn.Database(ns.Db).Collection(col).Drop(context.Background())
@@ -141,6 +145,11 @@ func (s *removeNsJob) backupIndex() (err error) {
 	}
 
 	client, err := s.MongoInst.Connect()
+	if err != nil {
+		return errors.Wrap(err, "Connect")
+	}
+	defer client.Disconnect(context.TODO())
+
 	s.tmp.NsIndex = make(map[string][]*mongo.IndexSpecification)
 	for _, ns := range s.tmp.NsList {
 		for _, col := range ns.Col {
@@ -160,7 +169,7 @@ func (s *removeNsJob) backupIndex() (err error) {
 				indexView2, context.TODO(), options.ListIndexes().SetMaxTime(30*time.Second))
 		}
 	}
-	s.runtime.Logger.Info(fmt.Sprintf("backup index done"))
+	s.runtime.Logger.Info("backup index done")
 	v, _ := json.Marshal(s.tmp.NsIndex)
 	s.runtime.Logger.Info(fmt.Sprintf("backupIndex: %s", v))
 	return nil
@@ -177,7 +186,7 @@ func (s *removeNsJob) restoreIndex() (err error) {
 	if err != nil {
 		return errors.Wrap(err, "connectPrimary")
 	}
-	defer primaryConn.Disconnect(nil)
+	defer primaryConn.Disconnect(context.Background())
 
 	for _, ns := range s.tmp.NsList {
 		for _, col := range ns.Col {
@@ -257,15 +266,6 @@ type unmarshalIndexSpecification struct {
 	TextVersion        *int32   `bson:"textIndexVersion,omitempty"`
 }
 
-// unmarshalBSON implements the bson.Unmarshaler interface.
-func unmarshalBSON(data []byte) error {
-	var temp unmarshalIndexSpecification
-	if err := bson.Unmarshal(data, &temp); err != nil {
-		return err
-	}
-	return nil
-}
-
 // ListSpecifications executes a List command and returns a slice of returned IndexSpecifications
 // TODO 需要搞清楚所有的索引类型，可能出现的组合。 要加一个test
 func ListSpecifications(ns string, iv mongo.IndexView, ctx context.Context, opts ...*options.ListIndexesOptions) error {
@@ -290,11 +290,10 @@ func (s *removeNsJob) getNsList() (err error) {
 			partialArgs.DbList, partialArgs.IgnoreDbList,
 			partialArgs.ColList, partialArgs.IgnoreColList)
 
-		dbColList, err := logical.GetDbCollectionWithFilter(s.MongoInst.Host, s.MongoInst.Port,
-			s.MongoInst.User, s.MongoInst.Pass, s.MongoInst.AuthDb, filter)
+		s.tmp.NsList, err = logical.GetDbCollectionWithFilter(s.MongoInst.Host, s.MongoInst.Port,
+			s.MongoInst.User, s.MongoInst.Pass, s.MongoInst.AuthDb, filter, true)
 
-		s.runtime.Logger.Info(fmt.Sprintf("GetDbCollectionWithFilter: return %+v %v", dbColList, err))
-
+		// s.runtime.Logger.Info(fmt.Sprintf("GetDbCollectionWithFilter: return %+v %v", s.tmp.NsList, err))
 		if err != nil {
 			// 如果没有匹配的库表，算作成功. 返回Error给后面的流程处理.
 			if errors.Is(err, logical.ErrorNoMatchDb) {
@@ -303,29 +302,38 @@ func (s *removeNsJob) getNsList() (err error) {
 			}
 			return errors.Wrap(err, "GetDbCollectionWithFilter")
 		}
-		// skip sys db
-		for _, v := range dbColList {
-			if mymongo.IsSysDb(v.Db) {
-				continue
-			}
-			s.tmp.NsList = append(s.tmp.NsList, v)
-		}
 
-		if len(s.tmp.NsList) == 0 {
-			s.tmp.Err = logical.ErrorNoMatchDb
-		}
-		s.runtime.Logger.Info(fmt.Sprintf("getNsList:%+v", s.tmp.NsList))
-		return nil
 	} else {
 		s.tmp.NsList, err = logical.GetDbCollection(s.MongoInst.Host, s.MongoInst.Port,
 			s.MongoInst.User, s.MongoInst.Pass, s.MongoInst.AuthDb, true)
-		if len(s.tmp.NsList) == 0 {
-			return errors.Errorf("no db and col found")
+		if err != nil {
+			// 如果没有匹配的库表，算作成功. 返回Error给后面的流程处理.
+			if errors.Is(err, logical.ErrorNoMatchDb) {
+				s.tmp.Err = err
+				return nil
+			}
+			return errors.Wrap(err, "GetDbCollection")
 		}
-		s.runtime.Logger.Info(fmt.Sprintf("logical.GetDbCollection "+
-			":%+v", s.tmp.NsList))
-		return err
 	}
+
+	dbCount, colCount := 0, 0
+	for _, ns := range s.tmp.NsList {
+		if len(ns.Col) > 0 {
+			dbCount++
+			colCount += len(ns.Col)
+		}
+	}
+
+	for _, ns := range s.tmp.NsList {
+		if len(ns.Col) == 0 {
+			s.runtime.Logger.Info(fmt.Sprintf("db %q has no matched collection", ns.Db))
+		} else {
+			s.runtime.Logger.Info(fmt.Sprintf("db %q has %d matched collection: %q", ns.Db,
+				len(ns.Col), strings.Join(ns.Col, ",")))
+		}
+	}
+	s.runtime.Logger.Info(fmt.Sprintf("matched count: db:%d collection:%d", dbCount, colCount))
+	return nil
 }
 
 // Retry 重试
@@ -366,17 +374,6 @@ func (s *removeNsJob) Init(runtime *jobruntime.JobGenericRuntime) error {
 		return errors.Wrap(err, fmt.Sprintf("Connect to %s:%d failed", s.ConfParams.IP, s.ConfParams.Port))
 	}
 	s.runtime.Logger.Info(fmt.Sprintf("Connect to %s:%d success", s.ConfParams.IP, s.ConfParams.Port))
-
-	return nil
-}
-
-// checkParams 校验参数
-func (s *removeNsJob) checkParams() error {
-	// 校验配置参数
-	validate := validator.New()
-	if err := validate.Struct(s.ConfParams); err != nil {
-		return fmt.Errorf("validate parameters of deleteUser fail, error:%s", err)
-	}
 
 	return nil
 }
