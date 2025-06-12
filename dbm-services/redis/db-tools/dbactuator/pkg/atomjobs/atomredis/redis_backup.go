@@ -792,6 +792,19 @@ func (task *BackupTask) TendisSSDInstanceBackup() {
 		return
 	}
 	util.LocalDirChownMysql(task.BackupDir)
+
+	beforeVerify, _ := task.Cli.TendisSSDBinlogSize()
+	mylog.Logger.Info("fish backup with binlogPos: %+v; beforeVerify binlogPos: %+v", binlogsizeRet, beforeVerify)
+	for i := 0; i < 60; i++ {
+		if beforeVerify.EndSeq-beforeVerify.FirstSeq < 0 { // {FirstSeq:2521252165 EndSeq:2521252164}
+			mylog.Logger.Warn("waiting backup beforeVerify binlogPos: %+v", beforeVerify)
+			time.Sleep(time.Second * 2)
+			task.Cli.Set("dba|vTAddBinlog|dba|use", time.Now().Unix(), time.Minute)
+			continue
+		}
+		break
+	}
+
 	task.StartTime = time.Now().Local()
 	binlogsizeRet, _, task.Err = task.Cli.TendisSSDBackupAndWaitForDone(backupFullDir)
 	if task.Err != nil {
@@ -880,7 +893,6 @@ func (task *BackupTask) TendisSSDSetLougCount() {
 		mylog.Logger.Info(fmt.Sprintf("%s skip config set slave-log-keep-count(%d)...", task.Addr(),
 			task.SSDLogCount.SlaveLogKeepCount))
 	}
-
 }
 
 // TransferToBackupSystem 备份文件上传到备份系统
