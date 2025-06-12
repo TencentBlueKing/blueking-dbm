@@ -321,3 +321,24 @@ func (c *ClusterController) DescribeComponent(ctx *gin.Context) {
 	}
 	coreentity.SuccessResponse(ctx, responseData, coreconst.DescribeComponentSuccess)
 }
+
+// GetClusterEvent 查询集群事件
+func (c *ClusterController) GetClusterEvent(ctx *gin.Context) {
+	request := &coreentity.Request{}
+	err := ctx.BindJSON(&request)
+	if err != nil {
+		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetClusterEventError, err))
+		return
+	}
+	clusterEventList, err := c.clusterProvider.GetClusterEvent(request)
+	if err != nil {
+		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetClusterEventError, err))
+		return
+	}
+	var data resp.ClusterEventRespVo
+	if err := copier.Copy(&data, clusterEventList); err != nil {
+		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetClusterEventError, err))
+		return
+	}
+	coreentity.SuccessResponse(ctx, data, coreconst.GetClusterEventSuccess)
+}

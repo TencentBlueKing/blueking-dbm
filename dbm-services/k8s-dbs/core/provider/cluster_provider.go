@@ -38,9 +38,9 @@ import (
 	"helm.sh/helm/v3/pkg/chart/loader"
 	helmcli "helm.sh/helm/v3/pkg/cli"
 
-	"github.com/pkg/errors"
-
 	kbtypes "github.com/apecloud/kbcli/pkg/types"
+	kbv1 "github.com/apecloud/kubeblocks/apis/apps/v1alpha1"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -700,4 +700,52 @@ func (c *ClusterProvider) getClusterHelmRepository(
 		return nil, err
 	}
 	return helmRepo, nil
+}
+
+// GetClusterEvent 	获取 cluster 运行事件
+func (c *ClusterProvider) GetClusterEvent(request *coreentity.Request) (*corev1.EventList, error) {
+	k8sClusterConfig, err := c.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
+	if err != nil {
+		slog.Error("failed to get k8sClusterConfig", "error", err)
+		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
+	}
+	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
+	if err != nil {
+		slog.Error("failed to create k8sClient", "error", err)
+		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
+	}
+
+	// Retrieve the cluster object using dynamic client
+	cluster, err := k8sClient.DynamicClient.
+		Resource(kbtypes.ClusterGVR()).
+		Namespace(request.Namespace).
+		Get(context.TODO(), request.ClusterName, metav1.GetOptions{})
+	if err != nil {
+		slog.Error("failed to get cluster object", "error", err)
+		return nil, fmt.Errorf("failed to get cluster object: %w", err)
+	}
+	var data *kbv1.Cluster
+	err = runtime.DefaultUnstructuredConverter.FromUnstructured(cluster.Object, &data)
+	if err != nil {
+		slog.Error("failed to convert unstructured data", "error", err)
+		return nil, fmt.Errorf("failed to convert unstructured data: %w", err)
+	}
+
+	// Construct field selector using both name and UID for precise event filtering
+	clusterUID := string(data.UID)
+	fieldSelector := fmt.Sprintf(
+		"involvedObject.name=%s,involvedObject.uid=%s",
+		request.ClusterName,
+		clusterUID,
+	)
+	listOptions := metav1.ListOptions{FieldSelector: fieldSelector}
+
+	// Retrieve events using CoreV1 API with the constructed field selector
+	list, err := k8sClient.ClientSet.CoreV1().Events(request.Namespace).List(context.Background(), listOptions)
+	if err != nil {
+		slog.Error("failed to list events", "clusterName", request.ClusterName, "clusterUID", clusterUID, "error", err)
+		return nil, fmt.Errorf("failed to list events: %w", err)
+	}
+
+	return list, nil
 }

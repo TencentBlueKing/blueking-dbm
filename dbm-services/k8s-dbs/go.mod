@@ -227,6 +227,7 @@ replace (
 	k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.29.2
 	k8s.io/kubectl => k8s.io/kubectl v0.29.2
 	k8s.io/kubelet => k8s.io/kubelet v0.29.2
+	k8s.io/kubernetes/staging/src/k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20250611063655-8052df02af25
 	k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.29.2
 	k8s.io/metrics => k8s.io/metrics v0.29.2
 	k8s.io/mount-utils => k8s.io/mount-utils v0.29.2

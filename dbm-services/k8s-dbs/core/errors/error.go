@@ -46,11 +46,13 @@ const (
 	GetMetaDataErr     = 1532111
 	DeleteMetaDataErr  = 1532112
 
-	DescribeComponentError   = 1532200
-	DescribeClusterError     = 1532201
-	CreateClusterError       = 1532202
-	DeleteClusterError       = 1532203
-	GetClusterStatusError    = 1532204
+	DescribeComponentError = 1532200
+	DescribeClusterError   = 1532201
+	CreateClusterError     = 1532202
+	DeleteClusterError     = 1532203
+	GetClusterStatusError  = 1532204
+	GetClusterEventError   = 1533205
+
 	VerticalScalingError     = 1532205
 	HorizontalScalingError   = 1532206
 	StartClusterError        = 1532207
@@ -92,6 +94,7 @@ var codeTag = map[int]string{
 	CreateClusterError:       "创建集群失败",
 	DeleteClusterError:       "删除集群失败",
 	GetClusterStatusError:    "查询集群状态失败",
+	GetClusterEventError:     "查询集群事件失败",
 	VerticalScalingError:     "集群水平扩缩容失败",
 	HorizontalScalingError:   "集群垂直扩缩容失败",
 	StartClusterError:        "集群启动失败",

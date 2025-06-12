@@ -41,6 +41,7 @@ func buildClusterRouter(db *gorm.DB, router *gin.Engine) {
 		clusterGroup.POST("/delete", clusterController.DeleteCluster)
 		clusterGroup.POST("/describe", clusterController.DescribeCluster)
 		clusterGroup.POST("/status", clusterController.GetClusterStatus)
+		clusterGroup.POST("/event", clusterController.GetClusterEvent)
 
 	}
 

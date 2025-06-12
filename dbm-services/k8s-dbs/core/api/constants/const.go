@@ -27,6 +27,7 @@ const (
 	UpdateClusterSuccess       = "申请更新集群成功"
 	DeleteClusterSuccess       = "申请删除集群成功"
 	GetClusterStatusSuccess    = "查询集群状态成功"
+	GetClusterEventSuccess     = "查询集群事件成功"
 	VerticalScalingSuccess     = "申请集群垂直扩缩容成功"
 	HorizontalScalingSuccess   = "申请集群水平扩缩容成功"
 	StartClusterSuccess        = "申请集群启动成功"
