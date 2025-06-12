@@ -23,18 +23,18 @@
       :input-search="false"
       :list="versionList"
       :placeholder="t('自动生成')">
-      <template #option="{ item, index }">
+      <template #option="{ item }">
         <div>
           {{ item.label }}
           <BkTag
-            v-if="modelValue === item.value"
+            v-if="item.value === cluster.major_version"
             class="ml-4"
             size="small"
             theme="info">
             {{ t('当前版本') }}
           </BkTag>
           <BkTag
-            v-if="index === 0"
+            v-if="item.index === 0"
             class="ml-4"
             size="small"
             theme="warning">
@@ -66,6 +66,7 @@
 
   const versionList = ref<
     {
+      index: number;
       label: string;
       value: string;
     }[]
@@ -74,11 +75,11 @@
   const { run: fetchVersions } = useRequest(listClusterBigVersion, {
     manual: true,
     onSuccess(versions) {
-      versionList.value = versions.map((item) => ({
+      versionList.value = versions.map((item, index) => ({
+        index,
         label: item,
         value: item,
       }));
-      modelValue.value = versions.includes(props.cluster.major_version) ? props.cluster.major_version : '';
     },
   });
 
