@@ -192,29 +192,8 @@
         tableData: infos.map((item) => {
           const clusterInfo = clusters[item.cluster_id];
           return createTableRow({
-            backend_group: {
-              affinity: item.resource_spec.backend_group.affinity,
-              capacity: item.capacity,
-              count: item.resource_spec.backend_group.count,
-              future_capacity: item.future_capacity,
-              group_num: item.group_num,
-              old_machine_info: item.old_nodes.backend_hosts,
-              shard_num: item.shard_num,
-              spec_id: item.resource_spec.backend_group.spec_id,
-              update_mode: item.update_mode,
-            },
             cluster: {
-              bk_cloud_id: clusterInfo.bk_cloud_id,
-              cluster_capacity: item.display_info.cluster_capacity,
-              cluster_shard_num: item.shard_num,
-              cluster_spec: item.display_info.cluster_spec,
-              cluster_stats: item.display_info.cluster_stats,
-              cluster_type: clusterInfo.cluster_type,
-              cluster_type_name: clusterInfo.cluster_type_name,
-              disaster_tolerance_level: clusterInfo.disaster_tolerance_level as Affinity,
-              id: clusterInfo.id,
-              machine_pair_cnt: item.group_num,
-              major_version: clusterInfo.major_version,
+              id: 0,
               master_domain: clusterInfo.immute_domain,
             } as RedisModel,
             db_version: item.db_version,
@@ -309,6 +288,7 @@
         acc.push(
           createTableRow({
             cluster: item,
+            db_version: item.major_version,
             online_switch_type: 'user_confirm',
           }),
         );

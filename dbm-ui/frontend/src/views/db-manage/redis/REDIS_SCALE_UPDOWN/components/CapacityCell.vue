@@ -6,6 +6,11 @@
         <div class="item-content">
           <span class="number-style">{{ data.capacity }}</span>
           G
+          <ValueDiff
+            v-if="originData?.capacity"
+            :current-value="originData.capacity"
+            num-unit="G"
+            :target-value="data.capacity" />
         </div>
       </div>
       <div class="item">
@@ -21,18 +26,33 @@
         <div class="item-title">{{ t('机器组数') }}：</div>
         <div class="item-content">
           <span class="number-style">{{ data.groupNum }}</span>
+          <ValueDiff
+            v-if="originData?.groupNum"
+            :current-value="originData.groupNum"
+            :show-rate="false"
+            :target-value="data.groupNum" />
         </div>
       </div>
       <div class="item">
         <div class="item-title">{{ t('机器数量') }}：</div>
         <div class="item-content">
           <span class="number-style">{{ data.groupNum * 2 }}</span>
+          <ValueDiff
+            v-if="originData?.groupNum"
+            :current-value="originData.groupNum * 2"
+            :show-rate="false"
+            :target-value="data.groupNum * 2" />
         </div>
       </div>
       <div class="item">
-        <div class="item-title">{{ t('分片数') }}：</div>
+        <div class="item-title">{{ t('集群分片数') }}：</div>
         <div class="item-content">
-          <span class="number-style">{{ data.shardNum }}</span>
+          <span class="number-style">{{ data.clusterShardNum }}</span>
+          <ValueDiff
+            v-if="originData?.clusterShardNum"
+            :current-value="originData.clusterShardNum"
+            :show-rate="false"
+            :target-value="data.clusterShardNum" />
         </div>
       </div>
       <slot />
@@ -42,15 +62,18 @@
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
 
+  import ValueDiff from '@views/db-manage/common/value-diff/Index.vue';
+
   import RenderSpec from './render-spec/Index.vue';
 
   interface Props {
     data: {
       capacity: number;
+      clusterShardNum: number;
       groupNum: number;
-      shardNum: number;
       spec: any;
     };
+    originData?: Props['data'];
   }
 
   defineProps<Props>();
@@ -78,7 +101,7 @@
         width: 100%;
 
         .item-title {
-          width: 64px;
+          width: 70px;
           text-align: right;
         }
 
