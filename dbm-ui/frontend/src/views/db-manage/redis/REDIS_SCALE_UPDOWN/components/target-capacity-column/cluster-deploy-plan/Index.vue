@@ -114,6 +114,7 @@
   const applySchema = ref(APPLY_SCHEME.AUTO);
   const defaultTargetInfo = () => ({
     capacity: 0,
+    clusterShardNum: 0,
     clusterStats: {
       in_use: 0,
       total: 0,

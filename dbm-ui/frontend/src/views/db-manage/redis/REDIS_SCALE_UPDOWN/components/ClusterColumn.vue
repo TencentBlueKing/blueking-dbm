@@ -133,18 +133,28 @@
   const handleInputChange = (value: string) => {
     modelValue.value = {
       id: 0,
+      master_domain: value,
     } as RedisModel;
-    if (value) {
-      queryCluster({
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        exact_domain: value,
-      });
-    }
   };
 
   const handleSelectorChange = (selected: Record<string, RedisModel[]>) => {
     emits('batch-edit', selected[ClusterTypes.REDIS]);
   };
+
+  watch(
+    modelValue,
+    () => {
+      if (modelValue.value.master_domain && !modelValue.value.id) {
+        queryCluster({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          exact_domain: modelValue.value.master_domain,
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 <style lang="less" scoped>
   .batch-host-select {
