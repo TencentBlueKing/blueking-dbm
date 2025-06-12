@@ -204,10 +204,17 @@ class _CCApi(BaseApi):
             url="/hosts/modules/read",
             description=_("查询主机业务关系信息"),
         )
-        self.find_module_batch = self.generate_data_api(
+        self.find_module_batch = (
+            self.generate_data_api(
+                method="POST",
+                url="/findmany/module/bk_biz_id/{bk_biz_id}",
+                description=_("批量查询某业务的模块详情"),
+            ),
+        )
+        self.check_host_event = self.generate_data_api(
             method="POST",
-            url="/findmany/module/bk_biz_id/{bk_biz_id}",
-            description=_("批量查询某业务的模块详情"),
+            url="event/watch/resource/{bk_resource}",
+            description=_("查询主机更新事件信息"),
         )
 
 
