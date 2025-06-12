@@ -33,7 +33,8 @@
       </EditableInput>
       <CapacityCell
         v-else
-        :data="localTargetInfo" />
+        :data="localTargetInfo"
+        :origin-data="originTargetInfo" />
     </div>
   </EditableColumn>
   <ClusterTargetPlan
@@ -58,7 +59,7 @@
     };
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const modelValue = defineModel<{
     affinity: string;
@@ -84,6 +85,7 @@
   const showClusterTargetPlan = ref(false);
   const localTargetInfo = reactive<TargetInfo>({
     capacity: 0,
+    clusterShardNum: 0,
     clusterStats: { in_use: 0, total: 0, used: 0 },
     groupNum: 0,
     shardNum: 0,
@@ -110,6 +112,13 @@
       validator: (value: string) => Boolean(value),
     },
   ];
+
+  const originTargetInfo = computed(() => ({
+    capacity: props.rowData.cluster.cluster_capacity,
+    clusterShardNum: props.rowData.cluster.cluster_shard_num,
+    groupNum: props.rowData.cluster.machine_pair_cnt,
+    spec: props.rowData.cluster.cluster_spec,
+  }));
 
   const disabledMethod = (rowData?: any, field?: string) => {
     if (field === 'backend_group.spec_id' && !rowData.db_version) {
