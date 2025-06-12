@@ -45,7 +45,7 @@
     :label="t('集群分片数')"
     :required="false">
     <BkInput
-      v-model="clusterShardNum"
+      v-model="targetInfo.clusterShardNum"
       disabled
       :placeholder="t('自动生成')"
       style="width: 314px"
@@ -93,7 +93,6 @@
   const groupNum = ref('');
 
   const shardNumDisabled = computed(() => props.cluster.cluster_type !== ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER);
-  const clusterShardNum = computed(() => props.cluster.cluster_shard_num);
   const minGroupNum = computed(() => {
     // RedisCluster/ tendisplus 机器组数需要最少3组。
     if (
@@ -115,8 +114,8 @@
       trigger: 'change',
       validator: (value: number) => {
         if (shardNumDisabled.value) {
-          targetInfo.value.shardNum = Number((clusterShardNum.value / value).toFixed(2));
-          return clusterShardNum.value % value === 0;
+          targetInfo.value.shardNum = targetInfo.value.clusterShardNum / value;
+          return targetInfo.value.clusterShardNum % value === 0;
         }
         return true;
       },
@@ -158,9 +157,10 @@
     if (props.cluster.id) {
       Object.assign(targetInfo.value, {
         capacity: props.cluster.cluster_capacity,
+        clusterShardNum: props.cluster.cluster_shard_num,
         clusterStats: props.cluster.cluster_stats,
         groupNum: props.cluster.machine_pair_cnt,
-        shardNum: props.cluster.cluster_shard_num,
+        shardNum: props.cluster.cluster_shard_num / props.cluster.machine_pair_cnt,
         spec: props.cluster.cluster_spec,
       });
     }
