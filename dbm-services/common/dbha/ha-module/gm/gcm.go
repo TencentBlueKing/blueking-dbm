@@ -69,15 +69,6 @@ func (gcm *GCM) DoSwitchSingle(switchInstance dbutil.DataBaseSwitch) {
 	log.Logger.Debugf("switch instance detail info:%#v", switchInstance)
 	switchQueueInfo := &model.HASwitchQueue{}
 
-	log.Logger.Infof("insert ha_switch_queue. info:{%s}", switchInstance.ShowSwitchInstanceInfo())
-	err = gcm.InsertSwitchQueue(switchInstance)
-	if err != nil {
-		switchFail := "insert switch queue failed. err:" + err.Error()
-		log.Logger.Errorf("%s, info{%s}", err.Error(), switchInstance.ShowSwitchInstanceInfo())
-		monitor.MonitorSendSwitch(switchInstance, switchFail, false)
-		return
-	}
-
 	for i := 0; i < 1; i++ {
 		switchInstance.ReportLogs(constvar.InfoResult, "do pre-check before switch")
 		if switchInstance.GetStatus() != constvar.RUNNING && switchInstance.GetStatus() != constvar.AVAILABLE {
@@ -89,6 +80,12 @@ func (gcm *GCM) DoSwitchSingle(switchInstance dbutil.DataBaseSwitch) {
 		err = gcm.SetUnavailableAndLockInstance(switchInstance)
 		if err != nil {
 			err = fmt.Errorf("set instance to unavailable failed:" + err.Error())
+			log.Logger.Errorf("%s, info{%s}", err.Error(), switchInstance.ShowSwitchInstanceInfo())
+			break
+		}
+
+		if ok, v := switchInstance.GetInfo(constvar.GQACheckKey); ok {
+			err = v.(error)
 			log.Logger.Errorf("%s, info{%s}", err.Error(), switchInstance.ShowSwitchInstanceInfo())
 			break
 		}

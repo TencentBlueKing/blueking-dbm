@@ -232,6 +232,9 @@ func (a *MonitorAgent) FetchDBInstance() error {
 	log.Logger.Debugf("hash mod:%d, hash value:%d, dbType:%s", mod, modValue, a.DetectType)
 	a.HashMod = mod
 	a.HashValue = modValue
+	if a.Conf.AgentConf.HashMod > 0 {
+		a.HashMod = a.Conf.AgentConf.HashMod
+	}
 
 	req := client.DBInstanceByCityRequest{
 		LogicalCityIDs: []int{a.CityID},

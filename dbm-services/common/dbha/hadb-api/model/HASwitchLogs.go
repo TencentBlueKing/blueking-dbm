@@ -19,9 +19,9 @@ type HASwitchLogs struct {
 	App      string     `gorm:"column:app;type:varchar(32);NOT NULL" json:"app,omitempty"`
 	IP       string     `gorm:"column:ip;type:varchar(32);index:idx_ip_port" json:"ip,omitempty"`
 	Port     int        `gorm:"column:port;type:int(11);index:idx_ip_port" json:"port,omitempty"`
-	Result   string     `gorm:"column:result;type:blob" json:"result,omitempty"`
+	Result   string     `gorm:"column:result;type:tinyblob" json:"result,omitempty"`
 	Datetime *time.Time `gorm:"column:datetime;type:datetime;index:idx_date" json:"datetime,omitempty"`
-	Comment  string     `gorm:"column:comment;type:tinyblob" json:"comment,omitempty"`
+	Comment  string     `gorm:"column:comment;type:blob" json:"comment,omitempty"`
 }
 
 // TableName TODO
