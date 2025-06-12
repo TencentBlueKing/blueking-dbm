@@ -72,6 +72,7 @@
   import { ipv4 } from '@common/regex';
 
   import InstanceSelector, { type InstanceSelectorValues, type IValue } from '@components/instance-selector/Index.vue';
+  import { ClusterTypes, DBTypes } from '@common/const';
 
   export type SelectorHost = IValue;
 
@@ -106,7 +107,7 @@
 
   const showSelector = ref(false);
   const selectedHosts = computed<InstanceSelectorValues<IValue>>(() => ({
-    TendbClusterHost: props.selected.map(
+    SpiderHost: props.selected.map(
       (item) =>
         ({
           ip: item.ip,
@@ -128,6 +129,16 @@
           return true;
         }
         return Boolean(modelValue.value.bk_host_id);
+      },
+    },
+    {
+      message: t('非接入层 IP'),
+      trigger: 'blur',
+      validator: (value: string) => {
+        if (!value) {
+          return true;
+        }
+        return modelValue.value.role === 'spider_master' || modelValue.value.role === 'spider_slave';
       },
     },
   ];
@@ -183,6 +194,8 @@
         queryHost({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           instance_addresses: [modelValue.value.ip],
+          cluster_type: ClusterTypes.TENDBCLUSTER,
+          db_type: DBTypes.TENDBCLUSTER,
         });
       }
     },
