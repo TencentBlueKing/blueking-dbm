@@ -352,7 +352,7 @@ func (r *RecoverBinlog) buildMysqlOptions() error {
 		r.TgtInstance.Options += fmt.Sprintf(" --max-allowed-packet=%d", mysqlOpt.MaxAllowedPacket)
 	}
 	mysqlClient := r.ToolSet.MustGet(tools.ToolMysqlclient)
-	if mysqlOpt.BinaryMode && mysqlCliHasOption(mysqlClient, "--binary-mode") == nil {
+	if mysqlOpt.BinaryMode && mysqlcomm.MysqlCliHasOption(mysqlClient, "--binary-mode") == nil {
 		r.TgtInstance.Options += " --binary-mode"
 	}
 	r.mysqlCli = r.TgtInstance.MySQLClientCmd(mysqlClient)
