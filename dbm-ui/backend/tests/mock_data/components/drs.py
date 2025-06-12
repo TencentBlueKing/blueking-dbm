@@ -21,14 +21,28 @@ class DRSApiMock(object):
             {
                 "address": "5.5.5.5:20001",
                 "cmd_results": [
-                    {"cmd": "", "table_data": [{"Database": "source_test_db1"}], "rows_affected": 0, "error_msg": ""}
+                    {
+                        "cmd": args[0]["cmds"][0],
+                        "table_data": [
+                            {"Database": "source_test_db1", "SCHEMA_NAME": "test_table", "TABLE_NAME": "test_table"}
+                        ],
+                        "rows_affected": 0,
+                        "error_msg": "",
+                    },
                 ],
                 "error_msg": "",
             },
             {
                 "address": "5.5.5.4:20001",
                 "cmd_results": [
-                    {"cmd": "", "table_data": [{"Database": "test_db1"}], "rows_affected": 0, "error_msg": ""}
+                    {
+                        "cmd": args[0]["cmds"][0],
+                        "table_data": [
+                            {"Database": "test_db1", "SCHEMA_NAME": "test_table", "TABLE_NAME": "test_table"}
+                        ],
+                        "rows_affected": 0,
+                        "error_msg": "",
+                    },
                 ],
                 "error_msg": "",
             },
@@ -38,6 +52,15 @@ class DRSApiMock(object):
         for address in args[0]["addresses"]:
             for data in source_data:
                 if address == data.get("address"):
+                    if len(args[0]["cmds"]) > 1:
+                        data["cmd_results"].append(
+                            {
+                                "cmd": args[0]["cmds"][1],
+                                "table_data": [{"Database": "", "SCHEMA_NAME": "", "TABLE_NAME": ""}],
+                                "rows_affected": 0,
+                                "error_msg": "",
+                            }
+                        )
                     response_data.append(data)
         return response_data
 

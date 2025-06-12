@@ -280,7 +280,7 @@ REDIS_DATA_STRUCTURE_DATA = {
                     "5.5.5.3:30002",
                     "5.5.5.3:30003",
                 ],
-                "recovery_time_point": "2025-05-25T04:00:00+08:00",
+                "recovery_time_point": "2025-06-19T04:00:00+08:00",
                 "resource_spec": {"redis": {"count": 1, "spec_id": 333}},
             }
         ],

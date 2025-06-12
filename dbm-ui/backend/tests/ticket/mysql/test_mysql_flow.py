@@ -20,7 +20,7 @@ from django.core.cache import cache
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import Cluster, Machine, Spec, StorageInstance
+from backend.db_meta.models import Cluster, Machine, ProxyInstance, Spec, StorageInstance
 from backend.flow.models import FlowNode, FlowTree
 from backend.tests.mock_data.components.cc import CCApiMock
 from backend.tests.mock_data.components.dbconfig import DBConfigApiMock
@@ -34,10 +34,18 @@ from backend.tests.mock_data.ticket.mysql_flow import (
     MYSQL_CHECKSUM_DATA,
     MYSQL_CLUSTER_DATA,
     MYSQL_DATA_MIGRATE_DATA,
+    MYSQL_DELETE_CLEAR_DB_DATA,
     MYSQL_DUMP_DATA,
+    MYSQL_FLASHBACK_DATA,
+    MYSQL_HA_DB_TABLE_BACKUP_DATA,
     MYSQL_HA_FULL_BACKUP_DATA,
     MYSQL_ITSM_AUTHORIZE_TICKET_DATA,
     MYSQL_MACHINE_DATA,
+    MYSQL_MASTER_SLAVE_SWITCH_DATA,
+    MYSQL_PROXY_ADD_DATA,
+    MYSQL_PROXY_SWITCH_DATA,
+    MYSQL_PROXYINSTANCE_DATA,
+    MYSQL_ROLLBACK_CLUSTER_DATA,
     MYSQL_SINGLE_APPLY_TICKET_DATA,
     MYSQL_SPEC_DATA,
     MYSQL_STORAGE_INSTANCE,
@@ -65,12 +73,19 @@ def setup_mysql_database(django_db_setup, django_db_blocker):
         storage_instances[0].cluster.add(clusters[0])
         storage_instances[1].cluster.add(clusters[0])
         storage_instances[2].cluster.add(clusters[1])
+        proxy_instances = ProxyInstance.objects.bulk_create(
+            [ProxyInstance(**data) for data in MYSQL_PROXYINSTANCE_DATA]
+        )
+        proxy_instances[0].cluster.add(clusters[0])
+        proxy_instances[0].storageinstance.add(storage_instances[0])
+        proxy_instances[0].storageinstance.add(storage_instances[1])
         Spec.objects.bulk_create([Spec(**data) for data in MYSQL_SPEC_DATA])
         FlowTree.objects.create(**FLOW_TREE_DATA)
         FlowNode.objects.create(**SQL_IMPORT_FLOW_NODE_DATA)
         yield
         mysql_cluster_types = ClusterType.db_type_to_cluster_types(DBType.MySQL)
         Cluster.objects.filter(cluster_type__in=mysql_cluster_types).delete()
+        ProxyInstance.objects.filter(cluster_type__in=mysql_cluster_types).delete()
         StorageInstance.objects.filter(cluster_type__in=mysql_cluster_types).delete()
         Machine.objects.filter(cluster_type__in=mysql_cluster_types).delete()
         Spec.objects.filter(spec_cluster_type=DBType.Redis).delete()
@@ -120,6 +135,27 @@ class TestMySQLTicket(BaseTicketTest):
         authorize_data["details"]["authorize_uid"] = authorize_uid
         self.flow_test(authorize_data)
         cache.delete(authorize_uid)
+
+    def test_mysql_master_slave_switch_flow(self):
+        self.flow_test(MYSQL_MASTER_SLAVE_SWITCH_DATA)
+
+    def test_mysql_proxy_add_flow(self):
+        self.flow_test(MYSQL_PROXY_ADD_DATA)
+
+    def test_mysql_proxy_switch_flow(self):
+        self.flow_test(MYSQL_PROXY_SWITCH_DATA)
+
+    def test_mysql_ha_db_table_backup_flow(self):
+        self.flow_test(MYSQL_HA_DB_TABLE_BACKUP_DATA)
+
+    def test_mysql_delete_clear_db_flow(self):
+        self.flow_test(MYSQL_DELETE_CLEAR_DB_DATA)
+
+    def test_mysql_rollback_cluster_data_flow(self):
+        self.flow_test(MYSQL_ROLLBACK_CLUSTER_DATA)
+
+    def test_mysql_flashback_data_flow(self):
+        self.flow_test(MYSQL_FLASHBACK_DATA)
 
     def test_mysql_add_slave_flow(self):
         self.flow_test(MYSQL_ADD_SLAVE_DATA)
