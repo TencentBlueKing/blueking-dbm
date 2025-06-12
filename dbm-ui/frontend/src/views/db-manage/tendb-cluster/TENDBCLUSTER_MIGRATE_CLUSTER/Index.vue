@@ -145,7 +145,7 @@
 
   const defaultData = () => ({
     backupSource: BackupSourceType.REMOTE,
-    need_checksum: false,
+    need_checksum: true,
     payload: createTickePayload(),
     tableData: [createTableRow()],
   });
