@@ -24,6 +24,8 @@ type TbRequestRecord struct {
 	User string `gorm:"column:user;type:varchar(32);not null" json:"user"`
 	// 请求路径
 	Path string `gorm:"column:path;type:varchar(32);not null" json:"path"`
+	// response data message
+	ResponeBody string `gorm:"column:response_body;type:json" json:"response_body"`
 	// response code
 	ResponeCode int `gorm:"column:response_code;type:int(11);not null" json:"response_code"`
 	// 请求来源Ip
