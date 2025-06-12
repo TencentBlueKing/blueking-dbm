@@ -205,16 +205,6 @@ def decode_info_cmd(info_str: str) -> Dict:
     return info_ret
 
 
-def get_cluster_update_version(cluster_id: int) -> List[str]:
-    """
-    获取集群容量变更允许的Redis大版本
-    """
-    cluster = Cluster.objects.get(id=cluster_id)
-    curr_version = cluster.major_version
-    packages = Package.objects.filter(pkg_type="redis", db_type="redis", enable=True)
-    return [p.__dict__["version"] for p in packages if version_ge(p.__dict__["version"], curr_version)]
-
-
 def get_tendisplus_shutdown_hosts(cluster_id, target_group_num: int):
     """
     获取tendisplus缩容时需要下架的hosts

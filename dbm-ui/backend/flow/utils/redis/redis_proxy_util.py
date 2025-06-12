@@ -1182,3 +1182,17 @@ def lightning_cluster_nodes(cluster_id: int) -> list:
         if master_addr not in master_to_item:
             raise Exception(_("redis集群 {} master {} 没有对应running的slave节点").format(cluster.immute_domain, master_addr))
     return list(master_to_item.values())
+
+
+def get_cluster_update_version(cluster_id: int) -> List[str]:
+    """
+    获取集群容量变更允许的Redis大版本
+    """
+    cluster = Cluster.objects.get(id=cluster_id)
+    curr_version = cluster.major_version
+    # 如果是SSD,不允许跨版本
+    if is_tendisssd_instance_type(cluster.cluster_type):
+        return [curr_version]
+
+    major_version_list = get_storage_versions_by_cluster_type(cluster.cluster_type)
+    return list(set([version for version in major_version_list if version_ge(version, curr_version)]))

@@ -34,13 +34,13 @@ from backend.db_services.redis.resources.redis_cluster.query import RedisListRet
 from backend.exceptions import ApiResultError, ValidationError
 from backend.flow.consts import DBA_ROOT_USER
 from backend.flow.utils.base.payload_handler import PayloadHandler
-from backend.flow.utils.redis import redis_util
 from backend.flow.utils.redis.redis_proxy_util import (
     get_cluster_proxy_version,
     get_cluster_proxy_version_for_upgrade,
     get_cluster_redis_version,
     get_cluster_remote_address,
     get_cluster_storage_versions_for_upgrade,
+    get_cluster_update_version,
 )
 from backend.utils.basic import dictfetchall
 from backend.utils.string import base64_encode
@@ -151,7 +151,7 @@ class ToolboxHandler(ClusterServiceHandler):
     @classmethod
     def list_cluster_big_version(cls, cluster_id: int):
         """查询集群可更新的大版本"""
-        return redis_util.get_cluster_update_version(cluster_id)
+        return get_cluster_update_version(cluster_id)
 
     @classmethod
     def webconsole_rpc(cls, cluster_id: int, cmd: str, db_num: int = 0, raw: bool = True, **kwargs):
