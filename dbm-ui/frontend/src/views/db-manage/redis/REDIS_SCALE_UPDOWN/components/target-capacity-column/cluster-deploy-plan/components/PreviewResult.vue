@@ -89,21 +89,21 @@
         </template>
       </template>
     </DiffInfoItem>
-    <DiffInfoItem :label="t('分片数')">
+    <DiffInfoItem :label="t('集群分片数')">
       <template #left>
         <span v-if="!diffState.current.shardNum">--</span>
         <template v-else>
-          <span class="number-style">{{ diffState.current.shardNum }}</span>
+          <span class="number-style">{{ diffState.current.clusterShardNum }}</span>
         </template>
       </template>
       <template #right>
         <span v-if="!updateMode">--</span>
         <template v-else>
-          <span class="number-style">{{ diffState.target.shardNum }}</span>
+          <span class="number-style">{{ diffState.target.clusterShardNum }}</span>
           <ValueDiff
-            :current-value="diffState.current.shardNum"
+            :current-value="diffState.current.clusterShardNum"
             :show-rate="false"
-            :target-value="diffState.target.shardNum" />
+            :target-value="diffState.target.clusterShardNum" />
         </template>
       </template>
     </DiffInfoItem>
@@ -140,6 +140,7 @@
 
   const init = () => ({
     capacity: 0,
+    clusterShardNum: 0,
     clusterStats: {
       in_use: 0,
       total: 0,
@@ -178,9 +179,10 @@
       if (props.cluster.id) {
         diffState.current = {
           capacity: props.cluster.cluster_capacity,
+          clusterShardNum: props.cluster.cluster_shard_num,
           clusterStats: props.cluster.cluster_stats,
           groupNum: props.cluster.machine_pair_cnt,
-          shardNum: props.cluster.cluster_shard_num,
+          shardNum: props.cluster.cluster_shard_num / props.cluster.machine_pair_cnt,
           spec: props.cluster.cluster_spec,
         };
       }

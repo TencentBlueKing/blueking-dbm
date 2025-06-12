@@ -127,7 +127,7 @@
     },
     {
       render: () => data.display_info?.cluster_shard_num || '--',
-      title: t('分片数'),
+      title: t('集群分片数'),
     },
   ];
 
@@ -164,16 +164,58 @@
       title: t('资源规格'),
     },
     {
-      render: () => data.group_num,
+      render: () => {
+        if (!data.group_num) {
+          return '--';
+        }
+        return (
+          <>
+            {data.group_num}
+            <ValueDiff
+              currentValue={data.display_info.machine_pair_cnt}
+              show-rate={false}
+              targetValue={data.group_num}
+            />
+          </>
+        );
+      },
       title: t('机器组数'),
     },
     {
-      render: () => data.group_num * 2,
+      render: () => {
+        if (!data.group_num) {
+          return '--';
+        }
+        return (
+          <>
+            {data.group_num * 2}
+            <ValueDiff
+              currentValue={data.display_info.machine_pair_cnt * 2}
+              show-rate={false}
+              targetValue={data.group_num * 2}
+            />
+          </>
+        );
+      },
       title: t('机器数量'),
     },
     {
-      render: () => data.shard_num,
-      title: t('分片数'),
+      render: () => {
+        if (!data.shard_num) {
+          return '--';
+        }
+        return (
+          <>
+            {data.shard_num}
+            <ValueDiff
+              currentValue={data.display_info.cluster_shard_num}
+              show-rate={false}
+              targetValue={data.display_info.cluster_shard_num}
+            />
+          </>
+        );
+      },
+      title: t('集群分片数'),
     },
     {
       render: () => {
