@@ -36,7 +36,7 @@ class IPHasRegisteredPermission(permissions.BasePermission):
             )
 
         try:
-            bk_cloud_id = request.query_params.get("bk_cloud_id")
+            bk_cloud_id = int(request.query_params.get("bk_cloud_id"))
 
             if not env.DEBUG_REVERSE_API:
                 validate_nginx_ip(bk_cloud_id, request)

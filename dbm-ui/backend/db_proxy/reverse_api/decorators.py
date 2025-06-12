@@ -30,8 +30,8 @@ def reverse_api(url_path, method=None):
         @action(url_path=url_path, detail=False, methods=[method.upper()])
         @wraps(func)
         def wrapped_func(obj, request: Request, *args, **kwargs):
-            bk_cloud_id = request.query_params.get("bk_cloud_id")
-            port_list = request.query_params.getlist("port")
+            bk_cloud_id = int(request.query_params.get("bk_cloud_id"))
+            port_list = [int(p) for p in request.query_params.getlist("port")]
             client_ip = get_client_ip(request)
 
             wrapped_param = {
