@@ -11,7 +11,7 @@ export default () => {
         fullscreen: true,
         navName: t('我的申请'),
       },
-      component: () => import('@/views/ticket-center/ticket-self-apply/Index.vue'),
+      component: () => import('@views/ticket-center/ticket-self-apply/Index.vue'),
     },
     {
       path: 'ticket-self-todo/:assist?/:status?/:ticketId?',
@@ -29,7 +29,7 @@ export default () => {
         }
         next();
       },
-      component: () => import('@/views/ticket-center/ticket-self-todo/Index.vue'),
+      component: () => import('@views/ticket-center/ticket-self-todo/Index.vue'),
     },
     {
       path: 'ticket-self-done/:ticketId?',
@@ -38,7 +38,7 @@ export default () => {
         fullscreen: true,
         navName: t('我的已办'),
       },
-      component: () => import('@/views/ticket-center/ticket-self-done/Index.vue'),
+      component: () => import('@views/ticket-center/ticket-self-done/Index.vue'),
     },
     // {
     //   path: 'ticket-self-manage/:ticketId?',
@@ -56,7 +56,7 @@ export default () => {
         fullscreen: true,
         navName: t('单据'),
       },
-      component: () => import('@/views/ticket-center/ticket-platform-manage/Index.vue'),
+      component: () => import('@views/ticket-center/ticket-platform-manage/Index.vue'),
     },
     {
       path: 'ticket/:ticketId?',
@@ -77,7 +77,7 @@ export default () => {
         fullscreen: true,
         navName: t('单据'),
       },
-      component: () => import('@/views/ticket-center/ticket-business-manage/Index.vue'),
+      component: () => import('@views/ticket-center/ticket-business-manage/Index.vue'),
     },
   ]);
 };

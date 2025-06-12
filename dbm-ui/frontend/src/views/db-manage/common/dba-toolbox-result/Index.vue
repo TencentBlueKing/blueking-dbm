@@ -56,21 +56,18 @@
     <BkTable
       class="result-table"
       :data="tableData"
-      :loading="isLoading">
+      :loading="isLoading"
+      :show-overflow="false">
       <BkTableColumn
         :label="t('单号')"
         :width="250">
         <template #default="{ data: rowData }: { data: RowData }">
-          <RouterLink
-            target="_blank"
-            :to="{
-              name: 'SelfServiceMyTickets',
-              params: {
-                ticketId: rowData.id,
-              },
-            }">
+          <BkButton
+            text
+            theme="primary"
+            @click="() => handleOpenBizTicket(rowData)">
             {{ rowData.id }}
-          </RouterLink>
+          </BkButton>
         </template>
       </BkTableColumn>
       <BkTableColumn
@@ -82,7 +79,14 @@
       </BkTableColumn>
       <BkTableColumn :label="t('集群')">
         <template #default="{ data: rowData }: { data: RowData }">
-          {{ rowData.related_object?.objects?.[0] || '--' }}
+          <div v-if="rowData.related_object?.objects?.length > 0">
+            <p
+              v-for="item in rowData.related_object.objects"
+              :key="item">
+              {{ item }}
+            </p>
+          </div>
+          <span v-else>--</span>
         </template>
       </BkTableColumn>
     </BkTable>
@@ -161,6 +165,19 @@
     router.push({
       name: `DBA_${ticketType}`,
     });
+  };
+
+  const handleOpenBizTicket = (rowData: RowData) => {
+    const path = router
+      .resolve({
+        name: 'bizTicketManage',
+        params: {
+          ticketId: rowData.id,
+        },
+      })
+      .href.replace(/^\/(\d+)/, `${rowData.bk_biz_id}`);
+
+    window.open(`${window.location.origin}/${path}`, '_blank');
   };
 
   watch(

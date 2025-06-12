@@ -14,10 +14,10 @@ export function useBatchCreateTicket<T>(ticketType: TicketTypes) {
   const route = useRoute();
   const { locale, t } = useI18n();
 
-  const doRequest = async (tickets: ServiceParameters<typeof createTicketBatch<T>>['tickets']) => {
+  const doRequest = async (tickets: ServiceParameters<typeof createTicketBatch>['tickets']) => {
     try {
       loading.value = true;
-      const res = await createTicketBatch<T>({ tickets });
+      const res = await createTicketBatch({ tickets });
       const toolboxResultMap = {
         MONGODB: 'DbaManageMongodbToolboxResult',
         MYSQL: 'DbaManageMysqlToolboxResult',
@@ -121,17 +121,27 @@ export function useBatchCreateTicket<T>(ticketType: TicketTypes) {
     detailsExtractor: (item: U) => T;
     ticketPayload: { remark: string };
   }) => {
-    const detailsByBiz = data.reduce<Record<string, { bk_biz_id: number; details: T }>>((acc, item, index) => {
-      Object.assign(acc, {
-        [index]: {
-          bk_biz_id: bizIdExtractor(item),
-          details: detailsExtractor(item),
-        },
-      });
-      return acc;
-    }, {});
+    const grouped = data.reduce(
+      (acc, item) => {
+        const bizId = bizIdExtractor(item);
+        const details = detailsExtractor(item);
+        if (!acc[bizId]) {
+          Object.assign(acc, { [bizId]: { bk_biz_id: bizId, details: {} } });
+        }
+        for (const key in details) {
+          if (!acc[bizId].details[key]) {
+            Object.assign(acc[bizId].details, { [key]: Array.isArray(details[key]) ? [] : details[key] });
+          }
+          if (Array.isArray(details[key])) {
+            acc[bizId].details[key].push(...details[key]);
+          }
+        }
+        return acc;
+      },
+      {} as Record<number, { bk_biz_id: number; details: { [key: string]: any } }>,
+    );
 
-    const ticketParams = Object.values(detailsByBiz).map((item) => ({
+    const ticketParams = Object.values(grouped).map((item) => ({
       ...item,
       ...ticketPayload,
       ticket_type: ticketType,
