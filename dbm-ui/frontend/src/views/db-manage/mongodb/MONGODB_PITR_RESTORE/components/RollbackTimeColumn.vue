@@ -25,6 +25,7 @@
   </EditableColumn>
 </template>
 <script setup lang="ts">
+  import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
 
   import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
@@ -39,7 +40,7 @@
 
   const showBatchEdit = ref(false);
 
-  const disableDate = (date?: number | Date) => Boolean(date && date.valueOf() > Date.now());
+  const disableDate = (date?: number | Date) => dayjs(date).isAfter(dayjs(), 'day');
 
   const handleBatchEditShow = () => {
     showBatchEdit.value = true;

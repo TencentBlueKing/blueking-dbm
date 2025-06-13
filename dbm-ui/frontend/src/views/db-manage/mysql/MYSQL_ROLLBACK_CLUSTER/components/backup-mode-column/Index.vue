@@ -181,7 +181,7 @@
 
   const disableDate = (date: number | Date) => {
     const parsedDate = typeof date === 'number' ? new Date(date) : date;
-    return dayjs(parsedDate).isAfter();
+    return dayjs(parsedDate).isAfter(dayjs(), 'day');
   };
 
   const handleShowBatchEdit = () => {
