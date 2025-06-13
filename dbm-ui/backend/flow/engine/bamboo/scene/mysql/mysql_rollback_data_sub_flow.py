@@ -82,7 +82,7 @@ def rollback_remote_and_time(root_id: str, ticket_data: dict, cluster_info: dict
         cluster_id=cluster_info["cluster_id"],
         start_time=backup_time,
         end_time=rollback_time,
-        binlog_info=backupinfo["binlog_info"],
+        backup_info=backupinfo,
     )
     if "query_binlog_error" in binlog_result.keys():
         raise TendbGetBinlogFailedException(message=binlog_result["query_binlog_error"])
@@ -276,7 +276,7 @@ def rollback_local_and_time(root_id: str, ticket_data: dict, cluster_info: dict,
         cluster_id=cluster_model.id,
         start_time=backup_time,
         end_time=rollback_time,
-        binlog_info=backupinfo["binlog_info"],
+        backup_info=backupinfo,
     )
     if "query_binlog_error" in binlog_result.keys():
         raise TendbGetBinlogFailedException(message=binlog_result["query_binlog_error"])

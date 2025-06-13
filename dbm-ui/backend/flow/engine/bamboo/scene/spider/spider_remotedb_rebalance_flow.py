@@ -499,6 +499,7 @@ class TenDBRemoteRebalanceFlow(object):
                     act_component_code=MySQLCheckSumTicketComponent.code,
                     kwargs=asdict(
                         MysqlCheckSumKwargs(
+                            uid=self.data["uid"],
                             bk_biz_id=cluster_class.bk_biz_id,
                             created_by=self.data["created_by"],
                             checksum_info=checksum_info,

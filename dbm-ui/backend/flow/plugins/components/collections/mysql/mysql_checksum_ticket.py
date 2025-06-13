@@ -34,14 +34,15 @@ class MySQLCheckSumTicket(BaseService):
         checksum_info = kwargs["checksum_info"]
         checksum_info["details"]["timing"] = checksum_time_str
         details = checksum_info["details"]
-
-        Ticket.create_ticket(
+        restore_ticket = Ticket.objects.get(id=kwargs["uid"])
+        checksum_ticket = Ticket.create_ticket(
             ticket_type=checksum_info["ticket_type"],
             creator=kwargs["created_by"],
             bk_biz_id=kwargs["bk_biz_id"],
             remark=_("迁移自动生成实例checksum单据"),
             details=details,
         )
+        restore_ticket.add_related_ticket(checksum_ticket)
         return True
 
 
