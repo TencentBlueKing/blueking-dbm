@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"k8s-dbs/common/utils"
 	"k8s-dbs/core/client"
+	coreclient "k8s-dbs/core/client"
 	clientconst "k8s-dbs/core/client/constants"
 	coreconst "k8s-dbs/core/constant"
 	"k8s-dbs/core/entity"
@@ -38,7 +39,6 @@ import (
 	kbtypes "github.com/apecloud/kbcli/pkg/types"
 	kbv1 "github.com/apecloud/kubeblocks/apis/apps/v1alpha1"
 	opv1 "github.com/apecloud/kubeblocks/apis/operations/v1alpha1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -88,24 +88,19 @@ func CreateVerticalScalingObject(request *entity.Request) (*entity.CustomResourc
 	objectName := utils.ResourceName("ops-vscaling-", OpsNameSuffixLength)
 	verticalScalingList := []opv1.VerticalScaling{}
 	for _, comp := range request.ComponentList {
+		err := checkResourceFromComp(comp)
+		if err != nil {
+			return nil, err
+		}
+
 		// Initializes the container for resource requests and limits
-		requests := make(corev1.ResourceList)
-		limits := make(corev1.ResourceList)
-
-		if comp.Request != nil && comp.Request.CPU != "" {
-			requests[corev1.ResourceCPU] = resource.MustParse(comp.Request.CPU)
+		requests := corev1.ResourceList{
+			corev1.ResourceCPU:    comp.Request.CPU,
+			corev1.ResourceMemory: comp.Request.Memory,
 		}
-
-		if comp.Request != nil && comp.Request.Memory != "" {
-			requests[corev1.ResourceMemory] = resource.MustParse(comp.Request.Memory)
-		}
-
-		if comp.Limit != nil && comp.Limit.CPU != "" {
-			limits[corev1.ResourceCPU] = resource.MustParse(comp.Limit.CPU)
-		}
-
-		if comp.Limit != nil && comp.Limit.Memory != "" {
-			limits[corev1.ResourceMemory] = resource.MustParse(comp.Limit.Memory)
+		limits := corev1.ResourceList{
+			corev1.ResourceCPU:    comp.Limit.CPU,
+			corev1.ResourceMemory: comp.Limit.Memory,
 		}
 
 		vscaling := opv1.VerticalScaling{
@@ -439,9 +434,21 @@ func CreateVolumeExpansionObject(request *entity.Request, clusterObject *kbv1.Cl
 				// get vct names
 				var volumeClaimTemplates []opv1.OpsRequestVolumeClaimTemplate
 				for _, vct := range compFromCluster.VolumeClaimTemplates {
+
+					// Check whether the storage increment is reasonable
+					currentStorage := vct.Spec.Resources.Requests.Storage().DeepCopy()
+					currentStorage.Add(compFromReq.Storage)
+					storageClassName := vct.Spec.StorageClassName
+
+					err := coreclient.CheckStorageBySC(*storageClassName, currentStorage)
+					if err != nil {
+						slog.Error("failed to check storage by SC", "err", err)
+						return nil, err
+					}
+
 					volumeClaimTemplates = append(volumeClaimTemplates, opv1.OpsRequestVolumeClaimTemplate{
 						Name:    vct.Name,
-						Storage: resource.MustParse(compFromReq.Storage),
+						Storage: currentStorage,
 					})
 				}
 				volumeExpansion.VolumeClaimTemplates = volumeClaimTemplates
@@ -740,7 +747,7 @@ func UpdateValWithCompList(
 				}
 
 				volumeClaimTemplates, vctOk := compFromVal["volumeClaimTemplates"].(map[string]interface{})
-				if vctOk && compFromReq.Storage != "" {
+				if vctOk && !compFromReq.Storage.IsZero() {
 					volumeClaimTemplates["storage"] = compFromReq.Storage
 					compFromVal["volumeClaimTemplates"] = volumeClaimTemplates
 				}
@@ -802,4 +809,85 @@ func mapToString(value map[string]interface{}, request *entity.Request) (string,
 	}
 
 	return string(jsonData), nil
+}
+
+func checkResourceFromComp(comp entity.ComponentResource) error {
+	// Check whether resource configuration is complete
+	if comp.Limit == nil || comp.Request == nil {
+		slog.Error("component resource validation failed",
+			"component", comp.ComponentName,
+			"error", "resource limits or requests must be defined",
+		)
+		return fmt.Errorf(
+			"component '%s' resource validation failed: limits and requests must be defined (missing field)",
+			comp.ComponentName,
+		)
+	}
+
+	// Verify the Limits field
+	if comp.Limit.CPU.IsZero() {
+		slog.Error("component resource validation failed",
+			"component", comp.ComponentName,
+			"field", "limits.cpu",
+			"error", "CPU limit must be greater than zero",
+		)
+		return fmt.Errorf(
+			"component '%s' resource validation failed: CPU limit cannot be zero",
+			comp.ComponentName,
+		)
+	}
+	if comp.Limit.Memory.IsZero() {
+		slog.Error("component resource validation failed",
+			"component", comp.ComponentName,
+			"field", "limits.memory",
+			"error", "memory limit must be greater than zero",
+		)
+		return fmt.Errorf(
+			"component '%s' resource validation failed: memory limit cannot be zero",
+			comp.ComponentName,
+		)
+	}
+
+	// Verify the Request field
+	if comp.Request.CPU.IsZero() {
+		slog.Error("component resource validation failed",
+			"component", comp.ComponentName,
+			"field", "requests.cpu",
+			"error", "CPU request must be greater than zero",
+		)
+		return fmt.Errorf(
+			"component '%s' resource validation failed: CPU request cannot be zero",
+			comp.ComponentName,
+		)
+	}
+	if comp.Request.Memory.IsZero() {
+		slog.Error("component resource validation failed",
+			"component", comp.ComponentName,
+			"field", "requests.memory",
+			"error", "memory request must be greater than zero",
+		)
+		return fmt.Errorf(
+			"component '%s' resource validation failed: memory request cannot be zero",
+			comp.ComponentName,
+		)
+	}
+
+	// Verify Requests ≤ Limits
+	if comp.Request.CPU.Cmp(comp.Limit.CPU) > 0 {
+		return fmt.Errorf(
+			"component '%s' CPU request (%s) cannot exceed limit (%s)",
+			comp.ComponentName,
+			comp.Request.CPU.String(),
+			comp.Limit.CPU.String(),
+		)
+	}
+	if comp.Request.Memory.Cmp(comp.Limit.Memory) > 0 {
+		return fmt.Errorf(
+			"component '%s' memory request (%s) cannot exceed limit (%s)",
+			comp.ComponentName,
+			comp.Request.Memory.String(),
+			comp.Limit.Memory.String(),
+		)
+	}
+	return nil
 }

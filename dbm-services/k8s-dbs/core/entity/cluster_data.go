@@ -22,6 +22,7 @@ package entity
 import (
 	kbv1 "github.com/apecloud/kubeblocks/apis/apps/v1alpha1"
 	opv1 "github.com/apecloud/kubeblocks/apis/operations/v1alpha1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -90,17 +91,17 @@ type ComponentResource struct {
 	InstanceUpdateStrategy *InstanceUpdateStrategy `json:"instanceUpdateStrategy,omitempty"`
 
 	// Deleted in the future
-	Storage string   `json:"storage,omitempty"`
-	Connect *Connect `json:"connect,omitempty"`
+	Storage resource.Quantity `json:"storage,omitempty"`
+	Connect *Connect          `json:"connect,omitempty"`
 }
 
 // VolumeClaimTemplates defines persistent storage requirements for Component pods.
 // Equivalent to Kubernetes cluster.spec.volumeClaimTemplates field.
 type VolumeClaimTemplates struct {
-	AccessModes      []string `json:"accessModes,omitempty"`
-	Storage          string   `json:"storage,omitempty"`
-	StorageClassName string   `json:"storageClassName,omitempty"`
-	VolumeMode       string   `json:"volumeMode,omitempty"`
+	AccessModes      []string          `json:"accessModes,omitempty"`
+	Storage          resource.Quantity `json:"storage,omitempty"`
+	StorageClassName string            `json:"storageClassName,omitempty"`
+	VolumeMode       string            `json:"volumeMode,omitempty"`
 }
 
 // InstanceUpdateStrategy Provides fine-grained control over the spec update process of all instances.
@@ -152,9 +153,9 @@ func GetClusterResponseData(cluster *unstructured.Unstructured) (*ClusterRespons
 			}
 		}
 
-		var storage string
+		var storage resource.Quantity
 		if componentSpec.VolumeClaimTemplates != nil {
-			storage = componentSpec.VolumeClaimTemplates[0].Spec.Resources.Requests.Storage().String()
+			storage = *componentSpec.VolumeClaimTemplates[0].Spec.Resources.Requests.Storage()
 		}
 
 		componentResource := ComponentResource{
@@ -163,12 +164,12 @@ func GetClusterResponseData(cluster *unstructured.Unstructured) (*ClusterRespons
 			Replicas:      componentSpec.Replicas,
 			Connect:       connect,
 			Request: &Resource{
-				CPU:    componentSpec.Resources.Requests.Cpu().String(),
-				Memory: componentSpec.Resources.Requests.Memory().String(),
+				CPU:    *componentSpec.Resources.Requests.Cpu(),
+				Memory: *componentSpec.Resources.Requests.Memory(),
 			},
 			Limit: &Resource{
-				CPU:    componentSpec.Resources.Limits.Cpu().String(),
-				Memory: componentSpec.Resources.Limits.Memory().String(),
+				CPU:    *componentSpec.Resources.Limits.Cpu(),
+				Memory: *componentSpec.Resources.Limits.Memory(),
 			},
 			Storage: storage,
 		}

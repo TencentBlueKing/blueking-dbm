@@ -29,10 +29,10 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"regexp"
 	"sort"
-	"strconv"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/api/resource"
 
 	"k8s.io/apimachinery/pkg/labels"
 
@@ -47,15 +47,15 @@ import (
 // minStorageForSC 定义各存储类(StorageClass)允许的最小存储配额
 // key: 存储类名称
 // value: 存储容量字符串，单位建议使用二进制单位（Gi）
-var minStorageForSC = map[string]string{
-	"cbs": "20Gi",
+var minStorageForSC = map[string]resource.Quantity{
+	"cbs": resource.MustParse("20Gi"),
 }
 
 // maxStorageForSC 定义各存储类(StorageClass)允许的最大存储配额
 // key: 存储类名称
 // value: 存储容量字符串，单位建议使用二进制单位（Gi）
-var maxStorageForSC = map[string]string{
-	"cbs": "1000Gi",
+var maxStorageForSC = map[string]resource.Quantity{
+	"cbs": resource.MustParse("100000Gi"),
 }
 
 // CreateCRD create crd by k8sClient client
@@ -398,7 +398,7 @@ func mergeComponentList(values map[string]interface{}, compListFromReq []entity.
 					slog.Error("failed to merge component Resources", "err", err)
 					return err
 				}
-				if err := checkStorageBySC(&compFromReq); err != nil {
+				if err := checkStorageByComp(&compFromReq); err != nil {
 					slog.Error("failed to check storage by SC", "err", err)
 					return err
 				}
@@ -552,6 +552,10 @@ func ConvertToMap(s interface{}) (interface{}, error) {
 
 	switch v.Kind() {
 	case reflect.Struct:
+		// Identify resource.Quantity types, Avoid access non-exported structure fields via reflection
+		if q, ok := s.(resource.Quantity); ok {
+			return (&q).String(), nil
+		}
 		out := make(map[string]interface{})
 		t := v.Type()
 		for i := 0; i < v.NumField(); i++ {
@@ -585,72 +589,62 @@ func getJSONTagName(field reflect.StructField) string {
 	return tag
 }
 
-func checkStorageBySC(comp *entity.ComponentResource) error {
+func checkStorageByComp(comp *entity.ComponentResource) error {
 	if comp.VolumeClaimTemplates == nil {
 		return nil
 	}
 	storageClassName := comp.VolumeClaimTemplates.StorageClassName
 	currentStorage := comp.VolumeClaimTemplates.Storage
 
-	currentBytes, err := parseK8sStorage(currentStorage)
+	err := CheckStorageBySC(storageClassName, currentStorage)
 	if err != nil {
-		return fmt.Errorf("invalid current storage: %w", err)
+		slog.Error("failed to check storage by sc", "storageClass", storageClassName, "err", err)
+		return fmt.Errorf("storage validation failed by sc '%s' : %w", storageClassName, err)
 	}
 
-	// Get the minimum/maximum limit configuration
-	minStorageStr, minExists := minStorageForSC[storageClassName]
-	maxStorageStr, maxExists := maxStorageForSC[storageClassName]
+	return nil
+}
+
+// CheckStorageBySC 检查Storage是否符合对应的存储类的要求限制
+func CheckStorageBySC(storageClassName string, currentStorage resource.Quantity) error {
+	// Get storage class limit configuration
+	minStorage, minExists := minStorageForSC[storageClassName]
+	maxStorage, maxExists := maxStorageForSC[storageClassName]
+
+	// If there is no limit, return the original value directly
 	if !minExists && !maxExists {
 		return nil
 	}
 
-	// minimum restriction check
-	if minExists {
-		minBytes, err := parseK8sStorage(minStorageStr)
-		if err != nil {
-			return fmt.Errorf("invalid min storage config: %w", err)
-		}
-		if currentBytes < minBytes {
-			comp.VolumeClaimTemplates.Storage = minStorageStr
-			slog.Info("storage adjusted to minimum",
-				"storageClass", storageClassName,
-				"original", currentStorage,
-				"adjusted", minStorageStr)
-			return nil
-		}
+	// Minimum value check
+	if minExists && currentStorage.Cmp(minStorage) < 0 {
+		slog.Error("Storage below minimum",
+			"storageClass", storageClassName,
+			"requested", currentStorage.String(),
+			"minAllowed", minStorage.String(),
+		)
+		return fmt.Errorf(
+			"requested storage %s is below minimum %s for class '%s'",
+			currentStorage.String(),
+			minStorage.String(),
+			storageClassName,
+		)
 	}
 
-	// maximum limit check
-	if maxExists {
-		maxBytes, err := parseK8sStorage(maxStorageStr)
-		if err != nil {
-			return fmt.Errorf("invalid max storage config: %w", err)
-		}
-		if currentBytes > maxBytes {
-			comp.VolumeClaimTemplates.Storage = maxStorageStr
-			slog.Info("storage adjusted to maximum",
-				"storageClass", storageClassName,
-				"original", currentStorage,
-				"adjusted", maxStorageStr)
-		}
+	// Maximum value check
+	if maxExists && currentStorage.Cmp(maxStorage) > 0 {
+		slog.Error("Storage exceeds maximum",
+			"storageClass", storageClassName,
+			"requested", currentStorage.String(),
+			"maxAllowed", maxStorage.String(),
+		)
+		return fmt.Errorf(
+			"requested storage %s exceeds maximum %s for class '%s'",
+			currentStorage.String(),
+			maxStorage.String(),
+			storageClassName,
+		)
 	}
+
 	return nil
-}
-
-func parseK8sStorage(s string) (int, error) {
-	// Matches pure Gi format
-	re := regexp.MustCompile(`^(\d+)Gi$`)
-	matches := re.FindStringSubmatch(s)
-
-	// Format check
-	if len(matches) != 2 {
-		return 0, fmt.Errorf("invalid Gi format, expected <number>Gi (e.g. 20Gi), got %q", s)
-	}
-
-	// Numerical analysis directly returns the integer value of Gi
-	quantity, err := strconv.Atoi(matches[1])
-	if err != nil || quantity <= 0 {
-		return 0, fmt.Errorf("invalid quantity in %q: must be positive integer", s)
-	}
-	return quantity, nil
 }
