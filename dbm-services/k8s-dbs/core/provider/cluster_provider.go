@@ -33,13 +33,16 @@ import (
 	provderentity "k8s-dbs/metadata/provider/entity"
 	"log/slog"
 	"slices"
+	"sort"
 
+	kbworkloadv1 "github.com/apecloud/kubeblocks/apis/workloads/v1alpha1"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	helmcli "helm.sh/helm/v3/pkg/cli"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	kbtypes "github.com/apecloud/kbcli/pkg/types"
-	kbv1 "github.com/apecloud/kubeblocks/apis/apps/v1alpha1"
+	kbappv1 "github.com/apecloud/kubeblocks/apis/apps/v1alpha1"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -183,6 +186,16 @@ func (c *ClusterProviderBuilder) Build() (*ClusterProvider, error) {
 		releaseMetaProvider:     c.releaseMetaProvider,
 		clusterHelmRepoProvider: c.clusterHelmRepoProvider,
 	}, nil
+}
+
+// InstanceSetGVR returns the GroupVersionResource definition for InstanceSet custom resource.
+// InstanceSetGVR() is missing in kbcli v0.9.3, so it needs to be supplemented locally
+func InstanceSetGVR() schema.GroupVersionResource {
+	return schema.GroupVersionResource{
+		Group:    "workloads.kubeblocks.io",
+		Version:  "v1alpha1",
+		Resource: "instancesets",
+	}
 }
 
 // CreateCluster 创建集群
@@ -724,28 +737,87 @@ func (c *ClusterProvider) GetClusterEvent(request *coreentity.Request) (*corev1.
 		slog.Error("failed to get cluster object", "error", err)
 		return nil, fmt.Errorf("failed to get cluster object: %w", err)
 	}
-	var data *kbv1.Cluster
+
+	var data *kbappv1.Cluster
 	err = runtime.DefaultUnstructuredConverter.FromUnstructured(cluster.Object, &data)
 	if err != nil {
 		slog.Error("failed to convert unstructured data", "error", err)
 		return nil, fmt.Errorf("failed to convert unstructured data: %w", err)
 	}
 
-	// Construct field selector using both name and UID for precise event filtering
-	clusterUID := string(data.UID)
-	fieldSelector := fmt.Sprintf(
-		"involvedObject.name=%s,involvedObject.uid=%s",
-		request.ClusterName,
-		clusterUID,
-	)
-	listOptions := metav1.ListOptions{FieldSelector: fieldSelector}
-
 	// Retrieve events using CoreV1 API with the constructed field selector
-	list, err := k8sClient.ClientSet.CoreV1().Events(request.Namespace).List(context.Background(), listOptions)
+	clusterEvents, err := k8sClient.ClientSet.CoreV1().
+		Events(request.Namespace).
+		List(context.Background(), metav1.ListOptions{
+			FieldSelector: fmt.Sprintf("involvedObject.uid=%s", string(cluster.GetUID())),
+		})
 	if err != nil {
-		slog.Error("failed to list events", "clusterName", request.ClusterName, "clusterUID", clusterUID, "error", err)
-		return nil, fmt.Errorf("failed to list events: %w", err)
+		slog.Error("failed to list events for cluster", "error", err)
+		return nil, fmt.Errorf("failed to list events for cluster %s: %w", request.ClusterName, err)
 	}
 
-	return list, nil
+	// Query all associated InstanceSet events
+	instanceSetEvents, err := c.getInstanceSetEvents(k8sClient, request.Namespace, request.ClusterName)
+	if err != nil {
+		slog.Error("failed to list events for instanceSet", "error", err)
+		return nil, fmt.Errorf("failed to list events for instanceSet: %w", err)
+	}
+
+	// Merge Cluster and InstanceSet events and sort them by time
+	allEvents := mergeAndSortEvents(clusterEvents, instanceSetEvents)
+	return allEvents, nil
+}
+
+// getInstanceSetEvents 查询与 Cluster 关联的所有 InstanceSet 事件
+func (c *ClusterProvider) getInstanceSetEvents(k8sClient *coreclient.K8sClient, namespace, clusterName string) (
+	*corev1.EventList, error) {
+	crd := &coreentity.CustomResourceDefinition{
+		GroupVersionResource: InstanceSetGVR(),
+		Namespace:            namespace,
+		Labels: map[string]string{
+			coreconst.InstanceName: clusterName,
+		},
+	}
+
+	instanceSetList, err := coreclient.ListCRD(k8sClient, crd)
+	if err != nil {
+		slog.Error("failed to list InstanceSets", "error", err)
+		return nil, fmt.Errorf("failed to list InstanceSets: %w", err)
+	}
+
+	var allInstanceSetEvents []corev1.Event
+	for _, item := range instanceSetList.Items {
+		var instanceSet *kbworkloadv1.InstanceSet
+		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &instanceSet); err != nil {
+			slog.Error("failed to convert InstanceSet", "error", err)
+			return nil, fmt.Errorf("failed to convert InstanceSet: %w", err)
+		}
+
+		events, err := k8sClient.ClientSet.CoreV1().Events(namespace).List(context.Background(), metav1.ListOptions{
+			FieldSelector: fmt.Sprintf("involvedObject.uid=%s", string(instanceSet.GetUID())),
+		})
+		if err != nil {
+			slog.Error("failed to list InstanceSet events", "uid", instanceSet.UID, "error", err)
+			return nil, fmt.Errorf("failed to list InstanceSet events: %w", err)
+		}
+		allInstanceSetEvents = append(allInstanceSetEvents, events.Items...)
+	}
+
+	return &corev1.EventList{Items: allInstanceSetEvents}, nil
+}
+
+// mergeAndSortEvents Sort by time in descending order (latest events first)
+func mergeAndSortEvents(eventLists ...*corev1.EventList) *corev1.EventList {
+	var allEvents []corev1.Event
+	for _, eventList := range eventLists {
+		if eventList != nil {
+			allEvents = append(allEvents, eventList.Items...)
+		}
+	}
+
+	sort.Slice(allEvents, func(i, j int) bool {
+		return allEvents[i].CreationTimestamp.After(allEvents[j].CreationTimestamp.Time)
+	})
+
+	return &corev1.EventList{Items: allEvents}
 }

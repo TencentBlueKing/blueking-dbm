@@ -11,8 +11,16 @@ type ClusterEventRespVo struct {
 
 // Event Describes the core attributes of Kubernetes cluster events
 type Event struct {
-	CreationTimestamp metav1.Time `json:"creationTimestamp,omitempty"`
-	Type              string      `json:"type,omitempty"`
-	Reason            string      `json:"reason,omitempty"`
-	Message           string      `json:"message,omitempty"`
+	InvolvedObject    ObjectReference `json:"involvedObject,omitempty"`
+	CreationTimestamp metav1.Time     `json:"creationTimestamp,omitempty"`
+	Type              string          `json:"type,omitempty"`
+	Reason            string          `json:"reason,omitempty"`
+	Message           string          `json:"message,omitempty"`
+}
+
+// ObjectReference The object that this event is about
+type ObjectReference struct {
+	Kind      string `json:"kind,omitempty"`
+	Namespace string `json:"namespace,omitempty"`
+	Name      string `json:"name,omitempty"`
 }
