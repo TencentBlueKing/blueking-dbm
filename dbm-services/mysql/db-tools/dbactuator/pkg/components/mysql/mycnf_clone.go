@@ -68,7 +68,7 @@ var MycnfCloneItemsDefault = []string{
 	"sql_mode",
 
 	// tokudb
-	"tokudb_cache_size",
+	//"tokudb_cache_size",
 	"tokudb_commit_sync",
 }
 

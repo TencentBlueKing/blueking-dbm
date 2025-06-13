@@ -184,7 +184,7 @@ func (x *Xtrabackup) doReplaceCnf() error {
 		"innodb_log_files_in_group",
 		"innodb_log_file_size",
 		"innodb_page_size",
-		"tokudb_cache_size",
+		//"tokudb_cache_size",
 		"rocksdb_block_cache_size",
 
 		// mysql 8.0 xtrabackup

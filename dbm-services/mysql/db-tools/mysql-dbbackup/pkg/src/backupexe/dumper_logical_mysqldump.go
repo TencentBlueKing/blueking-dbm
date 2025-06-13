@@ -331,12 +331,6 @@ func (l *LogicalDumperMysqldump) Execute(ctx context.Context) (err error) {
 // PrepareBackupMetaInfo prepare the backup result of Logical Backup for mysqldump backup
 // 备份完成后，解析 metadata 文件
 func (l *LogicalDumperMysqldump) PrepareBackupMetaInfo(cnf *config.BackupConfig, metaInfo *dbareport.IndexContent) error {
-	if metaInfo.BinlogInfo.ShowSlaveStatus == nil {
-		metaInfo.BinlogInfo.ShowSlaveStatus = &dbareport.StatusInfo{}
-	}
-	if metaInfo.BinlogInfo.ShowMasterStatus == nil {
-		metaInfo.BinlogInfo.ShowMasterStatus = &dbareport.StatusInfo{}
-	}
 	metaFileName := filepath.Join(cnf.Public.BackupDir, cnf.Public.TargetName(), cnf.Public.TargetName()+".sql")
 	if !cnf.LogicalBackup.DisableCompress {
 		metaFileName += ".zst"

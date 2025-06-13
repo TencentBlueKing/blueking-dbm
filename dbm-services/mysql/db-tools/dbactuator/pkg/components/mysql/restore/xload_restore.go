@@ -291,7 +291,7 @@ func (x *XLoad) doReplaceCnf() error {
 		"innodb_data_file_path",
 		"innodb_log_files_in_group",
 		"innodb_log_file_size",
-		"tokudb_cache_size",
+		//"tokudb_cache_size",
 	}
 	return x.ReplaceMycnf(items)
 }
