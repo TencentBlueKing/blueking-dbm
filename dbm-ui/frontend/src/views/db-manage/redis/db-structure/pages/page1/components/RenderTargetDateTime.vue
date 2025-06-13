@@ -27,6 +27,7 @@
   </BkLoading>
 </template>
 <script setup lang="ts">
+  import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
 
   import { useTimeZoneFormat } from '@hooks';
@@ -72,10 +73,7 @@
     },
   );
 
-  const disableDate = (date: Date) => {
-    const now = Date.now();
-    return date.valueOf() < now - 25 * 24 * 3600000 || date.valueOf() > now;
-  };
+  const disableDate = (date: Date) => dayjs(date).isAfter(dayjs(), 'day');
 
   const handleDatetimeChange = (date: string) => {
     dateValue.value = date;
