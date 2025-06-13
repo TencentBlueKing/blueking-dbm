@@ -1,7 +1,7 @@
 <template>
   <EditableColumn
     :append-rules="rules"
-    :field="field"
+    field="instance.instance_address"
     fixed="left"
     :label="label || t('目标实例')"
     :loading="isLoading"
@@ -18,13 +18,13 @@
     <EditableInput
       v-model="modelValue.instance_address"
       :placeholder="t('请输入或选择实例')" />
+    <InstanceSelector
+      v-model:is-show="isShowInstaceSelector"
+      :cluster-types="['RedisInstance']"
+      :selected="selectedInstances"
+      :tab-list-config="tabListConfig"
+      @change="handleInstanceSelectChange" />
   </EditableColumn>
-  <InstanceSelector
-    v-model:is-show="isShowInstaceSelector"
-    :cluster-types="[ClusterTypes.REDIS]"
-    :selected="selectedList"
-    :tab-list-config="tabListConfig"
-    @change="handleInstanceSelectChange" />
 </template>
 
 <script setup lang="ts">
@@ -33,7 +33,6 @@
   import RedisInstanceModel from '@services/model/redis/redis-instance';
   import { getRedisInstances } from '@services/source/redis';
 
-  import { ClusterTypes } from '@common/const';
   import { ipPort } from '@common/regex';
 
   import InstanceSelector, {
@@ -44,7 +43,6 @@
 
   interface Props {
     afterInput?: (data: RedisInstanceModel) => void;
-    field?: string;
     label?: string;
     selected: {
       instance_address: string;
@@ -56,7 +54,6 @@
 
   const props = withDefaults(defineProps<Props>(), {
     afterInput: undefined,
-    field: 'instance.instance_address',
     label: '',
     tabListConfig: undefined,
   });
@@ -89,10 +86,10 @@
   const isShowInstaceSelector = ref(false);
   const isLoading = ref(false);
 
-  const selectedList = computed(
+  const selectedInstances = computed(
     () =>
       ({
-        [ClusterTypes.REDIS]: props.selected,
+        RedisInstance: props.selected,
       }) as unknown as InstanceSelectorValues<IValue>,
   );
 
