@@ -79,9 +79,15 @@
               :table-data="formData.tableData" />
           </EditableRow>
         </EditableTable>
-        <IgnoreBiz
-          v-model="formData.force"
-          v-bk-tooltips="t('强制切换，将忽略同步连接')" />
+        <BkFormItem class="ignore-biz">
+          <BkCheckbox
+            v-model="formData.force"
+            v-bk-tooltips="t('强制切换，将忽略同步连接')"
+            :false-label="false"
+            true-label>
+            <span class="safe-action-text">{{ t('强制切换') }}</span>
+          </BkCheckbox>
+        </BkFormItem>
         <TicketPayload v-model="formData.payload" />
       </DbForm>
     </div>
@@ -120,7 +126,6 @@
 
   import { type IValue } from '@components/instance-selector/Index.vue';
 
-  import IgnoreBiz from '@views/db-manage/common/toolbox-field/form-item/ignore-biz/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
@@ -283,14 +288,18 @@
   };
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
   .redis-master-failover-page {
     padding-bottom: 20px;
 
-    .page-action-box {
-      display: flex;
-      align-items: center;
-      margin-top: 16px;
+    // TODO 后续使用公共css
+    .ignore-biz {
+      width: fit-content;
+    }
+
+    .safe-action-text {
+      padding-bottom: 2px;
+      border-bottom: 1px dashed #979ba5;
     }
   }
 </style>
