@@ -137,6 +137,8 @@ class SystemSettingsEnum(str, StructuredEnum):
     DISABLE_DBHA_APPS_CLUSTER_TYPE = EnumField("DISABLE_DBHA_APPS_CLUSTER_TYPE", _("禁用DBHA业务"))
     # 内置标签列表
     BUILTIN_LABELS = EnumField("BUILTIN_LABELS", _("内置标签列表"))
+    # 反向上报事件类型
+    REVERSE_REPORT_EVENT_TYPES = EnumField("REVERSE_REPORT_EVENT_TYPES", _("反向上报事件类型"))
 
 
 class BizSettingsEnum(str, StructuredEnum):
@@ -277,6 +279,7 @@ DEFAULT_SETTINGS = [
     [SystemSettingsEnum.MACHINE_PROPERTY, "dict", DEFAULT_MACHINE_PROPERTY, _("主机属性开关配置")],
     [SystemSettingsEnum.PADDING_PROXY_APPS, "list", [], _("补全proxy业务")],
     [SystemSettingsEnum.DISABLE_DBHA_APPS_CLUSTER_TYPE, "dict", {}, _("禁用DBHA业务")],
+    [SystemSettingsEnum.REVERSE_REPORT_EVENT_TYPES, "list", [], _("反向上报事件类型")],
 ]
 
 # 环境配置项 是否支持DNS解析 pulsar flow used
