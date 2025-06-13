@@ -70,13 +70,13 @@
                 }}
               </EditableBlock>
             </EditableColumn>
-            <EditableColumn
+            <!-- <EditableColumn
               :label="t('当前从库实例数量')"
               :width="150">
               <EditableBlock :placeholder="t('输入主机后自动生成')">
                 {{ item.host.related_instances.length }}
               </EditableBlock>
-            </EditableColumn>
+            </EditableColumn> -->
             <OperationColumn
               :create-row-method="createRowData"
               :table-data="formData.tableData" />
@@ -243,6 +243,8 @@
               closable
             />
           ),
+          totalCountFunc: (list: RedisModel[]) =>
+            list.reduce((prevCount, listItem) => prevCount + listItem.redisSlaveFaults, 0),
         },
       },
       {
