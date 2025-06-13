@@ -98,7 +98,6 @@ func (i *InitiateReplicaset) Init(runtime *jobruntime.JobGenericRuntime) error {
 	i.BinDir = consts.UsrLocal
 	i.Mongo = filepath.Join(i.BinDir, "mongodb", "bin", "mongo")
 	i.OsUser = consts.GetProcessUser()
-	i.ConfFilePath = filepath.Join("/", "tmp", "initiateReplicaset.js")
 	i.StatusChan = make(chan int, 1)
 
 	// 获取MongoDB配置文件参数
@@ -108,6 +107,7 @@ func (i *InitiateReplicaset) Init(runtime *jobruntime.JobGenericRuntime) error {
 		return fmt.Errorf("get parameters of initiateReplicaset fail by json.Unmarshal, error:%s", err)
 	}
 	i.ClusterId = i.ConfParams.SetId
+	i.ConfFilePath = filepath.Join("/", "tmp", fmt.Sprintf("%s_initiateReplicaset.js", i.ClusterId))
 	i.runtime.Logger.Info("init successfully")
 
 	// 进行校验
@@ -161,7 +161,7 @@ func (i *InitiateReplicaset) makeConfContent() error {
 	}
 	i.ConfFileContent = strings.Join([]string{"var config=",
 		string(confJson), "\n", "rs.initiate(config)\n"}, "")
-	i.runtime.Logger.Info("make config content of initiateReplicaset successfully")
+	i.runtime.Logger.Info("make config content:\n%s\n of initiateReplicaset successfully", i.ConfFileContent)
 	return nil
 }
 
