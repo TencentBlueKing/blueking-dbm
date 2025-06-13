@@ -41,6 +41,8 @@
               :tab-list-config="tabListConfig"
               @batch-edit="handleInstanceSelectChange" />
             <EditableColumn
+              :append-rules="masterDomainRules"
+              field="instance.master_domain"
               :label="t('所属集群')"
               :min-width="300"
               :rowspan="item.rowspan">
@@ -127,6 +129,7 @@
     current_versions: string[];
     instance: {
       cluster_id: number;
+      cluster_type: string;
       id: number;
       instance_address: string;
       master_domain: string;
@@ -204,6 +207,7 @@
     instance: Object.assign(
       {
         cluster_id: 0,
+        cluster_type: '',
         id: 0,
         instance_address: '',
         master_domain: '',
@@ -234,19 +238,26 @@
     ),
   });
 
+  const masterDomainRules = [
+    {
+      message: t('目前只支持 Tendiscahce 和 Tendisssd 集群'),
+      trigger: 'change',
+      validator: (value: string, { rowData }: { rowData: IDataRow }) =>
+        ![ClusterTypes.PREDIXY_REDIS_CLUSTER, ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER].includes(
+          rowData.instance.cluster_type as ClusterTypes,
+        ),
+    },
+  ];
+
   const formData = reactive(initFormData());
 
   const tabListConfig = computed(
     () =>
       ({
-        [ClusterTypes.REDIS]: [
+        RedisInstance: [
           {
             name: t('实例选择'),
-            previewConfig: {
-              displayKey: 'instance_address',
-            },
             tableConfig: {
-              columnsChecked: ['instance_address', 'cloud_area', 'status', 'host_name', 'os_name'],
               firsrColumn: {
                 field: 'instance_address',
                 label: t('Master 实例'),
@@ -256,9 +267,9 @@
                 getRedisInstances({
                   cluster_type: [
                     ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-                    ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+                    // ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
                     ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-                    ClusterTypes.PREDIXY_REDIS_CLUSTER,
+                    // ClusterTypes.PREDIXY_REDIS_CLUSTER,
                   ].join(','),
                   role: 'redis_master',
                   ...params,
@@ -271,9 +282,9 @@
                 getRedisClusterList({
                   cluster_type: [
                     ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-                    ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+                    // ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
                     ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-                    ClusterTypes.PREDIXY_REDIS_CLUSTER,
+                    // ClusterTypes.PREDIXY_REDIS_CLUSTER,
                   ].join(','),
                   ...params,
                 }),
@@ -284,17 +295,11 @@
           {
             content: ManualInputHostContent,
             manualConfig: {
-              activePanelId: 'redis',
-              checkKey: 'instance_address',
-              checkType: 'instance',
               fieldFormat: {
                 role: {
                   master: 'redis_master',
                 },
               },
-            },
-            previewConfig: {
-              displayKey: 'instance_address',
             },
             tableConfig: {
               firsrColumn: {
@@ -306,9 +311,9 @@
                 getRedisInstances({
                   cluster_type: [
                     ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-                    ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+                    // ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
                     ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-                    ClusterTypes.PREDIXY_REDIS_CLUSTER,
+                    // ClusterTypes.PREDIXY_REDIS_CLUSTER,
                   ].join(','),
                   ...params,
                 }),
@@ -380,6 +385,7 @@
           createRowData({
             instance: {
               cluster_id: item.cluster_id,
+              cluster_type: item.cluster_type,
               id: item.id,
               instance_address: item.instance_address,
               master_domain: item.master_domain,
@@ -406,6 +412,10 @@
 
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...newList];
     window.changeConfirm = true;
+
+    nextTick(() => {
+      editableTableRef.value!.validateByField('instance.master_domain');
+    });
   };
 
   const afterInput = async (data: RedisInstanceModel, index: number) => {
@@ -416,6 +426,7 @@
       formData.tableData[index] = createRowData({
         instance: {
           cluster_id: data.cluster_id,
+          cluster_type: data.cluster_type,
           id: data.id,
           instance_address: data.instance_address,
           master_domain: data.master_domain,
@@ -437,6 +448,10 @@
         },
       });
     }
+
+    nextTick(() => {
+      editableTableRef.value!.validateByField('instance.master_domain');
+    });
   };
 
   const handleSubmit = async () => {
