@@ -156,7 +156,7 @@
             cluster: {
               master_domain: clusters[infoItem.cluster_ids[0]].immute_domain,
             } as IDataRow['cluster'],
-            current_versions: infoItem.current_versions,
+            // current_versions: infoItem.current_versions,
             node_type: infoItem.node_type,
             target_version: infoItem.target_version,
           }),

@@ -99,7 +99,7 @@
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
-  import InstanceColumn from '@views/db-manage/redis/common/toolbox-field/InstanceColumn.vue';
+  import InstanceColumn from '@views/db-manage/redis/common/toolbox-field/instance-column/Index.vue';
 
   interface RowData {
     instance: {

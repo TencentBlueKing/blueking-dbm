@@ -13,6 +13,7 @@
 
 <template>
   <EditableColumn
+    :append-rules="rules"
     field="target_version"
     :label="t('目标版本')"
     required
@@ -67,6 +68,14 @@
 
   const { t } = useI18n();
 
+  const rules = [
+    {
+      message: t('目标版本不能和当前使用的版本一致'),
+      trigger: 'change',
+      validator: (value: string) => !isCurrentVersion(value),
+    },
+  ];
+
   const selectList = shallowRef<
     {
       label: string;
@@ -76,20 +85,25 @@
 
   watch(
     () => [props.clusterId, props.nodeType],
-    () => {
+    (newVal, oldVal) => {
       if (props.clusterId && props.nodeType) {
         getClusterVersions({
           cluster_id: props.clusterId,
           node_type: props.nodeType,
           type: 'update',
         }).then((versions) => {
-          if (versions.length && !modelValue.value) {
-            [modelValue.value] = versions;
+          if (oldVal && newVal[1] !== oldVal[1]) {
+            modelValue.value = '';
           }
-          selectList.value = versions.map((item) => ({
-            label: item,
-            value: item,
-          }));
+          nextTick(() => {
+            if (versions.length && !modelValue.value) {
+              [modelValue.value] = versions;
+            }
+            selectList.value = versions.map((item) => ({
+              label: item,
+              value: item,
+            }));
+          });
         });
       } else {
         selectList.value = [];
