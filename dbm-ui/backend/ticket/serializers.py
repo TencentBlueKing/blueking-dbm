@@ -21,6 +21,7 @@ from backend.core.notify.constants import MsgType
 from backend.ticket import mock_data
 from backend.ticket.builders import BuilderFactory
 from backend.ticket.constants import (
+    FLOW_TASK_TYPES,
     TICKET_RUNNING_STATUS_SET,
     TODO_RUNNING_STATUS,
     FlowType,
@@ -212,7 +213,10 @@ class TicketFlowSerializer(TranslationSerializerMixin, serializers.ModelSerializ
         return obj.flow_output
 
     def get_output_data(self, obj):
-        return obj.flow_output_v2
+        # 目前流程摘要只用于task类型
+        if obj.flow_type not in FLOW_TASK_TYPES:
+            return []
+        return obj.output_data
 
     def get_remark(self, obj):
         return obj.context.get("remark")

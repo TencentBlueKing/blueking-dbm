@@ -67,6 +67,7 @@ class Flow(models.Model):
     retry_type = models.CharField(
         _("重试类型(专用于inner_flow)"), max_length=LEN_SHORT, choices=FlowRetryType.get_choices(), blank=True, null=True
     )
+    # 流程上下文不适用于存储大量数据，定义详见dataclass/FlowContext
     context = models.JSONField(_("流程上下文(用于扩展字段)"), default=dict)
 
     class Meta:
@@ -87,10 +88,10 @@ class Flow(models.Model):
         return data
 
     @property
-    def flow_output_v2(self):
-        context = self.context or {}
-        flow_output = context.get("__flow_output_v2", {})
-        return flow_output
+    def output_data(self):
+        if not hasattr(self, "flowsummary"):
+            return []
+        return self.flowsummary.summary
 
     def update_details(self, **kwargs):
         self.details.update(kwargs)
@@ -102,6 +103,13 @@ class Flow(models.Model):
             self.status = status
             self.save(update_fields=["status", "update_at"])
         return status
+
+
+class FlowSummary(models.Model):
+    """流程运行时摘要/交付结果"""
+
+    flow = models.OneToOneField(Flow, on_delete=models.PROTECT, unique=True)
+    summary = models.JSONField(_("流程摘要"), default=list, blank=True, null=True)
 
 
 class Ticket(AuditedModel):

@@ -109,6 +109,10 @@ class BambooEngine:
         result = api.get_node_histories(runtime=BambooDjangoRuntime(), node_id=node_id)
         return result
 
+    def get_node_execution_data(self, node_id: str):
+        result = api.get_execution_data(runtime=BambooDjangoRuntime(), node_id=node_id)
+        return result
+
     def get_node_state(self, node_id: str) -> State:
         result = self.runtime.get_state_or_none(node_id)
         return result
@@ -221,6 +225,13 @@ class BambooEngine:
             activity["name"] = i18n_str(activity["name"])
             if "pipeline" in activity:
                 self.recursion_translate_activity(activity["pipeline"]["activities"])
+
+    def recursion_activity_name(self, activities: Dict, flow_node_name_map: Dict):
+        """递归获取节点名称"""
+        for node_id, activity in activities.items():
+            flow_node_name_map.update({node_id: activity["name"]})
+            if "pipeline" in activity:
+                self.recursion_activity_name(activity["pipeline"]["activities"], flow_node_name_map)
 
     def get_pipeline_tree_states(self) -> Optional[Dict]:
         """获取流程数据包括状态"""

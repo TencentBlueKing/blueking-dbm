@@ -206,6 +206,13 @@ class OperateCollectorActionEnum(str, StructuredEnum):
     UNINSTALL = EnumField("UNINSTALL", _("卸载"))
 
 
+class FlowNodeOperateType(str, StructuredEnum):
+    RETRY = EnumField("retry", _("重试"))
+    SKIP = EnumField("skip", _("跳过"))
+    FORCE_FAIL = EnumField("force_fail", _("强制失败"))
+    CONFIRM = EnumField("confirm", _("确认继续"))
+
+
 class NameSpaceEnum(str, StructuredEnum):
     Common = EnumField("common", _("共用参数"))
     RedisCommon = EnumField("rediscomm", _("redis共用参数"))

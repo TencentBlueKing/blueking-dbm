@@ -118,6 +118,7 @@ class BaseService(Service, ServiceLogMixin, metaclass=ABCMeta):
 
     def set_flow_output(self, root_id: str, key: Union[int, str], value: Any, is_sensitive: bool = False):
         """
+        TODO: 该方法即将废弃，请使用FlowOutputHandler的insert_data
         在整个流程中存入缓存数据，只允许追加不支持修改，对相同的key会合并为list
         在流程执行成功后，缓存数据会入库到
         @param root_id: 流程id

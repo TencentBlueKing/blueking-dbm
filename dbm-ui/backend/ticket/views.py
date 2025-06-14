@@ -311,7 +311,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
     def flows(self, request, *args, **kwargs):
         """补充todo列表"""
         ticket = self.get_object()
-        serializer = self.get_serializer(ticket.flows, many=True)
+        serializer = self.get_serializer(ticket.flows.select_related("flowsummary"), many=True)
         return Response(serializer.data)
 
     @common_swagger_auto_schema(

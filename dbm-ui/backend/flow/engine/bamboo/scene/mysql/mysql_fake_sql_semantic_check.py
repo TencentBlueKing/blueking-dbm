@@ -45,24 +45,14 @@ class MySQLFakeSemanticCheck(object):
         )
         fake_semantic_check.add_act(act_name=_("串行2"), act_component_code=FakeSemanticCheckComponent.code, kwargs={})
         fake_semantic_check.add_act(act_name=_("串行3"), act_component_code=FakeSemanticCheckComponent.code, kwargs={})
+        parallel_num = 120
         parallel_acts = [
             {
-                "act_name": _("并行1-1"),
-                "act_component_code": PauseComponent.code,
+                "act_name": _("并行-{}").format(index),
+                "act_component_code": FakeSemanticCheckComponent.code,
                 "kwargs": {"parallel_acts": "1"},
-            },
-            {
-                "act_name": _("并行1-2"),
-                "act_component_code": PauseComponent.code,
-                "kwargs": {"parallel_acts": "2"},
-            },
-            {
-                "act_name": _("错误并行1-3"),
-                "act_component_code": PauseComponent.code,
-                "kwargs": {"is_error": True},
-                "retryable": False,
-                "skippable": False,
-            },
+            }
+            for index in range(parallel_num)
         ]
         fake_semantic_check.add_parallel_acts(acts_list=parallel_acts)
         fake_semantic_check.add_act(act_name=_("串行5"), act_component_code=FakeSemanticCheckComponent.code, kwargs={})

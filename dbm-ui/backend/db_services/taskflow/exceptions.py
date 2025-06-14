@@ -41,3 +41,13 @@ class ForceFailNodeException(TaskFlowBaseException):
 class RevokePipelineException(TaskFlowBaseException):
     ERROR_CODE = "005"
     MESSAGE = _("撤销流程异常")
+
+
+class GetNodeDataException(TaskFlowBaseException):
+    ERROR_CODE = "006"
+    MESSAGE = _("获取节点数据异常")
+
+
+class OperateNodeException(TaskFlowBaseException):
+    ERROR_CODE = "007"
+    MESSAGE = _("操作节点异常")

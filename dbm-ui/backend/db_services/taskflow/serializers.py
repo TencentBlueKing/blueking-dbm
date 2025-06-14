@@ -83,8 +83,12 @@ class NodeSerializer(serializers.Serializer):
     node_id = serializers.CharField(help_text=_("节点ID"))
 
 
-class BatchRetryNodesSerializer(serializers.Serializer):
-    pass
+class NodeRecordSerializer(serializers.Serializer):
+    node_id = serializers.CharField(help_text=_("节点ID(为空则表示查询流程所有记录)"), required=False, default="")
+
+
+class BatchNodesSerializer(serializers.Serializer):
+    nodes = serializers.ListField(help_text=_("指定节点"), child=serializers.CharField(), required=False, default=[])
 
 
 class CallbackNodeSerializer(NodeSerializer):

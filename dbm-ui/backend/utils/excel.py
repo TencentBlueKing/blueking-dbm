@@ -120,6 +120,7 @@ class ExcelHandler:
             first_data_row = 3
             wb = openpyxl.load_workbook(template)
             sheet = wb.active
+            headers = [cell.value for cell in sheet[first_data_row - 1]]
         elif headers:
             # 如果没有template，则根据给定的header和header颜色来设置头部和样式
             for col, header in enumerate(headers):

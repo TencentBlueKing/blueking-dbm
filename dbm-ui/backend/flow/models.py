@@ -8,11 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from typing import Union
+
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
 from backend.configuration.constants import DBType
-from backend.flow.consts import StateType
+from backend.flow.consts import FlowNodeOperateType, StateType
 from backend.ticket.constants import TicketType
 
 
@@ -54,3 +56,34 @@ class FlowNode(models.Model):
     class Meta:
         unique_together = ["root_id", "node_id", "version_id"]
         db_table = "flow_node"
+
+
+class FlowNodeOperateRecord(models.Model):
+    root_id = models.CharField(_("流程ID"), max_length=33)
+    node_id = models.CharField(_("节点ID"), max_length=33)
+    version_id = models.CharField(_("版本ID"), max_length=33, blank=True)
+
+    operator = models.CharField(_("操作人"), max_length=128)
+    operate_type = models.CharField(_("操作类型"), choices=FlowNodeOperateType.get_choices(), max_length=64)
+    operate_date = models.DateTimeField(_("操作时间"), auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["root_id"]),
+            models.Index(fields=["node_id"]),
+        ]
+        db_table = "flow_node_operate_record"
+
+    @classmethod
+    def insert_record(cls, flow: Union[str, FlowNode], operator: str, operate_type: str):
+        if isinstance(flow, str):
+            flow = FlowNode.objects.get(node_id=flow)
+
+        cls.objects.create(
+            root_id=flow.root_id,
+            node_id=flow.node_id,
+            version_id=flow.version_id,
+            operator=operator,
+            operate_type=operate_type,
+        )
+        return flow

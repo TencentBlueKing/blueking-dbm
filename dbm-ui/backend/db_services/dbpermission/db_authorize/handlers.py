@@ -204,5 +204,5 @@ class AuthorizeHandler(object):
             for data in authorize_data_dict__list:
                 excel_data_dict__list[data["index"]] = self.excel_authorize_meta.serialize_excel_data(data)
 
-        wb = ExcelHandler.serialize(excel_data_dict__list, template=self.EXCEL_ERROR_TEMPLATE)
+        wb = ExcelHandler.serialize(excel_data_dict__list, template=self.EXCEL_ERROR_TEMPLATE, match_header=True)
         return ExcelHandler.response(wb, excel_name)

@@ -13,7 +13,7 @@ from django.db import transaction
 from rest_framework import serializers
 
 from backend.constants import IP_RE_PATTERN
-from backend.ticket.models import Flow
+from backend.ticket.models import Flow, FlowSummary
 
 
 class BaseFlowOutputSerializer(serializers.Serializer):
@@ -63,8 +63,9 @@ class FlowOutputHandler:
         serializer = self.slz(data=data, many=True)
         serializer.is_valid(raise_exception=True)
 
-        flow = Flow.objects.select_for_update().get(flow_obj_id=root_id)
-        output_data = flow.context.get("__flow_output_v2", [])
+        flow_id = Flow.objects.get(flow_obj_id=root_id).id
+        flow_summary, __ = FlowSummary.objects.select_for_update().get_or_create(flow_id=flow_id)
+        output_data = flow_summary.summary or []
 
         # 考虑顺序，获取table_name与对应的index
         table_name__index = {d["table_name"]: i for i, d in enumerate(output_data)}
@@ -77,5 +78,5 @@ class FlowOutputHandler:
             table_data = output_data[table_name__index[self.slz.table_name]]
 
         table_data["values"].extend(serializer.validated_data)
-        flow.context["__flow_output_v2"] = output_data
-        flow.save(update_fields=["context"])
+        flow_summary.summary = output_data
+        flow_summary.save(update_fields=["summary"])
