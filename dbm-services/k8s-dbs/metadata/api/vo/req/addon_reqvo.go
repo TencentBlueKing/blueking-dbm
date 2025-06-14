@@ -23,17 +23,19 @@ import "time"
 
 // K8sCrdAddonReqVo represents the request data structure of addon meta.
 type K8sCrdAddonReqVo struct {
-	AddonName          string    `json:"addon_name" binding:"required"`
-	AddonCategory      string    `json:"addon_category" binding:"required"`
-	AddonType          string    `json:"addon_type" binding:"required"`
-	AddonVersion       string    `json:"addon_version" binding:"required"`
-	Topologies         string    `json:"topologies"`
-	RecommendedVersion string    `json:"recommended_version"`
-	SupportedVersions  string    `json:"supported_versions"`
-	Releases           string    `json:"releases"`
-	Description        string    `json:"description" binding:"required"`
-	CreatedBy          string    `json:"created_by"`
-	CreatedAt          time.Time `json:"created_at"`
-	UpdatedBy          string    `json:"updated_by"`
-	UpdatedAt          time.Time `json:"updated_at"`
+	AddonName            string    `json:"addon_name" binding:"required"`
+	AddonCategory        string    `json:"addon_category" binding:"required"`
+	AddonType            string    `json:"addon_type" binding:"required"`
+	AddonVersion         string    `json:"addon_version" binding:"required"`
+	RecommendedVersion   string    `json:"recommended_version"`
+	SupportedVersions    string    `json:"supported_versions"`
+	RecommendedAcVersion string    `json:"recommended_addoncluster_version"`
+	SupportedAcVersions  string    `json:"supported_addoncluster_versions"`
+	Topologies           string    `json:"topologies"`
+	Releases             string    `json:"releases"`
+	Description          string    `json:"description" binding:"required"`
+	CreatedBy            string    `json:"created_by"`
+	CreatedAt            time.Time `json:"created_at"`
+	UpdatedBy            string    `json:"updated_by"`
+	UpdatedAt            time.Time `json:"updated_at"`
 }

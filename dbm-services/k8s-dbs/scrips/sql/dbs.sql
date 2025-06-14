@@ -15,6 +15,8 @@ CREATE TABLE IF NOT EXISTS tb_k8s_crd_storageaddon (
     addon_version varchar(32) NOT NULL COMMENT '存储插件大版本',
     recommended_version varchar(32) NOT NULL COMMENT '推荐存储插件小版本',
     supported_versions varchar(1000) NOT NULL COMMENT '存储插件已经支持的版本',
+    recommended_addoncluster_version varchar(32) NOT NULL COMMENT '推荐插件模板小版本',
+    supported_addoncluster_versions varchar(1000) NOT NULL COMMENT '推荐插件已经支持的版本',
     topologies text NOT NULL COMMENT '集群组件拓扑定义',
     releases text NOT NULL COMMENT '集群组件版本定义',
     active tinyint(1) NOT NULL DEFAULT 1 COMMENT '0:无效，1:有效',
