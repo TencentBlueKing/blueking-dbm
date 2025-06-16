@@ -8,9 +8,8 @@
     @focus="handleFocus">
     <template
       v-if="slots.option"
-      #optionRender="{ item, index }">
+      #optionRender="{ item }">
       <slot
-        :index="index"
         :item="item"
         name="option" />
     </template>
@@ -22,6 +21,26 @@
       #trigger="{ selected }">
       <slot
         name="trigger"
+        :selected="selected" />
+    </template>
+    <template
+      v-if="slots.allOptionIcon"
+      #allOptionIcon>
+      <slot name="allOptionIcon" />
+    </template>
+    <template
+      v-if="slots.tagRender"
+      #tagRender="{ label, value }">
+      <slot
+        :label="label"
+        name="tagRender"
+        :value="value" />
+    </template>
+    <template
+      v-if="slots.tag"
+      #tag="{ selected }">
+      <slot
+        name="tag"
         :selected="selected" />
     </template>
   </BkSelect>
@@ -42,6 +61,11 @@
 
   import useColumn from '../useColumn';
 
+  type ISelected = {
+    label: string;
+    value: number | string;
+  };
+
   const props = defineProps<Props>();
 
   const emits = defineEmits<{
@@ -50,9 +74,12 @@
   }>();
 
   const slots = defineSlots<{
+    allOptionIcon?: () => VNode;
     default?: () => VNode;
-    option?: (value: { index: number; item: Record<string, any> }) => VNode;
-    trigger?: (value: { selected: any[] }) => VNode;
+    option?: (value: { item: Record<string, any> }) => VNode;
+    tag?: (value: { selected: ISelected[] }) => VNode;
+    tagRender?: (item: ISelected) => VNode;
+    trigger?: (value: { selected: ISelected[] }) => VNode;
   }>();
 
   const modelValue = defineModel<T>();
@@ -92,6 +119,16 @@
 
     .bk-input--text {
       background: transparent;
+    }
+
+    .bk-select-trigger {
+      height: 40px !important;
+
+      .bk-select-tag {
+        height: 40px !important;
+        border: none !important;
+        box-shadow: none !important;
+      }
     }
   }
 </style>

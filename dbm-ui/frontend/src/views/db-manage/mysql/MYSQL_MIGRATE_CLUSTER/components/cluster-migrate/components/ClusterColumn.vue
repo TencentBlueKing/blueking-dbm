@@ -75,11 +75,9 @@
       }
     >;
     renderText: string;
+    specId: number;
   }>({
-    default: () => ({
-      clusters: {},
-      renderText: '',
-    }),
+    required: true,
   });
 
   const { t } = useI18n();
@@ -133,12 +131,16 @@
     },
   ];
 
-  const { loading, run: queryCluster } = useRequest(filterClusters, {
+  const { loading, run: queryCluster } = useRequest(filterClusters<TendbhaModel>, {
     manual: true,
     onSuccess: (data) => {
       if (data.length) {
         let clusters = {};
+        let specId = 0;
         data.forEach((item) => {
+          if (!specId) {
+            specId = item.cluster_spec?.spec_id || -1;
+          }
           clusters = {
             ...clusters,
             [item.master_domain]: {
@@ -148,6 +150,7 @@
           };
         });
         modelValue.value.clusters = clusters;
+        modelValue.value.specId = specId;
       }
     },
   });

@@ -24,24 +24,41 @@
         v-model="item.master"
         :selected="selected"
         @batch-edit="handleBatchEdit" />
-      <SingleResourceHostColumn
-        v-model="item.newMaster"
-        field="newMaster.ip"
-        :label="t('新Master主机')"
-        :min-width="150"
-        :params="{
-          for_bizs: [currentBizId, 0],
-          resource_types: [DBTypes.MYSQL, 'PUBLIC'],
-        }" />
-      <SingleResourceHostColumn
-        v-model="item.newSlave"
-        field="newSlave.ip"
-        :label="t('新Slave主机')"
-        :min-width="150"
-        :params="{
-          for_bizs: [currentBizId, 0],
-          resource_types: [DBTypes.MYSQL, 'PUBLIC'],
-        }" />
+      <SpecColumn
+        v-model="item.specId"
+        :cluster-type="DBTypes.MYSQL"
+        :current-spec-id="item.master.spec_id"
+        selectable />
+      <template v-if="sourceType === SourceType.RESOURCE_AUTO">
+        <ResourceTagColumn
+          v-model="item.labels"
+          v-model:selected="item.labelSelected" />
+        <AvailableResourceColumn
+          :params="{
+            for_bizs: [currentBizId, 0],
+            resource_types: [DBTypes.MYSQL, 'PUBLIC'],
+            spec_id: item.specId,
+            labels: item.labels.join(','),
+          }" />
+      </template>
+      <template v-if="sourceType === SourceType.RESOURCE_MANUAL">
+        <SingleResourceHostColumn
+          v-model="item.newMaster"
+          field="newMaster.ip"
+          :label="t('新Master主机')"
+          :params="{
+            for_bizs: [currentBizId, 0],
+            resource_types: [DBTypes.MYSQL, 'PUBLIC'],
+          }" />
+        <SingleResourceHostColumn
+          v-model="item.newSlave"
+          field="newSlave.ip"
+          :label="t('新Slave主机')"
+          :params="{
+            for_bizs: [currentBizId, 0],
+            resource_types: [DBTypes.MYSQL, 'PUBLIC'],
+          }" />
+      </template>
       <OperationColumn
         v-model:table-data="tableData"
         :create-row-method="createTableRow" />
@@ -49,43 +66,34 @@
   </EditableTable>
 </template>
 <script lang="ts" setup>
+  import type { _DeepPartial } from 'pinia';
   import { useTemplateRef } from 'vue';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import type { Mysql } from '@services/model/ticket/ticket';
+  import { SourceType } from '@services/types';
 
   import { DBTypes } from '@common/const';
 
+  import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
+  import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
+  import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
 
   import HostColumnGroup, { type SelectorItem } from './components/HostColumnGroup.vue';
 
   interface RowData {
-    master: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      cluster_ids: number[];
-      ip: string;
-      port: number;
-      related_clusters: string[];
-      related_instances: string[];
-    };
-    newMaster: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      ip: string;
-    };
-    newSlave: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      ip: string;
-    };
+    labels: number[];
+    labelSelected: ComponentProps<typeof ResourceTagColumn>['selected'];
+    master: ComponentProps<typeof HostColumnGroup>['modelValue'];
+    newMaster: ComponentProps<typeof SingleResourceHostColumn>['modelValue'];
+    newSlave: ComponentProps<typeof SingleResourceHostColumn>['modelValue'];
+    specId: number;
   }
 
   interface Props {
+    sourceType: SourceType;
     ticketDetails?: Mysql.ResourcePool.MigrateCluster;
   }
 
@@ -95,22 +103,28 @@
         cluster_ids: number[];
         resource_spec: {
           new_master: {
-            hosts: {
+            count: number;
+            hosts?: {
               bk_biz_id: number;
               bk_cloud_id: number;
               bk_host_id: number;
               ip: string;
             }[];
-            spec_id: 0;
+            label_values?: string[]; // 标签value列表，单据详情回显用
+            labels?: string[]; // 标签id列表
+            spec_id: number;
           };
           new_slave: {
-            hosts: {
+            count: number;
+            hosts?: {
               bk_biz_id: number;
               bk_cloud_id: number;
               bk_host_id: number;
               ip: string;
             }[];
-            spec_id: 0;
+            label_values?: string[]; // 标签value列表，单据详情回显用
+            labels?: string[]; // 标签id列表
+            spec_id: number;
           };
         };
       }[]
@@ -125,29 +139,37 @@
 
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
-  const createTableRow = (data = {} as Partial<RowData>) => ({
-    master: data.master || {
+  const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
+    labels: (data.labels as number[]) || ([] as number[]),
+    labelSelected: [] as ComponentProps<typeof ResourceTagColumn>['selected'],
+    master: {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: 0,
-      cluster_ids: [],
       ip: '',
       port: 0,
-      related_clusters: [],
-      related_instances: [],
+      role: '',
+      spec_id: 0,
+      ...data.master,
+      cluster_ids: [] as number[],
+      related_clusters: [] as string[],
+      related_instances: [] as string[],
     },
-    newMaster: data.newMaster || {
+    newMaster: {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: 0,
       ip: '',
+      ...data.newMaster,
     },
-    newSlave: data.newSlave || {
+    newSlave: {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: 0,
       ip: '',
+      ...data.newSlave,
     },
+    specId: data.specId || 0,
   });
 
   const tableData = ref<RowData[]>([createTableRow()]);
@@ -256,17 +278,18 @@
         const { infos } = props.ticketDetails;
         if (infos.length > 0) {
           tableData.value = infos.map((item) => {
-            const oldMaster = item.old_nodes.old_master[0];
             return createTableRow({
+              labels: (item.resource_spec.new_master.labels || []).map((label) => Number(label)),
               master: {
-                ...oldMaster,
-                cluster_ids: [],
-                port: 0,
-                related_clusters: [],
-                related_instances: [],
+                ip: item.old_nodes.old_master?.[0]?.ip || '',
               },
-              newMaster: item.resource_spec.new_master.hosts[0],
-              newSlave: item.resource_spec.new_slave.hosts[0],
+              newMaster: {
+                ip: item.resource_spec.new_master.hosts?.[0]?.ip || '',
+              },
+              newSlave: {
+                ip: item.resource_spec.new_slave.hosts?.[0]?.ip || '',
+              },
+              specId: item.resource_spec.new_master.spec_id,
             });
           });
         }
@@ -277,28 +300,10 @@
   const handleBatchEdit = (list: SelectorItem[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
       if (!selectedMap.value[item.ip]) {
-        const clusterIds: number[] = [];
-        const relatedClusters: string[] = [];
-        const relatedInstances: string[] = [];
-        const adminPort = item.related_instances[0].admin_port;
-        item.related_clusters.forEach((item) => {
-          clusterIds.push(item.id);
-          relatedClusters.push(item.immute_domain);
-        });
-        item.related_instances.forEach((item) => {
-          relatedInstances.push(item.instance);
-        });
         acc.push(
           createTableRow({
             master: {
-              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-              bk_cloud_id: item.bk_cloud_id,
-              bk_host_id: item.bk_host_id,
-              cluster_ids: clusterIds,
               ip: item.ip,
-              port: adminPort,
-              related_clusters: relatedClusters,
-              related_instances: relatedInstances,
             },
           }),
         );
@@ -315,16 +320,24 @@
         return [];
       }
 
-      return tableData.value.map(({ master, newMaster, newSlave }) => ({
-        cluster_ids: master.cluster_ids,
+      return tableData.value.map((item) => ({
+        cluster_ids: item.master.cluster_ids,
         resource_spec: {
           new_master: {
-            hosts: [newMaster],
-            spec_id: 0,
+            count: 1,
+            hosts: props.sourceType === SourceType.RESOURCE_MANUAL ? [item.newMaster] : undefined,
+            label_values:
+              props.sourceType === SourceType.RESOURCE_AUTO ? item.labelSelected.map((item) => item.value) : undefined,
+            labels: props.sourceType === SourceType.RESOURCE_AUTO ? item.labels.map((item) => String(item)) : undefined,
+            spec_id: item.specId,
           },
           new_slave: {
-            hosts: [newSlave],
-            spec_id: 0,
+            count: 1,
+            hosts: props.sourceType === SourceType.RESOURCE_MANUAL ? [item.newSlave] : undefined,
+            label_values:
+              props.sourceType === SourceType.RESOURCE_AUTO ? item.labelSelected.map((item) => item.value) : undefined,
+            labels: props.sourceType === SourceType.RESOURCE_AUTO ? item.labels.map((item) => String(item)) : undefined,
+            spec_id: item.specId,
           },
         },
       }));

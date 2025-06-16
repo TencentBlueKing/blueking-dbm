@@ -30,7 +30,8 @@
     </template>
     <EditableInput
       v-model="modelValue.master_domain"
-      :placeholder="t('请输入集群域名')" />
+      :placeholder="t('请输入集群域名')"
+      @change="handleChange" />
   </EditableColumn>
   <ClusterSelector
     v-model:is-show="showSelector"
@@ -90,6 +91,7 @@
       master_domain: '',
       remote_shard_num: 0,
     }),
+    required: true,
   });
 
   const { t } = useI18n();
@@ -151,29 +153,31 @@
     emits('batch-edit', selected[ClusterTypes.TENDBCLUSTER]);
   };
 
-  watch(
-    () => modelValue.value.master_domain,
-    (value) => {
-      modelValue.value = {
-        bk_cloud_id: 0,
-        cluster_capacity: 0,
-        cluster_shard_num: 0,
-        cluster_spec: {} as TendbClusterModel['cluster_spec'],
-        db_module_id: 0,
-        disaster_tolerance_level: Affinity.CROS_SUBZONE,
-        id: 0,
-        machine_pair_cnt: 0,
-        master_domain: value,
-        remote_shard_num: 0,
-      };
-      if (value) {
-        queryCluster({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          exact_domain: value,
-        });
-      }
-    },
-  );
+  const handleChange = (value: string) => {
+    modelValue.value = {
+      bk_cloud_id: 0,
+      cluster_capacity: 0,
+      cluster_shard_num: 0,
+      cluster_spec: {} as TendbClusterModel['cluster_spec'],
+      db_module_id: 0,
+      disaster_tolerance_level: Affinity.CROS_SUBZONE,
+      id: 0, // 重置ID，查询时会使用域名查询
+      machine_pair_cnt: 0,
+      master_domain: value,
+      remote_shard_num: 0,
+    };
+  };
+
+  watch(modelValue, () => {
+    if (modelValue.value.master_domain && !modelValue.value.id) {
+      queryCluster({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        cluster_type: ClusterTypes.TENDBCLUSTER,
+        db_type: DBTypes.TENDBCLUSTER,
+        exact_domain: modelValue.value.master_domain,
+      });
+    }
+  });
 </script>
 <style lang="less" scoped>
   .batch-host-select {

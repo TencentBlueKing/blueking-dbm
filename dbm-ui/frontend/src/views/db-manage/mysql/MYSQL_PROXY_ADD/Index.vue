@@ -21,7 +21,22 @@
       class="mb-20"
       form-type="vertical"
       :model="formData">
+      <div class="title-spot mt-12 mb-10">{{ t('主机选择方式') }}<span class="required" /></div>
+      <BkRadioGroup
+        v-model="sourceType"
+        class="mb-16"
+        style="width: 450px"
+        type="card"
+        @change="handleChangeMode">
+        <BkRadioButton :label="SourceType.RESOURCE_AUTO">
+          {{ t('资源池自动匹配') }}
+        </BkRadioButton>
+        <BkRadioButton :label="SourceType.RESOURCE_MANUAL">
+          {{ t('资源池手动选择') }}
+        </BkRadioButton>
+      </BkRadioGroup>
       <EditableTable
+        :key="tableKey"
         ref="table"
         class="mb-20"
         :model="formData.tableData"
@@ -34,14 +49,36 @@
             role="proxy"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
-          <SingleResourceHostColumn
-            v-model="item.new_proxy"
-            field="new_proxy.ip"
-            :label="t('新Proxy主机')"
-            :params="{
-              for_bizs: [currentBizId, 0],
-              resource_types: [DBTypes.MYSQL, 'PUBLIC'],
-            }" />
+          <SpecColumn
+            v-model="item.specId"
+            :cluster-type="DBTypes.MYSQL"
+            :current-spec-id="item.cluster.spec_id"
+            :machine-type="MachineTypes.MYSQL_PROXY"
+            selectable
+            :show-tag="false" />
+          <template v-if="sourceType === SourceType.RESOURCE_AUTO">
+            <ResourceTagColumn
+              v-model="item.labels"
+              v-model:selected="item.labelSelected" />
+            <AvailableResourceColumn
+              :params="{
+                for_bizs: [currentBizId, 0],
+                resource_types: [DBTypes.MYSQL, 'PUBLIC'],
+                spec_id: item.specId,
+                labels: item.labels.join(','),
+              }" />
+          </template>
+          <template v-if="sourceType === SourceType.RESOURCE_MANUAL">
+            <SingleResourceHostColumn
+              v-model="item.newProxy"
+              field="newProxy.ip"
+              :label="t('新Proxy主机')"
+              :min-width="150"
+              :params="{
+                for_bizs: [currentBizId, 0],
+                resource_types: [DBTypes.MYSQL, 'PUBLIC'],
+              }" />
+          </template>
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -71,38 +108,36 @@
   </SmartAction>
 </template>
 <script lang="ts" setup>
+  import type { _DeepPartial } from 'pinia';
   import { reactive, useTemplateRef } from 'vue';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
   import type { Mysql } from '@services/model/ticket/ticket';
+  import { SourceType } from '@services/types';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, MachineTypes, TicketTypes } from '@common/const';
 
+  import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
+  import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
+  import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import WithRelatedClustersColumn from '@views/db-manage/mysql/common/edit-table-column/WithRelatedClustersColumn.vue';
 
+  import { random } from '@utils';
+
   interface RowData {
-    cluster: {
-      cluster_type: ClusterTypes;
-      id: number;
-      master_domain: string;
-      related_clusters: {
-        id: number;
-        master_domain: string;
-      }[];
-    };
-    new_proxy: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      ip: string;
-    };
+    cluster: ComponentProps<typeof WithRelatedClustersColumn>['modelValue'];
+    labels: number[];
+    labelSelected: ComponentProps<typeof ResourceTagColumn>['selected'];
+    newProxy: ComponentProps<typeof SingleResourceHostColumn>['modelValue'];
+    specId: number;
   }
 
   const { t } = useI18n();
@@ -110,19 +145,25 @@
 
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
-  const createTableRow = (data = {} as Partial<RowData>) => ({
-    cluster: data.cluster || {
+  const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
+    cluster: {
       cluster_type: ClusterTypes.TENDBHA,
       id: 0,
       master_domain: '',
-      related_clusters: [],
+      spec_id: 0,
+      ...data.cluster,
+      related_clusters: [] as RowData['cluster']['related_clusters'],
     },
-    new_proxy: data.new_proxy || {
+    labels: (data.labels as number[]) || ([] as number[]),
+    labelSelected: [] as ComponentProps<typeof ResourceTagColumn>['selected'],
+    newProxy: {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: 0,
       ip: '',
+      ...data.newProxy,
     },
+    specId: data.specId || 0,
   });
 
   const defaultData = () => ({
@@ -130,7 +171,9 @@
     tableData: [createTableRow()],
   });
 
+  const sourceType = ref(SourceType.RESOURCE_AUTO);
   const formData = reactive(defaultData());
+  const tableKey = ref(random());
 
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   const clusterMap = computed(() => {
@@ -149,7 +192,7 @@
   const newProxyCounter = computed(() => {
     return formData.tableData.reduce<Record<string, number>>((result, item) => {
       Object.assign(result, {
-        [item.new_proxy.ip]: (result[item.new_proxy.ip] || 0) + 1,
+        [item.newProxy.ip]: (result[item.newProxy.ip] || 0) + 1,
       });
       return result;
     }, {});
@@ -169,7 +212,7 @@
         },
       },
     ],
-    'new_proxy.ip': [
+    'newProxy.ip': [
       {
         message: t('IP 重复'),
         trigger: 'blur',
@@ -178,7 +221,7 @@
             return true;
           }
           const row = rowData as RowData;
-          return newProxyCounter.value[row.new_proxy.ip] <= 1;
+          return newProxyCounter.value[row.newProxy.ip] <= 1;
         },
       },
       {
@@ -189,7 +232,7 @@
             return true;
           }
           const row = rowData as RowData;
-          return newProxyCounter.value[row.new_proxy.ip] <= 1;
+          return newProxyCounter.value[row.newProxy.ip] <= 1;
         },
       },
     ],
@@ -199,18 +242,20 @@
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { clusters, infos } = details;
+      tableKey.value = random();
+      sourceType.value = details.source_type;
       Object.assign(formData, {
-        payload: createTickePayload(ticketDetail),
+        ...createTickePayload(ticketDetail),
         tableData: infos.map((item) => {
-          const clusterInfo = clusters[item.cluster_ids[0]];
           return createTableRow({
             cluster: {
-              cluster_type: clusterInfo.cluster_type,
-              id: clusterInfo.id,
-              master_domain: clusterInfo.immute_domain,
-              related_clusters: [],
+              master_domain: clusters[item.cluster_ids[0]]?.immute_domain || '',
             },
-            new_proxy: item.resource_spec.new_proxy.hosts[0],
+            labels: (item.resource_spec.new_proxy.labels || []).map((item) => Number(item)),
+            newProxy: {
+              ip: item.resource_spec.new_proxy.hosts?.[0]?.ip || '',
+            },
+            specId: item.resource_spec.new_proxy.spec_id,
           });
         }),
       });
@@ -222,18 +267,25 @@
       cluster_ids: number[];
       resource_spec: {
         new_proxy: {
-          hosts: {
+          hosts?: {
             bk_biz_id: number;
             bk_cloud_id: number;
             bk_host_id: number;
             ip: string;
           }[];
+          label_values?: string[]; // 标签value列表，单据详情回显用
+          labels?: string[]; // 标签id列表
           spec_id: number;
         };
       };
     }[];
     ip_source: 'resource_pool';
+    source_type: SourceType;
   }>(TicketTypes.MYSQL_PROXY_ADD);
+
+  const handleChangeMode = () => {
+    tableKey.value = random();
+  };
 
   const handleSubmit = async () => {
     const result = await tableRef.value!.validate();
@@ -246,12 +298,20 @@
           cluster_ids: [item.cluster.id, ...item.cluster.related_clusters.map((item) => item.id)],
           resource_spec: {
             new_proxy: {
-              hosts: [item.new_proxy],
-              spec_id: 0,
+              count: 1,
+              hosts: sourceType.value === SourceType.RESOURCE_MANUAL ? [item.newProxy] : undefined,
+              label_values:
+                sourceType.value === SourceType.RESOURCE_AUTO
+                  ? item.labelSelected.map((item) => item.value)
+                  : undefined,
+              labels:
+                sourceType.value === SourceType.RESOURCE_AUTO ? item.labels.map((item) => String(item)) : undefined,
+              spec_id: item.cluster.spec_id,
             },
           },
         })),
         ip_source: 'resource_pool',
+        source_type: sourceType.value,
       },
       ...formData.payload,
     });
@@ -267,10 +327,7 @@
         acc.push(
           createTableRow({
             cluster: {
-              cluster_type: item.cluster_type,
-              id: item.id,
               master_domain: item.master_domain,
-              related_clusters: [],
             },
           }),
         );

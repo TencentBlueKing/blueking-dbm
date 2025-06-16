@@ -1,4 +1,4 @@
-import { BackupSourceType } from '@services/types';
+import { BackupSourceType, SourceType } from '@services/types';
 
 import type { ResourcePoolDetailBase } from '../../common';
 
@@ -18,8 +18,11 @@ export interface AddSlave extends ResourcePoolDetailBase {
           bk_host_id: number;
           ip: string;
         }[];
+        label_values: string[]; // 标签value列表，单据详情回显用
+        labels: string[]; // 标签id列表
         spec_id: number;
       };
     };
   }[];
+  source_type: SourceType;
 }

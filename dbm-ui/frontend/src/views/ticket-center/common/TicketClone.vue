@@ -59,16 +59,19 @@
     [TicketTypes.MYSQL_MIGRATE_UPGRADE]: TicketTypes.MYSQL_PROXY_UPGRADE, // MySQL 迁移升级
     [TicketTypes.MYSQL_PROXY_ADD]: TicketTypes.MYSQL_PROXY_ADD, // Mysql 添加Proxy
     [TicketTypes.MYSQL_PROXY_SWITCH]: TicketTypes.MYSQL_PROXY_SWITCH, // Mysql 替换Proxy
-    [TicketTypes.MYSQL_RESTORE_SLAVE]: TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE, // Mysql 重建从库-新机重建
+    [TicketTypes.MYSQL_RESTORE_SLAVE]: TicketTypes.MYSQL_RESTORE_SLAVE, // Mysql 重建从库-新机重建
     [TicketTypes.MYSQL_ROLLBACK_CLUSTER]: TicketTypes.MYSQL_ROLLBACK_CLUSTER, // Mysql 定点构造
     [TicketTypes.REDIS_CLUSTER_CUTOFF]: TicketTypes.REDIS_CLUSTER_CUTOFF, // Redis 整机替换
     [TicketTypes.SQLSERVER_ADD_SLAVE]: TicketTypes.SQLSERVER_ADD_SLAVE, // sqlserver 添加从库
     [TicketTypes.SQLSERVER_RESTORE_SLAVE]: TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE, // sqlserver 重建从库_新机重建
     [TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER]: TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER, // spider 迁移主从
-    [TicketTypes.TENDBCLUSTER_RESTORE_SLAVE]: TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE, // spider 重建从库-新机重建
+    [TicketTypes.TENDBCLUSTER_RESTORE_SLAVE]: TicketTypes.TENDBCLUSTER_RESTORE_SLAVE, // spider 重建从库-新机重建
     [TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER]: TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER, // Spider 定点回档
+    [TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES]: TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES, // Spider扩容接入层
     [TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY]: TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY, // Spider 添加运维节点
     [TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES]: TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES, // spider 缩容接入层
+    [TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY]: TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY, // Spider 部署只读接入层
+    [TicketTypes.TENDBCLUSTER_SPIDER_SWITCH_NODES]: TicketTypes.TENDBCLUSTER_SPIDER_SWITCH_NODES, // spider 替换接入层
   };
 
   /**
@@ -111,7 +114,6 @@
     [TicketTypes.MYSQL_PROXY_UPGRADE]: TicketTypes.MYSQL_PROXY_UPGRADE, // MySQL Proxy 升级
     [TicketTypes.MYSQL_RENAME_DATABASE]: TicketTypes.MYSQL_RENAME_DATABASE, // Mysql DB重命名
     [TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE]: TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE, // Mysql 重建从库
-    [TicketTypes.MYSQL_RESTORE_SLAVE]: TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE, // Mysql 重建从库
     [TicketTypes.MYSQL_ROLLBACK_CLUSTER]: TicketTypes.MYSQL_ROLLBACK_CLUSTER, // Mysql 定点构造
     [TicketTypes.MYSQL_SINGLE_APPLY]: 'SelfServiceApplySingle', // Mysql 单节点部署
     [TicketTypes.MYSQL_SINGLE_DESTROY]: 'DatabaseTendbsingle', // Mysql 单节点删除
@@ -179,11 +181,8 @@
     [TicketTypes.TENDBCLUSTER_OPEN_AREA]: 'spiderOpenareaTemplate', // Spider 开区
     [TicketTypes.TENDBCLUSTER_RENAME_DATABASE]: TicketTypes.TENDBCLUSTER_RENAME_DATABASE, // Spider Tendbcluster 重命名
     [TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE]: TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE, // spider 重建从库-原地重建
-    [TicketTypes.TENDBCLUSTER_RESTORE_SLAVE]: TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE, // spider 重建从库-新机重建
     [TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER]: TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER, // Spider 定点回档
-    [TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES]: 'SpiderProxyScaleUp', // Spider扩容接入层
     [TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY]: TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY, // Spider 添加运维节点
-    [TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY]: 'SpiderProxySlaveApply', // Spider 部署只读接入层
     [TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE]: 'spiderDbClear', // Spider tendbcluster 清档
   };
 
