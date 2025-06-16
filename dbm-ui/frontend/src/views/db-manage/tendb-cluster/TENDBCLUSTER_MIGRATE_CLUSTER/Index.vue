@@ -42,6 +42,20 @@
               v-model="item.oldMaster.master_domain"
               :placeholder="t('自动生成')" />
           </EditableColumn>
+          <SpecColumn
+            v-model="item.specId"
+            :cluster-type="ClusterTypes.TENDBCLUSTER"
+            :current-spec-id="item.oldMaster.spec_id" />
+          <ResourceTagColumn
+            v-model="item.labels"
+            v-model:selected="item.labelSelected" />
+          <AvailableResourceColumn
+            :params="{
+              for_bizs: [currentBizId, 0],
+              resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
+              spec_id: item.specId,
+              labels: item.labels.join(','),
+            }" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -80,7 +94,9 @@
   </SmartAction>
 </template>
 <script lang="ts" setup>
+  import type { _DeepPartial } from 'pinia';
   import { reactive, useTemplateRef } from 'vue';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import type { TendbCluster } from '@services/model/ticket/ticket';
@@ -88,8 +104,11 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
+  import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
+  import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
+  import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
   import TicketPayload, {
     createTickePayload,
@@ -99,49 +118,41 @@
   import SlaveHostColumnGroup from './components/SlaveHostColumnGroup.vue';
 
   interface RowData {
-    oldMaster: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      cluster_id: number;
-      ip: string;
-      master_domain: string;
-      related_instances: string[];
-      spec_id: number;
-    };
-    oldSlave: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      ip: string;
-      related_instances: string[];
-    };
+    labels: number[];
+    labelSelected: ComponentProps<typeof ResourceTagColumn>['selected'];
+    oldMaster: ComponentProps<typeof MasterHostColumnGroup>['modelValue'];
+    oldSlave: ComponentProps<typeof SlaveHostColumnGroup>['modelValue'];
+    specId: number;
   }
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
+  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
-  const createTableRow = (data = {} as Partial<RowData>) => {
-    const initHost = () => ({
+  const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
+    labels: (data.labels as number[]) || ([] as number[]),
+    labelSelected: [] as ComponentProps<typeof ResourceTagColumn>['selected'],
+    oldMaster: {
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      bk_cloud_id: 0,
+      bk_host_id: 0,
+      cluster_id: 0,
+      ip: '',
+      master_domain: '',
+      spec_id: 0,
+      ...data.oldMaster,
+      related_instances: [] as string[],
+    },
+    oldSlave: {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: 0,
       ip: '',
-    });
-    return {
-      oldMaster: data.oldMaster || {
-        ...initHost(),
-        cluster_id: 0,
-        master_domain: '',
-        related_instances: [],
-        spec_id: 0,
-      },
-      oldSlave: data.oldSlave || {
-        ...initHost(),
-        related_instances: [],
-      },
-    };
-  };
+      ...data.oldSlave,
+      related_instances: [] as string[],
+    },
+    specId: data.specId || 0,
+  });
 
   const defaultData = () => ({
     backupSource: BackupSourceType.REMOTE,
@@ -157,37 +168,23 @@
   );
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
 
-  interface ResourceHost {
-    hosts: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      ip: string;
-    }[];
-    spec_id: number;
-  }
-
   useTicketDetail<TendbCluster.ResourcePool.MigrateCluster>(TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
-      const { backup_source: backupSource, infos } = details;
       Object.assign(formData, {
-        backupSource,
+        backupSource: details.backup_source,
         need_checksum: details.need_checksum,
         payload: createTickePayload(ticketDetail),
-        tableData: infos.map((item) =>
+        tableData: details.infos.map((item) =>
           createTableRow({
+            labels: (item.resource_spec.backend_group.labels || []).map((item) => Number(item)),
             oldMaster: {
-              ...item.old_nodes.old_master[0],
-              cluster_id: 0,
-              master_domain: '',
-              related_instances: [],
-              spec_id: 0,
+              ip: item.old_nodes.old_master[0].ip,
             },
             oldSlave: {
-              ...item.old_nodes.old_slave[0],
-              related_instances: [],
+              ip: item.old_nodes.old_slave[0].ip,
             },
+            specId: item.resource_spec.backend_group.spec_id,
           }),
         ),
       });
@@ -198,13 +195,11 @@
     backup_source: BackupSourceType;
     infos: {
       cluster_id: number;
-      old_nodes: {
-        old_master: ResourceHost['hosts'];
-        old_slave: ResourceHost['hosts'];
-      };
       resource_spec: {
         backend_group: {
           count: number;
+          label_values?: string[]; // 标签value列表，单据详情回显用
+          labels?: string[]; // 标签id列表
           spec_id: number;
         };
       };
@@ -230,6 +225,8 @@
           resource_spec: {
             backend_group: {
               count: 1,
+              label_values: item.labelSelected.map((item) => item.value),
+              labels: item.labels.map((item) => String(item)),
               spec_id: item.oldMaster.spec_id,
             },
           },
@@ -251,14 +248,7 @@
         acc.push(
           createTableRow({
             oldMaster: {
-              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-              bk_cloud_id: item.bk_cloud_id,
-              bk_host_id: item.bk_host_id,
-              cluster_id: item.cluster_id,
               ip: item.ip,
-              master_domain: item.master_domain,
-              related_instances: item.related_instances.map((item) => item.instance),
-              spec_id: item.spec_id,
             },
           }),
         );

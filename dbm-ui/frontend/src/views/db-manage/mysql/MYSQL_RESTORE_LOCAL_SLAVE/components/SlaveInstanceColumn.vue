@@ -46,7 +46,7 @@
 
   import { checkInstance } from '@services/source/dbbase';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes } from '@common/const';
   import { ipPort } from '@common/regex';
 
   import InstanceSelector, {
@@ -72,23 +72,14 @@
   const modelValue = defineModel<{
     bk_biz_id: number;
     bk_cloud_id: number;
-    bk_host_id?: number;
+    bk_host_id: number;
     cluster_id: number;
     instance_address: string;
     ip: string;
     master_domain: string;
     port: number;
   }>({
-    default: () => ({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: undefined,
-      cluster_id: 0,
-      instance_address: '',
-      ip: '',
-      master_domain: '',
-      port: 0,
-    }),
+    required: true,
   });
 
   const { t } = useI18n();
@@ -168,24 +159,35 @@
     modelValue.value = {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
-      bk_host_id: undefined,
+      bk_host_id: 0,
       cluster_id: 0,
       instance_address: value,
       ip: '',
       master_domain: '',
       port: 0,
     };
-    if (value) {
-      queryHost({
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        instance_addresses: [value],
-      });
-    }
   };
 
   const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
     emits('batch-edit', selected[ClusterTypes.TENDBHA]);
   };
+
+  watch(
+    modelValue,
+    () => {
+      if (modelValue.value.instance_address && !modelValue.value.bk_host_id) {
+        queryHost({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_type: [ClusterTypes.TENDBHA],
+          db_type: DBTypes.MYSQL,
+          instance_addresses: [modelValue.value.instance_address],
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 <style lang="less" scoped>
   .batch-host-select {

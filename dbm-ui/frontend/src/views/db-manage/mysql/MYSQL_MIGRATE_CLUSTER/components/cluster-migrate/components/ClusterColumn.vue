@@ -76,10 +76,7 @@
     >;
     renderText: string;
   }>({
-    default: () => ({
-      clusters: {},
-      renderText: '',
-    }),
+    required: true,
   });
 
   const { t } = useI18n();
