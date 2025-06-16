@@ -8,6 +8,14 @@
         v-model="dimension"
         @change="handleChangeDimension"
         @change-spec-enable="handleChangeSpecEnable" />
+      <div
+        class="text-button mr-8"
+        @click="fetchListData">
+        <DbIcon
+          class="mr-4"
+          type="refresh" />
+        <span class="ml-2">{{ t('刷新数据') }}</span>
+      </div>
       <Export
         :data="allTableData"
         :dimension="dimension" />
@@ -23,7 +31,7 @@
           class="summary-view-table"
           :data="tableData"
           :max-height="tableMaxHeight"
-          :pagination="pagination"
+          :pagination="pagination.count > 0 ? pagination : false"
           @page-limit-change="handeChangeLimit"
           @page-value-change="handleChangePage">
           <BkTableColumn
@@ -230,6 +238,14 @@
 
 <style lang="less">
   .summary-view-list {
+    .text-button {
+      display: flex;
+      font-size: 12px;
+      color: #3a84ff;
+      align-items: center;
+      cursor: pointer;
+    }
+
     .db-card__content {
       padding: 14px 22px;
     }

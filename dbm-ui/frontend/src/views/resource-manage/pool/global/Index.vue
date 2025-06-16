@@ -112,6 +112,10 @@
     background: #fff;
     box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
 
+    :deep(.bk-tab-header-active-bar) {
+      transition: none;
+    }
+
     :deep(.bk-tab-content) {
       display: none;
     }

@@ -23,7 +23,9 @@
           {{ t('全局') }}
         </BkTag>
         <span class="title-divider">|</span>
-        <BusinessSelector @change="handleBizChange" />
+        <BusinessSelector
+          v-model="curBizId"
+          @change="handleBizChange" />
       </div>
       <div
         v-else
@@ -39,6 +41,7 @@
       <div class="header-action mb-16">
         <BkButton
           class="operation-btn"
+          :disabled="curBizId === 0"
           theme="primary"
           @click="handleCreate">
           {{ t('新建') }}
@@ -74,7 +77,7 @@
     </div>
     <CreateTag
       v-model:is-show="isCreateTagDialogShow"
-      :biz="curBiz"
+      :biz-id="curBizId"
       @create="handleCreateSuccess" />
   </div>
 </template>
@@ -88,8 +91,6 @@
   import ResourceTagModel from '@services/model/db-resource/ResourceTag';
   import { deleteTag, getTagRelatedResource, listTag, updateTag, validateTag } from '@services/source/tag';
 
-  import { useGlobalBizs } from '@stores';
-
   import { getSearchSelectorParams, messageSuccess } from '@utils';
 
   import BusinessSelector from './components/BusinessSelector.vue';
@@ -97,20 +98,21 @@
   import EditableCell from './components/EditableCell.vue';
 
   const { t } = useI18n();
-  const { bizIdMap, currentBizInfo } = useGlobalBizs();
   const route = useRoute();
   const router = useRouter();
 
   const tableRef = ref();
   const selected = ref<ResourceTagModel[]>([]);
   const isCreateTagDialogShow = ref(false);
-  const curBiz = ref(currentBizInfo!);
+
   const curEditId = ref(-1);
   const searchValue = ref([]);
 
   const bindIpMap = shallowRef<Map<number, number>>(new Map()); // 标签ID与当前标签绑定的IP数的映射
 
   const isBusiness = route.name === 'BizResourceTag';
+
+  const curBizId = ref(isBusiness ? window.PROJECT_CONFIG.BIZ_ID : 0);
 
   const searchSelectData = [
     {
@@ -135,6 +137,11 @@
   });
 
   const tableColumn = computed(() => [
+    {
+      field: 'id',
+      label: 'ID',
+      render: ({ data }: { data: ResourceTagModel }) => data.id || '--',
+    },
     {
       field: 'value',
       label: t('标签'),
@@ -163,7 +170,7 @@
             page: isBusiness ? 'business' : 'host-list',
           },
           query: {
-            labels: data.id,
+            label_names: data.value,
           },
         });
         return (
@@ -248,8 +255,9 @@
     const searchParams = getSearchSelectorParams(searchValue.value);
     tableRef.value.fetchData({
       ...searchParams,
-      bk_biz_id: curBiz.value.bk_biz_id,
+      bk_biz_id: curBizId.value,
       ordering: '-create_at',
+      type: 'resource',
     });
   };
 
@@ -274,7 +282,7 @@
       ),
       onConfirm: () => {
         runDelete({
-          bk_biz_id: curBiz.value.bk_biz_id,
+          bk_biz_id: curBizId.value,
           ids: selectedIds.value,
         });
       },
@@ -290,13 +298,13 @@
   const handleBlur = (data: ResourceTagModel, val: string) => {
     if (val && data.value !== val) {
       validateTag({
-        bk_biz_id: curBiz.value.bk_biz_id,
+        bk_biz_id: curBizId.value,
         tags: [{ key: 'dbresource', value: val }],
         type: 'resource',
       }).then((existData) => {
         if (existData.length === 0) {
           runUpdate({
-            bk_biz_id: curBiz.value.bk_biz_id,
+            bk_biz_id: curBizId.value,
             id: data.id,
             type: 'resource',
             value: val,
@@ -316,13 +324,13 @@
 
   const handleDelete = (data: ResourceTagModel) => {
     runDelete({
-      bk_biz_id: curBiz.value.bk_biz_id,
+      bk_biz_id: curBizId.value,
       ids: [data.id],
     });
   };
 
   const handleBizChange = (bkBizId: number) => {
-    curBiz.value = bizIdMap.get(bkBizId)!;
+    curBizId.value = bkBizId;
     fetchData();
   };
 
@@ -341,7 +349,7 @@
 
   const handleRequestSuccess = (data: ServiceReturnType<typeof listTag>) => {
     getRelatedResource({
-      bk_biz_id: curBiz.value.bk_biz_id,
+      bk_biz_id: curBizId.value,
       ids: data.results.map((item) => item.id),
       resource_type: 'resource',
     });

@@ -34,9 +34,11 @@
       @change="handleInputChange" />
   </EditableColumn>
   <EditableColumn
+    field="slave.related_clusters"
     :label="t('同机关联集群')"
     :loading="loading"
-    :min-width="220">
+    :min-width="220"
+    required>
     <EditableBlock :placeholder="t('自动生成')">
       <p
         v-for="item in modelValue.related_clusters"
@@ -48,6 +50,7 @@
   <InstanceSelector
     v-model:is-show="showSelector"
     :cluster-types="['TendbhaHost']"
+    hide-manual-input
     :selected="selectedInstances"
     :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
@@ -86,6 +89,8 @@
     bk_biz_id: number;
     bk_cloud_id: number;
     bk_host_id: number;
+    bk_idc_city_name: string;
+    bk_sub_zone: string;
     ip: string;
     related_clusters: {
       id: number;
@@ -133,7 +138,7 @@
 
   const showSelector = ref(false);
   const selectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
-    [ClusterTypes.TENDBHA]: props.selected.map(
+    TendbhaHost: props.selected.map(
       (item) =>
         ({
           ip: item.ip,
@@ -179,13 +184,15 @@
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           bk_cloud_id: currentHost.bk_cloud_id,
           bk_host_id: currentHost.bk_host_id,
+          bk_idc_city_name: currentHost.host_info?.bk_idc_city_name || '',
+          bk_sub_zone: currentHost.host_info?.bk_sub_zone || '',
           ip: currentHost.ip,
           related_clusters: currentHost.related_clusters.map((item) => ({
             id: item.id,
             master_domain: item.master_domain,
           })),
           role: currentHost.role,
-          spec_id: currentHost.spec_config?.id || -1,
+          spec_id: currentHost.spec_config.id,
         };
       }
     },
@@ -201,6 +208,8 @@
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: 0,
+      bk_idc_city_name: '',
+      bk_sub_zone: '',
       ip: value,
       related_clusters: [],
       role: '',

@@ -59,6 +59,18 @@
         </p>
       </template>
     </BkTableColumn>
+    <BkTableColumn
+      :label="t('资源标签')"
+      :min-width="200">
+      <template #default="{ data }: { data: RowData }">
+        <BkTag
+          v-for="item in data.resource_spec.backend_group.label_names"
+          :key="item"
+          :theme="labelTheme(item)">
+          {{ item }}
+        </BkTag>
+      </template>
+    </BkTableColumn>
   </BkTable>
   <InfoList>
     <InfoItem :label="t('数据校验')">
@@ -89,4 +101,6 @@
   defineProps<Props>();
 
   const { t } = useI18n();
+
+  const labelTheme = (labelName: string) => (labelName === t('通用无标签') ? 'success' : '');
 </script>
