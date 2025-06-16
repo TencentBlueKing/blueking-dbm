@@ -11,7 +11,17 @@
         @click="handleMenuChange">
         <BkMenuGroup
           v-db-console="'observableManage.AlarmEvents'"
-          :name="t('告警')">
+          :name="t('监控告警')">
+          <BkMenuItem key="DBMonitorBussinessDashboard">
+            <template #icon>
+              <DbIcon type="db-config" />
+            </template>
+            <span
+              v-overflow-tips.right
+              class="text-overflow">
+              {{ t('业务监控大盘') }}
+            </span>
+          </BkMenuItem>
           <BkMenuItem key="AlarmEvents">
             <template #icon>
               <DbIcon type="db-config" />
@@ -73,6 +83,6 @@
     key: currentActiveKey,
     parentKey,
     routeLocation: handleMenuChange,
-  } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, 'AlarmEvents');
+  } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, 'DBMonitorBussinessDashboard');
   const styles = useMenuStyles(menuBoxRef);
 </script>

@@ -111,5 +111,17 @@ export default function getRoutes() {
     });
   }
 
+  if (checkDbConsole('bizConfigManage.bussinessDashboard')) {
+    alarmManageBizRoute.children!.push({
+      path: 'bussiness-dashboard',
+      name: 'DBMonitorBussinessDashboard',
+      meta: {
+        fullscreen: true,
+        navName: t('业务监控大盘'),
+      },
+      component: () => import('@views/monitor-alarm/bussiness-dashboard/Index.vue'),
+    });
+  }
+
   registerBusinessModule([alarmManageBizRoute]);
 }

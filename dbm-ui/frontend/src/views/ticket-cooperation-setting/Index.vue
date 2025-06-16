@@ -45,6 +45,8 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import { BizSettingKeys } from '@common/const';
+
   import MemberSelector from '@components/db-member-selector/index.vue';
 
   import { messageSuccess } from '@utils';
@@ -67,11 +69,11 @@
     defaultParams: [
       {
         bk_biz_id: globalBizsStore.currentBizId,
-        key: 'BIZ_ASSISTANCE_SWITCH',
+        key: BizSettingKeys.BIZ_ASSISTANCE_SWITCH,
       },
     ],
     onSuccess: (data) => {
-      isCooperationOpen.value = data.BIZ_ASSISTANCE_SWITCH;
+      isCooperationOpen.value = data[BizSettingKeys.BIZ_ASSISTANCE_SWITCH];
     },
   });
 
@@ -80,11 +82,11 @@
     defaultParams: [
       {
         bk_biz_id: globalBizsStore.currentBizId,
-        key: 'BIZ_ASSISTANCE_VARS',
+        key: BizSettingKeys.BIZ_ASSISTANCE_VARS,
       },
     ],
     onSuccess: (data) => {
-      formModel.members = data.BIZ_ASSISTANCE_VARS || [];
+      formModel.members = data[BizSettingKeys.BIZ_ASSISTANCE_VARS] || [];
     },
   });
 
@@ -103,11 +105,11 @@
       bk_biz_id: globalBizsStore.currentBizId,
       settings: [
         {
-          key: 'BIZ_ASSISTANCE_SWITCH',
+          key: BizSettingKeys.BIZ_ASSISTANCE_SWITCH,
           value: isCooperationOpen.value,
         },
         {
-          key: 'BIZ_ASSISTANCE_VARS',
+          key: BizSettingKeys.BIZ_ASSISTANCE_VARS,
           value: formModel.members,
         },
       ],
