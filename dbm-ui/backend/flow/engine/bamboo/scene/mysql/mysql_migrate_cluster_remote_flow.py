@@ -554,6 +554,9 @@ class MySQLMigrateClusterRemoteFlow(object):
                     instances=instances,
                     with_actuator=False,
                     with_bk_plugin=False,
+                    with_collect_sysinfo=False,
+                    with_cc_standardize=False,
+                    with_instance_standardize=False,
                 )
             )
 
@@ -591,14 +594,9 @@ class MySQLMigrateClusterRemoteFlow(object):
                     bk_cloud_id=cluster_class.bk_cloud_id,
                     bk_biz_id=cluster_class.bk_biz_id,
                     instances=instances,
-                    departs=[
-                        DeployPeripheralToolsDepart.MySQLMonitor,
-                        DeployPeripheralToolsDepart.MySQLDBBackup,
-                        DeployPeripheralToolsDepart.MySQLRotateBinlog,
-                        DeployPeripheralToolsDepart.MySQLTableChecksum,
-                    ],
                     with_actuator=False,
                     with_bk_plugin=False,
+                    with_backup_client=False,
                     with_instance_standardize=False,
                     with_collect_sysinfo=False,
                     with_cc_standardize=False,

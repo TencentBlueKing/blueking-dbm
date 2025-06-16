@@ -175,7 +175,6 @@ class RemoteMasterSlaveSwitchFlow(object):
                         with_cc_standardize=False,
                         with_instance_standardize=False,
                         with_bk_plugin=False,
-                        with_deploy_binary=False,
                         with_collect_sysinfo=False,
                     ),
                     standardize_mysql_cluster_by_ip_subflow(
@@ -188,7 +187,6 @@ class RemoteMasterSlaveSwitchFlow(object):
                         with_cc_standardize=False,
                         with_instance_standardize=False,
                         with_bk_plugin=False,
-                        with_deploy_binary=False,
                         with_collect_sysinfo=False,
                     ),
                 ]

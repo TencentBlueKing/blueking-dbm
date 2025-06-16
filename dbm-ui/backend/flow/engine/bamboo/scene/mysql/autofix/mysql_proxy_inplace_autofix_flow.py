@@ -133,22 +133,14 @@ class ProxyInplaceAutofixFlow(object):
             },
         )
 
-        # clusters_detail: Dict[str, Dict[str, List[str]]] = {}
-        # for p in ProxyInstance.objects.filter(machine__ip=ip, machine__bk_cloud_id=bk_cloud_id):
-        #     cluster_obj = p.cluster.first()
-        #     clusters_detail[cluster_obj.immute_domain] = {"proxy": [p.ip_port]}
-
         autofix_pipeline.add_sub_pipeline(
             sub_flow=standardize_mysql_cluster_by_ip_subflow(
                 root_id=self.root_id,
                 data=copy.deepcopy(self.data),
                 bk_cloud_id=bk_cloud_id,
                 bk_biz_id=bk_biz_id,
-                # cluster_type=ClusterType.TenDBHA,
-                # clusters_detail=clusters_detail,
                 ips=[ip],
                 departs=[DeployPeripheralToolsDepart.MySQLMonitor],
-                with_deploy_binary=False,
                 with_collect_sysinfo=False,
                 with_actuator=False,
                 with_bk_plugin=False,

@@ -403,8 +403,6 @@ class MySQLStorageLocalUpgradeFlow(object):
                 with_collect_sysinfo=False,
                 with_actuator=False,
                 with_bk_plugin=False,
-                with_deploy_binary=False,
-                # departs=remove_departs(ALLDEPARTS, DeployPeripheralToolsDepart.BackupClient),
             )
         )
         mysql_upgrade_pipeline.run_pipeline(is_drop_random_user=True)

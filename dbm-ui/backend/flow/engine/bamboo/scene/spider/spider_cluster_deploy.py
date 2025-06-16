@@ -25,7 +25,11 @@ from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
     build_repl_by_manual_input_sub_flow,
     init_machine_sub_flow,
 )
-from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import DeployPeripheralToolsDepart
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import (
+    ALLDEPARTS,
+    DeployPeripheralToolsDepart,
+    remove_departs,
+)
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -642,10 +646,11 @@ class TenDBClusterApplyFlow(object):
                 with_collect_sysinfo=False,
                 with_backup_client=True,
                 with_instance_standardize=False,
-                departs=[
-                    DeployPeripheralToolsDepart.DBAToolKit,
-                    DeployPeripheralToolsDepart.MySQLCrond,
-                ],
+                departs=remove_departs(
+                    ALLDEPARTS,
+                    DeployPeripheralToolsDepart.MySQLMonitor,
+                    DeployPeripheralToolsDepart.MySQLTableChecksum,
+                ),
             )
         )
 

@@ -383,14 +383,13 @@ class TenDBRemoteRebalanceFlow(object):
                         data=copy.deepcopy(self.data),
                         bk_cloud_id=cluster_class.bk_cloud_id,
                         bk_biz_id=self.data["bk_biz_id"],
-                        # ips=[node["master"]["ip"], node["slave"]["ip"]],
                         instances=instances,
+                        departs=remove_departs(ALLDEPARTS, DeployPeripheralToolsDepart.MySQLDBBackup),
                         with_actuator=False,
                         with_bk_plugin=False,
                         with_collect_sysinfo=False,
                         with_instance_standardize=False,
                         with_cc_standardize=False,
-                        departs=remove_departs(ALLDEPARTS, DeployPeripheralToolsDepart.MySQLDBBackup),
                     )
                 )
 
@@ -422,6 +421,7 @@ class TenDBRemoteRebalanceFlow(object):
                         with_collect_sysinfo=False,
                         with_instance_standardize=False,
                         with_bk_plugin=False,
+                        with_backup_client=False,
                         with_cc_standardize=False,
                     )
                 )
