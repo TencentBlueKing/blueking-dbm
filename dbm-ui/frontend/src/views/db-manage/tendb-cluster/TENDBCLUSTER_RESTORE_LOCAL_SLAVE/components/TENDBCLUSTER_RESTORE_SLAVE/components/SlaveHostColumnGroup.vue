@@ -61,7 +61,7 @@
 
   import { checkInstance } from '@services/source/dbbase';
 
-  import type { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
   import InstanceSelector, {
@@ -210,6 +210,8 @@
     if (value) {
       queryHost({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        cluster_type: [ClusterTypes.TENDBCLUSTER],
+        db_type: DBTypes.TENDBCLUSTER,
         instance_addresses: [value],
       });
     }
