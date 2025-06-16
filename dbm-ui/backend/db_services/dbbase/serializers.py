@@ -83,6 +83,9 @@ class ClusterFilterSerializer(ListResourceSLZ):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     cluster_ids = serializers.CharField(help_text=_("集群ID(逗号分割)"), required=False, default="")
     cluster_type = serializers.CharField(help_text=_("集群类型"), required=False, default="")
+    db_type = serializers.ChoiceField(
+        help_text=_("实例所属组件类型"), required=False, choices=DBType.get_choices(), default=""
+    )
 
     def validate(self, attrs):
         # 获取集群基础过滤条件用作第一轮过滤
@@ -91,6 +94,9 @@ class ClusterFilterSerializer(ListResourceSLZ):
             filters &= Q(id__in=attrs["cluster_ids"].split(","))
         if attrs["cluster_type"]:
             filters &= Q(cluster_type__in=attrs["cluster_type"].split(","))
+        if attrs["db_type"]:
+            cluster_types = ClusterType.db_type_to_cluster_types(attrs["db_type"])
+            filters &= Q(cluster_type__in=cluster_types)
         attrs["filters"] = filters
         # 补充list resource过滤条件
         query_params = {field: attrs[field] for field in self.fields.keys() if field in attrs}
