@@ -25,18 +25,18 @@ import (
 
 // K8sClusterServiceRespVo defines the response data structure of clusterServcie meta.
 type K8sClusterServiceRespVo struct {
-	ID            uint64    `json:"id"` // 主键
-	CrdClusterID  uint64    `json:"crd_cluster_id"`
-	ComponentName string    `json:"component_name"`
-	ServiceName   string    `json:"service_name"`
-	ServiceType   string    `json:"service_type"`
+	ID            uint64    `json:"id"`
+	CrdClusterID  uint64    `json:"crdClusterId"`
+	ComponentName string    `json:"componentName"`
+	ServiceName   string    `json:"serviceName"`
+	ServiceType   string    `json:"serviceType"`
 	Annotations   string    `json:"annotations"`
-	InternalAddrs string    `json:"internal_addrs"`
-	ExternalAddrs string    `json:"external_addrs"`
+	InternalAddrs string    `json:"internalAddrs"`
+	ExternalAddrs string    `json:"externalAddrs"`
 	Domains       string    `json:"domains"`
 	Description   string    `json:"description"`
-	CreatedBy     string    `json:"created_by"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedBy     string    `json:"updated_by"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	CreatedBy     string    `json:"createdBy"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedBy     string    `json:"updatedBy"`
+	UpdatedAt     time.Time `json:"updatedAt"`
 }

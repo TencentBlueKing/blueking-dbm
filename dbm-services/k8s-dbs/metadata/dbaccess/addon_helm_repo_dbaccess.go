@@ -45,19 +45,14 @@ type AddonHelmRepoDbAccessImpl struct {
 
 // Create 创建接口实现
 func (a *AddonHelmRepoDbAccessImpl) Create(model *models.AddonHelmRepoModel) (
-	*models.AddonHelmRepoModel, error,
+	*models.AddonHelmRepoModel,
+	error,
 ) {
 	if err := a.db.Create(model).Error; err != nil {
 		slog.Error("Create model error", "error", err)
 		return nil, err
 	}
-	var addedModel models.AddonHelmRepoModel
-	if err := a.db.First(&addedModel, "chart_name = ? and chart_version = ? and repo_name = ?",
-		model.ChartName, model.ChartVersion, model.RepoName).Error; err != nil {
-		slog.Error("Find model error", "error", err)
-		return nil, err
-	}
-	return &addedModel, nil
+	return model, nil
 }
 
 // DeleteByID 删除接口实现

@@ -24,11 +24,11 @@ import "time"
 // K8sClusterAddonsEntity entity 定义
 type K8sClusterAddonsEntity struct {
 	ID             uint64                   `json:"id"`
-	AddonID        uint64                   `json:"addon_id"`
-	StorageAddon   K8sCrdStorageAddonEntity `json:"storage_addon"`
-	K8sClusterName string                   `json:"k8s_cluster_name"`
-	CreatedBy      string                   `json:"created_by"`
-	CreatedAt      time.Time                `json:"created_at"`
-	UpdatedBy      string                   `json:"updated_by"`
-	UpdatedAt      time.Time                `json:"updated_at"`
+	AddonID        uint64                   `json:"addonId"`
+	StorageAddon   K8sCrdStorageAddonEntity `json:"storageAddon"`
+	K8sClusterName string                   `json:"k8sClusterName"`
+	CreatedBy      string                   `json:"createdBy"`
+	CreatedAt      time.Time                `json:"createdAt"`
+	UpdatedBy      string                   `json:"updatedBy"`
+	UpdatedAt      time.Time                `json:"updatedAt"`
 }

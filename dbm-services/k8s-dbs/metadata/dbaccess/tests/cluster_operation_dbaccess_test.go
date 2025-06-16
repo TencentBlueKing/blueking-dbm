@@ -55,7 +55,6 @@ func TestListClusterOp(t *testing.T) {
 
 	dbAccess := dbaccess.NewClusterOperationDbAccess(db)
 
-	// 创建测试数据
 	testClusterOps := []model.ClusterOperationModel{
 		{
 			AddonType:    "SurrealDB",
@@ -85,7 +84,7 @@ func TestListClusterOp(t *testing.T) {
 	}
 
 	clusterOps, rows, err := dbAccess.ListByPage(pagination)
-	assert.NoError(t, err, "Failed to list")
+	assert.NoError(t, err)
 	assert.Equal(t, int64(2), rows)
 	assert.Equal(t, len(testClusterOps), len(clusterOps), "Expected number to match")
 }

@@ -27,15 +27,15 @@ import (
 // ClusterRequestRecordModel represents the database model of request record
 type ClusterRequestRecordModel struct {
 	ID            uint64    `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
-	RequestID     string    `gorm:"size:50;not null;column:request_id" json:"request_id"`
-	RequestType   string    `gorm:"size:50;not null;column:request_type" json:"request_type"`
-	RequestParams string    `gorm:"type:text;column:request_params" json:"request_params"`
+	RequestID     string    `gorm:"size:50;not null;column:request_id" json:"requestId"`
+	RequestType   string    `gorm:"size:50;not null;column:request_type" json:"requestType"`
+	RequestParams string    `gorm:"type:text;column:request_params" json:"requestParams"`
 	Status        string    `gorm:"size:32;column:status" json:"status"`
 	Description   string    `gorm:"size:100;column:description" json:"description"`
-	CreatedBy     string    `gorm:"size:50;not null;column:created_by" json:"created_by"`
-	CreatedAt     time.Time `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP;column:created_at" json:"created_at"` //nolint:lll
-	UpdatedBy     string    `gorm:"size:50;not null;column:updated_by" json:"updated_by"`
-	UpdatedAt     time.Time `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP;column:updated_at" json:"updated_at"` //nolint:lll
+	CreatedBy     string    `gorm:"size:50;not null;column:created_by" json:"createdBy"`
+	CreatedAt     time.Time `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP;column:created_at" json:"createdAt"` //nolint:lll
+	UpdatedBy     string    `gorm:"size:50;not null;column:updated_by" json:"updatedBy"`
+	UpdatedAt     time.Time `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP;column:updated_at" json:"updatedAt"` //nolint:lll
 }
 
 // TableName 获取 model 对应的数据库表名

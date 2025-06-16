@@ -23,13 +23,13 @@ import "time"
 
 // K8sCrdCmpvReqVo represents the request data structure of cmpv meta.
 type K8sCrdCmpvReqVo struct {
-	AddonID              uint64    `json:"addon_id" binding:"required"`
-	ComponentVersionName string    `json:"componentversion_name" binding:"required"`
-	Metadata             string    `json:"metadata"`
-	Spec                 string    `json:"spec"`
+	AddonID              uint64    `json:"addonId" binding:"required"`
+	ComponentVersionName string    `json:"cmpvName" binding:"required"`
+	Metadata             string    `json:"metadata" binding:"required"`
+	Spec                 string    `json:"spec" binding:"required"`
 	Description          string    `json:"description" binding:"required"`
-	CreatedBy            string    `json:"created_by"`
-	CreatedAt            time.Time `json:"created_at"`
-	UpdatedBy            string    `json:"updated_by"`
-	UpdatedAt            time.Time `json:"updated_at"`
+	CreatedBy            string    `json:"createdBy" binding:"required"`
+	CreatedAt            time.Time `json:"createdAt"`
+	UpdatedBy            string    `json:"updatedBy"`
+	UpdatedAt            time.Time `json:"updatedAt"`
 }

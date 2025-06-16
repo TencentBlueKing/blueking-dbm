@@ -17,24 +17,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package resp
+package entity
 
 import "time"
 
-// K8sCrdOpsRequestRespVo defines the response data structure of opsRequest meta.
-type K8sCrdOpsRequestRespVo struct {
+// K8sCrdOpsRequestEntity opsRequest entity 定义
+type K8sCrdOpsRequestEntity struct {
 	ID                 uint64    `json:"id"`
-	CrdClusterID       uint64    `json:"crd_cluster_id"`
-	K8sClusterConfigID uint64    `json:"k8s_cluster_config_id"`
-	RequestID          uint64    `json:"request_id"`
-	OpsRequestName     string    `json:"opsrequest_name"`
-	OpsRequestType     string    `json:"opsrequest_type"`
+	CrdClusterID       uint64    `json:"crdClusterId"`
+	K8sClusterConfigID uint64    `json:"k8sClusterConfigId"`
+	RequestID          string    `json:"requestId"`
+	OpsRequestName     string    `json:"opsrequestName"`
+	OpsRequestType     string    `json:"opsrequestType"`
 	Metadata           string    `json:"metadata"`
 	Spec               string    `json:"spec"`
 	Status             string    `json:"status"`
 	Description        string    `json:"description"`
-	CreatedBy          string    `json:"created_by"`
-	CreatedAt          time.Time `json:"created_at"`
-	UpdatedBy          string    `json:"updated_by"`
-	UpdatedAt          time.Time `json:"updated_at"`
+	CreatedBy          string    `json:"createdBy"`
+	CreatedAt          time.Time `json:"createdAt"`
+	UpdatedBy          string    `json:"updatedBy"`
+	UpdatedAt          time.Time `json:"updatedAt"`
 }

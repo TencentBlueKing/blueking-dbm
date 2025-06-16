@@ -60,7 +60,7 @@ func TestCreatClusterAddons(t *testing.T) {
 	}
 
 	addedStorageAddon, err := dbAccess.Create(addon)
-	assert.NoError(t, err, "Failed to create")
+	assert.NoError(t, err)
 	assert.Equal(t, uint64(0x1), addedStorageAddon.ID)
 	assert.Equal(t, uint64(0x1), addedStorageAddon.AddonID)
 	assert.Equal(t, "bcs-k8s-xxx", addedStorageAddon.K8sClusterName)
@@ -78,7 +78,7 @@ func TestFindClusterAddonsByParams(t *testing.T) {
 	}
 
 	_, err = dbAccess.Create(addon)
-	assert.NoError(t, err, "Failed to create")
+	assert.NoError(t, err)
 
 	params := make(map[string]interface{})
 	params["k8s_cluster_name"] = "bcs-k8s-xxx"
@@ -103,9 +103,9 @@ func TestDeleteClusterAddons(t *testing.T) {
 	}
 
 	_, err = dbAccess.Create(addon)
-	assert.NoError(t, err, "Failed to create")
+	assert.NoError(t, err)
 
 	rows, err := dbAccess.DeleteByID(1)
-	assert.NoError(t, err, "Failed to delete")
+	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), rows)
 }

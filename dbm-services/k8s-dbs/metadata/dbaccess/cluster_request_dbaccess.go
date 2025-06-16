@@ -50,12 +50,7 @@ func (k *ClusterRequestRecordDbAccessImpl) Create(model *models.ClusterRequestRe
 		slog.Error("Create request error", "error", err)
 		return nil, err
 	}
-	var addedRequest models.ClusterRequestRecordModel
-	if err := k.db.First(&addedRequest, "id=?", model.ID).Error; err != nil {
-		slog.Error("Find request error", "error", err)
-		return nil, err
-	}
-	return &addedRequest, nil
+	return model, nil
 }
 
 // DeleteByID 删除元数据接口实现

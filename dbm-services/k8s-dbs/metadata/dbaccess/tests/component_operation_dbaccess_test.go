@@ -55,7 +55,6 @@ func TestListComponentOp(t *testing.T) {
 
 	dbAccess := dbaccess.NewComponentOperationDbAccess(db)
 
-	// 创建测试数据
 	testComponentOps := []model.ComponentOperationModel{
 		{
 			AddonType:        "surrealdb",
@@ -90,7 +89,7 @@ func TestListComponentOp(t *testing.T) {
 	}
 
 	ComponentOps, rows, err := dbAccess.ListByPage(pagination)
-	assert.NoError(t, err, "Failed to list")
+	assert.NoError(t, err)
 	assert.Equal(t, int64(2), rows)
-	assert.Equal(t, len(testComponentOps), len(ComponentOps), "Expected number to match")
+	assert.Equal(t, len(testComponentOps), len(ComponentOps))
 }

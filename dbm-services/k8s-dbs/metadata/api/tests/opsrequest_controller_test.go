@@ -37,41 +37,44 @@ import (
 	"gorm.io/gorm"
 )
 
-func initClusterTable() (*gorm.DB, error) {
+func initOpsTable() (*gorm.DB, error) {
 	db, err := gorm.Open(mysql.Open(constant.MySQLTestURL), &gorm.Config{})
 	if err != nil {
 		fmt.Println("Failed to connect to database")
 		return nil, err
 	}
-	if err := db.Exec("DROP TABLE IF EXISTS tb_k8s_crd_cluster;").Error; err != nil {
-		fmt.Println("Failed to drop k8s_crd_clusters table")
+	if err := db.Exec("DROP TABLE IF EXISTS tb_k8s_crd_opsrequest;").Error; err != nil {
+		fmt.Println("Failed to drop tb_k8s_crd_opsrequest table")
 		return nil, err
 	}
-	if err := db.AutoMigrate(&model.K8sCrdClusterModel{}); err != nil {
-		fmt.Println("Failed to migrate k8s_crd_clusters table")
+	if err := db.AutoMigrate(&model.K8sCrdOpsRequestModel{}); err != nil {
+		fmt.Println("Failed to migrate tb_k8s_crd_opsrequest table")
 		return nil, err
 	}
 	return db, nil
 }
 
-func AddSampleCluster() error {
+func AddSampleOps() error {
 	db, err := gorm.Open(mysql.Open(constant.MySQLTestURL), &gorm.Config{})
 	if err != nil {
 		fmt.Println("Failed to connect to database")
 		return err
 	}
-	dbAccess := dbaccess.NewCrdClusterDbAccess(db)
+	dbAccess := dbaccess.NewK8sCrdOpsRequestDbAccess(db)
 
 	// 解析时间字符串为 time.Time 对象
 	addDateTime := "2025-01-01 12:00:00"
 	layout := "2006-01-02 15:04:05"
 	parsedTime, _ := time.Parse(layout, addDateTime)
 
-	cluster := &model.K8sCrdClusterModel{
-		ClusterName:        "test1",
-		AddonID:            1,
+	ops := &model.K8sCrdOpsRequestModel{
 		RequestID:          "1",
+		OpsRequestName:     "ops_request_1",
+		OpsRequestType:     "Start",
+		CrdClusterID:       1,
 		K8sClusterConfigID: 1,
+		Metadata:           "{\"namespace\":\"default\"}",
+		Spec:               "{\"replicas\":1}",
 		Status:             "CREATED",
 		Description:        "just for test",
 		CreatedBy:          "admin",
@@ -79,30 +82,30 @@ func AddSampleCluster() error {
 		UpdatedAt:          parsedTime,
 		UpdatedBy:          "admin",
 	}
-	addedCluster, err := dbAccess.Create(cluster)
-	fmt.Printf("Created cluster %+v\n", addedCluster)
+	addedOps, err := dbAccess.Create(ops)
+	fmt.Printf("Created ops %+v\n", addedOps)
 	return nil
 }
 
-func SetupClusterRouter() *gin.Engine {
+func SetupOpsRouter() *gin.Engine {
 	r := gin.Default()
 	routerGroup := r.Group("/metadata")
-	db, _ := initClusterTable()
-	clusterDbaccess := dbaccess.NewCrdClusterDbAccess(db)
-	clusterProvider := provider.NewK8sCrdClusterProvider(clusterDbaccess)
-	clusterController := controller.NewClusterController(clusterProvider)
+	db, _ := initOpsTable()
+	opsDbaccess := dbaccess.NewK8sCrdOpsRequestDbAccess(db)
+	opsProvider := provider.NewK8sCrdOpsRequestProvider(opsDbaccess)
+	opsController := controller.NewOpsController(opsProvider)
 	{
-		routerGroup.GET("/cluster/:id", clusterController.GetCluster)
+		routerGroup.GET("/opsrequest/:id", opsController.GetOps)
 	}
 	return r
 }
 
-func TestGetCluster(t *testing.T) {
+func TestGetOps(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	router := SetupClusterRouter()
-	err := AddSampleCluster()
+	router := SetupOpsRouter()
+	err := AddSampleOps()
 	assert.NoError(t, err)
-	request, _ := http.NewRequest("GET", "/metadata/cluster/1", nil)
+	request, _ := http.NewRequest("GET", "/metadata/opsrequest/1", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, request)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -112,10 +115,13 @@ func TestGetCluster(t *testing.T) {
 		"code": 200,
 		"data": {
 			"id": 1,
-			"addonId": 1,
-			"k8sClusterConfigId": 1,
-			"clusterName": "test1",
 			"requestId": "1",
+			"crdClusterId": 1,
+			"k8sClusterConfigId": 1,
+            "opsrequestName": "ops_request_1",
+			"opsrequestType": "Start",
+			"metadata": "{\"namespace\":\"default\"}",
+			"spec": "{\"replicas\":1}",
 			"status": "CREATED",
 			"description": "just for test",
 			"createdBy": "admin",

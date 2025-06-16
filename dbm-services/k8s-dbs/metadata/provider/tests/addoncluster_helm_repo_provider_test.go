@@ -66,7 +66,7 @@ func TestCreateClusterHelmRepo(t *testing.T) {
 	}
 
 	added, err := repoProvider.CreateHelmRepo(repo)
-	assert.NoError(t, err, "Failed to create")
+	assert.NoError(t, err)
 	assert.Equal(t, added.RepoName, repo.RepoName)
 	assert.Equal(t, added.RepoRepository, repo.RepoRepository)
 	assert.Equal(t, added.RepoUsername, repo.RepoUsername)
@@ -90,10 +90,10 @@ func TestDeleteClusterHelmRepo(t *testing.T) {
 	}
 
 	_, err = repoProvider.CreateHelmRepo(repo)
-	assert.NoError(t, err, "Failed to create")
+	assert.NoError(t, err)
 
 	rows, err := repoProvider.DeleteHelmRepoByID(1)
-	assert.NoError(t, err, "Failed to delete")
+	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), rows)
 }
 
@@ -112,7 +112,7 @@ func TestUpdateClusterHelmRepo(t *testing.T) {
 	}
 
 	_, err = repoProvider.CreateHelmRepo(repo)
-	assert.NoError(t, err, "Failed to create")
+	assert.NoError(t, err)
 
 	updateRepo := &entitys.AddonClusterHelmRepoEntity{
 		ID:             1,
@@ -124,7 +124,7 @@ func TestUpdateClusterHelmRepo(t *testing.T) {
 		ChartName:      "test-chartname",
 	}
 	rows, err := repoProvider.UpdateHelmRepo(updateRepo)
-	assert.NoError(t, err, "Failed to update")
+	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), rows)
 }
 
@@ -161,10 +161,11 @@ func TestListClusterHelmRepo(t *testing.T) {
 	}
 
 	foundRepos, err := repoProvider.ListHelmRepos(pagination)
-	assert.NoError(t, err, "Failed to list storage addons")
+	assert.NoError(t, err)
 	assert.Equal(t, len(repos), len(foundRepos))
 
 	repoNames := make(map[string]bool)
+
 	for _, r := range foundRepos {
 		repoNames[r.RepoName] = true
 	}
@@ -189,7 +190,7 @@ func TestGetClusterHelmRepo(t *testing.T) {
 	}
 
 	_, err = repoProvider.CreateHelmRepo(repo)
-	assert.NoError(t, err, "Failed to create")
+	assert.NoError(t, err)
 
 	params := map[string]interface{}{
 		"chart_name":    "test-chartname",
@@ -197,7 +198,7 @@ func TestGetClusterHelmRepo(t *testing.T) {
 		"repo_name":     "test-reponame",
 	}
 	foundRepo, err := repoProvider.FindByParams(params)
-	assert.NoError(t, err, "Failed to find addon cluster release")
+	assert.NoError(t, err)
 	assert.Equal(t, repo.RepoName, foundRepo.RepoName)
 	assert.Equal(t, repo.RepoRepository, foundRepo.RepoRepository)
 	assert.Equal(t, repo.RepoUsername, foundRepo.RepoUsername)

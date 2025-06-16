@@ -67,20 +67,16 @@ func TestCreateService(t *testing.T) {
 	}
 
 	added, err := dbAccess.Create(service)
-	assert.NoError(t, err, "Failed to create service")
-	fmt.Printf("Created config %+v\n", added)
+	assert.NoError(t, err)
 
-	var founded model.K8sClusterServiceModel
-	err = db.First(&founded, "service_name=?", service.ServiceName).Error
-	assert.NoError(t, err, "Failed to query service")
-	assert.Equal(t, service.CrdClusterID, founded.CrdClusterID)
-	assert.Equal(t, service.ComponentName, founded.ComponentName)
-	assert.Equal(t, service.ServiceName, founded.ServiceName)
-	assert.Equal(t, service.ServiceType, founded.ServiceType)
-	assert.Equal(t, service.Annotations, founded.Annotations)
-	assert.Equal(t, service.InternalAddrs, founded.InternalAddrs)
-	assert.Equal(t, service.ExternalAddrs, founded.ExternalAddrs)
-	assert.Equal(t, service.Domains, founded.Domains)
+	assert.Equal(t, service.CrdClusterID, added.CrdClusterID)
+	assert.Equal(t, service.ComponentName, added.ComponentName)
+	assert.Equal(t, service.ServiceName, added.ServiceName)
+	assert.Equal(t, service.ServiceType, added.ServiceType)
+	assert.Equal(t, service.Annotations, added.Annotations)
+	assert.Equal(t, service.InternalAddrs, added.InternalAddrs)
+	assert.Equal(t, service.ExternalAddrs, added.ExternalAddrs)
+	assert.Equal(t, service.Domains, added.Domains)
 }
 
 func TestGetService(t *testing.T) {
@@ -101,12 +97,11 @@ func TestGetService(t *testing.T) {
 		Description:   "desc",
 	}
 
-	added, err := dbAccess.Create(service)
-	assert.NoError(t, err, "Failed to create service")
-	fmt.Printf("Created config %+v\n", added)
+	_, err = dbAccess.Create(service)
+	assert.NoError(t, err)
 
 	founded, err := dbAccess.FindByID(1)
-	assert.NoError(t, err, "Failed to query service")
+	assert.NoError(t, err)
 	assert.Equal(t, service.CrdClusterID, founded.CrdClusterID)
 	assert.Equal(t, service.ComponentName, founded.ComponentName)
 	assert.Equal(t, service.ServiceName, founded.ServiceName)

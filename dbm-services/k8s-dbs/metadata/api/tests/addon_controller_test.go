@@ -151,22 +151,28 @@ func SetupAddonRouter() *gin.Engine {
 func TestCreateAddon(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := SetupAddonRouter()
-	// 解析时间字符串为 time.Time 对象
+
 	addDateTime := "2025-01-01 12:00:00"
 	layout := "2006-01-02 15:04:05"
 	parsedTime, err := time.Parse(layout, addDateTime)
 	assert.NoError(t, err)
 
 	addonRequest := req.K8sCrdAddonReqVo{
-		AddonName:     "surrealdb-2.2.0",
-		AddonCategory: "Graph",
-		AddonType:     "SurrealDB",
-		AddonVersion:  "2.2.0",
-		Description:   "just for test",
-		CreatedBy:     "admin",
-		CreatedAt:     parsedTime,
-		UpdatedAt:     parsedTime,
-		UpdatedBy:     "admin",
+		AddonName:            "surrealdb-2.2.0",
+		AddonCategory:        "Graph",
+		AddonType:            "SurrealDB",
+		AddonVersion:         "2.2.0",
+		RecommendedVersion:   "1.0.0",
+		SupportedVersions:    "[\"1.0.0\"]",
+		RecommendedAcVersion: "1.0.0",
+		SupportedAcVersions:  "[\"1.0.0\"]",
+		Topologies:           "{}",
+		Releases:             "{}",
+		Description:          "just for test",
+		CreatedBy:            "admin",
+		CreatedAt:            parsedTime,
+		UpdatedAt:            parsedTime,
+		UpdatedBy:            "admin",
 	}
 
 	requestBody, err := json.Marshal(&addonRequest)
@@ -185,16 +191,22 @@ func TestCreateAddon(t *testing.T) {
 		"code": 200,
 		"data": {
 			"id": 1,
-			"addon_name": "surrealdb-2.2.0",
-            "addon_type": "SurrealDB",
-			"addon_category": "Graph",
-			"addon_version": "2.2.0",
+			"addonName": "surrealdb-2.2.0",
+            "addonType": "SurrealDB",
+			"addonCategory": "Graph",
+			"addonVersion": "2.2.0",
+			"recommendedVersion":   "1.0.0",
+			"supportedVersions":    "[\"1.0.0\"]",
+			"recommendedAcVersion": "1.0.0",
+			"supportedAcVersions":  "[\"1.0.0\"]",
+			"topologies":           "{}",
+			"releases":             "{}",
 			"active": true,
 			"description": "just for test",
-			"created_by": "admin",
-			"created_at": "2025-01-01T20:00:00+08:00",
-			"updated_by": "admin",
-			"updated_at": "2025-01-01T20:00:00+08:00"
+			"createdBy": "admin",
+			"createdAt": "2025-01-01T12:00:00Z",
+			"updatedBy": "admin",
+			"updatedAt": "2025-01-01T12:00:00Z"
 		},
 		"message": "OK",
 		"error": null
@@ -218,16 +230,22 @@ func TestGetAddon(t *testing.T) {
 		"code": 200,
 		"data": {
 			"id": 1,
-			"addon_name": "surrealdb-2.2.0",
-            "addon_type": "SurrealDB",
-			"addon_category": "Graph",
-			"addon_version": "2.2.0",
+			"addonName": "surrealdb-2.2.0",
+            "addonType": "SurrealDB",
+			"addonCategory": "Graph",
+			"addonVersion": "2.2.0",
+			"recommendedVersion":   "",
+			"supportedVersions":    "",
+			"recommendedAcVersion": "",
+			"supportedAcVersions":  "",
+			"topologies":           "",
+			"releases":             "",
 			"active": true,
 			"description": "just for test",
-			"created_by": "admin",
-			"created_at": "2025-01-01T20:00:00+08:00",
-			"updated_by": "admin",
-			"updated_at": "2025-01-01T20:00:00+08:00"
+			"createdBy": "admin",
+			"createdAt": "2025-01-01T20:00:00+08:00",
+			"updatedBy": "admin",
+			"updatedAt": "2025-01-01T20:00:00+08:00"
 		},
 		"message": "OK",
 		"error": null
@@ -272,15 +290,21 @@ func TestUpdateAddon(t *testing.T) {
 	assert.NoError(t, err)
 
 	addonRequest := req.K8sCrdAddonReqVo{
-		AddonName:     "surrealdb-2.2.2",
-		AddonType:     "SurrealDB-2",
-		AddonCategory: "Graph-2",
-		AddonVersion:  "2.2.0",
-		Description:   "just for test2",
-		CreatedBy:     "admin2",
-		CreatedAt:     parsedTime,
-		UpdatedAt:     parsedTime,
-		UpdatedBy:     "admin2",
+		AddonName:            "surrealdb-2.2.2",
+		AddonType:            "SurrealDB-2",
+		AddonCategory:        "Graph-2",
+		AddonVersion:         "2.2.0",
+		RecommendedVersion:   "1.0.0",
+		SupportedVersions:    "[\"1.0.0\"]",
+		RecommendedAcVersion: "1.0.0",
+		SupportedAcVersions:  "[\"1.0.0\"]",
+		Topologies:           "{}",
+		Releases:             "{}",
+		Description:          "just for test2",
+		CreatedBy:            "admin2",
+		CreatedAt:            parsedTime,
+		UpdatedAt:            parsedTime,
+		UpdatedBy:            "admin2",
 	}
 
 	requestBody, err := json.Marshal(&addonRequest)
@@ -323,29 +347,41 @@ func TestListAddons(t *testing.T) {
 		"data": [
 			{
 				"id": 1,
-				"addon_name": "surreal",
-				"addon_type": "SurrealDB",
-				"addon_category": "Graph",
-				"addon_version": "2.2.0",
+				"addonName": "surreal",
+				"addonType": "SurrealDB",
+				"addonCategory": "Graph",
+				"addonVersion": "2.2.0",
+				"recommendedVersion":   "",
+				"supportedVersions":    "",
+				"recommendedAcVersion": "",
+				"supportedAcVersions":  "",
+				"topologies":           "",
+				"releases":             "",
 				"active": true,
 				"description": "just for test",
-				"created_by": "admin",
-				"created_at": "2025-01-01T20:00:00+08:00",
-				"updated_by": "admin",
-				"updated_at": "2025-01-01T20:00:00+08:00"
+				"createdBy": "admin",
+				"createdAt": "2025-01-01T20:00:00+08:00",
+				"updatedBy": "admin",
+				"updatedAt": "2025-01-01T20:00:00+08:00"
 			},
 			{
 				"id": 2,
-				"addon_name": "vm",
-				"addon_type": "VictoriaMetric",
-				"addon_category": "Time-Series",
-				"addon_version": "2.2.0",
+				"addonName": "vm",
+				"addonType": "VictoriaMetric",
+				"addonCategory": "Time-Series",
+				"addonVersion": "2.2.0",
+				"recommendedVersion":   "",
+				"supportedVersions":    "",
+				"recommendedAcVersion": "",
+				"supportedAcVersions":  "",
+				"topologies":           "",
+				"releases":             "",
 				"active": true,
 				"description": "just for test",
-				"created_by": "admin",
-				"created_at": "2025-01-01T20:00:00+08:00",
-				"updated_by": "admin",
-				"updated_at": "2025-01-01T20:00:00+08:00"
+				"createdBy": "admin",
+				"createdAt": "2025-01-01T20:00:00+08:00",
+				"updatedBy": "admin",
+				"updatedAt": "2025-01-01T20:00:00+08:00"
 			}
 		],
 		"message": "OK",

@@ -55,7 +55,6 @@ func TestListOpDef(t *testing.T) {
 
 	dbAccess := dbaccess.NewOperationDefinitionDbAccess(db)
 
-	// 创建测试数据
 	testOpDefs := []model.OperationDefinitionModel{
 		{
 			OperationName:   "CreateCluster",
@@ -86,7 +85,7 @@ func TestListOpDef(t *testing.T) {
 	for _, opDef := range testOpDefs {
 		createdDef, err := dbAccess.Create(&opDef)
 		assert.NoError(t, err, "Failed to create operation definition: %v", createdDef.OperationName)
-		assert.Equal(t, opDef.OperationName, createdDef.OperationName, "operation name mismatch")
+		assert.Equal(t, opDef.OperationName, createdDef.OperationName)
 	}
 
 	pagination := utils.Pagination{
@@ -95,9 +94,9 @@ func TestListOpDef(t *testing.T) {
 	}
 
 	opDefs, rows, err := dbAccess.ListByPage(pagination)
-	assert.NoError(t, err, "Failed to list")
-	assert.Equal(t, int64(4), rows, "Expected total rows to be 4")
-	assert.Equal(t, len(testOpDefs), len(opDefs), "Expected number to match")
+	assert.NoError(t, err)
+	assert.Equal(t, int64(4), rows)
+	assert.Equal(t, len(testOpDefs), len(opDefs))
 
 	opDefNames := make(map[string]bool)
 	for _, opDef := range opDefs {

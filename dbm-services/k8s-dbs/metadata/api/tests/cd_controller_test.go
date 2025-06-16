@@ -142,17 +142,17 @@ func TestCreateCd(t *testing.T) {
 		"code": 200,
 		"data": {
 			"id": 1,
-			"addon_id": 1,
-			"cd_name": "surrealdb",
-			"recommended_version": "1.0.0",
+			"addonId": 1,
+			"cdName": "surrealdb",
+			"recommendedVersion": "1.0.0",
 			"topologies": "{}",
 			"releases": "{}",
 			"active": true,
 			"description": "just for test",
-			"created_by": "admin",
-			"created_at": "2025-01-01T20:00:00+08:00",
-			"updated_by": "admin",
-			"updated_at": "2025-01-01T20:00:00+08:00"
+			"createdBy": "admin",
+			"createdAt": "2025-01-01T12:00:00Z",
+			"updatedBy": "admin",
+			"updatedAt": "2025-01-01T12:00:00Z"
 		},
 		"message": "OK",
 		"error": null
@@ -176,17 +176,17 @@ func TestGetCd(t *testing.T) {
 		"code": 200,
 		"data": {
 			"id": 1,
-			"addon_id": 1,
-			"cd_name": "surrealdb",
-			"recommended_version": "1.0.0",
+			"addonId": 1,
+			"cdName": "surrealdb",
+			"recommendedVersion": "1.0.0",
 			"topologies": "{}",
 			"releases": "{}",
 			"active": true,
 			"description": "just for test",
-			"created_by": "admin",
-			"created_at": "2025-01-01T20:00:00+08:00",
-			"updated_by": "admin",
-			"updated_at": "2025-01-01T20:00:00+08:00"
+			"createdBy": "admin",
+			"createdAt": "2025-01-01T20:00:00+08:00",
+			"updatedBy": "admin",
+			"updatedAt": "2025-01-01T20:00:00+08:00"
 		},
 		"message": "OK",
 		"error": null

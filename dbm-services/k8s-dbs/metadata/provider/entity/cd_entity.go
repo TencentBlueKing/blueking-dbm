@@ -24,15 +24,15 @@ import "time"
 // K8sCrdClusterDefinitionEntity cd entity 定义
 type K8sCrdClusterDefinitionEntity struct {
 	ID                 uint64    `json:"id"`
-	AddonID            uint64    `json:"addon_id"`
-	CdName             string    `json:"cd_name"`
+	AddonID            uint64    `json:"addonId"`
+	CdName             string    `json:"cdName"`
 	Topologies         string    `json:"topologies"`
-	RecommendedVersion string    `json:"recommended_version"`
+	RecommendedVersion string    `json:"recommendedVersion"`
 	Releases           string    `json:"releases"`
 	Active             bool      `json:"active"`
 	Description        string    `json:"description"`
-	CreatedBy          string    `json:"created_by"`
-	CreatedAt          time.Time `json:"created_at"`
-	UpdatedBy          string    `json:"updated_by"`
-	UpdatedAt          time.Time `json:"updated_at"`
+	CreatedBy          string    `json:"createdBy"`
+	CreatedAt          time.Time `json:"createdAt"`
+	UpdatedBy          string    `json:"updatedBy"`
+	UpdatedAt          time.Time `json:"updatedAt"`
 }

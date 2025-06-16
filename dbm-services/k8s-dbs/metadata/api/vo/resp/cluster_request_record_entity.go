@@ -26,13 +26,13 @@ import (
 // ClusterRequestRecordRespVo defines the response data structure of request record.
 type ClusterRequestRecordRespVo struct {
 	ID            uint64    `json:"id"`
-	RequestID     string    `json:"request_id"`
-	RequestType   string    `json:"request_type"`
-	RequestParams string    `json:"request_params"`
+	RequestID     string    `json:"requestId"`
+	RequestType   string    `json:"requestType"`
+	RequestParams string    `json:"requestParams"`
 	Status        string    `json:"status"`
 	Description   string    `json:"description"`
-	CreatedBy     string    `json:"created_by"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedBy     string    `json:"updated_by"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	CreatedBy     string    `json:"createdBy"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedBy     string    `json:"updatedBy"`
+	UpdatedAt     time.Time `json:"updatedAt"`
 }

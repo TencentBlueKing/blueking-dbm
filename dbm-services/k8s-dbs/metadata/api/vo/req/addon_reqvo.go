@@ -23,19 +23,19 @@ import "time"
 
 // K8sCrdAddonReqVo represents the request data structure of addon meta.
 type K8sCrdAddonReqVo struct {
-	AddonName            string    `json:"addon_name" binding:"required"`
-	AddonCategory        string    `json:"addon_category" binding:"required"`
-	AddonType            string    `json:"addon_type" binding:"required"`
-	AddonVersion         string    `json:"addon_version" binding:"required"`
-	RecommendedVersion   string    `json:"recommended_version"`
-	SupportedVersions    string    `json:"supported_versions"`
-	RecommendedAcVersion string    `json:"recommended_addoncluster_version"`
-	SupportedAcVersions  string    `json:"supported_addoncluster_versions"`
-	Topologies           string    `json:"topologies"`
-	Releases             string    `json:"releases"`
+	AddonName            string    `json:"addonName" binding:"required"`
+	AddonCategory        string    `json:"addonCategory" binding:"required"`
+	AddonType            string    `json:"addonType" binding:"required"`
+	AddonVersion         string    `json:"addonVersion" binding:"required"`
+	RecommendedVersion   string    `json:"recommendedVersion" binding:"required"`
+	SupportedVersions    string    `json:"supportedVersions" binding:"required"`
+	RecommendedAcVersion string    `json:"recommendedAcVersion" binding:"required"`
+	SupportedAcVersions  string    `json:"supportedAcVersions" binding:"required"`
+	Topologies           string    `json:"topologies" binding:"required"`
+	Releases             string    `json:"releases" binding:"required"`
 	Description          string    `json:"description" binding:"required"`
-	CreatedBy            string    `json:"created_by"`
-	CreatedAt            time.Time `json:"created_at"`
-	UpdatedBy            string    `json:"updated_by"`
-	UpdatedAt            time.Time `json:"updated_at"`
+	CreatedBy            string    `json:"createdBy"`
+	CreatedAt            time.Time `json:"createdAt" binding:"required"`
+	UpdatedBy            string    `json:"updatedBy"`
+	UpdatedAt            time.Time `json:"updatedAt"`
 }

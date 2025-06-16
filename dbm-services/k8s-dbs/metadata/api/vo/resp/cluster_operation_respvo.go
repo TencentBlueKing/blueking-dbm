@@ -26,14 +26,14 @@ import (
 // ClusterOperationRespVo represents the RespVo of cluster operation
 type ClusterOperationRespVo struct {
 	ID           uint64                    `json:"id"`
-	AddonType    string                    `json:"addon_type"`
-	AddonVersion string                    `json:"addon_version"`
-	OperationID  uint64                    `json:"operation_id"`
+	AddonType    string                    `json:"addonType"`
+	AddonVersion string                    `json:"addonVersion"`
+	OperationID  uint64                    `json:"operationId"`
 	Operation    OperationDefinitionRespVo `json:"operation"`
 	Active       bool                      `json:"active"`
 	Description  string                    `json:"description"`
-	CreatedBy    string                    `json:"created_by"`
-	CreatedAt    time.Time                 `json:"created_at"` //nolint:lll
-	UpdatedBy    string                    `json:"updated_by"`
-	UpdatedAt    time.Time                 `json:"updated_at"` //nolint:lll
+	CreatedBy    string                    `json:"createdBy"`
+	CreatedAt    time.Time                 `json:"createdAt"`
+	UpdatedBy    string                    `json:"updatedBy"`
+	UpdatedAt    time.Time                 `json:"updatedAt"`
 }

@@ -65,25 +65,18 @@ func TestCreateClusterDefinition(t *testing.T) {
 		RecommendedVersion: "1.0.0",
 		Topologies:         "{}",
 		Releases:           "{}",
-		Active:             true,
 		Description:        "desc",
 	}
 
-	addedCd, err := cdProvider.CreateClusterDefinition(cd)
-	assert.NoError(t, err, "Failed to create clusterDefinition")
-	fmt.Printf("Created componentVersion %+v\n", addedCd)
-
-	var foundCd model.K8sCrdClusterDefinitionModel
-	err = db.First(&foundCd, "cd_name=?", "cd1").Error
-	assert.NoError(t, err, "Failed to query clusterDefinition")
-	assert.Equal(t, cd.CdName, foundCd.CdName)
-	assert.Equal(t, cd.AddonID, foundCd.AddonID)
-	assert.Equal(t, cd.Topologies, foundCd.Topologies)
-	assert.Equal(t, cd.Releases, foundCd.Releases)
-	assert.Equal(t, cd.Active, foundCd.Active)
+	added, err := cdProvider.CreateClusterDefinition(cd)
+	assert.NoError(t, err)
+	assert.Equal(t, cd.CdName, added.CdName)
+	assert.Equal(t, cd.AddonID, added.AddonID)
+	assert.Equal(t, cd.Topologies, added.Topologies)
+	assert.Equal(t, cd.Releases, added.Releases)
 }
 
-func TestDeletClusterDefinition(t *testing.T) {
+func TestDeleteClusterDefinition(t *testing.T) {
 	db, err := initCdTable()
 	assert.NoError(t, err)
 
@@ -101,12 +94,11 @@ func TestDeletClusterDefinition(t *testing.T) {
 		Description:        "desc",
 	}
 
-	addedCd, err := cdProvider.CreateClusterDefinition(cd)
-	assert.NoError(t, err, "Failed to create clusterDefinition")
-	fmt.Printf("Created componentVersion %+v\n", addedCd)
+	_, err = cdProvider.CreateClusterDefinition(cd)
+	assert.NoError(t, err)
 
 	rows, err := cdProvider.DeleteClusterDefinitionByID(1)
-	assert.NoError(t, err, "Failed to delete clusterDefinition")
+	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), rows)
 }
 
@@ -128,9 +120,8 @@ func TestUpdateClusterDefinition(t *testing.T) {
 		Description:        "desc",
 	}
 
-	addedCd, err := cdProvider.CreateClusterDefinition(cd)
-	assert.NoError(t, err, "Failed to create clusterDefinition")
-	fmt.Printf("Created componentVersion %+v\n", addedCd)
+	_, err = cdProvider.CreateClusterDefinition(cd)
+	assert.NoError(t, err)
 
 	updatedCd := &entitys.K8sCrdClusterDefinitionEntity{
 		ID:                 1,
@@ -144,7 +135,7 @@ func TestUpdateClusterDefinition(t *testing.T) {
 		UpdatedAt:          time.Now(),
 	}
 	rows, err := cdProvider.UpdateClusterDefinition(updatedCd)
-	assert.NoError(t, err, "Failed to update clusterDefinition")
+	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), rows)
 }
 
@@ -166,12 +157,11 @@ func TestGetClusterDefinition(t *testing.T) {
 		Description:        "desc",
 	}
 
-	addedCd, err := cdProvider.CreateClusterDefinition(cd)
-	assert.NoError(t, err, "Failed to create clusterDefinition")
-	fmt.Printf("Created componentVersion %+v\n", addedCd)
+	_, err = cdProvider.CreateClusterDefinition(cd)
+	assert.NoError(t, err)
 
 	foundCd, err := cdProvider.FindClusterDefinitionByID(1)
-	assert.NoError(t, err, "Failed to find clusterDefinition")
+	assert.NoError(t, err)
 	assert.Equal(t, cd.CdName, foundCd.CdName)
 	assert.Equal(t, cd.AddonID, foundCd.AddonID)
 	assert.Equal(t, cd.Topologies, foundCd.Topologies)

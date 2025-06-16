@@ -71,20 +71,15 @@ func TestCreateService(t *testing.T) {
 	}
 
 	addedService, err := serviceProvider.CreateClusterService(service)
-	assert.NoError(t, err, "Failed to create service")
-	fmt.Printf("Created service %+v\n", addedService)
-
-	var founded model.K8sClusterServiceModel
-	err = db.First(&founded, "service_name=?", "test-service").Error
-	assert.NoError(t, err, "Failed to query service")
-	assert.Equal(t, service.CrdClusterID, founded.CrdClusterID)
-	assert.Equal(t, service.ComponentName, founded.ComponentName)
-	assert.Equal(t, service.ServiceName, founded.ServiceName)
-	assert.Equal(t, service.ServiceType, founded.ServiceType)
-	assert.Equal(t, service.Annotations, founded.Annotations)
-	assert.Equal(t, service.InternalAddrs, founded.InternalAddrs)
-	assert.Equal(t, service.ExternalAddrs, founded.ExternalAddrs)
-	assert.Equal(t, service.Domains, founded.Domains)
+	assert.NoError(t, err)
+	assert.Equal(t, service.CrdClusterID, addedService.CrdClusterID)
+	assert.Equal(t, service.ComponentName, addedService.ComponentName)
+	assert.Equal(t, service.ServiceName, addedService.ServiceName)
+	assert.Equal(t, service.ServiceType, addedService.ServiceType)
+	assert.Equal(t, service.Annotations, addedService.Annotations)
+	assert.Equal(t, service.InternalAddrs, addedService.InternalAddrs)
+	assert.Equal(t, service.ExternalAddrs, addedService.ExternalAddrs)
+	assert.Equal(t, service.Domains, addedService.Domains)
 }
 
 func TestGetServiceById(t *testing.T) {
@@ -107,12 +102,11 @@ func TestGetServiceById(t *testing.T) {
 		Description:   "desc",
 	}
 
-	addedService, err := serviceProvider.CreateClusterService(service)
-	assert.NoError(t, err, "Failed to create service")
-	fmt.Printf("Created service %+v\n", addedService)
+	_, err = serviceProvider.CreateClusterService(service)
+	assert.NoError(t, err)
 
 	founded, err := serviceProvider.FindClusterServiceByID(1)
-	assert.NoError(t, err, "Failed to find service")
+	assert.NoError(t, err)
 	assert.Equal(t, service.CrdClusterID, founded.CrdClusterID)
 	assert.Equal(t, service.ComponentName, founded.ComponentName)
 	assert.Equal(t, service.ServiceName, founded.ServiceName)

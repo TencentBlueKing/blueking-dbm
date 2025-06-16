@@ -25,15 +25,14 @@ import (
 
 // AddonHelmRepoRespVo addon helm repo req vo 定义
 type AddonHelmRepoRespVo struct {
-	ID             int64     `json:"id"`
-	RepoName       string    `json:"repo_name"`
-	RepoRepository string    `json:"repo_repository"`
-	RepoUsername   string    `json:"repo_username"`
-	RepoPassword   string    `json:"repo_password"`
-	ChartName      string    `json:"chart_name"`
-	ChartVersion   string    `json:"chart_version"`
-	CreatedBy      string    `json:"created_by"`
-	CreatedAt      time.Time `json:"created_at"`
-	UpdatedBy      string    `json:"updated_by"`
-	UpdatedAt      time.Time `json:"updated_at"`
+	RepoName       string    `json:"repoName" binding:"required"`
+	RepoRepository string    `json:"repoRepository" binding:"required"`
+	RepoUsername   string    `json:"repoUsername" binding:"required"`
+	RepoPassword   string    `json:"repoPassword" binding:"required"`
+	ChartName      string    `json:"chartName" binding:"required"`
+	ChartVersion   string    `json:"chartVersion" binding:"required"`
+	CreatedBy      string    `json:"createdBy" binding:"required"`
+	CreatedAt      time.Time `json:"createdAt"`
+	UpdatedBy      string    `json:"updatedBy"`
+	UpdatedAt      time.Time `json:"updatedAt"`
 }

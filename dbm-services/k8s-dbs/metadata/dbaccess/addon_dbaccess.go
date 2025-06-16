@@ -65,19 +65,15 @@ func (k *K8sCrdStorageAddonDbAccessImpl) FindByParams(params map[string]interfac
 }
 
 // Create 创建 addon 元数据接口实现
-func (k *K8sCrdStorageAddonDbAccessImpl) Create(storageAddonModel *models.K8sCrdStorageAddonModel) (
-	*models.K8sCrdStorageAddonModel, error,
+func (k *K8sCrdStorageAddonDbAccessImpl) Create(model *models.K8sCrdStorageAddonModel) (
+	*models.K8sCrdStorageAddonModel,
+	error,
 ) {
-	if err := k.db.Create(storageAddonModel).Error; err != nil {
+	if err := k.db.Create(model).Error; err != nil {
 		slog.Error("Create storageAddon error", "error", err)
 		return nil, err
 	}
-	var addedStorageAddonModel models.K8sCrdStorageAddonModel
-	if err := k.db.First(&addedStorageAddonModel, "addon_name = ?", storageAddonModel.AddonName).Error; err != nil {
-		slog.Error("Find storageAddon error", "error", err)
-		return nil, err
-	}
-	return &addedStorageAddonModel, nil
+	return model, nil
 }
 
 // DeleteByID 删除 addon 元数据接口实现

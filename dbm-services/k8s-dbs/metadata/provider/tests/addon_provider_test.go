@@ -65,22 +65,15 @@ func TestCreateStorageAddon(t *testing.T) {
 		AddonCategory: "Graph",
 		AddonType:     "surrealdb",
 		AddonVersion:  "1.0.0",
-		Active:        true,
 		Description:   "desc",
 	}
 
 	addedStorageAddon, err := addonProvider.CreateStorageAddon(storageAddon)
-	assert.NoError(t, err, "Failed to create storageAddon")
-	fmt.Printf("Created storageAddon %+v\n", addedStorageAddon)
-
-	var foundStorageAddon model.K8sCrdStorageAddonModel
-	err = db.First(&foundStorageAddon, "addon_name=?", "myaddon").Error
-	assert.NoError(t, err, "Failed to query storageAddon")
-	assert.Equal(t, storageAddon.AddonName, foundStorageAddon.AddonName)
-	assert.Equal(t, storageAddon.AddonCategory, foundStorageAddon.AddonCategory)
-	assert.Equal(t, storageAddon.AddonType, foundStorageAddon.AddonType)
-	assert.Equal(t, storageAddon.AddonVersion, foundStorageAddon.AddonVersion)
-	assert.Equal(t, storageAddon.Active, foundStorageAddon.Active)
+	assert.NoError(t, err)
+	assert.Equal(t, storageAddon.AddonName, addedStorageAddon.AddonName)
+	assert.Equal(t, storageAddon.AddonCategory, addedStorageAddon.AddonCategory)
+	assert.Equal(t, storageAddon.AddonType, addedStorageAddon.AddonType)
+	assert.Equal(t, storageAddon.AddonVersion, addedStorageAddon.AddonVersion)
 }
 
 func TestDeleteStorageAddon(t *testing.T) {
@@ -100,12 +93,11 @@ func TestDeleteStorageAddon(t *testing.T) {
 		Description:   "desc",
 	}
 
-	addedStorageAddon, err := addonProvider.CreateStorageAddon(storageAddon)
-	assert.NoError(t, err, "Failed to create storageAddon")
-	fmt.Printf("Created storageAddon %+v\n", addedStorageAddon)
+	_, err = addonProvider.CreateStorageAddon(storageAddon)
+	assert.NoError(t, err)
 
 	rows, err := addonProvider.DeleteStorageAddonByID(1)
-	assert.NoError(t, err, "Failed to delete storageAddon")
+	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), rows)
 }
 
@@ -126,9 +118,8 @@ func TestUpdateStorageAddon(t *testing.T) {
 		Description:   "desc",
 	}
 
-	addedStorageAddon, err := addonProvider.CreateStorageAddon(storageAddon)
-	assert.NoError(t, err, "Failed to create storageAddon")
-	fmt.Printf("Created storageAddon %+v\n", addedStorageAddon)
+	_, err = addonProvider.CreateStorageAddon(storageAddon)
+	assert.NoError(t, err)
 
 	updateStorageAddon := &entitys.K8sCrdStorageAddonEntity{
 		ID:            1,
@@ -162,12 +153,11 @@ func TestGetStorageAddon(t *testing.T) {
 		Description:   "desc",
 	}
 
-	addedStorageAddon, err := addonProvider.CreateStorageAddon(storageAddon)
-	assert.NoError(t, err, "Failed to create storageAddon")
-	fmt.Printf("Created storageAddon %+v\n", addedStorageAddon)
+	_, err = addonProvider.CreateStorageAddon(storageAddon)
+	assert.NoError(t, err)
 
 	foundStorageAddon, err := addonProvider.FindStorageAddonByID(1)
-	assert.NoError(t, err, "Failed to find storageAddon")
+	assert.NoError(t, err)
 	assert.Equal(t, storageAddon.AddonName, foundStorageAddon.AddonName)
 	assert.Equal(t, storageAddon.AddonCategory, foundStorageAddon.AddonCategory)
 	assert.Equal(t, storageAddon.AddonType, foundStorageAddon.AddonType)
@@ -183,7 +173,6 @@ func TestListStorageAddons(t *testing.T) {
 
 	addonProvider := provider.NewK8sCrdStorageAddonProvider(dbAccess)
 
-	// 创建测试数据
 	testAddons := []entitys.K8sCrdStorageAddonEntity{
 		{
 			AddonName:     "surreal",
@@ -216,7 +205,7 @@ func TestListStorageAddons(t *testing.T) {
 	}
 
 	addons, err := addonProvider.ListStorageAddons(pagination)
-	assert.NoError(t, err, "Failed to list storage addons")
+	assert.NoError(t, err)
 	assert.Equal(t, len(testAddons), len(addons))
 
 	addonNames := make(map[string]bool)

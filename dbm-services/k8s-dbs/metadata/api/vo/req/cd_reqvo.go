@@ -23,14 +23,14 @@ import "time"
 
 // K8sCrdCdReqVo represents the request data structure of cd meta.
 type K8sCrdCdReqVo struct {
-	AddonID            uint64    `json:"addon_id" binding:"required"`
-	CdName             string    `json:"cd_name"`
-	Topologies         string    `json:"topologies"`
-	RecommendedVersion string    `json:"recommended_version"`
-	Releases           string    `json:"releases"`
+	AddonID            uint64    `json:"addonId" binding:"required"`
+	CdName             string    `json:"cdName" binding:"required"`
+	Topologies         string    `json:"topologies" binding:"required"`
+	RecommendedVersion string    `json:"recommendedVersion" binding:"required"`
+	Releases           string    `json:"releases" binding:"required"`
 	Description        string    `json:"description" binding:"required"`
-	CreatedBy          string    `json:"created_by"`
-	CreatedAt          time.Time `json:"created_at"`
-	UpdatedBy          string    `json:"updated_by"`
-	UpdatedAt          time.Time `json:"updated_at"`
+	CreatedBy          string    `json:"createdBy" binding:"required"`
+	CreatedAt          time.Time `json:"createdAt"`
+	UpdatedBy          string    `json:"updatedBy"`
+	UpdatedAt          time.Time `json:"updatedAt"`
 }

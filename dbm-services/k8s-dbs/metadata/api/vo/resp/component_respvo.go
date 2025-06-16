@@ -24,12 +24,12 @@ import "time"
 // K8sCrdComponentRespVo defines the response data structure of component meta.
 type K8sCrdComponentRespVo struct {
 	ID            uint64    `json:"id"`
-	CrdClusterID  uint64    `json:"crd_cluster_id"`
-	ComponentName string    `json:"component_name"`
+	CrdClusterID  uint64    `json:"crdClusterId"`
+	ComponentName string    `json:"componentName"`
 	Status        string    `json:"status"`
 	Description   string    `json:"description"`
-	CreatedBy     string    `json:"created_by"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedBy     string    `json:"updated_by"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	CreatedBy     string    `json:"createdBy"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedBy     string    `json:"updatedBy"`
+	UpdatedAt     time.Time `json:"updatedAt"`
 }

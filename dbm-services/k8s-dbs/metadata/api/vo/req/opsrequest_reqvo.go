@@ -21,12 +21,15 @@ package req
 
 import "time"
 
-// K8sCrdClusterReqVo represents the request data structure of cluster meta.
-type K8sCrdClusterReqVo struct {
-	AddonID            uint64    `json:"addonId" binding:"required"`
+// K8sCrdOpsRequestReqVo represents the request data structure of opsRequest meta.
+type K8sCrdOpsRequestReqVo struct {
+	CrdClusterID       uint64    `json:"crdClusterId" binding:"required"`
 	K8sClusterConfigID uint64    `json:"k8sClusterConfigId" binding:"required"`
 	RequestID          string    `json:"requestId" binding:"required"`
-	ClusterName        string    `json:"clusterName" binding:"required"`
+	OpsRequestName     string    `json:"opsRequestName" binding:"required"`
+	OpsRequestType     string    `json:"opsRequestType" binding:"required"`
+	Metadata           string    `json:"metadata" binding:"required"`
+	Spec               string    `json:"spec" binding:"required"`
 	Description        string    `json:"description" binding:"required"`
 	CreatedBy          string    `json:"createdBy" binding:"required"`
 	CreatedAt          time.Time `json:"createdAt"`

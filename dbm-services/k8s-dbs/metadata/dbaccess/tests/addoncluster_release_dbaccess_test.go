@@ -65,7 +65,7 @@ func TestCreateRelease(t *testing.T) {
 	}
 
 	addedRelease, err := dbAccess.Create(release)
-	assert.NoError(t, err, "Failed to create release")
+	assert.NoError(t, err)
 	assert.Equal(t, release.ReleaseName, addedRelease.ReleaseName)
 	assert.Equal(t, release.Namespace, addedRelease.Namespace)
 	assert.Equal(t, release.K8sClusterConfigID, addedRelease.K8sClusterConfigID)
@@ -89,10 +89,10 @@ func TestDeleteRelease(t *testing.T) {
 	}
 
 	_, err = dbAccess.Create(release)
-	assert.NoError(t, err, "Failed to create release")
+	assert.NoError(t, err)
 
 	rows, err := dbAccess.DeleteByID(1)
-	assert.NoError(t, err, "Failed to delete release")
+	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), rows)
 }
 
@@ -114,7 +114,7 @@ func TestUpdateRelease(t *testing.T) {
 	}
 
 	_, err = dbAccess.Create(release)
-	assert.NoError(t, err, "Failed to create release")
+	assert.NoError(t, err)
 
 	updateRelease := &model.AddonClusterReleaseModel{
 		ID:                 1,
@@ -129,7 +129,7 @@ func TestUpdateRelease(t *testing.T) {
 		UpdatedBy:          "alex",
 	}
 	rows, err := dbAccess.Update(updateRelease)
-	assert.NoError(t, err, "Failed to update release")
+	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), rows)
 }
 
@@ -149,10 +149,10 @@ func TestGetRelease(t *testing.T) {
 	}
 
 	_, err = dbAccess.Create(release)
-	assert.NoError(t, err, "Failed to create release")
+	assert.NoError(t, err)
 
 	foundRelease, err := dbAccess.FindByID(1)
-	assert.NoError(t, err, "Failed to find release")
+	assert.NoError(t, err)
 	assert.Equal(t, release.ReleaseName, foundRelease.ReleaseName)
 	assert.Equal(t, release.ChartValues, foundRelease.ChartValues)
 	assert.Equal(t, release.Namespace, foundRelease.Namespace)
@@ -202,8 +202,8 @@ func TestListRelease(t *testing.T) {
 	}
 
 	releaseList, rows, err := dbAccess.ListByPage(pagination)
-	assert.NoError(t, err, "Failed to list release")
-	assert.Equal(t, int64(2), rows, "Expected total rows to be 2")
+	assert.NoError(t, err)
+	assert.Equal(t, int64(2), rows)
 	assert.Equal(t, len(releaseList), len(releases), "Expected number of release to match")
 
 	releaseNames := make(map[string]bool)
@@ -230,9 +230,8 @@ func TestGetClusterReleaseByParams(t *testing.T) {
 		ReleaseName:        "test-release",
 		ChartValues:        "test-chart-values",
 	}
-	addedClusterRelease, err := dbAccess.Create(release)
-	assert.NoError(t, err, "Failed to create addon cluster release")
-	fmt.Printf("Created addon cluster release %+v\n", addedClusterRelease)
+	_, err = dbAccess.Create(release)
+	assert.NoError(t, err)
 
 	params := map[string]interface{}{
 		"k8s_cluster_config_id": 1,
@@ -240,7 +239,7 @@ func TestGetClusterReleaseByParams(t *testing.T) {
 		"namespace":             "test-namespace",
 	}
 	findClusterRelease, err := dbAccess.FindByParams(params)
-	assert.NoError(t, err, "Failed to find addon cluster release")
+	assert.NoError(t, err)
 	assert.Equal(t, release.RepoName, findClusterRelease.RepoName)
 	assert.Equal(t, release.RepoRepository, findClusterRelease.RepoRepository)
 	assert.Equal(t, release.ChartVersion, findClusterRelease.ChartVersion)

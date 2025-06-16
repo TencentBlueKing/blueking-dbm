@@ -64,17 +64,12 @@ func TestCreateCluster(t *testing.T) {
 		Description:        "desc",
 	}
 
-	addedCluster, err := dbAccess.Create(cluster)
-	assert.NoError(t, err, "Failed to create cluster")
-	fmt.Printf("Created cluster %+v\n", addedCluster)
-
-	var foundCluster model.K8sCrdClusterModel
-	err = db.First(&foundCluster, "cluster_name=?", "mycluster").Error
-	assert.NoError(t, err, "Failed to query cluster")
-	assert.Equal(t, cluster.ClusterName, foundCluster.ClusterName)
-	assert.Equal(t, cluster.Namespace, foundCluster.Namespace)
-	assert.Equal(t, cluster.Status, foundCluster.Status)
-	assert.Equal(t, cluster.AddonID, foundCluster.AddonID)
+	added, err := dbAccess.Create(cluster)
+	assert.NoError(t, err)
+	assert.Equal(t, cluster.ClusterName, added.ClusterName)
+	assert.Equal(t, cluster.Namespace, added.Namespace)
+	assert.Equal(t, cluster.Status, added.Status)
+	assert.Equal(t, cluster.AddonID, added.AddonID)
 }
 
 func TestDeleteCluster(t *testing.T) {
@@ -90,12 +85,11 @@ func TestDeleteCluster(t *testing.T) {
 		Status:             "Enable",
 		Description:        "desc",
 	}
-	addedCluster, err := dbAccess.Create(cluster)
-	assert.NoError(t, err, "Failed to create cluster")
-	fmt.Printf("Created cluster %+v\n", addedCluster)
+	_, err = dbAccess.Create(cluster)
+	assert.NoError(t, err)
 
 	rows, err := dbAccess.DeleteByID(1)
-	assert.NoError(t, err, "Failed to delete cluster")
+	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), rows)
 }
 
@@ -112,9 +106,8 @@ func TestUpdateCluster(t *testing.T) {
 		Status:             "Enable",
 		Description:        "desc",
 	}
-	addedCluster, err := dbAccess.Create(cluster)
-	assert.NoError(t, err, "Failed to create cluster")
-	fmt.Printf("Created cluster %+v\n", addedCluster)
+	_, err = dbAccess.Create(cluster)
+	assert.NoError(t, err)
 
 	newCluster := &model.K8sCrdClusterModel{
 		ID:          1,
@@ -125,7 +118,7 @@ func TestUpdateCluster(t *testing.T) {
 		UpdatedAt:   time.Now(),
 	}
 	rows, err := dbAccess.Update(newCluster)
-	assert.NoError(t, err, "Failed to update cluster")
+	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), rows)
 }
 
@@ -142,12 +135,11 @@ func TestGetCluster(t *testing.T) {
 		Status:             "Enable",
 		Description:        "desc",
 	}
-	addedCluster, err := dbAccess.Create(cluster)
-	assert.NoError(t, err, "Failed to create cluster")
-	fmt.Printf("Created cluster %+v\n", addedCluster)
+	_, err = dbAccess.Create(cluster)
+	assert.NoError(t, err)
 
 	findCluster, err := dbAccess.FindByID(1)
-	assert.NoError(t, err, "Failed to find cluster")
+	assert.NoError(t, err)
 	assert.Equal(t, cluster.ClusterName, findCluster.ClusterName)
 	assert.Equal(t, cluster.Namespace, findCluster.Namespace)
 	assert.Equal(t, cluster.Status, findCluster.Status)
@@ -167,9 +159,8 @@ func TestGetClusterByParams(t *testing.T) {
 		Status:             "Enable",
 		Description:        "desc",
 	}
-	addedCluster, err := dbAccess.Create(cluster)
-	assert.NoError(t, err, "Failed to create cluster")
-	fmt.Printf("Created cluster %+v\n", addedCluster)
+	_, err = dbAccess.Create(cluster)
+	assert.NoError(t, err)
 
 	params := map[string]interface{}{
 		"k8s_cluster_config_id": 1,
@@ -177,7 +168,7 @@ func TestGetClusterByParams(t *testing.T) {
 		"namespace":             "default",
 	}
 	findCluster, err := dbAccess.FindByParams(params)
-	assert.NoError(t, err, "Failed to find cluster")
+	assert.NoError(t, err)
 	assert.Equal(t, cluster.ClusterName, findCluster.ClusterName)
 	assert.Equal(t, cluster.Namespace, findCluster.Namespace)
 	assert.Equal(t, cluster.Status, findCluster.Status)

@@ -63,7 +63,7 @@ func TestCreateAddonRepo(t *testing.T) {
 	}
 
 	addedRepo, err := dbAccess.Create(repo)
-	assert.NoError(t, err, "Failed to create")
+	assert.NoError(t, err)
 	assert.Equal(t, repo.RepoName, addedRepo.RepoName)
 	assert.Equal(t, repo.RepoRepository, addedRepo.RepoRepository)
 	assert.Equal(t, repo.RepoUsername, addedRepo.RepoUsername)
@@ -86,10 +86,10 @@ func TestDeleteAddonRepo(t *testing.T) {
 	}
 
 	_, err = dbAccess.Create(repo)
-	assert.NoError(t, err, "Failed to create")
+	assert.NoError(t, err)
 
 	rows, err := dbAccess.DeleteByID(1)
-	assert.NoError(t, err, "Failed to delete release")
+	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), rows)
 }
 
@@ -109,7 +109,7 @@ func TestUpdateAddonRepo(t *testing.T) {
 	}
 
 	_, err = dbAccess.Create(repo)
-	assert.NoError(t, err, "Failed to create")
+	assert.NoError(t, err)
 
 	updateRepo := &model.AddonHelmRepoModel{
 		ID:             1,
@@ -121,7 +121,7 @@ func TestUpdateAddonRepo(t *testing.T) {
 		ChartName:      "test-chartname2",
 	}
 	rows, err := dbAccess.Update(updateRepo)
-	assert.NoError(t, err, "Failed to update release")
+	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), rows)
 }
 
@@ -139,9 +139,10 @@ func TestGetAddonRepo(t *testing.T) {
 	}
 
 	_, err = dbAccess.Create(repo)
-	assert.NoError(t, err, "Failed to create")
+	assert.NoError(t, err)
 
 	foundRepo, err := dbAccess.FindByID(1)
+	assert.NoError(t, err)
 	assert.Equal(t, repo.RepoName, foundRepo.RepoName)
 	assert.Equal(t, repo.RepoRepository, foundRepo.RepoRepository)
 	assert.Equal(t, repo.RepoUsername, foundRepo.RepoUsername)
@@ -156,7 +157,6 @@ func TestListAddonRepo(t *testing.T) {
 
 	dbAccess := dbaccess.NewAddonHelmRepoDbAccess(db)
 
-	// 创建测试数据
 	repos := []model.AddonHelmRepoModel{
 		{
 			RepoName:       "test-reponame",
@@ -187,9 +187,9 @@ func TestListAddonRepo(t *testing.T) {
 	}
 
 	repoList, rows, err := dbAccess.ListByPage(pagination)
-	assert.NoError(t, err, "Failed to list release")
-	assert.Equal(t, int64(2), rows, "Expected total rows to be 2")
-	assert.Equal(t, len(repoList), len(repos), "Expected number of release to match")
+	assert.NoError(t, err)
+	assert.Equal(t, int64(2), rows)
+	assert.Equal(t, len(repoList), len(repos))
 
 	repoNames := make(map[string]bool)
 	for _, repo := range repoList {
@@ -222,7 +222,7 @@ func TestGetAddonRepoByParams(t *testing.T) {
 		"repo_name":     "test-reponame",
 	}
 	foundRepo, err := dbAccess.FindByParams(params)
-	assert.NoError(t, err, "Failed to find addon cluster repo")
+	assert.NoError(t, err)
 	assert.Equal(t, repo.RepoName, foundRepo.RepoName)
 	assert.Equal(t, repo.RepoRepository, foundRepo.RepoRepository)
 	assert.Equal(t, repo.RepoUsername, foundRepo.RepoUsername)

@@ -44,17 +44,14 @@ type K8sCrdClusterDefinitionDbAccessImpl struct {
 
 // Create 创建 cd 元数据接口实现
 func (k *K8sCrdClusterDefinitionDbAccessImpl) Create(model *models.K8sCrdClusterDefinitionModel) (
-	*models.K8sCrdClusterDefinitionModel, error) {
+	*models.K8sCrdClusterDefinitionModel,
+	error,
+) {
 	if err := k.db.Create(model).Error; err != nil {
 		slog.Error("Create clusterdefinition error", "error", err)
 		return nil, err
 	}
-	var created models.K8sCrdClusterDefinitionModel
-	if err := k.db.First(&created, "cd_name = ?", model.CdName).Error; err != nil {
-		slog.Error("Find clusterdefinition error", "error", err)
-		return nil, err
-	}
-	return &created, nil
+	return model, nil
 }
 
 // DeleteByID 删除 cd 元数据接口实现

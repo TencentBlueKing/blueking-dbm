@@ -26,14 +26,14 @@ import (
 // AddonClusterHelmRepoEntity AddonClusterHelmRepo entity 定义
 type AddonClusterHelmRepoEntity struct {
 	ID             int64     `json:"id"`
-	RepoName       string    `json:"repo_name"`
-	RepoRepository string    `json:"repo_repository"`
-	RepoUsername   string    `json:"repo_username"`
-	RepoPassword   string    `json:"repo_password"`
-	ChartName      string    `json:"chart_name"`
-	ChartVersion   string    `json:"chart_version"`
-	CreatedBy      string    `json:"created_by"`
-	CreatedAt      time.Time `json:"created_at"`
-	UpdatedBy      string    `json:"updated_by"`
-	UpdatedAt      time.Time `json:"updated_at"`
+	RepoName       string    `json:"repoName"`
+	RepoRepository string    `json:"repoRepository"`
+	RepoUsername   string    `json:"repoUsername"`
+	RepoPassword   string    `json:"repoPassword"`
+	ChartName      string    `json:"chartName"`
+	ChartVersion   string    `json:"chartVersion"`
+	CreatedBy      string    `json:"createdBy"`
+	CreatedAt      time.Time `json:"createdAt"`
+	UpdatedBy      string    `json:"updatedBy"`
+	UpdatedAt      time.Time `json:"updatedAt"`
 }

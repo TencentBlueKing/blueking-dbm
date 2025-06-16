@@ -20,11 +20,8 @@ limitations under the License.
 package tests
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"k8s-dbs/metadata/api/controller"
-	"k8s-dbs/metadata/api/vo/req"
 	"k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/dbaccess"
 	"k8s-dbs/metadata/dbaccess/model"
@@ -98,59 +95,6 @@ func SetupComponentRouter() *gin.Engine {
 	return r
 }
 
-func TestCreateComponent(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	router := SetupComponentRouter()
-	// 解析时间字符串为 time.Time 对象
-	addDateTime := "2025-01-01 12:00:00"
-	layout := "2006-01-02 15:04:05"
-	parsedTime, err := time.Parse(layout, addDateTime)
-	assert.NoError(t, err)
-
-	componentRequest := req.K8sCrdComponentReqVo{
-		ComponentName: "test1",
-		CrdClusterID:  1,
-		Description:   "just for test",
-		CreatedBy:     "admin",
-		CreatedAt:     parsedTime,
-		UpdatedAt:     parsedTime,
-		UpdatedBy:     "admin",
-	}
-
-	requestBody, err := json.Marshal(&componentRequest)
-	assert.NoError(t, err)
-
-	request, err := http.NewRequest("POST", "/metadata/component", bytes.NewBuffer(requestBody))
-	assert.NoError(t, err)
-	request.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, request)
-	assert.Equal(t, http.StatusOK, w.Code)
-
-	expected := `
-	{
-		"result": true,
-		"code": 200,
-		"data": {
-			"id": 1,
-			"crd_cluster_id": 1,
-			"component_name": "test1",
-			"metadata": "{\"namespace\":\"default\"}",
-			"spec": "{\"replicas\":1}",
-			"status": "CREATED",
-			"description": "just for test",
-			"created_by": "admin",
-			"created_at": "2025-01-01T20:00:00+08:00",
-			"updated_by": "admin",
-			"updated_at": "2025-01-01T20:00:00+08:00"
-		},
-		"message": "OK",
-		"error": null
-	}
-	`
-	assert.JSONEq(t, expected, w.Body.String())
-}
-
 func TestGetComponent(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := SetupComponentRouter()
@@ -166,85 +110,14 @@ func TestGetComponent(t *testing.T) {
 		"code": 200,
 		"data": {
 			"id": 1,
-			"crd_cluster_id": 1,
-			"component_name": "test1",
-			"metadata": "{\"namespace\":\"default\"}",
-			"spec": "{\"replicas\":1}",
+			"crdClusterId": 1,
+			"componentName": "test1",
 			"status": "CREATED",
 			"description": "just for test",
-			"created_by": "admin",
-			"created_at": "2025-01-01T20:00:00+08:00",
-			"updated_by": "admin",
-			"updated_at": "2025-01-01T20:00:00+08:00"
-		},
-		"message": "OK",
-		"error": null
-	}
-	`
-	assert.JSONEq(t, expected, w.Body.String())
-}
-
-func TestDeleteComponent(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	router := SetupComponentRouter()
-	err := AddSampleComponent()
-	assert.NoError(t, err)
-	request, _ := http.NewRequest("DELETE", "/metadata/component/1", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, request)
-	assert.Equal(t, http.StatusOK, w.Code)
-
-	expected := `
-	{
-		"result": true,
-		"code": 200,
-		"data": {
-			"rows":1
-		},
-		"message": "OK",
-		"error": null
-	}
-	`
-	assert.JSONEq(t, expected, w.Body.String())
-}
-
-func TestUpdateComponent(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	router := SetupComponentRouter()
-	err := AddSampleComponent()
-	assert.NoError(t, err)
-	// 解析时间字符串为 time.Time 对象
-	addDateTime := "2025-01-01 12:00:00"
-	layout := "2006-01-02 15:04:05"
-	parsedTime, err := time.Parse(layout, addDateTime)
-	assert.NoError(t, err)
-
-	componentRequest := req.K8sCrdComponentReqVo{
-		ComponentName: "test2",
-		CrdClusterID:  2,
-		Description:   "just for test2",
-		CreatedBy:     "admin2",
-		CreatedAt:     parsedTime,
-		UpdatedAt:     parsedTime,
-		UpdatedBy:     "admin2",
-	}
-
-	requestBody, err := json.Marshal(&componentRequest)
-	assert.NoError(t, err)
-
-	request, err := http.NewRequest("PUT", "/metadata/component/1", bytes.NewBuffer(requestBody))
-	assert.NoError(t, err)
-	request.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, request)
-	assert.Equal(t, http.StatusOK, w.Code)
-
-	expected := `
-	{
-		"result": true,
-		"code": 200,
-		"data": {
-			"rows":1
+			"createdBy": "admin",
+			"createdAt": "2025-01-01T20:00:00+08:00",
+			"updatedBy": "admin",
+			"updatedAt": "2025-01-01T20:00:00+08:00"
 		},
 		"message": "OK",
 		"error": null

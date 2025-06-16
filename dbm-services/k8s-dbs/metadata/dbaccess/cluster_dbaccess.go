@@ -51,12 +51,7 @@ func (k *K8sCrdClusterDbAccessImpl) Create(model *models.K8sCrdClusterModel) (*m
 		slog.Error("Create cluster error", "error", err)
 		return nil, err
 	}
-	var addedCluster models.K8sCrdClusterModel
-	if err := k.db.First(&addedCluster, "id=?", model.ID).Error; err != nil {
-		slog.Error("Find cluster error", "error", err)
-		return nil, err
-	}
-	return &addedCluster, nil
+	return model, nil
 }
 
 // DeleteByID 删除 cluster 元数据接口实现

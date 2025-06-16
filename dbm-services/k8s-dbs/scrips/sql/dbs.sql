@@ -152,6 +152,26 @@ CREATE TABLE IF NOT EXISTS tb_component_operation (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT '组件支持的操作列表';
 
 --
+-- Table structure for table tb_k8s_crd_opsrequest
+--
+CREATE TABLE IF NOT EXISTS tb_k8s_crd_opsrequest (
+    id bigint PRIMARY KEY AUTO_INCREMENT COMMENT '主键 id',
+    crd_cluster_id bigint NOT NULL COMMENT '关联 k8s_crd_cluster 主键 id',
+    k8s_cluster_config_id bigint NOT NULL COMMENT '关联 tb_k8s_cluster_config 主键 id',
+    request_id varchar(50) NOT NULL COMMENT 'tb_cluster_request_record 表的请求 Id',
+    opsrequest_name varchar(100) NOT NULL COMMENT '操作请求名称',
+    opsrequest_type varchar(100) COMMENT '操作类型 Restart/Start/Stop/Switchover/Upgrade/HorizontalScaling/VerticalScaling/VolumeExpansion',
+    metadata text DEFAULT NULL COMMENT 'metadata定义',
+    spec text DEFAULT NULL COMMENT 'spec定义',
+    status varchar(100) COMMENT '操作请求状态 Cancelled/Cancelling/Creating/Failed/Pending/Running/Succeed',
+    description varchar(100) COMMENT '操作请求描述',
+    created_by varchar(50) NOT NULL COMMENT '创建者',
+    created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_by varchar(50) NOT NULL COMMENT '更新者',
+    updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT '存储操作请求相关信息的表';
+
+--
 -- Table structure for table tb_operation_definition
 --
 CREATE TABLE IF NOT EXISTS tb_operation_definition (

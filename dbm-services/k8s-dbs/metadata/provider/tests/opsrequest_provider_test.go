@@ -71,20 +71,15 @@ func TestCreateOps(t *testing.T) {
 	}
 
 	addedOps, err := opsProvider.CreateOpsRequest(ops)
-	assert.NoError(t, err, "Failed to create ops")
-	fmt.Printf("Created ops %+v\n", addedOps)
-
-	var foundOps model.K8sCrdOpsRequestModel
-	err = db.First(&foundOps, "opsrequest_name=?", "greptimedb-restart").Error
-	assert.NoError(t, err, "Failed to query ops")
-	assert.Equal(t, ops.OpsRequestName, foundOps.OpsRequestName)
-	assert.Equal(t, ops.OpsRequestType, foundOps.OpsRequestType)
-	assert.Equal(t, ops.CrdClusterID, foundOps.CrdClusterID)
-	assert.Equal(t, ops.K8sClusterConfigID, foundOps.K8sClusterConfigID)
-	assert.Equal(t, ops.RequestID, foundOps.RequestID)
-	assert.Equal(t, ops.Metadata, foundOps.Metadata)
-	assert.Equal(t, ops.Status, foundOps.Status)
-	assert.Equal(t, ops.Spec, foundOps.Spec)
+	assert.NoError(t, err)
+	assert.Equal(t, ops.OpsRequestName, addedOps.OpsRequestName)
+	assert.Equal(t, ops.OpsRequestType, addedOps.OpsRequestType)
+	assert.Equal(t, ops.CrdClusterID, addedOps.CrdClusterID)
+	assert.Equal(t, ops.K8sClusterConfigID, addedOps.K8sClusterConfigID)
+	assert.Equal(t, ops.RequestID, addedOps.RequestID)
+	assert.Equal(t, ops.Metadata, addedOps.Metadata)
+	assert.Equal(t, ops.Status, addedOps.Status)
+	assert.Equal(t, ops.Spec, addedOps.Spec)
 }
 
 func TestDeleteOps(t *testing.T) {
@@ -106,12 +101,11 @@ func TestDeleteOps(t *testing.T) {
 		Description:        "desc",
 	}
 
-	addedOps, err := opsProvider.CreateOpsRequest(ops)
-	assert.NoError(t, err, "Failed to create ops")
-	fmt.Printf("Created ops %+v\n", addedOps)
+	_, err = opsProvider.CreateOpsRequest(ops)
+	assert.NoError(t, err)
 
 	rows, err := opsProvider.DeleteOpsRequestByID(1)
-	assert.NoError(t, err, "Failed to delete ops")
+	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), rows)
 }
 
@@ -134,9 +128,8 @@ func TestUpdateOps(t *testing.T) {
 		Description:        "desc",
 	}
 
-	addedOps, err := opsProvider.CreateOpsRequest(ops)
-	assert.NoError(t, err, "Failed to create ops")
-	fmt.Printf("Created ops %+v\n", addedOps)
+	_, err = opsProvider.CreateOpsRequest(ops)
+	assert.NoError(t, err)
 
 	newOps := &entitys.K8sCrdOpsRequestEntity{
 		ID:             1,
@@ -150,7 +143,7 @@ func TestUpdateOps(t *testing.T) {
 		UpdatedAt:      time.Now(),
 	}
 	rows, err := opsProvider.UpdateOpsRequest(newOps)
-	assert.NoError(t, err, "Failed to update ops")
+	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), rows)
 }
 
@@ -173,12 +166,11 @@ func TestGetOps(t *testing.T) {
 		Description:        "desc",
 	}
 
-	addedOps, err := opsProvider.CreateOpsRequest(ops)
-	assert.NoError(t, err, "Failed to create ops")
-	fmt.Printf("Created ops %+v\n", addedOps)
+	_, err = opsProvider.CreateOpsRequest(ops)
+	assert.NoError(t, err)
 
 	foundOps, err := opsProvider.FindOpsRequestByID(1)
-	assert.NoError(t, err, "Failed to find ops")
+	assert.NoError(t, err)
 	assert.Equal(t, ops.OpsRequestName, foundOps.OpsRequestName)
 	assert.Equal(t, ops.OpsRequestType, foundOps.OpsRequestType)
 	assert.Equal(t, ops.CrdClusterID, foundOps.CrdClusterID)

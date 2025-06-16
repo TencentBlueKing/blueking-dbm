@@ -26,12 +26,12 @@ import (
 // OperationDefinitionRespVo represents the RespVo of operation definition
 type OperationDefinitionRespVo struct {
 	ID              uint64    `json:"id"`
-	OperationName   string    `json:"operation_name"`
-	OperationTarget string    `json:"operation_target"`
+	OperationName   string    `json:"operationName"`
+	OperationTarget string    `json:"operationTarget"`
 	Active          bool      `json:"active"`
 	Description     string    `json:"description"`
-	CreatedBy       string    `json:"created_by"`
-	CreatedAt       time.Time `json:"created_at"` //nolint:lll
-	UpdatedBy       string    `json:"updated_by"`
-	UpdatedAt       time.Time `json:"updated_at"` //nolint:lll
+	CreatedBy       string    `json:"createdBy"`
+	CreatedAt       time.Time `json:"createdAt"`
+	UpdatedBy       string    `json:"updatedBy"`
+	UpdatedAt       time.Time `json:"updatedAt"`
 }

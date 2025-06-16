@@ -27,17 +27,17 @@ import (
 // ComponentOperationModel represents the database model of component definition
 type ComponentOperationModel struct {
 	ID               uint64    `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
-	AddonType        string    `gorm:"size:32;not null;column:addon_type" json:"addon_type"`
-	AddonVersion     string    `gorm:"size:32;not null;column:addon_version" json:"addon_version"`
-	ComponentName    string    `gorm:"size:32;not null;column:component_name" json:"component_name"`
-	ComponentVersion string    `gorm:"size:32;not null;column:component_version" json:"component_version"`
-	OperationID      uint64    `gorm:"not null;column:operation_id" json:"operation_id"`
+	AddonType        string    `gorm:"size:32;not null;column:addon_type" json:"addonType"`
+	AddonVersion     string    `gorm:"size:32;not null;column:addon_version" json:"addonVersion"`
+	ComponentName    string    `gorm:"size:32;not null;column:component_name" json:"componentName"`
+	ComponentVersion string    `gorm:"size:32;not null;column:component_version" json:"componentVersion"`
+	OperationID      uint64    `gorm:"not null;column:operation_id" json:"operationId"`
 	Active           bool      `gorm:"type:tinyint(1);not null;default:1;column:active" json:"active"`
 	Description      string    `gorm:"size:100;column:description" json:"description"`
-	CreatedBy        string    `gorm:"size:50;not null;column:created_by" json:"created_by"`
-	CreatedAt        time.Time `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP;column:created_at" json:"created_at"` //nolint:lll
-	UpdatedBy        string    `gorm:"size:50;not null;column:updated_by" json:"updated_by"`
-	UpdatedAt        time.Time `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP;column:updated_at" json:"updated_at"` //nolint:lll
+	CreatedBy        string    `gorm:"size:50;not null;column:created_by" json:"createdBy"`
+	CreatedAt        time.Time `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP;column:created_at" json:"createdAt"` //nolint:lll
+	UpdatedBy        string    `gorm:"size:50;not null;column:updated_by" json:"updatedBy"`
+	UpdatedAt        time.Time `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP;column:updated_at" json:"updatedAt"` //nolint:lll
 }
 
 // TableName 获取 model 对应的数据库表名

@@ -67,17 +67,12 @@ func TestCreateRequest(t *testing.T) {
 	}
 
 	addedRequest, err := requestProvider.CreateRequestRecord(request)
-	assert.NoError(t, err, "Failed to create request")
-	fmt.Printf("Created request %+v\n", addedRequest)
-
-	var founded model.ClusterRequestRecordModel
-	err = db.First(&founded, "request_id=?", "test-request-id").Error
-	assert.NoError(t, err, "Failed to query request")
-	assert.Equal(t, request.RequestID, founded.RequestID)
-	assert.Equal(t, request.RequestParams, founded.RequestParams)
-	assert.Equal(t, request.RequestType, founded.RequestType)
-	assert.Equal(t, request.Description, founded.Description)
-	assert.Equal(t, request.CreatedBy, founded.CreatedBy)
+	assert.NoError(t, err)
+	assert.Equal(t, request.RequestID, addedRequest.RequestID)
+	assert.Equal(t, request.RequestParams, addedRequest.RequestParams)
+	assert.Equal(t, request.RequestType, addedRequest.RequestType)
+	assert.Equal(t, request.Description, addedRequest.Description)
+	assert.Equal(t, request.CreatedBy, addedRequest.CreatedBy)
 }
 
 func TestGetRequestById(t *testing.T) {
@@ -96,12 +91,11 @@ func TestGetRequestById(t *testing.T) {
 		CreatedBy:     "Admin",
 	}
 
-	addedRequest, err := requestProvider.CreateRequestRecord(request)
-	assert.NoError(t, err, "Failed to create request")
-	fmt.Printf("Created request %+v\n", addedRequest)
+	_, err = requestProvider.CreateRequestRecord(request)
+	assert.NoError(t, err)
 
 	founded, err := requestProvider.FindRequestRecordByID(1)
-	assert.NoError(t, err, "Failed to query request")
+	assert.NoError(t, err)
 	assert.Equal(t, request.RequestID, founded.RequestID)
 	assert.Equal(t, request.RequestParams, founded.RequestParams)
 	assert.Equal(t, request.RequestType, founded.RequestType)

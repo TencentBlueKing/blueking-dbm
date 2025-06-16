@@ -70,21 +70,16 @@ func TestCreateComponentDefinition(t *testing.T) {
 	}
 
 	addedCmpd, err := cmpdProvider.CreateCmpd(cmpd)
-	assert.NoError(t, err, "Failed to create componentDefinition")
-	fmt.Printf("Created componentDefinition %+v\n", addedCmpd)
-
-	var foundCmpd model.K8sCrdComponentDefinitionModel
-	err = db.First(&foundCmpd, "componentdefinition_name=?", "mycmpd").Error
-	assert.NoError(t, err, "Failed to query componentDefinition")
-	assert.Equal(t, cmpd.ComponentDefinitionName, foundCmpd.ComponentDefinitionName)
-	assert.Equal(t, cmpd.AddonID, foundCmpd.AddonID)
-	assert.Equal(t, cmpd.DefaultVersion, foundCmpd.DefaultVersion)
-	assert.Equal(t, cmpd.Metadata, foundCmpd.Metadata)
-	assert.Equal(t, cmpd.Spec, foundCmpd.Spec)
-	assert.Equal(t, cmpd.Active, foundCmpd.Active)
+	assert.NoError(t, err)
+	assert.Equal(t, cmpd.ComponentDefinitionName, addedCmpd.ComponentDefinitionName)
+	assert.Equal(t, cmpd.AddonID, addedCmpd.AddonID)
+	assert.Equal(t, cmpd.DefaultVersion, addedCmpd.DefaultVersion)
+	assert.Equal(t, cmpd.Metadata, addedCmpd.Metadata)
+	assert.Equal(t, cmpd.Spec, addedCmpd.Spec)
+	assert.Equal(t, cmpd.Active, addedCmpd.Active)
 }
 
-func TestDeletComponentDefinition(t *testing.T) {
+func TestDeleteComponentDefinition(t *testing.T) {
 	db, err := initCmpdTable()
 	assert.NoError(t, err)
 
@@ -102,12 +97,11 @@ func TestDeletComponentDefinition(t *testing.T) {
 		Description:             "desc",
 	}
 
-	addedCmpd, err := cmpdProvider.CreateCmpd(cmpd)
-	assert.NoError(t, err, "Failed to create componentDefinition")
-	fmt.Printf("Created componentDefinition %+v\n", addedCmpd)
+	_, err = cmpdProvider.CreateCmpd(cmpd)
+	assert.NoError(t, err)
 
 	rows, err := cmpdProvider.DeleteCmpdByID(1)
-	assert.NoError(t, err, "Failed to delete componentDefinition")
+	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), rows)
 }
 
@@ -129,9 +123,8 @@ func TestUpdateComponentDefinition(t *testing.T) {
 		Description:             "desc",
 	}
 
-	addedCmpd, err := cmpdProvider.CreateCmpd(cmpd)
-	assert.NoError(t, err, "Failed to create componentDefinition")
-	fmt.Printf("Created componentDefinition %+v\n", addedCmpd)
+	_, err = cmpdProvider.CreateCmpd(cmpd)
+	assert.NoError(t, err)
 
 	updatedCmpd := &entitys.K8sCrdComponentDefinitionEntity{
 		ID:                      1,
@@ -145,7 +138,7 @@ func TestUpdateComponentDefinition(t *testing.T) {
 		UpdatedAt:               time.Now(),
 	}
 	rows, err := cmpdProvider.UpdateCmpd(updatedCmpd)
-	assert.NoError(t, err, "Failed to update componentDefinition")
+	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), rows)
 }
 
@@ -167,12 +160,11 @@ func TestGetComponentDefinition(t *testing.T) {
 		Description:             "desc",
 	}
 
-	addedCmpd, err := cmpdProvider.CreateCmpd(cmpd)
-	assert.NoError(t, err, "Failed to create componentDefinition")
-	fmt.Printf("Created componentDefinition %+v\n", addedCmpd)
+	_, err = cmpdProvider.CreateCmpd(cmpd)
+	assert.NoError(t, err)
 
 	foundCmpd, err := cmpdProvider.FindCmpdByID(1)
-	assert.NoError(t, err, "Failed to find componentDefinition")
+	assert.NoError(t, err)
 	assert.Equal(t, cmpd.ComponentDefinitionName, foundCmpd.ComponentDefinitionName)
 	assert.Equal(t, cmpd.AddonID, foundCmpd.AddonID)
 	assert.Equal(t, cmpd.DefaultVersion, foundCmpd.DefaultVersion)

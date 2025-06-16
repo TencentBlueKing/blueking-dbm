@@ -24,20 +24,20 @@ import "time"
 // K8sCrdStorageAddonEntity addon entity 定义
 type K8sCrdStorageAddonEntity struct {
 	ID                   uint64    `json:"id"`
-	AddonName            string    `json:"addon_name"`
-	AddonCategory        string    `json:"addon_category"`
-	AddonType            string    `json:"addon_type"`
-	AddonVersion         string    `json:"addon_version"`
+	AddonName            string    `json:"addonName"`
+	AddonCategory        string    `json:"addonCategory"`
+	AddonType            string    `json:"addonType"`
+	AddonVersion         string    `json:"addonVersion"`
 	Topologies           string    `json:"topologies"`
-	RecommendedVersion   string    `json:"recommended_version"`
-	SupportedVersions    string    `json:"supported_versions"`
-	RecommendedAcVersion string    `json:"recommended_addoncluster_version"`
-	SupportedAcVersions  string    `json:"supported_addoncluster_versions"`
+	RecommendedVersion   string    `json:"recommendedVersion"`
+	SupportedVersions    string    `json:"supportedVersions"`
+	RecommendedAcVersion string    `json:"recommendedAcVersion"`
+	SupportedAcVersions  string    `json:"supportedAcVersions"`
 	Releases             string    `json:"releases"`
 	Active               bool      `json:"active"`
 	Description          string    `json:"description"`
-	CreatedBy            string    `json:"created_by"`
-	CreatedAt            time.Time `json:"created_at"`
-	UpdatedBy            string    `json:"updated_by"`
-	UpdatedAt            time.Time `json:"updated_at"`
+	CreatedBy            string    `json:"createdBy"`
+	CreatedAt            time.Time `json:"createdAt"`
+	UpdatedBy            string    `json:"updatedBy"`
+	UpdatedAt            time.Time `json:"updatedAt"`
 }

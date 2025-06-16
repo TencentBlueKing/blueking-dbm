@@ -25,13 +25,12 @@ import (
 
 // ClusterRequestRecordReqVo represents the request data structure of record.
 type ClusterRequestRecordReqVo struct {
-	RequestID     string    `json:"request_id"`
-	RequestType   string    `json:"request_type"`
-	RequestParams string    `json:"request_params"`
-	Status        string    `json:"status"`
-	Description   string    `json:"description"`
-	CreatedBy     string    `json:"created_by"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedBy     string    `json:"updated_by"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	RequestID     string    `json:"requestId" required:"true"`
+	RequestType   string    `json:"requestType" required:"true"`
+	RequestParams string    `json:"requestParams"  required:"true"`
+	Description   string    `json:"description" required:"true"`
+	CreatedBy     string    `json:"createdBy" required:"true"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedBy     string    `json:"updatedBy"`
+	UpdatedAt     time.Time `json:"updatedAt"`
 }

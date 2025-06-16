@@ -47,13 +47,7 @@ func (c *ClusterOperationDbAccessImpl) Create(model *models.ClusterOperationMode
 		slog.Error("Create cluster operation error", "error", err)
 		return nil, err
 	}
-	var addedModel models.ClusterOperationModel
-	if err := c.db.First(&addedModel, "addon_type = ? and addon_version= ? and operation_id= ?",
-		model.AddonType, model.AddonVersion, model.OperationID).Error; err != nil {
-		slog.Error("Find cluster operation error", "error", err)
-		return nil, err
-	}
-	return &addedModel, nil
+	return model, nil
 }
 
 // ListByPage 分页查询 cluster operation 元数据接口实现

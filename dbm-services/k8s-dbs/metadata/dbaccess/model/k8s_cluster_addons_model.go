@@ -27,12 +27,12 @@ import (
 // K8sClusterAddonsModel represents the database model of k8s cluster addons
 type K8sClusterAddonsModel struct {
 	ID             uint64    `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
-	AddonID        uint64    `gorm:"not null;column:addon_id" json:"addon_id"`
-	K8sClusterName string    `gorm:"column:k8s_cluster_name;type:varchar(32);not null" json:"k8s_cluster_name"`
-	CreatedBy      string    `gorm:"size:50;not null;column:created_by" json:"created_by"`
-	CreatedAt      time.Time `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP;column:created_at" json:"created_at"` //nolint:lll
-	UpdatedBy      string    `gorm:"size:50;not null;column:updated_by" json:"updated_by"`
-	UpdatedAt      time.Time `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP;column:updated_at" json:"updated_at"` //nolint:lll
+	AddonID        uint64    `gorm:"not null;column:addon_id" json:"addonId"`
+	K8sClusterName string    `gorm:"column:k8s_cluster_name;type:varchar(32);not null" json:"k8sClusterName"`
+	CreatedBy      string    `gorm:"size:50;not null;column:created_by" json:"createdBy"`
+	CreatedAt      time.Time `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP;column:created_at" json:"createdAt"` //nolint:lll
+	UpdatedBy      string    `gorm:"size:50;not null;column:updated_by" json:"updatedBy"`
+	UpdatedAt      time.Time `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP;column:updated_at" json:"updatedAt"` //nolint:lll
 }
 
 // TableName 获取 model 对应的数据库表名

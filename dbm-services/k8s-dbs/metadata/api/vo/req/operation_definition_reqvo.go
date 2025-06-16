@@ -23,11 +23,11 @@ import "time"
 
 // OperationDefinitionReqVo represents the ReqVo structure of addon meta.
 type OperationDefinitionReqVo struct {
-	OperationName   string    `json:"operation_name" binding:"required"`
-	OperationTarget string    `json:"operation_target" binding:"required"`
+	OperationName   string    `json:"operatioName" binding:"required"`
+	OperationTarget string    `json:"operationTarget" binding:"required"`
 	Description     string    `json:"description" binding:"required"`
-	CreatedBy       string    `json:"created_by"`
-	CreatedAt       time.Time `json:"created_at"`
-	UpdatedBy       string    `json:"updated_by"`
-	UpdatedAt       time.Time `json:"updated_at"`
+	CreatedBy       string    `json:"createdBy" binding:"required"`
+	CreatedAt       time.Time `json:"createdAt"`
+	UpdatedBy       string    `json:"updatedBy"`
+	UpdatedAt       time.Time `json:"updatedAt"`
 }

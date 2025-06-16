@@ -140,16 +140,16 @@ func TestCreateCmpv(t *testing.T) {
 		"code": 200,
 		"data": {
 			"id": 1,
-			"addon_id": 1,
-			"componentversion_name": "surrealdb",
+			"addonId": 1,
+			"cmpvName": "surrealdb",
 			"metadata": "{\"namespace\":\"default\"}",
 			"spec": "{\"replicas\":1}",
 			"active": true,
 			"description": "just for test",
-			"created_by": "admin",
-			"created_at": "2025-01-01T20:00:00+08:00",
-			"updated_by": "admin",
-			"updated_at": "2025-01-01T20:00:00+08:00"
+			"createdBy": "admin",
+			"createdAt": "2025-01-01T20:00:00+08:00",
+			"updatedBy": "admin",
+			"updatedAt": "2025-01-01T20:00:00+08:00"
 		},
 		"message": "OK",
 		"error": null
@@ -173,16 +173,16 @@ func TestGetCmpv(t *testing.T) {
 		"code": 200,
 		"data": {
 			"id": 1,
-			"addon_id": 1,
-			"componentversion_name": "surrealdb",
+			"addonId": 1,
+			"cmpvName": "surrealdb",
 			"metadata": "{\"namespace\":\"default\"}",
 			"spec": "{\"replicas\":1}",
 			"active": true,
 			"description": "just for test",
-			"created_by": "admin",
-			"created_at": "2025-01-01T20:00:00+08:00",
-			"updated_by": "admin",
-			"updated_at": "2025-01-01T20:00:00+08:00"
+			"createdBy": "admin",
+			"createdAt": "2025-01-01T20:00:00+08:00",
+			"updatedBy": "admin",
+			"updatedAt": "2025-01-01T20:00:00+08:00"
 		},
 		"message": "OK",
 		"error": null

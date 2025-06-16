@@ -53,13 +53,7 @@ func (a *AddonClusterReleaseDbAccessImpl) Create(model *models.AddonClusterRelea
 		slog.Error("Create model error", "error", err)
 		return nil, err
 	}
-	var addedModel models.AddonClusterReleaseModel
-	if err := a.db.First(&addedModel, "release_name = ? and namespace = ? and k8s_cluster_config_id = ?",
-		model.ReleaseName, model.Namespace, model.K8sClusterConfigID).Error; err != nil {
-		slog.Error("Find model error", "error", err)
-		return nil, err
-	}
-	return &addedModel, nil
+	return model, nil
 }
 
 // DeleteByID 删除 AddonCluster Release 元数据接口实现

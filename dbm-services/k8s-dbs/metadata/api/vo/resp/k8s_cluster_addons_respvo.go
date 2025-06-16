@@ -24,11 +24,11 @@ import "time"
 // K8sClusterAddonsRespVo resp vo 定义
 type K8sClusterAddonsRespVo struct {
 	ID             uint64            `json:"id"`
-	AddonID        uint64            `gorm:"not null;column:addon_id" json:"addon_id"`
-	StorageAddon   K8sCrdAddonRespVo `json:"storage_addon"`
-	K8sClusterName string            `gorm:"column:k8s_cluster_name;type:varchar(32);not null" json:"k8s_cluster_name"`
-	CreatedBy      string            `json:"created_by"`
-	CreatedAt      time.Time         `json:"created_at"`
-	UpdatedBy      string            `json:"updated_by"`
-	UpdatedAt      time.Time         `json:"updated_at"`
+	AddonID        uint64            `json:"addonId"`
+	StorageAddon   K8sCrdAddonRespVo `json:"storageAddon"`
+	K8sClusterName string            `json:"k8sClusterName"`
+	CreatedBy      string            `json:"createdBy"`
+	CreatedAt      time.Time         `json:"createdAt"`
+	UpdatedBy      string            `json:"updatedBy"`
+	UpdatedAt      time.Time         `json:"updatedAt"`
 }

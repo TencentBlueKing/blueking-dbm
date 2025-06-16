@@ -24,18 +24,18 @@ import "time"
 // K8sClusterConfigEntity k8s cluster config entity 定义
 type K8sClusterConfigEntity struct {
 	ID           uint64    `json:"id"`
-	ClusterName  string    `json:"cluster_name"`
-	APIServerURL string    `json:"api_server_url"`
-	CACert       string    `json:"ca_cert"`
-	ClientCert   string    `json:"client_cert"`
-	ClientKey    string    `json:"client_key"`
+	ClusterName  string    `json:"clusterName"`
+	APIServerURL string    `json:"apiServerUrl"`
+	CACert       string    `json:"caCert"`
+	ClientCert   string    `json:"clientCert"`
+	ClientKey    string    `json:"clientKey"`
 	Token        string    `json:"token"`
 	Username     string    `json:"username"`
 	Password     string    `json:"password"`
 	Active       bool      `json:"active"`
 	Description  string    `json:"description"`
-	CreatedBy    string    `json:"created_by"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedBy    string    `json:"updated_by"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	CreatedBy    string    `json:"createdBy"`
+	CreatedAt    time.Time `json:"createdAt"`
+	UpdatedBy    string    `json:"updatedBy"`
+	UpdatedAt    time.Time `json:"updatedAt"`
 }
