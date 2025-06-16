@@ -24,16 +24,13 @@
     :label="t('从库主机关联实例')"
     :loading="loading"
     :min-width="150">
-    <EditableBlock v-if="modelValue.related_instances.length">
+    <EditableBlock :placeholder="t('自动生成')">
       <p
         v-for="item in modelValue.related_instances"
         :key="item">
         {{ item }}
       </p>
     </EditableBlock>
-    <EditableBlock
-      v-else
-      :placeholder="t('自动生成')" />
   </EditableColumn>
 </template>
 <script lang="ts" setup>
@@ -52,16 +49,13 @@
   const props = defineProps<Props>();
 
   const modelValue = defineModel<{
-    bk_biz_id?: number;
-    bk_cloud_id?: number;
-    bk_host_id?: number;
+    bk_biz_id: number;
+    bk_cloud_id: number;
+    bk_host_id: number;
     ip: string;
     related_instances: string[];
   }>({
-    default: () => ({
-      ip: '',
-      related_instances: [],
-    }),
+    required: true,
   });
 
   const { t } = useI18n();

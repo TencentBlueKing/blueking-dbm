@@ -14,11 +14,11 @@
 <template>
   <EditableColumn
     :append-rules="rules"
-    field="slave.instance_address"
+    field="slave.ip"
     fixed="left"
-    :label="t('目标从库实例')"
+    :label="t('目标从库主机')"
     :loading="loading"
-    :min-width="150"
+    :min-width="220"
     required>
     <template #headAppend>
       <span
@@ -29,13 +29,25 @@
       </span>
     </template>
     <EditableInput
-      v-model="modelValue.instance_address"
-      :placeholder="t('请输入IP:Port')"
+      v-model="modelValue.ip"
+      :placeholder="t('请输入IP')"
       @change="handleInputChange" />
+  </EditableColumn>
+  <EditableColumn
+    :label="t('同机关联集群')"
+    :loading="loading"
+    :min-width="220">
+    <EditableBlock :placeholder="t('自动生成')">
+      <p
+        v-for="item in modelValue.related_clusters"
+        :key="item.id">
+        {{ item.master_domain }}
+      </p>
+    </EditableBlock>
   </EditableColumn>
   <InstanceSelector
     v-model:is-show="showSelector"
-    :cluster-types="[ClusterTypes.TENDBCLUSTER]"
+    :cluster-types="['TendbhaHost']"
     :selected="selectedInstances"
     :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
@@ -47,7 +59,7 @@
   import { checkInstance } from '@services/source/dbbase';
 
   import { ClusterTypes, DBTypes } from '@common/const';
-  import { ipPort } from '@common/regex';
+  import { ipv4 } from '@common/regex';
 
   import InstanceSelector, {
     type InstanceSelectorValues,
@@ -59,7 +71,7 @@
 
   interface Props {
     selected: {
-      instance_address: string;
+      ip: string;
     }[];
   }
 
@@ -72,36 +84,40 @@
   const modelValue = defineModel<{
     bk_biz_id: number;
     bk_cloud_id: number;
-    bk_host_id?: number;
-    cluster_id: number;
-    instance_address: string;
+    bk_host_id: number;
     ip: string;
-    master_domain: string;
-    port: number;
+    spec_id: number;
+    related_clusters: {
+      id: number;
+      master_domain: string;
+    }[];
   }>({
-    default: () => ({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: undefined,
-      cluster_id: 0,
-      instance_address: '',
-      ip: '',
-      master_domain: '',
-      port: 0,
-    }),
+    required: true,
   });
 
   const { t } = useI18n();
 
   const tabListConfig = {
-    [ClusterTypes.TENDBCLUSTER]: [
+    TendbhaHost: [
       {
-        name: t('目标从库'),
+        id: 'TendbhaHost',
+        name: t('目标从库主机'),
         tableConfig: {
           firsrColumn: {
-            field: 'instance_address',
-            label: t('Slave 实例'),
-            role: 'remote_slave',
+            field: 'ip',
+            label: t('Slave 主机'),
+            role: 'backend_slave',
+          },
+        },
+      },
+      {
+        id: 'manualInput',
+        name: t('手动输入'),
+        tableConfig: {
+          firsrColumn: {
+            field: 'ip',
+            label: t('Slave 主机'),
+            role: 'backend_slave',
           },
         },
       },
@@ -110,27 +126,27 @@
 
   const showSelector = ref(false);
   const selectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
-    TendbClusterHost: props.selected.map(
+    [ClusterTypes.TENDBHA]: props.selected.map(
       (item) =>
         ({
-          instance_address: item.instance_address,
+          ip: item.ip,
         }) as IValue,
     ),
   }));
 
   const rules = [
     {
-      message: t('格式不符合要求'),
+      message: t('IP 格式不符合IPv4标准'),
       trigger: 'change',
-      validator: (value: string) => ipPort.test(value),
+      validator: (value: string) => ipv4.test(value),
     },
     {
-      message: t('目标实例重复'),
+      message: t('目标主机重复'),
       trigger: 'blur',
-      validator: (value: string) => props.selected.filter((item) => item.instance_address === value).length < 2,
+      validator: (value: string) => props.selected.filter((item) => item.ip === value).length < 2,
     },
     {
-      message: t('目标实例不存在'),
+      message: t('目标主机不存在'),
       trigger: 'blur',
       validator: (value: string) => {
         if (!value) {
@@ -150,11 +166,12 @@
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           bk_cloud_id: currentHost.bk_cloud_id,
           bk_host_id: currentHost.bk_host_id,
-          cluster_id: currentHost.cluster_id,
-          instance_address: currentHost.instance_address,
           ip: currentHost.ip,
-          master_domain: currentHost.master_domain,
-          port: currentHost.port,
+          spec_id: currentHost.spec_config.id,
+          related_clusters: currentHost.related_clusters.map((item) => ({
+            id: item.id,
+            master_domain: item.master_domain,
+          })),
         };
       }
     },
@@ -168,26 +185,33 @@
     modelValue.value = {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
-      bk_host_id: undefined,
-      cluster_id: 0,
-      instance_address: value,
-      ip: '',
-      master_domain: '',
-      port: 0,
+      bk_host_id: 0,
+      ip: value,
+      related_clusters: [],
+      spec_id: 0,
     };
-    if (value) {
-      queryHost({
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        cluster_type: [ClusterTypes.TENDBCLUSTER],
-        db_type: DBTypes.TENDBCLUSTER,
-        instance_addresses: [value],
-      });
-    }
   };
 
   const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
-    emits('batch-edit', selected[ClusterTypes.TENDBCLUSTER]);
+    emits('batch-edit', selected.TendbhaHost);
   };
+
+  watch(
+    modelValue,
+    () => {
+      if (modelValue.value.ip && !modelValue.value.bk_host_id) {
+        queryHost({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_type: [ClusterTypes.TENDBHA],
+          db_type: DBTypes.MYSQL,
+          instance_addresses: [modelValue.value.ip],
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 <style lang="less" scoped>
   .batch-host-select {

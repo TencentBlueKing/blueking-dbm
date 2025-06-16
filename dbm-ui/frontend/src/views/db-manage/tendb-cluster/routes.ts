@@ -239,6 +239,9 @@ const spiderToolboxRoute = {
       dbConsole: 'tendbCluster.toolbox.masterSlaveClone',
     }),
     createRouteItem(TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE, t('重建从库'), {
+      dbConsole: 'tendbCluster.toolbox.slaveLocalRebuild',
+    }),
+    createRouteItem(TicketTypes.TENDBCLUSTER_RESTORE_SLAVE, t('重建从库'), {
       dbConsole: 'tendbCluster.toolbox.slaveRebuild',
     }),
     {

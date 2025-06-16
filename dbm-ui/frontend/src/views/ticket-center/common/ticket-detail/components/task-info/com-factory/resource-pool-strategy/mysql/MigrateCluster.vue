@@ -16,6 +16,9 @@
     <InfoItem :label="t('迁移类型')">
       {{ operaObjectMap[ticketDetails.details.opera_object] }}
     </InfoItem>
+    <InfoItem :label="t('主机选择方式')">
+      {{ ticketDetails.details.source_type === SourceType.RESOURCE_AUTO ? t('资源池自动匹配') : t('资源池手动选择') }}
+    </InfoItem>
   </InfoList>
   <BkTable
     :data="ticketDetails.details.infos"
@@ -73,27 +76,61 @@
       </BkTableColumn>
     </template>
     <BkTableColumn
-      :label="t('新主从主机')"
-      :min-width="150">
+      :label="t('机器规格')"
+      :min-width="120">
       <template #default="{ data }: { data: RowData }">
-        <div>
-          <BkTag
-            size="small"
-            theme="success">
-            M
-          </BkTag>
-          {{ data.resource_spec.new_master.hosts?.[0]?.ip || '--' }}
-        </div>
-        <div>
-          <BkTag
-            size="small"
-            theme="info">
-            S
-          </BkTag>
-          {{ data.resource_spec.new_slave.hosts?.[0]?.ip || '--' }}
-        </div>
+        {{ ticketDetails.details.specs?.[data.resource_spec.new_master.spec_id]?.name || '--' }}
       </template>
     </BkTableColumn>
+    <template v-if="ticketDetails.details.source_type === SourceType.RESOURCE_AUTO">
+      <BkTableColumn
+        :label="t('资源标签')"
+        :min-width="200">
+        <template #default="{ data }: { data: RowData }">
+          <BkTag
+            v-for="item in data.resource_spec.new_slave.label_values"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+      </BkTableColumn>
+      <BkTableColumn
+        :label="t('可用资源')"
+        :min-width="120">
+        <template #default="{ data }: { data: RowData }">
+          <BkButton
+            text
+            theme="primary"
+            @click="() => handleClick(data)">
+            {{ t('资源预览') }}
+          </BkButton>
+        </template>
+      </BkTableColumn>
+    </template>
+    <template v-if="ticketDetails.details.source_type === SourceType.RESOURCE_MANUAL">
+      <BkTableColumn
+        :label="t('新主从主机')"
+        :min-width="150">
+        <template #default="{ data }: { data: RowData }">
+          <div>
+            <BkTag
+              size="small"
+              theme="success">
+              M
+            </BkTag>
+            {{ data.resource_spec.new_master.hosts?.[0]?.ip || '--' }}
+          </div>
+          <div>
+            <BkTag
+              size="small"
+              theme="info">
+              S
+            </BkTag>
+            {{ data.resource_spec.new_slave.hosts?.[0]?.ip || '--' }}
+          </div>
+        </template>
+      </BkTableColumn>
+    </template>
   </BkTable>
   <InfoList>
     <InfoItem :label="t('备份源')">
@@ -108,9 +145,9 @@
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
-  import { OperaObejctType } from '@services/types';
+  import { OperaObejctType, SourceType } from '@services/types';
 
-  import { TicketTypes } from '@common/const';
+  import { DBTypes, TicketTypes } from '@common/const';
 
   import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
 
@@ -132,5 +169,23 @@
   const operaObjectMap = {
     [OperaObejctType.CLUSTER]: t('集群迁移'),
     [OperaObejctType.MACHINE]: t('整机迁移'),
+  };
+
+  const showSlider = ref(false);
+  const params = ref<{
+    for_bizs: number[];
+    labels: string;
+    resource_types: string[];
+    spec_id: number;
+  }>();
+
+  const handleClick = (data: RowData) => {
+    showSlider.value = true;
+    params.value = {
+      for_bizs: [window.PROJECT_CONFIG.BIZ_ID, 0],
+      labels: data.resource_spec.new_slave.labels.join(','),
+      resource_types: [DBTypes.MYSQL, 'PUBLIC'],
+      spec_id: data.resource_spec.new_slave.spec_id,
+    };
   };
 </script>

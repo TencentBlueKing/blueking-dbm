@@ -44,3 +44,13 @@ export enum OperaObejctType {
   INSTANCE = 'instance',
   MACHINE = 'machine',
 }
+
+/**
+ * @description 主机来源类型
+ * @enum=RESOURCE_AUTO 资源池自动匹配
+ * @enum=RESOURCE_MANUAL 资源池手动选择
+ */
+export enum SourceType {
+  RESOURCE_AUTO = 'resource_auto',
+  RESOURCE_MANUAL = 'resource_manual',
+}

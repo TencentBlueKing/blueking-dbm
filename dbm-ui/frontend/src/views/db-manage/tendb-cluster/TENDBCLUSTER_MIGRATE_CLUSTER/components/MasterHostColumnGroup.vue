@@ -37,16 +37,13 @@
     :label="t('主库主机关联实例')"
     :loading="loading"
     :min-width="150">
-    <EditableBlock v-if="modelValue.related_instances.length">
+    <EditableBlock :placeholder="t('自动生成')">
       <p
         v-for="item in modelValue.related_instances"
         :key="item">
         {{ item }}
       </p>
     </EditableBlock>
-    <EditableBlock
-      v-else
-      :placeholder="t('自动生成')" />
   </EditableColumn>
   <InstanceSelector
     v-model:is-show="showSelector"
@@ -69,9 +66,6 @@
 
   interface Props {
     selected: {
-      bk_biz_id?: number;
-      bk_cloud_id?: number;
-      bk_host_id?: number;
       ip: string;
     }[];
   }
@@ -85,23 +79,14 @@
   const modelValue = defineModel<{
     bk_biz_id: number;
     bk_cloud_id: number;
-    bk_host_id?: number;
+    bk_host_id: number;
     cluster_id: number;
     ip: string;
     master_domain: string;
     related_instances: string[];
     spec_id: number;
   }>({
-    default: () => ({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: undefined,
-      cluster_id: 0,
-      ip: '',
-      master_domain: '',
-      related_instances: [],
-      spec_id: 0,
-    }),
+    required: true,
   });
 
   const { t } = useI18n();
@@ -170,21 +155,13 @@
     modelValue.value = {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
-      bk_host_id: undefined,
+      bk_host_id: 0,
       cluster_id: 0,
       ip: value,
       master_domain: '',
       related_instances: [],
       spec_id: 0,
     };
-    if (value) {
-      queryHost({
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        cluster_type: [ClusterTypes.TENDBCLUSTER],
-        db_type: DBTypes.TENDBCLUSTER,
-        instance_addresses: [value],
-      });
-    }
   };
 
   const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
@@ -192,9 +169,16 @@
   };
 
   watch(
-    () => modelValue.value.ip,
+    modelValue,
     () => {
-      handleInputChange(modelValue.value.ip);
+      if (modelValue.value.ip && !modelValue.value.bk_host_id) {
+        queryHost({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_type: [ClusterTypes.TENDBCLUSTER],
+          db_type: DBTypes.TENDBCLUSTER,
+          instance_addresses: [modelValue.value.ip],
+        });
+      }
     },
     {
       immediate: true,

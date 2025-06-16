@@ -16,7 +16,23 @@
     <BkAlert
       class="mb-20"
       closable
-      :title="t('添加从库_同机的所有集群会统一新增从库_但新机器不添加到域名解析中去')" />
+      :title="t('重建从库_原机器或新机器重新同步数据及权限_并且将域名解析指向同步好的机器')" />
+    <div class="title-spot mt-12 mb-10">{{ t('重建类型') }}<span class="required" /></div>
+    <div class="mt-8 mb-20">
+      <CardCheckbox
+        v-model="restoreType"
+        :desc="t('在原主机上进行故障从库实例重建')"
+        icon="rebuild"
+        :title="t('原地重建')"
+        :true-value="TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE" />
+      <CardCheckbox
+        v-model="restoreType"
+        class="ml-8"
+        :desc="t('将从库主机的全部实例重建到新主机')"
+        icon="host"
+        :title="t('新机重建')"
+        :true-value="TicketTypes.MYSQL_RESTORE_SLAVE" />
+    </div>
     <BkForm
       class="mb-20"
       form-type="vertical"
@@ -39,19 +55,18 @@
         :key="tableKey"
         ref="table"
         class="mb-20"
-        :model="formData.tableData"
-        :rules="rules">
+        :model="formData.tableData">
         <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
-          <WithRelatedClustersColumn
-            v-model="item.cluster"
+          <SlaveHostColumnGroup
+            v-model="item.slave"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
           <SpecColumn
             v-model="item.specId"
             :cluster-type="DBTypes.MYSQL"
-            :current-spec-id="item.cluster.spec_id" />
+            :current-spec-id="item.slave.spec_id" />
           <template v-if="sourceType === SourceType.RESOURCE_AUTO">
             <ResourceTagColumn
               v-model="item.labels"
@@ -105,55 +120,50 @@
   </SmartAction>
 </template>
 <script lang="ts" setup>
-  import type { _DeepPartial } from 'pinia';
-  import { reactive, useTemplateRef } from 'vue';
-  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
-  import TendbhaModel from '@services/model/mysql/tendbha';
-  import type { Mysql } from '@services/model/ticket/ticket';
+  import { type Mysql } from '@services/model/ticket/ticket';
   import { BackupSourceType, SourceType } from '@services/types';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
-
-  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
-
-  import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
-  import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
+  import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
   import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
-  import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
+  import { DBTypes, TicketTypes } from '@common/const';
+  import { random } from '@utils';
   import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
-  import WithRelatedClustersColumn from '@views/db-manage/mysql/common/edit-table-column/WithRelatedClustersColumn.vue';
-
-  import { random } from '@utils';
+  import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
+  import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
+  import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
+  import SlaveHostColumnGroup, { type SelectorHost } from './components/SlaveHostColumnGroup.vue';
+  import type { _DeepPartial } from 'pinia';
+  import type { ComponentProps } from 'vue-component-type-helpers';
 
   interface RowData {
-    cluster: ComponentProps<typeof WithRelatedClustersColumn>['modelValue'];
+    slave: ComponentProps<typeof SlaveHostColumnGroup>['modelValue'];
+    specId: number;
     labels: number[];
     labelSelected: ComponentProps<typeof ResourceTagColumn>['selected'];
     newSlave: ComponentProps<typeof SingleResourceHostColumn>['modelValue'];
-    specId: number;
   }
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
-
+  const router = useRouter();
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
-    cluster: {
-      cluster_type: ClusterTypes.TENDBHA,
-      id: 0,
-      master_domain: '',
+    slave: {
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      bk_cloud_id: 0,
+      bk_host_id: 0,
+      ip: '',
       spec_id: 0,
-      ...data.cluster,
-      related_clusters: [] as RowData['cluster']['related_clusters'],
+      ...data.slave,
+      related_clusters: [] as RowData['slave']['related_clusters'],
     },
-    labels: (data.labels as number[]) || ([] as number[]),
-    labelSelected: [] as ComponentProps<typeof ResourceTagColumn>['selected'],
     newSlave: {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
@@ -161,6 +171,8 @@
       ip: '',
       ...data.newSlave,
     },
+    labels: (data.labels as number[]) || ([] as number[]),
+    labelSelected: [] as ComponentProps<typeof ResourceTagColumn>['selected'],
     specId: data.specId || 0,
   });
 
@@ -170,102 +182,45 @@
     tableData: [createTableRow()],
   });
 
+  const restoreType = ref<TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE | TicketTypes.MYSQL_RESTORE_SLAVE>(
+    TicketTypes.MYSQL_RESTORE_SLAVE,
+  );
   const sourceType = ref(SourceType.RESOURCE_AUTO);
   const formData = reactive(defaultData());
   const tableKey = ref(random());
+  const selected = computed(() => formData.tableData.filter((item) => item.slave.bk_host_id).map((item) => item.slave));
+  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
 
-  const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
-  const clusterMap = computed(() => {
-    return formData.tableData.reduce<Record<string, string>>((acc, cur) => {
-      Object.assign(acc, {
-        [cur.cluster.master_domain]: cur.cluster.master_domain,
-      });
-      cur.cluster.related_clusters.forEach((item) => {
-        Object.assign(acc, {
-          [item.master_domain]: cur.cluster.master_domain, // 关联集群映射到所属集群
-        });
-      });
-      return acc;
-    }, {});
-  });
-  const newSlaveCounter = computed(() => {
-    return formData.tableData.reduce<Record<string, number>>((result, item) => {
-      Object.assign(result, {
-        [item.newSlave.ip]: (result[item.newSlave.ip] || 0) + 1,
-      });
-      return result;
-    }, {});
-  });
-
-  const rules = {
-    'cluster.master_domain': [
-      {
-        message: '',
-        trigger: 'blur',
-        validator: (value: string) => {
-          const target = clusterMap.value[value];
-          if (target && target !== value) {
-            return t('目标集群是集群target的关联集群_请勿重复添加', { target });
-          }
-          return true;
-        },
-      },
-    ],
-    'newSlave.ip': [
-      {
-        message: t('IP 重复'),
-        trigger: 'blur',
-        validator: (value: string, { rowData }: { rowData: RowData }) => {
-          if (!value) {
-            return true;
-          }
-          const row = rowData as RowData;
-          return newSlaveCounter.value[row.newSlave.ip] <= 1;
-        },
-      },
-      {
-        message: t('IP 重复'),
-        trigger: 'change',
-        validator: (value: string, { rowData }: { rowData: RowData }) => {
-          if (!value) {
-            return true;
-          }
-          const row = rowData as RowData;
-          return newSlaveCounter.value[row.newSlave.ip] <= 1;
-        },
-      },
-    ],
-  };
-
-  useTicketDetail<Mysql.ResourcePool.AddSlave>(TicketTypes.MYSQL_ADD_SLAVE, {
+  useTicketDetail<Mysql.ResourcePool.RestoreSlave>(TicketTypes.MYSQL_RESTORE_SLAVE, {
     onSuccess(ticketDetail) {
-      const { details } = ticketDetail;
-      const { backup_source: backupSource, clusters, infos } = details;
+      const { backup_source: backupSource, infos } = ticketDetail.details;
+      sourceType.value = ticketDetail.details.source_type;
       tableKey.value = random();
-      sourceType.value = details.source_type;
       Object.assign(formData, {
         backupSource,
         ...createTickePayload(ticketDetail),
-        tableData: infos.map((item) => {
-          return createTableRow({
-            cluster: {
-              master_domain: clusters[item.cluster_ids[0]]?.immute_domain || '',
-            },
-            labels: (item.resource_spec.new_slave.labels || []).map((item) => Number(item)),
-            newSlave: {
-              ip: item.resource_spec.new_slave.hosts?.[0]?.ip || '',
+        tableData: infos.map((item) =>
+          createTableRow({
+            slave: {
+              ip: item.old_nodes.old_slave?.[0]?.ip || '',
             },
             specId: item.resource_spec.new_slave.spec_id,
-          });
-        }),
+            labels: (item.resource_spec.new_slave.labels || []).map((item) => Number(item)),
+            newSlave: item.resource_spec.new_slave.hosts?.[0],
+          }),
+        ),
       });
     },
   });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     backup_source: BackupSourceType;
+    source_type: SourceType;
     infos: {
       cluster_ids: number[];
+      old_nodes: {
+        old_slave: RowData['newSlave'][];
+      };
       resource_spec: {
         new_slave: {
           hosts?: {
@@ -274,73 +229,86 @@
             bk_host_id: number;
             ip: string;
           }[];
-          label_values?: string[]; // 标签value列表，单据详情回显用
-          labels?: string[]; // 标签id列表
+          count: number;
           spec_id: number;
+          labels?: string[]; // 标签id列表
+          label_values?: string[]; // 标签value列表，单据详情回显用
         };
       };
     }[];
     ip_source: 'resource_pool';
-    source_type: SourceType;
-  }>(TicketTypes.MYSQL_ADD_SLAVE);
+  }>(TicketTypes.MYSQL_RESTORE_SLAVE);
+
+  watch(restoreType, () => {
+    if (restoreType.value === TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE) {
+      router.push({
+        name: TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE,
+      });
+    }
+  });
 
   const handleChangeMode = () => {
     tableKey.value = random();
   };
 
   const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        backup_source: formData.backupSource,
-        infos: formData.tableData.map((item) => ({
-          cluster_ids: [item.cluster.id, ...item.cluster.related_clusters.map((item) => item.id)],
-          resource_spec: {
-            new_slave: {
-              count: 1,
-              hosts: sourceType.value === SourceType.RESOURCE_MANUAL ? [item.newSlave] : undefined,
-              label_values:
-                sourceType.value === SourceType.RESOURCE_AUTO
-                  ? item.labelSelected.map((item) => item.value)
-                  : undefined,
-              labels:
-                sourceType.value === SourceType.RESOURCE_AUTO ? item.labels.map((item) => String(item)) : undefined,
-              spec_id: item.cluster.spec_id,
+    const valid = await tableRef.value!.validate();
+    if (valid) {
+      createTicketRun({
+        details: {
+          source_type: sourceType.value,
+          backup_source: formData.backupSource,
+          infos: formData.tableData.map((item) => ({
+            cluster_ids: item.slave.related_clusters.map((item) => item.id),
+            old_nodes: {
+              old_slave: [
+                {
+                  bk_biz_id: item.slave.bk_biz_id,
+                  bk_cloud_id: item.slave.bk_cloud_id,
+                  bk_host_id: item.slave.bk_host_id,
+                  ip: item.slave.ip,
+                },
+              ],
             },
-          },
-        })),
-        ip_source: 'resource_pool',
-        source_type: sourceType.value,
-      },
-      ...formData.payload,
-    });
+            resource_spec: {
+              new_slave: {
+                count: 1,
+                spec_id: item.slave.spec_id,
+                labels:
+                  sourceType.value === SourceType.RESOURCE_AUTO ? item.labels.map((item) => String(item)) : undefined,
+                label_values:
+                  sourceType.value === SourceType.RESOURCE_AUTO
+                    ? item.labelSelected.map((item) => item.value)
+                    : undefined,
+                hosts: sourceType.value === SourceType.RESOURCE_MANUAL ? [item.newSlave] : undefined,
+              },
+            },
+          })),
+          ip_source: 'resource_pool',
+        },
+        ...formData.payload,
+      });
+    }
   };
 
   const handleReset = () => {
     Object.assign(formData, defaultData());
   };
 
-  const handleBatchEdit = (list: TendbhaModel[]) => {
+  const handleBatchEdit = (list: SelectorHost[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!clusterMap.value[item.master_domain]) {
+      if (!selectedMap.value[item.ip]) {
         acc.push(
           createTableRow({
-            cluster: {
-              master_domain: item.master_domain,
+            slave: {
+              ip: item.ip,
             },
+            specId: item.spec_config.id,
           }),
         );
       }
       return acc;
     }, []);
-    formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
+    formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
   };
 </script>
-<style lang="less" scoped>
-  :deep(.is-error .related-clusters) {
-    background: initial;
-  }
-</style>
