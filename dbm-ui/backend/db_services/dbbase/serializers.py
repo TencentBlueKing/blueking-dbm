@@ -106,6 +106,9 @@ class ClusterFilterSerializer(ListMySQLResourceSLZ, ListSQLServerResourceSLZ, Li
             filters &= Q(id__in=attrs["cluster_ids"].split(","))
         if attrs["cluster_type"]:
             filters &= Q(cluster_type__in=attrs["cluster_type"].split(","))
+        if attrs["db_type"]:
+            cluster_types = ClusterType.db_type_to_cluster_types(attrs["db_type"])
+            filters &= Q(cluster_type__in=cluster_types)
         attrs["filters"] = filters
         # 补充list resource过滤条件
         query_params = {field: attrs[field] for field in self.fields.keys() if field in attrs}

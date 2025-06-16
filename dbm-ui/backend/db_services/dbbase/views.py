@@ -210,7 +210,9 @@ class DBBaseViewSet(viewsets.SystemViewSet):
             InstanceHandler(bk_biz_id=data["bk_biz_id"]).check_instances(
                 query_instances=data["instance_addresses"],
                 cluster_ids=data.get("cluster_ids"),
+                cluster_type=data.get("cluster_type"),
                 db_type=data.get("db_type"),
+                instance_role=data.get("instance_role"),
             )
         )
 

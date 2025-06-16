@@ -79,6 +79,9 @@ class FlowParamBuilder(CallBackBuilderMixin):
     # 配置任务流程控制器：流程启动函数
     controller = None
 
+    # 暂时先为空，等校验函数出来再替换
+    validator = None
+
     def __init__(self, ticket: Ticket):
         self.ticket = ticket
         self.ticket_data = copy.deepcopy(ticket.details)
