@@ -60,6 +60,7 @@
   <InstanceSelector
     v-model:is-show="showSelector"
     :cluster-types="['SpiderHost']"
+    hide-manual-input
     :selected="selectedHosts"
     @change="handleSelectorChange" />
 </template>
@@ -91,6 +92,8 @@
   const modelValue = defineModel<{
     bk_cloud_id: number;
     bk_host_id: number;
+    bk_idc_city_name: string;
+    bk_sub_zone: string;
     cluster_id: number;
     instance_address: string;
     ip: string;
@@ -141,6 +144,8 @@
         modelValue.value = {
           bk_cloud_id: item.bk_cloud_id,
           bk_host_id: item.bk_host_id,
+          bk_idc_city_name: item.host_info?.bk_idc_city_name || '',
+          bk_sub_zone: item.host_info?.bk_sub_zone || '',
           cluster_id: item.cluster_id,
           instance_address: item.instance_address,
           ip: item.ip,
@@ -165,6 +170,8 @@
     modelValue.value = {
       bk_cloud_id: 0,
       bk_host_id: 0,
+      bk_idc_city_name: '',
+      bk_sub_zone: '',
       cluster_id: 0,
       instance_address: '',
       ip: value,

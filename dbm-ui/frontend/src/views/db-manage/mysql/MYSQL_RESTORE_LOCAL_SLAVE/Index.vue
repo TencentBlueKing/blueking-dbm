@@ -37,9 +37,12 @@
       class="mb-20"
       form-type="vertical"
       :model="formData">
+      <BatchInput
+        :config="batchInputConfig"
+        @change="handleBatchInput" />
       <EditableTable
         ref="table"
-        class="mb-20"
+        class="mt-16 mb-20"
         :model="formData.tableData">
         <EditableRow
           v-for="(item, index) in formData.tableData"
@@ -76,7 +79,7 @@
         :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
         :title="t('确认重置页面')">
         <BkButton
-          class="ml-8 w-88"
+          class="ml8 w-88"
           :disabled="isSubmitting">
           {{ t('重置') }}
         </BkButton>
@@ -97,10 +100,13 @@
 
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+
+  import { random } from '@utils';
 
   import SlaveInstanceColumn, { type SelectorHost } from './components/SlaveInstanceColumn.vue';
 
@@ -113,20 +119,18 @@
   const router = useRouter();
 
   const createTableRow = (data: DeepPartial<RowData> = {}) => ({
-    slave: Object.assign(
-      {
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        bk_cloud_id: 0,
-        bk_host_id: 0,
-        cluster_id: 0,
-        instance_address: '',
-        ip: '',
-        master_domain: '',
-        port: 0,
-        role: '',
-      },
-      data.slave,
-    ),
+    slave: {
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      bk_cloud_id: 0,
+      bk_host_id: 0,
+      cluster_id: 0,
+      instance_address: '',
+      ip: '',
+      master_domain: '',
+      port: 0,
+      role: '',
+      ...data.slave,
+    },
   });
 
   const defaultData = () => ({
@@ -135,10 +139,19 @@
     tableData: [createTableRow()],
   });
 
+  const batchInputConfig = [
+    {
+      case: '192.168.10.2:20000',
+      key: 'instance_address',
+      label: t('目标从库实例'),
+    },
+  ];
+
   const restoreType = ref<TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE | TicketTypes.MYSQL_RESTORE_SLAVE>(
     TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE,
   );
   const formData = reactive(defaultData());
+  const tableKey = ref(random());
   const selected = computed(() => formData.tableData.filter((item) => item.slave.bk_host_id).map((item) => item.slave));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.instance_address, true])));
 
@@ -213,7 +226,14 @@
         acc.push(
           createTableRow({
             slave: {
+              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+              bk_cloud_id: item.bk_cloud_id,
+              bk_host_id: item.bk_host_id,
+              cluster_id: item.cluster_id,
               instance_address: item.instance_address,
+              ip: item.ip,
+              master_domain: item.master_domain,
+              port: item.port,
             },
           }),
         );
@@ -221,5 +241,27 @@
       return acc;
     }, []);
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.reduce<RowData[]>((acc, item) => {
+      acc.push(
+        createTableRow({
+          slave: {
+            instance_address: item.instance_address,
+          },
+        }),
+      );
+      return acc;
+    }, []);
+    if (isClear) {
+      tableKey.value = random();
+      formData.tableData = [...dataList];
+    } else {
+      formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    }
+    setTimeout(() => {
+      tableRef.value?.validate();
+    }, 200);
   };
 </script>

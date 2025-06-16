@@ -92,12 +92,7 @@
   const props = defineProps<Props>();
 
   const modelValue = defineModel<TicketSpecInfo>({
-    default: () => ({
-      cluster_capacity: 0,
-      machine_pair: 0,
-      spec_id: 0,
-      spec_name: '',
-    }),
+    required: true,
   });
 
   const { t } = useI18n();

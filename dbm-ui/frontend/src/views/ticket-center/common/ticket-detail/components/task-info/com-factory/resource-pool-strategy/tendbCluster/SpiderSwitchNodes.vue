@@ -52,6 +52,18 @@
         }}
       </template>
     </BkTableColumn>
+    <BkTableColumn
+      :label="t('资源标签')"
+      :min-width="200">
+      <template #default="{ data }: { data: RowData }">
+        <BkTag
+          v-for="item in data.resource_spec[`${data.switch_spider_role}_${data.spider_old_ip_list[0].ip}`].label_names"
+          :key="item"
+          :theme="labelTheme(item)">
+          {{ item }}
+        </BkTag>
+      </template>
+    </BkTableColumn>
   </BkTable>
   <InfoList>
     <InfoItem :label="t('检查业务连接')">
@@ -82,4 +94,6 @@
   const { t } = useI18n();
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
+
+  const labelTheme = (labelName: string) => (labelName === t('通用无标签') ? 'success' : '');
 </script>

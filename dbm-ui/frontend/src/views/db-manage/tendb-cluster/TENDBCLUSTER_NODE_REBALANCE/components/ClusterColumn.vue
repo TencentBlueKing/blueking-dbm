@@ -30,7 +30,8 @@
     </template>
     <EditableInput
       v-model="modelValue.master_domain"
-      :placeholder="t('请输入集群域名')" />
+      :placeholder="t('请输入集群域名')"
+      @change="handleChange" />
   </EditableColumn>
   <ClusterSelector
     v-model:is-show="showSelector"
@@ -45,7 +46,7 @@
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import { filterClusters } from '@services/source/dbbase';
 
-  import { Affinity, ClusterTypes } from '@common/const';
+  import { Affinity, ClusterTypes, DBTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
@@ -76,20 +77,10 @@
       | 'machine_pair_cnt'
       | 'remote_shard_num'
       | 'disaster_tolerance_level'
+      | 'region'
     >
   >({
-    default: () => ({
-      bk_cloud_id: 0,
-      cluster_capacity: 0,
-      cluster_shard_num: 0,
-      cluster_spec: {} as TendbClusterModel['cluster_spec'],
-      db_module_id: 0,
-      disaster_tolerance_level: Affinity.CROS_SUBZONE,
-      id: 0,
-      machine_pair_cnt: 0,
-      master_domain: '',
-      remote_shard_num: 0,
-    }),
+    required: true,
   });
 
   const { t } = useI18n();
@@ -103,22 +94,17 @@
     {
       message: t('集群域名格式不正确'),
       trigger: 'change',
-      validator: (value: string) => domainRegex.test(value),
+      validator: (value: string) => !value || domainRegex.test(value),
     },
     {
       message: t('目标集群重复'),
       trigger: 'blur',
-      validator: (value: string) => props.selected.filter((item) => item.master_domain === value).length < 2,
+      validator: (value: string) => !value || props.selected.filter((item) => item.master_domain === value).length < 2,
     },
     {
       message: t('目标集群不存在'),
       trigger: 'blur',
-      validator: (value: string) => {
-        if (!value) {
-          return true;
-        }
-        return Boolean(modelValue.value.id);
-      },
+      validator: (value: string) => !value || Boolean(modelValue.value.id),
     },
   ];
 
@@ -137,6 +123,7 @@
           id: item.id,
           machine_pair_cnt: item.machine_pair_cnt,
           master_domain: item.master_domain,
+          region: item.region,
           remote_shard_num: item.remote_shard_num,
         };
       }
@@ -151,29 +138,32 @@
     emits('batch-edit', selected[ClusterTypes.TENDBCLUSTER]);
   };
 
-  watch(
-    () => modelValue.value.master_domain,
-    (value) => {
-      modelValue.value = {
-        bk_cloud_id: 0,
-        cluster_capacity: 0,
-        cluster_shard_num: 0,
-        cluster_spec: {} as TendbClusterModel['cluster_spec'],
-        db_module_id: 0,
-        disaster_tolerance_level: Affinity.CROS_SUBZONE,
-        id: 0,
-        machine_pair_cnt: 0,
-        master_domain: value,
-        remote_shard_num: 0,
-      };
-      if (value) {
-        queryCluster({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          exact_domain: value,
-        });
-      }
-    },
-  );
+  const handleChange = (value: string) => {
+    modelValue.value = {
+      bk_cloud_id: 0,
+      cluster_capacity: 0,
+      cluster_shard_num: 0,
+      cluster_spec: {} as TendbClusterModel['cluster_spec'],
+      db_module_id: 0,
+      disaster_tolerance_level: Affinity.CROS_SUBZONE,
+      id: 0, // 重置ID，查询时会使用域名查询
+      machine_pair_cnt: 0,
+      master_domain: value,
+      region: '',
+      remote_shard_num: 0,
+    };
+  };
+
+  watch(modelValue, () => {
+    if (modelValue.value.master_domain && !modelValue.value.id) {
+      queryCluster({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        cluster_type: ClusterTypes.TENDBCLUSTER,
+        db_type: DBTypes.TENDBCLUSTER,
+        exact_domain: modelValue.value.master_domain,
+      });
+    }
+  });
 </script>
 <style lang="less" scoped>
   .batch-host-select {

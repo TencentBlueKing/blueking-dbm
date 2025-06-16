@@ -17,11 +17,15 @@
       class="mb-20"
       closable
       :title="t('集群容量变更：通过部署新集群来实现原集群的扩容或缩容（集群分片数不变）')" />
+    <BatchInput
+      :config="batchInputConfig"
+      @change="handleBatchInput" />
     <BkForm
-      class="mb-20"
+      class="mt-16 mb-20"
       form-type="vertical"
       :model="formData">
       <EditableTable
+        :key="tableKey"
         ref="table"
         class="mb-20"
         :model="formData.tableData">
@@ -35,12 +39,23 @@
           <CapacityColumn
             v-model="item.targetCapacity"
             :cluster="item.cluster" />
+          <ResourceTagColumn
+            v-model="item.labels"
+            @batch-edit="handleBatchEditColumn" />
+          <AvailableResourceColumn
+            :params="{
+              city: item.cluster.region,
+              for_bizs: [currentBizId, 0],
+              resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
+              spec_id: item.targetCapacity.spec_id,
+              labels: item.labels.map((item) => item.id).join(','),
+            }" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
         </EditableRow>
       </EditableTable>
-      <BackupSource v-model="formData.backup_source" />
+      <BackupSource v-model="formData.backupSource" />
       <BkFormItem
         :label="t('数据校验')"
         property="need_checksum"
@@ -74,6 +89,7 @@
 </template>
 <script lang="ts" setup>
   import { reactive, useTemplateRef } from 'vue';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
@@ -82,98 +98,102 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { Affinity, TicketTypes } from '@common/const';
+  import { Affinity, DBTypes, TicketTypes } from '@common/const';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
+  import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
+  import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
+  import { random } from '@utils';
+
   import CapacityColumn from './components/capacity-column/Index.vue';
   import ClusterColumn from './components/ClusterColumn.vue';
 
   interface RowData {
-    cluster: Pick<
-      TendbClusterModel,
-      | 'id'
-      | 'master_domain'
-      | 'bk_cloud_id'
-      | 'cluster_capacity'
-      | 'cluster_shard_num'
-      | 'cluster_spec'
-      | 'db_module_id'
-      | 'machine_pair_cnt'
-      | 'remote_shard_num'
-      | 'disaster_tolerance_level'
-    >;
-    targetCapacity: {
-      cluster_capacity: number;
-      machine_pair: number;
-      spec_id: number;
-      spec_name: string;
-    };
+    cluster: ComponentProps<typeof ClusterColumn>['modelValue'];
+    labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
+    targetCapacity: ComponentProps<typeof CapacityColumn>['modelValue'];
   }
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
+  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
-  const createTableRow = (data = {} as Partial<RowData>) => ({
-    cluster: data.cluster || {
-      bk_cloud_id: 0,
-      cluster_capacity: 0,
-      cluster_shard_num: 0,
-      cluster_spec: {} as TendbClusterModel['cluster_spec'],
-      db_module_id: 0,
-      disaster_tolerance_level: Affinity.CROS_SUBZONE,
-      id: 0,
-      machine_pair_cnt: 0,
-      master_domain: '',
-      remote_shard_num: 0,
+  const batchInputConfig = [
+    {
+      case: 'spider.tendb-test.1.db',
+      key: 'master_domain',
+      label: t('目标集群'),
     },
-    targetCapacity: data.targetCapacity || {
-      cluster_capacity: 0,
-      machine_pair: 0,
-      spec_id: 0,
-      spec_name: '',
+    {
+      case: '标签1,标签2',
+      key: 'labels',
+      label: t('资源标签'),
     },
+  ];
+
+  const createTableRow = (data: DeepPartial<RowData> = {}) => ({
+    cluster: Object.assign(
+      {
+        bk_cloud_id: 0,
+        cluster_capacity: 0,
+        cluster_shard_num: 0,
+        cluster_spec: {} as TendbClusterModel['cluster_spec'],
+        db_module_id: 0,
+        disaster_tolerance_level: Affinity.CROS_SUBZONE,
+        id: 0,
+        machine_pair_cnt: 0,
+        master_domain: '',
+        region: '',
+        remote_shard_num: 0,
+      },
+      data.cluster,
+    ),
+    labels: (data.labels || []) as RowData['labels'],
+    targetCapacity: Object.assign(
+      {
+        cluster_capacity: 0,
+        machine_pair: 0,
+        spec_id: 0,
+        spec_name: '',
+      },
+      data.targetCapacity,
+    ),
   });
 
   const defaultData = () => ({
-    backup_source: BackupSourceType.REMOTE,
+    backupSource: BackupSourceType.REMOTE,
     need_checksum: true,
     payload: createTickePayload(),
     tableData: [createTableRow()],
   });
 
   const formData = reactive(defaultData());
+  const tableKey = ref(random());
+
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() =>
     Object.fromEntries(formData.tableData.map((cur) => [cur.cluster.master_domain, true])),
   );
 
-  useTicketDetail<TendbCluster.NodeRebalance>(TicketTypes.TENDBCLUSTER_NODE_REBALANCE, {
+  useTicketDetail<TendbCluster.ResourcePool.NodeRebalance>(TicketTypes.TENDBCLUSTER_NODE_REBALANCE, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { clusters, infos } = details;
       Object.assign(formData, {
-        backup_source: details.backup_source,
+        backupSource: details.backup_source,
         need_checksum: details.need_checksum,
         payload: createTickePayload(ticketDetail),
         tableData: infos.map((item) => {
-          const clusterInfo = clusters[item.cluster_id];
           return createTableRow({
             cluster: {
-              bk_cloud_id: clusterInfo.bk_cloud_id,
-              cluster_capacity: 0,
-              cluster_shard_num: item.cluster_shard_num,
-              cluster_spec: {} as TendbClusterModel['cluster_spec'],
-              db_module_id: clusterInfo.db_module_id,
-              disaster_tolerance_level: Affinity.CROS_SUBZONE,
-              id: clusterInfo.id,
-              machine_pair_cnt: item.prev_machine_pair,
-              master_domain: clusterInfo.immute_domain,
-              remote_shard_num: item.remote_shard_num,
+              master_domain: clusters[item.cluster_id]?.immute_domain || '',
             },
+            labels: (item.resource_spec.backend_group.labels || []).map((item) => ({ id: Number(item) })),
             targetCapacity: {
               cluster_capacity: item.resource_spec.backend_group.futureCapacity,
               machine_pair: item.resource_spec.backend_group.count,
@@ -201,6 +221,8 @@
           affinity: string;
           count: number;
           futureCapacity: number;
+          label_names: string[]; // 标签名称列表，单据详情回显用
+          labels: string[]; // 标签id列表
           spec_id: number;
           specName: string;
         };
@@ -218,7 +240,7 @@
 
     createTicketRun({
       details: {
-        backup_source: formData.backup_source,
+        backup_source: formData.backupSource,
         infos: formData.tableData.map((item) => ({
           bk_cloud_id: item.cluster.bk_cloud_id,
           cluster_id: item.cluster.id,
@@ -232,6 +254,9 @@
               affinity: item.cluster.disaster_tolerance_level,
               count: item.targetCapacity.machine_pair,
               futureCapacity: item.targetCapacity.cluster_capacity,
+              label_names: item.labels.map((item) => item.value),
+              // 通用标签传空数组
+              labels: item.labels.filter((item) => item.id !== 0).map((item) => String(item.id)),
               spec_id: item.targetCapacity.spec_id,
               specName: item.targetCapacity.spec_name,
             },
@@ -254,16 +279,7 @@
         acc.push(
           createTableRow({
             cluster: {
-              bk_cloud_id: item.bk_cloud_id,
-              cluster_capacity: item.cluster_capacity,
-              cluster_shard_num: item.cluster_shard_num,
-              cluster_spec: item.cluster_spec,
-              db_module_id: item.db_module_id,
-              disaster_tolerance_level: item.disaster_tolerance_level,
-              id: item.id,
-              machine_pair_cnt: item.machine_pair_cnt,
               master_domain: item.master_domain,
-              remote_shard_num: item.remote_shard_num,
             },
           }),
         );
@@ -271,5 +287,36 @@
       return acc;
     }, []);
     formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.reduce<RowData[]>((acc, item) => {
+      acc.push(
+        createTableRow({
+          cluster: {
+            master_domain: item.master_domain,
+          },
+          labels: (item.labels as string)?.split(',').map((item) => ({ value: item })),
+        }),
+      );
+      return acc;
+    }, []);
+    if (isClear) {
+      tableKey.value = random();
+      formData.tableData = [...dataList];
+    } else {
+      formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
+    }
+    setTimeout(() => {
+      tableRef.value?.validate();
+    }, 200);
+  };
+
+  const handleBatchEditColumn = (value: any, field: string) => {
+    formData.tableData.forEach((rowData) => {
+      Object.assign(rowData, {
+        [field]: value,
+      });
+    });
   };
 </script>

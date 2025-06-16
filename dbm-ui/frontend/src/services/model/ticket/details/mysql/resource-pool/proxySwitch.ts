@@ -1,4 +1,4 @@
-import type { OperaObejctType } from '@services/types';
+import type { OperaObejctType, SourceType } from '@services/types';
 
 import type { DetailMachines, ResourcePoolDetailBase } from '../../common';
 
@@ -21,6 +21,7 @@ export interface ProxySwitch extends ResourcePoolDetailBase {
     };
     resource_spec: {
       target_proxy: {
+        count: number;
         hosts: {
           bk_biz_id: number;
           bk_cloud_id: number;
@@ -28,9 +29,13 @@ export interface ProxySwitch extends ResourcePoolDetailBase {
           ip: string;
           port: number;
         }[];
+        label_names: string[]; // 标签名称列表，单据详情回显用
+        labels: string[]; // 标签id列表
+        spec_id: number;
       };
     };
   }[];
   machine_infos: DetailMachines;
   opera_object: OperaObejctType.INSTANCE | OperaObejctType.MACHINE;
+  source_type: SourceType;
 }

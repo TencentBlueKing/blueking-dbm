@@ -62,7 +62,20 @@
           <SpecColumn
             v-model="item.specId"
             :cluster-type="ClusterTypes.TENDBCLUSTER"
-            :current-spec-id="item.slave.spec_id" />
+            :current-spec-id-list="[item.slave.spec_id]"
+            required />
+          <ResourceTagColumn
+            v-model="item.labels"
+            @batch-edit="handleBatchEditColumn" />
+          <AvailableResourceColumn
+            :params="{
+              city: item.slave.bk_idc_city_name,
+              subzones: item.slave.bk_sub_zone,
+              for_bizs: [currentBizId, 0],
+              resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
+              spec_id: item.specId,
+              labels: item.labels.map((item) => item.id).join(','),
+            }" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -84,7 +97,7 @@
         :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
         :title="t('确认重置页面')">
         <BkButton
-          class="ml-8 w-88"
+          class="ml8 w-88"
           :disabled="isSubmitting">
           {{ t('重置') }}
         </BkButton>
@@ -101,11 +114,13 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
+  import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
+  import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
   import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
@@ -118,6 +133,7 @@
   import SlaveHostColumnGroup, { type SelectorHost } from './components/SlaveHostColumnGroup.vue';
 
   interface RowData {
+    labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     newSlave: ComponentProps<typeof SingleResourceHostColumn>['modelValue'];
     slave: ComponentProps<typeof SlaveHostColumnGroup>['modelValue'];
     specId: number;
@@ -126,6 +142,7 @@
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
   const router = useRouter();
+  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const batchInputConfig = [
     {
@@ -133,9 +150,15 @@
       key: 'slave_ip',
       label: t('目标从库主机'),
     },
+    {
+      case: '标签1,标签2',
+      key: 'labels',
+      label: t('资源标签'),
+    },
   ];
 
   const createTableRow = (data: DeepPartial<RowData> = {}) => ({
+    labels: (data.labels || []) as RowData['labels'],
     newSlave: Object.assign(
       {
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -150,6 +173,8 @@
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         bk_cloud_id: 0,
         bk_host_id: 0,
+        bk_idc_city_name: '',
+        bk_sub_zone: '',
         cluster_id: 0,
         ip: '',
         master_domain: '',
@@ -185,6 +210,7 @@
         ...createTickePayload(ticketDetail),
         tableData: infos.map((item) =>
           createTableRow({
+            labels: (item.resource_spec.new_slave.labels || []).map((item) => ({ id: Number(item) })),
             slave: {
               ip: item.old_nodes.old_slave[0].ip,
             },
@@ -205,6 +231,8 @@
       resource_spec: {
         new_slave: {
           count: number;
+          label_names: string[]; // 标签名称列表，单据详情回显用
+          labels: string[]; // 标签id列表
           spec_id: number;
         };
       };
@@ -241,6 +269,9 @@
             resource_spec: {
               new_slave: {
                 count: 1,
+                label_names: item.labels.map((item) => item.value),
+                // 通用标签传空数组
+                labels: item.labels.filter((item) => item.id !== 0).map((item) => String(item.id)),
                 spec_id: item.slave.spec_id,
               },
             },
@@ -276,6 +307,7 @@
     const dataList = data.reduce<RowData[]>((acc, item) => {
       acc.push(
         createTableRow({
+          labels: (item.labels as string)?.split(',').map((item) => ({ value: item })),
           slave: {
             ip: item.slave_ip,
           },
@@ -292,5 +324,13 @@
     setTimeout(() => {
       tableRef.value?.validate();
     }, 200);
+  };
+
+  const handleBatchEditColumn = (value: any, field: string) => {
+    formData.tableData.forEach((rowData) => {
+      Object.assign(rowData, {
+        [field]: value,
+      });
+    });
   };
 </script>

@@ -11,6 +11,7 @@ const path = '/apis/tag';
 export function listTag(params: {
   bind_ips?: string[];
   bk_biz_id?: number;
+  bk_biz_ids?: string; // 业务ID列表，逗号分隔
   creator?: string;
   ids?: string;
   limit?: number;
