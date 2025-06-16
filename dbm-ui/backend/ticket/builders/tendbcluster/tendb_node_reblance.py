@@ -46,7 +46,7 @@ class TendbNodeRebalanceDetailSerializer(TendbBaseOperateDetailSerializer):
         help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL.value
     )
     ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
-    need_checksum = serializers.BooleanField(help_text=_("执行前是否需要数据校验"))
+    need_checksum = serializers.BooleanField(help_text=_("执行前是否需要数据校验"), default=True)
 
     def validate(self, attrs):
         super().validate(attrs)
