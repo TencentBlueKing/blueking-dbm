@@ -35,12 +35,22 @@
           <CapacityColumn
             v-model="item.targetCapacity"
             :cluster="item.cluster" />
+          <ResourceTagColumn
+            v-model="item.labels"
+            v-model:selected="item.labelSelected" />
+          <AvailableResourceColumn
+            :params="{
+              for_bizs: [currentBizId, 0],
+              resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
+              spec_id: item.targetCapacity.spec_id,
+              labels: item.labels.join(','),
+            }" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
         </EditableRow>
       </EditableTable>
-      <BackupSource v-model="formData.backup_source" />
+      <BackupSource v-model="formData.backupSource" />
       <BkFormItem
         :label="t('数据校验')"
         property="need_checksum"
@@ -73,7 +83,9 @@
   </SmartAction>
 </template>
 <script lang="ts" setup>
+  import type { _DeepPartial } from 'pinia';
   import { reactive, useTemplateRef } from 'vue';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
@@ -82,8 +94,10 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { Affinity, TicketTypes } from '@common/const';
+  import { Affinity, DBTypes, TicketTypes } from '@common/const';
 
+  import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
+  import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
   import TicketPayload, {
     createTickePayload,
@@ -93,53 +107,43 @@
   import ClusterColumn from './components/ClusterColumn.vue';
 
   interface RowData {
-    cluster: Pick<
-      TendbClusterModel,
-      | 'id'
-      | 'master_domain'
-      | 'bk_cloud_id'
-      | 'cluster_capacity'
-      | 'cluster_shard_num'
-      | 'cluster_spec'
-      | 'db_module_id'
-      | 'machine_pair_cnt'
-      | 'remote_shard_num'
-      | 'disaster_tolerance_level'
-    >;
-    targetCapacity: {
-      cluster_capacity: number;
-      machine_pair: number;
-      spec_id: number;
-      spec_name: string;
-    };
+    cluster: ComponentProps<typeof ClusterColumn>['modelValue'];
+    labels: number[];
+    labelSelected: ComponentProps<typeof ResourceTagColumn>['selected'];
+    targetCapacity: ComponentProps<typeof CapacityColumn>['modelValue'];
   }
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
+  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
-  const createTableRow = (data = {} as Partial<RowData>) => ({
-    cluster: data.cluster || {
+  const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
+    cluster: {
       bk_cloud_id: 0,
       cluster_capacity: 0,
       cluster_shard_num: 0,
-      cluster_spec: {} as TendbClusterModel['cluster_spec'],
       db_module_id: 0,
       disaster_tolerance_level: Affinity.CROS_SUBZONE,
       id: 0,
       machine_pair_cnt: 0,
       master_domain: '',
       remote_shard_num: 0,
+      ...data.cluster,
+      cluster_spec: {} as TendbClusterModel['cluster_spec'],
     },
-    targetCapacity: data.targetCapacity || {
+    labels: (data.labels as number[]) || ([] as number[]),
+    labelSelected: [] as ComponentProps<typeof ResourceTagColumn>['selected'],
+    targetCapacity: {
       cluster_capacity: 0,
       machine_pair: 0,
       spec_id: 0,
       spec_name: '',
+      ...data.targetCapacity,
     },
   });
 
   const defaultData = () => ({
-    backup_source: BackupSourceType.REMOTE,
+    backupSource: BackupSourceType.REMOTE,
     need_checksum: true,
     payload: createTickePayload(),
     tableData: [createTableRow()],
@@ -151,29 +155,20 @@
     Object.fromEntries(formData.tableData.map((cur) => [cur.cluster.master_domain, true])),
   );
 
-  useTicketDetail<TendbCluster.NodeRebalance>(TicketTypes.TENDBCLUSTER_NODE_REBALANCE, {
+  useTicketDetail<TendbCluster.ResourcePool.NodeRebalance>(TicketTypes.TENDBCLUSTER_NODE_REBALANCE, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { clusters, infos } = details;
       Object.assign(formData, {
-        backup_source: details.backup_source,
+        backupSource: details.backup_source,
         need_checksum: details.need_checksum,
         payload: createTickePayload(ticketDetail),
         tableData: infos.map((item) => {
-          const clusterInfo = clusters[item.cluster_id];
           return createTableRow({
             cluster: {
-              bk_cloud_id: clusterInfo.bk_cloud_id,
-              cluster_capacity: 0,
-              cluster_shard_num: item.cluster_shard_num,
-              cluster_spec: {} as TendbClusterModel['cluster_spec'],
-              db_module_id: clusterInfo.db_module_id,
-              disaster_tolerance_level: Affinity.CROS_SUBZONE,
-              id: clusterInfo.id,
-              machine_pair_cnt: item.prev_machine_pair,
-              master_domain: clusterInfo.immute_domain,
-              remote_shard_num: item.remote_shard_num,
+              master_domain: clusters[item.cluster_id]?.immute_domain || '',
             },
+            labels: (item.resource_spec.backend_group.labels || []).map((item) => Number(item)),
             targetCapacity: {
               cluster_capacity: item.resource_spec.backend_group.futureCapacity,
               machine_pair: item.resource_spec.backend_group.count,
@@ -201,6 +196,8 @@
           affinity: string;
           count: number;
           futureCapacity: number;
+          label_values: string[]; // 标签value列表，单据详情回显用
+          labels: string[]; // 标签id列表
           spec_id: number;
           specName: string;
         };
@@ -218,7 +215,7 @@
 
     createTicketRun({
       details: {
-        backup_source: formData.backup_source,
+        backup_source: formData.backupSource,
         infos: formData.tableData.map((item) => ({
           bk_cloud_id: item.cluster.bk_cloud_id,
           cluster_id: item.cluster.id,
@@ -232,6 +229,8 @@
               affinity: item.cluster.disaster_tolerance_level,
               count: item.targetCapacity.machine_pair,
               futureCapacity: item.targetCapacity.cluster_capacity,
+              label_values: item.labelSelected.map((item) => item.value),
+              labels: item.labels.map((item) => String(item)),
               spec_id: item.targetCapacity.spec_id,
               specName: item.targetCapacity.spec_name,
             },
@@ -254,16 +253,7 @@
         acc.push(
           createTableRow({
             cluster: {
-              bk_cloud_id: item.bk_cloud_id,
-              cluster_capacity: item.cluster_capacity,
-              cluster_shard_num: item.cluster_shard_num,
-              cluster_spec: item.cluster_spec,
-              db_module_id: item.db_module_id,
-              disaster_tolerance_level: item.disaster_tolerance_level,
-              id: item.id,
-              machine_pair_cnt: item.machine_pair_cnt,
               master_domain: item.master_domain,
-              remote_shard_num: item.remote_shard_num,
             },
           }),
         );

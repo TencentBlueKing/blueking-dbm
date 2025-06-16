@@ -18,14 +18,14 @@
     <BkTableColumn
       fixed="left"
       :label="t('目标主库主机')"
-      :min-width="150">
+      :min-width="120">
       <template #default="{ data }: { data: RowData }">
         {{ data.old_nodes.old_master?.[0]?.ip || '--' }}
       </template>
     </BkTableColumn>
     <BkTableColumn
       :label="t('主库主机关联实例')"
-      :min-width="200">
+      :min-width="150">
       <template #default="{ data }: { data: RowData }">
         <template
           v-if="ticketDetails.details.machine_infos?.[data.old_nodes.old_master?.[0]?.ip]?.related_instances?.length">
@@ -40,14 +40,14 @@
     </BkTableColumn>
     <BkTableColumn
       :label="t('目标从库主机')"
-      :min-width="150">
+      :min-width="120">
       <template #default="{ data }: { data: RowData }">
         {{ data.old_nodes.old_slave?.[0]?.ip || '--' }}
       </template>
     </BkTableColumn>
     <BkTableColumn
       :label="t('从库主机关联实例')"
-      :min-width="200">
+      :min-width="150">
       <template #default="{ data }: { data: RowData }">
         <template
           v-if="ticketDetails.details.machine_infos?.[data.old_nodes.old_slave?.[0]?.ip]?.related_instances?.length">
@@ -62,28 +62,64 @@
     </BkTableColumn>
     <BkTableColumn
       :label="t('所属集群')"
-      :min-width="260">
+      :min-width="200">
       <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.clusters?.[data.cluster_id]?.immute_domain || '--' }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      :label="t('机器规格')"
+      :min-width="120">
+      <template #default="{ data }: { data: RowData }">
+        {{ ticketDetails.details.specs?.[data.resource_spec.backend_group.spec_id]?.name || '--' }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      :label="t('资源标签')"
+      :min-width="200">
+      <template #default="{ data }: { data: RowData }">
+        <BkTag
+          v-for="item in data.resource_spec.backend_group.label_values"
+          :key="item">
+          {{ item }}
+        </BkTag>
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      :label="t('可用资源')"
+      :min-width="120">
+      <template #default="{ data }: { data: RowData }">
+        <BkButton
+          text
+          theme="primary"
+          @click="() => handleClick(data)">
+          {{ t('资源预览') }}
+        </BkButton>
       </template>
     </BkTableColumn>
   </BkTable>
   <InfoList>
     <InfoItem :label="t('备份源')">
-      {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}
+      {{ ticketDetails.details.backup_source === BackupSourceType.LOCAL ? t('本地备份') : t('远程备份') }}
     </InfoItem>
     <InfoItem :label="t('数据校验')">
       {{ ticketDetails.details.need_checksum ? t('是') : t('否') }}
     </InfoItem>
   </InfoList>
+  <ResourcePreview
+    v-model:is-show="showSlider"
+    :params="params" />
 </template>
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
+  import { BackupSourceType } from '@services/types';
 
-  import { TicketTypes } from '@common/const';
+  import { DBTypes, TicketTypes } from '@common/const';
+
+  import ResourcePreview from '@views/db-manage/common/toolbox-field/column/available-resource-column/components/ResourcePreview.vue';
 
   import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
 
@@ -101,4 +137,22 @@
   defineProps<Props>();
 
   const { t } = useI18n();
+
+  const showSlider = ref(false);
+  const params = ref<{
+    for_bizs: number[];
+    labels: string;
+    resource_types: string[];
+    spec_id: number;
+  }>();
+
+  const handleClick = (data: RowData) => {
+    showSlider.value = true;
+    params.value = {
+      for_bizs: [window.PROJECT_CONFIG.BIZ_ID, 0],
+      labels: data.resource_spec.backend_group.labels.join(','),
+      resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
+      spec_id: data.resource_spec.backend_group.spec_id,
+    };
+  };
 </script>

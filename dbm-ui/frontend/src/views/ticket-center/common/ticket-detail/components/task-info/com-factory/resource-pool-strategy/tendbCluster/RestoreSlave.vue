@@ -53,7 +53,7 @@
       </template>
     </BkTableColumn>
     <BkTableColumn
-      :label="t('当前资源规格')"
+      :label="t('机器规格')"
       :min-width="150">
       <template #default="{ data }: { data: RowData }">
         {{
@@ -64,18 +64,37 @@
       </template>
     </BkTableColumn>
     <BkTableColumn
-      :label="t('新从库主机')"
-      :min-width="150">
-      <template #default>
-        {{ t('资源池自动匹配') }}
+      :label="t('资源标签')"
+      :min-width="200">
+      <template #default="{ data }: { data: RowData }">
+        <BkTag
+          v-for="item in data.resource_spec.new_slave.label_values"
+          :key="item">
+          {{ item }}
+        </BkTag>
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      :label="t('可用资源')"
+      :min-width="120">
+      <template #default="{ data }: { data: RowData }">
+        <BkButton
+          text
+          theme="primary"
+          @click="() => handleClick(data)">
+          {{ t('资源预览') }}
+        </BkButton>
       </template>
     </BkTableColumn>
   </BkTable>
   <InfoList>
     <InfoItem :label="t('备份源')">
-      {{ backupSourceMap[ticketDetails.details.backup_source] }}
+      {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}
     </InfoItem>
   </InfoList>
+  <ResourcePreview
+    v-model:is-show="showSlider"
+    :params="params" />
 </template>
 
 <script setup lang="tsx">
@@ -83,7 +102,9 @@
 
   import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
 
-  import { TicketTypes } from '@common/const';
+  import { DBTypes, TicketTypes } from '@common/const';
+
+  import ResourcePreview from '@views/db-manage/common/toolbox-field/column/available-resource-column/components/ResourcePreview.vue';
 
   import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
 
@@ -102,8 +123,21 @@
 
   const { t } = useI18n();
 
-  const backupSourceMap = {
-    local: t('本地备份'),
-    remote: t('远程备份'),
+  const showSlider = ref(false);
+  const params = ref<{
+    for_bizs: number[];
+    labels: string;
+    resource_types: string[];
+    spec_id: number;
+  }>();
+
+  const handleClick = (data: RowData) => {
+    showSlider.value = true;
+    params.value = {
+      for_bizs: [window.PROJECT_CONFIG.BIZ_ID, 0],
+      labels: data.resource_spec.new_slave.labels.join(','),
+      resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
+      spec_id: data.resource_spec.new_slave.spec_id,
+    };
   };
 </script>
