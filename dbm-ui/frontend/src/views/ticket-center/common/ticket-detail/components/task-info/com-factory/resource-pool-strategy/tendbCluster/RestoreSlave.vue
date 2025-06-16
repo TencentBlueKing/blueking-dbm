@@ -63,10 +63,22 @@
         }}
       </template>
     </BkTableColumn>
+    <BkTableColumn
+      :label="t('资源标签')"
+      :min-width="200">
+      <template #default="{ data }: { data: RowData }">
+        <BkTag
+          v-for="item in data.resource_spec.new_slave.label_names"
+          :key="item"
+          :theme="labelTheme(item)">
+          {{ item }}
+        </BkTag>
+      </template>
+    </BkTableColumn>
   </BkTable>
   <InfoList>
     <InfoItem :label="t('备份源')">
-      {{ backupSourceMap[ticketDetails.details.backup_source] }}
+      {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}
     </InfoItem>
   </InfoList>
 </template>
@@ -95,8 +107,5 @@
 
   const { t } = useI18n();
 
-  const backupSourceMap = {
-    local: t('本地备份'),
-    remote: t('远程备份'),
-  };
+  const labelTheme = (labelName: string) => (labelName === t('通用无标签') ? 'success' : '');
 </script>

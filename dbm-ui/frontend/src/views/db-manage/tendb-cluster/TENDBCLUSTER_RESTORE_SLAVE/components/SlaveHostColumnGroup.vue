@@ -48,6 +48,7 @@
   <InstanceSelector
     v-model:is-show="showSelector"
     :cluster-types="['TendbClusterHost']"
+    hide-manual-input
     :selected="selectedInstances"
     :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
@@ -85,6 +86,8 @@
     bk_biz_id: number;
     bk_cloud_id: number;
     bk_host_id: number;
+    bk_idc_city_name: string;
+    bk_sub_zone: string;
     cluster_id: number;
     ip: string;
     master_domain: string;
@@ -173,12 +176,14 @@
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           bk_cloud_id: currentHost.bk_cloud_id,
           bk_host_id: currentHost.bk_host_id,
+          bk_idc_city_name: currentHost.host_info?.bk_idc_city_name || '',
+          bk_sub_zone: currentHost.host_info?.bk_sub_zone || '',
           cluster_id: currentHost.cluster_id,
           ip: currentHost.ip,
           master_domain: currentHost.master_domain,
           related_instances: relatedInstances,
           role: currentHost.role,
-          spec_id: currentHost.spec_config?.id || -1,
+          spec_id: currentHost.spec_config.id,
         };
       }
     },
@@ -194,6 +199,8 @@
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: 0,
+      bk_idc_city_name: '',
+      bk_sub_zone: '',
       cluster_id: 0,
       ip: value,
       master_domain: '',

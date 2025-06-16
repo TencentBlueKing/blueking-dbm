@@ -11,7 +11,7 @@
     </BkTableColumn>
     <BkTableColumn
       :label="t('关联实例')"
-      :min-width="300">
+      :min-width="250">
       <template #default="{ data }: { data: RowData }">
         <template
           v-if="ticketDetails.details.machine_infos?.[data.old_nodes.origin_proxy?.[0]?.ip]?.related_instances?.length">
@@ -40,19 +40,43 @@
         <template v-else> -- </template>
       </template>
     </BkTableColumn>
-    <BkTableColumn
-      :label="t('新Proxy主机')"
-      :min-width="150">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.resource_spec.target_proxy.hosts?.[0]?.ip || '--' }}
-      </template>
-    </BkTableColumn>
+    <template v-if="ticketDetails.details.source_type === SourceType.RESOURCE_AUTO">
+      <BkTableColumn
+        :label="t('规格')"
+        :min-width="120">
+        <template #default="{ data }: { data: RowData }">
+          {{ ticketDetails.details.specs?.[data.resource_spec.target_proxy.spec_id]?.name || '--' }}
+        </template>
+      </BkTableColumn>
+      <BkTableColumn
+        :label="t('资源标签')"
+        :min-width="200">
+        <template #default="{ data }: { data: RowData }">
+          <BkTag
+            v-for="item in data.resource_spec.target_proxy.label_names"
+            :key="item"
+            :theme="labelTheme(item)">
+            {{ item }}
+          </BkTag>
+        </template>
+      </BkTableColumn>
+    </template>
+    <template v-if="ticketDetails.details.source_type === SourceType.RESOURCE_MANUAL">
+      <BkTableColumn
+        :label="t('新Proxy主机')"
+        :min-width="120">
+        <template #default="{ data }: { data: RowData }">
+          {{ data.resource_spec.target_proxy.hosts?.[0]?.ip || '--' }}
+        </template>
+      </BkTableColumn>
+    </template>
   </BkTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
+  import { SourceType } from '@services/types';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.ResourcePool.ProxySwitch>;
@@ -63,4 +87,6 @@
   defineProps<Props>();
 
   const { t } = useI18n();
+
+  const labelTheme = (labelName: string) => (labelName === t('通用无标签') ? 'success' : '');
 </script>

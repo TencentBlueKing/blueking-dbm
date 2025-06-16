@@ -1,3 +1,5 @@
+import { SourceType } from '@services/types';
+
 import type { ResourcePoolDetailBase } from '../../common';
 
 export interface ProxyAdd extends ResourcePoolDetailBase {
@@ -12,8 +14,11 @@ export interface ProxyAdd extends ResourcePoolDetailBase {
           ip: string;
           port: number;
         }[];
+        label_names: string[]; // 标签名称列表，单据详情回显用
+        labels: string[]; // 标签id列表
         spec_id: number;
       };
     };
   }[];
+  source_type: SourceType;
 }

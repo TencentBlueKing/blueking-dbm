@@ -53,7 +53,7 @@
     prepend?: () => VNode;
   }>();
 
-  const modelValue = defineModel<string>();
+  const modelValue = defineModel<string | number>();
 
   const attrs = useAttrs();
   const columnContext = useColumn();

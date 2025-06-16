@@ -46,6 +46,23 @@
               v-model="item.oldMaster.master_domain"
               :placeholder="t('自动生成')" />
           </EditableColumn>
+          <SpecColumn
+            v-model="item.specId"
+            :cluster-type="ClusterTypes.TENDBCLUSTER"
+            :current-spec-id-list="[item.oldMaster.spec_id]"
+            required />
+          <ResourceTagColumn
+            v-model="item.labels"
+            @batch-edit="handleBatchEditColumn" />
+          <AvailableResourceColumn
+            :params="{
+              city: item.oldMaster.bk_idc_city_name,
+              subzones: item.oldMaster.bk_sub_zone,
+              for_bizs: [currentBizId, 0],
+              resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
+              spec_id: item.specId,
+              labels: item.labels.map((item) => item.id).join(','),
+            }" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -93,9 +110,12 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
+  import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
+  import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
+  import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
   import TicketPayload, {
     createTickePayload,
@@ -107,12 +127,15 @@
   import SlaveHostColumnGroup from './components/SlaveHostColumnGroup.vue';
 
   interface RowData {
+    labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     oldMaster: ComponentProps<typeof MasterHostColumnGroup>['modelValue'];
     oldSlave: ComponentProps<typeof SlaveHostColumnGroup>['modelValue'];
+    specId: number;
   }
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
+  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const batchInputConfig = [
     {
@@ -120,14 +143,22 @@
       key: 'master_ip',
       label: t('目标主库主机'),
     },
+    {
+      case: '标签1,标签2',
+      key: 'labels',
+      label: t('资源标签'),
+    },
   ];
 
   const createTableRow = (data: DeepPartial<RowData> = {}) => ({
+    labels: (data.labels || []) as RowData['labels'],
     oldMaster: Object.assign(
       {
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         bk_cloud_id: 0,
         bk_host_id: 0,
+        bk_idc_city_name: '',
+        bk_sub_zone: '',
         cluster_id: 0,
         ip: '',
         master_domain: '',
@@ -147,6 +178,7 @@
       },
       data.oldSlave,
     ),
+    specId: data.specId || 0,
   });
 
   const defaultData = () => ({
@@ -173,12 +205,14 @@
         payload: createTickePayload(ticketDetail),
         tableData: details.infos.map((item) =>
           createTableRow({
+            labels: (item.resource_spec.backend_group.labels || []).map((item) => ({ id: Number(item) })),
             oldMaster: {
               ip: item.old_nodes.old_master?.[0]?.ip || '',
             },
             oldSlave: {
               ip: item.old_nodes.old_slave?.[0]?.ip || '',
             },
+            specId: item.resource_spec.backend_group.spec_id,
           }),
         ),
       });
@@ -192,6 +226,8 @@
       resource_spec: {
         backend_group: {
           count: number;
+          label_names?: string[]; // 标签名称列表，单据详情回显用
+          labels?: string[]; // 标签id列表
           spec_id: number;
         };
       };
@@ -217,6 +253,9 @@
           resource_spec: {
             backend_group: {
               count: 1,
+              label_names: item.labels.map((item) => item.value),
+              // 通用标签传空数组
+              labels: item.labels.filter((item) => item.id !== 0).map((item) => String(item.id)),
               spec_id: item.oldMaster.spec_id,
             },
           },
@@ -252,6 +291,7 @@
     const dataList = data.reduce<RowData[]>((acc, item) => {
       acc.push(
         createTableRow({
+          labels: (item.labels as string)?.split(',').map((item) => ({ value: item })),
           oldMaster: {
             ip: item.master_ip,
           },
@@ -268,5 +308,13 @@
     setTimeout(() => {
       tableRef.value?.validate();
     }, 200);
+  };
+
+  const handleBatchEditColumn = (value: any, field: string) => {
+    formData.tableData.forEach((rowData) => {
+      Object.assign(rowData, {
+        [field]: value,
+      });
+    });
   };
 </script>

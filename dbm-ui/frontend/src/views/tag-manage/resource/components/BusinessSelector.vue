@@ -14,6 +14,7 @@
 <template>
   <BkSelect
     v-model="selected"
+    filterable
     :min-height="389"
     @toggle="handleToggle">
     <template #trigger>
@@ -67,12 +68,15 @@
 
   const emits = defineEmits<Emits>();
 
+  const selected = defineModel<number>({
+    required: true,
+  });
+
   const { t } = useI18n();
-  const { bizIdMap, bizs: bizList, currentBizInfo } = useGlobalBizs();
+  const { bizIdMap, bizs: bizList } = useGlobalBizs();
   const userStore = useUserProfile();
 
   const favorBizIdSet = ref<Set<number>>(new Set());
-  const selected = ref(currentBizInfo?.bk_biz_id);
   const isExpanded = ref(false);
 
   const sortedBizList = computed(() => {
