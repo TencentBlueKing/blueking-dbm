@@ -75,6 +75,7 @@ export const nodeTypes = {
   PULSAR_BROKER: 'pulsar_broker::pulsar_broker',
   PULSAR_ZOOKEEPER: 'pulsar_zookeeper::pulsar_zookeeper',
   SLAVE: 'backend::backend_slave',
+  SPIDER_SLAVE_ENTRY_BIND: 'spider_slave_entry_bind',
   TENDBCLUSTER_CONTROLLER: 'controller_group',
   TENDBCLUSTER_MASTER: 'spider_master',
   TENDBCLUSTER_MNT: 'spider_mnt',
@@ -370,6 +371,14 @@ export class GraphData {
       controllerNode.style.y = spiderMasterNode.style.y;
       controllerNode.style.x = -controllerNode.style.width;
       this.calcChildrenNodeLocations(controllerNode);
+    }
+
+    const spiderSlaveEntryNode = nodeMap[nodeTypes.SPIDER_SLAVE_ENTRY_BIND];
+    const spiderSlaveNode = nodeMap[nodeTypes.TENDBCLUSTER_SLAVE];
+    if (spiderMasterNode && spiderSlaveEntryNode && spiderSlaveNode) {
+      spiderSlaveNode.style.y = spiderMasterNode.style.y;
+      spiderSlaveNode.style.x = spiderSlaveEntryNode.style.x;
+      this.calcChildrenNodeLocations(spiderSlaveNode);
     }
 
     const mntNode = nodeMap[nodeTypes.TENDBCLUSTER_MNT];
