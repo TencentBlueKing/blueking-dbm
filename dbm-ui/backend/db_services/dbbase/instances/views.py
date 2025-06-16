@@ -40,6 +40,8 @@ class InstanceViewSet(viewsets.SystemViewSet):
             InstanceHandler(bk_biz_id=bk_biz_id).check_instances(
                 query_instances=validated_data["instance_addresses"],
                 cluster_ids=validated_data["cluster_ids"],
+                cluster_type=validated_data["cluster_type"],
                 db_type=db_type,
+                instance_role=validated_data["instance_role"],
             )
         )
