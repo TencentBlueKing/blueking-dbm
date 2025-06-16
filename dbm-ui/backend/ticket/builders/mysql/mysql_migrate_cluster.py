@@ -49,7 +49,7 @@ class MysqlMigrateClusterDetailSerializer(MySQLBaseOperateDetailSerializer):
         help_text=_("备份源"), choices=MySQLBackupSource.get_choices(), default=MySQLBackupSource.REMOTE
     )
     is_safe = serializers.BooleanField(help_text=_("安全模式"), default=True)
-    need_checksum = serializers.BooleanField(help_text=_("执行前是否需要数据校验"))
+    need_checksum = serializers.BooleanField(help_text=_("执行前是否需要数据校验"), default=True)
     opera_object = serializers.ChoiceField(help_text=_("操作对象类型"), choices=OperaObjType.get_choices(), required=False)
 
     def validate(self, attrs):
