@@ -105,6 +105,8 @@ TICKET_RUNNING_STATUS_SET = [
     TicketStatus.RESOURCE_REPLENISH,
     TicketStatus.RUNNING,
     TicketStatus.TIMER,
+    # 注意失败也认为正在进行中
+    TicketStatus.FAILED,
 ]
 # 单据[包含TODO]的状态合集
 TICKET_TODO_STATUS_SET = [
@@ -114,8 +116,7 @@ TICKET_TODO_STATUS_SET = [
     TicketStatus.FAILED,
     TicketStatus.RUNNING,
 ]
-# 单据[失败]的状态合集
-TICKET_FAILED_STATUS_SET = [TicketStatus.REVOKED, TicketStatus.TERMINATED, TicketStatus.FAILED]
+# 单据[终止]的状态合集
 TICKET_FINISHED_STATUS_SET = [TicketStatus.SUCCEEDED, TicketStatus.REVOKED, TicketStatus.TERMINATED]
 
 

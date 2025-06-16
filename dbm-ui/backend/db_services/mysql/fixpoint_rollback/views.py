@@ -143,7 +143,7 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
                         "nodes": rollback_host,
                         "status": target_cluster.status,
                         "phase": target_cluster.phase,
-                        "operations": ClusterOperateRecord.objects.get_cluster_operations(record.cluster_id),
+                        "operations": ClusterOperateRecord.objects.get_cluster_active_operations(record.cluster_id),
                     },
                     "ticket_id": record.ticket.id,
                     "rollback_type": ticket_data["rollback_type"],

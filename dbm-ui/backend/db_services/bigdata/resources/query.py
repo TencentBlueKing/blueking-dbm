@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from collections import defaultdict
 from operator import itemgetter
 from typing import Any, Dict, List
 
@@ -22,7 +21,6 @@ from backend.db_meta.models.instance import StorageInstance
 from backend.db_proxy.models import ClusterExtension
 from backend.db_services.dbbase.resources import query
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
-from backend.ticket.constants import TICKET_RUNNING_STATUS_SET
 from backend.ticket.models import InstanceOperateRecord
 from backend.utils.time import datetime2str
 
@@ -65,12 +63,7 @@ class BigDataBaseListRetrieveResource(query.ListRetrieveResource):
         restart_map = {record.instance_id: record.create_at for record in restart_records}
 
         # 获取实例的操作与实例记录
-        records = InstanceOperateRecord.objects.filter(
-            instance_id__in=instance_ids, ticket__status__in=TICKET_RUNNING_STATUS_SET
-        )
-        instance_operate_records_map: Dict[int, List] = defaultdict(list)
-        for record in records:
-            instance_operate_records_map[int(record.instance_id)].append(record.summary)
+        instance_operate_records_map = InstanceOperateRecord.get_instance_records_map(instance_ids)
 
         return super()._filter_instance_hook(
             bk_biz_id,

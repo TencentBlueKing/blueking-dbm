@@ -256,7 +256,7 @@ class IgnoreResultInnerFlow(InnerFlow):
     @property
     def _status(self) -> str:
         status = self._raw_status
-        if status in [constants.TicketFlowStatus.SUCCEEDED, *constants.TICKET_FAILED_STATUS_SET]:
+        if status in [constants.TicketFlowStatus.FAILED, *constants.TICKET_FINISHED_STATUS_SET]:
             return constants.TicketFlowStatus.SUCCEEDED
 
         return status

@@ -21,7 +21,6 @@ from backend.db_meta.enums import (
     TenDBClusterSpiderRole,
 )
 from backend.db_meta.models.cluster import Cluster
-from backend.db_services.dbbase.constants import IP_PORT_DIVIDER
 from backend.flow.consts import SqlserverSyncMode
 
 
@@ -80,35 +79,9 @@ class SearchResourceTreeSLZ(serializers.Serializer):
 
 
 class InstanceAddressSerializer(serializers.Serializer):
-    instance_address = serializers.CharField(help_text=_("实例地址(ip:port)"), required=False)
+    instance = serializers.CharField(help_text=_("实例地址(ip:port)"), required=False)
     ip = serializers.CharField(help_text=_("IP"), required=False)
     port = serializers.CharField(help_text=_("端口"), required=False)
-
-    def to_internal_value(self, data):
-
-        all_ports_valid = True
-
-        """获取根据address获取ip和port，优先考虑从address获取"""
-        if "instance_address" not in data:
-            return data
-
-        instance_address = data["instance_address"]
-        # 用于分隔IP地址和端口号的部分
-        parts = instance_address.split(",")
-        for part in parts:
-            if IP_PORT_DIVIDER in part:
-                # 存在端口号,进行验证
-                ip, port = part.split(IP_PORT_DIVIDER, maxsplit=1)
-                if not port.isdigit():
-                    # 非法端口
-                    all_ports_valid = False
-                    break
-
-        if not all_ports_valid:
-            pass
-        # 如果所有端口都有效，则将instance_address保存到data字典
-        data.update({"instance": instance_address})
-        return data
 
 
 class ListInstancesSerializer(InstanceAddressSerializer):
@@ -118,6 +91,9 @@ class ListInstancesSerializer(InstanceAddressSerializer):
     cluster_id = serializers.CharField(help_text=_("集群ID"), required=False)
     cluster_type = serializers.CharField(required=False, help_text=_("集群类型"))
     ip = serializers.CharField(required=False)
+    region = serializers.CharField(help_text=_("区域"), required=False)
+    name = serializers.CharField(help_text=_("名称"), required=False)
+    version = serializers.CharField(help_text=_("版本"), required=False)
 
 
 class SqlserverListInstanceSerializer(ListInstancesSerializer):
@@ -132,7 +108,6 @@ class RetrieveInstancesSerializer(InstanceAddressSerializer):
     """获取实例序列化器"""
 
     cluster_id = serializers.IntegerField(help_text=_("集群ID"), required=False)
-    instance_address = serializers.CharField(help_text=_("实例地址(ip:port)"), required=True)
 
 
 class ListNodesSLZ(serializers.Serializer):

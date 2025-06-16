@@ -444,8 +444,8 @@ class ClusterOperateRecordManager(models.Manager):
             .exclude(flow__ticket_id__in=exclude_ticket_ids)
         )
 
-    def get_cluster_operations(self, cluster_id, **kwargs):
-        """集群上的正在运行的操作列表"""
+    def get_cluster_active_operations(self, cluster_id, **kwargs):
+        """集群上的正在运行任务的操作列表"""
         return [r.summary for r in self.filter_actives(cluster_id, **kwargs)]
 
     def has_exclusive_operations(self, ticket_type, cluster_id, **kwargs):

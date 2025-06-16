@@ -504,13 +504,14 @@ class ListCvmDeviceClassSerializer(serializers.ModelSerializer):
         swagger_schema_fields = {"example": mock.DEVICE_CLASS_DATA}
 
 
-class UworkIpsSerializer(serializers.Serializer):
-    ips = serializers.CharField(help_text=_("ip列表，多个ip以逗号分割"))
-
-    def validate_ip_list(self, value):
-        return value.split(",")
-
-
 class AppendHostLabelSerializer(serializers.Serializer):
     bk_host_ids = serializers.ListField(help_text=_("主机ID列表"), child=serializers.IntegerField())
     labels = serializers.ListField(help_text=_("追加标签列表"), child=serializers.CharField())
+
+
+class CheckFaultHostsSerializer(serializers.Serializer):
+    class CheckHostSerializer(serializers.Serializer):
+        ip = serializers.CharField(help_text=_("ip"))
+        bk_host_id = serializers.IntegerField(help_text=_("主机ID"))
+
+    hosts = serializers.ListField(help_text=_("主机信息"), child=CheckHostSerializer())

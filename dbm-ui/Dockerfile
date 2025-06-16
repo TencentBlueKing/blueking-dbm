@@ -4,10 +4,10 @@ RUN yarn config set registry https://mirrors.tencent.com/npm/
 
 WORKDIR /frontend
 COPY frontend/package.json ./
-RUN node -v
-RUN yarn cache clean --force
-RUN rm -rf node_modules
-RUN yarn install --force
+RUN node -v && \
+    yarn cache clean --all --force && \
+    rm -rf node_modules && \
+    yarn install --force
 
 FROM frontend-installer AS frontend-builder
 

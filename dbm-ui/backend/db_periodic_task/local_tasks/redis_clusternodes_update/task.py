@@ -121,7 +121,7 @@ def redis_clusternodes_update_record():
         row.cluster_id = cluster.id
         row.cluster_type = cluster.cluster_type
         # 判断是否有节点变更类型的单据正在执行,如果有,不做处理
-        opers = ClusterOperateRecord.objects.get_cluster_operations(cluster_id=cluster.id)
+        opers = ClusterOperateRecord.objects.get_cluster_active_operations(cluster_id=cluster.id)
         oper_title = ""
         oper_type = ""
         for oper in opers:
