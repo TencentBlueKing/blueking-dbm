@@ -442,6 +442,12 @@ class TicketType(str, StructuredEnum):
     ES_ENABLE = TicketEnumField("ES_ENABLE", _("ES 集群启用"), register_iam=False)
     ES_DISABLE = TicketEnumField("ES_DISABLE", _("ES 集群禁用"), register_iam=False)
     ES_DESTROY = TicketEnumField("ES_DESTROY", _("ES 集群删除"), _("集群管理"))
+    ES_CREATE_CLB = TicketEnumField("ES_CREATE_CLB", _("ES 创建CLB"), _("集群管理"))
+    ES_DELETE_CLB = TicketEnumField("ES_DELETE_CLB", _("ES 删除CLB"), _("集群管理"))
+    ES_DNS_BIND_CLB = TicketEnumField("ES_DNS_BIND_CLB", _("ES 域名绑定CLB"), _("集群管理"))
+    ES_DNS_UNBIND_CLB = TicketEnumField("ES_DNS_UNBIND_CLB", _("ES 域名解绑CLB"), _("集群管理"))
+    ES_CREATE_POLARIS = TicketEnumField("ES_CREATE_POLARIS", _("ES 创建Polaris"), _("集群管理"))
+    ES_DELETE_POLARIS = TicketEnumField("ES_DELETE_POLARIS", _("ES 删除Polaris"), _("集群管理"))
 
     PULSAR_APPLY = TicketEnumField("PULSAR_APPLY", _("Pulsar 集群部署"), register_iam=False)
     PULSAR_SCALE_UP = TicketEnumField("PULSAR_SCALE_UP", _("Pulsar 集群扩容"), _("集群管理"))

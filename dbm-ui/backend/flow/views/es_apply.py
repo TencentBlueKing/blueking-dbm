@@ -40,6 +40,7 @@ class InstallEsSceneApiView(FlowTestView):
         "uid":"2111"
         "created_by": "rtx",
         "domain": "es.viper-cluster.blueking.db",
+        ”bk_cloud_id": 0,
         "nodes": {
             "hot": [
                 {"ip": "127.0.0.1", "bk_cloud_id": 0, "instance_num": 1}

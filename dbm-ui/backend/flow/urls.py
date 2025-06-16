@@ -37,6 +37,14 @@ from backend.flow.views.es_destroy import DestroyEsSceneApiView
 from backend.flow.views.es_disable import DisableEsSceneApiView
 from backend.flow.views.es_enable import EnableEsSceneApiView
 from backend.flow.views.es_machine_clear import EsMachineClearApiView
+from backend.flow.views.es_name_service import (
+    EsClbCreateSceneApiView,
+    EsClbDeleteSceneApiView,
+    EsDomainBindClbIpSceneApiView,
+    EsDomainUnBindClbIpSceneApiView,
+    EsPolarisCreateSceneApiView,
+    EsPolarisDeleteSceneApiView,
+)
 from backend.flow.views.es_reboot import RebootEsSceneApiView
 from backend.flow.views.es_replace import ReplaceEsSceneApiView
 from backend.flow.views.es_scale_up import ScaleUpEsSceneApiView
@@ -335,9 +343,15 @@ urlpatterns = [
     url(r"^scene/nameservice_clb_delete$", ClbDeleteSceneApiView.as_view()),
     url(r"^scene/nameservice_domain_bind_clb_ip$", DomainBindClbIpSceneApiView.as_view()),
     url(r"^scene/nameservice_domain_unbind_clb_ip$", DomainUnBindClbIpSceneApiView.as_view()),
+    url(r"^scene/es/nameservice_clb_create$", EsClbCreateSceneApiView.as_view()),
+    url(r"^scene/es/nameservice_clb_delete$", EsClbDeleteSceneApiView.as_view()),
+    url(r"^scene/es/nameservice_domain_bind_clb_ip$", EsDomainBindClbIpSceneApiView.as_view()),
+    url(r"^scene/es/nameservice_domain_unbind_clb_ip$", EsDomainUnBindClbIpSceneApiView.as_view()),
     # name_service polaris
     url(r"^scene/nameservice_polaris_create$", PolarisCreateSceneApiView.as_view()),
     url(r"^scene/nameservice_polaris_delete$", PolarisDeleteSceneApiView.as_view()),
+    url(r"^scene/es/nameservice_polaris_create$", EsPolarisCreateSceneApiView.as_view()),
+    url(r"^scene/es/nameservice_polaris_delete$", EsPolarisDeleteSceneApiView.as_view()),
     # name_service end
     # mongodb start
     url(r"^scene/multi_replicaset_create$", MultiReplicasetInstallApiView.as_view()),

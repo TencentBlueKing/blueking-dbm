@@ -15,18 +15,18 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.flow.consts import DnsOpType, ManagerOpType, ManagerServiceType
+from backend.flow.consts import ManagerOpType, ManagerServiceType
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.engine.bamboo.scene.es.atom_jobs.access_manager import get_access_manager_atom_job
 from backend.flow.engine.bamboo.scene.es.es_flow import EsFlow
 from backend.flow.plugins.components.collections.common.bigdata_manager_service import BigdataManagerComponent
 from backend.flow.plugins.components.collections.es.es_db_meta import EsMetaComponent
-from backend.flow.plugins.components.collections.es.es_dns_manage import EsDnsManageComponent
 from backend.flow.plugins.components.collections.es.exec_es_actuator_script import ExecuteEsActuatorScriptComponent
 from backend.flow.plugins.components.collections.es.get_es_payload import GetEsActPayloadComponent
 from backend.flow.plugins.components.collections.es.trans_files import TransFileComponent
 from backend.flow.utils.es.es_act_payload import EsActPayload
-from backend.flow.utils.es.es_context_dataclass import DnsKwargs, EsActKwargs, EsApplyContext
+from backend.flow.utils.es.es_context_dataclass import EsActKwargs, EsApplyContext
 from backend.flow.utils.extension_manage import BigdataManagerKwargs
 
 logger = logging.getLogger("flow")
@@ -92,11 +92,16 @@ class EsDestroyFlow(EsFlow):
         )
 
         # 清理域名
+        """
         dns_kwargs = DnsKwargs(bk_cloud_id=self.bk_cloud_id, dns_op_type=DnsOpType.CLUSTER_DELETE)
         es_pipeline.add_act(
             act_name=_("删除域名"),
             act_component_code=EsDnsManageComponent.code,
             kwargs={**asdict(act_kwargs), **asdict(dns_kwargs)},
+        )
+        """
+        es_pipeline.add_sub_pipeline(
+            get_access_manager_atom_job(root_id=self.root_id, ticket_data=self.get_flow_base_data())
         )
 
         # 清理DBMeta
