@@ -34,9 +34,7 @@
             renderDirective: 'show',
             hideIgnoreReference: true,
           }">
-          <BkButton
-            class="ml-8"
-            :disabled="selectionHostIdList.length < 1">
+          <BkButton :disabled="selectionHostIdList.length < 1">
             {{ t('批量操作') }}
             <DbIcon type="down-big" />
           </BkButton>
@@ -47,11 +45,7 @@
                   {{ t('重新设置资源归属') }}
                 </BkDropdownItem>
                 <BkDropdownItem
-                  v-bk-tooltips="{
-                    content: t('仅支持同业务的主机'),
-                    disabled: isSelectedSameBiz,
-                  }"
-                  :class="isSelectedSameBiz ? undefined : 'disabled-cls'"
+                  :class="isSelectedGlobalResource || !isSelectedSameBiz ? 'disabled-cls' : ''"
                   @click="() => handleShowBatchAddTags()">
                   {{ t('添加资源标签') }}
                 </BkDropdownItem>
@@ -228,7 +222,10 @@
   const isShowBatchAssign = ref(false);
   const isShowUpdateAssign = ref(false);
   const isShowBatchAddTags = ref(false);
+  // 是否选中同一业务的主机
   const isSelectedSameBiz = ref(false);
+  // 是否选中公共资源池主机
+  const isSelectedGlobalResource = ref(false);
 
   const selectionList = shallowRef<DbResourceModel[]>([]);
   const curEditData = shallowRef<DbResourceModel>({} as DbResourceModel);
@@ -482,6 +479,7 @@
   const handleSelection = (list: number[], selectionListWholeData: DbResourceModel[]) => {
     selectionList.value = selectionListWholeData;
     isSelectedSameBiz.value = new Set(selectionListWholeData.map((item) => item.for_biz.bk_biz_id)).size === 1;
+    isSelectedGlobalResource.value = selectionListWholeData.some((item) => item.for_biz.bk_biz_id === 0);
   };
 
   const handleClearSearch = () => {
@@ -509,6 +507,14 @@
   };
 
   const handleShowBatchAddTags = () => {
+    if (isSelectedGlobalResource.value) {
+      messageWarn(t('仅业务资源支持添加标签'));
+      return;
+    }
+    if (!isSelectedSameBiz.value) {
+      messageWarn(t('仅支持同业务的主机批量添加资源标签'));
+      return;
+    }
     isShowBatchAddTags.value = true;
   };
 

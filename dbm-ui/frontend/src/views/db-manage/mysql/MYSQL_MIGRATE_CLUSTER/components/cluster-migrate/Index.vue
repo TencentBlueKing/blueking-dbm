@@ -12,9 +12,13 @@
 -->
 
 <template>
+  <BatchInput
+    :config="batchInputConfig"
+    @change="handleBatchInput" />
   <EditableTable
+    :key="tableKey"
     ref="table"
-    class="mb-20"
+    class="mt-16 mb-20"
     :model="tableData"
     :rules="rules">
     <EditableRow
@@ -25,22 +29,44 @@
         :selected="selected"
         :selected-map="selectedMap"
         @batch-edit="handleBatchEdit" />
-      <SingleResourceHostColumn
-        v-model="item.newMaster"
-        field="newMaster.ip"
-        :label="t('新Master主机')"
-        :params="{
-          for_bizs: [currentBizId, 0],
-          resource_types: [DBTypes.MYSQL, 'PUBLIC'],
-        }" />
-      <SingleResourceHostColumn
-        v-model="item.newSlave"
-        field="newSlave.ip"
-        :label="t('新Slave主机')"
-        :params="{
-          for_bizs: [currentBizId, 0],
-          resource_types: [DBTypes.MYSQL, 'PUBLIC'],
-        }" />
+      <template v-if="sourceType === SourceType.RESOURCE_AUTO">
+        <SpecColumn
+          v-model="item.specId"
+          :cluster-type="DBTypes.MYSQL"
+          :current-spec-id-list="item.batchCluster.spec_id_list"
+          required
+          selectable
+          @batch-edit="handleBatchEditColumn" />
+        <ResourceTagColumn
+          v-model="item.labels"
+          @batch-edit="handleBatchEditColumn" />
+        <AvailableResourceColumn
+          :params="{
+            city: generateCity(item.batchCluster.clusters),
+            for_bizs: [currentBizId, 0],
+            resource_types: [DBTypes.MYSQL, 'PUBLIC'],
+            spec_id: item.specId,
+            labels: item.labels.map((item) => item.id).join(','),
+          }" />
+      </template>
+      <template v-if="sourceType === SourceType.RESOURCE_MANUAL">
+        <SingleResourceHostColumn
+          v-model="item.newMaster"
+          field="newMaster.ip"
+          :label="t('新Master主机')"
+          :params="{
+            for_bizs: [currentBizId, 0],
+            resource_types: [DBTypes.MYSQL, 'PUBLIC'],
+          }" />
+        <SingleResourceHostColumn
+          v-model="item.newSlave"
+          field="newSlave.ip"
+          :label="t('新Slave主机')"
+          :params="{
+            for_bizs: [currentBizId, 0],
+            resource_types: [DBTypes.MYSQL, 'PUBLIC'],
+          }" />
+      </template>
       <OperationColumn
         v-model:table-data="tableData"
         :create-row-method="createTableRow" />
@@ -49,43 +75,35 @@
 </template>
 <script lang="ts" setup>
   import { useTemplateRef } from 'vue';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
   import type { Mysql } from '@services/model/ticket/ticket';
+  import { SourceType } from '@services/types';
 
   import { DBTypes } from '@common/const';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
+  import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
+  import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
+  import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
+
+  import { random } from '@utils';
 
   import ClusterColumn from './components/ClusterColumn.vue';
 
   interface RowData {
-    batchCluster: {
-      clusters: Record<
-        string,
-        {
-          id: number;
-          master_domain: string;
-        }
-      >;
-      renderText: string;
-    };
-    newMaster: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      ip: string;
-    };
-    newSlave: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      ip: string;
-    };
+    batchCluster: ComponentProps<typeof ClusterColumn>['modelValue'];
+    labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
+    newMaster: ComponentProps<typeof SingleResourceHostColumn>['modelValue'];
+    newSlave: ComponentProps<typeof SingleResourceHostColumn>['modelValue'];
+    specId: number;
   }
 
   interface Props {
+    sourceType: SourceType;
     ticketDetails?: Mysql.ResourcePool.MigrateCluster;
   }
 
@@ -95,22 +113,28 @@
         cluster_ids: number[];
         resource_spec: {
           new_master: {
-            hosts: {
+            count: number;
+            hosts?: {
               bk_biz_id: number;
               bk_cloud_id: number;
               bk_host_id: number;
               ip: string;
             }[];
-            spec_id: 0;
+            label_names?: string[]; // 标签名称列表，单据详情回显用
+            labels?: string[]; // 标签id列表
+            spec_id: number;
           };
           new_slave: {
-            hosts: {
+            count: number;
+            hosts?: {
               bk_biz_id: number;
               bk_cloud_id: number;
               bk_host_id: number;
               ip: string;
             }[];
-            spec_id: 0;
+            label_names?: string[]; // 标签名称列表，单据详情回显用
+            labels?: string[]; // 标签id列表
+            spec_id: number;
           };
         };
       }[]
@@ -125,26 +149,79 @@
 
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
-  const createTableRow = (data = {} as Partial<RowData>) => ({
-    batchCluster: data.batchCluster || {
-      clusters: {},
-      renderText: '',
-    },
-    newMaster: data.newMaster || {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      ip: '',
-    },
-    newSlave: data.newSlave || {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      ip: '',
-    },
+  const batchInputConfig = computed(() => {
+    if (props.sourceType === SourceType.RESOURCE_AUTO) {
+      return [
+        {
+          case: 'tendbha.test.dba.db',
+          key: 'master_domain',
+          label: t('目标集群'),
+        },
+        {
+          case: '2核_4G_50G',
+          key: 'spec_name',
+          label: t('规格'),
+        },
+        {
+          case: '标签1,标签2',
+          key: 'labels',
+          label: t('资源标签'),
+        },
+      ];
+    }
+    return [
+      {
+        case: 'tendbha.test.dba.db',
+        key: 'master_domain',
+        label: t('目标集群'),
+      },
+      {
+        case: '192.168.10.2',
+        key: 'new_master_ip',
+        label: t('新Master主机'),
+      },
+      {
+        case: '192.168.10.2',
+        key: 'new_slave_ip',
+        label: t('新Slave主机'),
+      },
+    ];
+  });
+
+  const createTableRow = (data: DeepPartial<RowData> = {}) => ({
+    batchCluster: Object.assign(
+      {
+        clusters: {} as RowData['batchCluster']['clusters'],
+        renderText: '',
+        spec_id_list: [] as RowData['batchCluster']['spec_id_list'],
+        specId: 0,
+      },
+      data.batchCluster,
+    ),
+    labels: (data.labels || []) as RowData['labels'],
+    newMaster: Object.assign(
+      {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        ip: '',
+      },
+      data.newMaster,
+    ),
+    newSlave: Object.assign(
+      {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        ip: '',
+      },
+      data.newSlave,
+    ),
+    specId: data.specId || 0,
   });
 
   const tableData = ref<RowData[]>([createTableRow()]);
+  const tableKey = ref(random());
 
   const selected = computed(() =>
     tableData.value
@@ -240,8 +317,14 @@
             });
             return createTableRow({
               batchCluster,
-              newMaster: item.resource_spec.new_master.hosts[0],
-              newSlave: item.resource_spec.new_slave.hosts[0],
+              labels: (item.resource_spec.new_master.labels || []).map((item) => ({ id: Number(item) })),
+              newMaster: {
+                ip: item.resource_spec.new_master.hosts?.[0]?.ip || '',
+              },
+              newSlave: {
+                ip: item.resource_spec.new_slave.hosts?.[0]?.ip || '',
+              },
+              specId: item.resource_spec.new_master.spec_id,
             });
           });
         }
@@ -255,12 +338,6 @@
         acc.push(
           createTableRow({
             batchCluster: {
-              clusters: {
-                [item.master_domain]: {
-                  id: item.id,
-                  master_domain: item.master_domain,
-                },
-              },
               renderText: item.master_domain,
             },
           }),
@@ -271,6 +348,49 @@
     tableData.value = [...tableData.value.filter((item) => item.batchCluster.renderText), ...dataList];
   };
 
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.reduce<RowData[]>((acc, item) => {
+      acc.push(
+        createTableRow({
+          batchCluster: {
+            renderText: item.master_domain,
+          },
+          labels: (item.labels as string)?.split(',').map((item) => ({ value: item })),
+          newMaster: {
+            ip: item.new_master_ip,
+          },
+          newSlave: {
+            ip: item.new_slave_ip,
+          },
+          specId: item.spec_name,
+        }),
+      );
+      return acc;
+    }, []);
+    if (isClear) {
+      tableKey.value = random();
+      tableData.value = [...dataList];
+    } else {
+      tableData.value = [...tableData.value.filter((item) => item.batchCluster.renderText), ...dataList];
+    }
+    setTimeout(() => {
+      tableRef.value?.validate();
+    }, 200);
+  };
+
+  const handleBatchEditColumn = (value: any, field: string) => {
+    tableData.value.forEach((rowData) => {
+      Object.assign(rowData, {
+        [field]: value,
+      });
+    });
+  };
+
+  const generateCity = (clusters: Record<string, { id: number; master_domain: string; region: string }>) => {
+    const cities = Object.values(clusters).map((item) => item.region);
+    return cities.length ? cities.join(',') : '';
+  };
+
   defineExpose<Exposes>({
     async getValue() {
       const validateResult = await tableRef.value?.validate();
@@ -278,16 +398,30 @@
         return [];
       }
 
-      return tableData.value.map(({ batchCluster, newMaster, newSlave }) => ({
-        cluster_ids: Object.values(batchCluster.clusters).map((item) => item.id),
+      return tableData.value.map((item) => ({
+        cluster_ids: Object.values(item.batchCluster.clusters).map((item) => item.id),
         resource_spec: {
           new_master: {
-            hosts: [newMaster],
-            spec_id: 0,
+            count: 1,
+            hosts: props.sourceType === SourceType.RESOURCE_MANUAL ? [item.newMaster] : undefined,
+            label_names:
+              props.sourceType === SourceType.RESOURCE_AUTO ? item.labels.map((item) => item.value) : undefined,
+            labels:
+              props.sourceType === SourceType.RESOURCE_AUTO
+                ? item.labels.filter((item) => item.id !== 0).map((item) => String(item.id))
+                : undefined,
+            spec_id: item.specId,
           },
           new_slave: {
-            hosts: [newSlave],
-            spec_id: 0,
+            count: 1,
+            hosts: props.sourceType === SourceType.RESOURCE_MANUAL ? [item.newSlave] : undefined,
+            label_names:
+              props.sourceType === SourceType.RESOURCE_AUTO ? item.labels.map((item) => item.value) : undefined,
+            labels:
+              props.sourceType === SourceType.RESOURCE_AUTO
+                ? item.labels.filter((item) => item.id !== 0).map((item) => String(item.id))
+                : undefined,
+            spec_id: item.specId,
           },
         },
       }));

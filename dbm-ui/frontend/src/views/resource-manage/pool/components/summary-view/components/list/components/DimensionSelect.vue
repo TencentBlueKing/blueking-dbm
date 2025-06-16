@@ -1,6 +1,6 @@
 <template>
   <div class="dimension-select">
-    <div style="font-weight: bold">{{ t('聚合维度') }} :</div>
+    <div class="select-title">{{ t('聚合维度') }} :</div>
     <div class="select-main">
       <div
         ref="selectTriggerRef"
@@ -87,17 +87,27 @@
 
     .check-box-wrapper {
       display: flex;
-      margin-right: 21px;
-      // font-size: 12px;
+      margin-right: 16px;
+      font-size: 12px;
       color: #4d4f56;
       align-items: center;
+    }
+
+    .select-title {
+      font-family: MicrosoftYaHei-Bold, sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0;
+      color: #313238;
     }
 
     .select-main {
       padding: 0 6px;
 
       .select-trigger {
-        // font-size: 12px;
+        font-family: MicrosoftYaHei, sans-serif;
+        font-size: 12px;
+        letter-spacing: 0;
         color: #313238;
         cursor: pointer;
       }

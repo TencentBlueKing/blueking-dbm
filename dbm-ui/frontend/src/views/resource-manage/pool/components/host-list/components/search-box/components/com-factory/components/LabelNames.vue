@@ -12,9 +12,9 @@
     @scroll-end="loadMore">
     <BkOption
       v-for="item in tagList"
-      :key="item.id"
+      :key="item.value"
       :label="item.value"
-      :value="item.id" />
+      :value="item.value" />
   </BkSelect>
 </template>
 
@@ -26,20 +26,20 @@
   import { listTag } from '@services/source/tag';
 
   interface Props {
-    defaultValue: string;
+    defaultValue?: string[];
   }
 
-  type Emits = (e: 'change', value: string) => void;
+  type Emits = (e: 'change', value: string[]) => void;
 
   const props = withDefaults(defineProps<Props>(), {
-    defaultValue: '',
+    defaultValue: () => [],
   });
 
   const emits = defineEmits<Emits>();
 
   const searchVal = ref('');
   const tagList = ref<ServiceReturnType<typeof listTag>['results']>([]);
-  const selected = ref<DbResource['labels'][number]['id'][]>([]);
+  const selected = ref<DbResource['labels'][number]['name'][]>([]);
   const pagination = reactive({
     count: 0,
     limit: 10,
@@ -60,10 +60,10 @@
     () => props.defaultValue,
     async () => {
       if (props.defaultValue) {
-        selected.value = props.defaultValue.split(',').map((v) => +v);
+        selected.value = props.defaultValue;
         const { results } = await runAsyncList({
-          ids: props.defaultValue,
           type: 'resource',
+          value: props.defaultValue.join(','),
         });
         tagList.value = uniqBy([...tagList.value, ...results], 'value');
       } else {
@@ -100,7 +100,7 @@
   };
 
   const handleChange = (value: string[]) => {
-    emits('change', value.join(','));
+    emits('change', value);
   };
 
   const handleSearch = (val: string) => {

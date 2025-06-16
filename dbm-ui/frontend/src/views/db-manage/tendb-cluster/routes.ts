@@ -109,30 +109,18 @@ const spiderToolboxRoute = {
     createRouteItem(TicketTypes.TENDBCLUSTER_NODE_REBALANCE, t('集群容量变更'), {
       dbConsole: 'tendbCluster.toolbox.capacityChange',
     }),
-    {
-      path: 'proxy-scale-up/:page?',
-      name: 'SpiderProxyScaleUp',
-      meta: {
-        dbConsole: 'tendbCluster.toolbox.proxyScaleUp',
-        navName: t('扩容接入层'),
-      },
-      component: () => import('@views/db-manage/tendb-cluster/proxy-scale-up/Index.vue'),
-    },
+    createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES, t('扩容接入层'), {
+      dbConsole: 'tendbCluster.toolbox.proxyScaleUp',
+    }),
     createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES, t('缩容接入层'), {
       dbConsole: 'tendbCluster.toolbox.proxyScaleDown',
     }),
     createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_SWITCH_NODES, t('替换接入层'), {
-      dbConsole: 'tendbCluster.toolbox.spiderSwitchNodes',
+      dbConsole: 'tendbCluster.toolbox.switchNodes',
     }),
-    {
-      path: 'proxy-slave-apply/:page?',
-      name: 'SpiderProxySlaveApply',
-      meta: {
-        dbConsole: 'tendbCluster.toolbox.proxySlaveApply',
-        navName: t('部署只读接入层'),
-      },
-      component: () => import('@views/db-manage/tendb-cluster/proxy-slave-apply/Index.vue'),
-    },
+    createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY, t('部署只读接入层'), {
+      dbConsole: 'tendbCluster.toolbox.proxySlaveApply',
+    }),
     createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY, t('添加运维节点'), {
       dbConsole: 'tendbCluster.toolbox.addMnt',
     }),

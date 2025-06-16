@@ -1,4 +1,4 @@
-import type { OperaObejctType } from '@services/types';
+import type { OperaObejctType, SourceType } from '@services/types';
 
 import type { DetailMachines, ResourcePoolDetailBase, ResourcePoolRecycleHost } from '../../common';
 
@@ -16,6 +16,7 @@ export interface MigrateCluster extends ResourcePoolDetailBase {
     };
     resource_spec: {
       new_master: {
+        count: number;
         hosts: {
           bk_biz_id: number;
           bk_cloud_id: number;
@@ -23,9 +24,12 @@ export interface MigrateCluster extends ResourcePoolDetailBase {
           ip: string;
           port: number;
         }[];
+        label_names: string[]; // 标签名称列表，单据详情回显用
+        labels: string[]; // 标签id列表
         spec_id: number;
       };
       new_slave: {
+        count: number;
         hosts: {
           bk_biz_id: number;
           bk_cloud_id: number;
@@ -33,6 +37,8 @@ export interface MigrateCluster extends ResourcePoolDetailBase {
           ip: string;
           port: number;
         }[];
+        label_names: string[]; // 标签名称列表，单据详情回显用
+        labels: string[]; // 标签id列表
         spec_id: number;
       };
     };
@@ -41,4 +47,5 @@ export interface MigrateCluster extends ResourcePoolDetailBase {
   machine_infos: DetailMachines;
   need_checksum: boolean;
   opera_object: OperaObejctType.CLUSTER | OperaObejctType.MACHINE;
+  source_type: SourceType;
 }

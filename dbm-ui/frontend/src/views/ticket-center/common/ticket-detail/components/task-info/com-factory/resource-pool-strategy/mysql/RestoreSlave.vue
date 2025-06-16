@@ -13,19 +13,23 @@
 
 <template>
   <InfoList>
-    <InfoItem :label="t('备份源')">
-      {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}
+    <InfoItem :label="t('主机选择方式')">
+      {{ ticketDetails.details.source_type === SourceType.RESOURCE_AUTO ? t('资源池自动匹配') : t('资源池手动选择') }}
     </InfoItem>
   </InfoList>
   <BkTable
     :data="ticketDetails.details.infos"
     :show-overflow="false">
-    <BkTableColumn :label="t('待重建从库主机')">
+    <BkTableColumn
+      :label="t('目标从库主机')"
+      :min-width="220">
       <template #default="{ data }: { data: RowData }">
         {{ data.old_nodes.old_slave[0].ip }}
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('同机关联集群')">
+    <BkTableColumn
+      :label="t('同机关联集群')"
+      :min-width="220">
       <template #default="{ data }: { data: RowData }">
         <div
           v-for="clusterId in data.cluster_ids"
@@ -35,17 +39,48 @@
         </div>
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('新从库主机')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.resource_spec.new_slave.hosts[0].ip }}
-      </template>
-    </BkTableColumn>
+    <template v-if="ticketDetails.details.source_type === SourceType.RESOURCE_AUTO">
+      <BkTableColumn
+        :label="t('规格')"
+        :min-width="120">
+        <template #default="{ data }: { data: RowData }">
+          {{ ticketDetails.details.specs?.[data.resource_spec.new_slave.spec_id]?.name || '--' }}
+        </template>
+      </BkTableColumn>
+      <BkTableColumn
+        :label="t('资源标签')"
+        :min-width="200">
+        <template #default="{ data }: { data: RowData }">
+          <BkTag
+            v-for="item in data.resource_spec.new_slave.label_names"
+            :key="item"
+            :theme="labelTheme(item)">
+            {{ item }}
+          </BkTag>
+        </template>
+      </BkTableColumn>
+    </template>
+    <template v-if="ticketDetails.details.source_type === SourceType.RESOURCE_MANUAL">
+      <BkTableColumn
+        :label="t('新从库主机')"
+        :min-width="120">
+        <template #default="{ data }: { data: RowData }">
+          {{ data.resource_spec.new_slave.hosts?.[0]?.ip || '--' }}
+        </template>
+      </BkTableColumn>
+    </template>
   </BkTable>
+  <InfoList>
+    <InfoItem :label="t('备份源')">
+      {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}
+    </InfoItem>
+  </InfoList>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
+  import { SourceType } from '@services/types';
 
   import { TicketTypes } from '@common/const';
 
@@ -65,4 +100,6 @@
   defineProps<Props>();
 
   const { t } = useI18n();
+
+  const labelTheme = (labelName: string) => (labelName === t('通用无标签') ? 'success' : '');
 </script>

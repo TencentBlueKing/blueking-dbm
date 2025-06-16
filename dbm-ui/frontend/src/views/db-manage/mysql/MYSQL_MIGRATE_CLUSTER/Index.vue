@@ -41,10 +41,33 @@
       class="mb-20"
       form-type="vertical"
       :model="formData">
+      <div class="title-spot mt-12 mb-10">{{ t('主机选择方式') }}<span class="required" /></div>
+      <BkRadioGroup
+        v-model="sourceType"
+        class="mb-16"
+        :class="{
+          'alert-show': sourceType === SourceType.RESOURCE_MANUAL,
+        }"
+        style="width: 450px"
+        type="card"
+        @change="handleChangeMode">
+        <BkRadioButton :label="SourceType.RESOURCE_AUTO">
+          {{ t('资源池自动匹配') }}
+        </BkRadioButton>
+        <BkRadioButton :label="SourceType.RESOURCE_MANUAL">
+          {{ t('资源池手动选择') }}
+        </BkRadioButton>
+      </BkRadioGroup>
+      <BkAlert
+        v-if="sourceType === SourceType.RESOURCE_MANUAL"
+        class="mt-8 mb-8"
+        theme="warning"
+        :title="t('“资源池手动选择”会丢失规格导致不能自愈，请谨慎操作！')" />
       <Component
         :is="comMap[operaObjectType]"
-        :key="operaObjectType"
+        :key="comKey"
         ref="table"
+        :source-type="sourceType"
         :ticket-details="ticketDetails" />
       <BackupSource v-model="formData.backupSource" />
       <BkFormItem
@@ -83,7 +106,7 @@
   import { useI18n } from 'vue-i18n';
 
   import type { Mysql } from '@services/model/ticket/ticket';
-  import { BackupSourceType, OperaObejctType } from '@services/types';
+  import { BackupSourceType, OperaObejctType, SourceType } from '@services/types';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
@@ -95,6 +118,8 @@
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+
+  import { random } from '@utils';
 
   import ClusterMigrate from './components/cluster-migrate/Index.vue';
   import MachineMigrate from './components/machine-migrate/Index.vue';
@@ -113,7 +138,9 @@
     payload: createTickePayload(),
   });
 
+  const sourceType = ref(SourceType.RESOURCE_AUTO);
   const formData = reactive(defaultData());
+  const comKey = ref(random());
   const operaObjectType = ref<keyof typeof comMap>(OperaObejctType.CLUSTER);
   const ticketDetails = ref<Mysql.ResourcePool.MigrateCluster>();
 
@@ -126,10 +153,12 @@
         need_checksum: details.need_checksum,
         payload: createTickePayload(ticketDetail),
       });
+      comKey.value = random();
       operaObjectType.value = operaObject;
-      nextTick(() => {
+      sourceType.value = details.source_type;
+      setTimeout(() => {
         ticketDetails.value = details;
-      });
+      }, 100);
     },
   });
 
@@ -139,29 +168,40 @@
       cluster_ids: number[];
       resource_spec: {
         new_master: {
-          hosts: {
+          count: number;
+          hosts?: {
             bk_biz_id: number;
             bk_cloud_id: number;
             bk_host_id: number;
             ip: string;
           }[];
-          spec_id: 0;
+          label_names?: string[]; // 标签名称列表，单据详情回显用
+          labels?: string[]; // 标签id列表
+          spec_id: number;
         };
         new_slave: {
-          hosts: {
+          count: number;
+          hosts?: {
             bk_biz_id: number;
             bk_cloud_id: number;
             bk_host_id: number;
             ip: string;
           }[];
-          spec_id: 0;
+          label_names?: string[]; // 标签名称列表，单据详情回显用
+          labels?: string[]; // 标签id列表
+          spec_id: number;
         };
       };
     }[];
     ip_source: 'resource_pool';
     need_checksum: boolean;
     opera_object: OperaObejctType;
+    source_type: SourceType;
   }>(TicketTypes.MYSQL_MIGRATE_CLUSTER);
+
+  const handleChangeMode = () => {
+    comKey.value = random();
+  };
 
   const handleSubmit = async () => {
     const infos = await tableRef.value!.getValue();
@@ -173,6 +213,7 @@
           ip_source: 'resource_pool',
           need_checksum: formData.need_checksum,
           opera_object: operaObjectType.value,
+          source_type: sourceType.value,
         },
         ...formData.payload,
       });
@@ -184,3 +225,8 @@
     tableRef.value!.reset();
   };
 </script>
+<style lang="less">
+  .alert-show {
+    margin-bottom: 8px !important;
+  }
+</style>

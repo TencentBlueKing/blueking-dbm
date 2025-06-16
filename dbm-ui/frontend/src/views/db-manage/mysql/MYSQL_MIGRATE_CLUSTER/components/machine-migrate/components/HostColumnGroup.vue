@@ -37,35 +37,30 @@
     :label="t('同机关联实例')"
     :loading="loading"
     :min-width="150">
-    <EditableBlock v-if="modelValue.related_instances.length">
+    <EditableBlock :placeholder="t('自动生成')">
       <p
         v-for="item in modelValue.related_instances"
         :key="item">
         {{ item }}
       </p>
     </EditableBlock>
-    <EditableBlock
-      v-else
-      :placeholder="t('自动生成')" />
   </EditableColumn>
   <EditableColumn
     :label="t('同机关联集群')"
     :loading="loading"
     :min-width="150">
-    <EditableBlock v-if="modelValue.related_clusters.length">
+    <EditableBlock :placeholder="t('自动生成')">
       <p
         v-for="item in modelValue.related_clusters"
         :key="item">
         {{ item }}
       </p>
     </EditableBlock>
-    <EditableBlock
-      v-else
-      :placeholder="t('自动生成')" />
   </EditableColumn>
   <InstanceSelector
     v-model:is-show="showSelector"
     :cluster-types="['TendbhaHost']"
+    hide-manual-input
     :selected="selectedInstances"
     :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
@@ -103,11 +98,15 @@
     bk_biz_id: number;
     bk_cloud_id: number;
     bk_host_id: number;
+    bk_idc_city_name: string;
+    bk_sub_zone: string;
     cluster_ids: number[];
     ip: string;
     port: number;
     related_clusters: string[];
     related_instances: string[];
+    role: string;
+    spec_id: number;
   }>({
     required: true,
   });
@@ -171,15 +170,15 @@
     ),
   }));
 
-  const { loading, run: queryInstance } = useRequest(checkInstance, {
+  const { loading, run: queryHost } = useRequest(checkInstance, {
     manual: true,
     onSuccess: (data) => {
       illegalInstances = data
         .filter((item) => item.role !== 'backend_master')
         .map((item) => item.instance_address)
         .join('、');
-      const [hostInfo] = data;
-      if (hostInfo) {
+      const [currentHost] = data;
+      if (currentHost) {
         const clusterIds: number[] = [];
         const relatedInstances: string[] = [];
         const relatedClusters: string[] = [];
@@ -190,13 +189,17 @@
         });
         modelValue.value = {
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          bk_cloud_id: hostInfo.bk_cloud_id,
-          bk_host_id: hostInfo.bk_host_id,
+          bk_cloud_id: currentHost.bk_cloud_id,
+          bk_host_id: currentHost.bk_host_id,
+          bk_idc_city_name: currentHost.host_info?.bk_idc_city_name || '',
+          bk_sub_zone: currentHost.host_info?.bk_sub_zone || '',
           cluster_ids: clusterIds,
-          ip: hostInfo.ip,
-          port: hostInfo.port,
+          ip: currentHost.ip,
+          port: currentHost.port,
           related_clusters: relatedClusters,
           related_instances: relatedInstances,
+          role: currentHost.role,
+          spec_id: currentHost.spec_config.id,
         };
       }
     },
@@ -212,11 +215,15 @@
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: 0,
+      bk_idc_city_name: '',
+      bk_sub_zone: '',
       cluster_ids: [],
       ip: value,
       port: 0,
       related_clusters: [],
       related_instances: [],
+      role: '',
+      spec_id: 0,
     };
   };
 
@@ -227,8 +234,8 @@
   watch(
     modelValue,
     () => {
-      if (!modelValue.value.bk_host_id && modelValue.value.ip) {
-        queryInstance({
+      if (modelValue.value.ip && !modelValue.value.bk_host_id) {
+        queryHost({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           cluster_type: [ClusterTypes.TENDBHA],
           db_type: DBTypes.MYSQL,
