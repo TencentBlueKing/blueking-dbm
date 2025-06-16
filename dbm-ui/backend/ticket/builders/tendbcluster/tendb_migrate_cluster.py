@@ -46,7 +46,7 @@ class TendbClusterMigrateClusterDetailSerializer(TendbBaseOperateDetailSerialize
         help_text=_("备份源"), choices=MySQLBackupSource.get_choices(), default=MySQLBackupSource.REMOTE
     )
     is_safe = serializers.BooleanField(help_text=_("安全模式"), default=True)
-    need_checksum = serializers.BooleanField(help_text=_("执行前是否需要数据校验"))
+    need_checksum = serializers.BooleanField(help_text=_("执行前是否需要数据校验"), default=True)
 
     def validate(self, attrs):
         # 校验集群是否可用，集群类型为高可用
