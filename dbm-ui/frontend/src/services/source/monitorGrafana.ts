@@ -13,6 +13,8 @@
 
 import http from '../http';
 
+const path = '/apis/monitor/grafana';
+
 /**
  * 获取监控警告管理地址
  */
@@ -28,5 +30,19 @@ export function getMonitorUrls(
       url: string;
       view: string;
     }[];
-  }>('/apis/monitor/grafana/get_dashboard/', params);
+  }>(`${path}/get_dashboard/`, params);
+}
+
+/**
+ * 查询业务仪表盘地址
+ */
+export function getBusinessDashboard(params: { bk_biz_id: number }) {
+  return http.get<{
+    url: string;
+    urls: {
+      db_type: string;
+      url: string;
+      view: string;
+    }[];
+  }>(`${path}/get_business_dashboard/`, params);
 }
