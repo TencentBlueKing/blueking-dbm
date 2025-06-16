@@ -57,9 +57,16 @@ func (k *K8sProvider) CreateNamespace(entity *pventity.K8sNamespaceEntity) (*pve
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
 	}
 
+	if entity.ResourceQuota != nil {
+		if err = k.validateResourceQuota(entity); err != nil {
+			slog.Error("failed to validate resource quota format", "err", err)
+			return nil, fmt.Errorf("failed to validate resource quota format: %w", err)
+		}
+
+	}
+
 	ns := k.buildNsFromEntity(entity)
 
-	// TODO if resource quota is not nil, need to check quota format first
 	createdNs, err := k8sClient.ClientSet.CoreV1().Namespaces().Create(context.TODO(), &ns, metav1.CreateOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create namespace: %w", err)
@@ -112,23 +119,6 @@ func (k *K8sProvider) buildQuotaFromCreated(
 }
 
 func (k *K8sProvider) buildQuotaFromEntity(entity *pventity.K8sNamespaceEntity) (*corev1.ResourceQuota, error) {
-	if entity.ResourceQuota.Limit.CPU.IsZero() {
-		slog.Error("invalid resource quota: CPU limit cannot be zero", "namespace", entity.Name)
-		return nil, fmt.Errorf("invalid resource quota: CPU limit cannot be zero (namespace=%s)", entity.Name)
-	}
-	if entity.ResourceQuota.Limit.Memory.IsZero() {
-		slog.Error("invalid resource quota: Memory limit cannot be zero", "namespace", entity.Name)
-		return nil, fmt.Errorf("invalid resource quota: Memory limit cannot be zero (namespace=%s)", entity.Name)
-	}
-	if entity.ResourceQuota.Request.CPU.IsZero() {
-		slog.Error("invalid resource quota: CPU request cannot be zero", "namespace", entity.Name)
-		return nil, fmt.Errorf("invalid resource quota: CPU request cannot be zero (namespace=%s)", entity.Name)
-	}
-	if entity.ResourceQuota.Request.Memory.IsZero() {
-		slog.Error("invalid resource quota: Memory request cannot be zero", "namespace", entity.Name)
-		return nil, fmt.Errorf("invalid resource quota: Memory request cannot be zero (namespace=%s)", entity.Name)
-	}
-
 	quota := corev1.ResourceQuota{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      entity.Name,
@@ -144,6 +134,26 @@ func (k *K8sProvider) buildQuotaFromEntity(entity *pventity.K8sNamespaceEntity) 
 		},
 	}
 	return &quota, nil
+}
+
+func (k *K8sProvider) validateResourceQuota(entity *pventity.K8sNamespaceEntity) error {
+	if entity.ResourceQuota.Limit.CPU.IsZero() {
+		slog.Error("invalid resource quota: CPU limit cannot be zero", "namespace", entity.Name)
+		return fmt.Errorf("invalid resource quota: CPU limit cannot be zero (namespace=%s)", entity.Name)
+	}
+	if entity.ResourceQuota.Limit.Memory.IsZero() {
+		slog.Error("invalid resource quota: Memory limit cannot be zero", "namespace", entity.Name)
+		return fmt.Errorf("invalid resource quota: Memory limit cannot be zero (namespace=%s)", entity.Name)
+	}
+	if entity.ResourceQuota.Request.CPU.IsZero() {
+		slog.Error("invalid resource quota: CPU request cannot be zero", "namespace", entity.Name)
+		return fmt.Errorf("invalid resource quota: CPU request cannot be zero (namespace=%s)", entity.Name)
+	}
+	if entity.ResourceQuota.Request.Memory.IsZero() {
+		slog.Error("invalid resource quota: Memory request cannot be zero", "namespace", entity.Name)
+		return fmt.Errorf("invalid resource quota: Memory request cannot be zero (namespace=%s)", entity.Name)
+	}
+	return nil
 }
 
 func (k *K8sProvider) buildNsFromEntity(entity *pventity.K8sNamespaceEntity) corev1.Namespace {
