@@ -22,6 +22,16 @@
               {{ t('告警事件') }}
             </span>
           </BkMenuItem>
+          <BkMenuItem key="DBMonitorBussinessDashboard">
+            <template #icon>
+              <DbIcon type="db-config" />
+            </template>
+            <span
+              v-overflow-tips.right
+              class="text-overflow">
+              {{ t('业务大盘') }}
+            </span>
+          </BkMenuItem>
         </BkMenuGroup>
         <BkMenuGroup
           v-db-console="'observableManage.DBHASwitchEvents'"
