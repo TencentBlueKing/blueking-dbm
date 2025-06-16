@@ -46,6 +46,8 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import { BizSettingKeys } from '@common/const';
+
   import { messageSuccess } from '@utils';
 
   import CreateRow from './components/CreateRow.vue';
@@ -58,20 +60,19 @@
     name: string;
   }
 
-  const OPEN_AREA_VARS_KEY = 'OPEN_AREA_VARS';
+  const modelValue = defineModel<boolean>({
+    default: false,
+  });
 
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
 
-  const modelValue = defineModel<boolean>({
-    default: false,
-  });
   const variableList = shallowRef<IVariable[]>([]);
 
   const { loading: isLoading, run: fetchVariableList } = useRequest(getBizSettingList, {
     manual: true,
     onSuccess(data) {
-      variableList.value = _.sortBy(data[OPEN_AREA_VARS_KEY], (item) => !item.builtin);
+      variableList.value = _.sortBy(data[BizSettingKeys.OPEN_AREA_VARS], (item) => !item.builtin);
     },
   });
 
@@ -86,7 +87,7 @@
   const fetchData = () => {
     fetchVariableList({
       bk_biz_id: currentBizId,
-      key: OPEN_AREA_VARS_KEY,
+      key: BizSettingKeys.OPEN_AREA_VARS,
     });
   };
 
