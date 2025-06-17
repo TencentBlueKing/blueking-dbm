@@ -82,6 +82,12 @@
     modelValue.value = -1;
   });
 
+  watch(cloudList, () => {
+    if (cloudList.value.length > 0) {
+      modelValue.value = cloudList.value[0].bk_cloud_id;
+    }
+  });
+
   const handleClearSearch = () => {
     serachKey.value = '';
   };
