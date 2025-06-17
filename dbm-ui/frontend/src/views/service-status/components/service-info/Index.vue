@@ -75,6 +75,7 @@
     loading: fetchExtensionLoading,
     run: runFetchExtensions,
   } = useRequest(fetchExtensions, {
+    debounceInterval: 200,
     manual: true,
   });
 
