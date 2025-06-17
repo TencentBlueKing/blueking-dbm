@@ -45,11 +45,11 @@
     labelConfig: undefined,
   });
 
-  const funControllerStore = useFunController();
-
   const moduleValue = defineModel<DBTypes>({
     default: DBTypes.MYSQL,
   });
+
+  const funControllerStore = useFunController();
 
   // 解决 labelConfig 变化后渲染样式异常问题
   const renderKey = ref(0);

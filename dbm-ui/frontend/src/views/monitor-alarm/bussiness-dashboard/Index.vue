@@ -1,28 +1,21 @@
 <template>
   <BkLoading
     class="bussiness-dashboard"
-    :loading="isLoading">
-    <BkTab
-      v-model:active="activePanelKey"
-      class="bussiness-dashboard-tab"
-      type="unborder-card">
-      <BkTabPanel
-        v-for="item in tabList"
-        :key="item.value"
-        :label="item.label"
-        :name="item.value" />
-    </BkTab>
-    <div class="bussiness-dashboard-content">
-      <MonitorDashboard
-        v-if="currentItem?.url"
-        :url="currentItem.url" />
-      <BkException
-        v-else
-        class="content-exception"
-        :description="t('暂无数据')"
-        scene="part"
-        type="empty" />
-    </div>
+    :loading="businessDashboardLoading">
+    <template v-if="businessDashboardData?.urls.length">
+      <DbTab
+        v-model="activePanelKey"
+        :exclude="excludeDbTyps" />
+      <div class="bussiness-dashboard-content">
+        <MonitorDashboard :url="currentItem?.url" />
+      </div>
+    </template>
+    <BkException
+      v-else
+      class="empty-exception"
+      :description="t('暂无数据')"
+      scene="part"
+      type="empty" />
   </BkLoading>
 </template>
 
@@ -30,27 +23,15 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import type { BigdataFunctions } from '@services/model/function-controller/functionController';
-  import { getBizSettingList } from '@services/source/bizSetting';
   import { getBusinessDashboard } from '@services/source/monitorGrafana';
 
-  import { useFunController } from '@stores';
+  import { DBTypeInfos, DBTypes } from '@common/const';
 
-  import { BizSettingKeys, DBTypeInfos, DBTypes } from '@common/const';
+  import DbTab from '@components/db-tab/Index.vue';
 
   import MonitorDashboard from '@views/db-manage/common/cluster-monitor/MonitorDashboard.vue';
 
   const { t } = useI18n();
-  const funControllerStore = useFunController();
-
-  const { data: bizSettingData, loading: bizSettingLoading } = useRequest(getBizSettingList, {
-    defaultParams: [
-      {
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        key: BizSettingKeys.DATABASE_MANAGE_MENU,
-      },
-    ],
-  });
 
   const {
     data: businessDashboardData,
@@ -60,51 +41,18 @@
     manual: true,
   });
 
-  const activePanelKey = ref('');
+  const activePanelKey = ref('' as DBTypes);
 
-  const isLoading = computed(() => bizSettingLoading.value || businessDashboardLoading.value);
-
-  const tabList = computed(() => {
-    if (
-      bizSettingData.value &&
-      bizSettingData.value[BizSettingKeys.DATABASE_MANAGE_MENU] &&
-      bizSettingData.value[BizSettingKeys.DATABASE_MANAGE_MENU].length > 0 &&
-      businessDashboardData.value &&
-      businessDashboardData.value.urls.length > 0
-    ) {
-      const urlDbTypeMap = Object.fromEntries(
-        businessDashboardData.value.urls.map((urlItem) => [urlItem.db_type, true]),
-      );
-      return (bizSettingData.value[BizSettingKeys.DATABASE_MANAGE_MENU] as DBTypes[]).reduce<
-        {
-          label: string;
-          value: string;
-        }[]
-      >((prevList, dbType) => {
-        const dbTypeInfo = DBTypeInfos[dbType];
-        if (dbTypeInfo && urlDbTypeMap[dbType]) {
-          if (dbTypeInfo.moduleId === 'bigdata') {
-            const data = funControllerStore.funControllerData.getFlatData(dbTypeInfo.moduleId);
-            if (data[dbType as BigdataFunctions])
-              return prevList.concat({
-                label: dbTypeInfo.name,
-                value: dbType,
-              });
-          } else {
-            const controllerData = funControllerStore.funControllerData[dbTypeInfo.moduleId];
-            if (controllerData.is_enabled) {
-              return prevList.concat({
-                label: dbTypeInfo.name,
-                value: dbType,
-              });
-            }
-          }
-        }
-        return prevList;
-      }, []);
-    }
-
-    return [];
+  const excludeDbTyps = computed(() => {
+    const urlDbTypeMap = Object.fromEntries(
+      (businessDashboardData.value?.urls || []).map((urlItem) => [urlItem.db_type, true]),
+    );
+    return Object.values(DBTypeInfos).reduce<DBTypes[]>((prevList, dbItem) => {
+      if (!urlDbTypeMap[dbItem.id]) {
+        return prevList.concat(dbItem.id);
+      }
+      return prevList;
+    }, []);
   });
 
   const currentItem = computed(() =>
@@ -123,27 +71,17 @@
   .bussiness-dashboard {
     height: 100%;
 
-    .bussiness-dashboard-tab {
-      padding: 0 24px;
-      background: #fff;
-      box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
-
-      .bk-tab-content {
-        display: none;
-      }
-    }
-
     .bussiness-dashboard-content {
       height: calc(100% - 43px);
       padding: 24px;
+    }
 
-      .content-exception {
-        display: flex;
-        height: 100%;
-        background-color: #fff;
-        align-items: center;
-        justify-content: center;
-      }
+    .empty-exception {
+      display: flex;
+      height: 100%;
+      background-color: #fff;
+      align-items: center;
+      justify-content: center;
     }
   }
 </style>
