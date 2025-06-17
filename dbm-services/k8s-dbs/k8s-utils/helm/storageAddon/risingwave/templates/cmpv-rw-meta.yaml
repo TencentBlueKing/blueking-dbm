@@ -6,6 +6,8 @@ spec:
   compatibilityRules:
     - releases:
         - meta-2.2.1
+        - meta-2.3.0
+        - meta-2.4.1
       compDefs:
         - rw-meta-{{ .Chart.Version}}
   releases:
@@ -13,3 +15,11 @@ spec:
       serviceVersion: 2.2.1
       images:
         meta: docker.risingwave.com/risingwavelabs/risingwave:v2.2.1
+    - name: meta-2.3.0
+      serviceVersion: 2.3.0
+      images:
+        meta: docker.risingwave.com/risingwavelabs/risingwave:v2.3.0
+    - name: meta-2.4.1
+      serviceVersion: 2.4.1
+      images:
+        meta: docker.risingwave.com/risingwavelabs/risingwave:v2.4.1
