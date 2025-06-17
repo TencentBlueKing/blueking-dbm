@@ -185,6 +185,10 @@ func (r *ReceiverClient) monitorConnection() {
 	for {
 		select {
 		case <-r.ctx.Done():
+			logger.Info("receiver client exited.")
+			r.mutex.Lock()
+			r.closed = true
+			r.mutex.Unlock()
 			return
 
 		case <-ticker.C:
@@ -229,7 +233,7 @@ func (r *ReceiverClient) register() error {
 	defer r.mutex.RUnlock()
 
 	if r.stream == nil {
-		return gerrors.New(gerrors.NetException, "receiver stream is invalid(nil)")
+		return gerrors.New(gerrors.NetConnectionBroken, "receiver stream is invalid(nil)")
 	}
 
 	if err := r.stream.Send(msg); err != nil {
@@ -248,11 +252,11 @@ func (r *ReceiverClient) SendMessage(content []byte) error {
 	defer r.mutex.RUnlock()
 
 	if r.closed {
-		return gerrors.New(gerrors.Failure, "client is closed")
+		return gerrors.New(gerrors.NetConnectionBroken, "client is closed")
 	}
 
 	if r.stream == nil {
-		return gerrors.New(gerrors.Failure, "stream is invalid(nil)")
+		return gerrors.New(gerrors.NetConnectionBroken, "stream is invalid(nil)")
 	}
 
 	msg := &proto.ReceiverRequest{
@@ -274,13 +278,14 @@ func (r *ReceiverClient) Connect() error {
 
 func (r *ReceiverClient) Close() {
 	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
 	if r.closed {
+		r.mutex.Unlock()
 		return
 	}
 	r.closed = true
+	r.mutex.Unlock()
 
+	// close stream
 	if r.stream != nil {
 		_, err := r.stream.CloseAndRecv()
 		if err != nil {
@@ -288,13 +293,17 @@ func (r *ReceiverClient) Close() {
 		}
 	}
 
+	// close connection
+	if r.conn != nil {
+		r.conn.Close()
+		r.conn = nil
+	}
+
+	// exit goroutines
 	if r.cancel != nil {
 		r.cancel()
 		r.cancel = nil
 	}
 
-	if r.conn != nil {
-		r.conn.Close()
-		r.conn = nil
-	}
+	r.wg.Wait()
 }

@@ -105,7 +105,7 @@ func NewZapLogger(config Config) Logger {
 
 	encoder := zapcore.NewConsoleEncoder(cfg.EncoderConfig)
 	core := zapcore.NewCore(encoder, zapcore.AddSync(logRotator), convertLevel(config.LogLevel))
-	logger := zap.New(core, zap.AddCaller())
+	logger := zap.New(core, zap.AddCaller(), zap.AddCallerSkip(2))
 
 	return &ZapLogger{logger: logger, sugaredLogger: logger.Sugar()}
 }
