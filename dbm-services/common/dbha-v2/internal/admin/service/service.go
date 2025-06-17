@@ -25,6 +25,7 @@
 package service
 
 import (
+	"context"
 	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
@@ -38,52 +39,64 @@ import (
 	"google.golang.org/grpc/keepalive"
 )
 
-type Receiver struct {
-	proto.UnimplementedReceiverServiceServer
+type Admin struct {
+	proto.UnimplementedAdminServiceServer
 	wg      sync.WaitGroup
 	address string
 	svr     *grpc.Server
 }
 
-// NewReceiverServer new a receiver server
-func NewReceiverServer(address string) (*Receiver, error) {
+// NewAdminServer new a admin server
+func NewAdminServer(address string) (*Admin, error) {
 	addr := strings.TrimSpace(address)
 	if addr == "" {
 		return nil, gerrors.New(gerrors.InvalidParameter, "address is required")
 	}
 
-	return &Receiver{
+	return &Admin{
 		address: addr,
 	}, nil
 }
 
-func (r *Receiver) PushData(stream proto.ReceiverService_PushDataServer) error {
+func (a *Admin) Heartbeat(ctx context.Context, req *proto.HeartbeatRequest) (*proto.HeartbeatResponse, error) {
+	logger.Info("admin server heartbeat request(%v)", req)
+	return &proto.HeartbeatResponse{Errmsg: "success"}, nil
+}
+
+func (a *Admin) WatchConfig(stream proto.AdminService_WatchConfigServer) error {
 	ctx := stream.Context()
 
 	for {
 		select {
 		case <-ctx.Done():
-			logger.Error("receiver server exited due to canceled context")
+			logger.Error("admin server exited due to canceled context")
 			return nil
 
 		default:
 			req, err := stream.Recv()
 			if err == io.EOF {
-				logger.Error("receiver server exited. recv return errmsg(%v)", err)
+				logger.Error("admin server exited. recv return errmsg(%v)", err)
 				return nil
 			}
 
 			if err != nil {
-				logger.Error("receiver server exited. recv return errmsg(%v)", err)
+				logger.Error("admin server exited. recv return errmsg(%v)", err)
 				return nil
 			}
 
 			logger.Debug("request:%v", req)
+			// NOTE: only test
+			err = stream.Send(&proto.ProbeConfigResponse{
+				Payload: "config respond",
+			})
+			if err != nil {
+				logger.Error("respond config request failed, errmsg(%v)", err)
+			}
 		}
 	}
 }
 
-func (r *Receiver) Run() error {
+func (a *Admin) Run() error {
 	kasp := keepalive.ServerParameters{
 		Time:    constant.DefaultServerPingTime,
 		Timeout: constant.DefaultPingTimeout,
@@ -101,18 +114,22 @@ func (r *Receiver) Run() error {
 		grpc.MaxSendMsgSize(constant.DefaultMaxSendMessageSize),
 	)
 
-	proto.RegisterReceiverServiceServer(svr, r)
-	listen, err := net.Listen("tcp", r.address)
+	proto.RegisterAdminServiceServer(svr, a)
+	listen, err := net.Listen("tcp", a.address)
 	if err != nil {
-		logger.Error("receiver listen failed. address(%s)", r.address)
 		return gerrors.New(gerrors.NetException, err.Error())
 	}
 
-	r.svr = svr
-	return r.svr.Serve(listen)
+	a.svr = svr
+	return a.svr.Serve(listen)
+
 }
 
-func (r *Receiver) Close() {
-	r.svr.Stop()
-	r.wg.Wait()
+func (a *Admin) Close() {
+	if a.svr != nil {
+		a.svr.Stop()
+		a.svr = nil
+	}
+
+	a.wg.Wait()
 }
