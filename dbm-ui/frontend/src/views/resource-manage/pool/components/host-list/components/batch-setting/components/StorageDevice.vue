@@ -42,6 +42,8 @@
   import { updateResource } from '@services/source/dbresourceResource';
   import { searchDeviceClass } from '@services/source/ipchooser';
 
+  import { DeviceClass, deviceClassDisplayMap } from '@common/const';
+
   type StorageDevice = NonNullable<ServiceParameters<typeof updateResource>['storage_device']>;
 
   interface TableColumnData {
@@ -215,7 +217,7 @@
   searchDeviceClass()
     .then((res) => {
       deviceClass.value = res.map((item) => ({
-        label: item,
+        label: deviceClassDisplayMap[item as DeviceClass],
         value: item,
       }));
     })

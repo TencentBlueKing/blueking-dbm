@@ -41,7 +41,7 @@
 
   useRequest(fetchDbTypeList, {
     onSuccess(data) {
-      dbTypeList.value = [{ id: 'PUBLIC', name: t('通用') }, ...data];
+      dbTypeList.value = data.concat({ id: 'PUBLIC', name: t('通用') });
     },
   });
 

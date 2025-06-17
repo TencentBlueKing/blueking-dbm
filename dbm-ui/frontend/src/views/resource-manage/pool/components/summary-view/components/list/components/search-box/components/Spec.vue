@@ -1,6 +1,6 @@
 <template>
   <BkComposeFormItem class="search-box-select-spec">
-    <BkSelect
+    <!-- <BkSelect
       v-model="dbType"
       :disabled="isDbTypeDisabled"
       style="width: 150px"
@@ -10,7 +10,7 @@
         :key="item.id"
         :label="item.name"
         :value="item.id" />
-    </BkSelect>
+    </BkSelect> -->
     <BkSelect
       :key="dbType"
       v-model="machineType"
@@ -71,7 +71,7 @@
   const specIdList = ref<string[]>([]);
   const clusterMachineList = ref<InfoItem['machineList']>([]);
 
-  const isDbTypeDisabled = computed(() => !!props.model.db_type && props.model.db_type !== 'PUBLIC');
+  // const isDbTypeDisabled = computed(() => !!props.model.db_type && props.model.db_type !== 'PUBLIC');
 
   const {
     data: resourceSpecList,
@@ -135,11 +135,11 @@
     handleChange([]);
   };
 
-  const handleChangeCluster = (value: DBTypes) => {
-    clusterMachineList.value = DBTypeInfos[value]?.machineList || [];
-    dbType.value = value;
-    handleChangeMachine('');
-  };
+  // const handleChangeCluster = (value: DBTypes) => {
+  //   clusterMachineList.value = DBTypeInfos[value]?.machineList || [];
+  //   dbType.value = value;
+  //   handleChangeMachine('');
+  // };
 </script>
 
 <style lang="less" scoped>

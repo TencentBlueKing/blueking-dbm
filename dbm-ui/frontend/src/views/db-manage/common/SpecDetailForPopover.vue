@@ -21,10 +21,21 @@
           <td>{{ t('磁盘') }}:</td>
           <td>
             <BkTable
-              :columns="tableColumns"
               :data="data.storage_spec"
               :max-height="200"
-              style="width: 420px" />
+              style="width: 420px">
+              <BkTableColumn
+                field="mount_point"
+                :label="t('挂载点')" />
+              <BkTableColumn
+                field="size"
+                :label="t('最小容量G')" />
+              <BkTableColumn :label="t('磁盘类型')">
+                <template #default="{ data: rowData }: { data: ResourceSpecModel['storage_spec'][number] }">
+                  {{ deviceClassDisplayMap[rowData.type as DeviceClass] }}
+                </template>
+              </BkTableColumn>
+            </BkTable>
           </td>
         </tr>
         <tr>
@@ -42,6 +53,8 @@
 
   import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
 
+  import { DeviceClass, deviceClassDisplayMap } from '@common/const';
+
   interface Props {
     data: ResourceSpecModel;
   }
@@ -49,21 +62,6 @@
   defineProps<Props>();
 
   const { t } = useI18n();
-
-  const tableColumns = [
-    {
-      field: 'mount_point',
-      label: t('挂载点'),
-    },
-    {
-      field: 'size',
-      label: t('最小容量（G）'),
-    },
-    {
-      field: 'type',
-      label: t('磁盘类型'),
-    },
-  ];
 </script>
 <style lang="less">
   .spec-detail-for-popover {
