@@ -47,6 +47,13 @@ class IpSource(str, StructuredEnum):
     RESOURCE_POOL = EnumField("resource_pool", _("资源池"))
 
 
+class SourceType(str, StructuredEnum):
+    """资源来源类型"""
+
+    RESOURCE_AUTO = EnumField("resource_auto", _("资源池自动匹配"))
+    RESOURCE_MANUAL = EnumField("resource_manual", _("资源池手动选择"))
+
+
 class ResourceType(str, StructuredEnum):
     """污点主机，资源操作枚举"""
 
