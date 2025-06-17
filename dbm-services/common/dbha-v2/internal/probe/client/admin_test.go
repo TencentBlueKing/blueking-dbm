@@ -25,27 +25,27 @@
 package client_test
 
 import (
+	"bk-dbconfig/pkg/core/logger"
+	"dbm-services/common/dbha-v2/internal/admin/service"
 	"dbm-services/common/dbha-v2/internal/probe/client"
-	"dbm-services/common/dbha-v2/internal/receiver/service"
-	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/pkg/proto"
 	"testing"
 	"time"
 
 	"golang.org/x/net/context"
 )
 
-func runReceiverServer(ctx context.Context) error {
-
-	svr, err := service.NewReceiverServer(receiverAddress)
+func runAdminServer(ctx context.Context) error {
+	svr, err := service.NewAdminServer(adminAddress)
 	if err != nil {
-		logger.Fatal("make receiver server failed. errmsg(%v)", err)
+		logger.Fatal("make admin server failed. errmsg(%v)", err)
 	}
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		if err := svr.Run(); err != nil {
-			logger.Fatal("receiver exited. errmsg(%v)", err)
+			logger.Fatal("admin exited. errmsg(%v)", err)
 		}
 	}()
 
@@ -64,27 +64,23 @@ func runReceiverServer(ctx context.Context) error {
 	return nil
 }
 
-func connectReceiverServer(ctx context.Context) error {
+func connectAdminServer(ctx context.Context) error {
 	for i := 0; i < maxConnection; i++ {
 		wg.Add(1)
 		go func(ctx context.Context) {
 			defer wg.Done()
 
-			cli, err := client.NewReceiverClient(ctx, receiverAddress, receiverClientID)
+			cli, err := client.NewAdminClient(ctx, adminAddress, adminClientID)
 			if err != nil {
-				logger.Fatal("make receiver client failed. errmsg(%v)", err)
+				logger.Fatal("make admin client failed, errmsg(%v)", err)
 			}
 
 			err = cli.Connect()
 			if err != nil {
-				logger.Fatal("receiver client run failed. errmsg(%v)", err)
+				logger.Fatal("admin client connect the remote server failed, errmsg(%v)", err)
 			}
 
-			if err != nil {
-				logger.Fatal("create receiver client failed. errmsg(%v)", err)
-			}
-
-			receiverClients = append(receiverClients, cli)
+			adminClients = append(adminClients, cli)
 
 			select {
 			case <-ctx.Done():
@@ -97,31 +93,59 @@ func connectReceiverServer(ctx context.Context) error {
 	return nil
 }
 
-func TestPushData(t *testing.T) {
+func TestHeartbeat(t *testing.T) {
 	for {
-		if len(receiverClients) == 0 {
+		if len(adminClients) == 0 {
 			time.Sleep(1 * time.Second)
 			continue
 		}
 		break
 	}
 
-	idx := rng.Intn(len(receiverClients))
-	cli := receiverClients[idx]
-	err := cli.SendMessage([]byte("hello world"))
+	idx := rng.Intn(len(adminClients))
+	cli := adminClients[idx]
 
-	if err != nil {
-		t.Errorf("receiver client send message failed. errmsg(%v)", err)
+	req := &proto.HeartbeatRequest{
+		ClientID:      adminClientID,
+		ConfigVersion: "v1.0.0",
 	}
+
+	resp, err := cli.HeartbeatRequest(req)
+	if err != nil {
+		t.Errorf("admin client post heartbeat request failed, errmsg(%v)", err)
+		return
+	}
+
+	t.Logf("admin client heartheat response(%v)", resp)
 }
 
-func BenchmarkPushDataConnection(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		idx := rng.Intn(len(receiverClients))
-		cli := receiverClients[idx]
-		err := cli.SendMessage([]byte("random send a message(hello world)"))
-		if err != nil {
-			b.Errorf("send a message failed by random client, errmsg(%v)", err)
+func TestWatchConfig(t *testing.T) {
+	for {
+		if len(adminClients) == 0 {
+			time.Sleep(1 * time.Second)
+			continue
 		}
+		break
+	}
+
+	idx := rng.Intn(len(adminClients))
+	cli := adminClients[idx]
+
+	req := &proto.ProbeConfigRequest{
+		ClientID: adminClientID,
+	}
+
+	respC, err := cli.WatchConfigRequest(req)
+	if err != nil {
+		t.Errorf("request config failed, errmsg(%v)", err)
+	}
+
+	select {
+	case rsp, ok := <-respC:
+		if !ok {
+			t.Error("respond is failure")
+			return
+		}
+		t.Logf("config request respond(%v)", rsp)
 	}
 }

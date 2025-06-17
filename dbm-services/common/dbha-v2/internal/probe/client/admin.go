@@ -29,6 +29,8 @@ import (
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/proto"
+	"fmt"
+	"io"
 	"math/rand"
 	"sync"
 	"time"
@@ -53,6 +55,7 @@ type AdminClient struct {
 	reconnectInterval    time.Duration
 	maxReconnectAttempts int
 	reconnectAttempts    int
+	respC                chan *proto.ProbeConfigResponse
 	mutex                sync.RWMutex
 }
 
@@ -84,8 +87,10 @@ func NewAdminClient(ctx context.Context, endpoint string, clientId string) (*Adm
 		client:               proto.NewAdminServiceClient(conn),
 		ctx:                  ctxBase,
 		cancel:               cancel,
+		clientId:             clientId,
 		reconnectInterval:    constant.DefaultClientReconnectInterval,
 		maxReconnectAttempts: constant.DefaultClientMaxReconnectAttempts,
+		respC:                make(chan *proto.ProbeConfigResponse, constant.DefaultAdminBufferSize),
 	}
 
 	return r, nil
@@ -111,6 +116,8 @@ func (a *AdminClient) connect() error {
 
 	a.wg.Add(1)
 	go a.monitorConnection()
+	a.wg.Add(1)
+	go a.receiveMessage()
 
 	return nil
 }
@@ -118,7 +125,7 @@ func (a *AdminClient) connect() error {
 func (a *AdminClient) handleDisconnect() {
 	defer a.wg.Done()
 
-	a.mutex.Unlock()
+	a.mutex.Lock()
 	if a.closed || a.reconnecting {
 		a.mutex.Unlock()
 		return
@@ -164,6 +171,26 @@ func (a *AdminClient) handleDisconnect() {
 	logger.Info("admin client reconnect successful")
 }
 
+func (a *AdminClient) receiveMessage() {
+	defer a.wg.Done()
+
+	for {
+		resp, err := a.stream.Recv()
+		if err == io.EOF {
+			logger.Error("admin client recv failed. errmsg(%v)", err)
+			return
+		}
+
+		if err != nil {
+			logger.Error("admin client recv failed. errmsg(%v)", err)
+			return
+		}
+
+		logger.Debug("admin client response(%v)", resp)
+		a.respC <- resp
+	}
+}
+
 func (a *AdminClient) getConnectionState() connectivity.State {
 	a.mutex.RLock()
 	defer a.mutex.RUnlock()
@@ -184,6 +211,10 @@ func (a *AdminClient) monitorConnection() {
 	for {
 		select {
 		case <-a.ctx.Done():
+			logger.Info("admin client exited.")
+			a.mutex.Lock()
+			a.closed = true
+			a.mutex.Unlock()
 			return
 
 		case <-ticker.C:
@@ -205,40 +236,39 @@ func (a *AdminClient) monitorConnection() {
 	}
 }
 
-func (a *AdminClient) register() {
-	msg := &proto.ProbeConfigRequest{}
-
-	a.mutex.RLock()
-	defer a.mutex.Unlock()
-
-	if a.stream == nil {
-		logger.Warn("receiver stream is invalid(nil)")
-		return
-	}
-
-	if err := a.stream.Send(msg); err != nil {
-		logger.Error("receiver register failed. errmsg(%v)", err)
-	}
-}
-
-func (a *AdminClient) SendMessage(content []byte) error {
+func (a *AdminClient) HeartbeatRequest(req *proto.HeartbeatRequest) (*proto.HeartbeatResponse, error) {
 	a.mutex.RLock()
 	defer a.mutex.RUnlock()
 
 	if a.closed {
-		return gerrors.New(gerrors.Failure, "client is closed")
+		return nil, gerrors.New(gerrors.NetConnectionBroken, "admin client connection broken")
+	}
+
+	return a.client.Heartbeat(a.ctx, req)
+}
+
+func (a *AdminClient) WatchConfigRequest(req *proto.ProbeConfigRequest) (chan *proto.ProbeConfigResponse, error) {
+	a.mutex.RLock()
+	defer a.mutex.RUnlock()
+
+	if a.closed {
+		return nil, gerrors.New(gerrors.NetConnectionBroken, "admin client is closed")
 	}
 
 	if a.stream == nil {
-		return gerrors.New(gerrors.Failure, "stream is invalid(nil)")
+		return nil, gerrors.New(gerrors.Failure, "admin client stream is invalid(nil)")
 	}
 
-	msg := &proto.ProbeConfigRequest{}
+	err := a.stream.Send(req)
+	if err != nil {
+		msg := fmt.Sprintf("admin client stream send request failed, errmsg(%v)", err)
+		return nil, gerrors.New(gerrors.Failure, msg)
+	}
 
-	return a.stream.Send(msg)
+	return a.respC, nil
 }
 
-func (a *AdminClient) Run() error {
+func (a *AdminClient) Connect() error {
 	err := a.connect()
 	if err != nil {
 		logger.Error("admin client connect the remote server failed. errmsg(%v)", err)
@@ -250,21 +280,31 @@ func (a *AdminClient) Run() error {
 
 func (a *AdminClient) Close() {
 	a.mutex.Lock()
-	defer a.mutex.Unlock()
-
 	if a.closed {
+		a.mutex.Unlock()
 		return
 	}
 	a.closed = true
+	a.mutex.Unlock()
 
-	if a.cancel != nil {
-		a.cancel()
-		a.cancel = nil
+	// close stream
+	if a.stream != nil {
+		err := a.stream.CloseSend()
+		if err != nil {
+			logger.Error("admin client close send failed. errmsg(%v)", err)
+		}
 	}
 
+	// clsoe connection
 	if a.conn != nil {
 		a.conn.Close()
 		a.conn = nil
+	}
+
+	// exit goroutines
+	if a.cancel != nil {
+		a.cancel()
+		a.cancel = nil
 	}
 
 	a.wg.Wait()
