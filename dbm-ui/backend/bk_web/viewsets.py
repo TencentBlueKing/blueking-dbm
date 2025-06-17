@@ -226,8 +226,9 @@ class ExternalProxyViewSet(viewsets.ViewSet):
 
         # 制品库临时下载接口以文件流返回
         if "/storage/generic/temporary/download/" in request.path:
+            chunk_size = 1024 * 1024
             return StreamingHttpResponse(
-                response.iter_content(),
+                response.iter_content(chunk_size=chunk_size),
                 content_type="application/octet‑stream",
                 headers={"Content-Disposition": 'attachment; filename="dump.tar.gz"'},
             )

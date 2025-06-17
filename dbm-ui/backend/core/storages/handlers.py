@@ -76,9 +76,11 @@ class StorageHandler(object):
         批量下载文件
         :param file_path_list: 文件列表
         """
+        # 分块下载默认1M
+        chunk_size = 1024 * 1024
         resp = self.storage.batch_download(file_path_list)
         resp = StreamingHttpResponse(
-            resp.iter_content(),
+            resp.iter_content(chunk_size=chunk_size),
             content_type="application/octet‑stream",
         )
         resp["Content-Disposition"] = 'attachment; filename="download.tar.gz"'
