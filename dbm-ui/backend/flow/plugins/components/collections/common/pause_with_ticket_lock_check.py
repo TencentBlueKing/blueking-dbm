@@ -18,7 +18,7 @@ from pipeline.core.flow.io import ObjectItemSchema, StringItemSchema
 from backend.db_meta.models import Cluster
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.ticket.constants import TicketType
-from backend.ticket.models import ClusterOperateRecord, Ticket
+from backend.ticket.models import ClusterOperateRecord, Flow, Ticket
 from backend.ticket.todos.pipeline_todo import PipelineTodo
 
 logger = logging.getLogger("root")
@@ -42,7 +42,7 @@ class PauseWithTicketLockCheckService(BaseService):
         # 获取单据和flow信息
         ticket_id = global_data["uid"]
         ticket = Ticket.objects.get(id=ticket_id)
-        flow = ticket.current_flow()
+        flow = Flow.objects.get(ticket=ticket, flow_obj_id=global_data["job_root_id"])
 
         # 相关记录修改状态
         for cluster_id in kwargs["cluster_ids"]:
@@ -71,7 +71,7 @@ class PauseWithTicketLockCheckService(BaseService):
                 global_data = data.get_one_of_inputs("global_data")
                 ticket_id = global_data["uid"]
                 ticket = Ticket.objects.get(id=ticket_id)
-                flow = ticket.current_flow()
+                flow = Flow.objects.get(ticket=ticket, flow_obj_id=global_data["job_root_id"])
                 check_result = self._has_active_exec(
                     kwargs.get("cluster_ids"), ticket, flow, kwargs["release_unlock_ticket_type_list"]
                 )

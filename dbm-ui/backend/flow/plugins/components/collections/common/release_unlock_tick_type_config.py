@@ -16,7 +16,7 @@ from pipeline.component_framework.component import Component
 from backend.db_meta.models import Cluster
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.ticket.constants import TicketType
-from backend.ticket.models import ClusterOperateRecord, Ticket
+from backend.ticket.models import ClusterOperateRecord, Flow, Ticket
 
 logger = logging.getLogger("root")
 
@@ -34,7 +34,7 @@ class ReleaseUnlockTicketTypeConfigService(BaseService):
         # 获取单据和flow信息
         ticket_id = global_data["uid"]
         ticket = Ticket.objects.get(id=ticket_id)
-        flow = ticket.current_flow()
+        flow = Flow.objects.get(ticket=ticket, flow_obj_id=global_data["job_root_id"])
 
         # 判断是否修改互斥记录
         for cluster_id in kwargs.get("cluster_ids", []):
