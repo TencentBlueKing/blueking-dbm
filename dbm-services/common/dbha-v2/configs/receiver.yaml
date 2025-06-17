@@ -2,7 +2,7 @@ name: receiver
 version: v2.0.0
 
 service:
-  listen_address: 127.0.0.1:22222
+  listenAddress: 127.0.0.1:22222
 
 discovery:
   endpoints: http://127.0.0.1:2379;http://127.0.0.2:2379
@@ -12,5 +12,5 @@ discovery:
 log:
   path: /var/log/dbha/receiver.log
   level: debug
-  file_count: 10
-  file_size: 100
+  fileCount: 10
+  fileSize: 100

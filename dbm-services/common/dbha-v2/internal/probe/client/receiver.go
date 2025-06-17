@@ -29,6 +29,7 @@ import (
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/proto"
+	"io"
 	"math/rand"
 	"sync"
 	"time"
@@ -165,7 +166,7 @@ func (r *ReceiverClient) handleDisconnect() {
 }
 
 func (r *ReceiverClient) getConnectionState() connectivity.State {
-	r.mutex.RLocker()
+	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
 	if r.conn == nil {
@@ -187,7 +188,7 @@ func (r *ReceiverClient) monitorConnection() {
 			return
 
 		case <-ticker.C:
-			r.mutex.RLocker()
+			r.mutex.RLock()
 			if r.closed {
 				r.mutex.RUnlock()
 				return
@@ -196,7 +197,23 @@ func (r *ReceiverClient) monitorConnection() {
 
 			state := r.getConnectionState()
 			if state == connectivity.TransientFailure || state == connectivity.Shutdown {
-				logger.Warn("connection state(%s), starting reconnectiong", state.String())
+				logger.Warn("connection state(%s), starting reconnecting", state.String())
+				r.wg.Add(1)
+				go r.handleDisconnect()
+				return
+			}
+
+			if state == connectivity.Idle {
+				err := r.register()
+				if err == nil {
+					return
+				}
+
+				if e, ok := err.(*gerrors.Error); ok && e.Code() != gerrors.NetConnectionBroken {
+					return
+				}
+
+				logger.Warn("connection state(%s), starting reconnecting", state.String())
 				r.wg.Add(1)
 				go r.handleDisconnect()
 				return
@@ -205,20 +222,25 @@ func (r *ReceiverClient) monitorConnection() {
 	}
 }
 
-func (r *ReceiverClient) register() {
+func (r *ReceiverClient) register() error {
 	msg := &proto.ReceiverRequest{}
 
 	r.mutex.RLock()
-	defer r.mutex.Unlock()
+	defer r.mutex.RUnlock()
 
 	if r.stream == nil {
-		logger.Warn("receiver stream is invalid(nil)")
-		return
+		return gerrors.New(gerrors.NetException, "receiver stream is invalid(nil)")
 	}
 
 	if err := r.stream.Send(msg); err != nil {
-		logger.Error("receiver client register failed. errmsg(%v)", err)
+		if err == io.EOF {
+			return gerrors.New(gerrors.NetConnectionBroken, err.Error())
+		}
+
+		return gerrors.New(gerrors.NetException, err.Error())
 	}
+
+	return nil
 }
 
 func (r *ReceiverClient) SendMessage(content []byte) error {
@@ -233,12 +255,14 @@ func (r *ReceiverClient) SendMessage(content []byte) error {
 		return gerrors.New(gerrors.Failure, "stream is invalid(nil)")
 	}
 
-	msg := &proto.ReceiverRequest{}
+	msg := &proto.ReceiverRequest{
+		Payload: content,
+	}
 
 	return r.stream.Send(msg)
 }
 
-func (r *ReceiverClient) Run() error {
+func (r *ReceiverClient) Connect() error {
 	err := r.connect()
 	if err != nil {
 		logger.Error("failed to connect the remote server. errmsg(%v)", err)
@@ -256,6 +280,13 @@ func (r *ReceiverClient) Close() {
 		return
 	}
 	r.closed = true
+
+	if r.stream != nil {
+		_, err := r.stream.CloseAndRecv()
+		if err != nil {
+			logger.Error("receiver client close and recv failed. errmsg(%v)", err)
+		}
+	}
 
 	if r.cancel != nil {
 		r.cancel()

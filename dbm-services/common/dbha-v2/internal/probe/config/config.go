@@ -28,28 +28,29 @@ var Cfg Configuration
 
 // LogConfig log configuration
 type LogConfig struct {
-	Path       string `yaml:"path"`
-	Level      string `yaml:"level"`
-	FileCount  int    `yaml:"file_count"`
-	FileSizeMB int    `yaml:"file_size"`
+	Path      string `yaml:"path"`
+	Level     string `yaml:"level"`
+	FileCount int    `yaml:"fileCount"`
+	FileSize  int    `yaml:"fileSize"`
 }
 
 // AdminService admin service configuration
 type AdminService struct {
 	Endpoints    string `yaml:"endpoints"`
-	SyncInterval int    `yaml:"sync_interval"`
+	SyncInterval int    `yaml:"syncInterval"`
 }
 
 // ReceiverService receiver service configuration
 type ReceiverService struct {
 	Endpoints    string `yaml:"endpoints"`
-	SyncInterval int    `yaml:"sync_interval"`
+	SyncInterval int    `yaml:"syncInterval"`
 }
 
 // Configuration receiver's configuration
 type Configuration struct {
-	Name    string       `yaml:"name"`
-	Version string       `yaml:"version"`
-	Admin   AdminService `yaml:"admin"`
-	Log     LogConfig    `yaml:"log"`
+	Name     string          `yaml:"name"`
+	Version  string          `yaml:"version"`
+	Receiver ReceiverService `yaml:"receiver"`
+	Admin    AdminService    `yaml:"admin"`
+	Log      LogConfig       `yaml:"log"`
 }

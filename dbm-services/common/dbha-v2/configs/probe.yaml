@@ -3,17 +3,17 @@ version: v2.0.0
 
 admin:
   endpoints: 127.0.0.1:22222,127.0.0.2:222222
-  sync_interval: 10
+  syncInterval: 10
 
 receiver:
-  endpoiunts: 127.0.0.1:22223,127.0.0.2:22224
-  sync_interval: 10
+  endpoints: 127.0.0.1:22223,127.0.0.2:22224
+  syncInterval: 10
 
 harvest:
-  db_type: mysql
+  dbType: mysql
 
 log:
   path: /var/log/dbha/probe.log
   level: debug
-  file_count: 10
-  file_size: 100
+  fileCount: 10
+  fileSize: 100

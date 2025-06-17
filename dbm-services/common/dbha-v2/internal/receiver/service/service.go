@@ -26,9 +26,13 @@ package service
 
 import (
 	"dbm-services/common/dbha-v2/pkg/constant"
+	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/proto"
 	"io"
 	"net"
+	"strings"
+	"sync"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
@@ -36,7 +40,21 @@ import (
 
 type Receiver struct {
 	proto.UnimplementedReceiverServiceServer
+	wg      sync.WaitGroup
 	address string
+	svr     *grpc.Server
+}
+
+// NewReceiverServer new a receiver server
+func NewReceiverServer(address string) (*Receiver, error) {
+	addr := strings.TrimSpace(address)
+	if addr == "" {
+		return nil, gerrors.New(gerrors.InvalidParameter, "address is required")
+	}
+
+	return &Receiver{
+		address: addr,
+	}, nil
 }
 
 func (r *Receiver) PushData(stream proto.ReceiverService_PushDataServer) error {
@@ -46,15 +64,20 @@ func (r *Receiver) PushData(stream proto.ReceiverService_PushDataServer) error {
 		select {
 		case <-ctx.Done():
 			return nil
+
 		default:
 			req, err := stream.Recv()
 			if err == io.EOF {
+				logger.Error("receiver server exited. recev return errmsg(%v)", err)
+				return nil
 			}
 
 			if err != nil {
+				logger.Error("receiver server exited. recev return errmsg(%v)", err)
+				return nil
 			}
 
-			_ = req
+			logger.Debug("request:%v", req)
 		}
 	}
 }
@@ -80,7 +103,15 @@ func (r *Receiver) Run() error {
 	proto.RegisterReceiverServiceServer(svr, r)
 	listen, err := net.Listen("tcp", r.address)
 	if err != nil {
+		logger.Error("receiver listen failed. address(%s)", r.address)
+		return gerrors.New(gerrors.NetException, err.Error())
 	}
 
-	return svr.Serve(listen)
+	r.svr = svr
+	return r.svr.Serve(listen)
+}
+
+func (r *Receiver) Close() {
+	r.svr.Stop()
+	r.wg.Wait()
 }
