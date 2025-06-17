@@ -35,6 +35,8 @@ const (
 	Timeout
 	Exited
 	NotExists
+	NetException
+	NetConnectionBroken
 	InvalidParameter
 	InvalidConfiguration
 	InternalServerFailure

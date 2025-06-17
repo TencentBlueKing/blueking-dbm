@@ -187,7 +187,7 @@ func (a *AdminClient) monitorConnection() {
 			return
 
 		case <-ticker.C:
-			a.mutex.RLocker()
+			a.mutex.RLock()
 			if a.closed {
 				a.mutex.RUnlock()
 				return

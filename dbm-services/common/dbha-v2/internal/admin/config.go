@@ -26,7 +26,7 @@ package admin
 
 // ServiceConfig service configuration
 type ServiceConfig struct {
-	ListenAddress string `yaml:"listen_address"`
+	ListenAddress string `yaml:"listenAddress"`
 }
 
 // DiscoveryConfig discovery configuration
@@ -40,8 +40,8 @@ type DiscoveryConfig struct {
 type LogConfig struct {
 	Path       string `yaml:"path"`
 	Level      string `yaml:"level"`
-	FileCount  int    `yaml:"file_count"`
-	FileSizeMB int    `yaml:"file_size"`
+	FileCount  int    `yaml:"fileCount"`
+	FileSizeMB int    `yaml:"fileSize"`
 }
 
 // Configuration receiver's configuration

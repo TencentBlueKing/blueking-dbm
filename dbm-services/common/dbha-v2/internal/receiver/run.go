@@ -25,13 +25,13 @@
 package receiver
 
 import (
+	"dbm-services/common/dbha-v2/internal/receiver/config"
+	"dbm-services/common/dbha-v2/internal/receiver/service"
 	"dbm-services/common/dbha-v2/pkg/logger"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
-
-var config Configuration
 
 // Run run receiver service
 func Run(cmd *cobra.Command, args []string) error {
@@ -48,21 +48,26 @@ func Run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err := viper.Unmarshal(&config); err != nil {
+	if err := viper.Unmarshal(&config.Cfg); err != nil {
 		return err
 	}
 
 	logCfg := logger.Config{
-		FileName:   config.Log.Path,
-		LogLevel:   logger.Level(config.Log.Level),
-		MaxSizeMB:  config.Log.FileSizeMB,
-		MaxBackups: config.Log.FileCount,
+		FileName:   config.Cfg.Log.Path,
+		LogLevel:   logger.Level(config.Cfg.Log.Level),
+		MaxSizeMB:  config.Cfg.Log.FileSize,
+		MaxBackups: config.Cfg.Log.FileCount,
 	}
 
 	log := logger.NewZapLogger(logCfg)
 	logger.SetLogger(log)
 
-	logger.Debug("receiver configuration:%v", config)
+	logger.Debug("receiver config. %v", config.Cfg)
 
-	return nil
+	svr, err := service.NewReceiverServer(config.Cfg.Service.ListenAddress)
+	if err != nil {
+		return err
+	}
+
+	return svr.Run()
 }
