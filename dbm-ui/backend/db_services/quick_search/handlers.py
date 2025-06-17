@@ -106,7 +106,7 @@ class QSearchHandler(object):
             qs = Q(**{f"{filter_key}__in": domains})
         return qs
 
-    def generate_filter_for_ip_port(self, filter_key, keyword_list):
+    def generate_filter_for_ip_port(self, filter_key, keyword_list, not_port=False):
         """
         为ip:port实例生成过滤函数
         """
@@ -124,11 +124,13 @@ class QSearchHandler(object):
             ip_filter_key = filter_key
             port_filter_key = "port"
             if port:
-                qs |= Q(**{ip_filter_key: ip, port_filter_key: port})
-                if self.filter_type == FilterType.CONTAINS.value:
+                query_filter = {ip_filter_key: ip}
+                if not not_port:
+                    query_filter[port_filter_key] = port
+                qs |= Q(**query_filter)
+                if self.filter_type == FilterType.CONTAINS.value and not not_port:
                     qs |= Q(**{"ip_port__contains": keyword})
-                else:
-                    qs |= Q(**{ip_filter_key: ip, port_filter_key: port})
+
             else:
                 if self.filter_type == FilterType.CONTAINS.value:
                     qs |= Q(**{f"{filter_key}__contains": ip})
@@ -179,7 +181,7 @@ class QSearchHandler(object):
         qs = self.generate_filter_for_domain("entry", keyword_list)
 
         if self.bk_biz_ids:
-            qs = Q(bk_biz_id__in=self.bk_biz_ids) & qs
+            qs = Q(cluster__bk_biz_id__in=self.bk_biz_ids) & qs
 
         if self.db_types:
             qs = Q(cluster_type__in=self.cluster_types) & qs
@@ -282,7 +284,7 @@ class QSearchHandler(object):
 
     def filter_machine(self, keyword_list: list):
         """过滤主机"""
-        qs = self.generate_filter_for_ip_port("ip", keyword_list)
+        qs = self.generate_filter_for_ip_port("ip", keyword_list, not_port=True)
         objs = DirtyMachine.objects.filter(qs)[: self.limit]
         machine_data = ListMachinePoolSerializer(objs, many=True).data
         # 补充主机agent状态
