@@ -22,11 +22,13 @@
  * SOFTWARE.
  */
 
-package receiver
+package config
+
+var Cfg = Configuration{}
 
 // ServiceConfig service configuration
 type ServiceConfig struct {
-	ListenAddress string `yaml:"listen_address"`
+	ListenAddress string `yaml:"listenAddress"`
 }
 
 // DiscoveryConfig discovery configuration
@@ -38,10 +40,10 @@ type DiscoveryConfig struct {
 
 // LogConfig log configuration
 type LogConfig struct {
-	Path       string `yaml:"path"`
-	Level      string `yaml:"level"`
-	FileCount  int    `yaml:"file_count"`
-	FileSizeMB int    `yaml:"file_size"`
+	Path      string `yaml:"path"`
+	Level     string `yaml:"level"`
+	FileCount int    `yaml:"fileCount"`
+	FileSize  int    `yaml:"fileSize"`
 }
 
 // Configuration receiver's configuration
