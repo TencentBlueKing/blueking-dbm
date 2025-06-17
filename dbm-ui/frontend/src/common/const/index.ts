@@ -8,6 +8,7 @@ export * from './confLevels';
 export * from './dbSysExclude';
 export * from './dbTypeInfos';
 export * from './dbTypes';
+export * from './deviceClass';
 export * from './localStorageKeys';
 export * from './machineTypes';
 export * from './messageTypes';

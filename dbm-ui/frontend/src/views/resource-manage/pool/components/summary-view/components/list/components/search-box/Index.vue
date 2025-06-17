@@ -18,13 +18,13 @@
         :model="searchParams"
         @change="(data) => handleSearch(data, 'db')" />
     </BkFormItem>
-    <BkFormItem :label="t('地域 - 园区')">
-      <Region
+    <BkFormItem :label="t('规格')">
+      <Spec
         :model="searchParams"
         @change="handleSearch" />
     </BkFormItem>
-    <BkFormItem :label="t('规格')">
-      <Spec
+    <BkFormItem :label="t('地域 - 园区')">
+      <Region
         :model="searchParams"
         @change="handleSearch" />
     </BkFormItem>

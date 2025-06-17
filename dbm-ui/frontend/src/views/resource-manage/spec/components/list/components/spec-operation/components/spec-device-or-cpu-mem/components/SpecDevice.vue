@@ -82,7 +82,7 @@
 </template>
 
 <script setup lang="ts">
-  import _ from 'lodash';
+  // import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -91,14 +91,14 @@
   export type DeviceClassCpuMemType = typeof selectedCpuMem;
 
   interface Props {
-    isEdit: boolean;
     cpu: {
-      min: number | string;
       max: number | string;
+      min: number | string;
     };
+    editable: boolean;
     mem: {
-      min: number | string;
       max: number | string;
+      min: number | string;
     };
   }
 
@@ -108,14 +108,12 @@
 
   interface DeviceClassListItem {
     cpu: number;
-    mem: number;
     label: string;
+    mem: number;
     value: string;
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    isEdit: false,
-  });
+  const props = defineProps<Props>();
 
   const modelValue = defineModel<string[]>({
     default: () => [],
@@ -125,49 +123,52 @@
 
   const deviceClassList = ref<DeviceClassListItem[]>([]);
   const scrollLoading = ref(false);
-  const deviceListMap = ref<
-    Record<
-      string,
-      {
-        cpu: number;
-        mem: number;
-      }
-    >
-  >({});
 
   const searchParams = {
-    offset: 0,
-    limit: 12,
     device_type: '',
+    limit: 12,
+    offset: 0,
   };
 
   const selectedCpuMem = {
     cpu: {
-      min: Number.MAX_SAFE_INTEGER,
       max: -Number.MAX_SAFE_INTEGER,
+      min: Number.MAX_SAFE_INTEGER,
     },
     mem: {
-      min: Number.MAX_SAFE_INTEGER,
       max: -Number.MAX_SAFE_INTEGER,
+      min: Number.MAX_SAFE_INTEGER,
     },
   };
 
   const rules = [
     {
+      message: t('请选择xx', [t('机型')]),
       required: true,
       validator: (value: string[]) => value.length > 0,
-      message: t('请选择xx', [t('机型')]),
     },
   ];
 
   let isAppend = false;
-  let oldData: string[] = [];
+  // let oldData: string[] = [];
 
-  useRequest(fetchDeviceClass, {
+  const deviceListMap = computed(() => {
+    return Object.fromEntries(
+      (allDeviceClassData.value?.results || []).map((deviceClassItem) => [
+        deviceClassItem.device_type,
+        {
+          cpu: deviceClassItem.cpu,
+          mem: deviceClassItem.mem,
+        },
+      ]),
+    );
+  });
+
+  const { data: allDeviceClassData } = useRequest(fetchDeviceClass, {
     defaultParams: [
       {
-        offset: 0,
         limit: -1,
+        offset: 0,
       },
     ],
     onSuccess(data) {
@@ -187,8 +188,8 @@
       const deviceList: DeviceClassListItem[] = [];
       data.results.forEach((item) => {
         deviceList.push({
-          label: item.device_type,
           cpu: item.cpu,
+          label: item.device_type,
           mem: item.mem,
           value: item.device_type,
         });
@@ -218,9 +219,9 @@
   watch(
     () => modelValue.value,
     () => {
-      if (modelValue.value.length > 0) {
-        oldData = _.cloneDeep(modelValue.value);
-      }
+      // if (modelValue.value.length > 0) {
+      //   oldData = _.cloneDeep(modelValue.value);
+      // }
 
       getDeviceClassList(searchParams);
     },
@@ -228,9 +229,9 @@
   );
 
   const handleTagClose = (index: number) => {
-    if (props.isEdit) {
+    if (!props.editable) {
       const value = modelValue.value[index];
-      if (oldData.includes(value)) {
+      if (deviceListMap.value[value]) {
         return;
       }
     }
