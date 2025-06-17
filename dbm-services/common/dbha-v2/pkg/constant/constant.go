@@ -36,4 +36,5 @@ const (
 	DefaultClientReconnectInterval    = 5 * time.Second
 	DefaultClientMaxReconnectAttempts = 10
 	DefaultReceiverBufferSize         = 1024
+	DefaultAdminBufferSize            = 1024
 )
