@@ -58,10 +58,21 @@
                 style="align-items: start">
                 <span class="info-title">{{ t('磁盘') }}：</span>
                 <span class="info-value">
-                  <DbOriginalTable
+                  <BkTable
                     class="custom-edit-table mt-8"
-                    :columns="columns"
-                    :data="item.storage_spec" />
+                    :data="item.storage_spec">
+                    <BkTableColumn
+                      field="mount_point"
+                      :label="t('挂载点')" />
+                    <BkTableColumn
+                      field="size"
+                      :label="t('最小容量G')" />
+                    <BkTableColumn :label="t('磁盘类型')">
+                      <template #default="{ data: rowData }: { data: ResourceSpecModel['storage_spec'][number] }">
+                        {{ deviceClassDisplayMap[rowData.type as DeviceClass] }}
+                      </template>
+                    </BkTableColumn>
+                  </BkTable>
                 </span>
               </div>
               <div
@@ -100,6 +111,8 @@
   import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
   import { getSpecResourceCount } from '@services/source/dbresourceResource';
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
+
+  import { DeviceClass, deviceClassDisplayMap } from '@common/const';
 
   interface ResourceSpecData extends ResourceSpecModel {
     count?: number;
@@ -168,21 +181,6 @@
     { immediate: true },
   );
 
-  const columns = [
-    {
-      field: 'mount_point',
-      label: t('挂载点'),
-    },
-    {
-      field: 'size',
-      label: t('最小容量G'),
-    },
-    {
-      field: 'type',
-      label: t('磁盘类型'),
-    },
-  ];
-
   const handleChange = (value: number | string) => {
     emits('update:modelValue', value);
   };
@@ -199,14 +197,15 @@
       });
     }
     getSpecResourceCount(params).then((data) => {
-      list.value = list.value.map((item) => ({
-        ...item,
-        count: data[item.spec_id],
-        isRecentSeconds: item.isRecentSeconds ?? false,
-        name: item.spec_name,
-        qpsText: item.qpsText ?? '',
-        updateAtDisplay: item.updateAtDisplay ?? '',
-      }));
+      list.value = list.value.map((item) =>
+        Object.assign(item, {
+          count: data[item.spec_id],
+          isRecentSeconds: item.isRecentSeconds ?? false,
+          name: item.spec_name,
+          qpsText: item.qpsText ?? '',
+          updateAtDisplay: item.updateAtDisplay ?? '',
+        }),
+      );
     });
   }, 100);
 

@@ -26,7 +26,7 @@
           :label="childTab.label"
           :name="childTab.value" />
       </BkTab>
-      <SpecList
+      <List
         :db-type="curTab"
         :db-type-label="clusterTypeLabel"
         :machine-type="curChildTab"
@@ -43,7 +43,7 @@
 
   import DbTab from '@components/db-tab/Index.vue';
 
-  import SpecList from './components/SpecList.vue';
+  import List from './components/list/Index.vue';
 
   const route = useRoute();
   const funControllerStore = useFunController();

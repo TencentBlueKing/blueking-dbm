@@ -40,12 +40,12 @@
             v-model:cpu="formdata.cpu"
             v-model:device-class="formdata.device_class"
             v-model:mem="formdata.mem"
-            :is-edit="isEdit" />
+            :editable="editable" />
           <SpecStorage
             ref="specStorageRef"
             :data="formdata.storage_spec"
             :db-type="dbType"
-            :is-edit="isEdit"
+            :editable="editable"
             :is-required="isRequired"
             @table-value-change="handleTableValueChange" />
         </div>
@@ -63,7 +63,7 @@
       <SpecQps
         v-if="hasQPS && formdata.qps"
         v-model="formdata.qps"
-        :is-edit="isEdit" />
+        :editable="editable" />
       <BkFormItem :label="t('描述')">
         <BkInput
           v-model="formdata.desc"
@@ -132,11 +132,11 @@
 
   import { messageSuccess } from '@/utils';
 
-  import { useHasQPS } from '../hooks/useHasQPS';
+  import { useHasQPS } from '../../hooks/useHasQPS';
 
-  import SpecDeviceOrCpuMem from './spec-form-item/spec-device-or-cpu-mem/Index.vue';
-  import SpecStorage from './spec-form-item/spec-storage/Index.vue';
-  import SpecQps from './spec-form-item/SpecQPS.vue';
+  import SpecDeviceOrCpuMem from './components/spec-device-or-cpu-mem/Index.vue';
+  import SpecStorage from './components/spec-storage/Index.vue';
+  import SpecQps from './components/SpecQPS.vue';
 
   interface Emits {
     (e: 'cancel'): void;
@@ -148,20 +148,16 @@
   }
 
   interface Props {
-    data: Data | null;
+    data?: Data;
     dbType: string;
     hasInstance: boolean;
-    isEdit: boolean;
     machineType: string;
     machineTypeLabel: string;
-    mode: string;
+    mode: 'create' | 'edit' | 'clone';
   }
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
-
-  const specDeviceOrCpuMemRef = ref<InstanceType<typeof SpecDeviceOrCpuMem>>();
-  const specStorageRef = ref<InstanceType<typeof SpecStorage>>();
 
   const notRequiredStorageList = [
     `${DBTypes.MYSQL}_proxy`,
@@ -177,6 +173,7 @@
   const isRequired = !notRequiredStorageList.includes(`${props.dbType}_${props.machineType}`);
 
   const isSqlserver = computed(() => props.dbType === DBTypes.SQLSERVER);
+  const editable = computed(() => !(props.mode === 'edit' && Boolean(props.data?.is_refer)));
 
   const initFormdata = () => {
     if (props.data) {
@@ -235,8 +232,11 @@
   const { t } = useI18n();
   const { hasQPS } = useHasQPS(props);
 
-  const formRef = ref();
-  const nameInputRef = ref();
+  const formRef = useTemplateRef('formRef');
+  const nameInputRef = useTemplateRef('nameInputRef');
+  const specDeviceOrCpuMemRef = useTemplateRef('specDeviceOrCpuMemRef');
+  const specStorageRef = useTemplateRef('specStorageRef');
+
   const formdata = ref(initFormdata());
   const isLoading = ref(false);
   const isCustomInput = ref(false);
@@ -267,7 +267,7 @@
   ]);
 
   watch(
-    [() => formdata.value.cpu, () => formdata.value.mem, () => formdata.value.storage_spec, () => formdata.value.qps],
+    () => [formdata.value.cpu, formdata.value.mem, formdata.value.storage_spec, formdata.value.qps],
     () => {
       if (props.mode === 'create' && isCustomInput.value === false) {
         formdata.value.spec_name = getName();
@@ -328,7 +328,7 @@
   const submit = async () => {
     isLoading.value = true;
     try {
-      await formRef.value.validate();
+      await formRef.value!.validate();
       const storageSpec = await specStorageRef.value!.getValue();
       const params = Object.assign(_.cloneDeep(formdata.value), {
         device_class: formdata.value.device_class[0] === '-1' ? [] : formdata.value.device_class,
