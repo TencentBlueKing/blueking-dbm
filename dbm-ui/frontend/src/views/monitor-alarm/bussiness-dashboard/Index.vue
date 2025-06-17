@@ -68,29 +68,34 @@
     if (
       bizSettingData.value &&
       bizSettingData.value[BizSettingKeys.DATABASE_MANAGE_MENU] &&
-      bizSettingData.value[BizSettingKeys.DATABASE_MANAGE_MENU].length > 0
+      bizSettingData.value[BizSettingKeys.DATABASE_MANAGE_MENU].length > 0 &&
+      businessDashboardData.value &&
+      businessDashboardData.value.urls.length > 0
     ) {
+      const urlDbTypeMap = Object.fromEntries(
+        businessDashboardData.value.urls.map((urlItem) => [urlItem.db_type, true]),
+      );
       return (bizSettingData.value[BizSettingKeys.DATABASE_MANAGE_MENU] as DBTypes[]).reduce<
         {
           label: string;
           value: string;
         }[]
-      >((prevList, bizItem) => {
-        const dbTypeInfo = DBTypeInfos[bizItem];
-        if (dbTypeInfo) {
+      >((prevList, dbType) => {
+        const dbTypeInfo = DBTypeInfos[dbType];
+        if (dbTypeInfo && urlDbTypeMap[dbType]) {
           if (dbTypeInfo.moduleId === 'bigdata') {
             const data = funControllerStore.funControllerData.getFlatData(dbTypeInfo.moduleId);
-            if (data[bizItem as BigdataFunctions])
+            if (data[dbType as BigdataFunctions])
               return prevList.concat({
                 label: dbTypeInfo.name,
-                value: bizItem,
+                value: dbType,
               });
           } else {
             const controllerData = funControllerStore.funControllerData[dbTypeInfo.moduleId];
             if (controllerData.is_enabled) {
               return prevList.concat({
                 label: dbTypeInfo.name,
-                value: bizItem,
+                value: dbType,
               });
             }
           }

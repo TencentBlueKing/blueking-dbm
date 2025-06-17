@@ -117,7 +117,7 @@ export default function getRoutes() {
       name: 'DBMonitorBussinessDashboard',
       meta: {
         fullscreen: true,
-        navName: t('业务大盘'),
+        navName: t('业务监控大盘'),
       },
       component: () => import('@views/monitor-alarm/bussiness-dashboard/Index.vue'),
     });
