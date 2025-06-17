@@ -14,87 +14,90 @@
     </div>
     <BkLoading :loading="loading">
       <NoSpecIpList
-        v-if="isSpec && noSpecIpList.length"
+        v-if="isNoSpecListShow"
         class="mb-12"
         :ip-list="noSpecIpList" />
-      <BkTable
-        ref="tableRef"
-        class="summary-view-table"
-        :data="tableData"
-        :pagination="pagination"
-        @page-limit-change="handeChangeLimit"
-        @page-value-change="handleChangePage">
-        <BkTableColumn
-          field="city"
-          fixed="left"
-          :label="t('地域')"
-          :min-width="150">
-          <template #default="{ row }">
-            {{ row.city || '--' }}
+      <div ref="tableWrapper">
+        <BkTable
+          ref="tableRef"
+          class="summary-view-table"
+          :data="tableData"
+          :max-height="tableMaxHeight"
+          :pagination="pagination"
+          @page-limit-change="handeChangeLimit"
+          @page-value-change="handleChangePage">
+          <BkTableColumn
+            field="city"
+            fixed="left"
+            :label="t('地域')"
+            :min-width="150">
+            <template #default="{ row }">
+              {{ row.city || '--' }}
+            </template>
+          </BkTableColumn>
+          <template v-if="isSpec">
+            <BkTableColumn
+              field="specTypeDisplay"
+              :label="t('规格类型')"
+              :min-width="150" />
+            <BkTableColumn
+              field="spec_name"
+              :label="t('规格')"
+              :width="150" />
           </template>
-        </BkTableColumn>
-        <template v-if="isSpec">
+          <template v-else>
+            <BkTableColumn
+              field="deviceDisplay"
+              :label="t('机型（硬盘）')"
+              :min-width="150" />
+            <BkTableColumn
+              field="cpu_mem_summary"
+              :label="t('CPU 内存')"
+              :min-width="150" />
+          </template>
           <BkTableColumn
-            field="specTypeDisplay"
-            :label="t('规格类型')"
-            :min-width="150" />
-          <BkTableColumn
-            field="spec_name"
-            :label="t('规格')"
-            :width="150" />
-        </template>
-        <template v-else>
-          <BkTableColumn
-            field="deviceDisplay"
-            :label="t('机型（硬盘）')"
-            :min-width="150" />
-          <BkTableColumn
-            field="cpu_mem_summary"
-            :label="t('CPU 内存')"
-            :min-width="150" />
-        </template>
-        <BkTableColumn
-          field="sub_zone_detail"
-          :label="t('园区分布（台）')"
-          :width="400">
-          <template #default="{ row }: { row: SummaryModel }">
-            <template v-if="Object.keys(row.sub_zone_detail).length > 0">
-              <span
-                v-for="(item, subzoneId, index) in row.sub_zone_detail"
-                :key="subzoneId">
-                <span v-if="item.name">{{ item.name }} : </span>
+            field="sub_zone_detail"
+            :label="t('园区分布（台）')"
+            :width="400">
+            <template #default="{ row }: { row: SummaryModel }">
+              <template v-if="Object.keys(row.sub_zone_detail).length > 0">
                 <span
-                  class="cell-num"
-                  @click="handleClick(row, subzoneId)">
-                  {{ item.count }}
+                  v-for="(item, subzoneId, index) in row.sub_zone_detail"
+                  :key="subzoneId">
+                  <span v-if="item.name">{{ item.name }} : </span>
+                  <span
+                    class="cell-num"
+                    @click="handleClick(row, subzoneId)">
+                    {{ item.count }}
+                  </span>
+                  <span>{{ index === Object.keys(row.sub_zone_detail).length - 1 ? '' : ' , ' }}</span>
                 </span>
-                <span>{{ index === Object.keys(row.sub_zone_detail).length - 1 ? '' : ' , ' }}</span>
+              </template>
+              <span v-else>--</span>
+            </template>
+          </BkTableColumn>
+          <BkTableColumn
+            field="count"
+            fixed="right"
+            :label="t('总数（台）')"
+            :min-width="100"
+            :width="100">
+            <template #default="{ row }">
+              <span
+                v-if="row.count > 0"
+                class="cell-num"
+                @click="handleClick(row)">
+                {{ row.count }}
+              </span>
+              <span
+                v-else
+                class="cell-num--zero">
+                0
               </span>
             </template>
-            <span v-else>--</span>
-          </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="count"
-          fixed="right"
-          :label="t('总数（台）')"
-          :min-width="100"
-          :width="100">
-          <template #default="{ row }">
-            <span
-              v-if="row.count > 0"
-              class="cell-num"
-              @click="handleClick(row)">
-              {{ row.count }}
-            </span>
-            <span
-              v-else
-              class="cell-num--zero">
-              0
-            </span>
-          </template>
-        </BkTableColumn>
-      </BkTable>
+          </BkTableColumn>
+        </BkTable>
+      </div>
     </BkLoading>
   </DbCard>
 </template>
@@ -109,6 +112,8 @@
 
   import { useDefaultPagination, useUrlSearch } from '@hooks';
 
+  import { getOffset } from '@utils';
+
   import DimensionSelect from './components/DimensionSelect.vue';
   import Export from './components/Export.vue';
   import NoSpecIpList from './components/no-spec-ip-list/Index.vue';
@@ -118,17 +123,21 @@
   const router = useRouter();
   const { getSearchParams } = useUrlSearch();
 
+  const rootRef = useTemplateRef('tableWrapper');
   const tableRef = useTemplateRef('tableRef');
 
   const dimension = ref('spec');
   const isSpecEnable = ref(true);
   const pagination = ref(useDefaultPagination());
   const isAnomalies = ref(false);
+  const tableMaxHeight = ref<number | 'auto'>('auto');
 
   const allTableData = shallowRef<SummaryModel[]>([]);
   const noSpecIpList = shallowRef<string[]>([]);
 
   const isSpec = computed(() => dimension.value === 'spec');
+  const isNoSpecListShow = computed(() => isSpec.value && noSpecIpList.value.length > 0);
+
   const tableData = computed(() => {
     const { current, limit } = pagination.value;
     const startIndex = (current - 1) * limit;
@@ -150,6 +159,10 @@
       pagination.value.count = data.count;
       isAnomalies.value = false;
     },
+  });
+
+  watch(isNoSpecListShow, () => {
+    setTableMaxHeight();
   });
 
   const fetchListData = () => {
@@ -205,6 +218,14 @@
     });
     window.open(routerInfo.href, '_blank');
   };
+
+  const setTableMaxHeight = () => {
+    tableMaxHeight.value = window.innerHeight - getOffset(rootRef.value as HTMLElement).top - 62;
+  };
+
+  onMounted(() => {
+    setTableMaxHeight();
+  });
 </script>
 
 <style lang="less">
