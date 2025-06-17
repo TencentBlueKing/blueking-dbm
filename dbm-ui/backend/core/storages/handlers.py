@@ -76,14 +76,15 @@ class StorageHandler(object):
         批量下载文件
         :param file_path_list: 文件列表
         """
+        resp = self.storage.batch_download(file_path_list)
         # 分块下载默认1M
         chunk_size = 1024 * 1024
-        resp = self.storage.batch_download(file_path_list)
+        content_disposition = resp.headers.get("Content-Disposition", 'attachment; filename="download.tar.gz"')
         resp = StreamingHttpResponse(
             resp.iter_content(chunk_size=chunk_size),
             content_type="application/octet‑stream",
+            headers={"Content-Disposition": content_disposition},
         )
-        resp["Content-Disposition"] = 'attachment; filename="download.tar.gz"'
         return resp
 
     def delete_file(self, file_path) -> bool:

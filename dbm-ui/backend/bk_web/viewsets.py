@@ -227,10 +227,11 @@ class ExternalProxyViewSet(viewsets.ViewSet):
         # 制品库临时下载接口以文件流返回
         if "/storage/generic/temporary/download/" in request.path:
             chunk_size = 1024 * 1024
+            content_disposition = response.headers.get("Content-Disposition", 'attachment; filename="download.tar.gz"')
             return StreamingHttpResponse(
                 response.iter_content(chunk_size=chunk_size),
                 content_type="application/octet‑stream",
-                headers={"Content-Disposition": 'attachment; filename="dump.tar.gz"'},
+                headers={"Content-Disposition": content_disposition},
             )
 
         # 外部 API 转发请求，把 IP 替换为 *.*.*.*。适用于json响应
