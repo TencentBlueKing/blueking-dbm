@@ -54,6 +54,13 @@ class TagViewSet(AuditedModelViewSet):
     action_permission_map = {("related_resources", "list", "verify_duplicated"): []}
     default_permission_class = [TagPermission()]
 
+    def get_queryset(self):
+        bk_biz_ids = self.request.query_params.get("bk_biz_ids", "")
+        if not bk_biz_ids:
+            return self.queryset
+        bk_biz_ids = [int(bk_biz_id) for bk_biz_id in bk_biz_ids.split(",")]
+        return self.queryset.filter(bk_biz_id__in=bk_biz_ids)
+
     @common_swagger_auto_schema(
         operation_summary=_("查询的标签列表"),
         tags=[SWAGGER_TAG],
