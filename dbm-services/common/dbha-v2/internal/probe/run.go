@@ -56,15 +56,18 @@ func Run(cmd *cobra.Command, args []string) error {
 	logCfg := logger.Config{
 		FileName:   config.Cfg.Log.Path,
 		LogLevel:   logger.Level(config.Cfg.Log.Level),
-		MaxSizeMB:  config.Cfg.Log.FileSizeMB,
+		MaxSizeMB:  config.Cfg.Log.FileSize,
 		MaxBackups: config.Cfg.Log.FileCount,
 	}
 
 	log := logger.NewZapLogger(logCfg)
 	logger.SetLogger(log)
 
+	logger.Debug("probe config. %v", config.Cfg)
+
 	clientId := uuid.New()
 	p := &Probe{ClientId: clientId.String()}
 	ctx := context.Background()
+
 	return p.Run(ctx)
 }

@@ -35,4 +35,5 @@ const (
 	DefaultMaxSendMessageSize         = 1024 * 1024 * 10
 	DefaultClientReconnectInterval    = 5 * time.Second
 	DefaultClientMaxReconnectAttempts = 10
+	DefaultReceiverBufferSize         = 1024
 )

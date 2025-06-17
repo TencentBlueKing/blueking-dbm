@@ -38,7 +38,7 @@ type Probe struct {
 }
 
 func (p *Probe) Run(ctx context.Context) error {
-	receiver, err := client.NewReceiverClient(ctx, config.Cfg.Admin.Endpoints, p.ClientId)
+	receiver, err := client.NewReceiverClient(ctx, config.Cfg.Receiver.Endpoints, p.ClientId)
 	if err != nil {
 		return err
 	}
@@ -54,11 +54,11 @@ func (p *Probe) Run(ctx context.Context) error {
 	if err = p.recvCli.Run(); err != nil {
 		return err
 	}
-
-	if err = p.adminCli.Run(); err != nil {
-		return err
-	}
-
+	/*
+		if err = p.adminCli.Run(); err != nil {
+			//return err
+		}
+	*/
 	select {
 	case <-ctx.Done():
 	}
