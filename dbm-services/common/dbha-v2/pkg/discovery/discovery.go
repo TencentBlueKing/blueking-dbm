@@ -226,5 +226,4 @@ func (d *Discovery) Close() {
 	close(d.quit) // NOTE: Notify all goroutines by closing this channel.
 	d.wg.Wait()
 	d.quit = nil
-
 }
