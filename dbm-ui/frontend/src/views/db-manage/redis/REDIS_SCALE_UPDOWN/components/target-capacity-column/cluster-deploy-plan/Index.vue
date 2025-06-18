@@ -182,6 +182,7 @@
       autoSchemaRef.value?.choose(row.spec_id);
       Object.assign(targetInfo, {
         capacity: row.cluster_capacity,
+        clusterShardNum: row.cluster_shard_num,
         clusterStats: props.cluster.cluster_stats,
         groupNum: row.machine_pair,
         shardNum: row.cluster_shard_num,
