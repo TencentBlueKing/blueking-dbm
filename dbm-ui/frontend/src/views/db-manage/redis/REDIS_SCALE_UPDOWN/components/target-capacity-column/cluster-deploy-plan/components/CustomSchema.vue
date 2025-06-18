@@ -161,8 +161,11 @@
         clusterStats: props.cluster.cluster_stats,
         groupNum: props.cluster.machine_pair_cnt,
         shardNum: props.cluster.cluster_shard_num / props.cluster.machine_pair_cnt,
-        spec: props.cluster.cluster_spec,
+        spec: Object.assign(_.cloneDeep(props.cluster.cluster_spec), {
+          spec_id: 0,
+        }),
       });
+      groupNum.value = String(props.cluster.machine_pair_cnt);
     }
   });
 </script>
