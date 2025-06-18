@@ -201,12 +201,12 @@
     },
     {
       render: () => {
-        if (!data.shard_num) {
+        if (!data.display_info?.cluster_shard_num) {
           return '--';
         }
         return (
           <>
-            {data.shard_num}
+            {data.display_info.cluster_shard_num}
             <ValueDiff
               currentValue={data.display_info.cluster_shard_num}
               show-rate={false}
