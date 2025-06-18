@@ -18,7 +18,7 @@
     :width="800"
     @closed="handleClose">
     <template #header>
-      {{ title }}【{{ cluster.master_domain }}】<BkTag theme="info">{{ t('存储层') }}</BkTag>
+      {{ t('选择集群容量变更部署方案') }}【{{ cluster.master_domain }}】<BkTag theme="info">{{ t('存储层') }}</BkTag>
     </template>
     <div class="redis-deploy-plan">
       <PreviewResult
@@ -86,7 +86,6 @@
   interface Props {
     cluster: RedisModel;
     dbVersion: string;
-    type?: 'capacityChange' | 'typeChange'; // 容量变更、类型变更
   }
 
   type Emits = (
@@ -97,9 +96,7 @@
     },
   ) => void;
 
-  const props = withDefaults(defineProps<Props>(), {
-    type: 'capacityChange',
-  });
+  const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
@@ -150,13 +147,6 @@
   });
   const updateInfo = reactive<UpdateInfo>(defaultUpdateInfo());
   const sumbitDisable = ref(false);
-
-  const title = computed(() => {
-    if (props.type === 'typeChange') {
-      return t('选择集群类型变更部署方案');
-    }
-    return t('选择集群容量变更部署方案');
-  });
 
   const handleChange = () => {
     Object.assign(targetInfo, defaultTargetInfo());
