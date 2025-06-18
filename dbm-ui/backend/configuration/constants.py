@@ -203,11 +203,11 @@ COST_ESTIMATE_TEMPLATE = {
     # 内存/G
     "mem": 0,
     # 磁盘/G
-    "storage": {"SSD": 0, "HDD": 0, "ALL": 0},
+    "storage": {"SSD": 0, "CLOUD_SSD": 0, "HDD": 0, "LOCAL_HDD": 0, "ALL": 0},
 }
 
 # 磁盘类型，目前固定写死
-DISK_CLASSES = ["SSD", "HDD", "ALL"]
+DISK_CLASSES = ["SSD", "CLOUD_SSD", "HDD", "LOCAL_HDD", "ALL"]
 
 # 默认轮值通知配置
 BKM_DUTY_NOTICE_VALUE = {

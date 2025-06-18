@@ -22,6 +22,7 @@ from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_meta.enums import InstanceRole, MachineType
 from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
+from backend.db_meta.models.machine import DeviceClass
 from backend.db_meta.models.spec import Spec
 from backend.db_services.dbresource.constants import SPEC_FILTER_FACTORY, SWAGGER_TAG
 from backend.db_services.dbresource.exceptions import SpecFilterClassDoesNotExistException, SpecOperateException
@@ -121,25 +122,23 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
         if not Machine.is_refer_spec([spec_id]):
             return super().update(request, *args, **kwargs)
 
+        if all(not item for item in [update_data["cpu"], update_data["mem"], update_data["device_class"]]):
+            raise SpecOperateException(_("机型及cpu和内存不可全为空"))
+
         spec = self.get_object()
         for key in update_data:
             # 如果是可更新字段或不存在字段，则忽略
             if key in ["desc", "spec_name", "enable", *AuditedModel.AUDITED_FIELDS] or key not in spec.__dict__:
                 continue
-            # 如果更新机型字段，则只允许拓展机型。device_class为[]表示无限制
             elif key == "device_class":
-                if update_data[key] == []:
-                    continue
-                if set(update_data[key]).issuperset(set(spec.device_class)) and spec.device_class != []:
-                    continue
-                else:
-                    raise SpecOperateException(_("规格: {}已经被引用，只允许拓展机型").format(spec_id))
+                removed_classes = list(set(spec.device_class) - set(update_data[key]))
+                if removed_classes and DeviceClass.objects.filter(device_type__in=removed_classes).exists():
+                    raise SpecOperateException(_("规格: {}已经被引用，只允许拓展机型或删除不存在的机型").format(spec_id))
             # 在机型更新的情况下 允许cpu/内存的更新
             elif key in ["cpu", "mem"]:
-                if set(update_data["device_class"]) > set(spec.device_class):
-                    continue
-                else:
-                    raise SpecOperateException(_("规格: {}已经被引用，只允许拓展机型").format(spec_id))
+                if set(update_data["device_class"]) == set(spec.device_class):
+                    raise SpecOperateException(_("规格: {}已经被引用，机型未发生改变cpu和内存不允许修改").format(spec_id))
+
             # 对正在被引用的规格的配置字段更改，抛出异常
             elif update_data[key] != spec.__dict__[key]:
                 raise SpecOperateException(_("规格: {}已经被引用，无法修改配置！(只允许拓展机型和修改描述)").format(spec.spec_name))
