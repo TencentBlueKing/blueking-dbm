@@ -129,7 +129,6 @@ def redis_clusternodes_update_record():
                 TicketType.REDIS_CLUSTER_AUTOFIX.value,
                 TicketType.REDIS_SCALE_UPDOWN.value,
                 TicketType.REDIS_CLUSTER_CUTOFF.value,
-                TicketType.REDIS_CLUSTER_INSTANCE_SHUTDOWN.value,
                 TicketType.REDIS_MASTER_SLAVE_SWITCH.value,
                 TicketType.REDIS_CLUSTER_ADD_SLAVE.value,
                 TicketType.REDIS_VERSION_UPDATE_ONLINE.value,

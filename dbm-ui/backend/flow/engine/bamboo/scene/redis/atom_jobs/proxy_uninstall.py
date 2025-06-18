@@ -183,6 +183,9 @@ def ProxyFaultShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, param
     else:
         act_kwargs.cluster["machine_type"] = MachineType.TWEMPROXY.value
 
+    # 在这里等着
+    sub_pipeline.add_act(act_name=_("Redis-人工确认"), act_component_code=PauseComponent.code, kwargs={})
+
     # 先删除元数据
     act_kwargs.cluster["proxy_ips"] = [exec_ip]
     act_kwargs.cluster["proxy_port"] = param["proxy_port"]
@@ -193,9 +196,6 @@ def ProxyFaultShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, param
         act_component_code=RedisDBMetaComponent.code,
         kwargs=asdict(act_kwargs),
     )
-
-    # 在这里等着
-    sub_pipeline.add_act(act_name=_("Redis-人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
     # 下发介质包
     trans_files = GetFileList(db_type=DBType.Redis)
