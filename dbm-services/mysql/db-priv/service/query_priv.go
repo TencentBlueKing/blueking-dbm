@@ -460,8 +460,15 @@ func MysqlUserList(address string, bkCloudId int64, hosts []string, usersInput [
 	}
 	usersResult := output.CmdResults[0].TableData
 	for _, res := range usersResult {
-		user := res["user"].(string)
-		host := res["host"].(string)
+		user, ok := res["user"].(string)
+		if !ok {
+			user = ""
+		}
+		host, ok := res["host"].(string)
+		if !ok {
+			host = ""
+		}
+
 		if user == "MONITOR" {
 			continue
 		}
