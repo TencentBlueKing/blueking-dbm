@@ -215,8 +215,14 @@ func (r *Registry) Set(ctx context.Context, key, value string) error {
 	return nil
 }
 
+// Close Registry instance
 func (r *Registry) Close() {
 	close(r.quit)
-	r.quit = nil
 	r.wg.Wait()
+	r.quit = nil
+}
+
+// GetRootKey returns the root key of the registry
+func (r *Registry) GetRootKey() string {
+	return r.rootKey
 }
