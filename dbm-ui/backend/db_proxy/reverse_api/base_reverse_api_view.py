@@ -18,8 +18,7 @@ from rest_framework.request import Request
 
 from backend import env
 from backend.bk_web.viewsets import SystemViewSet
-from backend.db_meta.models import Machine
-from backend.db_proxy.reverse_api.helper import get_client_ip, validate_nginx_ip
+from backend.db_proxy.reverse_api.helper import validate_machine_ip, validate_nginx_ip
 
 logger = logging.getLogger("root")
 
@@ -41,8 +40,7 @@ class IPHasRegisteredPermission(permissions.BasePermission):
             if not env.DEBUG_REVERSE_API:
                 validate_nginx_ip(bk_cloud_id, request)
 
-            client_ip = get_client_ip(request)
-            Machine.objects.get(ip=client_ip, bk_cloud_id=bk_cloud_id)
+            validate_machine_ip(bk_cloud_id, request)
 
         except Exception as e:  # noqa
             # if not found:

@@ -45,15 +45,20 @@ class DBCloudProxy(AuditedModel):
     @classmethod
     def get_cloud_proxy_external_address(cls, bk_cloud_id):
         """获取该云区域下代理外部地址(缓存)"""
-        proxy_cache_key = f"cache_db_cloud_token_{bk_cloud_id}"
+        proxy_cache_key = f"cache_cloud_external_address_{bk_cloud_id}"
         proxy_url = cache.get(proxy_cache_key)
+
+        if proxy_url:
+            return proxy_url
+
         # 缓存proxy，避免大量重复请求占用mysql
-        if not proxy_url:
-            proxy = DBCloudProxy.objects.filter(bk_cloud_id=bk_cloud_id).last()
-            if not proxy:
-                raise ProxyPassBaseException(_("该云区域[{}]下没有部署proxy").format(bk_cloud_id))
-            proxy_url = proxy.external_address
-            cache.set(proxy_cache_key, proxy.external_address, timeout=DB_CLOUD_PROXY_EXPIRE_TIME)
+        proxy = DBCloudProxy.objects.filter(bk_cloud_id=bk_cloud_id).last()
+        if not proxy:
+            raise ProxyPassBaseException(_("该云区域[{}]下没有部署nginx").format(bk_cloud_id))
+
+        proxy_url = proxy.external_address
+        cache.set(proxy_cache_key, proxy.external_address, timeout=DB_CLOUD_PROXY_EXPIRE_TIME)
+
         return proxy_url
 
 

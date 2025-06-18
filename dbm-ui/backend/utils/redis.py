@@ -54,3 +54,17 @@ def is_valid_ip(ip_address):
         return False
     except Exception:
         return False
+
+
+def check_set_member_in_redis(key, member, verify_func, expire_time):
+    """检查是否已经存在"""
+    if RedisConn.sismember(key, member):
+        return True
+    # 未命中进行校验
+    verify_func(key, member)
+    # 校验成功则设置缓存
+    if not RedisConn.exists(key):
+        RedisConn.sadd(key, member)
+        RedisConn.expire(key, expire_time)
+    else:
+        RedisConn.sadd(key, member)

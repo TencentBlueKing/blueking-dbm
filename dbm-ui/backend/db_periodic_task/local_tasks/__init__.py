@@ -25,7 +25,7 @@ from backend.db_periodic_task.local_tasks.redis_backup import *
 from backend.db_periodic_task.local_tasks.redis_clusternodes_update import *
 from backend.db_periodic_task.local_tasks.sqlserver import *
 from backend.db_periodic_task.local_tasks.ticket import *
-from backend.db_periodic_task.local_tasks.update_host_property import update_host_property
+from backend.db_periodic_task.local_tasks.update_host_property import sync_machine_ip_cache, update_host_property
 from backend.db_periodic_task.models import DBPeriodicTask
 
 from ..constants import PeriodicTaskType

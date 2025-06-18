@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+from collections import defaultdict
 from datetime import datetime, timedelta
 
 from celery.schedules import crontab
@@ -19,6 +20,8 @@ from backend.components import CCApi
 from backend.db_dirty.models import DirtyMachine
 from backend.db_meta.models import Machine
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
+from backend.db_proxy.constants import DB_CLOUD_MACHINE_EXPIRE_TIME
+from backend.utils.redis import RedisConn
 
 logger = logging.getLogger("root")
 
@@ -148,3 +151,31 @@ def update_host_property():
 
     except Exception as e:
         logger.exception(f"Error during sync_update_host_property: {e}")
+
+
+@register_periodic_task(run_every=crontab(hour=1, minute=0))
+def sync_machine_ip_cache():
+    """
+    定期同步machine表来缓存ip
+    注：这里缓存只用于存在性判断，并且接受漏判(目前用于reverse api的校验)
+    """
+    logger.info("begin to cache machine ips...")
+
+    hosts = Machine.objects.all().values("bk_cloud_id", "ip")
+    cloud__ips_map = defaultdict(list)
+    for host in hosts:
+        cloud__ips_map[host["bk_cloud_id"]].append(host["ip"])
+
+    batch_size = 2000
+    # 根据云区域分组缓存ip
+    for cloud, ips in cloud__ips_map.items():
+        tmp_cache_key = f"cache_cloud_machine_tmp_{cloud}"
+        cache_key = f"cache_cloud_machine_{cloud}"
+
+        for index in range(0, len(ips), batch_size):
+            RedisConn.sadd(tmp_cache_key, *ips[index : index + batch_size])
+
+        RedisConn.rename(tmp_cache_key, cache_key)
+        RedisConn.expire(cache_key, DB_CLOUD_MACHINE_EXPIRE_TIME)
+
+    logger.info("cache machine task is finished, number is %s", len(hosts))

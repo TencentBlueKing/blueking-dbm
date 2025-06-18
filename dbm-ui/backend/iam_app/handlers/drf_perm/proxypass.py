@@ -20,7 +20,7 @@ from backend.core.encrypt.exceptions import RSADecryptException
 from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_proxy.constants import DB_CLOUD_TOKEN_EXPIRE_TIME
 from backend.utils.local import local
-from backend.utils.redis import RedisConn
+from backend.utils.redis import check_set_member_in_redis
 
 
 class ProxyPassPermission(permissions.BasePermission):
@@ -54,15 +54,7 @@ class ProxyPassPermission(permissions.BasePermission):
         cache_key = f"cache_db_cloud_token_{bk_cloud_id}"
         # 判断是否在缓存集合中，不在cache中则走解密流程并cache。
         # 由于Redis的list不能直接判断元素是否存在，所以选择set存取
-        if not RedisConn.sismember(cache_key, db_cloud_token):
-            self.verify_token(db_cloud_token, bk_cloud_id)
-            # 如果这个cache_key刚创建，则需要设置过期时间
-            if not RedisConn.exists(cache_key):
-                RedisConn.sadd(cache_key, db_cloud_token)
-                RedisConn.expire(cache_key, DB_CLOUD_TOKEN_EXPIRE_TIME)
-            else:
-                RedisConn.sadd(cache_key, db_cloud_token)
-
+        check_set_member_in_redis(cache_key, db_cloud_token, self.verify_token, DB_CLOUD_TOKEN_EXPIRE_TIME)
         request.data.pop("db_cloud_token")
 
         # 通过鉴权后，修改调用方式为内部调用
