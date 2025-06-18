@@ -420,7 +420,7 @@ func (m *MySQLDumper) getDumpCmd(outputFile, errFile, dumpOption string, appendO
 		}
 	}
 
-	if len(m.Tables) > 0 {
+	if len(m.Tables) > 0 && m.Tables[0] != "*" {
 		dumpCmd += fmt.Sprintf(" --tables  %s", strings.Join(m.Tables, " "))
 	}
 
