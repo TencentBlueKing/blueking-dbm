@@ -61,9 +61,15 @@ type Registry struct {
 	client        *clientv3.Client
 	leaseId       clientv3.LeaseID
 	keepAliveChan <-chan *clientv3.LeaseKeepAliveResponse
+	closed        bool
 }
 
 func (r *Registry) grant(ctx context.Context) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	if r.closed {
+		return gerrors.New(gerrors.OperationFailure, "registry is closed")
+	}
 
 	leaseResp, err := r.client.Grant(ctx, r.ttl)
 	if err != nil {
@@ -96,8 +102,13 @@ func (r *Registry) monitorKeepalive(ctx context.Context) {
 	}()
 
 	for {
+		r.mutex.Lock()
+		quit := r.quit
+		r.mutex.Unlock()
+
 		select {
-		case <-r.quit:
+		case <-quit:
+			logger.Info("reg monitorKeepalive quit successfully")
 			return
 
 		case <-ctx.Done():
@@ -129,8 +140,14 @@ func (r *Registry) checkLeaseTTL(ctx context.Context) {
 	}()
 
 	for {
+
+		r.mutex.Lock()
+		quit := r.quit
+		r.mutex.Unlock()
+
 		select {
-		case <-r.quit:
+		case <-quit:
+			logger.Info("reg checkLeaseTTL quit successfully")
 			return
 
 		case <-ctx.Done():
@@ -170,7 +187,12 @@ func (r *Registry) Events() chan *RegistryEvent {
 
 // SetService Create or set the registry root key.
 func (r *Registry) SetService(ctx context.Context, value string) error {
-
+	r.mutex.Lock()
+	if r.closed {
+		r.mutex.Unlock()
+		return gerrors.New(gerrors.OperationFailure, "registry is closed")
+	}
+	r.mutex.Unlock()
 	value = strings.TrimSpace(value)
 
 	if r.leaseId == 0 {
@@ -215,8 +237,28 @@ func (r *Registry) Set(ctx context.Context, key, value string) error {
 	return nil
 }
 
+// Close Registry instance
 func (r *Registry) Close() {
-	close(r.quit)
-	r.quit = nil
+	r.mutex.Lock()
+	if r.closed {
+		r.mutex.Unlock()
+		return
+	}
+	r.closed = true
+	if r.quit != nil {
+		quit := r.quit
+		r.quit = nil
+		r.mutex.Unlock()
+		close(quit)
+	} else {
+		r.mutex.Unlock()
+	}
+	// close(r.quit)
+	// r.quit = nil
 	r.wg.Wait()
+}
+
+// GetRootKey returns the root key of the registry
+func (r *Registry) GetRootKey() string {
+	return r.rootKey
 }

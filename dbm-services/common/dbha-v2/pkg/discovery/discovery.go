@@ -22,6 +22,7 @@
  * SOFTWARE.
  */
 
+// Package discovery to find service
 package discovery
 
 import (
@@ -55,6 +56,8 @@ type Discovery struct {
 	quit   chan struct{}
 	client *clientv3.Client
 	wg     sync.WaitGroup
+	mutex  sync.Mutex
+	closed bool
 }
 
 // Watch Subscribe to target key events and receive data from the watch channel.
@@ -65,9 +68,18 @@ func (d *Discovery) Watch(ctx context.Context, key string) (chan *WatchEvent, er
 		return nil, gerrors.New(gerrors.InvalidParameter, "the watched key is required")
 	}
 
+	d.mutex.Lock()
+	if d.closed {
+		d.mutex.Unlock()
+		return nil, gerrors.New(gerrors.OperationFailure, "discovery is closed")
+	}
+
 	if d.quit == nil {
 		d.quit = make(chan struct{})
 	}
+
+	quit := d.quit
+	d.mutex.Unlock()
 
 	// set watcher
 	watchChan := d.client.Watch(ctx, key, clientv3.WithPrefix())
@@ -77,9 +89,12 @@ func (d *Discovery) Watch(ctx context.Context, key string) (chan *WatchEvent, er
 
 	go func() {
 
+		defer close(watchEventChan)
+		defer d.wg.Done()
+
 		for {
 			select {
-			case <-d.quit:
+			case <-quit:
 				logger.Info("exit watcher. key:%s", key)
 				return
 
@@ -123,10 +138,16 @@ func (d *Discovery) WatchWithPrefix(ctx context.Context, key string) (chan *Watc
 	if key == "" {
 		return nil, gerrors.New(gerrors.InvalidParameter, "the watched key is required")
 	}
-
+	d.mutex.Lock()
+	if d.closed {
+		d.mutex.Unlock()
+		return nil, gerrors.New(gerrors.OperationFailure, "discovery is closed")
+	}
 	if d.quit == nil {
 		d.quit = make(chan struct{})
 	}
+	quit := d.quit
+	d.mutex.Unlock()
 
 	// set watcher
 	watchChan := d.client.Watch(ctx, key, clientv3.WithPrefix())
@@ -137,10 +158,11 @@ func (d *Discovery) WatchWithPrefix(ctx context.Context, key string) (chan *Watc
 	go func() {
 
 		defer close(watchEventChan)
+		defer d.wg.Done()
 
 		for {
 			select {
-			case <-d.quit:
+			case <-quit:
 				logger.Info("exit watcher. key prefix:%s", key)
 				return
 
@@ -218,8 +240,21 @@ func (d *Discovery) GetWithPrefix(ctx context.Context, key string) (map[string][
 	return kvs, nil
 }
 
+// Close Discovery instance
 func (d *Discovery) Close() {
-	close(d.quit) // NOTE: Notify all goroutines by closing this channel.
-	d.quit = nil
+	d.mutex.Lock()
+	if d.closed {
+		d.mutex.Unlock()
+		return
+	}
+	d.closed = true
+	if d.quit != nil {
+		quit := d.quit
+		d.quit = nil
+		d.mutex.Unlock()
+		close(quit) // NOTE: Notify all goroutines by closing this channel.
+	} else {
+		d.mutex.Unlock()
+	}
 	d.wg.Wait()
 }
