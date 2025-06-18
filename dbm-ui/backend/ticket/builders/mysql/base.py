@@ -175,6 +175,18 @@ class MySQLBaseOperateDetailSerializer(
         return attrs
 
 
+class MysqlSingleOpsBaseDetailSerializer(MySQLBaseOperateDetailSerializer):
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
+
+    def validate(self, attrs):
+        """
+        公共校验：集群操作互斥校验
+        """
+        super().validate(attrs)
+        return attrs
+
+
 class MySQLClustersTakeDownDetailsSerializer(SkipToRepresentationMixin, serializers.Serializer):
     cluster_ids = serializers.ListField(help_text=_("集群ID"), child=serializers.IntegerField())
     force = serializers.BooleanField(help_text=_("是否强制下架"), required=False, default=False)

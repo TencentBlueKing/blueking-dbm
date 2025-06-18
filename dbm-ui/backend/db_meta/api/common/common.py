@@ -12,6 +12,10 @@ import logging
 from typing import Dict, List
 
 from django.db.models import Q, QuerySet
+from django.utils.translation import gettext as _
+
+from backend.db_meta.api.cluster.base.graph import Group, GroupNameType, LineLabel
+from backend.db_meta.enums import ClusterEntryType
 
 logger = logging.getLogger("root")
 
@@ -45,3 +49,45 @@ def equ_list_of_dict(a, b: List) -> bool:
 def remain_instance_obj(instances: List[Dict], qs: QuerySet) -> List[Dict]:
     ne = set(qs.values_list("machine__ip", "port")) - set(map(lambda e: (e["ip"], e["port"]), instances))
     return list(map(lambda e: {"ip": e[0], "port": e[1]}, ne))
+
+
+def get_clb_topo(graph, all_entry, proxy_group):
+    clb_entry_group = None
+    entry_group = Group(node_id="master_entry_group", group_name=_("{}"))
+    master_entry_names = []
+    if all_entry.filter(cluster__clusterentry__cluster_entry_type=ClusterEntryType.CLB).exists():
+        clb_entry_group = Group(node_id="clb_entry_group", group_name=_("CLB IP"))
+
+    for entry in all_entry:
+        # clb肯定指向proxy
+        if entry.cluster_entry_type == ClusterEntryType.CLB:
+            dummy_be_node, clb_entry_group = graph.add_node(entry, to_group=clb_entry_group)
+            graph.add_line(source=clb_entry_group, target=proxy_group, label=LineLabel.Forward)
+
+            # clbDNS肯定指向clb
+        elif entry.cluster_entry_type == ClusterEntryType.CLBDNS:
+            clb_dns_entry_group = Group(node_id="clb_dns_entry_group", group_name=_("CLB域名"))
+            dummy_be_node, clb_dns_entry_group = graph.add_node(entry, to_group=clb_dns_entry_group)
+            graph.add_line(source=clb_dns_entry_group, target=clb_entry_group, label=LineLabel.Bind)
+
+        # dns默认指向proxy 指向clb之后不再指向proxy
+        elif entry.cluster_entry_type == ClusterEntryType.DNS:
+            if entry.forward_to:
+                dns_entry_group = Group(node_id="dns_entry_group", group_name=_("主域名"))
+                dummy_be_node, dns_entry_group = graph.add_node(entry, to_group=dns_entry_group)
+                graph.add_line(source=dns_entry_group, target=clb_entry_group, label=LineLabel.Bind)
+
+            else:
+                dummy_be_node, entry_group = graph.add_node(entry, to_group=entry_group)
+                graph.add_line(source=entry_group, target=proxy_group, label=LineLabel.Bind)
+                master_entry_names.append(str(GroupNameType.get_choice_label(GroupNameType.DNS.value)))
+
+        # 北极星目前只指向proxy
+        else:
+            dummy_be_node, entry_group = graph.add_node(entry, to_group=entry_group)
+            graph.add_line(source=entry_group, target=proxy_group, label=LineLabel.Bind)
+            master_entry_names.append(str(GroupNameType.get_choice_label(GroupNameType.POLARIS.value)))
+
+    entry_group.group_name = entry_group.group_name.format("、".join(master_entry_names))
+
+    return graph

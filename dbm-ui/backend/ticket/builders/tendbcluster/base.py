@@ -165,6 +165,19 @@ class TendbBaseOperateDetailSerializer(MySQLBaseOperateDetailSerializer):
         return super().validate_cluster_can_access(attrs=attrs)
 
 
+class TendbSingleOpsBaseDetailSerializer(TendbBaseOperateDetailSerializer):
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
+    spider_role = serializers.CharField(help_text=_("接入层角色"), required=False)
+
+    def validate(self, attrs):
+        """
+        公共校验：集群操作互斥校验
+        """
+        super().validate(attrs)
+        return attrs
+
+
 class TendbClustersTakeDownDetailsSerializer(MySQLClustersTakeDownDetailsSerializer):
     is_only_delete_slave_domain = serializers.BooleanField(help_text=_("是否只禁用只读接入层"), required=False, default=False)
     is_only_add_slave_domain = serializers.BooleanField(help_text=_("是否只启用只读接入层"), required=False, default=False)
