@@ -300,6 +300,8 @@ class CommonValidate(object):
 
         if len(domain) > MAX_DOMAIN_LEN_LIMIT:
             raise serializers.ValidationError(_("[{}]集群域名长度过长，请不要让域名长度超过{}").format(domain, MAX_DOMAIN_LEN_LIMIT))
+        if Cluster.objects.filter(immute_domain=domain).exists():
+            raise serializers.ValidationError(_("该域名已被其他集群使用, 请重新设置域名"))
 
     @classmethod
     def validate_generate_domain(cls, cluster_domain_prefix, cluster_name, db_app_abbr):
