@@ -58,7 +58,6 @@
 
   interface Props {
     cluster: RedisModel;
-    type?: 'capacityChange' | 'typeChange'; // 容量变革、类型变更
   }
 
   type Emits = (e: 'change', data: ClusterSpecModel) => void;
@@ -68,9 +67,7 @@
     disable(id: number): void;
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    type: 'capacityChange',
-  });
+  const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
@@ -142,13 +139,9 @@
       const params = {
         capacity: capacityNum,
         future_capacity: capacityNum,
-        shard_num: props.cluster.cluster_shard_num === 0 ? undefined : props.cluster.cluster_shard_num,
         spec_cluster_type: 'redis',
         spec_machine_type: props.cluster.cluster_type,
       };
-      if (props.type === 'typeChange') {
-        delete params.shard_num;
-      }
       fetchData(params);
     }
   };
