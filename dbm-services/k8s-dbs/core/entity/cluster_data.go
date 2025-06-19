@@ -43,6 +43,7 @@ type Metadata struct {
 	Namespace           string            `json:"namespace,omitempty"`
 	StorageAddonType    string            `json:"storageAddonType,omitempty"`
 	StorageAddonVersion string            `json:"storageAddonVersion,omitempty"`
+	AddonClusterVersion string            `json:"addonClusterVersion,omitempty"`
 	Kind                string            `json:"kind,omitempty"`
 	Labels              map[string]string `json:"labels,omitempty"`
 	Annotations         map[string]string `json:"annotations,omitempty"`
