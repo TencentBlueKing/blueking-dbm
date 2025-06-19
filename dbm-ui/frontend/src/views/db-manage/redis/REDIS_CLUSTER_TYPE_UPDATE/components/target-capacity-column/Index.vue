@@ -60,8 +60,6 @@
 
   import RedisModel from '@services/model/redis/redis';
 
-  import { ClusterTypes } from '@common/const';
-
   import ChooseClusterTargetPlan, {
     type CapacityNeed,
     type SpecResultInfo,
@@ -87,7 +85,7 @@
   const modelValue = defineModel<{
     capacity: number;
     cluster_shard_num: number;
-    count: number;
+    count: string | number;
     future_capacity: number;
     spec_id: number;
   }>({
@@ -119,21 +117,21 @@
   //   modelValue.value.cluster_shard_num = props.cluster.cluster_shard_num || 0;
   // });
 
-  watch(
-    () => props.targetClusterType,
-    () => {
-      if (props.targetClusterType) {
-        modelValue.value.count = [ClusterTypes.PREDIXY_REDIS_CLUSTER, ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER].includes(
-          props.targetClusterType as ClusterTypes,
-        )
-          ? 3
-          : 1;
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
+  // watch(
+  //   () => props.targetClusterType,
+  //   () => {
+  //     if (props.targetClusterType) {
+  //       modelValue.value.count = [ClusterTypes.PREDIXY_REDIS_CLUSTER, ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER].includes(
+  //         props.targetClusterType as ClusterTypes,
+  //       )
+  //         ? 3
+  //         : 1;
+  //     }
+  //   },
+  //   {
+  //     immediate: true,
+  //   },
+  // );
 
   const disabledMethod = () => {
     if (!props.cluster.id) {
