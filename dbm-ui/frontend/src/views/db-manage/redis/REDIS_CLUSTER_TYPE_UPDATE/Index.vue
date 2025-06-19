@@ -82,9 +82,9 @@
                 {{ t('需人工确认') }}
               </EditableBlock>
             </EditableColumn>
-            <OperationColumn
+            <!-- <OperationColumn
               :create-row-method="createRowData"
-              :table-data="formData.tableData" />
+              :table-data="formData.tableData" /> -->
           </EditableRow>
         </EditableTable>
         <BkFormItem
@@ -199,7 +199,7 @@
     target_capacity: {
       capacity: number;
       cluster_shard_num: number;
-      count: number;
+      count: string | number;
       future_capacity: number;
       spec_id: number;
     };
@@ -229,7 +229,7 @@
       {
         capacity: 0,
         cluster_shard_num: 0,
-        count: 0,
+        count: '' as string | number,
         future_capacity: 0,
         spec_id: 0,
       },
@@ -325,37 +325,39 @@
           ].join(','),
           ...params,
         }),
+      multiple: false,
     },
   } as unknown as Record<ClusterTypes, TabItem>;
 
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
+  // const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
   const handleClusterBatchEdit = (clusterList: RedisModel[]) => {
     const newList: IDataRow[] = [];
     clusterList.forEach((item) => {
-      if (!selectedMap.value[item.master_domain]) {
-        newList.push(
-          createRowData({
-            cluster: {
-              bk_cloud_id: item.bk_cloud_id,
-              cluster_capacity: item.cluster_capacity,
-              cluster_shard_num: item.cluster_shard_num,
-              cluster_spec: item.cluster_spec,
-              cluster_type: item.cluster_type,
-              cluster_type_name: item.cluster_type_name,
-              disaster_tolerance_level: item.disaster_tolerance_level,
-              id: item.id,
-              machine_pair_cnt: item.machine_pair_cnt,
-              major_version: item.major_version,
-              master_domain: item.master_domain,
-              proxy: item.proxy,
-            },
-          }),
-        );
-      }
+      // if (!selectedMap.value[item.master_domain]) {
+      newList.push(
+        createRowData({
+          cluster: {
+            bk_cloud_id: item.bk_cloud_id,
+            cluster_capacity: item.cluster_capacity,
+            cluster_shard_num: item.cluster_shard_num,
+            cluster_spec: item.cluster_spec,
+            cluster_type: item.cluster_type,
+            cluster_type_name: item.cluster_type_name,
+            disaster_tolerance_level: item.disaster_tolerance_level,
+            id: item.id,
+            machine_pair_cnt: item.machine_pair_cnt,
+            major_version: item.major_version,
+            master_domain: item.master_domain,
+            proxy: item.proxy,
+          },
+        }),
+      );
+      // }
     });
-    formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...newList];
+    // formData.tableData = [...(selected.value.length ? formData.tableData : []), ...newList];
+    formData.tableData = newList;
     window.changeConfirm = true;
   };
 
@@ -380,7 +382,7 @@
             resource_spec: {
               backend_group: {
                 affinity: tableItem.cluster.disaster_tolerance_level || Affinity.CROS_SUBZONE, // 暂时固定 'CROS_SUBZONE',
-                count: tableItem.target_capacity.count, // 机器组数
+                count: Number(tableItem.target_capacity.count), // 机器组数
                 spec_id: tableItem.target_capacity.spec_id,
               },
               proxy: {
