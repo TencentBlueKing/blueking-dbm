@@ -87,23 +87,34 @@ def prepare_departs_binary(
             )
         )
 
-    if cluster_type != ClusterType.TenDBSingle and proxy_ips:
-        departs_on_proxy = remove_departs(
-            deepcopy(departs),
-            DeployPeripheralToolsDepart.MySQLTableChecksum,
-            DeployPeripheralToolsDepart.MySQLRotateBinlog,
-            DeployPeripheralToolsDepart.MySQLDBBackup,
-        )
+    if proxy_ips:
+        departs_on_proxy = None
 
-        logger.info("{} proxy push departs binary {}".format(cluster_type, departs_on_proxy))
-        acts.append(
-            make_prepare_departs_binary_act(
-                machine_type=ClusterMachineAccessTypeDefine[cluster_type][AccessLayer.PROXY],
-                departs=departs_on_proxy,
-                bk_cloud_id=bk_cloud_id,
-                ip_list=proxy_ips,
+        if cluster_type == ClusterType.TenDBHA:
+            departs_on_proxy = remove_departs(
+                deepcopy(departs),
+                DeployPeripheralToolsDepart.MySQLTableChecksum,
+                DeployPeripheralToolsDepart.MySQLRotateBinlog,
+                DeployPeripheralToolsDepart.MySQLDBBackup,
             )
-        )
+        elif cluster_type == ClusterType.TenDBCluster:
+            departs_on_proxy = remove_departs(
+                deepcopy(departs),
+                DeployPeripheralToolsDepart.MySQLTableChecksum,
+                # DeployPeripheralToolsDepart.MySQLRotateBinlog,
+                # DeployPeripheralToolsDepart.MySQLDBBackup,
+            )
+
+        if departs_on_proxy:
+            logger.info("{} proxy push departs binary {}".format(cluster_type, departs_on_proxy))
+            acts.append(
+                make_prepare_departs_binary_act(
+                    machine_type=ClusterMachineAccessTypeDefine[cluster_type][AccessLayer.PROXY],
+                    departs=departs_on_proxy,
+                    bk_cloud_id=bk_cloud_id,
+                    ip_list=proxy_ips,
+                )
+            )
 
     if acts:
         sp.add_parallel_acts(acts_list=acts)

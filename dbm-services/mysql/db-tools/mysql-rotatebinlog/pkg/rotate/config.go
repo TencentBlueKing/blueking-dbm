@@ -1,6 +1,7 @@
 package rotate
 
 import (
+	"dbm-services/common/reverseapi/pkg"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,7 +15,6 @@ import (
 
 	"dbm-services/common/go-pubpkg/logger"
 	meta "dbm-services/common/reverseapi/define/mysql"
-	"dbm-services/common/reverseapi/infolocal"
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/cst"
 )
 
@@ -188,7 +188,7 @@ func readInstanceConfig(mainConfFile string) ([]*ServerObj, error) {
 			logger.Error("readInstanceConfig %s unmarshal failed: %v", f, err)
 			continue
 		}
-		if instInfo, err := infolocal.GetSelfInfo(s.Host, s.Port); err == nil {
+		if instInfo, err := pkg.GetSelfInfo(s.Host, s.Port); err == nil {
 			logger.Info("use role from common_config:%s, config:%s", instInfo.InstanceInnerRole, s.Tags.DBRole)
 			if instInfo.AccessLayer == meta.AccessLayerStorage && instInfo.InstanceInnerRole != "" {
 				s.Tags.DBRole = instInfo.InstanceInnerRole

@@ -47,3 +47,33 @@ def reverse_api(url_path, method=None):
         return wrapped_func
 
     return actual_decorator
+
+
+def async_reverse_api(url_path, method=None):
+    if method is None:
+        method = "GET"
+
+    def actual_decorator(func):
+        setattr(func, "is_reverse_api", True)
+        setattr(func, "reverse_api_method", method.lower())
+
+        @action(url_path=url_path, detail=False, methods=[method.upper()])
+        @wraps(func)
+        async def wrapped_func(obj, request: Request, *args, **kwargs):
+            bk_cloud_id = int(request.query_params.get("bk_cloud_id"))
+            port_list = [int(p) for p in request.query_params.getlist("port")]
+            client_ip = get_client_ip(request)
+
+            wrapped_param = {
+                "bk_cloud_id": bk_cloud_id,
+                "ip": client_ip,
+                "port_list": port_list,
+            }
+            if method.lower() == "post":
+                wrapped_param["data"] = request.data
+
+            return await func(obj, **wrapped_param)
+
+        return wrapped_func
+
+    return actual_decorator

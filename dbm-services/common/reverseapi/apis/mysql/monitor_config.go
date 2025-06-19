@@ -1,6 +1,10 @@
 package mysql
 
-import "github.com/pkg/errors"
+import (
+	"dbm-services/common/reverseapi/internal/core"
+
+	"github.com/pkg/errors"
+)
 
 //MonitorItemsConfig
 /*
@@ -39,8 +43,8 @@ import "github.com/pkg/errors"
 	  }
 `
 */
-func (c *MySQL) MonitorItemsConfig(ports ...int) ([]byte, error) {
-	data, err := c.core.ReverseCall("mysql/monitor_items_config/", ports...)
+func MonitorItemsConfig(core *core.Core, ports ...int) ([]byte, error) {
+	data, err := core.Get("mysql/monitor_items_config/", ports...)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to call monitor_items_config")
 	}
@@ -48,8 +52,8 @@ func (c *MySQL) MonitorItemsConfig(ports ...int) ([]byte, error) {
 	return data, nil
 }
 
-func (c *MySQL) MonitorRuntimeConfig(ports ...int) ([]byte, error) {
-	data, err := c.core.ReverseCall("mysql/monitor_runtime_config", ports...)
+func MonitorRuntimeConfig(core *core.Core, ports ...int) ([]byte, error) {
+	data, err := core.Get("mysql/monitor_runtime_config/", ports...)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to call monitor_runtime_config")
 	}

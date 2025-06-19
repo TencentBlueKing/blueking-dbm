@@ -1,13 +1,14 @@
 package cmd
 
 import (
+	"dbm-services/common/reverseapi"
+	reversemysqlapi "dbm-services/common/reverseapi/apis/mysql"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
 
-	"dbm-services/common/reverseapi"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/backup"
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/rotate"
@@ -42,8 +43,8 @@ var subCmdGenConfig = &cobra.Command{
 		bkCloudId := viper.GetInt("bk-cloud-id")
 		ports := viper.GetIntSlice("port")
 
-		rvApi := reverseapi.NewReverseApiWithAddr(int64(bkCloudId), nginxAddrs...)
-		data, err := rvApi.MySQL.RotatebinlogConfig(ports...)
+		apiCore := reverseapi.NewCoreWithAddr(int64(bkCloudId), nginxAddrs...)
+		data, err := reversemysqlapi.RotatebinlogConfig(apiCore, ports...)
 		if err != nil {
 			return err
 		}

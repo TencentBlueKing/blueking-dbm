@@ -1,13 +1,14 @@
 package common
 
 import (
+	"dbm-services/common/reverseapi/internal/core"
 	"encoding/json"
 
 	"github.com/pkg/errors"
 )
 
-func (c *Common) ListNginxAddrs() ([]string, error) {
-	data, err := c.core.ReverseCall("common/list_nginx_addrs")
+func ListNginxAddrs(core *core.Core) ([]string, error) {
+	data, err := core.Get("common/list_nginx_addrs")
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to call ListNginxAddrs")
 	}

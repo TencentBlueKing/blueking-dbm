@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"dbm-services/common/reverseapi"
+	reversemysqlapi "dbm-services/common/reverseapi/apis/mysql"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
@@ -69,8 +70,8 @@ func generateRuntimeConfigs() error {
 	bkCloudId := viper.GetInt("bk-cloud-id")
 	ports := viper.GetIntSlice("port")
 
-	rvApi := reverseapi.NewReverseApiWithAddr(int64(bkCloudId), nginxAddrs...)
-	data, err := rvApi.MySQL.MonitorRuntimeConfig(ports...)
+	apiCore := reverseapi.NewCoreWithAddr(int64(bkCloudId), nginxAddrs...)
+	data, err := reversemysqlapi.MonitorRuntimeConfig(apiCore, ports...)
 	if err != nil {
 		return err
 	}
@@ -157,8 +158,8 @@ func generateItemsConfigs() error {
 	bkCloudId := viper.GetInt("bk-cloud-id")
 	ports := viper.GetIntSlice("port")
 
-	rvApi := reverseapi.NewReverseApiWithAddr(int64(bkCloudId), nginxAddrs...)
-	data, err := rvApi.MySQL.MonitorItemsConfig(ports...)
+	apiCore := reverseapi.NewCoreWithAddr(int64(bkCloudId), nginxAddrs...)
+	data, err := reversemysqlapi.MonitorItemsConfig(apiCore, ports...)
 	if err != nil {
 		return err
 	}

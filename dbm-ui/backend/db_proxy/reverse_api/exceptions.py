@@ -8,8 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from backend.exceptions import AppBaseException
+from backend.exceptions import AppBaseException, ErrorCode
 
 
-class EventValidationException(AppBaseException):
+class ReverseApiBaseException(AppBaseException):
+    MODULE_CODE = ErrorCode.PROXY_PASS_REVERSE_API_CODE
+
+
+class SyncReportEventValidationException(ReverseApiBaseException):
     MESSAGE = "event validate failed"
+    ERROR_CODE = "500"

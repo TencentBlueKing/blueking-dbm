@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"dbm-services/common/reverseapi"
+	"dbm-services/common/reverseapi/define"
 	"dbm-services/common/reverseapi/define/mysql"
 	"encoding/json"
 	"fmt"
@@ -142,8 +142,8 @@ func updateConfig(configPath string) error {
 
 func getSelfInfo() (sii *mysql.StorageInstanceInfo, err error) {
 	filePath := filepath.Join(
-		reverseapi.DefaultCommonConfigDir,
-		reverseapi.DefaultInstanceInfoFileName,
+		define.DefaultCommonConfigDir,
+		define.DefaultInstanceInfoFileName,
 	)
 	f, err := os.OpenFile(filePath, os.O_RDONLY, os.ModePerm)
 	if err != nil {

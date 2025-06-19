@@ -8,12 +8,32 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import threading
-from typing import List, Union
+import json
+import time
+from typing import List
 
 from kafka import KafkaProducer
 
-from .sync_report import sync_report
 
-producers: Union[List[KafkaProducer], None] = None
-lock = threading.Lock()
+def inject_fields(bk_cloud_id, ip, data: List) -> List:
+    res = []
+    for ev in data:
+        res.append(
+            {
+                **ev,
+                "event_source_ip": ip,
+                "event_receive_timestamp": time.time(),
+                "event_bk_cloud_id": bk_cloud_id,
+            }
+        )
+
+    return res
+
+
+def send_events(producer: KafkaProducer, bk_cloud_id, ip, data: List):
+    events = inject_fields(bk_cloud_id=bk_cloud_id, ip=ip, data=data)
+    for ev in events:
+        cluster_type = ev["cluster_type"]
+        event_type = ev["event_type"]
+        topic = f"{cluster_type}-{event_type}"
+        producer.send(topic=topic, value=json.dumps(ev).encode("utf-8"))

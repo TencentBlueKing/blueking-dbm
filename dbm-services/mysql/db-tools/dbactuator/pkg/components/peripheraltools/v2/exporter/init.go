@@ -3,7 +3,8 @@ package exporter
 import (
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/reverseapi"
-	"dbm-services/common/reverseapi/define/mysql"
+	reversemysqlapi "dbm-services/common/reverseapi/apis/mysql"
+	reversemysqldef "dbm-services/common/reverseapi/define/mysql"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/common"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
@@ -122,15 +123,16 @@ type exporterConfig struct {
 }
 
 func GenConfig(bkCloudId int64, nginxAddrs []string, ports ...int) error {
-	rvApi := reverseapi.NewReverseApiWithAddr(bkCloudId, nginxAddrs...)
-	data, err := rvApi.MySQL.ExporterConfig(ports...)
+	apiCore := reverseapi.NewCoreWithAddr(bkCloudId, nginxAddrs...)
+	data, err := reversemysqlapi.ExporterConfig(apiCore, ports...)
+
 	if err != nil {
 		logger.Error(err.Error())
 		return err
 	}
 	logger.Info("exporter config: %s", string(data))
 
-	b, l, err := rvApi.MySQL.ListInstanceInfo()
+	b, l, err := reversemysqlapi.ListInstanceInfo(apiCore)
 	if err != nil {
 		logger.Error(err.Error())
 		return err
@@ -138,7 +140,7 @@ func GenConfig(bkCloudId int64, nginxAddrs []string, ports ...int) error {
 
 	isSpiderMaster := false
 	if l == "proxy" {
-		var pis []mysql.ProxyInstanceInfo
+		var pis []reversemysqldef.ProxyInstanceInfo
 		err = json.Unmarshal(b, &pis)
 		if err != nil {
 			logger.Error(err.Error())

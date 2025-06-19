@@ -3,7 +3,8 @@ package dbbackup
 import (
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/reverseapi"
-	"dbm-services/common/reverseapi/define/mysql"
+	reversemysqlapi "dbm-services/common/reverseapi/apis/mysql"
+	reversemysqldef "dbm-services/common/reverseapi/define/mysql"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	ma "dbm-services/mysql/db-tools/mysql-crond/api"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
@@ -126,26 +127,26 @@ func addOneCrond(port int) (err error) {
 		return err
 	}
 
-	rvApi, err := reverseapi.NewReverseApi(int64(cfg.Public.BkCloudId))
+	apiCore, err := reverseapi.NewCore(int64(cfg.Public.BkCloudId))
 	if err != nil {
 		logger.Error(err.Error())
 		return err
 	}
 
-	data, err := rvApi.MySQL.DBBackupConfig(port)
+	data, err := reversemysqlapi.DBBackupConfig(apiCore, port)
 	if err != nil {
 		logger.Error(err.Error())
 		return err
 	}
 
-	var backupCfgs []mysql.DBBackupConfig
+	var backupCfgs []reversemysqldef.DBBackupConfig
 	err = json.Unmarshal(data, &backupCfgs)
 	if err != nil {
 		logger.Error(err.Error())
 		return err
 	}
 
-	if len(backupCfgs) == 0 || slices.IndexFunc(backupCfgs, func(e mysql.DBBackupConfig) bool {
+	if len(backupCfgs) == 0 || slices.IndexFunc(backupCfgs, func(e reversemysqldef.DBBackupConfig) bool {
 		return e.Port == port
 	}) < 0 {
 		err = fmt.Errorf("backup config does not contain backup port:%d", port)

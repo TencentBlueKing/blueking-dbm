@@ -1,4 +1,4 @@
-package reverseapi
+package pkg
 
 import (
 	"bufio"

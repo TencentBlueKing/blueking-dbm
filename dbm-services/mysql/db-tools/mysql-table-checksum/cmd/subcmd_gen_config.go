@@ -2,7 +2,8 @@ package cmd
 
 import (
 	"dbm-services/common/reverseapi"
-	"dbm-services/common/reverseapi/define/mysql"
+	reversemysqlapi "dbm-services/common/reverseapi/apis/mysql"
+	reversemysqldef "dbm-services/common/reverseapi/define/mysql"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
@@ -28,13 +29,13 @@ var subCmdGenConfig = &cobra.Command{
 		bkCloudId := viper.GetInt("bk-cloud-id")
 		ports := viper.GetIntSlice("port")
 
-		rvApi := reverseapi.NewReverseApiWithAddr(int64(bkCloudId), nginxAddrs...)
-		data, err := rvApi.MySQL.ChecksumConfig(ports...)
+		apiCore := reverseapi.NewCoreWithAddr(int64(bkCloudId), nginxAddrs...)
+		data, err := reversemysqlapi.ChecksumConfig(apiCore, ports...)
 		if err != nil {
 			return err
 		}
 
-		var checksumConfigs []mysql.ChecksumConfig
+		var checksumConfigs []reversemysqldef.ChecksumConfig
 
 		err = json.Unmarshal(data, &checksumConfigs)
 		if err != nil {
@@ -76,7 +77,7 @@ func init() {
 	rootCmd.AddCommand(subCmdGenConfig)
 }
 
-func generateOneRuntimeConfig(cfg *mysql.ChecksumConfig) error {
+func generateOneRuntimeConfig(cfg *reversemysqldef.ChecksumConfig) error {
 	checksumInstallPath := cst.ChecksumInstallPath
 	if viper.GetString("debug-checksum-root") != "" {
 		checksumInstallPath = viper.GetString("debug-checksum-root")

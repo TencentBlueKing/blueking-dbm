@@ -1,6 +1,7 @@
-package infolocal
+package pkg
 
 import (
+	"dbm-services/common/reverseapi/define"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,16 +10,15 @@ import (
 	"slices"
 	"time"
 
-	"dbm-services/common/reverseapi"
-	meta "dbm-services/common/reverseapi/define/mysql"
+	reversemysqldef "dbm-services/common/reverseapi/define/mysql"
 )
 
 // GetSelfInfo 获取本实例信息
 // if instance_info.info is too old, will return error. because info may can not be trusted
-func GetSelfInfo(host string, port int) (sii *meta.StorageInstanceInfo, err error) {
+func GetSelfInfo(host string, port int) (sii *reversemysqldef.StorageInstanceInfo, err error) {
 	filePath := filepath.Join(
-		reverseapi.DefaultCommonConfigDir,
-		reverseapi.DefaultInstanceInfoFileName,
+		define.DefaultCommonConfigDir,
+		define.DefaultInstanceInfoFileName,
 	)
 	f, err := os.OpenFile(filePath, os.O_RDONLY, os.ModePerm)
 	if err != nil {
@@ -37,13 +37,13 @@ func GetSelfInfo(host string, port int) (sii *meta.StorageInstanceInfo, err erro
 		return nil, err
 	}
 
-	var siis []meta.StorageInstanceInfo
+	var siis []reversemysqldef.StorageInstanceInfo
 	err = json.Unmarshal(b, &siis)
 	if err != nil {
 		return nil, err
 	}
 
-	idx := slices.IndexFunc(siis, func(ele meta.StorageInstanceInfo) bool {
+	idx := slices.IndexFunc(siis, func(ele reversemysqldef.StorageInstanceInfo) bool {
 		return ele.Ip == host && ele.Port == port
 	})
 	if idx < 0 {
