@@ -434,17 +434,18 @@ class ProxyBaseView(View):
             log_field_map = {value: key for key, values in log_field_map.items() for value in values}
             # 日志仪表盘查询
             condition = {
-                match["key"]: log_field_map.get(match["value"][0], match["value"][0])
+                log_field_map.get(match["key"], match["key"]): match["value"][0]
                 for match in json.loads(request.body.decode())["where"]
             }
         else:
             return True
 
         check = True
-        if "app" in condition:
-            check = self.__check_app_permission(request, condition["app"])
-        elif "cluster_domain" in condition:
+        # 鉴权优先级：集群 > 业务
+        if "cluster_domain" in condition:
             check = self.__check_cluster_permission(request, condition["cluster_domain"])
+        elif "app" in condition:
+            check = self.__check_app_permission(request, condition["app"])
 
         if not check:
             raise PermissionError

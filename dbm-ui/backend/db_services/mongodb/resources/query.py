@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 from typing import Any, Callable, Dict, List
 
 from django.db.models import CharField, ExpressionWrapper, F, Prefetch, Q, QuerySet, Value
@@ -25,6 +26,8 @@ from backend.db_services.dbbase.resources.register import register_resource_deco
 from backend.db_services.dbresource.handlers import MongoDBShardSpecFilter
 from backend.ticket.constants import TicketType
 from backend.ticket.models import InstanceOperateRecord
+
+logger = logging.getLogger("root")
 
 
 @register_resource_decorator()
@@ -349,9 +352,14 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource):
                 # 副本集没有分片信息，返回空
                 storage_id__shard[storage.id] = ""
             else:
-                # 找到primary节点
-                ejector: StorageInstance = (storage.as_ejector.all() or storage.as_receiver.all()).first().ejector
-                # 通过primary节点找到关联的NosqlStorageSetDtl表，从而获取该实例的分片
-                shard = ejector.nosqlstoragesetdtl_set.first().seg_range
-                storage_id__shard[storage.id] = shard
+                try:
+                    # 找到primary节点
+                    ejector: StorageInstance = (storage.as_ejector.all() or storage.as_receiver.all()).first().ejector
+                    # 通过primary节点找到关联的NosqlStorageSetDtl表，从而获取该实例的分片
+                    shard = ejector.nosqlstoragesetdtl_set.first().seg_range
+                    storage_id__shard[storage.id] = shard
+                except Exception as e:  # pylint: disable=broad-except
+                    logger.error("query mongo storage shard error: %s", e)
+                    storage_id__shard[storage.id] = ""
+
         return storage_instance, storage_id__shard

@@ -44,7 +44,7 @@
     "plugin_id": "dbm_mongodb_exporter"
   },
   "db_type": "mongodb",
-  "version": 1,
+  "version": 2,
   "machine_types": [],
   "plugin_id": "dbm_mongodb_exporter",
   "export_at": "2024-11-21T15:24:01+08:00"
