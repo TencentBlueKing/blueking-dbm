@@ -17,10 +17,30 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package utils
+package util
 
-// Pagination 定义分页查询参数结构
-type Pagination struct {
-	Page  int `json:"page"`  // 当前页码
-	Limit int `json:"limit"` // 每页记录数
+import (
+	"math/rand"
+	"time"
+
+	"github.com/google/uuid"
+)
+
+const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
+
+// ResourceName Append Random Suffix
+func ResourceName(originalStr string, length int) string {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	result := make([]byte, length)
+	for i := range result {
+		result[i] = charset[r.Intn(len(charset))]
+	}
+
+	randomSuffix := string(result)
+	return originalStr + randomSuffix
+}
+
+// RequestID 生成无连字符的压缩版UUID (32位)
+func RequestID() string {
+	return uuid.New().String()
 }

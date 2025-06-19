@@ -21,8 +21,8 @@ package dbaccess
 
 import (
 	"fmt"
+	"k8s-dbs/common/entity"
 	models "k8s-dbs/metadata/dbaccess/model"
-	"k8s-dbs/metadata/utils"
 	"log/slog"
 
 	"gorm.io/gorm"
@@ -34,7 +34,7 @@ type ClusterRequestRecordDbAccess interface {
 	DeleteByID(id uint64) (uint64, error)
 	FindByID(id uint64) (*models.ClusterRequestRecordModel, error)
 	Update(model *models.ClusterRequestRecordModel) (uint64, error)
-	ListByPage(pagination utils.Pagination) ([]models.ClusterRequestRecordModel, int64, error)
+	ListByPage(pagination entity.Pagination) ([]models.ClusterRequestRecordModel, int64, error)
 }
 
 // ClusterRequestRecordDbAccessImpl ClusterRequestRecordDbAccess 的具体实现
@@ -85,7 +85,7 @@ func (k *ClusterRequestRecordDbAccessImpl) Update(model *models.ClusterRequestRe
 }
 
 // ListByPage 分页查询元数据接口实现
-func (k *ClusterRequestRecordDbAccessImpl) ListByPage(_ utils.Pagination) (
+func (k *ClusterRequestRecordDbAccessImpl) ListByPage(_ entity.Pagination) (
 	[]models.ClusterRequestRecordModel,
 	int64,
 	error,

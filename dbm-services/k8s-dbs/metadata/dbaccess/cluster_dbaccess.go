@@ -22,8 +22,8 @@ package dbaccess
 import (
 	"errors"
 	"fmt"
+	"k8s-dbs/common/entity"
 	models "k8s-dbs/metadata/dbaccess/model"
-	"k8s-dbs/metadata/utils"
 	"log"
 	"log/slog"
 
@@ -37,7 +37,7 @@ type K8sCrdClusterDbAccess interface {
 	FindByID(id uint64) (*models.K8sCrdClusterModel, error)
 	FindByParams(params map[string]interface{}) (*models.K8sCrdClusterModel, error)
 	Update(model *models.K8sCrdClusterModel) (uint64, error)
-	ListByPage(pagination utils.Pagination) ([]models.K8sCrdStorageAddonModel, int64, error)
+	ListByPage(params map[string]interface{}, pagination *entity.Pagination) ([]models.K8sCrdClusterModel, uint64, error)
 }
 
 // K8sCrdClusterDbAccessImpl K8sCrdClusterDbAccess 的具体实现
@@ -104,8 +104,16 @@ func (k *K8sCrdClusterDbAccessImpl) Update(model *models.K8sCrdClusterModel) (ui
 }
 
 // ListByPage 分页查询 cluster 元数据接口实现
-func (k *K8sCrdClusterDbAccessImpl) ListByPage(_ utils.Pagination) ([]models.K8sCrdStorageAddonModel, int64, error) {
-	return nil, 0, fmt.Errorf("not implemented yet")
+func (k *K8sCrdClusterDbAccessImpl) ListByPage(
+	params map[string]interface{},
+	pagination *entity.Pagination,
+) ([]models.K8sCrdClusterModel, uint64, error) {
+	var clusterModels []models.K8sCrdClusterModel
+	if err := k.db.Offset(pagination.Page).Limit(pagination.Limit).Where(params).Find(&clusterModels).Error; err != nil {
+		slog.Error("List cluster models error", "error", err.Error())
+		return nil, 0, err
+	}
+	return clusterModels, uint64(len(clusterModels)), nil
 }
 
 // NewCrdClusterDbAccess 创建 K8sCrdClusterDbAccess 接口实现实例

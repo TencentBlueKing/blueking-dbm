@@ -21,10 +21,10 @@ package tests
 
 import (
 	"fmt"
+	"k8s-dbs/common/entity"
 	"k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/dbaccess"
 	"k8s-dbs/metadata/dbaccess/model"
-	"k8s-dbs/metadata/utils"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -196,7 +196,7 @@ func TestListRelease(t *testing.T) {
 		assert.NotNil(t, createdRelease, err)
 	}
 
-	pagination := utils.Pagination{
+	pagination := entity.Pagination{
 		Page:  0,
 		Limit: 10,
 	}

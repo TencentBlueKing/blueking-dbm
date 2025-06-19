@@ -20,6 +20,7 @@ limitations under the License.
 package controller
 
 import (
+	entity2 "k8s-dbs/common/entity"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/core/errors"
 	"k8s-dbs/metadata/api/vo/req"
@@ -27,7 +28,6 @@ import (
 	metaconst "k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/provider"
 	entitys "k8s-dbs/metadata/provider/entity"
-	"k8s-dbs/metadata/utils"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -52,7 +52,7 @@ func (o *OperationDefinitionController) ListOperationDefinitions(ctx *gin.Contex
 		fetchSize = metaconst.DefaultFetchSize // 如果转换失败，使用默认值
 	}
 	fetchSize = min(fetchSize, metaconst.MaxFetchSize)
-	pagination := utils.Pagination{Limit: fetchSize}
+	pagination := entity2.Pagination{Limit: fetchSize}
 	opDefs, err := o.provider.ListOperationDefinitions(pagination)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))

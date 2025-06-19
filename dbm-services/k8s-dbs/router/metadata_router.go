@@ -122,6 +122,7 @@ func buildClusterMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
 	clusterMetaGroup := metaRouter.Group("/cluster")
 	{
 		clusterMetaGroup.GET("/:id", clusterMetaController.GetCluster)
+		clusterMetaGroup.GET("/search", clusterMetaController.ListCluster)
 	}
 }
 

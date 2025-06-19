@@ -20,10 +20,10 @@ limitations under the License.
 package provider
 
 import (
+	"k8s-dbs/common/entity"
 	"k8s-dbs/metadata/dbaccess"
 	models "k8s-dbs/metadata/dbaccess/model"
 	entitys "k8s-dbs/metadata/provider/entity"
-	"k8s-dbs/metadata/utils"
 	"log/slog"
 
 	"github.com/jinzhu/copier"
@@ -36,7 +36,7 @@ type K8sCrdStorageAddonProvider interface {
 	FindStorageAddonByID(id uint64) (*entitys.K8sCrdStorageAddonEntity, error)
 	FindStorageAddonByParams(params map[string]interface{}) ([]entitys.K8sCrdStorageAddonEntity, error)
 	UpdateStorageAddon(entity *entitys.K8sCrdStorageAddonEntity) (uint64, error)
-	ListStorageAddons(pagination utils.Pagination) ([]entitys.K8sCrdStorageAddonEntity, error)
+	ListStorageAddons(pagination entity.Pagination) ([]entitys.K8sCrdStorageAddonEntity, error)
 }
 
 // K8sCrdStorageAddonProviderImpl K8sCrdStorageAddonProvider 具体实现
@@ -121,7 +121,7 @@ func (k *K8sCrdStorageAddonProviderImpl) UpdateStorageAddon(entity *entitys.K8sC
 }
 
 // ListStorageAddons 获取 addon 列表
-func (k *K8sCrdStorageAddonProviderImpl) ListStorageAddons(pagination utils.Pagination) (
+func (k *K8sCrdStorageAddonProviderImpl) ListStorageAddons(pagination entity.Pagination) (
 	[]entitys.K8sCrdStorageAddonEntity,
 	error,
 ) {

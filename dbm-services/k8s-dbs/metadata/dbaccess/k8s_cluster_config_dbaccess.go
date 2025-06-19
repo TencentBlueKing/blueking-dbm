@@ -21,8 +21,8 @@ package dbaccess
 
 import (
 	"fmt"
+	"k8s-dbs/common/entity"
 	models "k8s-dbs/metadata/dbaccess/model"
-	"k8s-dbs/metadata/utils"
 	"log/slog"
 
 	"gorm.io/gorm"
@@ -35,7 +35,7 @@ type K8sClusterConfigDbAccess interface {
 	FindByID(id uint64) (*models.K8sClusterConfigModel, error)
 	FindByClusterName(name string) (*models.K8sClusterConfigModel, error)
 	Update(model *models.K8sClusterConfigModel) (uint64, error)
-	ListByPage(pagination utils.Pagination) ([]models.K8sClusterConfigModel, int64, error)
+	ListByPage(pagination entity.Pagination) ([]models.K8sClusterConfigModel, int64, error)
 }
 
 // K8sClusterConfigDbAccessImpl K8sClusterConfigDbAccess 的具体实现
@@ -101,7 +101,7 @@ func (k *K8sClusterConfigDbAccessImpl) Update(model *models.K8sClusterConfigMode
 }
 
 // ListByPage 分页查询元数据接口实现
-func (k *K8sClusterConfigDbAccessImpl) ListByPage(_ utils.Pagination) ([]models.K8sClusterConfigModel, int64, error) {
+func (k *K8sClusterConfigDbAccessImpl) ListByPage(_ entity.Pagination) ([]models.K8sClusterConfigModel, int64, error) {
 	return nil, 0, fmt.Errorf("not implemented yet")
 }
 

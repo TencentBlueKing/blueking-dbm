@@ -22,8 +22,8 @@ package dbaccess
 import (
 	"errors"
 	"fmt"
+	"k8s-dbs/common/entity"
 	models "k8s-dbs/metadata/dbaccess/model"
-	"k8s-dbs/metadata/utils"
 	"log"
 	"log/slog"
 
@@ -37,7 +37,7 @@ type AddonClusterReleaseDbAccess interface {
 	FindByID(id uint64) (*models.AddonClusterReleaseModel, error)
 	FindByParams(params map[string]interface{}) (*models.AddonClusterReleaseModel, error)
 	Update(model *models.AddonClusterReleaseModel) (uint64, error)
-	ListByPage(pagination utils.Pagination) ([]models.AddonClusterReleaseModel, int64, error)
+	ListByPage(pagination entity.Pagination) ([]models.AddonClusterReleaseModel, int64, error)
 }
 
 // AddonClusterReleaseDbAccessImpl AddonClusterReleaseDbAccess 的具体实现
@@ -109,7 +109,7 @@ func (a *AddonClusterReleaseDbAccessImpl) Update(model *models.AddonClusterRelea
 }
 
 // ListByPage 分页查询 AddonCluster Release 元数据接口实现
-func (a *AddonClusterReleaseDbAccessImpl) ListByPage(pagination utils.Pagination) (
+func (a *AddonClusterReleaseDbAccessImpl) ListByPage(pagination entity.Pagination) (
 	[]models.AddonClusterReleaseModel,
 	int64,
 	error,

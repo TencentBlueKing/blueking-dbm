@@ -17,30 +17,33 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package utils
+package helper
 
 import (
-	"math/rand"
-	"time"
+	"fmt"
+	"k8s-dbs/metadata/constant"
+	"log/slog"
 
-	"github.com/google/uuid"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
-const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
-
-// ResourceName Append Random Suffix
-func ResourceName(originalStr string, length int) string {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	result := make([]byte, length)
-	for i := range result {
-		result[i] = charset[r.Intn(len(charset))]
+// InitTestTable 初始化测试表
+func InitTestTable(table string, modelPtr interface{}) (*gorm.DB, error) {
+	db, err := gorm.Open(mysql.Open(constant.MySQLTestURL), &gorm.Config{})
+	if err != nil {
+		slog.Error("failed to connect database", "err", err)
+		return nil, err
 	}
+	sql := fmt.Sprintf("DROP TABLE IF EXISTS %s;", table)
 
-	randomSuffix := string(result)
-	return originalStr + randomSuffix
-}
-
-// RequestID 生成无连字符的压缩版UUID (32位)
-func RequestID() string {
-	return uuid.New().String()
+	if err := db.Exec(sql).Error; err != nil {
+		slog.Error("failed to drop table", "err", err)
+		return nil, err
+	}
+	if err := db.AutoMigrate(modelPtr); err != nil {
+		slog.Error("failed to migrate table", "err", err)
+		return nil, err
+	}
+	return db, nil
 }

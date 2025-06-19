@@ -21,7 +21,7 @@ package provider
 
 import (
 	"fmt"
-	capiconst "k8s-dbs/core/api/constants"
+	capiconst "k8s-dbs/core/api/constant"
 	coreclient "k8s-dbs/core/client"
 	clientconst "k8s-dbs/core/client/constants"
 	coreconst "k8s-dbs/core/constant"

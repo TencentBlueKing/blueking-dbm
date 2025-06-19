@@ -22,9 +22,9 @@ package dbaccess
 import (
 	"errors"
 	"fmt"
+	"k8s-dbs/common/entity"
 	mconst "k8s-dbs/metadata/constant"
 	models "k8s-dbs/metadata/dbaccess/model"
-	"k8s-dbs/metadata/utils"
 	"log/slog"
 
 	"gorm.io/gorm"
@@ -36,7 +36,7 @@ type K8sClusterAddonsDbAccess interface {
 	DeleteByID(id uint64) (uint64, error)
 	FindByID(id uint64) (*models.K8sClusterAddonsModel, error)
 	Update(model *models.K8sClusterAddonsModel) (uint64, error)
-	ListByPage(pagination utils.Pagination) ([]models.K8sClusterAddonsModel, int64, error)
+	ListByPage(pagination entity.Pagination) ([]models.K8sClusterAddonsModel, int64, error)
 	FindByParams(params map[string]interface{}) ([]models.K8sClusterAddonsModel, error)
 }
 
@@ -106,7 +106,7 @@ func (k *K8sClusterAddonsDbAccessImpl) Update(storageAddonModel *models.K8sClust
 }
 
 // ListByPage 分页查询 addon 元数据接口实现
-func (k *K8sClusterAddonsDbAccessImpl) ListByPage(pagination utils.Pagination) (
+func (k *K8sClusterAddonsDbAccessImpl) ListByPage(pagination entity.Pagination) (
 	[]models.K8sClusterAddonsModel,
 	int64,
 	error,

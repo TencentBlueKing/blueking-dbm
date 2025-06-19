@@ -22,9 +22,9 @@ package dbaccess
 import (
 	"errors"
 	"fmt"
+	"k8s-dbs/common/entity"
 	mconst "k8s-dbs/metadata/constant"
 	models "k8s-dbs/metadata/dbaccess/model"
-	"k8s-dbs/metadata/utils"
 	"log/slog"
 
 	"gorm.io/gorm"
@@ -37,7 +37,7 @@ type K8sCrdStorageAddonDbAccess interface {
 	FindByID(id uint64) (*models.K8sCrdStorageAddonModel, error)
 	FindByParams(params map[string]interface{}) ([]models.K8sCrdStorageAddonModel, error)
 	Update(model *models.K8sCrdStorageAddonModel) (uint64, error)
-	ListByPage(pagination utils.Pagination) ([]models.K8sCrdStorageAddonModel, int64, error)
+	ListByPage(pagination entity.Pagination) ([]models.K8sCrdStorageAddonModel, int64, error)
 }
 
 // K8sCrdStorageAddonDbAccessImpl K8sCrdStorageAddonDbAccess 的具体实现
@@ -108,7 +108,7 @@ func (k *K8sCrdStorageAddonDbAccessImpl) Update(storageAddonModel *models.K8sCrd
 }
 
 // ListByPage 分页查询 addon 元数据接口实现
-func (k *K8sCrdStorageAddonDbAccessImpl) ListByPage(pagination utils.Pagination) (
+func (k *K8sCrdStorageAddonDbAccessImpl) ListByPage(pagination entity.Pagination) (
 	[]models.K8sCrdStorageAddonModel,
 	int64,
 	error,

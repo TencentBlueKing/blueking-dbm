@@ -21,12 +21,12 @@ package tests
 
 import (
 	"fmt"
+	"k8s-dbs/common/entity"
 	"k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/dbaccess"
 	"k8s-dbs/metadata/dbaccess/model"
 	"k8s-dbs/metadata/provider"
 	entitys "k8s-dbs/metadata/provider/entity"
-	"k8s-dbs/metadata/utils"
 	"testing"
 	"time"
 
@@ -199,7 +199,7 @@ func TestListStorageAddons(t *testing.T) {
 		assert.Equal(t, addon.AddonName, createdAddon.AddonName, "Addon name mismatch")
 	}
 
-	pagination := utils.Pagination{
+	pagination := entity.Pagination{
 		Page:  0,
 		Limit: 10,
 	}

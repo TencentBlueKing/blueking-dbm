@@ -21,10 +21,10 @@ package tests
 
 import (
 	"fmt"
+	"k8s-dbs/common/entity"
 	"k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/dbaccess"
 	"k8s-dbs/metadata/dbaccess/model"
-	"k8s-dbs/metadata/utils"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -88,7 +88,7 @@ func TestListOpDef(t *testing.T) {
 		assert.Equal(t, opDef.OperationName, createdDef.OperationName)
 	}
 
-	pagination := utils.Pagination{
+	pagination := entity.Pagination{
 		Page:  0,
 		Limit: 10,
 	}

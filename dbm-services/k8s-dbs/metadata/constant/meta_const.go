@@ -20,9 +20,6 @@ limitations under the License.
 package constant
 
 // DefaultFetchSizeStr 列表默认拉取行数
-const DefaultFetchSizeStr = "50"
-const DefaultFetchSize = 50
-const MaxFetchSize = 100
 
 const (
 	TbK8sCrdStorageAddon        = "tb_k8s_crd_storageaddon"
@@ -42,9 +39,4 @@ const (
 	TbAddonClusterHelmRepo      = "tb_addoncluster_helm_repository"
 	TbAddonHelmRepo             = "tb_addon_helm_repository"
 	TbK8sClusterAddons          = "tb_k8s_cluster_addons"
-)
-
-// MySQLTestURL mysql connection credentials for test
-const (
-	MySQLTestURL = "root:TestPwd123@tcp(localhost:3306)/bkbase_dbs?charset=utf8mb4&parseTime=True&loc=Local"
 )

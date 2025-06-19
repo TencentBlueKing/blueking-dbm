@@ -20,8 +20,8 @@ limitations under the License.
 package controller
 
 import (
-	capiconst "k8s-dbs/core/api/constants"
-	coreconst "k8s-dbs/core/api/constants"
+	capiconst "k8s-dbs/core/api/constant"
+	coreconst "k8s-dbs/core/api/constant"
 	reqvo "k8s-dbs/core/api/vo/req"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/core/errors"

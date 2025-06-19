@@ -21,8 +21,8 @@ package dbaccess
 
 import (
 	"fmt"
+	"k8s-dbs/common/entity"
 	models "k8s-dbs/metadata/dbaccess/model"
-	"k8s-dbs/metadata/utils"
 	"log/slog"
 
 	"gorm.io/gorm"
@@ -34,7 +34,7 @@ type K8sCrdClusterDefinitionDbAccess interface {
 	DeleteByID(id uint64) (uint64, error)
 	FindByID(id uint64) (*models.K8sCrdClusterDefinitionModel, error)
 	Update(model *models.K8sCrdClusterDefinitionModel) (uint64, error)
-	ListByPage(pagination utils.Pagination) ([]models.K8sCrdClusterDefinitionModel, int64, error)
+	ListByPage(pagination entity.Pagination) ([]models.K8sCrdClusterDefinitionModel, int64, error)
 }
 
 // K8sCrdClusterDefinitionDbAccessImpl K8sCrdClusterDefinitionDbAccess 的具体实现
@@ -86,7 +86,7 @@ func (k *K8sCrdClusterDefinitionDbAccessImpl) Update(model *models.K8sCrdCluster
 }
 
 // ListByPage 分页查询 cd 元数据接口实现
-func (k *K8sCrdClusterDefinitionDbAccessImpl) ListByPage(_ utils.Pagination) (
+func (k *K8sCrdClusterDefinitionDbAccessImpl) ListByPage(_ entity.Pagination) (
 	[]models.K8sCrdClusterDefinitionModel,
 	int64,
 	error,

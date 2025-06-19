@@ -21,8 +21,8 @@ package dbaccess
 
 import (
 	"errors"
+	"k8s-dbs/common/entity"
 	models "k8s-dbs/metadata/dbaccess/model"
-	"k8s-dbs/metadata/utils"
 	"log/slog"
 
 	"gorm.io/gorm"
@@ -35,7 +35,7 @@ type AddonHelmRepoDbAccess interface {
 	FindByID(id uint64) (*models.AddonHelmRepoModel, error)
 	FindByParams(params map[string]interface{}) (*models.AddonHelmRepoModel, error)
 	Update(model *models.AddonHelmRepoModel) (uint64, error)
-	ListByPage(pagination utils.Pagination) ([]models.AddonHelmRepoModel, int64, error)
+	ListByPage(pagination entity.Pagination) ([]models.AddonHelmRepoModel, int64, error)
 }
 
 // AddonHelmRepoDbAccessImpl AddonHelmRepoDbAccess 的具体实现
@@ -109,7 +109,7 @@ func (a *AddonHelmRepoDbAccessImpl) Update(model *models.AddonHelmRepoModel) (ui
 }
 
 // ListByPage 分页查询接口实现
-func (a *AddonHelmRepoDbAccessImpl) ListByPage(pagination utils.Pagination) (
+func (a *AddonHelmRepoDbAccessImpl) ListByPage(pagination entity.Pagination) (
 	[]models.AddonHelmRepoModel,
 	int64,
 	error,

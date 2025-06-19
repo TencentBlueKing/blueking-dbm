@@ -20,10 +20,10 @@ limitations under the License.
 package provider
 
 import (
+	"k8s-dbs/common/entity"
 	"k8s-dbs/metadata/dbaccess"
 	models "k8s-dbs/metadata/dbaccess/model"
 	entitys "k8s-dbs/metadata/provider/entity"
-	"k8s-dbs/metadata/utils"
 	"log/slog"
 
 	"github.com/jinzhu/copier"
@@ -32,7 +32,7 @@ import (
 // ClusterOperationProvider 定义 cluster operation 业务逻辑层访问接口
 type ClusterOperationProvider interface {
 	CreateClusterOperation(entity *entitys.ClusterOperationEntity) (*entitys.ClusterOperationEntity, error)
-	ListClusterOperations(pagination utils.Pagination) ([]entitys.ClusterOperationEntity, error)
+	ListClusterOperations(pagination entity.Pagination) ([]entitys.ClusterOperationEntity, error)
 }
 
 // ClusterOperationProviderImpl ClusterOperationProvider 具体实现
@@ -65,7 +65,7 @@ func (o *ClusterOperationProviderImpl) CreateClusterOperation(entity *entitys.Cl
 }
 
 // ListClusterOperations 获取 cluster operation 列表
-func (o *ClusterOperationProviderImpl) ListClusterOperations(pagination utils.Pagination) (
+func (o *ClusterOperationProviderImpl) ListClusterOperations(pagination entity.Pagination) (
 	[]entitys.ClusterOperationEntity,
 	error,
 ) {

@@ -21,6 +21,7 @@ package tests
 
 import (
 	"fmt"
+	"k8s-dbs/common/entity"
 	"k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/dbaccess"
 	"k8s-dbs/metadata/dbaccess/model"
@@ -173,4 +174,48 @@ func TestGetClusterByParams(t *testing.T) {
 	assert.Equal(t, cluster.Namespace, findCluster.Namespace)
 	assert.Equal(t, cluster.Status, findCluster.Status)
 	assert.Equal(t, cluster.AddonID, findCluster.AddonID)
+}
+
+func TestListCluster(t *testing.T) {
+	db, err := initClusterTable()
+	assert.NoError(t, err)
+
+	dbAccess := dbaccess.NewCrdClusterDbAccess(db)
+	cluster := []model.K8sCrdClusterModel{
+		{
+			ClusterName:        "mycluster1",
+			Namespace:          "default",
+			K8sClusterConfigID: 1,
+			RequestID:          "1",
+			Status:             "Running",
+			Description:        "desc",
+		},
+		{
+			ClusterName:        "mycluster2",
+			Namespace:          "default",
+			K8sClusterConfigID: 2,
+			RequestID:          "2",
+			Status:             "Running",
+			Description:        "desc",
+		},
+	}
+	for _, clusterModel := range cluster {
+		_, err = dbAccess.Create(&clusterModel)
+		assert.NoError(t, err)
+	}
+
+	params := map[string]interface{}{
+		"namespace": "default",
+		"status":    "Running",
+	}
+
+	pagination := entity.Pagination{
+		Page:  0,
+		Limit: 10,
+	}
+
+	clusterList, rows, err := dbAccess.ListByPage(params, pagination)
+	assert.NoError(t, err)
+	assert.Equal(t, uint64(2), rows)
+	assert.Equal(t, len(clusterList), len(clusterList))
 }

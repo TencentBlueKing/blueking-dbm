@@ -23,7 +23,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"k8s-dbs/common/utils"
+	"k8s-dbs/common/util"
 	coreclient "k8s-dbs/core/client"
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
@@ -618,7 +618,7 @@ func (o *OpsRequestProvider) createRequestEntity(
 
 	// Construct a request instance object
 	requestRecord := &providerentity.ClusterRequestRecordEntity{
-		RequestID:     utils.RequestID(),
+		RequestID:     util.RequestID(),
 		RequestType:   requestType,
 		RequestParams: string(requestBytes),
 	}

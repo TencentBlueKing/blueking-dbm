@@ -17,7 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package utils
+package util
 
 // IntPtr 获取 Int 类型指针
 func IntPtr(v int) *int {

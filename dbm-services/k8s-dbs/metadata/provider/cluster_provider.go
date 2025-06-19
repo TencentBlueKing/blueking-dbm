@@ -20,6 +20,7 @@ limitations under the License.
 package provider
 
 import (
+	"k8s-dbs/common/entity"
 	"k8s-dbs/metadata/dbaccess"
 	models "k8s-dbs/metadata/dbaccess/model"
 	entitys "k8s-dbs/metadata/provider/entity"
@@ -35,6 +36,9 @@ type K8sCrdClusterProvider interface {
 	FindClusterByID(id uint64) (*entitys.K8sCrdClusterEntity, error)
 	FindByParams(params map[string]interface{}) (*entitys.K8sCrdClusterEntity, error)
 	UpdateCluster(entity *entitys.K8sCrdClusterEntity) (uint64, error)
+	ListCluster(params map[string]interface{},
+		pagination *entity.Pagination,
+	) ([]entitys.K8sCrdClusterEntity, uint64, error)
 }
 
 // K8sCrlClusterProviderImpl K8sCrlClusterProvider 具体实现
@@ -114,6 +118,24 @@ func (k *K8sCrlClusterProviderImpl) UpdateCluster(entity *entitys.K8sCrdClusterE
 		return 0, err
 	}
 	return rows, nil
+}
+
+// ListCluster 查询 cluster 列表
+func (k *K8sCrlClusterProviderImpl) ListCluster(
+	params map[string]interface{},
+	pagination *entity.Pagination,
+) ([]entitys.K8sCrdClusterEntity, uint64, error) {
+	clusterModels, _, err := k.dbAccess.ListByPage(params, pagination)
+	if err != nil {
+		slog.Error("Failed to list cluster", "error", err)
+		return nil, 0, err
+	}
+	var clusterEntities []entitys.K8sCrdClusterEntity
+	if err := copier.Copy(&clusterEntities, clusterModels); err != nil {
+		slog.Error("Failed to copy model to copied model", "error", err)
+		return nil, 0, err
+	}
+	return clusterEntities, uint64(len(clusterEntities)), nil
 }
 
 // NewK8sCrdClusterProvider 创建 K8sCrdClusterProvider 接口实现实例

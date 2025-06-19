@@ -28,6 +28,7 @@ type K8sCrdClusterRespVo struct {
 	K8sClusterConfigID uint64    `json:"k8sClusterConfigId"`
 	RequestID          string    `json:"requestId"`
 	ClusterName        string    `json:"clusterName"`
+	Namespace          string    `json:"namespace"`
 	Status             string    `json:"status"`
 	Description        string    `json:"description"`
 	CreatedBy          string    `json:"createdBy"`

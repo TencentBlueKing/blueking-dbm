@@ -20,10 +20,10 @@ limitations under the License.
 package provider
 
 import (
+	"k8s-dbs/common/entity"
 	"k8s-dbs/metadata/dbaccess"
 	models "k8s-dbs/metadata/dbaccess/model"
 	entitys "k8s-dbs/metadata/provider/entity"
-	"k8s-dbs/metadata/utils"
 	"log/slog"
 
 	"github.com/jinzhu/copier"
@@ -32,7 +32,7 @@ import (
 // OperationDefinitionProvider 定义 operation definition 业务逻辑层访问接口
 type OperationDefinitionProvider interface {
 	CreateOperationDefinition(entity *entitys.OperationDefinitionEntity) (*entitys.OperationDefinitionEntity, error)
-	ListOperationDefinitions(pagination utils.Pagination) ([]entitys.OperationDefinitionEntity, error)
+	ListOperationDefinitions(pagination entity.Pagination) ([]entitys.OperationDefinitionEntity, error)
 }
 
 // OperationDefinitionProviderImpl OperationDefinitionProvider 具体实现
@@ -64,7 +64,7 @@ func (o *OperationDefinitionProviderImpl) CreateOperationDefinition(entity *enti
 }
 
 // ListOperationDefinitions 获取 operation definition 列表
-func (o *OperationDefinitionProviderImpl) ListOperationDefinitions(pagination utils.Pagination) (
+func (o *OperationDefinitionProviderImpl) ListOperationDefinitions(pagination entity.Pagination) (
 	[]entitys.OperationDefinitionEntity,
 	error,
 ) {
