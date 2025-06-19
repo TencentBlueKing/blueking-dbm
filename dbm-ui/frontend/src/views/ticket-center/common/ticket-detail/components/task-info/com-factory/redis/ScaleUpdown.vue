@@ -69,7 +69,7 @@
 
   import TicketModel, { type Redis } from '@services/model/ticket/ticket';
 
-  import { TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
 
@@ -201,16 +201,23 @@
     },
     {
       render: () => {
-        if (!data.display_info?.cluster_shard_num) {
+        const isTendisplus =
+          props.ticketDetails.details.clusters[data.cluster_id].cluster_type ===
+          ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER;
+
+        const originalShardNum = data.display_info?.cluster_shard_num || 0;
+
+        const clusterShardNum = isTendisplus ? data.shard_num : originalShardNum;
+        if (!clusterShardNum) {
           return '--';
         }
         return (
           <>
-            {data.display_info.cluster_shard_num}
+            {clusterShardNum}
             <ValueDiff
-              currentValue={data.display_info.cluster_shard_num}
+              currentValue={originalShardNum}
               show-rate={false}
-              targetValue={data.display_info.cluster_shard_num}
+              targetValue={clusterShardNum}
             />
           </>
         );
