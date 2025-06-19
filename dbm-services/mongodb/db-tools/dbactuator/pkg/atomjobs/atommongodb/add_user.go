@@ -200,8 +200,10 @@ func (u *AddUser) checkUser() (bool, error) {
 func (u *AddUser) changePrimaryPriority() error {
 	u.runtime.Logger.Info("start to execute changePrimaryPriority script")
 	// 修改优先级
-	cmd := fmt.Sprintf("%s --host %s --port %d -u %s -p '%s' --quiet --eval 'cfg = rs.conf();\ncfg.members[0].priority=%d;\nrs.reconfig(cfg);' admin",
-		u.Mongo, u.PrimaryIP, u.PrimaryPort, u.ConfParams.Username, u.ConfParams.Password, 1)
+	script := fmt.Sprintf("cfg = rs.conf();\ncfg.members[0].priority=%d;\nrs.reconfig(cfg);", 1)
+	u.runtime.Logger.Info("execute changePrimaryPriority script:\n%s", script)
+	cmd := fmt.Sprintf("%s --host %s --port %d -u %s -p '%s' --quiet --eval '%s' admin",
+		u.Mongo, u.PrimaryIP, u.PrimaryPort, u.ConfParams.Username, u.ConfParams.Password, script)
 	if _, err := util.RunBashCmd(
 		cmd,
 		"", nil,

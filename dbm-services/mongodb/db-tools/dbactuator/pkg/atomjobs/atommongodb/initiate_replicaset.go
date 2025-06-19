@@ -39,7 +39,6 @@ type InitiateReplicaset struct {
 	ConfParams      *InitConfParams
 	ClusterId       string
 	StatusChan      chan int
-	PrimaryPriority int
 }
 
 // NewInitiateReplicaset 实例化结构体
@@ -142,11 +141,9 @@ func (i *InitiateReplicaset) makeConfContent() error {
 		member.Host = i.ConfParams.Ips[index]
 		if index == 0 {
 			member.Priority = i.ConfParams.Priority[value] + 1
-			i.PrimaryPriority = i.ConfParams.Priority[value] + 1
 		} else {
 			member.Priority = i.ConfParams.Priority[value]
 		}
-		member.Priority = i.ConfParams.Priority[value]
 		member.Hidden = i.ConfParams.Hidden[value]
 		jsonConfReplicaset.Members = append(jsonConfReplicaset.Members, member)
 	}
@@ -161,7 +158,8 @@ func (i *InitiateReplicaset) makeConfContent() error {
 	}
 	i.ConfFileContent = strings.Join([]string{"var config=",
 		string(confJson), "\n", "rs.initiate(config)\n"}, "")
-	i.runtime.Logger.Info("make config content:\n%s\n of initiateReplicaset successfully", i.ConfFileContent)
+	i.runtime.Logger.Info("config content:\n%s", i.ConfFileContent)
+	i.runtime.Logger.Info("make config content of initiateReplicaset successfully")
 	return nil
 }
 
