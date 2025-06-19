@@ -191,12 +191,12 @@ class _CCApi(BaseApi):
         )
         self.find_module_with_relation = self.generate_data_api(
             method="PUT",
-            url="/update/proc/process_instance",
+            url="/findmany/module/with_relation/biz/{bk_biz_id}",
             description=_("根据条件查询业务下的模块"),
         )
         self.find_module_host_relation = self.generate_data_api(
             method="POST",
-            url="/findmany/module/with_relation/biz/{bk_biz_id}",
+            url="/findmany/module_relation/bk_biz_id/{bk_biz_id}",
             description=_("根据模块ID查询主机和模块的关系"),
         )
         self.find_host_biz_relations = self.generate_data_api(
