@@ -277,6 +277,7 @@
       ],
       getResourceList: getRedisList,
       id: ClusterTypes.REDIS,
+      multiple: true,
       name: t('集群选择'),
       resultContent: ResultPreview,
       tableContent: RedisTable,

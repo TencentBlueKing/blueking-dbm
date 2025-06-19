@@ -79,17 +79,17 @@
             <ValueDiff
               :current-value="cluster.machine_pair_cnt"
               :show-rate="false"
-              :target-value="modelValue.backend_group.count" />
+              :target-value="Number(modelValue.backend_group.count)" />
           </div>
         </div>
         <div class="info-item">
           <div class="item-title">{{ t('机器数量') }}：</div>
           <div class="item-content item-count">
-            {{ modelValue.backend_group.count * 2 }}
+            {{ Number(modelValue.backend_group.count) * 2 }}
             <ValueDiff
               :current-value="cluster.machine_pair_cnt * 2"
               :show-rate="false"
-              :target-value="modelValue.backend_group.count * 2" />
+              :target-value="Number(modelValue.backend_group.count) * 2" />
           </div>
         </div>
         <div class="info-item">
@@ -133,8 +133,6 @@
 
   import RedisModel from '@services/model/redis/redis';
 
-  import { ClusterTypes } from '@common/const';
-
   import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
 
   import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue';
@@ -169,7 +167,7 @@
 
   const modelValue = defineModel<{
     backend_group: {
-      count: number;
+      count: string | number;
       id: number;
     };
     capacity: number;
@@ -228,22 +226,22 @@
     return stats;
   });
 
-  watch(
-    () => props.cluster.cluster_type,
-    () => {
-      if (props.cluster.cluster_type) {
-        modelValue.value.backend_group.count = [
-          ClusterTypes.PREDIXY_REDIS_CLUSTER,
-          ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-        ].includes(props.cluster.cluster_type as ClusterTypes)
-          ? 3
-          : 1;
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
+  // watch(
+  //   () => props.cluster.cluster_type,
+  //   () => {
+  //     if (props.cluster.cluster_type) {
+  //       modelValue.value.backend_group.count = [
+  //         ClusterTypes.PREDIXY_REDIS_CLUSTER,
+  //         ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+  //       ].includes(props.cluster.cluster_type as ClusterTypes)
+  //         ? 3
+  //         : 1;
+  //     }
+  //   },
+  //   {
+  //     immediate: true,
+  //   },
+  // );
 
   const disabledMethod = () => {
     if (!props.cluster.id) {
