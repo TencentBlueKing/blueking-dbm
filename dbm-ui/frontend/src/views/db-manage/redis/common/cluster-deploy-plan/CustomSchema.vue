@@ -88,8 +88,8 @@
 
   interface ModelValue {
     clusterShardNum: number;
-    count: number;
-    shardNum: number;
+    count: string | number;
+    shardNum: number | string;
     specId: number | string;
     totalCapcity: number;
   }
@@ -144,7 +144,7 @@
     () => [modelValue.value.count, modelValue.value.shardNum],
     ([newCount, newShardNum]) => {
       if (!props.shardNumDisabled) {
-        modelValue.value.clusterShardNum = newCount * newShardNum;
+        modelValue.value.clusterShardNum = Number(newCount) * Number(newShardNum);
       }
     },
     {
@@ -157,7 +157,9 @@
     () => {
       if (props.shardNumDisabled) {
         if (modelValue.value.count) {
-          modelValue.value.shardNum = Number((modelValue.value.clusterShardNum / modelValue.value.count).toFixed(2));
+          modelValue.value.shardNum = Number(
+            (modelValue.value.clusterShardNum / Number(modelValue.value.count)).toFixed(2),
+          );
         } else {
           modelValue.value.shardNum = 0;
         }
@@ -178,7 +180,7 @@
           return '';
         }
 
-        modelValue.value.totalCapcity = Math.floor(modelValue.value.count * data.capacity);
+        modelValue.value.totalCapcity = Math.floor(Number(modelValue.value.count) * data.capacity);
       });
     },
     {
@@ -203,11 +205,12 @@
       const specData = specSelectorRef.value!.getData();
       return {
         cluster_capacity: modelValue.value.totalCapcity || 0,
-        cluster_shard_num: modelValue.value.shardNum,
+        cluster_shard_num: Number(modelValue.value.shardNum),
         cpu: specData.cpu,
-        machine_pair: modelValue.value.count,
+        machine_pair: Number(modelValue.value.count),
         mem: specData.mem,
         qps: specData.qps,
+        spec_id: specData.spec_id,
         spec_name: specData?.spec_name || '',
         storage_spec: specData.storage_spec,
       };
