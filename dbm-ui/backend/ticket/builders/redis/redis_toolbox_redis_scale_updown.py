@@ -105,7 +105,7 @@ class RedisScaleUpDownFlowBuilder(BaseRedisTicketFlowBuilder):
             if id__cluster_type[info["cluster_id"]] == ClusterType.TendisPredixyTendisplusCluster.value:
 
                 shutdown_master_hosts, shutdown_slave_hosts = get_tendisplus_shutdown_hosts(
-                    info["cluster_id"], info["group_num"]
+                    info["cluster_id"], info["group_num"], info["update_mode"]
                 )
                 info.update(
                     {"shutdown_master_hosts": shutdown_master_hosts, "shutdown_slave_hosts": shutdown_slave_hosts}

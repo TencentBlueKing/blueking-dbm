@@ -16,7 +16,7 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
-from backend.flow.consts import MediumEnum
+from backend.flow.consts import MediumEnum, RedisCapacityUpdateType
 
 
 def domain_without_port(domain):
@@ -205,26 +205,32 @@ def decode_info_cmd(info_str: str) -> Dict:
     return info_ret
 
 
-def get_tendisplus_shutdown_hosts(cluster_id, target_group_num: int):
+def get_tendisplus_shutdown_hosts(cluster_id, target_group_num: int, update_mode: str):
     """
     获取tendisplus缩容时需要下架的hosts
     """
     cluster = Cluster.objects.get(id=cluster_id)
     cluster_masters = cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value)
-    current_group_num = len(cluster_masters)
-    # 如果不是缩容，返回空数组
-    if current_group_num <= target_group_num:
-        return [], []
     master_ips = set()
     slave_ips = set()
     master_slave_dict = {}
-    contraction_group = current_group_num - target_group_num
     for master_obj in cluster_masters:
         master_ips.add(master_obj.machine.ip)
         if master_obj.as_ejector and master_obj.as_ejector.first():
             my_slave_obj = master_obj.as_ejector.get().receiver
             slave_ips.add(my_slave_obj.machine.ip)
             master_slave_dict[master_obj.machine.ip] = my_slave_obj.machine.ip
+
+    # 如果是替换变更，则需要回收所有机器
+    if update_mode == RedisCapacityUpdateType.ALL_MACHINES_REPLACE:
+        return list(master_ips), list(slave_ips)
+
+    current_group_num = len(master_ips)
+    # 如果是扩容，没有需要下架的机器
+    if current_group_num <= target_group_num:
+        return [], []
+
+    contraction_group = current_group_num - target_group_num
     shutdown_master_hosts = []
     shutdown_slave_hosts = []
     for master_ip in list(master_ips):
