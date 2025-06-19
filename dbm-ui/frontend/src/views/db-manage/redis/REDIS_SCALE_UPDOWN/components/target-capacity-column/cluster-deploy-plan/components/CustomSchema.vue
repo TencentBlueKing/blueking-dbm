@@ -35,7 +35,7 @@
     <BkInput
       v-model="targetInfo.shardNum"
       clearable
-      :disabled="shardNumDisabled"
+      :disabled="!isTendisplus"
       :min="1"
       show-clear-only-hover
       style="width: 314px"
@@ -92,14 +92,28 @@
   const specSelectorRef = ref<ComponentExposed<typeof SpecSelector>>();
   const groupNum = ref('');
 
-  const shardNumDisabled = computed(() => props.cluster.cluster_type !== ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER);
+  /**
+   * 非Tendisplus集群（≠PredixyTendisplusCluster）
+    - 规格 ---  默认值：集群现在用的规格（可变）
+    - 数量  n 组 ----  rediscluster ：默认留空（最小 3），tendisCache， tendisSSD 默认留空（最小1）
+    - 单机分片数 = 集群分片数/ 数量n组，自动计算
+    - 集群分片数，固定为源集群分片数
+
+    Tendisplus集群（＝PredixyTendisplusCluster） 
+    - 规格 ---  默认值：集群现在用的规格 （可变）
+    - 数量  n 组 ---- 默认留空（最小3）
+    - 单机分片数 默认带出来当前集群的值，但是可以改变
+    - 集群分片数 = 单机分片数 * 数量 n 组； （自动计算）
+   */
+  const isTendisplus = computed(() => props.cluster.cluster_type === ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER);
   const minGroupNum = computed(() => {
-    // RedisCluster/ tendisplus 机器组数需要最少3组。
+    // Tendisplus、rediscluster 默认留空（最小 3）
     if (
       [ClusterTypes.PREDIXY_REDIS_CLUSTER, ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER].includes(props.cluster.cluster_type)
     ) {
       return 3;
     }
+    // tendisCache， tendisSSD 默认留空（最小 1）
     return 1;
   });
 
@@ -112,13 +126,7 @@
     {
       message: t('必须要能除尽总分片数'),
       trigger: 'change',
-      validator: (value: number) => {
-        if (shardNumDisabled.value) {
-          targetInfo.value.shardNum = targetInfo.value.clusterShardNum / value;
-          return targetInfo.value.clusterShardNum % value === 0;
-        }
-        return true;
-      },
+      validator: (value: number) => (isTendisplus.value ? true : targetInfo.value.clusterShardNum % value === 0),
     },
   ];
 
@@ -150,8 +158,19 @@
       return;
     }
     targetInfo.value.groupNum = Number(value);
-    fetchUpdateInfo();
   };
+
+  watch(
+    () => [targetInfo.value.groupNum, targetInfo.value.shardNum],
+    () => {
+      if (isTendisplus.value) {
+        targetInfo.value.clusterShardNum = targetInfo.value.shardNum * targetInfo.value.groupNum;
+      } else {
+        targetInfo.value.shardNum = targetInfo.value.clusterShardNum / targetInfo.value.groupNum;
+      }
+      fetchUpdateInfo();
+    },
+  );
 
   onMounted(() => {
     if (props.cluster.id) {
@@ -161,11 +180,8 @@
         clusterStats: props.cluster.cluster_stats,
         groupNum: props.cluster.machine_pair_cnt,
         shardNum: props.cluster.cluster_shard_num / props.cluster.machine_pair_cnt,
-        spec: Object.assign(_.cloneDeep(props.cluster.cluster_spec), {
-          spec_id: 0,
-        }),
+        spec: props.cluster.cluster_spec,
       });
-      groupNum.value = String(props.cluster.machine_pair_cnt);
     }
   });
 </script>
