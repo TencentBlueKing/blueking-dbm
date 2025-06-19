@@ -193,7 +193,7 @@
     getRedisClusterCapacityUpdateInfo({
       cluster_id: props.cluster.id!,
       new_machine_group_num: payload.groupNum,
-      new_shards_num: payload.shardNum,
+      new_shards_num: payload.clusterShardNum,
       new_spec_id: Number(payload.spec.spec_id),
       new_storage_version: props.dbVersion!,
     }).then((data) => {
