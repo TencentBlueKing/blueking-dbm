@@ -43,6 +43,9 @@ var githash = ""
 var version = ""
 
 func main() {
+	logger.New(os.Stdout, true, logger.InfoLevel, map[string]string{})
+	//nolint: errcheck
+	defer logger.Sync()
 	app := gin.New()
 	pprof.Register(app)
 
@@ -88,12 +91,6 @@ func main() {
 		logger.Fatal("Server forced to shutdown: %v ", err)
 	}
 	logger.Info("Server exiting\n")
-}
-
-func init() {
-	logger.New(os.Stdout, true, logger.InfoLevel, map[string]string{})
-	//nolint: errcheck
-	defer logger.Sync()
 }
 
 // apiLogger TODO

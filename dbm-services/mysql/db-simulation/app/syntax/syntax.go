@@ -56,8 +56,17 @@ type TmysqlParseFile struct {
 
 // CheckSQLFileParam TODO
 type CheckSQLFileParam struct {
-	BkRepoBasePath string   `json:"bkrepo_base_path"`
-	FileNames      []string `json:"file_names"`
+	BkRepoBasePath string              `json:"bkrepo_base_path"`
+	FileNames      []string            `json:"file_names"`
+	ExecuteObjects []ExecuteSQLFileObj `json:"execute_objects"`
+}
+
+// ExecuteSQLFileObj SQL导入执行对象
+type ExecuteSQLFileObj struct {
+	LineId        int      `json:"line_id"`
+	SQLFiles      []string `json:"sql_files"`      // 变更文件名称
+	IgnoreDbNames []string `json:"ignore_dbnames"` // 忽略的,需要排除变更的dbName,支持模糊匹配
+	DbNames       []string `json:"dbnames"`        // 需要变更的DBNames,支持模糊匹配
 }
 
 // TmysqlParse TODO
@@ -137,8 +146,72 @@ func (tf *TmysqlParseFile) Do(dbtype string, versions []string) (result map[stri
 			errs = append(errs, err)
 		}
 	}
-
+	// check input db conflict with use db
+	if err = tf.CheckConflictUsedb(versions[0]); err != nil {
+		logger.Error("check conflict usedb failed %s", err.Error())
+		errs = append(errs, err)
+	}
 	return tf.result, errors.Join(errs...)
+}
+
+// CheckConflictUsedb check input db conflict with use db
+func (tf *TmysqlParseFile) CheckConflictUsedb(version string) (err error) {
+	for _, executeObject := range tf.Param.ExecuteObjects {
+		if len(executeObject.DbNames) == 0 {
+			continue
+		}
+		// 如果输入只有一个inputdb,且输入的db 不是通配
+		if len(executeObject.DbNames) == 1 && !strings.Contains(executeObject.DbNames[0], "%") &&
+			!strings.Contains(executeObject.DbNames[0], "?") {
+			continue
+		}
+		var buf []byte
+		for _, sqlFile := range executeObject.SQLFiles {
+			f, err := os.Open(tf.getAbsoutputfilePath(sqlFile, version))
+			if err != nil {
+				logger.Error("open file failed %s", err.Error())
+				return err
+			}
+			defer f.Close()
+			reader := bufio.NewReader(f)
+			for {
+				line, isPrefix, errx := reader.ReadLine()
+				if errx != nil {
+					if errx == io.EOF {
+						break
+					}
+					logger.Error("read Line Error %s", errx.Error())
+					return errx
+				}
+				buf = append(buf, line...)
+				if isPrefix {
+					continue
+				}
+				bs := buf
+				buf = []byte{}
+				var res ParseLineQueryBase
+				if len(bs) == 0 {
+					logger.Info("blank line skip")
+					continue
+				}
+				if err = json.Unmarshal(bs, &res); err != nil {
+					logger.Error("json unmasrshal line:%s failed %s", string(bs), err.Error())
+					return err
+				}
+				if res.Command == SQLTypeUseDb {
+					tf.result[sqlFile].BanWarnings = append(tf.result[sqlFile].BanWarnings, RiskInfo{
+						Line:    int64(res.QueryId),
+						Sqltext: res.QueryString,
+						WarnInfo: fmt.Sprintf("表单中输入的变更对象%v可能存在多个,但是SQL文件显示的使用use %s,可能会造成SQL文件重复执行,请正确理解表单语义,修改后在提交",
+							executeObject.DbNames,
+							res.DbName),
+					})
+					return nil
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func (tf *TmysqlParseFile) doSingleVersion(dbtype string, mysqlVersion string) (err error) {

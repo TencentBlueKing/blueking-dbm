@@ -147,10 +147,11 @@ func (s *SyntaxHandler) SyntaxCheckSQL(r *gin.Context) {
 
 // CheckFileParam 语法检查请求参数
 type CheckFileParam struct {
-	ClusterType string   `json:"cluster_type"`
-	Path        string   `json:"path" binding:"required"`
-	Versions    []string `json:"versions"`
-	Files       []string `json:"files" binding:"gt=0,dive,required"`
+	ClusterType    string                     `json:"cluster_type"`
+	Path           string                     `json:"path" binding:"required"`
+	Versions       []string                   `json:"versions"`
+	Files          []string                   `json:"files" binding:"gt=0,dive,required"`
+	ExecuteObjects []syntax.ExecuteSQLFileObj `json:"execute_objects"`
 }
 
 // SyntaxCheckFile 运行语法检查
@@ -179,6 +180,7 @@ func (s *SyntaxHandler) SyntaxCheckFile(r *gin.Context) {
 		Param: syntax.CheckSQLFileParam{
 			BkRepoBasePath: param.Path,
 			FileNames:      param.Files,
+			ExecuteObjects: param.ExecuteObjects,
 		},
 	}
 
@@ -191,7 +193,6 @@ func (s *SyntaxHandler) SyntaxCheckFile(r *gin.Context) {
 	default:
 		data, err = check.Do(app.MySQL, versions)
 	}
-
 	if err != nil {
 		s.SendResponse(r, err, data)
 		return
