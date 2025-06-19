@@ -161,7 +161,7 @@
               <ValueDiff
                 :current-value="cluster.machine_pair_cnt"
                 :show-rate="false"
-                :target-value="targetInfo.machinePairCount" />
+                :target-value="Number(targetInfo.machinePairCount)" />
             </template>
             <span
               v-else
@@ -190,11 +190,11 @@
           </div>
           <div class="panel-content">
             <template v-if="targetInfo">
-              <span class="panel-spec">{{ targetInfo.machinePairCount * 2 }}</span>
+              <span class="panel-spec">{{ Number(targetInfo.machinePairCount) * 2 }}</span>
               <ValueDiff
                 :current-value="cluster.machine_pair_cnt * 2"
                 :show-rate="false"
-                :target-value="targetInfo.machinePairCount * 2" />
+                :target-value="Number(targetInfo.machinePairCount) * 2" />
             </template>
             <span
               v-else
@@ -379,7 +379,7 @@
     };
     targetSpec: {
       backend_group: {
-        count: number;
+        count: string | number;
         id: number;
       };
       capacity: number;
@@ -439,13 +439,13 @@
   const specInfo = reactive({
     capacityFutureNeed: '' as number | '',
     capacityNeed: '' as number | '',
-    clusterShardNum: 1,
-    count: 1,
+    clusterShardNum: 0,
+    count: '' as string | number,
     proxy: {
       count: 2,
       spec_id: '',
     },
-    shardNum: 1,
+    shardNum: '' as number | '',
     specId: '',
     totalCapcity: 0,
   });
