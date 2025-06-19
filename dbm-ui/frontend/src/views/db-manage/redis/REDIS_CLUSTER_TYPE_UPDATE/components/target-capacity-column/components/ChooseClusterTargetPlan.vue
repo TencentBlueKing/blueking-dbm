@@ -181,7 +181,7 @@
     targetSpec: {
       capacity: number;
       cluster_shard_num: number;
-      count: number;
+      count: string | number;
       future_capacity: number;
       spec_id: number;
     };
@@ -235,9 +235,9 @@
   const specInfo = reactive({
     capacityFutureNeed: '' as number | '',
     capacityNeed: '' as number | '',
-    clusterShardNum: 1,
-    count: 1,
-    shardNum: 1,
+    clusterShardNum: 0,
+    count: '' as string | number,
+    shardNum: '' as number | '',
     specId: '',
     totalCapcity: 0,
   });
