@@ -22,7 +22,6 @@ from rest_framework.response import Response
 from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import PaginatedResponseSwaggerAutoSchema, common_swagger_auto_schema
-from backend.configuration.constants import DBType
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
@@ -35,10 +34,10 @@ from backend.iam_app.handlers.drf_perm.ticket import (
 )
 from backend.iam_app.handlers.permission import Permission
 from backend.ticket.builders import BuilderFactory
-from backend.ticket.builders.common.base import InfluxdbTicketFlowBuilderPatchMixin, fetch_cluster_ids
+from backend.ticket.builders.common.base import fetch_cluster_ids
 from backend.ticket.constants import (
     FLOW_NOT_EXECUTE_STATUS,
-    TICKET_RUNNING_STATUS_SET,
+    TICKET_FAILED_STATUS_SET,
     TICKET_TODO_STATUS_SET,
     TODO_RUNNING_STATUS,
     CountType,
@@ -154,29 +153,12 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
             context["ticket_ctx"] = TicketContext()
         return context
 
-    @staticmethod
-    def _verify_influxdb_duplicate_ticket(ticket_type, details, user, active_tickets):
-        current_instances = InfluxdbTicketFlowBuilderPatchMixin.get_instances(ticket_type, details)
-        for ticket in active_tickets:
-            active_instances = ticket.details["instances"]
-            duplicate_ids = list(set(active_instances).intersection(current_instances))
-            if duplicate_ids:
-                raise TicketDuplicationException(
-                    context=_("实例{}已存在相同类型的单据[{}]正在运行，请确认是否重复提交").format(duplicate_ids, ticket.id),
-                    data={"duplicate_instance_ids": duplicate_ids, "duplicate_ticket_id": ticket.id},
-                )
-
-    def verify_duplicate_ticket(self, ticket_type, details, user):
+    def verify_duplicate_ticket(self, ticket_type, details):
         """校验是否重复提交"""
-        active_tickets = self.get_queryset().filter(
-            ticket_type=ticket_type, status__in=TICKET_RUNNING_STATUS_SET, creator=user
-        )
 
-        # influxdb 相关操作单独适配，这里暂时没有找到更好的写法，唯一的改进就是创建单据时，会提前提取出对比内容，比如instances
-        # TODO: 后续这段逻辑待删除，influxdb已经弃用
-        if ticket_type in TicketType.get_ticket_type_by_db(DBType.InfluxDB):
-            self._verify_influxdb_duplicate_ticket(ticket_type, details, user, active_tickets)
-            return
+        active_tickets = (
+            self.get_queryset().filter(ticket_type=ticket_type).exclude(status__in=TICKET_FAILED_STATUS_SET)
+        )
 
         cluster_ids = fetch_cluster_ids(details=details)
         for ticket in active_tickets:
@@ -184,7 +166,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
             duplicate_ids = list(set(active_cluster_ids).intersection(cluster_ids))
             if duplicate_ids:
                 raise TicketDuplicationException(
-                    context=_("集群{}已存在相同类型的单据[{}]正在运行，请确认是否重复提交").format(duplicate_ids, ticket.id),
+                    context=_("系统检测到已提交过包含相同集群的同类单据[{}]，是否继续?").format(ticket.id),
                     data={"duplicate_cluster_ids": duplicate_ids, "duplicate_ticket_id": ticket.id},
                 )
 
@@ -193,7 +175,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         ignore_duplication = self.request.data.get("ignore_duplication") or False
         # 如果不允许忽略重复提交，则进行校验
         if not ignore_duplication:
-            self.verify_duplicate_ticket(ticket_type, self.request.data["details"], self.request.user.username)
+            self.verify_duplicate_ticket(ticket_type, self.request.data["details"])
 
         with transaction.atomic():
             # 设置单据类别 TODO: 这里会请求两次数据库，是否考虑group参数让前端传递
