@@ -119,39 +119,46 @@
     return !isTendisplus.value && props.cluster.cluster_shard_num % row.machine_pair !== 0;
   };
 
-  const columns = [
-    {
-      field: 'spec',
-      label: t('资源规格'),
-      render: ({ index, row }: { index: number; row: ClusterSpecModel }) => (
-        <div style='display:flex;align-items:center;'>
-          <bk-radio
-            v-model={radioValue.value}
-            disabled={specDisabledMap.value[row.spec_id] || isDisabled(row)}
-            label={index}>
-            <span style='font-size: 12px'>{row.spec_name}</span>
-          </bk-radio>
-        </div>
-      ),
-      showOverflowTooltip: true,
-      width: 260,
-    },
-    {
-      field: 'machine_pair',
-      label: t('需机器组数'),
-      sort: true,
-    },
-    {
-      field: 'cluster_shard_num',
-      label: t('集群分片'),
-      sort: true,
-    },
-    {
-      field: 'cluster_capacity',
-      label: t('集群容量(G)'),
-      sort: true,
-    },
-  ];
+  const columns = computed(() => {
+    const cols = [
+      {
+        field: 'spec',
+        label: t('资源规格'),
+        render: ({ index, row }: { index: number; row: ClusterSpecModel }) => (
+          <div style='display:flex;align-items:center;'>
+            <bk-radio
+              v-model={radioValue.value}
+              disabled={specDisabledMap.value[row.spec_id] || isDisabled(row)}
+              label={index}>
+              <span style='font-size: 12px'>{row.spec_name}</span>
+            </bk-radio>
+          </div>
+        ),
+        showOverflowTooltip: true,
+        width: 260,
+      },
+      {
+        field: 'machine_pair',
+        label: t('需机器组数'),
+        sort: true,
+      },
+      {
+        field: 'cluster_capacity',
+        label: t('集群容量(G)'),
+        sort: true,
+      },
+    ];
+
+    if (isTendisplus.value) {
+      cols.splice(2, 0, {
+        field: 'cluster_shard_num',
+        label: t('集群分片'),
+        sort: true,
+      });
+    }
+
+    return cols;
+  });
 
   const handleChange = (value: string) => {
     capacity.value = value;
