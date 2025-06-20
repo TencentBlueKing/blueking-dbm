@@ -85,7 +85,7 @@
 
   interface ModelValue {
     capacity: number | string;
-    count: number;
+    count: number | string;
     future_capacity: number | string;
     spec_id: number | '';
   }

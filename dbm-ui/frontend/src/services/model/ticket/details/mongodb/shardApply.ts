@@ -22,6 +22,8 @@ export interface ShardApply extends DetailBase {
     mongodb: SpecInfo;
     mongos: SpecInfo;
   };
+  shard_machine_group: number;
+  shard_num: number;
   start_port: number;
   sub_zone_ids: string[];
 }
