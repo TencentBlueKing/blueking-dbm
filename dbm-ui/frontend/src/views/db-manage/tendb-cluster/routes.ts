@@ -127,15 +127,9 @@ const spiderToolboxRoute = {
     createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_SWITCH_NODES, t('替换接入层'), {
       dbConsole: 'tendbCluster.toolbox.switchNodes',
     }),
-    {
-      path: 'proxy-slave-apply/:page?',
-      name: 'SpiderProxySlaveApply',
-      meta: {
-        dbConsole: 'tendbCluster.toolbox.proxySlaveApply',
-        navName: t('部署只读接入层'),
-      },
-      component: () => import('@views/db-manage/tendb-cluster/proxy-slave-apply/Index.vue'),
-    },
+    createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY, t('部署只读接入层'), {
+      dbConsole: 'tendbCluster.toolbox.proxySlaveApply',
+    }),
     createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY, t('添加运维节点'), {
       dbConsole: 'tendbCluster.toolbox.addMnt',
     }),
