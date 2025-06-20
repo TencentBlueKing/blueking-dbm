@@ -65,7 +65,7 @@ class RedisScaleUpDownDetailSerializer(SkipToRepresentationMixin, serializers.Se
         old_nodes = OldNodesSerializer(help_text=_("下架机器"))
 
         def validate(self, attr):
-            if attr["group_num"] % attr["display_info"]["cluster_shard_num"] != 0:
+            if attr["display_info"]["cluster_shard_num"] % attr["group_num"] != 0:
                 raise serializers.ValidationError(_("所选方案分片数不能整除机器组数"))
             return attr
 
