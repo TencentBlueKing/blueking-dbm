@@ -449,6 +449,7 @@
       if (details.ip_source === 'resource_pool') {
         const { proxy } = details.resource_spec!;
         const resourceSpec = {
+          backend_group: state.formdata.details.resource_spec.backend_group,
           proxy: {
             count: proxy.count,
             spec_id: proxy.spec_id,
@@ -498,7 +499,7 @@
         backend_group: {
           affinity: '',
           capacity: '' as number | string,
-          count: 3,
+          count: '' as number | string,
           future_capacity: '' as number | string,
           location_spec: {
             city: '',
@@ -700,17 +701,17 @@
   };
 
   const handleChangeClusterType = () => {
-    const count = [ClusterTypes.PREDIXY_REDIS_CLUSTER, ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER].includes(
-      state.formdata.details.cluster_type,
-    )
-      ? 3
-      : 1;
+    // const count = [ClusterTypes.PREDIXY_REDIS_CLUSTER, ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER].includes(
+    //   state.formdata.details.cluster_type,
+    // )
+    //   ? 3
+    //   : 1;
     state.formdata.details.db_version = '';
     state.formdata.details.resource_spec.proxy.spec_id = '';
     state.formdata.details.resource_spec.backend_group = {
       ...state.formdata.details.resource_spec.backend_group,
       capacity: '',
-      count,
+      count: '',
       future_capacity: '',
       spec_id: '',
     };
