@@ -31,7 +31,7 @@ func (e *GlobalError) Error() string {
 	return e.Message
 }
 
-// Define errorCode
+// 通用内部业务逻辑异常
 const (
 	ServerError        = 1532101
 	EngineTypeError    = 1532102
@@ -45,36 +45,44 @@ const (
 	UpdateMetaDataErr  = 1532110
 	GetMetaDataErr     = 1532111
 	DeleteMetaDataErr  = 1532112
+)
 
-	DescribeComponentError = 1532200
-	DescribeClusterError   = 1532201
-	CreateClusterError     = 1532202
-	DeleteClusterError     = 1532203
-	GetClusterStatusError  = 1532204
-	GetClusterEventError   = 1533205
+// 存储集群管理操作异常
+const (
+	DescribeComponentError    = 1532200
+	DescribeClusterError      = 1532201
+	CreateClusterError        = 1532202
+	DeleteClusterError        = 1532203
+	GetClusterStatusError     = 1532204
+	VerticalScalingError      = 1532205
+	HorizontalScalingError    = 1532206
+	StartClusterError         = 1532207
+	StopClusterError          = 1532208
+	RestartClusterError       = 1532209
+	UpgradeClusterError       = 1532210
+	VolumeExpansionError      = 1532211
+	ExposeClusterError        = 1532212
+	DescribeOpsRequestError   = 1532213
+	GetOpsRequestStatusError  = 1532214
+	UpdateClusterError        = 1532215
+	GetClusterEventError      = 1532216
+	PartialUpdateClusterError = 1532217
+)
 
-	VerticalScalingError     = 1532205
-	HorizontalScalingError   = 1532206
-	StartClusterError        = 1532207
-	StopClusterError         = 1532208
-	RestartClusterError      = 1532209
-	UpgradeClusterError      = 1532210
-	VolumeExpansionError     = 1532211
-	ExposeClusterError       = 1532212
-	DescribeOpsRequestError  = 1532213
-	GetOpsRequestStatusError = 1532214
-	UpdateClusterError       = 1532215
-
+// k8s 集群管理操作异常
+const (
 	CreateK8sNsError = 1532300
+	DeleteK8sNsError = 1532301
+)
 
+// addon 管理操作异常
+const (
 	InstallAddonError   = 1532400
 	UninstallAddonError = 1532401
 	UpgradeAddonError   = 1532402
-
-	DeployAddonClusterError = 1532500
 )
 
-// Define the text information corresponding to errorCode
+// 定义错误码对于的message
 var codeTag = map[int]string{
 	// 纳管系统内置异常
 	AuthErr:            "权限不足，请联系管理员",
@@ -91,34 +99,33 @@ var codeTag = map[int]string{
 	DeleteMetaDataErr:  "删除元数据失败",
 
 	// 存储集群操作异常
-	DescribeComponentError:   "查询组件失败",
-	DescribeClusterError:     "查询集群失败",
-	CreateClusterError:       "创建集群失败",
-	DeleteClusterError:       "删除集群失败",
-	GetClusterStatusError:    "查询集群状态失败",
-	GetClusterEventError:     "查询集群事件失败",
-	VerticalScalingError:     "集群水平扩缩容失败",
-	HorizontalScalingError:   "集群垂直扩缩容失败",
-	StartClusterError:        "集群启动失败",
-	StopClusterError:         "集群停止失败",
-	RestartClusterError:      "集群重启失败",
-	UpgradeClusterError:      "集群升级失败",
-	VolumeExpansionError:     "集群磁盘扩容失败",
-	ExposeClusterError:       "集群暴露服务失败",
-	DescribeOpsRequestError:  "查询操作请求失败",
-	GetOpsRequestStatusError: "查询操作请求状态失败",
-	UpdateClusterError:       "更新集群失败",
+	DescribeComponentError:    "查询组件失败",
+	DescribeClusterError:      "查询集群失败",
+	CreateClusterError:        "创建集群失败",
+	DeleteClusterError:        "删除集群失败",
+	GetClusterStatusError:     "查询集群状态失败",
+	GetClusterEventError:      "查询集群事件失败",
+	VerticalScalingError:      "集群水平扩缩容失败",
+	HorizontalScalingError:    "集群垂直扩缩容失败",
+	StartClusterError:         "集群启动失败",
+	StopClusterError:          "集群停止失败",
+	RestartClusterError:       "集群重启失败",
+	UpgradeClusterError:       "集群升级失败",
+	VolumeExpansionError:      "集群磁盘扩容失败",
+	ExposeClusterError:        "集群暴露服务失败",
+	DescribeOpsRequestError:   "查询操作请求失败",
+	GetOpsRequestStatusError:  "查询操作请求状态失败",
+	UpdateClusterError:        "更新集群失败",
+	PartialUpdateClusterError: "局部更新集群失败",
 
 	// k8s apiserver 调用异常
 	CreateK8sNsError: "创建命名空间失败",
+	DeleteK8sNsError: "删除命名空间失败",
 
 	// 存储插件部署操作异常
 	InstallAddonError:   "插件安装失败",
 	UninstallAddonError: "插件卸载失败",
 	UpgradeAddonError:   "插件更新失败",
-
-	// 存储集群部署操作异常
-	DeployAddonClusterError: "存储集群部署失败",
 }
 
 // NewGlobalError Create a new custom error instantiation

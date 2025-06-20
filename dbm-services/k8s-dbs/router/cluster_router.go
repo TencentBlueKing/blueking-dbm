@@ -21,10 +21,6 @@ package router
 
 import (
 	"k8s-dbs/core/api/controller"
-	"k8s-dbs/core/provider"
-	metadbaccess "k8s-dbs/metadata/dbaccess"
-	metaprovider "k8s-dbs/metadata/provider"
-	"log/slog"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -38,16 +34,12 @@ func buildClusterRouter(db *gorm.DB, router *gin.Engine) {
 
 		clusterGroup.POST("/create", clusterController.CreateCluster)
 		clusterGroup.POST("/update", clusterController.UpdateCluster)
+		clusterGroup.POST("/partial_upgrade", clusterController.PartialUpdateCluster)
 		clusterGroup.POST("/delete", clusterController.DeleteCluster)
 		clusterGroup.POST("/describe", clusterController.DescribeCluster)
 		clusterGroup.POST("/status", clusterController.GetClusterStatus)
 		clusterGroup.POST("/event", clusterController.GetClusterEvent)
 
-	}
-
-	componentGroup := router.Group(basePath + "/component")
-	{
-		componentGroup.POST("/describe", clusterController.DescribeComponent)
 	}
 
 	opsRequestGroup := router.Group(basePath + "/opsRequest")
@@ -65,61 +57,9 @@ func buildClusterRouter(db *gorm.DB, router *gin.Engine) {
 	}
 }
 
-// buildService 总路由规则构建
-func buildService(db *gorm.DB) (*provider.ClusterProvider, *provider.OpsRequestProvider) {
-	clusterDbAccess := metadbaccess.NewCrdClusterDbAccess(db)
-	clusterDefinitionDbAccess := metadbaccess.NewK8sCrdClusterDefinitionDbAccess(db)
-	componentDbAccess := metadbaccess.NewK8sCrdComponentAccess(db)
-	componentDefinitionDbAccess := metadbaccess.NewK8sCrdCmpdDbAccess(db)
-	componentVersionDbAccess := metadbaccess.NewK8sCrdCmpvDbAccess(db)
-	opsReqDbAccess := metadbaccess.NewK8sCrdOpsRequestDbAccess(db)
-	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
-	requestRecordDbAccess := metadbaccess.NewClusterRequestRecordDbAccess(db)
-	clusterReleaseDbAccess := metadbaccess.NewAddonClusterReleaseDbAccess(db)
-	helmRepoDbAccess := metadbaccess.NewAddonClusterHelmRepoDbAccess(db)
-
-	clusterProvider := metaprovider.NewK8sCrdClusterProvider(clusterDbAccess)
-	clusterDefinitionProvider := metaprovider.NewK8sCrdClusterDefinitionProvider(clusterDefinitionDbAccess)
-	componentProvider := metaprovider.NewK8sCrdComponentProvider(componentDbAccess)
-	componentDefinitionProvider := metaprovider.NewK8sCrdCmpdProvider(componentDefinitionDbAccess)
-	componentVersionProvider := metaprovider.NewK8sCrdCmpvProvider(componentVersionDbAccess)
-	opsReqProvider := metaprovider.NewK8sCrdOpsRequestProvider(opsReqDbAccess)
-	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(k8sClusterConfigDbAccess)
-	requestRecordProvider := metaprovider.NewClusterRequestRecordProvider(requestRecordDbAccess)
-	clusterReleaseProvider := metaprovider.NewAddonClusterReleaseProvider(clusterReleaseDbAccess)
-	helmRepoMetaProvider := metaprovider.NewAddonClusterHelmRepoProvider(helmRepoDbAccess)
-
-	clusterService, err := provider.NewClusterProviderBuilder().
-		WithClusterMetaProvider(clusterProvider).
-		WithComponentMetaProvider(componentProvider).
-		WithCdMetaProvider(clusterDefinitionProvider).
-		WithCmpdMetaProvider(componentDefinitionProvider).
-		WithCmpvMetaProvider(componentVersionProvider).
-		WithClusterConfigMetaProvider(k8sClusterConfigProvider).
-		WithReqRecordProvider(requestRecordProvider).
-		WithClusterHelmRepoProvider(helmRepoMetaProvider).
-		WithReleaseMetaProvider(clusterReleaseProvider).Build()
-	if err != nil {
-		slog.Error("build cluster provider error", "error", err.Error())
-		panic(err)
-	}
-
-	opsReqService, err := provider.NewOpsReqProviderBuilder().
-		WithopsRequestMetaProvider(opsReqProvider).
-		WithClusterMetaProvider(clusterProvider).
-		WithClusterConfigMetaProvider(k8sClusterConfigProvider).
-		WithReqRecordProvider(requestRecordProvider).
-		WithReleaseMetaProvider(clusterReleaseProvider).
-		WithClusterProvider(clusterService).Build()
-	if err != nil {
-		slog.Error("build ops request provider error", "error", err.Error())
-		panic(err)
-	}
-
-	return clusterService, opsReqService
-}
-
 // initClusterController 初始化 ClusterController
 func initClusterController(db *gorm.DB) *controller.ClusterController {
-	return controller.NewClusterController(buildService(db))
+	clusterProvider := BuildClusterProvider(db)
+	opsRequestProvider := BuildOpsRequestProvider(db, clusterProvider)
+	return controller.NewClusterController(clusterProvider, opsRequestProvider)
 }

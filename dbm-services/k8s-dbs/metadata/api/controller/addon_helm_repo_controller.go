@@ -21,6 +21,7 @@ package controller
 
 import (
 	"fmt"
+	commconst "k8s-dbs/common/api/constant"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/core/errors"
 	"k8s-dbs/metadata/api/vo/req"
@@ -63,7 +64,7 @@ func (c *AddonHelmRepoController) GetAddonHelmRepoByID(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, "OK")
+	entity.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // CreateAddonHelmRepo create addon helm repo
@@ -88,7 +89,7 @@ func (c *AddonHelmRepoController) CreateAddonHelmRepo(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, "OK")
+	entity.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // GetAddonHelmRepoByParam get addon helm repo by its Param.
@@ -114,5 +115,5 @@ func (c *AddonHelmRepoController) GetAddonHelmRepoByParam(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, respVo, "OK")
+	entity.SuccessResponse(ctx, respVo, commconst.Success)
 }

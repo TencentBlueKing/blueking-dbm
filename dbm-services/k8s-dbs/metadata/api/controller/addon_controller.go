@@ -32,6 +32,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
+
+	commconst "k8s-dbs/common/api/constant"
 )
 
 // AddonController manages metadata for addons.
@@ -63,7 +65,7 @@ func (a *AddonController) ListAddons(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, "OK")
+	entity.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // GetAddon retrieves an addon by its ID.
@@ -84,7 +86,7 @@ func (a *AddonController) GetAddon(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, "OK")
+	entity.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // CreateAddon creates a new addon.
@@ -109,7 +111,7 @@ func (a *AddonController) CreateAddon(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, "OK")
+	entity.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // UpdateAddon updates an existing addon.
@@ -136,7 +138,7 @@ func (a *AddonController) UpdateAddon(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpdateMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, map[string]uint64{"rows": rows}, "OK")
+	entity.SuccessResponse(ctx, map[string]uint64{"rows": rows}, commconst.Success)
 }
 
 // DeleteAddon deletes an addon by its ID.
@@ -152,5 +154,5 @@ func (a *AddonController) DeleteAddon(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.DeleteMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, map[string]uint64{"rows": rows}, "OK")
+	entity.SuccessResponse(ctx, map[string]uint64{"rows": rows}, commconst.Success)
 }

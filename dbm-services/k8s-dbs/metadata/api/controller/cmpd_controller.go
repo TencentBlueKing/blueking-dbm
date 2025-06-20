@@ -20,6 +20,7 @@ limitations under the License.
 package controller
 
 import (
+	commconst "k8s-dbs/common/api/constant"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/core/errors"
 	"k8s-dbs/metadata/api/vo/req"
@@ -60,7 +61,7 @@ func (c *CmpdController) GetCmpd(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, "OK")
+	entity.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // CreateCmpd creates a new cmpd.
@@ -85,7 +86,7 @@ func (c *CmpdController) CreateCmpd(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, "OK")
+	entity.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // UpdateCmpd updates an existing cmpd.
@@ -112,7 +113,7 @@ func (c *CmpdController) UpdateCmpd(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpdateMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, map[string]uint64{"rows": rows}, "OK")
+	entity.SuccessResponse(ctx, map[string]uint64{"rows": rows}, commconst.Success)
 }
 
 // DeleteCmpd deletes an cmpd by its ID.
@@ -128,5 +129,5 @@ func (c *CmpdController) DeleteCmpd(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.DeleteMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, map[string]uint64{"rows": rows}, "OK")
+	entity.SuccessResponse(ctx, map[string]uint64{"rows": rows}, commconst.Success)
 }

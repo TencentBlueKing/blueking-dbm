@@ -20,6 +20,7 @@ limitations under the License.
 package controller
 
 import (
+	commconst "k8s-dbs/common/api/constant"
 	entity2 "k8s-dbs/common/entity"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/core/errors"
@@ -63,7 +64,7 @@ func (c *ComponentOperationController) ListComponentOperations(ctx *gin.Context)
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, "OK")
+	entity.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // CreateComponentOperation creates a new component operation.
@@ -88,5 +89,5 @@ func (c *ComponentOperationController) CreateComponentOperation(ctx *gin.Context
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, "OK")
+	entity.SuccessResponse(ctx, data, commconst.Success)
 }

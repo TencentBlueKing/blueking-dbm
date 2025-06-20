@@ -22,6 +22,7 @@ package controller
 import (
 	"encoding/json"
 	"fmt"
+	commconst "k8s-dbs/common/api/constant"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/core/errors"
 	"k8s-dbs/metadata/api/vo/resp"
@@ -62,7 +63,7 @@ func (c *ClusterReleaseController) GetClusterRelease(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, "OK")
+	entity.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // GetClusterReleaseByParam get addon cluster release by its Param.
@@ -94,5 +95,5 @@ func (c *ClusterReleaseController) GetClusterReleaseByParam(ctx *gin.Context) {
 		return
 	}
 	respVo.ChartValues = chartValues
-	entity.SuccessResponse(ctx, respVo, "OK")
+	entity.SuccessResponse(ctx, respVo, commconst.Success)
 }

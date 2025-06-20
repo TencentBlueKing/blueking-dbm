@@ -20,6 +20,7 @@ limitations under the License.
 package controller
 
 import (
+	commconst "k8s-dbs/common/api/constant"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/core/errors"
 	"k8s-dbs/metadata/api/vo/resp"
@@ -58,7 +59,7 @@ func (k *K8sClusterAddonsController) GetAddon(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, "OK")
+	entity.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // GetAddonsByClusterName retrieves cluster addons by k8s_cluster_name.
@@ -76,5 +77,5 @@ func (k *K8sClusterAddonsController) GetAddonsByClusterName(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, "OK")
+	entity.SuccessResponse(ctx, data, commconst.Success)
 }

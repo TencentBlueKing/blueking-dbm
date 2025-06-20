@@ -20,6 +20,7 @@ limitations under the License.
 package controller
 
 import (
+	commconst "k8s-dbs/common/api/constant"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/core/errors"
 	"k8s-dbs/metadata/api/vo/resp"
@@ -58,5 +59,5 @@ func (c *ComponentController) GetComponent(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, "OK")
+	entity.SuccessResponse(ctx, data, commconst.Success)
 }

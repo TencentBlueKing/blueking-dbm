@@ -21,6 +21,7 @@ package controller
 
 import (
 	"fmt"
+	commconst "k8s-dbs/common/api/constant"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/core/errors"
 	"k8s-dbs/metadata/api/vo/req"
@@ -61,7 +62,7 @@ func (k *K8sClusterConfigController) GetK8sClusterConfigByID(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, respVo, "OK")
+	entity.SuccessResponse(ctx, respVo, commconst.Success)
 }
 
 // GetK8sClusterConfigByName get clusterConfig by its Name.
@@ -81,7 +82,7 @@ func (k *K8sClusterConfigController) GetK8sClusterConfigByName(ctx *gin.Context)
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, respVo, "OK")
+	entity.SuccessResponse(ctx, respVo, commconst.Success)
 }
 
 // CreateK8sClusterConfig create a new clusterConfig.
@@ -106,7 +107,7 @@ func (k *K8sClusterConfigController) CreateK8sClusterConfig(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, respVo, "OK")
+	entity.SuccessResponse(ctx, respVo, commconst.Success)
 }
 
 // UpdateK8sClusterConfig update existing clusterConfig.
@@ -133,7 +134,7 @@ func (k *K8sClusterConfigController) UpdateK8sClusterConfig(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpdateMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, map[string]uint64{"rows": rows}, "OK")
+	entity.SuccessResponse(ctx, map[string]uint64{"rows": rows}, commconst.Success)
 }
 
 // DeleteK8sClusterConfig delete a clusterConfig by its ID.
@@ -149,5 +150,5 @@ func (k *K8sClusterConfigController) DeleteK8sClusterConfig(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.DeleteMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, map[string]uint64{"rows": rows}, "OK")
+	entity.SuccessResponse(ctx, map[string]uint64{"rows": rows}, commconst.Success)
 }

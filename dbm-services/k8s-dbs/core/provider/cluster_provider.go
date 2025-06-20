@@ -259,26 +259,25 @@ func (c *ClusterProvider) CreateCluster(request *coreentity.Request) error {
 
 // UpdateCluster 更新集群
 func (c *ClusterProvider) UpdateCluster(request *coreentity.Request) error {
-	_, err := c.createRequestEntity(request, coreconst.UpdateCluster)
+	_, err := c.createRequestEntity(request, coreconst.PartialUpdateCluster)
 	if err != nil {
+		slog.Error("failed to create request record", "error", err)
 		return err
 	}
 
 	k8sClusterConfig, err := c.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
 	if err != nil {
-		return fmt.Errorf("failed to get k8sClusterConfig: %w", err)
+		slog.Error("failed to find k8s cluster config", "error", err)
+		return err
 	}
 
 	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
 	if err != nil {
-		return fmt.Errorf("failed to create k8sClient: %w", err)
+		slog.Error("failed to create k8s client", "error", err)
+		return err
 	}
 
-	if err = verifyAddonExists(request, k8sClient); err != nil {
-		return fmt.Errorf("failed to verify addon exists: %w", err)
-	}
-
-	values, err := c.updateHelmRelease(request, k8sClient)
+	values, err := c.updateClusterRelease(request, k8sClient)
 	if err != nil {
 		slog.Error("failed to update helm release", "error", err)
 		return err
@@ -290,10 +289,9 @@ func (c *ClusterProvider) UpdateCluster(request *coreentity.Request) error {
 			"release_name", request.ClusterName,
 			"error", err,
 		)
-		return fmt.Errorf("failed to marshal release values: %w", err)
+		return err
 	}
 
-	// replace with the updated value
 	paramsRelease := map[string]interface{}{
 		"k8s_cluster_config_id": k8sClusterConfig.ID,
 		"release_name":          request.ClusterName,
@@ -311,7 +309,64 @@ func (c *ClusterProvider) UpdateCluster(request *coreentity.Request) error {
 			"namespace", request.Namespace,
 			"error", err,
 		)
-		return fmt.Errorf("failed to update cluster release: %w", err)
+		return err
+	}
+	return nil
+}
+
+// PartialUpdateCluster 局部更新集群
+func (c *ClusterProvider) PartialUpdateCluster(request *coreentity.Request) error {
+	_, err := c.createRequestEntity(request, coreconst.PartialUpdateCluster)
+	if err != nil {
+		slog.Error("failed to create request record", "error", err)
+		return err
+	}
+
+	k8sClusterConfig, err := c.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
+	if err != nil {
+		slog.Error("failed to find k8s cluster config", "error", err)
+		return err
+	}
+
+	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
+	if err != nil {
+		slog.Error("failed to create k8s client", "error", err)
+		return err
+	}
+
+	values, err := c.partialUpdateClusterRelease(request, k8sClient)
+	if err != nil {
+		slog.Error("failed to update helm release", "error", err)
+		return err
+	}
+
+	jsonData, err := json.Marshal(values)
+	if err != nil {
+		slog.Error("failed to marshal release values",
+			"release_name", request.ClusterName,
+			"error", err,
+		)
+		return err
+	}
+
+	paramsRelease := map[string]interface{}{
+		"k8s_cluster_config_id": k8sClusterConfig.ID,
+		"release_name":          request.ClusterName,
+		"namespace":             request.Namespace,
+	}
+	releaseEntity, err := c.releaseMetaProvider.FindByParams(paramsRelease)
+	if err != nil {
+		return err
+	}
+	releaseEntity.ChartValues = string(jsonData)
+	_, err = c.releaseMetaProvider.UpdateClusterRelease(releaseEntity)
+	if err != nil {
+		slog.Error("failed to partial update cluster release",
+			"release_name", request.ClusterName,
+			"namespace", request.Namespace,
+			"error", err,
+		)
+		return err
 	}
 	return nil
 }
@@ -650,8 +705,26 @@ func (c *ClusterProvider) installHelmRelease(
 	return values, nil
 }
 
-// updateHelmRelease 更新 chart
-func (c *ClusterProvider) updateHelmRelease(
+// updateClusterRelease 更新 release
+func (c *ClusterProvider) updateClusterRelease(
+	request *coreentity.Request,
+	k8sClient *coreclient.K8sClient,
+) (map[string]interface{}, error) {
+	actionConfig, err := corehelper.BuildHelmActionConfig(request.Namespace, k8sClient)
+	if err != nil {
+		slog.Error("failed to build helm action config", "error", err)
+		return nil, err
+	}
+	values, err := c.doUpdateClusterRelease(request, actionConfig, false)
+	if err != nil {
+		slog.Error("cluster update failed", "clusterName", request.ClusterName, "error", err)
+		return nil, err
+	}
+	return values, nil
+}
+
+// partialUpdateClusterRelease 局部更新 release
+func (c *ClusterProvider) partialUpdateClusterRelease(
 	request *coreentity.Request,
 	k8sClient *coreclient.K8sClient,
 ) (map[string]interface{}, error) {
@@ -661,12 +734,25 @@ func (c *ClusterProvider) updateHelmRelease(
 		return nil, err
 	}
 
+	values, err := c.doUpdateClusterRelease(request, actionConfig, true)
+	if err != nil {
+		slog.Error("cluster partial update failed", "clusterName", request.ClusterName, "error", err)
+		return nil, err
+	}
+	return values, nil
+}
+
+// doUpdateClusterRelease 执行更新 release
+func (c *ClusterProvider) doUpdateClusterRelease(
+	request *coreentity.Request,
+	actionConfig *action.Configuration,
+	isPartial bool,
+) (map[string]interface{}, error) {
 	helmRepo, err := c.getClusterHelmRepository(request)
 	if err != nil {
 		slog.Error("failed to get helm repo", "error", err)
 		return nil, err
 	}
-
 	upgrade := action.NewUpgrade(actionConfig)
 	upgrade.Namespace = request.Namespace
 	upgrade.RepoURL = helmRepo.RepoRepository
@@ -675,26 +761,43 @@ func (c *ClusterProvider) updateHelmRelease(
 	upgrade.Wait = true
 	upgrade.Username = helmRepo.RepoUsername
 	upgrade.Password = helmRepo.RepoPassword
+
 	chartRequested, err := upgrade.ChartPathOptions.LocateChart(request.StorageAddonType+"-cluster", helmcli.New())
 	if err != nil {
 		slog.Error("failed to locate helm chart requested", "error", err)
-		return nil, fmt.Errorf("failed to locate helm chart requested\n%s", err)
+		return nil, err
 	}
+
 	chart, err := loader.Load(chartRequested)
 	if err != nil {
 		slog.Error("failed to load helm chart requested", "error", err)
-		return nil, fmt.Errorf("failed to load helm chart requested\n%s", err)
+		return nil, err
 	}
-	values := chart.Values
-	err = coreclient.MergeValues(values, request)
-	if err != nil {
-		slog.Error("failed to merge dynamic values", "error", err)
-		return nil, fmt.Errorf("failed to merge dynamic values  %w", err)
+
+	var values map[string]interface{}
+	if isPartial {
+		getValuesAction := action.NewGetValues(actionConfig)
+		releaseValues, err := getValuesAction.Run(request.ClusterName)
+		if err != nil {
+			return nil, err
+		}
+
+		if err = coreclient.MergeValues(releaseValues, request); err != nil {
+			return nil, err
+		}
+		values = releaseValues
+	} else {
+		chartValues := chart.Values
+		err = coreclient.MergeValues(chartValues, request)
+		if err != nil {
+			return nil, err
+		}
+		values = chartValues
 	}
 	_, err = upgrade.Run(request.ClusterName, chart, values)
 	if err != nil {
 		slog.Error("cluster update failed", "clusterName", request.ClusterName, "error", err)
-		return nil, fmt.Errorf("failed to update cluster %s: %w", request.ClusterName, err)
+		return nil, err
 	}
 	return values, nil
 }

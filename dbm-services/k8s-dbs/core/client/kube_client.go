@@ -359,13 +359,17 @@ func MergeValues(values map[string]interface{}, request *entity.Request) error {
 }
 
 func mergeMetaData(values map[string]interface{}, request *entity.Request) error {
-	values["addonVersion"] = request.StorageAddonVersion
-	values["clusterName"] = request.ClusterName
-	values["namespace"] = request.Namespace
-	values["topoName"] = request.TopoName
-	if request.TerminationPolicy != "" {
-		values["terminationPolicy"] = request.TerminationPolicy
+	setIfNotEmpty := func(key string, value string) {
+		if value != "" {
+			values[key] = value
+		}
 	}
+	setIfNotEmpty("addonVersion", request.StorageAddonVersion)
+	setIfNotEmpty("clusterName", request.ClusterName)
+	setIfNotEmpty("namespace", request.Namespace)
+	setIfNotEmpty("topoName", request.TopoName)
+	setIfNotEmpty("terminationPolicy", request.TerminationPolicy)
+
 	metaDataMap := map[string]interface{}{
 		"labels":      request.Labels,
 		"annotations": request.Annotations,

@@ -24,7 +24,11 @@ import (
 	"dbm-services/common/go-pubpkg/apm/metric"
 	"dbm-services/common/go-pubpkg/apm/trace"
 	"k8s-dbs/common/api"
+	"k8s-dbs/core/provider"
+	metadbaccess "k8s-dbs/metadata/dbaccess"
+	metaprovider "k8s-dbs/metadata/provider"
 	"log"
+	"log/slog"
 
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 
@@ -61,6 +65,8 @@ func NewRouter(db *gorm.DB) *Router {
 
 	buildClusterRouter(db, router)
 
+	buildComponentRouter(db, router)
+
 	buildMetaRouter(db, router)
 
 	buildK8sClusterRouter(db, router)
@@ -68,4 +74,111 @@ func NewRouter(db *gorm.DB) *Router {
 	buildAddonRouter(db, router)
 
 	return &Router{Engine: router}
+}
+
+// CoreAPIProviders 封装 core api providers
+type CoreAPIProviders struct {
+	ClusterMetaProvider         metaprovider.K8sCrdClusterProvider
+	ClusterDefinitionProvider   metaprovider.K8sCrdClusterDefinitionProvider
+	ComponentMetaProvider       metaprovider.K8sCrdComponentProvider
+	ComponentDefinitionProvider metaprovider.K8sCrdCmpdProvider
+	ComponentVersionProvider    metaprovider.K8sCrdCmpvProvider
+	ClusterConfigProvider       metaprovider.K8sClusterConfigProvider
+	RequestRecordProvider       metaprovider.ClusterRequestRecordProvider
+	ClusterReleaseProvider      metaprovider.AddonClusterReleaseProvider
+	HelmRepoProvider            metaprovider.AddonClusterHelmRepoProvider
+}
+
+// buildCoreAPIProviders 构建 core api providers
+func buildCoreAPIProviders(db *gorm.DB) (*CoreAPIProviders, error) {
+	clusterMetaDbAccess := metadbaccess.NewCrdClusterDbAccess(db)
+	clusterMetaProvider := metaprovider.NewK8sCrdClusterProvider(clusterMetaDbAccess)
+
+	clusterDefinitionDbAccess := metadbaccess.NewK8sCrdClusterDefinitionDbAccess(db)
+	clusterDefinitionProvider := metaprovider.NewK8sCrdClusterDefinitionProvider(clusterDefinitionDbAccess)
+
+	componentMetaDbAccess := metadbaccess.NewK8sCrdComponentAccess(db)
+	componentMetaProvider := metaprovider.NewK8sCrdComponentProvider(componentMetaDbAccess)
+
+	componentDefinitionDbAccess := metadbaccess.NewK8sCrdCmpdDbAccess(db)
+	componentDefinitionProvider := metaprovider.NewK8sCrdCmpdProvider(componentDefinitionDbAccess)
+
+	componentVersionDbAccess := metadbaccess.NewK8sCrdCmpvDbAccess(db)
+	componentVersionProvider := metaprovider.NewK8sCrdCmpvProvider(componentVersionDbAccess)
+
+	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
+	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(k8sClusterConfigDbAccess)
+
+	requestRecordDbAccess := metadbaccess.NewClusterRequestRecordDbAccess(db)
+	requestRecordProvider := metaprovider.NewClusterRequestRecordProvider(requestRecordDbAccess)
+
+	clusterReleaseDbAccess := metadbaccess.NewAddonClusterReleaseDbAccess(db)
+	clusterReleaseProvider := metaprovider.NewAddonClusterReleaseProvider(clusterReleaseDbAccess)
+
+	helmRepoDbAccess := metadbaccess.NewAddonClusterHelmRepoDbAccess(db)
+	helmRepoProvider := metaprovider.NewAddonClusterHelmRepoProvider(helmRepoDbAccess)
+
+	return &CoreAPIProviders{
+		ClusterMetaProvider:         clusterMetaProvider,
+		ClusterDefinitionProvider:   clusterDefinitionProvider,
+		ComponentMetaProvider:       componentMetaProvider,
+		ComponentDefinitionProvider: componentDefinitionProvider,
+		ComponentVersionProvider:    componentVersionProvider,
+		ClusterConfigProvider:       k8sClusterConfigProvider,
+		RequestRecordProvider:       requestRecordProvider,
+		ClusterReleaseProvider:      clusterReleaseProvider,
+		HelmRepoProvider:            helmRepoProvider,
+	}, nil
+}
+
+// BuildClusterProvider 构建 ClusterProvider
+func BuildClusterProvider(db *gorm.DB) *provider.ClusterProvider {
+	commonProviders, err := buildCoreAPIProviders(db)
+	if err != nil {
+		slog.Error("build common providers error", "error", err)
+		panic(err)
+	}
+
+	clusterProvider, err := provider.NewClusterProviderBuilder().
+		WithClusterMetaProvider(commonProviders.ClusterMetaProvider).
+		WithComponentMetaProvider(commonProviders.ComponentMetaProvider).
+		WithCdMetaProvider(commonProviders.ClusterDefinitionProvider).
+		WithCmpdMetaProvider(commonProviders.ComponentDefinitionProvider).
+		WithCmpvMetaProvider(commonProviders.ComponentVersionProvider).
+		WithClusterConfigMetaProvider(commonProviders.ClusterConfigProvider).
+		WithReqRecordProvider(commonProviders.RequestRecordProvider).
+		WithClusterHelmRepoProvider(commonProviders.HelmRepoProvider).
+		WithReleaseMetaProvider(commonProviders.ClusterReleaseProvider).
+		Build()
+	if err != nil {
+		slog.Error("build cluster provider error", "error", err)
+		panic(err)
+	}
+	return clusterProvider
+}
+
+// BuildOpsRequestProvider 构建 OpsRequestProvider
+func BuildOpsRequestProvider(db *gorm.DB, clusterProvider *provider.ClusterProvider) *provider.OpsRequestProvider {
+	commonProviders, err := buildCoreAPIProviders(db)
+	if err != nil {
+		slog.Error("build common providers error", "error", err)
+		panic(err)
+	}
+
+	opsRequestMetaDbAccess := metadbaccess.NewK8sCrdOpsRequestDbAccess(db)
+	opsRequestMetaProvider := metaprovider.NewK8sCrdOpsRequestProvider(opsRequestMetaDbAccess)
+
+	opsReqService, err := provider.NewOpsReqProviderBuilder().
+		WithopsRequestMetaProvider(opsRequestMetaProvider).
+		WithClusterMetaProvider(commonProviders.ClusterMetaProvider).
+		WithClusterConfigMetaProvider(commonProviders.ClusterConfigProvider).
+		WithReqRecordProvider(commonProviders.RequestRecordProvider).
+		WithReleaseMetaProvider(commonProviders.ClusterReleaseProvider).
+		WithClusterProvider(clusterProvider).Build()
+	if err != nil {
+		slog.Error("build ops request provider error", "error", err)
+		panic(err)
+	}
+
+	return opsReqService
 }

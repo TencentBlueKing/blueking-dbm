@@ -20,6 +20,7 @@ limitations under the License.
 package controller
 
 import (
+	commconst "k8s-dbs/common/api/constant"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/core/errors"
 	"k8s-dbs/metadata/api/vo/req"
@@ -60,7 +61,7 @@ func (c *CdController) GetCd(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, "OK")
+	entity.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // CreateCd creates a new clusterDefinition.
@@ -85,7 +86,7 @@ func (c *CdController) CreateCd(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, "OK")
+	entity.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // UpdateCd updates an existing clusterDefinition.
@@ -112,7 +113,7 @@ func (c *CdController) UpdateCd(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpdateMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, map[string]uint64{"rows": rows}, "OK")
+	entity.SuccessResponse(ctx, map[string]uint64{"rows": rows}, commconst.Success)
 }
 
 // DeleteCd  deletes an clusterDefinition by its ID.
@@ -128,5 +129,5 @@ func (c *CdController) DeleteCd(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.DeleteMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, map[string]uint64{"rows": rows}, "OK")
+	entity.SuccessResponse(ctx, map[string]uint64{"rows": rows}, commconst.Success)
 }

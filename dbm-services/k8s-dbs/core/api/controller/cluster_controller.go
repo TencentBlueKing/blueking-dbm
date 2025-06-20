@@ -20,7 +20,7 @@ limitations under the License.
 package controller
 
 import (
-	coreconst "k8s-dbs/core/api/constant"
+	coreconst "k8s-dbs/common/api/constant"
 	"k8s-dbs/core/api/vo/resp"
 	coreentity "k8s-dbs/core/entity"
 	"k8s-dbs/core/errors"
@@ -38,8 +38,10 @@ type ClusterController struct {
 }
 
 // NewClusterController 创建 ClusterController 实例
-func NewClusterController(clusterProvider *provider.ClusterProvider,
-	opsRequestProvider *provider.OpsRequestProvider) *ClusterController {
+func NewClusterController(
+	clusterProvider *provider.ClusterProvider,
+	opsRequestProvider *provider.OpsRequestProvider,
+) *ClusterController {
 	return &ClusterController{
 		clusterProvider:    clusterProvider,
 		opsRequestProvider: opsRequestProvider,
@@ -59,7 +61,7 @@ func (c *ClusterController) VerticalScaling(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.VerticalScalingError, err))
 		return
 	}
-	coreentity.SuccessResponse(ctx, responseData, coreconst.VerticalScalingSuccess)
+	coreentity.SuccessResponse(ctx, responseData, coreconst.Success)
 }
 
 // HorizontalScaling 水平扩缩
@@ -75,7 +77,7 @@ func (c *ClusterController) HorizontalScaling(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.HorizontalScalingError, err))
 		return
 	}
-	coreentity.SuccessResponse(ctx, responseData, coreconst.HorizontalScalingSuccess)
+	coreentity.SuccessResponse(ctx, responseData, coreconst.Success)
 }
 
 // StartCluster 启动集群
@@ -91,7 +93,7 @@ func (c *ClusterController) StartCluster(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.StartClusterError, err))
 		return
 	}
-	coreentity.SuccessResponse(ctx, responseData, coreconst.StartClusterSuccess)
+	coreentity.SuccessResponse(ctx, responseData, coreconst.Success)
 }
 
 // RestartCluster 重启集群
@@ -107,7 +109,7 @@ func (c *ClusterController) RestartCluster(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.RestartClusterError, err))
 		return
 	}
-	coreentity.SuccessResponse(ctx, responseData, coreconst.RestartClusterSuccess)
+	coreentity.SuccessResponse(ctx, responseData, coreconst.Success)
 }
 
 // StopCluster 停止集群
@@ -123,7 +125,7 @@ func (c *ClusterController) StopCluster(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.StopClusterError, err))
 		return
 	}
-	coreentity.SuccessResponse(ctx, responseData, coreconst.StopClusterSuccess)
+	coreentity.SuccessResponse(ctx, responseData, coreconst.Success)
 }
 
 // UpgradeCluster 升级集群
@@ -139,7 +141,7 @@ func (c *ClusterController) UpgradeCluster(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpgradeClusterError, err))
 		return
 	}
-	coreentity.SuccessResponse(ctx, responseData, coreconst.UpgradeClusterSuccess)
+	coreentity.SuccessResponse(ctx, responseData, coreconst.Success)
 }
 
 // UpdateCluster 更新集群
@@ -155,7 +157,23 @@ func (c *ClusterController) UpdateCluster(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpdateClusterError, err))
 		return
 	}
-	coreentity.SuccessResponse(ctx, nil, coreconst.UpdateClusterSuccess)
+	coreentity.SuccessResponse(ctx, nil, coreconst.Success)
+}
+
+// PartialUpdateCluster 局部更新集群
+func (c *ClusterController) PartialUpdateCluster(ctx *gin.Context) {
+	request := &coreentity.Request{}
+	err := ctx.BindJSON(&request)
+	if err != nil {
+		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.PartialUpdateClusterError, err))
+		return
+	}
+	err = c.clusterProvider.PartialUpdateCluster(request)
+	if err != nil {
+		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.PartialUpdateClusterError, err))
+		return
+	}
+	coreentity.SuccessResponse(ctx, nil, coreconst.Success)
 }
 
 // VolumeExpansion 磁盘扩容
@@ -171,7 +189,7 @@ func (c *ClusterController) VolumeExpansion(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.VolumeExpansionError, err))
 		return
 	}
-	coreentity.SuccessResponse(ctx, responseData, coreconst.VolumeExpansionSuccess)
+	coreentity.SuccessResponse(ctx, responseData, coreconst.Success)
 }
 
 // DescribeOpsRequest 查看 opsRequest 详情
@@ -192,7 +210,7 @@ func (c *ClusterController) DescribeOpsRequest(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetClusterStatusError, err))
 		return
 	}
-	coreentity.SuccessResponse(ctx, data, coreconst.DescribeOpsRequestSuccess)
+	coreentity.SuccessResponse(ctx, data, coreconst.Success)
 }
 
 // GetOpsRequestStatus 获取 opsRequest 状态
@@ -213,7 +231,7 @@ func (c *ClusterController) GetOpsRequestStatus(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetClusterStatusError, err))
 		return
 	}
-	coreentity.SuccessResponse(ctx, data, coreconst.GetOpsRequestStatusSuccess)
+	coreentity.SuccessResponse(ctx, data, coreconst.Success)
 }
 
 // CreateCluster 创建集群
@@ -229,7 +247,7 @@ func (c *ClusterController) CreateCluster(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateClusterError, err))
 		return
 	}
-	coreentity.SuccessResponse(ctx, nil, coreconst.CreateClusterSuccess)
+	coreentity.SuccessResponse(ctx, nil, coreconst.Success)
 }
 
 // DeleteCluster 删除集群
@@ -245,7 +263,7 @@ func (c *ClusterController) DeleteCluster(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.DeleteClusterError, err))
 		return
 	}
-	coreentity.SuccessResponse(ctx, nil, coreconst.DeleteClusterSuccess)
+	coreentity.SuccessResponse(ctx, nil, coreconst.Success)
 }
 
 // DescribeCluster 获取集群详情
@@ -266,7 +284,7 @@ func (c *ClusterController) DescribeCluster(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetClusterStatusError, err))
 		return
 	}
-	coreentity.SuccessResponse(ctx, data, coreconst.DescribeClusterSuccess)
+	coreentity.SuccessResponse(ctx, data, coreconst.Success)
 }
 
 // GetClusterStatus 获取 cluster 状态
@@ -287,7 +305,7 @@ func (c *ClusterController) GetClusterStatus(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetClusterStatusError, err))
 		return
 	}
-	coreentity.SuccessResponse(ctx, data, coreconst.GetClusterStatusSuccess)
+	coreentity.SuccessResponse(ctx, data, coreconst.Success)
 }
 
 // ExposeCluster 暴露 cluster 服务
@@ -303,23 +321,7 @@ func (c *ClusterController) ExposeCluster(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.ExposeClusterError, err))
 		return
 	}
-	coreentity.SuccessResponse(ctx, responseData, coreconst.ExposeClusterSuccess)
-}
-
-// DescribeComponent 查看组件详情
-func (c *ClusterController) DescribeComponent(ctx *gin.Context) {
-	request := &coreentity.Request{}
-	err := ctx.BindJSON(&request)
-	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.DescribeComponentError, err))
-		return
-	}
-	responseData, err := c.clusterProvider.DescribeComponent(request)
-	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.DescribeComponentError, err))
-		return
-	}
-	coreentity.SuccessResponse(ctx, responseData, coreconst.DescribeComponentSuccess)
+	coreentity.SuccessResponse(ctx, responseData, coreconst.Success)
 }
 
 // GetClusterEvent 查询集群事件
@@ -340,5 +342,5 @@ func (c *ClusterController) GetClusterEvent(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetClusterEventError, err))
 		return
 	}
-	coreentity.SuccessResponse(ctx, data, coreconst.GetClusterEventSuccess)
+	coreentity.SuccessResponse(ctx, data, coreconst.Success)
 }
