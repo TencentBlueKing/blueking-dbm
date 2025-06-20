@@ -145,7 +145,7 @@
       future_capacity: targetInfo.capacity || 1,
       group_num: targetInfo.groupNum,
       old_machine_info: updateInfo.old_machine_info,
-      shard_num: targetInfo.shardNum,
+      shard_num: targetInfo.clusterShardNum, // 目标集群分片数
       spec_id: targetInfo.spec.spec_id,
       update_mode: updateInfo.capacity_update_type,
     };
