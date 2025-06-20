@@ -20,21 +20,18 @@
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('扩容节点类型')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.add_spider_role === 'spider_slave' ? 'Spider Slave' : 'Spider Master' }}
-      </template>
-    </BkTableColumn>
     <BkTableColumn
       :label="t('机器规格')"
       :min-width="120">
       <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.specs?.[data.resource_spec.spider_ip_list.spec_id]?.name || '--' }}
+        {{ ticketDetails.details.specs?.[data.resource_spec.spider_slave_ip_list.spec_id]?.name || '--' }}
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('扩容数量')">
+    <BkTableColumn
+      :label="t('部署台数')"
+      :min-width="120">
       <template #default="{ data }: { data: RowData }">
-        {{ data.resource_spec.spider_ip_list.count }}
+        {{ data.resource_spec.spider_slave_ip_list.count }}
       </template>
     </BkTableColumn>
     <BkTableColumn
@@ -42,7 +39,7 @@
       :min-width="200">
       <template #default="{ data }: { data: RowData }">
         <BkTag
-          v-for="item in data.resource_spec.spider_ip_list.label_values"
+          v-for="item in data.resource_spec.spider_slave_ip_list.label_values"
           :key="item">
           {{ item }}
         </BkTag>
@@ -69,25 +66,24 @@
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
+  import ResourcePreview from '@views/db-manage/common/toolbox-field/column/available-resource-column/components/ResourcePreview.vue';
 
   import { DBTypes, TicketTypes } from '@common/const';
 
-  import ResourcePreview from '@views/db-manage/common/toolbox-field/column/available-resource-column/components/ResourcePreview.vue';
-
   interface Props {
-    ticketDetails: TicketModel<TendbCluster.ResourcePool.SpiderAddNodes>;
+    ticketDetails: TicketModel<TendbCluster.ResourcePool.SpiderSlaveApply>;
   }
 
+  type RowData = Props['ticketDetails']['details']['infos'][number];
+
   defineOptions({
-    name: TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES,
+    name: TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY,
     inheritAttrs: false,
   });
 
   defineProps<Props>();
 
   const { t } = useI18n();
-
-  type RowData = Props['ticketDetails']['details']['infos'][number];
 
   const showSlider = ref(false);
   const params = ref<{
@@ -101,9 +97,9 @@
     showSlider.value = true;
     params.value = {
       for_bizs: [window.PROJECT_CONFIG.BIZ_ID, 0],
-      labels: data.resource_spec.spider_ip_list.labels.join(','),
+      labels: data.resource_spec.spider_slave_ip_list.labels.join(','),
       resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
-      spec_id: data.resource_spec.spider_ip_list.spec_id,
+      spec_id: data.resource_spec.spider_slave_ip_list.spec_id,
     };
   };
 </script>
