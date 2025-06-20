@@ -210,7 +210,7 @@
 
 <script setup lang="tsx">
   import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
-  import { format } from 'date-fns';
+  import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
   import { useRoute, useRouter } from 'vue-router';
@@ -247,10 +247,10 @@
    * 近 15 天
    */
   const initDate = () => {
-    const end = new Date();
-    const start = new Date();
-    start.setTime(start.getTime() - 3600 * 1000 * 24 * 15);
-    return [start.toISOString(), end.toISOString()] as [string, string];
+    if (route.query.from) {
+      return ['', ''] as [string, string];
+    }
+    return [dayjs().subtract(15, 'day').toDate(), dayjs().toDate()] as [Date, Date];
   };
 
   const tableRef = useTemplateRef('tableRef');
@@ -303,8 +303,8 @@
       daterange.value.filter((item) => item).length === 0
         ? {}
         : {
-            create_at__gte: format(new Date(daterange.value[0]), 'yyyy-MM-dd HH:mm:ss'),
-            create_at__lte: format(new Date(daterange.value[1]), 'yyyy-MM-dd HH:mm:ss'),
+            create_at__gte: dayjs(daterange.value[0]).format('YYYY-MM-DD HH:mm:ss'),
+            create_at__lte: dayjs(daterange.value[1]).format('YYYY-MM-DD HH:mm:ss'),
           };
     tableRef.value!.fetchData({
       ...dateParams,
