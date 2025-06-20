@@ -139,14 +139,14 @@ def update_host_property():
         machines_to_update = update_hosts(machines, host_updates)
         if machines_to_update:
             Machine.objects.bulk_update(
-                machines_to_update, fields=[field for field, _ in machine_fields if hasattr(Machine, field)]
+                machines_to_update, fields=[field for field, __ in machine_fields if hasattr(Machine, field)]
             )
 
         dirty_machines_to_update = update_hosts(dirty_machines, host_updates)
         if dirty_machines_to_update:
             DirtyMachine.objects.bulk_update(
                 dirty_machines_to_update,
-                fields=[field for field, _ in dirty_machine_fields if hasattr(DirtyMachine, field)],
+                fields=[field for field, __ in dirty_machine_fields if hasattr(DirtyMachine, field)],
             )
 
     except Exception as e:
