@@ -9,17 +9,3 @@
  */
 
 package dbmapi
-
-const (
-	// DBMLogicCityApi 查询逻辑城市映射
-	DBMLogicCityApi = "/apis/proxypass/dbmeta/bk_city_name/"
-	// DBMListAllLogicCityInfoApi 查询所有逻辑城市信息
-	DBMListAllLogicCityInfoApi = "/apis/infras/cities/list_logic_cities/"
-	// DBMEnvironApi 查询DBM环境变量
-	DBMEnvironApi = "/apis/conf/system_settings/environ/"
-	// DBMSpecApi 查询规格接口
-	DBMSpecApi = "/apis/dbresource/spec/"
-
-	// DBMFaultHostsCheckApi 查询主机关联的故障单据
-	DBMFaultHostsCheckApi = "/apis/dbresource/resource/check_fault_hosts/"
-)

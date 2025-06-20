@@ -36,6 +36,8 @@ const (
 	Used = "Used"
 	// UsedByOther 已被其他业务使用
 	UsedByOther = "UsedByOther"
+	// FaultHazard 故障隐患
+	FaultHazard = "FaultHazard"
 )
 
 const (

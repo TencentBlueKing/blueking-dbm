@@ -156,6 +156,15 @@ func registerCrontab(localcron *cron.Cron) {
 				}
 			},
 		},
+		{
+			Name: "检查故障主机",
+			Spec: "@every 12h",
+			Func: func() {
+				if err := task.FaultHostCheck(); err != nil {
+					logger.Error("check fault hosts failed %s", err.Error())
+				}
+			},
+		},
 	}
 	for _, cron := range localCrontabs {
 		if _, err := localcron.AddFunc(cron.Spec, cron.Func); err != nil {
