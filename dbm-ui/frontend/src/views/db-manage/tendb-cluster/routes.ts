@@ -118,15 +118,9 @@ const spiderToolboxRoute = {
     createRouteItem(TicketTypes.TENDBCLUSTER_NODE_REBALANCE, t('集群容量变更'), {
       dbConsole: 'tendbCluster.toolbox.capacityChange',
     }),
-    {
-      path: 'proxy-scale-up/:page?',
-      name: 'SpiderProxyScaleUp',
-      meta: {
-        dbConsole: 'tendbCluster.toolbox.proxyScaleUp',
-        navName: t('扩容接入层'),
-      },
-      component: () => import('@views/db-manage/tendb-cluster/proxy-scale-up/Index.vue'),
-    },
+    createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES, t('扩容接入层'), {
+      dbConsole: 'tendbCluster.toolbox.proxyScaleUp',
+    }),
     createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES, t('缩容接入层'), {
       dbConsole: 'tendbCluster.toolbox.proxyScaleDown',
     }),

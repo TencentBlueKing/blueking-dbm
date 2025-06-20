@@ -64,7 +64,7 @@ export default [
       },
       {
         dbConsoleValue: 'tendbCluster.toolbox.proxyScaleUp',
-        id: 'SpiderProxyScaleUp',
+        id: TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES,
         name: t('扩容接入层'),
         parentId: 'spider_cluster_maintain',
       },
