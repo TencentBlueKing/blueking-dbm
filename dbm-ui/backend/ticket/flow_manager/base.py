@@ -25,11 +25,11 @@ from backend.ticket.builders.common.base import fetch_cluster_ids, fetch_instanc
 from backend.ticket.constants import (
     FLOW_FINISHED_STATUS,
     FLOW_NOT_EXECUTE_STATUS,
+    FLOW_TASK_TYPES,
     FLOW_TYPE__EXPIRE_TYPE_CONFIG,
     TICKET_EXPIRE_DEFAULT_CONFIG,
     FlowContext,
     FlowErrCode,
-    FlowType,
     FlowTypeConfig,
     TicketFlowStatus,
     TodoStatus,
@@ -59,8 +59,8 @@ class BaseTicketFlow(ABC):
         if self.flow_obj.err_msg:
             # 如果flow的状态包含错误信息，则是saas侧出错，当前的flow流程直接返回失败
             # 注意：这里不能直接根据flow的状态为失败就进行返回，有可能是pipeline跳过失败的操作
-            # 如果是inner_flow，则进入子status处理
-            if self.flow_obj.flow_type == FlowType.INNER_FLOW:
+            # 如果是任务流程(inner_flow)，则进入子status处理
+            if self.flow_obj.flow_type in FLOW_TASK_TYPES:
                 return self._status
 
             return TicketFlowStatus.FAILED

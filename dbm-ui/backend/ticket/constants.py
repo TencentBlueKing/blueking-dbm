@@ -584,6 +584,10 @@ class FlowType(str, StructuredEnum):
     HOST_RECYCLE = EnumField("HOST_RECYCLE", _("主机回收"))
 
 
+# 任务流程类型合集
+FLOW_TASK_TYPES = [FlowType.INNER_FLOW, FlowType.HOST_RECYCLE]
+
+
 class FlowContext(str, StructuredEnum):
     """流程上下文枚举"""
 
