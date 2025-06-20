@@ -605,6 +605,8 @@ func (i *InstallMySQLComp) generateMycnfOnePort(port Port, tmplFileName string) 
 		return fmt.Errorf("template ParseFiles failed, err: %w", err)
 	}
 	cnf := util.GetMyCnfFileName(port)
+	// 可能存在之前的配置文件
+	os.Remove(cnf)
 	f, err := os.Create(cnf)
 	if err != nil {
 		return err
