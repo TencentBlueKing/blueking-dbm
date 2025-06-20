@@ -37,7 +37,7 @@ from backend.ticket.builders import BuilderFactory
 from backend.ticket.builders.common.base import fetch_cluster_ids
 from backend.ticket.constants import (
     FLOW_NOT_EXECUTE_STATUS,
-    TICKET_FAILED_STATUS_SET,
+    TICKET_FINISHED_STATUS_SET,
     TICKET_TODO_STATUS_SET,
     TODO_RUNNING_STATUS,
     CountType,
@@ -157,7 +157,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         """校验是否重复提交"""
 
         active_tickets = (
-            self.get_queryset().filter(ticket_type=ticket_type).exclude(status__in=TICKET_FAILED_STATUS_SET)
+            self.get_queryset().filter(ticket_type=ticket_type).exclude(status__in=TICKET_FINISHED_STATUS_SET)
         )
 
         cluster_ids = fetch_cluster_ids(details=details)
