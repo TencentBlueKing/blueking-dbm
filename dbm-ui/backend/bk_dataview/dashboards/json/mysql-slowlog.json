@@ -28,22 +28,425 @@
   "liveNow": false,
   "panels": [
     {
+      "datasource": {
+        "type": "bk_log_datasource",
+        "uid": "${DS_日志平台}"
+      },
+      "description": "slowlog collected from instance host",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
       "gridPos": {
-        "h": 1,
-        "w": 24,
+        "h": 6,
+        "w": 12,
         "x": 0,
         "y": 0
       },
-      "id": 17,
-      "title": "Row title",
-      "type": "row"
+      "id": 24,
+      "interval": "1m",
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "data": {
+            "alias": "$tag___ext.instance_role, $tag_serverIp:$tag___ext.instance_port",
+            "conditions": [
+              [
+                {
+                  "key": "cd62omqqjg",
+                  "list": [
+                    {
+                      "id": "__ext.app",
+                      "name": "__ext.app"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "__ext.app"
+                },
+                {
+                  "key": "5a54d4ddtb",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "bfwsce6lak",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$app"
+                  ]
+                }
+              ],
+              [
+                {
+                  "key": "fsk3zn8o6c",
+                  "list": [
+                    {
+                      "id": "and",
+                      "name": "AND"
+                    },
+                    {
+                      "id": "or",
+                      "name": "OR"
+                    }
+                  ],
+                  "type": "condition",
+                  "value": "and"
+                },
+                {
+                  "key": "5w1pk5lg3f",
+                  "list": [
+                    {
+                      "id": "__ext.cluster_domain",
+                      "name": "__ext.cluster_domain"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "__ext.cluster_domain"
+                },
+                {
+                  "key": "83yxhj8nw3",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "xaj59hptrb",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            ],
+            "dimensions": [
+              "serverIp",
+              "__ext.instance_port",
+              "__ext.instance_role"
+            ],
+            "index": {
+              "id": [
+                "host_process",
+                5913
+              ],
+              "labels": [
+                "进程",
+                "[采集项]mysql_slowlog"
+              ]
+            },
+            "indexSetString": "",
+            "method": "value_count",
+            "metric": "bk_host_id",
+            "period": 60,
+            "periodUnitSet": {
+              "periodUnit": "min",
+              "timeNum": 1
+            },
+            "queryString": "$query_string",
+            "size": 50,
+            "target": {
+              "expandKeys": [],
+              "realValues": [],
+              "treeData": [],
+              "values": []
+            }
+          },
+          "datasource": {
+            "type": "bk_log_datasource",
+            "uid": "${DS_日志平台}"
+          },
+          "refId": "A"
+        }
+      ],
+      "title": "Slow logs for Instance",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_-_指标数据}"
+      },
+      "description": "global_status_slow_queries",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 25,
+      "interval": "1m",
+      "options": {
+        "legend": {
+          "calcs": [
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "$tag_instance_role, $tag_instance",
+              "data_label": "exporter_dbm_mysqld_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "increase",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "1m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [
+                "instance",
+                "instance_role"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "SUM",
+              "metric_field": "mysql_global_status_slow_queries",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mysqld_exporter",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "Slow queries (1m_sum)",
+      "type": "timeseries"
     },
     {
       "datasource": {
         "type": "bk_log_datasource",
         "uid": "${DS_日志平台}"
       },
-      "description": "慢查询列表",
+      "description": "按  md5 过滤：slow_query.query_digest_md5 is 'xxx'",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -81,7 +484,7 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 248
+                "value": 153
               }
             ]
           },
@@ -153,7 +556,31 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 127
+                "value": 147
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "slow_query.query_string"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 242
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "slow_query.query_digest_text"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 806
               }
             ]
           }
@@ -163,7 +590,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 1
+        "y": 6
       },
       "id": 4,
       "options": {
@@ -181,7 +608,7 @@
         "sortBy": [
           {
             "desc": true,
-            "displayName": "rows_sent"
+            "displayName": "rows_examined"
           }
         ]
       },
@@ -193,83 +620,7 @@
             "conditions": [
               [
                 {
-                  "key": "2mxv8t9k0m",
-                  "list": [
-                    {
-                      "id": "__ext.app",
-                      "name": "__ext.app"
-                    }
-                  ],
-                  "open": false,
-                  "type": "key",
-                  "value": "__ext.app"
-                },
-                {
-                  "key": "zgl5rrl1sh",
-                  "list": [
-                    {
-                      "id": "is",
-                      "name": "is"
-                    },
-                    {
-                      "id": "is one of",
-                      "name": "is one of"
-                    },
-                    {
-                      "id": "is not",
-                      "name": "is not"
-                    },
-                    {
-                      "id": "is not one of",
-                      "name": "is not one of"
-                    },
-                    {
-                      "id": "gt",
-                      "name": ">"
-                    },
-                    {
-                      "id": "gte",
-                      "name": ">="
-                    },
-                    {
-                      "id": "lt",
-                      "name": "<"
-                    },
-                    {
-                      "id": "lte",
-                      "name": "<="
-                    }
-                  ],
-                  "type": "method",
-                  "value": "is"
-                },
-                {
-                  "key": "6bodoruhm3",
-                  "list": [],
-                  "type": "value",
-                  "value": [
-                    "$app"
-                  ]
-                }
-              ],
-              [
-                {
-                  "key": "d1nhrnsuiu",
-                  "list": [
-                    {
-                      "id": "and",
-                      "name": "AND"
-                    },
-                    {
-                      "id": "or",
-                      "name": "OR"
-                    }
-                  ],
-                  "type": "condition",
-                  "value": "and"
-                },
-                {
-                  "key": "rjp12xuc3g",
+                  "key": "x0cami03bw",
                   "list": [
                     {
                       "id": "__ext.cluster_domain",
@@ -281,7 +632,7 @@
                   "value": "__ext.cluster_domain"
                 },
                 {
-                  "key": "054r8ctv0t",
+                  "key": "0cjlacipr4",
                   "list": [
                     {
                       "id": "is",
@@ -320,7 +671,7 @@
                   "value": "is"
                 },
                 {
-                  "key": "cugj8vah9y",
+                  "key": "s76ehd4pzk",
                   "list": [],
                   "type": "value",
                   "value": [
@@ -330,7 +681,7 @@
               ],
               [
                 {
-                  "key": "rhgpo7bq3o",
+                  "key": "fy2pxoxbbs",
                   "list": [
                     {
                       "id": "and",
@@ -345,7 +696,7 @@
                   "value": "and"
                 },
                 {
-                  "key": "pb0e8ddk04",
+                  "key": "as8r6evw7q",
                   "list": [
                     {
                       "id": "__ext.instance_role",
@@ -357,7 +708,7 @@
                   "value": "__ext.instance_role"
                 },
                 {
-                  "key": "4jlixuj77l",
+                  "key": "oiiiw0955a",
                   "list": [
                     {
                       "id": "is",
@@ -396,7 +747,7 @@
                   "value": "is"
                 },
                 {
-                  "key": "f2ene6kku7",
+                  "key": "qviom3u4n4",
                   "list": [],
                   "type": "value",
                   "value": [
@@ -424,8 +775,8 @@
               "periodUnit": "min",
               "timeNum": 1
             },
-            "queryString": "$query_string AND NOT \"# TIME\"",
-            "size": 50,
+            "queryString": "$query_string",
+            "size": 100,
             "target": {
               "expandKeys": [],
               "realValues": [],
@@ -440,7 +791,7 @@
           "refId": "A"
         }
       ],
-      "title": "慢查询列表",
+      "title": "All slow query logs [$instance_role]",
       "transformations": [
         {
           "id": "organize",
@@ -466,50 +817,51 @@
               "log": true,
               "path": true,
               "serverIp": true,
-              "slow_query.command": true,
+              "slow_query.command": false,
               "slow_query.db_name": true,
               "slow_query.query_length": true,
+              "sql_text": true,
               "sql_timestamp": true
             },
             "includeByName": {},
             "indexByName": {
-              "__ext.app": 21,
-              "__ext.app_id": 13,
-              "__ext.bk_cloud_id": 17,
-              "__ext.bk_collect_config_id": 19,
-              "__ext.cluster_domain": 22,
-              "__ext.cluster_name": 15,
-              "__ext.cluster_type": 16,
-              "__ext.instance_host": 14,
-              "__ext.instance_port": 20,
-              "__ext.instance_role": 18,
+              "__ext.app": 25,
+              "__ext.app_id": 17,
+              "__ext.bk_cloud_id": 21,
+              "__ext.bk_collect_config_id": 23,
+              "__ext.cluster_domain": 26,
+              "__ext.cluster_name": 19,
+              "__ext.cluster_type": 20,
+              "__ext.instance_host": 18,
+              "__ext.instance_port": 24,
+              "__ext.instance_role": 22,
               "__ipv6__": 37,
               "__module__": 35,
               "__parse_failure": 39,
               "__set__": 36,
-              "bk_host_id": 23,
+              "bk_host_id": 27,
               "client_host": 5,
               "cloudId": 31,
               "db_name": 6,
-              "dtEventTimeStamp": 10,
+              "dtEventTimeStamp": 14,
               "gseIndex": 30,
               "index": 38,
-              "iterationIndex": 12,
+              "iterationIndex": 16,
               "lock_time": 32,
-              "log": 11,
-              "path": 24,
+              "log": 15,
+              "path": 28,
               "query_time": 1,
               "rows_examined": 2,
               "rows_sent": 3,
               "serverIp": 34,
-              "slow_query.command": 28,
-              "slow_query.db_name": 25,
+              "slow_query.command": 10,
+              "slow_query.db_name": 12,
               "slow_query.query_digest_md5": 7,
-              "slow_query.query_digest_text": 29,
-              "slow_query.query_length": 27,
+              "slow_query.query_digest_text": 8,
+              "slow_query.query_length": 29,
               "slow_query.query_string": 9,
-              "slow_query.table_name": 26,
-              "sql_text": 8,
+              "slow_query.table_name": 11,
+              "sql_text": 13,
               "sql_timestamp": 33,
               "time": 0,
               "user": 4
@@ -533,11 +885,24 @@
       "type": "table"
     },
     {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
+      "id": 17,
+      "panels": [],
+      "title": "Analysis [$instance_role]",
+      "type": "row"
+    },
+    {
       "datasource": {
         "type": "bk_log_datasource",
         "uid": "${DS_日志平台}"
       },
-      "description": "慢查询列表",
+      "description": "慢查询 sql 模式统计 - count",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -593,10 +958,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 10,
-        "w": 12,
+        "h": 7,
+        "w": 24,
         "x": 0,
-        "y": 9
+        "y": 15
       },
       "id": 18,
       "interval": "1m",
@@ -606,21 +971,21 @@
             "max"
           ],
           "displayMode": "table",
-          "placement": "bottom",
+          "placement": "right",
           "showLegend": true,
           "sortBy": "Max",
           "sortDesc": true
         },
         "tooltip": {
           "mode": "single",
-          "sort": "none"
+          "sort": "desc"
         }
       },
       "pluginVersion": "10.4.10",
       "targets": [
         {
           "data": {
-            "alias": "$tag_slow_query.query_digest_md5 ($tag_db_name) >> $tag_slow_query.query_digest_text",
+            "alias": "$tag_slow_query.query_digest_md5[$tag_db_name]>> $tag_slow_query.query_digest_text",
             "conditions": [
               [
                 {
@@ -854,12 +1219,12 @@
             "indexSetString": "",
             "method": "value_count",
             "metric": "rows_examined",
-            "period": 300,
+            "period": 60,
             "periodUnitSet": {
               "periodUnit": "min",
-              "timeNum": 5
+              "timeNum": 1
             },
-            "queryString": "$query_string AND NOT \"# TIME\"",
+            "queryString": "$query_string",
             "size": 50,
             "target": {
               "expandKeys": [],
@@ -875,7 +1240,7 @@
           "refId": "A"
         }
       ],
-      "title": "慢查询 sql 模式统计 - count",
+      "title": "Count by sql digest",
       "transformations": [
         {
           "id": "organize",
@@ -972,7 +1337,7 @@
         "type": "bk_log_datasource",
         "uid": "${DS_日志平台}"
       },
-      "description": "慢查询列表",
+      "description": "慢查询 sql 模式统计 - rows_examined_max",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1029,12 +1394,12 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 10,
-        "w": 12,
-        "x": 12,
-        "y": 9
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 22
       },
-      "id": 19,
+      "id": 22,
       "interval": "1m",
       "options": {
         "legend": {
@@ -1042,7 +1407,7 @@
             "max"
           ],
           "displayMode": "table",
-          "placement": "bottom",
+          "placement": "right",
           "showLegend": true,
           "sortBy": "Max",
           "sortDesc": true
@@ -1056,7 +1421,443 @@
       "targets": [
         {
           "data": {
-            "alias": "$tag_slow_query.query_digest_md5 ($tag_db_name) >> $tag_slow_query.query_digest_text",
+            "alias": "$tag_slow_query.query_digest_md5 >> $tag_slow_query.query_digest_text",
+            "conditions": [
+              [
+                {
+                  "key": "2mxv8t9k0m",
+                  "list": [
+                    {
+                      "id": "__ext.app",
+                      "name": "__ext.app"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "__ext.app"
+                },
+                {
+                  "key": "zgl5rrl1sh",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "6bodoruhm3",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$app"
+                  ]
+                }
+              ],
+              [
+                {
+                  "key": "d1nhrnsuiu",
+                  "list": [
+                    {
+                      "id": "and",
+                      "name": "AND"
+                    },
+                    {
+                      "id": "or",
+                      "name": "OR"
+                    }
+                  ],
+                  "type": "condition",
+                  "value": "and"
+                },
+                {
+                  "key": "rjp12xuc3g",
+                  "list": [
+                    {
+                      "id": "__ext.cluster_domain",
+                      "name": "__ext.cluster_domain"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "__ext.cluster_domain"
+                },
+                {
+                  "key": "054r8ctv0t",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "cugj8vah9y",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ],
+              [
+                {
+                  "key": "rhgpo7bq3o",
+                  "list": [
+                    {
+                      "id": "and",
+                      "name": "AND"
+                    },
+                    {
+                      "id": "or",
+                      "name": "OR"
+                    }
+                  ],
+                  "type": "condition",
+                  "value": "and"
+                },
+                {
+                  "key": "pb0e8ddk04",
+                  "list": [
+                    {
+                      "id": "__ext.instance_role",
+                      "name": "__ext.instance_role"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "__ext.instance_role"
+                },
+                {
+                  "key": "4jlixuj77l",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "f2ene6kku7",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$instance_role"
+                  ]
+                }
+              ]
+            ],
+            "dimensions": [
+              "slow_query.query_digest_text",
+              "slow_query.query_digest_md5",
+              "db_name"
+            ],
+            "index": {
+              "id": [
+                "host_process",
+                5913
+              ],
+              "labels": [
+                "进程",
+                "[采集项]mysql_slowlog"
+              ]
+            },
+            "indexSetString": "",
+            "method": "max",
+            "metric": "rows_examined",
+            "period": 60,
+            "periodUnitSet": {
+              "periodUnit": "min",
+              "timeNum": 1
+            },
+            "queryString": "$query_string",
+            "size": 50,
+            "target": {
+              "expandKeys": [],
+              "realValues": [],
+              "treeData": [],
+              "values": []
+            }
+          },
+          "datasource": {
+            "type": "bk_log_datasource",
+            "uid": "${DS_日志平台}"
+          },
+          "refId": "A"
+        }
+      ],
+      "title": "Rows_scaned by sql digest (1m_max)",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "__ext.app": true,
+              "__ext.app_id": true,
+              "__ext.bk_cloud_id": true,
+              "__ext.bk_collect_config_id": true,
+              "__ext.cluster_domain": true,
+              "__ext.cluster_name": true,
+              "__ext.cluster_type": true,
+              "__ipv6__": true,
+              "__module__": true,
+              "__set__": true,
+              "access_source_host": true,
+              "bk_host_id": true,
+              "cloudId": true,
+              "dtEventTimeStamp": true,
+              "gseIndex": true,
+              "index": true,
+              "iterationIndex": true,
+              "log": true,
+              "path": true,
+              "serverIp": true,
+              "slow_query.command": true,
+              "slow_query.db_name": true,
+              "slow_query.query_length": true,
+              "sql_timestamp": true
+            },
+            "includeByName": {},
+            "indexByName": {
+              "__ext.app": 20,
+              "__ext.app_id": 12,
+              "__ext.bk_cloud_id": 16,
+              "__ext.bk_collect_config_id": 18,
+              "__ext.cluster_domain": 21,
+              "__ext.cluster_name": 14,
+              "__ext.cluster_type": 15,
+              "__ext.instance_host": 13,
+              "__ext.instance_port": 19,
+              "__ext.instance_role": 17,
+              "__ipv6__": 37,
+              "__module__": 35,
+              "__parse_failure": 39,
+              "__set__": 36,
+              "bk_host_id": 22,
+              "client_host": 5,
+              "cloudId": 31,
+              "db_name": 6,
+              "dtEventTimeStamp": 9,
+              "gseIndex": 30,
+              "index": 38,
+              "iterationIndex": 11,
+              "lock_time": 32,
+              "log": 10,
+              "path": 23,
+              "query_time": 1,
+              "rows_examined": 2,
+              "rows_sent": 3,
+              "serverIp": 34,
+              "slow_query.command": 27,
+              "slow_query.db_name": 24,
+              "slow_query.query_digest_md5": 29,
+              "slow_query.query_digest_text": 28,
+              "slow_query.query_length": 26,
+              "slow_query.query_string": 8,
+              "slow_query.table_name": 25,
+              "sql_text": 7,
+              "sql_timestamp": 33,
+              "time": 0,
+              "user": 4
+            },
+            "renameByName": {}
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": true,
+                "field": "query_time"
+              }
+            ]
+          }
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bk_log_datasource",
+        "uid": "${DS_日志平台}"
+      },
+      "description": "慢查询 sql 模式统计 - rows_examined_sum",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 28
+      },
+      "id": 19,
+      "interval": "1m",
+      "options": {
+        "legend": {
+          "calcs": [
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "10.4.10",
+      "targets": [
+        {
+          "data": {
+            "alias": "$tag_slow_query.query_digest_md5 >> $tag_slow_query.query_digest_text",
             "conditions": [
               [
                 {
@@ -1290,12 +2091,12 @@
             "indexSetString": "",
             "method": "sum",
             "metric": "rows_examined",
-            "period": 300,
+            "period": 60,
             "periodUnitSet": {
               "periodUnit": "min",
-              "timeNum": 5
+              "timeNum": 1
             },
-            "queryString": "$query_string AND NOT \"# TIME\"",
+            "queryString": "$query_string",
             "size": 50,
             "target": {
               "expandKeys": [],
@@ -1311,7 +2112,7 @@
           "refId": "A"
         }
       ],
-      "title": "慢查询 sql 模式统计 - rows_examined",
+      "title": "Rows_scaned by sql digest (1m_sum)",
       "transformations": [
         {
           "id": "organize",
@@ -1408,7 +2209,7 @@
         "type": "bk_log_datasource",
         "uid": "${DS_日志平台}"
       },
-      "description": "慢查询列表",
+      "description": "慢查询 sql 模式统计 - rows_sent_sum",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1465,10 +2266,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 9,
-        "w": 12,
+        "h": 6,
+        "w": 24,
         "x": 0,
-        "y": 19
+        "y": 34
       },
       "id": 20,
       "interval": "1m",
@@ -1478,7 +2279,7 @@
             "max"
           ],
           "displayMode": "table",
-          "placement": "bottom",
+          "placement": "right",
           "showLegend": true,
           "sortBy": "Max",
           "sortDesc": true
@@ -1492,7 +2293,7 @@
       "targets": [
         {
           "data": {
-            "alias": "$tag_slow_query.query_digest_md5 ($tag_db_name) >> $tag_slow_query.query_digest_text",
+            "alias": "$tag_slow_query.query_digest_md5 >> $tag_slow_query.query_digest_text",
             "conditions": [
               [
                 {
@@ -1726,12 +2527,12 @@
             "indexSetString": "",
             "method": "sum",
             "metric": "rows_sent",
-            "period": 300,
+            "period": 60,
             "periodUnitSet": {
               "periodUnit": "min",
-              "timeNum": 5
+              "timeNum": 1
             },
-            "queryString": "$query_string AND NOT \"# TIME\"",
+            "queryString": "$query_string",
             "size": 50,
             "target": {
               "expandKeys": [],
@@ -1747,7 +2548,7 @@
           "refId": "A"
         }
       ],
-      "title": "慢查询 sql 模式统计 - rows_sent",
+      "title": "Rows_sent by sql digest (1m_sum)",
       "transformations": [
         {
           "id": "organize",
@@ -1844,7 +2645,7 @@
         "type": "bk_log_datasource",
         "uid": "${DS_日志平台}"
       },
-      "description": "慢查询列表",
+      "description": "慢查询 sql 模式统计 - query_time_max",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1896,15 +2697,15 @@
               }
             ]
           },
-          "unit": "dtdurations"
+          "unit": "s"
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 9,
-        "w": 12,
-        "x": 12,
-        "y": 19
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 40
       },
       "id": 21,
       "interval": "1m",
@@ -1914,7 +2715,7 @@
             "max"
           ],
           "displayMode": "table",
-          "placement": "bottom",
+          "placement": "right",
           "showLegend": true,
           "sortBy": "Max",
           "sortDesc": true
@@ -1928,7 +2729,7 @@
       "targets": [
         {
           "data": {
-            "alias": "$tag_slow_query.query_digest_md5 ($tag_db_name) >> $tag_slow_query.query_digest_text",
+            "alias": "$tag_slow_query.query_digest_md5 >> $tag_slow_query.query_digest_text",
             "conditions": [
               [
                 {
@@ -2160,14 +2961,14 @@
               ]
             },
             "indexSetString": "",
-            "method": "sum",
+            "method": "max",
             "metric": "query_time",
-            "period": 300,
+            "period": 60,
             "periodUnitSet": {
               "periodUnit": "min",
-              "timeNum": 5
+              "timeNum": 1
             },
-            "queryString": "$query_string AND NOT \"# TIME\"",
+            "queryString": "$query_string",
             "size": 50,
             "target": {
               "expandKeys": [],
@@ -2183,7 +2984,7 @@
           "refId": "A"
         }
       ],
-      "title": "慢查询 sql 模式统计 - query_time",
+      "title": "Query_time by sql digest (1m_max)",
       "transformations": [
         {
           "id": "organize",
@@ -2276,12 +3077,352 @@
       "type": "timeseries"
     },
     {
+      "datasource": {
+        "type": "bk_log_datasource",
+        "uid": "${DS_日志平台}"
+      },
+      "description": "慢查询库表分布",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 47
+      },
+      "id": 23,
+      "interval": "1m",
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "data": {
+            "alias": "$tag_db_name . $tag_slow_query.table_name",
+            "conditions": [
+              [
+                {
+                  "key": "cd62omqqjg",
+                  "list": [
+                    {
+                      "id": "__ext.app",
+                      "name": "__ext.app"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "__ext.app"
+                },
+                {
+                  "key": "5a54d4ddtb",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "bfwsce6lak",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$app"
+                  ]
+                }
+              ],
+              [
+                {
+                  "key": "fsk3zn8o6c",
+                  "list": [
+                    {
+                      "id": "and",
+                      "name": "AND"
+                    },
+                    {
+                      "id": "or",
+                      "name": "OR"
+                    }
+                  ],
+                  "type": "condition",
+                  "value": "and"
+                },
+                {
+                  "key": "5w1pk5lg3f",
+                  "list": [
+                    {
+                      "id": "__ext.cluster_domain",
+                      "name": "__ext.cluster_domain"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "__ext.cluster_domain"
+                },
+                {
+                  "key": "83yxhj8nw3",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "xaj59hptrb",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ],
+              [
+                {
+                  "key": "rjwgqy7sl6",
+                  "list": [
+                    {
+                      "id": "and",
+                      "name": "AND"
+                    },
+                    {
+                      "id": "or",
+                      "name": "OR"
+                    }
+                  ],
+                  "type": "condition",
+                  "value": "and"
+                },
+                {
+                  "key": "aiuw43h333",
+                  "list": [
+                    {
+                      "id": "__ext.instance_role",
+                      "name": "__ext.instance_role"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "__ext.instance_role"
+                },
+                {
+                  "key": "ylo17atfvg",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "g25nspnms1",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$instance_role"
+                  ]
+                }
+              ]
+            ],
+            "dimensions": [
+              "db_name",
+              "slow_query.table_name"
+            ],
+            "index": {
+              "id": [
+                "host_process",
+                5913
+              ],
+              "labels": [
+                "进程",
+                "[采集项]mysql_slowlog"
+              ]
+            },
+            "indexSetString": "",
+            "method": "value_count",
+            "metric": "bk_host_id",
+            "period": 60,
+            "periodUnitSet": {
+              "periodUnit": "min",
+              "timeNum": 1
+            },
+            "queryString": "$query_string",
+            "size": 50,
+            "target": {
+              "expandKeys": [],
+              "realValues": [],
+              "treeData": [],
+              "values": []
+            }
+          },
+          "datasource": {
+            "type": "bk_log_datasource",
+            "uid": "${DS_日志平台}"
+          },
+          "refId": "A"
+        }
+      ],
+      "title": "SQL count distributed by db.table",
+      "type": "timeseries"
+    },
+    {
       "collapsed": true,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 28
+        "y": 54
       },
       "id": 16,
       "panels": [
@@ -2348,7 +3489,7 @@
             "h": 11,
             "w": 12,
             "x": 0,
-            "y": 26
+            "y": 55
           },
           "id": 13,
           "options": {
@@ -2606,7 +3747,7 @@
                   "periodUnit": "min",
                   "timeNum": 1
                 },
-                "queryString": "",
+                "queryString": "$query_string",
                 "size": 10000,
                 "target": {
                   "expandKeys": [],
@@ -2691,7 +3832,7 @@
             "h": 11,
             "w": 12,
             "x": 12,
-            "y": 26
+            "y": 55
           },
           "id": 14,
           "options": {
@@ -3032,9 +4173,7 @@
                   "id": "byNames",
                   "options": {
                     "mode": "exclude",
-                    "names": [
-                      "value_count(_index){__ext.instance_host=x.x.x.x, __ext.instance_port=20000, __ext.instance_role=backend_master}"
-                    ],
+                    "names": [],
                     "prefix": "All except:",
                     "readOnly": true
                   }
@@ -3056,7 +4195,7 @@
             "h": 11,
             "w": 8,
             "x": 0,
-            "y": 37
+            "y": 66
           },
           "id": 2,
           "options": {
@@ -3395,7 +4534,7 @@
             "h": 11,
             "w": 8,
             "x": 8,
-            "y": 37
+            "y": 66
           },
           "id": 10,
           "options": {
@@ -3730,7 +4869,7 @@
             "h": 11,
             "w": 8,
             "x": 16,
-            "y": 37
+            "y": 66
           },
           "id": 11,
           "options": {
@@ -4027,7 +5166,7 @@
             "h": 15,
             "w": 8,
             "x": 0,
-            "y": 48
+            "y": 77
           },
           "id": 6,
           "options": {
@@ -4334,12 +5473,12 @@
             "h": 15,
             "w": 8,
             "x": 8,
-            "y": 48
+            "y": 77
           },
           "id": 8,
           "options": {
             "legend": {
-              "displayMode": "list",
+              "displayMode": "table",
               "placement": "bottom",
               "showLegend": true
             },
@@ -4359,7 +5498,7 @@
           "targets": [
             {
               "data": {
-                "alias": "",
+                "alias": "$tag_db_name . $tag_slow_query.table_name",
                 "conditions": [
                   [
                     {
@@ -4641,7 +5780,7 @@
             "h": 15,
             "w": 8,
             "x": 16,
-            "y": 48
+            "y": 77
           },
           "id": 15,
           "options": {
@@ -4956,8 +6095,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -4972,7 +6110,7 @@
             "h": 12,
             "w": 24,
             "x": 0,
-            "y": 63
+            "y": 92
           },
           "id": 12,
           "options": {
@@ -5469,13 +6607,13 @@
     ]
   },
   "time": {
-    "from": "now-6h",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "default",
   "title": "MySQL慢查询",
-  "version": 45,
+  "version": 56,
   "weekStart": "",
   "__inputs": [
     {

@@ -1367,6 +1367,7 @@ func (i *InstallMySQLComp) CreateExporterCnf() (err error) {
 			port,
 			i.GeneralParam.RuntimeAccountParam.MonitorUser,
 			i.GeneralParam.RuntimeAccountParam.MonitorPwd,
+			"",
 		)
 		if err != nil {
 			logger.Error(err.Error())

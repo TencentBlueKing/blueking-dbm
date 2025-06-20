@@ -36,6 +36,7 @@ def exporter_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int]] = 
 
     i: Union[StorageInstance, ProxyInstance]
     for i in qs.all():
+        instance_role = ""
         if i.machine_type == MachineType.PROXY:
             usermap = ProxyAccountMixed.proxy_admin_account()
             user = usermap["proxy_admin_user"]
@@ -44,7 +45,21 @@ def exporter_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int]] = 
             usermap = MySQLAccountMixed.mysql_static_account(UserName.MONITOR)
             user = usermap["monitor_user"]
             password = usermap["monitor_pwd"]
+            if i.machine_type == MachineType.SPIDER:
+                instance_role = i.tendbclusterspiderext.spider_role
+            else:
+                # instance_role: remote_slave, instance_inner_role: slave
+                instance_role = i.instance_role
 
-        res.append({"ip": ip, "port": i.port, "machine_type": i.machine_type, "user": user, "password": password})
+        res.append(
+            {
+                "ip": ip,
+                "port": i.port,
+                "machine_type": i.machine_type,
+                "user": user,
+                "password": password,
+                "instance_role": instance_role,
+            }
+        )
 
     return res

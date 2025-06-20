@@ -54,7 +54,7 @@ var defaultPath = map[ExternalTool]string{
 	ToolMysqlbinlog:           "/usr/local/mysql/bin/mysqlbinlog",
 	ToolGoMysqlbinlog:         filepath.Join(cst.DBAToolkitPath, string(ToolGoMysqlbinlog)),
 	ToolMysqlbinlogRollback:   filepath.Join(cst.DBAToolkitPath, string(ToolMysqlbinlogRollback)),
-	ToolMysqlbinlogRollback80: filepath.Join(cst.DBAToolkitPath, "mysqlbinlog_rollback_80"),
+	ToolMysqlbinlogRollback80: filepath.Join(cst.DBAToolkitPath, "mysqlbinlog_rollback80"),
 	ToolMysqlTableChecksum:    filepath.Join(cst.ChecksumInstallPath, string(ToolMysqlTableChecksum)),
 	ToolPtTableChecksum:       filepath.Join(cst.ChecksumInstallPath, string(ToolPtTableChecksum)),
 	ToolPtTableSync:           filepath.Join(cst.ChecksumInstallPath, string(ToolPtTableSync)),

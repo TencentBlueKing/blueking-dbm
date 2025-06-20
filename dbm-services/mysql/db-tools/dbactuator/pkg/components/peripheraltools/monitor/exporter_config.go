@@ -57,6 +57,7 @@ func generateExporterConfigIns(mmp *MySQLMonitorParam, instance *internal.Instan
 			instance.Port,
 			rtap.MonitorUser,
 			rtap.MonitorPwd,
+			"",
 		)
 		if err != nil {
 			logger.Error(err.Error())
