@@ -9,7 +9,7 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging.config
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from django.utils.translation import ugettext as _
 
@@ -61,6 +61,46 @@ class TenDBClusterSwitchNodesFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNo
         # 分别初始化父类的init方法
         super().__init__(root_id=root_id, data=data)
         super(TenDBClusterAddNodesFlow, self).__init__(root_id=root_id, data=data)
+
+    def trans_ticket_data(self) -> Dict[str, Any]:
+        """
+        根据SaaS传入ticket_data进行转换，转换成适合flow的结构体
+        """
+        # 使用字典分组集群信息
+        cluster_map = {}
+
+        # 遍历infos列表
+        for info in self.data["infos"]:
+            cluster_id = info["cluster_id"]
+
+            # 首次遇到该cluster_id
+            if cluster_id not in cluster_map:
+                # 创建新条目（浅拷贝共享相同内存）
+                cluster_map[cluster_id] = {
+                    "base_info": info,  # 原始信息引用
+                    "old_ips": list(info["spider_old_ip_list"]),  # 仅IP列表复制
+                    "new_ips": list(info["spider_new_ip_list"]),  # 仅IP列表复制
+                }
+            else:
+                # 添加到已存在的集群分组
+                entry = cluster_map[cluster_id]
+                entry["old_ips"].extend(info["spider_old_ip_list"])
+                entry["new_ips"].extend(info["spider_new_ip_list"])
+
+        # 构建新的infos列表
+        new_infos = []
+        for entry in cluster_map.values():
+            # 创建新条目（复制基础信息）
+            new_entry = {
+                **entry["base_info"],
+                "spider_old_ip_list": entry["old_ips"],
+                "spider_new_ip_list": entry["new_ips"],
+            }  # 浅拷贝基础字段
+            # 更新IP列表（使用合并后的列表）
+            new_infos.append(new_entry)
+
+        # 返回更新后的数据
+        return {**self.data, "infos": new_infos}
 
     def switch_nodes_flow_with_cluster(
         self,
@@ -118,10 +158,12 @@ class TenDBClusterSwitchNodesFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNo
         """
         定义TenDB Cluster替换接入层的后端流程
         """
-        pipeline = Builder(root_id=self.root_id, data=self.data)
+        # 做转换
+        global_data = self.trans_ticket_data()
+        pipeline = Builder(root_id=self.root_id, data=global_data)
 
         sub_pipelines = []
-        for info in self.data["infos"]:
+        for info in global_data["infos"]:
             sub_pipelines.append(
                 self.switch_nodes_flow_with_cluster(
                     cluster_id=info["cluster_id"],

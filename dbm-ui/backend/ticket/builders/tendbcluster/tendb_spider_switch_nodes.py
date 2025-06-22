@@ -14,6 +14,9 @@ from rest_framework import serializers
 
 from backend.db_meta.enums import TenDBClusterSpiderRole
 from backend.db_services.dbbase.constants import IpSource
+from backend.flow.engine.bamboo.scene.spider.validate.spider_switch_nodes_validate import (
+    TenDBClusterSwitchNodesFlowValidator,
+)
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
 from backend.ticket.builders.tendbcluster.base import (
@@ -28,7 +31,7 @@ class SpiderSwitchNodesDetailSerializer(TendbBaseOperateDetailSerializer):
     class SpiderSwitchNodesInfoSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         resource_spec = serializers.DictField(help_text=_("规格参数"))
-        role_key = serializers.CharField(help_text=_("唯一值"), required=False)
+        row_key = serializers.CharField(help_text=_("唯一值"), required=False)
         switch_spider_role = serializers.ChoiceField(
             help_text=_("接入层类型"), choices=TenDBClusterSpiderRole.get_choices()
         )
@@ -45,7 +48,7 @@ class SpiderSwitchNodesDetailSerializer(TendbBaseOperateDetailSerializer):
 class SpiderSwitchNodesFlowParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.tendbcluster_switch_nodes_scene
     # 暂时先为空，等校验函数出来再替换
-    validator = None
+    validator = TenDBClusterSwitchNodesFlowValidator
 
 
 class TendbSpiderSwitchNodesResourceParamBuilder(TendbBaseOperateResourceParamBuilder):

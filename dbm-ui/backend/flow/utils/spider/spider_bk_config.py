@@ -38,18 +38,35 @@ def get_spider_version_and_charset(bk_biz_id, db_module_id) -> Any:
     return data["charset"], data["spider_version"]
 
 
-def calc_spider_max_count(bk_biz_id, db_module_id, db_version, immute_domain: str = "init") -> int:
+def calc_spider_max_count(bk_biz_id, db_module_id, db_version, immute_domain: str, is_init: bool = False) -> int:
     """
+    如果集群配置没有开启spider_auto_increment_mode_switch
+    则这里直接返回平台硬限制，返回128
+    如果开启，则按照下面判断：
     根据业务id和模块id，通过bk—config获取默认spider的配置
     得出spider_auto_increment_step配置
     为了保证后续可以做集群的整体迁移/整体升级，集群spider_master/spider_mnt的数量不能超过spider_auto_increment_step的一半
     @param bk_biz_id: 业务id
     @param db_module_id: db模块ID
     @param db_version: spider版本
-    @param immute_domain: 域名信息, 默认值init，代表无域名查询
+    @param immute_domain: 域名信息
+    @param is_init: 是否是第一次查询申请，域名配置没有生成好，针对集群部署的场景
     """
-    spider_auto_increment_step = int(
-        DBConfigApi.query_conf_item(
+    if is_init:
+        config = DBConfigApi.query_conf_item(
+            {
+                "bk_biz_id": str(bk_biz_id),
+                "level_name": LevelName.MODULE,
+                "level_value": str(db_module_id),
+                "conf_file": db_version,
+                "conf_type": ConfigTypeEnum.DBConf,
+                "namespace": ClusterType.TenDBCluster,
+                "format": FormatType.MAP,
+            }
+        )["content"]["mysqld"]
+
+    else:
+        config = DBConfigApi.query_conf_item(
             {
                 "bk_biz_id": str(bk_biz_id),
                 "level_name": LevelName.CLUSTER,
@@ -60,6 +77,11 @@ def calc_spider_max_count(bk_biz_id, db_module_id, db_version, immute_domain: st
                 "namespace": ClusterType.TenDBCluster,
                 "format": FormatType.MAP_LEVEL,
             }
-        )["content"]["mysqld"]["spider_auto_increment_step"]
-    )
-    return int(spider_auto_increment_step / 2)
+        )["content"]["mysqld"]
+
+    if int(config["spider_auto_increment_mode_switch"]):
+        # spider_auto_increment_step 值作为集群理论上限
+        return int(config["spider_auto_increment_step"])
+
+    # 没有开启全局自增，返回硬上限
+    return 1024
