@@ -27,7 +27,10 @@
       <SpecColumn
         v-model="item.specId"
         :cluster-type="DBTypes.MYSQL"
-        selectable />
+        :current-spec-id="item.originProxy.spec_id"
+        :machine-type="MachineTypes.MYSQL_PROXY"
+        selectable
+        :show-tag="false" />
       <template v-if="sourceType === SourceType.RESOURCE_AUTO">
         <ResourceTagColumn
           v-model="item.labels"
@@ -65,7 +68,7 @@
   import type { Mysql } from '@services/model/ticket/ticket';
   import { SourceType } from '@services/types';
 
-  import { DBTypes } from '@common/const';
+  import { DBTypes, MachineTypes } from '@common/const';
 
   import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
   import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
@@ -133,6 +136,7 @@
       bk_host_id: 0,
       ip: '',
       port: 0,
+      spec_id: 0,
       ...data.originProxy,
       cluster_ids: [] as RowData['originProxy']['cluster_ids'],
       related_clusters: [] as RowData['originProxy']['related_clusters'],
@@ -204,13 +208,12 @@
           tableData.value = infos.map((item) => {
             const originProxy = item.old_nodes.origin_proxy[0];
             return createTableRow({
+              labels: (item.resource_spec.target_proxy.labels || []).map((label) => Number(label)),
               originProxy: {
-                ...originProxy,
-                cluster_ids: [],
-                related_clusters: [],
-                related_instances: [],
+                ip: originProxy.ip,
               },
-              targetProxy: item.resource_spec.target_proxy.hosts[0],
+              specId: item.resource_spec.target_proxy.spec_id,
+              targetProxy: item.resource_spec.target_proxy.hosts?.[0],
             });
           });
         }
@@ -221,27 +224,10 @@
   const handleBatchEdit = (list: SelectorItem[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
       if (!selectedMap.value[item.ip]) {
-        const clusterIds: number[] = [];
-        const relatedClusters: string[] = [];
-        const relatedInstances: string[] = [];
-        const adminPort = item.related_instances[0].admin_port;
-        item.related_clusters.forEach((item) => {
-          clusterIds.push(item.id);
-          relatedClusters.push(item.immute_domain);
-        });
-        item.related_instances.forEach((item) => {
-          relatedInstances.push(item.instance);
-        });
         acc.push(
           createTableRow({
             originProxy: {
-              bk_cloud_id: item.bk_cloud_id,
-              bk_host_id: item.bk_host_id,
-              cluster_ids: clusterIds,
               ip: item.ip,
-              port: adminPort,
-              related_clusters: relatedClusters,
-              related_instances: relatedInstances,
             },
           }),
         );

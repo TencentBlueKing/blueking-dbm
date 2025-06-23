@@ -179,10 +179,10 @@
           createTableRow({
             labels: (item.resource_spec.backend_group.labels || []).map((item) => Number(item)),
             oldMaster: {
-              ip: item.old_nodes.old_master[0].ip,
+              ip: item.old_nodes.old_master?.[0]?.ip || '',
             },
             oldSlave: {
-              ip: item.old_nodes.old_slave[0].ip,
+              ip: item.old_nodes.old_slave?.[0]?.ip || '',
             },
             specId: item.resource_spec.backend_group.spec_id,
           }),

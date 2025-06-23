@@ -63,14 +63,14 @@
   const { loading, run: queryMachineInstancePair } = useRequest(getRemoteMachineInstancePair, {
     manual: true,
     onSuccess: (data) => {
-      const [machineInstancePair] = Object.values(data.machines);
-      if (machineInstancePair) {
+      const [item] = Object.values(data.machines);
+      if (item) {
         modelValue.value = {
-          bk_biz_id: machineInstancePair.bk_biz_id,
-          bk_cloud_id: machineInstancePair.bk_cloud_id,
-          bk_host_id: machineInstancePair.bk_host_id,
-          ip: machineInstancePair.ip,
-          related_instances: machineInstancePair.related_instances.map((item) => item.instance),
+          bk_biz_id: item.bk_biz_id,
+          bk_cloud_id: item.bk_cloud_id,
+          bk_host_id: item.bk_host_id,
+          ip: item.ip,
+          related_instances: item.related_instances.map((item) => item.instance),
         };
       }
     },

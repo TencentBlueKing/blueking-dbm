@@ -18,7 +18,7 @@
     fixed="left"
     :label="t('目标Proxy主机')"
     :loading="loading"
-    :min-width="300"
+    :min-width="200"
     required>
     <template #headAppend>
       <span
@@ -36,10 +36,8 @@
   <EditableColumn
     :label="t('同机关联实例')"
     :loading="loading"
-    :min-width="300">
-    <EditableBlock
-      v-if="modelValue.related_instances.length"
-      :placeholder="t('自动生成')">
+    :min-width="200">
+    <EditableBlock :placeholder="t('自动生成')">
       <p
         v-for="item in modelValue.related_instances"
         :key="item">
@@ -50,10 +48,8 @@
   <EditableColumn
     :label="t('同机关联集群')"
     :loading="loading"
-    :min-width="300">
-    <EditableBlock
-      v-if="modelValue.related_clusters.length"
-      :placeholder="t('自动生成')">
+    :min-width="240">
+    <EditableBlock :placeholder="t('自动生成')">
       <p
         v-for="item in modelValue.related_clusters"
         :key="item">
@@ -105,6 +101,7 @@
     port: number;
     related_clusters: string[];
     related_instances: string[];
+    spec_id: number;
   }>({
     required: true,
   });
@@ -172,8 +169,8 @@
   const { loading, run: queryInstance } = useRequest(checkInstance, {
     manual: true,
     onSuccess: (data) => {
-      if (data.length) {
-        const [hostInfo] = data;
+      const [item] = data;
+      if (item) {
         const clusterIds: number[] = [];
         const relatedInstances: string[] = [];
         const relatedClusters: string[] = [];
@@ -183,13 +180,14 @@
           relatedClusters.push(item.master_domain);
         });
         modelValue.value = {
-          bk_cloud_id: hostInfo.bk_cloud_id,
-          bk_host_id: hostInfo.bk_host_id,
+          bk_cloud_id: item.bk_cloud_id,
+          bk_host_id: item.bk_host_id,
           cluster_ids: clusterIds,
-          ip: hostInfo.ip,
-          port: hostInfo.port,
+          ip: item.ip,
+          port: item.port,
           related_clusters: relatedClusters,
           related_instances: relatedInstances,
+          spec_id: item.spec_config?.id || -1,
         };
       }
     },
@@ -208,6 +206,7 @@
       port: 0,
       related_clusters: [],
       related_instances: [],
+      spec_id: 0,
     };
   };
 

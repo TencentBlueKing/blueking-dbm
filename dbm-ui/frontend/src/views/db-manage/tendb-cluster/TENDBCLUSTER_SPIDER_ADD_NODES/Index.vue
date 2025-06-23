@@ -32,20 +32,14 @@
             v-model="item.cluster"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
-          <EditableColumn
-            field="role"
-            :label="t('扩容节点类型')"
-            :min-width="150"
-            required>
-            <EditableSelect
-              v-model="item.role"
-              :input-search="false"
-              :list="getNodeTypeOptions(item)" />
-          </EditableColumn>
+          <RoleColumn
+            v-model="item.role"
+            :cluster="item.cluster" />
           <SpecColumn
             v-model="item.specId"
             :cluster-type="ClusterTypes.TENDBCLUSTER"
-            :current-spec-id="item.cluster.spec_id" />
+            :current-spec-id="item.cluster.spec_id"
+            selectable />
           <EditableColumn
             field="count"
             :label="t('扩容数量（台）')"
@@ -117,6 +111,7 @@
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
   import ClusterColumn from './components/ClusterColumn.vue';
+  import RoleColumn from './components/RoleColumn.vue';
 
   interface RowData {
     cluster: ComponentProps<typeof ClusterColumn>['modelValue'];
@@ -229,41 +224,13 @@
         acc.push(
           createTableRow({
             cluster: {
-              bk_cloud_id: item.bk_cloud_id,
-              id: item.id,
               master_domain: item.master_domain,
-              mnt_count: item.spider_mnt.length,
-              spec_id: item.cluster_spec?.spec_id || 0,
-              spider_master: item.spider_master,
-              spider_slave: item.spider_slave,
             },
-            role: item.spider_master.length > 0 ? 'spider_master' : item.spider_slave.length > 0 ? 'spider_slave' : '',
-            specId: item.cluster_spec?.spec_id || 0,
           }),
         );
       }
       return acc;
     }, []);
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
-  };
-
-  const getNodeTypeOptions = (rowData: RowData) => {
-    const list = [];
-    if (rowData.cluster.spider_master.length) {
-      list.push({
-        label: 'Spider Master',
-        value: 'spider_master',
-      });
-    }
-    if (rowData.cluster.spider_slave.length) {
-      list.push({
-        label: 'Spider Slave',
-        value: 'spider_slave',
-      });
-    }
-    Object.assign(rowData, {
-      role: list.length ? rowData.role || list[0].value : '',
-    });
-    return list;
   };
 </script>

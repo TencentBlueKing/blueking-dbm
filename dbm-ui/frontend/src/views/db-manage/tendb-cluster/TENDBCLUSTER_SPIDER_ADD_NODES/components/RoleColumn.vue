@@ -13,39 +13,51 @@
 
 <template>
   <EditableColumn
-    :label="t('规格')"
-    :min-width="150">
+    field="role"
+    :label="t('扩容节点类型')"
+    :min-width="150"
+    required>
     <EditableSelect
       v-model="modelValue"
-      display-key="spec_name"
-      id-key="spec_id"
-      :list="specList" />
+      :input-search="false"
+      :list="renderList" />
   </EditableColumn>
 </template>
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
+  import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
 
-  import { getResourceSpecList } from '@services/source/dbresourceSpec';
+  interface Props {
+    cluster: {
+      spider_master: TendbClusterModel['spider_master'];
+      spider_slave: TendbClusterModel['spider_slave'];
+    };
+  }
 
-  import { ClusterTypes } from '@common/const';
+  const props = defineProps<Props>();
 
-  const modelValue = defineModel<number>({
-    required: false,
+  const modelValue = defineModel<string>({
+    required: true,
   });
 
   const { t } = useI18n();
 
-  const specList = ref<ServiceReturnType<typeof getResourceSpecList>['results']>([]);
-
-  useRequest(getResourceSpecList, {
-    defaultParams: [
-      {
-        spec_cluster_type: ClusterTypes.TENDBCLUSTER,
-      },
-    ],
-    onSuccess: (data) => {
-      specList.value = data.results;
+  const defaultOptions = [
+    {
+      label: 'Spider Master',
+      value: 'spider_master',
     },
+    {
+      label: 'Spider Slave',
+      value: 'spider_slave',
+    },
+  ];
+
+  const renderList = computed(() =>
+    defaultOptions.filter((item) => props.cluster[item.value as 'spider_master' | 'spider_slave'].length > 0),
+  );
+
+  watch(renderList, () => {
+    modelValue.value = renderList.value?.[0]?.value || '';
   });
 </script>

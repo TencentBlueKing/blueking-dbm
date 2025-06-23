@@ -127,21 +127,21 @@
   const { loading, run: queryHost } = useRequest(checkInstance, {
     manual: true,
     onSuccess: (data) => {
-      if (data.length) {
-        const currentHost = data[0];
+      const [item] = data;
+      if (item) {
         const relatedInstances: string[] = [];
         data.forEach((item) => {
           relatedInstances.push(item.instance_address);
         });
         modelValue.value = {
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          bk_cloud_id: currentHost.bk_cloud_id,
-          bk_host_id: currentHost.bk_host_id,
-          cluster_id: currentHost.cluster_id,
-          ip: currentHost.ip,
-          master_domain: currentHost.master_domain,
+          bk_cloud_id: item.bk_cloud_id,
+          bk_host_id: item.bk_host_id,
+          cluster_id: item.cluster_id,
+          ip: item.ip,
+          master_domain: item.master_domain,
           related_instances: relatedInstances,
-          spec_id: currentHost.spec_config.id,
+          spec_id: item.spec_config?.id || 0,
         };
       }
     },

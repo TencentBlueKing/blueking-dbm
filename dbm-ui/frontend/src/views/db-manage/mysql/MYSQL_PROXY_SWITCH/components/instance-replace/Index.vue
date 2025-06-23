@@ -27,8 +27,10 @@
       <SpecColumn
         v-model="item.specId"
         :cluster-type="DBTypes.MYSQL"
+        :current-spec-id="item.originProxy.spec_id"
         :machine-type="MachineTypes.MYSQL_PROXY"
-        selectable />
+        selectable
+        :show-tag="false" />
       <template v-if="sourceType === SourceType.RESOURCE_AUTO">
         <ResourceTagColumn
           v-model="item.labels"
@@ -139,6 +141,7 @@
       ip: '',
       master_domain: '',
       port: 0,
+      spec_id: 0,
       ...data.originProxy,
     },
     specId: data.specId || 0,
@@ -229,15 +232,8 @@
         acc.push(
           createTableRow({
             originProxy: {
-              bk_cloud_id: item.bk_cloud_id,
-              bk_host_id: item.bk_host_id,
-              cluster_id: item.cluster_id,
               instance_address: item.instance_address,
-              ip: item.ip,
-              master_domain: item.master_domain,
-              port: item.port,
             },
-            specId: -1, // specId < 0 时，SpecColumn会自动选择第一个规格
           }),
         );
       }

@@ -31,15 +31,13 @@
           <div class="sub-title-value">
             <BkTag
               v-if="noLimitTag"
-              closable
               theme="success">
               {{ t('非专用资源') }}
             </BkTag>
             <template v-else>
               <BkTag
                 v-for="item in filterTagList.slice(0, MAX_TAG_NUM)"
-                :key="item.id"
-                closable>
+                :key="item.id">
                 {{ item.value }}
               </BkTag>
               <BkTag v-if="filterTagList.length > MAX_TAG_NUM"> +{{ filterTagList.slice(MAX_TAG_NUM).length }} </BkTag>
@@ -159,7 +157,7 @@
   const MAX_TAG_NUM = 4;
 
   // 非专用资源
-  const noLimitTag = computed(() => props.params.labels === '-1');
+  const noLimitTag = computed(() => props.params.labels === '0');
 
   const filterTagList = computed(() => {
     const tagIds = (props.params.labels || '').split(',').map((item) => Number(item));
@@ -173,6 +171,7 @@
   useRequest(listTag, {
     defaultParams: [
       {
+        bk_biz_ids: [window.PROJECT_CONFIG.BIZ_ID, 0].join(','), // 0 表示公共资源池
         type: 'resource',
       },
     ],

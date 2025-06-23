@@ -69,10 +69,10 @@
 
   import { checkInstance } from '@services/source/dbbase';
 
+  import { ClusterTypes, DBTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
   import InstanceSelector, { type InstanceSelectorValues, type IValue } from '@components/instance-selector/Index.vue';
-  import { ClusterTypes, DBTypes } from '@common/const';
 
   export type SelectorHost = IValue;
 
@@ -193,9 +193,9 @@
       if (modelValue.value.ip && !modelValue.value.bk_host_id) {
         queryHost({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          instance_addresses: [modelValue.value.ip],
           cluster_type: [ClusterTypes.TENDBCLUSTER],
           db_type: DBTypes.TENDBCLUSTER,
+          instance_addresses: [modelValue.value.ip],
         });
       }
     },

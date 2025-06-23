@@ -108,6 +108,7 @@
     port: number;
     related_clusters: string[];
     related_instances: string[];
+    spec_id: number;
   }>({
     required: true,
   });
@@ -191,6 +192,7 @@
           port: hostInfo.port,
           related_clusters: relatedClusters,
           related_instances: relatedInstances,
+          spec_id: hostInfo.spec_config?.id || 0,
         };
       }
     },
@@ -210,6 +212,7 @@
       port: 0,
       related_clusters: [],
       related_instances: [],
+      spec_id: 0,
     };
   };
 
