@@ -227,3 +227,20 @@ class KafkaActPayload(object):
                 },
             },
         }
+
+    def get_rebalance_payload(self, action, host) -> dict:
+        """
+        拼接安装payload参数
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Kafka.value,
+            "action": action,
+            "payload": {
+                "general": {},
+                "extend": {
+                    "brokers": host,
+                    "throttle_rate": self.ticket_data.get("throttle_rate", 20000000),
+                    "topics": self.ticket_data.get("topics", [".*"]),
+                },
+            },
+        }

@@ -42,6 +42,8 @@ func NewKafkaCommand() *cobra.Command {
 				RestartBrokerCommand(),
 				ReplaceBrokerCommand(),
 				CheckBrokerEmptyCommand(),
+				GenerateReassignmentCommand(),
+				ExecuteReassignmentCommand(),
 			},
 		},
 	}
