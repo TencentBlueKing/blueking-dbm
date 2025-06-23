@@ -409,13 +409,12 @@ func (c *ClusterProvider) DeleteCluster(request *coreentity.Request) error {
 		return fmt.Errorf("failed to create k8sClient: %w", err)
 	}
 
-	// delete record about cluster meta in db
-	params := map[string]interface{}{
-		"k8s_cluster_config_id": k8sClusterConfig.ID,
-		"cluster_name":          request.ClusterName,
-		"namespace":             request.Namespace,
-	}
-	clusterEntity, err := c.clusterMetaProvider.FindByParams(params)
+	clusterEntity, err := c.clusterMetaProvider.FindByParams(
+		map[string]interface{}{
+			"k8s_cluster_config_id": k8sClusterConfig.ID,
+			"cluster_name":          request.ClusterName,
+			"namespace":             request.Namespace,
+		})
 	if err != nil {
 		return err
 	}
@@ -424,13 +423,12 @@ func (c *ClusterProvider) DeleteCluster(request *coreentity.Request) error {
 		return err
 	}
 
-	// delete record about addon cluster release in db
-	paramsRelease := map[string]interface{}{
-		"k8s_cluster_config_id": k8sClusterConfig.ID,
-		"release_name":          request.ClusterName,
-		"namespace":             request.Namespace,
-	}
-	releaseEntity, err := c.releaseMetaProvider.FindByParams(paramsRelease)
+	releaseEntity, err := c.releaseMetaProvider.FindByParams(
+		map[string]interface{}{
+			"k8s_cluster_config_id": k8sClusterConfig.ID,
+			"release_name":          request.ClusterName,
+			"namespace":             request.Namespace,
+		})
 	if err != nil {
 		return err
 	}
@@ -439,10 +437,10 @@ func (c *ClusterProvider) DeleteCluster(request *coreentity.Request) error {
 		return err
 	}
 
-	err = coreclient.DeleteStorageAddonCluster(k8sClient, request.ClusterName, request.Namespace)
-	if err != nil {
+	if err = coreclient.DeleteStorageAddonCluster(k8sClient, request.ClusterName, request.Namespace); err != nil {
 		return err
 	}
+
 	return nil
 }
 
