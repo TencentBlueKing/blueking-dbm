@@ -508,11 +508,12 @@ func (c *ClusterProvider) createClusterEntity(
 		return nil, errors.New(errMsg)
 	}
 	clusterEntity := &provderentity.K8sCrdClusterEntity{
-		AddonID:            storageAddon[0].ID,
-		ClusterName:        request.ClusterName,
-		Namespace:          request.Namespace,
-		RequestID:          requestID,
-		K8sClusterConfigID: k8sClusterConfigID,
+		AddonID:             storageAddon[0].ID,
+		AddonClusterVersion: request.AddonClusterVersion,
+		ClusterName:         request.ClusterName,
+		Namespace:           request.Namespace,
+		RequestID:           requestID,
+		K8sClusterConfigID:  k8sClusterConfigID,
 	}
 	addedClusterEntity, err := c.clusterMetaProvider.CreateCluster(clusterEntity)
 	if err != nil {

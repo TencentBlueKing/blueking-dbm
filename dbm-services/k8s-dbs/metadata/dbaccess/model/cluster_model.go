@@ -26,18 +26,19 @@ import (
 
 // K8sCrdClusterModel represents the database model of cluster
 type K8sCrdClusterModel struct {
-	ID                 uint64    `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
-	AddonID            uint64    `gorm:"not null;column:addon_id" json:"addonId"`
-	K8sClusterConfigID uint64    `gorm:"not null;column:k8s_cluster_config_id" json:"k8sClusterConfigId"`
-	RequestID          string    `gorm:"not null;column:request_id" json:"requestId"`
-	ClusterName        string    `gorm:"size:32;not null;column:cluster_name" json:"clusterName"`
-	Namespace          string    `gorm:"size:32;not null;column:namespace" json:"namespace"`
-	Status             string    `gorm:"size:32;column:status" json:"status"`
-	Description        string    `gorm:"size:100;column:description" json:"description"`
-	CreatedBy          string    `gorm:"size:50;not null;column:created_by" json:"createdBy"`
-	CreatedAt          time.Time `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP;column:created_at" json:"createdAt"` //nolint:lll
-	UpdatedBy          string    `gorm:"size:50;not null;column:updated_by" json:"updatedBy"`
-	UpdatedAt          time.Time `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP;column:updated_at" json:"updatedAt"` //nolint:lll
+	ID                  uint64    `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
+	AddonID             uint64    `gorm:"not null;column:addon_id" json:"addonId"`
+	AddonClusterVersion string    `gorm:"size:32;column:addoncluster_version" json:"addonClusterVersion"`
+	K8sClusterConfigID  uint64    `gorm:"not null;column:k8s_cluster_config_id" json:"k8sClusterConfigId"`
+	RequestID           string    `gorm:"not null;column:request_id" json:"requestId"`
+	ClusterName         string    `gorm:"size:32;not null;column:cluster_name" json:"clusterName"`
+	Namespace           string    `gorm:"size:32;not null;column:namespace" json:"namespace"`
+	Status              string    `gorm:"size:32;column:status" json:"status"`
+	Description         string    `gorm:"size:100;column:description" json:"description"`
+	CreatedBy           string    `gorm:"size:50;not null;column:created_by" json:"createdBy"`
+	CreatedAt           time.Time `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP;column:created_at" json:"createdAt"` //nolint:lll
+	UpdatedBy           string    `gorm:"size:50;not null;column:updated_by" json:"updatedBy"`
+	UpdatedAt           time.Time `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP;column:updated_at" json:"updatedAt"` //nolint:lll
 }
 
 // TableName 获取 model 对应的数据库表名
