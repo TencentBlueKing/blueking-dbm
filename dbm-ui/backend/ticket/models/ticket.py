@@ -160,6 +160,12 @@ class Ticket(AuditedModel):
         self.config = self.config or {}
         return self.config.get("context", {})
 
+    @property
+    def msg_config(self):
+        """单据通知配置"""
+        self.config = self.config or {}
+        return self.config.get("msg_config", {})
+
     def set_status(self, status):
         self.status = status
         self.save()

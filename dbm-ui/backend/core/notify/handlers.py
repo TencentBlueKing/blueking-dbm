@@ -336,8 +336,8 @@ class NotifyAdapter:
 
     def send_msg(self):
         # 获取单据通知设置，优先: 单据配置 > 业务配置 > 默认业务配置
-        if self.phase in self.ticket.send_msg_config:
-            send_msg_config = self.ticket.send_msg_config[self.phase]
+        if self.phase in self.ticket.msg_config:
+            send_msg_config = self.ticket.msg_config[self.phase]
         else:
             biz_notify_config = BizSettings.get_setting_value(
                 self.bk_biz_id, key=BizSettingsEnum.NOTIFY_CONFIG, default=DEFAULT_BIZ_NOTIFY_CONFIG
