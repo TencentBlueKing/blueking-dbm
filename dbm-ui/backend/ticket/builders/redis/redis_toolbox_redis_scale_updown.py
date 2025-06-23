@@ -54,7 +54,7 @@ class RedisScaleUpDownDetailSerializer(SkipToRepresentationMixin, serializers.Se
         group_num = serializers.IntegerField(help_text=_("部署机器组数"))
         db_version = serializers.CharField(help_text=_("版本号"))
         capacity = serializers.FloatField(help_text=_("当前容量需求"))
-        future_capacity = serializers.IntegerField(help_text=_("未来容量需求"))
+        future_capacity = serializers.FloatField(help_text=_("未来容量需求"))
         online_switch_type = serializers.ChoiceField(
             help_text=_("切换类型"), choices=SwitchConfirmType.get_choices(), default=SwitchConfirmType.NO_CONFIRM
         )

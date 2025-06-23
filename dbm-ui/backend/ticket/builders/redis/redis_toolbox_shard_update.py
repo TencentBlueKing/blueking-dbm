@@ -52,7 +52,7 @@ class RedisShardUpdateDetailSerializer(SkipToRepresentationMixin, serializers.Se
         cluster_shard_num = serializers.IntegerField(help_text=_("目标分片数"))
         resource_spec = ResourceSpecSerializer(help_text=_("资源申请"))
         capacity = serializers.FloatField(help_text=_("当前容量需求"))
-        future_capacity = serializers.IntegerField(help_text=_("未来容量需求"))
+        future_capacity = serializers.FloatField(help_text=_("未来容量需求"))
         db_version = serializers.CharField(help_text=_("版本号"))
         online_switch_type = serializers.ChoiceField(
             help_text=_("切换类型"), choices=SwitchConfirmType.get_choices(), default=SwitchConfirmType.NO_CONFIRM
