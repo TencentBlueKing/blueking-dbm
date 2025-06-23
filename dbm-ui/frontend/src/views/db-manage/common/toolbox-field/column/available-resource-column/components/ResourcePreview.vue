@@ -159,7 +159,7 @@
   const MAX_TAG_NUM = 4;
 
   // 非专用资源
-  const noLimitTag = computed(() => props.params.labels === '999999');
+  const noLimitTag = computed(() => props.params.labels === '-1');
 
   const filterTagList = computed(() => {
     const tagIds = (props.params.labels || '').split(',').map((item) => Number(item));
@@ -183,7 +183,7 @@
 
   const dataSource = (params: ServiceParameters<typeof fetchList>) => {
     // 过滤掉非专用资源选项
-    const labels = (props.params.labels || '')?.split(',').filter((item) => item !== '999999');
+    const labels = (props.params.labels || '')?.split(',').filter((item) => item !== '-1');
     return fetchList({
       ...params,
       ...props.params,

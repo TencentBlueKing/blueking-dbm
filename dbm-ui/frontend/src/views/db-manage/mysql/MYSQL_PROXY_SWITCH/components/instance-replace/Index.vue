@@ -24,14 +24,33 @@
         v-model="item.originProxy"
         :selected="selected"
         @batch-edit="handleBatchEdit" />
-      <SingleResourceHostColumn
-        v-model="item.targetProxy"
-        field="targetProxy.ip"
-        :label="t('新Proxy主机')"
-        :params="{
-          for_bizs: [currentBizId, 0],
-          resource_types: [DBTypes.MYSQL, 'PUBLIC'],
-        }" />
+      <SpecColumn
+        v-model="item.specId"
+        :cluster-type="DBTypes.MYSQL"
+        :machine-type="MachineTypes.MYSQL_PROXY"
+        selectable />
+      <template v-if="sourceType === SourceType.RESOURCE_AUTO">
+        <ResourceTagColumn
+          v-model="item.labels"
+          v-model:selected="item.labelSelected" />
+        <AvailableResourceColumn
+          :params="{
+            for_bizs: [currentBizId, 0],
+            resource_types: [DBTypes.MYSQL, 'PUBLIC'],
+            spec_id: item.specId,
+            labels: item.labels.join(','),
+          }" />
+      </template>
+      <template v-if="sourceType === SourceType.RESOURCE_MANUAL">
+        <SingleResourceHostColumn
+          v-model="item.targetProxy"
+          field="targetProxy.ip"
+          :label="t('新Proxy主机')"
+          :params="{
+            for_bizs: [currentBizId, 0],
+            resource_types: [DBTypes.MYSQL, 'PUBLIC'],
+          }" />
+      </template>
       <OperationColumn
         v-model:table-data="tableData"
         :create-row-method="createTableRow" />
@@ -39,36 +58,33 @@
   </EditableTable>
 </template>
 <script lang="ts" setup>
+  import type { _DeepPartial } from 'pinia';
   import { useTemplateRef } from 'vue';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import type { Mysql } from '@services/model/ticket/ticket';
+  import { SourceType } from '@services/types';
 
-  import { DBTypes } from '@common/const';
+  import { DBTypes, MachineTypes } from '@common/const';
 
+  import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
+  import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
+  import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
 
   import InstanceColumnGroup, { type SelectorItem } from './components/InstanceColumnGroup.vue';
 
   interface RowData {
-    originProxy: {
-      bk_cloud_id: number;
-      bk_host_id: number;
-      cluster_id: number;
-      instance_address: string;
-      ip: string;
-      master_domain: string;
-      port: number;
-    };
-    targetProxy: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      ip: string;
-    };
+    labels: number[];
+    labelSelected: ComponentProps<typeof ResourceTagColumn>['selected'];
+    originProxy: ComponentProps<typeof InstanceColumnGroup>['modelValue'];
+    specId: number;
+    targetProxy: ComponentProps<typeof SingleResourceHostColumn>['modelValue'];
   }
 
   interface Props {
+    sourceType: SourceType;
     ticketDetails?: Mysql.ResourcePool.ProxySwitch;
   }
 
@@ -81,19 +97,23 @@
             bk_biz_id: number;
             bk_cloud_id: number;
             bk_host_id: number;
-            instance_address?: string;
+            instance_address: string;
             ip: string;
-            port?: number;
+            port: number;
           }[];
         };
         resource_spec: {
           target_proxy: {
-            hosts: {
+            count: number;
+            hosts?: {
               bk_biz_id: number;
               bk_cloud_id: number;
               bk_host_id: number;
               ip: string;
             }[];
+            label_values?: string[]; // 标签value列表，单据详情回显用
+            labels?: string[]; // 标签id列表
+            spec_id: number;
           };
         };
       }[]
@@ -108,8 +128,10 @@
 
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
-  const createTableRow = (data = {} as Partial<RowData>) => ({
-    originProxy: data.originProxy || {
+  const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
+    labels: (data.labels as number[]) || ([] as number[]),
+    labelSelected: [] as ComponentProps<typeof ResourceTagColumn>['selected'],
+    originProxy: {
       bk_cloud_id: 0,
       bk_host_id: 0,
       cluster_id: 0,
@@ -117,12 +139,15 @@
       ip: '',
       master_domain: '',
       port: 0,
+      ...data.originProxy,
     },
-    targetProxy: data.targetProxy || {
+    specId: data.specId || 0,
+    targetProxy: {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: 0,
       ip: '',
+      ...data.targetProxy,
     },
   });
 
@@ -180,19 +205,17 @@
     () => props.ticketDetails,
     () => {
       if (props.ticketDetails) {
-        const { clusters, infos } = props.ticketDetails;
+        const { infos } = props.ticketDetails;
         if (infos.length > 0) {
           tableData.value = infos.map((item) => {
             const originProxy = item.old_nodes.origin_proxy[0];
-            const clusterInfo = clusters[item.cluster_ids[0]];
             return createTableRow({
+              labels: (item.resource_spec.target_proxy.labels || []).map((label) => Number(label)),
               originProxy: {
-                ...originProxy,
-                cluster_id: clusterInfo.id,
                 instance_address: `${originProxy.ip}:${originProxy.port}`,
-                master_domain: clusterInfo.immute_domain,
               },
-              targetProxy: item.resource_spec.target_proxy.hosts[0],
+              specId: item.resource_spec.target_proxy.spec_id,
+              targetProxy: item.resource_spec.target_proxy.hosts?.[0],
             });
           });
         }
@@ -214,6 +237,7 @@
               master_domain: item.master_domain,
               port: item.port,
             },
+            specId: -1, // specId < 0 时，SpecColumn会自动选择第一个规格
           }),
         );
       }
@@ -229,30 +253,28 @@
         return [];
       }
 
-      return tableData.value.map(({ originProxy, targetProxy }) => ({
-        cluster_ids: [originProxy.cluster_id],
+      return tableData.value.map((item) => ({
+        cluster_ids: [item.originProxy.cluster_id],
         old_nodes: {
           origin_proxy: [
             {
               bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-              bk_cloud_id: originProxy.bk_cloud_id,
-              bk_host_id: originProxy.bk_host_id,
-              instance_address: originProxy.instance_address,
-              ip: originProxy.ip,
-              port: originProxy.port,
+              bk_cloud_id: item.originProxy.bk_cloud_id,
+              bk_host_id: item.originProxy.bk_host_id,
+              instance_address: item.originProxy.instance_address,
+              ip: item.originProxy.ip,
+              port: item.originProxy.port,
             },
           ],
         },
         resource_spec: {
           target_proxy: {
-            hosts: [
-              {
-                bk_biz_id: targetProxy.bk_biz_id,
-                bk_cloud_id: targetProxy.bk_cloud_id,
-                bk_host_id: targetProxy.bk_host_id,
-                ip: targetProxy.ip,
-              },
-            ],
+            count: 1,
+            hosts: props.sourceType === SourceType.RESOURCE_MANUAL ? [item.targetProxy] : undefined,
+            label_values:
+              props.sourceType === SourceType.RESOURCE_AUTO ? item.labelSelected.map((item) => item.value) : undefined,
+            labels: props.sourceType === SourceType.RESOURCE_AUTO ? item.labels.map((item) => String(item)) : undefined,
+            spec_id: item.specId,
           },
         },
       }));

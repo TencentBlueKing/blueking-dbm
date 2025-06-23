@@ -31,37 +31,35 @@
     <EditableInput
       v-model="modelValue.ip"
       :placeholder="t('请输入IP')"
-      @change="handleInputChange" />
+      @change="handleChange" />
   </EditableColumn>
   <EditableColumn
     :label="t('同机关联实例')"
     :loading="loading"
     :min-width="300">
-    <EditableBlock v-if="modelValue.related_instances.length">
+    <EditableBlock
+      v-if="modelValue.related_instances.length"
+      :placeholder="t('自动生成')">
       <p
         v-for="item in modelValue.related_instances"
         :key="item">
         {{ item }}
       </p>
     </EditableBlock>
-    <EditableBlock
-      v-else
-      :placeholder="t('自动生成')" />
   </EditableColumn>
   <EditableColumn
     :label="t('同机关联集群')"
     :loading="loading"
     :min-width="300">
-    <EditableBlock v-if="modelValue.related_clusters.length">
+    <EditableBlock
+      v-if="modelValue.related_clusters.length"
+      :placeholder="t('自动生成')">
       <p
         v-for="item in modelValue.related_clusters"
         :key="item">
         {{ item }}
       </p>
     </EditableBlock>
-    <EditableBlock
-      v-else
-      :placeholder="t('自动生成')" />
   </EditableColumn>
   <InstanceSelector
     v-model:is-show="showSelector"
@@ -76,7 +74,7 @@
 
   import { checkInstance } from '@services/source/dbbase';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
   import InstanceSelector, {
@@ -101,22 +99,14 @@
 
   const modelValue = defineModel<{
     bk_cloud_id: number;
-    bk_host_id?: number;
+    bk_host_id: number;
     cluster_ids: number[];
     ip: string;
     port: number;
     related_clusters: string[];
     related_instances: string[];
   }>({
-    default: () => ({
-      bk_cloud_id: 0,
-      bk_host_id: undefined,
-      cluster_ids: [],
-      ip: '',
-      port: 0,
-      related_clusters: [],
-      related_instances: [],
-    }),
+    required: true,
   });
 
   const { t } = useI18n();
@@ -175,7 +165,7 @@
   const selectedInstances = computed(
     () =>
       ({
-        [ClusterTypes.TENDBHA]: props.selected,
+        TendbhaHost: props.selected,
       }) as unknown as InstanceSelectorValues<IValue>,
   );
 
@@ -209,37 +199,32 @@
     showSelector.value = true;
   };
 
-  const handleInputChange = (value: string) => {
+  const handleChange = (value: string) => {
     modelValue.value = {
       bk_cloud_id: 0,
-      bk_host_id: undefined,
+      bk_host_id: 0,
       cluster_ids: [],
       ip: value,
       port: 0,
       related_clusters: [],
       related_instances: [],
     };
-    if (value) {
-      queryInstance({
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        instance_addresses: [value],
-      });
-    }
   };
 
   const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
     emits('batch-edit', selected.TendbhaHost);
   };
 
-  watch(
-    () => modelValue.value.ip,
-    () => {
-      handleInputChange(modelValue.value.ip);
-    },
-    {
-      immediate: true,
-    },
-  );
+  watch(modelValue, () => {
+    if (modelValue.value.ip && !modelValue.value.bk_host_id) {
+      queryInstance({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        cluster_type: [ClusterTypes.TENDBHA],
+        db_type: DBTypes.MYSQL,
+        instance_addresses: [modelValue.value.ip],
+      });
+    }
+  });
 </script>
 
 <style lang="less" scoped>

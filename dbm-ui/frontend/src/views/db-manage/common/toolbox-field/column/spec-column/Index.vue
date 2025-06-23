@@ -54,7 +54,7 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    currentSpecId: 0,
+    currentSpecId: -1,
     machineType: undefined,
     selectable: false,
   });
@@ -90,4 +90,13 @@
       modelValue.value = props.currentSpecId;
     },
   );
+
+  watchEffect(() => {
+    // 如果 modelValue 被设置为 -1 或者其他负数时，则自动选择第一个规格
+    if (modelValue.value < 0) {
+      setTimeout(() => {
+        modelValue.value = specList.value[0]?.spec_id || 0;
+      }, 200);
+    }
+  });
 </script>
