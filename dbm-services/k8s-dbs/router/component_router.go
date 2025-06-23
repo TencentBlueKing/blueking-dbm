@@ -21,6 +21,9 @@ package router
 
 import (
 	"k8s-dbs/core/api/controller"
+	coreprovider "k8s-dbs/core/provider"
+	metadbaccess "k8s-dbs/metadata/dbaccess"
+	metaprovider "k8s-dbs/metadata/provider"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -38,5 +41,8 @@ func buildComponentRouter(db *gorm.DB, router *gin.Engine) {
 
 // initComponentController 初始化 ComponentController
 func initComponentController(db *gorm.DB) *controller.ComponentController {
-	return controller.NewComponentController(BuildClusterProvider(db))
+	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
+	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(k8sClusterConfigDbAccess)
+	componentProvider := coreprovider.NewComponentProvider(k8sClusterConfigProvider)
+	return controller.NewComponentController(componentProvider)
 }

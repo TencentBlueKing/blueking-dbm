@@ -30,13 +30,13 @@ import (
 
 // ComponentController 存储集群管理 Controller
 type ComponentController struct {
-	clusterProvider *provider.ClusterProvider
+	componentProvider *provider.ComponentProvider
 }
 
 // NewComponentController 创建 ClusterController 实例
-func NewComponentController(clusterProvider *provider.ClusterProvider) *ComponentController {
+func NewComponentController(componentProvider *provider.ComponentProvider) *ComponentController {
 	return &ComponentController{
-		clusterProvider: clusterProvider,
+		componentProvider,
 	}
 }
 
@@ -48,7 +48,7 @@ func (c *ComponentController) DescribeComponent(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.DescribeComponentError, err))
 		return
 	}
-	responseData, err := c.clusterProvider.DescribeComponent(request)
+	responseData, err := c.componentProvider.DescribeComponent(request)
 	if err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.DescribeComponentError, err))
 		return

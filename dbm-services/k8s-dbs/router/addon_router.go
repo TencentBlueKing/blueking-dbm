@@ -31,6 +31,17 @@ import (
 
 // buildAddonRouter 存储插件管理路由构建
 func buildAddonRouter(db *gorm.DB, router *gin.Engine) {
+	addonController := initAddonController(db)
+	addonGroup := router.Group(basePath + "/addon")
+	{
+		addonGroup.POST("/install", addonController.InstallAddon)
+		addonGroup.POST("/uninstall", addonController.UninstallAddon)
+		addonGroup.POST("/upgrade", addonController.UpgradeAddon)
+	}
+}
+
+// initAddonController 初始化 AddonController
+func initAddonController(db *gorm.DB) *controller.AddonController {
 	requestRecordDbAccess := metadbaccess.NewClusterRequestRecordDbAccess(db)
 	requestRecordProvider := metaprovider.NewClusterRequestRecordProvider(requestRecordDbAccess)
 
@@ -53,12 +64,5 @@ func buildAddonRouter(db *gorm.DB, router *gin.Engine) {
 		clusterAddonsMetaProvider,
 		addonMetaProvider,
 	)
-
-	addonController := controller.NewAddonController(addonProvider)
-	addonGroup := router.Group(basePath + "/addon")
-	{
-		addonGroup.POST("/install", addonController.InstallAddon)
-		addonGroup.POST("/uninstall", addonController.UninstallAddon)
-		addonGroup.POST("/upgrade", addonController.UpgradeAddon)
-	}
+	return controller.NewAddonController(addonProvider)
 }

@@ -32,7 +32,6 @@ import (
 	metaprovider "k8s-dbs/metadata/provider"
 	provderentity "k8s-dbs/metadata/provider/entity"
 	"log/slog"
-	"slices"
 	"sort"
 
 	kbworkloadv1 "github.com/apecloud/kubeblocks/apis/workloads/v1alpha1"
@@ -51,6 +50,7 @@ import (
 
 // ClusterProvider 集群管理核心服务
 type ClusterProvider struct {
+	addonMetaProvider       metaprovider.K8sCrdStorageAddonProvider
 	clusterMetaProvider     metaprovider.K8sCrdClusterProvider
 	componentMetaProvider   metaprovider.K8sCrdComponentProvider
 	cdMetaProvider          metaprovider.K8sCrdClusterDefinitionProvider
@@ -64,6 +64,7 @@ type ClusterProvider struct {
 
 // ClusterProviderBuilder ClusterProvider builder
 type ClusterProviderBuilder struct {
+	addonMetaProvider       metaprovider.K8sCrdStorageAddonProvider
 	clusterMetaProvider     metaprovider.K8sCrdClusterProvider
 	componentMetaProvider   metaprovider.K8sCrdComponentProvider
 	cdMetaProvider          metaprovider.K8sCrdClusterDefinitionProvider
@@ -146,6 +147,14 @@ func (c *ClusterProviderBuilder) WithClusterHelmRepoProvider(
 	return c
 }
 
+// WithAddonMetaProvider 设置 AddonMetaProvider
+func (c *ClusterProviderBuilder) WithAddonMetaProvider(
+	p metaprovider.K8sCrdStorageAddonProvider,
+) *ClusterProviderBuilder {
+	c.addonMetaProvider = p
+	return c
+}
+
 // Build 构建并返回 ClusterProvider 实例
 func (c *ClusterProviderBuilder) Build() (*ClusterProvider, error) {
 	if c.clusterMetaProvider == nil {
@@ -175,6 +184,9 @@ func (c *ClusterProviderBuilder) Build() (*ClusterProvider, error) {
 	if c.clusterHelmRepoProvider == nil {
 		return nil, errors.New("clusterHelmRepoProvider is required")
 	}
+	if c.addonMetaProvider == nil {
+		return nil, errors.New("addonMetaProvider is required")
+	}
 	return &ClusterProvider{
 		clusterMetaProvider:     c.clusterMetaProvider,
 		componentMetaProvider:   c.componentMetaProvider,
@@ -185,6 +197,7 @@ func (c *ClusterProviderBuilder) Build() (*ClusterProvider, error) {
 		reqRecordProvider:       c.reqRecordProvider,
 		releaseMetaProvider:     c.releaseMetaProvider,
 		clusterHelmRepoProvider: c.clusterHelmRepoProvider,
+		addonMetaProvider:       c.addonMetaProvider,
 	}, nil
 }
 
@@ -205,33 +218,40 @@ func (c *ClusterProvider) CreateCluster(request *coreentity.Request) error {
 	if err != nil {
 		return fmt.Errorf("failed to create request entity: %w", err)
 	}
+
 	// 获取 k8s 集群配置
 	k8sClusterConfig, err := c.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
 	if err != nil {
 		return fmt.Errorf("failed to get k8s cluster config for name %q: %w", request.K8sClusterName, err)
 	}
+
 	// 获取 K8sClient
 	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return fmt.Errorf("failed to create k8s client for cluster %q: %w", request.K8sClusterName, err)
 	}
+
 	if err = verifyAddonExists(request, k8sClient); err != nil {
 		return fmt.Errorf("addon verification failed for cluster %q: %w", request.ClusterName, err)
 	}
+
 	// 记录 cluster 和 component 元数据
 	addedClusterEntity, err := c.createClusterEntity(request, addedRequestEntity.RequestID, k8sClusterConfig.ID)
 	if err != nil {
 		return fmt.Errorf("failed to create cluster entity: %w", err)
 	}
+
 	_, err = c.createComponentEntity(request, addedClusterEntity.ID)
 	if err != nil {
 		return fmt.Errorf("failed to create component entity for cluster %q: %w", request.ClusterName, err)
 	}
+
 	values, err := c.installHelmRelease(request, k8sClient)
 	if err != nil {
 		slog.Error("failed to install helm release", "error", err)
 		return err
 	}
+
 	// 保存 addon cluster release
 	clusterRelease, err := buildClusterReleaseEntity(
 		k8sClusterConfig.ID,
@@ -245,6 +265,7 @@ func (c *ClusterProvider) CreateCluster(request *coreentity.Request) error {
 		slog.Error("build cluster release entity error", "error", err.Error())
 		return fmt.Errorf("failed to build cluster release entity: %w", err)
 	}
+
 	_, err = c.releaseMetaProvider.CreateClusterRelease(clusterRelease)
 	if err != nil {
 		slog.Error("failed to save cluster release",
@@ -443,79 +464,6 @@ func (c *ClusterProvider) GetClusterStatus(request *coreentity.Request) (*coreen
 	return dataResponse.ClusterStatus, nil
 }
 
-// DescribeComponent 获取组件详情
-func (c *ClusterProvider) DescribeComponent(request *coreentity.Request) (*coreentity.ComponentDetail, error) {
-	k8sClusterConfig, err := c.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
-	}
-	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
-	}
-
-	crd := &coreentity.CustomResourceDefinition{
-		GroupVersionResource: kbtypes.PodGVR(),
-		Namespace:            request.Namespace,
-		Labels: map[string]string{
-			coreconst.InstanceName:  request.ClusterName,
-			coreconst.ComponentName: request.ComponentName,
-		},
-	}
-	podList, err := coreclient.ListCRD(k8sClient, crd)
-	if err != nil {
-		return nil, err
-	}
-
-	if podList.Items != nil && len(podList.Items) == 0 {
-		return nil, fmt.Errorf("the pod of the component %s currently being queried is empty", request.ComponentName)
-	}
-
-	var pods []coreentity.Pod
-	var env []corev1.EnvVar
-	for _, item := range podList.Items {
-		// Try converting Unstructured to Pod type
-		pod := &corev1.Pod{}
-		err := runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, pod)
-		if err != nil {
-			return nil, fmt.Errorf("cannot be converted to Pod format, raw data will be displayed: %v", err)
-		}
-		var role string
-		if podRole, exits := pod.Labels["kubeblocks.io/role"]; exits {
-			role = podRole
-		}
-		pods = append(pods, coreentity.Pod{
-			PodName:      pod.Name,
-			Status:       pod.Status.Phase,
-			Node:         pod.Spec.NodeName,
-			Role:         role,
-			CreateedTime: pod.CreationTimestamp.String(),
-		})
-		if env == nil {
-			env = pod.Spec.Containers[0].Env
-		}
-
-	}
-
-	// Remove kb specific environment variables
-	env = slices.DeleteFunc(env, func(envVar corev1.EnvVar) bool {
-		_, exists := clientconst.KbEnvVar[envVar.Name]
-		return exists
-	})
-
-	componentDetail := &coreentity.ComponentDetail{
-		Metadata: coreentity.Metadata{
-			ClusterName:   crd.Labels[coreconst.InstanceName],
-			Namespace:     crd.Namespace,
-			ComponentName: crd.Labels[coreconst.ComponentName],
-		},
-		Pods: pods,
-		Env:  env,
-	}
-
-	return componentDetail, nil
-}
-
 // createRequestEntity Save the request instance
 func (c *ClusterProvider) createRequestEntity(
 	request *coreentity.Request,
@@ -545,7 +493,22 @@ func (c *ClusterProvider) createClusterEntity(
 	requestID string,
 	k8sClusterConfigID uint64,
 ) (*provderentity.K8sCrdClusterEntity, error) {
+	addonParams := map[string]interface{}{
+		"addon_type":    request.StorageAddonType,
+		"addon_version": request.StorageAddonVersion,
+	}
+	storageAddon, err := c.addonMetaProvider.FindStorageAddonByParams(addonParams)
+	if err != nil {
+		slog.Error("failed to get storage addon", "error", err)
+		return nil, err
+	}
+	if len(storageAddon) != 1 {
+		errMsg := fmt.Sprintf("expected 1 storage addon, found %d", len(storageAddon))
+		slog.Error("failed to get storage addon", "error", errMsg)
+		return nil, errors.New(errMsg)
+	}
 	clusterEntity := &provderentity.K8sCrdClusterEntity{
+		AddonID:            storageAddon[0].ID,
 		ClusterName:        request.ClusterName,
 		Namespace:          request.Namespace,
 		RequestID:          requestID,
