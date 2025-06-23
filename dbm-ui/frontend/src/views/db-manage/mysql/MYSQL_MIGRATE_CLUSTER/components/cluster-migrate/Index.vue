@@ -28,6 +28,7 @@
       <SpecColumn
         v-model="item.specId"
         :cluster-type="DBTypes.MYSQL"
+        :current-spec-id="item.batchCluster.specId"
         selectable />
       <template v-if="sourceType === SourceType.RESOURCE_AUTO">
         <ResourceTagColumn
@@ -93,6 +94,7 @@
         }
       >;
       renderText: string;
+      specId: number;
     };
     labels: number[];
     labelSelected: ComponentProps<typeof ResourceTagColumn>['selected'];
@@ -152,6 +154,7 @@
     batchCluster: data.batchCluster || {
       clusters: {},
       renderText: '',
+      specId: 0,
     },
     labels: (data.labels as number[]) || ([] as number[]),
     labelSelected: [] as ComponentProps<typeof ResourceTagColumn>['selected'],
@@ -302,6 +305,7 @@
                 },
               },
               renderText: item.master_domain,
+              specId: item.cluster_spec?.spec_id || item.masters?.[0]?.spec_config.id || -1,
             },
           }),
         );

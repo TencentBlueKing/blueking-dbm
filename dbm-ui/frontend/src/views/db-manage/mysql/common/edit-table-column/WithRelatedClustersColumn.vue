@@ -167,7 +167,8 @@
       if (currentCluster?.id) {
         modelValue.value.id = currentCluster.id;
         modelValue.value.cluster_type = currentCluster.cluster_type as ClusterTypes;
-        modelValue.value.spec_id = currentCluster.cluster_spec?.spec_id || 0;
+        const roleListKey = props.role === 'proxy' ? 'proxies' : 'masters';
+        modelValue.value.spec_id = (currentCluster[roleListKey] as TendbhaModel['masters'])?.[0]?.spec_config?.id || 0;
         queryRelatedClusters({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           cluster_ids: [currentCluster.id],

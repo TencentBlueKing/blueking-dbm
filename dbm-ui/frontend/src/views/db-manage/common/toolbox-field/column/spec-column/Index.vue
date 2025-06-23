@@ -28,7 +28,7 @@
       <template #option="{ item }">
         {{ item.spec_name }}
         <BkTag
-          v-if="item.spec_id === currentSpecId"
+          v-if="item.spec_id === currentSpecId && showTag"
           class="ml-4"
           size="small"
           theme="success">
@@ -49,16 +49,26 @@
   interface Props {
     clusterType: ClusterTypes | DBTypes;
     currentSpecId?: number;
+    /**
+     * 机器类型
+     * @default backend
+     */
     machineType?: MachineTypes;
     selectable?: boolean;
+    showTag?: boolean;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     currentSpecId: -1,
     machineType: undefined,
     selectable: false,
+    showTag: true,
   });
 
+  /**
+   * 绑定当前选择的规格 ID
+   * @desc 传入 -1 或者其他负数时，取列表中的第一个规格
+   */
   const modelValue = defineModel<number>({
     required: true,
   });

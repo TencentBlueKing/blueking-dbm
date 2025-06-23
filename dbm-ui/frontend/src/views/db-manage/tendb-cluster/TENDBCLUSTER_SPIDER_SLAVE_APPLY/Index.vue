@@ -212,12 +212,8 @@
         acc.push(
           createTableRow({
             cluster: {
-              bk_cloud_id: item.bk_cloud_id,
-              id: item.id,
               master_domain: item.master_domain,
-              spec_id: item.cluster_spec?.spec_id || 0,
             },
-            specId: item.cluster_spec?.spec_id || 0,
           }),
         );
       }

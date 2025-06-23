@@ -85,6 +85,7 @@
     ip: string;
     master_domain: string;
     port: number;
+    spec_id: number;
   }>({
     required: true,
   });
@@ -164,6 +165,7 @@
           ip: item.ip,
           master_domain: item.master_domain,
           port: item.port,
+          spec_id: item.spec_config?.id || -1,
         };
       }
     },
@@ -182,6 +184,7 @@
       ip: '',
       master_domain: '',
       port: 0,
+      spec_id: 0,
     };
   };
 

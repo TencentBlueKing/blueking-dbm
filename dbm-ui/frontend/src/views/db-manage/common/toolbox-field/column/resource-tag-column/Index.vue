@@ -17,7 +17,7 @@
     :min-width="150">
     <EditableSelect
       v-model="modelValue"
-      :all-option-id="-1"
+      :all-option-id="DEFAULT_TAG_ID"
       :all-option-text="t('非专用资源')"
       collapse-tags
       display-key="value"
@@ -30,7 +30,7 @@
       :tag-theme="tagTheme"
       @change="handleChange">
       <template #tagRender="{ label, value }">
-        {{ value === -1 ? t('非专用资源') : label }}
+        {{ value === DEFAULT_TAG_ID ? t('非专用资源') : label }}
       </template>
       <template #allOptionIcon>
         <BkTag
@@ -65,12 +65,17 @@
 
   const tagList = ref<IValue[]>([]);
   const tagMap = ref<Record<number, any>>({});
+  // 默认值为 0，表示非专用资源（指未包含任何标签的主机）
+  const DEFAULT_TAG_ID = 0;
 
-  const tagTheme = computed(() => (modelValue.value.length === 1 && modelValue.value[0] === -1 ? 'success' : ''));
+  const tagTheme = computed(() =>
+    modelValue.value.length === 1 && modelValue.value[0] === DEFAULT_TAG_ID ? 'success' : '',
+  );
 
   useRequest(listTag, {
     defaultParams: [
       {
+        bk_biz_ids: [window.PROJECT_CONFIG.BIZ_ID, 0].join(','), // 0 表示公共资源池
         type: 'resource',
       },
     ],
@@ -84,8 +89,8 @@
           return acc;
         },
         {
-          [-1]: {
-            id: -1,
+          [DEFAULT_TAG_ID]: {
+            id: DEFAULT_TAG_ID,
             type: 'resource',
             value: t('非专用资源'),
           },

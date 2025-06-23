@@ -27,6 +27,7 @@
       <SpecColumn
         v-model="item.specId"
         :cluster-type="DBTypes.MYSQL"
+        :current-spec-id="item.master.spec_id"
         selectable />
       <template v-if="sourceType === SourceType.RESOURCE_AUTO">
         <ResourceTagColumn
@@ -149,6 +150,7 @@
       port: 0,
       related_clusters: [],
       related_instances: [],
+      spec_id: 0,
     },
     newMaster: {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -284,6 +286,7 @@
                 port: 0,
                 related_clusters: [],
                 related_instances: [],
+                spec_id: 0,
               },
               newMaster: {
                 bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -330,6 +333,7 @@
               port: adminPort,
               related_clusters: relatedClusters,
               related_instances: relatedInstances,
+              spec_id: item.spec_config?.id || 0,
             },
           }),
         );

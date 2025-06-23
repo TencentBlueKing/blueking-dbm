@@ -52,7 +52,10 @@
           <SpecColumn
             v-model="item.specId"
             :cluster-type="DBTypes.MYSQL"
-            :current-spec-id="item.cluster.spec_id" />
+            :current-spec-id="item.cluster.spec_id"
+            :machine-type="MachineTypes.MYSQL_PROXY"
+            selectable
+            :show-tag="false" />
           <template v-if="sourceType === SourceType.RESOURCE_AUTO">
             <ResourceTagColumn
               v-model="item.labels"
@@ -116,7 +119,7 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, MachineTypes, TicketTypes } from '@common/const';
 
   import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
   import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';

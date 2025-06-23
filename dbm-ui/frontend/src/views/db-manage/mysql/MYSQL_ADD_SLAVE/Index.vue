@@ -51,7 +51,8 @@
           <SpecColumn
             v-model="item.specId"
             :cluster-type="DBTypes.MYSQL"
-            :current-spec-id="item.cluster.spec_id" />
+            :current-spec-id="item.cluster.spec_id"
+            selectable />
           <template v-if="sourceType === SourceType.RESOURCE_AUTO">
             <ResourceTagColumn
               v-model="item.labels"
