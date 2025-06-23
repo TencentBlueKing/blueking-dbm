@@ -23,9 +23,9 @@ func init() {
 
 // executeCmd TODO
 // func executeCmd(db *sqlx.DB, cmd string, timeout int) (int64, error) {
-func executeCmd(logger *slog.Logger, conn *sqlx.Conn, cmd string, timeout time.Duration) (int64, error) {
+func executeCmd(logger *slog.Logger, db *sqlx.DB, conn *sqlx.Conn, connId int64, cmd string, timeout time.Duration) (int64, error) {
 	for i := 0; i < 5; i++ {
-		n, err := executeAtom(conn, cmd, timeout)
+		n, err := executeAtom(logger, db, conn, connId, cmd, timeout)
 		if err == nil {
 			logger.Info("execute cmd success", slog.String("cmd", cmd))
 			return n, nil
@@ -50,21 +50,26 @@ func executeCmd(logger *slog.Logger, conn *sqlx.Conn, cmd string, timeout time.D
 	return -1, errors.New("timeout")
 }
 
-func executeAtom(conn *sqlx.Conn, cmd string, timeout time.Duration) (int64, error) {
+func executeAtom(logger *slog.Logger, db *sqlx.DB, conn *sqlx.Conn, connId int64, cmd string, timeout time.Duration) (int64, error) {
+	logger.Info("execute cmd", slog.String("cmd", cmd), slog.String("timeout", timeout.String()))
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	result, err := conn.ExecContext(ctx, cmd)
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			logger.Error("execute cmd timeout, try to kill conn", slog.String("cmd", cmd), slog.Int64("connId", connId))
+			_, _ = db.Exec(`KILL ?`, connId)
+		}
 		return 0, err
 	}
 
 	return result.RowsAffected()
 }
 
-func queryCmd(logger *slog.Logger, conn *sqlx.Conn, cmd string, timeout time.Duration) (tableDataType, error) {
+func queryCmd(logger *slog.Logger, db *sqlx.DB, conn *sqlx.Conn, connId int64, cmd string, timeout time.Duration) (tableDataType, error) {
 	for i := 0; i < 5; i++ {
-		dataType, err := queryAtom(conn, cmd, timeout)
+		dataType, err := queryAtom(logger, db, conn, connId, cmd, timeout)
 		if err == nil {
 			logger.Info("query cmd success", slog.String("cmd", cmd))
 			return dataType, nil
@@ -89,12 +94,16 @@ func queryCmd(logger *slog.Logger, conn *sqlx.Conn, cmd string, timeout time.Dur
 	return nil, errors.New("timeout")
 }
 
-func queryAtom(conn *sqlx.Conn, cmd string, timeout time.Duration) (tableDataType, error) {
+func queryAtom(logger *slog.Logger, db *sqlx.DB, conn *sqlx.Conn, connId int64, cmd string, timeout time.Duration) (tableDataType, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	rows, err := conn.QueryxContext(ctx, cmd)
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			logger.Info("query cmd timeout, try to kill conn", slog.String("cmd", cmd), slog.Int64("connId", connId))
+			_, _ = db.Exec(`KILL ?`, connId)
+		}
 		return nil, err
 	}
 

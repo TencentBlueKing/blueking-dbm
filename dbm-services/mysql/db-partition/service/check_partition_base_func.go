@@ -48,10 +48,11 @@ func (config *PartitionConfig) GetPartitionDbLikeTbLike(dbtype string, splitCnt 
 				_, _ = OneAddressExecuteSql(QueryRequest{
 					Addresses: []string{fmt.Sprintf("%s:%d", host.Ip, host.Port)},
 					Cmds: []string{
-						fmt.Sprintf("FLUSH TABLE `%s`.`%s`", tb.DbName, tb.TbName),
+						"set lock_wait_timeout=10",
+						fmt.Sprintf("FLUSH TABLE `%s`.`%s` with read lock", tb.DbName, tb.TbName),
 					},
 					Force:        true,
-					QueryTimeout: 600,
+					QueryTimeout: 10,
 					BkCloudId:    host.BkCloudId,
 				})
 
@@ -109,11 +110,15 @@ func (config *PartitionConfig) getOneTableInfo(address string, bkCloudId int, ro
 	defer func() {
 		_, _ = OneAddressExecuteSql(QueryRequest{
 			Addresses: []string{address},
+			// ctx timeout 触发后, flush tables 的连接处于 time wait状态
+			// 在 db 的 processlist 中还能看到, 导致阻塞
+			// 转换成锁等待, 能正常退出
 			Cmds: []string{
-				fmt.Sprintf("FLUSH TABLES `%s`.`%s`", db, tb),
+				"set lock_wait_timeout=10",
+				fmt.Sprintf("FLUSH TABLES `%s`.`%s` with read lock", db, tb),
 			},
 			Force:        true,
-			QueryTimeout: 300,
+			QueryTimeout: 10,
 			BkCloudId:    bkCloudId,
 		})
 	}()
