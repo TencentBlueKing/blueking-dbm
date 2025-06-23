@@ -16,6 +16,9 @@
     <InfoItem :label="t('替换类型')">
       {{ operaObjectMap[ticketDetails.details.opera_object].title }}
     </InfoItem>
+    <InfoItem :label="t('主机选择方式')">
+      {{ ticketDetails.details.source_type === SourceType.RESOURCE_AUTO ? t('资源池自动匹配') : t('资源池手动选择') }}
+    </InfoItem>
   </InfoList>
   <Component
     :is="operaObjectMap[ticketDetails.details.opera_object].table"
@@ -30,7 +33,7 @@
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
-  import { OperaObejctType } from '@services/types';
+  import { OperaObejctType, SourceType } from '@services/types';
 
   import { TicketTypes } from '@common/const';
 

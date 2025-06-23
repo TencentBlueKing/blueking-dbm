@@ -17,7 +17,7 @@
     :min-width="150">
     <EditableSelect
       v-model="modelValue"
-      :all-option-id="999999"
+      :all-option-id="-1"
       :all-option-text="t('非专用资源')"
       collapse-tags
       display-key="value"
@@ -30,7 +30,7 @@
       :tag-theme="tagTheme"
       @change="handleChange">
       <template #tagRender="{ label, value }">
-        {{ value === 999999 ? t('非专用资源') : label }}
+        {{ value === -1 ? t('非专用资源') : label }}
       </template>
       <template #allOptionIcon>
         <BkTag
@@ -64,9 +64,9 @@
   const { t } = useI18n();
 
   const tagList = ref<IValue[]>([]);
-  const tagMap = ref<Record<number, IValue>>({});
+  const tagMap = ref<Record<number, any>>({});
 
-  const tagTheme = computed(() => (modelValue.value.length === 1 && modelValue.value[0] === 999999 ? 'success' : ''));
+  const tagTheme = computed(() => (modelValue.value.length === 1 && modelValue.value[0] === -1 ? 'success' : ''));
 
   useRequest(listTag, {
     defaultParams: [
@@ -76,12 +76,21 @@
     ],
     onSuccess: (data) => {
       tagList.value = data.results;
-      tagMap.value = data.results.reduce<Record<number, IValue>>((acc, item) => {
-        Object.assign(acc, {
-          [item.id]: item,
-        });
-        return acc;
-      }, {});
+      tagMap.value = data.results.reduce<Record<number, any>>(
+        (acc, item) => {
+          Object.assign(acc, {
+            [item.id]: item,
+          });
+          return acc;
+        },
+        {
+          [-1]: {
+            id: -1,
+            type: 'resource',
+            value: t('非专用资源'),
+          },
+        },
+      );
       if (modelValue.value.length) {
         selected.value = modelValue.value.map((id) => tagMap.value[id]);
       }
