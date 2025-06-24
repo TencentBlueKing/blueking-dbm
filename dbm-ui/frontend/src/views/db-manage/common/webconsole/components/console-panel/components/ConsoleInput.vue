@@ -46,7 +46,7 @@
     Record<
       number,
       Array<{
-        message: string | Record<string, string>[];
+        message: any;
         type: 'success' | 'error' | 'normal' | 'command' | string;
       }>
     >

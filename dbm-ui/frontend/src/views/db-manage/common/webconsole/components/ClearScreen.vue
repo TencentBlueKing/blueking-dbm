@@ -5,7 +5,7 @@
     <div class="operate-item-inner">
       <DbIcon
         class="operate-icon"
-        type="clearing" />
+        type="bk-dbm-icon db-icon-saoba" />
       <span class="operate-title">{{ t('清屏') }}</span>
     </div>
   </div>
