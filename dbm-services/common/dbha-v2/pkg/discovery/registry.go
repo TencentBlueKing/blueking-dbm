@@ -99,7 +99,6 @@ func (r *Registry) monitorKeepalive(ctx context.Context) {
 	for {
 		select {
 		case <-r.quit:
-			logger.Info("reg monitorKeepalive quit successfully")
 			return
 
 		case <-ctx.Done():
@@ -133,7 +132,6 @@ func (r *Registry) checkLeaseTTL(ctx context.Context) {
 	for {
 		select {
 		case <-r.quit:
-			logger.Info("reg checkLeaseTTL quit successfully")
 			return
 
 		case <-ctx.Done():
