@@ -37,16 +37,13 @@
     :label="t('从库主机关联实例')"
     :loading="loading"
     :min-width="150">
-    <EditableBlock v-if="modelValue.related_instances.length">
+    <EditableBlock :placeholder="t('自动生成')">
       <p
         v-for="item in modelValue.related_instances"
         :key="item">
         {{ item }}
       </p>
     </EditableBlock>
-    <EditableBlock
-      v-else
-      :placeholder="t('自动生成')" />
   </EditableColumn>
   <InstanceSelector
     v-model:is-show="showSelector"
@@ -92,8 +89,8 @@
     ip: string;
     master_domain: string;
     related_instances: string[];
+    role: string;
     spec_id: number;
-    spec_name: string;
   }>({
     required: true,
   });
@@ -137,8 +134,8 @@
   const rules = [
     {
       message: t('IP 格式不符合IPv4标准'),
-      trigger: 'change',
-      validator: (value: string) => ipv4.test(value),
+      trigger: 'blur',
+      validator: (value: string) => !value || ipv4.test(value),
     },
     {
       message: t('目标主机重复'),
@@ -148,12 +145,12 @@
     {
       message: t('目标主机不存在'),
       trigger: 'blur',
-      validator: (value: string) => {
-        if (!value) {
-          return true;
-        }
-        return Boolean(modelValue.value.bk_host_id);
-      },
+      validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
+    },
+    {
+      message: t('非 Slave IP'),
+      trigger: 'blur',
+      validator: (value: string) => !value || modelValue.value.role === 'backend_slave',
     },
   ];
 
@@ -174,8 +171,8 @@
           ip: currentHost.ip,
           master_domain: currentHost.master_domain,
           related_instances: relatedInstances,
-          spec_id: currentHost.spec_config.id,
-          spec_name: currentHost.spec_config.name,
+          role: currentHost.role,
+          spec_id: currentHost.spec_config?.id || -1,
         };
       }
     },
@@ -194,8 +191,8 @@
       ip: value,
       master_domain: '',
       related_instances: [],
+      role: '',
       spec_id: 0,
-      spec_name: '',
     };
   };
 

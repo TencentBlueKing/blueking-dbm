@@ -66,6 +66,7 @@
   </EditableTable>
 </template>
 <script lang="ts" setup>
+  import type { _DeepPartial } from 'pinia';
   import { useTemplateRef } from 'vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
@@ -138,19 +139,21 @@
 
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
-  const createTableRow = (data: Partial<RowData> = {}) => ({
+  const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
     labels: (data.labels as number[]) || ([] as number[]),
     labelSelected: [] as ComponentProps<typeof ResourceTagColumn>['selected'],
-    master: data.master || {
+    master: {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: 0,
-      cluster_ids: [],
       ip: '',
       port: 0,
-      related_clusters: [],
-      related_instances: [],
+      role: '',
       spec_id: 0,
+      ...data.master,
+      cluster_ids: [] as number[],
+      related_clusters: [] as string[],
+      related_instances: [] as string[],
     },
     newMaster: {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -278,26 +281,12 @@
             return createTableRow({
               labels: (item.resource_spec.new_master.labels || []).map((label) => Number(label)),
               master: {
-                bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-                bk_cloud_id: 0,
-                bk_host_id: 0,
-                cluster_ids: [],
                 ip: item.old_nodes.old_master?.[0]?.ip || '',
-                port: 0,
-                related_clusters: [],
-                related_instances: [],
-                spec_id: 0,
               },
               newMaster: {
-                bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-                bk_cloud_id: 0,
-                bk_host_id: 0,
                 ip: item.resource_spec.new_master.hosts?.[0]?.ip || '',
               },
               newSlave: {
-                bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-                bk_cloud_id: 0,
-                bk_host_id: 0,
                 ip: item.resource_spec.new_slave.hosts?.[0]?.ip || '',
               },
               specId: item.resource_spec.new_master.spec_id,
@@ -311,29 +300,10 @@
   const handleBatchEdit = (list: SelectorItem[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
       if (!selectedMap.value[item.ip]) {
-        const clusterIds: number[] = [];
-        const relatedClusters: string[] = [];
-        const relatedInstances: string[] = [];
-        const adminPort = item.related_instances[0].admin_port;
-        item.related_clusters.forEach((item) => {
-          clusterIds.push(item.id);
-          relatedClusters.push(item.immute_domain);
-        });
-        item.related_instances.forEach((item) => {
-          relatedInstances.push(item.instance);
-        });
         acc.push(
           createTableRow({
             master: {
-              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-              bk_cloud_id: item.bk_cloud_id,
-              bk_host_id: item.bk_host_id,
-              cluster_ids: clusterIds,
               ip: item.ip,
-              port: adminPort,
-              related_clusters: relatedClusters,
-              related_instances: relatedInstances,
-              spec_id: item.spec_config?.id || 0,
             },
           }),
         );

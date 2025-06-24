@@ -4629,5 +4629,11 @@
   "普通云硬盘": "普通云硬盘",
   "本地 HDD 硬盘": "本地 HDD 硬盘",
   "本地 SSD 硬盘": "本地 SSD 硬盘",
+  "非 Master IP": "非 Master IP",
+  "非 Slave IP": "非 Slave IP",
+  "非 Proxy IP": "非 Proxy IP",
+  "非 Master 实例": "非 Master 实例",
+  "非 Slave 实例": "非 Slave 实例",
+  "非 Proxy 实例": "非 Proxy 实例",
   "这行勿动！新增翻译请在上一行添加！": ""
 }

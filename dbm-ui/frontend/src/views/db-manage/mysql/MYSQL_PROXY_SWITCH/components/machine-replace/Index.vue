@@ -136,6 +136,7 @@
       bk_host_id: 0,
       ip: '',
       port: 0,
+      role: '',
       spec_id: 0,
       ...data.originProxy,
       cluster_ids: [] as RowData['originProxy']['cluster_ids'],

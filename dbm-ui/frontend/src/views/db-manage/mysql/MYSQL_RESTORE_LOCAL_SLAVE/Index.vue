@@ -123,6 +123,7 @@
       ip: '',
       master_domain: '',
       port: 0,
+      role: '',
       ...data.slave,
     },
   });

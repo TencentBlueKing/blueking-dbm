@@ -138,12 +138,7 @@
     {
       message: t('目标集群不存在'),
       trigger: 'blur',
-      validator: (value: string) => {
-        if (!value) {
-          return true;
-        }
-        return Boolean(modelValue.value.id);
-      },
+      validator: (value: string) => !value || Boolean(modelValue.value.id),
     },
   ];
 
@@ -168,7 +163,7 @@
         modelValue.value.id = currentCluster.id;
         modelValue.value.cluster_type = currentCluster.cluster_type as ClusterTypes;
         const roleListKey = props.role === 'proxy' ? 'proxies' : 'masters';
-        modelValue.value.spec_id = (currentCluster[roleListKey] as TendbhaModel['masters'])?.[0]?.spec_config?.id || 0;
+        modelValue.value.spec_id = (currentCluster[roleListKey] as TendbhaModel['masters'])?.[0]?.spec_config?.id || -1;
         queryRelatedClusters({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           cluster_ids: [currentCluster.id],

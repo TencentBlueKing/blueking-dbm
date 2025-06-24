@@ -85,6 +85,7 @@
     ip: string;
     master_domain: string;
     port: number;
+    role: string;
     spec_id: number;
   }>({
     required: true,
@@ -132,8 +133,8 @@
   const rules = [
     {
       message: t('格式不符合要求'),
-      trigger: 'change',
-      validator: (value: string) => ipPort.test(value),
+      trigger: 'blur',
+      validator: (value: string) => !value || ipPort.test(value),
     },
     {
       message: t('目标实例重复'),
@@ -143,12 +144,12 @@
     {
       message: t('目标实例不存在'),
       trigger: 'blur',
-      validator: (value: string) => {
-        if (!value) {
-          return true;
-        }
-        return Boolean(modelValue.value.bk_host_id);
-      },
+      validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
+    },
+    {
+      message: t('非 Proxy 实例'),
+      trigger: 'blur',
+      validator: (value: string) => !value || modelValue.value.role === 'proxy',
     },
   ];
 
@@ -165,6 +166,7 @@
           ip: item.ip,
           master_domain: item.master_domain,
           port: item.port,
+          role: item.role,
           spec_id: item.spec_config?.id || -1,
         };
       }
@@ -184,6 +186,7 @@
       ip: '',
       master_domain: '',
       port: 0,
+      role: '',
       spec_id: 0,
     };
   };

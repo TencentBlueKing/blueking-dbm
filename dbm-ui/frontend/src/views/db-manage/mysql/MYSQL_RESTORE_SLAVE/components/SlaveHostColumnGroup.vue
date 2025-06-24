@@ -86,11 +86,12 @@
     bk_cloud_id: number;
     bk_host_id: number;
     ip: string;
-    spec_id: number;
     related_clusters: {
       id: number;
       master_domain: string;
     }[];
+    role: string;
+    spec_id: number;
   }>({
     required: true,
   });
@@ -137,8 +138,8 @@
   const rules = [
     {
       message: t('IP 格式不符合IPv4标准'),
-      trigger: 'change',
-      validator: (value: string) => ipv4.test(value),
+      trigger: 'blur',
+      validator: (value: string) => !value || ipv4.test(value),
     },
     {
       message: t('目标主机重复'),
@@ -148,30 +149,31 @@
     {
       message: t('目标主机不存在'),
       trigger: 'blur',
-      validator: (value: string) => {
-        if (!value) {
-          return true;
-        }
-        return Boolean(modelValue.value.bk_host_id);
-      },
+      validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
+    },
+    {
+      message: t('非 Slave IP'),
+      trigger: 'blur',
+      validator: (value: string) => !value || modelValue.value.role === 'backend_slave',
     },
   ];
 
   const { loading, run: queryHost } = useRequest(checkInstance, {
     manual: true,
     onSuccess: (data) => {
-      if (data.length) {
-        const [currentHost] = data;
+      const [currentHost] = data;
+      if (currentHost) {
         modelValue.value = {
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           bk_cloud_id: currentHost.bk_cloud_id,
           bk_host_id: currentHost.bk_host_id,
           ip: currentHost.ip,
-          spec_id: currentHost.spec_config.id,
           related_clusters: currentHost.related_clusters.map((item) => ({
             id: item.id,
             master_domain: item.master_domain,
           })),
+          role: currentHost.role,
+          spec_id: currentHost.spec_config?.id || -1,
         };
       }
     },
@@ -188,6 +190,7 @@
       bk_host_id: 0,
       ip: value,
       related_clusters: [],
+      role: '',
       spec_id: 0,
     };
   };

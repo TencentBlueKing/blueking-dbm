@@ -139,6 +139,7 @@
       cluster_id: 0,
       ip: '',
       master_domain: '',
+      role: '',
       spec_id: 0,
       ...data.oldMaster,
       related_instances: [] as string[],

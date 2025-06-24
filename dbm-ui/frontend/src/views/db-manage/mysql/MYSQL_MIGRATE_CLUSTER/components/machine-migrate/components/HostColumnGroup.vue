@@ -37,31 +37,25 @@
     :label="t('同机关联实例')"
     :loading="loading"
     :min-width="150">
-    <EditableBlock v-if="modelValue.related_instances.length">
+    <EditableBlock :placeholder="t('自动生成')">
       <p
         v-for="item in modelValue.related_instances"
         :key="item">
         {{ item }}
       </p>
     </EditableBlock>
-    <EditableBlock
-      v-else
-      :placeholder="t('自动生成')" />
   </EditableColumn>
   <EditableColumn
     :label="t('同机关联集群')"
     :loading="loading"
     :min-width="150">
-    <EditableBlock v-if="modelValue.related_clusters.length">
+    <EditableBlock :placeholder="t('自动生成')">
       <p
         v-for="item in modelValue.related_clusters"
         :key="item">
         {{ item }}
       </p>
     </EditableBlock>
-    <EditableBlock
-      v-else
-      :placeholder="t('自动生成')" />
   </EditableColumn>
   <InstanceSelector
     v-model:is-show="showSelector"
@@ -108,6 +102,7 @@
     port: number;
     related_clusters: string[];
     related_instances: string[];
+    role: string;
     spec_id: number;
   }>({
     required: true,
@@ -145,18 +140,18 @@
   const rules = [
     {
       message: t('IP 格式不符合IPv4标准'),
-      trigger: 'change',
-      validator: (value: string) => ipv4.test(value),
+      trigger: 'blur',
+      validator: (value: string) => !value || ipv4.test(value),
     },
     {
       message: t('目标主机不存在'),
       trigger: 'blur',
-      validator: (value: string) => {
-        if (!value) {
-          return true;
-        }
-        return Boolean(modelValue.value.bk_host_id);
-      },
+      validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
+    },
+    {
+      message: t('非 Master IP'),
+      trigger: 'blur',
+      validator: (value: string) => !value || modelValue.value.role === 'backend_master',
     },
   ];
 
@@ -173,8 +168,8 @@
   const { loading, run: queryHost } = useRequest(checkInstance, {
     manual: true,
     onSuccess: (data) => {
-      if (data.length) {
-        const [hostInfo] = data;
+      const [hostInfo] = data;
+      if (hostInfo) {
         const clusterIds: number[] = [];
         const relatedInstances: string[] = [];
         const relatedClusters: string[] = [];
@@ -192,7 +187,8 @@
           port: hostInfo.port,
           related_clusters: relatedClusters,
           related_instances: relatedInstances,
-          spec_id: hostInfo.spec_config?.id || 0,
+          role: hostInfo.role,
+          spec_id: hostInfo.spec_config?.id || -1,
         };
       }
     },
@@ -212,6 +208,7 @@
       port: 0,
       related_clusters: [],
       related_instances: [],
+      role: '',
       spec_id: 0,
     };
   };

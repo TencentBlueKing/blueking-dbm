@@ -78,6 +78,7 @@
     ip: string;
     master_domain: string;
     port: number;
+    role: string;
   }>({
     required: true,
   });
@@ -112,8 +113,8 @@
   const rules = [
     {
       message: t('格式不符合要求'),
-      trigger: 'change',
-      validator: (value: string) => ipPort.test(value),
+      trigger: 'blur',
+      validator: (value: string) => !value || ipPort.test(value),
     },
     {
       message: t('目标实例重复'),
@@ -123,12 +124,12 @@
     {
       message: t('目标实例不存在'),
       trigger: 'blur',
-      validator: (value: string) => {
-        if (!value) {
-          return true;
-        }
-        return Boolean(modelValue.value.bk_host_id);
-      },
+      validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
+    },
+    {
+      message: t('非 Slave 实例'),
+      trigger: 'blur',
+      validator: (value: string) => !value || modelValue.value.role === 'backend_slave',
     },
   ];
 
@@ -146,6 +147,7 @@
           ip: currentHost.ip,
           master_domain: currentHost.master_domain,
           port: currentHost.port,
+          role: currentHost.role,
         };
       }
     },
@@ -165,6 +167,7 @@
       ip: '',
       master_domain: '',
       port: 0,
+      role: '',
     };
   };
 

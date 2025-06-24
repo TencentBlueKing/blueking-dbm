@@ -141,6 +141,7 @@
       ip: '',
       master_domain: '',
       port: 0,
+      role: '',
       spec_id: 0,
       ...data.originProxy,
     },

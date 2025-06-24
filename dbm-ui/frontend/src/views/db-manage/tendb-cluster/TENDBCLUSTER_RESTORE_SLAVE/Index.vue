@@ -99,32 +99,36 @@
   </SmartAction>
 </template>
 <script lang="ts" setup>
+  import type { _DeepPartial } from 'pinia';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import { type TendbCluster } from '@services/model/ticket/ticket';
   import { BackupSourceType } from '@services/types';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
-  import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
-  import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
+
   import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
+
+  import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
+
+  import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
+  import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
+  import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
+  import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
-  import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
-  import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
-  import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
+
   import SlaveHostColumnGroup, { type SelectorHost } from './components/SlaveHostColumnGroup.vue';
-  import type { _DeepPartial } from 'pinia';
-  import type { ComponentProps } from 'vue-component-type-helpers';
 
   interface RowData {
-    slave: ComponentProps<typeof SlaveHostColumnGroup>['modelValue'];
-    specId: number;
     labels: number[];
     labelSelected: ComponentProps<typeof ResourceTagColumn>['selected'];
     newSlave: ComponentProps<typeof SingleResourceHostColumn>['modelValue'];
+    slave: ComponentProps<typeof SlaveHostColumnGroup>['modelValue'];
+    specId: number;
   }
 
   const { t } = useI18n();
@@ -133,18 +137,8 @@
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
-    slave: {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      cluster_id: 0,
-      ip: '',
-      master_domain: '',
-      spec_id: 0,
-      spec_name: '',
-      ...data.slave,
-      related_instances: [] as string[],
-    },
+    labels: (data.labels as number[]) || ([] as number[]),
+    labelSelected: [] as ComponentProps<typeof ResourceTagColumn>['selected'],
     newSlave: {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
@@ -152,8 +146,18 @@
       ip: '',
       ...data.newSlave,
     },
-    labels: (data.labels as number[]) || ([] as number[]),
-    labelSelected: [] as ComponentProps<typeof ResourceTagColumn>['selected'],
+    slave: {
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      bk_cloud_id: 0,
+      bk_host_id: 0,
+      cluster_id: 0,
+      ip: '',
+      master_domain: '',
+      role: '',
+      spec_id: 0,
+      ...data.slave,
+      related_instances: [] as string[],
+    },
     specId: data.specId || 0,
   });
 
@@ -178,11 +182,11 @@
         ...createTickePayload(ticketDetail),
         tableData: infos.map((item) =>
           createTableRow({
+            labels: (item.resource_spec.new_slave.labels || []).map((item) => Number(item)),
             slave: {
               ip: item.old_nodes.old_slave[0].ip,
             },
             specId: item.resource_spec.new_slave.spec_id,
-            labels: (item.resource_spec.new_slave.labels || []).map((item) => Number(item)),
           }),
         ),
       });
@@ -199,9 +203,9 @@
       resource_spec: {
         new_slave: {
           count: number;
-          spec_id: number;
-          labels: string[]; // 标签id列表
           label_values: string[]; // 标签value列表，单据详情回显用
+          labels: string[]; // 标签id列表
+          spec_id: number;
         };
       };
     }[];
@@ -237,9 +241,9 @@
             resource_spec: {
               new_slave: {
                 count: 1,
-                spec_id: item.slave.spec_id,
-                labels: item.labels.map((item) => String(item)),
                 label_values: item.labelSelected.map((item) => item.value),
+                labels: item.labels.map((item) => String(item)),
+                spec_id: item.slave.spec_id,
               },
             },
           })),

@@ -101,6 +101,7 @@
     port: number;
     related_clusters: string[];
     related_instances: string[];
+    role: string;
     spec_id: number;
   }>({
     required: true,
@@ -138,8 +139,8 @@
   const rules = [
     {
       message: t('IP 格式不符合IPv4标准'),
-      trigger: 'change',
-      validator: (value: string) => ipv4.test(value),
+      trigger: 'blur',
+      validator: (value: string) => !value || ipv4.test(value),
     },
     {
       message: t('目标主机重复'),
@@ -149,12 +150,12 @@
     {
       message: t('目标主机不存在'),
       trigger: 'blur',
-      validator: (value: string) => {
-        if (!value) {
-          return true;
-        }
-        return Boolean(modelValue.value.bk_host_id);
-      },
+      validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
+    },
+    {
+      message: t('非 Proxy IP'),
+      trigger: 'blur',
+      validator: (value: string) => !value || modelValue.value.role === 'proxy',
     },
   ];
 
@@ -187,6 +188,7 @@
           port: item.port,
           related_clusters: relatedClusters,
           related_instances: relatedInstances,
+          role: item.role,
           spec_id: item.spec_config?.id || -1,
         };
       }
@@ -206,6 +208,7 @@
       port: 0,
       related_clusters: [],
       related_instances: [],
+      role: '',
       spec_id: 0,
     };
   };
