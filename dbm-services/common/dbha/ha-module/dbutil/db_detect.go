@@ -90,6 +90,8 @@ type BaseDetectDB struct {
 	//cluster id
 	ClusterId int
 	SshInfo   Ssh
+	//db detect retry times
+	RetryNumber int
 }
 
 // BaseDetectDBResponse agent do detect and response
@@ -337,6 +339,11 @@ func (b *BaseDetectDB) GetAddress() (ip string, port int) {
 // GetDBType return dbType
 func (b *BaseDetectDB) GetDBType() types.DBType {
 	return b.DBType
+}
+
+// GetRetryNumber return retry number
+func (b *BaseDetectDB) GetRetryNumber() int {
+	return b.RetryNumber
 }
 
 // GetDetectType return detect type

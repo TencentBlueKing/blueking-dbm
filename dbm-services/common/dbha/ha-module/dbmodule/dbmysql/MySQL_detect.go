@@ -71,6 +71,8 @@ func AgentNewMySQLDetectInstance(ins *MySQLDetectInstanceInfoFromCmDB, conf *con
 			Status:         constvar.DBCheckSuccess,
 			Cluster:        ins.Cluster,
 			ClusterType:    ins.ClusterType,
+			//agent do retry
+			RetryNumber: 1,
 			SshInfo: dbutil.Ssh{
 				Port:      conf.SSH.Port,
 				User:      conf.SSH.User,
@@ -99,6 +101,8 @@ func GMNewMySQLDetectInstance(ins *MySQLDetectResponse, conf *config.Config) *My
 			Status:         types.CheckStatus(ins.Status),
 			Cluster:        ins.Cluster,
 			ClusterType:    ins.ClusterType,
+			//GMM no need retry
+			RetryNumber: 0,
 			SshInfo: dbutil.Ssh{
 				Port:      conf.SSH.Port,
 				User:      conf.SSH.User,
@@ -125,10 +129,10 @@ func (m *MySQLDetectInstance) GetDetectType() string {
 //	not nil: check db failed or do ssh failed
 //	nil:     check db success
 func (m *MySQLDetectInstance) Detection() error {
-	recheck := 1
 	var mysqlErr error
 	needRecheck := true
 	needSleep := true
+	recheck := m.GetRetryNumber()
 
 	for i := 0; i <= recheck && needRecheck; i++ {
 		// 设置缓冲为1防止没有接收者导致阻塞，即Detection已经超时返回
