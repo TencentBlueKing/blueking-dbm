@@ -32,7 +32,7 @@ class ClusterServiceHandler(BaseClusterServiceHandler):
         """
         # 获取rpc结果
         try:
-            session_time = kwargs.get("session_time", datetime.now(timezone.utc).replace(microsecond=0))
+            session_time = kwargs["options"].get("session_time", datetime.now(timezone.utc).replace(microsecond=0))
             session = f"{kwargs['user_id']}:{session_time}"
             rpc_results = DRSApi.mongodb_rpc(
                 MongoUtil.get_mongodb_webconsole_args(cluster_id=cluster_id, session=session, command=cmd)

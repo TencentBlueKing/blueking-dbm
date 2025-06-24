@@ -154,13 +154,11 @@ class ToolboxHandler(ClusterServiceHandler):
         return get_cluster_update_version(cluster_id)
 
     @classmethod
-    def webconsole_rpc(cls, cluster_id: int, cmd: str, db_num: int = 0, raw: bool = True, **kwargs):
+    def webconsole_rpc(cls, cluster_id: int, cmd: str, **kwargs):
         """
         执行webconsole命令，只支持select语句
         @param cluster_id: 集群ID
         @param cmd: 执行命令
-        @param db_num: 数据库编号
-        @param raw: 源字符返回
         """
         cluster = Cluster.objects.get(id=cluster_id)
         # 获取访问密码
@@ -173,8 +171,8 @@ class ToolboxHandler(ClusterServiceHandler):
                     "bk_cloud_id": cluster.bk_cloud_id,
                     "addresses": [remote_address],
                     "command": cmd,
-                    "db_num": db_num,
-                    "raw": raw,
+                    "db_num": kwargs["options"].get("db_num", 0),
+                    "raw": kwargs["options"].get("raw", True),
                     "password": password,
                     # redis这里的client_type固定为webconsole，drs会发起redis-cli进行执行
                     "client_type": "webconsole",

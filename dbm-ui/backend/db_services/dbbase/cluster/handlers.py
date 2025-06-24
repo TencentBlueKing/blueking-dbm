@@ -24,8 +24,10 @@ from backend.db_meta.exceptions import ClusterNotExistException, InstanceNotExis
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.db_meta.models.machine import Machine
 from backend.db_services.dbbase.dataclass import DBInstance
+from backend.db_services.mysql.sql_import.constants import SQLCharset
 from backend.db_services.mysql.sqlparse.handlers import SQLParseHandler
 from backend.utils.basic import remove_duplicated_dict
+from backend.utils.time import get_local_charset
 
 
 class ClusterServiceHandler:
@@ -366,13 +368,16 @@ class ClusterServiceHandler:
         return instance_objs
 
     @staticmethod
-    def console_rpc(instances: list, cmd: str, db_query: bool, rpc_function: Callable, is_check: bool = True):
+    def console_rpc(
+        instances: list, cmd: str, db_query: bool, rpc_function: Callable, is_check: bool = True, **kwargs
+    ):
         """
         通用的RPC命令执行器，只支持select语句
         @param instances: 实例信息
         @param cmd: 执行命令
         @param db_query: 是否只允许查询系统库 -- DB自助查询
         @param rpc_function: 用于执行RPC请求的函数
+        @param is_check: 校验select语句
         """
         # 校验select语句
         if is_check:
@@ -387,11 +392,20 @@ class ClusterServiceHandler:
         instance_rpc_results: List = []
 
         if ClusterServiceHandler.__check_special_sql(cmd):
-            instance_rpc_results = ClusterServiceHandler.__dbconsole_special_query(bk_cloud__instances_map, cmd)
+            instance_rpc_results = ClusterServiceHandler.__dbconsole_special_query(
+                bk_cloud__instances_map, cmd, **kwargs
+            )
         else:
             for bk_cloud_id, addresses in bk_cloud__instances_map.items():
+                params = {
+                    "bk_cloud_id": bk_cloud_id,
+                    "addresses": addresses,
+                    "cmds": [cmd],
+                    "charset": kwargs["options"].get("charset", SQLCharset.DEFAULT.value),
+                    "timezone": kwargs["options"].get("timezone", get_local_charset()),
+                }
                 # 使用传入的rpc_function进行rpc调用
-                rpc_results = rpc_function({"bk_cloud_id": bk_cloud_id, "addresses": addresses, "cmds": [cmd]})
+                rpc_results = rpc_function(params)
 
                 cmd_results = [
                     {
@@ -406,7 +420,7 @@ class ClusterServiceHandler:
         return instance_rpc_results
 
     @classmethod
-    def __dbconsole_special_query(cls, bk_cloud__instances_map, cmd):
+    def __dbconsole_special_query(cls, bk_cloud__instances_map, cmd, **kwargs):
         """
         用于dbaconsole的特殊查询，目前复用webconsole，因此不支持单次多条查询
         webconsole账户也不支持查询主从同步信息
@@ -439,7 +453,14 @@ class ClusterServiceHandler:
 
         instance_rpc_results: List = []
         for bk_cloud_id, addresses in bk_cloud__instances_map.items():
-            rpc_results = DRSApi.rpc({"bk_cloud_id": bk_cloud_id, "addresses": addresses, "cmds": cmds})
+            params = {
+                "bk_cloud_id": bk_cloud_id,
+                "addresses": addresses,
+                "cmds": cmds,
+                "charset": kwargs["options"].get("charset", SQLCharset.DEFAULT.value),
+                "timezone": kwargs["options"].get("timezone", get_local_charset()),
+            }
+            rpc_results = DRSApi.rpc(params)
             cmd_results = [
                 {
                     "instance": res["address"],

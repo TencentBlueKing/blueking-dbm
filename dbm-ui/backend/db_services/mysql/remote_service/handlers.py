@@ -284,7 +284,7 @@ class RemoteServiceHandler:
         try:
             instances = [{"bk_cloud_id": cluster.bk_cloud_id, "instance": remote_address}]
             rpc_results = ClusterServiceHandler.console_rpc(
-                instances, cmd, db_query=False, rpc_function=DRSApi.webconsole_rpc
+                instances, cmd, db_query=False, rpc_function=DRSApi.webconsole_rpc, **kwargs
             )
             return {"query": rpc_results[0]["table_data"], "error_msg": rpc_results[0]["error_msg"]}
         except SQLParseBaseException as e:
