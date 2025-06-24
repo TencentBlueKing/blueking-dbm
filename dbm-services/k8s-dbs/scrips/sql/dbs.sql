@@ -103,6 +103,9 @@ CREATE TABLE IF NOT EXISTS tb_k8s_cluster_service (
 CREATE TABLE IF NOT EXISTS tb_cluster_request_record (
     id bigint PRIMARY KEY AUTO_INCREMENT COMMENT '主键 id',
     request_id varchar(50) NOT NULL COMMENT '请求Id，使用全局的UUID',
+    cluster_name varchar(32) COMMENT '集群名称',
+    namespace varchar(32) COMMENT '集群所在的命名空间',
+    k8s_cluster_name varchar(32) COMMENT 'k8s 集群名称',
     request_type varchar(50) NOT NULL COMMENT '操作记录类型 Create/Delete/Restart/Start/Stop/Switchover/Upgrade/HorizontalScaling/VerticalScaling/VolumeExpansion',
     request_params text COMMENT '操作记录请求信息',
     status varchar(100) COMMENT '操作记录请求状态 Cancelled/Cancelling/Creating/Failed/Pending/Running/Succeed',

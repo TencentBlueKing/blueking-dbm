@@ -67,9 +67,9 @@ func (k *K8sClusterConfigController) GetK8sClusterConfigByID(ctx *gin.Context) {
 
 // GetK8sClusterConfigByName get clusterConfig by its Name.
 func (k *K8sClusterConfigController) GetK8sClusterConfigByName(ctx *gin.Context) {
-	nameParam := ctx.Param("cluster_name")
+	nameParam := ctx.Param("clusterName")
 	if nameParam == "" {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, fmt.Errorf("cluster_name 参数不能为空")))
+		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, fmt.Errorf("clusterName 参数不能为空")))
 		return
 	}
 	config, err := k.configProvider.FindConfigByName(nameParam)

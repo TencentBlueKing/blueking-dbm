@@ -610,13 +610,11 @@ func (o *OpsRequestProvider) createRequestEntity(
 	request *coreentity.Request,
 	requestType string,
 ) (*providerentity.ClusterRequestRecordEntity, error) {
-	// Serialize request
 	requestBytes, err := json.Marshal(request)
 	if err != nil {
 		return nil, fmt.Errorf("serialization request failed: %v", err)
 	}
 
-	// Construct a request instance object
 	requestRecord := &providerentity.ClusterRequestRecordEntity{
 		RequestID:     util.RequestID(),
 		RequestType:   requestType,

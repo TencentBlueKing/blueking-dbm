@@ -68,7 +68,7 @@ func (c *ClusterReleaseController) GetClusterRelease(ctx *gin.Context) {
 
 // GetClusterReleaseByParam get addon cluster release by its Param.
 func (c *ClusterReleaseController) GetClusterReleaseByParam(ctx *gin.Context) {
-	releaseNameParam := ctx.Param("release_name")
+	releaseNameParam := ctx.Param("releaseName")
 	namespaceParam := ctx.Param("namespace")
 	if releaseNameParam == "" || namespaceParam == "" {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, fmt.Errorf("cluster_name 参数不能为空")))

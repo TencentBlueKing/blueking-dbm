@@ -63,6 +63,8 @@ func buildMetaRouter(db *gorm.DB, router *gin.Engine) {
 		buildK8sClusterAddonsRouter(db, metaRouter)
 
 		buildAddonClusterVersionRouter(db, metaRouter)
+
+		buildRequestRecordRouter(db, metaRouter)
 	}
 }
 
@@ -274,5 +276,17 @@ func buildAddonClusterVersionRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
 		metaGroup.DELETE("/:id", metaController.DeleteAcVersion)
 		metaGroup.POST("", metaController.CreateAcVersion)
 		metaGroup.PUT("/:id", metaController.UpdateAcVersion)
+	}
+}
+
+// buildRequestRecordRouter cluster request record 管理路由构建
+func buildRequestRecordRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
+	metaDbAccess := metadbaccess.NewClusterRequestRecordDbAccess(db)
+	metaProvider := metaprovider.NewClusterRequestRecordProvider(metaDbAccess)
+	metaController := metacontroller.NewClusterRequestRecordController(metaProvider)
+
+	metaGroup := metaRouter.Group("/cluster_request_record")
+	{
+		metaGroup.GET("", metaController.GetRecordsByCluster)
 	}
 }

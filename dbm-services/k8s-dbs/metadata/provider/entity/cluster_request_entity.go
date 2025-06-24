@@ -25,14 +25,17 @@ import (
 
 // ClusterRequestRecordEntity request record entity 定义
 type ClusterRequestRecordEntity struct {
-	ID            uint64    `json:"id"`
-	RequestID     string    `json:"requestId"`
-	RequestType   string    `json:"requestType"`
-	RequestParams string    `json:"requestParams"`
-	Status        string    `json:"status"`
-	Description   string    `json:"description"`
-	CreatedBy     string    `json:"createdBy"`
-	CreatedAt     time.Time `json:"createdAt"`
-	UpdatedBy     string    `json:"updatedBy"`
-	UpdatedAt     time.Time `json:"updatedAt"`
+	ID             uint64    `json:"id"`
+	RequestID      string    `json:"requestId"`
+	K8sClusterName string    `json:"k8sClusterName"`
+	ClusterName    string    `json:"clusterName"`
+	NameSpace      string    `json:"namespace"`
+	RequestType    string    `json:"requestType"`
+	RequestParams  string    `json:"requestParams"`
+	Status         string    `json:"status"`
+	Description    string    `json:"description"`
+	CreatedBy      string    `json:"createdBy"`
+	CreatedAt      time.Time `json:"createdAt"`
+	UpdatedBy      string    `json:"updatedBy"`
+	UpdatedAt      time.Time `json:"updatedAt"`
 }

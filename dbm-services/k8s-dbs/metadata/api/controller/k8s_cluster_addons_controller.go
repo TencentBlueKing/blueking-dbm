@@ -64,9 +64,10 @@ func (k *K8sClusterAddonsController) GetAddon(ctx *gin.Context) {
 
 // GetAddonsByClusterName retrieves cluster addons by k8s_cluster_name.
 func (k *K8sClusterAddonsController) GetAddonsByClusterName(ctx *gin.Context) {
-	k8sClusterName := ctx.Query("k8s_cluster_name")
-	params := make(map[string]interface{})
-	params["k8s_cluster_name"] = k8sClusterName
+	k8sClusterName := ctx.Query("k8sClusterName")
+	params := map[string]interface{}{
+		"k8s_cluster_name": k8sClusterName,
+	}
 	clusterAddons, err := k.caProvider.FindClusterAddonByParams(params)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))

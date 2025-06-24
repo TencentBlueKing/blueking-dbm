@@ -34,11 +34,28 @@ type ClusterRequestRecordProvider interface {
 	DeleteRequestRecordByID(id uint64) (uint64, error)
 	FindRequestRecordByID(id uint64) (*entitys.ClusterRequestRecordEntity, error)
 	UpdateRequestRecord(entity *entitys.ClusterRequestRecordEntity) (uint64, error)
+	FindRecordsByParams(params map[string]interface{}) ([]entitys.ClusterRequestRecordEntity, error)
 }
 
 // ClusterRequestRecordProviderImpl ClusterRequestRecordProvider 具体实现
 type ClusterRequestRecordProviderImpl struct {
 	dbAccess dbaccess.ClusterRequestRecordDbAccess
+}
+
+// FindRecordsByParams 通过参数查询 request record
+func (k *ClusterRequestRecordProviderImpl) FindRecordsByParams(params map[string]interface{}) (
+	[]entitys.ClusterRequestRecordEntity,
+	error,
+) {
+	recordModels, err := k.dbAccess.FindByParams(params)
+	if err != nil {
+		return nil, err
+	}
+	var recordEntities []entitys.ClusterRequestRecordEntity
+	if err := copier.Copy(&recordEntities, recordModels); err != nil {
+		return nil, err
+	}
+	return recordEntities, nil
 }
 
 // CreateRequestRecord 创建 request record

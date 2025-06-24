@@ -20,8 +20,10 @@ limitations under the License.
 package dbaccess
 
 import (
+	"errors"
 	"fmt"
 	"k8s-dbs/common/entity"
+	mconst "k8s-dbs/metadata/constant"
 	models "k8s-dbs/metadata/dbaccess/model"
 	"log/slog"
 
@@ -35,11 +37,31 @@ type ClusterRequestRecordDbAccess interface {
 	FindByID(id uint64) (*models.ClusterRequestRecordModel, error)
 	Update(model *models.ClusterRequestRecordModel) (uint64, error)
 	ListByPage(pagination entity.Pagination) ([]models.ClusterRequestRecordModel, int64, error)
+	FindByParams(params map[string]interface{}) ([]models.ClusterRequestRecordModel, error)
 }
 
 // ClusterRequestRecordDbAccessImpl ClusterRequestRecordDbAccess 的具体实现
 type ClusterRequestRecordDbAccessImpl struct {
 	db *gorm.DB
+}
+
+// FindByParams 通过参数查询
+func (k *ClusterRequestRecordDbAccessImpl) FindByParams(params map[string]interface{}) (
+	[]models.ClusterRequestRecordModel,
+	error,
+) {
+	var recordModels []models.ClusterRequestRecordModel
+	if err := k.db.
+		Where(params).
+		Limit(mconst.MaxFetchSize).
+		Find(&recordModels).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return []models.ClusterRequestRecordModel{}, nil
+		}
+		slog.Error("failed to find by params", "error", err)
+		return nil, fmt.Errorf("database query failed: %w", err)
+	}
+	return recordModels, nil
 }
 
 // Create 创建元数据接口实现

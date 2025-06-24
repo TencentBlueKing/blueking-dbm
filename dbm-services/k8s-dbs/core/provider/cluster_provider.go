@@ -473,9 +473,12 @@ func (c *ClusterProvider) createRequestEntity(
 	}
 
 	requestRecord := &provderentity.ClusterRequestRecordEntity{
-		RequestID:     util.RequestID(),
-		RequestType:   requestType,
-		RequestParams: string(requestBytes),
+		K8sClusterName: request.K8sClusterName,
+		ClusterName:    request.ClusterName,
+		NameSpace:      request.Namespace,
+		RequestID:      util.RequestID(),
+		RequestType:    requestType,
+		RequestParams:  string(requestBytes),
 	}
 
 	addedRequestRecord, err := c.reqRecordProvider.CreateRequestRecord(requestRecord)
