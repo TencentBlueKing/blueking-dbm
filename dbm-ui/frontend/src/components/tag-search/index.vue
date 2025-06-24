@@ -12,10 +12,10 @@
       float-mode
       :list="dataList"
       multiple
-      :placeholder="t('请选择或输入关键字搜索')"
+      :placeholder="t('请选择或输入')"
       :scroll-height="392"
       separator=" : "
-      :style="{ width: isButtonMode ? '108px' : '400px' }"
+      :style="{ width: isButtonMode ? '108px' : '325px' }"
       trigger="click"
       @change="handleValueChange"
       @toggle="handlePanelToggle">

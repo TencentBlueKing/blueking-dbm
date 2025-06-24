@@ -1,6 +1,5 @@
 <template>
   <div class="cluster-selector-search-main">
-    <TagSearch @search="handleTagSearch" />
     <DbSearchSelect
       class="search-select-main"
       :data="searchSelectData"
@@ -8,6 +7,7 @@
       :placeholder="t('请输入或选择条件搜索')"
       unique-select
       @change="handleSearchChange" />
+    <TagSearch @search="handleTagSearch" />
   </div>
 </template>
 <script setup lang="ts">
