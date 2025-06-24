@@ -256,7 +256,7 @@ func DoBackupFull(connInfo *mymongo.MongoHost, backupType, dir string, zip bool,
 
 	dumpLogFilePath := "dump.log"
 	var cmdList []*mycmd.MyExec
-	exec1, err := mycmd.NewMyExec(dumpCmd, cmdMaxTimeout, nil, dumpLogFilePath)
+	exec1, err := mycmd.NewMyExec(dumpCmd, cmdMaxTimeout, nil, dumpLogFilePath, false)
 	if err != nil {
 		return nil, err
 	}
@@ -266,7 +266,7 @@ func DoBackupFull(connInfo *mymongo.MongoHost, backupType, dir string, zip bool,
 	if archive && zip {
 		exec2, err := mycmd.NewMyExec(
 			mycmd.New(MustFindBinPath("zstd", consts.GetDbTool("mongotools")), "-", "-o", archiveFile),
-			cmdMaxTimeout, nil, os.DevNull)
+			cmdMaxTimeout, nil, os.DevNull, false)
 		if err != nil {
 			return nil, err
 		}
@@ -423,7 +423,7 @@ func DoBackupIncr(connInfo *mymongo.MongoHost, backupType, dir string, zip bool,
 	}
 	dumpLogFilePath := "dump.log"
 	var cmdList []*mycmd.MyExec
-	exec1, err := mycmd.NewMyExec(dumpCmd, cmdMaxTimeout, nil, dumpLogFilePath)
+	exec1, err := mycmd.NewMyExec(dumpCmd, cmdMaxTimeout, nil, dumpLogFilePath, false)
 	if err != nil {
 		return nil, err
 	}

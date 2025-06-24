@@ -81,12 +81,15 @@ func (job *CheckHealthJob) runOneServer(svrItem *config.ConfServerItem) {
 	}
 
 	startTime := time.Now()
-	loginTimeoutVal, err := config.ClusterConfig.GetInt64(svrItem, "montior", "loginTimeout", 10)
+	loginTimeoutVal, err := config.ClusterConfig.GetInt64(svrItem, config.SegmentMonitor, config.KeyLoginTimeout, 10)
+	if err != nil {
+		logger.Error(fmt.Sprintf("get loginTimeout from config failed: %v", err))
+	}
 	// loginTimeoutVal < 5, loginTimeoutVal = 5
 	if loginTimeoutVal < 5 {
 		loginTimeoutVal = 5
-	} else if loginTimeoutVal > 120 {
-		loginTimeoutVal = 120
+	} else if loginTimeoutVal > 300 {
+		loginTimeoutVal = 300
 	}
 
 	loginTimeout := int(loginTimeoutVal)
@@ -204,7 +207,7 @@ func checkService(loginTimeout int, svrItem *config.ConfServerItem, logger *zap.
 	port := fmt.Sprintf("%d", svrItem.Port)
 	outBuf, errBuf, err := ExecLoginJs(mongoBin, loginTimeout, svrItem.IP, port, user, pass, authDb,
 		embedfiles.MongoLoginJs, logger)
-	logger.Info(fmt.Sprintf("ExecLoginJs %s stdout: %q, stderr: %q", port, outBuf, errBuf))
+	logger.Info(fmt.Sprintf("ExecLoginJs %s timeout:%d stdout: %q, stderr: %q", port, loginTimeout, outBuf, errBuf))
 	if err == nil {
 		return nil
 	}

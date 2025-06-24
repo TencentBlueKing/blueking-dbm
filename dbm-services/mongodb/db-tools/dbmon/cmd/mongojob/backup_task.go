@@ -24,6 +24,8 @@ type BackupTaskOption struct {
 	Password           string `json:"password"`
 	SendToBs           bool   `json:"send_to_bs"`
 	RemoveOldFileFirst bool   `json:"remove_old_file_first"`
+	MaxDiskUsage       string `json:"max_disk_usage"`
+	MinDiskUsage       string `json:"min_disk_usage"`
 	FullFreq           int    `json:"full_freq"`
 	IncrFreq           int    `json:"incr_freq"`
 	Labels             string `json:"labels"`
@@ -61,6 +63,12 @@ func (task *BackupTask) Do(option *BackupTaskOption, logger *zap.Logger) error {
 
 	if option.RemoveOldFileFirst {
 		cb.Append("--remove-old-file-first")
+		if option.MaxDiskUsage != "" {
+			cb.Append("--max-disk-usage", option.MaxDiskUsage)
+		}
+		if option.MinDiskUsage != "" {
+			cb.Append("--min-disk-usage", option.MinDiskUsage)
+		}
 	}
 
 	if option.Zip {

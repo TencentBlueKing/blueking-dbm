@@ -127,6 +127,9 @@ func (job *BackupJob) runOneServer(svrItem *config.ConfServerItem, zipEnable boo
 	// backupTask := NewBackupTask(job.Conf, svrItem, job.RealBackupDir, job.Reporter)
 	var logger = job.Logger.With(
 		zap.String("instance", svrItem.Addr()))
+	maxDiskUsage, _ := config.ClusterConfig.GetOne(svrItem, "backup", "max-disk-usage")
+	minDiskUsage, _ := config.ClusterConfig.GetOne(svrItem, "backup", "min-disk-usage")
+
 	option := &BackupTaskOption{
 		TaskName:           "",
 		BackupDir:          job.getBackupDir(),
@@ -137,6 +140,8 @@ func (job *BackupJob) runOneServer(svrItem *config.ConfServerItem, zipEnable boo
 		Password:           svrItem.Password,
 		SendToBs:           true,
 		RemoveOldFileFirst: true,
+		MaxDiskUsage:       maxDiskUsage,
+		MinDiskUsage:       minDiskUsage,
 		FullFreq:           3600 * 24,
 		IncrFreq:           3600,
 		Labels:             getBkSvrLabels(svrItem),

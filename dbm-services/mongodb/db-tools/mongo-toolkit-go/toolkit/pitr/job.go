@@ -23,7 +23,9 @@ type BackupOption struct {
 	FullTag            string
 	IncrTag            string
 	SendToBackupSystem bool
-	RemoveOldFileFirst bool
+	RemoveOldFileFirst bool // 是否删除过期的备份文件
+	MaxDiskUsage       int  // 高于此值为磁盘紧急状态, 默认50
+	MinDiskUsage       int  // 低于此值为磁盘正常状态, 默认25
 	ReportFile         string
 	BkDbmLabel         *config.BkDbmLabel
 	Archive            bool
@@ -42,9 +44,18 @@ func DoJob(option *BackupOption) {
 		log.Debugf("Get BackupMeta %+v GetMetaFile:%s", bm, bm.GetMetaFileName())
 	}
 
+	maxDiskUsage := option.MaxDiskUsage
+	minDiskUsage := option.MinDiskUsage
+	if maxDiskUsage == 0 {
+		maxDiskUsage = 50
+	}
+	if minDiskUsage == 0 {
+		minDiskUsage = 25
+	}
+
 	if option.RemoveOldFileFirst {
 		log.Infof("RemoveOldFileFirst")
-		bm.RemoveOldFileFirst()
+		bm.RemoveOldFileFirst(maxDiskUsage, minDiskUsage)
 	}
 
 	prevFull, lastIncr, err := bm.GetLastBackup()

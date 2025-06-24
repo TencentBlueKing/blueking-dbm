@@ -4,7 +4,6 @@ import (
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/util"
 	"os"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -14,7 +13,6 @@ import (
 
 type ClusterConfigHelper struct {
 	configFile string
-	lock       *sync.Mutex
 	conf       *ClusterConfigConf
 }
 
@@ -111,7 +109,7 @@ func (c *ClusterConfigHelper) GetOne(svr *ConfServerItem, segment, key string) (
 func (c *ClusterConfigHelper) GetInt64(svr *ConfServerItem, segment, key string, defaultVal int64) (int64, error) {
 	v, err := c.GetOne(svr, segment, key)
 	if err != nil {
-		return defaultVal, nil
+		return defaultVal, errors.Wrap(err, "get one failed, return default value")
 	}
 	intv, err := strconv.ParseInt(v, 10, 64)
 	if err != nil {

@@ -40,14 +40,18 @@ const disStateEmergency = "emergency"
 const disStateWarning = "warning"
 const disStateNormal = "normal"
 
-func getDiskState(path string) (state string, err error) {
+// getDiskState 获取磁盘状态
+// 磁盘紧急状态: >  MaxDiskUsage 50 -> 同步完成就删除
+// 磁盘正常状态: < MinDiskUsage 25  -> 超过2天的文件且同步完成就删除
+// 磁盘警告状态: 介于MinDiskUsage和MaxDiskUsage之间 -> 超过2天的文件且同步完成就删除
+func getDiskState(path string, maxDiskUsage int, minDiskUsage int) (state string, err error) {
 	diskUsage, err := getDiskUsage(path)
 	if err != nil {
 		return
 	}
-	if diskUsage > MaxDiskUsage {
+	if diskUsage > maxDiskUsage {
 		state = disStateEmergency
-	} else if diskUsage < MinDiskUsage {
+	} else if diskUsage < minDiskUsage {
 		state = disStateNormal
 	} else {
 		state = disStateWarning
@@ -57,8 +61,6 @@ func getDiskState(path string) (state string, err error) {
 }
 
 const MaxSaveTime = time.Hour * 24 * 2
-const MaxDiskUsage = 50 // 高于此值为磁盘紧急状态
-const MinDiskUsage = 25 // 低于此值为磁盘正常状态
 
 type deleteReasonFlag uint8
 
@@ -78,13 +80,13 @@ func (d deleteReason) String() string {
 // RemoveOldFileFirst 删除过期的备份文件
 // 磁盘紧急状态: >  MaxDiskUsage 50 -> 同步完成就删除
 // 磁盘正常状态: < MinDiskUsage 25  -> 超过2天的文件且同步完成就删除
-func (b *BackupMetaV2) RemoveOldFileFirst() {
+func (b *BackupMetaV2) RemoveOldFileFirst(maxDiskUsage int, minDiskUsage int) {
 	b.Load()
 	log.Infof("RemoveOldFileFirst. start")
 	var total, deleted int
 	total = len(b.Records)
 	for _, r := range b.Records {
-		fullPath, taskInfo, doDelete, _ := canDelete(b.MetaDir, &r)
+		fullPath, taskInfo, doDelete, _ := canDelete(b.MetaDir, &r, maxDiskUsage, minDiskUsage)
 		if doDelete {
 			deleted += 1
 			doRemoveFile(fullPath)
@@ -95,7 +97,8 @@ func (b *BackupMetaV2) RemoveOldFileFirst() {
 }
 
 // needDelete 是否需要删除
-func canDelete(metaDir string, r *BackupFileName) (fullPath string, taskInfo *backupsys.TaskInfo, doDelete bool, err error) {
+func canDelete(metaDir string, r *BackupFileName, maxDiskUsage int, minDiskUsage int) (
+	fullPath string, taskInfo *backupsys.TaskInfo, doDelete bool, err error) {
 	// 紧急状态，备份完了就删除
 	// 正常状态，超过2天的文件，且备份完了就删除
 	// deleteReasonFlagNone 是指没有taskinfo的文件，无法判断是否已经备份完成. 在紧急状态下，会直接删除
@@ -111,7 +114,7 @@ func canDelete(metaDir string, r *BackupFileName) (fullPath string, taskInfo *ba
 	// 是否已经备份完成
 	taskDoneReason := getTaskDoneReason(fullPath, taskInfo)
 	modTimeReason := getModTimeReason(fileInfo, r)
-	diskState, err := getDiskState(fullPath)
+	diskState, err := getDiskState(fullPath, maxDiskUsage, minDiskUsage)
 	if err != nil {
 		// 如果获取磁盘状态失败，这是异常情况。退出
 		log.Fatalf("RemoveOldFileFirst getDiskState failed, file: %s, err: %v", r.FileName, err)

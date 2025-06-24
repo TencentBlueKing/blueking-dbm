@@ -4,6 +4,7 @@ package cmd
 import (
 	"context"
 	"dbm-services/mongodb/db-tools/dbmon/cmd/dbmonheartbeat"
+	"dbm-services/mongodb/db-tools/dbmon/cmd/dstatjob"
 	"dbm-services/mongodb/db-tools/dbmon/cmd/logparserjob"
 	"dbm-services/mongodb/db-tools/dbmon/cmd/mongojob"
 	"dbm-services/mongodb/db-tools/dbmon/config"
@@ -15,6 +16,7 @@ import (
 	_ "net/http/pprof" // pprof TODO
 	"os"
 	"os/signal"
+	"path"
 	"runtime/debug"
 	"sync"
 	"syscall"
@@ -32,6 +34,8 @@ var clusterConfigFile string
 var showVersion = false
 var logLevel string
 var stdout bool // file or stdout
+
+var workDir string
 
 const progName = "bk-dbmon"
 
@@ -75,6 +79,22 @@ func preRun(stdout bool) {
 	} else {
 		mylog.InitRotateLoger(logLevel == "debug")
 	}
+	// get executable path
+	if exePath, err := os.Executable(); err != nil {
+		mylog.Logger.Fatal("get executable path", zap.Error(err))
+		return
+	} else {
+		workDir = path.Dir(exePath)
+	}
+
+	// if clusterConfigFile is not absolute path, join workDir
+	if !path.IsAbs(clusterConfigFile) {
+		clusterConfigFile = path.Join(workDir, clusterConfigFile)
+	}
+	// if cfgFile is not absolute path, join workDir
+	if !path.IsAbs(cfgFile) {
+		cfgFile = path.Join(workDir, cfgFile)
+	}
 
 	var err error
 	dbmonConf, err = config.NewDbMonConfig(cfgFile)
@@ -103,9 +123,11 @@ func main(cmd *cobra.Command, args []string) {
 		_, _ = fmt.Fprintf(os.Stdout, "%s\n%s\n", progName, buildinfo.VersionInfo())
 		return
 	}
+
 	preRun(stdout)
 	logger := mylog.Logger
 	logger.Info("bk-dbmon start",
+		zap.String("workDir", workDir),
 		zap.String("version", buildinfo.VersionInfoOneLine()),
 		zap.String("configFile", cfgFile),
 		zap.String("clusterConfigFile", clusterConfigFile))
@@ -140,6 +162,7 @@ func main(cmd *cobra.Command, args []string) {
 	job3 := dbmonheartbeat.GetJob(dbmonConf, mylog.Logger, "heartbeat")
 	// logparserjob 任务
 	job4 := logparserjob.GetJob(dbmonConf, mylog.Logger, "logparser", osCtx, &rootWg)
+	job5 := dstatjob.GetJob(dbmonConf, mylog.Logger, "dstat", workDir)
 	for _, row := range []struct {
 		job  cron.Job
 		cron string
@@ -149,6 +172,7 @@ func main(cmd *cobra.Command, args []string) {
 		{job: job2, cron: "@every 1m", name: job2.Name},
 		{job: job3, cron: "@every 1m", name: job3.Name},
 		{job: job4, cron: "@every 1m", name: job4.Name},
+		{job: job5, cron: "@every 1m", name: job5.Name},
 	} {
 		if entryID, err := c.AddJob(row.cron,
 			cron.NewChain(cron.SkipIfStillRunning(mylog.AdapterLog)).Then(row.job)); err == nil {

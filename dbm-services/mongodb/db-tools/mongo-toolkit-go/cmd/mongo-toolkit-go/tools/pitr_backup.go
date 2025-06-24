@@ -36,6 +36,8 @@ var sendToBackupSystem bool // 是否上传到备份系统
 var fullTag string          //全备文件的Tag，表示保存天数
 var incrTag string          //增量备份文件的Tag，表示保存天数
 var removeOldFileFirst bool
+var maxDiskUsage int
+var minDiskUsage int
 var reportFile string
 var labelsStr string
 var archive bool
@@ -57,7 +59,9 @@ func init() {
 	backupCmd.Flags().BoolVar(&sendToBackupSystem, "send-to-bs", false, "if send to backup system")
 	backupCmd.Flags().StringVar(&fullTag, "full-tag", "MONGO_FULL_BACKUP", "full backup tag")
 	backupCmd.Flags().StringVar(&incrTag, "incr-tag", "MONGO_INCR_BACKUP", "incr backup tag")
-	backupCmd.Flags().BoolVar(&removeOldFileFirst, "remove-old-file-first", false, "if remove old file first")
+	backupCmd.Flags().BoolVar(&removeOldFileFirst, "remove-old-file-first", false, "remove old file first")
+	backupCmd.Flags().IntVar(&maxDiskUsage, "max-disk-usage", 50, "max disk usage, default 50, unit: %")
+	backupCmd.Flags().IntVar(&minDiskUsage, "min-disk-usage", 25, "min disk usage, default 25, unit: %")
 	backupCmd.Flags().StringVar(&reportFile, "report-file", "", "report file") // 将备份文件详细信息写入到Report文件中
 	backupCmd.Flags().StringVar(&labelsStr, "labels", "", "bkdbm server labels, json, allow empty")
 	backupCmd.Flags().BoolVar(&archive, "archive", false,
@@ -117,6 +121,8 @@ func backupMain() {
 		IncrTag:            incrTag,
 		SendToBackupSystem: sendToBackupSystem,
 		RemoveOldFileFirst: removeOldFileFirst,
+		MaxDiskUsage:       maxDiskUsage,
+		MinDiskUsage:       minDiskUsage,
 		ReportFile:         reportFile,
 		BkDbmLabel:         dbmLabel,
 		DryRun:             dryRun,
