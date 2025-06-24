@@ -25,7 +25,23 @@ CREATE TABLE IF NOT EXISTS tb_k8s_crd_storageaddon (
     created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_by varchar(50) NOT NULL COMMENT '更新者',
     updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT '存储插件相关信息的表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT '存储插件相关信息表';
+
+--
+-- Table structure for table tb_addoncluster_version
+--
+CREATE TABLE IF NOT EXISTS tb_addoncluster_version (
+    id bigint PRIMARY KEY AUTO_INCREMENT COMMENT '主键 id',
+    addon_id bigint NOT NULL COMMENT '关联 tb_k8s_crd_addon 主键 id',
+    addoncluster_name varchar(32) NOT NULL COMMENT '引擎部署模板的名称',
+    version varchar(32) NOT NULL COMMENT '引擎部署模板的版本',
+    active tinyint(1) NOT NULL DEFAULT 1 COMMENT '是否启用（0:禁用，1:启用）',
+    description varchar(100) Null COMMENT '引擎部署模板描述',
+    created_by varchar(50) NOT NULL COMMENT '创建者',
+    created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_by varchar(50) NOT NULL COMMENT '更新者',
+    updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT '引擎部署模板版本信息表';
 
 --
 -- Table structure for table tb_k8s_crd_cluster

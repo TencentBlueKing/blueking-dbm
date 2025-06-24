@@ -61,6 +61,8 @@ func buildMetaRouter(db *gorm.DB, router *gin.Engine) {
 		buildClusterReleaseMetaRouter(db, metaRouter)
 
 		buildK8sClusterAddonsRouter(db, metaRouter)
+
+		buildAddonClusterVersionRouter(db, metaRouter)
 	}
 }
 
@@ -256,5 +258,21 @@ func buildK8sClusterAddonsRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
 	{
 		repoMetaGroup.GET("/:id", metaController.GetAddon)
 		repoMetaGroup.GET("", metaController.GetAddonsByClusterName)
+	}
+}
+
+// buildAddonClusterVersionRouter addon cluster version 管理路由构建
+func buildAddonClusterVersionRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
+	metaDbAccess := metadbaccess.NewAddonClusterVersionDbAccess(db)
+
+	metaProvider := metaprovider.NewAddonClusterVersionProvider(metaDbAccess)
+	metaController := metacontroller.NewAddonClusterVersionController(metaProvider)
+	metaGroup := metaRouter.Group("/addoncluster_version")
+	{
+		metaGroup.GET("", metaController.ListAcVersions)
+		metaGroup.GET("/:id", metaController.GetAcVersion)
+		metaGroup.DELETE("/:id", metaController.DeleteAcVersion)
+		metaGroup.POST("", metaController.CreateAcVersion)
+		metaGroup.PUT("/:id", metaController.UpdateAcVersion)
 	}
 }

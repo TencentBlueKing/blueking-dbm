@@ -36,18 +36,20 @@ import (
 	commconst "k8s-dbs/common/api/constant"
 )
 
-// AddonController manages metadata for addons.
-type AddonController struct {
-	addonProvider provider.K8sCrdStorageAddonProvider
+// AddonClusterVersionController manages metadata for addons.
+type AddonClusterVersionController struct {
+	acVersionProvider provider.AddonClusterVersionProvider
 }
 
-// NewAddonController creates a new instance of AddonController.
-func NewAddonController(addonProvider provider.K8sCrdStorageAddonProvider) *AddonController {
-	return &AddonController{addonProvider}
+// NewAddonClusterVersionController creates a new instance of AddonClusterVersionController.
+func NewAddonClusterVersionController(
+	acVersionProvider provider.AddonClusterVersionProvider,
+) *AddonClusterVersionController {
+	return &AddonClusterVersionController{acVersionProvider}
 }
 
-// ListAddons 获取当前系统支持的 addon 列表
-func (a *AddonController) ListAddons(ctx *gin.Context) {
+// ListAcVersions 获取 addon cluster version 列表
+func (a *AddonClusterVersionController) ListAcVersions(ctx *gin.Context) {
 	sizeStr := ctx.DefaultQuery("size", metaconst.DefaultFetchSizeStr)
 	fetchSize, err := strconv.Atoi(sizeStr)
 	if err != nil {
@@ -55,33 +57,33 @@ func (a *AddonController) ListAddons(ctx *gin.Context) {
 	}
 	fetchSize = min(fetchSize, metaconst.MaxFetchSize)
 	pagination := commentity.Pagination{Limit: fetchSize}
-	addons, err := a.addonProvider.ListStorageAddons(pagination)
+	acVersions, err := a.acVersionProvider.ListAcVersion(pagination)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
-	var data []resp.K8sCrdAddonRespVo
-	if err := copier.Copy(&data, addons); err != nil {
+	var data []resp.AddonClusterVersionRespVo
+	if err := copier.Copy(&data, acVersions); err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
 	entity.SuccessResponse(ctx, data, commconst.Success)
 }
 
-// GetAddon retrieves an addon by its ID.
-func (a *AddonController) GetAddon(ctx *gin.Context) {
+// GetAcVersion 根据 ID 查找 addon cluster version
+func (a *AddonClusterVersionController) GetAcVersion(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
-	addon, err := a.addonProvider.FindStorageAddonByID(id)
+	addon, err := a.acVersionProvider.FindAcVersionByID(id)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
-	var data resp.K8sCrdAddonRespVo
+	var data resp.AddonClusterVersionRespVo
 	if err := copier.Copy(&data, addon); err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
@@ -89,51 +91,51 @@ func (a *AddonController) GetAddon(ctx *gin.Context) {
 	entity.SuccessResponse(ctx, data, commconst.Success)
 }
 
-// CreateAddon creates a new addon.
-func (a *AddonController) CreateAddon(ctx *gin.Context) {
-	var addon req.K8sCrdAddonReqVo
-	if err := ctx.ShouldBindJSON(&addon); err != nil {
+// CreateAcVersion 创建 addon cluster version
+func (a *AddonClusterVersionController) CreateAcVersion(ctx *gin.Context) {
+	var acVersionVo req.AddonClusterVersionReqVo
+	if err := ctx.ShouldBindJSON(&acVersionVo); err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
 		return
 	}
-	var addonEntity entitys.K8sCrdStorageAddonEntity
-	if err := copier.Copy(&addonEntity, &addon); err != nil {
+	var acVersionEntity entitys.AddonClusterVersionEntity
+	if err := copier.Copy(&acVersionEntity, &acVersionVo); err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
 		return
 	}
-	addedAddon, err := a.addonProvider.CreateStorageAddon(&addonEntity)
+	added, err := a.acVersionProvider.CreateAcVersion(&acVersionEntity)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
 		return
 	}
-	var data resp.K8sCrdAddonRespVo
-	if err := copier.Copy(&data, addedAddon); err != nil {
+	var data resp.AddonClusterVersionRespVo
+	if err := copier.Copy(&data, added); err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
 		return
 	}
 	entity.SuccessResponse(ctx, data, commconst.Success)
 }
 
-// UpdateAddon updates an existing addon.
-func (a *AddonController) UpdateAddon(ctx *gin.Context) {
+// UpdateAcVersion 更新 addon cluster version.
+func (a *AddonClusterVersionController) UpdateAcVersion(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpdateMetaDataErr, err))
 		return
 	}
-	var addon req.K8sCrdAddonReqVo
-	if err := ctx.ShouldBindJSON(&addon); err != nil {
+	var acVersionVo req.AddonClusterVersionReqVo
+	if err := ctx.ShouldBindJSON(&acVersionVo); err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpdateMetaDataErr, err))
 		return
 	}
-	var addonEntity entitys.K8sCrdStorageAddonEntity
-	if err := copier.Copy(&addonEntity, addon); err != nil {
+	var acVersionEntity entitys.AddonClusterVersionEntity
+	if err := copier.Copy(&acVersionEntity, acVersionVo); err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpdateMetaDataErr, err))
 		return
 	}
-	addonEntity.ID = id
-	rows, err := a.addonProvider.UpdateStorageAddon(&addonEntity)
+	acVersionEntity.ID = id
+	rows, err := a.acVersionProvider.UpdateAcVersion(&acVersionEntity)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpdateMetaDataErr, err))
 		return
@@ -141,15 +143,15 @@ func (a *AddonController) UpdateAddon(ctx *gin.Context) {
 	entity.SuccessResponse(ctx, map[string]uint64{"rows": rows}, commconst.Success)
 }
 
-// DeleteAddon deletes an addon by its ID.
-func (a *AddonController) DeleteAddon(ctx *gin.Context) {
+// DeleteAcVersion 删除 addon cluster version.
+func (a *AddonClusterVersionController) DeleteAcVersion(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.DeleteMetaDataErr, err))
 		return
 	}
-	rows, err := a.addonProvider.DeleteStorageAddonByID(id)
+	rows, err := a.acVersionProvider.DeleteAcVersionByID(id)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.DeleteMetaDataErr, err))
 		return

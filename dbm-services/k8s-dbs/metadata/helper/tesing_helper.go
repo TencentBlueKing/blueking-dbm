@@ -22,6 +22,8 @@ package helper
 import (
 	"fmt"
 	"k8s-dbs/metadata/constant"
+	"k8s-dbs/metadata/dbaccess"
+	"k8s-dbs/metadata/dbaccess/model"
 	"log/slog"
 
 	"gorm.io/driver/mysql"
@@ -46,4 +48,14 @@ func InitTestTable(table string, modelPtr interface{}) (*gorm.DB, error) {
 		return nil, err
 	}
 	return db, nil
+}
+
+// GetAcVersionTestDbAccess 获取测试 AddonClusterVersionDbAccess
+func GetAcVersionTestDbAccess() dbaccess.AddonClusterVersionDbAccess {
+	db, err := InitTestTable(constant.TbAddonClusterVersion, &model.AddonClusterVersionModel{})
+	if err != nil {
+		panic(err)
+	}
+	dbAccess := dbaccess.NewAddonClusterVersionDbAccess(db)
+	return dbAccess
 }
