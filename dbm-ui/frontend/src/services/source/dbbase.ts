@@ -92,7 +92,7 @@ export function queryResourceAdministrationAttrs(params: { limit?: number; offse
 /**
  * webconsole查询
  */
-export function queryWebconsole(params: { cluster_id: number; cmd: string }) {
+export function queryWebconsole(params: { cluster_id: number; cmd: string, options?: Record<string, unknown> }) {
   return http.post<{
     error_msg?: string;
     query: string | Record<string, string>[];

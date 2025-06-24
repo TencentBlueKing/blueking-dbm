@@ -46,7 +46,7 @@
     Record<
       number,
       Array<{
-        message: string | Record<string, string>[];
+        message: any;
         type: 'success' | 'error' | 'normal' | 'command' | string;
       }>
     >
@@ -64,7 +64,7 @@
   export interface Props {
     checkLineBreak?: (value: string, cursorIndex: number) => boolean;
     cluster: ServiceReturnType<typeof queryAllTypeCluster>[number];
-    extParams?: Record<string, unknown>;
+    options?: Record<string, unknown>;
     placeholder?: string;
     preCheck?: (value: string) => string;
   }
@@ -85,7 +85,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     checkLineBreak: () => false,
-    extParams: () => ({}),
+    options: () => ({}),
     placeholder: '',
     preCheck: () => '',
   });
@@ -185,7 +185,8 @@
     panelInputMap[clusterId.value].push(commandLine);
 
     if (!isInputed || loading.value) {
-      command.value = '';
+      command.value = localPlaceholder.value;
+      e.preventDefault();
       return;
     }
 
@@ -203,9 +204,9 @@
     try {
       loading.value = true;
       const executeResult = await queryWebconsole({
-        ...props.extParams,
         cluster_id: clusterId.value,
         cmd,
+        options: props.options,
       });
 
       // 请求结果渲染
@@ -345,6 +346,10 @@
 
   onBeforeUnmount(() => {
     window.removeEventListener('keydown', handleKeyDown);
+    const currentClusterId = clusterId.value;
+    delete panelInputMap[currentClusterId];
+    delete inputStash[currentClusterId];
+    delete executedCommands[currentClusterId];
   });
 
   onActivated(() => {
