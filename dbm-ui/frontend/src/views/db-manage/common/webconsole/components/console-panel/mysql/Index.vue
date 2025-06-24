@@ -2,6 +2,10 @@
   <ConsoleInput
     ref="consoleInputRef"
     :cluster="cluster"
+    :ext-params="{
+      character_set: characterSet,
+      time_zone: timeZone,
+    }"
     :pre-check="preCheck">
     <template #default="{ message }">
       <RenderMessage :data="message" />
@@ -19,7 +23,9 @@
   import RenderMessage from './components/RenderMessage.vue';
 
   interface Props {
+    characterSet: string;
     cluster: ServiceReturnType<typeof queryAllTypeCluster>[number];
+    timeZone: string;
   }
 
   defineProps<Props>();
