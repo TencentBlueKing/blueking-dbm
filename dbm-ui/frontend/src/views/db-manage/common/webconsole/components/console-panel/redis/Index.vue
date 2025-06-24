@@ -2,7 +2,7 @@
   <ConsoleInput
     ref="consoleInputRef"
     :cluster="cluster"
-    :ext-params="{
+    :options="{
       db_num: dbNum,
       raw,
     }"

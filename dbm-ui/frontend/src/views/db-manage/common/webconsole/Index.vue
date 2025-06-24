@@ -11,7 +11,13 @@
         @remove-tab="handleClickClearScreen" />
       <RawSwitcher
         v-if="dbType === DBTypes.REDIS"
-        v-model="isRaw" />
+        v-model="raw" />
+      <TimeZone
+        v-if="[DBTypes.MYSQL, DBTypes.TENDBCLUSTER].includes(dbType)"
+        v-model="timezone" />
+      <CharacterSet
+        v-if="[DBTypes.MYSQL, DBTypes.TENDBCLUSTER].includes(dbType)"
+        v-model="charset" />
       <ClearScreen @change="handleClickClearScreen" />
       <ExportData @export="handleClickExport" />
       <UsageHelp
@@ -34,9 +40,11 @@
           v-if="clusterInfo"
           :key="clusterInfo.id"
           ref="consolePanelRef"
+          :charset="charset"
           :cluster="clusterInfo"
-          :raw="isRaw"
-          :style="currentFontConfig" />
+          :raw="raw"
+          :style="currentFontConfig"
+          :timezone="timezone" />
       </KeepAlive>
       <div class="placeholder-main">
         <DbIcon
@@ -60,6 +68,7 @@
 
   import { DBTypes } from '@common/const';
 
+  import CharacterSet from './components/CharacterSet.vue';
   import ClearScreen from './components/ClearScreen.vue';
   import ClusterTabs, { type ClusterItem } from './components/ClusterTabs.vue';
   import MongodbConsolePanel from './components/console-panel/mongodb/Index.vue';
@@ -69,15 +78,14 @@
   import FontSetting from './components/FontSetting.vue';
   import FullScreen from './components/FullScreen.vue';
   import RawSwitcher from './components/RawSwitcher.vue';
+  import TimeZone from './components/time-zone/Index.vue';
   import UsageHelp from './components/usage-help/Index.vue';
 
   interface Props {
-    dbType?: DBTypes;
+    dbType: DBTypes;
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    dbType: DBTypes.MYSQL,
-  });
+  defineProps<Props>();
 
   const { t } = useI18n();
 
@@ -96,7 +104,9 @@
     fontSize: '12px',
     lineHeight: '20px',
   });
-  const isRaw = ref(props.dbType === DBTypes.REDIS ? false : undefined);
+  const raw = ref(false);
+  const timezone = ref('+08:00');
+  const charset = ref('default');
   const isFullScreen = ref(false);
   const showUsageHelp = ref(false);
 
