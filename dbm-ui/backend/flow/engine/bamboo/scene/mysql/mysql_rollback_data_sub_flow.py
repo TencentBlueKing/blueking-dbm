@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
+import datetime
 import logging.config
 from dataclasses import asdict
 
@@ -19,6 +20,7 @@ from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.mysql.common.get_binlog_backup import get_backup_binlog
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetBinlogFailedException
+from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_download_backupfile import (
     MySQLDownloadBackupfileComponent,
@@ -146,6 +148,17 @@ def rollback_remote_and_backupid(root_id: str, ticket_data: dict, cluster_info: 
         kwargs=asdict(download_kwargs),
     )
 
+    sub_pipeline.add_act(
+        act_name=_("屏蔽 {} 告警".format(cluster_info["rollback_ip"])),
+        act_component_code=AddAlarmShieldComponent.code,
+        kwargs={
+            "begin_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "end_time": (datetime.datetime.now() + datetime.timedelta(hours=6)).strftime("%Y-%m-%d %H:%M:%S"),
+            "description": cluster_info["rollback_ip"],
+            "dimensions": [{"name": "instance_host", "values": [cluster_info["rollback_ip"]]}],
+        },
+    )
+
     exec_act_kwargs.exec_ip = cluster_info["rollback_ip"]
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_rollback_data_restore_payload.__name__
     sub_pipeline.add_act(
@@ -193,6 +206,22 @@ def rollback_local_and_backupid(root_id: str, ticket_data: dict, cluster_info: d
                 exec_ip=cluster_info["rollback_ip"],
             )
         ),
+    )
+
+    sub_pipeline.add_act(
+        act_name=_("屏蔽 {} 告警".format(cluster_info["rollback_ip"])),
+        act_component_code=AddAlarmShieldComponent.code,
+        kwargs={
+            "begin_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "end_time": (datetime.datetime.now() + datetime.timedelta(hours=6)).strftime("%Y-%m-%d %H:%M:%S"),
+            "description": cluster_info["rollback_ip"],
+            "dimensions": [
+                {
+                    "name": "instance_host",
+                    "values": [cluster_info["rollback_ip"]],
+                }
+            ],
+        },
     )
 
     exec_act_kwargs.exec_ip = cluster_info["rollback_ip"]

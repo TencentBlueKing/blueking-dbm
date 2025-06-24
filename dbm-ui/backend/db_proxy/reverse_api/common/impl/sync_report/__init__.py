@@ -17,3 +17,4 @@ from .sync_report import sync_report
 
 producers: Union[List[KafkaProducer], None] = None
 lock = threading.Lock()
+event_type_cache = []

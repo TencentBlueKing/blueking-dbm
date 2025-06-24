@@ -61,7 +61,6 @@ func main() {
 		}
 		panic(err)
 	}
-
 }
 
 func ReportEvent(ac *core.Core, event *demoEvent) error {

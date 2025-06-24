@@ -15,6 +15,7 @@ import (
 	"dbm-services/mysql/db-remote-service/pkg/rpc_core"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"regexp"
 	"slices"
 	"strings"
@@ -29,8 +30,26 @@ type MySQLRPCEmbed struct {
 }
 
 // MakeConnection mysql 建立连接
-func (c *MySQLRPCEmbed) MakeConnection(address string, user string, password string, timeout int, timezone string) (*sqlx.DB, error) {
+func (c *MySQLRPCEmbed) MakeConnection(address string, user string, password string, timeout int, timezone string, charset string) (*sqlx.DB, error) {
+	slog.Info(
+		"make connection",
+		slog.String("address", address),
+		slog.String("user", user),
+		slog.String("password", password),
+		slog.Int("timeout", timeout),
+		slog.String("charset", charset),
+		slog.String("timezone", timezone),
+	)
 	connectParam := fmt.Sprintf("timeout=%ds", timeout)
+	if timezone != "" {
+		connectParam += fmt.Sprintf("&time_zone=%s", url.QueryEscape(fmt.Sprintf(`'%s'`, timezone)))
+	}
+	if charset != "default" {
+		connectParam += fmt.Sprintf("&charset=%s", charset)
+	}
+
+	slog.Info("make mysql connection", slog.String("connect dsn", connectParam))
+
 	retryTimes := 0
 
 CONNSTART:
@@ -65,6 +84,18 @@ CONNSTART:
 	defer func() {
 		_ = sr.Close()
 	}()
+
+	if charset == "default" {
+		slog.Info("recursion mysql connection", slog.String("charset", charset))
+		var serverCharset string
+		err = db.QueryRow(`SELECT @@character_set_server`).Scan(&serverCharset)
+		if err != nil {
+			slog.Error("select character_set_server", slog.String("err", err.Error()))
+			return nil, err
+		}
+		slog.Info("mysql real server charset", slog.String("server_charset", serverCharset))
+		return c.MakeConnection(address, user, password, timeout, timezone, serverCharset)
+	}
 
 	return db, nil
 }

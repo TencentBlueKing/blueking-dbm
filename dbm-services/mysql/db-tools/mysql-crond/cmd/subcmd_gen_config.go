@@ -76,7 +76,11 @@ jobs_config: {{ .InstallPath }}/jobs-config.yaml`,
 		nginxAddrs := viper.GetStringSlice("nginx-address")
 		bkCloudId := viper.GetInt("bk-cloud-id")
 
-		apiCore := reverseapi.NewCoreWithAddr(int64(bkCloudId), nginxAddrs...)
+		apiCore, err := reverseapi.NewCoreWithAddr(int64(bkCloudId), nginxAddrs...)
+		if err != nil {
+			return err
+		}
+
 		data, err := reversemysqlapi.CrondConfig(apiCore)
 		if err != nil {
 			return err

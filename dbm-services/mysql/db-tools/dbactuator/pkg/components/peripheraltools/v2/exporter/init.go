@@ -127,13 +127,18 @@ type exporterConfig struct {
 }
 
 func GenConfig(bkCloudId int64, nginxAddrs []string, ports ...int) error {
-	apiCore := reverseapi.NewCoreWithAddr(bkCloudId, nginxAddrs...)
-	data, err := reversemysqlapi.ExporterConfig(apiCore, ports...)
-
+	apiCore, err := reverseapi.NewCoreWithAddr(bkCloudId, nginxAddrs...)
 	if err != nil {
 		logger.Error(err.Error())
 		return err
 	}
+
+	data, err := reversemysqlapi.ExporterConfig(apiCore, ports...)
+	if err != nil {
+		logger.Error(err.Error())
+		return err
+	}
+
 	logger.Info("exporter config: %s", string(data))
 
 	b, l, err := reversemysqlapi.ListInstanceInfo(apiCore)

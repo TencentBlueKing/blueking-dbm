@@ -23,6 +23,14 @@ type Core struct {
 	client     *http.Client
 }
 
+func (c *Core) BkCloudId() int64 {
+	return c.bkCloudId
+}
+
+func (c *Core) NginxAddrs() []string {
+	return c.nginxAddrs
+}
+
 func NewCore(bkCloudId int64, addrs ...string) *Core {
 	return &Core{
 		bkCloudId:  bkCloudId,

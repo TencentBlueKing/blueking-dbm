@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
+import datetime
 import logging
 import uuid
 from dataclasses import asdict
@@ -31,6 +32,7 @@ from backend.flow.engine.bamboo.scene.spider.common.exceptions import (
     TendbGetBackupInfoFailedException,
 )
 from backend.flow.engine.bamboo.scene.spider.spider_recover import remote_node_rollback, spider_recover_sub_flow
+from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_crond_control import MysqlCrondMonitorControlComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
@@ -156,6 +158,21 @@ class TenDBRollBackDataFlow(object):
                     )
                 ),
             )
+            tendb_rollback_pipeline.add_act(
+                act_name=_("屏蔽 {} 告警".format(clusters_info["target_immute_domain"])),
+                act_component_code=AddAlarmShieldComponent.code,
+                kwargs={
+                    "begin_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "end_time": (datetime.datetime.now() + datetime.timedelta(hours=6)).strftime("%Y-%m-%d %H:%M:%S"),
+                    "description": clusters_info["target_immute_domain"],
+                    "dimensions": [
+                        {
+                            "name": "instance_host",
+                            "values": clusters_info["ip_list"],
+                        }
+                    ],
+                },
+            )
             cluster = {
                 "host": clusters_info["target"]["dbctl_ip"],
                 "port": clusters_info["target"]["spider_port"],
@@ -207,17 +224,18 @@ class TenDBRollBackDataFlow(object):
                     "all_database_rollback": self.data["all_database_rollback"],
                 }
                 spd_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-                spd_sub_pipeline.add_act(
-                    act_name=_("屏蔽监控 {}").format(spider_node["instance"]),
-                    act_component_code=MysqlCrondMonitorControlComponent.code,
-                    kwargs=asdict(
-                        CrondMonitorKwargs(
-                            bk_cloud_id=target_cluster.bk_cloud_id,
-                            exec_ips=[spider_node["ip"]],
-                            port=spider_node["port"],
-                        )
-                    ),
-                )
+                # spd_sub_pipeline.add_act(
+                #     act_name=_("屏蔽监控 {}").format(spider_node["instance"]),
+                #     act_component_code=MysqlCrondMonitorControlComponent.code,
+                #     kwargs=asdict(
+                #         CrondMonitorKwargs(
+                #             bk_cloud_id=target_cluster.bk_cloud_id,
+                #             exec_ips=[spider_node["ip"]],
+                #             port=spider_node["port"],
+                #         )
+                #     ),
+                # )
+
                 cluster = {"proxy_status": InstanceStatus.RESTORING.value, "proxy_ids": [target_spider.id]}
                 spd_sub_pipeline.add_act(
                     act_name=_("设置节点为恢复中状态"),
@@ -381,18 +399,18 @@ class TenDBRollBackDataFlow(object):
                         )
                     ),
                 )
-                # 屏蔽监控
-                ins_sub_pipeline.add_act(
-                    act_name=_("屏蔽监控 {}").format(shard_id),
-                    act_component_code=MysqlCrondMonitorControlComponent.code,
-                    kwargs=asdict(
-                        CrondMonitorKwargs(
-                            bk_cloud_id=target_cluster.bk_cloud_id,
-                            exec_ips=[remote_node["new_master"]["ip"], remote_node["new_slave"]["ip"]],
-                            port=remote_node["new_master"]["port"],
-                        )
-                    ),
-                )
+                # # 屏蔽监控
+                # ins_sub_pipeline.add_act(
+                #     act_name=_("屏蔽监控 {}").format(shard_id),
+                #     act_component_code=MysqlCrondMonitorControlComponent.code,
+                #     kwargs=asdict(
+                #         CrondMonitorKwargs(
+                #             bk_cloud_id=target_cluster.bk_cloud_id,
+                #             exec_ips=[remote_node["new_master"]["ip"], remote_node["new_slave"]["ip"]],
+                #             port=remote_node["new_master"]["port"],
+                #         )
+                #     ),
+                # )
 
                 ins_sub_pipeline.add_sub_pipeline(
                     sub_flow=remote_node_rollback(

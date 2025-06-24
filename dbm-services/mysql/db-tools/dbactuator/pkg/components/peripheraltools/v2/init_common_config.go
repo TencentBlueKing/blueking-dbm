@@ -98,7 +98,12 @@ func (c *InitCommonConfig) initInstanceInfo() (err error) {
 		_ = f.Close()
 	}()
 
-	apiCore := reverseapi.NewCoreWithAddr(c.Param.BkCloudId, c.Param.NginxAddrs...)
+	apiCore, err := reverseapi.NewCoreWithAddr(c.Param.BkCloudId, c.Param.NginxAddrs...)
+	if err != nil {
+		logger.Error(err.Error())
+		return err
+	}
+
 	data, _, err := reversemysqlapi.ListInstanceInfo(apiCore)
 	if err != nil {
 		logger.Error(err.Error())

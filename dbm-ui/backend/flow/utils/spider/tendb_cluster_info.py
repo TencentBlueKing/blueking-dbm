@@ -45,6 +45,7 @@ def get_rollback_clusters_info(
     target_obj = Cluster.objects.get(id=target_cluster_id)
     source_spiders = source_obj.proxyinstance_set.filter()
     target_spiders = target_obj.proxyinstance_set.filter()
+    cluster_info["target_immute_domain"] = target_obj.immute_domain
     cluster_info["bk_cloud_id"] = source_obj.bk_cloud_id
     cluster_info["source"] = source_obj.to_dict()
     cluster_info["target"] = target_obj.to_dict()

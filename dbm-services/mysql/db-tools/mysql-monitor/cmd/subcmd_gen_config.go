@@ -70,7 +70,11 @@ func generateRuntimeConfigs() error {
 	bkCloudId := viper.GetInt("bk-cloud-id")
 	ports := viper.GetIntSlice("port")
 
-	apiCore := reverseapi.NewCoreWithAddr(int64(bkCloudId), nginxAddrs...)
+	apiCore, err := reverseapi.NewCoreWithAddr(int64(bkCloudId), nginxAddrs...)
+	if err != nil {
+		return err
+	}
+
 	data, err := reversemysqlapi.MonitorRuntimeConfig(apiCore, ports...)
 	if err != nil {
 		return err
@@ -158,7 +162,11 @@ func generateItemsConfigs() error {
 	bkCloudId := viper.GetInt("bk-cloud-id")
 	ports := viper.GetIntSlice("port")
 
-	apiCore := reverseapi.NewCoreWithAddr(int64(bkCloudId), nginxAddrs...)
+	apiCore, err := reverseapi.NewCoreWithAddr(int64(bkCloudId), nginxAddrs...)
+	if err != nil {
+		return err
+	}
+
 	data, err := reversemysqlapi.MonitorItemsConfig(apiCore, ports...)
 	if err != nil {
 		return err

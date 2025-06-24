@@ -10,7 +10,7 @@ import (
 )
 
 func (c *RPCWrapper) executeOneAddr(address string) (res []CmdResultType, err error) {
-	db, err := c.MakeConnection(address, c.user, c.password, c.connectTimeout, c.timezone)
+	db, err := c.MakeConnection(address, c.user, c.password, c.connectTimeout, c.timezone, c.charset)
 
 	if err != nil {
 		c.logger.Error("make connection", slog.String("error", err.Error()))
