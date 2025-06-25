@@ -136,6 +136,8 @@
       | MongodbModel
       | SqlServerHaModel
       | SqlServerSingleModel
+      | OracleHaModel
+      | OracleSingleModel
   ">
   import _ from 'lodash';
   import type { VNode } from 'vue';
@@ -144,11 +146,15 @@
   import MongodbModel from '@services/model/mongodb/mongodb';
   import TendbhaModel from '@services/model/mysql/tendbha';
   import TendbsingleModel from '@services/model/mysql/tendbsingle';
+  import OracleHaModel from '@services/model/oracle/oracle-ha';
+  import OracleSingleModel from '@services/model/oracle/oracle-single';
   import RedisModel from '@services/model/redis/redis';
   import SqlServerHaModel from '@services/model/sqlserver/sqlserver-ha';
   import SqlServerSingleModel from '@services/model/sqlserver/sqlserver-single';
   import TendbclusterModel from '@services/model/tendbcluster/tendbcluster';
   import { getMongoList } from '@services/source/mongodb';
+  import { getOracleHaClusterList } from '@services/source/oracleHaCluster';
+  import { getOracleSingleClusterList } from '@services/source/oracleSingleCluster';
   import { getRedisList } from '@services/source/redis';
   import { getHaClusterList } from '@services/source/sqlserveHaCluster';
   import { getSingleClusterList } from '@services/source/sqlserverSingleCluster';
@@ -166,6 +172,8 @@
   import ResultPreview from './components/common/result-preview/Index.vue';
   import type { SearchSelectList } from './components/common/SearchBar.vue';
   import MongoTable from './components/mongo/Index.vue';
+  import OracleHaTable from './components/oracle-ha/Index.vue';
+  import OracleSingleTable from './components/oracle-single/Index.vue';
   import RedisTable from './components/redis/Index.vue';
   import SqlserverHaTable from './components/sqlserver-ha/Index.vue';
   import SqlserverSingleTable from './components/sqlserver-single/Index.vue';
@@ -267,6 +275,36 @@
       resultContent: ResultPreview,
       showPreviewResultTitle: true,
       tableContent: MongoTable,
+    },
+    [ClusterTypes.ORACLE_PRIMARY_STANDBY]: {
+      disabledRowConfig: [
+        {
+          handler: (data: T) => data.isOffline,
+          tip: t('集群已禁用'),
+        },
+      ],
+      getResourceList: getOracleHaClusterList,
+      id: ClusterTypes.ORACLE_PRIMARY_STANDBY,
+      multiple: true,
+      name: t('Oracle 主从'),
+      resultContent: ResultPreview,
+      showPreviewResultTitle: true,
+      tableContent: OracleHaTable,
+    },
+    [ClusterTypes.ORACLE_SINGLE_NONE]: {
+      disabledRowConfig: [
+        {
+          handler: (data: T) => data.isOffline,
+          tip: t('集群已禁用'),
+        },
+      ],
+      getResourceList: getOracleSingleClusterList,
+      id: ClusterTypes.ORACLE_SINGLE_NONE,
+      multiple: true,
+      name: t('Oracle 单节点'),
+      resultContent: ResultPreview,
+      showPreviewResultTitle: true,
+      tableContent: OracleSingleTable,
     },
     [ClusterTypes.REDIS]: {
       disabledRowConfig: [

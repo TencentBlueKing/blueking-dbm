@@ -54,6 +54,7 @@
         </div>
         <div class="editor-layout-right">
           <RenderFileContent
+            :db-types="DBTypes.MYSQL"
             :model-value="currentFileContent"
             readonly
             :title="localSelectFileName" />
@@ -69,6 +70,8 @@
 
   import { type Sqlserver } from '@services/model/ticket/ticket';
   import { batchFetchFile } from '@services/source/storage';
+
+  import { DBTypes } from '@common/const';
 
   import RenderFileContent from '@views/ticket-center/common/ticket-detail/components/common/SqlFileContent.vue';
   import RenderFileList from '@views/ticket-center/common/ticket-detail/components/common/SqlFileList.vue';

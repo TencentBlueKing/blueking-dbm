@@ -83,6 +83,8 @@ export const nodeTypes = {
   MONGODB_M1: 'mongodb::m1',
   MONGODB_M2: 'mongodb::m2',
   MONGODB_MONGOS: 'mongos',
+  ORACLE_PRIMARY: 'oracle::primary',
+  ORACLE_STANDBY: 'oracle::standby',
   PROXY: 'proxy',
   PULSAR_BOOKKEEPER: 'pulsar_bookkeeper::pulsar_bookkeeper',
   PULSAR_BROKER: 'pulsar_broker::pulsar_broker',
@@ -128,6 +130,7 @@ const sameSources = [
   nodeTypes.TENDBCLUSTER_MASTER,
   nodeTypes.MONGODB_M1,
   nodeTypes.MONGODB_MONGOS,
+  nodeTypes.ORACLE_PRIMARY,
 ];
 const sameTargets = [
   nodeTypes.SLAVE,
@@ -139,6 +142,7 @@ const sameTargets = [
   nodeTypes.TENDBCLUSTER_SLAVE,
   nodeTypes.MONGODB_M2,
   nodeTypes.MONGODB_CONFIG,
+  nodeTypes.ORACLE_STANDBY,
 ];
 
 /**

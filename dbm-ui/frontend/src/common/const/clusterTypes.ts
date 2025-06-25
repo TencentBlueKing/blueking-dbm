@@ -48,4 +48,11 @@ export enum ClusterTypes {
   SQLSERVER_SINGLE = 'sqlserver_single', // SQLServer单节点版
 }
 
+// oracle
+export enum ClusterTypes {
+  ORACLE = 'oracle',
+  ORACLE_PRIMARY_STANDBY = 'oracle_primary_standby',
+  ORACLE_SINGLE_NONE = 'oracle_single_none',
+}
+
 export type ClusterTypeValues = keyof typeof ClusterTypes;

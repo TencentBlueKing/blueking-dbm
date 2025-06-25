@@ -66,7 +66,7 @@
 
   import { getResourceSpec, getResourceSpecList } from '@services/source/dbresourceSpec';
 
-  import { DBTypeInfos, DBTypes, type InfoItem } from '@common/const';
+  import { type DBInfoItem, DBTypeInfos, DBTypes } from '@common/const';
 
   interface Props {
     model: Record<string, any>;
@@ -97,7 +97,7 @@
 
   const currentDbType = ref('');
   const currentMachine = ref('');
-  const clusterMachineList = shallowRef<InfoItem['machineList']>([]);
+  const clusterMachineList = shallowRef<DBInfoItem['machineList']>([]);
 
   const { loading: isResourceSpecLoading, run: fetchResourceSpecDetail } = useRequest(getResourceSpec, {
     manual: true,

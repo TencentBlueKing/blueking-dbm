@@ -106,6 +106,8 @@
     [ClusterTypes.KAFKA]: 'kafka.clusterManage.modifyEntryConfiguration',
     [ClusterTypes.MONGO_REPLICA_SET]: 'mongodb.clusterManage.modifyEntryConfiguration',
     [ClusterTypes.MONGO_SHARED_CLUSTER]: 'mongodb.clusterManage.modifyEntryConfiguration',
+    // [ClusterTypes.ORACLE_PRIMARY_STANDBY]: 'oracle.singleClusterList.modifyEntryConfiguration',
+    // [ClusterTypes.ORACLE_SINGLE_NONE]: 'oracle.haClusterList.modifyEntryConfiguration',
     [ClusterTypes.PULSAR]: 'pulsar.clusterManage.modifyEntryConfiguration',
     [ClusterTypes.REDIS]: 'redis.clusterManage.modifyEntryConfiguration',
     [ClusterTypes.REDIS_INSTANCE]: 'redis.clusterManage.modifyEntryConfiguration',
