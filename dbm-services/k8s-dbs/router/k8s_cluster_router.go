@@ -34,7 +34,13 @@ func buildK8sClusterRouter(db *gorm.DB, router *gin.Engine) {
 	k8sClusterController := initK8sClusterController(db)
 	k8sClusterGroup := router.Group(basePath + "/k8s_cluster")
 	{
-		k8sClusterGroup.POST("/namespace", k8sClusterController.CreateNamespace)
+		namespaceGroup := k8sClusterGroup.Group("/namespace")
+		namespaceGroup.POST("", k8sClusterController.CreateNamespace)
+	}
+
+	{
+		podGroup := k8sClusterGroup.Group("/pod")
+		podGroup.POST("/logs", k8sClusterController.PodLogs)
 	}
 }
 

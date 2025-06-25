@@ -80,11 +80,11 @@ func (c *ComponentProvider) DescribeComponent(request *coreentity.Request) (*cor
 			role = podRole
 		}
 		pods = append(pods, coreentity.Pod{
-			PodName:      pod.Name,
-			Status:       pod.Status.Phase,
-			Node:         pod.Spec.NodeName,
-			Role:         role,
-			CreateedTime: pod.CreationTimestamp.String(),
+			PodName:     pod.Name,
+			Status:      pod.Status.Phase,
+			Node:        pod.Spec.NodeName,
+			Role:        role,
+			CreatedTime: pod.CreationTimestamp.String(),
 		})
 		if env == nil {
 			env = pod.Spec.Containers[0].Env

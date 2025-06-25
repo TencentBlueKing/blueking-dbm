@@ -19,20 +19,11 @@ limitations under the License.
 
 package entity
 
-import corev1 "k8s.io/api/core/v1"
-
-// ComponentDetail Component details, including component metadata
-type ComponentDetail struct {
-	Metadata `json:",inline"`
-	Pods     []Pod           `json:"pods,omitempty"`
-	Env      []corev1.EnvVar `json:"env,omitempty"`
-}
-
-// Pod represents the Pod instance information in Kubernetes
-type Pod struct {
-	PodName     string          `json:"podName,omitempty"`
-	Role        string          `json:"role,omitempty"`
-	Status      corev1.PodPhase `json:"status,omitempty"`
-	Node        string          `json:"node,omitempty"`
-	CreatedTime string          `json:"createdTime,omitempty"`
+// K8sPodLogEntity k8s 的 pod 日志请求
+type K8sPodLogEntity struct {
+	K8sClusterName string `json:"k8sClusterName" binding:"required"`
+	ClusterName    string `json:"clusterName" binding:"required"`
+	Namespace      string `json:"namespace" binding:"required"`
+	PodName        string `json:"podName" binding:"required"`
+	Container      string `json:"container,omitempty"`
 }

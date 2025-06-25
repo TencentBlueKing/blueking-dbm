@@ -20,8 +20,10 @@ limitations under the License.
 package provider
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"io"
 	coreclient "k8s-dbs/core/client"
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
@@ -29,11 +31,17 @@ import (
 	pventity "k8s-dbs/core/provider/entity"
 	metaprovider "k8s-dbs/metadata/provider"
 	"log/slog"
+	"strings"
+	"time"
+
+	commutil "k8s-dbs/common/util"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+const MaxPodLogLines = 1000
 
 // K8sProvider K8sProvider 结构体
 type K8sProvider struct {
@@ -62,7 +70,6 @@ func (k *K8sProvider) CreateNamespace(entity *pventity.K8sNamespaceEntity) (*pve
 			slog.Error("failed to validate resource quota format", "err", err)
 			return nil, fmt.Errorf("failed to validate resource quota format: %w", err)
 		}
-
 	}
 
 	ns := k.buildNsFromEntity(entity)
@@ -97,6 +104,51 @@ func (k *K8sProvider) CreateNamespace(entity *pventity.K8sNamespaceEntity) (*pve
 	}
 
 	return &responseEntity, nil
+}
+
+// GetPodLog 获取 pod 日志
+func (k *K8sProvider) GetPodLog(entity *pventity.K8sPodLogEntity) ([]coreentity.K8sLog, error) {
+	// 1. 获取集群配置
+	k8sClusterConfig, err := k.clusterConfigProvider.FindConfigByName(entity.K8sClusterName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get k8sClusterConfig for cluster %q: %w", entity.K8sClusterName, err)
+	}
+
+	// 2. 创建 Kubernetes Client
+	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create k8sClient for cluster %q: %w", entity.K8sClusterName, err)
+	}
+
+	// 3. 构造日志选项
+	logOptions := &corev1.PodLogOptions{
+		Container:  entity.Container,
+		Follow:     false,
+		Timestamps: true,
+		TailLines:  commutil.Int64Ptr(MaxPodLogLines), // 限制日志行数，避免内存溢出
+	}
+
+	// 4. 获取日志流
+	podLogReq := k8sClient.ClientSet.CoreV1().Pods(entity.Namespace).GetLogs(entity.PodName, logOptions)
+	stream, err := podLogReq.Stream(context.TODO())
+	if err != nil {
+		return nil, fmt.Errorf("failed to stream logs for pod %q in namespace %q: %w", entity.PodName, entity.Namespace, err)
+	}
+	defer func() {
+		if err := stream.Close(); err != nil {
+			slog.Error("failed to close log stream",
+				"namespace", entity.Namespace,
+				"pod", entity.PodName,
+				"err", err,
+			)
+		}
+	}()
+	logs, err := k.readK8sPodLog(stream)
+	if err != nil {
+		return nil, err
+	}
+
+	return logs, nil
 }
 
 func (k *K8sProvider) buildQuotaFromCreated(
@@ -165,6 +217,34 @@ func (k *K8sProvider) buildNsFromEntity(entity *pventity.K8sNamespaceEntity) cor
 		},
 	}
 	return ns
+}
+
+func (k *K8sProvider) readK8sPodLog(stream io.ReadCloser) ([]coreentity.K8sLog, error) {
+	var k8sLogEntries []coreentity.K8sLog
+	scanner := bufio.NewScanner(stream)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if line == "" {
+			continue
+		}
+		parts := strings.SplitN(line, " ", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		timestampStr, message := parts[0], parts[1]
+		timestamp, err := time.Parse(time.RFC3339Nano, timestampStr)
+		if err != nil {
+			continue
+		}
+		k8sLogEntries = append(k8sLogEntries, coreentity.K8sLog{
+			Timestamp: timestamp,
+			Message:   message,
+		})
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("failed to read log stream: %w", err)
+	}
+	return k8sLogEntries, nil
 }
 
 // NewK8sProvider 创建 K8sProvider 实例

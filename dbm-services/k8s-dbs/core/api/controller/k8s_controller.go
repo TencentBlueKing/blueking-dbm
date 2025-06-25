@@ -65,6 +65,34 @@ func (k *K8sController) CreateNamespace(ctx *gin.Context) {
 	entity.SuccessResponse(ctx, data, coreconst.Success)
 }
 
+// PodLogs 获取 pod 日志详情
+func (k *K8sController) PodLogs(ctx *gin.Context) {
+	var logReq reqvo.K8sPodLogReqVo
+	if err := ctx.ShouldBindJSON(&logReq); err != nil {
+		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetPodLogError, err))
+		return
+	}
+	var podLogEntity pventity.K8sPodLogEntity
+	if err := copier.Copy(&podLogEntity, &logReq); err != nil {
+		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetPodLogError, err))
+		return
+	}
+	logs, err := k.k8sProvider.GetPodLog(&podLogEntity)
+	if err != nil {
+		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetPodLogError, err))
+		return
+	}
+	data := respvo.K8sPodLogRespVo{
+		Logs:           logs,
+		K8sClusterName: logReq.K8sClusterName,
+		ClusterName:    logReq.ClusterName,
+		Namespace:      logReq.Namespace,
+		PodName:        logReq.PodName,
+		Container:      logReq.Container,
+	}
+	entity.SuccessResponse(ctx, data, coreconst.Success)
+}
+
 // NewK8sController 构建 K8sController
 func NewK8sController(k8sProvider *provider.K8sProvider) *K8sController {
 	return &K8sController{
