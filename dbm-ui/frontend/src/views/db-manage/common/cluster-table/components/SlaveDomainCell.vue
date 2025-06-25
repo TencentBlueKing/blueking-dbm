@@ -12,6 +12,9 @@
         </TextHighlight>
       </div>
       <template #append>
+        <slot
+          name="append"
+          v-bind="{ data: data }" />
         <PopoverCopy>
           <div @click="handleCopyDomain">
             {{ t('复制域名') }}

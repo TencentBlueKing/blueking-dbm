@@ -9,10 +9,30 @@
     <InfoItem :label="t('访问入口')">
       {{ data.masterDomainDisplayName }}
     </InfoItem>
+    <InfoItem
+      v-if="clbEntry && clbEntry.target_details[0]"
+      label="CLB">
+      {{ clbEntry.target_details[0]?.clb_ip }}
+      <span>,</span>
+      {{ clbEntry.target_details[0]?.clb_domain }}
+    </InfoItem>
     <InfoItem :label="t('标签')">
       <ClusterTag
         :data="data"
         @success="handleSuccess" />
+    </InfoItem>
+    <InfoItem
+      v-if="polarisEntry && polarisEntry.target_details[0]"
+      :label="t('北极星')">
+      {{ polarisEntry.target_details[0]?.polaris_l5 }}
+      <span>,</span>
+      {{ polarisEntry.target_details[0]?.polaris_name }}
+      <a
+        v-if="polarisEntry.target_details[0].url"
+        target="_blank"
+        :url="polarisEntry.target_details[0].url">
+        <DbIcon type="link" />
+      </a>
     </InfoItem>
     <InfoItem :label="t('容量使用率')">
       <ClusterStatsCell
@@ -51,7 +71,11 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import EsModel from '@services/model/es/es';
+  import ClusterEntryDetailModel, {
+    type ClbPolarisTargetDetails,
+    type ClbTargetDetails,
+  } from '@services/model/cluster-entry/cluster-entry-details';
+  import EsDetailModel from '@services/model/es/es-detail';
 
   import { ClusterTypes } from '@common/const';
 
@@ -62,14 +86,26 @@
   import UpdateClusterAliasName from '@views/db-manage/common/UpdateClusterAliasName.vue';
 
   interface Props {
-    data: EsModel;
+    data: EsDetailModel;
   }
   export type Emits = (e: 'refresh') => void;
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+
+  const clbEntry = computed(() =>
+    (props.data.cluster_entry_details as ClusterEntryDetailModel<ClbTargetDetails>[]).find(
+      (item) => item.cluster_entry_type === 'clb',
+    ),
+  );
+
+  const polarisEntry = computed(() =>
+    (props.data.cluster_entry_details as ClusterEntryDetailModel<ClbPolarisTargetDetails>[]).find(
+      (item) => item.cluster_entry_type === 'polaris',
+    ),
+  );
 
   const handleSuccess = () => {
     emits('refresh');

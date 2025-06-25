@@ -58,6 +58,16 @@ export interface GraphInstance {
 
 // 节点类型
 export const nodeTypes = {
+  CLB_DNS_ENTRY_GROUP: 'clb_dns_entry_group',
+  CLB_ENTRY_GROUP: 'clb_entry_group',
+  CLB_MASTER_DNS_ENTRY_GROUP: 'clb_master_dns_entry_group',
+  CLB_MASTER_ENTRY_GROUP: 'clb_master_entry_group',
+  CLB_SLAVE_DNS_ENTRY_GROUP: 'clb_slave_dns_entry_group',
+  CLB_SLAVE_ENTRY_GROUP: 'clb_slave_entry_group',
+  DNS_ENTRY_GROUP: 'dns_entry_group',
+  DNS_MASTER_ENTRY_GROUP: 'dns_master_entry_group',
+  DNS_SLAVE_ENTRY_GROUP: 'dns_slave_entry_group',
+  ENTRY_DNS: 'entry_dns',
   ES_DATANODE_COLD: 'es_datanode::es_datanode_cold',
   ES_DATANODE_HOT: 'es_datanode::es_datanode_hot',
   ES_MASTER: 'es_master::es_master',
@@ -66,15 +76,18 @@ export const nodeTypes = {
   HDFS_MASTER_NAMENODE: 'hdfs_master::hdfs_namenode',
   HDFS_MASTER_ZOOKEEPER: 'hdfs_master::hdfs_zookeeper',
   MASTER: 'backend::backend_master',
+  MASTER_ENTRY_GROUP: 'master_entry_group',
   MONGODB_BACKUP: 'mongodb::backup',
   MONGODB_CONFIG: 'mongo_config::m1',
   MONGODB_M1: 'mongodb::m1',
   MONGODB_M2: 'mongodb::m2',
   MONGODB_MONGOS: 'mongos',
+  PROXY: 'proxy',
   PULSAR_BOOKKEEPER: 'pulsar_bookkeeper::pulsar_bookkeeper',
   PULSAR_BROKER: 'pulsar_broker::pulsar_broker',
   PULSAR_ZOOKEEPER: 'pulsar_zookeeper::pulsar_zookeeper',
   SLAVE: 'backend::backend_slave',
+  SPIDER_MASTER_ENTRY_BIND: 'spider_master_entry_bind',
   SPIDER_SLAVE_ENTRY_BIND: 'spider_slave_entry_bind',
   TENDBCLUSTER_CONTROLLER: 'controller_group',
   TENDBCLUSTER_MASTER: 'spider_master',
@@ -227,9 +240,10 @@ export class GraphData {
 
   /**
    * 单独处理 es master、cold、hot || hdfs hournal、zookeeper、datanode || mongo分片 节点水平排列
+   * 以及 es clb 节点位置
    * @param nodes 节点列表
    */
-  calcHorizontalAlignLocations(nodes: GraphNode[] = []) {
+  calcHorizontalAlignLocations(rootNodes: GraphNode[] = [], nodes: GraphNode[] = []) {
     const targetNodeIds = [
       nodeTypes.ES_MASTER,
       nodeTypes.ES_DATANODE_HOT,
@@ -253,6 +267,44 @@ export class GraphData {
       node.style.x = node.style.x - node.style.width - this.nodeConfig.offsetX;
       for (const childNode of node.children) {
         childNode.style.x = node.style.x;
+      }
+    }
+
+    // es clb 相关
+    if (this.clusterType === ClusterTypes.ES) {
+      const nodeMap = Object.fromEntries([...rootNodes, ...nodes].map((node) => [node.id, node]));
+
+      const masterDomainNode = nodeMap[nodeTypes.MASTER_ENTRY_GROUP];
+
+      const dnsDomainNode = nodeMap[nodeTypes.DNS_ENTRY_GROUP];
+      const clbDomainNode = nodeMap[nodeTypes.CLB_DNS_ENTRY_GROUP];
+      const clbIpNode = nodeMap[nodeTypes.CLB_ENTRY_GROUP];
+
+      // 开启 clb / 恢复主域名直连接入层
+      if (masterDomainNode && !dnsDomainNode && clbDomainNode && clbIpNode) {
+        clbDomainNode.style.x = masterDomainNode.style.x - masterDomainNode.style.width - this.nodeConfig.offsetX;
+        clbDomainNode.style.y = masterDomainNode.style.y;
+        this.calcChildrenNodeLocations(clbDomainNode);
+
+        clbIpNode.style.x = clbDomainNode.style.x;
+        clbIpNode.style.y = clbDomainNode.style.y + clbDomainNode.style.height + this.nodeConfig.offsetY;
+        this.calcChildrenNodeLocations(clbIpNode);
+        return;
+      }
+
+      // 配置主域名指向 clb
+      if (dnsDomainNode && clbDomainNode && clbIpNode) {
+        clbDomainNode.style.x = dnsDomainNode.style.x - dnsDomainNode.style.width - this.nodeConfig.offsetX;
+        clbDomainNode.style.y = dnsDomainNode.style.y;
+        this.calcChildrenNodeLocations(clbDomainNode);
+
+        // 此时北极星为单独的节点
+        const polarisDomainNode = nodeMap[nodeTypes.MASTER_ENTRY_GROUP];
+        if (polarisDomainNode) {
+          polarisDomainNode.style.x = dnsDomainNode.style.x + dnsDomainNode.style.width + this.nodeConfig.offsetX;
+          polarisDomainNode.style.y = dnsDomainNode.style.y;
+          this.calcChildrenNodeLocations(polarisDomainNode);
+        }
       }
     }
   }
@@ -355,7 +407,7 @@ export class GraphData {
   }
 
   /**
-   * 处理 spider 中控节点、运维节点位置
+   * 处理 spider 中控节点、SpiderSlave 、运维节点位置
    * @param nodes 节点列表
    */
   calcSpiderNodeLocations(rootNodes: GraphNode[] = [], nodes: GraphNode[] = []) {
@@ -364,15 +416,16 @@ export class GraphData {
       nodeMap[node.id] = node;
     }
 
-    // 设置中控节点节点位置
+    // 设置中控节点位置
     const controllerNode = nodeMap[nodeTypes.TENDBCLUSTER_CONTROLLER];
     const spiderMasterNode = nodeMap[nodeTypes.TENDBCLUSTER_MASTER];
     if (controllerNode && spiderMasterNode) {
       controllerNode.style.y = spiderMasterNode.style.y;
-      controllerNode.style.x = -controllerNode.style.width;
+      controllerNode.style.x = spiderMasterNode.style.x - controllerNode.style.width - this.nodeConfig.offsetX;
       this.calcChildrenNodeLocations(controllerNode);
     }
 
+    // 设置 SpiderSlave 节点位置
     const spiderSlaveEntryNode = nodeMap[nodeTypes.SPIDER_SLAVE_ENTRY_BIND];
     const spiderSlaveNode = nodeMap[nodeTypes.TENDBCLUSTER_SLAVE];
     if (spiderMasterNode && spiderSlaveEntryNode && spiderSlaveNode) {
@@ -381,6 +434,7 @@ export class GraphData {
       this.calcChildrenNodeLocations(spiderSlaveNode);
     }
 
+    // 设置运维节点位置
     const mntNode = nodeMap[nodeTypes.TENDBCLUSTER_MNT];
     const referenceNode = nodeMap[nodeTypes.TENDBCLUSTER_REMOTE_MASTER];
     if (mntNode && referenceNode) {
@@ -389,6 +443,105 @@ export class GraphData {
       mntNode.style.y = y + height + this.nodeConfig.offsetY + heightDifference + 40;
       mntNode.style.x = referenceNode.style.x;
       this.calcChildrenNodeLocations(mntNode);
+    }
+
+    const masterDomainNode = nodeMap[nodeTypes.SPIDER_MASTER_ENTRY_BIND];
+    const clbMasterDomainNode = nodeMap[nodeTypes.CLB_MASTER_DNS_ENTRY_GROUP];
+    const clbMasterIpNode = nodeMap[nodeTypes.CLB_MASTER_ENTRY_GROUP];
+
+    const slaveDomainNode = nodeMap[nodeTypes.SPIDER_SLAVE_ENTRY_BIND];
+    const clbSlaveDomainNode = nodeMap[nodeTypes.CLB_SLAVE_DNS_ENTRY_GROUP];
+    const clbSlaveIpNode = nodeMap[nodeTypes.CLB_SLAVE_ENTRY_GROUP];
+
+    // 开启 clb / 恢复主域名直连接入层
+    if (masterDomainNode && spiderMasterNode && clbMasterDomainNode && clbMasterIpNode) {
+      clbMasterDomainNode.style.x = masterDomainNode.style.x - masterDomainNode.style.width - this.nodeConfig.offsetX;
+      clbMasterDomainNode.style.y = masterDomainNode.style.y;
+      this.calcChildrenNodeLocations(clbMasterDomainNode);
+
+      clbMasterIpNode.style.x = spiderMasterNode.style.x - spiderMasterNode.style.width - this.nodeConfig.offsetX;
+      clbMasterIpNode.style.y = spiderMasterNode.style.y;
+      this.calcChildrenNodeLocations(clbMasterIpNode);
+
+      // 中控节点需要继续向左移动防止遮挡
+      if (controllerNode) {
+        controllerNode.style.x = clbMasterIpNode.style.x - clbMasterIpNode.style.width - this.nodeConfig.offsetX;
+        this.calcChildrenNodeLocations(controllerNode);
+      }
+    }
+    if (slaveDomainNode && spiderSlaveNode && clbSlaveDomainNode && clbSlaveIpNode) {
+      clbSlaveDomainNode.style.x = slaveDomainNode.style.x + slaveDomainNode.style.width + this.nodeConfig.offsetX;
+      clbSlaveDomainNode.style.y = slaveDomainNode.style.y;
+      this.calcChildrenNodeLocations(clbSlaveDomainNode);
+
+      clbSlaveIpNode.style.x = spiderSlaveNode.style.x + spiderSlaveNode.style.width + this.nodeConfig.offsetX;
+      clbSlaveIpNode.style.y = spiderSlaveNode.style.y;
+      this.calcChildrenNodeLocations(clbSlaveIpNode);
+    }
+
+    const dnsMasterDomainNode = nodeMap[nodeTypes.DNS_MASTER_ENTRY_GROUP];
+    const dnsSlaveDomainNode = nodeMap[nodeTypes.DNS_SLAVE_ENTRY_GROUP];
+
+    // 配置域名指向 clb
+    if (dnsMasterDomainNode && clbMasterDomainNode && clbMasterIpNode) {
+      clbMasterDomainNode.style.x =
+        dnsMasterDomainNode.style.x - dnsMasterDomainNode.style.width - this.nodeConfig.offsetX;
+      clbMasterDomainNode.style.y = dnsMasterDomainNode.style.y;
+      this.calcChildrenNodeLocations(clbMasterDomainNode);
+    }
+    if (dnsSlaveDomainNode && clbSlaveDomainNode && clbSlaveIpNode) {
+      clbSlaveDomainNode.style.x =
+        dnsSlaveDomainNode.style.x + dnsSlaveDomainNode.style.width + this.nodeConfig.offsetX;
+      clbSlaveDomainNode.style.y = dnsSlaveDomainNode.style.y;
+      this.calcChildrenNodeLocations(clbSlaveDomainNode);
+
+      clbSlaveIpNode.style.x = dnsSlaveDomainNode.style.x;
+      clbSlaveIpNode.style.y = dnsSlaveDomainNode.style.y + dnsSlaveDomainNode.style.height + this.nodeConfig.offsetY;
+      this.calcChildrenNodeLocations(clbSlaveIpNode);
+
+      // 原先的从域名失效，此时要以 clb 的域名为基准
+      if (spiderMasterNode && dnsSlaveDomainNode && spiderSlaveNode) {
+        spiderSlaveNode.style.y = spiderMasterNode.style.y;
+        spiderSlaveNode.style.x = dnsSlaveDomainNode.style.x;
+        this.calcChildrenNodeLocations(spiderSlaveNode);
+      }
+    }
+  }
+
+  /**
+   * 处理 tendbha clb 相关节点位置
+   * @param nodes 节点列表
+   */
+  calcTendbHaNodeLocations(rootNodes: GraphNode[] = [], nodes: GraphNode[] = []) {
+    const nodeMap = {} as Record<string, GraphNode>;
+    for (const node of [...rootNodes, ...nodes]) {
+      nodeMap[node.id] = node;
+    }
+
+    const masterDomainNode = nodeMap[nodeTypes.MASTER_ENTRY_GROUP];
+    const proxyIpNode = nodeMap[nodeTypes.PROXY];
+
+    const clbDomainNode = nodeMap[nodeTypes.CLB_DNS_ENTRY_GROUP];
+    const clbIpNode = nodeMap[nodeTypes.CLB_ENTRY_GROUP];
+    const dnsDomainNode = nodeMap[nodeTypes.DNS_ENTRY_GROUP];
+
+    // 开启 clb / 恢复主域名直连接入层
+    if (masterDomainNode && proxyIpNode && clbDomainNode && clbIpNode) {
+      clbDomainNode.style.y = masterDomainNode.style.y;
+      clbDomainNode.style.x = -masterDomainNode.style.width;
+      this.calcChildrenNodeLocations(clbDomainNode);
+
+      clbIpNode.style.y = proxyIpNode.style.y;
+      clbIpNode.style.x = -proxyIpNode.style.width;
+      this.calcChildrenNodeLocations(clbIpNode);
+      return;
+    }
+
+    // 配置主域名指向 clb
+    if (dnsDomainNode && clbDomainNode && clbIpNode) {
+      clbDomainNode.style.y = dnsDomainNode.style.y;
+      clbDomainNode.style.x = -dnsDomainNode.style.width;
+      this.calcChildrenNodeLocations(clbDomainNode);
     }
   }
 
@@ -427,9 +580,11 @@ export class GraphData {
 
       // es hdfs mongo 集群特殊逻辑
       if (([ClusterTypes.ES, ClusterTypes.HDFS, ClusterTypes.MONGODB] as string[]).includes(this.clusterType)) {
-        this.calcHorizontalAlignLocations(groups);
+        this.calcHorizontalAlignLocations(rootGroups, groups);
       } else if (this.clusterType === ClusterTypes.TENDBCLUSTER) {
         this.calcSpiderNodeLocations(rootGroups, groups);
+      } else if (this.clusterType === ClusterTypes.TENDBHA) {
+        this.calcTendbHaNodeLocations(rootGroups, groups);
       }
 
       edges = getLines(data);
@@ -586,9 +741,10 @@ export class GraphData {
       return [roots[0]];
     }
     if (dbType === DBTypes.REDIS) {
-      const clbDnsItem = roots.find((rootItem) => rootItem.id === 'clb_dns_entry_group');
+      const clbDnsItem = roots.find((rootItem) => rootItem.id === nodeTypes.CLB_DNS_ENTRY_GROUP);
       if (clbDnsItem) {
-        const extractedRoots = roots.filter((item) => item.id !== 'clb_dns_entry_group');
+        // TODO 可以优先在 formatGraphData 做特殊逻辑的节点位置计算
+        const extractedRoots = roots.filter((item) => item.id !== nodeTypes.CLB_DNS_ENTRY_GROUP);
         const rootMap = extractedRoots.reduce<Record<string, GraphNode>>((prevMap, rootItem) => {
           if (prevMap[rootItem.id]) {
             return prevMap;
@@ -608,6 +764,19 @@ export class GraphData {
         }, {});
         roots = Object.values(rootMap);
       }
+    }
+    // 提前将clb相关节点提取到 roots 最后，防止 formatGraphData 做计算时会出现空白占位
+    if (dbType === DBTypes.TENDBCLUSTER) {
+      const extractedRoots: GraphNode[] = [];
+      const clbRoots: GraphNode[] = [];
+      roots.forEach((rootItem) => {
+        if ([nodeTypes.CLB_MASTER_DNS_ENTRY_GROUP, nodeTypes.CLB_SLAVE_DNS_ENTRY_GROUP].includes(rootItem.id)) {
+          clbRoots.push(rootItem);
+        } else {
+          extractedRoots.push(rootItem);
+        }
+      });
+      return [...extractedRoots, ...clbRoots];
     }
     // 排序根节点
     roots.sort((a) => (a.children.find((node) => node.id === nodeId) ? -1 : 0));

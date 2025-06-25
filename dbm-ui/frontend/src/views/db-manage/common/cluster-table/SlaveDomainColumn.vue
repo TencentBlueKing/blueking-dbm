@@ -26,7 +26,13 @@
       </RenderHeadCopy>
     </template>
     <template #default="{ data }: { data: IRowData }">
-      <SlaveDomainCell :data="data" />
+      <SlaveDomainCell :data="data">
+        <template #append>
+          <slot
+            name="append"
+            v-bind="{ data }" />
+        </template>
+      </SlaveDomainCell>
     </template>
   </BkTableColumn>
 </template>
@@ -103,6 +109,7 @@
 
     .layout-append {
       align-self: flex-start;
+      height: 26px;
     }
   }
 </style>

@@ -82,8 +82,8 @@
           <BkTableColumn
             field="ips"
             label="Bind IP"
-            :show-overflow="false"
-            :width="200">
+            :min-width="200"
+            :show-overflow="false">
             <template #default="{ data: rowData }: { data: ClusterEntryInfo }">
               <RenderBindIps
                 v-if="rowData.ips"
@@ -184,12 +184,11 @@
     manual: true,
     onSuccess: (data) => {
       tableData.value = data
+        .filter((item) => item.cluster_entry_type === 'dns')
         .map((item) => ({
           cluster_entry_type: item.cluster_entry_type,
           entry: item.entry,
-          ips: item.isDns
-            ? (item as ClusterEntryDetailModel<DnsTargetDetails>).target_details.map((row) => row.ip).join('\n')
-            : '',
+          ips: (item as ClusterEntryDetailModel<DnsTargetDetails>).target_details.map((row) => row.ip).join('\n'),
           port: (item as ClusterEntryDetailModel<DnsTargetDetails>).target_details[0]?.port,
           role: item.role,
         }))

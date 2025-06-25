@@ -67,6 +67,7 @@
   import { execCopy } from '@utils';
 
   interface Props {
+    clbRole?: string;
     clusterId: number;
     entryType: 'clb' | 'polaris';
     panelWidth?: number;
@@ -74,6 +75,7 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    clbRole: '',
     panelWidth: 250,
     size: 'defalut',
   });
@@ -105,9 +107,10 @@
   const { loading, run: runGetClusterEntries } = useRequest(getClusterEntries, {
     manual: true,
     onSuccess: (res) => {
-      const entryItem = res[0];
-      if (entryItem.isClb) {
-        const targetDetailItem = (entryItem as ClusterEntryDetailModel<ClbPolarisTargetDetails>).target_details[0];
+      if (props.entryType === 'clb' && props.clbRole) {
+        const targetDetailItem = (
+          res.find((item) => item.role === props.clbRole)! as ClusterEntryDetailModel<ClbPolarisTargetDetails>
+        ).target_details[0];
         const clbInfo = {
           list: [
             {
@@ -122,23 +125,42 @@
           title: t('腾讯云负载均衡（CLB）'),
         };
         entryInfo.value = clbInfo;
-      } else if (entryItem.isPolaris) {
-        const targetDetailItem = (entryItem as ClusterEntryDetailModel<ClbPolarisTargetDetails>).target_details[0];
-        const polarisInfo = {
-          list: [
-            {
-              title: 'CL5',
-              value: targetDetailItem.polaris_l5,
-            },
-            {
-              shareLink: targetDetailItem.url,
-              title: t('北极星服务名称'),
-              value: targetDetailItem.polaris_name,
-            },
-          ],
-          title: t('CL5与北极星'),
-        };
-        entryInfo.value = polarisInfo;
+      } else {
+        const entryItem = res[0];
+        if (entryItem.isClb) {
+          const targetDetailItem = (entryItem as ClusterEntryDetailModel<ClbPolarisTargetDetails>).target_details[0];
+          const clbInfo = {
+            list: [
+              {
+                title: 'IP',
+                value: targetDetailItem.clb_ip,
+              },
+              {
+                title: t('CLB域名'),
+                value: targetDetailItem.clb_domain,
+              },
+            ],
+            title: t('腾讯云负载均衡（CLB）'),
+          };
+          entryInfo.value = clbInfo;
+        } else if (entryItem.isPolaris) {
+          const targetDetailItem = (entryItem as ClusterEntryDetailModel<ClbPolarisTargetDetails>).target_details[0];
+          const polarisInfo = {
+            list: [
+              {
+                title: 'CL5',
+                value: targetDetailItem.polaris_l5,
+              },
+              {
+                shareLink: targetDetailItem.url,
+                title: t('北极星服务名称'),
+                value: targetDetailItem.polaris_name,
+              },
+            ],
+            title: t('CL5与北极星'),
+          };
+          entryInfo.value = polarisInfo;
+        }
       }
     },
   });
