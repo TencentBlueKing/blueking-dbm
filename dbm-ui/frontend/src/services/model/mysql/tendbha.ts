@@ -65,6 +65,7 @@ export default class Tendbha extends ClusterBase {
   db_module_id: number;
   db_module_name: string;
   disaster_tolerance_level: Affinity;
+  dns_to_clb: boolean;
   id: number;
   immute_domain: string;
   major_version: string;
@@ -73,6 +74,8 @@ export default class Tendbha extends ClusterBase {
   operations: ClusterListOperation[];
   permission: {
     access_entry_edit: boolean;
+    mysql_add_clb: boolean;
+    mysql_clb_bind_domain: boolean;
     mysql_destroy: boolean;
     mysql_dump_data: boolean;
     mysql_edit: boolean;
@@ -112,6 +115,7 @@ export default class Tendbha extends ClusterBase {
     this.db_module_name = payload.db_module_name || '';
     this.db_module_id = payload.db_module_id || 0;
     this.disaster_tolerance_level = payload.disaster_tolerance_level;
+    this.dns_to_clb = payload.dns_to_clb;
     this.id = payload.id || 0;
     this.immute_domain = payload.immute_domain || '';
     this.master_domain = payload.master_domain || '';
@@ -150,6 +154,10 @@ export default class Tendbha extends ClusterBase {
 
   get disasterToleranceLevelName() {
     return affinityMap[this.disaster_tolerance_level];
+  }
+
+  get isOnlineCLB() {
+    return this.cluster_entry.some((item) => item.cluster_entry_type === 'clb');
   }
 
   get isStarting() {
