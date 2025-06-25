@@ -104,6 +104,8 @@
   import MongodbModel from '@services/model/mongodb/mongodb';
   import TendbhaModel from '@services/model/mysql/tendbha';
   import TendbsingleModel from '@services/model/mysql/tendbsingle';
+  import OracleHaModel from '@services/model/oracle/oracle-ha';
+  import OracleSingleModel from '@services/model/oracle/oracle-single';
   import PulsarModel from '@services/model/pulsar/pulsar';
   import RedisModel from '@services/model/redis/redis';
   import RiakModel from '@services/model/riak/riak';
@@ -154,6 +156,8 @@
     [ClusterTypes.KAFKA]: KafkaModel;
     [ClusterTypes.MONGO_REPLICA_SET]: MongodbModel;
     [ClusterTypes.MONGO_SHARED_CLUSTER]: MongodbModel;
+    [ClusterTypes.ORACLE_PRIMARY_STANDBY]: OracleHaModel;
+    [ClusterTypes.ORACLE_SINGLE_NONE]: OracleSingleModel;
     [ClusterTypes.PULSAR]: PulsarModel;
     [ClusterTypes.REDIS_CLUSTER]: RedisModel;
     [ClusterTypes.REDIS_INSTANCE]: RedisModel;
@@ -192,6 +196,31 @@
     }
   }, 60);
 
+  const {
+    data: monitorPanelList,
+    loading: isPanelLoading,
+    run: fetchMonitorUrls,
+  } = useRequest(getMonitorUrls, {
+    manual: true,
+  });
+
+  watch(
+    () => props.clusterData,
+    () => {
+      // 部分仪表盘暂时没数据，若请求会报错
+      if (props.clusterData && props.clusterData.cluster_type !== ClusterTypes.ORACLE_PRIMARY_STANDBY) {
+        fetchMonitorUrls({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_id: props.clusterData.id,
+          cluster_type: props.clusterData.cluster_type,
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
+
   watch(
     route,
     () => {
@@ -202,16 +231,6 @@
       immediate: true,
     },
   );
-
-  const { data: monitorPanelList, loading: isPanelLoading } = useRequest(getMonitorUrls, {
-    defaultParams: [
-      {
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        cluster_id: props.clusterData.id,
-        cluster_type: props.clusterData.cluster_type,
-      },
-    ],
-  });
 
   const handlePanelChange = (value: string) => {
     router.replace({

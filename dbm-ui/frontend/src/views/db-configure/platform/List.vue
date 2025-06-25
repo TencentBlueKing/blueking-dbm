@@ -67,7 +67,7 @@
   const router = useRouter();
 
   const state = reactive({
-    clusterType: '',
+    clusterType: '' as ClusterTypes,
     confType: 'dbconf',
     data: [] as ConfigListItem,
     loading: false,
@@ -165,7 +165,9 @@
    * 获取平台配置列表
    */
   const fetchPlatformConfigList = (confType: string) => {
-    if (state.clusterType === '') return;
+    if (!state.clusterType) {
+      return;
+    }
 
     state.loading = true;
 

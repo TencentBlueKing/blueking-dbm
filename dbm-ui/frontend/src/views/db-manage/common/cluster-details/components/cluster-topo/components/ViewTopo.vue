@@ -86,6 +86,8 @@
   import { getHdfsTopoGraph } from '@services/source/hdfs';
   import { getKafkaTopoGraph } from '@services/source/kafka';
   import { getMongoClustersTopoGraph } from '@services/source/mongodb';
+  import { getOracleHaClusterTopoGraph } from '@services/source/oracleHaCluster';
+  import { getOracleSingleClusterTopoGraph } from '@services/source/oracleSingleCluster';
   import { getPulsarTopoGraph } from '@services/source/pulsar';
   import { getRedisTopoGraph } from '@services/source/redis';
   import { getRiakTopoGraph } from '@services/source/riak';
@@ -112,6 +114,8 @@
     [ClusterTypes.KAFKA]: getKafkaTopoGraph,
     [ClusterTypes.MONGO_REPLICA_SET]: getMongoClustersTopoGraph,
     [ClusterTypes.MONGO_SHARED_CLUSTER]: getMongoClustersTopoGraph,
+    [ClusterTypes.ORACLE_PRIMARY_STANDBY]: getOracleHaClusterTopoGraph,
+    [ClusterTypes.ORACLE_SINGLE_NONE]: getOracleSingleClusterTopoGraph,
     [ClusterTypes.PULSAR]: getPulsarTopoGraph,
     [ClusterTypes.REDIS]: getRedisTopoGraph,
     [ClusterTypes.REDIS_CLUSTER]: getRedisTopoGraph,

@@ -71,6 +71,10 @@
     | SqlServerHaInstanceModel
     | SqlServerSingleInstanceModel;
 
+  const modelValue = defineModel<IValue[]>({
+    default: () => [],
+  });
+
   const { t } = useI18n();
 
   const genInstanceKey = (instance: { bk_cloud_id: number; ip: string; port: number }) =>
@@ -136,10 +140,6 @@
       },
     ],
   } as unknown as Record<ClusterTypes, PanelListType>;
-
-  const modelValue = defineModel<IValue[]>({
-    default: () => [],
-  });
 
   const isShowInstanceSelector = shallowRef(false);
   const instanceSelectorValue = shallowRef<Record<string, IValue[]>>({

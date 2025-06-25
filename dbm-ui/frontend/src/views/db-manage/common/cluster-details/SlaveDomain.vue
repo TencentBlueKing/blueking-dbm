@@ -30,6 +30,7 @@
 
 <script setup lang="ts" generic="T extends ISupportClusterType">
   import TendbhaModel from '@services/model/mysql/tendbha';
+  import OraclehaModel from '@services/model/oracle/oracle-ha';
   import RedisModel from '@services/model/redis/redis';
   import SqlserverHaModel from '@services/model/sqlserver/sqlserver-ha';
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
@@ -40,9 +41,11 @@
     | ClusterTypes.TENDBCLUSTER
     | ClusterTypes.TENDBHA
     | ClusterTypes.REDIS_INSTANCE
-    | ClusterTypes.SQLSERVER_HA;
+    | ClusterTypes.SQLSERVER_HA
+    | ClusterTypes.ORACLE_PRIMARY_STANDBY;
 
   export interface ClusterTypeRelateClusterModel {
+    [ClusterTypes.ORACLE_PRIMARY_STANDBY]: OraclehaModel;
     [ClusterTypes.REDIS_INSTANCE]: RedisModel;
     [ClusterTypes.SQLSERVER_HA]: SqlserverHaModel;
     [ClusterTypes.TENDBCLUSTER]: TendbClusterModel;
