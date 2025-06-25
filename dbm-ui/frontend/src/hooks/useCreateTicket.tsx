@@ -32,6 +32,7 @@ export function useCreateTicket<T>(ticketType: TicketTypes, options?: { onSucces
       const toolboxResultMap = {
         MONGODB: 'MongodbToolboxResult',
         MYSQL: 'MysqlToolboxResult',
+        ORACLE: 'OracleToolboxResult',
         REDIS: 'RedisToolboxResult',
         SQLSERVER: 'SqlserverToolboxResult',
         TENDBCLUSTER: 'TendbclusterToolboxResult',

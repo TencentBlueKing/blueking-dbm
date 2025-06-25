@@ -11,6 +11,7 @@
   import Kafka from './Kafka.vue';
   import MongoDB from './MongoDB.vue';
   import Mysql from './Mysql.vue';
+  import Oracle from './Oracle.vue';
   import Pulsar from './Pulsar.vue';
   import Redis from './Redis.vue';
   import Riak from './Riak.vue';
@@ -31,6 +32,7 @@
     kafka: Kafka,
     mongodb: MongoDB,
     mysql: Mysql,
+    oracle: Oracle,
     pulsar: Pulsar,
     redis: Redis,
     riak: Riak,

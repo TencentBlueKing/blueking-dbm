@@ -96,6 +96,8 @@
     [ClusterTypes.KAFKA]: 'kafka_view',
     [ClusterTypes.MONGO_REPLICA_SET]: 'mongodb_view',
     [ClusterTypes.MONGO_SHARED_CLUSTER]: 'mongodb_view',
+    [ClusterTypes.ORACLE_PRIMARY_STANDBY]: 'oracle_view',
+    [ClusterTypes.ORACLE_SINGLE_NONE]: 'oracle_view',
     [ClusterTypes.PULSAR]: 'pulsar_view',
     [ClusterTypes.REDIS]: 'redis_view',
     [ClusterTypes.REDIS_INSTANCE]: 'redis_view',
