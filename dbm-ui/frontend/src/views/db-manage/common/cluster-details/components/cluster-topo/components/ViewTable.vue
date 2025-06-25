@@ -11,45 +11,49 @@
           <div @click="handleCopyInstance(clusterRoleNodeGroup[groupName])">{{ t('复制实例') }}</div>
         </PopoverCopy>
       </div>
-      <div class="host-wrapper">
-        <div
-          v-for="nodeItem in clusterRoleNodeGroup[groupName]"
-          :key="`${nodeItem.bk_instance_id}#${nodeItem.instance}`"
-          style="display: flex; align-items: center">
-          <ClusterInstanceStatus
-            :data="nodeItem.status"
-            :show-text="false" />
-          <div
-            class="ml-4 mr-4"
-            :style="{
-              color: nodeItem.status === 'unavailable' ? '#c4c6cc' : '',
-            }">
-            <TextHighlight
-              high-light-color="#ff8204"
-              :keyword="serachInstacnce">
-              {{ nodeItem.displayInstance || nodeItem.instance }}
-            </TextHighlight>
+      <div class="host-box">
+        <ScrollFaker>
+          <div style="padding: 0 12px">
+            <div
+              v-for="nodeItem in clusterRoleNodeGroup[groupName]"
+              :key="`${nodeItem.bk_instance_id}#${nodeItem.instance}`"
+              style="display: flex; align-items: center">
+              <ClusterInstanceStatus
+                :data="nodeItem.status"
+                :show-text="false" />
+              <div
+                class="ml-4 mr-4"
+                :style="{
+                  color: nodeItem.status === 'unavailable' ? '#c4c6cc' : '',
+                }">
+                <TextHighlight
+                  high-light-color="#ff8204"
+                  :keyword="serachInstacnce">
+                  {{ nodeItem.displayInstance || nodeItem.instance }}
+                </TextHighlight>
+              </div>
+              <BkTag
+                v-if="nodeItem.isStandBy"
+                class="cluster-specific-flag ml-4"
+                size="small">
+                Standby
+              </BkTag>
+              <BkTag
+                v-if="nodeItem.isPrimary"
+                class="cluster-specific-flag ml-4"
+                size="small">
+                Primary
+              </BkTag>
+              <BkTag
+                v-if="nodeItem.status === 'unavailable'"
+                class="ml-4"
+                size="small">
+                {{ t('不可用') }}
+              </BkTag>
+            </div>
+            <span v-if="clusterRoleNodeGroup[groupName].length < 1">--</span>
           </div>
-          <BkTag
-            v-if="nodeItem.isStandBy"
-            class="cluster-specific-flag ml-4"
-            size="small">
-            Standby
-          </BkTag>
-          <BkTag
-            v-if="nodeItem.isPrimary"
-            class="cluster-specific-flag ml-4"
-            size="small">
-            Primary
-          </BkTag>
-          <BkTag
-            v-if="nodeItem.status === 'unavailable'"
-            class="ml-4"
-            size="small">
-            {{ t('不可用') }}
-          </BkTag>
-        </div>
-        <span v-if="clusterRoleNodeGroup[groupName].length < 1">--</span>
+        </ScrollFaker>
       </div>
     </div>
   </div>
@@ -116,13 +120,14 @@
 <style lang="less">
   .cluster-detail-instance-table-view {
     display: flex;
+    height: calc(100% - 92px);
     min-height: 80px;
     font-size: 12px;
     border-bottom: 1px solid #dcdee5;
 
     .role-item {
-      flex: 1;
       display: flex;
+      flex: 1;
       flex-direction: column;
 
       .role-name {
@@ -131,12 +136,14 @@
         padding: 0 12px;
         color: #313238;
         background: #f0f1f5;
-        align-items: center;
         border-bottom: 1px solid #dcdee5;
+        flex: 0 0 36px;
+        align-items: center;
       }
 
-      .host-wrapper {
-        padding: 8px 12px;
+      .host-box {
+        height: calc(100% - 36px);
+        padding: 8px 0;
         line-height: 20px;
         color: #4d4f56;
         flex: 1;

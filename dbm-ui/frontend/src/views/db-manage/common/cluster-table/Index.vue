@@ -1,29 +1,31 @@
 <template>
-  <DbTable
-    ref="tableRef"
-    class="db-cluster-table"
-    :data-source="dataSource"
-    :disable-select-method="disableSelectMethod"
-    releate-url-query
-    :row-class="getRowClass"
-    :row-config="{
-      useKey: true,
-      keyField: 'id',
-    }"
-    v-bind="$attrs"
-    :scroll-y="{ enabled: true, gt: 0 }"
-    selectable
-    :settings="settings"
-    :show-overflow="false"
-    show-settings
-    @selection="handleSelection"
-    @setting-change="handleTableSettings">
-    <slot name="operation" />
-    <slot name="masterDomain" />
-    <ClusterAliasColumn
-      :cluster-type="clusterType"
-      @refresh="handleRefresh" />
-    <!-- <slot name="clusterName">
+  <div ref="root">
+    <DbTable
+      ref="tableRef"
+      class="db-cluster-table"
+      :data-source="dataSource"
+      :disable-select-method="disableSelectMethod"
+      releate-url-query
+      :row-class="getRowClass"
+      :row-config="{
+        useKey: true,
+        keyField: 'id',
+      }"
+      v-bind="$attrs"
+      :scroll-y="{ enabled: true, gt: 0 }"
+      selectable
+      :settings="settings"
+      :show-overflow="false"
+      show-settings
+      @request-success="handleRequestSuceess"
+      @selection="handleSelection"
+      @setting-change="handleTableSettings">
+      <slot name="operation" />
+      <slot name="masterDomain" />
+      <ClusterAliasColumn
+        :cluster-type="clusterType"
+        @refresh="handleRefresh" />
+      <!-- <slot name="clusterName">
       <ClusterNameColumn
         :cluster-type="clusterType"
         :get-table-instance="getTableInstance"
@@ -31,43 +33,48 @@
         :selected-list="selected"
         @refresh="handleRefresh" />
     </slot> -->
-    <slot name="slaveDomain" />
-    <slot name="clusterTag">
-      <ClusterTagColumn
-        :cluster-type="clusterType"
-        @refresh="handleRefresh" />
-    </slot>
-    <slot name="status">
-      <StatusColumn :cluster-type="clusterType" />
-    </slot>
-    <slot name="clusterState">
-      <ClusterStatsColumn :cluster-type="clusterType" />
-    </slot>
-    <slot name="role" />
-    <slot name="clusterTypeName" />
-    <slot name="syncMode" />
-    <slot name="moduleNames" />
-    <CommonColumn :cluster-type="clusterType" />
-    <template #setting>
-      <div>
-        <div class="mb-8">{{ t('详情打开方式') }}</div>
-        <BkRadioGroup
-          v-model="viewMode"
-          style="display: flex">
-          <BkRadioButton
-            label="drawer"
-            style="flex: 1">
-            {{ t('抽屉侧滑') }}
-          </BkRadioButton>
-          <BkRadioButton
-            label="jump"
-            style="flex: 1">
-            {{ t('新窗口') }}
-          </BkRadioButton>
-        </BkRadioGroup>
-      </div>
-    </template>
-  </DbTable>
+      <slot name="slaveDomain" />
+      <slot name="clusterTag">
+        <ClusterTagColumn
+          :cluster-type="clusterType"
+          @refresh="handleRefresh" />
+      </slot>
+      <slot name="status">
+        <StatusColumn :cluster-type="clusterType" />
+      </slot>
+      <slot name="clusterState">
+        <ClusterStatsColumn :cluster-type="clusterType" />
+      </slot>
+      <slot name="role" />
+      <slot name="clusterTypeName" />
+      <slot name="syncMode" />
+      <slot name="moduleNames" />
+      <CommonColumn :cluster-type="clusterType" />
+      <template #setting>
+        <div>
+          <div class="mb-8">{{ t('详情打开方式') }}</div>
+          <BkRadioGroup
+            v-model="viewMode"
+            style="display: flex">
+            <BkRadioButton
+              label="drawer"
+              style="flex: 1">
+              {{ t('抽屉侧滑') }}
+            </BkRadioButton>
+            <BkRadioButton
+              label="jump"
+              style="flex: 1">
+              {{ t('新窗口') }}
+            </BkRadioButton>
+          </BkRadioGroup>
+        </div>
+      </template>
+    </DbTable>
+    <NewFeatureGuide
+      v-if="isDataRequestSuccess"
+      :list="newFeatureGuideList"
+      name="cluster_list" />
+  </div>
 </template>
 <script lang="ts">
   import type { VNode } from 'vue';
@@ -128,7 +135,9 @@
   export interface Expose {
     clearSelected: () => void;
     fetchData: (params: Record<string, any>) => void;
+    getAllData: <C>() => Promise<C[]>;
     getData: <C>() => C[];
+    removeSelectByKey: (key: string) => void;
   }
 
   export interface Slots {
@@ -174,10 +183,28 @@
   const userProfileStore = useUserProfile();
 
   let fetchDataParams: Record<string, any> = {};
+  const rootRef = useTemplateRef('root');
   const viewMode = ref<IViewMode>(userProfileStore.profile[TABLE_VIEW_MODE_SETTING_KEY] || 'drawer');
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const isFilter = ref(false);
+  const isDataRequestSuccess = ref(false);
   const selected = shallowRef<ClusterModel<T>[]>([]);
+
+  const newFeatureGuideList = [
+    {
+      content: t('注意！集群操作已移到此处，助您更快触达'),
+      entry: () => {
+        const fixZIndexEle = rootRef.value!.querySelector('.vxe-table--fixed-left-wrapper') as HTMLElement;
+        fixZIndexEle.style.zIndex = 'unset !important';
+      },
+      leave: () => {
+        const fixZIndexEle = rootRef.value!.querySelector('.vxe-table--fixed-left-wrapper') as HTMLElement;
+        fixZIndexEle.style.zIndex = '';
+      },
+      target: '.cluster-list-column-operation-btn',
+      title: t('温馨提示'),
+    },
+  ];
 
   const fetchData = () => {
     tableRef.value?.fetchData(fetchDataParams);
@@ -203,6 +230,10 @@
     });
   };
 
+  const handleRequestSuceess = () => {
+    isDataRequestSuccess.value = true;
+  };
+
   defineExpose<Expose>({
     clearSelected() {
       tableRef.value?.clearSelected();
@@ -211,13 +242,21 @@
       fetchDataParams = params;
       fetchData();
     },
+    getAllData<T>() {
+      return tableRef.value?.getAllData<T>() || Promise.resolve([]);
+    },
     getData<T>() {
       return tableRef.value?.getData<T>() || [];
+    },
+    removeSelectByKey(key) {
+      tableRef.value?.removeSelectByKey(key);
     },
   });
 </script>
 <style lang="less">
   .db-cluster-table {
+    position: relative;
+
     tr {
       &.is-new {
         td {
