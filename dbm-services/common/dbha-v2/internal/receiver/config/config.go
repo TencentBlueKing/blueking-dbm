@@ -28,29 +28,38 @@ var Cfg = Configuration{}
 
 // ServiceConfig service configuration
 type ServiceConfig struct {
-	ListenAddress string `yaml:"listenAddress"`
+	ListenAddress string `yaml:"listenAddress" mapstructure:"ListenAddress"`
 }
 
 // DiscoveryConfig discovery configuration
 type DiscoveryConfig struct {
-	Endpoints string `yaml:"endpoints"`
-	User      string `yaml:"user"`
-	Password  string `yaml:"password"`
+	Endpoints string `yaml:"endpoints" mapstructure:"endpoints"`
+	User      string `yaml:"user"      mapstructure:"user"`
+	Password  string `yaml:"password"  mapstructure:"password"`
+}
+
+// ExporterConfig Configuration related to data storage.
+type ExporterConfig struct {
+	Name      string `yaml:"name"      mapstructure:"name"`
+	Endpoints string `yaml:"endpoints" mapstructure:"endpoints"`
+	User      string `yaml:"user"      mapstructure:"user"`
+	Password  string `yaml:"password"  mapstructure:"password"`
 }
 
 // LogConfig log configuration
 type LogConfig struct {
-	Path      string `yaml:"path"`
-	Level     string `yaml:"level"`
-	FileCount int    `yaml:"fileCount"`
-	FileSize  int    `yaml:"fileSize"`
+	Path      string `yaml:"path"      mapstructure:"path"`
+	Level     string `yaml:"level"     mapstructure:"level"`
+	FileCount int    `yaml:"fileCount" mapstructure:"fileCount"`
+	FileSize  int    `yaml:"fileSize"  mapstructure:"fileSize"`
 }
 
 // Configuration receiver's configuration
 type Configuration struct {
-	Name      string          `yaml:"name"`
-	Version   string          `yaml:"version"`
-	Service   ServiceConfig   `yaml:"service"`
-	Discovery DiscoveryConfig `yaml:"discovery"`
-	Log       LogConfig       `yaml:"log"`
+	Name      string           `yaml:"name"      mapstructure:"name"`
+	Version   string           `yaml:"version"   mapstructure:"version"`
+	Service   ServiceConfig    `yaml:"service"   mapstructure:"service"`
+	Discovery DiscoveryConfig  `yaml:"discovery" mapstructure:"discovery"`
+	Exporters []ExporterConfig `yaml:"exporter"  mapstructure:"exporter"`
+	Log       LogConfig        `yaml:"log"       mapstructure:"log"`
 }

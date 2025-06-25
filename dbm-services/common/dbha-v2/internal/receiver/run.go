@@ -25,13 +25,29 @@
 package receiver
 
 import (
+	"context"
 	"dbm-services/common/dbha-v2/internal/receiver/config"
 	"dbm-services/common/dbha-v2/internal/receiver/service"
 	"dbm-services/common/dbha-v2/pkg/logger"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
+
+func setupGracefulShutdown(svr *service.Receiver) {
+	sigC := make(chan os.Signal, 1)
+	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		<-sigC
+		logger.Info("shutdown receiver server")
+		svr.Close()
+		os.Exit(0)
+	}()
+}
 
 // Run run receiver service
 func Run(cmd *cobra.Command, args []string) error {
@@ -69,5 +85,9 @@ func Run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	return svr.Run()
+	ctx := context.Background()
+
+	setupGracefulShutdown(svr)
+
+	return svr.Run(ctx)
 }

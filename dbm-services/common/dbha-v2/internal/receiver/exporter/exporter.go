@@ -22,30 +22,27 @@
  * SOFTWARE.
  */
 
-package main
+package exporter
 
 import (
-	"dbm-services/common/dbha-v2/internal/receiver"
-	"dbm-services/common/dbha-v2/pkg/logger"
-
-	"github.com/spf13/cobra"
+	"dbm-services/common/dbha-v2/internal/receiver/config"
+	"dbm-services/common/dbha-v2/internal/receiver/exporter/storage"
+	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"strings"
 )
 
-func main() {
-	rootCmd := &cobra.Command{
-		Use:          "receiver",
-		Short:        "DBHA Receiver Server",
-		SilenceUsage: true,
-		RunE:         receiver.Run,
+// Saver Define the interface for storing data.
+type Saver interface {
+	Save(data interface{}) error
+}
+
+// NewSaver create a new saver
+func NewSaver(cfg *config.ExporterConfig) (Saver, error) {
+
+	switch strings.ToLower(cfg.Name) {
+	case strings.ToLower(storage.NameDoris):
+		return storage.NewDoris(strings.Split(cfg.Endpoints, ";"), cfg.User, cfg.Password)
+	default:
+		return nil, gerrors.Newf(gerrors.NotFound, "unsupported storage(%s)", cfg.Name)
 	}
-
-	rootCmd.PersistentFlags().StringVarP(&receiver.ConfigFilePath, "config", "c", "./etc/receiver.yaml", "")
-	rootCmd.CompletionOptions.DisableDefaultCmd = true
-	rootCmd.AddCommand(receiver.VersionCmd)
-
-	if err := rootCmd.Execute(); err != nil {
-		logger.Error("failed to start receiver server. errmsg:%s", err.Error())
-		return
-	}
-
 }

@@ -9,8 +9,16 @@ receiver:
   endpoints: 127.0.0.1:22223,127.0.0.2:22224
   syncInterval: 10
 
-harvest:
-  dbType: mysql
+harvester:
+  - name: mysql
+    user: root
+    password: 123456
+    reportInterval: 20
+
+  - name: redis
+    user: root
+    password: 123456
+    reportInterval: 20
 
 log:
   path: /var/log/dbha/probe.log

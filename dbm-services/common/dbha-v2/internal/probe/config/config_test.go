@@ -22,30 +22,27 @@
  * SOFTWARE.
  */
 
-package main
+package config_test
 
 import (
-	"dbm-services/common/dbha-v2/internal/receiver"
-	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/internal/probe/config"
+	"os"
+	"testing"
 
-	"github.com/spf13/cobra"
+	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
-func main() {
-	rootCmd := &cobra.Command{
-		Use:          "receiver",
-		Short:        "DBHA Receiver Server",
-		SilenceUsage: true,
-		RunE:         receiver.Run,
+var configFile = "../../../configs/probe.yaml"
+
+func TestConfig(t *testing.T) {
+	content, err := os.ReadFile(configFile)
+	if err != nil {
+		t.Error(err)
 	}
 
-	rootCmd.PersistentFlags().StringVarP(&receiver.ConfigFilePath, "config", "c", "./etc/receiver.yaml", "")
-	rootCmd.CompletionOptions.DisableDefaultCmd = true
-	rootCmd.AddCommand(receiver.VersionCmd)
-
-	if err := rootCmd.Execute(); err != nil {
-		logger.Error("failed to start receiver server. errmsg:%s", err.Error())
-		return
+	if err := yaml.Unmarshal(content, &config.Cfg); err != nil {
+		t.Error(err)
 	}
 
+	t.Logf("probe config:%v", config.Cfg)
 }

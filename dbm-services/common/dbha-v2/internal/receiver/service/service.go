@@ -25,6 +25,9 @@
 package service
 
 import (
+	"context"
+	"dbm-services/common/dbha-v2/internal/receiver/config"
+	"dbm-services/common/dbha-v2/internal/receiver/exporter"
 	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
@@ -36,9 +39,11 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
+	"google.golang.org/grpc/peer"
 )
 
 type Receiver struct {
+	savers []exporter.Saver
 	proto.UnimplementedReceiverServiceServer
 	wg      sync.WaitGroup
 	address string
@@ -52,13 +57,38 @@ func NewReceiverServer(address string) (*Receiver, error) {
 		return nil, gerrors.New(gerrors.InvalidParameter, "address is required")
 	}
 
-	return &Receiver{
-		address: addr,
-	}, nil
+	svr := &Receiver{address: addr}
+
+	if len(config.Cfg.Exporters) == 0 {
+		logger.Warn("no any exporter to use")
+	}
+
+	for _, cfg := range config.Cfg.Exporters {
+		saver, err := exporter.NewSaver(&cfg)
+		if err != nil {
+			logger.Warn("create saver failed, errmsg(%v)", err)
+			continue
+		}
+
+		logger.Info("add saver(%s)", cfg.Name)
+		svr.savers = append(svr.savers, saver)
+	}
+
+	return svr, nil
 }
 
 func (r *Receiver) PushData(stream proto.ReceiverService_PushDataServer) error {
 	ctx := stream.Context()
+	addr, ok := peer.FromContext(ctx)
+
+	clientId := ""
+	if ok {
+		clientId = addr.Addr.String()
+	}
+
+	connHandler := &connectionHandler{savers: r.savers}
+	connHandler.run()
+	defer connHandler.close()
 
 	for {
 		select {
@@ -78,12 +108,14 @@ func (r *Receiver) PushData(stream proto.ReceiverService_PushDataServer) error {
 				return nil
 			}
 
-			logger.Debug("request:%v", req)
+			if err := connHandler.postEvent(req); err != nil {
+				logger.Warn("handle the client event data failed, client(%s), errmsg(%v)", clientId, err)
+			}
 		}
 	}
 }
 
-func (r *Receiver) Run() error {
+func (r *Receiver) Run(ctx context.Context) error {
 	kasp := keepalive.ServerParameters{
 		Time:    constant.DefaultServerPingTime,
 		Timeout: constant.DefaultPingTimeout,
@@ -109,10 +141,15 @@ func (r *Receiver) Run() error {
 	}
 
 	r.svr = svr
+
 	return r.svr.Serve(listen)
 }
 
 func (r *Receiver) Close() {
+	if r.svr == nil {
+		return
+	}
+
 	r.svr.Stop()
 	r.wg.Wait()
 }

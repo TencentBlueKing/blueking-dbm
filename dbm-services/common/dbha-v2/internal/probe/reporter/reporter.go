@@ -24,5 +24,87 @@
 
 package reporter
 
+import (
+	"context"
+	"dbm-services/common/dbha-v2/internal/probe/client"
+	"dbm-services/common/dbha-v2/internal/probe/config"
+	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/logger"
+	"sync"
+	"time"
+)
+
 type Reporter struct {
+	ClientId string
+	quit     chan struct{}
+	recvCli  *client.ReceiverClient
+	adminCli *client.AdminClient
+	wg       sync.WaitGroup
+}
+
+func (r *Reporter) keepalive() {
+	ticker := time.NewTicker(5 * time.Second)
+
+	for {
+		select {
+		case <-ticker.C:
+			if err := r.PostToReceiver([]byte("keepalive")); err != nil {
+				logger.Warn("post keepalive request to receiver failed, errmsg(%v)", err)
+			}
+
+		case <-r.quit:
+			return
+		}
+	}
+}
+
+func (r *Reporter) CreateClients(ctx context.Context) error {
+	receiver, err := client.NewReceiverClient(ctx, config.Cfg.Receiver.Endpoints, r.ClientId)
+	if err != nil {
+		return err
+	}
+
+	admin, err := client.NewAdminClient(ctx, config.Cfg.Admin.Endpoints, r.ClientId)
+	if err != nil {
+		return err
+	}
+
+	r.recvCli = receiver
+	r.adminCli = admin
+	r.quit = make(chan struct{}, 1)
+
+	r.wg.Add(1)
+	go func() {
+		r.keepalive()
+		r.wg.Done()
+	}()
+
+	return nil
+}
+
+func (r *Reporter) PostToReceiver(data []byte) error {
+	if r.recvCli == nil {
+		return gerrors.Newf(gerrors.InvalidParameter, "receiver client is invalid(nil)")
+	}
+
+	return r.recvCli.SendMessage(data)
+}
+
+func (r *Reporter) Close() {
+	if r.quit != nil {
+		close(r.quit)
+	}
+
+	if r.recvCli != nil {
+		r.recvCli.Close()
+		r.recvCli = nil
+	}
+
+	if r.adminCli != nil {
+		r.adminCli.Close()
+		r.adminCli = nil
+	}
+
+	r.wg.Wait()
+	r.quit = nil
 }
