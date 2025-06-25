@@ -29,7 +29,6 @@
 </template>
 <script lang="ts" setup>
   const modelValue = defineModel<string>({
-    default: 'default',
     required: true,
   });
 

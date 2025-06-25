@@ -106,7 +106,7 @@
   }
 
   const modelValue = defineModel<string>({
-    default: '+00:00',
+    required: true,
   });
 
   const { Group, Option } = Select;
@@ -190,7 +190,7 @@
   .timezone-picker-trigger {
     position: relative;
     display: flex;
-    width: 130px;
+    width: 114px;
     height: 28px;
     align-items: center;
     justify-content: center;

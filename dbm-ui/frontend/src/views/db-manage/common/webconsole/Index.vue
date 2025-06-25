@@ -14,10 +14,10 @@
         v-model="isRaw" />
       <TimeZone
         v-if="[DBTypes.MYSQL, DBTypes.TENDBCLUSTER].includes(dbType)"
-        v-model="timeZone" />
+        v-model="timezone" />
       <CharacterSet
         v-if="[DBTypes.MYSQL, DBTypes.TENDBCLUSTER].includes(dbType)"
-        v-model="characterSet" />
+        v-model="charset" />
       <ClearScreen @change="handleClickClearScreen" />
       <ExportData @export="handleClickExport" />
       <UsageHelp
@@ -40,11 +40,11 @@
           v-if="clusterInfo"
           :key="clusterInfo.id"
           ref="consolePanelRef"
-          :character-set="characterSet"
+          :charset="charset"
           :cluster="clusterInfo"
           :raw="isRaw"
           :style="currentFontConfig"
-          :time-zone="timeZone" />
+          :timezone="timezone" />
       </KeepAlive>
       <div class="placeholder-main">
         <DbIcon
@@ -107,8 +107,8 @@
     lineHeight: '20px',
   });
   const isRaw = ref(props.dbType === DBTypes.REDIS ? false : undefined);
-  const timeZone = ref('+00:00');
-  const characterSet = ref('default');
+  const timezone = ref('+08:00');
+  const charset = ref('default');
   const isFullScreen = ref(false);
   const showUsageHelp = ref(false);
 
