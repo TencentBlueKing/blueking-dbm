@@ -3,7 +3,7 @@
     ref="root"
     class="cluster-list-column-operation-btn"
     :class="{
-      'is-active': isShowPopMenu,
+      'is-active': isActive,
     }">
     <DbIcon type="more" />
     <div
@@ -28,7 +28,7 @@
 
   const rootRef = useTemplateRef('root');
   const popMenuRef = useTemplateRef('popMenu');
-
+  const isActive = ref(false);
   const isShowPopMenu = ref(false);
 
   onMounted(() => {
@@ -40,7 +40,11 @@
       interactive: true,
       maxWidth: 'none',
       offset: [0, 12],
+      onHidden() {
+        isActive.value = false;
+      },
       onShow() {
+        isActive.value = true;
         isShowPopMenu.value = true;
       },
       placement: 'bottom-start',
@@ -80,11 +84,12 @@
   }
 
   .cluster-list-column-operation-btn {
+    position: relative;
     display: none;
     font-size: 18px;
     cursor: pointer;
-    justify-content: center;
     border-radius: 2px;
+    justify-content: center;
     align-items: center;
 
     &:hover {

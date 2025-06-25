@@ -46,6 +46,7 @@ import EditableTable, {
 } from '@components/editable-table/Index.vue';
 import FunController from '@components/function-controller/FunController.vue';
 import MoreActionExtend from '@components/more-action-extend/Index.vue';
+import NewFeatureGuide from '@components/new-feature-guide/Index.vue';
 import ScrollFaker from '@components/scroll-faker/Index.vue';
 import SkeletonLoading from '@components/skeleton-loading/Index.vue';
 import SmartAction from '@components/smart-action/Index.vue';
@@ -95,6 +96,7 @@ export const setGlobalComps = (app: App<Element>) => {
   app.component('AuthSwitcher', AuthSwitch);
   app.component('AuthRouterLink', AuthRouterLink);
   app.component('TableDetailDialog', TableDetailDialog);
+  app.component('NewFeatureGuide', NewFeatureGuide);
   // app.component('TTable', PrimaryTable);
   // app.component('TTableColumn', PrimaryTableColumn);
   setTimeout(() => {
