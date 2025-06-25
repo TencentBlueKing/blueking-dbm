@@ -190,7 +190,7 @@ class _CCApi(BaseApi):
             description=_("更新实例进程"),
         )
         self.find_module_with_relation = self.generate_data_api(
-            method="PUT",
+            method="POST",
             url="/findmany/module/with_relation/biz/{bk_biz_id}",
             description=_("根据条件查询业务下的模块"),
         )
