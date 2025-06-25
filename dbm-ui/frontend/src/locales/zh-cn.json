@@ -4693,5 +4693,16 @@
   "启用 Spider Slave 负载均衡（CLB）": "启用 Spider Slave 负载均衡（CLB）",
   "集群域名 + 集群链接": "集群域名 + 集群链接",
   "集群链接": "集群链接",
+  "Oracle 工具箱": "Oracle 工具箱",
+  "【Oracle】主从集群管理": "【Oracle】主从集群管理",
+  "【Oracle】实例视图": "【Oracle】实例视图",
+  "【Oracle】单节点集群管理": "【Oracle】单节点集群管理",
+  "Oracle 集群管理": "Oracle 集群管理",
+  "【Oracle】主从集群详情": "【Oracle】主从集群详情",
+  "【Oracle】单节点集群详情": "【Oracle】单节点集群详情",
+  "Oracle 主从": "Oracle 主从",
+  "Oracle 单节点": "Oracle 单节点",
+  "变更 DB": "变更 DB",
+  "变更 SQL 执行": "变更 SQL 执行",
   "这行勿动！新增翻译请在上一行添加！": ""
 }

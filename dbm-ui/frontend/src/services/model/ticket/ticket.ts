@@ -29,6 +29,7 @@ export type * as Influxdb from './details/influxdb';
 export type * as Kafka from './details/kafka';
 export type * as Mongodb from './details/mongodb';
 export type * as Mysql from './details/mysql/index';
+export type * as Oracle from './details/oracle';
 export type * as Pulsar from './details/pulsar';
 export type * as Redis from './details/redis/index';
 export type * as Riak from './details/riak';

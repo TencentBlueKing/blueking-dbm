@@ -80,15 +80,16 @@
 
   defineProps<Props>();
 
-  const { t } = useI18n();
-
   const modelValue = defineModel<number[]>({
     default: () => [],
     required: true,
   });
+
   const clusterVersionList = defineModel<string[]>('clusterVersionList', {
     default: () => [],
   });
+
+  const { t } = useI18n();
 
   const colums = [
     {
