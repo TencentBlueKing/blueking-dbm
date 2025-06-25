@@ -127,6 +127,7 @@
     [TicketTypes.MYSQL_SINGLE_DISABLE]: 'DatabaseTendbsingle', // Mysql 单节点禁用
     [TicketTypes.MYSQL_SINGLE_ENABLE]: 'DatabaseTendbsingle', // Mysql 单节点启用
     [TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA]: 'MySQLDBClear', // Mysql 单节点清档
+    [TicketTypes.ORACLE_EXEC_SCRIPT_APPLY]: TicketTypes.ORACLE_EXEC_SCRIPT_APPLY, // Oracle 变更SQL执行
     [TicketTypes.REDIS_BACKUP]: TicketTypes.REDIS_BACKUP, // Redis 集群备份
     [TicketTypes.REDIS_CLUSTER_ADD_SLAVE]: TicketTypes.REDIS_CLUSTER_ADD_SLAVE, // Redis 重建从库
     [TicketTypes.REDIS_CLUSTER_APPLY]: 'SelfServiceApplyRedis', // Redis 申请部署

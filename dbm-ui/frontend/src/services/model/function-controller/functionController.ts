@@ -24,12 +24,14 @@ export type BigdataFunctions = 'es' | 'kafka' | 'hdfs' | 'influxdb' | 'pulsar' |
 export type MonitorFunctions = 'duty_rule' | 'monitor_policy' | 'notice_group';
 export type MongoFunctions = 'mongodb' | 'MongoReplicaSet' | 'MongoShardedCluster';
 export type SqlServerFunctions = 'sqlserverCluster' | 'sqlserver_single' | 'sqlserver_ha' | 'sqlserver_tool';
+export type OracleFunctions = 'oracle_single_none' | 'oracle_primary_standby' | 'toolbox';
 export type FunctionKeys =
   | AddonsFunctions
   | MySQLFunctions
   | RedisFunctions
   | BigdataFunctions
   | MonitorFunctions
+  | OracleFunctions
   | SqlServerFunctions
   | MongoFunctions;
 
@@ -225,6 +227,7 @@ export default class FunctionController {
   monitor: ControllerItem<MonitorFunctions>;
   mysql: ControllerItem<MySQLFunctions>;
   observableManage: ControllerItem<string>;
+  oracle: ControllerItem<string>;
   // dbconsole 路由有关的开关
   personalWorkbench: ControllerItem<string>;
   redis: ControllerItem<RedisFunctions>;
@@ -239,6 +242,7 @@ export default class FunctionController {
     this.mongodb = payload.mongodb;
     this.bigdata = payload.bigdata;
     this.monitor = payload.monitor;
+    this.oracle = payload.oracle;
     this.sqlserver = payload.sqlserver;
     this.personalWorkbench = payload.personalWorkbench;
     this.observableManage = payload.observableManage;

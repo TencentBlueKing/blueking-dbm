@@ -45,11 +45,11 @@
   import RenderData from './RenderData/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow } from './RenderData/Row.vue';
 
-  const { t } = useI18n();
-
   const modelValue = defineModel<Array<IDataRow>>({
     required: true,
   });
+
+  const { t } = useI18n();
 
   const isNeedBackup = ref(false);
 

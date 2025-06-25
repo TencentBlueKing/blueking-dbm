@@ -5,6 +5,8 @@ import KafkaModel from '@services/model/kafka/kafka';
 import MongodbModel from '@services/model/mongodb/mongodb';
 import TendbhaModel from '@services/model/mysql/tendbha';
 import TendbsingleModel from '@services/model/mysql/tendbsingle';
+import OracleHaModel from '@services/model/oracle/oracle-ha';
+import OracleSingleModel from '@services/model/oracle/oracle-single';
 import PulsarModel from '@services/model/pulsar/pulsar';
 import RedisModel from '@services/model/redis/redis';
 import RiakModel from '@services/model/riak/riak';
@@ -29,7 +31,9 @@ export type ISupportClusterType =
   | ClusterTypes.SQLSERVER_HA
   | ClusterTypes.SQLSERVER_SINGLE
   | ClusterTypes.MONGO_REPLICA_SET
-  | ClusterTypes.MONGO_SHARED_CLUSTER;
+  | ClusterTypes.MONGO_SHARED_CLUSTER
+  | ClusterTypes.ORACLE_PRIMARY_STANDBY
+  | ClusterTypes.ORACLE_SINGLE_NONE;
 
 export interface ClusterTypeRelateClusterModel {
   [ClusterTypes.DORIS]: DorisModel;
@@ -38,6 +42,8 @@ export interface ClusterTypeRelateClusterModel {
   [ClusterTypes.KAFKA]: KafkaModel;
   [ClusterTypes.MONGO_REPLICA_SET]: MongodbModel;
   [ClusterTypes.MONGO_SHARED_CLUSTER]: MongodbModel;
+  [ClusterTypes.ORACLE_PRIMARY_STANDBY]: OracleHaModel;
+  [ClusterTypes.ORACLE_SINGLE_NONE]: OracleSingleModel;
   [ClusterTypes.PULSAR]: PulsarModel;
   [ClusterTypes.REDIS_INSTANCE]: RedisModel;
   [ClusterTypes.REDIS]: RedisModel;
