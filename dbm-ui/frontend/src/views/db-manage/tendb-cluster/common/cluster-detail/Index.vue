@@ -19,6 +19,18 @@
       <DisplayBox
         cluster-detail-router-name="tendbClusterDetail"
         :data="data">
+        <template #clb>
+          <div
+            v-if="data.isOnlineCLBMaster"
+            class="ml-4">
+            <ClusterEntryPanel
+              clb-role="master_entry"
+              :cluster-id="data.id"
+              entry-type="clb"
+              :panel-width="350"
+              size="big" />
+          </div>
+        </template>
         <BkButton
           v-db-console="'mysql.haClusterList.authorize'"
           class="ml-4"
@@ -104,6 +116,108 @@
             </div>
           </BkDropdownItem>
           <BkDropdownItem
+            v-if="!data.isOnlineCLBMaster"
+            v-db-console="'common.clb'">
+            <OperationBtnStatusTips
+              :data="data"
+              :disabled="!data.isOffline">
+              <AuthButton
+                action-id="tendbcluster_add_clb"
+                :disabled="data.isOffline"
+                :permission="data.permission.tendbcluster_add_clb"
+                :resource="data.id"
+                text
+                @click="
+                  () =>
+                    handleAddClb({
+                      details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id, spider_role: 'spider_master' },
+                    })
+                ">
+                {{ t('启用 Spider Master 负载均衡（CLB）') }}
+              </AuthButton>
+            </OperationBtnStatusTips>
+          </BkDropdownItem>
+          <BkDropdownItem
+            v-if="!data.isOnlineCLBSlave"
+            v-db-console="'common.clb'">
+            <OperationBtnStatusTips
+              :data="data"
+              :disabled="!data.isOffline">
+              <AuthButton
+                action-id="tendbcluster_add_clb"
+                :disabled="data.isOffline"
+                :permission="data.permission.tendbcluster_add_clb"
+                :resource="data.id"
+                text
+                @click="
+                  () =>
+                    handleAddClb({
+                      details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id, spider_role: 'spider_slave' },
+                    })
+                ">
+                {{ t('启用 Spider Slave 负载均衡（CLB）') }}
+              </AuthButton>
+            </OperationBtnStatusTips>
+          </BkDropdownItem>
+          <BkDropdownItem
+            v-if="data.isOnlineCLBMaster"
+            v-db-console="'common.clb'">
+            <OperationBtnStatusTips
+              :data="data"
+              :disabled="!data.isOffline">
+              <AuthButton
+                action-id="tendbcluster_clb_bind_domain"
+                :disabled="data.isOffline"
+                :permission="data.permission.tendbcluster_clb_bind_domain"
+                :resource="data.id"
+                text
+                @click="
+                  () =>
+                    handleBindOrUnbindClb(
+                      {
+                        details: {
+                          cluster_id: data.id,
+                          bk_cloud_id: data.bk_cloud_id,
+                          spider_role: 'spider_master',
+                        },
+                      },
+                      data.dns_to_clb,
+                    )
+                ">
+                {{ data.dns_to_clb ? t('恢复主域名直连 Spider Master') : t('配置主域名指向负载均衡器（CLB）') }}
+              </AuthButton>
+            </OperationBtnStatusTips>
+          </BkDropdownItem>
+          <BkDropdownItem
+            v-if="data.isOnlineCLBSlave"
+            v-db-console="'common.clb'">
+            <OperationBtnStatusTips
+              :data="data"
+              :disabled="!data.isOffline">
+              <AuthButton
+                action-id="tendbcluster_clb_bind_domain"
+                :disabled="data.isOffline"
+                :permission="data.permission.tendbcluster_clb_bind_domain"
+                :resource="data.id"
+                text
+                @click="
+                  () =>
+                    handleBindOrUnbindClb(
+                      {
+                        details: {
+                          cluster_id: data.id,
+                          bk_cloud_id: data.bk_cloud_id,
+                          spider_role: 'spider_slave',
+                        },
+                      },
+                      data.dns_to_clb,
+                    )
+                ">
+                {{ data.dns_to_clb ? t('恢复从域名直连 Spider Slave') : t('配置从域名指向负载均衡器（CLB）') }}
+              </AuthButton>
+            </OperationBtnStatusTips>
+          </BkDropdownItem>
+          <BkDropdownItem
             v-if="data.isOnline"
             v-db-console="'tendbCluster.clusterManage.disable'">
             <OperationBtnStatusTips :data="data">
@@ -184,7 +298,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
+  import TendbClusterDetailModel from '@services/model/tendbcluster/tendbcluster-detail';
   import { getTendbclusterDetail, getTendbclusterPrimary } from '@services/source/tendbcluster';
   import { createTicket } from '@services/source/ticket';
 
@@ -197,8 +311,9 @@
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
   import { ActionPanel, DisplayBox } from '@views/db-manage/common/cluster-details';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
+  import ClusterEntryPanel from '@views/db-manage/common/cluster-entry-panel/Index.vue';
   import ClusterExportData from '@views/db-manage/common/cluster-export-data/Index.vue';
-  import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
+  import { useAddClb, useBindOrUnbindClb, useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
 
   import { messageWarn } from '@utils';
@@ -217,7 +332,18 @@
   const { t } = useI18n();
   const ticketMessage = useTicketMessage();
 
-  const data = ref<TendbClusterModel>();
+  const { handleAddClb } = useAddClb<{
+    bk_cloud_id: number;
+    cluster_id: number;
+    spider_role: string; // spider_master / spider_slave'
+  }>(ClusterTypes.TENDBCLUSTER);
+  const { handleBindOrUnbindClb } = useBindOrUnbindClb<{
+    bk_cloud_id: number;
+    cluster_id: number;
+    spider_role: string; // spider_master / spider_slave'
+  }>(ClusterTypes.TENDBCLUSTER);
+
+  const data = ref<TendbClusterDetailModel>();
   const isAuthorizeShow = ref(false);
   const isShowDataExport = ref(false);
   const removeMNTInstanceIds = ref<number[]>([]);
@@ -246,7 +372,7 @@
 
   const { loading: isLoading, run: fetchClusterDetail } = useRequest(getTendbclusterDetail, {
     manual: true,
-    onSuccess(result: TendbClusterModel) {
+    onSuccess(result: TendbClusterDetailModel) {
       data.value = result;
     },
   });
@@ -310,7 +436,7 @@
   };
 
   // 下架只读集群
-  const handleDestroySlave = (data: TendbClusterModel) => {
+  const handleDestroySlave = (data: TendbClusterDetailModel) => {
     InfoBox({
       content: t('下架后将无法访问只读集群'),
       onConfirm: () =>
@@ -330,7 +456,7 @@
   };
 
   // 下架运维节点
-  const handleRemoveMNT = (data: TendbClusterModel) => {
+  const handleRemoveMNT = (data: TendbClusterDetailModel) => {
     InfoBox({
       cancelText: t('取消'),
       confirmText: t('下架'),

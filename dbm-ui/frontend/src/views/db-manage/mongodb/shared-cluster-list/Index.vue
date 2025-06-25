@@ -100,7 +100,9 @@
                 </BkButton>
               </OperationBtnStatusTips>
             </div>
-            <div v-db-console="'mongodb.sharedClusterList.enableCLB'">
+            <div
+              v-if="!data.isOnlineCLB"
+              v-db-console="'common.clb'">
               <OperationBtnStatusTips
                 :data="data"
                 :disabled="!data.isOffline">
@@ -110,8 +112,8 @@
                   :permission="data.permission.mongodb_plugin_create_clb"
                   :resource="data.id"
                   text
-                  @click="handleSwitchClb(data)">
-                  {{ data.isOnlineCLB ? t('禁用CLB') : t('启用CLB') }}
+                  @click="() => handleAddClb({ details: { cluster_id: data.id } })">
+                  {{ t('启用CLB') }}
                 </AuthButton>
               </OperationBtnStatusTips>
             </div>
@@ -257,7 +259,7 @@
   } from '@views/db-manage/common/cluster-table/Index.vue';
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
   import ExcelAuthorize from '@views/db-manage/common/ExcelAuthorize.vue';
-  import { useOperateClusterBasic, useSwitchClb } from '@views/db-manage/common/hooks';
+  import { useAddClb, useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import useGoClusterDetail from '@views/db-manage/hooks/useGoClusterDetail';
   import ShardClusterDetail from '@views/db-manage/mongodb/common/shared-cluster-detail/Index.vue';
@@ -274,7 +276,7 @@
       onSuccess: () => fetchData(),
     },
   );
-  const { handleSwitchClb } = useSwitchClb(ClusterTypes.MONGO_SHARED_CLUSTER);
+  const { handleAddClb } = useAddClb<{ cluster_id: number }>(ClusterTypes.MONGO_SHARED_CLUSTER);
   const {
     batchSearchIpInatanceList,
     clearSearchValue,

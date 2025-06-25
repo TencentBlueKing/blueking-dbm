@@ -12,41 +12,47 @@
 -->
 
 <template>
-  <DbOriginalTable
-    :columns="columns"
-    :data="tableData" />
+  <BkTable :data="[ticketDetails]">
+    <BkTableColumn :label="t('集群')">
+      <template #default="{ data }: { data: Props['ticketDetails'] }">
+        {{ data.details.clusters[data.details.cluster_id].immute_domain }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('集群类型')">
+      <template #default="{ data }: { data: Props['ticketDetails'] }">
+        {{ data.details.clusters[data.details.cluster_id].cluster_type_name }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      v-if="ticketDetails.details.spider_role"
+      :label="t('角色')">
+      <template #default="{ data }: { data: Props['ticketDetails'] }">
+        {{ RoleDisplayMap[data.details.spider_role!] }}
+      </template>
+    </BkTableColumn>
+  </BkTable>
 </template>
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import TicketModel, { type Redis } from '@services/model/ticket/ticket';
+  import type { DetailClusters } from '@services/model/ticket/details/common';
+  import TicketModel from '@services/model/ticket/ticket';
 
   interface Props {
-    ticketDetails: TicketModel<Redis.PluginCreateClb>;
+    ticketDetails: TicketModel<{
+      cluster_id: number;
+      clusters: DetailClusters;
+      spider_role?: string;
+    }>;
   }
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
 
   const { t } = useI18n();
 
-  const columns = [
-    {
-      field: 'clusterName',
-      label: t('集群'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'clusterTypeName',
-      label: t('架构版本'),
-      showOverflowTooltip: true,
-    },
-  ];
-
-  const tableData = computed(() =>
-    Object.values(props.ticketDetails.details.clusters).map((item) => ({
-      clusterName: item.immute_domain,
-      clusterTypeName: item.cluster_type_name,
-    })),
-  );
+  const RoleDisplayMap: Record<string, string> = {
+    spider_master: 'Spider Master',
+    spider_slave: 'Spider Slave',
+  };
 </script>

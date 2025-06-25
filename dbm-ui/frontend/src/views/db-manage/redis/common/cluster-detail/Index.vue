@@ -135,60 +135,64 @@
               </AuthButton>
             </OperationBtnStatusTips>
           </BkDropdownItem>
-          <FunController
+          <!-- <FunController
             controller-id="redis_nameservice"
-            module-id="addons">
-            <BkDropdownItem v-db-console="'redis.clusterManage.enableCLB'">
-              <OperationBtnStatusTips
-                :data="data"
-                :disabled="!data.isOffline">
-                <AuthButton
-                  action-id="redis_plugin_create_clb"
-                  :disabled="data.isOffline"
-                  :permission="data.permission.redis_plugin_create_clb"
-                  :resource="data.id"
-                  style="width: 100%; height: 32px"
-                  text
-                  @click="handleSwitchClb(data)">
-                  {{ data.isOnlineCLB ? t('禁用CLB') : t('启用CLB') }}
-                </AuthButton>
-              </OperationBtnStatusTips>
-            </BkDropdownItem>
-
-            <BkDropdownItem v-db-console="'redis.clusterManage.DNSDomainToCLB'">
-              <OperationBtnStatusTips
-                :data="data"
-                :disabled="!data.isOffline">
-                <AuthButton
-                  action-id="redis_plugin_dns_bind_clb"
-                  :disabled="data.isOffline"
-                  :permission="data.permission.redis_plugin_dns_bind_clb"
-                  :resource="data.id"
-                  style="width: 100%; height: 32px"
-                  text
-                  @click="handleSwitchDNSBindCLB(data)">
-                  {{ data.dns_to_clb ? t('恢复DNS域名指向') : t('DNS域名指向CLB') }}
-                </AuthButton>
-              </OperationBtnStatusTips>
-            </BkDropdownItem>
-
-            <BkDropdownItem v-db-console="'redis.clusterManage.enablePolaris'">
-              <OperationBtnStatusTips
-                :data="data"
-                :disabled="!data.isOffline">
-                <AuthButton
-                  action-id="redis_plugin_create_polaris"
-                  :disabled="data.isOffline"
-                  :permission="data.permission.redis_plugin_create_polaris"
-                  :resource="data.id"
-                  style="width: 100%; height: 32px"
-                  text
-                  @click="handleSwitchPolaris(data)">
-                  {{ data.isOnlinePolaris ? t('禁用北极星') : t('启用北极星') }}
-                </AuthButton>
-              </OperationBtnStatusTips>
-            </BkDropdownItem>
-          </FunController>
+            module-id="addons"> -->
+          <BkDropdownItem
+            v-if="!data.isOnlineCLB"
+            v-db-console="'common.clb'">
+            <OperationBtnStatusTips
+              :data="data"
+              :disabled="!data.isOffline">
+              <AuthButton
+                action-id="redis_plugin_create_clb"
+                :disabled="data.isOffline"
+                :permission="data.permission.redis_plugin_create_clb"
+                :resource="data.id"
+                style="width: 100%; height: 32px"
+                text
+                @click="() => handleAddClb({ details: { cluster_id: data.id } })">
+                {{ t('启用CLB') }}
+              </AuthButton>
+            </OperationBtnStatusTips>
+          </BkDropdownItem>
+          <BkDropdownItem
+            v-if="data.isOnlineCLB"
+            v-db-console="'common.clb'">
+            <OperationBtnStatusTips
+              :data="data"
+              :disabled="!data.isOffline">
+              <AuthButton
+                action-id="redis_plugin_dns_bind_clb"
+                :disabled="data.isOffline"
+                :permission="data.permission.redis_plugin_dns_bind_clb"
+                :resource="data.id"
+                style="width: 100%; height: 32px"
+                text
+                @click="() => handleBindOrUnbindClb({ details: { cluster_id: data.id } }, data.dns_to_clb)">
+                {{ data.dns_to_clb ? t('恢复DNS域名指向') : t('DNS域名指向CLB') }}
+              </AuthButton>
+            </OperationBtnStatusTips>
+          </BkDropdownItem>
+          <BkDropdownItem
+            v-if="!data.isOnlinePolaris"
+            v-db-console="'common.polaris'">
+            <OperationBtnStatusTips
+              :data="data"
+              :disabled="!data.isOffline">
+              <AuthButton
+                action-id="redis_plugin_create_polaris"
+                :disabled="data.isOffline"
+                :permission="data.permission.redis_plugin_create_polaris"
+                :resource="data.id"
+                style="width: 100%; height: 32px"
+                text
+                @click="() => handleAddPolaris({ details: { cluster_id: data.id } })">
+                {{ t('启用北极星') }}
+              </AuthButton>
+            </OperationBtnStatusTips>
+          </BkDropdownItem>
+          <!-- </FunController> -->
           <BkDropdownItem
             v-if="data.isOnline"
             v-db-console="'redis.clusterManage.disable'">
@@ -262,15 +266,11 @@
 </template>
 
 <script setup lang="ts">
-  import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import RedisDetailModel from '@services/model/redis/redis-detail';
   import { getRedisDetail } from '@services/source/redis';
-  import { createTicket } from '@services/source/ticket';
-
-  import { useTicketMessage } from '@hooks';
 
   import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
@@ -278,7 +278,13 @@
 
   import { ActionPanel, DisplayBox } from '@views/db-manage/common/cluster-details';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
-  import { useOperateClusterBasic, useRedisClusterListToToolbox, useSwitchClb } from '@views/db-manage/common/hooks';
+  import {
+    useAddClb,
+    useAddPolaris,
+    useBindOrUnbindClb,
+    useOperateClusterBasic,
+    useRedisClusterListToToolbox,
+  } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import ClusterPassword from '@views/db-manage/redis/common/cluster-oprations/ClusterPassword.vue';
 
@@ -294,8 +300,9 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-  const ticketMessage = useTicketMessage();
-  const { handleSwitchClb } = useSwitchClb(ClusterTypes.REDIS_CLUSTER);
+  const { handleAddClb } = useAddClb<{ cluster_id: number }>(ClusterTypes.REDIS_CLUSTER);
+  const { handleAddPolaris } = useAddPolaris<{ cluster_id: number }>(ClusterTypes.REDIS_CLUSTER);
+  const { handleBindOrUnbindClb } = useBindOrUnbindClb<{ cluster_id: number }>(ClusterTypes.REDIS_CLUSTER);
 
   const { handleToToolbox } = useRedisClusterListToToolbox();
 
@@ -362,57 +369,6 @@
       immediate: true,
     },
   );
-
-  const handleSwitchDNSBindCLB = (data: RedisDetailModel) => {
-    const isBind = data.dns_to_clb;
-    const title = isBind ? t('确认恢复 DNS 域名指向？') : t('确认将 DNS 域名指向 CLB ?');
-    const content = isBind ? t('DNS 域名恢复指向 Proxy') : t('业务不需要更换原域名也可实现负载均衡');
-    const type = isBind ? TicketTypes.REDIS_PLUGIN_DNS_UNBIND_CLB : TicketTypes.REDIS_PLUGIN_DNS_BIND_CLB;
-    InfoBox({
-      content,
-      onConfirm: async () => {
-        const params = {
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          details: {
-            cluster_id: data.id,
-          },
-          ticket_type: type,
-        };
-        await createTicket(params).then((res) => {
-          ticketMessage(res.id);
-        });
-      },
-      title,
-      width: 400,
-    });
-  };
-
-  /**
-   * 集群 北极星启用/禁用
-   */
-  const handleSwitchPolaris = (data: RedisDetailModel) => {
-    const ticketType = data.isOnlinePolaris
-      ? TicketTypes.REDIS_PLUGIN_DELETE_POLARIS
-      : TicketTypes.REDIS_PLUGIN_CREATE_POLARIS;
-
-    const title = ticketType === TicketTypes.REDIS_PLUGIN_CREATE_POLARIS ? t('确定启用北极星') : t('确定禁用北极星');
-    InfoBox({
-      onConfirm: async () => {
-        const params = {
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          details: {
-            cluster_id: data.id,
-          },
-          ticket_type: ticketType,
-        };
-        await createTicket(params).then((res) => {
-          ticketMessage(res.id);
-        });
-      },
-      title,
-      type: 'warning',
-    });
-  };
 
   const handleShowPassword = (id: number) => {
     passwordState.isShow = true;

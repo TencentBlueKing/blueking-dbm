@@ -49,7 +49,7 @@
   </div>
 </template>
 <script lang="ts">
-  import type { ClusterEntryInfo } from './Index.vue';
+  import type { ClusterEntryInfo } from '../Index.vue';
 
   interface Props {
     clusterData: {

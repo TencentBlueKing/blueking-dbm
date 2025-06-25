@@ -73,7 +73,9 @@
               </BkButton>
             </OperationBtnStatusTips>
           </BkDropdownItem>
-          <BkDropdownItem v-db-console="'mongodb.sharedClusterList.enableCLB'">
+          <BkDropdownItem
+            v-if="!data.isOnlineCLB"
+            v-db-console="'common.clb'">
             <OperationBtnStatusTips
               :data="data"
               :disabled="!data.isOffline">
@@ -83,8 +85,8 @@
                 :permission="data.permission.mongodb_plugin_create_clb"
                 :resource="data.id"
                 text
-                @click="handleSwitchClb(data)">
-                {{ data.isOnlineCLB ? t('禁用CLB') : t('启用CLB') }}
+                @click="() => handleAddClb({ details: { cluster_id: data.id } })">
+                {{ t('启用CLB') }}
               </AuthButton>
             </OperationBtnStatusTips>
           </BkDropdownItem>
@@ -175,7 +177,7 @@
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
   import { ActionPanel, DisplayBox } from '@views/db-manage/common/cluster-details';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
-  import { useOperateClusterBasic, useSwitchClb } from '@views/db-manage/common/hooks';
+  import { useAddClb, useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import InstanceList from '@views/db-manage/mongodb/common/ClusterDetailInstanceList.vue';
   import AccessEntry from '@views/db-manage/mongodb/components/AccessEntry.vue';
@@ -230,7 +232,7 @@
     },
   );
 
-  const { handleSwitchClb } = useSwitchClb(ClusterTypes.MONGO_SHARED_CLUSTER);
+  const { handleAddClb } = useAddClb<{ cluster_id: number }>(ClusterTypes.MONGO_SHARED_CLUSTER);
 
   watch(
     () => props.clusterId,
